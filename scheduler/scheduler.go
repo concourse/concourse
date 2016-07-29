@@ -27,16 +27,6 @@ type PipelineDB interface {
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 }
 
-//go:generate counterfeiter . BuildsDB
-
-type BuildsDB interface {
-	LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
-	ErrorBuild(buildID int, pipelineID int, err error) error
-	FinishBuild(int, int, db.Status) error
-
-	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
-}
-
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
@@ -55,7 +45,6 @@ type Scanner interface {
 
 type Scheduler struct {
 	PipelineDB PipelineDB
-	BuildsDB   BuildsDB
 	Factory    BuildFactory
 	Engine     engine.Engine
 	Scanner    Scanner
@@ -108,7 +97,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	if found {
 		logger.Debug("build-already-exists-for-inputs", lager.Data{
-			"existing-build": existingBuild.ID,
+			"existing-build": existingBuild.ID(),
 		})
 
 		return nil
@@ -122,12 +111,12 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	if !created {
 		logger.Debug("waiting-for-existing-build-to-determine-inputs", lager.Data{
-			"existing-build": build.ID,
+			"existing-build": build.ID(),
 		})
 		return nil
 	}
 
-	logger = logger.WithData(lager.Data{"build-id": build.ID, "build-name": build.Name})
+	logger = logger.WithData(lager.Data{"build-id": build.ID(), "build-name": build.Name()})
 
 	logger.Info("created-build")
 
@@ -164,7 +153,7 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 			return
 		}
 
-		logger = logger.WithData(lager.Data{"build-id": build.ID, "build-name": build.Name})
+		logger = logger.WithData(lager.Data{"build-id": build.ID(), "build-name": build.Name()})
 
 		jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 		if err != nil {
@@ -178,7 +167,12 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 	return wg
 }
 
-func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (db.Build, Waiter, error) {
+func (s *Scheduler) TriggerImmediately(
+	logger lager.Logger,
+	job atc.JobConfig,
+	resources atc.ResourceConfigs,
+	resourceTypes atc.ResourceTypes,
+) (db.Build, Waiter, error) {
 	logger = logger.Session("trigger-immediately", lager.Data{
 		"job": job.Name,
 	})
@@ -186,14 +180,14 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 	build, err := s.PipelineDB.CreateJobBuild(job.Name)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
-		return db.Build{}, nil, err
+		return nil, nil, err
 	}
 
-	logger = logger.WithData(lager.Data{"build-id": build.ID, "build-name": build.Name})
+	logger = logger.WithData(lager.Data{"build-id": build.ID(), "build-name": build.Name()})
 
 	jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 	if err != nil {
-		return db.Build{}, nil, err
+		return nil, nil, err
 	}
 
 	wg := new(sync.WaitGroup)
@@ -244,7 +238,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 ) engine.Build {
 	logger = logger.Session("scheduling")
 
-	lease, acquired, err := s.BuildsDB.LeaseBuildScheduling(logger, build.ID, 10*time.Second)
+	lease, acquired, err := build.LeaseScheduling(logger, 10*time.Second)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return nil
@@ -256,7 +250,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 
 	defer lease.Break()
 
-	buildPrep, found, err := s.BuildsDB.GetBuildPreparation(build.ID)
+	buildPrep, found, err := build.GetPreparation()
 	if err != nil {
 		logger.Error("failed-to-get-build-prep", err)
 		return nil
@@ -274,7 +268,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		})
 
 		if reason == "failed-to-scan" {
-			err = s.BuildsDB.ErrorBuild(build.ID, build.PipelineID, err)
+			err = build.MarkAsFailed(err)
 			if err != nil {
 				logger.Error("failed-to-mark-build-as-errored", err)
 			}
@@ -282,14 +276,14 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		return nil
 	}
 
-	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, build.ID, reason) {
+	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, build.ID(), reason) {
 		return nil
 	}
 
 	plan, err := s.Factory.Create(job, resources, resourceTypes, inputs)
 	if err != nil {
-		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
-		err := s.BuildsDB.FinishBuild(build.ID, build.PipelineID, db.StatusErrored)
+		// Don't use MarkAsFailed because it logs a build event, and this build hasn't started
+		err := build.Finish(db.StatusErrored)
 		if err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
 		}

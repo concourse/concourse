@@ -111,4 +111,10 @@ var Migrations = []migration.Migrator{
 	MakeContainersExpiresAtNullable,
 	AddContainerIDToVolumes,
 	AddOnDeleteSetNullToFKeyContainerId,
+	AddUAAAuthToTeams,
+	AddTeamIDToBuilds,
+	AddPublicToPipelines,
+	AddTeamIDToWorkers,
+	AddTeamIDToContainers,
+	AddTeamIDToVolumes,
 }

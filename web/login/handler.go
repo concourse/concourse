@@ -48,7 +48,12 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	client := handler.clientFactory.Build(r)
 
-	authMethods, err := client.ListAuthMethods()
+	teamName := r.FormValue(":team_name")
+	if teamName == "" {
+		teamName = atc.DefaultTeamName
+	}
+	team := client.Team(teamName)
+	authMethods, err := team.ListAuthMethods()
 	if err != nil {
 		handler.logger.Error("failed-to-list-auth-methods", err)
 		w.WriteHeader(http.StatusInternalServerError)

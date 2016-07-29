@@ -12,13 +12,7 @@ type Server struct {
 	oAuthBaseURL    string
 	tokenGenerator  auth.TokenGenerator
 	providerFactory auth.ProviderFactory
-	db              AuthDB
-}
-
-//go:generate counterfeiter . AuthDB
-
-type AuthDB interface {
-	GetTeamByName(teamName string) (db.SavedTeam, bool, error)
+	teamDBFactory   db.TeamDBFactory
 }
 
 func NewServer(
@@ -27,7 +21,7 @@ func NewServer(
 	oAuthBaseURL string,
 	tokenGenerator auth.TokenGenerator,
 	providerFactory auth.ProviderFactory,
-	db AuthDB,
+	teamDBFactory db.TeamDBFactory,
 ) *Server {
 	return &Server{
 		logger:          logger,
@@ -35,6 +29,6 @@ func NewServer(
 		oAuthBaseURL:    oAuthBaseURL,
 		tokenGenerator:  tokenGenerator,
 		providerFactory: providerFactory,
-		db:              db,
+		teamDBFactory:   teamDBFactory,
 	}
 }

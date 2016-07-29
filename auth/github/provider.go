@@ -1,6 +1,7 @@
 package github
 
 import (
+	"github.com/concourse/atc/auth/verifier"
 	"github.com/concourse/atc/db"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
@@ -10,15 +11,8 @@ const ProviderName = "github"
 
 var Scopes = []string{"read:org"}
 
-type AuthorizationMethod struct {
-	Organization string
-	Team         string
-
-	User string
-}
-
 func NewProvider(
-	gitHubAuth db.GitHubAuth,
+	gitHubAuth *db.GitHubAuth,
 	redirectURL string,
 ) Provider {
 	client := NewClient(gitHubAuth.APIURL)
@@ -30,7 +24,7 @@ func NewProvider(
 	}
 
 	return Provider{
-		Verifier: NewVerifierBasket(
+		Verifier: verifier.NewVerifierBasket(
 			NewTeamVerifier(dbTeamsToGitHubTeams(gitHubAuth.Teams), client),
 			NewOrganizationVerifier(gitHubAuth.Organizations, client),
 			NewUserVerifier(gitHubAuth.Users, client),
@@ -52,7 +46,7 @@ type Provider struct {
 	// Exchange(context.Context, string) (*oauth2.Token, error)
 	// Client(context.Context, *oauth2.Token) *http.Client
 
-	Verifier
+	verifier.Verifier
 }
 
 func dbTeamsToGitHubTeams(dbteams []db.GitHubTeam) []Team {

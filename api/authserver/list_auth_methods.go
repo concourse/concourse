@@ -2,6 +2,7 @@ package authserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 
@@ -14,19 +15,27 @@ import (
 const BasicAuthDisplayName = "Basic Auth"
 
 func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
-	team, found, err := s.db.GetTeamByName(atc.DefaultTeamName)
+	teamName := r.FormValue(":team_name")
+	if teamName == "" {
+		teamName = atc.DefaultTeamName
+	}
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
+	team, found, err := teamDB.GetTeam()
 	if err != nil {
+		s.logger.Error("failed-to-get-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	if !found {
+		s.logger.Info("team-not-found")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	methods := []atc.AuthMethod{}
-	providers, err := s.providerFactory.GetProviders(atc.DefaultTeamName)
+	providers, err := s.providerFactory.GetProviders(teamName)
 	if err != nil {
+		s.logger.Error("failed-to-get-providers", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -36,10 +45,12 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 			rata.Params{"provider": name},
 		)
 		if err != nil {
+			s.logger.Error("failed-to-create-path-for-route", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
+		path = path + fmt.Sprintf("?team_name=%s", teamName)
 		methods = append(methods, atc.AuthMethod{
 			Type:        atc.AuthTypeOAuth,
 			DisplayName: provider.DisplayName(),
@@ -47,12 +58,13 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if team.BasicAuth.BasicAuthPassword != "" {
+	if team.BasicAuth != nil {
 		path, err := web.Routes.CreatePathForRoute(
-			web.BasicAuth,
-			rata.Params{},
+			web.GetBasicAuthLogIn,
+			rata.Params{"team_name": teamName},
 		)
 		if err != nil {
+			s.logger.Error("failed-to-create-path-for-route", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

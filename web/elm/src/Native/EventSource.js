@@ -1,62 +1,57 @@
-Elm.Native.EventSource = {};
-Elm.Native.EventSource.make = function(localRuntime) {
-  localRuntime.Native = localRuntime.Native || {};
-  localRuntime.Native.EventSource = localRuntime.Native.EventSource || {};
-  if (localRuntime.Native.EventSource.values) {
-    return localRuntime.Native.EventSource.values;
-  }
+var _concourse$atc$Native_EventSource = function() {
+  function open(url, settings) {
+    return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+      var source = new EventSource(url);
 
-  var Task = Elm.Native.Task.make (localRuntime);
-  var Maybe = Elm.Maybe.make(localRuntime);
-  var Utils = Elm.Native.Utils.make (localRuntime);
-
-  function connect(uri, settings) {
-    return Task.asyncFunction(function(callback) {
-      var es = new EventSource(uri);
-
-      if (settings.onOpen.ctor === "Just") {
-        es.onopen = function() {
-          Task.perform(settings.onOpen._0._0(Utils.Tuple0));
-        };
-      }
-
-      if (settings.onError.ctor === "Just") {
-        es.onerror = function(e) {
-          Task.perform(settings.onError._0._0(Utils.Tuple0));
-        };
-      }
-
-      callback(Task.succeed(es));
-    });
-  }
-
-  function on(eventName, address, es) {
-    return Task.asyncFunction(function(callback) {
-      es.addEventListener(eventName, function(event) {
-        Task.perform(address._0({
-          ctor: "Event",
-          lastEventId: event.lastEventId ? Maybe.Just(event.lastEventId) : Maybe.Nothing,
-          name: event.type ? Maybe.Just(event.type) : Maybe.Nothing,
+      function dispatchEvent(event) {
+        var ev = {
           data: event.data
-        }));
+        }
+
+        if (event.type !== undefined) {
+          ev.name = _elm_lang$core$Maybe$Just(event.type);
+        } else {
+          ev.name = _elm_lang$core$Maybe$Nothing;
+        }
+
+        if (event.lastEventId !== undefined) {
+          ev.lastEventId = _elm_lang$core$Maybe$Just(event.lastEventId);
+        } else {
+          ev.lastEventId = _elm_lang$core$Maybe$Nothing;
+        }
+
+        _elm_lang$core$Native_Scheduler.rawSpawn(settings.onEvent(ev));
+      };
+
+      source.onmessage = function(event) {
+        dispatchEvent(event);
+      };
+
+      _elm_lang$core$Native_List.toArray(settings.events).forEach(function(eventType) {
+        source.addEventListener(eventType, function(event) {
+          dispatchEvent(event);
+        });
       });
 
-      callback(Task.succeed(es));
+      source.onopen = function(event) {
+        _elm_lang$core$Native_Scheduler.rawSpawn(settings.onOpen(source));
+      };
+
+      source.onerror = function(event) {
+        _elm_lang$core$Native_Scheduler.rawSpawn(settings.onError(_elm_lang$core$Native_Utils.Tuple0));
+      };
     });
   }
 
-  function close(es) {
-    return Task.asyncFunction(function(callback) {
-      es.close();
-      callback(Task.succeed(Utils.Tuple0));
+  function close(source) {
+    return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+      source.close();
+      callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
     });
   }
 
-  localRuntime.Native.EventSource.values = {
-    connect: F2(connect),
-    on: F3(on),
-    close: close,
+  return {
+    open: F2(open),
+    close: close
   };
-
-  return localRuntime.Native.EventSource.values;
-};
+}();

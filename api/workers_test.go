@@ -29,12 +29,19 @@ var _ = Describe("Workers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
+				userContextReader.GetTeamReturns("some-team", 5, false, true)
 				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("fetches workers by team name from user context", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+				Expect(teamName).To(Equal("some-team"))
 			})
 
 			Context("when the workers can be listed", func() {
 				BeforeEach(func() {
-					workerDB.WorkersReturns([]db.SavedWorker{
+					teamDB.WorkersReturns([]db.SavedWorker{
 						{
 							WorkerInfo: db.WorkerInfo{
 								GardenAddr:       "1.2.3.4:7777",
@@ -103,7 +110,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when getting the workers fails", func() {
 				BeforeEach(func() {
-					workerDB.WorkersReturns(nil, errors.New("oh no!"))
+					teamDB.WorkersReturns(nil, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
@@ -148,6 +155,8 @@ var _ = Describe("Workers API", func() {
 			}
 
 			ttl = "30s"
+			userContextReader.GetTeamReturns("some-team", 1, true, true)
+			userContextReader.GetSystemReturns(true, true)
 		})
 
 		JustBeforeEach(func() {
@@ -185,6 +194,82 @@ var _ = Describe("Workers API", func() {
 				}))
 
 				Expect(savedTTL.String()).To(Equal(ttl))
+			})
+
+			Context("when request is not from tsa", func() {
+				Context("when system claim is not present", func() {
+					BeforeEach(func() {
+						userContextReader.GetSystemReturns(false, false)
+					})
+
+					It("return 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
+
+				Context("when system claim is false", func() {
+					BeforeEach(func() {
+						userContextReader.GetSystemReturns(false, true)
+					})
+
+					It("return 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
+			})
+
+			Context("when payload contains team name", func() {
+				BeforeEach(func() {
+					worker.Team = "some-team"
+				})
+
+				Context("when specified team exists", func() {
+					BeforeEach(func() {
+						teamDB.GetTeamReturns(db.SavedTeam{
+							ID: 2,
+							Team: db.Team{
+								Name: "some-team",
+							},
+						}, true, nil)
+					})
+
+					It("saves team name in db", func() {
+						Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
+
+						savedInfo, _ := workerDB.SaveWorkerArgsForCall(0)
+						Expect(savedInfo.TeamID).To(Equal(2))
+					})
+
+					Context("when saving the worker succeeds", func() {
+						BeforeEach(func() {
+							workerDB.SaveWorkerReturns(db.SavedWorker{}, nil)
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+					})
+
+					Context("when saving the worker fails", func() {
+						BeforeEach(func() {
+							workerDB.SaveWorkerReturns(db.SavedWorker{}, errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+				})
+
+				Context("when specified team does not exist", func() {
+					BeforeEach(func() {
+						teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+					})
+
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
 			})
 
 			Context("when the worker has no name", func() {

@@ -20,11 +20,11 @@ func (execV1DummyEngine) Name() string {
 	return execV1DummyEngineName
 }
 
-func (execV1DummyEngine) CreateBuild(logger lager.Logger, model db.Build, plan atc.Plan) (Build, error) {
+func (execV1DummyEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	return nil, errors.New("dummy engine does not support new builds")
 }
 
-func (execV1DummyEngine) LookupBuild(logger lager.Logger, model db.Build) (Build, error) {
+func (execV1DummyEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	return execV1DummyBuild{}, nil
 }
 
@@ -35,11 +35,11 @@ func (execV1DummyBuild) Metadata() string {
 	return ""
 }
 
-func (execV1DummyBuild) PublicPlan(lager.Logger) (atc.PublicBuildPlan, bool, error) {
+func (execV1DummyBuild) PublicPlan(lager.Logger) (atc.PublicBuildPlan, error) {
 	return atc.PublicBuildPlan{
 		Schema: execV1DummyEngineName,
 		Plan:   nil,
-	}, true, nil
+	}, nil
 }
 
 func (execV1DummyBuild) Abort(lager.Logger) error {

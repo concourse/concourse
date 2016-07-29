@@ -12,7 +12,8 @@ import (
 func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-config")
 	pipelineName := rata.Param(r, "pipeline_name")
-	config, rawConfig, id, err := s.db.GetConfig(atc.DefaultTeamName, pipelineName)
+	teamDB := s.teamDBFactory.GetTeamDB(rata.Param(r, "team_name"))
+	config, rawConfig, id, err := teamDB.GetConfig(pipelineName)
 	if err != nil {
 		if malformedErr, ok := err.(atc.MalformedConfigError); ok {
 			getConfigResponse := atc.ConfigResponse{

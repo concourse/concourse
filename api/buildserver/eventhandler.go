@@ -16,7 +16,7 @@ import (
 const ProtocolVersionHeader = "X-ATC-Stream-Version"
 const CurrentProtocolVersion = "2.0"
 
-func NewEventHandler(logger lager.Logger, buildsDB BuildsDB, buildID int) http.Handler {
+func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var start uint = 0
 		if r.Header.Get("Last-Event-ID") != "" {
@@ -52,9 +52,9 @@ func NewEventHandler(logger lager.Logger, buildsDB BuildsDB, buildID int) http.H
 			writer.writeFlusher = gz
 		}
 
-		events, err := buildsDB.GetBuildEvents(buildID, start)
+		events, err := build.Events(start)
 		if err != nil {
-			logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": buildID, "start": start})
+			logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": build.ID(), "start": start})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

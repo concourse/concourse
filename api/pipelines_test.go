@@ -19,14 +19,26 @@ import (
 )
 
 var _ = Describe("Pipelines API", func() {
+	var pipelineDB *dbfakes.FakePipelineDB
+	var expectedSavedPipeline db.SavedPipeline
+
+	BeforeEach(func() {
+		pipelineDB = new(dbfakes.FakePipelineDB)
+		pipelineDBFactory.BuildReturns(pipelineDB)
+		expectedSavedPipeline = db.SavedPipeline{}
+		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, nil)
+	})
+
 	Describe("GET /api/v1/pipelines", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
+			teamDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
-					ID:     1,
-					Paused: false,
+					ID:       1,
+					Paused:   false,
+					Public:   false,
+					TeamName: "main",
 					Pipeline: db.Pipeline{
 						Name: "a-pipeline",
 						Config: atc.Config{
@@ -41,8 +53,10 @@ var _ = Describe("Pipelines API", func() {
 					},
 				},
 				{
-					ID:     2,
-					Paused: true,
+					ID:       2,
+					Paused:   true,
+					Public:   true,
+					TeamName: "main",
 					Pipeline: db.Pipeline{
 						Name: "another-pipeline",
 						Config: atc.Config{
@@ -77,39 +91,98 @@ var _ = Describe("Pipelines API", func() {
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 		})
 
-		It("returns all active pipelines", func() {
-			body, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
+		Context("when team is set in user context", func() {
+			BeforeEach(func() {
+				userContextReader.GetTeamReturns("some-team", 5, false, true)
+			})
 
-			Expect(body).To(MatchJSON(`[
-      {
-        "name": "a-pipeline",
-        "url": "/pipelines/a-pipeline",
-				"paused": false,
-				"groups": [
-					{
-						"name": "group1",
-						"jobs": ["job1", "job2"],
-						"resources": ["resource1", "resource2"]
-					}
-				]
-      },{
-        "name": "another-pipeline",
-        "url": "/pipelines/another-pipeline",
-				"paused": true,
-				"groups": [
-					{
-						"name": "group2",
-						"jobs": ["job3", "job4"],
-						"resources": ["resource3", "resource4"]
-					}
-				]
-      }]`))
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
+			})
+		})
+
+		Context("when team is not set in user context", func() {
+			BeforeEach(func() {
+				userContextReader.GetTeamReturns("", 0, false, false)
+			})
+
+			It("constructs teamDB with default team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal(atc.DefaultTeamName))
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns only public pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+				{
+					"name": "another-pipeline",
+					"url": "/teams/main/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "main",
+					"groups": [
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+				}]`))
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("returns all pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+				{
+					"name": "a-pipeline",
+					"url": "/teams/main/pipelines/a-pipeline",
+					"paused": false,
+					"public": false,
+					"team_name": "main",
+					"groups": [
+						{
+							"name": "group1",
+							"jobs": ["job1", "job2"],
+							"resources": ["resource1", "resource2"]
+						}
+					]
+				},{
+					"name": "another-pipeline",
+					"url": "/teams/main/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "main",
+					"groups": [
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+				}]`))
+			})
 		})
 
 		Context("when the call to get active pipelines fails", func() {
 			BeforeEach(func() {
-				pipelinesDB.GetAllPipelinesReturns(nil, errors.New("disaster"))
+				teamDB.GetAllPipelinesReturns(nil, errors.New("disaster"))
 			})
 
 			It("returns 500 internal server error", func() {
@@ -118,36 +191,52 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			pipelinesDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{
-				ID:     1,
-				Paused: false,
-				Pipeline: db.Pipeline{
-					Name: "some-specific-pipeline",
+			teamDB.GetPipelinesReturns([]db.SavedPipeline{
+				{
+					ID:       1,
+					Paused:   false,
+					Public:   false,
+					TeamName: "a-team",
+					Pipeline: db.Pipeline{
+						Name: "a-pipeline",
+						Config: atc.Config{
+							Groups: atc.GroupConfigs{
+								{
+									Name:      "group1",
+									Jobs:      []string{"job1", "job2"},
+									Resources: []string{"resource1", "resource2"},
+								},
+							},
+						},
+					},
+				},
+				{
+					ID:       2,
+					Paused:   true,
+					Public:   true,
+					TeamName: "a-team",
+					Pipeline: db.Pipeline{
+						Name: "another-pipeline",
+						Config: atc.Config{
+							Groups: atc.GroupConfigs{
+								{
+									Name:      "group2",
+									Jobs:      []string{"job3", "job4"},
+									Resources: []string{"resource3", "resource4"},
+								},
+							},
+						},
+					},
 				},
 			}, nil)
-
-			configDB.GetConfigReturns(atc.Config{
-				Groups: atc.GroupConfigs{
-					{
-						Name:      "group1",
-						Jobs:      []string{"job1", "job2"},
-						Resources: []string{"resource1", "resource2"},
-					},
-					{
-						Name:      "group2",
-						Jobs:      []string{"job3", "job4"},
-						Resources: []string{"resource3", "resource4"},
-					},
-				},
-			}, atc.RawConfig(""), 42, nil)
 		})
 
 		JustBeforeEach(func() {
-			req, err := http.NewRequest("GET", server.URL+"/api/v1/pipelines/some-specific-pipeline", nil)
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/pipelines", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
@@ -156,80 +245,298 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("returns 200 ok", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		Context("when not authorized", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("", 0, false, false)
+			})
+
+			It("returns only public pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+				{
+					"name": "another-pipeline",
+					"url": "/teams/a-team/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "a-team",
+					"groups": [
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+				}]`))
+			})
 		})
 
-		It("returns application/json", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+		Context("when authenticated", func() {
+			Context("and authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 1, true, true)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("returns all pipelines", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+	      {
+	        "name": "a-pipeline",
+	        "url": "/teams/a-team/pipelines/a-pipeline",
+					"paused": false,
+					"public": false,
+					"team_name": "a-team",
+					"groups": [
+						{
+							"name": "group1",
+							"jobs": ["job1", "job2"],
+							"resources": ["resource1", "resource2"]
+						}
+					]
+	      },{
+	        "name": "another-pipeline",
+	        "url": "/teams/a-team/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "a-team",
+					"groups": [
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+	      }]`))
+				})
+
+				Context("when the call to get active pipelines fails", func() {
+					BeforeEach(func() {
+						teamDB.GetPipelinesReturns(nil, errors.New("disaster"))
+					})
+
+					It("returns 500 internal server error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+
+			Context("but not authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 1, true, true)
+				})
+
+				It("returns only public pipelines", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+					{
+						"name": "another-pipeline",
+						"url": "/teams/a-team/pipelines/another-pipeline",
+						"paused": true,
+						"public": true,
+						"team_name": "a-team",
+						"groups": [
+							{
+								"name": "group2",
+								"jobs": ["job3", "job4"],
+								"resources": ["resource3", "resource4"]
+							}
+						]
+					}]`))
+				})
+			})
+		})
+	})
+
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name", func() {
+		var response *http.Response
+		var savedPipeline db.SavedPipeline
+
+		BeforeEach(func() {
+			savedPipeline = db.SavedPipeline{
+				ID:       1,
+				Paused:   false,
+				Public:   true,
+				TeamName: "a-team",
+				Pipeline: db.Pipeline{
+					Name: "some-specific-pipeline",
+					Config: atc.Config{
+						Groups: atc.GroupConfigs{
+							{
+								Name:      "group1",
+								Jobs:      []string{"job1", "job2"},
+								Resources: []string{"resource1", "resource2"},
+							},
+							{
+								Name:      "group2",
+								Jobs:      []string{"job3", "job4"},
+								Resources: []string{"resource3", "resource4"},
+							},
+						},
+					},
+				},
+			}
+			teamDB.GetPipelineByNameReturns(savedPipeline, nil)
 		})
 
-		It("returns a pipepine JSON", func() {
-			body, err := ioutil.ReadAll(response.Body)
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/pipelines/some-specific-pipeline", nil)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(body).To(MatchJSON(`
-      {
-        "name": "some-specific-pipeline",
-        "url": "/pipelines/some-specific-pipeline",
-				"paused": false,
-				"groups": [
-					{
-						"name": "group1",
-						"jobs": ["job1", "job2"],
-						"resources": ["resource1", "resource2"]
-					},
-					{
-						"name": "group2",
-						"jobs": ["job3", "job4"],
-						"resources": ["resource3", "resource4"]
-					}
-				]
-      }`))
+			req.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("looks up the pipeline in the db via the url param", func() {
+			Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
+			Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-specific-pipeline"))
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("", 0, false, false)
+			})
+
+			Context("and the pipeline is private", func() {
+				BeforeEach(func() {
+					savedPipeline.Public = false
+					teamDB.GetPipelineByNameReturns(savedPipeline, nil)
+				})
+
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+
+			Context("and the pipeline is public", func() {
+				BeforeEach(func() {
+					savedPipeline.Public = true
+					teamDB.GetPipelineByNameReturns(savedPipeline, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+		})
+
+		Context("when authenticated", func() {
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 1, true, true)
+				})
+
+				It("returns 200 ok", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("returns a pipeline JSON", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`
+				{
+					"name": "some-specific-pipeline",
+					"url": "/teams/a-team/pipelines/some-specific-pipeline",
+					"paused": false,
+					"public": true,
+					"team_name": "a-team",
+					"groups": [
+						{
+							"name": "group1",
+							"jobs": ["job1", "job2"],
+							"resources": ["resource1", "resource2"]
+						},
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+				}`))
+				})
+			})
+
+			Context("when not authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 1, true, true)
+				})
+
+				Context("and the pipeline is private", func() {
+					BeforeEach(func() {
+						savedPipeline.Public = false
+						teamDB.GetPipelineByNameReturns(savedPipeline, nil)
+					})
+
+					It("returns 403 forbidden", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
+
+				Context("and the pipeline is public", func() {
+					BeforeEach(func() {
+						savedPipeline.Public = true
+						teamDB.GetPipelineByNameReturns(savedPipeline, nil)
+					})
+
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+			})
 		})
 
 		Context("when the call to get pipeline fails", func() {
 			BeforeEach(func() {
-				pipelinesDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{}, errors.New("disaster"))
+				teamDB.GetPipelineByNameReturns(db.SavedPipeline{}, errors.New("disaster"))
 			})
 
 			It("returns 500 error", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
-		})
-
-		Context("when the call to get the pipeline config fails", func() {
-			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("disaster"))
-			})
-
-			It("returns 500 error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
-
-		It("looks up the pipeline in the db via the url param", func() {
-			Expect(pipelinesDB.GetPipelineByTeamNameAndNameCallCount()).To(Equal(1))
-
-			teamName, actualPipelineName := pipelinesDB.GetPipelineByTeamNameAndNameArgsForCall(0)
-			Expect(actualPipelineName).To(Equal("some-specific-pipeline"))
-			Expect(teamName).To(Equal(atc.DefaultTeamName))
 		})
 	})
 
-	Describe("DELETE /api/v1/pipelines/:pipeline_name", func() {
+	Describe("DELETE /api/v1/teams/:team_name/pipelines/:pipeline_name", func() {
 		var response *http.Response
-		var pipelineDB *dbfakes.FakePipelineDB
-
-		BeforeEach(func() {
-			pipelineDB = new(dbfakes.FakePipelineDB)
-
-			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
-		})
 
 		JustBeforeEach(func() {
 			pipelineName := "a-pipeline-name"
-			req, err := http.NewRequest("DELETE", server.URL+"/api/v1/pipelines/"+pipelineName, nil)
+			req, err := http.NewRequest("DELETE", server.URL+"/api/v1/teams/a-team/pipelines/"+pipelineName, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
@@ -238,34 +545,54 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when the user is logged in", func() {
-			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-			})
-
-			It("returns 204 No Content", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNoContent))
-			})
-
-			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
-				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
-				Expect(pipelineName).To(Equal("a-pipeline-name"))
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
-			})
-
-			It("deletes the named pipeline from the database", func() {
-				Expect(pipelineDB.DestroyCallCount()).To(Equal(1))
-			})
-
-			Context("when an error occurs destroying the pipeline", func() {
+		Context("when authenticated", func() {
+			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					err := errors.New("disaster!")
-					pipelineDB.DestroyReturns(err)
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 42, true, true)
 				})
 
-				It("returns a 500 Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				It("returns 204 No Content", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("injects the proper pipelineDB", func() {
+					pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
+					Expect(pipelineName).To(Equal("a-pipeline-name"))
+					Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
+					actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
+					Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
+				})
+
+				It("deletes the named pipeline from the database", func() {
+					Expect(pipelineDB.DestroyCallCount()).To(Equal(1))
+				})
+
+				Context("when an error occurs destroying the pipeline", func() {
+					BeforeEach(func() {
+						err := errors.New("disaster!")
+						pipelineDB.DestroyReturns(err)
+					})
+
+					It("returns a 500 Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+
+			Context("when requester does not belong to the team", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 42, true, true)
+				})
+
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -275,26 +602,19 @@ var _ = Describe("Pipelines API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Unauthorized", func() {
+			It("returns 401 Unauthorized", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
 
-	Describe("PUT /api/v1/pipelines/:pipeline_name/pause", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/pause", func() {
 		var response *http.Response
-		var pipelineDB *dbfakes.FakePipelineDB
-
-		BeforeEach(func() {
-			pipelineDB = new(dbfakes.FakePipelineDB)
-
-			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
-		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/pause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/pause", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -302,34 +622,54 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		Context("when authenticated", func() {
-			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-			})
-
-			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
-				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
-				Expect(pipelineName).To(Equal("a-pipeline"))
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
-			})
-
-			Context("when pausing the pipeline succeeds", func() {
+			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					pipelineDB.PauseReturns(nil)
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 42, true, true)
 				})
 
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("injects the proper pipelineDB", func() {
+					pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
+					Expect(pipelineName).To(Equal("a-pipeline"))
+					Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
+					actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
+					Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
+				})
+
+				Context("when pausing the pipeline succeeds", func() {
+					BeforeEach(func() {
+						pipelineDB.PauseReturns(nil)
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when pausing the pipeline fails", func() {
+					BeforeEach(func() {
+						pipelineDB.PauseReturns(errors.New("welp"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 
-			Context("when pausing the pipeline fails", func() {
+			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					pipelineDB.PauseReturns(errors.New("welp"))
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 42, true, true)
 				})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -339,26 +679,19 @@ var _ = Describe("Pipelines API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Unauthorized", func() {
+			It("returns 401 Unauthorized", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
 
-	Describe("PUT /api/v1/pipelines/:pipeline_name/unpause", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/unpause", func() {
 		var response *http.Response
-		var pipelineDB *dbfakes.FakePipelineDB
-
-		BeforeEach(func() {
-			pipelineDB = new(dbfakes.FakePipelineDB)
-
-			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
-		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/unpause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/unpause", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -366,34 +699,54 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		Context("when authenticated", func() {
-			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-			})
-
-			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
-				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
-				Expect(pipelineName).To(Equal("a-pipeline"))
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
-			})
-
-			Context("when unpausing the pipeline succeeds", func() {
+			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					pipelineDB.UnpauseReturns(nil)
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 42, true, true)
 				})
 
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("injects the proper pipelineDB", func() {
+					pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
+					Expect(pipelineName).To(Equal("a-pipeline"))
+					Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
+					actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
+					Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
+				})
+
+				Context("when unpausing the pipeline succeeds", func() {
+					BeforeEach(func() {
+						pipelineDB.UnpauseReturns(nil)
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when unpausing the pipeline fails", func() {
+					BeforeEach(func() {
+						pipelineDB.UnpauseReturns(errors.New("welp"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 
-			Context("when unpausing the pipeline fails", func() {
+			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					pipelineDB.UnpauseReturns(errors.New("welp"))
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 42, true, true)
 				})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -403,13 +756,167 @@ var _ = Describe("Pipelines API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Unauthorized", func() {
+			It("returns 401 Unauthorized", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
 
-	Describe("PUT /api/v1/pipelines/ordering", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/reveal", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/reveal", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			Context("when requester belongs to the team", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 42, true, true)
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("injects the proper pipelineDB", func() {
+					pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
+					Expect(pipelineName).To(Equal("a-pipeline"))
+					Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
+					actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
+					Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
+				})
+
+				Context("when revealing the pipeline succeeds", func() {
+					BeforeEach(func() {
+						pipelineDB.RevealReturns(nil)
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when revealing the pipeline fails", func() {
+					BeforeEach(func() {
+						pipelineDB.RevealReturns(errors.New("welp"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+
+			Context("when requester does not belong to the team", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 42, true, true)
+				})
+
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/conceal", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/conceal", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			Context("when requester belongs to the team", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 42, true, true)
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("injects the proper pipelineDB", func() {
+					pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
+					Expect(pipelineName).To(Equal("a-pipeline"))
+					Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
+					actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
+					Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
+				})
+
+				Context("when revealing the pipeline succeeds", func() {
+					BeforeEach(func() {
+						pipelineDB.ConcealReturns(nil)
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when revealing the pipeline fails", func() {
+					BeforeEach(func() {
+						pipelineDB.ConcealReturns(errors.New("welp"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+
+			Context("when requester does not belong to the team", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 42, true, true)
+				})
+
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/teams/:team_name/pipelines/ordering", func() {
 		var response *http.Response
 		var body io.Reader
 
@@ -428,7 +935,7 @@ var _ = Describe("Pipelines API", func() {
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/ordering", body)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/ordering", body)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -436,52 +943,72 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		Context("when authenticated", func() {
-			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
+			Context("when requester belonbgs to the team", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 42, true, true)
+				})
+
+				Context("with invalid json", func() {
+					BeforeEach(func() {
+						body = bytes.NewBufferString(`{}`)
+					})
+
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				Context("when ordering the pipelines succeeds", func() {
+					BeforeEach(func() {
+						teamDB.OrderPipelinesReturns(nil)
+					})
+
+					It("orders the pipelines", func() {
+						Expect(teamDB.OrderPipelinesCallCount()).To(Equal(1))
+						pipelineNames := teamDB.OrderPipelinesArgsForCall(0)
+						Expect(pipelineNames).To(Equal(
+							[]string{
+								"a-pipeline",
+								"another-pipeline",
+								"yet-another-pipeline",
+								"one-final-pipeline",
+								"just-kidding",
+							},
+						))
+
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when ordering the pipelines fails", func() {
+					BeforeEach(func() {
+						teamDB.OrderPipelinesReturns(errors.New("welp"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
 			})
 
-			Context("with invalid json", func() {
+			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
-					body = bytes.NewBufferString(`{}`)
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 42, true, true)
 				})
 
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-				})
-			})
-
-			Context("when ordering the pipelines succeeds", func() {
-				BeforeEach(func() {
-					pipelinesDB.OrderPipelinesReturns(nil)
-				})
-
-				It("orders the pipelines", func() {
-					Expect(pipelinesDB.OrderPipelinesCallCount()).To(Equal(1))
-					pipelineNames := pipelinesDB.OrderPipelinesArgsForCall(0)
-					Expect(pipelineNames).To(Equal(
-						[]string{
-							"a-pipeline",
-							"another-pipeline",
-							"yet-another-pipeline",
-							"one-final-pipeline",
-							"just-kidding",
-						},
-					))
-
-				})
-
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-			})
-
-			Context("when ordering the pipelines fails", func() {
-				BeforeEach(func() {
-					pipelinesDB.OrderPipelinesReturns(errors.New("welp"))
-				})
-
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -491,26 +1018,19 @@ var _ = Describe("Pipelines API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Unauthorized", func() {
+			It("returns 401 Unauthorized", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/versions-db", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/versions-db", func() {
 		var response *http.Response
-		var pipelineDB *dbfakes.FakePipelineDB
-
-		BeforeEach(func() {
-			pipelineDB = new(dbfakes.FakePipelineDB)
-
-			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
-		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("GET", server.URL+"/api/v1/pipelines/a-pipeline/versions-db", nil)
+			request, err := http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/versions-db", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -520,6 +1040,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 				//construct Version db
 
 				pipelineDB.LoadVersionsDBReturns(
@@ -563,6 +1084,11 @@ var _ = Describe("Pipelines API", func() {
 					},
 					nil,
 				)
+			})
+
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
 			})
 
 			It("returns 200", func() {
@@ -619,27 +1145,19 @@ var _ = Describe("Pipelines API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Unauthorized", func() {
+			It("returns 401 Unauthorized", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})
 
-	Describe("PUT /api/v1/pipelines/:pipeline_name/rename", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/rename", func() {
 		var response *http.Response
-		var pipelineDB *dbfakes.FakePipelineDB
-
-		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(true)
-			pipelineDB = new(dbfakes.FakePipelineDB)
-
-			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
-		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/rename", bytes.NewBufferString(`{"name":"some-new-name"}`))
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/rename", bytes.NewBufferString(`{"name":"some-new-name"}`))
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -647,30 +1165,54 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		Context("when authenticated", func() {
-			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
-				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
-				Expect(pipelineName).To(Equal("a-pipeline"))
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
-			})
-
-			It("returns 204", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNoContent))
-			})
-
-			It("renames the pipeline to the name provided", func() {
-				Expect(pipelineDB.UpdateNameCallCount()).To(Equal(1))
-				Expect(pipelineDB.UpdateNameArgsForCall(0)).To(Equal("some-new-name"))
-			})
-
-			Context("when an error occurs on update", func() {
+			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
-					pipelineDB.UpdateNameReturns(errors.New("whoops"))
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 42, true, true)
 				})
 
-				It("returns a 500 internal server error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					Expect(logger.LogMessages()).To(ContainElement("callbacks.call-to-update-pipeline-name-failed"))
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("injects the proper pipelineDB", func() {
+					pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
+					Expect(pipelineName).To(Equal("a-pipeline"))
+					Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
+					actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
+					Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
+				})
+
+				It("returns 204", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+				})
+
+				It("renames the pipeline to the name provided", func() {
+					Expect(pipelineDB.UpdateNameCallCount()).To(Equal(1))
+					Expect(pipelineDB.UpdateNameArgsForCall(0)).To(Equal("some-new-name"))
+				})
+
+				Context("when an error occurs on update", func() {
+					BeforeEach(func() {
+						pipelineDB.UpdateNameReturns(errors.New("whoops"))
+					})
+
+					It("returns a 500 internal server error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						Expect(logger.LogMessages()).To(ContainElement("callbacks.call-to-update-pipeline-name-failed"))
+					})
+				})
+			})
+
+			Context("when requester does not belong to the team", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 42, true, true)
+				})
+
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -680,7 +1222,7 @@ var _ = Describe("Pipelines API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns Unauthorized", func() {
+			It("returns 401 Unauthorized", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 		})

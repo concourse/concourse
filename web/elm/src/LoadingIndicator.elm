@@ -1,9 +1,9 @@
-module LoadingIndicator where
+module LoadingIndicator exposing (..)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 
-view : Html
+view : Html x
 view =
   Html.div [class "build-step"]
     [ Html.div [class "header"]

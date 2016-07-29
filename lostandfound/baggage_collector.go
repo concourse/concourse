@@ -18,7 +18,6 @@ type BaggageCollectorDB interface {
 	ReapVolume(string) error
 	GetAllPipelines() ([]db.SavedPipeline, error)
 	GetVolumes() ([]db.SavedVolume, error)
-	GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]db.ResourceCacheIdentifier, error)
 	GetVolumesForOneOffBuildImageResources() ([]db.SavedVolume, error)
 }
 
@@ -114,14 +113,14 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 				"job":      pipelineJob.Name,
 			})
 
-			finished, _, err := pipelineDB.GetJobFinishedAndNextBuild(pipelineJob.Name)
+			finishedBuild, _, err := pipelineDB.GetJobFinishedAndNextBuild(pipelineJob.Name)
 			if err != nil {
 				logger.Error("could-not-acquire-finished-and-next-builds-for-job", err)
 				return nil, err
 			}
 
-			if finished != nil {
-				resourceCacheIdentifiers, err := bc.db.GetImageResourceCacheIdentifiersByBuildID(finished.ID)
+			if finishedBuild != nil {
+				resourceCacheIdentifiers, err := finishedBuild.GetImageResourceCacheIdentifiers()
 				if err != nil {
 					logger.Error("could-not-acquire-volume-identifiers-for-build", err)
 					return nil, err

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
@@ -15,7 +14,7 @@ import (
 )
 
 var _ = Describe("Auth API", func() {
-	Describe("GET /api/v1/auth/token", func() {
+	Describe("GET /api/v1/teams/:team_name/auth/token", func() {
 		var request *http.Request
 		var response *http.Response
 
@@ -25,15 +24,15 @@ var _ = Describe("Auth API", func() {
 			savedTeam = db.SavedTeam{
 				ID: 0,
 				Team: db.Team{
-					Name:  atc.DefaultTeamName,
+					Name:  "some-team",
 					Admin: true,
 				},
 			}
 
-			authDB.GetTeamByNameReturns(savedTeam, true, nil)
+			teamDB.GetTeamReturns(savedTeam, true, nil)
 
 			var err error
-			request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/token", nil)
+			request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/token", nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -120,7 +119,7 @@ var _ = Describe("Auth API", func() {
 				Context("when the team can't be found", func() {
 					BeforeEach(func() {
 						fakeTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
-						authDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+						teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 					})
 
 					It("returns unauthorized", func() {
@@ -145,7 +144,7 @@ var _ = Describe("Auth API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/auth/methods", func() {
+	Describe("GET /api/v1/teams/some-team/auth/methods", func() {
 		Context("when providers are present", func() {
 			var request *http.Request
 			var response *http.Response
@@ -169,18 +168,18 @@ var _ = Describe("Auth API", func() {
 				savedTeam = db.SavedTeam{
 					ID: 0,
 					Team: db.Team{
-						Name: atc.DefaultTeamName,
-						BasicAuth: db.BasicAuth{
+						Name: "some-team",
+						BasicAuth: &db.BasicAuth{
 							BasicAuthUsername: "user",
 							BasicAuthPassword: "password",
 						},
 					},
 				}
 
-				authDB.GetTeamByNameReturns(savedTeam, true, nil)
+				teamDB.GetTeamReturns(savedTeam, true, nil)
 
 				var err error
-				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
+				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -206,17 +205,17 @@ var _ = Describe("Auth API", func() {
 				{
 					"type": "oauth",
 					"display_name": "OAuth Provider 1",
-					"auth_url": "https://oauth.example.com/auth/oauth-provider-1"
+					"auth_url": "https://oauth.example.com/auth/oauth-provider-1?team_name=some-team"
 				},
 				{
 					"type": "oauth",
 					"display_name": "OAuth Provider 2",
-					"auth_url": "https://oauth.example.com/auth/oauth-provider-2"
+					"auth_url": "https://oauth.example.com/auth/oauth-provider-2?team_name=some-team"
 				},
 				{
 					"type": "basic",
 					"display_name": "Basic Auth",
-					"auth_url": "https://example.com/login/basic"
+					"auth_url": "https://example.com/teams/some-team/login/basic"
 				}
 			]`))
 			})
@@ -232,14 +231,14 @@ var _ = Describe("Auth API", func() {
 				savedTeam = db.SavedTeam{
 					ID: 0,
 					Team: db.Team{
-						Name: atc.DefaultTeamName,
+						Name: "some-team",
 					},
 				}
 
-				authDB.GetTeamByNameReturns(savedTeam, true, nil)
+				teamDB.GetTeamReturns(savedTeam, true, nil)
 
 				var err error
-				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
+				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -270,10 +269,10 @@ var _ = Describe("Auth API", func() {
 			var response *http.Response
 
 			BeforeEach(func() {
-				authDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+				teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 
 				var err error
-				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
+				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

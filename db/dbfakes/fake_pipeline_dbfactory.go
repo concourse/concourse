@@ -16,33 +16,6 @@ type FakePipelineDBFactory struct {
 	buildReturns struct {
 		result1 db.PipelineDB
 	}
-	BuildWithIDStub        func(pipelineID int) (db.PipelineDB, error)
-	buildWithIDMutex       sync.RWMutex
-	buildWithIDArgsForCall []struct {
-		pipelineID int
-	}
-	buildWithIDReturns struct {
-		result1 db.PipelineDB
-		result2 error
-	}
-	BuildWithTeamNameAndNameStub        func(teamName, pipelineName string) (db.PipelineDB, error)
-	buildWithTeamNameAndNameMutex       sync.RWMutex
-	buildWithTeamNameAndNameArgsForCall []struct {
-		teamName     string
-		pipelineName string
-	}
-	buildWithTeamNameAndNameReturns struct {
-		result1 db.PipelineDB
-		result2 error
-	}
-	BuildDefaultStub        func() (db.PipelineDB, bool, error)
-	buildDefaultMutex       sync.RWMutex
-	buildDefaultArgsForCall []struct{}
-	buildDefaultReturns     struct {
-		result1 db.PipelineDB
-		result2 bool
-		result3 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -80,113 +53,11 @@ func (fake *FakePipelineDBFactory) BuildReturns(result1 db.PipelineDB) {
 	}{result1}
 }
 
-func (fake *FakePipelineDBFactory) BuildWithID(pipelineID int) (db.PipelineDB, error) {
-	fake.buildWithIDMutex.Lock()
-	fake.buildWithIDArgsForCall = append(fake.buildWithIDArgsForCall, struct {
-		pipelineID int
-	}{pipelineID})
-	fake.recordInvocation("BuildWithID", []interface{}{pipelineID})
-	fake.buildWithIDMutex.Unlock()
-	if fake.BuildWithIDStub != nil {
-		return fake.BuildWithIDStub(pipelineID)
-	} else {
-		return fake.buildWithIDReturns.result1, fake.buildWithIDReturns.result2
-	}
-}
-
-func (fake *FakePipelineDBFactory) BuildWithIDCallCount() int {
-	fake.buildWithIDMutex.RLock()
-	defer fake.buildWithIDMutex.RUnlock()
-	return len(fake.buildWithIDArgsForCall)
-}
-
-func (fake *FakePipelineDBFactory) BuildWithIDArgsForCall(i int) int {
-	fake.buildWithIDMutex.RLock()
-	defer fake.buildWithIDMutex.RUnlock()
-	return fake.buildWithIDArgsForCall[i].pipelineID
-}
-
-func (fake *FakePipelineDBFactory) BuildWithIDReturns(result1 db.PipelineDB, result2 error) {
-	fake.BuildWithIDStub = nil
-	fake.buildWithIDReturns = struct {
-		result1 db.PipelineDB
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipelineDBFactory) BuildWithTeamNameAndName(teamName string, pipelineName string) (db.PipelineDB, error) {
-	fake.buildWithTeamNameAndNameMutex.Lock()
-	fake.buildWithTeamNameAndNameArgsForCall = append(fake.buildWithTeamNameAndNameArgsForCall, struct {
-		teamName     string
-		pipelineName string
-	}{teamName, pipelineName})
-	fake.recordInvocation("BuildWithTeamNameAndName", []interface{}{teamName, pipelineName})
-	fake.buildWithTeamNameAndNameMutex.Unlock()
-	if fake.BuildWithTeamNameAndNameStub != nil {
-		return fake.BuildWithTeamNameAndNameStub(teamName, pipelineName)
-	} else {
-		return fake.buildWithTeamNameAndNameReturns.result1, fake.buildWithTeamNameAndNameReturns.result2
-	}
-}
-
-func (fake *FakePipelineDBFactory) BuildWithTeamNameAndNameCallCount() int {
-	fake.buildWithTeamNameAndNameMutex.RLock()
-	defer fake.buildWithTeamNameAndNameMutex.RUnlock()
-	return len(fake.buildWithTeamNameAndNameArgsForCall)
-}
-
-func (fake *FakePipelineDBFactory) BuildWithTeamNameAndNameArgsForCall(i int) (string, string) {
-	fake.buildWithTeamNameAndNameMutex.RLock()
-	defer fake.buildWithTeamNameAndNameMutex.RUnlock()
-	return fake.buildWithTeamNameAndNameArgsForCall[i].teamName, fake.buildWithTeamNameAndNameArgsForCall[i].pipelineName
-}
-
-func (fake *FakePipelineDBFactory) BuildWithTeamNameAndNameReturns(result1 db.PipelineDB, result2 error) {
-	fake.BuildWithTeamNameAndNameStub = nil
-	fake.buildWithTeamNameAndNameReturns = struct {
-		result1 db.PipelineDB
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipelineDBFactory) BuildDefault() (db.PipelineDB, bool, error) {
-	fake.buildDefaultMutex.Lock()
-	fake.buildDefaultArgsForCall = append(fake.buildDefaultArgsForCall, struct{}{})
-	fake.recordInvocation("BuildDefault", []interface{}{})
-	fake.buildDefaultMutex.Unlock()
-	if fake.BuildDefaultStub != nil {
-		return fake.BuildDefaultStub()
-	} else {
-		return fake.buildDefaultReturns.result1, fake.buildDefaultReturns.result2, fake.buildDefaultReturns.result3
-	}
-}
-
-func (fake *FakePipelineDBFactory) BuildDefaultCallCount() int {
-	fake.buildDefaultMutex.RLock()
-	defer fake.buildDefaultMutex.RUnlock()
-	return len(fake.buildDefaultArgsForCall)
-}
-
-func (fake *FakePipelineDBFactory) BuildDefaultReturns(result1 db.PipelineDB, result2 bool, result3 error) {
-	fake.BuildDefaultStub = nil
-	fake.buildDefaultReturns = struct {
-		result1 db.PipelineDB
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakePipelineDBFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
-	fake.buildWithIDMutex.RLock()
-	defer fake.buildWithIDMutex.RUnlock()
-	fake.buildWithTeamNameAndNameMutex.RLock()
-	defer fake.buildWithTeamNameAndNameMutex.RUnlock()
-	fake.buildDefaultMutex.RLock()
-	defer fake.buildDefaultMutex.RUnlock()
 	return fake.invocations
 }
 

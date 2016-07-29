@@ -31,9 +31,9 @@ var _ = Describe("Resource History", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
-		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
 		config := atc.Config{
@@ -53,10 +53,12 @@ var _ = Describe("Resource History", func() {
 			},
 		}
 
-		savedPipeline, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", config, 0, db.PipelineUnpaused)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDB := teamDBFactory.GetTeamDB("some-team")
+		savedPipeline, _, err = teamDB.SaveConfig("a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "a-pipeline-name")
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -176,7 +178,7 @@ var _ = Describe("Resource History", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).ToNot(HaveOccurred())
 
-				pipelineDB.SaveBuildInput(build.ID, db.BuildInput{
+				pipelineDB.SaveInput(build.ID(), db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: expectedVersions[9].VersionedResource,
 					FirstOccurrence:   true,
@@ -188,7 +190,7 @@ var _ = Describe("Resource History", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				// We resaved a previous SavedVersionedResource in SaveBuildInput()
+				// We resaved a previous SavedVersionedResource in SaveInput()
 				// creating a new newest VersionedResource
 				expectedVersions[9].CheckOrder = 10
 				Expect(historyPage).To(Equal([]db.SavedVersionedResource{expectedVersions[9]}))
@@ -227,7 +229,7 @@ var _ = Describe("Resource History", func() {
 			_, err = pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveBuildInput(build.ID, db.BuildInput{
+			savedVersionedResource, err = pipelineDB.SaveInput(build.ID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -247,7 +249,7 @@ var _ = Describe("Resource History", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveBuildInput(secondBuild.ID, db.BuildInput{
+			savedVersionedResource, err = pipelineDB.SaveInput(secondBuild.ID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -298,7 +300,7 @@ var _ = Describe("Resource History", func() {
 			_, err = pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
+			savedVersionedResource, err = pipelineDB.SaveOutput(build.ID(), db.VersionedResource{
 				Resource: "some-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -314,7 +316,7 @@ var _ = Describe("Resource History", func() {
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveBuildOutput(secondBuild.ID, db.VersionedResource{
+			savedVersionedResource, err = pipelineDB.SaveOutput(secondBuild.ID(), db.VersionedResource{
 				Resource: "some-resource",
 				Type:     "some-type",
 				Version: db.Version{

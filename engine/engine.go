@@ -15,29 +15,12 @@ type Engine interface {
 	LookupBuild(lager.Logger, db.Build) (Build, error)
 }
 
-//go:generate counterfeiter . EngineDB
-
-type EngineDB interface {
-	SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error
-
-	FinishBuild(buildID int, pipelineID int, status db.Status) error
-
-	SaveBuildEngineMetadata(buildID int, metadata string) error
-
-	SaveBuildInput(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
-	SaveBuildOutput(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
-
-	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier db.ResourceCacheIdentifier) error
-
-	GetPipelineByTeamNameAndName(teamName string, pipelineName string) (db.SavedPipeline, error)
-}
-
 //go:generate counterfeiter . Build
 
 type Build interface {
 	Metadata() string
 
-	PublicPlan(lager.Logger) (atc.PublicBuildPlan, bool, error)
+	PublicPlan(lager.Logger) (atc.PublicBuildPlan, error)
 
 	Abort(lager.Logger) error
 	Resume(lager.Logger)

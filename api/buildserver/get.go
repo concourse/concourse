@@ -3,36 +3,15 @@ package buildserver
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/concourse/atc/api/present"
-	"github.com/pivotal-golang/lager"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) GetBuild(w http.ResponseWriter, r *http.Request) {
-	log := s.logger.Session("build-resources")
-	buildID, err := strconv.Atoi(r.FormValue(":build_id"))
-	if err != nil {
-		log.Error("cannot-parse-build-id", err, lager.Data{"buildID": r.FormValue(":build_id")})
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+func (s *Server) GetBuild(build db.Build) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
 
-	dbBuild, found, err := s.db.GetBuild(buildID)
-	if err != nil {
-		log.Error("cannot-find-build", err, lager.Data{"buildID": r.FormValue(":build_id")})
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-
-	build := present.Build(dbBuild)
-
-	json.NewEncoder(w).Encode(build)
+		json.NewEncoder(w).Encode(present.Build(build))
+	})
 }

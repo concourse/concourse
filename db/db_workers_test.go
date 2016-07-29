@@ -17,6 +17,7 @@ var _ = Describe("Keeping track of workers", func() {
 
 	var database db.DB
 
+	var team db.SavedTeam
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
@@ -135,6 +136,26 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
+
+		By("saving worker with the team that exists")
+		team, err = database.CreateTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+
+		infoA.TeamID = team.ID
+		_, err = database.SaveWorker(infoA, ttl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
+
+		By("failing to save worker with the team that does not exist")
+		infoA.TeamID = 999
+		_, err = database.SaveWorker(infoA, ttl)
+		Expect(err).To(HaveOccurred())
+
+		By("saving worker with no team")
+		infoA.TeamID = 0
+		_, err = database.SaveWorker(infoA, ttl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
 	})
 
 	It("it can keep track of a worker", func() {
@@ -168,6 +189,7 @@ var _ = Describe("Keeping track of workers", func() {
 			Platform: "plan9",
 			Tags:     []string{"russ", "cox", "was", "here"},
 			Name:     "workerName2",
+			TeamID:   team.ID,
 		}
 
 		infoC := db.WorkerInfo{
@@ -181,6 +203,9 @@ var _ = Describe("Keeping track of workers", func() {
 			Tags:     []string{"russ", "cox", "was", "here"},
 		}
 
+		_, err = database.CreateTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+
 		_, err = database.SaveWorker(infoA, 0)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -190,7 +215,7 @@ var _ = Describe("Keeping track of workers", func() {
 		_, err = database.SaveWorker(infoC, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("returning one workerinfo by worker id")
+		By("returning one workerinfo by worker name")
 		savedWorker, found, err = database.GetWorker(savedWorkerB.Name)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
@@ -202,6 +227,7 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(savedWorker.ResourceTypes).To(Equal(infoB.ResourceTypes))
 		Expect(savedWorker.Platform).To(Equal(infoB.Platform))
 		Expect(savedWorker.Tags).To(Equal(infoB.Tags))
+		Expect(savedWorker.TeamID).To(Equal(team.ID))
 		Expect(savedWorker.Name).To(Equal(infoB.Name))
 
 		By("expiring TTLs")

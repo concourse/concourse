@@ -305,6 +305,23 @@ var _ = Describe("DBProvider", func() {
 				Expect(found).To(BeFalse())
 			})
 		})
+
+		Context("when we find worker", func() {
+			It("returns the found worker", func() {
+				fakeDB.GetWorkerReturns(db.SavedWorker{
+					WorkerInfo: db.WorkerInfo{
+						Name:   "some-worker",
+						TeamID: 123,
+					},
+				}, true, nil)
+
+				worker, found, workersErr = provider.GetWorker("some-worker")
+				Expect(workersErr).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(worker.Name()).To(Equal("some-worker"))
+				Expect(worker.IsOwnedByTeam()).To(BeTrue())
+			})
+		})
 	})
 
 	Context("when we call to get a container info by identifier", func() {

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	. "github.com/concourse/atc/api/buildserver"
-	"github.com/concourse/atc/api/buildserver/buildserverfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/event"
@@ -31,15 +30,15 @@ func fakeEvent(payload string) event.Envelope {
 
 var _ = Describe("Handler", func() {
 	var (
-		buildsDB *buildserverfakes.FakeBuildsDB
+		build *dbfakes.FakeBuild
 
 		server *httptest.Server
 	)
 
 	BeforeEach(func() {
-		buildsDB = new(buildserverfakes.FakeBuildsDB)
+		build = new(dbfakes.FakeBuild)
 
-		server = httptest.NewServer(NewEventHandler(lagertest.NewTestLogger("test"), buildsDB, 128))
+		server = httptest.NewServer(NewEventHandler(lagertest.NewTestLogger("test"), build))
 	})
 
 	Describe("GET", func() {
@@ -68,7 +67,7 @@ var _ = Describe("Handler", func() {
 
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
-				buildsDB.GetBuildEventsStub = func(buildID int, from uint) (db.EventSource, error) {
+				build.EventsStub = func(from uint) (db.EventSource, error) {
 					fakeEventSource.NextStub = func() (event.Envelope, error) {
 						defer GinkgoRecover()
 
@@ -102,9 +101,8 @@ var _ = Describe("Handler", func() {
 			})
 
 			It("gets the events from the right build, starting at 0", func() {
-				Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
-				actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
-				Expect(actualBuildID).To(Equal(128))
+				Eventually(build.EventsCallCount).Should(Equal(1))
+				actualFrom := build.EventsArgsForCall(0)
 				Expect(actualFrom).To(BeZero())
 			})
 
@@ -159,9 +157,8 @@ var _ = Describe("Handler", func() {
 				})
 
 				It("starts subscribing from after the id", func() {
-					Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
-					actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
-					Expect(actualBuildID).To(Equal(128))
+					Eventually(build.EventsCallCount).Should(Equal(1))
+					actualFrom := build.EventsArgsForCall(0)
 					Expect(actualFrom).To(Equal(uint(2)))
 				})
 			})
@@ -191,7 +188,7 @@ var _ = Describe("Handler", func() {
 					}
 				}
 
-				buildsDB.GetBuildEventsReturns(fakeEventSource, nil)
+				build.EventsReturns(fakeEventSource, nil)
 			})
 
 			AfterEach(func() {
@@ -228,7 +225,7 @@ var _ = Describe("Handler", func() {
 			BeforeEach(func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
 				fakeEventSource.NextReturns(fakeEvent(`{"event":1}`), nil)
-				buildsDB.GetBuildEventsReturns(fakeEventSource, nil)
+				build.EventsReturns(fakeEventSource, nil)
 			})
 
 			JustBeforeEach(func() {
@@ -256,7 +253,7 @@ var _ = Describe("Handler", func() {
 
 		Context("when subscribing to it fails", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildEventsReturns(nil, errors.New("nope"))
+				build.EventsReturns(nil, errors.New("nope"))
 			})
 
 			JustBeforeEach(func() {

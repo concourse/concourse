@@ -9,12 +9,10 @@ import (
 )
 
 type FakeAuthDB struct {
-	GetTeamByNameStub        func(teamName string) (db.SavedTeam, bool, error)
-	getTeamByNameMutex       sync.RWMutex
-	getTeamByNameArgsForCall []struct {
-		teamName string
-	}
-	getTeamByNameReturns struct {
+	GetTeamStub        func() (db.SavedTeam, bool, error)
+	getTeamMutex       sync.RWMutex
+	getTeamArgsForCall []struct{}
+	getTeamReturns     struct {
 		result1 db.SavedTeam
 		result2 bool
 		result3 error
@@ -23,35 +21,27 @@ type FakeAuthDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAuthDB) GetTeamByName(teamName string) (db.SavedTeam, bool, error) {
-	fake.getTeamByNameMutex.Lock()
-	fake.getTeamByNameArgsForCall = append(fake.getTeamByNameArgsForCall, struct {
-		teamName string
-	}{teamName})
-	fake.recordInvocation("GetTeamByName", []interface{}{teamName})
-	fake.getTeamByNameMutex.Unlock()
-	if fake.GetTeamByNameStub != nil {
-		return fake.GetTeamByNameStub(teamName)
+func (fake *FakeAuthDB) GetTeam() (db.SavedTeam, bool, error) {
+	fake.getTeamMutex.Lock()
+	fake.getTeamArgsForCall = append(fake.getTeamArgsForCall, struct{}{})
+	fake.recordInvocation("GetTeam", []interface{}{})
+	fake.getTeamMutex.Unlock()
+	if fake.GetTeamStub != nil {
+		return fake.GetTeamStub()
 	} else {
-		return fake.getTeamByNameReturns.result1, fake.getTeamByNameReturns.result2, fake.getTeamByNameReturns.result3
+		return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 	}
 }
 
-func (fake *FakeAuthDB) GetTeamByNameCallCount() int {
-	fake.getTeamByNameMutex.RLock()
-	defer fake.getTeamByNameMutex.RUnlock()
-	return len(fake.getTeamByNameArgsForCall)
+func (fake *FakeAuthDB) GetTeamCallCount() int {
+	fake.getTeamMutex.RLock()
+	defer fake.getTeamMutex.RUnlock()
+	return len(fake.getTeamArgsForCall)
 }
 
-func (fake *FakeAuthDB) GetTeamByNameArgsForCall(i int) string {
-	fake.getTeamByNameMutex.RLock()
-	defer fake.getTeamByNameMutex.RUnlock()
-	return fake.getTeamByNameArgsForCall[i].teamName
-}
-
-func (fake *FakeAuthDB) GetTeamByNameReturns(result1 db.SavedTeam, result2 bool, result3 error) {
-	fake.GetTeamByNameStub = nil
-	fake.getTeamByNameReturns = struct {
+func (fake *FakeAuthDB) GetTeamReturns(result1 db.SavedTeam, result2 bool, result3 error) {
+	fake.GetTeamStub = nil
+	fake.getTeamReturns = struct {
 		result1 db.SavedTeam
 		result2 bool
 		result3 error
@@ -61,8 +51,8 @@ func (fake *FakeAuthDB) GetTeamByNameReturns(result1 db.SavedTeam, result2 bool,
 func (fake *FakeAuthDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getTeamByNameMutex.RLock()
-	defer fake.getTeamByNameMutex.RUnlock()
+	fake.getTeamMutex.RLock()
+	defer fake.getTeamMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -3,8 +3,10 @@ package auth_test
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -16,7 +18,7 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -28,6 +30,7 @@ import (
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("OAuthCallbackHandler", func() {
@@ -37,12 +40,13 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		fakeProviderFactory *authfakes.FakeProviderFactory
 
-		fakeAuthDB *authfakes.FakeAuthDB
+		fakeTeamDB *dbfakes.FakeTeamDB
 
 		signingKey *rsa.PrivateKey
 
-		server *httptest.Server
-		client *http.Client
+		server  *httptest.Server
+		client  *http.Client
+		sslCert string
 
 		team db.SavedTeam
 	)
@@ -52,8 +56,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		fakeProviderB = new(providerfakes.FakeProvider)
 
 		fakeProviderFactory = new(authfakes.FakeProviderFactory)
-
-		fakeAuthDB = new(authfakes.FakeAuthDB)
 
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
@@ -67,11 +69,45 @@ var _ = Describe("OAuthCallbackHandler", func() {
 			nil,
 		)
 
+		sslCert = `-----BEGIN CERTIFICATE-----
+MIICsjCCAhugAwIBAgIJAJgyGeIL1aiPMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
+BAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQwIBcNMTUwMzE5MjE1NzAxWhgPMjI4ODEyMzEyMTU3MDFa
+MEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJ
+bnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJ
+AoGBAOTD37e9wnQz5fHVPdQdU8rjokOVuFj0wBtQLNO7B2iN+URFaP2wi0KOU0ye
+njISc5M/mpua7Op72/cZ3+bq8u5lnQ8VcjewD1+f3LCq+Os7iE85A/mbEyT1Mazo
+GGo9L/gfz5kNq78L9cQp5lrD04wF0C05QtL8LVI5N9SqT7mlAgMBAAGjgacwgaQw
+HQYDVR0OBBYEFNtN+q97oIhvyUEC+/Sc4q0ASv4zMHUGA1UdIwRuMGyAFNtN+q97
+oIhvyUEC+/Sc4q0ASv4zoUmkRzBFMQswCQYDVQQGEwJBVTETMBEGA1UECBMKU29t
+ZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkggkAmDIZ
+4gvVqI8wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOBgQCZKuxfGc/RrMlz
+aai4+5s0GnhSuq0CdfnpwZR+dXsjMO6dlrD1NgQoQVhYO7UbzktwU1Hz9Mc3XE7t
+HCu8gfq+3WRUgddCQnYJUXtig2yAqmHf/WGR9yYYnfMUDKa85i0inolq1EnLvgVV
+K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
+-----END CERTIFICATE-----
+`
+
+		team = db.SavedTeam{
+			ID: 0,
+			Team: db.Team{
+				Name: atc.DefaultTeamName,
+				UAAAuth: &db.UAAAuth{
+					CFCACert: sslCert,
+				},
+			},
+		}
+
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeTeamDB = new(dbfakes.FakeTeamDB)
+		fakeTeamDB.GetTeamReturns(team, true, nil)
+		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
+
 		handler, err := auth.NewOAuthHandler(
 			lagertest.NewTestLogger("test"),
 			fakeProviderFactory,
+			fakeTeamDBFactory,
 			signingKey,
-			fakeAuthDB,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -86,15 +122,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		client = &http.Client{
 			Transport: &http.Transport{},
 		}
-
-		team = db.SavedTeam{
-			ID: 0,
-			Team: db.Team{
-				Name: atc.DefaultTeamName,
-			},
-		}
-
-		fakeAuthDB.GetTeamByNameReturns(team, true, nil)
 	})
 
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
@@ -134,7 +161,9 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 			Context("when the request's state is valid", func() {
 				BeforeEach(func() {
-					state, err := json.Marshal(auth.OAuthState{})
+					state, err := json.Marshal(auth.OAuthState{
+						TeamName: "some-team",
+					})
 					Expect(err).ToNot(HaveOccurred())
 
 					encodedState := base64.RawURLEncoding.EncodeToString(state)
@@ -172,9 +201,27 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 					It("constructs HTTP client with disable keep alive context", func() {
 						ctx, _ := fakeProviderB.ClientArgsForCall(0)
-						httpClient, ok := ctx.Value(oauth2.HTTPClient).(http.Client)
+						httpClient, ok := ctx.Value(oauth2.HTTPClient).(*http.Client)
 						Expect(ok).To(BeTrue())
 						Expect(httpClient.Transport.(*http.Transport).DisableKeepAlives).To(BeTrue())
+					})
+
+					It("constructs HTTP client with given cert into the cert pool", func() {
+						ctx, _ := fakeProviderB.ClientArgsForCall(0)
+						httpClient, ok := ctx.Value(oauth2.HTTPClient).(*http.Client)
+						Expect(ok).To(BeTrue())
+						tlsConfig := httpClient.Transport.(*http.Transport).TLSClientConfig
+
+						var block *pem.Block
+						block, _ = pem.Decode([]byte(sslCert))
+						cert, err := x509.ParseCertificate(block.Bytes)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(tlsConfig.RootCAs.Subjects()).To(ContainElement(cert.RawSubject))
+					})
+
+					It("looks up the verifier for the team from the 'state' query param", func() {
+						Expect(fakeProviderFactory.GetProvidersCallCount()).To(Equal(1))
+						Expect(fakeProviderFactory.GetProvidersArgsForCall(0)).To(Equal("some-team"))
 					})
 
 					Context("when the token is verified", func() {
@@ -273,6 +320,24 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						})
 					})
 				})
+
+				Context("when the team cannot be found", func() {
+					BeforeEach(func() {
+						fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+					})
+
+					It("returns Not Found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+
+					It("does not set a cookie", func() {
+						Expect(response.Cookies()).To(BeEmpty())
+					})
+
+					It("does not set exchange the token", func() {
+						Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
+					})
+				})
 			})
 
 			Context("when a redirect URI is in the state", func() {
@@ -356,24 +421,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 				})
 			})
 
-			Context("when the team cannot be found", func() {
-				BeforeEach(func() {
-					fakeAuthDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
-				})
-
-				It("returns Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-
-				It("does not set a cookie", func() {
-					Expect(response.Cookies()).To(BeEmpty())
-				})
-
-				It("does not set exchange the token", func() {
-					Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
-				})
-			})
-
 			Context("when the request has no state", func() {
 				BeforeEach(func() {
 					request.URL.RawQuery = url.Values{
@@ -447,8 +494,31 @@ var _ = Describe("OAuthCallbackHandler", func() {
 				request.URL.Path = "/auth/bogus/callback"
 			})
 
-			It("returns Not Found", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			Context("when the request's state is valid", func() {
+				BeforeEach(func() {
+					state, err := json.Marshal(auth.OAuthState{
+						TeamName: "some-team",
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					encodedState := base64.RawURLEncoding.EncodeToString(state)
+
+					request.AddCookie(&http.Cookie{
+						Name:    auth.OAuthStateCookie,
+						Value:   encodedState,
+						Path:    "/",
+						Expires: time.Now().Add(time.Hour),
+					})
+
+					request.URL.RawQuery = url.Values{
+						"code":  {"some-code"},
+						"state": {encodedState},
+					}.Encode()
+				})
+
+				It("returns Not Found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
 			})
 		})
 	})

@@ -121,11 +121,16 @@ const BASIC_AUTH_NO_PASSWORD = "basic-no-password"
 const BASIC_AUTH_NO_USERNAME = "basic-no-username"
 const GITHUB_AUTH = "github"
 const GITHUB_ENTERPRISE_AUTH = "github-enterprise"
+const UAA_AUTH = "cf"
+const UAA_AUTH_NO_CLIENT_SECRET = "cf-no-secret"
+const UAA_AUTH_NO_TOKEN_URL = "cf-no-token-url"
+const UAA_AUTH_NO_SPACE = "cf-no-space"
+const NOT_CONFIGURED_AUTH = "not-configured"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
 
-func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsFlags []string, authTypes ...string) (ifrit.Process, uint16, uint16) {
-	atcCommand, atcPort, tlsPort := getATCCommand(atcBin, atcServerNumber, publiclyViewable, tlsFlags, authTypes...)
+func startATC(atcBin string, atcServerNumber uint16, tlsFlags []string, authTypes ...string) (ifrit.Process, uint16, uint16) {
+	atcCommand, atcPort, tlsPort := getATCCommand(atcBin, atcServerNumber, tlsFlags, authTypes...)
 	atcRunner := ginkgomon.New(ginkgomon.Config{
 		Command:       atcCommand,
 		Name:          "atc",
@@ -135,7 +140,7 @@ func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsF
 	return ginkgomon.Invoke(atcRunner), atcPort, tlsPort
 }
 
-func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsFlags []string, authTypes ...string) (*exec.Cmd, uint16, uint16) {
+func getATCCommand(atcBin string, atcServerNumber uint16, tlsFlags []string, authTypes ...string) (*exec.Cmd, uint16, uint16) {
 	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 
@@ -144,12 +149,7 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 		"--debug-bind-port", fmt.Sprintf("%d", debugPort),
 		"--peer-url", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
 		"--postgres-data-source", postgresRunner.DataSourceName(),
-	}
-
-	if publiclyViewable {
-		params = append(params,
-			"--publicly-viewable",
-		)
+		"--external-url", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
 	}
 
 	for _, authType := range authTypes {
@@ -174,7 +174,6 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 				"--github-auth-organization", "myorg",
 				"--github-auth-team", "myorg/all",
 				"--github-auth-user", "myuser",
-				"--external-url", "http://example.com",
 			)
 		case GITHUB_ENTERPRISE_AUTH:
 			params = append(params,
@@ -186,10 +185,36 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 				"--github-auth-auth-url", "https://github.example.com/login/oauth/authorize",
 				"--github-auth-token-url", "https://github.example.com/login/oauth/access_token",
 				"--github-auth-api-url", "https://github.example.com/api/v3/",
-				"--external-url", "http://example.com",
+			)
+		case UAA_AUTH:
+			params = append(params,
+				"--uaa-auth-client-id", "admin",
+				"--uaa-auth-client-secret", "password",
+				"--uaa-auth-cf-space", "myspace",
+				"--uaa-auth-auth-url", "https://uaa.example.com/oauth/authorize",
+				"--uaa-auth-token-url", "https://uaa.example.com/oauth/token",
+				"--uaa-auth-cf-url", "https://cf.example.com/api",
+			)
+		case UAA_AUTH_NO_CLIENT_SECRET:
+			params = append(params,
+				"--uaa-auth-client-id", "admin",
+			)
+		case UAA_AUTH_NO_SPACE:
+			params = append(params,
+				"--uaa-auth-client-id", "admin",
+				"--uaa-auth-client-secret", "password",
+			)
+		case UAA_AUTH_NO_TOKEN_URL:
+			params = append(params,
+				"--uaa-auth-client-id", "admin",
+				"--uaa-auth-client-secret", "password",
+				"--uaa-auth-cf-space", "myspace",
+				"--uaa-auth-auth-url", "https://uaa.example.com/oauth/authorize",
+				"--uaa-auth-cf-url", "https://cf.example.com/api",
 			)
 		case DEVELOPMENT_MODE:
 			params = append(params, "--development-mode")
+		case NOT_CONFIGURED_AUTH:
 		default:
 			panic("unknown auth type")
 		}

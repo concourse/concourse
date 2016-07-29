@@ -38,9 +38,9 @@
       <div class="page-to-slide">
         <nav>
           <ul class="js-groups groups">
-            <li class="main"><span class="js-pipelinesNav-toggle btn-hamburger" aria-label="Toggle List of Pipelines"><i class="fa fa-bars"></i></span></li><li class="main"><a href="/pipelines/{{.PipelineName}}" aria-label="Back to Pipeline View"><i class="fa fa-home"></i></a></li>
+            <li class="main"><span class="js-pipelinesNav-toggle btn-hamburger" aria-label="Toggle List of Pipelines"><i class="fa fa-bars"></i></span></li><li class="main"><a href="/teams/{{.TeamName}}/pipelines/{{.PipelineName}}" aria-label="Back to Pipeline View"><i class="fa fa-home"></i></a></li>
             {{range .GroupStates}}
-              <li{{if .Enabled}} class="active"{{end}}><a href="/pipelines/{{$.PipelineName}}?groups={{.Name}}">{{.Name}}</a></li>
+              <li{{if .Enabled}} class="active"{{end}}><a href="/teams/{{.TeamName}}/pipelines/{{$.PipelineName}}?groups={{.Name}}">{{.Name}}</a></li>
             {{end}}
           </ul>
           <ul class="nav-right">

@@ -22,6 +22,7 @@ type PutStep struct {
 	stepMetadata   StepMetadata
 	session        resource.Session
 	tags           atc.Tags
+	teamID         int
 	delegate       PutDelegate
 	tracker        resource.Tracker
 	resourceTypes  atc.ResourceTypes
@@ -45,6 +46,7 @@ func newPutStep(
 	stepMetadata StepMetadata,
 	session resource.Session,
 	tags atc.Tags,
+	teamID int,
 	delegate PutDelegate,
 	tracker resource.Tracker,
 	resourceTypes atc.ResourceTypes,
@@ -58,6 +60,7 @@ func newPutStep(
 		stepMetadata:        stepMetadata,
 		session:             session,
 		tags:                tags,
+		teamID:              teamID,
 		delegate:            delegate,
 		tracker:             tracker,
 		resourceTypes:       resourceTypes,
@@ -104,6 +107,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		runSession,
 		resource.ResourceType(step.resourceConfig.Type),
 		step.tags,
+		step.teamID,
 		resourceSources,
 		step.resourceTypes,
 		step.delegate,

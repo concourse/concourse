@@ -1,14 +1,14 @@
-module Concourse.BuildEvents where
+module Concourse.BuildEvents exposing (..)
 
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Json.Decode exposing ((:=))
-import Task exposing (Task)
 
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Metadata exposing (Metadata)
 import Concourse.Version exposing (Version)
-import EventSource exposing (EventSource)
+
+import EventSource
 
 type BuildEvent
   = BuildStatus BuildStatus Date
@@ -40,30 +40,33 @@ type alias Origin =
   , id : String
   }
 
-subscribe : Int -> Signal.Address Action -> Task x EventSource
-subscribe build actions =
-  let
-    settings =
-      EventSource.Settings
-        (Just <| Signal.forwardTo actions (always Opened))
-        (Just <| Signal.forwardTo actions (always Errored))
+subscribe : Int -> Sub Action
+subscribe build =
+  EventSource.listen ("/api/v1/builds/" ++ toString build ++ "/events", ["end", "event"]) parseAction
 
-    connect =
-      EventSource.connect ("/api/v1/builds/" ++ toString build ++ "/events") settings
+parseAction : EventSource.Msg -> Action
+parseAction msg =
+  case msg of
+    EventSource.Event {name, data} ->
+      case name of
+        Just "end" ->
+          End
 
-    eventsSub =
-      EventSource.on "event" <|
-        Signal.forwardTo actions (Event << parseEvent)
+        Just "event" ->
+          Event (parseEvent data)
 
-    endSub =
-      EventSource.on "end" <|
-        Signal.forwardTo actions (always End)
-  in
-    connect `Task.andThen` eventsSub `Task.andThen` endSub
+        _ ->
+          Event (Err ("unknown event type: " ++ toString name ++ " (data: " ++ toString data ++ ")"))
 
-parseEvent : EventSource.Event -> Result String BuildEvent
-parseEvent e =
-  Json.Decode.decodeString decode e.data
+    EventSource.Opened ->
+      Opened
+
+    EventSource.Errored ->
+      Errored
+
+parseEvent : String -> Result String BuildEvent
+parseEvent data =
+  Json.Decode.decodeString decode data
 
 decode : Json.Decode.Decoder BuildEvent
 decode =

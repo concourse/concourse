@@ -1,4 +1,4 @@
-module JobTests where
+module JobTests exposing (..)
 
 import ElmTest exposing (..)
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -8,8 +8,6 @@ import Date
 import Array
 import Http
 import Dict
-import Effects
-import Task
 
 all : Test
 all =
@@ -19,6 +17,7 @@ all =
         someJobInfo =
           { name = "some-job"
           , pipelineName = "some-pipeline"
+          , teamName = "some-team"
           }
       in let
         someBuild =
@@ -32,17 +31,17 @@ all =
             }
           , reapTime = Just (Date.fromTime 0)
           }
-        redirects = Signal.mailbox ""
       in let
         someJob =
           { name = "some-job"
           , pipelineName = "some-pipeline"
+          , teamName = "some-team"
           , finishedBuild = Just someBuild
           , paused = False
           , disableManualTrigger = False
           }
         defaultModel =
-          { redirect = redirects.address
+          { redirect = always Cmd.none
           , jobInfo = someJobInfo
           , job = Nothing
           , pausedChanging = False

@@ -43,6 +43,7 @@ type ContainerMetadata struct {
 	ResourceName         string
 	PipelineID           int
 	PipelineName         string
+	TeamID               int
 	JobName              string
 	StepName             string
 	Type                 ContainerType

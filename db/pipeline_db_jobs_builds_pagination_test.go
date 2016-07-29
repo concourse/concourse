@@ -30,10 +30,13 @@ var _ = Describe("Jobs Builds", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
-		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
+
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDB := teamDBFactory.GetTeamDB("some-team")
 
 		config := atc.Config{
 			Jobs: atc.JobConfigs{
@@ -42,16 +45,16 @@ var _ = Describe("Jobs Builds", func() {
 			},
 		}
 
-		_, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", config, 0, db.PipelineUnpaused)
+		savedPipeline, _, err := teamDB.SaveConfig("a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "a-pipeline-name")
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = sqlDB.SaveConfig(team.Name, "another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
+		otherSavedPipeline, _, err := teamDB.SaveConfig("another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		otherPipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "another-pipeline")
+		otherPipelineDB = pipelineDBFactory.Build(otherSavedPipeline)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -93,47 +96,47 @@ var _ = Describe("Jobs Builds", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
 				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID, Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
 			})
 		})
 
 		Context("with a since that places it in the middle of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Since: builds[6].ID, Limit: 2})
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Since: builds[6].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[5], builds[4]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[5].ID, Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[4].ID, Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[5].ID(), Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[4].ID(), Limit: 2}))
 			})
 		})
 
 		Context("with a since that places it at the end of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Since: builds[2].ID, Limit: 2})
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Since: builds[2].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[1], builds[0]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[1].ID, Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[1].ID(), Limit: 2}))
 				Expect(pagination.Next).To(BeNil())
 			})
 		})
 
 		Context("with an until that places it in the middle of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Until: builds[6].ID, Limit: 2})
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Until: builds[6].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[8], builds[7]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[8].ID, Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[7].ID, Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[8].ID(), Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[7].ID(), Limit: 2}))
 			})
 		})
 
 		Context("with a until that places it at the beginning of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Until: builds[7].ID, Limit: 2})
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Until: builds[7].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
 				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID, Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
 			})
 		})
 	})

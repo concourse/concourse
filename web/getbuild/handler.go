@@ -13,6 +13,7 @@ import (
 type TemplateData struct {
 	GroupStates []group.State
 
+	TeamName     string
 	PipelineName string
 	JobName      string
 
@@ -47,11 +48,13 @@ func NewHandler(
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	logger := handler.logger.Session("handler")
 
-	client := handler.clientFactory.Build(r)
-
+	teamName := r.FormValue(":team_name")
 	pipelineName := r.FormValue(":pipeline_name")
 	jobName := r.FormValue(":job")
 	buildName := r.FormValue(":build")
+
+	client := handler.clientFactory.Build(r)
+	team := client.Team(teamName)
 
 	log := logger.Session("get-build", lager.Data{
 		"pipeline": pipelineName,
@@ -59,7 +62,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		"build":    buildName,
 	})
 
-	requestedBuild, found, err := client.JobBuild(pipelineName, jobName, buildName)
+	requestedBuild, found, err := team.JobBuild(pipelineName, jobName, buildName)
 	if err != nil {
 		log.Error("failed-to-get-build", err)
 		return err
@@ -70,7 +73,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		return nil
 	}
 
-	pipeline, found, err := client.Pipeline(pipelineName)
+	pipeline, found, err := team.Pipeline(pipelineName)
 	if err != nil {
 		log.Error("failed-to-get-pipeline", err)
 		return err
@@ -92,6 +95,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 			return false
 		}),
 
+		TeamName:     teamName,
 		PipelineName: pipelineName,
 		JobName:      jobName,
 

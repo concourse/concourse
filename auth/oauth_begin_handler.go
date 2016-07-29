@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -15,6 +14,7 @@ const OAuthStateCookie = "_concourse_oauth_state"
 
 type OAuthState struct {
 	Redirect string `json:"redirect"`
+	TeamName string `json:"team_name"`
 }
 
 type OAuthBeginHandler struct {
@@ -37,7 +37,7 @@ func NewOAuthBeginHandler(
 
 func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	providerName := r.FormValue(":provider")
-	teamName := atc.DefaultTeamName
+	teamName := r.FormValue("team_name")
 
 	providers, err := handler.providerFactory.GetProviders(teamName)
 	if err != nil {
@@ -62,6 +62,7 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	oauthState, err := json.Marshal(OAuthState{
 		Redirect: r.FormValue("redirect"),
+		TeamName: teamName,
 	})
 	if err != nil {
 		handler.logger.Error("failed-to-marshal-state", err)

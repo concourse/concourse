@@ -1,58 +1,137 @@
-module EventSource where
+effect module EventSource where { subscription = MySub } exposing
+  ( listen
+  , Msg(..)
+  )
 
-{-| This library provides a Task-based interface for attaching to EventSource
-endpoints and subscribing to events.
-# Creating an EventSource
-@docs EventSource, connect
-# Subscribing to events
-@docs Event, on
-# Closing the event source
-@docs close
--}
+import Dict exposing (Dict)
+import Process
+import Task exposing (Task)
 
-import Task
-import Native.EventSource
+import EventSource.LowLevel as ES
 
-{-| An opaque type representing the EventSource.
--}
-type EventSource = EventSource
+type alias SubscriberKey =
+  (String, List String)
 
-{-| Represent events that have appeared from the EventSource.
--}
-type alias Event =
-  { lastEventId : Maybe String
-  , name : Maybe String
-  , data : String
+type SelfMsg
+  = ESEvent SubscriberKey ES.Event
+  | ESOpened SubscriberKey ES.EventSource
+  | ESErrored SubscriberKey
+
+type Msg
+  = Event ES.Event
+  | Opened
+  | Errored
+
+listen : SubscriberKey -> (Msg -> msg) -> Sub msg
+listen key tagger =
+  subscription (MySub key tagger)
+
+
+-- SUBSCRIPTIONS
+
+
+type MySub msg =
+  MySub SubscriberKey (Msg -> msg)
+
+
+subMap : (a -> b) -> MySub a -> MySub b
+subMap func (MySub key tagger) =
+  MySub key (tagger >> func)
+
+
+
+-- EFFECT MANAGER
+
+type alias State msg =
+  Dict SubscriberKey (Source msg)
+
+type alias Source msg =
+  { subs : List (MySub msg)
+  , watcher : Process.Id
+  , source : Maybe ES.EventSource
   }
 
-{-| Configure the EventSource with callbacks.
-  * `onOpen` corresponds to the EventSource `onopen` callback.
-  * `onError` corresponds to the EventSource `onerror` callback.
--}
-type alias Settings =
-  { onOpen : Maybe (Signal.Address ())
-  , onError : Maybe (Signal.Address ())
-  }
 
-{-| Connect to an EventSource endpoint. The `Settings` argument allows you to
-listen for the connection opening and erroring.
-The task produces the EventSource immediately, and never fails. Event handlers
-should be registered with `on`.
--}
-connect : String -> Settings -> Task.Task x EventSource
-connect =
-  Native.EventSource.connect
+init : Task Never (State msg)
+init =
+  Task.succeed Dict.empty
 
-{-| Listen for an event, emitting it to the given address.
-The task produces the EventSource to help with chaining:
-    connect "http://example.com" `andThen` on "event1" addr1 `andThen` on "event2" addr2
--}
-on : String -> Signal.Address Event -> EventSource -> Task.Task x EventSource
-on =
-  Native.EventSource.on
+onEffects : Platform.Router msg SelfMsg -> List (MySub msg) -> State msg -> Task Never (State msg)
+onEffects router subs state =
+  let
+    addSub key tagger msubs =
+      Just (MySub key tagger :: Maybe.withDefault [] msubs)
 
-{-| Close the event source.
--}
-close : EventSource -> Task.Task x ()
-close =
-  Native.EventSource.close
+    insertSub (MySub key tagger) state =
+      Dict.update key (addSub key tagger) state
+
+    desiredSubs =
+      List.foldl insertSub Dict.empty subs
+  in
+    Dict.merge (createSource router) updateSourceSubs closeSource desiredSubs state (Task.succeed Dict.empty)
+
+createSource : Platform.Router msg SelfMsg -> SubscriberKey -> List (MySub msg) -> Task Never (State msg) -> Task Never (State msg)
+createSource router key subs rest =
+  rest `Task.andThen` \state ->
+    Process.spawn (open router key) `Task.andThen` \processId ->
+      Task.succeed (Dict.insert key { subs = subs, watcher = processId, source = Nothing } state)
+
+updateSourceSubs : SubscriberKey -> List (MySub msg) -> Source msg -> Task Never (State msg) -> Task Never (State msg)
+updateSourceSubs key subs source rest =
+  Task.map (Dict.insert key { source | subs = subs }) rest
+
+closeSource : SubscriberKey -> Source msg -> Task Never (State msg) -> Task Never (State msg)
+closeSource key source rest =
+  rest `Task.andThen` \state ->
+    case source.source of
+      Nothing ->
+        Task.succeed (Dict.remove key state)
+
+      Just es ->
+        ES.close es `Task.andThen` \_ ->
+          Task.succeed (Dict.remove key state)
+
+open : Platform.Router msg SelfMsg -> SubscriberKey -> Task Never ES.EventSource
+open router (url, events) =
+  ES.open url
+    { events = events
+    , onEvent = Platform.sendToSelf router << ESEvent (url, events)
+    , onOpen = Platform.sendToSelf router << ESOpened (url, events)
+    , onError = Platform.sendToSelf router << always (ESErrored (url, events))
+    }
+
+onSelfMsg : Platform.Router msg SelfMsg -> SelfMsg -> State msg -> Task Never (State msg)
+onSelfMsg router msg state =
+  case msg of
+    ESEvent key ev ->
+      case Dict.get key state of
+        Nothing ->
+          Task.succeed state
+
+        Just source ->
+          broadcast router (Event ev) source.subs `Task.andThen` \_ ->
+            Task.succeed state
+
+    ESOpened key es ->
+      case Dict.get key state of
+        Nothing ->
+          Task.succeed state
+
+        Just source ->
+          broadcast router Opened source.subs `Task.andThen` \_ ->
+            Task.succeed (Dict.insert key { source | source = Just es } state)
+
+    ESErrored key ->
+      case Dict.get key state of
+        Nothing ->
+          Task.succeed state
+
+        Just source ->
+          broadcast router Errored source.subs `Task.andThen` \_ ->
+            Task.succeed state
+
+broadcast : Platform.Router msg SelfMsg -> Msg -> List (MySub msg) -> Task x ()
+broadcast router msg subs =
+  Task.map (always ()) <|
+    Task.sequence <|
+      List.map (\(MySub _ tagger) -> Platform.sendToApp router (tagger msg)) subs

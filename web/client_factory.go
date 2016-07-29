@@ -7,6 +7,8 @@ import (
 	"github.com/concourse/go-concourse/concourse"
 )
 
+//go:generate counterfeiter . ClientFactory
+
 type ClientFactory interface {
 	Build(request *http.Request) concourse.Client
 }

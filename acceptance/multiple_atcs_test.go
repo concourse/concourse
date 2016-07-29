@@ -36,8 +36,8 @@ var _ = Describe("Multiple ATCs", func() {
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(dbConn, bus)
 
-		atcOneProcess, atcOnePort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
-		atcTwoProcess, atcTwoPort, _ = startATC(atcBin, 2, true, []string{}, BASIC_AUTH)
+		atcOneProcess, atcOnePort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
+		atcTwoProcess, atcTwoPort, _ = startATC(atcBin, 2, []string{}, BASIC_AUTH)
 	})
 
 	AfterEach(func() {

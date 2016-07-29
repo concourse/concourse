@@ -69,11 +69,12 @@ type FakeWorker struct {
 		result2 bool
 		result3 error
 	}
-	CreateVolumeStub        func(lager.Logger, worker.VolumeSpec) (worker.Volume, error)
+	CreateVolumeStub        func(logger lager.Logger, vs worker.VolumeSpec, teamID int) (worker.Volume, error)
 	createVolumeMutex       sync.RWMutex
 	createVolumeArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 worker.VolumeSpec
+		logger lager.Logger
+		vs     worker.VolumeSpec
+		teamID int
 	}
 	createVolumeReturns struct {
 		result1 worker.Volume
@@ -152,6 +153,12 @@ type FakeWorker struct {
 	uptimeArgsForCall []struct{}
 	uptimeReturns     struct {
 		result1 time.Duration
+	}
+	IsOwnedByTeamStub        func() bool
+	isOwnedByTeamMutex       sync.RWMutex
+	isOwnedByTeamArgsForCall []struct{}
+	isOwnedByTeamReturns     struct {
+		result1 bool
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -339,16 +346,17 @@ func (fake *FakeWorker) FindVolumeReturns(result1 worker.Volume, result2 bool, r
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) CreateVolume(arg1 lager.Logger, arg2 worker.VolumeSpec) (worker.Volume, error) {
+func (fake *FakeWorker) CreateVolume(logger lager.Logger, vs worker.VolumeSpec, teamID int) (worker.Volume, error) {
 	fake.createVolumeMutex.Lock()
 	fake.createVolumeArgsForCall = append(fake.createVolumeArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 worker.VolumeSpec
-	}{arg1, arg2})
-	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2})
+		logger lager.Logger
+		vs     worker.VolumeSpec
+		teamID int
+	}{logger, vs, teamID})
+	fake.recordInvocation("CreateVolume", []interface{}{logger, vs, teamID})
 	fake.createVolumeMutex.Unlock()
 	if fake.CreateVolumeStub != nil {
-		return fake.CreateVolumeStub(arg1, arg2)
+		return fake.CreateVolumeStub(logger, vs, teamID)
 	} else {
 		return fake.createVolumeReturns.result1, fake.createVolumeReturns.result2
 	}
@@ -360,10 +368,10 @@ func (fake *FakeWorker) CreateVolumeCallCount() int {
 	return len(fake.createVolumeArgsForCall)
 }
 
-func (fake *FakeWorker) CreateVolumeArgsForCall(i int) (lager.Logger, worker.VolumeSpec) {
+func (fake *FakeWorker) CreateVolumeArgsForCall(i int) (lager.Logger, worker.VolumeSpec, int) {
 	fake.createVolumeMutex.RLock()
 	defer fake.createVolumeMutex.RUnlock()
-	return fake.createVolumeArgsForCall[i].arg1, fake.createVolumeArgsForCall[i].arg2
+	return fake.createVolumeArgsForCall[i].logger, fake.createVolumeArgsForCall[i].vs, fake.createVolumeArgsForCall[i].teamID
 }
 
 func (fake *FakeWorker) CreateVolumeReturns(result1 worker.Volume, result2 error) {
@@ -649,6 +657,31 @@ func (fake *FakeWorker) UptimeReturns(result1 time.Duration) {
 	}{result1}
 }
 
+func (fake *FakeWorker) IsOwnedByTeam() bool {
+	fake.isOwnedByTeamMutex.Lock()
+	fake.isOwnedByTeamArgsForCall = append(fake.isOwnedByTeamArgsForCall, struct{}{})
+	fake.recordInvocation("IsOwnedByTeam", []interface{}{})
+	fake.isOwnedByTeamMutex.Unlock()
+	if fake.IsOwnedByTeamStub != nil {
+		return fake.IsOwnedByTeamStub()
+	} else {
+		return fake.isOwnedByTeamReturns.result1
+	}
+}
+
+func (fake *FakeWorker) IsOwnedByTeamCallCount() int {
+	fake.isOwnedByTeamMutex.RLock()
+	defer fake.isOwnedByTeamMutex.RUnlock()
+	return len(fake.isOwnedByTeamArgsForCall)
+}
+
+func (fake *FakeWorker) IsOwnedByTeamReturns(result1 bool) {
+	fake.IsOwnedByTeamStub = nil
+	fake.isOwnedByTeamReturns = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -682,6 +715,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.nameMutex.RUnlock()
 	fake.uptimeMutex.RLock()
 	defer fake.uptimeMutex.RUnlock()
+	fake.isOwnedByTeamMutex.RLock()
+	defer fake.isOwnedByTeamMutex.RUnlock()
 	return fake.invocations
 }
 

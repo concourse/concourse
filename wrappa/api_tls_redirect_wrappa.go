@@ -55,7 +55,8 @@ func (wrappa *APITLSRedirectWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.HijackContainer,
 			atc.ListVolumes,
 			atc.ListAuthMethods,
-			atc.GetAuthToken:
+			atc.GetAuthToken,
+			atc.ListAllPipelines:
 			newHandler = RedirectingAPIHandler(wrappa.externalHost)
 
 			//except ReadPipe
@@ -80,7 +81,9 @@ func (wrappa *APITLSRedirectWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.DisableResourceVersion,
 			atc.WritePipe,
 			atc.SetLogLevel,
-			atc.SetTeam:
+			atc.SetTeam,
+			atc.ConcealPipeline,
+			atc.RevealPipeline:
 
 		default:
 			panic("you missed a spot")

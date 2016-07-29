@@ -8,12 +8,23 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Job(dbJob db.SavedJob, job atc.JobConfig, groups atc.GroupConfigs, finishedBuild, nextBuild *db.Build) atc.Job {
+func Job(
+	teamName string,
+	dbJob db.SavedJob,
+	job atc.JobConfig,
+	groups atc.GroupConfigs,
+	finishedBuild db.Build,
+	nextBuild db.Build,
+) atc.Job {
 	generator := rata.NewRequestGenerator("", web.Routes)
 
 	req, err := generator.CreateRequest(
 		web.GetJob,
-		rata.Params{"job": job.Name, "pipeline_name": dbJob.PipelineName},
+		rata.Params{
+			"job":           job.Name,
+			"pipeline_name": dbJob.PipelineName,
+			"team_name":     teamName,
+		},
 		nil,
 	)
 	if err != nil {
@@ -23,12 +34,12 @@ func Job(dbJob db.SavedJob, job atc.JobConfig, groups atc.GroupConfigs, finished
 	var presentedNextBuild, presentedFinishedBuild *atc.Build
 
 	if nextBuild != nil {
-		presented := Build(*nextBuild)
+		presented := Build(nextBuild)
 		presentedNextBuild = &presented
 	}
 
 	if finishedBuild != nil {
-		presented := Build(*finishedBuild)
+		presented := Build(finishedBuild)
 		presentedFinishedBuild = &presented
 	}
 

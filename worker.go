@@ -15,6 +15,7 @@ type Worker struct {
 
 	Platform  string   `json:"platform"`
 	Tags      []string `json:"tags"`
+	Team      string   `json:"team"`
 	Name      string   `json:"name"`
 	StartTime int64    `json:"start_time"`
 }

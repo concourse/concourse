@@ -7,18 +7,15 @@ import (
 )
 
 type APIAuthWrappa struct {
-	PubliclyViewable  bool
 	Validator         auth.Validator
 	UserContextReader auth.UserContextReader
 }
 
 func NewAPIAuthWrappa(
-	publiclyViewable bool,
 	validator auth.Validator,
 	userContextReader auth.UserContextReader,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
-		PubliclyViewable:  publiclyViewable,
 		Validator:         validator,
 		UserContextReader: userContextReader,
 	}
@@ -33,67 +30,69 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		newHandler := handler
 
 		switch name {
+		// unauthenticated / delegating to handler
+		case atc.DownloadCLI,
+			atc.ListAuthMethods,
+			atc.GetInfo,
+			atc.BuildEvents,
+			atc.GetBuild,
+			atc.BuildResources,
+			atc.GetBuildPlan,
+			atc.GetBuildPreparation,
+			atc.ListAllPipelines,
+			atc.ListBuilds,
+			atc.GetJobBuild,
+			atc.JobBadge,
+			atc.ListJobs,
+			atc.GetJob,
+			atc.ListJobBuilds,
+			atc.GetResource,
+			atc.ListBuildsWithVersionAsInput,
+			atc.ListBuildsWithVersionAsOutput,
+			atc.ListResources,
+			atc.ListResourceVersions,
+			atc.ListPipelines,
+			atc.GetPipeline:
+
 		// authenticated
 		case atc.GetAuthToken,
 			atc.AbortBuild,
 			atc.CreateBuild,
 			atc.CreatePipe,
+			atc.GetContainer,
+			atc.HijackContainer,
+			atc.ListContainers,
+			atc.ListWorkers,
+			atc.ReadPipe,
+			atc.RegisterWorker,
+			atc.SetLogLevel,
+			atc.SetTeam,
+			atc.WritePipe,
+			atc.ListVolumes,
+			atc.GetLogLevel:
+			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
+
+		// authorized
+		case atc.CheckResource,
+			atc.CreateJobBuild,
 			atc.DeletePipeline,
 			atc.DisableResourceVersion,
 			atc.EnableResourceVersion,
 			atc.GetConfig,
-			atc.GetContainer,
-			atc.HijackContainer,
-			atc.ListContainers,
+			atc.GetVersionsDB,
 			atc.ListJobInputs,
-			atc.ListWorkers,
 			atc.OrderPipelines,
 			atc.PauseJob,
 			atc.PausePipeline,
 			atc.PauseResource,
-			atc.ReadPipe,
-			atc.RegisterWorker,
-			atc.SaveConfig,
-			atc.SetLogLevel,
-			atc.SetTeam,
+			atc.RenamePipeline,
 			atc.UnpauseJob,
 			atc.UnpausePipeline,
 			atc.UnpauseResource,
-			atc.CheckResource,
-			atc.WritePipe,
-			atc.ListVolumes,
-			atc.GetVersionsDB,
-			atc.CreateJobBuild,
-			atc.RenamePipeline:
-			newHandler = auth.CheckAuthHandler(handler, rejector)
-
-		// unauthenticated
-		case atc.ListAuthMethods, atc.GetInfo:
-
-		// unauthenticated if publicly viewable
-		case atc.BuildEvents,
-			atc.DownloadCLI,
-			atc.GetBuild,
-			atc.GetJobBuild,
-			atc.BuildResources,
-			atc.GetJob,
-			atc.JobBadge,
-			atc.GetLogLevel,
-			atc.GetResource,
-			atc.ListResourceVersions,
-			atc.ListBuilds,
-			atc.ListBuildsWithVersionAsInput,
-			atc.ListBuildsWithVersionAsOutput,
-			atc.ListJobBuilds,
-			atc.ListJobs,
-			atc.ListPipelines,
-			atc.GetPipeline,
-			atc.ListResources,
-			atc.GetBuildPlan,
-			atc.GetBuildPreparation:
-			if !wrappa.PubliclyViewable {
-				newHandler = auth.CheckAuthHandler(handler, rejector)
-			}
+			atc.RevealPipeline,
+			atc.ConcealPipeline,
+			atc.SaveConfig:
+			newHandler = auth.CheckAuthorizationHandler(handler, rejector)
 
 		// think about it!
 		default:

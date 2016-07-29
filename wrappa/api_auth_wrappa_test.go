@@ -15,9 +15,9 @@ import (
 
 var _ = Describe("APIAuthWrappa", func() {
 	var (
-		publiclyViewable      bool
 		fakeValidator         *authfakes.FakeValidator
 		fakeUserContextReader *authfakes.FakeUserContextReader
+		publiclyViewable      bool
 	)
 
 	BeforeEach(func() {
@@ -26,7 +26,7 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeUserContextReader = new(authfakes.FakeUserContextReader)
 	})
 
-	unauthed := func(handler http.Handler) http.Handler {
+	unauthenticated := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
 			handler,
 			fakeValidator,
@@ -34,9 +34,20 @@ var _ = Describe("APIAuthWrappa", func() {
 		)
 	}
 
-	authed := func(handler http.Handler) http.Handler {
+	authenticated := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
-			auth.CheckAuthHandler(
+			auth.CheckAuthenticationHandler(
+				handler,
+				auth.UnauthorizedRejector{},
+			),
+			fakeValidator,
+			fakeUserContextReader,
+		)
+	}
+
+	authorized := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			auth.CheckAuthorizationHandler(
 				handler,
 				auth.UnauthorizedRejector{},
 			),
@@ -47,7 +58,8 @@ var _ = Describe("APIAuthWrappa", func() {
 
 	Describe("Wrap", func() {
 		var (
-			inputHandlers rata.Handlers
+			inputHandlers    rata.Handlers
+			expectedHandlers rata.Handlers
 
 			wrappedHandlers rata.Handlers
 		)
@@ -58,169 +70,89 @@ var _ = Describe("APIAuthWrappa", func() {
 			for _, route := range atc.Routes {
 				inputHandlers[route.Name] = &stupidHandler{}
 			}
+
+			expectedHandlers = rata.Handlers{
+				// unauthenticated / delegating to handler
+				atc.GetInfo:                       unauthenticated(inputHandlers[atc.GetInfo]),
+				atc.DownloadCLI:                   unauthenticated(inputHandlers[atc.DownloadCLI]),
+				atc.ListAuthMethods:               unauthenticated(inputHandlers[atc.ListAuthMethods]),
+				atc.BuildEvents:                   unauthenticated(inputHandlers[atc.BuildEvents]),
+				atc.GetBuild:                      unauthenticated(inputHandlers[atc.GetBuild]),
+				atc.BuildResources:                unauthenticated(inputHandlers[atc.BuildResources]),
+				atc.GetBuildPlan:                  unauthenticated(inputHandlers[atc.GetBuildPlan]),
+				atc.GetBuildPreparation:           unauthenticated(inputHandlers[atc.GetBuildPreparation]),
+				atc.ListAllPipelines:              unauthenticated(inputHandlers[atc.ListAllPipelines]),
+				atc.ListBuilds:                    unauthenticated(inputHandlers[atc.ListBuilds]),
+				atc.GetJobBuild:                   unauthenticated(inputHandlers[atc.GetJobBuild]),
+				atc.JobBadge:                      unauthenticated(inputHandlers[atc.JobBadge]),
+				atc.ListJobs:                      unauthenticated(inputHandlers[atc.ListJobs]),
+				atc.GetJob:                        unauthenticated(inputHandlers[atc.GetJob]),
+				atc.ListJobBuilds:                 unauthenticated(inputHandlers[atc.ListJobBuilds]),
+				atc.GetResource:                   unauthenticated(inputHandlers[atc.GetResource]),
+				atc.ListBuildsWithVersionAsInput:  unauthenticated(inputHandlers[atc.ListBuildsWithVersionAsInput]),
+				atc.ListBuildsWithVersionAsOutput: unauthenticated(inputHandlers[atc.ListBuildsWithVersionAsOutput]),
+				atc.ListResources:                 unauthenticated(inputHandlers[atc.ListResources]),
+				atc.ListResourceVersions:          unauthenticated(inputHandlers[atc.ListResourceVersions]),
+				atc.ListPipelines:                 unauthenticated(inputHandlers[atc.ListPipelines]),
+				atc.GetPipeline:                   unauthenticated(inputHandlers[atc.GetPipeline]),
+
+				// authenticated
+				atc.AbortBuild:      authenticated(inputHandlers[atc.AbortBuild]),
+				atc.CreateBuild:     authenticated(inputHandlers[atc.CreateBuild]),
+				atc.CreatePipe:      authenticated(inputHandlers[atc.CreatePipe]),
+				atc.GetAuthToken:    authenticated(inputHandlers[atc.GetAuthToken]),
+				atc.GetContainer:    authenticated(inputHandlers[atc.GetContainer]),
+				atc.GetLogLevel:     authenticated(inputHandlers[atc.GetLogLevel]),
+				atc.HijackContainer: authenticated(inputHandlers[atc.HijackContainer]),
+				atc.ListContainers:  authenticated(inputHandlers[atc.ListContainers]),
+				atc.ListVolumes:     authenticated(inputHandlers[atc.ListVolumes]),
+				atc.ListWorkers:     authenticated(inputHandlers[atc.ListWorkers]),
+				atc.ReadPipe:        authenticated(inputHandlers[atc.ReadPipe]),
+				atc.RegisterWorker:  authenticated(inputHandlers[atc.RegisterWorker]),
+				atc.SetLogLevel:     authenticated(inputHandlers[atc.SetLogLevel]),
+				atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
+				atc.WritePipe:       authenticated(inputHandlers[atc.WritePipe]),
+
+				// authorized
+				atc.CheckResource:          authorized(inputHandlers[atc.CheckResource]),
+				atc.CreateJobBuild:         authorized(inputHandlers[atc.CreateJobBuild]),
+				atc.DeletePipeline:         authorized(inputHandlers[atc.DeletePipeline]),
+				atc.DisableResourceVersion: authorized(inputHandlers[atc.DisableResourceVersion]),
+				atc.EnableResourceVersion:  authorized(inputHandlers[atc.EnableResourceVersion]),
+				atc.GetConfig:              authorized(inputHandlers[atc.GetConfig]),
+				atc.GetVersionsDB:          authorized(inputHandlers[atc.GetVersionsDB]),
+				atc.ListJobInputs:          authorized(inputHandlers[atc.ListJobInputs]),
+				atc.OrderPipelines:         authorized(inputHandlers[atc.OrderPipelines]),
+				atc.PauseJob:               authorized(inputHandlers[atc.PauseJob]),
+				atc.PausePipeline:          authorized(inputHandlers[atc.PausePipeline]),
+				atc.PauseResource:          authorized(inputHandlers[atc.PauseResource]),
+				atc.RenamePipeline:         authorized(inputHandlers[atc.RenamePipeline]),
+				atc.SaveConfig:             authorized(inputHandlers[atc.SaveConfig]),
+				atc.UnpauseJob:             authorized(inputHandlers[atc.UnpauseJob]),
+				atc.UnpausePipeline:        authorized(inputHandlers[atc.UnpausePipeline]),
+				atc.UnpauseResource:        authorized(inputHandlers[atc.UnpauseResource]),
+				atc.RevealPipeline:         authorized(inputHandlers[atc.RevealPipeline]),
+				atc.ConcealPipeline:        authorized(inputHandlers[atc.ConcealPipeline]),
+			}
 		})
 
 		JustBeforeEach(func() {
 			wrappedHandlers = wrappa.NewAPIAuthWrappa(
-				publiclyViewable,
 				fakeValidator,
 				fakeUserContextReader,
 			).Wrap(inputHandlers)
 		})
 
-		Context("when publicly viewable", func() {
-			var expectedHandlers rata.Handlers
-
-			BeforeEach(func() {
-				publiclyViewable = true
-
-				expectedHandlers = rata.Handlers{
-					atc.AbortBuild:             authed(inputHandlers[atc.AbortBuild]),
-					atc.CreateBuild:            authed(inputHandlers[atc.CreateBuild]),
-					atc.CreateJobBuild:         authed(inputHandlers[atc.CreateJobBuild]),
-					atc.CreatePipe:             authed(inputHandlers[atc.CreatePipe]),
-					atc.DeletePipeline:         authed(inputHandlers[atc.DeletePipeline]),
-					atc.DisableResourceVersion: authed(inputHandlers[atc.DisableResourceVersion]),
-					atc.EnableResourceVersion:  authed(inputHandlers[atc.EnableResourceVersion]),
-					atc.GetAuthToken:           authed(inputHandlers[atc.GetAuthToken]),
-					atc.GetConfig:              authed(inputHandlers[atc.GetConfig]),
-					atc.GetContainer:           authed(inputHandlers[atc.GetContainer]),
-					atc.GetVersionsDB:          authed(inputHandlers[atc.GetVersionsDB]),
-					atc.HijackContainer:        authed(inputHandlers[atc.HijackContainer]),
-					atc.ListContainers:         authed(inputHandlers[atc.ListContainers]),
-					atc.ListJobInputs:          authed(inputHandlers[atc.ListJobInputs]),
-					atc.ListVolumes:            authed(inputHandlers[atc.ListVolumes]),
-					atc.ListWorkers:            authed(inputHandlers[atc.ListWorkers]),
-					atc.OrderPipelines:         authed(inputHandlers[atc.OrderPipelines]),
-					atc.PauseJob:               authed(inputHandlers[atc.PauseJob]),
-					atc.PausePipeline:          authed(inputHandlers[atc.PausePipeline]),
-					atc.PauseResource:          authed(inputHandlers[atc.PauseResource]),
-					atc.CheckResource:          authed(inputHandlers[atc.CheckResource]),
-					atc.ReadPipe:               authed(inputHandlers[atc.ReadPipe]),
-					atc.RegisterWorker:         authed(inputHandlers[atc.RegisterWorker]),
-					atc.SaveConfig:             authed(inputHandlers[atc.SaveConfig]),
-					atc.SetLogLevel:            authed(inputHandlers[atc.SetLogLevel]),
-					atc.SetTeam:                authed(inputHandlers[atc.SetTeam]),
-					atc.UnpauseJob:             authed(inputHandlers[atc.UnpauseJob]),
-					atc.UnpausePipeline:        authed(inputHandlers[atc.UnpausePipeline]),
-					atc.UnpauseResource:        authed(inputHandlers[atc.UnpauseResource]),
-					atc.WritePipe:              authed(inputHandlers[atc.WritePipe]),
-					atc.RenamePipeline:         authed(inputHandlers[atc.RenamePipeline]),
-
-					atc.BuildEvents:                   unauthed(inputHandlers[atc.BuildEvents]),
-					atc.BuildResources:                unauthed(inputHandlers[atc.BuildResources]),
-					atc.DownloadCLI:                   unauthed(inputHandlers[atc.DownloadCLI]),
-					atc.GetBuild:                      unauthed(inputHandlers[atc.GetBuild]),
-					atc.GetBuildPlan:                  unauthed(inputHandlers[atc.GetBuildPlan]),
-					atc.GetBuildPreparation:           unauthed(inputHandlers[atc.GetBuildPreparation]),
-					atc.GetInfo:                       unauthed(inputHandlers[atc.GetInfo]),
-					atc.GetJob:                        unauthed(inputHandlers[atc.GetJob]),
-					atc.GetJobBuild:                   unauthed(inputHandlers[atc.GetJobBuild]),
-					atc.GetLogLevel:                   unauthed(inputHandlers[atc.GetLogLevel]),
-					atc.GetPipeline:                   unauthed(inputHandlers[atc.GetPipeline]),
-					atc.GetResource:                   unauthed(inputHandlers[atc.GetResource]),
-					atc.JobBadge:                      unauthed(inputHandlers[atc.JobBadge]),
-					atc.ListAuthMethods:               unauthed(inputHandlers[atc.ListAuthMethods]),
-					atc.ListBuilds:                    unauthed(inputHandlers[atc.ListBuilds]),
-					atc.ListBuildsWithVersionAsInput:  unauthed(inputHandlers[atc.ListBuildsWithVersionAsInput]),
-					atc.ListBuildsWithVersionAsOutput: unauthed(inputHandlers[atc.ListBuildsWithVersionAsOutput]),
-					atc.ListJobBuilds:                 unauthed(inputHandlers[atc.ListJobBuilds]),
-					atc.ListJobs:                      unauthed(inputHandlers[atc.ListJobs]),
-					atc.ListPipelines:                 unauthed(inputHandlers[atc.ListPipelines]),
-					atc.ListResourceVersions:          unauthed(inputHandlers[atc.ListResourceVersions]),
-					atc.ListResources:                 unauthed(inputHandlers[atc.ListResources]),
-				}
-			})
-
-			It("validates sensitive routes, and noop validates public routes", func() {
-				for name, _ := range inputHandlers {
-					Expect(descriptiveRoute{
-						route:   name,
-						handler: wrappedHandlers[name],
-					}).To(Equal(descriptiveRoute{
-						route:   name,
-						handler: expectedHandlers[name],
-					}))
-				}
-			})
-		})
-
-		Context("when not publicly viewable", func() {
-			var expectedHandlers rata.Handlers
-
-			BeforeEach(func() {
-				publiclyViewable = false
-
-				expectedHandlers = rata.Handlers{
-					atc.AbortBuild:             authed(inputHandlers[atc.AbortBuild]),
-					atc.CreateBuild:            authed(inputHandlers[atc.CreateBuild]),
-					atc.CreateJobBuild:         authed(inputHandlers[atc.CreateJobBuild]),
-					atc.CreatePipe:             authed(inputHandlers[atc.CreatePipe]),
-					atc.DeletePipeline:         authed(inputHandlers[atc.DeletePipeline]),
-					atc.DisableResourceVersion: authed(inputHandlers[atc.DisableResourceVersion]),
-					atc.EnableResourceVersion:  authed(inputHandlers[atc.EnableResourceVersion]),
-					atc.GetAuthToken:           authed(inputHandlers[atc.GetAuthToken]),
-					atc.GetConfig:              authed(inputHandlers[atc.GetConfig]),
-					atc.GetContainer:           authed(inputHandlers[atc.GetContainer]),
-					atc.GetVersionsDB:          authed(inputHandlers[atc.GetVersionsDB]),
-					atc.HijackContainer:        authed(inputHandlers[atc.HijackContainer]),
-					atc.ListContainers:         authed(inputHandlers[atc.ListContainers]),
-					atc.ListJobInputs:          authed(inputHandlers[atc.ListJobInputs]),
-					atc.ListVolumes:            authed(inputHandlers[atc.ListVolumes]),
-					atc.ListWorkers:            authed(inputHandlers[atc.ListWorkers]),
-					atc.OrderPipelines:         authed(inputHandlers[atc.OrderPipelines]),
-					atc.PauseJob:               authed(inputHandlers[atc.PauseJob]),
-					atc.PausePipeline:          authed(inputHandlers[atc.PausePipeline]),
-					atc.PauseResource:          authed(inputHandlers[atc.PauseResource]),
-					atc.CheckResource:          authed(inputHandlers[atc.CheckResource]),
-					atc.ReadPipe:               authed(inputHandlers[atc.ReadPipe]),
-					atc.RegisterWorker:         authed(inputHandlers[atc.RegisterWorker]),
-					atc.SaveConfig:             authed(inputHandlers[atc.SaveConfig]),
-					atc.SetLogLevel:            authed(inputHandlers[atc.SetLogLevel]),
-					atc.SetTeam:                authed(inputHandlers[atc.SetTeam]),
-					atc.UnpauseJob:             authed(inputHandlers[atc.UnpauseJob]),
-					atc.UnpausePipeline:        authed(inputHandlers[atc.UnpausePipeline]),
-					atc.UnpauseResource:        authed(inputHandlers[atc.UnpauseResource]),
-					atc.WritePipe:              authed(inputHandlers[atc.WritePipe]),
-					atc.RenamePipeline:         authed(inputHandlers[atc.RenamePipeline]),
-
-					atc.ListAuthMethods: unauthed(inputHandlers[atc.ListAuthMethods]),
-					atc.GetInfo:         unauthed(inputHandlers[atc.GetInfo]),
-
-					atc.BuildEvents:                   authed(inputHandlers[atc.BuildEvents]),
-					atc.BuildResources:                authed(inputHandlers[atc.BuildResources]),
-					atc.DownloadCLI:                   authed(inputHandlers[atc.DownloadCLI]),
-					atc.GetBuild:                      authed(inputHandlers[atc.GetBuild]),
-					atc.GetBuildPreparation:           authed(inputHandlers[atc.GetBuildPreparation]),
-					atc.GetJob:                        authed(inputHandlers[atc.GetJob]),
-					atc.GetJobBuild:                   authed(inputHandlers[atc.GetJobBuild]),
-					atc.GetLogLevel:                   authed(inputHandlers[atc.GetLogLevel]),
-					atc.GetPipeline:                   authed(inputHandlers[atc.GetPipeline]),
-					atc.GetResource:                   authed(inputHandlers[atc.GetResource]),
-					atc.JobBadge:                      authed(inputHandlers[atc.JobBadge]),
-					atc.ListBuilds:                    authed(inputHandlers[atc.ListBuilds]),
-					atc.ListBuildsWithVersionAsInput:  authed(inputHandlers[atc.ListBuildsWithVersionAsInput]),
-					atc.ListBuildsWithVersionAsOutput: authed(inputHandlers[atc.ListBuildsWithVersionAsOutput]),
-					atc.ListJobBuilds:                 authed(inputHandlers[atc.ListJobBuilds]),
-					atc.ListJobs:                      authed(inputHandlers[atc.ListJobs]),
-					atc.ListPipelines:                 authed(inputHandlers[atc.ListPipelines]),
-					atc.ListResourceVersions:          authed(inputHandlers[atc.ListResourceVersions]),
-					atc.ListResources:                 authed(inputHandlers[atc.ListResources]),
-					atc.GetBuildPlan:                  authed(inputHandlers[atc.GetBuildPlan]),
-				}
-			})
-
-			It("validates sensitive routes, and noop validates public routes", func() {
-				for name, _ := range inputHandlers {
-					Expect(descriptiveRoute{
-						route:   name,
-						handler: wrappedHandlers[name],
-					}).To(Equal(descriptiveRoute{
-						route:   name,
-						handler: expectedHandlers[name],
-					}))
-				}
-			})
+		It("validates sensitive routes, and noop validates public routes", func() {
+			for name, _ := range inputHandlers {
+				Expect(descriptiveRoute{
+					route:   name,
+					handler: wrappedHandlers[name],
+				}).To(Equal(descriptiveRoute{
+					route:   name,
+					handler: expectedHandlers[name],
+				}))
+			}
 		})
 	})
 })

@@ -1,4 +1,4 @@
-module DurationTests where
+module DurationTests exposing (..)
 
 import ElmTest exposing (..)
 import Time exposing (Time)

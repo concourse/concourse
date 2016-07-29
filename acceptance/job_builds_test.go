@@ -24,6 +24,7 @@ var _ = Describe("Job Builds", func() {
 	var atcPort uint16
 	var pipelineDBFactory db.PipelineDBFactory
 	var pipelineDB db.PipelineDB
+	var teamDBFactory db.TeamDBFactory
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -31,10 +32,11 @@ var _ = Describe("Job Builds", func() {
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
-		atcProcess, atcPort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
+		atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
 		err := sqlDB.DeleteTeamByName("main")
 		Expect(err).NotTo(HaveOccurred())
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
 	})
 
 	AfterEach(func() {
@@ -58,7 +60,7 @@ var _ = Describe("Job Builds", func() {
 		})
 
 		homepage := func() string {
-			return fmt.Sprintf("http://127.0.0.1:%d/pipelines/%s", atcPort, atc.DefaultPipelineName)
+			return fmt.Sprintf("http://127.0.0.1:%d", atcPort)
 		}
 
 		withPath := func(path string) string {
@@ -71,29 +73,29 @@ var _ = Describe("Job Builds", func() {
 
 			BeforeEach(func() {
 				var err error
-				team, err = sqlDB.SaveTeam(db.Team{Name: teamName})
+				team, err = sqlDB.CreateTeam(db.Team{Name: teamName})
 				Expect(err).NotTo(HaveOccurred())
+				teamDB := teamDBFactory.GetTeamDB(teamName)
 
 				// job build data
-				_, _, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
+				_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, atc.DefaultPipelineName)
+				savedPipeline, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
 				Expect(err).NotTo(HaveOccurred())
+
+				pipelineDB = pipelineDBFactory.Build(savedPipeline)
 			})
 
 			Context("with more then 100 job builds", func() {
-				var testBuilds []db.Build
-
 				BeforeEach(func() {
 					for i := 1; i < 104; i++ {
-						build, err := pipelineDB.CreateJobBuild("job-name")
+						_, err := pipelineDB.CreateJobBuild("job-name")
 						Expect(err).NotTo(HaveOccurred())
-						testBuilds = append(testBuilds, build)
 					}
 				})
 
@@ -110,7 +112,7 @@ var _ = Describe("Job Builds", func() {
 					// job detail w/build info -> job detail
 					Eventually(page.Find("h1 a")).Should(BeFound())
 					Expect(page.Find("h1 a").Click()).To(Succeed())
-					Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
+					Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/main/jobs/job-name")))
 					Eventually(page.All(".js-build").Count).Should(Equal(100))
 
 					Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())

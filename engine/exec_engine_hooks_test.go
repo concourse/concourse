@@ -3,6 +3,7 @@ package engine_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
@@ -18,11 +19,10 @@ var _ = Describe("Exec Engine With Hooks", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *enginefakes.FakeBuildDelegateFactory
-		fakeDB              *enginefakes.FakeEngineDB
 
 		execEngine engine.Engine
 
-		buildModel       db.Build
+		build            *dbfakes.FakeBuild
 		expectedMetadata engine.StepMetadata
 		logger           *lagertest.TestLogger
 
@@ -34,20 +34,23 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 		fakeFactory = new(execfakes.FakeFactory)
 		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
-		fakeDB = new(enginefakes.FakeEngineDB)
 
-		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		execEngine = engine.NewExecEngine(
+			fakeFactory,
+			fakeDelegateFactory,
+			fakeTeamDBFactory,
+			"http://example.com",
+		)
 
 		fakeDelegate = new(enginefakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		buildModel = db.Build{
-			ID:           84,
-			Name:         "42",
-			JobName:      "some-job",
-			PipelineID:   57,
-			PipelineName: "some-pipeline",
-		}
+		build = new(dbfakes.FakeBuild)
+		build.IDReturns(84)
+		build.NameReturns("42")
+		build.JobNameReturns("some-job")
+		build.PipelineNameReturns("some-pipeline")
 
 		expectedMetadata = engine.StepMetadata{
 			BuildID:      84,
@@ -173,14 +176,14 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						Next: nextTaskPlan,
 					})
 
-					build, err := execEngine.CreateBuild(logger, buildModel, plan)
+					build, err := execEngine.CreateBuild(logger, build, plan)
 					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 				})
 
 				It("constructs the step correctly", func() {
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
@@ -201,7 +204,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the completion hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(2)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-completion-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -222,7 +225,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the failure hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-failure-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -243,7 +246,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the success hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-success-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -264,7 +267,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the next step correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(3)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-next-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -303,7 +306,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					}),
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, build, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 
@@ -337,7 +340,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					}),
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, build, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 
@@ -383,7 +386,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 						}),
 					})
 
-					build, err := execEngine.CreateBuild(logger, buildModel, plan)
+					build, err := execEngine.CreateBuild(logger, build, plan)
 
 					Expect(err).NotTo(HaveOccurred())
 
@@ -428,7 +431,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					}),
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, build, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 
@@ -480,7 +483,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					}),
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, build, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 

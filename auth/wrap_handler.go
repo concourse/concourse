@@ -10,6 +10,7 @@ var authenticated = "authenticated"
 var teamNameKey = "teamName"
 var teamIDKey = "teamID"
 var isAdminKey = "isAdmin"
+var isSystemKey = "system"
 
 func WrapHandler(
 	handler http.Handler,
@@ -36,6 +37,11 @@ func (h authHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		context.Set(r, teamNameKey, teamName)
 		context.Set(r, teamIDKey, teamID)
 		context.Set(r, isAdminKey, isAdmin)
+	}
+
+	isSystem, found := h.userContextReader.GetSystem(r)
+	if found {
+		context.Set(r, isSystemKey, isSystem)
 	}
 	h.handler.ServeHTTP(w, r)
 }

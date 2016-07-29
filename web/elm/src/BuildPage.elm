@@ -1,50 +1,39 @@
-module Main where
+port module BuildPage exposing (..)
 
-import Html exposing (Html)
-import Effects
-import StartApp
-import Task exposing (Task)
+import Html.App
 import Time
 
 import Autoscroll
 import Build
 import Scroll
 
-port buildId : Int
-
-main : Signal Html
 main =
-  app.html
+  Html.App.programWithFlags
+    { init =
+        Autoscroll.init
+          Build.getScrollBehavior <<
+            Build.init
+    , update = Autoscroll.update Build.update
+    , view = Autoscroll.view Build.view
+    , subscriptions =
+        let
+          tick =
+            Time.every Time.second (Autoscroll.SubAction << Build.ClockTick)
 
-app : StartApp.App (Autoscroll.Model Build.Model)
-app =
-  let
-    pageDrivenActions =
-      Signal.mailbox Build.Noop
-  in
-    StartApp.start
-      { init =
-          Autoscroll.init
-            Build.getScrollBehavior <|
-            Build.init redirects.address pageDrivenActions.address buildId
-      , update = Autoscroll.update Build.update
-      , view = Autoscroll.view Build.view
-      , inputs =
-          [ Signal.map Autoscroll.SubAction pageDrivenActions.signal
-          , Signal.merge
-              (Signal.map Autoscroll.FromBottom Scroll.fromBottom)
-              (Signal.map (always Autoscroll.ScrollDown) (Time.every (100 * Time.millisecond)))
-          ]
-      , inits = [Signal.map (Autoscroll.SubAction << Build.ClockTick) (Time.every Time.second)]
-      }
+          scrolledUp =
+            Scroll.fromBottom Autoscroll.FromBottom
 
-redirects : Signal.Mailbox String
-redirects = Signal.mailbox ""
-
-port redirect : Signal String
-port redirect =
-  redirects.signal
-
-port tasks : Signal (Task Effects.Never ())
-port tasks =
-  app.tasks
+          pushDown =
+            Time.every (100 * Time.millisecond) (always Autoscroll.ScrollDown)
+        in \model ->
+          Sub.batch
+            [ tick
+            , scrolledUp
+            , pushDown
+            , case model.subModel.currentBuild `Maybe.andThen` Build.currentBuildOutput of
+                Nothing ->
+                  Sub.none
+                Just buildOutput ->
+                  Sub.map (Autoscroll.SubAction << Build.BuildOutputAction) buildOutput.events
+            ]
+    }

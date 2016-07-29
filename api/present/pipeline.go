@@ -9,7 +9,8 @@ import (
 
 func Pipeline(savedPipeline db.SavedPipeline, config atc.Config) atc.Pipeline {
 	pathForRoute, err := web.Routes.CreatePathForRoute(web.Pipeline, rata.Params{
-		"pipeline": savedPipeline.Name,
+		"team_name": savedPipeline.TeamName,
+		"pipeline":  savedPipeline.Name,
 	})
 
 	if err != nil {
@@ -17,9 +18,11 @@ func Pipeline(savedPipeline db.SavedPipeline, config atc.Config) atc.Pipeline {
 	}
 
 	return atc.Pipeline{
-		Name:   savedPipeline.Name,
-		URL:    pathForRoute,
-		Paused: savedPipeline.Paused,
-		Groups: config.Groups,
+		Name:     savedPipeline.Name,
+		TeamName: savedPipeline.TeamName,
+		URL:      pathForRoute,
+		Paused:   savedPipeline.Paused,
+		Public:   savedPipeline.Public,
+		Groups:   config.Groups,
 	}
 }

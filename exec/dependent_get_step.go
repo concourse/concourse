@@ -19,6 +19,7 @@ type DependentGetStep struct {
 	stepMetadata        StepMetadata
 	session             resource.Session
 	tags                atc.Tags
+	teamID              int
 	delegate            ResourceDelegate
 	resourceFetcher     resource.Fetcher
 	resourceTypes       atc.ResourceTypes
@@ -34,6 +35,7 @@ func newDependentGetStep(
 	stepMetadata StepMetadata,
 	session resource.Session,
 	tags atc.Tags,
+	teamID int,
 	delegate ResourceDelegate,
 	resourceFetcher resource.Fetcher,
 	resourceTypes atc.ResourceTypes,
@@ -48,6 +50,7 @@ func newDependentGetStep(
 		stepMetadata:        stepMetadata,
 		session:             session,
 		tags:                tags,
+		teamID:              teamID,
 		delegate:            delegate,
 		resourceFetcher:     resourceFetcher,
 		resourceTypes:       resourceTypes,
@@ -77,6 +80,7 @@ func (step DependentGetStep) Using(prev Step, repo *SourceRepository) Step {
 		step.stepMetadata,
 		step.session,
 		step.tags,
+		step.teamID,
 		step.delegate,
 		step.resourceFetcher,
 		step.resourceTypes,

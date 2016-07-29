@@ -76,6 +76,7 @@ var _ = Describe("Containers API", func() {
 			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers", nil)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
+			teamDBFactory.GetTeamDBReturns(teamDB)
 		})
 
 		Context("when not authenticated", func() {
@@ -123,8 +124,7 @@ var _ = Describe("Containers API", func() {
 							fakeContainer1,
 							fakeContainer2,
 						}
-
-						containerDB.FindContainersByDescriptorsReturns(fakeContainers, nil)
+						teamDB.FindContainersByDescriptorsReturns(fakeContainers, nil)
 					})
 
 					It("returns 200", func() {
@@ -181,7 +181,7 @@ var _ = Describe("Containers API", func() {
 
 				Context("when no containers are found", func() {
 					BeforeEach(func() {
-						containerDB.FindContainersByDescriptorsReturns([]db.SavedContainer{}, nil)
+						teamDB.FindContainersByDescriptorsReturns([]db.SavedContainer{}, nil)
 					})
 
 					It("returns 200", func() {
@@ -211,7 +211,7 @@ var _ = Describe("Containers API", func() {
 
 					BeforeEach(func() {
 						expectedErr = errors.New("some error")
-						containerDB.FindContainersByDescriptorsReturns([]db.SavedContainer{}, expectedErr)
+						teamDB.FindContainersByDescriptorsReturns([]db.SavedContainer{}, expectedErr)
 					})
 
 					It("returns 500", func() {
@@ -239,8 +239,8 @@ var _ = Describe("Containers API", func() {
 							PipelineName: pipelineName,
 						},
 					}
-					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(teamDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -260,8 +260,8 @@ var _ = Describe("Containers API", func() {
 							JobName: jobName,
 						},
 					}
-					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(teamDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -281,8 +281,8 @@ var _ = Describe("Containers API", func() {
 							Type: stepType,
 						},
 					}
-					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(teamDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -302,8 +302,8 @@ var _ = Describe("Containers API", func() {
 							ResourceName: resourceName,
 						},
 					}
-					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(teamDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -323,8 +323,8 @@ var _ = Describe("Containers API", func() {
 							StepName: stepName,
 						},
 					}
-					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(teamDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -344,8 +344,8 @@ var _ = Describe("Containers API", func() {
 							BuildName: buildName,
 						},
 					}
-					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(teamDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -368,8 +368,8 @@ var _ = Describe("Containers API", func() {
 								BuildID: buildID,
 							},
 						}
-						Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
-						Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
+						Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+						Expect(teamDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 					})
 
 					Context("when the buildID fails to be parsed as an int", func() {
@@ -387,7 +387,7 @@ var _ = Describe("Containers API", func() {
 						It("does not lookup containers", func() {
 							client.Do(req)
 
-							Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(0))
+							Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(0))
 						})
 					})
 				})
@@ -412,8 +412,8 @@ var _ = Describe("Containers API", func() {
 								Attempts: attempts,
 							},
 						}
-						Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
-						Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
+						Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+						Expect(teamDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 					})
 
 					Context("when the attempts fails to be parsed as a slice of int", func() {
@@ -431,7 +431,7 @@ var _ = Describe("Containers API", func() {
 						It("does not lookup containers", func() {
 							client.Do(req)
 
-							Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(0))
+							Expect(teamDB.FindContainersByDescriptorsCallCount()).To(Equal(0))
 						})
 					})
 				})
@@ -441,7 +441,7 @@ var _ = Describe("Containers API", func() {
 
 	Describe("GET /api/v1/containers/:id", func() {
 		BeforeEach(func() {
-			containerDB.GetContainerReturns(fakeContainer1, true, nil)
+			teamDB.GetContainerReturns(fakeContainer1, true, nil)
 
 			var err error
 			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/"+handle, nil)
@@ -469,7 +469,7 @@ var _ = Describe("Containers API", func() {
 
 			Context("when the container is not found", func() {
 				BeforeEach(func() {
-					containerDB.GetContainerReturns(db.SavedContainer{}, false, nil)
+					teamDB.GetContainerReturns(db.SavedContainer{}, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
@@ -482,7 +482,7 @@ var _ = Describe("Containers API", func() {
 
 			Context("when the container is found", func() {
 				BeforeEach(func() {
-					containerDB.GetContainerReturns(fakeContainer1, true, nil)
+					teamDB.GetContainerReturns(fakeContainer1, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -503,8 +503,8 @@ var _ = Describe("Containers API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(containerDB.GetContainerCallCount()).To(Equal(1))
-					Expect(containerDB.GetContainerArgsForCall(0)).To(Equal(handle))
+					Expect(teamDB.GetContainerCallCount()).To(Equal(1))
+					Expect(teamDB.GetContainerArgsForCall(0)).To(Equal(handle))
 				})
 
 				It("returns the container", func() {
@@ -542,7 +542,7 @@ var _ = Describe("Containers API", func() {
 
 				BeforeEach(func() {
 					expectedErr = errors.New("some error")
-					containerDB.GetContainerReturns(db.SavedContainer{}, false, expectedErr)
+					teamDB.GetContainerReturns(db.SavedContainer{}, false, expectedErr)
 				})
 
 				It("returns 500", func() {
@@ -612,7 +612,7 @@ var _ = Describe("Containers API", func() {
 
 				BeforeEach(func() {
 					fakeDBContainer = db.SavedContainer{}
-					containerDB.GetContainerReturns(fakeDBContainer, true, nil)
+					teamDB.GetContainerReturns(fakeDBContainer, true, nil)
 
 					fakeContainer = new(workerfakes.FakeContainer)
 					fakeWorkerClient.LookupContainerReturns(fakeContainer, true, nil)
@@ -856,7 +856,7 @@ var _ = Describe("Containers API", func() {
 				BeforeEach(func() {
 					expectBadHandshake = true
 
-					containerDB.GetContainerReturns(db.SavedContainer{}, false, nil)
+					teamDB.GetContainerReturns(db.SavedContainer{}, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
@@ -870,7 +870,7 @@ var _ = Describe("Containers API", func() {
 					expectBadHandshake = true
 
 					fakeErr := errors.New("error")
-					containerDB.GetContainerReturns(db.SavedContainer{}, false, fakeErr)
+					teamDB.GetContainerReturns(db.SavedContainer{}, false, fakeErr)
 				})
 
 				It("returns 500 internal error", func() {

@@ -122,6 +122,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		session,
 		resource.ResourceType(resourceType.Type),
 		[]string{},
+		scanner.db.TeamID(),
 		atc.ResourceTypes{},
 		worker.NoopImageFetchingDelegate{},
 	)

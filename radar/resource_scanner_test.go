@@ -35,6 +35,7 @@ var _ = Describe("ResourceScanner", func() {
 		savedResource  db.SavedResource
 
 		fakeLease *dbfakes.FakeLease
+		teamID    = 123
 	)
 
 	BeforeEach(func() {
@@ -62,7 +63,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeRadarDB.ScopedNameStub = func(thing string) string {
 			return "pipeline:" + thing
 		}
-
+		fakeRadarDB.TeamIDReturns(teamID)
 		fakeRadarDB.GetConfigReturns(atc.Config{
 			Resources: atc.ResourceConfigs{
 				resourceConfig,
@@ -131,7 +132,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, session, typ, tags, customTypes, delegate := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags, actualTeamID, customTypes, delegate := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.TrackerMetadata{
 					ResourceName: "some-resource",
 					PipelineName: "some-pipeline",
@@ -148,6 +149,7 @@ var _ = Describe("ResourceScanner", func() {
 					Metadata: worker.Metadata{
 						Type:       db.ContainerTypeCheck,
 						PipelineID: 42,
+						TeamID:     teamID,
 					},
 					Ephemeral: true,
 				}))
@@ -162,6 +164,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				Expect(typ).To(Equal(resource.ResourceType("git")))
 				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
+				Expect(actualTeamID).To(Equal(teamID))
 			})
 
 			Context("when the resource config has a specified check interval", func() {
@@ -447,7 +450,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, session, typ, tags, _, _ := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags, actualTeamID, _, _ := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.TrackerMetadata{
 					ResourceName: "some-resource",
 					PipelineName: "some-pipeline",
@@ -464,12 +467,14 @@ var _ = Describe("ResourceScanner", func() {
 					Metadata: worker.Metadata{
 						Type:       db.ContainerTypeCheck,
 						PipelineID: 42,
+						TeamID:     teamID,
 					},
 					Ephemeral: true,
 				}))
 
 				Expect(typ).To(Equal(resource.ResourceType("git")))
 				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
+				Expect(actualTeamID).To(Equal(teamID))
 			})
 
 			It("grabs an immediate resource checking lease before checking, breaks lease after done", func() {

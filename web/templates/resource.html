@@ -6,7 +6,7 @@
     <div class="pagination fr">
       {{if .Pagination.Previous}}
       <div class="btn-page-link">
-        <a class="arrow" href="{{url "GetResource" .PipelineName .Resource .Pagination.Previous}}" aria-label="Previous Page"><i class="fa fa-arrow-left"></i></a>
+        <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Previous}}" aria-label="Previous Page"><i class="fa fa-arrow-left"></i></a>
       </div>
       {{else}}
       <div class="btn-page-link disabled">
@@ -15,7 +15,7 @@
       {{end}}
       {{if .Pagination.Next}}
       <div class="btn-page-link">
-        <a class="arrow" href="{{url "GetResource" .PipelineName .Resource .Pagination.Next}}" aria-label="Next Page"><i class="fa fa-arrow-right"></i></a>
+        <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Next}}" aria-label="Next Page"><i class="fa fa-arrow-right"></i></a>
       </div>
       {{else}}
       <div class="btn-page-link disabled">
@@ -27,7 +27,7 @@
     <h1 class="h1">{{.Resource.Name}}</h1>
   </div>
 
-<div class="js-resource" data-endpoint="pipelines/{{.PipelineName}}/resources/{{.Resource.Name}}">
+  <div class="js-resource" data-teamname="{{.TeamName}}" data-endpoint="/api/v1/teams/{{.TeamName}}/pipelines/{{.PipelineName}}/resources/{{.Resource.Name}}">
   <div class="resource-check-status">
     <div class="build-step">
       <div class="header">
@@ -57,10 +57,11 @@
 
 <ul class="list list-collapsable list-enableDisable resource-versions">
   {{$pipelineName := .PipelineName}}
+  {{$teamName := .TeamName}}
   {{range .Versions}}
     <li class="list-collapsable-item clearfix {{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
 
-      <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrm" href="javascript:;" aria-label="Toggle Resource Version" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" $pipelineName .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" $pipelineName .VersionedResource}}"></a>
+      <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrm" href="javascript:;" aria-label="Toggle Resource Version" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" $teamName $pipelineName .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" $teamName $pipelineName .VersionedResource}}"></a>
 
       <div class="js-expandable list-collapsable-title">
         {{range $name, $val := .VersionedResource.Version}}
@@ -112,7 +113,7 @@
   <div class="pagination fr">
     {{if .Pagination.Previous}}
     <div class="btn-page-link">
-      <a class="arrow" href="{{url "GetResource" .PipelineName .Resource .Pagination.Previous}}" aria-label="Previous Page"><i class="fa fa-arrow-left"></i></a>
+      <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Previous}}" aria-label="Previous Page"><i class="fa fa-arrow-left"></i></a>
     </div>
     {{else}}
     <div class="btn-page-link disabled">
@@ -121,7 +122,7 @@
     {{end}}
     {{if .Pagination.Next}}
     <div class="btn-page-link">
-      <a class="arrow" href="{{url "GetResource" .PipelineName .Resource .Pagination.Next}}" aria-label="Next Page"><i class="fa fa-arrow-right"></i></a>
+      <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Next}}" aria-label="Next Page"><i class="fa fa-arrow-right"></i></a>
     </div>
     {{else}}
     <div class="btn-page-link disabled">

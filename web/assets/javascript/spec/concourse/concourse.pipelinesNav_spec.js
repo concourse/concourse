@@ -3,9 +3,10 @@ describe("Pipelines Nav", function () {
 
   beforeEach(function () {
     concourse.pipelineName = "another-pipeline";
+    concourse.teamName = "another-team";
 
     setFixtures(
-      '<body><div class="js-pipelinesNav"><div class="js-groups"></div><ul class="js-pipelinesNav-list"></ul><span class="js-pipelinesNav-toggle"></span></div></body>'
+      '<body><div class="js-pipelinesNav" data-endpoint="/api/v1/teams/a-team/pipelines"><div class="js-groups"></div><ul class="js-pipelinesNav-list"></ul><span class="js-pipelinesNav-toggle"></span></div></body>'
     );
 
     pipelinesNav = new concourse.PipelinesNav($('.js-pipelinesNav'));
@@ -50,12 +51,14 @@ describe("Pipelines Nav", function () {
       var successJson = [
       {
         "name": "a-pipeline",
-        "url": "/pipelines/a-pipeline",
-        "paused": true
+        "url": "/teams/a-team/pipelines/a-pipeline",
+        "paused": true,
+        "team_name": "a-team"
       },{
         "name": "another-pipeline",
-        "url": "/pipelines/another-pipeline",
-        "paused": false
+        "url": "/teams/a-team/pipelines/another-pipeline",
+        "paused": false,
+        "team_name": "a-team"
       }];
 
       successRequest.respondWith({
@@ -94,15 +97,15 @@ describe("Pipelines Nav", function () {
 
         expect($('.js-pipelinesNav-list li').length).toEqual(2);
 
-        expect($('.js-pipelinesNav-list li:nth-of-type(1)').data('endpoint')).toEqual('pipelines/a-pipeline');
+        expect($('.js-pipelinesNav-list li:nth-of-type(1)').data('endpoint')).toEqual('/api/v1/teams/a-team/pipelines/a-pipeline');
         expect($('.js-pipelinesNav-list li:nth-of-type(1)').html()).toEqual(
-          '<span class="btn-pause fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span><a href="/pipelines/a-pipeline">a-pipeline</a>'
+          '<span class="btn-pause fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span><a href="/teams/a-team/pipelines/a-pipeline">a-pipeline</a>'
         );
 
 
-        expect($('.js-pipelinesNav-list li:nth-of-type(2)').data('endpoint')).toEqual('pipelines/another-pipeline');
+        expect($('.js-pipelinesNav-list li:nth-of-type(2)').data('endpoint')).toEqual('/api/v1/teams/a-team/pipelines/another-pipeline');
         expect($('.js-pipelinesNav-list li:nth-of-type(2)').html()).toEqual(
-          '<span class="btn-pause fl disabled js-pauseUnpause"><i class="fa fa-fw fa-pause"></i></span><a href="/pipelines/another-pipeline">another-pipeline</a>'
+          '<span class="btn-pause fl disabled js-pauseUnpause"><i class="fa fa-fw fa-pause"></i></span><a href="/teams/a-team/pipelines/another-pipeline">another-pipeline</a>'
         );
 
         expect($(".js-groups")).not.toHaveClass("paused");
@@ -168,7 +171,7 @@ describe("Pipelines Nav", function () {
 
         var request = jasmine.Ajax.requests.mostRecent();
 
-        expect(request.url).toEqual('/api/v1/pipelines/ordering');
+        expect(request.url).toEqual('/api/v1/teams/a-team/pipelines/ordering');
         expect(request.method).toEqual('PUT');
         expect(request.data()).toEqual(["a-pipeline", "another-pipeline"]);
       });

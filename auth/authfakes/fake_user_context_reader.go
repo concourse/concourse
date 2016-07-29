@@ -20,6 +20,15 @@ type FakeUserContextReader struct {
 		result3 bool
 		result4 bool
 	}
+	GetSystemStub        func(r *http.Request) (bool, bool)
+	getSystemMutex       sync.RWMutex
+	getSystemArgsForCall []struct {
+		r *http.Request
+	}
+	getSystemReturns struct {
+		result1 bool
+		result2 bool
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -60,11 +69,47 @@ func (fake *FakeUserContextReader) GetTeamReturns(result1 string, result2 int, r
 	}{result1, result2, result3, result4}
 }
 
+func (fake *FakeUserContextReader) GetSystem(r *http.Request) (bool, bool) {
+	fake.getSystemMutex.Lock()
+	fake.getSystemArgsForCall = append(fake.getSystemArgsForCall, struct {
+		r *http.Request
+	}{r})
+	fake.recordInvocation("GetSystem", []interface{}{r})
+	fake.getSystemMutex.Unlock()
+	if fake.GetSystemStub != nil {
+		return fake.GetSystemStub(r)
+	} else {
+		return fake.getSystemReturns.result1, fake.getSystemReturns.result2
+	}
+}
+
+func (fake *FakeUserContextReader) GetSystemCallCount() int {
+	fake.getSystemMutex.RLock()
+	defer fake.getSystemMutex.RUnlock()
+	return len(fake.getSystemArgsForCall)
+}
+
+func (fake *FakeUserContextReader) GetSystemArgsForCall(i int) *http.Request {
+	fake.getSystemMutex.RLock()
+	defer fake.getSystemMutex.RUnlock()
+	return fake.getSystemArgsForCall[i].r
+}
+
+func (fake *FakeUserContextReader) GetSystemReturns(result1 bool, result2 bool) {
+	fake.GetSystemStub = nil
+	fake.getSystemReturns = struct {
+		result1 bool
+		result2 bool
+	}{result1, result2}
+}
+
 func (fake *FakeUserContextReader) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getTeamMutex.RLock()
 	defer fake.getTeamMutex.RUnlock()
+	fake.getSystemMutex.RLock()
+	defer fake.getSystemMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -27,6 +27,7 @@ func (s *Server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 		}
 
 		resourceName := r.FormValue(":resource_name")
+		teamName := r.FormValue(":team_name")
 
 		resourceConfig, resourceFound := config.Resources.Lookup(resourceName)
 		if !resourceFound {
@@ -53,6 +54,7 @@ func (s *Server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 			config.Groups,
 			dbResource,
 			auth.IsAuthenticated(r),
+			teamName,
 		)
 
 		w.WriteHeader(http.StatusOK)

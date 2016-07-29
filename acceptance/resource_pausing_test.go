@@ -33,20 +33,22 @@ var _ = Describe("Resource Pausing", func() {
 
 		sqlDB = db.NewSQL(dbConn, bus)
 
-		atcProcess, atcPort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
-		err := sqlDB.DeleteTeamByName("main")
+		atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
+		err := sqlDB.DeleteTeamByName(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
-		team, err := sqlDB.SaveTeam(db.Team{
+		_, err = sqlDB.CreateTeam(db.Team{
 			Name: atc.DefaultTeamName,
-			BasicAuth: db.BasicAuth{
+			BasicAuth: &db.BasicAuth{
 				BasicAuthUsername: "admin",
 				BasicAuthPassword: "password",
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 		// job build data
-		_, _, err = sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{
+		_, _, err = teamDB.SaveConfig("some-pipeline", atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",
@@ -63,12 +65,11 @@ var _ = Describe("Resource Pausing", func() {
 		}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, sqlDB)
-
-		var found bool
-		pipelineDB, found, err = pipelineDBFactory.BuildDefault()
+		savedPipeline, err := teamDB.GetPipelineByName("some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
+
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
 	AfterEach(func() {
@@ -101,20 +102,26 @@ var _ = Describe("Resource Pausing", func() {
 
 		It("can view the resource", func() {
 			// homepage -> resource detail
+			Expect(page.Navigate(homepage() + "/login")).To(Succeed())
+			Expect(page.FindByLink("Log in with Basic Auth").Click()).To(Succeed())
+			Expect(page.FindByName("username").Fill("admin")).To(Succeed())
+			Expect(page.FindByName("password").Fill("password")).To(Succeed())
+			Expect(page.FindByButton("Log In").Click()).To(Succeed())
+
 			Expect(page.Navigate(homepage())).To(Succeed())
 			Eventually(page.FindByLink("resource-name")).Should(BeFound())
 			Expect(page.FindByLink("resource-name").Click()).To(Succeed())
 
 			// resource detail -> paused resource detail
-			Eventually(page).Should(HaveURL(withPath("/pipelines/some-pipeline/resources/resource-name")))
+			Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/some-pipeline/resources/resource-name")))
 			Expect(page.Find("h1")).To(HaveText("resource-name"))
 
-			Authenticate(page, "admin", "password")
-
 			Expect(page.Find(".js-resource .js-pauseUnpause").Click()).To(Succeed())
-			Eventually(page.Find(".header i.fa-play")).Should(BeFound())
 
-			page.Refresh()
+			Expect(page.Navigate(homepage())).To(Succeed())
+			Eventually(page.FindByLink("resource-name")).Should(BeFound())
+			Expect(page.FindByLink("resource-name").Click()).To(Succeed())
+			Expect(page.Find(".js-resource .js-pauseUnpause").Click()).To(Succeed())
 
 			Eventually(page.Find(".header i.fa-play")).Should(BeFound())
 

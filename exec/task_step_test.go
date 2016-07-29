@@ -63,6 +63,7 @@ var _ = Describe("GardenFactory", func() {
 			taskDelegate  *execfakes.FakeTaskDelegate
 			privileged    Privileged
 			tags          []string
+			teamID        int
 			configSource  *execfakes.FakeTaskConfigSource
 			resourceTypes atc.ResourceTypes
 			inputMapping  map[string]string
@@ -85,6 +86,7 @@ var _ = Describe("GardenFactory", func() {
 
 			privileged = false
 			tags = []string{"step", "tags"}
+			teamID = 123
 			configSource = new(execfakes.FakeTaskConfigSource)
 
 			inStep = new(execfakes.FakeStep)
@@ -127,6 +129,7 @@ var _ = Describe("GardenFactory", func() {
 				taskDelegate,
 				privileged,
 				tags,
+				teamID,
 				configSource,
 				resourceTypes,
 				inputMapping,
@@ -222,6 +225,7 @@ var _ = Describe("GardenFactory", func() {
 							Expect(fakeWorkerClient.AllSatisfyingCallCount()).To(Equal(1))
 							spec, actualResourceTypes := fakeWorkerClient.AllSatisfyingArgsForCall(0)
 							Expect(spec.Platform).To(Equal("some-platform"))
+							Expect(spec.TeamID).To(Equal(teamID))
 							Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
 								{
 									Name:   "custom-resource",
@@ -750,7 +754,7 @@ var _ = Describe("GardenFactory", func() {
 													volumeChannel <- fakeNewlyCreatedVolume3
 													close(volumeChannel)
 
-													fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec) (worker.Volume, error) {
+													fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec, int) (worker.Volume, error) {
 														return <-volumeChannel, nil
 													}
 
@@ -782,7 +786,7 @@ var _ = Describe("GardenFactory", func() {
 												It("creates volumes for each output", func() {
 													Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(3))
 
-													_, vSpec := fakeWorker.CreateVolumeArgsForCall(0)
+													_, vSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(0)
 													Expect(vSpec).To(Equal(worker.VolumeSpec{
 														Strategy: worker.OutputStrategy{
 															Name: "some-output",
@@ -790,8 +794,9 @@ var _ = Describe("GardenFactory", func() {
 														TTL:        worker.VolumeTTL,
 														Privileged: bool(privileged),
 													}))
+													Expect(actualTeamID).To(Equal(teamID))
 
-													_, vSpec = fakeWorker.CreateVolumeArgsForCall(1)
+													_, vSpec, actualTeamID = fakeWorker.CreateVolumeArgsForCall(1)
 													Expect(vSpec).To(Equal(worker.VolumeSpec{
 														Strategy: worker.OutputStrategy{
 															Name: "some-other-output",
@@ -799,8 +804,9 @@ var _ = Describe("GardenFactory", func() {
 														TTL:        worker.VolumeTTL,
 														Privileged: bool(privileged),
 													}))
+													Expect(actualTeamID).To(Equal(teamID))
 
-													_, vSpec = fakeWorker.CreateVolumeArgsForCall(2)
+													_, vSpec, actualTeamID = fakeWorker.CreateVolumeArgsForCall(2)
 													Expect(vSpec).To(Equal(worker.VolumeSpec{
 														Strategy: worker.OutputStrategy{
 															Name: "some-trailing-slash-output",
@@ -808,6 +814,7 @@ var _ = Describe("GardenFactory", func() {
 														TTL:        worker.VolumeTTL,
 														Privileged: bool(privileged),
 													}))
+													Expect(actualTeamID).To(Equal(teamID))
 												})
 
 												It("passes the created output volumes to the worker", func() {
@@ -1243,7 +1250,7 @@ var _ = Describe("GardenFactory", func() {
 										imageVolumeChan := make(chan *wfakes.FakeVolume, 2)
 										imageVolumeChan <- imageVolume
 										imageVolumeChan <- imageCowVolume
-										fakeWorker.CreateVolumeStub = func(logger lager.Logger, spec worker.VolumeSpec) (worker.Volume, error) {
+										fakeWorker.CreateVolumeStub = func(logger lager.Logger, spec worker.VolumeSpec, teamID int) (worker.Volume, error) {
 											defer GinkgoRecover()
 											if iars, ok := spec.Strategy.(worker.ContainerRootFSStrategy); ok {
 												Expect(iars.Parent).To(Equal(imageVolume))
@@ -1304,7 +1311,7 @@ var _ = Describe("GardenFactory", func() {
 
 											It("Creates a volume to stream the image into", func() {
 												Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(2))
-												_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+												_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(0)
 												Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
 													Strategy: worker.ImageArtifactReplicationStrategy{
 														Name: imageArtifactName,
@@ -1312,6 +1319,7 @@ var _ = Describe("GardenFactory", func() {
 													Privileged: true,
 													TTL:        worker.VolumeTTL,
 												}))
+												Expect(actualTeamID).To(Equal(teamID))
 											})
 
 											It("Streams the artifact source to the target volume", func() {
@@ -1326,7 +1334,7 @@ var _ = Describe("GardenFactory", func() {
 
 											It("Creates a cow volume to set the correct privilege", func() {
 												Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(2))
-												_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(1)
+												_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(1)
 												Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
 													Strategy: worker.ContainerRootFSStrategy{
 														Parent: imageVolume,
@@ -1334,6 +1342,7 @@ var _ = Describe("GardenFactory", func() {
 													Privileged: false,
 													TTL:        worker.VolumeTTL,
 												}))
+												Expect(actualTeamID).To(Equal(teamID))
 											})
 
 											It("releases the original volume after creating the cow volume", func() {
@@ -1363,7 +1372,7 @@ var _ = Describe("GardenFactory", func() {
 
 												It("Creates a privileged volume to stream the image into", func() {
 													Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(2))
-													_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+													_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(0)
 													Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
 														Strategy: worker.ImageArtifactReplicationStrategy{
 															Name: imageArtifactName,
@@ -1371,11 +1380,12 @@ var _ = Describe("GardenFactory", func() {
 														Privileged: true,
 														TTL:        worker.VolumeTTL,
 													}))
+													Expect(actualTeamID).To(Equal(teamID))
 												})
 
 												It("Creates a cow volume with the correct privilege", func() {
 													Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(2))
-													_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(1)
+													_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(1)
 													Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
 														Strategy: worker.ContainerRootFSStrategy{
 															Parent: imageVolume,
@@ -1383,6 +1393,7 @@ var _ = Describe("GardenFactory", func() {
 														Privileged: true,
 														TTL:        worker.VolumeTTL,
 													}))
+													Expect(actualTeamID).To(Equal(teamID))
 												})
 											})
 										})
@@ -1400,7 +1411,7 @@ var _ = Describe("GardenFactory", func() {
 										cowVolume.PathReturns("/var/vcap/some-cow-path")
 										cowVolume.HandleReturns("cow-handle")
 
-										fakeWorker.CreateVolumeStub = func(logger lager.Logger, spec worker.VolumeSpec) (worker.Volume, error) {
+										fakeWorker.CreateVolumeStub = func(logger lager.Logger, spec worker.VolumeSpec, teamID int) (worker.Volume, error) {
 											defer GinkgoRecover()
 											Expect(imageVolume.ReleaseCallCount()).To(BeZero())
 											return cowVolume, nil
@@ -1426,7 +1437,7 @@ var _ = Describe("GardenFactory", func() {
 
 										It("creates a COW volume from the output volume", func() {
 											Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(1))
-											_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+											_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(0)
 											Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
 												Strategy: worker.ContainerRootFSStrategy{
 													Parent: imageVolume,
@@ -1434,6 +1445,7 @@ var _ = Describe("GardenFactory", func() {
 												Privileged: false,
 												TTL:        worker.VolumeTTL,
 											}))
+											Expect(actualTeamID).To(Equal(teamID))
 										})
 
 										It("releases the original volume after creating the cow volume", func() {
@@ -1463,7 +1475,7 @@ var _ = Describe("GardenFactory", func() {
 
 											It("creates a privileged COW volume from the output volume", func() {
 												Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(1))
-												_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+												_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(0)
 												Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
 													Strategy: worker.ContainerRootFSStrategy{
 														Parent: imageVolume,
@@ -1471,6 +1483,7 @@ var _ = Describe("GardenFactory", func() {
 													Privileged: true,
 													TTL:        worker.VolumeTTL,
 												}))
+												Expect(actualTeamID).To(Equal(teamID))
 											})
 										})
 									})

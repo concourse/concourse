@@ -16,15 +16,14 @@ type FakeBuild struct {
 	metadataReturns     struct {
 		result1 string
 	}
-	PublicPlanStub        func(lager.Logger) (atc.PublicBuildPlan, bool, error)
+	PublicPlanStub        func(lager.Logger) (atc.PublicBuildPlan, error)
 	publicPlanMutex       sync.RWMutex
 	publicPlanArgsForCall []struct {
 		arg1 lager.Logger
 	}
 	publicPlanReturns struct {
 		result1 atc.PublicBuildPlan
-		result2 bool
-		result3 error
+		result2 error
 	}
 	AbortStub        func(lager.Logger) error
 	abortMutex       sync.RWMutex
@@ -68,7 +67,7 @@ func (fake *FakeBuild) MetadataReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeBuild) PublicPlan(arg1 lager.Logger) (atc.PublicBuildPlan, bool, error) {
+func (fake *FakeBuild) PublicPlan(arg1 lager.Logger) (atc.PublicBuildPlan, error) {
 	fake.publicPlanMutex.Lock()
 	fake.publicPlanArgsForCall = append(fake.publicPlanArgsForCall, struct {
 		arg1 lager.Logger
@@ -78,7 +77,7 @@ func (fake *FakeBuild) PublicPlan(arg1 lager.Logger) (atc.PublicBuildPlan, bool,
 	if fake.PublicPlanStub != nil {
 		return fake.PublicPlanStub(arg1)
 	} else {
-		return fake.publicPlanReturns.result1, fake.publicPlanReturns.result2, fake.publicPlanReturns.result3
+		return fake.publicPlanReturns.result1, fake.publicPlanReturns.result2
 	}
 }
 
@@ -94,13 +93,12 @@ func (fake *FakeBuild) PublicPlanArgsForCall(i int) lager.Logger {
 	return fake.publicPlanArgsForCall[i].arg1
 }
 
-func (fake *FakeBuild) PublicPlanReturns(result1 atc.PublicBuildPlan, result2 bool, result3 error) {
+func (fake *FakeBuild) PublicPlanReturns(result1 atc.PublicBuildPlan, result2 error) {
 	fake.PublicPlanStub = nil
 	fake.publicPlanReturns = struct {
 		result1 atc.PublicBuildPlan
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuild) Abort(arg1 lager.Logger) error {

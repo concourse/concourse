@@ -11,6 +11,7 @@ type SavedJob struct {
 	Paused             bool
 	PipelineName       string
 	FirstLoggedBuildID int
+	TeamID             int
 	Job
 }
 
@@ -18,8 +19,8 @@ type DashboardJob struct {
 	Job       SavedJob
 	JobConfig atc.JobConfig
 
-	FinishedBuild *Build
-	NextBuild     *Build
+	FinishedBuild Build
+	NextBuild     Build
 }
 
 type Dashboard []DashboardJob

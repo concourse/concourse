@@ -34,6 +34,7 @@ var _ = Describe("VolumeClient", func() {
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeVolumeFactory = new(wfakes.FakeVolumeFactory)
+
 		workerName = "some-worker"
 
 		testLogger = lagertest.NewTestLogger("test")
@@ -346,7 +347,9 @@ var _ = Describe("VolumeClient", func() {
 		var createdVolume worker.Volume
 		var createErr error
 
+		var teamID int
 		BeforeEach(func() {
+			teamID = 123
 			volumeSpec = worker.VolumeSpec{
 				Properties: worker.VolumeProperties{
 					"some": "property",
@@ -362,7 +365,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
 				"some-worker",
-			).CreateVolume(testLogger, volumeSpec)
+			).CreateVolume(testLogger, volumeSpec, teamID)
 		})
 
 		Context("when there is no baggageclaim client", func() {
@@ -421,6 +424,7 @@ var _ = Describe("VolumeClient", func() {
 					dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
 					Expect(dbVolume).To(Equal(db.Volume{
 						Handle:     "created-volume",
+						TeamID:     teamID,
 						WorkerName: workerName,
 						TTL:        volumeSpec.TTL,
 						Identifier: db.VolumeIdentifier{
@@ -517,6 +521,7 @@ var _ = Describe("VolumeClient", func() {
 					dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
 					Expect(dbVolume).To(Equal(db.Volume{
 						Handle:     "created-volume",
+						TeamID:     teamID,
 						WorkerName: workerName,
 						TTL:        volumeSpec.TTL,
 						Identifier: db.VolumeIdentifier{
@@ -613,6 +618,7 @@ var _ = Describe("VolumeClient", func() {
 					dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
 					Expect(dbVolume).To(Equal(db.Volume{
 						Handle:     "created-volume",
+						TeamID:     teamID,
 						WorkerName: workerName,
 						TTL:        volumeSpec.TTL,
 						Identifier: db.VolumeIdentifier{

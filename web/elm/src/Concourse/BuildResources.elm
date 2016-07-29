@@ -1,4 +1,4 @@
-module Concourse.BuildResources where
+module Concourse.BuildResources exposing (..)
 
 import Http
 import Json.Decode exposing ((:=))

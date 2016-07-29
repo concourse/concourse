@@ -5,26 +5,21 @@ import (
 
 	"github.com/cloudfoundry/gunk/urljoiner"
 	"github.com/concourse/atc/auth/github"
+	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
 
-//go:generate counterfeiter . FactoryDB
-
-type FactoryDB interface {
-	GetTeamByName(teamName string) (db.SavedTeam, bool, error)
-}
-
 type OAuthFactory struct {
-	db             FactoryDB
+	teamDBFactory  db.TeamDBFactory
 	atcExternalURL string
 	routes         rata.Routes
 	callback       string
 }
 
-func NewOAuthFactory(db FactoryDB, atcExternalURL string, routes rata.Routes, callback string) OAuthFactory {
+func NewOAuthFactory(teamDBFactory db.TeamDBFactory, atcExternalURL string, routes rata.Routes, callback string) OAuthFactory {
 	return OAuthFactory{
-		db:             db,
+		teamDBFactory:  teamDBFactory,
 		atcExternalURL: atcExternalURL,
 		routes:         routes,
 		callback:       callback,
@@ -32,7 +27,8 @@ func NewOAuthFactory(db FactoryDB, atcExternalURL string, routes rata.Routes, ca
 }
 
 func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
-	team, found, err := of.db.GetTeamByName(teamName)
+	teamDB := of.teamDBFactory.GetTeamDB(teamName)
+	team, found, err := teamDB.GetTeam()
 	if err != nil {
 		return Providers{}, err
 	}
@@ -42,10 +38,7 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 
 	providers := Providers{}
 
-	if len(team.GitHubAuth.Organizations) > 0 ||
-		len(team.GitHubAuth.Teams) > 0 ||
-		len(team.GitHubAuth.Users) > 0 {
-
+	if team.GitHubAuth != nil {
 		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
 			"provider": github.ProviderName,
 		})
@@ -55,6 +48,18 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 		gitHubAuthProvider := github.NewProvider(team.GitHubAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
 
 		providers[github.ProviderName] = gitHubAuthProvider
+	}
+
+	if team.UAAAuth != nil {
+		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
+			"provider": uaa.ProviderName,
+		})
+		if err != nil {
+			return Providers{}, err
+		}
+		uaaAuthProvider := uaa.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
+
+		providers[uaa.ProviderName] = uaaAuthProvider
 	}
 
 	return providers, err

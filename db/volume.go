@@ -12,6 +12,7 @@ import (
 type Volume struct {
 	Handle       string
 	WorkerName   string
+	TeamID       int
 	ContainerTTL *time.Duration
 	TTL          time.Duration
 	SizeInBytes  int64

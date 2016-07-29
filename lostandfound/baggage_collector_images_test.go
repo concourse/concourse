@@ -32,6 +32,8 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB *lostandfoundfakes.FakeBaggageCollectorDB
 			fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
+			fakeBuild2             *dbfakes.FakeBuild
+			fakeBuild3             *dbfakes.FakeBuild
 
 			expectedOldVersionTTL    = 4 * time.Minute
 			expectedLatestVersionTTL = time.Duration(0)
@@ -96,31 +98,28 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
-			imageVersionMap := map[int][]db.ResourceCacheIdentifier{
-				2: {
-					{
-						ResourceVersion: atc.Version{"ref": "rence"},
-						ResourceHash:    "git:zxcvbnm",
-					},
-					{
-						ResourceVersion: atc.Version{"digest": "readers"},
-						ResourceHash:    "docker:qwertyuiop",
-					},
+			fakeBuild2 = new(dbfakes.FakeBuild)
+			fakeBuild3 = new(dbfakes.FakeBuild)
+			fakeBuild2.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{
+				{
+					ResourceVersion: atc.Version{"ref": "rence"},
+					ResourceHash:    "git:zxcvbnm",
 				},
-				3: {
-					{
-						ResourceVersion: atc.Version{"ref": "rence"},
-						ResourceHash:    "docker:qwertyuiop",
-					},
+				{
+					ResourceVersion: atc.Version{"digest": "readers"},
+					ResourceHash:    "docker:qwertyuiop",
 				},
-			}
-
-			fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDStub = func(buildID int) ([]db.ResourceCacheIdentifier, error) {
-				return imageVersionMap[buildID], nil
-			}
+			}, nil)
+			fakeBuild3.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{
+				{
+					ResourceVersion: atc.Version{"ref": "rence"},
+					ResourceHash:    "docker:qwertyuiop",
+				},
+			}, nil)
 
 			fakePipelineDB = new(dbfakes.FakePipelineDB)
-			fakePipelineDB.GetJobFinishedAndNextBuildReturns(&db.Build{ID: 2}, &db.Build{ID: 3}, nil)
+
+			fakePipelineDB.GetJobFinishedAndNextBuildReturns(fakeBuild2, fakeBuild3, nil)
 
 			fakePipelineDBFactory.BuildReturns(fakePipelineDB)
 
@@ -176,8 +175,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			Expect(fakePipelineDBFactory.BuildArgsForCall(0)).To(Equal(savedPipeline))
 			Expect(fakePipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
 			Expect(fakePipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)).To(Equal("my-precious-job"))
-			Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDCallCount()).To(Equal(1))
-			Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDArgsForCall(0)).To(Equal(2))
+			Expect(fakeBuild2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(1))
 			Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
 			Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(3))
 
@@ -210,7 +208,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 				err := baggageCollector.Run()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDCallCount()).To(Equal(0))
+				Expect(fakeBuild2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(0))
 			})
 		})
 	})
@@ -227,6 +225,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB *lostandfoundfakes.FakeBaggageCollectorDB
 			fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
+			fakeBuild              *dbfakes.FakeBuild
 
 			expectedOldVersionTTL    = 4 * time.Minute
 			expectedLatestVersionTTL = time.Duration(0)
@@ -306,7 +305,8 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			}
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
-			fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDReturns(
+			fakeBuild = new(dbfakes.FakeBuild)
+			fakeBuild.GetImageResourceCacheIdentifiersReturns(
 				[]db.ResourceCacheIdentifier{
 					{
 						ResourceVersion: atc.Version{"ref": "rence"},
@@ -317,14 +317,14 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			)
 
 			fakePipelineDB = new(dbfakes.FakePipelineDB)
-			fakePipelineDB.GetJobFinishedAndNextBuildStub = func(jobName string) (*db.Build, *db.Build, error) {
+			fakePipelineDB.GetJobFinishedAndNextBuildStub = func(jobName string) (db.Build, db.Build, error) {
 				switch jobName {
 				case "job-a1":
-					return &db.Build{ID: 1}, nil, nil
+					return fakeBuild, nil, nil
 				case "job-a2":
-					return &db.Build{ID: 2}, nil, nil
+					return fakeBuild, nil, nil
 				case "job-b1":
-					return &db.Build{ID: 3}, nil, nil
+					return fakeBuild, nil, nil
 				default:
 					panic("unknown job name")
 				}

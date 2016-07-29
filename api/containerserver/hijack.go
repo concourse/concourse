@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/lager"
 )
@@ -17,13 +18,15 @@ var upgrader = websocket.Upgrader{
 }
 
 func (s *Server) HijackContainer(w http.ResponseWriter, r *http.Request) {
+	teamName := auth.GetAuthOrDefaultTeamName(r)
 	handle := r.FormValue(":id")
 
 	hLog := s.logger.Session("hijack", lager.Data{
 		"handle": handle,
 	})
 
-	_, found, err := s.db.GetContainer(handle)
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
+	_, found, err := teamDB.GetContainer(handle)
 	if err != nil {
 		hLog.Error("failed-to-find-container", err)
 		w.WriteHeader(http.StatusInternalServerError)

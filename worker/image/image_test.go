@@ -48,6 +48,7 @@ var _ = Describe("Image", func() {
 	var fetchedMetadataReader io.ReadCloser
 	var fetchedVersion atc.Version
 	var fetchErr error
+	var teamID int
 
 	BeforeEach(func() {
 		fakeTrackerFactory = new(rfakes.FakeTrackerFactory)
@@ -81,6 +82,7 @@ var _ = Describe("Image", func() {
 		fakeImageFetchingDelegate = new(wfakes.FakeImageFetchingDelegate)
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
 		fakeWorker = new(wfakes.FakeClient)
+		teamID = 123
 		customTypes = atc.ResourceTypes{
 			{
 				Name:   "custom-type-a",
@@ -108,6 +110,7 @@ var _ = Describe("Image", func() {
 			identifier,
 			metadata,
 			atc.Tags{"worker", "tags"},
+			teamID,
 			customTypes,
 			fakeWorker,
 			fakeImageFetchingDelegate,
@@ -182,7 +185,7 @@ var _ = Describe("Image", func() {
 
 						It("creates a cow volume with the resource's volume", func() {
 							Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(1))
-							_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+							_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(0)
 							Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
 								Strategy: worker.ContainerRootFSStrategy{
 									Parent: fakeVolume,
@@ -190,6 +193,7 @@ var _ = Describe("Image", func() {
 								Privileged: true,
 								TTL:        worker.ContainerTTL,
 							}))
+							Expect(actualTeamID).To(Equal(teamID))
 						})
 
 						Context("when creating the cow volume fails", func() {
@@ -210,7 +214,7 @@ var _ = Describe("Image", func() {
 								fakeCOWVolume = new(wfakes.FakeVolume)
 								fakeWorker.CreateVolumeReturns(fakeCOWVolume, nil)
 
-								fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec) (worker.Volume, error) {
+								fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec, int) (worker.Volume, error) {
 									Expect(fakeVolume.ReleaseCallCount()).To(Equal(0))
 									return fakeCOWVolume, nil
 								}
@@ -251,7 +255,7 @@ var _ = Describe("Image", func() {
 
 						It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 							Expect(fakeImageTracker.InitCallCount()).To(Equal(1))
-							_, metadata, session, resourceType, tags, actualCustomTypes, delegate := fakeImageTracker.InitArgsForCall(0)
+							_, metadata, session, resourceType, tags, actualTeamID, actualCustomTypes, delegate := fakeImageTracker.InitArgsForCall(0)
 							Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 							Expect(session).To(Equal(resource.Session{
 								ID: worker.Identifier{
@@ -271,6 +275,7 @@ var _ = Describe("Image", func() {
 							}))
 							Expect(resourceType).To(Equal(resource.ResourceType("docker")))
 							Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
+							Expect(actualTeamID).To(Equal(teamID))
 							Expect(actualCustomTypes).To(Equal(customTypes))
 							Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 						})
@@ -299,7 +304,7 @@ var _ = Describe("Image", func() {
 
 						It("fetches resource with correct session", func() {
 							Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-							_, session, tags, actualCustomTypes, cacheID, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+							_, session, tags, actualTeamID, actualCustomTypes, cacheID, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 							Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 							Expect(session).To(Equal(resource.Session{
 								ID: worker.Identifier{
@@ -318,6 +323,7 @@ var _ = Describe("Image", func() {
 								},
 							}))
 							Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
+							Expect(actualTeamID).To(Equal(teamID))
 							Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
 								Type:    "docker",
 								Version: atc.Version{"v": "1"},

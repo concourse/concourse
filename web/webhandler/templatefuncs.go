@@ -89,28 +89,31 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		switch args[1].(type) {
 		case atc.Job:
 			return web.Routes.CreatePathForRoute(route, rata.Params{
-				"pipeline_name": args[0].(string),
-				"job":           jobName(args[1]),
+				"team_name":     args[0].(string),
+				"pipeline_name": args[1].(string),
+				"job":           jobName(args[2]),
 			})
 		default:
 			return web.Routes.CreatePathForRoute(route, rata.Params{
-				"pipeline_name": args[0].(string),
-				"job":           jobName(args[1]),
+				"team_name":     args[0].(string),
+				"pipeline_name": args[1].(string),
+				"job":           jobName(args[2]),
 			})
 		}
 
 	case web.GetResource:
 		baseResourceURL, err := web.Routes.CreatePathForRoute(route, rata.Params{
-			"pipeline_name": args[0].(string),
-			"resource":      resourceName(args[1]),
+			"team_name":     args[0].(string),
+			"pipeline_name": args[1].(string),
+			"resource":      resourceName(args[2]),
 		})
 
 		if err != nil {
 			return "", err
 		}
 
-		if len(args) > 2 {
-			page := args[2].(*concourse.Page)
+		if len(args) > 3 {
+			page := args[3].(*concourse.Page)
 
 			if page.Since != 0 {
 				baseResourceURL += fmt.Sprintf("?since=%d", page.Since)
@@ -154,15 +157,16 @@ func PathFor(route string, args ...interface{}) (string, error) {
 
 	case web.GetJob:
 		baseJobURL, err := web.Routes.CreatePathForRoute(route, rata.Params{
-			"pipeline_name": args[0].(string),
-			"job":           jobName(args[1]),
+			"team_name":     args[0].(string),
+			"pipeline_name": args[1].(string),
+			"job":           jobName(args[2]),
 		})
 		if err != nil {
 			return "", err
 		}
 
-		if len(args) > 2 {
-			page := args[2].(*concourse.Page)
+		if len(args) > 3 {
+			page := args[3].(*concourse.Page)
 
 			if page.Since != 0 {
 				baseJobURL += fmt.Sprintf("?since=%d", page.Since)
@@ -179,10 +183,11 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		})
 
 	case atc.EnableResourceVersion, atc.DisableResourceVersion:
-		versionedResource := args[1].(atc.VersionedResource)
+		versionedResource := args[2].(atc.VersionedResource)
 
 		return atc.Routes.CreatePathForRoute(route, rata.Params{
-			"pipeline_name":       args[0].(string),
+			"team_name":           args[0].(string),
+			"pipeline_name":       args[1].(string),
 			"resource_name":       fmt.Sprintf("%s", versionedResource.Resource),
 			"resource_version_id": fmt.Sprintf("%d", versionedResource.ID),
 		})
@@ -213,14 +218,16 @@ func PathFor(route string, args ...interface{}) (string, error) {
 			"redirect": {args[1].(string)},
 		}.Encode(), nil
 
-	case web.BasicAuth:
-		authPath, err := web.Routes.CreatePathForRoute(route, rata.Params{})
+	case web.GetBasicAuthLogIn:
+		authPath, err := web.Routes.CreatePathForRoute(route, rata.Params{
+			"team_name": args[0].(string),
+		})
 		if err != nil {
 			return "", err
 		}
 
 		return authPath + "?" + url.Values{
-			"redirect": {args[0].(string)},
+			"redirect": {args[1].(string)},
 		}.Encode(), nil
 	}
 

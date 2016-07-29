@@ -1,4 +1,4 @@
-module Concourse.Version where
+module Concourse.Version exposing (..)
 
 import Dict exposing (Dict)
 

@@ -71,8 +71,6 @@ type ATCCommand struct {
 	DebugBindIP   IPFlag `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16 `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
 
-	PubliclyViewable bool `short:"p" long:"publicly-viewable" description:"If true, anonymous users can view pipelines and public jobs."`
-
 	SessionSigningKey FileFlag `long:"session-signing-key" description:"File containing an RSA private key, used to sign session tokens."`
 
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -103,10 +101,12 @@ type ATCCommand struct {
 		Organizations []string         `long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
 		Teams         []GitHubTeamFlag `long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
 		Users         []string         `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
-		AuthURL       string           `long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise"`
-		TokenURL      string           `long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise"`
-		APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise"`
+		AuthURL       string           `long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise."`
+		TokenURL      string           `long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise."`
+		APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
+
+	UAAAuth UAAAuth `group:"UAA Authentication" namespace:"uaa-auth"`
 
 	Metrics struct {
 		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`
@@ -119,6 +119,24 @@ type ATCCommand struct {
 		RiemannHost string `long:"riemann-host"                description:"Riemann server address to emit metrics to."`
 		RiemannPort uint16 `long:"riemann-port" default:"5555" description:"Port of the Riemann server to emit metrics to."`
 	} `group:"Metrics & Diagnostics"`
+}
+
+type UAAAuth struct {
+	ClientID     string   `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
+	ClientSecret string   `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
+	AuthURL      string   `long:"auth-url"      description:"UAA AuthURL endpoint."`
+	TokenURL     string   `long:"token-url"     description:"UAA TokenURL endpoint."`
+	CFSpaces     []string `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
+	CFURL        string   `long:"cf-url"        description:"CF API endpoint."`
+}
+
+func (auth *UAAAuth) IsConfigured() bool {
+	return auth.ClientID != "" ||
+		auth.ClientSecret != "" ||
+		len(auth.CFSpaces) > 0 ||
+		auth.AuthURL != "" ||
+		auth.TokenURL != "" ||
+		auth.CFURL != ""
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -138,26 +156,31 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	logger, reconfigurableSink := cmd.constructLogger()
 
-	cmd.configureMetrics(logger)
+	if cmd.Metrics.RiemannHost != "" {
+		cmd.configureMetrics(logger)
+	}
 
-	sqlDB, pipelineDBFactory, err := cmd.constructDB(logger)
+	dbConn, err := cmd.constructDBConn(logger)
 	if err != nil {
 		return nil, err
 	}
+	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
+	bus := db.NewNotificationsBus(listener, dbConn)
 
+	sqlDB := db.NewSQL(dbConn, bus)
 	trackerFactory := resource.NewTrackerFactory()
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
-	engine := cmd.constructEngine(sqlDB, workerClient, tracker, resourceFetcher)
+	teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+	engine := cmd.constructEngine(workerClient, tracker, resourceFetcher, teamDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
 		cmd.ResourceCheckingInterval,
 		engine,
-		sqlDB,
 	)
 
 	radarScannerFactory := radar.NewScannerFactory(
@@ -176,24 +199,18 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	authValidator := cmd.constructValidator(signingKey, sqlDB)
-
-	err = cmd.updateBasicAuthCredentials(sqlDB)
+	err = cmd.updateBasicAuthCredentials(teamDBFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	jwtReader := auth.JWTReader{
-		PublicKey: &signingKey.PublicKey,
-	}
-
-	err = cmd.configureOAuthProviders(logger, sqlDB)
+	err = cmd.configureOAuthProviders(logger, teamDBFactory)
 	if err != nil {
 		return nil, err
 	}
 
 	providerFactory := provider.NewOAuthFactory(
-		sqlDB,
+		teamDBFactory,
 		cmd.oauthBaseURL(),
 		auth.OAuthRoutes,
 		auth.OAuthCallback,
@@ -204,12 +221,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	drain := make(chan struct{})
 
+	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
 	apiHandler, apiRedirectHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
 		sqlDB,
-		authValidator,
-		jwtReader,
+		teamDBFactory,
 		providerFactory,
 		signingKey,
 		pipelineDBFactory,
@@ -218,7 +235,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		drain,
 		radarSchedulerFactory,
 		radarScannerFactory,
+		cmd.Developer.DevelopmentMode,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -226,18 +245,17 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	oauthHandler, err := auth.NewOAuthHandler(
 		logger,
 		providerFactory,
+		teamDBFactory,
 		signingKey,
-		sqlDB,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	webHandler, err := cmd.constructWebHandler(
+	webHandler, err := webhandler.NewHandler(
 		logger,
-		authValidator,
-		jwtReader,
-		pipelineDBFactory,
+		wrappa.NewWebMetricsWrappa(logger),
+		web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode),
 	)
 	if err != nil {
 		return nil, err
@@ -270,11 +288,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	members := []grouper.Member{
 		{"drainer", drainer(drain)},
-
-		{"web", http_server.New(
-			cmd.nonTLSBindAddr(),
-			httpHandler,
-		)},
 
 		{"debug", http_server.New(
 			cmd.debugBindAddr(),
@@ -347,28 +360,24 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		)},
 	}
 
-	members = cmd.appendStaticWorker(logger, sqlDB, members)
+	if cmd.Worker.GardenURL.URL() != nil {
+		members = cmd.appendStaticWorker(logger, sqlDB, members)
+	}
 
 	if cmd.TLSBindPort != 0 {
-		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+		httpHandler = cmd.httpsRedirectingHandler(httpHandler)
 
+		var err error
+		members, err = cmd.appendTLSMember(webHandler, apiHandler, oauthHandler, members)
 		if err != nil {
 			return nil, err
 		}
-
-		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
-
-		members = append(members,
-			grouper.Member{"web-tls", http_server.NewTLSServer(
-				cmd.tlsBindAddr(),
-				cmd.constructHTTPHandler(
-					webHandler,
-					apiHandler,
-					oauthHandler,
-				),
-				tlsConfig,
-			)})
 	}
+
+	members = append(members, grouper.Member{"web", http_server.New(
+		cmd.nonTLSBindAddr(),
+		httpHandler,
+	)})
 
 	return onReady(grouper.NewParallel(os.Interrupt, members), func() {
 		logData := lager.Data{
@@ -382,6 +391,24 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 		logger.Info("listening", logData)
 	}), nil
+}
+
+func (cmd *ATCCommand) httpsRedirectingHandler(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET", "HEAD":
+			u := url.URL{
+				Scheme:   "https",
+				Host:     cmd.ExternalURL.URL().Host,
+				Path:     r.URL.Path,
+				RawQuery: r.URL.RawQuery,
+			}
+
+			http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+		default:
+			handler.ServeHTTP(w, r)
+		}
+	})
 }
 
 func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
@@ -414,7 +441,7 @@ func (cmd *ATCCommand) oauthBaseURL() string {
 }
 
 func (cmd *ATCCommand) authConfigured() bool {
-	return cmd.basicAuthConfigured() || cmd.gitHubAuthConfigured()
+	return cmd.basicAuthConfigured() || cmd.gitHubAuthConfigured() || cmd.UAAAuth.IsConfigured()
 }
 
 func (cmd *ATCCommand) basicAuthConfigured() bool {
@@ -468,6 +495,27 @@ func (cmd *ATCCommand) validate() error {
 		}
 	}
 
+	if cmd.UAAAuth.IsConfigured() {
+		if cmd.UAAAuth.ClientID == "" || cmd.UAAAuth.ClientSecret == "" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth"),
+			)
+		}
+		if len(cmd.UAAAuth.CFSpaces) == 0 {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --uaa-auth-cf-space to use UAA OAuth"),
+			)
+		}
+		if cmd.UAAAuth.AuthURL == "" || cmd.UAAAuth.TokenURL == "" || cmd.UAAAuth.CFURL == "" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth"),
+			)
+		}
+	}
+
 	tlsFlagCount := 0
 	if cmd.TLSBindPort != 0 {
 		tlsFlagCount++
@@ -494,13 +542,6 @@ func (cmd *ATCCommand) validate() error {
 	}
 
 	return errs.ErrorOrNil()
-}
-
-func (cmd *ATCCommand) bindProtocol() string {
-	if cmd.TLSBindPort != 0 {
-		return "https://"
-	}
-	return "http://"
 }
 
 func (cmd *ATCCommand) nonTLSBindAddr() string {
@@ -547,42 +588,32 @@ func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSin
 }
 
 func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
-	if cmd.Metrics.RiemannHost != "" {
-		host := cmd.Metrics.HostName
-		if host == "" {
-			host, _ = os.Hostname()
-		}
-
-		metric.Initialize(
-			logger.Session("metrics"),
-			fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort),
-			host,
-			cmd.Metrics.Tags,
-			cmd.Metrics.Attributes,
-		)
+	host := cmd.Metrics.HostName
+	if host == "" {
+		host, _ = os.Hostname()
 	}
+
+	metric.Initialize(
+		logger.Session("metrics"),
+		fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort),
+		host,
+		cmd.Metrics.Tags,
+		cmd.Metrics.Attributes,
+	)
 }
 
-func (cmd *ATCCommand) constructDB(logger lager.Logger) (*db.SQLDB, db.PipelineDBFactory, error) {
+func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, error) {
 	driverName := "connection-counting"
 	metric.SetupConnectionCountingDriver("postgres", cmd.PostgresDataSource, driverName)
 
 	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.PostgresDataSource)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
+		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
-
-	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
-	bus := db.NewNotificationsBus(listener, dbConn)
 
 	dbConn.SetMaxOpenConns(64)
 
-	countingDBConn := metric.CountQueries(dbConn)
-	sqlDB := db.NewSQL(countingDBConn, bus)
-
-	pipelineDBFactory := db.NewPipelineDBFactory(countingDBConn, bus, sqlDB)
-
-	return sqlDB, pipelineDBFactory, err
+	return metric.CountQueries(dbConn), nil
 }
 
 func (cmd *ATCCommand) constructWorkerPool(
@@ -629,24 +660,27 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB) error {
+func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactory db.TeamDBFactory) error {
 	var err error
 	team := db.Team{
 		Name: atc.DefaultTeamName,
 	}
+	teamDB := teamDBFactory.GetTeamDB(team.Name)
 
-	gitHubTeams := []db.GitHubTeam{}
-	for _, gitHubTeam := range cmd.GitHubAuth.Teams {
-		gitHubTeams = append(gitHubTeams, db.GitHubTeam{
-			TeamName:         gitHubTeam.TeamName,
-			OrganizationName: gitHubTeam.OrganizationName,
-		})
-	}
-
+	var gitHubAuth *db.GitHubAuth
 	if len(cmd.GitHubAuth.Organizations) > 0 ||
-		len(gitHubTeams) > 0 ||
+		len(cmd.GitHubAuth.Teams) > 0 ||
 		len(cmd.GitHubAuth.Users) > 0 {
-		gitHubAuth := db.GitHubAuth{
+
+		gitHubTeams := []db.GitHubTeam{}
+		for _, gitHubTeam := range cmd.GitHubAuth.Teams {
+			gitHubTeams = append(gitHubTeams, db.GitHubTeam{
+				TeamName:         gitHubTeam.TeamName,
+				OrganizationName: gitHubTeam.OrganizationName,
+			})
+		}
+
+		gitHubAuth = &db.GitHubAuth{
 			ClientID:      cmd.GitHubAuth.ClientID,
 			ClientSecret:  cmd.GitHubAuth.ClientSecret,
 			Organizations: cmd.GitHubAuth.Organizations,
@@ -656,12 +690,26 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 			TokenURL:      cmd.GitHubAuth.TokenURL,
 			APIURL:        cmd.GitHubAuth.APIURL,
 		}
-		team.GitHubAuth = gitHubAuth
-	} else {
-		team.GitHubAuth = db.GitHubAuth{}
 	}
 
-	_, err = sqlDB.UpdateTeamGitHubAuth(team)
+	_, err = teamDB.UpdateGitHubAuth(gitHubAuth)
+	if err != nil {
+		return err
+	}
+
+	var uaaAuth *db.UAAAuth
+	if cmd.UAAAuth.IsConfigured() {
+		uaaAuth = &db.UAAAuth{
+			ClientID:     cmd.UAAAuth.ClientID,
+			ClientSecret: cmd.UAAAuth.ClientSecret,
+			CFSpaces:     cmd.UAAAuth.CFSpaces,
+			AuthURL:      cmd.UAAAuth.AuthURL,
+			TokenURL:     cmd.UAAAuth.TokenURL,
+			CFURL:        cmd.UAAAuth.CFURL,
+		}
+	}
+
+	_, err = teamDB.UpdateUAAAuth(uaaAuth)
 	if err != nil {
 		return err
 	}
@@ -669,7 +717,7 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 	return nil
 }
 
-func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.DB) auth.Validator {
+func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, teamDBFactory db.TeamDBFactory) auth.Validator {
 	if !cmd.authConfigured() {
 		return auth.NoopValidator{}
 	}
@@ -682,7 +730,7 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.D
 	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
 		validator = auth.ValidatorBasket{
 			auth.BasicAuthValidator{
-				DB: sqlDB,
+				TeamDBFactory: teamDBFactory,
 			},
 			jwtValidator,
 		}
@@ -693,29 +741,24 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.D
 	return validator
 }
 
-func (cmd *ATCCommand) updateBasicAuthCredentials(sqlDB db.DB) error {
-	var team db.Team
-	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
-		team = db.Team{
-			Name: atc.DefaultTeamName,
-			BasicAuth: db.BasicAuth{
-				BasicAuthUsername: cmd.BasicAuth.Username,
-				BasicAuthPassword: cmd.BasicAuth.Password,
-			},
+func (cmd *ATCCommand) updateBasicAuthCredentials(teamDBFactory db.TeamDBFactory) error {
+	var basicAuth *db.BasicAuth
+	if cmd.BasicAuth.Username != "" || cmd.BasicAuth.Password != "" {
+		basicAuth = &db.BasicAuth{
+			BasicAuthUsername: cmd.BasicAuth.Username,
+			BasicAuthPassword: cmd.BasicAuth.Password,
 		}
-	} else {
-		team = db.Team{Name: atc.DefaultTeamName}
 	}
-
-	_, err := sqlDB.UpdateTeamBasicAuth(team)
+	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+	_, err := teamDB.UpdateBasicAuth(basicAuth)
 	return err
 }
 
 func (cmd *ATCCommand) constructEngine(
-	sqlDB *db.SQLDB,
 	workerClient worker.Client,
 	tracker resource.Tracker,
 	resourceFetcher resource.Fetcher,
+	teamDBFactory db.TeamDBFactory,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
@@ -725,14 +768,14 @@ func (cmd *ATCCommand) constructEngine(
 
 	execV2Engine := engine.NewExecEngine(
 		gardenFactory,
-		engine.NewBuildDelegateFactory(sqlDB),
-		sqlDB,
+		engine.NewBuildDelegateFactory(),
+		teamDBFactory,
 		cmd.ExternalURL.String(),
 	)
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, sqlDB)
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine})
 }
 
 func (cmd *ATCCommand) constructHTTPHandler(
@@ -765,8 +808,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
-	authValidator auth.Validator,
-	userContextReader auth.UserContextReader,
+	teamDBFactory db.TeamDBFactory,
 	providerFactory provider.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
@@ -775,9 +817,13 @@ func (cmd *ATCCommand) constructAPIHandler(
 	drain <-chan struct{},
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
+	devMode bool,
 ) (http.Handler, http.Handler, error) {
 	apiWrapper := wrappa.MultiWrappa{
-		wrappa.NewAPIAuthWrappa(cmd.PubliclyViewable, authValidator, userContextReader),
+		wrappa.NewAPIAuthWrappa(
+			cmd.constructValidator(signingKey, teamDBFactory),
+			auth.JWTReader{PublicKey: &signingKey.PublicKey, DevelopmentMode: devMode},
+		),
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewConcourseVersionWrappa(Version),
 	}
@@ -797,16 +843,13 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.oauthBaseURL(),
 
 		pipelineDBFactory,
+		teamDBFactory,
 
-		sqlDB, // authserver.AuthDB
-		sqlDB, // db.ConfigDB
-		sqlDB, // buildserver.BuildsDB
+		sqlDB, // teamserver.TeamDB
 		sqlDB, // workerserver.WorkerDB
 		sqlDB, // containerserver.ContainerDB
 		sqlDB, // volumeserver.VolumesDB
 		sqlDB, // pipes.PipeDB
-		sqlDB, // db.PipelinesDB
-		sqlDB, // teamserver.TeamDB
 
 		config.ValidateConfig,
 		cmd.PeerURL.String(),
@@ -849,26 +892,6 @@ func (h redirectingAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	} else {
 		h.baseHandler.ServeHTTP(w, r)
 	}
-}
-
-func (cmd *ATCCommand) constructWebHandler(
-	logger lager.Logger,
-	authValidator auth.Validator,
-	userContextReader auth.UserContextReader,
-	pipelineDBFactory db.PipelineDBFactory,
-) (http.Handler, error) {
-	webWrapper := wrappa.MultiWrappa{
-		wrappa.NewWebAuthWrappa(authValidator, userContextReader),
-		wrappa.NewWebMetricsWrappa(logger),
-	}
-
-	clientFactory := web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode)
-
-	return webhandler.NewHandler(
-		logger,
-		webWrapper,
-		clientFactory,
-	)
 }
 
 func (cmd *ATCCommand) constructPipelineSyncer(
@@ -917,10 +940,6 @@ func (cmd *ATCCommand) appendStaticWorker(
 	sqlDB *db.SQLDB,
 	members []grouper.Member,
 ) []grouper.Member {
-	if cmd.Worker.GardenURL.URL() == nil {
-		return members
-	}
-
 	var resourceTypes []atc.WorkerResourceType
 	for t, resourcePath := range cmd.Worker.ResourceTypes {
 		resourceTypes = append(resourceTypes, atc.WorkerResourceType{
@@ -942,4 +961,29 @@ func (cmd *ATCCommand) appendStaticWorker(
 			),
 		},
 	)
+}
+
+func (cmd *ATCCommand) appendTLSMember(
+	webHandler http.Handler,
+	apiHandler http.Handler,
+	oauthHandler http.Handler,
+	members []grouper.Member,
+) ([]grouper.Member, error) {
+	cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+	if err != nil {
+		return []grouper.Member{}, err
+	}
+
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+	members = append(members, grouper.Member{"web-tls", http_server.NewTLSServer(
+		cmd.tlsBindAddr(),
+		cmd.constructHTTPHandler(
+			webHandler,
+			apiHandler,
+			oauthHandler,
+		),
+		tlsConfig,
+	)})
+
+	return members, nil
 }

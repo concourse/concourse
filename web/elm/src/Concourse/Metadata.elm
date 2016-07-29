@@ -1,4 +1,4 @@
-module Concourse.Metadata where
+module Concourse.Metadata exposing (..)
 
 import Json.Decode exposing ((:=))
 

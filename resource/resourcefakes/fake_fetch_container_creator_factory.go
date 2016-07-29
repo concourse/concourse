@@ -11,12 +11,13 @@ import (
 )
 
 type FakeFetchContainerCreatorFactory struct {
-	NewFetchContainerCreatorStub        func(logger lager.Logger, resourceTypes atc.ResourceTypes, tags atc.Tags, session resource.Session, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchContainerCreator
+	NewFetchContainerCreatorStub        func(logger lager.Logger, resourceTypes atc.ResourceTypes, tags atc.Tags, teamID int, session resource.Session, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchContainerCreator
 	newFetchContainerCreatorMutex       sync.RWMutex
 	newFetchContainerCreatorArgsForCall []struct {
 		logger                lager.Logger
 		resourceTypes         atc.ResourceTypes
 		tags                  atc.Tags
+		teamID                int
 		session               resource.Session
 		metadata              resource.Metadata
 		imageFetchingDelegate worker.ImageFetchingDelegate
@@ -28,20 +29,21 @@ type FakeFetchContainerCreatorFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreator(logger lager.Logger, resourceTypes atc.ResourceTypes, tags atc.Tags, session resource.Session, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchContainerCreator {
+func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreator(logger lager.Logger, resourceTypes atc.ResourceTypes, tags atc.Tags, teamID int, session resource.Session, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchContainerCreator {
 	fake.newFetchContainerCreatorMutex.Lock()
 	fake.newFetchContainerCreatorArgsForCall = append(fake.newFetchContainerCreatorArgsForCall, struct {
 		logger                lager.Logger
 		resourceTypes         atc.ResourceTypes
 		tags                  atc.Tags
+		teamID                int
 		session               resource.Session
 		metadata              resource.Metadata
 		imageFetchingDelegate worker.ImageFetchingDelegate
-	}{logger, resourceTypes, tags, session, metadata, imageFetchingDelegate})
-	fake.recordInvocation("NewFetchContainerCreator", []interface{}{logger, resourceTypes, tags, session, metadata, imageFetchingDelegate})
+	}{logger, resourceTypes, tags, teamID, session, metadata, imageFetchingDelegate})
+	fake.recordInvocation("NewFetchContainerCreator", []interface{}{logger, resourceTypes, tags, teamID, session, metadata, imageFetchingDelegate})
 	fake.newFetchContainerCreatorMutex.Unlock()
 	if fake.NewFetchContainerCreatorStub != nil {
-		return fake.NewFetchContainerCreatorStub(logger, resourceTypes, tags, session, metadata, imageFetchingDelegate)
+		return fake.NewFetchContainerCreatorStub(logger, resourceTypes, tags, teamID, session, metadata, imageFetchingDelegate)
 	} else {
 		return fake.newFetchContainerCreatorReturns.result1
 	}
@@ -53,10 +55,10 @@ func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreatorCallCount(
 	return len(fake.newFetchContainerCreatorArgsForCall)
 }
 
-func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreatorArgsForCall(i int) (lager.Logger, atc.ResourceTypes, atc.Tags, resource.Session, resource.Metadata, worker.ImageFetchingDelegate) {
+func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreatorArgsForCall(i int) (lager.Logger, atc.ResourceTypes, atc.Tags, int, resource.Session, resource.Metadata, worker.ImageFetchingDelegate) {
 	fake.newFetchContainerCreatorMutex.RLock()
 	defer fake.newFetchContainerCreatorMutex.RUnlock()
-	return fake.newFetchContainerCreatorArgsForCall[i].logger, fake.newFetchContainerCreatorArgsForCall[i].resourceTypes, fake.newFetchContainerCreatorArgsForCall[i].tags, fake.newFetchContainerCreatorArgsForCall[i].session, fake.newFetchContainerCreatorArgsForCall[i].metadata, fake.newFetchContainerCreatorArgsForCall[i].imageFetchingDelegate
+	return fake.newFetchContainerCreatorArgsForCall[i].logger, fake.newFetchContainerCreatorArgsForCall[i].resourceTypes, fake.newFetchContainerCreatorArgsForCall[i].tags, fake.newFetchContainerCreatorArgsForCall[i].teamID, fake.newFetchContainerCreatorArgsForCall[i].session, fake.newFetchContainerCreatorArgsForCall[i].metadata, fake.newFetchContainerCreatorArgsForCall[i].imageFetchingDelegate
 }
 
 func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreatorReturns(result1 resource.FetchContainerCreator) {

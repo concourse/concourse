@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, ttl, EXTRACT(epoch FROM expires_at - NOW()), c.id, resource_type_version"
+const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, ttl, EXTRACT(epoch FROM expires_at - NOW()), c.id, resource_type_version, c.team_id"
 
 const containerJoins = `
 		LEFT JOIN pipelines p
@@ -24,110 +24,6 @@ const containerJoins = `
 		  ON j.id = b.job_id`
 
 var ErrInvalidIdentifier = errors.New("invalid container identifier")
-
-func (db *SQLDB) FindContainersByDescriptors(id Container) ([]SavedContainer, error) {
-	err := deleteExpired(db)
-	if err != nil {
-		return nil, err
-	}
-
-	var whereCriteria []string
-	var params []interface{}
-
-	if id.ResourceName != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("r.name = $%d", len(params)+1))
-		params = append(params, id.ResourceName)
-	}
-
-	if id.StepName != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("c.step_name = $%d", len(params)+1))
-		params = append(params, id.StepName)
-	}
-
-	if id.JobName != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("j.name = $%d", len(params)+1))
-		params = append(params, id.JobName)
-	}
-
-	if id.PipelineName != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("p.name = $%d", len(params)+1))
-		params = append(params, id.PipelineName)
-	}
-
-	if id.BuildID != 0 {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("build_id = $%d", len(params)+1))
-		params = append(params, id.BuildID)
-	}
-
-	if id.Type != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("type = $%d", len(params)+1))
-		params = append(params, id.Type.String())
-	}
-
-	if id.WorkerName != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("worker_name = $%d", len(params)+1))
-		params = append(params, id.WorkerName)
-	}
-
-	if id.CheckType != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("check_type = $%d", len(params)+1))
-		params = append(params, id.CheckType)
-	}
-
-	if id.BuildName != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("b.name = $%d", len(params)+1))
-		params = append(params, id.BuildName)
-	}
-
-	var checkSourceBlob []byte
-	if id.CheckSource != nil {
-		checkSourceBlob, err = json.Marshal(id.CheckSource)
-		if err != nil {
-			return nil, err
-		}
-		whereCriteria = append(whereCriteria, fmt.Sprintf("check_source = $%d", len(params)+1))
-		params = append(params, checkSourceBlob)
-	}
-
-	if len(id.Attempts) > 0 {
-		attemptsBlob, err := json.Marshal(id.Attempts)
-		if err != nil {
-			return nil, err
-		}
-		whereCriteria = append(whereCriteria, fmt.Sprintf("attempts = $%d", len(params)+1))
-		params = append(params, attemptsBlob)
-	}
-
-	var rows *sql.Rows
-	selectQuery := `
-		SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins
-
-	if len(whereCriteria) > 0 {
-		selectQuery += fmt.Sprintf(" WHERE %s", strings.Join(whereCriteria, " AND "))
-	}
-
-	rows, err = db.conn.Query(selectQuery, params...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	infos := []SavedContainer{}
-	for rows.Next() {
-		info, err := scanContainer(rows)
-
-		if err != nil {
-			return nil, err
-		}
-
-		infos = append(infos, info)
-	}
-
-	return infos, nil
-}
 
 func scanRows(rows *sql.Rows) ([]SavedContainer, error) {
 	var containers []SavedContainer
@@ -237,11 +133,13 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		}
 
 		if container.PipelineID > 0 {
-			pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db)
-			pipelineDB, err := pipelineDBFactory.BuildWithID(container.PipelineID)
+			savedPipeline, err := db.GetPipelineByID(container.PipelineID)
 			if err != nil {
 				return SavedContainer{}, false, err
 			}
+
+			pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
+			pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 			_, found, err := pipelineDB.GetResourceType(container.CheckType)
 			if err != nil {
@@ -361,11 +259,6 @@ func (db *SQLDB) CreateContainer(
 		buildID.Valid = true
 	}
 
-	workerName := container.WorkerName
-	if workerName == "" {
-		workerName = container.WorkerName
-	}
-
 	var attempts sql.NullString
 	if len(container.Attempts) > 0 {
 		attemptsBlob, err := json.Marshal(container.Attempts)
@@ -402,8 +295,8 @@ func (db *SQLDB) CreateContainer(
 		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name,
 			expires_at, ttl, best_if_used_by, check_type, check_source, plan_id, working_directory,
 			env_variables, attempts, stage, image_resource_type, image_resource_source,
-			process_user, resource_type_version)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+			process_user, resource_type_version, team_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
 		RETURNING id`,
 		container.Handle,
 		resourceID,
@@ -411,7 +304,7 @@ func (db *SQLDB) CreateContainer(
 		pipelineID,
 		buildID,
 		container.Type.String(),
-		workerName,
+		container.WorkerName,
 		interval,
 		ttl,
 		container.CheckType,
@@ -425,6 +318,7 @@ func (db *SQLDB) CreateContainer(
 		imageResourceSource,
 		user,
 		resourceTypeVersion,
+		container.TeamID,
 	).Scan(&id)
 	if err != nil {
 		return SavedContainer{}, err
@@ -575,6 +469,7 @@ func isValidStepID(id ContainerIdentifier) bool {
 
 func scanContainer(row scannable) (SavedContainer, error) {
 	var (
+		teamID              sql.NullInt64
 		resourceID          sql.NullInt64
 		checkSourceBlob     []byte
 		buildID             sql.NullInt64
@@ -617,6 +512,7 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		&ttlInSeconds,
 		&container.ID,
 		&resourceTypeVersion,
+		&teamID,
 	)
 
 	if err != nil {
@@ -629,6 +525,10 @@ func scanContainer(row scannable) (SavedContainer, error) {
 
 	if buildID.Valid {
 		container.ContainerIdentifier.BuildID = int(buildID.Int64)
+	}
+
+	if teamID.Valid {
+		container.TeamID = int(teamID.Int64)
 	}
 
 	container.PlanID = atc.PlanID(planID.String)

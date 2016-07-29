@@ -36,6 +36,7 @@ type TemplateData struct {
 
 	GroupStates  []group.State
 	PipelineName string
+	TeamName     string
 }
 
 var ErrConfigNotFound = errors.New("could not find config")
@@ -43,11 +44,11 @@ var ErrJobConfigNotFound = errors.New("could not find job")
 
 func FetchTemplateData(
 	pipelineName string,
-	client concourse.Client,
+	team concourse.Team,
 	jobName string,
 	page concourse.Page,
 ) (TemplateData, error) {
-	pipeline, pipelineFound, err := client.Pipeline(pipelineName)
+	pipeline, pipelineFound, err := team.Pipeline(pipelineName)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -56,7 +57,7 @@ func FetchTemplateData(
 		return TemplateData{}, ErrConfigNotFound
 	}
 
-	_, jobFound, err := client.Job(pipelineName, jobName)
+	_, jobFound, err := team.Job(pipelineName, jobName)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -66,6 +67,7 @@ func FetchTemplateData(
 	}
 
 	return TemplateData{
+		TeamName:     team.Name(),
 		PipelineName: pipelineName,
 		JobName:      jobName,
 
@@ -103,9 +105,11 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		until = 0
 	}
 
+	teamName := r.FormValue(":team_name")
+	client := handler.clientFactory.Build(r)
 	templateData, err := FetchTemplateData(
 		r.FormValue(":pipeline_name"),
-		handler.clientFactory.Build(r),
+		client.Team(teamName),
 		jobName,
 		concourse.Page{
 			Since: since,

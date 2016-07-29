@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/db"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
@@ -22,8 +23,8 @@ type ProviderFactory interface {
 func NewOAuthHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
+	teamDBFactory db.TeamDBFactory,
 	signingKey *rsa.PrivateKey,
-	db AuthDB,
 ) (http.Handler, error) {
 	return rata.NewRouter(OAuthRoutes, map[string]http.Handler{
 		OAuthBegin: NewOAuthBeginHandler(
@@ -36,7 +37,7 @@ func NewOAuthHandler(
 			logger.Session("oauth-callback"),
 			providerFactory,
 			signingKey,
-			db,
+			teamDBFactory,
 		),
 	})
 }

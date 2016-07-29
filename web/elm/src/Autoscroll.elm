@@ -1,7 +1,7 @@
-module Autoscroll where
+module Autoscroll exposing (..)
 
-import Effects exposing (Effects)
 import Html exposing (Html)
+import Html.App
 import Task
 
 import Scroll
@@ -23,29 +23,29 @@ type Action subAction
   | ScrolledDown
   | FromBottom Int
 
-init : (subModel -> ScrollBehavior) -> (subModel, Effects subAction) -> (Model subModel, Effects (Action subAction))
-init toScrollAction (subModel, subEffects) =
-  (Model subModel True toScrollAction, Effects.map SubAction subEffects)
+init : (subModel -> ScrollBehavior) -> (subModel, Cmd subAction) -> (Model subModel, Cmd (Action subAction))
+init toScrollAction (subModel, subCmd) =
+  (Model subModel True toScrollAction, Cmd.map SubAction subCmd)
 
-update : (subAction -> subModel -> (subModel, Effects subAction)) -> Action subAction -> Model subModel -> (Model subModel, Effects (Action subAction))
+update : (subAction -> subModel -> (subModel, Cmd subAction)) -> Action subAction -> Model subModel -> (Model subModel, Cmd (Action subAction))
 update subUpdate action model =
   case action of
     SubAction subAction ->
       let
-        (subModel, subEffects) = subUpdate subAction model.subModel
+        (subModel, subCmd) = subUpdate subAction model.subModel
       in
-        ({ model | subModel = subModel }, Effects.map SubAction subEffects)
+        ({ model | subModel = subModel }, Cmd.map SubAction subCmd)
 
     ScrollDown ->
       ( model
       , if model.shouldScroll && model.scrollBehaviorFunc model.subModel /= NoScroll then
           scrollToBottom
         else
-          Effects.none
+          Cmd.none
       )
 
     ScrolledDown ->
-      (model, Effects.none)
+      (model, Cmd.none)
 
     FromBottom num ->
       ( { model
@@ -54,16 +54,14 @@ update subUpdate action model =
               Autoscroll -> (num < 16)
               _ -> False
         }
-      , Effects.none
+      , Cmd.none
       )
 
 
-view : (Signal.Address subAction -> subModel -> Html) -> Signal.Address (Action subAction) -> Model subModel -> Html
-view subView actions model =
-  subView (Signal.forwardTo actions SubAction) model.subModel
+view : (subModel -> Html subAction) -> Model subModel -> Html (Action subAction)
+view subView model =
+  Html.App.map SubAction (subView model.subModel)
 
-scrollToBottom : Effects (Action x)
+scrollToBottom : Cmd (Action x)
 scrollToBottom =
-  Scroll.toBottom
-    |> Task.map (always ScrolledDown)
-    |> Effects.task
+  Task.perform (always ScrolledDown) (always ScrolledDown) Scroll.toBottom

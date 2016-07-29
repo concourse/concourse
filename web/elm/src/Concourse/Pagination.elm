@@ -1,4 +1,4 @@
-module Concourse.Pagination (Paginated, Pagination, Page, Direction(..), fetch, parseLinks) where
+module Concourse.Pagination exposing (Paginated, Pagination, Page, Direction(..), fetch, parseLinks)
 
 import Dict exposing (Dict)
 import Http

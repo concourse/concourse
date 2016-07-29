@@ -29,10 +29,13 @@ var _ = Describe("Image Versions", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
-		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
+
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDB := teamDBFactory.GetTeamDB("some-team")
 
 		config := atc.Config{
 			Jobs: atc.JobConfigs{
@@ -42,11 +45,10 @@ var _ = Describe("Image Versions", func() {
 			},
 		}
 
-		_, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", config, 0, db.PipelineUnpaused)
+		savedPipeline, _, err := teamDB.SaveConfig("a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "a-pipeline-name")
-		Expect(err).NotTo(HaveOccurred())
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
 	AfterEach(func() {
@@ -79,45 +81,36 @@ var _ = Describe("Image Versions", func() {
 			ResourceHash:    "our even badder resource hash",
 		}
 
-		err = sqlDB.SaveImageResourceVersion(build.ID, "our-super-sweet-plan", identifier)
+		err = build.SaveImageResourceVersion("our-super-sweet-plan", identifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = sqlDB.SaveImageResourceVersion(build.ID, "our-other-super-sweet-plan", otherIdentifier)
+		err = build.SaveImageResourceVersion("our-other-super-sweet-plan", otherIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = sqlDB.SaveImageResourceVersion(otherBuild.ID, "our-super-bad-plan", badIdentifier)
+		err = otherBuild.SaveImageResourceVersion("our-super-bad-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		recoveredIdentifiers, err := sqlDB.GetImageResourceCacheIdentifiersByBuildID(build.ID)
+		recoveredIdentifiers, err := build.GetImageResourceCacheIdentifiers()
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(recoveredIdentifiers).To(ConsistOf(identifier, otherIdentifier))
 
-		By("not saving versions for non-existent build ids")
-
-		err = sqlDB.SaveImageResourceVersion(555, "our-super-fake-plan", badIdentifier)
-		Expect(err).To(HaveOccurred())
-
-		recoveredFakeIdentifiers, err := sqlDB.GetImageResourceCacheIdentifiersByBuildID(555)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(recoveredFakeIdentifiers).To(BeEmpty())
-
 		By("replacing the version if the id combination already exists")
 
-		err = sqlDB.SaveImageResourceVersion(build.ID, "our-super-sweet-plan", badIdentifier)
+		err = build.SaveImageResourceVersion("our-super-sweet-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		recoveredIdentifiers, err = sqlDB.GetImageResourceCacheIdentifiersByBuildID(build.ID)
+		recoveredIdentifiers, err = build.GetImageResourceCacheIdentifiers()
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(recoveredIdentifiers).To(ConsistOf(badIdentifier, otherIdentifier))
 
 		By("not not enforcing global uniqueness of plan IDs")
 
-		err = sqlDB.SaveImageResourceVersion(otherBuild.ID, "our-super-sweet-plan", badIdentifier)
+		err = otherBuild.SaveImageResourceVersion("our-super-sweet-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		otherRecoveredIdentifiers, err := sqlDB.GetImageResourceCacheIdentifiersByBuildID(otherBuild.ID)
+		otherRecoveredIdentifiers, err := otherBuild.GetImageResourceCacheIdentifiers()
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(otherRecoveredIdentifiers).To(ConsistOf(badIdentifier, badIdentifier))

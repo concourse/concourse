@@ -1,29 +1,18 @@
 function draw(groups, renderFn, completeFn) {
   $.when(
     $.ajax({
-      url: "/api/v1/pipelines/" + concourse.pipelineName + "/jobs",
+      url: "/api/v1/teams/" + concourse.teamName + "/pipelines/" + concourse.pipelineName + "/jobs",
       dataType: "json"
     }),
     $.ajax({
-      url: "/api/v1/pipelines/" + concourse.pipelineName + "/resources",
+      url: "/api/v1/teams/" + concourse.teamName + "/pipelines/" + concourse.pipelineName + "/resources",
       dataType: "json"
     })
   ).done(function(a1, a2) {
-    $(".error-message").addClass("hidden");
-
     var jobs = a1[0];
     var resources = a2[0];
     var request = a2[2];
-
     renderFn(jobs, resources, request.getResponseHeader("X-Concourse-Version"));
-  }).fail(function(data) {
-    if (data.status !== 0) {
-      $(".error-message .explanation").text("response status " + data.status);
-    } else {
-      $(".error-message .explanation").text("could not reach server");
-    }
-
-    $(".error-message").removeClass("hidden");
   }).always(completeFn);
 }
 

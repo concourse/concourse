@@ -3,11 +3,17 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 )
+
+const volumeJoins = `
+LEFT JOIN containers c
+	ON v.container_id = c.id
+LEFT JOIN teams t
+	ON v.team_id = t.id
+`
 
 func (db *SQLDB) InsertVolume(data Volume) error {
 	tx, err := db.conn.Begin()
@@ -30,6 +36,12 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 		columns = append(columns, "expires_at")
 		params = append(params, fmt.Sprintf("%d second", int(data.TTL.Seconds())))
 		values = append(values, fmt.Sprintf("NOW() + $%d::INTERVAL", len(params)))
+	}
+
+	if data.TeamID != 0 {
+		columns = append(columns, "team_id")
+		params = append(params, data.TeamID)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
 	}
 
 	switch {
@@ -121,11 +133,10 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 			v.path,
 			v.host_path_version,
 			v.size_in_bytes,
-			c.ttl
+			c.ttl,
+			v.team_id
 		FROM volumes v
-		LEFT JOIN containers c
-		ON v.container_id = c.id
-	`)
+		` + volumeJoins)
 	if err != nil {
 		return nil, err
 	}
@@ -185,11 +196,9 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 			v.path,
 			v.host_path_version,
 			v.size_in_bytes,
-			c.ttl
-		FROM volumes v
-		LEFT JOIN containers c
-		ON v.container_id = c.id
-		`
+			c.ttl,
+			v.team_id
+		FROM volumes v` + volumeJoins
 
 	statement += "WHERE " + strings.Join(conditions, " AND ")
 	statement += "ORDER BY id ASC"
@@ -230,10 +239,9 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 			v.path,
 			v.host_path_version,
 			v.size_in_bytes,
-			c.ttl
-		FROM volumes v
-			LEFT JOIN containers c
-				ON v.container_id = c.id
+			c.ttl,
+			v.team_id
+		FROM volumes v ` + volumeJoins + `
 			INNER JOIN image_resource_versions i
 				ON i.version = v.resource_version
 				AND i.resource_hash = v.resource_hash
@@ -299,52 +307,6 @@ func (db *SQLDB) SetVolumeSizeInBytes(handle string, sizeInBytes int64) error {
 	return err
 }
 
-func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
-	err := db.expireVolumes()
-	if err != nil {
-		return SavedVolume{}, err
-	}
-
-	rows, err := db.conn.Query(`
-		SELECT
-			v.worker_name,
-			v.ttl,
-			EXTRACT(epoch FROM v.expires_at - NOW()),
-			v.handle,
-			v.resource_version,
-			v.resource_hash,
-			v.id,
-			v.original_volume_handle,
-			v.output_name,
-			v.replicated_from,
-			v.path,
-			v.host_path_version,
-			v.size_in_bytes,
-			c.ttl
-		FROM volumes v
-		LEFT JOIN containers c
-		ON v.container_id = c.id
-		WHERE handle = $1
-	`, originalVolumeHandle)
-	if err != nil {
-		return SavedVolume{}, err
-	}
-
-	volumes, err := scanVolumes(rows)
-	if err != nil {
-		return SavedVolume{}, err
-	}
-
-	switch len(volumes) {
-	case 0:
-		return SavedVolume{}, errors.New(fmt.Sprintf("unable to find volume handle %s", originalVolumeHandle))
-	case 1:
-		return volumes[0], nil
-	default:
-		return SavedVolume{}, errors.New(fmt.Sprintf("%d volumes found for handle %s", len(volumes), originalVolumeHandle))
-	}
-}
-
 func (db *SQLDB) expireVolumes() error {
 	_, err := db.conn.Exec(`
 		DELETE FROM volumes
@@ -370,6 +332,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			replicationName      sql.NullString
 			path                 sql.NullString
 			hostPathVersion      sql.NullString
+			teamID               sql.NullInt64
 		)
 
 		err := rows.Scan(
@@ -387,6 +350,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			&hostPathVersion,
 			&volume.SizeInBytes,
 			&volume.ContainerTTL,
+			&teamID,
 		)
 		if err != nil {
 			return []SavedVolume{}, err
@@ -394,6 +358,10 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 
 		if ttlSeconds != nil {
 			volume.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
+		}
+
+		if teamID.Valid {
+			volume.TeamID = int(teamID.Int64)
 		}
 
 		switch {

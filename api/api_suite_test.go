@@ -14,8 +14,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/api/buildserver"
-	"github.com/concourse/atc/api/buildserver/buildserverfakes"
+
 	"github.com/concourse/atc/api/containerserver/containerserverfakes"
 	"github.com/concourse/atc/api/jobserver/jobserverfakes"
 	"github.com/concourse/atc/api/pipes/pipesfakes"
@@ -25,6 +24,7 @@ import (
 	"github.com/concourse/atc/api/workerserver/workerserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -43,16 +43,15 @@ var (
 	providerFactory               *authfakes.FakeProviderFactory
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
-	authDB                        *authfakes.FakeAuthDB
-	buildsDB                      *buildserverfakes.FakeBuildsDB
+	teamServerDB                  *teamserverfakes.FakeTeamsDB
 	volumesDB                     *volumeserverfakes.FakeVolumesDB
-	configDB                      *dbfakes.FakeConfigDB
 	workerDB                      *workerserverfakes.FakeWorkerDB
 	containerDB                   *containerserverfakes.FakeContainerDB
 	pipeDB                        *pipesfakes.FakePipeDB
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
-	pipelinesDB                   *dbfakes.FakePipelinesDB
-	teamDB                        *teamserverfakes.FakeTeamDB
+	teamDBFactory                 *dbfakes.FakeTeamDBFactory
+	teamDB                        *dbfakes.FakeTeamDB
+	build                         *dbfakes.FakeBuild
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
 	configValidationErrorMessages []string
@@ -69,20 +68,17 @@ var (
 )
 
 type fakeEventHandlerFactory struct {
-	db      buildserver.BuildsDB
-	buildID int
+	build db.Build
 
 	lock sync.Mutex
 }
 
 func (f *fakeEventHandlerFactory) Construct(
 	logger lager.Logger,
-	db buildserver.BuildsDB,
-	buildID int,
+	build db.Build,
 ) http.Handler {
 	f.lock.Lock()
-	f.db = db
-	f.buildID = buildID
+	f.build = build
 	f.lock.Unlock()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,16 +88,15 @@ func (f *fakeEventHandlerFactory) Construct(
 }
 
 var _ = BeforeEach(func() {
-	authDB = new(authfakes.FakeAuthDB)
-	buildsDB = new(buildserverfakes.FakeBuildsDB)
-	configDB = new(dbfakes.FakeConfigDB)
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
+	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
+	teamServerDB = new(teamserverfakes.FakeTeamsDB)
+	teamDB = new(dbfakes.FakeTeamDB)
+	teamDBFactory.GetTeamDBReturns(teamDB)
 	workerDB = new(workerserverfakes.FakeWorkerDB)
 	containerDB = new(containerserverfakes.FakeContainerDB)
 	volumesDB = new(volumeserverfakes.FakeVolumesDB)
 	pipeDB = new(pipesfakes.FakePipeDB)
-	pipelinesDB = new(dbfakes.FakePipelinesDB)
-	teamDB = new(teamserverfakes.FakeTeamDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
@@ -131,28 +126,27 @@ var _ = BeforeEach(func() {
 	sink = lager.NewReconfigurableSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
 	logger.RegisterSink(sink)
 
+	build = new(dbfakes.FakeBuild)
+
 	handlers, err := api.NewHandler(
 		logger,
 
 		externalURL,
 
-		[]wrappa.Wrappa{wrappa.NewAPIAuthWrappa(true, authValidator, userContextReader)},
+		[]wrappa.Wrappa{wrappa.NewAPIAuthWrappa(authValidator, userContextReader)},
 
 		fakeTokenGenerator,
 		providerFactory,
 		oAuthBaseURL,
 
 		pipelineDBFactory,
-		configDB,
+		teamDBFactory,
 
-		authDB,
-		buildsDB,
+		teamServerDB,
 		workerDB,
 		containerDB,
 		volumesDB,
 		pipeDB,
-		pipelinesDB,
-		teamDB,
 
 		func(atc.Config) ([]config.Warning, []string) {
 			return configValidationWarnings, configValidationErrorMessages

@@ -50,17 +50,17 @@ func (b *badge) String() string {
 	return buffer.String()
 }
 
-func badgeForBuild(build *db.Build) *badge {
+func badgeForBuild(build db.Build) *badge {
 	switch {
 	case build == nil:
 		return &badgeUnknown
-	case build.Status == db.StatusSucceeded:
+	case build.Status() == db.StatusSucceeded:
 		return &badgePassing
-	case build.Status == db.StatusFailed:
+	case build.Status() == db.StatusFailed:
 		return &badgeFailing
-	case build.Status == db.StatusAborted:
+	case build.Status() == db.StatusAborted:
 		return &badgeAborted
-	case build.Status == db.StatusErrored:
+	case build.Status() == db.StatusErrored:
 		return &badgeErrored
 	default:
 		return &badgeUnknown

@@ -11,8 +11,9 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/db"
+
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("BasicAuthValidator", func() {
@@ -22,27 +23,30 @@ var _ = Describe("BasicAuthValidator", func() {
 
 	var validator auth.Validator
 
-	var fakeAuthDB *authfakes.FakeAuthDB
+	var fakeTeamDB *dbfakes.FakeTeamDB
 
 	BeforeEach(func() {
-		fakeAuthDB = new(authfakes.FakeAuthDB)
+		fakeTeamDB = new(dbfakes.FakeTeamDB)
 		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 4)
 		Expect(err).ToNot(HaveOccurred())
 
 		team := db.SavedTeam{
 			Team: db.Team{
 				Name: atc.DefaultTeamName,
-				BasicAuth: db.BasicAuth{
+				BasicAuth: &db.BasicAuth{
 					BasicAuthUsername: username,
 					BasicAuthPassword: string(encryptedPassword),
 				},
 			},
 		}
 
-		fakeAuthDB.GetTeamByNameReturns(team, true, nil)
+		fakeTeamDB.GetTeamReturns(team, true, nil)
+
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
 
 		validator = auth.BasicAuthValidator{
-			DB: fakeAuthDB,
+			TeamDBFactory: fakeTeamDBFactory,
 		}
 	})
 
@@ -107,11 +111,27 @@ var _ = Describe("BasicAuthValidator", func() {
 			BeforeEach(func() {
 				request.Header.Set("Authorization", "Basic "+b64(username+":"+password))
 
-				fakeAuthDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+				fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 			})
 
 			It("returns false", func() {
 				Expect(isAuthenticated).To(BeFalse())
+			})
+		})
+
+		Context("when basic auth is not set for team", func() {
+			BeforeEach(func() {
+				team := db.SavedTeam{
+					Team: db.Team{
+						Name: atc.DefaultTeamName,
+					},
+				}
+
+				fakeTeamDB.GetTeamReturns(team, true, nil)
+			})
+
+			It("returns true", func() {
+				Expect(isAuthenticated).To(BeTrue())
 			})
 		})
 	})

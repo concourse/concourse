@@ -3,7 +3,6 @@ package buildserver
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
@@ -11,56 +10,33 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
+func (s *Server) BuildResources(build db.Build) http.Handler {
 	log := s.logger.Session("build-resources")
-	buildID, err := strconv.Atoi(r.FormValue(":build_id"))
-	if err != nil {
-		log.Error("cannot-parse-build-id", err, lager.Data{"buildID": r.FormValue(":build_id")})
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 
-	inputs, outputs, found, err := s.getMeAllTheThings(buildID)
-	if err != nil {
-		log.Error("cannot-find-build", err, lager.Data{"buildID": r.FormValue(":build_id")})
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		inputs, outputs, err := build.GetResources()
+		if err != nil {
+			log.Error("cannot-find-build", err, lager.Data{"buildID": r.FormValue(":build_id")})
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+		atcInputs := make([]atc.PublicBuildInput, 0, len(inputs))
+		for _, input := range inputs {
+			atcInputs = append(atcInputs, present.PublicBuildInput(input))
+		}
 
-	atcInputs := make([]atc.PublicBuildInput, 0, len(inputs))
-	for _, input := range inputs {
-		atcInputs = append(atcInputs, present.PublicBuildInput(input))
-	}
+		atcOutputs := []atc.VersionedResource{}
+		for _, output := range outputs {
+			atcOutputs = append(atcOutputs, present.VersionedResource(output.VersionedResource))
+		}
 
-	atcOutputs := []atc.VersionedResource{}
-	for _, output := range outputs {
-		atcOutputs = append(atcOutputs, present.VersionedResource(output.VersionedResource))
-	}
+		output := atc.BuildInputsOutputs{
+			Inputs:  atcInputs,
+			Outputs: atcOutputs,
+		}
 
-	output := atc.BuildInputsOutputs{
-		Inputs:  atcInputs,
-		Outputs: atcOutputs,
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(output)
-}
-
-func (s *Server) getMeAllTheThings(buildID int) ([]db.BuildInput, []db.BuildOutput, bool, error) {
-	_, found, err := s.db.GetBuild(buildID)
-	if err != nil {
-		return []db.BuildInput{}, []db.BuildOutput{}, false, err
-	}
-
-	if !found {
-		return []db.BuildInput{}, []db.BuildOutput{}, false, nil
-	}
-
-	inputs, outputs, err := s.db.GetBuildResources(buildID)
-	return inputs, outputs, found, err
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(output)
+	})
 }

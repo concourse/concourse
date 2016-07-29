@@ -43,6 +43,15 @@ type FakeContainerKeepAliverDB struct {
 	updateExpiresAtOnContainerReturns struct {
 		result1 error
 	}
+	GetPipelineByIDStub        func(pipelineID int) (db.SavedPipeline, error)
+	getPipelineByIDMutex       sync.RWMutex
+	getPipelineByIDArgsForCall []struct {
+		pipelineID int
+	}
+	getPipelineByIDReturns struct {
+		result1 db.SavedPipeline
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -168,6 +177,40 @@ func (fake *FakeContainerKeepAliverDB) UpdateExpiresAtOnContainerReturns(result1
 	}{result1}
 }
 
+func (fake *FakeContainerKeepAliverDB) GetPipelineByID(pipelineID int) (db.SavedPipeline, error) {
+	fake.getPipelineByIDMutex.Lock()
+	fake.getPipelineByIDArgsForCall = append(fake.getPipelineByIDArgsForCall, struct {
+		pipelineID int
+	}{pipelineID})
+	fake.recordInvocation("GetPipelineByID", []interface{}{pipelineID})
+	fake.getPipelineByIDMutex.Unlock()
+	if fake.GetPipelineByIDStub != nil {
+		return fake.GetPipelineByIDStub(pipelineID)
+	} else {
+		return fake.getPipelineByIDReturns.result1, fake.getPipelineByIDReturns.result2
+	}
+}
+
+func (fake *FakeContainerKeepAliverDB) GetPipelineByIDCallCount() int {
+	fake.getPipelineByIDMutex.RLock()
+	defer fake.getPipelineByIDMutex.RUnlock()
+	return len(fake.getPipelineByIDArgsForCall)
+}
+
+func (fake *FakeContainerKeepAliverDB) GetPipelineByIDArgsForCall(i int) int {
+	fake.getPipelineByIDMutex.RLock()
+	defer fake.getPipelineByIDMutex.RUnlock()
+	return fake.getPipelineByIDArgsForCall[i].pipelineID
+}
+
+func (fake *FakeContainerKeepAliverDB) GetPipelineByIDReturns(result1 db.SavedPipeline, result2 error) {
+	fake.GetPipelineByIDStub = nil
+	fake.getPipelineByIDReturns = struct {
+		result1 db.SavedPipeline
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeContainerKeepAliverDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -179,6 +222,8 @@ func (fake *FakeContainerKeepAliverDB) Invocations() map[string][][]interface{} 
 	defer fake.findJobContainersFromUnsuccessfulBuildsMutex.RUnlock()
 	fake.updateExpiresAtOnContainerMutex.RLock()
 	defer fake.updateExpiresAtOnContainerMutex.RUnlock()
+	fake.getPipelineByIDMutex.RLock()
+	defer fake.getPipelineByIDMutex.RUnlock()
 	return fake.invocations
 }
 

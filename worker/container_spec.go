@@ -12,11 +12,13 @@ type WorkerSpec struct {
 	Platform     string
 	ResourceType string
 	Tags         []string
+	TeamID       int
 }
 
 type ContainerSpec struct {
 	Platform  string
 	Tags      []string
+	TeamID    int
 	ImageSpec ImageSpec
 	Ephemeral bool
 	Env       []string
@@ -49,6 +51,7 @@ func (spec ContainerSpec) WorkerSpec() WorkerSpec {
 		ResourceType: spec.ImageSpec.ResourceType,
 		Platform:     spec.Platform,
 		Tags:         spec.Tags,
+		TeamID:       spec.TeamID,
 	}
 }
 

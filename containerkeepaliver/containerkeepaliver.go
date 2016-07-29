@@ -19,6 +19,7 @@ type ContainerKeepAliverDB interface {
 	FindLatestSuccessfulBuildsPerJob() (map[int]int, error)
 	FindJobContainersFromUnsuccessfulBuilds() ([]db.SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
+	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 }
 
 type containerKeepAliver struct {
@@ -84,11 +85,13 @@ func (cr *containerKeepAliver) buildFailedMap(containers []db.SavedContainer) ma
 	jobContainerMap = make(map[int][]db.SavedContainer)
 
 	for _, container := range containers {
-		pipelineDB, err := cr.pipelineDBFactory.BuildWithID(container.PipelineID)
+		savedPipeline, err := cr.db.GetPipelineByID(container.PipelineID)
 		if err != nil {
 			cr.logger.Error("failed-to-find-pipeline-for-build", err, lager.Data{"build-id": container.BuildID})
 			continue
 		}
+
+		pipelineDB := cr.pipelineDBFactory.Build(savedPipeline)
 
 		pipelineConfig, _, found, err := pipelineDB.GetConfig()
 		if err != nil || !found {

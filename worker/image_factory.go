@@ -19,6 +19,7 @@ type ImageFactory interface {
 		id Identifier,
 		metadata Metadata,
 		tags atc.Tags,
+		teamID int,
 		resourceTypes atc.ResourceTypes,
 		workerClient Client,
 		delegate ImageFetchingDelegate,

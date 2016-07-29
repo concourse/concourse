@@ -65,6 +65,7 @@ var _ = Describe("DependentGet", func() {
 
 		sourceName SourceName = "some-source-name"
 
+		teamID     int = 123
 		successTTL time.Duration
 		failureTTL time.Duration
 	)
@@ -138,6 +139,7 @@ var _ = Describe("DependentGet", func() {
 			getDelegate,
 			resourceConfig,
 			tags,
+			teamID,
 			params,
 			resourceTypes,
 			successTTL,
@@ -159,6 +161,7 @@ var _ = Describe("DependentGet", func() {
 				lager.Logger,
 				resource.Session,
 				atc.Tags,
+				int,
 				atc.ResourceTypes,
 				resource.CacheIdentifier,
 				resource.Metadata,
@@ -198,7 +201,7 @@ var _ = Describe("DependentGet", func() {
 
 		It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 			Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-			_, sid, tags, actualResourceTypes, cacheID, sm, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+			_, sid, tags, actualTeamID, actualResourceTypes, cacheID, sm, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 			Expect(sm).To(Equal(stepMetadata))
 			Expect(sid).To(Equal(resource.Session{
 				ID: worker.Identifier{
@@ -210,6 +213,7 @@ var _ = Describe("DependentGet", func() {
 				Ephemeral: false,
 			}))
 			Expect(tags).To(ConsistOf("some", "tags"))
+			Expect(actualTeamID).To(Equal(teamID))
 			Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
 				Type:    "some-resource-type",
 				Source:  resourceConfig.Source,

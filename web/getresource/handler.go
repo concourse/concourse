@@ -39,6 +39,7 @@ type TemplateData struct {
 
 	GroupStates  []group.State
 	PipelineName string
+	TeamName     string
 
 	Pagination concourse.Pagination
 }
@@ -46,8 +47,13 @@ type TemplateData struct {
 var ErrConfigNotFound = errors.New("could not find config")
 var ErrResourceNotFound = errors.New("could not find resource")
 
-func FetchTemplateData(pipelineName string, resourceName string, client concourse.Client, page concourse.Page) (TemplateData, error) {
-	pipeline, pipelineFound, err := client.Pipeline(pipelineName)
+func FetchTemplateData(
+	pipelineName string,
+	resourceName string,
+	team concourse.Team,
+	page concourse.Page,
+) (TemplateData, error) {
+	pipeline, pipelineFound, err := team.Pipeline(pipelineName)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -56,7 +62,7 @@ func FetchTemplateData(pipelineName string, resourceName string, client concours
 		return TemplateData{}, ErrConfigNotFound
 	}
 
-	resource, resourceFound, err := client.Resource(pipelineName, resourceName)
+	resource, resourceFound, err := team.Resource(pipelineName, resourceName)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -65,7 +71,7 @@ func FetchTemplateData(pipelineName string, resourceName string, client concours
 		return TemplateData{}, ErrResourceNotFound
 	}
 
-	versionedResources, pagination, resourceVersionsFound, err := client.ResourceVersions(pipelineName, resourceName, page)
+	versionedResources, pagination, resourceVersionsFound, err := team.ResourceVersions(pipelineName, resourceName, page)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -76,12 +82,12 @@ func FetchTemplateData(pipelineName string, resourceName string, client concours
 
 	versions := []VersionedResourceWithInputsAndOutputs{}
 	for _, versionedResource := range versionedResources {
-		inputs, _, err := client.BuildsWithVersionAsInput(pipelineName, resourceName, versionedResource.ID)
+		inputs, _, err := team.BuildsWithVersionAsInput(pipelineName, resourceName, versionedResource.ID)
 		if err != nil {
 			return TemplateData{}, err
 		}
 
-		outputs, _, err := client.BuildsWithVersionAsOutput(pipelineName, resourceName, versionedResource.ID)
+		outputs, _, err := team.BuildsWithVersionAsOutput(pipelineName, resourceName, versionedResource.ID)
 		if err != nil {
 			return TemplateData{}, err
 		}
@@ -116,6 +122,7 @@ func FetchTemplateData(pipelineName string, resourceName string, client concours
 		Resource:     resource,
 		Versions:     versions,
 		PipelineName: pipelineName,
+		TeamName:     team.Name(),
 		Pagination:   pagination,
 		GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
 			for _, groupResource := range g.Resources {
@@ -132,6 +139,7 @@ func FetchTemplateData(pipelineName string, resourceName string, client concours
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	session := handler.logger.Session("get-resource")
 
+	teamName := r.FormValue(":team_name")
 	pipelineName := r.FormValue(":pipeline_name")
 	resourceName := r.FormValue(":resource")
 
@@ -145,10 +153,11 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		until = 0
 	}
 
+	client := handler.clientFactory.Build(r)
 	templateData, err := FetchTemplateData(
 		pipelineName,
 		resourceName,
-		handler.clientFactory.Build(r),
+		client.Team(teamName),
 		concourse.Page{
 			Since: since,
 			Until: until,

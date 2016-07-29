@@ -17,7 +17,8 @@ var _ = Describe("Keeping track of volumes", func() {
 
 	var database db.DB
 	var pipelineDB db.PipelineDB
-
+	var teamDB db.TeamDB
+	var teamID int
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
@@ -30,9 +31,11 @@ var _ = Describe("Keeping track of volumes", func() {
 		sqlDB := db.NewSQL(dbConn, bus)
 		database = sqlDB
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, sqlDB)
-		_, err := database.SaveTeam(db.Team{Name: "some-team"})
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+		team, err := database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
+		teamID = team.ID
+
 		config := atc.Config{
 			Jobs: atc.JobConfigs{
 				{
@@ -40,9 +43,12 @@ var _ = Describe("Keeping track of volumes", func() {
 				},
 			},
 		}
-		sqlDB.SaveConfig("some-team", "some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
-		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName("some-team", "some-pipeline")
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDB = teamDBFactory.GetTeamDB("some-team")
+		savedPipeline, _, err := teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
+
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
 	AfterEach(func() {
@@ -106,6 +112,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 				err := database.InsertVolume(db.Volume{
 					Handle:      "volume-1-handle",
+					TeamID:      teamID,
 					WorkerName:  "some-worker-name",
 					TTL:         5 * time.Minute,
 					Identifier:  identifier,
@@ -149,10 +156,13 @@ var _ = Describe("Keeping track of volumes", func() {
 					switch i {
 					case 0:
 						Expect(volume.Handle).To(Equal("volume-2-handle"))
+						Expect(volume.TeamID).To(BeZero())
 					case 1:
 						Expect(volume.Handle).To(Equal("volume-1-handle"))
+						Expect(volume.TeamID).To(Equal(teamID))
 					case 2:
 						Expect(volume.Handle).To(Equal("volume-3-handle"))
+						Expect(volume.TeamID).To(BeZero())
 					}
 				}
 			})
@@ -537,9 +547,9 @@ var _ = Describe("Keeping track of volumes", func() {
 
 	Describe("GetVolumesForOneOffBuildImageResources", func() {
 		It("returns all volumes containing image resource versions which were used in one-off builds", func() {
-			oneOffBuildA, err := database.CreateOneOffBuild()
+			oneOffBuildADB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			oneOffBuildB, err := database.CreateOneOffBuild()
+			oneOffBuildBDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 			jobBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
@@ -558,9 +568,9 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 			err = database.InsertVolume(volume1)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-1", *volume1.Identifier.ResourceCache)
+			err = oneOffBuildADB.SaveImageResourceVersion("plan-id-1", *volume1.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(jobBuild.ID, "plan-id-1", *volume1.Identifier.ResourceCache)
+			err = jobBuild.SaveImageResourceVersion("plan-id-1", *volume1.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it can return more than one volume per build ID
@@ -577,7 +587,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 			err = database.InsertVolume(volume2)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-2", *volume2.Identifier.ResourceCache)
+			err = oneOffBuildADB.SaveImageResourceVersion("plan-id-2", *volume2.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it can return more than one volume per VolumeIdentifier
@@ -594,7 +604,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 			err = database.InsertVolume(volume3)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-3", *volume3.Identifier.ResourceCache)
+			err = oneOffBuildADB.SaveImageResourceVersion("plan-id-3", *volume3.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it can return volumes from multiple one-off builds
@@ -611,7 +621,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 			err = database.InsertVolume(volume4)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildB.ID, "plan-id-4", *volume4.Identifier.ResourceCache)
+			err = oneOffBuildBDB.SaveImageResourceVersion("plan-id-4", *volume4.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it ignores volumes from job builds even if part of the VolumeIdentifier matches
@@ -628,7 +638,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 			err = database.InsertVolume(volume5)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(jobBuild.ID, "plan-id-5", *volume5.Identifier.ResourceCache)
+			err = jobBuild.SaveImageResourceVersion("plan-id-5", *volume5.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it reaps expired volumes
@@ -645,7 +655,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 			err = database.InsertVolume(volume6)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-6", *volume6.Identifier.ResourceCache)
+			err = oneOffBuildADB.SaveImageResourceVersion("plan-id-6", *volume6.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			actualSavedVolumes, err := database.GetVolumesForOneOffBuildImageResources()

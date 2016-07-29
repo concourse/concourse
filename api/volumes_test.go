@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Pipelines API", func() {
+var _ = Describe("Volumes API", func() {
 	Describe("GET /api/v1/volumes", func() {
 		var response *http.Response
 
@@ -41,12 +41,13 @@ var _ = Describe("Pipelines API", func() {
 			Context("when getting all volumes succeeds", func() {
 				BeforeEach(func() {
 					someVersion := "some-version"
-					volumesDB.GetVolumesReturns([]db.SavedVolume{
+					teamDB.GetVolumesReturns([]db.SavedVolume{
 						{
 							ID:        3,
 							ExpiresIn: 2 * time.Minute,
 							Volume: db.Volume{
 								WorkerName: "some-worker",
+								TeamID:     1,
 								TTL:        10 * time.Minute,
 								Handle:     "some-resource-cache-handle",
 								Identifier: db.VolumeIdentifier{
@@ -63,6 +64,7 @@ var _ = Describe("Pipelines API", func() {
 							ExpiresIn: 23 * time.Hour,
 							Volume: db.Volume{
 								WorkerName: "some-worker",
+								TeamID:     1,
 								TTL:        24 * time.Hour,
 								Handle:     "some-import-handle",
 								Identifier: db.VolumeIdentifier{
@@ -80,6 +82,7 @@ var _ = Describe("Pipelines API", func() {
 							ExpiresIn: 23 * time.Hour,
 							Volume: db.Volume{
 								WorkerName: "some-other-worker",
+								TeamID:     1,
 								TTL:        24 * time.Hour,
 								Handle:     "some-output-handle",
 								Identifier: db.VolumeIdentifier{
@@ -95,6 +98,7 @@ var _ = Describe("Pipelines API", func() {
 							ExpiresIn: time.Duration(0),
 							Volume: db.Volume{
 								WorkerName: "some-worker",
+								TeamID:     1,
 								TTL:        time.Duration(0),
 								Handle:     "some-cow-handle",
 								Identifier: db.VolumeIdentifier{
@@ -159,7 +163,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when getting all builds fails", func() {
 				BeforeEach(func() {
-					volumesDB.GetVolumesReturns(nil, errors.New("oh no!"))
+					teamDB.GetVolumesReturns(nil, errors.New("oh no!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {

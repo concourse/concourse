@@ -209,9 +209,9 @@ var _ = Describe("BuildReaper", func() {
 						} else if job == "job-1" && page == (db.Page{Until: 5, Limit: 5}) {
 							return []db.Build{
 								sb(10),
-								{ID: 9, Status: db.StatusStarted},
-								{ID: 8, Status: db.StatusPending},
-								{ID: 7, Status: db.StatusAborted},
+								runningBuild(9),
+								runningBuild(8),
+								sb(7),
 								sb(6),
 							}, db.Pagination{}, nil
 						} else {
@@ -550,8 +550,15 @@ var _ = Describe("BuildReaper", func() {
 })
 
 func sb(id int) db.Build {
-	return db.Build{
-		ID:     id,
-		Status: db.StatusSucceeded,
-	}
+	build := new(dbfakes.FakeBuild)
+	build.IDReturns(id)
+	build.IsRunningReturns(false)
+	return build
+}
+
+func runningBuild(id int) db.Build {
+	build := new(dbfakes.FakeBuild)
+	build.IDReturns(id)
+	build.IsRunningReturns(true)
+	return build
 }

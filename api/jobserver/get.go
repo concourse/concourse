@@ -38,6 +38,8 @@ func (s *Server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
+		teamName := r.FormValue(":team_name")
+
 		dbJob, err := pipelineDB.GetJob(job.Name)
 		if err != nil {
 			logger.Error("could-not-get-job-finished", err)
@@ -47,6 +49,13 @@ func (s *Server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		json.NewEncoder(w).Encode(present.Job(dbJob, job, config.Groups, finished, next))
+		json.NewEncoder(w).Encode(present.Job(
+			teamName,
+			dbJob,
+			job,
+			config.Groups,
+			finished,
+			next,
+		))
 	})
 }

@@ -5,26 +5,26 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type Server struct {
-	logger lager.Logger
-	db     TeamDB
+//go:generate counterfeiter . TeamsDB
+
+type TeamsDB interface {
+	CreateTeam(data db.Team) (db.SavedTeam, error)
 }
 
-//go:generate counterfeiter . TeamDB
-
-type TeamDB interface {
-	GetTeamByName(teamName string) (db.SavedTeam, bool, error)
-	SaveTeam(team db.Team) (db.SavedTeam, error)
-	UpdateTeamBasicAuth(team db.Team) (db.SavedTeam, error)
-	UpdateTeamGitHubAuth(team db.Team) (db.SavedTeam, error)
+type Server struct {
+	logger        lager.Logger
+	teamDBFactory db.TeamDBFactory
+	teamsDB       TeamsDB
 }
 
 func NewServer(
 	logger lager.Logger,
-	db TeamDB,
+	teamDBFactory db.TeamDBFactory,
+	teamsDB TeamsDB,
 ) *Server {
 	return &Server{
-		logger: logger,
-		db:     db,
+		logger:        logger,
+		teamDBFactory: teamDBFactory,
+		teamsDB:       teamsDB,
 	}
 }

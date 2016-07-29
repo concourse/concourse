@@ -143,7 +143,7 @@ func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPre
 		return nil, buildPrep, "no-input-versions-available", nil
 	}
 
-	err = s.DB.UseInputsForBuild(build.ID, inputs)
+	err = s.DB.UseInputsForBuild(build.ID(), inputs)
 	if err != nil {
 		return nil, buildPrep, "failed-to-use-inputs-for-build", err
 	}
@@ -158,7 +158,7 @@ func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPre
 }
 
 func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error) {
-	if build.Scheduled {
+	if build.IsScheduled() {
 		return s.updateBuildPrepAndReturn(buildPrep, true, "build-scheduled")
 	}
 	buildPrep = db.NewBuildPreparation(buildPrep.BuildID)
@@ -194,7 +194,7 @@ func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, bui
 		return []db.BuildInput{}, false, "update-build-prep-db-failed-job-not-paused", err
 	}
 
-	if build.Status != db.StatusPending {
+	if build.Status() != db.StatusPending {
 		return []db.BuildInput{}, false, "build-not-pending", nil
 	}
 
@@ -231,7 +231,7 @@ func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, bui
 			return []db.BuildInput{}, false, "no-pending-build", nil
 		}
 
-		if nextMostPendingBuild.ID != build.ID {
+		if nextMostPendingBuild.ID() != build.ID() {
 			return []db.BuildInput{}, false, "not-next-most-pending", nil
 		}
 	}

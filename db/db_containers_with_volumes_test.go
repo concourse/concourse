@@ -16,7 +16,9 @@ var _ = Describe("Keeping track of containers", func() {
 		dbConn   db.Conn
 		listener *pq.Listener
 
-		database *db.SQLDB
+		database db.DB
+		teamDB   db.TeamDB
+		teamID   int
 	)
 
 	BeforeEach(func() {
@@ -30,6 +32,13 @@ var _ = Describe("Keeping track of containers", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		database = db.NewSQL(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+
+		savedTeam, err := database.CreateTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+		teamID = savedTeam.ID
+
+		teamDB = teamDBFactory.GetTeamDB("some-team")
 	})
 
 	getVolumes := func() map[string]db.SavedVolume {
@@ -45,7 +54,7 @@ var _ = Describe("Keeping track of containers", func() {
 	Describe("CreateContainer", func() {
 		Context("when creating a container with volumes", func() {
 			It("sets ContainerTTL on each volume", func() {
-				someBuild, err := database.CreateOneOffBuild()
+				someBuild, err := teamDB.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
 
 				volume1 := db.Volume{
@@ -64,13 +73,14 @@ var _ = Describe("Keeping track of containers", func() {
 
 				container1 := db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: someBuild.ID,
+						BuildID: someBuild.ID(),
 						PlanID:  atc.PlanID("some-task"),
 						Stage:   db.ContainerStageRun,
 					},
 					ContainerMetadata: db.ContainerMetadata{
 						Handle: "some-handle-1",
 						Type:   db.ContainerTypeTask,
+						TeamID: teamID,
 					},
 				}
 				savedContainer1, err := database.CreateContainer(container1, 5*time.Minute, 0, []string{
@@ -91,13 +101,14 @@ var _ = Describe("Keeping track of containers", func() {
 				By("updating the container id for volumes that already have one")
 				container2 := db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: someBuild.ID,
+						BuildID: someBuild.ID(),
 						PlanID:  atc.PlanID("some-task"),
 						Stage:   db.ContainerStageRun,
 					},
 					ContainerMetadata: db.ContainerMetadata{
 						Handle: "some-handle-2",
 						Type:   db.ContainerTypeTask,
+						TeamID: teamID,
 					},
 				}
 				savedContainer2, err := database.CreateContainer(container2, 19*time.Minute, 0, []string{
@@ -150,30 +161,32 @@ var _ = Describe("Keeping track of containers", func() {
 	Describe("GetContainer", func() {
 		Context("when a container has expired", func() {
 			It("deletes the container and sets its volumes' container_id to null", func() {
-				someBuild, err := database.CreateOneOffBuild()
+				someBuild, err := teamDB.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
 
 				container := db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: someBuild.ID,
+						BuildID: someBuild.ID(),
 						PlanID:  atc.PlanID("some-task"),
 						Stage:   db.ContainerStageRun,
 					},
 					ContainerMetadata: db.ContainerMetadata{
 						Handle: "some-handle-1",
 						Type:   db.ContainerTypeTask,
+						TeamID: teamID,
 					},
 				}
 
 				expiredContainer := db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: someBuild.ID,
+						BuildID: someBuild.ID(),
 						PlanID:  atc.PlanID("some-task"),
 						Stage:   db.ContainerStageRun,
 					},
 					ContainerMetadata: db.ContainerMetadata{
 						Handle: "some-handle-2",
 						Type:   db.ContainerTypeTask,
+						TeamID: teamID,
 					},
 				}
 

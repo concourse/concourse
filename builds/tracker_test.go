@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/builds/buildsfakes"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 )
@@ -27,6 +28,7 @@ var _ = Describe("Tracker", func() {
 	BeforeEach(func() {
 		fakeTrackerDB = new(buildsfakes.FakeTrackerDB)
 		fakeEngine = new(enginefakes.FakeEngine)
+
 		logger = lagertest.NewTestLogger("test")
 
 		tracker = builds.NewTracker(
@@ -37,29 +39,28 @@ var _ = Describe("Tracker", func() {
 	})
 
 	Describe("Track", func() {
-		var (
-			inFlightBuilds []db.Build
-
-			engineBuilds []*enginefakes.FakeBuild
-		)
+		var inFlightBuilds []*dbfakes.FakeBuild
+		var engineBuilds []*enginefakes.FakeBuild
 
 		BeforeEach(func() {
-			inFlightBuilds = []db.Build{
-				{ID: 1, PipelineID: 57},
-				{ID: 2, PipelineID: 57},
-				{ID: 3, PipelineID: 57},
+			inFlightBuilds = []*dbfakes.FakeBuild{
+				new(dbfakes.FakeBuild),
+				new(dbfakes.FakeBuild),
+				new(dbfakes.FakeBuild),
+			}
+			returnedBuilds := []db.Build{
+				inFlightBuilds[0],
+				inFlightBuilds[1],
+				inFlightBuilds[2],
 			}
 
-			engineBuilds = []*enginefakes.FakeBuild{
-				new(enginefakes.FakeBuild),
-				new(enginefakes.FakeBuild),
-				new(enginefakes.FakeBuild),
-			}
+			fakeTrackerDB.GetAllStartedBuildsReturns(returnedBuilds, nil)
 
-			fakeTrackerDB.GetAllStartedBuildsReturns(inFlightBuilds, nil)
-
+			engineBuilds = []*enginefakes.FakeBuild{}
 			fakeEngine.LookupBuildStub = func(logger lager.Logger, build db.Build) (engine.Build, error) {
-				return engineBuilds[build.ID-1], nil
+				engineBuild := new(enginefakes.FakeBuild)
+				engineBuilds = append(engineBuilds, engineBuild)
+				return engineBuild, nil
 			}
 		})
 
@@ -79,21 +80,16 @@ var _ = Describe("Tracker", func() {
 			It("saves its status as errored", func() {
 				tracker.Track()
 
-				Expect(fakeTrackerDB.ErrorBuildCallCount()).To(Equal(3))
-
-				savedBuilID1, savedPipelineID1, savedErr1 := fakeTrackerDB.ErrorBuildArgsForCall(0)
-				Expect(savedBuilID1).To(Equal(1))
-				Expect(savedPipelineID1).To(Equal(57))
+				Expect(inFlightBuilds[0].MarkAsFailedCallCount()).To(Equal(1))
+				savedErr1 := inFlightBuilds[0].MarkAsFailedArgsForCall(0)
 				Expect(savedErr1).To(Equal(errors.New("nope")))
 
-				savedBuilID2, savedPipelineID2, savedErr2 := fakeTrackerDB.ErrorBuildArgsForCall(1)
-				Expect(savedBuilID2).To(Equal(2))
-				Expect(savedPipelineID2).To(Equal(57))
+				Expect(inFlightBuilds[1].MarkAsFailedCallCount()).To(Equal(1))
+				savedErr2 := inFlightBuilds[1].MarkAsFailedArgsForCall(0)
 				Expect(savedErr2).To(Equal(errors.New("nope")))
 
-				savedBuilID3, savedPipelineID3, savedErr3 := fakeTrackerDB.ErrorBuildArgsForCall(2)
-				Expect(savedBuilID3).To(Equal(3))
-				Expect(savedPipelineID3).To(Equal(57))
+				Expect(inFlightBuilds[2].MarkAsFailedCallCount()).To(Equal(1))
+				savedErr3 := inFlightBuilds[2].MarkAsFailedArgsForCall(0)
 				Expect(savedErr3).To(Equal(errors.New("nope")))
 			})
 		})

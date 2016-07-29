@@ -1,4 +1,4 @@
-module StepTree
+module StepTree exposing
   ( StepTree(..)
   , Model
   , HookedStep
@@ -12,7 +12,7 @@ module StepTree
   , view
   , update
   , updateAt
-  ) where
+  )
 
 import Debug
 import Ansi.Log
@@ -443,77 +443,77 @@ setMultiStepIndex idx update tree =
     _ ->
       Debug.crash "impossible"
 
-view : Signal.Address Action -> Model -> Html
-view actions model = viewTree actions model model.tree
+view : Model -> Html Action
+view model = viewTree model model.tree
 
-viewTree : Signal.Address Action -> Model -> StepTree -> Html
-viewTree actions model tree =
+viewTree : Model -> StepTree -> Html Action
+viewTree model tree =
   case tree of
     Task step ->
-      viewStep actions model step "fa-terminal"
+      viewStep model step "fa-terminal"
 
     Get step ->
-      viewStep actions model step "fa-arrow-down"
+      viewStep model step "fa-arrow-down"
 
     DependentGet step ->
-      viewStep actions model step "fa-arrow-down"
+      viewStep model step "fa-arrow-down"
 
     Put step ->
-      viewStep actions model step "fa-arrow-up"
+      viewStep model step "fa-arrow-up"
 
     Try step ->
-      viewTree actions model step
+      viewTree model step
 
     Retry id steps tab _ ->
       Html.div [class "retry"]
         [ Html.ul [class "retry-tabs"]
-            (Array.toList <| Array.indexedMap (viewTab actions id tab) steps)
+            (Array.toList <| Array.indexedMap (viewTab id tab) steps)
         , case Array.get (tab - 1) steps of
             Just step ->
-              viewTree actions model step
+              viewTree model step
             Nothing ->
               Debug.crash "impossible (bogus tab selected)"
         ]
 
     Timeout step ->
-      viewTree actions model step
+      viewTree model step
 
     Aggregate steps ->
       Html.div [class "aggregate"]
-        (Array.toList <| Array.map (viewSeq actions model) steps)
+        (Array.toList <| Array.map (viewSeq model) steps)
 
     Do steps ->
       Html.div [class "do"]
-        (Array.toList <| Array.map (viewSeq actions model) steps)
+        (Array.toList <| Array.map (viewSeq model) steps)
 
     OnSuccess {step, hook} ->
-      viewHooked "success" actions model step hook
+      viewHooked "success" model step hook
 
     OnFailure {step, hook} ->
-      viewHooked "failure" actions model step hook
+      viewHooked "failure" model step hook
 
     Ensure {step, hook} ->
-      viewHooked "ensure" actions model step hook
+      viewHooked "ensure" model step hook
 
-viewTab : Signal.Address Action -> StepID -> Int -> Int -> StepTree -> Html
-viewTab actions id currentTab idx step =
+viewTab : StepID -> Int -> Int -> StepTree -> Html Action
+viewTab id currentTab idx step =
   let
     tab = idx + 1
   in
     Html.li
       [classList [("current", currentTab == tab), ("inactive", not <| treeIsActive step)]]
-      [Html.span [onClick actions (SwitchTab id tab)] [Html.text (toString tab)]]
+      [Html.span [onClick (SwitchTab id tab)] [Html.text (toString tab)]]
 
-viewSeq : Signal.Address Action -> Model -> StepTree -> Html
-viewSeq actions model tree =
-  Html.div [class "seq"] [viewTree actions model tree]
+viewSeq : Model -> StepTree -> Html Action
+viewSeq model tree =
+  Html.div [class "seq"] [viewTree model tree]
 
-viewHooked : String -> Signal.Address Action -> Model -> StepTree -> StepTree -> Html
-viewHooked name actions model step hook =
+viewHooked : String -> Model -> StepTree -> StepTree -> Html Action
+viewHooked name model step hook =
   Html.div [class "hooked"]
-    [ Html.div [class "step"] [viewTree actions model step]
+    [ Html.div [class "step"] [viewTree model step]
     , Html.div [class "children"]
-        [ Html.div [class ("hook hook-" ++ name)] [viewTree actions model hook]
+        [ Html.div [class ("hook hook-" ++ name)] [viewTree model hook]
         ]
     ]
 
@@ -523,8 +523,8 @@ isActive = (/=) StepStatePending
 autoExpanded : StepState -> Bool
 autoExpanded state = isActive state && state /= StepStateSucceeded
 
-viewStep : Signal.Address Action -> Model -> Step -> String -> Html
-viewStep actions model {id, name, log, state, error, expanded, version, metadata, firstOccurrence} icon =
+viewStep : Model -> Step -> String -> Html Action
+viewStep model {id, name, log, state, error, expanded, version, metadata, firstOccurrence} icon =
   Html.div
     [ classList
       [ ("build-step", True)
@@ -532,7 +532,7 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
       , ("first-occurrence", firstOccurrence)
       ]
     ]
-    [ Html.div [class "header", onClick actions (ToggleStep id)]
+    [ Html.div [class "header", onClick (ToggleStep id)]
         [ viewStepState state model.finished
         , typeIcon icon
         , viewVersion version
@@ -559,21 +559,21 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
           []
     ]
 
-viewVersion : Maybe Version -> Html
+viewVersion : Maybe Version -> Html Action
 viewVersion version =
   DictView.view << Dict.map (\_ s -> Html.text s) <|
     Maybe.withDefault Dict.empty version
 
-viewMetadata : List MetadataField -> Html
+viewMetadata : List MetadataField -> Html Action
 viewMetadata metadata =
   DictView.view << Dict.fromList <|
     List.map (\{name, value} -> (name, Html.pre [] [Html.text value])) metadata
 
-typeIcon : String -> Html
+typeIcon : String -> Html Action
 typeIcon fa =
   Html.i [class ("left fa fa-fw " ++ fa)] []
 
-viewStepState : StepState -> Bool -> Html
+viewStepState : StepState -> Bool -> Html Action
 viewStepState state finished =
   case state of
     StepStatePending ->

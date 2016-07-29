@@ -9,31 +9,32 @@ import (
 	"github.com/concourse/atc"
 
 	. "github.com/concourse/atc/web/getjob"
+	"github.com/concourse/atc/web/group"
 
 	"github.com/concourse/go-concourse/concourse"
 	cfakes "github.com/concourse/go-concourse/concourse/concoursefakes"
 )
 
 var _ = Describe("FetchTemplateData", func() {
-	var fakeClient *cfakes.FakeClient
+	var fakeTeam *cfakes.FakeTeam
 
 	var templateData TemplateData
 	var fetchErr error
 
 	BeforeEach(func() {
-		fakeClient = new(cfakes.FakeClient)
+		fakeTeam = new(cfakes.FakeTeam)
 	})
 
 	JustBeforeEach(func() {
-		templateData, fetchErr = FetchTemplateData("some-pipeline", fakeClient, "some-job", concourse.Page{
+		templateData, fetchErr = FetchTemplateData("some-pipeline", fakeTeam, "some-job", concourse.Page{
 			Since: 398,
 			Until: 2,
 		})
 	})
 
 	It("calls to get the pipeline config", func() {
-		Expect(fakeClient.PipelineCallCount()).To(Equal(1))
-		Expect(fakeClient.PipelineArgsForCall(0)).To(Equal("some-pipeline"))
+		Expect(fakeTeam.PipelineCallCount()).To(Equal(1))
+		Expect(fakeTeam.PipelineArgsForCall(0)).To(Equal("some-pipeline"))
 	})
 
 	Context("when getting the pipeline returns an error", func() {
@@ -41,7 +42,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 		BeforeEach(func() {
 			expectedErr = errors.New("disaster")
-			fakeClient.PipelineReturns(atc.Pipeline{}, false, expectedErr)
+			fakeTeam.PipelineReturns(atc.Pipeline{}, false, expectedErr)
 		})
 
 		It("returns an error if the config could not be loaded", func() {
@@ -51,7 +52,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 	Context("when the pipeline is not found", func() {
 		BeforeEach(func() {
-			fakeClient.PipelineReturns(atc.Pipeline{}, false, nil)
+			fakeTeam.PipelineReturns(atc.Pipeline{}, false, nil)
 		})
 
 		It("returns an error if the config could not be loaded", func() {
@@ -61,7 +62,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 	Context("when the api returns the pipeline", func() {
 		BeforeEach(func() {
-			fakeClient.PipelineReturns(atc.Pipeline{
+			fakeTeam.PipelineReturns(atc.Pipeline{
 				Groups: atc.GroupConfigs{
 					{
 						Name: "group-with-job",
@@ -76,16 +77,42 @@ var _ = Describe("FetchTemplateData", func() {
 		})
 
 		It("calls to get the job from the client", func() {
-			actualPipelineName, actualJobName := fakeClient.JobArgsForCall(0)
+			actualPipelineName, actualJobName := fakeTeam.JobArgsForCall(0)
 			Expect(actualPipelineName).To(Equal("some-pipeline"))
 			Expect(actualJobName).To(Equal("some-job"))
+		})
+
+		Context("when the client returns a job", func() {
+			BeforeEach(func() {
+				fakeTeam.JobReturns(atc.Job{}, true, nil)
+				fakeTeam.NameReturns("some-team")
+			})
+
+			It("returns the correct TemplateData", func() {
+				Expect(templateData.TeamName).To(Equal("some-team"))
+				Expect(templateData.PipelineName).To(Equal("some-pipeline"))
+				Expect(templateData.JobName).To(Equal("some-job"))
+				Expect(templateData.Since).To(Equal(398))
+				Expect(templateData.Until).To(Equal(2))
+
+				Expect(templateData.GroupStates).To(ConsistOf([]group.State{
+					{
+						Name:    "group-with-job",
+						Enabled: true,
+					},
+					{
+						Name:    "group-without-job",
+						Enabled: false,
+					},
+				}))
+			})
 		})
 
 		Context("when the client returns an error", func() {
 			var expectedErr error
 			BeforeEach(func() {
 				expectedErr = errors.New("nope")
-				fakeClient.JobReturns(atc.Job{}, false, expectedErr)
+				fakeTeam.JobReturns(atc.Job{}, false, expectedErr)
 			})
 
 			It("returns an error", func() {
@@ -95,7 +122,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 		Context("when the job could not be found", func() {
 			BeforeEach(func() {
-				fakeClient.JobReturns(atc.Job{}, false, nil)
+				fakeTeam.JobReturns(atc.Job{}, false, nil)
 			})
 
 			It("returns an error", func() {

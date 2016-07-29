@@ -2,13 +2,15 @@ package auth
 
 import (
 	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 
 	"golang.org/x/net/context"
@@ -20,59 +22,27 @@ type OAuthCallbackHandler struct {
 	providerFactory ProviderFactory
 	privateKey      *rsa.PrivateKey
 	tokenGenerator  TokenGenerator
-	db              AuthDB
+	teamDBFactory   db.TeamDBFactory
 }
 
 func NewOAuthCallbackHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
-	db AuthDB,
+	teamDBFactory db.TeamDBFactory,
 ) http.Handler {
 	return &OAuthCallbackHandler{
 		logger:          logger,
 		providerFactory: providerFactory,
 		privateKey:      privateKey,
 		tokenGenerator:  NewTokenGenerator(privateKey),
-		db:              db,
+		teamDBFactory:   teamDBFactory,
 	}
 }
 
 func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hLog := handler.logger.Session("callback")
 	providerName := r.FormValue(":provider")
-	teamName := atc.DefaultTeamName
-
-	team, found, err := handler.db.GetTeamByName(atc.DefaultTeamName)
-	if err != nil {
-		hLog.Error("failed-to-get-team", err)
-		http.Error(w, "failed to get team", http.StatusInternalServerError)
-		return
-	}
-	if !found {
-		hLog.Info("failed-to-find-team", lager.Data{
-			"teamName": teamName,
-		})
-		http.Error(w, "failed to find team", http.StatusNotFound)
-		return
-	}
-
-	providers, err := handler.providerFactory.GetProviders(teamName)
-	if err != nil {
-		handler.logger.Error("unknown-provider", err, lager.Data{
-			"provider": providerName,
-			"teamName": teamName,
-		})
-
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	provider, found := providers[providerName]
-	if !found {
-		http.Error(w, "unknown provider", http.StatusNotFound)
-		return
-	}
 
 	paramState := r.FormValue("state")
 
@@ -114,15 +84,67 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	token, err := provider.Exchange(oauth2.NoContext, r.FormValue("code"))
+	teamName := oauthState.TeamName
+	teamDB := handler.teamDBFactory.GetTeamDB(teamName)
+	team, found, err := teamDB.GetTeam()
+	if err != nil {
+		hLog.Error("failed-to-get-team", err)
+		http.Error(w, "failed to get team", http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		hLog.Info("failed-to-find-team", lager.Data{
+			"teamName": teamName,
+		})
+		http.Error(w, "failed to find team", http.StatusNotFound)
+		return
+	}
+
+	providers, err := handler.providerFactory.GetProviders(teamName)
+	if err != nil {
+		handler.logger.Error("unknown-provider", err, lager.Data{
+			"provider": providerName,
+			"teamName": teamName,
+		})
+
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	provider, found := providers[providerName]
+	if !found {
+		http.Error(w, "unknown provider", http.StatusNotFound)
+		return
+	}
+
+	transport := &http.Transport{
+		DisableKeepAlives: true,
+	}
+
+	if team.UAAAuth != nil && team.UAAAuth.CFCACert != "" {
+		caCertPool := x509.NewCertPool()
+		ok := caCertPool.AppendCertsFromPEM([]byte(team.UAAAuth.CFCACert))
+		if !ok {
+			http.Error(w, "failed to use cf certificate", http.StatusInternalServerError)
+			return
+		}
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs: caCertPool,
+		}
+	}
+
+	disabledKeepAliveClient := &http.Client{
+		Transport: transport,
+	}
+	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, disabledKeepAliveClient)
+
+	token, err := provider.Exchange(ctx, r.FormValue("code"))
 	if err != nil {
 		hLog.Error("failed-to-exchange-token", err)
 		http.Error(w, "failed to exchange token", http.StatusInternalServerError)
 		return
 	}
 
-	disabledKeepAliveClient := http.Client{Transport: &http.Transport{DisableKeepAlives: true}}
-	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, disabledKeepAliveClient)
 	httpClient := provider.Client(ctx, token)
 
 	verified, err := provider.Verify(hLog.Session("verify"), httpClient)

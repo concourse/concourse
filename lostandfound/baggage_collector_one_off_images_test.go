@@ -27,6 +27,10 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 
 		fakeBaggageCollectorDB *lostandfoundfakes.FakeBaggageCollectorDB
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
+		fakeBuild1             *dbfakes.FakeBuild
+		fakeBuild2             *dbfakes.FakeBuild
+		fakeBuild4             *dbfakes.FakeBuild
+		fakeBuild5             *dbfakes.FakeBuild
 
 		expectedOldVersionTTL    = 4 * time.Minute
 		expectedLatestVersionTTL = time.Duration(0)
@@ -125,19 +129,20 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 			ResourceVersion: atc.Version{"digest": "digest2"},
 			ResourceHash:    `docker:{"repository":"repository2"}`,
 		}
-		imageVersionMap := map[int][]db.ResourceCacheIdentifier{
-			1: {identifier1},
-			2: {identifier2},
-			4: {identifier1},
-			5: {identifier2},
-		}
 
-		fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDStub = func(buildID int) ([]db.ResourceCacheIdentifier, error) {
-			return imageVersionMap[buildID], nil
-		}
+		fakeBuild1 = new(dbfakes.FakeBuild)
+		fakeBuild1.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier1}, nil)
+		fakeBuild2 = new(dbfakes.FakeBuild)
+		fakeBuild2.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier2}, nil)
+		fakeBuild3 := new(dbfakes.FakeBuild)
+		fakeBuild3.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{}, nil)
+		fakeBuild4 = new(dbfakes.FakeBuild)
+		fakeBuild4.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier1}, nil)
+		fakeBuild5 = new(dbfakes.FakeBuild)
+		fakeBuild5.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier2}, nil)
 
 		fakePipelineDB = new(dbfakes.FakePipelineDB)
-		fakePipelineDB.GetJobFinishedAndNextBuildReturns(&db.Build{ID: 2}, &db.Build{ID: 3}, nil)
+		fakePipelineDB.GetJobFinishedAndNextBuildReturns(fakeBuild2, fakeBuild3, nil)
 
 		fakePipelineDBFactory.BuildReturns(fakePipelineDB)
 	})
@@ -150,8 +155,7 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		Expect(fakePipelineDBFactory.BuildArgsForCall(0)).To(Equal(savedPipeline))
 		Expect(fakePipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
 		Expect(fakePipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)).To(Equal("my-precious-job"))
-		Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDCallCount()).To(Equal(1))
-		Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDArgsForCall(0)).To(Equal(2))
+		Expect(fakeBuild2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(1))
 		Expect(fakeBaggageCollectorDB.GetVolumesForOneOffBuildImageResourcesCallCount()).To(Equal(1))
 		Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
 		Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(2))

@@ -8,22 +8,21 @@ import (
 )
 
 type Server struct {
-	logger lager.Logger
-
-	db       db.ConfigDB
-	validate ConfigValidator
+	logger        lager.Logger
+	teamDBFactory db.TeamDBFactory
+	validate      ConfigValidator
 }
 
 type ConfigValidator func(atc.Config) ([]config.Warning, []string)
 
 func NewServer(
 	logger lager.Logger,
-	db db.ConfigDB,
+	teamDBFactory db.TeamDBFactory,
 	validator ConfigValidator,
 ) *Server {
 	return &Server{
-		logger:   logger,
-		db:       db,
-		validate: validator,
+		logger:        logger,
+		teamDBFactory: teamDBFactory,
+		validate:      validator,
 	}
 }

@@ -9,7 +9,6 @@ import (
 type OrganizationVerifier struct {
 	organizations []string
 	gitHubClient  Client
-	gitHubAPIURL  string
 }
 
 func NewOrganizationVerifier(

@@ -13,23 +13,9 @@ type CookieSetHandler struct {
 }
 
 func (handler CookieSetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	auth := r.Header.Get("Authorization")
-	if auth == "" {
-		cookie, err := r.Cookie(CookieName)
-		if err == nil {
-			auth = cookie.Value
-		}
-	}
-
-	if auth != "" {
-		http.SetCookie(w, &http.Cookie{
-			Name:    CookieName,
-			Value:   auth,
-			Path:    "/",
-			Expires: time.Now().Add(CookieAge),
-		})
-
-		r.Header.Set("Authorization", auth)
+	cookie, err := r.Cookie(CookieName)
+	if err == nil {
+		r.Header.Set("Authorization", cookie.Value)
 	}
 
 	handler.Handler.ServeHTTP(w, r)

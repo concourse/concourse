@@ -15,24 +15,24 @@ import (
 )
 
 var _ = Describe("FetchTemplateData", func() {
-	var fakeClient *cfakes.FakeClient
+	var fakeTeam *cfakes.FakeTeam
 	var templateData TemplateData
 	var fetchErr error
 
 	BeforeEach(func() {
-		fakeClient = new(cfakes.FakeClient)
+		fakeTeam = new(cfakes.FakeTeam)
 	})
 
 	JustBeforeEach(func() {
-		templateData, fetchErr = FetchTemplateData("some-pipeline", "some-resource", fakeClient, concourse.Page{
+		templateData, fetchErr = FetchTemplateData("some-pipeline", "some-resource", fakeTeam, concourse.Page{
 			Since: 398,
 			Until: 2,
 		})
 	})
 
 	It("calls to get the pipeline config", func() {
-		Expect(fakeClient.PipelineCallCount()).To(Equal(1))
-		Expect(fakeClient.PipelineArgsForCall(0)).To(Equal("some-pipeline"))
+		Expect(fakeTeam.PipelineCallCount()).To(Equal(1))
+		Expect(fakeTeam.PipelineArgsForCall(0)).To(Equal("some-pipeline"))
 	})
 
 	Context("when getting the pipeline returns an error", func() {
@@ -40,7 +40,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 		BeforeEach(func() {
 			expectedErr = errors.New("disaster")
-			fakeClient.PipelineReturns(atc.Pipeline{}, false, expectedErr)
+			fakeTeam.PipelineReturns(atc.Pipeline{}, false, expectedErr)
 		})
 
 		It("returns an error if the config could not be loaded", func() {
@@ -50,7 +50,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 	Context("when the pipeline is not found", func() {
 		BeforeEach(func() {
-			fakeClient.PipelineReturns(atc.Pipeline{}, false, nil)
+			fakeTeam.PipelineReturns(atc.Pipeline{}, false, nil)
 		})
 
 		It("returns an error if the config could not be loaded", func() {
@@ -60,7 +60,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 	Context("when the api returns the pipeline", func() {
 		BeforeEach(func() {
-			fakeClient.PipelineReturns(atc.Pipeline{
+			fakeTeam.PipelineReturns(atc.Pipeline{
 				Groups: atc.GroupConfigs{
 					{
 						Name:      "group-with-resource",
@@ -75,8 +75,8 @@ var _ = Describe("FetchTemplateData", func() {
 		})
 
 		It("calls to get the resource", func() {
-			Expect(fakeClient.ResourceCallCount()).To(Equal(1))
-			pipelineName, resourceName := fakeClient.ResourceArgsForCall(0)
+			Expect(fakeTeam.ResourceCallCount()).To(Equal(1))
+			pipelineName, resourceName := fakeTeam.ResourceArgsForCall(0)
 			Expect(pipelineName).To(Equal("some-pipeline"))
 			Expect(resourceName).To(Equal("some-resource"))
 		})
@@ -85,7 +85,7 @@ var _ = Describe("FetchTemplateData", func() {
 			var expectedErr error
 			BeforeEach(func() {
 				expectedErr = errors.New("nope")
-				fakeClient.ResourceReturns(atc.Resource{}, false, expectedErr)
+				fakeTeam.ResourceReturns(atc.Resource{}, false, expectedErr)
 			})
 
 			It("errors", func() {
@@ -95,7 +95,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 		Context("when it can't find the resource", func() {
 			BeforeEach(func() {
-				fakeClient.ResourceReturns(atc.Resource{}, false, nil)
+				fakeTeam.ResourceReturns(atc.Resource{}, false, nil)
 			})
 
 			It("returns a resource not found error", func() {
@@ -112,12 +112,12 @@ var _ = Describe("FetchTemplateData", func() {
 					CheckError:     "some-error",
 					FailingToCheck: true,
 				}
-				fakeClient.ResourceReturns(expectedResource, true, nil)
+				fakeTeam.ResourceReturns(expectedResource, true, nil)
 			})
 
 			It("calls to get the resource versions", func() {
-				Expect(fakeClient.ResourceVersionsCallCount()).To(Equal(1))
-				actualPipelineName, actualResourceName, actualPage := fakeClient.ResourceVersionsArgsForCall(0)
+				Expect(fakeTeam.ResourceVersionsCallCount()).To(Equal(1))
+				actualPipelineName, actualResourceName, actualPage := fakeTeam.ResourceVersionsArgsForCall(0)
 				Expect(actualPipelineName).To(Equal("some-pipeline"))
 				Expect(actualResourceName).To(Equal("some-resource"))
 				Expect(actualPage).To(Equal(concourse.Page{
@@ -130,7 +130,7 @@ var _ = Describe("FetchTemplateData", func() {
 				var expectedErr error
 				BeforeEach(func() {
 					expectedErr = errors.New("nope")
-					fakeClient.ResourceVersionsReturns(nil, concourse.Pagination{}, false, expectedErr)
+					fakeTeam.ResourceVersionsReturns(nil, concourse.Pagination{}, false, expectedErr)
 				})
 
 				It("errors", func() {
@@ -140,7 +140,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 			Context("when it can't find the resource versions", func() {
 				BeforeEach(func() {
-					fakeClient.ResourceVersionsReturns(nil, concourse.Pagination{}, false, nil)
+					fakeTeam.ResourceVersionsReturns(nil, concourse.Pagination{}, false, nil)
 				})
 
 				It("returns a resource not found error", func() {
@@ -196,17 +196,17 @@ var _ = Describe("FetchTemplateData", func() {
 							Limit: 100,
 						},
 					}
-					fakeClient.ResourceVersionsReturns(versionedResources, pagination, true, nil)
+					fakeTeam.ResourceVersionsReturns(versionedResources, pagination, true, nil)
 				})
 
 				It("calls to get builds that the versions were inputs to", func() {
-					Expect(fakeClient.BuildsWithVersionAsInputCallCount()).To(Equal(2))
-					firstCallPipelineName, firstCallResourceName, firstCallResourceVersionID := fakeClient.BuildsWithVersionAsInputArgsForCall(0)
+					Expect(fakeTeam.BuildsWithVersionAsInputCallCount()).To(Equal(2))
+					firstCallPipelineName, firstCallResourceName, firstCallResourceVersionID := fakeTeam.BuildsWithVersionAsInputArgsForCall(0)
 					Expect(firstCallPipelineName).To(Equal("some-pipeline"))
 					Expect(firstCallResourceName).To(Equal("some-resource"))
 					Expect(firstCallResourceVersionID).To(Equal(2))
 
-					secondCallPipelineName, secondCallResourceName, secondCallResourceVersionID := fakeClient.BuildsWithVersionAsInputArgsForCall(1)
+					secondCallPipelineName, secondCallResourceName, secondCallResourceVersionID := fakeTeam.BuildsWithVersionAsInputArgsForCall(1)
 					Expect(secondCallPipelineName).To(Equal("some-pipeline"))
 					Expect(secondCallResourceName).To(Equal("some-resource"))
 					Expect(secondCallResourceVersionID).To(Equal(3))
@@ -216,7 +216,7 @@ var _ = Describe("FetchTemplateData", func() {
 					var expectedErr error
 					BeforeEach(func() {
 						expectedErr = errors.New("nope")
-						fakeClient.BuildsWithVersionAsInputReturns(nil, false, expectedErr)
+						fakeTeam.BuildsWithVersionAsInputReturns(nil, false, expectedErr)
 					})
 
 					It("returns an error", func() {
@@ -252,17 +252,17 @@ var _ = Describe("FetchTemplateData", func() {
 								EndTime:      time.Now().Unix(),
 							},
 						}
-						fakeClient.BuildsWithVersionAsInputReturns(expectedBuildsForInput, true, nil)
+						fakeTeam.BuildsWithVersionAsInputReturns(expectedBuildsForInput, true, nil)
 					})
 
 					It("calls to get the outputs", func() {
-						Expect(fakeClient.BuildsWithVersionAsOutputCallCount()).To(Equal(2))
-						firstCallPipelineName, firstCallResourceName, firstCallResourceVersionID := fakeClient.BuildsWithVersionAsOutputArgsForCall(0)
+						Expect(fakeTeam.BuildsWithVersionAsOutputCallCount()).To(Equal(2))
+						firstCallPipelineName, firstCallResourceName, firstCallResourceVersionID := fakeTeam.BuildsWithVersionAsOutputArgsForCall(0)
 						Expect(firstCallPipelineName).To(Equal("some-pipeline"))
 						Expect(firstCallResourceName).To(Equal("some-resource"))
 						Expect(firstCallResourceVersionID).To(Equal(2))
 
-						secondCallPipelineName, secondCallResourceName, secondCallResourceVersionID := fakeClient.BuildsWithVersionAsOutputArgsForCall(1)
+						secondCallPipelineName, secondCallResourceName, secondCallResourceVersionID := fakeTeam.BuildsWithVersionAsOutputArgsForCall(1)
 						Expect(secondCallPipelineName).To(Equal("some-pipeline"))
 						Expect(secondCallResourceName).To(Equal("some-resource"))
 						Expect(secondCallResourceVersionID).To(Equal(3))
@@ -272,7 +272,7 @@ var _ = Describe("FetchTemplateData", func() {
 						var expectedErr error
 						BeforeEach(func() {
 							expectedErr = errors.New("nope")
-							fakeClient.BuildsWithVersionAsOutputReturns(nil, false, expectedErr)
+							fakeTeam.BuildsWithVersionAsOutputReturns(nil, false, expectedErr)
 						})
 
 						It("returns an error", func() {
@@ -308,7 +308,8 @@ var _ = Describe("FetchTemplateData", func() {
 									EndTime:      time.Now().Unix(),
 								},
 							}
-							fakeClient.BuildsWithVersionAsOutputReturns(expectedBuildsForOutput, true, nil)
+							fakeTeam.BuildsWithVersionAsOutputReturns(expectedBuildsForOutput, true, nil)
+							fakeTeam.NameReturns("some-team")
 						})
 
 						It("returns the correct TemplateData", func() {
@@ -325,6 +326,7 @@ var _ = Describe("FetchTemplateData", func() {
 									OutputsOf:         map[string][]atc.Build{"some-job": expectedBuildsForOutput},
 								},
 							}))
+							Expect(templateData.TeamName).To(Equal("some-team"))
 							Expect(templateData.PipelineName).To(Equal("some-pipeline"))
 							Expect(templateData.GroupStates).To(ConsistOf([]group.State{
 								{

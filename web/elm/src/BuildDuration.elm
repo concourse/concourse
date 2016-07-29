@@ -1,4 +1,4 @@
-module BuildDuration where
+module BuildDuration exposing (..)
 
 import Date exposing (Date)
 import Date.Format
@@ -9,7 +9,7 @@ import Time exposing (Time)
 
 import Concourse.Build exposing (BuildDuration)
 
-view : BuildDuration -> Time.Time -> Html
+view : BuildDuration -> Time.Time -> Html a
 view duration now =
   Html.table [class "dictionary build-duration"] <|
     case (duration.startedAt, duration.finishedAt) of
@@ -32,26 +32,26 @@ view duration now =
           , labeledDuration "duration" durationElmIssue
           ]
 
-labeledRelativeDate : String -> Time -> Date -> Html
+labeledRelativeDate : String -> Time -> Date -> Html a
 labeledRelativeDate label now date =
   let
     ago = Duration.between (Date.toTime date) now
   in
     Html.tr []
-    [ Html.td [class "dict-key"] [Html.text label]
-    , Html.td
-        [title (Date.Format.format "%b %d %Y %I:%M:%S %p" date), class "dict-value"]
-        [Html.span [] [Html.text (Duration.format ago ++ " ago")]]
-    ]
+      [ Html.td [class "dict-key"] [Html.text label]
+      , Html.td
+          [title (Date.Format.format "%b %d %Y %I:%M:%S %p" date), class "dict-value"]
+          [Html.span [] [Html.text (Duration.format ago ++ " ago")]]
+      ]
 
-labeledDuration : String -> Duration -> Html
+labeledDuration : String -> Duration -> Html a
 labeledDuration label duration =
   Html.tr []
-  [ Html.td [class "dict-key"] [Html.text label]
-  , Html.td [class "dict-value"] [Html.span [] [Html.text (Duration.format duration)]]
-  ]
+    [ Html.td [class "dict-key"] [Html.text label]
+    , Html.td [class "dict-value"] [Html.span [] [Html.text (Duration.format duration)]]
+    ]
 
-pendingLabel : String -> Html
+pendingLabel : String -> Html a
 pendingLabel label =
   Html.tr []
   [ Html.td [class "dict-key"] [Html.text label]

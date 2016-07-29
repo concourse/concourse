@@ -70,7 +70,7 @@ var _ = Describe("ContainerKeepAliver", func() {
 		}
 
 		fakeWorkerClient.LookupContainerReturns(fakeWorkerContainer, true, nil)
-		fakePipelineDBFactory.BuildWithIDReturns(fakePipelineDB, nil)
+		fakePipelineDBFactory.BuildReturns(fakePipelineDB)
 		fakePipelineDB.GetConfigReturns(atc.Config{
 			Jobs: atc.JobConfigs{
 				atc.JobConfig{
@@ -108,7 +108,7 @@ var _ = Describe("ContainerKeepAliver", func() {
 				[]db.SavedContainer{failedContainers[0], failedContainers[1]},
 				nil,
 			)
-			fakePipelineDBFactory.BuildWithIDReturns(nil, errors.New("some-error"))
+			fakeContainerKeepAliverDB.GetPipelineByIDReturns(db.SavedPipeline{}, errors.New("some-error"))
 		})
 
 		It("does not heartbeat its containers", func() {

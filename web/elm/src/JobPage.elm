@@ -1,41 +1,14 @@
-module JobPage where
+port module JobPage exposing (..)
 
-import Html exposing (Html)
-import Effects
-import StartApp
-import Task exposing (Task)
+import Html.App
 import Time
 
 import Job
 
-port jobName : String
-port pipelineName : String
-port pageSince : Int
-port pageUntil : Int
-
-main : Signal Html
 main =
-  app.html
-
-app : StartApp.App Job.Model
-app =
-  StartApp.start
-    { init = Job.init redirects.address jobName pipelineName pageSince pageUntil
+  Html.App.programWithFlags
+    { init = Job.init
     , update = Job.update
     , view = Job.view
-    , inputs = []
-    , inits =
-        [ Signal.map Job.ClockTick (Time.every Time.second)
-        ]
+    , subscriptions = always (Time.every Time.second Job.ClockTick)
     }
-
-redirects : Signal.Mailbox String
-redirects = Signal.mailbox ""
-
-port redirect : Signal String
-port redirect =
-  redirects.signal
-
-port tasks : Signal (Task Effects.Never ())
-port tasks =
-  app.tasks

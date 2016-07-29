@@ -10,7 +10,6 @@ import (
 
 type TrackerDB interface {
 	GetAllStartedBuilds() ([]db.Build, error)
-	ErrorBuild(buildID int, pipelineID int, err error) error
 }
 
 func NewTracker(
@@ -41,16 +40,16 @@ func (bt *Tracker) Track() {
 		bt.logger.Error("failed-to-lookup-started-builds", err)
 	}
 
-	for _, b := range builds {
+	for _, build := range builds {
 		tLog := bt.logger.Session("track", lager.Data{
-			"build": b.ID,
+			"build": build.ID(),
 		})
 
-		engineBuild, err := bt.engine.LookupBuild(tLog, b)
+		engineBuild, err := bt.engine.LookupBuild(tLog, build)
 		if err != nil {
 			tLog.Error("failed-to-lookup-build", err)
 
-			err := bt.trackerDB.ErrorBuild(b.ID, b.PipelineID, err)
+			err := build.MarkAsFailed(err)
 			if err != nil {
 				tLog.Error("failed-to-mark-build-as-errored", err)
 			}

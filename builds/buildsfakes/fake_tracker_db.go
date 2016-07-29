@@ -16,16 +16,6 @@ type FakeTrackerDB struct {
 		result1 []db.Build
 		result2 error
 	}
-	ErrorBuildStub        func(buildID int, pipelineID int, err error) error
-	errorBuildMutex       sync.RWMutex
-	errorBuildArgsForCall []struct {
-		buildID    int
-		pipelineID int
-		err        error
-	}
-	errorBuildReturns struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -56,48 +46,11 @@ func (fake *FakeTrackerDB) GetAllStartedBuildsReturns(result1 []db.Build, result
 	}{result1, result2}
 }
 
-func (fake *FakeTrackerDB) ErrorBuild(buildID int, pipelineID int, err error) error {
-	fake.errorBuildMutex.Lock()
-	fake.errorBuildArgsForCall = append(fake.errorBuildArgsForCall, struct {
-		buildID    int
-		pipelineID int
-		err        error
-	}{buildID, pipelineID, err})
-	fake.recordInvocation("ErrorBuild", []interface{}{buildID, pipelineID, err})
-	fake.errorBuildMutex.Unlock()
-	if fake.ErrorBuildStub != nil {
-		return fake.ErrorBuildStub(buildID, pipelineID, err)
-	} else {
-		return fake.errorBuildReturns.result1
-	}
-}
-
-func (fake *FakeTrackerDB) ErrorBuildCallCount() int {
-	fake.errorBuildMutex.RLock()
-	defer fake.errorBuildMutex.RUnlock()
-	return len(fake.errorBuildArgsForCall)
-}
-
-func (fake *FakeTrackerDB) ErrorBuildArgsForCall(i int) (int, int, error) {
-	fake.errorBuildMutex.RLock()
-	defer fake.errorBuildMutex.RUnlock()
-	return fake.errorBuildArgsForCall[i].buildID, fake.errorBuildArgsForCall[i].pipelineID, fake.errorBuildArgsForCall[i].err
-}
-
-func (fake *FakeTrackerDB) ErrorBuildReturns(result1 error) {
-	fake.ErrorBuildStub = nil
-	fake.errorBuildReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeTrackerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getAllStartedBuildsMutex.RLock()
 	defer fake.getAllStartedBuildsMutex.RUnlock()
-	fake.errorBuildMutex.RLock()
-	defer fake.errorBuildMutex.RUnlock()
 	return fake.invocations
 }
 

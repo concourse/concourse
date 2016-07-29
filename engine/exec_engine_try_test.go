@@ -7,22 +7,23 @@ import (
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec/execfakes"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Exec Engine with Try", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *enginefakes.FakeBuildDelegateFactory
-		fakeDB              *enginefakes.FakeEngineDB
 
 		execEngine engine.Engine
 
-		buildModel       db.Build
+		build            *dbfakes.FakeBuild
 		expectedMetadata engine.StepMetadata
 		logger           *lagertest.TestLogger
 
@@ -34,19 +35,23 @@ var _ = Describe("Exec Engine with Try", func() {
 
 		fakeFactory = new(execfakes.FakeFactory)
 		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
-		fakeDB = new(enginefakes.FakeEngineDB)
 
-		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		execEngine = engine.NewExecEngine(
+			fakeFactory,
+			fakeDelegateFactory,
+			fakeTeamDBFactory,
+			"http://example.com",
+		)
 
 		fakeDelegate = new(enginefakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		buildModel = db.Build{
-			ID:           84,
-			Name:         "42",
-			JobName:      "some-job",
-			PipelineName: "some-pipeline",
-		}
+		build = new(dbfakes.FakeBuild)
+		build.IDReturns(84)
+		build.NameReturns("42")
+		build.JobNameReturns("some-job")
+		build.PipelineNameReturns("some-pipeline")
 
 		expectedMetadata = engine.StepMetadata{
 			BuildID:      84,
@@ -109,14 +114,14 @@ var _ = Describe("Exec Engine with Try", func() {
 					Step: inputPlan,
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, build, plan)
 				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 			})
 
 			It("constructs the step correctly", func() {
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, metadata, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, metadata, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(exec.SourceName("some-input")))
@@ -157,7 +162,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					}),
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, build, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 

@@ -19,10 +19,10 @@ var _ = Describe("URLs", func() {
 				Resource: "resource-name",
 			}
 
-			path, err := webhandler.PathFor(atc.EnableResourceVersion, "some-pipeline", versionedResource)
+			path, err := webhandler.PathFor(atc.EnableResourceVersion, "some-team", "some-pipeline", versionedResource)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(path).To(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/enable"))
+			Expect(path).To(Equal("/api/v1/teams/some-team/pipelines/some-pipeline/resources/resource-name/versions/123/enable"))
 		})
 	})
 
@@ -33,10 +33,10 @@ var _ = Describe("URLs", func() {
 				Resource: "resource-name",
 			}
 
-			path, err := webhandler.PathFor(atc.DisableResourceVersion, "some-pipeline", versionedResource)
+			path, err := webhandler.PathFor(atc.DisableResourceVersion, "some-team", "some-pipeline", versionedResource)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(path).To(Equal("/api/v1/pipelines/some-pipeline/resources/resource-name/versions/123/disable"))
+			Expect(path).To(Equal("/api/v1/teams/some-team/pipelines/some-pipeline/resources/resource-name/versions/123/disable"))
 		})
 	})
 
@@ -47,10 +47,10 @@ var _ = Describe("URLs", func() {
 					Name: "some-job",
 				}
 
-				path, err := webhandler.PathFor(web.GetJob, "another-pipeline", job)
+				path, err := webhandler.PathFor(web.GetJob, "some-team", "another-pipeline", job)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job"))
+				Expect(path).To(Equal("/teams/some-team/pipelines/another-pipeline/jobs/some-job"))
 			})
 		})
 
@@ -60,15 +60,15 @@ var _ = Describe("URLs", func() {
 					Name: "some-job",
 				}
 
-				path, err := webhandler.PathFor(web.GetJob, "another-pipeline", job, &concourse.Page{Since: 123, Limit: 456})
+				path, err := webhandler.PathFor(web.GetJob, "some-team", "another-pipeline", job, &concourse.Page{Since: 123, Limit: 456})
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?since=123"))
+				Expect(path).To(Equal("/teams/some-team/pipelines/another-pipeline/jobs/some-job?since=123"))
 
-				path, err = webhandler.PathFor(web.GetJob, "another-pipeline", job, &concourse.Page{Until: 123, Limit: 456})
+				path, err = webhandler.PathFor(web.GetJob, "some-team", "another-pipeline", job, &concourse.Page{Until: 123, Limit: 456})
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?until=123"))
+				Expect(path).To(Equal("/teams/some-team/pipelines/another-pipeline/jobs/some-job?until=123"))
 			})
 
 		})
@@ -77,13 +77,13 @@ var _ = Describe("URLs", func() {
 	Describe("Resources Path", func() {
 		Context("with pagination data", func() {
 			It("returns the correct URL", func() {
-				path, err := webhandler.PathFor(web.GetResource, "another-pipeline", "some-resource", &concourse.Page{Since: 123, Limit: 456})
+				path, err := webhandler.PathFor(web.GetResource, "team-name", "another-pipeline", "some-resource", &concourse.Page{Since: 123, Limit: 456})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?since=123"))
+				Expect(path).To(Equal("/teams/team-name/pipelines/another-pipeline/resources/some-resource?since=123"))
 
-				path, err = webhandler.PathFor(web.GetResource, "another-pipeline", "some-resource", &concourse.Page{Until: 123, Limit: 456})
+				path, err = webhandler.PathFor(web.GetResource, "team-name", "another-pipeline", "some-resource", &concourse.Page{Until: 123, Limit: 456})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?until=123"))
+				Expect(path).To(Equal("/teams/team-name/pipelines/another-pipeline/resources/some-resource?until=123"))
 			})
 		})
 	})
@@ -98,11 +98,16 @@ var _ = Describe("URLs", func() {
 	})
 
 	Describe("Basic Auth", func() {
-		It("links to the provider with a redirect to the index", func() {
-			path, err := webhandler.PathFor(web.BasicAuth, "/some/path")
-			Expect(err).NotTo(HaveOccurred())
+		var path string
+		var err error
 
-			Expect(path).To(Equal("/login/basic?redirect=%2Fsome%2Fpath"))
+		BeforeEach(func() {
+			path, err = webhandler.PathFor(web.GetBasicAuthLogIn, "some-team", "/some/path")
+		})
+
+		It("links to the provider with a redirect to the index", func() {
+			Expect(err).NotTo(HaveOccurred())
+			Expect(path).To(Equal("/teams/some-team/login/basic?redirect=%2Fsome%2Fpath"))
 		})
 	})
 })

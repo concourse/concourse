@@ -8,6 +8,14 @@
 <script src="{{asset "elm.min.js"}}"></script>
 <script type="text/javascript">
 concourse.pipelineName = "{{.PipelineName}}"; // used for detecting if the pipeline is paused
-Elm.embed(Elm.JobPage, document.getElementById("elm-app"), {jobName: {{.JobName}}, pipelineName: {{.PipelineName}}, pageSince: {{.Since}}, pageUntil: {{.Until}}});
+
+var node = document.getElementById("elm-app");
+Elm.JobPage.embed(node, {
+  jobName: {{.JobName}},
+  teamName: {{.TeamName}},
+  pipelineName: {{.PipelineName}},
+  pageSince: {{.Since}},
+  pageUntil: {{.Until}}
+});
 </script>
 {{end}}

@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -12,7 +11,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type EventHandlerFactory func(lager.Logger, BuildsDB, int) http.Handler
+type EventHandlerFactory func(lager.Logger, db.Build) http.Handler
 
 type Server struct {
 	logger lager.Logger
@@ -21,8 +20,7 @@ type Server struct {
 
 	engine              engine.Engine
 	workerClient        worker.Client
-	db                  BuildsDB
-	configDB            db.ConfigDB
+	teamDBFactory       db.TeamDBFactory
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
 	rejector            auth.Rejector
@@ -30,27 +28,12 @@ type Server struct {
 	httpClient *http.Client
 }
 
-//go:generate counterfeiter . BuildsDB
-
-type BuildsDB interface {
-	GetBuild(buildID int) (db.Build, bool, error)
-	GetBuildEvents(buildID int, from uint) (db.EventSource, error)
-	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
-	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
-
-	GetBuilds(db.Page) ([]db.Build, db.Pagination, error)
-
-	CreateOneOffBuild() (db.Build, error)
-	GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error)
-}
-
 func NewServer(
 	logger lager.Logger,
 	externalURL string,
 	engine engine.Engine,
 	workerClient worker.Client,
-	db BuildsDB,
-	configDB db.ConfigDB,
+	teamDBFactory db.TeamDBFactory,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
 ) *Server {
@@ -61,8 +44,7 @@ func NewServer(
 
 		engine:              engine,
 		workerClient:        workerClient,
-		db:                  db,
-		configDB:            configDB,
+		teamDBFactory:       teamDBFactory,
 		eventHandlerFactory: eventHandlerFactory,
 		drain:               drain,
 

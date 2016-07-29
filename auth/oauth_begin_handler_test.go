@@ -20,6 +20,7 @@ import (
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("OAuthBeginHandler", func() {
@@ -29,7 +30,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		fakeProviderFactory *authfakes.FakeProviderFactory
 
-		fakeAuthDB *authfakes.FakeAuthDB
+		fakeTeamDB *dbfakes.FakeTeamDB
 
 		signingKey *rsa.PrivateKey
 
@@ -45,7 +46,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		fakeProviderFactory = new(authfakes.FakeProviderFactory)
 
-		fakeAuthDB = new(authfakes.FakeAuthDB)
+		fakeTeamDB = new(dbfakes.FakeTeamDB)
 
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
@@ -59,11 +60,13 @@ var _ = Describe("OAuthBeginHandler", func() {
 			nil,
 		)
 
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
 		handler, err := auth.NewOAuthHandler(
 			lagertest.NewTestLogger("test"),
 			fakeProviderFactory,
+			fakeTeamDBFactory,
 			signingKey,
-			fakeAuthDB,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -78,7 +81,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 		}
 	})
 
-	Describe("GET /auth/:provider", func() {
+	Describe("GET /auth/:provider/teams/:team_name", func() {
 		var redirectTarget *ghttp.Server
 		var request *http.Request
 		var response *http.Response
@@ -104,7 +107,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 			BeforeEach(func() {
 				request.URL.Path = "/auth/b"
 				request.URL.RawQuery = url.Values{
-					"redirect": {"/some-path"},
+					"redirect":  {"/some-path"},
+					"team_name": {"some-team"},
 				}.Encode()
 
 				fakeProviderB.AuthCodeURLReturns(redirectTarget.URL())
@@ -115,7 +119,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 				Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("sup")))
 			})
 
-			It("generates the auth code with a base64-encoded redirect URI as the state", func() {
+			It("generates the auth code with a base64-encoded redirect URI and team name as the state", func() {
 				Expect(fakeProviderB.AuthCodeURLCallCount()).To(Equal(1))
 
 				state, _ := fakeProviderB.AuthCodeURLArgsForCall(0)
@@ -126,7 +130,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 				var oauthState auth.OAuthState
 				err = json.Unmarshal(decoded, &oauthState)
 				Expect(err).ToNot(HaveOccurred())
-
+				Expect(oauthState.TeamName).To(Equal("some-team"))
 				Expect(oauthState.Redirect).To(Equal("/some-path"))
 			})
 

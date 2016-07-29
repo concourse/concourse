@@ -32,6 +32,18 @@ type FakeRadarDB struct {
 	scopedNameReturns struct {
 		result1 string
 	}
+	TeamNameStub        func() string
+	teamNameMutex       sync.RWMutex
+	teamNameArgsForCall []struct{}
+	teamNameReturns     struct {
+		result1 string
+	}
+	TeamIDStub        func() int
+	teamIDMutex       sync.RWMutex
+	teamIDArgsForCall []struct{}
+	teamIDReturns     struct {
+		result1 int
+	}
 	IsPausedStub        func() (bool, error)
 	isPausedMutex       sync.RWMutex
 	isPausedArgsForCall []struct{}
@@ -231,6 +243,56 @@ func (fake *FakeRadarDB) ScopedNameReturns(result1 string) {
 	fake.ScopedNameStub = nil
 	fake.scopedNameReturns = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeRadarDB) TeamName() string {
+	fake.teamNameMutex.Lock()
+	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct{}{})
+	fake.recordInvocation("TeamName", []interface{}{})
+	fake.teamNameMutex.Unlock()
+	if fake.TeamNameStub != nil {
+		return fake.TeamNameStub()
+	} else {
+		return fake.teamNameReturns.result1
+	}
+}
+
+func (fake *FakeRadarDB) TeamNameCallCount() int {
+	fake.teamNameMutex.RLock()
+	defer fake.teamNameMutex.RUnlock()
+	return len(fake.teamNameArgsForCall)
+}
+
+func (fake *FakeRadarDB) TeamNameReturns(result1 string) {
+	fake.TeamNameStub = nil
+	fake.teamNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeRadarDB) TeamID() int {
+	fake.teamIDMutex.Lock()
+	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct{}{})
+	fake.recordInvocation("TeamID", []interface{}{})
+	fake.teamIDMutex.Unlock()
+	if fake.TeamIDStub != nil {
+		return fake.TeamIDStub()
+	} else {
+		return fake.teamIDReturns.result1
+	}
+}
+
+func (fake *FakeRadarDB) TeamIDCallCount() int {
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
+	return len(fake.teamIDArgsForCall)
+}
+
+func (fake *FakeRadarDB) TeamIDReturns(result1 int) {
+	fake.TeamIDStub = nil
+	fake.teamIDReturns = struct {
+		result1 int
 	}{result1}
 }
 
@@ -651,6 +713,10 @@ func (fake *FakeRadarDB) Invocations() map[string][][]interface{} {
 	defer fake.getPipelineIDMutex.RUnlock()
 	fake.scopedNameMutex.RLock()
 	defer fake.scopedNameMutex.RUnlock()
+	fake.teamNameMutex.RLock()
+	defer fake.teamNameMutex.RUnlock()
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
 	fake.isPausedMutex.RLock()
 	defer fake.isPausedMutex.RUnlock()
 	fake.getConfigMutex.RLock()

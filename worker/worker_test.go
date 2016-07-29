@@ -40,11 +40,14 @@ var _ = Describe("Worker", func() {
 		resourceTypes          []atc.WorkerResourceType
 		platform               string
 		tags                   atc.Tags
+		teamID                 int
 		workerName             string
 		workerStartTime        int64
 		httpProxyURL           string
 		httpsProxyURL          string
 		noProxy                string
+		origUptime             time.Duration
+		workerUptime           uint64
 
 		gardenWorker Worker
 	)
@@ -71,9 +74,13 @@ var _ = Describe("Worker", func() {
 		}
 		platform = "some-platform"
 		tags = atc.Tags{"some", "tags"}
+		teamID = 17
 		workerName = "some-worker"
 		workerStartTime = fakeClock.Now().Unix()
+		workerUptime = 0
+	})
 
+	JustBeforeEach(func() {
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
@@ -87,12 +94,16 @@ var _ = Describe("Worker", func() {
 			resourceTypes,
 			platform,
 			tags,
+			teamID,
 			workerName,
 			workerStartTime,
 			httpProxyURL,
 			httpsProxyURL,
 			noProxy,
 		)
+
+		origUptime = gardenWorker.Uptime()
+		fakeClock.IncrementBySeconds(workerUptime)
 	})
 
 	Describe("CreateContainer", func() {
@@ -121,6 +132,7 @@ var _ = Describe("Worker", func() {
 
 			containerMetadata = Metadata{
 				BuildName: "lol",
+				TeamID:    teamID,
 			}
 
 			customTypes = atc.ResourceTypes{
@@ -162,6 +174,7 @@ var _ = Describe("Worker", func() {
 					ImageURL:   "some-image",
 					Privileged: true,
 				},
+				TeamID: teamID,
 			}
 
 			fakeContainer := new(gfakes.FakeContainer)
@@ -193,6 +206,7 @@ var _ = Describe("Worker", func() {
 					BuildName:  "lol",
 					Handle:     "some-container-handle",
 					WorkerName: "some-worker",
+					TeamID:     teamID,
 				}),
 			}))
 
@@ -373,7 +387,7 @@ var _ = Describe("Worker", func() {
 				cowVolume2 = new(wfakes.FakeVolume)
 				cowVolume2.HandleReturns("cow-vol-2-handle")
 
-				fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+				fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 					s, ok := volumeSpec.Strategy.(ContainerRootFSStrategy)
 					Expect(ok).To(BeTrue())
 
@@ -390,7 +404,7 @@ var _ = Describe("Worker", func() {
 
 			It("creates a COW volume for each mount", func() {
 				Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(2))
-				_, volumeSpec := fakeVolumeClient.CreateVolumeArgsForCall(0)
+				_, volumeSpec, actualTeamID := fakeVolumeClient.CreateVolumeArgsForCall(0)
 				Expect(volumeSpec).To(Equal(VolumeSpec{
 					Strategy: ContainerRootFSStrategy{
 						Parent: volume1,
@@ -398,8 +412,9 @@ var _ = Describe("Worker", func() {
 					Privileged: true,
 					TTL:        VolumeTTL,
 				}))
+				Expect(actualTeamID).To(Equal(teamID))
 
-				_, volumeSpec = fakeVolumeClient.CreateVolumeArgsForCall(1)
+				_, volumeSpec, actualTeamID = fakeVolumeClient.CreateVolumeArgsForCall(1)
 				Expect(volumeSpec).To(Equal(VolumeSpec{
 					Strategy: ContainerRootFSStrategy{
 						Parent: volume2,
@@ -407,13 +422,14 @@ var _ = Describe("Worker", func() {
 					Privileged: true,
 					TTL:        VolumeTTL,
 				}))
+				Expect(actualTeamID).To(Equal(teamID))
 			})
 
 			Context("when creating any volume fails", func() {
 				var disaster error
 				BeforeEach(func() {
 					disaster = errors.New("an-error")
-					fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+					fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 						s := volumeSpec.Strategy.(ContainerRootFSStrategy)
 						switch s.Parent.Handle() {
 						case "vol-1-handle":
@@ -565,6 +581,7 @@ var _ = Describe("Worker", func() {
 
 				expectedContainerMetadata := Metadata{
 					BuildName:  "lol",
+					TeamID:     teamID,
 					Handle:     "some-container-handle",
 					User:       "image-volume-user",
 					WorkerName: "some-worker",
@@ -583,7 +600,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to fetch the image for the resource type", func() {
 				Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
-				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
+				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchTeamID, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
 				Expect(fakeImage.FetchCallCount()).To(Equal(1))
 				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 					Type:   "some-resource",
@@ -595,6 +612,7 @@ var _ = Describe("Worker", func() {
 				Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 				Expect(fetchWorker).To(Equal(gardenWorker))
 				Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
+				Expect(fetchTeamID).To(Equal(teamID))
 				Expect(fetchCustomTypes).To(Equal(customTypes))
 				Expect(fetchPrivileged).To(Equal(true))
 			})
@@ -668,7 +686,8 @@ var _ = Describe("Worker", func() {
 						ResourceType: "custom-type-a",
 						Privileged:   true,
 					},
-					Env: []string{"env-1", "env-2"},
+					Env:    []string{"env-1", "env-2"},
+					TeamID: teamID,
 				}
 
 				imageVolume = new(wfakes.FakeVolume)
@@ -695,6 +714,7 @@ var _ = Describe("Worker", func() {
 
 				expectedContainerMetadata := Metadata{
 					BuildName:  "lol",
+					TeamID:     teamID,
 					Handle:     "some-container-handle",
 					User:       "image-volume-user",
 					WorkerName: "some-worker",
@@ -713,7 +733,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to fetch the image for the resource type", func() {
 				Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
-				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
+				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchTeamID, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
 				Expect(fakeImage.FetchCallCount()).To(Equal(1))
 				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 					Type:   "some-resource",
@@ -725,6 +745,7 @@ var _ = Describe("Worker", func() {
 				Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 				Expect(fetchWorker).To(Equal(gardenWorker))
 				Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
+				Expect(fetchTeamID).To(Equal(teamID))
 				Expect(fetchCustomTypes).To(Equal(customTypes.Without("custom-type-a")))
 				Expect(fetchPrivileged).To(Equal(true))
 			})
@@ -817,7 +838,7 @@ var _ = Describe("Worker", func() {
 					cowVolume.HandleReturns("cow-vol")
 					cowVolume.PathReturns("cow-vol-path")
 
-					fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+					fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 						switch volumeSpec.Strategy.(type) {
 						case HostRootFSStrategy:
 							return importVolume, nil
@@ -849,7 +870,7 @@ var _ = Describe("Worker", func() {
 
 				It("tries to create a COW volume with the import volume as its parent", func() {
 					Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(1))
-					_, actualVolumeSpec := fakeVolumeClient.CreateVolumeArgsForCall(0)
+					_, actualVolumeSpec, actualTeamID := fakeVolumeClient.CreateVolumeArgsForCall(0)
 					Expect(actualVolumeSpec).To(Equal(VolumeSpec{
 						Strategy: ContainerRootFSStrategy{
 							Parent: importVolume,
@@ -858,6 +879,7 @@ var _ = Describe("Worker", func() {
 						Properties: VolumeProperties{},
 						TTL:        5 * time.Minute,
 					}))
+					Expect(actualTeamID).To(Equal(teamID))
 				})
 
 				Context("when the import volume cannot be retrieved", func() {
@@ -867,7 +889,7 @@ var _ = Describe("Worker", func() {
 
 					It("creates import and COW volumes for the resource image", func() {
 						Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(2))
-						_, actualVolumeSpec := fakeVolumeClient.CreateVolumeArgsForCall(0)
+						_, actualVolumeSpec, actualTeamID := fakeVolumeClient.CreateVolumeArgsForCall(0)
 						version := "some-version"
 						Expect(actualVolumeSpec).To(Equal(VolumeSpec{
 							Strategy: HostRootFSStrategy{
@@ -879,8 +901,9 @@ var _ = Describe("Worker", func() {
 							Properties: VolumeProperties{},
 							TTL:        0,
 						}))
+						Expect(actualTeamID).To(Equal(0))
 
-						_, actualVolumeSpec = fakeVolumeClient.CreateVolumeArgsForCall(1)
+						_, actualVolumeSpec, actualTeamID = fakeVolumeClient.CreateVolumeArgsForCall(1)
 						Expect(actualVolumeSpec).To(Equal(VolumeSpec{
 							Strategy: ContainerRootFSStrategy{
 								Parent: importVolume,
@@ -889,6 +912,7 @@ var _ = Describe("Worker", func() {
 							Properties: VolumeProperties{},
 							TTL:        5 * time.Minute,
 						}))
+						Expect(actualTeamID).To(Equal(teamID))
 					})
 
 					Context("when creating the import volume fails", func() {
@@ -896,7 +920,7 @@ var _ = Describe("Worker", func() {
 						BeforeEach(func() {
 							disaster = errors.New("failed-to-create-volume")
 
-							fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+							fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 								switch volumeSpec.Strategy.(type) {
 								case HostRootFSStrategy:
 									return nil, disaster
@@ -918,7 +942,7 @@ var _ = Describe("Worker", func() {
 						BeforeEach(func() {
 							disaster = errors.New("failed-to-create-volume")
 
-							fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+							fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 								switch volumeSpec.Strategy.(type) {
 								case HostRootFSStrategy:
 									return importVolume, nil
@@ -1011,6 +1035,7 @@ var _ = Describe("Worker", func() {
 
 				expectedContainerMetadata := Metadata{
 					BuildName:  "lol",
+					TeamID:     teamID,
 					Handle:     "some-container-handle",
 					User:       "image-volume-user",
 					WorkerName: "some-worker",
@@ -1090,10 +1115,8 @@ var _ = Describe("Worker", func() {
 			})
 
 			Context("when the worker has been up for greater than 5 minutes, and less than an hour", func() {
-				var origUptime time.Duration
 				BeforeEach(func() {
-					origUptime = gardenWorker.Uptime()
-					fakeClock.IncrementBySeconds(301)
+					workerUptime = 301
 				})
 
 				It("creates the container with a max lifetime equivalent to the worker uptime", func() {
@@ -1105,7 +1128,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when the worker has been up for greater than an hour", func() {
 				BeforeEach(func() {
-					fakeClock.IncrementBySeconds(3601)
+					workerUptime = 3601
 				})
 
 				It("creates the container with a max lifetime of 1 hour", func() {
@@ -1118,25 +1141,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when the worker has a HTTPProxyURL", func() {
 			BeforeEach(func() {
-				gardenWorker = NewGardenWorker(
-					fakeGardenClient,
-					fakeBaggageclaimClient,
-					fakeVolumeClient,
-					fakeVolumeFactory,
-					fakeImageFactory,
-					fakeGardenWorkerDB,
-					fakeWorkerProvider,
-					fakeClock,
-					activeContainers,
-					resourceTypes,
-					platform,
-					tags,
-					workerName,
-					workerStartTime,
-					"http://example.com",
-					httpsProxyURL,
-					noProxy,
-				)
+				httpProxyURL = "http://example.com"
 			})
 
 			It("adds the proxy url to the garden spec env", func() {
@@ -1148,25 +1153,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when the worker has NoProxy", func() {
 			BeforeEach(func() {
-				gardenWorker = NewGardenWorker(
-					fakeGardenClient,
-					fakeBaggageclaimClient,
-					fakeVolumeClient,
-					fakeVolumeFactory,
-					fakeImageFactory,
-					fakeGardenWorkerDB,
-					fakeWorkerProvider,
-					fakeClock,
-					activeContainers,
-					resourceTypes,
-					platform,
-					tags,
-					workerName,
-					workerStartTime,
-					httpProxyURL,
-					httpsProxyURL,
-					"localhost",
-				)
+				noProxy = "localhost"
 			})
 
 			It("adds the proxy url to the garden spec env", func() {
@@ -1178,25 +1165,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when the worker has a HTTPSProxyURL", func() {
 			BeforeEach(func() {
-				gardenWorker = NewGardenWorker(
-					fakeGardenClient,
-					fakeBaggageclaimClient,
-					fakeVolumeClient,
-					fakeVolumeFactory,
-					fakeImageFactory,
-					fakeGardenWorkerDB,
-					fakeWorkerProvider,
-					fakeClock,
-					activeContainers,
-					resourceTypes,
-					platform,
-					tags,
-					workerName,
-					workerStartTime,
-					httpProxyURL,
-					"https://example.com",
-					noProxy,
-				)
+				httpsProxyURL = "https://example.com"
 			})
 
 			It("adds the proxy url to the garden spec env", func() {
@@ -1333,7 +1302,7 @@ var _ = Describe("Worker", func() {
 					})
 
 					Context("when there is no baggageclaim", func() {
-						BeforeEach(func() {
+						JustBeforeEach(func() {
 							gardenWorker = NewGardenWorker(
 								fakeGardenClient,
 								nil,
@@ -1347,12 +1316,14 @@ var _ = Describe("Worker", func() {
 								resourceTypes,
 								platform,
 								tags,
+								teamID,
 								workerName,
 								workerStartTime,
 								httpProxyURL,
 								httpsProxyURL,
 								noProxy,
 							)
+							foundContainer, found, findErr = gardenWorker.LookupContainer(logger, handle)
 						})
 
 						It("returns an empty slice", func() {
@@ -1394,7 +1365,7 @@ var _ = Describe("Worker", func() {
 					})
 
 					Context("when there is no baggageclaim", func() {
-						BeforeEach(func() {
+						JustBeforeEach(func() {
 							gardenWorker = NewGardenWorker(
 								fakeGardenClient,
 								nil,
@@ -1408,12 +1379,14 @@ var _ = Describe("Worker", func() {
 								resourceTypes,
 								platform,
 								tags,
+								teamID,
 								workerName,
 								workerStartTime,
 								httpProxyURL,
 								httpsProxyURL,
 								noProxy,
 							)
+							foundContainer, found, findErr = gardenWorker.LookupContainer(logger, handle)
 						})
 
 						It("returns an empty slice", func() {
@@ -1779,7 +1752,11 @@ var _ = Describe("Worker", func() {
 		)
 
 		BeforeEach(func() {
-			spec = WorkerSpec{}
+			spec = WorkerSpec{
+				Tags:   []string{"some", "tags"},
+				TeamID: teamID,
+			}
+
 			customTypes = atc.ResourceTypes{
 				{
 					Name:   "custom-type-b",
@@ -1810,26 +1787,6 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			gardenWorker = NewGardenWorker(
-				fakeGardenClient,
-				fakeBaggageclaimClient,
-				fakeVolumeClient,
-				fakeVolumeFactory,
-				fakeImageFactory,
-				fakeGardenWorkerDB,
-				fakeWorkerProvider,
-				fakeClock,
-				activeContainers,
-				resourceTypes,
-				platform,
-				tags,
-				workerName,
-				workerStartTime,
-				httpProxyURL,
-				httpsProxyURL,
-				noProxy,
-			)
-
 			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(spec, customTypes)
 		})
 
@@ -1851,6 +1808,7 @@ var _ = Describe("Worker", func() {
 			Context("when the worker has no tags", func() {
 				BeforeEach(func() {
 					tags = []string{}
+					spec.Tags = []string{}
 				})
 
 				It("returns the worker", func() {
@@ -1958,7 +1916,6 @@ var _ = Describe("Worker", func() {
 		Context("when the resource type is a custom type supported by the worker", func() {
 			BeforeEach(func() {
 				spec.ResourceType = "custom-type-c"
-				spec.Tags = []string{"some", "tags"}
 			})
 
 			It("returns the worker", func() {
@@ -1979,7 +1936,6 @@ var _ = Describe("Worker", func() {
 				})
 
 				spec.ResourceType = "some-resource"
-				spec.Tags = []string{"some", "tags"}
 			})
 
 			It("returns the worker", func() {
@@ -2008,7 +1964,6 @@ var _ = Describe("Worker", func() {
 				})
 
 				spec.ResourceType = "circle-a"
-				spec.Tags = []string{"some", "tags"}
 			})
 
 			It("returns ErrUnsupportedResourceType", func() {
@@ -2019,7 +1974,6 @@ var _ = Describe("Worker", func() {
 		Context("when the resource type is a custom type not supported by the worker", func() {
 			BeforeEach(func() {
 				spec.ResourceType = "unknown-custom-type"
-				spec.Tags = []string{"some", "tags"}
 			})
 
 			It("returns ErrUnsupportedResourceType", func() {
@@ -2032,33 +1986,70 @@ var _ = Describe("Worker", func() {
 				spec.ResourceType = "some-other-resource"
 			})
 
-			Context("when all of the requested tags are present", func() {
-				BeforeEach(func() {
-					spec.Tags = []string{"some", "tags"}
+			It("returns ErrUnsupportedResourceType", func() {
+				Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+			})
+		})
+
+		Context("when spec specifies team", func() {
+			BeforeEach(func() {
+				teamID = 123
+				spec.TeamID = teamID
+			})
+
+			Context("when worker belongs to same team", func() {
+				It("returns the worker", func() {
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
 
-				It("returns ErrUnsupportedResourceType", func() {
-					Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+				It("returns no error", func() {
+					Expect(satisfyingErr).NotTo(HaveOccurred())
 				})
 			})
 
-			Context("when some of the requested tags are present", func() {
+			Context("when worker belongs to different team", func() {
 				BeforeEach(func() {
-					spec.Tags = []string{"some"}
+					teamID = 777
 				})
 
-				It("returns ErrUnsupportedResourceType", func() {
-					Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+				It("returns ErrTeamMismatch", func() {
+					Expect(satisfyingErr).To(Equal(ErrTeamMismatch))
 				})
 			})
 
-			Context("when any of the requested tags are not present", func() {
-				BeforeEach(func() {
-					spec.Tags = []string{"bogus", "tags"}
+			Context("when worker does not belong to any team", func() {
+				It("returns the worker", func() {
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
 
-				It("returns ErrUnsupportedResourceType", func() {
-					Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+				It("returns no error", func() {
+					Expect(satisfyingErr).NotTo(HaveOccurred())
+				})
+			})
+		})
+
+		Context("when spec does not specify a team", func() {
+			Context("when worker belongs to no team", func() {
+				BeforeEach(func() {
+					teamID = 0
+				})
+
+				It("returns the worker", func() {
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
+				})
+
+				It("returns no error", func() {
+					Expect(satisfyingErr).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when worker belongs to any team", func() {
+				BeforeEach(func() {
+					teamID = 555
+				})
+
+				It("returns ErrTeamMismatch", func() {
+					Expect(satisfyingErr).To(Equal(ErrTeamMismatch))
 				})
 			})
 		})

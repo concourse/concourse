@@ -23,6 +23,7 @@ var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 var ErrIncompatiblePlatform = errors.New("incompatible platform")
 var ErrMismatchedTags = errors.New("mismatched tags")
 var ErrNoVolumeManager = errors.New("worker does not support volume management")
+var ErrTeamMismatch = errors.New("mismatched team")
 
 type MalformedMetadataError struct {
 	UnmarshalError error
@@ -53,6 +54,7 @@ type Worker interface {
 	Description() string
 	Name() string
 	Uptime() time.Duration
+	IsOwnedByTeam() bool
 }
 
 //go:generate counterfeiter . GardenWorkerDB
@@ -87,6 +89,7 @@ type gardenWorker struct {
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             atc.Tags
+	teamID           int
 	name             string
 	startTime        int64
 	httpProxyURL     string
@@ -107,6 +110,7 @@ func NewGardenWorker(
 	resourceTypes []atc.WorkerResourceType,
 	platform string,
 	tags atc.Tags,
+	teamID int,
 	name string,
 	startTime int64,
 	httpProxyURL string,
@@ -127,6 +131,7 @@ func NewGardenWorker(
 		resourceTypes:    resourceTypes,
 		platform:         platform,
 		tags:             tags,
+		teamID:           teamID,
 		name:             name,
 		startTime:        startTime,
 		httpProxyURL:     httpProxyURL,
@@ -149,8 +154,8 @@ func (worker *gardenWorker) FindVolume(logger lager.Logger, volumeSpec VolumeSpe
 	return worker.volumeClient.FindVolume(logger, volumeSpec)
 }
 
-func (worker *gardenWorker) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
-	return worker.volumeClient.CreateVolume(logger, volumeSpec)
+func (worker *gardenWorker) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
+	return worker.volumeClient.CreateVolume(logger, volumeSpec, teamID)
 }
 
 func (worker *gardenWorker) ListVolumes(logger lager.Logger, properties VolumeProperties) ([]Volume, error) {
@@ -164,6 +169,7 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 func (worker *gardenWorker) getImage(
 	logger lager.Logger,
 	imageSpec ImageSpec,
+	teamID int,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -197,6 +203,7 @@ func (worker *gardenWorker) getImage(
 			id,
 			metadata,
 			worker.tags,
+			teamID,
 			updatedResourceTypes,
 			worker,
 			delegate,
@@ -226,7 +233,7 @@ func (worker *gardenWorker) getImage(
 
 	// built-in resource type specified in step
 	if imageSpec.ResourceType != "" {
-		rootFSURL, volume, resourceTypeVersion, err := worker.getBuiltInResourceTypeImage(logger, imageSpec.ResourceType)
+		rootFSURL, volume, resourceTypeVersion, err := worker.getBuiltInResourceTypeImage(logger, imageSpec.ResourceType, teamID)
 		if err != nil {
 			return nil, ImageMetadata{}, nil, "", err
 		}
@@ -241,6 +248,7 @@ func (worker *gardenWorker) getImage(
 func (worker *gardenWorker) getBuiltInResourceTypeImage(
 	logger lager.Logger,
 	resourceTypeName string,
+	teamID int,
 ) (string, Volume, atc.Version, error) {
 	for _, t := range worker.resourceTypes {
 		if t.Type == resourceTypeName {
@@ -256,8 +264,9 @@ func (worker *gardenWorker) getBuiltInResourceTypeImage(
 			}
 
 			importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
+
 			if !found || err != nil {
-				importVolume, err = worker.CreateVolume(logger, importVolumeSpec)
+				importVolume, err = worker.CreateVolume(logger, importVolumeSpec, 0)
 				if err != nil {
 					return "", nil, atc.Version{}, err
 				}
@@ -271,7 +280,7 @@ func (worker *gardenWorker) getBuiltInResourceTypeImage(
 				Privileged: true,
 				Properties: VolumeProperties{},
 				TTL:        VolumeTTL,
-			})
+			}, teamID)
 			if err != nil {
 				return "", nil, atc.Version{}, err
 			}
@@ -313,6 +322,7 @@ func (worker *gardenWorker) CreateContainer(
 	imageVolume, imageMetadata, resourceTypeVersion, imageURL, err := worker.getImage(
 		logger,
 		spec.ImageSpec,
+		spec.TeamID,
 		cancel,
 		delegate,
 		id,
@@ -334,7 +344,7 @@ func (worker *gardenWorker) CreateContainer(
 			},
 			Privileged: spec.ImageSpec.Privileged,
 			TTL:        VolumeTTL,
-		})
+		}, spec.TeamID)
 		if err != nil {
 			return nil, err
 		}
@@ -536,6 +546,10 @@ func (worker *gardenWorker) ActiveContainers() int {
 }
 
 func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (Worker, error) {
+	if spec.TeamID != worker.teamID && worker.teamID != 0 {
+		return nil, ErrTeamMismatch
+	}
+
 	if spec.ResourceType != "" {
 		underlyingType := determineUnderlyingTypeName(spec.ResourceType, resourceTypes)
 
@@ -602,6 +616,10 @@ func (worker *gardenWorker) Description() string {
 
 func (worker *gardenWorker) Name() string {
 	return worker.name
+}
+
+func (worker *gardenWorker) IsOwnedByTeam() bool {
+	return worker.teamID != 0
 }
 
 func (worker *gardenWorker) Uptime() time.Duration {
