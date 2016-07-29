@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 
 	"github.com/concourse/atc"
 )
@@ -15,7 +14,7 @@ func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
 	)
 	SELECT $1, true
 	WHERE NOT EXISTS (
-		SELECT id FROM teams WHERE name = $1
+		SELECT id FROM teams WHERE name = LOWER($1)
 	)
 	`, atc.DefaultTeamName)
 	if err != nil {
@@ -25,7 +24,7 @@ func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
 	_, err = db.conn.Exec(`
 		UPDATE teams
 		SET admin = true
-		WHERE name = $1
+		WHERE name = LOWER($1)
 	`, atc.DefaultTeamName)
 	return err
 }
@@ -50,18 +49,19 @@ func (db *SQLDB) CreateTeam(team Team) (SavedTeam, error) {
 		return SavedTeam{}, err
 	}
 
-	return db.queryTeam(fmt.Sprintf(`
+	query := `
 	INSERT INTO teams (
     name, basic_auth, github_auth, uaa_auth
 	) VALUES (
-		'%s', '%s', '%s', '%s'
+		LOWER($1), $2, $3, $4
 	)
 	RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
-	`, team.Name, jsonEncodedBasicAuth, string(jsonEncodedGitHubAuth), string(jsonEncodedUAAAuth),
-	))
+	`
+	params := []interface{}{team.Name, jsonEncodedBasicAuth, string(jsonEncodedGitHubAuth), string(jsonEncodedUAAAuth)}
+	return db.queryTeam(query, params)
 }
 
-func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
+func (db *SQLDB) queryTeam(query string, params []interface{}) (SavedTeam, error) {
 	var basicAuth, gitHubAuth, uaaAuth sql.NullString
 	var savedTeam SavedTeam
 
@@ -71,7 +71,7 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 	}
 	defer tx.Rollback()
 
-	err = tx.QueryRow(query).Scan(
+	err = tx.QueryRow(query, params...).Scan(
 		&savedTeam.ID,
 		&savedTeam.Name,
 		&savedTeam.Admin,
@@ -114,7 +114,7 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 func (db *SQLDB) DeleteTeamByName(teamName string) error {
 	_, err := db.conn.Exec(`
     DELETE FROM teams
-		WHERE name ILIKE $1
+		WHERE name = LOWER($1)
 	`, teamName)
 	return err
 }

@@ -217,12 +217,6 @@ var _ = Describe("PipelineDB", func() {
 		otherPipelineDB = pipelineDBFactory.Build(otherSavedPipeline)
 	})
 
-	Describe("TeamName", func() {
-		It("returns pipeline team name", func() {
-			Expect(pipelineDB.TeamName()).To(Equal("some-team"))
-		})
-	})
-
 	Describe("destroying a pipeline", func() {
 		It("can be deleted", func() {
 			// populate pipelines table

@@ -96,13 +96,17 @@ var _ = Describe("SQL DB Teams", func() {
 	Describe("CreateTeam", func() {
 		It("saves a team to the db", func() {
 			expectedTeam := db.Team{
-				Name: "avengers",
+				Name: "AvengerS",
 			}
 			expectedSavedTeam, err := database.CreateTeam(expectedTeam)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
+			Expect(expectedSavedTeam.Team.Admin).To(Equal(expectedTeam.Admin))
+			Expect(expectedSavedTeam.Team.BasicAuth).To(Equal(expectedTeam.BasicAuth))
+			Expect(expectedSavedTeam.Team.GitHubAuth).To(Equal(expectedTeam.GitHubAuth))
+			Expect(expectedSavedTeam.Team.UAAAuth).To(Equal(expectedTeam.UAAAuth))
+			Expect(expectedSavedTeam.Team.Name).To(Equal("avengers"))
 
-			savedTeam, found, err := teamDBFactory.GetTeamDB("avengers").GetTeam()
+			savedTeam, found, err := teamDBFactory.GetTeamDB("aVengers").GetTeam()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
