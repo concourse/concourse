@@ -41,8 +41,7 @@ all =
           , disableManualTrigger = False
           }
         defaultModel =
-          { redirect = always Cmd.none
-          , jobInfo = someJobInfo
+          { jobInfo = someJobInfo
           , job = Nothing
           , pausedChanging = False
           , buildsWithResources = Nothing
