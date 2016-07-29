@@ -24,6 +24,7 @@ func (tk *tokenGenerator) GenerateToken() (string, error) {
 	jwtToken := jwt.New(jwt.SigningMethodRS256)
 	exp := time.Now().Add(time.Hour)
 	jwtToken.Claims["exp"] = exp.Unix()
+	jwtToken.Claims["system"] = true
 	signedToken, err := jwtToken.SignedString(tk.signingKey)
 	return signedToken, err
 }
