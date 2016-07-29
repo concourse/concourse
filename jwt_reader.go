@@ -6,7 +6,8 @@ import (
 )
 
 type JWTReader struct {
-	PublicKey *rsa.PublicKey
+	PublicKey       *rsa.PublicKey
+	DevelopmentMode bool
 }
 
 func (jr JWTReader) GetTeam(r *http.Request) (string, int, bool, bool) {
@@ -28,4 +29,22 @@ func (jr JWTReader) GetTeam(r *http.Request) (string, int, bool, bool) {
 	isAdmin := isAdminInterface.(bool)
 
 	return teamName, teamID, isAdmin, true
+}
+
+func (jr JWTReader) GetSystem(r *http.Request) (bool, bool) {
+	if jr.DevelopmentMode {
+		return true, true
+	}
+
+	token, err := getJWT(r, jr.PublicKey)
+	if err != nil {
+		return false, false
+	}
+
+	isSystemInterface, isSystemOK := token.Claims[isSystemKey]
+	if !isSystemOK {
+		return false, false
+	}
+
+	return isSystemInterface.(bool), true
 }
