@@ -40,6 +40,8 @@ files:
   - github.com/concourse/atc/auth/*.go # gosub
   - github.com/concourse/atc/auth/github/*.go # gosub
   - github.com/concourse/atc/auth/provider/*.go # gosub
+  - github.com/concourse/atc/auth/uaa/*.go # gosub
+  - github.com/concourse/atc/auth/verifier/*.go # gosub
   - github.com/concourse/atc/buildreaper/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
   - github.com/concourse/atc/cmd/atc/*.go # gosub
@@ -61,6 +63,7 @@ files:
   - github.com/concourse/atc/scheduler/factory/*.go # gosub
   - github.com/concourse/atc/web/*.go # gosub
   - github.com/concourse/atc/web/authredirect/*.go # gosub
+  - github.com/concourse/atc/web/basicauth/*.go # gosub
   - github.com/concourse/atc/web/getbuild/*.go # gosub
   - github.com/concourse/atc/web/getbuilds/*.go # gosub
   - github.com/concourse/atc/web/getjob/*.go # gosub

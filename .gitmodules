@@ -240,4 +240,3 @@
 [submodule "src/gopkg.in/cheggaaa/pb.v1"]
 	path = src/gopkg.in/cheggaaa/pb.v1
 	url = https://gopkg.in/cheggaaa/pb.v1
-	branch = master

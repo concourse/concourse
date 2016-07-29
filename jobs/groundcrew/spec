@@ -109,6 +109,13 @@ properties:
       Platform to advertise for each worker.
     default: linux
 
+  team:
+    description: |
+      Register the worker for a single team.
+
+      If not specified, the worker will be shared across all teams.
+    default: ""
+
   tags:
     description: |
       An array of tags to advertise for each worker.
