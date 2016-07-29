@@ -37,7 +37,7 @@
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.0.0",
     "watchify": "^2.1.1",
-    "elm": "0.16.0",
+    "elm": "^0.17.0",
     "elm-test": "0.16.0",
     "less": "2.5.3",
     "less-plugin-clean-css": "1.5.1",
