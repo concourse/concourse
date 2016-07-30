@@ -1,2 +1,2 @@
 web/bindata.go binary
-web/public/* binary
+web/public/elm.min.js binary
