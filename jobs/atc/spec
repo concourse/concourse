@@ -75,16 +75,6 @@ properties:
 
       You should otherwise leave this value blank.
 
-  publicly_viewable:
-    description: |
-      Allow viewing of pipelines as an anonymous user. Destructive operations
-      still require auth, and the output of builds will only be visible if
-      their job is configured with `public: true`.
-
-      This is useful for open-source projects, or as a convenience to make
-      monitoring your pipeline status easier.
-    default: false
-
   development_mode:
     description: |
       Loosen up security for development purposes. This allows the ATC to be
