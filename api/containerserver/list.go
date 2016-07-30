@@ -14,7 +14,7 @@ import (
 )
 
 func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
-	teamName := auth.GetAuthOrDefaultTeamName(r)
+	teamName := auth.GetAuthTeamName(r)
 	params := r.URL.RawQuery
 
 	hLog := s.logger.Session("list-containers", lager.Data{

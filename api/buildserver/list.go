@@ -35,7 +35,7 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		limit = atc.PaginationAPIDefaultLimit
 	}
 
-	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
+	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthTeamName(r))
 
 	var publicOnly bool
 	if !auth.IsAuthenticated(r) {

@@ -18,7 +18,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (s *Server) HijackContainer(w http.ResponseWriter, r *http.Request) {
-	teamName := auth.GetAuthOrDefaultTeamName(r)
+	teamName := auth.GetAuthTeamName(r)
 	handle := r.FormValue(":id")
 
 	hLog := s.logger.Session("hijack", lager.Data{

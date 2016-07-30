@@ -32,15 +32,15 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		switch name {
 		// unauthenticated / delegating to handler
 		case atc.DownloadCLI,
-			atc.ListAuthMethods,
+			atc.ListAuthMethods, //teamname -
 			atc.GetInfo,
 			atc.BuildEvents,
-			atc.GetBuild,
+			atc.GetBuild, //teamname -
 			atc.BuildResources,
 			atc.GetBuildPlan,
 			atc.GetBuildPreparation,
-			atc.ListAllPipelines,
-			atc.ListBuilds,
+			atc.ListAllPipelines, //teamname -
+			atc.ListBuilds,       //teamname -
 			atc.GetJobBuild,
 			atc.JobBadge,
 			atc.ListJobs,
@@ -56,19 +56,19 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 
 		// authenticated
 		case atc.GetAuthToken,
-			atc.AbortBuild,
-			atc.CreateBuild,
+			atc.AbortBuild,  //teamname -
+			atc.CreateBuild, //teamname -
 			atc.CreatePipe,
-			atc.GetContainer,
-			atc.HijackContainer,
-			atc.ListContainers,
-			atc.ListWorkers,
+			atc.GetContainer,    //teamname -
+			atc.HijackContainer, //teamname -
+			atc.ListContainers,  //teamname -
+			atc.ListWorkers,     //teamname -
 			atc.ReadPipe,
 			atc.RegisterWorker,
 			atc.SetLogLevel,
 			atc.SetTeam,
 			atc.WritePipe,
-			atc.ListVolumes,
+			atc.ListVolumes, //teamname -
 			atc.GetLogLevel:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 

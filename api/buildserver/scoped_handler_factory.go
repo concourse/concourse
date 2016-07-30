@@ -38,7 +38,7 @@ func (f *scopedHandlerFactory) HandlerFor(buildScopedHandler func(db.Build) http
 			return
 		}
 
-		teamDB := f.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
+		teamDB := f.teamDBFactory.GetTeamDB(auth.GetAuthTeamName(r))
 		build, found, err := teamDB.GetBuild(buildID)
 		if err != nil {
 			logger.Error("failed-to-get-build", err)

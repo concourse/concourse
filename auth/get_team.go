@@ -3,7 +3,6 @@ package auth
 import (
 	"net/http"
 
-	"github.com/concourse/atc"
 	"github.com/gorilla/context"
 )
 
@@ -19,10 +18,10 @@ func GetTeam(r *http.Request) (string, int, bool, bool) {
 	return teamName.(string), teamID.(int), isAdmin.(bool), true
 }
 
-func GetAuthOrDefaultTeamName(r *http.Request) string {
+func GetAuthTeamName(r *http.Request) string {
 	teamName, _, _, found := GetTeam(r)
 	if !found {
-		teamName = atc.DefaultTeamName
+		return ""
 	}
 
 	return teamName

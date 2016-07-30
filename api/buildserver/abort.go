@@ -19,7 +19,7 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 		"build": buildID,
 	})
 
-	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
+	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthTeamName(r))
 	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		aLog.Error("failed-to-get-build", err)

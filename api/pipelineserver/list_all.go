@@ -10,7 +10,7 @@ import (
 
 func (s *Server) ListAllPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-all-pipelines")
-	teamName := auth.GetAuthOrDefaultTeamName(r)
+	teamName := auth.GetAuthTeamName(r)
 
 	pipelines, err := s.getPipelines(teamName, true)
 	if err != nil {

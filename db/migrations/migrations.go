@@ -119,4 +119,5 @@ var Migrations = []migration.Migrator{
 	AddTeamIDToVolumes,
 	AddNextBuildInputs,
 	AddCaseInsenstiveUniqueIndexToTeamsName,
+	AddNonEmptyConstraintToTeamName,
 }

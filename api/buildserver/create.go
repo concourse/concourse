@@ -21,7 +21,7 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
+	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthTeamName(r))
 	build, err := teamDB.CreateOneOffBuild()
 
 	if err != nil {

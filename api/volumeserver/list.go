@@ -11,7 +11,7 @@ import (
 )
 
 func (s *Server) ListVolumes(w http.ResponseWriter, r *http.Request) {
-	teamName := auth.GetAuthOrDefaultTeamName(r)
+	teamName := auth.GetAuthTeamName(r)
 
 	hLog := s.logger.Session("list-volumes")
 

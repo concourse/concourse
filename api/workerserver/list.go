@@ -12,7 +12,7 @@ import (
 func (s *Server) ListWorkers(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-workers")
 
-	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
+	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthTeamName(r))
 	savedWorkers, err := teamDB.Workers()
 	if err != nil {
 		logger.Error("failed-to-get-workers", err)
