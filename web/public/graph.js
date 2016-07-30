@@ -185,8 +185,14 @@ Graph.prototype.layout = function() {
     var anyChanged = true;
     while (anyChanged) {
       anyChanged = false;
+      for (var c = rankGroups.length - 1; c >= 0; c--) {
+        if (rankGroups[c].tug("outAlignment")) {
+          anyChanged = true;
+        }
+      }
+
       for (var c in rankGroups) {
-        if (rankGroups[c].tug()) {
+        if (rankGroups[c].tug("inAlignment")) {
           anyChanged = true;
         }
       }
@@ -513,27 +519,32 @@ RankGroup.prototype.layout = function() {
   }
 }
 
-RankGroup.prototype.tug = function() {
+RankGroup.prototype.tug = function(direction) {
   var changed = false;
 
-  for (var i = this.nodes.length - 1; i >= 0; i--) {
+  for (var i = 0; i < this.nodes.length; i++) {
     var node = this.nodes[i];
 
-    var align = node.inAlignment();
-    if (align !== undefined && node._keyOffset < align && this.ordering.isFree(align, node._edgeKeys.length)) {
-      this.ordering.free(node._keyOffset, node._edgeKeys.length);
-      node._keyOffset = align;
-      this.ordering.fill(node._keyOffset, node._edgeKeys.length);
-      changed = true;
-    } else {
-      align = node.outAlignment();
-      if (align !== undefined && node._keyOffset < align && this.ordering.isFree(align, node._edgeKeys.length)) {
-        this.ordering.free(node._keyOffset, node._edgeKeys.length);
-        node._keyOffset = align;
-        this.ordering.fill(node._keyOffset, node._edgeKeys.length);
-        changed = true;
-      }
+    var align = node[direction]();
+
+    if (align === undefined) {
+      continue;
     }
+
+    if (align <= node._keyOffset) {
+      continue;
+    }
+
+    var delta = align - node._keyOffset;
+
+    for (var j = i; j < this.nodes.length; j++) {
+      var shiftNode = this.nodes[j];
+      shiftNode._keyOffset += delta;
+    }
+
+    changed = true;
+
+    break;
   }
 
   this.nodes.sort(function(a, b) {
