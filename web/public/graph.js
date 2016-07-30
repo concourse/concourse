@@ -182,10 +182,12 @@ Graph.prototype.layout = function() {
   }
 
   if (window.location.hash != "#untug") {
+    var iterations = 0;
+
     var anyChanged = true;
     while (anyChanged) {
       anyChanged = false;
-      for (var c = rankGroups.length - 1; c >= 0; c--) {
+      for (var c in rankGroups) {
         if (rankGroups[c].tug("outAlignment")) {
           anyChanged = true;
         }
@@ -195,6 +197,19 @@ Graph.prototype.layout = function() {
         if (rankGroups[c].tug("inAlignment")) {
           anyChanged = true;
         }
+      }
+
+      iterations++;
+
+      if (iterations == 10) {
+        console.log("took too long to stabilize; please report a bug here:");
+        console.log("");
+        console.log("    https://github.com/concourse/concourse/issues/new");
+        console.log("");
+        console.log("with your pipeline template, if possible.");
+        console.log("");
+        console.log("in the meantime, append #untug to the URL");
+        break;
       }
     }
   }
