@@ -68,6 +68,6 @@ btrfs/btrfs-tools.tar.gz:
   sha: abdf982cee43881659adc24c3e347b37b65f8530
   size: 3016424
 resources/hg-resource.tar.gz:
-  object_id: 959d90aa-d45c-4e7d-93c8-74b2d8ee9251
-  sha: 189f915cd4604535df387519c11578c87edc390d
-  size: 16555287
+  object_id: e4db8e88-62d6-4e85-be81-c619783adfdb
+  sha: 389acc1c665f3b1a03cb75d0cbbcddb62772f2b4
+  size: 16554914
