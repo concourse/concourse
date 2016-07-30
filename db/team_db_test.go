@@ -119,7 +119,10 @@ var _ = Describe("TeamDB", func() {
 	Describe("GetAllPipelines", func() {
 		var savedPipeline1 db.SavedPipeline
 		var savedPipeline2 db.SavedPipeline
-		var otherSavedPublicPipeline db.SavedPipeline
+		var savedPipeline3 db.SavedPipeline
+		var otherSavedPublicPipeline1 db.SavedPipeline
+		var otherSavedPublicPipeline2 db.SavedPipeline
+		var otherSavedPublicPipeline3 db.SavedPipeline
 		BeforeEach(func() {
 			var err error
 			savedPipeline1, _, err = teamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
@@ -128,31 +131,67 @@ var _ = Describe("TeamDB", func() {
 			savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherSavedPublicPipeline, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			savedPipeline3, _, err = teamDB.SaveConfig("pipeline-name-c", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+			otherSavedPublicPipeline1, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherPipelineDB := pipelineDBFactory.Build(otherSavedPublicPipeline)
-			err = otherPipelineDB.Reveal()
+			otherSavedPublicPipeline2, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherSavedPublicPipeline, err = otherTeamDB.GetPipelineByName("other-team-pipeline-name-a")
+			otherSavedPublicPipeline3, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-c", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(otherSavedPublicPipeline.Public).To(BeTrue())
+
+			pipelineDB1 := pipelineDBFactory.Build(savedPipeline1)
+			err = pipelineDB1.Reveal()
+			Expect(err).NotTo(HaveOccurred())
+
+			pipelineDB2 := pipelineDBFactory.Build(savedPipeline2)
+			err = pipelineDB2.Reveal()
+			Expect(err).NotTo(HaveOccurred())
+
+			otherPipelineDB1 := pipelineDBFactory.Build(otherSavedPublicPipeline1)
+			err = otherPipelineDB1.Reveal()
+			Expect(err).NotTo(HaveOccurred())
+
+			otherPipelineDB3 := pipelineDBFactory.Build(otherSavedPublicPipeline3)
+			err = otherPipelineDB3.Reveal()
+			Expect(err).NotTo(HaveOccurred())
+
+			// update expectations
+			savedPipeline1.Public = true
+			savedPipeline2.Public = true
+			otherSavedPublicPipeline1.Public = true
+			otherSavedPublicPipeline3.Public = true
+
+			err = teamDB.OrderPipelines([]string{"pipeline-name-b", "pipeline-name-c", "pipeline-name-a"})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherTeamDB.OrderPipelines([]string{"other-team-pipeline-name-c", "other-team-pipeline-name-b", "other-team-pipeline-name-a"})
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("returns the pipelines of the team and public pipelines from other teams", func() {
+		It("returns the pipelines of the team first, followed by public pipelines from other teams", func() {
 			savedPipelines, err := teamDB.GetAllPipelines()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(savedPipelines).To(HaveLen(3))
-			Expect(savedPipelines[0]).To(Equal(otherSavedPublicPipeline))
-			teamPipelines := []db.SavedPipeline{
-				savedPipelines[1],
-				savedPipelines[2],
-			}
-			Expect(teamPipelines).To(ConsistOf(savedPipeline1, savedPipeline2))
+			Expect(savedPipelines).To(Equal([]db.SavedPipeline{
+				savedPipeline2,
+				savedPipeline3,
+				savedPipeline1,
+				otherSavedPublicPipeline3,
+				otherSavedPublicPipeline1,
+			}))
+
+			savedPipelines, err = otherTeamDB.GetAllPipelines()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(savedPipelines).To(Equal([]db.SavedPipeline{
+				otherSavedPublicPipeline3,
+				otherSavedPublicPipeline2,
+				otherSavedPublicPipeline1,
+				savedPipeline2,
+				savedPipeline1,
+			}))
 		})
 	})
 

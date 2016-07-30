@@ -94,10 +94,8 @@ func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
 		SELECT `+pipelineColumns+`
 		FROM pipelines p
 		INNER JOIN teams t ON t.id = p.team_id
-		WHERE team_id = (
-			SELECT id FROM teams WHERE name = $1
-		) OR public = true
-		ORDER BY team_name
+		WHERE team_id = (SELECT id FROM teams WHERE name = $1)
+		ORDER BY ordering
 	`, db.teamName)
 	if err != nil {
 		return nil, err
@@ -105,6 +103,34 @@ func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
 
 	defer rows.Close()
 
+	currentTeamPipelines, err := scanPipelines(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	otherRows, err := db.conn.Query(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines p
+		INNER JOIN teams t ON t.id = p.team_id
+		WHERE team_id != (SELECT id FROM teams WHERE name = $1)
+		AND public = true
+		ORDER BY team_name, ordering
+	`, db.teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	defer otherRows.Close()
+
+	otherTeamPipelines, err := scanPipelines(otherRows)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(currentTeamPipelines, otherTeamPipelines...), nil
+}
+
+func scanPipelines(rows *sql.Rows) ([]SavedPipeline, error) {
 	pipelines := []SavedPipeline{}
 
 	for rows.Next() {
