@@ -199,12 +199,6 @@ Graph.prototype.layout = function() {
         }
       }
 
-      for (var c in rankGroups) {
-        if (rankGroups[c].fillGaps()) {
-          anyChanged = true;
-        }
-      }
-
       iterations++;
 
       if (iterations == 10) {
@@ -527,58 +521,18 @@ RankGroup.prototype.width = function() {
 RankGroup.prototype.layout = function() {
   var rollingKeyOffset = 0;
 
+  this.ordering = new Ordering();
+
   for (var i in this.nodes) {
     var node = this.nodes[i];
 
     node._keyOffset = rollingKeyOffset;
 
+    this.ordering.fill(rollingKeyOffset, node._edgeKeys.length);
+
     rollingKeyOffset += Math.max(node._edgeKeys.length, 1);
   }
-
-  this.setOrdering();
 }
-
-RankGroup.prototype.setOrdering = function() {
-  this.ordering = new Ordering();
-
-  for (var i in this.nodes) {
-    var node = this.nodes[i];
-    this.ordering.fill(node._keyOffset, node._edgeKeys.length);
-  }
-}
-
-RankGroup.prototype.fillGaps = function() {
-  var changed = false;
-
-  this.setOrdering();
-
-  for (var i = 0; i < this.nodes.length; i++) {
-    var node = this.nodes[i];
-
-    if (node._inEdges.length !== 0 || node._edgeKeys.length > 1) {
-      continue;
-    }
-
-    var align = node.outAlignment();
-    if (align === undefined) {
-      continue;
-    }
-
-    if (this.ordering.isFree(align, node._edgeKeys.length)) {
-      this.ordering.free(node._keyOffset, node._edgeKeys.length);
-      node._keyOffset = align;
-      this.ordering.fill(node._keyOffset, node._edgeKeys.length);
-
-      changed = true;
-    }
-  }
-
-  this.nodes.sort(function(a, b) {
-    return a._keyOffset - b._keyOffset;
-  });
-
-  return changed;
-};
 
 RankGroup.prototype.tug = function(direction) {
   var changed = false;
@@ -587,6 +541,7 @@ RankGroup.prototype.tug = function(direction) {
     var node = this.nodes[i];
 
     var align = node[direction]();
+
     if (align === undefined) {
       continue;
     }
@@ -597,23 +552,19 @@ RankGroup.prototype.tug = function(direction) {
 
     var delta = align - node._keyOffset;
 
-    node._keyOffset += delta;
-
-    var previousNode = node;
-    for (var j = i + 1; j < this.nodes.length; j++) {
+    for (var j = i; j < this.nodes.length; j++) {
       var shiftNode = this.nodes[j];
-
-      var previousBottom = previousNode._keyOffset + previousNode._edgeKeys.length;
-
-      if (shiftNode._keyOffset < previousBottom) {
-        shiftNode._keyOffset = previousBottom;
-      }
-
-      previousNode = shiftNode;
+      shiftNode._keyOffset += delta;
     }
 
     changed = true;
+
+    break;
   }
+
+  this.nodes.sort(function(a, b) {
+    return a._keyOffset - b._keyOffset;
+  });
 
   return changed;
 }
@@ -788,10 +739,6 @@ Node.prototype.inAlignment = function() {
 
   for (var e in this._inEdges) {
     var edge = this._inEdges[e];
-    if (edge.source.node._edgeKeys.length == 1 && edge.source.node._inEdges.length === 0) {
-      continue;
-    }
-
     var offset = edge.source.effectiveKeyOffset();
     if (minAlignment === undefined || offset < minAlignment) {
       minAlignment = offset - this._edgeKeys.indexOf(edge.key);
@@ -801,15 +748,11 @@ Node.prototype.inAlignment = function() {
   return minAlignment;
 };
 
-Node.prototype.outAlignment = function(debug) {
+Node.prototype.outAlignment = function() {
   var minAlignment;
 
   for (var e in this._outEdges) {
     var edge = this._outEdges[e];
-    if (edge.target.node._edgeKeys.length == 1 && edge.target.node._outEdges.length === 0) {
-      continue;
-    }
-
     var offset = edge.target.effectiveKeyOffset();
     if (minAlignment === undefined || offset < minAlignment) {
       minAlignment = offset - this._edgeKeys.indexOf(edge.key);
