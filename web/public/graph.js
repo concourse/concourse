@@ -805,6 +805,11 @@ Node.prototype.edgeAlignment = function(edges, end) {
       interestingness++;
     }
 
+    if (edge[end].node[edges].length > 0) {
+      // going to a node that is connected to other nodes
+      interestingness++;
+    }
+
     if (this._edgeKeys.indexOf(edge.key) === 0) {
       // prefer aligning with the top of the current node
       interestingness++;
