@@ -218,10 +218,6 @@ Graph.prototype.layout = function() {
         break;
       }
     }
-
-    for (var c in rankGroups) {
-      rankGroups[c].fixStragglers();
-    }
   }
 }
 
@@ -582,83 +578,6 @@ RankGroup.prototype.fillGaps = function() {
   });
 
   return changed;
-};
-
-RankGroup.prototype.fixStragglers = function() {
-  this.setOrdering();
-
-  for (var i = 0; i < this.nodes.length; i++) {
-    var node = this.nodes[i];
-
-    var inAlign = node.inAlignment();
-    var outAlign = node.outAlignment();
-
-    var alignments = [];
-    if (inAlign !== undefined) {
-      alignments.push(inAlign);
-    }
-
-    if (outAlign !== undefined) {
-      alignments.push(outAlign);
-    }
-
-    if (alignments.length === 0) {
-      continue;
-    }
-
-    alignments.sort(function(a, b) {
-      // i have javascript
-      return a - b;
-    });
-
-    var aligned = false;
-    for (var a in alignments) {
-      var align = alignments[a];
-      if (align === node._keyOffset) {
-        aligned = true;
-        break;
-      }
-
-      if (this.moveTo(align, node)) {
-        aligned = true;
-        break;
-      }
-    }
-
-    if (!aligned) {
-      for (var a in alignments) {
-        var align = alignments[a];
-        if (this.moveCloseTo(align, node)) {
-          break;
-        }
-      }
-    }
-  }
-
-  this.nodes.sort(function(a, b) {
-    return a._keyOffset - b._keyOffset;
-  });
-};
-
-RankGroup.prototype.moveCloseTo = function(align, node) {
-  if (this.moveTo(align, node)) {
-    return true;
-  } else if (align === node._keyOffset) {
-    return false;
-  } else {
-    return this.moveCloseTo(align + 1, node);
-  }
-}
-
-RankGroup.prototype.moveTo = function(align, node) {
-  if (this.ordering.isFree(align, node._edgeKeys.length)) {
-    this.ordering.free(node._keyOffset, node._edgeKeys.length);
-    node._keyOffset = align;
-    this.ordering.fill(node._keyOffset, node._edgeKeys.length);
-    return true;
-  }
-
-  return false;
 };
 
 RankGroup.prototype.tug = function(direction) {
