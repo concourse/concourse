@@ -26,7 +26,7 @@ function drawContinuously(svg, groups) {
     //
     // without this text and boxes jump around on every redraw,
     // in affected browsers (seemingly anything but Chrome + OS X).
-    d3.select(svg.node().parentNode).attr("viewBox", "");
+    d3.select(svg.node().parentNode).attr("viewBox", "0 0 0 0");
 
     var graph = createGraph(svg, groups, jobs, resources);
 
@@ -257,7 +257,7 @@ function renderPipeline(groups) {
     .attr("id", "embiggen")
     .append("feMorphology")
     .attr("operator", "dilate")
-    .attr("radius", "4")
+    .attr("radius", "4");
 
   var g = svg.append("g");
 
