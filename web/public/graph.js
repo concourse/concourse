@@ -784,46 +784,35 @@ Node.prototype.highestDownstreamTarget = function() {
 };
 
 Node.prototype.inAlignment = function() {
-  return this.edgeAlignment("_inEdges", "source");
-};
+  var minAlignment;
 
-Node.prototype.outAlignment = function() {
-  return this.edgeAlignment("_outEdges", "target");
-}
-
-Node.prototype.edgeAlignment = function(edges, end) {
-  var minAlignment, alignmentInterestingness;
-
-  for (var e in this[edges]) {
-    var edge = this[edges][e];
-    var alignment = edge[end].effectiveKeyOffset() - this._edgeKeys.indexOf(edge.key);
-
-    var interestingness = 0;
-
-    if (edge[end].node._edgeKeys.length > 1) {
-      // going to a node with more than one key
-      interestingness++;
-    }
-
-    if (edge[end].node[edges].length > 0) {
-      // going to a node that is connected to other nodes
-      interestingness++;
-    }
-
-    if (this._edgeKeys.indexOf(edge.key) === 0) {
-      // prefer aligning with the top of the current node
-      interestingness++;
-    }
-
-    if (interestingness !== undefined && interestingness < alignmentInterestingness) {
-      // boring; don't align with it
+  for (var e in this._inEdges) {
+    var edge = this._inEdges[e];
+    if (edge.source.node._edgeKeys.length == 1 && edge.source.node._inEdges.length === 0) {
       continue;
     }
 
-    if (minAlignment === undefined || interestingness > alignmentInterestingness || alignment < minAlignment) {
-      // more interesting, or equally interesting but places the node higher
-      minAlignment = alignment;
-      alignmentInterestingness = interestingness;
+    var offset = edge.source.effectiveKeyOffset();
+    if (minAlignment === undefined || offset < minAlignment) {
+      minAlignment = offset - this._edgeKeys.indexOf(edge.key);
+    }
+  }
+
+  return minAlignment;
+};
+
+Node.prototype.outAlignment = function(debug) {
+  var minAlignment;
+
+  for (var e in this._outEdges) {
+    var edge = this._outEdges[e];
+    if (edge.target.node._edgeKeys.length == 1 && edge.target.node._outEdges.length === 0) {
+      continue;
+    }
+
+    var offset = edge.target.effectiveKeyOffset();
+    if (minAlignment === undefined || offset < minAlignment) {
+      minAlignment = offset - this._edgeKeys.indexOf(edge.key);
     }
   }
 
