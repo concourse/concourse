@@ -28,6 +28,7 @@ type TargetProps struct {
 	TeamName string       `yaml:"team"`
 	Insecure bool         `yaml:"insecure,omitempty"`
 	Token    *TargetToken `yaml:"token,omitempty"`
+	CACert   string       `yaml:"ca_cert,omitempty"`
 }
 
 type TargetToken struct {
@@ -39,7 +40,14 @@ type targetDetailsYAML struct {
 	Targets map[TargetName]TargetProps
 }
 
-func SaveTarget(targetName TargetName, api string, insecure bool, teamName string, token *TargetToken) error {
+func SaveTarget(
+	targetName TargetName,
+	api string,
+	insecure bool,
+	teamName string,
+	token *TargetToken,
+	caCert string,
+) error {
 	flyTargets, err := LoadTargets()
 	if err != nil {
 		return err
@@ -51,6 +59,7 @@ func SaveTarget(targetName TargetName, api string, insecure bool, teamName strin
 	newInfo.Insecure = insecure
 	newInfo.Token = token
 	newInfo.TeamName = teamName
+	newInfo.CACert = caCert
 
 	flyTargets.Targets[targetName] = newInfo
 	return writeTargets(flyrc, flyTargets)

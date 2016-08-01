@@ -2,6 +2,8 @@ package rc
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -51,8 +53,7 @@ func LoadTarget(selectedTarget TargetName) (Target, error) {
 		return nil, err
 	}
 
-	httpClient := defaultHttpClient(targetProps, nil)
-	client := concourse.NewClient(targetProps.API, httpClient)
+	client := clientFromTargetProps(targetProps)
 
 	return &target{
 		name:     selectedTarget,
@@ -61,14 +62,18 @@ func LoadTarget(selectedTarget TargetName) (Target, error) {
 	}, nil
 }
 
-func LoadTargetWithInsecure(selectedTarget TargetName, teamName string, commandInsecure *bool) (Target, error) {
+func LoadTargetWithInsecure(
+	selectedTarget TargetName,
+	teamName string,
+	commandInsecure bool,
+	caCertPool *x509.CertPool,
+) (Target, error) {
 	targetProps, err := SelectTarget(selectedTarget)
 	if err != nil {
 		return nil, err
 	}
 
-	httpClient := defaultHttpClient(targetProps, commandInsecure)
-	client := concourse.NewClient(targetProps.API, httpClient)
+	client := buildClient(targetProps.API, targetProps.Token, commandInsecure, caCertPool)
 
 	if teamName == "" {
 		teamName = targetProps.TeamName
@@ -81,8 +86,14 @@ func LoadTargetWithInsecure(selectedTarget TargetName, teamName string, commandI
 	}, nil
 }
 
-func NewUnauthenticatedTarget(name TargetName, url string, teamName string, insecure bool) Target {
-	httpClient := unauthenticatedHttpClient(insecure)
+func NewUnauthenticatedTarget(
+	name TargetName,
+	url string,
+	teamName string,
+	insecure bool,
+	caCertPool *x509.CertPool,
+) Target {
+	httpClient := unauthenticatedHttpClient(insecure, caCertPool)
 	client := concourse.NewClient(url, httpClient)
 	return &target{
 		name:     name,
@@ -91,8 +102,16 @@ func NewUnauthenticatedTarget(name TargetName, url string, teamName string, inse
 	}
 }
 
-func NewBasicAuthTarget(name TargetName, url string, teamName string, insecure bool, username string, password string) Target {
-	httpClient := basicAuthHttpClient(username, password, insecure)
+func NewBasicAuthTarget(
+	name TargetName,
+	url string,
+	teamName string,
+	insecure bool,
+	username string,
+	password string,
+	caCertPool *x509.CertPool,
+) Target {
+	httpClient := basicAuthHttpClient(username, password, insecure, caCertPool)
 	client := concourse.NewClient(url, httpClient)
 
 	return &target{
@@ -150,84 +169,80 @@ func (t *target) validate(allowVersionMismatch bool) error {
 	return nil
 }
 
-func defaultHttpClient(targetProps TargetProps, commandInsecure *bool) *http.Client {
-	var token *oauth2.Token
-	if targetProps.Token != nil {
-		token = &oauth2.Token{
-			TokenType:   targetProps.Token.Type,
-			AccessToken: targetProps.Token.Value,
+func buildClient(url string, token *TargetToken, insecure bool, caCertPool *x509.CertPool) concourse.Client {
+	var oAuthToken *oauth2.Token
+	if token != nil {
+		oAuthToken = &oauth2.Token{
+			TokenType:   token.Type,
+			AccessToken: token.Value,
 		}
 	}
 
-	var tlsConfig *tls.Config
-	if commandInsecure != nil {
-		tlsConfig = &tls.Config{InsecureSkipVerify: *commandInsecure}
-	} else if targetProps.Insecure {
-		tlsConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-
-	var transport http.RoundTripper
-
-	transport = &http.Transport{
-		TLSClientConfig: tlsConfig,
-		Dial: (&net.Dialer{
-			Timeout: 10 * time.Second,
-		}).Dial,
-		Proxy: http.ProxyFromEnvironment,
-	}
+	transport := transport(insecure, caCertPool)
 
 	if token != nil {
 		transport = &oauth2.Transport{
-			Source: oauth2.StaticTokenSource(token),
+			Source: oauth2.StaticTokenSource(oAuthToken),
 			Base:   transport,
 		}
 	}
 
-	return &http.Client{Transport: transport}
+	return concourse.NewClient(url, &http.Client{Transport: transport})
 }
 
-func unauthenticatedHttpClient(insecure bool) *http.Client {
-	var tlsConfig *tls.Config
-	if insecure {
-		tlsConfig = &tls.Config{InsecureSkipVerify: insecure}
-	}
-
-	var transport http.RoundTripper
-
-	transport = &http.Transport{
-		TLSClientConfig: tlsConfig,
-		Dial: (&net.Dialer{
-			Timeout: 10 * time.Second,
-		}).Dial,
-		Proxy: http.ProxyFromEnvironment,
-	}
-
-	return &http.Client{Transport: transport}
+func clientFromTargetProps(targetProps TargetProps) concourse.Client {
+	pool, _ := LoadCACertPool(targetProps.CACert)
+	// error check
+	return buildClient(targetProps.API, targetProps.Token, targetProps.Insecure, pool)
 }
 
-func basicAuthHttpClient(username string, password string, insecure bool) *http.Client {
-	var tlsConfig *tls.Config
-	if insecure {
-		tlsConfig = &tls.Config{InsecureSkipVerify: insecure}
+func LoadCACertPool(caCert string) (cert *x509.CertPool, err error) {
+	pool := x509.NewCertPool()
+	if caCert != "" {
+		ok := pool.AppendCertsFromPEM([]byte(caCert))
+		if !ok {
+			return nil, errors.New("CA Cert not valid")
+		}
 	}
+	return pool, nil
+}
 
-	var transport http.RoundTripper
-
-	transport = &http.Transport{
-		TLSClientConfig: tlsConfig,
-		Dial: (&net.Dialer{
-			Timeout: 10 * time.Second,
-		}).Dial,
-		Proxy: http.ProxyFromEnvironment,
+func unauthenticatedHttpClient(insecure bool, caCertPool *x509.CertPool) *http.Client {
+	return &http.Client{
+		Transport: transport(insecure, caCertPool),
 	}
+}
 
+func basicAuthHttpClient(
+	username string,
+	password string,
+	insecure bool,
+	caCertPool *x509.CertPool,
+) *http.Client {
 	return &http.Client{
 		Transport: basicAuthTransport{
 			username: username,
 			password: password,
-			base:     transport,
+			base:     transport(insecure, caCertPool),
 		},
 	}
+}
+
+func transport(insecure bool, caCertPool *x509.CertPool) http.RoundTripper {
+	var transport http.RoundTripper
+
+	transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: insecure,
+			RootCAs:            caCertPool,
+		},
+		Dial: (&net.Dialer{
+			Timeout: 10 * time.Second,
+		}).Dial,
+		Proxy: http.ProxyFromEnvironment,
+	}
+
+	return transport
 }
 
 type basicAuthTransport struct {

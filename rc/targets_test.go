@@ -64,6 +64,53 @@ var _ = Describe("Targets", func() {
 	})
 
 	Describe("SaveTarget", func() {
+		Describe("CA Cert Flag", func() {
+			Describe("when 'ca_cert' is not set in the flyrc", func() {
+				var targetName rc.TargetName
+				BeforeEach(func() {
+					targetName = "foo"
+					err := rc.SaveTarget(
+						targetName,
+						"some api url",
+						false,
+						"main",
+						nil,
+						"",
+					)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns the rc empty ca-cert", func() {
+					returnedTarget, err := rc.SelectTarget(targetName)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(returnedTarget.CACert).To(BeEmpty())
+				})
+			})
+
+			Describe("when 'ca_cert' is set in the flyrc", func() {
+				var targetName rc.TargetName
+
+				BeforeEach(func() {
+					targetName = "foo"
+					err := rc.SaveTarget(
+						targetName,
+						"some api url",
+						true,
+						"main",
+						nil,
+						"ca-cert-content",
+					)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns the rc insecure flag as true", func() {
+					returnedTarget, err := rc.SelectTarget(targetName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(returnedTarget.CACert).To(Equal("ca-cert-content"))
+				})
+			})
+		})
+
 		Describe("Insecure Flag", func() {
 			Describe("when 'insecure' is set to false in the flyrc", func() {
 				var targetName rc.TargetName
@@ -76,6 +123,7 @@ var _ = Describe("Targets", func() {
 						false,
 						"main",
 						nil,
+						"",
 					)
 					Expect(err).ToNot(HaveOccurred())
 				})
@@ -98,6 +146,7 @@ var _ = Describe("Targets", func() {
 						true,
 						"main",
 						nil,
+						"",
 					)
 					Expect(err).ToNot(HaveOccurred())
 				})

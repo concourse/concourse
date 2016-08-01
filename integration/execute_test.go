@@ -571,6 +571,7 @@ run:
 				true,
 				"some-team",
 				&token,
+				"",
 			)
 			Expect(err).ToNot(HaveOccurred())
 
