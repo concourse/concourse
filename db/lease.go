@@ -23,8 +23,47 @@ type lease struct {
 	heartbeatFunc   func(Tx) (sql.Result, error)
 	breakFunc       func()
 
+	medalChan chan struct{}
 	breakChan chan struct{}
 	running   *sync.WaitGroup
+}
+
+//go:generate counterfeiter . SqlResult
+
+type SqlResult interface {
+	LastInsertId() (int64, error)
+	RowsAffected() (int64, error)
+}
+
+//go:generate counterfeiter . LeaseTester
+
+type LeaseTester interface {
+	AttemptSign(Tx) (sql.Result, error)
+	Heartbeat(Tx) (sql.Result, error)
+	Break()
+}
+
+func NewLeaseForTesting(conn Conn, logger lager.Logger, leaseTester LeaseTester, interval time.Duration) (Lease, bool, error) {
+	lease := &lease{
+		conn:            conn,
+		logger:          logger,
+		attemptSignFunc: func(tx Tx) (sql.Result, error) { return leaseTester.AttemptSign(tx) },
+		heartbeatFunc:   func(tx Tx) (sql.Result, error) { return leaseTester.Heartbeat(tx) },
+		breakFunc:       func() { leaseTester.Break() },
+	}
+
+	renewed, err := lease.AttemptSign(interval)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !renewed {
+		return nil, renewed, nil
+	}
+
+	lease.KeepSigned(interval)
+
+	return lease, true, nil
 }
 
 func (l *lease) AttemptSign(interval time.Duration) (bool, error) {
@@ -58,7 +97,11 @@ func (l *lease) AttemptSign(interval time.Duration) (bool, error) {
 }
 
 func (l *lease) KeepSigned(interval time.Duration) {
+	l.medalChan = make(chan struct{}, 1)
+	l.medalChan <- struct{}{}
+
 	l.breakChan = make(chan struct{})
+
 	l.running = &sync.WaitGroup{}
 	l.running.Add(1)
 
@@ -66,11 +109,19 @@ func (l *lease) KeepSigned(interval time.Duration) {
 }
 
 func (l *lease) Break() {
-	close(l.breakChan)
-	l.running.Wait()
+	if l.medalChan == nil {
+		return
+	}
 
-	if l.breakFunc != nil {
-		l.breakFunc()
+	select {
+	// the first thread to call break gets a gold medal
+	case <-l.medalChan:
+		close(l.breakChan)
+		l.running.Wait()
+		if l.breakFunc != nil {
+			l.breakFunc()
+		}
+	default:
 	}
 }
 

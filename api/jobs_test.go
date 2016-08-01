@@ -12,9 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
 )
@@ -1390,7 +1388,10 @@ var _ = Describe("Jobs API", func() {
 						},
 					}
 
+					var fakeScheduler *schedulerfakes.FakeBuildScheduler
 					BeforeEach(func() {
+						fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
+						fakeSchedulerFactory.BuildSchedulerReturns(fakeScheduler)
 						pipelineDB.GetConfigReturns(atc.Config{
 							Jobs: atc.JobConfigs{
 								someJob,
@@ -1409,16 +1410,12 @@ var _ = Describe("Jobs API", func() {
 						}, 42, true, nil)
 					})
 
-					Context("when the versions can be loaded", func() {
-						versionsDB := &algorithm.VersionsDB{}
-
+					Context("when the input versions for the job can be determined", func() {
 						BeforeEach(func() {
-							pipelineDB.LoadVersionsDBReturns(versionsDB, nil)
-						})
-
-						Context("when the input versions for the job can be determined", func() {
-							BeforeEach(func() {
-								pipelineDB.GetNextInputVersionsReturns([]db.BuildInput{
+							pipelineDB.GetNextBuildInputsStub = func(string) ([]db.BuildInput, bool, error) {
+								defer GinkgoRecover()
+								Expect(fakeScheduler.SaveNextInputMappingCallCount()).To(Equal(1))
+								return []db.BuildInput{
 									{
 										Name: "some-input",
 										VersionedResource: db.VersionedResource{
@@ -1437,25 +1434,35 @@ var _ = Describe("Jobs API", func() {
 											PipelineID: 42,
 										},
 									},
-								}, true, nil, nil)
-							})
+								}, true, nil
+							}
+						})
 
-							It("returns 200 OK", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-							})
+						It("returns 200 OK", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
 
-							It("determined the inputs with the correct versions DB, job name, and inputs", func() {
-								receivedVersionsDB, receivedJob, receivedInputs := pipelineDB.GetNextInputVersionsArgsForCall(0)
-								Expect(receivedVersionsDB).To(Equal(versionsDB))
-								Expect(receivedJob).To(Equal("some-job"))
-								Expect(receivedInputs).To(Equal(config.JobInputs(someJob)))
-							})
+						It("created the scheduler with the correct pipelineDB and external URL", func() {
+							actualPipelineDB, actualExternalURL := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
+							Expect(actualPipelineDB).To(Equal(pipelineDB))
+							Expect(actualExternalURL).To(Equal(externalURL))
+						})
 
-							It("returns the inputs", func() {
-								body, err := ioutil.ReadAll(response.Body)
-								Expect(err).NotTo(HaveOccurred())
+						It("determined the inputs with the correct job config", func() {
+							_, receivedJobConfig := fakeScheduler.SaveNextInputMappingArgsForCall(0)
+							Expect(receivedJobConfig).To(Equal(someJob))
+						})
 
-								Expect(body).To(MatchJSON(`[
+						It("loaded the inputs with the correct job name", func() {
+							receivedJobName := pipelineDB.GetNextBuildInputsArgsForCall(0)
+							Expect(receivedJobName).To(Equal("some-job"))
+						})
+
+						It("returns the inputs", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`[
 									{
 										"name": "some-input",
 										"resource": "some-resource",
@@ -1475,33 +1482,22 @@ var _ = Describe("Jobs API", func() {
 									}
 								]`))
 
-							})
-						})
-
-						Context("when the job has no input versions available", func() {
-							BeforeEach(func() {
-								pipelineDB.GetNextInputVersionsReturns(nil, false, nil, nil)
-							})
-
-							It("returns 404", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-							})
-						})
-
-						Context("when the input versions for the job can not be determined", func() {
-							BeforeEach(func() {
-								pipelineDB.GetNextInputVersionsReturns(nil, false, nil, errors.New("oh no!"))
-							})
-
-							It("returns 500", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							})
 						})
 					})
 
-					Context("when the versions can not be loaded", func() {
+					Context("when the job has no input versions available", func() {
 						BeforeEach(func() {
-							pipelineDB.LoadVersionsDBReturns(nil, errors.New("oh no!"))
+							pipelineDB.GetNextBuildInputsReturns(nil, false, nil)
+						})
+
+						It("returns 404", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						})
+					})
+
+					Context("when the input versions for the job can not be determined", func() {
+						BeforeEach(func() {
+							pipelineDB.GetNextBuildInputsReturns(nil, false, errors.New("oh no!"))
 						})
 
 						It("returns 500", func() {
@@ -1509,22 +1505,22 @@ var _ = Describe("Jobs API", func() {
 						})
 					})
 				})
+			})
 
-				Context("when it does not contain the requested job", func() {
-					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{
-							Jobs: atc.JobConfigs{
-								{
-									Name: "some-bogus-job",
-									Plan: atc.PlanSequence{},
-								},
+			Context("when it does not contain the requested job", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-bogus-job",
+								Plan: atc.PlanSequence{},
 							},
-						}, 42, true, nil)
-					})
+						},
+					}, 42, true, nil)
+				})
 
-					It("returns 404 Not Found", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
+				It("returns 404 Not Found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 

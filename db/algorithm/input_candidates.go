@@ -39,11 +39,11 @@ func (candidates InputCandidates) String() string {
 	return fmt.Sprintf("[%s]", strings.Join(lens, "; "))
 }
 
-func (candidates InputCandidates) Reduce(jobs JobSet) (InputMapping, bool, MissingInputReasons) {
+func (candidates InputCandidates) Reduce(jobs JobSet) (map[string]int, bool) {
 	return candidates.reduce(jobs, nil)
 }
 
-func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping InputMapping) (InputMapping, bool, MissingInputReasons) {
+func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping map[string]int) (map[string]int, bool) {
 	newInputCandidates := candidates.pruneToCommonBuilds(jobs)
 
 	for i, inputVersionCandidates := range newInputCandidates {
@@ -75,16 +75,15 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping Input
 				inputCandidates.VersionCandidates = limitedToVersion
 				newInputCandidates[i] = inputCandidates
 
-				// as we reduce we only care about final missing input reasons
-				mapping, ok, _ := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
+				mapping, ok := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
 				if ok {
 					lastSatisfiedMapping = mapping
 					if !usingEveryVersion || buildForPreviousOrCurrentVersionExists() {
-						return mapping, true, MissingInputReasons{}
+						return mapping, true
 					}
 				} else {
 					if usingEveryVersion && (lastSatisfiedMapping != nil || buildForPreviousOrCurrentVersionExists()) {
-						return lastSatisfiedMapping, true, MissingInputReasons{}
+						return lastSatisfiedMapping, true
 					}
 				}
 
@@ -93,24 +92,18 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping Input
 		}
 	}
 
-	mapping := InputMapping{}
-	missingInputReasons := MissingInputReasons{}
+	mapping := map[string]int{}
 
 	for _, inputVersionCandidates := range newInputCandidates {
 		versionIDs := inputVersionCandidates.VersionIDs()
-
 		if len(versionIDs) != 1 || !inputVersionCandidates.JobIDs().Equal(inputVersionCandidates.Passed) {
-			missingInputReasons.RegisterPassedConstraint(inputVersionCandidates.Input)
-		} else {
-			mapping[inputVersionCandidates.Input] = versionIDs[0]
+			return nil, false
 		}
+
+		mapping[inputVersionCandidates.Input] = versionIDs[0]
 	}
 
-	if len(missingInputReasons) > 0 {
-		return nil, false, missingInputReasons
-	}
-
-	return mapping, true, missingInputReasons
+	return mapping, true
 }
 
 func (candidates InputCandidates) pruneToCommonBuilds(jobs JobSet) InputCandidates {

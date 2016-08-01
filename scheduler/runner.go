@@ -15,9 +15,20 @@ import (
 //go:generate counterfeiter . BuildScheduler
 
 type BuildScheduler interface {
-	TryNextPendingBuild(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) Waiter
-	BuildLatestInputs(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) error
-	TriggerImmediately(lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) (db.Build, Waiter, error)
+	Schedule(
+		logger lager.Logger,
+		versions *algorithm.VersionsDB,
+		jobConfig atc.JobConfig,
+		resourceConfigs atc.ResourceConfigs,
+		resourceTypes atc.ResourceTypes,
+	) error
+	TriggerImmediately(
+		logger lager.Logger,
+		jobConfig atc.JobConfig,
+		resourceConfigs atc.ResourceConfigs,
+		resourceTypes atc.ResourceTypes,
+	) (db.Build, Waiter, error)
+	SaveNextInputMapping(logger lager.Logger, job atc.JobConfig) error
 }
 
 var errPipelineRemoved = errors.New("pipeline removed")
@@ -118,7 +129,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 		jStart := time.Now()
 
-		runner.schedule(sLog, versions, job, config.Resources, config.ResourceTypes)
+		runner.Scheduler.Schedule(sLog, versions, job, config.Resources, config.ResourceTypes)
 
 		metric.SchedulingJobDuration{
 			PipelineName: runner.DB.GetPipelineName(),
@@ -128,13 +139,4 @@ func (runner *Runner) tick(logger lager.Logger) error {
 	}
 
 	return nil
-}
-
-func (runner *Runner) schedule(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) {
-	runner.Scheduler.TryNextPendingBuild(logger, versions, job, resources, resourceTypes).Wait()
-
-	err := runner.Scheduler.BuildLatestInputs(logger, versions, job, resources, resourceTypes)
-	if err != nil {
-		logger.Error("failed-to-build-from-latest-inputs", err)
-	}
 }

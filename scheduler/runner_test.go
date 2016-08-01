@@ -2,7 +2,6 @@ package scheduler_test
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/concourse/atc"
@@ -11,7 +10,6 @@ import (
 	dbfakes "github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
-	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
@@ -63,10 +61,6 @@ var _ = Describe("Runner", func() {
 		}
 
 		pipelineDB.LoadVersionsDBReturns(someVersions, nil)
-
-		scheduler.TryNextPendingBuildStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) Waiter {
-			return new(sync.WaitGroup)
-		}
 
 		initialConfig = atc.Config{
 			Jobs: atc.JobConfigs{
@@ -127,8 +121,7 @@ var _ = Describe("Runner", func() {
 		It("does not do any scheduling", func() {
 			Eventually(pipelineDB.LeaseSchedulingCallCount).Should(Equal(2))
 
-			Expect(scheduler.TryNextPendingBuildCallCount()).To(BeZero())
-			Expect(scheduler.BuildLatestInputsCallCount()).To(BeZero())
+			Expect(scheduler.ScheduleCallCount()).To(BeZero())
 		})
 	})
 
@@ -140,37 +133,20 @@ var _ = Describe("Runner", func() {
 		It("does not do any scheduling", func() {
 			Eventually(pipelineDB.LeaseSchedulingCallCount).Should(Equal(2))
 
-			Expect(scheduler.TryNextPendingBuildCallCount()).To(BeZero())
-			Expect(scheduler.BuildLatestInputsCallCount()).To(BeZero())
+			Expect(scheduler.ScheduleCallCount()).To(BeZero())
 		})
 	})
 
 	It("schedules pending builds", func() {
-		Eventually(scheduler.TryNextPendingBuildCallCount).Should(Equal(2))
+		Eventually(scheduler.ScheduleCallCount).Should(Equal(2))
 
-		_, versions, job, resources, resourceTypes := scheduler.TryNextPendingBuildArgsForCall(0)
+		_, versions, job, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
 		Expect(versions).To(Equal(someVersions))
 		Expect(job).To(Equal(atc.JobConfig{Name: "some-job"}))
 		Expect(resources).To(Equal(initialConfig.Resources))
 		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
 
-		_, versions, job, resources, resourceTypes = scheduler.TryNextPendingBuildArgsForCall(1)
-		Expect(versions).To(Equal(someVersions))
-		Expect(job).To(Equal(atc.JobConfig{Name: "some-other-job"}))
-		Expect(resources).To(Equal(initialConfig.Resources))
-		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
-	})
-
-	It("schedules builds for new inputs using the given versions dataset", func() {
-		Eventually(scheduler.BuildLatestInputsCallCount).Should(Equal(2))
-
-		_, versions, job, resources, resourceTypes := scheduler.BuildLatestInputsArgsForCall(0)
-		Expect(versions).To(Equal(someVersions))
-		Expect(job).To(Equal(atc.JobConfig{Name: "some-job"}))
-		Expect(resources).To(Equal(initialConfig.Resources))
-		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
-
-		_, versions, job, resources, resourceTypes = scheduler.BuildLatestInputsArgsForCall(1)
+		_, versions, job, resources, resourceTypes = scheduler.ScheduleArgsForCall(1)
 		Expect(versions).To(Equal(someVersions))
 		Expect(job).To(Equal(atc.JobConfig{Name: "some-other-job"}))
 		Expect(resources).To(Equal(initialConfig.Resources))
@@ -183,8 +159,7 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("does not start scheduling builds", func() {
-			Consistently(scheduler.TryNextPendingBuildCallCount).Should(Equal(0))
-			Consistently(scheduler.BuildLatestInputsCallCount).Should(Equal(0))
+			Consistently(scheduler.ScheduleCallCount).Should(Equal(0))
 		})
 	})
 
@@ -196,7 +171,7 @@ var _ = Describe("Runner", func() {
 				return atc.Config{}, 0, found, err
 			}
 
-			calls += 1
+			calls++
 
 			return initialConfig, 1, true, nil
 		}

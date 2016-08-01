@@ -47,9 +47,8 @@ type Version struct {
 }
 
 type Result struct {
-	OK                  bool
-	Values              map[string]string
-	MissingInputReasons map[string]string
+	OK     bool
+	Values map[string]string
 }
 
 type StringMapping map[string]int
@@ -159,14 +158,14 @@ func (example Example) Run() {
 		}
 	}
 
-	resolved, ok, missingInputReasons := inputConfigs.Resolve(db)
+	resolved, ok := inputConfigs.Resolve(db)
 
 	prettyValues := map[string]string{}
-	for name, versionID := range resolved {
-		prettyValues[name] = versionIDs.Name(versionID)
+	for name, inputVersion := range resolved {
+		prettyValues[name] = versionIDs.Name(inputVersion.VersionID)
 	}
 
-	actualResult := Result{OK: ok, Values: prettyValues, MissingInputReasons: missingInputReasons}
+	actualResult := Result{OK: ok, Values: prettyValues}
 
 	Expect(actualResult).To(Equal(example.Result))
 }

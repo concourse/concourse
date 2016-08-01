@@ -25,8 +25,20 @@ type BuildOutput struct {
 
 type BuildInput struct {
 	ResourceVersion
-	BuildID int
-	JobID   int
+	BuildID   int
+	JobID     int
+	InputName string
+}
+
+func (db VersionsDB) IsVersionFirstOccurrence(versionID int, jobID int, inputName string) bool {
+	for _, buildInput := range db.BuildInputs {
+		if buildInput.VersionID == versionID &&
+			buildInput.JobID == jobID &&
+			buildInput.InputName == inputName {
+			return false
+		}
+	}
+	return true
 }
 
 func (db VersionsDB) AllVersionsForResource(resourceID int) VersionCandidates {

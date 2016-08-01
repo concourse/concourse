@@ -87,9 +87,6 @@ type DB interface {
 	CreatePipe(pipeGUID string, url string) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
-	UpdateBuildPreparation(buildPreparation BuildPreparation) error
-	ResetBuildPreparationsWithPipelinePaused(pipelineID int) error
-
 	GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error

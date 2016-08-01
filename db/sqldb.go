@@ -9,8 +9,7 @@ type SQLDB struct {
 	conn Conn
 	bus  *notificationsBus
 
-	buildFactory    *buildFactory
-	buildPrepHelper buildPreparationHelper
+	buildFactory *buildFactory
 }
 
 func NewSQL(

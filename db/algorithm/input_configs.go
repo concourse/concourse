@@ -19,10 +19,9 @@ type InputConfig struct {
 	JobID           int
 }
 
-func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool, MissingInputReasons) {
+func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 	jobs := JobSet{}
 	inputCandidates := InputCandidates{}
-	missingInputReasons := MissingInputReasons{}
 
 	for _, inputConfig := range configs {
 		versionCandidates := VersionCandidates{}
@@ -31,8 +30,7 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool, Missing
 			versionCandidates = db.AllVersionsForResource(inputConfig.ResourceID)
 
 			if len(versionCandidates) == 0 {
-				missingInputReasons.RegisterNoVersions(inputConfig.Name)
-				return nil, false, missingInputReasons
+				return nil, false
 			}
 		} else {
 			jobs = jobs.Union(inputConfig.Passed)
@@ -43,8 +41,7 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool, Missing
 			)
 
 			if len(versionCandidates) == 0 {
-				missingInputReasons.RegisterPassedConstraint(inputConfig.Name)
-				return nil, false, missingInputReasons
+				return nil, false
 			}
 		}
 
@@ -66,7 +63,23 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool, Missing
 
 	sort.Sort(byTotalVersions(inputCandidates))
 
-	return inputCandidates.Reduce(jobs)
+	basicMapping, ok := inputCandidates.Reduce(jobs)
+	if !ok {
+		return nil, false
+	}
+
+	mapping := InputMapping{}
+	for _, inputConfig := range configs {
+		inputName := inputConfig.Name
+		inputVersionID := basicMapping[inputName]
+		firstOccurrence := db.IsVersionFirstOccurrence(inputVersionID, inputConfig.JobID, inputName)
+		mapping[inputName] = InputVersion{
+			VersionID:       inputVersionID,
+			FirstOccurrence: firstOccurrence,
+		}
+	}
+
+	return mapping, true
 }
 
 type byTotalVersions InputCandidates

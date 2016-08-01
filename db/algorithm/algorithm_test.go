@@ -33,7 +33,6 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv1",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -56,7 +55,6 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv1",
 				"resource-y": "ryv1",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -86,7 +84,6 @@ var _ = DescribeTable("Input resolving",
 				// not ryv2, as it didn't make it through build relating simple-a to fan-in
 				"resource-y": "ryv1",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -100,9 +97,8 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			OK:                  false,
-			Values:              map[string]string{},
-			MissingInputReasons: map[string]string{"resource-x": "no versions available"},
+			OK:     false,
+			Values: map[string]string{},
 		},
 	}),
 
@@ -141,7 +137,6 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv3",
 				"resource-y": "ryv3",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -165,7 +160,6 @@ var _ = DescribeTable("Input resolving",
 				"simple-a-resource-x": "rxv1",
 				"simple-b-resource-x": "rxv2",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -198,7 +192,6 @@ var _ = DescribeTable("Input resolving",
 				"input-1": "r1-common-to-shared-and-j1",
 				"input-2": "r2-common-to-shared-and-j2",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -235,7 +228,6 @@ var _ = DescribeTable("Input resolving",
 				"input-1": "r1-common-to-shared-and-j1",
 				"input-2": "r2-common-to-shared-and-j2",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -286,7 +278,6 @@ var _ = DescribeTable("Input resolving",
 				"resource-x-unconstrained": "rxv5",
 				"resource-y-unconstrained": "ryv5",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -325,9 +316,6 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK:     false,
 			Values: map[string]string{},
-			MissingInputReasons: map[string]string{
-				"resource-x": "no versions satisfy passed constraints",
-			},
 		},
 	}),
 
@@ -358,7 +346,6 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv2",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -391,7 +378,6 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv2",
 				"resource-y": "ryv1",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -426,7 +412,6 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv2",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -477,7 +462,6 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv2",
 				"resource-y": "ryv1",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -510,7 +494,6 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv3",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -570,7 +553,6 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv3",
 				"resource-y": "ryv1",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -607,10 +589,6 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK:     false,
 			Values: map[string]string{},
-			MissingInputReasons: map[string]string{
-				"input-1": "no versions satisfy passed constraints",
-				"input-2": "no versions satisfy passed constraints",
-			},
 		},
 	}),
 
@@ -637,7 +615,6 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv2",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -660,9 +637,8 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			OK:                  false,
-			Values:              map[string]string{},
-			MissingInputReasons: map[string]string{"resource-x": "no versions satisfy passed constraints"},
+			OK:     false,
+			Values: map[string]string{},
 		},
 	}),
 
@@ -686,9 +662,8 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			OK:                  false,
-			Values:              map[string]string{},
-			MissingInputReasons: map[string]string{"resource-x": "no versions satisfy passed constraints"},
+			OK:     false,
+			Values: map[string]string{},
 		},
 	}),
 
@@ -709,7 +684,6 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv2",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -740,7 +714,6 @@ var _ = DescribeTable("Input resolving",
 				"bosh-src":        "imported-r88v9814",
 				"bosh-load-tests": "imported-r89v7204",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -806,7 +779,6 @@ var _ = DescribeTable("Input resolving",
 				"version":              "imported-r12v448884",
 				"concourse":            "imported-r62v448881",
 			},
-			MissingInputReasons: map[string]string{},
 		},
 	}),
 )

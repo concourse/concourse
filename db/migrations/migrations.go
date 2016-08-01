@@ -117,4 +117,5 @@ var Migrations = []migration.Migrator{
 	AddTeamIDToWorkers,
 	AddTeamIDToContainers,
 	AddTeamIDToVolumes,
+	AddNextBuildInputs,
 }

@@ -443,14 +443,6 @@ var _ = Describe("TeamDB", func() {
 			Expect(nextOneOffBuild.TeamName()).To(Equal(savedTeam.Name))
 			Expect(nextOneOffBuild.Status()).To(Equal(db.StatusPending))
 		})
-
-		It("also creates buildpreparation", func() {
-			buildPrep, found, err := oneOffBuild.GetPreparation()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(buildPrep.BuildID).To(Equal(oneOffBuild.ID()))
-		})
 	})
 
 	Describe("Workers", func() {

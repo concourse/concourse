@@ -35,6 +35,12 @@ type FakeBuild struct {
 	pipelineNameReturns     struct {
 		result1 string
 	}
+	PipelineIDStub        func() int
+	pipelineIDMutex       sync.RWMutex
+	pipelineIDArgsForCall []struct{}
+	pipelineIDReturns     struct {
+		result1 int
+	}
 	TeamNameStub        func() string
 	teamNameMutex       sync.RWMutex
 	teamNameArgsForCall []struct{}
@@ -178,17 +184,6 @@ type FakeBuild struct {
 	abortNotifierReturns     struct {
 		result1 db.Notifier
 		result2 error
-	}
-	LeaseSchedulingStub        func(logger lager.Logger, interval time.Duration) (db.Lease, bool, error)
-	leaseSchedulingMutex       sync.RWMutex
-	leaseSchedulingArgsForCall []struct {
-		logger   lager.Logger
-		interval time.Duration
-	}
-	leaseSchedulingReturns struct {
-		result1 db.Lease
-		result2 bool
-		result3 error
 	}
 	LeaseTrackingStub        func(logger lager.Logger, interval time.Duration) (db.Lease, bool, error)
 	leaseTrackingMutex       sync.RWMutex
@@ -368,6 +363,31 @@ func (fake *FakeBuild) PipelineNameReturns(result1 string) {
 	fake.PipelineNameStub = nil
 	fake.pipelineNameReturns = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) PipelineID() int {
+	fake.pipelineIDMutex.Lock()
+	fake.pipelineIDArgsForCall = append(fake.pipelineIDArgsForCall, struct{}{})
+	fake.recordInvocation("PipelineID", []interface{}{})
+	fake.pipelineIDMutex.Unlock()
+	if fake.PipelineIDStub != nil {
+		return fake.PipelineIDStub()
+	} else {
+		return fake.pipelineIDReturns.result1
+	}
+}
+
+func (fake *FakeBuild) PipelineIDCallCount() int {
+	fake.pipelineIDMutex.RLock()
+	defer fake.pipelineIDMutex.RUnlock()
+	return len(fake.pipelineIDArgsForCall)
+}
+
+func (fake *FakeBuild) PipelineIDReturns(result1 int) {
+	fake.PipelineIDStub = nil
+	fake.pipelineIDReturns = struct {
+		result1 int
 	}{result1}
 }
 
@@ -944,42 +964,6 @@ func (fake *FakeBuild) AbortNotifierReturns(result1 db.Notifier, result2 error) 
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) LeaseScheduling(logger lager.Logger, interval time.Duration) (db.Lease, bool, error) {
-	fake.leaseSchedulingMutex.Lock()
-	fake.leaseSchedulingArgsForCall = append(fake.leaseSchedulingArgsForCall, struct {
-		logger   lager.Logger
-		interval time.Duration
-	}{logger, interval})
-	fake.recordInvocation("LeaseScheduling", []interface{}{logger, interval})
-	fake.leaseSchedulingMutex.Unlock()
-	if fake.LeaseSchedulingStub != nil {
-		return fake.LeaseSchedulingStub(logger, interval)
-	} else {
-		return fake.leaseSchedulingReturns.result1, fake.leaseSchedulingReturns.result2, fake.leaseSchedulingReturns.result3
-	}
-}
-
-func (fake *FakeBuild) LeaseSchedulingCallCount() int {
-	fake.leaseSchedulingMutex.RLock()
-	defer fake.leaseSchedulingMutex.RUnlock()
-	return len(fake.leaseSchedulingArgsForCall)
-}
-
-func (fake *FakeBuild) LeaseSchedulingArgsForCall(i int) (lager.Logger, time.Duration) {
-	fake.leaseSchedulingMutex.RLock()
-	defer fake.leaseSchedulingMutex.RUnlock()
-	return fake.leaseSchedulingArgsForCall[i].logger, fake.leaseSchedulingArgsForCall[i].interval
-}
-
-func (fake *FakeBuild) LeaseSchedulingReturns(result1 db.Lease, result2 bool, result3 error) {
-	fake.LeaseSchedulingStub = nil
-	fake.leaseSchedulingReturns = struct {
-		result1 db.Lease
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeBuild) LeaseTracking(logger lager.Logger, interval time.Duration) (db.Lease, bool, error) {
 	fake.leaseTrackingMutex.Lock()
 	fake.leaseTrackingArgsForCall = append(fake.leaseTrackingArgsForCall, struct {
@@ -1269,6 +1253,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.jobNameMutex.RUnlock()
 	fake.pipelineNameMutex.RLock()
 	defer fake.pipelineNameMutex.RUnlock()
+	fake.pipelineIDMutex.RLock()
+	defer fake.pipelineIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
 	fake.teamIDMutex.RLock()
@@ -1311,8 +1297,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.abortMutex.RUnlock()
 	fake.abortNotifierMutex.RLock()
 	defer fake.abortNotifierMutex.RUnlock()
-	fake.leaseSchedulingMutex.RLock()
-	defer fake.leaseSchedulingMutex.RUnlock()
 	fake.leaseTrackingMutex.RLock()
 	defer fake.leaseTrackingMutex.RUnlock()
 	fake.getPreparationMutex.RLock()

@@ -59,7 +59,6 @@ var _ = Describe("Resource History", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/pivotal-golang/lager"
@@ -275,6 +274,15 @@ type FakePipelineDB struct {
 	unpauseJobReturns struct {
 		result1 error
 	}
+	SetMaxInFlightReachedStub        func(string, bool) error
+	setMaxInFlightReachedMutex       sync.RWMutex
+	setMaxInFlightReachedArgsForCall []struct {
+		arg1 string
+		arg2 bool
+	}
+	setMaxInFlightReachedReturns struct {
+		result1 error
+	}
 	UpdateFirstLoggedBuildIDStub        func(job string, newFirstLoggedBuildID int) error
 	updateFirstLoggedBuildIDMutex       sync.RWMutex
 	updateFirstLoggedBuildIDArgsForCall []struct {
@@ -334,12 +342,20 @@ type FakePipelineDB struct {
 		result1 db.Build
 		result2 error
 	}
-	CreateJobBuildForCandidateInputsStub        func(job string) (db.Build, bool, error)
-	createJobBuildForCandidateInputsMutex       sync.RWMutex
-	createJobBuildForCandidateInputsArgsForCall []struct {
-		job string
+	EnsurePendingBuildExistsStub        func(jobName string) error
+	ensurePendingBuildExistsMutex       sync.RWMutex
+	ensurePendingBuildExistsArgsForCall []struct {
+		jobName string
 	}
-	createJobBuildForCandidateInputsReturns struct {
+	ensurePendingBuildExistsReturns struct {
+		result1 error
+	}
+	GetNextPendingBuildStub        func(jobName string) (db.Build, bool, error)
+	getNextPendingBuildMutex       sync.RWMutex
+	getNextPendingBuildArgsForCall []struct {
+		jobName string
+	}
+	getNextPendingBuildReturns struct {
 		result1 db.Build
 		result2 bool
 		result3 error
@@ -353,6 +369,18 @@ type FakePipelineDB struct {
 	useInputsForBuildReturns struct {
 		result1 error
 	}
+	LeaseResourceCheckingForJobStub        func(logger lager.Logger, jobName string, interval time.Duration) (db.Lease, bool, error)
+	leaseResourceCheckingForJobMutex       sync.RWMutex
+	leaseResourceCheckingForJobArgsForCall []struct {
+		logger   lager.Logger
+		jobName  string
+		interval time.Duration
+	}
+	leaseResourceCheckingForJobReturns struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}
 	LoadVersionsDBStub        func() (*algorithm.VersionsDB, error)
 	loadVersionsDBMutex       sync.RWMutex
 	loadVersionsDBArgsForCall []struct{}
@@ -360,39 +388,61 @@ type FakePipelineDB struct {
 		result1 *algorithm.VersionsDB
 		result2 error
 	}
-	GetNextInputVersionsStub        func(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, db.MissingInputReasons, error)
-	getNextInputVersionsMutex       sync.RWMutex
-	getNextInputVersionsArgsForCall []struct {
-		versions *algorithm.VersionsDB
-		job      string
-		inputs   []config.JobInput
+	GetVersionedResourceByVersionStub        func(atcVersion atc.Version, resourceName string) (db.SavedVersionedResource, bool, error)
+	getVersionedResourceByVersionMutex       sync.RWMutex
+	getVersionedResourceByVersionArgsForCall []struct {
+		atcVersion   atc.Version
+		resourceName string
 	}
-	getNextInputVersionsReturns struct {
+	getVersionedResourceByVersionReturns struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}
+	SaveIndependentInputMappingStub        func(inputVersions algorithm.InputMapping, jobName string) error
+	saveIndependentInputMappingMutex       sync.RWMutex
+	saveIndependentInputMappingArgsForCall []struct {
+		inputVersions algorithm.InputMapping
+		jobName       string
+	}
+	saveIndependentInputMappingReturns struct {
+		result1 error
+	}
+	GetIndependentBuildInputsStub        func(jobName string) ([]db.BuildInput, error)
+	getIndependentBuildInputsMutex       sync.RWMutex
+	getIndependentBuildInputsArgsForCall []struct {
+		jobName string
+	}
+	getIndependentBuildInputsReturns struct {
+		result1 []db.BuildInput
+		result2 error
+	}
+	SaveNextInputMappingStub        func(inputVersions algorithm.InputMapping, jobName string) error
+	saveNextInputMappingMutex       sync.RWMutex
+	saveNextInputMappingArgsForCall []struct {
+		inputVersions algorithm.InputMapping
+		jobName       string
+	}
+	saveNextInputMappingReturns struct {
+		result1 error
+	}
+	GetNextBuildInputsStub        func(jobName string) ([]db.BuildInput, bool, error)
+	getNextBuildInputsMutex       sync.RWMutex
+	getNextBuildInputsArgsForCall []struct {
+		jobName string
+	}
+	getNextBuildInputsReturns struct {
 		result1 []db.BuildInput
 		result2 bool
-		result3 db.MissingInputReasons
-		result4 error
-	}
-	GetJobBuildForInputsStub        func(job string, inputs []db.BuildInput) (db.Build, bool, error)
-	getJobBuildForInputsMutex       sync.RWMutex
-	getJobBuildForInputsArgsForCall []struct {
-		job    string
-		inputs []db.BuildInput
-	}
-	getJobBuildForInputsReturns struct {
-		result1 db.Build
-		result2 bool
 		result3 error
 	}
-	GetNextPendingBuildStub        func(job string) (db.Build, bool, error)
-	getNextPendingBuildMutex       sync.RWMutex
-	getNextPendingBuildArgsForCall []struct {
-		job string
+	DeleteNextInputMappingStub        func(jobName string) error
+	deleteNextInputMappingMutex       sync.RWMutex
+	deleteNextInputMappingArgsForCall []struct {
+		jobName string
 	}
-	getNextPendingBuildReturns struct {
-		result1 db.Build
-		result2 bool
-		result3 error
+	deleteNextInputMappingReturns struct {
+		result1 error
 	}
 	GetRunningBuildsBySerialGroupStub        func(jobName string, serialGroups []string) ([]db.Build, error)
 	getRunningBuildsBySerialGroupMutex       sync.RWMutex
@@ -462,14 +512,6 @@ type FakePipelineDB struct {
 	getBuildsWithVersionAsOutputReturns struct {
 		result1 []db.Build
 		result2 error
-	}
-	UpdateBuildPreparationStub        func(prep db.BuildPreparation) error
-	updateBuildPreparationMutex       sync.RWMutex
-	updateBuildPreparationArgsForCall []struct {
-		prep db.BuildPreparation
-	}
-	updateBuildPreparationReturns struct {
-		result1 error
 	}
 	GetDashboardStub        func() (db.Dashboard, atc.GroupConfigs, error)
 	getDashboardMutex       sync.RWMutex
@@ -1471,6 +1513,40 @@ func (fake *FakePipelineDB) UnpauseJobReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakePipelineDB) SetMaxInFlightReached(arg1 string, arg2 bool) error {
+	fake.setMaxInFlightReachedMutex.Lock()
+	fake.setMaxInFlightReachedArgsForCall = append(fake.setMaxInFlightReachedArgsForCall, struct {
+		arg1 string
+		arg2 bool
+	}{arg1, arg2})
+	fake.recordInvocation("SetMaxInFlightReached", []interface{}{arg1, arg2})
+	fake.setMaxInFlightReachedMutex.Unlock()
+	if fake.SetMaxInFlightReachedStub != nil {
+		return fake.SetMaxInFlightReachedStub(arg1, arg2)
+	} else {
+		return fake.setMaxInFlightReachedReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) SetMaxInFlightReachedCallCount() int {
+	fake.setMaxInFlightReachedMutex.RLock()
+	defer fake.setMaxInFlightReachedMutex.RUnlock()
+	return len(fake.setMaxInFlightReachedArgsForCall)
+}
+
+func (fake *FakePipelineDB) SetMaxInFlightReachedArgsForCall(i int) (string, bool) {
+	fake.setMaxInFlightReachedMutex.RLock()
+	defer fake.setMaxInFlightReachedMutex.RUnlock()
+	return fake.setMaxInFlightReachedArgsForCall[i].arg1, fake.setMaxInFlightReachedArgsForCall[i].arg2
+}
+
+func (fake *FakePipelineDB) SetMaxInFlightReachedReturns(result1 error) {
+	fake.SetMaxInFlightReachedStub = nil
+	fake.setMaxInFlightReachedReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakePipelineDB) UpdateFirstLoggedBuildID(job string, newFirstLoggedBuildID int) error {
 	fake.updateFirstLoggedBuildIDMutex.Lock()
 	fake.updateFirstLoggedBuildIDArgsForCall = append(fake.updateFirstLoggedBuildIDArgsForCall, struct {
@@ -1680,35 +1756,68 @@ func (fake *FakePipelineDB) CreateJobBuildReturns(result1 db.Build, result2 erro
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error) {
-	fake.createJobBuildForCandidateInputsMutex.Lock()
-	fake.createJobBuildForCandidateInputsArgsForCall = append(fake.createJobBuildForCandidateInputsArgsForCall, struct {
-		job string
-	}{job})
-	fake.recordInvocation("CreateJobBuildForCandidateInputs", []interface{}{job})
-	fake.createJobBuildForCandidateInputsMutex.Unlock()
-	if fake.CreateJobBuildForCandidateInputsStub != nil {
-		return fake.CreateJobBuildForCandidateInputsStub(job)
+func (fake *FakePipelineDB) EnsurePendingBuildExists(jobName string) error {
+	fake.ensurePendingBuildExistsMutex.Lock()
+	fake.ensurePendingBuildExistsArgsForCall = append(fake.ensurePendingBuildExistsArgsForCall, struct {
+		jobName string
+	}{jobName})
+	fake.recordInvocation("EnsurePendingBuildExists", []interface{}{jobName})
+	fake.ensurePendingBuildExistsMutex.Unlock()
+	if fake.EnsurePendingBuildExistsStub != nil {
+		return fake.EnsurePendingBuildExistsStub(jobName)
 	} else {
-		return fake.createJobBuildForCandidateInputsReturns.result1, fake.createJobBuildForCandidateInputsReturns.result2, fake.createJobBuildForCandidateInputsReturns.result3
+		return fake.ensurePendingBuildExistsReturns.result1
 	}
 }
 
-func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsCallCount() int {
-	fake.createJobBuildForCandidateInputsMutex.RLock()
-	defer fake.createJobBuildForCandidateInputsMutex.RUnlock()
-	return len(fake.createJobBuildForCandidateInputsArgsForCall)
+func (fake *FakePipelineDB) EnsurePendingBuildExistsCallCount() int {
+	fake.ensurePendingBuildExistsMutex.RLock()
+	defer fake.ensurePendingBuildExistsMutex.RUnlock()
+	return len(fake.ensurePendingBuildExistsArgsForCall)
 }
 
-func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsArgsForCall(i int) string {
-	fake.createJobBuildForCandidateInputsMutex.RLock()
-	defer fake.createJobBuildForCandidateInputsMutex.RUnlock()
-	return fake.createJobBuildForCandidateInputsArgsForCall[i].job
+func (fake *FakePipelineDB) EnsurePendingBuildExistsArgsForCall(i int) string {
+	fake.ensurePendingBuildExistsMutex.RLock()
+	defer fake.ensurePendingBuildExistsMutex.RUnlock()
+	return fake.ensurePendingBuildExistsArgsForCall[i].jobName
 }
 
-func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.CreateJobBuildForCandidateInputsStub = nil
-	fake.createJobBuildForCandidateInputsReturns = struct {
+func (fake *FakePipelineDB) EnsurePendingBuildExistsReturns(result1 error) {
+	fake.EnsurePendingBuildExistsStub = nil
+	fake.ensurePendingBuildExistsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipelineDB) GetNextPendingBuild(jobName string) (db.Build, bool, error) {
+	fake.getNextPendingBuildMutex.Lock()
+	fake.getNextPendingBuildArgsForCall = append(fake.getNextPendingBuildArgsForCall, struct {
+		jobName string
+	}{jobName})
+	fake.recordInvocation("GetNextPendingBuild", []interface{}{jobName})
+	fake.getNextPendingBuildMutex.Unlock()
+	if fake.GetNextPendingBuildStub != nil {
+		return fake.GetNextPendingBuildStub(jobName)
+	} else {
+		return fake.getNextPendingBuildReturns.result1, fake.getNextPendingBuildReturns.result2, fake.getNextPendingBuildReturns.result3
+	}
+}
+
+func (fake *FakePipelineDB) GetNextPendingBuildCallCount() int {
+	fake.getNextPendingBuildMutex.RLock()
+	defer fake.getNextPendingBuildMutex.RUnlock()
+	return len(fake.getNextPendingBuildArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetNextPendingBuildArgsForCall(i int) string {
+	fake.getNextPendingBuildMutex.RLock()
+	defer fake.getNextPendingBuildMutex.RUnlock()
+	return fake.getNextPendingBuildArgsForCall[i].jobName
+}
+
+func (fake *FakePipelineDB) GetNextPendingBuildReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.GetNextPendingBuildStub = nil
+	fake.getNextPendingBuildReturns = struct {
 		result1 db.Build
 		result2 bool
 		result3 error
@@ -1754,6 +1863,43 @@ func (fake *FakePipelineDB) UseInputsForBuildReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakePipelineDB) LeaseResourceCheckingForJob(logger lager.Logger, jobName string, interval time.Duration) (db.Lease, bool, error) {
+	fake.leaseResourceCheckingForJobMutex.Lock()
+	fake.leaseResourceCheckingForJobArgsForCall = append(fake.leaseResourceCheckingForJobArgsForCall, struct {
+		logger   lager.Logger
+		jobName  string
+		interval time.Duration
+	}{logger, jobName, interval})
+	fake.recordInvocation("LeaseResourceCheckingForJob", []interface{}{logger, jobName, interval})
+	fake.leaseResourceCheckingForJobMutex.Unlock()
+	if fake.LeaseResourceCheckingForJobStub != nil {
+		return fake.LeaseResourceCheckingForJobStub(logger, jobName, interval)
+	} else {
+		return fake.leaseResourceCheckingForJobReturns.result1, fake.leaseResourceCheckingForJobReturns.result2, fake.leaseResourceCheckingForJobReturns.result3
+	}
+}
+
+func (fake *FakePipelineDB) LeaseResourceCheckingForJobCallCount() int {
+	fake.leaseResourceCheckingForJobMutex.RLock()
+	defer fake.leaseResourceCheckingForJobMutex.RUnlock()
+	return len(fake.leaseResourceCheckingForJobArgsForCall)
+}
+
+func (fake *FakePipelineDB) LeaseResourceCheckingForJobArgsForCall(i int) (lager.Logger, string, time.Duration) {
+	fake.leaseResourceCheckingForJobMutex.RLock()
+	defer fake.leaseResourceCheckingForJobMutex.RUnlock()
+	return fake.leaseResourceCheckingForJobArgsForCall[i].logger, fake.leaseResourceCheckingForJobArgsForCall[i].jobName, fake.leaseResourceCheckingForJobArgsForCall[i].interval
+}
+
+func (fake *FakePipelineDB) LeaseResourceCheckingForJobReturns(result1 db.Lease, result2 bool, result3 error) {
+	fake.LeaseResourceCheckingForJobStub = nil
+	fake.leaseResourceCheckingForJobReturns = struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakePipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	fake.loadVersionsDBMutex.Lock()
 	fake.loadVersionsDBArgsForCall = append(fake.loadVersionsDBArgsForCall, struct{}{})
@@ -1780,123 +1926,210 @@ func (fake *FakePipelineDB) LoadVersionsDBReturns(result1 *algorithm.VersionsDB,
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, db.MissingInputReasons, error) {
-	var inputsCopy []config.JobInput
-	if inputs != nil {
-		inputsCopy = make([]config.JobInput, len(inputs))
-		copy(inputsCopy, inputs)
-	}
-	fake.getNextInputVersionsMutex.Lock()
-	fake.getNextInputVersionsArgsForCall = append(fake.getNextInputVersionsArgsForCall, struct {
-		versions *algorithm.VersionsDB
-		job      string
-		inputs   []config.JobInput
-	}{versions, job, inputsCopy})
-	fake.recordInvocation("GetNextInputVersions", []interface{}{versions, job, inputsCopy})
-	fake.getNextInputVersionsMutex.Unlock()
-	if fake.GetNextInputVersionsStub != nil {
-		return fake.GetNextInputVersionsStub(versions, job, inputs)
+func (fake *FakePipelineDB) GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (db.SavedVersionedResource, bool, error) {
+	fake.getVersionedResourceByVersionMutex.Lock()
+	fake.getVersionedResourceByVersionArgsForCall = append(fake.getVersionedResourceByVersionArgsForCall, struct {
+		atcVersion   atc.Version
+		resourceName string
+	}{atcVersion, resourceName})
+	fake.recordInvocation("GetVersionedResourceByVersion", []interface{}{atcVersion, resourceName})
+	fake.getVersionedResourceByVersionMutex.Unlock()
+	if fake.GetVersionedResourceByVersionStub != nil {
+		return fake.GetVersionedResourceByVersionStub(atcVersion, resourceName)
 	} else {
-		return fake.getNextInputVersionsReturns.result1, fake.getNextInputVersionsReturns.result2, fake.getNextInputVersionsReturns.result3, fake.getNextInputVersionsReturns.result4
+		return fake.getVersionedResourceByVersionReturns.result1, fake.getVersionedResourceByVersionReturns.result2, fake.getVersionedResourceByVersionReturns.result3
 	}
 }
 
-func (fake *FakePipelineDB) GetNextInputVersionsCallCount() int {
-	fake.getNextInputVersionsMutex.RLock()
-	defer fake.getNextInputVersionsMutex.RUnlock()
-	return len(fake.getNextInputVersionsArgsForCall)
+func (fake *FakePipelineDB) GetVersionedResourceByVersionCallCount() int {
+	fake.getVersionedResourceByVersionMutex.RLock()
+	defer fake.getVersionedResourceByVersionMutex.RUnlock()
+	return len(fake.getVersionedResourceByVersionArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetNextInputVersionsArgsForCall(i int) (*algorithm.VersionsDB, string, []config.JobInput) {
-	fake.getNextInputVersionsMutex.RLock()
-	defer fake.getNextInputVersionsMutex.RUnlock()
-	return fake.getNextInputVersionsArgsForCall[i].versions, fake.getNextInputVersionsArgsForCall[i].job, fake.getNextInputVersionsArgsForCall[i].inputs
+func (fake *FakePipelineDB) GetVersionedResourceByVersionArgsForCall(i int) (atc.Version, string) {
+	fake.getVersionedResourceByVersionMutex.RLock()
+	defer fake.getVersionedResourceByVersionMutex.RUnlock()
+	return fake.getVersionedResourceByVersionArgsForCall[i].atcVersion, fake.getVersionedResourceByVersionArgsForCall[i].resourceName
 }
 
-func (fake *FakePipelineDB) GetNextInputVersionsReturns(result1 []db.BuildInput, result2 bool, result3 db.MissingInputReasons, result4 error) {
-	fake.GetNextInputVersionsStub = nil
-	fake.getNextInputVersionsReturns = struct {
+func (fake *FakePipelineDB) GetVersionedResourceByVersionReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {
+	fake.GetVersionedResourceByVersionStub = nil
+	fake.getVersionedResourceByVersionReturns = struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipelineDB) SaveIndependentInputMapping(inputVersions algorithm.InputMapping, jobName string) error {
+	fake.saveIndependentInputMappingMutex.Lock()
+	fake.saveIndependentInputMappingArgsForCall = append(fake.saveIndependentInputMappingArgsForCall, struct {
+		inputVersions algorithm.InputMapping
+		jobName       string
+	}{inputVersions, jobName})
+	fake.recordInvocation("SaveIndependentInputMapping", []interface{}{inputVersions, jobName})
+	fake.saveIndependentInputMappingMutex.Unlock()
+	if fake.SaveIndependentInputMappingStub != nil {
+		return fake.SaveIndependentInputMappingStub(inputVersions, jobName)
+	} else {
+		return fake.saveIndependentInputMappingReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) SaveIndependentInputMappingCallCount() int {
+	fake.saveIndependentInputMappingMutex.RLock()
+	defer fake.saveIndependentInputMappingMutex.RUnlock()
+	return len(fake.saveIndependentInputMappingArgsForCall)
+}
+
+func (fake *FakePipelineDB) SaveIndependentInputMappingArgsForCall(i int) (algorithm.InputMapping, string) {
+	fake.saveIndependentInputMappingMutex.RLock()
+	defer fake.saveIndependentInputMappingMutex.RUnlock()
+	return fake.saveIndependentInputMappingArgsForCall[i].inputVersions, fake.saveIndependentInputMappingArgsForCall[i].jobName
+}
+
+func (fake *FakePipelineDB) SaveIndependentInputMappingReturns(result1 error) {
+	fake.SaveIndependentInputMappingStub = nil
+	fake.saveIndependentInputMappingReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipelineDB) GetIndependentBuildInputs(jobName string) ([]db.BuildInput, error) {
+	fake.getIndependentBuildInputsMutex.Lock()
+	fake.getIndependentBuildInputsArgsForCall = append(fake.getIndependentBuildInputsArgsForCall, struct {
+		jobName string
+	}{jobName})
+	fake.recordInvocation("GetIndependentBuildInputs", []interface{}{jobName})
+	fake.getIndependentBuildInputsMutex.Unlock()
+	if fake.GetIndependentBuildInputsStub != nil {
+		return fake.GetIndependentBuildInputsStub(jobName)
+	} else {
+		return fake.getIndependentBuildInputsReturns.result1, fake.getIndependentBuildInputsReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) GetIndependentBuildInputsCallCount() int {
+	fake.getIndependentBuildInputsMutex.RLock()
+	defer fake.getIndependentBuildInputsMutex.RUnlock()
+	return len(fake.getIndependentBuildInputsArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetIndependentBuildInputsArgsForCall(i int) string {
+	fake.getIndependentBuildInputsMutex.RLock()
+	defer fake.getIndependentBuildInputsMutex.RUnlock()
+	return fake.getIndependentBuildInputsArgsForCall[i].jobName
+}
+
+func (fake *FakePipelineDB) GetIndependentBuildInputsReturns(result1 []db.BuildInput, result2 error) {
+	fake.GetIndependentBuildInputsStub = nil
+	fake.getIndependentBuildInputsReturns = struct {
+		result1 []db.BuildInput
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) SaveNextInputMapping(inputVersions algorithm.InputMapping, jobName string) error {
+	fake.saveNextInputMappingMutex.Lock()
+	fake.saveNextInputMappingArgsForCall = append(fake.saveNextInputMappingArgsForCall, struct {
+		inputVersions algorithm.InputMapping
+		jobName       string
+	}{inputVersions, jobName})
+	fake.recordInvocation("SaveNextInputMapping", []interface{}{inputVersions, jobName})
+	fake.saveNextInputMappingMutex.Unlock()
+	if fake.SaveNextInputMappingStub != nil {
+		return fake.SaveNextInputMappingStub(inputVersions, jobName)
+	} else {
+		return fake.saveNextInputMappingReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) SaveNextInputMappingCallCount() int {
+	fake.saveNextInputMappingMutex.RLock()
+	defer fake.saveNextInputMappingMutex.RUnlock()
+	return len(fake.saveNextInputMappingArgsForCall)
+}
+
+func (fake *FakePipelineDB) SaveNextInputMappingArgsForCall(i int) (algorithm.InputMapping, string) {
+	fake.saveNextInputMappingMutex.RLock()
+	defer fake.saveNextInputMappingMutex.RUnlock()
+	return fake.saveNextInputMappingArgsForCall[i].inputVersions, fake.saveNextInputMappingArgsForCall[i].jobName
+}
+
+func (fake *FakePipelineDB) SaveNextInputMappingReturns(result1 error) {
+	fake.SaveNextInputMappingStub = nil
+	fake.saveNextInputMappingReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipelineDB) GetNextBuildInputs(jobName string) ([]db.BuildInput, bool, error) {
+	fake.getNextBuildInputsMutex.Lock()
+	fake.getNextBuildInputsArgsForCall = append(fake.getNextBuildInputsArgsForCall, struct {
+		jobName string
+	}{jobName})
+	fake.recordInvocation("GetNextBuildInputs", []interface{}{jobName})
+	fake.getNextBuildInputsMutex.Unlock()
+	if fake.GetNextBuildInputsStub != nil {
+		return fake.GetNextBuildInputsStub(jobName)
+	} else {
+		return fake.getNextBuildInputsReturns.result1, fake.getNextBuildInputsReturns.result2, fake.getNextBuildInputsReturns.result3
+	}
+}
+
+func (fake *FakePipelineDB) GetNextBuildInputsCallCount() int {
+	fake.getNextBuildInputsMutex.RLock()
+	defer fake.getNextBuildInputsMutex.RUnlock()
+	return len(fake.getNextBuildInputsArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetNextBuildInputsArgsForCall(i int) string {
+	fake.getNextBuildInputsMutex.RLock()
+	defer fake.getNextBuildInputsMutex.RUnlock()
+	return fake.getNextBuildInputsArgsForCall[i].jobName
+}
+
+func (fake *FakePipelineDB) GetNextBuildInputsReturns(result1 []db.BuildInput, result2 bool, result3 error) {
+	fake.GetNextBuildInputsStub = nil
+	fake.getNextBuildInputsReturns = struct {
 		result1 []db.BuildInput
 		result2 bool
-		result3 db.MissingInputReasons
-		result4 error
-	}{result1, result2, result3, result4}
-}
-
-func (fake *FakePipelineDB) GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, bool, error) {
-	var inputsCopy []db.BuildInput
-	if inputs != nil {
-		inputsCopy = make([]db.BuildInput, len(inputs))
-		copy(inputsCopy, inputs)
-	}
-	fake.getJobBuildForInputsMutex.Lock()
-	fake.getJobBuildForInputsArgsForCall = append(fake.getJobBuildForInputsArgsForCall, struct {
-		job    string
-		inputs []db.BuildInput
-	}{job, inputsCopy})
-	fake.recordInvocation("GetJobBuildForInputs", []interface{}{job, inputsCopy})
-	fake.getJobBuildForInputsMutex.Unlock()
-	if fake.GetJobBuildForInputsStub != nil {
-		return fake.GetJobBuildForInputsStub(job, inputs)
-	} else {
-		return fake.getJobBuildForInputsReturns.result1, fake.getJobBuildForInputsReturns.result2, fake.getJobBuildForInputsReturns.result3
-	}
-}
-
-func (fake *FakePipelineDB) GetJobBuildForInputsCallCount() int {
-	fake.getJobBuildForInputsMutex.RLock()
-	defer fake.getJobBuildForInputsMutex.RUnlock()
-	return len(fake.getJobBuildForInputsArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetJobBuildForInputsArgsForCall(i int) (string, []db.BuildInput) {
-	fake.getJobBuildForInputsMutex.RLock()
-	defer fake.getJobBuildForInputsMutex.RUnlock()
-	return fake.getJobBuildForInputsArgsForCall[i].job, fake.getJobBuildForInputsArgsForCall[i].inputs
-}
-
-func (fake *FakePipelineDB) GetJobBuildForInputsReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetJobBuildForInputsStub = nil
-	fake.getJobBuildForInputsReturns = struct {
-		result1 db.Build
-		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetNextPendingBuild(job string) (db.Build, bool, error) {
-	fake.getNextPendingBuildMutex.Lock()
-	fake.getNextPendingBuildArgsForCall = append(fake.getNextPendingBuildArgsForCall, struct {
-		job string
-	}{job})
-	fake.recordInvocation("GetNextPendingBuild", []interface{}{job})
-	fake.getNextPendingBuildMutex.Unlock()
-	if fake.GetNextPendingBuildStub != nil {
-		return fake.GetNextPendingBuildStub(job)
+func (fake *FakePipelineDB) DeleteNextInputMapping(jobName string) error {
+	fake.deleteNextInputMappingMutex.Lock()
+	fake.deleteNextInputMappingArgsForCall = append(fake.deleteNextInputMappingArgsForCall, struct {
+		jobName string
+	}{jobName})
+	fake.recordInvocation("DeleteNextInputMapping", []interface{}{jobName})
+	fake.deleteNextInputMappingMutex.Unlock()
+	if fake.DeleteNextInputMappingStub != nil {
+		return fake.DeleteNextInputMappingStub(jobName)
 	} else {
-		return fake.getNextPendingBuildReturns.result1, fake.getNextPendingBuildReturns.result2, fake.getNextPendingBuildReturns.result3
+		return fake.deleteNextInputMappingReturns.result1
 	}
 }
 
-func (fake *FakePipelineDB) GetNextPendingBuildCallCount() int {
-	fake.getNextPendingBuildMutex.RLock()
-	defer fake.getNextPendingBuildMutex.RUnlock()
-	return len(fake.getNextPendingBuildArgsForCall)
+func (fake *FakePipelineDB) DeleteNextInputMappingCallCount() int {
+	fake.deleteNextInputMappingMutex.RLock()
+	defer fake.deleteNextInputMappingMutex.RUnlock()
+	return len(fake.deleteNextInputMappingArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetNextPendingBuildArgsForCall(i int) string {
-	fake.getNextPendingBuildMutex.RLock()
-	defer fake.getNextPendingBuildMutex.RUnlock()
-	return fake.getNextPendingBuildArgsForCall[i].job
+func (fake *FakePipelineDB) DeleteNextInputMappingArgsForCall(i int) string {
+	fake.deleteNextInputMappingMutex.RLock()
+	defer fake.deleteNextInputMappingMutex.RUnlock()
+	return fake.deleteNextInputMappingArgsForCall[i].jobName
 }
 
-func (fake *FakePipelineDB) GetNextPendingBuildReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetNextPendingBuildStub = nil
-	fake.getNextPendingBuildReturns = struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+func (fake *FakePipelineDB) DeleteNextInputMappingReturns(result1 error) {
+	fake.DeleteNextInputMappingStub = nil
+	fake.deleteNextInputMappingReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakePipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.Build, error) {
@@ -2153,39 +2386,6 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.Bui
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) UpdateBuildPreparation(prep db.BuildPreparation) error {
-	fake.updateBuildPreparationMutex.Lock()
-	fake.updateBuildPreparationArgsForCall = append(fake.updateBuildPreparationArgsForCall, struct {
-		prep db.BuildPreparation
-	}{prep})
-	fake.recordInvocation("UpdateBuildPreparation", []interface{}{prep})
-	fake.updateBuildPreparationMutex.Unlock()
-	if fake.UpdateBuildPreparationStub != nil {
-		return fake.UpdateBuildPreparationStub(prep)
-	} else {
-		return fake.updateBuildPreparationReturns.result1
-	}
-}
-
-func (fake *FakePipelineDB) UpdateBuildPreparationCallCount() int {
-	fake.updateBuildPreparationMutex.RLock()
-	defer fake.updateBuildPreparationMutex.RUnlock()
-	return len(fake.updateBuildPreparationArgsForCall)
-}
-
-func (fake *FakePipelineDB) UpdateBuildPreparationArgsForCall(i int) db.BuildPreparation {
-	fake.updateBuildPreparationMutex.RLock()
-	defer fake.updateBuildPreparationMutex.RUnlock()
-	return fake.updateBuildPreparationArgsForCall[i].prep
-}
-
-func (fake *FakePipelineDB) UpdateBuildPreparationReturns(result1 error) {
-	fake.UpdateBuildPreparationStub = nil
-	fake.updateBuildPreparationReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakePipelineDB) GetDashboard() (db.Dashboard, atc.GroupConfigs, error) {
 	fake.getDashboardMutex.Lock()
 	fake.getDashboardArgsForCall = append(fake.getDashboardArgsForCall, struct{}{})
@@ -2328,6 +2528,8 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.pauseJobMutex.RUnlock()
 	fake.unpauseJobMutex.RLock()
 	defer fake.unpauseJobMutex.RUnlock()
+	fake.setMaxInFlightReachedMutex.RLock()
+	defer fake.setMaxInFlightReachedMutex.RUnlock()
 	fake.updateFirstLoggedBuildIDMutex.RLock()
 	defer fake.updateFirstLoggedBuildIDMutex.RUnlock()
 	fake.getJobFinishedAndNextBuildMutex.RLock()
@@ -2340,18 +2542,28 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.getJobBuildMutex.RUnlock()
 	fake.createJobBuildMutex.RLock()
 	defer fake.createJobBuildMutex.RUnlock()
-	fake.createJobBuildForCandidateInputsMutex.RLock()
-	defer fake.createJobBuildForCandidateInputsMutex.RUnlock()
-	fake.useInputsForBuildMutex.RLock()
-	defer fake.useInputsForBuildMutex.RUnlock()
-	fake.loadVersionsDBMutex.RLock()
-	defer fake.loadVersionsDBMutex.RUnlock()
-	fake.getNextInputVersionsMutex.RLock()
-	defer fake.getNextInputVersionsMutex.RUnlock()
-	fake.getJobBuildForInputsMutex.RLock()
-	defer fake.getJobBuildForInputsMutex.RUnlock()
+	fake.ensurePendingBuildExistsMutex.RLock()
+	defer fake.ensurePendingBuildExistsMutex.RUnlock()
 	fake.getNextPendingBuildMutex.RLock()
 	defer fake.getNextPendingBuildMutex.RUnlock()
+	fake.useInputsForBuildMutex.RLock()
+	defer fake.useInputsForBuildMutex.RUnlock()
+	fake.leaseResourceCheckingForJobMutex.RLock()
+	defer fake.leaseResourceCheckingForJobMutex.RUnlock()
+	fake.loadVersionsDBMutex.RLock()
+	defer fake.loadVersionsDBMutex.RUnlock()
+	fake.getVersionedResourceByVersionMutex.RLock()
+	defer fake.getVersionedResourceByVersionMutex.RUnlock()
+	fake.saveIndependentInputMappingMutex.RLock()
+	defer fake.saveIndependentInputMappingMutex.RUnlock()
+	fake.getIndependentBuildInputsMutex.RLock()
+	defer fake.getIndependentBuildInputsMutex.RUnlock()
+	fake.saveNextInputMappingMutex.RLock()
+	defer fake.saveNextInputMappingMutex.RUnlock()
+	fake.getNextBuildInputsMutex.RLock()
+	defer fake.getNextBuildInputsMutex.RUnlock()
+	fake.deleteNextInputMappingMutex.RLock()
+	defer fake.deleteNextInputMappingMutex.RUnlock()
 	fake.getRunningBuildsBySerialGroupMutex.RLock()
 	defer fake.getRunningBuildsBySerialGroupMutex.RUnlock()
 	fake.getNextPendingBuildBySerialGroupMutex.RLock()
@@ -2366,8 +2578,6 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.getBuildsWithVersionAsInputMutex.RUnlock()
 	fake.getBuildsWithVersionAsOutputMutex.RLock()
 	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
-	fake.updateBuildPreparationMutex.RLock()
-	defer fake.updateBuildPreparationMutex.RUnlock()
 	fake.getDashboardMutex.RLock()
 	defer fake.getDashboardMutex.RUnlock()
 	fake.revealMutex.RLock()
