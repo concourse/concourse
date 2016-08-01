@@ -21,13 +21,12 @@ var _ = Describe("TeamDB", func() {
 		database      db.DB
 		teamDBFactory db.TeamDBFactory
 
-		teamDB                db.TeamDB
-		otherTeamDB           db.TeamDB
-		caseInsensitiveTeamDB db.TeamDB
-		nonExistentTeamDB     db.TeamDB
-		savedTeam             db.SavedTeam
-		otherSavedTeam        db.SavedTeam
-		pipelineDBFactory     db.PipelineDBFactory
+		teamDB            db.TeamDB
+		otherTeamDB       db.TeamDB
+		nonExistentTeamDB db.TeamDB
+		savedTeam         db.SavedTeam
+		otherSavedTeam    db.SavedTeam
+		pipelineDBFactory db.PipelineDBFactory
 	)
 
 	BeforeEach(func() {
@@ -42,13 +41,12 @@ var _ = Describe("TeamDB", func() {
 		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
 		database = db.NewSQL(dbConn, bus)
 
-		team := db.Team{Name: "team-name"}
+		team := db.Team{Name: "TEAM-name"}
 		var err error
 		savedTeam, err = database.CreateTeam(team)
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDB = teamDBFactory.GetTeamDB("team-name")
-		caseInsensitiveTeamDB = teamDBFactory.GetTeamDB("TEAM-name")
+		teamDB = teamDBFactory.GetTeamDB("team-NAME")
 		nonExistentTeamDB = teamDBFactory.GetTeamDB("non-existent-name")
 
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
@@ -79,7 +77,7 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		It("returns the pipeline with the case insensitive name that belongs to the team", func() {
-			actualPipeline, err := caseInsensitiveTeamDB.GetPipelineByName("pipeline-name")
+			actualPipeline, err := teamDB.GetPipelineByName("pipeline-name")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualPipeline).To(Equal(savedPipeline))
 		})
@@ -109,7 +107,7 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		It("returns only the pipelines that belong to team (case insensitive)", func() {
-			savedPipelines, err := caseInsensitiveTeamDB.GetPipelines()
+			savedPipelines, err := teamDB.GetPipelines()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedPipelines).To(HaveLen(2))
 			Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2))
@@ -173,7 +171,7 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		It("returns the pipelines of the team first, followed by public pipelines from other teams (case insensitive)", func() {
-			savedPipelines, err := caseInsensitiveTeamDB.GetAllPipelines()
+			savedPipelines, err := teamDB.GetAllPipelines()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedPipelines).To(Equal([]db.SavedPipeline{
 				savedPipeline2,
@@ -215,7 +213,7 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		It("orders pipelines that belong to team (case insensitive)", func() {
-			err := caseInsensitiveTeamDB.OrderPipelines([]string{"pipeline-name-b", "pipeline-name-a"})
+			err := teamDB.OrderPipelines([]string{"pipeline-name-b", "pipeline-name-a"})
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherTeamDB.OrderPipelines([]string{"pipeline-name-a", "pipeline-name-b"})
@@ -278,7 +276,7 @@ var _ = Describe("TeamDB", func() {
 				_, err := teamDB.UpdateGitHubAuth(gitHubAuth)
 				Expect(err).NotTo(HaveOccurred())
 
-				savedTeam, err := caseInsensitiveTeamDB.UpdateBasicAuth(basicAuth)
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.GitHubAuth).To(Equal(gitHubAuth))
@@ -288,14 +286,14 @@ var _ = Describe("TeamDB", func() {
 				_, err := teamDB.UpdateUAAAuth(uaaAuth)
 				Expect(err).NotTo(HaveOccurred())
 
-				savedTeam, err := caseInsensitiveTeamDB.UpdateBasicAuth(basicAuth)
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.UAAAuth).To(Equal(uaaAuth))
 			})
 
 			It("saves basic auth team info to the existing team", func() {
-				savedTeam, err := caseInsensitiveTeamDB.UpdateBasicAuth(basicAuth)
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.BasicAuth.BasicAuthUsername).To(Equal(basicAuth.BasicAuthUsername))
@@ -305,7 +303,7 @@ var _ = Describe("TeamDB", func() {
 
 			It("nulls basic auth when has a blank username", func() {
 				basicAuth.BasicAuthUsername = ""
-				savedTeam, err := caseInsensitiveTeamDB.UpdateBasicAuth(basicAuth)
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.BasicAuth).To(BeNil())
@@ -313,7 +311,7 @@ var _ = Describe("TeamDB", func() {
 
 			It("nulls basic auth when has a blank password", func() {
 				basicAuth.BasicAuthPassword = ""
-				savedTeam, err := caseInsensitiveTeamDB.UpdateBasicAuth(basicAuth)
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.BasicAuth).To(BeNil())
@@ -322,7 +320,7 @@ var _ = Describe("TeamDB", func() {
 
 		Describe("UpdateGitHubAuth", func() {
 			It("saves github auth team info to the existing team", func() {
-				savedTeam, err := caseInsensitiveTeamDB.UpdateGitHubAuth(gitHubAuth)
+				savedTeam, err := teamDB.UpdateGitHubAuth(gitHubAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.GitHubAuth).To(Equal(gitHubAuth))
@@ -330,7 +328,7 @@ var _ = Describe("TeamDB", func() {
 
 			It("nulls github auth when has a blank clientSecret", func() {
 				gitHubAuth.ClientSecret = ""
-				savedTeam, err := caseInsensitiveTeamDB.UpdateGitHubAuth(gitHubAuth)
+				savedTeam, err := teamDB.UpdateGitHubAuth(gitHubAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.GitHubAuth).To(BeNil())
@@ -338,17 +336,17 @@ var _ = Describe("TeamDB", func() {
 
 			It("nulls github auth when has a blank clientID", func() {
 				gitHubAuth.ClientID = ""
-				savedTeam, err := caseInsensitiveTeamDB.UpdateGitHubAuth(gitHubAuth)
+				savedTeam, err := teamDB.UpdateGitHubAuth(gitHubAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.GitHubAuth).To(BeNil())
 			})
 
 			It("saves github auth team info without over writing the basic auth", func() {
-				_, err := caseInsensitiveTeamDB.UpdateBasicAuth(basicAuth)
+				_, err := teamDB.UpdateBasicAuth(basicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
-				savedTeam, err := caseInsensitiveTeamDB.UpdateGitHubAuth(gitHubAuth)
+				savedTeam, err := teamDB.UpdateGitHubAuth(gitHubAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.BasicAuth.BasicAuthUsername).To(Equal(basicAuth.BasicAuthUsername))
@@ -357,10 +355,10 @@ var _ = Describe("TeamDB", func() {
 			})
 
 			It("saves github auth team info without over writing the cf auth", func() {
-				_, err := caseInsensitiveTeamDB.UpdateUAAAuth(uaaAuth)
+				_, err := teamDB.UpdateUAAAuth(uaaAuth)
 				Expect(err).NotTo(HaveOccurred())
 
-				savedTeam, err := caseInsensitiveTeamDB.UpdateGitHubAuth(gitHubAuth)
+				savedTeam, err := teamDB.UpdateGitHubAuth(gitHubAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.UAAAuth).To(Equal(uaaAuth))
@@ -369,7 +367,7 @@ var _ = Describe("TeamDB", func() {
 
 		Describe("UpdateUAAAuth", func() {
 			It("saves cf auth team info to the existing team", func() {
-				savedTeam, err := caseInsensitiveTeamDB.UpdateUAAAuth(uaaAuth)
+				savedTeam, err := teamDB.UpdateUAAAuth(uaaAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.UAAAuth).To(Equal(uaaAuth))
@@ -379,10 +377,10 @@ var _ = Describe("TeamDB", func() {
 
 	Describe("GetTeam", func() {
 		It("returns the saved team", func() {
-			actualTeam, found, err := caseInsensitiveTeamDB.GetTeam()
+			actualTeam, found, err := teamDB.GetTeam()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(actualTeam.Name).To(Equal("team-name"))
+			Expect(actualTeam.Name).To(Equal("TEAM-name"))
 		})
 
 		It("returns false with no error when the team does not exist", func() {
@@ -404,7 +402,7 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		It("can create one-off builds with increasing names", func() {
-			nextOneOffBuild, err := caseInsensitiveTeamDB.CreateOneOffBuild()
+			nextOneOffBuild, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(nextOneOffBuild.ID()).NotTo(BeZero())
 			Expect(nextOneOffBuild.ID()).NotTo(Equal(oneOffBuild.ID()))
@@ -564,7 +562,7 @@ var _ = Describe("TeamDB", func() {
 				})
 
 				It("returns all builds that have been started, regardless of pipeline", func() {
-					builds, pagination, err := caseInsensitiveTeamDB.GetBuilds(db.Page{Limit: 2}, publicOnly)
+					builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2}, publicOnly)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(len(builds)).To(Equal(2))
@@ -574,7 +572,7 @@ var _ = Describe("TeamDB", func() {
 					Expect(pagination.Previous).To(BeNil())
 					Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].ID(), Limit: 2}))
 
-					builds, pagination, err = caseInsensitiveTeamDB.GetBuilds(*pagination.Next, publicOnly)
+					builds, pagination, err = teamDB.GetBuilds(*pagination.Next, publicOnly)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(len(builds)).To(Equal(2))
@@ -584,7 +582,7 @@ var _ = Describe("TeamDB", func() {
 					Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
 					Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
 
-					builds, pagination, err = caseInsensitiveTeamDB.GetBuilds(*pagination.Next, publicOnly)
+					builds, pagination, err = teamDB.GetBuilds(*pagination.Next, publicOnly)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(len(builds)).To(Equal(1))
@@ -593,7 +591,7 @@ var _ = Describe("TeamDB", func() {
 					Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].ID(), Limit: 2}))
 					Expect(pagination.Next).To(BeNil())
 
-					builds, pagination, err = caseInsensitiveTeamDB.GetBuilds(*pagination.Previous, publicOnly)
+					builds, pagination, err = teamDB.GetBuilds(*pagination.Previous, publicOnly)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(len(builds)).To(Equal(2))
@@ -704,7 +702,7 @@ var _ = Describe("TeamDB", func() {
 				})
 
 				It("returns public builds", func() {
-					builds, _, err := caseInsensitiveTeamDB.GetBuilds(db.Page{Limit: 10}, publicOnly)
+					builds, _, err := teamDB.GetBuilds(db.Page{Limit: 10}, publicOnly)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(builds).To(HaveLen(5))
@@ -726,7 +724,7 @@ var _ = Describe("TeamDB", func() {
 			originalBuild, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build, found, err := caseInsensitiveTeamDB.GetBuild(originalBuild.ID())
+			build, found, err := teamDB.GetBuild(originalBuild.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(build.ID()).To(Equal(originalBuild.ID()))
@@ -750,7 +748,7 @@ var _ = Describe("TeamDB", func() {
 				otherPipelineDB.Reveal()
 				otherTeamBuild, err := otherPipelineDB.CreateJobBuild("some-job")
 
-				build, found, err := caseInsensitiveTeamDB.GetBuild(otherTeamBuild.ID())
+				build, found, err := teamDB.GetBuild(otherTeamBuild.ID())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build).To(Equal(otherTeamBuild))
@@ -760,7 +758,7 @@ var _ = Describe("TeamDB", func() {
 				otherTeamBuild, err := otherTeamDB.CreateOneOffBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				build, found, err := caseInsensitiveTeamDB.GetBuild(otherTeamBuild.ID())
+				build, found, err := teamDB.GetBuild(otherTeamBuild.ID())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(build).To(BeNil())

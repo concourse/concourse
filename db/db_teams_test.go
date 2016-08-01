@@ -104,7 +104,7 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(expectedSavedTeam.Team.BasicAuth).To(Equal(expectedTeam.BasicAuth))
 			Expect(expectedSavedTeam.Team.GitHubAuth).To(Equal(expectedTeam.GitHubAuth))
 			Expect(expectedSavedTeam.Team.UAAAuth).To(Equal(expectedTeam.UAAAuth))
-			Expect(expectedSavedTeam.Team.Name).To(Equal("avengers"))
+			Expect(expectedSavedTeam.Team.Name).To(Equal("AvengerS"))
 
 			savedTeam, found, err := teamDBFactory.GetTeamDB("aVengers").GetTeam()
 			Expect(err).NotTo(HaveOccurred())

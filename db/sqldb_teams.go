@@ -14,7 +14,7 @@ func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
 	)
 	SELECT $1, true
 	WHERE NOT EXISTS (
-		SELECT id FROM teams WHERE name = LOWER($1)
+		SELECT id FROM teams WHERE LOWER(name) = LOWER($1)
 	)
 	`, atc.DefaultTeamName)
 	if err != nil {
@@ -24,7 +24,7 @@ func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
 	_, err = db.conn.Exec(`
 		UPDATE teams
 		SET admin = true
-		WHERE name = LOWER($1)
+		WHERE LOWER(name) = LOWER($1)
 	`, atc.DefaultTeamName)
 	return err
 }
@@ -53,7 +53,7 @@ func (db *SQLDB) CreateTeam(team Team) (SavedTeam, error) {
 	INSERT INTO teams (
     name, basic_auth, github_auth, uaa_auth
 	) VALUES (
-		LOWER($1), $2, $3, $4
+		$1, $2, $3, $4
 	)
 	RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
 	`
@@ -114,7 +114,7 @@ func (db *SQLDB) queryTeam(query string, params []interface{}) (SavedTeam, error
 func (db *SQLDB) DeleteTeamByName(teamName string) error {
 	_, err := db.conn.Exec(`
     DELETE FROM teams
-		WHERE name = LOWER($1)
+		WHERE LOWER(name) = LOWER($1)
 	`, teamName)
 	return err
 }

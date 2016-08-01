@@ -50,7 +50,7 @@ func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) 
 		INNER JOIN teams t ON t.id = p.team_id
 		WHERE p.name = $1
 		AND p.team_id = (
-			SELECT id FROM teams WHERE name = LOWER($2)
+			SELECT id FROM teams WHERE LOWER(name) = LOWER($2)
 		)
 	`, pipelineName, db.teamName)
 
@@ -63,7 +63,7 @@ func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 		FROM pipelines p
 		INNER JOIN teams t ON t.id = p.team_id
 		WHERE team_id = (
-			SELECT id FROM teams WHERE name = LOWER($1)
+			SELECT id FROM teams WHERE LOWER(name) = LOWER($1)
 		)
 		ORDER BY ordering
 	`, db.teamName)
@@ -93,7 +93,7 @@ func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
 		SELECT `+pipelineColumns+`
 		FROM pipelines p
 		INNER JOIN teams t ON t.id = p.team_id
-		WHERE team_id = (SELECT id FROM teams WHERE name = LOWER($1))
+		WHERE team_id = (SELECT id FROM teams WHERE LOWER(name) = LOWER($1))
 		ORDER BY ordering
 	`, db.teamName)
 	if err != nil {
@@ -111,7 +111,7 @@ func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
 		SELECT `+pipelineColumns+`
 		FROM pipelines p
 		INNER JOIN teams t ON t.id = p.team_id
-		WHERE team_id != (SELECT id FROM teams WHERE name = LOWER($1))
+		WHERE team_id != (SELECT id FROM teams WHERE LOWER(name) = LOWER($1))
 		AND public = true
 		ORDER BY team_name, ordering
 	`, db.teamName)
@@ -156,7 +156,7 @@ func (db *teamDB) OrderPipelines(pipelineNames []string) error {
 	var pipelineCount int
 
 	var teamID int
-	err = tx.QueryRow(`SELECT id FROM teams WHERE name = LOWER($1)`, db.teamName).Scan(&teamID)
+	err = tx.QueryRow(`SELECT id FROM teams WHERE LOWER(name) = LOWER($1)`, db.teamName).Scan(&teamID)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func (db *teamDB) GetConfig(pipelineName string) (atc.Config, atc.RawConfig, Con
 		WHERE name = $1 AND team_id = (
 			SELECT id
 			FROM teams
-			WHERE name = LOWER($2)
+			WHERE LOWER(name) = LOWER($2)
 		)
 	`, pipelineName, db.teamName).Scan(&configBlob, &version)
 	if err != nil {
@@ -244,7 +244,7 @@ func (db *teamDB) SaveConfig(
 	defer tx.Rollback()
 
 	var teamID int
-	err = tx.QueryRow(`SELECT id FROM teams WHERE name = LOWER($1)`, db.teamName).Scan(&teamID)
+	err = tx.QueryRow(`SELECT id FROM teams WHERE LOWER(name) = LOWER($1)`, db.teamName).Scan(&teamID)
 	if err != nil {
 		return SavedPipeline{}, false, err
 	}
@@ -448,7 +448,7 @@ func (db *teamDB) GetTeam() (SavedTeam, bool, error) {
 	query := `
 		SELECT id, name, admin, basic_auth, github_auth, uaa_auth
 		FROM teams
-		WHERE name = LOWER($1)
+		WHERE LOWER(name) = LOWER($1)
 	`
 	params := []interface{}{db.teamName}
 	savedTeam, err := db.queryTeam(query, params)
@@ -522,7 +522,7 @@ func (db *teamDB) UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error) {
 	query := `
 		UPDATE teams
 		SET basic_auth = $1
-		WHERE name = LOWER($2)
+		WHERE LOWER(name) = LOWER($2)
 		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
 	`
 
@@ -544,7 +544,7 @@ func (db *teamDB) UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error) {
 	query := `
 		UPDATE teams
 		SET github_auth = $1
-		WHERE name = LOWER($2)
+		WHERE LOWER(name) = LOWER($2)
 		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
 	`
 	params := []interface{}{string(jsonEncodedGitHubAuth), db.teamName}
@@ -560,7 +560,7 @@ func (db *teamDB) UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error) {
 	query := `
 		UPDATE teams
 		SET uaa_auth = $1
-		WHERE name = LOWER($2)
+		WHERE LOWER(name) = LOWER($2)
 		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
 	`
 	params := []interface{}{string(jsonEncodedUAAAuth), db.teamName}
@@ -578,8 +578,11 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 	build, _, err := db.buildFactory.ScanBuild(tx.QueryRow(`
 		INSERT INTO builds (name, team_id, status)
 		SELECT nextval('one_off_name'), t.id, 'pending'
-		FROM TEAMS t where t.name = LOWER($1)
-		RETURNING `+buildColumns+`, null, null, null, LOWER($1)::text
+		FROM teams t WHERE LOWER(t.name) = LOWER($1)
+		RETURNING `+buildColumns+`, null, null, null,
+		(
+			SELECT name FROM teams WHERE LOWER(name) = LOWER($1)
+		)
 	`, string(db.teamName)))
 	if err != nil {
 		return nil, err
@@ -651,7 +654,7 @@ func (db *teamDB) GetBuilds(page Page, publicOnly bool) ([]Build, Pagination, er
 		WHERE p.public = true
 	`
 	if !publicOnly {
-		query = query + ` OR t.name = LOWER($1)`
+		query = query + ` OR LOWER(t.name) = LOWER($1)`
 	} else {
 		query = query + ` AND $1 = $1`
 	}
@@ -750,7 +753,7 @@ func (db *teamDB) GetBuild(buildID int) (Build, bool, error) {
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
 		LEFT OUTER JOIN teams t ON b.team_id = t.id
 		WHERE b.id = $1
-		AND (t.name = LOWER($2) OR p.public = true)
+		AND (LOWER(t.name) = LOWER($2) OR p.public = true)
 	`, buildID, db.teamName))
 }
 
