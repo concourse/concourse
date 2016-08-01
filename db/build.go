@@ -554,11 +554,7 @@ func (b *build) GetVersionedResources() (SavedVersionedResources, error) {
 }
 
 func (b *build) GetPreparation() (BuildPreparation, bool, error) {
-	if b.status != StatusPending {
-		return BuildPreparation{}, false, nil
-	}
-
-	if b.IsOneOff() {
+	if b.IsOneOff() || b.status != StatusPending {
 		return BuildPreparation{
 			BuildID:             b.id,
 			PausedPipeline:      BuildPreparationStatusNotBlocking,

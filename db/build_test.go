@@ -499,10 +499,11 @@ var _ = Describe("Build", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("doesn't return build preparation", func() {
-					_, found, err := build.GetPreparation()
+				It("returns build preparation", func() {
+					buildPrep, found, err := build.GetPreparation()
 					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeFalse())
+					Expect(found).To(BeTrue())
+					Expect(buildPrep).To(Equal(expectedBuildPrep))
 				})
 			})
 		})
@@ -551,12 +552,15 @@ var _ = Describe("Build", func() {
 						stillExists, err := build.Reload()
 						Expect(stillExists).To(BeTrue())
 						Expect(err).NotTo(HaveOccurred())
+
+						expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{}
 					})
 
-					It("doesn't return build preparation", func() {
-						_, found, err := build.GetPreparation()
+					It("returns build preparation", func() {
+						buildPrep, found, err := build.GetPreparation()
 						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeFalse())
+						Expect(found).To(BeTrue())
+						Expect(buildPrep).To(Equal(expectedBuildPrep))
 					})
 				})
 
