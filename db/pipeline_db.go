@@ -71,9 +71,9 @@ type PipelineDB interface {
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
-	SaveIndependentInputMapping(inputVersions algorithm.InputMapping, jobName string) error
+	SaveIndependentInputMapping(inputMapping algorithm.InputMapping, jobName string) error
 	GetIndependentBuildInputs(jobName string) ([]BuildInput, error)
-	SaveNextInputMapping(inputVersions algorithm.InputMapping, jobName string) error
+	SaveNextInputMapping(inputMapping algorithm.InputMapping, jobName string) error
 	GetNextBuildInputs(jobName string) ([]BuildInput, bool, error)
 	DeleteNextInputMapping(jobName string) error
 
@@ -1846,16 +1846,16 @@ func (pdb *pipelineDB) GetVersionedResourceByVersion(atcVersion atc.Version, res
 	return svr, true, nil
 }
 
-func (pdb *pipelineDB) SaveIndependentInputMapping(inputVersions algorithm.InputMapping, jobName string) error {
-	return pdb.saveJobInputMapping("independent_build_inputs", inputVersions, jobName)
+func (pdb *pipelineDB) SaveIndependentInputMapping(inputMapping algorithm.InputMapping, jobName string) error {
+	return pdb.saveJobInputMapping("independent_build_inputs", inputMapping, jobName)
 }
 
 func (pdb *pipelineDB) GetIndependentBuildInputs(jobName string) ([]BuildInput, error) {
 	return pdb.getJobBuildInputs("independent_build_inputs", jobName)
 }
 
-func (pdb *pipelineDB) SaveNextInputMapping(inputVersions algorithm.InputMapping, jobName string) error {
-	return pdb.saveJobInputMapping("next_build_inputs", inputVersions, jobName)
+func (pdb *pipelineDB) SaveNextInputMapping(inputMapping algorithm.InputMapping, jobName string) error {
+	return pdb.saveJobInputMapping("next_build_inputs", inputMapping, jobName)
 }
 
 func (pdb *pipelineDB) GetNextBuildInputs(jobName string) ([]BuildInput, bool, error) {
@@ -1907,7 +1907,7 @@ func (pdb *pipelineDB) DeleteNextInputMapping(jobName string) error {
 	return nil
 }
 
-func (pdb *pipelineDB) saveJobInputMapping(table string, inputVersions algorithm.InputMapping, jobName string) error {
+func (pdb *pipelineDB) saveJobInputMapping(table string, inputMapping algorithm.InputMapping, jobName string) error {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return err
@@ -1935,20 +1935,49 @@ func (pdb *pipelineDB) saveJobInputMapping(table string, inputVersions algorithm
 		return err
 	}
 
-	_, err = tx.Exec(`
-DELETE FROM `+table+` WHERE job_id = $1
-		`, jobID)
+	rows, err := tx.Query(`
+    SELECT input_name, version_id, first_occurrence
+		FROM `+table+`
+		WHERE job_id = $1
+  `, jobID)
 	if err != nil {
 		return err
 	}
 
-	for inputName, inputVersion := range inputVersions {
-		_, err := tx.Exec(`
-INSERT INTO `+table+` (job_id, input_name, version_id, first_occurrence)
-VALUES ($1, $2, $3, $4)
-			`, jobID, inputName, inputVersion.VersionID, inputVersion.FirstOccurrence)
+	oldInputMapping := algorithm.InputMapping{}
+	for rows.Next() {
+		var inputName string
+		var inputVersion algorithm.InputVersion
+		err := rows.Scan(&inputName, &inputVersion.VersionID, &inputVersion.FirstOccurrence)
 		if err != nil {
 			return err
+		}
+
+		oldInputMapping[inputName] = inputVersion
+	}
+
+	for inputName, oldInputVersion := range oldInputMapping {
+		inputVersion, found := inputMapping[inputName]
+		if !found || inputVersion != oldInputVersion {
+			_, err = tx.Exec(`
+				DELETE FROM `+table+` WHERE job_id = $1 AND input_name = $2
+			`, jobID, inputName)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	for inputName, inputVersion := range inputMapping {
+		oldInputVersion, found := oldInputMapping[inputName]
+		if !found || inputVersion != oldInputVersion {
+			_, err := tx.Exec(`
+				INSERT INTO `+table+` (job_id, input_name, version_id, first_occurrence)
+				VALUES ($1, $2, $3, $4)
+			`, jobID, inputName, inputVersion.VersionID, inputVersion.FirstOccurrence)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
