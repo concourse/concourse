@@ -21,7 +21,7 @@ var _ = Describe("the quality of being unauthenticated", func() {
 			Skip("No auth methods enabled; skipping unauthenticated tests")
 		}
 
-		err = rc.SaveTarget(bogusTarget, atcURL, false, "main", nil)
+		err = rc.SaveTarget(bogusTarget, atcURL, false, "main", nil, "")
 		Expect(err).ToNot(HaveOccurred())
 	})
 
