@@ -40,16 +40,10 @@ Fly is available for download in the lower right-hand corner of the concourse UI
 
 1. Navigate to your Concourse instance in the browser, and click the button corresponding to your OS
 
-2. Move the downloaded file onto your PATH
+1. Move the downloaded file onto your PATH
 
   ```bash
-  mv ~/Downloads/fly /usr/bin
+  install ~/Downloads/fly /usr/local/bin
   ```
 
-3. Make the fly file executable
-
-  ```bash
-  chmod +x /usr/bin/fly
-  ```
-
-4. Confirm availability with `which fly`
+1. Confirm availability with `which fly`

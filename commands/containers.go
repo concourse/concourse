@@ -14,16 +14,17 @@ import (
 type ContainersCommand struct{}
 
 func (command *ContainersCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	containers, err := client.ListContainers(map[string]string{})
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	containers, err := target.Client().ListContainers(map[string]string{})
 	if err != nil {
 		return err
 	}

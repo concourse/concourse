@@ -52,7 +52,7 @@ var _ = BeforeEach(func() {
 	atcServer.AppendHandlers(
 		infoHandler(),
 		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+			ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 			ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 		),
 		infoHandler(),

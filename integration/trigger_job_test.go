@@ -26,7 +26,7 @@ var _ = Describe("Fly CLI", func() {
 				err  error
 			)
 			BeforeEach(func() {
-				path, err = atc.Routes.CreatePathForRoute(atc.CreateJobBuild, rata.Params{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job"})
+				path, err = atc.Routes.CreatePathForRoute(atc.CreateJobBuild, rata.Params{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 

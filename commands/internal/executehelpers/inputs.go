@@ -22,6 +22,7 @@ type Input struct {
 
 func DetermineInputs(
 	client concourse.Client,
+	team concourse.Team,
 	taskInputs []atc.TaskInputConfig,
 	inputMappings []flaghelpers.InputPairFlag,
 	inputsFrom flaghelpers.JobFlag,
@@ -48,7 +49,7 @@ func DetermineInputs(
 		return nil, err
 	}
 
-	inputsFromJob, err := FetchInputsFromJob(client, inputsFrom)
+	inputsFromJob, err := FetchInputsFromJob(team, inputsFrom)
 	if err != nil {
 		return nil, err
 	}
@@ -109,13 +110,13 @@ func GenerateLocalInputs(client concourse.Client, inputMappings []flaghelpers.In
 	return kvMap, nil
 }
 
-func FetchInputsFromJob(client concourse.Client, inputsFrom flaghelpers.JobFlag) (map[string]Input, error) {
+func FetchInputsFromJob(team concourse.Team, inputsFrom flaghelpers.JobFlag) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		return kvMap, nil
 	}
 
-	buildInputs, found, err := client.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
+	buildInputs, found, err := team.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
 	if err != nil {
 		return nil, err
 	}

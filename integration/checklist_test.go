@@ -65,7 +65,7 @@ var _ = Describe("Fly CLI", func() {
 			JustBeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/config"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/config"),
 						ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: &config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 					),
 				)

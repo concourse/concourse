@@ -13,11 +13,12 @@ type DestroyPipelineCommand struct {
 }
 
 func (command *DestroyPipelineCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
@@ -34,7 +35,7 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		}
 	}
 
-	found, err := client.DeletePipeline(pipelineName)
+	found, err := target.Team().DeletePipeline(pipelineName)
 	if err != nil {
 		return err
 	}

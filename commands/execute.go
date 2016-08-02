@@ -27,11 +27,12 @@ type ExecuteCommand struct {
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
@@ -44,8 +45,10 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
+	client := target.Client()
 	inputs, err := executehelpers.DetermineInputs(
 		client,
+		target.Team(),
 		taskConfig.Inputs,
 		command.Inputs,
 		command.InputsFrom,

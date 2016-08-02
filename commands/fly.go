@@ -32,6 +32,8 @@ type FlyCommand struct {
 	SetPipeline     SetPipelineCommand     `command:"set-pipeline"     alias:"sp" description:"Create or update a pipeline's configuration"`
 	PausePipeline   PausePipelineCommand   `command:"pause-pipeline"   alias:"pp" description:"Pause a pipeline"`
 	UnpausePipeline UnpausePipelineCommand `command:"unpause-pipeline" alias:"up" description:"Un-pause a pipeline"`
+	RevealPipeline  RevealPipelineCommand  `command:"reveal-pipeline"  alias:"rp" description:"Reveal a pipeline"`
+	ConcealPipeline ConcealPipelineCommand `command:"conceal-pipeline" alias:"cp" description:"Conceal a pipeline"`
 	RenamePipeline  RenamePipelineCommand  `command:"rename-pipeline"  alias:"rp" description:"Rename a pipeline"`
 
 	CheckResource  CheckResourceCommand   `command:"check-resource"  alias:"cr" description:"Check a resource"`

@@ -14,16 +14,17 @@ type PausePipelineCommand struct {
 func (command *PausePipelineCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	found, err := client.PausePipeline(pipelineName)
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	found, err := target.Team().PausePipeline(pipelineName)
 	if err != nil {
 		return err
 	}

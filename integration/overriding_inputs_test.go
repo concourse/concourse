@@ -131,9 +131,9 @@ run:
 				}),
 			),
 		)
-		atcServer.RouteToHandler("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job/inputs",
+		atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs",
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job/inputs"),
+				ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs"),
 				ghttp.RespondWithJSONEncoded(http.StatusOK, []atc.BuildInput{
 					{
 						Name:     "some-input",

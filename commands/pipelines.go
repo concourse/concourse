@@ -3,33 +3,44 @@ package commands
 import (
 	"os"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
 )
 
-type PipelinesCommand struct{}
+type PipelinesCommand struct {
+	All bool `short:"a"  long:"all" description:"Show all pipelines"`
+}
 
 func (command *PipelinesCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	pipelines, err := client.ListPipelines()
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
 
-	table := ui.Table{
-		Headers: ui.TableRow{
-			{Contents: "name", Color: color.New(color.Bold)},
-			{Contents: "paused", Color: color.New(color.Bold)},
-		},
+	var headers []string
+	var pipelines []atc.Pipeline
+
+	if command.All {
+		pipelines, err = target.Client().ListPipelines()
+		headers = []string{"name", "team", "paused", "public"}
+	} else {
+		pipelines, err = target.Team().ListPipelines()
+		headers = []string{"name", "paused", "public"}
+	}
+	if err != nil {
+		return err
+	}
+
+	table := ui.Table{Headers: ui.TableRow{}}
+	for _, h := range headers {
+		table.Headers = append(table.Headers, ui.TableCell{Contents: h, Color: color.New(color.Bold)})
 	}
 
 	for _, p := range pipelines {
@@ -41,10 +52,23 @@ func (command *PipelinesCommand) Execute([]string) error {
 			pausedColumn.Contents = "no"
 		}
 
-		table.Data = append(table.Data, []ui.TableCell{
-			{Contents: p.Name},
-			pausedColumn,
-		})
+		var publicColumn ui.TableCell
+		if p.Public {
+			publicColumn.Contents = "yes"
+			publicColumn.Color = color.New(color.FgCyan)
+		} else {
+			publicColumn.Contents = "no"
+		}
+
+		row := ui.TableRow{}
+		row = append(row, ui.TableCell{Contents: p.Name})
+		if command.All {
+			row = append(row, ui.TableCell{Contents: p.TeamName})
+		}
+		row = append(row, pausedColumn)
+		row = append(row, publicColumn)
+
+		table.Data = append(table.Data, row)
 	}
 
 	return table.Render(os.Stdout)

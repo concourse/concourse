@@ -1,23 +1,26 @@
 package commands
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
-	"net/http"
-	"regexp"
+	"io/ioutil"
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
 )
 
 type LoginCommand struct {
-	ATCURL   string `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
-	Insecure bool   `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
-	Username string `short:"u" long:"username" description:"Username for basic auth"`
-	Password string `short:"p" long:"password" description:"Password for basic auth"`
+	ATCURL   string               `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
+	Insecure bool                 `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
+	Username string               `short:"u" long:"username" description:"Username for basic auth"`
+	Password string               `short:"p" long:"password" description:"Password for basic auth"`
+	TeamName string               `short:"n" long:"team-name" description:"Team to authenticate with" default:"main"`
+	CACert   flaghelpers.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
 }
 
 func (command *LoginCommand) Execute(args []string) error {
@@ -25,23 +28,52 @@ func (command *LoginCommand) Execute(args []string) error {
 		return errors.New("name for the target must be specified (--target/-t)")
 	}
 
-	var client concourse.Client
+	var target rc.Target
 	var err error
 
-	if command.ATCURL != "" {
-		client = rc.NewUnauthenticatedClient(command.ATCURL, command.Insecure)
-	} else {
-		client, err = rc.CommandTargetClient(Fly.Target, &command.Insecure)
+	var caCert string
+	if command.CACert != "" {
+		caCertBytes, err := ioutil.ReadFile(string(command.CACert))
+		if err != nil {
+			return err
+		}
+		caCert = string(caCertBytes)
 	}
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, true)
+
+	pool, err := rc.LoadCACertPool(caCert)
 	if err != nil {
 		return err
 	}
 
-	authMethods, err := client.ListAuthMethods()
+	if command.ATCURL != "" {
+		target = rc.NewUnauthenticatedTarget(
+			Fly.Target,
+			command.ATCURL,
+			command.TeamName,
+			command.Insecure,
+			pool,
+		)
+	} else {
+		target, err = rc.LoadTargetWithInsecure(
+			Fly.Target,
+			command.TeamName,
+			command.Insecure,
+			pool,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	err = target.ValidateWithWarningOnly()
+	if err != nil {
+		return err
+	}
+
+	authMethods, err := target.Team().ListAuthMethods()
 	if err != nil {
 		return err
 	}
@@ -62,8 +94,9 @@ func (command *LoginCommand) Execute(args []string) error {
 		switch len(authMethods) {
 		case 0:
 			return command.saveTarget(
-				client.URL(),
+				target.Client().URL(),
 				&rc.TargetToken{},
+				caCert,
 			)
 		case 1:
 			chosenMethod = authMethods[0]
@@ -83,10 +116,24 @@ func (command *LoginCommand) Execute(args []string) error {
 		}
 	}
 
-	return command.loginWith(chosenMethod, client)
+	client := target.Client()
+	token, err := command.loginWith(chosenMethod, client, pool)
+	// error check
+	return command.saveTarget(
+		client.URL(),
+		&rc.TargetToken{
+			Type:  token.Type,
+			Value: token.Value,
+		},
+		caCert,
+	)
 }
 
-func (command *LoginCommand) loginWith(method atc.AuthMethod, client concourse.Client) error {
+func (command *LoginCommand) loginWith(
+	method atc.AuthMethod,
+	client concourse.Client,
+	caCertPool *x509.CertPool,
+) (*atc.AuthToken, error) {
 	var token atc.AuthToken
 
 	switch method.Type {
@@ -101,7 +148,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client concourse.C
 
 			err := interact.NewInteraction("enter token").Resolve(interact.Required(&tokenStr))
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			segments := strings.SplitN(tokenStr, " ", 2)
@@ -123,7 +170,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client concourse.C
 		} else {
 			err := interact.NewInteraction("username").Resolve(interact.Required(&username))
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -134,49 +181,42 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client concourse.C
 			var interactivePassword interact.Password
 			err := interact.NewInteraction("password").Resolve(interact.Required(&interactivePassword))
 			if err != nil {
-				return err
+				return nil, err
 			}
 			password = string(interactivePassword)
 		}
 
-		newUnauthedClient := rc.NewUnauthenticatedClient(client.URL(), command.Insecure)
-
-		basicAuthClient := concourse.NewClient(
-			newUnauthedClient.URL(),
-			&http.Client{
-				Transport: basicAuthTransport{
-					username: username,
-					password: password,
-					base:     newUnauthedClient.HTTPClient().Transport,
-				},
-			},
+		target := rc.NewBasicAuthTarget(
+			Fly.Target,
+			client.URL(),
+			command.TeamName,
+			command.Insecure,
+			username,
+			password,
+			caCertPool,
 		)
 
 		var err error
-		token, err = basicAuthClient.AuthToken()
+		token, err = target.Team().AuthToken()
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return command.saveTarget(
-		client.URL(),
-		&rc.TargetToken{
-			Type:  token.Type,
-			Value: token.Value,
-		},
-	)
+	return &token, nil
 }
 
-func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken) error {
+func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCert string) error {
 	err := rc.SaveTarget(
 		Fly.Target,
 		url,
 		command.Insecure,
+		command.TeamName,
 		&rc.TargetToken{
 			Type:  token.Type,
 			Value: token.Value,
 		},
+		caCert,
 	)
 	if err != nil {
 		return err
@@ -185,21 +225,4 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken) error
 	fmt.Println("target saved")
 
 	return nil
-}
-
-type basicAuthTransport struct {
-	username string
-	password string
-
-	base http.RoundTripper
-}
-
-func (t basicAuthTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	r.SetBasicAuth(t.username, t.password)
-	return t.base.RoundTrip(r)
-}
-
-func isURL(passedURL string) bool {
-	matched, _ := regexp.MatchString("^http[s]?://", passedURL)
-	return matched
 }

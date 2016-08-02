@@ -16,7 +16,7 @@ import (
 var _ = Describe("RenamePipeline", func() {
 	var newName string
 	BeforeEach(func() {
-		expectedURL := "/api/v1/pipelines/some-pipeline/rename"
+		expectedURL := "/api/v1/teams/main/pipelines/some-pipeline/rename"
 		newName = "brandnew"
 
 		atcServer.AppendHandlers(

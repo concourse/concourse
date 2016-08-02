@@ -569,7 +569,9 @@ run:
 				rc.TargetName(targetName),
 				atcServer.URL(),
 				true,
+				"some-team",
 				&token,
+				"",
 			)
 			Expect(err).ToNot(HaveOccurred())
 

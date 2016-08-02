@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
@@ -26,14 +27,49 @@ type SetTeamCommand struct {
 		Teams         []flaghelpers.GitHubTeamFlag `long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
 		Users         []string                     `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
+
+	UAAAuth UAAAuth `group:"UAA Authentication" namespace:"uaa-auth"`
+}
+
+type UAAAuth struct {
+	ClientID     string               `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
+	ClientSecret string               `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
+	AuthURL      string               `long:"auth-url"      description:"UAA AuthURL endpoint."`
+	TokenURL     string               `long:"token-url"     description:"UAA TokenURL endpoint."`
+	CFSpaces     []string             `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
+	CFURL        string               `long:"cf-url"        description:"CF API endpoint."`
+	CFCACert     flaghelpers.PathFlag `long:"cf-ca-cert"    description:"Path to CF PEM-encoded CA certificate file."`
+}
+
+func (auth *UAAAuth) IsConfigured() bool {
+	return auth.ClientID != "" ||
+		auth.ClientSecret != "" ||
+		len(auth.CFSpaces) > 0 ||
+		auth.AuthURL != "" ||
+		auth.TokenURL != "" ||
+		auth.CFURL != ""
+}
+
+func (auth *UAAAuth) Validate() error {
+	if auth.ClientID == "" || auth.ClientSecret == "" {
+		return errors.New("Both client-id and client-secret are required for uaa-auth.")
+	}
+	if len(auth.CFSpaces) == 0 {
+		return errors.New("cf-space is required for uaa-auth.")
+	}
+	if auth.AuthURL == "" || auth.TokenURL == "" || auth.CFURL == "" {
+		return errors.New("auth-url, token-url and cf-url are required for uaa-auth.")
+	}
+	return nil
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
@@ -46,6 +82,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 	fmt.Println("Team Name:", command.TeamName)
 	fmt.Println("Basic Auth:", authMethodStatusDescription(hasBasicAuth))
 	fmt.Println("GitHub Auth:", authMethodStatusDescription(hasGitHubAuth))
+	fmt.Println("UAA Auth:", authMethodStatusDescription(command.UAAAuth.IsConfigured()))
 
 	confirm := false
 	err = interact.NewInteraction("apply configuration?").Resolve(&confirm)
@@ -57,9 +94,53 @@ func (command *SetTeamCommand) Execute([]string) error {
 		displayhelpers.Failf("bailing out")
 	}
 
-	team := command.GetTeam(hasBasicAuth, hasGitHubAuth)
+	team := atc.Team{}
 
-	_, _, _, err = client.SetTeam(command.TeamName, team)
+	if hasBasicAuth {
+		team.BasicAuth = &atc.BasicAuth{
+			BasicAuthUsername: command.BasicAuth.Username,
+			BasicAuthPassword: command.BasicAuth.Password,
+		}
+	}
+
+	if hasGitHubAuth {
+		team.GitHubAuth = &atc.GitHubAuth{
+			ClientID:      command.GitHubAuth.ClientID,
+			ClientSecret:  command.GitHubAuth.ClientSecret,
+			Organizations: command.GitHubAuth.Organizations,
+			Users:         command.GitHubAuth.Users,
+		}
+
+		for _, ghTeam := range command.GitHubAuth.Teams {
+			team.GitHubAuth.Teams = append(team.GitHubAuth.Teams, atc.GitHubTeam{
+				OrganizationName: ghTeam.OrganizationName,
+				TeamName:         ghTeam.TeamName,
+			})
+		}
+	}
+
+	if command.UAAAuth.IsConfigured() {
+		cfCACert := ""
+		if command.UAAAuth.CFCACert != "" {
+			cfCACertFileContents, err := ioutil.ReadFile(string(command.UAAAuth.CFCACert))
+			if err != nil {
+				return err
+			}
+			cfCACert = string(cfCACertFileContents)
+		}
+
+		team.UAAAuth = &atc.UAAAuth{
+			ClientID:     command.UAAAuth.ClientID,
+			ClientSecret: command.UAAAuth.ClientSecret,
+			AuthURL:      command.UAAAuth.AuthURL,
+			TokenURL:     command.UAAAuth.TokenURL,
+			CFSpaces:     command.UAAAuth.CFSpaces,
+			CFURL:        command.UAAAuth.CFURL,
+			CFCACert:     cfCACert,
+		}
+	}
+
+	_, _, _, err = target.Client().Team(command.TeamName).CreateOrUpdate(team)
 	if err != nil {
 		return err
 	}
@@ -86,6 +167,13 @@ func (command *SetTeamCommand) ValidateFlags() (bool, bool, error) {
 		}
 	}
 
+	if command.UAAAuth.IsConfigured() {
+		err := command.UAAAuth.Validate()
+		if err != nil {
+			return false, false, err
+		}
+	}
+
 	return hasBasicAuth, hasGitHubAuth, nil
 }
 
@@ -94,29 +182,4 @@ func authMethodStatusDescription(enabled bool) string {
 		return "enabled"
 	}
 	return "disabled"
-}
-
-func (command *SetTeamCommand) GetTeam(basicAuthEnabled, gitHubAuthEnabled bool) atc.Team {
-	team := atc.Team{}
-
-	if basicAuthEnabled {
-		team.BasicAuth.BasicAuthUsername = command.BasicAuth.Username
-		team.BasicAuth.BasicAuthPassword = command.BasicAuth.Password
-	}
-
-	if gitHubAuthEnabled {
-		team.GitHubAuth.ClientID = command.GitHubAuth.ClientID
-		team.GitHubAuth.ClientSecret = command.GitHubAuth.ClientSecret
-		team.GitHubAuth.Organizations = command.GitHubAuth.Organizations
-		team.GitHubAuth.Users = command.GitHubAuth.Users
-
-		for _, ghTeam := range command.GitHubAuth.Teams {
-			team.GitHubAuth.Teams = append(team.GitHubAuth.Teams, atc.GitHubTeam{
-				OrganizationName: ghTeam.OrganizationName,
-				TeamName:         ghTeam.TeamName,
-			})
-		}
-	}
-
-	return team
 }
