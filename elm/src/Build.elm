@@ -173,9 +173,9 @@ handleBuildFetched : Build -> Model -> (Model, Cmd Action)
 handleBuildFetched build model =
   let
     currentBuild =
-      { buildOrOutput = NoOutput build
-      , prep = Nothing
-      }
+      case model.currentBuild of
+        Nothing -> { buildOrOutput = NoOutput build, prep = Nothing }
+        Just currentBuild -> { currentBuild | buildOrOutput = NoOutput build }
 
     withBuild =
       { model | currentBuild = Just currentBuild }
