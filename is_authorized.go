@@ -3,7 +3,6 @@ package auth
 import (
 	"net/http"
 
-	"github.com/concourse/atc"
 	"github.com/gorilla/context"
 )
 
@@ -22,11 +21,8 @@ func IsAuthorized(r *http.Request) (bool, AuthorizationResponse) {
 	}
 
 	authTeamName, ok := context.GetOk(r, teamNameKey)
-	if !ok {
-		authTeamName = atc.DefaultTeamName
-	}
 
-	if r.URL.Query().Get(":team_name") != authTeamName {
+	if !ok || r.URL.Query().Get(":team_name") != authTeamName {
 		return false, Forbidden
 	}
 

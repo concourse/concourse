@@ -3,7 +3,6 @@ package auth
 import (
 	"net/http"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 
 	"golang.org/x/crypto/bcrypt"
@@ -17,9 +16,6 @@ type BasicAuthValidator struct {
 // basic authentication for login
 func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
 	teamName := r.FormValue(":team_name")
-	if teamName == "" {
-		teamName = atc.DefaultTeamName
-	}
 	teamDB := validator.TeamDBFactory.GetTeamDB(teamName)
 	team, found, err := teamDB.GetTeam()
 	if err != nil || !found {
@@ -27,7 +23,7 @@ func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
 	}
 
 	if team.BasicAuth == nil {
-		return true
+		return false
 	}
 
 	auth := r.Header.Get("Authorization")

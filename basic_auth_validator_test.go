@@ -130,8 +130,8 @@ var _ = Describe("BasicAuthValidator", func() {
 				fakeTeamDB.GetTeamReturns(team, true, nil)
 			})
 
-			It("returns true", func() {
-				Expect(isAuthenticated).To(BeTrue())
+			It("returns false", func() {
+				Expect(isAuthenticated).To(BeFalse())
 			})
 		})
 	})
