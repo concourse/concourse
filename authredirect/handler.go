@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/gorilla/context"
@@ -19,12 +18,14 @@ func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := handler.HTTPHandlerWithError.ServeHTTP(w, r)
 	if err == concourse.ErrUnauthorized || err == concourse.ErrForbidden {
 		teamName := r.FormValue(":team_name")
+		var path string
 		if teamName == "" {
-			teamName = atc.DefaultTeamName
+			path, err = web.Routes.CreatePathForRoute(web.LogIn, rata.Params{})
+		} else {
+			path, err = web.Routes.CreatePathForRoute(web.TeamLogIn, rata.Params{
+				"team_name": teamName,
+			})
 		}
-		path, err := web.Routes.CreatePathForRoute(web.TeamLogIn, rata.Params{
-			"team_name": teamName,
-		})
 		if err != nil {
 			return
 		}
