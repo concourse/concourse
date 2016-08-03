@@ -131,8 +131,9 @@ before using it!
     \hyperlink{https://github.com/mrsixw/concourse-rsync-resource}{Rsync}
   }{
     \hyperlink{https://github.com/mdomke/concourse-devpi-resource}{Devpi Server: PyPI mirror and package server}
+  }{
+    \hyperlink{https://github.com/frodenas/gcs-resource}{Google Cloud Storage}
   }
-
   \section{Adding to this list}{
     Fork the
     \hyperlink{https://github.com/concourse/concourse}{\code{concourse/concourse}}
