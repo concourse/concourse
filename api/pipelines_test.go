@@ -102,17 +102,6 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when team is not set in user context", func() {
-			BeforeEach(func() {
-				userContextReader.GetTeamReturns("", 0, false, false)
-			})
-
-			It("constructs teamDB with default team name", func() {
-				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal(atc.DefaultTeamName))
-			})
-		})
-
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)

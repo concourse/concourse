@@ -2,13 +2,10 @@ package acceptance_test
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,9 +17,8 @@ import (
 )
 
 var _ = Describe("Auth", func() {
-	var atcProcess ifrit.Process
+	var atcCommand *ATCCommand
 	var dbListener *pq.Listener
-	var atcPort uint16
 	var teamDB db.TeamDB
 
 	BeforeEach(func() {
@@ -45,7 +41,7 @@ var _ = Describe("Auth", func() {
 	})
 
 	AfterEach(func() {
-		ginkgomon.Interrupt(atcProcess)
+		atcCommand.Stop()
 
 		Expect(dbConn.Close()).To(Succeed())
 		Expect(dbListener.Close()).To(Succeed())
@@ -53,11 +49,13 @@ var _ = Describe("Auth", func() {
 
 	Describe("GitHub Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, GITHUB_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH)
+			err := atcCommand.Start()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("forces a redirect to /teams/main/login", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/teams/main/pipelines/main", atcPort), nil)
+			request, err := http.NewRequest("GET", atcCommand.URL("/teams/main/pipelines/main"), nil)
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -73,11 +71,13 @@ var _ = Describe("Auth", func() {
 
 	Describe("GitHub Enterprise Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, GITHUB_ENTERPRISE_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_ENTERPRISE_AUTH)
+			err := atcCommand.Start()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("forces a redirect to override github", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/github?redirect=%2F&team_name=main", atcPort), nil)
+			request, err := http.NewRequest("GET", atcCommand.URL("/auth/github?redirect=%2F&team_name=main"), nil)
 
 			client := new(http.Client)
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -94,12 +94,14 @@ var _ = Describe("Auth", func() {
 		var responseErr error
 
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
+			err := atcCommand.Start()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when requesting protected endpoint", func() {
 			BeforeEach(func() {
-				request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/teams/main/pipelines/main", atcPort), nil)
+				request, err := http.NewRequest("GET", atcCommand.URL("/teams/main/pipelines/main"), nil)
 				Expect(err).NotTo(HaveOccurred())
 				response, responseErr = http.DefaultClient.Do(request)
 			})
@@ -122,7 +124,7 @@ var _ = Describe("Auth", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				request, err := http.NewRequest("POST", fmt.Sprintf("http://127.0.0.1:%d/teams/some-team/pipelines/some-pipeline/jobs/foo/builds", atcPort), nil)
+				request, err := http.NewRequest("POST", atcCommand.URL("/teams/some-team/pipelines/some-pipeline/jobs/foo/builds"), nil)
 				Expect(err).NotTo(HaveOccurred())
 				response, responseErr = http.DefaultClient.Do(request)
 			})
@@ -139,7 +141,7 @@ var _ = Describe("Auth", func() {
 				_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 				Expect(err).NotTo(HaveOccurred())
 
-				request, err := http.NewRequest("POST", fmt.Sprintf("http://127.0.0.1:%d/teams/some-team/pipelines/some-pipeline/jobs/foo/builds", atcPort), nil)
+				request, err := http.NewRequest("POST", atcCommand.URL("/teams/some-team/pipelines/some-pipeline/jobs/foo/builds"), nil)
 				Expect(err).NotTo(HaveOccurred())
 				response, responseErr = http.DefaultClient.Do(request)
 			})
@@ -152,16 +154,16 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("errors when only username is specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, BASIC_AUTH_NO_PASSWORD)
-			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_PASSWORD)
+			session, err := cmd.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --basic-auth-password to use basic auth"))
 		})
 
 		It("errors when only password is specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, BASIC_AUTH_NO_USERNAME)
-			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_USERNAME)
+			session, err := cmd.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --basic-auth-username to use basic auth"))
@@ -170,11 +172,13 @@ var _ = Describe("Auth", func() {
 
 	Describe("No authentication via development mode", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, DEVELOPMENT_MODE)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, DEVELOPMENT_MODE)
+			err := atcCommand.Start()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("logs in without authentication", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
+			request, err := http.NewRequest("GET", atcCommand.URL("/"), nil)
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -184,8 +188,8 @@ var _ = Describe("Auth", func() {
 
 	Describe("when auth is not configured", func() {
 		It("returns an error", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, NOT_CONFIGURED_AUTH)
-			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NOT_CONFIGURED_AUTH)
+			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must configure basic auth, OAuth, or turn on development mode"))
@@ -194,11 +198,13 @@ var _ = Describe("Auth", func() {
 
 	Describe("UAA Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, UAA_AUTH)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH)
+			err := atcCommand.Start()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("forces a redirect to UAA auth URL", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/uaa?redirect=%2F&team_name=main", atcPort), nil)
+			request, err := http.NewRequest("GET", atcCommand.URL("/auth/uaa?redirect=%2F&team_name=main"), nil)
 
 			client := new(http.Client)
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -211,24 +217,24 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires client id and client secret to be specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, UAA_AUTH_NO_CLIENT_SECRET)
-			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_CLIENT_SECRET)
+			session, err := cmd.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth"))
 		})
 
 		It("requires space guid to be specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, UAA_AUTH_NO_SPACE)
-			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_SPACE)
+			session, err := cmd.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-cf-space to use UAA OAuth"))
 		})
 
 		It("requires auth, token and api url to be specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, UAA_AUTH_NO_TOKEN_URL)
-			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_TOKEN_URL)
+			session, err := cmd.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth"))

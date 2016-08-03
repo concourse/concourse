@@ -1,13 +1,10 @@
 package acceptance_test
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/lib/pq"
 	"github.com/sclevine/agouti"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,12 +16,12 @@ import (
 )
 
 var _ = Describe("Job Builds", func() {
-	var atcProcess ifrit.Process
+	var atcCommand *ATCCommand
 	var dbListener *pq.Listener
-	var atcPort uint16
 	var pipelineDBFactory db.PipelineDBFactory
 	var pipelineDB db.PipelineDB
 	var teamDBFactory db.TeamDBFactory
+	var teamName = atc.DefaultTeamName
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -33,14 +30,16 @@ var _ = Describe("Job Builds", func() {
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
-		atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
-		err := sqlDB.DeleteTeamByName("main")
+
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
+		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
+
 		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
 	})
 
 	AfterEach(func() {
-		ginkgomon.Interrupt(atcProcess)
+		atcCommand.Stop()
 
 		Expect(dbConn.Close()).To(Succeed())
 		Expect(dbListener.Close()).To(Succeed())
@@ -60,7 +59,7 @@ var _ = Describe("Job Builds", func() {
 		})
 
 		homepage := func() string {
-			return fmt.Sprintf("http://127.0.0.1:%d", atcPort)
+			return atcCommand.URL("")
 		}
 
 		withPath := func(path string) string {
@@ -68,24 +67,25 @@ var _ = Describe("Job Builds", func() {
 		}
 
 		Context("with a job in the configuration", func() {
-			var team db.SavedTeam
-			var teamName = atc.DefaultTeamName
+			var pipelineName = "some-pipeline"
+			var teamID int
 
 			BeforeEach(func() {
-				var err error
-				team, err = sqlDB.CreateTeam(db.Team{Name: teamName})
-				Expect(err).NotTo(HaveOccurred())
 				teamDB := teamDBFactory.GetTeamDB(teamName)
+				team, found, err := teamDB.GetTeam()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				teamID = team.ID
 
 				// job build data
-				_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
+				_, _, err = teamDB.SaveConfig(pipelineName, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				savedPipeline, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
+				savedPipeline, err := teamDB.GetPipelineByName(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipelineDB = pipelineDBFactory.Build(savedPipeline)
@@ -103,7 +103,7 @@ var _ = Describe("Job Builds", func() {
 					// homepage -> job detail w/build info
 					Expect(page.Navigate(homepage())).To(Succeed())
 					// we will need to authenticate later to prove it is working for our page
-					Authenticate(page, "admin", "password")
+					Login(page, homepage())
 					Eventually(page.FindByLink("job-name")).Should(BeFound())
 					Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
@@ -112,7 +112,7 @@ var _ = Describe("Job Builds", func() {
 					// job detail w/build info -> job detail
 					Eventually(page.Find("h1 a")).Should(BeFound())
 					Expect(page.Find("h1 a").Click()).To(Succeed())
-					Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/main/jobs/job-name")))
+					Eventually(page).Should(HaveURL(withPath("/teams/" + teamName + "/pipelines/" + pipelineName + "/jobs/job-name")))
 					Eventually(page.All(".js-build").Count).Should(Equal(100))
 
 					Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())

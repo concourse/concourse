@@ -2,13 +2,10 @@ package acceptance_test
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/lib/pq"
 	"github.com/sclevine/agouti"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,10 +17,9 @@ import (
 )
 
 var _ = Describe("Resource Pausing", func() {
-	var atcProcess ifrit.Process
+	var atcCommand *ATCCommand
 	var dbListener *pq.Listener
 	var pipelineDB db.PipelineDB
-	var atcPort uint16
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -33,16 +29,8 @@ var _ = Describe("Resource Pausing", func() {
 
 		sqlDB = db.NewSQL(dbConn, bus)
 
-		atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
-		err := sqlDB.DeleteTeamByName(atc.DefaultTeamName)
-		Expect(err).NotTo(HaveOccurred())
-		_, err = sqlDB.CreateTeam(db.Team{
-			Name: atc.DefaultTeamName,
-			BasicAuth: &db.BasicAuth{
-				BasicAuthUsername: "admin",
-				BasicAuthPassword: "password",
-			},
-		})
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
+		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
@@ -73,7 +61,7 @@ var _ = Describe("Resource Pausing", func() {
 	})
 
 	AfterEach(func() {
-		ginkgomon.Interrupt(atcProcess)
+		atcCommand.Stop()
 
 		Expect(dbConn.Close()).To(Succeed())
 		Expect(dbListener.Close()).To(Succeed())
@@ -93,7 +81,7 @@ var _ = Describe("Resource Pausing", func() {
 		})
 
 		homepage := func() string {
-			return fmt.Sprintf("http://127.0.0.1:%d", atcPort)
+			return atcCommand.URL("")
 		}
 
 		withPath := func(path string) string {
@@ -102,11 +90,7 @@ var _ = Describe("Resource Pausing", func() {
 
 		It("can view the resource", func() {
 			// homepage -> resource detail
-			Expect(page.Navigate(homepage() + "/login")).To(Succeed())
-			Expect(page.FindByLink("Log in with Basic Auth").Click()).To(Succeed())
-			Expect(page.FindByName("username").Fill("admin")).To(Succeed())
-			Expect(page.FindByName("password").Fill("password")).To(Succeed())
-			Expect(page.FindByButton("Log In").Click()).To(Succeed())
+			Login(page, homepage())
 
 			Expect(page.Navigate(homepage())).To(Succeed())
 			Eventually(page.FindByLink("resource-name")).Should(BeFound())

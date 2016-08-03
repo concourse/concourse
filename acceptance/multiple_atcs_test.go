@@ -3,15 +3,12 @@ package acceptance_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,11 +18,8 @@ import (
 )
 
 var _ = Describe("Multiple ATCs", func() {
-	var atcOneProcess ifrit.Process
-	var atcOnePort uint16
-
-	var atcTwoProcess ifrit.Process
-	var atcTwoPort uint16
+	var atcOneCommand *ATCCommand
+	var atcTwoCommand *ATCCommand
 
 	var dbListener *pq.Listener
 
@@ -36,20 +30,24 @@ var _ = Describe("Multiple ATCs", func() {
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(dbConn, bus)
 
-		atcOneProcess, atcOnePort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
-		atcTwoProcess, atcTwoPort, _ = startATC(atcBin, 2, []string{}, BASIC_AUTH)
+		atcOneCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
+		err := atcOneCommand.Start()
+		Expect(err).NotTo(HaveOccurred())
+
+		atcTwoCommand = NewATCCommand(atcBin, 2, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
+		err = atcTwoCommand.Start()
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		ginkgomon.Interrupt(atcOneProcess)
-		ginkgomon.Interrupt(atcTwoProcess)
+		atcOneCommand.Stop()
+		atcTwoCommand.Stop()
 
 		Expect(dbConn.Close()).To(Succeed())
 		Expect(dbListener.Close()).To(Succeed())
 	})
 
 	Describe("Pipes", func() {
-
 		var client *http.Client
 		BeforeEach(func() {
 			client = &http.Client{
@@ -57,10 +55,9 @@ var _ = Describe("Multiple ATCs", func() {
 			}
 		})
 
-		createPipe := func(atcPort uint16) atc.Pipe {
-			req, err := http.NewRequest("POST", fmt.Sprintf("http://127.0.0.1:%d/api/v1/pipes", atcPort), nil)
+		createPipe := func(atcCommand *ATCCommand) atc.Pipe {
+			req, err := http.NewRequest("POST", atcCommand.URL("/api/v1/pipes"), nil)
 			Expect(err).NotTo(HaveOccurred())
-			req.SetBasicAuth("admin", "password")
 
 			response, err := client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
@@ -74,20 +71,19 @@ var _ = Describe("Multiple ATCs", func() {
 			return pipe
 		}
 
-		readPipe := func(id string, atcPort uint16) *http.Response {
-			req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/api/v1/pipes/%s", atcPort, id), nil)
+		readPipe := func(id string, atcCommand *ATCCommand) *http.Response {
+			req, err := http.NewRequest("GET", atcCommand.URL("/api/v1/pipes/"+id), nil)
 			Expect(err).NotTo(HaveOccurred())
-			req.SetBasicAuth("admin", "password")
+
 			response, err := client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
 
 			return response
 		}
 
-		writePipe := func(id string, body io.Reader, atcPort uint16) *http.Response {
-			req, err := http.NewRequest("PUT", fmt.Sprintf("http://127.0.0.1:%d/api/v1/pipes/%s", atcPort, id), body)
+		writePipe := func(id string, body io.Reader, atcCommand *ATCCommand) *http.Response {
+			req, err := http.NewRequest("PUT", atcCommand.URL("/api/v1/pipes/"+id), body)
 			Expect(err).NotTo(HaveOccurred())
-			req.SetBasicAuth("admin", "password")
 
 			response, err := client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
@@ -96,17 +92,17 @@ var _ = Describe("Multiple ATCs", func() {
 		}
 
 		It("data can be written or read from the pipe regardless of where it was created", func() {
-			pipe := createPipe(atcOnePort)
+			pipe := createPipe(atcOneCommand)
 
-			readRes := readPipe(pipe.ID, atcOnePort)
+			readRes := readPipe(pipe.ID, atcOneCommand)
 			Expect(readRes.StatusCode).To(Equal(http.StatusOK))
 
-			writeRes := writePipe(pipe.ID, bytes.NewBufferString("some data"), atcOnePort)
+			writeRes := writePipe(pipe.ID, bytes.NewBufferString("some data"), atcOneCommand)
 			Expect(writeRes.StatusCode).To(Equal(http.StatusOK))
 
 			Expect(ioutil.ReadAll(readRes.Body)).To(Equal([]byte("some data")))
 			Eventually(func() int {
-				secondReadRes := readPipe(pipe.ID, atcOnePort)
+				secondReadRes := readPipe(pipe.ID, atcOneCommand)
 				defer secondReadRes.Body.Close()
 
 				return secondReadRes.StatusCode
@@ -115,17 +111,17 @@ var _ = Describe("Multiple ATCs", func() {
 			readRes.Body.Close()
 			writeRes.Body.Close()
 
-			pipe = createPipe(atcOnePort)
+			pipe = createPipe(atcOneCommand)
 
-			readRes = readPipe(pipe.ID, atcOnePort)
+			readRes = readPipe(pipe.ID, atcOneCommand)
 			Expect(readRes.StatusCode).To(Equal(http.StatusOK))
 
-			writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"), atcTwoPort)
+			writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"), atcTwoCommand)
 			Expect(writeRes.StatusCode).To(Equal(http.StatusOK))
 
 			Expect(ioutil.ReadAll(readRes.Body)).To(Equal([]byte("some data")))
 			Eventually(func() int {
-				secondReadRes := readPipe(pipe.ID, atcOnePort)
+				secondReadRes := readPipe(pipe.ID, atcOneCommand)
 				defer secondReadRes.Body.Close()
 
 				return secondReadRes.StatusCode
@@ -134,23 +130,23 @@ var _ = Describe("Multiple ATCs", func() {
 			readRes.Body.Close()
 			writeRes.Body.Close()
 
-			pipe = createPipe(atcTwoPort)
-			readRes = readPipe(pipe.ID, atcOnePort)
+			pipe = createPipe(atcTwoCommand)
+			readRes = readPipe(pipe.ID, atcOneCommand)
 			Expect(readRes.StatusCode).To(Equal(http.StatusOK))
 
-			writeRes = writePipe(pipe.ID, bytes.NewBufferString("some kind of data"), atcTwoPort)
+			writeRes = writePipe(pipe.ID, bytes.NewBufferString("some kind of data"), atcTwoCommand)
 			Expect(writeRes.StatusCode).To(Equal(http.StatusOK))
 			Expect(ioutil.ReadAll(readRes.Body)).To(Equal([]byte("some kind of data")))
 
 			readRes.Body.Close()
 			writeRes.Body.Close()
 
-			pipe = createPipe(atcOnePort)
+			pipe = createPipe(atcOneCommand)
 
-			readRes = readPipe(pipe.ID, atcTwoPort)
+			readRes = readPipe(pipe.ID, atcTwoCommand)
 			Expect(readRes.StatusCode).To(Equal(http.StatusOK))
 
-			writeRes = writePipe(pipe.ID, bytes.NewBufferString("some other data"), atcTwoPort)
+			writeRes = writePipe(pipe.ID, bytes.NewBufferString("some other data"), atcTwoCommand)
 			Expect(writeRes.StatusCode).To(Equal(http.StatusOK))
 
 			Expect(ioutil.ReadAll(readRes.Body)).To(Equal([]byte("some other data")))
@@ -159,5 +155,4 @@ var _ = Describe("Multiple ATCs", func() {
 			writeRes.Body.Close()
 		})
 	})
-
 })

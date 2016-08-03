@@ -79,7 +79,7 @@ var _ = Describe("Handler", func() {
 			fakeHTTPHandlerWithError.ServeHTTPReturns(concourse.ErrUnauthorized)
 		})
 
-		Context("when the request has the team_name param", func() {
+		Context("when the request has the team_name param in URL", func() {
 			BeforeEach(func() {
 				var err error
 				request, err = http.NewRequest("GET", server.URL+"/teams/some-team/some-path", nil)
@@ -135,8 +135,8 @@ var _ = Describe("Handler", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("redirects to /teams/main/login?redirect=<request uri>", func() {
-				expectedLocation := "/teams/main/login?" + url.Values{
+			It("redirects to /login?redirect=<request uri>", func() {
+				expectedLocation := "/login?" + url.Values{
 					"redirect": {"/some-path"},
 				}.Encode()
 				Expect(response.StatusCode).To(Equal(http.StatusFound))
@@ -158,8 +158,8 @@ var _ = Describe("Handler", func() {
 							request.Header.Set("Referer", "http://referer.com")
 						})
 
-						It("redirects to /teams/main/login?redirect=<referer uri>", func() {
-							expectedLocation := "/teams/main/login?" + url.Values{
+						It("redirects to /login?redirect=<referer uri>", func() {
+							expectedLocation := "/login?" + url.Values{
 								"redirect": {"http://referer.com"},
 							}.Encode()
 							Expect(response.StatusCode).To(Equal(http.StatusFound))
@@ -168,9 +168,9 @@ var _ = Describe("Handler", func() {
 					})
 
 					Context("without a Referer header", func() {
-						It("redirects to /teams/main/login with no redirect", func() {
+						It("redirects to /login with no redirect", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusFound))
-							Expect(response.Header.Get("Location")).To(Equal("/teams/main/login"))
+							Expect(response.Header.Get("Location")).To(Equal("/login"))
 						})
 					})
 				})

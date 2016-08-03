@@ -113,38 +113,6 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 					Expect(string(responseBody)).To(Equal("nope\n"))
 				})
 			})
-
-			Context("when the request's team is main", func() {
-				BeforeEach(func() {
-					var err error
-					request, err = http.NewRequest("GET", server.URL+"/teams/main/pipelines/main", bytes.NewBufferString("hello"))
-					Expect(err).NotTo(HaveOccurred())
-					urlValues := url.Values{":team_name": []string{"main"}}
-					request.URL.RawQuery = urlValues.Encode()
-					fakeUserContextReader.GetTeamReturns("", 0, false, false)
-				})
-
-				Context("when the bearer token's team is empty", func() {
-					// This will happen if you log in via `fly` without a team name and
-					// the `main` team does not have basic auth. The BasicAuthValidator
-					// will return true for IsAuthenticated. The bearer token we set when
-					// you log in without a team name has no team name in it, so we
-					// should default it to atc.DefaultTeamName (main).
-					BeforeEach(func() {
-						fakeUserContextReader.GetTeamReturns("", 0, false, false)
-					})
-
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("proxies to the handler", func() {
-						responseBody, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(string(responseBody)).To(Equal("simple hello"))
-					})
-				})
-			})
 		})
 
 		Context("when the request is not authenticated", func() {
