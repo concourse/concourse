@@ -19,7 +19,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
-	gfakes "code.cloudfoundry.org/garden/fakes"
+	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	gserver "code.cloudfoundry.org/garden/server"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
