@@ -30,8 +30,6 @@ func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
 	command.FindOptionByLongName("garden-runc-bin").Required = false
 	command.FindOptionByLongName("garden-dadoo-bin").Required = false
 	command.FindOptionByLongName("garden-init-bin").Required = false
-	command.FindOptionByLongName("garden-iodaemon-bin").Required = false
-	command.FindOptionByLongName("garden-kawasaki-bin").Required = false
 	command.FindOptionByLongName("garden-nstar-bin").Required = false
 	command.FindOptionByLongName("garden-tar-bin").Required = false
 }
@@ -63,8 +61,6 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	cmd.Garden.Bin.Runc = filepath.Join(assetsDir, "bin", "runc")
 	cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "dadoo"))
 	cmd.Garden.Bin.Init = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "init"))
-	cmd.Garden.Bin.IODaemon = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "iodaemon"))
-	cmd.Garden.Bin.Kawasaki = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "kawasaki"))
 	cmd.Garden.Bin.NSTar = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "nstar"))
 	cmd.Garden.Bin.Tar = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "tar"))
 

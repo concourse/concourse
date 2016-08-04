@@ -31,7 +31,6 @@ pushd garden-runc-release/
 
     go install code.cloudfoundry.org/guardian/cmd/dadoo
     go install code.cloudfoundry.org/guardian/cmd/init
-    go install code.cloudfoundry.org/guardian/cmd/kawasaki
 
     pushd src/github.com/opencontainers/runc
       PKG_CONFIG_PATH=/opt/static-assets/libseccomp/lib/pkgconfig \
@@ -47,7 +46,7 @@ pushd garden-runc-release/
       mv nstar $LINUX_ASSETS/bin
     popd
 
-    cp bin/{iodaemon,kawasaki,init,dadoo} $LINUX_ASSETS/bin
+    cp bin/{init,dadoo} $LINUX_ASSETS/bin
   )
 popd
 
