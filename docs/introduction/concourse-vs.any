@@ -26,26 +26,43 @@ attempt.
   After a while cracks began to show.
 
   \list{
-    Jenkins servers become snowflakes. More and more important shell script gets
-    pasted into those little textboxes, plugins get installed, and packages are
-    installed on the box. It's possible to try and store this state but Jenkins
-    servers are extremely resistant to being declaratively configured.
+    Jenkins servers become snowflakes. More and more important shell script
+    gets pasted into those little textboxes, plugins get installed, and
+    dependencies are installed on the slaves. It's possible to try and store
+    this state but Jenkins servers are extremely resistant to being
+    declaratively configured.
 
     Concourse does not allow any configuration to enter the server that cannot
     be easily saved away in version control. Deleting your Concourse server and
     bringing it back somewhere else is not and should not be a big deal. Builds
-    run inside their own containers so that installing packages on the build
-    machine doesn't pollute other builds.
+    run every step in their own containers, with their own dependencies, so
+    workers never need to be configured in the first place.
   }{
     Jenkins has no first class support for pipelines. There are plugins that
     add some of this functionality but they never seemed to work perfectly. You
     can set jobs to run before or after others but this becomes error prone and
     confusing to perform more complex sequence changes.
 
+    Jenkins 2.0 tries to address this by promoting a Pipeline plugin (plus
+    another plugin to visualize it), but it kind of misses the point. It, like
+    the plugins before it, allows you to define a flow of scripts and plugins
+    to execute, but the real heart of a pipeline in the Concourse world is
+    \reference{resources}{resources}, not the fact that it can run jobs one
+    after another.
+
     Concourse is built on the assumption that you will be building pipelines.
     However, instead of making you explicitly say the order in which jobs should
     be run, Concourse just asks that you say which are valid inputs for each of
     the jobs in your pipeline and uses this to calculate the pipeline itself.
+  }{
+    Everything you care about in Jenkins is accomplished by plugins.  Concourse
+    aims to never have a plugin architecture, and instead determine the generic
+    features and user experience patterns that allow it to remain nimble,
+    stable, and consistent.
+
+    Rather than scouring the earth for a still-maintained plugin to accomplish
+    your goals, Concourse encourages modeling what you need in terms of the few
+    \reference{concepts}{concepts} that Concourse requires you to understand.
   }{
     Trying to find the build output log for a failed build in Jenkins can be up
     to 3 clicks from the home page.
