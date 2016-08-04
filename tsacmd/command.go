@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/tsa"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/tedsuo/rata"
