@@ -7,8 +7,8 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/restart"

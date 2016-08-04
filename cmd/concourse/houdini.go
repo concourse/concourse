@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-incubator/garden/server"
+	"code.cloudfoundry.org/garden/server"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/vito/houdini"
 )

@@ -29,10 +29,9 @@ pushd garden-runc-release/
 
     export GOPATH=$PWD
 
-    go install github.com/cloudfoundry-incubator/guardian/cmd/dadoo
-    go install github.com/cloudfoundry-incubator/guardian/cmd/init
-    go install github.com/cloudfoundry-incubator/guardian/cmd/kawasaki
-    go install github.com/cloudfoundry-incubator/guardian/rundmc/iodaemon/cmd/iodaemon
+    go install code.cloudfoundry.org/guardian/cmd/dadoo
+    go install code.cloudfoundry.org/guardian/cmd/init
+    go install code.cloudfoundry.org/guardian/cmd/kawasaki
 
     pushd src/github.com/opencontainers/runc
       PKG_CONFIG_PATH=/opt/static-assets/libseccomp/lib/pkgconfig \
@@ -43,7 +42,7 @@ pushd garden-runc-release/
       mv runc $LINUX_ASSETS/bin
     popd
 
-    pushd src/github.com/cloudfoundry-incubator/guardian/rundmc/nstar
+    pushd src/code.cloudfoundry.org/guardian/rundmc/nstar
       make
       mv nstar $LINUX_ASSETS/bin
     popd

@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
-	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 )
 

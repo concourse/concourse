@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/cloudfoundry-incubator/garden/server"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/garden/server"
+	"code.cloudfoundry.org/lager"
 )
 
 type gardenServerRunner struct {

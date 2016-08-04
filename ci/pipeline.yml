@@ -9,7 +9,7 @@ resources:
 - name: garden-runc-release
   type: git
   source:
-    uri: https://github.com/cloudfoundry-incubator/garden-runc-release
+    uri: https://github.com/cloudfoundry/garden-runc-release
     branch: develop
 
 - name: bin
