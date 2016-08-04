@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -40,29 +39,21 @@ func (command *LoginCommand) Execute(args []string) error {
 		caCert = string(caCertBytes)
 	}
 
-	pool, err := rc.LoadCACertPool(caCert)
-	if err != nil {
-		return err
-	}
-
 	if command.ATCURL != "" {
-		target = rc.NewUnauthenticatedTarget(
+		target, err = rc.NewUnauthenticatedTarget(
 			Fly.Target,
 			command.ATCURL,
 			command.TeamName,
 			command.Insecure,
-			pool,
+			caCert,
 		)
 	} else {
 		target, err = rc.LoadTargetWithInsecure(
 			Fly.Target,
 			command.TeamName,
 			command.Insecure,
-			pool,
+			caCert,
 		)
-		if err != nil {
-			return err
-		}
 	}
 	if err != nil {
 		return err
@@ -117,8 +108,11 @@ func (command *LoginCommand) Execute(args []string) error {
 	}
 
 	client := target.Client()
-	token, err := command.loginWith(chosenMethod, client, pool)
-	// error check
+	token, err := command.loginWith(chosenMethod, client, caCert)
+	if err != nil {
+		return err
+	}
+
 	return command.saveTarget(
 		client.URL(),
 		&rc.TargetToken{
@@ -132,7 +126,7 @@ func (command *LoginCommand) Execute(args []string) error {
 func (command *LoginCommand) loginWith(
 	method atc.AuthMethod,
 	client concourse.Client,
-	caCertPool *x509.CertPool,
+	caCert string,
 ) (*atc.AuthToken, error) {
 	var token atc.AuthToken
 
@@ -186,17 +180,19 @@ func (command *LoginCommand) loginWith(
 			password = string(interactivePassword)
 		}
 
-		target := rc.NewBasicAuthTarget(
+		target, err := rc.NewBasicAuthTarget(
 			Fly.Target,
 			client.URL(),
 			command.TeamName,
 			command.Insecure,
 			username,
 			password,
-			caCertPool,
+			caCert,
 		)
+		if err != nil {
+			return nil, err
+		}
 
-		var err error
 		token, err = target.Team().AuthToken()
 		if err != nil {
 			return nil, err

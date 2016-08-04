@@ -53,7 +53,13 @@ func LoadTarget(selectedTarget TargetName) (Target, error) {
 		return nil, err
 	}
 
-	client := clientFromTargetProps(targetProps)
+	caCertPool, err := loadCACertPool(targetProps.CACert)
+	if err != nil {
+		return nil, err
+	}
+
+	httpClient := defaultHttpClient(targetProps.Token, targetProps.Insecure, caCertPool)
+	client := concourse.NewClient(targetProps.API, httpClient)
 
 	return &target{
 		name:     selectedTarget,
@@ -66,23 +72,28 @@ func LoadTargetWithInsecure(
 	selectedTarget TargetName,
 	teamName string,
 	commandInsecure bool,
-	caCertPool *x509.CertPool,
+	caCert string,
 ) (Target, error) {
 	targetProps, err := SelectTarget(selectedTarget)
 	if err != nil {
 		return nil, err
 	}
 
-	client := buildClient(targetProps.API, targetProps.Token, commandInsecure, caCertPool)
-
 	if teamName == "" {
 		teamName = targetProps.TeamName
 	}
 
+	caCertPool, err := loadCACertPool(caCert)
+	if err != nil {
+		return nil, err
+	}
+
+	httpClient := defaultHttpClient(targetProps.Token, commandInsecure, caCertPool)
+
 	return &target{
 		name:     selectedTarget,
 		teamName: teamName,
-		client:   client,
+		client:   concourse.NewClient(targetProps.API, httpClient),
 	}, nil
 }
 
@@ -91,15 +102,20 @@ func NewUnauthenticatedTarget(
 	url string,
 	teamName string,
 	insecure bool,
-	caCertPool *x509.CertPool,
-) Target {
+	caCert string,
+) (Target, error) {
+	caCertPool, err := loadCACertPool(caCert)
+	if err != nil {
+		return nil, err
+	}
+
 	httpClient := unauthenticatedHttpClient(insecure, caCertPool)
 	client := concourse.NewClient(url, httpClient)
 	return &target{
 		name:     name,
 		teamName: teamName,
 		client:   client,
-	}
+	}, nil
 }
 
 func NewBasicAuthTarget(
@@ -109,8 +125,12 @@ func NewBasicAuthTarget(
 	insecure bool,
 	username string,
 	password string,
-	caCertPool *x509.CertPool,
-) Target {
+	caCert string,
+) (Target, error) {
+	caCertPool, err := loadCACertPool(caCert)
+	if err != nil {
+		return nil, err
+	}
 	httpClient := basicAuthHttpClient(username, password, insecure, caCertPool)
 	client := concourse.NewClient(url, httpClient)
 
@@ -118,7 +138,7 @@ func NewBasicAuthTarget(
 		name:     name,
 		teamName: teamName,
 		client:   client,
-	}
+	}, nil
 }
 
 func (t *target) Client() concourse.Client {
@@ -169,7 +189,13 @@ func (t *target) validate(allowVersionMismatch bool) error {
 	return nil
 }
 
-func buildClient(url string, token *TargetToken, insecure bool, caCertPool *x509.CertPool) concourse.Client {
+func unauthenticatedHttpClient(insecure bool, caCertPool *x509.CertPool) *http.Client {
+	return &http.Client{
+		Transport: transport(insecure, caCertPool),
+	}
+}
+
+func defaultHttpClient(token *TargetToken, insecure bool, caCertPool *x509.CertPool) *http.Client {
 	var oAuthToken *oauth2.Token
 	if token != nil {
 		oAuthToken = &oauth2.Token{
@@ -187,30 +213,20 @@ func buildClient(url string, token *TargetToken, insecure bool, caCertPool *x509
 		}
 	}
 
-	return concourse.NewClient(url, &http.Client{Transport: transport})
+	return &http.Client{Transport: transport}
 }
 
-func clientFromTargetProps(targetProps TargetProps) concourse.Client {
-	pool, _ := LoadCACertPool(targetProps.CACert)
-	// error check
-	return buildClient(targetProps.API, targetProps.Token, targetProps.Insecure, pool)
-}
+func loadCACertPool(caCert string) (cert *x509.CertPool, err error) {
+	if caCert == "" {
+		return nil, nil
+	}
 
-func LoadCACertPool(caCert string) (cert *x509.CertPool, err error) {
 	pool := x509.NewCertPool()
-	if caCert != "" {
-		ok := pool.AppendCertsFromPEM([]byte(caCert))
-		if !ok {
-			return nil, errors.New("CA Cert not valid")
-		}
+	ok := pool.AppendCertsFromPEM([]byte(caCert))
+	if !ok {
+		return nil, errors.New("CA Cert not valid")
 	}
 	return pool, nil
-}
-
-func unauthenticatedHttpClient(insecure bool, caCertPool *x509.CertPool) *http.Client {
-	return &http.Client{
-		Transport: transport(insecure, caCertPool),
-	}
 }
 
 func basicAuthHttpClient(
