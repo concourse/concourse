@@ -6,10 +6,10 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/dgrijalva/jwt-go"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/onsi/gomega/ghttp"
 

@@ -18,11 +18,11 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	jwt "github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"

@@ -3,9 +3,9 @@ package uaa
 import (
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/concourse/atc/db"
-	"code.cloudfoundry.org/lager"
 	"golang.org/x/oauth2"
 )
 

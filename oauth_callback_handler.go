@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc/db"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"

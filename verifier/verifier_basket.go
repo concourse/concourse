@@ -3,8 +3,8 @@ package verifier
 import (
 	"net/http"
 
-	"github.com/hashicorp/go-multierror"
 	"code.cloudfoundry.org/lager"
+	"github.com/hashicorp/go-multierror"
 )
 
 type VerifierBasket struct {

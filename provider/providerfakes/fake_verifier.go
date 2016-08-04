@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/concourse/atc/auth/provider"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/auth/provider"
 )
 
 type FakeVerifier struct {
