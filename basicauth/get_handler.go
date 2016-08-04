@@ -4,8 +4,8 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/concourse/atc/web"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 

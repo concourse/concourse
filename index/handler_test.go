@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/pipeline"
 	"github.com/concourse/atc/web/webfakes"
 	cfakes "github.com/concourse/go-concourse/concourse/concoursefakes"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
