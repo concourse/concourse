@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type TemplateData struct {

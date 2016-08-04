@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type Handler struct {
