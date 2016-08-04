@@ -1,9 +1,9 @@
 package containerserver
 
 import (
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
-	"code.cloudfoundry.org/lager"
 )
 
 type Server struct {

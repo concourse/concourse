@@ -4,10 +4,10 @@ package resourcefakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"code.cloudfoundry.org/lager"
 )
 
 type FakeFetchContainerCreatorFactory struct {

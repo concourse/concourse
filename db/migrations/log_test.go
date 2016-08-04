@@ -8,9 +8,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
-	"github.com/BurntSushi/migration"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/BurntSushi/migration"
 
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/db/migrations/migrationsfakes"

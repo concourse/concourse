@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
-	"code.cloudfoundry.org/lager"
 )
 
 type scopedHandlerFactory struct {

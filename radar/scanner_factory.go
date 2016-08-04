@@ -3,8 +3,8 @@ package radar
 import (
 	"time"
 
-	"github.com/concourse/atc/resource"
 	"code.cloudfoundry.org/clock"
+	"github.com/concourse/atc/resource"
 )
 
 type ScannerFactory interface {

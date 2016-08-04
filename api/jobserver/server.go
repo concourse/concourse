@@ -1,10 +1,10 @@
 package jobserver
 
 import (
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
-	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . SchedulerFactory

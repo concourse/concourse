@@ -4,13 +4,13 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler/buildstarter"
 	"github.com/concourse/atc/scheduler/inputmapper"
-	"code.cloudfoundry.org/lager"
 )
 
 const ResourceCheckingForJobTimeout = 5 * time.Minute

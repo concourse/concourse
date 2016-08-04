@@ -1,11 +1,11 @@
 package engine
 
 import (
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
 )
 
 func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {

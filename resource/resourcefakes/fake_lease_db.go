@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
-	"code.cloudfoundry.org/lager"
 )
 
 type FakeLeaseDB struct {

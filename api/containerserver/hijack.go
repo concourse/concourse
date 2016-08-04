@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/gorilla/websocket"
-	"code.cloudfoundry.org/lager"
 )
 
 var upgrader = websocket.Upgrader{

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/atc/db"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
 
 	"github.com/BurntSushi/migration"
 )

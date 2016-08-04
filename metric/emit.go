@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/bigdatadev/goryman"
 	"code.cloudfoundry.org/lager"
+	"github.com/bigdatadev/goryman"
 )
 
 type eventEmission struct {

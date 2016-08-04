@@ -1,10 +1,10 @@
 package configserver
 
 import (
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
-	"code.cloudfoundry.org/lager"
 )
 
 type Server struct {

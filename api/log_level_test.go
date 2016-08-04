@@ -5,10 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/lager"
 )
 
 var _ = Describe("Log Level API", func() {

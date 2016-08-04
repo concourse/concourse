@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/event"
-	"code.cloudfoundry.org/lager"
 )
 
 type Status string

@@ -4,12 +4,12 @@ import (
 	"errors"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"

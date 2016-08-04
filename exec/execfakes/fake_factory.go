@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
 )
 
 type FakeFactory struct {

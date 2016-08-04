@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc/web"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/web"
 )
 
 const CookieName = "ATC-Authorization"

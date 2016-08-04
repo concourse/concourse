@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
@@ -44,8 +46,6 @@ import (
 	"github.com/gorilla/context"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/lib/pq"
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"

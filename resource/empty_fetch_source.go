@@ -4,8 +4,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/atc/worker"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/worker"
 )
 
 type emptyFetchSource struct {

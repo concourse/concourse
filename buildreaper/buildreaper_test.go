@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/buildreaper"
 	"github.com/concourse/atc/buildreaper/buildreaperfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

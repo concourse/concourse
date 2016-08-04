@@ -1,8 +1,8 @@
 package buildreaper
 
 import (
-	"github.com/concourse/atc/db"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
 )
 
 //go:generate counterfeiter . BuildReaperDB

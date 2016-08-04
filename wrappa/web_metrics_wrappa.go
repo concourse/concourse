@@ -1,9 +1,9 @@
 package wrappa
 
 import (
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/web"
-	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 

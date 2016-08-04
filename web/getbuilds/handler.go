@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/go-concourse/concourse"
-	"code.cloudfoundry.org/lager"
 )
 
 type Handler struct {

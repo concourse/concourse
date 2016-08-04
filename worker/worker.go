@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
 )
 
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")

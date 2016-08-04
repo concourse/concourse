@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"code.cloudfoundry.org/lager"
 )
 
 const tokenDuration = 24 * time.Hour

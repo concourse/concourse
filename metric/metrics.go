@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bigdatadev/goryman"
 	"code.cloudfoundry.org/lager"
+	"github.com/bigdatadev/goryman"
 
 	"github.com/concourse/atc/db"
 )

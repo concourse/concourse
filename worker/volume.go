@@ -4,10 +4,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/atc/metric"
-	"github.com/concourse/baggageclaim"
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/metric"
+	"github.com/concourse/baggageclaim"
 )
 
 const volumeKeepalive = 30 * time.Second

@@ -3,8 +3,8 @@ package github
 import (
 	"net/http"
 
-	"github.com/concourse/atc/auth/verifier"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/auth/verifier"
 )
 
 type Team struct {

@@ -4,11 +4,11 @@ import (
 	"errors"
 	"os"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/pipelines/pipelinesfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/fake_runner"
 

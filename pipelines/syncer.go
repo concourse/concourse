@@ -3,8 +3,8 @@ package pipelines
 import (
 	"os"
 
-	"github.com/concourse/atc/db"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
 	"github.com/tedsuo/ifrit"
 )
 

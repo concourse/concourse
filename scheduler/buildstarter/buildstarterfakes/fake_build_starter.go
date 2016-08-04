@@ -4,9 +4,9 @@ package buildstarterfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/buildstarter"
-	"code.cloudfoundry.org/lager"
 )
 
 type FakeBuildStarter struct {

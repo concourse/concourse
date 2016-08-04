@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"

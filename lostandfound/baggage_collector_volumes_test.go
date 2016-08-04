@@ -4,12 +4,12 @@ import (
 	"errors"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/lostandfound"
 	"github.com/concourse/atc/lostandfound/lostandfoundfakes"
 	"github.com/concourse/atc/resource"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/db/dbfakes"
 	wfakes "github.com/concourse/atc/worker/workerfakes"

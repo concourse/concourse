@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/auth/provider/providerfakes"
 

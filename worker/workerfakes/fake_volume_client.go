@@ -4,8 +4,8 @@ package workerfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/worker"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/worker"
 )
 
 type FakeVolumeClient struct {

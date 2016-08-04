@@ -3,10 +3,10 @@ package resource_test
 import (
 	"testing"
 
+	"code.cloudfoundry.org/clock/fakeclock"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/clock/fakeclock"
 
 	. "github.com/concourse/atc/resource"
 )

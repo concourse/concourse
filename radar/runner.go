@@ -4,8 +4,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/atc/db"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )

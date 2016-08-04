@@ -3,8 +3,8 @@ package pipelineserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/db"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
 )
 
 func (s *Server) DeletePipeline(pipelineDB db.PipelineDB) http.Handler {

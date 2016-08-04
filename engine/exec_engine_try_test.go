@@ -1,13 +1,13 @@
 package engine_test
 
 import (
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec/execfakes"

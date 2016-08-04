@@ -3,9 +3,9 @@ package exec
 import (
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
-	"code.cloudfoundry.org/lager"
 )
 
 // DependentGetStep represents a Get step whose version is determined by the

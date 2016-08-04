@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/concourse/atc"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 )
 
 //go:generate counterfeiter . ImageFactory

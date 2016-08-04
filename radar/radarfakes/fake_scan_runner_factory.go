@@ -4,8 +4,8 @@ package radarfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/radar"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/radar"
 	"github.com/tedsuo/ifrit"
 )
 

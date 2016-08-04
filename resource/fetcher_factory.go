@@ -3,10 +3,10 @@ package resource
 import (
 	"time"
 
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/worker"
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/worker"
 )
 
 //go:generate counterfeiter . FetcherFactory

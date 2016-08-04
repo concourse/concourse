@@ -1,9 +1,9 @@
 package builds
 
 import (
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . TrackerDB

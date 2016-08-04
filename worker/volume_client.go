@@ -1,9 +1,9 @@
 package worker
 
 import (
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
-	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . VolumeClient

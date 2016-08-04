@@ -3,8 +3,8 @@ package resourceserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/db"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
 

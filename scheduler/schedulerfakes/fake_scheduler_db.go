@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler"
-	"code.cloudfoundry.org/lager"
 )
 
 type FakeSchedulerDB struct {

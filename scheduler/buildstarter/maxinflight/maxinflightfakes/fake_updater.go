@@ -4,9 +4,9 @@ package maxinflightfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/buildstarter/maxinflight"
-	"code.cloudfoundry.org/lager"
 )
 
 type FakeUpdater struct {

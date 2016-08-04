@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/containerkeepaliver"
 	"github.com/concourse/atc/containerkeepaliver/containerkeepaliverfakes"
@@ -12,7 +13,6 @@ import (
 	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/lager/lagertest"
 )
 
 var _ = Describe("ContainerKeepAliver", func() {

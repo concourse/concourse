@@ -4,8 +4,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/bigdatadev/goryman"
 	"code.cloudfoundry.org/lager"
+	"github.com/bigdatadev/goryman"
 )
 
 func periodicallyEmit(logger lager.Logger, interval time.Duration) {

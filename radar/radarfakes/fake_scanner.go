@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/radar"
-	"code.cloudfoundry.org/lager"
 )
 
 type FakeScanner struct {

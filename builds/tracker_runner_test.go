@@ -4,9 +4,9 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/clock/fakeclock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/clock/fakeclock"
 	"github.com/tedsuo/ifrit"
 
 	. "github.com/concourse/atc/builds"

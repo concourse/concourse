@@ -4,8 +4,8 @@ package schedulerfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/scheduler"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/scheduler"
 )
 
 type FakeScanner struct {

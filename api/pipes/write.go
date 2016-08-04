@@ -4,8 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/concourse/atc"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 )
 
 func (s *Server) WritePipe(w http.ResponseWriter, r *http.Request) {

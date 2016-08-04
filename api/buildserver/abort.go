@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc/auth"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/auth"
 )
 
 func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {

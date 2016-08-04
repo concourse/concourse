@@ -3,10 +3,10 @@ package image
 import (
 	"os"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"code.cloudfoundry.org/lager"
 )
 
 type factory struct {

@@ -7,10 +7,10 @@ import (
 	"errors"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
-	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . Conn

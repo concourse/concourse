@@ -3,6 +3,7 @@ package pipelines
 import (
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -14,7 +15,6 @@ import (
 	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/scheduler/inputmapper"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
-	"code.cloudfoundry.org/clock"
 )
 
 //go:generate counterfeiter . RadarSchedulerFactory

@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 	"github.com/gorilla/context"
-	"code.cloudfoundry.org/lager"
 )
 
 type IntMetric int

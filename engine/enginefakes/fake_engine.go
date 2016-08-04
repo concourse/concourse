@@ -4,10 +4,10 @@ package enginefakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"code.cloudfoundry.org/lager"
 )
 
 type FakeEngine struct {

@@ -4,9 +4,9 @@ package workerfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
-	"code.cloudfoundry.org/lager"
 )
 
 type FakeVolumeFactory struct {

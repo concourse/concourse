@@ -4,8 +4,8 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/elazarl/go-bindata-assetfs"
 	"code.cloudfoundry.org/lager"
+	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/web"

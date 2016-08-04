@@ -4,10 +4,10 @@ import (
 	"html/template"
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
-	"code.cloudfoundry.org/lager"
 )
 
 type TemplateData struct {

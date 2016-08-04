@@ -4,11 +4,11 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/clock/fakeclock"
 	. "github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/pipelines/pipelinesfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/clock/fakeclock"
 	"github.com/tedsuo/ifrit"
 )
 

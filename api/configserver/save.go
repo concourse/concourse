@@ -11,11 +11,11 @@ import (
 	"mime/multipart"
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/mitchellh/mapstructure"
-	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 )

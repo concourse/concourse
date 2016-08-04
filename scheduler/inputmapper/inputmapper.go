@@ -1,11 +1,11 @@
 package inputmapper
 
 import (
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
-	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . InputMapper

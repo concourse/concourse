@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/worker"
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/worker"
 )
 
 const GetResourceLeaseInterval = 5 * time.Second

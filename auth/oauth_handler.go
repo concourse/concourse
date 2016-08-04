@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/db"
 	"github.com/dgrijalva/jwt-go"
-	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 

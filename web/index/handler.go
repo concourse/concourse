@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"net/url"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/pipeline"
-	"code.cloudfoundry.org/lager"
 )
 
 type TemplateData struct{}

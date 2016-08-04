@@ -1,11 +1,11 @@
 package buildstarter
 
 import (
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/scheduler/buildstarter/maxinflight"
-	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . BuildStarter

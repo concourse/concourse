@@ -3,11 +3,11 @@ package radar
 import (
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"code.cloudfoundry.org/lager"
 )
 
 type resourceTypeScanner struct {
