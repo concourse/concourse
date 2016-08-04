@@ -51,8 +51,7 @@ jobs:
             type: docker-image
             source: {repository: busybox}
           run:
-            path: exit
-            args: ["1"]
+            path: "false"
         ensure:
           task: failing-job-ensure
           config:
