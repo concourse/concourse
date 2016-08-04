@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/fakes"
+	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"

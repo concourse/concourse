@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/fakes"
+	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/atc"
 
 	. "github.com/onsi/ginkgo"

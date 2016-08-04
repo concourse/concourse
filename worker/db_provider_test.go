@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/fakes"
+	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/garden/server"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"

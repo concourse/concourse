@@ -12,7 +12,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 
 	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/fakes"
+	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 
 	"github.com/concourse/atc"

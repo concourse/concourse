@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/fakes"
+	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
