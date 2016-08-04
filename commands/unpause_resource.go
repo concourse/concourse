@@ -12,16 +12,16 @@ type UnpauseResourceCommand struct {
 }
 
 func (command *UnpauseResourceCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
 
-	found, err := client.UnpauseResource(command.Resource.PipelineName, command.Resource.ResourceName)
+	found, err := target.Team().UnpauseResource(command.Resource.PipelineName, command.Resource.ResourceName)
 	if err != nil {
 		return err
 	}

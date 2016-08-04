@@ -12,16 +12,16 @@ type PauseResourceCommand struct {
 }
 
 func (command *PauseResourceCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
 
-	found, err := client.PauseResource(command.Resource.PipelineName, command.Resource.ResourceName)
+	found, err := target.Team().PauseResource(command.Resource.PipelineName, command.Resource.ResourceName)
 	if err != nil {
 		return err
 	}
