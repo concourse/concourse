@@ -717,28 +717,30 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactor
 	return nil
 }
 
-func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, teamDBFactory db.TeamDBFactory) auth.Validator {
-	if !cmd.authConfigured() {
-		return auth.NoopValidator{}
-	}
-
-	jwtValidator := auth.JWTValidator{
-		PublicKey: &signingKey.PublicKey,
-	}
-
+func (cmd *ATCCommand) constructAuthValidator(teamDBFactory db.TeamDBFactory, tokenValidator auth.Validator) auth.Validator {
 	var validator auth.Validator
-	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
+	if cmd.basicAuthConfigured() {
 		validator = auth.ValidatorBasket{
 			auth.BasicAuthValidator{
 				TeamDBFactory: teamDBFactory,
 			},
-			jwtValidator,
+			tokenValidator,
 		}
 	} else {
-		validator = jwtValidator
+		validator = tokenValidator
 	}
 
 	return validator
+}
+
+func (cmd *ATCCommand) constructTokenValidator(publicKey *rsa.PublicKey) auth.Validator {
+	if !cmd.authConfigured() {
+		return auth.NoopValidator{}
+	}
+
+	return auth.JWTValidator{
+		PublicKey: publicKey,
+	}
 }
 
 func (cmd *ATCCommand) updateBasicAuthCredentials(teamDBFactory db.TeamDBFactory) error {
@@ -819,9 +821,13 @@ func (cmd *ATCCommand) constructAPIHandler(
 	radarScannerFactory radar.ScannerFactory,
 	devMode bool,
 ) (http.Handler, http.Handler, error) {
+	tokenValidator := cmd.constructTokenValidator(&signingKey.PublicKey)
+	authValidator := cmd.constructAuthValidator(teamDBFactory, tokenValidator)
+
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIAuthWrappa(
-			cmd.constructValidator(signingKey, teamDBFactory),
+			authValidator,
+			tokenValidator,
 			auth.JWTReader{PublicKey: &signingKey.PublicKey, DevelopmentMode: devMode},
 		),
 		wrappa.NewAPIMetricsWrappa(logger),

@@ -15,21 +15,23 @@ import (
 
 var _ = Describe("APIAuthWrappa", func() {
 	var (
-		fakeValidator         *authfakes.FakeValidator
+		fakeAuthValidator     auth.Validator
+		fakeTokenValidator    auth.Validator
 		fakeUserContextReader *authfakes.FakeUserContextReader
 		publiclyViewable      bool
 	)
 
 	BeforeEach(func() {
 		publiclyViewable = true
-		fakeValidator = new(authfakes.FakeValidator)
+		fakeAuthValidator = new(authfakes.FakeValidator)
+		fakeTokenValidator = new(authfakes.FakeValidator)
 		fakeUserContextReader = new(authfakes.FakeUserContextReader)
 	})
 
 	unauthenticated := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
 			handler,
-			fakeValidator,
+			fakeTokenValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -40,7 +42,18 @@ var _ = Describe("APIAuthWrappa", func() {
 				handler,
 				auth.UnauthorizedRejector{},
 			),
-			fakeValidator,
+			fakeTokenValidator,
+			fakeUserContextReader,
+		)
+	}
+
+	authenticatedWithAuthValidator := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			auth.CheckAuthenticationHandler(
+				handler,
+				auth.UnauthorizedRejector{},
+			),
+			fakeAuthValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -51,7 +64,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				handler,
 				auth.UnauthorizedRejector{},
 			),
-			fakeValidator,
+			fakeTokenValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -100,7 +113,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.AbortBuild:      authenticated(inputHandlers[atc.AbortBuild]),
 				atc.CreateBuild:     authenticated(inputHandlers[atc.CreateBuild]),
 				atc.CreatePipe:      authenticated(inputHandlers[atc.CreatePipe]),
-				atc.GetAuthToken:    authenticated(inputHandlers[atc.GetAuthToken]),
+				atc.GetAuthToken:    authenticatedWithAuthValidator(inputHandlers[atc.GetAuthToken]),
 				atc.GetContainer:    authenticated(inputHandlers[atc.GetContainer]),
 				atc.GetLogLevel:     authenticated(inputHandlers[atc.GetLogLevel]),
 				atc.HijackContainer: authenticated(inputHandlers[atc.HijackContainer]),
@@ -138,20 +151,15 @@ var _ = Describe("APIAuthWrappa", func() {
 
 		JustBeforeEach(func() {
 			wrappedHandlers = wrappa.NewAPIAuthWrappa(
-				fakeValidator,
+				fakeAuthValidator,
+				fakeTokenValidator,
 				fakeUserContextReader,
 			).Wrap(inputHandlers)
 		})
 
 		It("validates sensitive routes, and noop validates public routes", func() {
 			for name, _ := range inputHandlers {
-				Expect(descriptiveRoute{
-					route:   name,
-					handler: wrappedHandlers[name],
-				}).To(Equal(descriptiveRoute{
-					route:   name,
-					handler: expectedHandlers[name],
-				}))
+				Expect(wrappedHandlers[name]).To(BeIdenticalTo(expectedHandlers[name]))
 			}
 		})
 	})

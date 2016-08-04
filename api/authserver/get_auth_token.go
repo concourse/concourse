@@ -20,11 +20,6 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 	authorization := r.Header.Get("Authorization")
 
 	authSegs := strings.SplitN(authorization, " ", 2)
-	if len(authSegs) != 2 {
-		logger.Debug("malformed-authorization-header")
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
 	var token atc.AuthToken
 	if strings.ToLower(authSegs[0]) == strings.ToLower(auth.TokenTypeBearer) {
 		logger.Debug("bearer")
