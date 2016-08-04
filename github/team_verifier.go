@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/auth/verifier"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type Team struct {

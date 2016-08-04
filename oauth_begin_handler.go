@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 const OAuthStateCookie = "_concourse_oauth_state"

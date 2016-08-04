@@ -9,9 +9,9 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/cloudfoundry/gunk/urljoiner"
+	"code.cloudfoundry.org/gunk/urljoiner"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type SpaceVerifier struct {

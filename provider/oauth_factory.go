@@ -3,7 +3,7 @@ package provider
 import (
 	"errors"
 
-	"github.com/cloudfoundry/gunk/urljoiner"
+	"code.cloudfoundry.org/gunk/urljoiner"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"

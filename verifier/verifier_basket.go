@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type VerifierBasket struct {
