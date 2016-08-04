@@ -91,7 +91,8 @@ run:
 						Name: filepath.Base(buildDir),
 						Type: "archive",
 						Source: atc.Source{
-							"uri": atcServer.URL() + "/api/v1/pipes/input-pipe-id",
+							"authorization": tokenString(),
+							"uri":           atcServer.URL() + "/api/v1/pipes/input-pipe-id",
 						},
 					}),
 				}),
@@ -123,7 +124,8 @@ run:
 					Name: "some-dir",
 					Type: "archive",
 					Source: atc.Source{
-						"uri": atcServer.URL() + "/api/v1/pipes/output-pipe-id",
+						"authorization": tokenString(),
+						"uri":           atcServer.URL() + "/api/v1/pipes/output-pipe-id",
 					},
 					Params: atc.Params{
 						"directory": "some-dir",

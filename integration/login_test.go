@@ -60,6 +60,7 @@ var _ = Describe("login Command", func() {
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 					ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 				),
+				tokenHandler("main"),
 			)
 
 			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
@@ -84,6 +85,7 @@ var _ = Describe("login Command", func() {
 					ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 					ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 				),
+				tokenHandler("some-team"),
 			)
 
 			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-n", "some-team")
@@ -103,6 +105,7 @@ var _ = Describe("login Command", func() {
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 					),
+					tokenHandler("some-team"),
 				)
 
 				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-n", "some-team")
@@ -117,6 +120,7 @@ var _ = Describe("login Command", func() {
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-other-team/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 					),
+					tokenHandler("some-other-team"),
 				)
 
 				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-n", "some-other-team")
@@ -168,6 +172,7 @@ var _ = Describe("login Command", func() {
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 					),
+					tokenHandler("main"),
 				)
 			})
 
@@ -613,6 +618,7 @@ var _ = Describe("login Command", func() {
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 					),
+					tokenHandler("main"),
 				)
 			})
 

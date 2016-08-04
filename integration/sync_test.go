@@ -65,7 +65,7 @@ var _ = Describe("Syncing", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// replace info handler with sync handler, since sync does not verify client version
-		atcServer.SetHandler(2, cliHandler())
+		atcServer.SetHandler(3, cliHandler())
 	})
 
 	AfterEach(func() {

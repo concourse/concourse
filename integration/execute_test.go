@@ -83,7 +83,8 @@ run:
 					Name: filepath.Base(buildDir),
 					Type: "archive",
 					Source: atc.Source{
-						"uri": atcServer.URL() + "/api/v1/pipes/some-pipe-id",
+						"authorization": tokenString(),
+						"uri":           atcServer.URL() + "/api/v1/pipes/some-pipe-id",
 					},
 				}),
 			}),
@@ -577,7 +578,7 @@ run:
 
 			(*(*expectedPlan.Do)[0].Aggregate)[0].Get.Source = atc.Source{
 				"uri":           atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-				"authorization": "Bearer some-token",
+				"authorization": tokenString(),
 			}
 		})
 

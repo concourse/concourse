@@ -87,7 +87,7 @@ var _ = Describe("AbortBuild", func() {
 		BeforeEach(func() {
 			expectedJobBuildURL := "/api/v1/teams/main/pipelines/my-pipeline/jobs/my-job/builds/42"
 
-			atcServer.SetHandler(3, ghttp.CombineHandlers(
+			atcServer.SetHandler(4, ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", expectedJobBuildURL),
 				ghttp.RespondWith(http.StatusInternalServerError, "{}"),
 			))
@@ -113,7 +113,7 @@ var _ = Describe("AbortBuild", func() {
 		BeforeEach(func() {
 			expectedJobBuildURL := "/api/v1/teams/main/pipelines/my-pipeline/jobs/my-job/builds/42"
 
-			atcServer.SetHandler(3, ghttp.CombineHandlers(
+			atcServer.SetHandler(4, ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", expectedJobBuildURL),
 				ghttp.RespondWith(http.StatusNotFound, "{}"),
 			))
@@ -137,7 +137,7 @@ var _ = Describe("AbortBuild", func() {
 		BeforeEach(func() {
 			expectedAbortURL := "/api/v1/builds/23/abort"
 
-			atcServer.SetHandler(4, ghttp.CombineHandlers(
+			atcServer.SetHandler(5, ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", expectedAbortURL),
 				ghttp.RespondWith(http.StatusTeapot, ""),
 			),

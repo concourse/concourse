@@ -141,6 +141,28 @@ func NewBasicAuthTarget(
 	}, nil
 }
 
+func NewNoAuthTarget(
+	name TargetName,
+	url string,
+	teamName string,
+	insecure bool,
+	caCert string,
+) (Target, error) {
+	caCertPool, err := loadCACertPool(caCert)
+	if err != nil {
+		return nil, err
+	}
+
+	httpClient := &http.Client{Transport: transport(insecure, caCertPool)}
+	client := concourse.NewClient(url, httpClient)
+
+	return &target{
+		name:     name,
+		teamName: teamName,
+		client:   client,
+	}, nil
+}
+
 func (t *target) Client() concourse.Client {
 	return t.client
 }

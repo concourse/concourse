@@ -46,6 +46,27 @@ func infoHandler() http.HandlerFunc {
 	)
 }
 
+func tokenHandler(teamName string) http.HandlerFunc {
+	return ghttp.CombineHandlers(
+		ghttp.VerifyRequest("GET", "/api/v1/teams/"+teamName+"/auth/token"),
+		ghttp.RespondWithJSONEncoded(
+			200,
+			token(),
+		),
+	)
+}
+
+func tokenString() string {
+	return string(token().Type) + " " + string(token().Value)
+}
+
+func token() atc.AuthToken {
+	return atc.AuthToken{
+		Type:  "Bearer",
+		Value: "some-token",
+	}
+}
+
 var _ = BeforeEach(func() {
 	atcServer = ghttp.NewServer()
 
@@ -55,6 +76,7 @@ var _ = BeforeEach(func() {
 			ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 			ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 		),
+		tokenHandler("main"),
 		infoHandler(),
 	)
 

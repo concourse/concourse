@@ -84,9 +84,28 @@ func (command *LoginCommand) Execute(args []string) error {
 	} else {
 		switch len(authMethods) {
 		case 0:
+			target, err := rc.NewNoAuthTarget(
+				Fly.Target,
+				target.Client().URL(),
+				command.TeamName,
+				command.Insecure,
+				caCert,
+			)
+			if err != nil {
+				return err
+			}
+
+			token, err := target.Team().AuthToken()
+			if err != nil {
+				return err
+			}
+
 			return command.saveTarget(
 				target.Client().URL(),
-				&rc.TargetToken{},
+				&rc.TargetToken{
+					Type:  token.Type,
+					Value: token.Value,
+				},
 				caCert,
 			)
 		case 1:

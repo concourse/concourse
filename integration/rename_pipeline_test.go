@@ -62,13 +62,13 @@ var _ = Describe("RenamePipeline", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess).Should(gexec.Exit(0))
-			Expect(atcServer.ReceivedRequests()).To(HaveLen(4))
+			Expect(atcServer.ReceivedRequests()).To(HaveLen(5))
 			Expect(sess.Out).To(gbytes.Say(fmt.Sprintf("pipeline successfully renamed to %s", newName)))
 		})
 
 		Context("when the pipeline is not found", func() {
 			BeforeEach(func() {
-				atcServer.SetHandler(3, ghttp.RespondWith(http.StatusNotFound, ""))
+				atcServer.SetHandler(4, ghttp.RespondWith(http.StatusNotFound, ""))
 			})
 
 			It("returns an error", func() {
@@ -78,7 +78,7 @@ var _ = Describe("RenamePipeline", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess).Should(gexec.Exit(1))
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(4))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(5))
 				Expect(sess.Err).To(gbytes.Say("pipeline 'some-pipeline' not found"))
 			})
 		})

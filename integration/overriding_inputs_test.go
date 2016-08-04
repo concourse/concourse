@@ -83,7 +83,8 @@ run:
 					Name: "some-input",
 					Type: "archive",
 					Source: atc.Source{
-						"uri": atcServer.URL() + "/api/v1/pipes/some-pipe-id",
+						"authorization": tokenString(),
+						"uri":           atcServer.URL() + "/api/v1/pipes/some-pipe-id",
 					},
 				}),
 				planFactory.NewPlan(atc.GetPlan{
