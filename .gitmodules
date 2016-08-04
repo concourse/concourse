@@ -14,10 +14,6 @@
 	path = src/github.com/lib/pq
 	url = https://github.com/lib/pq
 	branch = master
-[submodule "src/github.com/cloudfoundry-incubator/garden"]
-	path = src/github.com/cloudfoundry-incubator/garden
-	url = https://github.com/cloudfoundry-incubator/garden
-	branch = close-response-body
 [submodule "src/github.com/onsi/ginkgo"]
 	path = src/github.com/onsi/ginkgo
 	url = https://github.com/onsi/ginkgo
@@ -54,10 +50,6 @@
 	path = src/github.com/papertrail/remote_syslog2
 	url = https://github.com/papertrail/remote_syslog2
 	branch = master
-[submodule "src/github.com/pivotal-golang/clock"]
-	path = src/github.com/pivotal-golang/clock
-	url = https://github.com/pivotal-golang/clock
-	branch = master
 [submodule "src/github.com/hashicorp/go-multierror"]
 	path = src/github.com/hashicorp/go-multierror
 	url = https://github.com/hashicorp/go-multierror
@@ -73,10 +65,6 @@
 [submodule "src/golang.org/x/crypto"]
 	path = src/golang.org/x/crypto
 	url = https://go.googlesource.com/crypto
-	branch = master
-[submodule "src/github.com/cloudfoundry/gunk"]
-	path = src/github.com/cloudfoundry/gunk
-	url = https://github.com/cloudfoundry/gunk
 	branch = master
 [submodule "src/github.com/sclevine/agouti"]
 	path = src/github.com/sclevine/agouti
@@ -153,7 +141,7 @@
 [submodule "src/github.com/concourse/tsa"]
 	path = src/github.com/concourse/tsa
 	url = https://github.com/concourse/tsa
-	branch = teams
+	branch = master
 [submodule "src/github.com/vito/gosub"]
 	path = src/github.com/vito/gosub
 	url = https://github.com/vito/gosub
@@ -164,15 +152,9 @@
 [submodule "src/github.com/pkg/term"]
 	path = src/github.com/pkg/term
 	url = https://github.com/pkg/term
-[submodule "src/github.com/pivotal-golang/lager"]
-	path = src/github.com/pivotal-golang/lager
-	url = https://github.com/pivotal-golang/lager
 [submodule "src/github.com/codegangsta/cli"]
 	path = src/github.com/codegangsta/cli
 	url = https://github.com/codegangsta/cli
-[submodule "src/github.com/pivotal-golang/localip"]
-	path = src/github.com/pivotal-golang/localip
-	url = https://github.com/pivotal-golang/localip
 [submodule "src/github.com/ActiveState/tail"]
 	path = src/github.com/ActiveState/tail
 	url = https://github.com/ActiveState/tail
@@ -239,4 +221,24 @@
 	branch = master
 [submodule "src/gopkg.in/cheggaaa/pb.v1"]
 	path = src/gopkg.in/cheggaaa/pb.v1
-	url = https://github.com/cheggaaa/pb
+	url = https://gopkg.in/cheggaaa/pb.v1
+[submodule "src/code.cloudfoundry.org/clock"]
+	path = src/code.cloudfoundry.org/clock
+	url = https://github.com/cloudfoundry/clock
+	branch = master
+[submodule "src/code.cloudfoundry.org/gunk"]
+	path = src/code.cloudfoundry.org/gunk
+	url = https://github.com/cloudfoundry/gunk
+	branch = master
+[submodule "src/code.cloudfoundry.org/garden"]
+	path = src/code.cloudfoundry.org/garden
+	url = https://github.com/cloudfoundry/garden
+	branch = master
+[submodule "src/code.cloudfoundry.org/lager"]
+	path = src/code.cloudfoundry.org/lager
+	url = https://github.com/cloudfoundry/lager
+	branch = master
+[submodule "src/code.cloudfoundry.org/localip"]
+	path = src/code.cloudfoundry.org/localip
+	url = https://github.com/cloudfoundry/localip
+	branch = master

@@ -7,12 +7,14 @@ dependencies:
 files:
   # crypto/ssh depends on curve25519 which is implemented in assembly
   - golang.org/x/crypto/curve25519/*.s
+  - code.cloudfoundry.org/clock/*.go # gosub
+  - code.cloudfoundry.org/garden/*.go # gosub
+  - code.cloudfoundry.org/garden/client/*.go # gosub
+  - code.cloudfoundry.org/garden/client/connection/*.go # gosub
+  - code.cloudfoundry.org/garden/routes/*.go # gosub
+  - code.cloudfoundry.org/garden/transport/*.go # gosub
+  - code.cloudfoundry.org/lager/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/client/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/client/connection/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/routes/*.go # gosub
-  - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/tsa/*.go # gosub
   - github.com/concourse/tsa/cmd/tsa/*.go # gosub
@@ -22,8 +24,6 @@ files:
   - github.com/felixge/tcpkeepalive/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
-  - github.com/pivotal-golang/clock/*.go # gosub
-  - github.com/pivotal-golang/lager/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/ifrit/sigmon/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub

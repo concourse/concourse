@@ -5,6 +5,8 @@ dependencies:
   - golang
 
 files:
+  - code.cloudfoundry.org/clock/*.go # gosub
+  - code.cloudfoundry.org/lager/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/concourse/baggageclaim/*.go # gosub
   - github.com/concourse/baggageclaim/api/*.go # gosub
@@ -21,8 +23,6 @@ files:
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
-  - github.com/pivotal-golang/clock/*.go # gosub
-  - github.com/pivotal-golang/lager/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/ifrit/grouper/*.go # gosub
   - github.com/tedsuo/ifrit/http_server/*.go # gosub
