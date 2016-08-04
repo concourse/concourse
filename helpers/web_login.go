@@ -1,9 +1,7 @@
 package helpers
 
 import (
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/gunk/urljoiner"
@@ -20,11 +18,9 @@ func WebLogin(page *agouti.Page, atcURL string) error {
 	}
 
 	switch {
-	case noAuth:
-		return nil
-	case basicAuth != nil:
+	case noAuth || basicAuth != nil:
 		Expect(page.Navigate(atcURL)).To(Succeed())
-		return basicAuthenticationWeb(page, basicAuth.Username, basicAuth.Password)
+		return basicAuthenticationWeb(page, atcURL)
 	case oauth != nil:
 		return oauthAuthenticationWeb(page, oauth, atcURL)
 	}
@@ -32,12 +28,15 @@ func WebLogin(page *agouti.Page, atcURL string) error {
 	return errors.New("Unable to determine authentication")
 }
 
-func basicAuthenticationWeb(page *agouti.Page, username, password string) error {
-	header := fmt.Sprintf("%s:%s", username, password)
+func basicAuthenticationWeb(page *agouti.Page, atcURL string) error {
+	token, err := GetATCToken(atcURL)
+	if err != nil {
+		return err
+	}
 
 	page.SetCookie(&http.Cookie{
 		Name:  auth.CookieName,
-		Value: "Basic " + base64.StdEncoding.EncodeToString([]byte(header)),
+		Value: string(token.Type) + " " + string(token.Value),
 	})
 
 	// PhantomJS won't send the cookie on ajax requests if the page is not

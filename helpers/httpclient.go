@@ -2,62 +2,70 @@ package helpers
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"golang.org/x/oauth2"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
 )
 
 func ConcourseClient(atcURL string, loginInfo LoginInformation) concourse.Client {
+
 	var httpClient *http.Client
 	switch {
-	case loginInfo.NoAuth:
-	case loginInfo.BasicAuthCreds.Username != "":
-		httpClient = basicAuthClient(loginInfo.BasicAuthCreds)
+	case loginInfo.NoAuth || loginInfo.BasicAuthCreds.Username != "":
+		token, _ := GetATCToken(atcURL)
+		httpClient = oauthClient(token)
 	case loginInfo.OauthToken != "":
-		httpClient = oauthClient(loginInfo.OauthToken)
+		httpClient = oauthClientFromString(loginInfo.OauthToken)
 	}
 
 	return concourse.NewClient(atcURL, httpClient)
 }
 
-func basicAuthClient(basicAuth basicAuthCredentials) *http.Client {
-	return &http.Client{
-		Transport: basicAuthTransport{
-			username: basicAuth.Username,
-			password: basicAuth.Password,
-			base:     http.DefaultTransport,
-		},
+func GetATCToken(atcURL string) (*atc.AuthToken, error) {
+	response, err := http.Get(atcURL + "/api/v1/teams/main/auth/token")
+	if err != nil {
+		return nil, err
 	}
+
+	var token *atc.AuthToken
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(body, &token)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
 }
 
-func oauthClient(oauthToken string) *http.Client {
+func oauthClientFromString(oauthToken string) *http.Client {
 	splitToken := strings.Split(oauthToken, " ")
-	token := &oauth2.Token{
-		TokenType:   splitToken[0],
-		AccessToken: splitToken[1],
+	token := &atc.AuthToken{
+		Type:  splitToken[0],
+		Value: splitToken[1],
 	}
+	return oauthClient(token)
+}
 
+func oauthClient(atcToken *atc.AuthToken) *http.Client {
 	return &http.Client{
 		Transport: &oauth2.Transport{
-			Source: oauth2.StaticTokenSource(token),
+			Source: oauth2.StaticTokenSource(&oauth2.Token{
+				TokenType:   atcToken.Type,
+				AccessToken: atcToken.Value,
+			}),
 			Base: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			},
 		},
 	}
-}
-
-type basicAuthTransport struct {
-	username string
-	password string
-
-	base http.RoundTripper
-}
-
-func (t basicAuthTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	r.SetBasicAuth(t.username, t.password)
-	return t.base.RoundTrip(r)
 }

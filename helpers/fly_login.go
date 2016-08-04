@@ -18,6 +18,7 @@ func FlyLogin(atcURL, concourseAlias, flyBinaryPath string, loginInfo LoginInfor
 		return flyLogin(flyBinaryPath, []string{
 			"-c", atcURL,
 			"-t", concourseAlias,
+			"-n", "main",
 		})
 	case loginInfo.BasicAuthCreds.Username != "":
 		return flyLogin(flyBinaryPath, []string{
@@ -25,11 +26,13 @@ func FlyLogin(atcURL, concourseAlias, flyBinaryPath string, loginInfo LoginInfor
 			"-t", concourseAlias,
 			"-u", loginInfo.BasicAuthCreds.Username,
 			"-p", loginInfo.BasicAuthCreds.Password,
+			"-n", "main",
 		})
 	case loginInfo.OauthToken != "":
 		return flyLoginOauth(flyBinaryPath, atcURL, loginInfo.OauthToken, []string{
 			"-c", atcURL,
 			"-t", concourseAlias,
+			"-n", "main",
 		})
 	}
 

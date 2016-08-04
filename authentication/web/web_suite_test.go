@@ -133,6 +133,9 @@ func pushMainPipeline() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
+	_, err = team.RevealPipeline(pipelineName)
+	Expect(err).NotTo(HaveOccurred())
+
 	_, err = team.UnpausePipeline(pipelineName)
 	Expect(err).NotTo(HaveOccurred())
 

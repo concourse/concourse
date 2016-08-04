@@ -9,12 +9,12 @@ import (
 	"code.cloudfoundry.org/garden"
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/mgutz/ansi"
 	"github.com/nu7hatch/gouuid"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
