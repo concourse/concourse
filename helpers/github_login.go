@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"github.com/cloudfoundry/gunk/urljoiner"
+	"code.cloudfoundry.org/gunk/urljoiner"
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/agouti"
 	. "github.com/sclevine/agouti/matchers"

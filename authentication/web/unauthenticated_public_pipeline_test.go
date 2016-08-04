@@ -3,7 +3,7 @@ package web_test
 import (
 	"fmt"
 
-	"github.com/cloudfoundry/gunk/urljoiner"
+	"code.cloudfoundry.org/gunk/urljoiner"
 	"github.com/concourse/testflight/helpers"
 
 	. "github.com/onsi/ginkgo"

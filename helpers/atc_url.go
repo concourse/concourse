@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cloudfoundry/gunk/urljoiner"
+	"code.cloudfoundry.org/gunk/urljoiner"
 )
 
 const defaultAtcURL = "http://10.244.15.2:8080"

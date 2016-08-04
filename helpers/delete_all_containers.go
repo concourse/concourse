@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	gclient "github.com/cloudfoundry-incubator/garden/client"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	gclient "code.cloudfoundry.org/garden/client"
+	gconn "code.cloudfoundry.org/garden/client/connection"
 	"github.com/concourse/go-concourse/concourse"
 )
 

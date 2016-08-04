@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cloudfoundry/gunk/urljoiner"
+	"code.cloudfoundry.org/gunk/urljoiner"
 	"github.com/concourse/atc/auth"
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/agouti"
