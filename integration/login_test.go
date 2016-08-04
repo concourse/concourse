@@ -34,7 +34,7 @@ var _ = Describe("login Command", func() {
 					ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 				),
 			)
-			flyCmd = exec.Command(flyPath, "login", "-c", atcServer.URL())
+			flyCmd = exec.Command(flyPath, "login", "-c", atcServer.URL(), "-n", "main")
 		})
 
 		It("instructs the user to specify --target", func() {
@@ -53,23 +53,15 @@ var _ = Describe("login Command", func() {
 			atcServer = ghttp.NewServer()
 		})
 
-		It("falls back to atc.DefaultTeamName team", func() {
-			atcServer.AppendHandlers(
-				infoHandler(),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
-					ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
-				),
-				tokenHandler("main"),
-			)
-
+		It("instructs the user to specify --team-name", func() {
 			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
-
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
 			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Err).To(gbytes.Say("the required flag `-n, --team-name' was not specified"))
 		})
 	})
 
@@ -142,7 +134,7 @@ var _ = Describe("login Command", func() {
 
 		BeforeEach(func() {
 			atcServer = ghttp.NewServer()
-			flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
+			flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-n", "main")
 
 			var err error
 			stdin, err = flyCmd.StdinPipe()
@@ -162,7 +154,7 @@ var _ = Describe("login Command", func() {
 					"-ldflags", fmt.Sprintf("-X github.com/concourse/fly/version.Version=%s", flyVersion),
 				)
 				Expect(err).NotTo(HaveOccurred())
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-n", "main")
 				stdin, err = flyCmd.StdinPipe()
 				Expect(err).NotTo(HaveOccurred())
 
@@ -355,6 +347,7 @@ var _ = Describe("login Command", func() {
 					flyCmd = exec.Command(flyPath,
 						"-t", "some-target",
 						"login", "-c", atcServer.URL(),
+						"-n", "main",
 						"-u", "some_username",
 						"-p", "some_password",
 					)
@@ -474,7 +467,7 @@ var _ = Describe("login Command", func() {
 						})
 
 						It("updates the token", func() {
-							loginAgainCmd := exec.Command(flyPath, "-t", "some-target", "login")
+							loginAgainCmd := exec.Command(flyPath, "-t", "some-target", "login", "-n", "main")
 
 							secondFlyStdin, err := loginAgainCmd.StdinPipe()
 							Expect(err).NotTo(HaveOccurred())
@@ -543,6 +536,7 @@ var _ = Describe("login Command", func() {
 				flyCmd = exec.Command(flyPath,
 					"-t", "some-target",
 					"login", "-c", atcServer.URL(),
+					"-n", "main",
 					"-u", "some_username",
 					"-p", "some_password",
 				)

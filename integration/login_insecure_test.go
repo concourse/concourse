@@ -64,7 +64,7 @@ var _ = Describe("login -k Command", func() {
 					),
 				)
 
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-k")
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-k", "-n", "main")
 
 				var err error
 				stdin, err = flyCmd.StdinPipe()
@@ -140,7 +140,7 @@ var _ = Describe("login -k Command", func() {
 
 				Context("with -k", func() {
 					BeforeEach(func() {
-						otherCmd = exec.Command(flyPath, "-t", "some-target", "login", "-k")
+						otherCmd = exec.Command(flyPath, "-t", "some-target", "login", "-k", "-n", "main")
 
 						var err error
 						stdin, err = otherCmd.StdinPipe()
@@ -176,7 +176,7 @@ var _ = Describe("login -k Command", func() {
 
 				Context("without -k", func() {
 					BeforeEach(func() {
-						otherCmd = exec.Command(flyPath, "-t", "some-target", "login")
+						otherCmd = exec.Command(flyPath, "-t", "some-target", "login", "-n", "main")
 					})
 
 					It("errors", func() {
@@ -195,7 +195,7 @@ var _ = Describe("login -k Command", func() {
 		Context("to new target with invalid SSL without -k", func() {
 			Context("without --ca-cert", func() {
 				BeforeEach(func() {
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-n", "main")
 
 					var err error
 					stdin, err = flyCmd.StdinPipe()
@@ -234,7 +234,12 @@ var _ = Describe("login -k Command", func() {
 					_, err = caCertFile.WriteString(sslCert)
 					Expect(err).NotTo(HaveOccurred())
 
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "--ca-cert", caCertFile.Name())
+					flyCmd = exec.Command(flyPath,
+						"-t", "some-target", "login",
+						"-c", atcServer.URL(),
+						"--ca-cert", caCertFile.Name(),
+						"-n", "main",
+					)
 					stdin, err = flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
 
@@ -343,7 +348,7 @@ var _ = Describe("login -k Command", func() {
 							),
 						)
 
-						flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-k")
+						flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-k", "-n", "main")
 
 						var err error
 						stdin, err = flyCmd.StdinPipe()
@@ -384,7 +389,7 @@ var _ = Describe("login -k Command", func() {
 
 				Context("without -k", func() {
 					BeforeEach(func() {
-						flyCmd = exec.Command(flyPath, "-t", "some-target", "login")
+						flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-n", "main")
 					})
 
 					It("errors", func() {
