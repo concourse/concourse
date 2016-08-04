@@ -43,6 +43,10 @@ type teamDB struct {
 	buildFactory *buildFactory
 }
 
+func (db *teamDB) noTeamName() bool {
+	return db.teamName == ""
+}
+
 func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
 	row := db.conn.QueryRow(`
 		SELECT `+pipelineColumns+`
@@ -73,22 +77,27 @@ func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 
 	defer rows.Close()
 
-	pipelines := []SavedPipeline{}
+	return scanPipelines(rows)
+}
 
-	for rows.Next() {
-		pipeline, err := scanPipeline(rows)
-
+func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
+	if db.noTeamName() {
+		allPublicRows, err := db.conn.Query(`
+			SELECT ` + pipelineColumns + `
+			FROM pipelines p
+			INNER JOIN teams t ON t.id = p.team_id
+			WHERE public = true
+			ORDER BY team_name, ordering
+		`)
 		if err != nil {
 			return nil, err
 		}
 
-		pipelines = append(pipelines, pipeline)
+		defer allPublicRows.Close()
+
+		return scanPipelines(allPublicRows)
 	}
 
-	return pipelines, nil
-}
-
-func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT `+pipelineColumns+`
 		FROM pipelines p
@@ -127,22 +136,6 @@ func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
 	}
 
 	return append(currentTeamPipelines, otherTeamPipelines...), nil
-}
-
-func scanPipelines(rows *sql.Rows) ([]SavedPipeline, error) {
-	pipelines := []SavedPipeline{}
-
-	for rows.Next() {
-		pipeline, err := scanPipeline(rows)
-
-		if err != nil {
-			return nil, err
-		}
-
-		pipelines = append(pipelines, pipeline)
-	}
-
-	return pipelines, nil
 }
 
 func (db *teamDB) OrderPipelines(pipelineNames []string) error {
@@ -790,6 +783,21 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 			Version: ConfigVersion(version),
 		},
 	}, nil
+}
+
+func scanPipelines(rows *sql.Rows) ([]SavedPipeline, error) {
+	pipelines := []SavedPipeline{}
+
+	for rows.Next() {
+		pipeline, err := scanPipeline(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		pipelines = append(pipelines, pipeline)
+	}
+
+	return pipelines, nil
 }
 
 type PipelinePausedState string

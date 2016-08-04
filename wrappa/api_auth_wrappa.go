@@ -71,7 +71,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.SetLogLevel,
 			atc.SetTeam,
 			atc.WritePipe,
-			atc.ListVolumes, //teamname -
+			atc.ListVolumes, //teamname - what does that mean?
 			atc.GetLogLevel:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 
