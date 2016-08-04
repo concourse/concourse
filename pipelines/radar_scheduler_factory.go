@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/scheduler/inputmapper"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
-	"github.com/pivotal-golang/clock"
+	"code.cloudfoundry.org/clock"
 )
 
 //go:generate counterfeiter . RadarSchedulerFactory

@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/cloudfoundry-incubator/garden"
+	"code.cloudfoundry.org/garden"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/retryhttp"
 	"github.com/tedsuo/rata"

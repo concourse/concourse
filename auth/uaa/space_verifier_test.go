@@ -9,7 +9,7 @@ import (
 	. "github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/onsi/gomega/ghttp"
 

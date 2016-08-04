@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-incubator/garden"
+	"code.cloudfoundry.org/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 )
 
 const taskProcessPropertyName = "concourse:task-process"

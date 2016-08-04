@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc/scheduler/inputmapper"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig/inputconfigfakes"
 	"github.com/concourse/atc/scheduler/inputmapper/inputmapperfakes"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

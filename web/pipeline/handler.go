@@ -4,7 +4,7 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"

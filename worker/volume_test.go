@@ -11,8 +11,8 @@ import (
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
-	"github.com/pivotal-golang/clock/fakeclock"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager/lagertest"
 )
 
 var _ = Describe("Volumes", func() {

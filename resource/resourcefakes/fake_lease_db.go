@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type FakeLeaseDB struct {

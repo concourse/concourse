@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc/db"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"

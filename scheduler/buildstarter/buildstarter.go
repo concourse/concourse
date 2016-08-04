@@ -5,7 +5,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/scheduler/buildstarter/maxinflight"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . BuildStarter

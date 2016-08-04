@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/db"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 

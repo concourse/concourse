@@ -6,8 +6,8 @@ import (
 
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 )
 
 const volumeKeepalive = 30 * time.Second

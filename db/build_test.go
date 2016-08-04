@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

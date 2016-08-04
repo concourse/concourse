@@ -3,7 +3,7 @@ package provider
 import (
 	"net/http"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"

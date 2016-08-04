@@ -5,7 +5,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type execV1DummyEngine struct{}

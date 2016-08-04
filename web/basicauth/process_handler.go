@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc/web"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 const CookieName = "ATC-Authorization"

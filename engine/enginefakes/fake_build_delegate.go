@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type FakeBuildDelegate struct {

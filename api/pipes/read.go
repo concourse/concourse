@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {

@@ -6,7 +6,7 @@ import (
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/clock/fakeclock"
+	"code.cloudfoundry.org/clock/fakeclock"
 
 	. "github.com/concourse/atc/resource"
 )

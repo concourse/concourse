@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 func (db *SQLDB) GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error) {

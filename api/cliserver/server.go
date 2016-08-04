@@ -1,6 +1,6 @@
 package cliserver
 
-import "github.com/pivotal-golang/lager"
+import "code.cloudfoundry.org/lager"
 
 type Server struct {
 	logger          lager.Logger

@@ -5,7 +5,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 // DependentGetStep represents a Get step whose version is determined by the

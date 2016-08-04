@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 func (s *Server) ListVolumes(w http.ResponseWriter, r *http.Request) {

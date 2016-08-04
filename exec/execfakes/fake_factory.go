@@ -8,8 +8,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 )
 
 type FakeFactory struct {

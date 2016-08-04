@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/pipelines/pipelinesfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/clock/fakeclock"
+	"code.cloudfoundry.org/clock/fakeclock"
 	"github.com/tedsuo/ifrit"
 )
 

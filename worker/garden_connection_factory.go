@@ -3,12 +3,12 @@ package worker
 import (
 	"net/http"
 
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
-	"github.com/cloudfoundry-incubator/garden/routes"
+	gconn "code.cloudfoundry.org/garden/client/connection"
+	"code.cloudfoundry.org/garden/routes"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/retryhttp"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 

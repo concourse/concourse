@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/mitchellh/mapstructure"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 )

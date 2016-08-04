@@ -11,8 +11,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
-	"github.com/cloudfoundry-incubator/garden"
-	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
+	"code.cloudfoundry.org/garden"
+	gfakes "code.cloudfoundry.org/garden/fakes"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 
 	"github.com/concourse/atc"

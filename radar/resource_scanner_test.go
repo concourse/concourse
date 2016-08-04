@@ -7,9 +7,9 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/clock/fakeclock"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/radar"

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc/resource"
-	"github.com/pivotal-golang/clock"
+	"code.cloudfoundry.org/clock"
 )
 
 type ScannerFactory interface {

@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/event"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type Status string

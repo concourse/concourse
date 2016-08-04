@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type scopedHandlerFactory struct {

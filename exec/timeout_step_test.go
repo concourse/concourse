@@ -6,7 +6,7 @@ import (
 	"time"
 
 	. "github.com/concourse/atc/exec"
-	"github.com/pivotal-golang/clock/fakeclock"
+	"code.cloudfoundry.org/clock/fakeclock"
 
 	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"

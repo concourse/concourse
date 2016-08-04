@@ -4,8 +4,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/cloudfoundry-incubator/garden"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	"code.cloudfoundry.org/garden"
+	gconn "code.cloudfoundry.org/garden/client/connection"
 )
 
 import "time"

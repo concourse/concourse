@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/bigdatadev/goryman"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc/db"
 )

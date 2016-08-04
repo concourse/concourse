@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc/db"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 )
 

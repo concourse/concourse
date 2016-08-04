@@ -9,8 +9,8 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 )
 
 type resourceScanner struct {

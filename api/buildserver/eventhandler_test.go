@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/event"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"

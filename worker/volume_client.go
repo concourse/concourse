@@ -3,7 +3,7 @@ package worker
 import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . VolumeClient

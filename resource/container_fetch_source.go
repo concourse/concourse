@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type containerFetchSource struct {

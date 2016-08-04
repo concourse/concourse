@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/radar"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 )
 

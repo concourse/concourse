@@ -5,7 +5,7 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type ContainerKeepAliver interface {

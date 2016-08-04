@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc/lostandfound"
 	"github.com/concourse/atc/lostandfound/lostandfoundfakes"
 	"github.com/concourse/atc/resource"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/db/dbfakes"
 	wfakes "github.com/concourse/atc/worker/workerfakes"

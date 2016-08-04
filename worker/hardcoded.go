@@ -4,8 +4,8 @@ import (
 	"os"
 	"time"
 
-	c "github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	c "code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 
 	"github.com/concourse/atc"

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/bigdatadev/goryman"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 func periodicallyEmit(logger lager.Logger, interval time.Duration) {

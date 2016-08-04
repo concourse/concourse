@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc/web/pipeline"
 	"github.com/concourse/atc/web/webfakes"
 	cfakes "github.com/concourse/go-concourse/concourse/concoursefakes"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

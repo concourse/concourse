@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type FakeVolumeFactory struct {

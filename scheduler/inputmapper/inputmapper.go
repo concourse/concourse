@@ -5,7 +5,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . InputMapper

@@ -4,7 +4,7 @@ package workerfakes
 import (
 	"sync"
 
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	gconn "code.cloudfoundry.org/garden/client/connection"
 	"github.com/concourse/atc/worker"
 )
 

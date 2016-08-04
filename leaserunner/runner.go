@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/concourse/atc/db"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 )
 

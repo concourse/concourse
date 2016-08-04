@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/sclevine/agouti/matchers"
 
-	"github.com/cloudfoundry/gunk/urljoiner"
+	"code.cloudfoundry.org/gunk/urljoiner"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )

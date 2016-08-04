@@ -3,7 +3,7 @@ package builds
 import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . TrackerDB

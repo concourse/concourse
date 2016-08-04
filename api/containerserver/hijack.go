@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cloudfoundry-incubator/garden"
+	"code.cloudfoundry.org/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/gorilla/websocket"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 var upgrader = websocket.Upgrader{

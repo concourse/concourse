@@ -9,8 +9,8 @@ import (
 	"github.com/onsi/gomega/gbytes"
 
 	"github.com/BurntSushi/migration"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/db/migrations/migrationsfakes"

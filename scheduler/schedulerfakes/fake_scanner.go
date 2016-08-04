@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/scheduler"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type FakeScanner struct {

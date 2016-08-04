@@ -4,8 +4,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 )
 
 func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {

@@ -12,8 +12,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/cloudfoundry-incubator/garden"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	"code.cloudfoundry.org/garden"
+	gconn "code.cloudfoundry.org/garden/client/connection"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"

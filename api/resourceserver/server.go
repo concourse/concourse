@@ -2,7 +2,7 @@ package resourceserver
 
 import (
 	"github.com/concourse/atc/radar"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . ScannerFactory

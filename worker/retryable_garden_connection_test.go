@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cloudfoundry-incubator/garden"
-	fconn "github.com/cloudfoundry-incubator/garden/client/connection/fakes"
-	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
+	"code.cloudfoundry.org/garden"
+	fconn "code.cloudfoundry.org/garden/client/connection/fakes"
+	gfakes "code.cloudfoundry.org/garden/fakes"
 	"github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

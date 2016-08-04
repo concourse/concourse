@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . FetchSourceProviderFactory

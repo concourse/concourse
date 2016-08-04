@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/concourse/atc/resource"
 )

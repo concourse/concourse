@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 // GetStep will fetch a version of a resource on a worker that supports the

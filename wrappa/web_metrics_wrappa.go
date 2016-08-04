@@ -3,7 +3,7 @@ package wrappa
 import (
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/web"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 

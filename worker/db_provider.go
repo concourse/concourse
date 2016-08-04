@@ -4,12 +4,12 @@ import (
 	"errors"
 	"time"
 
-	gclient "github.com/cloudfoundry-incubator/garden/client"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	gclient "code.cloudfoundry.org/garden/client"
+	gconn "code.cloudfoundry.org/garden/client/connection"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"

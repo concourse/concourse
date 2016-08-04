@@ -8,8 +8,8 @@ import (
 	"github.com/concourse/atc/resource"
 	"github.com/tedsuo/ifrit"
 
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 )
 
 type ResourceNotConfiguredError struct {

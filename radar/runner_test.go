@@ -9,8 +9,8 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 

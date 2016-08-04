@@ -5,13 +5,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudfoundry-incubator/garden"
-	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
+	"code.cloudfoundry.org/garden"
+	gfakes "code.cloudfoundry.org/garden/fakes"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

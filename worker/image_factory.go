@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . ImageFactory

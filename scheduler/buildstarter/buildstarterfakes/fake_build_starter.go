@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/buildstarter"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type FakeBuildStarter struct {

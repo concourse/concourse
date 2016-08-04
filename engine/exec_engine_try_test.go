@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/exec/execfakes"

@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/pivotal-golang/clock/fakeclock"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"

@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/scheduler/buildstarter"
 	"github.com/concourse/atc/scheduler/buildstarter/buildstarterfakes"
 	"github.com/concourse/atc/scheduler/buildstarter/maxinflight/maxinflightfakes"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

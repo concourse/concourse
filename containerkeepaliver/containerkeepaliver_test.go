@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 )
 
 var _ = Describe("ContainerKeepAliver", func() {

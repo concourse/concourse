@@ -2,7 +2,7 @@ package teamserver
 
 import (
 	"github.com/concourse/atc/db"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . TeamsDB

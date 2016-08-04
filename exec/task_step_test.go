@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-incubator/garden"
-	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
+	"code.cloudfoundry.org/garden"
+	gfakes "code.cloudfoundry.org/garden/fakes"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
@@ -24,9 +24,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-golang/clock/fakeclock"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 )
 

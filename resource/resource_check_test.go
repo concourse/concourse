@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io/ioutil"
 
-	"github.com/cloudfoundry-incubator/garden"
-	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
+	"code.cloudfoundry.org/garden"
+	gfakes "code.cloudfoundry.org/garden/fakes"
 	"github.com/concourse/atc"
 
 	. "github.com/onsi/ginkgo"

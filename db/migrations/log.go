@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/migration"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . LimitedTx

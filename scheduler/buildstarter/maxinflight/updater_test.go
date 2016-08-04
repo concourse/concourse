@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler/buildstarter/maxinflight"
 	"github.com/concourse/atc/scheduler/buildstarter/maxinflight/maxinflightfakes"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

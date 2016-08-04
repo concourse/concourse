@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc/db/dbfakes"
 	rfakes "github.com/concourse/atc/resource/resourcefakes"
