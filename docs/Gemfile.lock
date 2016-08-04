@@ -11,7 +11,7 @@ GEM
       atomy (~> 0.6.3)
       broomhlda (~> 0.2.0)
       json_pure (~> 1.8)
-    atomy (0.6.11)
+    atomy (0.6.12)
       kpeg (~> 1.0)
     broomhlda (0.2.4)
       atomy (~> 0.6.3)
