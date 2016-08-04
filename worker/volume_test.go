@@ -7,12 +7,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
-	"code.cloudfoundry.org/clock/fakeclock"
-	"code.cloudfoundry.org/lager/lagertest"
 )
 
 var _ = Describe("Volumes", func() {
@@ -26,6 +26,8 @@ var _ = Describe("Volumes", func() {
 
 	BeforeEach(func() {
 		fakeVolume = new(bfakes.FakeVolume)
+		fakeVolume.HandleReturns("some-handle")
+
 		fakeDB = new(workerfakes.FakeVolumeFactoryDB)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		logger = lagertest.NewTestLogger("test")
@@ -50,7 +52,6 @@ var _ = Describe("Volumes", func() {
 				})
 
 				It("embeds the original volume in the wrapped volume", func() {
-					fakeVolume.HandleReturns("some-handle")
 					vol, found, err := volumeFactory.Build(logger, fakeVolume)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
@@ -82,7 +83,6 @@ var _ = Describe("Volumes", func() {
 		BeforeEach(func() {
 			expectedTTL = 10 * time.Second
 			expectedTTL2 = 5 * time.Second
-			fakeVolume.HandleReturns("some-handle")
 			fakeVolume.SizeInBytesReturns(1024, nil)
 			fakeDB.GetVolumeTTLReturns(expectedTTL, true, nil)
 		})
@@ -153,15 +153,16 @@ var _ = Describe("Volumes", func() {
 		})
 
 		It("reaps the volume during heartbeat if the volume is not found", func() {
-			fakeVolume.SetTTLReturns(baggageclaim.ErrVolumeNotFound)
-			fakeVolume.HandleReturns("some-handle")
-
 			_, found, err := volumeFactory.Build(logger, fakeVolume)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			fakeClock.Increment(30 * time.Second)
-			Expect(fakeDB.ReapVolumeCallCount()).To(Equal(1))
+			Expect(fakeDB.ReapVolumeCallCount()).To(Equal(0))
+
+			fakeVolume.SetTTLReturns(baggageclaim.ErrVolumeNotFound)
+			fakeClock.WaitForWatcherAndIncrement(30 * time.Second)
+
+			Eventually(fakeDB.ReapVolumeCallCount).Should(Equal(1))
 			Expect(fakeDB.ReapVolumeArgsForCall(0)).To(Equal("some-handle"))
 		})
 	})
