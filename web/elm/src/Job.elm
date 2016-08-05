@@ -217,44 +217,47 @@ isRunning : Build -> Bool
 isRunning build = Concourse.BuildStatus.isRunning build.status
 
 view : Model -> Html Action
-view model = Html.div[]
-  [ case model.job of
-    Nothing -> loadSpinner
-    Just job ->
-      Html.div [ id "page-header", class (headerBuildStatusClass job.finishedBuild) ]
-      [ Html.div [ class "build-header" ]
-        [ Html.button
-          ( List.append
-            [id "job-state", attribute "aria-label" "Toggle Job Paused State", class <| "btn-pause btn-large fl " ++ (getPausedState job model.pausedChanging)]
-            (if not model.pausedChanging then [onClick TogglePaused] else [])
-          )
-          [ Html.i [ class <| "fa fa-fw fa-play " ++ (getPlayPauseLoadIcon job model.pausedChanging) ] [] ]
-        , Html.form
-          [class "trigger-build"
-          , Html.Attributes.method "post"
-          , Html.Attributes.action <| "/teams/" ++ model.jobInfo.teamName ++ "/pipelines/" ++ model.jobInfo.pipelineName
-            ++ "/jobs/" ++ model.jobInfo.name ++ "/builds"
+view model =
+  Html.div [class "with-fixed-header"] [
+    case model.job of
+      Nothing ->
+        loadSpinner
+
+      Just job ->
+        Html.div [class "fixed-header"]
+          [ Html.div [ class ("build-header " ++ headerBuildStatusClass job.finishedBuild)] -- TODO really?
+              [ Html.button
+                  ( List.append
+                    [id "job-state", attribute "aria-label" "Toggle Job Paused State", class <| "btn-pause btn-large fl " ++ (getPausedState job model.pausedChanging)]
+                    (if not model.pausedChanging then [onClick TogglePaused] else [])
+                  )
+                  [ Html.i [ class <| "fa fa-fw fa-play " ++ (getPlayPauseLoadIcon job model.pausedChanging) ] [] ]
+              , Html.form
+                  [ class "trigger-build"
+                  , Html.Attributes.method "post"
+                  , Html.Attributes.action <| "/teams/" ++ model.jobInfo.teamName ++ "/pipelines/" ++ model.jobInfo.pipelineName
+                    ++ "/jobs/" ++ model.jobInfo.name ++ "/builds"
+                  ]
+                  [ Html.button [ class "build-action fr", disabled job.disableManualTrigger, attribute "aria-label" "Trigger Build" ]
+                    [ Html.i [ class "fa fa-plus-circle" ] []
+                    ]
+                  ]
+              , Html.h1 [] [ Html.text(model.jobInfo.name) ]
+              ]
+          , Html.div [ class "pagination-header" ]
+              [ viewPaginationBar model
+              , Html.h1 [] [ Html.text("builds") ]
+              ]
+          ],
+    case model.buildsWithResources of
+      Nothing ->
+        loadSpinner
+
+      Just bwr ->
+        Html.div [class "scrollable-body"]
+          [ Html.ul [ class "jobs-builds-list builds-list" ]
+            <| List.map (viewBuildWithResources model) <| Array.toList bwr
           ]
-          [ Html.button [ class "build-action fr", disabled job.disableManualTrigger, attribute "aria-label" "Trigger Build" ]
-            [ Html.i [ class "fa fa-plus-circle" ] []
-            ]
-          ]
-        , Html.h1 [] [ Html.text(model.jobInfo.name) ]
-        ]
-      ]
-  , case model.buildsWithResources of
-    Nothing -> loadSpinner
-    Just bwr ->
-      Html.div [ id "job-body" ]
-      [ Html.div [ class "pagination-header" ]
-        [ viewPaginationBar model
-        , Html.h1 [] [ Html.text("builds") ]
-        ]
-      , Html.ul [ class "jobs-builds-list builds-list" ]
-        <| List.map (viewBuildWithResources model) <| Array.toList bwr
-      , Html.div [ class "pagination-footer" ]
-        [ viewPaginationBar model ]
-      ]
   ]
 
 getPlayPauseLoadIcon : Job -> Bool -> String
@@ -277,12 +280,13 @@ getPausedState job pausedChanging =
       else "disabled"
 
 loadSpinner : Html Action
-loadSpinner = Html.div [class "build-step"]
-  [ Html.div [class "header"]
-    [ Html.i [class "left fa fa-fw fa-spin fa-circle-o-notch"] []
-    , Html.h3 [] [Html.text "Loading..."]
+loadSpinner =
+  Html.div [class "build-step"]
+    [ Html.div [class "header"]
+      [ Html.i [class "left fa fa-fw fa-spin fa-circle-o-notch"] []
+      , Html.h3 [] [Html.text "Loading..."]
+      ]
     ]
-  ]
 
 headerBuildStatusClass : (Maybe Build) -> String
 headerBuildStatusClass finishedBuild =

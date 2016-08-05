@@ -1,5 +1,69 @@
 @import (reference) "_vars.less";
 
+html, body, #elm-app, .content-frame {
+  height: 100%;
+}
+
+.content-frame {
+  display: flex;
+  flex-direction: column;
+
+  .top-bar {
+    display: flex;
+    flex-direction: row;
+    height: 40px;
+    flex-shrink: 0;
+
+    .groups {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: row;
+    }
+
+    .nav-right {
+      flex-shrink: 1;
+      margin-right: 10px;
+    }
+  }
+
+  .bottom {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .sidebar {
+    display: none;
+    width: 300px;
+
+    &.visible {
+      display: block;
+    }
+  }
+}
+
+.with-fixed-header {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+
+  .fixed-header {
+    flex: 0 0 auto;
+  }
+
+  .scrollable-body {
+    overflow-y: auto;
+    flex: 1 1 auto;
+    padding: 10px;
+  }
+}
+
+#content { // TODO: kill id
+  flex-grow: 1;
+}
+
 .display-in-middle {
   position: absolute;
   width: 100%;
@@ -10,30 +74,17 @@
 
 nav .groups {
   height: 40px;
-  display: block;
   list-style: none;
   margin: 0;
   padding: 0;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 3;
   font-size: 14px;
 }
 
 .nav-right {
   list-style: none;
-  position: fixed;
-  z-index: 3;
-  top: 0;
-  right: 10px;
   height: 40px;
+  padding: 0;
   margin: 0;
-}
-
-nav .groups li {
-  float: left;
 }
 
 nav .groups li a {
@@ -44,25 +95,12 @@ nav .groups li a {
   line-height: 40px;
 }
 
-
 .nav-item {
   &, a {
     color: @base07;
   }
   font-size: 18px;
   line-height: 40px;
-}
-
-
-#page-header {
-  width: 100%;
-  position: fixed;
-  top: 40px;
-  z-index: 2;
-}
-
-#content {
-  margin-top: 40px;
 }
 
 
