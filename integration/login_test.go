@@ -53,7 +53,7 @@ var _ = Describe("login Command", func() {
 			atcServer = ghttp.NewServer()
 		})
 
-		It("instructs the user to specify --team-name", func() {
+		FIt("instructs the user to specify --team-name", func() {
 			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
