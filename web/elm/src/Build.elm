@@ -11,6 +11,7 @@ import Html.Events exposing (onClick, on, onWithOptions)
 import Html.Lazy
 import Http
 import Json.Decode exposing ((:=))
+import Navigation
 import Process
 import Task exposing (Task)
 import Time exposing (Time)
@@ -188,6 +189,9 @@ handleBuildFetched build model =
         _ ->
           Cmd.none
 
+    updateBuildURL =
+      Navigation.newUrl <| Concourse.Build.url build
+
     (newModel, cmd) =
       if build.status == Concourse.BuildStatus.Pending then
         (withBuild, pollUntilStarted build.id)
@@ -204,7 +208,7 @@ handleBuildFetched build model =
               )
       else (withBuild, Cmd.none)
   in
-    (newModel, Cmd.batch [cmd, fetchJobAndHistory])
+    (newModel, Cmd.batch [cmd, updateBuildURL, fetchJobAndHistory])
 
 pollUntilStarted : Int -> Cmd Action
 pollUntilStarted buildId =
