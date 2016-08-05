@@ -51,6 +51,7 @@ var (
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	teamDB                        *dbfakes.FakeTeamDB
+	pipelinesDB                   *dbfakes.FakePipelinesDB
 	build                         *dbfakes.FakeBuild
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
@@ -97,6 +98,7 @@ var _ = BeforeEach(func() {
 	containerDB = new(containerserverfakes.FakeContainerDB)
 	volumesDB = new(volumeserverfakes.FakeVolumesDB)
 	pipeDB = new(pipesfakes.FakePipeDB)
+	pipelinesDB = new(dbfakes.FakePipelinesDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
@@ -147,6 +149,7 @@ var _ = BeforeEach(func() {
 		containerDB,
 		volumesDB,
 		pipeDB,
+		pipelinesDB,
 
 		func(atc.Config) ([]config.Warning, []string) {
 			return configValidationWarnings, configValidationErrorMessages

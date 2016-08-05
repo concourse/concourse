@@ -11,6 +11,7 @@ import (
 //go:generate counterfeiter . TeamDB
 
 type TeamDB interface {
+	HasTeamName() bool
 	GetPipelines() ([]SavedPipeline, error)
 	GetPipelineByName(pipelineName string) (SavedPipeline, error)
 	GetAllPipelines() ([]SavedPipeline, error)
@@ -43,8 +44,8 @@ type teamDB struct {
 	buildFactory *buildFactory
 }
 
-func (db *teamDB) noTeamName() bool {
-	return db.teamName == ""
+func (db *teamDB) HasTeamName() bool {
+	return db.teamName != ""
 }
 
 func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
@@ -81,23 +82,6 @@ func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 }
 
 func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
-	if db.noTeamName() {
-		allPublicRows, err := db.conn.Query(`
-			SELECT ` + pipelineColumns + `
-			FROM pipelines p
-			INNER JOIN teams t ON t.id = p.team_id
-			WHERE public = true
-			ORDER BY team_name, ordering
-		`)
-		if err != nil {
-			return nil, err
-		}
-
-		defer allPublicRows.Close()
-
-		return scanPipelines(allPublicRows)
-	}
-
 	rows, err := db.conn.Query(`
 		SELECT `+pipelineColumns+`
 		FROM pipelines p

@@ -32,12 +32,6 @@ type FakePipelineDB struct {
 	scopedNameReturns struct {
 		result1 string
 	}
-	TeamNameStub        func() string
-	teamNameMutex       sync.RWMutex
-	teamNameArgsForCall []struct{}
-	teamNameReturns     struct {
-		result1 string
-	}
 	TeamIDStub        func() int
 	teamIDMutex       sync.RWMutex
 	teamIDArgsForCall []struct{}
@@ -399,11 +393,11 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
-	SaveIndependentInputMappingStub        func(inputVersions algorithm.InputMapping, jobName string) error
+	SaveIndependentInputMappingStub        func(inputMapping algorithm.InputMapping, jobName string) error
 	saveIndependentInputMappingMutex       sync.RWMutex
 	saveIndependentInputMappingArgsForCall []struct {
-		inputVersions algorithm.InputMapping
-		jobName       string
+		inputMapping algorithm.InputMapping
+		jobName      string
 	}
 	saveIndependentInputMappingReturns struct {
 		result1 error
@@ -417,11 +411,11 @@ type FakePipelineDB struct {
 		result1 []db.BuildInput
 		result2 error
 	}
-	SaveNextInputMappingStub        func(inputVersions algorithm.InputMapping, jobName string) error
+	SaveNextInputMappingStub        func(inputMapping algorithm.InputMapping, jobName string) error
 	saveNextInputMappingMutex       sync.RWMutex
 	saveNextInputMappingArgsForCall []struct {
-		inputVersions algorithm.InputMapping
-		jobName       string
+		inputMapping algorithm.InputMapping
+		jobName      string
 	}
 	saveNextInputMappingReturns struct {
 		result1 error
@@ -616,31 +610,6 @@ func (fake *FakePipelineDB) ScopedNameArgsForCall(i int) string {
 func (fake *FakePipelineDB) ScopedNameReturns(result1 string) {
 	fake.ScopedNameStub = nil
 	fake.scopedNameReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakePipelineDB) TeamName() string {
-	fake.teamNameMutex.Lock()
-	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct{}{})
-	fake.recordInvocation("TeamName", []interface{}{})
-	fake.teamNameMutex.Unlock()
-	if fake.TeamNameStub != nil {
-		return fake.TeamNameStub()
-	} else {
-		return fake.teamNameReturns.result1
-	}
-}
-
-func (fake *FakePipelineDB) TeamNameCallCount() int {
-	fake.teamNameMutex.RLock()
-	defer fake.teamNameMutex.RUnlock()
-	return len(fake.teamNameArgsForCall)
-}
-
-func (fake *FakePipelineDB) TeamNameReturns(result1 string) {
-	fake.TeamNameStub = nil
-	fake.teamNameReturns = struct {
 		result1 string
 	}{result1}
 }
@@ -1962,16 +1931,16 @@ func (fake *FakePipelineDB) GetVersionedResourceByVersionReturns(result1 db.Save
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) SaveIndependentInputMapping(inputVersions algorithm.InputMapping, jobName string) error {
+func (fake *FakePipelineDB) SaveIndependentInputMapping(inputMapping algorithm.InputMapping, jobName string) error {
 	fake.saveIndependentInputMappingMutex.Lock()
 	fake.saveIndependentInputMappingArgsForCall = append(fake.saveIndependentInputMappingArgsForCall, struct {
-		inputVersions algorithm.InputMapping
-		jobName       string
-	}{inputVersions, jobName})
-	fake.recordInvocation("SaveIndependentInputMapping", []interface{}{inputVersions, jobName})
+		inputMapping algorithm.InputMapping
+		jobName      string
+	}{inputMapping, jobName})
+	fake.recordInvocation("SaveIndependentInputMapping", []interface{}{inputMapping, jobName})
 	fake.saveIndependentInputMappingMutex.Unlock()
 	if fake.SaveIndependentInputMappingStub != nil {
-		return fake.SaveIndependentInputMappingStub(inputVersions, jobName)
+		return fake.SaveIndependentInputMappingStub(inputMapping, jobName)
 	} else {
 		return fake.saveIndependentInputMappingReturns.result1
 	}
@@ -1986,7 +1955,7 @@ func (fake *FakePipelineDB) SaveIndependentInputMappingCallCount() int {
 func (fake *FakePipelineDB) SaveIndependentInputMappingArgsForCall(i int) (algorithm.InputMapping, string) {
 	fake.saveIndependentInputMappingMutex.RLock()
 	defer fake.saveIndependentInputMappingMutex.RUnlock()
-	return fake.saveIndependentInputMappingArgsForCall[i].inputVersions, fake.saveIndependentInputMappingArgsForCall[i].jobName
+	return fake.saveIndependentInputMappingArgsForCall[i].inputMapping, fake.saveIndependentInputMappingArgsForCall[i].jobName
 }
 
 func (fake *FakePipelineDB) SaveIndependentInputMappingReturns(result1 error) {
@@ -2030,16 +1999,16 @@ func (fake *FakePipelineDB) GetIndependentBuildInputsReturns(result1 []db.BuildI
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) SaveNextInputMapping(inputVersions algorithm.InputMapping, jobName string) error {
+func (fake *FakePipelineDB) SaveNextInputMapping(inputMapping algorithm.InputMapping, jobName string) error {
 	fake.saveNextInputMappingMutex.Lock()
 	fake.saveNextInputMappingArgsForCall = append(fake.saveNextInputMappingArgsForCall, struct {
-		inputVersions algorithm.InputMapping
-		jobName       string
-	}{inputVersions, jobName})
-	fake.recordInvocation("SaveNextInputMapping", []interface{}{inputVersions, jobName})
+		inputMapping algorithm.InputMapping
+		jobName      string
+	}{inputMapping, jobName})
+	fake.recordInvocation("SaveNextInputMapping", []interface{}{inputMapping, jobName})
 	fake.saveNextInputMappingMutex.Unlock()
 	if fake.SaveNextInputMappingStub != nil {
-		return fake.SaveNextInputMappingStub(inputVersions, jobName)
+		return fake.SaveNextInputMappingStub(inputMapping, jobName)
 	} else {
 		return fake.saveNextInputMappingReturns.result1
 	}
@@ -2054,7 +2023,7 @@ func (fake *FakePipelineDB) SaveNextInputMappingCallCount() int {
 func (fake *FakePipelineDB) SaveNextInputMappingArgsForCall(i int) (algorithm.InputMapping, string) {
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
-	return fake.saveNextInputMappingArgsForCall[i].inputVersions, fake.saveNextInputMappingArgsForCall[i].jobName
+	return fake.saveNextInputMappingArgsForCall[i].inputMapping, fake.saveNextInputMappingArgsForCall[i].jobName
 }
 
 func (fake *FakePipelineDB) SaveNextInputMappingReturns(result1 error) {
@@ -2472,8 +2441,6 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.getPipelineIDMutex.RUnlock()
 	fake.scopedNameMutex.RLock()
 	defer fake.scopedNameMutex.RUnlock()
-	fake.teamNameMutex.RLock()
-	defer fake.teamNameMutex.RUnlock()
 	fake.teamIDMutex.RLock()
 	defer fake.teamIDMutex.RUnlock()
 	fake.pauseMutex.RLock()

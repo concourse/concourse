@@ -170,46 +170,28 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("with teamName", func() {
-			It("returns the pipelines of the team first, followed by public pipelines from other teams (case insensitive)", func() {
-				savedPipelines, err := teamDB.GetAllPipelines()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(savedPipelines).To(Equal([]db.SavedPipeline{
-					savedPipeline2,
-					savedPipeline3,
-					savedPipeline1,
-					otherSavedPublicPipeline3,
-					otherSavedPublicPipeline1,
-				}))
+		It("returns the pipelines of the team first, followed by public pipelines from other teams (case insensitive)", func() {
+			savedPipelines, err := teamDB.GetAllPipelines()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(savedPipelines).To(Equal([]db.SavedPipeline{
+				savedPipeline2,
+				savedPipeline3,
+				savedPipeline1,
+				otherSavedPublicPipeline3,
+				otherSavedPublicPipeline1,
+			}))
 
-				savedPipelines, err = otherTeamDB.GetAllPipelines()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(savedPipelines).To(Equal([]db.SavedPipeline{
-					otherSavedPublicPipeline3,
-					otherSavedPublicPipeline2,
-					otherSavedPublicPipeline1,
-					savedPipeline2,
-					savedPipeline1,
-				}))
-			})
+			savedPipelines, err = otherTeamDB.GetAllPipelines()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(savedPipelines).To(Equal([]db.SavedPipeline{
+				otherSavedPublicPipeline3,
+				otherSavedPublicPipeline2,
+				otherSavedPublicPipeline1,
+				savedPipeline2,
+				savedPipeline1,
+			}))
 		})
 
-		Context("without teamName", func() {
-			BeforeEach(func() {
-				teamDB = teamDBFactory.GetTeamDB("")
-			})
-
-			It("returns all public pipelines (case insensitive)", func() {
-				savedPipelines, err := teamDB.GetAllPipelines()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(savedPipelines).To(Equal([]db.SavedPipeline{
-					savedPipeline2,
-					savedPipeline1,
-					otherSavedPublicPipeline3,
-					otherSavedPublicPipeline1,
-				}))
-			})
-		})
 	})
 
 	Describe("OrderPipelines", func() {

@@ -33,44 +33,50 @@ var _ = Describe("Pipelines API", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
+			publicPipeline := db.SavedPipeline{
+				ID:       2,
+				Paused:   true,
+				Public:   true,
+				TeamName: "main",
+				Pipeline: db.Pipeline{
+					Name: "another-pipeline",
+					Config: atc.Config{
+						Groups: atc.GroupConfigs{
+							{
+								Name:      "group2",
+								Jobs:      []string{"job3", "job4"},
+								Resources: []string{"resource3", "resource4"},
+							},
+						},
+					},
+				},
+			}
+			privatePipeline := db.SavedPipeline{
+				ID:       1,
+				Paused:   false,
+				Public:   false,
+				TeamName: "main",
+				Pipeline: db.Pipeline{
+					Name: "a-pipeline",
+					Config: atc.Config{
+						Groups: atc.GroupConfigs{
+							{
+								Name:      "group1",
+								Jobs:      []string{"job1", "job2"},
+								Resources: []string{"resource1", "resource2"},
+							},
+						},
+					},
+				},
+			}
+
+			teamDB.HasTeamNameReturns(true)
 			teamDB.GetAllPipelinesReturns([]db.SavedPipeline{
-				{
-					ID:       1,
-					Paused:   false,
-					Public:   false,
-					TeamName: "main",
-					Pipeline: db.Pipeline{
-						Name: "a-pipeline",
-						Config: atc.Config{
-							Groups: atc.GroupConfigs{
-								{
-									Name:      "group1",
-									Jobs:      []string{"job1", "job2"},
-									Resources: []string{"resource1", "resource2"},
-								},
-							},
-						},
-					},
-				},
-				{
-					ID:       2,
-					Paused:   true,
-					Public:   true,
-					TeamName: "main",
-					Pipeline: db.Pipeline{
-						Name: "another-pipeline",
-						Config: atc.Config{
-							Groups: atc.GroupConfigs{
-								{
-									Name:      "group2",
-									Jobs:      []string{"job3", "job4"},
-									Resources: []string{"resource3", "resource4"},
-								},
-							},
-						},
-					},
-				},
+				privatePipeline,
+				publicPipeline,
 			}, nil)
+
+			pipelinesDB.GetAllPublicPipelinesReturns([]db.SavedPipeline{publicPipeline}, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -104,6 +110,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
+				teamDB.HasTeamNameReturns(false)
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
@@ -134,7 +141,7 @@ var _ = Describe("Pipelines API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			It("returns all pipelines", func() {
+			It("returns all pipelines of the team + all public pipelines", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 

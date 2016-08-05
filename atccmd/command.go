@@ -856,6 +856,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		sqlDB, // containerserver.ContainerDB
 		sqlDB, // volumeserver.VolumesDB
 		sqlDB, // pipes.PipeDB
+		sqlDB, // db.PipelinesDB
 
 		config.ValidateConfig,
 		cmd.PeerURL.String(),
