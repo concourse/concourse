@@ -495,8 +495,15 @@ viewHistoryItem currentBuild build =
 overrideClick : Action -> Html.Attribute Action
 overrideClick action =
   Html.Events.onWithOptions "click"
-    { stopPropagation = True, preventDefault = True }
-    (Json.Decode.succeed action)
+    { stopPropagation = True, preventDefault = True } <|
+      Json.Decode.customDecoder
+      ("button" := Json.Decode.int) <|
+        assertLeftButton action
+
+assertLeftButton : Action -> Int -> Result String Action
+assertLeftButton action button =
+  if button == 0 then Ok action
+  else Err "placeholder error, nothing is wrong"
 
 durationTitle : Date -> List (Html Action) -> Html Action
 durationTitle date content =
