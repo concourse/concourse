@@ -32,12 +32,6 @@ type FakeRadarDB struct {
 	scopedNameReturns struct {
 		result1 string
 	}
-	TeamNameStub        func() string
-	teamNameMutex       sync.RWMutex
-	teamNameArgsForCall []struct{}
-	teamNameReturns     struct {
-		result1 string
-	}
 	TeamIDStub        func() int
 	teamIDMutex       sync.RWMutex
 	teamIDArgsForCall []struct{}
@@ -242,31 +236,6 @@ func (fake *FakeRadarDB) ScopedNameArgsForCall(i int) string {
 func (fake *FakeRadarDB) ScopedNameReturns(result1 string) {
 	fake.ScopedNameStub = nil
 	fake.scopedNameReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeRadarDB) TeamName() string {
-	fake.teamNameMutex.Lock()
-	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct{}{})
-	fake.recordInvocation("TeamName", []interface{}{})
-	fake.teamNameMutex.Unlock()
-	if fake.TeamNameStub != nil {
-		return fake.TeamNameStub()
-	} else {
-		return fake.teamNameReturns.result1
-	}
-}
-
-func (fake *FakeRadarDB) TeamNameCallCount() int {
-	fake.teamNameMutex.RLock()
-	defer fake.teamNameMutex.RUnlock()
-	return len(fake.teamNameArgsForCall)
-}
-
-func (fake *FakeRadarDB) TeamNameReturns(result1 string) {
-	fake.TeamNameStub = nil
-	fake.teamNameReturns = struct {
 		result1 string
 	}{result1}
 }
@@ -713,8 +682,6 @@ func (fake *FakeRadarDB) Invocations() map[string][][]interface{} {
 	defer fake.getPipelineIDMutex.RUnlock()
 	fake.scopedNameMutex.RLock()
 	defer fake.scopedNameMutex.RUnlock()
-	fake.teamNameMutex.RLock()
-	defer fake.teamNameMutex.RUnlock()
 	fake.teamIDMutex.RLock()
 	defer fake.teamIDMutex.RUnlock()
 	fake.isPausedMutex.RLock()

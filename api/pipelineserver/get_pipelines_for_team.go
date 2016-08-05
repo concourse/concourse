@@ -12,7 +12,11 @@ func (s *Server) getPipelines(teamName string, all bool) ([]atc.Pipeline, error)
 	var err error
 
 	if all {
-		pipelines, err = teamDB.GetAllPipelines()
+		if !teamDB.HasTeamName() {
+			pipelines, err = s.pipelinesDB.GetAllPublicPipelines()
+		} else {
+			pipelines, err = teamDB.GetAllPipelines()
+		}
 	} else {
 		pipelines, err = teamDB.GetPipelines()
 	}

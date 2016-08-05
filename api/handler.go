@@ -50,6 +50,7 @@ func NewHandler(
 	containerDB containerserver.ContainerDB,
 	volumesDB volumeserver.VolumesDB,
 	pipeDB pipes.PipeDB,
+	pipelinesDB db.PipelinesDB,
 
 	configValidator configserver.ConfigValidator,
 	peerURL string,
@@ -99,7 +100,7 @@ func NewHandler(
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, externalURL, pipeDB)
 
-	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory)
+	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory, pipelinesDB)
 
 	configServer := configserver.NewServer(logger, teamDBFactory, configValidator)
 
