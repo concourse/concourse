@@ -53,7 +53,7 @@ var _ = Describe("login Command", func() {
 			atcServer = ghttp.NewServer()
 		})
 
-		FIt("instructs the user to specify --team-name", func() {
+		It("instructs the user to specify --team-name", func() {
 			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -61,9 +61,7 @@ var _ = Describe("login Command", func() {
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
 
-			Expect(sess.Err).To(gbytes.Say("the required flag "))
-			Expect(sess.Err).To(gbytes.Say("n, "))
-			Expect(sess.Err).To(gbytes.Say("team-name' was not specified"))
+			Expect(sess.Err).To(gbytes.Say("the required flag `-n, --team-name' was not specified"))
 		})
 	})
 
