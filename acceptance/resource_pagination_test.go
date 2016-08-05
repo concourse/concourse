@@ -122,7 +122,7 @@ var _ = Describe("Resource Pagination", func() {
 				// resource detail -> paused resource detail
 				Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/main/resources/resource-name")))
 				Expect(page.Find("h1")).To(HaveText("resource-name"))
-				Expect(page.All(".pagination").Count()).Should(Equal(2))
+				Expect(page.All(".pagination").Count()).Should(Equal(1))
 				Expect(page.Find(".resource-versions")).Should(BeFound())
 				Expect(page.All(".resource-versions li").Count()).Should(Equal(100))
 
