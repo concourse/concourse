@@ -91,7 +91,7 @@ var _ = BeforeEach(func() {
 		os.Setenv("HOME", homeDir)
 	}
 
-	loginCmd := exec.Command(flyPath, "-t", targetName, "login", "-c", atcServer.URL(), "-n", "main")
+	loginCmd := exec.Command(flyPath, "-t", targetName, "login", "-c", atcServer.URL())
 
 	session, err := gexec.Start(loginCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
