@@ -22,21 +22,20 @@
     <meta name="msapplication-TileImage" content="{{asset "favicons/mstile-144x144.png"}}" />
     <meta name="theme-color" content="#000000" />
   </head>
-  <body class="pipelinesNav-enabled">
-    <div class="js-pipelinesNav">
-      <div class="nav-container">
-        <ul class="pipelines js-pipelinesNav-list"></ul>
-      </div>
-
-      <div class="page-to-slide">
-        <nav>
-          <ul class="js-groups groups">
-            <li class="main"><span class="js-pipelinesNav-toggle btn-hamburger" aria-label="Toggle List of Pipelines"><i class="fa fa-bars"></i></span></li><li class="main"><a href="/" aria-label="Back to Home Page"><i class="fa fa-home"></i></a></li>
-          </ul>
-          <ul class="nav-right">
-            <li class="nav-item"><a href="/builds" aria-label="Builds List"><i class="fa fa-tasks"></i></a></li>
-          </ul>
-        </nav>
+  <body class="js-with-pipeline">
+    <div class="content-frame">
+      <nav class="top-bar js-top-bar">
+        <ul class="groups">
+          <li class="main"><span class="js-sidebar-toggle btn-hamburger" aria-label="Toggle List of Pipelines"><i class="fa fa-bars"></i></span></li><li class="main"><a href="/" aria-label="Back to Home Page"><i class="fa fa-home"></i></a></li>
+        </ul>
+        <ul class="nav-right">
+          <li class="nav-item"><a href="/builds" aria-label="Builds List"><i class="fa fa-tasks"></i></a></li>
+        </ul>
+      </nav>
+      <div class="bottom">
+        <div class="sidebar js-sidebar">
+          <ul class="pipelines js-pipelines-list"></ul>
+        </div>
 
         <div id="content">
         {{template "body" .}}

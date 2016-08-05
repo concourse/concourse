@@ -1,136 +1,117 @@
 {{define "title"}}History - Concourse{{end}}
 
 {{define "body"}}
-<div class="pal">
-  <div class="pagination-header">
-    <div class="pagination fr">
-      {{if .Pagination.Previous}}
-      <div class="btn-page-link">
-        <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Previous}}" aria-label="Previous Page"><i class="fa fa-arrow-left"></i></a>
-      </div>
-      {{else}}
-      <div class="btn-page-link disabled">
-        <span class="arrow"><i class="fa fa-arrow-left"></i></span>
-      </div>
-      {{end}}
-      {{if .Pagination.Next}}
-      <div class="btn-page-link">
-        <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Next}}" aria-label="Next Page"><i class="fa fa-arrow-right"></i></a>
-      </div>
-      {{else}}
-      <div class="btn-page-link disabled">
-        <span class="arrow"><i class="fa fa-arrow-right"></i></span>
-      </div>
-      {{end}}
-    </div>
-
-    <h1 class="h1">{{.Resource.Name}}</h1>
-  </div>
-
-  <div class="js-resource" data-teamname="{{.TeamName}}" data-endpoint="/api/v1/teams/{{.TeamName}}/pipelines/{{.PipelineName}}/resources/{{.Resource.Name}}">
-  <div class="resource-check-status">
-    <div class="build-step">
-      <div class="header">
-        {{if .Resource.Paused}}
-          <span class="btn-pause fl enabled js-pauseUnpause" aria-label="Resume Resource Checking"><i class="fa fa-fw fa-play"></i></span>
-        {{else}}
-          <span class="btn-pause fl disabled js-pauseUnpause" aria-label="Pause Resource Checking"><i class="fa fa-fw fa-pause"></i></span>
-        {{end}}
-
-        {{if .Resource.FailingToCheck}}
-          <h3 class="js-resourceStatusText" data-initial="checking failed">checking failed</h3>
-          <i class="fr errored fa fa-fw fa-exclamation-triangle"></i>
-        {{else}}
-          <h3 class="js-resourceStatusText" data-initial="checking successfully">checking successfully</h3>
-          <i class="fr succeeded fa fa-fw fa-check"></i>
-        {{end}}
-      </div>
-
-      {{if .Resource.FailingToCheck}}
-        <div class="step-body">
-          <pre>{{.Resource.CheckError}}</pre>
+<div class="with-fixed-header">
+  <div class="fixed-header">
+    <div class="pagination-header">
+      <div class="pagination fr">
+        {{if .Pagination.Previous}}
+        <div class="btn-page-link">
+          <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Previous}}" aria-label="Previous Page"><i class="fa fa-arrow-left"></i></a>
         </div>
-      {{end}}
+        {{else}}
+        <div class="btn-page-link disabled">
+          <span class="arrow"><i class="fa fa-arrow-left"></i></span>
+        </div>
+        {{end}}
+        {{if .Pagination.Next}}
+        <div class="btn-page-link">
+          <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Next}}" aria-label="Next Page"><i class="fa fa-arrow-right"></i></a>
+        </div>
+        {{else}}
+        <div class="btn-page-link disabled">
+          <span class="arrow"><i class="fa fa-arrow-right"></i></span>
+        </div>
+        {{end}}
+      </div>
+
+      <h1 class="h1">{{.Resource.Name}}</h1>
     </div>
   </div>
-</div>
 
-<ul class="list list-collapsable list-enableDisable resource-versions">
-  {{$pipelineName := .PipelineName}}
-  {{$teamName := .TeamName}}
-  {{range .Versions}}
-    <li class="list-collapsable-item clearfix {{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
-
-      <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrm" href="javascript:;" aria-label="Toggle Resource Version" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" $teamName $pipelineName .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" $teamName $pipelineName .VersionedResource}}"></a>
-
-      <div class="js-expandable list-collapsable-title">
-        {{range $name, $val := .VersionedResource.Version}}
-        {{$name}} {{$val}}
-        {{end}}
-      </div>
-      <div class="list-collapsable-content w100 clearfix phm pvs">
-
-        <div class="fl prm" style="width:34%">
-          <div class="list-collapsable-title">inputs to</div>
-
-          {{range $jobName, $builds := .InputsTo}}
-            <h3 class="man pas ansi-bright-black-bg">{{$jobName}}</h3>
-            <ul class="builds-list">
-              {{range $builds}}
-                <li class="{{.Status}}"><a href="{{url "GetBuild" $jobName .}}">#{{.Name}}</a></li>
-              {{end}}
-            </ul>
-          {{end}}
-        </div>
-
-        <div class="fl prm" style="width:33%">
-          <div class="list-collapsable-title">outputs of</div>
-          {{range $jobName, $builds := .OutputsOf}}
-            <h3 class="man pas ansi-bright-black-bg">{{$jobName}}</h3>
-            <ul class="builds-list">
-              {{range $builds}}
-                <li class="{{.Status}}"><a href="{{url "GetBuild" $jobName .}}">#{{.Name}}</a></li>
-              {{end}}
-            </ul>
-          {{end}}
-        </div>
-
-        <div class="fl" style="width:33%">
-          <div class="list-collapsable-title" style="padding-left:5em;">metadata</div>
-          <dl class="build-metadata fr">
-            {{range .VersionedResource.Metadata}}
-            <dt>{{.Name}}</dt>
-              <dd>{{.Value}}</dd>
+  <div class="scrollable-body">
+    <div class="js-resource" data-teamname="{{.TeamName}}" data-endpoint="/api/v1/teams/{{.TeamName}}/pipelines/{{.PipelineName}}/resources/{{.Resource.Name}}">
+      <div class="resource-check-status">
+        <div class="build-step">
+          <div class="header">
+            {{if .Resource.Paused}}
+              <span class="btn-pause fl enabled js-pauseUnpause" aria-label="Resume Resource Checking"><i class="fa fa-fw fa-play"></i></span>
+            {{else}}
+              <span class="btn-pause fl disabled js-pauseUnpause" aria-label="Pause Resource Checking"><i class="fa fa-fw fa-pause"></i></span>
             {{end}}
-          </dl>
+
+            {{if .Resource.FailingToCheck}}
+              <h3 class="js-resourceStatusText" data-initial="checking failed">checking failed</h3>
+              <i class="fr errored fa fa-fw fa-exclamation-triangle"></i>
+            {{else}}
+              <h3 class="js-resourceStatusText" data-initial="checking successfully">checking successfully</h3>
+              <i class="fr succeeded fa fa-fw fa-check"></i>
+            {{end}}
+          </div>
+
+          {{if .Resource.FailingToCheck}}
+            <div class="step-body">
+              <pre>{{.Resource.CheckError}}</pre>
+            </div>
+          {{end}}
         </div>
       </div>
-    </li>
-  {{end}}
-</ul>
+    </div>
 
-<div class="pagination-footer">
-  <div class="pagination fr">
-    {{if .Pagination.Previous}}
-    <div class="btn-page-link">
-      <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Previous}}" aria-label="Previous Page"><i class="fa fa-arrow-left"></i></a>
-    </div>
-    {{else}}
-    <div class="btn-page-link disabled">
-      <span class="arrow"><i class="fa fa-arrow-left"></i></span>
-    </div>
-    {{end}}
-    {{if .Pagination.Next}}
-    <div class="btn-page-link">
-      <a class="arrow" href="{{url "GetResource" .TeamName .PipelineName .Resource .Pagination.Next}}" aria-label="Next Page"><i class="fa fa-arrow-right"></i></a>
-    </div>
-    {{else}}
-    <div class="btn-page-link disabled">
-      <span class="arrow"><i class="fa fa-arrow-right"></i></span>
-    </div>
-    {{end}}
+    <ul class="list list-collapsable list-enableDisable resource-versions">
+      {{$pipelineName := .PipelineName}}
+      {{$teamName := .TeamName}}
+      {{range .Versions}}
+      <li class="list-collapsable-item clearfix {{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
+
+        <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrm" href="javascript:;" aria-label="Toggle Resource Version" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" $teamName $pipelineName .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" $teamName $pipelineName .VersionedResource}}"></a>
+
+        <div class="js-expandable list-collapsable-title">
+          {{range $name, $val := .VersionedResource.Version}}
+          {{$name}} {{$val}}
+          {{end}}
+        </div>
+        <div class="list-collapsable-content w100 clearfix phm pvs">
+
+          <div class="fl prm" style="width:34%">
+            <div class="list-collapsable-title">inputs to</div>
+
+            {{range $jobName, $builds := .InputsTo}}
+            <h3 class="man pas ansi-bright-black-bg">{{$jobName}}</h3>
+            <ul class="builds-list">
+              {{range $builds}}
+              <li class="{{.Status}}"><a href="{{url "GetBuild" $jobName .}}">#{{.Name}}</a></li>
+              {{end}}
+            </ul>
+            {{end}}
+          </div>
+
+          <div class="fl prm" style="width:33%">
+            <div class="list-collapsable-title">outputs of</div>
+            {{range $jobName, $builds := .OutputsOf}}
+            <h3 class="man pas ansi-bright-black-bg">{{$jobName}}</h3>
+            <ul class="builds-list">
+              {{range $builds}}
+              <li class="{{.Status}}"><a href="{{url "GetBuild" $jobName .}}">#{{.Name}}</a></li>
+              {{end}}
+            </ul>
+            {{end}}
+          </div>
+
+          <div class="fl" style="width:33%">
+            <div class="list-collapsable-title" style="padding-left:5em;">metadata</div>
+            <dl class="build-metadata fr">
+              {{range .VersionedResource.Metadata}}
+              <dt>{{.Name}}</dt>
+              <dd>{{.Value}}</dd>
+              {{end}}
+            </dl>
+          </div>
+        </div>
+      </li>
+      {{end}}
+    </ul>
   </div>
-</div>
 </div>
 
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>

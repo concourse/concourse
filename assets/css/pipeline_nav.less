@@ -2,49 +2,7 @@
 
 @sidebarWidth: 300px;
 
-
-.pipelinesNav-enabled #pipeline {
-  left: 0;
-}
-
-.pipelinesNav-visible #pipeline {
-  left: @sidebarWidth + 5px;
-}
-
-
-.pipelinesNav-enabled .build-actions {
-  margin-right: 5px;
-
-}
-
-.pipelinesNav-visible .build-actions {
-  margin-right:  @sidebarWidth + 5px;
-
-}
-
-
-
-.pipelinesNav-enabled #pipeline .legend {
-  left: 1em;
-}
-
-.pipelinesNav-visible #pipeline .legend {
-  left:  @sidebarWidth + 5px;
-}
-
-
-
-.pipelinesNav-enabled #content{
-  margin-left: 0;
-}
-
-.pipelinesNav-visible #content{
-  margin-left: @sidebarWidth;
-}
-
-
-
-.pipelinesNav-enabled .pipelines {
+.pipelines {
   list-style-type: none;
   padding: 0;
   margin: 0;
@@ -56,15 +14,7 @@
   overflow: auto;
 }
 
-.pipelinesNav-visible .pipelines {
-  visibility: visible;
-  -webkit-transform: translateX(0);
-  transform: translateX(0);
-
-
-}
-
-.pipelinesNav-enabled .pipelines li {
+.pipelines li {
   position: relative;
   padding: 0;
   margin: 0;
@@ -93,40 +43,4 @@
     top: 0px;
     left: 0px;
   }
-}
-
-.nav-container {
-  /* this is the 3D navigation container */
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-
-  margin-top: 40px;
-
-  width: @sidebarWidth;
-  background-color: @base00;
-
-  -webkit-transform: translateX(-@sidebarWidth);
-  transform: translateX(-@sidebarWidth);
-
-
-}
-
-.pipelinesNav-visible .nav-container {
-  visibility: visible;
-
-  -webkit-transform: translateX(0);
-  transform: translateX(0);
-
-}
-
-.pipelinesNav-visible .pipelines {
-  background-color: @base00;
-}
-
-.pipelinesNav-visible .pipelines::after {
-  /* menu cover layer - hide it when navigation is visible */
-  opacity: 0;
-  visibility: hidden;
 }
