@@ -53,14 +53,14 @@ var _ = Describe("PipelinePausing", func() {
 		})
 
 		homeLink := ".js-groups li:nth-of-type(2) a"
-		navList := ".js-pipelinesNav-list"
+		navList := ".js-pipelines-list"
 
 		It("can pause the pipelines", func() {
 			Expect(page.Navigate(atcURL)).To(Succeed())
 			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/")))
 
 			By("toggling the nav")
-			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
+			Expect(page.Find(".js-sidebar-toggle").Click()).To(Succeed())
 
 			By("clicking another-pipeline")
 			Eventually(page.All(navList).FindByLink("another-pipeline")).Should(BeFound())
@@ -72,7 +72,7 @@ var _ = Describe("PipelinePausing", func() {
 			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute(fmt.Sprintf("/teams/%s/pipelines/another-pipeline", teamName))))
 
 			By("toggling the nav")
-			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
+			Expect(page.Find(".js-sidebar-toggle").Click()).To(Succeed())
 			Eventually(page.Find("#pipeline").Text, loadingTimeout).Should(ContainSubstring("another-job-name"))
 
 			By("pausing another-pipeline")
@@ -88,7 +88,7 @@ var _ = Describe("PipelinePausing", func() {
 			page.Refresh()
 
 			Eventually(page.Find(".js-groups.paused"), loadingTimeout).Should(BeFound())
-			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
+			Expect(page.Find(".js-sidebar-toggle").Click()).To(Succeed())
 
 			Eventually(page.All(navList).FindByXPath(spanXPath), loadingTimeout).Should(BeVisible())
 			Expect(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'enabled')]")).To(BeFound())
@@ -103,7 +103,7 @@ var _ = Describe("PipelinePausing", func() {
 			page.Refresh()
 
 			By("pausing the pipeline")
-			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
+			Expect(page.Find(".js-sidebar-toggle").Click()).To(Succeed())
 			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
 			Eventually(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'enabled')]")).Should(BeFound())
 		})

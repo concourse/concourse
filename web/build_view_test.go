@@ -53,12 +53,12 @@ var _ = Describe("Viewing builds", func() {
 			Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("some-job #%s", build.Name)))
 			Eventually(page.Find("#builds")).Should(HaveText(build.Name))
 
-			Eventually(page.Find("#page-header.succeeded")).Should(BeFound())
+			Eventually(page.Find(".build-header.succeeded")).Should(BeFound())
 			Eventually(page.Find(".build-duration").Text).Should(ContainSubstring("duration"))
 
 			Eventually(page.Find(".build-step .header .succeeded")).Should(BeFound())
 			Expect(page.Find(".build-step .header .succeeded").Click()).To(Succeed())
-			Eventually(page.Find("#build-body").Text).Should(ContainSubstring("hello from some-job"))
+			Eventually(page.Find(".steps").Text).Should(ContainSubstring("hello from some-job"))
 		})
 	})
 
@@ -93,13 +93,13 @@ var _ = Describe("Viewing builds", func() {
 			Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("build #%d", build.ID)))
 			Expect(page.Find("#builds").Text()).To(BeEmpty())
 
-			Eventually(page.Find("#page-header.succeeded")).Should(BeFound())
+			Eventually(page.Find(".build-header.succeeded")).Should(BeFound())
 			Eventually(page.Find(".build-duration").Text).Should(ContainSubstring("duration"))
 
 			Eventually(page.Find(".build-step .header").Text).Should(ContainSubstring("some-task"))
 			Eventually(page.Find(".build-step .header .succeeded")).Should(BeFound())
 			Expect(page.Find(".build-step .header .succeeded").Click()).To(Succeed())
-			Eventually(page.Find("#build-body").Text).Should(ContainSubstring("hello from one-off"))
+			Eventually(page.Find(".steps").Text).Should(ContainSubstring("hello from one-off"))
 		})
 	})
 })

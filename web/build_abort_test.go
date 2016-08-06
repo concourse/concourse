@@ -58,7 +58,7 @@ var _ = Describe("Aborting a build", func() {
 			Eventually(page.Find(".step-body")).Should(HaveText("running"))
 			Expect(page.Find(".build-action-abort").Click()).To(Succeed())
 
-			Eventually(page.Find("#page-header.aborted")).Should(BeFound())
+			Eventually(page.Find(".build-header.aborted")).Should(BeFound())
 			Eventually(page.Find(".build-action-abort")).ShouldNot(BeFound())
 		})
 	})
@@ -99,7 +99,7 @@ var _ = Describe("Aborting a build", func() {
 			Eventually(page.Find(".step-body")).Should(HaveText("running"))
 			Expect(page.Find(".build-action-abort").Click()).To(Succeed())
 
-			Eventually(page.Find("#page-header.aborted")).Should(BeFound())
+			Eventually(page.Find(".build-header.aborted")).Should(BeFound())
 			Eventually(page.Find(".build-action-abort")).ShouldNot(BeFound())
 		})
 	})

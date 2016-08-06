@@ -95,7 +95,7 @@ var _ = Describe("BuildsView", func() {
 			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job", teamName, pipelineName))
 
 			Expect(page.Navigate(url)).To(Succeed())
-			Eventually(page.Find("#page-header.succeeded")).Should(BeFound())
+			Eventually(page.Find(".build-header.succeeded")).Should(BeFound())
 
 			Eventually(page.All(".builds-list li")).Should(HaveCount(1))
 

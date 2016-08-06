@@ -51,14 +51,14 @@ var _ = Describe("the quality of being unauthenticated for public pipelines", fu
 
 		Entry("job page (publicly viewable)", func() (string, []string) {
 			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s", teamName, pipelineName, publicBuild.JobName),
-				[]string{"#page-header .build-header button.btn-pause"}
+				[]string{".build-header button.btn-pause"}
 		}),
 
 		Entry("build page (publicly viewable)", func() (string, []string) {
 			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s/builds/%s", teamName, pipelineName, publicBuild.JobName, publicBuild.Name),
 				[]string{
-					"#page-header .build-header button.build-action",   //New Build
-					"#page-header .build-header .build-action-abort i", //Abort Build
+					".build-header button.build-action",   //New Build
+					".build-header .build-action-abort i", //Abort Build
 				}
 		}),
 
