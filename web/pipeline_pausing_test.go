@@ -52,7 +52,7 @@ var _ = Describe("PipelinePausing", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		homeLink := ".js-groups li:nth-of-type(2) a"
+		homeLink := ".js-top-bar li:nth-of-type(2) a"
 		navList := ".js-pipelines-list"
 
 		It("can pause the pipelines", func() {
@@ -82,12 +82,12 @@ var _ = Describe("PipelinePausing", func() {
 			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
 
 			// top bar should show the pipeline is paused
-			Eventually(page.Find(".js-groups.paused"), loadingTimeout).Should(BeFound())
+			Eventually(page.Find(".js-top-bar.paused"), loadingTimeout).Should(BeFound())
 
 			By("refreshing the page")
 			page.Refresh()
 
-			Eventually(page.Find(".js-groups.paused"), loadingTimeout).Should(BeFound())
+			Eventually(page.Find(".js-top-bar.paused"), loadingTimeout).Should(BeFound())
 			Expect(page.Find(".js-sidebar-toggle").Click()).To(Succeed())
 
 			Eventually(page.All(navList).FindByXPath(spanXPath), loadingTimeout).Should(BeVisible())
@@ -97,7 +97,7 @@ var _ = Describe("PipelinePausing", func() {
 			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
 			Eventually(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'disabled')]")).Should(BeFound())
 
-			Consistently(page.Find(".js-groups.paused")).ShouldNot(BeFound())
+			Consistently(page.Find(".js-top-bar.paused")).ShouldNot(BeFound())
 
 			By("refreshing the page")
 			page.Refresh()

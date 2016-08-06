@@ -90,7 +90,7 @@ var _ = Describe("JobPausing", func() {
 				Eventually(page, loadingTimeout).Should(HaveURL(jobURL))
 
 				// top bar should show the pipeline is paused
-				Eventually(page.Find(".js-groups.paused")).Should(BeFound())
+				Eventually(page.Find(".js-top-bar.paused")).Should(BeFound())
 			})
 		})
 	})

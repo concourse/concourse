@@ -136,7 +136,7 @@ var _ = Describe("BuildsView", func() {
 				Expect(page.Navigate(atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job/builds/%s", teamName, pipelineName, build.Name)))).To(Succeed())
 
 				// top bar should show the pipeline is paused
-				Eventually(page.Find(".js-groups.paused"), 10*time.Second).Should(BeFound())
+				Eventually(page.Find(".js-top-bar.paused"), 10*time.Second).Should(BeFound())
 			})
 		})
 	})
