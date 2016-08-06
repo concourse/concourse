@@ -1981,8 +1981,7 @@ func (pdb *pipelineDB) saveJobInputMapping(table string, inputMapping algorithm.
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (pdb *pipelineDB) getJobBuildInputs(table string, jobName string) ([]BuildInput, error) {
