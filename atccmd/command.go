@@ -156,6 +156,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	logger, reconfigurableSink := cmd.constructLogger()
 
+	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
+
 	if cmd.Metrics.RiemannHost != "" {
 		cmd.configureMetrics(logger)
 	}
