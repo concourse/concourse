@@ -9,10 +9,8 @@ import (
 
 func (db *SQLDB) GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error) {
 	lease := &lease{
-		conn: db.conn,
-		logger: logger.Session("lease", lager.Data{
-			"CacheInvalidator": "Scottsboro",
-		}),
+		conn:   db.conn,
+		logger: logger.Session("lease"),
 		attemptSignFunc: func(tx Tx) (sql.Result, error) {
 			_, err := tx.Exec(`
 				INSERT INTO leases (last_invalidated, name)
