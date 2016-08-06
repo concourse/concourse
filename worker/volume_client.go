@@ -58,14 +58,15 @@ func (c *volumeClient) FindVolume(
 		return nil, false, nil
 	}
 
-	if len(savedVolumes) > 1 {
-		for i := 1; i < len(savedVolumes); i++ {
-			handle := savedVolumes[i].Volume.Handle
-			c.expireVolume(logger, handle)
+	var savedVolume db.SavedVolume
+	if len(savedVolumes) == 1 {
+		savedVolume = savedVolumes[0]
+	} else {
+		savedVolume, err = c.selectLowestAlphabeticalVolume(logger, savedVolumes)
+		if err != nil {
+			return nil, false, err
 		}
 	}
-
-	savedVolume := savedVolumes[0]
 
 	return c.LookupVolume(logger, savedVolume.Handle)
 }
@@ -165,25 +166,44 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 	return c.volumeFactory.Build(logger, bcVolume)
 }
 
-func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error {
-	logger = logger.Session("expiring", lager.Data{
-		"volume-handle": handle,
-	})
+func (c *volumeClient) selectLowestAlphabeticalVolume(logger lager.Logger, volumes []db.SavedVolume) (db.SavedVolume, error) {
+	var lowestVolume db.SavedVolume
 
-	logger.Info("expiring-redundant-volume")
+	for _, v := range volumes {
+		if lowestVolume.ID == 0 {
+			lowestVolume = v
+		} else if v.ID < lowestVolume.ID {
+			lowestVolume = v
+		}
+	}
+
+	for _, v := range volumes {
+		if v != lowestVolume {
+			expLog := logger.Session("expiring-redundant-volume", lager.Data{
+				"volume-handle": v.Handle,
+			})
+
+			err := c.expireVolume(expLog, v.Handle)
+			if err != nil {
+				return db.SavedVolume{}, err
+			}
+		}
+	}
+
+	return lowestVolume, nil
+}
+
+func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error {
+	logger.Info("expiring")
 
 	wVol, found, err := c.LookupVolume(logger, handle)
 	if err != nil {
-		logger.Debug("failed-to-look-up-volume", lager.Data{
-			"handle": handle,
-		})
+		logger.Error("failed-to-look-up-volume", err)
 		return err
 	}
 
 	if !found {
-		logger.Debug("volume-not-found", lager.Data{
-			"handle": handle,
-		})
+		logger.Debug("volume-already-gone")
 		return nil
 	}
 

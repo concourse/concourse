@@ -112,18 +112,21 @@ var _ = Describe("VolumeClient", func() {
 					if id.Import.Version != nil {
 						return []db.SavedVolume{
 							{
-								Volume: db.Volume{
-									Handle:     "vol-1-handle",
-									Identifier: importVolumeIdentifier,
-								},
-							},
-							{
+								ID: 2,
 								Volume: db.Volume{
 									Handle:     "vol-2-handle",
 									Identifier: importVolumeIdentifier,
 								},
 							},
 							{
+								ID: 1,
+								Volume: db.Volume{
+									Handle:     "vol-1-handle",
+									Identifier: importVolumeIdentifier,
+								},
+							},
+							{
+								ID: 3,
 								Volume: db.Volume{
 									Handle:     "vol-3-handle",
 									Identifier: importVolumeIdentifier,
@@ -176,11 +179,13 @@ var _ = Describe("VolumeClient", func() {
 			})
 
 			Context("when looking up any of the extra volumes fails", func() {
+				disaster := errors.New("some-error")
+
 				BeforeEach(func() {
 					fakeBaggageclaimClient.LookupVolumeStub = func(testLogger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
 						switch {
 						case handle == "vol-2-handle":
-							return nil, false, errors.New("some-error")
+							return nil, false, disaster
 						case handle == "vol-3-handle":
 							return bcVol3, true, nil
 						}
@@ -188,9 +193,12 @@ var _ = Describe("VolumeClient", func() {
 					}
 				})
 
-				It("should continue to the next volume", func() {
-					Expect(wVol3.ReleaseCallCount()).To(Equal(1))
-					Expect(wVol3.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(5 * time.Minute)))
+				It("returns the error", func() {
+					Expect(err).To(Equal(disaster))
+				})
+
+				It("does not continue to the next volume", func() {
+					Expect(wVol3.ReleaseCallCount()).To(Equal(0))
 				})
 			})
 
