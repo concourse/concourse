@@ -1302,7 +1302,6 @@ concourse.PauseUnpause.prototype.requestError = function (resp) {
   };
 
   concourse.PipelinesNav.prototype.bindEvents = function () {
-    console.log("toggle", this.$toggle);
     var _this = this;
     _this.$toggle.on("click", function() {
         _this.toggle();
