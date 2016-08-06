@@ -45,7 +45,7 @@ toBottom =
 
 scroll : String -> Float -> Task x ()
 scroll =
-  Native.Scroll.scroll
+  Native.Scroll.scrollElement
 
 scrollIntoView : String -> Task x ()
 scrollIntoView =
