@@ -883,6 +883,22 @@ var _ = Describe("Worker", func() {
 				})
 
 				Context("when the import volume cannot be retrieved", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeVolumeClient.FindVolumeReturns(nil, false, disaster)
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(disaster))
+					})
+
+					It("does not go on to create a volume", func() {
+						Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when the import volume does not exist", func() {
 					BeforeEach(func() {
 						fakeVolumeClient.FindVolumeReturns(nil, false, nil)
 					})

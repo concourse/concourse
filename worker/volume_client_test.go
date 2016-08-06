@@ -318,8 +318,8 @@ var _ = Describe("VolumeClient", func() {
 				fakeGardenWorkerDB.GetVolumesByIdentifierReturns(nil, nil)
 			})
 
-			It("returns an error", func() {
-				Expect(err).To(Equal(worker.ErrMissingVolume))
+			It("does not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})
@@ -486,8 +486,8 @@ var _ = Describe("VolumeClient", func() {
 						fakeVolumeFactory.BuildReturns(nil, false, nil)
 					})
 
-					It("returns ErrMissingVolume", func() {
-						Expect(createErr).To(Equal(worker.ErrMissingVolume))
+					It("returns ErrVolumeExpiredImmediately", func() {
+						Expect(createErr).To(Equal(worker.ErrVolumeExpiredImmediately))
 					})
 				})
 			})
@@ -582,8 +582,8 @@ var _ = Describe("VolumeClient", func() {
 						fakeVolumeFactory.BuildReturns(nil, false, nil)
 					})
 
-					It("returns ErrMissingVolume", func() {
-						Expect(createErr).To(Equal(worker.ErrMissingVolume))
+					It("returns ErrVolumeExpiredImmediately", func() {
+						Expect(createErr).To(Equal(worker.ErrVolumeExpiredImmediately))
 					})
 				})
 			})
@@ -680,8 +680,8 @@ var _ = Describe("VolumeClient", func() {
 						fakeVolumeFactory.BuildReturns(nil, false, nil)
 					})
 
-					It("returns ErrMissingVolume", func() {
-						Expect(createErr).To(Equal(worker.ErrMissingVolume))
+					It("returns ErrVolumeExpiredImmediately", func() {
+						Expect(createErr).To(Equal(worker.ErrVolumeExpiredImmediately))
 					})
 				})
 			})

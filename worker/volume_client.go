@@ -1,6 +1,8 @@
 package worker
 
 import (
+	"errors"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/baggageclaim"
@@ -14,6 +16,8 @@ type VolumeClient interface {
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
+
+var ErrVolumeExpiredImmediately = errors.New("volume expired immediately after saving")
 
 type volumeClient struct {
 	baggageclaimClient baggageclaim.Client
@@ -51,9 +55,7 @@ func (c *volumeClient) FindVolume(
 	}
 
 	if len(savedVolumes) == 0 {
-		err = ErrMissingVolume
-		logger.Error("failed-to-find-volume-in-db", err, lager.Data{"volume-id": volumeIdentifier})
-		return nil, false, err
+		return nil, false, nil
 	}
 
 	if len(savedVolumes) > 1 {
@@ -106,7 +108,7 @@ func (c *volumeClient) CreateVolume(
 	}
 
 	if !found {
-		err = ErrMissingVolume
+		err = ErrVolumeExpiredImmediately
 		logger.Error("volume-expired-immediately", err)
 		return nil, err
 	}
@@ -164,6 +166,12 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 }
 
 func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error {
+	logger = logger.Session("expiring", lager.Data{
+		"volume-handle": handle,
+	})
+
+	logger.Info("expiring-redundant-volume")
+
 	wVol, found, err := c.LookupVolume(logger, handle)
 	if err != nil {
 		logger.Debug("failed-to-look-up-volume", lager.Data{

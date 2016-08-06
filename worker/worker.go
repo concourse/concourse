@@ -264,13 +264,17 @@ func (worker *gardenWorker) getBuiltInResourceTypeImage(
 			}
 
 			importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
+			if err != nil {
+				return "", nil, atc.Version{}, err
+			}
 
-			if !found || err != nil {
+			if !found {
 				importVolume, err = worker.CreateVolume(logger, importVolumeSpec, 0)
 				if err != nil {
 					return "", nil, atc.Version{}, err
 				}
 			}
+
 			defer importVolume.Release(nil)
 
 			cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
