@@ -88,6 +88,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	resourceTypes atc.ResourceTypes,
 ) (bool, error) {
 	logger = logger.Session("try-start-next-pending-build")
+
 	nextPendingBuild, found, err := s.db.GetNextPendingBuild(jobConfig.Name)
 	if err != nil {
 		logger.Error("failed-to-get-next-pending-build", err)
@@ -96,6 +97,11 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	if !found {
 		return false, nil
 	}
+
+	logger = logger.WithData(lager.Data{
+		"build-id":   nextPendingBuild.ID(),
+		"build-name": nextPendingBuild.Name(),
+	})
 
 	reachedMaxInFlight, err := s.maxInFlightUpdater.UpdateMaxInFlightReached(logger, jobConfig, nextPendingBuild.ID())
 	if err != nil {
@@ -134,12 +140,12 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 	updated, err := s.db.UpdateBuildToScheduled(nextPendingBuild.ID())
 	if err != nil {
-		logger.Error("failed-to-update-build-to-scheduled", err, lager.Data{"build-id": nextPendingBuild.ID()})
+		logger.Error("failed-to-update-build-to-scheduled", err)
 		return false, err
 	}
 
 	if !updated {
-		logger.Debug("build-already-scheduled", lager.Data{"build-id": nextPendingBuild.ID()})
+		logger.Debug("build-already-scheduled")
 		return false, nil
 	}
 
@@ -153,18 +159,19 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
 		err := nextPendingBuild.Finish(db.StatusErrored)
 		if err != nil {
-			logger.Error("failed-to-mark-build-as-errored", err, lager.Data{"build-id": nextPendingBuild.ID()})
+			logger.Error("failed-to-mark-build-as-errored", err)
 		}
 		return false, nil
 	}
 
 	createdBuild, err := s.execEngine.CreateBuild(logger, nextPendingBuild, plan)
 	if err != nil {
-		logger.Error("failed-to-create-build", err, lager.Data{"build-id": nextPendingBuild.ID()})
+		logger.Error("failed-to-create-build", err)
 		return false, nil
 	}
 
-	logger.Info("building-build")
+	logger.Info("starting")
+
 	go createdBuild.Resume(logger)
 
 	return true, nil

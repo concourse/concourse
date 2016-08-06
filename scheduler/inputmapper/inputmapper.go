@@ -68,7 +68,7 @@ func (i *inputMapper) SaveNextInputMapping(
 		// this is necessary to prevent builds from running with missing pinned versions
 		err := i.db.DeleteNextInputMapping(job.Name)
 		if err != nil {
-			logger.Error("failed-to-delete-next-input-mapping", err)
+			logger.Error("failed-to-delete-next-input-mapping-after-missing-pending", err)
 		}
 
 		return nil, err
@@ -78,7 +78,7 @@ func (i *inputMapper) SaveNextInputMapping(
 	if !ok {
 		err := i.db.DeleteNextInputMapping(job.Name)
 		if err != nil {
-			logger.Error("failed-to-delete-next-input-mapping", err)
+			logger.Error("failed-to-delete-next-input-mapping-after-failed-resolve", err)
 		}
 
 		return nil, err
