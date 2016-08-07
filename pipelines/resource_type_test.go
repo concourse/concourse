@@ -27,7 +27,8 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 
 	It("can use custom resource types for 'get', 'put', and task 'image_resource's", func() {
 		watch := flyWatch("resource-getter")
-		Expect(watch).To(gbytes.Say("rootfs/some-file"))
+		<-watch.Exited
+		Expect(watch.ExitCode()).To(Equal(0))
 
 		watch = flyWatch("resource-putter")
 		Expect(watch).To(gbytes.Say("pushing using custom resource"))
