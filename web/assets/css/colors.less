@@ -12,13 +12,6 @@
 .build-step.first-occurrence .header { background: @base0G; }
 .groups li.active a { background: @base0G; }
 
-.legend dt.pending { background: @base04; }
-.legend dt.started { background: @base0A; }
-.legend dt.succeeded { background: @base0B; }
-.legend dt.failed { background: @base08; }
-.legend dt.errored { background: @base09; }
-.legend dt.aborted { background: @base0F; }
-
 .build-action { background-color: transparent; }
 .build-action i { color: @base07; }
 .build-action i:hover { background: @base02; }
@@ -34,13 +27,14 @@
 .build-step i.succeeded { color: @base07; background: @base0B; }
 .build-step i.errored   { color: @base07; background: @base09; }
 
-.no-builds { background: @base03; }
+// combined statuses go first so previous status background wins
 .pending { background: @base04; }
+.started { background: @base0A; }
+.no-builds { background: @base03; }
 .succeeded { background: @base0B; }
 .failed { background: @base08; }
 .errored { background: @base09; }
 .aborted { background: @base0F; }
-.started { background: @base0A; }
 .paused { background: @base0D; }
 
 .build-step .header i.pending { color: @base04; background: transparent; }
@@ -79,7 +73,10 @@ span.error { color: @base08; }
 .job-animation-node .animation,
 .legend dt.started,
 .legend dt.pending,
-.legend dt.failed {
+.legend dt.failed,
+.pipeline-grid .node .started,
+.pipeline-grid .node .pending,
+.pipeline-grid .node .failed {
   border-radius: 1px;
 }
 
@@ -111,7 +108,24 @@ span.error { color: @base08; }
   &.pending .animation-small{.ripple-animation("small-pending-ripples-@{theme}", 3px, @base04);}
   &.started .animation-small{.ripple-animation("small-started-ripples-@{theme}", 3px, @base0A);}
   &.failed .animation-small{.failed-outline(4px, 6px);}
+}
 
+.pipeline-grid .node a {
+  z-index: 1;
+}
+
+.pipeline-grid .node .failed {
+  .failed-outline(8px, 12px);
+}
+
+.pipeline-grid .node a.started {
+  z-index: 0; /* so its animation is below neighboring nodes */
+  .ripple-animation("medium-started-ripples-@{theme}", 7px, @base0A);
+}
+
+.pipeline-grid .node .pending {
+  z-index: 0; /* so its animation is below neighboring nodes */
+  .ripple-animation("medium-pending-ripples-@{theme}", 7px, @base04);
 }
 
 .failed-outline(@blue-radius, @red-radius) {

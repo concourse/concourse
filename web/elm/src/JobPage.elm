@@ -1,10 +1,11 @@
-port module JobPage exposing (..)
+module JobPage exposing (..)
 
 import Html.App
 import Time
 
 import Job
 
+main : Program Job.Flags
 main =
   Html.App.programWithFlags
     { init = Job.init

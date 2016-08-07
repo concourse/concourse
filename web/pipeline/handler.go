@@ -30,6 +30,7 @@ type TemplateData struct {
 	Groups       map[string]bool
 	PipelineName string
 	TeamName     string
+	Elm          bool
 }
 
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
@@ -55,6 +56,8 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		groups[group.Name] = false
 	}
 
+	_, isElm := r.URL.Query()["elm"]
+
 	enabledGroups, found := r.URL.Query()["groups"]
 	if !found && len(pipeline.Groups) > 0 {
 		enabledGroups = []string{pipeline.Groups[0].Name}
@@ -71,6 +74,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		}),
 		PipelineName: pipelineName,
 		TeamName:     teamName,
+		Elm:          isElm,
 	}
 
 	log := handler.logger.Session("index")
