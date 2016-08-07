@@ -1,6 +1,54 @@
 {{define "title"}}{{.PipelineName}} - Concourse{{end}}
 
 {{define "body"}}
+{{if .Elm}}
+<div id="elm-app"></div>
+
+<script src="{{asset "jquery-2.1.1.min.js"}}"></script>
+<script src="{{asset "concourse.js"}}"></script>
+<script src="{{asset "fit.min.js"}}"></script>
+<script src="{{asset "elm.min.js"}}"></script>
+<script type="text/javascript">
+concourse.pipelineName = "{{.PipelineName}}"; // used for detecting if the pipeline is paused
+
+var groups = [];
+var groupStates = {{.GroupStates}};
+for (var g in groupStates) {
+  var group = groupStates[g];
+  if (group.Enabled) {
+    groups.push(group.Name);
+  }
+}
+
+var node = document.getElementById("elm-app");
+var app = Elm.PipelinePage.embed(node, {
+  teamName: {{.TeamName}},
+  pipelineName: {{.PipelineName}},
+  groups: groups
+});
+
+var watcher;
+
+app.ports.fit.subscribe(function() {
+  if (watcher !== undefined) {
+    watcher.trigger();
+    return;
+  }
+
+  document.querySelector(".pipeline-grid").style.display = 'block';
+
+  watcher = fit(
+    document.querySelector(".pipeline-grid"),
+    document.querySelector("#elm-app"),
+    {
+      watch: true,
+      hAlign: fit.CENTER,
+      vAlign: fit.CENTER
+    }
+  );
+});
+</script>
+{{else}}
 <div id="pipeline">
   <dl class="legend">
     <dt class="pending"></dt>
@@ -50,4 +98,5 @@ $(document).ready(function() {
   renderPipeline({{.Groups}});
 })
 </script>
+{{end}}
 {{end}}

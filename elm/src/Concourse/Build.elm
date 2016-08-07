@@ -10,6 +10,7 @@ import Concourse.BuildStatus exposing (BuildStatus)
 
 type alias Build =
   { id : BuildId
+  , url : String
   , name : String
   , job : Maybe BuildJob
   , status : BuildStatus
@@ -66,8 +67,9 @@ url build =
 
 decode : Json.Decode.Decoder Build
 decode =
-  Json.Decode.object6 Build
+  Json.Decode.object7 Build
     ("id" := Json.Decode.int)
+    ("url" := Json.Decode.string)
     ("name" := Json.Decode.string)
     (Json.Decode.maybe (Json.Decode.object3 BuildJob
       ("job_name" := Json.Decode.string)

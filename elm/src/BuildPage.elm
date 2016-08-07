@@ -7,6 +7,7 @@ import Autoscroll
 import Build
 import Scroll
 
+main : Program Build.Flags
 main =
   Html.App.programWithFlags
     { init =
