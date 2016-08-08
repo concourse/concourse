@@ -221,7 +221,7 @@
 	branch = master
 [submodule "src/gopkg.in/cheggaaa/pb.v1"]
 	path = src/gopkg.in/cheggaaa/pb.v1
-	url = https://github.com/cheggaaa/pb
+	url = https://gopkg.in/cheggaaa/pb.v1
 [submodule "src/code.cloudfoundry.org/clock"]
 	path = src/code.cloudfoundry.org/clock
 	url = https://github.com/cloudfoundry/clock

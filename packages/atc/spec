@@ -69,7 +69,6 @@ files:
   - github.com/concourse/atc/scheduler/inputmapper/inputconfig/*.go # gosub
   - github.com/concourse/atc/web/*.go # gosub
   - github.com/concourse/atc/web/authredirect/*.go # gosub
-  - github.com/concourse/atc/web/basicauth/*.go # gosub
   - github.com/concourse/atc/web/getbuild/*.go # gosub
   - github.com/concourse/atc/web/getbuilds/*.go # gosub
   - github.com/concourse/atc/web/getjob/*.go # gosub
