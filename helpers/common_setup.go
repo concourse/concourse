@@ -9,19 +9,13 @@ import (
 )
 
 type Passed struct {
-	FlyBin    string
-	HomeDir   string
-	AtcURL    string
-	LoginInfo LoginInformation
+	FlyBin  string
+	HomeDir string
+	AtcURL  string
 }
 
 func FirstNodeFlySetup(atcURL, targetedConcourse string) ([]byte, error) {
 	flyBin, err := gexec.Build("github.com/concourse/fly", "-race")
-	if err != nil {
-		return nil, err
-	}
-
-	loginInfo, err := SetupLoginInformation(atcURL)
 	if err != nil {
 		return nil, err
 	}
@@ -31,16 +25,15 @@ func FirstNodeFlySetup(atcURL, targetedConcourse string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = FlyLogin(atcURL, targetedConcourse, flyBin, loginInfo)
+	err = FlyLogin(atcURL, targetedConcourse, flyBin)
 	if err != nil {
 		return nil, err
 	}
 
 	data, err := EncodeStruct(Passed{
-		FlyBin:    flyBin,
-		HomeDir:   tmpHome,
-		AtcURL:    atcURL,
-		LoginInfo: loginInfo,
+		FlyBin:  flyBin,
+		HomeDir: tmpHome,
+		AtcURL:  atcURL,
 	})
 	if err != nil {
 		return nil, err
@@ -68,14 +61,8 @@ func AllNodeFlySetup(data []byte) (string, string, error) {
 }
 
 func FirstNodeClientSetup(atcURL string) ([]byte, error) {
-	loginInfo, err := SetupLoginInformation(atcURL)
-	if err != nil {
-		return nil, err
-	}
-
 	data, err := EncodeStruct(Passed{
-		AtcURL:    atcURL,
-		LoginInfo: loginInfo,
+		AtcURL: atcURL,
 	})
 	if err != nil {
 		return nil, err
@@ -97,5 +84,5 @@ func AllNodeClientSetup(data []byte) (concourse.Client, error) {
 	// poll less frequently
 	SetDefaultEventuallyPollingInterval(time.Second)
 
-	return ConcourseClient(pass.AtcURL, pass.LoginInfo), nil
+	return ConcourseClient(pass.AtcURL), nil
 }

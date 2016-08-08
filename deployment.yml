@@ -106,6 +106,7 @@ instance_groups:
         properties:
           tags: ["proxy"]
           http_proxy_url: proxy.example.com
+          no_proxy: [".docker.io", ".docker.com", ".cloudfront.net"]
 
       - release: concourse
         name: baggageclaim

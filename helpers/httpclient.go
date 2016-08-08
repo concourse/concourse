@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"golang.org/x/oauth2"
 
@@ -13,17 +12,9 @@ import (
 	"github.com/concourse/go-concourse/concourse"
 )
 
-func ConcourseClient(atcURL string, loginInfo LoginInformation) concourse.Client {
-
-	var httpClient *http.Client
-	switch {
-	case loginInfo.NoAuth || loginInfo.BasicAuthCreds.Username != "":
-		token, _ := GetATCToken(atcURL)
-		httpClient = oauthClient(token)
-	case loginInfo.OauthToken != "":
-		httpClient = oauthClientFromString(loginInfo.OauthToken)
-	}
-
+func ConcourseClient(atcURL string) concourse.Client {
+	token, _ := GetATCToken(atcURL)
+	httpClient := oauthClient(token)
 	return concourse.NewClient(atcURL, httpClient)
 }
 
@@ -45,15 +36,6 @@ func GetATCToken(atcURL string) (*atc.AuthToken, error) {
 	}
 
 	return token, nil
-}
-
-func oauthClientFromString(oauthToken string) *http.Client {
-	splitToken := strings.Split(oauthToken, " ")
-	token := &atc.AuthToken{
-		Type:  splitToken[0],
-		Value: splitToken[1],
-	}
-	return oauthClient(token)
 }
 
 func oauthClient(atcToken *atc.AuthToken) *http.Client {
