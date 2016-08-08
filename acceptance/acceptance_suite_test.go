@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/sclevine/agouti"
+	. "github.com/sclevine/agouti/matchers"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/postgresrunner"
@@ -81,9 +82,9 @@ func Screenshot(page *agouti.Page) {
 }
 
 func Login(page *agouti.Page, homePage string) {
-	Expect(page.Navigate(homePage + "/login")).To(Succeed())
-	Expect(page.FindByLink("Log in with Basic Auth").Click()).To(Succeed())
+	Expect(page.Navigate(homePage + "/teams/main/login")).To(Succeed())
+	Eventually(page.FindByName("username")).Should(BeFound())
 	Expect(page.FindByName("username").Fill("admin")).To(Succeed())
 	Expect(page.FindByName("password").Fill("password")).To(Succeed())
-	Expect(page.FindByButton("Log In").Click()).To(Succeed())
+	Expect(page.FindByButton("login").Click()).To(Succeed())
 }
