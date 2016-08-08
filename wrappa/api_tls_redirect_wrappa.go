@@ -56,7 +56,8 @@ func (wrappa *APITLSRedirectWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListVolumes,
 			atc.ListAuthMethods,
 			atc.GetAuthToken,
-			atc.ListAllPipelines:
+			atc.ListAllPipelines,
+			atc.ListTeams:
 			newHandler = RedirectingAPIHandler(wrappa.externalHost)
 
 			//except ReadPipe

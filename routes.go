@@ -71,7 +71,8 @@ const (
 	ListAuthMethods = "ListAuthMethods"
 	GetAuthToken    = "GetAuthToken"
 
-	SetTeam = "SetTeam"
+	ListTeams = "ListTeams"
+	SetTeam   = "SetTeam"
 )
 
 var Routes = rata.Routes([]rata.Route{
@@ -143,5 +144,6 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/auth/methods", Method: "GET", Name: ListAuthMethods},
 	{Path: "/api/v1/teams/:team_name/auth/token", Method: "GET", Name: GetAuthToken},
 
+	{Path: "/api/v1/teams", Method: "GET", Name: ListTeams},
 	{Path: "/api/v1/teams/:team_name", Method: "PUT", Name: SetTeam},
 })

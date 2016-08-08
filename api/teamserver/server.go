@@ -8,6 +8,7 @@ import (
 //go:generate counterfeiter . TeamsDB
 
 type TeamsDB interface {
+	GetTeams() ([]db.SavedTeam, error)
 	CreateTeam(data db.Team) (db.SavedTeam, error)
 }
 

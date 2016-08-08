@@ -187,7 +187,8 @@ func NewHandler(
 
 		atc.ListVolumes: http.HandlerFunc(volumesServer.ListVolumes),
 
-		atc.SetTeam: http.HandlerFunc(teamServer.SetTeam),
+		atc.ListTeams: http.HandlerFunc(teamServer.ListTeams),
+		atc.SetTeam:   http.HandlerFunc(teamServer.SetTeam),
 	}
 
 	results := []http.Handler{}

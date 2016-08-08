@@ -47,7 +47,111 @@ func atcDBTeamEquality(atcTeam atc.Team, dbTeam db.Team) {
 	}
 }
 
-var _ = Describe("Auth API", func() {
+var _ = Describe("Teams API", func() {
+	Describe("GET /api/v1/teams", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			path := fmt.Sprintf("%s/api/v1/teams", server.URL)
+
+			request, err := http.NewRequest("GET", path, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when the database returns an error", func() {
+			var disaster error
+
+			BeforeEach(func() {
+				disaster = errors.New("some error")
+				teamServerDB.GetTeamsReturns(nil, disaster)
+			})
+
+			It("returns 500 Internal Server Error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		Context("when the database returns teams", func() {
+			BeforeEach(func() {
+				teamServerDB.GetTeamsReturns([]db.SavedTeam{
+					{
+						ID: 5,
+						Team: db.Team{
+							Name: "avengers",
+						},
+					},
+					{
+						ID: 9,
+						Team: db.Team{
+							Name: "aliens",
+							BasicAuth: &db.BasicAuth{
+								BasicAuthUsername: "fake user",
+								BasicAuthPassword: "no, bad",
+							},
+							GitHubAuth: &db.GitHubAuth{
+								ClientID:      "fake id",
+								ClientSecret:  "some secret",
+								Organizations: []string{"a", "b", "c"},
+								Teams: []db.GitHubTeam{
+									{
+										OrganizationName: "org1",
+										TeamName:         "teama",
+									},
+									{
+										OrganizationName: "org2",
+										TeamName:         "teamb",
+									},
+								},
+								Users: []string{"user1", "user2", "user3"},
+							},
+						},
+					},
+					{
+						ID: 22,
+						Team: db.Team{
+							Name: "predators",
+							UAAAuth: &db.UAAAuth{
+								ClientID:     "fake id",
+								ClientSecret: "some secret",
+								CFSpaces:     []string{"myspace"},
+								AuthURL:      "http://auth.url",
+								TokenURL:     "http://token.url",
+								CFURL:        "http://api.url",
+							},
+						},
+					},
+				}, nil)
+			})
+
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns the teams", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+					{
+						"id": 5,
+						"name": "avengers"
+					},
+					{
+						"id": 9,
+						"name": "aliens"
+					},
+					{
+						"id": 22,
+						"name": "predators"
+					}
+				]`))
+			})
+		})
+	})
+
 	Describe("PUT /api/v1/teams/:team_name", func() {
 		var request *http.Request
 		var response *http.Response

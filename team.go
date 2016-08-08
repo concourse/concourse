@@ -35,11 +35,11 @@ type GitHubTeam struct {
 }
 
 type UAAAuth struct {
-	ClientID     string   `json:"client_id"`
-	ClientSecret string   `json:"client_secret"`
-	AuthURL      string   `json:"auth_url"`
-	TokenURL     string   `json:"token_url"`
-	CFSpaces     []string `json:"cf_spaces"`
-	CFURL        string   `json:"cf_url"`
-	CFCACert     string   `json:"cf_ca_cert"`
+	ClientID     string   `json:"client_id,omitempty"`
+	ClientSecret string   `json:"client_secret,omitempty"`
+	AuthURL      string   `json:"auth_url,omitempty"`
+	TokenURL     string   `json:"token_url,omitempty"`
+	CFSpaces     []string `json:"cf_spaces,omitempty"`
+	CFURL        string   `json:"cf_url,omitempty"`
+	CFCACert     string   `json:"cf_ca_cert,omitempty"`
 }

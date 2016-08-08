@@ -7,6 +7,31 @@ import (
 	"github.com/concourse/atc"
 )
 
+func (db *SQLDB) GetTeams() ([]SavedTeam, error) {
+	rows, err := db.conn.Query(`
+		SELECT id, name, admin, basic_auth, github_auth, uaa_auth FROM teams
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	teams := []SavedTeam{}
+
+	for rows.Next() {
+		team, err := scanTeam(rows)
+
+		if err != nil {
+			return nil, err
+		}
+
+		teams = append(teams, team)
+	}
+
+	return teams, nil
+}
+
 func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
 	_, err := db.conn.Exec(`
 	INSERT INTO teams (
@@ -48,30 +73,21 @@ func (db *SQLDB) CreateTeam(team Team) (SavedTeam, error) {
 	if err != nil {
 		return SavedTeam{}, err
 	}
-
-	query := `
+	return scanTeam(db.conn.QueryRow(`
 	INSERT INTO teams (
     name, basic_auth, github_auth, uaa_auth
 	) VALUES (
 		$1, $2, $3, $4
 	)
 	RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
-	`
-	params := []interface{}{team.Name, jsonEncodedBasicAuth, string(jsonEncodedGitHubAuth), string(jsonEncodedUAAAuth)}
-	return db.queryTeam(query, params)
+	`, team.Name, jsonEncodedBasicAuth, string(jsonEncodedGitHubAuth), string(jsonEncodedUAAAuth)))
 }
 
-func (db *SQLDB) queryTeam(query string, params []interface{}) (SavedTeam, error) {
+func scanTeam(rows scannable) (SavedTeam, error) {
 	var basicAuth, gitHubAuth, uaaAuth sql.NullString
 	var savedTeam SavedTeam
 
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return SavedTeam{}, err
-	}
-	defer tx.Rollback()
-
-	err = tx.QueryRow(query, params...).Scan(
+	err := rows.Scan(
 		&savedTeam.ID,
 		&savedTeam.Name,
 		&savedTeam.Admin,
@@ -79,10 +95,6 @@ func (db *SQLDB) queryTeam(query string, params []interface{}) (SavedTeam, error
 		&gitHubAuth,
 		&uaaAuth,
 	)
-	if err != nil {
-		return savedTeam, err
-	}
-	err = tx.Commit()
 	if err != nil {
 		return savedTeam, err
 	}

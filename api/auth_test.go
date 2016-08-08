@@ -215,7 +215,7 @@ var _ = Describe("Auth API", func() {
 				{
 					"type": "basic",
 					"display_name": "Basic Auth",
-					"auth_url": "https://example.com/teams/some-team/login/basic"
+					"auth_url": "https://example.com/teams/some-team/login"
 				}
 			]`))
 			})

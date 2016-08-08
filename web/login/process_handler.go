@@ -1,4 +1,4 @@
-package basicauth
+package login
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/web"
+	"github.com/tedsuo/rata"
 )
 
 const CookieName = "ATC-Authorization"
@@ -29,9 +30,20 @@ func NewProcessBasicAuthHandler(
 
 func (h *processHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	teamName := r.FormValue(":team_name")
-	redirect := r.FormValue("redirect")
 	username := r.FormValue("username")
 	password := r.FormValue("password")
+	redirect := r.FormValue("redirect")
+
+	if redirect == "" {
+		indexPath, err := web.Routes.CreatePathForRoute(web.Index, rata.Params{})
+		if err != nil {
+			h.logger.Error("failed-to-generate-index-path", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		redirect = indexPath
+	}
 
 	r.SetBasicAuth(username, password)
 	client := h.clientFactory.Build(r)

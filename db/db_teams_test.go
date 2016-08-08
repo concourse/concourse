@@ -45,6 +45,60 @@ var _ = Describe("SQL DB Teams", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	Describe("GetTeams", func() {
+		It("Gets all saved teams", func() {
+			team1 := db.Team{
+				Name: "avengers",
+			}
+			savedTeam1, err := database.CreateTeam(team1)
+			Expect(err).NotTo(HaveOccurred())
+
+			team2 := db.Team{
+				Name: "aliens",
+				BasicAuth: &db.BasicAuth{
+					BasicAuthUsername: "fake user",
+					BasicAuthPassword: "no, bad",
+				},
+				GitHubAuth: &db.GitHubAuth{
+					ClientID:      "fake id",
+					ClientSecret:  "some secret",
+					Organizations: []string{"a", "b", "c"},
+					Teams: []db.GitHubTeam{
+						{
+							OrganizationName: "org1",
+							TeamName:         "teama",
+						},
+						{
+							OrganizationName: "org2",
+							TeamName:         "teamb",
+						},
+					},
+					Users: []string{"user1", "user2", "user3"},
+				},
+			}
+			savedTeam2, err := database.CreateTeam(team2)
+			Expect(err).NotTo(HaveOccurred())
+
+			team3 := db.Team{
+				Name: "predators",
+				UAAAuth: &db.UAAAuth{
+					ClientID:     "fake id",
+					ClientSecret: "some secret",
+					CFSpaces:     []string{"myspace"},
+					AuthURL:      "http://auth.url",
+					TokenURL:     "http://token.url",
+					CFURL:        "http://api.url",
+				},
+			}
+			savedTeam3, err := database.CreateTeam(team3)
+			Expect(err).NotTo(HaveOccurred())
+
+			actualTeams, err := database.GetTeams()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actualTeams).To(ConsistOf(savedTeam1, savedTeam2, savedTeam3))
+		})
+	})
+
 	Describe("CreateDefaultTeamIfNotExists", func() {
 		It("creates the default team", func() {
 			err := database.CreateDefaultTeamIfNotExists()

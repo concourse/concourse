@@ -1,12 +1,14 @@
-{{define "title"}}Log In - Concourse{{end}}
+{{define "title"}}Login - Concourse{{end}}
 
 {{define "body"}}
-{{$redirect := .Redirect}}
-<div class="login-box">
-  <ul class="options">
-    {{range .AuthMethods}}
-    <li><a href="{{withRedirect .AuthURL $redirect}}">Log in with {{.DisplayName}}</a></li>
-    {{end}}
-  </ul>
-</div>
+<div id="elm-app"></div>
+
+<script src="{{asset "jquery-2.1.1.min.js"}}"></script>
+<script src="{{asset "concourse.js"}}"></script>
+<script src="{{asset "elm.min.js"}}"></script>
+<script type="text/javascript">
+
+var node = document.getElementById("elm-app");
+Elm.LoginPage.embed(node);
+</script>
 {{end}}

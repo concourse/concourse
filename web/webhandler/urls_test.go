@@ -97,17 +97,17 @@ var _ = Describe("URLs", func() {
 		})
 	})
 
-	Describe("Basic Auth", func() {
+	Describe("Team Login", func() {
 		var path string
 		var err error
 
 		BeforeEach(func() {
-			path, err = webhandler.PathFor(web.GetBasicAuthLogIn, "some-team", "/some/path")
+			path, err = webhandler.PathFor(web.TeamLogIn, "some-team", "/some/path")
 		})
 
 		It("links to the provider with a redirect to the index", func() {
 			Expect(err).NotTo(HaveOccurred())
-			Expect(path).To(Equal("/teams/some-team/login/basic?redirect=%2Fsome%2Fpath"))
+			Expect(path).To(Equal("/teams/some-team/login?redirect=%2Fsome%2Fpath"))
 		})
 	})
 })

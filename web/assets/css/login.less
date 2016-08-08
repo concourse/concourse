@@ -1,16 +1,182 @@
-.login-box .options li a {
-  display: block;
-  padding: 0 10px;
-  text-decoration: none;
-  font-size: 18px;
-  line-height: 40px;
-  font-family: inherit;
-  font-weight: bold;
-  margin: 0;
-  background: @base01;
-  color: @base06;
+.centered-contents {
+  text-align: center;
 }
 
-.login-box .options li a:hover {
+.auth-methods .padded-top {
+  padding-top: 10px;
+}
+
+.small-title {
+  font-size: 10pt;
+  font-style: italic;
+  color: @base04;
+  padding-top: 55px;
+}
+
+.small-title a {
+  color: inherit;
+  width: 450px;
+  display: inline-block;
+  text-align: left;
+}
+
+.small-title i {
+  position: relative;
+  top: 1px;
+  padding-right: 3px;
+}
+
+.login-box {
+  display: inline-block;
+  text-align: left;
+  font-size: 12pt;
+  margin: 22px;
+  width: 450px;
+  background: @base00;
+  color: @base04;
+}
+
+.team-selection {
+  line-height: 35px;
+}
+
+.team-selection div {
+  height: 595px;
+  overflow-y: auto;
+}
+
+.bright-text {
+  color: @base05;
+}
+
+.auth-methods {
+  padding-bottom: 56px;
+  padding-top: 10px;
+}
+
+.auth-methods-title {
+  margin-bottom: 20px;
+}
+
+.auth-methods form {
+  margin: 0px 40px;
+}
+
+.auth-methods label {
+  margin-bottom: 3px;
+  display: block;
+}
+
+.auth-methods .input-holder {
+  padding-right: 20px;
+}
+
+.auth-methods input {
+  background: @base01;
+  padding: 4px 10px;
+  margin-bottom: 12px;
+  border-radius: 2px;
+}
+
+.auth-methods button {
+  font: inherit;
   background: @base02;
+  color: @base05;
+  border: none;
+  border-radius: 2px;
+  padding: 4px 22px;
+  margin: 10px 0px;
+  cursor: pointer;
+}
+
+.auth-methods a {
+  display: inline-block;
+  width: 250px;
+  line-height: 30px;
+  text-align: center;
+  border-radius: 2px;
+  background: @base02;
+  color: @base05;
+  margin-bottom: 10px;
+}
+
+.login-box input {
+  font: inherit;
+  color: inherit;
+  border: none;
+  width: 100%;
+  &::-webkit-input-placeholder { /* WebKit, Blink, Edge */
+    color:    @base03;
+  }
+  &:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+     color:    @base03;
+     opacity:  1;
+  }
+  &::-moz-placeholder { /* Mozilla Firefox 19+ */
+     color:    @base03;
+     opacity:  1;
+  }
+  &:-ms-input-placeholder { /* Internet Explorer 10-11 */
+     color:    @base03;
+  }
+}
+
+.filter-form input {
+  background: inherit;
+  padding: 0px 18px 0px 48px;
+}
+
+.team-selection .input-holder {
+  padding-right: 66px;
+}
+
+.team-selection form {
+  border-bottom: 1px solid @base01;
+}
+
+.team-selection a {
+  border-bottom: 1px solid @base01;
+  display: block;
+  color: inherit;
+  padding: 0px 18px;
+}
+
+.filter-form i {
+  font-size: 1.1em;
+  position: absolute;
+  line-height: inherit;
+  padding-left: 18px;
+  color: @base02;
+}
+
+.loading {
+  line-height: inherit;
+}
+
+.loading i {
+  margin: 0px 10px;
+}
+
+.or-bar {
+  position: relative;
+  text-align: center;
+  margin: 0px 40px;
+  background: inherit;
+  color: @base03;
+}
+
+.or-bar div {
+  position: absolute;
+  height: 2px;
+  background: @base03;
+  width: 100%;
+  margin: 27px 0px;
+}
+
+.or-bar span {
+  line-height: 56px;
+  display: inline-block;
+  background: inherit;
+  position: relative;
+  padding: 0px 25px;
 }
