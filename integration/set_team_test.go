@@ -518,8 +518,7 @@ var _ = Describe("Fly CLI", func() {
 								"auth_url": "http://uaa.auth.url",
 								"token_url": "http://uaa.token.url",
 								"cf_spaces": ["Obama, Inc", "Samson, Inc"],
-								"cf_url": "http://cf.url",
-								"cf_ca_cert": ""
+								"cf_url": "http://cf.url"
 							}
 						}`),
 						ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Team{
