@@ -69,6 +69,7 @@ type Action
   | FetchBuild Int
   | AbortBuild Int
   | BuildFetched (Result Http.Error Build)
+  | FinishedWaitingForBuildFetch Int
   | BuildPrepFetched (Result Http.Error BuildPrep)
   | BuildHistoryFetched (Result Http.Error (Paginated Build))
   | BuildJobDetailsFetched (Result Http.Error Job)
@@ -101,7 +102,10 @@ update action model =
       (model, Cmd.none)
 
     FetchBuild buildId ->
-      (model, fetchBuild 0 buildId)
+      (model, fetchBuild buildId)
+
+    FinishedWaitingForBuildFetch buildId ->
+      (model, fetchIfPending buildId model)
 
     BuildFetched (Ok build) ->
       handleBuildFetched build model
@@ -212,10 +216,8 @@ handleBuildFetched build model =
 
 pollUntilStarted : Int -> Cmd Action
 pollUntilStarted buildId =
-  Cmd.batch
-    [ (fetchBuild Time.second buildId)
-    , (fetchBuildPrep Time.second buildId)
-    ]
+  Task.perform identity identity <|
+    Process.sleep Time.second `Task.andThen` (always <| Task.succeed(FinishedWaitingForBuildFetch buildId))
 
 initBuildOutput : Build -> Model -> (Model, Cmd Action)
 initBuildOutput build model =
@@ -506,20 +508,32 @@ decodeScrollEvent =
     ("deltaX" := Json.Decode.float)
     ("deltaY" := Json.Decode.float)
 
-fetchBuild : Time -> Int -> Cmd Action
-fetchBuild delay buildId =
+fetchBuild : Int -> Cmd Action
+fetchBuild buildId =
   Cmd.map BuildFetched << Task.perform Err Ok <|
-    Process.sleep delay `Task.andThen` (always <| Concourse.Build.fetch buildId)
-
-fetchBuildJobDetails : Concourse.Build.BuildJob -> Cmd Action
-fetchBuildJobDetails buildJob =
-  Cmd.map BuildJobDetailsFetched << Task.perform Err Ok <|
-    Concourse.Job.fetchJob buildJob
+    Concourse.Build.fetch buildId
 
 fetchBuildPrep : Time -> Int -> Cmd Action
 fetchBuildPrep delay buildId =
   Cmd.map BuildPrepFetched << Task.perform Err Ok <|
     Process.sleep delay `Task.andThen` (always <| Concourse.BuildPrep.fetch buildId)
+
+fetchIfPending : Int -> Model -> Cmd Action
+fetchIfPending buildId model =
+  case Maybe.withDefault Concourse.BuildStatus.Pending (Maybe.map (.status << currentBuildBuild) model.currentBuild) of
+    Concourse.BuildStatus.Pending ->
+      (Cmd.batch
+        [ (fetchBuild buildId)
+        , (fetchBuildPrep 0 buildId)
+        ]
+      )
+    _ ->
+      Cmd.none
+
+fetchBuildJobDetails : Concourse.Build.BuildJob -> Cmd Action
+fetchBuildJobDetails buildJob =
+  Cmd.map BuildJobDetailsFetched << Task.perform Err Ok <|
+    Concourse.Job.fetchJob buildJob
 
 fetchBuildHistory : Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Cmd Action
 fetchBuildHistory job page =
