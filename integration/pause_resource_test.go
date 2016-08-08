@@ -65,7 +65,7 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
-				It("exists 1 and outputs an error", func() {
+				It("exits 1 and outputs an error", func() {
 					Expect(func() {
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
@@ -86,7 +86,7 @@ var _ = Describe("Fly CLI", func() {
 				flyCmd = exec.Command(flyPath, "-t", targetName, "pause-resource")
 			})
 
-			It("exists 1 and outputs an error", func() {
+			It("exits 1 and outputs an error", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 

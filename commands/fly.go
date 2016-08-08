@@ -36,9 +36,9 @@ type FlyCommand struct {
 	ConcealPipeline ConcealPipelineCommand `command:"conceal-pipeline" alias:"cp" description:"Conceal a pipeline"`
 	RenamePipeline  RenamePipelineCommand  `command:"rename-pipeline"  alias:"rp" description:"Rename a pipeline"`
 
-	CheckResource  CheckResourceCommand   `command:"check-resource"  alias:"cr" description:"Check a resource"`
-	PausResource   PauseResourceCommand   `command:"pause-resource"  alias:"pr" description:"Pause a resource"`
-	UnpausResource UnpauseResourceCommand `command:"unpause-resource"  alias:"ur" description:"Unpause a resource"`
+	CheckResource   CheckResourceCommand   `command:"check-resource"  alias:"cr" description:"Check a resource"`
+	PauseResource   PauseResourceCommand   `command:"pause-resource"  alias:"pr" description:"Pause a resource"`
+	UnpauseResource UnpauseResourceCommand `command:"unpause-resource"  alias:"ur" description:"Unpause a resource"`
 
 	Builds     BuildsCommand     `command:"builds"      alias:"bs" description:"List builds data"`
 	AbortBuild AbortBuildCommand `command:"abort-build" alias:"ab" description:"Abort a build"`
