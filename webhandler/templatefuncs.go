@@ -195,6 +195,18 @@ func PathFor(route string, args ...interface{}) (string, error) {
 	case web.LogIn:
 		return web.Routes.CreatePathForRoute(route, rata.Params{})
 
+	case web.TeamLogIn:
+		authPath, err := web.Routes.CreatePathForRoute(route, rata.Params{
+			"team_name": args[0].(string),
+		})
+		if err != nil {
+			return "", err
+		}
+
+		return authPath + "?" + url.Values{
+			"redirect": {args[1].(string)},
+		}.Encode(), nil
+
 	case atc.DownloadCLI:
 		path, err := atc.Routes.CreatePathForRoute(route, rata.Params{})
 		if err != nil {
@@ -209,18 +221,6 @@ func PathFor(route string, args ...interface{}) (string, error) {
 	case auth.OAuthBegin:
 		authPath, err := auth.OAuthRoutes.CreatePathForRoute(route, rata.Params{
 			"provider": args[0].(string),
-		})
-		if err != nil {
-			return "", err
-		}
-
-		return authPath + "?" + url.Values{
-			"redirect": {args[1].(string)},
-		}.Encode(), nil
-
-	case web.GetBasicAuthLogIn:
-		authPath, err := web.Routes.CreatePathForRoute(route, rata.Params{
-			"team_name": args[0].(string),
 		})
 		if err != nil {
 			return "", err
