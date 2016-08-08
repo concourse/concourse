@@ -437,14 +437,14 @@ flag. Once you've learned what the commands do, you may want to consult
   This will stop the resource from detecting new versions.
 }
 
-\section{\code{unpause-resource}\aux{: Resuming resource checks}}{fly-unpause-resource}{
+\section{\code{unpause-resource}\aux{: Resume resource checks}}{fly-unpause-resource}{
   To unpause a resource, run:
 
   \codeblock{bash}{
   $ fly -t example unpause-resource --resource my-pipeline/my-resource
   }
 
-  This will resume resource detection.
+  This will resume resource version detection.
 }
 
 \section{\code{builds}\aux{: Showing build history}}{fly-builds}{
