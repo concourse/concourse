@@ -139,6 +139,8 @@ before using it!
     \hyperlink{https://github.com/FidelityInternational/concourse-pagerduty-notification-resource}{pagerduty Notifications}
   }{
     \hyperlink{https://github.com/w32blaster/telegram-notification-resource}{Telegram}
+  }{
+    \hyperlink{https://github.com/frodenas/gcs-resource}{Google Cloud Storage}
   }
 
   \section{Adding to this list}{
