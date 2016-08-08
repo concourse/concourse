@@ -65,5 +65,6 @@ Each configured resource consists of the following attributes:
 
 \define-attribute{check_every: string}{
   \italic{Optional. Default \code{1m}.} The interval on which to check for new
-  versions of the resource.
+  versions of the resource. Acceptable interval options are defined by the 
+  \hyperlink{https://golang.org/pkg/time/#ParseDuration}{time.ParseDuration function}.
 }
