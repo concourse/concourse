@@ -37,3 +37,10 @@ properties:
     description: |
       Environment name to specify for errors emitted to Yeller.
     default: ""
+
+  volumes_image_size_mb:
+    description: |
+      The size in megabytes of the volumes image to allocate. This is allocated
+      under /var/vcap/data, so should leave enough space for everything else.
+      Defaults to the filesystem size minus 10Gig.
+    default: -1
