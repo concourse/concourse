@@ -1,4 +1,4 @@
-set PATH=%USERPROFILE%\go\bin;%PATH
+set PATH=C:\Go\bin;%PATH
 
 set GOPATH=%CD%\concourse
 set PATH=%CD%\concourse\bin;%PATH%
