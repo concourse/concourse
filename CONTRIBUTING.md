@@ -14,7 +14,7 @@ git submodule update --init --recursive
 ## Install development tools
 Consourse is built with Go and Elm. You also need Node and few modules. Assuming you're using a mac:
 
-- Install Elm 1.6 from http://install.elm-lang.org/Elm-Platform-0.16.pkg
+- Install Elm 0.17 from http://install.elm-lang.org/Elm-Platform-0.17.1.pkg
 - Install homebrew from http://brew.sh/
 
 Then use homebrew to install the following:
