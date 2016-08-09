@@ -8,6 +8,6 @@ inputs:
 run:
   path: powershell.exe
   args:
-    - -NoExit
+    # - -NoExit
     - -File
     - '.\concourse\ci\scripts\install-go-windows.ps1'
