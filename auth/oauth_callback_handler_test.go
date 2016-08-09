@@ -3,10 +3,8 @@ package auth_test
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -24,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
@@ -35,8 +32,11 @@ import (
 
 var _ = Describe("OAuthCallbackHandler", func() {
 	var (
-		fakeProviderA *providerfakes.FakeProvider
-		fakeProviderB *providerfakes.FakeProvider
+		fakeProviderA   *providerfakes.FakeProvider
+		preTokenClientA *http.Client
+
+		fakeProviderB   *providerfakes.FakeProvider
+		preTokenClientB *http.Client
 
 		fakeProviderFactory *authfakes.FakeProviderFactory
 
@@ -44,9 +44,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		signingKey *rsa.PrivateKey
 
-		server  *httptest.Server
-		client  *http.Client
-		sslCert string
+		server *httptest.Server
+		client *http.Client
 
 		team db.SavedTeam
 	)
@@ -69,34 +68,11 @@ var _ = Describe("OAuthCallbackHandler", func() {
 			nil,
 		)
 
-		sslCert = `-----BEGIN CERTIFICATE-----
-MIICsjCCAhugAwIBAgIJAJgyGeIL1aiPMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
-BAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBX
-aWRnaXRzIFB0eSBMdGQwIBcNMTUwMzE5MjE1NzAxWhgPMjI4ODEyMzEyMTU3MDFa
-MEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJ
-bnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJ
-AoGBAOTD37e9wnQz5fHVPdQdU8rjokOVuFj0wBtQLNO7B2iN+URFaP2wi0KOU0ye
-njISc5M/mpua7Op72/cZ3+bq8u5lnQ8VcjewD1+f3LCq+Os7iE85A/mbEyT1Mazo
-GGo9L/gfz5kNq78L9cQp5lrD04wF0C05QtL8LVI5N9SqT7mlAgMBAAGjgacwgaQw
-HQYDVR0OBBYEFNtN+q97oIhvyUEC+/Sc4q0ASv4zMHUGA1UdIwRuMGyAFNtN+q97
-oIhvyUEC+/Sc4q0ASv4zoUmkRzBFMQswCQYDVQQGEwJBVTETMBEGA1UECBMKU29t
-ZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkggkAmDIZ
-4gvVqI8wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOBgQCZKuxfGc/RrMlz
-aai4+5s0GnhSuq0CdfnpwZR+dXsjMO6dlrD1NgQoQVhYO7UbzktwU1Hz9Mc3XE7t
-HCu8gfq+3WRUgddCQnYJUXtig2yAqmHf/WGR9yYYnfMUDKa85i0inolq1EnLvgVV
-K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
------END CERTIFICATE-----
-`
+		preTokenClientA = &http.Client{Timeout: 57 * time.Second}
+		fakeProviderA.PreTokenClientReturns(preTokenClientA)
 
-		team = db.SavedTeam{
-			ID: 0,
-			Team: db.Team{
-				Name: atc.DefaultTeamName,
-				UAAAuth: &db.UAAAuth{
-					CFCACert: sslCert,
-				},
-			},
-		}
+		preTokenClientB = &http.Client{Timeout: 31 * time.Second}
+		fakeProviderB.PreTokenClientReturns(preTokenClientB)
 
 		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
 		fakeTeamDB = new(dbfakes.FakeTeamDB)
@@ -199,24 +175,11 @@ K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
 						Expect(code).To(Equal("some-code"))
 					})
 
-					It("constructs HTTP client with disable keep alive context", func() {
+					It("uses the PreTokenClient from the provider", func() {
 						ctx, _ := fakeProviderB.ClientArgsForCall(0)
-						httpClient, ok := ctx.Value(oauth2.HTTPClient).(*http.Client)
+						actualPreTokenClient, ok := ctx.Value(oauth2.HTTPClient).(*http.Client)
 						Expect(ok).To(BeTrue())
-						Expect(httpClient.Transport.(*http.Transport).DisableKeepAlives).To(BeTrue())
-					})
-
-					It("constructs HTTP client with given cert into the cert pool", func() {
-						ctx, _ := fakeProviderB.ClientArgsForCall(0)
-						httpClient, ok := ctx.Value(oauth2.HTTPClient).(*http.Client)
-						Expect(ok).To(BeTrue())
-						tlsConfig := httpClient.Transport.(*http.Transport).TLSClientConfig
-
-						var block *pem.Block
-						block, _ = pem.Decode([]byte(sslCert))
-						cert, err := x509.ParseCertificate(block.Bytes)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(tlsConfig.RootCAs.Subjects()).To(ContainElement(cert.RawSubject))
+						Expect(actualPreTokenClient).To(Equal(preTokenClientB))
 					})
 
 					It("looks up the verifier for the team from the 'state' query param", func() {

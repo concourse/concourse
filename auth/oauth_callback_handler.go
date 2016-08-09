@@ -2,8 +2,6 @@ package auth
 
 import (
 	"crypto/rsa"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -117,26 +115,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	transport := &http.Transport{
-		DisableKeepAlives: true,
-	}
-
-	if team.UAAAuth != nil && team.UAAAuth.CFCACert != "" {
-		caCertPool := x509.NewCertPool()
-		ok := caCertPool.AppendCertsFromPEM([]byte(team.UAAAuth.CFCACert))
-		if !ok {
-			http.Error(w, "failed to use cf certificate", http.StatusInternalServerError)
-			return
-		}
-		transport.TLSClientConfig = &tls.Config{
-			RootCAs: caCertPool,
-		}
-	}
-
-	disabledKeepAliveClient := &http.Client{
-		Transport: transport,
-	}
-	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, disabledKeepAliveClient)
+	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, provider.PreTokenClient())
 
 	token, err := provider.Exchange(ctx, r.FormValue("code"))
 	if err != nil {
