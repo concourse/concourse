@@ -5,6 +5,10 @@ trap {
 
 Set-PSDebug -trace 2 -strict
 
+echo what
+echo the
+echo deuce
+
 Remove-Item -Recurse -Force $env:USERPROFILE\go
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
