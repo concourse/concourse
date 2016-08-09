@@ -1,3 +1,5 @@
+set PATH=C:\Go\bin;%PATH%
+
 set GOPATH=%CD%\gopath;%CD%\concourse;%CD%\gopath\src\github.com\vito\houdini\deps
 set PATH=%CD%\gopath\bin;%PATH%
 
