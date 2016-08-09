@@ -22,8 +22,9 @@ type Team interface {
 	RevealPipeline(pipelineName string) (bool, error)
 	ConcealPipeline(pipelineName string) (bool, error)
 	RenamePipeline(pipelineName, name string) (bool, error)
+	PauseResource(pipelineName string, resourceName string) (bool, error)
+	UnpauseResource(pipelineName string, resourceName string) (bool, error)
 	ListPipelines() ([]atc.Pipeline, error)
-
 	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
 	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, []ConfigWarning, error)
 

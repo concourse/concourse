@@ -29,3 +29,46 @@ func (team *team) Resource(pipelineName string, resourceName string) (atc.Resour
 		return resource, false, err
 	}
 }
+
+func (team *team) PauseResource(pipelineName string, resourceName string) (bool, error) {
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"resource_name": resourceName,
+		"team_name":     team.name,
+	}
+
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.PauseResource,
+		Params:      params,
+	}, &internal.Response{})
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
+func (team *team) UnpauseResource(pipelineName string, resourceName string) (bool, error) {
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"resource_name": resourceName,
+		"team_name":     team.name,
+	}
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.UnpauseResource,
+		Params:      params,
+	}, &internal.Response{})
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
