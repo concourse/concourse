@@ -2,3 +2,6 @@
 .DS_Store
 /README.html
 cmd/atc/atc
+web/public/elm.js
+web/public/elm.min.js
+web/public/main.css
