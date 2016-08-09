@@ -1,5 +1,6 @@
 module Login exposing (..)
 
+import Erl
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (id, class)
 import Html.Events as Events
@@ -153,20 +154,37 @@ update action model =
 
 loginRoute : String -> String -> String
 loginRoute redirect teamName =
-  routeWithRedirect redirect <| "teams/" ++ teamName ++ "/login"
+  routeMaybeRedirect redirect <| "teams/" ++ teamName ++ "/login"
 
 teamSelectionRoute : String -> String
-teamSelectionRoute redirect = routeWithRedirect redirect "/login"
+teamSelectionRoute redirect = routeMaybeRedirect redirect "/login"
+
+routeMaybeRedirect : String -> String -> String
+routeMaybeRedirect redirect route =
+  if redirect /= "" then
+    let
+      parsedRoute = Erl.parse route
+    in let
+      newParsedRoute = Erl.addQuery "redirect" redirect parsedRoute
+    in
+      Erl.toString newParsedRoute
+  else route
 
 routeWithRedirect : String -> String -> String
 routeWithRedirect redirect route =
-  route ++
-    case redirect of
-      "" -> "?redirect=" ++ urlEncodedIndexPage
-      _ -> "?redirect=" ++ redirect
+  let
+    parsedRoute = Erl.parse route
+    actualRedirect =
+      case redirect of
+        "" -> indexPageUrl
+        _ -> redirect
+  in let
+    newParsedRoute = Erl.addQuery "redirect" actualRedirect parsedRoute
+  in
+    Erl.toString newParsedRoute
 
-urlEncodedIndexPage : String
-urlEncodedIndexPage = "%2F"
+indexPageUrl : String
+indexPageUrl = "/"
 
 view : Model -> Html Action
 view model =
@@ -379,5 +397,5 @@ viewOAuthButton redirect method =
     OAuthMethod oAuthMethod ->
       Just <|
         Html.a
-          [ Attributes.href <| routeWithRedirect redirect oAuthMethod.authURL ]
+          [ Attributes.href <| routeWithRedirect redirect oAuthMethod.authUrl ]
           [ Html.text <| "login with " ++ oAuthMethod.displayName ]

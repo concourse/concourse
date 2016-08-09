@@ -10,7 +10,7 @@ type AuthMethod
 
 type alias OAuthAuthMethod =
   { displayName: String
-  , authURL: String
+  , authUrl: String
   }
 
 fetchAuthMethods : String -> Task Http.Error (List AuthMethod)
@@ -33,7 +33,7 @@ authMethodFromTuple : (String, Maybe String, Maybe String) -> Result String Auth
 authMethodFromTuple tuple =
   case tuple of
     ("basic", _, _) -> Ok BasicMethod
-    ("oauth", Just displayName, Just authURL) ->
-      Ok (OAuthMethod { displayName = displayName, authURL = authURL })
+    ("oauth", Just displayName, Just authUrl) ->
+      Ok (OAuthMethod { displayName = displayName, authUrl = authUrl })
     ("oauth", _, _) -> Err "missing fields in oauth auth method"
     _ -> Err "unknown value for auth method type"
