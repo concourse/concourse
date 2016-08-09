@@ -34,6 +34,7 @@ func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
 	command.FindOptionByLongName("garden-tar-bin").Required = false
 
 	command.FindOptionByLongName("baggageclaim-volumes").Required = false
+	command.FindOptionByLongName("baggageclaim-driver").Default = []string{"btrfs"}
 }
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.Worker, ifrit.Runner, error) {
