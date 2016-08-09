@@ -1,3 +1,8 @@
+trap {
+  write-error $_
+  exit 1
+}
+
 Set-PSDebug -trace 2 -strict
 
 Remove-Item -Recurse -Force $env:USERPROFILE\go
