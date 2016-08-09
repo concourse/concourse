@@ -17,7 +17,7 @@ var SigningMethod = jwt.SigningMethodRS256
 //go:generate counterfeiter . ProviderFactory
 
 type ProviderFactory interface {
-	GetProviders(teamName string) (provider.Providers, error)
+	GetProviders(db.SavedTeam) (provider.Providers, error)
 }
 
 func NewOAuthHandler(
@@ -31,6 +31,7 @@ func NewOAuthHandler(
 			logger.Session("oauth-begin"),
 			providerFactory,
 			signingKey,
+			teamDBFactory,
 		),
 
 		OAuthCallback: NewOAuthCallbackHandler(

@@ -6,13 +6,14 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/db"
 )
 
 type FakeProviderFactory struct {
-	GetProvidersStub        func(teamName string) (provider.Providers, error)
+	GetProvidersStub        func(db.SavedTeam) (provider.Providers, error)
 	getProvidersMutex       sync.RWMutex
 	getProvidersArgsForCall []struct {
-		teamName string
+		arg1 db.SavedTeam
 	}
 	getProvidersReturns struct {
 		result1 provider.Providers
@@ -22,15 +23,15 @@ type FakeProviderFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeProviderFactory) GetProviders(teamName string) (provider.Providers, error) {
+func (fake *FakeProviderFactory) GetProviders(arg1 db.SavedTeam) (provider.Providers, error) {
 	fake.getProvidersMutex.Lock()
 	fake.getProvidersArgsForCall = append(fake.getProvidersArgsForCall, struct {
-		teamName string
-	}{teamName})
-	fake.recordInvocation("GetProviders", []interface{}{teamName})
+		arg1 db.SavedTeam
+	}{arg1})
+	fake.recordInvocation("GetProviders", []interface{}{arg1})
 	fake.getProvidersMutex.Unlock()
 	if fake.GetProvidersStub != nil {
-		return fake.GetProvidersStub(teamName)
+		return fake.GetProvidersStub(arg1)
 	} else {
 		return fake.getProvidersReturns.result1, fake.getProvidersReturns.result2
 	}
@@ -42,10 +43,10 @@ func (fake *FakeProviderFactory) GetProvidersCallCount() int {
 	return len(fake.getProvidersArgsForCall)
 }
 
-func (fake *FakeProviderFactory) GetProvidersArgsForCall(i int) string {
+func (fake *FakeProviderFactory) GetProvidersArgsForCall(i int) db.SavedTeam {
 	fake.getProvidersMutex.RLock()
 	defer fake.getProvidersMutex.RUnlock()
-	return fake.getProvidersArgsForCall[i].teamName
+	return fake.getProvidersArgsForCall[i].arg1
 }
 
 func (fake *FakeProviderFactory) GetProvidersReturns(result1 provider.Providers, result2 error) {

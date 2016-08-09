@@ -1,8 +1,6 @@
 package provider
 
 import (
-	"errors"
-
 	"code.cloudfoundry.org/gunk/urljoiner"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth/github"
@@ -29,16 +27,7 @@ func NewOAuthFactory(logger lager.Logger, teamDBFactory db.TeamDBFactory, atcExt
 	}
 }
 
-func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
-	teamDB := of.teamDBFactory.GetTeamDB(teamName)
-	team, found, err := teamDB.GetTeam()
-	if err != nil {
-		return Providers{}, err
-	}
-	if !found {
-		return Providers{}, errors.New("team not found")
-	}
-
+func (of OAuthFactory) GetProviders(team db.SavedTeam) (Providers, error) {
 	providers := Providers{}
 
 	if team.GitHubAuth != nil {
@@ -62,11 +51,11 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 		}
 		uaaAuthProvider, err := uaa.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
 		if err != nil {
-			of.logger.Error("failed-to-construct-uaa-provider", err, lager.Data{"team-name": teamName})
+			of.logger.Error("failed-to-construct-uaa-provider", err, lager.Data{"team-name": team.Name})
 		} else {
 			providers[uaa.ProviderName] = uaaAuthProvider
 		}
 	}
 
-	return providers, err
+	return providers, nil
 }

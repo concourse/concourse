@@ -98,7 +98,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	providers, err := handler.providerFactory.GetProviders(teamName)
+	providers, err := handler.providerFactory.GetProviders(team)
 	if err != nil {
 		handler.logger.Error("unknown-provider", err, lager.Data{
 			"provider": providerName,

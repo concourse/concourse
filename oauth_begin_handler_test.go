@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -20,6 +21,7 @@ import (
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 )
 
@@ -30,7 +32,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		fakeProviderFactory *authfakes.FakeProviderFactory
 
-		fakeTeamDB *dbfakes.FakeTeamDB
+		fakeTeamDBFactory *dbfakes.FakeTeamDBFactory
+		fakeTeamDB        *dbfakes.FakeTeamDB
 
 		signingKey *rsa.PrivateKey
 
@@ -60,7 +63,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 			nil,
 		)
 
-		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeTeamDBFactory = new(dbfakes.FakeTeamDBFactory)
 		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
 		handler, err := auth.NewOAuthHandler(
 			lagertest.NewTestLogger("test"),
@@ -94,6 +97,11 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 			request, err = http.NewRequest("GET", server.URL, nil)
 			Expect(err).NotTo(HaveOccurred())
+
+			request.URL.RawQuery = url.Values{
+				"redirect":  {"/some-path"},
+				"team_name": {"some-team"},
+			}.Encode()
 		})
 
 		JustBeforeEach(func() {
@@ -103,59 +111,104 @@ var _ = Describe("OAuthBeginHandler", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("to a known provider", func() {
+		Context("when the team exists", func() {
+			var savedTeam db.SavedTeam
 			BeforeEach(func() {
-				request.URL.Path = "/auth/b"
-				request.URL.RawQuery = url.Values{
-					"redirect":  {"/some-path"},
-					"team_name": {"some-team"},
-				}.Encode()
+				savedTeam = db.SavedTeam{
+					Team: db.Team{
+						GitHubAuth: &db.GitHubAuth{ClientID: "some-client-id"},
+					},
+				}
 
-				fakeProviderB.AuthCodeURLReturns(redirectTarget.URL())
+				fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
 			})
 
-			It("redirects to the auth code URL", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-				Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("sup")))
+			Context("to a known provider", func() {
+				BeforeEach(func() {
+					request.URL.Path = "/auth/b"
+
+					fakeProviderB.AuthCodeURLReturns(redirectTarget.URL())
+				})
+
+				It("gets the teamDB with correct teamName", func() {
+					Expect(fakeTeamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(fakeTeamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
+				})
+
+				It("calls getProviders with correct team", func() {
+					Expect(fakeProviderFactory.GetProvidersCallCount()).To(Equal(1))
+					Expect(fakeProviderFactory.GetProvidersArgsForCall(0)).To(Equal(savedTeam))
+				})
+
+				It("redirects to the auth code URL", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("sup")))
+				})
+
+				It("generates the auth code with a base64-encoded redirect URI and team name as the state", func() {
+					Expect(fakeProviderB.AuthCodeURLCallCount()).To(Equal(1))
+
+					state, _ := fakeProviderB.AuthCodeURLArgsForCall(0)
+
+					decoded, err := base64.RawURLEncoding.DecodeString(state)
+					Expect(err).ToNot(HaveOccurred())
+
+					var oauthState auth.OAuthState
+					err = json.Unmarshal(decoded, &oauthState)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(oauthState.TeamName).To(Equal("some-team"))
+					Expect(oauthState.Redirect).To(Equal("/some-path"))
+				})
+
+				It("sets the base64-encoded redirect URI as the OAuth state cookie", func() {
+					Expect(fakeProviderB.AuthCodeURLCallCount()).To(Equal(1))
+
+					state, _ := fakeProviderB.AuthCodeURLArgsForCall(0)
+
+					serverURL, err := url.Parse(server.URL)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(cookieJar.Cookies(serverURL)).To(ContainElement(&http.Cookie{
+						Name:  auth.OAuthStateCookie,
+						Value: state,
+					}))
+				})
 			})
 
-			It("generates the auth code with a base64-encoded redirect URI and team name as the state", func() {
-				Expect(fakeProviderB.AuthCodeURLCallCount()).To(Equal(1))
+			Context("to an unknown provider", func() {
+				BeforeEach(func() {
+					request.URL.Path = "/auth/bogus"
+				})
 
-				state, _ := fakeProviderB.AuthCodeURLArgsForCall(0)
-
-				decoded, err := base64.RawURLEncoding.DecodeString(state)
-				Expect(err).ToNot(HaveOccurred())
-
-				var oauthState auth.OAuthState
-				err = json.Unmarshal(decoded, &oauthState)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(oauthState.TeamName).To(Equal("some-team"))
-				Expect(oauthState.Redirect).To(Equal("/some-path"))
-			})
-
-			It("sets the base64-encoded redirect URI as the OAuth state cookie", func() {
-				Expect(fakeProviderB.AuthCodeURLCallCount()).To(Equal(1))
-
-				state, _ := fakeProviderB.AuthCodeURLArgsForCall(0)
-
-				serverURL, err := url.Parse(server.URL)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(cookieJar.Cookies(serverURL)).To(ContainElement(&http.Cookie{
-					Name:  auth.OAuthStateCookie,
-					Value: state,
-				}))
+				It("returns 404 not found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
 			})
 		})
 
-		Context("to an unknown provider", func() {
+		Context("when the team doesn't exist", func() {
 			BeforeEach(func() {
-				request.URL.Path = "/auth/bogus"
+				request.URL.Path = "/auth/b"
+
+				fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 			})
 
-			It("returns Not Found", func() {
+			It("returns 404 not found", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when looking up the team fails", func() {
+			var disaster error
+			BeforeEach(func() {
+				request.URL.Path = "/auth/b"
+
+				disaster = errors.New("out of service")
+				fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, disaster)
+			})
+
+			It("returns 500 internal server error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})

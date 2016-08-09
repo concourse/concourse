@@ -184,7 +184,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 					It("looks up the verifier for the team from the 'state' query param", func() {
 						Expect(fakeProviderFactory.GetProvidersCallCount()).To(Equal(1))
-						Expect(fakeProviderFactory.GetProvidersArgsForCall(0)).To(Equal("some-team"))
+						Expect(fakeProviderFactory.GetProvidersArgsForCall(0)).To(Equal(team))
 					})
 
 					Context("when the token is verified", func() {

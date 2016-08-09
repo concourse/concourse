@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/concourse/atc/db"
+
 	"code.cloudfoundry.org/lager"
 )
 
@@ -21,25 +23,46 @@ type OAuthBeginHandler struct {
 	logger          lager.Logger
 	providerFactory ProviderFactory
 	privateKey      *rsa.PrivateKey
+	teamDBFactory   db.TeamDBFactory
 }
 
 func NewOAuthBeginHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
+	teamDBFactory db.TeamDBFactory,
 ) http.Handler {
 	return &OAuthBeginHandler{
 		logger:          logger,
 		providerFactory: providerFactory,
 		privateKey:      privateKey,
+		teamDBFactory:   teamDBFactory,
 	}
 }
 
 func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	hLog := handler.logger.Session("oauth-begin")
 	providerName := r.FormValue(":provider")
 	teamName := r.FormValue("team_name")
 
-	providers, err := handler.providerFactory.GetProviders(teamName)
+	teamDB := handler.teamDBFactory.GetTeamDB(teamName)
+	team, found, err := teamDB.GetTeam()
+	if err != nil {
+		hLog.Error("failed-to-get-team", err, lager.Data{
+			"teamName": teamName,
+		})
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		hLog.Info("failed-to-find-team", lager.Data{
+			"teamName": teamName,
+		})
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	providers, err := handler.providerFactory.GetProviders(team)
 	if err != nil {
 		handler.logger.Error("unknown-provider", err, lager.Data{
 			"provider": providerName,
