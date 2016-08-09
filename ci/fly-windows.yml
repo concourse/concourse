@@ -2,7 +2,8 @@
 platform: windows
 
 inputs:
-  - name: concourse
+- name: concourse
+- name: golang-windows
 
 run:
   path: concourse/ci/scripts/fly.bat

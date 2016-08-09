@@ -1,3 +1,8 @@
+cd .\golang-windows
+  unzip go*.zip
+  set PATH=%CD%\go\bin;%PATH
+cd ..
+
 set GOPATH=%CD%\concourse
 set PATH=%CD%\concourse\bin;%PATH%
 

@@ -47,10 +47,12 @@ jobs:
       file: concourse/ci/fly-linux.yml
     - task: darwin
       file: concourse/ci/fly-darwin.yml
-    - task: windows
-      file: concourse/ci/fly-windows.yml
-      timeout: 15m
-      attempts: 2
+    - do:
+      - get: golang-windows
+      - task: windows
+        file: concourse/ci/fly-windows.yml
+        timeout: 15m
+        attempts: 2
 
 - name: go-concourse
   public: true
@@ -921,3 +923,10 @@ resources:
 - name: concourse-image-final
   type: docker-image
   source: *concourse-image
+
+- name: golang-windows
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(\d+\.\d+(\.\d+?))\.windows-amd64\.zip'
