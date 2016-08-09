@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/guardian/guardiancmd"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/baggageclaim/fs"
 	"github.com/concourse/bin/bindata"
 	"github.com/jessevdk/go-flags"
@@ -167,8 +168,7 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 	}
 
 	cmd.Baggageclaim.Metrics = cmd.Metrics
-
-	cmd.Baggageclaim.VolumesDir = baggageclaimForwardAddr.DirFlag(volumesDir)
+	cmd.Baggageclaim.VolumesDir = baggageclaimcmd.DirFlag(volumesDir)
 
 	cmd.Baggageclaim.MkfsBin = filepath.Join(btrfsToolsDir, "mkfs.btrfs")
 	cmd.Baggageclaim.BtrfsBin = filepath.Join(btrfsToolsDir, "btrfs")
