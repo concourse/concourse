@@ -162,8 +162,11 @@ routeWithRedirect : String -> String -> String
 routeWithRedirect redirect route =
   route ++
     case redirect of
-      "" -> ""
+      "" -> "?redirect=" ++ urlEncodedIndexPage
       _ -> "?redirect=" ++ redirect
+
+urlEncodedIndexPage : String
+urlEncodedIndexPage = "%2F"
 
 view : Model -> Html Action
 view model =
@@ -293,7 +296,7 @@ viewLogin model =
           case model.authMethods of
             Nothing -> [ viewLoading ]
             Just methods ->
-              case (viewBasicAuthForm methods, viewOAuthButtons methods) of
+              case (viewBasicAuthForm methods, viewOAuthButtons model.redirect methods) of
                 (Just basicForm, Just buttons) ->
                   [ buttons, viewOrBar, basicForm ]
                 (Just basicForm, Nothing) -> [ basicForm ]
@@ -361,20 +364,20 @@ viewBasicAuthForm methods =
         ]
   else Nothing
 
-viewOAuthButtons : List AuthMethod -> Maybe (Html action)
-viewOAuthButtons methods =
-  case List.filterMap viewOAuthButton methods of
+viewOAuthButtons : String -> List AuthMethod -> Maybe (Html action)
+viewOAuthButtons redirect methods =
+  case List.filterMap (viewOAuthButton redirect) methods of
     [] -> Nothing
     buttons ->
       Just <|
         Html.div [ class "centered-contents padded-top" ] buttons
 
-viewOAuthButton : AuthMethod -> Maybe (Html action)
-viewOAuthButton method =
+viewOAuthButton : String -> AuthMethod -> Maybe (Html action)
+viewOAuthButton redirect method =
   case method of
     BasicMethod -> Nothing
     OAuthMethod oAuthMethod ->
       Just <|
         Html.a
-          [ Attributes.href oAuthMethod.authURL ]
+          [ Attributes.href <| routeWithRedirect redirect oAuthMethod.authURL ]
           [ Html.text <| "login with " ++ oAuthMethod.displayName ]
