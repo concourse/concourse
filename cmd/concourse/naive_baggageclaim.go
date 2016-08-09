@@ -20,5 +20,7 @@ func (cmd *WorkerCommand) naiveBaggageclaimRunner(logger lager.Logger) (ifrit.Ru
 	cmd.Baggageclaim.Metrics = cmd.Metrics
 	cmd.Baggageclaim.VolumesDir = baggageclaimcmd.DirFlag(volumesDir)
 
+	cmd.Baggageclaim.Driver = "naive"
+
 	return cmd.Baggageclaim.Runner(nil)
 }
