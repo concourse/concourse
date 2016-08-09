@@ -13,7 +13,6 @@ import (
 	"code.cloudfoundry.org/guardian/guardiancmd"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/baggageclaim/fs"
 	"github.com/concourse/bin/bindata"
 	"github.com/jessevdk/go-flags"
@@ -32,6 +31,8 @@ func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
 	command.FindOptionByLongName("garden-init-bin").Required = false
 	command.FindOptionByLongName("garden-nstar-bin").Required = false
 	command.FindOptionByLongName("garden-tar-bin").Required = false
+
+	command.FindOptionByLongName("baggageclaim-volumes").Required = false
 }
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.Worker, ifrit.Runner, error) {
@@ -165,21 +166,12 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 		}
 	}
 
-	bc := &baggageclaimcmd.BaggageclaimCommand{
-		BindIP:   baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindIP.IP().String()),
-		BindPort: cmd.Baggageclaim.BindPort,
+	cmd.Baggageclaim.Metrics = cmd.Metrics
 
-		VolumesDir: baggageclaimcmd.DirFlag(volumesDir),
+	cmd.Baggageclaim.VolumesDir = baggageclaimForwardAddr.DirFlag(volumesDir)
 
-		Driver: "btrfs",
-
-		ReapInterval: cmd.Baggageclaim.ReapInterval,
-
-		Metrics: cmd.Metrics,
-
-		MkfsBin:  filepath.Join(btrfsToolsDir, "mkfs.btrfs"),
-		BtrfsBin: filepath.Join(btrfsToolsDir, "btrfs"),
-	}
+	cmd.Baggageclaim.MkfsBin = filepath.Join(btrfsToolsDir, "mkfs.btrfs")
+	cmd.Baggageclaim.BtrfsBin = filepath.Join(btrfsToolsDir, "btrfs")
 
 	return bc.Runner(nil)
 }

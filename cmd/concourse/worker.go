@@ -32,14 +32,9 @@ type WorkerCommand struct {
 
 	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
 
+	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
+
 	TSA BeaconConfig `group:"TSA Configuration" namespace:"tsa"`
-
-	Baggageclaim struct {
-		BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for API traffic."`
-		BindPort uint16 `long:"bind-port" default:"7788" description:"Port on which to listen for API traffic."`
-
-		ReapInterval time.Duration `long:"reap-interval" default:"10s" description:"Interval on which to reap expired volumes."`
-	} `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
 
 	Metrics struct {
 		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`

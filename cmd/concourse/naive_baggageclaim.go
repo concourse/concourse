@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -17,18 +16,8 @@ func (cmd *WorkerCommand) naiveBaggageclaimRunner(logger lager.Logger) (ifrit.Ru
 		return nil, err
 	}
 
-	bc := &baggageclaimcmd.BaggageclaimCommand{
-		BindIP:   baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindIP.IP().String()),
-		BindPort: cmd.Baggageclaim.BindPort,
+	cmd.Baggageclaim.Metrics = cmd.Metrics
+	cmd.Baggageclaim.VolumesDir = baggageclaimForwardAddr.DirFlag(volumesDir)
 
-		VolumesDir: baggageclaimcmd.DirFlag(volumesDir),
-
-		Driver: "naive",
-
-		ReapInterval: cmd.Baggageclaim.ReapInterval,
-
-		Metrics: cmd.Metrics,
-	}
-
-	return bc.Runner(nil)
+	return cmd.Baggageclaim.Runner(nil)
 }
