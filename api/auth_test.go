@@ -189,6 +189,16 @@ var _ = Describe("Auth API", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
+			It("gets the teamDB for the right team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
+			})
+
+			It("looks up oauth providers for the right team", func() {
+				Expect(providerFactory.GetProvidersCallCount()).To(Equal(1))
+				Expect(providerFactory.GetProvidersArgsForCall(0)).To(Equal(savedTeam))
+			})
+
 			It("returns 200 OK", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})

@@ -30,7 +30,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	}
 
 	methods := []atc.AuthMethod{}
-	providers, err := s.providerFactory.GetProviders(teamName)
+	providers, err := s.providerFactory.GetProviders(team)
 	if err != nil {
 		s.logger.Error("failed-to-get-providers", err)
 		w.WriteHeader(http.StatusInternalServerError)
