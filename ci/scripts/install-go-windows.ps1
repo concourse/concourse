@@ -3,31 +3,16 @@ trap {
   exit 1
 }
 
-Set-PSDebug -trace 2 -strict
-
-echo what
-Set-PSDebug -trace 2 -strict
-
-echo the
-Set-PSDebug -trace 2 -strict
-
-echo deuce
-Set-PSDebug -trace 2 -strict
-
-Remove-Item -Recurse -Force $env:USERPROFILE\go
-
-Set-PSDebug -trace 2 -strict
-
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-Set-PSDebug -trace 2 -strict
+$msi = Get-Item ".\golang-windows\go*.msi"
 
-$zipfile = Get-Item ".\golang-windows\go*.zip"
-Set-PSDebug -trace 2 -strict
+echo "installing $msi"
 
-echo $zipfile
-echo $env:USERPROFILE
+$p = Start-Process -FilePath "msiexec" -ArgumentList "/passive /norestart /i $msi" -Wait -PassThru
 
-[System.IO.Compression.ZipFile]::ExtractToDirectory($zipfile, $env:USERPROFILE)
+if ($p.ExitCode -ne 0) {
+  throw "failed"
+}
 
-echo done
+echo "done"
