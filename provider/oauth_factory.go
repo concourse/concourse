@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/gunk/urljoiner"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
@@ -11,14 +12,16 @@ import (
 )
 
 type OAuthFactory struct {
+	logger         lager.Logger
 	teamDBFactory  db.TeamDBFactory
 	atcExternalURL string
 	routes         rata.Routes
 	callback       string
 }
 
-func NewOAuthFactory(teamDBFactory db.TeamDBFactory, atcExternalURL string, routes rata.Routes, callback string) OAuthFactory {
+func NewOAuthFactory(logger lager.Logger, teamDBFactory db.TeamDBFactory, atcExternalURL string, routes rata.Routes, callback string) OAuthFactory {
 	return OAuthFactory{
+		logger:         logger,
 		teamDBFactory:  teamDBFactory,
 		atcExternalURL: atcExternalURL,
 		routes:         routes,
@@ -57,9 +60,12 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 		if err != nil {
 			return Providers{}, err
 		}
-		uaaAuthProvider := uaa.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
-
-		providers[uaa.ProviderName] = uaaAuthProvider
+		uaaAuthProvider, err := uaa.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
+		if err != nil {
+			of.logger.Error("failed-to-construct-uaa-provider", err, lager.Data{"team-name": teamName})
+		} else {
+			providers[uaa.ProviderName] = uaaAuthProvider
+		}
 	}
 
 	return providers, err

@@ -1,11 +1,11 @@
 package provider_test
 
 import (
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/provider"
-	. "github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
 
@@ -24,6 +24,7 @@ var _ = Describe("OAuthFactory", func() {
 		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
 		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
 		oauthFactory = provider.NewOAuthFactory(
+			lagertest.NewTestLogger("test"),
 			fakeTeamDBFactory,
 			"http://foo.bar",
 			auth.OAuthRoutes,
@@ -55,7 +56,7 @@ var _ = Describe("OAuthFactory", func() {
 			})
 		})
 
-		Context("when CF provider is setup", func() {
+		Context("when UAA provider is setup", func() {
 			BeforeEach(func() {
 				savedTeam := db.SavedTeam{
 					Team: db.Team{
@@ -70,11 +71,40 @@ var _ = Describe("OAuthFactory", func() {
 				fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
 			})
 
-			It("returns back CF's auth provider", func() {
+			It("returns back UAA's auth provider", func() {
 				providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(providers).To(HaveLen(1))
 				Expect(providers[uaa.ProviderName]).NotTo(BeNil())
+			})
+		})
+
+		Context("when UAA provider has an invalid ssl cert", func() {
+			BeforeEach(func() {
+				savedTeam := db.SavedTeam{
+					Team: db.Team{
+						Name: atc.DefaultTeamName,
+						GitHubAuth: &db.GitHubAuth{
+							ClientID:     "user1",
+							ClientSecret: "password1",
+							Users:        []string{"thecandyman"},
+						},
+						UAAAuth: &db.UAAAuth{
+							ClientID:     "user1",
+							ClientSecret: "password1",
+							CFSpaces:     []string{"myspace"},
+							CFCACert:     "some-invalid-cert",
+						},
+					},
+				}
+				fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
+			})
+
+			It("returns the other providers", func() {
+				providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(providers).To(HaveLen(1))
+				Expect(providers[github.ProviderName]).NotTo(BeNil())
 			})
 		})
 

@@ -15,6 +15,7 @@ type Providers map[string]Provider
 
 type Provider interface {
 	DisplayName() string
+	PreTokenClient() *http.Client
 
 	OAuthClient
 	Verifier
