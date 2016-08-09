@@ -2,6 +2,7 @@
 platform: windows
 
 inputs:
+- name: concourse
 - name: golang-windows
 
 run:
@@ -9,4 +10,4 @@ run:
   args:
     - -NoExit
     - -File
-    - concourse/ci/scripts/install-go-windows.ps1
+    - '.\concourse\ci\scripts\install-go-windows.ps1'

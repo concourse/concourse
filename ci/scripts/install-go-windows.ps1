@@ -1,3 +1,5 @@
+Set-PSDebug -trace 2 -strict
+
 cd .\golang-windows
 
 Remove-Item -Recurse -Force $env:USERPROFILE\go
