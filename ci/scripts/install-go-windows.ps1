@@ -25,4 +25,9 @@ Set-PSDebug -trace 2 -strict
 $zipfile = Get-Item ".\golang-windows\go*.zip"
 Set-PSDebug -trace 2 -strict
 
+echo $zipfile
+echo $env:USERPROFILE
+
 [System.IO.Compression.ZipFile]::ExtractToDirectory($zipfile, $env:USERPROFILE)
+
+echo done
