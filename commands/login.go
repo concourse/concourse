@@ -89,7 +89,7 @@ func (command *LoginCommand) Execute(args []string) error {
 				target.Client().URL(),
 				command.TeamName,
 				command.Insecure,
-				caCert,
+				target.CACert(),
 			)
 			if err != nil {
 				return err
@@ -106,7 +106,7 @@ func (command *LoginCommand) Execute(args []string) error {
 					Type:  token.Type,
 					Value: token.Value,
 				},
-				caCert,
+				target.CACert(),
 			)
 		case 1:
 			chosenMethod = authMethods[0]
@@ -138,7 +138,7 @@ func (command *LoginCommand) Execute(args []string) error {
 			Type:  token.Type,
 			Value: token.Value,
 		},
-		caCert,
+		target.CACert(),
 	)
 }
 

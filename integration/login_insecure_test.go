@@ -22,7 +22,7 @@ import (
 )
 
 var _ = Describe("login -k Command", func() {
-	var atcServer *ghttp.Server
+	var loginATCServer *ghttp.Server
 
 	Describe("login", func() {
 		var (
@@ -31,18 +31,18 @@ var _ = Describe("login -k Command", func() {
 		)
 		BeforeEach(func() {
 			l := log.New(GinkgoWriter, "TLSServer", 0)
-			atcServer = ghttp.NewUnstartedServer()
-			atcServer.HTTPTestServer.Config.ErrorLog = l
-			atcServer.HTTPTestServer.StartTLS()
+			loginATCServer = ghttp.NewUnstartedServer()
+			loginATCServer.HTTPTestServer.Config.ErrorLog = l
+			loginATCServer.HTTPTestServer.StartTLS()
 		})
 
 		AfterEach(func() {
-			atcServer.Close()
+			loginATCServer.Close()
 		})
 
 		Context("to new target with invalid SSL with -k", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
+				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -64,7 +64,7 @@ var _ = Describe("login -k Command", func() {
 					),
 				)
 
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-k")
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-k")
 
 				var err error
 				stdin, err = flyCmd.StdinPipe()
@@ -99,7 +99,7 @@ var _ = Describe("login -k Command", func() {
 			Context("login to existing target", func() {
 				var otherCmd *exec.Cmd
 				BeforeEach(func() {
-					atcServer.AppendHandlers(
+					loginATCServer.AppendHandlers(
 						infoHandler(),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -195,7 +195,7 @@ var _ = Describe("login -k Command", func() {
 		Context("to new target with invalid SSL without -k", func() {
 			Context("without --ca-cert", func() {
 				BeforeEach(func() {
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
 
 					var err error
 					stdin, err = flyCmd.StdinPipe()
@@ -225,7 +225,7 @@ var _ = Describe("login -k Command", func() {
 				BeforeEach(func() {
 					sslCert = string(pem.EncodeToMemory(&pem.Block{
 						Type:  "CERTIFICATE",
-						Bytes: atcServer.HTTPTestServer.TLS.Certificates[0].Certificate[0],
+						Bytes: loginATCServer.HTTPTestServer.TLS.Certificates[0].Certificate[0],
 					}))
 
 					caCertFile, err := ioutil.TempFile("", "ca_cert.pem")
@@ -234,11 +234,11 @@ var _ = Describe("login -k Command", func() {
 					_, err = caCertFile.WriteString(sslCert)
 					Expect(err).NotTo(HaveOccurred())
 
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "--ca-cert", caCertFile.Name())
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "--ca-cert", caCertFile.Name())
 					stdin, err = flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
 
-					atcServer.AppendHandlers(
+					loginATCServer.AppendHandlers(
 						infoHandler(),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -310,7 +310,7 @@ var _ = Describe("login -k Command", func() {
 				BeforeEach(func() {
 					flyrcContents := `targets:
   some-target:
-    api: ` + atcServer.URL() + `
+    api: ` + loginATCServer.URL() + `
     team: main
     ca_cert: some-ca-cert
     token:
@@ -321,7 +321,7 @@ var _ = Describe("login -k Command", func() {
 
 				Context("with -k", func() {
 					BeforeEach(func() {
-						atcServer.AppendHandlers(
+						loginATCServer.AppendHandlers(
 							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -393,7 +393,7 @@ var _ = Describe("login -k Command", func() {
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(1))
-						Eventually(sess.Err).Should(gbytes.Say("x509: certificate signed by unknown authority"))
+						Eventually(sess.Err).Should(gbytes.Say("CA Cert not valid"))
 					})
 				})
 			})

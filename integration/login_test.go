@@ -1,9 +1,13 @@
 package integration_test
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"os/exec"
+	"runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,8 +21,25 @@ import (
 
 var _ = Describe("login Command", func() {
 	var (
-		atcServer *ghttp.Server
+		loginATCServer *ghttp.Server
+		tmpDir         string
 	)
+
+	BeforeEach(func() {
+		var err error
+		tmpDir, err = ioutil.TempDir("", "fly-test")
+		Expect(err).ToNot(HaveOccurred())
+
+		if runtime.GOOS == "windows" {
+			os.Setenv("USERPROFILE", tmpDir)
+		} else {
+			os.Setenv("HOME", tmpDir)
+		}
+	})
+
+	AfterEach(func() {
+		os.RemoveAll(tmpDir)
+	})
 
 	Describe("login with no target name", func() {
 		var (
@@ -26,15 +47,19 @@ var _ = Describe("login Command", func() {
 		)
 
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-			atcServer.AppendHandlers(
+			loginATCServer = ghttp.NewServer()
+			loginATCServer.AppendHandlers(
 				infoHandler(),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 					ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 				),
 			)
-			flyCmd = exec.Command(flyPath, "login", "-c", atcServer.URL())
+			flyCmd = exec.Command(flyPath, "login", "-c", loginATCServer.URL())
+		})
+
+		AfterEach(func() {
+			loginATCServer.Close()
 		})
 
 		It("instructs the user to specify --target", func() {
@@ -50,11 +75,15 @@ var _ = Describe("login Command", func() {
 
 	Context("with no team name", func() {
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
+			loginATCServer = ghttp.NewServer()
+		})
+
+		AfterEach(func() {
+			loginATCServer.Close()
 		})
 
 		It("falls back to atc.DefaultTeamName team", func() {
-			atcServer.AppendHandlers(
+			loginATCServer.AppendHandlers(
 				infoHandler(),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -63,7 +92,7 @@ var _ = Describe("login Command", func() {
 				tokenHandler("main"),
 			)
 
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -75,11 +104,15 @@ var _ = Describe("login Command", func() {
 
 	Context("with a team name", func() {
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
+			loginATCServer = ghttp.NewServer()
+		})
+
+		AfterEach(func() {
+			loginATCServer.Close()
 		})
 
 		It("uses specified team", func() {
-			atcServer.AppendHandlers(
+			loginATCServer.AppendHandlers(
 				infoHandler(),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
@@ -88,7 +121,7 @@ var _ = Describe("login Command", func() {
 				tokenHandler("some-team"),
 			)
 
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-n", "some-team")
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -99,7 +132,7 @@ var _ = Describe("login Command", func() {
 
 		Context("when already logged in as different team", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
+				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
@@ -108,13 +141,13 @@ var _ = Describe("login Command", func() {
 					tokenHandler("some-team"),
 				)
 
-				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-n", "some-team")
+				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team")
 				err := setupFlyCmd.Run()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("passes provided team name", func() {
-				atcServer.AppendHandlers(
+				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/some-other-team/auth/methods"),
@@ -134,6 +167,83 @@ var _ = Describe("login Command", func() {
 		})
 	})
 
+	Describe("with ca cert", func() {
+		BeforeEach(func() {
+			loginATCServer = ghttp.NewUnstartedServer()
+			cert, err := tls.X509KeyPair([]byte(serverCert), []byte(serverKey))
+			Expect(err).NotTo(HaveOccurred())
+
+			loginATCServer.HTTPTestServer.TLS = &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			}
+			loginATCServer.HTTPTestServer.StartTLS()
+		})
+
+		AfterEach(func() {
+			loginATCServer.Close()
+		})
+
+		Context("when already logged in with ca cert", func() {
+			var caCertFilePath string
+
+			BeforeEach(func() {
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+					),
+					tokenHandler("some-team"),
+				)
+
+				caCertFile, err := ioutil.TempFile("", "fly-login-test")
+				Expect(err).NotTo(HaveOccurred())
+				caCertFilePath = caCertFile.Name()
+
+				err = ioutil.WriteFile(caCertFilePath, []byte(serverCert), os.ModePerm)
+				Expect(err).NotTo(HaveOccurred())
+
+				setupFlyCmd := exec.Command(
+					flyPath,
+					"-t", "some-target",
+					"login",
+					"-c", loginATCServer.URL(),
+					"-n", "some-team",
+					"--ca-cert", caCertFilePath,
+				)
+				sess, err := gexec.Start(setupFlyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+			})
+
+			AfterEach(func() {
+				os.RemoveAll(caCertFilePath)
+			})
+
+			Context("when ca cert is not provided", func() {
+				It("is using saved ca cert", func() {
+					loginATCServer.AppendHandlers(
+						infoHandler(),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
+							ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+						),
+						tokenHandler("some-team"),
+					)
+
+					flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-n", "some-team")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+			})
+		})
+	})
+
 	Describe("login", func() {
 		var (
 			flyCmd *exec.Cmd
@@ -141,12 +251,16 @@ var _ = Describe("login Command", func() {
 		)
 
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-			flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
+			loginATCServer = ghttp.NewServer()
+			flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
 
 			var err error
 			stdin, err = flyCmd.StdinPipe()
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			loginATCServer.Close()
 		})
 
 		Context("when fly and atc differ in major versions", func() {
@@ -162,11 +276,11 @@ var _ = Describe("login Command", func() {
 					"-ldflags", fmt.Sprintf("-X github.com/concourse/fly/version.Version=%s", flyVersion),
 				)
 				Expect(err).NotTo(HaveOccurred())
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
 				stdin, err = flyCmd.StdinPipe()
 				Expect(err).NotTo(HaveOccurred())
 
-				atcServer.AppendHandlers(
+				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -188,7 +302,7 @@ var _ = Describe("login Command", func() {
 
 		Context("when auth methods are returned from the API", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
+				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -276,7 +390,7 @@ var _ = Describe("login Command", func() {
 
 					Describe("running other commands", func() {
 						BeforeEach(func() {
-							atcServer.AppendHandlers(
+							loginATCServer.AppendHandlers(
 								infoHandler(),
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
@@ -306,7 +420,7 @@ var _ = Describe("login Command", func() {
 
 			Context("when a Basic method is chosen", func() {
 				BeforeEach(func() {
-					atcServer.AppendHandlers(
+					loginATCServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 							ghttp.VerifyBasicAuth("some_username", "some_password"),
@@ -354,7 +468,7 @@ var _ = Describe("login Command", func() {
 				It("takes username and password as cli arguments", func() {
 					flyCmd = exec.Command(flyPath,
 						"-t", "some-target",
-						"login", "-c", atcServer.URL(),
+						"login", "-c", loginATCServer.URL(),
 						"-u", "some_username",
 						"-p", "some_password",
 					)
@@ -414,7 +528,7 @@ var _ = Describe("login Command", func() {
 
 					Describe("running other commands", func() {
 						BeforeEach(func() {
-							atcServer.AppendHandlers(
+							loginATCServer.AppendHandlers(
 								infoHandler(),
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
@@ -442,7 +556,7 @@ var _ = Describe("login Command", func() {
 
 					Describe("logging in again with the same target", func() {
 						BeforeEach(func() {
-							atcServer.AppendHandlers(
+							loginATCServer.AppendHandlers(
 								infoHandler(),
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -520,7 +634,7 @@ var _ = Describe("login Command", func() {
 
 		Context("when only non-basic auth methods are returned from the API", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
+				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -542,7 +656,7 @@ var _ = Describe("login Command", func() {
 			It("errors when username and password are given", func() {
 				flyCmd = exec.Command(flyPath,
 					"-t", "some-target",
-					"login", "-c", atcServer.URL(),
+					"login", "-c", loginATCServer.URL(),
 					"-u", "some_username",
 					"-p", "some_password",
 				)
@@ -561,7 +675,7 @@ var _ = Describe("login Command", func() {
 
 		Context("when only one auth method is returned from the API", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
+				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -612,7 +726,7 @@ var _ = Describe("login Command", func() {
 
 		Context("when no auth methods are returned from the API", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
+				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
@@ -634,7 +748,7 @@ var _ = Describe("login Command", func() {
 
 			Describe("running other commands", func() {
 				BeforeEach(func() {
-					atcServer.AppendHandlers(
+					loginATCServer.AppendHandlers(
 						infoHandler(),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
@@ -666,7 +780,7 @@ var _ = Describe("login Command", func() {
 
 		Context("and the api returns an internal server error", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
+				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),

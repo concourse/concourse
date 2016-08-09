@@ -37,6 +37,7 @@ func (e ErrVersionMismatch) Error() string {
 type Target interface {
 	Client() concourse.Client
 	Team() concourse.Team
+	CACert() string
 	Validate() error
 	ValidateWithWarningOnly() error
 }
@@ -44,6 +45,7 @@ type Target interface {
 type target struct {
 	name     TargetName
 	teamName string
+	caCert   string
 	client   concourse.Client
 }
 
@@ -83,6 +85,14 @@ func LoadTargetWithInsecure(
 		teamName = targetProps.TeamName
 	}
 
+	if caCert == "" {
+		caCert = targetProps.CACert
+	}
+
+	if commandInsecure {
+		caCert = ""
+	}
+
 	caCertPool, err := loadCACertPool(caCert)
 	if err != nil {
 		return nil, err
@@ -93,6 +103,7 @@ func LoadTargetWithInsecure(
 	return &target{
 		name:     selectedTarget,
 		teamName: teamName,
+		caCert:   caCert,
 		client:   concourse.NewClient(targetProps.API, httpClient),
 	}, nil
 }
@@ -114,6 +125,7 @@ func NewUnauthenticatedTarget(
 	return &target{
 		name:     name,
 		teamName: teamName,
+		caCert:   caCert,
 		client:   client,
 	}, nil
 }
@@ -137,6 +149,7 @@ func NewBasicAuthTarget(
 	return &target{
 		name:     name,
 		teamName: teamName,
+		caCert:   caCert,
 		client:   client,
 	}, nil
 }
@@ -159,6 +172,7 @@ func NewNoAuthTarget(
 	return &target{
 		name:     name,
 		teamName: teamName,
+		caCert:   caCert,
 		client:   client,
 	}, nil
 }
@@ -169,6 +183,10 @@ func (t *target) Client() concourse.Client {
 
 func (t *target) Team() concourse.Team {
 	return t.client.Team(t.teamName)
+}
+
+func (t *target) CACert() string {
+	return t.caCert
 }
 
 func (t *target) ValidateWithWarningOnly() error {
