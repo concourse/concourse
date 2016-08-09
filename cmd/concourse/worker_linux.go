@@ -173,7 +173,7 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 	cmd.Baggageclaim.MkfsBin = filepath.Join(btrfsToolsDir, "mkfs.btrfs")
 	cmd.Baggageclaim.BtrfsBin = filepath.Join(btrfsToolsDir, "btrfs")
 
-	return bc.Runner(nil)
+	return cmd.Baggageclaim.Runner(nil)
 }
 
 func (cmd *WorkerCommand) extractResources(logger lager.Logger, assetsDir string) ([]atc.WorkerResourceType, error) {
