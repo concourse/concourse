@@ -1,7 +1,9 @@
 port module LoginPage exposing (..)
 
+import Dict
+import Erl
+import Http
 import Navigation
-import Regex
 import String
 import UrlParser exposing ((</>), s)
 
@@ -22,14 +24,9 @@ pathnameParser : Navigation.Location -> Result String PageWithRedirect
 pathnameParser location =
   let
     redirect =
-      case
-        Regex.find (Regex.AtMost 1) (Regex.regex "[&?]redirect=([^&]*)") location.search
-      of
-        [ match ] ->
-          Maybe.withDefault
-            "" <|
-            Maybe.withDefault Nothing <| List.head match.submatches
-        _ -> ""
+      Http.uriDecode <|
+        Maybe.withDefault "" <|
+          Dict.get "redirect" (Erl.parse location.search).query
   in
     UrlParser.parse
       (redirectInserter redirect)
