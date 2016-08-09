@@ -1,0 +1,12 @@
+---
+platform: windows
+
+inputs:
+- name: golang-windows
+
+run:
+  path: powershell.exe
+  args:
+    - -NoExit
+    - -File
+    - concourse/ci/scripts/install-go-windows.ps1

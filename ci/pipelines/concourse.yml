@@ -36,6 +36,10 @@ groups:
   - teardown
   - unfudge
 
+- name: workers
+  jobs:
+  - install-go-windows
+
 jobs:
 - name: fly
   public: true
@@ -47,12 +51,10 @@ jobs:
       file: concourse/ci/fly-linux.yml
     - task: darwin
       file: concourse/ci/fly-darwin.yml
-    - do:
-      - get: golang-windows
-      - task: windows
-        file: concourse/ci/fly-windows.yml
-        timeout: 15m
-        attempts: 2
+    - task: windows
+      file: concourse/ci/fly-windows.yml
+      timeout: 15m
+      attempts: 2
 
 - name: go-concourse
   public: true
@@ -681,6 +683,14 @@ jobs:
     file: concourse-develop/ci/master-merge.yml
   - put: concourse
     params: {repository: concourse-merged}
+
+- name: install-go-windows
+  plan:
+  - aggregate:
+    - get: concourse
+    - get: golang-windows
+  - task: install
+    file: concourse/ci/install-go-windows.yml
 
 resources:
 - name: version
