@@ -77,6 +77,9 @@ case $1 in
       <% if p("development_mode") %> \
       --development-mode \
       <% end %> \
+      <% if p("allow_self_signed_certificates") %> \
+      --allow-self-signed-certificates \
+      <% end %> \
       --basic-auth-username <%= esc(p("basic_auth_username")) %> \
       --basic-auth-password <%= esc(p("basic_auth_password")) %> \
       <% p("github_auth.authorize").each do |a| %> \

@@ -75,6 +75,11 @@ properties:
 
       You should otherwise leave this value blank.
 
+  allow_self_signed_certificates:
+    description: |
+      Allow self-signed certificates.
+    default: false
+
   development_mode:
     description: |
       Loosen up security for development purposes. This allows the ATC to be
