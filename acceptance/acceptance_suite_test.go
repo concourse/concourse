@@ -1,9 +1,7 @@
 package acceptance_test
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -57,11 +55,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	postgresRunner.CreateTestDB()
 
-	if _, err := exec.LookPath("phantomjs"); err == nil {
-		fmt.Fprintln(GinkgoWriter, "WARNING: using phantomjs, which is flaky in CI, but is more convenient during development")
-		agoutiDriver = agouti.PhantomJS()
-	} else {
+	if os.Getenv("FORCE_SELENIUM") == "true" {
 		agoutiDriver = agouti.Selenium(agouti.Browser("firefox"))
+	} else {
+		agoutiDriver = agouti.ChromeDriver()
 	}
 
 	Expect(agoutiDriver.Start()).To(Succeed())
