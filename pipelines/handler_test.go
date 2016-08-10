@@ -81,12 +81,32 @@ var _ = Describe("Handler", func() {
 				Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-pipeline"))
 			})
 
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			Context("when pipeline exists", func() {
+				BeforeEach(func() {
+					teamDB.GetPipelineByNameReturns(db.SavedPipeline{Pipeline: db.Pipeline{Name: "some-pipeline"}}, true, nil)
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("calls the scoped handler", func() {
+					Expect(delegate.IsCalled).To(BeTrue())
+				})
 			})
 
-			It("calls the scoped handler", func() {
-				Expect(delegate.IsCalled).To(BeTrue())
+			Context("when pipeline does not exist", func() {
+				BeforeEach(func() {
+					teamDB.GetPipelineByNameReturns(db.SavedPipeline{}, false, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+
+				It("does not call the scoped handler", func() {
+					Expect(delegate.IsCalled).To(BeFalse())
+				})
 			})
 		})
 
@@ -111,27 +131,47 @@ var _ = Describe("Handler", func() {
 					Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-pipeline"))
 				})
 
-				Context("and pipeline is public", func() {
+				Context("when pipeline exists", func() {
 					BeforeEach(func() {
-						pipelineDB.IsPublicReturns(true)
+						teamDB.GetPipelineByNameReturns(db.SavedPipeline{Pipeline: db.Pipeline{Name: "some-pipeline"}}, true, nil)
 					})
 
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Context("and pipeline is public", func() {
+						BeforeEach(func() {
+							pipelineDB.IsPublicReturns(true)
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("calls the scoped handler", func() {
+							Expect(delegate.IsCalled).To(BeTrue())
+						})
 					})
 
-					It("calls the scoped handler", func() {
-						Expect(delegate.IsCalled).To(BeTrue())
+					Context("and pipeline is not public", func() {
+						BeforeEach(func() {
+							pipelineDB.IsPublicReturns(false)
+						})
+
+						It("returns 403 forbidden", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+						})
+
+						It("does not call the scoped handler", func() {
+							Expect(delegate.IsCalled).To(BeFalse())
+						})
 					})
 				})
 
-				Context("and pipeline is not public", func() {
+				Context("when pipeline does not exist", func() {
 					BeforeEach(func() {
-						pipelineDB.IsPublicReturns(false)
+						teamDB.GetPipelineByNameReturns(db.SavedPipeline{}, false, nil)
 					})
 
-					It("returns 403 forbidden", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 
 					It("does not call the scoped handler", func() {
@@ -164,6 +204,7 @@ var _ = Describe("Handler", func() {
 		BeforeEach(func() {
 			authValidator.IsAuthenticatedReturns(false)
 			userContextReader.GetTeamReturns("", 0, false, false)
+			teamDB.GetPipelineByNameReturns(db.SavedPipeline{Pipeline: db.Pipeline{Name: "some-pipeline"}}, true, nil)
 		})
 
 		Context("and allows public", func() {

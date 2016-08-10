@@ -77,9 +77,47 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		It("returns the pipeline with the case insensitive name that belongs to the team", func() {
-			actualPipeline, err := teamDB.GetPipelineByName("pipeline-name")
+			actualPipeline, found, err := teamDB.GetPipelineByName("pipeline-name")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(actualPipeline).To(Equal(savedPipeline))
+		})
+	})
+
+	Describe("GetPublicPipelineByName", func() {
+		Context("when pipeline does not exist", func() {
+			It("returns false", func() {
+				_, found, err := teamDB.GetPublicPipelineByName("non-existent-pipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when pipeline is private", func() {
+			It("returns false", func() {
+				_, _, err := teamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, found, err := teamDB.GetPublicPipelineByName("pipeline-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when pipeline is public", func() {
+			It("returns the pipeline", func() {
+				savedPipeline, _, err := teamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = pipelineDBFactory.Build(savedPipeline).Reveal()
+				Expect(err).NotTo(HaveOccurred())
+				savedPipeline.Public = true // update expectation
+
+				pipeline, found, err := teamDB.GetPublicPipelineByName("pipeline-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(pipeline).To(Equal(savedPipeline))
+			})
 		})
 	})
 
@@ -114,7 +152,35 @@ var _ = Describe("TeamDB", func() {
 		})
 	})
 
-	Describe("GetAllPipelines", func() {
+	Describe("GetPublicPipelines", func() {
+		var privatePipeline db.SavedPipeline
+		var publicPipeline db.SavedPipeline
+
+		BeforeEach(func() {
+			var err error
+			privatePipeline, _, err = teamDB.SaveConfig("private-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			publicPipeline, _, err = teamDB.SaveConfig("public-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipelineDB := pipelineDBFactory.Build(publicPipeline)
+			err = pipelineDB.Reveal()
+			Expect(err).NotTo(HaveOccurred())
+
+			// update expectations
+			publicPipeline.Public = true
+		})
+
+		It("returns only the pipelines that belong to team (case insensitive)", func() {
+			savedPipelines, err := teamDB.GetPublicPipelines()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(savedPipelines).To(HaveLen(1))
+			Expect(savedPipelines).To(ConsistOf(publicPipeline))
+		})
+	})
+
+	Describe("GetPrivateAndAllPublicPipelines", func() {
 		var savedPipeline1 db.SavedPipeline
 		var savedPipeline2 db.SavedPipeline
 		var savedPipeline3 db.SavedPipeline
@@ -171,7 +237,7 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		It("returns the pipelines of the team first, followed by public pipelines from other teams (case insensitive)", func() {
-			savedPipelines, err := teamDB.GetAllPipelines()
+			savedPipelines, err := teamDB.GetPrivateAndAllPublicPipelines()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedPipelines).To(Equal([]db.SavedPipeline{
 				savedPipeline2,
@@ -181,7 +247,7 @@ var _ = Describe("TeamDB", func() {
 				otherSavedPublicPipeline1,
 			}))
 
-			savedPipelines, err = otherTeamDB.GetAllPipelines()
+			savedPipelines, err = otherTeamDB.GetPrivateAndAllPublicPipelines()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedPipelines).To(Equal([]db.SavedPipeline{
 				otherSavedPublicPipeline3,

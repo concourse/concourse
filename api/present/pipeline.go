@@ -26,3 +26,13 @@ func Pipeline(savedPipeline db.SavedPipeline, config atc.Config) atc.Pipeline {
 		Groups:   config.Groups,
 	}
 }
+
+func Pipelines(savedPipelines []db.SavedPipeline) []atc.Pipeline {
+	pipelines := make([]atc.Pipeline, len(savedPipelines))
+
+	for i := range savedPipelines {
+		pipelines[i] = Pipeline(savedPipelines[i], savedPipelines[i].Config)
+	}
+
+	return pipelines
+}

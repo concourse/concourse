@@ -59,8 +59,9 @@ var _ = Describe("Resource Pagination", func() {
 		}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		savedPipeline, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
+		savedPipeline, found, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)

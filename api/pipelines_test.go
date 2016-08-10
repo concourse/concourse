@@ -26,57 +26,71 @@ var _ = Describe("Pipelines API", func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		pipelineDBFactory.BuildReturns(pipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
-		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, nil)
+		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, true, nil)
+
+		privatePipeline := db.SavedPipeline{
+			ID:       1,
+			Paused:   false,
+			Public:   false,
+			TeamName: "main",
+			Pipeline: db.Pipeline{
+				Name: "private-pipeline",
+				Config: atc.Config{
+					Groups: atc.GroupConfigs{
+						{
+							Name:      "group1",
+							Jobs:      []string{"job1", "job2"},
+							Resources: []string{"resource1", "resource2"},
+						},
+					},
+				},
+			},
+		}
+		publicPipeline := db.SavedPipeline{
+			ID:       2,
+			Paused:   true,
+			Public:   true,
+			TeamName: "main",
+			Pipeline: db.Pipeline{
+				Name: "public-pipeline",
+				Config: atc.Config{
+					Groups: atc.GroupConfigs{
+						{
+							Name:      "group2",
+							Jobs:      []string{"job3", "job4"},
+							Resources: []string{"resource3", "resource4"},
+						},
+					},
+				},
+			},
+		}
+		anotherPublicPipeline := db.SavedPipeline{
+			ID:       3,
+			Paused:   true,
+			Public:   true,
+			TeamName: "another",
+			Pipeline: db.Pipeline{
+				Name: "another-pipeline",
+			},
+		}
+
+		teamDB.GetPipelinesReturns([]db.SavedPipeline{
+			privatePipeline,
+			publicPipeline,
+		}, nil)
+
+		teamDB.GetPrivateAndAllPublicPipelinesReturns([]db.SavedPipeline{
+			privatePipeline,
+			publicPipeline,
+			anotherPublicPipeline,
+		}, nil)
+		teamDB.GetPublicPipelinesReturns([]db.SavedPipeline{publicPipeline}, nil)
+
+		pipelinesDB.GetAllPublicPipelinesReturns([]db.SavedPipeline{publicPipeline, anotherPublicPipeline}, nil)
 	})
 
 	Describe("GET /api/v1/pipelines", func() {
 		var response *http.Response
-
-		BeforeEach(func() {
-			publicPipeline := db.SavedPipeline{
-				ID:       2,
-				Paused:   true,
-				Public:   true,
-				TeamName: "main",
-				Pipeline: db.Pipeline{
-					Name: "another-pipeline",
-					Config: atc.Config{
-						Groups: atc.GroupConfigs{
-							{
-								Name:      "group2",
-								Jobs:      []string{"job3", "job4"},
-								Resources: []string{"resource3", "resource4"},
-							},
-						},
-					},
-				},
-			}
-			privatePipeline := db.SavedPipeline{
-				ID:       1,
-				Paused:   false,
-				Public:   false,
-				TeamName: "main",
-				Pipeline: db.Pipeline{
-					Name: "a-pipeline",
-					Config: atc.Config{
-						Groups: atc.GroupConfigs{
-							{
-								Name:      "group1",
-								Jobs:      []string{"job1", "job2"},
-								Resources: []string{"resource1", "resource2"},
-							},
-						},
-					},
-				},
-			}
-
-			teamDB.GetAllPipelinesReturns([]db.SavedPipeline{
-				privatePipeline,
-				publicPipeline,
-			}, nil)
-
-			pipelinesDB.GetAllPublicPipelinesReturns([]db.SavedPipeline{publicPipeline}, nil)
-		})
 
 		JustBeforeEach(func() {
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/pipelines", nil)
@@ -119,8 +133,8 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(body).To(MatchJSON(`[
 				{
-					"name": "another-pipeline",
-					"url": "/teams/main/pipelines/another-pipeline",
+					"name": "public-pipeline",
+					"url": "/teams/main/pipelines/public-pipeline",
 					"paused": true,
 					"public": true,
 					"team_name": "main",
@@ -131,6 +145,13 @@ var _ = Describe("Pipelines API", func() {
 							"resources": ["resource3", "resource4"]
 						}
 					]
+				},
+				{
+					"name": "another-pipeline",
+					"url": "/teams/another/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "another"
 				}]`))
 			})
 		})
@@ -147,8 +168,8 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(body).To(MatchJSON(`[
 				{
-					"name": "a-pipeline",
-					"url": "/teams/main/pipelines/a-pipeline",
+					"name": "private-pipeline",
+					"url": "/teams/main/pipelines/private-pipeline",
 					"paused": false,
 					"public": false,
 					"team_name": "main",
@@ -159,9 +180,10 @@ var _ = Describe("Pipelines API", func() {
 							"resources": ["resource1", "resource2"]
 						}
 					]
-				},{
-					"name": "another-pipeline",
-					"url": "/teams/main/pipelines/another-pipeline",
+				},
+				{
+					"name": "public-pipeline",
+					"url": "/teams/main/pipelines/public-pipeline",
 					"paused": true,
 					"public": true,
 					"team_name": "main",
@@ -172,12 +194,19 @@ var _ = Describe("Pipelines API", func() {
 							"resources": ["resource3", "resource4"]
 						}
 					]
+				},
+				{
+					"name": "another-pipeline",
+					"url": "/teams/another/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "another"
 				}]`))
 			})
 
 			Context("when the call to get active pipelines fails", func() {
 				BeforeEach(func() {
-					teamDB.GetAllPipelinesReturns(nil, errors.New("disaster"))
+					teamDB.GetPrivateAndAllPublicPipelinesReturns(nil, errors.New("disaster"))
 				})
 
 				It("returns 500 internal server error", func() {
@@ -190,49 +219,8 @@ var _ = Describe("Pipelines API", func() {
 	Describe("GET /api/v1/teams/:team_name/pipelines", func() {
 		var response *http.Response
 
-		BeforeEach(func() {
-			teamDB.GetPipelinesReturns([]db.SavedPipeline{
-				{
-					ID:       1,
-					Paused:   false,
-					Public:   false,
-					TeamName: "a-team",
-					Pipeline: db.Pipeline{
-						Name: "a-pipeline",
-						Config: atc.Config{
-							Groups: atc.GroupConfigs{
-								{
-									Name:      "group1",
-									Jobs:      []string{"job1", "job2"},
-									Resources: []string{"resource1", "resource2"},
-								},
-							},
-						},
-					},
-				},
-				{
-					ID:       2,
-					Paused:   true,
-					Public:   true,
-					TeamName: "a-team",
-					Pipeline: db.Pipeline{
-						Name: "another-pipeline",
-						Config: atc.Config{
-							Groups: atc.GroupConfigs{
-								{
-									Name:      "group2",
-									Jobs:      []string{"job3", "job4"},
-									Resources: []string{"resource3", "resource4"},
-								},
-							},
-						},
-					},
-				},
-			}, nil)
-		})
-
 		JustBeforeEach(func() {
-			req, err := http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/pipelines", nil)
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/teams/main/pipelines", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
@@ -241,116 +229,50 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when not authorized", func() {
+		Context("when authenticated as requested team", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", 0, false, false)
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("main", 0, false, true)
 			})
 
-			It("returns only public pipelines", func() {
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns application/json", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
+
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("main"))
+			})
+
+			It("returns all team's pipelines", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`[
-				{
-					"name": "another-pipeline",
-					"url": "/teams/a-team/pipelines/another-pipeline",
-					"paused": true,
-					"public": true,
-					"team_name": "a-team",
-					"groups": [
-						{
-							"name": "group2",
-							"jobs": ["job3", "job4"],
-							"resources": ["resource3", "resource4"]
-						}
-					]
-				}]`))
-			})
-		})
-
-		Context("when authenticated", func() {
-			Context("and authorized", func() {
-				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 1, true, true)
-				})
-
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns application/json", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-				})
-
-				It("constructs teamDB with provided team name", func() {
-					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
-				})
-
-				It("returns all pipelines", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(body).To(MatchJSON(`[
-	      {
-	        "name": "a-pipeline",
-	        "url": "/teams/a-team/pipelines/a-pipeline",
-					"paused": false,
-					"public": false,
-					"team_name": "a-team",
-					"groups": [
-						{
-							"name": "group1",
-							"jobs": ["job1", "job2"],
-							"resources": ["resource1", "resource2"]
-						}
-					]
-	      },{
-	        "name": "another-pipeline",
-	        "url": "/teams/a-team/pipelines/another-pipeline",
-					"paused": true,
-					"public": true,
-					"team_name": "a-team",
-					"groups": [
-						{
-							"name": "group2",
-							"jobs": ["job3", "job4"],
-							"resources": ["resource3", "resource4"]
-						}
-					]
-	      }]`))
-				})
-
-				Context("when the call to get active pipelines fails", func() {
-					BeforeEach(func() {
-						teamDB.GetPipelinesReturns(nil, errors.New("disaster"))
-					})
-
-					It("returns 500 internal server error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
-			})
-
-			Context("but not authorized", func() {
-				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("another-team", 1, true, true)
-				})
-
-				It("returns only public pipelines", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(body).To(MatchJSON(`[
 					{
-						"name": "another-pipeline",
-						"url": "/teams/a-team/pipelines/another-pipeline",
+						"name": "private-pipeline",
+						"url": "/teams/main/pipelines/private-pipeline",
+						"paused": false,
+						"public": false,
+						"team_name": "main",
+						"groups": [
+							{
+								"name": "group1",
+								"jobs": ["job1", "job2"],
+								"resources": ["resource1", "resource2"]
+							}
+						]
+					},
+					{
+						"name": "public-pipeline",
+						"url": "/teams/main/pipelines/public-pipeline",
 						"paused": true,
 						"public": true,
-						"team_name": "a-team",
+						"team_name": "main",
 						"groups": [
 							{
 								"name": "group2",
@@ -359,7 +281,72 @@ var _ = Describe("Pipelines API", func() {
 							}
 						]
 					}]`))
+			})
+
+			Context("when the call to get active pipelines fails", func() {
+				BeforeEach(func() {
+					teamDB.GetPipelinesReturns(nil, errors.New("disaster"))
 				})
+
+				It("returns 500 internal server error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when authenticated as another team", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("another-team", 0, false, true)
+			})
+
+			It("returns only team's public pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+					{
+						"name": "public-pipeline",
+						"url": "/teams/main/pipelines/public-pipeline",
+						"paused": true,
+						"public": true,
+						"team_name": "main",
+						"groups": [
+							{
+								"name": "group2",
+								"jobs": ["job3", "job4"],
+								"resources": ["resource3", "resource4"]
+							}
+						]
+					}]`))
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("", 0, false, false)
+			})
+
+			It("returns only team's public pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+					{
+						"name": "public-pipeline",
+						"url": "/teams/main/pipelines/public-pipeline",
+						"paused": true,
+						"public": true,
+						"team_name": "main",
+						"groups": [
+							{
+								"name": "group2",
+								"jobs": ["job3", "job4"],
+								"resources": ["resource3", "resource4"]
+							}
+						]
+					}]`))
 			})
 		})
 	})
@@ -392,7 +379,7 @@ var _ = Describe("Pipelines API", func() {
 					},
 				},
 			}
-			teamDB.GetPipelineByNameReturns(savedPipeline, nil)
+			teamDB.GetPipelineByNameReturns(savedPipeline, true, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -405,32 +392,25 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("looks up the pipeline in the db via the url param", func() {
-			Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
-			Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-specific-pipeline"))
-		})
-
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", 0, false, false)
 			})
 
-			Context("and the pipeline is private", func() {
+			Context("and the pipeline is private or does not exist", func() {
 				BeforeEach(func() {
-					savedPipeline.Public = false
-					teamDB.GetPipelineByNameReturns(savedPipeline, nil)
+					teamDB.GetPublicPipelineByNameReturns(db.SavedPipeline{}, false, nil)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
-					savedPipeline.Public = true
-					teamDB.GetPipelineByNameReturns(savedPipeline, nil)
+					teamDB.GetPublicPipelineByNameReturns(savedPipeline, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -439,90 +419,138 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when authenticated", func() {
-			Context("when authorized", func() {
+		Context("when authenticated as requested team", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 1, true, true)
+			})
+
+			It("looks up the pipeline in the db via the url param", func() {
+				Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
+				Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-specific-pipeline"))
+			})
+
+			It("returns 200 ok", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns application/json", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
+
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+			})
+
+			It("returns a pipeline JSON", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`
+					{
+						"name": "some-specific-pipeline",
+						"url": "/teams/a-team/pipelines/some-specific-pipeline",
+						"paused": false,
+						"public": true,
+						"team_name": "a-team",
+						"groups": [
+							{
+								"name": "group1",
+								"jobs": ["job1", "job2"],
+								"resources": ["resource1", "resource2"]
+							},
+							{
+								"name": "group2",
+								"jobs": ["job3", "job4"],
+								"resources": ["resource3", "resource4"]
+							}
+						]
+					}`))
+			})
+
+			Context("when pipeline is not found", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 1, true, true)
+					teamDB.GetPipelineByNameReturns(db.SavedPipeline{}, false, nil)
 				})
 
-				It("returns 200 ok", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns application/json", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-				})
-
-				It("constructs teamDB with provided team name", func() {
-					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
-				})
-
-				It("returns a pipeline JSON", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(body).To(MatchJSON(`
-				{
-					"name": "some-specific-pipeline",
-					"url": "/teams/a-team/pipelines/some-specific-pipeline",
-					"paused": false,
-					"public": true,
-					"team_name": "a-team",
-					"groups": [
-						{
-							"name": "group1",
-							"jobs": ["job1", "job2"],
-							"resources": ["resource1", "resource2"]
-						},
-						{
-							"name": "group2",
-							"jobs": ["job3", "job4"],
-							"resources": ["resource3", "resource4"]
-						}
-					]
-				}`))
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
-			Context("when not authorized", func() {
+			Context("when the call to get pipeline fails", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("another-team", 1, true, true)
+					teamDB.GetPipelineByNameReturns(db.SavedPipeline{}, true, errors.New("disaster"))
 				})
 
-				Context("and the pipeline is private", func() {
-					BeforeEach(func() {
-						savedPipeline.Public = false
-						teamDB.GetPipelineByNameReturns(savedPipeline, nil)
-					})
-
-					It("returns 403 forbidden", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-					})
-				})
-
-				Context("and the pipeline is public", func() {
-					BeforeEach(func() {
-						savedPipeline.Public = true
-						teamDB.GetPipelineByNameReturns(savedPipeline, nil)
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
+				It("returns 500 error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
 
-		Context("when the call to get pipeline fails", func() {
+		Context("when authenticated as another team", func() {
 			BeforeEach(func() {
-				teamDB.GetPipelineByNameReturns(db.SavedPipeline{}, errors.New("disaster"))
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("another-team", 1, true, true)
 			})
 
-			It("returns 500 error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			Context("and the pipeline is private or not found", func() {
+				BeforeEach(func() {
+					teamDB.GetPublicPipelineByNameReturns(db.SavedPipeline{}, false, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("and the pipeline is public", func() {
+				BeforeEach(func() {
+					teamDB.GetPublicPipelineByNameReturns(savedPipeline, true, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when the call to get pipeline fails", func() {
+				BeforeEach(func() {
+					teamDB.GetPublicPipelineByNameReturns(db.SavedPipeline{}, false, errors.New("disaster"))
+				})
+
+				It("returns 500 error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when not authenticated as another team", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("", 1, true, false)
+			})
+
+			Context("and the pipeline is private or not found", func() {
+				BeforeEach(func() {
+					pipelinesDB.GetPublicPipelineByNameReturns(db.SavedPipeline{}, false, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("and the pipeline is public", func() {
+				BeforeEach(func() {
+					teamDB.GetPublicPipelineByNameReturns(savedPipeline, true, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
 			})
 		})
 	})

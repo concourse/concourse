@@ -1212,16 +1212,16 @@ var _ = Describe("ExecEngine", func() {
 						}
 					}`,
 				)
-				fakeTeamDB.GetPipelineByNameStub = func(pipelineName string) (db.SavedPipeline, error) {
+				fakeTeamDB.GetPipelineByNameStub = func(pipelineName string) (db.SavedPipeline, bool, error) {
 					switch pipelineName {
 					case "some-pipeline-1":
-						return db.SavedPipeline{ID: 1}, nil
+						return db.SavedPipeline{ID: 1}, true, nil
 					case "some-pipeline-2":
-						return db.SavedPipeline{ID: 2}, nil
+						return db.SavedPipeline{ID: 2}, true, nil
 					default:
 						errMessage := fmt.Sprintf("unknown pipeline name `%s`", pipelineName)
 						Fail(errMessage)
-						return db.SavedPipeline{}, errors.New(errMessage)
+						return db.SavedPipeline{}, false, errors.New(errMessage)
 					}
 				}
 			})
@@ -1278,7 +1278,7 @@ var _ = Describe("ExecEngine", func() {
 					}`,
 					)
 					disaster = errors.New("oh dear")
-					fakeTeamDB.GetPipelineByNameReturns(db.SavedPipeline{}, disaster)
+					fakeTeamDB.GetPipelineByNameReturns(db.SavedPipeline{}, false, disaster)
 				})
 
 				It("returns an error", func() {

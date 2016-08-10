@@ -12,8 +12,11 @@ import (
 
 type TeamDB interface {
 	GetPipelines() ([]SavedPipeline, error)
-	GetPipelineByName(pipelineName string) (SavedPipeline, error)
-	GetAllPipelines() ([]SavedPipeline, error)
+	GetPublicPipelines() ([]SavedPipeline, error)
+	GetPrivateAndAllPublicPipelines() ([]SavedPipeline, error)
+
+	GetPipelineByName(pipelineName string) (SavedPipeline, bool, error)
+	GetPublicPipelineByName(pipelineName string) (SavedPipeline, bool, error)
 
 	OrderPipelines([]string) error
 
@@ -43,7 +46,7 @@ type teamDB struct {
 	buildFactory *buildFactory
 }
 
-func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
+func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, bool, error) {
 	row := db.conn.QueryRow(`
 		SELECT `+pipelineColumns+`
 		FROM pipelines p
@@ -53,8 +56,40 @@ func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) 
 			SELECT id FROM teams WHERE LOWER(name) = LOWER($2)
 		)
 	`, pipelineName, db.teamName)
+	pipeline, err := scanPipeline(row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return SavedPipeline{}, false, nil
+		}
 
-	return scanPipeline(row)
+		return SavedPipeline{}, false, err
+	}
+
+	return pipeline, true, nil
+}
+
+func (db *teamDB) GetPublicPipelineByName(pipelineName string) (SavedPipeline, bool, error) {
+	row := db.conn.QueryRow(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines p
+		INNER JOIN teams t ON t.id = p.team_id
+		WHERE p.name = $1
+		AND p.team_id = (
+			SELECT id FROM teams WHERE LOWER(name) = LOWER($2)
+		)
+		AND p.public = true
+	`, pipelineName, db.teamName)
+
+	pipeline, err := scanPipeline(row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return SavedPipeline{}, false, nil
+		}
+
+		return SavedPipeline{}, false, err
+	}
+
+	return pipeline, true, nil
 }
 
 func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
@@ -76,7 +111,27 @@ func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 	return scanPipelines(rows)
 }
 
-func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
+func (db *teamDB) GetPublicPipelines() ([]SavedPipeline, error) {
+	rows, err := db.conn.Query(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines p
+		INNER JOIN teams t ON t.id = p.team_id
+		WHERE team_id = (
+			SELECT id FROM teams WHERE LOWER(name) = LOWER($1)
+		)
+		AND public = true
+		ORDER BY ordering
+	`, db.teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	return scanPipelines(rows)
+}
+
+func (db *teamDB) GetPrivateAndAllPublicPipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT `+pipelineColumns+`
 		FROM pipelines p

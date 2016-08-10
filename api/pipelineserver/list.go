@@ -4,33 +4,33 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/db"
 )
 
 func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-pipelines")
-	teamName := r.FormValue(":team_name")
+	requestTeamName := r.FormValue(":team_name")
 
-	pipelines, err := s.getPipelines(teamName, false)
+	authedTeamName, _, _, teamIsInAuth := auth.GetTeam(r)
+	teamDB := s.teamDBFactory.GetTeamDB(authedTeamName)
+
+	var pipelines []db.SavedPipeline
+	var err error
+	if teamIsInAuth && requestTeamName == authedTeamName {
+		pipelines, err = teamDB.GetPipelines()
+	} else {
+		pipelines, err = teamDB.GetPublicPipelines()
+	}
+
 	if err != nil {
 		logger.Error("failed-to-get-all-active-pipelines", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	authorized, _ := auth.IsAuthorized(r)
-	if !authorized {
-		publicPipelines := []atc.Pipeline{}
-		for _, pipeline := range pipelines {
-			if pipeline.Public {
-				publicPipelines = append(publicPipelines, pipeline)
-			}
-		}
-		pipelines = publicPipelines
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(pipelines)
+	json.NewEncoder(w).Encode(present.Pipelines(pipelines))
 }

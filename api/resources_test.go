@@ -26,7 +26,7 @@ var _ = Describe("Resources API", func() {
 		fakePipelineDB = new(dbfakes.FakePipelineDB)
 		pipelineDBFactory.BuildReturns(fakePipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
-		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, nil)
+		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, true, nil)
 	})
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources", func() {

@@ -55,7 +55,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("forces a redirect to /teams/main/login", func() {
-			request, err := http.NewRequest("GET", atcCommand.URL("/teams/main/pipelines/main"), nil)
+			request, err := http.NewRequest("POST", atcCommand.URL("/teams/main/pipelines/main/jobs/some-job/builds"), nil)
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -97,20 +97,6 @@ var _ = Describe("Auth", func() {
 			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when requesting protected endpoint", func() {
-			BeforeEach(func() {
-				request, err := http.NewRequest("GET", atcCommand.URL("/teams/main/pipelines/main"), nil)
-				Expect(err).NotTo(HaveOccurred())
-				response, responseErr = http.DefaultClient.Do(request)
-			})
-
-			It("forces a redirect to /teams/main/login", func() {
-				Expect(responseErr).NotTo(HaveOccurred())
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-				Expect(response.Request.URL.Path).To(Equal("/teams/main/login"))
-			})
 		})
 
 		Context("when requesting a team-specific route as not authenticated", func() {

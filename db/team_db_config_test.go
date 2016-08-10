@@ -168,8 +168,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err := teamDB.GetPipelineByName(pipelineName)
+			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(pipeline.TeamID).To(Equal(team.ID))
 		})
 
@@ -177,8 +178,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err := teamDB.GetPipelineByName(pipelineName)
+			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			Expect(pipeline.Paused).To(BeTrue())
 		})
@@ -187,8 +189,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err := teamDB.GetPipelineByName(pipelineName)
+			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			Expect(pipeline.Paused).To(BeFalse())
 		})
@@ -197,8 +200,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err := teamDB.GetPipelineByName(pipelineName)
+			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			Expect(pipeline.Paused).To(BeTrue())
 		})
@@ -290,8 +294,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err := teamDB.GetPipelineByName(pipelineName)
+			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(pipeline.Paused).To(BeTrue())
 
 			_, _, configVersion, err := teamDB.GetConfig(pipelineName)
@@ -300,8 +305,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, err = teamDB.SaveConfig(pipelineName, config, configVersion, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err = teamDB.GetPipelineByName(pipelineName)
+			pipeline, found, err = teamDB.GetPipelineByName(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(pipeline.Paused).To(BeFalse())
 		})
 
@@ -309,8 +315,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err := teamDB.GetPipelineByName(pipelineName)
+			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(pipeline.Paused).To(BeFalse())
 
 			_, _, configVersion, err := teamDB.GetConfig(pipelineName)
@@ -319,8 +326,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, err = teamDB.SaveConfig(pipelineName, config, configVersion, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err = teamDB.GetPipelineByName(pipelineName)
+			pipeline, found, err = teamDB.GetPipelineByName(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(pipeline.Paused).To(BeTrue())
 		})
 
@@ -329,8 +337,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipeline, err := teamDB.GetPipelineByName(pipelineName)
+				pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(pipeline.Paused).To(BeTrue())
 
 				_, _, configVersion, err := teamDB.GetConfig(pipelineName)
@@ -339,8 +348,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				_, _, err = teamDB.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipeline, err = teamDB.GetPipelineByName(pipelineName)
+				pipeline, found, err = teamDB.GetPipelineByName(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(pipeline.Paused).To(BeTrue())
 			})
 
@@ -348,8 +358,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipeline, err := teamDB.GetPipelineByName(pipelineName)
+				pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(pipeline.Paused).To(BeFalse())
 
 				_, _, configVersion, err := teamDB.GetConfig(pipelineName)
@@ -358,8 +369,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				_, _, err = teamDB.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipeline, err = teamDB.GetPipelineByName(pipelineName)
+				pipeline, found, err = teamDB.GetPipelineByName(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(pipeline.Paused).To(BeFalse())
 			})
 		})
@@ -374,14 +386,16 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		_, _, err = teamDB.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipeline, err := teamDB.GetPipelineByName(pipelineName)
+		pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
 		Expect(pipeline.Name).To(Equal(pipelineName))
 		Expect(pipeline.Config).To(Equal(config))
 		Expect(pipeline.ID).NotTo(Equal(0))
 
-		otherPipeline, err := teamDB.GetPipelineByName(otherPipelineName)
+		otherPipeline, found, err := teamDB.GetPipelineByName(otherPipelineName)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
 		Expect(otherPipeline.Name).To(Equal(otherPipelineName))
 		Expect(otherPipeline.Config).To(Equal(otherConfig))
 		Expect(otherPipeline.ID).NotTo(Equal(0))
@@ -727,11 +741,13 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, err = teamDB.SaveConfig("steve", otherConfig, teamPipelineVersion, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			pausedPipeline, err := teamDB.GetPipelineByName("steve")
+			pausedPipeline, found, err := teamDB.GetPipelineByName("steve")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			unpausedPipeline, err := otherTeamDB.GetPipelineByName("steve")
+			unpausedPipeline, found, err := otherTeamDB.GetPipelineByName("steve")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			Expect(pausedPipeline.Paused).To(BeTrue())
 			Expect(unpausedPipeline.Paused).To(BeFalse())

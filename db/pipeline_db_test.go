@@ -223,8 +223,9 @@ var _ = Describe("PipelineDB", func() {
 			pipelineThatWillBeDeleted, _, err := teamDB.SaveConfig("a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			fetchedPipeline, err := teamDB.GetPipelineByName("a-pipeline-that-will-be-deleted")
+			fetchedPipeline, found, err := teamDB.GetPipelineByName("a-pipeline-that-will-be-deleted")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			fetchedPipelineDB := pipelineDBFactory.Build(fetchedPipeline)
 
@@ -420,8 +421,9 @@ var _ = Describe("PipelineDB", func() {
 			err := pipelineDB.UpdateName("some-other-weird-name")
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err := teamDB.GetPipelineByName("some-other-weird-name")
+			pipeline, found, err := teamDB.GetPipelineByName("some-other-weird-name")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			Expect(pipeline.Name).To(Equal("some-other-weird-name"))
 		})
@@ -444,7 +446,7 @@ var _ = Describe("PipelineDB", func() {
 				err := pipelineDB.UpdateName("some-other-weird-name")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = team2DB.GetPipelineByName("a-pipeline-name")
+				_, _, err = team2DB.GetPipelineByName("a-pipeline-name")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})

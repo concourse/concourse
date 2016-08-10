@@ -85,8 +85,9 @@ var _ = Describe("Job Builds", func() {
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				savedPipeline, err := teamDB.GetPipelineByName(pipelineName)
+				savedPipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				pipelineDB = pipelineDBFactory.Build(savedPipeline)
 			})

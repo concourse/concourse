@@ -130,10 +130,14 @@ func (engine *execEngine) convertPipelineNameToID(teamName string) func(plan *at
 				)
 			}
 
-			savedPipeline, err := teamDB.GetPipelineByName(*pipelineName)
+			savedPipeline, found, err := teamDB.GetPipelineByName(*pipelineName)
 
 			if err != nil {
 				return err
+			}
+
+			if !found {
+				return errors.New("pipeline not found: " + *pipelineName)
 			}
 
 			*pipelineID = savedPipeline.ID

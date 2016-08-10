@@ -1,7 +1,6 @@
 package pipelines
 
 import (
-	"database/sql"
 	"net/http"
 
 	"github.com/concourse/atc/auth"
@@ -40,15 +39,17 @@ func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pip
 		pipelineName := r.FormValue(":pipeline_name")
 		teamName := r.FormValue(":team_name")
 		teamDB := pdbh.teamDBFactory.GetTeamDB(teamName)
-		savedPipeline, err := teamDB.GetPipelineByName(pipelineName)
+		savedPipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				w.WriteHeader(http.StatusNotFound)
-			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
 		pipelineDB := pdbh.pipelineDBFactory.Build(savedPipeline)
 
 		if !authorized && !pipelineDB.IsPublic() {

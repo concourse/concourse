@@ -53,8 +53,9 @@ var _ = Describe("Resource Pausing", func() {
 		}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		savedPipeline, err := teamDB.GetPipelineByName("some-pipeline")
+		savedPipeline, found, err := teamDB.GetPipelineByName("some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
