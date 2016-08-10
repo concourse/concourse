@@ -481,10 +481,13 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 
 	writer.dangling = nil
 
-	writer.build.SaveEvent(event.Log{
+	err := writer.build.SaveEvent(event.Log{
 		Payload: string(text),
 		Origin:  writer.origin,
 	})
+	if err != nil {
+		return 0, err
+	}
 
 	return len(data), nil
 }

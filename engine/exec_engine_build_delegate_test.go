@@ -483,7 +483,19 @@ var _ = Describe("BuildDelegate", func() {
 					},
 					Payload: "some stdout",
 				}))
+			})
 
+			Context("when the DB errors", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeBuild.SaveEventReturns(disaster)
+				})
+
+				It("returns the error", func() {
+					_, err := writer.Write([]byte("some stderr"))
+					Expect(err).To(Equal(disaster))
+				})
 			})
 		})
 
@@ -508,7 +520,19 @@ var _ = Describe("BuildDelegate", func() {
 					},
 					Payload: "some stderr",
 				}))
+			})
 
+			Context("when the DB errors", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeBuild.SaveEventReturns(disaster)
+				})
+
+				It("returns the error", func() {
+					_, err := writer.Write([]byte("some stderr"))
+					Expect(err).To(Equal(disaster))
+				})
 			})
 		})
 	})
