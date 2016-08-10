@@ -19,7 +19,7 @@ import String
 
 import Autoscroll exposing (ScrollBehavior (..))
 import BuildOutput
-import Concourse.Build exposing (Build, BuildDuration)
+import Concourse.Build exposing (Build, BuildDuration, JobBuildIdentifier)
 import Concourse.BuildPrep exposing (BuildPrep, BuildPrepStatus)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Paginated)
@@ -29,6 +29,19 @@ import Redirect
 import Scroll
 
 import Concourse.Job exposing (Job)
+
+type Page
+  = BuildPage Int
+  | JobBuildPage JobBuildIdentifier
+
+initJobBuildPage : String -> String -> String -> String -> Page
+initJobBuildPage teamName pipelineName jobName buildName =
+  JobBuildPage
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , jobName = jobName
+    , buildName = buildName
+    }
 
 type BuildOrOutput
   = HasOutput BuildOutput.Model
@@ -67,34 +80,41 @@ type StepRenderingState
 
 type Action
   = Noop
-  | FetchBuild Int
+  | SwitchToBuild Build
   | AbortBuild Int
   | BuildFetched Int (Result Http.Error Build)
   | BuildPrepFetched Int (Result Http.Error BuildPrep)
   | BuildHistoryFetched (Result Http.Error (Paginated Build))
   | BuildJobDetailsFetched (Result Http.Error Job)
-  | BuildOutputAction BuildOutput.Action
+  | BuildOutputAction Int BuildOutput.Action
   | ScrollBuilds (Float, Float)
   | ClockTick Time.Time
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
 
-type alias Flags =
-  { buildId : Int
-  }
+init : Result String Page -> (Model, Cmd Action)
+init pageResult =
+  ( { now = 0
+    , job = Nothing
+    , history = []
+    , currentBuild = Nothing
+    , browsingIndex = 0
+    }
+  , case pageResult of
+      Err err -> Debug.log err Cmd.none
+      Ok (BuildPage buildId) -> fetchBuild 0 0 buildId
+      Ok (JobBuildPage jbi) -> fetchJobBuild 0 jbi
+  )
 
-init : Flags -> (Model, Cmd Action)
-init flags =
-  let
-    model =
-      { now = 0
-      , job = Nothing
-      , history = []
-      , currentBuild = Nothing
-      , browsingIndex = 0
-      }
-  in
-    update (FetchBuild flags.buildId) model
+urlUpdate : Result String Page -> Model -> (Model, Cmd Action)
+urlUpdate pageResult model =
+  let newBrowsingIndex = model.browsingIndex + 1 in
+    ( { model | browsingIndex = newBrowsingIndex }
+    , case pageResult of
+        Err err -> Debug.log err Cmd.none
+        Ok (BuildPage buildId) -> fetchBuild 0 newBrowsingIndex buildId
+        Ok (JobBuildPage jbi) -> fetchJobBuild newBrowsingIndex jbi
+    )
 
 update : Action -> Model -> (Model, Cmd Action)
 update action model =
@@ -102,11 +122,8 @@ update action model =
     Noop ->
       (model, Cmd.none)
 
-    FetchBuild buildId ->
-      let newBrowsingIndex = model.browsingIndex + 1 in
-        ( { model | browsingIndex = newBrowsingIndex }
-        , fetchBuild 0 newBrowsingIndex buildId
-        )
+    SwitchToBuild build ->
+      (model, Navigation.newUrl <| Concourse.Build.url build)
 
     BuildFetched browsingIndex (Ok build) ->
       handleBuildFetched browsingIndex build model
@@ -135,21 +152,23 @@ update action model =
       Debug.log ("failed to fetch build preparation: " ++ toString err) <|
         (model, Cmd.none)
 
-    BuildOutputAction action ->
-      case (model.currentBuild, Maybe.map .buildOrOutput model.currentBuild) of
-        (Just currentBuild, Just (HasOutput output)) ->
-          let
-            (newOutput, cmd) = BuildOutput.update action output
-          in
-            ( { model
-              | currentBuild =
-                  Just { currentBuild | buildOrOutput = HasOutput newOutput }
-              }
-            , Cmd.map BuildOutputAction cmd
-            )
+    BuildOutputAction browsingIndex action ->
+      if browsingIndex == model.browsingIndex then
+        case (model.currentBuild, Maybe.map .buildOrOutput model.currentBuild) of
+          (Just currentBuild, Just (HasOutput output)) ->
+            let
+              (newOutput, cmd) = BuildOutput.update action output
+            in
+              ( { model
+                | currentBuild =
+                    Just { currentBuild | buildOrOutput = HasOutput newOutput }
+                }
+              , Cmd.map (BuildOutputAction browsingIndex) cmd
+              )
 
-        _ ->
-          Debug.crash "impossible (received action for missing BuildOutput)"
+          _ ->
+            Debug.crash "impossible (received action for missing BuildOutput)"
+      else (model, Cmd.none)
 
     BuildHistoryFetched (Err err) ->
       Debug.log ("failed to fetch build history: " ++ toString err) <|
@@ -197,9 +216,6 @@ handleBuildFetched browsingIndex build model =
           _ ->
             Cmd.none
 
-      updateBuildURL =
-        Navigation.newUrl <| Concourse.Build.url build
-
       (newModel, cmd) =
         if build.status == Concourse.BuildStatus.Pending then
           (withBuild, pollUntilStarted browsingIndex build.id)
@@ -217,7 +233,7 @@ handleBuildFetched browsingIndex build model =
                 )
         else (withBuild, Cmd.none)
     in
-      (newModel, Cmd.batch [cmd, updateBuildURL, fetchJobAndHistory])
+      (newModel, Cmd.batch [cmd, fetchJobAndHistory])
   else
     (model, Cmd.none)
 
@@ -239,7 +255,7 @@ initBuildOutput build model =
             (\info -> { info | buildOrOutput = HasOutput output })
             model.currentBuild
       }
-    , Cmd.map BuildOutputAction outputCmd
+    , Cmd.map (BuildOutputAction model.browsingIndex) outputCmd
     )
 
 handleBuildJobFetched : Job -> Model -> (Model, Cmd Action)
@@ -293,7 +309,9 @@ view model =
         [ viewBuildHeader (currentBuildBuild currentBuild) model
         , Html.div [class "scrollable-body"] <|
           [ viewBuildPrep currentBuild.prep
-          , Html.Lazy.lazy viewBuildOutput <| currentBuildOutput currentBuild
+          , Html.Lazy.lazy
+              (viewBuildOutput model.browsingIndex) <|
+              currentBuildOutput currentBuild
           ] ++
             let
               build = currentBuildBuild currentBuild
@@ -355,11 +373,11 @@ mmDDYY : Date -> String
 mmDDYY d =
   Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
 
-viewBuildOutput : Maybe BuildOutput.Model -> Html Action
-viewBuildOutput output =
+viewBuildOutput : Int -> Maybe BuildOutput.Model -> Html Action
+viewBuildOutput browsingIndex output =
   case output of
     Just o ->
-      Html.App.map BuildOutputAction (BuildOutput.view o)
+      Html.App.map (BuildOutputAction browsingIndex) (BuildOutput.view o)
 
     Nothing ->
       Html.div [] []
@@ -502,7 +520,7 @@ viewHistoryItem currentBuild build =
         , ("current", build.name == currentBuild.name)
         ]
     ]
-    [Html.a [overrideClick (FetchBuild build.id),  href (Concourse.Build.url build)] [Html.text (build.name)]]
+    [Html.a [overrideClick (SwitchToBuild build),  href (Concourse.Build.url build)] [Html.text (build.name)]]
 
 overrideClick : Action -> Html.Attribute Action
 overrideClick action =
@@ -531,6 +549,11 @@ fetchBuild : Time -> Int -> Int -> Cmd Action
 fetchBuild delay browsingIndex buildId =
   Cmd.map (BuildFetched browsingIndex) << Task.perform Err Ok <|
     Process.sleep delay `Task.andThen` (always <| Concourse.Build.fetch buildId)
+
+fetchJobBuild : Int -> JobBuildIdentifier -> Cmd Action
+fetchJobBuild browsingIndex jbi =
+  Cmd.map (BuildFetched browsingIndex) << Task.perform Err Ok <|
+    Concourse.Build.fetchJobBuild jbi
 
 fetchBuildJobDetails : Concourse.Build.BuildJob -> Cmd Action
 fetchBuildJobDetails buildJob =

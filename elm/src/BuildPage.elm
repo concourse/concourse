@@ -1,20 +1,24 @@
 port module BuildPage exposing (..)
 
-import Html.App
+import Navigation
+import String
 import Time
+import UrlParser exposing ((</>), s)
 
 import Autoscroll
-import Build
+import Build exposing (Page (..))
 import Scroll
 
-main : Program Build.Flags
+main : Program Never
 main =
-  Html.App.programWithFlags
+  Navigation.program
+    (Navigation.makeParser pathnameParser)
     { init =
         Autoscroll.init
           Build.getScrollBehavior <<
             Build.init
     , update = Autoscroll.update Build.update
+    , urlUpdate = Autoscroll.urlUpdate Build.urlUpdate
     , view = Autoscroll.view Build.view
     , subscriptions =
         let
@@ -35,6 +39,30 @@ main =
                 Nothing ->
                   Sub.none
                 Just buildOutput ->
-                  Sub.map (Autoscroll.SubAction << Build.BuildOutputAction) buildOutput.events
+                  Sub.map
+                    ( Autoscroll.SubAction <<
+                        Build.BuildOutputAction model.subModel.browsingIndex
+                    )
+                    buildOutput.events
             ]
     }
+
+pathnameParser : Navigation.Location -> Result String Page
+pathnameParser location =
+  UrlParser.parse
+    identity
+    pageParser
+    (String.dropLeft 1 location.pathname)
+
+pageParser : UrlParser.Parser (Page -> a) a
+pageParser =
+  UrlParser.oneOf
+    [ UrlParser.format BuildPage (s "builds" </> UrlParser.int)
+    , UrlParser.format
+        Build.initJobBuildPage
+        ( s "teams" </> UrlParser.string </>
+          s "pipelines" </> UrlParser.string </>
+          s "jobs" </> UrlParser.string </>
+          s "builds" </> UrlParser.string
+        )
+    ]

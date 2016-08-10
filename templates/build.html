@@ -10,6 +10,6 @@
 concourse.pipelineName = "{{.PipelineName}}"; // used for detecting if the pipeline is paused
 
 var node = document.getElementById("elm-app");
-Elm.BuildPage.embed(node, {buildId: {{.Build.ID}}});
+Elm.BuildPage.embed(node);
 </script>
 {{end}}
