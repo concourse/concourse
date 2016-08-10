@@ -56,6 +56,7 @@ type alias Model =
   , job : Maybe Job
   , history : List Build
   , currentBuild : Maybe CurrentBuild
+  , browsingIndex : Int
   }
 
 type StepRenderingState
@@ -68,8 +69,8 @@ type Action
   = Noop
   | FetchBuild Int
   | AbortBuild Int
-  | BuildFetched (Result Http.Error Build)
-  | BuildPrepFetched (Result Http.Error BuildPrep)
+  | BuildFetched Int (Result Http.Error Build)
+  | BuildPrepFetched Int (Result Http.Error BuildPrep)
   | BuildHistoryFetched (Result Http.Error (Paginated Build))
   | BuildJobDetailsFetched (Result Http.Error Job)
   | BuildOutputAction BuildOutput.Action
@@ -90,6 +91,7 @@ init flags =
       , job = Nothing
       , history = []
       , currentBuild = Nothing
+      , browsingIndex = 0
       }
   in
     update (FetchBuild flags.buildId) model
@@ -101,12 +103,15 @@ update action model =
       (model, Cmd.none)
 
     FetchBuild buildId ->
-      (model, fetchBuild 0 buildId)
+      let newBrowsingIndex = model.browsingIndex + 1 in
+        ( { model | browsingIndex = newBrowsingIndex }
+        , fetchBuild 0 newBrowsingIndex buildId
+        )
 
-    BuildFetched (Ok build) ->
-      handleBuildFetched build model
+    BuildFetched browsingIndex (Ok build) ->
+      handleBuildFetched browsingIndex build model
 
-    BuildFetched (Err err) ->
+    BuildFetched _ (Err err) ->
       Debug.log ("failed to fetch build: " ++ toString err) <|
         (model, Cmd.none)
 
@@ -123,10 +128,10 @@ update action model =
       Debug.log ("failed to abort build: " ++ toString err) <|
         (model, Cmd.none)
 
-    BuildPrepFetched (Ok buildPrep) ->
-      handleBuildPrepFetched buildPrep model
+    BuildPrepFetched browsingIndex (Ok buildPrep) ->
+      handleBuildPrepFetched browsingIndex buildPrep model
 
-    BuildPrepFetched (Err err) ->
+    BuildPrepFetched _ (Err err) ->
       Debug.log ("failed to fetch build preparation: " ++ toString err) <|
         (model, Cmd.none)
 
@@ -137,7 +142,9 @@ update action model =
             (newOutput, cmd) = BuildOutput.update action output
           in
             ( { model
-              | currentBuild = Just { currentBuild | buildOrOutput = HasOutput newOutput } }
+              | currentBuild =
+                  Just { currentBuild | buildOrOutput = HasOutput newOutput }
+              }
             , Cmd.map BuildOutputAction cmd
             )
 
@@ -170,51 +177,55 @@ update action model =
     ClockTick now ->
       ({ model | now = now }, Cmd.none)
 
-handleBuildFetched : Build -> Model -> (Model, Cmd Action)
-handleBuildFetched build model =
-  let
-    currentBuild =
-      case model.currentBuild of
-        Nothing -> { buildOrOutput = NoOutput build, prep = Nothing }
-        Just currentBuild -> { currentBuild | buildOrOutput = NoOutput build }
+handleBuildFetched : Int -> Build -> Model -> (Model, Cmd Action)
+handleBuildFetched browsingIndex build model =
+  if browsingIndex == model.browsingIndex then
+    let
+      currentBuild =
+        case model.currentBuild of
+          Nothing -> { buildOrOutput = NoOutput build, prep = Nothing }
+          Just currentBuild -> { currentBuild | buildOrOutput = NoOutput build }
 
-    withBuild =
-      { model | currentBuild = Just currentBuild }
+      withBuild =
+        { model | currentBuild = Just currentBuild }
 
-    fetchJobAndHistory =
-      case (model.job, build.job) of
-        (Nothing, Just buildJob) ->
-          Cmd.batch [fetchBuildJobDetails buildJob, fetchBuildHistory buildJob Nothing]
+      fetchJobAndHistory =
+        case (model.job, build.job) of
+          (Nothing, Just buildJob) ->
+            Cmd.batch [fetchBuildJobDetails buildJob, fetchBuildHistory buildJob Nothing]
 
-        _ ->
-          Cmd.none
+          _ ->
+            Cmd.none
 
-    updateBuildURL =
-      Navigation.newUrl <| Concourse.Build.url build
+      updateBuildURL =
+        Navigation.newUrl <| Concourse.Build.url build
 
-    (newModel, cmd) =
-      if build.status == Concourse.BuildStatus.Pending then
-        (withBuild, pollUntilStarted build.id)
-      else if build.reapTime == Nothing then
-        case model.currentBuild `Maybe.andThen` .prep of
-          Nothing ->
-            initBuildOutput build withBuild
-          Just _ ->
-            let
-              (newModel, cmd) = initBuildOutput build withBuild
-            in
-              ( newModel
-              , Cmd.batch [cmd, fetchBuildPrep Time.second build.id]
-              )
-      else (withBuild, Cmd.none)
-  in
-    (newModel, Cmd.batch [cmd, updateBuildURL, fetchJobAndHistory])
+      (newModel, cmd) =
+        if build.status == Concourse.BuildStatus.Pending then
+          (withBuild, pollUntilStarted browsingIndex build.id)
+        else if build.reapTime == Nothing then
+          case model.currentBuild `Maybe.andThen` .prep of
+            Nothing ->
+              initBuildOutput build withBuild
+            Just _ ->
+              let
+                (newModel, cmd) = initBuildOutput build withBuild
+              in
+                ( newModel
+                , Cmd.batch
+                    [cmd, fetchBuildPrep Time.second browsingIndex build.id]
+                )
+        else (withBuild, Cmd.none)
+    in
+      (newModel, Cmd.batch [cmd, updateBuildURL, fetchJobAndHistory])
+  else
+    (model, Cmd.none)
 
-pollUntilStarted : Int -> Cmd Action
-pollUntilStarted buildId =
+pollUntilStarted : Int -> Int -> Cmd Action
+pollUntilStarted browsingIndex buildId =
   Cmd.batch
-    [ (fetchBuild Time.second buildId)
-    , (fetchBuildPrep Time.second buildId)
+    [ (fetchBuild Time.second browsingIndex buildId)
+    , (fetchBuildPrep Time.second browsingIndex buildId)
     ]
 
 initBuildOutput : Build -> Model -> (Model, Cmd Action)
@@ -255,9 +266,19 @@ handleHistoryFetched history model =
       (Just url, Nothing) ->
         Debug.crash "impossible"
 
-handleBuildPrepFetched : BuildPrep -> Model -> (Model, Cmd Action)
-handleBuildPrepFetched buildPrep model =
-  ({ model | currentBuild = Maybe.map (\info -> { info | prep = Just buildPrep }) model.currentBuild }, Cmd.none)
+handleBuildPrepFetched : Int -> BuildPrep -> Model -> (Model, Cmd Action)
+handleBuildPrepFetched browsingIndex buildPrep model =
+  if browsingIndex == model.browsingIndex then
+    ( { model
+      | currentBuild =
+          Maybe.map
+            (\info -> { info | prep = Just buildPrep })
+            model.currentBuild
+      }
+    , Cmd.none
+    )
+  else
+    (model, Cmd.none)
 
 abortBuild : Int -> Cmd Action
 abortBuild buildId =
@@ -506,9 +527,9 @@ decodeScrollEvent =
     ("deltaX" := Json.Decode.float)
     ("deltaY" := Json.Decode.float)
 
-fetchBuild : Time -> Int -> Cmd Action
-fetchBuild delay buildId =
-  Cmd.map BuildFetched << Task.perform Err Ok <|
+fetchBuild : Time -> Int -> Int -> Cmd Action
+fetchBuild delay browsingIndex buildId =
+  Cmd.map (BuildFetched browsingIndex) << Task.perform Err Ok <|
     Process.sleep delay `Task.andThen` (always <| Concourse.Build.fetch buildId)
 
 fetchBuildJobDetails : Concourse.Build.BuildJob -> Cmd Action
@@ -516,9 +537,9 @@ fetchBuildJobDetails buildJob =
   Cmd.map BuildJobDetailsFetched << Task.perform Err Ok <|
     Concourse.Job.fetchJob buildJob
 
-fetchBuildPrep : Time -> Int -> Cmd Action
-fetchBuildPrep delay buildId =
-  Cmd.map BuildPrepFetched << Task.perform Err Ok <|
+fetchBuildPrep : Time -> Int -> Int -> Cmd Action
+fetchBuildPrep delay browsingIndex buildId =
+  Cmd.map (BuildPrepFetched browsingIndex) << Task.perform Err Ok <|
     Process.sleep delay `Task.andThen` (always <| Concourse.BuildPrep.fetch buildId)
 
 fetchBuildHistory : Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Cmd Action
