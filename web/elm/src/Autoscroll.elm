@@ -57,6 +57,12 @@ update subUpdate action model =
       , Cmd.none
       )
 
+urlUpdate : (pageResult -> subModel -> (subModel, Cmd subAction)) -> pageResult -> Model subModel -> (Model subModel, Cmd (Action subAction))
+urlUpdate subUrlUpdate pageResult model =
+  let
+    (newSubModel, subAction) = subUrlUpdate pageResult model.subModel
+  in
+    ({ model | subModel = newSubModel }, Cmd.map SubAction subAction )
 
 view : (subModel -> Html subAction) -> Model subModel -> Html (Action subAction)
 view subView model =

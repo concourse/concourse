@@ -32,9 +32,23 @@ type alias BuildDuration =
   , finishedAt : Maybe Date
   }
 
+type alias JobBuildIdentifier =
+  { teamName: String
+  , pipelineName: String
+  , jobName: String
+  , buildName: String
+  }
+
 fetch : BuildId -> Task Http.Error Build
 fetch buildId =
   Http.get decode ("/api/v1/builds/" ++ toString buildId)
+
+fetchJobBuild : JobBuildIdentifier -> Task Http.Error Build
+fetchJobBuild jbi =
+  let
+    url = "/api/v1/teams/" ++ jbi.teamName ++ "/pipelines/" ++ jbi.pipelineName ++ "/jobs/" ++ jbi.jobName ++ "/builds/" ++ jbi.buildName
+  in
+    Http.get decode url
 
 abort : BuildId -> Task Http.Error ()
 abort buildId =
