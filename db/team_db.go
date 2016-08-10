@@ -11,7 +11,6 @@ import (
 //go:generate counterfeiter . TeamDB
 
 type TeamDB interface {
-	HasTeamName() bool
 	GetPipelines() ([]SavedPipeline, error)
 	GetPipelineByName(pipelineName string) (SavedPipeline, error)
 	GetAllPipelines() ([]SavedPipeline, error)
@@ -42,10 +41,6 @@ type teamDB struct {
 
 	conn         Conn
 	buildFactory *buildFactory
-}
-
-func (db *teamDB) HasTeamName() bool {
-	return db.teamName != ""
 }
 
 func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {

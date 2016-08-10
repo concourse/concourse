@@ -9,12 +9,6 @@ import (
 )
 
 type FakeTeamDB struct {
-	HasTeamNameStub        func() bool
-	hasTeamNameMutex       sync.RWMutex
-	hasTeamNameArgsForCall []struct{}
-	hasTeamNameReturns     struct {
-		result1 bool
-	}
 	GetPipelinesStub        func() ([]db.SavedPipeline, error)
 	getPipelinesMutex       sync.RWMutex
 	getPipelinesArgsForCall []struct{}
@@ -168,31 +162,6 @@ type FakeTeamDB struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeTeamDB) HasTeamName() bool {
-	fake.hasTeamNameMutex.Lock()
-	fake.hasTeamNameArgsForCall = append(fake.hasTeamNameArgsForCall, struct{}{})
-	fake.recordInvocation("HasTeamName", []interface{}{})
-	fake.hasTeamNameMutex.Unlock()
-	if fake.HasTeamNameStub != nil {
-		return fake.HasTeamNameStub()
-	} else {
-		return fake.hasTeamNameReturns.result1
-	}
-}
-
-func (fake *FakeTeamDB) HasTeamNameCallCount() int {
-	fake.hasTeamNameMutex.RLock()
-	defer fake.hasTeamNameMutex.RUnlock()
-	return len(fake.hasTeamNameArgsForCall)
-}
-
-func (fake *FakeTeamDB) HasTeamNameReturns(result1 bool) {
-	fake.HasTeamNameStub = nil
-	fake.hasTeamNameReturns = struct {
-		result1 bool
-	}{result1}
 }
 
 func (fake *FakeTeamDB) GetPipelines() ([]db.SavedPipeline, error) {
@@ -743,8 +712,6 @@ func (fake *FakeTeamDB) GetVolumesReturns(result1 []db.SavedVolume, result2 erro
 func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.hasTeamNameMutex.RLock()
-	defer fake.hasTeamNameMutex.RUnlock()
 	fake.getPipelinesMutex.RLock()
 	defer fake.getPipelinesMutex.RUnlock()
 	fake.getPipelineByNameMutex.RLock()

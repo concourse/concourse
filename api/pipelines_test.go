@@ -70,7 +70,6 @@ var _ = Describe("Pipelines API", func() {
 				},
 			}
 
-			teamDB.HasTeamNameReturns(true)
 			teamDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				privatePipeline,
 				publicPipeline,
@@ -110,7 +109,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				teamDB.HasTeamNameReturns(false)
+				userContextReader.GetTeamReturns("", 5, false, false)
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
@@ -138,6 +137,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
+				userContextReader.GetTeamReturns("main", 5, false, true)
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
@@ -174,15 +174,15 @@ var _ = Describe("Pipelines API", func() {
 					]
 				}]`))
 			})
-		})
 
-		Context("when the call to get active pipelines fails", func() {
-			BeforeEach(func() {
-				teamDB.GetAllPipelinesReturns(nil, errors.New("disaster"))
-			})
+			Context("when the call to get active pipelines fails", func() {
+				BeforeEach(func() {
+					teamDB.GetAllPipelinesReturns(nil, errors.New("disaster"))
+				})
 
-			It("returns 500 internal server error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				It("returns 500 internal server error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 	})
