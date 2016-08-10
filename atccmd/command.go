@@ -84,6 +84,8 @@ type ATCCommand struct {
 		Noop            bool `short:"n" long:"noop"              description:"Don't actually do any automatic scheduling or checking."`
 	} `group:"Developer Options"`
 
+	AllowSelfSignedCertificates bool `long:"allow-self-signed-certificates" description:"Allow self signed certificates."`
+
 	Worker struct {
 		GardenURL       URLFlag           `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
 		BaggageclaimURL URLFlag           `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
@@ -258,7 +260,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	webHandler, err := webhandler.NewHandler(
 		logger,
 		wrappa.NewWebMetricsWrappa(logger),
-		web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode),
+		web.NewClientFactory(cmd.internalURL(), cmd.AllowSelfSignedCertificates || cmd.Developer.DevelopmentMode),
 	)
 	if err != nil {
 		return nil, err
