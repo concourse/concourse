@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
 
@@ -15,10 +16,11 @@ import (
 
 var _ = Describe("APIAuthWrappa", func() {
 	var (
-		fakeAuthValidator     auth.Validator
-		fakeTokenValidator    auth.Validator
-		fakeUserContextReader *authfakes.FakeUserContextReader
-		publiclyViewable      bool
+		fakeAuthValidator                     auth.Validator
+		fakeTokenValidator                    auth.Validator
+		fakeUserContextReader                 *authfakes.FakeUserContextReader
+		fakeCheckPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory
+		publiclyViewable                      bool
 	)
 
 	BeforeEach(func() {
@@ -26,6 +28,12 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeAuthValidator = new(authfakes.FakeValidator)
 		fakeTokenValidator = new(authfakes.FakeValidator)
 		fakeUserContextReader = new(authfakes.FakeUserContextReader)
+		pipelineDBFactory := new(dbfakes.FakePipelineDBFactory)
+		teamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeCheckPipelineAccessHandlerFactory = auth.NewCheckPipelineAccessHandlerFactory(
+			pipelineDBFactory,
+			teamDBFactory,
+		)
 	})
 
 	unauthenticated := func(handler http.Handler) http.Handler {
@@ -69,6 +77,17 @@ var _ = Describe("APIAuthWrappa", func() {
 		)
 	}
 
+	openForPublicPipelineOrAuthorized := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			fakeCheckPipelineAccessHandlerFactory.HandlerFor(
+				handler,
+				auth.UnauthorizedRejector{},
+			),
+			fakeTokenValidator,
+			fakeUserContextReader,
+		)
+	}
+
 	Describe("Wrap", func() {
 		var (
 			inputHandlers    rata.Handlers
@@ -86,29 +105,31 @@ var _ = Describe("APIAuthWrappa", func() {
 
 			expectedHandlers = rata.Handlers{
 				// unauthenticated / delegating to handler
-				atc.GetInfo:                       unauthenticated(inputHandlers[atc.GetInfo]),
-				atc.DownloadCLI:                   unauthenticated(inputHandlers[atc.DownloadCLI]),
-				atc.ListAuthMethods:               unauthenticated(inputHandlers[atc.ListAuthMethods]),
-				atc.BuildEvents:                   unauthenticated(inputHandlers[atc.BuildEvents]),
-				atc.GetBuild:                      unauthenticated(inputHandlers[atc.GetBuild]),
-				atc.BuildResources:                unauthenticated(inputHandlers[atc.BuildResources]),
-				atc.GetBuildPlan:                  unauthenticated(inputHandlers[atc.GetBuildPlan]),
-				atc.GetBuildPreparation:           unauthenticated(inputHandlers[atc.GetBuildPreparation]),
-				atc.ListAllPipelines:              unauthenticated(inputHandlers[atc.ListAllPipelines]),
-				atc.ListBuilds:                    unauthenticated(inputHandlers[atc.ListBuilds]),
-				atc.GetJobBuild:                   unauthenticated(inputHandlers[atc.GetJobBuild]),
-				atc.JobBadge:                      unauthenticated(inputHandlers[atc.JobBadge]),
-				atc.ListJobs:                      unauthenticated(inputHandlers[atc.ListJobs]),
-				atc.GetJob:                        unauthenticated(inputHandlers[atc.GetJob]),
-				atc.ListJobBuilds:                 unauthenticated(inputHandlers[atc.ListJobBuilds]),
-				atc.GetResource:                   unauthenticated(inputHandlers[atc.GetResource]),
-				atc.ListBuildsWithVersionAsInput:  unauthenticated(inputHandlers[atc.ListBuildsWithVersionAsInput]),
-				atc.ListBuildsWithVersionAsOutput: unauthenticated(inputHandlers[atc.ListBuildsWithVersionAsOutput]),
-				atc.ListResources:                 unauthenticated(inputHandlers[atc.ListResources]),
-				atc.ListResourceVersions:          unauthenticated(inputHandlers[atc.ListResourceVersions]),
-				atc.ListPipelines:                 unauthenticated(inputHandlers[atc.ListPipelines]),
-				atc.GetPipeline:                   unauthenticated(inputHandlers[atc.GetPipeline]),
-				atc.ListTeams:                     unauthenticated(inputHandlers[atc.ListTeams]),
+				atc.GetInfo:             unauthenticated(inputHandlers[atc.GetInfo]),
+				atc.DownloadCLI:         unauthenticated(inputHandlers[atc.DownloadCLI]),
+				atc.ListAuthMethods:     unauthenticated(inputHandlers[atc.ListAuthMethods]),
+				atc.BuildEvents:         unauthenticated(inputHandlers[atc.BuildEvents]),
+				atc.GetBuild:            unauthenticated(inputHandlers[atc.GetBuild]),
+				atc.BuildResources:      unauthenticated(inputHandlers[atc.BuildResources]),
+				atc.GetBuildPlan:        unauthenticated(inputHandlers[atc.GetBuildPlan]),
+				atc.GetBuildPreparation: unauthenticated(inputHandlers[atc.GetBuildPreparation]),
+				atc.ListAllPipelines:    unauthenticated(inputHandlers[atc.ListAllPipelines]),
+				atc.ListBuilds:          unauthenticated(inputHandlers[atc.ListBuilds]),
+				atc.ListPipelines:       unauthenticated(inputHandlers[atc.ListPipelines]),
+				atc.GetPipeline:         unauthenticated(inputHandlers[atc.GetPipeline]),
+				atc.ListTeams:           unauthenticated(inputHandlers[atc.ListTeams]),
+
+				// belongs to public pipeline or authorized
+				atc.GetJobBuild:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetJobBuild]),
+				atc.JobBadge:                      openForPublicPipelineOrAuthorized(inputHandlers[atc.JobBadge]),
+				atc.ListJobs:                      openForPublicPipelineOrAuthorized(inputHandlers[atc.ListJobs]),
+				atc.GetJob:                        openForPublicPipelineOrAuthorized(inputHandlers[atc.GetJob]),
+				atc.ListJobBuilds:                 openForPublicPipelineOrAuthorized(inputHandlers[atc.ListJobBuilds]),
+				atc.GetResource:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetResource]),
+				atc.ListBuildsWithVersionAsInput:  openForPublicPipelineOrAuthorized(inputHandlers[atc.ListBuildsWithVersionAsInput]),
+				atc.ListBuildsWithVersionAsOutput: openForPublicPipelineOrAuthorized(inputHandlers[atc.ListBuildsWithVersionAsOutput]),
+				atc.ListResources:                 openForPublicPipelineOrAuthorized(inputHandlers[atc.ListResources]),
+				atc.ListResourceVersions:          openForPublicPipelineOrAuthorized(inputHandlers[atc.ListResourceVersions]),
 
 				// authenticated
 				atc.AbortBuild:      authenticated(inputHandlers[atc.AbortBuild]),
@@ -155,6 +176,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				fakeAuthValidator,
 				fakeTokenValidator,
 				fakeUserContextReader,
+				fakeCheckPipelineAccessHandlerFactory,
 			).Wrap(inputHandlers)
 		})
 

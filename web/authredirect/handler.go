@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/atc/web"
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/gorilla/context"
 	"github.com/tedsuo/rata"
 )
 
@@ -44,9 +43,8 @@ func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (handler Handler) redirectTargetFor(r *http.Request) (string, bool) {
 	if r.Method == "GET" {
-		reqURL := context.Get(r, requestURLKey)
-		reqURLStr, ok := reqURL.(string)
-		return reqURLStr, ok
+		reqURL, ok := r.Context().Value(requestURLKey).(string)
+		return reqURL, ok
 	}
 
 	referer := r.Referer()

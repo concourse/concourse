@@ -24,34 +24,28 @@ func NewHandlerFactory(
 	}
 }
 
-func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB) http.Handler, allowPublic bool) http.HandlerFunc {
+func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		pipelineName := r.FormValue(":pipeline_name")
-		requestTeamName := r.FormValue(":team_name")
+		pipelineDB, ok := r.Context().Value(auth.PipelineDBKey).(db.PipelineDB)
+		if !ok {
+			pipelineName := r.FormValue(":pipeline_name")
+			requestTeamName := r.FormValue(":team_name")
 
-		teamDB := pdbh.teamDBFactory.GetTeamDB(requestTeamName)
-		savedPipeline, found, err := teamDB.GetPipelineByName(pipelineName)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			teamDB := pdbh.teamDBFactory.GetTeamDB(requestTeamName)
+			savedPipeline, found, err := teamDB.GetPipelineByName(pipelineName)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if !found {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			pipelineDB = pdbh.pipelineDBFactory.Build(savedPipeline)
 		}
 
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		pipelineDB := pdbh.pipelineDBFactory.Build(savedPipeline)
-		if auth.IsAuthorized(r) || (allowPublic && pipelineDB.IsPublic()) {
-			pipelineScopedHandler(pipelineDB).ServeHTTP(w, r)
-			return
-		}
-
-		if auth.IsAuthenticated(r) {
-			pdbh.rejector.Forbidden(w, r)
-			return
-		}
-
-		pdbh.rejector.Unauthorized(w, r)
+		pipelineScopedHandler(pipelineDB).ServeHTTP(w, r)
 	}
 }

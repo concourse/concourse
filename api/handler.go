@@ -134,39 +134,39 @@ func NewHandler(
 		atc.GetBuildPreparation: buildHandlerFactory.HandlerFor(buildServer.GetBuildPreparation, false),
 		atc.BuildEvents:         buildHandlerFactory.HandlerFor(buildServer.BuildEvents, false),
 
-		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs, true),
-		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob, true),
-		atc.ListJobBuilds:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds, true),   // authorized or public
-		atc.ListJobInputs:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs, false),  // authorized
-		atc.GetJobBuild:    pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild, true),     // authorized or public
-		atc.CreateJobBuild: pipelineHandlerFactory.HandlerFor(jobServer.CreateJobBuild, false), // authorized
-		atc.PauseJob:       pipelineHandlerFactory.HandlerFor(jobServer.PauseJob, false),       // authorized
-		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob, false),     // authorized
-		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge, true),        // authorized or public
+		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
+		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
+		atc.ListJobBuilds:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
+		atc.ListJobInputs:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs),
+		atc.GetJobBuild:    pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
+		atc.CreateJobBuild: pipelineHandlerFactory.HandlerFor(jobServer.CreateJobBuild),
+		atc.PauseJob:       pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
+		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
+		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
 
 		atc.ListAllPipelines: http.HandlerFunc(pipelineServer.ListAllPipelines),
 		atc.ListPipelines:    http.HandlerFunc(pipelineServer.ListPipelines),
 		atc.GetPipeline:      http.HandlerFunc(pipelineServer.GetPipeline),
-		atc.DeletePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline, false), // authorized
+		atc.DeletePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline),
 		atc.OrderPipelines:   http.HandlerFunc(pipelineServer.OrderPipelines),
-		atc.PausePipeline:    pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline, false),   // authorized
-		atc.UnpausePipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline, false), // authorized
-		atc.RevealPipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.RevealPipeline, false),  // authorized
-		atc.ConcealPipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.ConcealPipeline, false), // authorized
-		atc.GetVersionsDB:    pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB, false),   // authorized
-		atc.RenamePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline, false),  // authorized
+		atc.PausePipeline:    pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline),
+		atc.UnpausePipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline),
+		atc.RevealPipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.RevealPipeline),
+		atc.ConcealPipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.ConcealPipeline),
+		atc.GetVersionsDB:    pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
+		atc.RenamePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
 
-		atc.ListResources:   pipelineHandlerFactory.HandlerFor(resourceServer.ListResources, true),    // authorized or public
-		atc.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource, true),      // authorized or public
-		atc.PauseResource:   pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource, false),   // authorized
-		atc.UnpauseResource: pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource, false), // authorized
-		atc.CheckResource:   pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource, false),   // authorized
+		atc.ListResources:   pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
+		atc.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
+		atc.PauseResource:   pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource),
+		atc.UnpauseResource: pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource),
+		atc.CheckResource:   pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource),
 
-		atc.ListResourceVersions:          pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions, true),          // authorized or public
-		atc.EnableResourceVersion:         pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion, false),        // authorized
-		atc.DisableResourceVersion:        pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion, false),       // authorized
-		atc.ListBuildsWithVersionAsInput:  pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput, true),  // authorized or public
-		atc.ListBuildsWithVersionAsOutput: pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput, true), // authorized or public
+		atc.ListResourceVersions:          pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
+		atc.EnableResourceVersion:         pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),
+		atc.DisableResourceVersion:        pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion),
+		atc.ListBuildsWithVersionAsInput:  pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput),
+		atc.ListBuildsWithVersionAsOutput: pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput),
 
 		atc.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
 		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),

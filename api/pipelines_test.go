@@ -535,7 +535,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("and the pipeline is private or not found", func() {
 				BeforeEach(func() {
-					pipelinesDB.GetPublicPipelineByNameReturns(db.SavedPipeline{}, false, nil)
+					teamDB.GetPublicPipelineByNameReturns(db.SavedPipeline{}, false, nil)
 				})
 
 				It("returns 404", func() {

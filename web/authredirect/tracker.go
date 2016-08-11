@@ -1,9 +1,8 @@
 package authredirect
 
 import (
+	"context"
 	"net/http"
-
-	"github.com/gorilla/context"
 )
 
 var requestURLKey = "original-request-url"
@@ -13,6 +12,6 @@ type Tracker struct {
 }
 
 func (tracker Tracker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	context.Set(r, requestURLKey, r.URL.String())
-	tracker.Handler.ServeHTTP(w, r)
+	ctx := context.WithValue(context.Background(), requestURLKey, r.URL.String())
+	tracker.Handler.ServeHTTP(w, r.WithContext(ctx))
 }

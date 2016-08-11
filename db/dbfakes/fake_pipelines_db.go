@@ -15,16 +15,6 @@ type FakePipelinesDB struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}
-	GetPublicPipelineByNameStub        func(pipelineName string) (db.SavedPipeline, bool, error)
-	getPublicPipelineByNameMutex       sync.RWMutex
-	getPublicPipelineByNameArgsForCall []struct {
-		pipelineName string
-	}
-	getPublicPipelineByNameReturns struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -55,48 +45,11 @@ func (fake *FakePipelinesDB) GetAllPublicPipelinesReturns(result1 []db.SavedPipe
 	}{result1, result2}
 }
 
-func (fake *FakePipelinesDB) GetPublicPipelineByName(pipelineName string) (db.SavedPipeline, bool, error) {
-	fake.getPublicPipelineByNameMutex.Lock()
-	fake.getPublicPipelineByNameArgsForCall = append(fake.getPublicPipelineByNameArgsForCall, struct {
-		pipelineName string
-	}{pipelineName})
-	fake.recordInvocation("GetPublicPipelineByName", []interface{}{pipelineName})
-	fake.getPublicPipelineByNameMutex.Unlock()
-	if fake.GetPublicPipelineByNameStub != nil {
-		return fake.GetPublicPipelineByNameStub(pipelineName)
-	} else {
-		return fake.getPublicPipelineByNameReturns.result1, fake.getPublicPipelineByNameReturns.result2, fake.getPublicPipelineByNameReturns.result3
-	}
-}
-
-func (fake *FakePipelinesDB) GetPublicPipelineByNameCallCount() int {
-	fake.getPublicPipelineByNameMutex.RLock()
-	defer fake.getPublicPipelineByNameMutex.RUnlock()
-	return len(fake.getPublicPipelineByNameArgsForCall)
-}
-
-func (fake *FakePipelinesDB) GetPublicPipelineByNameArgsForCall(i int) string {
-	fake.getPublicPipelineByNameMutex.RLock()
-	defer fake.getPublicPipelineByNameMutex.RUnlock()
-	return fake.getPublicPipelineByNameArgsForCall[i].pipelineName
-}
-
-func (fake *FakePipelinesDB) GetPublicPipelineByNameReturns(result1 db.SavedPipeline, result2 bool, result3 error) {
-	fake.GetPublicPipelineByNameStub = nil
-	fake.getPublicPipelineByNameReturns = struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakePipelinesDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getAllPublicPipelinesMutex.RLock()
 	defer fake.getAllPublicPipelinesMutex.RUnlock()
-	fake.getPublicPipelineByNameMutex.RLock()
-	defer fake.getPublicPipelineByNameMutex.RUnlock()
 	return fake.invocations
 }
 

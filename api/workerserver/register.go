@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
-	"github.com/gorilla/context"
 )
 
 type IntMetric int
@@ -25,9 +24,9 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("register-worker")
 	var registration atc.Worker
 
-	system, present := context.GetOk(r, "system")
+	isSystem, present := r.Context().Value("system").(bool)
 
-	if !present || !system.(bool) {
+	if !present || !isSystem {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}

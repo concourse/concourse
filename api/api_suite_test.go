@@ -14,6 +14,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
+	"github.com/concourse/atc/auth"
 
 	"github.com/concourse/atc/api/containerserver/containerserverfakes"
 	"github.com/concourse/atc/api/jobserver/jobserverfakes"
@@ -130,12 +131,14 @@ var _ = BeforeEach(func() {
 
 	build = new(dbfakes.FakeBuild)
 
-	handler, err := api.NewHandler(
+	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(pipelineDBFactory, teamDBFactory)
+
+	handlers, err := api.NewHandler(
 		logger,
 
 		externalURL,
 
-		wrappa.NewAPIAuthWrappa(authValidator, authValidator, userContextReader),
+		wrappa.NewAPIAuthWrappa(authValidator, authValidator, userContextReader, checkPipelineAccessHandlerFactory),
 
 		fakeTokenGenerator,
 		providerFactory,

@@ -7,20 +7,23 @@ import (
 )
 
 type APIAuthWrappa struct {
-	AuthValidator     auth.Validator
-	TokenValidator    auth.Validator
-	UserContextReader auth.UserContextReader
+	AuthValidator                     auth.Validator
+	TokenValidator                    auth.Validator
+	UserContextReader                 auth.UserContextReader
+	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory
 }
 
 func NewAPIAuthWrappa(
 	authValidator auth.Validator,
 	tokenValidator auth.Validator,
 	userContextReader auth.UserContextReader,
+	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
-		AuthValidator:     authValidator,
-		TokenValidator:    tokenValidator,
-		UserContextReader: userContextReader,
+		AuthValidator:                     authValidator,
+		TokenValidator:                    tokenValidator,
+		UserContextReader:                 userContextReader,
+		checkPipelineAccessHandlerFactory: checkPipelineAccessHandlerFactory,
 	}
 }
 
@@ -44,7 +47,12 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetBuildPreparation,
 			atc.ListAllPipelines,
 			atc.ListBuilds,
-			atc.GetJobBuild,
+			atc.GetPipeline,
+			atc.ListPipelines,
+			atc.ListTeams:
+
+		// pipeline is public or authorized
+		case atc.GetJobBuild,
 			atc.JobBadge,
 			atc.ListJobs,
 			atc.GetJob,
@@ -53,10 +61,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListBuildsWithVersionAsInput,
 			atc.ListBuildsWithVersionAsOutput,
 			atc.ListResources,
-			atc.ListResourceVersions,
-			atc.ListPipelines,
-			atc.GetPipeline,
-			atc.ListTeams:
+			atc.ListResourceVersions:
+			newHandler = wrappa.checkPipelineAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		// authenticated
 		case atc.GetAuthToken,

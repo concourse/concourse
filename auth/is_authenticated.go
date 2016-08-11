@@ -1,18 +1,8 @@
 package auth
 
-import (
-	"net/http"
-
-	"github.com/gorilla/context"
-)
+import "net/http"
 
 func IsAuthenticated(r *http.Request) bool {
-	ugh, present := context.GetOk(r, authenticated)
-
-	var isAuthenticated bool
-	if present {
-		isAuthenticated = ugh.(bool)
-	}
-
-	return isAuthenticated
+	isAuthenticated, present := r.Context().Value(authenticated).(bool)
+	return present && isAuthenticated
 }
