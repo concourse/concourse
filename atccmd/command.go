@@ -845,12 +845,12 @@ func (cmd *ATCCommand) constructAPIHandler(
 	authValidator := cmd.constructAuthValidator(teamDBFactory, tokenValidator)
 
 	apiWrapper := wrappa.MultiWrappa{
+		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
 			authValidator,
 			tokenValidator,
 			auth.JWTReader{PublicKey: &signingKey.PublicKey, DevelopmentMode: devMode},
 		),
-		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewConcourseVersionWrappa(Version),
 	}
 

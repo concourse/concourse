@@ -1,10 +1,6 @@
 package auth
 
-import (
-	"net/http"
-
-	"github.com/gorilla/context"
-)
+import "net/http"
 
 type AuthorizationResponse string
 
@@ -14,17 +10,12 @@ const (
 	Forbidden    AuthorizationResponse = "forbidden"
 )
 
-func IsAuthorized(r *http.Request) (bool, AuthorizationResponse) {
-	authenticated := IsAuthenticated(r)
-	if !authenticated {
-		return false, Unauthorized
+func IsAuthorized(r *http.Request) bool {
+	authTeamName, _, _, found := GetTeam(r)
+
+	if found && r.URL.Query().Get(":team_name") == authTeamName {
+		return true
 	}
 
-	authTeamName, ok := context.GetOk(r, teamNameKey)
-
-	if !ok || r.URL.Query().Get(":team_name") != authTeamName {
-		return false, Forbidden
-	}
-
-	return true, Authorized
+	return false
 }

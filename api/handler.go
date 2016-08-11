@@ -134,8 +134,8 @@ func NewHandler(
 		atc.GetBuildPreparation: buildHandlerFactory.HandlerFor(buildServer.GetBuildPreparation, false),
 		atc.BuildEvents:         buildHandlerFactory.HandlerFor(buildServer.BuildEvents, false),
 
-		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs, true),        // authorized or public
-		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob, true),          // authorized or public
+		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs, true),
+		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob, true),
 		atc.ListJobBuilds:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds, true),   // authorized or public
 		atc.ListJobInputs:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs, false),  // authorized
 		atc.GetJobBuild:    pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild, true),     // authorized or public
