@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/gorilla/context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -52,7 +51,7 @@ var _ = Describe("WrapHandler", func() {
 		simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			a <- auth.IsAuthenticated(r)
 			teamName, teamID, isAdmin, found := auth.GetTeam(r)
-			system, systemFound := context.GetOk(r, "system")
+			isSystem, systemFound := r.Context().Value("system").(bool)
 
 			f <- found
 			sf <- systemFound
@@ -60,7 +59,7 @@ var _ = Describe("WrapHandler", func() {
 			ti <- teamID
 			ia <- isAdmin
 			if systemFound {
-				is <- system.(bool)
+				is <- isSystem
 			}
 		})
 

@@ -1,9 +1,8 @@
 package auth
 
 import (
+	"context"
 	"net/http"
-
-	"github.com/gorilla/context"
 )
 
 var authenticated = "authenticated"
@@ -31,17 +30,17 @@ type authHandler struct {
 }
 
 func (h authHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	context.Set(r, authenticated, h.validator.IsAuthenticated(r))
+	ctx := context.WithValue(r.Context(), authenticated, h.validator.IsAuthenticated(r))
 	teamName, teamID, isAdmin, found := h.userContextReader.GetTeam(r)
 	if found {
-		context.Set(r, teamNameKey, teamName)
-		context.Set(r, teamIDKey, teamID)
-		context.Set(r, isAdminKey, isAdmin)
+		ctx = context.WithValue(ctx, teamNameKey, teamName)
+		ctx = context.WithValue(ctx, teamIDKey, teamID)
+		ctx = context.WithValue(ctx, isAdminKey, isAdmin)
 	}
 
 	isSystem, found := h.userContextReader.GetSystem(r)
 	if found {
-		context.Set(r, isSystemKey, isSystem)
+		ctx = context.WithValue(ctx, isSystemKey, isSystem)
 	}
-	h.handler.ServeHTTP(w, r)
+	h.handler.ServeHTTP(w, r.WithContext(ctx))
 }
