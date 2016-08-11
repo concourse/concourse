@@ -116,10 +116,10 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListAllPipelines:    unauthenticated(inputHandlers[atc.ListAllPipelines]),
 				atc.ListBuilds:          unauthenticated(inputHandlers[atc.ListBuilds]),
 				atc.ListPipelines:       unauthenticated(inputHandlers[atc.ListPipelines]),
-				atc.GetPipeline:         unauthenticated(inputHandlers[atc.GetPipeline]),
 				atc.ListTeams:           unauthenticated(inputHandlers[atc.ListTeams]),
 
 				// belongs to public pipeline or authorized
+				atc.GetPipeline:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetPipeline]),
 				atc.GetJobBuild:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetJobBuild]),
 				atc.JobBadge:                      openForPublicPipelineOrAuthorized(inputHandlers[atc.JobBadge]),
 				atc.ListJobs:                      openForPublicPipelineOrAuthorized(inputHandlers[atc.ListJobs]),

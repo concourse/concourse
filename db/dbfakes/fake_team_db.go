@@ -40,16 +40,6 @@ type FakeTeamDB struct {
 		result2 bool
 		result3 error
 	}
-	GetPublicPipelineByNameStub        func(pipelineName string) (db.SavedPipeline, bool, error)
-	getPublicPipelineByNameMutex       sync.RWMutex
-	getPublicPipelineByNameArgsForCall []struct {
-		pipelineName string
-	}
-	getPublicPipelineByNameReturns struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}
 	OrderPipelinesStub        func([]string) error
 	orderPipelinesMutex       sync.RWMutex
 	orderPipelinesArgsForCall []struct {
@@ -289,41 +279,6 @@ func (fake *FakeTeamDB) GetPipelineByNameArgsForCall(i int) string {
 func (fake *FakeTeamDB) GetPipelineByNameReturns(result1 db.SavedPipeline, result2 bool, result3 error) {
 	fake.GetPipelineByNameStub = nil
 	fake.getPipelineByNameReturns = struct {
-		result1 db.SavedPipeline
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeTeamDB) GetPublicPipelineByName(pipelineName string) (db.SavedPipeline, bool, error) {
-	fake.getPublicPipelineByNameMutex.Lock()
-	fake.getPublicPipelineByNameArgsForCall = append(fake.getPublicPipelineByNameArgsForCall, struct {
-		pipelineName string
-	}{pipelineName})
-	fake.recordInvocation("GetPublicPipelineByName", []interface{}{pipelineName})
-	fake.getPublicPipelineByNameMutex.Unlock()
-	if fake.GetPublicPipelineByNameStub != nil {
-		return fake.GetPublicPipelineByNameStub(pipelineName)
-	} else {
-		return fake.getPublicPipelineByNameReturns.result1, fake.getPublicPipelineByNameReturns.result2, fake.getPublicPipelineByNameReturns.result3
-	}
-}
-
-func (fake *FakeTeamDB) GetPublicPipelineByNameCallCount() int {
-	fake.getPublicPipelineByNameMutex.RLock()
-	defer fake.getPublicPipelineByNameMutex.RUnlock()
-	return len(fake.getPublicPipelineByNameArgsForCall)
-}
-
-func (fake *FakeTeamDB) GetPublicPipelineByNameArgsForCall(i int) string {
-	fake.getPublicPipelineByNameMutex.RLock()
-	defer fake.getPublicPipelineByNameMutex.RUnlock()
-	return fake.getPublicPipelineByNameArgsForCall[i].pipelineName
-}
-
-func (fake *FakeTeamDB) GetPublicPipelineByNameReturns(result1 db.SavedPipeline, result2 bool, result3 error) {
-	fake.GetPublicPipelineByNameStub = nil
-	fake.getPublicPipelineByNameReturns = struct {
 		result1 db.SavedPipeline
 		result2 bool
 		result3 error
@@ -800,8 +755,6 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.getPrivateAndAllPublicPipelinesMutex.RUnlock()
 	fake.getPipelineByNameMutex.RLock()
 	defer fake.getPipelineByNameMutex.RUnlock()
-	fake.getPublicPipelineByNameMutex.RLock()
-	defer fake.getPublicPipelineByNameMutex.RUnlock()
 	fake.orderPipelinesMutex.RLock()
 	defer fake.orderPipelinesMutex.RUnlock()
 	fake.getTeamMutex.RLock()

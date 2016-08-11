@@ -84,43 +84,6 @@ var _ = Describe("TeamDB", func() {
 		})
 	})
 
-	Describe("GetPublicPipelineByName", func() {
-		Context("when pipeline does not exist", func() {
-			It("returns false", func() {
-				_, found, err := teamDB.GetPublicPipelineByName("non-existent-pipeline")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
-			})
-		})
-
-		Context("when pipeline is private", func() {
-			It("returns false", func() {
-				_, _, err := teamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, found, err := teamDB.GetPublicPipelineByName("pipeline-name")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
-			})
-		})
-
-		Context("when pipeline is public", func() {
-			It("returns the pipeline", func() {
-				savedPipeline, _, err := teamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				err = pipelineDBFactory.Build(savedPipeline).Reveal()
-				Expect(err).NotTo(HaveOccurred())
-				savedPipeline.Public = true // update expectation
-
-				pipeline, found, err := teamDB.GetPublicPipelineByName("pipeline-name")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(pipeline).To(Equal(savedPipeline))
-			})
-		})
-	})
-
 	Describe("GetPipelines", func() {
 		var savedPipeline1 db.SavedPipeline
 		var savedPipeline2 db.SavedPipeline

@@ -16,6 +16,7 @@ import (
 //go:generate counterfeiter . PipelineDB
 
 type PipelineDB interface {
+	Pipeline() SavedPipeline
 	GetPipelineName() string
 	GetPipelineID() int
 	ScopedName(string) string
@@ -119,6 +120,10 @@ type FirstLoggedBuildIDDecreasedError struct {
 
 func (e FirstLoggedBuildIDDecreasedError) Error() string {
 	return fmt.Sprintf("first logged build id for job '%s' decreased from %d to %d", e.Job, e.OldID, e.NewID)
+}
+
+func (pdb *pipelineDB) Pipeline() SavedPipeline {
+	return pdb.SavedPipeline
 }
 
 func (pdb *pipelineDB) GetPipelineName() string {

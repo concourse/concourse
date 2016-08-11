@@ -12,6 +12,12 @@ import (
 )
 
 type FakePipelineDB struct {
+	PipelineStub        func() db.SavedPipeline
+	pipelineMutex       sync.RWMutex
+	pipelineArgsForCall []struct{}
+	pipelineReturns     struct {
+		result1 db.SavedPipeline
+	}
 	GetPipelineNameStub        func() string
 	getPipelineNameMutex       sync.RWMutex
 	getPipelineNameArgsForCall []struct{}
@@ -529,6 +535,31 @@ type FakePipelineDB struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakePipelineDB) Pipeline() db.SavedPipeline {
+	fake.pipelineMutex.Lock()
+	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct{}{})
+	fake.recordInvocation("Pipeline", []interface{}{})
+	fake.pipelineMutex.Unlock()
+	if fake.PipelineStub != nil {
+		return fake.PipelineStub()
+	} else {
+		return fake.pipelineReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) PipelineCallCount() int {
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
+	return len(fake.pipelineArgsForCall)
+}
+
+func (fake *FakePipelineDB) PipelineReturns(result1 db.SavedPipeline) {
+	fake.PipelineStub = nil
+	fake.pipelineReturns = struct {
+		result1 db.SavedPipeline
+	}{result1}
 }
 
 func (fake *FakePipelineDB) GetPipelineName() string {
@@ -2435,6 +2466,8 @@ func (fake *FakePipelineDB) ConcealReturns(result1 error) {
 func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
 	fake.getPipelineNameMutex.RLock()
 	defer fake.getPipelineNameMutex.RUnlock()
 	fake.getPipelineIDMutex.RLock()

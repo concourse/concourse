@@ -16,7 +16,6 @@ type TeamDB interface {
 	GetPrivateAndAllPublicPipelines() ([]SavedPipeline, error)
 
 	GetPipelineByName(pipelineName string) (SavedPipeline, bool, error)
-	GetPublicPipelineByName(pipelineName string) (SavedPipeline, bool, error)
 
 	OrderPipelines([]string) error
 
@@ -56,30 +55,6 @@ func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, bool, e
 			SELECT id FROM teams WHERE LOWER(name) = LOWER($2)
 		)
 	`, pipelineName, db.teamName)
-	pipeline, err := scanPipeline(row)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return SavedPipeline{}, false, nil
-		}
-
-		return SavedPipeline{}, false, err
-	}
-
-	return pipeline, true, nil
-}
-
-func (db *teamDB) GetPublicPipelineByName(pipelineName string) (SavedPipeline, bool, error) {
-	row := db.conn.QueryRow(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines p
-		INNER JOIN teams t ON t.id = p.team_id
-		WHERE p.name = $1
-		AND p.team_id = (
-			SELECT id FROM teams WHERE LOWER(name) = LOWER($2)
-		)
-		AND p.public = true
-	`, pipelineName, db.teamName)
-
 	pipeline, err := scanPipeline(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
