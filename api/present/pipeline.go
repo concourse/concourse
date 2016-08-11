@@ -7,7 +7,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Pipeline(savedPipeline db.SavedPipeline, config atc.Config) atc.Pipeline {
+func Pipeline(savedPipeline db.SavedPipeline) atc.Pipeline {
 	pathForRoute, err := web.Routes.CreatePathForRoute(web.Pipeline, rata.Params{
 		"team_name": savedPipeline.TeamName,
 		"pipeline":  savedPipeline.Name,
@@ -23,16 +23,6 @@ func Pipeline(savedPipeline db.SavedPipeline, config atc.Config) atc.Pipeline {
 		URL:      pathForRoute,
 		Paused:   savedPipeline.Paused,
 		Public:   savedPipeline.Public,
-		Groups:   config.Groups,
+		Groups:   savedPipeline.Config.Groups,
 	}
-}
-
-func Pipelines(savedPipelines []db.SavedPipeline) []atc.Pipeline {
-	pipelines := make([]atc.Pipeline, len(savedPipelines))
-
-	for i := range savedPipelines {
-		pipelines[i] = Pipeline(savedPipelines[i], savedPipelines[i].Config)
-	}
-
-	return pipelines
 }
