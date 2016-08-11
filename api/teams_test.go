@@ -448,6 +448,7 @@ var _ = Describe("Teams API", func() {
 					var basicAuth *atc.BasicAuth
 					var gitHubAuth *atc.GitHubAuth
 					var uaaAuth *atc.UAAAuth
+					var genericOAuth *atc.GenericOAuth
 
 					BeforeEach(func() {
 						basicAuth = &atc.BasicAuth{
@@ -468,6 +469,15 @@ var _ = Describe("Teams API", func() {
 							AuthURL:      "http://uaa.auth.url",
 							TokenURL:     "http://uaa.token.url",
 							CFURL:        "http://api.cf.url",
+						}
+
+						genericOAuth = &atc.GenericOAuth{
+							ClientID:      "Dean Venture",
+							ClientSecret:  "Giant Boy Detective",
+							AuthURL:       "https://goa.auth.url",
+							AuthURLParams: map[string]string{},
+							TokenURL:      "https://goa.token.url",
+							DisplayName:   "CSI",
 						}
 					})
 
@@ -543,6 +553,31 @@ var _ = Describe("Teams API", func() {
 							Expect(teamDB.UpdateUAAAuthCallCount()).To(Equal(1))
 						})
 					})
+
+					Context("when passed generic OAuth auth credentials", func() {
+						BeforeEach(func() {
+							teamDB.UpdateGenericOAuthStub = func(genericOAuth *db.GenericOAuth) (db.SavedTeam, error) {
+								team.Name = teamName
+								Expect(genericOAuth.ClientID).To(Equal(team.GenericOAuth.ClientID))
+								Expect(genericOAuth.ClientSecret).To(Equal(team.GenericOAuth.ClientSecret))
+								Expect(genericOAuth.AuthURL).To(Equal(team.GenericOAuth.AuthURL))
+								Expect(genericOAuth.TokenURL).To(Equal(team.GenericOAuth.TokenURL))
+								Expect(genericOAuth.AuthURLParams).To(Equal(team.GenericOAuth.AuthURLParams))
+								Expect(genericOAuth.DisplayName).To(Equal(team.GenericOAuth.DisplayName))
+
+								savedTeam.GenericOAuth = genericOAuth
+								return savedTeam, nil
+							}
+
+							team.GenericOAuth = genericOAuth
+						})
+
+						It("updates the GitHub auth for that team", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+							Expect(teamDB.UpdateUAAAuthCallCount()).To(Equal(1))
+						})
+					})
+
 				})
 			})
 

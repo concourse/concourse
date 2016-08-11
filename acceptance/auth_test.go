@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/sclevine/agouti"
+	. "github.com/sclevine/agouti/matchers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -225,5 +227,57 @@ var _ = Describe("Auth", func() {
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth"))
 		})
+	})
+
+	Describe("Generic OAuth Auth", func() {
+		It("forces a redirect to the auth URL", func() {
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH)
+			err := atcCommand.Start()
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("GET", atcCommand.URL("/auth/oauth?redirect=%2F&team_name=main"), nil)
+
+			client := new(http.Client)
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return errors.New("error")
+			}
+			resp, err := client.Do(request)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("https://goa.example.com/oauth/authorize"))
+			Expect(resp.StatusCode).To(Equal(http.StatusTemporaryRedirect))
+		})
+
+		It("shows the option on the login page", func() {
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH)
+			err := atcCommand.Start()
+			Expect(err).NotTo(HaveOccurred())
+
+			var page *agouti.Page
+			page, err = agoutiDriver.NewPage()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(page.Navigate(atcCommand.URL("/teams/main/login"))).To(Succeed())
+			Eventually(page.FindByLink("login with Example")).Should(BeFound())
+		})
+
+		It("can pass parameters to the auth URL", func() {
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_PARAMS)
+			err := atcCommand.Start()
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("GET", atcCommand.URL("/auth/oauth?redirect=%2F&team_name=main"), nil)
+
+			client := new(http.Client)
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return errors.New("error")
+			}
+			resp, err := client.Do(request)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("https://goa.example.com/oauth/authorize"))
+			Expect(err.Error()).To(ContainSubstring("param1=value1"))
+			Expect(err.Error()).To(ContainSubstring("param2=value2"))
+			Expect(resp.StatusCode).To(Equal(http.StatusTemporaryRedirect))
+		})
+
 	})
 })
