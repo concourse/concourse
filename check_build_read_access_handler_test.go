@@ -15,13 +15,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("CheckBuildAccessHandler", func() {
+var _ = Describe("CheckBuildReadAccessHandler", func() {
 	var (
 		response       *http.Response
 		server         *httptest.Server
 		delegate       *buildDelegateHandler
 		buildsDB       *authfakes.FakeBuildsDB
-		handlerFactory auth.CheckBuildAccessHandlerFactory
+		handlerFactory auth.CheckBuildReadAccessHandlerFactory
 		handler        http.Handler
 
 		authValidator     *authfakes.FakeValidator
@@ -33,7 +33,7 @@ var _ = Describe("CheckBuildAccessHandler", func() {
 
 	BeforeEach(func() {
 		buildsDB = new(authfakes.FakeBuildsDB)
-		handlerFactory = auth.NewCheckBuildAccessHandlerFactory(buildsDB)
+		handlerFactory = auth.NewCheckBuildReadAccessHandlerFactory(buildsDB)
 
 		authValidator = new(authfakes.FakeValidator)
 		userContextReader = new(authfakes.FakeUserContextReader)
@@ -104,8 +104,8 @@ var _ = Describe("CheckBuildAccessHandler", func() {
 
 	Context("AnyJobHandler", func() {
 		BeforeEach(func() {
-			checkBuildAccessHandler := handlerFactory.AnyJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = auth.WrapHandler(checkBuildAccessHandler, authValidator, userContextReader)
+			checkBuildReadAccessHandler := handlerFactory.AnyJobHandler(delegate, auth.UnauthorizedRejector{})
+			handler = auth.WrapHandler(checkBuildReadAccessHandler, authValidator, userContextReader)
 		})
 
 		Context("when authenticated and accessing same team's build", func() {
@@ -174,8 +174,8 @@ var _ = Describe("CheckBuildAccessHandler", func() {
 
 	Context("CheckIfPrivateJobHandler", func() {
 		BeforeEach(func() {
-			checkBuildAccessHandler := handlerFactory.CheckIfPrivateJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = auth.WrapHandler(checkBuildAccessHandler, authValidator, userContextReader)
+			checkBuildReadAccessHandler := handlerFactory.CheckIfPrivateJobHandler(delegate, auth.UnauthorizedRejector{})
+			handler = auth.WrapHandler(checkBuildReadAccessHandler, authValidator, userContextReader)
 		})
 
 		ItChecksIfJobIsPrivate := func(status int) {

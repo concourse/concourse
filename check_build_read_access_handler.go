@@ -4,40 +4,30 @@ import (
 	"context"
 	"net/http"
 	"strconv"
-
-	"github.com/concourse/atc/db"
 )
 
-const BuildKey = "build"
-
-type CheckBuildAccessHandlerFactory interface {
+type CheckBuildReadAccessHandlerFactory interface {
 	AnyJobHandler(delegateHandler http.Handler, rejector Rejector) http.Handler
 	CheckIfPrivateJobHandler(delegateHandler http.Handler, rejector Rejector) http.Handler
 }
 
-//go:generate counterfeiter . BuildsDB
-
-type BuildsDB interface {
-	GetBuildByID(buildID int) (db.Build, bool, error)
-}
-
-type checkBuildAccessHandlerFactory struct {
+type checkBuildReadAccessHandlerFactory struct {
 	buildsDB BuildsDB
 }
 
-func NewCheckBuildAccessHandlerFactory(
+func NewCheckBuildReadAccessHandlerFactory(
 	buildsDB BuildsDB,
-) *checkBuildAccessHandlerFactory {
-	return &checkBuildAccessHandlerFactory{
+) *checkBuildReadAccessHandlerFactory {
+	return &checkBuildReadAccessHandlerFactory{
 		buildsDB: buildsDB,
 	}
 }
 
-func (f *checkBuildAccessHandlerFactory) AnyJobHandler(
+func (f *checkBuildReadAccessHandlerFactory) AnyJobHandler(
 	delegateHandler http.Handler,
 	rejector Rejector,
 ) http.Handler {
-	return checkBuildAccessHandler{
+	return checkBuildReadAccessHandler{
 		rejector:        rejector,
 		buildsDB:        f.buildsDB,
 		delegateHandler: delegateHandler,
@@ -45,11 +35,11 @@ func (f *checkBuildAccessHandlerFactory) AnyJobHandler(
 	}
 }
 
-func (f *checkBuildAccessHandlerFactory) CheckIfPrivateJobHandler(
+func (f *checkBuildReadAccessHandlerFactory) CheckIfPrivateJobHandler(
 	delegateHandler http.Handler,
 	rejector Rejector,
 ) http.Handler {
-	return checkBuildAccessHandler{
+	return checkBuildReadAccessHandler{
 		rejector:        rejector,
 		buildsDB:        f.buildsDB,
 		delegateHandler: delegateHandler,
@@ -57,14 +47,14 @@ func (f *checkBuildAccessHandlerFactory) CheckIfPrivateJobHandler(
 	}
 }
 
-type checkBuildAccessHandler struct {
+type checkBuildReadAccessHandler struct {
 	rejector        Rejector
 	buildsDB        BuildsDB
 	delegateHandler http.Handler
 	allowPrivateJob bool
 }
 
-func (h checkBuildAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	buildIDStr := r.FormValue(":build_id")
 	buildID, err := strconv.Atoi(buildIDStr)
 	if err != nil {
