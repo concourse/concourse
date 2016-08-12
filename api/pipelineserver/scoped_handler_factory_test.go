@@ -1,14 +1,14 @@
-package pipelines_test
+package pipelineserver_test
 
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/concourse/atc/api/pipelineserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	. "github.com/concourse/atc/pipelines"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,7 +36,7 @@ var _ = Describe("Handler", func() {
 		pipelineDBFactory := new(dbfakes.FakePipelineDBFactory)
 		pipelineDBFactory.BuildReturns(pipelineDB)
 
-		handlerFactory := NewHandlerFactory(pipelineDBFactory, teamDBFactory)
+		handlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory)
 		handler = handlerFactory.HandlerFor(delegate.GetHandler)
 	})
 

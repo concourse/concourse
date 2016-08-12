@@ -26,7 +26,6 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/wrappa"
 )
@@ -73,7 +72,7 @@ func NewHandler(
 		return nil, err
 	}
 
-	pipelineHandlerFactory := pipelines.NewHandlerFactory(pipelineDBFactory, teamDBFactory)
+	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory)
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 
 	authServer := authserver.NewServer(

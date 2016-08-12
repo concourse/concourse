@@ -1,4 +1,4 @@
-package pipelines
+package pipelineserver
 
 import (
 	"net/http"
@@ -7,22 +7,22 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-type PipelineHandlerFactory struct {
+type ScopedHandlerFactory struct {
 	pipelineDBFactory db.PipelineDBFactory
 	teamDBFactory     db.TeamDBFactory
 }
 
-func NewHandlerFactory(
+func NewScopedHandlerFactory(
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
-) *PipelineHandlerFactory {
-	return &PipelineHandlerFactory{
+) *ScopedHandlerFactory {
+	return &ScopedHandlerFactory{
 		pipelineDBFactory: pipelineDBFactory,
 		teamDBFactory:     teamDBFactory,
 	}
 }
 
-func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB) http.Handler) http.HandlerFunc {
+func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pipelineDB, ok := r.Context().Value(auth.PipelineDBKey).(db.PipelineDB)
 		if !ok {
