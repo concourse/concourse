@@ -11,6 +11,7 @@ type APIAuthWrappa struct {
 	TokenValidator                    auth.Validator
 	UserContextReader                 auth.UserContextReader
 	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory
+	checkBuildAccessHandlerFactory    auth.CheckBuildAccessHandlerFactory
 }
 
 func NewAPIAuthWrappa(
@@ -18,12 +19,14 @@ func NewAPIAuthWrappa(
 	tokenValidator auth.Validator,
 	userContextReader auth.UserContextReader,
 	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory,
+	checkBuildAccessHandlerFactory auth.CheckBuildAccessHandlerFactory,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
 		AuthValidator:                     authValidator,
 		TokenValidator:                    tokenValidator,
 		UserContextReader:                 userContextReader,
 		checkPipelineAccessHandlerFactory: checkPipelineAccessHandlerFactory,
+		checkBuildAccessHandlerFactory:    checkBuildAccessHandlerFactory,
 	}
 }
 
@@ -40,15 +43,21 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case atc.DownloadCLI,
 			atc.ListAuthMethods,
 			atc.GetInfo,
-			atc.BuildEvents,
-			atc.GetBuild,
-			atc.BuildResources,
-			atc.GetBuildPlan,
-			atc.GetBuildPreparation,
+			atc.ListTeams,
 			atc.ListAllPipelines,
-			atc.ListBuilds,
 			atc.ListPipelines,
-			atc.ListTeams:
+			atc.ListBuilds:
+
+		// pipeline is public or authorized
+		case atc.GetBuild,
+			atc.BuildResources,
+			atc.GetBuildPlan:
+			newHandler = wrappa.checkBuildAccessHandlerFactory.AnyJobHandler(handler, rejector)
+
+		// pipeline and job are public or authorized
+		case atc.GetBuildPreparation,
+			atc.BuildEvents:
+			newHandler = wrappa.checkBuildAccessHandlerFactory.CheckIfPrivateJobHandler(handler, rejector)
 
 		// pipeline is public or authorized
 		case atc.GetPipeline,

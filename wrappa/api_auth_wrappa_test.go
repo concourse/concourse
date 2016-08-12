@@ -20,6 +20,7 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeTokenValidator                    auth.Validator
 		fakeUserContextReader                 *authfakes.FakeUserContextReader
 		fakeCheckPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory
+		fakeCheckBuildAccessHandlerFactory    auth.CheckBuildAccessHandlerFactory
 		publiclyViewable                      bool
 	)
 
@@ -34,6 +35,9 @@ var _ = Describe("APIAuthWrappa", func() {
 			pipelineDBFactory,
 			teamDBFactory,
 		)
+
+		buildsDB := new(authfakes.FakeBuildsDB)
+		fakeCheckBuildAccessHandlerFactory = auth.NewCheckBuildAccessHandlerFactory(buildsDB)
 	})
 
 	unauthenticated := func(handler http.Handler) http.Handler {
@@ -88,6 +92,28 @@ var _ = Describe("APIAuthWrappa", func() {
 		)
 	}
 
+	doesNotCheckIfPrivateJob := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			fakeCheckBuildAccessHandlerFactory.AnyJobHandler(
+				handler,
+				auth.UnauthorizedRejector{},
+			),
+			fakeTokenValidator,
+			fakeUserContextReader,
+		)
+	}
+
+	checksIfPrivateJob := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			fakeCheckBuildAccessHandlerFactory.CheckIfPrivateJobHandler(
+				handler,
+				auth.UnauthorizedRejector{},
+			),
+			fakeTokenValidator,
+			fakeUserContextReader,
+		)
+	}
+
 	Describe("Wrap", func() {
 		var (
 			inputHandlers    rata.Handlers
@@ -105,18 +131,22 @@ var _ = Describe("APIAuthWrappa", func() {
 
 			expectedHandlers = rata.Handlers{
 				// unauthenticated / delegating to handler
-				atc.GetInfo:             unauthenticated(inputHandlers[atc.GetInfo]),
-				atc.DownloadCLI:         unauthenticated(inputHandlers[atc.DownloadCLI]),
-				atc.ListAuthMethods:     unauthenticated(inputHandlers[atc.ListAuthMethods]),
-				atc.BuildEvents:         unauthenticated(inputHandlers[atc.BuildEvents]),
-				atc.GetBuild:            unauthenticated(inputHandlers[atc.GetBuild]),
-				atc.BuildResources:      unauthenticated(inputHandlers[atc.BuildResources]),
-				atc.GetBuildPlan:        unauthenticated(inputHandlers[atc.GetBuildPlan]),
-				atc.GetBuildPreparation: unauthenticated(inputHandlers[atc.GetBuildPreparation]),
-				atc.ListAllPipelines:    unauthenticated(inputHandlers[atc.ListAllPipelines]),
-				atc.ListBuilds:          unauthenticated(inputHandlers[atc.ListBuilds]),
-				atc.ListPipelines:       unauthenticated(inputHandlers[atc.ListPipelines]),
-				atc.ListTeams:           unauthenticated(inputHandlers[atc.ListTeams]),
+				atc.GetInfo:          unauthenticated(inputHandlers[atc.GetInfo]),
+				atc.DownloadCLI:      unauthenticated(inputHandlers[atc.DownloadCLI]),
+				atc.ListAuthMethods:  unauthenticated(inputHandlers[atc.ListAuthMethods]),
+				atc.ListAllPipelines: unauthenticated(inputHandlers[atc.ListAllPipelines]),
+				atc.ListBuilds:       unauthenticated(inputHandlers[atc.ListBuilds]),
+				atc.ListPipelines:    unauthenticated(inputHandlers[atc.ListPipelines]),
+				atc.ListTeams:        unauthenticated(inputHandlers[atc.ListTeams]),
+
+				// authorized or public pipeline
+				atc.GetBuild:       doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuild]),
+				atc.BuildResources: doesNotCheckIfPrivateJob(inputHandlers[atc.BuildResources]),
+				atc.GetBuildPlan:   doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuildPlan]),
+
+				// authorized or public pipeline and public job
+				atc.BuildEvents:         checksIfPrivateJob(inputHandlers[atc.BuildEvents]),
+				atc.GetBuildPreparation: checksIfPrivateJob(inputHandlers[atc.GetBuildPreparation]),
 
 				// belongs to public pipeline or authorized
 				atc.GetPipeline:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetPipeline]),
@@ -177,6 +207,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				fakeTokenValidator,
 				fakeUserContextReader,
 				fakeCheckPipelineAccessHandlerFactory,
+				fakeCheckBuildAccessHandlerFactory,
 			).Wrap(inputHandlers)
 		})
 

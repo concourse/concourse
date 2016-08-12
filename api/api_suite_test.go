@@ -53,6 +53,7 @@ var (
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	teamDB                        *dbfakes.FakeTeamDB
 	pipelinesDB                   *dbfakes.FakePipelinesDB
+	buildsDB                      *authfakes.FakeBuildsDB
 	build                         *dbfakes.FakeBuild
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
@@ -100,6 +101,7 @@ var _ = BeforeEach(func() {
 	volumesDB = new(volumeserverfakes.FakeVolumesDB)
 	pipeDB = new(pipesfakes.FakePipeDB)
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
+	buildsDB = new(authfakes.FakeBuildsDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
@@ -133,12 +135,20 @@ var _ = BeforeEach(func() {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(pipelineDBFactory, teamDBFactory)
 
+	checkBuildAccessHandlerFactory := auth.NewCheckBuildAccessHandlerFactory(buildsDB)
+
 	handlers, err := api.NewHandler(
 		logger,
 
 		externalURL,
 
-		wrappa.NewAPIAuthWrappa(authValidator, authValidator, userContextReader, checkPipelineAccessHandlerFactory),
+		wrappa.NewAPIAuthWrappa(
+			authValidator,
+			authValidator,
+			userContextReader,
+			checkPipelineAccessHandlerFactory,
+			checkBuildAccessHandlerFactory,
+		),
 
 		fakeTokenGenerator,
 		providerFactory,

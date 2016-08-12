@@ -844,6 +844,9 @@ func (cmd *ATCCommand) constructAPIHandler(
 		pipelineDBFactory,
 		teamDBFactory,
 	)
+
+	checkBuildAccessHandlerFactory := auth.NewCheckBuildAccessHandlerFactory(sqlDB)
+
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
@@ -851,6 +854,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 			tokenValidator,
 			auth.JWTReader{PublicKey: &signingKey.PublicKey, DevelopmentMode: devMode},
 			checkPipelineAccessHandlerFactory,
+			checkBuildAccessHandlerFactory,
 		),
 		wrappa.NewConcourseVersionWrappa(Version),
 	}

@@ -10,7 +10,6 @@ import (
 type PipelineHandlerFactory struct {
 	pipelineDBFactory db.PipelineDBFactory
 	teamDBFactory     db.TeamDBFactory
-	rejector          auth.Rejector
 }
 
 func NewHandlerFactory(
@@ -20,7 +19,6 @@ func NewHandlerFactory(
 	return &PipelineHandlerFactory{
 		pipelineDBFactory: pipelineDBFactory,
 		teamDBFactory:     teamDBFactory,
-		rejector:          auth.UnauthorizedRejector{},
 	}
 }
 

@@ -52,7 +52,7 @@ var _ = Describe("Builds API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("some-team", 5, false, true)
@@ -199,7 +199,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when calling the database fails", func() {
 				BeforeEach(func() {
-					teamDB.GetBuildReturns(nil, false, errors.New("disaster"))
+					buildsDB.GetBuildByIDReturns(nil, false, errors.New("disaster"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -209,7 +209,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build cannot be found", func() {
 				BeforeEach(func() {
-					teamDB.GetBuildReturns(nil, false, nil)
+					buildsDB.GetBuildByIDReturns(nil, false, nil)
 				})
 
 				It("returns Not Found", func() {
@@ -228,7 +228,7 @@ var _ = Describe("Builds API", func() {
 					build.StartTimeReturns(time.Unix(1, 0))
 					build.EndTimeReturns(time.Unix(100, 0))
 					build.ReapTimeReturns(time.Unix(200, 0))
-					teamDB.GetBuildReturns(build, true, nil)
+					buildsDB.GetBuildByIDReturns(build, true, nil)
 				})
 
 				Context("when not authenticated", func() {
@@ -301,8 +301,8 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns the build with the given build_id", func() {
-						Expect(teamDB.GetBuildCallCount()).To(Equal(1))
-						buildID := teamDB.GetBuildArgsForCall(0)
+						Expect(buildsDB.GetBuildByIDCallCount()).To(Equal(1))
+						buildID := buildsDB.GetBuildByIDArgsForCall(0)
 						Expect(buildID).To(Equal(1))
 
 						body, err := ioutil.ReadAll(response.Body)
@@ -322,18 +322,6 @@ var _ = Describe("Builds API", func() {
 						"reap_time": 200
 					}`))
 					})
-
-					Context("when team is set in user context", func() {
-						BeforeEach(func() {
-							userContextReader.GetTeamReturns("some-team", 5, false, true)
-						})
-
-						It("returns builds for team in the context", func() {
-							Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-							teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-							Expect(teamName).To(Equal("some-team"))
-						})
-					})
 				})
 			})
 		})
@@ -345,7 +333,8 @@ var _ = Describe("Builds API", func() {
 		Context("when the build is found", func() {
 			BeforeEach(func() {
 				build.JobNameReturns("job1")
-				teamDB.GetBuildReturns(build, true, nil)
+				build.TeamNameReturns("some-team")
+				buildsDB.GetBuildByIDReturns(build, true, nil)
 			})
 
 			JustBeforeEach(func() {
@@ -415,7 +404,18 @@ var _ = Describe("Builds API", func() {
 				})
 			})
 
-			Context("when authenticated", func() {
+			Context("when authenticated, but not authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("some-other-team", 5, false, true)
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("when authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
 					userContextReader.GetTeamReturns("some-team", 5, false, true)
@@ -423,12 +423,6 @@ var _ = Describe("Builds API", func() {
 
 				It("returns 200 OK", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns builds for team in the context", func() {
-					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-					Expect(teamName).To(Equal("some-team"))
 				})
 
 				Context("when the build inputs/ouputs are not empty", func() {
@@ -553,7 +547,7 @@ var _ = Describe("Builds API", func() {
 				Context("with an invalid build", func() {
 					Context("when the lookup errors", func() {
 						BeforeEach(func() {
-							teamDB.GetBuildReturns(build, false, errors.New("Freakin' out man, I'm freakin' out!"))
+							buildsDB.GetBuildByIDReturns(build, false, errors.New("Freakin' out man, I'm freakin' out!"))
 						})
 
 						It("returns internal server error", func() {
@@ -563,7 +557,7 @@ var _ = Describe("Builds API", func() {
 
 					Context("when the build does not exist", func() {
 						BeforeEach(func() {
-							teamDB.GetBuildReturns(build, false, nil)
+							buildsDB.GetBuildByIDReturns(build, false, nil)
 						})
 
 						It("returns internal server error", func() {
@@ -786,25 +780,32 @@ var _ = Describe("Builds API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when the build can be found", func() {
 			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", 5, false, true)
+				build.JobNameReturns("some-job")
+				build.TeamNameReturns("some-team")
+				buildsDB.GetBuildByIDReturns(build, true, nil)
 			})
 
-			Context("when the build can be found", func() {
+			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
-					teamDB.GetBuildReturns(build, true, nil)
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("some-other-team", 5, false, true)
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("some-team", 5, false, true)
 				})
 
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(200))
-				})
-
-				It("returns builds for team in the context", func() {
-					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-					Expect(teamName).To(Equal("some-team"))
 				})
 
 				It("serves the request via the event handler", func() {
@@ -814,42 +815,15 @@ var _ = Describe("Builds API", func() {
 					Expect(string(body)).To(Equal("fake event handler factory was here"))
 
 					Expect(constructedEventHandler.build).To(Equal(build))
-					Expect(teamDB.GetBuildCallCount()).To(Equal(1))
-					buildID := teamDB.GetBuildArgsForCall(0)
+					Expect(buildsDB.GetBuildByIDCallCount()).To(Equal(1))
+					buildID := buildsDB.GetBuildByIDArgsForCall(0)
 					Expect(buildID).To(Equal(128))
 				})
 			})
 
-			Context("when the build can not be found", func() {
+			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					teamDB.GetBuildReturns(nil, false, nil)
-				})
-
-				It("returns Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when calling the database fails", func() {
-				BeforeEach(func() {
-					teamDB.GetBuildReturns(nil, false, errors.New("nope"))
-				})
-
-				It("returns Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(false)
-			})
-
-			Context("when the build can be found", func() {
-				BeforeEach(func() {
-					build.JobNameReturns("some-job")
-					teamDB.GetBuildReturns(build, true, nil)
+					authValidator.IsAuthenticatedReturns(false)
 				})
 
 				Context("and the pipeline is private", func() {
@@ -905,32 +879,52 @@ var _ = Describe("Builds API", func() {
 							Expect(string(body)).To(Equal("fake event handler factory was here"))
 
 							Expect(constructedEventHandler.build).To(Equal(build))
-							Expect(teamDB.GetBuildCallCount()).To(Equal(1))
-							buildID := teamDB.GetBuildArgsForCall(0)
+							Expect(buildsDB.GetBuildByIDCallCount()).To(Equal(1))
+							buildID := buildsDB.GetBuildByIDArgsForCall(0)
 							Expect(buildID).To(Equal(128))
 						})
 					})
 				})
+
+				Context("when the build can not be found", func() {
+					BeforeEach(func() {
+						buildsDB.GetBuildByIDReturns(nil, false, nil)
+					})
+
+					It("returns Not Found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when calling the database fails", func() {
+					BeforeEach(func() {
+						buildsDB.GetBuildByIDReturns(nil, false, errors.New("nope"))
+					})
+
+					It("returns Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+		})
+
+		Context("when the build can not be found", func() {
+			BeforeEach(func() {
+				teamDB.GetBuildReturns(nil, false, nil)
 			})
 
-			Context("when the build can not be found", func() {
-				BeforeEach(func() {
-					teamDB.GetBuildReturns(nil, false, nil)
-				})
+			It("returns Not Found", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
 
-				It("returns Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
+		Context("when calling the database fails", func() {
+			BeforeEach(func() {
+				buildsDB.GetBuildByIDReturns(nil, false, errors.New("nope"))
 			})
 
-			Context("when calling the database fails", func() {
-				BeforeEach(func() {
-					teamDB.GetBuildReturns(nil, false, errors.New("nope"))
-				})
-
-				It("returns Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
+			It("returns Internal Server Error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})
@@ -1091,9 +1085,21 @@ var _ = Describe("Builds API", func() {
 					InputsSatisfied:     db.BuildPreparationStatusBlocking,
 					MissingInputReasons: db.MissingInputReasons{"some-input": "some-reason"},
 				}
-				teamDB.GetBuildReturns(build, true, nil)
+				buildsDB.GetBuildByIDReturns(build, true, nil)
 				build.JobNameReturns("job1")
+				build.TeamNameReturns("some-team")
 				build.GetPreparationReturns(buildPrep, true, nil)
+			})
+
+			Context("when authenticated, but not authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("some-other-team", 5, false, true)
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
 			})
 
 			Context("when not authenticated", func() {
@@ -1170,12 +1176,6 @@ var _ = Describe("Builds API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				It("returns builds for team in the context", func() {
-					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-					Expect(teamName).To(Equal("some-team"))
-				})
-
 				It("returns the build preparation", func() {
 					body, err := ioutil.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
@@ -1198,7 +1198,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when the build preparation is not found", func() {
 					BeforeEach(func() {
-						teamDB.GetBuildReturns(build, true, nil)
+						buildsDB.GetBuildByIDReturns(build, true, nil)
 						build.GetPreparationReturns(db.BuildPreparation{}, false, nil)
 					})
 
@@ -1209,7 +1209,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when looking up the build preparation fails", func() {
 					BeforeEach(func() {
-						teamDB.GetBuildReturns(build, true, nil)
+						buildsDB.GetBuildByIDReturns(build, true, nil)
 						build.GetPreparationReturns(db.BuildPreparation{}, false, errors.New("ho ho ho merry festivus"))
 					})
 
@@ -1222,7 +1222,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when looking up the build fails", func() {
 			BeforeEach(func() {
-				teamDB.GetBuildReturns(nil, false, errors.New("ho ho ho merry festivus"))
+				buildsDB.GetBuildByIDReturns(nil, false, errors.New("ho ho ho merry festivus"))
 			})
 
 			It("returns 500 Internal Server Error", func() {
@@ -1232,10 +1232,10 @@ var _ = Describe("Builds API", func() {
 
 		Context("when build is not found", func() {
 			BeforeEach(func() {
-				teamDB.GetBuildReturns(nil, false, nil)
+				buildsDB.GetBuildByIDReturns(nil, false, nil)
 			})
 
-			It("returns 500 Internal Server Error", func() {
+			It("returns 404", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
 		})
@@ -1266,10 +1266,22 @@ var _ = Describe("Builds API", func() {
 
 			BeforeEach(func() {
 				build.JobNameReturns("job1")
-				teamDB.GetBuildReturns(build, true, nil)
+				build.TeamNameReturns("some-team")
+				buildsDB.GetBuildByIDReturns(build, true, nil)
 
 				engineBuild = new(enginefakes.FakeBuild)
 				fakeEngine.LookupBuildReturns(engineBuild, nil)
+			})
+
+			Context("when authenticated, but not authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("some-other-team", 5, false, true)
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
 			})
 
 			Context("when not authenticated", func() {
@@ -1347,12 +1359,6 @@ var _ = Describe("Builds API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 
-					It("returns builds for team in the context", func() {
-						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-						Expect(teamName).To(Equal("some-team"))
-					})
-
 					It("returns the plan", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
@@ -1378,7 +1384,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build is not found", func() {
 			BeforeEach(func() {
-				teamDB.GetBuildReturns(nil, false, nil)
+				buildsDB.GetBuildByIDReturns(nil, false, nil)
 			})
 
 			It("returns Not Found", func() {
@@ -1388,7 +1394,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when looking up the build fails", func() {
 			BeforeEach(func() {
-				teamDB.GetBuildReturns(nil, false, errors.New("oh no!"))
+				buildsDB.GetBuildByIDReturns(nil, false, errors.New("oh no!"))
 			})
 
 			It("returns 500 Internal Server Error", func() {
