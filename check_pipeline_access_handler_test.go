@@ -80,7 +80,6 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 			It("returns 200 OK", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
-
 		})
 
 		Context("when pipeline is private", func() {
