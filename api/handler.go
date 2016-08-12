@@ -128,7 +128,7 @@ func NewHandler(
 		atc.ListBuilds:          http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild:         http.HandlerFunc(buildServer.CreateBuild),
 		atc.BuildResources:      buildHandlerFactory.HandlerFor(buildServer.BuildResources),
-		atc.AbortBuild:          http.HandlerFunc(buildServer.AbortBuild),
+		atc.AbortBuild:          buildHandlerFactory.HandlerFor(buildServer.AbortBuild),
 		atc.GetBuildPlan:        buildHandlerFactory.HandlerFor(buildServer.GetBuildPlan),
 		atc.GetBuildPreparation: buildHandlerFactory.HandlerFor(buildServer.GetBuildPreparation),
 		atc.BuildEvents:         buildHandlerFactory.HandlerFor(buildServer.BuildEvents),

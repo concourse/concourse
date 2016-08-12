@@ -16,12 +16,13 @@ import (
 
 var _ = Describe("APIAuthWrappa", func() {
 	var (
-		fakeAuthValidator                     auth.Validator
-		fakeTokenValidator                    auth.Validator
-		fakeUserContextReader                 *authfakes.FakeUserContextReader
-		fakeCheckPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory
-		fakeCheckBuildAccessHandlerFactory    auth.CheckBuildAccessHandlerFactory
-		publiclyViewable                      bool
+		fakeAuthValidator                       auth.Validator
+		fakeTokenValidator                      auth.Validator
+		fakeUserContextReader                   *authfakes.FakeUserContextReader
+		fakeCheckPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
+		fakeCheckBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
+		fakeCheckBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
+		publiclyViewable                        bool
 	)
 
 	BeforeEach(func() {
@@ -37,7 +38,8 @@ var _ = Describe("APIAuthWrappa", func() {
 		)
 
 		buildsDB := new(authfakes.FakeBuildsDB)
-		fakeCheckBuildAccessHandlerFactory = auth.NewCheckBuildAccessHandlerFactory(buildsDB)
+		fakeCheckBuildReadAccessHandlerFactory = auth.NewCheckBuildReadAccessHandlerFactory(buildsDB)
+		fakeCheckBuildWriteAccessHandlerFactory = auth.NewCheckBuildWriteAccessHandlerFactory(buildsDB)
 	})
 
 	unauthenticated := func(handler http.Handler) http.Handler {
@@ -94,7 +96,7 @@ var _ = Describe("APIAuthWrappa", func() {
 
 	doesNotCheckIfPrivateJob := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
-			fakeCheckBuildAccessHandlerFactory.AnyJobHandler(
+			fakeCheckBuildReadAccessHandlerFactory.AnyJobHandler(
 				handler,
 				auth.UnauthorizedRejector{},
 			),
@@ -105,7 +107,18 @@ var _ = Describe("APIAuthWrappa", func() {
 
 	checksIfPrivateJob := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
-			fakeCheckBuildAccessHandlerFactory.CheckIfPrivateJobHandler(
+			fakeCheckBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(
+				handler,
+				auth.UnauthorizedRejector{},
+			),
+			fakeTokenValidator,
+			fakeUserContextReader,
+		)
+	}
+
+	checkWritePermissionForBuild := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			fakeCheckBuildWriteAccessHandlerFactory.HandlerFor(
 				handler,
 				auth.UnauthorizedRejector{},
 			),
@@ -148,6 +161,9 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.BuildEvents:         checksIfPrivateJob(inputHandlers[atc.BuildEvents]),
 				atc.GetBuildPreparation: checksIfPrivateJob(inputHandlers[atc.GetBuildPreparation]),
 
+				// resource belongs to authorized team
+				atc.AbortBuild: checkWritePermissionForBuild(inputHandlers[atc.AbortBuild]),
+
 				// belongs to public pipeline or authorized
 				atc.GetPipeline:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetPipeline]),
 				atc.GetJobBuild:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetJobBuild]),
@@ -162,7 +178,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListResourceVersions:          openForPublicPipelineOrAuthorized(inputHandlers[atc.ListResourceVersions]),
 
 				// authenticated
-				atc.AbortBuild:      authenticated(inputHandlers[atc.AbortBuild]),
 				atc.CreateBuild:     authenticated(inputHandlers[atc.CreateBuild]),
 				atc.CreatePipe:      authenticated(inputHandlers[atc.CreatePipe]),
 				atc.GetAuthToken:    authenticatedWithAuthValidator(inputHandlers[atc.GetAuthToken]),
@@ -178,7 +193,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
 				atc.WritePipe:       authenticated(inputHandlers[atc.WritePipe]),
 
-				// authorized
+				// authorized (requested team matches resource team)
 				atc.CheckResource:          authorized(inputHandlers[atc.CheckResource]),
 				atc.CreateJobBuild:         authorized(inputHandlers[atc.CreateJobBuild]),
 				atc.DeletePipeline:         authorized(inputHandlers[atc.DeletePipeline]),
@@ -207,7 +222,8 @@ var _ = Describe("APIAuthWrappa", func() {
 				fakeTokenValidator,
 				fakeUserContextReader,
 				fakeCheckPipelineAccessHandlerFactory,
-				fakeCheckBuildAccessHandlerFactory,
+				fakeCheckBuildReadAccessHandlerFactory,
+				fakeCheckBuildWriteAccessHandlerFactory,
 			).Wrap(inputHandlers)
 		})
 

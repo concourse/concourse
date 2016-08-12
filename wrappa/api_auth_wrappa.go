@@ -7,11 +7,12 @@ import (
 )
 
 type APIAuthWrappa struct {
-	AuthValidator                     auth.Validator
-	TokenValidator                    auth.Validator
-	UserContextReader                 auth.UserContextReader
-	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory
-	checkBuildAccessHandlerFactory    auth.CheckBuildAccessHandlerFactory
+	AuthValidator                       auth.Validator
+	TokenValidator                      auth.Validator
+	UserContextReader                   auth.UserContextReader
+	checkPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
+	checkBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
+	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
 }
 
 func NewAPIAuthWrappa(
@@ -19,14 +20,16 @@ func NewAPIAuthWrappa(
 	tokenValidator auth.Validator,
 	userContextReader auth.UserContextReader,
 	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory,
-	checkBuildAccessHandlerFactory auth.CheckBuildAccessHandlerFactory,
+	checkBuildReadAccessHandlerFactory auth.CheckBuildReadAccessHandlerFactory,
+	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
-		AuthValidator:                     authValidator,
-		TokenValidator:                    tokenValidator,
-		UserContextReader:                 userContextReader,
-		checkPipelineAccessHandlerFactory: checkPipelineAccessHandlerFactory,
-		checkBuildAccessHandlerFactory:    checkBuildAccessHandlerFactory,
+		AuthValidator:                       authValidator,
+		TokenValidator:                      tokenValidator,
+		UserContextReader:                   userContextReader,
+		checkPipelineAccessHandlerFactory:   checkPipelineAccessHandlerFactory,
+		checkBuildReadAccessHandlerFactory:  checkBuildReadAccessHandlerFactory,
+		checkBuildWriteAccessHandlerFactory: checkBuildWriteAccessHandlerFactory,
 	}
 }
 
@@ -52,12 +55,15 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case atc.GetBuild,
 			atc.BuildResources,
 			atc.GetBuildPlan:
-			newHandler = wrappa.checkBuildAccessHandlerFactory.AnyJobHandler(handler, rejector)
+			newHandler = wrappa.checkBuildReadAccessHandlerFactory.AnyJobHandler(handler, rejector)
 
 		// pipeline and job are public or authorized
 		case atc.GetBuildPreparation,
 			atc.BuildEvents:
-			newHandler = wrappa.checkBuildAccessHandlerFactory.CheckIfPrivateJobHandler(handler, rejector)
+			newHandler = wrappa.checkBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(handler, rejector)
+
+		case atc.AbortBuild:
+			newHandler = wrappa.checkBuildWriteAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		// pipeline is public or authorized
 		case atc.GetPipeline,
@@ -75,7 +81,6 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 
 		// authenticated
 		case atc.GetAuthToken,
-			atc.AbortBuild,
 			atc.CreateBuild,
 			atc.CreatePipe,
 			atc.GetContainer,

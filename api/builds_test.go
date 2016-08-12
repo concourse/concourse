@@ -963,70 +963,75 @@ var _ = Describe("Builds API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			Context("when team is in the context", func() {
-				BeforeEach(func() {
-					userContextReader.GetTeamReturns("some-team", 2, true, true)
-				})
-
-				It("returns builds for team in the context", func() {
-					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-					Expect(teamName).To(Equal("some-team"))
-				})
-			})
-
 			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					teamDB.GetBuildReturns(build, true, nil)
+					build.TeamNameReturns("some-team")
+					buildsDB.GetBuildByIDReturns(build, true, nil)
 				})
 
-				Context("when the engine returns a build", func() {
-					var fakeBuild *enginefakes.FakeBuild
-
+				Context("when accessing same team's build", func() {
 					BeforeEach(func() {
-						fakeBuild = new(enginefakes.FakeBuild)
-						fakeEngine.LookupBuildReturns(fakeBuild, nil)
+						userContextReader.GetTeamReturns("some-team", 2, true, true)
 					})
 
-					It("aborts the build", func() {
-						Expect(fakeBuild.AbortCallCount()).To(Equal(1))
-					})
+					Context("when the engine returns a build", func() {
+						var fakeBuild *enginefakes.FakeBuild
 
-					Context("when aborting succeeds", func() {
 						BeforeEach(func() {
-							fakeBuild.AbortReturns(nil)
+							fakeBuild = new(enginefakes.FakeBuild)
+							fakeEngine.LookupBuildReturns(fakeBuild, nil)
 						})
 
-						It("returns 204", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+						It("aborts the build", func() {
+							Expect(fakeBuild.AbortCallCount()).To(Equal(1))
+						})
+
+						Context("when aborting succeeds", func() {
+							BeforeEach(func() {
+								fakeBuild.AbortReturns(nil)
+							})
+
+							It("returns 204", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+							})
+						})
+
+						Context("when aborting fails", func() {
+							BeforeEach(func() {
+								fakeBuild.AbortReturns(errors.New("oh no!"))
+							})
+
+							It("returns 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
 						})
 					})
 
-					Context("when aborting fails", func() {
+					Context("when the engine returns no build", func() {
 						BeforeEach(func() {
-							fakeBuild.AbortReturns(errors.New("oh no!"))
+							fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
 						})
 
-						It("returns 500", func() {
+						It("returns Internal Server Error", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
 					})
 				})
 
-				Context("when the engine returns no build", func() {
+				Context("when accessing other team's build", func() {
 					BeforeEach(func() {
-						fakeEngine.LookupBuildReturns(nil, errors.New("oh no!"))
+						userContextReader.GetTeamReturns("some-other-team", 2, true, true)
 					})
 
-					It("returns Internal Server Error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
 			})
 
 			Context("when the build can not be found", func() {
 				BeforeEach(func() {
-					teamDB.GetBuildReturns(nil, false, nil)
+					buildsDB.GetBuildByIDReturns(nil, false, nil)
 				})
 
 				It("returns Not Found", func() {
@@ -1036,7 +1041,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when calling the database fails", func() {
 				BeforeEach(func() {
-					teamDB.GetBuildReturns(nil, false, errors.New("nope"))
+					buildsDB.GetBuildByIDReturns(nil, false, errors.New("nope"))
 				})
 
 				It("returns Internal Server Error", func() {
