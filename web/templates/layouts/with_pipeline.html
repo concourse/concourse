@@ -44,13 +44,16 @@
       </nav>
 
       <div class="bottom">
-        <div class="sidebar js-sidebar">
-          <ul class="pipelines js-pipelines-list"></ul>
-        </div>
+        <div id="pipelines-nav-app" class="sidebar js-sidebar"></div>
 
         <div id="content">
         {{template "body" .}}
         </div>
+
+        <script type="text/javascript">
+        var node = document.getElementById("pipelines-nav-app");
+        Elm.PipelinesNavPage.embed(node);
+        </script>
       </div>
     </div>
   </body>

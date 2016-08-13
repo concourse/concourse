@@ -2,45 +2,89 @@
 
 @sidebarWidth: 300px;
 
-.pipelines {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-  height: 100%;
-
+.sidebar {
+  overflow-y: auto;
+  overflow-x: hidden;
   width: @sidebarWidth;
   background: @base00;
 
-  overflow: auto;
-}
-
-.pipelines li {
-  position: relative;
-  padding: 0;
-  margin: 0;
-  text-align: right;
-  background: @base00;
-  border-bottom: 1px solid @base02;
+  display: none;
   line-height: 28px;
+  color: @base04;
 
-  &:hover {
-    background: @base01;
-  }
-
-  & a {
+  &.visible {
     display: block;
-    padding-right: 10px;
-    // right-padding - pause button width - left padding
-    width: @sidebarWidth - 10px - 28px - 5px;
-    float: right;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
   }
 
-  span.fl {
-    position: absolute;
-    top: 0px;
-    left: 0px;
+  & ul{
+    list-style: none;
+    margin: 0px;
+  }
+
+  .team {
+
+    text-align: center;
+
+    & ul{
+      background-color: @base01;
+      border-bottom: 1px solid @base02;
+      border-top: 1px solid @base02;
+    }
+
+    & li {
+      position: relative;
+      border-bottom: 1px solid @base02;
+
+      &.space-after {
+        border-bottom: 3px solid @base03;
+      }
+
+      &:first-of-type {
+        border-top: 1px solid @base02;
+
+        &.space-before {
+          border-top: 3px solid @base03;
+        }
+      }
+
+      .drop-area {
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        top: 50%;
+        background: transparent;
+        z-index: 2;
+
+        &.first {
+          background: transparent;
+          top: -50%;
+        }
+      }
+
+      .draggable {
+        position: relative;
+
+        & div {
+          background: @base00;
+          display: flex;
+          & span {
+            flex-grow: 0;
+          }
+          & a {
+            flex-grow: 1;
+            text-align: right;
+            padding-right: 10px;
+          }
+        }
+
+        &.dragging {
+          z-index: 1;
+
+          &.purposeful {
+            opacity: 0.75;
+          }
+        }
+      }
+    }
   }
 }
