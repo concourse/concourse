@@ -266,35 +266,30 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	var httpHandler http.Handler
 	if cmd.TLSBindPort != 0 {
-		apiRedirectHandler := redirectingAPIHandler{
-			externalHost: cmd.ExternalURL.URL().Host,
-			baseHandler:  apiHandler,
-		}
-
-		oauthRedirectHandler := redirectingAPIHandler{
+		oauthHandler = redirectingAPIHandler{
 			externalHost: cmd.ExternalURL.URL().Host,
 			baseHandler:  oauthHandler,
 		}
 
-		webRedirectHandler := redirectingAPIHandler{
+		webHandler = redirectingAPIHandler{
 			externalHost: cmd.ExternalURL.URL().Host,
 			baseHandler:  webHandler,
 		}
 
-		httpHandler = cmd.constructHTTPHandler(
-			webRedirectHandler,
-			apiRedirectHandler,
-			oauthRedirectHandler,
-		)
-	} else {
-		httpHandler = cmd.constructHTTPHandler(
-			webHandler,
-			apiHandler,
-			oauthHandler,
-		)
+		// note: intentionally not wrapping API; redirecting is more trouble than
+		// it's worth.
+
+		// we're mainly interested in having the web UI consistently https:// - API
+		// requests will likely not respect the redirected https:// URI upon the
+		// next request, plus the payload will have already been sent in plaintext
 	}
+
+	httpHandler := cmd.constructHTTPHandler(
+		webHandler,
+		apiHandler,
+		oauthHandler,
+	)
 
 	members := []grouper.Member{
 		{"drainer", drainer(drain)},
