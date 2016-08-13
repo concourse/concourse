@@ -294,6 +294,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			apiHandler,
 			oauthHandler,
 		)
+	} else {
+		httpHandler = cmd.constructHTTPHandler(
+			webHandler,
+			apiHandler,
+			oauthHandler,
+		)
 	}
 
 	members := []grouper.Member{

@@ -62,7 +62,7 @@ var _ = Describe("TLS", func() {
 		Expect(resp.TLS.PeerCertificates[0].Issuer.Organization).To(ContainElement("Acme Co"))
 	})
 
-	It("redirects HTTP API traffic to HTTPS", func() {
+	It("does not redirect HTTP API traffic to HTTPS", func() {
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
@@ -78,7 +78,7 @@ var _ = Describe("TLS", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(resp.Request.URL.String()).To(Equal(atcCommand.TLSURL("/api/v1/workers")))
+		Expect(resp.Request.URL.String()).To(Equal(atcCommand.URL("/api/v1/workers")))
 	})
 
 	It("redirects HTTP web traffic to HTTPS", func() {
