@@ -74,6 +74,7 @@ func NewHandler(
 
 	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory)
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
+	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, teamDBFactory)
 
 	authServer := authserver.NewServer(
 		logger,
@@ -126,7 +127,7 @@ func NewHandler(
 
 		atc.GetBuild:            buildHandlerFactory.HandlerFor(buildServer.GetBuild),
 		atc.ListBuilds:          http.HandlerFunc(buildServer.ListBuilds),
-		atc.CreateBuild:         http.HandlerFunc(buildServer.CreateBuild),
+		atc.CreateBuild:         teamHandlerFactory.HandlerFor(buildServer.CreateBuild),
 		atc.BuildResources:      buildHandlerFactory.HandlerFor(buildServer.BuildResources),
 		atc.AbortBuild:          buildHandlerFactory.HandlerFor(buildServer.AbortBuild),
 		atc.GetBuildPlan:        buildHandlerFactory.HandlerFor(buildServer.GetBuildPlan),
@@ -171,7 +172,7 @@ func NewHandler(
 		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
 		atc.ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
 
-		atc.ListWorkers:    http.HandlerFunc(workerServer.ListWorkers),
+		atc.ListWorkers:    teamHandlerFactory.HandlerFor(workerServer.ListWorkers),
 		atc.RegisterWorker: http.HandlerFunc(workerServer.RegisterWorker),
 
 		atc.SetLogLevel: http.HandlerFunc(logLevelServer.SetMinLevel),
@@ -180,11 +181,11 @@ func NewHandler(
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:     http.HandlerFunc(infoServer.Info),
 
-		atc.ListContainers:  http.HandlerFunc(containerServer.ListContainers),
-		atc.GetContainer:    http.HandlerFunc(containerServer.GetContainer),
-		atc.HijackContainer: http.HandlerFunc(containerServer.HijackContainer),
+		atc.ListContainers:  teamHandlerFactory.HandlerFor(containerServer.ListContainers),
+		atc.GetContainer:    teamHandlerFactory.HandlerFor(containerServer.GetContainer),
+		atc.HijackContainer: teamHandlerFactory.HandlerFor(containerServer.HijackContainer),
 
-		atc.ListVolumes: http.HandlerFunc(volumesServer.ListVolumes),
+		atc.ListVolumes: teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
 
 		atc.ListTeams: http.HandlerFunc(teamServer.ListTeams),
 		atc.SetTeam:   http.HandlerFunc(teamServer.SetTeam),

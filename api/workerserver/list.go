@@ -6,24 +6,25 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) ListWorkers(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ListWorkers(teamDB db.TeamDB) http.Handler {
 	logger := s.logger.Session("list-workers")
 
-	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthTeamName(r))
-	savedWorkers, err := teamDB.Workers()
-	if err != nil {
-		logger.Error("failed-to-get-workers", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		savedWorkers, err := teamDB.Workers()
+		if err != nil {
+			logger.Error("failed-to-get-workers", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	workers := make([]atc.Worker, len(savedWorkers))
-	for i, savedWorker := range savedWorkers {
-		workers[i] = present.Worker(savedWorker)
-	}
+		workers := make([]atc.Worker, len(savedWorkers))
+		for i, savedWorker := range savedWorkers {
+			workers[i] = present.Worker(savedWorker)
+		}
 
-	json.NewEncoder(w).Encode(workers)
+		json.NewEncoder(w).Encode(workers)
+	})
 }

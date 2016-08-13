@@ -62,6 +62,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.BuildEvents:
 			newHandler = wrappa.checkBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(handler, rejector)
 
+		// resource belongs to authorized team
 		case atc.AbortBuild:
 			newHandler = wrappa.checkBuildWriteAccessHandlerFactory.HandlerFor(handler, rejector)
 
@@ -79,7 +80,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListResourceVersions:
 			newHandler = wrappa.checkPipelineAccessHandlerFactory.HandlerFor(handler, rejector)
 
-		// authenticated
+		// authorized (requested team matches resource team)
 		case atc.GetAuthToken,
 			atc.CreateBuild,
 			atc.CreatePipe,

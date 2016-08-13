@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/db"
 	"github.com/gorilla/websocket"
 )
 
@@ -17,52 +17,52 @@ var upgrader = websocket.Upgrader{
 	HandshakeTimeout: 5 * time.Second,
 }
 
-func (s *Server) HijackContainer(w http.ResponseWriter, r *http.Request) {
-	teamName := auth.GetAuthTeamName(r)
-	handle := r.FormValue(":id")
+func (s *Server) HijackContainer(teamDB db.TeamDB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handle := r.FormValue(":id")
 
-	hLog := s.logger.Session("hijack", lager.Data{
-		"handle": handle,
+		hLog := s.logger.Session("hijack", lager.Data{
+			"handle": handle,
+		})
+
+		_, found, err := teamDB.GetContainer(handle)
+		if err != nil {
+			hLog.Error("failed-to-find-container", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			hLog.Info("container-not-found")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		hLog.Debug("found-container")
+
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			hLog.Error("unable-to-upgrade-connection-for-websockets", err)
+			return
+		}
+
+		defer conn.Close()
+
+		var processSpec atc.HijackProcessSpec
+		err = conn.ReadJSON(&processSpec)
+		if err != nil {
+			hLog.Error("malformed-process-spec", err)
+			closeWithErr(hLog, conn, websocket.CloseUnsupportedData, fmt.Sprintf("malformed process spec"))
+			return
+		}
+
+		hijackRequest := hijackRequest{
+			ContainerHandle: handle,
+			Process:         processSpec,
+		}
+
+		s.hijack(hLog, conn, hijackRequest)
 	})
-
-	teamDB := s.teamDBFactory.GetTeamDB(teamName)
-	_, found, err := teamDB.GetContainer(handle)
-	if err != nil {
-		hLog.Error("failed-to-find-container", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		hLog.Info("container-not-found")
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	hLog.Debug("found-container")
-
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		hLog.Error("unable-to-upgrade-connection-for-websockets", err)
-		return
-	}
-
-	defer conn.Close()
-
-	var processSpec atc.HijackProcessSpec
-	err = conn.ReadJSON(&processSpec)
-	if err != nil {
-		hLog.Error("malformed-process-spec", err)
-		closeWithErr(hLog, conn, websocket.CloseUnsupportedData, fmt.Sprintf("malformed process spec"))
-		return
-	}
-
-	hijackRequest := hijackRequest{
-		ContainerHandle: handle,
-		Process:         processSpec,
-	}
-
-	s.hijack(hLog, conn, hijackRequest)
 }
 
 type hijackRequest struct {

@@ -36,6 +36,7 @@ var _ = Describe("Volumes API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 42, true, true)
 			})
 
 			Context("when getting all volumes succeeds", func() {

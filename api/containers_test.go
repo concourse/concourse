@@ -95,6 +95,7 @@ var _ = Describe("Containers API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 42, true, true)
 			})
 
 			Context("with no params", func() {
@@ -465,6 +466,7 @@ var _ = Describe("Containers API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 42, true, true)
 			})
 
 			Context("when the container is not found", func() {
@@ -602,6 +604,7 @@ var _ = Describe("Containers API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 42, true, true)
 			})
 
 			Context("and the worker client returns a container", func() {
