@@ -1,13 +1,13 @@
 {{define "title"}}{{.PipelineName}} - Concourse{{end}}
 
 {{define "body"}}
+<script src="{{asset "elm.min.js"}}"></script>
 {{if .Elm}}
 <div id="elm-app"></div>
 
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "concourse.js"}}"></script>
 <script src="{{asset "fit.min.js"}}"></script>
-<script src="{{asset "elm.min.js"}}"></script>
 <script type="text/javascript">
 concourse.pipelineName = "{{.PipelineName}}"; // used for detecting if the pipeline is paused
 
