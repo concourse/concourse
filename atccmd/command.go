@@ -266,30 +266,35 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
+	var httpHandler, httpsHandler http.Handler
 	if cmd.TLSBindPort != 0 {
-		oauthHandler = redirectingAPIHandler{
-			externalHost: cmd.ExternalURL.URL().Host,
-			baseHandler:  oauthHandler,
-		}
+		httpHandler = cmd.constructHTTPHandler(
+			tlsRedirectHandler{
+				externalHost: cmd.ExternalURL.URL().Host,
+				baseHandler:  webHandler,
+			},
 
-		webHandler = redirectingAPIHandler{
-			externalHost: cmd.ExternalURL.URL().Host,
-			baseHandler:  webHandler,
-		}
+			// note: intentionally not wrapping API; redirecting is more trouble than
+			// it's worth.
 
-		// note: intentionally not wrapping API; redirecting is more trouble than
-		// it's worth.
+			// we're mainly interested in having the web UI consistently https:// -
+			// API requests will likely not respect the redirected https:// URI upon
+			// the next request, plus the payload will have already been sent in
+			// plaintext
+			apiHandler,
 
-		// we're mainly interested in having the web UI consistently https:// - API
-		// requests will likely not respect the redirected https:// URI upon the
-		// next request, plus the payload will have already been sent in plaintext
+			tlsRedirectHandler{
+				externalHost: cmd.ExternalURL.URL().Host,
+				baseHandler:  oauthHandler,
+			},
+		)
+
+		httpsHandler = cmd.constructHTTPHandler(
+			webHandler,
+			apiHandler,
+			oauthHandler,
+		)
 	}
-
-	httpHandler := cmd.constructHTTPHandler(
-		webHandler,
-		apiHandler,
-		oauthHandler,
-	)
 
 	members := []grouper.Member{
 		{"drainer", drainer(drain)},
@@ -369,14 +374,18 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		members = cmd.appendStaticWorker(logger, sqlDB, members)
 	}
 
-	if cmd.TLSBindPort != 0 {
-		httpHandler = cmd.httpsRedirectingHandler(httpHandler)
-
-		var err error
-		members, err = cmd.appendTLSMember(webHandler, apiHandler, oauthHandler, members)
+	if httpsHandler != nil {
+		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
 		if err != nil {
 			return nil, err
 		}
+
+		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+		members = append(members, grouper.Member{"web-tls", http_server.NewTLSServer(
+			cmd.tlsBindAddr(),
+			httpsHandler,
+			tlsConfig,
+		)})
 	}
 
 	members = append(members, grouper.Member{"web", http_server.New(
@@ -875,12 +884,12 @@ func (cmd *ATCCommand) constructAPIHandler(
 	)
 }
 
-type redirectingAPIHandler struct {
+type tlsRedirectHandler struct {
 	externalHost string
 	baseHandler  http.Handler
 }
 
-func (h redirectingAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" || r.Method == "HEAD" {
 		u := url.URL{
 			Scheme:   "https",
@@ -962,29 +971,4 @@ func (cmd *ATCCommand) appendStaticWorker(
 			),
 		},
 	)
-}
-
-func (cmd *ATCCommand) appendTLSMember(
-	webHandler http.Handler,
-	apiHandler http.Handler,
-	oauthHandler http.Handler,
-	members []grouper.Member,
-) ([]grouper.Member, error) {
-	cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
-	if err != nil {
-		return []grouper.Member{}, err
-	}
-
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
-	members = append(members, grouper.Member{"web-tls", http_server.NewTLSServer(
-		cmd.tlsBindAddr(),
-		cmd.constructHTTPHandler(
-			webHandler,
-			apiHandler,
-			oauthHandler,
-		),
-		tlsConfig,
-	)})
-
-	return members, nil
 }
