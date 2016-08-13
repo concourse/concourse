@@ -160,31 +160,52 @@ var _ = Describe("Pipes API", func() {
 				BeforeEach(func() {
 					otherATCServer = ghttp.NewServer()
 
-					otherATCServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/pipes/some-guid"),
-							ghttp.VerifyHeaderKV("Connection", "close"),
-							ghttp.RespondWith(200, "hello from the other side"),
-						),
-					)
-
 					pipeDB.GetPipeReturns(db.Pipe{
 						ID:  "some-guid",
 						URL: otherATCServer.URL(),
 					}, nil)
-
 				})
 
-				It("forwards request to that ATC with disabled keep-alive", func() {
-					req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
-					Expect(err).NotTo(HaveOccurred())
+				Context("when the other ATC returns 200", func() {
+					BeforeEach(func() {
+						otherATCServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/pipes/some-guid"),
+								ghttp.VerifyHeaderKV("Connection", "close"),
+								ghttp.RespondWith(200, "hello from the other side"),
+							),
+						)
+					})
 
-					response, err := client.Do(req)
-					Expect(err).NotTo(HaveOccurred())
+					It("forwards request to that ATC with disabled keep-alive", func() {
+						req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
+						Expect(err).NotTo(HaveOccurred())
 
-					Expect(otherATCServer.ReceivedRequests()).To(HaveLen(1))
+						response, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
 
-					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("hello from the other side")))
+						Expect(otherATCServer.ReceivedRequests()).To(HaveLen(1))
+
+						Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("hello from the other side")))
+					})
+				})
+
+				Context("when the other ATC returns a bad status code", func() {
+					BeforeEach(func() {
+						otherATCServer.AppendHandlers(ghttp.RespondWith(403, "nope"))
+					})
+
+					It("returns the same status code", func() {
+						req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
+						Expect(err).NotTo(HaveOccurred())
+
+						response, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(otherATCServer.ReceivedRequests()).To(HaveLen(1))
+
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
 				})
 			})
 		})
