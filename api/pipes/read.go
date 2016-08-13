@@ -64,8 +64,6 @@ func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.WriteHeader(response.StatusCode)
-
 		w.(http.Flusher).Flush()
 
 		copied := make(chan struct{})

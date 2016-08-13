@@ -130,12 +130,12 @@ var _ = BeforeEach(func() {
 
 	build = new(dbfakes.FakeBuild)
 
-	handlers, err := api.NewHandler(
+	handler, err := api.NewHandler(
 		logger,
 
 		externalURL,
 
-		[]wrappa.Wrappa{wrappa.NewAPIAuthWrappa(authValidator, authValidator, userContextReader)},
+		wrappa.NewAPIAuthWrappa(authValidator, authValidator, userContextReader),
 
 		fakeTokenGenerator,
 		providerFactory,
@@ -170,8 +170,6 @@ var _ = BeforeEach(func() {
 		"1.2.3",
 	)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(handlers).To(HaveLen(1))
-	handler := handlers[0]
 
 	server = httptest.NewServer(handler)
 

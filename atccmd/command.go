@@ -227,7 +227,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	drain := make(chan struct{})
 
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
-	apiHandler, apiRedirectHandler, err := cmd.constructAPIHandler(
+	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
 		sqlDB,
@@ -268,6 +268,11 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	var httpHandler http.Handler
 	if cmd.TLSBindPort != 0 {
+		apiRedirectHandler := redirectingAPIHandler{
+			externalHost: cmd.ExternalURL.URL().Host,
+			baseHandler:  apiHandler,
+		}
+
 		oauthRedirectHandler := redirectingAPIHandler{
 			externalHost: cmd.ExternalURL.URL().Host,
 			baseHandler:  oauthHandler,
@@ -825,7 +830,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
 	devMode bool,
-) (http.Handler, http.Handler, error) {
+) (http.Handler, error) {
 	tokenValidator := cmd.constructTokenValidator(&signingKey.PublicKey)
 	authValidator := cmd.constructAuthValidator(teamDBFactory, tokenValidator)
 
@@ -839,15 +844,10 @@ func (cmd *ATCCommand) constructAPIHandler(
 		wrappa.NewConcourseVersionWrappa(Version),
 	}
 
-	redirectingWrappa := wrappa.MultiWrappa{
-		apiWrapper,
-		wrappa.NewAPITLSRedirectWrappa(cmd.ExternalURL.URL().Host),
-	}
-
-	handlers, err := api.NewHandler(
+	return api.NewHandler(
 		logger,
 		cmd.ExternalURL.String(),
-		[]wrappa.Wrappa{apiWrapper, redirectingWrappa},
+		apiWrapper,
 
 		auth.NewTokenGenerator(signingKey),
 		providerFactory,
@@ -878,12 +878,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.CLIArtifactsDir.Path(),
 		Version,
 	)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return handlers[0], handlers[1], nil
 }
 
 type redirectingAPIHandler struct {
