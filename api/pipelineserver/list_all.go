@@ -12,12 +12,12 @@ import (
 // show all public pipelines and team private pipelines if authorized
 func (s *Server) ListAllPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-all-pipelines")
-	authedTeamName, _, _, teamIsInAuth := auth.GetTeam(r)
+	authTeam, authTeamFound := auth.GetTeam(r)
 
 	var pipelines []db.SavedPipeline
 	var err error
-	if teamIsInAuth {
-		pipelines, err = s.teamDBFactory.GetTeamDB(authedTeamName).GetPrivateAndAllPublicPipelines()
+	if authTeamFound {
+		pipelines, err = s.teamDBFactory.GetTeamDB(authTeam.Name()).GetPrivateAndAllPublicPipelines()
 	} else {
 		pipelines, err = s.pipelinesDB.GetAllPublicPipelines()
 	}

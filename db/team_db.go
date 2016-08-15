@@ -32,7 +32,6 @@ type TeamDB interface {
 
 	CreateOneOffBuild() (Build, error)
 	GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, error)
-	GetBuild(buildID int) (Build, bool, error)
 
 	Workers() ([]SavedWorker, error)
 	GetContainer(handle string) (SavedContainer, bool, error)

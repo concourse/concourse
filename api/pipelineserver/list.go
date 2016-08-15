@@ -13,12 +13,13 @@ func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-pipelines")
 	requestTeamName := r.FormValue(":team_name")
 
-	authedTeamName, _, _, teamIsInAuth := auth.GetTeam(r)
-	teamDB := s.teamDBFactory.GetTeamDB(authedTeamName)
+	authTeam, authTeamFound := auth.GetTeam(r)
+
+	teamDB := s.teamDBFactory.GetTeamDB(requestTeamName)
 
 	var pipelines []db.SavedPipeline
 	var err error
-	if teamIsInAuth && requestTeamName == authedTeamName {
+	if authTeamFound && authTeam.IsAuthorized(requestTeamName) {
 		pipelines, err = teamDB.GetPipelines()
 	} else {
 		pipelines, err = teamDB.GetPublicPipelines()

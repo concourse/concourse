@@ -22,7 +22,6 @@ var _ = Describe("WrapHandler", func() {
 
 		authenticated   <-chan bool
 		teamNameChan    <-chan string
-		teamIDChan      <-chan int
 		isAdminChan     <-chan bool
 		isSystemChan    <-chan bool
 		foundChan       <-chan bool
@@ -35,7 +34,6 @@ var _ = Describe("WrapHandler", func() {
 
 		a := make(chan bool, 1)
 		tn := make(chan string, 1)
-		ti := make(chan int, 1)
 		ia := make(chan bool, 1)
 		is := make(chan bool, 1)
 		f := make(chan bool, 1)
@@ -43,21 +41,21 @@ var _ = Describe("WrapHandler", func() {
 
 		authenticated = a
 		teamNameChan = tn
-		teamIDChan = ti
 		isAdminChan = ia
 		isSystemChan = is
 		foundChan = f
 		systemFoundChan = sf
 		simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			a <- auth.IsAuthenticated(r)
-			teamName, teamID, isAdmin, found := auth.GetTeam(r)
+			authTeam, authTeamFound := auth.GetTeam(r)
 			isSystem, systemFound := r.Context().Value("system").(bool)
 
-			f <- found
+			f <- authTeamFound
 			sf <- systemFound
-			tn <- teamName
-			ti <- teamID
-			ia <- isAdmin
+			if authTeam != nil {
+				tn <- authTeam.Name()
+				ia <- authTeam.IsAdmin()
+			}
 			if systemFound {
 				is <- isSystem
 			}
@@ -120,7 +118,6 @@ var _ = Describe("WrapHandler", func() {
 			It("passes the team information along in the request object", func() {
 				Expect(<-foundChan).To(BeTrue())
 				Expect(<-teamNameChan).To(Equal("some-team"))
-				Expect(<-teamIDChan).To(Equal(9))
 				Expect(<-isAdminChan).To(BeTrue())
 			})
 		})

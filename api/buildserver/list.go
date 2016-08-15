@@ -39,9 +39,9 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	var builds []db.Build
 	var pagination db.Pagination
 
-	teamName, _, _, teamIsInAuth := auth.GetTeam(r)
-	if teamIsInAuth {
-		teamDB := s.teamDBFactory.GetTeamDB(teamName)
+	authTeam, authTeamFound := auth.GetTeam(r)
+	if authTeamFound {
+		teamDB := s.teamDBFactory.GetTeamDB(authTeam.Name())
 		builds, pagination, err = teamDB.GetPrivateAndPublicBuilds(page)
 	} else {
 		builds, pagination, err = s.buildsDB.GetPublicBuilds(page)

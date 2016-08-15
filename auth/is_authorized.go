@@ -11,9 +11,9 @@ const (
 )
 
 func IsAuthorized(r *http.Request) bool {
-	authTeamName, _, _, found := GetTeam(r)
+	authTeam, authTeamFound := GetTeam(r)
 
-	if found && r.URL.Query().Get(":team_name") == authTeamName {
+	if authTeamFound && authTeam.IsAuthorized(r.URL.Query().Get(":team_name")) {
 		return true
 	}
 

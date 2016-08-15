@@ -2,14 +2,39 @@ package auth
 
 import "net/http"
 
-func GetTeam(r *http.Request) (string, int, bool, bool) {
+type Team interface {
+	Name() string
+	IsAdmin() bool
+	IsAuthorized(teamName string) bool
+}
+
+type team struct {
+	name    string
+	isAdmin bool
+}
+
+func (t *team) Name() string {
+	return t.name
+}
+
+func (t *team) IsAdmin() bool {
+	return t.isAdmin
+}
+
+func (t *team) IsAuthorized(teamName string) bool {
+	return t.name == teamName
+}
+
+func GetTeam(r *http.Request) (Team, bool) {
 	teamName, namePresent := r.Context().Value(teamNameKey).(string)
-	teamID, idPresent := r.Context().Value(teamIDKey).(int)
 	isAdmin, adminPresent := r.Context().Value(isAdminKey).(bool)
 
-	if !(namePresent && idPresent && adminPresent) {
-		return "", 0, false, false
+	if !(namePresent && adminPresent) {
+		return nil, false
 	}
 
-	return teamName, teamID, isAdmin, true
+	return &team{
+		name:    teamName,
+		isAdmin: isAdmin,
+	}, true
 }

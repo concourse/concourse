@@ -634,6 +634,11 @@ var _ = Describe("Teams API", func() {
 					userContextReader.GetTeamReturns("non-admin-team", 5, false, true)
 				})
 
+				It("updates requested team", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("non-admin-team"))
+				})
+
 				It("returns 200 OK", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
@@ -666,6 +671,11 @@ var _ = Describe("Teams API", func() {
 			Context("when updating another team", func() {
 				BeforeEach(func() {
 					userContextReader.GetTeamReturns("another-non-admin-team", 5, false, true)
+				})
+
+				It("updates requested team", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("non-admin-team"))
 				})
 
 				It("returns 403 forbidden", func() {

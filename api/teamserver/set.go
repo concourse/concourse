@@ -14,16 +14,15 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	hLog := s.logger.Session("create-team")
 	hLog.Debug("setting team")
 
-	requesterTeamName, _, isAdmin, found := auth.GetTeam(r)
+	authTeam, authTeamFound := auth.GetTeam(r)
 
-	if !found {
+	if !authTeamFound {
 		hLog.Error("failed-to-get-team-from-auth", errors.New("failed-to-get-team-from-auth"))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	teamName := r.FormValue(":team_name")
-
 	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 
 	var team db.Team
@@ -34,11 +33,9 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	team.Name = teamName
-	if !isAdmin {
-		if teamName != requesterTeamName {
-			w.WriteHeader(http.StatusForbidden)
-			return
-		}
+	if !authTeam.IsAdmin() && !authTeam.IsAuthorized(teamName) {
+		w.WriteHeader(http.StatusForbidden)
+		return
 	}
 
 	err = s.validate(team)
@@ -65,7 +62,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-	} else if isAdmin {
+	} else if authTeam.IsAdmin() {
 		hLog.Debug("creating team")
 
 		savedTeam, err = s.teamsDB.CreateTeam(team)
