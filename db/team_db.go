@@ -659,18 +659,6 @@ func (db *teamDB) GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, err
 	return getBuildsWithPagination(buildsQuery, page, db.conn, db.buildFactory)
 }
 
-func (db *teamDB) GetBuild(buildID int) (Build, bool, error) {
-	return db.buildFactory.ScanBuild(db.conn.QueryRow(`
-		SELECT `+qualifiedBuildColumns+`
-		FROM builds b
-		LEFT OUTER JOIN jobs j ON b.job_id = j.id
-		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
-		LEFT OUTER JOIN teams t ON b.team_id = t.id
-		WHERE b.id = $1
-		AND (LOWER(t.name) = LOWER($2) OR p.public = true)
-	`, buildID, db.teamName))
-}
-
 func scanPipeline(rows scannable) (SavedPipeline, error) {
 	var id int
 	var name string
