@@ -13,6 +13,12 @@ import (
 
 type EventHandlerFactory func(lager.Logger, db.Build) http.Handler
 
+//go:generate counterfeiter . BuildsDB
+
+type BuildsDB interface {
+	GetPublicBuilds(page db.Page) ([]db.Build, db.Pagination, error)
+}
+
 type Server struct {
 	logger lager.Logger
 
@@ -21,6 +27,7 @@ type Server struct {
 	engine              engine.Engine
 	workerClient        worker.Client
 	teamDBFactory       db.TeamDBFactory
+	buildsDB            BuildsDB
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
 	rejector            auth.Rejector
@@ -34,6 +41,7 @@ func NewServer(
 	engine engine.Engine,
 	workerClient worker.Client,
 	teamDBFactory db.TeamDBFactory,
+	buildsDB BuildsDB,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
 ) *Server {
@@ -45,6 +53,7 @@ func NewServer(
 		engine:              engine,
 		workerClient:        workerClient,
 		teamDBFactory:       teamDBFactory,
+		buildsDB:            buildsDB,
 		eventHandlerFactory: eventHandlerFactory,
 		drain:               drain,
 

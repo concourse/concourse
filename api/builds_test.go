@@ -623,67 +623,49 @@ var _ = Describe("Builds API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when no params are passed", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				queryParams = ""
+				authValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("", 0, false, false)
 			})
 
-			It("does not set defaults for since and until", func() {
-				Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
-
-				page, _ := teamDB.GetBuildsArgsForCall(0)
-				Expect(page).To(Equal(db.Page{
-					Since: 0,
-					Until: 0,
-					Limit: 100,
-				}))
-			})
-		})
-
-		Context("when all the params are passed", func() {
-			BeforeEach(func() {
-				queryParams = "?since=2&until=3&limit=8"
-			})
-
-			It("passes them through", func() {
-				Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
-
-				page, _ := teamDB.GetBuildsArgsForCall(0)
-				Expect(page).To(Equal(db.Page{
-					Since: 2,
-					Until: 3,
-					Limit: 8,
-				}))
-			})
-		})
-
-		Context("when getting the builds succeeds", func() {
-			BeforeEach(func() {
-				teamDB.GetBuildsReturns(returnedBuilds, db.Pagination{}, nil)
-			})
-
-			Context("when not authenticated", func() {
+			Context("when no params are passed", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(false)
+					queryParams = ""
 				})
 
-				It("returns only public builds", func() {
-					Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
-					_, publicOnly := teamDB.GetBuildsArgsForCall(0)
-					Expect(publicOnly).To(Equal(true))
+				It("does not set defaults for since and until", func() {
+					Expect(buildServerDB.GetPublicBuildsCallCount()).To(Equal(1))
+
+					page := buildServerDB.GetPublicBuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 0,
+						Until: 0,
+						Limit: 100,
+					}))
 				})
 			})
 
-			Context("when authenticated", func() {
+			Context("when all the params are passed", func() {
 				BeforeEach(func() {
-					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", 5, false, true)
+					queryParams = "?since=2&until=3&limit=8"
 				})
 
-				It("returns private builds", func() {
-					Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
-					_, publicOnly := teamDB.GetBuildsArgsForCall(0)
-					Expect(publicOnly).To(Equal(false))
+				It("passes them through", func() {
+					Expect(buildServerDB.GetPublicBuildsCallCount()).To(Equal(1))
+
+					page := buildServerDB.GetPublicBuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 2,
+						Until: 3,
+						Limit: 8,
+					}))
+				})
+			})
+
+			Context("when getting the builds succeeds", func() {
+				BeforeEach(func() {
+					buildServerDB.GetPublicBuildsReturns(returnedBuilds, db.Pagination{}, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -695,67 +677,178 @@ var _ = Describe("Builds API", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`[
-					{
-						"id": 4,
-						"name": "2",
-						"job_name": "job2",
-						"pipeline_name": "pipeline2",
-						"team_name": "some-team",
-						"status": "started",
-						"url": "/teams/some-team/pipelines/pipeline2/jobs/job2/builds/2",
-						"api_url": "/api/v1/builds/4",
-						"start_time": 1,
-						"end_time": 100,
-						"reap_time": 300
-					},
-					{
-						"id": 3,
-						"name": "1",
-						"job_name": "job1",
-						"pipeline_name": "pipeline1",
-						"team_name": "some-team",
-						"status": "succeeded",
-						"url": "/teams/some-team/pipelines/pipeline1/jobs/job1/builds/1",
-						"api_url": "/api/v1/builds/3",
-						"start_time": 101,
-						"end_time": 200,
-						"reap_time": 400
-					}
-				]`))
+						{
+							"id": 4,
+							"name": "2",
+							"job_name": "job2",
+							"pipeline_name": "pipeline2",
+							"team_name": "some-team",
+							"status": "started",
+							"url": "/teams/some-team/pipelines/pipeline2/jobs/job2/builds/2",
+							"api_url": "/api/v1/builds/4",
+							"start_time": 1,
+							"end_time": 100,
+							"reap_time": 300
+						},
+						{
+							"id": 3,
+							"name": "1",
+							"job_name": "job1",
+							"pipeline_name": "pipeline1",
+							"team_name": "some-team",
+							"status": "succeeded",
+							"url": "/teams/some-team/pipelines/pipeline1/jobs/job1/builds/1",
+							"api_url": "/api/v1/builds/3",
+							"start_time": 101,
+							"end_time": 200,
+							"reap_time": 400
+						}
+					]`))
+				})
+			})
+
+			Context("when next/previous pages are available", func() {
+				BeforeEach(func() {
+					buildServerDB.GetPublicBuildsReturns(returnedBuilds, db.Pagination{
+						Previous: &db.Page{Until: 4, Limit: 2},
+						Next:     &db.Page{Since: 3, Limit: 2},
+					}, nil)
+				})
+
+				It("returns Link headers per rfc5988", func() {
+					Expect(response.Header["Link"]).To(ConsistOf([]string{
+						fmt.Sprintf(`<%s/api/v1/builds?until=4&limit=2>; rel="previous"`, externalURL),
+						fmt.Sprintf(`<%s/api/v1/builds?since=3&limit=2>; rel="next"`, externalURL),
+					}))
+				})
+			})
+
+			Context("when getting all builds fails", func() {
+				BeforeEach(func() {
+					buildServerDB.GetPublicBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
+				})
+
+				It("returns 500 Internal Server Error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("some-team", 5, false, true)
+			})
+
+			Context("when no params are passed", func() {
+				BeforeEach(func() {
+					queryParams = ""
+				})
+
+				It("does not set defaults for since and until", func() {
+					Expect(teamDB.GetPrivateAndPublicBuildsCallCount()).To(Equal(1))
+
+					page := teamDB.GetPrivateAndPublicBuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 0,
+						Until: 0,
+						Limit: 100,
+					}))
+				})
+			})
+
+			Context("when all the params are passed", func() {
+				BeforeEach(func() {
+					queryParams = "?since=2&until=3&limit=8"
+				})
+
+				It("passes them through", func() {
+					Expect(teamDB.GetPrivateAndPublicBuildsCallCount()).To(Equal(1))
+
+					page := teamDB.GetPrivateAndPublicBuildsArgsForCall(0)
+					Expect(page).To(Equal(db.Page{
+						Since: 2,
+						Until: 3,
+						Limit: 8,
+					}))
+				})
+			})
+
+			Context("when getting the builds succeeds", func() {
+				BeforeEach(func() {
+					teamDB.GetPrivateAndPublicBuildsReturns(returnedBuilds, db.Pagination{}, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns all builds", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+						{
+							"id": 4,
+							"name": "2",
+							"job_name": "job2",
+							"pipeline_name": "pipeline2",
+							"team_name": "some-team",
+							"status": "started",
+							"url": "/teams/some-team/pipelines/pipeline2/jobs/job2/builds/2",
+							"api_url": "/api/v1/builds/4",
+							"start_time": 1,
+							"end_time": 100,
+							"reap_time": 300
+						},
+						{
+							"id": 3,
+							"name": "1",
+							"job_name": "job1",
+							"pipeline_name": "pipeline1",
+							"team_name": "some-team",
+							"status": "succeeded",
+							"url": "/teams/some-team/pipelines/pipeline1/jobs/job1/builds/1",
+							"api_url": "/api/v1/builds/3",
+							"start_time": 101,
+							"end_time": 200,
+							"reap_time": 400
+						}
+					]`))
 				})
 
 				It("returns builds for team in the context", func() {
-					Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
+					Expect(teamDB.GetPrivateAndPublicBuildsCallCount()).To(Equal(1))
 					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
 					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
 					Expect(teamName).To(Equal("some-team"))
 				})
 			})
-		})
 
-		Context("when next/previous pages are available", func() {
-			BeforeEach(func() {
-				teamDB.GetBuildsReturns(returnedBuilds, db.Pagination{
-					Previous: &db.Page{Until: 4, Limit: 2},
-					Next:     &db.Page{Since: 3, Limit: 2},
-				}, nil)
+			Context("when next/previous pages are available", func() {
+				BeforeEach(func() {
+					teamDB.GetPrivateAndPublicBuildsReturns(returnedBuilds, db.Pagination{
+						Previous: &db.Page{Until: 4, Limit: 2},
+						Next:     &db.Page{Since: 3, Limit: 2},
+					}, nil)
+				})
+
+				It("returns Link headers per rfc5988", func() {
+					Expect(response.Header["Link"]).To(ConsistOf([]string{
+						fmt.Sprintf(`<%s/api/v1/builds?until=4&limit=2>; rel="previous"`, externalURL),
+						fmt.Sprintf(`<%s/api/v1/builds?since=3&limit=2>; rel="next"`, externalURL),
+					}))
+				})
 			})
 
-			It("returns Link headers per rfc5988", func() {
-				Expect(response.Header["Link"]).To(ConsistOf([]string{
-					fmt.Sprintf(`<%s/api/v1/builds?until=4&limit=2>; rel="previous"`, externalURL),
-					fmt.Sprintf(`<%s/api/v1/builds?since=3&limit=2>; rel="next"`, externalURL),
-				}))
-			})
-		})
+			Context("when getting all builds fails", func() {
+				BeforeEach(func() {
+					teamDB.GetPrivateAndPublicBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
+				})
 
-		Context("when getting all builds fails", func() {
-			BeforeEach(func() {
-				teamDB.GetBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
-			})
-
-			It("returns 500 Internal Server Error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				It("returns 500 Internal Server Error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 	})

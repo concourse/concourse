@@ -35,14 +35,18 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		limit = atc.PaginationAPIDefaultLimit
 	}
 
-	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthTeamName(r))
+	page := db.Page{Until: until, Since: since, Limit: limit}
+	var builds []db.Build
+	var pagination db.Pagination
 
-	var publicOnly bool
-	if !auth.IsAuthenticated(r) {
-		publicOnly = true
+	teamName, _, _, teamIsInAuth := auth.GetTeam(r)
+	if teamIsInAuth {
+		teamDB := s.teamDBFactory.GetTeamDB(teamName)
+		builds, pagination, err = teamDB.GetPrivateAndPublicBuilds(page)
+	} else {
+		builds, pagination, err = s.buildsDB.GetPublicBuilds(page)
 	}
 
-	builds, pagination, err := teamDB.GetBuilds(db.Page{Until: until, Since: since, Limit: limit}, publicOnly)
 	if err != nil {
 		logger.Error("failed-to-get-all-builds", err)
 		w.WriteHeader(http.StatusInternalServerError)

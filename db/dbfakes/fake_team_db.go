@@ -114,13 +114,12 @@ type FakeTeamDB struct {
 		result1 db.Build
 		result2 error
 	}
-	GetBuildsStub        func(page db.Page, publicOnly bool) ([]db.Build, db.Pagination, error)
-	getBuildsMutex       sync.RWMutex
-	getBuildsArgsForCall []struct {
-		page       db.Page
-		publicOnly bool
+	GetPrivateAndPublicBuildsStub        func(page db.Page) ([]db.Build, db.Pagination, error)
+	getPrivateAndPublicBuildsMutex       sync.RWMutex
+	getPrivateAndPublicBuildsArgsForCall []struct {
+		page db.Page
 	}
-	getBuildsReturns struct {
+	getPrivateAndPublicBuildsReturns struct {
 		result1 []db.Build
 		result2 db.Pagination
 		result3 error
@@ -552,36 +551,35 @@ func (fake *FakeTeamDB) CreateOneOffBuildReturns(result1 db.Build, result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTeamDB) GetBuilds(page db.Page, publicOnly bool) ([]db.Build, db.Pagination, error) {
-	fake.getBuildsMutex.Lock()
-	fake.getBuildsArgsForCall = append(fake.getBuildsArgsForCall, struct {
-		page       db.Page
-		publicOnly bool
-	}{page, publicOnly})
-	fake.recordInvocation("GetBuilds", []interface{}{page, publicOnly})
-	fake.getBuildsMutex.Unlock()
-	if fake.GetBuildsStub != nil {
-		return fake.GetBuildsStub(page, publicOnly)
+func (fake *FakeTeamDB) GetPrivateAndPublicBuilds(page db.Page) ([]db.Build, db.Pagination, error) {
+	fake.getPrivateAndPublicBuildsMutex.Lock()
+	fake.getPrivateAndPublicBuildsArgsForCall = append(fake.getPrivateAndPublicBuildsArgsForCall, struct {
+		page db.Page
+	}{page})
+	fake.recordInvocation("GetPrivateAndPublicBuilds", []interface{}{page})
+	fake.getPrivateAndPublicBuildsMutex.Unlock()
+	if fake.GetPrivateAndPublicBuildsStub != nil {
+		return fake.GetPrivateAndPublicBuildsStub(page)
 	} else {
-		return fake.getBuildsReturns.result1, fake.getBuildsReturns.result2, fake.getBuildsReturns.result3
+		return fake.getPrivateAndPublicBuildsReturns.result1, fake.getPrivateAndPublicBuildsReturns.result2, fake.getPrivateAndPublicBuildsReturns.result3
 	}
 }
 
-func (fake *FakeTeamDB) GetBuildsCallCount() int {
-	fake.getBuildsMutex.RLock()
-	defer fake.getBuildsMutex.RUnlock()
-	return len(fake.getBuildsArgsForCall)
+func (fake *FakeTeamDB) GetPrivateAndPublicBuildsCallCount() int {
+	fake.getPrivateAndPublicBuildsMutex.RLock()
+	defer fake.getPrivateAndPublicBuildsMutex.RUnlock()
+	return len(fake.getPrivateAndPublicBuildsArgsForCall)
 }
 
-func (fake *FakeTeamDB) GetBuildsArgsForCall(i int) (db.Page, bool) {
-	fake.getBuildsMutex.RLock()
-	defer fake.getBuildsMutex.RUnlock()
-	return fake.getBuildsArgsForCall[i].page, fake.getBuildsArgsForCall[i].publicOnly
+func (fake *FakeTeamDB) GetPrivateAndPublicBuildsArgsForCall(i int) db.Page {
+	fake.getPrivateAndPublicBuildsMutex.RLock()
+	defer fake.getPrivateAndPublicBuildsMutex.RUnlock()
+	return fake.getPrivateAndPublicBuildsArgsForCall[i].page
 }
 
-func (fake *FakeTeamDB) GetBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
-	fake.GetBuildsStub = nil
-	fake.getBuildsReturns = struct {
+func (fake *FakeTeamDB) GetPrivateAndPublicBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.GetPrivateAndPublicBuildsStub = nil
+	fake.getPrivateAndPublicBuildsReturns = struct {
 		result1 []db.Build
 		result2 db.Pagination
 		result3 error
@@ -771,8 +769,8 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.saveConfigMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()
 	defer fake.createOneOffBuildMutex.RUnlock()
-	fake.getBuildsMutex.RLock()
-	defer fake.getBuildsMutex.RUnlock()
+	fake.getPrivateAndPublicBuildsMutex.RLock()
+	defer fake.getPrivateAndPublicBuildsMutex.RUnlock()
 	fake.getBuildMutex.RLock()
 	defer fake.getBuildMutex.RUnlock()
 	fake.workersMutex.RLock()

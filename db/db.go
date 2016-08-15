@@ -82,6 +82,7 @@ type DB interface {
 	DeleteTeamByName(teamName string) error
 
 	GetAllStartedBuilds() ([]Build, error)
+	GetPublicBuilds(page Page) ([]Build, Pagination, error)
 
 	FindJobIDForBuild(buildID int) (int, bool, error)
 

@@ -33,15 +33,16 @@ func createAndStartBuild(database db.DB, pipelineDB db.PipelineDB, jobName strin
 	return build
 }
 
-var _ = Describe("Keeping track of builds", func() {
+var _ = Describe("Builds", func() {
 	var (
-		dbConn     db.Conn
-		listener   *pq.Listener
-		database   db.DB
-		pipelineDB db.PipelineDB
-		pipeline   db.SavedPipeline
-		teamDB     db.TeamDB
-		config     atc.Config
+		dbConn            db.Conn
+		listener          *pq.Listener
+		database          db.DB
+		pipelineDB        db.PipelineDB
+		pipelineDBFactory db.PipelineDBFactory
+		pipeline          db.SavedPipeline
+		teamDB            db.TeamDB
+		config            atc.Config
 	)
 
 	BeforeEach(func() {
@@ -59,6 +60,8 @@ var _ = Describe("Keeping track of builds", func() {
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
+
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
 		config = atc.Config{
 			Jobs: atc.JobConfigs{
@@ -158,6 +161,42 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(jobID).To(Equal(job.ID))
+		})
+	})
+
+	Describe("GetPublicBuilds", func() {
+		var oneOffBuild db.Build
+		var privateBuild db.Build
+		var publicBuild db.Build
+
+		BeforeEach(func() {
+			var err error
+			oneOffBuild, err = teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
+			privatePipeline, _, err := teamDB.SaveConfig("private-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+			privatePipelineDB := pipelineDBFactory.Build(privatePipeline)
+
+			privateBuild, err = privatePipelineDB.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			publicPipeline, _, err := teamDB.SaveConfig("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+			publicPipelineDB := pipelineDBFactory.Build(publicPipeline)
+			publicPipelineDB.Reveal()
+
+			publicBuild, err = publicPipelineDB.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns public builds", func() {
+			builds, _, err := database.GetPublicBuilds(db.Page{Limit: 10})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(builds).To(HaveLen(1))
+			Expect(builds).To(ConsistOf(publicBuild))
 		})
 	})
 
