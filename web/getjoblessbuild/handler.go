@@ -22,7 +22,10 @@ func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *
 	}
 }
 
-type TemplateData struct{}
+type TemplateData struct {
+	// no-op so the template can be reused until we elm-ify nav
+	PipelineName string
+}
 
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	err := handler.template.Execute(w, TemplateData{})
