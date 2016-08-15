@@ -73,8 +73,8 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	teamName, _, _, teamFound := GetTeam(r)
-	if !IsAuthenticated(r) || (teamFound && teamName != build.TeamName()) {
+	authTeam, authTeamFound := GetTeam(r)
+	if !IsAuthenticated(r) || (authTeamFound && !authTeam.IsAuthorized(build.TeamName())) {
 		if build.IsOneOff() {
 			h.rejector.Unauthorized(w, r)
 			return

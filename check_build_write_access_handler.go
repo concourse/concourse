@@ -63,8 +63,8 @@ func (h checkBuildWriteAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	teamName, _, _, teamFound := GetTeam(r)
-	if teamFound && teamName != build.TeamName() {
+	authTeam, authTeamFound := GetTeam(r)
+	if authTeamFound && !authTeam.IsAuthorized(build.TeamName()) {
 		h.rejector.Forbidden(w, r)
 		return
 	}
