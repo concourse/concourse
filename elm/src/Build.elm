@@ -70,6 +70,7 @@ type alias Model =
   , history : List Build
   , currentBuild : Maybe CurrentBuild
   , browsingIndex : Int
+  , setTitle : String -> Cmd Action
   }
 
 type StepRenderingState
@@ -92,28 +93,48 @@ type Action
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
 
-init : Result String Page -> (Model, Cmd Action)
-init pageResult =
-  ( { now = 0
-    , job = Nothing
-    , history = []
-    , currentBuild = Nothing
-    , browsingIndex = 0
-    }
-  , case pageResult of
-      Err err -> Debug.log err Cmd.none
-      Ok (BuildPage buildId) -> fetchBuild 0 0 buildId
-      Ok (JobBuildPage jbi) -> fetchJobBuild 0 jbi
-  )
+init : (String -> Cmd Action) -> Result String Page -> (Model, Cmd Action)
+init setTitle pageResult =
+  let
+    model =
+      { now = 0
+      , job = Nothing
+      , history = []
+      , currentBuild = Nothing
+      , browsingIndex = 0
+      , setTitle = setTitle
+      }
+  in
+    ( model
+    , changeToBuild model pageResult
+    )
+
+changeToBuild : Model -> Result String Page -> Cmd Action
+changeToBuild model pageResult =
+  case pageResult of
+    Err err ->
+      Debug.log err Cmd.none
+
+    Ok (BuildPage buildId) ->
+      Cmd.batch
+        [ model.setTitle ("one-off #" ++ toString buildId)
+        , fetchBuild 0 model.browsingIndex buildId
+        ]
+
+    Ok (JobBuildPage jbi) ->
+      Cmd.batch
+        [ model.setTitle (jbi.jobName ++ " #" ++ jbi.buildName)
+        , fetchJobBuild model.browsingIndex jbi
+        ]
 
 urlUpdate : Result String Page -> Model -> (Model, Cmd Action)
 urlUpdate pageResult model =
-  let newBrowsingIndex = model.browsingIndex + 1 in
-    ( { model | browsingIndex = newBrowsingIndex }
-    , case pageResult of
-        Err err -> Debug.log err Cmd.none
-        Ok (BuildPage buildId) -> fetchBuild 0 newBrowsingIndex buildId
-        Ok (JobBuildPage jbi) -> fetchJobBuild newBrowsingIndex jbi
+  let
+    newModel =
+      { model | browsingIndex = model.browsingIndex + 1 }
+  in
+    ( newModel
+    , changeToBuild newModel pageResult
     )
 
 update : Action -> Model -> (Model, Cmd Action)

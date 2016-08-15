@@ -1,4 +1,4 @@
-{{define "title"}}{{.JobName}} #{{.Build.Name}} - Concourse{{end}}
+{{define "title"}}Concourse{{end}}
 
 {{define "body"}}
 <div id="elm-app"></div>
@@ -9,6 +9,10 @@
 concourse.pipelineName = "{{.PipelineName}}"; // used for detecting if the pipeline is paused
 
 var node = document.getElementById("elm-app");
-Elm.BuildPage.embed(node);
+var app = Elm.BuildPage.embed(node);
+
+app.ports.setTitle.subscribe(function(title) {
+  document.title = title + " - Concourse";
+});
 </script>
 {{end}}

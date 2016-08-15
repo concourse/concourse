@@ -52,12 +52,12 @@ func NewHandler(
 		return nil, err
 	}
 
-	buildsTemplate, err := loadTemplateWithoutPipeline("builds/index.html", funcs)
+	joblessBuildTemplate, err := loadTemplateWithoutPipeline("build.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	joblessBuildTemplate, err := loadTemplateWithoutPipeline("builds/show.html", funcs)
+	buildsTemplate, err := loadTemplateWithoutPipeline("builds.html", funcs)
 	if err != nil {
 		return nil, err
 	}

@@ -9,6 +9,8 @@ import Autoscroll
 import Build exposing (Page (..))
 import Scroll
 
+port setTitle : String -> Cmd msg
+
 main : Program Never
 main =
   Navigation.program
@@ -16,7 +18,7 @@ main =
     { init =
         Autoscroll.init
           Build.getScrollBehavior <<
-            Build.init
+            Build.init setTitle
     , update = Autoscroll.update Build.update
     , urlUpdate = Autoscroll.urlUpdate Build.urlUpdate
     , view = Autoscroll.view Build.view
