@@ -54,3 +54,43 @@
 
   \include-section{./community/talks.any}
 }
+
+\section{Contributating}{contributing}{
+  Concourse is a pretty large project, but don't be intimidated. There are many
+  ways you can help out, and they don't have to be with code, and they don't
+  have to be substantial. If it is code, it doesn't have to be perfect; we're
+  happy to help out!
+
+  There are many ways to help us build a stronger community:
+
+  \list{
+    Help out fellow Concourse users in
+    \hyperlink{https://concourseci.slack.com/messages/general/}{#general}!
+    Answering questions and asking your own is a great way to quickly learn
+    about Concourse's strengths, weaknesses, and ideology.
+
+    There's also a channel for chatting with other developers, including the
+    core team: \hyperlink{https://concourseci.slack.com/messages/dev/}{#dev}.
+    Feel free to ask for help there while you're working on things.
+  }{
+    Write a new \reference{resource-types}{resource type}! Resource types are
+    implemented as small, isolated codebases written in whatever language makes
+    sense (or is most familiar to the author), so they're pretty good for
+    picking up and working on. They'll also be really useful to a lot of people
+    almost immediately.
+  }{
+    Scour the \hyperlink{#}{"help wanted"} issues to find something that
+    interests you. An issue being labelled "help wanted" means it's something
+    that would be a good starting point for an aspiring contributor. They tend
+    to be relatively small in scope, and are something that would be good to do
+    but are not an immediate priority for the core team.
+  }{
+    Writing, commenting on and reacting to GitHub issues
+  }
+
+  Aside from resources, contributions to the core are more than welcome. This
+  can be in the form of GitHub issues to foster discussion and plan out changes
+  tactically, so we can all agree where they fit in the big picture (both
+  architecturally and roadmap). Small pull requests without an issue first is
+  also perfectly fine, and are a good way to get your feet wet.
+}
