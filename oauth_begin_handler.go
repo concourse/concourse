@@ -24,6 +24,7 @@ type OAuthBeginHandler struct {
 	providerFactory ProviderFactory
 	privateKey      *rsa.PrivateKey
 	teamDBFactory   db.TeamDBFactory
+	expire          time.Duration
 }
 
 func NewOAuthBeginHandler(
@@ -31,12 +32,14 @@ func NewOAuthBeginHandler(
 	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
 	teamDBFactory db.TeamDBFactory,
+	expire time.Duration,
 ) http.Handler {
 	return &OAuthBeginHandler{
 		logger:          logger,
 		providerFactory: providerFactory,
 		privateKey:      privateKey,
 		teamDBFactory:   teamDBFactory,
+		expire:          expire,
 	}
 }
 
@@ -100,7 +103,7 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		Name:    OAuthStateCookie,
 		Value:   encodedState,
 		Path:    "/",
-		Expires: time.Now().Add(CookieAge),
+		Expires: time.Now().Add(handler.expire),
 	})
 
 	http.Redirect(w, r, authCodeURL, http.StatusTemporaryRedirect)

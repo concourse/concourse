@@ -21,6 +21,7 @@ type OAuthCallbackHandler struct {
 	privateKey      *rsa.PrivateKey
 	tokenGenerator  TokenGenerator
 	teamDBFactory   db.TeamDBFactory
+	expire          time.Duration
 }
 
 func NewOAuthCallbackHandler(
@@ -28,6 +29,7 @@ func NewOAuthCallbackHandler(
 	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
 	teamDBFactory db.TeamDBFactory,
+	expire time.Duration,
 ) http.Handler {
 	return &OAuthCallbackHandler{
 		logger:          logger,
@@ -35,6 +37,7 @@ func NewOAuthCallbackHandler(
 		privateKey:      privateKey,
 		tokenGenerator:  NewTokenGenerator(privateKey),
 		teamDBFactory:   teamDBFactory,
+		expire:          expire,
 	}
 }
 
@@ -154,7 +157,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	exp := time.Now().Add(CookieAge)
+	exp := time.Now().Add(handler.expire)
 
 	tokenType, signedToken, err := handler.tokenGenerator.GenerateToken(exp, team.Name, team.ID, team.Admin)
 	if err != nil {
