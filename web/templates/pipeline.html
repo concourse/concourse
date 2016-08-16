@@ -8,8 +8,6 @@
 <script src="{{asset "concourse.js"}}"></script>
 <script src="{{asset "fit.min.js"}}"></script>
 <script type="text/javascript">
-concourse.pipelineName = "{{.PipelineName}}"; // used for detecting if the pipeline is paused
-
 var groups = [];
 var groupStates = {{.GroupStates}};
 for (var g in groupStates) {
@@ -93,8 +91,11 @@ app.ports.fit.subscribe(function() {
 <script>
 concourse.pipelineName = {{.PipelineName}};
 concourse.teamName = {{.TeamName}};
+concourse.groups = {{.Groups}};
+concourse.isPipeline = true;
+
 $(document).ready(function() {
-  renderPipeline({{.Groups}});
+  renderPipeline();
 })
 </script>
 {{end}}
