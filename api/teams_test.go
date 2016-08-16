@@ -797,6 +797,17 @@ var _ = Describe("Teams API", func() {
 							Expect(createdTeam.GenericOAuth.TokenURL).To(Equal("token.url"))
 						})
 					})
+
+					Context("when passed Generic OAuth credentials", func() {
+						BeforeEach(func() {
+							team.GenericOAuth = &genericOAuth
+						})
+
+						It("updates the Generic OAuth auth for that team", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
+						})
+					})
 				})
 			})
 		})
