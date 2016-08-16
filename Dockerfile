@@ -6,7 +6,7 @@ USER root
 RUN apt-get update && apt-get -y install curl
 
 # Go
-ADD golang-*/go*.tar.gz /usr/local
+ADD go*.tar.gz /usr/local
 ENV PATH $PATH:/usr/local/go/bin
 
 # PostgreSQL
