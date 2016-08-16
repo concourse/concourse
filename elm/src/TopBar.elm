@@ -182,6 +182,7 @@ view model =
   Html.nav
     [ classList
         [ ("top-bar", True)
+        , ("test", True)
         , ("paused", isPaused model.pipeline)
         ]
     ]
@@ -198,7 +199,7 @@ view model =
         Html.ul [class "groups"] <|
           [ Html.li [class "main"]
               [ Html.span
-                  [ class "btn-hamburger"
+                  [ class "sidebar-toggle test btn-hamburger"
                   , Html.Events.onClick ToggleSidebar
                   , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
                   ]
