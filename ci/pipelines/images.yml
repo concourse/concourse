@@ -230,24 +230,24 @@ resources:
     repository: selenium/standalone-firefox
     tag: latest
 
-- name: golang-1.6
+- name: golang-1.x
   type: docker-image
   source:
     repository: golang
-    tag: "1.6"
+    tag: '1'
+
+- name: golang-1.x-tarball
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(1\.\d+(\.\d+)?)\.linux-amd64\.tar.gz'
 
 - name: alpine-3.3
   type: docker-image
   source:
     repository: alpine
     tag: "3.3"
-
-- name: golang-1.7
-  type: s3
-  source:
-    endpoint: storage.googleapis.com
-    bucket: golang
-    regexp: 'go(1\.7(\.\d+)?)\.linux-amd64\.tar.gz'
 
 jobs:
 - name: build-buildbox-ci
@@ -343,7 +343,7 @@ jobs:
     - get: selenium-firefox
       trigger: true
       params: {save: true}
-    - get: golang-1.7
+    - get: golang-1.x-tarball
       trigger: true
   - task: build-context
     config:
@@ -352,7 +352,7 @@ jobs:
         type: docker-image
         source: {repository: ubuntu}
       inputs:
-      - name: golang-1.7
+      - name: golang-1.x-tarball
       - name: concourse-atc-ci
       outputs:
       - name: context
@@ -362,7 +362,7 @@ jobs:
         - -exuc
         - |
           cp concourse-atc-ci/Dockerfile context/
-          cp golang-1.7/go* context/
+          cp golang-1.x-tarball/go* context/
   - put: concourse-atc-ci-image
     params:
       load_base: selenium-firefox
@@ -393,7 +393,7 @@ jobs:
     - get: ubuntu-16.04
       trigger: true
       params: {save: true}
-    - get: golang-1.7
+    - get: golang-1.x-tarball
       trigger: true
   - task: build-context
     config:
@@ -402,7 +402,7 @@ jobs:
         type: docker-image
         source: {repository: ubuntu}
       inputs:
-      - name: golang-1.7
+      - name: golang-1.x-tarball
       - name: concourse-tsa-ci
       outputs:
       - name: context
@@ -412,7 +412,7 @@ jobs:
         - -exuc
         - |
           cp concourse-tsa-ci/Dockerfile context/
-          cp golang-1.7/go* context/
+          cp golang-1.x-tarball/go* context/
   - put: concourse-tsa-ci-image
     params:
       load_base: ubuntu-16.04
@@ -425,12 +425,12 @@ jobs:
   - aggregate:
     - get: concourse-baggageclaim-ci
       trigger: true
-    - get: golang-1.6
+    - get: golang-1.x
       trigger: true
       params: {save: true}
   - put: concourse-baggageclaim-ci-image
     params:
-      load_base: golang-1.6
+      load_base: golang-1.x
       build: concourse-baggageclaim-ci
 
 - name: build-bin-ci
@@ -440,12 +440,12 @@ jobs:
   - aggregate:
     - get: concourse-bin-ci
       trigger: true
-    - get: golang-1.6
+    - get: golang-1.x
       trigger: true
       params: {save: true}
   - put: concourse-bin-ci-image
     params:
-      load_base: golang-1.6
+      load_base: golang-1.x
       build: concourse-bin-ci
 
 - name: build-bin-test-ec2-ci
@@ -504,10 +504,10 @@ jobs:
   - aggregate:
     - get: concourse-static-golang
       trigger: true
-    - get: golang-1.6
+    - get: golang-1.x
       trigger: true
       params: {save: true}
   - put: concourse-static-golang-image
     params:
-      load_base: golang-1.6
+      load_base: golang-1.x
       build: concourse-static-golang
