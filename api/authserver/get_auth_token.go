@@ -22,13 +22,10 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 	authSegs := strings.SplitN(authorization, " ", 2)
 	var token atc.AuthToken
 	if strings.ToLower(authSegs[0]) == strings.ToLower(auth.TokenTypeBearer) {
-		logger.Debug("bearer")
 		token.Type = authSegs[0]
 		token.Value = authSegs[1]
 	} else {
 		teamName := r.FormValue(":team_name")
-		logger.Debug("team is", lager.Data{"teamName": teamName})
-
 		teamDB := s.teamDBFactory.GetTeamDB(teamName)
 		team, found, err := teamDB.GetTeam()
 		if err != nil {

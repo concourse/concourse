@@ -80,7 +80,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListResourceVersions:
 			newHandler = wrappa.checkPipelineAccessHandlerFactory.HandlerFor(handler, rejector)
 
-		// authorized (requested team matches resource team)
+		// authenticated
 		case atc.GetAuthToken,
 			atc.CreateBuild,
 			atc.CreatePipe,
@@ -97,7 +97,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetLogLevel:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 
-		// authorized
+		// authorized (requested team matches resource team)
 		case atc.CheckResource,
 			atc.CreateJobBuild,
 			atc.DeletePipeline,
