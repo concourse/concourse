@@ -9,6 +9,7 @@ import List
 import Navigation exposing (Location)
 import String
 import Task
+import Time
 
 import Concourse.Pipeline exposing (Pipeline, PipelineIdentifier, Group)
 
@@ -19,7 +20,8 @@ type alias Flags =
   }
 
 type alias Model =
-  { pipeline : Maybe Pipeline
+  { pipelineIdentifier : Maybe PipelineIdentifier
+  , pipeline : Maybe Pipeline
   , viewingPipeline : Bool
   , ports : Ports
   , location : Location
@@ -34,17 +36,19 @@ type alias Ports =
 
 type Msg
   = PipelineFetched (Result Http.Error Pipeline)
+  | FetchPipeline PipelineIdentifier
   | ToggleSidebar
   | ToggleGroup Group
   | SetGroup Group
 
 init : Ports -> Flags -> Location -> (Model, Cmd Msg)
 init ports flags initialLocation =
-  ( { pipeline = Nothing
+  ( { pipelineIdentifier = flags.pipeline
     , viewingPipeline = flags.viewingPipeline
     , ports = ports
     , selectedGroups = flags.selectedGroups
     , location = initialLocation
+    , pipeline = Nothing
     }
   , case flags.pipeline of
       Just pid ->
@@ -56,6 +60,9 @@ init ports flags initialLocation =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    FetchPipeline pid ->
+      (model, fetchPipeline pid)
+
     PipelineFetched (Ok pipeline) ->
       ( { model | pipeline = Just pipeline }
       , Cmd.none
@@ -78,6 +85,15 @@ update msg model =
 
     SetGroup group ->
       setGroups [group.name] model
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  case model.pipelineIdentifier of
+    Nothing ->
+      Sub.none
+
+    Just pid ->
+      Time.every (5 * Time.second) (always (FetchPipeline pid))
 
 setGroups : List String -> Model -> (Model, Cmd Msg)
 setGroups newGroups model =
