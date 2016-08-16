@@ -21,5 +21,5 @@ main =
     , update = TopBar.update
     , urlUpdate = TopBar.urlUpdate
     , view = TopBar.view
-    , subscriptions = always Sub.none
+    , subscriptions = TopBar.subscriptions
     }
