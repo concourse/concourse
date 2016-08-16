@@ -3,6 +3,7 @@ package webhandler
 import (
 	"html/template"
 	"net/http"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/elazarl/go-bindata-assetfs"
@@ -27,6 +28,7 @@ func NewHandler(
 	logger lager.Logger,
 	wrapper wrappa.Wrappa,
 	clientFactory web.ClientFactory,
+	expire time.Duration,
 ) (http.Handler, error) {
 	tfuncs := &templateFuncs{
 		assetIDs: map[string]string{},
@@ -98,7 +100,7 @@ func NewHandler(
 		web.TriggerBuild:          authredirect.Handler{triggerbuild.NewHandler(logger, clientFactory)},
 		web.TeamLogIn:             login.NewHandler(logger, logInTemplate),
 		web.LogIn:                 login.NewHandler(logger, logInTemplate),
-		web.ProcessBasicAuthLogIn: login.NewProcessBasicAuthHandler(logger, clientFactory),
+		web.ProcessBasicAuthLogIn: login.NewProcessBasicAuthHandler(logger, clientFactory, expire),
 
 		web.MainPipeline:    mainwrapper.Handler{web.Pipeline, authredirect.Handler{pipelineHandler}},
 		web.MainGetJob:      mainwrapper.Handler{web.GetJob, authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)}},

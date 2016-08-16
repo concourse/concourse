@@ -216,7 +216,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 							It("set to a signed token that expires in 1 day", func() {
 								Expect(cookie.Name).To(Equal(auth.CookieName))
-								Expect(cookie.Expires).To(BeTemporally("~", time.Now().Add(auth.CookieAge), 5*time.Second))
+								Expect(cookie.Expires).To(BeTemporally("~", time.Now().Add(24*time.Hour), 5*time.Second))
 
 								Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
 
