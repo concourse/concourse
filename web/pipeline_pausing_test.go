@@ -52,8 +52,8 @@ var _ = Describe("PipelinePausing", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		homeLink := ".top-bar.test li:nth-of-type(2) a"
-		navList := ".sidebar.test"
+		// homeLink := ".top-bar.test li:nth-of-type(2) a"
+		navList := ".sidebar.test .team ul"
 
 		It("can pause the pipelines", func() {
 			Expect(page.Navigate(atcURL)).To(Succeed())
@@ -67,16 +67,12 @@ var _ = Describe("PipelinePausing", func() {
 			Expect(page.All(navList).FindByLink("another-pipeline").Click()).To(Succeed())
 			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute(fmt.Sprintf("/teams/%s/pipelines/another-pipeline", teamName))))
 
-			By("clicking home button")
-			Expect(page.Find(homeLink).Click()).To(Succeed())
-			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute(fmt.Sprintf("/teams/%s/pipelines/another-pipeline", teamName))))
-
 			By("toggling the nav")
 			Expect(page.Find(".sidebar-toggle.test").Click()).To(Succeed())
 			Eventually(page.Find("#pipeline").Text, loadingTimeout).Should(ContainSubstring("another-job-name"))
 
 			By("pausing another-pipeline")
-			spanXPath := fmt.Sprintf("//a[@href='/teams/%s/pipelines/another-pipeline']/parent::li/span", teamName)
+			spanXPath := fmt.Sprintf("//a[@href='/teams/%s/pipelines/another-pipeline']/preceding-sibling::span", teamName)
 			Eventually(page.All(navList).FindByXPath(spanXPath), loadingTimeout).Should(BeVisible())
 			Expect(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'disabled')]")).To(BeFound())
 			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
@@ -97,15 +93,7 @@ var _ = Describe("PipelinePausing", func() {
 			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
 			Eventually(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'disabled')]")).Should(BeFound())
 
-			Consistently(page.Find(".top-bar.test.paused")).ShouldNot(BeFound())
-
-			By("refreshing the page")
-			page.Refresh()
-
-			By("pausing the pipeline")
-			Expect(page.Find(".sidebar-toggle.test").Click()).To(Succeed())
-			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
-			Eventually(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'enabled')]")).Should(BeFound())
+			Eventually(page.Find(".top-bar.test.paused")).ShouldNot(BeFound())
 		})
 	})
 })
