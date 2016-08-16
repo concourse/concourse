@@ -762,6 +762,8 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.updateGitHubAuthMutex.RUnlock()
 	fake.updateUAAAuthMutex.RLock()
 	defer fake.updateUAAAuthMutex.RUnlock()
+	fake.updateGenericOAuthMutex.RLock()
+	defer fake.updateGenericOAuthMutex.RUnlock()
 	fake.getConfigMutex.RLock()
 	defer fake.getConfigMutex.RUnlock()
 	fake.saveConfigMutex.RLock()
