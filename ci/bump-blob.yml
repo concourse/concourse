@@ -8,7 +8,6 @@ image_resource:
 
 inputs:
 - name: concourse
-- name: deployments
 - name: blob-dir
 
 outputs:
@@ -17,6 +16,7 @@ outputs:
 params:
   BLOB_NAME:
   BLOB_VERSION:
+  BLOB_VERSION_FILE:
   BLOB_DESTINATION:
 
 run:

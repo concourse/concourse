@@ -1,24 +1,32 @@
 jobs:
-- name: btrfs-tools
+- name: bump-golang
   serial: true
   public: true
   plan:
-  - get: concourse
-  - task: build
-    file: concourse/ci/build-btrfs-tools.yml
+  - aggregate:
+    - get: golang-linux
+      trigger: true
+    - get: concourse
   - task: bump-blob
     input_mapping:
-      blob-dir: btrfs-tools
+      blob-dir: golang-linux
     file: concourse/ci/bump-blob.yml
     params:
-      BLOB_NAME: btrfs-tools
-      BLOB_VERSION: 4.4
-      BLOB_DESTINATION: btrfs
+      BLOB_NAME: golang-linux-amd64
+      BLOB_VERSION_FILE: version
+      BLOB_DESTINATION: golang
       BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
 resources:
+- name: golang-linux
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(1\.\d+(\.\d+)?)\.linux-amd64\.tar.gz'
+
 - name: concourse
   type: git
   source:

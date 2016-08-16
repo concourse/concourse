@@ -36,6 +36,9 @@ configure_pipeline main \
 configure_pipeline resources \
   $pipelines_path/resources.yml
 
+configure_pipeline golang \
+  $pipelines_path/golang.yml
+
 configure_pipeline btrfs \
   $pipelines_path/btrfs.yml
 
