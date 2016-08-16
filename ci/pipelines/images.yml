@@ -242,6 +242,13 @@ resources:
     repository: alpine
     tag: "3.3"
 
+- name: golang-1.7
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(1\.7(\.\d+)?)\.linux-amd64\.tar.gz'
+
 jobs:
 - name: build-buildbox-ci
   public: true
@@ -336,10 +343,30 @@ jobs:
     - get: selenium-firefox
       trigger: true
       params: {save: true}
+    - get: golang-1.7
+      trigger: true
+  - task: build-context
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: ubuntu}
+      inputs:
+      - name: golang-1.7
+      - name: concourse-atc-ci
+      outputs:
+      - name: context
+      run:
+        path: bash
+        args:
+        - -exuc
+        - |
+          cp concourse-atc-ci/Dockerfile context/
+          cp golang-1.7/go* context/
   - put: concourse-atc-ci-image
     params:
       load_base: selenium-firefox
-      build: concourse-atc-ci
+      build: context
 
 - name: build-atc-ci-js
   public: true
@@ -366,10 +393,30 @@ jobs:
     - get: ubuntu-16.04
       trigger: true
       params: {save: true}
+    - get: golang-1.7
+      trigger: true
+  - task: build-context
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: ubuntu}
+      inputs:
+      - name: golang-1.7
+      - name: concourse-tsa-ci
+      outputs:
+      - name: context
+      run:
+        path: bash
+        args:
+        - -exuc
+        - |
+          cp concourse-tsa-ci/Dockerfile context/
+          cp golang-1.7/go* context/
   - put: concourse-tsa-ci-image
     params:
       load_base: ubuntu-16.04
-      build: concourse-tsa-ci
+      build: context
 
 - name: build-baggageclaim-ci
   public: true
