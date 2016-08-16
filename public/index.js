@@ -1,4 +1,4 @@
-function draw(groups, renderFn, completeFn) {
+function draw(renderFn, completeFn) {
   $.when(
     $.ajax({
       url: "/api/v1/teams/" + concourse.teamName + "/pipelines/" + concourse.pipelineName + "/jobs",
@@ -18,17 +18,28 @@ function draw(groups, renderFn, completeFn) {
 
 var currentHighlight;
 
-function drawContinuously(svg, groups) {
-  draw(groups, function(jobs, resources, concourseVersion) {
+function drawContinuously(svg) {
+  draw(function(jobs, resources, concourseVersion) {
     $("#concourse-version .number").text(concourseVersion);
+    concourse.redraw = redrawFunction(svg, jobs, resources);
+    concourse.redraw();
+  }, function() {
+    setTimeout(function() {
+      drawContinuously(svg)
+    }, 4000);
+  });
+}
 
+
+function redrawFunction(svg, jobs, resources) {
+  return function() {
     // reset viewbox so calculations are done from a blank slate.
     //
     // without this text and boxes jump around on every redraw,
     // in affected browsers (seemingly anything but Chrome + OS X).
     d3.select(svg.node().parentNode).attr("viewBox", "0 0 0 0");
 
-    var graph = createGraph(svg, groups, jobs, resources);
+    var graph = createGraph(svg, jobs, resources);
 
     svg.selectAll("g.edge").remove();
     svg.selectAll("g.node").remove();
@@ -226,7 +237,6 @@ function drawContinuously(svg, groups) {
       $(".animation").addClass("animation-xlarge");
     }
 
-
     if (currentHighlight) {
       svgNodes.each(function(node) {
         if (node.key == currentHighlight) {
@@ -240,14 +250,10 @@ function drawContinuously(svg, groups) {
         }
       });
     }
-  }, function() {
-    setTimeout(function() {
-      drawContinuously(svg, groups)
-    }, 4000);
-  });
-}
+  }
+};
 
-function renderPipeline(groups) {
+function renderPipeline() {
   var svg = d3.select("#pipeline")
     .append("svg")
       .attr("width", "100%")
@@ -270,33 +276,10 @@ function renderPipeline(groups) {
     g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
   }));
 
-  drawContinuously(g, groups);
-
-  $("ul.groups li:not(.main) a").click(function(e) {
-    var group = e.target.text;
-
-    if (e.shiftKey) {
-      groups[group] = !groups[group];
-    } else {
-      for (var name in groups) {
-        groups[name] = name == group;
-      }
-    }
-
-    var groupQueries = [];
-    for (var name in groups) {
-      if (groups[name]) {
-        groupQueries.push("groups="+name);
-      }
-    }
-
-    window.location.search = "?" + groupQueries.join("&");
-
-    return false;
-  });
+  drawContinuously(g);
 }
 
-function createGraph(svg, groups, jobs, resources) {
+function createGraph(svg, jobs, resources) {
   var graph = new Graph();
 
   var resourceURLs = {};
@@ -313,7 +296,7 @@ function createGraph(svg, groups, jobs, resources) {
   for (var i in jobs) {
     var job = jobs[i];
 
-    if (!groupsMatch(job.groups, groups)) {
+    if (!groupsMatch(job.groups, concourse.groups)) {
       continue;
     }
 
@@ -358,7 +341,7 @@ function createGraph(svg, groups, jobs, resources) {
     var job = jobs[i];
     var id = jobNode(job.name);
 
-    if (!groupsMatch(job.groups, groups)) {
+    if (!groupsMatch(job.groups, concourse.groups)) {
       continue;
     }
 
@@ -393,7 +376,7 @@ function createGraph(svg, groups, jobs, resources) {
     var job = jobs[i];
     var id = jobNode(job.name);
 
-    if (!groupsMatch(job.groups, groups)) {
+    if (!groupsMatch(job.groups, concourse.groups)) {
       continue;
     }
 
@@ -443,7 +426,7 @@ function createGraph(svg, groups, jobs, resources) {
     var job = jobs[i];
     var id = jobNode(job.name);
 
-    if (!groupsMatch(job.groups, groups)) {
+    if (!groupsMatch(job.groups, concourse.groups)) {
       continue;
     }
 

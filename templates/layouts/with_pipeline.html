@@ -22,9 +22,8 @@
     <meta name="msapplication-TileImage" content="{{asset "favicons/mstile-144x144.png"}}" />
     <meta name="theme-color" content="#000000" />
     <script src="{{asset "elm.min.js"}}"></script>
-
   </head>
-  <body class="js-with-pipeline">
+  <body>
     <div class="error-message hidden">
       <div class="message">
         <img src="{{asset "images/buckleup.svg"}}" class="seatbelt" />
@@ -33,30 +32,54 @@
       </div>
     </div>
     <div class="content-frame">
-      <nav class="top-bar js-top-bar">
-        <ul class="groups">
-          <li class="main"><span class="js-sidebar-toggle btn-hamburger" aria-label="Toggle List of Pipelines"><i class="fa fa-bars"></i></span></li><li class="main"><a href="/teams/{{.TeamName}}/pipelines/{{.PipelineName}}" aria-label="Back to Pipeline View"><i class="fa fa-home"></i></a></li>
-          {{range .GroupStates}}
-            <li{{if .Enabled}} class="active"{{end}}><a href="/teams/{{$.TeamName}}/pipelines/{{$.PipelineName}}?groups={{.Name}}">{{.Name}}</a></li>
-          {{end}}
-        </ul>
-        <ul class="nav-right">
-          <li class="nav-item"><a href="/builds" aria-label="Builds List"><i class="fa fa-tasks"></i></a></li>
-        </ul>
-      </nav>
-
+      <div id="top-bar-app"></div>
       <div class="bottom">
         <div id="pipelines-nav-app" class="sidebar js-sidebar"></div>
 
         <div id="content">
         {{template "body" .}}
         </div>
-
-        <script type="text/javascript">
-        var node = document.getElementById("pipelines-nav-app");
-        Elm.PipelinesNavPage.embed(node);
-        </script>
       </div>
     </div>
+
+    <script type="text/javascript">
+    Elm.PipelinesNavPage.embed(document.getElementById("pipelines-nav-app"));
+
+    var selectedGroups = [];
+    var groupStates = {{.GroupStates}};
+    for (var g in groupStates) {
+      var group = groupStates[g];
+      if (group.Enabled) {
+        selectedGroups.push(group.Name);
+      }
+    }
+
+    var topBar = Elm.TopBarPage.embed(document.getElementById("top-bar-app"), {
+      pipeline: {
+        teamName: {{.TeamName}},
+        pipelineName: {{.PipelineName}}
+      },
+      selectedGroups: selectedGroups,
+      viewingPipeline: !!concourse.isPipeline
+    });
+
+    topBar.ports.toggleSidebar.subscribe(function() {
+      $('.js-sidebar').toggleClass('visible');
+    });
+
+    topBar.ports.navigateTo.subscribe(function(url) {
+      window.location.href = url;
+    });
+
+    topBar.ports.setGroups.subscribe(function(groups) {
+      for (var group in concourse.groups) {
+        concourse.groups[group] = groups.indexOf(group) !== -1;
+      }
+
+      if (concourse.redraw !== undefined) {
+        concourse.redraw();
+      }
+    });
+    </script>
   </body>
 </html>

@@ -6,8 +6,6 @@
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "concourse.js"}}"></script>
 <script type="text/javascript">
-concourse.pipelineName = "{{.PipelineName}}"; // used for detecting if the pipeline is paused
-
 var node = document.getElementById("elm-app");
 Elm.JobPage.embed(node, {
   jobName: {{.JobName}},
