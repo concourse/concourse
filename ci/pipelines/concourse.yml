@@ -939,4 +939,4 @@ resources:
   source:
     endpoint: storage.googleapis.com
     bucket: golang
-    regexp: 'go(\d+\.\d+(\.\d+?))\.windows-amd64\.msi'
+    regexp: 'go(\d+\.\d+(\.\d+)?)\.windows-amd64\.msi'
