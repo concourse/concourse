@@ -65,7 +65,7 @@ func SaveTarget(
 	return writeTargets(flyrc, flyTargets)
 }
 
-func SelectTarget(selectedTarget TargetName) (TargetProps, error) {
+func selectTarget(selectedTarget TargetName) (TargetProps, error) {
 	if selectedTarget == "" {
 		return TargetProps{}, ErrNoTargetSpecified
 	}

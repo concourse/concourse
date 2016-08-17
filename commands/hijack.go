@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -34,12 +33,17 @@ type HijackCommand struct {
 }
 
 func (command *HijackCommand) Execute([]string) error {
-	target, err := rc.SelectTarget(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	containers, err := getContainerIDs(command)
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	containers, err := command.getContainerIDs(target.Client())
 	if err != nil {
 		return err
 	}
@@ -96,8 +100,7 @@ func (command *HijackCommand) Execute([]string) error {
 
 	privileged := true
 
-	reqGenerator := rata.NewRequestGenerator(target.API, atc.Routes)
-	tlsConfig := &tls.Config{InsecureSkipVerify: target.Insecure}
+	reqGenerator := rata.NewRequestGenerator(target.URL(), atc.Routes)
 
 	var ttySpec *atc.HijackTTYSpec
 	rows, cols, err := pty.Getsize(os.Stdin)
@@ -147,7 +150,7 @@ func (command *HijackCommand) Execute([]string) error {
 			Err: os.Stderr,
 		}
 
-		h := hijacker.New(tlsConfig, reqGenerator, target.Token)
+		h := hijacker.New(target.TLSConfig(), reqGenerator, target.Token())
 
 		return h.Hijack(chosenContainer.ID, spec, io)
 	}()
@@ -159,6 +162,43 @@ func (command *HijackCommand) Execute([]string) error {
 	os.Exit(result)
 
 	return nil
+}
+
+func (command *HijackCommand) getContainerIDs(client concourse.Client) ([]atc.Container, error) {
+	var pipelineName string
+	if command.Job.PipelineName != "" {
+		pipelineName = command.Job.PipelineName
+	} else {
+		pipelineName = command.Check.PipelineName
+	}
+
+	buildNameOrID := command.Build
+	stepName := command.StepName
+	jobName := command.Job.JobName
+	check := command.Check.ResourceName
+	attempt := command.Attempt
+
+	fingerprint := containerFingerprint{
+		pipelineName:  pipelineName,
+		jobName:       jobName,
+		buildNameOrID: buildNameOrID,
+		stepName:      stepName,
+		checkName:     check,
+		attempt:       attempt,
+	}
+
+	reqValues, err := locateContainer(client, fingerprint)
+	if err != nil {
+		return nil, err
+	}
+
+	containers, err := client.ListContainers(reqValues)
+	if err != nil {
+		return nil, err
+	}
+	sort.Sort(hijackhelpers.ContainerSorter(containers))
+
+	return containers, nil
 }
 
 func remoteCommand(argv []string) (string, []string) {
@@ -258,53 +298,4 @@ func locateContainer(client concourse.Client, fingerprint containerFingerprint) 
 	}
 
 	return locator.locate(fingerprint)
-}
-
-func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
-	var pipelineName string
-	if c.Job.PipelineName != "" {
-		pipelineName = c.Job.PipelineName
-	} else {
-		pipelineName = c.Check.PipelineName
-	}
-
-	buildNameOrID := c.Build
-	stepName := c.StepName
-	jobName := c.Job.JobName
-	check := c.Check.ResourceName
-	attempt := c.Attempt
-
-	fingerprint := containerFingerprint{
-		pipelineName:  pipelineName,
-		jobName:       jobName,
-		buildNameOrID: buildNameOrID,
-		stepName:      stepName,
-		checkName:     check,
-		attempt:       attempt,
-	}
-
-	target, err := rc.LoadTarget(Fly.Target)
-	if err != nil {
-		return nil, err
-	}
-
-	err = target.Validate()
-	if err != nil {
-		return nil, err
-	}
-
-	client := target.Client()
-
-	reqValues, err := locateContainer(client, fingerprint)
-	if err != nil {
-		return nil, err
-	}
-
-	containers, err := client.ListContainers(reqValues)
-	if err != nil {
-		return nil, err
-	}
-	sort.Sort(hijackhelpers.ContainerSorter(containers))
-
-	return containers, nil
 }

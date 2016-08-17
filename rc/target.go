@@ -40,17 +40,50 @@ type Target interface {
 	CACert() string
 	Validate() error
 	ValidateWithWarningOnly() error
+	TLSConfig() *tls.Config
+	URL() string
+	Token() *TargetToken
+	TokenAuthorization() (string, bool)
 }
 
 type target struct {
-	name     TargetName
-	teamName string
-	caCert   string
-	client   concourse.Client
+	name      TargetName
+	teamName  string
+	caCert    string
+	tlsConfig *tls.Config
+	client    concourse.Client
+	url       string
+	token     *TargetToken
+}
+
+func newTarget(
+	name TargetName,
+	teamName string,
+	url string,
+	token *TargetToken,
+	caCert string,
+	caCertPool *x509.CertPool,
+	insecure bool,
+	client concourse.Client,
+) *target {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: insecure,
+		RootCAs:            caCertPool,
+	}
+
+	return &target{
+		name:      name,
+		teamName:  teamName,
+		url:       url,
+		token:     token,
+		caCert:    caCert,
+		tlsConfig: tlsConfig,
+		client:    client,
+	}
 }
 
 func LoadTarget(selectedTarget TargetName) (Target, error) {
-	targetProps, err := SelectTarget(selectedTarget)
+	targetProps, err := selectTarget(selectedTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +96,16 @@ func LoadTarget(selectedTarget TargetName) (Target, error) {
 	httpClient := defaultHttpClient(targetProps.Token, targetProps.Insecure, caCertPool)
 	client := concourse.NewClient(targetProps.API, httpClient)
 
-	return &target{
-		name:     selectedTarget,
-		teamName: targetProps.TeamName,
-		client:   client,
-	}, nil
+	return newTarget(
+		selectedTarget,
+		targetProps.TeamName,
+		targetProps.API,
+		targetProps.Token,
+		targetProps.CACert,
+		caCertPool,
+		targetProps.Insecure,
+		client,
+	), nil
 }
 
 func LoadTargetWithInsecure(
@@ -76,7 +114,7 @@ func LoadTargetWithInsecure(
 	commandInsecure bool,
 	caCert string,
 ) (Target, error) {
-	targetProps, err := SelectTarget(selectedTarget)
+	targetProps, err := selectTarget(selectedTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -100,12 +138,16 @@ func LoadTargetWithInsecure(
 
 	httpClient := defaultHttpClient(targetProps.Token, commandInsecure, caCertPool)
 
-	return &target{
-		name:     selectedTarget,
-		teamName: teamName,
-		caCert:   caCert,
-		client:   concourse.NewClient(targetProps.API, httpClient),
-	}, nil
+	return newTarget(
+		selectedTarget,
+		teamName,
+		targetProps.API,
+		targetProps.Token,
+		caCert,
+		caCertPool,
+		targetProps.Insecure,
+		concourse.NewClient(targetProps.API, httpClient),
+	), nil
 }
 
 func NewUnauthenticatedTarget(
@@ -122,12 +164,16 @@ func NewUnauthenticatedTarget(
 
 	httpClient := unauthenticatedHttpClient(insecure, caCertPool)
 	client := concourse.NewClient(url, httpClient)
-	return &target{
-		name:     name,
-		teamName: teamName,
-		caCert:   caCert,
-		client:   client,
-	}, nil
+	return newTarget(
+		name,
+		teamName,
+		url,
+		nil,
+		caCert,
+		caCertPool,
+		insecure,
+		client,
+	), nil
 }
 
 func NewBasicAuthTarget(
@@ -146,12 +192,16 @@ func NewBasicAuthTarget(
 	httpClient := basicAuthHttpClient(username, password, insecure, caCertPool)
 	client := concourse.NewClient(url, httpClient)
 
-	return &target{
-		name:     name,
-		teamName: teamName,
-		caCert:   caCert,
-		client:   client,
-	}, nil
+	return newTarget(
+		name,
+		teamName,
+		url,
+		nil,
+		caCert,
+		caCertPool,
+		insecure,
+		client,
+	), nil
 }
 
 func NewNoAuthTarget(
@@ -169,12 +219,16 @@ func NewNoAuthTarget(
 	httpClient := &http.Client{Transport: transport(insecure, caCertPool)}
 	client := concourse.NewClient(url, httpClient)
 
-	return &target{
-		name:     name,
-		teamName: teamName,
-		caCert:   caCert,
-		client:   client,
-	}, nil
+	return newTarget(
+		name,
+		teamName,
+		url,
+		nil,
+		caCert,
+		caCertPool,
+		insecure,
+		client,
+	), nil
 }
 
 func (t *target) Client() concourse.Client {
@@ -187,6 +241,26 @@ func (t *target) Team() concourse.Team {
 
 func (t *target) CACert() string {
 	return t.caCert
+}
+
+func (t *target) TLSConfig() *tls.Config {
+	return t.tlsConfig
+}
+
+func (t *target) URL() string {
+	return t.url
+}
+
+func (t *target) Token() *TargetToken {
+	return t.token
+}
+
+func (t *target) TokenAuthorization() (string, bool) {
+	if t.token == nil || (t.token.Type == "" && t.token.Value == "") {
+		return "", false
+	}
+
+	return t.token.Type + " " + t.token.Value, true
 }
 
 func (t *target) ValidateWithWarningOnly() error {
