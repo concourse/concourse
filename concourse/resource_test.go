@@ -83,7 +83,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			expectedStatus int
 			pipelineName   = "banana"
 			resourceName   = "disResource"
-			expectedURL    = fmt.Sprintf("/api/v1/pipelines/%s/resources/%s/pause", pipelineName, resourceName)
+			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/pause", pipelineName, resourceName)
 		)
 
 		JustBeforeEach(func() {
