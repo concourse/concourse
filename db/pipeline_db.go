@@ -715,7 +715,7 @@ func (pdb *pipelineDB) GetResourceType(name string) (SavedResourceType, bool, er
 
 func (pdb *pipelineDB) getResourceType(tx Tx, name string) (SavedResourceType, bool, error) {
 	var savedResourceType SavedResourceType
-	var versionJSON interface{}
+	var versionJSON []byte
 	err := tx.QueryRow(`
 			SELECT id, name, type, version
 			FROM resource_types
@@ -730,11 +730,9 @@ func (pdb *pipelineDB) getResourceType(tx Tx, name string) (SavedResourceType, b
 	}
 
 	if versionJSON != nil {
-		if version, ok := versionJSON.([]byte); ok {
-			err = json.Unmarshal(version, &savedResourceType.Version)
-			if err != nil {
-				return SavedResourceType{}, false, err
-			}
+		err := json.Unmarshal(versionJSON, &savedResourceType.Version)
+		if err != nil {
+			return SavedResourceType{}, false, err
 		}
 	}
 

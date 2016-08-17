@@ -1703,7 +1703,7 @@ var _ = Describe("PipelineDB", func() {
 	})
 
 	Describe("GetResourceType", func() {
-		It("returns a SavedResourceType", func() {
+		It("returns no SavedResourceType with none saved", func() {
 			_, found, err := pipelineDB.GetResourceType("resource-type-name")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
