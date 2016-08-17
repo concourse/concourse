@@ -19,7 +19,6 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
@@ -27,8 +26,7 @@ import (
 
 var _ = Describe("OAuthBeginHandler", func() {
 	var (
-		fakeProviderA *providerfakes.FakeProvider
-		fakeProviderB *providerfakes.FakeProvider
+		fakeProvider *providerfakes.FakeProvider
 
 		fakeProviderFactory *authfakes.FakeProviderFactory
 
@@ -44,8 +42,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeProviderA = new(providerfakes.FakeProvider)
-		fakeProviderB = new(providerfakes.FakeProvider)
+		fakeProvider = new(providerfakes.FakeProvider)
 
 		fakeProviderFactory = new(authfakes.FakeProviderFactory)
 
@@ -54,14 +51,6 @@ var _ = Describe("OAuthBeginHandler", func() {
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
 		Expect(err).ToNot(HaveOccurred())
-
-		fakeProviderFactory.GetProvidersReturns(
-			provider.Providers{
-				"a": fakeProviderA,
-				"b": fakeProviderB,
-			},
-			nil,
-		)
 
 		fakeTeamDBFactory = new(dbfakes.FakeTeamDBFactory)
 		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
@@ -82,6 +71,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 			Transport: &http.Transport{},
 			Jar:       cookieJar,
 		}
+
+		fakeProviderFactory.GetProviderReturns(fakeProvider, true, nil)
 	})
 
 	Describe("GET /auth/:provider/teams/:team_name", func() {
@@ -125,19 +116,13 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 			Context("to a known provider", func() {
 				BeforeEach(func() {
-					request.URL.Path = "/auth/b"
-
-					fakeProviderB.AuthCodeURLReturns(redirectTarget.URL())
+					request.URL.Path = "/auth/provider-name"
+					fakeProvider.AuthCodeURLReturns(redirectTarget.URL())
 				})
 
 				It("gets the teamDB with correct teamName", func() {
 					Expect(fakeTeamDBFactory.GetTeamDBCallCount()).To(Equal(1))
 					Expect(fakeTeamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
-				})
-
-				It("calls getProviders with correct team", func() {
-					Expect(fakeProviderFactory.GetProvidersCallCount()).To(Equal(1))
-					Expect(fakeProviderFactory.GetProvidersArgsForCall(0)).To(Equal(savedTeam))
 				})
 
 				It("redirects to the auth code URL", func() {
@@ -146,9 +131,9 @@ var _ = Describe("OAuthBeginHandler", func() {
 				})
 
 				It("generates the auth code with a base64-encoded redirect URI and team name as the state", func() {
-					Expect(fakeProviderB.AuthCodeURLCallCount()).To(Equal(1))
+					Expect(fakeProvider.AuthCodeURLCallCount()).To(Equal(1))
 
-					state, _ := fakeProviderB.AuthCodeURLArgsForCall(0)
+					state, _ := fakeProvider.AuthCodeURLArgsForCall(0)
 
 					decoded, err := base64.RawURLEncoding.DecodeString(state)
 					Expect(err).ToNot(HaveOccurred())
@@ -161,9 +146,9 @@ var _ = Describe("OAuthBeginHandler", func() {
 				})
 
 				It("sets the base64-encoded redirect URI as the OAuth state cookie", func() {
-					Expect(fakeProviderB.AuthCodeURLCallCount()).To(Equal(1))
+					Expect(fakeProvider.AuthCodeURLCallCount()).To(Equal(1))
 
-					state, _ := fakeProviderB.AuthCodeURLArgsForCall(0)
+					state, _ := fakeProvider.AuthCodeURLArgsForCall(0)
 
 					serverURL, err := url.Parse(server.URL)
 					Expect(err).ToNot(HaveOccurred())

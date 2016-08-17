@@ -11,51 +11,46 @@ import (
 
 type OAuthFactory struct {
 	logger         lager.Logger
-	teamDBFactory  db.TeamDBFactory
 	atcExternalURL string
 	routes         rata.Routes
 	callback       string
 }
 
-func NewOAuthFactory(logger lager.Logger, teamDBFactory db.TeamDBFactory, atcExternalURL string, routes rata.Routes, callback string) OAuthFactory {
+func NewOAuthFactory(logger lager.Logger, atcExternalURL string, routes rata.Routes, callback string) OAuthFactory {
 	return OAuthFactory{
 		logger:         logger,
-		teamDBFactory:  teamDBFactory,
 		atcExternalURL: atcExternalURL,
 		routes:         routes,
 		callback:       callback,
 	}
 }
 
-func (of OAuthFactory) GetProviders(team db.SavedTeam) (Providers, error) {
-	providers := Providers{}
-
-	if team.GitHubAuth != nil {
-		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
-			"provider": github.ProviderName,
-		})
-		if err != nil {
-			return Providers{}, err
-		}
-		gitHubAuthProvider := github.NewProvider(team.GitHubAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
-
-		providers[github.ProviderName] = gitHubAuthProvider
+func (of OAuthFactory) GetProvider(team db.SavedTeam, providerName string) (Provider, bool, error) {
+	redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
+		"provider": providerName,
+	})
+	if err != nil {
+		of.logger.Error("failed-to-construct-redirect-url", err, lager.Data{"provider": providerName})
+		return nil, false, err
 	}
 
-	if team.UAAAuth != nil {
-		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
-			"provider": uaa.ProviderName,
-		})
-		if err != nil {
-			return Providers{}, err
+	switch providerName {
+	case github.ProviderName:
+		if team.GitHubAuth == nil {
+			return nil, false, nil
 		}
-		uaaAuthProvider, err := uaa.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
-		if err != nil {
-			of.logger.Error("failed-to-construct-uaa-provider", err, lager.Data{"team-name": team.Name})
-		} else {
-			providers[uaa.ProviderName] = uaaAuthProvider
+
+		return github.NewProvider(team.GitHubAuth, urljoiner.Join(of.atcExternalURL, redirectURL)), true, nil
+
+	case uaa.ProviderName:
+		if team.UAAAuth == nil {
+			of.logger.Error("failed-to-construct-redirect-url", err, lager.Data{"provider": providerName})
+			return nil, false, nil
 		}
+
+		return uaa.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL)), true, nil
+
 	}
 
-	return providers, nil
+	return nil, false, nil
 }
