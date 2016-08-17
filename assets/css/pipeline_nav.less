@@ -18,22 +18,21 @@
     display: block;
   }
 
-  & ul{
+  ul{
     list-style: none;
     margin: 0px;
   }
 
   .team {
-
     text-align: center;
 
-    & ul{
+    ul {
       background-color: @base01;
       border-bottom: 1px solid @base02;
       border-top: 1px solid @base02;
     }
 
-    & li {
+    li {
       position: relative;
       border-bottom: 1px solid @base02;
 
@@ -66,16 +65,21 @@
       .draggable {
         position: relative;
 
-        & div {
+        div {
           background: @base00;
           display: flex;
-          & span {
+          span {
             flex-grow: 0;
           }
-          & a {
+
+          a {
             flex-grow: 1;
             text-align: right;
             padding-right: 10px;
+
+            &:hover {
+              background-color: @base01;
+            }
           }
         }
 
