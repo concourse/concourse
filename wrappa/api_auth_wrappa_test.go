@@ -192,6 +192,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.SetLogLevel:     authenticated(inputHandlers[atc.SetLogLevel]),
 				atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
 				atc.WritePipe:       authenticated(inputHandlers[atc.WritePipe]),
+				atc.GetUser:         authenticated(inputHandlers[atc.GetUser]),
 
 				// authorized (requested team matches resource team)
 				atc.CheckResource:          authorized(inputHandlers[atc.CheckResource]),

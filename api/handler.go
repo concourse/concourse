@@ -182,6 +182,7 @@ func NewHandler(
 
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:     http.HandlerFunc(infoServer.Info),
+		atc.GetUser:     http.HandlerFunc(authServer.GetUser),
 
 		atc.ListContainers:  teamHandlerFactory.HandlerFor(containerServer.ListContainers),
 		atc.GetContainer:    teamHandlerFactory.HandlerFor(containerServer.GetContainer),

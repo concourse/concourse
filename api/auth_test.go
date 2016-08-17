@@ -285,4 +285,130 @@ var _ = Describe("Auth API", func() {
 			})
 		})
 	})
+
+	Describe("GET /api/v1/user", func() {
+		var (
+			request  *http.Request
+			response *http.Response
+
+			err       error
+			savedTeam db.SavedTeam
+		)
+
+		BeforeEach(func() {
+			savedTeam = db.SavedTeam{
+				ID: 5,
+				Team: db.Team{
+					Name:  "some-team",
+					Admin: true,
+				},
+			}
+
+			request, err = http.NewRequest("GET", server.URL+"/api/v1/user", nil)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("as system", func() {
+				BeforeEach(func() {
+					userContextReader.GetSystemReturns(true, true)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns Content-Type application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
+				It("returns the system response", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{"system":true}`))
+				})
+			})
+
+			Context("as an user in some-team", func() {
+				Context("but no auth in the context", func() {
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("auth found in the context", func() {
+					BeforeEach(func() {
+						userContextReader.GetTeamReturns("some-team", 5, false, true)
+					})
+
+					Context("as an user in a some-team", func() {
+						Context("and fails to retrieve team from db", func() {
+							BeforeEach(func() {
+								userContextReader.GetSystemReturns(false, false)
+								teamDB.GetTeamReturns(db.SavedTeam{}, false, errors.New("disaster"))
+							})
+
+							It("returns 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
+						})
+
+						Context("and team not found in the db", func() {
+							BeforeEach(func() {
+								teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+							})
+
+							It("returns empty json", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchJSON(`{}`))
+							})
+						})
+
+						Context("and team found in the db", func() {
+							BeforeEach(func() {
+								teamDB.GetTeamReturns(savedTeam, true, nil)
+							})
+
+							It("returns 200 OK", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
+
+							It("returns Content-Type application/json", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
+							It("returns the team", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchJSON(`{"team":{"id":5,"name":"some-team"}}`))
+							})
+						})
+					})
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401 Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
 })
