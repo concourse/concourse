@@ -737,9 +737,19 @@ var _ = Describe("Teams API", func() {
 							team.BasicAuth = &basicAuth
 						})
 
-						It("updates the basic auth for that team", func() {
+						It("creates a team with basic auth credentials", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
+
+							createdTeam := teamServerDB.CreateTeamArgsForCall(0)
+							Expect(createdTeam).To(Not(BeNil()))
+
+							Expect(createdTeam.BasicAuth).To(Not(BeNil()))
+							Expect(createdTeam.BasicAuth.BasicAuthUsername).To(Equal("Dean Venture"))
+							Expect(createdTeam.BasicAuth.BasicAuthPassword).To(Equal("Giant Boy Detective"))
+							Expect(createdTeam.GitHubAuth).To(BeNil())
+							Expect(createdTeam.UAAAuth).To(BeNil())
+							Expect(createdTeam.GenericOAuth).To(BeNil())
 						})
 					})
 
@@ -748,9 +758,20 @@ var _ = Describe("Teams API", func() {
 							team.GitHubAuth = &gitHubAuth
 						})
 
-						It("updates the GitHub auth for that team", func() {
+						It("creates a team with GitHub auth credentials", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
+
+							createdTeam := teamServerDB.CreateTeamArgsForCall(0)
+							Expect(createdTeam).To(Not(BeNil()))
+
+							Expect(createdTeam.BasicAuth).To(BeNil())
+							Expect(createdTeam.GitHubAuth).To(Not(BeNil()))
+							Expect(createdTeam.GitHubAuth.ClientID).To(Equal("Dean Venture"))
+							Expect(createdTeam.GitHubAuth.ClientSecret).To(Equal("Giant Boy Detective"))
+							Expect(createdTeam.GitHubAuth.Users).To(Equal([]string{"Dean Venture"}))
+							Expect(createdTeam.UAAAuth).To(BeNil())
+							Expect(createdTeam.GenericOAuth).To(BeNil())
 						})
 					})
 
@@ -759,9 +780,21 @@ var _ = Describe("Teams API", func() {
 							team.GenericOAuth = &genericOAuth
 						})
 
-						It("updates the Generic OAuth auth for that team", func() {
+						It("creates a team with Generic OAuth credentials", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
+
+							createdTeam := teamServerDB.CreateTeamArgsForCall(0)
+							Expect(createdTeam).To(Not(BeNil()))
+
+							Expect(createdTeam.BasicAuth).To(BeNil())
+							Expect(createdTeam.GitHubAuth).To(BeNil())
+							Expect(createdTeam.UAAAuth).To(BeNil())
+							Expect(createdTeam.GenericOAuth.DisplayName).To(Equal("Cyborgs"))
+							Expect(createdTeam.GenericOAuth.ClientID).To(Equal("Dean Venture"))
+							Expect(createdTeam.GenericOAuth.ClientSecret).To(Equal("Giant Boy Detective"))
+							Expect(createdTeam.GenericOAuth.AuthURL).To(Equal("auth.url"))
+							Expect(createdTeam.GenericOAuth.TokenURL).To(Equal("token.url"))
 						})
 					})
 				})
