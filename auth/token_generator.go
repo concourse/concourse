@@ -33,11 +33,12 @@ func NewTokenGenerator(privateKey *rsa.PrivateKey) TokenGenerator {
 }
 
 func (generator *tokenGenerator) GenerateToken(expiration time.Time, teamName string, teamID int, isAdmin bool) (TokenType, TokenValue, error) {
-	jwtToken := jwt.New(SigningMethod)
-	jwtToken.Claims["exp"] = expiration.Unix()
-	jwtToken.Claims["teamName"] = teamName
-	jwtToken.Claims["teamID"] = teamID
-	jwtToken.Claims["isAdmin"] = isAdmin
+	jwtToken := jwt.NewWithClaims(SigningMethod, jwt.MapClaims{
+		"exp":      expiration.Unix(),
+		"teamName": teamName,
+		"teamID":   teamID,
+		"isAdmin":  isAdmin,
+	})
 
 	signed, err := jwtToken.SignedString(generator.privateKey)
 	if err != nil {

@@ -223,7 +223,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 								token, err := jwt.Parse(strings.Replace(cookie.Value, "Bearer ", "", -1), keyFunc)
 								Expect(err).ToNot(HaveOccurred())
 
-								Expect(token.Claims["exp"]).To(BeNumerically("==", cookie.Expires.Unix()))
+								claims := token.Claims.(jwt.MapClaims)
+								Expect(claims["exp"]).To(BeNumerically("==", cookie.Expires.Unix()))
 								Expect(token.Valid).To(BeTrue())
 							})
 
@@ -231,8 +232,9 @@ var _ = Describe("OAuthCallbackHandler", func() {
 								token, err := jwt.Parse(strings.Replace(cookie.Value, "Bearer ", "", -1), keyFunc)
 								Expect(err).ToNot(HaveOccurred())
 
-								Expect(token.Claims["teamName"]).To(Equal(team.Name))
-								Expect(token.Claims["teamID"]).To(BeNumerically("==", team.ID))
+								claims := token.Claims.(jwt.MapClaims)
+								Expect(claims["teamName"]).To(Equal(team.Name))
+								Expect(claims["teamID"]).To(BeNumerically("==", team.ID))
 								Expect(token.Valid).To(BeTrue())
 							})
 						})
