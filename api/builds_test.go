@@ -1001,16 +1001,6 @@ var _ = Describe("Builds API", func() {
 			})
 		})
 
-		Context("when the build can not be found", func() {
-			BeforeEach(func() {
-				teamDB.GetBuildReturns(nil, false, nil)
-			})
-
-			It("returns Not Found", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-			})
-		})
-
 		Context("when calling the database fails", func() {
 			BeforeEach(func() {
 				buildsDB.GetBuildByIDReturns(nil, false, errors.New("nope"))

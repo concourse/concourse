@@ -124,16 +124,6 @@ type FakeTeamDB struct {
 		result2 db.Pagination
 		result3 error
 	}
-	GetBuildStub        func(buildID int) (db.Build, bool, error)
-	getBuildMutex       sync.RWMutex
-	getBuildArgsForCall []struct {
-		buildID int
-	}
-	getBuildReturns struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}
 	WorkersStub        func() ([]db.SavedWorker, error)
 	workersMutex       sync.RWMutex
 	workersArgsForCall []struct{}
@@ -586,41 +576,6 @@ func (fake *FakeTeamDB) GetPrivateAndPublicBuildsReturns(result1 []db.Build, res
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeamDB) GetBuild(buildID int) (db.Build, bool, error) {
-	fake.getBuildMutex.Lock()
-	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
-		buildID int
-	}{buildID})
-	fake.recordInvocation("GetBuild", []interface{}{buildID})
-	fake.getBuildMutex.Unlock()
-	if fake.GetBuildStub != nil {
-		return fake.GetBuildStub(buildID)
-	} else {
-		return fake.getBuildReturns.result1, fake.getBuildReturns.result2, fake.getBuildReturns.result3
-	}
-}
-
-func (fake *FakeTeamDB) GetBuildCallCount() int {
-	fake.getBuildMutex.RLock()
-	defer fake.getBuildMutex.RUnlock()
-	return len(fake.getBuildArgsForCall)
-}
-
-func (fake *FakeTeamDB) GetBuildArgsForCall(i int) int {
-	fake.getBuildMutex.RLock()
-	defer fake.getBuildMutex.RUnlock()
-	return fake.getBuildArgsForCall[i].buildID
-}
-
-func (fake *FakeTeamDB) GetBuildReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetBuildStub = nil
-	fake.getBuildReturns = struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeTeamDB) Workers() ([]db.SavedWorker, error) {
 	fake.workersMutex.Lock()
 	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
@@ -771,8 +726,6 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.createOneOffBuildMutex.RUnlock()
 	fake.getPrivateAndPublicBuildsMutex.RLock()
 	defer fake.getPrivateAndPublicBuildsMutex.RUnlock()
-	fake.getBuildMutex.RLock()
-	defer fake.getBuildMutex.RUnlock()
 	fake.workersMutex.RLock()
 	defer fake.workersMutex.RUnlock()
 	fake.getContainerMutex.RLock()
