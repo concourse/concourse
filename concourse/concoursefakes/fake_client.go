@@ -633,6 +633,36 @@ func (fake *FakeClient) ListPipelines() ([]atc.Pipeline, error) {
 	}
 }
 
+func (fake *FakeClient) PauseResource(pipelineName string, resourceName string) (bool, error) {
+	fake.pauseResourceMutex.Lock()
+	fake.pauseResourceArgsForCall = append(fake.pauseResourceArgsForCall, struct {
+		pipelineName string
+		resourceName string
+	}{pipelineName, resourceName})
+	fake.recordInvocation("PauseResource", []interface{}{pipelineName, resourceName})
+	fake.pauseResourceMutex.Unlock()
+	if fake.PauseResourceStub != nil {
+		return fake.PauseResourceStub(pipelineName, resourceName)
+	} else {
+		return fake.pauseResourceReturns.result1, fake.pauseResourceReturns.result2
+	}
+}
+
+func (fake *FakeClient) UnpauseResource(pipelineName string, resourceName string) (bool, error) {
+	fake.unpauseResourceMutex.Lock()
+	fake.unpauseResourceArgsForCall = append(fake.unpauseResourceArgsForCall, struct {
+		pipelineName string
+		resourceName string
+	}{pipelineName, resourceName})
+	fake.recordInvocation("unpauseResource", []interface{}{pipelineName, resourceName})
+	fake.unpauseResourceMutex.Unlock()
+	if fake.UnpauseResourceStub != nil {
+		return fake.UnpauseResourceStub(pipelineName, resourceName)
+	} else {
+		return fake.unpauseResourceReturns.result1, fake.pauseResourceReturns.result2
+	}
+}
+
 func (fake *FakeClient) ListPipelinesCallCount() int {
 	fake.listPipelinesMutex.RLock()
 	defer fake.listPipelinesMutex.RUnlock()

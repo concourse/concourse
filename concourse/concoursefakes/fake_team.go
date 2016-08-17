@@ -249,6 +249,26 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	PauseResourceStub        func(pipelineName string, resourceName string) (bool, error)
+	pauseResourceMutex       sync.RWMutex
+	pauseResourceArgsForCall []struct {
+		pipelineName string
+		resourceName string
+	}
+	pauseResourceReturns struct {
+		result1 bool
+		result2 error
+	}
+	UnpauseResourceStub        func(pipelineName string, resourceName string) (bool, error)
+	unpauseResourceMutex       sync.RWMutex
+	unpauseResourceArgsForCall []struct {
+		pipelineName string
+		resourceName string
+	}
+	unpauseResourceReturns struct {
+		result1 bool
+		result2 error
+	}
 	BuildsWithVersionAsInputStub        func(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 	buildsWithVersionAsInputMutex       sync.RWMutex
 	buildsWithVersionAsInputArgsForCall []struct {
