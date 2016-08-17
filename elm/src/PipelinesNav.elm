@@ -4,7 +4,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, disabled, attribute, style)
 import Html.Events as Events
 import Http
-import Json.Decode
+import Json.Decode exposing ((:=))
 import List
 import Mouse exposing (Position)
 import Task
@@ -114,21 +114,19 @@ update action model =
           )
         Nothing -> (model, Cmd.none)
     StartDragging teamName pipelineName pos ->
-      always
-        ( { model
-          | dragInfo =
-              Just
-                { startPos = pos
-                , pos = pos
-                , teamName = teamName
-                , pipelineName = pipelineName
-                , purposeful = False
-                , hover = Nothing
-                }
-          }
-        , Cmd.none
-        ) <|
-        Debug.log "start" pos
+      ( { model
+        | dragInfo =
+            Just
+              { startPos = pos
+              , pos = pos
+              , teamName = teamName
+              , pipelineName = pipelineName
+              , purposeful = False
+              , hover = Nothing
+              }
+        }
+      , Cmd.none
+      )
     StopDragging pos ->
       case model.dragInfo of
         Just dragInfo ->
@@ -398,7 +396,8 @@ viewDraggable maybeDragInfo uip =
         , Events.onWithOptions
             "mousedown"
             { stopPropagation = False, preventDefault = True } <|
-            Json.Decode.map (StartDragging uip.pipeline.teamName uip.pipeline.name) Mouse.position
+            Json.Decode.map (StartDragging uip.pipeline.teamName uip.pipeline.name)
+              (checkLeftClick `Json.Decode.andThen` always Mouse.position)
         ] ++
           case (maybeDragInfo, dragging) of
             (Just dragInfo, True) -> [ dragStyle dragInfo ]
@@ -416,6 +415,14 @@ viewDraggable maybeDragInfo uip =
             [ Html.text uip.pipeline.name ]
         ]
     ]
+
+checkLeftClick : Json.Decode.Decoder ()
+checkLeftClick =
+  ("button" := Json.Decode.int) `Json.Decode.andThen` \button ->
+    if button == 0 then
+      Json.Decode.succeed ()
+    else
+      Json.Decode.fail "not left click"
 
 dragStyle : DragInfo -> Html.Attribute action
 dragStyle dragInfo =
