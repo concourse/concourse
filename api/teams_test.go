@@ -390,6 +390,26 @@ var _ = Describe("Teams API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 						})
 					})
+
+					Context("when CF Cert is invalid", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								UAAAuth: &atc.UAAAuth{
+									ClientID:     "S.P.H.I.N.X.",
+									ClientSecret: "09262-8765-001",
+									CFSpaces:     []string{"myspace"},
+									AuthURL:      "http://auth.url",
+									TokenURL:     "http://token.url",
+									CFURL:        "http://api.url",
+									CFCACert:     "bogus-cert-contents",
+								},
+							}
+						})
+
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+					})
 				})
 			})
 

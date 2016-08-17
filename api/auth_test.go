@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -152,19 +150,6 @@ var _ = Describe("Auth API", func() {
 			var savedTeam db.SavedTeam
 
 			BeforeEach(func() {
-				authProvider1 := new(providerfakes.FakeProvider)
-				authProvider1.DisplayNameReturns("OAuth Provider 1")
-
-				authProvider2 := new(providerfakes.FakeProvider)
-				authProvider2.DisplayNameReturns("OAuth Provider 2")
-				providerFactory.GetProvidersReturns(
-					provider.Providers{
-						"oauth-provider-1": authProvider1,
-						"oauth-provider-2": authProvider2,
-					},
-					nil,
-				)
-
 				savedTeam = db.SavedTeam{
 					ID: 0,
 					Team: db.Team{
@@ -172,6 +157,14 @@ var _ = Describe("Auth API", func() {
 						BasicAuth: &db.BasicAuth{
 							BasicAuthUsername: "user",
 							BasicAuthPassword: "password",
+						},
+						UAAAuth: &db.UAAAuth{
+							ClientID:     "client-id",
+							ClientSecret: "client-secret",
+						},
+						GitHubAuth: &db.GitHubAuth{
+							ClientID:     "client-id",
+							ClientSecret: "client-secret",
 						},
 					},
 				}
@@ -194,11 +187,6 @@ var _ = Describe("Auth API", func() {
 				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
 			})
 
-			It("looks up oauth providers for the right team", func() {
-				Expect(providerFactory.GetProvidersCallCount()).To(Equal(1))
-				Expect(providerFactory.GetProvidersArgsForCall(0)).To(Equal(savedTeam))
-			})
-
 			It("returns 200 OK", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
@@ -212,22 +200,22 @@ var _ = Describe("Auth API", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`[
-				{
-					"type": "oauth",
-					"display_name": "OAuth Provider 1",
-					"auth_url": "https://oauth.example.com/auth/oauth-provider-1?team_name=some-team"
-				},
-				{
-					"type": "oauth",
-					"display_name": "OAuth Provider 2",
-					"auth_url": "https://oauth.example.com/auth/oauth-provider-2?team_name=some-team"
-				},
-				{
-					"type": "basic",
-					"display_name": "Basic Auth",
-					"auth_url": "https://example.com/teams/some-team/login"
-				}
-			]`))
+					{
+						"type": "oauth",
+						"display_name": "GitHub",
+						"auth_url": "https://oauth.example.com/auth/github?team_name=some-team"
+					},
+					{
+						"type": "oauth",
+						"display_name": "UAA",
+						"auth_url": "https://oauth.example.com/auth/uaa?team_name=some-team"
+					},
+					{
+						"type": "basic",
+						"display_name": "Basic Auth",
+						"auth_url": "https://example.com/teams/some-team/login"
+					}
+				]`))
 			})
 		})
 

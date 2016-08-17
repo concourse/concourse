@@ -10,58 +10,62 @@ import (
 )
 
 type FakeProviderFactory struct {
-	GetProvidersStub        func(db.SavedTeam) (provider.Providers, error)
-	getProvidersMutex       sync.RWMutex
-	getProvidersArgsForCall []struct {
+	GetProviderStub        func(db.SavedTeam, string) (provider.Provider, bool, error)
+	getProviderMutex       sync.RWMutex
+	getProviderArgsForCall []struct {
 		arg1 db.SavedTeam
+		arg2 string
 	}
-	getProvidersReturns struct {
-		result1 provider.Providers
-		result2 error
+	getProviderReturns struct {
+		result1 provider.Provider
+		result2 bool
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeProviderFactory) GetProviders(arg1 db.SavedTeam) (provider.Providers, error) {
-	fake.getProvidersMutex.Lock()
-	fake.getProvidersArgsForCall = append(fake.getProvidersArgsForCall, struct {
+func (fake *FakeProviderFactory) GetProvider(arg1 db.SavedTeam, arg2 string) (provider.Provider, bool, error) {
+	fake.getProviderMutex.Lock()
+	fake.getProviderArgsForCall = append(fake.getProviderArgsForCall, struct {
 		arg1 db.SavedTeam
-	}{arg1})
-	fake.recordInvocation("GetProviders", []interface{}{arg1})
-	fake.getProvidersMutex.Unlock()
-	if fake.GetProvidersStub != nil {
-		return fake.GetProvidersStub(arg1)
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("GetProvider", []interface{}{arg1, arg2})
+	fake.getProviderMutex.Unlock()
+	if fake.GetProviderStub != nil {
+		return fake.GetProviderStub(arg1, arg2)
 	} else {
-		return fake.getProvidersReturns.result1, fake.getProvidersReturns.result2
+		return fake.getProviderReturns.result1, fake.getProviderReturns.result2, fake.getProviderReturns.result3
 	}
 }
 
-func (fake *FakeProviderFactory) GetProvidersCallCount() int {
-	fake.getProvidersMutex.RLock()
-	defer fake.getProvidersMutex.RUnlock()
-	return len(fake.getProvidersArgsForCall)
+func (fake *FakeProviderFactory) GetProviderCallCount() int {
+	fake.getProviderMutex.RLock()
+	defer fake.getProviderMutex.RUnlock()
+	return len(fake.getProviderArgsForCall)
 }
 
-func (fake *FakeProviderFactory) GetProvidersArgsForCall(i int) db.SavedTeam {
-	fake.getProvidersMutex.RLock()
-	defer fake.getProvidersMutex.RUnlock()
-	return fake.getProvidersArgsForCall[i].arg1
+func (fake *FakeProviderFactory) GetProviderArgsForCall(i int) (db.SavedTeam, string) {
+	fake.getProviderMutex.RLock()
+	defer fake.getProviderMutex.RUnlock()
+	return fake.getProviderArgsForCall[i].arg1, fake.getProviderArgsForCall[i].arg2
 }
 
-func (fake *FakeProviderFactory) GetProvidersReturns(result1 provider.Providers, result2 error) {
-	fake.GetProvidersStub = nil
-	fake.getProvidersReturns = struct {
-		result1 provider.Providers
-		result2 error
-	}{result1, result2}
+func (fake *FakeProviderFactory) GetProviderReturns(result1 provider.Provider, result2 bool, result3 error) {
+	fake.GetProviderStub = nil
+	fake.getProviderReturns = struct {
+		result1 provider.Provider
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeProviderFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getProvidersMutex.RLock()
-	defer fake.getProvidersMutex.RUnlock()
+	fake.getProviderMutex.RLock()
+	defer fake.getProviderMutex.RUnlock()
 	return fake.invocations
 }
 

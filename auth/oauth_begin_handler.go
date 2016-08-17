@@ -62,20 +62,19 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	providers, err := handler.providerFactory.GetProviders(team)
+	provider, found, err := handler.providerFactory.GetProvider(team, providerName)
 	if err != nil {
-		handler.logger.Error("unknown-provider", err, lager.Data{
+		handler.logger.Error("failed-to-get-provider", err, lager.Data{
 			"provider": providerName,
 			"teamName": teamName,
 		})
 
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	provider, found := providers[providerName]
 	if !found {
-		handler.logger.Info("unknown-provider", lager.Data{
+		handler.logger.Info("team-does-not-have-auth-provider", lager.Data{
 			"provider": providerName,
 		})
 

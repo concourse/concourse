@@ -14,12 +14,12 @@ import (
 )
 
 const ProviderName = "uaa"
+const DisplayName = "UAA"
 
 var Scopes = []string{"cloud_controller.read"}
 
 type Provider interface {
-	DisplayName() string
-	PreTokenClient() *http.Client
+	PreTokenClient() (*http.Client, error)
 
 	OAuthClient
 	Verifier
@@ -38,30 +38,11 @@ type Verifier interface {
 func NewProvider(
 	uaaAuth *db.UAAAuth,
 	redirectURL string,
-) (Provider, error) {
+) Provider {
 	endpoint := oauth2.Endpoint{}
 	if uaaAuth.AuthURL != "" && uaaAuth.TokenURL != "" {
 		endpoint.AuthURL = uaaAuth.AuthURL
 		endpoint.TokenURL = uaaAuth.TokenURL
-	}
-
-	transport := &http.Transport{
-		DisableKeepAlives: true,
-	}
-
-	if uaaAuth.CFCACert != "" {
-		caCertPool := x509.NewCertPool()
-		ok := caCertPool.AppendCertsFromPEM([]byte(uaaAuth.CFCACert))
-		if !ok {
-			return uaaProvider{}, errors.New("failed to use cf certificate")
-		}
-		transport.TLSClientConfig = &tls.Config{
-			RootCAs: caCertPool,
-		}
-	}
-
-	disabledKeepAliveClient := &http.Client{
-		Transport: transport,
 	}
 
 	return uaaProvider{
@@ -76,8 +57,8 @@ func NewProvider(
 			Scopes:       Scopes,
 			RedirectURL:  redirectURL,
 		},
-		PTClient: disabledKeepAliveClient,
-	}, nil
+		CFCACert: uaaAuth.CFCACert,
+	}
 }
 
 type uaaProvider struct {
@@ -88,13 +69,27 @@ type uaaProvider struct {
 	// Client(context.Context, *oauth2.Token) *http.Client
 
 	verifier.Verifier
-	PTClient *http.Client
+	CFCACert string
 }
 
-func (uaaProvider) DisplayName() string {
-	return "UAA"
-}
+func (p uaaProvider) PreTokenClient() (*http.Client, error) {
+	transport := &http.Transport{
+		DisableKeepAlives: true,
+	}
 
-func (p uaaProvider) PreTokenClient() *http.Client {
-	return p.PTClient
+	if p.CFCACert != "" {
+		caCertPool := x509.NewCertPool()
+		ok := caCertPool.AppendCertsFromPEM([]byte(p.CFCACert))
+		if !ok {
+			return nil, errors.New("failed to use cf certificate")
+		}
+
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs: caCertPool,
+		}
+	}
+
+	return &http.Client{
+		Transport: transport,
+	}, nil
 }

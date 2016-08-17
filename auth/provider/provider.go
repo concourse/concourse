@@ -14,8 +14,7 @@ type Providers map[string]Provider
 //go:generate counterfeiter . Provider
 
 type Provider interface {
-	DisplayName() string
-	PreTokenClient() *http.Client
+	PreTokenClient() (*http.Client, error)
 
 	OAuthClient
 	Verifier

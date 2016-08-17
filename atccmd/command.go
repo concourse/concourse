@@ -209,7 +209,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	providerFactory := provider.NewOAuthFactory(
 		logger.Session("oauth-provider-factory"),
-		teamDBFactory,
 		cmd.oauthBaseURL(),
 		auth.OAuthRoutes,
 		auth.OAuthCallback,

@@ -8,99 +8,95 @@ import (
 	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
 
-	"github.com/concourse/atc/db/dbfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("OAuthFactory", func() {
-	var fakeTeamDB *dbfakes.FakeTeamDB
 	var oauthFactory provider.OAuthFactory
 
 	BeforeEach(func() {
-		fakeTeamDB = new(dbfakes.FakeTeamDB)
-		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
-		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
 		oauthFactory = provider.NewOAuthFactory(
 			lagertest.NewTestLogger("test"),
-			fakeTeamDBFactory,
 			"http://foo.bar",
 			auth.OAuthRoutes,
 			auth.OAuthCallback,
 		)
 	})
 
-	Describe("Get Providers", func() {
-		Context("when GitHub provider is setup", func() {
-			It("returns back GitHub's auth provider", func() {
-				providers, err := oauthFactory.GetProviders(db.SavedTeam{
-					Team: db.Team{
-						Name: "some-team",
-						GitHubAuth: &db.GitHubAuth{
-							ClientID:     "user1",
-							ClientSecret: "password1",
-							Users:        []string{"thecandyman"},
+	Describe("GetProvider", func() {
+		Context("when asking for github provider", func() {
+			Context("when github provider is setup", func() {
+				It("returns back GitHub's auth provider", func() {
+					provider, found, err := oauthFactory.GetProvider(db.SavedTeam{
+						Team: db.Team{
+							Name: "some-team",
+							GitHubAuth: &db.GitHubAuth{
+								ClientID:     "user1",
+								ClientSecret: "password1",
+								Users:        []string{"thecandyman"},
+							},
 						},
-					},
+					}, github.ProviderName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(provider).NotTo(BeNil())
 				})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(providers).To(HaveLen(1))
-				Expect(providers[github.ProviderName]).NotTo(BeNil())
+			})
+
+			Context("when github provider is not setup", func() {
+				It("returns false", func() {
+					_, found, err := oauthFactory.GetProvider(db.SavedTeam{
+						Team: db.Team{
+							Name: "some-team",
+						},
+					}, github.ProviderName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
 			})
 		})
 
-		Context("when UAA provider is setup", func() {
-			It("returns back UAA's auth provider", func() {
-				providers, err := oauthFactory.GetProviders(db.SavedTeam{
-					Team: db.Team{
-						Name: "some-team",
-						UAAAuth: &db.UAAAuth{
-							ClientID:     "user1",
-							ClientSecret: "password1",
-							CFSpaces:     []string{"myspace"},
+		Context("when asking for uaa provider", func() {
+			Context("when UAA provider is setup", func() {
+				It("returns back UAA's auth provider", func() {
+					provider, found, err := oauthFactory.GetProvider(db.SavedTeam{
+						Team: db.Team{
+							Name: "some-team",
+							UAAAuth: &db.UAAAuth{
+								ClientID:     "user1",
+								ClientSecret: "password1",
+							},
 						},
-					},
+					}, uaa.ProviderName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(provider).NotTo(BeNil())
 				})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(providers).To(HaveLen(1))
-				Expect(providers[uaa.ProviderName]).NotTo(BeNil())
+			})
+
+			Context("when uaa provider is not setup", func() {
+				It("returns false", func() {
+					_, found, err := oauthFactory.GetProvider(db.SavedTeam{
+						Team: db.Team{
+							Name: "some-team",
+						},
+					}, uaa.ProviderName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
 			})
 		})
 
-		Context("when UAA provider has an invalid ssl cert", func() {
-			It("returns the other providers", func() {
-				providers, err := oauthFactory.GetProviders(db.SavedTeam{
-					Team: db.Team{
-						Name: "some-team",
-						GitHubAuth: &db.GitHubAuth{
-							ClientID:     "user1",
-							ClientSecret: "password1",
-							Users:        []string{"thecandyman"},
-						},
-						UAAAuth: &db.UAAAuth{
-							ClientID:     "user1",
-							ClientSecret: "password1",
-							CFSpaces:     []string{"myspace"},
-							CFCACert:     "some-invalid-cert",
-						},
-					},
-				})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(providers).To(HaveLen(1))
-				Expect(providers[github.ProviderName]).NotTo(BeNil())
-			})
-		})
-
-		Context("when no provider is setup", func() {
-			It("returns an empty map", func() {
-				providers, err := oauthFactory.GetProviders(db.SavedTeam{
+		Context("when asking for unknown provider", func() {
+			It("returns false", func() {
+				_, found, err := oauthFactory.GetProvider(db.SavedTeam{
 					Team: db.Team{
 						Name: "some-team",
 					},
-				})
+				}, "bogus")
 				Expect(err).NotTo(HaveOccurred())
-				Expect(providers).To(BeEmpty())
+				Expect(found).To(BeFalse())
 			})
 		})
 	})

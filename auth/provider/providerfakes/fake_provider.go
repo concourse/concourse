@@ -12,17 +12,12 @@ import (
 )
 
 type FakeProvider struct {
-	DisplayNameStub        func() string
-	displayNameMutex       sync.RWMutex
-	displayNameArgsForCall []struct{}
-	displayNameReturns     struct {
-		result1 string
-	}
-	PreTokenClientStub        func() *http.Client
+	PreTokenClientStub        func() (*http.Client, error)
 	preTokenClientMutex       sync.RWMutex
 	preTokenClientArgsForCall []struct{}
 	preTokenClientReturns     struct {
 		result1 *http.Client
+		result2 error
 	}
 	AuthCodeURLStub        func(string, ...oauth2.AuthCodeOption) string
 	authCodeURLMutex       sync.RWMutex
@@ -66,32 +61,7 @@ type FakeProvider struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeProvider) DisplayName() string {
-	fake.displayNameMutex.Lock()
-	fake.displayNameArgsForCall = append(fake.displayNameArgsForCall, struct{}{})
-	fake.recordInvocation("DisplayName", []interface{}{})
-	fake.displayNameMutex.Unlock()
-	if fake.DisplayNameStub != nil {
-		return fake.DisplayNameStub()
-	} else {
-		return fake.displayNameReturns.result1
-	}
-}
-
-func (fake *FakeProvider) DisplayNameCallCount() int {
-	fake.displayNameMutex.RLock()
-	defer fake.displayNameMutex.RUnlock()
-	return len(fake.displayNameArgsForCall)
-}
-
-func (fake *FakeProvider) DisplayNameReturns(result1 string) {
-	fake.DisplayNameStub = nil
-	fake.displayNameReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeProvider) PreTokenClient() *http.Client {
+func (fake *FakeProvider) PreTokenClient() (*http.Client, error) {
 	fake.preTokenClientMutex.Lock()
 	fake.preTokenClientArgsForCall = append(fake.preTokenClientArgsForCall, struct{}{})
 	fake.recordInvocation("PreTokenClient", []interface{}{})
@@ -99,7 +69,7 @@ func (fake *FakeProvider) PreTokenClient() *http.Client {
 	if fake.PreTokenClientStub != nil {
 		return fake.PreTokenClientStub()
 	} else {
-		return fake.preTokenClientReturns.result1
+		return fake.preTokenClientReturns.result1, fake.preTokenClientReturns.result2
 	}
 }
 
@@ -109,11 +79,12 @@ func (fake *FakeProvider) PreTokenClientCallCount() int {
 	return len(fake.preTokenClientArgsForCall)
 }
 
-func (fake *FakeProvider) PreTokenClientReturns(result1 *http.Client) {
+func (fake *FakeProvider) PreTokenClientReturns(result1 *http.Client, result2 error) {
 	fake.PreTokenClientStub = nil
 	fake.preTokenClientReturns = struct {
 		result1 *http.Client
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeProvider) AuthCodeURL(arg1 string, arg2 ...oauth2.AuthCodeOption) string {
@@ -257,8 +228,6 @@ func (fake *FakeProvider) VerifyReturns(result1 bool, result2 error) {
 func (fake *FakeProvider) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.displayNameMutex.RLock()
-	defer fake.displayNameMutex.RUnlock()
 	fake.preTokenClientMutex.RLock()
 	defer fake.preTokenClientMutex.RUnlock()
 	fake.authCodeURLMutex.RLock()

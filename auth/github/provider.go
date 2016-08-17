@@ -13,12 +13,12 @@ import (
 )
 
 const ProviderName = "github"
+const DisplayName = "GitHub"
 
 var Scopes = []string{"read:org"}
 
 type Provider interface {
-	DisplayName() string
-	PreTokenClient() *http.Client
+	PreTokenClient() (*http.Client, error)
 
 	OAuthClient
 	Verifier
@@ -83,14 +83,10 @@ func dbTeamsToGitHubTeams(dbteams []db.GitHubTeam) []Team {
 	return teams
 }
 
-func (gitHubProvider) DisplayName() string {
-	return "GitHub"
-}
-
-func (gitHubProvider) PreTokenClient() *http.Client {
+func (gitHubProvider) PreTokenClient() (*http.Client, error) {
 	return &http.Client{
 		Transport: &http.Transport{
 			DisableKeepAlives: true,
 		},
-	}
+	}, nil
 }

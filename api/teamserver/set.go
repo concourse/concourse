@@ -1,7 +1,9 @@
 package teamserver
 
 import (
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"net/http"
 
@@ -120,6 +122,20 @@ func (s *Server) validate(team db.Team) error {
 	if team.UAAAuth != nil {
 		if team.UAAAuth.ClientID == "" || team.UAAAuth.ClientSecret == "" {
 			return errors.New("CF auth missing ClientID or ClientSecret")
+		}
+
+		if team.UAAAuth.CFCACert != "" {
+			block, _ := pem.Decode([]byte(team.UAAAuth.CFCACert))
+			invalidCertErr := errors.New("CF certificate is invalid")
+
+			if block == nil {
+				return invalidCertErr
+			}
+
+			_, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return invalidCertErr
+			}
 		}
 
 		if len(team.UAAAuth.CFSpaces) == 0 {

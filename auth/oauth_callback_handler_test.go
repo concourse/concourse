@@ -32,11 +32,8 @@ import (
 
 var _ = Describe("OAuthCallbackHandler", func() {
 	var (
-		fakeProviderA   *providerfakes.FakeProvider
-		preTokenClientA *http.Client
-
-		fakeProviderB   *providerfakes.FakeProvider
-		preTokenClientB *http.Client
+		fakeProvider   *providerfakes.FakeProvider
+		preTokenClient *http.Client
 
 		fakeProviderFactory *authfakes.FakeProviderFactory
 
@@ -51,8 +48,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeProviderA = new(providerfakes.FakeProvider)
-		fakeProviderB = new(providerfakes.FakeProvider)
+		fakeProvider = new(providerfakes.FakeProvider)
 
 		fakeProviderFactory = new(authfakes.FakeProviderFactory)
 
@@ -60,19 +56,21 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
 		Expect(err).ToNot(HaveOccurred())
 
-		fakeProviderFactory.GetProvidersReturns(
-			provider.Providers{
-				"a": fakeProviderA,
-				"b": fakeProviderB,
+		fakeProviderFactory.GetProviderStub = func(team db.SavedTeam, providerName string) (provider.Provider, bool, error) {
+			if providerName == "some-provider" {
+				return fakeProvider, true, nil
+			}
+			return nil, false, nil
+		}
+
+		preTokenClient = &http.Client{Timeout: 31 * time.Second}
+		fakeProvider.PreTokenClientReturns(preTokenClient, nil)
+
+		team = db.SavedTeam{
+			Team: db.Team{
+				Name: "some-team",
 			},
-			nil,
-		)
-
-		preTokenClientA = &http.Client{Timeout: 57 * time.Second}
-		fakeProviderA.PreTokenClientReturns(preTokenClientA)
-
-		preTokenClientB = &http.Client{Timeout: 31 * time.Second}
-		fakeProviderB.PreTokenClientReturns(preTokenClientB)
+		}
 
 		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
 		fakeTeamDB = new(dbfakes.FakeTeamDB)
@@ -132,7 +130,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		Context("to a known provider", func() {
 			BeforeEach(func() {
-				request.URL.Path = "/auth/b/callback"
+				request.URL.Path = "/auth/some-provider/callback"
 			})
 
 			Context("when the request's state is valid", func() {
@@ -165,31 +163,33 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						token = &oauth2.Token{AccessToken: "some-access-token"}
 						httpClient = &http.Client{}
 
-						fakeProviderB.ExchangeReturns(token, nil)
-						fakeProviderB.ClientReturns(httpClient)
+						fakeProvider.ExchangeReturns(token, nil)
+						fakeProvider.ClientReturns(httpClient)
 					})
 
 					It("generated the OAuth token using the request's code", func() {
-						Expect(fakeProviderB.ExchangeCallCount()).To(Equal(1))
-						_, code := fakeProviderB.ExchangeArgsForCall(0)
+						Expect(fakeProvider.ExchangeCallCount()).To(Equal(1))
+						_, code := fakeProvider.ExchangeArgsForCall(0)
 						Expect(code).To(Equal("some-code"))
 					})
 
 					It("uses the PreTokenClient from the provider", func() {
-						ctx, _ := fakeProviderB.ClientArgsForCall(0)
+						ctx, _ := fakeProvider.ClientArgsForCall(0)
 						actualPreTokenClient, ok := ctx.Value(oauth2.HTTPClient).(*http.Client)
 						Expect(ok).To(BeTrue())
-						Expect(actualPreTokenClient).To(Equal(preTokenClientB))
+						Expect(actualPreTokenClient).To(Equal(preTokenClient))
 					})
 
-					It("looks up the verifier for the team from the 'state' query param", func() {
-						Expect(fakeProviderFactory.GetProvidersCallCount()).To(Equal(1))
-						Expect(fakeProviderFactory.GetProvidersArgsForCall(0)).To(Equal(team))
+					It("looks up the verifier for the team from the query param", func() {
+						Expect(fakeProviderFactory.GetProviderCallCount()).To(Equal(1))
+						argTeam, providerName := fakeProviderFactory.GetProviderArgsForCall(0)
+						Expect(argTeam).To(Equal(team))
+						Expect(providerName).To(Equal("some-provider"))
 					})
 
 					Context("when the token is verified", func() {
 						BeforeEach(func() {
-							fakeProviderB.VerifyReturns(true, nil)
+							fakeProvider.VerifyReturns(true, nil)
 						})
 
 						It("responds OK", func() {
@@ -197,12 +197,12 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						})
 
 						It("verifies using the provider's HTTP client", func() {
-							Expect(fakeProviderB.ClientCallCount()).To(Equal(1))
-							_, clientToken := fakeProviderB.ClientArgsForCall(0)
+							Expect(fakeProvider.ClientCallCount()).To(Equal(1))
+							_, clientToken := fakeProvider.ClientArgsForCall(0)
 							Expect(clientToken).To(Equal(token))
 
-							Expect(fakeProviderB.VerifyCallCount()).To(Equal(1))
-							_, client := fakeProviderB.VerifyArgsForCall(0)
+							Expect(fakeProvider.VerifyCallCount()).To(Equal(1))
+							_, client := fakeProvider.VerifyArgsForCall(0)
 							Expect(client).To(Equal(httpClient))
 						})
 
@@ -259,7 +259,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 					Context("when the token is not verified", func() {
 						BeforeEach(func() {
-							fakeProviderB.VerifyReturns(false, nil)
+							fakeProvider.VerifyReturns(false, nil)
 						})
 
 						It("returns Unauthorized", func() {
@@ -273,7 +273,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 					Context("when the token cannot be verified", func() {
 						BeforeEach(func() {
-							fakeProviderB.VerifyReturns(false, errors.New("nope"))
+							fakeProvider.VerifyReturns(false, errors.New("nope"))
 						})
 
 						It("returns Internal Server Error", func() {
@@ -300,7 +300,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 					})
 
 					It("does not set exchange the token", func() {
-						Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
+						Expect(fakeProvider.ExchangeCallCount()).To(Equal(0))
 					})
 				})
 			})
@@ -335,19 +335,19 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						token = &oauth2.Token{AccessToken: "some-access-token"}
 						httpClient = &http.Client{}
 
-						fakeProviderB.ExchangeReturns(token, nil)
-						fakeProviderB.ClientReturns(httpClient)
+						fakeProvider.ExchangeReturns(token, nil)
+						fakeProvider.ClientReturns(httpClient)
 					})
 
 					It("generated the OAuth token using the request's code", func() {
-						Expect(fakeProviderB.ExchangeCallCount()).To(Equal(1))
-						_, code := fakeProviderB.ExchangeArgsForCall(0)
+						Expect(fakeProvider.ExchangeCallCount()).To(Equal(1))
+						_, code := fakeProvider.ExchangeArgsForCall(0)
 						Expect(code).To(Equal("some-code"))
 					})
 
 					Context("when the token is verified", func() {
 						BeforeEach(func() {
-							fakeProviderB.VerifyReturns(true, nil)
+							fakeProvider.VerifyReturns(true, nil)
 						})
 
 						It("redirects to the redirect uri", func() {
@@ -358,7 +358,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 					Context("when the token is not verified", func() {
 						BeforeEach(func() {
-							fakeProviderB.VerifyReturns(false, nil)
+							fakeProvider.VerifyReturns(false, nil)
 						})
 
 						It("returns Unauthorized", func() {
@@ -372,7 +372,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 					Context("when the token cannot be verified", func() {
 						BeforeEach(func() {
-							fakeProviderB.VerifyReturns(false, errors.New("nope"))
+							fakeProvider.VerifyReturns(false, errors.New("nope"))
 						})
 
 						It("returns Internal Server Error", func() {
@@ -402,7 +402,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 				})
 
 				It("does not set exchange the token", func() {
-					Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
+					Expect(fakeProvider.ExchangeCallCount()).To(Equal(0))
 				})
 			})
 
@@ -423,7 +423,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 				})
 
 				It("does not set exchange the token", func() {
-					Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
+					Expect(fakeProvider.ExchangeCallCount()).To(Equal(0))
 				})
 			})
 
@@ -449,7 +449,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 				})
 
 				It("does not set exchange the token", func() {
-					Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
+					Expect(fakeProvider.ExchangeCallCount()).To(Equal(0))
 				})
 			})
 		})

@@ -98,9 +98,19 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	providers, err := handler.providerFactory.GetProviders(team)
+	provider, found, err := handler.providerFactory.GetProvider(team, providerName)
 	if err != nil {
-		handler.logger.Error("unknown-provider", err, lager.Data{
+		handler.logger.Error("failed-to-get-provider", err, lager.Data{
+			"provider": providerName,
+			"teamName": teamName,
+		})
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
+		handler.logger.Info("provider-not-found-for-team", lager.Data{
 			"provider": providerName,
 			"teamName": teamName,
 		})
@@ -109,13 +119,18 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	provider, found := providers[providerName]
-	if !found {
-		http.Error(w, "unknown provider", http.StatusNotFound)
+	preTokenClient, err := provider.PreTokenClient()
+	if err != nil {
+		handler.logger.Error("failed-to-construct-pre-token-client", err, lager.Data{
+			"provider": providerName,
+			"teamName": teamName,
+		})
+
+		http.Error(w, "unable to connect to provider: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, provider.PreTokenClient())
+	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, preTokenClient)
 
 	token, err := provider.Exchange(ctx, r.FormValue("code"))
 	if err != nil {
