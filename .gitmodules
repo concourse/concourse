@@ -42,10 +42,6 @@
 	path = src/github.com/concourse/blackbox
 	url = https://github.com/concourse/blackbox
 	branch = master
-[submodule "src/gopkg.in/tomb.v1"]
-	path = src/gopkg.in/tomb.v1
-	url = https://gopkg.in/tomb.v1
-	branch = master
 [submodule "src/github.com/papertrail/remote_syslog2"]
 	path = src/github.com/papertrail/remote_syslog2
 	url = https://github.com/papertrail/remote_syslog2
@@ -110,10 +106,6 @@
 	path = src/github.com/mattn/go-isatty
 	url = https://github.com/mattn/go-isatty
 	branch = master
-[submodule "src/github.com/shiena/ansicolor"]
-	path = src/github.com/shiena/ansicolor
-	url = https://github.com/shiena/ansicolor
-	branch = master
 [submodule "src/github.com/dgrijalva/jwt-go"]
 	path = src/github.com/dgrijalva/jwt-go
 	url = https://github.com/dgrijalva/jwt-go
@@ -151,9 +143,6 @@
 [submodule "src/github.com/codegangsta/cli"]
 	path = src/github.com/codegangsta/cli
 	url = https://github.com/codegangsta/cli
-[submodule "src/github.com/ActiveState/tail"]
-	path = src/github.com/ActiveState/tail
-	url = https://github.com/ActiveState/tail
 [submodule "src/github.com/golang/protobuf"]
 	path = src/github.com/golang/protobuf
 	url = https://github.com/golang/protobuf
@@ -167,17 +156,9 @@
 [submodule "src/github.com/ziutek/syslog"]
 	path = src/github.com/ziutek/syslog
 	url = https://github.com/ziutek/syslog
-[submodule "src/github.com/hashicorp/errwrap"]
-	path = src/github.com/hashicorp/errwrap
-	url = https://github.com/hashicorp/errwrap
-	branch = master
 [submodule "src/github.com/hpcloud/tail"]
 	path = src/github.com/hpcloud/tail
 	url = https://github.com/hpcloud/tail
-	branch = master
-[submodule "src/gopkg.in/fsnotify.v0"]
-	path = src/gopkg.in/fsnotify.v0
-	url = https://gopkg.in/fsnotify.v0
 	branch = master
 [submodule "src/github.com/vito/go-interact"]
 	path = src/github.com/vito/go-interact
@@ -249,4 +230,8 @@
 [submodule "src/github.com/lann/ps"]
 	path = src/github.com/lann/ps
 	url = https://github.com/lann/ps
+	branch = master
+[submodule "src/github.com/mattn/go-colorable"]
+	path = src/github.com/mattn/go-colorable
+	url = https://github.com/mattn/go-colorable
 	branch = master

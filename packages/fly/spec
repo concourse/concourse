@@ -33,13 +33,14 @@ files:
   - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/fatih/color/*.go # gosub
   - github.com/gorilla/websocket/*.go # gosub
-  - github.com/hashicorp/errwrap/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
+  - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.go # gosub
   - github.com/inconshreveable/go-update/*.go # gosub
   - github.com/inconshreveable/go-update/internal/binarydist/*.go # gosub
   - github.com/inconshreveable/go-update/internal/osext/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/kr/pty/*.go # gosub
+  - github.com/mattn/go-colorable/*.go # gosub
   - github.com/mattn/go-isatty/*.go # gosub
   - github.com/mgutz/ansi/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
@@ -60,7 +61,6 @@ files:
   - github.com/peterhellberg/link/*.go # gosub
   - github.com/pkg/term/*.go # gosub
   - github.com/pkg/term/termios/*.go # gosub
-  - github.com/shiena/ansicolor/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
   - github.com/vito/go-interact/interact/*.go # gosub
   - github.com/vito/go-interact/interact/terminal/*.go # gosub

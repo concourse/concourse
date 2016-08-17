@@ -101,8 +101,8 @@ files:
   - github.com/google/go-github/github/*.go # gosub
   - github.com/google/go-querystring/query/*.go # gosub
   - github.com/gorilla/websocket/*.go # gosub
-  - github.com/hashicorp/errwrap/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
+  - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/lann/builder/*.go # gosub
   - github.com/lann/ps/*.go # gosub
