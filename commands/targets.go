@@ -54,7 +54,8 @@ func GetExpirationFromString(token *rc.TargetToken) string {
 		return "", nil
 	})
 
-	expClaim, ok := parsedToken.Claims["exp"]
+	claims := parsedToken.Claims.(jwt.MapClaims)
+	expClaim, ok := claims["exp"]
 	if !ok {
 		return "n/a"
 	}
