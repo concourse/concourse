@@ -56,7 +56,7 @@ func (db *SQLDB) FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, er
 }
 
 func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {
-	err := deleteExpired(db)
+	err := db.deleteExpiredContainers()
 	if err != nil {
 		return SavedContainer{}, false, err
 	}
@@ -176,7 +176,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 }
 
 func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {
-	err := deleteExpired(db)
+	err := db.deleteExpiredContainers()
 	if err != nil {
 		return SavedContainer{}, false, err
 	}
@@ -599,7 +599,7 @@ func scanContainer(row scannable) (SavedContainer, error) {
 	return container, nil
 }
 
-func deleteExpired(db *SQLDB) error {
+func (db *SQLDB) deleteExpiredContainers() error {
 	_, err := db.conn.Exec(`
 		DELETE FROM containers
 		WHERE expires_at IS NOT NULL

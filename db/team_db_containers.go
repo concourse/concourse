@@ -11,11 +11,10 @@ import (
 const teamContainerJoins = containerJoins + "\nLEFT JOIN teams t ON c.team_id = t.id"
 
 func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, error) {
-	var err error
-	// err := deleteExpired(db)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	err := db.deleteExpiredContainers()
+	if err != nil {
+		return nil, err
+	}
 
 	var whereCriteria []string
 	var params []interface{}
@@ -128,7 +127,7 @@ func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, e
 }
 
 func (db *teamDB) GetContainer(handle string) (SavedContainer, bool, error) {
-	err := deleteExpiredContainers(db)
+	err := db.deleteExpiredContainers()
 	if err != nil {
 		return SavedContainer{}, false, err
 	}
@@ -159,7 +158,7 @@ func (db *teamDB) GetContainer(handle string) (SavedContainer, bool, error) {
 	return container, true, nil
 }
 
-func deleteExpiredContainers(db *teamDB) error {
+func (db *teamDB) deleteExpiredContainers() error {
 	_, err := db.conn.Exec(`
 		DELETE FROM containers
 		WHERE expires_at IS NOT NULL

@@ -98,6 +98,7 @@ var _ = Describe("TeamDbContainers", func() {
 		containersToCreate     []db.Container
 		descriptorsToFilterFor db.Container
 		expectedHandles        []string
+		ttls                   map[string]time.Duration
 	}
 
 	getResourceID := func(name string) int {
@@ -132,6 +133,11 @@ var _ = Describe("TeamDbContainers", func() {
 				}
 
 				_, err := database.CreateContainer(containerToCreate, time.Minute, time.Duration(0), []string{})
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			for handle, ttl := range example.ttls {
+				err = database.UpdateExpiresAtOnContainer(handle, ttl)
 				Expect(err).NotTo(HaveOccurred())
 			}
 
@@ -908,6 +914,46 @@ var _ = Describe("TeamDbContainers", func() {
 					},
 				},
 				expectedHandles: []string{"a", "c"},
+			}
+		}),
+
+		Entry("does not return expired containers", func() findContainersByDescriptorsExample {
+			return findContainersByDescriptorsExample{
+				containersToCreate: []db.Container{
+					{
+						ContainerIdentifier: db.ContainerIdentifier{
+							Stage:   db.ContainerStageRun,
+							PlanID:  "plan-id",
+							BuildID: 1234,
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							Handle:     "a",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: 0,
+							TeamID:     teamID,
+						},
+					},
+					{
+						ContainerIdentifier: db.ContainerIdentifier{
+							Stage:   db.ContainerStageRun,
+							PlanID:  "plan-id",
+							BuildID: 1234,
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							Handle:     "b",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-other-worker",
+							PipelineID: savedPipeline.ID,
+							TeamID:     teamID,
+						},
+					},
+				},
+				ttls: map[string]time.Duration{
+					"a": -15 * time.Minute,
+				},
+				descriptorsToFilterFor: db.Container{ContainerMetadata: db.ContainerMetadata{}},
+				expectedHandles:        []string{"b"},
 			}
 		}),
 	)
