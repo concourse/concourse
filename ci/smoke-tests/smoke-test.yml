@@ -68,7 +68,7 @@ run:
       --tsa-worker-private-key worker_key \
       --garden-network-pool 10.255.0.0/22 > worker.stdout.log 2> worker.stderr.log &
 
-    until [ $(fly -t local workers | wc -l) -gt 0 ]; do
+    until [ $(./fly -t local workers | wc -l) -gt 0 ]; do
       echo "waiting for worker to become available..."
       sleep 1
     done
