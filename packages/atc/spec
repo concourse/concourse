@@ -17,6 +17,7 @@ files:
   - code.cloudfoundry.org/gunk/urljoiner/*.go # gosub
   - code.cloudfoundry.org/lager/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
+  - github.com/Masterminds/squirrel/*.go # gosub
   - github.com/bigdatadev/goryman/*.go # gosub
   - github.com/bigdatadev/goryman/proto/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
@@ -99,11 +100,12 @@ files:
   - github.com/golang/protobuf/proto/*.go # gosub
   - github.com/google/go-github/github/*.go # gosub
   - github.com/google/go-querystring/query/*.go # gosub
-  - github.com/gorilla/context/*.go # gosub
   - github.com/gorilla/websocket/*.go # gosub
   - github.com/hashicorp/errwrap/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
+  - github.com/lann/builder/*.go # gosub
+  - github.com/lann/ps/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub

@@ -102,10 +102,6 @@
 	path = src/github.com/docker/distribution
 	url = https://github.com/docker/distribution
 	branch = master
-[submodule "src/github.com/gorilla/context"]
-	path = src/github.com/gorilla/context
-	url = https://github.com/gorilla/context
-	branch = master
 [submodule "src/github.com/fatih/color"]
 	path = src/github.com/fatih/color
 	url = https://github.com/fatih/color
@@ -241,4 +237,16 @@
 [submodule "src/code.cloudfoundry.org/localip"]
 	path = src/code.cloudfoundry.org/localip
 	url = https://github.com/cloudfoundry/localip
+	branch = master
+[submodule "src/github.com/Masterminds/squirrel"]
+	path = src/github.com/Masterminds/squirrel
+	url = https://github.com/Masterminds/squirrel
+	branch = v1
+[submodule "src/github.com/lann/builder"]
+	path = src/github.com/lann/builder
+	url = https://github.com/lann/builder
+	branch = master
+[submodule "src/github.com/lann/ps"]
+	path = src/github.com/lann/ps
+	url = https://github.com/lann/ps
 	branch = master
