@@ -35,8 +35,9 @@ var _ = Describe("SpaceVerifier", func() {
 			cfAPIServer.URL(),
 		)
 
-		jwtToken = jwt.New(jwt.SigningMethodHS256)
-		jwtToken.Claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+		jwtToken = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"exp": time.Now().Add(time.Hour * 72).Unix(),
+		})
 
 		accessToken, err := jwtToken.SigningString()
 		Expect(err).NotTo(HaveOccurred())
@@ -61,7 +62,10 @@ var _ = Describe("SpaceVerifier", func() {
 
 	Context("when token contains 'user_id'", func() {
 		BeforeEach(func() {
-			jwtToken.Claims["user_id"] = "my-user-id"
+			jwtToken = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+				"exp":     time.Now().Add(time.Hour * 72).Unix(),
+				"user_id": "my-user-id",
+			})
 
 			accessToken, err := jwtToken.SigningString()
 			Expect(err).NotTo(HaveOccurred())
