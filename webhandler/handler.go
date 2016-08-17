@@ -37,7 +37,7 @@ func NewHandler(
 		"withRedirect": tfuncs.withRedirect,
 	}
 
-	indexTemplate, err := loadTemplate("index.html", funcs)
+	noPipelinesTemplate, err := loadTemplate("no_pipelines.html", funcs)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func NewHandler(
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 
 	handlers := map[string]http.Handler{
-		web.Index:                 authredirect.Handler{index.NewHandler(logger, clientFactory, pipelineHandler, indexTemplate)},
+		web.Index:                 authredirect.Handler{index.NewHandler(logger, clientFactory, pipelineHandler, noPipelinesTemplate)},
 		web.Pipeline:              authredirect.Handler{pipelineHandler},
 		web.Public:                CacheNearlyForever(http.FileServer(publicFS)),
 		web.GetJob:                authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)},
