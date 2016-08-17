@@ -31,7 +31,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when a resource is paused using the API", func() {
 				BeforeEach(func() {
-					apiPath := fmt.Sprintf("/api/v1/pipelines/%s/resources/%s/pause", pipelineName, resourceName)
+					apiPath := fmt.Sprintf("/api/v1/teams/main/pipelines/%s/resources/%s/pause", pipelineName, resourceName)
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("PUT", apiPath),
@@ -56,7 +56,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when a resource is paused using the API", func() {
 				BeforeEach(func() {
-					apiPath := fmt.Sprintf("/api/v1/pipelines/%s/resources/%s/pause", pipelineName, resourceName)
+					apiPath := fmt.Sprintf("/api/v1/teams/main/pipelines/%s/resources/%s/pause", pipelineName, resourceName)
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("PUT", apiPath),
