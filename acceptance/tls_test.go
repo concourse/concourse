@@ -40,6 +40,40 @@ var _ = Describe("TLS", func() {
 		Expect(dbListener.Close()).To(Succeed())
 	})
 
+	authorizedTLSClient := func(atcCommand *ATCCommand) *http.Client {
+		client := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+		}
+
+		request, err := http.NewRequest("GET", atcCommand.TLSURL("/api/v1/teams/main/auth/token"), nil)
+		resp, err := client.Do(request)
+		Expect(err).NotTo(HaveOccurred())
+
+		defer resp.Body.Close()
+		var atcToken atc.AuthToken
+		body, err := ioutil.ReadAll(resp.Body)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = json.Unmarshal(body, &atcToken)
+		Expect(err).NotTo(HaveOccurred())
+
+		return &http.Client{
+			Transport: &oauth2.Transport{
+				Source: oauth2.StaticTokenSource(&oauth2.Token{
+					TokenType:   atcToken.Type,
+					AccessToken: atcToken.Value,
+				}),
+				Base: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				},
+			},
+		}
+	}
+
 	It("accepts HTTPS requests", func() {
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
 		err := atcCommand.Start()
@@ -69,39 +103,11 @@ var _ = Describe("TLS", func() {
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		client := &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
-		}
+		request, err := http.NewRequest("GET", atcCommand.URL("/api/v1/workers"), nil)
+		Expect(err).NotTo(HaveOccurred())
 
-		request, err := http.NewRequest("GET", atcCommand.TLSURL("/api/v1/teams/main/auth/token"), nil)
+		client := authorizedTLSClient(atcCommand)
 		resp, err := client.Do(request)
-		Expect(err).NotTo(HaveOccurred())
-
-		defer resp.Body.Close()
-		var atcToken atc.AuthToken
-		body, err := ioutil.ReadAll(resp.Body)
-		Expect(err).NotTo(HaveOccurred())
-		err = json.Unmarshal(body, &atcToken)
-		Expect(err).NotTo(HaveOccurred())
-
-		client = &http.Client{
-			Transport: &oauth2.Transport{
-				Source: oauth2.StaticTokenSource(&oauth2.Token{
-					TokenType:   atcToken.Type,
-					AccessToken: atcToken.Value,
-				}),
-				Base: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-				},
-			},
-		}
-
-		request, err = http.NewRequest("GET", atcCommand.URL("/api/v1/workers"), nil)
-		resp, err = client.Do(request)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -189,7 +195,8 @@ var _ = Describe("TLS", func() {
 		)
 		Expect(err).NotTo(HaveOccurred())
 
-		resp, err := http.DefaultClient.Do(request)
+		client := authorizedTLSClient(atcCommand)
+		resp, err := client.Do(request)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 	})

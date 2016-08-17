@@ -178,7 +178,7 @@ var _ = Describe("Auth", func() {
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("must configure basic auth, OAuth, or turn on development mode"))
+			Expect(session.Err).To(gbytes.Say("must configure basic auth, OAuth, UAAAuth, or turn on development mode"))
 		})
 	})
 

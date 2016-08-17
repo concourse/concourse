@@ -17,7 +17,7 @@ import (
 var _ = Describe("APIAuthWrappa", func() {
 	var (
 		fakeAuthValidator                       auth.Validator
-		fakeTokenValidator                      auth.Validator
+		fakeGetTokenValidator                   auth.Validator
 		fakeUserContextReader                   *authfakes.FakeUserContextReader
 		fakeCheckPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
 		fakeCheckBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
@@ -28,7 +28,7 @@ var _ = Describe("APIAuthWrappa", func() {
 	BeforeEach(func() {
 		publiclyViewable = true
 		fakeAuthValidator = new(authfakes.FakeValidator)
-		fakeTokenValidator = new(authfakes.FakeValidator)
+		fakeGetTokenValidator = new(authfakes.FakeValidator)
 		fakeUserContextReader = new(authfakes.FakeUserContextReader)
 		pipelineDBFactory := new(dbfakes.FakePipelineDBFactory)
 		teamDBFactory := new(dbfakes.FakeTeamDBFactory)
@@ -45,7 +45,7 @@ var _ = Describe("APIAuthWrappa", func() {
 	unauthenticated := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
 			handler,
-			fakeTokenValidator,
+			fakeAuthValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -56,18 +56,18 @@ var _ = Describe("APIAuthWrappa", func() {
 				handler,
 				auth.UnauthorizedRejector{},
 			),
-			fakeTokenValidator,
+			fakeAuthValidator,
 			fakeUserContextReader,
 		)
 	}
 
-	authenticatedWithAuthValidator := func(handler http.Handler) http.Handler {
+	authenticatedWithGetTokenValidator := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
 			auth.CheckAuthenticationHandler(
 				handler,
 				auth.UnauthorizedRejector{},
 			),
-			fakeAuthValidator,
+			fakeGetTokenValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -78,7 +78,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				handler,
 				auth.UnauthorizedRejector{},
 			),
-			fakeTokenValidator,
+			fakeAuthValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -89,7 +89,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				handler,
 				auth.UnauthorizedRejector{},
 			),
-			fakeTokenValidator,
+			fakeAuthValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -100,7 +100,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				handler,
 				auth.UnauthorizedRejector{},
 			),
-			fakeTokenValidator,
+			fakeAuthValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -111,7 +111,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				handler,
 				auth.UnauthorizedRejector{},
 			),
-			fakeTokenValidator,
+			fakeAuthValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -122,7 +122,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				handler,
 				auth.UnauthorizedRejector{},
 			),
-			fakeTokenValidator,
+			fakeAuthValidator,
 			fakeUserContextReader,
 		)
 	}
@@ -180,7 +180,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				// authenticated
 				atc.CreateBuild:     authenticated(inputHandlers[atc.CreateBuild]),
 				atc.CreatePipe:      authenticated(inputHandlers[atc.CreatePipe]),
-				atc.GetAuthToken:    authenticatedWithAuthValidator(inputHandlers[atc.GetAuthToken]),
+				atc.GetAuthToken:    authenticatedWithGetTokenValidator(inputHandlers[atc.GetAuthToken]),
 				atc.GetContainer:    authenticated(inputHandlers[atc.GetContainer]),
 				atc.GetLogLevel:     authenticated(inputHandlers[atc.GetLogLevel]),
 				atc.HijackContainer: authenticated(inputHandlers[atc.HijackContainer]),
@@ -219,7 +219,7 @@ var _ = Describe("APIAuthWrappa", func() {
 		JustBeforeEach(func() {
 			wrappedHandlers = wrappa.NewAPIAuthWrappa(
 				fakeAuthValidator,
-				fakeTokenValidator,
+				fakeGetTokenValidator,
 				fakeUserContextReader,
 				fakeCheckPipelineAccessHandlerFactory,
 				fakeCheckBuildReadAccessHandlerFactory,

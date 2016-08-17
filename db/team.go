@@ -15,6 +15,10 @@ type Team struct {
 	UAAAuth    *UAAAuth    `json:"uaa_auth"`
 }
 
+func (t Team) IsAuthConfigured() bool {
+	return t.BasicAuth != nil || t.GitHubAuth != nil || t.UAAAuth != nil
+}
+
 type BasicAuth struct {
 	BasicAuthUsername string `json:"basic_auth_username"`
 	BasicAuthPassword string `json:"basic_auth_password"`

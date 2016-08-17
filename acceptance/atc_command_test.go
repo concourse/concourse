@@ -42,7 +42,7 @@ type ATCCommand struct {
 	tlsFlags               []string
 	authTypes              []string
 	postgresDataSourceName string
-	pemPrivateKey          string
+	pemPrivateKeyFile      string
 
 	process                    ifrit.Process
 	port                       uint16
@@ -50,6 +50,16 @@ type ATCCommand struct {
 	tlsCertificateOrganization string
 	tmpDir                     string
 }
+
+const pemPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
+MIIBOgIBAAJBALKZD0nEffqM1ACuak0bijtqE2QrI/KLADv7l3kK3ppMyCuLKoF0
+fd7Ai2KW5ToIwzFofvJcS/STa6HA5gQenRUCAwEAAQJBAIq9amn00aS0h/CrjXqu
+/ThglAXJmZhOMPVn4eiu7/ROixi9sex436MaVeMqSNf7Ex9a8fRNfWss7Sqd9eWu
+RTUCIQDasvGASLqmjeffBNLTXV2A5g4t+kLVCpsEIZAycV5GswIhANEPLmax0ME/
+EO+ZJ79TJKN5yiGBRsv5yvx5UiHxajEXAiAhAol5N4EUyq6I9w1rYdhPMGpLfk7A
+IU2snfRJ6Nq2CQIgFrPsWRCkV+gOYcajD17rEqmuLrdIRexpg8N1DOSXoJ8CIGlS
+tAboUGBxTDq3ZroNism3DaMIbKPyYrAqhKov1h5V
+-----END RSA PRIVATE KEY-----`
 
 func NewATCCommand(
 	atcBin string,
@@ -65,15 +75,6 @@ func NewATCCommand(
 		tlsFlags:                   tlsFlags,
 		authTypes:                  authTypes,
 		tlsCertificateOrganization: "Acme Co",
-		pemPrivateKey: `-----BEGIN RSA PRIVATE KEY-----
-MIIBOgIBAAJBALKZD0nEffqM1ACuak0bijtqE2QrI/KLADv7l3kK3ppMyCuLKoF0
-fd7Ai2KW5ToIwzFofvJcS/STa6HA5gQenRUCAwEAAQJBAIq9amn00aS0h/CrjXqu
-/ThglAXJmZhOMPVn4eiu7/ROixi9sex436MaVeMqSNf7Ex9a8fRNfWss7Sqd9eWu
-RTUCIQDasvGASLqmjeffBNLTXV2A5g4t+kLVCpsEIZAycV5GswIhANEPLmax0ME/
-EO+ZJ79TJKN5yiGBRsv5yvx5UiHxajEXAiAhAol5N4EUyq6I9w1rYdhPMGpLfk7A
-IU2snfRJ6Nq2CQIgFrPsWRCkV+gOYcajD17rEqmuLrdIRexpg8N1DOSXoJ8CIGlS
-tAboUGBxTDq3ZroNism3DaMIbKPyYrAqhKov1h5V
------END RSA PRIVATE KEY-----`,
 	}
 }
 
@@ -86,13 +87,7 @@ func (a *ATCCommand) TLSURL(path string) string {
 }
 
 func (a *ATCCommand) Start() error {
-	var err error
-	a.tmpDir, err = ioutil.TempDir("", "")
-	if err != nil {
-		return err
-	}
-
-	err = a.createCert()
+	err := a.prepare()
 	if err != nil {
 		return err
 	}
@@ -111,13 +106,7 @@ func (a *ATCCommand) Start() error {
 }
 
 func (a *ATCCommand) StartAndWait() (*gexec.Session, error) {
-	var err error
-	a.tmpDir, err = ioutil.TempDir("", "")
-	if err != nil {
-		return nil, err
-	}
-
-	err = a.createCert()
+	err := a.prepare()
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +119,32 @@ func (a *ATCCommand) Stop() {
 	os.RemoveAll(a.tmpDir)
 }
 
+func (a *ATCCommand) prepare() error {
+	var err error
+	a.tmpDir, err = ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+
+	pemPrivateKeyFile, err := ioutil.TempFile(a.tmpDir, "accceptance-signing-key")
+	if err != nil {
+		return err
+	}
+	a.pemPrivateKeyFile = pemPrivateKeyFile.Name()
+
+	err = ioutil.WriteFile(a.pemPrivateKeyFile, []byte(pemPrivateKey), 0644)
+	if err != nil {
+		return err
+	}
+
+	err = a.createCert()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (a *ATCCommand) getATCCommand() *exec.Cmd {
 	a.port = 5697 + uint16(GinkgoParallelNode()) + (a.atcServerNumber * 100)
 	debugPort := 6697 + uint16(GinkgoParallelNode()) + (a.atcServerNumber * 100)
@@ -140,6 +155,7 @@ func (a *ATCCommand) getATCCommand() *exec.Cmd {
 		"--peer-url", fmt.Sprintf("http://127.0.0.1:%d", a.port),
 		"--postgres-data-source", a.postgresDataSourceName,
 		"--external-url", fmt.Sprintf("http://127.0.0.1:%d", a.port),
+		"--session-signing-key", a.pemPrivateKeyFile,
 	}
 
 	for _, authType := range a.authTypes {

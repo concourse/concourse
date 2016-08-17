@@ -55,9 +55,26 @@ var _ = Describe("Multiple ATCs", func() {
 			}
 		})
 
+		addAuthorization := func(originalRequest *http.Request, atcCommand *ATCCommand) {
+			request, err := http.NewRequest("GET", atcCommand.URL("/api/v1/teams/main/auth/token"), nil)
+			resp, err := client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+
+			defer resp.Body.Close()
+			var atcToken atc.AuthToken
+			body, err := ioutil.ReadAll(resp.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = json.Unmarshal(body, &atcToken)
+			Expect(err).NotTo(HaveOccurred())
+
+			originalRequest.Header.Add("Authorization", atcToken.Type+" "+atcToken.Value)
+		}
+
 		createPipe := func(atcCommand *ATCCommand) atc.Pipe {
 			req, err := http.NewRequest("POST", atcCommand.URL("/api/v1/pipes"), nil)
 			Expect(err).NotTo(HaveOccurred())
+			addAuthorization(req, atcCommand)
 
 			response, err := client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
@@ -74,6 +91,7 @@ var _ = Describe("Multiple ATCs", func() {
 		readPipe := func(id string, atcCommand *ATCCommand) *http.Response {
 			req, err := http.NewRequest("GET", atcCommand.URL("/api/v1/pipes/"+id), nil)
 			Expect(err).NotTo(HaveOccurred())
+			addAuthorization(req, atcCommand)
 
 			response, err := client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
@@ -84,6 +102,7 @@ var _ = Describe("Multiple ATCs", func() {
 		writePipe := func(id string, body io.Reader, atcCommand *ATCCommand) *http.Response {
 			req, err := http.NewRequest("PUT", atcCommand.URL("/api/v1/pipes/"+id), body)
 			Expect(err).NotTo(HaveOccurred())
+			addAuthorization(req, atcCommand)
 
 			response, err := client.Do(req)
 			Expect(err).NotTo(HaveOccurred())

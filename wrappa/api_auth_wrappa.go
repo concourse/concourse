@@ -7,9 +7,9 @@ import (
 )
 
 type APIAuthWrappa struct {
-	AuthValidator                       auth.Validator
-	TokenValidator                      auth.Validator
-	UserContextReader                   auth.UserContextReader
+	authValidator                       auth.Validator
+	getTokenValidator                   auth.Validator
+	userContextReader                   auth.UserContextReader
 	checkPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
 	checkBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
 	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
@@ -17,16 +17,16 @@ type APIAuthWrappa struct {
 
 func NewAPIAuthWrappa(
 	authValidator auth.Validator,
-	tokenValidator auth.Validator,
+	getTokenValidator auth.Validator,
 	userContextReader auth.UserContextReader,
 	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory,
 	checkBuildReadAccessHandlerFactory auth.CheckBuildReadAccessHandlerFactory,
 	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
-		AuthValidator:                       authValidator,
-		TokenValidator:                      tokenValidator,
-		UserContextReader:                   userContextReader,
+		authValidator:                       authValidator,
+		getTokenValidator:                   getTokenValidator,
+		userContextReader:                   userContextReader,
 		checkPipelineAccessHandlerFactory:   checkPipelineAccessHandlerFactory,
 		checkBuildReadAccessHandlerFactory:  checkBuildReadAccessHandlerFactory,
 		checkBuildWriteAccessHandlerFactory: checkBuildWriteAccessHandlerFactory,
@@ -125,9 +125,9 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		}
 
 		if name == atc.GetAuthToken {
-			newHandler = auth.WrapHandler(newHandler, wrappa.AuthValidator, wrappa.UserContextReader)
+			newHandler = auth.WrapHandler(newHandler, wrappa.getTokenValidator, wrappa.userContextReader)
 		} else {
-			newHandler = auth.WrapHandler(newHandler, wrappa.TokenValidator, wrappa.UserContextReader)
+			newHandler = auth.WrapHandler(newHandler, wrappa.authValidator, wrappa.userContextReader)
 		}
 		wrapped[name] = newHandler
 	}

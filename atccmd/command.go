@@ -202,12 +202,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	err = cmd.updateBasicAuthCredentials(teamDBFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	err = cmd.configureOAuthProviders(logger, teamDBFactory)
+	err = cmd.configureAuthForDefaultTeam(teamDBFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -479,7 +474,7 @@ func (cmd *ATCCommand) validate() error {
 	if !cmd.authConfigured() && !cmd.Developer.DevelopmentMode {
 		errs = multierror.Append(
 			errs,
-			errors.New("must configure basic auth, OAuth, or turn on development mode"),
+			errors.New("must configure basic auth, OAuth, UAAAuth, or turn on development mode"),
 		)
 	}
 
@@ -679,18 +674,23 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactory db.TeamDBFactory) error {
-	var err error
-	team := db.Team{
-		Name: atc.DefaultTeamName,
+func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactory) error {
+	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+
+	var basicAuth *db.BasicAuth
+	if cmd.basicAuthConfigured() {
+		basicAuth = &db.BasicAuth{
+			BasicAuthUsername: cmd.BasicAuth.Username,
+			BasicAuthPassword: cmd.BasicAuth.Password,
+		}
 	}
-	teamDB := teamDBFactory.GetTeamDB(team.Name)
+	_, err := teamDB.UpdateBasicAuth(basicAuth)
+	if err != nil {
+		return err
+	}
 
 	var gitHubAuth *db.GitHubAuth
-	if len(cmd.GitHubAuth.Organizations) > 0 ||
-		len(cmd.GitHubAuth.Teams) > 0 ||
-		len(cmd.GitHubAuth.Users) > 0 {
-
+	if cmd.gitHubAuthConfigured() {
 		gitHubTeams := []db.GitHubTeam{}
 		for _, gitHubTeam := range cmd.GitHubAuth.Teams {
 			gitHubTeams = append(gitHubTeams, db.GitHubTeam{
@@ -734,45 +734,6 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactor
 	}
 
 	return nil
-}
-
-func (cmd *ATCCommand) constructAuthValidator(teamDBFactory db.TeamDBFactory, tokenValidator auth.Validator) auth.Validator {
-	var validator auth.Validator
-	if cmd.basicAuthConfigured() {
-		validator = auth.ValidatorBasket{
-			auth.BasicAuthValidator{
-				TeamDBFactory: teamDBFactory,
-			},
-			tokenValidator,
-		}
-	} else {
-		validator = tokenValidator
-	}
-
-	return validator
-}
-
-func (cmd *ATCCommand) constructTokenValidator(publicKey *rsa.PublicKey) auth.Validator {
-	if !cmd.authConfigured() {
-		return auth.NoopValidator{}
-	}
-
-	return auth.JWTValidator{
-		PublicKey: publicKey,
-	}
-}
-
-func (cmd *ATCCommand) updateBasicAuthCredentials(teamDBFactory db.TeamDBFactory) error {
-	var basicAuth *db.BasicAuth
-	if cmd.BasicAuth.Username != "" || cmd.BasicAuth.Password != "" {
-		basicAuth = &db.BasicAuth{
-			BasicAuthUsername: cmd.BasicAuth.Username,
-			BasicAuthPassword: cmd.BasicAuth.Password,
-		}
-	}
-	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-	_, err := teamDB.UpdateBasicAuth(basicAuth)
-	return err
 }
 
 func (cmd *ATCCommand) constructEngine(
@@ -837,8 +798,11 @@ func (cmd *ATCCommand) constructAPIHandler(
 	radarScannerFactory radar.ScannerFactory,
 	devMode bool,
 ) (http.Handler, error) {
-	tokenValidator := cmd.constructTokenValidator(&signingKey.PublicKey)
-	authValidator := cmd.constructAuthValidator(teamDBFactory, tokenValidator)
+	authValidator := auth.JWTValidator{
+		PublicKey: &signingKey.PublicKey,
+	}
+
+	getTokenValidator := auth.NewTeamAuthValidator(teamDBFactory, authValidator)
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(
 		pipelineDBFactory,
@@ -853,7 +817,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
 			authValidator,
-			tokenValidator,
+			getTokenValidator,
 			auth.JWTReader{PublicKey: &signingKey.PublicKey, DevelopmentMode: devMode},
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
