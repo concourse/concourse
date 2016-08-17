@@ -248,7 +248,7 @@ var _ = Describe("DBEngine", func() {
 							Expect(dbBuild.LeaseTrackingCallCount()).To(Equal(1))
 
 							_, interval := dbBuild.LeaseTrackingArgsForCall(0)
-							Expect(interval).To(Equal(10 * time.Second))
+							Expect(interval).To(Equal(time.Minute))
 
 							Expect(fakeLease.BreakCallCount()).To(BeZero())
 
@@ -483,7 +483,7 @@ var _ = Describe("DBEngine", func() {
 								Expect(dbBuild.LeaseTrackingCallCount()).To(Equal(1))
 
 								_, interval := dbBuild.LeaseTrackingArgsForCall(0)
-								Expect(interval).To(Equal(10 * time.Second))
+								Expect(interval).To(Equal(time.Minute))
 
 								Expect(fakeLease.BreakCallCount()).To(BeZero())
 							}

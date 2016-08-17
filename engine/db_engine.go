@@ -14,7 +14,7 @@ import (
 
 var ErrBuildNotActive = errors.New("build not yet active")
 
-const trackingInterval = 10 * time.Second
+const trackLeaseDuration = time.Minute
 
 func NewDBEngine(engines Engines) Engine {
 	return &dbEngine{
@@ -96,7 +96,7 @@ func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, erro
 func (build *dbBuild) Abort(logger lager.Logger) error {
 	// the order below is very important to avoid races with build creation.
 
-	lease, leased, err := build.build.LeaseTracking(logger, trackingInterval)
+	lease, leased, err := build.build.LeaseTracking(logger, trackLeaseDuration)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return err
@@ -163,7 +163,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
-	lease, leased, err := build.build.LeaseTracking(logger, trackingInterval)
+	lease, leased, err := build.build.LeaseTracking(logger, trackLeaseDuration)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return
