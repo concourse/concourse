@@ -57,6 +57,9 @@ run:
 
     wget -q -O fly "http://127.0.0.1:8080/api/v1/cli?arch=amd64&platform=linux"
 
+    chmod +x fly
+    ./fly -t local login -c http://127.0.0.1:8080
+
     echo "starting worker"
     sudo ./concourse worker \
       --work-dir /tmp/worker \
@@ -65,13 +68,10 @@ run:
       --tsa-worker-private-key worker_key \
       --garden-network-pool 10.255.0.0/22 > worker.stdout.log 2> worker.stderr.log &
 
-    until [ $(curl -s http://127.0.0.1:8080/api/v1/workers | wc -c) -gt 3 ]; do
+    until [ $(fly -t local workers | wc -l) -gt 0 ]; do
       echo "waiting for worker to become available..."
       sleep 1
     done
-
-    chmod +x fly
-    ./fly -t local login -c http://127.0.0.1:8080
 
     # task
     cat << EOF > task.yml
