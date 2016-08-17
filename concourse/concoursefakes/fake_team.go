@@ -105,6 +105,26 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	PauseResourceStub        func(pipelineName string, resourceName string) (bool, error)
+	pauseResourceMutex       sync.RWMutex
+	pauseResourceArgsForCall []struct {
+		pipelineName string
+		resourceName string
+	}
+	pauseResourceReturns struct {
+		result1 bool
+		result2 error
+	}
+	UnpauseResourceStub        func(pipelineName string, resourceName string) (bool, error)
+	unpauseResourceMutex       sync.RWMutex
+	unpauseResourceArgsForCall []struct {
+		pipelineName string
+		resourceName string
+	}
+	unpauseResourceReturns struct {
+		result1 bool
+		result2 error
+	}
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct{}
@@ -246,26 +266,6 @@ type FakeTeam struct {
 		version      atc.Version
 	}
 	checkResourceReturns struct {
-		result1 bool
-		result2 error
-	}
-	PauseResourceStub        func(pipelineName string, resourceName string) (bool, error)
-	pauseResourceMutex       sync.RWMutex
-	pauseResourceArgsForCall []struct {
-		pipelineName string
-		resourceName string
-	}
-	pauseResourceReturns struct {
-		result1 bool
-		result2 error
-	}
-	UnpauseResourceStub        func(pipelineName string, resourceName string) (bool, error)
-	unpauseResourceMutex       sync.RWMutex
-	unpauseResourceArgsForCall []struct {
-		pipelineName string
-		resourceName string
-	}
-	unpauseResourceReturns struct {
 		result1 bool
 		result2 error
 	}
@@ -645,6 +645,76 @@ func (fake *FakeTeam) RenamePipelineArgsForCall(i int) (string, string) {
 func (fake *FakeTeam) RenamePipelineReturns(result1 bool, result2 error) {
 	fake.RenamePipelineStub = nil
 	fake.renamePipelineReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) PauseResource(pipelineName string, resourceName string) (bool, error) {
+	fake.pauseResourceMutex.Lock()
+	fake.pauseResourceArgsForCall = append(fake.pauseResourceArgsForCall, struct {
+		pipelineName string
+		resourceName string
+	}{pipelineName, resourceName})
+	fake.recordInvocation("PauseResource", []interface{}{pipelineName, resourceName})
+	fake.pauseResourceMutex.Unlock()
+	if fake.PauseResourceStub != nil {
+		return fake.PauseResourceStub(pipelineName, resourceName)
+	} else {
+		return fake.pauseResourceReturns.result1, fake.pauseResourceReturns.result2
+	}
+}
+
+func (fake *FakeTeam) PauseResourceCallCount() int {
+	fake.pauseResourceMutex.RLock()
+	defer fake.pauseResourceMutex.RUnlock()
+	return len(fake.pauseResourceArgsForCall)
+}
+
+func (fake *FakeTeam) PauseResourceArgsForCall(i int) (string, string) {
+	fake.pauseResourceMutex.RLock()
+	defer fake.pauseResourceMutex.RUnlock()
+	return fake.pauseResourceArgsForCall[i].pipelineName, fake.pauseResourceArgsForCall[i].resourceName
+}
+
+func (fake *FakeTeam) PauseResourceReturns(result1 bool, result2 error) {
+	fake.PauseResourceStub = nil
+	fake.pauseResourceReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) UnpauseResource(pipelineName string, resourceName string) (bool, error) {
+	fake.unpauseResourceMutex.Lock()
+	fake.unpauseResourceArgsForCall = append(fake.unpauseResourceArgsForCall, struct {
+		pipelineName string
+		resourceName string
+	}{pipelineName, resourceName})
+	fake.recordInvocation("UnpauseResource", []interface{}{pipelineName, resourceName})
+	fake.unpauseResourceMutex.Unlock()
+	if fake.UnpauseResourceStub != nil {
+		return fake.UnpauseResourceStub(pipelineName, resourceName)
+	} else {
+		return fake.unpauseResourceReturns.result1, fake.unpauseResourceReturns.result2
+	}
+}
+
+func (fake *FakeTeam) UnpauseResourceCallCount() int {
+	fake.unpauseResourceMutex.RLock()
+	defer fake.unpauseResourceMutex.RUnlock()
+	return len(fake.unpauseResourceArgsForCall)
+}
+
+func (fake *FakeTeam) UnpauseResourceArgsForCall(i int) (string, string) {
+	fake.unpauseResourceMutex.RLock()
+	defer fake.unpauseResourceMutex.RUnlock()
+	return fake.unpauseResourceArgsForCall[i].pipelineName, fake.unpauseResourceArgsForCall[i].resourceName
+}
+
+func (fake *FakeTeam) UnpauseResourceReturns(result1 bool, result2 error) {
+	fake.UnpauseResourceStub = nil
+	fake.unpauseResourceReturns = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
@@ -1212,6 +1282,10 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.concealPipelineMutex.RUnlock()
 	fake.renamePipelineMutex.RLock()
 	defer fake.renamePipelineMutex.RUnlock()
+	fake.pauseResourceMutex.RLock()
+	defer fake.pauseResourceMutex.RUnlock()
+	fake.unpauseResourceMutex.RLock()
+	defer fake.unpauseResourceMutex.RUnlock()
 	fake.listPipelinesMutex.RLock()
 	defer fake.listPipelinesMutex.RUnlock()
 	fake.pipelineConfigMutex.RLock()
