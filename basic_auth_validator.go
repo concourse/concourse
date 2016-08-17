@@ -8,37 +8,30 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type BasicAuthValidator struct {
-	TeamDBFactory db.TeamDBFactory
+type basicAuthValidator struct {
+	team db.SavedTeam
 }
 
-// IsAuthenticated
-// basic authentication for login
-func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
-	teamName := r.FormValue(":team_name")
-	teamDB := validator.TeamDBFactory.GetTeamDB(teamName)
-	team, found, err := teamDB.GetTeam()
-	if err != nil || !found {
-		return false
+func NewBasicAuthValidator(team db.SavedTeam) Validator {
+	return basicAuthValidator{
+		team: team,
 	}
+}
 
-	if team.BasicAuth == nil {
-		return false
-	}
-
+func (v basicAuthValidator) IsAuthenticated(r *http.Request) bool {
 	auth := r.Header.Get("Authorization")
 	username, password, err := extractUsernameAndPassword(auth)
 	if err != nil {
 		return false
 	}
 
-	return validator.correctCredentials(
-		team.BasicAuth.BasicAuthUsername, team.BasicAuth.BasicAuthPassword,
+	return v.correctCredentials(
+		v.team.BasicAuth.BasicAuthUsername, v.team.BasicAuth.BasicAuthPassword,
 		username, password,
 	)
 }
 
-func (validator BasicAuthValidator) correctCredentials(
+func (v basicAuthValidator) correctCredentials(
 	teamUsername string, teamPassword string,
 	checkUsername string, checkPassword string,
 ) bool {

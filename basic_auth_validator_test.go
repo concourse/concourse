@@ -12,21 +12,15 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
-
-	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("BasicAuthValidator", func() {
-
 	username := "username"
 	password := "password"
 
 	var validator auth.Validator
 
-	var fakeTeamDB *dbfakes.FakeTeamDB
-
 	BeforeEach(func() {
-		fakeTeamDB = new(dbfakes.FakeTeamDB)
 		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 4)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -40,14 +34,7 @@ var _ = Describe("BasicAuthValidator", func() {
 			},
 		}
 
-		fakeTeamDB.GetTeamReturns(team, true, nil)
-
-		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
-		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
-
-		validator = auth.BasicAuthValidator{
-			TeamDBFactory: fakeTeamDBFactory,
-		}
+		validator = auth.NewBasicAuthValidator(team)
 	})
 
 	Describe("IsAuthenticated", func() {
@@ -100,34 +87,6 @@ var _ = Describe("BasicAuthValidator", func() {
 		Context("when the request's Authorization header isn't basic auth", func() {
 			BeforeEach(func() {
 				request.Header.Set("Authorization", "Bearer "+b64(username+":"+password))
-			})
-
-			It("returns false", func() {
-				Expect(isAuthenticated).To(BeFalse())
-			})
-		})
-
-		Context("when the team cannot be found", func() {
-			BeforeEach(func() {
-				request.Header.Set("Authorization", "Basic "+b64(username+":"+password))
-
-				fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
-			})
-
-			It("returns false", func() {
-				Expect(isAuthenticated).To(BeFalse())
-			})
-		})
-
-		Context("when basic auth is not set for team", func() {
-			BeforeEach(func() {
-				team := db.SavedTeam{
-					Team: db.Team{
-						Name: atc.DefaultTeamName,
-					},
-				}
-
-				fakeTeamDB.GetTeamReturns(team, true, nil)
 			})
 
 			It("returns false", func() {
