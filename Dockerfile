@@ -1,4 +1,4 @@
-FROM golang:1.6
+FROM golang:1
 
 # install Go BOSH CLI
 ADD https://s3.amazonaws.com/dk-shared-assets/cli-linux-feb11 /usr/local/bin/bosh
