@@ -104,6 +104,8 @@ run:
     scp -q -i keys/id_rsa -o StrictHostKeyChecking=no smoke_test ${USER_NAME}@${ip}:
 
     echo "invoking smoke_test"
-    ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip} "chmod +x smoke_test; ./smoke_test"
-    ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip} "tar cvfz worker-web-logs.tgz *.log"
-    scp -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip}:worker-web-logs.tgz .
+    if ! ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip} "chmod +x smoke_test; ./smoke_test"; then
+      ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip} "tar cvfz worker-web-logs.tgz *.log"
+      scp -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip}:worker-web-logs.tgz .
+      exit 1
+    fi
