@@ -11,21 +11,25 @@ resources:
   source:
     repo: concourse/fly
     access_token: {{pull-requests-access-token}}
+    every: true
 
 - name: atc
   type: pull-request
   source:
     repo: concourse/atc
     access_token: {{pull-requests-access-token}}
+    every: true
 
 - name: go-concourse
   type: pull-request
   source:
     repo: concourse/go-concourse
     access_token: {{pull-requests-access-token}}
+    every: true
 
 jobs:
 - name: fly
+  public: true
   plan:
   - get: fly
     trigger: true
@@ -42,6 +46,7 @@ jobs:
       params: {path: fly, status: success}
 
 - name: atc
+  public: true
   plan:
   - get: atc
     trigger: true
@@ -58,6 +63,7 @@ jobs:
       params: {path: atc, status: success}
 
 - name: go-concourse
+  public: true
   plan:
   - get: go-concourse
     trigger: true
