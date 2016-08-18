@@ -42,7 +42,9 @@ func (bt *Tracker) Track() {
 
 	for _, build := range builds {
 		tLog := bt.logger.Session("track", lager.Data{
-			"build": build.ID(),
+			"build":    build.ID(),
+			"pipeline": build.PipelineName(),
+			"job":      build.JobName(),
 		})
 
 		engineBuild, err := bt.engine.LookupBuild(tLog, build)

@@ -247,7 +247,11 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		BuildID:      build.build.ID(),
 	}.Emit(logger)
 
-	logger.Info("running")
+	logger.Info("running", lager.Data{
+		"build":    build.build.ID(),
+		"pipeline": build.build.PipelineName(),
+		"job":      build.build.JobName(),
+	})
 	engineBuild.Resume(logger)
 
 	found, err = build.build.Reload()
