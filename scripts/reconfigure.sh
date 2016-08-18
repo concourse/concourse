@@ -50,3 +50,6 @@ configure_pipeline tracksuit \
 
 configure_pipeline hangar \
   $pipelines_path/hangar.yml
+
+configure_pipeline prs \
+  $pipelines_path/pull-requests.yml

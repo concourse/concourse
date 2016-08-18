@@ -1,0 +1,74 @@
+---
+resource_types:
+- name: pull-request
+  type: docker-image
+  source:
+    repository: jtarchie/pr
+
+resources:
+- name: fly
+  type: pull-request
+  source:
+    repo: concourse/fly
+    access_token: {{pull-requests-access-token}}
+
+- name: atc
+  type: pull-request
+  source:
+    repo: concourse/atc
+    access_token: {{pull-requests-access-token}}
+
+- name: go-concourse
+  type: pull-request
+  source:
+    repo: concourse/go-concourse
+    access_token: {{pull-requests-access-token}}
+
+jobs:
+- name: fly
+  plan:
+  - get: fly
+    trigger: true
+    version: every
+  - put: fly
+    params: {path: fly, status: pending}
+  - task: unit
+    file: fly/ci/pr.yml
+    on_failure:
+      put: fly
+      params: {path: fly, status: failure}
+    on_success:
+      put: fly
+      params: {path: fly, status: success}
+
+- name: atc
+  plan:
+  - get: atc
+    trigger: true
+    version: every
+  - put: atc
+    params: {path: atc, status: pending}
+  - task: unit
+    file: atc/ci/pr.yml
+    on_failure:
+      put: atc
+      params: {path: atc, status: failure}
+    on_success:
+      put: atc
+      params: {path: atc, status: success}
+
+- name: go-concourse
+  plan:
+  - get: go-concourse
+    trigger: true
+    version: every
+  - put: go-concourse
+    params: {path: go-concourse, status: pending}
+  - task: unit
+    file: go-concourse/ci/pr.yml
+    on_failure:
+      put: go-concourse
+      params: {path: go-concourse, status: failure}
+    on_success:
+      put: go-concourse
+      params: {path: go-concourse, status: success}
