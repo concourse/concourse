@@ -26,21 +26,26 @@ func NewOAuthHandler(
 	teamDBFactory db.TeamDBFactory,
 	signingKey *rsa.PrivateKey,
 ) (http.Handler, error) {
-	return rata.NewRouter(OAuthRoutes, map[string]http.Handler{
-		OAuthBegin: NewOAuthBeginHandler(
-			logger.Session("oauth-begin"),
-			providerFactory,
-			signingKey,
-			teamDBFactory,
-		),
-
-		OAuthCallback: NewOAuthCallbackHandler(
-			logger.Session("oauth-callback"),
-			providerFactory,
-			signingKey,
-			teamDBFactory,
-		),
-	})
+	return rata.NewRouter(
+		OAuthRoutes,
+		map[string]http.Handler{
+			OAuthBegin: NewOAuthBeginHandler(
+				logger.Session("oauth-begin"),
+				providerFactory,
+				signingKey,
+				teamDBFactory,
+			),
+			OAuthCallback: NewOAuthCallbackHandler(
+				logger.Session("oauth-callback"),
+				providerFactory,
+				signingKey,
+				teamDBFactory,
+			),
+			LogOut: NewLogOutHandler(
+				logger.Session("logout"),
+			),
+		},
+	)
 }
 
 func keyFunc(key *rsa.PrivateKey) func(token *jwt.Token) (interface{}, error) {
