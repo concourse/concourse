@@ -271,11 +271,14 @@ viewUserState userState =
       Html.text ""
 
     UserStateLoggedOut ->
-      Html.a
-        [ href "/login"
-        , Html.Attributes.attribute "aria-label" "Log In"
-        ]
-        [ Html.text "login"
+      Html.div [class "user-info"]
+        [ Html.a
+            [ href "/login"
+            , Html.Attributes.attribute "aria-label" "Log In"
+            , class "login-button"
+            ]
+            [ Html.text "login"
+            ]
         ]
 
     UserStateLoggedIn {team} ->
