@@ -817,7 +817,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		wrappa.NewAPIAuthWrappa(
 			authValidator,
 			getTokenValidator,
-			auth.JWTReader{PublicKey: &signingKey.PublicKey, DevelopmentMode: devMode},
+			auth.JWTReader{PublicKey: &signingKey.PublicKey},
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,

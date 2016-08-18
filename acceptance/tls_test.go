@@ -1,7 +1,6 @@
 package acceptance_test
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
@@ -103,7 +102,7 @@ var _ = Describe("TLS", func() {
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		request, err := http.NewRequest("GET", atcCommand.URL("/api/v1/workers"), nil)
+		request, err := http.NewRequest("GET", atcCommand.URL("/api/v1/info"), nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		client := authorizedTLSClient(atcCommand)
@@ -111,7 +110,7 @@ var _ = Describe("TLS", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(resp.Request.URL.String()).To(Equal(atcCommand.URL("/api/v1/workers")))
+		Expect(resp.Request.URL.String()).To(Equal(atcCommand.URL("/api/v1/info")))
 	})
 
 	It("redirects HTTP web traffic to HTTPS", func() {
@@ -168,37 +167,17 @@ var _ = Describe("TLS", func() {
 	})
 
 	It("uses original handler for HTTP traffic that is not a GET or HEAD request when TLS is enabled", func() {
-		worker := atc.Worker{
-			Name:             "worker-name",
-			GardenAddr:       "1.2.3.4:7777",
-			BaggageclaimURL:  "5.6.7.8:7788",
-			HTTPProxyURL:     "http://example.com",
-			HTTPSProxyURL:    "https://example.com",
-			NoProxy:          "example.com,127.0.0.1,localhost",
-			ActiveContainers: 2,
-			ResourceTypes: []atc.WorkerResourceType{
-				{Type: "some-resource", Image: "some-resource-image"},
-			},
-			Platform: "haiku",
-			Tags:     []string{"not", "a", "limerick"},
-		}
-		payload, err := json.Marshal(worker)
-		Expect(err).NotTo(HaveOccurred())
-
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
-		err = atcCommand.Start()
+		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		request, err := http.NewRequest("POST",
-			atcCommand.URL("/api/v1/workers"),
-			ioutil.NopCloser(bytes.NewBuffer(payload)),
-		)
+		request, err := http.NewRequest("POST", atcCommand.URL("/"), nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		client := authorizedTLSClient(atcCommand)
 		resp, err := client.Do(request)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		Expect(resp.StatusCode).To(Equal(http.StatusMethodNotAllowed))
 	})
 
 	It("validates certs on client side when not started in development mode", func() {
