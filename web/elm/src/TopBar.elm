@@ -2,7 +2,7 @@ module TopBar exposing (Flags, init, update, urlUpdate, view, subscriptions)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)
-import Html.Events
+import Html.Events exposing (onClick)
 import Http
 import Json.Decode exposing ((:=))
 import List
@@ -13,6 +13,7 @@ import Time
 
 import Concourse.Pipeline exposing (Pipeline, PipelineIdentifier, Group)
 import Concourse.User exposing (User)
+import Redirect
 
 type alias Flags =
   { pipeline : Maybe PipelineIdentifier
@@ -42,12 +43,15 @@ type alias Ports =
   }
 
 type Msg
-  = PipelineFetched (Result Http.Error Pipeline)
-  | UserFetched (Result Http.Error User)
+  = Noop
+  | PipelineFetched (Result Http.Error Pipeline)
+  | UserFetched (Result Concourse.User.Error User)
   | FetchPipeline PipelineIdentifier
   | ToggleSidebar
   | ToggleGroup Group
   | SetGroup Group
+  | LogOut
+  | LoggedOut (Result Concourse.User.Error ())
 
 init : Ports -> Flags -> Location -> (Model, Cmd Msg)
 init ports flags initialLocation =
@@ -72,6 +76,9 @@ init ports flags initialLocation =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    Noop ->
+      (model, Cmd.none)
+
     FetchPipeline pid ->
       (model, fetchPipeline pid)
 
@@ -107,6 +114,16 @@ update msg model =
 
     SetGroup group ->
       setGroups [group.name] model
+
+    LogOut ->
+      (model, logOut)
+
+    LoggedOut (Ok _) ->
+      ({ model | userState = UserStateLoggedOut }, redirectToHome)
+
+    LoggedOut (Err msg) ->
+      always (model, Cmd.none) <|
+        Debug.log "failed to log out" msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -238,7 +255,7 @@ view model =
           [ Html.li [class "main"]
               [ Html.span
                   [ class "sidebar-toggle test btn-hamburger"
-                  , Html.Events.onClick ToggleSidebar
+                  , onClick ToggleSidebar
                   , Html.Attributes.attribute "aria-label" "Toggle List of Pipelines"
                   ]
                   [ Html.i [class "fa fa-bars"] []
@@ -290,8 +307,8 @@ viewUserState userState =
             ]
         , Html.div [class "user-menu"]
             [ Html.a
-                [ href "/logout"
-                , Html.Attributes.attribute "aria-label" "Log Out"
+                [ Html.Attributes.attribute "aria-label" "Log Out"
+                , onClick LogOut
                 ]
                 [ Html.text "logout"
                 ]
@@ -321,6 +338,16 @@ fetchUser : Cmd Msg
 fetchUser =
   Cmd.map UserFetched <|
     Task.perform Err Ok Concourse.User.fetchUser
+
+logOut : Cmd Msg
+logOut =
+  Cmd.map LoggedOut <|
+    Task.perform Err Ok Concourse.User.logOut
+
+redirectToHome : Cmd Msg
+redirectToHome =
+  Cmd.map (always Noop) << Task.perform Err Ok <|
+    Redirect.to "/"
 
 onClickOrShiftClick : Msg -> Msg -> Html.Attribute Msg
 onClickOrShiftClick clickMsg shiftClickMsg =
