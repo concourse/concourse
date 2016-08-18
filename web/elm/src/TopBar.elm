@@ -280,9 +280,11 @@ viewUserState userState =
 
     UserStateLoggedIn {team} ->
       Html.div [class "user-info"]
-        [ Html.i [class "fa fa-user"] []
-        , Html.text " "
-        , Html.text team.name
+        [ Html.div [class "user-id"]
+            [ Html.i [class "fa fa-user"] []
+            , Html.text " "
+            , Html.text team.name
+            ]
         , Html.div [class "user-menu"]
             [ Html.a
                 [ href "/logout"

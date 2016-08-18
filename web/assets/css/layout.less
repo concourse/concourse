@@ -26,14 +26,22 @@ html, body, #elm-app, .content-frame {
 
       .user-info {
         z-index: 100;
-        padding-right: 10px;
         background: @base00;
         text-align: right;
+
+        .user-id {
+          padding: 0 10px;
+        }
 
         .user-menu {
           display: none;
           width: 200px;
           font-size: 12px;
+
+          a {
+            display: block;
+            padding: 0 10px;
+          }
         }
 
         &:hover {
