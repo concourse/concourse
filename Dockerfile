@@ -9,6 +9,9 @@ RUN apt-get update && apt-get -y install curl
 ADD go*.tar.gz /usr/local
 ENV PATH $PATH:/usr/local/go/bin
 
+# Git for `go get` in pull request task
+RUN apt-get update && apt-get -y install git
+
 # PostgreSQL
 RUN apt-get update && apt-get -y install postgresql
 
