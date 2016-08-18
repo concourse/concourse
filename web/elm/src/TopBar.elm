@@ -12,6 +12,7 @@ import Task
 import Time
 
 import Concourse.Pipeline exposing (Pipeline, PipelineIdentifier, Group)
+import Concourse.User exposing (User)
 
 type alias Flags =
   { pipeline : Maybe PipelineIdentifier
@@ -21,12 +22,18 @@ type alias Flags =
 
 type alias Model =
   { pipelineIdentifier : Maybe PipelineIdentifier
-  , pipeline : Maybe Pipeline
   , viewingPipeline : Bool
   , ports : Ports
   , location : Location
   , selectedGroups : List String
+  , pipeline : Maybe Pipeline
+  , userState : UserState
   }
+
+type UserState
+  = UserStateLoggedIn User
+  | UserStateLoggedOut
+  | UserStateUnknown
 
 type alias Ports =
   { toggleSidebar : () -> Cmd Msg
@@ -36,6 +43,7 @@ type alias Ports =
 
 type Msg
   = PipelineFetched (Result Http.Error Pipeline)
+  | UserFetched (Result Http.Error User)
   | FetchPipeline PipelineIdentifier
   | ToggleSidebar
   | ToggleGroup Group
@@ -49,12 +57,16 @@ init ports flags initialLocation =
     , selectedGroups = flags.selectedGroups
     , location = initialLocation
     , pipeline = Nothing
+    , userState = UserStateUnknown
     }
-  , case flags.pipeline of
-      Just pid ->
-        fetchPipeline pid
-      Nothing ->
-        Cmd.none
+  , Cmd.batch
+      [ case flags.pipeline of
+        Just pid ->
+          fetchPipeline pid
+        Nothing ->
+          Cmd.none
+      , fetchUser
+      ]
   )
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -62,6 +74,16 @@ update msg model =
   case msg of
     FetchPipeline pid ->
       (model, fetchPipeline pid)
+
+    UserFetched (Ok user) ->
+      ( { model | userState = UserStateLoggedIn user }
+      , Cmd.none
+      )
+
+    UserFetched (Err _) ->
+      ( { model | userState = UserStateLoggedOut }
+      , Cmd.none
+      )
 
     PipelineFetched (Ok pipeline) ->
       ( { model | pipeline = Just pipeline }
@@ -233,12 +255,7 @@ view model =
           ] ++ groupList
     , Html.ul [class "nav-right"]
         [ Html.li [class "nav-item"]
-            [ Html.a
-                [ href "/builds"
-                , Html.Attributes.attribute "aria-label" "Builds List"
-                ]
-                [ Html.i [class "fa fa-tasks"] []
-                ]
+            [ viewUserState model.userState
             ]
         ]
     ]
@@ -246,6 +263,35 @@ view model =
 isPaused : Maybe Pipeline -> Bool
 isPaused =
   Maybe.withDefault False << Maybe.map .paused
+
+viewUserState : UserState -> Html Msg
+viewUserState userState =
+  case userState of
+    UserStateUnknown ->
+      Html.text "loading..."
+
+    UserStateLoggedOut ->
+      Html.a
+        [ href "/login"
+        , Html.Attributes.attribute "aria-label" "Log In"
+        ]
+        [ Html.text "login"
+        ]
+
+    UserStateLoggedIn {team} ->
+      Html.div [class "user-info"]
+        [ Html.i [class "fa fa-user"] []
+        , Html.text " "
+        , Html.text team.name
+        , Html.div [class "user-menu"]
+            [ Html.a
+                [ href "/logout"
+                , Html.Attributes.attribute "aria-label" "Log Out"
+                ]
+                [ Html.text "logout"
+                ]
+            ]
+        ]
 
 viewGroup : List String -> String -> Group -> Html Msg
 viewGroup selectedGroups url grp =
@@ -265,6 +311,11 @@ fetchPipeline : PipelineIdentifier -> Cmd Msg
 fetchPipeline pipelineIdentifier =
   Cmd.map PipelineFetched <|
     Task.perform Err Ok (Concourse.Pipeline.fetchPipeline pipelineIdentifier)
+
+fetchUser : Cmd Msg
+fetchUser =
+  Cmd.map UserFetched <|
+    Task.perform Err Ok Concourse.User.fetchUser
 
 onClickOrShiftClick : Msg -> Msg -> Html.Attribute Msg
 onClickOrShiftClick clickMsg shiftClickMsg =

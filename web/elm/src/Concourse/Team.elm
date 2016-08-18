@@ -4,13 +4,13 @@ import Http
 import Json.Decode exposing ((:=))
 import Task exposing (Task)
 
-type alias Team = { name : String }
+type alias Team = { id : Int, name : String }
 
 fetchTeams : Task Http.Error (List Team)
-fetchTeams = Http.get decodeTeams "/api/v1/teams"
+fetchTeams = Http.get (Json.Decode.list decodeTeam) "/api/v1/teams"
 
-decodeTeams : Json.Decode.Decoder (List Team)
-decodeTeams =
-  Json.Decode.list <|
-    Json.Decode.object1 Team
-      ("name" := Json.Decode.string)
+decodeTeam : Json.Decode.Decoder Team
+decodeTeam =
+  Json.Decode.object2 Team
+    ("id" := Json.Decode.int)
+    ("name" := Json.Decode.string)
