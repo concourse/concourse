@@ -1,4 +1,4 @@
-port module BuildPage exposing (..)
+port module BuildPage exposing (main)
 
 import Navigation
 import String
@@ -7,7 +7,6 @@ import UrlParser exposing ((</>), s)
 
 import Autoscroll
 import Build exposing (Page (..))
-import Scroll
 
 port setTitle : String -> Cmd msg
 
@@ -25,27 +24,13 @@ main =
     , subscriptions =
         let
           tick =
-            Time.every Time.second (Autoscroll.SubAction << Build.ClockTick)
-
-          scrolledUp =
-            Scroll.fromBottom Autoscroll.FromBottom
-
-          pushDown =
-            Time.every (100 * Time.millisecond) (always Autoscroll.ScrollDown)
+            Time.every Time.second (Autoscroll.SubMsg << Build.ClockTick)
         in \model ->
           Sub.batch
             [ tick
-            , scrolledUp
-            , pushDown
-            , case model.subModel.currentBuild `Maybe.andThen` Build.currentBuildOutput of
-                Nothing ->
-                  Sub.none
-                Just buildOutput ->
-                  Sub.map
-                    ( Autoscroll.SubAction <<
-                        Build.BuildOutputAction model.subModel.browsingIndex
-                    )
-                    buildOutput.events
+            , Autoscroll.subscriptions model
+            , Sub.map Autoscroll.SubMsg <|
+                Build.subscriptions model.subModel
             ]
     }
 

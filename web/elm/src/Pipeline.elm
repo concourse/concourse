@@ -1,4 +1,4 @@
-module Pipeline exposing (..)
+module Pipeline exposing (Flags, init, update, view, subscriptions)
 
 import AnimationFrame
 import Dict exposing (Dict)

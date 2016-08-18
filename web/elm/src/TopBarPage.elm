@@ -1,4 +1,4 @@
-port module TopBarPage exposing (..)
+port module TopBarPage exposing (main)
 
 import Navigation
 

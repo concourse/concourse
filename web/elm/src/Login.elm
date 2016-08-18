@@ -1,4 +1,4 @@
-module Login exposing (..)
+module Login exposing (Page(..), PageWithRedirect, init, update, urlUpdate, view)
 
 import Erl
 import Html exposing (Html)
@@ -37,7 +37,7 @@ type alias LoginModel =
   , redirect : String
   }
 
-type Action
+type Msg
   = Noop
   | FilterTeams String
   | TeamsFetched (Result Http.Error (List Team))
@@ -48,7 +48,7 @@ type Action
 defaultPage : PageWithRedirect
 defaultPage = { page = TeamSelectionPage, redirect = "" }
 
-init : Result String PageWithRedirect -> (Model, Cmd Action)
+init : Result String PageWithRedirect -> (Model, Cmd Msg)
 init pageResult =
   let
     pageWithRedirect = Result.withDefault defaultPage pageResult
@@ -76,7 +76,7 @@ init pageResult =
                 Concourse.AuthMethod.fetchAuthMethods teamName
         )
 
-urlUpdate : Result String PageWithRedirect -> Model -> (Model, Cmd Action)
+urlUpdate : Result String PageWithRedirect -> Model -> (Model, Cmd Msg)
 urlUpdate pageResult model =
   let
     pageWithRedirect = Result.withDefault defaultPage pageResult
@@ -104,7 +104,7 @@ urlUpdate pageResult model =
                 Concourse.AuthMethod.fetchAuthMethods teamName
         )
 
-update : Action -> Model -> (Model, Cmd Action)
+update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Noop ->
@@ -186,7 +186,7 @@ routeWithRedirect redirect route =
 indexPageUrl : String
 indexPageUrl = "/"
 
-view : Model -> Html Action
+view : Model -> Html Msg
 view model =
   case model of
     TeamSelection tModel -> viewTeamSelection tModel
@@ -199,7 +199,7 @@ viewLoading =
     , Html.text "Loading..."
     ]
 
-viewTeamSelection : TeamSelectionModel -> Html Action
+viewTeamSelection : TeamSelectionModel -> Html Msg
 viewTeamSelection model =
   let filteredTeams =
     filterTeams model.teamFilter <| Maybe.withDefault [] model.teams
@@ -250,7 +250,7 @@ assertLeftButton message button =
   if button == 0 then Ok message
   else Err "placeholder error, nothing is wrong"
 
-viewTeam : String -> Team -> Html Action
+viewTeam : String -> Team -> Html Msg
 viewTeam redirect team =
   Html.a
     [ onClickPreventDefault <| SelectTeam team.name
@@ -287,7 +287,7 @@ teamNameStartsWithSensitive : String -> Team -> Bool
 teamNameStartsWithSensitive substring team =
   String.startsWith substring team.name
 
-viewLogin : LoginModel -> Html Action
+viewLogin : LoginModel -> Html Msg
 viewLogin model =
   Html.div
     [ class "centered-contents" ]

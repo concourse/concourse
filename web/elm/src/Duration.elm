@@ -1,4 +1,4 @@
-module Duration exposing (..)
+module Duration exposing (Duration, between, format)
 
 import Time exposing (Time)
 

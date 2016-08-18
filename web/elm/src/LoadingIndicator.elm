@@ -1,4 +1,4 @@
-module LoadingIndicator exposing (..)
+module LoadingIndicator exposing (view)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class)

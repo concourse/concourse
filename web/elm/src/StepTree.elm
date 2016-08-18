@@ -6,7 +6,7 @@ module StepTree exposing
   , StepID
   , StepName
   , StepState(..)
-  , Action(..)
+  , Msg(Finished)
   , init
   , map
   , view
@@ -45,7 +45,7 @@ type TabFocus
   = Auto
   | User
 
-type Action
+type Msg
   = ToggleStep StepID
   | Finished
   | SwitchTab StepID Int
@@ -218,7 +218,7 @@ isFirstOccurrence resources step =
         isFirstOccurrence rest step
 
 
-update : Action -> Model -> Model
+update : Msg -> Model -> Model
 update action root =
   case action of
     ToggleStep id ->
@@ -443,10 +443,10 @@ setMultiStepIndex idx update tree =
     _ ->
       Debug.crash "impossible"
 
-view : Model -> Html Action
+view : Model -> Html Msg
 view model = viewTree model model.tree
 
-viewTree : Model -> StepTree -> Html Action
+viewTree : Model -> StepTree -> Html Msg
 viewTree model tree =
   case tree of
     Task step ->
@@ -495,7 +495,7 @@ viewTree model tree =
     Ensure {step, hook} ->
       viewHooked "ensure" model step hook
 
-viewTab : StepID -> Int -> Int -> StepTree -> Html Action
+viewTab : StepID -> Int -> Int -> StepTree -> Html Msg
 viewTab id currentTab idx step =
   let
     tab = idx + 1
@@ -504,11 +504,11 @@ viewTab id currentTab idx step =
       [classList [("current", currentTab == tab), ("inactive", not <| treeIsActive step)]]
       [Html.span [onClick (SwitchTab id tab)] [Html.text (toString tab)]]
 
-viewSeq : Model -> StepTree -> Html Action
+viewSeq : Model -> StepTree -> Html Msg
 viewSeq model tree =
   Html.div [class "seq"] [viewTree model tree]
 
-viewHooked : String -> Model -> StepTree -> StepTree -> Html Action
+viewHooked : String -> Model -> StepTree -> StepTree -> Html Msg
 viewHooked name model step hook =
   Html.div [class "hooked"]
     [ Html.div [class "step"] [viewTree model step]
@@ -523,7 +523,7 @@ isActive = (/=) StepStatePending
 autoExpanded : StepState -> Bool
 autoExpanded state = isActive state && state /= StepStateSucceeded
 
-viewStep : Model -> Step -> String -> Html Action
+viewStep : Model -> Step -> String -> Html Msg
 viewStep model {id, name, log, state, error, expanded, version, metadata, firstOccurrence} icon =
   Html.div
     [ classList
@@ -559,21 +559,21 @@ viewStep model {id, name, log, state, error, expanded, version, metadata, firstO
           []
     ]
 
-viewVersion : Maybe Version -> Html Action
+viewVersion : Maybe Version -> Html Msg
 viewVersion version =
   DictView.view << Dict.map (\_ s -> Html.text s) <|
     Maybe.withDefault Dict.empty version
 
-viewMetadata : List MetadataField -> Html Action
+viewMetadata : List MetadataField -> Html Msg
 viewMetadata metadata =
   DictView.view << Dict.fromList <|
     List.map (\{name, value} -> (name, Html.pre [] [Html.text value])) metadata
 
-typeIcon : String -> Html Action
+typeIcon : String -> Html Msg
 typeIcon fa =
   Html.i [class ("left fa fa-fw " ++ fa)] []
 
-viewStepState : StepState -> Bool -> Html Action
+viewStepState : StepState -> Bool -> Html Msg
 viewStepState state finished =
   case state of
     StepStatePending ->

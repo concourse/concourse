@@ -1,4 +1,4 @@
-port module LoginPage exposing (..)
+port module LoginPage exposing (main)
 
 import Dict
 import Erl
