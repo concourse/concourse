@@ -233,7 +233,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		drain,
 		radarSchedulerFactory,
 		radarScannerFactory,
-		cmd.Developer.DevelopmentMode,
 	)
 
 	if err != nil {
@@ -795,7 +794,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 	drain <-chan struct{},
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
-	devMode bool,
 ) (http.Handler, error) {
 	authValidator := auth.JWTValidator{
 		PublicKey: &signingKey.PublicKey,
