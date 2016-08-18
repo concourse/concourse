@@ -648,8 +648,14 @@ handleOutMsg outMsg model =
               else
                 { duration | finishedAt = Just date }
 
+            newStatus =
+              if Concourse.BuildStatus.isRunning build.status then
+                status
+              else
+                build.status
+
             newBuild =
-              { build | status = status, duration = newDuration }
+              { build | status = newStatus, duration = newDuration }
           in
             { model
             | history =
