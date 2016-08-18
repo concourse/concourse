@@ -268,7 +268,7 @@ viewUserState : UserState -> Html Msg
 viewUserState userState =
   case userState of
     UserStateUnknown ->
-      Html.text "loading..."
+      Html.text ""
 
     UserStateLoggedOut ->
       Html.a
