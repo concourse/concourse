@@ -22,7 +22,26 @@ html, body, #elm-app, .content-frame {
 
     .nav-right {
       flex-shrink: 1;
-      margin-right: 10px;
+      z-index: 100;
+
+      .user-info {
+        z-index: 100;
+        padding-right: 10px;
+        background: @base00;
+        text-align: right;
+
+        .user-menu {
+          display: none;
+          width: 200px;
+          font-size: 12px;
+        }
+
+        &:hover {
+          .user-menu {
+            display: block;
+          }
+        }
+      }
     }
   }
 
