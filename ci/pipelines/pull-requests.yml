@@ -38,6 +38,7 @@ jobs:
     params: {path: fly, status: pending}
   - task: unit
     file: fly/ci/pr.yml
+    tags: [pr]
     on_failure:
       put: fly
       params: {path: fly, status: failure}
@@ -55,6 +56,7 @@ jobs:
     params: {path: atc, status: pending}
   - task: unit
     file: atc/ci/pr.yml
+    tags: [pr]
     on_failure:
       put: atc
       params: {path: atc, status: failure}
@@ -72,6 +74,7 @@ jobs:
     params: {path: go-concourse, status: pending}
   - task: unit
     file: go-concourse/ci/pr.yml
+    tags: [pr]
     on_failure:
       put: go-concourse
       params: {path: go-concourse, status: failure}
