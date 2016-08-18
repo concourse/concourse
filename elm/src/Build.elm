@@ -228,16 +228,28 @@ handleBuildFetched browsingIndex build model =
     let
       currentBuild =
         case model.currentBuild of
-          Nothing -> { build = build, prep = Nothing, output = Nothing}
-          Just currentBuild -> { currentBuild | build = build }
+          Nothing ->
+            { build = build
+            , prep = Nothing
+            , output = Nothing
+            }
+
+          Just currentBuild ->
+            { currentBuild | build = build }
 
       withBuild =
-        { model | currentBuild = Just currentBuild }
+        { model
+        | currentBuild = Just currentBuild
+        , history = updateHistory build model.history
+        }
 
       fetchJobAndHistory =
         case (model.job, build.job) of
           (Nothing, Just buildJob) ->
-            Cmd.batch [fetchBuildJobDetails buildJob, fetchBuildHistory buildJob Nothing]
+            Cmd.batch
+              [ fetchBuildJobDetails buildJob
+              , fetchBuildHistory buildJob Nothing
+              ]
 
           _ ->
             Cmd.none
@@ -658,11 +670,14 @@ handleOutMsg outMsg model =
               { build | status = newStatus, duration = newDuration }
           in
             { model
-            | history =
-                List.map (\b ->
-                  if b.id == newBuild.id then
-                    newBuild
-                  else
-                    b) model.history
+            | history = updateHistory newBuild model.history
             , currentBuild = Just { currentBuild | build = newBuild }
             }
+
+updateHistory : Build -> List Build -> List Build
+updateHistory newBuild =
+  List.map <| \build ->
+    if build.id == newBuild.id then
+      newBuild
+    else
+      build
