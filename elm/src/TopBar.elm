@@ -1,4 +1,4 @@
-module TopBar exposing (..)
+module TopBar exposing (Flags, init, update, urlUpdate, view, subscriptions)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)

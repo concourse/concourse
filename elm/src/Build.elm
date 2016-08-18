@@ -1,4 +1,14 @@
-module Build exposing (..)
+module Build exposing
+  ( init
+  , update
+  , urlUpdate
+  , view
+  , subscriptions
+  , Page(..)
+  , Msg(ClockTick)
+  , getScrollBehavior
+  , initJobBuildPage
+  )
 
 import Date exposing (Date)
 import Date.Format
@@ -43,26 +53,11 @@ initJobBuildPage teamName pipelineName jobName buildName =
     , buildName = buildName
     }
 
-type BuildOrOutput
-  = HasOutput BuildOutput.Model
-  | NoOutput Build
-
 type alias CurrentBuild =
-  { buildOrOutput : BuildOrOutput
+  { build : Build
   , prep : Maybe BuildPrep
+  , output : Maybe BuildOutput.Model
   }
-
-currentBuildBuild : CurrentBuild -> Build
-currentBuildBuild cb =
-  case cb.buildOrOutput of
-    NoOutput build -> build
-    HasOutput output -> output.build
-
-currentBuildOutput : CurrentBuild -> Maybe BuildOutput.Model
-currentBuildOutput cb =
-  case cb.buildOrOutput of
-    NoOutput _ -> Nothing
-    HasOutput output -> Just output
 
 type alias Model =
   { now : Time.Time
@@ -70,7 +65,7 @@ type alias Model =
   , history : List Build
   , currentBuild : Maybe CurrentBuild
   , browsingIndex : Int
-  , setTitle : String -> Cmd Action
+  , setTitle : String -> Cmd Msg
   }
 
 type StepRenderingState
@@ -79,7 +74,7 @@ type StepRenderingState
   | StepsComplete
   | LoginRequired
 
-type Action
+type Msg
   = Noop
   | SwitchToBuild Build
   | AbortBuild Int
@@ -87,13 +82,13 @@ type Action
   | BuildPrepFetched Int (Result Http.Error BuildPrep)
   | BuildHistoryFetched (Result Http.Error (Paginated Build))
   | BuildJobDetailsFetched (Result Http.Error Job)
-  | BuildOutputAction Int BuildOutput.Action
+  | BuildOutputMsg Int BuildOutput.Msg
   | ScrollBuilds (Float, Float)
   | ClockTick Time.Time
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
 
-init : (String -> Cmd Action) -> Result String Page -> (Model, Cmd Action)
+init : (String -> Cmd Msg) -> Result String Page -> (Model, Cmd Msg)
 init setTitle pageResult =
   let
     model =
@@ -109,7 +104,16 @@ init setTitle pageResult =
     , changeToBuild model pageResult
     )
 
-changeToBuild : Model -> Result String Page -> Cmd Action
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  case model.currentBuild `Maybe.andThen` .output of
+    Nothing ->
+      Sub.none
+
+    Just buildOutput ->
+      Sub.map (BuildOutputMsg model.browsingIndex) buildOutput.events
+
+changeToBuild : Model -> Result String Page -> Cmd Msg
 changeToBuild model pageResult =
   case pageResult of
     Err err ->
@@ -127,7 +131,7 @@ changeToBuild model pageResult =
         , fetchJobBuild model.browsingIndex jbi
         ]
 
-urlUpdate : Result String Page -> Model -> (Model, Cmd Action)
+urlUpdate : Result String Page -> Model -> (Model, Cmd Msg)
 urlUpdate pageResult model =
   let
     newModel =
@@ -137,7 +141,7 @@ urlUpdate pageResult model =
     , changeToBuild newModel pageResult
     )
 
-update : Action -> Model -> (Model, Cmd Action)
+update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Noop ->
@@ -173,18 +177,19 @@ update action model =
       Debug.log ("failed to fetch build preparation: " ++ toString err) <|
         (model, Cmd.none)
 
-    BuildOutputAction browsingIndex action ->
+    BuildOutputMsg browsingIndex action ->
       if browsingIndex == model.browsingIndex then
-        case (model.currentBuild, Maybe.map .buildOrOutput model.currentBuild) of
-          (Just currentBuild, Just (HasOutput output)) ->
+        case (model.currentBuild, model.currentBuild `Maybe.andThen` .output) of
+          (Just currentBuild, Just output) ->
             let
-              (newOutput, cmd) = BuildOutput.update action output
+              (newOutput, cmd, outMsg) = BuildOutput.update action output
             in
-              ( { model
-                | currentBuild =
-                    Just { currentBuild | buildOrOutput = HasOutput newOutput }
-                }
-              , Cmd.map (BuildOutputAction browsingIndex) cmd
+              ( handleOutMsg outMsg
+                  { model
+                  | currentBuild =
+                      Just { currentBuild | output = Just newOutput }
+                  }
+              , Cmd.map (BuildOutputMsg browsingIndex) cmd
               )
 
           _ ->
@@ -217,14 +222,14 @@ update action model =
     ClockTick now ->
       ({ model | now = now }, Cmd.none)
 
-handleBuildFetched : Int -> Build -> Model -> (Model, Cmd Action)
+handleBuildFetched : Int -> Build -> Model -> (Model, Cmd Msg)
 handleBuildFetched browsingIndex build model =
   if browsingIndex == model.browsingIndex then
     let
       currentBuild =
         case model.currentBuild of
-          Nothing -> { buildOrOutput = NoOutput build, prep = Nothing }
-          Just currentBuild -> { currentBuild | buildOrOutput = NoOutput build }
+          Nothing -> { build = build, prep = Nothing, output = Nothing}
+          Just currentBuild -> { currentBuild | build = build }
 
       withBuild =
         { model | currentBuild = Just currentBuild }
@@ -258,14 +263,14 @@ handleBuildFetched browsingIndex build model =
   else
     (model, Cmd.none)
 
-pollUntilStarted : Int -> Int -> Cmd Action
+pollUntilStarted : Int -> Int -> Cmd Msg
 pollUntilStarted browsingIndex buildId =
   Cmd.batch
     [ (fetchBuild Time.second browsingIndex buildId)
     , (fetchBuildPrep Time.second browsingIndex buildId)
     ]
 
-initBuildOutput : Build -> Model -> (Model, Cmd Action)
+initBuildOutput : Build -> Model -> (Model, Cmd Msg)
 initBuildOutput build model =
   let
     (output, outputCmd) = BuildOutput.init build
@@ -273,13 +278,13 @@ initBuildOutput build model =
     ( { model
       | currentBuild =
           Maybe.map
-            (\info -> { info | buildOrOutput = HasOutput output })
+            (\info -> { info | output = Just output })
             model.currentBuild
       }
-    , Cmd.map (BuildOutputAction model.browsingIndex) outputCmd
+    , Cmd.map (BuildOutputMsg model.browsingIndex) outputCmd
     )
 
-handleBuildJobFetched : Job -> Model -> (Model, Cmd Action)
+handleBuildJobFetched : Job -> Model -> (Model, Cmd Msg)
 handleBuildJobFetched job model =
   let
     withJobDetails =
@@ -287,13 +292,13 @@ handleBuildJobFetched job model =
   in
     (withJobDetails, Cmd.none)
 
-handleHistoryFetched : Paginated Build -> Model -> (Model, Cmd Action)
+handleHistoryFetched : Paginated Build -> Model -> (Model, Cmd Msg)
 handleHistoryFetched history model =
   let
     withBuilds =
       { model | history = List.append model.history history.content }
   in
-    case (history.pagination.nextPage, model.currentBuild `Maybe.andThen` (.job << currentBuildBuild)) of
+    case (history.pagination.nextPage, model.currentBuild `Maybe.andThen` (.job << .build)) of
       (Nothing, _) ->
         (withBuilds, Cmd.none)
 
@@ -303,7 +308,7 @@ handleHistoryFetched history model =
       (Just url, Nothing) ->
         Debug.crash "impossible"
 
-handleBuildPrepFetched : Int -> BuildPrep -> Model -> (Model, Cmd Action)
+handleBuildPrepFetched : Int -> BuildPrep -> Model -> (Model, Cmd Msg)
 handleBuildPrepFetched browsingIndex buildPrep model =
   if browsingIndex == model.browsingIndex then
     ( { model
@@ -317,26 +322,27 @@ handleBuildPrepFetched browsingIndex buildPrep model =
   else
     (model, Cmd.none)
 
-abortBuild : Int -> Cmd Action
+abortBuild : Int -> Cmd Msg
 abortBuild buildId =
   Cmd.map BuildAborted << Task.perform Err Ok <|
     Concourse.Build.abort buildId
 
-view : Model -> Html Action
+view : Model -> Html Msg
 view model =
   case model.currentBuild of
     Just currentBuild ->
       Html.div [class "with-fixed-header"]
-        [ viewBuildHeader (currentBuildBuild currentBuild) model
+        [ viewBuildHeader currentBuild.build model
         , Html.div [class "scrollable-body"] <|
           [ viewBuildPrep currentBuild.prep
           , Html.Lazy.lazy
               (viewBuildOutput model.browsingIndex) <|
-              currentBuildOutput currentBuild
+              currentBuild.output
           ] ++
             let
-              build = currentBuildBuild currentBuild
-            in let
+              build =
+                currentBuild.build
+
               maybeBirthDate =
                 Maybe.oneOf [build.duration.startedAt, build.duration.finishedAt]
             in
@@ -394,16 +400,16 @@ mmDDYY : Date -> String
 mmDDYY d =
   Date.Format.format "%m/%d/" d ++ String.right 2 (Date.Format.format "%Y" d)
 
-viewBuildOutput : Int -> Maybe BuildOutput.Model -> Html Action
+viewBuildOutput : Int -> Maybe BuildOutput.Model -> Html Msg
 viewBuildOutput browsingIndex output =
   case output of
     Just o ->
-      Html.App.map (BuildOutputAction browsingIndex) (BuildOutput.view o)
+      Html.App.map (BuildOutputMsg browsingIndex) (BuildOutput.view o)
 
     Nothing ->
       Html.div [] []
 
-viewBuildPrep : Maybe BuildPrep -> Html Action
+viewBuildPrep : Maybe BuildPrep -> Html Msg
 viewBuildPrep prep =
   case prep of
     Just prep ->
@@ -428,25 +434,25 @@ viewBuildPrep prep =
     Nothing ->
       Html.div [] []
 
-viewBuildPrepInputs : Dict String BuildPrepStatus -> List (Html Action)
+viewBuildPrepInputs : Dict String BuildPrepStatus -> List (Html Msg)
 viewBuildPrepInputs inputs =
   List.map viewBuildPrepInput (Dict.toList inputs)
 
-viewBuildPrepInput : (String, BuildPrepStatus) -> Html Action
+viewBuildPrepInput : (String, BuildPrepStatus) -> Html Msg
 viewBuildPrepInput (name, status) =
   viewBuildPrepLi ("discovering any new versions of " ++ name) status Dict.empty
 
-viewBuildPrepDetails : Dict String String -> Html Action
+viewBuildPrepDetails : Dict String String -> Html Msg
 viewBuildPrepDetails details =
   Html.ul [class "details"]
     (List.map (viewDetailItem) (Dict.toList details))
 
-viewDetailItem : (String, String) -> Html Action
+viewDetailItem : (String, String) -> Html Msg
 viewDetailItem (name, status) =
     Html.li []
       [Html.text (name ++ " - " ++ status)]
 
-viewBuildPrepLi : String -> BuildPrepStatus -> Dict String String -> Html Action
+viewBuildPrepLi : String -> BuildPrepStatus -> Dict String String -> Html Msg
 viewBuildPrepLi text status details =
   Html.li
     [ classList [
@@ -462,14 +468,14 @@ viewBuildPrepLi text status details =
       (viewBuildPrepDetails details)
     ]
 
-viewBuildPrepStatus : BuildPrepStatus -> Html Action
+viewBuildPrepStatus : BuildPrepStatus -> Html Msg
 viewBuildPrepStatus status =
   case status of
     Concourse.BuildPrep.Unknown -> Html.i [class "fa fa-fw fa-circle-o-notch", title "thinking..."] []
     Concourse.BuildPrep.Blocking -> Html.i [class "fa fa-fw fa-spin fa-circle-o-notch inactive", title "blocking"] []
     Concourse.BuildPrep.NotBlocking -> Html.i [class "fa fa-fw fa-check", title "not blocking"] []
 
-viewBuildHeader : Build -> Model -> Html Action
+viewBuildHeader : Build -> Model -> Html Msg
 viewBuildHeader build {now, job, history} =
   let
     triggerButton =
@@ -519,31 +525,26 @@ viewBuildHeader build {now, job, history} =
           [ lazyViewHistory build history ]
       ]
 
-lazyViewHistory : Build -> List Build -> Html Action
+lazyViewHistory : Build -> List Build -> Html Msg
 lazyViewHistory currentBuild builds =
   Html.Lazy.lazy2 viewHistory currentBuild builds
 
-viewHistory : Build -> List Build -> Html Action
+viewHistory : Build -> List Build -> Html Msg
 viewHistory currentBuild builds =
   Html.ul [id "builds"]
     (List.map (viewHistoryItem currentBuild) builds)
 
-viewHistoryItem : Build -> Build -> Html Action
+viewHistoryItem : Build -> Build -> Html Msg
 viewHistoryItem currentBuild build =
   Html.li
     [ classList
-        [ ( if build.name == currentBuild.name then
-              Concourse.BuildStatus.show currentBuild.status
-            else
-              Concourse.BuildStatus.show build.status
-          , True
-          )
-        , ("current", build.name == currentBuild.name)
+        [ (Concourse.BuildStatus.show build.status, True)
+        , ("current", build.id == currentBuild.id)
         ]
     ]
     [Html.a [overrideClick (SwitchToBuild build),  href (Concourse.Build.url build)] [Html.text (build.name)]]
 
-overrideClick : Action -> Html.Attribute Action
+overrideClick : Msg -> Html.Attribute Msg
 overrideClick action =
   Html.Events.onWithOptions "click"
     { stopPropagation = True, preventDefault = True } <|
@@ -551,12 +552,12 @@ overrideClick action =
       ("button" := Json.Decode.int) <|
         assertLeftButton action
 
-assertLeftButton : Action -> Int -> Result String Action
+assertLeftButton : Msg -> Int -> Result String Msg
 assertLeftButton action button =
   if button == 0 then Ok action
   else Err "placeholder error, nothing is wrong"
 
-durationTitle : Date -> List (Html Action) -> Html Action
+durationTitle : Date -> List (Html Msg) -> Html Msg
 durationTitle date content =
   Html.div [title (Date.Format.format "%b" date)] content
 
@@ -566,44 +567,44 @@ decodeScrollEvent =
     ("deltaX" := Json.Decode.float)
     ("deltaY" := Json.Decode.float)
 
-fetchBuild : Time -> Int -> Int -> Cmd Action
+fetchBuild : Time -> Int -> Int -> Cmd Msg
 fetchBuild delay browsingIndex buildId =
   Cmd.map (BuildFetched browsingIndex) << Task.perform Err Ok <|
     Process.sleep delay `Task.andThen` (always <| Concourse.Build.fetch buildId)
 
-fetchJobBuild : Int -> JobBuildIdentifier -> Cmd Action
+fetchJobBuild : Int -> JobBuildIdentifier -> Cmd Msg
 fetchJobBuild browsingIndex jbi =
   Cmd.map (BuildFetched browsingIndex) << Task.perform Err Ok <|
     Concourse.Build.fetchJobBuild jbi
 
-fetchBuildJobDetails : Concourse.Build.BuildJob -> Cmd Action
+fetchBuildJobDetails : Concourse.Build.BuildJob -> Cmd Msg
 fetchBuildJobDetails buildJob =
   Cmd.map BuildJobDetailsFetched << Task.perform Err Ok <|
     Concourse.Job.fetchJob buildJob
 
-fetchBuildPrep : Time -> Int -> Int -> Cmd Action
+fetchBuildPrep : Time -> Int -> Int -> Cmd Msg
 fetchBuildPrep delay browsingIndex buildId =
   Cmd.map (BuildPrepFetched browsingIndex) << Task.perform Err Ok <|
     Process.sleep delay `Task.andThen` (always <| Concourse.BuildPrep.fetch buildId)
 
-fetchBuildHistory : Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Cmd Action
+fetchBuildHistory : Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Cmd Msg
 fetchBuildHistory job page =
   Cmd.map BuildHistoryFetched << Task.perform Err Ok <|
     Concourse.Build.fetchJobBuilds job page
 
-scrollBuilds : Float -> Cmd Action
+scrollBuilds : Float -> Cmd Msg
 scrollBuilds delta =
   Cmd.map (always Noop) << Task.perform Err Ok <|
     Scroll.scroll "builds" delta
 
-scrollToCurrentBuildInHistory : Cmd Action
+scrollToCurrentBuildInHistory : Cmd Msg
 scrollToCurrentBuildInHistory =
   Cmd.map (always Noop) << Task.perform Err Ok <|
     Scroll.scrollIntoView "#builds .current"
 
 getScrollBehavior : Model -> Autoscroll.ScrollBehavior
 getScrollBehavior model =
-  case Maybe.withDefault Concourse.BuildStatus.Pending (Maybe.map (.status << currentBuildBuild) model.currentBuild) of
+  case Maybe.withDefault Concourse.BuildStatus.Pending (Maybe.map (.status << .build) model.currentBuild) of
     Concourse.BuildStatus.Failed -> ScrollUntilCancelled
     Concourse.BuildStatus.Errored -> ScrollUntilCancelled
     Concourse.BuildStatus.Aborted -> ScrollUntilCancelled
@@ -611,7 +612,48 @@ getScrollBehavior model =
     Concourse.BuildStatus.Pending -> NoScroll
     Concourse.BuildStatus.Succeeded -> NoScroll
 
-redirectToLogin : Model -> Cmd Action
+redirectToLogin : Model -> Cmd Msg
 redirectToLogin model =
   Cmd.map (always Noop) << Task.perform Err Ok <|
     Redirect.to "/login"
+
+handleOutMsg : BuildOutput.OutMsg -> Model -> Model
+handleOutMsg outMsg model =
+  case outMsg of
+    BuildOutput.OutNoop ->
+      model
+
+    BuildOutput.OutBuildStatus status date ->
+      case (model.currentBuild, status) of
+        (Nothing, _) ->
+          model
+
+        (_, Concourse.BuildStatus.Started) ->
+          model
+
+        (_, Concourse.BuildStatus.Pending) ->
+          model
+
+        (Just currentBuild, _) ->
+          let
+            build =
+              currentBuild.build
+
+            duration =
+              build.duration
+
+            newBuild =
+              { build
+              | status = status
+              , duration = { duration | finishedAt = Just date }
+              }
+          in
+            { model
+            | history =
+                List.map (\b ->
+                  if b.id == newBuild.id then
+                    newBuild
+                  else
+                    b) model.history
+            , currentBuild = Just { currentBuild | build = newBuild }
+            }

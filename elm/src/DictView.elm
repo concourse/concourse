@@ -1,4 +1,4 @@
-module DictView exposing (..)
+module DictView exposing (view)
 
 import Dict exposing (Dict)
 import Html exposing (Html)

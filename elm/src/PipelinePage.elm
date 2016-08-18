@@ -1,4 +1,4 @@
-port module PipelinePage exposing (..)
+port module PipelinePage exposing (main)
 
 import Html.App
 

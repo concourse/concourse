@@ -1,4 +1,4 @@
-module Job exposing (..)
+module Job exposing (Flags, init, update, view, Msg(ClockTick))
 
 import Array exposing (Array)
 import Dict exposing (Dict)
@@ -30,7 +30,7 @@ type alias Model =
   , pagination : Pagination
   }
 
-type Action
+type Msg
   = Noop
   | JobBuildsFetched (Result Http.Error (Paginated Build))
   | JobFetched (Result Http.Error Job)
@@ -82,7 +82,7 @@ type alias Flags =
   , pageUntil : Int
   }
 
-init : Flags -> (Model, Cmd Action)
+init : Flags -> (Model, Cmd Msg)
 init flags =
   let
     model =
@@ -116,7 +116,7 @@ init flags =
         ]
     )
 
-update : Action -> Model -> (Model, Cmd Action)
+update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Noop ->
@@ -186,7 +186,7 @@ permalink builds =
       , limit = List.length builds
       }
 
-handleJobBuildsFetched : Paginated Concourse.Build.Build -> Model -> (Model, Cmd Action)
+handleJobBuildsFetched : Paginated Concourse.Build.Build -> Model -> (Model, Cmd Msg)
 handleJobBuildsFetched paginatedBuilds model =
   let
     fetchedBuilds = Array.fromList paginatedBuilds.content
@@ -216,7 +216,7 @@ handleJobBuildsFetched paginatedBuilds model =
 isRunning : Build -> Bool
 isRunning build = Concourse.BuildStatus.isRunning build.status
 
-view : Model -> Html Action
+view : Model -> Html Msg
 view model =
   Html.div [class "with-fixed-header"] [
     case model.job of
@@ -279,7 +279,7 @@ getPausedState job pausedChanging =
       then "enabled"
       else "disabled"
 
-loadSpinner : Html Action
+loadSpinner : Html Msg
 loadSpinner =
   Html.div [class "build-step"]
     [ Html.div [class "header"]
@@ -294,7 +294,7 @@ headerBuildStatusClass finishedBuild =
     Nothing -> ""
     Just build -> Concourse.BuildStatus.show build.status
 
-viewPaginationBar : Model -> Html Action
+viewPaginationBar : Model -> Html Msg
 viewPaginationBar model =
   Html.div [ class "pagination fr"]
     [ case model.pagination.previousPage of
@@ -335,7 +335,7 @@ viewPaginationBar model =
           ]
     ]
 
-viewBuildWithResources : Model -> LiveUpdatingBuildWithResources -> Html Action
+viewBuildWithResources : Model -> LiveUpdatingBuildWithResources -> Html Msg
 viewBuildWithResources model lubwr =
   Html.li [class "js-build"]
     <| let
@@ -350,7 +350,7 @@ viewBuildWithResources model lubwr =
         <| (BuildDuration.view build.duration model.now) :: buildResourcesView
       ]
 
-viewBuildHeader : Model -> Build -> Html Action
+viewBuildHeader : Model -> Build -> Html Msg
 viewBuildHeader model b =
   Html.a
   [class <| Concourse.BuildStatus.show b.status
@@ -359,7 +359,7 @@ viewBuildHeader model b =
   [ Html.text ("#" ++ b.name)
   ]
 
-viewBuildResources : Model -> (Maybe BuildWithResources) -> List (Html Action)
+viewBuildResources : Model -> (Maybe BuildWithResources) -> List (Html Msg)
 viewBuildResources model buildWithResources =
   let
     inputsTable =
@@ -387,7 +387,7 @@ viewBuildResources model buildWithResources =
       ]
     ]
 
-viewBuildInputs : Model -> BuildInput -> Html Action
+viewBuildInputs : Model -> BuildInput -> Html Msg
 viewBuildInputs model bi =
   Html.tr [class "mbs pas resource fl clearfix"]
   [ Html.td [class "resource-name mrm"]
@@ -398,7 +398,7 @@ viewBuildInputs model bi =
     ]
   ]
 
-viewBuildOutputs : Model -> BuildOutput -> Html Action
+viewBuildOutputs : Model -> BuildOutput -> Html Msg
 viewBuildOutputs model bo =
   Html.tr [class "mbs pas resource fl clearfix"]
   [ Html.td [class "resource-name mrm"]
@@ -409,27 +409,27 @@ viewBuildOutputs model bo =
     ]
   ]
 
-viewVersion : Version -> Html Action
+viewVersion : Version -> Html Msg
 viewVersion version =
   DictView.view << Dict.map (\_ s -> Html.text s) <|
     version
 
-fetchJobBuilds : Time -> Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Cmd Action
+fetchJobBuilds : Time -> Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Cmd Msg
 fetchJobBuilds delay jobInfo page =
   Cmd.map JobBuildsFetched << Task.perform Err Ok <|
     Process.sleep delay `Task.andThen` (always <| Concourse.Build.fetchJobBuilds jobInfo page)
 
-fetchJob : Time -> Concourse.Build.BuildJob -> Cmd Action
+fetchJob : Time -> Concourse.Build.BuildJob -> Cmd Msg
 fetchJob delay jobInfo =
   Cmd.map JobFetched << Task.perform Err Ok <|
     Process.sleep delay `Task.andThen` (always <| Concourse.Job.fetchJob jobInfo)
 
-fetchBuildResources : Int -> Concourse.Build.BuildId -> Cmd Action
+fetchBuildResources : Int -> Concourse.Build.BuildId -> Cmd Msg
 fetchBuildResources index buildId =
   Cmd.map (initBuildResourcesFetched index) << Task.perform Err Ok <|
     Concourse.BuildResources.fetch buildId
 
-initBuildResourcesFetched : Int -> Result Http.Error (BuildResources) -> Action
+initBuildResourcesFetched : Int -> Result Http.Error (BuildResources) -> Msg
 initBuildResourcesFetched index result = BuildResourcesFetched { index = index, result = result }
 
 paginationParam : Page -> String
@@ -438,18 +438,18 @@ paginationParam page =
     Concourse.Pagination.Since i -> "since=" ++ toString i
     Concourse.Pagination.Until i -> "until=" ++ toString i
 
-pauseJob : BuildJob -> Cmd Action
+pauseJob : BuildJob -> Cmd Msg
 pauseJob jobInfo =
   Cmd.map PausedToggled << Task.perform Err Ok <|
     Concourse.Job.pause jobInfo
 
 
-unpauseJob : BuildJob -> Cmd Action
+unpauseJob : BuildJob -> Cmd Msg
 unpauseJob jobInfo =
   Cmd.map PausedToggled << Task.perform Err Ok <|
     Concourse.Job.unpause jobInfo
 
-redirectToLogin : Model -> Cmd Action
+redirectToLogin : Model -> Cmd Msg
 redirectToLogin model =
   Cmd.map (always Noop) << Task.perform Err Ok <|
     Redirect.to "/login"

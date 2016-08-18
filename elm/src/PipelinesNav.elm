@@ -1,4 +1,4 @@
-module PipelinesNav exposing (..)
+module PipelinesNav exposing (init, update, view, subscriptions)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, disabled, attribute, style)
@@ -38,7 +38,7 @@ type ListHover a
   = BeforeAll
   | AfterElement a
 
-type Action
+type Msg
   = Noop
   | PausePipeline String String
   | UnpausePipeline String String
@@ -52,7 +52,7 @@ type Action
   | Unhover String (ListHover String)
   | PipelinesReordered (Result Http.Error ())
 
-init : (Model, Cmd Action)
+init : (Model, Cmd Msg)
 init =
   ( { teams = Nothing
     , dragInfo = Nothing
@@ -60,7 +60,14 @@ init =
   , fetchPipelines
   )
 
-update : Action -> Model -> (Model, Cmd Action)
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  if isDragging model then
+    Sub.batch [ Mouse.moves Drag, Mouse.ups StopDragging ]
+  else
+    Sub.none
+
+update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Noop -> (model, Cmd.none)
@@ -297,14 +304,14 @@ mapPipeline f pipelineName uip =
   if uip.pipeline.name == pipelineName then f uip
   else uip
 
-view : Model -> Html Action
+view : Model -> Html Msg
 view model =
   case model.teams of
     Nothing -> Html.text "loading"
     Just teams ->
       Html.ul [] <| List.map (viewTeam model.dragInfo) teams
 
-viewTeam : Maybe DragInfo -> (String, List UIPipeline) -> Html Action
+viewTeam : Maybe DragInfo -> (String, List UIPipeline) -> Html Msg
 viewTeam maybeDragInfo (teamName, pipelines) =
   Html.li [class "team"]
     [ Html.text <| "team "
@@ -329,7 +336,7 @@ viewTeam maybeDragInfo (teamName, pipelines) =
                 firstElemView :: restView
     ]
 
-viewFirstPipeline : Maybe DragInfo -> UIPipeline -> Html Action
+viewFirstPipeline : Maybe DragInfo -> UIPipeline -> Html Msg
 viewFirstPipeline maybeDragInfo uip =
   Html.li
     ( case maybeDragInfo of
@@ -355,7 +362,7 @@ viewFirstPipeline maybeDragInfo uip =
     ) ++
       [ viewDraggable maybeDragInfo uip ]
 
-viewPipeline : Maybe DragInfo -> UIPipeline -> Html Action
+viewPipeline : Maybe DragInfo -> UIPipeline -> Html Msg
 viewPipeline maybeDragInfo uip =
   Html.li
     ( case maybeDragInfo of
@@ -377,7 +384,7 @@ viewPipeline maybeDragInfo uip =
     ) ++
       [ viewDraggable maybeDragInfo uip ]
 
-viewDraggable : Maybe DragInfo -> UIPipeline -> Html Action
+viewDraggable : Maybe DragInfo -> UIPipeline -> Html Msg
 viewDraggable maybeDragInfo uip =
   Html.div
     ( let
@@ -431,7 +438,7 @@ dragStyle dragInfo =
     , ("top", toString (dragY dragInfo) ++ "px")
     ]
 
-viewFirstDropArea : String -> Html Action
+viewFirstDropArea : String -> Html Msg
 viewFirstDropArea teamName =
   Html.div
     [ class "drop-area first"
@@ -440,7 +447,7 @@ viewFirstDropArea teamName =
     ]
     []
 
-viewDropArea : String -> String -> Html Action
+viewDropArea : String -> String -> Html Msg
 viewDropArea teamName pipelineName =
   Html.div
     [ class "drop-area"
@@ -449,14 +456,14 @@ viewDropArea teamName pipelineName =
     ]
     []
 
-ignoreClicks : Html.Attribute Action
+ignoreClicks : Html.Attribute Msg
 ignoreClicks =
   Events.onWithOptions
     "click"
     { stopPropagation = False, preventDefault = True } <|
     Json.Decode.succeed Noop
 
-viewPauseButton : UIPipeline -> Html Action
+viewPauseButton : UIPipeline -> Html Msg
 viewPauseButton uip =
   if uip.pipeline.paused then
     Html.span
@@ -481,22 +488,22 @@ viewPauseButton uip =
       else
         [ Html.i [class "fa fa-fw fa-pause"] [] ]
 
-fetchPipelines : Cmd Action
+fetchPipelines : Cmd Msg
 fetchPipelines =
   Cmd.map PipelinesFetched <|
     Task.perform Err Ok Concourse.Pipeline.fetchPipelines
 
-unpausePipeline : String -> String -> Cmd Action
+unpausePipeline : String -> String -> Cmd Msg
 unpausePipeline teamName pipelineName =
   Cmd.map (PipelineUnpaused teamName pipelineName) <|
     Task.perform Err Ok <| Concourse.Pipeline.unpause teamName pipelineName
 
-pausePipeline : String -> String -> Cmd Action
+pausePipeline : String -> String -> Cmd Msg
 pausePipeline teamName pipelineName =
   Cmd.map (PipelinePaused teamName pipelineName) <|
     Task.perform Err Ok <| Concourse.Pipeline.pause teamName pipelineName
 
-orderPipelines : String -> List String -> Cmd Action
+orderPipelines : String -> List String -> Cmd Msg
 orderPipelines teamName pipelineNames =
   Cmd.map PipelinesReordered <|
     Task.perform Err Ok <| Concourse.Pipeline.order teamName pipelineNames

@@ -1,4 +1,4 @@
-module BuildDuration exposing (..)
+module BuildDuration exposing (view)
 
 import Date exposing (Date)
 import Date.Format

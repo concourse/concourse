@@ -1,6 +1,7 @@
-module BuildOutput exposing (..)
+module BuildOutput exposing (init, update, view, Model, Msg, OutMsg(..))
 
 import Ansi.Log
+import Date exposing (Date)
 import Html exposing (Html)
 import Html.App
 import Html.Attributes exposing (action, class, classList, href, id, method, title)
@@ -23,7 +24,7 @@ type alias Model =
   , errors : Maybe Ansi.Log.Model
   , state : OutputState
   , eventSourceOpened : Bool
-  , events : Sub Action
+  , events : Sub Msg
   }
 
 type OutputState
@@ -32,13 +33,17 @@ type OutputState
   | StepsComplete
   | LoginRequired
 
-type Action
+type Msg
   = Noop
   | PlanAndResourcesFetched (Result Http.Error (BuildPlan, BuildResources))
-  | BuildEventsAction Concourse.BuildEvents.Action
-  | StepTreeAction StepTree.Action
+  | BuildEventsMsg Concourse.BuildEvents.Msg
+  | StepTreeMsg StepTree.Msg
 
-init : Build -> (Model, Cmd Action)
+type OutMsg
+  = OutNoop
+  | OutBuildStatus BuildStatus Date
+
+init : Build -> (Model, Cmd Msg)
 init build =
   let
     outputState =
@@ -64,106 +69,118 @@ init build =
   in
     (model, fetch)
 
-update : Action -> Model -> (Model, Cmd Action)
+update : Msg -> Model -> (Model, Cmd Msg, OutMsg)
 update action model =
   case action of
     Noop ->
-      (model, Cmd.none)
+      (model, Cmd.none, OutNoop)
 
     PlanAndResourcesFetched (Err (Http.BadResponse 404 _)) ->
       ( { model | events = subscribeToEvents model.build.id }
       , Cmd.none
+      , OutNoop
       )
 
     PlanAndResourcesFetched (Err err) ->
       Debug.log ("failed to fetch plan: " ++ toString err) <|
-        (model, Cmd.none)
+        (model, Cmd.none, OutNoop)
 
     PlanAndResourcesFetched (Ok (plan, resources)) ->
       ( { model | steps = Just (StepTree.init resources plan)
                 , events = subscribeToEvents model.build.id }
       , Cmd.none
+      , OutNoop
       )
 
-    BuildEventsAction action ->
-      handleEventsAction action model
+    BuildEventsMsg action ->
+      handleEventsMsg action model
 
-    StepTreeAction action ->
+    StepTreeMsg action ->
       ( { model | steps = Maybe.map (StepTree.update action) model.steps }
       , Cmd.none
+      , OutNoop
       )
 
-handleEventsAction : Concourse.BuildEvents.Action -> Model -> (Model, Cmd Action)
-handleEventsAction action model =
+handleEventsMsg : Concourse.BuildEvents.Msg -> Model -> (Model, Cmd Msg, OutMsg)
+handleEventsMsg action model =
   case action of
     Concourse.BuildEvents.Opened ->
-      ({ model | eventSourceOpened = True }, Cmd.none)
+      ({ model | eventSourceOpened = True }, Cmd.none, OutNoop)
 
     Concourse.BuildEvents.Errored ->
       if model.eventSourceOpened then
         -- connection could have dropped out of the blue; just let the browser
         -- handle reconnecting
-        (model, Cmd.none)
+        (model, Cmd.none, OutNoop)
       else
         -- assume request was rejected because auth is required; no way to
         -- really tell
-        ({ model | state = LoginRequired }, Cmd.none)
+        ({ model | state = LoginRequired }, Cmd.none, OutNoop)
 
     Concourse.BuildEvents.Event (Ok event) ->
       handleEvent event model
 
     Concourse.BuildEvents.Event (Err err) ->
-      (model, Debug.log err Cmd.none)
+      (model, Debug.log err Cmd.none, OutNoop)
 
     Concourse.BuildEvents.End ->
-      ({ model | state = StepsComplete, events = Sub.none }, Cmd.none)
+      ({ model | state = StepsComplete, events = Sub.none }, Cmd.none, OutNoop)
 
-handleEvent : Concourse.BuildEvents.BuildEvent -> Model -> (Model, Cmd Action)
+handleEvent : Concourse.BuildEvents.BuildEvent -> Model -> (Model, Cmd Msg, OutMsg)
 handleEvent event model =
   case event of
     Concourse.BuildEvents.Log origin output ->
       ( updateStep origin.id (setRunning << appendStepLog output) model
       , Cmd.none
+      , OutNoop
       )
 
     Concourse.BuildEvents.Error origin message ->
       ( updateStep origin.id (setStepError message) model
       , Cmd.none
+      , OutNoop
       )
 
     Concourse.BuildEvents.InitializeTask origin ->
       ( updateStep origin.id setRunning model
       , Cmd.none
+      , OutNoop
       )
 
     Concourse.BuildEvents.StartTask origin ->
       ( updateStep origin.id setRunning model
       , Cmd.none
+      , OutNoop
       )
 
     Concourse.BuildEvents.FinishTask origin exitStatus ->
       ( updateStep origin.id (finishStep exitStatus) model
       , Cmd.none
+      , OutNoop
       )
 
     Concourse.BuildEvents.InitializeGet origin ->
       ( updateStep origin.id setRunning model
       , Cmd.none
+      , OutNoop
       )
 
     Concourse.BuildEvents.FinishGet origin exitStatus version metadata ->
       ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
       , Cmd.none
+      , OutNoop
       )
 
     Concourse.BuildEvents.InitializePut origin ->
       ( updateStep origin.id setRunning model
       , Cmd.none
+      , OutNoop
       )
 
     Concourse.BuildEvents.FinishPut origin exitStatus version metadata ->
       ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
       , Cmd.none
+      , OutNoop
       )
 
     Concourse.BuildEvents.BuildStatus status date ->
@@ -173,17 +190,9 @@ handleEvent event model =
               Maybe.map (StepTree.update StepTree.Finished) model.steps
             else
               model.steps
-        , build =
-            case (status, model.build, model.build.duration) of
-              (Concourse.BuildStatus.Started, _, _) -> model.build
-              (Concourse.BuildStatus.Pending, _, _) -> model.build
-              (_, build, duration) ->
-                { build
-                | status = status
-                , duration = { duration | finishedAt = Just date }
-                }
         }
       , Cmd.none
+      , OutBuildStatus status date
       )
 
     Concourse.BuildEvents.BuildError message ->
@@ -194,6 +203,7 @@ handleEvent event model =
                 Maybe.withDefault (Ansi.Log.init Ansi.Log.Cooked) model.errors
         }
       , Cmd.none
+      , OutNoop
       )
 
 updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model
@@ -236,28 +246,28 @@ setStepState : StepTree.StepState -> StepTree -> StepTree
 setStepState state tree =
   StepTree.map (\step -> { step | state = state }) tree
 
-fetchBuildPlanAndResources : Int -> Cmd Action
+fetchBuildPlanAndResources : Int -> Cmd Msg
 fetchBuildPlanAndResources buildId =
   Cmd.map PlanAndResourcesFetched << Task.perform Err Ok <|
     Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
 
-fetchBuildPlan : Int -> Cmd Action
+fetchBuildPlan : Int -> Cmd Msg
 fetchBuildPlan buildId =
   Cmd.map PlanAndResourcesFetched << Task.perform Err Ok <|
     Task.map (flip (,) Concourse.BuildResources.empty) (Concourse.BuildPlan.fetch buildId)
 
-subscribeToEvents : Int -> Sub Action
-subscribeToEvents build =
-  Sub.map BuildEventsAction (Concourse.BuildEvents.subscribe build)
+subscribeToEvents : Int -> Sub Msg
+subscribeToEvents buildId =
+  Sub.map BuildEventsMsg (Concourse.BuildEvents.subscribe buildId)
 
-view : Model -> Html Action
+view : Model -> Html Msg
 view {build, steps, errors, state} =
   Html.div [class "steps"]
     [ viewErrors errors
     , viewStepTree build steps state
     ]
 
-viewStepTree : Build -> Maybe StepTree.Model -> OutputState -> Html Action
+viewStepTree : Build -> Maybe StepTree.Model -> OutputState -> Html Msg
 viewStepTree build steps state =
   case (state, steps) of
     (StepsLoading, _) ->
@@ -267,10 +277,10 @@ viewStepTree build steps state =
       viewLoginButton build
 
     (StepsLiveUpdating, Just root) ->
-      Html.App.map StepTreeAction (StepTree.view root)
+      Html.App.map StepTreeMsg (StepTree.view root)
 
     (StepsComplete, Just root) ->
-      Html.App.map StepTreeAction (StepTree.view root)
+      Html.App.map StepTreeMsg (StepTree.view root)
 
     (_, Nothing) ->
       Html.div [] []

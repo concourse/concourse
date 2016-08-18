@@ -1,4 +1,4 @@
-module JobPage exposing (..)
+module JobPage exposing (main)
 
 import Html.App
 import Time

@@ -23,7 +23,7 @@ type BuildEvent
   | Error Origin String
   | BuildError String
 
-type Action
+type Msg
   = Opened
   | Errored
   | Event (Result String BuildEvent)
@@ -40,12 +40,12 @@ type alias Origin =
   , id : String
   }
 
-subscribe : Int -> Sub Action
+subscribe : Int -> Sub Msg
 subscribe build =
-  EventSource.listen ("/api/v1/builds/" ++ toString build ++ "/events", ["end", "event"]) parseAction
+  EventSource.listen ("/api/v1/builds/" ++ toString build ++ "/events", ["end", "event"]) parseMsg
 
-parseAction : EventSource.Msg -> Action
-parseAction msg =
+parseMsg : EventSource.Msg -> Msg
+parseMsg msg =
   case msg of
     EventSource.Event {name, data} ->
       case name of
