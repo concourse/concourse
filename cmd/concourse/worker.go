@@ -20,6 +20,8 @@ type WorkerCommand struct {
 	Name string   `long:"name" description:"The name to set for the worker during registration. If not specified, the hostname will be used."`
 	Tags []string `long:"tag" description:"A tag to set during registration. Can be specified multiple times."`
 
+	TeamName string `long:"team" description:"The name of the team that this worker will be assigned to."`
+
 	HTTPProxy  URLFlag  `long:"http-proxy"  env:"http_proxy"                  description:"HTTP proxy endpoint to use for containers."`
 	HTTPSProxy URLFlag  `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
 	NoProxy    []string `long:"no-proxy"    env:"no_proxy"    env-delim:","   description:"Blacklist of addresses to skip the proxy when reaching."`

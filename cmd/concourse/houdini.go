@@ -37,6 +37,7 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (a
 	worker := atc.Worker{
 		Platform: platform,
 		Tags:     cmd.Tags,
+		Team:     cmd.TeamName,
 
 		HTTPProxyURL:  cmd.HTTPProxy.String(),
 		HTTPSProxyURL: cmd.HTTPSProxy.String(),

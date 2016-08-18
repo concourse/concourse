@@ -75,6 +75,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	worker := atc.Worker{
 		Platform: "linux",
 		Tags:     cmd.Tags,
+		Team:     cmd.TeamName,
 
 		HTTPProxyURL:  cmd.HTTPProxy.String(),
 		HTTPSProxyURL: cmd.HTTPSProxy.String(),
