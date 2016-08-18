@@ -1,6 +1,6 @@
 module Concourse.User exposing (..)
 
-import Http
+import HttpBuilder
 import Json.Decode exposing ((:=))
 import Task exposing (Task)
 
@@ -10,9 +10,20 @@ type alias User =
   { team : Team
   }
 
-fetchUser : Task Http.Error User
+type alias Error =
+  HttpBuilder.Error String
+
+fetchUser : Task Error User
 fetchUser =
-  Http.get decodeUser "/api/v1/user"
+  HttpBuilder.get "/api/v1/user"
+    |> HttpBuilder.send (HttpBuilder.jsonReader decodeUser) HttpBuilder.stringReader
+    |> Task.map .data
+
+logOut : Task Error ()
+logOut =
+  HttpBuilder.get "/auth/logout"
+    |> HttpBuilder.send HttpBuilder.stringReader HttpBuilder.stringReader
+    |> Task.map (always ())
 
 decodeUser : Json.Decode.Decoder User
 decodeUser =
