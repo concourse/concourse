@@ -63,6 +63,8 @@ case $1 in
     chown vcap:vcap $SIGNING_KEY
     chmod 0400 $SIGNING_KEY
 
+    logrotate -f /etc/logrotate.d/vcap
+
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
       --bind-ip <%= p("bind_ip") %> \
       --bind-port <%= p("bind_port") %> \
