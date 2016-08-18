@@ -8,8 +8,7 @@ import (
 )
 
 type JWTReader struct {
-	PublicKey       *rsa.PublicKey
-	DevelopmentMode bool
+	PublicKey *rsa.PublicKey
 }
 
 func (jr JWTReader) GetTeam(r *http.Request) (string, int, bool, bool) {
@@ -35,10 +34,6 @@ func (jr JWTReader) GetTeam(r *http.Request) (string, int, bool, bool) {
 }
 
 func (jr JWTReader) GetSystem(r *http.Request) (bool, bool) {
-	if jr.DevelopmentMode {
-		return true, true
-	}
-
 	token, err := getJWT(r, jr.PublicKey)
 	if err != nil {
 		return false, false
