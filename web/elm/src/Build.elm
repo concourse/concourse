@@ -542,7 +542,13 @@ viewHistoryItem currentBuild build =
         , ("current", build.id == currentBuild.id)
         ]
     ]
-    [Html.a [overrideClick (SwitchToBuild build),  href (Concourse.Build.url build)] [Html.text (build.name)]]
+    [ Html.a
+        [ overrideClick (SwitchToBuild build)
+        , href (Concourse.Build.url build)
+        ]
+        [ Html.text (build.name)
+        ]
+    ]
 
 overrideClick : Msg -> Html.Attribute Msg
 overrideClick action =
@@ -624,17 +630,11 @@ handleOutMsg outMsg model =
       model
 
     BuildOutput.OutBuildStatus status date ->
-      case (model.currentBuild, status) of
-        (Nothing, _) ->
+      case model.currentBuild of
+        Nothing ->
           model
 
-        (_, Concourse.BuildStatus.Started) ->
-          model
-
-        (_, Concourse.BuildStatus.Pending) ->
-          model
-
-        (Just currentBuild, _) ->
+        Just currentBuild ->
           let
             build =
               currentBuild.build
@@ -642,11 +642,14 @@ handleOutMsg outMsg model =
             duration =
               build.duration
 
+            newDuration =
+              if Concourse.BuildStatus.isRunning status then
+                duration
+              else
+                { duration | finishedAt = Just date }
+
             newBuild =
-              { build
-              | status = status
-              , duration = { duration | finishedAt = Just date }
-              }
+              { build | status = status, duration = newDuration }
           in
             { model
             | history =
