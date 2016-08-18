@@ -14,6 +14,7 @@ RUN apt-get update && apt-get -y install git
 
 # PostgreSQL
 RUN apt-get update && apt-get -y install postgresql
+ENV PATH $PATH:/usr/lib/postgresql/9.5/bin
 
 # install selenium-driver wrapper binary for Agouti
 RUN echo '#!/bin/sh' >> /usr/local/bin/selenium-server && \
