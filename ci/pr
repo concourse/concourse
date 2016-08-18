@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e -u -x
+
+export GOPATH=$PWD/gopath
+export PATH=$PWD/gopath/bin:$PATH
+
+cd gopath/src/github.com/concourse/fly
+
+go get -t -d ./...
+
+go install github.com/onsi/ginkgo/ginkgo
+
+ginkgo -r -p

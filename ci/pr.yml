@@ -1,0 +1,13 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: golang, tag: "1"}
+
+inputs:
+- name: fly
+  path: gopath/src/github.com/concourse/fly
+
+run:
+  path: gopath/src/github.com/concourse/fly/ci/pr
