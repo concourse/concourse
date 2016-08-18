@@ -11,4 +11,4 @@ go get -t -d ./...
 
 go install github.com/onsi/ginkgo/ginkgo
 
-ginkgo -r -p
+FORCE_SELENIUM=true xvfb-run ginkgo -r -p -race "$@"
