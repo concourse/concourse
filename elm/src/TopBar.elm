@@ -29,6 +29,7 @@ type alias Model =
   , selectedGroups : List String
   , pipeline : Maybe Pipeline
   , userState : UserState
+  , userMenuVisible : Bool
   }
 
 type UserState
@@ -52,6 +53,7 @@ type Msg
   | SetGroup Group
   | LogOut
   | LoggedOut (Result Concourse.User.Error ())
+  | ToggleUserMenu
 
 init : Ports -> Flags -> Location -> (Model, Cmd Msg)
 init ports flags initialLocation =
@@ -62,6 +64,7 @@ init ports flags initialLocation =
     , location = initialLocation
     , pipeline = Nothing
     , userState = UserStateUnknown
+    , userMenuVisible = False
     }
   , Cmd.batch
       [ case flags.pipeline of
@@ -124,6 +127,9 @@ update msg model =
     LoggedOut (Err msg) ->
       always (model, Cmd.none) <|
         Debug.log "failed to log out" msg
+
+    ToggleUserMenu ->
+      ({ model | userMenuVisible = not model.userMenuVisible }, Cmd.none)
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -272,7 +278,7 @@ view model =
           ] ++ groupList
     , Html.ul [class "nav-right"]
         [ Html.li [class "nav-item"]
-            [ viewUserState model.userState
+            [ viewUserState model.userState model.userMenuVisible
             ]
         ]
     ]
@@ -281,8 +287,8 @@ isPaused : Maybe Pipeline -> Bool
 isPaused =
   Maybe.withDefault False << Maybe.map .paused
 
-viewUserState : UserState -> Html Msg
-viewUserState userState =
+viewUserState : UserState -> Bool -> Html Msg
+viewUserState userState userMenuVisible =
   case userState of
     UserStateUnknown ->
       Html.text ""
@@ -300,12 +306,14 @@ viewUserState userState =
 
     UserStateLoggedIn {team} ->
       Html.div [class "user-info"]
-        [ Html.div [class "user-id"]
+        [ Html.div [class "user-id", onClick ToggleUserMenu]
             [ Html.i [class "fa fa-user"] []
             , Html.text " "
             , Html.text team.name
+            , Html.text " "
+            , Html.i [class "fa fa-caret-down"] []
             ]
-        , Html.div [class "user-menu"]
+        , Html.div [classList [("user-menu", True), ("hidden", not userMenuVisible)]]
             [ Html.a
                 [ Html.Attributes.attribute "aria-label" "Log Out"
                 , onClick LogOut
