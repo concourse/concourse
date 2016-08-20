@@ -55,6 +55,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
 		Expect(err).ToNot(HaveOccurred())
+		expire = 24 * time.Hour
 
 		fakeProviderFactory.GetProviderStub = func(team db.SavedTeam, providerName string) (provider.Provider, bool, error) {
 			if providerName == "some-provider" {
@@ -82,6 +83,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 			fakeProviderFactory,
 			fakeTeamDBFactory,
 			signingKey,
+			expire,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
