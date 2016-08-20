@@ -82,18 +82,10 @@ func (provider Provider) DisplayName() string {
 	return provider.Config.DisplayName
 }
 
-<<<<<<< HEAD
 func (Provider) PreTokenClient() (*http.Client, error) {
-=======
-func (Provider) PreTokenClient() *http.Client {
->>>>>>> Added generic oauth login option.
 	return &http.Client{
 		Transport: &http.Transport{
 			DisableKeepAlives: true,
 		},
-<<<<<<< HEAD
 	}, nil
-=======
-	}
->>>>>>> Added generic oauth login option.
 }
