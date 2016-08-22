@@ -122,6 +122,8 @@ before using it!
   }{
     \hyperlink{https://github.com/jdub/debian-sources-resource}{Debian/Ubuntu Sources Updates}
   }{
+    \hyperlink{https://github.com/SUSE/open-build-service-resource}{Open Build Service}
+  }{
     \hyperlink{https://github.com/Orange-OpenSource/travis-resource}{Travis-ci}
   }{
     \hyperlink{https://github.com/karunamon/concourse-resource-bitbucket}{Bitbucket Notifications}
