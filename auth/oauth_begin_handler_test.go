@@ -36,6 +36,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		signingKey *rsa.PrivateKey
 
+		expire time.Duration
+
 		cookieJar *cookiejar.Jar
 
 		server *httptest.Server
