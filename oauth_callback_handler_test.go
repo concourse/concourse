@@ -41,6 +41,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		signingKey *rsa.PrivateKey
 
+		expire time.Duration
+
 		server *httptest.Server
 		client *http.Client
 

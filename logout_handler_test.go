@@ -27,6 +27,7 @@ var _ = Describe("LogOutHandler", func() {
 			request             *http.Request
 			response            *http.Response
 			err                 error
+			expire              time.Duration
 		)
 
 		BeforeEach(func() {
