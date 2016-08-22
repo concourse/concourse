@@ -21,6 +21,8 @@
     <meta name="msapplication-TileColor" content="#000000" />
     <meta name="msapplication-TileImage" content="{{asset "favicons/mstile-144x144.png"}}" />
     <meta name="theme-color" content="#000000" />
+    <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
+    <script src="{{asset "concourse.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
   </head>
   <body>
@@ -30,19 +32,28 @@
       <div class="bottom">
         <div id="pipelines-nav-app" class="sidebar js-sidebar test"></div>
 
+        <script type="text/javascript">
+        Elm.PipelinesNavPage.embed(document.getElementById("pipelines-nav-app"));
+
+        var topBar =Elm.TopBarPage.embed(document.getElementById("top-bar-app"), {
+          pipeline: null,
+          selectedGroups: [],
+          viewingPipeline: false
+        });
+
+        topBar.ports.toggleSidebar.subscribe(function() {
+          $('.js-sidebar').toggleClass('visible');
+        });
+
+        topBar.ports.navigateTo.subscribe(function(url) {
+          window.location.href = url;
+        });
+        </script>
+
         <div id="content">
         {{template "body" .}}
         </div>
       </div>
     </div>
-
-    <script type="text/javascript">
-    Elm.PipelinesNavPage.embed(document.getElementById("pipelines-nav-app"));
-    Elm.TopBarPage.embed(document.getElementById("top-bar-app"), {
-      pipeline: null,
-      selectedGroups: [],
-      viewingPipeline: false
-    });
-    </script>
   </body>
 </html>

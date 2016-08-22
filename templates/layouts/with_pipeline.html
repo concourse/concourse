@@ -21,6 +21,8 @@
     <meta name="msapplication-TileColor" content="#000000" />
     <meta name="msapplication-TileImage" content="{{asset "favicons/mstile-144x144.png"}}" />
     <meta name="theme-color" content="#000000" />
+    <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
+    <script src="{{asset "concourse.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
   </head>
   <body>
@@ -36,50 +38,50 @@
       <div class="bottom">
         <div id="pipelines-nav-app" class="sidebar js-sidebar test"></div>
 
+        <script type="text/javascript">
+        Elm.PipelinesNavPage.embed(document.getElementById("pipelines-nav-app"));
+
+        var selectedGroups = [];
+        var groupStates = {{.GroupStates}};
+        for (var g in groupStates) {
+          var group = groupStates[g];
+          if (group.Enabled) {
+            selectedGroups.push(group.Name);
+          }
+        }
+
+        var topBar = Elm.TopBarPage.embed(document.getElementById("top-bar-app"), {
+          pipeline: {
+            teamName: {{.TeamName}},
+            pipelineName: {{.PipelineName}}
+          },
+          selectedGroups: selectedGroups,
+          viewingPipeline: !!concourse.isPipeline
+        });
+
+        topBar.ports.toggleSidebar.subscribe(function() {
+          $('.js-sidebar').toggleClass('visible');
+        });
+
+        topBar.ports.navigateTo.subscribe(function(url) {
+          window.location.href = url;
+        });
+
+        topBar.ports.setGroups.subscribe(function(groups) {
+          for (var group in concourse.groups) {
+            concourse.groups[group] = groups.indexOf(group) !== -1;
+          }
+
+          if (concourse.redraw !== undefined) {
+            concourse.redraw();
+          }
+        });
+        </script>
+
         <div id="content">
         {{template "body" .}}
         </div>
       </div>
     </div>
-
-    <script type="text/javascript">
-    Elm.PipelinesNavPage.embed(document.getElementById("pipelines-nav-app"));
-
-    var selectedGroups = [];
-    var groupStates = {{.GroupStates}};
-    for (var g in groupStates) {
-      var group = groupStates[g];
-      if (group.Enabled) {
-        selectedGroups.push(group.Name);
-      }
-    }
-
-    var topBar = Elm.TopBarPage.embed(document.getElementById("top-bar-app"), {
-      pipeline: {
-        teamName: {{.TeamName}},
-        pipelineName: {{.PipelineName}}
-      },
-      selectedGroups: selectedGroups,
-      viewingPipeline: !!concourse.isPipeline
-    });
-
-    topBar.ports.toggleSidebar.subscribe(function() {
-      $('.js-sidebar').toggleClass('visible');
-    });
-
-    topBar.ports.navigateTo.subscribe(function(url) {
-      window.location.href = url;
-    });
-
-    topBar.ports.setGroups.subscribe(function(groups) {
-      for (var group in concourse.groups) {
-        concourse.groups[group] = groups.indexOf(group) !== -1;
-      }
-
-      if (concourse.redraw !== undefined) {
-        concourse.redraw();
-      }
-    });
-    </script>
   </body>
 </html>
