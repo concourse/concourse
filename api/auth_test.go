@@ -166,6 +166,11 @@ var _ = Describe("Auth API", func() {
 							ClientID:     "client-id",
 							ClientSecret: "client-secret",
 						},
+						GenericOAuth: &db.GenericOAuth{
+							ClientID:     "client-id",
+							ClientSecret: "client-secret",
+							DisplayName:  "custom secure auth",
+						},
 					},
 				}
 
@@ -209,6 +214,11 @@ var _ = Describe("Auth API", func() {
 						"type": "oauth",
 						"display_name": "UAA",
 						"auth_url": "https://oauth.example.com/auth/uaa?team_name=some-team"
+					},
+					{
+						"type": "oauth",
+						"display_name": "custom secure auth",
+						"auth_url": "https://oauth.example.com/auth/oauth?team_name=some-team"
 					},
 					{
 						"type": "basic",

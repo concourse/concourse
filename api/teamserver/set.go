@@ -97,6 +97,11 @@ func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
 		return err
 	}
 
+	_, err = teamDB.UpdateGenericOAuth(team.GenericOAuth)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -144,6 +149,20 @@ func (s *Server) validate(team db.Team) error {
 
 		if team.UAAAuth.AuthURL == "" || team.UAAAuth.TokenURL == "" || team.UAAAuth.CFURL == "" {
 			return errors.New("CF auth requires AuthURL, TokenURL and APIURL")
+		}
+	}
+
+	if team.GenericOAuth != nil {
+		if team.GenericOAuth.ClientID == "" || team.GenericOAuth.ClientSecret == "" {
+			return errors.New("Generic OAuth requires ClientID and ClientSecret")
+		}
+
+		if team.GenericOAuth.AuthURL == "" || team.GenericOAuth.TokenURL == "" {
+			return errors.New("Generic OAuth requires an AuthURL and TokenURL")
+		}
+
+		if team.GenericOAuth.DisplayName == "" {
+			return errors.New("Generic OAuth requires a Display Name")
 		}
 	}
 

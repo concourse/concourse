@@ -120,4 +120,5 @@ var Migrations = []migration.Migrator{
 	AddNextBuildInputs,
 	AddCaseInsenstiveUniqueIndexToTeamsName,
 	AddNonEmptyConstraintToTeamName,
+	AddGenericOAuthToTeams,
 }

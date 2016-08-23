@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/auth/genericoauth"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
@@ -94,6 +95,23 @@ func (s *Server) authMethods(team db.SavedTeam) ([]atc.AuthMethod, error) {
 		methods = append(methods, atc.AuthMethod{
 			Type:        atc.AuthTypeOAuth,
 			DisplayName: uaa.DisplayName,
+			AuthURL:     s.oAuthBaseURL + path,
+		})
+	}
+
+	if team.GenericOAuth != nil {
+		path, err := auth.OAuthRoutes.CreatePathForRoute(
+			auth.OAuthBegin,
+			rata.Params{"provider": genericoauth.ProviderName},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		path = path + fmt.Sprintf("?team_name=%s", team.Name)
+		methods = append(methods, atc.AuthMethod{
+			Type:        atc.AuthTypeOAuth,
+			DisplayName: team.GenericOAuth.DisplayName,
 			AuthURL:     s.oAuthBaseURL + path,
 		})
 	}
