@@ -7,6 +7,7 @@ import TopBar
 port toggleSidebar : () -> Cmd msg
 port setGroups : List String -> Cmd msg
 port navigateTo : String -> Cmd msg
+port setViewingPipeline : (Bool -> msg) -> Sub msg
 
 main : Program TopBar.Flags
 main =
@@ -17,6 +18,7 @@ main =
           { toggleSidebar = toggleSidebar
           , setGroups = setGroups
           , navigateTo = navigateTo
+          , setViewingPipeline = setViewingPipeline
           }
     , update = TopBar.update
     , urlUpdate = TopBar.urlUpdate

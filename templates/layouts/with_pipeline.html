@@ -55,8 +55,7 @@
             teamName: {{.TeamName}},
             pipelineName: {{.PipelineName}}
           },
-          selectedGroups: selectedGroups,
-          viewingPipeline: !!concourse.isPipeline
+          selectedGroups: selectedGroups
         });
 
         topBar.ports.toggleSidebar.subscribe(function() {

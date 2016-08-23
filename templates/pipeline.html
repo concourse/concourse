@@ -90,7 +90,8 @@ app.ports.fit.subscribe(function() {
 concourse.pipelineName = {{.PipelineName}};
 concourse.teamName = {{.TeamName}};
 concourse.groups = {{.Groups}};
-concourse.isPipeline = true;
+
+topBar.ports.setViewingPipeline.send(true);
 
 $(document).ready(function() {
   renderPipeline();

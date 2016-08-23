@@ -18,7 +18,6 @@ import Redirect
 type alias Flags =
   { pipeline : Maybe PipelineIdentifier
   , selectedGroups : List String
-  , viewingPipeline : Bool
   }
 
 type alias Model =
@@ -41,6 +40,7 @@ type alias Ports =
   { toggleSidebar : () -> Cmd Msg
   , setGroups : List String -> Cmd Msg
   , navigateTo : String -> Cmd Msg
+  , setViewingPipeline : (Bool -> Msg) -> Sub Msg
   }
 
 type Msg
@@ -54,11 +54,12 @@ type Msg
   | LogOut
   | LoggedOut (Result Concourse.User.Error ())
   | ToggleUserMenu
+  | SetViewingPipeline Bool
 
 init : Ports -> Flags -> Location -> (Model, Cmd Msg)
 init ports flags initialLocation =
   ( { pipelineIdentifier = flags.pipeline
-    , viewingPipeline = flags.viewingPipeline
+    , viewingPipeline = False
     , ports = ports
     , selectedGroups = flags.selectedGroups
     , location = initialLocation
@@ -131,14 +132,20 @@ update msg model =
     ToggleUserMenu ->
       ({ model | userMenuVisible = not model.userMenuVisible }, Cmd.none)
 
+    SetViewingPipeline vp ->
+      ({ model | viewingPipeline = vp }, Cmd.none)
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  case model.pipelineIdentifier of
-    Nothing ->
-      Sub.none
+  Sub.batch
+    [ model.ports.setViewingPipeline SetViewingPipeline
+    , case model.pipelineIdentifier of
+        Nothing ->
+          Sub.none
 
-    Just pid ->
-      Time.every (5 * Time.second) (always (FetchPipeline pid))
+        Just pid ->
+          Time.every (5 * Time.second) (always (FetchPipeline pid))
+    ]
 
 setGroups : List String -> Model -> (Model, Cmd Msg)
 setGroups newGroups model =
