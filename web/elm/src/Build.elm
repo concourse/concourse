@@ -549,10 +549,10 @@ viewHistory currentBuild builds =
 viewHistoryItem : Build -> Build -> Html Msg
 viewHistoryItem currentBuild build =
   Html.li
-    [ classList
-        [ (Concourse.BuildStatus.show build.status, True)
-        , ("current", build.id == currentBuild.id)
-        ]
+    [ if build.id == currentBuild.id then
+        class (Concourse.BuildStatus.show currentBuild.status ++ " current")
+      else
+        class (Concourse.BuildStatus.show build.status)
     ]
     [ Html.a
         [ overrideClick (SwitchToBuild build)
