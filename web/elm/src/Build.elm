@@ -90,19 +90,15 @@ type Msg
 
 init : (String -> Cmd Msg) -> Result String Page -> (Model, Cmd Msg)
 init setTitle pageResult =
-  let
-    model =
-      { now = 0
-      , job = Nothing
-      , history = []
-      , currentBuild = Nothing
-      , browsingIndex = 0
-      , setTitle = setTitle
-      }
-  in
-    ( model
-    , changeToBuild model pageResult
-    )
+  changeToBuild
+    pageResult
+    { now = 0
+    , job = Nothing
+    , history = []
+    , currentBuild = Nothing
+    , browsingIndex = 0
+    , setTitle = setTitle
+    }
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -113,33 +109,41 @@ subscriptions model =
     Just buildOutput ->
       Sub.map (BuildOutputMsg model.browsingIndex) buildOutput.events
 
-changeToBuild : Model -> Result String Page -> Cmd Msg
-changeToBuild model pageResult =
-  case pageResult of
-    Err err ->
-      Debug.log err Cmd.none
+changeToBuild : Result String Page -> Model -> (Model, Cmd Msg)
+changeToBuild pageResult model =
+  let
+    newIndex =
+      model.browsingIndex + 1
 
-    Ok (BuildPage buildId) ->
-      Cmd.batch
-        [ model.setTitle ("one-off #" ++ toString buildId)
-        , fetchBuild 0 model.browsingIndex buildId
-        ]
+    newBuild =
+      Maybe.map (\cb -> { cb | prep = Nothing, output = Nothing })
+        model.currentBuild
+  in
+    ( { model
+      | browsingIndex = newIndex
+      , currentBuild = newBuild
+      }
+    , case pageResult of
+        Err err ->
+          Debug.log err Cmd.none
 
-    Ok (JobBuildPage jbi) ->
-      Cmd.batch
-        [ model.setTitle (jbi.jobName ++ " #" ++ jbi.buildName)
-        , fetchJobBuild model.browsingIndex jbi
-        ]
+        Ok (BuildPage buildId) ->
+          Cmd.batch
+            [ model.setTitle ("one-off #" ++ toString buildId)
+            , fetchBuild 0 newIndex buildId
+            ]
+
+        Ok (JobBuildPage jbi) ->
+          Cmd.batch
+            [ model.setTitle (jbi.jobName ++ " #" ++ jbi.buildName)
+            , fetchJobBuild newIndex jbi
+            ]
+    )
+
 
 urlUpdate : Result String Page -> Model -> (Model, Cmd Msg)
-urlUpdate pageResult model =
-  let
-    newModel =
-      { model | browsingIndex = model.browsingIndex + 1 }
-  in
-    ( newModel
-    , changeToBuild newModel pageResult
-    )
+urlUpdate =
+  changeToBuild
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
