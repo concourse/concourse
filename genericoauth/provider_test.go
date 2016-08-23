@@ -34,10 +34,11 @@ var _ = Describe("Generic OAuth Provider", func() {
 	})
 
 	It("constructs HTTP client with disable keep alive context", func() {
-		httpClient := goaProvider.PreTokenClient()
+		httpClient, err := goaProvider.PreTokenClient()
 		Expect(httpClient).NotTo(BeNil())
 		Expect(httpClient.Transport).NotTo(BeNil())
 		Expect(httpClient.Transport.(*http.Transport).DisableKeepAlives).To(BeTrue())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("constructs the Auth URL with the redirect uri", func() {
@@ -56,19 +57,6 @@ var _ = Describe("Generic OAuth Provider", func() {
 		verifyResult, err := goaProvider.Verify(lagertest.NewTestLogger("test"), nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(verifyResult).To(Equal(true))
-	})
-
-	Context("DisplayName is configured", func() {
-		BeforeEach(func() {
-			dbGenericOAuth = &db.GenericOAuth{DisplayName: "Cyborgs"}
-		})
-
-		It("uses the configured DisplayName instead of the provider name", func() {
-			displayName := goaProvider.DisplayName()
-
-			Expect(displayName).To(Equal("Cyborgs"))
-			Expect(genericoauth.ProviderName).ToNot(Equal("Cyborgs"))
-		})
 	})
 
 	Context("Auth URL params are configured", func() {
