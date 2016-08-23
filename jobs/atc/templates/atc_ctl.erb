@@ -123,6 +123,9 @@ case $1 in
       --riemann-host <%= esc(host) %> \
       --riemann-port <%= port.to_i %> \
       <% end %> \
+      <% if_p("riemann.service_prefix") do |prefix| %> \
+      --riemann-service-prefix <%= esc(prefix) %> \
+      <% end %> \
       --metrics-host-name <%= name %>-<%= index %> \
       --metrics-attribute <%= esc("bosh-deployment:#{spec.deployment}") %> \
       --metrics-attribute <%= esc("bosh-job:#{name}") %> \

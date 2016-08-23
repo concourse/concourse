@@ -214,3 +214,8 @@ properties:
     description: |
       Port of the Riemann server to emit events to.
     default: 5555
+
+  riemann.service_prefix:
+    description: |
+      An optional prefix for emitted Riemann services
+    default: ""
