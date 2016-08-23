@@ -5,7 +5,7 @@ html = require("anatomy/renderers/html")
 
 partials = load("concourse/partials")
 
-def(template-for(part, out)):
+def(template-for(part, out, done)):
   part css-url-additions << "https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700"
 
   part assets << File expand-path("../images/favicon.ico", __FILE__)
@@ -23,7 +23,7 @@ def(template-for(part, out)):
   part css-additions << File expand-path("../css/docs.css", __FILE__)
 
   part parts each [sub]:
-    html render(sub, out)
+    html render(sub, out, done)
 
   <div(#everything):
     <div(#header, class = "u-full-width top-intro docs-header"):
@@ -55,6 +55,6 @@ def(template-for(part, out)):
 
         <div(#content):
           <div(class = "content-spacing"):
-            html render-part(part, out)
+            html render-part(part, out, done)
 
     partials bottom-nav(part)
