@@ -89,7 +89,7 @@ var _ = Describe("OAuthFactory", func() {
 			})
 		})
 
-		Context("when asking for goa provider", func() {
+		Context("when asking for generic oauth", func() {
 			Context("when Generic OAuth provider is setup", func() {
 				It("returns back GOA's auth provider", func() {
 					provider, found, err := oauthFactory.GetProvider(db.SavedTeam{
@@ -104,25 +104,6 @@ var _ = Describe("OAuthFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(provider).NotTo(BeNil())
-				})
-			})
-
-			Context("when asking for generic oauth", func() {
-				Context("when Generic OAuth provider is setup", func() {
-					It("returns back GOA's auth provider", func() {
-						providers, err := oauthFactory.GetProviders(db.SavedTeam{
-							Team: db.Team{
-								Name: "some-team",
-								GenericOAuth: &db.GenericOAuth{
-									ClientID:     "user1",
-									ClientSecret: "password1",
-								},
-							},
-						})
-						Expect(err).NotTo(HaveOccurred())
-						Expect(providers).To(HaveLen(1))
-						Expect(providers[genericoauth.ProviderName]).NotTo(BeNil())
-					})
 				})
 
 				Context("when Generic OAuth provider is not setup", func() {

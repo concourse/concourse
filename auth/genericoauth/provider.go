@@ -37,7 +37,6 @@ func NewProvider(
 				Endpoint:     endpoint,
 				RedirectURL:  redirectURL,
 			},
-			DisplayName:   genericOAuth.DisplayName,
 			AuthURLParams: genericOAuth.AuthURLParams,
 		},
 	}
@@ -50,7 +49,6 @@ type Provider struct {
 
 type ConfigOverride struct {
 	oauth2.Config
-	DisplayName   string
 	AuthURLParams map[string]string
 }
 
@@ -76,10 +74,6 @@ func (provider Provider) Exchange(ctx context.Context, code string) (*oauth2.Tok
 
 func (provider Provider) Client(ctx context.Context, t *oauth2.Token) *http.Client {
 	return provider.Config.Client(ctx, t)
-}
-
-func (provider Provider) DisplayName() string {
-	return provider.Config.DisplayName
 }
 
 func (Provider) PreTokenClient() (*http.Client, error) {
