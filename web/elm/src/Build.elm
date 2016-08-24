@@ -27,17 +27,18 @@ import Task exposing (Task)
 import Time exposing (Time)
 import String
 
+
 import Autoscroll exposing (ScrollBehavior (..))
+import BuildDuration
 import BuildOutput
 import Concourse.Build exposing (Build, BuildDuration, JobBuildIdentifier)
 import Concourse.BuildPrep exposing (BuildPrep, BuildPrepStatus)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Paginated)
+import Favicon
 import LoadingIndicator
-import BuildDuration
 import Redirect
 import Scroll
-
 import Concourse.Job exposing (Job)
 
 type Page
@@ -140,7 +141,6 @@ changeToBuild pageResult model =
             ]
     )
 
-
 urlUpdate : Result String Page -> Model -> (Model, Cmd Msg)
 urlUpdate =
   changeToBuild
@@ -186,14 +186,21 @@ update action model =
         case (model.currentBuild, model.currentBuild `Maybe.andThen` .output) of
           (Just currentBuild, Just output) ->
             let
-              (newOutput, cmd, outMsg) = BuildOutput.update action output
-            in
-              ( handleOutMsg outMsg
+              (newOutput, cmd, outMsg) =
+                BuildOutput.update action output
+
+              (newModel, newCmd) =
+                handleOutMsg outMsg
                   { model
                   | currentBuild =
                       Just { currentBuild | output = Just newOutput }
                   }
-              , Cmd.map (BuildOutputMsg browsingIndex) cmd
+            in
+              ( newModel
+              , Cmd.batch
+                  [ newCmd
+                  , Cmd.map (BuildOutputMsg browsingIndex) cmd
+                  ]
               )
 
           _ ->
@@ -275,7 +282,12 @@ handleBuildFetched browsingIndex build model =
                 )
         else (withBuild, Cmd.none)
     in
-      (newModel, Cmd.batch [cmd, fetchJobAndHistory])
+      ( newModel,
+        Cmd.batch
+          [ cmd
+          , setFavicon build.status
+          , fetchJobAndHistory
+          ])
   else
     (model, Cmd.none)
 
@@ -639,16 +651,16 @@ redirectToLogin model =
   Cmd.map (always Noop) << Task.perform Err Ok <|
     Redirect.to "/login"
 
-handleOutMsg : BuildOutput.OutMsg -> Model -> Model
+handleOutMsg : BuildOutput.OutMsg -> Model -> (Model, Cmd Msg)
 handleOutMsg outMsg model =
   case outMsg of
     BuildOutput.OutNoop ->
-      model
+      (model, Cmd.none)
 
     BuildOutput.OutBuildStatus status date ->
       case model.currentBuild of
         Nothing ->
-          model
+          (model, Cmd.none)
 
         Just currentBuild ->
           let
@@ -673,10 +685,20 @@ handleOutMsg outMsg model =
             newBuild =
               { build | status = newStatus, duration = newDuration }
           in
-            { model
-            | history = updateHistory newBuild model.history
-            , currentBuild = Just { currentBuild | build = newBuild }
-            }
+            ( { model
+              | history = updateHistory newBuild model.history
+              , currentBuild = Just { currentBuild | build = newBuild }
+              }
+            , if Concourse.BuildStatus.isRunning build.status then
+                setFavicon status
+              else
+                Cmd.none
+            )
+
+setFavicon : BuildStatus -> Cmd Msg
+setFavicon status =
+  Cmd.map (always Noop) << Task.perform Err Ok <|
+    Favicon.set ("/public/images/favicon-" ++ Concourse.BuildStatus.show status ++ ".png")
 
 updateHistory : Build -> List Build -> List Build
 updateHistory newBuild =
