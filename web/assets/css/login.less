@@ -150,14 +150,37 @@
 
 .filter-form {
   position: relative;
-}
 
-.filter-form i {
-  font-size: 1.1em;
-  position: absolute;
-  line-height: inherit;
-  padding-left: 18px;
-  color: @base02;
+  i {
+    font-size: 1.1em;
+    line-height: inherit;
+    color: @base02;
+
+    &.search-icon {
+      position: absolute;
+      top: 0;
+      left: 18px;
+    }
+  }
+
+  .clear-button {
+    position: absolute;
+    top: 0;
+    right: 18px;
+    font: inherit;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+
+    &:active {
+      outline: none;
+    }
+  }
+
+  .search-input:invalid ~ .clear-button {
+    display: none;
+  }
 }
 
 .loading {
