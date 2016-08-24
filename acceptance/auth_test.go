@@ -279,5 +279,28 @@ var _ = Describe("Auth", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusTemporaryRedirect))
 		})
 
+		It("requires client id and client secret to be specified", func() {
+			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET)
+			session, err := cmd.StartAndWait()
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --generic-oauth-client-id and --generic-oauth-client-secret to use Generic OAuth"))
+		})
+
+		It("requires authorization url and token url to be specified", func() {
+			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_TOKEN_URL)
+			session, err := cmd.StartAndWait()
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --generic-oauth-auth-url and --generic-oauth-token-url to use Generic OAuth"))
+		})
+
+		It("requires display name to be specified", func() {
+			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME)
+			session, err := cmd.StartAndWait()
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --generic-oauth-display-name to use Generic OAuth"))
+		})
 	})
 })

@@ -34,6 +34,9 @@ const UAA_AUTH_NO_TOKEN_URL = "cf-no-token-url"
 const UAA_AUTH_NO_SPACE = "cf-no-space"
 const GENERIC_OAUTH_AUTH = "generic-oauth"
 const GENERIC_OAUTH_AUTH_PARAMS = "generic-oauth-params"
+const GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET = "generic-oauth-no-secret"
+const GENERIC_OAUTH_AUTH_NO_TOKEN_URL = "generic-oauth-no-token-url"
+const GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME = "generic-oauth-no-display-name"
 const NOT_CONFIGURED_AUTH = "not-configured"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
@@ -236,6 +239,25 @@ func (a *ATCCommand) getATCCommand() *exec.Cmd {
 				"--generic-oauth-auth-url", "https://goa.example.com/oauth/authorize",
 				"--generic-oauth-auth-url-param", "param1:value1",
 				"--generic-oauth-auth-url-param", "param2:value2",
+				"--generic-oauth-token-url", "https://goa.example.com/oauth/token",
+			)
+		case GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET:
+			params = append(params,
+				"--generic-oauth-display-name", "Example",
+				"--generic-oauth-client-id", "admin",
+			)
+		case GENERIC_OAUTH_AUTH_NO_TOKEN_URL:
+			params = append(params,
+				"--generic-oauth-display-name", "Example",
+				"--generic-oauth-client-id", "admin",
+				"--generic-oauth-client-secret", "password",
+				"--generic-oauth-auth-url", "https://goa.example.com/oauth/authorize",
+			)
+		case GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME:
+			params = append(params,
+				"--generic-oauth-client-id", "admin",
+				"--generic-oauth-client-secret", "password",
+				"--generic-oauth-auth-url", "https://goa.example.com/oauth/authorize",
 				"--generic-oauth-token-url", "https://goa.example.com/oauth/token",
 			)
 		case DEVELOPMENT_MODE:

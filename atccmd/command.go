@@ -128,7 +128,7 @@ type GenericOAuth struct {
 	DisplayName   string            `long:"display-name"   description:"Name for this auth method on the web UI."`
 	ClientID      string            `long:"client-id"      description:"Application client ID for enabling generic OAuth."`
 	ClientSecret  string            `long:"client-secret"  description:"Application client secret for enabling generic OAuth."`
-	AuthURL       string            `long:"auth-url"       description:"Generic OAuth provider AuthURL endpoint. "`
+	AuthURL       string            `long:"auth-url"       description:"Generic OAuth provider AuthURL endpoint."`
 	AuthURLParams map[string]string `long:"auth-url-param" description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
 	TokenURL      string            `long:"token-url"      description:"Generic OAuth provider TokenURL endpoint."`
 }
@@ -515,19 +515,19 @@ func (cmd *ATCCommand) validate() error {
 		if cmd.GenericOAuth.ClientID == "" || cmd.GenericOAuth.ClientSecret == "" {
 			errs = multierror.Append(
 				errs,
-				errors.New("must specify --oauth-client-id and --oauth-client-secret"),
+				errors.New("must specify --generic-oauth-client-id and --generic-oauth-client-secret to use Generic OAuth"),
 			)
 		}
 		if cmd.GenericOAuth.AuthURL == "" || cmd.GenericOAuth.TokenURL == "" {
 			errs = multierror.Append(
 				errs,
-				errors.New("must specify --oauth-auth-url and --oauth-token-url"),
+				errors.New("must specify --generic-oauth-auth-url and --generic-oauth-token-url to use Generic OAuth"),
 			)
 		}
 		if cmd.GenericOAuth.DisplayName == "" {
 			errs = multierror.Append(
 				errs,
-				errors.New("must specify --oauth-display-name"),
+				errors.New("must specify --generic-oauth-display-name to use Generic OAuth"),
 			)
 		}
 	}
