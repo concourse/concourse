@@ -218,6 +218,88 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 		})
+
+		Describe("generic oauth", func() {
+			Context("ClientID omitted", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--generic-oauth-client-secret", "brock123"}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("Both client-id and client-secret are required for generic-oauth."))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("ClientSecret omitted", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--generic-oauth-client-id", "Brock Samson"}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("Both client-id and client-secret are required for generic-oauth."))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("display name omitted", func() {
+				BeforeEach(func() {
+					cmdParams = []string{
+						"--generic-oauth-client-id", "Brock Samson",
+						"--generic-oauth-client-secret", "brock123",
+						"--generic-oauth-auth-url", "http://auth.example.url",
+						"--generic-oauth-token-url", "http://token.example.url",
+					}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("display-name is required for generic-oauth."))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("TokenURL omitted", func() {
+				BeforeEach(func() {
+					cmdParams = []string{
+						"--generic-oauth-client-id", "Brock Samson",
+						"--generic-oauth-client-secret", "brock123",
+						"--generic-oauth-display-name", "generic oauth cool name",
+						"--generic-oauth-auth-url", "http://auth.example.url",
+					}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("Both auth-url and token-url are required for generic-oauth."))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("AuthUrl omitted", func() {
+				BeforeEach(func() {
+					cmdParams = []string{
+						"--generic-oauth-client-id", "Brock Samson",
+						"--generic-oauth-client-secret", "brock123",
+						"--generic-oauth-display-name", "generic oauth cool name",
+						"--generic-oauth-token-url", "http://token.example.url",
+					}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("Both auth-url and token-url are required for generic-oauth."))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+		})
 	})
 
 	Describe("Display", func() {
@@ -292,6 +374,31 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess.Out).Should(gbytes.Say("Basic Auth: disabled"))
 				Eventually(sess.Out).Should(gbytes.Say("GitHub Auth: disabled"))
 				Eventually(sess.Out).Should(gbytes.Say("UAA Auth: enabled"))
+
+				Eventually(sess).Should(gexec.Exit(1))
+			})
+		})
+
+		Context("Setting generic oauth", func() {
+			BeforeEach(func() {
+				cmdParams = []string{
+					"--generic-oauth-client-id", "Brock Samson",
+					"--generic-oauth-client-secret", "brock123",
+					"--generic-oauth-auth-url", "http://auth.example.url",
+					"--generic-oauth-token-url", "http://token.example.url",
+					"--generic-oauth-display-name", "cool generic name",
+				}
+			})
+
+			It("says 'disabled' to setting basic auth, github auth, uaa auth and 'enabled' to generic oauth", func() {
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
+				Eventually(sess.Out).Should(gbytes.Say("Basic Auth: disabled"))
+				Eventually(sess.Out).Should(gbytes.Say("GitHub Auth: disabled"))
+				Eventually(sess.Out).Should(gbytes.Say("UAA Auth: disabled"))
+				Eventually(sess.Out).Should(gbytes.Say("Generic OAuth: enabled"))
 
 				Eventually(sess).Should(gexec.Exit(1))
 			})
@@ -496,6 +603,13 @@ var _ = Describe("Fly CLI", func() {
 					"--uaa-auth-auth-url", "http://uaa.auth.url",
 					"--uaa-auth-token-url", "http://uaa.token.url",
 					"--uaa-auth-cf-url", "http://cf.url",
+					"--generic-oauth-client-id", "barack samson",
+					"--generic-oauth-client-secret", "barack123",
+					"--generic-oauth-auth-url", "http://goa.auth.url",
+					"--generic-oauth-token-url", "http://goa.token.url",
+					"--generic-oauth-display-name", "generic cool name",
+					"--generic-oauth-auth-url-param", "param1:value1",
+					"--generic-oauth-auth-url-param", "param2:value2",
 				}
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -519,6 +633,17 @@ var _ = Describe("Fly CLI", func() {
 								"token_url": "http://uaa.token.url",
 								"cf_spaces": ["Obama, Inc", "Samson, Inc"],
 								"cf_url": "http://cf.url"
+							},
+							"genericoauth_auth": {
+								"display_name": "generic cool name",
+								"client_id": "barack samson",
+								"client_secret": "barack123",
+								"auth_url": "http://goa.auth.url",
+								"auth_url_params": {
+									"param1": "value1",
+									"param2": "value2"
+								},
+								"token_url": "http://goa.token.url"
 							}
 						}`),
 						ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Team{
