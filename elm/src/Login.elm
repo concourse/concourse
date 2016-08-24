@@ -223,13 +223,21 @@ viewTeamSelection model =
                     (Just firstTeam, _) -> SelectTeam firstTeam.name
               , class "filter-form input-holder"
               ]
-              [ Html.i [class "fa fa-fw fa-search"] []
+              [ Html.i [class "fa fa-fw fa-search search-icon"] []
               , Html.input
-                  [ Attributes.placeholder "filter teams"
+                  [ class "search-input"
+                  , Attributes.placeholder "filter teams"
                   , Attributes.autofocus True
+                  , Attributes.required True
                   , Events.onInput FilterTeams
                   ]
                   []
+              , Html.button
+                  [ class "clear-button"
+                  , Attributes.type' "reset"
+                  , Attributes.tabindex -1
+                  ]
+                  [ Html.i [class "fa fa-fw fa-times-circle"] [] ]
               ]
           , case model.teams of
               Nothing ->
