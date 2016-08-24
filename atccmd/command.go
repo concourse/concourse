@@ -873,6 +873,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		reconfigurableSink,
 
+		cmd.AuthExpire,
+
 		cmd.CLIArtifactsDir.Path(),
 		Version,
 	)

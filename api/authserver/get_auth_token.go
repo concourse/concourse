@@ -11,8 +11,6 @@ import (
 	"github.com/concourse/atc/auth"
 )
 
-const tokenDuration = 24 * time.Hour
-
 func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-auth-token")
 	logger.Debug("getting-auth-token")
@@ -41,7 +39,7 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tokenType, tokenValue, err := s.tokenGenerator.GenerateToken(time.Now().Add(tokenDuration), team.Name, team.ID, team.Admin)
+		tokenType, tokenValue, err := s.tokenGenerator.GenerateToken(time.Now().Add(s.expire), team.Name, team.ID, team.Admin)
 		if err != nil {
 			logger.Error("generate-token", err)
 			w.WriteHeader(http.StatusInternalServerError)
