@@ -7,11 +7,11 @@ import (
 	"github.com/concourse/fly/rc"
 )
 
-type ConcealPipelineCommand struct {
-	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Pipeline to conceal"`
+type ExposePipelineCommand struct {
+	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Pipeline to expose"`
 }
 
-func (command *ConcealPipelineCommand) Execute(args []string) error {
+func (command *ExposePipelineCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 
 	target, err := rc.LoadTarget(Fly.Target)
@@ -24,13 +24,13 @@ func (command *ConcealPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	found, err := target.Team().ConcealPipeline(pipelineName)
+	found, err := target.Team().ExposePipeline(pipelineName)
 	if err != nil {
 		return err
 	}
 
 	if found {
-		fmt.Printf("concealed '%s'\n", pipelineName)
+		fmt.Printf("exposed '%s'\n", pipelineName)
 	} else {
 		displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
 	}

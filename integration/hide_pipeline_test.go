@@ -15,14 +15,14 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	Describe("reveal-pipeline", func() {
+	Describe("hide-pipeline", func() {
 		Context("when the pipeline name is specified", func() {
 			var (
 				path string
 				err  error
 			)
 			BeforeEach(func() {
-				path, err = atc.Routes.CreatePathForRoute(atc.RevealPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				path, err = atc.Routes.CreatePathForRoute(atc.HidePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -36,14 +36,14 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
-				It("reveals the pipeline", func() {
+				It("hides the pipeline", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "reveal-pipeline", "-p", "awesome-pipeline")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "hide-pipeline", "-p", "awesome-pipeline")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess).Should(gbytes.Say(`revealed 'awesome-pipeline'`))
+						Eventually(sess).Should(gbytes.Say(`hid 'awesome-pipeline'`))
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
@@ -65,7 +65,7 @@ var _ = Describe("Fly CLI", func() {
 
 				It("prints helpful message", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "reveal-pipeline", "-p", "awesome-pipeline")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "hide-pipeline", "-p", "awesome-pipeline")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
@@ -84,7 +84,7 @@ var _ = Describe("Fly CLI", func() {
 		Context("when the pipline name is not specified", func() {
 			It("errors", func() {
 				Expect(func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "reveal-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "hide-pipeline")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())

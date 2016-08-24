@@ -32,12 +32,12 @@ type FlyCommand struct {
 	SetPipeline     SetPipelineCommand     `command:"set-pipeline"     alias:"sp" description:"Create or update a pipeline's configuration"`
 	PausePipeline   PausePipelineCommand   `command:"pause-pipeline"   alias:"pp" description:"Pause a pipeline"`
 	UnpausePipeline UnpausePipelineCommand `command:"unpause-pipeline" alias:"up" description:"Un-pause a pipeline"`
-	RevealPipeline  RevealPipelineCommand  `command:"reveal-pipeline"  alias:"rp" description:"Reveal a pipeline"`
-	ConcealPipeline ConcealPipelineCommand `command:"conceal-pipeline" alias:"cp" description:"Conceal a pipeline"`
+	ExposePipeline  ExposePipelineCommand  `command:"expose-pipeline"  alias:"ep" description:"Make a pipeline publicly viewable"`
+	HidePipeline    HidePipelineCommand    `command:"hide-pipeline"    alias:"hp" description:"Hide a pipeline from the public"`
 	RenamePipeline  RenamePipelineCommand  `command:"rename-pipeline"  alias:"rp" description:"Rename a pipeline"`
 
-	CheckResource   CheckResourceCommand   `command:"check-resource"  alias:"cr" description:"Check a resource"`
-	PauseResource   PauseResourceCommand   `command:"pause-resource"  alias:"pr" description:"Pause a resource"`
+	CheckResource   CheckResourceCommand   `command:"check-resource"    alias:"cr" description:"Check a resource"`
+	PauseResource   PauseResourceCommand   `command:"pause-resource"    alias:"pr" description:"Pause a resource"`
 	UnpauseResource UnpauseResourceCommand `command:"unpause-resource"  alias:"ur" description:"Unpause a resource"`
 
 	Builds     BuildsCommand     `command:"builds"      alias:"bs" description:"List builds data"`
