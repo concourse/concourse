@@ -218,9 +218,12 @@ viewTeamSelection model =
           [ Html.form
               [ Events.onSubmit <|
                   case (List.head filteredTeams, model.teamFilter) of
-                    (Nothing, _) -> Noop
-                    (Just _, "") -> Noop
-                    (Just firstTeam, _) -> SelectTeam firstTeam.name
+                    (Nothing, _) ->
+                      Noop
+                    (Just _, "") ->
+                      Noop
+                    (Just firstTeam, _) ->
+                      SelectTeam firstTeam.name
               , class "filter-form input-holder"
               ]
               [ Html.i [class "fa fa-fw fa-search search-icon"] []
@@ -236,6 +239,7 @@ viewTeamSelection model =
                   [ class "clear-button"
                   , Attributes.type' "reset"
                   , Attributes.tabindex -1
+                  , Events.onClick (FilterTeams "")
                   ]
                   [ Html.i [class "fa fa-fw fa-times-circle"] [] ]
               ]
