@@ -74,12 +74,12 @@ func (team *team) UnpausePipeline(pipelineName string) (bool, error) {
 	return team.managePipeline(pipelineName, atc.UnpausePipeline)
 }
 
-func (team *team) RevealPipeline(pipelineName string) (bool, error) {
-	return team.managePipeline(pipelineName, atc.RevealPipeline)
+func (team *team) ExposePipeline(pipelineName string) (bool, error) {
+	return team.managePipeline(pipelineName, atc.ExposePipeline)
 }
 
-func (team *team) ConcealPipeline(pipelineName string) (bool, error) {
-	return team.managePipeline(pipelineName, atc.ConcealPipeline)
+func (team *team) HidePipeline(pipelineName string) (bool, error) {
+	return team.managePipeline(pipelineName, atc.HidePipeline)
 }
 
 func (team *team) managePipeline(pipelineName string, endpoint string) (bool, error) {

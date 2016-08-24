@@ -84,10 +84,10 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		})
 	})
 
-	Describe("RevealPipeline", func() {
+	Describe("ExposePipeline", func() {
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/reveal"
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/expose"
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
@@ -97,7 +97,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("return true and no error", func() {
-				found, err := team.RevealPipeline("mypipeline")
+				found, err := team.ExposePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})
@@ -105,7 +105,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 		Context("when the pipeline doesn't exist", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/reveal"
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/expose"
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
@@ -114,17 +114,17 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				)
 			})
 			It("returns false and no error", func() {
-				found, err := team.RevealPipeline("mypipeline")
+				found, err := team.ExposePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})
 	})
 
-	Describe("ConcealPipeline", func() {
+	Describe("HidePipeline", func() {
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/conceal"
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/hide"
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
@@ -134,7 +134,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("return true and no error", func() {
-				found, err := team.ConcealPipeline("mypipeline")
+				found, err := team.HidePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})
@@ -142,7 +142,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 		Context("when the pipeline doesn't exist", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/conceal"
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/hide"
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
@@ -151,7 +151,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				)
 			})
 			It("returns false and no error", func() {
-				found, err := team.ConcealPipeline("mypipeline")
+				found, err := team.HidePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})

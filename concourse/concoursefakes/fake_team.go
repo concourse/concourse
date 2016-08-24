@@ -77,21 +77,21 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
-	RevealPipelineStub        func(pipelineName string) (bool, error)
-	revealPipelineMutex       sync.RWMutex
-	revealPipelineArgsForCall []struct {
+	ExposePipelineStub        func(pipelineName string) (bool, error)
+	exposePipelineMutex       sync.RWMutex
+	exposePipelineArgsForCall []struct {
 		pipelineName string
 	}
-	revealPipelineReturns struct {
+	exposePipelineReturns struct {
 		result1 bool
 		result2 error
 	}
-	ConcealPipelineStub        func(pipelineName string) (bool, error)
-	concealPipelineMutex       sync.RWMutex
-	concealPipelineArgsForCall []struct {
+	HidePipelineStub        func(pipelineName string) (bool, error)
+	hidePipelineMutex       sync.RWMutex
+	hidePipelineArgsForCall []struct {
 		pipelineName string
 	}
-	concealPipelineReturns struct {
+	hidePipelineReturns struct {
 		result1 bool
 		result2 error
 	}
@@ -547,69 +547,69 @@ func (fake *FakeTeam) UnpausePipelineReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) RevealPipeline(pipelineName string) (bool, error) {
-	fake.revealPipelineMutex.Lock()
-	fake.revealPipelineArgsForCall = append(fake.revealPipelineArgsForCall, struct {
+func (fake *FakeTeam) ExposePipeline(pipelineName string) (bool, error) {
+	fake.exposePipelineMutex.Lock()
+	fake.exposePipelineArgsForCall = append(fake.exposePipelineArgsForCall, struct {
 		pipelineName string
 	}{pipelineName})
-	fake.recordInvocation("RevealPipeline", []interface{}{pipelineName})
-	fake.revealPipelineMutex.Unlock()
-	if fake.RevealPipelineStub != nil {
-		return fake.RevealPipelineStub(pipelineName)
+	fake.recordInvocation("ExposePipeline", []interface{}{pipelineName})
+	fake.exposePipelineMutex.Unlock()
+	if fake.ExposePipelineStub != nil {
+		return fake.ExposePipelineStub(pipelineName)
 	} else {
-		return fake.revealPipelineReturns.result1, fake.revealPipelineReturns.result2
+		return fake.exposePipelineReturns.result1, fake.exposePipelineReturns.result2
 	}
 }
 
-func (fake *FakeTeam) RevealPipelineCallCount() int {
-	fake.revealPipelineMutex.RLock()
-	defer fake.revealPipelineMutex.RUnlock()
-	return len(fake.revealPipelineArgsForCall)
+func (fake *FakeTeam) ExposePipelineCallCount() int {
+	fake.exposePipelineMutex.RLock()
+	defer fake.exposePipelineMutex.RUnlock()
+	return len(fake.exposePipelineArgsForCall)
 }
 
-func (fake *FakeTeam) RevealPipelineArgsForCall(i int) string {
-	fake.revealPipelineMutex.RLock()
-	defer fake.revealPipelineMutex.RUnlock()
-	return fake.revealPipelineArgsForCall[i].pipelineName
+func (fake *FakeTeam) ExposePipelineArgsForCall(i int) string {
+	fake.exposePipelineMutex.RLock()
+	defer fake.exposePipelineMutex.RUnlock()
+	return fake.exposePipelineArgsForCall[i].pipelineName
 }
 
-func (fake *FakeTeam) RevealPipelineReturns(result1 bool, result2 error) {
-	fake.RevealPipelineStub = nil
-	fake.revealPipelineReturns = struct {
+func (fake *FakeTeam) ExposePipelineReturns(result1 bool, result2 error) {
+	fake.ExposePipelineStub = nil
+	fake.exposePipelineReturns = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) ConcealPipeline(pipelineName string) (bool, error) {
-	fake.concealPipelineMutex.Lock()
-	fake.concealPipelineArgsForCall = append(fake.concealPipelineArgsForCall, struct {
+func (fake *FakeTeam) HidePipeline(pipelineName string) (bool, error) {
+	fake.hidePipelineMutex.Lock()
+	fake.hidePipelineArgsForCall = append(fake.hidePipelineArgsForCall, struct {
 		pipelineName string
 	}{pipelineName})
-	fake.recordInvocation("ConcealPipeline", []interface{}{pipelineName})
-	fake.concealPipelineMutex.Unlock()
-	if fake.ConcealPipelineStub != nil {
-		return fake.ConcealPipelineStub(pipelineName)
+	fake.recordInvocation("HidePipeline", []interface{}{pipelineName})
+	fake.hidePipelineMutex.Unlock()
+	if fake.HidePipelineStub != nil {
+		return fake.HidePipelineStub(pipelineName)
 	} else {
-		return fake.concealPipelineReturns.result1, fake.concealPipelineReturns.result2
+		return fake.hidePipelineReturns.result1, fake.hidePipelineReturns.result2
 	}
 }
 
-func (fake *FakeTeam) ConcealPipelineCallCount() int {
-	fake.concealPipelineMutex.RLock()
-	defer fake.concealPipelineMutex.RUnlock()
-	return len(fake.concealPipelineArgsForCall)
+func (fake *FakeTeam) HidePipelineCallCount() int {
+	fake.hidePipelineMutex.RLock()
+	defer fake.hidePipelineMutex.RUnlock()
+	return len(fake.hidePipelineArgsForCall)
 }
 
-func (fake *FakeTeam) ConcealPipelineArgsForCall(i int) string {
-	fake.concealPipelineMutex.RLock()
-	defer fake.concealPipelineMutex.RUnlock()
-	return fake.concealPipelineArgsForCall[i].pipelineName
+func (fake *FakeTeam) HidePipelineArgsForCall(i int) string {
+	fake.hidePipelineMutex.RLock()
+	defer fake.hidePipelineMutex.RUnlock()
+	return fake.hidePipelineArgsForCall[i].pipelineName
 }
 
-func (fake *FakeTeam) ConcealPipelineReturns(result1 bool, result2 error) {
-	fake.ConcealPipelineStub = nil
-	fake.concealPipelineReturns = struct {
+func (fake *FakeTeam) HidePipelineReturns(result1 bool, result2 error) {
+	fake.HidePipelineStub = nil
+	fake.hidePipelineReturns = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
@@ -1276,10 +1276,10 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.pausePipelineMutex.RUnlock()
 	fake.unpausePipelineMutex.RLock()
 	defer fake.unpausePipelineMutex.RUnlock()
-	fake.revealPipelineMutex.RLock()
-	defer fake.revealPipelineMutex.RUnlock()
-	fake.concealPipelineMutex.RLock()
-	defer fake.concealPipelineMutex.RUnlock()
+	fake.exposePipelineMutex.RLock()
+	defer fake.exposePipelineMutex.RUnlock()
+	fake.hidePipelineMutex.RLock()
+	defer fake.hidePipelineMutex.RUnlock()
 	fake.renamePipelineMutex.RLock()
 	defer fake.renamePipelineMutex.RUnlock()
 	fake.pauseResourceMutex.RLock()
