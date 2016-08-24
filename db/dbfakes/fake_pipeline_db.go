@@ -521,16 +521,16 @@ type FakePipelineDB struct {
 		result2 atc.GroupConfigs
 		result3 error
 	}
-	RevealStub        func() error
-	revealMutex       sync.RWMutex
-	revealArgsForCall []struct{}
-	revealReturns     struct {
+	ExposeStub        func() error
+	exposeMutex       sync.RWMutex
+	exposeArgsForCall []struct{}
+	exposeReturns     struct {
 		result1 error
 	}
-	ConcealStub        func() error
-	concealMutex       sync.RWMutex
-	concealArgsForCall []struct{}
-	concealReturns     struct {
+	HideStub        func() error
+	hideMutex       sync.RWMutex
+	hideArgsForCall []struct{}
+	hideReturns     struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -2413,52 +2413,52 @@ func (fake *FakePipelineDB) GetDashboardReturns(result1 db.Dashboard, result2 at
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) Reveal() error {
-	fake.revealMutex.Lock()
-	fake.revealArgsForCall = append(fake.revealArgsForCall, struct{}{})
-	fake.recordInvocation("Reveal", []interface{}{})
-	fake.revealMutex.Unlock()
-	if fake.RevealStub != nil {
-		return fake.RevealStub()
+func (fake *FakePipelineDB) Expose() error {
+	fake.exposeMutex.Lock()
+	fake.exposeArgsForCall = append(fake.exposeArgsForCall, struct{}{})
+	fake.recordInvocation("Expose", []interface{}{})
+	fake.exposeMutex.Unlock()
+	if fake.ExposeStub != nil {
+		return fake.ExposeStub()
 	} else {
-		return fake.revealReturns.result1
+		return fake.exposeReturns.result1
 	}
 }
 
-func (fake *FakePipelineDB) RevealCallCount() int {
-	fake.revealMutex.RLock()
-	defer fake.revealMutex.RUnlock()
-	return len(fake.revealArgsForCall)
+func (fake *FakePipelineDB) ExposeCallCount() int {
+	fake.exposeMutex.RLock()
+	defer fake.exposeMutex.RUnlock()
+	return len(fake.exposeArgsForCall)
 }
 
-func (fake *FakePipelineDB) RevealReturns(result1 error) {
-	fake.RevealStub = nil
-	fake.revealReturns = struct {
+func (fake *FakePipelineDB) ExposeReturns(result1 error) {
+	fake.ExposeStub = nil
+	fake.exposeReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakePipelineDB) Conceal() error {
-	fake.concealMutex.Lock()
-	fake.concealArgsForCall = append(fake.concealArgsForCall, struct{}{})
-	fake.recordInvocation("Conceal", []interface{}{})
-	fake.concealMutex.Unlock()
-	if fake.ConcealStub != nil {
-		return fake.ConcealStub()
+func (fake *FakePipelineDB) Hide() error {
+	fake.hideMutex.Lock()
+	fake.hideArgsForCall = append(fake.hideArgsForCall, struct{}{})
+	fake.recordInvocation("Hide", []interface{}{})
+	fake.hideMutex.Unlock()
+	if fake.HideStub != nil {
+		return fake.HideStub()
 	} else {
-		return fake.concealReturns.result1
+		return fake.hideReturns.result1
 	}
 }
 
-func (fake *FakePipelineDB) ConcealCallCount() int {
-	fake.concealMutex.RLock()
-	defer fake.concealMutex.RUnlock()
-	return len(fake.concealArgsForCall)
+func (fake *FakePipelineDB) HideCallCount() int {
+	fake.hideMutex.RLock()
+	defer fake.hideMutex.RUnlock()
+	return len(fake.hideArgsForCall)
 }
 
-func (fake *FakePipelineDB) ConcealReturns(result1 error) {
-	fake.ConcealStub = nil
-	fake.concealReturns = struct {
+func (fake *FakePipelineDB) HideReturns(result1 error) {
+	fake.HideStub = nil
+	fake.hideReturns = struct {
 		result1 error
 	}{result1}
 }
@@ -2580,10 +2580,10 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
 	fake.getDashboardMutex.RLock()
 	defer fake.getDashboardMutex.RUnlock()
-	fake.revealMutex.RLock()
-	defer fake.revealMutex.RUnlock()
-	fake.concealMutex.RLock()
-	defer fake.concealMutex.RUnlock()
+	fake.exposeMutex.RLock()
+	defer fake.exposeMutex.RUnlock()
+	fake.hideMutex.RLock()
+	defer fake.hideMutex.RUnlock()
 	return fake.invocations
 }
 

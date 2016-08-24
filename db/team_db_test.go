@@ -103,7 +103,7 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(otherSavedPublicPipeline)
-			err = pipelineDB.Reveal()
+			err = pipelineDB.Expose()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -128,7 +128,7 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(publicPipeline)
-			err = pipelineDB.Reveal()
+			err = pipelineDB.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			// update expectations
@@ -171,19 +171,19 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB1 := pipelineDBFactory.Build(savedPipeline1)
-			err = pipelineDB1.Reveal()
+			err = pipelineDB1.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB2 := pipelineDBFactory.Build(savedPipeline2)
-			err = pipelineDB2.Reveal()
+			err = pipelineDB2.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			otherPipelineDB1 := pipelineDBFactory.Build(otherSavedPublicPipeline1)
-			err = otherPipelineDB1.Reveal()
+			err = otherPipelineDB1.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			otherPipelineDB3 := pipelineDBFactory.Build(otherSavedPublicPipeline3)
-			err = otherPipelineDB3.Reveal()
+			err = otherPipelineDB3.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			// update expectations
@@ -671,7 +671,7 @@ var _ = Describe("TeamDB", func() {
 
 				Context("when other team builds are public", func() {
 					BeforeEach(func() {
-						pipelineDB.Reveal()
+						pipelineDB.Expose()
 					})
 
 					It("returns builds for requested team and public builds", func() {

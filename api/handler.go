@@ -153,8 +153,8 @@ func NewHandler(
 		atc.OrderPipelines:   http.HandlerFunc(pipelineServer.OrderPipelines),
 		atc.PausePipeline:    pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline),
 		atc.UnpausePipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline),
-		atc.RevealPipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.RevealPipeline),
-		atc.ConcealPipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.ConcealPipeline),
+		atc.ExposePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.ExposePipeline),
+		atc.HidePipeline:     pipelineHandlerFactory.HandlerFor(pipelineServer.HidePipeline),
 		atc.GetVersionsDB:    pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
 		atc.RenamePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
 

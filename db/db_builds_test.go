@@ -185,7 +185,7 @@ var _ = Describe("Builds", func() {
 			publicPipeline, _, err := teamDB.SaveConfig("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 			publicPipelineDB := pipelineDBFactory.Build(publicPipeline)
-			publicPipelineDB.Reveal()
+			publicPipelineDB.Expose()
 
 			publicBuild, err = publicPipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())

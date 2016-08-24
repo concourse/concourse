@@ -89,8 +89,8 @@ type PipelineDB interface {
 
 	GetDashboard() (Dashboard, atc.GroupConfigs, error)
 
-	Reveal() error
-	Conceal() error
+	Expose() error
+	Hide() error
 }
 
 type pipelineDB struct {
@@ -2378,7 +2378,7 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 	return dashboard, pipelineConfig.Groups, nil
 }
 
-func (pdb *pipelineDB) Reveal() error {
+func (pdb *pipelineDB) Expose() error {
 	_, err := pdb.conn.Exec(`
 		UPDATE pipelines
 		SET public = true
@@ -2387,7 +2387,7 @@ func (pdb *pipelineDB) Reveal() error {
 	return err
 }
 
-func (pdb *pipelineDB) Conceal() error {
+func (pdb *pipelineDB) Hide() error {
 	_, err := pdb.conn.Exec(`
 		UPDATE pipelines
 		SET public = false

@@ -730,13 +730,13 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/reveal", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/expose", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/reveal", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/expose", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -763,9 +763,9 @@ var _ = Describe("Pipelines API", func() {
 					Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
 				})
 
-				Context("when revealing the pipeline succeeds", func() {
+				Context("when exposing the pipeline succeeds", func() {
 					BeforeEach(func() {
-						pipelineDB.RevealReturns(nil)
+						pipelineDB.ExposeReturns(nil)
 					})
 
 					It("returns 200", func() {
@@ -773,9 +773,9 @@ var _ = Describe("Pipelines API", func() {
 					})
 				})
 
-				Context("when revealing the pipeline fails", func() {
+				Context("when exposing the pipeline fails", func() {
 					BeforeEach(func() {
-						pipelineDB.RevealReturns(errors.New("welp"))
+						pipelineDB.ExposeReturns(errors.New("welp"))
 					})
 
 					It("returns 500", func() {
@@ -807,13 +807,13 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/conceal", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/hide", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/conceal", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/hide", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -840,9 +840,9 @@ var _ = Describe("Pipelines API", func() {
 					Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
 				})
 
-				Context("when revealing the pipeline succeeds", func() {
+				Context("when hiding the pipeline succeeds", func() {
 					BeforeEach(func() {
-						pipelineDB.ConcealReturns(nil)
+						pipelineDB.HideReturns(nil)
 					})
 
 					It("returns 200", func() {
@@ -850,9 +850,9 @@ var _ = Describe("Pipelines API", func() {
 					})
 				})
 
-				Context("when revealing the pipeline fails", func() {
+				Context("when hiding the pipeline fails", func() {
 					BeforeEach(func() {
-						pipelineDB.ConcealReturns(errors.New("welp"))
+						pipelineDB.HideReturns(errors.New("welp"))
 					})
 
 					It("returns 500", func() {
