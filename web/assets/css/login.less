@@ -1,8 +1,8 @@
-.centered-contents {
+.login-page {
   text-align: center;
 }
 
-.auth-methods .padded-top {
+.auth-method {
   padding-top: 10px;
 }
 
@@ -11,6 +11,7 @@
   font-style: italic;
   color: @base04;
   padding-top: 55px;
+  text-align: center;
 }
 
 .small-title a {
@@ -27,6 +28,7 @@
 }
 
 .login-box {
+  box-sizing: border-box;
   display: inline-block;
   text-align: left;
   font-size: 12pt;
@@ -34,59 +36,64 @@
   width: 450px;
   background: @base00;
   color: @base04;
+  min-height: 300px;
+  padding: 10px 40px 40px;
+
+  &.team-selection {
+    padding: 0;
+  }
 }
 
 .team-selection {
   line-height: 35px;
 }
 
-.team-selection div {
-  height: 595px;
+.team-selection .teams-list {
   overflow-y: auto;
+  height: 300px - 35px - 1px;
 }
 
 .bright-text {
   color: @base05;
 }
 
-.auth-methods {
-  padding-bottom: 56px;
-  padding-top: 10px;
-}
-
 .auth-methods-title {
   margin-bottom: 20px;
+  text-align: center;
 }
 
-.auth-methods form {
-  margin: 0px 40px;
-}
-
-.auth-methods label {
+.basic-auth label {
   margin-bottom: 3px;
   display: block;
 }
 
-.auth-methods .input-holder {
+.basic-auth .input-holder {
   padding-right: 20px;
 }
 
-.auth-methods input {
+.basic-auth input {
   background: @base01;
   padding: 4px 10px;
   margin-bottom: 12px;
   border-radius: 2px;
 }
 
-.auth-methods button {
-  font: inherit;
-  background: @base02;
-  color: @base05;
-  border: none;
-  border-radius: 2px;
-  padding: 4px 22px;
-  margin: 10px 0px;
-  cursor: pointer;
+.login-button {
+  text-align: center;
+
+  button {
+    font: inherit;
+    background: @base02;
+    color: @base05;
+    border: none;
+    border-radius: 2px;
+    padding: 4px 22px;
+    cursor: pointer;
+  }
+}
+
+.basic-auth .login-button {
+  margin-top: 5px;
 }
 
 .auth-methods a {
@@ -141,6 +148,10 @@
   padding: 0px 18px;
 }
 
+.filter-form {
+  position: relative;
+}
+
 .filter-form i {
   font-size: 1.1em;
   position: absolute;
@@ -151,16 +162,12 @@
 
 .loading {
   line-height: inherit;
-}
-
-.loading i {
-  margin: 0px 10px;
+  text-align: center;
 }
 
 .or-bar {
   position: relative;
   text-align: center;
-  margin: 0px 40px;
   background: inherit;
   color: @base03;
 }

@@ -188,15 +188,19 @@ indexPageUrl = "/"
 
 view : Model -> Html Msg
 view model =
-  case model of
-    TeamSelection tModel -> viewTeamSelection tModel
-    Login lModel -> viewLogin lModel
+  Html.div [class "login-page"] [
+    case model of
+      TeamSelection tModel ->
+        viewTeamSelection tModel
+
+      Login lModel ->
+        viewLogin lModel
+  ]
 
 viewLoading : Html action
 viewLoading =
   Html.div [class "loading"]
     [ Html.i [class "fa fa-fw fa-spin fa-circle-o-notch"] []
-    , Html.text "Loading..."
     ]
 
 viewTeamSelection : TeamSelectionModel -> Html Msg
@@ -205,7 +209,7 @@ viewTeamSelection model =
     filterTeams model.teamFilter <| Maybe.withDefault [] model.teams
   in
     Html.div
-      [ class "centered-contents" ]
+      []
       [ Html.div
           [ class "small-title" ]
           [ Html.text "select a team to login" ]
@@ -228,10 +232,10 @@ viewTeamSelection model =
                   []
               ]
           , case model.teams of
-              Nothing -> viewLoading
+              Nothing ->
+                viewLoading
               Just _ ->
-                Html.div
-                  [] <|
+                Html.div [class "teams-list"] <|
                   List.map (viewTeam model.redirect) filteredTeams
           ]
       ]
@@ -289,8 +293,7 @@ teamNameStartsWithSensitive substring team =
 
 viewLogin : LoginModel -> Html Msg
 viewLogin model =
-  Html.div
-    [ class "centered-contents" ]
+  Html.div []
     [ Html.div
         [ class "small-title" ]
         [ Html.a
@@ -304,7 +307,7 @@ viewLogin model =
     , Html.div
         [ class "login-box auth-methods" ] <|
         [ Html.div
-            [ class "centered-contents auth-methods-title" ]
+            [ class "auth-methods-title" ]
             [ Html.text "logging in to "
             , Html.span
                 [ class "bright-text" ]
@@ -333,7 +336,7 @@ viewOrBar =
 viewNoAuthButton : Html action
 viewNoAuthButton =
   Html.form
-    [ class "padded-top centered-contents"
+    [ class "auth-method login-button"
     , Attributes.method "post"
     ]
     [ Html.button
@@ -346,7 +349,7 @@ viewBasicAuthForm methods =
   if List.member BasicMethod methods then
     Just <|
       Html.form
-        [ class "padded-top"
+        [ class "auth-method basic-auth"
         , Attributes.method "post"
         ]
         [ Html.label
@@ -364,8 +367,7 @@ viewBasicAuthForm methods =
         , Html.label
             [ Attributes.for "basic-auth-password-input" ]
             [ Html.text "password" ]
-        , Html.div
-            [ class "input-holder" ]
+        , Html.div [class "input-holder"] -- for LastPass web UI
             [ Html.input
                 [ id "basic-auth-password-input"
                 , Attributes.name "password"
@@ -374,21 +376,24 @@ viewBasicAuthForm methods =
                 []
             ]
         , Html.div
-            [ class "centered-contents" ]
+            [ class "login-button" ]
             [ Html.button
                 [ Attributes.type' "submit" ]
                 [ Html.text "login" ]
             ]
         ]
-  else Nothing
+  else
+    Nothing
 
 viewOAuthButtons : String -> List AuthMethod -> Maybe (Html action)
 viewOAuthButtons redirect methods =
   case List.filterMap (viewOAuthButton redirect) methods of
-    [] -> Nothing
+    [] ->
+      Nothing
+
     buttons ->
       Just <|
-        Html.div [ class "centered-contents padded-top" ] buttons
+        Html.div [class "oauth-buttons"] buttons
 
 viewOAuthButton : String -> AuthMethod -> Maybe (Html action)
 viewOAuthButton redirect method =
@@ -396,6 +401,8 @@ viewOAuthButton redirect method =
     BasicMethod -> Nothing
     OAuthMethod oAuthMethod ->
       Just <|
-        Html.a
-          [ Attributes.href <| routeWithRedirect redirect oAuthMethod.authUrl ]
-          [ Html.text <| "login with " ++ oAuthMethod.displayName ]
+        Html.div [class "auth-method login-button"] [
+          Html.a
+            [ Attributes.href <| routeWithRedirect redirect oAuthMethod.authUrl ]
+            [ Html.text <| "login with " ++ oAuthMethod.displayName ]
+        ]
