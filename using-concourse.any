@@ -21,6 +21,7 @@ a read.
 \include-section{./using-concourse/pipelines.any}
 \include-section{./using-concourse/build-plans.any}
 \include-section{./using-concourse/resource-types.any}
+\include-section{./using-concourse/teams.any}
 \include-section{./using-concourse/implementing-resources.any}
 
 \split-sections

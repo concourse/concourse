@@ -156,6 +156,10 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
 
       Be sure to replace the \code{--external-url} flag with the URI you expect
       to use to reach your Concourse server.
+
+      In the above example we've configured basic auth for the
+      \reference{main-team}{\code{main} team}. For further configuration see
+      \reference{authentication}.
     }
 
     \section{Cluster with remote Postgres}{
@@ -351,6 +355,10 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
   \code{CONCOURSE_(flag)}, where \code{(flag)} is the uppercased flag name with
   all hyphens conveted to underscores. For example,
   \code{--basic-auth-username} would be \code{CONCOURSE_BASIC_AUTH_USERNAME}.
+
+  In the above example we've configured basic auth for the
+  \reference{main-team}{\code{main} team}. For further configuration see
+  \reference{authentication}.
 }
 
 \section{Clusters with BOSH}{clusters-with-bosh}{
@@ -504,6 +512,10 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     Concourse at
     \hyperlink{https://bosh.io/releases/github.com/concourse/concourse}{bosh.io}
     to see what properties you can/should tweak.
+
+    You may also want to consult \reference{authentication} for configuring
+    something other than basic auth for the \reference{main-team}{\code{main}
+    team}.
 
     Once you've got a manifest, just
     \hyperlink{https://bosh.io/docs/deploying.html}{deploy it}!
