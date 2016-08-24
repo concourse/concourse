@@ -32,16 +32,23 @@ flag. Once you've learned what the commands do, you may want to consult
   stored in \code{~/.flyrc} (though you shouldn't really edit the file
   manually).
 
-  So, to log in to an endpoint served at \code{https://ci.example.com} and save
-  it as the more convenient name \code{example}, you would run:
+  Concourse deployments can be occupied by multiple \reference{teams}{teams}.
+  To specify the team to which to log in, specify the \code{--team-name} or
+  \code{-n} flag. If not specified, this defaults to
+  \reference{main-team}{\code{main}}.
+
+  So, to log in to a team \code{my-team} an endpoint served at
+  \code{https://ci.example.com} and save it as the more convenient name
+  \code{example}, you would run:
 
   \codeblock{bash}{
-  $ fly --target example login --concourse-url https://ci.example.com
+  $ fly --target example login --team-name my-team \\
+      --concourse-url https://ci.example.com
   }
 
   The \code{login} command will see which authentication methods are available
-  at the endpoint and prompt you to choose one. For basic auth, it will ask
-  your username and password and use them to acquire a token. For OAuth, it
+  for the specified team and prompt you to choose one. For basic auth, it will
+  ask your username and password and use them to acquire a token. For OAuth, it
   will give you a link to click, and after you've gone through the OAuth flow
   it will print an OAuth token on the page that you can then then copy and
   paste into the prompt.
@@ -92,6 +99,22 @@ flag. Once you've learned what the commands do, you may want to consult
   certain commands throwing errors, be sure to run this command before
   investigating any further; it's pretty likely that something has changed with
   the API, especially while we're pre-1.0.
+}
+
+\section{\code{set-team}\aux{: Creating and updating teams}}{fly-set-team}{
+  To create a new team or update an existing team's auth, first log in as the
+  \reference{main-team}{\code{main} team}, and then run:
+
+  \codeblock{bash}{
+  $ fly -t example set-team --team-name my-team \\
+      --basic-auth-username foo \\
+      --basic-auth-password bar
+  }
+
+  Teams can also update their own configuration with the same command.
+
+  There are many different ways to configure auth; see
+  \reference{authentication} for more information.
 }
 
 \section{\code{execute}\aux{: Submitting Local Tasks}}{fly-execute}{
@@ -259,6 +282,37 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 
   This will resume job scheduling and resource checking.
+}
+
+\section{\code{expose-pipeline}\aux{: Making a pipeline publicly viewable}}{fly-expose-pipeline}{
+  By default, newly configured pipelines are only visible to the pipeline's
+  team. To make a pipeline viewable by other teams and unauthenticated users,
+  run:
+
+  \codeblock{bash}{
+  $ fly -t example expose-pipeline --pipeline my-pipeline
+  }
+
+ This feature is useful if you're using Concourse for an open source project
+ and you'd like your community to be able to see into your build pipeline.
+
+ To undo this change, see \reference{fly-hide-pipeline}.
+
+ Note that exposing a pipeline simply makes it possible to view the pipeline
+ itself, which will only show the name and status of each job. Build output
+ will remain hidden by default unless the job configures
+ \reference{public}{\code{public: true}}.
+}
+
+\section{\code{hide-pipeline}\aux{: Hiding a pipeline from the public}}{fly-hide-pipeline}{
+  If you realize that you've made a terrible mistake in
+  \reference{fly-expose-pipeline}{exposing your pipeline}, you can run:
+
+  \codeblock{bash}{
+  $ fly -t example hide-pipeline --pipeline my-pipeline
+  }
+
+  If you're panicking you can run the command's short form, \code{hp}, instead.
 }
 
 \section{\code{get-pipeline}\aux{: Fetching a pipeline's configuration}}{fly-get-pipeline}{

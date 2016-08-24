@@ -24,5 +24,4 @@ things installed.
 \include-section{./setting-up/installing.any}
 \include-section{./setting-up/architecture.any}
 \include-section{./setting-up/worker-pools.any}
-\include-section{./setting-up/restricting-access.any}
 \include-section{./setting-up/metrics.any}
