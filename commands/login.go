@@ -7,19 +7,18 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
 )
 
 type LoginCommand struct {
-	ATCURL   string               `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
-	Insecure bool                 `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
-	Username string               `short:"u" long:"username" description:"Username for basic auth"`
-	Password string               `short:"p" long:"password" description:"Password for basic auth"`
-	TeamName string               `short:"n" long:"team-name" description:"Team to authenticate with" default:"main"`
-	CACert   flaghelpers.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
+	ATCURL   string       `short:"c" long:"concourse-url" description:"Concourse URL to authenticate with"`
+	Insecure bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
+	Username string       `short:"u" long:"username" description:"Username for basic auth"`
+	Password string       `short:"p" long:"password" description:"Password for basic auth"`
+	TeamName string       `short:"n" long:"team-name" description:"Team to authenticate with" default:"main"`
+	CACert   atc.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
 }
 
 func (command *LoginCommand) Execute(args []string) error {

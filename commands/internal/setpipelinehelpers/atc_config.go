@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/template"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/mitchellh/mapstructure"
@@ -39,7 +38,7 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 	return confirm
 }
 
-func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariables template.Variables, templateVariablesFiles []flaghelpers.PathFlag) error {
+func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables template.Variables, templateVariablesFiles []atc.PathFlag) error {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
 	existingConfig, _, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
 	errorMessages := []string{}
@@ -78,7 +77,7 @@ func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariable
 	return nil
 }
 
-func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVariablesFiles []flaghelpers.PathFlag, templateVariables template.Variables) atc.Config {
+func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables template.Variables) atc.Config {
 	configFile, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
 		displayhelpers.FailWithErrorf("could not read config file", err)
