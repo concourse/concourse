@@ -67,11 +67,6 @@ case $1 in
     chown vcap:vcap $CF_CA_CERT
     chmod 0400 $CF_CA_CERT
 
-    logrotate_config_base=`cat /etc/logrotate.d/vcap`
-    logrotate_config_ext='"/var/vcap/sys/log/*" {su vcap vcap}'
-
-    logrotate -f <(echo $logrotate_config_base $logrotate_config_ext)
-
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
       --bind-ip <%= p("bind_ip") %> \
       --bind-port <%= p("bind_port") %> \
