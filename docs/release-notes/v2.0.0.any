@@ -67,6 +67,29 @@
   }
 
   \note{feature}{
+    The ATC now supports being configured with a
+    \reference{generic-oauth}{generic oAuth provider}. Huge thanks to
+    \ghuser{poida} for doing the PR for this!
+  }
+
+  \note{feature}{
+    The ATC now supports being configured with a \reference{uaa-cf-auth}{UAA/CF
+    auth provider}.
+  }
+
+  \note{feature}{
+    The ATC now supports being configured with a
+    \reference{generic-oauth}{generic oAuth provider}. Huge thanks to
+    \ghuser{poida} for doing the PR for this!
+
+    Note: this provider performs no additional verification as to whether the
+    individual authorized with the provider should be authorized with the
+    Concourse team. For example, if it were to be used for configuring Google
+    or GitHub oAuth, it would allow literally every user. It's mainly useful
+    for internal auth providers.
+  }
+
+  \note{feature}{
     The \resource{docker-image} can now discover older versions. Previously it
     would only ever emit the current version. This can be used to roll back to
     a previously known-good image digest.

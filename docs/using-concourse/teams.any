@@ -178,7 +178,18 @@ as).
     }
   }
 
-  \section{UAA/CF oAuth}{
+  \section{UAA/CF oAuth}{uaa-cf-auth}{
+    The \code{--uaa-auth-*} flags allow you to authorize members of a
+    particular space in a CF deployment. In the future we'll make this generic
+    to UAA and request scopes.
+  }
+
+  \section{Generic oAuth}{generic-oauth}{
+    The \code{--generic-oauth-*} flags configure a generic oAuth provider which
+    performs no additional verification about the individual user signing in.
+    It should only be used with internal auth systems. If it were used to
+    configure Google or Twitter oAuth, for example, it would permit just about
+    every person on the internet to create pipelines. It'd be mighty generous.
   }
 
   \section{Future providers}{
