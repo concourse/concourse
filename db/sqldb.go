@@ -6,8 +6,9 @@ import (
 )
 
 type SQLDB struct {
-	conn Conn
-	bus  *notificationsBus
+	conn         Conn
+	leaseFactory LeaseFactory
+	bus          *notificationsBus
 
 	buildFactory *buildFactory
 }
@@ -15,11 +16,13 @@ type SQLDB struct {
 func NewSQL(
 	sqldbConnection Conn,
 	bus *notificationsBus,
+	leaseFactory LeaseFactory,
 ) *SQLDB {
 	return &SQLDB{
 		conn:         sqldbConnection,
+		leaseFactory: leaseFactory,
 		bus:          bus,
-		buildFactory: newBuildFactory(sqldbConnection, bus),
+		buildFactory: newBuildFactory(sqldbConnection, bus, leaseFactory),
 	}
 }
 

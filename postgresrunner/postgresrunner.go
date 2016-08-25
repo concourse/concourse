@@ -12,6 +12,7 @@ import (
 
 	"github.com/BurntSushi/migration"
 	"github.com/concourse/atc/db/migrations"
+	"github.com/jackc/pgx"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -100,6 +101,16 @@ func (runner *Runner) Open() *sql.DB {
 	Expect(err).NotTo(HaveOccurred())
 
 	dbConn.SetMaxOpenConns(1)
+
+	return dbConn
+}
+
+func (runner *Runner) OpenPgx() *pgx.Conn {
+	config, err := pgx.ParseDSN(runner.DataSourceName())
+	Expect(err).NotTo(HaveOccurred())
+
+	dbConn, err := pgx.Connect(config)
+	Expect(err).NotTo(HaveOccurred())
 
 	return dbConn
 }

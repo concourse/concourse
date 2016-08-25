@@ -29,7 +29,8 @@ var _ = Describe("TLS", func() {
 
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		sqlDB = db.NewSQL(dbConn, bus)
+		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
+		sqlDB = db.NewSQL(dbConn, bus, leaseFactory)
 	})
 
 	AfterEach(func() {

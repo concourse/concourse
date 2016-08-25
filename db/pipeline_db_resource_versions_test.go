@@ -30,8 +30,9 @@ var _ = Describe("Resource History", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
+		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
+		sqlDB = db.NewSQL(dbConn, bus, leaseFactory)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
 
 		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
@@ -53,7 +54,7 @@ var _ = Describe("Resource History", func() {
 			},
 		}
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
 		teamDB := teamDBFactory.GetTeamDB("some-team")
 		savedPipeline, _, err = teamDB.SaveConfig("a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())

@@ -44,6 +44,7 @@ import (
 	"github.com/concourse/atc/wrappa"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/jackc/pgx"
 	"github.com/lib/pq"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -139,17 +140,24 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	leaseConn, err := cmd.constructLeaseConn()
+	if err != nil {
+		return nil, err
+	}
+	leaseFactory := db.NewLeaseFactory(leaseConn)
+
 	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
 
-	sqlDB := db.NewSQL(dbConn, bus)
+	sqlDB := db.NewSQL(dbConn, bus, leaseFactory)
 	trackerFactory := resource.NewTrackerFactory()
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
-	teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+	teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
 	engine := cmd.constructEngine(workerClient, tracker, resourceFetcher, teamDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
@@ -191,7 +199,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	drain := make(chan struct{})
 
-	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
@@ -577,6 +585,24 @@ func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, error) {
 	dbConn.SetMaxOpenConns(64)
 
 	return metric.CountQueries(dbConn), nil
+}
+
+func (cmd *ATCCommand) constructLeaseConn() (*pgx.Conn, error) {
+	var pgxConfig pgx.ConnConfig
+	var err error
+
+	if strings.HasPrefix(cmd.PostgresDataSource, "postgres://") ||
+		strings.HasPrefix(cmd.PostgresDataSource, "postgresql://") {
+		pgxConfig, err = pgx.ParseURI(cmd.PostgresDataSource)
+	} else {
+		pgxConfig, err = pgx.ParseDSN(cmd.PostgresDataSource)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return pgx.Connect(pgxConfig)
 }
 
 func (cmd *ATCCommand) constructWorkerPool(

@@ -6,7 +6,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -20,8 +19,10 @@ var _ = Describe("Leases", func() {
 
 		pipelineDBFactory db.PipelineDBFactory
 		teamDBFactory     db.TeamDBFactory
+		leaseFactory      db.LeaseFactory
 		sqlDB             *db.SQLDB
 
+		lease      db.Lease
 		pipelineDB db.PipelineDB
 		teamDB     db.TeamDB
 
@@ -38,11 +39,48 @@ var _ = Describe("Leases", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		logger = lagertest.NewTestLogger("test")
-		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
+		leaseFactory = db.NewLeaseFactory(postgresRunner.OpenPgx())
+		sqlDB = db.NewSQL(dbConn, bus, leaseFactory)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, leaseFactory)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+
+		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+		teamDB := teamDBFactory.GetTeamDB("some-team")
+
+		pipelineConfig := atc.Config{
+			Resources: atc.ResourceConfigs{
+				{
+					Name: "some-resource",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				},
+			},
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name: "some-resource-type",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				},
+			},
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+				},
+			},
+		}
+
+		savedPipeline, _, err := teamDB.SaveConfig("pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+		Expect(err).NotTo(HaveOccurred())
+
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
+		lease = leaseFactory.NewLease(logger, 42)
 	})
 
 	AfterEach(func() {
@@ -51,68 +89,31 @@ var _ = Describe("Leases", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
-	})
 
-	pipelineConfig := atc.Config{
-		Resources: atc.ResourceConfigs{
-			{
-				Name: "some-resource",
-				Type: "some-type",
-				Source: atc.Source{
-					"source-config": "some-value",
-				},
-			},
-		},
-		ResourceTypes: atc.ResourceTypes{
-			{
-				Name: "some-resource-type",
-				Type: "some-type",
-				Source: atc.Source{
-					"source-config": "some-value",
-				},
-			},
-		},
-		Jobs: atc.JobConfigs{
-			{
-				Name: "some-job",
-			},
-		},
-	}
-
-	BeforeEach(func() {
-		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
-		Expect(err).NotTo(HaveOccurred())
-		teamDB := teamDBFactory.GetTeamDB("some-team")
-		savedPipeline, _, err := teamDB.SaveConfig("pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
-		Expect(err).NotTo(HaveOccurred())
-
-		pipelineDB = pipelineDBFactory.Build(savedPipeline)
+		lease.Break()
 	})
 
 	Describe("leases in general", func() {
-		Context("when its Break method is called more than once", func() {
-			It("only calls breakFunc the first time", func() {
-				goodResult := new(dbfakes.FakeSqlResult)
-				goodResult.RowsAffectedReturns(1, nil)
+		It("AttemptSign can only obtain lock once", func() {
+			leased, err := lease.AttemptSign()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(leased).To(BeTrue())
 
-				leaseTester := new(dbfakes.FakeLeaseTester)
-				leaseTester.AttemptSignReturns(goodResult, nil)
-				leaseTester.HeartbeatReturns(goodResult, nil)
+			leased, err = lease.AttemptSign()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(leased).To(BeFalse())
+		})
 
-				lease, leased, err := db.NewLeaseForTesting(dbConn, logger, leaseTester, 1*time.Minute)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(leased).To(BeTrue())
+		It("Break is idempotent", func() {
+			leased, err := lease.AttemptSign()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(leased).To(BeTrue())
 
-				Expect(leaseTester.BreakCallCount()).To(BeZero())
-				lease.Break()
-				Expect(leaseTester.BreakCallCount()).To(Equal(1))
+			err = lease.Break()
+			Expect(err).NotTo(HaveOccurred())
 
-				lease.Break()
-				Expect(leaseTester.BreakCallCount()).To(Equal(1))
-
-				lease.Break()
-				Expect(leaseTester.BreakCallCount()).To(Equal(1))
-			})
+			err = lease.Break()
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
@@ -163,7 +164,8 @@ var _ = Describe("Leases", func() {
 				_, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, leased, err := pipelineDB.LeaseResourceCheckingForJob(logger, "some-job", 1*time.Minute)
+				var leased bool
+				lease, leased, err = pipelineDB.LeaseResourceCheckingForJob(logger, "some-job", 1*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 			})
@@ -176,7 +178,6 @@ var _ = Describe("Leases", func() {
 		})
 
 		Context("when the lease is acquired and then a build is created", func() {
-			var lease db.Lease
 			BeforeEach(func() {
 				var err error
 				var leased bool
@@ -268,7 +269,6 @@ var _ = Describe("Leases", func() {
 		})
 
 		Context("when the lease is acquired and then a build is created", func() {
-			var lease db.Lease
 			BeforeEach(func() {
 				var err error
 				var leased bool
@@ -354,7 +354,7 @@ var _ = Describe("Leases", func() {
 
 					lease.Break()
 
-					_, leased, err = pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, false)
+					lease, leased, err = pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(leased).To(BeFalse())
 				})
@@ -379,11 +379,11 @@ var _ = Describe("Leases", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, leased, err := pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, true)
+					lease, leased, err = pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(leased).To(BeTrue())
 
-					newLease.Break()
+					lease.Break()
 				})
 
 				It("gets and keeps the lease and stops others from immediately getting it", func() {
@@ -402,11 +402,11 @@ var _ = Describe("Leases", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, leased, err := pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, true)
+					lease, leased, err = pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(leased).To(BeTrue())
 
-					newLease.Break()
+					lease.Break()
 				})
 			})
 
@@ -427,11 +427,11 @@ var _ = Describe("Leases", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, leased, err := pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, false)
+					lease, leased, err = pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(leased).To(BeTrue())
 
-					newLease.Break()
+					lease.Break()
 				})
 
 				It("gets and keeps the lease and stops others from immediately getting it", func() {
@@ -450,11 +450,11 @@ var _ = Describe("Leases", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, leased, err := pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, false)
+					lease, leased, err = pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(leased).To(BeTrue())
 
-					newLease.Break()
+					lease.Break()
 				})
 			})
 		})
@@ -470,7 +470,9 @@ var _ = Describe("Leases", func() {
 		Context("when there has been a check recently", func() {
 			Context("when acquiring immediately", func() {
 				It("gets the lease", func() {
-					lease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+					var leased bool
+					var err error
+					lease, leased, err = pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(leased).To(BeTrue())
 
@@ -479,14 +481,14 @@ var _ = Describe("Leases", func() {
 					lease, leased, err = pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(leased).To(BeTrue())
-
-					lease.Break()
 				})
 			})
 
 			Context("when not acquiring immediately", func() {
 				It("does not get the lease", func() {
-					lease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+					var leased bool
+					var err error
+					lease, leased, err = pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(leased).To(BeTrue())
 
@@ -647,18 +649,18 @@ var _ = Describe("Leases", func() {
 		})
 	})
 
-	Describe("taking out a lease on cache invalidation", func() {
+	Describe("GetLease", func() {
 		Context("when something got the lease recently", func() {
 			It("does not get the lease", func() {
 				lease, leased, err := sqlDB.GetLease(logger, "some-task-name", 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 
-				lease.Break()
-
 				_, leased, err = sqlDB.GetLease(logger, "some-task-name", 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeFalse())
+
+				lease.Break()
 			})
 		})
 
@@ -676,14 +678,6 @@ var _ = Describe("Leases", func() {
 				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
 
 				lease.Break()
-
-				time.Sleep(time.Second)
-
-				newLease, leased, err := sqlDB.GetLease(logger, "some-task-name", 1*time.Second)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(leased).To(BeTrue())
-
-				newLease.Break()
 			})
 		})
 

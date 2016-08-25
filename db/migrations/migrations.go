@@ -121,4 +121,5 @@ var Migrations = []migration.Migrator{
 	AddCaseInsenstiveUniqueIndexToTeamsName,
 	AddNonEmptyConstraintToTeamName,
 	AddGenericOAuthToTeams,
+	MigrateFromLeasesToLocks,
 }

@@ -82,6 +82,8 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return interval, ErrFailedToAcquireLease
 	}
 
+	defer lease.Break()
+
 	vr, _, err := scanner.db.GetLatestVersionedResource(resourceName)
 	if err != nil {
 		logger.Error("failed-to-get-current-version", err)
@@ -91,9 +93,6 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 	err = swallowErrResourceScriptFailed(
 		scanner.scan(logger.Session("tick"), resourceConfig, resourceTypes, savedResource, atc.Version(vr.Version)),
 	)
-
-	lease.Break()
-
 	if err != nil {
 		return interval, err
 	}

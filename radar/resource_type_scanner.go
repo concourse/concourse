@@ -53,7 +53,6 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 	})
 
 	lease, leased, err := scanner.db.LeaseResourceTypeChecking(logger, resourceTypeName, scanner.defaultInterval, false)
-
 	if err != nil {
 		leaseLogger.Error("failed-to-get-lease", err, lager.Data{
 			"resource-type": resourceTypeName,
@@ -66,10 +65,9 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 		return scanner.defaultInterval, ErrFailedToAcquireLease
 	}
 
+	defer lease.Break()
+
 	err = scanner.resourceTypeScan(logger.Session("tick"), resourceType)
-
-	lease.Break()
-
 	if err != nil {
 		return 0, err
 	}

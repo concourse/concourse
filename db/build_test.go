@@ -30,12 +30,14 @@ var _ = Describe("Build", func() {
 		postgresRunner.Truncate()
 
 		dbConn = db.Wrap(postgresRunner.Open())
+
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		pipelineConfig = atc.Config{
@@ -67,7 +69,7 @@ var _ = Describe("Build", func() {
 		pipeline, _, err = teamDB.SaveConfig("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
 		pipelineDB = pipelineDBFactory.Build(pipeline)
 	})
 
@@ -743,6 +745,8 @@ var _ = Describe("Build", func() {
 
 		Context("for job that is still checking resources", func() {
 			var build1, build2 db.Build
+			var lease db.Lease
+
 			BeforeEach(func() {
 				pipelineConfig = atc.Config{
 					Jobs: atc.JobConfigs{
@@ -762,7 +766,8 @@ var _ = Describe("Build", func() {
 				build1, err = pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, created, err := pipelineDB.LeaseResourceCheckingForJob(
+				var created bool
+				lease, created, err = pipelineDB.LeaseResourceCheckingForJob(
 					lagertest.NewTestLogger("build-preparation"),
 					"some-job",
 					5*time.Minute,
@@ -772,6 +777,10 @@ var _ = Describe("Build", func() {
 
 				build2, err = pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				lease.Break()
 			})
 
 			It("returns inputs satisfied blocking for checked build", func() {

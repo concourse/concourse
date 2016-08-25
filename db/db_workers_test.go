@@ -27,7 +27,8 @@ var _ = Describe("Keeping track of workers", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		database = db.NewSQL(dbConn, bus)
+		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
+		database = db.NewSQL(dbConn, bus, leaseFactory)
 	})
 
 	AfterEach(func() {

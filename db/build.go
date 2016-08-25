@@ -97,6 +97,8 @@ type build struct {
 
 	conn Conn
 	bus  *notificationsBus
+
+	leaseFactory LeaseFactory
 }
 
 func (b *build) ID() int {
@@ -165,7 +167,7 @@ func (b *build) IsRunning() bool {
 }
 
 func (b *build) Reload() (bool, error) {
-	buildFactory := newBuildFactory(b.conn, b.bus)
+	buildFactory := newBuildFactory(b.conn, b.bus, b.leaseFactory)
 	newBuild, found, err := buildFactory.ScanBuild(b.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -576,7 +578,7 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 	)
 	err := b.conn.QueryRow(`
 			SELECT p.paused, j.paused, j.max_in_flight_reached, j.pipeline_id, j.name,
-				j.resource_check_finished_at > now() AND j.resource_check_waiver_end < $1
+				j.resource_checking = true AND j.resource_check_waiver_end < $1
 			FROM builds b
 			JOIN jobs j
 				ON b.job_id = j.id
@@ -618,7 +620,7 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 		}, true, nil
 	}
 
-	tdbf := NewTeamDBFactory(b.conn, b.bus)
+	tdbf := NewTeamDBFactory(b.conn, b.bus, b.leaseFactory)
 	tdb := tdbf.GetTeamDB(b.teamName)
 	savedPipeline, found, err := tdb.GetPipelineByName(b.pipelineName)
 	if err != nil {
@@ -629,7 +631,7 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	pdbf := NewPipelineDBFactory(b.conn, b.bus)
+	pdbf := NewPipelineDBFactory(b.conn, b.bus, b.leaseFactory)
 	pdb := pdbf.Build(savedPipeline)
 	if err != nil {
 		return BuildPreparation{}, false, err
@@ -742,7 +744,7 @@ func (b *build) SaveInput(input BuildInput) (SavedVersionedResource, error) {
 		return SavedVersionedResource{}, err
 	}
 
-	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus)
+	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus, b.leaseFactory)
 
 	pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
@@ -761,7 +763,7 @@ func (b *build) SaveOutput(vr VersionedResource, explicit bool) (SavedVersionedR
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
-	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus)
+	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus, b.leaseFactory)
 	pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 	return pipelineDB.SaveOutput(b.id, vr, explicit)
@@ -848,38 +850,48 @@ func (b *build) GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, e
 }
 
 func (b *build) LeaseTracking(logger lager.Logger, interval time.Duration) (Lease, bool, error) {
-	lease := &lease{
-		conn: b.conn,
-		logger: logger.Session("lease", lager.Data{
-			"build_id": b.id,
-		}),
-		attemptSignFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-				UPDATE builds
-				SET last_tracked = now()
-				WHERE id = $1
-					AND now() - last_tracked > ($2 || ' SECONDS')::INTERVAL
-			`, b.id, interval.Seconds())
-		},
-		heartbeatFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-				UPDATE builds
-				SET last_tracked = now()
-				WHERE id = $1
-			`, b.id)
-		},
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return nil, false, err
 	}
 
-	renewed, err := lease.AttemptSign(interval)
+	defer tx.Rollback()
+
+	updated, err := checkIfRowsUpdated(tx, `
+		UPDATE builds
+		SET last_tracked = now()
+		WHERE id = $1
+			AND now() - last_tracked > ($2 || ' SECONDS')::INTERVAL
+	`, b.id, interval.Seconds())
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !updated {
+		return nil, false, nil
+	}
+
+	lease := b.leaseFactory.NewLease(
+		logger.Session("lease", lager.Data{
+			"build_id": b.id,
+		}),
+		b.id,
+	)
+
+	renewed, err := lease.AttemptSign()
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !renewed {
-		return nil, renewed, nil
+		return nil, false, nil
 	}
 
-	lease.KeepSigned(interval)
+	err = tx.Commit()
+	if err != nil {
+		lease.Break()
+		return nil, false, err
+	}
 
 	return lease, true, nil
 }

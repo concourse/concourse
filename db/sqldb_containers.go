@@ -138,7 +138,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 				return SavedContainer{}, false, err
 			}
 
-			pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
+			pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db.leaseFactory)
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 			_, found, err := pipelineDB.GetResourceType(container.CheckType)

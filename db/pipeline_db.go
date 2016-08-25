@@ -101,6 +101,7 @@ type pipelineDB struct {
 
 	versionsDB *algorithm.VersionsDB
 
+	leaseFactory LeaseFactory
 	buildFactory *buildFactory
 }
 
@@ -316,223 +317,229 @@ func (pdb *pipelineDB) GetResources() ([]DashboardResource, atc.GroupConfigs, bo
 }
 
 func (pdb *pipelineDB) LeaseResourceChecking(logger lager.Logger, resourceName string, interval time.Duration, immediate bool) (Lease, bool, error) {
-	logger = logger.Session("lease", lager.Data{
-		"resource": resourceName,
-	})
-
-	lease := &lease{
-		conn:   pdb.conn,
-		logger: logger,
-		attemptSignFunc: func(tx Tx) (sql.Result, error) {
-			params := []interface{}{resourceName, pdb.ID}
-
-			condition := ""
-			if immediate {
-				condition = "NOT checking"
-			} else {
-				condition = "now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
-				params = append(params, interval.Seconds())
-			}
-
-			return tx.Exec(`
-				UPDATE resources
-				SET last_checked = now(), checking = true
-				WHERE name = $1
-					AND pipeline_id = $2
-					AND `+condition, params...)
-		},
-		heartbeatFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-				UPDATE resources
-				SET last_checked = now()
-				WHERE name = $1
-					AND pipeline_id = $2
-			`, resourceName, pdb.ID)
-		},
-		breakFunc: func() {
-			_, err := pdb.conn.Exec(`
-				UPDATE resources
-				SET checking = false
-				WHERE name = $1
-				  AND pipeline_id = $2
-			`, resourceName, pdb.ID)
-			if err != nil {
-				logger.Error("failed-to-reset-checking-state", err)
-			}
-		},
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return nil, false, err
 	}
 
-	renewed, err := lease.AttemptSign(interval)
+	defer tx.Rollback()
+
+	params := []interface{}{resourceName, pdb.ID}
+
+	condition := ""
+	if !immediate {
+		condition = "AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
+		params = append(params, interval.Seconds())
+	}
+
+	updated, err := checkIfRowsUpdated(tx, `
+		UPDATE resources
+		SET last_checked = now()
+		WHERE name = $1
+			AND pipeline_id = $2
+	`+condition, params...)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !updated {
+		return nil, false, nil
+	}
+
+	lease := pdb.leaseFactory.NewLease(
+		logger.Session("lease", lager.Data{
+			"resource": resourceName,
+		}),
+		pdb.ID+lockIDForTaskName(resourceName),
+	)
+
+	renewed, err := lease.AttemptSign()
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !renewed {
-		return nil, renewed, nil
+		return nil, false, nil
 	}
 
-	lease.KeepSigned(interval)
+	err = tx.Commit()
+	if err != nil {
+		lease.Break()
+		return nil, false, err
+	}
 
 	return lease, true, nil
 }
 
 func (pdb *pipelineDB) LeaseResourceTypeChecking(logger lager.Logger, resourceTypeName string, interval time.Duration, immediate bool) (Lease, bool, error) {
-	logger = logger.Session("lease", lager.Data{
-		"resource-type": resourceTypeName,
-	})
-
-	lease := &lease{
-		conn:   pdb.conn,
-		logger: logger,
-		attemptSignFunc: func(tx Tx) (sql.Result, error) {
-			params := []interface{}{resourceTypeName, pdb.ID}
-
-			condition := ""
-			if immediate {
-				condition = "NOT checking"
-			} else {
-				condition = "now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
-				params = append(params, interval.Seconds())
-			}
-
-			return tx.Exec(`
-				UPDATE resource_types
-				SET last_checked = now(), checking = true
-				WHERE name = $1
-					AND pipeline_id = $2
-					AND `+condition, params...)
-		},
-		heartbeatFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-				UPDATE resource_types
-				SET last_checked = now()
-				WHERE name = $1
-					AND pipeline_id = $2
-			`, resourceTypeName, pdb.ID)
-		},
-		breakFunc: func() {
-			_, err := pdb.conn.Exec(`
-				UPDATE resource_types
-				SET checking = false
-				WHERE name = $1
-				  AND pipeline_id = $2
-			`, resourceTypeName, pdb.ID)
-			if err != nil {
-				logger.Error("failed-to-reset-checking-state", err)
-			}
-		},
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return nil, false, err
 	}
 
-	renewed, err := lease.AttemptSign(interval)
+	defer tx.Rollback()
+
+	params := []interface{}{resourceTypeName, pdb.ID}
+
+	condition := ""
+	if !immediate {
+		condition = "AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
+		params = append(params, interval.Seconds())
+	}
+
+	updated, err := checkIfRowsUpdated(tx, `
+		UPDATE resource_types
+		SET last_checked = now()
+		WHERE name = $1
+			AND pipeline_id = $2
+	`+condition, params...)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !updated {
+		return nil, false, nil
+	}
+
+	lease := pdb.leaseFactory.NewLease(
+		logger.Session("lease", lager.Data{
+			"resource-type": resourceTypeName,
+		}),
+		pdb.ID+lockIDForTaskName(resourceTypeName),
+	)
+
+	renewed, err := lease.AttemptSign()
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !renewed {
-		return nil, renewed, nil
+		return nil, false, nil
 	}
 
-	lease.KeepSigned(interval)
+	err = tx.Commit()
+	if err != nil {
+		lease.Break()
+		return nil, false, err
+	}
 
 	return lease, true, nil
 }
 
 func (pdb *pipelineDB) LeaseScheduling(logger lager.Logger, interval time.Duration) (Lease, bool, error) {
-	lease := &lease{
-		conn: pdb.conn,
-		logger: logger.Session("lease", lager.Data{
-			"pipeline": pdb.Name,
-		}),
-		attemptSignFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-				UPDATE pipelines
-				SET last_scheduled = now()
-				WHERE id = $1
-					AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
-			`, pdb.ID, interval.Seconds())
-		},
-		heartbeatFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-				UPDATE pipelines
-				SET last_scheduled = now()
-				WHERE id = $1
-			`, pdb.ID)
-		},
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return nil, false, err
 	}
 
-	renewed, err := lease.AttemptSign(interval)
+	defer tx.Rollback()
+
+	updated, err := checkIfRowsUpdated(tx, `
+		UPDATE pipelines
+		SET last_scheduled = now()
+		WHERE id = $1
+			AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
+	`, pdb.ID, interval.Seconds())
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !updated {
+		return nil, false, nil
+	}
+
+	lease := pdb.leaseFactory.NewLease(
+		logger.Session("lease", lager.Data{
+			"pipeline": pdb.Name,
+		}),
+		pdb.ID+lockIDForTaskName("scheduling"),
+	)
+
+	renewed, err := lease.AttemptSign()
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !renewed {
-		return nil, renewed, nil
+		return nil, false, nil
 	}
 
-	lease.KeepSigned(interval)
+	err = tx.Commit()
+	if err != nil {
+		lease.Break()
+		return nil, false, err
+	}
 
 	return lease, true, nil
 }
 
 func (pdb *pipelineDB) LeaseResourceCheckingForJob(logger lager.Logger, jobName string, interval time.Duration) (Lease, bool, error) {
-	lease := &lease{
-		conn: pdb.conn,
-		logger: logger.Session("lease", lager.Data{
-			"job_name": jobName,
-		}),
-		attemptSignFunc: func(tx Tx) (sql.Result, error) {
-			var resourceCheckWaiverEnd int
-			err := tx.QueryRow(`
-				SELECT COALESCE(MAX(b.id), 0)
-					FROM builds b
-					JOIN jobs j ON b.job_id = j.id
-					WHERE j.name = $1
-						AND j.pipeline_id = $2
-			`, jobName, pdb.ID).Scan(&resourceCheckWaiverEnd)
-			if err != nil {
-				return nil, err
-			}
-
-			return tx.Exec(`
-					UPDATE jobs
-					SET resource_check_waiver_end = $4,
-						resource_check_finished_at = now() + ($3 || ' SECONDS')::INTERVAL
-					WHERE name = $1
-						AND pipeline_id = $2
-						AND resource_check_finished_at <= now()
-				`, jobName, pdb.ID, interval.Seconds(), resourceCheckWaiverEnd)
-		},
-		heartbeatFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-					UPDATE jobs
-					SET resource_check_finished_at = now() + ($3 || ' SECONDS')::INTERVAL
-					WHERE name = $1
-						AND pipeline_id = $2
-				`, jobName, pdb.ID, interval.Seconds())
-		},
-		breakFunc: func() {
-			_, err := pdb.conn.Exec(`
-					UPDATE jobs
-					SET resource_check_finished_at = 'epoch'
-					WHERE name = $1
-						AND pipeline_id = $2
-				`, jobName, pdb.ID)
-			if err != nil {
-				logger.Error("failed-to-reset-checking-state", err)
-			}
-		},
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return nil, false, err
 	}
 
-	renewed, err := lease.AttemptSign(interval)
+	defer tx.Rollback()
+
+	var resourceCheckWaiverEnd int
+	err = tx.QueryRow(`
+		SELECT COALESCE(MAX(b.id), 0)
+			FROM builds b
+			JOIN jobs j ON b.job_id = j.id
+			WHERE j.name = $1
+				AND j.pipeline_id = $2
+	`, jobName, pdb.ID).Scan(&resourceCheckWaiverEnd)
+	if err != nil {
+		return nil, false, err
+	}
+
+	updated, err := checkIfRowsUpdated(tx, `
+		UPDATE jobs
+		SET resource_check_waiver_end = $3,
+			resource_checking = true
+		WHERE name = $1
+			AND pipeline_id = $2
+			AND resource_checking = false
+	`, jobName, pdb.ID, resourceCheckWaiverEnd)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !updated {
+		return nil, false, nil
+	}
+
+	lease := pdb.leaseFactory.NewLease(
+		logger.Session("lease", lager.Data{
+			"job_name": jobName,
+		}),
+		pdb.ID+lockIDForTaskName("resource-check"),
+	)
+
+	lease.AfterBreak(func() error {
+		_, err := pdb.conn.Exec(`
+			UPDATE jobs
+			SET resource_checking = false
+			WHERE name = $1
+				AND pipeline_id = $2
+		`, jobName, pdb.ID)
+		return err
+	})
+
+	renewed, err := lease.AttemptSign()
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !renewed {
-		return nil, renewed, nil
+		return nil, false, nil
 	}
 
-	lease.KeepSigned(interval)
+	err = tx.Commit()
+	if err != nil {
+		lease.Break()
+		return nil, false, err
+	}
 
 	return lease, true, nil
 }
@@ -1481,7 +1488,7 @@ func (pdb *pipelineDB) GetNextPendingBuild(jobName string) (Build, bool, error) 
 		AND b.status = 'pending'
 		AND (
 			b.id <= j.resource_check_waiver_end
-			OR j.resource_check_finished_at <= now()
+			OR j.resource_checking = false
 		)
 		ORDER BY b.id ASC
 		LIMIT 1
@@ -2486,4 +2493,22 @@ func (pdb *pipelineDB) getJob(tx Tx, name string) (SavedJob, error) {
 	job.PipelineName = pdb.Name
 
 	return job, nil
+}
+
+func checkIfRowsUpdated(tx Tx, query string, params ...interface{}) (bool, error) {
+	result, err := tx.Exec(query, params...)
+	if err != nil {
+		return false, err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rows == 0 {
+		return false, nil
+	}
+
+	return true, nil
 }

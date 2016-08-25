@@ -1,49 +1,34 @@
 package db
 
 import (
-	"database/sql"
+	"hash/crc32"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 )
 
-func (db *SQLDB) GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error) {
-	lease := &lease{
-		conn:   db.conn,
-		logger: logger.Session("lease"),
-		attemptSignFunc: func(tx Tx) (sql.Result, error) {
-			_, err := tx.Exec(`
-				INSERT INTO leases (last_invalidated, name)
-				SELECT 'epoch', $1
-				WHERE NOT EXISTS (SELECT * FROM leases WHERE name = $1)`, taskName)
-			if err != nil {
-				return nil, err
-			}
-			return tx.Exec(`
-				UPDATE leases
-				SET last_invalidated = now()
-				WHERE (now() - last_invalidated > ($1 || ' SECONDS')::INTERVAL) AND name = $2
-			`, interval.Seconds(), taskName)
-		},
-		heartbeatFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-				UPDATE leases
-				SET last_invalidated = now()
-				WHERE name = $1
-			`, taskName)
-		},
-	}
+// TODO: don't need interval
 
-	renewed, err := lease.AttemptSign(interval)
+func (db *SQLDB) GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error) {
+	lease := db.leaseFactory.NewLease(
+		logger.Session("lease"),
+		lockIDForTaskName(taskName),
+	)
+
+	renewed, err := lease.AttemptSign()
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !renewed {
-		return nil, renewed, nil
+		return nil, false, nil
 	}
-
-	lease.KeepSigned(interval)
 
 	return lease, true, nil
 }
+
+func lockIDForTaskName(taskName string) int {
+	return int(crc32.ChecksumIEEE([]byte(taskName)))
+}
+
+const BUILD_TRACKING = 1

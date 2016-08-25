@@ -31,9 +31,10 @@ var _ = Describe("PipelineDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
+		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
+		sqlDB = db.NewSQL(dbConn, bus, leaseFactory)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, leaseFactory)
 	})
 
 	AfterEach(func() {

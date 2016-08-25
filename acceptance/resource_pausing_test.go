@@ -26,14 +26,14 @@ var _ = Describe("Resource Pausing", func() {
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-
-		sqlDB = db.NewSQL(dbConn, bus)
+		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
+		sqlDB = db.NewSQL(dbConn, bus, leaseFactory)
 
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 		// job build data
 		_, _, err = teamDB.SaveConfig("some-pipeline", atc.Config{
@@ -57,7 +57,7 @@ var _ = Describe("Resource Pausing", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
