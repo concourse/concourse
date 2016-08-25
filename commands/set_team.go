@@ -1,98 +1,22 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/atccmd"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
 )
 
 type SetTeamCommand struct {
-	TeamName string `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
-
-	BasicAuth struct {
-		Username string `long:"username" description:"Username to use for basic auth."`
-		Password string `long:"password" description:"Password to use for basic auth."`
-	} `group:"Basic Authentication" namespace:"basic-auth"`
-
-	GitHubAuth struct {
-		ClientID      string                       `long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
-		ClientSecret  string                       `long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
-		Organizations []string                     `long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
-		Teams         []flaghelpers.GitHubTeamFlag `long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
-		Users         []string                     `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
-	} `group:"GitHub Authentication" namespace:"github-auth"`
-
-	UAAAuth UAAAuth `group:"UAA Authentication" namespace:"uaa-auth"`
-
-	GenericOAuth GenericOAuth `group:"Generic OAuth Authentication" namespace:"generic-oauth"`
-}
-
-type UAAAuth struct {
-	ClientID     string               `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
-	ClientSecret string               `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
-	AuthURL      string               `long:"auth-url"      description:"UAA AuthURL endpoint."`
-	TokenURL     string               `long:"token-url"     description:"UAA TokenURL endpoint."`
-	CFSpaces     []string             `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
-	CFURL        string               `long:"cf-url"        description:"CF API endpoint."`
-	CFCACert     flaghelpers.PathFlag `long:"cf-ca-cert"    description:"Path to CF PEM-encoded CA certificate file."`
-}
-
-func (auth *UAAAuth) IsConfigured() bool {
-	return auth.ClientID != "" ||
-		auth.ClientSecret != "" ||
-		len(auth.CFSpaces) > 0 ||
-		auth.AuthURL != "" ||
-		auth.TokenURL != "" ||
-		auth.CFURL != ""
-}
-
-func (auth *UAAAuth) Validate() error {
-	if auth.ClientID == "" || auth.ClientSecret == "" {
-		return errors.New("Both client-id and client-secret are required for uaa-auth.")
-	}
-	if len(auth.CFSpaces) == 0 {
-		return errors.New("cf-space is required for uaa-auth.")
-	}
-	if auth.AuthURL == "" || auth.TokenURL == "" || auth.CFURL == "" {
-		return errors.New("auth-url, token-url and cf-url are required for uaa-auth.")
-	}
-	return nil
-}
-
-type GenericOAuth struct {
-	ClientID      string            `long:"client-id"      description:"Application client ID for enabling Generic OAuth."`
-	ClientSecret  string            `long:"client-secret"  description:"Application client secret for enabling Generic OAuth."`
-	AuthURL       string            `long:"auth-url"       description:"Generic OAuth AuthURL endpoint."`
-	AuthURLParams map[string]string `long:"auth-url-param" description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
-	TokenURL      string            `long:"token-url"      description:"Generic OAuth TokenURL endpoint."`
-	DisplayName   string            `long:"display-name"   description:"Generic OAuth display name"`
-}
-
-func (auth *GenericOAuth) IsConfigured() bool {
-	return auth.ClientID != "" ||
-		auth.ClientSecret != "" ||
-		auth.AuthURL != "" ||
-		auth.TokenURL != "" ||
-		auth.DisplayName != ""
-}
-
-func (auth *GenericOAuth) Validate() error {
-	if auth.ClientID == "" || auth.ClientSecret == "" {
-		return errors.New("Both client-id and client-secret are required for generic-oauth.")
-	}
-	if auth.AuthURL == "" || auth.TokenURL == "" {
-		return errors.New("Both auth-url and token-url are required for generic-oauth.")
-	}
-	if auth.DisplayName == "" {
-		return errors.New("display-name is required for generic-oauth.")
-	}
-	return nil
+	TeamName     string              `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
+	BasicAuth    atccmd.BasicAuth    `group:"Basic Authentication" namespace:"basic-auth"`
+	GitHubAuth   atccmd.GitHubAuth   `group:"GitHub Authentication" namespace:"github-auth"`
+	UAAAuth      atccmd.UAAAuth      `group:"UAA Authentication" namespace:"uaa-auth"`
+	GenericOAuth atccmd.GenericOAuth `group:"Generic OAuth Authentication" namespace:"generic-oauth"`
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
@@ -106,14 +30,14 @@ func (command *SetTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	hasBasicAuth, hasGitHubAuth, err := command.ValidateFlags()
+	err = command.ValidateFlags()
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Team Name:", command.TeamName)
-	fmt.Println("Basic Auth:", authMethodStatusDescription(hasBasicAuth))
-	fmt.Println("GitHub Auth:", authMethodStatusDescription(hasGitHubAuth))
+	fmt.Println("Basic Auth:", authMethodStatusDescription(command.BasicAuth.IsConfigured()))
+	fmt.Println("GitHub Auth:", authMethodStatusDescription(command.GitHubAuth.IsConfigured()))
 	fmt.Println("UAA Auth:", authMethodStatusDescription(command.UAAAuth.IsConfigured()))
 	fmt.Println("Generic OAuth:", authMethodStatusDescription(command.GenericOAuth.IsConfigured()))
 
@@ -129,19 +53,22 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	team := atc.Team{}
 
-	if hasBasicAuth {
+	if command.BasicAuth.IsConfigured() {
 		team.BasicAuth = &atc.BasicAuth{
 			BasicAuthUsername: command.BasicAuth.Username,
 			BasicAuthPassword: command.BasicAuth.Password,
 		}
 	}
 
-	if hasGitHubAuth {
+	if command.GitHubAuth.IsConfigured() {
 		team.GitHubAuth = &atc.GitHubAuth{
 			ClientID:      command.GitHubAuth.ClientID,
 			ClientSecret:  command.GitHubAuth.ClientSecret,
 			Organizations: command.GitHubAuth.Organizations,
 			Users:         command.GitHubAuth.Users,
+			AuthURL:       command.GitHubAuth.AuthURL,
+			TokenURL:      command.GitHubAuth.TokenURL,
+			APIURL:        command.GitHubAuth.APIURL,
 		}
 
 		for _, ghTeam := range command.GitHubAuth.Teams {
@@ -193,39 +120,36 @@ func (command *SetTeamCommand) Execute([]string) error {
 	return nil
 }
 
-func (command *SetTeamCommand) ValidateFlags() (bool, bool, error) {
-	hasBasicAuth := command.BasicAuth.Username != "" || command.BasicAuth.Password != ""
-	if hasBasicAuth && (command.BasicAuth.Username == "" || command.BasicAuth.Password == "") {
-		return false, false, errors.New("Both username and password are required for basic auth.")
-	}
-	hasGitHubAuth := command.GitHubAuth.ClientID != "" || command.GitHubAuth.ClientSecret != "" ||
-		len(command.GitHubAuth.Organizations) > 0 || len(command.GitHubAuth.Teams) > 0 || len(command.GitHubAuth.Users) > 0
-	if hasGitHubAuth {
-		if command.GitHubAuth.ClientID == "" || command.GitHubAuth.ClientSecret == "" {
-			return false, false, errors.New("Both client-id and client-secret are required for github-auth.")
+func (command *SetTeamCommand) ValidateFlags() error {
+	if command.BasicAuth.IsConfigured() {
+		err := command.BasicAuth.Validate()
+		if err != nil {
+			return err
 		}
-		if len(command.GitHubAuth.Organizations) == 0 &&
-			len(command.GitHubAuth.Teams) == 0 &&
-			len(command.GitHubAuth.Users) == 0 {
-			return false, false, errors.New("At least one of the following is required for github-auth: organizations, teams, users")
+	}
+
+	if command.GitHubAuth.IsConfigured() {
+		err := command.GitHubAuth.Validate()
+		if err != nil {
+			return err
 		}
 	}
 
 	if command.UAAAuth.IsConfigured() {
 		err := command.UAAAuth.Validate()
 		if err != nil {
-			return false, false, err
+			return err
 		}
 	}
 
 	if command.GenericOAuth.IsConfigured() {
 		err := command.GenericOAuth.Validate()
 		if err != nil {
-			return false, false, err
+			return err
 		}
 	}
 
-	return hasBasicAuth, hasGitHubAuth, nil
+	return nil
 }
 
 func authMethodStatusDescription(enabled bool) string {

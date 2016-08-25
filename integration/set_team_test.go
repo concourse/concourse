@@ -45,7 +45,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both username and password are required for basic auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --basic-auth-username to use basic auth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -58,7 +58,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both username and password are required for basic auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --basic-auth-password to use basic auth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -73,7 +73,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both client-id and client-secret are required for github-auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -86,7 +86,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both client-id and client-secret are required for github-auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -99,7 +99,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both client-id and client-secret are required for github-auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -112,7 +112,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("At least one of the following is required for github-auth: organizations, teams, users"))
+					Eventually(sess.Err).Should(gbytes.Say("at least one of the following is required for github-auth: organizations, teams, users."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -127,7 +127,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both client-id and client-secret are required for uaa-auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -140,7 +140,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both client-id and client-secret are required for uaa-auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -156,7 +156,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("cf-space is required for uaa-auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --uaa-auth-cf-space to use UAA OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -175,7 +175,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("auth-url, token-url and cf-url are required for uaa-auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -194,7 +194,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("auth-url, token-url and cf-url are required for uaa-auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -213,7 +213,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("auth-url, token-url and cf-url are required for uaa-auth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -228,7 +228,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both client-id and client-secret are required for generic-oauth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --generic-oauth-client-id and --generic-oauth-client-secret to use Generic OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -241,7 +241,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both client-id and client-secret are required for generic-oauth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --generic-oauth-client-id and --generic-oauth-client-secret to use Generic OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -259,7 +259,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("display-name is required for generic-oauth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --generic-oauth-display-name to use Generic OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -277,7 +277,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both auth-url and token-url are required for generic-oauth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --generic-oauth-auth-url and --generic-oauth-token-url to use Generic OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -295,7 +295,7 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("Both auth-url and token-url are required for generic-oauth."))
+					Eventually(sess.Err).Should(gbytes.Say("must specify --generic-oauth-auth-url and --generic-oauth-token-url to use Generic OAuth."))
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -596,6 +596,9 @@ var _ = Describe("Fly CLI", func() {
 					"--github-auth-team", "Venture, Inc/venture-devs",
 					"--github-auth-user", "lisa",
 					"--github-auth-user", "frank",
+					"--github-auth-auth-url", "http://enterprise.github.com/authorize",
+					"--github-auth-token-url", "http://enterprise.github.com/token",
+					"--github-auth-api-url", "http://enterprise.github.com/api",
 					"--uaa-auth-client-id", "barack samson",
 					"--uaa-auth-client-secret", "barack123",
 					"--uaa-auth-cf-space", "Obama, Inc",
@@ -624,7 +627,10 @@ var _ = Describe("Fly CLI", func() {
 								"client_secret": "barack123",
 								"organizations": ["Obama, Inc", "Samson, Inc"],
 								"teams": [{"organization_name": "Venture, Inc", "team_name": "venture-devs"}],
-								"users": ["lisa", "frank"]
+								"users": ["lisa", "frank"],
+								"auth_url": "http://enterprise.github.com/authorize",
+								"token_url": "http://enterprise.github.com/token",
+								"api_url": "http://enterprise.github.com/api"
 							},
 							"uaa_auth": {
 								"client_id": "barack samson",
