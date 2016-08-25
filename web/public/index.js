@@ -24,7 +24,7 @@ function draw(renderFn, completeFn) {
     }
 
     $(".error-message").removeClass("hidden");
-  });
+  }).always(completeFn);
 }
 
 var currentHighlight;
