@@ -1,22 +1,21 @@
-package atccmd
+package atc
 
 import (
 	"errors"
 
-	"github.com/concourse/atc/atccmd/internal/flaghelpers"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
-type BasicAuth struct {
+type BasicAuthFlag struct {
 	Username string `long:"username" description:"Username to use for basic auth."`
 	Password string `long:"password" description:"Password to use for basic auth."`
 }
 
-func (auth *BasicAuth) IsConfigured() bool {
+func (auth *BasicAuthFlag) IsConfigured() bool {
 	return auth.Username != "" || auth.Password != ""
 }
 
-func (auth *BasicAuth) Validate() error {
+func (auth *BasicAuthFlag) Validate() error {
 	var errs *multierror.Error
 	if auth.Username == "" {
 		errs = multierror.Append(
@@ -33,7 +32,7 @@ func (auth *BasicAuth) Validate() error {
 	return errs.ErrorOrNil()
 }
 
-type GitHubAuth struct {
+type GitHubAuthFlag struct {
 	ClientID      string           `long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
 	ClientSecret  string           `long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
 	Organizations []string         `long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
@@ -44,7 +43,7 @@ type GitHubAuth struct {
 	APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
 }
 
-func (auth *GitHubAuth) IsConfigured() bool {
+func (auth *GitHubAuthFlag) IsConfigured() bool {
 	return auth.ClientID != "" ||
 		auth.ClientSecret != "" ||
 		len(auth.Organizations) > 0 ||
@@ -52,7 +51,7 @@ func (auth *GitHubAuth) IsConfigured() bool {
 		len(auth.Users) > 0
 }
 
-func (auth *GitHubAuth) Validate() error {
+func (auth *GitHubAuthFlag) Validate() error {
 	var errs *multierror.Error
 	if auth.ClientID == "" || auth.ClientSecret == "" {
 		errs = multierror.Append(
@@ -69,7 +68,7 @@ func (auth *GitHubAuth) Validate() error {
 	return errs.ErrorOrNil()
 }
 
-type GenericOAuth struct {
+type GenericOAuthFlag struct {
 	DisplayName   string            `long:"display-name"   description:"Name for this auth method on the web UI."`
 	ClientID      string            `long:"client-id"      description:"Application client ID for enabling generic OAuth."`
 	ClientSecret  string            `long:"client-secret"  description:"Application client secret for enabling generic OAuth."`
@@ -78,7 +77,7 @@ type GenericOAuth struct {
 	TokenURL      string            `long:"token-url"      description:"Generic OAuth provider TokenURL endpoint."`
 }
 
-func (auth *GenericOAuth) IsConfigured() bool {
+func (auth *GenericOAuthFlag) IsConfigured() bool {
 	return auth.AuthURL != "" ||
 		auth.TokenURL != "" ||
 		auth.ClientID != "" ||
@@ -86,7 +85,7 @@ func (auth *GenericOAuth) IsConfigured() bool {
 		auth.DisplayName != ""
 }
 
-func (auth *GenericOAuth) Validate() error {
+func (auth *GenericOAuthFlag) Validate() error {
 	var errs *multierror.Error
 	if auth.ClientID == "" || auth.ClientSecret == "" {
 		errs = multierror.Append(
@@ -109,17 +108,17 @@ func (auth *GenericOAuth) Validate() error {
 	return errs.ErrorOrNil()
 }
 
-type UAAAuth struct {
-	ClientID     string               `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
-	ClientSecret string               `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
-	AuthURL      string               `long:"auth-url"      description:"UAA AuthURL endpoint."`
-	TokenURL     string               `long:"token-url"     description:"UAA TokenURL endpoint."`
-	CFSpaces     []string             `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
-	CFURL        string               `long:"cf-url"        description:"CF API endpoint."`
-	CFCACert     flaghelpers.PathFlag `long:"cf-ca-cert"    description:"Path to CF PEM-encoded CA certificate file."`
+type UAAAuthFlag struct {
+	ClientID     string   `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
+	ClientSecret string   `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
+	AuthURL      string   `long:"auth-url"      description:"UAA AuthURL endpoint."`
+	TokenURL     string   `long:"token-url"     description:"UAA TokenURL endpoint."`
+	CFSpaces     []string `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
+	CFURL        string   `long:"cf-url"        description:"CF API endpoint."`
+	CFCACert     PathFlag `long:"cf-ca-cert"    description:"Path to CF PEM-encoded CA certificate file."`
 }
 
-func (auth *UAAAuth) IsConfigured() bool {
+func (auth *UAAAuthFlag) IsConfigured() bool {
 	return auth.ClientID != "" ||
 		auth.ClientSecret != "" ||
 		len(auth.CFSpaces) > 0 ||
@@ -128,7 +127,7 @@ func (auth *UAAAuth) IsConfigured() bool {
 		auth.CFURL != ""
 }
 
-func (auth *UAAAuth) Validate() error {
+func (auth *UAAAuthFlag) Validate() error {
 	var errs *multierror.Error
 	if auth.ClientID == "" || auth.ClientSecret == "" {
 		errs = multierror.Append(

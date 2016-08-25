@@ -91,13 +91,13 @@ type ATCCommand struct {
 		ResourceTypes   map[string]string `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
-	BasicAuth BasicAuth `group:"Basic Authentication" namespace:"basic-auth"`
+	BasicAuth atc.BasicAuthFlag `group:"Basic Authentication" namespace:"basic-auth"`
 
-	GitHubAuth GitHubAuth `group:"GitHub Authentication" namespace:"github-auth"`
+	GitHubAuth atc.GitHubAuthFlag `group:"GitHub Authentication" namespace:"github-auth"`
 
-	UAAAuth UAAAuth `group:"UAA Authentication" namespace:"uaa-auth"`
+	UAAAuth atc.UAAAuthFlag `group:"UAA Authentication" namespace:"uaa-auth"`
 
-	GenericOAuth GenericOAuth `group:"Generic OAuth Authentication (Allows access to ALL authenticated users)" namespace:"generic-oauth"`
+	GenericOAuth atc.GenericOAuthFlag `group:"Generic OAuth Authentication (Allows access to ALL authenticated users)" namespace:"generic-oauth"`
 
 	Metrics struct {
 		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`

@@ -1,4 +1,4 @@
-package atccmd
+package atc
 
 import (
 	"fmt"
