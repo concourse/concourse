@@ -57,7 +57,7 @@ files:
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
-  - github.com/concourse/atc/leaserunner/*.go # gosub
+  - github.com/concourse/atc/lockrunner/*.go # gosub
   - github.com/concourse/atc/lostandfound/*.go # gosub
   - github.com/concourse/atc/metric/*.go # gosub
   - github.com/concourse/atc/pipelines/*.go # gosub
@@ -104,6 +104,7 @@ files:
   - github.com/gorilla/websocket/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.go # gosub
+  - github.com/jackc/pgx/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/lann/builder/*.go # gosub
   - github.com/lann/ps/*.go # gosub
