@@ -50,13 +50,10 @@ var _ = Describe("Auth", func() {
 	})
 
 	Describe("GitHub Auth", func() {
-		BeforeEach(func() {
+		It("forces a redirect to /teams/main/login", func() {
 			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("forces a redirect to /teams/main/login", func() {
 			request, err := http.NewRequest("POST", atcCommand.URL("/teams/main/pipelines/main/jobs/some-job/builds"), nil)
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
@@ -68,6 +65,22 @@ var _ = Describe("Auth", func() {
 			Expect(team.GitHubAuth.ClientID).To(Equal("admin"))
 			Expect(team.GitHubAuth.ClientSecret).To(Equal("password"))
 			Expect(team.GitHubAuth.Organizations).To(Equal([]string{"myorg"}))
+		})
+
+		It("requires client id and client secret to be specified", func() {
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH_NO_CLIENT_SECRET)
+			session, err := atcCommand.StartAndWait()
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth."))
+		})
+
+		It("requires organizations, teams or users to be specified", func() {
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH_NO_TEAM)
+			session, err := atcCommand.StartAndWait()
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("at least one of the following is required for github-auth: organizations, teams, users."))
 		})
 	})
 
@@ -92,66 +105,68 @@ var _ = Describe("Auth", func() {
 	})
 
 	Describe("Basic Auth", func() {
-		var response *http.Response
-		var responseErr error
+		Context("with valid arguments", func() {
+			var response *http.Response
+			var responseErr error
 
-		BeforeEach(func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
-			err := atcCommand.Start()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when requesting a team-specific route as not authenticated", func() {
 			BeforeEach(func() {
-				_, err := sqlDB.CreateTeam(db.Team{
-					Name: "some-team",
-					BasicAuth: &db.BasicAuth{
-						BasicAuthUsername: "username",
-						BasicAuthPassword: "passord",
-					},
+				atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
+				err := atcCommand.Start()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when requesting a team-specific route as not authenticated", func() {
+				BeforeEach(func() {
+					_, err := sqlDB.CreateTeam(db.Team{
+						Name: "some-team",
+						BasicAuth: &db.BasicAuth{
+							BasicAuthUsername: "username",
+							BasicAuthPassword: "passord",
+						},
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					request, err := http.NewRequest("POST", atcCommand.URL("/teams/some-team/pipelines/some-pipeline/jobs/foo/builds"), nil)
+					Expect(err).NotTo(HaveOccurred())
+					response, responseErr = http.DefaultClient.Do(request)
 				})
-				Expect(err).NotTo(HaveOccurred())
 
-				request, err := http.NewRequest("POST", atcCommand.URL("/teams/some-team/pipelines/some-pipeline/jobs/foo/builds"), nil)
-				Expect(err).NotTo(HaveOccurred())
-				response, responseErr = http.DefaultClient.Do(request)
+				It("forces a redirect to /teams/:team_name/login", func() {
+					Expect(responseErr).NotTo(HaveOccurred())
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(response.Request.URL.Path).To(Equal("/teams/some-team/login"))
+				})
 			})
 
-			It("forces a redirect to /teams/:team_name/login", func() {
-				Expect(responseErr).NotTo(HaveOccurred())
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-				Expect(response.Request.URL.Path).To(Equal("/teams/some-team/login"))
-			})
-		})
+			Context("when requesting another team-specific route but not authorized", func() {
+				BeforeEach(func() {
+					_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
+					Expect(err).NotTo(HaveOccurred())
 
-		Context("when requesting another team-specific route but not authorized", func() {
-			BeforeEach(func() {
-				_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
-				Expect(err).NotTo(HaveOccurred())
+					request, err := http.NewRequest("POST", atcCommand.URL("/teams/some-team/pipelines/some-pipeline/jobs/foo/builds"), nil)
+					Expect(err).NotTo(HaveOccurred())
+					response, responseErr = http.DefaultClient.Do(request)
+				})
 
-				request, err := http.NewRequest("POST", atcCommand.URL("/teams/some-team/pipelines/some-pipeline/jobs/foo/builds"), nil)
-				Expect(err).NotTo(HaveOccurred())
-				response, responseErr = http.DefaultClient.Do(request)
-			})
-
-			It("forces a redirect to /teams/:team_name/login", func() {
-				Expect(responseErr).NotTo(HaveOccurred())
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-				Expect(response.Request.URL.Path).To(Equal("/teams/some-team/login"))
+				It("forces a redirect to /teams/:team_name/login", func() {
+					Expect(responseErr).NotTo(HaveOccurred())
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(response.Request.URL.Path).To(Equal("/teams/some-team/login"))
+				})
 			})
 		})
 
 		It("errors when only username is specified", func() {
-			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_PASSWORD)
-			session, err := cmd.StartAndWait()
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_PASSWORD)
+			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --basic-auth-password to use basic auth"))
 		})
 
 		It("errors when only password is specified", func() {
-			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_USERNAME)
-			session, err := cmd.StartAndWait()
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_USERNAME)
+			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --basic-auth-username to use basic auth"))
@@ -185,13 +200,10 @@ var _ = Describe("Auth", func() {
 	})
 
 	Describe("UAA Auth", func() {
-		BeforeEach(func() {
+		It("forces a redirect to UAA auth URL", func() {
 			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("forces a redirect to UAA auth URL", func() {
 			request, err := http.NewRequest("GET", atcCommand.URL("/auth/uaa?redirect=%2F&team_name=main"), nil)
 
 			client := new(http.Client)
@@ -205,24 +217,24 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires client id and client secret to be specified", func() {
-			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_CLIENT_SECRET)
-			session, err := cmd.StartAndWait()
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_CLIENT_SECRET)
+			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth"))
 		})
 
 		It("requires space guid to be specified", func() {
-			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_SPACE)
-			session, err := cmd.StartAndWait()
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_SPACE)
+			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-cf-space to use UAA OAuth"))
 		})
 
 		It("requires auth, token and api url to be specified", func() {
-			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_TOKEN_URL)
-			session, err := cmd.StartAndWait()
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, UAA_AUTH_NO_TOKEN_URL)
+			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth"))
@@ -280,24 +292,24 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires client id and client secret to be specified", func() {
-			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET)
-			session, err := cmd.StartAndWait()
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET)
+			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --generic-oauth-client-id and --generic-oauth-client-secret to use Generic OAuth"))
 		})
 
 		It("requires authorization url and token url to be specified", func() {
-			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_TOKEN_URL)
-			session, err := cmd.StartAndWait()
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_TOKEN_URL)
+			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --generic-oauth-auth-url and --generic-oauth-token-url to use Generic OAuth"))
 		})
 
 		It("requires display name to be specified", func() {
-			cmd := NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME)
-			session, err := cmd.StartAndWait()
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME)
+			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 			Expect(session.Err).To(gbytes.Say("must specify --generic-oauth-display-name to use Generic OAuth"))

@@ -91,21 +91,9 @@ type ATCCommand struct {
 		ResourceTypes   map[string]string `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
-	BasicAuth struct {
-		Username string `long:"username" description:"Username to use for basic auth."`
-		Password string `long:"password" description:"Password to use for basic auth."`
-	} `group:"Basic Authentication" namespace:"basic-auth"`
+	BasicAuth BasicAuth `group:"Basic Authentication" namespace:"basic-auth"`
 
-	GitHubAuth struct {
-		ClientID      string           `long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
-		ClientSecret  string           `long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
-		Organizations []string         `long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
-		Teams         []GitHubTeamFlag `long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
-		Users         []string         `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
-		AuthURL       string           `long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise."`
-		TokenURL      string           `long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise."`
-		APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
-	} `group:"GitHub Authentication" namespace:"github-auth"`
+	GitHubAuth GitHubAuth `group:"GitHub Authentication" namespace:"github-auth"`
 
 	UAAAuth UAAAuth `group:"UAA Authentication" namespace:"uaa-auth"`
 
@@ -122,41 +110,6 @@ type ATCCommand struct {
 		RiemannHost string `long:"riemann-host"                description:"Riemann server address to emit metrics to."`
 		RiemannPort uint16 `long:"riemann-port" default:"5555" description:"Port of the Riemann server to emit metrics to."`
 	} `group:"Metrics & Diagnostics"`
-}
-
-type GenericOAuth struct {
-	DisplayName   string            `long:"display-name"   description:"Name for this auth method on the web UI."`
-	ClientID      string            `long:"client-id"      description:"Application client ID for enabling generic OAuth."`
-	ClientSecret  string            `long:"client-secret"  description:"Application client secret for enabling generic OAuth."`
-	AuthURL       string            `long:"auth-url"       description:"Generic OAuth provider AuthURL endpoint."`
-	AuthURLParams map[string]string `long:"auth-url-param" description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
-	TokenURL      string            `long:"token-url"      description:"Generic OAuth provider TokenURL endpoint."`
-}
-
-func (auth *GenericOAuth) IsConfigured() bool {
-	return auth.AuthURL != "" ||
-		auth.TokenURL != "" ||
-		auth.ClientID != "" ||
-		auth.ClientSecret != "" ||
-		auth.DisplayName != ""
-}
-
-type UAAAuth struct {
-	ClientID     string   `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
-	ClientSecret string   `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
-	AuthURL      string   `long:"auth-url"      description:"UAA AuthURL endpoint."`
-	TokenURL     string   `long:"token-url"     description:"UAA TokenURL endpoint."`
-	CFSpaces     []string `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
-	CFURL        string   `long:"cf-url"        description:"CF API endpoint."`
-}
-
-func (auth *UAAAuth) IsConfigured() bool {
-	return auth.ClientID != "" ||
-		auth.ClientSecret != "" ||
-		len(auth.CFSpaces) > 0 ||
-		auth.AuthURL != "" ||
-		auth.TokenURL != "" ||
-		auth.CFURL != ""
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -472,11 +425,7 @@ func (cmd *ATCCommand) oauthBaseURL() string {
 }
 
 func (cmd *ATCCommand) authConfigured() bool {
-	return cmd.basicAuthConfigured() || cmd.gitHubAuthConfigured() || cmd.UAAAuth.IsConfigured() || cmd.GenericOAuth.IsConfigured()
-}
-
-func (cmd *ATCCommand) basicAuthConfigured() bool {
-	return cmd.BasicAuth.Username != "" || cmd.BasicAuth.Password != ""
+	return cmd.BasicAuth.IsConfigured() || cmd.GitHubAuth.IsConfigured() || cmd.UAAAuth.IsConfigured() || cmd.GenericOAuth.IsConfigured()
 }
 
 func (cmd *ATCCommand) gitHubAuthConfigured() bool {
@@ -495,7 +444,7 @@ func (cmd *ATCCommand) validate() error {
 		)
 	}
 
-	if cmd.gitHubAuthConfigured() {
+	if cmd.GitHubAuth.IsConfigured() {
 		if cmd.ExternalURL.URL() == nil {
 			errs = multierror.Append(
 				errs,
@@ -503,68 +452,30 @@ func (cmd *ATCCommand) validate() error {
 			)
 		}
 
-		if cmd.GitHubAuth.ClientID == "" || cmd.GitHubAuth.ClientSecret == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth"),
-			)
+		err := cmd.GitHubAuth.Validate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
 
 	if cmd.GenericOAuth.IsConfigured() {
-		if cmd.GenericOAuth.ClientID == "" || cmd.GenericOAuth.ClientSecret == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --generic-oauth-client-id and --generic-oauth-client-secret to use Generic OAuth"),
-			)
-		}
-		if cmd.GenericOAuth.AuthURL == "" || cmd.GenericOAuth.TokenURL == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --generic-oauth-auth-url and --generic-oauth-token-url to use Generic OAuth"),
-			)
-		}
-		if cmd.GenericOAuth.DisplayName == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --generic-oauth-display-name to use Generic OAuth"),
-			)
+		err := cmd.GenericOAuth.Validate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
 
-	if cmd.basicAuthConfigured() {
-		if cmd.BasicAuth.Username == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --basic-auth-username to use basic auth"),
-			)
-		}
-		if cmd.BasicAuth.Password == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --basic-auth-password to use basic auth"),
-			)
+	if cmd.BasicAuth.IsConfigured() {
+		err := cmd.BasicAuth.Validate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
 
 	if cmd.UAAAuth.IsConfigured() {
-		if cmd.UAAAuth.ClientID == "" || cmd.UAAAuth.ClientSecret == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth"),
-			)
-		}
-		if len(cmd.UAAAuth.CFSpaces) == 0 {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --uaa-auth-cf-space to use UAA OAuth"),
-			)
-		}
-		if cmd.UAAAuth.AuthURL == "" || cmd.UAAAuth.TokenURL == "" || cmd.UAAAuth.CFURL == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth"),
-			)
+		err := cmd.UAAAuth.Validate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
 
@@ -716,7 +627,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 	var basicAuth *db.BasicAuth
-	if cmd.basicAuthConfigured() {
+	if cmd.BasicAuth.IsConfigured() {
 		basicAuth = &db.BasicAuth{
 			BasicAuthUsername: cmd.BasicAuth.Username,
 			BasicAuthPassword: cmd.BasicAuth.Password,
@@ -728,7 +639,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 	}
 
 	var gitHubAuth *db.GitHubAuth
-	if cmd.gitHubAuthConfigured() {
+	if cmd.GitHubAuth.IsConfigured() {
 		gitHubTeams := []db.GitHubTeam{}
 		for _, gitHubTeam := range cmd.GitHubAuth.Teams {
 			gitHubTeams = append(gitHubTeams, db.GitHubTeam{

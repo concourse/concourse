@@ -27,6 +27,8 @@ const BASIC_AUTH = "basic"
 const BASIC_AUTH_NO_PASSWORD = "basic-no-password"
 const BASIC_AUTH_NO_USERNAME = "basic-no-username"
 const GITHUB_AUTH = "github"
+const GITHUB_AUTH_NO_CLIENT_SECRET = "github-no-secret"
+const GITHUB_AUTH_NO_TEAM = "github-no-team"
 const GITHUB_ENTERPRISE_AUTH = "github-enterprise"
 const UAA_AUTH = "cf"
 const UAA_AUTH_NO_CLIENT_SECRET = "cf-no-secret"
@@ -185,6 +187,18 @@ func (a *ATCCommand) getATCCommand() *exec.Cmd {
 				"--github-auth-organization", "myorg",
 				"--github-auth-team", "myorg/all",
 				"--github-auth-user", "myuser",
+			)
+		case GITHUB_AUTH_NO_CLIENT_SECRET:
+			params = append(params,
+				"--github-auth-client-id", "admin",
+				"--github-auth-organization", "myorg",
+				"--github-auth-team", "myorg/all",
+				"--github-auth-user", "myuser",
+			)
+		case GITHUB_AUTH_NO_TEAM:
+			params = append(params,
+				"--github-auth-client-id", "admin",
+				"--github-auth-client-secret", "password",
 			)
 		case GITHUB_ENTERPRISE_AUTH:
 			params = append(params,
