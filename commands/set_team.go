@@ -5,18 +5,17 @@ import (
 	"io/ioutil"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/atccmd"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
 )
 
 type SetTeamCommand struct {
-	TeamName     string              `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
-	BasicAuth    atccmd.BasicAuth    `group:"Basic Authentication" namespace:"basic-auth"`
-	GitHubAuth   atccmd.GitHubAuth   `group:"GitHub Authentication" namespace:"github-auth"`
-	UAAAuth      atccmd.UAAAuth      `group:"UAA Authentication" namespace:"uaa-auth"`
-	GenericOAuth atccmd.GenericOAuth `group:"Generic OAuth Authentication" namespace:"generic-oauth"`
+	TeamName     string               `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
+	BasicAuth    atc.BasicAuthFlag    `group:"Basic Authentication" namespace:"basic-auth"`
+	GitHubAuth   atc.GitHubAuthFlag   `group:"GitHub Authentication" namespace:"github-auth"`
+	UAAAuth      atc.UAAAuthFlag      `group:"UAA Authentication" namespace:"uaa-auth"`
+	GenericOAuth atc.GenericOAuthFlag `group:"Generic OAuth Authentication" namespace:"generic-oauth"`
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
