@@ -13,7 +13,7 @@ import (
 //go:generate counterfeiter . RunnerDB
 
 type RunnerDB interface {
-	GetLock(logger lager.Logger, lockName string) (db.Lock, bool, error)
+	GetTaskLock(logger lager.Logger, lockName string) (db.Lock, bool, error)
 }
 
 //go:generate counterfeiter . Task
@@ -43,7 +43,7 @@ func NewRunner(
 				lockLogger := logger.Session("lock-task", lager.Data{"task-name": taskName})
 				lockLogger.Info("tick")
 
-				lock, acquired, err := db.GetLock(lockLogger, taskName)
+				lock, acquired, err := db.GetTaskLock(lockLogger, taskName)
 
 				if err != nil {
 					lockLogger.Error("failed-to-get-lock", err)

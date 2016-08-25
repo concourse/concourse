@@ -133,7 +133,7 @@ var _ = Describe("Fetcher", func() {
 
 				Context("when did not get a lock", func() {
 					BeforeEach(func() {
-						fakeLockDB.GetLockReturns(nil, false, nil)
+						fakeLockDB.GetTaskLockReturns(nil, false, nil)
 					})
 
 					It("does not initialize fetch source", func() {
@@ -147,7 +147,7 @@ var _ = Describe("Fetcher", func() {
 
 				Context("when acquiring lock returns error", func() {
 					BeforeEach(func() {
-						fakeLockDB.GetLockReturns(nil, false, errors.New("disaster"))
+						fakeLockDB.GetTaskLockReturns(nil, false, errors.New("disaster"))
 					})
 
 					It("does not initialize fetch source", func() {
@@ -165,12 +165,12 @@ var _ = Describe("Fetcher", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeLockDB.GetLockReturns(fakeLease, true, nil)
+					fakeLockDB.GetTaskLockReturns(fakeLease, true, nil)
 				})
 
 				It("acquires a lock with source lock name", func() {
-					Expect(fakeLockDB.GetLockCallCount()).To(Equal(1))
-					_, lockName := fakeLockDB.GetLockArgsForCall(0)
+					Expect(fakeLockDB.GetTaskLockCallCount()).To(Equal(1))
+					_, lockName := fakeLockDB.GetTaskLockArgsForCall(0)
 					Expect(lockName).To(Equal("fake-lock-name"))
 				})
 

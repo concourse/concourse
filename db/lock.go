@@ -1,16 +1,40 @@
 package db
 
 import (
+	"fmt"
+	"hash/crc32"
+	"strconv"
+	"strings"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/jackc/pgx"
 )
 
+func buildTrackingLockID(buildID int) LockID { return LockID{buildID} }
+
+func resourceCheckingLockID(pipelineID int, resourceName string) LockID {
+	return LockID{pipelineID, lockIDFromString(resourceName)}
+}
+
+func resourceTypeCheckingLockID(pipelineID int, resourceTypeName string) LockID {
+	return LockID{pipelineID, lockIDFromString(resourceTypeName)}
+}
+
+func pipelineSchedulingLockLockID(buildID int) LockID { return LockID{buildID} }
+
+func resourceCheckingForJobLockID(pipelineID int, jobName string) LockID {
+	return LockID{pipelineID, lockIDFromString(jobName)}
+}
+
+func taskLockID(taskName string) LockID {
+	return LockID{lockIDFromString(taskName)}
+}
+
 //go:generate counterfeiter . LockFactory
 
 type LockFactory interface {
-	NewLock(logger lager.Logger, lockID int) Lock
+	NewLock(logger lager.Logger, ids LockID) Lock
 }
 
 type lockFactory struct {
@@ -25,17 +49,17 @@ func NewLockFactory(conn *pgx.Conn) LockFactory {
 			mutex: &sync.Mutex{},
 		},
 		locks: lockRepo{
-			locks: map[int]bool{},
+			locks: map[string]bool{},
 			mutex: &sync.Mutex{},
 		},
 	}
 }
 
-func (f *lockFactory) NewLock(logger lager.Logger, lockID int) Lock {
+func (f *lockFactory) NewLock(logger lager.Logger, id LockID) Lock {
 	return &lock{
 		logger: logger,
 		db:     f.db,
-		id:     lockID,
+		id:     id,
 		locks:  f.locks,
 	}
 }
@@ -52,7 +76,7 @@ type lock struct {
 	logger lager.Logger
 	db     lockDB
 
-	id    int
+	id    LockID
 	locks lockRepo
 
 	afterRelease func() error
@@ -94,9 +118,9 @@ type lockDB struct {
 	mutex *sync.Mutex
 }
 
-func (db *lockDB) Acquire(name int) (bool, error) {
+func (db *lockDB) Acquire(id LockID) (bool, error) {
 	var acquired bool
-	err := db.conn.QueryRow(`SELECT pg_try_advisory_lock($1)`, name).Scan(&acquired)
+	err := db.conn.QueryRow(`SELECT pg_try_advisory_lock(`+id.toDBParams()+`)`, id.toDBArgs()...).Scan(&acquired)
 	if err != nil {
 		return false, err
 	}
@@ -104,36 +128,68 @@ func (db *lockDB) Acquire(name int) (bool, error) {
 	return acquired, nil
 }
 
-func (db *lockDB) Release(name int) error {
-	_, err := db.conn.Exec(`SELECT pg_advisory_unlock($1)`, name)
+func (db *lockDB) Release(id LockID) error {
+	_, err := db.conn.Exec(`SELECT pg_advisory_unlock(`+id.toDBParams()+`)`, id.toDBArgs()...)
 	return err
 }
 
 type lockRepo struct {
-	locks map[int]bool
+	locks map[string]bool
 	mutex *sync.Mutex
 }
 
-func (lr lockRepo) IsRegistered(lockID int) bool {
+func (lr lockRepo) IsRegistered(id LockID) bool {
 	lr.mutex.Lock()
 	defer lr.mutex.Unlock()
 
-	if _, ok := lr.locks[lockID]; ok {
+	if _, ok := lr.locks[id.toKey()]; ok {
 		return true
 	}
 	return false
 }
 
-func (lr lockRepo) Register(lockID int) {
+func (lr lockRepo) Register(id LockID) {
 	lr.mutex.Lock()
 	defer lr.mutex.Unlock()
 
-	lr.locks[lockID] = true
+	lr.locks[id.toKey()] = true
 }
 
-func (lr lockRepo) Unregister(lockID int) {
+func (lr lockRepo) Unregister(id LockID) {
 	lr.mutex.Lock()
 	defer lr.mutex.Unlock()
 
-	delete(lr.locks, lockID)
+	delete(lr.locks, id.toKey())
+}
+
+type LockID []int
+
+func (l LockID) toKey() string {
+	s := []string{}
+	for i := range l {
+		s = append(s, strconv.Itoa(l[i]))
+	}
+	return strings.Join(s, "+")
+}
+
+func (l LockID) toDBParams() string {
+	s := []string{}
+	for i := range l {
+		s = append(s, fmt.Sprintf("$%d", i+1))
+	}
+
+	return strings.Join(s, ",")
+}
+
+func (l LockID) toDBArgs() []interface{} {
+	result := []interface{}{}
+	for i := range l {
+		result = append(result, l[i])
+	}
+
+	return result
+}
+
+func lockIDFromString(taskName string) int {
+	return int(int32(crc32.ChecksumIEEE([]byte(taskName))))
 }

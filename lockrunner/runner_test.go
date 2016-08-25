@@ -60,14 +60,14 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("calls to get a lock for cache invalidation", func() {
-			Eventually(fakeDB.GetLockCallCount).Should(Equal(1))
-			_, actualTaskName := fakeDB.GetLockArgsForCall(0)
+			Eventually(fakeDB.GetTaskLockCallCount).Should(Equal(1))
+			_, actualTaskName := fakeDB.GetTaskLockArgsForCall(0)
 			Expect(actualTaskName).To(Equal("some-task-name"))
 		})
 
 		Context("when getting a lock succeeds", func() {
 			BeforeEach(func() {
-				fakeDB.GetLockReturns(fakeLease, true, nil)
+				fakeDB.GetTaskLockReturns(fakeLease, true, nil)
 			})
 
 			It("it collects lost baggage", func() {
@@ -96,7 +96,7 @@ var _ = Describe("Runner", func() {
 		Context("when getting a lock fails", func() {
 			Context("because of an error", func() {
 				BeforeEach(func() {
-					fakeDB.GetLockReturns(nil, true, errors.New("disaster"))
+					fakeDB.GetTaskLockReturns(nil, true, errors.New("disaster"))
 				})
 
 				It("does not exit and does not collect baggage", func() {
@@ -107,7 +107,7 @@ var _ = Describe("Runner", func() {
 
 			Context("because we got acquired of false", func() {
 				BeforeEach(func() {
-					fakeDB.GetLockReturns(nil, false, nil)
+					fakeDB.GetTaskLockReturns(nil, false, nil)
 				})
 
 				It("does not exit and does not collect baggage", func() {

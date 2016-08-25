@@ -161,7 +161,7 @@ func (f *fetcher) fetchWithLease(
 	lockLogger := logger.Session("lock-task", lager.Data{"lock-name": lockName})
 	lockLogger.Info("tick")
 
-	lock, acquired, err := f.db.GetLock(lockLogger, lockName)
+	lock, acquired, err := f.db.GetTaskLock(lockLogger, lockName)
 
 	if err != nil {
 		lockLogger.Error("failed-to-get-lock", err)

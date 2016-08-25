@@ -9,11 +9,11 @@ import (
 )
 
 type FakeLockFactory struct {
-	NewLockStub        func(logger lager.Logger, lockID int) db.Lock
+	NewLockStub        func(logger lager.Logger, ids db.LockID) db.Lock
 	newLockMutex       sync.RWMutex
 	newLockArgsForCall []struct {
 		logger lager.Logger
-		lockID int
+		ids    db.LockID
 	}
 	newLockReturns struct {
 		result1 db.Lock
@@ -22,16 +22,16 @@ type FakeLockFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLockFactory) NewLock(logger lager.Logger, lockID int) db.Lock {
+func (fake *FakeLockFactory) NewLock(logger lager.Logger, ids db.LockID) db.Lock {
 	fake.newLockMutex.Lock()
 	fake.newLockArgsForCall = append(fake.newLockArgsForCall, struct {
 		logger lager.Logger
-		lockID int
-	}{logger, lockID})
-	fake.recordInvocation("NewLock", []interface{}{logger, lockID})
+		ids    db.LockID
+	}{logger, ids})
+	fake.recordInvocation("NewLock", []interface{}{logger, ids})
 	fake.newLockMutex.Unlock()
 	if fake.NewLockStub != nil {
-		return fake.NewLockStub(logger, lockID)
+		return fake.NewLockStub(logger, ids)
 	} else {
 		return fake.newLockReturns.result1
 	}
@@ -43,10 +43,10 @@ func (fake *FakeLockFactory) NewLockCallCount() int {
 	return len(fake.newLockArgsForCall)
 }
 
-func (fake *FakeLockFactory) NewLockArgsForCall(i int) (lager.Logger, int) {
+func (fake *FakeLockFactory) NewLockArgsForCall(i int) (lager.Logger, db.LockID) {
 	fake.newLockMutex.RLock()
 	defer fake.newLockMutex.RUnlock()
-	return fake.newLockArgsForCall[i].logger, fake.newLockArgsForCall[i].lockID
+	return fake.newLockArgsForCall[i].logger, fake.newLockArgsForCall[i].ids
 }
 
 func (fake *FakeLockFactory) NewLockReturns(result1 db.Lock) {

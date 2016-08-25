@@ -89,7 +89,7 @@ type DB interface {
 	CreatePipe(pipeGUID string, url string) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
-	GetLock(logger lager.Logger, taskName string) (Lock, bool, error)
+	GetTaskLock(logger lager.Logger, taskName string) (Lock, bool, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 

@@ -350,15 +350,15 @@ func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource
 		logger.Session("lock", lager.Data{
 			"resource": resourceName,
 		}),
-		pdb.ID+lockIDForTaskName(resourceName),
+		resourceCheckingLockID(pdb.ID, resourceName),
 	)
 
-	renewed, err := lock.Acquire()
+	acquired, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !renewed {
+	if !acquired {
 		return nil, false, nil
 	}
 
@@ -405,15 +405,15 @@ func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, reso
 		logger.Session("lock", lager.Data{
 			"resource-type": resourceTypeName,
 		}),
-		pdb.ID+lockIDForTaskName(resourceTypeName),
+		resourceTypeCheckingLockID(pdb.ID, resourceTypeName),
 	)
 
-	renewed, err := lock.Acquire()
+	acquired, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !renewed {
+	if !acquired {
 		return nil, false, nil
 	}
 
@@ -452,15 +452,15 @@ func (pdb *pipelineDB) AcquireSchedulingLock(logger lager.Logger, interval time.
 		logger.Session("lock", lager.Data{
 			"pipeline": pdb.Name,
 		}),
-		pdb.ID+lockIDForTaskName("scheduling"),
+		pipelineSchedulingLockLockID(pdb.ID),
 	)
 
-	renewed, err := lock.Acquire()
+	acquired, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !renewed {
+	if !acquired {
 		return nil, false, nil
 	}
 
@@ -513,7 +513,7 @@ func (pdb *pipelineDB) AcquireResourceCheckingForJobLock(logger lager.Logger, jo
 		logger.Session("lock", lager.Data{
 			"job_name": jobName,
 		}),
-		pdb.ID+lockIDForTaskName("resource-check"),
+		resourceCheckingForJobLockID(pdb.ID, jobName),
 	)
 
 	lock.AfterRelease(func() error {
@@ -526,12 +526,12 @@ func (pdb *pipelineDB) AcquireResourceCheckingForJobLock(logger lager.Logger, jo
 		return err
 	})
 
-	renewed, err := lock.Acquire()
+	acquired, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !renewed {
+	if !acquired {
 		return nil, false, nil
 	}
 

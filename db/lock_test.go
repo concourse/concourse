@@ -80,7 +80,7 @@ var _ = Describe("Locks", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
-		lock = lockFactory.NewLock(logger, 42)
+		lock = lockFactory.NewLock(logger, db.LockID{42})
 	})
 
 	AfterEach(func() {
@@ -96,6 +96,28 @@ var _ = Describe("Locks", func() {
 	Describe("leases in general", func() {
 		It("Acquire can only obtain lock once", func() {
 			acquired, err := lock.Acquire()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(acquired).To(BeTrue())
+
+			acquired, err = lock.Acquire()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(acquired).To(BeFalse())
+		})
+
+		It("Acquire accepts list of ids", func() {
+			lock = lockFactory.NewLock(logger, db.LockID{42, 56})
+
+			acquired, err := lock.Acquire()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(acquired).To(BeTrue())
+
+			acquired, err = lock.Acquire()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(acquired).To(BeFalse())
+
+			lock = lockFactory.NewLock(logger, db.LockID{56, 42})
+
+			acquired, err = lock.Acquire()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
@@ -649,14 +671,14 @@ var _ = Describe("Locks", func() {
 		})
 	})
 
-	Describe("GetLock", func() {
+	Describe("GetTaskLock", func() {
 		Context("when something got the lock recently", func() {
 			It("does not get the lock", func() {
-				lock, acquired, err := sqlDB.GetLock(logger, "some-task-name")
+				lock, acquired, err := sqlDB.GetTaskLock(logger, "some-task-name")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				_, acquired, err = sqlDB.GetLock(logger, "some-task-name")
+				_, acquired, err = sqlDB.GetTaskLock(logger, "some-task-name")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
@@ -666,12 +688,12 @@ var _ = Describe("Locks", func() {
 
 		Context("when no one got the lock recently", func() {
 			It("gets and keeps the lock and stops others from getting it", func() {
-				lock, acquired, err := sqlDB.GetLock(logger, "some-task-name")
+				lock, acquired, err := sqlDB.GetTaskLock(logger, "some-task-name")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
 				Consistently(func() bool {
-					_, acquired, err = sqlDB.GetLock(logger, "some-task-name")
+					_, acquired, err = sqlDB.GetTaskLock(logger, "some-task-name")
 					Expect(err).NotTo(HaveOccurred())
 
 					return acquired
@@ -683,13 +705,13 @@ var _ = Describe("Locks", func() {
 
 		Context("when something got a different lock recently", func() {
 			It("still gets the lock", func() {
-				lock, acquired, err := sqlDB.GetLock(logger, "some-other-task-name")
+				lock, acquired, err := sqlDB.GetTaskLock(logger, "some-other-task-name")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
 				lock.Release()
 
-				newLease, acquired, err := sqlDB.GetLock(logger, "some-task-name")
+				newLease, acquired, err := sqlDB.GetTaskLock(logger, "some-task-name")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 

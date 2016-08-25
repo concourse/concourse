@@ -16,7 +16,7 @@ type FetcherFactory interface {
 //go:generate counterfeiter . LockDB
 
 type LockDB interface {
-	GetLock(logger lager.Logger, lockName string) (db.Lock, bool, error)
+	GetTaskLock(logger lager.Logger, lockName string) (db.Lock, bool, error)
 }
 
 func NewFetcherFactory(

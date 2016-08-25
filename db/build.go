@@ -875,15 +875,15 @@ func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration)
 		logger.Session("lock", lager.Data{
 			"build_id": b.id,
 		}),
-		b.id,
+		buildTrackingLockID(b.id),
 	)
 
-	renewed, err := lock.Acquire()
+	acquired, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !renewed {
+	if !acquired {
 		return nil, false, nil
 	}
 

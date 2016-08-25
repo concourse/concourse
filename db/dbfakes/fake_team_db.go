@@ -92,7 +92,6 @@ type FakeTeamDB struct {
 		result1 db.SavedTeam
 		result2 error
 	}
-
 	GetConfigStub        func(pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct {

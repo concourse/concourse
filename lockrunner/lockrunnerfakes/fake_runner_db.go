@@ -10,13 +10,13 @@ import (
 )
 
 type FakeRunnerDB struct {
-	GetLockStub        func(logger lager.Logger, lockName string) (db.Lock, bool, error)
-	getLockMutex       sync.RWMutex
-	getLockArgsForCall []struct {
+	GetTaskLockStub        func(logger lager.Logger, lockName string) (db.Lock, bool, error)
+	getTaskLockMutex       sync.RWMutex
+	getTaskLockArgsForCall []struct {
 		logger   lager.Logger
 		lockName string
 	}
-	getLockReturns struct {
+	getTaskLockReturns struct {
 		result1 db.Lock
 		result2 bool
 		result3 error
@@ -25,36 +25,36 @@ type FakeRunnerDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRunnerDB) GetLock(logger lager.Logger, lockName string) (db.Lock, bool, error) {
-	fake.getLockMutex.Lock()
-	fake.getLockArgsForCall = append(fake.getLockArgsForCall, struct {
+func (fake *FakeRunnerDB) GetTaskLock(logger lager.Logger, lockName string) (db.Lock, bool, error) {
+	fake.getTaskLockMutex.Lock()
+	fake.getTaskLockArgsForCall = append(fake.getTaskLockArgsForCall, struct {
 		logger   lager.Logger
 		lockName string
 	}{logger, lockName})
-	fake.recordInvocation("GetLock", []interface{}{logger, lockName})
-	fake.getLockMutex.Unlock()
-	if fake.GetLockStub != nil {
-		return fake.GetLockStub(logger, lockName)
+	fake.recordInvocation("GetTaskLock", []interface{}{logger, lockName})
+	fake.getTaskLockMutex.Unlock()
+	if fake.GetTaskLockStub != nil {
+		return fake.GetTaskLockStub(logger, lockName)
 	} else {
-		return fake.getLockReturns.result1, fake.getLockReturns.result2, fake.getLockReturns.result3
+		return fake.getTaskLockReturns.result1, fake.getTaskLockReturns.result2, fake.getTaskLockReturns.result3
 	}
 }
 
-func (fake *FakeRunnerDB) GetLockCallCount() int {
-	fake.getLockMutex.RLock()
-	defer fake.getLockMutex.RUnlock()
-	return len(fake.getLockArgsForCall)
+func (fake *FakeRunnerDB) GetTaskLockCallCount() int {
+	fake.getTaskLockMutex.RLock()
+	defer fake.getTaskLockMutex.RUnlock()
+	return len(fake.getTaskLockArgsForCall)
 }
 
-func (fake *FakeRunnerDB) GetLockArgsForCall(i int) (lager.Logger, string) {
-	fake.getLockMutex.RLock()
-	defer fake.getLockMutex.RUnlock()
-	return fake.getLockArgsForCall[i].logger, fake.getLockArgsForCall[i].lockName
+func (fake *FakeRunnerDB) GetTaskLockArgsForCall(i int) (lager.Logger, string) {
+	fake.getTaskLockMutex.RLock()
+	defer fake.getTaskLockMutex.RUnlock()
+	return fake.getTaskLockArgsForCall[i].logger, fake.getTaskLockArgsForCall[i].lockName
 }
 
-func (fake *FakeRunnerDB) GetLockReturns(result1 db.Lock, result2 bool, result3 error) {
-	fake.GetLockStub = nil
-	fake.getLockReturns = struct {
+func (fake *FakeRunnerDB) GetTaskLockReturns(result1 db.Lock, result2 bool, result3 error) {
+	fake.GetTaskLockStub = nil
+	fake.getTaskLockReturns = struct {
 		result1 db.Lock
 		result2 bool
 		result3 error
@@ -64,8 +64,8 @@ func (fake *FakeRunnerDB) GetLockReturns(result1 db.Lock, result2 bool, result3 
 func (fake *FakeRunnerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getLockMutex.RLock()
-	defer fake.getLockMutex.RUnlock()
+	fake.getTaskLockMutex.RLock()
+	defer fake.getTaskLockMutex.RUnlock()
 	return fake.invocations
 }
 
