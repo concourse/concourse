@@ -83,6 +83,16 @@ type FakeTeamDB struct {
 		result1 db.SavedTeam
 		result2 error
 	}
+	UpdateGenericOAuthStub        func(genericOAuth *db.GenericOAuth) (db.SavedTeam, error)
+	updateGenericOAuthMutex       sync.RWMutex
+	updateGenericOAuthArgsForCall []struct {
+		genericOAuth *db.GenericOAuth
+	}
+	updateGenericOAuthReturns struct {
+		result1 db.SavedTeam
+		result2 error
+	}
+
 	GetConfigStub        func(pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct {
@@ -441,6 +451,40 @@ func (fake *FakeTeamDB) UpdateUAAAuthReturns(result1 db.SavedTeam, result2 error
 	}{result1, result2}
 }
 
+func (fake *FakeTeamDB) UpdateGenericOAuth(genericOAuth *db.GenericOAuth) (db.SavedTeam, error) {
+	fake.updateGenericOAuthMutex.Lock()
+	fake.updateGenericOAuthArgsForCall = append(fake.updateGenericOAuthArgsForCall, struct {
+		genericOAuth *db.GenericOAuth
+	}{genericOAuth})
+	fake.recordInvocation("UpdateGenericOAuth", []interface{}{genericOAuth})
+	fake.updateGenericOAuthMutex.Unlock()
+	if fake.UpdateGenericOAuthStub != nil {
+		return fake.UpdateGenericOAuthStub(genericOAuth)
+	} else {
+		return fake.updateGenericOAuthReturns.result1, fake.updateGenericOAuthReturns.result2
+	}
+}
+
+func (fake *FakeTeamDB) UpdateGenericOAuthCallCount() int {
+	fake.updateGenericOAuthMutex.RLock()
+	defer fake.updateGenericOAuthMutex.RUnlock()
+	return len(fake.updateGenericOAuthArgsForCall)
+}
+
+func (fake *FakeTeamDB) UpdateGenericOAuthArgsForCall(i int) *db.GenericOAuth {
+	fake.updateGenericOAuthMutex.RLock()
+	defer fake.updateGenericOAuthMutex.RUnlock()
+	return fake.updateGenericOAuthArgsForCall[i].genericOAuth
+}
+
+func (fake *FakeTeamDB) UpdateGenericOAuthReturns(result1 db.SavedTeam, result2 error) {
+	fake.UpdateGenericOAuthStub = nil
+	fake.updateGenericOAuthReturns = struct {
+		result1 db.SavedTeam
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeamDB) GetConfig(pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
 	fake.getConfigMutex.Lock()
 	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct {
@@ -718,6 +762,8 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.updateGitHubAuthMutex.RUnlock()
 	fake.updateUAAAuthMutex.RLock()
 	defer fake.updateUAAAuthMutex.RUnlock()
+	fake.updateGenericOAuthMutex.RLock()
+	defer fake.updateGenericOAuthMutex.RUnlock()
 	fake.getConfigMutex.RLock()
 	defer fake.getConfigMutex.RUnlock()
 	fake.saveConfigMutex.RLock()

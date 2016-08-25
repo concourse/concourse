@@ -267,6 +267,7 @@ var _ = Describe("TeamDB", func() {
 		var basicAuth *db.BasicAuth
 		var gitHubAuth *db.GitHubAuth
 		var uaaAuth *db.UAAAuth
+		var genericOAuth *db.GenericOAuth
 
 		BeforeEach(func() {
 			basicAuth = &db.BasicAuth{
@@ -299,6 +300,15 @@ var _ = Describe("TeamDB", func() {
 				CFSpaces:     []string{"a", "b", "c"},
 				CFURL:        "https://some.api.url",
 			}
+
+			genericOAuth = &db.GenericOAuth{
+				DisplayName:   "Cyborgs",
+				ClientID:      "some random guid",
+				ClientSecret:  "don't tell anyone",
+				AuthURL:       "https://auth.url",
+				AuthURLParams: map[string]string{"option": "1"},
+				TokenURL:      "https://token.url",
+			}
 		})
 
 		Describe("UpdateBasicAuth", func() {
@@ -320,6 +330,16 @@ var _ = Describe("TeamDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.UAAAuth).To(Equal(uaaAuth))
+			})
+
+			It("saves basic auth team info without overwriting the Generic OAuth info", func() {
+				_, err := teamDB.UpdateGenericOAuth(genericOAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.GenericOAuth).To(Equal(genericOAuth))
 			})
 
 			It("saves basic auth team info to the existing team", func() {
@@ -393,6 +413,16 @@ var _ = Describe("TeamDB", func() {
 
 				Expect(savedTeam.UAAAuth).To(Equal(uaaAuth))
 			})
+
+			It("saves github auth team info without over writing the Generic OAuth info", func() {
+				_, err := teamDB.UpdateGenericOAuth(genericOAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				savedTeam, err := teamDB.UpdateGitHubAuth(gitHubAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.GenericOAuth).To(Equal(genericOAuth))
+			})
 		})
 
 		Describe("UpdateUAAAuth", func() {
@@ -401,6 +431,14 @@ var _ = Describe("TeamDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.UAAAuth).To(Equal(uaaAuth))
+			})
+		})
+
+		Describe("UpdateGenericOAuth", func() {
+			It("saves generic oauth info to the existing team", func() {
+				savedTeam, err := teamDB.UpdateGenericOAuth(genericOAuth)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(savedTeam.GenericOAuth).To(Equal(genericOAuth))
 			})
 		})
 	})

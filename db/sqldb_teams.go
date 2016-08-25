@@ -9,7 +9,7 @@ import (
 
 func (db *SQLDB) GetTeams() ([]SavedTeam, error) {
 	rows, err := db.conn.Query(`
-		SELECT id, name, admin, basic_auth, github_auth, uaa_auth FROM teams
+		SELECT id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth FROM teams
 	`)
 	if err != nil {
 		return nil, err
@@ -73,18 +73,24 @@ func (db *SQLDB) CreateTeam(team Team) (SavedTeam, error) {
 	if err != nil {
 		return SavedTeam{}, err
 	}
+
+	jsonEncodedGenericOAuth, err := json.Marshal(team.GenericOAuth)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
 	return scanTeam(db.conn.QueryRow(`
 	INSERT INTO teams (
-    name, basic_auth, github_auth, uaa_auth
+    name, basic_auth, github_auth, uaa_auth, genericoauth_auth
 	) VALUES (
-		$1, $2, $3, $4
+		$1, $2, $3, $4, $5
 	)
-	RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
-	`, team.Name, jsonEncodedBasicAuth, string(jsonEncodedGitHubAuth), string(jsonEncodedUAAAuth)))
+	RETURNING id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth
+	`, team.Name, jsonEncodedBasicAuth, string(jsonEncodedGitHubAuth), string(jsonEncodedUAAAuth), string(jsonEncodedGenericOAuth)))
 }
 
 func scanTeam(rows scannable) (SavedTeam, error) {
-	var basicAuth, gitHubAuth, uaaAuth sql.NullString
+	var basicAuth, gitHubAuth, uaaAuth, genericOAuth sql.NullString
 	var savedTeam SavedTeam
 
 	err := rows.Scan(
@@ -94,6 +100,7 @@ func scanTeam(rows scannable) (SavedTeam, error) {
 		&basicAuth,
 		&gitHubAuth,
 		&uaaAuth,
+		&genericOAuth,
 	)
 	if err != nil {
 		return savedTeam, err
@@ -115,6 +122,13 @@ func scanTeam(rows scannable) (SavedTeam, error) {
 
 	if uaaAuth.Valid {
 		err = json.Unmarshal([]byte(uaaAuth.String), &savedTeam.UAAAuth)
+		if err != nil {
+			return savedTeam, err
+		}
+	}
+
+	if genericOAuth.Valid {
+		err = json.Unmarshal([]byte(genericOAuth.String), &savedTeam.GenericOAuth)
 		if err != nil {
 			return savedTeam, err
 		}
