@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -93,7 +94,7 @@ var _ = Describe("Locks", func() {
 		lock.Release()
 	})
 
-	Describe("leases in general", func() {
+	Describe("locks in general", func() {
 		It("Acquire can only obtain lock once", func() {
 			acquired, err := lock.Acquire()
 			Expect(err).NotTo(HaveOccurred())
@@ -107,17 +108,33 @@ var _ = Describe("Locks", func() {
 		It("Acquire accepts list of ids", func() {
 			lock = lockFactory.NewLock(logger, db.LockID{42, 56})
 
-			acquired, err := lock.Acquire()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(acquired).To(BeTrue())
+			Consistently(func() error {
+				connCount := 3
 
-			acquired, err = lock.Acquire()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(acquired).To(BeFalse())
+				var anyError error
+				var wg sync.WaitGroup
+				wg.Add(connCount)
+
+				for i := 0; i < connCount; i++ {
+					go func() {
+						defer wg.Done()
+
+						_, err := lock.Acquire()
+						if err != nil {
+							anyError = err
+						}
+
+					}()
+				}
+
+				wg.Wait()
+
+				return anyError
+			}, 1500*time.Millisecond, 100*time.Millisecond).ShouldNot(HaveOccurred())
 
 			lock = lockFactory.NewLock(logger, db.LockID{56, 42})
 
-			acquired, err = lock.Acquire()
+			acquired, err := lock.Acquire()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
@@ -577,11 +594,11 @@ var _ = Describe("Locks", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, acquired, err := pipelineDB.AcquireResourceTypeCheckingLock(logger, "some-resource-type", 1*time.Second, true)
+					newLock, acquired, err := pipelineDB.AcquireResourceTypeCheckingLock(logger, "some-resource-type", 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
-					newLease.Release()
+					newLock.Release()
 				})
 			})
 
@@ -602,11 +619,11 @@ var _ = Describe("Locks", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, acquired, err := pipelineDB.AcquireResourceTypeCheckingLock(logger, "some-resource-type", 1*time.Second, false)
+					newLock, acquired, err := pipelineDB.AcquireResourceTypeCheckingLock(logger, "some-resource-type", 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
-					newLease.Release()
+					newLock.Release()
 				})
 
 				It("gets and keeps the lock and stops others from immediately getting it", func() {
@@ -625,11 +642,11 @@ var _ = Describe("Locks", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, acquired, err := pipelineDB.AcquireResourceTypeCheckingLock(logger, "some-resource-type", 1*time.Second, false)
+					newLock, acquired, err := pipelineDB.AcquireResourceTypeCheckingLock(logger, "some-resource-type", 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
-					newLease.Release()
+					newLock.Release()
 				})
 			})
 		})
@@ -675,11 +692,11 @@ var _ = Describe("Locks", func() {
 
 				time.Sleep(time.Second)
 
-				newLease, acquired, err := build.AcquireTrackingLock(logger, 1*time.Second)
+				newLock, acquired, err := build.AcquireTrackingLock(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				newLease.Release()
+				newLock.Release()
 			})
 		})
 	})

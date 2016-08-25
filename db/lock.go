@@ -119,6 +119,9 @@ type lockDB struct {
 }
 
 func (db *lockDB) Acquire(id LockID) (bool, error) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
 	var acquired bool
 	err := db.conn.QueryRow(`SELECT pg_try_advisory_lock(`+id.toDBParams()+`)`, id.toDBArgs()...).Scan(&acquired)
 	if err != nil {
@@ -129,6 +132,9 @@ func (db *lockDB) Acquire(id LockID) (bool, error) {
 }
 
 func (db *lockDB) Release(id LockID) error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
 	_, err := db.conn.Exec(`SELECT pg_advisory_unlock(`+id.toDBParams()+`)`, id.toDBArgs()...)
 	return err
 }
