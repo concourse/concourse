@@ -44,6 +44,14 @@
   }
 
   \note{feature}{
+    The favicon will now change color when viewing a build to reflect its
+    status. Pretty neat, right?
+
+    Thanks to \ghuser{zachgersh} and \ghuser{rmasand} for the inspiration! -
+    <3 \ghuser{kimeberz}
+  }
+
+  \note{feature}{
     As an incremental step in our march towards a fully
     \hyperlink{http://elm-lang.org}{Elm}-based single-page app, we've made some
     parts of the navigation much snappier. Switching between builds of a job
