@@ -9,6 +9,7 @@ templates:
   atc_ctl.erb: bin/atc_ctl
   tls_cert.erb: config/tls_cert
   tls_key.erb: config/tls_key
+  cf_ca_cert.erb: config/cf_ca_cert
 
 packages:
   - pid_utils
@@ -142,6 +143,64 @@ properties:
       teams: [Team 1, Team 2]
     - user: user1
     - user: user2
+
+  uaa_auth.client_id:
+    description: UAA client ID to use for OAuth.
+    default: ""
+
+  uaa_auth.client_secret:
+    description: UAA client secret to use for OAuth.
+    default: ""
+
+  uaa_auth.auth_url:
+    description: UAA authorization endpoint url to use for OAuth.
+    default: ""
+
+  uaa_auth.token_url:
+    description: UAA token endpoint url to use for OAuth.
+    default: ""
+
+  uaa_auth.cf_spaces:
+    description: |
+      List of space GUIDs for Cloud Foundry spaces whose developers
+      will have access.
+    default: []
+
+  uaa_auth.cf_api_url:
+    description: Cloud Foundry api endpoint url.
+    default: ""
+
+  uaa_auth.cf_ca_cert:
+    description: Cloud Foundry CA Certificate.
+    default: ""
+
+  generic_oauth.client_id:
+    description: Application client ID for enabling generic OAuth.
+    default: ""
+
+  generic_oauth.client_secret:
+    description: Application client secret for enabling generic OAuth.
+    default: ""
+
+  generic_oauth.auth_url:
+    description: Generic OAuth provider authorization endpoint url.
+    default: ""
+
+  generic_oauth.auth_url_params:
+    description: |
+      List Parameter to pass to the authentication server authorization url.
+    example:
+      param1: value1
+      param2: value2
+    default: {}
+
+  generic_oauth.token_url:
+    description: Generic OAuth provider token endpoint URL.
+    default: ""
+
+  generic_oauth.display_name:
+    description: Name of the authentication method to be displayed on the Web UI
+    default: ""
 
   default_check_interval:
     description: |

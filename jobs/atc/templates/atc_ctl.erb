@@ -15,6 +15,7 @@ RUN_DIR=/var/vcap/sys/run/atc
 LOG_DIR=/var/vcap/sys/log/atc
 SIGNING_KEY=/var/vcap/packages/generated_signing_key/id_rsa
 PIDFILE=$RUN_DIR/atc.pid
+CF_CA_CERT=/var/vcap/jobs/atc/config/cf_ca_cert
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
@@ -62,6 +63,9 @@ case $1 in
 
     chown vcap:vcap $SIGNING_KEY
     chmod 0400 $SIGNING_KEY
+
+    chown vcap:vcap $CF_CA_CERT
+    chmod 0400 $CF_CA_CERT
 
     logrotate -f /etc/logrotate.d/vcap
 
@@ -114,6 +118,23 @@ case $1 in
       <% if_p("github_auth.api_url") do |url| %> \
       --github-auth-api-url <%= esc(url) %> \
       <% end %> \
+      --uaa-auth-client-id <%= esc(p("uaa_auth.client_id")) %> \
+      --uaa-auth-client-secret <%= esc(p("uaa_auth.client_secret")) %> \
+      --uaa-auth-auth-url <%= esc(p("uaa_auth.auth_url")) %> \
+      --uaa-auth-token-url <%= esc(p("uaa_auth.token_url")) %> \
+      <% p("uaa_auth.cf_spaces").each do |s| %> \
+      --uaa-auth-cf-space <%= esc(s) %> \
+      <% end %> \
+      --uaa-auth-cf-url <%= esc(p("uaa_auth.cf_api_url")) %> \
+      --uaa-auth-cf-ca-cert $CF_CA_CERT \
+      --generic-oauth-client-id <%= esc(p("generic_oauth.client_id")) %> \
+      --generic-oauth-client-secret <%= esc(p("generic_oauth.client_secret")) %> \
+      --generic-oauth-auth-url <%= esc(p("generic_oauth.auth_url")) %> \
+      <% p("generic_oauth.auth_url_params").each do |k, v| %> \
+      --generic-oauth-auth-url-param <%= esc(k) %>:<%= esc(v) %> \
+      <% end %> \
+      --generic-oauth-token-url <%= esc(p("generic_oauth.token_url")) %> \
+      --generic-oauth-display-name <%= esc(p("generic_oauth.display_name")) %> \
       --session-signing-key $SIGNING_KEY \
       --resource-checking-interval <%= p("default_check_interval") %> \
       --old-resource-grace-period <%= p("old_resource_grace_period") %> \
