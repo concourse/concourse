@@ -481,34 +481,6 @@ func (pdb *pipelineDB) AcquireResourceCheckingForJobLock(logger lager.Logger, jo
 
 	defer tx.Rollback()
 
-	var resourceCheckWaiverEnd int
-	err = tx.QueryRow(`
-		SELECT COALESCE(MAX(b.id), 0)
-			FROM builds b
-			JOIN jobs j ON b.job_id = j.id
-			WHERE j.name = $1
-				AND j.pipeline_id = $2
-	`, jobName, pdb.ID).Scan(&resourceCheckWaiverEnd)
-	if err != nil {
-		return nil, false, err
-	}
-
-	updated, err := checkIfRowsUpdated(tx, `
-		UPDATE jobs
-		SET resource_check_waiver_end = $3,
-			resource_checking = true
-		WHERE name = $1
-			AND pipeline_id = $2
-			AND resource_checking = false
-	`, jobName, pdb.ID, resourceCheckWaiverEnd)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !updated {
-		return nil, false, nil
-	}
-
 	lock := pdb.lockFactory.NewLock(
 		logger.Session("lock", lager.Data{
 			"job_name": jobName,
@@ -533,6 +505,31 @@ func (pdb *pipelineDB) AcquireResourceCheckingForJobLock(logger lager.Logger, jo
 
 	if !acquired {
 		return nil, false, nil
+	}
+
+	var resourceCheckWaiverEnd int
+	err = tx.QueryRow(`
+		SELECT COALESCE(MAX(b.id), 0)
+			FROM builds b
+			JOIN jobs j ON b.job_id = j.id
+			WHERE j.name = $1
+				AND j.pipeline_id = $2
+	`, jobName, pdb.ID).Scan(&resourceCheckWaiverEnd)
+	if err != nil {
+		lock.Release()
+		return nil, false, err
+	}
+
+	_, err = tx.Exec(`
+		UPDATE jobs
+		SET resource_check_waiver_end = $3,
+			resource_checking = true
+		WHERE name = $1
+			AND pipeline_id = $2
+	`, jobName, pdb.ID, resourceCheckWaiverEnd)
+	if err != nil {
+		lock.Release()
+		return nil, false, err
 	}
 
 	err = tx.Commit()

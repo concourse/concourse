@@ -246,6 +246,19 @@ var _ = Describe("Locks", func() {
 					Expect(found).To(BeFalse())
 				})
 			})
+
+			Context("when failing to run AfterRelease (e.g. disconnected)", func() {
+				It("still can acquire the lock", func() {
+					// release but don't run after release
+					lock.AfterRelease(func() error { return nil })
+					lock.Release()
+
+					lock, acquired, err := pipelineDB.AcquireResourceCheckingForJobLock(logger, "some-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(acquired).To(BeTrue())
+					lock.Release()
+				})
+			})
 		})
 	})
 
