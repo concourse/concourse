@@ -667,6 +667,15 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 
 	var uaaAuth *db.UAAAuth
 	if cmd.UAAAuth.IsConfigured() {
+		cfCACert := ""
+		if cmd.UAAAuth.CFCACert != "" {
+			cfCACertFileContents, err := ioutil.ReadFile(string(cmd.UAAAuth.CFCACert))
+			if err != nil {
+				return err
+			}
+			cfCACert = string(cfCACertFileContents)
+		}
+
 		uaaAuth = &db.UAAAuth{
 			ClientID:     cmd.UAAAuth.ClientID,
 			ClientSecret: cmd.UAAAuth.ClientSecret,
@@ -674,6 +683,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 			AuthURL:      cmd.UAAAuth.AuthURL,
 			TokenURL:     cmd.UAAAuth.TokenURL,
 			CFURL:        cmd.UAAAuth.CFURL,
+			CFCACert:     cfCACert,
 		}
 	}
 
