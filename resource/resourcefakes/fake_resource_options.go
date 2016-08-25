@@ -39,12 +39,12 @@ type FakeResourceOptions struct {
 	resourceTypeReturns     struct {
 		result1 resource.ResourceType
 	}
-	LeaseNameStub        func(workerName string) (string, error)
-	leaseNameMutex       sync.RWMutex
-	leaseNameArgsForCall []struct {
+	LockNameStub        func(workerName string) (string, error)
+	lockNameMutex       sync.RWMutex
+	lockNameArgsForCall []struct {
 		workerName string
 	}
-	leaseNameReturns struct {
+	lockNameReturns struct {
 		result1 string
 		result2 error
 	}
@@ -177,35 +177,35 @@ func (fake *FakeResourceOptions) ResourceTypeReturns(result1 resource.ResourceTy
 	}{result1}
 }
 
-func (fake *FakeResourceOptions) LeaseName(workerName string) (string, error) {
-	fake.leaseNameMutex.Lock()
-	fake.leaseNameArgsForCall = append(fake.leaseNameArgsForCall, struct {
+func (fake *FakeResourceOptions) LockName(workerName string) (string, error) {
+	fake.lockNameMutex.Lock()
+	fake.lockNameArgsForCall = append(fake.lockNameArgsForCall, struct {
 		workerName string
 	}{workerName})
-	fake.recordInvocation("LeaseName", []interface{}{workerName})
-	fake.leaseNameMutex.Unlock()
-	if fake.LeaseNameStub != nil {
-		return fake.LeaseNameStub(workerName)
+	fake.recordInvocation("LockName", []interface{}{workerName})
+	fake.lockNameMutex.Unlock()
+	if fake.LockNameStub != nil {
+		return fake.LockNameStub(workerName)
 	} else {
-		return fake.leaseNameReturns.result1, fake.leaseNameReturns.result2
+		return fake.lockNameReturns.result1, fake.lockNameReturns.result2
 	}
 }
 
-func (fake *FakeResourceOptions) LeaseNameCallCount() int {
-	fake.leaseNameMutex.RLock()
-	defer fake.leaseNameMutex.RUnlock()
-	return len(fake.leaseNameArgsForCall)
+func (fake *FakeResourceOptions) LockNameCallCount() int {
+	fake.lockNameMutex.RLock()
+	defer fake.lockNameMutex.RUnlock()
+	return len(fake.lockNameArgsForCall)
 }
 
-func (fake *FakeResourceOptions) LeaseNameArgsForCall(i int) string {
-	fake.leaseNameMutex.RLock()
-	defer fake.leaseNameMutex.RUnlock()
-	return fake.leaseNameArgsForCall[i].workerName
+func (fake *FakeResourceOptions) LockNameArgsForCall(i int) string {
+	fake.lockNameMutex.RLock()
+	defer fake.lockNameMutex.RUnlock()
+	return fake.lockNameArgsForCall[i].workerName
 }
 
-func (fake *FakeResourceOptions) LeaseNameReturns(result1 string, result2 error) {
-	fake.LeaseNameStub = nil
-	fake.leaseNameReturns = struct {
+func (fake *FakeResourceOptions) LockNameReturns(result1 string, result2 error) {
+	fake.LockNameStub = nil
+	fake.lockNameReturns = struct {
 		result1 string
 		result2 error
 	}{result1, result2}
@@ -224,8 +224,8 @@ func (fake *FakeResourceOptions) Invocations() map[string][][]interface{} {
 	defer fake.versionMutex.RUnlock()
 	fake.resourceTypeMutex.RLock()
 	defer fake.resourceTypeMutex.RUnlock()
-	fake.leaseNameMutex.RLock()
-	defer fake.leaseNameMutex.RUnlock()
+	fake.lockNameMutex.RLock()
+	defer fake.lockNameMutex.RUnlock()
 	return fake.invocations
 }
 

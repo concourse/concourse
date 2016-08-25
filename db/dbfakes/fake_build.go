@@ -179,14 +179,14 @@ type FakeBuild struct {
 		result1 db.Notifier
 		result2 error
 	}
-	LeaseTrackingStub        func(logger lager.Logger, interval time.Duration) (db.Lease, bool, error)
-	leaseTrackingMutex       sync.RWMutex
-	leaseTrackingArgsForCall []struct {
+	AcquireTrackingLockStub        func(logger lager.Logger, interval time.Duration) (db.Lock, bool, error)
+	acquireTrackingLockMutex       sync.RWMutex
+	acquireTrackingLockArgsForCall []struct {
 		logger   lager.Logger
 		interval time.Duration
 	}
-	leaseTrackingReturns struct {
-		result1 db.Lease
+	acquireTrackingLockReturns struct {
+		result1 db.Lock
 		result2 bool
 		result3 error
 	}
@@ -933,37 +933,37 @@ func (fake *FakeBuild) AbortNotifierReturns(result1 db.Notifier, result2 error) 
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) LeaseTracking(logger lager.Logger, interval time.Duration) (db.Lease, bool, error) {
-	fake.leaseTrackingMutex.Lock()
-	fake.leaseTrackingArgsForCall = append(fake.leaseTrackingArgsForCall, struct {
+func (fake *FakeBuild) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (db.Lock, bool, error) {
+	fake.acquireTrackingLockMutex.Lock()
+	fake.acquireTrackingLockArgsForCall = append(fake.acquireTrackingLockArgsForCall, struct {
 		logger   lager.Logger
 		interval time.Duration
 	}{logger, interval})
-	fake.recordInvocation("LeaseTracking", []interface{}{logger, interval})
-	fake.leaseTrackingMutex.Unlock()
-	if fake.LeaseTrackingStub != nil {
-		return fake.LeaseTrackingStub(logger, interval)
+	fake.recordInvocation("AcquireTrackingLock", []interface{}{logger, interval})
+	fake.acquireTrackingLockMutex.Unlock()
+	if fake.AcquireTrackingLockStub != nil {
+		return fake.AcquireTrackingLockStub(logger, interval)
 	} else {
-		return fake.leaseTrackingReturns.result1, fake.leaseTrackingReturns.result2, fake.leaseTrackingReturns.result3
+		return fake.acquireTrackingLockReturns.result1, fake.acquireTrackingLockReturns.result2, fake.acquireTrackingLockReturns.result3
 	}
 }
 
-func (fake *FakeBuild) LeaseTrackingCallCount() int {
-	fake.leaseTrackingMutex.RLock()
-	defer fake.leaseTrackingMutex.RUnlock()
-	return len(fake.leaseTrackingArgsForCall)
+func (fake *FakeBuild) AcquireTrackingLockCallCount() int {
+	fake.acquireTrackingLockMutex.RLock()
+	defer fake.acquireTrackingLockMutex.RUnlock()
+	return len(fake.acquireTrackingLockArgsForCall)
 }
 
-func (fake *FakeBuild) LeaseTrackingArgsForCall(i int) (lager.Logger, time.Duration) {
-	fake.leaseTrackingMutex.RLock()
-	defer fake.leaseTrackingMutex.RUnlock()
-	return fake.leaseTrackingArgsForCall[i].logger, fake.leaseTrackingArgsForCall[i].interval
+func (fake *FakeBuild) AcquireTrackingLockArgsForCall(i int) (lager.Logger, time.Duration) {
+	fake.acquireTrackingLockMutex.RLock()
+	defer fake.acquireTrackingLockMutex.RUnlock()
+	return fake.acquireTrackingLockArgsForCall[i].logger, fake.acquireTrackingLockArgsForCall[i].interval
 }
 
-func (fake *FakeBuild) LeaseTrackingReturns(result1 db.Lease, result2 bool, result3 error) {
-	fake.LeaseTrackingStub = nil
-	fake.leaseTrackingReturns = struct {
-		result1 db.Lease
+func (fake *FakeBuild) AcquireTrackingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+	fake.AcquireTrackingLockStub = nil
+	fake.acquireTrackingLockReturns = struct {
+		result1 db.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -1264,8 +1264,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.abortMutex.RUnlock()
 	fake.abortNotifierMutex.RLock()
 	defer fake.abortNotifierMutex.RUnlock()
-	fake.leaseTrackingMutex.RLock()
-	defer fake.leaseTrackingMutex.RUnlock()
+	fake.acquireTrackingLockMutex.RLock()
+	defer fake.acquireTrackingLockMutex.RUnlock()
 	fake.getPreparationMutex.RLock()
 	defer fake.getPreparationMutex.RUnlock()
 	fake.saveEngineMetadataMutex.RLock()

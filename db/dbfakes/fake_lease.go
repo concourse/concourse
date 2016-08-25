@@ -30,10 +30,10 @@ type FakeLease struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLease) AttemptSign() (bool, error) {
+func (fake *FakeLease) Acquire() (bool, error) {
 	fake.attemptSignMutex.Lock()
 	fake.attemptSignArgsForCall = append(fake.attemptSignArgsForCall, struct{}{})
-	fake.recordInvocation("AttemptSign", []interface{}{})
+	fake.recordInvocation("Acquire", []interface{}{})
 	fake.attemptSignMutex.Unlock()
 	if fake.AttemptSignStub != nil {
 		return fake.AttemptSignStub()
@@ -56,10 +56,10 @@ func (fake *FakeLease) AttemptSignReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeLease) Break() error {
+func (fake *FakeLease) Release() error {
 	fake.breakMutex.Lock()
 	fake.breakArgsForCall = append(fake.breakArgsForCall, struct{}{})
-	fake.recordInvocation("Break", []interface{}{})
+	fake.recordInvocation("Release", []interface{}{})
 	fake.breakMutex.Unlock()
 	if fake.BreakStub != nil {
 		return fake.BreakStub()
@@ -81,12 +81,12 @@ func (fake *FakeLease) BreakReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeLease) AfterBreak(arg1 func() error) {
+func (fake *FakeLease) AfterRelease(arg1 func() error) {
 	fake.afterBreakMutex.Lock()
 	fake.afterBreakArgsForCall = append(fake.afterBreakArgsForCall, struct {
 		arg1 func() error
 	}{arg1})
-	fake.recordInvocation("AfterBreak", []interface{}{arg1})
+	fake.recordInvocation("AfterRelease", []interface{}{arg1})
 	fake.afterBreakMutex.Unlock()
 	if fake.AfterBreakStub != nil {
 		fake.AfterBreakStub(arg1)
@@ -129,4 +129,4 @@ func (fake *FakeLease) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ db.Lease = new(FakeLease)
+var _ db.Lock = new(FakeLease)

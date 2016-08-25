@@ -32,7 +32,7 @@ type PipelineDB interface {
 
 	GetConfig() (atc.Config, ConfigVersion, bool, error)
 
-	LeaseScheduling(lager.Logger, time.Duration) (Lease, bool, error)
+	AcquireSchedulingLock(lager.Logger, time.Duration) (Lock, bool, error)
 
 	GetResource(resourceName string) (SavedResource, bool, error)
 	GetResources() ([]DashboardResource, atc.GroupConfigs, bool, error)
@@ -49,8 +49,8 @@ type PipelineDB interface {
 	EnableVersionedResource(versionedResourceID int) error
 	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
-	LeaseResourceChecking(logger lager.Logger, resource string, length time.Duration, immediate bool) (Lease, bool, error)
-	LeaseResourceTypeChecking(logger lager.Logger, resourceType string, length time.Duration, immediate bool) (Lease, bool, error)
+	AcquireResourceCheckingLock(logger lager.Logger, resource string, length time.Duration, immediate bool) (Lock, bool, error)
+	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType string, length time.Duration, immediate bool) (Lock, bool, error)
 
 	GetJob(job string) (SavedJob, error)
 	PauseJob(job string) error
@@ -68,7 +68,7 @@ type PipelineDB interface {
 	EnsurePendingBuildExists(jobName string) error
 	GetNextPendingBuild(jobName string) (Build, bool, error)
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
-	LeaseResourceCheckingForJob(logger lager.Logger, jobName string, interval time.Duration) (Lease, bool, error)
+	AcquireResourceCheckingForJobLock(logger lager.Logger, jobName string) (Lock, bool, error)
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
@@ -101,7 +101,7 @@ type pipelineDB struct {
 
 	versionsDB *algorithm.VersionsDB
 
-	leaseFactory LeaseFactory
+	lockFactory  LockFactory
 	buildFactory *buildFactory
 }
 
@@ -316,7 +316,7 @@ func (pdb *pipelineDB) GetResources() ([]DashboardResource, atc.GroupConfigs, bo
 	return dashboardResources, pipelineConfig.Groups, true, nil
 }
 
-func (pdb *pipelineDB) LeaseResourceChecking(logger lager.Logger, resourceName string, interval time.Duration, immediate bool) (Lease, bool, error) {
+func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resourceName string, interval time.Duration, immediate bool) (Lock, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -346,14 +346,14 @@ func (pdb *pipelineDB) LeaseResourceChecking(logger lager.Logger, resourceName s
 		return nil, false, nil
 	}
 
-	lease := pdb.leaseFactory.NewLease(
-		logger.Session("lease", lager.Data{
+	lock := pdb.lockFactory.NewLock(
+		logger.Session("lock", lager.Data{
 			"resource": resourceName,
 		}),
 		pdb.ID+lockIDForTaskName(resourceName),
 	)
 
-	renewed, err := lease.AttemptSign()
+	renewed, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
@@ -364,14 +364,14 @@ func (pdb *pipelineDB) LeaseResourceChecking(logger lager.Logger, resourceName s
 
 	err = tx.Commit()
 	if err != nil {
-		lease.Break()
+		lock.Release()
 		return nil, false, err
 	}
 
-	return lease, true, nil
+	return lock, true, nil
 }
 
-func (pdb *pipelineDB) LeaseResourceTypeChecking(logger lager.Logger, resourceTypeName string, interval time.Duration, immediate bool) (Lease, bool, error) {
+func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceTypeName string, interval time.Duration, immediate bool) (Lock, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -401,14 +401,14 @@ func (pdb *pipelineDB) LeaseResourceTypeChecking(logger lager.Logger, resourceTy
 		return nil, false, nil
 	}
 
-	lease := pdb.leaseFactory.NewLease(
-		logger.Session("lease", lager.Data{
+	lock := pdb.lockFactory.NewLock(
+		logger.Session("lock", lager.Data{
 			"resource-type": resourceTypeName,
 		}),
 		pdb.ID+lockIDForTaskName(resourceTypeName),
 	)
 
-	renewed, err := lease.AttemptSign()
+	renewed, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
@@ -419,14 +419,14 @@ func (pdb *pipelineDB) LeaseResourceTypeChecking(logger lager.Logger, resourceTy
 
 	err = tx.Commit()
 	if err != nil {
-		lease.Break()
+		lock.Release()
 		return nil, false, err
 	}
 
-	return lease, true, nil
+	return lock, true, nil
 }
 
-func (pdb *pipelineDB) LeaseScheduling(logger lager.Logger, interval time.Duration) (Lease, bool, error) {
+func (pdb *pipelineDB) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (Lock, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -448,14 +448,14 @@ func (pdb *pipelineDB) LeaseScheduling(logger lager.Logger, interval time.Durati
 		return nil, false, nil
 	}
 
-	lease := pdb.leaseFactory.NewLease(
-		logger.Session("lease", lager.Data{
+	lock := pdb.lockFactory.NewLock(
+		logger.Session("lock", lager.Data{
 			"pipeline": pdb.Name,
 		}),
 		pdb.ID+lockIDForTaskName("scheduling"),
 	)
 
-	renewed, err := lease.AttemptSign()
+	renewed, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
@@ -466,14 +466,14 @@ func (pdb *pipelineDB) LeaseScheduling(logger lager.Logger, interval time.Durati
 
 	err = tx.Commit()
 	if err != nil {
-		lease.Break()
+		lock.Release()
 		return nil, false, err
 	}
 
-	return lease, true, nil
+	return lock, true, nil
 }
 
-func (pdb *pipelineDB) LeaseResourceCheckingForJob(logger lager.Logger, jobName string, interval time.Duration) (Lease, bool, error) {
+func (pdb *pipelineDB) AcquireResourceCheckingForJobLock(logger lager.Logger, jobName string) (Lock, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -509,14 +509,14 @@ func (pdb *pipelineDB) LeaseResourceCheckingForJob(logger lager.Logger, jobName 
 		return nil, false, nil
 	}
 
-	lease := pdb.leaseFactory.NewLease(
-		logger.Session("lease", lager.Data{
+	lock := pdb.lockFactory.NewLock(
+		logger.Session("lock", lager.Data{
 			"job_name": jobName,
 		}),
 		pdb.ID+lockIDForTaskName("resource-check"),
 	)
 
-	lease.AfterBreak(func() error {
+	lock.AfterRelease(func() error {
 		_, err := pdb.conn.Exec(`
 			UPDATE jobs
 			SET resource_checking = false
@@ -526,7 +526,7 @@ func (pdb *pipelineDB) LeaseResourceCheckingForJob(logger lager.Logger, jobName 
 		return err
 	})
 
-	renewed, err := lease.AttemptSign()
+	renewed, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
@@ -537,11 +537,11 @@ func (pdb *pipelineDB) LeaseResourceCheckingForJob(logger lager.Logger, jobName 
 
 	err = tx.Commit()
 	if err != nil {
-		lease.Break()
+		lock.Release()
 		return nil, false, err
 	}
 
-	return lease, true, nil
+	return lock, true, nil
 }
 
 func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error) {

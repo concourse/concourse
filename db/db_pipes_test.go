@@ -28,10 +28,10 @@ var _ = Describe("Pipes", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		database = db.NewSQL(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		database = db.NewSQL(dbConn, bus, lockFactory)
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 	})
 

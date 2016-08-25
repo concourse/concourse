@@ -17,10 +17,10 @@ type FakeFetchSource struct {
 		result1 bool
 		result2 error
 	}
-	LeaseNameStub        func() (string, error)
-	leaseNameMutex       sync.RWMutex
-	leaseNameArgsForCall []struct{}
-	leaseNameReturns     struct {
+	LockNameStub        func() (string, error)
+	lockNameMutex       sync.RWMutex
+	lockNameArgsForCall []struct{}
+	lockNameReturns     struct {
 		result1 string
 		result2 error
 	}
@@ -74,27 +74,27 @@ func (fake *FakeFetchSource) IsInitializedReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeFetchSource) LeaseName() (string, error) {
-	fake.leaseNameMutex.Lock()
-	fake.leaseNameArgsForCall = append(fake.leaseNameArgsForCall, struct{}{})
-	fake.recordInvocation("LeaseName", []interface{}{})
-	fake.leaseNameMutex.Unlock()
-	if fake.LeaseNameStub != nil {
-		return fake.LeaseNameStub()
+func (fake *FakeFetchSource) LockName() (string, error) {
+	fake.lockNameMutex.Lock()
+	fake.lockNameArgsForCall = append(fake.lockNameArgsForCall, struct{}{})
+	fake.recordInvocation("LockName", []interface{}{})
+	fake.lockNameMutex.Unlock()
+	if fake.LockNameStub != nil {
+		return fake.LockNameStub()
 	} else {
-		return fake.leaseNameReturns.result1, fake.leaseNameReturns.result2
+		return fake.lockNameReturns.result1, fake.lockNameReturns.result2
 	}
 }
 
-func (fake *FakeFetchSource) LeaseNameCallCount() int {
-	fake.leaseNameMutex.RLock()
-	defer fake.leaseNameMutex.RUnlock()
-	return len(fake.leaseNameArgsForCall)
+func (fake *FakeFetchSource) LockNameCallCount() int {
+	fake.lockNameMutex.RLock()
+	defer fake.lockNameMutex.RUnlock()
+	return len(fake.lockNameArgsForCall)
 }
 
-func (fake *FakeFetchSource) LeaseNameReturns(result1 string, result2 error) {
-	fake.LeaseNameStub = nil
-	fake.leaseNameReturns = struct {
+func (fake *FakeFetchSource) LockNameReturns(result1 string, result2 error) {
+	fake.LockNameStub = nil
+	fake.lockNameReturns = struct {
 		result1 string
 		result2 error
 	}{result1, result2}
@@ -188,8 +188,8 @@ func (fake *FakeFetchSource) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.isInitializedMutex.RLock()
 	defer fake.isInitializedMutex.RUnlock()
-	fake.leaseNameMutex.RLock()
-	defer fake.leaseNameMutex.RUnlock()
+	fake.lockNameMutex.RLock()
+	defer fake.lockNameMutex.RUnlock()
 	fake.versionedSourceMutex.RLock()
 	defer fake.versionedSourceMutex.RUnlock()
 	fake.initializeMutex.RLock()

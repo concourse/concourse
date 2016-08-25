@@ -29,6 +29,6 @@ type RadarDB interface {
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	SaveResourceTypeVersion(atc.ResourceType, atc.Version) error
 	SetResourceCheckError(resource db.SavedResource, err error) error
-	LeaseResourceChecking(logger lager.Logger, resource string, interval time.Duration, immediate bool) (db.Lease, bool, error)
-	LeaseResourceTypeChecking(logger lager.Logger, resourceType string, interval time.Duration, immediate bool) (db.Lease, bool, error)
+	AcquireResourceCheckingLock(logger lager.Logger, resource string, interval time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType string, interval time.Duration, immediate bool) (db.Lock, bool, error)
 }

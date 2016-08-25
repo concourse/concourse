@@ -36,9 +36,9 @@ var _ = Describe("Keeping track of containers", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
 
-		database = db.NewSQL(dbConn, bus, leaseFactory)
+		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		config := atc.Config{
 			Jobs: atc.JobConfigs{
@@ -74,7 +74,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		teamID = savedTeam.ID
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB("team-name")
 
 		savedPipeline, _, err = teamDB.SaveConfig("some-pipeline", config, 0, db.PipelineUnpaused)
@@ -83,7 +83,7 @@ var _ = Describe("Keeping track of containers", func() {
 		savedOtherPipeline, _, err = teamDB.SaveConfig("some-other-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 
 		workerInfo := db.WorkerInfo{

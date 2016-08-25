@@ -26,8 +26,8 @@ var _ = Describe("TeamDB Volumes", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		sqlDB := db.NewSQL(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 		database = sqlDB
 
 		_, err := database.CreateTeam(db.Team{Name: "some-team"})
@@ -36,7 +36,7 @@ var _ = Describe("TeamDB Volumes", func() {
 		_, err = database.CreateTeam(db.Team{Name: "other-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 		otherTeamDB = teamDBFactory.GetTeamDB("other-team")
 	})

@@ -34,7 +34,7 @@ type FetchSourceProvider interface {
 
 type FetchSource interface {
 	IsInitialized() (bool, error)
-	LeaseName() (string, error)
+	LockName() (string, error)
 	VersionedSource() VersionedSource
 	Initialize(signals <-chan os.Signal, ready chan<- struct{}) error
 	Release(*time.Duration)

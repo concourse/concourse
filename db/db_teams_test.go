@@ -31,9 +31,9 @@ var _ = Describe("SQL DB Teams", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, leaseFactory)
-		database = db.NewSQL(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		database.DeleteTeamByName(atc.DefaultTeamName)
 	})

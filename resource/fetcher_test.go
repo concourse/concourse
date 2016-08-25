@@ -23,7 +23,7 @@ var _ = Describe("Fetcher", func() {
 		fakeFetchContainerCreator *resourcefakes.FakeFetchContainerCreator
 		fakeFetchSourceProvider   *resourcefakes.FakeFetchSourceProvider
 		fakeClock                 *fakeclock.FakeClock
-		fakeLeaseDB               *resourcefakes.FakeLeaseDB
+		fakeLockDB                *resourcefakes.FakeLockDB
 		fetcher                   Fetcher
 		signals                   chan os.Signal
 		ready                     chan struct{}
@@ -44,11 +44,11 @@ var _ = Describe("Fetcher", func() {
 		fakeFetchSourceProviderFactory.NewFetchSourceProviderReturns(fakeFetchSourceProvider)
 
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
-		fakeLeaseDB = new(resourcefakes.FakeLeaseDB)
+		fakeLockDB = new(resourcefakes.FakeLockDB)
 
 		fetcher = NewFetcher(
 			fakeClock,
-			fakeLeaseDB,
+			fakeLockDB,
 			fakeFetchContainerCreatorFactory,
 			fakeFetchSourceProviderFactory,
 		)
@@ -114,10 +114,10 @@ var _ = Describe("Fetcher", func() {
 		Context("when not initialized", func() {
 			BeforeEach(func() {
 				fakeFetchSource.IsInitializedReturns(false, nil)
-				fakeFetchSource.LeaseNameReturns("fake-lease-name", nil)
+				fakeFetchSource.LockNameReturns("fake-lock-name", nil)
 			})
 
-			Describe("failing to get a lease", func() {
+			Describe("failing to get a lock", func() {
 				BeforeEach(func() {
 					callCount := 0
 					fakeFetchSource.IsInitializedStub = func() (bool, error) {
@@ -131,9 +131,9 @@ var _ = Describe("Fetcher", func() {
 					}
 				})
 
-				Context("when did not get a lease", func() {
+				Context("when did not get a lock", func() {
 					BeforeEach(func() {
-						fakeLeaseDB.GetLeaseReturns(nil, false, nil)
+						fakeLockDB.GetLockReturns(nil, false, nil)
 					})
 
 					It("does not initialize fetch source", func() {
@@ -145,9 +145,9 @@ var _ = Describe("Fetcher", func() {
 					})
 				})
 
-				Context("when acquiring lease returns error", func() {
+				Context("when acquiring lock returns error", func() {
 					BeforeEach(func() {
-						fakeLeaseDB.GetLeaseReturns(nil, false, errors.New("disaster"))
+						fakeLockDB.GetLockReturns(nil, false, errors.New("disaster"))
 					})
 
 					It("does not initialize fetch source", func() {
@@ -160,22 +160,21 @@ var _ = Describe("Fetcher", func() {
 				})
 			})
 
-			Context("when getting lease succeeds", func() {
+			Context("when getting lock succeeds", func() {
 				var fakeLease *dbfakes.FakeLease
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeLeaseDB.GetLeaseReturns(fakeLease, true, nil)
+					fakeLockDB.GetLockReturns(fakeLease, true, nil)
 				})
 
-				It("acquires a lease with source lease name", func() {
-					Expect(fakeLeaseDB.GetLeaseCallCount()).To(Equal(1))
-					_, leaseName, interval := fakeLeaseDB.GetLeaseArgsForCall(0)
-					Expect(leaseName).To(Equal("fake-lease-name"))
-					Expect(interval).To(Equal(GetResourceLeaseInterval))
+				It("acquires a lock with source lock name", func() {
+					Expect(fakeLockDB.GetLockCallCount()).To(Equal(1))
+					_, lockName := fakeLockDB.GetLockArgsForCall(0)
+					Expect(lockName).To(Equal("fake-lock-name"))
 				})
 
-				It("releases the lease", func() {
+				It("releases the lock", func() {
 					Expect(fakeLease.BreakCallCount()).To(Equal(1))
 				})
 

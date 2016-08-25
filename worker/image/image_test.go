@@ -332,12 +332,12 @@ var _ = Describe("Image", func() {
 							Expect(actualCustomTypes).To(Equal(customTypes))
 							Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 							Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("docker")))
-							expectedLeaseName := fmt.Sprintf("%x",
+							expectedLockName := fmt.Sprintf("%x",
 								sha256.Sum256([]byte(
 									`{"type":"docker","version":{"v":"1"},"source":{"some":"source"},"worker_name":"fake-worker-name"}`,
 								)),
 							)
-							Expect(resourceOptions.LeaseName("fake-worker-name")).To(Equal(expectedLeaseName))
+							Expect(resourceOptions.LockName("fake-worker-name")).To(Equal(expectedLockName))
 						})
 
 						It("gets the volume", func() {

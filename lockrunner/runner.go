@@ -1,4 +1,4 @@
-package leaserunner
+package lockrunner
 
 import (
 	"os"
@@ -13,7 +13,7 @@ import (
 //go:generate counterfeiter . RunnerDB
 
 type RunnerDB interface {
-	GetLease(logger lager.Logger, leaseName string, interval time.Duration) (db.Lease, bool, error)
+	GetLock(logger lager.Logger, lockName string) (db.Lock, bool, error)
 }
 
 //go:generate counterfeiter . Task
@@ -40,28 +40,28 @@ func NewRunner(
 		for {
 			select {
 			case <-ticker.C():
-				leaseLogger := logger.Session("lease-task", lager.Data{"task-name": taskName})
-				leaseLogger.Info("tick")
+				lockLogger := logger.Session("lock-task", lager.Data{"task-name": taskName})
+				lockLogger.Info("tick")
 
-				lease, leased, err := db.GetLease(leaseLogger, taskName, interval)
+				lock, acquired, err := db.GetLock(lockLogger, taskName)
 
 				if err != nil {
-					leaseLogger.Error("failed-to-get-lease", err)
+					lockLogger.Error("failed-to-get-lock", err)
 					break
 				}
 
-				if !leased {
-					leaseLogger.Debug("did-not-get-lease")
+				if !acquired {
+					lockLogger.Debug("did-not-get-lock")
 					break
 				}
 
-				leaseLogger.Info("run-task", lager.Data{"task-name": taskName})
+				lockLogger.Info("run-task", lager.Data{"task-name": taskName})
 				err = task.Run()
 				if err != nil {
-					leaseLogger.Error("failed-to-run-task", err, lager.Data{"task-name": taskName})
+					lockLogger.Error("failed-to-run-task", err, lager.Data{"task-name": taskName})
 				}
 
-				lease.Break()
+				lock.Release()
 			case <-signals:
 				return nil
 			}

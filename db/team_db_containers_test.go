@@ -38,9 +38,9 @@ var _ = Describe("TeamDbContainers", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, leaseFactory)
-		database = db.NewSQL(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		team := db.Team{Name: "team-name"}
 		savedTeam, err := database.CreateTeam(team)
@@ -54,7 +54,7 @@ var _ = Describe("TeamDbContainers", func() {
 
 		teamDB = teamDBFactory.GetTeamDB("team-name")
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
 		config := atc.Config{
 			Jobs: atc.JobConfigs{

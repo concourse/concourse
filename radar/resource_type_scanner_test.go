@@ -90,9 +90,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 			actualInterval, runErr = scanner.Run(lagertest.NewTestLogger("test"), "some-resource-type")
 		})
 
-		Context("when the lease cannot be acquired", func() {
+		Context("when the lock cannot be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.LeaseResourceTypeCheckingReturns(nil, false, nil)
+				fakeRadarDB.AcquireResourceTypeCheckingLockReturns(nil, false, nil)
 			})
 
 			It("does not check", func() {
@@ -105,9 +105,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 			})
 		})
 
-		Context("when the lease can be acquired", func() {
+		Context("when the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.LeaseResourceTypeCheckingReturns(fakeLease, true, nil)
+				fakeRadarDB.AcquireResourceTypeCheckingLockReturns(fakeLease, true, nil)
 			})
 
 			It("checks immediately", func() {
@@ -142,10 +142,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 			})
 
-			It("grabs a periodic resource checking lease before checking, breaks lease after done", func() {
-				Expect(fakeRadarDB.LeaseResourceTypeCheckingCallCount()).To(Equal(1))
+			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
+				Expect(fakeRadarDB.AcquireResourceTypeCheckingLockCallCount()).To(Equal(1))
 
-				_, resourceTypeName, leaseInterval, immediate := fakeRadarDB.LeaseResourceTypeCheckingArgsForCall(0)
+				_, resourceTypeName, leaseInterval, immediate := fakeRadarDB.AcquireResourceTypeCheckingLockArgsForCall(0)
 				Expect(resourceTypeName).To(Equal("some-resource-type"))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())

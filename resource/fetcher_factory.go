@@ -1,8 +1,6 @@
 package resource
 
 import (
-	"time"
-
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
@@ -15,14 +13,14 @@ type FetcherFactory interface {
 	FetcherFor(workerClient worker.Client) Fetcher
 }
 
-//go:generate counterfeiter . LeaseDB
+//go:generate counterfeiter . LockDB
 
-type LeaseDB interface {
-	GetLease(logger lager.Logger, leaseName string, interval time.Duration) (db.Lease, bool, error)
+type LockDB interface {
+	GetLock(logger lager.Logger, lockName string) (db.Lock, bool, error)
 }
 
 func NewFetcherFactory(
-	db LeaseDB,
+	db LockDB,
 	clock clock.Clock,
 ) FetcherFactory {
 	return &fetcherFactory{
@@ -32,7 +30,7 @@ func NewFetcherFactory(
 }
 
 type fetcherFactory struct {
-	db    LeaseDB
+	db    LockDB
 	clock clock.Clock
 }
 

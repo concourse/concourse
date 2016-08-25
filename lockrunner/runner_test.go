@@ -1,4 +1,4 @@
-package leaserunner_test
+package lockrunner_test
 
 import (
 	"errors"
@@ -13,14 +13,14 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 
 	"github.com/concourse/atc/db/dbfakes"
-	. "github.com/concourse/atc/leaserunner"
-	"github.com/concourse/atc/leaserunner/leaserunnerfakes"
+	. "github.com/concourse/atc/lockrunner"
+	"github.com/concourse/atc/lockrunner/lockrunnerfakes"
 )
 
 var _ = Describe("Runner", func() {
 	var (
-		fakeDB    *leaserunnerfakes.FakeRunnerDB
-		fakeTask  *leaserunnerfakes.FakeTask
+		fakeDB    *lockrunnerfakes.FakeRunnerDB
+		fakeTask  *lockrunnerfakes.FakeTask
 		fakeClock *fakeclock.FakeClock
 		fakeLease *dbfakes.FakeLease
 
@@ -30,8 +30,8 @@ var _ = Describe("Runner", func() {
 	)
 
 	BeforeEach(func() {
-		fakeDB = new(leaserunnerfakes.FakeRunnerDB)
-		fakeTask = new(leaserunnerfakes.FakeTask)
+		fakeDB = new(lockrunnerfakes.FakeRunnerDB)
+		fakeTask = new(lockrunnerfakes.FakeTask)
 		fakeLease = new(dbfakes.FakeLease)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
@@ -59,23 +59,22 @@ var _ = Describe("Runner", func() {
 			fakeClock.WaitForWatcherAndIncrement(interval)
 		})
 
-		It("calls to get a lease for cache invalidation", func() {
-			Eventually(fakeDB.GetLeaseCallCount).Should(Equal(1))
-			_, actualTaskName, actualInterval := fakeDB.GetLeaseArgsForCall(0)
+		It("calls to get a lock for cache invalidation", func() {
+			Eventually(fakeDB.GetLockCallCount).Should(Equal(1))
+			_, actualTaskName := fakeDB.GetLockArgsForCall(0)
 			Expect(actualTaskName).To(Equal("some-task-name"))
-			Expect(actualInterval).To(Equal(interval))
 		})
 
-		Context("when getting a lease succeeds", func() {
+		Context("when getting a lock succeeds", func() {
 			BeforeEach(func() {
-				fakeDB.GetLeaseReturns(fakeLease, true, nil)
+				fakeDB.GetLockReturns(fakeLease, true, nil)
 			})
 
 			It("it collects lost baggage", func() {
 				Eventually(fakeTask.RunCallCount).Should(Equal(1))
 			})
 
-			It("breaks the lease", func() {
+			It("releases the lock", func() {
 				Eventually(fakeLease.BreakCallCount).Should(Equal(1))
 			})
 
@@ -88,16 +87,16 @@ var _ = Describe("Runner", func() {
 					Consistently(process.Wait()).ShouldNot(Receive())
 				})
 
-				It("breaks the lease", func() {
+				It("releases the lock", func() {
 					Eventually(fakeLease.BreakCallCount).Should(Equal(1))
 				})
 			})
 		})
 
-		Context("when getting a lease fails", func() {
+		Context("when getting a lock fails", func() {
 			Context("because of an error", func() {
 				BeforeEach(func() {
-					fakeDB.GetLeaseReturns(nil, true, errors.New("disaster"))
+					fakeDB.GetLockReturns(nil, true, errors.New("disaster"))
 				})
 
 				It("does not exit and does not collect baggage", func() {
@@ -106,9 +105,9 @@ var _ = Describe("Runner", func() {
 				})
 			})
 
-			Context("because we got leased of false", func() {
+			Context("because we got acquired of false", func() {
 				BeforeEach(func() {
-					fakeDB.GetLeaseReturns(nil, false, nil)
+					fakeDB.GetLockReturns(nil, false, nil)
 				})
 
 				It("does not exit and does not collect baggage", func() {

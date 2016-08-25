@@ -28,15 +28,15 @@ var _ = Describe("Auth", func() {
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		sqlDB = db.NewSQL(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 		err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)
 		Expect(err).NotTo(HaveOccurred())
 		_, err = sqlDB.CreateTeam(db.Team{Name: atc.DefaultTeamName})
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)

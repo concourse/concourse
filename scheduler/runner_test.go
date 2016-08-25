@@ -24,7 +24,7 @@ var _ = Describe("Runner", func() {
 		scheduler  *schedulerfakes.FakeBuildScheduler
 		noop       bool
 
-		lease *dbfakes.FakeLease
+		lock *dbfakes.FakeLease
 
 		initialConfig atc.Config
 
@@ -88,8 +88,8 @@ var _ = Describe("Runner", func() {
 
 		pipelineDB.GetConfigReturns(initialConfig, 1, true, nil)
 
-		lease = new(dbfakes.FakeLease)
-		pipelineDB.LeaseSchedulingReturns(lease, true, nil)
+		lock = new(dbfakes.FakeLease)
+		pipelineDB.AcquireSchedulingLockReturns(lock, true, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -106,32 +106,32 @@ var _ = Describe("Runner", func() {
 		ginkgomon.Interrupt(process)
 	})
 
-	It("signs the scheduling lease for the pipeline", func() {
-		Eventually(pipelineDB.LeaseSchedulingCallCount).Should(BeNumerically(">=", 1))
+	It("signs the scheduling lock for the pipeline", func() {
+		Eventually(pipelineDB.AcquireSchedulingLockCallCount).Should(BeNumerically(">=", 1))
 
-		_, duration := pipelineDB.LeaseSchedulingArgsForCall(0)
+		_, duration := pipelineDB.AcquireSchedulingLockArgsForCall(0)
 		Expect(duration).To(Equal(100 * time.Millisecond))
 	})
 
-	Context("when it can't get the lease", func() {
+	Context("when it can't get the lock", func() {
 		BeforeEach(func() {
-			pipelineDB.LeaseSchedulingReturns(nil, false, nil)
+			pipelineDB.AcquireSchedulingLockReturns(nil, false, nil)
 		})
 
 		It("does not do any scheduling", func() {
-			Eventually(pipelineDB.LeaseSchedulingCallCount).Should(Equal(2))
+			Eventually(pipelineDB.AcquireSchedulingLockCallCount).Should(Equal(2))
 
 			Expect(scheduler.ScheduleCallCount()).To(BeZero())
 		})
 	})
 
-	Context("when getting the lease blows up", func() {
+	Context("when getting the lock blows up", func() {
 		BeforeEach(func() {
-			pipelineDB.LeaseSchedulingReturns(nil, false, errors.New(":3"))
+			pipelineDB.AcquireSchedulingLockReturns(nil, false, errors.New(":3"))
 		})
 
 		It("does not do any scheduling", func() {
-			Eventually(pipelineDB.LeaseSchedulingCallCount).Should(Equal(2))
+			Eventually(pipelineDB.AcquireSchedulingLockCallCount).Should(Equal(2))
 
 			Expect(scheduler.ScheduleCallCount()).To(BeZero())
 		})

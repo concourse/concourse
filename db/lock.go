@@ -7,19 +7,19 @@ import (
 	"github.com/jackc/pgx"
 )
 
-//go:generate counterfeiter . LeaseFactory
+//go:generate counterfeiter . LockFactory
 
-type LeaseFactory interface {
-	NewLease(logger lager.Logger, lockID int) Lease
+type LockFactory interface {
+	NewLock(logger lager.Logger, lockID int) Lock
 }
 
-type leaseFactory struct {
+type lockFactory struct {
 	db    lockDB
 	locks lockRepo
 }
 
-func NewLeaseFactory(conn *pgx.Conn) LeaseFactory {
-	return &leaseFactory{
+func NewLockFactory(conn *pgx.Conn) LockFactory {
+	return &lockFactory{
 		db: lockDB{
 			conn:  conn,
 			mutex: &sync.Mutex{},
@@ -31,8 +31,8 @@ func NewLeaseFactory(conn *pgx.Conn) LeaseFactory {
 	}
 }
 
-func (f *leaseFactory) NewLease(logger lager.Logger, lockID int) Lease {
-	return &lease{
+func (f *lockFactory) NewLock(logger lager.Logger, lockID int) Lock {
+	return &lock{
 		logger: logger,
 		db:     f.db,
 		id:     lockID,
@@ -40,25 +40,25 @@ func (f *leaseFactory) NewLease(logger lager.Logger, lockID int) Lease {
 	}
 }
 
-//go:generate counterfeiter . Lease
+//go:generate counterfeiter . Lock
 
-type Lease interface {
-	AttemptSign() (bool, error)
-	Break() error
-	AfterBreak(func() error)
+type Lock interface {
+	Acquire() (bool, error)
+	Release() error
+	AfterRelease(func() error)
 }
 
-type lease struct {
+type lock struct {
 	logger lager.Logger
 	db     lockDB
 
 	id    int
 	locks lockRepo
 
-	afterBreak func() error
+	afterRelease func() error
 }
 
-func (l *lease) AttemptSign() (bool, error) {
+func (l *lock) Acquire() (bool, error) {
 	if l.locks.IsRegistered(l.id) {
 		return false, nil
 	}
@@ -73,20 +73,20 @@ func (l *lease) AttemptSign() (bool, error) {
 	return acquired, nil
 }
 
-func (l *lease) Break() error {
+func (l *lock) Release() error {
 	l.db.Release(l.id)
 
 	l.locks.Unregister(l.id)
 
-	if l.afterBreak != nil {
-		return l.afterBreak()
+	if l.afterRelease != nil {
+		return l.afterRelease()
 	}
 
 	return nil
 }
 
-func (l *lease) AfterBreak(afterBreakFunc func() error) {
-	l.afterBreak = afterBreakFunc
+func (l *lock) AfterRelease(afterReleaseFunc func() error) {
+	l.afterRelease = afterReleaseFunc
 }
 
 type lockDB struct {

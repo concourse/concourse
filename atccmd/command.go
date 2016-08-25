@@ -29,7 +29,7 @@ import (
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/leaserunner"
+	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/lostandfound"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
@@ -145,19 +145,19 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	if err != nil {
 		return nil, err
 	}
-	leaseFactory := db.NewLeaseFactory(leaseConn)
+	lockFactory := db.NewLockFactory(leaseConn)
 
 	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
 
-	sqlDB := db.NewSQL(dbConn, bus, leaseFactory)
+	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 	trackerFactory := resource.NewTrackerFactory()
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
-	teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
+	teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 	engine := cmd.constructEngine(workerClient, tracker, resourceFetcher, teamDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
@@ -199,7 +199,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	drain := make(chan struct{})
 
-	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
+	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
@@ -303,7 +303,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Clock:    clock.NewClock(),
 		}},
 
-		{"lostandfound", leaserunner.NewRunner(
+		{"lostandfound", lockrunner.NewRunner(
 			logger.Session("lost-and-found"),
 			lostandfound.NewBaggageCollector(
 				logger.Session("baggage-collector"),
@@ -319,7 +319,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			cmd.ResourceCacheCleanupInterval,
 		)},
 
-		{"containerkeepaliver", leaserunner.NewRunner(
+		{"containerkeepaliver", lockrunner.NewRunner(
 			logger.Session("container-keepaliver"),
 			containerkeepaliver.NewContainerKeepAliver(
 				logger.Session("container-keepaliver"),
@@ -333,7 +333,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			30*time.Second,
 		)},
 
-		{"buildreaper", leaserunner.NewRunner(
+		{"buildreaper", lockrunner.NewRunner(
 			logger.Session("build-reaper-runner"),
 			buildreaper.NewBuildReaper(
 				logger.Session("build-reaper"),

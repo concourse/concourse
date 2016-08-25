@@ -40,15 +40,15 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		database = db.NewSQL(dbConn, bus, leaseFactory)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		database = db.NewSQL(dbConn, bus, lockFactory)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
 		var err error
 		team, err = database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, leaseFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 
 		config = atc.Config{

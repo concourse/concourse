@@ -218,7 +218,7 @@ func (ir *imageResource) ResourceType() resource.ResourceType {
 	return ir.resourceType
 }
 
-func (ir *imageResource) LeaseName(workerName string) (string, error) {
+func (ir *imageResource) LockName(workerName string) (string, error) {
 	id := &leaseID{
 		Type:       ir.resourceType,
 		Version:    ir.version,

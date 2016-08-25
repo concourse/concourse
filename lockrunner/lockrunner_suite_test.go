@@ -1,4 +1,4 @@
-package leaserunner_test
+package lockrunner_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestLeaserunner(t *testing.T) {
+func TestLockrunner(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Lease Runner Suite")
+	RunSpecs(t, "Lockrunner Suite")
 }

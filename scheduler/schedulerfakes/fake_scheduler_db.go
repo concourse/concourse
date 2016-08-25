@@ -13,14 +13,14 @@ import (
 )
 
 type FakeSchedulerDB struct {
-	LeaseSchedulingStub        func(lager.Logger, time.Duration) (db.Lease, bool, error)
-	leaseSchedulingMutex       sync.RWMutex
-	leaseSchedulingArgsForCall []struct {
+	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (db.Lock, bool, error)
+	acquireSchedulingLockMutex       sync.RWMutex
+	acquireSchedulingLockArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 time.Duration
 	}
-	leaseSchedulingReturns struct {
-		result1 db.Lease
+	acquireSchedulingLockReturns struct {
+		result1 db.Lock
 		result2 bool
 		result3 error
 	}
@@ -63,15 +63,14 @@ type FakeSchedulerDB struct {
 	ensurePendingBuildExistsReturns struct {
 		result1 error
 	}
-	LeaseResourceCheckingForJobStub        func(logger lager.Logger, job string, interval time.Duration) (db.Lease, bool, error)
-	leaseResourceCheckingForJobMutex       sync.RWMutex
-	leaseResourceCheckingForJobArgsForCall []struct {
-		logger   lager.Logger
-		job      string
-		interval time.Duration
+	AcquireResourceCheckingForJobLockStub        func(logger lager.Logger, job string) (db.Lock, bool, error)
+	acquireResourceCheckingForJobLockMutex       sync.RWMutex
+	acquireResourceCheckingForJobLockArgsForCall []struct {
+		logger lager.Logger
+		job    string
 	}
-	leaseResourceCheckingForJobReturns struct {
-		result1 db.Lease
+	acquireResourceCheckingForJobLockReturns struct {
+		result1 db.Lock
 		result2 bool
 		result3 error
 	}
@@ -79,37 +78,37 @@ type FakeSchedulerDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSchedulerDB) LeaseScheduling(arg1 lager.Logger, arg2 time.Duration) (db.Lease, bool, error) {
-	fake.leaseSchedulingMutex.Lock()
-	fake.leaseSchedulingArgsForCall = append(fake.leaseSchedulingArgsForCall, struct {
+func (fake *FakeSchedulerDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (db.Lock, bool, error) {
+	fake.acquireSchedulingLockMutex.Lock()
+	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 time.Duration
 	}{arg1, arg2})
-	fake.recordInvocation("LeaseScheduling", []interface{}{arg1, arg2})
-	fake.leaseSchedulingMutex.Unlock()
-	if fake.LeaseSchedulingStub != nil {
-		return fake.LeaseSchedulingStub(arg1, arg2)
+	fake.recordInvocation("AcquireSchedulingLock", []interface{}{arg1, arg2})
+	fake.acquireSchedulingLockMutex.Unlock()
+	if fake.AcquireSchedulingLockStub != nil {
+		return fake.AcquireSchedulingLockStub(arg1, arg2)
 	} else {
-		return fake.leaseSchedulingReturns.result1, fake.leaseSchedulingReturns.result2, fake.leaseSchedulingReturns.result3
+		return fake.acquireSchedulingLockReturns.result1, fake.acquireSchedulingLockReturns.result2, fake.acquireSchedulingLockReturns.result3
 	}
 }
 
-func (fake *FakeSchedulerDB) LeaseSchedulingCallCount() int {
-	fake.leaseSchedulingMutex.RLock()
-	defer fake.leaseSchedulingMutex.RUnlock()
-	return len(fake.leaseSchedulingArgsForCall)
+func (fake *FakeSchedulerDB) AcquireSchedulingLockCallCount() int {
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
+	return len(fake.acquireSchedulingLockArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) LeaseSchedulingArgsForCall(i int) (lager.Logger, time.Duration) {
-	fake.leaseSchedulingMutex.RLock()
-	defer fake.leaseSchedulingMutex.RUnlock()
-	return fake.leaseSchedulingArgsForCall[i].arg1, fake.leaseSchedulingArgsForCall[i].arg2
+func (fake *FakeSchedulerDB) AcquireSchedulingLockArgsForCall(i int) (lager.Logger, time.Duration) {
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
+	return fake.acquireSchedulingLockArgsForCall[i].arg1, fake.acquireSchedulingLockArgsForCall[i].arg2
 }
 
-func (fake *FakeSchedulerDB) LeaseSchedulingReturns(result1 db.Lease, result2 bool, result3 error) {
-	fake.LeaseSchedulingStub = nil
-	fake.leaseSchedulingReturns = struct {
-		result1 db.Lease
+func (fake *FakeSchedulerDB) AcquireSchedulingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+	fake.AcquireSchedulingLockStub = nil
+	fake.acquireSchedulingLockReturns = struct {
+		result1 db.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -261,38 +260,37 @@ func (fake *FakeSchedulerDB) EnsurePendingBuildExistsReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeSchedulerDB) LeaseResourceCheckingForJob(logger lager.Logger, job string, interval time.Duration) (db.Lease, bool, error) {
-	fake.leaseResourceCheckingForJobMutex.Lock()
-	fake.leaseResourceCheckingForJobArgsForCall = append(fake.leaseResourceCheckingForJobArgsForCall, struct {
-		logger   lager.Logger
-		job      string
-		interval time.Duration
-	}{logger, job, interval})
-	fake.recordInvocation("LeaseResourceCheckingForJob", []interface{}{logger, job, interval})
-	fake.leaseResourceCheckingForJobMutex.Unlock()
-	if fake.LeaseResourceCheckingForJobStub != nil {
-		return fake.LeaseResourceCheckingForJobStub(logger, job, interval)
+func (fake *FakeSchedulerDB) AcquireResourceCheckingForJobLock(logger lager.Logger, job string) (db.Lock, bool, error) {
+	fake.acquireResourceCheckingForJobLockMutex.Lock()
+	fake.acquireResourceCheckingForJobLockArgsForCall = append(fake.acquireResourceCheckingForJobLockArgsForCall, struct {
+		logger lager.Logger
+		job    string
+	}{logger, job})
+	fake.recordInvocation("AcquireResourceCheckingForJobLock", []interface{}{logger, job})
+	fake.acquireResourceCheckingForJobLockMutex.Unlock()
+	if fake.AcquireResourceCheckingForJobLockStub != nil {
+		return fake.AcquireResourceCheckingForJobLockStub(logger, job)
 	} else {
-		return fake.leaseResourceCheckingForJobReturns.result1, fake.leaseResourceCheckingForJobReturns.result2, fake.leaseResourceCheckingForJobReturns.result3
+		return fake.acquireResourceCheckingForJobLockReturns.result1, fake.acquireResourceCheckingForJobLockReturns.result2, fake.acquireResourceCheckingForJobLockReturns.result3
 	}
 }
 
-func (fake *FakeSchedulerDB) LeaseResourceCheckingForJobCallCount() int {
-	fake.leaseResourceCheckingForJobMutex.RLock()
-	defer fake.leaseResourceCheckingForJobMutex.RUnlock()
-	return len(fake.leaseResourceCheckingForJobArgsForCall)
+func (fake *FakeSchedulerDB) AcquireResourceCheckingForJobLockCallCount() int {
+	fake.acquireResourceCheckingForJobLockMutex.RLock()
+	defer fake.acquireResourceCheckingForJobLockMutex.RUnlock()
+	return len(fake.acquireResourceCheckingForJobLockArgsForCall)
 }
 
-func (fake *FakeSchedulerDB) LeaseResourceCheckingForJobArgsForCall(i int) (lager.Logger, string, time.Duration) {
-	fake.leaseResourceCheckingForJobMutex.RLock()
-	defer fake.leaseResourceCheckingForJobMutex.RUnlock()
-	return fake.leaseResourceCheckingForJobArgsForCall[i].logger, fake.leaseResourceCheckingForJobArgsForCall[i].job, fake.leaseResourceCheckingForJobArgsForCall[i].interval
+func (fake *FakeSchedulerDB) AcquireResourceCheckingForJobLockArgsForCall(i int) (lager.Logger, string) {
+	fake.acquireResourceCheckingForJobLockMutex.RLock()
+	defer fake.acquireResourceCheckingForJobLockMutex.RUnlock()
+	return fake.acquireResourceCheckingForJobLockArgsForCall[i].logger, fake.acquireResourceCheckingForJobLockArgsForCall[i].job
 }
 
-func (fake *FakeSchedulerDB) LeaseResourceCheckingForJobReturns(result1 db.Lease, result2 bool, result3 error) {
-	fake.LeaseResourceCheckingForJobStub = nil
-	fake.leaseResourceCheckingForJobReturns = struct {
-		result1 db.Lease
+func (fake *FakeSchedulerDB) AcquireResourceCheckingForJobLockReturns(result1 db.Lock, result2 bool, result3 error) {
+	fake.AcquireResourceCheckingForJobLockStub = nil
+	fake.acquireResourceCheckingForJobLockReturns = struct {
+		result1 db.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -301,8 +299,8 @@ func (fake *FakeSchedulerDB) LeaseResourceCheckingForJobReturns(result1 db.Lease
 func (fake *FakeSchedulerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.leaseSchedulingMutex.RLock()
-	defer fake.leaseSchedulingMutex.RUnlock()
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
 	fake.loadVersionsDBMutex.RLock()
 	defer fake.loadVersionsDBMutex.RUnlock()
 	fake.getPipelineNameMutex.RLock()
@@ -313,8 +311,8 @@ func (fake *FakeSchedulerDB) Invocations() map[string][][]interface{} {
 	defer fake.createJobBuildMutex.RUnlock()
 	fake.ensurePendingBuildExistsMutex.RLock()
 	defer fake.ensurePendingBuildExistsMutex.RUnlock()
-	fake.leaseResourceCheckingForJobMutex.RLock()
-	defer fake.leaseResourceCheckingForJobMutex.RUnlock()
+	fake.acquireResourceCheckingForJobLockMutex.RLock()
+	defer fake.acquireResourceCheckingForJobLockMutex.RUnlock()
 	return fake.invocations
 }
 

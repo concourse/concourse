@@ -28,15 +28,15 @@ var _ = Describe("Job Builds", func() {
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		sqlDB = db.NewSQL(dbConn, bus, leaseFactory)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, leaseFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
 	})
 
 	AfterEach(func() {

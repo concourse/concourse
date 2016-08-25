@@ -59,7 +59,7 @@ type Build interface {
 	Abort() error
 	AbortNotifier() (Notifier, error)
 
-	LeaseTracking(logger lager.Logger, interval time.Duration) (Lease, bool, error)
+	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (Lock, bool, error)
 
 	GetPreparation() (BuildPreparation, bool, error)
 
@@ -98,7 +98,7 @@ type build struct {
 	conn Conn
 	bus  *notificationsBus
 
-	leaseFactory LeaseFactory
+	lockFactory LockFactory
 }
 
 func (b *build) ID() int {
@@ -167,7 +167,7 @@ func (b *build) IsRunning() bool {
 }
 
 func (b *build) Reload() (bool, error) {
-	buildFactory := newBuildFactory(b.conn, b.bus, b.leaseFactory)
+	buildFactory := newBuildFactory(b.conn, b.bus, b.lockFactory)
 	newBuild, found, err := buildFactory.ScanBuild(b.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -620,7 +620,7 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 		}, true, nil
 	}
 
-	tdbf := NewTeamDBFactory(b.conn, b.bus, b.leaseFactory)
+	tdbf := NewTeamDBFactory(b.conn, b.bus, b.lockFactory)
 	tdb := tdbf.GetTeamDB(b.teamName)
 	savedPipeline, found, err := tdb.GetPipelineByName(b.pipelineName)
 	if err != nil {
@@ -631,7 +631,7 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	pdbf := NewPipelineDBFactory(b.conn, b.bus, b.leaseFactory)
+	pdbf := NewPipelineDBFactory(b.conn, b.bus, b.lockFactory)
 	pdb := pdbf.Build(savedPipeline)
 	if err != nil {
 		return BuildPreparation{}, false, err
@@ -744,7 +744,7 @@ func (b *build) SaveInput(input BuildInput) (SavedVersionedResource, error) {
 		return SavedVersionedResource{}, err
 	}
 
-	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus, b.leaseFactory)
+	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus, b.lockFactory)
 
 	pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
@@ -763,7 +763,7 @@ func (b *build) SaveOutput(vr VersionedResource, explicit bool) (SavedVersionedR
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
-	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus, b.leaseFactory)
+	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus, b.lockFactory)
 	pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 	return pipelineDB.SaveOutput(b.id, vr, explicit)
@@ -849,7 +849,7 @@ func (b *build) GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, e
 	return identifiers, nil
 }
 
-func (b *build) LeaseTracking(logger lager.Logger, interval time.Duration) (Lease, bool, error) {
+func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (Lock, bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -871,14 +871,14 @@ func (b *build) LeaseTracking(logger lager.Logger, interval time.Duration) (Leas
 		return nil, false, nil
 	}
 
-	lease := b.leaseFactory.NewLease(
-		logger.Session("lease", lager.Data{
+	lock := b.lockFactory.NewLock(
+		logger.Session("lock", lager.Data{
 			"build_id": b.id,
 		}),
 		b.id,
 	)
 
-	renewed, err := lease.AttemptSign()
+	renewed, err := lock.Acquire()
 	if err != nil {
 		return nil, false, err
 	}
@@ -889,11 +889,11 @@ func (b *build) LeaseTracking(logger lager.Logger, interval time.Duration) (Leas
 
 	err = tx.Commit()
 	if err != nil {
-		lease.Break()
+		lock.Release()
 		return nil, false, err
 	}
 
-	return lease, true, nil
+	return lock, true, nil
 }
 
 func (b *build) GetConfig() (atc.Config, ConfigVersion, error) {

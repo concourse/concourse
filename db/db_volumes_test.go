@@ -28,11 +28,11 @@ var _ = Describe("Keeping track of volumes", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		sqlDB := db.NewSQL(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 		database = sqlDB
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		team, err := database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 		teamID = team.ID
@@ -44,7 +44,7 @@ var _ = Describe("Keeping track of volumes", func() {
 				},
 			},
 		}
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 		savedPipeline, _, err := teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())

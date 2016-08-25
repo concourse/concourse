@@ -28,8 +28,8 @@ var _ = Describe("Multiple ATCs", func() {
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		sqlDB = db.NewSQL(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 		atcOneCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
 		err := atcOneCommand.Start()

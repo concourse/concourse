@@ -217,13 +217,13 @@ var _ = Describe("Get", func() {
 			}))
 		Expect(delegate).To(Equal(getDelegate))
 		Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("some-resource-type")))
-		expectedLeaseName := fmt.Sprintf("%x",
+		expectedLockName := fmt.Sprintf("%x",
 			sha256.Sum256([]byte(
 				`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,
 			)),
 		)
 
-		Expect(resourceOptions.LeaseName("fake-worker")).To(Equal(expectedLeaseName))
+		Expect(resourceOptions.LockName("fake-worker")).To(Equal(expectedLockName))
 	})
 
 	Context("when fetching resource succeeds", func() {

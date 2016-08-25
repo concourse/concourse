@@ -28,14 +28,14 @@ var _ = Describe("Resource Pagination", func() {
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		sqlDB = db.NewSQL(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, leaseFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 		team, found, err := teamDB.GetTeam()
 		Expect(err).NotTo(HaveOccurred())
@@ -64,7 +64,7 @@ var _ = Describe("Resource Pagination", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 

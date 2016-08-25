@@ -38,9 +38,9 @@ var _ = Describe("TeamDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		leaseFactory := db.NewLeaseFactory(postgresRunner.OpenPgx())
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, leaseFactory)
-		database = db.NewSQL(dbConn, bus, leaseFactory)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		team := db.Team{Name: "TEAM-name"}
 		var err error
@@ -50,7 +50,7 @@ var _ = Describe("TeamDB", func() {
 		teamDB = teamDBFactory.GetTeamDB("team-NAME")
 		nonExistentTeamDB = teamDBFactory.GetTeamDB("non-existent-name")
 
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, leaseFactory)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
 		team = db.Team{Name: "other-team-name"}
 		otherSavedTeam, err = database.CreateTeam(team)

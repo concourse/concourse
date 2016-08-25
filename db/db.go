@@ -89,7 +89,7 @@ type DB interface {
 	CreatePipe(pipeGUID string, url string) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
-	GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error)
+	GetLock(logger lager.Logger, taskName string) (Lock, bool, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
@@ -130,13 +130,6 @@ type Notifier interface {
 type ConfigVersion int
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
-
-//go:generate counterfeiter . Lock
-
-type Lock interface {
-	Release() error
-}
-
 var ErrEndOfBuildEventStream = errors.New("end of build event stream")
 var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 
