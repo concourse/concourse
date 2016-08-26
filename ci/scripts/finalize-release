@@ -14,6 +14,10 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
+# work-around Go BOSH CLI trying to rename blobs downloaded into ~/.root/tmp
+# into release dir, which is invalid cross-device link
+export HOME=$PWD
+
 git clone ./concourse $FINAL_RELEASE_REPO
 
 cp deployments/ci/config/private.yml $FINAL_RELEASE_REPO/config/private.yml
