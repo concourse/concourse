@@ -33,6 +33,16 @@ var _ = Describe("Pipes API", func() {
 		return pipe
 	}
 
+	createPipeWithError := func(statusCode int) {
+		req, err := http.NewRequest("POST", server.URL+"/api/v1/pipes", nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		response, err := client.Do(req)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(response.StatusCode).To(Equal(statusCode))
+	}
+
 	readPipe := func(id string) *http.Response {
 		response, err := http.Get(server.URL + "/api/v1/pipes/" + id)
 		Expect(err).NotTo(HaveOccurred())
@@ -56,155 +66,222 @@ var _ = Describe("Pipes API", func() {
 		})
 
 		Describe("POST /api/v1/pipes", func() {
-			var pipe atc.Pipe
-
-			BeforeEach(func() {
-				pipe = createPipe()
-				pipeDB.GetPipeReturns(db.Pipe{
-					ID:  pipe.ID,
-					URL: peerAddr,
-				}, nil)
+			Context("when team not found", func() {
+				BeforeEach(func() {
+					userContextReader.GetTeamReturns("", 0, false, false)
+				})
+				It("returns 500", func() {
+					createPipeWithError(http.StatusInternalServerError)
+				})
 			})
 
-			It("returns unique pipe IDs", func() {
-				anotherPipe := createPipe()
-				Expect(anotherPipe.ID).NotTo(Equal(pipe.ID))
-			})
+			Context("when team is found", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+				})
 
-			It("returns the pipe's read/write URLs", func() {
-				Expect(pipe.ReadURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/pipes/%s", pipe.ID)))
-				Expect(pipe.WriteURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/pipes/%s", pipe.ID)))
-			})
-
-			It("saves it", func() {
-				Expect(pipeDB.CreatePipeCallCount()).To(Equal(1))
-			})
-
-			Describe("GET /api/v1/pipes/:pipe", func() {
-				var readRes *http.Response
+				var pipe atc.Pipe
 
 				BeforeEach(func() {
-					readRes = readPipe(pipe.ID)
-				})
-
-				AfterEach(func() {
-					readRes.Body.Close()
-				})
-
-				It("responds with 200", func() {
-					Expect(readRes.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				Describe("PUT /api/v1/pipes/:pipe", func() {
-					var writeRes *http.Response
-
-					BeforeEach(func() {
-						writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
-					})
-
-					AfterEach(func() {
-						writeRes.Body.Close()
-					})
-
-					It("responds with 200", func() {
-						Expect(writeRes.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("streams the data to the reader", func() {
-						Expect(ioutil.ReadAll(readRes.Body)).To(Equal([]byte("some data")))
-					})
-
-					It("reaps the pipe", func() {
-						Eventually(func() int {
-							secondReadRes := readPipe(pipe.ID)
-							defer secondReadRes.Body.Close()
-
-							return secondReadRes.StatusCode
-						}).Should(Equal(http.StatusNotFound))
-					})
-				})
-
-				Context("when the reader disconnects", func() {
-					BeforeEach(func() {
-						readRes.Body.Close()
-					})
-
-					It("reaps the pipe", func() {
-						Eventually(func() int {
-							secondReadRes := readPipe(pipe.ID)
-							defer secondReadRes.Body.Close()
-
-							return secondReadRes.StatusCode
-						}).Should(Equal(http.StatusNotFound))
-					})
-				})
-			})
-
-			Describe("with an invalid id", func() {
-				It("returns 404", func() {
-					readRes := readPipe("bogus-id")
-					defer readRes.Body.Close()
-
-					Expect(readRes.StatusCode).To(Equal(http.StatusNotFound))
-
-					writeRes := writePipe("bogus-id", nil)
-					defer writeRes.Body.Close()
-
-					Expect(writeRes.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when pipe was created on another ATC", func() {
-				var otherATCServer *ghttp.Server
-
-				BeforeEach(func() {
-					otherATCServer = ghttp.NewServer()
-
+					userContextReader.GetTeamReturns("team1", 42, false, true)
+					pipe = createPipe()
 					pipeDB.GetPipeReturns(db.Pipe{
-						ID:  "some-guid",
-						URL: otherATCServer.URL(),
+						ID:     pipe.ID,
+						URL:    peerAddr,
+						TeamID: 42,
 					}, nil)
 				})
 
-				Context("when the other ATC returns 200", func() {
-					BeforeEach(func() {
-						otherATCServer.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/api/v1/pipes/some-guid"),
-								ghttp.VerifyHeaderKV("Connection", "close"),
-								ghttp.RespondWith(200, "hello from the other side"),
-							),
-						)
+				It("returns unique pipe IDs", func() {
+					anotherPipe := createPipe()
+					Expect(anotherPipe.ID).NotTo(Equal(pipe.ID))
+				})
+
+				It("returns the pipe's read/write URLs", func() {
+					Expect(pipe.ReadURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/pipes/%s", pipe.ID)))
+					Expect(pipe.WriteURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/pipes/%s", pipe.ID)))
+				})
+
+				It("saves it", func() {
+					Expect(pipeDB.CreatePipeCallCount()).To(Equal(1))
+					_, _, teamID := pipeDB.CreatePipeArgsForCall(0)
+					Expect(teamID).To(Equal(42))
+				})
+
+				Describe("GET /api/v1/pipes/:pipe", func() {
+					var readRes *http.Response
+					Context("when not authorized", func() {
+						BeforeEach(func() {
+							userContextReader.GetTeamReturns("team", 42, false, true)
+							pipe := createPipe()
+							userContextReader.GetTeamReturns("another-team", 3, false, true)
+							readRes = readPipe(pipe.ID)
+						})
+						It("returns 403 Forbidden", func() {
+							Expect(readRes.StatusCode).To(Equal(http.StatusForbidden))
+						})
 					})
 
-					It("forwards request to that ATC with disabled keep-alive", func() {
-						req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
-						Expect(err).NotTo(HaveOccurred())
+					Context("when team not found", func() {
+						BeforeEach(func() {
+							userContextReader.GetTeamReturns("team", 42, false, true)
+							pipe := createPipe()
+							userContextReader.GetTeamReturns("", 0, false, false)
+							readRes = readPipe(pipe.ID)
+						})
+						It("returns 500", func() {
+							Expect(readRes.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
 
-						response, err := client.Do(req)
-						Expect(err).NotTo(HaveOccurred())
+					Context("when authorized", func() {
+						BeforeEach(func() {
+							readRes = readPipe(pipe.ID)
+						})
 
-						Expect(otherATCServer.ReceivedRequests()).To(HaveLen(1))
+						AfterEach(func() {
+							readRes.Body.Close()
+						})
 
-						Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("hello from the other side")))
+						It("responds with 200", func() {
+							Expect(readRes.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						Describe("PUT /api/v1/pipes/:pipe", func() {
+							var writeRes *http.Response
+							Context("when not authorized", func() {
+								BeforeEach(func() {
+									userContextReader.GetTeamReturns("another-team", 3, false, true)
+									writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
+								})
+								It("returns 403 Forbidden", func() {
+									Expect(writeRes.StatusCode).To(Equal(http.StatusForbidden))
+								})
+							})
+
+							Context("when team not found", func() {
+								BeforeEach(func() {
+									userContextReader.GetTeamReturns("", 0, false, false)
+									writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
+								})
+								It("returns 500", func() {
+									Expect(writeRes.StatusCode).To(Equal(http.StatusInternalServerError))
+								})
+							})
+
+							Context("when authorized", func() {
+								BeforeEach(func() {
+									userContextReader.GetTeamReturns("team", 42, false, true)
+									writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
+								})
+
+								AfterEach(func() {
+									writeRes.Body.Close()
+								})
+
+								It("responds with 200", func() {
+									Expect(writeRes.StatusCode).To(Equal(http.StatusOK))
+								})
+
+								It("streams the data to the reader", func() {
+									Expect(ioutil.ReadAll(readRes.Body)).To(Equal([]byte("some data")))
+								})
+
+								It("reaps the pipe", func() {
+									Eventually(func() int {
+										secondReadRes := readPipe(pipe.ID)
+										defer secondReadRes.Body.Close()
+
+										return secondReadRes.StatusCode
+									}).Should(Equal(http.StatusNotFound))
+								})
+							})
+						})
+
+						Context("when the reader disconnects", func() {
+							BeforeEach(func() {
+								readRes.Body.Close()
+							})
+
+							It("reaps the pipe", func() {
+								Eventually(func() int {
+									secondReadRes := readPipe(pipe.ID)
+									defer secondReadRes.Body.Close()
+
+									return secondReadRes.StatusCode
+								}).Should(Equal(http.StatusNotFound))
+							})
+						})
 					})
 				})
 
-				Context("when the other ATC returns a bad status code", func() {
+				Describe("with an invalid id", func() {
+					It("returns 404", func() {
+						readRes := readPipe("bogus-id")
+						defer readRes.Body.Close()
+
+						Expect(readRes.StatusCode).To(Equal(http.StatusNotFound))
+
+						writeRes := writePipe("bogus-id", nil)
+						defer writeRes.Body.Close()
+
+						Expect(writeRes.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when pipe was created on another ATC", func() {
+					var otherATCServer *ghttp.Server
+
 					BeforeEach(func() {
-						otherATCServer.AppendHandlers(ghttp.RespondWith(403, "nope"))
+						otherATCServer = ghttp.NewServer()
+
+						pipeDB.GetPipeReturns(db.Pipe{
+							ID:     "some-guid",
+							URL:    otherATCServer.URL(),
+							TeamID: 42,
+						}, nil)
 					})
 
-					It("returns the same status code", func() {
-						req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
-						Expect(err).NotTo(HaveOccurred())
+					Context("when the other ATC returns 200", func() {
+						BeforeEach(func() {
+							otherATCServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/api/v1/pipes/some-guid"),
+									ghttp.VerifyHeaderKV("Connection", "close"),
+									ghttp.RespondWith(200, "hello from the other side"),
+								),
+							)
+						})
 
-						response, err := client.Do(req)
-						Expect(err).NotTo(HaveOccurred())
+						It("forwards request to that ATC with disabled keep-alive", func() {
+							req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
+							Expect(err).NotTo(HaveOccurred())
 
-						Expect(otherATCServer.ReceivedRequests()).To(HaveLen(1))
+							response, err := client.Do(req)
+							Expect(err).NotTo(HaveOccurred())
 
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+							Expect(otherATCServer.ReceivedRequests()).To(HaveLen(1))
+
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("hello from the other side")))
+						})
+					})
+
+					Context("when the other ATC returns a bad status code", func() {
+						BeforeEach(func() {
+							otherATCServer.AppendHandlers(ghttp.RespondWith(403, "nope"))
+						})
+
+						It("returns the same status code", func() {
+							req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
+							Expect(err).NotTo(HaveOccurred())
+
+							response, err := client.Do(req)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(otherATCServer.ReceivedRequests()).To(HaveLen(1))
+
+							Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+						})
 					})
 				})
 			})

@@ -122,4 +122,5 @@ var Migrations = []migration.Migrator{
 	AddNonEmptyConstraintToTeamName,
 	AddGenericOAuthToTeams,
 	MigrateFromLeasesToLocks,
+	AddTeamNameToPipe,
 }

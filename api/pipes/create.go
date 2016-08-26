@@ -9,6 +9,7 @@ import (
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 )
 
 func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +20,13 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.db.CreatePipe(guid.String(), s.url)
+	authTeam, found := auth.GetTeam(r)
+	if !found {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = s.db.CreatePipe(guid.String(), s.url, authTeam.ID())
 	if err != nil {
 		logger.Error("failed-to-create-pipe", err)
 		w.WriteHeader(http.StatusInternalServerError)

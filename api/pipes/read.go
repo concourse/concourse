@@ -1,21 +1,38 @@
 package pipes
 
 import (
+	"errors"
 	"io"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 )
 
 func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("read-pipe")
 	pipeID := r.FormValue(":pipe_id")
 
+	authTeam, found := auth.GetTeam(r)
+	if !found {
+		logger.Error("failed-to-get-team", errors.New("failed-to-get-team"))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	dbPipe, err := s.db.GetPipe(pipeID)
 	if err != nil {
 		logger.Error("failed-to-get-pipe", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if authTeam.ID() != dbPipe.TeamID {
+		logger.Error("team-not-authorized-to-read-pipe",
+			errors.New("team-not-authorized-to-read-pipe"),
+			lager.Data{"TeamID": authTeam.ID(), "PipeID": dbPipe.ID})
+		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 

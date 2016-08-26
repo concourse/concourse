@@ -1,6 +1,6 @@
 package db
 
-func (db *SQLDB) CreatePipe(pipeGUID string, url string) error {
+func (db *SQLDB) CreatePipe(pipeGUID string, url string, teamID int) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -9,9 +9,9 @@ func (db *SQLDB) CreatePipe(pipeGUID string, url string) error {
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO pipes(id, url)
-		VALUES ($1, $2)
-	`, pipeGUID, url)
+		INSERT INTO pipes(id, url, team_id)
+		VALUES ($1, $2, $3)
+	`, pipeGUID, url, teamID)
 
 	if err != nil {
 		return err
@@ -35,10 +35,10 @@ func (db *SQLDB) GetPipe(pipeGUID string) (Pipe, error) {
 	var pipe Pipe
 
 	err = tx.QueryRow(`
-		SELECT id, coalesce(url, '') AS url
+		SELECT id, coalesce(url, '') AS url, team_id
 		FROM pipes
 		WHERE id = $1
-	`, pipeGUID).Scan(&pipe.ID, &pipe.URL)
+	`, pipeGUID).Scan(&pipe.ID, &pipe.URL, &pipe.TeamID)
 
 	if err != nil {
 		return Pipe{}, err

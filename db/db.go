@@ -86,7 +86,7 @@ type DB interface {
 
 	FindJobIDForBuild(buildID int) (int, bool, error)
 
-	CreatePipe(pipeGUID string, url string) error
+	CreatePipe(pipeGUID string, url string, teamID int) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
 	GetTaskLock(logger lager.Logger, taskName string) (Lock, bool, error)
