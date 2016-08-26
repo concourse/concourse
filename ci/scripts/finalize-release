@@ -32,7 +32,7 @@ export HOME=$PWD
 
 if [ -e ${RELEASE_YML} ]; then
   echo "release already created; making tarball..."
-  bosh -n create-release --with-tarball ${RELEASE_YML}
+  bosh -n create-release --tarball ${RELEASE_YML}
 else
   echo "finalizing release"
   bosh -n finalize-release --version "$VERSION" ${CANDIDATE_DIR}/concourse-*.tgz
