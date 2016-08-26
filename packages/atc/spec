@@ -79,6 +79,7 @@ files:
   - github.com/concourse/atc/web/group/*.go # gosub
   - github.com/concourse/atc/web/index/*.go # gosub
   - github.com/concourse/atc/web/login/*.go # gosub
+  - github.com/concourse/atc/web/mainwrapper/*.go # gosub
   - github.com/concourse/atc/web/pipeline/*.go # gosub
   - github.com/concourse/atc/web/triggerbuild/*.go # gosub
   - github.com/concourse/atc/web/webhandler/*.go # gosub
