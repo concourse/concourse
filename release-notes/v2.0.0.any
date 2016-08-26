@@ -2,7 +2,7 @@
 
 \use{\require{concourse/docs}}
 
-\release{2016-08-25}{2.0.0}{0.6.0}{
+\release{2016-08-26}{2.0.0}{0.6.0}{
   \note{feature}{breaking}{
     \reference{teams}{TEEEEEEEEEEEEEEEEEEEEEEEEAMS!}
 
