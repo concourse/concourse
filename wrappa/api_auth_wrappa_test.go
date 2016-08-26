@@ -61,6 +61,17 @@ var _ = Describe("APIAuthWrappa", func() {
 		)
 	}
 
+	authenticatedAndAdmin := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			auth.CheckAdminHandler(
+				handler,
+				auth.UnauthorizedRejector{},
+			),
+			fakeAuthValidator,
+			fakeUserContextReader,
+		)
+	}
+
 	authenticatedWithGetTokenValidator := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
 			auth.CheckAuthenticationHandler(
@@ -182,17 +193,20 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.CreatePipe:      authenticated(inputHandlers[atc.CreatePipe]),
 				atc.GetAuthToken:    authenticatedWithGetTokenValidator(inputHandlers[atc.GetAuthToken]),
 				atc.GetContainer:    authenticated(inputHandlers[atc.GetContainer]),
-				atc.GetLogLevel:     authenticated(inputHandlers[atc.GetLogLevel]),
 				atc.HijackContainer: authenticated(inputHandlers[atc.HijackContainer]),
 				atc.ListContainers:  authenticated(inputHandlers[atc.ListContainers]),
 				atc.ListVolumes:     authenticated(inputHandlers[atc.ListVolumes]),
 				atc.ListWorkers:     authenticated(inputHandlers[atc.ListWorkers]),
 				atc.ReadPipe:        authenticated(inputHandlers[atc.ReadPipe]),
 				atc.RegisterWorker:  authenticated(inputHandlers[atc.RegisterWorker]),
-				atc.SetLogLevel:     authenticated(inputHandlers[atc.SetLogLevel]),
-				atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
-				atc.WritePipe:       authenticated(inputHandlers[atc.WritePipe]),
-				atc.GetUser:         authenticated(inputHandlers[atc.GetUser]),
+
+				atc.SetTeam:   authenticated(inputHandlers[atc.SetTeam]),
+				atc.WritePipe: authenticated(inputHandlers[atc.WritePipe]),
+				atc.GetUser:   authenticated(inputHandlers[atc.GetUser]),
+
+				// authenticated and is admin
+				atc.GetLogLevel: authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),
+				atc.SetLogLevel: authenticatedAndAdmin(inputHandlers[atc.SetLogLevel]),
 
 				// authorized (requested team matches resource team)
 				atc.CheckResource:          authorized(inputHandlers[atc.CheckResource]),
