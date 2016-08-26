@@ -55,6 +55,12 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: bosh-cli
+  type: s3
+  source:
+    bucket: bosh-cli-artifacts
+    regexp: bosh-cli-(.*)-linux-amd64
+
 - name: concourse-bosh-cli
   type: git
   source:
@@ -306,6 +312,8 @@ jobs:
   serial: true
   plan:
   - aggregate:
+    - get: bosh-cli
+      trigger: true
     - get: concourse-bosh-cli
       trigger: true
       params: {submodules: none}
@@ -315,7 +323,8 @@ jobs:
   - put: concourse-bosh-cli-image
     params:
       load_base: ubuntu-16.04
-      build: concourse-bosh-cli/ci/dockerfiles/bosh-cli
+      dockerfile: concourse-bosh-cli/ci/dockerfiles/bosh-cli
+      build: .
 
 - name: build-btrfs-tools-ci
   public: true

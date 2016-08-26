@@ -10,6 +10,6 @@ FINAL_VERSION="$(cat final-version/version)"
 pushd concourse/
   echo "$FINAL_VERSION" > src/version/VERSION
 
-  bosh -n create release --with-tarball --name concourse --version "$VERSION"
+  bosh -n create-release --with-tarball --name concourse --version "$VERSION"
   mv dev_releases/concourse/concourse-*.tgz "$OUTPUT"
 popd
