@@ -15,5 +15,5 @@ pushd concourse/
   export HOME=$PWD
 
   bosh -n create-release --tarball --name concourse --version "$VERSION"
-  mv dev_releases/concourse/concourse-*.tgz "$OUTPUT"
+  mv releases/concourse/concourse-*.tgz "$OUTPUT"
 popd
