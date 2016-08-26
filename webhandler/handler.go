@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/login"
+	"github.com/concourse/atc/web/mainwrapper"
 	"github.com/concourse/atc/web/pipeline"
 	"github.com/concourse/atc/web/triggerbuild"
 	"github.com/concourse/atc/wrappa"
@@ -98,6 +99,11 @@ func NewHandler(
 		web.TeamLogIn:             login.NewHandler(logger, logInTemplate),
 		web.LogIn:                 login.NewHandler(logger, logInTemplate),
 		web.ProcessBasicAuthLogIn: login.NewProcessBasicAuthHandler(logger, clientFactory),
+
+		web.MainPipeline:    mainwrapper.Handler{web.Pipeline, authredirect.Handler{pipelineHandler}},
+		web.MainGetJob:      mainwrapper.Handler{web.GetJob, authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)}},
+		web.MainGetResource: mainwrapper.Handler{web.GetResource, authredirect.Handler{getresource.NewHandler(logger, clientFactory, resourceTemplate)}},
+		web.MainGetBuild:    mainwrapper.Handler{web.GetBuild, authredirect.Handler{getbuild.NewHandler(logger, clientFactory, buildTemplate)}},
 	}
 
 	handler, err := rata.NewRouter(web.Routes, wrapper.Wrap(handlers))
