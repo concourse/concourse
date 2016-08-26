@@ -46,3 +46,5 @@ tags
 
 # IaaS Configs
 .tugboat
+
+.bosh
