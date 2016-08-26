@@ -141,11 +141,11 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	leaseConn, err := cmd.constructLeaseConn()
+	lockConn, err := cmd.constructLockConn()
 	if err != nil {
 		return nil, err
 	}
-	lockFactory := db.NewLockFactory(leaseConn)
+	lockFactory := db.NewLockFactory(lockConn)
 
 	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
@@ -587,7 +587,7 @@ func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, error) {
 	return metric.CountQueries(dbConn), nil
 }
 
-func (cmd *ATCCommand) constructLeaseConn() (*pgx.Conn, error) {
+func (cmd *ATCCommand) constructLockConn() (*db.RetryableConn, error) {
 	var pgxConfig pgx.ConnConfig
 	var err error
 
@@ -602,7 +602,14 @@ func (cmd *ATCCommand) constructLeaseConn() (*pgx.Conn, error) {
 		return nil, err
 	}
 
-	return pgx.Connect(pgxConfig)
+	connector := &db.PgxConnector{PgxConfig: pgxConfig}
+
+	pgxConn, err := connector.Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	return &db.RetryableConn{Connector: connector, Conn: pgxConn}, nil
 }
 
 func (cmd *ATCCommand) constructWorkerPool(

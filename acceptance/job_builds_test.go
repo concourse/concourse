@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/gunk/urljoiner"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Job Builds", func() {
@@ -28,7 +29,12 @@ var _ = Describe("Job Builds", func() {
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 

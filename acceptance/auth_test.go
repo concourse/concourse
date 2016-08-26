@@ -16,6 +16,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Auth", func() {
@@ -28,7 +29,12 @@ var _ = Describe("Auth", func() {
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 		err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)

@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/jackc/pgx"
 )
 
 func buildTrackingLockID(buildID int) LockID { return LockID{buildID} }
@@ -42,7 +41,7 @@ type lockFactory struct {
 	locks lockRepo
 }
 
-func NewLockFactory(conn *pgx.Conn) LockFactory {
+func NewLockFactory(conn *RetryableConn) LockFactory {
 	return &lockFactory{
 		db: lockDB{
 			conn:  conn,
@@ -114,7 +113,7 @@ func (l *lock) AfterRelease(afterReleaseFunc func() error) {
 }
 
 type lockDB struct {
-	conn  *pgx.Conn
+	conn  *RetryableConn
 	mutex *sync.Mutex
 }
 

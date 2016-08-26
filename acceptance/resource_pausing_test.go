@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/gunk/urljoiner"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Resource Pausing", func() {
@@ -26,7 +27,12 @@ var _ = Describe("Resource Pausing", func() {
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)

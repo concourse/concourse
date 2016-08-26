@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 
@@ -36,7 +37,11 @@ var _ = Describe("Build", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 

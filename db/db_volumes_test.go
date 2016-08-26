@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/lib/pq"
 )
 
@@ -28,7 +29,11 @@ var _ = Describe("Keeping track of volumes", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		lockFactory := db.NewLockFactory(postgresRunner.OpenPgx())
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
 		sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 		database = sqlDB
 
