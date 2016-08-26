@@ -320,11 +320,28 @@ jobs:
     - get: ubuntu-16.04
       trigger: true
       params: {save: true}
+  - task: build-context
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: ubuntu}
+      inputs:
+      - name: bosh-cli
+      - name: concourse-bosh-cli
+      outputs:
+      - name: context
+      run:
+        path: bash
+        args:
+        - -exuc
+        - |
+          cp concourse-bosh-cli/ci/dockerfiles/bosh-cli/Dockerfile context/
+          cp bosh-cli/bosh-cli-* context/
   - put: concourse-bosh-cli-image
     params:
       load_base: ubuntu-16.04
-      dockerfile: concourse-bosh-cli/ci/dockerfiles/bosh-cli
-      build: .
+      build: context
 
 - name: build-btrfs-tools-ci
   public: true
