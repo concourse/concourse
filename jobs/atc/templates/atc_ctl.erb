@@ -67,6 +67,8 @@ case $1 in
     chown vcap:vcap $CF_CA_CERT
     chmod 0400 $CF_CA_CERT
 
+    setcap cap_net_bind_service=+ep /var/vcap/packages/atc/bin/atc
+
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
       --bind-ip <%= p("bind_ip") %> \
       --bind-port <%= p("bind_port") %> \
