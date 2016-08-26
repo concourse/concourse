@@ -7,24 +7,34 @@
     \reference{teams}{TEEEEEEEEEEEEEEEEEEEEEEEEAMS!}
 
     So, you'll notice that version number made quite a jump. This is why. The
-    long-awaited "teams" feature brings multi-tenancy to Concourse. For now,
-    it's what we'd call "trusted multi-tenancy" - we ain't quite Travis yet. See
-    \hyperlink{https://github.com/concourse/concourse/issues/366}{#366} for
-    more on what I mean by that.
+    long-awaited "teams" feature brings (\reference{teams-caveats}{trusted})
+    multi-tenancy to Concourse.
 
-    In adding Teams, many many routes had to change, both in the API and in
-    the web UI. Mainly, there's a \code{/teams/foo} entry in the path for
-    whichever team the resource belongs to.
+    The following breaking changes have been made:
 
-    All resources existing today will belong to a team called \code{main}.
-    Also, the \code{--publicly-viewable} configuration is gone, and is now set
-    on a pipeline-by-pipeline basis, via \reference{fly-expose-pipeline} and
-    \reference{fly-hide-pipeline}. Newly configured pipelines are hidden by
-    default, and all existing pipelines will be hidden upon upgrade, so make
-    sure to expose the ones you intend to be public!
+    \list{
+      The \code{--publicly-viewable} configuration is gone, and is now set
+      on a pipeline-by-pipeline basis, via \reference{fly-expose-pipeline} and
+      \reference{fly-hide-pipeline}. Newly configured pipelines are hidden by
+      default, and all existing pipelines will be hidden upon upgrade, so make
+      sure to expose the ones you intend to be public!
+    }{
+      Many API routes now require the team to specified in the URL, e.g.
+      \code{/api/v1/teams/foo/pipelines}. Our API still not yet an official
+      interface to Concourse; we continue to encourage using
+      \reference{fly}{\code{fly}} until we turn it into a properly versioned
+      and documented API.
+
+      The web UI routes now also have the team name in them. Old URLs should
+      continue to work, and will now redirect to the new URL.
+    }
+
+    Everything else (pipelines and such) should continue to work the same as
+    before, only now they'll belong to a team called
+    \reference{main-team}{\code{main}}.
   }
 
-  \note{feature}{breaking}{
+  \note{feature}{deprecation}{
     We have deprecated the \code{/builds} page, previously known as "the second
     hamburger menu button". Its button in the header was taking up valuable UI
     space, so we unceremoniously demoted it.

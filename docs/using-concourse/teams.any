@@ -215,7 +215,7 @@ as).
   the job in your pipeline.
 }
 
-\section{Caveats}{
+\section{Caveats}{teams-caveats}{
   At present, teams only provide \italic{trusted multi-tenancy}. This means it
   should be used for cases where you know and trust who you're allowing access
   into your Concourse cluster.
