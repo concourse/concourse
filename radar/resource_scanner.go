@@ -68,7 +68,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		"resource": resourceName,
 	})
 
-	lock, acquired, err := scanner.db.AcquireResourceCheckingLock(logger, resourceName, interval, false)
+	lock, acquired, err := scanner.db.AcquireResourceCheckingLock(logger, savedResource, interval, false)
 
 	if err != nil {
 		lockLogger.Error("failed-to-get-lock", err, lager.Data{
@@ -133,7 +133,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 	}
 
 	for {
-		lock, acquired, err := scanner.db.AcquireResourceCheckingLock(logger, resourceName, interval, true)
+		lock, acquired, err := scanner.db.AcquireResourceCheckingLock(logger, savedResource, interval, true)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
 				"resource": resourceName,

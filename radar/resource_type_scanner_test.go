@@ -145,8 +145,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
 				Expect(fakeRadarDB.AcquireResourceTypeCheckingLockCallCount()).To(Equal(1))
 
-				_, resourceTypeName, leaseInterval, immediate := fakeRadarDB.AcquireResourceTypeCheckingLockArgsForCall(0)
-				Expect(resourceTypeName).To(Equal("some-resource-type"))
+				_, resourceType, leaseInterval, immediate := fakeRadarDB.AcquireResourceTypeCheckingLockArgsForCall(0)
+				Expect(resourceType.Name).To(Equal("some-resource-type"))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())
 

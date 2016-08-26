@@ -10,20 +10,33 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-func buildTrackingLockID(buildID int) LockID { return LockID{buildID} }
+const (
+	LockTypeResourceChecking = iota
+	LockTypeResourceTypeChecking
+	LockTypeBuildTracking
+	LockTypePipelineScheduling
+	LockTypeResourceCheckingForJob
+	LockTypeBatch
+)
 
-func resourceCheckingLockID(pipelineID int, resourceName string) LockID {
-	return LockID{pipelineID, lockIDFromString(resourceName)}
+func buildTrackingLockID(buildID int) LockID {
+	return LockID{LockTypeBuildTracking, buildID}
 }
 
-func resourceTypeCheckingLockID(pipelineID int, resourceTypeName string) LockID {
-	return LockID{pipelineID, lockIDFromString(resourceTypeName)}
+func resourceCheckingLockID(resourceID int) LockID {
+	return LockID{LockTypeResourceChecking, resourceID}
 }
 
-func pipelineSchedulingLockLockID(buildID int) LockID { return LockID{buildID} }
+func resourceTypeCheckingLockID(resourceTypeID int) LockID {
+	return LockID{LockTypeResourceTypeChecking, resourceTypeID}
+}
 
-func resourceCheckingForJobLockID(pipelineID int, jobName string) LockID {
-	return LockID{pipelineID, lockIDFromString(jobName)}
+func pipelineSchedulingLockLockID(pipelineID int) LockID {
+	return LockID{LockTypePipelineScheduling, pipelineID}
+}
+
+func resourceCheckingForJobLockID(jobID int) LockID {
+	return LockID{LockTypeResourceCheckingForJob, jobID}
 }
 
 func taskLockID(taskName string) LockID {

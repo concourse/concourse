@@ -127,11 +127,11 @@ type FakeRadarDB struct {
 	setResourceCheckErrorReturns struct {
 		result1 error
 	}
-	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource string, interval time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (db.Lock, bool, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct {
 		logger    lager.Logger
-		resource  string
+		resource  db.SavedResource
 		interval  time.Duration
 		immediate bool
 	}
@@ -140,11 +140,11 @@ type FakeRadarDB struct {
 		result2 bool
 		result3 error
 	}
-	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType string, interval time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (db.Lock, bool, error)
 	acquireResourceTypeCheckingLockMutex       sync.RWMutex
 	acquireResourceTypeCheckingLockArgsForCall []struct {
 		logger       lager.Logger
-		resourceType string
+		resourceType db.SavedResourceType
 		interval     time.Duration
 		immediate    bool
 	}
@@ -597,11 +597,11 @@ func (fake *FakeRadarDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeRadarDB) AcquireResourceCheckingLock(logger lager.Logger, resource string, interval time.Duration, immediate bool) (db.Lock, bool, error) {
+func (fake *FakeRadarDB) AcquireResourceCheckingLock(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (db.Lock, bool, error) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
 		logger    lager.Logger
-		resource  string
+		resource  db.SavedResource
 		interval  time.Duration
 		immediate bool
 	}{logger, resource, interval, immediate})
@@ -620,7 +620,7 @@ func (fake *FakeRadarDB) AcquireResourceCheckingLockCallCount() int {
 	return len(fake.acquireResourceCheckingLockArgsForCall)
 }
 
-func (fake *FakeRadarDB) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, string, time.Duration, bool) {
+func (fake *FakeRadarDB) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, db.SavedResource, time.Duration, bool) {
 	fake.acquireResourceCheckingLockMutex.RLock()
 	defer fake.acquireResourceCheckingLockMutex.RUnlock()
 	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resource, fake.acquireResourceCheckingLockArgsForCall[i].interval, fake.acquireResourceCheckingLockArgsForCall[i].immediate
@@ -635,11 +635,11 @@ func (fake *FakeRadarDB) AcquireResourceCheckingLockReturns(result1 db.Lock, res
 	}{result1, result2, result3}
 }
 
-func (fake *FakeRadarDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType string, interval time.Duration, immediate bool) (db.Lock, bool, error) {
+func (fake *FakeRadarDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (db.Lock, bool, error) {
 	fake.acquireResourceTypeCheckingLockMutex.Lock()
 	fake.acquireResourceTypeCheckingLockArgsForCall = append(fake.acquireResourceTypeCheckingLockArgsForCall, struct {
 		logger       lager.Logger
-		resourceType string
+		resourceType db.SavedResourceType
 		interval     time.Duration
 		immediate    bool
 	}{logger, resourceType, interval, immediate})
@@ -658,7 +658,7 @@ func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockCallCount() int {
 	return len(fake.acquireResourceTypeCheckingLockArgsForCall)
 }
 
-func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockArgsForCall(i int) (lager.Logger, string, time.Duration, bool) {
+func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockArgsForCall(i int) (lager.Logger, db.SavedResourceType, time.Duration, bool) {
 	fake.acquireResourceTypeCheckingLockMutex.RLock()
 	defer fake.acquireResourceTypeCheckingLockMutex.RUnlock()
 	return fake.acquireResourceTypeCheckingLockArgsForCall[i].logger, fake.acquireResourceTypeCheckingLockArgsForCall[i].resourceType, fake.acquireResourceTypeCheckingLockArgsForCall[i].interval, fake.acquireResourceTypeCheckingLockArgsForCall[i].immediate

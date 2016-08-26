@@ -223,11 +223,11 @@ type FakePipelineDB struct {
 	setResourceCheckErrorReturns struct {
 		result1 error
 	}
-	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource string, length time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource db.SavedResource, length time.Duration, immediate bool) (db.Lock, bool, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct {
 		logger    lager.Logger
-		resource  string
+		resource  db.SavedResource
 		length    time.Duration
 		immediate bool
 	}
@@ -236,11 +236,11 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
-	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType string, length time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType db.SavedResourceType, length time.Duration, immediate bool) (db.Lock, bool, error)
 	acquireResourceTypeCheckingLockMutex       sync.RWMutex
 	acquireResourceTypeCheckingLockArgsForCall []struct {
 		logger       lager.Logger
-		resourceType string
+		resourceType db.SavedResourceType
 		length       time.Duration
 		immediate    bool
 	}
@@ -1336,11 +1336,11 @@ func (fake *FakePipelineDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource string, length time.Duration, immediate bool) (db.Lock, bool, error) {
+func (fake *FakePipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource db.SavedResource, length time.Duration, immediate bool) (db.Lock, bool, error) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
 		logger    lager.Logger
-		resource  string
+		resource  db.SavedResource
 		length    time.Duration
 		immediate bool
 	}{logger, resource, length, immediate})
@@ -1359,7 +1359,7 @@ func (fake *FakePipelineDB) AcquireResourceCheckingLockCallCount() int {
 	return len(fake.acquireResourceCheckingLockArgsForCall)
 }
 
-func (fake *FakePipelineDB) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, string, time.Duration, bool) {
+func (fake *FakePipelineDB) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, db.SavedResource, time.Duration, bool) {
 	fake.acquireResourceCheckingLockMutex.RLock()
 	defer fake.acquireResourceCheckingLockMutex.RUnlock()
 	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resource, fake.acquireResourceCheckingLockArgsForCall[i].length, fake.acquireResourceCheckingLockArgsForCall[i].immediate
@@ -1374,11 +1374,11 @@ func (fake *FakePipelineDB) AcquireResourceCheckingLockReturns(result1 db.Lock, 
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType string, length time.Duration, immediate bool) (db.Lock, bool, error) {
+func (fake *FakePipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, length time.Duration, immediate bool) (db.Lock, bool, error) {
 	fake.acquireResourceTypeCheckingLockMutex.Lock()
 	fake.acquireResourceTypeCheckingLockArgsForCall = append(fake.acquireResourceTypeCheckingLockArgsForCall, struct {
 		logger       lager.Logger
-		resourceType string
+		resourceType db.SavedResourceType
 		length       time.Duration
 		immediate    bool
 	}{logger, resourceType, length, immediate})
@@ -1397,7 +1397,7 @@ func (fake *FakePipelineDB) AcquireResourceTypeCheckingLockCallCount() int {
 	return len(fake.acquireResourceTypeCheckingLockArgsForCall)
 }
 
-func (fake *FakePipelineDB) AcquireResourceTypeCheckingLockArgsForCall(i int) (lager.Logger, string, time.Duration, bool) {
+func (fake *FakePipelineDB) AcquireResourceTypeCheckingLockArgsForCall(i int) (lager.Logger, db.SavedResourceType, time.Duration, bool) {
 	fake.acquireResourceTypeCheckingLockMutex.RLock()
 	defer fake.acquireResourceTypeCheckingLockMutex.RUnlock()
 	return fake.acquireResourceTypeCheckingLockArgsForCall[i].logger, fake.acquireResourceTypeCheckingLockArgsForCall[i].resourceType, fake.acquireResourceTypeCheckingLockArgsForCall[i].length, fake.acquireResourceTypeCheckingLockArgsForCall[i].immediate

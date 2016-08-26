@@ -49,8 +49,8 @@ type PipelineDB interface {
 	EnableVersionedResource(versionedResourceID int) error
 	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
-	AcquireResourceCheckingLock(logger lager.Logger, resource string, length time.Duration, immediate bool) (Lock, bool, error)
-	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType string, length time.Duration, immediate bool) (Lock, bool, error)
+	AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, length time.Duration, immediate bool) (Lock, bool, error)
+	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, length time.Duration, immediate bool) (Lock, bool, error)
 
 	GetJob(job string) (SavedJob, error)
 	PauseJob(job string) error
@@ -111,6 +111,14 @@ type ResourceNotFoundError struct {
 
 func (e ResourceNotFoundError) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.Name)
+}
+
+type ResourceTypeNotFoundError struct {
+	Name string
+}
+
+func (e ResourceTypeNotFoundError) Error() string {
+	return fmt.Sprintf("resource type '%s' not found", e.Name)
 }
 
 type FirstLoggedBuildIDDecreasedError struct {
@@ -316,7 +324,7 @@ func (pdb *pipelineDB) GetResources() ([]DashboardResource, atc.GroupConfigs, bo
 	return dashboardResources, pipelineConfig.Groups, true, nil
 }
 
-func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resourceName string, interval time.Duration, immediate bool) (Lock, bool, error) {
+func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, interval time.Duration, immediate bool) (Lock, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -324,7 +332,7 @@ func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource
 
 	defer tx.Rollback()
 
-	params := []interface{}{resourceName, pdb.ID}
+	params := []interface{}{resource.Name, pdb.ID}
 
 	condition := ""
 	if !immediate {
@@ -348,9 +356,9 @@ func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource
 
 	lock := pdb.lockFactory.NewLock(
 		logger.Session("lock", lager.Data{
-			"resource": resourceName,
+			"resource": resource.Name,
 		}),
-		resourceCheckingLockID(pdb.ID, resourceName),
+		resourceCheckingLockID(resource.ID),
 	)
 
 	acquired, err := lock.Acquire()
@@ -371,7 +379,7 @@ func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource
 	return lock, true, nil
 }
 
-func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceTypeName string, interval time.Duration, immediate bool) (Lock, bool, error) {
+func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, interval time.Duration, immediate bool) (Lock, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -379,7 +387,7 @@ func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, reso
 
 	defer tx.Rollback()
 
-	params := []interface{}{resourceTypeName, pdb.ID}
+	params := []interface{}{resourceType.Name, pdb.ID}
 
 	condition := ""
 	if !immediate {
@@ -403,9 +411,9 @@ func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, reso
 
 	lock := pdb.lockFactory.NewLock(
 		logger.Session("lock", lager.Data{
-			"resource-type": resourceTypeName,
+			"resource-type": resourceType.Name,
 		}),
-		resourceTypeCheckingLockID(pdb.ID, resourceTypeName),
+		resourceTypeCheckingLockID(resourceType.ID),
 	)
 
 	acquired, err := lock.Acquire()
@@ -481,11 +489,16 @@ func (pdb *pipelineDB) AcquireResourceCheckingForJobLock(logger lager.Logger, jo
 
 	defer tx.Rollback()
 
+	savedJob, err := pdb.getJob(tx, jobName)
+	if err != nil {
+		return nil, false, err
+	}
+
 	lock := pdb.lockFactory.NewLock(
 		logger.Session("lock", lager.Data{
 			"job_name": jobName,
 		}),
-		resourceCheckingForJobLockID(pdb.ID, jobName),
+		resourceCheckingForJobLockID(savedJob.ID),
 	)
 
 	lock.AfterRelease(func() error {
