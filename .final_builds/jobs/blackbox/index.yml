@@ -1,27 +1,30 @@
----
 builds:
-  a60ec29cd8dacf58aa81c78e61683672f23e2514:
-    version: a60ec29cd8dacf58aa81c78e61683672f23e2514
-    sha1: 85e4bc4edb40c76ec53ba5a06c68719989ec40ae
-    blobstore_id: db19d296-07f4-42a8-b433-9ffed010c928
+  1a2e707bfa92f6ce45602abc19fe5ad33787bdc5:
+    version: 1a2e707bfa92f6ce45602abc19fe5ad33787bdc5
+    blobstore_id: 8012a742-5de0-4e9c-44d1-80d202f197b0
+    sha1: 2db14f21baf7d2539b201f50c8e32c1d1b29cb03
   8d43b4cf881b3843a2f198c4147452a72d90d112:
     version: 8d43b4cf881b3843a2f198c4147452a72d90d112
-    sha1: d8d8b661edf6dd6ca53cac4ebd51f83685d1d005
     blobstore_id: 34fffdd9-a797-435d-b397-ca65da0c0cf7
-  922197a2ab960491393854cf7e5228b7f6717c3e:
-    version: 922197a2ab960491393854cf7e5228b7f6717c3e
-    sha1: e0bcc2c160e0a41319450cbf40d9b61e1444ce2c
-    blobstore_id: d4bce14a-404d-493c-b88f-478871e77854
-  9277cbf06e095dc9afc05c15b31fd4adb71ba0cb:
-    version: 9277cbf06e095dc9afc05c15b31fd4adb71ba0cb
-    sha1: 972a4bca4f6ffa9a4cf69a333392bed756657a9b
-    blobstore_id: 12f8b791-1394-4402-992a-9a5d44f2bc1d
+    sha1: d8d8b661edf6dd6ca53cac4ebd51f83685d1d005
   52a727ea461d5eacfc045775194d9437361d59de:
     version: 52a727ea461d5eacfc045775194d9437361d59de
-    sha1: 8cddafe1b56e4785e34f75e61e147225af836fe5
     blobstore_id: 81fd721a-6af6-4960-8f62-bddf36d99d9d
+    sha1: 8cddafe1b56e4785e34f75e61e147225af836fe5
+  9277cbf06e095dc9afc05c15b31fd4adb71ba0cb:
+    version: 9277cbf06e095dc9afc05c15b31fd4adb71ba0cb
+    blobstore_id: 12f8b791-1394-4402-992a-9a5d44f2bc1d
+    sha1: 972a4bca4f6ffa9a4cf69a333392bed756657a9b
+  922197a2ab960491393854cf7e5228b7f6717c3e:
+    version: 922197a2ab960491393854cf7e5228b7f6717c3e
+    blobstore_id: d4bce14a-404d-493c-b88f-478871e77854
+    sha1: e0bcc2c160e0a41319450cbf40d9b61e1444ce2c
+  a60ec29cd8dacf58aa81c78e61683672f23e2514:
+    version: a60ec29cd8dacf58aa81c78e61683672f23e2514
+    blobstore_id: db19d296-07f4-42a8-b433-9ffed010c928
+    sha1: 85e4bc4edb40c76ec53ba5a06c68719989ec40ae
   ae775170ca74258bd1682db6bad1a87ec1ebd758:
     version: ae775170ca74258bd1682db6bad1a87ec1ebd758
-    sha1: 3f5ab8e6fc7bbd1941b4130a7ebef16df735bd3b
     blobstore_id: f0ae1564-c427-4817-88c0-774a860ee4bf
-format-version: '2'
+    sha1: 3f5ab8e6fc7bbd1941b4130a7ebef16df735bd3b
+format-version: "2"
