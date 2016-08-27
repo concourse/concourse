@@ -40,7 +40,7 @@ func resourceCheckingForJobLockID(jobID int) LockID {
 }
 
 func taskLockID(taskName string) LockID {
-	return LockID{lockIDFromString(taskName)}
+	return LockID{LockTypeBatch, lockIDFromString(taskName)}
 }
 
 //go:generate counterfeiter . LockFactory
