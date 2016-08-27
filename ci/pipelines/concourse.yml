@@ -543,7 +543,7 @@ jobs:
       - get: concourse
         passed: [virtualbox-box]
       - get: concourse-lite
-        # passed: [virtualbox-box]
+        passed: [virtualbox-box]
       - get: version
         passed: [virtualbox-box]
     - task: testflight
