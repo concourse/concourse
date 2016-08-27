@@ -492,10 +492,8 @@ jobs:
     - get: concourse-image-rc
       passed: [bin-docker]
     - get: deployments
-    - get: concourse-develop
   - task: finalize-release
-    file: concourse-develop/ci/finalize-release.yml
-    input_mapping: {concourse: concourse-develop}
+    file: concourse/ci/finalize-release.yml
   - aggregate:
     - put: version
       params: {file: version/version}
