@@ -546,9 +546,11 @@ jobs:
         passed: [virtualbox-box]
       - get: version
         passed: [virtualbox-box]
+      - get: concourse-buildbox-testflight-ci-image
     - task: testflight
       privileged: true
       file: concourse-lite/ci/testflight.yml
+      image: concourse-buildbox-testflight-ci-image
       tags: [hetzner]
     ensure:
       put: hetzner
@@ -940,3 +942,8 @@ resources:
     endpoint: storage.googleapis.com
     bucket: golang
     regexp: 'go(\d+\.\d+(\.\d+)?)\.windows-amd64\.msi'
+
+- name: concourse-buildbox-testflight-ci-image
+  type: docker-image
+  source:
+    repository: concourse/buildbox-testflight-ci
