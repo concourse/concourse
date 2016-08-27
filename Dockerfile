@@ -21,5 +21,8 @@ RUN echo '#!/bin/sh' >> /usr/local/bin/selenium-server && \
     echo 'exec java -jar /opt/selenium/selenium-server-standalone.jar "$@" > /tmp/selenium.log 2>&1' >> /usr/local/bin/selenium-server && \
     chmod +x /usr/local/bin/selenium-server
 
+# force atc and testflight suites to use selenium
+ENV FORCE_SELENIUM true
+
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
