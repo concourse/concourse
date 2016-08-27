@@ -30,14 +30,13 @@ export HOME=$PWD
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
 
-if [ -e ${RELEASE_YML} ]; then
-  echo "release already created; making tarball..."
-  bosh -n create-release --tarball ${RELEASE_YML}
-else
+if ! [ -e ${RELEASE_YML} ]; then
   echo "finalizing release"
   bosh -n finalize-release --version "$VERSION" ${CANDIDATE_DIR}/concourse-*.tgz
   git add -A
   git commit -m "release v${VERSION}"
 fi
+
+bosh -n create-release --tarball ${RELEASE_YML}
 
 mv ${RELEASE_TGZ} ${FINAL_RELEASE_TARBALL}
