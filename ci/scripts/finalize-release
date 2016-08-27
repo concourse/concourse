@@ -20,15 +20,15 @@ cp deployments/ci/config/private.yml $FINAL_RELEASE_REPO/config/private.yml
 
 cd $FINAL_RELEASE_REPO
 
-git config --global user.email "ci@localhost"
-git config --global user.name "CI Bot"
-
 RELEASE_YML=$PWD/releases/concourse/concourse-${VERSION}.yml
 RELEASE_TGZ=$PWD/releases/concourse/concourse-${VERSION}.tgz
 
 # work-around Go BOSH CLI trying to rename blobs downloaded into ~/.root/tmp
 # into release dir, which is invalid cross-device link
 export HOME=$PWD
+
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
 
 if [ -e ${RELEASE_YML} ]; then
   echo "release already created; making tarball..."
