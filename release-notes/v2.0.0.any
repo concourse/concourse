@@ -22,8 +22,8 @@
       Many API routes now require the team to specified in the URL, e.g.
       \code{/api/v1/teams/foo/pipelines}. Our API still not yet an official
       interface to Concourse; we continue to encourage using
-      \reference{fly}{\code{fly}} until we turn it into a properly versioned
-      and documented API.
+      \reference{fly-cli}{\code{fly}} until we turn it into a properly
+      versioned and documented API.
 
       The web UI routes now also have the team name in them. Old URLs should
       continue to work, and will now redirect to the new URL.
