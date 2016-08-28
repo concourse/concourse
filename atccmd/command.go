@@ -358,7 +358,11 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			return nil, err
 		}
 
-		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			NextProtos:   []string{"h2"},
+		}
+
 		members = append(members, grouper.Member{"web-tls", http_server.NewTLSServer(
 			cmd.tlsBindAddr(),
 			httpsHandler,
