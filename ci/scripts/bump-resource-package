@@ -21,6 +21,10 @@ set -x
 
 cd bumped-concourse/
 
+# work-around Go BOSH CLI trying to rename blobs downloaded into ~/.root/tmp
+# into release dir, which is invalid cross-device link
+export HOME=$PWD
+
 bosh -n add-blob ../${RESOURCE_NAME}.tar.gz resources/${RESOURCE_NAME}.tar.gz
 bosh -n upload-blobs
 
