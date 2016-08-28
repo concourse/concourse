@@ -21,8 +21,8 @@ set -x
 
 cd bumped-concourse/
 
-bosh -n add blob ../${RESOURCE_NAME}.tar.gz resources
-bosh -n upload blobs
+bosh -n add-blob ../${RESOURCE_NAME}.tar.gz resources/${RESOURCE_NAME}.tar.gz
+bosh -n upload-blobs
 
 if ! git diff-index --quiet HEAD; then
   git add -A

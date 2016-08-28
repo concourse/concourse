@@ -5,12 +5,8 @@ set -e -x
 
 EXPORTED_LOGS=$PWD/exported-logs
 
-bosh target $(cat bosh-lites/metadata)
+bosh env $(cat bosh-lites/metadata | tr '.' '-').sslip.io --ca-cert bosh-lite/ca/certs/ca.crt
 
-director_uuid=$(bosh status --uuid)
-
-cat $MANIFEST | sed "s/director_uuid: ~/director_uuid: $director_uuid/g" > deployment.yml
-
-bosh -d deployment.yml logs concourse 0 --only '*.log,**/*.log'
+bosh -d concourse-testflight logs concourse/0 --only '*.log,**/*.log'
 
 mv concourse*.tgz $EXPORTED_LOGS

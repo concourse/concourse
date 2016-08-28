@@ -270,6 +270,8 @@ jobs:
         resource: garden-runc
       - get: lite-stemcell
       - get: deployments
+      - get: bosh-lite
+        passed: [provision]
     - put: lite-deployment
       params:
         manifest: deployments/lite/ci/manifests/no_auth_deployment.yml

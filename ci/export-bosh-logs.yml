@@ -10,6 +10,7 @@ inputs:
 - name: concourse
 - name: bosh-lites
 - name: deployments
+- name: bosh-lite
 
 outputs:
 - name: exported-logs
