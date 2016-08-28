@@ -8,9 +8,6 @@ if [ -z "$RESOURCE_NAME" ]; then
   exit 1
 fi
 
-git config --global user.email "ci@localhost"
-git config --global user.name "CI Bot"
-
 gzip -c resource-image/rootfs.tar > ${RESOURCE_NAME}.tar.gz
 
 git clone concourse bumped-concourse
@@ -24,6 +21,9 @@ cd bumped-concourse/
 # work-around Go BOSH CLI trying to rename blobs downloaded into ~/.root/tmp
 # into release dir, which is invalid cross-device link
 export HOME=$PWD
+
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
 
 bosh -n add-blob ../${RESOURCE_NAME}.tar.gz resources/${RESOURCE_NAME}.tar.gz
 bosh -n upload-blobs

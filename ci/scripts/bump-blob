@@ -24,9 +24,6 @@ if [ -n $BLOB_VERSION_FILE ]; then
   BLOB_VERSION=`cat ${blob_dir}/${BLOB_VERSION_FILE}`
 fi
 
-git config --global user.email "ci@localhost"
-git config --global user.name "CI Bot"
-
 git clone concourse bumped-concourse
 
 set +x
@@ -38,6 +35,9 @@ cd bumped-concourse/
 # work-around Go BOSH CLI trying to rename blobs downloaded into ~/.root/tmp
 # into release dir, which is invalid cross-device link
 export HOME=$PWD
+
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
 
 bosh -n add-blob $blob_dir/*.tar.gz ${BLOB_DESTINATION}/${BLOB_NAME}.tar.gz
 bosh -n upload-blobs
