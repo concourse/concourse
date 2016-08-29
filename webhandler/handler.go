@@ -8,6 +8,7 @@ import (
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/tedsuo/rata"
 
+	"github.com/concourse/atc/mainredirect"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/authredirect"
 	"github.com/concourse/atc/web/getbuild"
@@ -17,7 +18,6 @@ import (
 	"github.com/concourse/atc/web/getresource"
 	"github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/login"
-	"github.com/concourse/atc/web/mainwrapper"
 	"github.com/concourse/atc/web/pipeline"
 	"github.com/concourse/atc/web/triggerbuild"
 	"github.com/concourse/atc/wrappa"
@@ -100,10 +100,10 @@ func NewHandler(
 		web.LogIn:                 login.NewHandler(logger, logInTemplate),
 		web.ProcessBasicAuthLogIn: login.NewProcessBasicAuthHandler(logger, clientFactory),
 
-		web.MainPipeline:    mainwrapper.Handler{web.Pipeline, authredirect.Handler{pipelineHandler}},
-		web.MainGetJob:      mainwrapper.Handler{web.GetJob, authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)}},
-		web.MainGetResource: mainwrapper.Handler{web.GetResource, authredirect.Handler{getresource.NewHandler(logger, clientFactory, resourceTemplate)}},
-		web.MainGetBuild:    mainwrapper.Handler{web.GetBuild, authredirect.Handler{getbuild.NewHandler(logger, clientFactory, buildTemplate)}},
+		web.MainPipeline:    mainredirect.Handler{web.Routes, web.Pipeline},
+		web.MainGetJob:      mainredirect.Handler{web.Routes, web.GetJob},
+		web.MainGetResource: mainredirect.Handler{web.Routes, web.GetResource},
+		web.MainGetBuild:    mainredirect.Handler{web.Routes, web.GetBuild},
 	}
 
 	handler, err := rata.NewRouter(web.Routes, wrapper.Wrap(handlers))
