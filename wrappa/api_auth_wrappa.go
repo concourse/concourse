@@ -49,7 +49,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListTeams,
 			atc.ListAllPipelines,
 			atc.ListPipelines,
-			atc.ListBuilds:
+			atc.ListBuilds,
+			atc.MainJobBadge:
 
 		// pipeline is public or authorized
 		case atc.GetBuild,

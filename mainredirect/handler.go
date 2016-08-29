@@ -1,17 +1,15 @@
-package mainwrapper
+package mainredirect
 
 import (
 	"net/http"
 	"strings"
 
-	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
 
 type Handler struct {
-	Route string
-
-	http.Handler
+	Routes rata.Routes
+	Route  string
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +23,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	path, err := web.Routes.CreatePathForRoute(h.Route, params)
+	path, err := h.Routes.CreatePathForRoute(h.Route, params)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

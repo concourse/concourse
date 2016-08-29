@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/mainredirect"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/wrappa"
 )
@@ -145,6 +146,7 @@ func NewHandler(
 		atc.PauseJob:       pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
 		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
 		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
+		atc.MainJobBadge:   mainredirect.Handler{atc.Routes, atc.JobBadge},
 
 		atc.ListAllPipelines: http.HandlerFunc(pipelineServer.ListAllPipelines),
 		atc.ListPipelines:    http.HandlerFunc(pipelineServer.ListPipelines),
