@@ -53,25 +53,29 @@ flag. Once you've learned what the commands do, you may want to consult
   it will print an OAuth token on the page that you can then then copy and
   paste into the prompt.
 
-  In either case, a token is saved in your \code{~/.flyrc}, which will expire
+  Note that if no authentication methods are configured (e.g. when targeting a
+  \code{concourse/lite} Vagrant box), \code{fly} will acquire a token without
+  any prompting. You can then use the alias like normal.
+
+  In any case, a token is saved in your \code{~/.flyrc}, which will expire
   after one day.
 
-  After you've done this you can use \code{--target example} (or \code{-t
-  example} for short) to run a command against the saved target \code{example}.
-  For eample, \code{fly -t example builds} will list the last few builds
-  on the \code{example} Concourse instance.
-
   If your Concourse uses SSL but does not have a certificate signed by a
-  trusted CA, you can use the \code{-k} or \code{--insecure} flag in order to
-  make \code{fly} not check the remote certificates, like so.
+  trusted CA, you can use the \code{--ca-cert} flag so that \code{fly} can
+  trust the connection, like so:
 
   \codeblock{bash}{
-  $ fly -t example login -c https://ci.example.com -k
+  $ fly -t example login -c https://ci.example.com --ca-cert ./ca.crt
   }
 
-  Note that if no authentication methods are configured (e.g. when targeting a
-  \code{concourse/lite} Vagrant box), it will just save the target with no
-  token. You can then use the alias like normal.
+  This will read the value out of the file \code{./ca.crt} and save it into
+  \code{~/.flyrc} so you don't have to pass it on every \code{login}
+  invocation.
+
+  After you've logged in you can use \code{--target example} (or \code{-t
+  example} for short) to run a command against the saved target \code{example}.
+  For eample, \code{fly -t example builds} will list the last few builds on the
+  \code{example} Concourse instance.
 }
 
 \section{\code{targets}\aux{: List the current targets}}{fly-targets}{
