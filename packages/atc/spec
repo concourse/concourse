@@ -88,6 +88,7 @@ files:
   - github.com/concourse/atc/worker/transport/*.go # gosub
   - github.com/concourse/atc/wrappa/*.go # gosub
   - github.com/concourse/baggageclaim/*.go # gosub
+  - github.com/concourse/baggageclaim/api/*.go # gosub
   - github.com/concourse/baggageclaim/client/*.go # gosub
   - github.com/concourse/baggageclaim/uidjunk/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub
