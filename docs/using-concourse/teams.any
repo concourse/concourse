@@ -18,7 +18,7 @@ only a configuration of auth methods, which themselves may provide user info
 that we add semantics to in the future (i.e. which GitHub user you authorized
 as).
 
-\section{\code{main}: the magical mystery team}{main-team}{
+\section{\code{main}\aux{: the magical mystery team}}{main-team}{
   Out of the box, Concourse comes with a single team called \code{main}.
 
   The \code{main} team is an \italic{admin team}, meaning it can create and
@@ -85,7 +85,7 @@ as).
   will be given a choice when logging in as to which one they would like to
   use.
 
-  \section{Basic Authentication}{
+  \section{Basic Authentication}{basic-auth}{
     HTTP Basic authentication is the simplest of the authentication mechanisms.
     It has good support in both browsers and command line tools. It provides a
     single set of credentials for all users of the system.
@@ -182,6 +182,50 @@ as).
     The \code{--uaa-auth-*} flags allow you to authorize members of a
     particular space in a CF deployment. In the future we'll make this generic
     to UAA and request scopes.
+
+    \section{Configuring the UAA client}{
+      You'll first need to configure a client for Concourse with your UAA. The
+      callback URL will be the external URL of your Concourse server with
+      \code{/auth/oauth/callback} appended. For example, Concourse's own CI
+      server's callback URL would be
+      \code{https://ci.concourse.ci/auth/oauth/callback}.
+
+      The client should look something like this, under
+      \hyperlink{http://bosh.io/jobs/uaa?source=github.com/cloudfoundry/uaa-release&version=13#p=uaa.clients}{\code{uaa.clients}}:
+
+      \codeblock{yaml}{
+        concourse:
+          id: my-client-id
+          secret: my-client-secret
+          scope: cloud_controller.read
+          authorities: cloud_controller.admin
+          authorized-grant-types: "authorization_code,client_credentials,refresh_token"
+          access-token-validity: 3600
+          refresh-token-validity: 3600
+          autoapprove: true
+          override: true
+          redirect-uri: https://concourse.example.com/auth/uaa/callback
+      }
+    }
+
+    \section{Configuring the team}{
+      Configuring auth for my team's space in a CF installation may look
+      something like:
+
+      \codeblock{bash}{
+      $ fly set-team -n my-cf-team \\
+          --uaa-auth-client-id $CLIENT_ID \\
+          --uaa-auth-client-secret $CLIENT_SECRET \\
+          --uaa-auth-auth-url https://login.my-cf.com/oauth/authorize \\
+          --uaa-auth-token-url https://login.my-cf.com/oauth/token \\
+          --uaa-auth-cf-url https://api.my-cf.com \\
+          --uaa-auth-cf-ca-cert ./path/to/cf-ca-cert.crt \\
+          --uaa-auth-cf-space 31d89184-35b8-4660-a8ab-a7f72cc24435
+      }
+
+      The \code{31d89184-35b8-4660-a8ab-a7f72cc24435} value above is the GUID
+      of the space whose members will be authorized.
+    }
   }
 
   \section{Generic oAuth}{generic-oauth}{
@@ -190,6 +234,69 @@ as).
     It should only be used with internal auth systems. If it were used to
     configure Google or Twitter oAuth, for example, it would permit just about
     every person on the internet to create pipelines. It'd be mighty generous.
+
+    \section{Configuring the oAuth client}{
+      You'll first need to configure the client with your oAuth provider. The
+      callback URL will be the external URL of your Concourse server with
+      \code{/auth/oauth/callback} appended. For example, Concourse's own CI
+      server's callback URL would be
+      \code{https://ci.concourse.ci/auth/oauth/callback}.
+    }
+
+    \section{Configuring the team}{
+      Configuring generic oAuth for X company's internal oAuth service may look
+      something like:
+
+      \codeblock{bash}{
+      $ fly set-team -n my-team-in-x \\
+          --generic-oauth-display-name 'X' \\
+          --generic-oauth-client-id $CLIENT_ID \\
+          --generic-oauth-client-secret $CLIENT_SECRET \\
+          --generic-oauth-auth-url https://oauth.example.com/o/oauth2/auth \\
+          --generic-oauth-token-url https://oauth.example.com/o/oauth2/token
+      }
+
+      You can also pass arbitrary params, for example a \code{scope} to
+      request, like so:
+
+      \codeblock{bash}{
+      $ fly set-team -n my-team-in-x \\
+          --generic-oauth-display-name 'X' \\
+          --generic-oauth-client-id $CLIENT_ID \\
+          --generic-oauth-client-secret $CLIENT_SECRET \\
+          --generic-oauth-auth-url https://oauth.example.com/o/oauth2/auth \\
+          --generic-oauth-token-url https://oauth.example.com/o/oauth2/token \\
+          --generic-oauth-auth-url-param=scope:read
+      }
+
+      The \code{--generic-oauth-auth-url-param} flag can be specified multiple
+      times to configure multiple params, in the form of \code{KEY:VALUE}.
+    }
+
+    \section{Caveats}{
+      Given that this is a catch-all provider, there may be things that go
+      wrong that we can't really document in great detail. If things aren't
+      working, try flailing until it works.
+
+      For example, some providers seem to expect values like \code{client_id}
+      and \code{client_secret} to be specified as query params on the token
+      URL. Our oAuth2 library sends these values as the request payload POSTed
+      to the endpoint instead. In this case you could try tacking the query
+      params on to the end of the token URL like so:
+
+      \codeblock{bash}{
+      $ fly set-team -n my-team-in-x \\
+          --generic-oauth-display-name 'X' \\
+          --generic-oauth-client-id $CLIENT_ID \\
+          --generic-oauth-client-secret $CLIENT_SECRET \\
+          --generic-oauth-auth-url https://oauth.example.com/o/oauth2/auth \\
+          --generic-oauth-token-url \\
+            "https://oauth.example.com/o/oauth2/token?client_secret=$CLIENT_SECRET" \\
+          --generic-oauth-auth-url-param scope:some-scope
+      }
+
+      Pretty janky but it works.
+    }
   }
 
   \section{Future providers}{
