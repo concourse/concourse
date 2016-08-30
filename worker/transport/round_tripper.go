@@ -14,12 +14,12 @@ type roundTripper struct {
 	cachedHost        string
 }
 
-func NewRoundTripper(workerName string, db TransportDB, innerRoundTripper http.RoundTripper) http.RoundTripper {
+func NewRoundTripper(workerName string, workerHost string, db TransportDB, innerRoundTripper http.RoundTripper) http.RoundTripper {
 	return &roundTripper{
 		innerRoundTripper: innerRoundTripper,
 		workerName:        workerName,
 		db:                db,
-		cachedHost:        "",
+		cachedHost:        workerHost,
 	}
 }
 
