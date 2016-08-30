@@ -69,7 +69,7 @@ var _ = Describe("PipelinePausing", func() {
 
 			By("toggling the nav")
 			Expect(page.Find(".sidebar-toggle.test").Click()).To(Succeed())
-			Eventually(page.Find("#pipeline").Text, loadingTimeout).Should(ContainSubstring("another-job-name"))
+			Eventually(page.Find(".pipeline-graph.test").Text, loadingTimeout).Should(ContainSubstring("another-job-name"))
 
 			By("pausing another-pipeline")
 			spanXPath := fmt.Sprintf("//a[@href='/teams/%s/pipelines/another-pipeline']/preceding-sibling::span", teamName)
