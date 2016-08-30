@@ -4,21 +4,19 @@ import Date exposing (Date)
 import Dict exposing (Dict)
 import Json.Decode exposing ((:=))
 
-import Concourse.BuildStatus exposing (BuildStatus)
-import Concourse.Metadata exposing (Metadata)
-import Concourse.Version exposing (Version)
+import Concourse
 
 import EventSource
 
 type BuildEvent
-  = BuildStatus BuildStatus Date
+  = BuildStatus Concourse.BuildStatus Date
   | InitializeTask Origin
   | StartTask Origin
   | FinishTask Origin Int
   | InitializeGet Origin
-  | FinishGet Origin Int Version Metadata
+  | FinishGet Origin Int Concourse.Version Concourse.Metadata
   | InitializePut Origin
-  | FinishPut Origin Int Version Metadata
+  | FinishPut Origin Int Concourse.Version Concourse.Metadata
   | Log Origin String
   | Error Origin String
   | BuildError String
@@ -86,7 +84,7 @@ decodeEvent : BuildEventEnvelope -> Result String BuildEvent
 decodeEvent e =
   case e.event of
     "status" ->
-      Json.Decode.decodeValue (Json.Decode.object2 BuildStatus ("status" := Concourse.BuildStatus.decode) ("time" := Json.Decode.map dateFromSeconds Json.Decode.float)) e.value
+      Json.Decode.decodeValue (Json.Decode.object2 BuildStatus ("status" := Concourse.decodeBuildStatus) ("time" := Json.Decode.map dateFromSeconds Json.Decode.float)) e.value
 
     "log" ->
       Json.Decode.decodeValue (Json.Decode.object2 Log ("origin" := decodeOrigin) ("payload" := Json.Decode.string)) e.value
@@ -118,13 +116,13 @@ decodeEvent e =
     unknown ->
       Err ("unknown event type: " ++ unknown)
 
-decodeFinishResource : (Origin -> Int -> Dict String String -> Metadata -> a) -> Json.Decode.Decoder a
+decodeFinishResource : (Origin -> Int -> Concourse.Version -> Concourse.Metadata -> a) -> Json.Decode.Decoder a
 decodeFinishResource cons =
   Json.Decode.object4 cons
     ("origin" := decodeOrigin)
     ("exit_status" := Json.Decode.int)
-    (Json.Decode.map (Maybe.withDefault Dict.empty) << Json.Decode.maybe <| "version" := Concourse.Version.decode)
-    (Json.Decode.map (Maybe.withDefault []) << Json.Decode.maybe <| "metadata" := Concourse.Metadata.decode)
+    (Json.Decode.map (Maybe.withDefault Dict.empty) << Json.Decode.maybe <| "version" := Concourse.decodeVersion)
+    (Json.Decode.map (Maybe.withDefault []) << Json.Decode.maybe <| "metadata" := Concourse.decodeMetadata)
 
 decodeErrorEvent : Json.Decode.Decoder BuildEvent
 decodeErrorEvent =

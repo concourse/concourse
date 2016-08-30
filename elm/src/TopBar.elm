@@ -11,28 +11,29 @@ import String
 import Task
 import Time
 
-import Concourse.Pipeline exposing (Pipeline, PipelineIdentifier, Group)
-import Concourse.User exposing (User)
+import Concourse
+import Concourse.Pipeline
+import Concourse.User
 import Redirect
 
 type alias Flags =
-  { pipeline : Maybe PipelineIdentifier
+  { pipeline : Maybe Concourse.PipelineIdentifier
   , selectedGroups : List String
   }
 
 type alias Model =
-  { pipelineIdentifier : Maybe PipelineIdentifier
+  { pipelineIdentifier : Maybe Concourse.PipelineIdentifier
   , viewingPipeline : Bool
   , ports : Ports
   , location : Location
   , selectedGroups : List String
-  , pipeline : Maybe Pipeline
+  , pipeline : Maybe Concourse.Pipeline
   , userState : UserState
   , userMenuVisible : Bool
   }
 
 type UserState
-  = UserStateLoggedIn User
+  = UserStateLoggedIn Concourse.User
   | UserStateLoggedOut
   | UserStateUnknown
 
@@ -45,12 +46,12 @@ type alias Ports =
 
 type Msg
   = Noop
-  | PipelineFetched (Result Http.Error Pipeline)
-  | UserFetched (Result Concourse.User.Error User)
-  | FetchPipeline PipelineIdentifier
+  | PipelineFetched (Result Http.Error Concourse.Pipeline)
+  | UserFetched (Result Concourse.User.Error Concourse.User)
+  | FetchPipeline Concourse.PipelineIdentifier
   | ToggleSidebar
-  | ToggleGroup Group
-  | SetGroup Group
+  | ToggleGroup Concourse.PipelineGroup
+  | SetGroup Concourse.PipelineGroup
   | LogOut
   | LoggedOut (Result Concourse.User.Error ())
   | ToggleUserMenu
@@ -178,7 +179,7 @@ urlUpdate location model =
   , Cmd.none
   )
 
-groupsFromLocation : Location -> Maybe Pipeline -> List String
+groupsFromLocation : Location -> Maybe Concourse.Pipeline -> List String
 groupsFromLocation {search} mpipeline =
   let
     noQuestion =
@@ -218,11 +219,11 @@ setGroupsInLocation loc groups =
   in
     { loc | search = "?" ++ search }
 
-locationToHistory : Pipeline -> Location -> String
+locationToHistory : Concourse.Pipeline -> Location -> String
 locationToHistory {url} {search,hash} =
   String.join "" [url, search, hash]
 
-toggleGroup : Group -> List String -> Maybe Pipeline -> List String
+toggleGroup : Concourse.PipelineGroup -> List String -> Maybe Concourse.Pipeline -> List String
 toggleGroup group names mpipeline =
   let
     toggled =
@@ -233,7 +234,7 @@ toggleGroup group names mpipeline =
   in
     defaultToFirstGroup toggled mpipeline
 
-defaultToFirstGroup : List String -> Maybe Pipeline -> List String
+defaultToFirstGroup : List String -> Maybe Concourse.Pipeline -> List String
 defaultToFirstGroup groups mpipeline =
   if List.isEmpty groups then
     case mpipeline of
@@ -290,7 +291,7 @@ view model =
         ]
     ]
 
-isPaused : Maybe Pipeline -> Bool
+isPaused : Maybe Concourse.Pipeline -> Bool
 isPaused =
   Maybe.withDefault False << Maybe.map .paused
 
@@ -330,7 +331,7 @@ viewUserState userState userMenuVisible =
             ]
         ]
 
-viewGroup : List String -> String -> Group -> Html Msg
+viewGroup : List String -> String -> Concourse.PipelineGroup -> Html Msg
 viewGroup selectedGroups url grp =
   Html.li
     [ if List.member grp.name selectedGroups
@@ -344,7 +345,7 @@ viewGroup selectedGroups url grp =
         [ Html.text grp.name]
     ]
 
-fetchPipeline : PipelineIdentifier -> Cmd Msg
+fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
 fetchPipeline pipelineIdentifier =
   Cmd.map PipelineFetched <|
     Task.perform Err Ok (Concourse.Pipeline.fetchPipeline pipelineIdentifier)

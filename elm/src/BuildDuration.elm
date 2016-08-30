@@ -7,9 +7,9 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, title)
 import Time exposing (Time)
 
-import Concourse.Build exposing (BuildDuration)
+import Concourse
 
-view : BuildDuration -> Time.Time -> Html a
+view : Concourse.BuildDuration -> Time.Time -> Html a
 view duration now =
   Html.table [class "dictionary build-duration"] <|
     case (duration.startedAt, duration.finishedAt) of
