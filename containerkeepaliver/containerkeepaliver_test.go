@@ -175,6 +175,16 @@ var _ = Describe("ContainerKeepAliver", func() {
 			Expect(fakeWorkerClient.LookupContainerCallCount()).To(Equal(0))
 		})
 	})
+
+	Context("when there are no failing containers", func() {
+		BeforeEach(func() {
+			fakeContainerKeepAliverDB.FindJobContainersFromUnsuccessfulBuildsReturns([]db.SavedContainer{}, nil)
+		})
+
+		It("does not look for latest successful builds", func() {
+			Expect(fakeContainerKeepAliverDB.FindLatestSuccessfulBuildsPerJobCallCount()).To(Equal(0))
+		})
+	})
 })
 
 func createSavedContainer(buildID int, jobName string, handle string, pipelineID int) db.SavedContainer {

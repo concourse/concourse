@@ -44,15 +44,19 @@ func NewContainerKeepAliver(
 }
 
 func (cr *containerKeepAliver) Run() error {
-	latestSuccessfulBuilds, err := cr.db.FindLatestSuccessfulBuildsPerJob()
-	if err != nil {
-		cr.logger.Error("failed-to-find-successful-containers", err)
-	}
-
 	failedContainers, err := cr.db.FindJobContainersFromUnsuccessfulBuilds()
 	if err != nil {
 		cr.logger.Error("failed-to-find-unsuccessful-containers", err)
 		return err
+	}
+
+	if len(failedContainers) == 0 {
+		return nil
+	}
+
+	latestSuccessfulBuilds, err := cr.db.FindLatestSuccessfulBuildsPerJob()
+	if err != nil {
+		cr.logger.Error("failed-to-find-successful-containers", err)
 	}
 
 	// if the latest build failed update its ttl, allow everything else expire
