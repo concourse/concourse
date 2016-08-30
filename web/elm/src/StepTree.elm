@@ -23,8 +23,7 @@ import Html exposing (Html)
 import Html.Events exposing (onClick, onMouseDown)
 import Html.Attributes exposing (class, classList)
 
-import Concourse.BuildPlan exposing (BuildPlan)
-import Concourse.BuildResources exposing (BuildResources)
+import Concourse
 import DictView
 
 type StepTree
@@ -95,22 +94,22 @@ type alias MetadataField =
   , value : String
   }
 
-init : BuildResources -> BuildPlan -> Model
+init : Concourse.BuildResources -> Concourse.BuildPlan -> Model
 init resources plan =
   case plan.step of
-    Concourse.BuildPlan.Task name ->
+    Concourse.BuildStepTask name ->
       initBottom Task plan.id name
 
-    Concourse.BuildPlan.Get name version ->
+    Concourse.BuildStepGet name version ->
       initBottom (Get << setupGetStep resources name version) plan.id name
 
-    Concourse.BuildPlan.Put name ->
+    Concourse.BuildStepPut name ->
       initBottom Put plan.id name
 
-    Concourse.BuildPlan.DependentGet name ->
+    Concourse.BuildStepDependentGet name ->
       initBottom DependentGet plan.id name
 
-    Concourse.BuildPlan.Aggregate plans ->
+    Concourse.BuildStepAggregate plans ->
       let
         inited = Array.map (init resources) plans
         trees = Array.map .tree inited
@@ -120,7 +119,7 @@ init resources plan =
       in
         Model (Aggregate trees) foci False
 
-    Concourse.BuildPlan.Do plans ->
+    Concourse.BuildStepDo plans ->
       let
         inited = Array.map (init resources) plans
         trees = Array.map .tree inited
@@ -130,19 +129,19 @@ init resources plan =
       in
         Model (Do trees) foci False
 
-    Concourse.BuildPlan.OnSuccess hookedPlan ->
+    Concourse.BuildStepOnSuccess hookedPlan ->
       initHookedStep resources OnSuccess hookedPlan
 
-    Concourse.BuildPlan.OnFailure hookedPlan ->
+    Concourse.BuildStepOnFailure hookedPlan ->
       initHookedStep resources OnFailure hookedPlan
 
-    Concourse.BuildPlan.Ensure hookedPlan ->
+    Concourse.BuildStepEnsure hookedPlan ->
       initHookedStep resources Ensure hookedPlan
 
-    Concourse.BuildPlan.Try plan ->
+    Concourse.BuildStepTry plan ->
       initWrappedStep resources Try plan
 
-    Concourse.BuildPlan.Retry plans ->
+    Concourse.BuildStepRetry plans ->
       let
         inited = Array.map (init resources) plans
         trees = Array.map .tree inited
@@ -153,7 +152,7 @@ init resources plan =
       in
         Model (Retry plan.id trees 1 Auto) foci False
 
-    Concourse.BuildPlan.Timeout plan ->
+    Concourse.BuildStepTimeout plan ->
       initWrappedStep resources Timeout plan
 
 treeIsActive : StepTree -> Bool
@@ -198,14 +197,14 @@ treeIsActive tree =
 stepIsActive : Step -> Bool
 stepIsActive = isActive << .state
 
-setupGetStep : BuildResources -> StepName -> Maybe Version -> Step -> Step
+setupGetStep : Concourse.BuildResources -> StepName -> Maybe Version -> Step -> Step
 setupGetStep resources name version step =
   { step
   | version = version
   , firstOccurrence = isFirstOccurrence resources.inputs name
   }
 
-isFirstOccurrence : List Concourse.BuildResources.BuildInput -> StepName -> Bool
+isFirstOccurrence : List Concourse.BuildResourcesInput -> StepName -> Bool
 isFirstOccurrence resources step =
   case resources of
     [] ->
@@ -291,7 +290,7 @@ initBottom create id name =
     , finished = False
     }
 
-initWrappedStep : BuildResources -> (StepTree -> StepTree) -> BuildPlan -> Model
+initWrappedStep : Concourse.BuildResources -> (StepTree -> StepTree) -> Concourse.BuildPlan -> Model
 initWrappedStep resources create plan =
   let
     {tree, foci} = init resources plan
@@ -301,7 +300,7 @@ initWrappedStep resources create plan =
     , finished = False
     }
 
-initHookedStep : BuildResources -> (HookedStep -> StepTree) -> Concourse.BuildPlan.HookedPlan -> Model
+initHookedStep : Concourse.BuildResources -> (HookedStep -> StepTree) -> Concourse.HookedPlan -> Model
 initHookedStep resources create hookedPlan =
   let
     stepModel = init resources hookedPlan.step

@@ -8,18 +8,17 @@ import Html.Attributes exposing (action, class, classList, href, id, method, tit
 import Http
 import Task exposing (Task)
 
-import Concourse.Build exposing (Build)
+import Concourse
+import Concourse.Build
+import Concourse.BuildPlan
 import Concourse.BuildEvents
-import Concourse.BuildPlan exposing (BuildPlan)
-import Concourse.BuildResources exposing (BuildResources)
-import Concourse.BuildStatus exposing (BuildStatus)
-import Concourse.Metadata exposing (Metadata)
-import Concourse.Version exposing (Version)
+import Concourse.BuildStatus
+import Concourse.BuildResources exposing (empty, fetch)
 import LoadingIndicator
 import StepTree exposing (StepTree)
 
 type alias Model =
-  { build : Build
+  { build : Concourse.Build
   , steps : Maybe StepTree.Model
   , errors : Maybe Ansi.Log.Model
   , state : OutputState
@@ -35,15 +34,15 @@ type OutputState
 
 type Msg
   = Noop
-  | PlanAndResourcesFetched (Result Http.Error (BuildPlan, BuildResources))
+  | PlanAndResourcesFetched (Result Http.Error (Concourse.BuildPlan, Concourse.BuildResources))
   | BuildEventsMsg Concourse.BuildEvents.Msg
   | StepTreeMsg StepTree.Msg
 
 type OutMsg
   = OutNoop
-  | OutBuildStatus BuildStatus Date
+  | OutBuildStatus Concourse.BuildStatus Date
 
-init : Build -> (Model, Cmd Msg)
+init : Concourse.Build -> (Model, Cmd Msg)
 init build =
   let
     outputState =
@@ -238,7 +237,7 @@ finishStep exitStatus tree =
   in
     setStepState stepState tree
 
-setResourceInfo : Version -> Metadata -> StepTree -> StepTree
+setResourceInfo : Concourse.Version -> Concourse.Metadata -> StepTree -> StepTree
 setResourceInfo version metadata tree =
   StepTree.map (\step -> { step | version = Just version, metadata = metadata }) tree
 
@@ -267,7 +266,7 @@ view {build, steps, errors, state} =
     , viewStepTree build steps state
     ]
 
-viewStepTree : Build -> Maybe StepTree.Model -> OutputState -> Html Msg
+viewStepTree : Concourse.Build -> Maybe StepTree.Model -> OutputState -> Html Msg
 viewStepTree build steps state =
   case (state, steps) of
     (StepsLoading, _) ->
@@ -300,7 +299,7 @@ viewErrors errors =
         , Html.div [class "step-body build-errors-body"] [Ansi.Log.view log]
         ]
 
-viewLoginButton : Build -> Html msg
+viewLoginButton : Concourse.Build -> Html msg
 viewLoginButton build =
   Html.form
     [ class "build-login"
@@ -317,4 +316,3 @@ viewLoginButton build =
         , Html.Attributes.value (Concourse.Build.url build)
         ] []
     ]
-

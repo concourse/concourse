@@ -1,16 +1,10 @@
-module Concourse.Team exposing (..)
+module Concourse.Team exposing (fetchTeams)
 
+import Concourse
 import Http
 import Json.Decode exposing ((:=))
 import Task exposing (Task)
 
-type alias Team = { id : Int, name : String }
-
-fetchTeams : Task Http.Error (List Team)
-fetchTeams = Http.get (Json.Decode.list decodeTeam) "/api/v1/teams"
-
-decodeTeam : Json.Decode.Decoder Team
-decodeTeam =
-  Json.Decode.object2 Team
-    ("id" := Json.Decode.int)
-    ("name" := Json.Decode.string)
+fetchTeams : Task Http.Error (List Concourse.Team)
+fetchTeams =
+  Http.get (Json.Decode.list Concourse.decodeTeam) "/api/v1/teams"
