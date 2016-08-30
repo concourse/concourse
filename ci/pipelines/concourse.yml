@@ -524,9 +524,11 @@ jobs:
       passed: [shipit]
       trigger: true
     - get: concourse-lite
+    - get: concourse-buildbox-ci-image
   - task: build-box
     privileged: true
     file: concourse-lite/ci/build-boxes.yml
+    image: concourse-buildbox-ci-image
     tags: [hetzner]
   - put: virtualbox-box
     params: {file: built-box/*.box}
@@ -949,3 +951,8 @@ resources:
   type: docker-image
   source:
     repository: concourse/buildbox-testflight-ci
+
+- name: concourse-buildbox-ci-image
+  type: docker-image
+  source:
+    repository: concourse/buildbox-ci
