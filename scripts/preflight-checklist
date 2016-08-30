@@ -9,11 +9,8 @@ set -e -x
 ./scripts/sync-package-specs
 git add packages/*/spec
 
-./scripts/scan-for-secrets
-
 ./scripts/commit-with-submodule-log "$@"
 
 git ci --amend --reset-author
 
-echo "If there are still untracked files, please add them and run ./scripts/scan-for-secrets before proceeding"
-
+echo "If there are still untracked files, please add them before proceeding"
