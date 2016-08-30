@@ -8,13 +8,13 @@ import Concourse
 
 fetchJob : Concourse.JobIdentifier -> Task Http.Error Concourse.Job
 fetchJob job =
-  Http.get (Concourse.decodeJob job.teamName job.pipelineName)
+  Http.get (Concourse.decodeJob { teamName = job.teamName, pipelineName = job.pipelineName })
     ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName)
 
 fetchJobs : Concourse.PipelineIdentifier -> Task Http.Error (List Concourse.Job)
-fetchJobs {teamName, pipelineName} =
-  Http.get (Json.Decode.list (Concourse.decodeJob teamName pipelineName))
-    ("/api/v1/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs")
+fetchJobs pi =
+  Http.get (Json.Decode.list (Concourse.decodeJob pi))
+    ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
 
 pause : Concourse.JobIdentifier -> Task Http.Error ()
 pause =

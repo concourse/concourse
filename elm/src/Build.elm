@@ -45,7 +45,7 @@ type Page
   = BuildPage Int
   | JobBuildPage Concourse.JobBuildIdentifier
 
-initJobBuildPage : String -> String -> String -> String -> Page
+initJobBuildPage : Concourse.TeamName -> Concourse.PipelineName -> Concourse.JobName -> Concourse.BuildName -> Page
 initJobBuildPage teamName pipelineName jobName buildName =
   JobBuildPage
     { teamName = teamName
@@ -516,9 +516,9 @@ viewBuildHeader build {now, job, history} =
   let
     triggerButton =
       case job of
-        Just {name, teamName, pipelineName} ->
+        Just {name, pipeline} ->
           let
-            actionUrl = "/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds"
+            actionUrl = "/teams/" ++ pipeline.teamName ++ "/pipelines/" ++ pipeline.pipelineName ++ "/jobs/" ++ name ++ "/builds"
             buttonDisabled = case job of
               Nothing -> True
               Just job -> job.disableManualTrigger

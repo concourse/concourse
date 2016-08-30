@@ -5,6 +5,7 @@ module Concourse exposing
   , Build
   , BuildId
   , JobBuildIdentifier
+  , BuildName
   , BuildDuration
   , decodeBuild
 
@@ -26,12 +27,14 @@ module Concourse exposing
   , decodeBuildPlan
 
   , Job
+  , JobName
   , JobIdentifier
   , JobInput
   , JobOutput
   , decodeJob
 
   , Pipeline
+  , PipelineName
   , PipelineIdentifier
   , PipelineGroup
   , decodePipeline
@@ -41,6 +44,7 @@ module Concourse exposing
   , decodeMetadata
 
   , Team
+  , TeamName
   , decodeTeam
 
   , User
@@ -101,17 +105,20 @@ authMethodFromTuple tuple =
 type alias BuildId =
   Int
 
+type alias BuildName =
+  String
+
 type alias JobBuildIdentifier =
-  { teamName : String
-  , pipelineName : String
-  , jobName : String
-  , buildName : String
+  { teamName : TeamName
+  , pipelineName : PipelineName
+  , jobName : JobName
+  , buildName : BuildName
   }
 
 type alias Build =
   { id : BuildId
   , url : String
-  , name : String
+  , name : BuildName
   , job : Maybe JobIdentifier
   , status : BuildStatus
   , duration : BuildDuration
@@ -138,9 +145,9 @@ decodeBuild =
     ("url" := Json.Decode.string)
     ("name" := Json.Decode.string)
     (Json.Decode.maybe (Json.Decode.object3 JobIdentifier
-      ("job_name" := Json.Decode.string)
       ("team_name" := Json.Decode.string)
-      ("pipeline_name" := Json.Decode.string)))
+      ("pipeline_name" := Json.Decode.string)
+      ("job_name" := Json.Decode.string)))
     ("status" := decodeBuildStatus)
     (Json.Decode.object2 BuildDuration
       (Json.Decode.maybe ("start_time" := (Json.Decode.map dateFromSeconds Json.Decode.float)))
@@ -368,16 +375,18 @@ decodeBuildStepTimeout =
 -- Job
 
 
+type alias JobName =
+  String
+
 type alias JobIdentifier =
-  { teamName : String
-  , pipelineName : String
-  , jobName : String
+  { teamName : TeamName
+  , pipelineName : PipelineName
+  , jobName : JobName
   }
 
 type alias Job =
-  { teamName : String
-  , pipelineName : String
-  , name : String
+  { pipeline : PipelineIdentifier
+  , name : JobName
   , url : String
   , nextBuild : Maybe Build
   , finishedBuild : Maybe Build
@@ -400,9 +409,9 @@ type alias JobOutput =
   , resource : String
   }
 
-decodeJob : String -> String -> Json.Decode.Decoder Job
-decodeJob teamName pipelineName =
-  Json.Decode.succeed (Job teamName pipelineName)
+decodeJob : PipelineIdentifier -> Json.Decode.Decoder Job
+decodeJob pi =
+  Json.Decode.succeed (Job pi)
     |: ("name" := Json.Decode.string)
     |: ("url" := Json.Decode.string)
     |: (Json.Decode.maybe ("next_build" := decodeBuild))
@@ -432,17 +441,20 @@ decodeJobOutput =
 -- Pipeline
 
 
+type alias PipelineName =
+  String
+
 type alias PipelineIdentifier =
-  { teamName : String
-  , pipelineName : String
+  { teamName : TeamName
+  , pipelineName : PipelineName
   }
 
 type alias Pipeline =
-  { name : String
+  { name : PipelineName
   , url : String
   , paused : Bool
   , public : Bool
-  , teamName : String
+  , teamName : TeamName
   , groups : List PipelineGroup
   }
 
@@ -508,9 +520,12 @@ decodeMetadataField =
 
 -- Team
 
+type alias TeamName =
+  String
+
 type alias Team =
   { id : Int
-  , name : String
+  , name : TeamName
   }
 
 decodeTeam : Json.Decode.Decoder Team
