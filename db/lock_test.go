@@ -164,6 +164,117 @@ var _ = Describe("Locks", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		Context("when another connection is holding the lock", func() {
+			var lockFactory2 db.LockFactory
+
+			BeforeEach(func() {
+				pgxConn2 := postgresRunner.OpenPgx()
+				retryableConn2 := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn2}
+				lockFactory2 = db.NewLockFactory(retryableConn2)
+			})
+
+			It("does not acquire the lock", func() {
+				acquired, err := lock.Acquire()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(acquired).To(BeTrue())
+
+				lock2 := lockFactory2.NewLock(logger, db.LockID{42})
+				acquired, err = lock2.Acquire()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(acquired).To(BeFalse())
+
+				lock.Release()
+				lock2.Release()
+			})
+
+			It("acquires the locks once it is released", func() {
+				acquired, err := lock.Acquire()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(acquired).To(BeTrue())
+
+				lock2 := lockFactory2.NewLock(logger, db.LockID{42})
+				acquired, err = lock2.Acquire()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(acquired).To(BeFalse())
+
+				lock.Release()
+
+				acquired, err = lock2.Acquire()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(acquired).To(BeTrue())
+
+				lock2.Release()
+			})
+		})
+
+		Context("when two locks are being acquired at the same time", func() {
+			var lock1 db.Lock
+			var lock2 db.Lock
+			var fakeLockDB *dbfakes.FakeLockDB
+			var acquiredLock2 chan struct{}
+			var lock2Err error
+			var lock2Acquired bool
+
+			BeforeEach(func() {
+				fakeLockDB = new(dbfakes.FakeLockDB)
+				fakeLockFactory := db.NewTestLockFactory(fakeLockDB)
+				lock1 = fakeLockFactory.NewLock(logger, db.LockID{57})
+				lock2 = fakeLockFactory.NewLock(logger, db.LockID{57})
+
+				acquiredLock2 = make(chan struct{})
+			})
+
+			JustBeforeEach(func() {
+				called := false
+				readyToAcquire := make(chan struct{})
+
+				fakeLockDB.AcquireStub = func(id db.LockID) (bool, error) {
+					if !called {
+						called = true
+
+						go func() {
+							close(readyToAcquire)
+							lock2Acquired, lock2Err = lock2.Acquire()
+							close(acquiredLock2)
+						}()
+
+						<-readyToAcquire
+					}
+
+					return true, nil
+				}
+			})
+
+			It("only acquires one of the locks", func() {
+				acquired, err := lock1.Acquire()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(acquired).To(BeTrue())
+
+				<-acquiredLock2
+
+				Expect(lock2Err).NotTo(HaveOccurred())
+				Expect(lock2Acquired).To(BeFalse())
+			})
+
+			Context("when locks are being created on different lock factory (different db conn)", func() {
+				BeforeEach(func() {
+					fakeLockFactory2 := db.NewTestLockFactory(fakeLockDB)
+					lock2 = fakeLockFactory2.NewLock(logger, db.LockID{57})
+				})
+
+				It("allows to acquire both locks", func() {
+					acquired, err := lock1.Acquire()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(acquired).To(BeTrue())
+
+					<-acquiredLock2
+
+					Expect(lock2Err).NotTo(HaveOccurred())
+					Expect(lock2Acquired).To(BeTrue())
+				})
+			})
+		})
+
 		Context("connection died", func() {
 			var pgxConn1 *pgx.Conn
 

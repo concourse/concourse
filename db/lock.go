@@ -50,13 +50,14 @@ type LockFactory interface {
 }
 
 type lockFactory struct {
-	db    lockDB
-	locks lockRepo
+	db           LockDB
+	locks        lockRepo
+	acquireMutex *sync.Mutex
 }
 
 func NewLockFactory(conn *RetryableConn) LockFactory {
 	return &lockFactory{
-		db: lockDB{
+		db: &lockDB{
 			conn:  conn,
 			mutex: &sync.Mutex{},
 		},
@@ -64,15 +65,28 @@ func NewLockFactory(conn *RetryableConn) LockFactory {
 			locks: map[string]bool{},
 			mutex: &sync.Mutex{},
 		},
+		acquireMutex: &sync.Mutex{},
+	}
+}
+
+func NewTestLockFactory(db LockDB) LockFactory {
+	return &lockFactory{
+		db: db,
+		locks: lockRepo{
+			locks: map[string]bool{},
+			mutex: &sync.Mutex{},
+		},
+		acquireMutex: &sync.Mutex{},
 	}
 }
 
 func (f *lockFactory) NewLock(logger lager.Logger, id LockID) Lock {
 	return &lock{
-		logger: logger,
-		db:     f.db,
-		id:     id,
-		locks:  f.locks,
+		logger:       logger,
+		db:           f.db,
+		id:           id,
+		locks:        f.locks,
+		acquireMutex: f.acquireMutex,
 	}
 }
 
@@ -84,37 +98,62 @@ type Lock interface {
 	AfterRelease(func() error)
 }
 
-type lock struct {
-	logger lager.Logger
-	db     lockDB
+//go:generate counterfeiter . LockDB
 
-	id    LockID
-	locks lockRepo
+type LockDB interface {
+	Acquire(id LockID) (bool, error)
+	Release(id LockID) error
+}
+
+type lock struct {
+	id LockID
+
+	logger       lager.Logger
+	db           LockDB
+	locks        lockRepo
+	acquireMutex *sync.Mutex
 
 	afterRelease func() error
 }
 
 func (l *lock) Acquire() (bool, error) {
+	l.acquireMutex.Lock()
+	defer l.acquireMutex.Unlock()
+
+	logger := l.logger.Session("acquire", lager.Data{"id": l.id})
+
 	if l.locks.IsRegistered(l.id) {
+		logger.Debug("already-registered")
 		return false, nil
 	}
 
 	acquired, err := l.db.Acquire(l.id)
 	if err != nil {
+		logger.Debug("failed-to-register-in-db")
 		return false, err
 	}
 
+	if !acquired {
+		return false, err
+	}
+
+	logger.Debug("registering-in-repo")
 	l.locks.Register(l.id)
 
-	return acquired, nil
+	return true, nil
 }
 
 func (l *lock) Release() error {
+	logger := l.logger.Session("release", lager.Data{"id": l.id})
+
+	logger.Debug("releasing-in-db")
 	l.db.Release(l.id)
 
+	logger.Debug("unregistering-from-repo")
 	l.locks.Unregister(l.id)
 
 	if l.afterRelease != nil {
+		logger.Debug("running-after-release")
 		return l.afterRelease()
 	}
 
