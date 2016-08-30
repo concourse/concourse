@@ -19,4 +19,10 @@
     all don't have to update your READMEs immediately. Sorry about that. (You
     should probably still update them, though.)
   }
+
+  \note{fix}{
+    We've improved the error message returned when the
+    \reference{file}{\code{file}} used by a \reference{task-step} step does not
+    exist.
+  }
 }
