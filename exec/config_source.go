@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/baggageclaim"
 )
 
 //go:generate counterfeiter . TaskConfigSource
@@ -135,6 +136,9 @@ func (configSource FileConfigSource) FetchConfig(repo *SourceRepository) (atc.Ta
 
 	stream, err := source.StreamFile(filePath)
 	if err != nil {
+		if err == baggageclaim.ErrFileNotFound {
+			return atc.TaskConfig{}, fmt.Errorf("task config '%s/%s' not found", sourceName, filePath)
+		}
 		return atc.TaskConfig{}, err
 	}
 

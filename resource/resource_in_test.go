@@ -102,7 +102,7 @@ var _ = Describe("Resource In", func() {
 			})
 
 			Context("when streaming out fails", func() {
-				disaster := errors.New("no such file or directory")
+				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
 					fakeVolume.StreamOutReturns(nil, disaster)
@@ -110,7 +110,7 @@ var _ = Describe("Resource In", func() {
 
 				It("returns the error", func() {
 					_, err := versionedSource.StreamOut("some/subdir")
-					Expect(err.Error()).To(Equal("some/subdir: no such file or directory"))
+					Expect(err.Error()).To(Equal("oh no!"))
 				})
 			})
 		})

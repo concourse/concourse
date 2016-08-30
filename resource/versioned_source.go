@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"io"
 	"path"
 
@@ -91,8 +90,8 @@ func (vs *getVersionedSource) Metadata() []atc.MetadataField {
 
 func (vs *getVersionedSource) StreamOut(src string) (io.ReadCloser, error) {
 	readCloser, err := vs.volume.StreamOut(src)
-	if err != nil && err.Error() == "no such file or directory" {
-		return readCloser, fmt.Errorf("%s: %s", src, err.Error())
+	if err != nil {
+		return nil, err
 	}
 
 	return readCloser, err
