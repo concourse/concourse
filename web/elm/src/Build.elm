@@ -127,6 +127,7 @@ changeToBuild pageResult model =
     ( { model
       | browsingIndex = newIndex
       , currentBuild = newBuild
+      , scrolledUp = False
       }
     , case pageResult of
         Err err ->
@@ -673,22 +674,24 @@ scrollToCurrentBuildInHistory =
 
 getScrollBehavior : Model -> Autoscroll.ScrollBehavior
 getScrollBehavior model =
-  if model.scrolledUp then
-    Autoscroll.NoScroll
-  else
-    case Maybe.withDefault Concourse.BuildStatusPending (Maybe.map (.status << .build) model.currentBuild) of
-      Concourse.BuildStatusFailed ->
-        Autoscroll.ScrollUntilCancelled autoscrollElement
-      Concourse.BuildStatusErrored ->
-        Autoscroll.ScrollUntilCancelled autoscrollElement
-      Concourse.BuildStatusAborted ->
-        Autoscroll.ScrollUntilCancelled autoscrollElement
-      Concourse.BuildStatusStarted ->
-        Autoscroll.Autoscroll autoscrollElement
-      Concourse.BuildStatusPending ->
-        Autoscroll.NoScroll
-      Concourse.BuildStatusSucceeded ->
-        Autoscroll.NoScroll
+  case (model.scrolledUp, model.currentBuild) of
+    (True, _) ->
+      Autoscroll.NoScroll
+
+    (False, Nothing) ->
+      Autoscroll.NoScroll
+
+    (False, Just cb) ->
+      case cb.build.status of
+        Concourse.BuildStatusSucceeded ->
+          Autoscroll.NoScroll
+
+        Concourse.BuildStatusPending ->
+          Autoscroll.NoScroll
+
+        _ ->
+          Autoscroll.Scroll autoscrollElement
+
 
 redirectToLogin : Model -> Cmd Msg
 redirectToLogin model =

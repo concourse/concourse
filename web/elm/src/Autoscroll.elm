@@ -18,13 +18,11 @@ import Scroll
 
 type alias Model subModel =
   { subModel : subModel
-  , shouldScroll : Bool
   , scrollBehaviorFunc : subModel -> ScrollBehavior
   }
 
 type ScrollBehavior
-  = Autoscroll String
-  | ScrollUntilCancelled String
+  = Scroll String
   | NoScroll
 
 type Msg subMsg
@@ -34,7 +32,7 @@ type Msg subMsg
 
 init : (subModel -> ScrollBehavior) -> (subModel, Cmd subMsg) -> (Model subModel, Cmd (Msg subMsg))
 init toScrollMsg (subModel, subCmd) =
-  (Model subModel True toScrollMsg, Cmd.map SubMsg subCmd)
+  (Model subModel toScrollMsg, Cmd.map SubMsg subCmd)
 
 update : (subMsg -> subModel -> (subModel, Cmd subMsg)) -> Msg subMsg -> Model subModel -> (Model subModel, Cmd (Msg subMsg))
 update subUpdate action model =
@@ -47,14 +45,11 @@ update subUpdate action model =
 
     ScrollDown ->
       ( model
-      , case (model.shouldScroll, model.scrollBehaviorFunc model.subModel) of
-          (True, Autoscroll ele) ->
+      , case model.scrollBehaviorFunc model.subModel of
+          Scroll ele ->
             scrollToBottom ele
 
-          (True, ScrollUntilCancelled ele) ->
-            scrollToBottom ele
-
-          _ ->
+          NoScroll ->
             Cmd.none
       )
 
