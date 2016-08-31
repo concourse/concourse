@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"time"
 
-
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
