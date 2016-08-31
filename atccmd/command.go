@@ -29,6 +29,7 @@ import (
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/gc/buildreaper"
 	"github.com/concourse/atc/gc/containerkeepaliver"
+	"github.com/concourse/atc/gc/dbgc"
 	"github.com/concourse/atc/gc/lostandfound"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
@@ -348,6 +349,18 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			sqlDB,
 			clock.NewClock(),
 			30*time.Second,
+		)},
+
+		{"dbgc", lockrunner.NewRunner(
+			logger.Session("dbgc"),
+			dbgc.NewDBGarbageCollector(
+				logger.Session("dbgc"),
+				sqlDB,
+			),
+			"dbgc",
+			sqlDB,
+			clock.NewClock(),
+			60*time.Second,
 		)},
 	}
 
