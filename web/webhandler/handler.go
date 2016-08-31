@@ -20,6 +20,7 @@ import (
 	"github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/login"
 	"github.com/concourse/atc/web/pipeline"
+	"github.com/concourse/atc/web/robotstxt"
 	"github.com/concourse/atc/web/triggerbuild"
 	"github.com/concourse/atc/wrappa"
 )
@@ -90,6 +91,7 @@ func NewHandler(
 
 	handlers := map[string]http.Handler{
 		web.Index:                 authredirect.Handler{index.NewHandler(logger, clientFactory, pipelineHandler, noPipelinesTemplate)},
+		web.RobotsTxt:             robotstxt.Handler{},
 		web.Pipeline:              authredirect.Handler{pipelineHandler},
 		web.Public:                CacheNearlyForever(http.FileServer(publicFS)),
 		web.GetJob:                authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)},
