@@ -67,7 +67,7 @@ type alias Model =
   , currentBuild : Maybe CurrentBuild
   , browsingIndex : Int
   , setTitle : String -> Cmd Msg
-  , scrolledUp : Bool
+  , autoScroll : Bool
   }
 
 type StepRenderingState
@@ -90,7 +90,9 @@ type Msg
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
   | ScrollOutput (Float, Float)
-  | ScrolledToBottom Int
+  | TouchOutputStart
+  | TouchOutputEnd
+  | ResetAutoScroll Int
 
 init : (String -> Cmd Msg) -> Result String Page -> (Model, Cmd Msg)
 init setTitle pageResult =
@@ -102,7 +104,7 @@ init setTitle pageResult =
     , currentBuild = Nothing
     , browsingIndex = 0
     , setTitle = setTitle
-    , scrolledUp = False
+    , autoScroll = True
     }
 
 subscriptions : Model -> Sub Msg
@@ -127,7 +129,7 @@ changeToBuild pageResult model =
     ( { model
       | browsingIndex = newIndex
       , currentBuild = newBuild
-      , scrolledUp = False
+      , autoScroll = True
       }
     , case pageResult of
         Err err ->
@@ -237,15 +239,23 @@ update action model =
 
     ScrollOutput (_, deltaY) ->
       if deltaY < 0 then
-        ({ model | scrolledUp = True }, Cmd.none)
+        ({ model | autoScroll = False }, Cmd.none)
       else
         ( model
-        , Autoscroll.fromBottom autoscrollElement ScrolledToBottom
+        , Autoscroll.fromBottom autoscrollElement ResetAutoScroll
         )
 
-    ScrolledToBottom fromBottom ->
+    TouchOutputStart ->
+      ({ model | autoScroll = False }, Cmd.none)
+
+    TouchOutputEnd ->
+      ( model
+      , Autoscroll.fromBottom autoscrollElement ResetAutoScroll
+      )
+
+    ResetAutoScroll fromBottom ->
       if fromBottom < 16 then
-        ({ model | scrolledUp = False }, Cmd.none)
+        ({ model | autoScroll = True }, Cmd.none)
       else
         (model, Cmd.none)
 
@@ -384,6 +394,8 @@ view model =
           [ class "scrollable-body"
           , id autoscrollElement
           , on "mousewheel" (Json.Decode.map ScrollOutput <| decodeScrollEvent)
+          , on "touchstart" (Json.Decode.succeed TouchOutputStart)
+          , on "touchend" (Json.Decode.succeed TouchOutputEnd)
           ] <|
           [ viewBuildPrep currentBuild.prep
           , Html.Lazy.lazy
@@ -674,14 +686,14 @@ scrollToCurrentBuildInHistory =
 
 getScrollBehavior : Model -> Autoscroll.ScrollBehavior
 getScrollBehavior model =
-  case (model.scrolledUp, model.currentBuild) of
-    (True, _) ->
+  case (model.autoScroll, model.currentBuild) of
+    (False, _) ->
       Autoscroll.NoScroll
 
-    (False, Nothing) ->
+    (True, Nothing) ->
       Autoscroll.NoScroll
 
-    (False, Just cb) ->
+    (True, Just cb) ->
       case cb.build.status of
         Concourse.BuildStatusSucceeded ->
           Autoscroll.NoScroll
