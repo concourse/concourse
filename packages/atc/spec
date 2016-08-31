@@ -46,19 +46,20 @@ files:
   - github.com/concourse/atc/auth/provider/*.go # gosub
   - github.com/concourse/atc/auth/uaa/*.go # gosub
   - github.com/concourse/atc/auth/verifier/*.go # gosub
-  - github.com/concourse/atc/buildreaper/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
   - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
-  - github.com/concourse/atc/containerkeepaliver/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
+  - github.com/concourse/atc/gc/buildreaper/*.go # gosub
+  - github.com/concourse/atc/gc/containerkeepaliver/*.go # gosub
+  - github.com/concourse/atc/gc/dbgc/*.go # gosub
+  - github.com/concourse/atc/gc/lostandfound/*.go # gosub
   - github.com/concourse/atc/lockrunner/*.go # gosub
-  - github.com/concourse/atc/lostandfound/*.go # gosub
   - github.com/concourse/atc/mainredirect/*.go # gosub
   - github.com/concourse/atc/metric/*.go # gosub
   - github.com/concourse/atc/pipelines/*.go # gosub
