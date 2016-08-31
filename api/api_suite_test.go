@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -63,6 +64,7 @@ var (
 	configValidationWarnings      []config.Warning
 	peerAddr                      string
 	drain                         chan struct{}
+	expire                        time.Duration
 	cliDownloadsDir               string
 	logger                        *lagertest.TestLogger
 
@@ -134,6 +136,8 @@ var _ = BeforeEach(func() {
 	sink = lager.NewReconfigurableSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
 	logger.RegisterSink(sink)
 
+	expire = 24 * time.Hour
+
 	build = new(dbfakes.FakeBuild)
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(pipelineDBFactory, teamDBFactory)
@@ -185,6 +189,8 @@ var _ = BeforeEach(func() {
 		fakeScannerFactory,
 
 		sink,
+
+		expire,
 
 		cliDownloadsDir,
 		"1.2.3",

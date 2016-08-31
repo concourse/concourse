@@ -65,6 +65,7 @@ type ATCCommand struct {
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
 
 	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
+	AuthExpire time.Duration `long:"auth-expire" default:"24h" description:"Authorization Expiration Duration."`
 
 	PostgresDataSource string `long:"postgres-data-source" default:"postgres://127.0.0.1:5432/atc?sslmode=disable" description:"PostgreSQL connection string."`
 
@@ -224,6 +225,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		providerFactory,
 		teamDBFactory,
 		signingKey,
+		cmd.AuthExpire,
 	)
 	if err != nil {
 		return nil, err
@@ -233,6 +235,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		logger,
 		wrappa.NewWebMetricsWrappa(logger),
 		web.NewClientFactory(cmd.internalURL(), cmd.AllowSelfSignedCertificates || cmd.Developer.DevelopmentMode),
+		cmd.AuthExpire,
 	)
 	if err != nil {
 		return nil, err
@@ -869,6 +872,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 		radarScannerFactory,
 
 		reconfigurableSink,
+
+		cmd.AuthExpire,
 
 		cmd.CLIArtifactsDir.Path(),
 		Version,

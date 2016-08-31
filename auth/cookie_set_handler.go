@@ -2,11 +2,9 @@ package auth
 
 import (
 	"net/http"
-	"time"
 )
 
 const CookieName = "ATC-Authorization"
-const CookieAge = 24 * time.Hour
 
 type CookieSetHandler struct {
 	Handler http.Handler

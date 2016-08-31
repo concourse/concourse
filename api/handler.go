@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
@@ -66,6 +67,8 @@ func NewHandler(
 
 	sink *lager.ReconfigurableSink,
 
+	expire time.Duration,
+
 	cliDownloadsDir string,
 	version string,
 ) (http.Handler, error) {
@@ -85,6 +88,7 @@ func NewHandler(
 		tokenGenerator,
 		providerFactory,
 		teamDBFactory,
+		expire,
 	)
 
 	buildServer := buildserver.NewServer(

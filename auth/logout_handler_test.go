@@ -5,6 +5,8 @@ import (
 	"crypto/rsa"
 	"net/http"
 	"net/http/httptest"
+	"time"
+
 
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
@@ -25,6 +27,7 @@ var _ = Describe("LogOutHandler", func() {
 			request             *http.Request
 			response            *http.Response
 			err                 error
+			expire              time.Duration
 		)
 
 		BeforeEach(func() {
@@ -32,12 +35,14 @@ var _ = Describe("LogOutHandler", func() {
 			fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
 			signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
 			Expect(err).ToNot(HaveOccurred())
+			expire = 24 * time.Hour
 
 			handler, err := auth.NewOAuthHandler(
 				lagertest.NewTestLogger("test"),
 				fakeProviderFactory,
 				fakeTeamDBFactory,
 				signingKey,
+				expire,
 			)
 			Expect(err).ToNot(HaveOccurred())
 
