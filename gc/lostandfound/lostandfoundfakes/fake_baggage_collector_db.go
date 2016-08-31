@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/lostandfound"
+	"github.com/concourse/atc/gc/lostandfound"
 )
 
 type FakeBaggageCollectorDB struct {

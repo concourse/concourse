@@ -12,8 +12,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	"github.com/concourse/atc/lostandfound"
-	"github.com/concourse/atc/lostandfound/lostandfoundfakes"
+	"github.com/concourse/atc/gc/lostandfound"
+	"github.com/concourse/atc/gc/lostandfound/lostandfoundfakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 )

@@ -21,16 +21,16 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/buildreaper"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/containerkeepaliver"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/gc/buildreaper"
+	"github.com/concourse/atc/gc/containerkeepaliver"
+	"github.com/concourse/atc/gc/lostandfound"
 	"github.com/concourse/atc/lockrunner"
-	"github.com/concourse/atc/lostandfound"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/radar"
@@ -64,8 +64,8 @@ type ATCCommand struct {
 	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
 
-	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
-	AuthExpire time.Duration `long:"auth-expire" default:"24h" description:"Authorization Expiration Duration."`
+	OAuthBaseURL URLFlag       `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
+	AuthExpire   time.Duration `long:"auth-expire" default:"24h" description:"Authorization Expiration Duration."`
 
 	PostgresDataSource string `long:"postgres-data-source" default:"postgres://127.0.0.1:5432/atc?sslmode=disable" description:"PostgreSQL connection string."`
 

@@ -4,8 +4,8 @@ package buildreaperfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/buildreaper"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/gc/buildreaper"
 )
 
 type FakeBuildReaperDB struct {

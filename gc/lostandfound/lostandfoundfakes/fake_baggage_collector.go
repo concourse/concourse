@@ -4,7 +4,7 @@ package lostandfoundfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/lostandfound"
+	"github.com/concourse/atc/gc/lostandfound"
 )
 
 type FakeBaggageCollector struct {

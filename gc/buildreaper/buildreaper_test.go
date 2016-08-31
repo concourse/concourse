@@ -6,10 +6,10 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/buildreaper"
-	"github.com/concourse/atc/buildreaper/buildreaperfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	. "github.com/concourse/atc/gc/buildreaper"
+	"github.com/concourse/atc/gc/buildreaper/buildreaperfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

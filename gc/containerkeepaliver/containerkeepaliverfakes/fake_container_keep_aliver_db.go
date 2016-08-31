@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/atc/containerkeepaliver"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/gc/containerkeepaliver"
 )
 
 type FakeContainerKeepAliverDB struct {
