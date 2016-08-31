@@ -4,6 +4,7 @@ import "github.com/tedsuo/rata"
 
 const (
 	Index                 = "Index"
+	RobotsTxt             = "RobotsTxt"
 	Pipeline              = "Pipeline"
 	TriggerBuild          = "TriggerBuild"
 	GetBuild              = "GetBuild"
@@ -26,6 +27,7 @@ const (
 var Routes = rata.Routes{
 	// public
 	{Path: "/", Method: "GET", Name: Index},
+	{Path: "/robots.txt", Method: "GET", Name: RobotsTxt},
 	{Path: "/teams/:team_name/pipelines/:pipeline", Method: "GET", Name: Pipeline},
 	{Path: "/teams/:team_name/pipelines/:pipeline_name/jobs/:job", Method: "GET", Name: GetJob},
 	{Path: "/teams/:team_name/pipelines/:pipeline_name/resources/:resource", Method: "GET", Name: GetResource},
