@@ -6,12 +6,13 @@ module Autoscroll exposing
   , subscriptions
   , ScrollBehavior(..)
   , Msg(SubMsg)
+  , fromBottom
   )
 
+import AnimationFrame
 import Html exposing (Html)
 import Html.App
 import Task
-import Time
 
 import Scroll
 
@@ -22,15 +23,14 @@ type alias Model subModel =
   }
 
 type ScrollBehavior
-  = Autoscroll
-  | ScrollUntilCancelled
+  = Autoscroll String
+  | ScrollUntilCancelled String
   | NoScroll
 
 type Msg subMsg
   = SubMsg subMsg
   | ScrollDown
   | ScrolledDown
-  | FromBottom Int
 
 init : (subModel -> ScrollBehavior) -> (subModel, Cmd subMsg) -> (Model subModel, Cmd (Msg subMsg))
 init toScrollMsg (subModel, subCmd) =
@@ -47,24 +47,24 @@ update subUpdate action model =
 
     ScrollDown ->
       ( model
-      , if model.shouldScroll && model.scrollBehaviorFunc model.subModel /= NoScroll then
-          scrollToBottom
-        else
-          Cmd.none
+      , case (model.shouldScroll, model.scrollBehaviorFunc model.subModel) of
+          (True, Autoscroll ele) ->
+            scrollToBottom ele
+
+          (True, ScrollUntilCancelled ele) ->
+            scrollToBottom ele
+
+          _ ->
+            Cmd.none
       )
 
     ScrolledDown ->
       (model, Cmd.none)
 
-    FromBottom num ->
-      ( { model
-        | shouldScroll =
-            case model.scrollBehaviorFunc model.subModel of
-              Autoscroll -> (num < 16)
-              _ -> False
-        }
-      , Cmd.none
-      )
+fromBottom : String -> (Int -> msg) -> Cmd msg
+fromBottom ele cons =
+  Task.perform (always (cons 0)) cons <|
+    Scroll.fromBottom ele
 
 urlUpdate : (pageResult -> subModel -> (subModel, Cmd subMsg)) -> pageResult -> Model subModel -> (Model subModel, Cmd (Msg subMsg))
 urlUpdate subUrlUpdate pageResult model =
@@ -79,18 +79,11 @@ view subView model =
 
 subscriptions : Model subModel -> Sub (Msg subMsg)
 subscriptions model =
-  let
-    scrolledUp =
-      Scroll.fromBottom FromBottom
+  if model.scrollBehaviorFunc model.subModel /= NoScroll then
+    AnimationFrame.times (always ScrollDown)
+  else
+    Sub.none
 
-    pushDown =
-      Time.every (100 * Time.millisecond) (always ScrollDown)
-  in
-    Sub.batch
-      [ scrolledUp
-      , pushDown
-      ]
-
-scrollToBottom : Cmd (Msg x)
-scrollToBottom =
-  Task.perform (always ScrolledDown) (always ScrolledDown) Scroll.toBottom
+scrollToBottom : String -> Cmd (Msg x)
+scrollToBottom ele =
+  Task.perform (always ScrolledDown) (always ScrolledDown) (Scroll.toBottom ele)
