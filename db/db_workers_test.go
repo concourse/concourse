@@ -44,7 +44,7 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("can keep track of workers", func() {
+	It("can keep track of non-expired workers", func() {
 		Expect(database.Workers()).To(BeEmpty())
 
 		infoA := db.WorkerInfo{

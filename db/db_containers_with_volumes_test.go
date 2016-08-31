@@ -57,7 +57,7 @@ var _ = Describe("Keeping track of containers", func() {
 		return result
 	}
 
-	Describe("CreateContainer", func() {
+	Describe("GetVolumes", func() {
 		Context("when creating a container with volumes", func() {
 			It("sets ContainerTTL on each volume", func() {
 				someBuild, err := teamDB.CreateOneOffBuild()
@@ -161,45 +161,12 @@ var _ = Describe("Keeping track of containers", func() {
 
 				Expect(volumesMap[volume2.Handle].ContainerTTL).To(BeNil())
 			})
-		})
-	})
 
-	Describe("GetContainer", func() {
-		Context("when a container has expired", func() {
-			It("deletes the container and sets its volumes' container_id to null", func() {
-				someBuild, err := teamDB.CreateOneOffBuild()
-				Expect(err).ToNot(HaveOccurred())
-
-				container := db.Container{
-					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: someBuild.ID(),
-						PlanID:  atc.PlanID("some-task"),
-						Stage:   db.ContainerStageRun,
-					},
-					ContainerMetadata: db.ContainerMetadata{
-						Handle: "some-handle-1",
-						Type:   db.ContainerTypeTask,
-						TeamID: teamID,
-					},
-				}
-
-				expiredContainer := db.Container{
-					ContainerIdentifier: db.ContainerIdentifier{
-						BuildID: someBuild.ID(),
-						PlanID:  atc.PlanID("some-task"),
-						Stage:   db.ContainerStageRun,
-					},
-					ContainerMetadata: db.ContainerMetadata{
-						Handle: "some-handle-2",
-						Type:   db.ContainerTypeTask,
-						TeamID: teamID,
-					},
-				}
-
+			It("does not return expired volumes", func() {
 				volume1 := db.Volume{
 					Handle: "volume-1-handle",
 				}
-				err = database.InsertVolume(volume1)
+				err := database.InsertVolume(volume1)
 				Expect(err).NotTo(HaveOccurred())
 
 				volume2 := db.Volume{
@@ -208,22 +175,12 @@ var _ = Describe("Keeping track of containers", func() {
 				err = database.InsertVolume(volume2)
 				Expect(err).NotTo(HaveOccurred())
 
-				database.CreateContainer(container, 10*time.Minute, 0, []string{"volume-1-handle"})
-
-				database.CreateContainer(expiredContainer, 1*time.Nanosecond, 0, []string{
-					"volume-2-handle",
-				})
-
-				time.Sleep(2 * time.Nanosecond)
-
-				_, found, err := database.GetContainer("some-handle-2")
-				Expect(found).To(BeFalse())
+				err = database.SetVolumeTTL("volume-2-handle", -time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 
-				volumeMap := getVolumes()
-				Expect(volumeMap["volume-1-handle"].ContainerTTL).NotTo(BeNil())
-				Expect(*volumeMap["volume-1-handle"].ContainerTTL).To(Equal(10 * time.Minute))
-				Expect(volumeMap["volume-2-handle"].ContainerTTL).To(BeNil())
+				volumesMap := getVolumes()
+				Expect(volumesMap).To(HaveLen(1))
+				Expect(volumesMap["volume-1-handle"]).NotTo(BeNil())
 			})
 		})
 	})

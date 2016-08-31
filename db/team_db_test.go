@@ -510,10 +510,17 @@ var _ = Describe("TeamDB", func() {
 				GardenAddr: "1.2.3.6",
 				Name:       "shared-worker",
 			}, 5*time.Minute)
+
+			_, err = database.SaveWorker(db.WorkerInfo{
+				GardenAddr: "1.2.3.7",
+				Name:       "expired-worker",
+				TeamID:     savedTeam.ID,
+			}, -time.Minute)
+
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("returns workers that belong to current team or that do not belong to any team", func() {
+		It("returns non-expired workers that belong to current team or that do not belong to any team", func() {
 			workers, err := teamDB.Workers()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workers).To(HaveLen(2))

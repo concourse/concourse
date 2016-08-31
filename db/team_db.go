@@ -631,11 +631,6 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 }
 
 func (db *teamDB) Workers() ([]SavedWorker, error) {
-	err := reapExpiredWorkers(db.conn)
-	if err != nil {
-		return nil, err
-	}
-
 	team, found, err := db.GetTeam()
 	if err != nil {
 		return nil, err
@@ -651,7 +646,8 @@ func (db *teamDB) Workers() ([]SavedWorker, error) {
 		FROM workers as w
 		LEFT OUTER JOIN teams as t
 			ON t.id = w.team_id
-		WHERE t.id = $1 OR w.team_id IS NULL
+		WHERE (t.id = $1 OR w.team_id IS NULL)
+		AND (expires IS NULL OR expires > NOW())
 	`, teamID)
 
 	if err != nil {

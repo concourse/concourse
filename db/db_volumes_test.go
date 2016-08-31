@@ -172,6 +172,23 @@ var _ = Describe("Keeping track of volumes", func() {
 					}
 				}
 			})
+
+			It("does not return expired volumes", func() {
+				err := database.InsertVolume(volumeToInsert)
+				Expect(err).NotTo(HaveOccurred())
+
+				volumes, err := database.GetVolumesByIdentifier(volumeToInsert.Identifier)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(volumes).To(HaveLen(1))
+				Expect(volumes[0].Handle).To(Equal("some-volume-handle"))
+
+				err = database.SetVolumeTTL("some-volume-handle", -time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+
+				volumes, err = database.GetVolumesByIdentifier(volumeToInsert.Identifier)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(volumes).To(BeEmpty())
+			})
 		})
 
 		Describe("SetVolumeTTLAndSizeInBytes", func() {
@@ -582,7 +599,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			jobBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			// To show that it returns volumes that are used in both one-off builds and job builds
+			By("returning volumes that are used in both one-off builds and job builds")
 			volume1 := db.Volume{
 				WorkerName: "worker-1",
 				TTL:        2 * time.Minute,
@@ -601,7 +618,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			err = jobBuild.SaveImageResourceVersion("plan-id-1", *volume1.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
-			// To show that it can return more than one volume per build ID
+			By("returning more than one volume per build ID")
 			volume2 := db.Volume{
 				WorkerName: "worker-2",
 				TTL:        2 * time.Minute,
@@ -618,7 +635,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			err = oneOffBuildADB.SaveImageResourceVersion("plan-id-2", *volume2.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
-			// To show that it can return more than one volume per VolumeIdentifier
+			By("returning more than one volume per VolumeIdentifier")
 			volume3 := db.Volume{
 				WorkerName: "worker-3",
 				TTL:        2 * time.Minute,
@@ -635,7 +652,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			err = oneOffBuildADB.SaveImageResourceVersion("plan-id-3", *volume3.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
-			// To show that it can return volumes from multiple one-off builds
+			By("returning volumes from multiple one-off builds")
 			volume4 := db.Volume{
 				WorkerName: "worker-4",
 				TTL:        2 * time.Minute,
@@ -652,7 +669,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			err = oneOffBuildBDB.SaveImageResourceVersion("plan-id-4", *volume4.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
-			// To show that it ignores volumes from job builds even if part of the VolumeIdentifier matches
+			By("ignoring volumes from job builds even if part of the VolumeIdentifier matches")
 			volume5 := db.Volume{
 				WorkerName: "worker-5",
 				TTL:        2 * time.Minute,
@@ -669,7 +686,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			err = jobBuild.SaveImageResourceVersion("plan-id-5", *volume5.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
-			// To show that it reaps expired volumes
+			By("ignoring expired volumes")
 			volume6 := db.Volume{
 				WorkerName: "worker-6",
 				TTL:        -time.Hour,

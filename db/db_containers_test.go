@@ -312,6 +312,14 @@ var _ = Describe("Keeping track of containers", func() {
 		_, found, err = database.GetContainer("nope")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
+
+		By("not returning expired container")
+		err = database.UpdateExpiresAtOnContainer("some-handle", -time.Minute)
+		Expect(err).NotTo(HaveOccurred())
+
+		_, found, err = database.GetContainer("some-handle")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeFalse())
 	})
 
 	It("can create and get a step container info object", func() {
@@ -884,6 +892,20 @@ var _ = Describe("Keeping track of containers", func() {
 				TeamID:       teamID,
 			},
 		}
+		expiredContainer := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:   db.ContainerStageRun,
+				PlanID:  atc.PlanID("plan-id"),
+				BuildID: 789,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "expired",
+				WorkerName: "some-worker",
+				StepName:   "other-container",
+				Type:       db.ContainerTypeTask,
+				TeamID:     teamID,
+			},
+		}
 
 		_, err := database.CreateContainer(containerToCreate, time.Minute, time.Duration(0), []string{})
 		Expect(err).NotTo(HaveOccurred())
@@ -891,9 +913,18 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		_, err = database.CreateContainer(otherStepContainer, time.Minute, time.Duration(0), []string{})
 		Expect(err).NotTo(HaveOccurred())
+		_, err = database.CreateContainer(expiredContainer, -time.Minute, time.Duration(0), []string{})
+		Expect(err).NotTo(HaveOccurred())
 
-		all_containers := getAllContainers(dbConn)
-		Expect(all_containers).To(HaveLen(3))
+		allContainers := getAllContainers(dbConn)
+		Expect(allContainers).To(HaveLen(4))
+
+		By("not returning expired container")
+		_, found, err := database.FindContainerByIdentifier(
+			expiredContainer.ContainerIdentifier,
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeFalse())
 
 		By("returning a single matching resource container info")
 		actualContainer, found, err := database.FindContainerByIdentifier(
