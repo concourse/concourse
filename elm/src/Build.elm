@@ -27,7 +27,7 @@ import Task exposing (Task)
 import Time exposing (Time)
 import String
 
-import Autoscroll exposing (ScrollBehavior (..))
+import Autoscroll
 import BuildDuration
 import BuildOutput
 import Concourse
@@ -67,6 +67,7 @@ type alias Model =
   , currentBuild : Maybe CurrentBuild
   , browsingIndex : Int
   , setTitle : String -> Cmd Msg
+  , scrolledUp : Bool
   }
 
 type StepRenderingState
@@ -88,6 +89,8 @@ type Msg
   | ClockTick Time.Time
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
+  | ScrollOutput (Float, Float)
+  | ScrolledToBottom Int
 
 init : (String -> Cmd Msg) -> Result String Page -> (Model, Cmd Msg)
 init setTitle pageResult =
@@ -99,6 +102,7 @@ init setTitle pageResult =
     , currentBuild = Nothing
     , browsingIndex = 0
     , setTitle = setTitle
+    , scrolledUp = False
     }
 
 subscriptions : Model -> Sub Msg
@@ -229,6 +233,20 @@ update action model =
 
     ScrollBuilds (deltaX, _) ->
       (model, scrollBuilds -deltaX)
+
+    ScrollOutput (_, deltaY) ->
+      if deltaY < 0 then
+        ({ model | scrolledUp = True }, Cmd.none)
+      else
+        ( model
+        , Autoscroll.fromBottom autoscrollElement ScrolledToBottom
+        )
+
+    ScrolledToBottom fromBottom ->
+      if fromBottom < 16 then
+        ({ model | scrolledUp = False }, Cmd.none)
+      else
+        (model, Cmd.none)
 
     ClockTick now ->
       ({ model | now = now }, Cmd.none)
@@ -361,7 +379,11 @@ view model =
     Just currentBuild ->
       Html.div [class "with-fixed-header"]
         [ viewBuildHeader currentBuild.build model
-        , Html.div [class "scrollable-body"] <|
+        , Html.div
+          [ class "scrollable-body"
+          , id autoscrollElement
+          , on "mousewheel" (Json.Decode.map ScrollOutput <| decodeScrollEvent)
+          ] <|
           [ viewBuildPrep currentBuild.prep
           , Html.Lazy.lazy
               (viewBuildOutput model.browsingIndex) <|
@@ -428,6 +450,10 @@ view model =
 
     _ ->
       LoadingIndicator.view
+
+autoscrollElement : String
+autoscrollElement =
+  "build-autoscroll"
 
 mmDDYY : Date -> String
 mmDDYY d =
@@ -647,19 +673,22 @@ scrollToCurrentBuildInHistory =
 
 getScrollBehavior : Model -> Autoscroll.ScrollBehavior
 getScrollBehavior model =
-  case Maybe.withDefault Concourse.BuildStatusPending (Maybe.map (.status << .build) model.currentBuild) of
-    Concourse.BuildStatusFailed ->
-      ScrollUntilCancelled
-    Concourse.BuildStatusErrored ->
-      ScrollUntilCancelled
-    Concourse.BuildStatusAborted ->
-      ScrollUntilCancelled
-    Concourse.BuildStatusStarted ->
-      Autoscroll
-    Concourse.BuildStatusPending ->
-      NoScroll
-    Concourse.BuildStatusSucceeded ->
-      NoScroll
+  if model.scrolledUp then
+    Autoscroll.NoScroll
+  else
+    case Maybe.withDefault Concourse.BuildStatusPending (Maybe.map (.status << .build) model.currentBuild) of
+      Concourse.BuildStatusFailed ->
+        Autoscroll.ScrollUntilCancelled autoscrollElement
+      Concourse.BuildStatusErrored ->
+        Autoscroll.ScrollUntilCancelled autoscrollElement
+      Concourse.BuildStatusAborted ->
+        Autoscroll.ScrollUntilCancelled autoscrollElement
+      Concourse.BuildStatusStarted ->
+        Autoscroll.Autoscroll autoscrollElement
+      Concourse.BuildStatusPending ->
+        Autoscroll.NoScroll
+      Concourse.BuildStatusSucceeded ->
+        Autoscroll.NoScroll
 
 redirectToLogin : Model -> Cmd Msg
 redirectToLogin model =

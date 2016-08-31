@@ -1,8 +1,17 @@
 var _concourse$atc$Native_Scroll = function() {
-  function toBottom() {
+  function toBottom(id) {
     return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-      window.scrollTo(0, document.body.scrollHeight);
+      var ele = document.getElementById(id);
+      ele.scrollTop = ele.scrollHeight - ele.clientHeight;
       callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+    });
+  }
+
+  function fromBottom(id) {
+    return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
+      var ele = document.getElementById(id);
+      var fromBottom = ele.scrollHeight - (ele.scrollTop + ele.clientHeight);
+      callback(_elm_lang$core$Native_Scheduler.succeed(fromBottom));
     });
   }
 
@@ -22,6 +31,7 @@ var _concourse$atc$Native_Scroll = function() {
 
   return {
     toBottom: toBottom,
+    fromBottom: fromBottom,
     scrollElement: F2(scrollElement),
     scrollIntoView: scrollIntoView
   };
