@@ -111,9 +111,9 @@ type DB interface {
 	GetVolumes() ([]SavedVolume, error)
 	GetVolumesByIdentifier(VolumeIdentifier) ([]SavedVolume, error)
 	ReapVolume(string) error
+	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	SetVolumeTTL(string, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
-	SetVolumeSizeInBytes(string, int64) error
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 
 	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)

@@ -27,22 +27,23 @@ type FakeVolumeFactoryDB struct {
 	reapVolumeReturns struct {
 		result1 error
 	}
-	SetVolumeTTLStub        func(string, time.Duration) error
-	setVolumeTTLMutex       sync.RWMutex
-	setVolumeTTLArgsForCall []struct {
-		arg1 string
-		arg2 time.Duration
+	SetVolumeTTLAndSizeInBytesStub        func(handle string, ttl time.Duration, sizeInBytes int64) error
+	setVolumeTTLAndSizeInBytesMutex       sync.RWMutex
+	setVolumeTTLAndSizeInBytesArgsForCall []struct {
+		handle      string
+		ttl         time.Duration
+		sizeInBytes int64
 	}
-	setVolumeTTLReturns struct {
+	setVolumeTTLAndSizeInBytesReturns struct {
 		result1 error
 	}
-	SetVolumeSizeInBytesStub        func(string, int64) error
-	setVolumeSizeInBytesMutex       sync.RWMutex
-	setVolumeSizeInBytesArgsForCall []struct {
-		arg1 string
-		arg2 int64
+	SetVolumeTTLStub        func(handle string, ttl time.Duration) error
+	setVolumeTTLMutex       sync.RWMutex
+	setVolumeTTLArgsForCall []struct {
+		handle string
+		ttl    time.Duration
 	}
-	setVolumeSizeInBytesReturns struct {
+	setVolumeTTLReturns struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -117,16 +118,51 @@ func (fake *FakeVolumeFactoryDB) ReapVolumeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolumeFactoryDB) SetVolumeTTL(arg1 string, arg2 time.Duration) error {
+func (fake *FakeVolumeFactoryDB) SetVolumeTTLAndSizeInBytes(handle string, ttl time.Duration, sizeInBytes int64) error {
+	fake.setVolumeTTLAndSizeInBytesMutex.Lock()
+	fake.setVolumeTTLAndSizeInBytesArgsForCall = append(fake.setVolumeTTLAndSizeInBytesArgsForCall, struct {
+		handle      string
+		ttl         time.Duration
+		sizeInBytes int64
+	}{handle, ttl, sizeInBytes})
+	fake.recordInvocation("SetVolumeTTLAndSizeInBytes", []interface{}{handle, ttl, sizeInBytes})
+	fake.setVolumeTTLAndSizeInBytesMutex.Unlock()
+	if fake.SetVolumeTTLAndSizeInBytesStub != nil {
+		return fake.SetVolumeTTLAndSizeInBytesStub(handle, ttl, sizeInBytes)
+	} else {
+		return fake.setVolumeTTLAndSizeInBytesReturns.result1
+	}
+}
+
+func (fake *FakeVolumeFactoryDB) SetVolumeTTLAndSizeInBytesCallCount() int {
+	fake.setVolumeTTLAndSizeInBytesMutex.RLock()
+	defer fake.setVolumeTTLAndSizeInBytesMutex.RUnlock()
+	return len(fake.setVolumeTTLAndSizeInBytesArgsForCall)
+}
+
+func (fake *FakeVolumeFactoryDB) SetVolumeTTLAndSizeInBytesArgsForCall(i int) (string, time.Duration, int64) {
+	fake.setVolumeTTLAndSizeInBytesMutex.RLock()
+	defer fake.setVolumeTTLAndSizeInBytesMutex.RUnlock()
+	return fake.setVolumeTTLAndSizeInBytesArgsForCall[i].handle, fake.setVolumeTTLAndSizeInBytesArgsForCall[i].ttl, fake.setVolumeTTLAndSizeInBytesArgsForCall[i].sizeInBytes
+}
+
+func (fake *FakeVolumeFactoryDB) SetVolumeTTLAndSizeInBytesReturns(result1 error) {
+	fake.SetVolumeTTLAndSizeInBytesStub = nil
+	fake.setVolumeTTLAndSizeInBytesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolumeFactoryDB) SetVolumeTTL(handle string, ttl time.Duration) error {
 	fake.setVolumeTTLMutex.Lock()
 	fake.setVolumeTTLArgsForCall = append(fake.setVolumeTTLArgsForCall, struct {
-		arg1 string
-		arg2 time.Duration
-	}{arg1, arg2})
-	fake.recordInvocation("SetVolumeTTL", []interface{}{arg1, arg2})
+		handle string
+		ttl    time.Duration
+	}{handle, ttl})
+	fake.recordInvocation("SetVolumeTTL", []interface{}{handle, ttl})
 	fake.setVolumeTTLMutex.Unlock()
 	if fake.SetVolumeTTLStub != nil {
-		return fake.SetVolumeTTLStub(arg1, arg2)
+		return fake.SetVolumeTTLStub(handle, ttl)
 	} else {
 		return fake.setVolumeTTLReturns.result1
 	}
@@ -141,46 +177,12 @@ func (fake *FakeVolumeFactoryDB) SetVolumeTTLCallCount() int {
 func (fake *FakeVolumeFactoryDB) SetVolumeTTLArgsForCall(i int) (string, time.Duration) {
 	fake.setVolumeTTLMutex.RLock()
 	defer fake.setVolumeTTLMutex.RUnlock()
-	return fake.setVolumeTTLArgsForCall[i].arg1, fake.setVolumeTTLArgsForCall[i].arg2
+	return fake.setVolumeTTLArgsForCall[i].handle, fake.setVolumeTTLArgsForCall[i].ttl
 }
 
 func (fake *FakeVolumeFactoryDB) SetVolumeTTLReturns(result1 error) {
 	fake.SetVolumeTTLStub = nil
 	fake.setVolumeTTLReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeVolumeFactoryDB) SetVolumeSizeInBytes(arg1 string, arg2 int64) error {
-	fake.setVolumeSizeInBytesMutex.Lock()
-	fake.setVolumeSizeInBytesArgsForCall = append(fake.setVolumeSizeInBytesArgsForCall, struct {
-		arg1 string
-		arg2 int64
-	}{arg1, arg2})
-	fake.recordInvocation("SetVolumeSizeInBytes", []interface{}{arg1, arg2})
-	fake.setVolumeSizeInBytesMutex.Unlock()
-	if fake.SetVolumeSizeInBytesStub != nil {
-		return fake.SetVolumeSizeInBytesStub(arg1, arg2)
-	} else {
-		return fake.setVolumeSizeInBytesReturns.result1
-	}
-}
-
-func (fake *FakeVolumeFactoryDB) SetVolumeSizeInBytesCallCount() int {
-	fake.setVolumeSizeInBytesMutex.RLock()
-	defer fake.setVolumeSizeInBytesMutex.RUnlock()
-	return len(fake.setVolumeSizeInBytesArgsForCall)
-}
-
-func (fake *FakeVolumeFactoryDB) SetVolumeSizeInBytesArgsForCall(i int) (string, int64) {
-	fake.setVolumeSizeInBytesMutex.RLock()
-	defer fake.setVolumeSizeInBytesMutex.RUnlock()
-	return fake.setVolumeSizeInBytesArgsForCall[i].arg1, fake.setVolumeSizeInBytesArgsForCall[i].arg2
-}
-
-func (fake *FakeVolumeFactoryDB) SetVolumeSizeInBytesReturns(result1 error) {
-	fake.SetVolumeSizeInBytesStub = nil
-	fake.setVolumeSizeInBytesReturns = struct {
 		result1 error
 	}{result1}
 }
@@ -192,10 +194,10 @@ func (fake *FakeVolumeFactoryDB) Invocations() map[string][][]interface{} {
 	defer fake.getVolumeTTLMutex.RUnlock()
 	fake.reapVolumeMutex.RLock()
 	defer fake.reapVolumeMutex.RUnlock()
+	fake.setVolumeTTLAndSizeInBytesMutex.RLock()
+	defer fake.setVolumeTTLAndSizeInBytesMutex.RUnlock()
 	fake.setVolumeTTLMutex.RLock()
 	defer fake.setVolumeTTLMutex.RUnlock()
-	fake.setVolumeSizeInBytesMutex.RLock()
-	defer fake.setVolumeSizeInBytesMutex.RUnlock()
 	return fake.invocations
 }
 

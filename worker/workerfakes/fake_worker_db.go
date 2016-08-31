@@ -122,6 +122,16 @@ type FakeWorkerDB struct {
 	reapVolumeReturns struct {
 		result1 error
 	}
+	SetVolumeTTLAndSizeInBytesStub        func(string, time.Duration, int64) error
+	setVolumeTTLAndSizeInBytesMutex       sync.RWMutex
+	setVolumeTTLAndSizeInBytesArgsForCall []struct {
+		arg1 string
+		arg2 time.Duration
+		arg3 int64
+	}
+	setVolumeTTLAndSizeInBytesReturns struct {
+		result1 error
+	}
 	SetVolumeTTLStub        func(string, time.Duration) error
 	setVolumeTTLMutex       sync.RWMutex
 	setVolumeTTLArgsForCall []struct {
@@ -129,15 +139,6 @@ type FakeWorkerDB struct {
 		arg2 time.Duration
 	}
 	setVolumeTTLReturns struct {
-		result1 error
-	}
-	SetVolumeSizeInBytesStub        func(string, int64) error
-	setVolumeSizeInBytesMutex       sync.RWMutex
-	setVolumeSizeInBytesArgsForCall []struct {
-		arg1 string
-		arg2 int64
-	}
-	setVolumeSizeInBytesReturns struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -555,6 +556,41 @@ func (fake *FakeWorkerDB) ReapVolumeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeWorkerDB) SetVolumeTTLAndSizeInBytes(arg1 string, arg2 time.Duration, arg3 int64) error {
+	fake.setVolumeTTLAndSizeInBytesMutex.Lock()
+	fake.setVolumeTTLAndSizeInBytesArgsForCall = append(fake.setVolumeTTLAndSizeInBytesArgsForCall, struct {
+		arg1 string
+		arg2 time.Duration
+		arg3 int64
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SetVolumeTTLAndSizeInBytes", []interface{}{arg1, arg2, arg3})
+	fake.setVolumeTTLAndSizeInBytesMutex.Unlock()
+	if fake.SetVolumeTTLAndSizeInBytesStub != nil {
+		return fake.SetVolumeTTLAndSizeInBytesStub(arg1, arg2, arg3)
+	} else {
+		return fake.setVolumeTTLAndSizeInBytesReturns.result1
+	}
+}
+
+func (fake *FakeWorkerDB) SetVolumeTTLAndSizeInBytesCallCount() int {
+	fake.setVolumeTTLAndSizeInBytesMutex.RLock()
+	defer fake.setVolumeTTLAndSizeInBytesMutex.RUnlock()
+	return len(fake.setVolumeTTLAndSizeInBytesArgsForCall)
+}
+
+func (fake *FakeWorkerDB) SetVolumeTTLAndSizeInBytesArgsForCall(i int) (string, time.Duration, int64) {
+	fake.setVolumeTTLAndSizeInBytesMutex.RLock()
+	defer fake.setVolumeTTLAndSizeInBytesMutex.RUnlock()
+	return fake.setVolumeTTLAndSizeInBytesArgsForCall[i].arg1, fake.setVolumeTTLAndSizeInBytesArgsForCall[i].arg2, fake.setVolumeTTLAndSizeInBytesArgsForCall[i].arg3
+}
+
+func (fake *FakeWorkerDB) SetVolumeTTLAndSizeInBytesReturns(result1 error) {
+	fake.SetVolumeTTLAndSizeInBytesStub = nil
+	fake.setVolumeTTLAndSizeInBytesReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeWorkerDB) SetVolumeTTL(arg1 string, arg2 time.Duration) error {
 	fake.setVolumeTTLMutex.Lock()
 	fake.setVolumeTTLArgsForCall = append(fake.setVolumeTTLArgsForCall, struct {
@@ -589,40 +625,6 @@ func (fake *FakeWorkerDB) SetVolumeTTLReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeWorkerDB) SetVolumeSizeInBytes(arg1 string, arg2 int64) error {
-	fake.setVolumeSizeInBytesMutex.Lock()
-	fake.setVolumeSizeInBytesArgsForCall = append(fake.setVolumeSizeInBytesArgsForCall, struct {
-		arg1 string
-		arg2 int64
-	}{arg1, arg2})
-	fake.recordInvocation("SetVolumeSizeInBytes", []interface{}{arg1, arg2})
-	fake.setVolumeSizeInBytesMutex.Unlock()
-	if fake.SetVolumeSizeInBytesStub != nil {
-		return fake.SetVolumeSizeInBytesStub(arg1, arg2)
-	} else {
-		return fake.setVolumeSizeInBytesReturns.result1
-	}
-}
-
-func (fake *FakeWorkerDB) SetVolumeSizeInBytesCallCount() int {
-	fake.setVolumeSizeInBytesMutex.RLock()
-	defer fake.setVolumeSizeInBytesMutex.RUnlock()
-	return len(fake.setVolumeSizeInBytesArgsForCall)
-}
-
-func (fake *FakeWorkerDB) SetVolumeSizeInBytesArgsForCall(i int) (string, int64) {
-	fake.setVolumeSizeInBytesMutex.RLock()
-	defer fake.setVolumeSizeInBytesMutex.RUnlock()
-	return fake.setVolumeSizeInBytesArgsForCall[i].arg1, fake.setVolumeSizeInBytesArgsForCall[i].arg2
-}
-
-func (fake *FakeWorkerDB) SetVolumeSizeInBytesReturns(result1 error) {
-	fake.SetVolumeSizeInBytesStub = nil
-	fake.setVolumeSizeInBytesReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -650,10 +652,10 @@ func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.getVolumeTTLMutex.RUnlock()
 	fake.reapVolumeMutex.RLock()
 	defer fake.reapVolumeMutex.RUnlock()
+	fake.setVolumeTTLAndSizeInBytesMutex.RLock()
+	defer fake.setVolumeTTLAndSizeInBytesMutex.RUnlock()
 	fake.setVolumeTTLMutex.RLock()
 	defer fake.setVolumeTTLMutex.RUnlock()
-	fake.setVolumeSizeInBytesMutex.RLock()
-	defer fake.setVolumeSizeInBytesMutex.RUnlock()
 	return fake.invocations
 }
 

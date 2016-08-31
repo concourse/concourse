@@ -174,7 +174,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 		})
 
-		Describe("SetVolumeSizeInBytes", func() {
+		Describe("SetVolumeTTLAndSizeInBytes", func() {
 			var identifier db.VolumeIdentifier
 
 			BeforeEach(func() {
@@ -195,7 +195,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 
 			It("sets volume size", func() {
-				err := database.SetVolumeSizeInBytes("volume-1-handle", int64(1024))
+				err := database.SetVolumeTTLAndSizeInBytes("volume-1-handle", 0, int64(1024))
 				Expect(err).NotTo(HaveOccurred())
 				volumes, err := database.GetVolumesByIdentifier(identifier)
 				Expect(err).NotTo(HaveOccurred())
@@ -204,12 +204,34 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 
 			It("can set the volume size to 5000000000", func() {
-				err := database.SetVolumeSizeInBytes("volume-1-handle", int64(5000000000))
+				err := database.SetVolumeTTLAndSizeInBytes("volume-1-handle", 0, int64(5000000000))
 				Expect(err).NotTo(HaveOccurred())
 				volumes, err := database.GetVolumesByIdentifier(identifier)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(volumes).To(HaveLen(1))
 				Expect(volumes[0].SizeInBytes).To(Equal(int64(5000000000)))
+			})
+
+			It("sets volume size", func() {
+				err := database.SetVolumeTTLAndSizeInBytes("volume-1-handle", 10*time.Minute, int64(1024))
+				Expect(err).NotTo(HaveOccurred())
+				volumes, err := database.GetVolumesByIdentifier(identifier)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(volumes).To(HaveLen(1))
+				Expect(volumes[0].TTL).To(Equal(10 * time.Minute))
+				Expect(volumes[0].ExpiresIn).NotTo(BeZero())
+			})
+
+			It("can be updated to zero to mean 'keep around forever'", func() {
+				err := database.SetVolumeTTLAndSizeInBytes("volume-1-handle", 0, int64(1024))
+				Expect(err).NotTo(HaveOccurred())
+
+				volumes, err := database.GetVolumesByIdentifier(identifier)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(volumes).To(HaveLen(1))
+
+				Expect(volumes[0].TTL).To(BeZero())
+				Expect(volumes[0].ExpiresIn).To(BeZero())
 			})
 		})
 

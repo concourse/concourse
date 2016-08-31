@@ -257,6 +257,30 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 	return volumes, err
 }
 
+func (db *SQLDB) SetVolumeTTLAndSizeInBytes(handle string, ttl time.Duration, sizeInBytes int64) error {
+	if ttl == 0 {
+		_, err := db.conn.Exec(`
+			UPDATE volumes
+			SET expires_at = null, ttl = 0, size_in_bytes = $2
+			WHERE handle = $1
+		`, handle, sizeInBytes)
+
+		return err
+	}
+
+	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
+
+	_, err := db.conn.Exec(`
+		UPDATE volumes
+		SET expires_at = NOW() + $1::INTERVAL,
+		ttl = $2,
+		size_in_bytes = $3
+		WHERE handle = $4
+	`, interval, ttl, sizeInBytes, handle)
+
+	return err
+}
+
 func (db *SQLDB) SetVolumeTTL(handle string, ttl time.Duration) error {
 	if ttl == 0 {
 		_, err := db.conn.Exec(`
@@ -295,16 +319,6 @@ func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, bool, error) {
 	}
 
 	return ttl, true, nil
-}
-
-func (db *SQLDB) SetVolumeSizeInBytes(handle string, sizeInBytes int64) error {
-	_, err := db.conn.Exec(`
-		UPDATE volumes
-		SET size_in_bytes = $1
-		WHERE handle = $2
-	`, sizeInBytes, handle)
-
-	return err
 }
 
 func (db *SQLDB) expireVolumes() error {
