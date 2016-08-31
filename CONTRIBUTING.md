@@ -69,6 +69,7 @@ git checkout master
 To build the web code:
 
 ```
+go get github.com/jteeuwen/go-bindata/...
 cd ./web
 make -B
 ```
