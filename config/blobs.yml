@@ -43,9 +43,9 @@ resources/github-release-resource.tar.gz:
   object_id: 115ca156-71f2-49b1-7a81-d1a0ce9d1525
   sha: 3ad6557860de993b38d62dbb1345d2947c29f4dd
 resources/hg-resource.tar.gz:
-  size: 16427148
-  object_id: 20e89146-a721-48de-7d86-c40c20e499c0
-  sha: bd808aea972bb1090ac1a984c155de258b9f9fff
+  size: 14714611
+  object_id: 4e5f8fdb-0a98-4f70-42df-6899de10316f
+  sha: c0ccf9d985091e24b3642ddfe3bc08a3b15d66d8
 resources/pool-resource.tar.gz:
   size: 11286105
   object_id: 8f7aa723-deb4-42bf-418b-7eb0ef8387a1
