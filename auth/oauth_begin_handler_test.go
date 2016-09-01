@@ -11,6 +11,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
@@ -35,6 +36,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		signingKey *rsa.PrivateKey
 
+		expire time.Duration
+
 		cookieJar *cookiejar.Jar
 
 		server *httptest.Server
@@ -51,6 +54,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
 		Expect(err).ToNot(HaveOccurred())
+		expire = 24 * time.Hour
 
 		fakeTeamDBFactory = new(dbfakes.FakeTeamDBFactory)
 		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
@@ -59,6 +63,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 			fakeProviderFactory,
 			fakeTeamDBFactory,
 			signingKey,
+			expire,
 		)
 		Expect(err).ToNot(HaveOccurred())
 

@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
+	"github.com/concourse/baggageclaim"
 	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
@@ -351,6 +352,17 @@ run: {path: a/file}
 
 				It("returns the error", func() {
 					Expect(fetchErr).To(HaveOccurred())
+				})
+			})
+
+			Context("when the file task is not found", func() {
+				BeforeEach(func() {
+					fakeArtifactSource.StreamFileReturns(nil, baggageclaim.ErrFileNotFound)
+				})
+
+				It("returns the error", func() {
+					Expect(fetchErr).To(HaveOccurred())
+					Expect(fetchErr.Error()).To(Equal("task config 'some/build.yml' not found"))
 				})
 			})
 		})

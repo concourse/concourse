@@ -49,7 +49,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListTeams,
 			atc.ListAllPipelines,
 			atc.ListPipelines,
-			atc.ListBuilds:
+			atc.ListBuilds,
+			atc.MainJobBadge:
 
 		// pipeline is public or authorized
 		case atc.GetBuild,
@@ -90,13 +91,15 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListWorkers,
 			atc.ReadPipe,
 			atc.RegisterWorker,
-			atc.SetLogLevel,
 			atc.SetTeam,
 			atc.WritePipe,
 			atc.ListVolumes,
-			atc.GetLogLevel,
 			atc.GetUser:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
+
+		case atc.GetLogLevel,
+			atc.SetLogLevel:
+			newHandler = auth.CheckAdminHandler(handler, rejector)
 
 		// authorized (requested team matches resource team)
 		case atc.CheckResource,
@@ -115,8 +118,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.UnpauseJob,
 			atc.UnpausePipeline,
 			atc.UnpauseResource,
-			atc.RevealPipeline,
-			atc.ConcealPipeline,
+			atc.ExposePipeline,
+			atc.HidePipeline,
 			atc.SaveConfig:
 			newHandler = auth.CheckAuthorizationHandler(handler, rejector)
 

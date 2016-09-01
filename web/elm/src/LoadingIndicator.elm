@@ -11,4 +11,3 @@ view =
         , Html.h3 [] [Html.text "loading"]
         ]
     ]
-

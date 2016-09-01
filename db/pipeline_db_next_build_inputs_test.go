@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -31,8 +32,13 @@ var _ = Describe("next build inputs for job", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
 		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
@@ -54,7 +60,7 @@ var _ = Describe("next build inputs for job", func() {
 			Resources: atc.ResourceConfigs{resourceConfig},
 		}
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB := teamDBFactory.GetTeamDB("some-team")
 		savedPipeline, _, err := teamDB.SaveConfig("some-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())

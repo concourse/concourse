@@ -40,15 +40,15 @@ func (candidates InputCandidates) String() string {
 }
 
 func (candidates InputCandidates) Reduce(jobs JobSet) (map[string]int, bool) {
-	return candidates.reduce(jobs, nil)
+	return candidates.reduce(jobs)
 }
 
-func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping map[string]int) (map[string]int, bool) {
+func (candidates InputCandidates) reduce(jobs JobSet) (map[string]int, bool) {
 	newInputCandidates := candidates.pruneToCommonBuilds(jobs)
 
+	var lastSatisfiedMapping map[string]int
 	for i, inputVersionCandidates := range newInputCandidates {
 		versionIDs := inputVersionCandidates.VersionIDs()
-
 		switch {
 		case len(versionIDs) == 1:
 			// already reduced
@@ -75,16 +75,19 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping map[s
 				inputCandidates.VersionCandidates = limitedToVersion
 				newInputCandidates[i] = inputCandidates
 
-				mapping, ok := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
+				mapping, ok := newInputCandidates.reduce(jobs)
 				if ok {
 					lastSatisfiedMapping = mapping
+
 					if !usingEveryVersion || buildForPreviousOrCurrentVersionExists() {
+						// when using every version return last option anyway
 						return mapping, true
 					}
-				} else {
-					if usingEveryVersion && (lastSatisfiedMapping != nil || buildForPreviousOrCurrentVersionExists()) {
-						return lastSatisfiedMapping, true
-					}
+
+				} else if usingEveryVersion && lastSatisfiedMapping != nil && buildForPreviousOrCurrentVersionExists() {
+					// when using every version checked all options from latest version
+					// down to to the last build, returning the earliest that satisfied
+					return lastSatisfiedMapping, true
 				}
 
 				newInputCandidates[i] = inputVersionCandidates
@@ -96,7 +99,14 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping map[s
 
 	for _, inputVersionCandidates := range newInputCandidates {
 		versionIDs := inputVersionCandidates.VersionIDs()
-		if len(versionIDs) != 1 || !inputVersionCandidates.JobIDs().Equal(inputVersionCandidates.Passed) {
+		if len(versionIDs) != 1 {
+			// could not reduce
+			return nil, false
+		}
+
+		jobIDs := inputVersionCandidates.JobIDs()
+		if !jobIDs.Equal(inputVersionCandidates.Passed) {
+			// did not satisfy all passed constraints
 			return nil, false
 		}
 

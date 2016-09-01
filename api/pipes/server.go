@@ -25,11 +25,16 @@ type Server struct {
 //go:generate counterfeiter . PipeDB
 
 type PipeDB interface {
-	CreatePipe(pipeGUID string, url string) error
+	CreatePipe(pipeGUID string, url string, teamID int) error
 	GetPipe(pipeGUID string) (db.Pipe, error)
 }
 
-func NewServer(logger lager.Logger, url string, externalURL string, db PipeDB) *Server {
+func NewServer(
+	logger lager.Logger,
+	url string,
+	externalURL string,
+	db PipeDB,
+) *Server {
 	return &Server{
 		logger: logger,
 

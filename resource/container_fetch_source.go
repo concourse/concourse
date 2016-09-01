@@ -49,8 +49,8 @@ func (s *containerFetchSource) VersionedSource() VersionedSource {
 	return s.versionedSource
 }
 
-func (s *containerFetchSource) LeaseName() (string, error) {
-	return s.resourceOptions.LeaseName(s.container.WorkerName())
+func (s *containerFetchSource) LockName() (string, error) {
+	return s.resourceOptions.LockName(s.container.WorkerName())
 }
 
 func (s *containerFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {

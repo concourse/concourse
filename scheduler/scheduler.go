@@ -13,8 +13,6 @@ import (
 	"github.com/concourse/atc/scheduler/inputmapper"
 )
 
-const ResourceCheckingForJobTimeout = 5 * time.Minute
-
 type Scheduler struct {
 	DB           SchedulerDB
 	InputMapper  inputmapper.InputMapper
@@ -25,13 +23,13 @@ type Scheduler struct {
 //go:generate counterfeiter . SchedulerDB
 
 type SchedulerDB interface {
-	LeaseScheduling(lager.Logger, time.Duration) (db.Lease, bool, error)
+	AcquireSchedulingLock(lager.Logger, time.Duration) (db.Lock, bool, error)
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetPipelineName() string
 	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
 	CreateJobBuild(job string) (db.Build, error)
 	EnsurePendingBuildExists(jobName string) error
-	LeaseResourceCheckingForJob(logger lager.Logger, job string, interval time.Duration) (db.Lease, bool, error)
+	AcquireResourceCheckingForJobLock(logger lager.Logger, job string) (db.Lock, bool, error)
 }
 
 //go:generate counterfeiter . Scanner
@@ -82,21 +80,20 @@ func (s *Scheduler) TriggerImmediately(
 ) (db.Build, Waiter, error) {
 	logger = logger.Session("trigger-immediately", lager.Data{"job_name": jobConfig.Name})
 
-	lease, leased, err := s.DB.LeaseResourceCheckingForJob(
+	lock, acquired, err := s.DB.AcquireResourceCheckingForJobLock(
 		logger,
 		jobConfig.Name,
-		ResourceCheckingForJobTimeout,
 	)
 	if err != nil {
-		logger.Error("failed-to-lease-resource-checking-job", err)
+		logger.Error("failed-to-lock-resource-checking-job", err)
 		return nil, nil, err
 	}
 
 	build, err := s.DB.CreateJobBuild(jobConfig.Name)
 	if err != nil {
 		logger.Error("failed-to-create-job-build", err)
-		if leased {
-			lease.Break()
+		if acquired {
+			lock.Release()
 		}
 		return nil, nil, err
 	}
@@ -107,8 +104,8 @@ func (s *Scheduler) TriggerImmediately(
 	go func() {
 		defer wg.Done()
 
-		if leased {
-			defer lease.Break()
+		if acquired {
+			defer lock.Release()
 
 			jobBuildInputs := config.JobInputs(jobConfig)
 			for _, input := range jobBuildInputs {
@@ -134,7 +131,7 @@ func (s *Scheduler) TriggerImmediately(
 				return
 			}
 
-			lease.Break()
+			lock.Release()
 		}
 
 		err = s.BuildStarter.TryStartAllPendingBuilds(logger, jobConfig, resourceConfigs, resourceTypes)

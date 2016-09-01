@@ -27,11 +27,18 @@ const BASIC_AUTH = "basic"
 const BASIC_AUTH_NO_PASSWORD = "basic-no-password"
 const BASIC_AUTH_NO_USERNAME = "basic-no-username"
 const GITHUB_AUTH = "github"
+const GITHUB_AUTH_NO_CLIENT_SECRET = "github-no-secret"
+const GITHUB_AUTH_NO_TEAM = "github-no-team"
 const GITHUB_ENTERPRISE_AUTH = "github-enterprise"
 const UAA_AUTH = "cf"
 const UAA_AUTH_NO_CLIENT_SECRET = "cf-no-secret"
 const UAA_AUTH_NO_TOKEN_URL = "cf-no-token-url"
 const UAA_AUTH_NO_SPACE = "cf-no-space"
+const GENERIC_OAUTH_AUTH = "generic-oauth"
+const GENERIC_OAUTH_AUTH_PARAMS = "generic-oauth-params"
+const GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET = "generic-oauth-no-secret"
+const GENERIC_OAUTH_AUTH_NO_TOKEN_URL = "generic-oauth-no-token-url"
+const GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME = "generic-oauth-no-display-name"
 const NOT_CONFIGURED_AUTH = "not-configured"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
@@ -43,6 +50,7 @@ type ATCCommand struct {
 	authTypes              []string
 	postgresDataSourceName string
 	pemPrivateKeyFile      string
+	cfCACertFile           string
 
 	process                    ifrit.Process
 	port                       uint16
@@ -60,6 +68,25 @@ EO+ZJ79TJKN5yiGBRsv5yvx5UiHxajEXAiAhAol5N4EUyq6I9w1rYdhPMGpLfk7A
 IU2snfRJ6Nq2CQIgFrPsWRCkV+gOYcajD17rEqmuLrdIRexpg8N1DOSXoJ8CIGlS
 tAboUGBxTDq3ZroNism3DaMIbKPyYrAqhKov1h5V
 -----END RSA PRIVATE KEY-----`
+
+const cfCACert = `-----BEGIN CERTIFICATE-----
+MIICsjCCAhugAwIBAgIJAJgyGeIL1aiPMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
+BAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQwIBcNMTUwMzE5MjE1NzAxWhgPMjI4ODEyMzEyMTU3MDFa
+MEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJ
+bnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJ
+AoGBAOTD37e9wnQz5fHVPdQdU8rjokOVuFj0wBtQLNO7B2iN+URFaP2wi0KOU0ye
+njISc5M/mpua7Op72/cZ3+bq8u5lnQ8VcjewD1+f3LCq+Os7iE85A/mbEyT1Mazo
+GGo9L/gfz5kNq78L9cQp5lrD04wF0C05QtL8LVI5N9SqT7mlAgMBAAGjgacwgaQw
+HQYDVR0OBBYEFNtN+q97oIhvyUEC+/Sc4q0ASv4zMHUGA1UdIwRuMGyAFNtN+q97
+oIhvyUEC+/Sc4q0ASv4zoUmkRzBFMQswCQYDVQQGEwJBVTETMBEGA1UECBMKU29t
+ZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkggkAmDIZ
+4gvVqI8wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOBgQCZKuxfGc/RrMlz
+aai4+5s0GnhSuq0CdfnpwZR+dXsjMO6dlrD1NgQoQVhYO7UbzktwU1Hz9Mc3XE7t
+HCu8gfq+3WRUgddCQnYJUXtig2yAqmHf/WGR9yYYnfMUDKa85i0inolq1EnLvgVV
+K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
+-----END CERTIFICATE-----
+`
 
 func NewATCCommand(
 	atcBin string,
@@ -126,6 +153,17 @@ func (a *ATCCommand) prepare() error {
 		return err
 	}
 
+	cfCACertFile, err := ioutil.TempFile(a.tmpDir, "cf-ca-certificate")
+	if err != nil {
+		return err
+	}
+	a.cfCACertFile = cfCACertFile.Name()
+
+	err = ioutil.WriteFile(a.cfCACertFile, []byte(cfCACert), 0644)
+	if err != nil {
+		return err
+	}
+
 	pemPrivateKeyFile, err := ioutil.TempFile(a.tmpDir, "accceptance-signing-key")
 	if err != nil {
 		return err
@@ -181,6 +219,18 @@ func (a *ATCCommand) getATCCommand() *exec.Cmd {
 				"--github-auth-team", "myorg/all",
 				"--github-auth-user", "myuser",
 			)
+		case GITHUB_AUTH_NO_CLIENT_SECRET:
+			params = append(params,
+				"--github-auth-client-id", "admin",
+				"--github-auth-organization", "myorg",
+				"--github-auth-team", "myorg/all",
+				"--github-auth-user", "myuser",
+			)
+		case GITHUB_AUTH_NO_TEAM:
+			params = append(params,
+				"--github-auth-client-id", "admin",
+				"--github-auth-client-secret", "password",
+			)
 		case GITHUB_ENTERPRISE_AUTH:
 			params = append(params,
 				"--github-auth-client-id", "admin",
@@ -200,6 +250,7 @@ func (a *ATCCommand) getATCCommand() *exec.Cmd {
 				"--uaa-auth-auth-url", "https://uaa.example.com/oauth/authorize",
 				"--uaa-auth-token-url", "https://uaa.example.com/oauth/token",
 				"--uaa-auth-cf-url", "https://cf.example.com/api",
+				"--uaa-auth-cf-ca-cert", a.cfCACertFile,
 			)
 		case UAA_AUTH_NO_CLIENT_SECRET:
 			params = append(params,
@@ -217,6 +268,43 @@ func (a *ATCCommand) getATCCommand() *exec.Cmd {
 				"--uaa-auth-cf-space", "myspace",
 				"--uaa-auth-auth-url", "https://uaa.example.com/oauth/authorize",
 				"--uaa-auth-cf-url", "https://cf.example.com/api",
+			)
+		case GENERIC_OAUTH_AUTH:
+			params = append(params,
+				"--generic-oauth-display-name", "Example",
+				"--generic-oauth-client-id", "admin",
+				"--generic-oauth-client-secret", "password",
+				"--generic-oauth-auth-url", "https://goa.example.com/oauth/authorize",
+				"--generic-oauth-token-url", "https://goa.example.com/oauth/token",
+			)
+		case GENERIC_OAUTH_AUTH_PARAMS:
+			params = append(params,
+				"--generic-oauth-display-name", "Example",
+				"--generic-oauth-client-id", "admin",
+				"--generic-oauth-client-secret", "password",
+				"--generic-oauth-auth-url", "https://goa.example.com/oauth/authorize",
+				"--generic-oauth-auth-url-param", "param1:value1",
+				"--generic-oauth-auth-url-param", "param2:value2",
+				"--generic-oauth-token-url", "https://goa.example.com/oauth/token",
+			)
+		case GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET:
+			params = append(params,
+				"--generic-oauth-display-name", "Example",
+				"--generic-oauth-client-id", "admin",
+			)
+		case GENERIC_OAUTH_AUTH_NO_TOKEN_URL:
+			params = append(params,
+				"--generic-oauth-display-name", "Example",
+				"--generic-oauth-client-id", "admin",
+				"--generic-oauth-client-secret", "password",
+				"--generic-oauth-auth-url", "https://goa.example.com/oauth/authorize",
+			)
+		case GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME:
+			params = append(params,
+				"--generic-oauth-client-id", "admin",
+				"--generic-oauth-client-secret", "password",
+				"--generic-oauth-auth-url", "https://goa.example.com/oauth/authorize",
+				"--generic-oauth-token-url", "https://goa.example.com/oauth/token",
 			)
 		case DEVELOPMENT_MODE:
 			params = append(params, "--development-mode")

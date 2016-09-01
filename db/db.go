@@ -86,10 +86,10 @@ type DB interface {
 
 	FindJobIDForBuild(buildID int) (int, bool, error)
 
-	CreatePipe(pipeGUID string, url string) error
+	CreatePipe(pipeGUID string, url string, teamID int) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
-	GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error)
+	GetTaskLock(logger lager.Logger, taskName string) (Lock, bool, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
@@ -111,9 +111,9 @@ type DB interface {
 	GetVolumes() ([]SavedVolume, error)
 	GetVolumesByIdentifier(VolumeIdentifier) ([]SavedVolume, error)
 	ReapVolume(string) error
+	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	SetVolumeTTL(string, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
-	SetVolumeSizeInBytes(string, int64) error
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 
 	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)
@@ -130,13 +130,6 @@ type Notifier interface {
 type ConfigVersion int
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
-
-//go:generate counterfeiter . Lock
-
-type Lock interface {
-	Release() error
-}
-
 var ErrEndOfBuildEventStream = errors.New("end of build event stream")
 var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 

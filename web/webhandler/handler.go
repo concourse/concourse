@@ -3,11 +3,13 @@ package webhandler
 import (
 	"html/template"
 	"net/http"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/tedsuo/rata"
 
+	"github.com/concourse/atc/mainredirect"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/authredirect"
 	"github.com/concourse/atc/web/getbuild"
@@ -18,6 +20,7 @@ import (
 	"github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/login"
 	"github.com/concourse/atc/web/pipeline"
+	"github.com/concourse/atc/web/robotstxt"
 	"github.com/concourse/atc/web/triggerbuild"
 	"github.com/concourse/atc/wrappa"
 )
@@ -26,6 +29,7 @@ func NewHandler(
 	logger lager.Logger,
 	wrapper wrappa.Wrappa,
 	clientFactory web.ClientFactory,
+	expire time.Duration,
 ) (http.Handler, error) {
 	tfuncs := &templateFuncs{
 		assetIDs: map[string]string{},
@@ -87,6 +91,7 @@ func NewHandler(
 
 	handlers := map[string]http.Handler{
 		web.Index:                 authredirect.Handler{index.NewHandler(logger, clientFactory, pipelineHandler, noPipelinesTemplate)},
+		web.RobotsTxt:             robotstxt.Handler{},
 		web.Pipeline:              authredirect.Handler{pipelineHandler},
 		web.Public:                CacheNearlyForever(http.FileServer(publicFS)),
 		web.GetJob:                authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)},
@@ -97,7 +102,12 @@ func NewHandler(
 		web.TriggerBuild:          authredirect.Handler{triggerbuild.NewHandler(logger, clientFactory)},
 		web.TeamLogIn:             login.NewHandler(logger, logInTemplate),
 		web.LogIn:                 login.NewHandler(logger, logInTemplate),
-		web.ProcessBasicAuthLogIn: login.NewProcessBasicAuthHandler(logger, clientFactory),
+		web.ProcessBasicAuthLogIn: login.NewProcessBasicAuthHandler(logger, clientFactory, expire),
+
+		web.MainPipeline:    mainredirect.Handler{web.Routes, web.Pipeline},
+		web.MainGetJob:      mainredirect.Handler{web.Routes, web.GetJob},
+		web.MainGetResource: mainredirect.Handler{web.Routes, web.GetResource},
+		web.MainGetBuild:    mainredirect.Handler{web.Routes, web.GetBuild},
 	}
 
 	handler, err := rata.NewRouter(web.Routes, wrapper.Wrap(handlers))

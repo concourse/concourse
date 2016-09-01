@@ -14,7 +14,7 @@ import (
 
 const GetResourceLeaseInterval = 5 * time.Second
 
-var ErrFailedToGetLease = errors.New("failed-to-get-lease")
+var ErrFailedToGetLock = errors.New("failed-to-get-lock")
 var ErrInterrupted = errors.New("interrupted")
 
 //go:generate counterfeiter . Fetcher
@@ -43,12 +43,12 @@ type ResourceOptions interface {
 	Params() atc.Params
 	Version() atc.Version
 	ResourceType() ResourceType
-	LeaseName(workerName string) (string, error)
+	LockName(workerName string) (string, error)
 }
 
 func NewFetcher(
 	clock clock.Clock,
-	db LeaseDB,
+	db LockDB,
 	fetchContainerCreatorFactory FetchContainerCreatorFactory,
 	fetchSourceProviderFactory FetchSourceProviderFactory,
 ) Fetcher {
@@ -62,7 +62,7 @@ func NewFetcher(
 
 type fetcher struct {
 	clock                        clock.Clock
-	db                           LeaseDB
+	db                           LockDB
 	fetchContainerCreatorFactory FetchContainerCreatorFactory
 	fetchSourceProviderFactory   FetchSourceProviderFactory
 }
@@ -105,7 +105,7 @@ func (f *fetcher) Fetch(
 	defer ticker.Stop()
 
 	fetchSource, err := f.fetchWithLease(logger, sourceProvider, resourceOptions.IOConfig(), signals, ready)
-	if err != ErrFailedToGetLease {
+	if err != ErrFailedToGetLock {
 		return fetchSource, err
 	}
 
@@ -114,7 +114,7 @@ func (f *fetcher) Fetch(
 		case <-ticker.C():
 			fetchSource, err := f.fetchWithLease(logger, sourceProvider, resourceOptions.IOConfig(), signals, ready)
 			if err != nil {
-				if err == ErrFailedToGetLease {
+				if err == ErrFailedToGetLock {
 					break
 				}
 				return nil, err
@@ -153,27 +153,27 @@ func (f *fetcher) fetchWithLease(
 		return source, nil
 	}
 
-	leaseName, err := source.LeaseName()
+	lockName, err := source.LockName()
 	if err != nil {
 		return nil, err
 	}
 
-	leaseLogger := logger.Session("lease-task", lager.Data{"lease-name": leaseName})
-	leaseLogger.Info("tick")
+	lockLogger := logger.Session("lock-task", lager.Data{"lock-name": lockName})
+	lockLogger.Info("tick")
 
-	lease, leased, err := f.db.GetLease(leaseLogger, leaseName, GetResourceLeaseInterval)
+	lock, acquired, err := f.db.GetTaskLock(lockLogger, lockName)
 
 	if err != nil {
-		leaseLogger.Error("failed-to-get-lease", err)
-		return nil, ErrFailedToGetLease
+		lockLogger.Error("failed-to-get-lock", err)
+		return nil, ErrFailedToGetLock
 	}
 
-	if !leased {
-		leaseLogger.Debug("did-not-get-lease")
-		return nil, ErrFailedToGetLease
+	if !acquired {
+		lockLogger.Debug("did-not-get-lock")
+		return nil, ErrFailedToGetLock
 	}
 
-	defer lease.Break()
+	defer lock.Release()
 
 	err = source.Initialize(signals, ready)
 	if err != nil {

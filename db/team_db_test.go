@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -38,8 +39,13 @@ var _ = Describe("TeamDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
-		database = db.NewSQL(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		team := db.Team{Name: "TEAM-name"}
 		var err error
@@ -49,7 +55,7 @@ var _ = Describe("TeamDB", func() {
 		teamDB = teamDBFactory.GetTeamDB("team-NAME")
 		nonExistentTeamDB = teamDBFactory.GetTeamDB("non-existent-name")
 
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
 		team = db.Team{Name: "other-team-name"}
 		otherSavedTeam, err = database.CreateTeam(team)
@@ -103,7 +109,7 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(otherSavedPublicPipeline)
-			err = pipelineDB.Reveal()
+			err = pipelineDB.Expose()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -128,7 +134,7 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(publicPipeline)
-			err = pipelineDB.Reveal()
+			err = pipelineDB.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			// update expectations
@@ -171,19 +177,19 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB1 := pipelineDBFactory.Build(savedPipeline1)
-			err = pipelineDB1.Reveal()
+			err = pipelineDB1.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB2 := pipelineDBFactory.Build(savedPipeline2)
-			err = pipelineDB2.Reveal()
+			err = pipelineDB2.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			otherPipelineDB1 := pipelineDBFactory.Build(otherSavedPublicPipeline1)
-			err = otherPipelineDB1.Reveal()
+			err = otherPipelineDB1.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			otherPipelineDB3 := pipelineDBFactory.Build(otherSavedPublicPipeline3)
-			err = otherPipelineDB3.Reveal()
+			err = otherPipelineDB3.Expose()
 			Expect(err).NotTo(HaveOccurred())
 
 			// update expectations
@@ -267,6 +273,7 @@ var _ = Describe("TeamDB", func() {
 		var basicAuth *db.BasicAuth
 		var gitHubAuth *db.GitHubAuth
 		var uaaAuth *db.UAAAuth
+		var genericOAuth *db.GenericOAuth
 
 		BeforeEach(func() {
 			basicAuth = &db.BasicAuth{
@@ -299,6 +306,15 @@ var _ = Describe("TeamDB", func() {
 				CFSpaces:     []string{"a", "b", "c"},
 				CFURL:        "https://some.api.url",
 			}
+
+			genericOAuth = &db.GenericOAuth{
+				DisplayName:   "Cyborgs",
+				ClientID:      "some random guid",
+				ClientSecret:  "don't tell anyone",
+				AuthURL:       "https://auth.url",
+				AuthURLParams: map[string]string{"option": "1"},
+				TokenURL:      "https://token.url",
+			}
 		})
 
 		Describe("UpdateBasicAuth", func() {
@@ -320,6 +336,16 @@ var _ = Describe("TeamDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.UAAAuth).To(Equal(uaaAuth))
+			})
+
+			It("saves basic auth team info without overwriting the Generic OAuth info", func() {
+				_, err := teamDB.UpdateGenericOAuth(genericOAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.GenericOAuth).To(Equal(genericOAuth))
 			})
 
 			It("saves basic auth team info to the existing team", func() {
@@ -393,6 +419,16 @@ var _ = Describe("TeamDB", func() {
 
 				Expect(savedTeam.UAAAuth).To(Equal(uaaAuth))
 			})
+
+			It("saves github auth team info without over writing the Generic OAuth info", func() {
+				_, err := teamDB.UpdateGenericOAuth(genericOAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				savedTeam, err := teamDB.UpdateGitHubAuth(gitHubAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.GenericOAuth).To(Equal(genericOAuth))
+			})
 		})
 
 		Describe("UpdateUAAAuth", func() {
@@ -401,6 +437,14 @@ var _ = Describe("TeamDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.UAAAuth).To(Equal(uaaAuth))
+			})
+		})
+
+		Describe("UpdateGenericOAuth", func() {
+			It("saves generic oauth info to the existing team", func() {
+				savedTeam, err := teamDB.UpdateGenericOAuth(genericOAuth)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(savedTeam.GenericOAuth).To(Equal(genericOAuth))
 			})
 		})
 	})
@@ -466,10 +510,17 @@ var _ = Describe("TeamDB", func() {
 				GardenAddr: "1.2.3.6",
 				Name:       "shared-worker",
 			}, 5*time.Minute)
+
+			_, err = database.SaveWorker(db.WorkerInfo{
+				GardenAddr: "1.2.3.7",
+				Name:       "expired-worker",
+				TeamID:     savedTeam.ID,
+			}, -time.Minute)
+
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("returns workers that belong to current team or that do not belong to any team", func() {
+		It("returns non-expired workers that belong to current team or that do not belong to any team", func() {
 			workers, err := teamDB.Workers()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workers).To(HaveLen(2))
@@ -671,7 +722,7 @@ var _ = Describe("TeamDB", func() {
 
 				Context("when other team builds are public", func() {
 					BeforeEach(func() {
-						pipelineDB.Reveal()
+						pipelineDB.Expose()
 					})
 
 					It("returns builds for requested team and public builds", func() {

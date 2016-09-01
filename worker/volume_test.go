@@ -102,17 +102,14 @@ var _ = Describe("Volumes", func() {
 			actualTTL := fakeVolume.SetTTLArgsForCall(0)
 			Expect(actualTTL).To(Equal(expectedTTL))
 
-			Expect(fakeDB.SetVolumeTTLCallCount()).To(Equal(1))
-			actualHandle, actualTTL = fakeDB.SetVolumeTTLArgsForCall(0)
-			Expect(actualHandle).To(Equal(vol.Handle()))
-			Expect(actualTTL).To(Equal(expectedTTL))
-
 			By("updating the volume's size in the db")
 			Expect(fakeVolume.SizeInBytesCallCount()).To(Equal(1))
 
-			Expect(fakeDB.SetVolumeSizeInBytesCallCount()).To(Equal(1))
-			actualHandle, actualVolumeSize := fakeDB.SetVolumeSizeInBytesArgsForCall(0)
-			Expect(actualHandle).To(Equal("some-handle"))
+			By("updating the volume ttl and size in the db")
+			Expect(fakeDB.SetVolumeTTLAndSizeInBytesCallCount()).To(Equal(1))
+			actualHandle, actualTTL, actualVolumeSize := fakeDB.SetVolumeTTLAndSizeInBytesArgsForCall(0)
+			Expect(actualHandle).To(Equal(vol.Handle()))
+			Expect(actualTTL).To(Equal(expectedTTL))
 			Expect(actualVolumeSize).To(Equal(int64(1024)))
 
 			By("using the ttl from the database each tick")
@@ -123,31 +120,42 @@ var _ = Describe("Volumes", func() {
 			actualTTL = fakeVolume.SetTTLArgsForCall(1)
 			Expect(actualTTL).To(Equal(expectedTTL2))
 
-			Eventually(fakeDB.SetVolumeTTLCallCount).Should(Equal(2))
-			actualHandle, actualTTL = fakeDB.SetVolumeTTLArgsForCall(1)
+			Eventually(fakeDB.SetVolumeTTLAndSizeInBytesCallCount).Should(Equal(2))
+			actualHandle, actualTTL, actualVolumeSize = fakeDB.SetVolumeTTLAndSizeInBytesArgsForCall(1)
 			Expect(actualHandle).To(Equal(vol.Handle()))
 			Expect(actualTTL).To(Equal(expectedTTL2))
 
-			By("being resilient to db and volume client errors")
-			fakeDB.GetVolumeTTLReturns(0, false, errors.New("disaster"))
+			By("setting ttl only when failing to get volume size")
 			fakeVolume.SizeInBytesReturns(0, errors.New("an-error"))
-
 			fakeClock.Increment(30 * time.Second)
 
 			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(3))
 			actualTTL = fakeVolume.SetTTLArgsForCall(2)
 			Expect(actualTTL).To(Equal(expectedTTL2))
 
-			Expect(fakeDB.SetVolumeSizeInBytesCallCount()).To(Equal(2))
+			Eventually(fakeDB.SetVolumeTTLCallCount).Should(Equal(1))
+			Eventually(fakeDB.SetVolumeTTLAndSizeInBytesCallCount).Should(Equal(2)) // did not change
+			actualHandle, actualTTL = fakeDB.SetVolumeTTLArgsForCall(0)
+			Expect(actualHandle).To(Equal(vol.Handle()))
+			Expect(actualTTL).To(Equal(expectedTTL2))
+
+			By("being resilient to db errors")
+			fakeDB.GetVolumeTTLReturns(0, false, errors.New("disaster"))
+			fakeClock.Increment(30 * time.Second)
+
+			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(4))
+			actualTTL = fakeVolume.SetTTLArgsForCall(3)
+			Expect(actualTTL).To(Equal(expectedTTL2))
+			Eventually(fakeDB.SetVolumeTTLCallCount).Should(Equal(2))
 
 			By("releasing the volume with a final ttl")
 			vol.Release(worker.FinalTTL(2 * time.Second))
-			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(4))
-			actualTTL = fakeVolume.SetTTLArgsForCall(3)
+			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(5))
+			actualTTL = fakeVolume.SetTTLArgsForCall(4)
 			Expect(actualTTL).To(Equal(2 * time.Second))
 
-			Eventually(fakeDB.SetVolumeTTLCallCount).Should(Equal(4))
-			actualHandle, actualTTL = fakeDB.SetVolumeTTLArgsForCall(3)
+			Eventually(fakeDB.SetVolumeTTLCallCount).Should(Equal(3))
+			actualHandle, actualTTL = fakeDB.SetVolumeTTLArgsForCall(2)
 			Expect(actualHandle).To(Equal(vol.Handle()))
 			Expect(actualTTL).To(Equal(2 * time.Second))
 		})

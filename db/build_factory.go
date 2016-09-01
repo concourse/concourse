@@ -6,16 +6,19 @@ import (
 	"github.com/lib/pq"
 )
 
-func newBuildFactory(conn Conn, bus *notificationsBus) *buildFactory {
+func newBuildFactory(conn Conn, bus *notificationsBus, lockFactory LockFactory) *buildFactory {
 	return &buildFactory{
-		conn: conn,
-		bus:  bus,
+		conn:        conn,
+		lockFactory: lockFactory,
+		bus:         bus,
 	}
 }
 
 type buildFactory struct {
 	conn Conn
 	bus  *notificationsBus
+
+	lockFactory LockFactory
 }
 
 func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {
@@ -40,8 +43,9 @@ func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {
 	}
 
 	build := &build{
-		conn: f.conn,
-		bus:  f.bus,
+		conn:        f.conn,
+		bus:         f.bus,
+		lockFactory: f.lockFactory,
 
 		id:        id,
 		name:      name,

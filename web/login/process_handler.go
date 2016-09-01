@@ -11,20 +11,22 @@ import (
 )
 
 const CookieName = "ATC-Authorization"
-const CookieAge = 24 * time.Hour
 
 type processHandler struct {
 	logger        lager.Logger
 	clientFactory web.ClientFactory
+	expire        time.Duration
 }
 
 func NewProcessBasicAuthHandler(
 	logger lager.Logger,
 	clientFactory web.ClientFactory,
+	expire time.Duration,
 ) http.Handler {
 	return &processHandler{
 		logger:        logger,
 		clientFactory: clientFactory,
+		expire:        expire,
 	}
 }
 
@@ -59,7 +61,7 @@ func (h *processHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Name:    CookieName,
 		Value:   fmt.Sprintf("%s %s", token.Type, token.Value),
 		Path:    "/",
-		Expires: time.Now().Add(CookieAge),
+		Expires: time.Now().Add(h.expire),
 	})
 
 	http.Redirect(w, r, redirect, http.StatusFound)

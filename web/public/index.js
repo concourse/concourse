@@ -24,7 +24,7 @@ function draw(renderFn, completeFn) {
     }
 
     $(".error-message").removeClass("hidden");
-  });
+  }).always(completeFn);
 }
 
 var currentHighlight;
@@ -264,12 +264,7 @@ function redrawFunction(svg, jobs, resources) {
   }
 };
 
-function renderPipeline() {
-  var svg = d3.select("#pipeline")
-    .append("svg")
-      .attr("width", "100%")
-      .attr("height", "100%");
-
+function renderPipeline(svg) {
   svg.append("defs").append("filter")
     .attr("id", "embiggen")
     .append("feMorphology")

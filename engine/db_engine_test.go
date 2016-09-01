@@ -162,12 +162,12 @@ var _ = Describe("DBEngine", func() {
 				abortErr = foundBuild.Abort(lagertest.NewTestLogger("test"))
 			})
 
-			Context("when acquiring the lease succeeds", func() {
+			Context("when acquiring the lock succeeds", func() {
 				var fakeLease *dbfakes.FakeLease
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					dbBuild.LeaseTrackingReturns(fakeLease, true, nil)
+					dbBuild.AcquireTrackingLockReturns(fakeLease, true, nil)
 				})
 
 				It("succeeds", func() {
@@ -179,12 +179,12 @@ var _ = Describe("DBEngine", func() {
 				})
 			})
 
-			Context("when acquiring the lease fails", func() {
+			Context("when acquiring the lock fails", func() {
 				var fakeLease *dbfakes.FakeLease
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					dbBuild.LeaseTrackingReturns(nil, false, nil)
+					dbBuild.AcquireTrackingLockReturns(nil, false, nil)
 				})
 
 				It("succeeds", func() {
@@ -196,12 +196,12 @@ var _ = Describe("DBEngine", func() {
 				})
 			})
 
-			Context("when acquiring the lease errors", func() {
+			Context("when acquiring the lock errors", func() {
 				var fakeLease *dbfakes.FakeLease
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					dbBuild.LeaseTrackingReturns(nil, false, errors.New("bad bad bad"))
+					dbBuild.AcquireTrackingLockReturns(nil, false, errors.New("bad bad bad"))
 				})
 
 				It("fails", func() {
@@ -236,7 +236,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					dbBuild.LeaseTrackingReturns(fakeLease, true, nil)
+					dbBuild.AcquireTrackingLockReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
@@ -245,9 +245,9 @@ var _ = Describe("DBEngine", func() {
 						dbBuild.EngineReturns("fake-engine-b")
 
 						dbBuild.AbortStub = func() error {
-							Expect(dbBuild.LeaseTrackingCallCount()).To(Equal(1))
+							Expect(dbBuild.AcquireTrackingLockCallCount()).To(Equal(1))
 
-							_, interval := dbBuild.LeaseTrackingArgsForCall(0)
+							_, interval := dbBuild.AcquireTrackingLockArgsForCall(0)
 							Expect(interval).To(Equal(time.Minute))
 
 							Expect(fakeLease.BreakCallCount()).To(BeZero())
@@ -275,7 +275,7 @@ var _ = Describe("DBEngine", func() {
 								Expect(abortErr).NotTo(HaveOccurred())
 							})
 
-							It("breaks the lease", func() {
+							It("releases the lock", func() {
 								Expect(fakeLease.BreakCallCount()).To(Equal(1))
 							})
 
@@ -303,7 +303,7 @@ var _ = Describe("DBEngine", func() {
 								Expect(realBuild.AbortCallCount()).To(BeZero())
 							})
 
-							It("releases the lease", func() {
+							It("releases the lock", func() {
 								Expect(fakeLease.BreakCallCount()).To(Equal(1))
 							})
 						})
@@ -337,7 +337,7 @@ var _ = Describe("DBEngine", func() {
 							Expect(abortErr).To(Equal(disaster))
 						})
 
-						It("breaks the lease", func() {
+						It("releases the lock", func() {
 							Expect(fakeLease.BreakCallCount()).To(Equal(1))
 						})
 					})
@@ -364,7 +364,7 @@ var _ = Describe("DBEngine", func() {
 						Expect(status).To(Equal(db.StatusAborted))
 					})
 
-					It("breaks the lease", func() {
+					It("releases the lock", func() {
 						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
@@ -386,7 +386,7 @@ var _ = Describe("DBEngine", func() {
 						Expect(dbBuild.FinishCallCount()).To(Equal(0))
 					})
 
-					It("breaks the lease", func() {
+					It("releases the lock", func() {
 						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
@@ -394,7 +394,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock errors", func() {
 				BeforeEach(func() {
-					dbBuild.LeaseTrackingReturns(nil, false, errors.New("bad bad bad"))
+					dbBuild.AcquireTrackingLockReturns(nil, false, errors.New("bad bad bad"))
 				})
 
 				It("errors", func() {
@@ -408,7 +408,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					dbBuild.LeaseTrackingReturns(nil, false, nil)
+					dbBuild.AcquireTrackingLockReturns(nil, false, nil)
 				})
 
 				Context("when aborting the build in the db succeeds", func() {
@@ -460,7 +460,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					dbBuild.LeaseTrackingReturns(fakeLease, true, nil)
+					dbBuild.AcquireTrackingLockReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
@@ -480,9 +480,9 @@ var _ = Describe("DBEngine", func() {
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
 
 							realBuild.ResumeStub = func(lager.Logger) {
-								Expect(dbBuild.LeaseTrackingCallCount()).To(Equal(1))
+								Expect(dbBuild.AcquireTrackingLockCallCount()).To(Equal(1))
 
-								_, interval := dbBuild.LeaseTrackingArgsForCall(0)
+								_, interval := dbBuild.AcquireTrackingLockArgsForCall(0)
 								Expect(interval).To(Equal(time.Minute))
 
 								Expect(fakeLease.BreakCallCount()).To(BeZero())
@@ -513,7 +513,7 @@ var _ = Describe("DBEngine", func() {
 								Expect(realBuild.ResumeCallCount()).To(Equal(1))
 							})
 
-							It("breaks the lease", func() {
+							It("releases the lock", func() {
 								Expect(fakeLease.BreakCallCount()).To(Equal(1))
 							})
 
@@ -543,7 +543,7 @@ var _ = Describe("DBEngine", func() {
 									Expect(realBuild.AbortCallCount()).To(Equal(1))
 								})
 
-								It("breaks the lease", func() {
+								It("releases the lock", func() {
 									Expect(fakeLease.BreakCallCount()).To(Equal(1))
 								})
 
@@ -564,7 +564,7 @@ var _ = Describe("DBEngine", func() {
 								Expect(realBuild.ResumeCallCount()).To(BeZero())
 							})
 
-							It("breaks the lease", func() {
+							It("releases the lock", func() {
 								Expect(fakeLease.BreakCallCount()).To(Equal(1))
 							})
 						})
@@ -578,7 +578,7 @@ var _ = Describe("DBEngine", func() {
 							fakeEngineB.LookupBuildReturns(nil, disaster)
 						})
 
-						It("breaks the lease", func() {
+						It("releases the lock", func() {
 							Expect(fakeLease.BreakCallCount()).To(Equal(1))
 						})
 
@@ -614,7 +614,7 @@ var _ = Describe("DBEngine", func() {
 						Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 					})
 
-					It("breaks the lease", func() {
+					It("releases the lock", func() {
 						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
@@ -630,7 +630,7 @@ var _ = Describe("DBEngine", func() {
 						Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 					})
 
-					It("breaks the lease", func() {
+					It("releases the lock", func() {
 						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
@@ -644,7 +644,7 @@ var _ = Describe("DBEngine", func() {
 						Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 					})
 
-					It("breaks the lease", func() {
+					It("releases the lock", func() {
 						Expect(fakeLease.BreakCallCount()).To(Equal(1))
 					})
 				})
@@ -652,7 +652,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					dbBuild.LeaseTrackingReturns(nil, false, errors.New("no lease for you"))
+					dbBuild.AcquireTrackingLockReturns(nil, false, errors.New("no lock for you"))
 				})
 
 				It("does not look up the build", func() {
@@ -680,7 +680,7 @@ var _ = Describe("DBEngine", func() {
 
 			BeforeEach(func() {
 				fakeLease = new(dbfakes.FakeLease)
-				dbBuild.LeaseTrackingReturns(fakeLease, true, nil)
+				dbBuild.AcquireTrackingLockReturns(fakeLease, true, nil)
 			})
 
 			Context("when the build is active", func() {

@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
@@ -26,6 +27,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/concourse/atc/mainredirect"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/wrappa"
 )
@@ -65,6 +67,8 @@ func NewHandler(
 
 	sink *lager.ReconfigurableSink,
 
+	expire time.Duration,
+
 	cliDownloadsDir string,
 	version string,
 ) (http.Handler, error) {
@@ -84,6 +88,7 @@ func NewHandler(
 		tokenGenerator,
 		providerFactory,
 		teamDBFactory,
+		expire,
 	)
 
 	buildServer := buildserver.NewServer(
@@ -145,6 +150,7 @@ func NewHandler(
 		atc.PauseJob:       pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
 		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
 		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
+		atc.MainJobBadge:   mainredirect.Handler{atc.Routes, atc.JobBadge},
 
 		atc.ListAllPipelines: http.HandlerFunc(pipelineServer.ListAllPipelines),
 		atc.ListPipelines:    http.HandlerFunc(pipelineServer.ListPipelines),
@@ -153,8 +159,8 @@ func NewHandler(
 		atc.OrderPipelines:   http.HandlerFunc(pipelineServer.OrderPipelines),
 		atc.PausePipeline:    pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline),
 		atc.UnpausePipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline),
-		atc.RevealPipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.RevealPipeline),
-		atc.ConcealPipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.ConcealPipeline),
+		atc.ExposePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.ExposePipeline),
+		atc.HidePipeline:     pipelineHandlerFactory.HandlerFor(pipelineServer.HidePipeline),
 		atc.GetVersionsDB:    pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
 		atc.RenamePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
 

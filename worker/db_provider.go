@@ -33,8 +33,8 @@ type WorkerDB interface {
 	GetVolumesByIdentifier(db.VolumeIdentifier) ([]db.SavedVolume, error)
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
+	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	SetVolumeTTL(string, time.Duration) error
-	SetVolumeSizeInBytes(string, int64) error
 }
 
 var ErrMultipleWorkersWithName = errors.New("More than one worker has given worker name")
@@ -114,6 +114,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		provider.db,
 		provider.logger.Session("garden-connection"),
 		savedWorker.Name,
+		savedWorker.GardenAddr,
 		provider.retryPolicy,
 	)
 

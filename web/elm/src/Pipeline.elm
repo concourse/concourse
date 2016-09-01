@@ -9,34 +9,35 @@ import Http
 import Set exposing (Set)
 import Task
 
-import Concourse.Job exposing (Job)
-import Concourse.BuildStatus exposing (BuildStatus)
+import Concourse
+import Concourse.Job
+import Concourse.BuildStatus
 
 import Grid exposing (Grid)
 
 type alias Model =
   { fit : Maybe (() -> Cmd Msg)
-  , pipelineLocator : Concourse.Job.PipelineLocator
+  , pipelineLocator : Concourse.PipelineIdentifier
   , groups : Set String
-  , jobs : List Job
+  , jobs : List Concourse.Job
   , graph : Graph Node ()
   , error : Maybe String
   }
 
 type Node
-  = JobNode Job
+  = JobNode Concourse.Job
   | InputNode
       { resourceName : String
-      , dependentJob : Job
+      , dependentJob : Concourse.Job
       }
   | OutputNode
       { resourceName : String
-      , upstreamJob : Job
+      , upstreamJob : Concourse.Job
       }
   | ConstrainedInputNode
       { resourceName : String
-      , dependentJob : Job
-      , upstreamJob : Maybe Job
+      , dependentJob : Concourse.Job
+      , upstreamJob : Maybe Concourse.Job
       }
 
 type alias Flags =
@@ -47,7 +48,7 @@ type alias Flags =
 
 type Msg
   = Noop
-  | JobsFetched (Result Http.Error (List Job))
+  | JobsFetched (Result Http.Error (List Concourse.Job))
   | Frame
 
 init : (() -> Cmd Msg) -> Flags -> (Model, Cmd Msg)
@@ -199,7 +200,7 @@ viewNode {id,label} =
           viewOutputNode resourceName
         ]
 
-viewJobNode : Job -> Html Msg
+viewJobNode : Concourse.Job -> Html Msg
 viewJobNode job =
   let
     linkAttrs =
@@ -228,7 +229,7 @@ viewJobNode job =
       Html.text job.name
     ]
 
-jobResources : Job -> Int
+jobResources : Concourse.Job -> Int
 jobResources {inputs,outputs} =
   Set.size (Set.fromList (List.map .resource inputs ++ List.map .resource outputs))
 
@@ -244,16 +245,16 @@ viewOutputNode : String -> Html Msg
 viewOutputNode resourceName =
   Html.a [href "#"] [Html.text resourceName]
 
-fetchJobs : Concourse.Job.PipelineLocator -> Cmd Msg
-fetchJobs locator =
-  Concourse.Job.fetchJobs locator
+fetchJobs : Concourse.PipelineIdentifier -> Cmd Msg
+fetchJobs pid =
+  Concourse.Job.fetchJobs pid
     |> Task.perform Err Ok
     |> Cmd.map JobsFetched
 
 type alias ByName a =
   Dict String a
 
-initGraph : List Job -> Graph Node ()
+initGraph : List Concourse.Job -> Graph Node ()
 initGraph jobs =
   let
     jobNodes =
@@ -272,24 +273,24 @@ initGraph jobs =
       graphNodes
       (List.concatMap (nodeEdges graphNodes) graphNodes)
 
-jobResourceNodes : ByName Job -> Job -> List Node
+jobResourceNodes : ByName Concourse.Job -> Concourse.Job -> List Node
 jobResourceNodes jobs job =
   List.concatMap (inputNodes jobs job) job.inputs ++
     List.concatMap (outputNodes job) job.outputs
 
-inputNodes : ByName Job -> Job -> Concourse.Job.Input -> List Node
+inputNodes : ByName Concourse.Job -> Concourse.Job -> Concourse.JobInput -> List Node
 inputNodes jobs job {resource,passed} =
   if List.isEmpty passed then
     [InputNode { resourceName = resource, dependentJob = job }]
   else
     List.map (constrainedInputNode jobs resource job) passed
 
-outputNodes : Job -> Concourse.Job.Output -> List Node
+outputNodes : Concourse.Job -> Concourse.JobOutput -> List Node
 outputNodes job {resource} =
   []
   -- [OutputNode { resourceName = resource, upstreamJob = job }]
 
-constrainedInputNode : ByName Job -> String -> Job -> String -> Node
+constrainedInputNode : ByName Concourse.Job -> String -> Concourse.Job -> String -> Node
 constrainedInputNode jobs resourceName dependentJob upstreamJobName =
   ConstrainedInputNode
     { resourceName = resourceName
@@ -318,7 +319,7 @@ nodeEdges allNodes {id,label} =
     OutputNode {upstreamJob} ->
       [Graph.Edge (jobId allNodes upstreamJob) id ()]
 
-jobId : List (Graph.Node Node) -> Job -> Int
+jobId : List (Graph.Node Node) -> Concourse.Job -> Int
 jobId nodes job =
   case List.filter ((==) (JobNode job) << .label) nodes of
     {id} :: _ ->

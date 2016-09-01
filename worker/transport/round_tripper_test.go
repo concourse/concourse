@@ -18,7 +18,6 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 	var (
 		request          http.Request
 		fakeDB           *transportfakes.FakeTransportDB
-		savedWorker      db.SavedWorker
 		fakeRoundTripper *retryhttpfakes.FakeRoundTripper
 		roundTripper     http.RoundTripper
 		response         *http.Response
@@ -28,22 +27,13 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 	BeforeEach(func() {
 		fakeDB = new(transportfakes.FakeTransportDB)
 		fakeRoundTripper = new(retryhttpfakes.FakeRoundTripper)
-		roundTripper = transport.NewRoundTripper("some-worker", fakeDB, fakeRoundTripper)
+		roundTripper = transport.NewRoundTripper("some-worker", "some-worker-address", fakeDB, fakeRoundTripper)
 		requestUrl, err := url.Parse("http://1.2.3.4/something")
 		Expect(err).NotTo(HaveOccurred())
 
 		request = http.Request{
 			URL: requestUrl,
 		}
-
-		savedWorker = db.SavedWorker{
-			WorkerInfo: db.WorkerInfo{
-				GardenAddr: "some-garden-addr",
-			},
-			ExpiresIn: 123,
-		}
-
-		fakeDB.GetWorkerReturns(savedWorker, true, nil)
 
 		fakeRoundTripper.RoundTripReturns(&http.Response{StatusCode: http.StatusTeapot}, nil)
 	})
@@ -60,51 +50,73 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 	It("sends the request with worker's garden address", func() {
 		Expect(fakeRoundTripper.RoundTripCallCount()).To(Equal(1))
 		actualRequest := fakeRoundTripper.RoundTripArgsForCall(0)
-		Expect(actualRequest.URL.Host).To(Equal(savedWorker.GardenAddr))
+		Expect(actualRequest.URL.Host).To(Equal("some-worker-address"))
 		Expect(actualRequest.URL.Path).To(Equal("/something"))
 	})
 
-	Context("when the lookup of the worker in the db errors", func() {
-		var expectedErr error
-		BeforeEach(func() {
-			expectedErr = errors.New("some-db-error")
-			fakeDB.GetWorkerReturns(db.SavedWorker{}, true, expectedErr)
-		})
-
-		It("throws an error", func() {
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring(expectedErr.Error()))
-		})
-	})
-
-	Context("when the worker is not found in the db", func() {
-		BeforeEach(func() {
-			fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
-		})
-
-		It("throws an error", func() {
-			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(transport.ErrMissingWorker{WorkerName: "some-worker"}))
-		})
-	})
-
 	It("reuses the request cached host on subsequent calls", func() {
-		Expect(fakeDB.GetWorkerCallCount()).To(Equal(1))
+		Expect(fakeDB.GetWorkerCallCount()).To(Equal(0))
 		_, err := roundTripper.RoundTrip(&request)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(fakeDB.GetWorkerCallCount()).To(Equal(1))
+		Expect(fakeDB.GetWorkerCallCount()).To(Equal(0))
 	})
 
 	Context("when inner roundtrip fails", func() {
 		BeforeEach(func() {
 			fakeRoundTripper.RoundTripReturns(nil, errors.New("some-error"))
+
+			savedWorker := db.SavedWorker{
+				WorkerInfo: db.WorkerInfo{
+					GardenAddr: "some-new-worker-address",
+				},
+				ExpiresIn: 123,
+			}
+
+			fakeDB.GetWorkerReturns(savedWorker, true, nil)
 		})
 
-		It("updates cached request host", func() {
-			Expect(fakeDB.GetWorkerCallCount()).To(Equal(1))
+		It("updates cached request host on subsequent call", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("some-error"))
+
+			Expect(fakeRoundTripper.RoundTripCallCount()).To(Equal(1))
+			actualRequest := fakeRoundTripper.RoundTripArgsForCall(0)
+			Expect(actualRequest.URL.Host).To(Equal("some-worker-address"))
+			Expect(fakeDB.GetWorkerCallCount()).To(Equal(0))
+
 			_, err := roundTripper.RoundTrip(&request)
 			Expect(err).To(HaveOccurred())
-			Expect(fakeDB.GetWorkerCallCount()).To(Equal(2))
+
+			Expect(fakeDB.GetWorkerCallCount()).To(Equal(1))
+			Expect(fakeRoundTripper.RoundTripCallCount()).To(Equal(2))
+			actualRequest = fakeRoundTripper.RoundTripArgsForCall(1)
+			Expect(actualRequest.URL.Host).To(Equal("some-new-worker-address"))
+		})
+
+		Context("when the lookup of the worker in the db errors", func() {
+			var expectedErr error
+			BeforeEach(func() {
+				expectedErr = errors.New("some-db-error")
+				fakeDB.GetWorkerReturns(db.SavedWorker{}, true, expectedErr)
+			})
+
+			It("throws an error", func() {
+				_, err := roundTripper.RoundTrip(&request)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(expectedErr.Error()))
+			})
+		})
+
+		Context("when the worker is not found in the db", func() {
+			BeforeEach(func() {
+				fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
+			})
+
+			It("throws an error", func() {
+				_, err := roundTripper.RoundTrip(&request)
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(transport.ErrMissingWorker{WorkerName: "some-worker"}))
+			})
 		})
 	})
 })

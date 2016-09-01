@@ -8,16 +8,16 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Pipes", func() {
 	var dbConn db.Conn
 	var listener *pq.Listener
-
 	var database db.DB
-	var teamDB db.TeamDB
+	var savedTeam db.SavedTeam
+	var err error
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -28,10 +28,15 @@ var _ = Describe("Pipes", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		database = db.NewSQL(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
-		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+		lockFactory := db.NewLockFactory(retryableConn)
+		database = db.NewSQL(dbConn, bus, lockFactory)
+
+		savedTeam, err = database.CreateTeam(db.Team{Name: "team-name"})
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -47,13 +52,14 @@ var _ = Describe("Pipes", func() {
 			myGuid, err := uuid.NewV4()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = database.CreatePipe(myGuid.String(), "a-url")
+			err = database.CreatePipe(myGuid.String(), "a-url", savedTeam.ID)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipe, err := database.GetPipe(myGuid.String())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipe.ID).To(Equal(myGuid.String()))
 			Expect(pipe.URL).To(Equal("a-url"))
+			Expect(pipe.TeamID).To(Equal(savedTeam.ID))
 		})
 	})
 })

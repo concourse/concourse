@@ -90,17 +90,17 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return nil
 	}
 
-	schedulingLease, leased, err := runner.DB.LeaseScheduling(logger, runner.Interval)
+	schedulingLease, acquired, err := runner.DB.AcquireSchedulingLock(logger, runner.Interval)
 	if err != nil {
-		logger.Error("failed-to-acquire-scheduling-lease", err)
+		logger.Error("failed-to-acquire-scheduling-lock", err)
 		return nil
 	}
 
-	if !leased {
+	if !acquired {
 		return nil
 	}
 
-	defer schedulingLease.Break()
+	defer schedulingLease.Release()
 
 	start := time.Now()
 

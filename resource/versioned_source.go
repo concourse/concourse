@@ -89,7 +89,12 @@ func (vs *getVersionedSource) Metadata() []atc.MetadataField {
 }
 
 func (vs *getVersionedSource) StreamOut(src string) (io.ReadCloser, error) {
-	return vs.volume.StreamOut(src)
+	readCloser, err := vs.volume.StreamOut(src)
+	if err != nil {
+		return nil, err
+	}
+
+	return readCloser, err
 }
 
 func (vs *getVersionedSource) StreamIn(dst string, src io.Reader) error {

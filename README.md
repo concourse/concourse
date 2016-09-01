@@ -1,4 +1,4 @@
-# atc
+# atc ![badge](http://ci.concourse.ci/api/v1/teams/main/pipelines/main/jobs/bosh-rc/badge)
 
 *air traffic control - web ui and build scheduler*
 

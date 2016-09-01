@@ -45,8 +45,8 @@ func (s *volumeFetchSource) VersionedSource() VersionedSource {
 	return s.versionedSource
 }
 
-func (s *volumeFetchSource) LeaseName() (string, error) {
-	return s.resourceOptions.LeaseName(s.worker.Name())
+func (s *volumeFetchSource) LockName() (string, error) {
+	return s.resourceOptions.LockName(s.worker.Name())
 }
 
 func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {

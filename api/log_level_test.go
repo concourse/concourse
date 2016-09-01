@@ -36,54 +36,67 @@ var _ = Describe("Log Level API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			for x, y := range map[atc.LogLevel]lager.LogLevel{
-				atc.LogLevelDebug: lager.DEBUG,
-			} {
-				atcLevel := x
-				lagerLevel := y
-
-				Context("when the level is "+string(atcLevel), func() {
-					BeforeEach(func() {
-						logLevelPayload = string(atcLevel)
-					})
-
-					It("sets the level to "+string(atcLevel), func() {
-						Expect(sink.GetMinLevel()).To(Equal(lagerLevel))
-					})
-
-					Describe("GET /api/v1/log-level", func() {
-						var (
-							getResponse *http.Response
-						)
-
-						JustBeforeEach(func() {
-							req, err := http.NewRequest("GET", server.URL+"/api/v1/log-level", nil)
-							Expect(err).NotTo(HaveOccurred())
-
-							getResponse, err = client.Do(req)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("returns 200", func() {
-							Expect(getResponse.StatusCode).To(Equal(http.StatusOK))
-						})
-
-						It("returns the current log level", func() {
-							Expect(ioutil.ReadAll(getResponse.Body)).To(Equal([]byte(atcLevel)))
-						})
-					})
-				})
-			}
-
-			Context("when the level is bogus", func() {
+			Context("is admin", func() {
 				BeforeEach(func() {
-					logLevelPayload = "bogus"
+					userContextReader.GetTeamReturns("main", 42, true, true)
 				})
 
-				It("returns Bad Request", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				for x, y := range map[atc.LogLevel]lager.LogLevel{
+					atc.LogLevelDebug: lager.DEBUG,
+				} {
+					atcLevel := x
+					lagerLevel := y
+
+					Context("when the level is "+string(atcLevel), func() {
+						BeforeEach(func() {
+							logLevelPayload = string(atcLevel)
+						})
+
+						It("sets the level to "+string(atcLevel), func() {
+							Expect(sink.GetMinLevel()).To(Equal(lagerLevel))
+						})
+
+						Describe("GET /api/v1/log-level", func() {
+							var (
+								getResponse *http.Response
+							)
+
+							JustBeforeEach(func() {
+								req, err := http.NewRequest("GET", server.URL+"/api/v1/log-level", nil)
+								Expect(err).NotTo(HaveOccurred())
+
+								getResponse, err = client.Do(req)
+								Expect(err).NotTo(HaveOccurred())
+							})
+
+							It("returns 200", func() {
+								Expect(getResponse.StatusCode).To(Equal(http.StatusOK))
+							})
+
+							It("returns the current log level", func() {
+								Expect(ioutil.ReadAll(getResponse.Body)).To(Equal([]byte(atcLevel)))
+							})
+						})
+					})
+				}
+
+				Context("when the level is bogus", func() {
+					BeforeEach(func() {
+						logLevelPayload = "bogus"
+					})
+
+					It("returns Bad Request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
 				})
 			})
+
+			Context("is not admin", func() {
+				It("return 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
 		})
 
 		Context("when not authenticated", func() {

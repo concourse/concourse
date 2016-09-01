@@ -8,14 +8,52 @@ import (
 )
 
 type FakeLock struct {
+	AcquireStub        func() (bool, error)
+	acquireMutex       sync.RWMutex
+	acquireArgsForCall []struct{}
+	acquireReturns     struct {
+		result1 bool
+		result2 error
+	}
 	ReleaseStub        func() error
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct{}
 	releaseReturns     struct {
 		result1 error
 	}
+	AfterReleaseStub        func(func() error)
+	afterReleaseMutex       sync.RWMutex
+	afterReleaseArgsForCall []struct {
+		arg1 func() error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeLock) Acquire() (bool, error) {
+	fake.acquireMutex.Lock()
+	fake.acquireArgsForCall = append(fake.acquireArgsForCall, struct{}{})
+	fake.recordInvocation("Acquire", []interface{}{})
+	fake.acquireMutex.Unlock()
+	if fake.AcquireStub != nil {
+		return fake.AcquireStub()
+	} else {
+		return fake.acquireReturns.result1, fake.acquireReturns.result2
+	}
+}
+
+func (fake *FakeLock) AcquireCallCount() int {
+	fake.acquireMutex.RLock()
+	defer fake.acquireMutex.RUnlock()
+	return len(fake.acquireArgsForCall)
+}
+
+func (fake *FakeLock) AcquireReturns(result1 bool, result2 error) {
+	fake.AcquireStub = nil
+	fake.acquireReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeLock) Release() error {
@@ -43,11 +81,39 @@ func (fake *FakeLock) ReleaseReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeLock) AfterRelease(arg1 func() error) {
+	fake.afterReleaseMutex.Lock()
+	fake.afterReleaseArgsForCall = append(fake.afterReleaseArgsForCall, struct {
+		arg1 func() error
+	}{arg1})
+	fake.recordInvocation("AfterRelease", []interface{}{arg1})
+	fake.afterReleaseMutex.Unlock()
+	if fake.AfterReleaseStub != nil {
+		fake.AfterReleaseStub(arg1)
+	}
+}
+
+func (fake *FakeLock) AfterReleaseCallCount() int {
+	fake.afterReleaseMutex.RLock()
+	defer fake.afterReleaseMutex.RUnlock()
+	return len(fake.afterReleaseArgsForCall)
+}
+
+func (fake *FakeLock) AfterReleaseArgsForCall(i int) func() error {
+	fake.afterReleaseMutex.RLock()
+	defer fake.afterReleaseMutex.RUnlock()
+	return fake.afterReleaseArgsForCall[i].arg1
+}
+
 func (fake *FakeLock) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.acquireMutex.RLock()
+	defer fake.acquireMutex.RUnlock()
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
+	fake.afterReleaseMutex.RLock()
+	defer fake.afterReleaseMutex.RUnlock()
 	return fake.invocations
 }
 

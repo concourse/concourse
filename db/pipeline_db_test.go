@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 
@@ -31,9 +32,14 @@ var _ = Describe("PipelineDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
 	})
 
 	AfterEach(func() {

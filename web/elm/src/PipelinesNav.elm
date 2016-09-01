@@ -9,7 +9,8 @@ import List
 import Mouse exposing (Position)
 import Task
 
-import Concourse.Pipeline exposing (Pipeline, fetchPipelines)
+import Concourse
+import Concourse.Pipeline
 
 type alias Model =
   { teams : Maybe (List (String, List UIPipeline))
@@ -29,7 +30,7 @@ type alias DragInfo =
   }
 
 type alias UIPipeline =
-  { pipeline : Pipeline
+  { pipeline : Concourse.Pipeline
   , pausedChanging : Bool
   , pauseErrored : Bool
   }
@@ -42,7 +43,7 @@ type Msg
   = Noop
   | PausePipeline String String
   | UnpausePipeline String String
-  | PipelinesFetched (Result Http.Error (List Pipeline))
+  | PipelinesFetched (Result Http.Error (List Concourse.Pipeline))
   | PipelinePaused String String (Result Http.Error ())
   | PipelineUnpaused String String (Result Http.Error ())
   | StartDragging String String Position
@@ -314,10 +315,11 @@ view model =
 viewTeam : Maybe DragInfo -> (String, List UIPipeline) -> Html Msg
 viewTeam maybeDragInfo (teamName, pipelines) =
   Html.li [class "team"]
-    [ Html.text <| "team "
-      , Html.span
-        [ class "bright-text" ]
-        [ Html.text teamName ]
+    [ Html.div [class "team-header"]
+        [ Html.text <| "team "
+        , Html.span [class "bright-text"]
+            [ Html.text teamName ]
+        ]
 
     , Html.ul [] <|
       let firstElem = List.head pipelines
@@ -434,8 +436,7 @@ checkLeftClick =
 dragStyle : DragInfo -> Html.Attribute action
 dragStyle dragInfo =
   style
-    [ ("left", toString (dragX dragInfo) ++ "px")
-    , ("top", toString (dragY dragInfo) ++ "px")
+    [ ("top", toString (dragY dragInfo) ++ "px")
     ]
 
 viewFirstDropArea : String -> Html Msg
@@ -508,7 +509,7 @@ orderPipelines teamName pipelineNames =
   Cmd.map PipelinesReordered <|
     Task.perform Err Ok <| Concourse.Pipeline.order teamName pipelineNames
 
-groupPipelinesByTeam : List Pipeline -> List (String, List UIPipeline)
+groupPipelinesByTeam : List Concourse.Pipeline -> List (String, List UIPipeline)
 groupPipelinesByTeam pipelines =
   let
     firstPipeline = List.head pipelines
@@ -523,7 +524,7 @@ groupPipelinesByTeam pipelines =
         in
           (firstPipeline.teamName, team) :: (groupPipelinesByTeam rest)
 
-toUIPipeline : Pipeline -> UIPipeline
+toUIPipeline : Concourse.Pipeline -> UIPipeline
 toUIPipeline pipeline =
   { pipeline = pipeline
   , pausedChanging = False

@@ -21,16 +21,17 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/buildreaper"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/containerkeepaliver"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/leaserunner"
-	"github.com/concourse/atc/lostandfound"
+	"github.com/concourse/atc/gc/buildreaper"
+	"github.com/concourse/atc/gc/containerkeepaliver"
+	"github.com/concourse/atc/gc/dbgc"
+	"github.com/concourse/atc/gc/lostandfound"
+	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/radar"
@@ -44,6 +45,7 @@ import (
 	"github.com/concourse/atc/wrappa"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/jackc/pgx"
 	"github.com/lib/pq"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -63,7 +65,8 @@ type ATCCommand struct {
 	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
 
-	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
+	OAuthBaseURL URLFlag       `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
+	AuthExpire   time.Duration `long:"auth-expire" default:"24h" description:"Authorization Expiration Duration."`
 
 	PostgresDataSource string `long:"postgres-data-source" default:"postgres://127.0.0.1:5432/atc?sslmode=disable" description:"PostgreSQL connection string."`
 
@@ -91,23 +94,13 @@ type ATCCommand struct {
 		ResourceTypes   map[string]string `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
-	BasicAuth struct {
-		Username string `long:"username" description:"Username to use for basic auth."`
-		Password string `long:"password" description:"Password to use for basic auth."`
-	} `group:"Basic Authentication" namespace:"basic-auth"`
+	BasicAuth atc.BasicAuthFlag `group:"Basic Authentication" namespace:"basic-auth"`
 
-	GitHubAuth struct {
-		ClientID      string           `long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
-		ClientSecret  string           `long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
-		Organizations []string         `long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
-		Teams         []GitHubTeamFlag `long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
-		Users         []string         `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
-		AuthURL       string           `long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise."`
-		TokenURL      string           `long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise."`
-		APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
-	} `group:"GitHub Authentication" namespace:"github-auth"`
+	GitHubAuth atc.GitHubAuthFlag `group:"GitHub Authentication" namespace:"github-auth"`
 
-	UAAAuth UAAAuth `group:"UAA Authentication" namespace:"uaa-auth"`
+	UAAAuth atc.UAAAuthFlag `group:"UAA Authentication" namespace:"uaa-auth"`
+
+	GenericOAuth atc.GenericOAuthFlag `group:"Generic OAuth Authentication (Allows access to ALL authenticated users)" namespace:"generic-oauth"`
 
 	Metrics struct {
 		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`
@@ -121,24 +114,6 @@ type ATCCommand struct {
 		RiemannPort          uint16 `long:"riemann-port" default:"5555" description:"Port of the Riemann server to emit metrics to."`
 		RiemannServicePrefix string `long:"riemann-service-prefix" default:"" description:"An optional prefix for emitted Riemann services"`
 	} `group:"Metrics & Diagnostics"`
-}
-
-type UAAAuth struct {
-	ClientID     string   `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
-	ClientSecret string   `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
-	AuthURL      string   `long:"auth-url"      description:"UAA AuthURL endpoint."`
-	TokenURL     string   `long:"token-url"     description:"UAA TokenURL endpoint."`
-	CFSpaces     []string `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
-	CFURL        string   `long:"cf-url"        description:"CF API endpoint."`
-}
-
-func (auth *UAAAuth) IsConfigured() bool {
-	return auth.ClientID != "" ||
-		auth.ClientSecret != "" ||
-		len(auth.CFSpaces) > 0 ||
-		auth.AuthURL != "" ||
-		auth.TokenURL != "" ||
-		auth.CFURL != ""
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -168,17 +143,24 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	lockConn, err := cmd.constructLockConn()
+	if err != nil {
+		return nil, err
+	}
+	lockFactory := db.NewLockFactory(lockConn)
+
 	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
 
-	sqlDB := db.NewSQL(dbConn, bus)
+	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 	trackerFactory := resource.NewTrackerFactory()
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
-	teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+	teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 	engine := cmd.constructEngine(workerClient, tracker, resourceFetcher, teamDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
@@ -220,7 +202,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	drain := make(chan struct{})
 
-	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
@@ -245,6 +227,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		providerFactory,
 		teamDBFactory,
 		signingKey,
+		cmd.AuthExpire,
 	)
 	if err != nil {
 		return nil, err
@@ -254,6 +237,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		logger,
 		wrappa.NewWebMetricsWrappa(logger),
 		web.NewClientFactory(cmd.internalURL(), cmd.AllowSelfSignedCertificates || cmd.Developer.DevelopmentMode),
+		cmd.AuthExpire,
 	)
 	if err != nil {
 		return nil, err
@@ -324,7 +308,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Clock:    clock.NewClock(),
 		}},
 
-		{"lostandfound", leaserunner.NewRunner(
+		{"lostandfound", lockrunner.NewRunner(
 			logger.Session("lost-and-found"),
 			lostandfound.NewBaggageCollector(
 				logger.Session("baggage-collector"),
@@ -340,7 +324,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			cmd.ResourceCacheCleanupInterval,
 		)},
 
-		{"containerkeepaliver", leaserunner.NewRunner(
+		{"containerkeepaliver", lockrunner.NewRunner(
 			logger.Session("container-keepaliver"),
 			containerkeepaliver.NewContainerKeepAliver(
 				logger.Session("container-keepaliver"),
@@ -354,7 +338,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			30*time.Second,
 		)},
 
-		{"buildreaper", leaserunner.NewRunner(
+		{"buildreaper", lockrunner.NewRunner(
 			logger.Session("build-reaper-runner"),
 			buildreaper.NewBuildReaper(
 				logger.Session("build-reaper"),
@@ -366,6 +350,18 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			sqlDB,
 			clock.NewClock(),
 			30*time.Second,
+		)},
+
+		{"dbgc", lockrunner.NewRunner(
+			logger.Session("dbgc"),
+			dbgc.NewDBGarbageCollector(
+				logger.Session("dbgc"),
+				sqlDB,
+			),
+			"dbgc",
+			sqlDB,
+			clock.NewClock(),
+			60*time.Second,
 		)},
 	}
 
@@ -379,7 +375,11 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			return nil, err
 		}
 
-		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			NextProtos:   []string{"h2"},
+		}
+
 		members = append(members, grouper.Member{"web-tls", http_server.NewTLSServer(
 			cmd.tlsBindAddr(),
 			httpsHandler,
@@ -454,11 +454,7 @@ func (cmd *ATCCommand) oauthBaseURL() string {
 }
 
 func (cmd *ATCCommand) authConfigured() bool {
-	return cmd.basicAuthConfigured() || cmd.gitHubAuthConfigured() || cmd.UAAAuth.IsConfigured()
-}
-
-func (cmd *ATCCommand) basicAuthConfigured() bool {
-	return cmd.BasicAuth.Username != "" || cmd.BasicAuth.Password != ""
+	return cmd.BasicAuth.IsConfigured() || cmd.GitHubAuth.IsConfigured() || cmd.UAAAuth.IsConfigured() || cmd.GenericOAuth.IsConfigured()
 }
 
 func (cmd *ATCCommand) gitHubAuthConfigured() bool {
@@ -477,7 +473,7 @@ func (cmd *ATCCommand) validate() error {
 		)
 	}
 
-	if cmd.gitHubAuthConfigured() {
+	if cmd.GitHubAuth.IsConfigured() {
 		if cmd.ExternalURL.URL() == nil {
 			errs = multierror.Append(
 				errs,
@@ -485,47 +481,30 @@ func (cmd *ATCCommand) validate() error {
 			)
 		}
 
-		if cmd.GitHubAuth.ClientID == "" || cmd.GitHubAuth.ClientSecret == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth"),
-			)
+		err := cmd.GitHubAuth.Validate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
 
-	if cmd.basicAuthConfigured() {
-		if cmd.BasicAuth.Username == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --basic-auth-username to use basic auth"),
-			)
+	if cmd.GenericOAuth.IsConfigured() {
+		err := cmd.GenericOAuth.Validate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
 		}
-		if cmd.BasicAuth.Password == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --basic-auth-password to use basic auth"),
-			)
+	}
+
+	if cmd.BasicAuth.IsConfigured() {
+		err := cmd.BasicAuth.Validate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
 
 	if cmd.UAAAuth.IsConfigured() {
-		if cmd.UAAAuth.ClientID == "" || cmd.UAAAuth.ClientSecret == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth"),
-			)
-		}
-		if len(cmd.UAAAuth.CFSpaces) == 0 {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --uaa-auth-cf-space to use UAA OAuth"),
-			)
-		}
-		if cmd.UAAAuth.AuthURL == "" || cmd.UAAAuth.TokenURL == "" || cmd.UAAAuth.CFURL == "" {
-			errs = multierror.Append(
-				errs,
-				errors.New("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth"),
-			)
+		err := cmd.UAAAuth.Validate()
+		if err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
 
@@ -630,6 +609,31 @@ func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, error) {
 	return metric.CountQueries(dbConn), nil
 }
 
+func (cmd *ATCCommand) constructLockConn() (*db.RetryableConn, error) {
+	var pgxConfig pgx.ConnConfig
+	var err error
+
+	if strings.HasPrefix(cmd.PostgresDataSource, "postgres://") ||
+		strings.HasPrefix(cmd.PostgresDataSource, "postgresql://") {
+		pgxConfig, err = pgx.ParseURI(cmd.PostgresDataSource)
+	} else {
+		pgxConfig, err = pgx.ParseDSN(cmd.PostgresDataSource)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	connector := &db.PgxConnector{PgxConfig: pgxConfig}
+
+	pgxConn, err := connector.Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	return &db.RetryableConn{Connector: connector, Conn: pgxConn}, nil
+}
+
 func (cmd *ATCCommand) constructWorkerPool(
 	logger lager.Logger,
 	sqlDB *db.SQLDB,
@@ -678,7 +682,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 	var basicAuth *db.BasicAuth
-	if cmd.basicAuthConfigured() {
+	if cmd.BasicAuth.IsConfigured() {
 		basicAuth = &db.BasicAuth{
 			BasicAuthUsername: cmd.BasicAuth.Username,
 			BasicAuthPassword: cmd.BasicAuth.Password,
@@ -690,7 +694,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 	}
 
 	var gitHubAuth *db.GitHubAuth
-	if cmd.gitHubAuthConfigured() {
+	if cmd.GitHubAuth.IsConfigured() {
 		gitHubTeams := []db.GitHubTeam{}
 		for _, gitHubTeam := range cmd.GitHubAuth.Teams {
 			gitHubTeams = append(gitHubTeams, db.GitHubTeam{
@@ -718,6 +722,15 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 
 	var uaaAuth *db.UAAAuth
 	if cmd.UAAAuth.IsConfigured() {
+		cfCACert := ""
+		if cmd.UAAAuth.CFCACert != "" {
+			cfCACertFileContents, err := ioutil.ReadFile(string(cmd.UAAAuth.CFCACert))
+			if err != nil {
+				return err
+			}
+			cfCACert = string(cfCACertFileContents)
+		}
+
 		uaaAuth = &db.UAAAuth{
 			ClientID:     cmd.UAAAuth.ClientID,
 			ClientSecret: cmd.UAAAuth.ClientSecret,
@@ -725,10 +738,28 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 			AuthURL:      cmd.UAAAuth.AuthURL,
 			TokenURL:     cmd.UAAAuth.TokenURL,
 			CFURL:        cmd.UAAAuth.CFURL,
+			CFCACert:     cfCACert,
 		}
 	}
 
 	_, err = teamDB.UpdateUAAAuth(uaaAuth)
+	if err != nil {
+		return err
+	}
+
+	var genericOAuth *db.GenericOAuth
+	if cmd.GenericOAuth.IsConfigured() {
+		genericOAuth = &db.GenericOAuth{
+			AuthURL:       cmd.GenericOAuth.AuthURL,
+			AuthURLParams: cmd.GenericOAuth.AuthURLParams,
+			TokenURL:      cmd.GenericOAuth.TokenURL,
+			ClientID:      cmd.GenericOAuth.ClientID,
+			ClientSecret:  cmd.GenericOAuth.ClientSecret,
+			DisplayName:   cmd.GenericOAuth.DisplayName,
+		}
+	}
+
+	_, err = teamDB.UpdateGenericOAuth(genericOAuth)
 	if err != nil {
 		return err
 	}
@@ -856,6 +887,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 		radarScannerFactory,
 
 		reconfigurableSink,
+
+		cmd.AuthExpire,
 
 		cmd.CLIArtifactsDir.Path(),
 		Version,

@@ -123,6 +123,20 @@ var _ = Describe("Teams API", func() {
 							},
 						},
 					},
+					{
+						ID: 23,
+						Team: db.Team{
+							Name: "cyborgs",
+							GenericOAuth: &db.GenericOAuth{
+								DisplayName:   "Cyborgs",
+								ClientID:      "some random guid",
+								ClientSecret:  "don't tell anyone",
+								AuthURL:       "https://auth.url",
+								AuthURLParams: map[string]string{"allow_humans": "false"},
+								TokenURL:      "https://token.url",
+							},
+						},
+					},
 				}, nil)
 			})
 
@@ -146,7 +160,11 @@ var _ = Describe("Teams API", func() {
 					{
 						"id": 22,
 						"name": "predators"
-					}
+					},
+					{
+					  "id": 23,
+						"name": "cyborgs"
+				  }
 				]`))
 			})
 		})
@@ -413,6 +431,76 @@ var _ = Describe("Teams API", func() {
 				})
 			})
 
+			Describe("Generic OAuth Authentication", func() {
+				BeforeEach(func() {
+					team = atc.Team{
+						GenericOAuth: &atc.GenericOAuth{
+							ClientID:     "Brock Samson",
+							ClientSecret: "09262-8765-001",
+							AuthURL:      "http://auth.url",
+							TokenURL:     "http://token.url",
+							DisplayName:  "Cyborgs",
+						},
+					}
+				})
+
+				Context("when passed a valid team with GOA Auth", func() {
+					It("responds with 201", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusCreated))
+					})
+				})
+
+				Context("ClientID not filled in", func() {
+					BeforeEach(func() {
+						team.GenericOAuth.ClientID = ""
+					})
+
+					It("returns a 400 Bad Request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				Context("ClientSecret not filled in", func() {
+					BeforeEach(func() {
+						team.GenericOAuth.ClientSecret = ""
+					})
+
+					It("returns a 400 Bad Request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				Context("AuthURL not filled in", func() {
+					BeforeEach(func() {
+						team.GenericOAuth.AuthURL = ""
+					})
+
+					It("returns a 400 Bad Request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				Context("TokenURL not filled in", func() {
+					BeforeEach(func() {
+						team.GenericOAuth.TokenURL = ""
+					})
+
+					It("returns a 400 Bad Request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
+				Context("DisplayName not filled in", func() {
+					BeforeEach(func() {
+						team.GenericOAuth.DisplayName = ""
+					})
+
+					It("returns a 400 Bad Request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+			})
+
 			Context("when there's a problem finding teams", func() {
 				BeforeEach(func() {
 					teamDB.GetTeamReturns(db.SavedTeam{}, false, errors.New("a dingo ate my baby!"))
@@ -448,6 +536,7 @@ var _ = Describe("Teams API", func() {
 					var basicAuth *atc.BasicAuth
 					var gitHubAuth *atc.GitHubAuth
 					var uaaAuth *atc.UAAAuth
+					var genericOAuth *atc.GenericOAuth
 
 					BeforeEach(func() {
 						basicAuth = &atc.BasicAuth{
@@ -468,6 +557,15 @@ var _ = Describe("Teams API", func() {
 							AuthURL:      "http://uaa.auth.url",
 							TokenURL:     "http://uaa.token.url",
 							CFURL:        "http://api.cf.url",
+						}
+
+						genericOAuth = &atc.GenericOAuth{
+							ClientID:      "Dean Venture",
+							ClientSecret:  "Giant Boy Detective",
+							AuthURL:       "https://goa.auth.url",
+							AuthURLParams: map[string]string{"key": "value"},
+							TokenURL:      "https://goa.token.url",
+							DisplayName:   "CSI",
 						}
 					})
 
@@ -543,6 +641,31 @@ var _ = Describe("Teams API", func() {
 							Expect(teamDB.UpdateUAAAuthCallCount()).To(Equal(1))
 						})
 					})
+
+					Context("when passed generic OAuth auth credentials", func() {
+						BeforeEach(func() {
+							teamDB.UpdateGenericOAuthStub = func(genericOAuth *db.GenericOAuth) (db.SavedTeam, error) {
+								team.Name = teamName
+								Expect(genericOAuth.ClientID).To(Equal(team.GenericOAuth.ClientID))
+								Expect(genericOAuth.ClientSecret).To(Equal(team.GenericOAuth.ClientSecret))
+								Expect(genericOAuth.AuthURL).To(Equal(team.GenericOAuth.AuthURL))
+								Expect(genericOAuth.TokenURL).To(Equal(team.GenericOAuth.TokenURL))
+								Expect(genericOAuth.AuthURLParams).To(Equal(team.GenericOAuth.AuthURLParams))
+								Expect(genericOAuth.DisplayName).To(Equal(team.GenericOAuth.DisplayName))
+
+								savedTeam.GenericOAuth = genericOAuth
+								return savedTeam, nil
+							}
+
+							team.GenericOAuth = genericOAuth
+						})
+
+						It("updates the Generic OAuth auth for that team", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+							Expect(teamDB.UpdateGenericOAuthCallCount()).To(Equal(1))
+						})
+					})
+
 				})
 			})
 
@@ -586,6 +709,7 @@ var _ = Describe("Teams API", func() {
 				Context("with authentication", func() {
 					var basicAuth atc.BasicAuth
 					var gitHubAuth atc.GitHubAuth
+					var genericOAuth atc.GenericOAuth
 
 					BeforeEach(func() {
 						basicAuth = atc.BasicAuth{
@@ -598,6 +722,14 @@ var _ = Describe("Teams API", func() {
 							ClientSecret: "Giant Boy Detective",
 							Users:        []string{"Dean Venture"},
 						}
+
+						genericOAuth = atc.GenericOAuth{
+							DisplayName:  "Cyborgs",
+							ClientID:     "Dean Venture",
+							ClientSecret: "Giant Boy Detective",
+							AuthURL:      "auth.url",
+							TokenURL:     "token.url",
+						}
 					})
 
 					Context("when passed basic auth credentials", func() {
@@ -605,9 +737,19 @@ var _ = Describe("Teams API", func() {
 							team.BasicAuth = &basicAuth
 						})
 
-						It("updates the basic auth for that team", func() {
+						It("creates a team with basic auth credentials", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
+
+							createdTeam := teamServerDB.CreateTeamArgsForCall(0)
+							Expect(createdTeam).To(Not(BeNil()))
+
+							Expect(createdTeam.BasicAuth).To(Not(BeNil()))
+							Expect(createdTeam.BasicAuth.BasicAuthUsername).To(Equal("Dean Venture"))
+							Expect(createdTeam.BasicAuth.BasicAuthPassword).To(Equal("Giant Boy Detective"))
+							Expect(createdTeam.GitHubAuth).To(BeNil())
+							Expect(createdTeam.UAAAuth).To(BeNil())
+							Expect(createdTeam.GenericOAuth).To(BeNil())
 						})
 					})
 
@@ -616,9 +758,66 @@ var _ = Describe("Teams API", func() {
 							team.GitHubAuth = &gitHubAuth
 						})
 
-						It("updates the GitHub auth for that team", func() {
+						It("creates a team with GitHub auth credentials", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
+
+							createdTeam := teamServerDB.CreateTeamArgsForCall(0)
+							Expect(createdTeam).To(Not(BeNil()))
+
+							Expect(createdTeam.BasicAuth).To(BeNil())
+							Expect(createdTeam.GitHubAuth).To(Not(BeNil()))
+							Expect(createdTeam.GitHubAuth.ClientID).To(Equal("Dean Venture"))
+							Expect(createdTeam.GitHubAuth.ClientSecret).To(Equal("Giant Boy Detective"))
+							Expect(createdTeam.GitHubAuth.Users).To(Equal([]string{"Dean Venture"}))
+							Expect(createdTeam.UAAAuth).To(BeNil())
+							Expect(createdTeam.GenericOAuth).To(BeNil())
+						})
+					})
+
+					Context("when passed Generic OAuth credentials", func() {
+						BeforeEach(func() {
+							team.GenericOAuth = &genericOAuth
+						})
+
+						It("creates a team with Generic OAuth credentials", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
+
+							createdTeam := teamServerDB.CreateTeamArgsForCall(0)
+							Expect(createdTeam).To(Not(BeNil()))
+
+							Expect(createdTeam.BasicAuth).To(BeNil())
+							Expect(createdTeam.GitHubAuth).To(BeNil())
+							Expect(createdTeam.UAAAuth).To(BeNil())
+							Expect(createdTeam.GenericOAuth.DisplayName).To(Equal("Cyborgs"))
+							Expect(createdTeam.GenericOAuth.ClientID).To(Equal("Dean Venture"))
+							Expect(createdTeam.GenericOAuth.ClientSecret).To(Equal("Giant Boy Detective"))
+							Expect(createdTeam.GenericOAuth.AuthURL).To(Equal("auth.url"))
+							Expect(createdTeam.GenericOAuth.TokenURL).To(Equal("token.url"))
+						})
+					})
+
+					Context("when passed Generic OAuth credentials", func() {
+						BeforeEach(func() {
+							team.GenericOAuth = &genericOAuth
+						})
+
+						It("creates a team with Generic OAuth credentials", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
+
+							createdTeam := teamServerDB.CreateTeamArgsForCall(0)
+							Expect(createdTeam).To(Not(BeNil()))
+
+							Expect(createdTeam.BasicAuth).To(BeNil())
+							Expect(createdTeam.GitHubAuth).To(BeNil())
+							Expect(createdTeam.UAAAuth).To(BeNil())
+							Expect(createdTeam.GenericOAuth.DisplayName).To(Equal("Cyborgs"))
+							Expect(createdTeam.GenericOAuth.ClientID).To(Equal("Dean Venture"))
+							Expect(createdTeam.GenericOAuth.ClientSecret).To(Equal("Giant Boy Detective"))
+							Expect(createdTeam.GenericOAuth.AuthURL).To(Equal("auth.url"))
+							Expect(createdTeam.GenericOAuth.TokenURL).To(Equal("token.url"))
 						})
 					})
 				})

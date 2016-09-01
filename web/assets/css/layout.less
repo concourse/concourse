@@ -58,6 +58,11 @@ html, body, #elm-app, .content-frame {
   }
 }
 
+#top-bar-app {
+  // TODO: remove once this intermediary app element isn't there
+  flex-shrink: 0;
+}
+
 .with-fixed-header {
   display: flex;
   flex-direction: column;
@@ -78,6 +83,9 @@ html, body, #elm-app, .content-frame {
 #content { // TODO: kill id
   flex-grow: 1;
   overflow: auto;
+
+  // for absolutely positioned content in pipeline graph
+  position: relative;
 }
 
 .display-in-middle {

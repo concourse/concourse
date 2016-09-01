@@ -7,14 +7,16 @@ type TeamDBFactory interface {
 }
 
 type teamDBFactory struct {
-	conn Conn
-	bus  *notificationsBus
+	conn        Conn
+	bus         *notificationsBus
+	lockFactory LockFactory
 }
 
-func NewTeamDBFactory(conn Conn, bus *notificationsBus) TeamDBFactory {
+func NewTeamDBFactory(conn Conn, bus *notificationsBus, lockFactory LockFactory) TeamDBFactory {
 	return &teamDBFactory{
-		conn: conn,
-		bus:  bus,
+		conn:        conn,
+		bus:         bus,
+		lockFactory: lockFactory,
 	}
 }
 
@@ -22,6 +24,6 @@ func (f *teamDBFactory) GetTeamDB(teamName string) TeamDB {
 	return &teamDB{
 		teamName:     teamName,
 		conn:         f.conn,
-		buildFactory: newBuildFactory(f.conn, f.bus),
+		buildFactory: newBuildFactory(f.conn, f.bus, f.lockFactory),
 	}
 }

@@ -274,7 +274,7 @@ func (d *getStepResource) ResourceType() resource.ResourceType {
 	return d.resourceType
 }
 
-func (d *getStepResource) LeaseName(workerName string) (string, error) {
+func (d *getStepResource) LockName(workerName string) (string, error) {
 	id := &getStepLeaseID{
 		Type:       d.resourceType,
 		Version:    d.version,

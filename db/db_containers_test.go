@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Keeping track of containers", func() {
@@ -36,7 +37,13 @@ var _ = Describe("Keeping track of containers", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		database = db.NewSQL(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+
+		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		config := atc.Config{
 			Jobs: atc.JobConfigs{
@@ -72,7 +79,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		teamID = savedTeam.ID
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB("team-name")
 
 		savedPipeline, _, err = teamDB.SaveConfig("some-pipeline", config, 0, db.PipelineUnpaused)
@@ -81,7 +88,7 @@ var _ = Describe("Keeping track of containers", func() {
 		savedOtherPipeline, _, err = teamDB.SaveConfig("some-other-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 
 		workerInfo := db.WorkerInfo{
@@ -303,6 +310,14 @@ var _ = Describe("Keeping track of containers", func() {
 
 		By("returning found = false when getting by a handle that does not exist")
 		_, found, err = database.GetContainer("nope")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeFalse())
+
+		By("not returning expired container")
+		err = database.UpdateExpiresAtOnContainer("some-handle", -time.Minute)
+		Expect(err).NotTo(HaveOccurred())
+
+		_, found, err = database.GetContainer("some-handle")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
 	})
@@ -877,6 +892,20 @@ var _ = Describe("Keeping track of containers", func() {
 				TeamID:       teamID,
 			},
 		}
+		expiredContainer := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:   db.ContainerStageRun,
+				PlanID:  atc.PlanID("plan-id"),
+				BuildID: 789,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "expired",
+				WorkerName: "some-worker",
+				StepName:   "other-container",
+				Type:       db.ContainerTypeTask,
+				TeamID:     teamID,
+			},
+		}
 
 		_, err := database.CreateContainer(containerToCreate, time.Minute, time.Duration(0), []string{})
 		Expect(err).NotTo(HaveOccurred())
@@ -884,9 +913,18 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		_, err = database.CreateContainer(otherStepContainer, time.Minute, time.Duration(0), []string{})
 		Expect(err).NotTo(HaveOccurred())
+		_, err = database.CreateContainer(expiredContainer, -time.Minute, time.Duration(0), []string{})
+		Expect(err).NotTo(HaveOccurred())
 
-		all_containers := getAllContainers(dbConn)
-		Expect(all_containers).To(HaveLen(3))
+		allContainers := getAllContainers(dbConn)
+		Expect(allContainers).To(HaveLen(4))
+
+		By("not returning expired container")
+		_, found, err := database.FindContainerByIdentifier(
+			expiredContainer.ContainerIdentifier,
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeFalse())
 
 		By("returning a single matching resource container info")
 		actualContainer, found, err := database.FindContainerByIdentifier(

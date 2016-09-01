@@ -14,6 +14,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/lib/pq"
 )
 
@@ -29,7 +30,13 @@ var _ = Describe("TLS", func() {
 
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		sqlDB = db.NewSQL(dbConn, bus)
+
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 	})
 
 	AfterEach(func() {

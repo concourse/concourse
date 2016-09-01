@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -38,8 +39,13 @@ var _ = Describe("TeamDbContainers", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
-		database = db.NewSQL(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		team := db.Team{Name: "team-name"}
 		savedTeam, err := database.CreateTeam(team)
@@ -53,7 +59,7 @@ var _ = Describe("TeamDbContainers", func() {
 
 		teamDB = teamDBFactory.GetTeamDB("team-name")
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
 		config := atc.Config{
 			Jobs: atc.JobConfigs{

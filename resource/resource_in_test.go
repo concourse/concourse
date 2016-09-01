@@ -110,7 +110,7 @@ var _ = Describe("Resource In", func() {
 
 				It("returns the error", func() {
 					_, err := versionedSource.StreamOut("some/subdir")
-					Expect(err).To(Equal(disaster))
+					Expect(err.Error()).To(Equal("oh no!"))
 				})
 			})
 		})

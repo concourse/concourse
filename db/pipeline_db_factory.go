@@ -9,15 +9,19 @@ type PipelineDBFactory interface {
 type pipelineDBFactory struct {
 	conn Conn
 	bus  *notificationsBus
+
+	lockFactory LockFactory
 }
 
 func NewPipelineDBFactory(
 	sqldbConnection Conn,
 	bus *notificationsBus,
+	lockFactory LockFactory,
 ) *pipelineDBFactory {
 	return &pipelineDBFactory{
-		conn: sqldbConnection,
-		bus:  bus,
+		conn:        sqldbConnection,
+		bus:         bus,
+		lockFactory: lockFactory,
 	}
 }
 
@@ -26,7 +30,8 @@ func (pdbf *pipelineDBFactory) Build(pipeline SavedPipeline) PipelineDB {
 		conn: pdbf.conn,
 		bus:  pdbf.bus,
 
-		buildFactory: newBuildFactory(pdbf.conn, pdbf.bus),
+		buildFactory: newBuildFactory(pdbf.conn, pdbf.bus, pdbf.lockFactory),
+		lockFactory:  pdbf.lockFactory,
 
 		SavedPipeline: pipeline,
 	}

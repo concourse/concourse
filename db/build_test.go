@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 
@@ -30,12 +31,18 @@ var _ = Describe("Build", func() {
 		postgresRunner.Truncate()
 
 		dbConn = db.Wrap(postgresRunner.Open())
+
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		pipelineConfig = atc.Config{
@@ -67,7 +74,7 @@ var _ = Describe("Build", func() {
 		pipeline, _, err = teamDB.SaveConfig("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		pipelineDB = pipelineDBFactory.Build(pipeline)
 	})
 
@@ -743,6 +750,8 @@ var _ = Describe("Build", func() {
 
 		Context("for job that is still checking resources", func() {
 			var build1, build2 db.Build
+			var lock db.Lock
+
 			BeforeEach(func() {
 				pipelineConfig = atc.Config{
 					Jobs: atc.JobConfigs{
@@ -762,16 +771,20 @@ var _ = Describe("Build", func() {
 				build1, err = pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, created, err := pipelineDB.LeaseResourceCheckingForJob(
+				var created bool
+				lock, created, err = pipelineDB.AcquireResourceCheckingForJobLock(
 					lagertest.NewTestLogger("build-preparation"),
 					"some-job",
-					5*time.Minute,
 				)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
 				build2, err = pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				lock.Release()
 			})
 
 			It("returns inputs satisfied blocking for checked build", func() {

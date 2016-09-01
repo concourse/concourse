@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Keeping track of workers", func() {
@@ -27,7 +28,12 @@ var _ = Describe("Keeping track of workers", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		database = db.NewSQL(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		database = db.NewSQL(dbConn, bus, lockFactory)
 	})
 
 	AfterEach(func() {
@@ -38,7 +44,7 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("can keep track of workers", func() {
+	It("can keep track of non-expired workers", func() {
 		Expect(database.Workers()).To(BeEmpty())
 
 		infoA := db.WorkerInfo{

@@ -67,7 +67,7 @@ type GardenWorkerDB interface {
 	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)
 
 	InsertVolume(db.Volume) error
-	SetVolumeTTL(string, time.Duration) error
+	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	GetVolumeTTL(string) (time.Duration, bool, error)
 	GetVolumesByIdentifier(db.VolumeIdentifier) ([]db.SavedVolume, error)
 }

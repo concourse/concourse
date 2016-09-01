@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/gunk/urljoiner"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Resource Pausing", func() {
@@ -27,13 +28,18 @@ var _ = Describe("Resource Pausing", func() {
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 
-		sqlDB = db.NewSQL(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
 		err := atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 		// job build data
 		_, _, err = teamDB.SaveConfig("some-pipeline", atc.Config{
@@ -57,7 +63,7 @@ var _ = Describe("Resource Pausing", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 

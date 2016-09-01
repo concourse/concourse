@@ -37,7 +37,7 @@ func NewResourceScanner(
 	}
 }
 
-var ErrFailedToAcquireLease = errors.New("failed-to-acquire-lease")
+var ErrFailedToAcquireLease = errors.New("failed-to-acquire-lock")
 
 func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (time.Duration, error) {
 	resourceConfig, resourceTypes, err := scanner.getResourceConfig(logger, resourceName)
@@ -64,23 +64,25 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return 0, err
 	}
 
-	leaseLogger := logger.Session("lease", lager.Data{
+	lockLogger := logger.Session("lock", lager.Data{
 		"resource": resourceName,
 	})
 
-	lease, leased, err := scanner.db.LeaseResourceChecking(logger, resourceName, interval, false)
+	lock, acquired, err := scanner.db.AcquireResourceCheckingLock(logger, savedResource, interval, false)
 
 	if err != nil {
-		leaseLogger.Error("failed-to-get-lease", err, lager.Data{
+		lockLogger.Error("failed-to-get-lock", err, lager.Data{
 			"resource": resourceName,
 		})
 		return interval, ErrFailedToAcquireLease
 	}
 
-	if !leased {
-		leaseLogger.Debug("did-not-get-lease")
+	if !acquired {
+		lockLogger.Debug("did-not-get-lock")
 		return interval, ErrFailedToAcquireLease
 	}
+
+	defer lock.Release()
 
 	vr, _, err := scanner.db.GetLatestVersionedResource(resourceName)
 	if err != nil {
@@ -91,9 +93,6 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 	err = swallowErrResourceScriptFailed(
 		scanner.scan(logger.Session("tick"), resourceConfig, resourceTypes, savedResource, atc.Version(vr.Version)),
 	)
-
-	lease.Break()
-
 	if err != nil {
 		return interval, err
 	}
@@ -104,7 +103,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceName string, fromVersion atc.Version) error {
 	// if fromVersion is nil then force a check without specifying a version
 	// otherwise specify fromVersion to underlying call to resource.Check()
-	leaseLogger := logger.Session("lease", lager.Data{
+	lockLogger := logger.Session("lock", lager.Data{
 		"resource": resourceName,
 	})
 
@@ -134,22 +133,22 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 	}
 
 	for {
-		lease, leased, err := scanner.db.LeaseResourceChecking(logger, resourceName, interval, true)
+		lock, acquired, err := scanner.db.AcquireResourceCheckingLock(logger, savedResource, interval, true)
 		if err != nil {
-			leaseLogger.Error("failed-to-get-lease", err, lager.Data{
+			lockLogger.Error("failed-to-get-lock", err, lager.Data{
 				"resource": resourceName,
 			})
 
 			return err
 		}
 
-		if !leased {
-			leaseLogger.Debug("did-not-get-lease")
+		if !acquired {
+			lockLogger.Debug("did-not-get-lock")
 			scanner.clock.Sleep(time.Second)
 			continue
 		}
 
-		defer lease.Break()
+		defer lock.Release()
 
 		break
 	}

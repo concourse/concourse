@@ -1,55 +1,35 @@
 module Concourse.BuildStatus exposing (..)
 
-import Json.Decode
+import Concourse
 
-type BuildStatus
-  = Pending
-  | Started
-  | Succeeded
-  | Failed
-  | Errored
-  | Aborted
-
-decode : Json.Decode.Decoder BuildStatus
-decode =
-  Json.Decode.customDecoder Json.Decode.string <| \status ->
-    case status of
-      "pending" -> Ok Pending
-      "started" -> Ok Started
-      "succeeded" -> Ok Succeeded
-      "failed" -> Ok Failed
-      "errored" -> Ok Errored
-      "aborted" -> Ok Aborted
-      unknown -> Err ("unknown build status: " ++ unknown)
-
-show : BuildStatus -> String
+show : Concourse.BuildStatus -> String
 show status =
   case status of
-    Pending ->
+    Concourse.BuildStatusPending ->
       "pending"
 
-    Started ->
+    Concourse.BuildStatusStarted ->
       "started"
 
-    Succeeded ->
+    Concourse.BuildStatusSucceeded ->
       "succeeded"
 
-    Failed ->
+    Concourse.BuildStatusFailed ->
       "failed"
 
-    Errored ->
+    Concourse.BuildStatusErrored ->
       "errored"
 
-    Aborted ->
+    Concourse.BuildStatusAborted ->
       "aborted"
 
-isRunning : BuildStatus -> Bool
+isRunning : Concourse.BuildStatus -> Bool
 isRunning status =
   case status of
-    Pending ->
+    Concourse.BuildStatusPending ->
       True
 
-    Started ->
+    Concourse.BuildStatusStarted ->
       True
 
     _ ->

@@ -56,12 +56,7 @@ func (db *SQLDB) FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, er
 }
 
 func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {
-	err := db.deleteExpiredContainers()
-	if err != nil {
-		return SavedContainer{}, false, err
-	}
-
-	conditions := []string{}
+	conditions := []string{"(expires_at IS NULL OR expires_at > NOW())"}
 	params := []interface{}{}
 
 	addParam := func(column string, param interface{}) {
@@ -138,7 +133,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 				return SavedContainer{}, false, err
 			}
 
-			pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
+			pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db.lockFactory)
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 			_, found, err := pipelineDB.GetResourceType(container.CheckType)
@@ -176,15 +171,11 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 }
 
 func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {
-	err := db.deleteExpiredContainers()
-	if err != nil {
-		return SavedContainer{}, false, err
-	}
-
 	container, err := scanContainer(db.conn.QueryRow(`
 		SELECT `+containerColumns+`
 	  FROM containers c `+containerJoins+`
 		WHERE c.handle = $1
+		AND (expires_at IS NULL OR expires_at > NOW())
 	`, handle))
 
 	if err != nil {
@@ -599,7 +590,7 @@ func scanContainer(row scannable) (SavedContainer, error) {
 	return container, nil
 }
 
-func (db *SQLDB) deleteExpiredContainers() error {
+func (db *SQLDB) ReapExpiredContainers() error {
 	_, err := db.conn.Exec(`
 		DELETE FROM containers
 		WHERE expires_at IS NOT NULL

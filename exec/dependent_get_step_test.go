@@ -230,12 +230,12 @@ var _ = Describe("DependentGet", func() {
 				}))
 			Expect(delegate).To(Equal(getDelegate))
 			Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("some-resource-type")))
-			expectedLeaseName := fmt.Sprintf("%x",
+			expectedLockName := fmt.Sprintf("%x",
 				sha256.Sum256([]byte(
 					`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker-name"}`,
 				)),
 			)
-			Expect(resourceOptions.LeaseName("fake-worker-name")).To(Equal(expectedLeaseName))
+			Expect(resourceOptions.LockName("fake-worker-name")).To(Equal(expectedLockName))
 		})
 
 		Describe("the source registered with the repository", func() {

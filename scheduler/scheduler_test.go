@@ -2,7 +2,6 @@ package scheduler_test
 
 import (
 	"errors"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -234,26 +233,25 @@ var _ = Describe("Scheduler", func() {
 			}
 		})
 
-		Context("when getting the lease errors", func() {
+		Context("when getting the lock errors", func() {
 			BeforeEach(func() {
-				fakeDB.LeaseResourceCheckingForJobReturns(nil, false, disaster)
+				fakeDB.AcquireResourceCheckingForJobLockReturns(nil, false, disaster)
 			})
 
 			It("returns the error", func() {
 				Expect(triggerErr).To(Equal(disaster))
 			})
 
-			It("asked for the lease for the right job", func() {
-				Expect(fakeDB.LeaseResourceCheckingForJobCallCount()).To(Equal(1))
-				_, actualJobName, actualInterval := fakeDB.LeaseResourceCheckingForJobArgsForCall(0)
+			It("asked for the lock for the right job", func() {
+				Expect(fakeDB.AcquireResourceCheckingForJobLockCallCount()).To(Equal(1))
+				_, actualJobName := fakeDB.AcquireResourceCheckingForJobLockArgsForCall(0)
 				Expect(actualJobName).To(Equal("some-job"))
-				Expect(actualInterval).To(Equal(5 * time.Minute))
 			})
 		})
 
-		Context("when someone else is holding the lease", func() {
+		Context("when someone else is holding the lock", func() {
 			BeforeEach(func() {
-				fakeDB.LeaseResourceCheckingForJobReturns(nil, false, nil)
+				fakeDB.AcquireResourceCheckingForJobLockReturns(nil, false, nil)
 			})
 
 			Context("when creating the build fails", func() {
@@ -315,12 +313,12 @@ var _ = Describe("Scheduler", func() {
 			})
 		})
 
-		Context("when it gets the lease", func() {
+		Context("when it gets the lock", func() {
 			var fakeLease *dbfakes.FakeLease
 
 			BeforeEach(func() {
 				fakeLease = new(dbfakes.FakeLease)
-				fakeDB.LeaseResourceCheckingForJobStub = func(lager.Logger, string, time.Duration) (db.Lease, bool, error) {
+				fakeDB.AcquireResourceCheckingForJobLockStub = func(lager.Logger, string) (db.Lock, bool, error) {
 					defer GinkgoRecover()
 					Expect(fakeDB.CreateJobBuildCallCount()).To(BeZero())
 					return fakeLease, true, nil
@@ -336,12 +334,12 @@ var _ = Describe("Scheduler", func() {
 					Expect(triggerErr).To(Equal(disaster))
 				})
 
-				It("created a build for the right job after acquiring the lease", func() {
+				It("created a build for the right job after acquiring the lock", func() {
 					Expect(fakeDB.CreateJobBuildCallCount()).To(Equal(1))
 					Expect(fakeDB.CreateJobBuildArgsForCall(0)).To(Equal("some-job"))
 				})
 
-				It("breaks the lease", func() {
+				It("releases the lock", func() {
 					Expect(fakeLease.BreakCallCount()).To(Equal(1))
 				})
 			})
@@ -359,7 +357,7 @@ var _ = Describe("Scheduler", func() {
 						fakeScanner.ScanReturns(disaster)
 					})
 
-					It("breaks the lease and returns the build", func() {
+					It("releases the lock and returns the build", func() {
 						Expect(triggerErr).NotTo(HaveOccurred())
 						Expect(triggeredBuild).To(Equal(createdBuild))
 						Expect(fakeLease.BreakCallCount()).To(Equal(1))
@@ -380,7 +378,7 @@ var _ = Describe("Scheduler", func() {
 							fakeDB.LoadVersionsDBReturns(nil, disaster)
 						})
 
-						It("breaks the lease and returns the build", func() {
+						It("releases the lock and returns the build", func() {
 							Expect(triggerErr).NotTo(HaveOccurred())
 							Expect(triggeredBuild).To(Equal(createdBuild))
 							Expect(fakeLease.BreakCallCount()).To(Equal(1))
@@ -411,7 +409,7 @@ var _ = Describe("Scheduler", func() {
 								fakeInputMapper.SaveNextInputMappingReturns(nil, disaster)
 							})
 
-							It("breaks the lease and returns the build", func() {
+							It("releases the lock and returns the build", func() {
 								Expect(triggerErr).NotTo(HaveOccurred())
 								Expect(triggeredBuild).To(Equal(createdBuild))
 								Expect(fakeLease.BreakCallCount()).To(Equal(1))
@@ -443,13 +441,13 @@ var _ = Describe("Scheduler", func() {
 									}
 								})
 
-								It("saved the next input mapping before breaking the lease and returns the build", func() {
+								It("saved the next input mapping before breaking the lock and returns the build", func() {
 									Expect(triggerErr).NotTo(HaveOccurred())
 									Expect(triggeredBuild).To(Equal(createdBuild))
 									Expect(fakeLease.BreakCallCount()).NotTo(BeZero())
 								})
 
-								It("started all pending builds for the right job after breaking the lease", func() {
+								It("started all pending builds for the right job after breaking the lock", func() {
 									Expect(fakeBuildStarter.TryStartAllPendingBuildsCallCount()).To(Equal(1))
 									_, actualJob, actualResources, actualResourceTypes := fakeBuildStarter.TryStartAllPendingBuildsArgsForCall(0)
 									Expect(actualJob).To(Equal(jobConfig))

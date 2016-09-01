@@ -96,19 +96,19 @@ func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, erro
 func (build *dbBuild) Abort(logger lager.Logger) error {
 	// the order below is very important to avoid races with build creation.
 
-	lease, leased, err := build.build.LeaseTracking(logger, trackLeaseDuration)
+	lock, acquired, err := build.build.AcquireTrackingLock(logger, trackLeaseDuration)
 	if err != nil {
-		logger.Error("failed-to-get-lease", err)
+		logger.Error("failed-to-get-lock", err)
 		return err
 	}
 
-	if !leased {
+	if !acquired {
 		// someone else is tracking the build; abort it, which will notify them
 		logger.Info("notifying-other-tracker")
 		return build.build.Abort()
 	}
 
-	defer lease.Break()
+	defer lock.Release()
 
 	// no one is tracking the build; abort it ourselves
 
@@ -163,18 +163,18 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
-	lease, leased, err := build.build.LeaseTracking(logger, trackLeaseDuration)
+	lock, acquired, err := build.build.AcquireTrackingLock(logger, trackLeaseDuration)
 	if err != nil {
-		logger.Error("failed-to-get-lease", err)
+		logger.Error("failed-to-get-lock", err)
 		return
 	}
 
-	if !leased {
+	if !acquired {
 		logger.Debug("build-already-tracked")
 		return
 	}
 
-	defer lease.Break()
+	defer lock.Release()
 
 	found, err := build.build.Reload()
 	if err != nil {

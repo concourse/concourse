@@ -13,6 +13,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("SQL DB Teams", func() {
@@ -31,8 +32,13 @@ var _ = Describe("SQL DB Teams", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
-		database = db.NewSQL(dbConn, bus)
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		database.DeleteTeamByName(atc.DefaultTeamName)
 	})
@@ -93,9 +99,22 @@ var _ = Describe("SQL DB Teams", func() {
 			savedTeam3, err := database.CreateTeam(team3)
 			Expect(err).NotTo(HaveOccurred())
 
+			team4 := db.Team{
+				Name: "cyborgs",
+				GenericOAuth: &db.GenericOAuth{
+					DisplayName:   "Cyborgs",
+					ClientID:      "some random guid",
+					ClientSecret:  "don't tell anyone",
+					AuthURL:       "https://auth.url",
+					AuthURLParams: map[string]string{"allow_humans": "false"},
+				},
+			}
+			savedTeam4, err := database.CreateTeam(team4)
+			Expect(err).NotTo(HaveOccurred())
+
 			actualTeams, err := database.GetTeams()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(actualTeams).To(ConsistOf(savedTeam1, savedTeam2, savedTeam3))
+			Expect(actualTeams).To(ConsistOf(savedTeam1, savedTeam2, savedTeam3, savedTeam4))
 		})
 	})
 
@@ -158,6 +177,7 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(expectedSavedTeam.Team.BasicAuth).To(Equal(expectedTeam.BasicAuth))
 			Expect(expectedSavedTeam.Team.GitHubAuth).To(Equal(expectedTeam.GitHubAuth))
 			Expect(expectedSavedTeam.Team.UAAAuth).To(Equal(expectedTeam.UAAAuth))
+			Expect(expectedSavedTeam.Team.GenericOAuth).To(Equal(expectedTeam.GenericOAuth))
 			Expect(expectedSavedTeam.Team.Name).To(Equal("AvengerS"))
 
 			savedTeam, found, err := teamDBFactory.GetTeamDB("aVengers").GetTeam()
@@ -242,6 +262,29 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
 
 			Expect(savedTeam.UAAAuth).To(Equal(expectedTeam.UAAAuth))
+		})
+
+		It("saves a team to the db with Generic OAuth auth", func() {
+			expectedTeam := db.Team{
+				Name: "cyborgs",
+				GenericOAuth: &db.GenericOAuth{
+					DisplayName:   "Cyborgs",
+					ClientID:      "some random guid",
+					ClientSecret:  "don't tell anyone",
+					AuthURL:       "https://auth.url",
+					AuthURLParams: map[string]string{"allow_humans": "false"},
+				},
+			}
+			expectedSavedTeam, err := database.CreateTeam(expectedTeam)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
+
+			savedTeam, found, err := teamDBFactory.GetTeamDB("cyborgs").GetTeam()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(savedTeam).To(Equal(expectedSavedTeam))
+
+			Expect(savedTeam.GenericOAuth).To(Equal(expectedTeam.GenericOAuth))
 		})
 	})
 
