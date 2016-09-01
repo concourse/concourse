@@ -49,16 +49,6 @@
         topBar.ports.navigateTo.subscribe(function(url) {
           window.location.href = url;
         });
-
-        topBar.ports.setGroups.subscribe(function(groups) {
-          for (var group in concourse.groups) {
-            concourse.groups[group] = groups.indexOf(group) !== -1;
-          }
-
-          if (concourse.redraw !== undefined) {
-            concourse.redraw();
-          }
-        });
         </script>
 
         <div id="content">

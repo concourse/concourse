@@ -4,7 +4,6 @@
 {{if .Elm}}
 <div id="elm-app"></div>
 
-<script src="{{asset "fit.min.js"}}"></script>
 <script type="text/javascript">
 var groups = [];
 var groupStates = {{.GroupStates}};
@@ -22,26 +21,11 @@ var app = Elm.PipelinePage.embed(node, {
   groups: groups
 });
 
-var watcher;
-
-app.ports.fit.subscribe(function() {
-  if (watcher !== undefined) {
-    watcher.trigger();
-    return;
-  }
-
-  document.querySelector(".pipeline-grid").style.display = 'block';
-
-  watcher = fit(
-    document.querySelector(".pipeline-grid"),
-    document.querySelector("#elm-app"),
-    {
-      watch: true,
-      hAlign: fit.CENTER,
-      vAlign: fit.CENTER
-    }
-  );
+topBar.ports.groupsChanged.subscribe(function(groups) {
+  app.ports.setGroups.send(groups);
 });
+
+topBar.ports.setViewingPipeline.send(true);
 </script>
 {{else}}
 <svg class="pipeline-graph test" width="100%" height="100%"></svg>
@@ -88,6 +72,16 @@ app.ports.fit.subscribe(function() {
 concourse.pipelineName = {{.PipelineName}};
 concourse.teamName = {{.TeamName}};
 concourse.groups = {{.Groups}};
+
+topBar.ports.groupsChanged.subscribe(function(groups) {
+  for (var group in concourse.groups) {
+    concourse.groups[group] = groups.indexOf(group) !== -1;
+  }
+
+  if (concourse.redraw !== undefined) {
+    concourse.redraw();
+  }
+});
 
 topBar.ports.setViewingPipeline.send(true);
 

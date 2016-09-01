@@ -4,12 +4,12 @@ import Html.App
 
 import Pipeline
 
-port fit : () -> Cmd msg
+port setGroups : (List String -> msg) -> Sub msg
 
 main : Program Pipeline.Flags
 main =
   Html.App.programWithFlags
-    { init = Pipeline.init fit
+    { init = Pipeline.init { setGroups = setGroups }
     , update = Pipeline.update
     , view = Pipeline.view
     , subscriptions = Pipeline.subscriptions
