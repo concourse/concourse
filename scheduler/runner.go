@@ -76,16 +76,6 @@ dance:
 }
 
 func (runner *Runner) tick(logger lager.Logger) error {
-	config, _, found, err := runner.DB.GetConfig()
-	if err != nil {
-		logger.Error("failed-to-get-config", err)
-		return nil
-	}
-
-	if !found {
-		return errPipelineRemoved
-	}
-
 	if runner.Noop {
 		return nil
 	}
@@ -121,6 +111,16 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		PipelineName: runner.DB.GetPipelineName(),
 		Duration:     time.Since(start),
 	}.Emit(logger)
+
+	config, _, found, err := runner.DB.GetUpdatedConfig()
+	if err != nil {
+		logger.Error("failed-to-get-config", err)
+		return nil
+	}
+
+	if !found {
+		return errPipelineRemoved
+	}
 
 	for _, job := range config.Jobs {
 		sLog := logger.Session("scheduling", lager.Data{

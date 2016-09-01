@@ -58,7 +58,7 @@ var _ = Describe("Runner", func() {
 		pipelineDB.ScopedNameStub = func(thing string) string {
 			return "pipeline:" + thing
 		}
-		pipelineDB.GetConfigReturns(initialConfig, 1, true, nil)
+		pipelineDB.GetUpdatedConfigReturns(initialConfig, 1, true, nil)
 
 		scanRunnerFactory.ScanResourceRunnerStub = func(lager.Logger, string) ifrit.Runner {
 			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -110,7 +110,7 @@ var _ = Describe("Runner", func() {
 
 			config := initialConfig
 
-			pipelineDB.GetConfigStub = func() (atc.Config, db.ConfigVersion, bool, error) {
+			pipelineDB.GetUpdatedConfigStub = func() (atc.Config, db.ConfigVersion, bool, error) {
 				select {
 				case config = <-configs:
 				default:

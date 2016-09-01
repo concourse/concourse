@@ -101,7 +101,7 @@ func (runner *Runner) tick(
 	scanningResourceTypes map[string]bool,
 	insertScanner chan<- grouper.Member,
 ) {
-	config, _, found, err := runner.db.GetConfig()
+	config, _, found, err := runner.db.GetUpdatedConfig()
 	if err != nil {
 		runner.logger.Error("failed-to-get-config", err)
 		return

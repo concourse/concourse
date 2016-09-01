@@ -31,11 +31,12 @@ type PipelineDB interface {
 	Destroy() error
 
 	GetConfig() (atc.Config, ConfigVersion, bool, error)
+	GetUpdatedConfig() (atc.Config, ConfigVersion, bool, error)
 
 	AcquireSchedulingLock(lager.Logger, time.Duration) (Lock, bool, error)
 
 	GetResource(resourceName string) (SavedResource, bool, error)
-	GetResources() ([]DashboardResource, atc.GroupConfigs, bool, error)
+	GetResources() ([]SavedResource, bool, error)
 	GetResourceType(resourceTypeName string) (SavedResourceType, bool, error)
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 
@@ -224,6 +225,10 @@ func (pdb *pipelineDB) Destroy() error {
 }
 
 func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, bool, error) {
+	return pdb.Config, pdb.Version, true, nil
+}
+
+func (pdb *pipelineDB) GetUpdatedConfig() (atc.Config, ConfigVersion, bool, error) {
 	var configBlob []byte
 	var version int
 
@@ -270,7 +275,7 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, bool, er
 	return resource, found, nil
 }
 
-func (pdb *pipelineDB) GetResources() ([]DashboardResource, atc.GroupConfigs, bool, error) {
+func (pdb *pipelineDB) GetResources() ([]SavedResource, bool, error) {
 	rows, err := pdb.conn.Query(`
 			SELECT id, name, config, check_error, paused
 			FROM resources
@@ -278,49 +283,27 @@ func (pdb *pipelineDB) GetResources() ([]DashboardResource, atc.GroupConfigs, bo
 		`, pdb.ID)
 
 	if err != nil {
-		return nil, nil, false, err
+		return nil, false, err
 	}
 
 	defer rows.Close()
 
-	savedResources := map[string]SavedResource{}
+	savedResources := []SavedResource{}
 
 	for rows.Next() {
 		savedResource, found, err := pdb.scanResource(rows)
 		if err != nil {
-			return nil, nil, false, err
+			return nil, false, err
 		}
 
 		if !found {
-			return nil, nil, false, errors.New("resource-not-found")
+			return nil, false, errors.New("resource-not-found")
 		}
 
-		savedResources[savedResource.Name] = savedResource
+		savedResources = append(savedResources, savedResource)
 	}
 
-	pipelineConfig, _, found, err := pdb.GetConfig()
-	if err != nil {
-		return nil, nil, false, err
-	}
-
-	if !found {
-		return nil, nil, false, nil
-	}
-	resourceConfigs := pipelineConfig.Resources
-	var dashboardResources []DashboardResource
-
-	for _, resourceConfig := range resourceConfigs {
-		savedResource, found := savedResources[resourceConfig.Name]
-		if !found {
-			return nil, nil, false, fmt.Errorf("found resource in pipeline configuration but not in database: %s", resourceConfig.Name)
-		}
-		dashboardResources = append(dashboardResources, DashboardResource{
-			Resource:       savedResource,
-			ResourceConfig: resourceConfig,
-		})
-	}
-
-	return dashboardResources, pipelineConfig.Groups, true, nil
+	return savedResources, true, nil
 }
 
 func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, interval time.Duration, immediate bool) (Lock, bool, error) {

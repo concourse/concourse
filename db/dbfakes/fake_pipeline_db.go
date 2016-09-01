@@ -92,6 +92,15 @@ type FakePipelineDB struct {
 		result3 bool
 		result4 error
 	}
+	GetUpdatedConfigStub        func() (atc.Config, db.ConfigVersion, bool, error)
+	getUpdatedConfigMutex       sync.RWMutex
+	getUpdatedConfigArgsForCall []struct{}
+	getUpdatedConfigReturns     struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 bool
+		result4 error
+	}
 	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (db.Lock, bool, error)
 	acquireSchedulingLockMutex       sync.RWMutex
 	acquireSchedulingLockArgsForCall []struct {
@@ -113,14 +122,13 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
-	GetResourcesStub        func() ([]db.DashboardResource, atc.GroupConfigs, bool, error)
+	GetResourcesStub        func() ([]db.SavedResource, bool, error)
 	getResourcesMutex       sync.RWMutex
 	getResourcesArgsForCall []struct{}
 	getResourcesReturns     struct {
-		result1 []db.DashboardResource
-		result2 atc.GroupConfigs
-		result3 bool
-		result4 error
+		result1 []db.SavedResource
+		result2 bool
+		result3 error
 	}
 	GetResourceTypeStub        func(resourceTypeName string) (db.SavedResourceType, bool, error)
 	getResourceTypeMutex       sync.RWMutex
@@ -856,6 +864,34 @@ func (fake *FakePipelineDB) GetConfigReturns(result1 atc.Config, result2 db.Conf
 	}{result1, result2, result3, result4}
 }
 
+func (fake *FakePipelineDB) GetUpdatedConfig() (atc.Config, db.ConfigVersion, bool, error) {
+	fake.getUpdatedConfigMutex.Lock()
+	fake.getUpdatedConfigArgsForCall = append(fake.getUpdatedConfigArgsForCall, struct{}{})
+	fake.recordInvocation("GetUpdatedConfig", []interface{}{})
+	fake.getUpdatedConfigMutex.Unlock()
+	if fake.GetUpdatedConfigStub != nil {
+		return fake.GetUpdatedConfigStub()
+	} else {
+		return fake.getUpdatedConfigReturns.result1, fake.getUpdatedConfigReturns.result2, fake.getUpdatedConfigReturns.result3, fake.getUpdatedConfigReturns.result4
+	}
+}
+
+func (fake *FakePipelineDB) GetUpdatedConfigCallCount() int {
+	fake.getUpdatedConfigMutex.RLock()
+	defer fake.getUpdatedConfigMutex.RUnlock()
+	return len(fake.getUpdatedConfigArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetUpdatedConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 bool, result4 error) {
+	fake.GetUpdatedConfigStub = nil
+	fake.getUpdatedConfigReturns = struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
 func (fake *FakePipelineDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (db.Lock, bool, error) {
 	fake.acquireSchedulingLockMutex.Lock()
 	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
@@ -927,7 +963,7 @@ func (fake *FakePipelineDB) GetResourceReturns(result1 db.SavedResource, result2
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetResources() ([]db.DashboardResource, atc.GroupConfigs, bool, error) {
+func (fake *FakePipelineDB) GetResources() ([]db.SavedResource, bool, error) {
 	fake.getResourcesMutex.Lock()
 	fake.getResourcesArgsForCall = append(fake.getResourcesArgsForCall, struct{}{})
 	fake.recordInvocation("GetResources", []interface{}{})
@@ -935,7 +971,7 @@ func (fake *FakePipelineDB) GetResources() ([]db.DashboardResource, atc.GroupCon
 	if fake.GetResourcesStub != nil {
 		return fake.GetResourcesStub()
 	} else {
-		return fake.getResourcesReturns.result1, fake.getResourcesReturns.result2, fake.getResourcesReturns.result3, fake.getResourcesReturns.result4
+		return fake.getResourcesReturns.result1, fake.getResourcesReturns.result2, fake.getResourcesReturns.result3
 	}
 }
 
@@ -945,14 +981,13 @@ func (fake *FakePipelineDB) GetResourcesCallCount() int {
 	return len(fake.getResourcesArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetResourcesReturns(result1 []db.DashboardResource, result2 atc.GroupConfigs, result3 bool, result4 error) {
+func (fake *FakePipelineDB) GetResourcesReturns(result1 []db.SavedResource, result2 bool, result3 error) {
 	fake.GetResourcesStub = nil
 	fake.getResourcesReturns = struct {
-		result1 []db.DashboardResource
-		result2 atc.GroupConfigs
-		result3 bool
-		result4 error
-	}{result1, result2, result3, result4}
+		result1 []db.SavedResource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakePipelineDB) GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error) {
@@ -2488,6 +2523,8 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.destroyMutex.RUnlock()
 	fake.getConfigMutex.RLock()
 	defer fake.getConfigMutex.RUnlock()
+	fake.getUpdatedConfigMutex.RLock()
+	defer fake.getUpdatedConfigMutex.RUnlock()
 	fake.acquireSchedulingLockMutex.RLock()
 	defer fake.acquireSchedulingLockMutex.RUnlock()
 	fake.getResourceMutex.RLock()

@@ -29,13 +29,6 @@ func (s *Server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 		resourceName := r.FormValue(":resource_name")
 		teamName := r.FormValue(":team_name")
 
-		resourceConfig, resourceFound := config.Resources.Lookup(resourceName)
-		if !resourceFound {
-			logger.Info("resource-not-in-config")
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
 		dbResource, found, err := pipelineDB.GetResource(resourceName)
 		if err != nil {
 			logger.Error("failed-to-get-resource", err)
@@ -50,9 +43,8 @@ func (s *Server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 		}
 
 		resource := present.Resource(
-			resourceConfig,
-			config.Groups,
 			dbResource,
+			config.Groups,
 			auth.IsAuthenticated(r),
 			teamName,
 		)

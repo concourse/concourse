@@ -314,7 +314,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).NotTo(ContainElement(fetchedPipeline))
 
-			_, _, found, err = fetchedPipelineDB.GetConfig()
+			_, _, found, err = fetchedPipelineDB.GetUpdatedConfig()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 
@@ -469,16 +469,16 @@ var _ = Describe("PipelineDB", func() {
 		})
 	})
 
-	Describe("getting the pipeline configuration", func() {
+	Describe("GetUpdatedConfig", func() {
 		It("can manage multiple pipeline configurations", func() {
 			By("returning the saved config to later gets")
-			returnedConfig, configVersion, found, err := pipelineDB.GetConfig()
+			returnedConfig, configVersion, found, err := pipelineDB.GetUpdatedConfig()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(returnedConfig).To(Equal(pipelineConfig))
 			Expect(configVersion).NotTo(Equal(db.ConfigVersion(0)))
 
-			otherReturnedConfig, otherConfigVersion, found, err := otherPipelineDB.GetConfig()
+			otherReturnedConfig, otherConfigVersion, found, err := otherPipelineDB.GetUpdatedConfig()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(otherReturnedConfig).To(Equal(otherPipelineConfig))
@@ -523,13 +523,13 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the updated config")
-			returnedConfig, newConfigVersion, found, err := pipelineDB.GetConfig()
+			returnedConfig, newConfigVersion, found, err := pipelineDB.GetUpdatedConfig()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(returnedConfig).To(Equal(updatedConfig))
 			Expect(newConfigVersion).NotTo(Equal(configVersion))
 
-			otherReturnedConfig, newOtherConfigVersion, found, err := otherPipelineDB.GetConfig()
+			otherReturnedConfig, newOtherConfigVersion, found, err := otherPipelineDB.GetUpdatedConfig()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(otherReturnedConfig).To(Equal(updatedConfig))
@@ -1758,27 +1758,18 @@ var _ = Describe("PipelineDB", func() {
 
 	Describe("GetResources", func() {
 		var (
-			dashboardResource1 db.DashboardResource
-			dashboardResource2 db.DashboardResource
-			dashboardResource3 db.DashboardResource
+			resource1 db.SavedResource
+			resource2 db.SavedResource
+			resource3 db.SavedResource
 		)
 		BeforeEach(func() {
-			dashboardResource1 = db.DashboardResource{
-				Resource: db.SavedResource{
-					ID:           0,
-					CheckError:   nil,
-					Paused:       false,
-					PipelineName: "a-pipeline-name",
-					Resource:     db.Resource{Name: "some-resource"},
-					Config: atc.ResourceConfig{
-						Name: "some-resource",
-						Type: "some-type",
-						Source: atc.Source{
-							"source-config": "some-value",
-						},
-					},
-				},
-				ResourceConfig: atc.ResourceConfig{
+			resource1 = db.SavedResource{
+				ID:           0,
+				CheckError:   nil,
+				Paused:       false,
+				PipelineName: "a-pipeline-name",
+				Resource:     db.Resource{Name: "some-resource"},
+				Config: atc.ResourceConfig{
 					Name: "some-resource",
 					Type: "some-type",
 					Source: atc.Source{
@@ -1787,22 +1778,13 @@ var _ = Describe("PipelineDB", func() {
 				},
 			}
 
-			dashboardResource2 = db.DashboardResource{
-				Resource: db.SavedResource{
-					ID:           0,
-					CheckError:   nil,
-					Paused:       false,
-					PipelineName: "a-pipeline-name",
-					Resource:     db.Resource{Name: "some-other-resource"},
-					Config: atc.ResourceConfig{
-						Name: "some-other-resource",
-						Type: "some-type",
-						Source: atc.Source{
-							"source-config": "some-value",
-						},
-					},
-				},
-				ResourceConfig: atc.ResourceConfig{
+			resource2 = db.SavedResource{
+				ID:           0,
+				CheckError:   nil,
+				Paused:       false,
+				PipelineName: "a-pipeline-name",
+				Resource:     db.Resource{Name: "some-other-resource"},
+				Config: atc.ResourceConfig{
 					Name: "some-other-resource",
 					Type: "some-type",
 					Source: atc.Source{
@@ -1811,22 +1793,13 @@ var _ = Describe("PipelineDB", func() {
 				},
 			}
 
-			dashboardResource3 = db.DashboardResource{
-				Resource: db.SavedResource{
-					ID:           0,
-					CheckError:   nil,
-					Paused:       false,
-					PipelineName: "a-pipeline-name",
-					Resource:     db.Resource{Name: "some-really-other-resource"},
-					Config: atc.ResourceConfig{
-						Name: "some-really-other-resource",
-						Type: "some-type",
-						Source: atc.Source{
-							"source-config": "some-value",
-						},
-					},
-				},
-				ResourceConfig: atc.ResourceConfig{
+			resource3 = db.SavedResource{
+				ID:           0,
+				CheckError:   nil,
+				Paused:       false,
+				PipelineName: "a-pipeline-name",
+				Resource:     db.Resource{Name: "some-really-other-resource"},
+				Config: atc.ResourceConfig{
 					Name: "some-really-other-resource",
 					Type: "some-type",
 					Source: atc.Source{
@@ -1835,90 +1808,36 @@ var _ = Describe("PipelineDB", func() {
 				},
 			}
 		})
-		Context("when there is a one-to-one correspondence between saved and configured resources", func() {
-			It("returns all the saved resources", func() {
-				dashboardResources, groupConfigs, found, err := pipelineDB.GetResources()
+
+		It("returns all active resources", func() {
+			resources, found, err := pipelineDB.GetResources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			for i, _ := range resources {
+				resources[i].ID = 0
+			}
+
+			Expect(resources).To(HaveLen(3))
+			Expect(resources).To(ConsistOf(resource1, resource2, resource3))
+		})
+
+		XContext("when there is a saved resource that is not active", func() {
+			BeforeEach(func() {
+
+			})
+
+			It("returns the active resources", func() {
+				resources, found, err := pipelineDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				for i, _ := range dashboardResources {
-					dashboardResources[i].Resource.ID = 0
+				for i, _ := range resources {
+					resources[i].ID = 0
 				}
 
-				Expect(dashboardResources).To(HaveLen(3))
-				Expect(dashboardResources).To(ConsistOf(dashboardResource1, dashboardResource2, dashboardResource3))
-				Expect(groupConfigs).To(Equal(atc.GroupConfigs{
-					{
-						Name:      "some-group",
-						Jobs:      []string{"job-1", "job-2"},
-						Resources: []string{"some-resource", "some-other-resource"},
-					},
-				}))
-			})
-		})
-
-		Context("when there is a saved resource that is not configured", func() {
-			BeforeEach(func() {
-				pipelineConfigMinusResource := pipelineConfig
-				pipelineConfigMinusResource.Resources = []atc.ResourceConfig{
-					pipelineConfig.Resources[0],
-					pipelineConfig.Resources[2],
-				}
-
-				_, _, err := teamDB.SaveConfig("a-pipeline-name", pipelineConfigMinusResource, 1, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns the configured resources", func() {
-				dashboardResources, groupConfigs, found, err := pipelineDB.GetResources()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				for i, _ := range dashboardResources {
-					dashboardResources[i].Resource.ID = 0
-				}
-
-				Expect(dashboardResources).To(HaveLen(2))
-				Expect(dashboardResources).To(ConsistOf(dashboardResource1, dashboardResource3))
-				Expect(groupConfigs).To(Equal(atc.GroupConfigs{
-					{
-						Name:      "some-group",
-						Jobs:      []string{"job-1", "job-2"},
-						Resources: []string{"some-resource", "some-other-resource"},
-					},
-				}))
-			})
-		})
-
-		Context("when there is a configured resource that is not saved for some reason", func() {
-			BeforeEach(func() {
-				result, err := dbConn.Exec(`
-					delete from resources
-						where pipeline_id = $1
-						and name = 'some-resource'
-					`, pipelineDB.GetPipelineID())
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(1)))
-			})
-			It("returns an error", func() {
-				_, _, _, err := pipelineDB.GetResources()
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(
-					errors.New("found resource in pipeline configuration but not in database: some-resource"),
-				))
-			})
-		})
-
-		Context("when the pipeline has been deleted in the meantime", func() {
-			BeforeEach(func() {
-				err := pipelineDB.Destroy()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns not found", func() {
-				_, _, found, err := pipelineDB.GetResources()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
+				Expect(resources).To(HaveLen(2))
+				Expect(resources).To(ConsistOf(resource1, resource3))
 			})
 		})
 	})

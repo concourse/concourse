@@ -41,62 +41,59 @@ var _ = Describe("Resources API", func() {
 
 		Context("when getting the dashboard resources succeeds", func() {
 			BeforeEach(func() {
-				groupConfigs := []atc.GroupConfig{
-					{
-						Name:      "group-1",
-						Resources: []string{"resource-1"},
-					},
-					{
-						Name:      "group-2",
-						Resources: []string{"resource-1", "resource-2"},
-					},
-				}
-
-				dashboardResource1 := db.DashboardResource{
-					Resource: db.SavedResource{
-						ID:           1,
-						CheckError:   nil,
-						Paused:       true,
-						PipelineName: "a-pipeline",
-						Resource:     db.Resource{Name: "resource-1"},
-					},
-					ResourceConfig: atc.ResourceConfig{
+				resource1 := db.SavedResource{
+					ID:           1,
+					CheckError:   nil,
+					Paused:       true,
+					PipelineName: "a-pipeline",
+					Resource:     db.Resource{Name: "resource-1"},
+					Config: atc.ResourceConfig{
 						Name: "resource-1",
 						Type: "type-1",
 					},
 				}
 
-				dashboardResource2 := db.DashboardResource{
-					Resource: db.SavedResource{
-						ID:           2,
-						CheckError:   errors.New("sup"),
-						Paused:       false,
-						PipelineName: "a-pipeline",
-						Resource:     db.Resource{Name: "resource-2"},
-					},
-					ResourceConfig: atc.ResourceConfig{
+				resource2 := db.SavedResource{
+					ID:           2,
+					CheckError:   errors.New("sup"),
+					Paused:       false,
+					PipelineName: "a-pipeline",
+					Resource:     db.Resource{Name: "resource-2"},
+					Config: atc.ResourceConfig{
 						Name: "resource-2",
 						Type: "type-2",
 					},
 				}
 
-				dashboardResource3 := db.DashboardResource{
-					Resource: db.SavedResource{
-						ID:           3,
-						CheckError:   nil,
-						Paused:       true,
-						PipelineName: "a-pipeline",
-						Resource:     db.Resource{Name: "resource-3"},
-					},
-					ResourceConfig: atc.ResourceConfig{
+				resource3 := db.SavedResource{
+					ID:           3,
+					CheckError:   nil,
+					Paused:       true,
+					PipelineName: "a-pipeline",
+					Resource:     db.Resource{Name: "resource-3"},
+					Config: atc.ResourceConfig{
 						Name: "resource-3",
 						Type: "type-3",
 					},
 				}
 
-				fakePipelineDB.GetResourcesReturns([]db.DashboardResource{
-					dashboardResource1, dashboardResource2, dashboardResource3,
-				}, groupConfigs, true, nil)
+				fakePipelineDB.GetResourcesReturns([]db.SavedResource{
+					resource1, resource2, resource3,
+				}, true, nil)
+
+				fakePipelineDB.GetConfigReturns(atc.Config{
+					Groups: []atc.GroupConfig{
+						{
+							Name:      "group-1",
+							Resources: []string{"resource-1"},
+						},
+						{
+							Name:      "group-2",
+							Resources: []string{"resource-1", "resource-2"},
+						},
+					},
+				}, db.ConfigVersion(1), true, nil)
+
 			})
 
 			Context("when not authorized", func() {
@@ -198,7 +195,7 @@ var _ = Describe("Resources API", func() {
 				Context("when getting the resource config fails", func() {
 					Context("when the pipeline is no longer configured", func() {
 						BeforeEach(func() {
-							fakePipelineDB.GetResourcesReturns(nil, nil, false, nil)
+							fakePipelineDB.GetResourcesReturns(nil, false, nil)
 						})
 
 						It("returns 404", func() {
@@ -208,7 +205,7 @@ var _ = Describe("Resources API", func() {
 
 					Context("with an unknown error", func() {
 						BeforeEach(func() {
-							fakePipelineDB.GetResourcesReturns(nil, nil, false, errors.New("oh no!"))
+							fakePipelineDB.GetResourcesReturns(nil, false, errors.New("oh no!"))
 						})
 
 						It("returns 500", func() {
@@ -256,15 +253,18 @@ var _ = Describe("Resources API", func() {
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
 					fakePipelineDB.IsPublicReturns(true)
-					fakePipelineDB.GetConfigReturns(atc.Config{
-						Resources: []atc.ResourceConfig{
-							{Name: "resource-1", Type: "type-1"},
-						}}, 1, true, nil)
 					resourceName = "resource-1"
 					fakePipelineDB.GetResourceReturns(db.SavedResource{
 						CheckError:   errors.New("sup"),
 						PipelineName: "a-pipeline",
+						Config: atc.ResourceConfig{
+							Type: "type-1",
+						},
+						Resource: db.Resource{
+							Name: "resource-1",
+						},
 					}, true, nil)
+					fakePipelineDB.GetConfigReturns(atc.Config{}, 1, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -386,7 +386,22 @@ var _ = Describe("Resources API", func() {
 								Resource: db.Resource{
 									Name: "resource-1",
 								},
+								Config: atc.ResourceConfig{
+									Type: "type-1",
+								},
 							}, true, nil)
+							fakePipelineDB.GetConfigReturns(atc.Config{
+								Groups: []atc.GroupConfig{
+									{
+										Name:      "group-1",
+										Resources: []string{"resource-1"},
+									},
+									{
+										Name:      "group-2",
+										Resources: []string{"resource-1", "resource-2"},
+									},
+								},
+							}, db.ConfigVersion(1), true, nil)
 						})
 
 						It("returns 200 ok", func() {

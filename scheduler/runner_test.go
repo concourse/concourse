@@ -86,7 +86,7 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		pipelineDB.GetConfigReturns(initialConfig, 1, true, nil)
+		pipelineDB.GetUpdatedConfigReturns(initialConfig, 1, true, nil)
 
 		lock = new(dbfakes.FakeLease)
 		pipelineDB.AcquireSchedulingLockReturns(lock, true, nil)
@@ -163,7 +163,7 @@ var _ = Describe("Runner", func() {
 		})
 	})
 
-	failingGetConfigStubWith := func(found bool, err error) func() (atc.Config, db.ConfigVersion, bool, error) {
+	failingGetUpdatedConfigStubWith := func(found bool, err error) func() (atc.Config, db.ConfigVersion, bool, error) {
 		calls := 0
 
 		return func() (atc.Config, db.ConfigVersion, bool, error) {
@@ -179,7 +179,7 @@ var _ = Describe("Runner", func() {
 
 	Context("when the pipeline is destroyed", func() {
 		BeforeEach(func() {
-			pipelineDB.GetConfigStub = failingGetConfigStubWith(false, nil)
+			pipelineDB.GetUpdatedConfigStub = failingGetUpdatedConfigStubWith(false, nil)
 		})
 
 		It("exits", func() {
@@ -189,11 +189,11 @@ var _ = Describe("Runner", func() {
 
 	Context("when getting the config fails for some other reason", func() {
 		BeforeEach(func() {
-			pipelineDB.GetConfigStub = failingGetConfigStubWith(false, errors.New("idk lol"))
+			pipelineDB.GetUpdatedConfigStub = failingGetUpdatedConfigStubWith(false, errors.New("idk lol"))
 		})
 
 		It("keeps on truckin'", func() {
-			Eventually(pipelineDB.GetConfigCallCount).Should(BeNumerically(">=", 2))
+			Eventually(pipelineDB.GetUpdatedConfigCallCount).Should(BeNumerically(">=", 2))
 		})
 	})
 })

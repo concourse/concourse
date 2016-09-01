@@ -19,11 +19,6 @@ type SavedResource struct {
 	Resource
 }
 
-type DashboardResource struct {
-	Resource       SavedResource
-	ResourceConfig atc.ResourceConfig
-}
-
 type SavedResourceType struct {
 	ID      int
 	Name    string
