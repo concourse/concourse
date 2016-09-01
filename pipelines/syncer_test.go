@@ -157,7 +157,6 @@ var _ = Describe("Pipelines Syncer", func() {
 				syncer.Sync()
 
 				Eventually(fakeRunner.RunCallCount).Should(Equal(2))
-				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 				signals, _ := fakeRunner.RunArgsForCall(0)
 				Eventually(signals).Should(Receive(Equal(os.Interrupt)))
@@ -187,7 +186,6 @@ var _ = Describe("Pipelines Syncer", func() {
 				syncer.Sync()
 
 				Eventually(fakeRunner.RunCallCount).Should(Equal(2))
-				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 				signals, _ := fakeRunner.RunArgsForCall(0)
 				Eventually(signals).Should(Receive(Equal(os.Interrupt)))
