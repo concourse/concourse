@@ -147,6 +147,8 @@ before using it!
     \hyperlink{https://github.com/frodenas/gcs-resource}{Google Cloud Storage}
   }{
     \hyperlink{https://github.com/troykinsella/concourse-fly-resource}{Fly}
+  }{
+    \hyperlink{https://github.com/jcderr/concourse-kubernetes-resource}{Kubernetes}
   }
 
   \section{Adding to this list}{
