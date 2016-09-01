@@ -101,7 +101,7 @@ func (runner *Runner) tick(
 	scanningResourceTypes map[string]bool,
 	insertScanner chan<- grouper.Member,
 ) {
-	config, _, found, err := runner.db.GetUpdatedConfig()
+	found, err := runner.db.Reload()
 	if err != nil {
 		runner.logger.Error("failed-to-get-config", err)
 		return
@@ -111,6 +111,8 @@ func (runner *Runner) tick(
 		runner.logger.Info("pipeline-removed")
 		return
 	}
+
+	config := runner.db.Config()
 
 	for _, resourceType := range config.ResourceTypes {
 		scopedName := runner.db.ScopedName("resource-type:" + resourceType.Name)

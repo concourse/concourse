@@ -334,7 +334,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				logger.Session("container-keepaliver"),
 				workerClient,
 				sqlDB,
-				pipelineDBFactory,
 			),
 			"container-keepaliver",
 			sqlDB,

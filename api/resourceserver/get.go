@@ -13,18 +13,7 @@ import (
 func (s *Server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 	logger := s.logger.Session("get-resource")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		config, _, found, err := pipelineDB.GetConfig()
-		if err != nil {
-			logger.Error("failed-to-get-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !found {
-			logger.Info("config-not-found")
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+		config := pipelineDB.Config()
 
 		resourceName := r.FormValue(":resource_name")
 		teamName := r.FormValue(":team_name")

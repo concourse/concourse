@@ -19,27 +19,24 @@ type ContainerKeepAliverDB interface {
 	FindLatestSuccessfulBuildsPerJob() (map[int]int, error)
 	FindJobContainersFromUnsuccessfulBuilds() ([]db.SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
-	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
+	GetAllPipelines() ([]db.SavedPipeline, error)
 }
 
 type containerKeepAliver struct {
-	logger            lager.Logger
-	workerClient      worker.Client
-	db                ContainerKeepAliverDB
-	pipelineDBFactory db.PipelineDBFactory
+	logger       lager.Logger
+	workerClient worker.Client
+	db           ContainerKeepAliverDB
 }
 
 func NewContainerKeepAliver(
 	logger lager.Logger,
 	workerClient worker.Client,
 	db ContainerKeepAliverDB,
-	pipelineDBFactory db.PipelineDBFactory,
 ) ContainerKeepAliver {
 	return &containerKeepAliver{
-		logger:            logger,
-		workerClient:      workerClient,
-		db:                db,
-		pipelineDBFactory: pipelineDBFactory,
+		logger:       logger,
+		workerClient: workerClient,
+		db:           db,
 	}
 }
 
@@ -88,23 +85,26 @@ func (cr *containerKeepAliver) buildFailedMap(containers []db.SavedContainer) ma
 	var jobContainerMap map[int][]db.SavedContainer
 	jobContainerMap = make(map[int][]db.SavedContainer)
 
+	savedPipelines, err := cr.db.GetAllPipelines()
+	if err != nil {
+		cr.logger.Error("failed-to-get-all-pipelines", err)
+		return nil
+	}
+
+	pipelinesByIDs := map[int]db.SavedPipeline{}
+	for _, savedPipeline := range savedPipelines {
+		pipelinesByIDs[savedPipeline.ID] = savedPipeline
+	}
+
 	for _, container := range containers {
-		savedPipeline, err := cr.db.GetPipelineByID(container.PipelineID)
-		if err != nil {
+		savedPipeline, ok := pipelinesByIDs[container.PipelineID]
+		if !ok {
 			cr.logger.Error("failed-to-find-pipeline-for-build", err, lager.Data{"build-id": container.BuildID})
 			continue
 		}
 
-		pipelineDB := cr.pipelineDBFactory.Build(savedPipeline)
-
-		pipelineConfig, _, found, err := pipelineDB.GetConfig()
-		if err != nil || !found {
-			cr.logger.Error("failed-to-get-pipeline-config", err, lager.Data{"build-id": container.BuildID, "found": found})
-			continue
-		}
-
 		jobExpired := true
-		for _, jobConfig := range pipelineConfig.Jobs {
+		for _, jobConfig := range savedPipeline.Config.Jobs {
 			if jobConfig.Name == container.JobName {
 				jobExpired = false
 				break

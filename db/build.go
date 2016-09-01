@@ -637,16 +637,7 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, err
 	}
 
-	pipelineConfig, _, found, err := pdb.GetConfig()
-	if err != nil {
-		return BuildPreparation{}, false, err
-	}
-
-	if !found {
-		return BuildPreparation{}, false, nil
-	}
-
-	jobConfig, found := pipelineConfig.Jobs.Lookup(jobName)
+	jobConfig, found := pdb.Config().Jobs.Lookup(jobName)
 	if !found {
 		return BuildPreparation{}, false, nil
 	}

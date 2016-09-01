@@ -102,19 +102,7 @@ func (s *Server) JobBadge(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 
-		config, _, found, err := pipelineDB.GetConfig()
-		if err != nil {
-			logger.Error("could-not-get-pipeline-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		_, found = config.Jobs.Lookup(jobName)
+		_, found := pipelineDB.Config().Jobs.Lookup(jobName)
 		if !found {
 			w.WriteHeader(http.StatusNotFound)
 			return

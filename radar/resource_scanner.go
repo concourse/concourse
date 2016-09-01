@@ -308,7 +308,7 @@ func (scanner *resourceScanner) checkInterval(resourceConfig atc.ResourceConfig)
 var errPipelineRemoved = errors.New("pipeline removed")
 
 func (scanner *resourceScanner) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, atc.ResourceTypes, error) {
-	config, _, found, err := scanner.db.GetConfig()
+	found, err := scanner.db.Reload()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
 		return atc.ResourceConfig{}, nil, err
@@ -318,6 +318,8 @@ func (scanner *resourceScanner) getResourceConfig(logger lager.Logger, resourceN
 		logger.Info("pipeline-removed")
 		return atc.ResourceConfig{}, nil, errPipelineRemoved
 	}
+
+	config := scanner.db.Config()
 
 	resourceConfig, found := config.Resources.Lookup(resourceName)
 	if !found {

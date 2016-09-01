@@ -81,7 +81,7 @@ var _ = Describe("Resources API", func() {
 					resource1, resource2, resource3,
 				}, true, nil)
 
-				fakePipelineDB.GetConfigReturns(atc.Config{
+				fakePipelineDB.ConfigReturns(atc.Config{
 					Groups: []atc.GroupConfig{
 						{
 							Name:      "group-1",
@@ -92,7 +92,7 @@ var _ = Describe("Resources API", func() {
 							Resources: []string{"resource-1", "resource-2"},
 						},
 					},
-				}, db.ConfigVersion(1), true, nil)
+				})
 
 			})
 
@@ -264,7 +264,6 @@ var _ = Describe("Resources API", func() {
 							Name: "resource-1",
 						},
 					}, true, nil)
-					fakePipelineDB.GetConfigReturns(atc.Config{}, 1, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -294,32 +293,12 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("calls to get the config from the pipelineDB", func() {
-				Expect(fakePipelineDB.GetConfigCallCount()).To(Equal(1))
-			})
-
-			Context("when the call to get config returns an error", func() {
-				BeforeEach(func() {
-					fakePipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("disaster"))
-				})
-
-				It("returns a 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("when the config in the database can't be found", func() {
-				BeforeEach(func() {
-					fakePipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
-				})
-
-				It("returns a 404", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
+				Expect(fakePipelineDB.ConfigCallCount()).To(Equal(1))
 			})
 
 			Context("when getting the config is successful", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetConfigReturns(atc.Config{
+					fakePipelineDB.ConfigReturns(atc.Config{
 						Groups: []atc.GroupConfig{
 							{
 								Name:      "group-1",
@@ -337,7 +316,7 @@ var _ = Describe("Resources API", func() {
 							{Name: "resource-3", Type: "type-3"},
 							{Name: "resource-in-config-but-not-db", Type: "type-1"},
 						},
-					}, 1, true, nil)
+					})
 				})
 
 				Context("when the resource cannot be found in the config", func() {
@@ -390,7 +369,7 @@ var _ = Describe("Resources API", func() {
 									Type: "type-1",
 								},
 							}, true, nil)
-							fakePipelineDB.GetConfigReturns(atc.Config{
+							fakePipelineDB.ConfigReturns(atc.Config{
 								Groups: []atc.GroupConfig{
 									{
 										Name:      "group-1",
@@ -401,7 +380,7 @@ var _ = Describe("Resources API", func() {
 										Resources: []string{"resource-1", "resource-2"},
 									},
 								},
-							}, db.ConfigVersion(1), true, nil)
+							})
 						})
 
 						It("returns 200 ok", func() {

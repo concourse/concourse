@@ -44,6 +44,25 @@ type FakePipelineDB struct {
 	teamIDReturns     struct {
 		result1 int
 	}
+	ConfigStub        func() atc.Config
+	configMutex       sync.RWMutex
+	configArgsForCall []struct{}
+	configReturns     struct {
+		result1 atc.Config
+	}
+	ConfigVersionStub        func() db.ConfigVersion
+	configVersionMutex       sync.RWMutex
+	configVersionArgsForCall []struct{}
+	configVersionReturns     struct {
+		result1 db.ConfigVersion
+	}
+	ReloadStub        func() (bool, error)
+	reloadMutex       sync.RWMutex
+	reloadArgsForCall []struct{}
+	reloadReturns     struct {
+		result1 bool
+		result2 error
+	}
 	PauseStub        func() error
 	pauseMutex       sync.RWMutex
 	pauseArgsForCall []struct{}
@@ -82,24 +101,6 @@ type FakePipelineDB struct {
 	destroyArgsForCall []struct{}
 	destroyReturns     struct {
 		result1 error
-	}
-	GetConfigStub        func() (atc.Config, db.ConfigVersion, bool, error)
-	getConfigMutex       sync.RWMutex
-	getConfigArgsForCall []struct{}
-	getConfigReturns     struct {
-		result1 atc.Config
-		result2 db.ConfigVersion
-		result3 bool
-		result4 error
-	}
-	GetUpdatedConfigStub        func() (atc.Config, db.ConfigVersion, bool, error)
-	getUpdatedConfigMutex       sync.RWMutex
-	getUpdatedConfigArgsForCall []struct{}
-	getUpdatedConfigReturns     struct {
-		result1 atc.Config
-		result2 db.ConfigVersion
-		result3 bool
-		result4 error
 	}
 	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (db.Lock, bool, error)
 	acquireSchedulingLockMutex       sync.RWMutex
@@ -677,6 +678,82 @@ func (fake *FakePipelineDB) TeamIDReturns(result1 int) {
 	}{result1}
 }
 
+func (fake *FakePipelineDB) Config() atc.Config {
+	fake.configMutex.Lock()
+	fake.configArgsForCall = append(fake.configArgsForCall, struct{}{})
+	fake.recordInvocation("Config", []interface{}{})
+	fake.configMutex.Unlock()
+	if fake.ConfigStub != nil {
+		return fake.ConfigStub()
+	} else {
+		return fake.configReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) ConfigCallCount() int {
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
+	return len(fake.configArgsForCall)
+}
+
+func (fake *FakePipelineDB) ConfigReturns(result1 atc.Config) {
+	fake.ConfigStub = nil
+	fake.configReturns = struct {
+		result1 atc.Config
+	}{result1}
+}
+
+func (fake *FakePipelineDB) ConfigVersion() db.ConfigVersion {
+	fake.configVersionMutex.Lock()
+	fake.configVersionArgsForCall = append(fake.configVersionArgsForCall, struct{}{})
+	fake.recordInvocation("ConfigVersion", []interface{}{})
+	fake.configVersionMutex.Unlock()
+	if fake.ConfigVersionStub != nil {
+		return fake.ConfigVersionStub()
+	} else {
+		return fake.configVersionReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) ConfigVersionCallCount() int {
+	fake.configVersionMutex.RLock()
+	defer fake.configVersionMutex.RUnlock()
+	return len(fake.configVersionArgsForCall)
+}
+
+func (fake *FakePipelineDB) ConfigVersionReturns(result1 db.ConfigVersion) {
+	fake.ConfigVersionStub = nil
+	fake.configVersionReturns = struct {
+		result1 db.ConfigVersion
+	}{result1}
+}
+
+func (fake *FakePipelineDB) Reload() (bool, error) {
+	fake.reloadMutex.Lock()
+	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
+	fake.recordInvocation("Reload", []interface{}{})
+	fake.reloadMutex.Unlock()
+	if fake.ReloadStub != nil {
+		return fake.ReloadStub()
+	} else {
+		return fake.reloadReturns.result1, fake.reloadReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) ReloadCallCount() int {
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
+	return len(fake.reloadArgsForCall)
+}
+
+func (fake *FakePipelineDB) ReloadReturns(result1 bool, result2 error) {
+	fake.ReloadStub = nil
+	fake.reloadReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakePipelineDB) Pause() error {
 	fake.pauseMutex.Lock()
 	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct{}{})
@@ -834,62 +911,6 @@ func (fake *FakePipelineDB) DestroyReturns(result1 error) {
 	fake.destroyReturns = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakePipelineDB) GetConfig() (atc.Config, db.ConfigVersion, bool, error) {
-	fake.getConfigMutex.Lock()
-	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct{}{})
-	fake.recordInvocation("GetConfig", []interface{}{})
-	fake.getConfigMutex.Unlock()
-	if fake.GetConfigStub != nil {
-		return fake.GetConfigStub()
-	} else {
-		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3, fake.getConfigReturns.result4
-	}
-}
-
-func (fake *FakePipelineDB) GetConfigCallCount() int {
-	fake.getConfigMutex.RLock()
-	defer fake.getConfigMutex.RUnlock()
-	return len(fake.getConfigArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 bool, result4 error) {
-	fake.GetConfigStub = nil
-	fake.getConfigReturns = struct {
-		result1 atc.Config
-		result2 db.ConfigVersion
-		result3 bool
-		result4 error
-	}{result1, result2, result3, result4}
-}
-
-func (fake *FakePipelineDB) GetUpdatedConfig() (atc.Config, db.ConfigVersion, bool, error) {
-	fake.getUpdatedConfigMutex.Lock()
-	fake.getUpdatedConfigArgsForCall = append(fake.getUpdatedConfigArgsForCall, struct{}{})
-	fake.recordInvocation("GetUpdatedConfig", []interface{}{})
-	fake.getUpdatedConfigMutex.Unlock()
-	if fake.GetUpdatedConfigStub != nil {
-		return fake.GetUpdatedConfigStub()
-	} else {
-		return fake.getUpdatedConfigReturns.result1, fake.getUpdatedConfigReturns.result2, fake.getUpdatedConfigReturns.result3, fake.getUpdatedConfigReturns.result4
-	}
-}
-
-func (fake *FakePipelineDB) GetUpdatedConfigCallCount() int {
-	fake.getUpdatedConfigMutex.RLock()
-	defer fake.getUpdatedConfigMutex.RUnlock()
-	return len(fake.getUpdatedConfigArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetUpdatedConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 bool, result4 error) {
-	fake.GetUpdatedConfigStub = nil
-	fake.getUpdatedConfigReturns = struct {
-		result1 atc.Config
-		result2 db.ConfigVersion
-		result3 bool
-		result4 error
-	}{result1, result2, result3, result4}
 }
 
 func (fake *FakePipelineDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (db.Lock, bool, error) {
@@ -2509,6 +2530,12 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.scopedNameMutex.RUnlock()
 	fake.teamIDMutex.RLock()
 	defer fake.teamIDMutex.RUnlock()
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
+	fake.configVersionMutex.RLock()
+	defer fake.configVersionMutex.RUnlock()
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
 	fake.pauseMutex.RLock()
 	defer fake.pauseMutex.RUnlock()
 	fake.unpauseMutex.RLock()
@@ -2521,10 +2548,6 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.updateNameMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
-	fake.getConfigMutex.RLock()
-	defer fake.getConfigMutex.RUnlock()
-	fake.getUpdatedConfigMutex.RLock()
-	defer fake.getUpdatedConfigMutex.RUnlock()
 	fake.acquireSchedulingLockMutex.RLock()
 	defer fake.acquireSchedulingLockMutex.RUnlock()
 	fake.getResourceMutex.RLock()

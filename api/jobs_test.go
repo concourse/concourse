@@ -40,7 +40,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the job config succeeds", func() {
 			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{
+				pipelineDB.ConfigReturns(atc.Config{
 					Groups: []atc.GroupConfig{
 						{
 							Name: "group-1",
@@ -76,7 +76,7 @@ var _ = Describe("Jobs API", func() {
 							},
 						},
 					},
-				}, 1, true, nil)
+				})
 			})
 
 			Context("when not authorized", func() {
@@ -257,37 +257,15 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when the job is not present in the config", func() {
 					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{
+						pipelineDB.ConfigReturns(atc.Config{
 							Jobs: []atc.JobConfig{
 								{Name: "other-job"},
 							},
-						}, 1, true, nil)
+						})
 					})
 
 					It("returns 404", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
-				})
-
-				Context("when getting the job config fails", func() {
-					Context("when the pipeline is no longer configured", func() {
-						BeforeEach(func() {
-							pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
-						})
-
-						It("returns 404", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-						})
-					})
-
-					Context("with an unknown error", func() {
-						BeforeEach(func() {
-							pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
-						})
-
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
 					})
 				})
 			})
@@ -306,7 +284,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the job config succeeds", func() {
 			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{
+				pipelineDB.ConfigReturns(atc.Config{
 					Groups: []atc.GroupConfig{
 						{
 							Name: "group-1",
@@ -342,7 +320,7 @@ var _ = Describe("Jobs API", func() {
 							},
 						},
 					},
-				}, 1, true, nil)
+				})
 			})
 
 			Context("when not authorized", func() {
@@ -645,31 +623,11 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when the job is not present in the config", func() {
 					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{
+						pipelineDB.ConfigReturns(atc.Config{
 							Jobs: []atc.JobConfig{
 								{Name: "other-job"},
 							},
-						}, 1, true, nil)
-					})
-
-					It("returns 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
-				})
-
-				Context("when getting the job config fails with an unknown error", func() {
-					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
-
-				Context("when the pipeline config is not found", func() {
-					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+						})
 					})
 
 					It("returns 404", func() {
@@ -1182,7 +1140,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when manual triggering is disabled", func() {
 				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{
+					pipelineDB.ConfigReturns(atc.Config{
 						Jobs: []atc.JobConfig{
 							{
 								Name:                 "some-job",
@@ -1199,7 +1157,7 @@ var _ = Describe("Jobs API", func() {
 							{Name: "resource-1", Type: "some-type"},
 							{Name: "resource-2", Type: "some-other-type"},
 						},
-					}, 1, true, nil)
+					})
 				})
 
 				It("should return 409", func() {
@@ -1213,7 +1171,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when getting the job config succeeds", func() {
 				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{
+					pipelineDB.ConfigReturns(atc.Config{
 						Jobs: []atc.JobConfig{
 							{
 								Name: "some-job",
@@ -1232,7 +1190,7 @@ var _ = Describe("Jobs API", func() {
 						ResourceTypes: atc.ResourceTypes{
 							{Name: "custom-resource", Type: "custom-type"},
 						},
-					}, 1, true, nil)
+					})
 				})
 
 				Context("when triggering the build succeeds", func() {
@@ -1305,37 +1263,15 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when the job is not present in the config", func() {
 					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{
+						pipelineDB.ConfigReturns(atc.Config{
 							Jobs: []atc.JobConfig{
 								{Name: "other-job"},
 							},
-						}, 1, true, nil)
+						})
 					})
 
 					It("returns 404", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
-				})
-			})
-
-			Context("when getting the job config fails", func() {
-				Context("when the pipeline is no longer configured", func() {
-					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
-					})
-
-					It("returns 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
-				})
-
-				Context("with an unknown error", func() {
-					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})
@@ -1392,7 +1328,7 @@ var _ = Describe("Jobs API", func() {
 					BeforeEach(func() {
 						fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
 						fakeSchedulerFactory.BuildSchedulerReturns(fakeScheduler)
-						pipelineDB.GetConfigReturns(atc.Config{
+						pipelineDB.ConfigReturns(atc.Config{
 							Jobs: atc.JobConfigs{
 								someJob,
 							},
@@ -1407,7 +1343,7 @@ var _ = Describe("Jobs API", func() {
 									Source: atc.Source{"some": "other-source"},
 								},
 							},
-						}, 42, true, nil)
+						})
 					})
 
 					Context("when the input versions for the job can be determined", func() {
@@ -1509,40 +1445,18 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when it does not contain the requested job", func() {
 				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{
+					pipelineDB.ConfigReturns(atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "some-bogus-job",
 								Plan: atc.PlanSequence{},
 							},
 						},
-					}, 42, true, nil)
+					})
 				})
 
 				It("returns 404 Not Found", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when getting the config fails", func() {
-				Context("when the pipeline is no longer configured", func() {
-					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
-					})
-
-					It("returns 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
-				})
-
-				Context("with an unknown error", func() {
-					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
 				})
 			})
 		})

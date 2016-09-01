@@ -52,7 +52,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 			return "pipeline:" + thing
 		}
 
-		fakeRadarDB.GetConfigReturns(atc.Config{
+		fakeRadarDB.ReloadReturns(true, nil)
+		fakeRadarDB.ConfigReturns(atc.Config{
 			ResourceTypes: atc.ResourceTypes{
 				{
 					Name:   "some-resource-type",
@@ -60,12 +61,17 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Source: atc.Source{"custom": "source"},
 				},
 			},
-		}, 1, true, nil)
+		})
 
 		savedResourceType = db.SavedResourceType{
 			ID:   39,
 			Name: "some-resource-type",
 			Type: "docker-image",
+			Config: atc.ResourceType{
+				Name:   "some-resource-type",
+				Type:   "docker-image",
+				Source: atc.Source{"custom": "source"},
+			},
 		}
 		fakeRadarDB.TeamIDReturns(teamID)
 

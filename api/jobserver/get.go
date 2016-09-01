@@ -13,17 +13,7 @@ func (s *Server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 
-		config, _, found, err := pipelineDB.GetConfig()
-		if err != nil {
-			logger.Error("could-not-get-pipeline-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+		config := pipelineDB.Config()
 
 		job, found := config.Jobs.Lookup(jobName)
 		if !found {

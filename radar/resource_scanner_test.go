@@ -64,7 +64,8 @@ var _ = Describe("ResourceScanner", func() {
 			return "pipeline:" + thing
 		}
 		fakeRadarDB.TeamIDReturns(teamID)
-		fakeRadarDB.GetConfigReturns(atc.Config{
+		fakeRadarDB.ReloadReturns(true, nil)
+		fakeRadarDB.ConfigReturns(atc.Config{
 			Resources: atc.ResourceConfigs{
 				resourceConfig,
 			},
@@ -75,7 +76,7 @@ var _ = Describe("ResourceScanner", func() {
 					Source: atc.Source{"custom": "source"},
 				},
 			},
-		}, 1, true, nil)
+		})
 
 		savedResource = db.SavedResource{
 			ID: 39,
@@ -171,11 +172,11 @@ var _ = Describe("ResourceScanner", func() {
 				BeforeEach(func() {
 					resourceConfig.CheckEvery = "10ms"
 
-					fakeRadarDB.GetConfigReturns(atc.Config{
+					fakeRadarDB.ConfigReturns(atc.Config{
 						Resources: atc.ResourceConfigs{
 							resourceConfig,
 						},
-					}, 1, true, nil)
+					})
 				})
 
 				It("leases for the configured interval", func() {
@@ -197,11 +198,11 @@ var _ = Describe("ResourceScanner", func() {
 					BeforeEach(func() {
 						resourceConfig.CheckEvery = "bad-value"
 
-						fakeRadarDB.GetConfigReturns(atc.Config{
+						fakeRadarDB.ConfigReturns(atc.Config{
 							Resources: atc.ResourceConfigs{
 								resourceConfig,
 							},
-						}, 1, true, nil)
+						})
 					})
 
 					It("sets the check error", func() {
@@ -492,11 +493,11 @@ var _ = Describe("ResourceScanner", func() {
 				BeforeEach(func() {
 					resourceConfig.CheckEvery = "10ms"
 
-					fakeRadarDB.GetConfigReturns(atc.Config{
+					fakeRadarDB.ConfigReturns(atc.Config{
 						Resources: atc.ResourceConfigs{
 							resourceConfig,
 						},
-					}, 1, true, nil)
+					})
 				})
 
 				It("leases for the configured interval", func() {
@@ -514,11 +515,11 @@ var _ = Describe("ResourceScanner", func() {
 					BeforeEach(func() {
 						resourceConfig.CheckEvery = "bad-value"
 
-						fakeRadarDB.GetConfigReturns(atc.Config{
+						fakeRadarDB.ConfigReturns(atc.Config{
 							Resources: atc.ResourceConfigs{
 								resourceConfig,
 							},
-						}, 1, true, nil)
+						})
 					})
 
 					It("sets the check error and returns the error", func() {

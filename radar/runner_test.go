@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
@@ -58,7 +57,8 @@ var _ = Describe("Runner", func() {
 		pipelineDB.ScopedNameStub = func(thing string) string {
 			return "pipeline:" + thing
 		}
-		pipelineDB.GetUpdatedConfigReturns(initialConfig, 1, true, nil)
+		pipelineDB.ReloadReturns(true, nil)
+		pipelineDB.ConfigReturns(initialConfig)
 
 		scanRunnerFactory.ScanResourceRunnerStub = func(lager.Logger, string) ifrit.Runner {
 			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -110,13 +110,13 @@ var _ = Describe("Runner", func() {
 
 			config := initialConfig
 
-			pipelineDB.GetUpdatedConfigStub = func() (atc.Config, db.ConfigVersion, bool, error) {
+			pipelineDB.ConfigStub = func() atc.Config {
 				select {
 				case config = <-configs:
 				default:
 				}
 
-				return config, 1, true, nil
+				return config
 			}
 		})
 

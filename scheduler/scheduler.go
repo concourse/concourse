@@ -26,7 +26,8 @@ type SchedulerDB interface {
 	AcquireSchedulingLock(lager.Logger, time.Duration) (db.Lock, bool, error)
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetPipelineName() string
-	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
+	Reload() (bool, error)
+	Config() atc.Config
 	CreateJobBuild(job string) (db.Build, error)
 	EnsurePendingBuildExists(jobName string) error
 	AcquireResourceCheckingForJobLock(logger lager.Logger, job string) (db.Lock, bool, error)

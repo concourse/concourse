@@ -43,13 +43,11 @@ type FakeContainerKeepAliverDB struct {
 	updateExpiresAtOnContainerReturns struct {
 		result1 error
 	}
-	GetPipelineByIDStub        func(pipelineID int) (db.SavedPipeline, error)
-	getPipelineByIDMutex       sync.RWMutex
-	getPipelineByIDArgsForCall []struct {
-		pipelineID int
-	}
-	getPipelineByIDReturns struct {
-		result1 db.SavedPipeline
+	GetAllPipelinesStub        func() ([]db.SavedPipeline, error)
+	getAllPipelinesMutex       sync.RWMutex
+	getAllPipelinesArgsForCall []struct{}
+	getAllPipelinesReturns     struct {
+		result1 []db.SavedPipeline
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -177,36 +175,28 @@ func (fake *FakeContainerKeepAliverDB) UpdateExpiresAtOnContainerReturns(result1
 	}{result1}
 }
 
-func (fake *FakeContainerKeepAliverDB) GetPipelineByID(pipelineID int) (db.SavedPipeline, error) {
-	fake.getPipelineByIDMutex.Lock()
-	fake.getPipelineByIDArgsForCall = append(fake.getPipelineByIDArgsForCall, struct {
-		pipelineID int
-	}{pipelineID})
-	fake.recordInvocation("GetPipelineByID", []interface{}{pipelineID})
-	fake.getPipelineByIDMutex.Unlock()
-	if fake.GetPipelineByIDStub != nil {
-		return fake.GetPipelineByIDStub(pipelineID)
+func (fake *FakeContainerKeepAliverDB) GetAllPipelines() ([]db.SavedPipeline, error) {
+	fake.getAllPipelinesMutex.Lock()
+	fake.getAllPipelinesArgsForCall = append(fake.getAllPipelinesArgsForCall, struct{}{})
+	fake.recordInvocation("GetAllPipelines", []interface{}{})
+	fake.getAllPipelinesMutex.Unlock()
+	if fake.GetAllPipelinesStub != nil {
+		return fake.GetAllPipelinesStub()
 	} else {
-		return fake.getPipelineByIDReturns.result1, fake.getPipelineByIDReturns.result2
+		return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
 	}
 }
 
-func (fake *FakeContainerKeepAliverDB) GetPipelineByIDCallCount() int {
-	fake.getPipelineByIDMutex.RLock()
-	defer fake.getPipelineByIDMutex.RUnlock()
-	return len(fake.getPipelineByIDArgsForCall)
+func (fake *FakeContainerKeepAliverDB) GetAllPipelinesCallCount() int {
+	fake.getAllPipelinesMutex.RLock()
+	defer fake.getAllPipelinesMutex.RUnlock()
+	return len(fake.getAllPipelinesArgsForCall)
 }
 
-func (fake *FakeContainerKeepAliverDB) GetPipelineByIDArgsForCall(i int) int {
-	fake.getPipelineByIDMutex.RLock()
-	defer fake.getPipelineByIDMutex.RUnlock()
-	return fake.getPipelineByIDArgsForCall[i].pipelineID
-}
-
-func (fake *FakeContainerKeepAliverDB) GetPipelineByIDReturns(result1 db.SavedPipeline, result2 error) {
-	fake.GetPipelineByIDStub = nil
-	fake.getPipelineByIDReturns = struct {
-		result1 db.SavedPipeline
+func (fake *FakeContainerKeepAliverDB) GetAllPipelinesReturns(result1 []db.SavedPipeline, result2 error) {
+	fake.GetAllPipelinesStub = nil
+	fake.getAllPipelinesReturns = struct {
+		result1 []db.SavedPipeline
 		result2 error
 	}{result1, result2}
 }
@@ -222,8 +212,8 @@ func (fake *FakeContainerKeepAliverDB) Invocations() map[string][][]interface{} 
 	defer fake.findJobContainersFromUnsuccessfulBuildsMutex.RUnlock()
 	fake.updateExpiresAtOnContainerMutex.RLock()
 	defer fake.updateExpiresAtOnContainerMutex.RUnlock()
-	fake.getPipelineByIDMutex.RLock()
-	defer fake.getPipelineByIDMutex.RUnlock()
+	fake.getAllPipelinesMutex.RLock()
+	defer fake.getAllPipelinesMutex.RUnlock()
 	return fake.invocations
 }
 

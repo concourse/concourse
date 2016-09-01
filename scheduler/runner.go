@@ -112,15 +112,17 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		Duration:     time.Since(start),
 	}.Emit(logger)
 
-	config, _, found, err := runner.DB.GetUpdatedConfig()
+	found, err := runner.DB.Reload()
 	if err != nil {
-		logger.Error("failed-to-get-config", err)
+		logger.Error("failed-to-update-pipeline-config", err)
 		return nil
 	}
 
 	if !found {
 		return errPipelineRemoved
 	}
+
+	config := runner.DB.Config()
 
 	for _, job := range config.Jobs {
 		sLog := logger.Session("scheduling", lager.Data{

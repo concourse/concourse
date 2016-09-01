@@ -314,10 +314,6 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).NotTo(ContainElement(fetchedPipeline))
 
-			_, _, found, err = fetchedPipelineDB.GetUpdatedConfig()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeFalse())
-
 			resourceRows, err := dbConn.Query(`select id from resources where pipeline_id = $1`, fetchedPipeline.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resourceRows.Next()).To(BeFalse())
@@ -469,20 +465,14 @@ var _ = Describe("PipelineDB", func() {
 		})
 	})
 
-	Describe("GetUpdatedConfig", func() {
+	Describe("Reload", func() {
 		It("can manage multiple pipeline configurations", func() {
 			By("returning the saved config to later gets")
-			returnedConfig, configVersion, found, err := pipelineDB.GetUpdatedConfig()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(returnedConfig).To(Equal(pipelineConfig))
-			Expect(configVersion).NotTo(Equal(db.ConfigVersion(0)))
+			Expect(pipelineDB.Config()).To(Equal(pipelineConfig))
+			Expect(pipelineDB.ConfigVersion()).NotTo(Equal(db.ConfigVersion(0)))
 
-			otherReturnedConfig, otherConfigVersion, found, err := otherPipelineDB.GetUpdatedConfig()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(otherReturnedConfig).To(Equal(otherPipelineConfig))
-			Expect(otherConfigVersion).NotTo(Equal(db.ConfigVersion(0)))
+			Expect(otherPipelineDB.Config()).To(Equal(otherPipelineConfig))
+			Expect(otherPipelineDB.ConfigVersion()).NotTo(Equal(db.ConfigVersion(0)))
 
 			updatedConfig := pipelineConfig
 
@@ -517,23 +507,24 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			By("being able to update the config with a valid config")
-			_, _, err = teamDB.SaveConfig("a-pipeline-name", updatedConfig, configVersion, db.PipelineUnpaused)
+			_, _, err := teamDB.SaveConfig("a-pipeline-name", updatedConfig, pipelineDB.ConfigVersion(), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-			_, _, err = teamDB.SaveConfig("other-pipeline-name", updatedConfig, otherConfigVersion, db.PipelineUnpaused)
+			_, _, err = teamDB.SaveConfig("other-pipeline-name", updatedConfig, otherPipelineDB.ConfigVersion(), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the updated config")
-			returnedConfig, newConfigVersion, found, err := pipelineDB.GetUpdatedConfig()
+			found, err := pipelineDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(returnedConfig).To(Equal(updatedConfig))
-			Expect(newConfigVersion).NotTo(Equal(configVersion))
 
-			otherReturnedConfig, newOtherConfigVersion, found, err := otherPipelineDB.GetUpdatedConfig()
+			Expect(pipelineDB.Config()).To(Equal(updatedConfig))
+			Expect(pipelineDB.ConfigVersion()).NotTo(Equal(0))
+
+			found, err = otherPipelineDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(otherReturnedConfig).To(Equal(updatedConfig))
-			Expect(newOtherConfigVersion).NotTo(Equal(otherConfigVersion))
+			Expect(otherPipelineDB.Config()).To(Equal(updatedConfig))
+			Expect(otherPipelineDB.ConfigVersion()).NotTo(Equal(0))
 		})
 	})
 

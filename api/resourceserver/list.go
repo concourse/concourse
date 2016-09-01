@@ -25,18 +25,6 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		pipelineConfig, _, found, err := pipelineDB.GetConfig()
-		if err != nil {
-			logger.Error("failed-to-get-pipeline-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
 		showCheckErr := auth.IsAuthenticated(r)
 		teamName := r.FormValue(":team_name")
 
@@ -46,7 +34,7 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 				presentedResources,
 				present.Resource(
 					resource,
-					pipelineConfig.Groups,
+					pipelineDB.Config().Groups,
 					showCheckErr,
 					teamName,
 				),

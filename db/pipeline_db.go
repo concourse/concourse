@@ -21,17 +21,17 @@ type PipelineDB interface {
 	GetPipelineID() int
 	ScopedName(string) string
 	TeamID() int
+	Config() atc.Config
+	ConfigVersion() ConfigVersion
+
+	Reload() (bool, error)
 
 	Pause() error
 	Unpause() error
 	IsPaused() (bool, error)
 	IsPublic() bool
 	UpdateName(string) error
-
 	Destroy() error
-
-	GetConfig() (atc.Config, ConfigVersion, bool, error)
-	GetUpdatedConfig() (atc.Config, ConfigVersion, bool, error)
 
 	AcquireSchedulingLock(lager.Logger, time.Duration) (Lock, bool, error)
 
@@ -152,6 +152,14 @@ func (pdb *pipelineDB) TeamID() int {
 	return pdb.SavedPipeline.TeamID
 }
 
+func (pdb *pipelineDB) Config() atc.Config {
+	return pdb.SavedPipeline.Config
+}
+
+func (pdb *pipelineDB) ConfigVersion() ConfigVersion {
+	return pdb.SavedPipeline.Version
+}
+
 func (pdb *pipelineDB) IsPublic() bool {
 	return pdb.Public
 }
@@ -224,34 +232,25 @@ func (pdb *pipelineDB) Destroy() error {
 	return tx.Commit()
 }
 
-func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, bool, error) {
-	return pdb.Config, pdb.Version, true, nil
-}
+func (pdb *pipelineDB) Reload() (bool, error) {
+	row := pdb.conn.QueryRow(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines p
+		INNER JOIN teams t ON t.id = p.team_id
+		WHERE p.id = $1
+	`, pdb.ID)
 
-func (pdb *pipelineDB) GetUpdatedConfig() (atc.Config, ConfigVersion, bool, error) {
-	var configBlob []byte
-	var version int
-
-	err := pdb.conn.QueryRow(`
-			SELECT config, version
-			FROM pipelines
-			WHERE id = $1
-		`, pdb.ID).Scan(&configBlob, &version)
+	savedPipeline, err := scanPipeline(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return atc.Config{}, 0, false, nil
+			return false, nil
 		}
-
-		return atc.Config{}, 0, false, err
+		return false, err
 	}
 
-	var config atc.Config
-	err = json.Unmarshal(configBlob, &config)
-	if err != nil {
-		return atc.Config{}, 0, false, err
-	}
+	pdb.SavedPipeline = savedPipeline
 
-	return config, ConfigVersion(version), true, nil
+	return true, nil
 }
 
 func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, bool, error) {
@@ -2343,11 +2342,6 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (Build, Build, err
 }
 
 func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
-	pipelineConfig, _, _, err := pdb.GetConfig()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	dashboard := Dashboard{}
 
 	savedJobs, err := pdb.getJobs()
@@ -2370,7 +2364,7 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 		return nil, nil, err
 	}
 
-	for _, job := range pipelineConfig.Jobs {
+	for _, job := range pdb.SavedPipeline.Config.Jobs {
 		savedJob, found := savedJobs[job.Name]
 		if !found {
 			return nil, nil, fmt.Errorf("found job in pipeline configuration but not in database: %s", job.Name)
@@ -2394,7 +2388,7 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 		dashboard = append(dashboard, dashboardJob)
 	}
 
-	return dashboard, pipelineConfig.Groups, nil
+	return dashboard, pdb.SavedPipeline.Config.Groups, nil
 }
 
 func (pdb *pipelineDB) Expose() error {
