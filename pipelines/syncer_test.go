@@ -103,21 +103,21 @@ var _ = Describe("Pipelines Syncer", func() {
 	})
 
 	It("spawns a new process for each pipeline", func() {
-		Expect(fakeRunner.RunCallCount()).To(Equal(1))
-		Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
+		Eventually(fakeRunner.RunCallCount).Should(Equal(1))
+		Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 	})
 
 	Context("when we sync again", func() {
 		It("does not spawn any processes again", func() {
 			syncer.Sync()
-			Expect(fakeRunner.RunCallCount()).To(Equal(1))
+			Consistently(fakeRunner.RunCallCount).Should(Equal(1))
 		})
 	})
 
 	Context("when a pipeline is deleted", func() {
 		It("stops the process", func() {
-			Expect(fakeRunner.RunCallCount()).To(Equal(1))
-			Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
+			Eventually(fakeRunner.RunCallCount).Should(Equal(1))
+			Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 			syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
@@ -130,16 +130,14 @@ var _ = Describe("Pipelines Syncer", func() {
 
 			syncer.Sync()
 
-			Expect(fakeRunner.RunCallCount()).To(Equal(1))
-
 			signals, _ := fakeRunner.RunArgsForCall(0)
 			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
 		})
 
 		Context("when another is configured with the same name", func() {
 			It("stops the process", func() {
-				Expect(fakeRunner.RunCallCount()).To(Equal(1))
-				Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
+				Eventually(fakeRunner.RunCallCount).Should(Equal(1))
+				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 				syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
 					{
@@ -158,7 +156,8 @@ var _ = Describe("Pipelines Syncer", func() {
 
 				syncer.Sync()
 
-				Expect(fakeRunner.RunCallCount()).To(Equal(2))
+				Eventually(fakeRunner.RunCallCount).Should(Equal(2))
+				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 				signals, _ := fakeRunner.RunArgsForCall(0)
 				Eventually(signals).Should(Receive(Equal(os.Interrupt)))
@@ -167,8 +166,8 @@ var _ = Describe("Pipelines Syncer", func() {
 
 		Context("when pipeline name was changed", func() {
 			It("recreates syncer with new name", func() {
-				Expect(fakeRunner.RunCallCount()).To(Equal(1))
-				Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
+				Eventually(fakeRunner.RunCallCount).Should(Equal(1))
+				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 				syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
 					{
@@ -187,7 +186,8 @@ var _ = Describe("Pipelines Syncer", func() {
 
 				syncer.Sync()
 
-				Expect(fakeRunner.RunCallCount()).To(Equal(2))
+				Eventually(fakeRunner.RunCallCount).Should(Equal(2))
+				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 				signals, _ := fakeRunner.RunArgsForCall(0)
 				Eventually(signals).Should(Receive(Equal(os.Interrupt)))
@@ -213,8 +213,8 @@ var _ = Describe("Pipelines Syncer", func() {
 		}
 
 		JustBeforeEach(func() {
-			Expect(fakeRunner.RunCallCount()).To(Equal(1))
-			Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
+			Eventually(fakeRunner.RunCallCount).Should(Equal(1))
+			Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 			syncherDB.GetAllPipelinesReturns(pipelines, nil)
 
@@ -222,8 +222,6 @@ var _ = Describe("Pipelines Syncer", func() {
 		})
 
 		It("stops the process", func() {
-			Expect(fakeRunner.RunCallCount()).To(Equal(1))
-
 			signals, _ := fakeRunner.RunArgsForCall(0)
 			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
 		})
@@ -236,13 +234,13 @@ var _ = Describe("Pipelines Syncer", func() {
 
 		Context("when we sync again", func() {
 			It("spawns the process again", func() {
-				Expect(fakeRunner.RunCallCount()).To(Equal(1))
-				Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
+				Eventually(fakeRunner.RunCallCount).Should(Equal(1))
+				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
 				fakeRunnerExitChan <- errors.New("disaster")
 				syncer.Sync()
 
-				Expect(fakeRunner.RunCallCount()).To(Equal(2))
+				Eventually(fakeRunner.RunCallCount).Should(Equal(2))
 			})
 		})
 	})
