@@ -272,7 +272,7 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, bool, er
 
 func (pdb *pipelineDB) GetResources() ([]DashboardResource, atc.GroupConfigs, bool, error) {
 	rows, err := pdb.conn.Query(`
-			SELECT id, name, check_error, paused
+			SELECT id, name, config, check_error, paused
 			FROM resources
 			WHERE pipeline_id = $1
 		`, pdb.ID)
@@ -286,16 +286,15 @@ func (pdb *pipelineDB) GetResources() ([]DashboardResource, atc.GroupConfigs, bo
 	savedResources := map[string]SavedResource{}
 
 	for rows.Next() {
-		savedResource := SavedResource{PipelineName: pdb.Name}
-		var checkErr sql.NullString
-		err := rows.Scan(&savedResource.ID, &savedResource.Name, &checkErr, &savedResource.Paused)
+		savedResource, found, err := pdb.scanResource(rows)
 		if err != nil {
 			return nil, nil, false, err
 		}
 
-		if checkErr.Valid {
-			savedResource.CheckError = errors.New(checkErr.String)
+		if !found {
+			return nil, nil, false, errors.New("resource-not-found")
 		}
+
 		savedResources[savedResource.Name] = savedResource
 	}
 
@@ -683,15 +682,20 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 }
 
 func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, bool, error) {
-	var checkErr sql.NullString
-	var resource SavedResource
-
-	err := tx.QueryRow(`
-			SELECT id, name, check_error, paused
+	return pdb.scanResource(tx.QueryRow(`
+			SELECT id, name, config, check_error, paused
 			FROM resources
 			WHERE name = $1
 				AND pipeline_id = $2
-		`, name, pdb.ID).Scan(&resource.ID, &resource.Name, &checkErr, &resource.Paused)
+		`, name, pdb.ID))
+}
+
+func (pdb *pipelineDB) scanResource(row scannable) (SavedResource, bool, error) {
+	var checkErr sql.NullString
+	var resource SavedResource
+	var configBlob []byte
+
+	err := row.Scan(&resource.ID, &resource.Name, &configBlob, &checkErr, &resource.Paused)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return SavedResource{}, false, nil
@@ -701,6 +705,13 @@ func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, bool, err
 	}
 
 	resource.PipelineName = pdb.GetPipelineName()
+
+	var config atc.ResourceConfig
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return SavedResource{}, false, err
+	}
+	resource.Config = config
 
 	if checkErr.Valid {
 		resource.CheckError = errors.New(checkErr.String)
@@ -733,18 +744,26 @@ func (pdb *pipelineDB) GetResourceType(name string) (SavedResourceType, bool, er
 func (pdb *pipelineDB) getResourceType(tx Tx, name string) (SavedResourceType, bool, error) {
 	var savedResourceType SavedResourceType
 	var versionJSON []byte
+	var configBlob []byte
 	err := tx.QueryRow(`
-			SELECT id, name, type, version
+			SELECT id, name, type, version, config
 			FROM resource_types
 			WHERE name = $1
 				AND pipeline_id = $2
-		`, name, pdb.ID).Scan(&savedResourceType.ID, &savedResourceType.Name, &savedResourceType.Type, &versionJSON)
+		`, name, pdb.ID).Scan(&savedResourceType.ID, &savedResourceType.Name, &savedResourceType.Type, &versionJSON, &configBlob)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return SavedResourceType{}, false, nil
 		}
 		return SavedResourceType{}, false, err
 	}
+
+	var config atc.ResourceType
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return SavedResourceType{}, false, err
+	}
+	savedResourceType.Config = config
 
 	if versionJSON != nil {
 		err := json.Unmarshal(versionJSON, &savedResourceType.Version)
@@ -2415,7 +2434,7 @@ func (pdb *pipelineDB) Hide() error {
 
 func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 	rows, err := pdb.conn.Query(`
-	SELECT j.id, j.name, j.paused, j.first_logged_build_id, p.team_id
+	SELECT j.id, j.name, j.config, j.paused, j.first_logged_build_id, p.team_id
   	FROM jobs j, pipelines p
 		WHERE j.pipeline_id = p.id
   		AND pipeline_id = $1
@@ -2429,14 +2448,10 @@ func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 	savedJobs := make(map[string]SavedJob)
 
 	for rows.Next() {
-		var savedJob SavedJob
-
-		err := rows.Scan(&savedJob.ID, &savedJob.Name, &savedJob.Paused, &savedJob.FirstLoggedBuildID, &savedJob.TeamID)
+		savedJob, err := pdb.scanJob(rows)
 		if err != nil {
 			return nil, err
 		}
-
-		savedJob.PipelineName = pdb.Name
 
 		savedJobs[savedJob.Name] = savedJob
 	}
@@ -2487,20 +2502,32 @@ func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[stri
 }
 
 func (pdb *pipelineDB) getJob(tx Tx, name string) (SavedJob, error) {
-	var job SavedJob
-
-	err := tx.QueryRow(`
- 	SELECT j.id, j.name, j.paused, j.first_logged_build_id, p.team_id
+	return pdb.scanJob(tx.QueryRow(`
+ 	SELECT j.id, j.name, j.config, j.paused, j.first_logged_build_id, p.team_id
   	FROM jobs j, pipelines p
   	WHERE j.pipeline_id = p.id
-			AND j.name = $1
+		AND j.name = $1
   		AND j.pipeline_id = $2
-  `, name, pdb.ID).Scan(&job.ID, &job.Name, &job.Paused, &job.FirstLoggedBuildID, &job.TeamID)
+  	`, name, pdb.ID))
+}
+
+func (pdb *pipelineDB) scanJob(row scannable) (SavedJob, error) {
+	var job SavedJob
+	var configBlob []byte
+
+	err := row.Scan(&job.ID, &job.Name, &configBlob, &job.Paused, &job.FirstLoggedBuildID, &job.TeamID)
 	if err != nil {
 		return SavedJob{}, err
 	}
 
 	job.PipelineName = pdb.Name
+
+	var config atc.JobConfig
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return SavedJob{}, err
+	}
+	job.Config = config
 
 	return job, nil
 }

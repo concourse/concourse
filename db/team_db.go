@@ -364,21 +364,21 @@ func (db *teamDB) SaveConfig(
 	}
 
 	for _, resource := range config.Resources {
-		err = db.registerResource(tx, resource.Name, savedPipeline.ID)
+		err = db.saveResource(tx, resource, savedPipeline.ID)
 		if err != nil {
 			return SavedPipeline{}, false, err
 		}
 	}
 
 	for _, resourceType := range config.ResourceTypes {
-		err = db.registerResourceType(tx, resourceType, savedPipeline.ID)
+		err = db.saveResourceType(tx, resourceType, savedPipeline.ID)
 		if err != nil {
 			return SavedPipeline{}, false, err
 		}
 	}
 
 	for _, job := range config.Jobs {
-		err = db.registerJob(tx, job.Name, savedPipeline.ID)
+		err = db.saveJob(tx, job, savedPipeline.ID)
 		if err != nil {
 			return SavedPipeline{}, false, err
 		}
@@ -394,14 +394,29 @@ func (db *teamDB) SaveConfig(
 	return savedPipeline, created, tx.Commit()
 }
 
-func (db *teamDB) registerJob(tx Tx, name string, pipelineID int) error {
-	_, err := tx.Exec(`
-		INSERT INTO jobs (name, pipeline_id)
-		SELECT $1, $2
-		WHERE NOT EXISTS (
-			SELECT 1 FROM jobs WHERE name = $1 AND pipeline_id = $2
-		)
-	`, name, pipelineID)
+func (db *teamDB) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
+	configPayload, err := json.Marshal(job)
+	if err != nil {
+		return err
+	}
+
+	updated, err := checkIfRowsUpdated(tx, `
+		UPDATE jobs
+		SET config = $3
+		WHERE name = $1 AND pipeline_id = $2
+	`, job.Name, pipelineID, configPayload)
+	if err != nil {
+		return err
+	}
+
+	if updated {
+		return nil
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO jobs (name, pipeline_id, config)
+		VALUES ($1, $2, $3)
+	`, job.Name, pipelineID, configPayload)
 
 	return swallowUniqueViolation(err)
 }
@@ -422,29 +437,57 @@ func (db *teamDB) registerSerialGroup(tx Tx, jobName, serialGroup string, pipeli
 	return swallowUniqueViolation(err)
 }
 
-func (db *teamDB) registerResource(tx Tx, name string, pipelineID int) error {
-	_, err := tx.Exec(`
-		INSERT INTO resources (name, pipeline_id)
-		SELECT $1, $2
-		WHERE NOT EXISTS (
-			SELECT 1 FROM resources WHERE name = $1 AND pipeline_id = $2
-		)
-	`, name, pipelineID)
+func (db *teamDB) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) error {
+	configPayload, err := json.Marshal(resource)
+	if err != nil {
+		return err
+	}
+
+	updated, err := checkIfRowsUpdated(tx, `
+		UPDATE resources
+		SET config = $3
+		WHERE name = $1 AND pipeline_id = $2
+	`, resource.Name, pipelineID, configPayload)
+	if err != nil {
+		return err
+	}
+
+	if updated {
+		return nil
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO resources (name, pipeline_id, config)
+		VALUES ($1, $2, $3)
+	`, resource.Name, pipelineID, configPayload)
 
 	return swallowUniqueViolation(err)
 }
 
-func (db *teamDB) registerResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) error {
-	_, err := tx.Exec(`
-		INSERT INTO resource_types (name, type, pipeline_id)
-		SELECT $1, $2, $3
-		WHERE NOT EXISTS (
-			SELECT 1 FROM resource_types
-				WHERE name = $1
-				AND type = $2
-				AND pipeline_id = $3
-		)
-	`, resourceType.Name, resourceType.Type, pipelineID)
+func (db *teamDB) saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) error {
+	configPayload, err := json.Marshal(resourceType)
+	if err != nil {
+		return err
+	}
+
+	updated, err := checkIfRowsUpdated(tx, `
+		UPDATE resource_types
+		SET config = $3,
+			type = $4
+		WHERE name = $1 AND pipeline_id = $2
+	`, resourceType.Name, pipelineID, configPayload, resourceType.Type)
+	if err != nil {
+		return err
+	}
+
+	if updated {
+		return nil
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO resource_types (name, type, pipeline_id, config)
+		VALUES ($1, $2, $3, $4)
+	`, resourceType.Name, resourceType.Type, pipelineID, configPayload)
 
 	return swallowUniqueViolation(err)
 }

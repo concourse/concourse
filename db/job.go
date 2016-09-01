@@ -12,6 +12,7 @@ type SavedJob struct {
 	PipelineName       string
 	FirstLoggedBuildID int
 	TeamID             int
+	Config             atc.JobConfig
 	Job
 }
 

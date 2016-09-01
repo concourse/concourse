@@ -567,6 +567,11 @@ var _ = Describe("PipelineDB", func() {
 				Paused:       false,
 				PipelineName: "a-pipeline-name",
 				CheckError:   nil,
+				Config: atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"source-config": "some-value"},
+				},
 			}))
 		})
 
@@ -1765,6 +1770,13 @@ var _ = Describe("PipelineDB", func() {
 					Paused:       false,
 					PipelineName: "a-pipeline-name",
 					Resource:     db.Resource{Name: "some-resource"},
+					Config: atc.ResourceConfig{
+						Name: "some-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
 				},
 				ResourceConfig: atc.ResourceConfig{
 					Name: "some-resource",
@@ -1782,6 +1794,13 @@ var _ = Describe("PipelineDB", func() {
 					Paused:       false,
 					PipelineName: "a-pipeline-name",
 					Resource:     db.Resource{Name: "some-other-resource"},
+					Config: atc.ResourceConfig{
+						Name: "some-other-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
 				},
 				ResourceConfig: atc.ResourceConfig{
 					Name: "some-other-resource",
@@ -1799,6 +1818,13 @@ var _ = Describe("PipelineDB", func() {
 					Paused:       false,
 					PipelineName: "a-pipeline-name",
 					Resource:     db.Resource{Name: "some-really-other-resource"},
+					Config: atc.ResourceConfig{
+						Name: "some-really-other-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
 				},
 				ResourceConfig: atc.ResourceConfig{
 					Name: "some-really-other-resource",
