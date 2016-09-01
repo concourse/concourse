@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 )
@@ -35,26 +34,6 @@ func (db *SQLDB) Workers() ([]SavedWorker, error) {
 	}
 
 	return savedWorkers, nil
-}
-
-func (db *SQLDB) FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error) {
-	savedWorker, found, err := db.GetWorker(workerName)
-
-	if err != nil {
-		return "", false, err
-	}
-
-	if !found {
-		return "", false, errors.New("worker-not-found")
-	}
-
-	for _, workerResourceType := range savedWorker.ResourceTypes {
-		if checkType == workerResourceType.Type {
-			return workerResourceType.Version, true, nil
-		}
-	}
-
-	return "", false, nil
 }
 
 func (db *SQLDB) GetWorker(name string) (SavedWorker, bool, error) {

@@ -64,8 +64,7 @@ type GardenWorkerDB interface {
 	GetContainer(handle string) (db.SavedContainer, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(string) error
-	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)
-
+	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	InsertVolume(db.Volume) error
 	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	GetVolumeTTL(string) (time.Duration, bool, error)
@@ -77,8 +76,8 @@ type gardenWorker struct {
 	baggageclaimClient baggageclaim.Client
 	volumeClient       VolumeClient
 	volumeFactory      VolumeFactory
-
-	imageFactory ImageFactory
+	pipelineDBFactory  db.PipelineDBFactory
+	imageFactory       ImageFactory
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -103,6 +102,7 @@ func NewGardenWorker(
 	volumeClient VolumeClient,
 	volumeFactory VolumeFactory,
 	imageFactory ImageFactory,
+	pipelineDBFactory db.PipelineDBFactory,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
@@ -126,17 +126,17 @@ func NewGardenWorker(
 		db:                 db,
 		provider:           provider,
 		clock:              clock,
-
-		activeContainers: activeContainers,
-		resourceTypes:    resourceTypes,
-		platform:         platform,
-		tags:             tags,
-		teamID:           teamID,
-		name:             name,
-		startTime:        startTime,
-		httpProxyURL:     httpProxyURL,
-		httpsProxyURL:    httpsProxyURL,
-		noProxy:          noProxy,
+		pipelineDBFactory:  pipelineDBFactory,
+		activeContainers:   activeContainers,
+		resourceTypes:      resourceTypes,
+		platform:           platform,
+		tags:               tags,
+		teamID:             teamID,
+		name:               name,
+		startTime:          startTime,
+		httpProxyURL:       httpProxyURL,
+		httpsProxyURL:      httpsProxyURL,
+		noProxy:            noProxy,
 	}
 }
 
@@ -243,6 +243,39 @@ func (worker *gardenWorker) getImage(
 
 	// 'image:' in task
 	return nil, ImageMetadata{}, nil, imageSpec.ImageURL, nil
+}
+
+func (worker *gardenWorker) ValidateResourceCheckVersion(container db.SavedContainer) (bool, error) {
+	if container.Type != db.ContainerTypeCheck || container.CheckType == "" || container.ResourceTypeVersion == nil {
+		return true, nil
+	}
+
+	if container.PipelineID > 0 {
+		savedPipeline, err := worker.db.GetPipelineByID(container.PipelineID)
+		if err != nil {
+			return false, err
+		}
+
+		pipelineDB := worker.pipelineDBFactory.Build(savedPipeline)
+
+		_, found, err := pipelineDB.GetResourceType(container.CheckType)
+		if err != nil {
+			return false, err
+		}
+
+		// this is custom resource type, do not validate version on worker
+		if found {
+			return true, nil
+		}
+	}
+
+	for _, workerResourceType := range worker.resourceTypes {
+		if container.CheckType == workerResourceType.Type && workerResourceType.Version == container.ResourceTypeVersion[container.CheckType] {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func (worker *gardenWorker) getBuiltInResourceTypeImage(
@@ -490,6 +523,21 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 
 	if !found {
 		return nil, found, nil
+	}
+
+	valid, err := worker.ValidateResourceCheckVersion(containerInfo)
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !valid {
+		logger.Debug("check-container-version-outdated", lager.Data{
+			"container-handle": containerInfo.Handle,
+			"worker-name":      containerInfo.WorkerName,
+		})
+
+		return nil, false, nil
 	}
 
 	container, found, err := worker.LookupContainer(logger, containerInfo.Handle)

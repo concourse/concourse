@@ -155,7 +155,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 	trackerFactory := resource.NewTrackerFactory()
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
-	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory)
+	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
+	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory, pipelineDBFactory)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
@@ -201,7 +202,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	drain := make(chan struct{})
 
-	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
@@ -637,6 +637,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	sqlDB *db.SQLDB,
 	trackerFactory resource.TrackerFactory,
 	resourceFetcherFactory resource.FetcherFactory,
+	pipelineDBFactory db.PipelineDBFactory,
 ) worker.Client {
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
@@ -647,6 +648,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 				Timeout: 5 * time.Minute,
 			},
 			image.NewFactory(trackerFactory, resourceFetcherFactory),
+			pipelineDBFactory,
 		),
 	)
 }
