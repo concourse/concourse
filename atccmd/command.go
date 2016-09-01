@@ -591,7 +591,7 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 		host,
 		cmd.Metrics.Tags,
 		cmd.Metrics.Attributes,
-		cmd.Metrics.RiemannServicePrefix
+		cmd.Metrics.RiemannServicePrefix,
 	)
 }
 
