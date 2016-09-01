@@ -1,6 +1,5 @@
 module Pipeline exposing (Flags, init, update, view, subscriptions)
 
-import AnimationFrame
 import Dict exposing (Dict)
 import Graph exposing (Graph)
 import Html exposing (Html)
@@ -16,11 +15,10 @@ import Concourse.BuildStatus
 import Grid exposing (Grid)
 
 type alias Model =
-  { fit : Maybe (() -> Cmd Msg)
+  { ports : Ports
   , pipelineLocator : Concourse.PipelineIdentifier
   , groups : Set String
   , jobs : List Concourse.Job
-  , graph : Graph Node ()
   , error : Maybe String
   }
 
@@ -40,6 +38,10 @@ type Node
       , upstreamJob : Maybe Concourse.Job
       }
 
+type alias Ports =
+  { setGroups : (List String -> Msg) -> Sub Msg
+  }
+
 type alias Flags =
   { teamName : String
   , pipelineName : String
@@ -49,20 +51,19 @@ type alias Flags =
 type Msg
   = Noop
   | JobsFetched (Result Http.Error (List Concourse.Job))
-  | Frame
+  | SetGroups (List String)
 
-init : (() -> Cmd Msg) -> Flags -> (Model, Cmd Msg)
-init fit flags =
+init : Ports -> Flags -> (Model, Cmd Msg)
+init ports flags =
   let
     model =
-      { fit = Just fit
+      { ports = ports
       , pipelineLocator =
           { teamName = flags.teamName
           , pipelineName = flags.pipelineName
           }
       , groups = Set.fromList flags.groups
       , jobs = []
-      , graph = Graph.empty
       , error = Nothing
       }
   in
@@ -75,31 +76,17 @@ update msg model =
       (model, Cmd.none)
 
     JobsFetched (Ok jobs) ->
-      let
-        filtered =
-          if Set.isEmpty model.groups then
-            jobs
-          else
-            List.filter (List.any (flip Set.member model.groups ) << .groups) jobs
-      in
-        ({ model | jobs = filtered, graph = initGraph filtered }, Cmd.none)
+      ({ model | jobs = jobs }, Cmd.none)
 
     JobsFetched (Err msg) ->
       ({ model | error = Just (toString msg) }, Cmd.none)
 
-    Frame ->
-      case model.fit of
-        Just fit ->
-          ({ model | fit = Nothing }, fit ())
-        Nothing ->
-          (model, Cmd.none)
+    SetGroups groups ->
+      ({ model | groups = Set.fromList groups }, Cmd.none)
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  if List.isEmpty model.jobs || model.fit == Nothing then
-    Sub.none
-  else
-    AnimationFrame.times (always Frame)
+  model.ports.setGroups SetGroups
 
 view : Model -> Html Msg
 view model =
@@ -108,16 +95,26 @@ view model =
       Html.text ("error: " ++ msg)
 
     Nothing ->
-      -- Html.table [class "pipeline-table"] (
-      --   model.graph
-      --     |> Grid.fromGraph
-      --     |> Grid.toMatrix nodeHeight
-      --     |> Matrix.toList
-      --     |> List.map viewRow
-      -- )
-      Html.div [class "pipeline-grid"] [
-        viewGrid (Grid.fromGraph model.graph)
-      ]
+      let
+        filtered =
+          if Set.isEmpty model.groups then
+            model.jobs
+          else
+            List.filter (List.any (flip Set.member model.groups ) << .groups) model.jobs
+
+        graph =
+          initGraph filtered
+      in
+        -- Html.table [class "pipeline-table"] (
+        --   model.graph
+        --     |> Grid.fromGraph
+        --     |> Grid.toMatrix nodeHeight
+        --     |> Matrix.toList
+        --     |> List.map viewRow
+        -- )
+        Html.div [class "pipeline-grid"] [
+          viewGrid (Grid.fromGraph graph)
+        ]
 
 nodeHeight : Graph.Node Node -> Int
 nodeHeight {label} =
