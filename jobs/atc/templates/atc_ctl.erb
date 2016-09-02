@@ -83,6 +83,9 @@ case $1 in
       <% if p("development_mode") %> \
       --development-mode \
       <% end %> \
+      <% if p("log_db_queries") %> \
+      --log-db-queries \
+      <% end %> \
       <% if p("allow_self_signed_certificates") %> \
       --allow-self-signed-certificates \
       <% end %> \

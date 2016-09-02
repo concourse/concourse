@@ -87,6 +87,11 @@ properties:
       configured with no authentication methods.
     default: false
 
+  log_db_queries:
+    description: |
+      Log database queries. Log level is debug, so requires development mode.
+    default: false
+
   basic_auth_username:
     description: |
       Username for HTTP basic auth.
