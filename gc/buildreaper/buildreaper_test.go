@@ -75,12 +75,12 @@ var _ = Describe("BuildReaper", func() {
 			BeforeEach(func() {
 				fakePipelineDB.GetDashboardReturns(db.Dashboard{
 					{
-						JobConfig: atc.JobConfig{
-							BuildLogsToRetain: 10,
-						},
 						Job: db.SavedJob{
 							Job:                db.Job{Name: "job-1"},
 							FirstLoggedBuildID: 6,
+							Config: atc.JobConfig{
+								BuildLogsToRetain: 10,
+							},
 						},
 					},
 				}, atc.GroupConfigs{}, nil)
@@ -316,12 +316,12 @@ var _ = Describe("BuildReaper", func() {
 			BeforeEach(func() {
 				fakePipelineDB.GetDashboardReturns(db.Dashboard{
 					{
-						JobConfig: atc.JobConfig{
-							BuildLogsToRetain: 10,
-						},
 						Job: db.SavedJob{
 							Job:                db.Job{Name: "job-1"},
 							FirstLoggedBuildID: 1,
+							Config: atc.JobConfig{
+								BuildLogsToRetain: 10,
+							},
 						},
 					},
 				}, atc.GroupConfigs{}, nil)
@@ -440,12 +440,12 @@ var _ = Describe("BuildReaper", func() {
 			BeforeEach(func() {
 				fakePipelineDB.GetDashboardReturns(db.Dashboard{
 					{
-						JobConfig: atc.JobConfig{
-							BuildLogsToRetain: 10,
-						},
 						Job: db.SavedJob{
 							Job:                db.Job{Name: "job-1"},
 							FirstLoggedBuildID: 0,
+							Config: atc.JobConfig{
+								BuildLogsToRetain: 10,
+							},
 						},
 					},
 				}, atc.GroupConfigs{}, nil)
@@ -495,12 +495,12 @@ var _ = Describe("BuildReaper", func() {
 			BeforeEach(func() {
 				fakePipelineDB.GetDashboardReturns(db.Dashboard{
 					{
-						JobConfig: atc.JobConfig{
-							BuildLogsToRetain: 0,
-						},
 						Job: db.SavedJob{
 							Job:                db.Job{Name: "job-1"},
 							FirstLoggedBuildID: 6,
+							Config: atc.JobConfig{
+								BuildLogsToRetain: 0,
+							},
 						},
 					},
 				}, atc.GroupConfigs{}, nil)

@@ -10,8 +10,9 @@ import (
 
 func AddConfigToJobsResources(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`
-         	ALTER TABLE resources
-     		ADD COLUMN config text NOT NULL;
+				ALTER TABLE resources
+					ADD COLUMN config text NOT NULL,
+					ADD COLUMN active bool NOT NULL DEFAULT false;
  	`)
 	if err != nil {
 		return err
@@ -19,7 +20,8 @@ func AddConfigToJobsResources(tx migration.LimitedTx) error {
 
 	_, err = tx.Exec(`
 		ALTER TABLE resource_types
-		ADD COLUMN config text NOT NULL;
+		ADD COLUMN config text NOT NULL,
+		ADD COLUMN active bool NOT NULL DEFAULT false;
 	`)
 	if err != nil {
 		return err
@@ -27,14 +29,15 @@ func AddConfigToJobsResources(tx migration.LimitedTx) error {
 
 	_, err = tx.Exec(`
 		ALTER TABLE jobs
-		ADD COLUMN config text NOT NULL;
+		ADD COLUMN config text NOT NULL,
+		ADD COLUMN active bool NOT NULL DEFAULT false;
 	`)
 	if err != nil {
 		return err
 	}
 
 	rows, err := tx.Query(`
-          	SELECT id, config
+          SELECT id, config
         	FROM pipelines
         `)
 	if err != nil {
@@ -65,7 +68,7 @@ func AddConfigToJobsResources(tx migration.LimitedTx) error {
 
 			_, err = tx.Exec(`
 				UPDATE jobs
-				SET config = $1
+				SET config = $1, active = true
 				WHERE name = $2 AND pipeline_id = $3
 			  `, jobConfigPayload, jobConfig.Name, pipelineID)
 			if err != nil {
@@ -81,7 +84,7 @@ func AddConfigToJobsResources(tx migration.LimitedTx) error {
 
 			_, err = tx.Exec(`
 				UPDATE resources
-				SET config = $1
+				SET config = $1, active = true
 				WHERE name = $2 AND pipeline_id = $3
 		      `, resourceConfigPayload, resourceConfig.Name, pipelineID)
 			if err != nil {
@@ -97,7 +100,7 @@ func AddConfigToJobsResources(tx migration.LimitedTx) error {
 
 			_, err = tx.Exec(`
 				UPDATE resource_types
-				SET config = $1
+				SET config = $1, active = true
 				WHERE name = $2 AND pipeline_id = $3
 			 `, resourceTypeConfigPayload, resourceTypeConfig.Name, pipelineID)
 			if err != nil {

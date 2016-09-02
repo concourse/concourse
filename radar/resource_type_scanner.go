@@ -158,24 +158,3 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 
 	return nil
 }
-
-func (scanner *resourceTypeScanner) getResourceTypeConfig(logger lager.Logger, resourceTypeName string) (atc.ResourceType, error) {
-	found, err := scanner.db.Reload()
-	if err != nil {
-		logger.Error("failed-to-get-config", err)
-		return atc.ResourceType{}, err
-	}
-
-	if !found {
-		logger.Info("pipeline-removed")
-		return atc.ResourceType{}, errPipelineRemoved
-	}
-
-	resourceType, found := scanner.db.Config().ResourceTypes.Lookup(resourceTypeName)
-	if !found {
-		logger.Info("resource-type-removed-from-configuration")
-		return resourceType, ResourceNotConfiguredError{ResourceName: resourceTypeName}
-	}
-
-	return resourceType, nil
-}

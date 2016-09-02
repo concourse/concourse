@@ -292,12 +292,45 @@ var _ = Describe("Resources API", func() {
 				userContextReader.GetTeamReturns("a-team", 1, true, true)
 			})
 
-			It("calls to get the config from the pipelineDB", func() {
-				Expect(fakePipelineDB.ConfigCallCount()).To(Equal(1))
+			It("looks it up in the database", func() {
+				Expect(fakePipelineDB.GetResourceCallCount()).To(Equal(1))
+				Expect(fakePipelineDB.GetResourceArgsForCall(0)).To(Equal("some-resource"))
 			})
 
-			Context("when getting the config is successful", func() {
+			Context("when the resource cannot be found in the database", func() {
 				BeforeEach(func() {
+					resourceName = "resource-in-config-but-not-db"
+				})
+
+				It("returns a 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when the call to the db returns an error", func() {
+				BeforeEach(func() {
+					fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, errors.New("Oh no!"))
+				})
+
+				It("returns a 500 error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the call to get a resource succeeds", func() {
+				BeforeEach(func() {
+					fakePipelineDB.GetResourceReturns(db.SavedResource{
+						ID:           1,
+						CheckError:   errors.New("sup"),
+						Paused:       true,
+						PipelineName: "a-pipeline",
+						Resource: db.Resource{
+							Name: "resource-1",
+						},
+						Config: atc.ResourceConfig{
+							Type: "type-1",
+						},
+					}, true, nil)
 					fakePipelineDB.ConfigReturns(atc.Config{
 						Groups: []atc.GroupConfig{
 							{
@@ -309,89 +342,18 @@ var _ = Describe("Resources API", func() {
 								Resources: []string{"resource-1", "resource-2"},
 							},
 						},
-
-						Resources: []atc.ResourceConfig{
-							{Name: "resource-1", Type: "type-1"},
-							{Name: "resource-2", Type: "type-2"},
-							{Name: "resource-3", Type: "type-3"},
-							{Name: "resource-in-config-but-not-db", Type: "type-1"},
-						},
 					})
 				})
 
-				Context("when the resource cannot be found in the config", func() {
-					It("returns a 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
+				It("returns 200 ok", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				Context("when the resource is found in the config", func() {
-					BeforeEach(func() {
-						resourceName = "resource-1"
-					})
+				It("returns the resource json with the check error", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
 
-					It("looks it up in the database", func() {
-						Expect(fakePipelineDB.GetResourceCallCount()).To(Equal(1))
-						Expect(fakePipelineDB.GetResourceArgsForCall(0)).To(Equal("resource-1"))
-					})
-
-					Context("when the resource cannot be found in the database", func() {
-						BeforeEach(func() {
-							resourceName = "resource-in-config-but-not-db"
-						})
-
-						It("returns a 404", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-						})
-					})
-
-					Context("when the call to the db returns an error", func() {
-						BeforeEach(func() {
-							fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, errors.New("Oh no!"))
-						})
-
-						It("returns a 500 error", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						})
-					})
-
-					Context("when the call to get a resource succeeds", func() {
-						BeforeEach(func() {
-							fakePipelineDB.GetResourceReturns(db.SavedResource{
-								ID:           1,
-								CheckError:   errors.New("sup"),
-								Paused:       true,
-								PipelineName: "a-pipeline",
-								Resource: db.Resource{
-									Name: "resource-1",
-								},
-								Config: atc.ResourceConfig{
-									Type: "type-1",
-								},
-							}, true, nil)
-							fakePipelineDB.ConfigReturns(atc.Config{
-								Groups: []atc.GroupConfig{
-									{
-										Name:      "group-1",
-										Resources: []string{"resource-1"},
-									},
-									{
-										Name:      "group-2",
-										Resources: []string{"resource-1", "resource-2"},
-									},
-								},
-							})
-						})
-
-						It("returns 200 ok", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
-
-						It("returns the resource json with the check error", func() {
-							body, err := ioutil.ReadAll(response.Body)
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(body).To(MatchJSON(`
+					Expect(body).To(MatchJSON(`
 							{
 								"name": "resource-1",
 								"type": "type-1",
@@ -401,8 +363,6 @@ var _ = Describe("Resources API", func() {
 								"failing_to_check": true,
 								"check_error": "sup"
 							}`))
-						})
-					})
 				})
 			})
 		})

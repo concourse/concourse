@@ -59,15 +59,6 @@ type FakeWorkerDB struct {
 		result2 bool
 		result3 error
 	}
-	ValidateResourceCheckVersionStub        func(container db.SavedContainer) (bool, error)
-	validateResourceCheckVersionMutex       sync.RWMutex
-	validateResourceCheckVersionArgsForCall []struct {
-		container db.SavedContainer
-	}
-	validateResourceCheckVersionReturns struct {
-		result1 bool
-		result2 error
-	}
 	UpdateExpiresAtOnContainerStub        func(handle string, ttl time.Duration) error
 	updateExpiresAtOnContainerMutex       sync.RWMutex
 	updateExpiresAtOnContainerArgsForCall []struct {
@@ -323,40 +314,6 @@ func (fake *FakeWorkerDB) FindContainerByIdentifierReturns(result1 db.SavedConta
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeWorkerDB) ValidateResourceCheckVersion(container db.SavedContainer) (bool, error) {
-	fake.validateResourceCheckVersionMutex.Lock()
-	fake.validateResourceCheckVersionArgsForCall = append(fake.validateResourceCheckVersionArgsForCall, struct {
-		container db.SavedContainer
-	}{container})
-	fake.recordInvocation("ValidateResourceCheckVersion", []interface{}{container})
-	fake.validateResourceCheckVersionMutex.Unlock()
-	if fake.ValidateResourceCheckVersionStub != nil {
-		return fake.ValidateResourceCheckVersionStub(container)
-	} else {
-		return fake.validateResourceCheckVersionReturns.result1, fake.validateResourceCheckVersionReturns.result2
-	}
-}
-
-func (fake *FakeWorkerDB) ValidateResourceCheckVersionCallCount() int {
-	fake.validateResourceCheckVersionMutex.RLock()
-	defer fake.validateResourceCheckVersionMutex.RUnlock()
-	return len(fake.validateResourceCheckVersionArgsForCall)
-}
-
-func (fake *FakeWorkerDB) ValidateResourceCheckVersionArgsForCall(i int) db.SavedContainer {
-	fake.validateResourceCheckVersionMutex.RLock()
-	defer fake.validateResourceCheckVersionMutex.RUnlock()
-	return fake.validateResourceCheckVersionArgsForCall[i].container
-}
-
-func (fake *FakeWorkerDB) ValidateResourceCheckVersionReturns(result1 bool, result2 error) {
-	fake.ValidateResourceCheckVersionStub = nil
-	fake.validateResourceCheckVersionReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeWorkerDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error {
@@ -677,8 +634,6 @@ func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.getContainerMutex.RUnlock()
 	fake.findContainerByIdentifierMutex.RLock()
 	defer fake.findContainerByIdentifierMutex.RUnlock()
-	fake.validateResourceCheckVersionMutex.RLock()
-	defer fake.validateResourceCheckVersionMutex.RUnlock()
 	fake.updateExpiresAtOnContainerMutex.RLock()
 	defer fake.updateExpiresAtOnContainerMutex.RUnlock()
 	fake.reapContainerMutex.RLock()

@@ -36,14 +36,15 @@ type FakeBuildStarterDB struct {
 		result1 bool
 		result2 error
 	}
-	GetJobStub        func(job string) (db.SavedJob, error)
+	GetJobStub        func(job string) (db.SavedJob, bool, error)
 	getJobMutex       sync.RWMutex
 	getJobArgsForCall []struct {
 		job string
 	}
 	getJobReturns struct {
 		result1 db.SavedJob
-		result2 error
+		result2 bool
+		result3 error
 	}
 	UpdateBuildToScheduledStub        func(int) (bool, error)
 	updateBuildToScheduledMutex       sync.RWMutex
@@ -163,7 +164,7 @@ func (fake *FakeBuildStarterDB) IsPausedReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeBuildStarterDB) GetJob(job string) (db.SavedJob, error) {
+func (fake *FakeBuildStarterDB) GetJob(job string) (db.SavedJob, bool, error) {
 	fake.getJobMutex.Lock()
 	fake.getJobArgsForCall = append(fake.getJobArgsForCall, struct {
 		job string
@@ -173,7 +174,7 @@ func (fake *FakeBuildStarterDB) GetJob(job string) (db.SavedJob, error) {
 	if fake.GetJobStub != nil {
 		return fake.GetJobStub(job)
 	} else {
-		return fake.getJobReturns.result1, fake.getJobReturns.result2
+		return fake.getJobReturns.result1, fake.getJobReturns.result2, fake.getJobReturns.result3
 	}
 }
 
@@ -189,12 +190,13 @@ func (fake *FakeBuildStarterDB) GetJobArgsForCall(i int) string {
 	return fake.getJobArgsForCall[i].job
 }
 
-func (fake *FakeBuildStarterDB) GetJobReturns(result1 db.SavedJob, result2 error) {
+func (fake *FakeBuildStarterDB) GetJobReturns(result1 db.SavedJob, result2 bool, result3 error) {
 	fake.GetJobStub = nil
 	fake.getJobReturns = struct {
 		result1 db.SavedJob
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeBuildStarterDB) UpdateBuildToScheduled(arg1 int) (bool, error) {

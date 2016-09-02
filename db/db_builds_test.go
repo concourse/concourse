@@ -135,11 +135,13 @@ var _ = Describe("Builds", func() {
 		err = savedBuild3.Finish(db.StatusSucceeded)
 		Expect(err).NotTo(HaveOccurred())
 
-		someJob, err := pipelineDB.GetJob("some-job")
+		someJob, found, err := pipelineDB.GetJob("some-job")
 		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
 
-		someRandomJob, err := pipelineDB.GetJob("some-random-job")
+		someRandomJob, found, err := pipelineDB.GetJob("some-random-job")
 		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
 
 		jobBuildMap, err := database.FindLatestSuccessfulBuildsPerJob()
 		Expect(err).NotTo(HaveOccurred())
@@ -161,8 +163,9 @@ var _ = Describe("Builds", func() {
 			Expect(found).To(BeTrue())
 			Expect(err).NotTo(HaveOccurred())
 
-			job, err := pipelineDB.GetJob("some-job")
+			job, found, err := pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			Expect(jobID).To(Equal(job.ID))
 		})

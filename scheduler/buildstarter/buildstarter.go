@@ -25,7 +25,7 @@ type BuildStarterDB interface {
 	GetNextPendingBuild(job string) (db.Build, bool, error)
 	GetNextBuildInputs(jobName string) ([]db.BuildInput, bool, error)
 	IsPaused() (bool, error)
-	GetJob(job string) (db.SavedJob, error)
+	GetJob(job string) (db.SavedJob, bool, error)
 	UpdateBuildToScheduled(int) (bool, error)
 	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
@@ -129,10 +129,14 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	job, err := s.db.GetJob(jobConfig.Name)
+	job, found, err := s.db.GetJob(jobConfig.Name)
 	if err != nil {
 		logger.Error("failed-to-check-if-job-is-paused", err)
 		return false, err
+	}
+	if !found {
+		logger.Debug("job-not-found")
+		return false, nil
 	}
 	if job.Paused {
 		return false, nil

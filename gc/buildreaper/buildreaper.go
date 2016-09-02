@@ -58,7 +58,7 @@ func (br *buildReaper) Run() error {
 		}
 
 		for _, job := range jobs {
-			if job.JobConfig.BuildLogsToRetain == 0 {
+			if job.Job.Config.BuildLogsToRetain == 0 {
 				continue
 			}
 
@@ -104,7 +104,7 @@ func (br *buildReaper) Run() error {
 
 			buildsToRetain, _, err := pipelineDB.GetJobBuilds(
 				job.Job.Name,
-				db.Page{Limit: job.JobConfig.BuildLogsToRetain},
+				db.Page{Limit: job.Job.Config.BuildLogsToRetain},
 			)
 			if err != nil {
 				br.logger.Error("could-not-get-job-builds-to-retain", err)

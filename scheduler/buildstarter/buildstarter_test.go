@@ -55,7 +55,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 				fakeUpdater.UpdateMaxInFlightReachedReturns(false, nil)
 				fakeDB.GetNextBuildInputsReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
 				fakeDB.IsPausedReturns(false, nil)
-				fakeDB.GetJobReturns(db.SavedJob{Paused: false}, nil)
+				fakeDB.GetJobReturns(db.SavedJob{Paused: false}, true, nil)
 			})
 
 			Context("when getting the next pending build fails", func() {
@@ -328,7 +328,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 				Context("when getting the job fails", func() {
 					BeforeEach(func() {
-						fakeDB.GetJobReturns(db.SavedJob{}, disaster)
+						fakeDB.GetJobReturns(db.SavedJob{}, false, disaster)
 					})
 
 					itReturnsTheError()
@@ -337,7 +337,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 				Context("when the job is paused", func() {
 					BeforeEach(func() {
-						fakeDB.GetJobReturns(db.SavedJob{Paused: true}, nil)
+						fakeDB.GetJobReturns(db.SavedJob{Paused: true}, true, nil)
 					})
 
 					itDoesntReturnAnErrorOrMarkTheBuildAsScheduled()

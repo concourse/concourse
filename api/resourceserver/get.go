@@ -13,8 +13,6 @@ import (
 func (s *Server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 	logger := s.logger.Session("get-resource")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		config := pipelineDB.Config()
-
 		resourceName := r.FormValue(":resource_name")
 		teamName := r.FormValue(":team_name")
 
@@ -33,7 +31,7 @@ func (s *Server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 
 		resource := present.Resource(
 			dbResource,
-			config.Groups,
+			pipelineDB.Config().Groups,
 			auth.IsAuthenticated(r),
 			teamName,
 		)

@@ -53,7 +53,7 @@ type PipelineDB interface {
 	AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, length time.Duration, immediate bool) (Lock, bool, error)
 	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, length time.Duration, immediate bool) (Lock, bool, error)
 
-	GetJob(job string) (SavedJob, error)
+	GetJob(job string) (SavedJob, bool, error)
 	PauseJob(job string) error
 	UnpauseJob(job string) error
 	SetMaxInFlightReached(string, bool) error
@@ -279,6 +279,7 @@ func (pdb *pipelineDB) GetResources() ([]SavedResource, bool, error) {
 			SELECT id, name, config, check_error, paused
 			FROM resources
 			WHERE pipeline_id = $1
+				AND active = true
 		`, pdb.ID)
 
 	if err != nil {
@@ -669,6 +670,7 @@ func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, bool, err
 			FROM resources
 			WHERE name = $1
 				AND pipeline_id = $2
+				AND active = true
 		`, name, pdb.ID))
 }
 
@@ -732,6 +734,7 @@ func (pdb *pipelineDB) getResourceType(tx Tx, name string) (SavedResourceType, b
 			FROM resource_types
 			WHERE name = $1
 				AND pipeline_id = $2
+				AND active = true
 		`, name, pdb.ID).Scan(&savedResourceType.ID, &savedResourceType.Name, &savedResourceType.Type, &versionJSON, &configBlob)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -870,6 +873,7 @@ func (pdb *pipelineDB) SaveResourceTypeVersion(resourceType atc.ResourceType, ve
 		WHERE name = $2
 		AND type = $3
 		AND pipeline_id = $4
+		AND active = true
 	`, string(versionJSON), resourceType.Name, resourceType.Type, pdb.ID)
 	if err != nil {
 		return err
@@ -1122,25 +1126,28 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, savedResource SavedResource,
 	}, created, nil
 }
 
-func (pdb *pipelineDB) GetJob(jobName string) (SavedJob, error) {
+func (pdb *pipelineDB) GetJob(jobName string) (SavedJob, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
-		return SavedJob{}, err
+		return SavedJob{}, false, err
 	}
 
 	defer tx.Rollback()
 
 	dbJob, err := pdb.getJob(tx, jobName)
 	if err != nil {
-		return SavedJob{}, err
+		if err == sql.ErrNoRows {
+			return SavedJob{}, false, nil
+		}
+		return SavedJob{}, false, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return SavedJob{}, err
+		return SavedJob{}, false, err
 	}
 
-	return dbJob, nil
+	return dbJob, true, nil
 }
 
 func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, bool, error) {
@@ -2371,8 +2378,7 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 		}
 
 		dashboardJob := DashboardJob{
-			Job:       savedJob,
-			JobConfig: job,
+			Job: savedJob,
 		}
 
 		if startedBuild, found := startedBuilds[job.Name]; found {
@@ -2482,8 +2488,9 @@ func (pdb *pipelineDB) getJob(tx Tx, name string) (SavedJob, error) {
 	return pdb.scanJob(tx.QueryRow(`
  	SELECT j.id, j.name, j.config, j.paused, j.first_logged_build_id, p.team_id
   	FROM jobs j, pipelines p
-  	WHERE j.pipeline_id = p.id
-		AND j.name = $1
+  	WHERE j.active = true
+			AND j.pipeline_id = p.id
+			AND j.name = $1
   		AND j.pipeline_id = $2
   	`, name, pdb.ID))
 }

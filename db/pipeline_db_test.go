@@ -632,26 +632,32 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		It("can load up versioned resource information relevant to scheduling", func() {
-			job, err := pipelineDB.GetJob("some-job")
+			job, found, err := pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			otherJob, err := pipelineDB.GetJob("some-other-job")
+			otherJob, found, err := pipelineDB.GetJob("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			aJob, err := pipelineDB.GetJob("a-job")
+			aJob, found, err := pipelineDB.GetJob("a-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			sharedJob, err := pipelineDB.GetJob("shared-job")
+			sharedJob, found, err := pipelineDB.GetJob("shared-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			randomJob, err := pipelineDB.GetJob("random-job")
+			randomJob, found, err := pipelineDB.GetJob("random-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			otherSerialGroupJob, err := pipelineDB.GetJob("other-serial-group-job")
+			otherSerialGroupJob, found, err := pipelineDB.GetJob("other-serial-group-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			differentSerialGroupJob, err := pipelineDB.GetJob("different-serial-group-job")
+			differentSerialGroupJob, found, err := pipelineDB.GetJob("different-serial-group-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			versions, err := pipelineDB.LoadVersionsDB()
 			Expect(err).NotTo(HaveOccurred())
@@ -674,7 +680,7 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			By("initially having no latest versioned resource")
-			_, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
+			_, found, err = pipelineDB.GetLatestVersionedResource(resource.Name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 
@@ -987,7 +993,7 @@ var _ = Describe("PipelineDB", func() {
 				versions, err := pipelineDB.LoadVersionsDB()
 				Expect(err).NotTo(HaveOccurred())
 
-				aJob, err := pipelineDB.GetJob("a-job")
+				aJob, found, err := pipelineDB.GetJob("a-job")
 				Expect(err).NotTo(HaveOccurred())
 
 				By("omitting it from the list of resource versions")
@@ -1753,6 +1759,7 @@ var _ = Describe("PipelineDB", func() {
 			resource2 db.SavedResource
 			resource3 db.SavedResource
 		)
+
 		BeforeEach(func() {
 			resource1 = db.SavedResource{
 				ID:           0,
@@ -1813,9 +1820,26 @@ var _ = Describe("PipelineDB", func() {
 			Expect(resources).To(ConsistOf(resource1, resource2, resource3))
 		})
 
-		XContext("when there is a saved resource that is not active", func() {
+		Context("when there is a saved resource that is not active", func() {
 			BeforeEach(func() {
-
+				pipelineConfig.Resources = atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+				}
+				_, _, err := teamDB.SaveConfig("a-pipeline-name", pipelineConfig, 1, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns the active resources", func() {
@@ -1828,7 +1852,7 @@ var _ = Describe("PipelineDB", func() {
 				}
 
 				Expect(resources).To(HaveLen(2))
-				Expect(resources).To(ConsistOf(resource1, resource3))
+				Expect(resources).To(ConsistOf(resource1, resource2))
 			})
 		})
 	})
@@ -1909,74 +1933,67 @@ var _ = Describe("PipelineDB", func() {
 			It("returns a Dashboard object with a DashboardJob corresponding to each configured job", func() {
 				pipelineDB.UpdateFirstLoggedBuildID("some-job", 57)
 
-				job, err := pipelineDB.GetJob("some-job")
+				job, found, err := pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				otherJob, err := pipelineDB.GetJob("some-other-job")
+				otherJob, found, err := pipelineDB.GetJob("some-other-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				aJob, err := pipelineDB.GetJob("a-job")
+				aJob, found, err := pipelineDB.GetJob("a-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				sharedJob, err := pipelineDB.GetJob("shared-job")
+				sharedJob, found, err := pipelineDB.GetJob("shared-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				randomJob, err := pipelineDB.GetJob("random-job")
+				randomJob, found, err := pipelineDB.GetJob("random-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				otherSerialGroupJob, err := pipelineDB.GetJob("other-serial-group-job")
+				otherSerialGroupJob, found, err := pipelineDB.GetJob("other-serial-group-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				differentSerialGroupJob, err := pipelineDB.GetJob("different-serial-group-job")
+				differentSerialGroupJob, found, err := pipelineDB.GetJob("different-serial-group-job")
 				Expect(err).NotTo(HaveOccurred())
-
-				lookupConfig := func(jobName string) atc.JobConfig {
-					config, found := pipelineConfig.Jobs.Lookup(jobName)
-					Expect(found).To(BeTrue())
-
-					return config
-				}
+				Expect(found).To(BeTrue())
 
 				By("returning jobs with no builds")
 				expectedDashboard := db.Dashboard{
 					{
-						JobConfig:     lookupConfig(job.Name),
 						Job:           job,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(otherJob.Name),
 						Job:           otherJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(aJob.Name),
 						Job:           aJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(sharedJob.Name),
 						Job:           sharedJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(randomJob.Name),
 						Job:           randomJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(otherSerialGroupJob.Name),
 						Job:           otherSerialGroupJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(differentSerialGroupJob.Name),
 						Job:           differentSerialGroupJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
@@ -2003,7 +2020,7 @@ var _ = Describe("PipelineDB", func() {
 				By("returning a job's most recent started build")
 				jobBuildOldDB.Start("engine", "metadata")
 
-				found, err := jobBuildOldDB.Reload()
+				found, err = jobBuildOldDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2306,8 +2323,9 @@ var _ = Describe("PipelineDB", func() {
 			job := "some-job"
 
 			It("starts out as unpaused", func() {
-				job, err := pipelineDB.GetJob(job)
+				job, found, err := pipelineDB.GetJob(job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				Expect(job.Paused).To(BeFalse())
 			})
@@ -2319,12 +2337,14 @@ var _ = Describe("PipelineDB", func() {
 				err = otherPipelineDB.UnpauseJob(job)
 				Expect(err).NotTo(HaveOccurred())
 
-				pausedJob, err := pipelineDB.GetJob(job)
+				pausedJob, found, err := pipelineDB.GetJob(job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(pausedJob.Paused).To(BeTrue())
 
-				otherJob, err := otherPipelineDB.GetJob(job)
+				otherJob, found, err := otherPipelineDB.GetJob(job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(otherJob.Paused).To(BeFalse())
 			})
 
@@ -2335,8 +2355,9 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.UnpauseJob(job)
 				Expect(err).NotTo(HaveOccurred())
 
-				unpausedJob, err := pipelineDB.GetJob(job)
+				unpausedJob, found, err := pipelineDB.GetJob(job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				Expect(unpausedJob.Paused).To(BeFalse())
 			})
@@ -2345,8 +2366,9 @@ var _ = Describe("PipelineDB", func() {
 		Describe("UpdateFirstLoggedBuildID", func() {
 			It("updates FirstLoggedBuildID on a job", func() {
 				By("starting out as 0")
-				job, err := pipelineDB.GetJob("some-job")
+				job, found, err := pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				Expect(job.FirstLoggedBuildID).To(BeZero())
 
@@ -2355,7 +2377,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.UpdateFirstLoggedBuildID("some-job", 57)
 				Expect(err).NotTo(HaveOccurred())
 
-				updatedJob, err := pipelineDB.GetJob("some-job")
+				updatedJob, found, err := pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(updatedJob.FirstLoggedBuildID).To(Equal(57))
 
@@ -2379,8 +2401,10 @@ var _ = Describe("PipelineDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				job, err = pipelineDB.GetJob("some-job")
+				var found bool
+				job, found, err = pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				firstBuild, err = pipelineDB.CreateJobBuild(job.Name)
 				Expect(err).NotTo(HaveOccurred())

@@ -85,6 +85,7 @@ var _ = Describe("ResourceScanner", func() {
 			},
 			PipelineName: "some-pipeline",
 			Paused:       false,
+			Config:       resourceConfig,
 		}
 
 		fakeLease = &dbfakes.FakeLease{}
@@ -170,13 +171,8 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the resource config has a specified check interval", func() {
 				BeforeEach(func() {
-					resourceConfig.CheckEvery = "10ms"
-
-					fakeRadarDB.ConfigReturns(atc.Config{
-						Resources: atc.ResourceConfigs{
-							resourceConfig,
-						},
-					})
+					savedResource.Config.CheckEvery = "10ms"
+					fakeRadarDB.GetResourceReturns(savedResource, true, nil)
 				})
 
 				It("leases for the configured interval", func() {
@@ -196,13 +192,8 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when the interval cannot be parsed", func() {
 					BeforeEach(func() {
-						resourceConfig.CheckEvery = "bad-value"
-
-						fakeRadarDB.ConfigReturns(atc.Config{
-							Resources: atc.ResourceConfigs{
-								resourceConfig,
-							},
-						})
+						savedResource.Config.CheckEvery = "bad-value"
+						fakeRadarDB.GetResourceReturns(savedResource, true, nil)
 					})
 
 					It("sets the check error", func() {
@@ -491,13 +482,8 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the resource config has a specified check interval", func() {
 				BeforeEach(func() {
-					resourceConfig.CheckEvery = "10ms"
-
-					fakeRadarDB.ConfigReturns(atc.Config{
-						Resources: atc.ResourceConfigs{
-							resourceConfig,
-						},
-					})
+					savedResource.Config.CheckEvery = "10ms"
+					fakeRadarDB.GetResourceReturns(savedResource, true, nil)
 				})
 
 				It("leases for the configured interval", func() {
@@ -513,13 +499,8 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when the interval cannot be parsed", func() {
 					BeforeEach(func() {
-						resourceConfig.CheckEvery = "bad-value"
-
-						fakeRadarDB.ConfigReturns(atc.Config{
-							Resources: atc.ResourceConfigs{
-								resourceConfig,
-							},
-						})
+						savedResource.Config.CheckEvery = "bad-value"
+						fakeRadarDB.GetResourceReturns(savedResource, true, nil)
 					})
 
 					It("sets the check error and returns the error", func() {

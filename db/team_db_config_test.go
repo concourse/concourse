@@ -256,6 +256,22 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			}))
 		})
 
+		It("marks resource as inactive if it is no longer in config", func() {
+			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.Resources = []atc.ResourceConfig{}
+
+			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 1, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipelineDB := pipelineDBFactory.Build(savedPipeline)
+
+			_, found, err := pipelineDB.GetResource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
 		It("creates all of the resource types from the pipeline in the database", func() {
 			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
@@ -299,14 +315,31 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			}))
 		})
 
+		It("marks resource type as inactive if it is no longer in config", func() {
+			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.ResourceTypes = []atc.ResourceType{}
+
+			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 1, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipelineDB := pipelineDBFactory.Build(savedPipeline)
+
+			_, found, err := pipelineDB.GetResourceType("some-resource-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
 		It("creates all of the jobs from the pipeline in the database", func() {
 			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
-			job, err := pipelineDB.GetJob("some-job")
+			job, found, err := pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(job.Config).To(Equal(config.Jobs[0]))
 		})
 
@@ -321,9 +354,26 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
-			job, err := pipelineDB.GetJob("some-job")
+			job, found, err := pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(job.Config.Public).To(BeFalse())
+		})
+
+		It("marks job inactive", func() {
+			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.Jobs = []atc.JobConfig{}
+
+			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 1, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipelineDB := pipelineDBFactory.Build(savedPipeline)
+
+			_, found, err := pipelineDB.GetJob("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
 		})
 
 		It("creates all of the serial groups from the jobs in the database", func() {
@@ -343,8 +393,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
-			job, err := pipelineDB.GetJob("some-job")
+			job, found, err := pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			Expect(serialGroups).To(ConsistOf([]SerialGroup{
 				{
