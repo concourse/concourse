@@ -6,7 +6,6 @@ module Autoscroll exposing
   , subscriptions
   , ScrollBehavior(..)
   , Msg(SubMsg)
-  , fromBottom
   )
 
 import AnimationFrame
@@ -55,11 +54,6 @@ update subUpdate action model =
 
     ScrolledDown ->
       (model, Cmd.none)
-
-fromBottom : String -> (Int -> msg) -> Cmd msg
-fromBottom ele cons =
-  Task.perform (always (cons 0)) cons <|
-    Scroll.fromBottom ele
 
 urlUpdate : (pageResult -> subModel -> (subModel, Cmd subMsg)) -> pageResult -> Model subModel -> (Model subModel, Cmd (Msg subMsg))
 urlUpdate subUrlUpdate pageResult model =
