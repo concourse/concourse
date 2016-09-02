@@ -113,6 +113,8 @@ type ATCCommand struct {
 		RiemannHost string `long:"riemann-host"                description:"Riemann server address to emit metrics to."`
 		RiemannPort uint16 `long:"riemann-port" default:"5555" description:"Port of the Riemann server to emit metrics to."`
 	} `group:"Metrics & Diagnostics"`
+
+	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -141,6 +143,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbConn, err := cmd.constructDBConn(logger)
 	if err != nil {
 		return nil, err
+	}
+	if cmd.LogDBQueries {
+		dbConn = db.Log(logger.Session("log-conn"), dbConn)
 	}
 
 	lockConn, err := cmd.constructLockConn()
