@@ -51,22 +51,22 @@ func (br *buildReaper) Run() error {
 
 		pipelineDB := br.pipelineDBFactory.Build(pipeline)
 
-		jobs, _, err := pipelineDB.GetDashboard()
+		jobs, err := pipelineDB.GetJobs()
 		if err != nil {
 			br.logger.Error("could-not-get-dashboard", err)
 			return err
 		}
 
 		for _, job := range jobs {
-			if job.Job.Config.BuildLogsToRetain == 0 {
+			if job.Config.BuildLogsToRetain == 0 {
 				continue
 			}
 
 			buildsToConsiderDeleting := []db.Build{}
-			until := job.Job.FirstLoggedBuildID - 1
+			until := job.FirstLoggedBuildID - 1
 			limit := br.batchSize
 
-			if job.Job.FirstLoggedBuildID <= 1 {
+			if job.FirstLoggedBuildID <= 1 {
 				until = 1
 
 				buildsToConsiderDeleting, _, err = pipelineDB.GetJobBuilds(
@@ -104,7 +104,7 @@ func (br *buildReaper) Run() error {
 
 			buildsToRetain, _, err := pipelineDB.GetJobBuilds(
 				job.Job.Name,
-				db.Page{Limit: job.Job.Config.BuildLogsToRetain},
+				db.Page{Limit: job.Config.BuildLogsToRetain},
 			)
 			if err != nil {
 				br.logger.Error("could-not-get-job-builds-to-retain", err)

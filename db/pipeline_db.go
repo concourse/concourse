@@ -53,6 +53,7 @@ type PipelineDB interface {
 	AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, length time.Duration, immediate bool) (Lock, bool, error)
 	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, length time.Duration, immediate bool) (Lock, bool, error)
 
+	GetJobs() (map[string]SavedJob, error)
 	GetJob(job string) (SavedJob, bool, error)
 	PauseJob(job string) error
 	UnpauseJob(job string) error
@@ -2348,6 +2349,10 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (Build, Build, err
 	return finished, next, nil
 }
 
+func (pdb *pipelineDB) GetJobs() (map[string]SavedJob, error) {
+	return pdb.getJobs()
+}
+
 func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 	dashboard := Dashboard{}
 
@@ -2371,14 +2376,9 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 		return nil, nil, err
 	}
 
-	for _, job := range pdb.SavedPipeline.Config.Jobs {
-		savedJob, found := savedJobs[job.Name]
-		if !found {
-			return nil, nil, fmt.Errorf("found job in pipeline configuration but not in database: %s", job.Name)
-		}
-
+	for _, job := range savedJobs {
 		dashboardJob := DashboardJob{
-			Job: savedJob,
+			Job: job,
 		}
 
 		if startedBuild, found := startedBuilds[job.Name]; found {
@@ -2421,6 +2421,7 @@ func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
   	FROM jobs j, pipelines p
 		WHERE j.pipeline_id = p.id
   		AND pipeline_id = $1
+			AND active = true
   `, pdb.ID)
 	if err != nil {
 		return nil, err
