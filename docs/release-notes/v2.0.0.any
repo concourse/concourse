@@ -78,7 +78,7 @@
 
   \note{fix}{
     Previously if the database or network became sluggish, ATC's locking
-    mechanism would stop funcitoning, resulting in multiple ATCs trying to
+    mechanism would stop functioning, resulting in multiple ATCs trying to
     manage the same build, among other things. We've switched to Postgres
     session locks, which should be much more airtight.
   }

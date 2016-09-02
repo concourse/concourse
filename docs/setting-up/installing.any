@@ -322,14 +322,15 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     cp ./keys/web/tsa_host_key.pub ./keys/worker
   }
 
-  Then set up some minimal configuration:
+  The next thing you'll need is an address that can be used to reach the
+  \code{web} node from within your network. This is the
+  \code{$CONCOURSE_EXTERNAL_URL} variable. It \italic{can't} be
+  \code{127.0.0.1} or \code{localhost} as it has to also work in a separate
+  network namespace, for \reference{fly-execute} to be able to receive your
+  uploaded bits from the \code{web} node.
 
-  \codeblock{bash}{
-    export CONCOURSE_EXTERNAL_URL=http://127.0.0.1:8080
-  }
-
-  Or, if you're using \code{docker-machine}, set \code{CONCOURSE_EXTERNAL_URL}
-  to whatever the machine's IP is, for example:
+  If you're using \code{docker-machine}, set \code{CONCOURSE_EXTERNAL_URL} to
+  whatever the machine's IP is, for example:
 
   \codeblock{bash}{
     export CONCOURSE_EXTERNAL_URL=http://192.168.99.100:8080
