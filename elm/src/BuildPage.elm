@@ -9,6 +9,7 @@ import Autoscroll
 import Build exposing (Page (..))
 
 port setTitle : String -> Cmd msg
+port focusElement : String -> Cmd msg
 
 main : Program Never
 main =
@@ -17,7 +18,10 @@ main =
     { init =
         Autoscroll.init
           Build.getScrollBehavior <<
-            Build.init setTitle
+            Build.init
+              { setTitle = setTitle
+              , focusElement = focusElement
+              }
     , update = Autoscroll.update Build.update
     , urlUpdate = Autoscroll.urlUpdate Build.urlUpdate
     , view = Autoscroll.view Build.view

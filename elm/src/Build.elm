@@ -16,7 +16,7 @@ import Debug
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.App
-import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled, attribute)
+import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled, attribute, tabindex)
 import Html.Events exposing (onClick, on, onWithOptions)
 import Html.Lazy
 import Http
@@ -61,12 +61,12 @@ type alias CurrentBuild =
   }
 
 type alias Model =
-  { now : Time.Time
+  { ports : Ports
+  , now : Time.Time
   , job : Maybe Concourse.Job
   , history : List Concourse.Build
   , currentBuild : Maybe CurrentBuild
   , browsingIndex : Int
-  , setTitle : String -> Cmd Msg
   , autoScroll : Bool
   }
 
@@ -89,13 +89,15 @@ type Msg
   | ClockTick Time.Time
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
-  | ScrollOutput (Float, Float)
-  | TouchOutputStart
-  | TouchOutputEnd
-  | ResetAutoScroll Int
+  | OutputScrolled (Float, Float, Float)
 
-init : (String -> Cmd Msg) -> Result String Page -> (Model, Cmd Msg)
-init setTitle pageResult =
+type alias Ports =
+  { setTitle : String -> Cmd Msg
+  , focusElement : String -> Cmd Msg
+  }
+
+init : Ports -> Result String Page -> (Model, Cmd Msg)
+init ports pageResult =
   changeToBuild
     pageResult
     { now = 0
@@ -103,8 +105,8 @@ init setTitle pageResult =
     , history = []
     , currentBuild = Nothing
     , browsingIndex = 0
-    , setTitle = setTitle
     , autoScroll = True
+    , ports = ports
     }
 
 subscriptions : Model -> Sub Msg
@@ -137,13 +139,13 @@ changeToBuild pageResult model =
 
         Ok (BuildPage buildId) ->
           Cmd.batch
-            [ model.setTitle ("one-off #" ++ toString buildId)
+            [ model.ports.setTitle ("one-off #" ++ toString buildId)
             , fetchBuild 0 newIndex buildId
             ]
 
         Ok (JobBuildPage jbi) ->
           Cmd.batch
-            [ model.setTitle (jbi.jobName ++ " #" ++ jbi.buildName)
+            [ model.ports.setTitle (jbi.jobName ++ " #" ++ jbi.buildName)
             , fetchJobBuild newIndex jbi
             ]
     )
@@ -237,35 +239,31 @@ update action model =
     ScrollBuilds (deltaX, _) ->
       (model, scrollBuilds -deltaX)
 
-    ScrollOutput (_, deltaY) ->
-      if deltaY < 0 then
-        ({ model | autoScroll = False }, Cmd.none)
-      else
-        ( model
-        , Autoscroll.fromBottom autoscrollElement ResetAutoScroll
-        )
-
-    TouchOutputStart ->
-      ({ model | autoScroll = False }, Cmd.none)
-
-    TouchOutputEnd ->
-      ( model
-      , Autoscroll.fromBottom autoscrollElement ResetAutoScroll
-      )
-
-    ResetAutoScroll fromBottom ->
-      if fromBottom < 16 then
-        ({ model | autoScroll = True }, Cmd.none)
-      else
-        (model, Cmd.none)
-
     ClockTick now ->
       ({ model | now = now }, Cmd.none)
+
+    OutputScrolled (scrollHeight, scrollTop, clientHeight) ->
+      let
+        fromBottom =
+          scrollHeight - (scrollTop + clientHeight)
+      in
+        if fromBottom == 0 then
+          ({ model | autoScroll = True }, Cmd.none)
+        else
+          ({ model | autoScroll = False }, Cmd.none)
 
 handleBuildFetched : Int -> Concourse.Build -> Model -> (Model, Cmd Msg)
 handleBuildFetched browsingIndex build model =
   if browsingIndex == model.browsingIndex then
     let
+      focusOutput =
+        case model.currentBuild of
+          Nothing ->
+            model.ports.focusElement autoscrollElement
+
+          _ ->
+            Cmd.none
+
       currentBuild =
         case model.currentBuild of
           Nothing ->
@@ -316,6 +314,7 @@ handleBuildFetched browsingIndex build model =
           [ cmd
           , setFavicon build.status
           , fetchJobAndHistory
+          , focusOutput
           ])
   else
     (model, Cmd.none)
@@ -393,9 +392,10 @@ view model =
         , Html.div
           [ class "scrollable-body"
           , id autoscrollElement
-          , on "mousewheel" (Json.Decode.map ScrollOutput <| decodeScrollEvent)
-          , on "touchstart" (Json.Decode.succeed TouchOutputStart)
-          , on "touchend" (Json.Decode.succeed TouchOutputEnd)
+          , on "scroll" (Json.Decode.map OutputScrolled decodeScrollEvent)
+
+          -- this is necessary to focus the element for some reason
+          , tabindex 0
           ] <|
           [ viewBuildPrep currentBuild.prep
           , Html.Lazy.lazy
@@ -596,7 +596,7 @@ viewBuildHeader build {now, job, history} =
           [ onWithOptions
               "mousewheel"
               { stopPropagation = True, preventDefault = True }
-              (Json.Decode.map ScrollBuilds decodeScrollEvent)
+              (Json.Decode.map ScrollBuilds decodeMouseWheelEvent)
           ]
           [ lazyViewHistory build history ]
       ]
@@ -643,11 +643,18 @@ durationTitle : Date -> List (Html Msg) -> Html Msg
 durationTitle date content =
   Html.div [title (Date.Format.format "%b" date)] content
 
-decodeScrollEvent : Json.Decode.Decoder (Float, Float)
-decodeScrollEvent =
+decodeMouseWheelEvent : Json.Decode.Decoder (Float, Float)
+decodeMouseWheelEvent =
   Json.Decode.object2 (,)
     ("deltaX" := Json.Decode.float)
     ("deltaY" := Json.Decode.float)
+
+decodeScrollEvent : Json.Decode.Decoder (Float, Float, Float)
+decodeScrollEvent =
+  Json.Decode.object3 (,,)
+    (Json.Decode.at ["target", "scrollHeight"] Json.Decode.float)
+    (Json.Decode.at ["target", "scrollTop"] Json.Decode.float)
+    (Json.Decode.at ["target", "clientHeight"] Json.Decode.float)
 
 fetchBuild : Time -> Int -> Int -> Cmd Msg
 fetchBuild delay browsingIndex buildId =

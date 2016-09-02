@@ -1,6 +1,5 @@
 module Scroll exposing
   ( toBottom
-  , fromBottom
   , scroll
   , scrollIntoView
   )
@@ -20,7 +19,3 @@ scroll =
 scrollIntoView : String -> Task x ()
 scrollIntoView =
   Native.Scroll.scrollIntoView
-
-fromBottom : String -> Task x Int
-fromBottom =
-  Native.Scroll.fromBottom
