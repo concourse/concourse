@@ -37,6 +37,7 @@ type Client interface {
 
 	Satisfying(WorkerSpec, atc.ResourceTypes) (Worker, error)
 	AllSatisfying(WorkerSpec, atc.ResourceTypes) ([]Worker, error)
+	Workers() ([]Worker, error)
 	GetWorker(workerName string) (Worker, error)
 }
 

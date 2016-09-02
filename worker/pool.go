@@ -65,6 +65,10 @@ func shuffleWorkers(slice []Worker) {
 	}
 }
 
+func (pool *pool) Workers() ([]Worker, error) {
+	return pool.provider.Workers()
+}
+
 func (pool *pool) GetWorker(workerName string) (Worker, error) {
 	worker, found, err := pool.provider.GetWorker(workerName)
 	if err != nil {

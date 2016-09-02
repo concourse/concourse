@@ -1,7 +1,6 @@
 package lostandfound_test
 
 import (
-	"errors"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -10,6 +9,7 @@ import (
 	"github.com/concourse/atc/gc/lostandfound"
 	"github.com/concourse/atc/gc/lostandfound/lostandfoundfakes"
 	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker"
 
 	"github.com/concourse/atc/db/dbfakes"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -38,6 +38,7 @@ var _ = Describe("Volumes are reaped", func() {
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeWorker = new(wfakes.FakeWorker)
+		fakeWorker.NameReturns("a-new-worker")
 		fakeVolume = new(wfakes.FakeVolume)
 		baggageCollectorLogger := lagertest.NewTestLogger("test")
 		fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
@@ -139,7 +140,7 @@ var _ = Describe("Volumes are reaped", func() {
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{fakeSavedPipeline}, nil)
 			fakePipelineDBFactory.BuildReturns(&fakePipelineDB)
 			fakePipelineDB.GetLatestEnabledVersionedResourceReturns(fakeSavedVersionedResource, true, nil)
-			fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
+			fakeWorkerClient.WorkersReturns([]worker.Worker{fakeWorker}, nil)
 			fakeWorker.LookupVolumeReturns(fakeVolume, true, nil)
 		})
 
@@ -153,7 +154,7 @@ var _ = Describe("Volumes are reaped", func() {
 
 	Context("when the worker can not be found", func() {
 		BeforeEach(func() {
-			fakeWorkerClient.GetWorkerReturns(nil, errors.New("no-worker-found"))
+			fakeWorkerClient.WorkersReturns([]worker.Worker{}, nil)
 		})
 
 		It("does not expire volume", func() {
@@ -166,7 +167,7 @@ var _ = Describe("Volumes are reaped", func() {
 
 	Context("the volume is no longer found on the worker", func() {
 		BeforeEach(func() {
-			fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
+			fakeWorkerClient.WorkersReturns([]worker.Worker{fakeWorker}, nil)
 			fakeWorker.LookupVolumeReturns(nil, false, nil)
 		})
 

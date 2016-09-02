@@ -130,6 +130,13 @@ type FakeClient struct {
 		result1 []worker.Worker
 		result2 error
 	}
+	WorkersStub        func() ([]worker.Worker, error)
+	workersMutex       sync.RWMutex
+	workersArgsForCall []struct{}
+	workersReturns     struct {
+		result1 []worker.Worker
+		result2 error
+	}
 	GetWorkerStub        func(workerName string) (worker.Worker, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
@@ -536,6 +543,32 @@ func (fake *FakeClient) AllSatisfyingReturns(result1 []worker.Worker, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeClient) Workers() ([]worker.Worker, error) {
+	fake.workersMutex.Lock()
+	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
+	fake.recordInvocation("Workers", []interface{}{})
+	fake.workersMutex.Unlock()
+	if fake.WorkersStub != nil {
+		return fake.WorkersStub()
+	} else {
+		return fake.workersReturns.result1, fake.workersReturns.result2
+	}
+}
+
+func (fake *FakeClient) WorkersCallCount() int {
+	fake.workersMutex.RLock()
+	defer fake.workersMutex.RUnlock()
+	return len(fake.workersArgsForCall)
+}
+
+func (fake *FakeClient) WorkersReturns(result1 []worker.Worker, result2 error) {
+	fake.WorkersStub = nil
+	fake.workersReturns = struct {
+		result1 []worker.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) GetWorker(workerName string) (worker.Worker, error) {
 	fake.getWorkerMutex.Lock()
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
@@ -595,6 +628,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.satisfyingMutex.RUnlock()
 	fake.allSatisfyingMutex.RLock()
 	defer fake.allSatisfyingMutex.RUnlock()
+	fake.workersMutex.RLock()
+	defer fake.workersMutex.RUnlock()
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
 	return fake.invocations

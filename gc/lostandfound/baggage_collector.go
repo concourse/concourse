@@ -173,12 +173,22 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 
 	sort.Sort(sortByHandle(volumesToExpire))
 
+	workers, err := bc.workerClient.Workers()
+	if err != nil {
+		bc.logger.Error("failed-to-get-workers", err)
+		return err
+	}
+
+	workersMap := map[string]worker.Worker{}
+	for _, worker := range workers {
+		workersMap[worker.Name()] = worker
+	}
+
 	seenIdentifiers := map[string]bool{}
 	for _, volumeToExpire := range volumesToExpire {
-		volumeWorker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerName)
-		if err != nil {
+		volumeWorker, ok := workersMap[volumeToExpire.WorkerName]
+		if !ok {
 			bc.logger.Info("could-not-locate-worker", lager.Data{
-				"error":     err.Error(),
 				"worker-id": volumeToExpire.WorkerName,
 			})
 			continue
