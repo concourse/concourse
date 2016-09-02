@@ -4,7 +4,6 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)
 import Html.Events exposing (onClick)
 import Http
-import Json.Decode exposing ((:=))
 import List
 import Navigation exposing (Location)
 import String
@@ -15,6 +14,7 @@ import Concourse
 import Concourse.Pipeline
 import Concourse.User
 import Redirect
+import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 
 type alias Flags =
   { pipeline : Maybe Concourse.PipelineIdentifier
@@ -340,7 +340,7 @@ viewGroup selectedGroups url grp =
     ]
     [ Html.a
         [ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
-        , onClickOrShiftClick (SetGroup grp) (ToggleGroup grp)
+        , onLeftClickOrShiftLeftClick (SetGroup grp) (ToggleGroup grp)
         ]
         [ Html.text grp.name]
     ]
@@ -364,23 +364,3 @@ redirectToHome : Cmd Msg
 redirectToHome =
   Cmd.map (always Noop) << Task.perform Err Ok <|
     Redirect.to "/"
-
-onClickOrShiftClick : Msg -> Msg -> Html.Attribute Msg
-onClickOrShiftClick clickMsg shiftClickMsg =
-  Html.Events.onWithOptions "click"
-    { stopPropagation = False, preventDefault = True } <|
-      Json.Decode.customDecoder
-      (Json.Decode.object2 (,)
-        ("button" := Json.Decode.int)
-        ("shiftKey" := Json.Decode.bool)) <|
-          determineClickMsg clickMsg shiftClickMsg
-
-determineClickMsg : Msg -> Msg -> (Int, Bool) -> Result String Msg
-determineClickMsg clickMsg shiftClickMsg (button, shiftKey) =
-  case (button, shiftKey) of
-    (0, True) ->
-      Ok shiftClickMsg
-    (0, False) ->
-      Ok clickMsg
-    _ ->
-      Err "placeholder error, nothing is wrong"

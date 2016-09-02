@@ -17,10 +17,8 @@ import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.App
 import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled, attribute, tabindex)
-import Html.Events exposing (onClick, on, onWithOptions)
 import Html.Lazy
 import Http
-import Json.Decode exposing ((:=))
 import Navigation
 import Process
 import Task exposing (Task)
@@ -39,6 +37,7 @@ import Concourse.Pagination exposing (Paginated)
 import Favicon
 import LoadingIndicator
 import Redirect
+import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import Scroll
 
 type Page
@@ -85,11 +84,11 @@ type Msg
   | BuildHistoryFetched (Result Http.Error (Paginated Concourse.Build))
   | BuildJobDetailsFetched (Result Http.Error Concourse.Job)
   | BuildOutputMsg Int BuildOutput.Msg
-  | ScrollBuilds (Float, Float)
+  | ScrollBuilds StrictEvents.MouseWheelEvent
   | ClockTick Time.Time
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
-  | OutputScrolled (Float, Float, Float)
+  | OutputScrolled StrictEvents.ScrollState
 
 type alias Ports =
   { setTitle : String -> Cmd Msg
@@ -233,16 +232,16 @@ update action model =
     RevealCurrentBuildInHistory ->
       (model, scrollToCurrentBuildInHistory)
 
-    ScrollBuilds (0, deltaY) ->
-      (model, scrollBuilds deltaY)
-
-    ScrollBuilds (deltaX, _) ->
-      (model, scrollBuilds -deltaX)
+    ScrollBuilds event ->
+      if event.deltaX == 0 then
+        (model, scrollBuilds event.deltaY)
+      else
+        (model, scrollBuilds -event.deltaX)
 
     ClockTick now ->
       ({ model | now = now }, Cmd.none)
 
-    OutputScrolled (scrollHeight, scrollTop, clientHeight) ->
+    OutputScrolled {scrollHeight,scrollTop,clientHeight} ->
       let
         fromBottom =
           scrollHeight - (scrollTop + clientHeight)
@@ -392,7 +391,7 @@ view model =
         , Html.div
           [ class "scrollable-body"
           , id autoscrollElement
-          , on "scroll" (Json.Decode.map OutputScrolled decodeScrollEvent)
+          , onScroll OutputScrolled
 
           -- this is necessary to focus the element for some reason
           , tabindex 0
@@ -572,7 +571,7 @@ viewBuildHeader build {now, job, history} =
     abortButton =
       if Concourse.BuildStatus.isRunning build.status then
         Html.span
-          [class "build-action build-action-abort fr", onClick (AbortBuild build.id), attribute "aria-label" "Abort Build"]
+          [class "build-action build-action-abort fr", onLeftClick (AbortBuild build.id), attribute "aria-label" "Abort Build"]
           [Html.i [class "fa fa-times-circle"] []]
       else
         Html.span [] []
@@ -593,10 +592,7 @@ viewBuildHeader build {now, job, history} =
           , BuildDuration.view build.duration now
           ]
       , Html.div
-          [ onWithOptions
-              "mousewheel"
-              { stopPropagation = True, preventDefault = True }
-              (Json.Decode.map ScrollBuilds decodeMouseWheelEvent)
+          [ onMouseWheel ScrollBuilds
           ]
           [ lazyViewHistory build history ]
       ]
@@ -619,42 +615,16 @@ viewHistoryItem currentBuild build =
         class (Concourse.BuildStatus.show build.status)
     ]
     [ Html.a
-        [ overrideClick (SwitchToBuild build)
+        [ onLeftClick (SwitchToBuild build)
         , href (Concourse.Build.url build)
         ]
         [ Html.text (build.name)
         ]
     ]
 
-overrideClick : Msg -> Html.Attribute Msg
-overrideClick action =
-  Html.Events.onWithOptions "click"
-    { stopPropagation = True, preventDefault = True } <|
-      Json.Decode.customDecoder
-      ("button" := Json.Decode.int) <|
-        assertLeftButton action
-
-assertLeftButton : Msg -> Int -> Result String Msg
-assertLeftButton action button =
-  if button == 0 then Ok action
-  else Err "placeholder error, nothing is wrong"
-
 durationTitle : Date -> List (Html Msg) -> Html Msg
 durationTitle date content =
   Html.div [title (Date.Format.format "%b" date)] content
-
-decodeMouseWheelEvent : Json.Decode.Decoder (Float, Float)
-decodeMouseWheelEvent =
-  Json.Decode.object2 (,)
-    ("deltaX" := Json.Decode.float)
-    ("deltaY" := Json.Decode.float)
-
-decodeScrollEvent : Json.Decode.Decoder (Float, Float, Float)
-decodeScrollEvent =
-  Json.Decode.object3 (,,)
-    (Json.Decode.at ["target", "scrollHeight"] Json.Decode.float)
-    (Json.Decode.at ["target", "scrollTop"] Json.Decode.float)
-    (Json.Decode.at ["target", "clientHeight"] Json.Decode.float)
 
 fetchBuild : Time -> Int -> Int -> Cmd Msg
 fetchBuild delay browsingIndex buildId =
