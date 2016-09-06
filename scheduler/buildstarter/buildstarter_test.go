@@ -3,10 +3,12 @@ package buildstarter_test
 import (
 	"errors"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/scheduler/buildstarter"
 	"github.com/concourse/atc/scheduler/buildstarter/buildstarterfakes"
@@ -45,10 +47,69 @@ var _ = Describe("I'm a BuildStarter", func() {
 		JustBeforeEach(func() {
 			tryStartErr = buildStarter.TryStartAllPendingBuilds(
 				lagertest.NewTestLogger("test"),
-				atc.JobConfig{Name: "some-job"},
+				atc.JobConfigs{
+					{Name: "some-job-without-pending-builds"},
+					{Name: "some-job-1"},
+					{Name: "some-job-2"},
+				},
 				atc.ResourceConfigs{{Name: "some-resource"}},
 				atc.ResourceTypes{{Name: "some-resource-type"}})
 		})
+
+		itReturnsTheError := func() {
+			It("returns the error", func() {
+				Expect(tryStartErr).To(Equal(disaster))
+			})
+		}
+
+		itDoesntReturnAnErrorOrMarkTheBuildAsScheduled := func() {
+			It("doesn't return an error", func() {
+				Expect(tryStartErr).NotTo(HaveOccurred())
+			})
+
+			It("doesn't try to mark the build as scheduled", func() {
+				Expect(fakeDB.UpdateBuildToScheduledCallCount()).To(BeZero())
+			})
+		}
+
+		itUpdatedMaxInFlightForAllJobs := func() {
+			It("updated max in flight for the right jobs", func() {
+				Expect(fakeUpdater.UpdateMaxInFlightReachedCallCount()).To(Equal(3))
+				_, actualJobConfig, actualBuildID := fakeUpdater.UpdateMaxInFlightReachedArgsForCall(0)
+				Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-1"}))
+				Expect(actualBuildID).To(Equal(99))
+
+				_, actualJobConfig, actualBuildID = fakeUpdater.UpdateMaxInFlightReachedArgsForCall(1)
+				Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-1"}))
+				Expect(actualBuildID).To(Equal(999))
+
+				_, actualJobConfig, actualBuildID = fakeUpdater.UpdateMaxInFlightReachedArgsForCall(2)
+				Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-2"}))
+				Expect(actualBuildID).To(Equal(555))
+			})
+		}
+
+		itUpdatedMaxInFlightForFirstBuildOfEachJob := func() {
+			It("updated max in flight for the right jobs", func() {
+				Expect(fakeUpdater.UpdateMaxInFlightReachedCallCount()).To(Equal(2))
+				_, actualJobConfig, actualBuildID := fakeUpdater.UpdateMaxInFlightReachedArgsForCall(0)
+				Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-1"}))
+				Expect(actualBuildID).To(Equal(99))
+
+				_, actualJobConfig, actualBuildID = fakeUpdater.UpdateMaxInFlightReachedArgsForCall(1)
+				Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-2"}))
+				Expect(actualBuildID).To(Equal(555))
+			})
+		}
+
+		itUpdatedMaxInFlightForTheFirstJob := func() {
+			It("updated max in flight for the first jobs", func() {
+				Expect(fakeUpdater.UpdateMaxInFlightReachedCallCount()).To(Equal(1))
+				_, actualJobConfig, actualBuildID := fakeUpdater.UpdateMaxInFlightReachedArgsForCall(0)
+				Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-1"}))
+				Expect(actualBuildID).To(Equal(99))
+			})
+		}
 
 		Context("when the stars align", func() {
 			BeforeEach(func() {
@@ -60,7 +121,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 			Context("when getting the next pending build fails", func() {
 				BeforeEach(func() {
-					fakeDB.GetNextPendingBuildReturns(nil, false, disaster)
+					fakeDB.GetAllPendingBuildsReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {
@@ -68,14 +129,13 @@ var _ = Describe("I'm a BuildStarter", func() {
 				})
 
 				It("got the pending build for the right job", func() {
-					Expect(fakeDB.GetNextPendingBuildCallCount()).To(Equal(1))
-					Expect(fakeDB.GetNextPendingBuildArgsForCall(0)).To(Equal("some-job"))
+					Expect(fakeDB.GetAllPendingBuildsCallCount()).To(Equal(1))
 				})
 			})
 
 			Context("when there is no pending build", func() {
 				BeforeEach(func() {
-					fakeDB.GetNextPendingBuildReturns(nil, false, nil)
+					fakeDB.GetAllPendingBuildsReturns(nil, nil)
 				})
 
 				It("doesn't return an error", func() {
@@ -84,18 +144,23 @@ var _ = Describe("I'm a BuildStarter", func() {
 			})
 
 			Context("when there is a pending build", func() {
-				var pendingBuild *dbfakes.FakeBuild
-				var pendingBuildCount int
+				var pendingBuild1 *dbfakes.FakeBuild
+				var pendingBuild2 *dbfakes.FakeBuild
+				var pendingBuild3 *dbfakes.FakeBuild
 
 				BeforeEach(func() {
-					pendingBuild = new(dbfakes.FakeBuild)
-					pendingBuild.IDReturns(99)
-					pendingBuildCount = 1
-					fakeDB.GetNextPendingBuildStub = func(string) (db.Build, bool, error) {
-						if fakeDB.GetNextBuildInputsCallCount() < pendingBuildCount {
-							return pendingBuild, true, nil
-						}
-						return nil, false, nil
+					pendingBuild1 = new(dbfakes.FakeBuild)
+					pendingBuild1.IDReturns(99)
+					pendingBuild2 = new(dbfakes.FakeBuild)
+					pendingBuild2.IDReturns(999)
+					pendingBuild3 = new(dbfakes.FakeBuild)
+					pendingBuild3.IDReturns(555)
+
+					fakeDB.GetAllPendingBuildsStub = func() (map[string][]db.Build, error) {
+						return map[string][]db.Build{
+							"some-job-1": []db.Build{pendingBuild1, pendingBuild2},
+							"some-job-2": []db.Build{pendingBuild3},
+						}, nil
 					}
 				})
 
@@ -160,10 +225,16 @@ var _ = Describe("I'm a BuildStarter", func() {
 								fakeFactory.CreateReturns(atc.Plan{}, disaster)
 							})
 
-							It("created the build plan with the right config", func() {
-								Expect(fakeFactory.CreateCallCount()).To(Equal(1))
+							It("stops creating builds for job", func() {
+								Expect(fakeFactory.CreateCallCount()).To(Equal(2))
 								actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
-								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-1"}))
+								Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+								Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
+								Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
+
+								actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
+								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-2"}))
 								Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 								Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
 								Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
@@ -171,7 +242,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 							Context("when marking the build as errored fails", func() {
 								BeforeEach(func() {
-									pendingBuild.FinishReturns(disaster)
+									pendingBuild1.FinishReturns(disaster)
 								})
 
 								It("doesn't return an error", func() {
@@ -179,15 +250,15 @@ var _ = Describe("I'm a BuildStarter", func() {
 								})
 
 								It("marked the right build as errored", func() {
-									Expect(pendingBuild.FinishCallCount()).To(Equal(1))
-									actualStatus := pendingBuild.FinishArgsForCall(0)
+									Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
+									actualStatus := pendingBuild1.FinishArgsForCall(0)
 									Expect(actualStatus).To(Equal(db.StatusErrored))
 								})
 							})
 
 							Context("when marking the build as errored succeeds", func() {
 								BeforeEach(func() {
-									pendingBuild.FinishReturns(nil)
+									pendingBuild1.FinishReturns(nil)
 								})
 
 								It("doesn't return an error", func() {
@@ -198,7 +269,40 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 						Context("when creating the build plan succeeds", func() {
 							BeforeEach(func() {
-								fakeFactory.CreateReturns(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task.yml"}}, nil)
+								fakeFactory.CreateStub = func(jobConfig atc.JobConfig, resoruceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes, buildInputs []db.BuildInput) (atc.Plan, error) {
+									if jobConfig.Name == "some-job-1" {
+										return atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}, nil
+									}
+
+									if jobConfig.Name == "some-job-2" {
+										return atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-2.yml"}}, nil
+									}
+
+									panic("unknown-job")
+								}
+
+								fakeEngine.CreateBuildReturns(new(enginefakes.FakeBuild), nil)
+							})
+
+							It("creates build plans for all builds", func() {
+								Expect(fakeFactory.CreateCallCount()).To(Equal(3))
+								actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
+								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-1"}))
+								Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+								Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
+								Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
+
+								actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
+								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-1"}))
+								Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+								Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
+								Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
+
+								actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(2)
+								Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job-2"}))
+								Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+								Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
+								Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 							})
 
 							Context("when creating the engine build fails", func() {
@@ -209,69 +313,63 @@ var _ = Describe("I'm a BuildStarter", func() {
 								It("doesn't return an error", func() {
 									Expect(tryStartErr).NotTo(HaveOccurred())
 								})
-
-								It("created the engine build with the right build and plan", func() {
-									Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-									_, actualBuild, actualPlan := fakeEngine.CreateBuildArgsForCall(0)
-									Expect(actualBuild).To(Equal(pendingBuild))
-									Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task.yml"}}))
-								})
 							})
 
 							Context("when creating the engine build succeeds", func() {
-								var engineBuild *enginefakes.FakeBuild
+								var engineBuild1 *enginefakes.FakeBuild
+								var engineBuild2 *enginefakes.FakeBuild
+								var engineBuild3 *enginefakes.FakeBuild
 
 								BeforeEach(func() {
-									engineBuild = new(enginefakes.FakeBuild)
-									fakeEngine.CreateBuildReturns(engineBuild, nil)
+									engineBuild1 = new(enginefakes.FakeBuild)
+									engineBuild2 = new(enginefakes.FakeBuild)
+									engineBuild3 = new(enginefakes.FakeBuild)
+									createBuildCallCount := 0
+									fakeEngine.CreateBuildStub = func(lager.Logger, db.Build, atc.Plan) (engine.Build, error) {
+										createBuildCallCount++
+										switch createBuildCallCount {
+										case 1:
+											return engineBuild1, nil
+										case 2:
+											return engineBuild2, nil
+										case 3:
+											return engineBuild3, nil
+										default:
+											panic("unexpected-call-count-for-create-build")
+										}
+									}
 								})
 
 								It("doesn't return an error", func() {
 									Expect(tryStartErr).NotTo(HaveOccurred())
 								})
 
-								It("starts the engine build (asynchronously)", func() {
-									Eventually(engineBuild.ResumeCallCount).Should(Equal(1))
+								itUpdatedMaxInFlightForAllJobs()
+
+								It("created the engine build with the right build and plan", func() {
+									Expect(fakeEngine.CreateBuildCallCount()).To(Equal(3))
+									_, actualBuild, actualPlan := fakeEngine.CreateBuildArgsForCall(0)
+									Expect(actualBuild).To(Equal(pendingBuild1))
+									Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+
+									_, actualBuild, actualPlan = fakeEngine.CreateBuildArgsForCall(1)
+									Expect(actualBuild).To(Equal(pendingBuild2))
+									Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+
+									_, actualBuild, actualPlan = fakeEngine.CreateBuildArgsForCall(2)
+									Expect(actualBuild).To(Equal(pendingBuild3))
+									Expect(actualPlan).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-2.yml"}}))
 								})
 
-								Context("when there are 7 pending builds", func() {
-									BeforeEach(func() {
-										pendingBuildCount = 7
-									})
-
-									It("starts 7 engine builds (asynchronously)", func() {
-										Eventually(engineBuild.ResumeCallCount).Should(Equal(7))
-									})
+								It("starts the engine build (asynchronously)", func() {
+									Eventually(engineBuild1.ResumeCallCount).Should(Equal(1))
+									Eventually(engineBuild2.ResumeCallCount).Should(Equal(1))
+									Eventually(engineBuild3.ResumeCallCount).Should(Equal(1))
 								})
 							})
 						})
 					})
 				})
-
-				itReturnsTheError := func() {
-					It("returns the error", func() {
-						Expect(tryStartErr).To(Equal(disaster))
-					})
-				}
-
-				itDoesntReturnAnErrorOrMarkTheBuildAsScheduled := func() {
-					It("doesn't return an error", func() {
-						Expect(tryStartErr).NotTo(HaveOccurred())
-					})
-
-					It("doesn't try to mark the build as scheduled", func() {
-						Expect(fakeDB.UpdateBuildToScheduledCallCount()).To(BeZero())
-					})
-				}
-
-				itUpdatedMaxInFlightForTheRightJob := func() {
-					It("updated max in flight for the right job", func() {
-						Expect(fakeUpdater.UpdateMaxInFlightReachedCallCount()).To(Equal(1))
-						_, actualJobConfig, actualBuildID := fakeUpdater.UpdateMaxInFlightReachedArgsForCall(0)
-						Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-						Expect(actualBuildID).To(Equal(99))
-					})
-				}
 
 				Context("when updating max in flight reached fails", func() {
 					BeforeEach(func() {
@@ -279,7 +377,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					})
 
 					itReturnsTheError()
-					itUpdatedMaxInFlightForTheRightJob()
+					itUpdatedMaxInFlightForTheFirstJob()
 				})
 
 				Context("when max in flight is reached", func() {
@@ -296,7 +394,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					})
 
 					itReturnsTheError()
-					itUpdatedMaxInFlightForTheRightJob()
+					itUpdatedMaxInFlightForTheFirstJob()
 				})
 
 				Context("when there are no next build inputs", func() {
@@ -305,7 +403,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					})
 
 					itDoesntReturnAnErrorOrMarkTheBuildAsScheduled()
-					itUpdatedMaxInFlightForTheRightJob()
+					itUpdatedMaxInFlightForFirstBuildOfEachJob()
 				})
 
 				Context("when checking if the pipeline is paused fails", func() {
@@ -314,7 +412,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					})
 
 					itReturnsTheError()
-					itUpdatedMaxInFlightForTheRightJob()
+					itUpdatedMaxInFlightForTheFirstJob()
 				})
 
 				Context("when the pipeline is paused", func() {
@@ -323,7 +421,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					})
 
 					itDoesntReturnAnErrorOrMarkTheBuildAsScheduled()
-					itUpdatedMaxInFlightForTheRightJob()
+					itUpdatedMaxInFlightForFirstBuildOfEachJob()
 				})
 
 				Context("when getting the job fails", func() {
@@ -332,7 +430,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					})
 
 					itReturnsTheError()
-					itUpdatedMaxInFlightForTheRightJob()
+					itUpdatedMaxInFlightForTheFirstJob()
 				})
 
 				Context("when the job is paused", func() {
@@ -341,7 +439,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					})
 
 					itDoesntReturnAnErrorOrMarkTheBuildAsScheduled()
-					itUpdatedMaxInFlightForTheRightJob()
+					itUpdatedMaxInFlightForFirstBuildOfEachJob()
 				})
 			})
 		})

@@ -9,15 +9,22 @@ import (
 )
 
 type FakeBuildStarterDB struct {
-	GetNextPendingBuildStub        func(job string) (db.Build, bool, error)
-	getNextPendingBuildMutex       sync.RWMutex
-	getNextPendingBuildArgsForCall []struct {
-		job string
+	GetNextPendingBuildForJobStub        func(jobName string) (db.Build, bool, error)
+	getNextPendingBuildForJobMutex       sync.RWMutex
+	getNextPendingBuildForJobArgsForCall []struct {
+		jobName string
 	}
-	getNextPendingBuildReturns struct {
+	getNextPendingBuildForJobReturns struct {
 		result1 db.Build
 		result2 bool
 		result3 error
+	}
+	GetAllPendingBuildsStub        func() (map[string][]db.Build, error)
+	getAllPendingBuildsMutex       sync.RWMutex
+	getAllPendingBuildsArgsForCall []struct{}
+	getAllPendingBuildsReturns     struct {
+		result1 map[string][]db.Build
+		result2 error
 	}
 	GetNextBuildInputsStub        func(jobName string) ([]db.BuildInput, bool, error)
 	getNextBuildInputsMutex       sync.RWMutex
@@ -68,39 +75,65 @@ type FakeBuildStarterDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildStarterDB) GetNextPendingBuild(job string) (db.Build, bool, error) {
-	fake.getNextPendingBuildMutex.Lock()
-	fake.getNextPendingBuildArgsForCall = append(fake.getNextPendingBuildArgsForCall, struct {
-		job string
-	}{job})
-	fake.recordInvocation("GetNextPendingBuild", []interface{}{job})
-	fake.getNextPendingBuildMutex.Unlock()
-	if fake.GetNextPendingBuildStub != nil {
-		return fake.GetNextPendingBuildStub(job)
+func (fake *FakeBuildStarterDB) GetNextPendingBuildForJob(jobName string) (db.Build, bool, error) {
+	fake.getNextPendingBuildForJobMutex.Lock()
+	fake.getNextPendingBuildForJobArgsForCall = append(fake.getNextPendingBuildForJobArgsForCall, struct {
+		jobName string
+	}{jobName})
+	fake.recordInvocation("GetNextPendingBuildForJob", []interface{}{jobName})
+	fake.getNextPendingBuildForJobMutex.Unlock()
+	if fake.GetNextPendingBuildForJobStub != nil {
+		return fake.GetNextPendingBuildForJobStub(jobName)
 	} else {
-		return fake.getNextPendingBuildReturns.result1, fake.getNextPendingBuildReturns.result2, fake.getNextPendingBuildReturns.result3
+		return fake.getNextPendingBuildForJobReturns.result1, fake.getNextPendingBuildForJobReturns.result2, fake.getNextPendingBuildForJobReturns.result3
 	}
 }
 
-func (fake *FakeBuildStarterDB) GetNextPendingBuildCallCount() int {
-	fake.getNextPendingBuildMutex.RLock()
-	defer fake.getNextPendingBuildMutex.RUnlock()
-	return len(fake.getNextPendingBuildArgsForCall)
+func (fake *FakeBuildStarterDB) GetNextPendingBuildForJobCallCount() int {
+	fake.getNextPendingBuildForJobMutex.RLock()
+	defer fake.getNextPendingBuildForJobMutex.RUnlock()
+	return len(fake.getNextPendingBuildForJobArgsForCall)
 }
 
-func (fake *FakeBuildStarterDB) GetNextPendingBuildArgsForCall(i int) string {
-	fake.getNextPendingBuildMutex.RLock()
-	defer fake.getNextPendingBuildMutex.RUnlock()
-	return fake.getNextPendingBuildArgsForCall[i].job
+func (fake *FakeBuildStarterDB) GetNextPendingBuildForJobArgsForCall(i int) string {
+	fake.getNextPendingBuildForJobMutex.RLock()
+	defer fake.getNextPendingBuildForJobMutex.RUnlock()
+	return fake.getNextPendingBuildForJobArgsForCall[i].jobName
 }
 
-func (fake *FakeBuildStarterDB) GetNextPendingBuildReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetNextPendingBuildStub = nil
-	fake.getNextPendingBuildReturns = struct {
+func (fake *FakeBuildStarterDB) GetNextPendingBuildForJobReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.GetNextPendingBuildForJobStub = nil
+	fake.getNextPendingBuildForJobReturns = struct {
 		result1 db.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildStarterDB) GetAllPendingBuilds() (map[string][]db.Build, error) {
+	fake.getAllPendingBuildsMutex.Lock()
+	fake.getAllPendingBuildsArgsForCall = append(fake.getAllPendingBuildsArgsForCall, struct{}{})
+	fake.recordInvocation("GetAllPendingBuilds", []interface{}{})
+	fake.getAllPendingBuildsMutex.Unlock()
+	if fake.GetAllPendingBuildsStub != nil {
+		return fake.GetAllPendingBuildsStub()
+	} else {
+		return fake.getAllPendingBuildsReturns.result1, fake.getAllPendingBuildsReturns.result2
+	}
+}
+
+func (fake *FakeBuildStarterDB) GetAllPendingBuildsCallCount() int {
+	fake.getAllPendingBuildsMutex.RLock()
+	defer fake.getAllPendingBuildsMutex.RUnlock()
+	return len(fake.getAllPendingBuildsArgsForCall)
+}
+
+func (fake *FakeBuildStarterDB) GetAllPendingBuildsReturns(result1 map[string][]db.Build, result2 error) {
+	fake.GetAllPendingBuildsStub = nil
+	fake.getAllPendingBuildsReturns = struct {
+		result1 map[string][]db.Build
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuildStarterDB) GetNextBuildInputs(jobName string) ([]db.BuildInput, bool, error) {
@@ -275,8 +308,10 @@ func (fake *FakeBuildStarterDB) UseInputsForBuildReturns(result1 error) {
 func (fake *FakeBuildStarterDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getNextPendingBuildMutex.RLock()
-	defer fake.getNextPendingBuildMutex.RUnlock()
+	fake.getNextPendingBuildForJobMutex.RLock()
+	defer fake.getNextPendingBuildForJobMutex.RUnlock()
+	fake.getAllPendingBuildsMutex.RLock()
+	defer fake.getAllPendingBuildsMutex.RUnlock()
 	fake.getNextBuildInputsMutex.RLock()
 	defer fake.getNextBuildInputsMutex.RUnlock()
 	fake.isPausedMutex.RLock()

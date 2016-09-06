@@ -68,7 +68,8 @@ type PipelineDB interface {
 	GetJobBuild(job string, build string) (Build, bool, error)
 	CreateJobBuild(job string) (Build, error)
 	EnsurePendingBuildExists(jobName string) error
-	GetNextPendingBuild(jobName string) (Build, bool, error)
+	GetNextPendingBuildForJob(jobName string) (Build, bool, error)
+	GetAllPendingBuilds() (map[string][]Build, error)
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 	AcquireResourceCheckingForJobLock(logger lager.Logger, jobName string) (Lock, bool, error)
 
@@ -1479,7 +1480,7 @@ func (pdb *pipelineDB) SaveOutput(buildID int, vr VersionedResource, explicit bo
 	return svr, nil
 }
 
-func (pdb *pipelineDB) GetNextPendingBuild(jobName string) (Build, bool, error) {
+func (pdb *pipelineDB) GetNextPendingBuildForJob(jobName string) (Build, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -1512,6 +1513,45 @@ func (pdb *pipelineDB) GetNextPendingBuild(jobName string) (Build, bool, error) 
 		ORDER BY b.id ASC
 		LIMIT 1
 	`, dbJob.ID))
+}
+
+func (pdb *pipelineDB) GetAllPendingBuilds() (map[string][]Build, error) {
+	builds := map[string][]Build{}
+
+	rows, err := pdb.conn.Query(`
+		SELECT b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name
+		FROM builds b
+		JOIN jobs j ON b.job_id = j.id
+		JOIN pipelines p ON j.pipeline_id = p.id
+		JOIN teams t ON b.team_id = t.id
+		WHERE b.status = 'pending'
+		AND j.active = true
+		AND p.id = $1
+		AND (
+			b.id <= j.resource_check_waiver_end
+			OR j.resource_checking = false
+	  )
+	  ORDER BY b.id
+	`, pdb.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		build, found, err := pdb.buildFactory.ScanBuild(rows)
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			continue
+		}
+
+		builds[build.JobName()] = append(builds[build.JobName()], build)
+	}
+
+	return builds, nil
 }
 
 func (pdb *pipelineDB) updateSerialGroupsForJob(jobName string, serialGroups []string) error {

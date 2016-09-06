@@ -18,7 +18,7 @@ type BuildScheduler interface {
 	Schedule(
 		logger lager.Logger,
 		versions *algorithm.VersionsDB,
-		jobConfig atc.JobConfig,
+		jobConfigs atc.JobConfigs,
 		resourceConfigs atc.ResourceConfigs,
 		resourceTypes atc.ResourceTypes,
 	) error
@@ -124,21 +124,16 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 	config := runner.DB.Config()
 
-	for _, job := range config.Jobs {
-		sLog := logger.Session("scheduling", lager.Data{
-			"job": job.Name,
-		})
+	jStart := time.Now()
 
-		jStart := time.Now()
+	sLog := logger.Session("scheduling")
 
-		runner.Scheduler.Schedule(sLog, versions, job, config.Resources, config.ResourceTypes)
+	runner.Scheduler.Schedule(sLog, versions, config.Jobs, config.Resources, config.ResourceTypes)
 
-		metric.SchedulingJobDuration{
-			PipelineName: runner.DB.GetPipelineName(),
-			JobName:      job.Name,
-			Duration:     time.Since(jStart),
-		}.Emit(sLog)
-	}
+	metric.SchedulingJobDuration{
+		PipelineName: runner.DB.GetPipelineName(),
+		Duration:     time.Since(jStart),
+	}.Emit(sLog)
 
 	return nil
 }

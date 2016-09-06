@@ -139,15 +139,12 @@ var _ = Describe("Runner", func() {
 	It("schedules pending builds", func() {
 		Eventually(scheduler.ScheduleCallCount).Should(Equal(2))
 
-		_, versions, job, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
+		_, versions, jobs, resources, resourceTypes := scheduler.ScheduleArgsForCall(0)
 		Expect(versions).To(Equal(someVersions))
-		Expect(job).To(Equal(atc.JobConfig{Name: "some-job"}))
-		Expect(resources).To(Equal(initialConfig.Resources))
-		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
-
-		_, versions, job, resources, resourceTypes = scheduler.ScheduleArgsForCall(1)
-		Expect(versions).To(Equal(someVersions))
-		Expect(job).To(Equal(atc.JobConfig{Name: "some-other-job"}))
+		Expect(jobs).To(Equal(atc.JobConfigs{
+			{Name: "some-job"},
+			{Name: "some-other-job"},
+		}))
 		Expect(resources).To(Equal(initialConfig.Resources))
 		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
 	})

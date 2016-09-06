@@ -1657,7 +1657,7 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		It("initially has no pending build for a job", func() {
-			_, found, err := pipelineDB.GetNextPendingBuild("some-job")
+			_, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -2606,11 +2606,18 @@ var _ = Describe("PipelineDB", func() {
 				Expect(build1DB.IsScheduled()).To(BeFalse())
 			})
 
-			It("becomes the next pending build", func() {
-				nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
+			It("becomes the next pending build for job", func() {
+				nextPending, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(nextPending).To(Equal(build1DB))
+			})
+
+			It("is in the list of pending builds", func() {
+				nextPendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
+				Expect(nextPendingBuilds["some-job"]).To(Equal([]db.Build{build1DB}))
 			})
 
 			It("is returned in the job's builds", func() {
@@ -2629,11 +2636,18 @@ var _ = Describe("PipelineDB", func() {
 					Expect(otherBuild.IsScheduled()).To(BeFalse())
 				})
 
-				It("does not change the next pending build", func() {
-					nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				It("does not change the next pending build for job", func() {
+					nextPending, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(nextPending).To(Equal(build1DB))
+				})
+
+				It("does not change pending builds", func() {
+					nextPendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
+					Expect(nextPendingBuilds["some-job"]).To(Equal([]db.Build{build1DB}))
 				})
 
 				It("is not returned in the job's builds", func() {
@@ -2649,11 +2663,18 @@ var _ = Describe("PipelineDB", func() {
 					build1DB.Reload()
 				})
 
-				It("remains the next pending build", func() {
-					nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				It("remains the next pending build for job", func() {
+					nextPending, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(nextPending).To(Equal(build1DB))
+				})
+
+				It("remains in the list of pending builds", func() {
+					nextPendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
+					Expect(nextPendingBuilds["some-job"]).To(Equal([]db.Build{build1DB}))
 				})
 			})
 
@@ -2716,10 +2737,17 @@ var _ = Describe("PipelineDB", func() {
 
 				Describe("the first build", func() {
 					It("remains the next pending build", func() {
-						nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
+						nextPending, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 						Expect(nextPending.ID()).To(Equal(build1DB.ID()))
+					})
+
+					It("remains in the list of pending builds", func() {
+						nextPendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(nextPendingBuilds["some-job"]).To(HaveLen(2))
+						Expect(nextPendingBuilds["some-job"]).To(ConsistOf(build1DB, build2DB))
 					})
 				})
 			})
