@@ -124,4 +124,5 @@ var Migrations = []migration.Migrator{
 	MigrateFromLeasesToLocks,
 	AddTeamNameToPipe,
 	AddConfigToJobsResources,
+	CreateCaches,
 }
