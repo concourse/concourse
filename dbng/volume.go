@@ -81,7 +81,10 @@ type InitializingVolume struct {
 // created within the Initialized call, and *may* remove Tx argument from all
 // methods
 
-func (volume *InitializingVolume) InitializedWorkerResourceType(wrt WorkerResourceType) (*InitializedVolume, error) {
+func (volume *InitializingVolume) InitializedWorkerResourceType(
+	wrt WorkerResourceType,
+	cacheWarmingContainer *CreatingContainer,
+) (*InitializedVolume, *CreatingVolume, error) {
 }
 
 // 1. open tx
@@ -90,11 +93,17 @@ func (volume *InitializingVolume) InitializedWorkerResourceType(wrt WorkerResour
 // 3. insert into volumes with parent id and parent state
 //    * if fails, return false; transitioned to as it was previously 'initialized'
 // 4. commit tx
-func (volume *InitializingVolume) InitializedCache(cache Cache, container *CreatingContainer) (*InitializedVolume, *CreatingVolume, error) {
+func (volume *InitializingVolume) InitializedCache(
+	cache Cache,
+	cacheUsingContainer *CreatingContainer,
+) (*InitializedVolume, *CreatingVolume, error) {
 	var workerName string
+
+	// TODO: swap-out container_id with cache_id
 
 	err := psql.Update("volumes").
 		Set("state", VolumeStateInitialized).
+		Set("container_id", "").
 		Where(sq.Eq{
 			"id": volume.ID,
 
@@ -119,7 +128,7 @@ func (volume *InitializingVolume) InitializedCache(cache Cache, container *Creat
 	var creatingID int
 	err = psql.Insert("volumes").
 		Columns("worker_name", "parent_id", "parent_state", "container_id").
-		Values(workerName, volume.ID, VolumeStateInitialized, container.ID).
+		Values(workerName, volume.ID, VolumeStateInitialized, cacheUsingContainer.ID).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().

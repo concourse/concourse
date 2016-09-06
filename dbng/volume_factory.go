@@ -12,6 +12,12 @@ func NewVolumeFactory(conn Conn) *VolumeFactory {
 	}
 }
 
+func (factory *VolumeFactory) CreateVolume() (*CreatingVolume, error) {
+	return &CreatingVolume{
+		conn: conn,
+	}
+}
+
 // 'get' looks like:
 //
 // 1. lookup cache volume

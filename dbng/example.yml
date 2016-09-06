@@ -1,0 +1,35 @@
+---
+resource_types:
+- name: pr
+  type: git
+
+jobs:
+- name: foo
+  plan:
+  - get: pr
+  - task: run-pr
+    config:
+      inputs:
+      - name: pr
+
+run foo:
+    - run get:
+        - select worker
+        - compute cache id
+            - find volume for custom resource type
+                - compute cache id
+                    - find volume for worker resource type
+                        - if not found, create volume
+                              - import worker resource type
+                              - initialize and acquire volume for resource type fetching
+                        - if found, acquire volume for resource type fetching
+                - look for cache volume
+                    - if not found, create container, initialize resource type, acquire for resource fetching
+                    - if found, acquire volume for resource fetching
+        - look for cache volume
+            - if not found, create container, initialize cache, acquire for build
+            - if found, acquire for build
+    - run task:
+        - select worker
+
+* need join table for find-and-acquire?
