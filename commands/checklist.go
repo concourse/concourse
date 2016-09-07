@@ -30,31 +30,31 @@ func (command *ChecklistCommand) Execute([]string) error {
 		return err
 	}
 
-	printCheckfile(pipelineName, config, target.Client().URL())
+	printCheckfile(target.Team().Name(), pipelineName, config, target.Client().URL())
 
 	return nil
 }
 
-func printCheckfile(pipelineName string, config atc.Config, url string) {
+func printCheckfile(teamName, pipelineName string, config atc.Config, url string) {
 	orphanHeaderName := "misc"
 	if len(config.Groups) == 0 {
 		orphanHeaderName = pipelineName
 	}
 
 	for _, group := range config.Groups {
-		printGroup(pipelineName, group, url)
+		printGroup(teamName, pipelineName, group, url)
 	}
 
 	miscJobs := orphanedJobs(config)
 	if len(miscJobs) > 0 {
-		printGroup(pipelineName, atc.GroupConfig{Name: orphanHeaderName, Jobs: miscJobs}, url)
+		printGroup(teamName, pipelineName, atc.GroupConfig{Name: orphanHeaderName, Jobs: miscJobs}, url)
 	}
 }
 
-func printGroup(pipelineName string, group atc.GroupConfig, url string) {
+func printGroup(teamName, pipelineName string, group atc.GroupConfig, url string) {
 	fmt.Printf("#- %s\n", group.Name)
 	for _, job := range group.Jobs {
-		fmt.Printf("%s: concourse.check %s %s %s\n", job, url, pipelineName, job)
+		fmt.Printf("%s: concourse.check %s %s %s %s\n", job, url, teamName, pipelineName, job)
 	}
 	fmt.Println("")
 }
