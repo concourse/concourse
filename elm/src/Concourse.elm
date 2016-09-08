@@ -43,6 +43,13 @@ module Concourse exposing
   , MetadataField
   , decodeMetadata
 
+  , Resource
+  , ResourceIdentifier
+  , VersionedResource
+  , VersionedResourceIdentifier
+  , decodeResource
+  , decodeVersionedResource
+
   , Team
   , TeamName
   , decodeTeam
@@ -77,11 +84,10 @@ type alias OAuthAuthMethod =
 decodeAuthMethod : Json.Decode.Decoder AuthMethod
 decodeAuthMethod =
   Json.Decode.customDecoder
-    ( Json.Decode.object3
-        (,,)
-        ("type" := Json.Decode.string)
-        (Json.Decode.maybe <| "display_name" := Json.Decode.string)
-        (Json.Decode.maybe <| "auth_url" := Json.Decode.string)
+    ( Json.Decode.succeed (,,)
+        |: ("type" := Json.Decode.string)
+        |: (Json.Decode.maybe <| "display_name" := Json.Decode.string)
+        |: (Json.Decode.maybe <| "auth_url" := Json.Decode.string)
     )
     authMethodFromTuple
 
@@ -140,19 +146,19 @@ type alias BuildDuration =
 
 decodeBuild : Json.Decode.Decoder Build
 decodeBuild =
-  Json.Decode.object7 Build
-    ("id" := Json.Decode.int)
-    ("url" := Json.Decode.string)
-    ("name" := Json.Decode.string)
-    (Json.Decode.maybe (Json.Decode.object3 JobIdentifier
-      ("team_name" := Json.Decode.string)
-      ("pipeline_name" := Json.Decode.string)
-      ("job_name" := Json.Decode.string)))
-    ("status" := decodeBuildStatus)
-    (Json.Decode.object2 BuildDuration
-      (Json.Decode.maybe ("start_time" := (Json.Decode.map dateFromSeconds Json.Decode.float)))
-      (Json.Decode.maybe ("end_time" := (Json.Decode.map dateFromSeconds Json.Decode.float))))
-    (Json.Decode.maybe ("reap_time" := (Json.Decode.map dateFromSeconds Json.Decode.float)))
+  Json.Decode.succeed Build
+    |: ("id" := Json.Decode.int)
+    |: ("url" := Json.Decode.string)
+    |: ("name" := Json.Decode.string)
+    |: (Json.Decode.maybe (Json.Decode.succeed JobIdentifier
+      |: ("team_name" := Json.Decode.string)
+      |: ("pipeline_name" := Json.Decode.string)
+      |: ("job_name" := Json.Decode.string)))
+    |: ("status" := decodeBuildStatus)
+    |: (Json.Decode.succeed BuildDuration
+      |: (Json.Decode.maybe ("start_time" := (Json.Decode.map dateFromSeconds Json.Decode.float)))
+      |: (Json.Decode.maybe ("end_time" := (Json.Decode.map dateFromSeconds Json.Decode.float))))
+    |: (Json.Decode.maybe ("reap_time" := (Json.Decode.map dateFromSeconds Json.Decode.float)))
 
 decodeBuildStatus : Json.Decode.Decoder BuildStatus
 decodeBuildStatus =
@@ -300,75 +306,90 @@ decodeBuildPlan =
 
 decodeBuildPlan' : Json.Decode.Decoder BuildPlan
 decodeBuildPlan' =
-  Json.Decode.object2 BuildPlan ("id" := Json.Decode.string) <|
-    Json.Decode.oneOf
-      -- buckle up
-      [ "task" := lazy (\_ -> decodeBuildStepTask)
-      , "get" := lazy (\_ -> decodeBuildStepGet)
-      , "put" := lazy (\_ -> decodeBuildStepPut)
-      , "dependent_get" := lazy (\_ -> decodeBuildStepDependentGet)
-      , "aggregate" := lazy (\_ -> decodeBuildStepAggregate)
-      , "do" := lazy (\_ -> decodeBuildStepDo)
-      , "on_success" := lazy (\_ -> decodeBuildStepOnSuccess)
-      , "on_failure" := lazy (\_ -> decodeBuildStepOnFailure)
-      , "ensure" := lazy (\_ -> decodeBuildStepEnsure)
-      , "try" := lazy (\_ -> decodeBuildStepTry)
-      , "retry" := lazy (\_ -> decodeBuildStepRetry)
-      , "timeout" := lazy (\_ -> decodeBuildStepTimeout)
-      ]
+  Json.Decode.succeed BuildPlan
+    |: ("id" := Json.Decode.string)
+    |: Json.Decode.oneOf
+        -- buckle up
+        [ "task" := lazy (\_ -> decodeBuildStepTask)
+        , "get" := lazy (\_ -> decodeBuildStepGet)
+        , "put" := lazy (\_ -> decodeBuildStepPut)
+        , "dependent_get" := lazy (\_ -> decodeBuildStepDependentGet)
+        , "aggregate" := lazy (\_ -> decodeBuildStepAggregate)
+        , "do" := lazy (\_ -> decodeBuildStepDo)
+        , "on_success" := lazy (\_ -> decodeBuildStepOnSuccess)
+        , "on_failure" := lazy (\_ -> decodeBuildStepOnFailure)
+        , "ensure" := lazy (\_ -> decodeBuildStepEnsure)
+        , "try" := lazy (\_ -> decodeBuildStepTry)
+        , "retry" := lazy (\_ -> decodeBuildStepRetry)
+        , "timeout" := lazy (\_ -> decodeBuildStepTimeout)
+        ]
 
 decodeBuildStepTask : Json.Decode.Decoder BuildStep
 decodeBuildStepTask =
-  Json.Decode.object1 BuildStepTask ("name" := Json.Decode.string)
+  Json.Decode.succeed BuildStepTask
+    |: ("name" := Json.Decode.string)
 
 decodeBuildStepGet : Json.Decode.Decoder BuildStep
 decodeBuildStepGet =
-  Json.Decode.object2 BuildStepGet
-    ("name" := Json.Decode.string)
-    (Json.Decode.maybe <| "version" := decodeVersion)
+  Json.Decode.succeed BuildStepGet
+    |: ("name" := Json.Decode.string)
+    |: (Json.Decode.maybe <| "version" := decodeVersion)
 
 decodeBuildStepPut : Json.Decode.Decoder BuildStep
 decodeBuildStepPut =
-  Json.Decode.object1 BuildStepPut ("name" := Json.Decode.string)
+  Json.Decode.succeed BuildStepPut
+    |: ("name" := Json.Decode.string)
 
 decodeBuildStepDependentGet : Json.Decode.Decoder BuildStep
 decodeBuildStepDependentGet =
-  Json.Decode.object1 BuildStepDependentGet ("name" := Json.Decode.string)
+  Json.Decode.succeed BuildStepDependentGet
+    |: ("name" := Json.Decode.string)
 
 decodeBuildStepAggregate : Json.Decode.Decoder BuildStep
 decodeBuildStepAggregate =
-  Json.Decode.object1 BuildStepAggregate (Json.Decode.array (lazy (\_ -> decodeBuildPlan')))
+  Json.Decode.succeed BuildStepAggregate
+    |: (Json.Decode.array (lazy (\_ -> decodeBuildPlan')))
 
 decodeBuildStepDo : Json.Decode.Decoder BuildStep
 decodeBuildStepDo =
-  Json.Decode.object1 BuildStepDo (Json.Decode.array (lazy (\_ -> decodeBuildPlan')))
+  Json.Decode.succeed BuildStepDo
+    |: (Json.Decode.array (lazy (\_ -> decodeBuildPlan')))
 
 decodeBuildStepOnSuccess : Json.Decode.Decoder BuildStep
 decodeBuildStepOnSuccess =
   Json.Decode.map BuildStepOnSuccess <|
-    Json.Decode.object2 HookedPlan ("step" := lazy (\_ -> decodeBuildPlan')) ("on_success" := lazy (\_ -> decodeBuildPlan'))
+    Json.Decode.succeed HookedPlan
+      |: ("step" := lazy (\_ -> decodeBuildPlan'))
+      |: ("on_success" := lazy (\_ -> decodeBuildPlan'))
 
 decodeBuildStepOnFailure : Json.Decode.Decoder BuildStep
 decodeBuildStepOnFailure =
   Json.Decode.map BuildStepOnFailure <|
-    Json.Decode.object2 HookedPlan ("step" := lazy (\_ -> decodeBuildPlan')) ("on_failure" := lazy (\_ -> decodeBuildPlan'))
+    Json.Decode.succeed HookedPlan
+      |: ("step" := lazy (\_ -> decodeBuildPlan'))
+      |: ("on_failure" := lazy (\_ -> decodeBuildPlan'))
 
 decodeBuildStepEnsure : Json.Decode.Decoder BuildStep
 decodeBuildStepEnsure =
   Json.Decode.map BuildStepEnsure <|
-    Json.Decode.object2 HookedPlan ("step" := lazy (\_ -> decodeBuildPlan')) ("ensure" := lazy (\_ -> decodeBuildPlan'))
+    Json.Decode.succeed HookedPlan
+      |: ("step" := lazy (\_ -> decodeBuildPlan'))
+      |: ("ensure" := lazy (\_ -> decodeBuildPlan'))
 
 decodeBuildStepTry : Json.Decode.Decoder BuildStep
 decodeBuildStepTry =
-  Json.Decode.object1 BuildStepTry ("step" := lazy (\_ -> decodeBuildPlan'))
+  Json.Decode.succeed BuildStepTry
+    |: ("step" := lazy (\_ -> decodeBuildPlan'))
 
 decodeBuildStepRetry : Json.Decode.Decoder BuildStep
 decodeBuildStepRetry =
-  Json.Decode.object1 BuildStepRetry (Json.Decode.array (lazy (\_ -> decodeBuildPlan')))
+  Json.Decode.succeed BuildStepRetry
+    |: (Json.Decode.array (lazy (\_ -> decodeBuildPlan')))
 
 decodeBuildStepTimeout : Json.Decode.Decoder BuildStep
 decodeBuildStepTimeout =
-  Json.Decode.object1 BuildStepTimeout ("step" := lazy (\_ -> decodeBuildPlan'))
+  Json.Decode.succeed BuildStepTimeout
+    |: ("step" := lazy (\_ -> decodeBuildPlan'))
 
 
 
@@ -481,6 +502,51 @@ decodePipelineGroup =
     |: (defaultTo [] <| "jobs" := Json.Decode.list Json.Decode.string)
     |: (defaultTo [] <| "resources" := Json.Decode.list Json.Decode.string)
 
+
+-- Resource
+
+type alias Resource =
+  { name : String
+  , paused: Bool
+  , failingToCheck: Bool
+  , checkError: String
+  }
+
+type alias ResourceIdentifier =
+  { teamName : String
+  , pipelineName : String
+  , resourceName : String
+  }
+
+type alias VersionedResource =
+  { id : Int
+  , version : Version
+  , enabled : Bool
+  , metadata : Metadata
+  }
+
+type alias VersionedResourceIdentifier =
+  { teamName : String
+  , pipelineName : String
+  , resourceName : String
+  , versionID : Int
+  }
+
+decodeResource : Json.Decode.Decoder Resource
+decodeResource =
+  Json.Decode.succeed Resource
+    |: ("name" := Json.Decode.string)
+    |: (defaultTo False <| "paused" := Json.Decode.bool)
+    |: (defaultTo False <| "failing_to_check" := Json.Decode.bool)
+    |: (defaultTo "" <| "check_error" := Json.Decode.string)
+
+decodeVersionedResource : Json.Decode.Decoder VersionedResource
+decodeVersionedResource =
+  Json.Decode.succeed VersionedResource
+    |: ("id" := Json.Decode.int)
+    |: ("version" := decodeVersion)
+    |: ("enabled" := Json.Decode.bool)
+    |: defaultTo [] ("metadata" := decodeMetadata)
 
 
 -- Version
