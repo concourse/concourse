@@ -83,7 +83,6 @@ files:
   - github.com/concourse/atc/web/login/*.go # gosub
   - github.com/concourse/atc/web/pipeline/*.go # gosub
   - github.com/concourse/atc/web/robotstxt/*.go # gosub
-  - github.com/concourse/atc/web/triggerbuild/*.go # gosub
   - github.com/concourse/atc/web/webhandler/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
   - github.com/concourse/atc/worker/image/*.go # gosub
