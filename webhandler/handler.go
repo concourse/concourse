@@ -21,7 +21,6 @@ import (
 	"github.com/concourse/atc/web/login"
 	"github.com/concourse/atc/web/pipeline"
 	"github.com/concourse/atc/web/robotstxt"
-	"github.com/concourse/atc/web/triggerbuild"
 	"github.com/concourse/atc/wrappa"
 )
 
@@ -99,7 +98,6 @@ func NewHandler(
 		web.GetBuild:              authredirect.Handler{getbuild.NewHandler(logger, clientFactory, buildTemplate)},
 		web.GetBuilds:             authredirect.Handler{getbuilds.NewHandler(logger, clientFactory, buildsTemplate)},
 		web.GetJoblessBuild:       authredirect.Handler{getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate)},
-		web.TriggerBuild:          authredirect.Handler{triggerbuild.NewHandler(logger, clientFactory)},
 		web.TeamLogIn:             login.NewHandler(logger, logInTemplate),
 		web.LogIn:                 login.NewHandler(logger, logInTemplate),
 		web.ProcessBasicAuthLogIn: login.NewProcessBasicAuthHandler(logger, clientFactory, expire),
