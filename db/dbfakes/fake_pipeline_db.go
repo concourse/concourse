@@ -258,11 +258,11 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
-	GetJobsStub        func() (map[string]db.SavedJob, error)
+	GetJobsStub        func() ([]db.SavedJob, error)
 	getJobsMutex       sync.RWMutex
 	getJobsArgsForCall []struct{}
 	getJobsReturns     struct {
-		result1 map[string]db.SavedJob
+		result1 []db.SavedJob
 		result2 error
 	}
 	GetJobStub        func(job string) (db.SavedJob, bool, error)
@@ -1483,7 +1483,7 @@ func (fake *FakePipelineDB) AcquireResourceTypeCheckingLockReturns(result1 db.Lo
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetJobs() (map[string]db.SavedJob, error) {
+func (fake *FakePipelineDB) GetJobs() ([]db.SavedJob, error) {
 	fake.getJobsMutex.Lock()
 	fake.getJobsArgsForCall = append(fake.getJobsArgsForCall, struct{}{})
 	fake.recordInvocation("GetJobs", []interface{}{})
@@ -1501,10 +1501,10 @@ func (fake *FakePipelineDB) GetJobsCallCount() int {
 	return len(fake.getJobsArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetJobsReturns(result1 map[string]db.SavedJob, result2 error) {
+func (fake *FakePipelineDB) GetJobsReturns(result1 []db.SavedJob, result2 error) {
 	fake.GetJobsStub = nil
 	fake.getJobsReturns = struct {
-		result1 map[string]db.SavedJob
+		result1 []db.SavedJob
 		result2 error
 	}{result1, result2}
 }

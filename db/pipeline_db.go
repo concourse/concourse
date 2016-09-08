@@ -53,7 +53,7 @@ type PipelineDB interface {
 	AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, length time.Duration, immediate bool) (Lock, bool, error)
 	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, length time.Duration, immediate bool) (Lock, bool, error)
 
-	GetJobs() (map[string]SavedJob, error)
+	GetJobs() ([]SavedJob, error)
 	GetJob(job string) (SavedJob, bool, error)
 	PauseJob(job string) error
 	UnpauseJob(job string) error
@@ -2389,7 +2389,7 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (Build, Build, err
 	return finished, next, nil
 }
 
-func (pdb *pipelineDB) GetJobs() (map[string]SavedJob, error) {
+func (pdb *pipelineDB) GetJobs() ([]SavedJob, error) {
 	return pdb.getJobs()
 }
 
@@ -2455,13 +2455,14 @@ func (pdb *pipelineDB) Hide() error {
 	return err
 }
 
-func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
+func (pdb *pipelineDB) getJobs() ([]SavedJob, error) {
 	rows, err := pdb.conn.Query(`
-	SELECT j.id, j.name, j.config, j.paused, j.first_logged_build_id, p.team_id
-  	FROM jobs j, pipelines p
+		SELECT j.id, j.name, j.config, j.paused, j.first_logged_build_id, p.team_id
+		FROM jobs j, pipelines p
 		WHERE j.pipeline_id = p.id
-  		AND pipeline_id = $1
-			AND active = true
+		AND pipeline_id = $1
+		AND active = true
+		ORDER BY j.id ASC
   `, pdb.ID)
 	if err != nil {
 		return nil, err
@@ -2469,7 +2470,7 @@ func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 
 	defer rows.Close()
 
-	savedJobs := make(map[string]SavedJob)
+	savedJobs := []SavedJob{}
 
 	for rows.Next() {
 		savedJob, err := pdb.scanJob(rows)
@@ -2477,7 +2478,7 @@ func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 			return nil, err
 		}
 
-		savedJobs[savedJob.Name] = savedJob
+		savedJobs = append(savedJobs, savedJob)
 	}
 
 	return savedJobs, nil

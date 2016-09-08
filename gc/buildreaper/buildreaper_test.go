@@ -73,8 +73,8 @@ var _ = Describe("BuildReaper", func() {
 
 		Context("when the dashboard has a job", func() {
 			BeforeEach(func() {
-				fakePipelineDB.GetJobsReturns(map[string]db.SavedJob{
-					"job-1": db.SavedJob{
+				fakePipelineDB.GetJobsReturns([]db.SavedJob{
+					db.SavedJob{
 						Job:                db.Job{Name: "job-1"},
 						FirstLoggedBuildID: 6,
 						Config: atc.JobConfig{
@@ -312,8 +312,8 @@ var _ = Describe("BuildReaper", func() {
 
 		Context("when FirstLoggedBuildID == 1", func() {
 			BeforeEach(func() {
-				fakePipelineDB.GetJobsReturns(map[string]db.SavedJob{
-					"job-1": db.SavedJob{
+				fakePipelineDB.GetJobsReturns([]db.SavedJob{
+					db.SavedJob{
 						Job:                db.Job{Name: "job-1"},
 						FirstLoggedBuildID: 1,
 						Config: atc.JobConfig{
@@ -434,8 +434,8 @@ var _ = Describe("BuildReaper", func() {
 
 		Context("when FirstLoggedBuildID == 0", func() {
 			BeforeEach(func() {
-				fakePipelineDB.GetJobsReturns(map[string]db.SavedJob{
-					"job-1": db.SavedJob{
+				fakePipelineDB.GetJobsReturns([]db.SavedJob{
+					db.SavedJob{
 						Job:                db.Job{Name: "job-1"},
 						FirstLoggedBuildID: 0,
 						Config: atc.JobConfig{

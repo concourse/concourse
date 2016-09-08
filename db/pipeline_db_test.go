@@ -2004,7 +2004,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(groups).To(Equal(pipelineConfig.Groups))
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent pending build if there are no running builds")
 				jobBuildOldDB, err := pipelineDB.CreateJobBuild("some-job")
@@ -2015,7 +2015,7 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent started build")
 				jobBuildOldDB.Start("engine", "metadata")
@@ -2029,7 +2029,7 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent started build even if there is a newer pending build")
 				jobBuild, err := pipelineDB.CreateJobBuild("some-job")
@@ -2040,7 +2040,7 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent finished build")
 				err = jobBuild.Finish(db.StatusSucceeded)
@@ -2056,7 +2056,7 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent finished build even when there is a newer unfinished build")
 				jobBuildNewDB, err := pipelineDB.CreateJobBuild("some-job")
@@ -2072,7 +2072,7 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 			})
 		})
 
