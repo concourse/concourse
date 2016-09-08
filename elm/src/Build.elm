@@ -78,6 +78,8 @@ type StepRenderingState
 type Msg
   = Noop
   | SwitchToBuild Concourse.Build
+  | TriggerBuild (Maybe Concourse.JobIdentifier)
+  | BuildTriggered (Result Http.Error Concourse.Build)
   | AbortBuild Int
   | BuildFetched Int (Result Http.Error Concourse.Build)
   | BuildPrepFetched Int (Result Http.Error Concourse.BuildPrep)
@@ -161,6 +163,24 @@ update action model =
 
     SwitchToBuild build ->
       (model, Navigation.newUrl <| Concourse.Build.url build)
+
+    TriggerBuild job ->
+      case job of
+        Nothing ->
+          (model, Cmd.none)
+        Just someJob ->
+          (model, triggerBuild someJob)
+
+    BuildTriggered (Ok build) ->
+      update
+        (SwitchToBuild build)
+        { model
+        | history = build :: model.history
+        }
+
+    BuildTriggered (Err err) ->
+      Debug.log ("failed to trigger build: " ++ toString err) <|
+        (model, Cmd.none)
 
     BuildFetched browsingIndex (Ok build) ->
       handleBuildFetched browsingIndex build model
@@ -561,9 +581,12 @@ viewBuildHeader build {now, job, history} =
               Nothing -> True
               Just job -> job.disableManualTrigger
           in
-            Html.form
-              [class "trigger-build", method "post", action (actionUrl)]
-              [Html.button [class "build-action fr", disabled buttonDisabled, attribute "aria-label" "Trigger Build"] [Html.i [class "fa fa-plus-circle"] []]]
+            Html.button [ class "build-action fr"
+                        , disabled buttonDisabled
+                        , attribute "aria-label" "Trigger Build"
+                        , onLeftClick <| TriggerBuild build.job
+                        ]
+              [ Html.i [class "fa fa-plus-circle"] [] ]
 
         _ ->
           Html.div [] []
@@ -625,6 +648,11 @@ viewHistoryItem currentBuild build =
 durationTitle : Date -> List (Html Msg) -> Html Msg
 durationTitle date content =
   Html.div [title (Date.Format.format "%b" date)] content
+
+triggerBuild : Concourse.JobIdentifier -> Cmd Msg
+triggerBuild buildJob =
+  Cmd.map BuildTriggered << Task.perform Err Ok <|
+    Concourse.Job.triggerBuild buildJob
 
 fetchBuild : Time -> Int -> Int -> Cmd Msg
 fetchBuild delay browsingIndex buildId =
