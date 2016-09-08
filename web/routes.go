@@ -6,7 +6,6 @@ const (
 	Index                 = "Index"
 	RobotsTxt             = "RobotsTxt"
 	Pipeline              = "Pipeline"
-	TriggerBuild          = "TriggerBuild"
 	GetBuild              = "GetBuild"
 	GetBuilds             = "GetBuilds"
 	GetJoblessBuild       = "GetJoblessBuild"
@@ -44,7 +43,6 @@ var Routes = rata.Routes{
 	{Path: "/pipelines/:pipeline_name/jobs/:job/builds/:build", Method: "GET", Name: MainGetBuild},
 
 	// private
-	{Path: "/teams/:team_name/pipelines/:pipeline_name/jobs/:job/builds", Method: "POST", Name: TriggerBuild},
 	{Path: "/builds", Method: "GET", Name: GetBuilds},
 	{Path: "/builds/:build_id", Method: "GET", Name: GetJoblessBuild},
 
