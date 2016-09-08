@@ -86,9 +86,9 @@ var _ = Describe("ResourceCache", func() {
 				CreatedByBaseResourceType: &brt,
 
 				Source: atc.Source{"some": "source"},
-				Params: atc.Params{"some": "params"},
 			},
 			Version: atc.Version{"some": "version"},
+			Params: atc.Params{"some": "params"},
 		}
 	})
 

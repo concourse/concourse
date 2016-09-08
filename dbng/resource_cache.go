@@ -14,11 +14,29 @@ var ErrResourceCacheAlreadyExists = errors.New("resource cache already exists")
 var ErrResourceCacheDisappeared = errors.New("resource cache disappeared")
 var ErrResourceCacheConfigDisappeared = errors.New("resource cache config disappeared")
 
+// ResourceCache represents an instance of a ResourceConfig's version.
+//
+// A ResourceCache is created by a `get`, an `image_resource`, or a resource
+// type in a pipeline.
+//
+// ResourceCaches are garbage-collected by gc.ResourceCacheCollector.
 type ResourceCache struct {
-	ResourceConfig
-	Version atc.Version
+	ResourceConfig ResourceConfig // The resource configuration.
+	Version        atc.Version    // The version of the resource.
+	Params         atc.Params     // The params used when fetching the version.
 }
 
+// UsedResourceCache is created whenever a ResourceCache is Created and/or
+// Used.
+//
+// So long as the UsedResourceCache exists, the underlying ResourceCache can
+// not be removed.
+//
+// UsedResourceCaches become unused by the gc.ResourceCacheCollector, which may
+// then lead to the ResourceCache being garbage-collected.
+//
+// See FindOrCreateForBuild, FindOrCreateForResource, and
+// FindOrCreateForResourceType for more information on when it becomes unused.
 type UsedResourceCache struct {
 	ID             int
 	ResourceConfig *UsedResourceConfig
@@ -62,10 +80,12 @@ func (cache ResourceCache) findOrCreate(tx Tx, resourceConfig *UsedResourceConfi
 			Columns(
 				"resource_config_id",
 				"version",
+				"params_hash",
 			).
 			Values(
 				resourceConfig.ID,
 				cache.version(),
+				cache.paramsHash(),
 			).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -130,4 +150,9 @@ func (cache ResourceCache) findWithResourceConfig(tx Tx, resourceConfig *UsedRes
 func (cache ResourceCache) version() string {
 	j, _ := json.Marshal(cache.Version)
 	return string(j)
+}
+
+func (cache ResourceCache) paramsHash() string {
+	j, _ := json.Marshal(cache.Params)
+	return string(j) // TODO: actually hash
 }

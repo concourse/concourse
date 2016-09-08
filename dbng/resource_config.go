@@ -14,21 +14,59 @@ var ErrResourceConfigAlreadyExists = errors.New("resource config already exists"
 var ErrResourceConfigDisappeared = errors.New("resource config disappeared")
 var ErrResourceConfigParentDisappeared = errors.New("resource config parent disappeared")
 
+// ResourceConfig represents a resource type and config source.
+//
+// Resources in a pipeline, resource types in a pipeline, and `image_resource`
+// fields in a task all result in a reference to a ResourceConfig.
+//
+// ResourceConfigs are garbage-collected by gc.ResourceConfigCollector.
 type ResourceConfig struct {
-	CreatedByResourceCache    *ResourceCache
+	// A resource type provided by a resource.
+	CreatedByResourceCache *ResourceCache
+
+	// A resource type provided by a worker.
 	CreatedByBaseResourceType *BaseResourceType
 
+	// The resource's source configuration.
 	Source atc.Source
-	Params atc.Params
 }
 
+// UsedResourceConfig is created whenever a ResourceConfig is Created and/or
+// Used.
+//
+// So long as the UsedResourceConfig exists, the underlying ResourceConfig can
+// not be removed.
+//
+// UsedResourceConfigs become unused by the gc.ResourceConfigCollector, which
+// may then lead to the ResourceConfig being garbage-collected.
+//
+// See FindOrCreateForBuild, FindOrCreateForResource, and
+// FindOrCreateForResourceType for more information on when it becomes unused.
 type UsedResourceConfig struct {
-	ID int
-
+	ID                        int
 	CreatedByResourceCache    *UsedResourceCache
 	CreatedByBaseResourceType *UsedBaseResourceType
 }
 
+// FindOrCreateForBuild creates the ResourceConfig, recursively creating its
+// parent ResourceConfig or BaseResourceType, and registers a "Use" for the
+// given build.
+//
+// An `image_resource` or a `get` within a build will result in a
+// UsedResourceConfig.
+//
+// ErrResourceConfigDisappeared may be returned if the resource config was
+// found initially but was removed before we could use it.
+//
+// ErrResourceConfigAlreadyExists may be returned if a concurrent call resulted
+// in a conflict.
+//
+// ErrResourceConfigParentDisappeared may be returned if the resource config's
+// parent ResourceConfig or BaseResourceType was found initially but was
+// removed before we could create the ResourceConfig.
+//
+// Each of these errors should result in the caller retrying from the start of
+// the transaction.
 func (resourceConfig ResourceConfig) FindOrCreateForBuild(tx Tx, build *Build) (*UsedResourceConfig, error) {
 	var resourceCacheID int
 	if resourceConfig.CreatedByResourceCache != nil {
@@ -39,9 +77,29 @@ func (resourceConfig ResourceConfig) FindOrCreateForBuild(tx Tx, build *Build) (
 
 		resourceCacheID = createdByResourceCache.ID
 	}
+
 	return resourceConfig.findOrCreate(tx, "build_id", build.ID, resourceCacheID)
 }
 
+// FindOrCreateForResource creates the ResourceConfig, recursively creating its
+// parent ResourceConfig or BaseResourceType, and registers a "Use" for the
+// given resource.
+//
+// A periodic check for a pipeline's resource will result in a
+// UsedResourceConfig.
+//
+// ErrResourceConfigDisappeared may be returned if the resource config was
+// found initially but was removed before we could use it.
+//
+// ErrResourceConfigAlreadyExists may be returned if a concurrent call resulted
+// in a conflict.
+//
+// ErrResourceConfigParentDisappeared may be returned if the resource config's
+// parent ResourceConfig or BaseResourceType was found initially but was
+// removed before we could create the ResourceConfig.
+//
+// Each of these errors should result in the caller retrying from the start of
+// the transaction.
 func (resourceConfig ResourceConfig) FindOrCreateForResource(tx Tx, resource *Resource) (*UsedResourceConfig, error) {
 	var resourceCacheID int
 	if resourceConfig.CreatedByResourceCache != nil {
@@ -55,6 +113,25 @@ func (resourceConfig ResourceConfig) FindOrCreateForResource(tx Tx, resource *Re
 	return resourceConfig.findOrCreate(tx, "resource_id", resource.ID, resourceCacheID)
 }
 
+// FindOrCreateForResourceType creates the ResourceConfig, recursively creating
+// its parent ResourceConfig or BaseResourceType, and registers a "Use" for the
+// given resource type.
+//
+// A periodic check for a pipeline's resource type will result in a
+// UsedResourceConfig.
+//
+// ErrResourceConfigDisappeared may be returned if the resource config was
+// found initially but was removed before we could use it.
+//
+// ErrResourceConfigAlreadyExists may be returned if a concurrent call resulted
+// in a conflict.
+//
+// ErrResourceConfigParentDisappeared may be returned if the resource config's
+// parent ResourceConfig or BaseResourceType was found initially but was
+// removed before we could create the ResourceConfig.
+//
+// Each of these errors should result in the caller retrying from the start of
+// the transaction.
 func (resourceConfig ResourceConfig) FindOrCreateForResourceType(tx Tx, resourceType *ResourceType) (*UsedResourceConfig, error) {
 	var resourceCacheID int
 	if resourceConfig.CreatedByResourceCache != nil {
@@ -100,12 +177,10 @@ func (resourceConfig ResourceConfig) findOrCreate(tx Tx, forColumnName string, f
 			Columns(
 				parentColumnName,
 				"source_hash",
-				"params_hash",
 			).
 			Values(
 				parentID,
-				resourceConfig.hash(resourceConfig.Source),
-				resourceConfig.hash(resourceConfig.Params),
+				resourceConfig.sourceHash(),
 			).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -151,9 +226,8 @@ func (resourceConfig ResourceConfig) findOrCreate(tx Tx, forColumnName string, f
 func (resourceConfig ResourceConfig) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, bool, error) {
 	var id int
 	err := psql.Select("id").From("resource_configs").Where(sq.Eq{
-		"source_hash":    resourceConfig.hash(resourceConfig.Source),
-		"params_hash":    resourceConfig.hash(resourceConfig.Params),
 		parentColumnName: parentID,
+		"source_hash":    resourceConfig.sourceHash(),
 	}).RunWith(tx).QueryRow().Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -166,7 +240,7 @@ func (resourceConfig ResourceConfig) findWithParentID(tx Tx, parentColumnName st
 	return id, true, nil
 }
 
-func (ResourceConfig) hash(prop interface{}) string {
-	j, _ := json.Marshal(prop)
+func (config ResourceConfig) sourceHash() string {
+	j, _ := json.Marshal(config.Source)
 	return string(j) // TODO: actually hash
 }

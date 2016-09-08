@@ -62,8 +62,7 @@ func CreateCaches(tx migration.LimitedTx) error {
 		CREATE TABLE resource_configs (
 			id serial PRIMARY KEY,
 			base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE CASCADE,
-			source_hash text NOT NULL,
-			params_hash text NOT NULL
+			source_hash text NOT NULL
 		)
 	`)
 	if err != nil {
@@ -75,7 +74,8 @@ func CreateCaches(tx migration.LimitedTx) error {
 			id serial PRIMARY KEY,
 			resource_config_id int REFERENCES resource_configs (id) ON DELETE CASCADE,
 			version TEXT NOT NULL,
-			UNIQUE (resource_config_id, version)
+			params_hash text NOT NULL,
+			UNIQUE (resource_config_id, version, params_hash)
 		)
 	`)
 	if err != nil {
@@ -85,7 +85,7 @@ func CreateCaches(tx migration.LimitedTx) error {
 	_, err = tx.Exec(`
 		ALTER TABLE resource_configs
 		ADD COLUMN resource_cache_id int REFERENCES resource_caches (id) ON DELETE CASCADE,
-		ADD UNIQUE (resource_cache_id, base_resource_type_id, source_hash, params_hash)
+		ADD UNIQUE (resource_cache_id, base_resource_type_id, source_hash)
 	`)
 	if err != nil {
 		return err
