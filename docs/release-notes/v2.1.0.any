@@ -15,6 +15,10 @@
     Pretty rad.
   }
 
+  \note{feature}{
+    Triggering a build will now update the UI in-place rather than redirecting.
+  }
+
   \note{fix}{
     Autoscrolling is back and better than ever before. Keyboard controls for
     scrolling (e.g. Cmd+Down, Spacebar) should also now work as normal.
