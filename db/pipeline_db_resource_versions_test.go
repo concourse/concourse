@@ -126,40 +126,40 @@ var _ = Describe("Resource History", func() {
 				Expect(found).To(BeTrue())
 				Expect(historyPage).To(Equal([]db.SavedVersionedResource{expectedVersions[9], expectedVersions[8]}))
 				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: expectedVersions[8].CheckOrder, Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: expectedVersions[8].ID, Limit: 2}))
 			})
 		})
 
 		Context("with a since that places it in the middle of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				historyPage, pagination, found, err := pipelineDB.GetResourceVersions("some-resource", db.Page{Since: expectedVersions[6].CheckOrder, Limit: 2})
+				historyPage, pagination, found, err := pipelineDB.GetResourceVersions("some-resource", db.Page{Since: expectedVersions[6].ID, Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(historyPage).To(Equal([]db.SavedVersionedResource{expectedVersions[5], expectedVersions[4]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: expectedVersions[5].CheckOrder, Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: expectedVersions[4].CheckOrder, Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: expectedVersions[5].ID, Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: expectedVersions[4].ID, Limit: 2}))
 			})
 		})
 
 		Context("with a since that places it at the end of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				historyPage, pagination, found, err := pipelineDB.GetResourceVersions("some-resource", db.Page{Since: expectedVersions[2].CheckOrder, Limit: 2})
+				historyPage, pagination, found, err := pipelineDB.GetResourceVersions("some-resource", db.Page{Since: expectedVersions[2].ID, Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(historyPage).To(Equal([]db.SavedVersionedResource{expectedVersions[1], expectedVersions[0]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: expectedVersions[1].CheckOrder, Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: expectedVersions[1].ID, Limit: 2}))
 				Expect(pagination.Next).To(BeNil())
 			})
 		})
 
 		Context("with an until that places it in the middle of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				historyPage, pagination, found, err := pipelineDB.GetResourceVersions("some-resource", db.Page{Until: expectedVersions[6].CheckOrder, Limit: 2})
+				historyPage, pagination, found, err := pipelineDB.GetResourceVersions("some-resource", db.Page{Until: expectedVersions[6].ID, Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(historyPage).To(Equal([]db.SavedVersionedResource{expectedVersions[8], expectedVersions[7]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: expectedVersions[8].CheckOrder, Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: expectedVersions[7].CheckOrder, Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: expectedVersions[8].ID, Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: expectedVersions[7].ID, Limit: 2}))
 			})
 		})
 
@@ -170,7 +170,7 @@ var _ = Describe("Resource History", func() {
 				Expect(found).To(BeTrue())
 				Expect(historyPage).To(Equal([]db.SavedVersionedResource{expectedVersions[9], expectedVersions[8]}))
 				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: expectedVersions[8].CheckOrder, Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: expectedVersions[8].ID, Limit: 2}))
 			})
 		})
 
@@ -188,16 +188,15 @@ var _ = Describe("Resource History", func() {
 					VersionedResource: expectedVersions[9].VersionedResource,
 					FirstOccurrence:   true,
 				})
+				// We resaved a previous SavedVersionedResource in SaveInput()
+				// creating a new newest VersionedResource
+				expectedVersions[9].CheckOrder = 10
 			})
 
 			It("returns the metadata in the version history", func() {
 				historyPage, _, found, err := pipelineDB.GetResourceVersions("some-resource", db.Page{Limit: 1})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
-
-				// We resaved a previous SavedVersionedResource in SaveInput()
-				// creating a new newest VersionedResource
-				expectedVersions[9].CheckOrder = 10
 				Expect(historyPage).To(Equal([]db.SavedVersionedResource{expectedVersions[9]}))
 			})
 		})

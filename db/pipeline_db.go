@@ -559,7 +559,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 	if page.Since == 0 && page.Until == 0 {
 		rows, err = pdb.conn.Query(fmt.Sprintf(`
 			%s
-			ORDER BY v.check_order DESC
+			ORDER BY v.id DESC
 			LIMIT $2
 		`, query), dbResource.ID, page.Limit)
 		if err != nil {
@@ -570,11 +570,11 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 			SELECT sub.*
 				FROM (
 						%s
-					AND v.check_order > $2
-				ORDER BY v.check_order ASC
+					AND v.id > $2
+				ORDER BY v.id ASC
 				LIMIT $3
 			) sub
-			ORDER BY sub.check_order DESC
+			ORDER BY sub.id DESC
 		`, query), dbResource.ID, page.Until, page.Limit)
 		if err != nil {
 			return nil, Pagination{}, false, err
@@ -582,8 +582,8 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 	} else {
 		rows, err = pdb.conn.Query(fmt.Sprintf(`
 			%s
-				AND v.check_order < $2
-			ORDER BY v.check_order DESC
+				AND v.id < $2
+			ORDER BY v.id DESC
 			LIMIT $3
 		`, query), dbResource.ID, page.Since, page.Limit)
 		if err != nil {
@@ -631,15 +631,15 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 		return []SavedVersionedResource{}, Pagination{}, true, nil
 	}
 
-	var minCheckOrder int
-	var maxCheckOrder int
+	var minID int
+	var maxID int
 
 	err = pdb.conn.QueryRow(`
-		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
-			COALESCE(MIN(v.check_order), 0) as minCheckOrder
+		SELECT COALESCE(MAX(v.id), 0) as maxID,
+			COALESCE(MIN(v.id), 0) as minID
 		FROM versioned_resources v
 		WHERE v.resource_id = $1
-	`, dbResource.ID).Scan(&maxCheckOrder, &minCheckOrder)
+	`, dbResource.ID).Scan(&maxID, &minID)
 	if err != nil {
 		return nil, Pagination{}, false, err
 	}
@@ -649,16 +649,16 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 
 	var pagination Pagination
 
-	if firstSavedVersionedResource.CheckOrder < maxCheckOrder {
+	if firstSavedVersionedResource.ID < maxID {
 		pagination.Previous = &Page{
-			Until: firstSavedVersionedResource.CheckOrder,
+			Until: firstSavedVersionedResource.ID,
 			Limit: page.Limit,
 		}
 	}
 
-	if lastSavedVersionedResource.CheckOrder > minCheckOrder {
+	if lastSavedVersionedResource.ID > minID {
 		pagination.Next = &Page{
-			Since: lastSavedVersionedResource.CheckOrder,
+			Since: lastSavedVersionedResource.ID,
 			Limit: page.Limit,
 		}
 	}

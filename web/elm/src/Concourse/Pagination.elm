@@ -1,4 +1,4 @@
-module Concourse.Pagination exposing (Paginated, Pagination, Page, Direction(..), fetch, parseLinks)
+module Concourse.Pagination exposing (Paginated, Pagination, Page, Direction(..), fetch, parseLinks, equal)
 
 import Dict exposing (Dict)
 import Http
@@ -35,6 +35,22 @@ nextRel = "next"
 linkHeaderRegex : Regex
 linkHeaderRegex =
   Regex.regex ("<([^>]+)>; rel=\"(" ++ previousRel ++ "|" ++ nextRel ++ ")\"")
+
+equal : Page -> Page -> Bool
+equal one two =
+  case one.direction of
+    Since p ->
+      case two.direction of
+        Since pp ->
+          p == pp
+        _ ->
+          False
+    Until q ->
+      case two.direction of
+        Until qq ->
+          q == qq
+        _ ->
+          False
 
 fetch : Json.Decode.Decoder a -> String -> Maybe Page -> Task Http.Error (Paginated a)
 fetch decode url page =

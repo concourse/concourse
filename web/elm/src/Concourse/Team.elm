@@ -2,7 +2,7 @@ module Concourse.Team exposing (fetchTeams)
 
 import Concourse
 import Http
-import Json.Decode exposing ((:=))
+import Json.Decode
 import Task exposing (Task)
 
 fetchTeams : Task Http.Error (List Concourse.Team)

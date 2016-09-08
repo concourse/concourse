@@ -105,14 +105,17 @@ var _ = Describe("Resource Pausing", func() {
 
 			// resource detail -> paused resource detail
 			Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/some-pipeline/resources/resource-name")))
-			Expect(page.Find("h1")).To(HaveText("resource-name"))
+			Eventually(page.Find("h1")).Should(HaveText("resource-name"))
 
-			Expect(page.Find(".js-resource .js-pauseUnpause").Click()).To(Succeed())
+			Eventually(page.Find(".btn-pause.fl")).Should(BeFound())
+			Expect(page.Find(".btn-pause.fl").Click()).To(Succeed())
 
 			Expect(page.Navigate(homepage())).To(Succeed())
 			Eventually(page.FindByLink("resource-name")).Should(BeFound())
 			Expect(page.FindByLink("resource-name").Click()).To(Succeed())
-			Expect(page.Find(".js-resource .js-pauseUnpause").Click()).To(Succeed())
+
+			Eventually(page.Find(".btn-pause.fl")).Should(BeFound())
+			Expect(page.Find(".btn-pause.fl").Click()).To(Succeed())
 
 			Eventually(page.Find(".header i.fa-play")).Should(BeFound())
 
