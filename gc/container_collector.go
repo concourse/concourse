@@ -4,11 +4,10 @@ package gc
 
 add the following columns:
 
-	| state enum('creating', 'created', 'destroying')                         |
-	| build_id         int  REFERENCES builds (id)         ON DELETE SET NULL |
-	| resource_id      int  REFERENCES resources (id)      ON DELETE SET NULL |
-	| resource_type_id int  REFERENCES resource_types (id) ON DELETE SET NULL |
-	| hijacked         bool NOT NULL DEFAULT false                            |
+	| state enum('creating', 'created', 'destroying')                              |
+	| build_id           int  REFERENCES builds (id)            ON DELETE SET NULL |
+	| resource_config_id int  REFERENCES resource_configs (id)  ON DELETE SET NULL |
+	| hijacked           bool NOT NULL DEFAULT false                               |
 
 
 container gc logic becomes:
@@ -16,9 +15,7 @@ container gc logic becomes:
 	if creating, ignore. (i think.)
 
 	if any of the following apply:
-		* build_id and resource_id and resource_type_id are null
-		* resource is no longer active
-		* resource type is no longer active
+		* build_id and resource_config_id are null
 		* build is no longer running and is not the latest failed build of its job
 
 	then, if hijacked:

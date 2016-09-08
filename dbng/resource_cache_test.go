@@ -1,166 +1,287 @@
 package dbng_test
 
 import (
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
+	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Cache", func() {
+var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+var _ = Describe("ResourceCache", func() {
 	var dbConn dbng.Conn
 	var tx dbng.Tx
 
-	var cache dbng.Cache
+	var cache dbng.ResourceCache
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
 		dbConn = dbng.Wrap(postgresRunner.Open())
 
-		tf := dbng.NewTeamFactory(dbConn)
-		bf := dbng.NewBuildFactory(dbConn)
-		vf := dbng.NewVolumeFactory(dbConn)
-		cf := dbng.NewContainerFactory(dbConn)
+		// vf := dbng.NewVolumeFactory(dbConn)
+		// cf := dbng.NewContainerFactory(dbConn)
 
-		team, err := tf.CreateTeam("some-team")
-		Expect(err).ToNot(HaveOccurred())
+		// worker := &dbng.Worker{
+		// 	Name:       "some-worker",
+		// 	GardenAddr: "1.2.3.4:7777",
+		// }
 
-		build, err := bf.CreateOneOffBuild(team)
-		Expect(err).ToNot(HaveOccurred())
+		// setupTx, err := dbConn.Begin()
+		// Expect(err).ToNot(HaveOccurred())
 
-		worker := &dbng.Worker{
-			Name:       "some-worker",
-			GardenAddr: "1.2.3.4:7777",
+		// err = worker.Create(setupTx)
+		// Expect(err).ToNot(HaveOccurred())
+
+		brt := dbng.BaseResourceType{
+			Name:    "some-worker-resource-type",
+			Image:   "some-worker-resource-image",
+			Version: "some-worker-resource-version",
 		}
 
-		setupTx, err := dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
+		// ubrt, err := brt.FindOrCreate(setupTx)
+		// Expect(err).ToNot(HaveOccurred())
 
-		err = worker.Create(setupTx)
-		Expect(err).ToNot(HaveOccurred())
+		// Expect(setupTx.Commit()).To(Succeed())
 
-		wrt := dbng.WorkerResourceType{
-			WorkerName: worker.Name,
-			Type:       "some-worker-resource-type",
-			Image:      "some-worker-resource-image",
-			Version:    "some-worker-resource-version",
-		}
+		// 		creatingVolume, err := vf.CreateBaseResourceTypeVolume(worker, ubrt)
+		// 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = wrt.Create(setupTx)
-		Expect(err).ToNot(HaveOccurred())
+		// 		creatingContainer, err := cf.CreateStepContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+		// 			Type: "task",
+		// 			Name: "some-task",
+		// 		})
+		// 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(setupTx.Commit()).To(Succeed())
+		// 		setupTx, err = dbConn.Begin()
+		// 		Expect(err).ToNot(HaveOccurred())
 
-		creatingVolume, err := vf.CreateWorkerResourceTypeVolume(wrt)
-		Expect(err).ToNot(HaveOccurred())
+		// 		created, err := creatingVolume.Created(setupTx, "some-imported-handle")
+		// 		Expect(err).ToNot(HaveOccurred())
 
-		creatingContainer, err := cf.CreateStepContainer(worker, build, "some-plan", dbng.ContainerMetadata{
-			Type: "task",
-			Name: "some-task",
-		})
-		Expect(err).ToNot(HaveOccurred())
+		// 		initializing, err := created.Initializing(setupTx)
+		// 		Expect(err).ToNot(HaveOccurred())
 
-		setupTx, err = dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
+		// 		initialized, containerVol, err := initializing.Use(setupTx, creatingContainer)
+		// 		Expect(err).ToNot(HaveOccurred())
 
-		created, err := creatingVolume.Created(setupTx, "some-imported-handle")
-		Expect(err).ToNot(HaveOccurred())
+		// 		createdContainerVol, err := containerVol.Created(setupTx, "some-volume-handle")
+		// 		Expect(err).ToNot(HaveOccurred())
 
-		initializing, err := created.Initializing(setupTx)
-		Expect(err).ToNot(HaveOccurred())
+		// 		createdContainer, err := creatingContainer.Created(setupTx, "some-container-handle", []*dbng.CreatedVolume{createdContainerVol})
+		// 		Expect(err).ToNot(HaveOccurred())
 
-		initialized, containerVol, err := initializing.Use(setupTx, creatingContainer)
-		Expect(err).ToNot(HaveOccurred())
+		// 		destroyingContainerVol, err := containerVol.Destroying()
+		// 		Expect(err).ToNot(HaveOccurred())
 
-		createdContainerVol, err := containerVol.Created(setupTx, "some-volume-handle")
-		Expect(err).ToNot(HaveOccurred())
+		// 		Expect(destroyingContainerVol.Destroy()).To(BeTrue())
 
-		createdContainer, err := creatingContainer.Created(setupTx, "some-container-handle", []*dbng.CreatedVolume{createdContainerVol})
-		Expect(err).ToNot(HaveOccurred())
+		// 		Expect(setupTx.Commit()).To(Succeed())
 
-		destroyingContainerVol, err := containerVol.Destroying()
-		Expect(err).ToNot(HaveOccurred())
+		cache = dbng.ResourceCache{
+			ResourceConfig: dbng.ResourceConfig{
+				CreatedByBaseResourceType: &brt,
 
-		Expect(destroyingContainerVol.Destroy()).To(BeTrue())
-
-		Expect(setupTx.Commit()).To(Succeed())
-
-		tx, err = dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-
-		cache = dbng.Cache{
-			ResourceTypeVolume: initialized,
-			Source:             atc.Source{"some": "source"},
-			Params:             atc.Params{"some": "params"},
-			Version:            atc.Version{"some": "version"},
+				Source: atc.Source{"some": "source"},
+				Params: atc.Params{"some": "params"},
+			},
+			Version: atc.Version{"some": "version"},
 		}
 	})
 
 	AfterEach(func() {
-		err := tx.Rollback()
-		Expect(err).NotTo(HaveOccurred())
-
-		err = dbConn.Close()
+		err := dbConn.Close()
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("can be created and looked up", func() {
-		foundID, found, err := cache.Lookup(tx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(found).To(BeFalse())
-		Expect(foundID).To(BeZero())
+	Describe("creating for a build", func() {
+		var build *dbng.Build
 
-		createdID, err := cache.Create(tx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(createdID).ToNot(BeZero())
-
-		foundID, found, err = cache.Lookup(tx)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(found).To(BeTrue())
-		Expect(foundID).To(Equal(createdID))
-	})
-
-	Context("when it already exists", func() {
 		BeforeEach(func() {
-			_, err := cache.Create(tx)
+			tf := dbng.NewTeamFactory(dbConn)
+			bf := dbng.NewBuildFactory(dbConn)
+
+			team, err := tf.CreateTeam("some-team")
+			Expect(err).ToNot(HaveOccurred())
+
+			build, err = bf.CreateOneOffBuild(team)
+			Expect(err).ToNot(HaveOccurred())
+
+			tx, err = dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns ErrCacheAlreadyExists", func() {
-			id, err := cache.Create(tx)
-			Expect(err).To(Equal(dbng.ErrCacheAlreadyExists))
-			Expect(id).To(BeZero())
+		AfterEach(func() {
+			err := tx.Rollback()
+			Expect(err).NotTo(HaveOccurred())
 		})
-	})
 
-	Context("when the resource type volume starts to be destroyed", func() {
-		var destroying *dbng.DestroyingVolume
-
-		BeforeEach(func() {
-			var err error
-			destroying, err = cache.ResourceTypeVolume.Destroying(tx)
+		It("can be created and used", func() {
+			urc, err := cache.FindOrCreateForBuild(tx, build)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(urc.ID).ToNot(BeZero())
+
+			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
+			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
+			Expect(err).To(HaveOccurred())
+			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
 		})
 
-		It("returns ErrCacheResourceTypeVolumeDisappeared", func() {
-			id, err := cache.Create(tx)
-			Expect(err).To(Equal(dbng.ErrCacheResourceTypeVolumeDisappeared))
-			Expect(id).To(BeZero())
-		})
+		Context("when it already exists", func() {
+			var existingResourceCache *dbng.UsedResourceCache
 
-		Context("when the resource type volume is destroyed", func() {
 			BeforeEach(func() {
-				Expect(destroying.Destroy(tx)).To(BeTrue())
+				var err error
+				existingResourceCache, err = cache.FindOrCreateForBuild(tx, build)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("returns ErrCacheResourceTypeVolumeDisappeared", func() {
-				id, err := cache.Create(tx)
-				Expect(err).To(Equal(dbng.ErrCacheResourceTypeVolumeDisappeared))
-				Expect(id).To(BeZero())
+			It("returns the same used resource cache", func() {
+				urc, err := cache.FindOrCreateForBuild(tx, build)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(urc.ID).To(Equal(existingResourceCache.ID))
 			})
 		})
 	})
+
+	Describe("creating for a resource", func() {
+		var resource *dbng.Resource
+
+		BeforeEach(func() {
+			tf := dbng.NewTeamFactory(dbConn)
+			pf := dbng.NewPipelineFactory(dbConn)
+			rf := dbng.NewResourceFactory(dbConn)
+
+			team, err := tf.CreateTeam("some-team")
+			Expect(err).ToNot(HaveOccurred())
+
+			pipeline, err := pf.CreatePipeline(team, "some-pipeline", "{}")
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, err = rf.CreateResource(pipeline, "some-resource", "{}")
+			Expect(err).ToNot(HaveOccurred())
+
+			tx, err = dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			err := tx.Rollback()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("can be created and used", func() {
+			urc, err := cache.FindOrCreateForResource(tx, resource)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(urc.ID).ToNot(BeZero())
+
+			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
+			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
+			Expect(err).To(HaveOccurred())
+			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
+		})
+
+		Context("when it already exists", func() {
+			var existingResourceCache *dbng.UsedResourceCache
+
+			BeforeEach(func() {
+				var err error
+				existingResourceCache, err = cache.FindOrCreateForResource(tx, resource)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the same used resource cache", func() {
+				urc, err := cache.FindOrCreateForResource(tx, resource)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(urc.ID).To(Equal(existingResourceCache.ID))
+			})
+		})
+	})
+
+	Describe("creating for a resource type", func() {
+		var resourceType *dbng.ResourceType
+
+		BeforeEach(func() {
+			tf := dbng.NewTeamFactory(dbConn)
+			pf := dbng.NewPipelineFactory(dbConn)
+			rf := dbng.NewResourceTypeFactory(dbConn)
+
+			team, err := tf.CreateTeam("some-team")
+			Expect(err).ToNot(HaveOccurred())
+
+			pipeline, err := pf.CreatePipeline(team, "some-pipeline", "{}")
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceType, err = rf.CreateResourceType(pipeline, "some-resource-type", "some-resource-type-type", "{}")
+			Expect(err).ToNot(HaveOccurred())
+
+			tx, err = dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			err := tx.Rollback()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("can be created and used", func() {
+			urc, err := cache.FindOrCreateForResourceType(tx, resourceType)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(urc.ID).ToNot(BeZero())
+
+			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
+			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID}).RunWith(tx).Exec()
+			Expect(err).To(HaveOccurred())
+			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
+		})
+
+		Context("when it already exists", func() {
+			var existingResourceCache *dbng.UsedResourceCache
+
+			BeforeEach(func() {
+				var err error
+				existingResourceCache, err = cache.FindOrCreateForResourceType(tx, resourceType)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the same used resource cache", func() {
+				urc, err := cache.FindOrCreateForResourceType(tx, resourceType)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(urc.ID).To(Equal(existingResourceCache.ID))
+			})
+		})
+	})
+
+	// Context("when the resource type volume starts to be destroyed", func() {
+	// 	var destroying *dbng.DestroyingVolume
+
+	// 	BeforeEach(func() {
+	// 		var err error
+	// 		destroying, err = cache.ResourceTypeVolume.Destroying(tx)
+	// 		Expect(err).ToNot(HaveOccurred())
+	// 	})
+
+	// 	It("returns ErrCacheResourceTypeVolumeDisappeared", func() {
+	// 		id, err := cache.Create(tx)
+	// 		Expect(err).To(Equal(dbng.ErrCacheResourceTypeVolumeDisappeared))
+	// 		Expect(id).To(BeZero())
+	// 	})
+
+	// 	Context("when the resource type volume is destroyed", func() {
+	// 		BeforeEach(func() {
+	// 			Expect(destroying.Destroy(tx)).To(BeTrue())
+	// 		})
+
+	// 		It("returns ErrCacheResourceTypeVolumeDisappeared", func() {
+	// 			id, err := cache.Create(tx)
+	// 			Expect(err).To(Equal(dbng.ErrCacheResourceTypeVolumeDisappeared))
+	// 			Expect(id).To(BeZero())
+	// 		})
+	// 	})
+	// })
 
 	// FIt("does not let a cache be deleted while a volume is initializing it", func() {
 	// 	var workerName string

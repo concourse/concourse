@@ -1,16 +1,22 @@
 ---
 resource_types:
 - name: pr
-  type: git
+  type: docker-image
+  source: {repository: jtarchie/foo}
+
+resources:
+- name: atomy-prs
+  type: pr
+  source: {repo: vito/atomy}
 
 jobs:
 - name: foo
   plan:
-  - get: pr
+  - get: atomy-prs
   - task: run-pr
     config:
       inputs:
-      - name: pr
+      - name: atomy-prs
 
 run foo:
     - run get:
@@ -21,15 +27,91 @@ run foo:
                     - find volume for worker resource type
                         - if not found, create volume
                               - import worker resource type
-                              - initialize and acquire volume for resource type fetching
-                        - if found, acquire volume for resource type fetching
+                              - initialize
+                        - acquire volume for build (join table)
                 - look for cache volume
-                    - if not found, create container, initialize resource type, acquire for resource fetching
-                    - if found, acquire volume for resource fetching
+                    - if not found, create container, initialize resource type
+                    - acquire volume for build (join table)
         - look for cache volume
-            - if not found, create container, initialize cache, acquire for build
-            - if found, acquire for build
+            - if not found, create container, initialize cache
+            - acquire for build
     - run task:
         - select worker
+        - compute cache id
+          - this is same as before except it should be able to find everything
+            and never have to fetch
 
 * need join table for find-and-acquire?
+
+
+run foo:
+    builds:
+    | id |
+    | 42 |
+
+    - get:
+        - select worker
+          workers:
+          | some-worker |
+        - compute cache ID (build up ResourceCache in-memory based on pipeline config and worker resource type)
+          cache ID:
+          {
+            created_by_resource_cache: {
+              created_by_base_resource_type: {
+                name: docker-image,
+                image: /var/vcap/packages/...,
+                version: sdmnfbdsdjhkfsdf
+              },
+              source: {repository: jtarchie/foo},
+              params: {},
+              version: {digest: sha256:...}
+            }
+            source: {repo: vito/atomy},
+            params: {},
+            version: {ref: abcdef}
+          }
+
+          populates resource caches and base resource types, and marks it in use by the build
+          base_resource_types:
+          | id | name         | image         | version          |
+          | 1  | docker-image | /var/vcap/... | sdmnfbdsdjhkfsdf |
+
+          resource_caches:
+          | id | resource_cache_id | base_resource_type_id | source                     | params  | version              |
+          | 1  | NULL              | 1                     | {repository: jtarchie/foo} | {}      | {digest: sha256:...} |
+          | 2  | 1                 | NULL                  | {repo: vito/atomy}         | {}      | {ref: abcdef}        |
+
+          resource_cache_uses:
+          | build_id | cache_id | <- ON DELETE RESTRICT for cache_id
+          | 42       | 2        |
+
+        - look for volume relating to cache ID on worker
+            - if found, no-op
+              volumes:
+              | id  | worker_name | resource_cache_id | base_resource_type_id | state        |
+              | 5   | some-worker | NULL              | 1                     | initialized  | lock
+              | 9   | some-worker | 1                 | NULL                  | initialized  |
+              | 14  | some-worker | 2                 | NULL                  | initialized  |
+
+
+            - if not found, recurse into ResourceCache's creator
+                - if base resource type, import and initialize volume
+                  base_resource_types:
+                  | id | name         | image         | version          |
+                  | 1  | docker-image | /var/vcap/... | sdmnfbdsdjhkfsdf |
+
+                  resource_caches:
+                  | id | resource_cache_id | base_resource_type_id | source                     | params  | version              |
+                  | 1  | NULL              | 1                     | {repository: jtarchie/foo} | {}      | {digest: sha256:...} |
+
+                  volumes:
+                  | id  | worker_name | resource_cache_id | state        |
+                  | 14  | some-worker | 1                 | initialized  |
+
+                - if resource cache, recurse
+            - create volume and container
+            - fetch and initialize volume for resource cache
+    - run task:
+        - select worker
+        - compute cache ID (same as above)
+        - blah

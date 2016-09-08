@@ -12,20 +12,37 @@ func NewVolumeFactory(conn Conn) *VolumeFactory {
 	}
 }
 
-func (factory *VolumeFactory) CreateVolume() (*CreatingVolume, error) {
-	return &CreatingVolume{
-		conn: conn,
+func (factory *VolumeFactory) CreateResourceCacheVolume(worker *Worker, resourceCache *UsedResourceCache) (*CreatingVolume, error) {
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, err
 	}
+
+	defer tx.Rollback()
+	return factory.createVolume(tx, worker, "resource_cache_id", resourceCache.ID)
 }
 
-// 'get' looks like:
-//
-// 1. lookup cache volume
-//	 * if found, goto 4.
-// 2. create cache volume
-// 3. initialize cache volume
-// 4. use cache volume
-//   * if false returned, goto 2.
+func (factory *VolumeFactory) CreateBaseResourceTypeVolume(worker *Worker, ubrt *UsedBaseResourceType) (*CreatingVolume, error) {
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	return factory.createVolume(tx, worker, "base_resource_type_id", ubrt.ID)
+}
+
+func (factory *VolumeFactory) CreateContainerVolume(worker *Worker, container *CreatingContainer) (*CreatingVolume, error) {
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	return factory.createVolume(tx, worker, "container_id", container.ID)
+}
 
 // 1. open tx
 // 2. lookup cache id
@@ -34,9 +51,6 @@ func (factory *VolumeFactory) CreateVolume() (*CreatingVolume, error) {
 // 3. insert into volumes in 'initializing' state
 //   * if fails (fkey violation; preexisting cache id was removed), goto 1.
 // 4. commit tx
-func (factory *VolumeFactory) CreateCacheVolume(cache Cache) (*CreatingVolume, error) {
-	return nil, nil
-}
 
 var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer exists (stale?)")
 
@@ -46,29 +60,12 @@ var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer e
 // 3. insert into volumes in 'initializing' state
 //   * if fails (fkey violation; worker type gone), fail for same reason as 2.
 // 4. commit tx
-func (factory *VolumeFactory) CreateWorkerResourceTypeVolume(wrt WorkerResourceType) (*CreatingVolume, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	wrtID, found, err := wrt.Lookup(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, ErrWorkerResourceTypeNotFound
-	}
-
-	// TODO: worker_name relation is redundant
+func (factory *VolumeFactory) createVolume(tx Tx, worker *Worker, parentColumnName string, parentColumnValue int) (*CreatingVolume, error) {
 
 	var volumeID int
-	err = psql.Insert("volumes").
-		Columns("worker_name", "worker_resource_type_id").
-		Values(wrt.WorkerName, wrtID).
+	err := psql.Insert("volumes").
+		Columns("worker_name", parentColumnName).
+		Values(worker.Name, parentColumnValue).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -84,6 +81,8 @@ func (factory *VolumeFactory) CreateWorkerResourceTypeVolume(wrt WorkerResourceT
 	}
 
 	return &CreatingVolume{
+		Worker: worker,
+
 		ID: volumeID,
 	}, nil
 }

@@ -17,7 +17,12 @@ type ContainerMetadata struct {
 	Name string
 }
 
-// TODO: actual build model?
+// func (factory *ContainerFactory) FindContainerForBuild(build *Build, planID int) {
+// }
+
+// func (factory *ContainerFactory) FindContainerForResourceConfig(resourceConfig *UsedResourceConfig) {
+// }
+
 func (factory *ContainerFactory) CreateStepContainer(
 	worker *Worker,
 	build *Build,
@@ -67,7 +72,6 @@ func (factory *ContainerFactory) CreateStepContainer(
 	}, nil
 }
 
-// TODO: actual resource model?
-func (factory *ContainerFactory) CreateResourceContainer(resourceID int) (*CreatingContainer, error) {
+func (factory *ContainerFactory) CreateResourceConfigContainer(resourceConfig *UsedResourceConfig) (*CreatingContainer, error) {
 	return nil, nil
 }

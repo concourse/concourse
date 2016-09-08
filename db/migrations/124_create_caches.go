@@ -4,6 +4,14 @@ import "github.com/BurntSushi/migration"
 
 func CreateCaches(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`
+		ALTER TABLE pipelines
+		ALTER COLUMN name SET NOT NULL
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
 		CREATE TYPE volume_state AS ENUM (
 			'creating',
 			'created',
@@ -28,15 +36,83 @@ func CreateCaches(tx migration.LimitedTx) error {
 	}
 
 	_, err = tx.Exec(`
-		ALTER TABLE volumes
-		ALTER COLUMN handle DROP NOT NULL,
-		ADD COLUMN state volume_state NOT NULL DEFAULT 'creating',
-		ADD COLUMN parent_id int,
-		ADD COLUMN parent_state volume_state,
-		ADD UNIQUE (id, state),
-		ADD FOREIGN KEY (parent_id, parent_state) REFERENCES volumes (id, state) ON DELETE RESTRICT,
-		ADD CONSTRAINT handle_when_created CHECK (
-			(state = 'creating' AND handle IS NULL) OR (state != 'creating')
+		CREATE TABLE base_resource_types (
+			id serial PRIMARY KEY,
+			name text NOT NULL,
+			image text NOT NULL,
+			version text NOT NULL,
+			UNIQUE (name, image, version)
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE TABLE worker_base_resource_types (
+			worker_name text REFERENCES workers (name) ON DELETE CASCADE,
+			base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE RESTRICT
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE TABLE resource_configs (
+			id serial PRIMARY KEY,
+			base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE CASCADE,
+			source_hash text NOT NULL,
+			params_hash text NOT NULL
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE TABLE resource_caches (
+			id serial PRIMARY KEY,
+			resource_config_id int REFERENCES resource_configs (id) ON DELETE CASCADE,
+			version TEXT NOT NULL,
+			UNIQUE (resource_config_id, version)
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		ALTER TABLE resource_configs
+		ADD COLUMN resource_cache_id int REFERENCES resource_caches (id) ON DELETE CASCADE,
+		ADD UNIQUE (resource_cache_id, base_resource_type_id, source_hash, params_hash)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE TABLE resource_config_uses (
+			resource_config_id int REFERENCES resource_configs (id) ON DELETE RESTRICT,
+			build_id int REFERENCES builds (id) ON DELETE CASCADE,
+			resource_id int REFERENCES resources (id) ON DELETE CASCADE,
+			resource_type_id int REFERENCES resource_types (id) ON DELETE CASCADE
+			-- don't bother with unique constraint; easier to just blindly insert,
+			-- and allow entries to just be GCed
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE TABLE resource_cache_uses (
+			resource_cache_id int REFERENCES resource_caches (id) ON DELETE RESTRICT,
+			build_id int REFERENCES builds (id) ON DELETE CASCADE,
+			resource_id int REFERENCES resources (id) ON DELETE CASCADE,
+			resource_type_id int REFERENCES resource_types (id) ON DELETE CASCADE
+			-- don't bother with unique constraint; easier to just blindly insert,
+			-- and allow entries to just be GCed
 		)
 	`)
 	if err != nil {
@@ -45,11 +121,11 @@ func CreateCaches(tx migration.LimitedTx) error {
 
 	_, err = tx.Exec(`
 		ALTER TABLE containers
+		ADD FOREIGN KEY (worker_name) REFERENCES workers (name) ON DELETE CASCADE,
 		ALTER COLUMN handle DROP NOT NULL,
 		ADD COLUMN state container_state NOT NULL DEFAULT 'creating',
 		ADD FOREIGN KEY (build_id) REFERENCES builds (id) ON DELETE SET NULL,
-		ADD FOREIGN KEY (resource_id) REFERENCES resources (id) ON DELETE SET NULL,
-		ADD COLUMN resource_type_id int REFERENCES resource_types (id) ON DELETE SET NULL,
+		ADD COLUMN resource_config_id int REFERENCES resource_configs (id) ON DELETE SET NULL,
 		ADD COLUMN hijacked bool NOT NULL DEFAULT false,
 		ADD CONSTRAINT handle_when_created CHECK (
 			(state = 'creating' AND handle IS NULL) OR (state != 'creating')
@@ -60,55 +136,35 @@ func CreateCaches(tx migration.LimitedTx) error {
 	}
 
 	_, err = tx.Exec(`
-		CREATE TABLE caches (
-			id serial PRIMARY KEY,
-			resource_type_volume_id int NOT NULL,
-			resource_type_volume_state volume_state NOT NULL,
-			source_hash text NOT NULL,
-			params_hash text NOT NULL,
-			version TEXT NOT NULL,
-			UNIQUE (resource_type_volume_id, source_hash, params_hash, version),
-			FOREIGN KEY (resource_type_volume_id, resource_type_volume_state) REFERENCES volumes (id, state) ON DELETE CASCADE
-		)
-	`)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
-		CREATE TABLE worker_resource_types (
-			id serial PRIMARY KEY,
-			worker_name text REFERENCES workers (name) ON DELETE CASCADE,
-			type text NOT NULL,
-			image text NOT NULL,
-			version text NOT NULL,
-			UNIQUE (worker_name, type, image, version)
-		)
-	`)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
 		ALTER TABLE volumes
-		ADD COLUMN cache_id int REFERENCES caches (id) ON DELETE SET NULL,
-		ADD COLUMN worker_resource_type_id int REFERENCES worker_resource_types (id) ON DELETE SET NULL,
+		ALTER COLUMN handle DROP NOT NULL,
+		ADD FOREIGN KEY (worker_name) REFERENCES workers (name) ON DELETE CASCADE,
+		ADD COLUMN resource_cache_id int REFERENCES resource_caches (id) ON DELETE SET NULL,
+		ADD COLUMN base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE SET NULL,
+		ADD COLUMN state volume_state NOT NULL DEFAULT 'creating',
+		ADD COLUMN parent_id int,
+		ADD COLUMN parent_state volume_state,
+		ADD UNIQUE (id, state),
+		ADD FOREIGN KEY (parent_id, parent_state) REFERENCES volumes (id, state) ON DELETE RESTRICT,
+		ADD CONSTRAINT handle_when_created CHECK (
+			(state = 'creating' AND handle IS NULL) OR (state != 'creating')
+		),
 		ADD CONSTRAINT cannot_invalidate_during_initialization CHECK (
 			(
-				state = 'initialized' AND (
+				state IN ('initialized', 'destroying') AND (
 					(
-						cache_id IS NULL
+						resource_cache_id IS NULL
 					) AND (
-						worker_resource_type_id IS NULL
+						base_resource_type_id IS NULL
 					) AND (
 						container_id IS NULL
 					)
 				)
 			) OR (
 				(
-					cache_id IS NOT NULL
+					resource_cache_id IS NOT NULL
 				) OR (
-					worker_resource_type_id IS NOT NULL
+					base_resource_type_id IS NOT NULL
 				) OR (
 					container_id IS NOT NULL
 				)
