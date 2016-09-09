@@ -91,6 +91,7 @@ case $1 in
       <% end %> \
       --basic-auth-username <%= esc(p("basic_auth_username")) %> \
       --basic-auth-password <%= esc(p("basic_auth_password")) %> \
+      --auth-duration <%= p("auth_duration") %> \
       <% p("github_auth.authorize").each do |a| %> \
         <% if org = a["organization"] %> \
           <% if a["teams"] == "all" %> \
