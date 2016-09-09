@@ -23,7 +23,19 @@ type ContainerMetadata struct {
 // func (factory *ContainerFactory) FindContainerForResourceConfig(resourceConfig *UsedResourceConfig) {
 // }
 
-func (factory *ContainerFactory) CreateStepContainer(
+func (factory *ContainerFactory) CreateResourceCheckContainer(
+	worker *Worker,
+	resourceConfig *UsedResourceConfig,
+) {
+}
+
+func (factory *ContainerFactory) CreateResourceFetchContainer(
+	worker *Worker,
+	resourceCache *UsedResourceCache,
+) {
+}
+
+func (factory *ContainerFactory) CreateTaskContainer(
 	worker *Worker,
 	build *Build,
 	planID atc.PlanID,
