@@ -41,7 +41,7 @@ func (db VersionsDB) IsVersionFirstOccurrence(versionID int, jobID int, inputNam
 	return true
 }
 
-func (db VersionsDB) AllVersionsForResource(resourceID int) VersionCandidates {
+func (db VersionsDB) AllVersionsOfResource(resourceID int) VersionCandidates {
 	candidates := VersionCandidates{}
 	for _, output := range db.ResourceVersions {
 		if output.ResourceID == resourceID {
@@ -55,6 +55,42 @@ func (db VersionsDB) AllVersionsForResource(resourceID int) VersionCandidates {
 	return candidates
 }
 
+func (db VersionsDB) LatestVersionOfResource(resourceID int) (VersionCandidate, bool) {
+	var candidate VersionCandidate
+	var found bool
+
+	for _, v := range db.ResourceVersions {
+		if v.ResourceID == resourceID && v.CheckOrder > candidate.CheckOrder {
+			candidate = VersionCandidate{
+				VersionID:  v.VersionID,
+				CheckOrder: v.CheckOrder,
+			}
+
+			found = true
+		}
+	}
+
+	return candidate, found
+}
+
+func (db VersionsDB) FindVersionOfResource(resourceID int, versionID int) (VersionCandidate, bool) {
+	var candidate VersionCandidate
+	var found bool
+
+	for _, v := range db.ResourceVersions {
+		if v.ResourceID == resourceID && v.VersionID == versionID {
+			candidate = VersionCandidate{
+				VersionID:  v.VersionID,
+				CheckOrder: v.CheckOrder,
+			}
+
+			found = true
+		}
+	}
+
+	return candidate, found
+}
+
 func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet) VersionCandidates {
 	candidates := VersionCandidates{}
 
@@ -66,9 +102,9 @@ func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet)
 			if output.ResourceID == resourceID && output.JobID == jobID {
 				versions.Add(VersionCandidate{
 					VersionID:  output.VersionID,
+					CheckOrder: output.CheckOrder,
 					BuildID:    output.BuildID,
 					JobID:      output.JobID,
-					CheckOrder: output.CheckOrder,
 				})
 			}
 		}

@@ -20,7 +20,23 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 		versionCandidates := VersionCandidates{}
 
 		if len(inputConfig.Passed) == 0 {
-			versionCandidates = db.AllVersionsForResource(inputConfig.ResourceID)
+			if inputConfig.UseEveryVersion {
+				versionCandidates = db.AllVersionsOfResource(inputConfig.ResourceID)
+			} else {
+				var versionCandidate VersionCandidate
+				var found bool
+
+				if inputConfig.PinnedVersionID != 0 {
+					versionCandidate, found = db.FindVersionOfResource(inputConfig.ResourceID, inputConfig.PinnedVersionID)
+				} else {
+					versionCandidate, found = db.LatestVersionOfResource(inputConfig.ResourceID)
+				}
+
+				if found {
+					versionCandidates.Add(versionCandidate)
+				}
+			}
+
 			if versionCandidates.IsEmpty() {
 				return nil, false
 			}
