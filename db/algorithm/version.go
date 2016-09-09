@@ -38,7 +38,7 @@ func (vs Versions) With(candidate VersionCandidate) Versions {
 		return vs[i].order <= candidate.CheckOrder
 	})
 	if i == len(vs) {
-		vs = append(vs, NewVersion(candidate))
+		return append(vs, NewVersion(candidate))
 	}
 
 	if vs[i].id != candidate.VersionID {
@@ -63,7 +63,7 @@ func (vs Versions) Merge(v Version) Versions {
 		return vs[i].order <= v.order
 	})
 	if i == len(vs) {
-		vs = append(vs, v)
+		return append(vs, v)
 	}
 
 	if vs[i].id != v.id {
