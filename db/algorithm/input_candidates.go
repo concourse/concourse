@@ -7,6 +7,8 @@ import (
 
 type InputCandidates []InputVersionCandidates
 
+type ResolvedInputs map[string]int
+
 type InputVersionCandidates struct {
 	Input                 string
 	Passed                JobSet
@@ -16,6 +18,20 @@ type InputVersionCandidates struct {
 	usingEveryVersion     *bool
 
 	VersionCandidates
+}
+
+func (inputVersionCandidates InputVersionCandidates) IsNext(version int, versionIDs *VersionsIter) bool {
+	if !inputVersionCandidates.UsingEveryVersion() {
+		return true
+	}
+
+	if inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(version) {
+		return true
+	}
+
+	next, hasNext := versionIDs.Peek()
+	return !hasNext ||
+		inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(next)
 }
 
 func (inputVersionCandidates InputVersionCandidates) UsingEveryVersion() bool {
@@ -33,87 +49,71 @@ const VersionEvery = "every"
 func (candidates InputCandidates) String() string {
 	lens := []string{}
 	for _, vcs := range candidates {
-		lens = append(lens, fmt.Sprintf("%s (%d candidates for %d versions)", vcs.Input, len(vcs.VersionCandidates), len(vcs.VersionIDs())))
+		lens = append(lens, fmt.Sprintf("%s (%d versions)", vcs.Input, vcs.VersionCandidates.Len()))
 	}
 
 	return fmt.Sprintf("[%s]", strings.Join(lens, "; "))
 }
 
-func (candidates InputCandidates) Reduce(jobs JobSet) (map[string]int, bool) {
-	return candidates.reduce(jobs)
-}
-
-func (candidates InputCandidates) reduce(jobs JobSet) (map[string]int, bool) {
+func (candidates InputCandidates) Reduce(jobs JobSet) (ResolvedInputs, bool) {
 	newInputCandidates := candidates.pruneToCommonBuilds(jobs)
 
-	var lastSatisfiedMapping map[string]int
 	for i, inputVersionCandidates := range newInputCandidates {
-		versionIDs := inputVersionCandidates.VersionIDs()
-		switch {
-		case len(versionIDs) == 1:
+		if inputVersionCandidates.Len() == 1 {
 			// already reduced
 			continue
-		case inputVersionCandidates.PinnedVersionID != 0:
-			limitedToVersion := inputVersionCandidates.ForVersion(inputVersionCandidates.PinnedVersionID)
+		}
 
-			inputCandidates := newInputCandidates[i]
-			inputCandidates.VersionCandidates = limitedToVersion
-			newInputCandidates[i] = inputCandidates
-		default:
-			usingEveryVersion := inputVersionCandidates.UsingEveryVersion()
+		if inputVersionCandidates.PinnedVersionID != 0 {
+			newInputCandidates.Pin(i, inputVersionCandidates.PinnedVersionID)
+			continue
+		}
 
-			for j, id := range versionIDs {
-				buildForPreviousOrCurrentVersionExists := func() bool {
-					return inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(id) ||
-						j == len(versionIDs)-1 ||
-						inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(versionIDs[j+1])
-				}
+		versionIDs := inputVersionCandidates.VersionIDs()
 
-				limitedToVersion := inputVersionCandidates.ForVersion(id)
-
-				inputCandidates := newInputCandidates[i]
-				inputCandidates.VersionCandidates = limitedToVersion
-				newInputCandidates[i] = inputCandidates
-
-				mapping, ok := newInputCandidates.reduce(jobs)
-				if ok {
-					lastSatisfiedMapping = mapping
-
-					if !usingEveryVersion || buildForPreviousOrCurrentVersionExists() {
-						// when using every version return last option anyway
-						return mapping, true
-					}
-
-				} else if usingEveryVersion && lastSatisfiedMapping != nil && buildForPreviousOrCurrentVersionExists() {
-					// when using every version checked all options from latest version
-					// down to to the last build, returning the earliest that satisfied
-					return lastSatisfiedMapping, true
-				}
-
-				newInputCandidates[i] = inputVersionCandidates
+		for {
+			id, ok := versionIDs.Next()
+			if !ok {
+				break
 			}
+
+			newInputCandidates.Pin(i, id)
+
+			mapping, ok := newInputCandidates.Reduce(jobs)
+			if ok && inputVersionCandidates.IsNext(id, versionIDs) {
+				return mapping, true
+			}
+
+			newInputCandidates.Unpin(i, inputVersionCandidates)
 		}
 	}
 
-	mapping := map[string]int{}
+	resolved := ResolvedInputs{}
 
 	for _, inputVersionCandidates := range newInputCandidates {
-		versionIDs := inputVersionCandidates.VersionIDs()
-		if len(versionIDs) != 1 {
-			// could not reduce
+		vids := inputVersionCandidates.VersionIDs()
+
+		vid, ok := vids.Next()
+		if !ok {
 			return nil, false
 		}
 
-		jobIDs := inputVersionCandidates.JobIDs()
-		if !jobIDs.Equal(inputVersionCandidates.Passed) {
-			// did not satisfy all passed constraints
-			return nil, false
-		}
-
-		mapping[inputVersionCandidates.Input] = versionIDs[0]
+		resolved[inputVersionCandidates.Input] = vid
 	}
 
-	return mapping, true
+	return resolved, true
+}
+
+func (candidates InputCandidates) Pin(input int, version int) {
+	limitedToVersion := candidates[input].ForVersion(version)
+
+	inputCandidates := candidates[input]
+	inputCandidates.VersionCandidates = limitedToVersion
+	candidates[input] = inputCandidates
+}
+
+func (candidates InputCandidates) Unpin(input int, inputCandidates InputVersionCandidates) {
+	candidates[input] = inputCandidates
 }
 
 func (candidates InputCandidates) pruneToCommonBuilds(jobs JobSet) InputCandidates {
@@ -136,7 +136,7 @@ func (candidates InputCandidates) pruneToCommonBuilds(jobs JobSet) InputCandidat
 func (candidates InputCandidates) commonBuildIDs(jobID int) BuildSet {
 	firstTick := true
 
-	var commonBuildIDs BuildSet
+	commonBuildIDs := BuildSet{}
 
 	for _, set := range candidates {
 		setBuildIDs := set.BuildIDs(jobID)
@@ -145,9 +145,16 @@ func (candidates InputCandidates) commonBuildIDs(jobID int) BuildSet {
 		}
 
 		if firstTick {
-			commonBuildIDs = setBuildIDs
+			for id := range setBuildIDs {
+				commonBuildIDs[id] = struct{}{}
+			}
 		} else {
-			commonBuildIDs = commonBuildIDs.Intersect(setBuildIDs)
+			for id := range commonBuildIDs {
+				_, found := setBuildIDs[id]
+				if !found {
+					delete(commonBuildIDs, id)
+				}
+			}
 		}
 
 		firstTick = false

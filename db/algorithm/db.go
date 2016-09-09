@@ -45,10 +45,10 @@ func (db VersionsDB) AllVersionsForResource(resourceID int) VersionCandidates {
 	candidates := VersionCandidates{}
 	for _, output := range db.ResourceVersions {
 		if output.ResourceID == resourceID {
-			candidates[VersionCandidate{
+			candidates.Add(VersionCandidate{
 				VersionID:  output.VersionID,
 				CheckOrder: output.CheckOrder,
-			}] = struct{}{}
+			})
 		}
 	}
 
@@ -64,12 +64,12 @@ func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet)
 
 		for _, output := range db.BuildOutputs {
 			if output.ResourceID == resourceID && output.JobID == jobID {
-				versions[VersionCandidate{
+				versions.Add(VersionCandidate{
 					VersionID:  output.VersionID,
 					BuildID:    output.BuildID,
 					JobID:      output.JobID,
 					CheckOrder: output.CheckOrder,
-				}] = struct{}{}
+				})
 			}
 		}
 
