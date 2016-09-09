@@ -102,6 +102,12 @@ properties:
       Password for HTTP basic auth, in plaintext.
     default: ""
 
+  auth_duration:
+    description: |
+      Length of time for which tokens are valid. Afterwards, users will have to log back in.
+      Use Go duration format (48h = 48 hours).
+    default: 24h
+
   github_auth.client_id:
     description: |
       GitHub client ID to use for OAuth.
