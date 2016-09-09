@@ -483,6 +483,10 @@ flag. Once you've learned what the commands do, you may want to consult
   This can be useful for collecting versions that are older than the current
   ones, given that a newly configured resource will only start from the latest
   version.
+
+  Note the \code{ref:} prefix is resource-dependent. For example, the
+  \italic{bosh-io-release} resource might use \code{version:11.2} in place of
+  \code{ref:abcdef}.
 }
 
 \section{\code{pause-resource}\aux{: Prevent resource checks}}{fly-pause-resource}{
