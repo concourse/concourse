@@ -10,7 +10,6 @@ import (
 type UserVerifier struct {
 	users        []string
 	gitHubClient Client
-	gitHubAPIURL string
 }
 
 func NewUserVerifier(
