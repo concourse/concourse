@@ -111,13 +111,6 @@ func TestIntegration(t *testing.T) {
 	RunSpecs(t, "Integration Suite")
 }
 
-func tarFiles(path string) string {
-	output, err := exec.Command("tar", "tvf", path).Output()
-	Expect(err).ToNot(HaveOccurred())
-
-	return string(output)
-}
-
 func osFlag(short string, long string) string {
 	if runtime.GOOS == "windows" {
 		return fmt.Sprintf("/%s, /%s", short, long)

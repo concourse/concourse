@@ -30,7 +30,6 @@ var _ = Describe("Fly CLI", func() {
 
 	var streaming chan struct{}
 	var events chan atc.Event
-	var uploadingBits <-chan struct{}
 	var outputDir string
 
 	var expectedPlan atc.Plan
@@ -144,9 +143,6 @@ run:
 	})
 
 	JustBeforeEach(func() {
-		uploading := make(chan struct{})
-		uploadingBits = uploading
-
 		atcServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
@@ -227,8 +223,6 @@ run:
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("PUT", "/api/v1/pipes/input-pipe-id"),
 				func(w http.ResponseWriter, req *http.Request) {
-					close(uploading)
-
 					gr, err := gzip.NewReader(req.Body)
 					Expect(err).NotTo(HaveOccurred())
 

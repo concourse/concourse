@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 
 	. "github.com/onsi/ginkgo"
@@ -218,7 +217,6 @@ var _ = Describe("login -k Command", func() {
 			Context("with --ca-cert", func() {
 				var (
 					tmpDir  string
-					flyrc   string
 					sslCert string
 				)
 
@@ -268,8 +266,6 @@ var _ = Describe("login -k Command", func() {
 					} else {
 						os.Setenv("HOME", tmpDir)
 					}
-
-					flyrc = filepath.Join(userHomeDir(), ".flyrc")
 				})
 
 				It("succeeds", func() {

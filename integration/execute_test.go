@@ -544,7 +544,6 @@ run:
 
 	Context("when the target has an auth token", func() {
 		var tmpDir string
-		var flyrc string
 		var targetName string
 
 		BeforeEach(func() {
@@ -557,8 +556,6 @@ run:
 			} else {
 				os.Setenv("HOME", tmpDir)
 			}
-
-			flyrc = filepath.Join(userHomeDir(), ".flyrc")
 
 			targetName = "foo"
 			token := rc.TargetToken{

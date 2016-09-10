@@ -15,8 +15,7 @@ import (
 var _ = Describe("Fly CLI", func() {
 	Describe("Unpause Job", func() {
 		var (
-			flyCmd     *exec.Cmd
-			reqsBefore int
+			flyCmd *exec.Cmd
 		)
 
 		Context("when the job flag is provided", func() {
@@ -26,7 +25,6 @@ var _ = Describe("Fly CLI", func() {
 
 			BeforeEach(func() {
 				flyCmd = exec.Command(flyPath, "-t", targetName, "unpause-job", "-j", fullJobName)
-				reqsBefore = len(atcServer.ReceivedRequests())
 			})
 
 			Context("when a job is unpaused using the API", func() {

@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -67,8 +66,6 @@ func (command *ContainersCommand) Execute([]string) error {
 
 	return table.Render(os.Stdout)
 }
-
-type containersByHandle []atc.Container
 
 func buildIDOrNone(id int) ui.TableCell {
 	var column ui.TableCell

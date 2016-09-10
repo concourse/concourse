@@ -43,7 +43,7 @@ var _ = Describe("Targets", func() {
     token:
       type: Bearer
       value: some-token`
-				ioutil.WriteFile(tmpDir+"/.flyrc", []byte(flyrcContents), 0777)
+				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			It("loads target with default team", func() {

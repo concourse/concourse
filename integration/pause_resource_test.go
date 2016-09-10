@@ -15,8 +15,7 @@ import (
 var _ = Describe("Fly CLI", func() {
 	Describe("Pause Resource", func() {
 		var (
-			flyCmd     *exec.Cmd
-			reqsBefore int
+			flyCmd *exec.Cmd
 		)
 
 		Context("when the resource flag is provided", func() {
@@ -26,7 +25,6 @@ var _ = Describe("Fly CLI", func() {
 
 			BeforeEach(func() {
 				flyCmd = exec.Command(flyPath, "-t", targetName, "pause-resource", "-r", fullResourceName)
-				reqsBefore = len(atcServer.ReceivedRequests())
 			})
 
 			Context("when a resource is paused using the API", func() {

@@ -65,7 +65,7 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
     token:
       type: Bearer
       value: some-token`
-				ioutil.WriteFile(tmpDir+"/.flyrc", []byte(flyrcContents), 0777)
+				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			It("loads target with correct transport", func() {
@@ -108,7 +108,7 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 				flyrcContents, err := yaml.Marshal(flyrcConfig)
 				Expect(err).NotTo(HaveOccurred())
 
-				ioutil.WriteFile(tmpDir+"/.flyrc", []byte(flyrcContents), 0777)
+				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			It("loads target with correct transport", func() {
