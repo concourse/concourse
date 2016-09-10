@@ -20,13 +20,6 @@ type TemplateData struct {
 	Build atc.Build
 }
 
-type OldBuildTemplateData struct {
-	TemplateData
-
-	Builds []atc.Build
-	Inputs []atc.PublicBuildInput
-}
-
 type Handler struct {
 	logger        lager.Logger
 	clientFactory web.ClientFactory

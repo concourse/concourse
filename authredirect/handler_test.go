@@ -36,7 +36,6 @@ var _ = Describe("Handler", func() {
 	var transport *http.Transport
 	var request *http.Request
 	var response *http.Response
-	var requestErr error
 
 	BeforeEach(func() {
 		fakeHTTPHandlerWithError = new(webfakes.FakeHTTPHandlerWithError)
@@ -61,7 +60,7 @@ var _ = Describe("Handler", func() {
 	})
 
 	JustBeforeEach(func() {
-		response, requestErr = transport.RoundTrip(request)
+		response, _ = transport.RoundTrip(request)
 	})
 
 	Context("when the HTTPHandlerWithError returns nil", func() {
