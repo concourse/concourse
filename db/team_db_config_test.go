@@ -838,13 +838,12 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 	})
 
 	Context("when there are multiple teams", func() {
-		var otherTeam db.SavedTeam
 		var otherTeamDB db.TeamDB
 
 		BeforeEach(func() {
-			var err error
-			otherTeam, err = database.CreateTeam(db.Team{Name: "some-other-team"})
+			_, err := database.CreateTeam(db.Team{Name: "some-other-team"})
 			Expect(err).NotTo(HaveOccurred())
+
 			otherTeamDB = teamDBFactory.GetTeamDB("some-other-team")
 		})
 

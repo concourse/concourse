@@ -195,28 +195,6 @@ func validateJobs(c atc.Config) ([]Warning, error) {
 	return warnings, compositeErr(errorMessages)
 }
 
-func doesAnyStepMatch(planSequence atc.PlanSequence, predicate func(step atc.PlanConfig) bool) bool {
-	for _, planStep := range planSequence {
-		if planStep.Aggregate != nil {
-			if doesAnyStepMatch(*planStep.Aggregate, predicate) {
-				return true
-			}
-		}
-
-		if planStep.Do != nil {
-			if doesAnyStepMatch(*planStep.Do, predicate) {
-				return true
-			}
-		}
-
-		if predicate(planStep) {
-			return true
-		}
-	}
-
-	return false
-}
-
 type foundTypes struct {
 	identifier string
 	found      map[string]bool

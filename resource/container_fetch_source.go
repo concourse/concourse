@@ -12,7 +12,6 @@ type containerFetchSource struct {
 	logger          lager.Logger
 	container       worker.Container
 	versionedSource VersionedSource
-	resource        Resource
 	cache           Cache
 	resourceOptions ResourceOptions
 }

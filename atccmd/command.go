@@ -410,24 +410,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}), nil
 }
 
-func (cmd *ATCCommand) httpsRedirectingHandler(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "GET", "HEAD":
-			u := url.URL{
-				Scheme:   "https",
-				Host:     cmd.ExternalURL.URL().Host,
-				Path:     r.URL.Path,
-				RawQuery: r.URL.RawQuery,
-			}
-
-			http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
-		default:
-			handler.ServeHTTP(w, r)
-		}
-	})
-}
-
 func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		process := ifrit.Background(runner)
@@ -459,12 +441,6 @@ func (cmd *ATCCommand) oauthBaseURL() string {
 
 func (cmd *ATCCommand) authConfigured() bool {
 	return cmd.BasicAuth.IsConfigured() || cmd.GitHubAuth.IsConfigured() || cmd.UAAAuth.IsConfigured() || cmd.GenericOAuth.IsConfigured()
-}
-
-func (cmd *ATCCommand) gitHubAuthConfigured() bool {
-	return len(cmd.GitHubAuth.Organizations) > 0 ||
-		len(cmd.GitHubAuth.Teams) > 0 ||
-		len(cmd.GitHubAuth.Users) > 0
 }
 
 func (cmd *ATCCommand) validate() error {

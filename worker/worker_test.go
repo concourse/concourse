@@ -1222,10 +1222,8 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns the container and no error", func() {
-				foundContainer, found, err := gardenWorker.LookupContainer(logger, handle)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(findErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-
 				Expect(foundContainer.Handle()).To(Equal(fakeContainer.Handle()))
 			})
 

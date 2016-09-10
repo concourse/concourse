@@ -10,7 +10,6 @@ import (
 
 const VersionLatest = "latest"
 const VersionEvery = "every"
-const VersionPinned = "pinned"
 
 var VersionConfigDecodeHook = func(
 	srcType reflect.Type,

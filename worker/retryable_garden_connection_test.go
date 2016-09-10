@@ -260,7 +260,6 @@ var _ = Describe("Retryable Garden Connection", func() {
 	})
 
 	Describe("StreamOut", func() {
-		var closer io.ReadCloser
 		var spec garden.StreamOutSpec
 
 		BeforeEach(func() {
@@ -268,9 +267,10 @@ var _ = Describe("Retryable Garden Connection", func() {
 				Path: "/etc/passwd",
 				User: "admin",
 			}
+
 			innerConnection.StreamOutReturns(gbytes.NewBuffer(), nil)
-			var err error
-			closer, err = conn.StreamOut("some-handle", spec)
+
+			_, err := conn.StreamOut("some-handle", spec)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

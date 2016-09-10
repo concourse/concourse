@@ -78,6 +78,11 @@ func Screenshot(page *agouti.Page) {
 	page.Screenshot("/tmp/screenshot.png")
 }
 
+func init() {
+	// satisfy go-unused
+	var _ = Screenshot
+}
+
 func Login(page *agouti.Page, homePage string) {
 	Expect(page.Navigate(homePage + "/teams/main/login")).To(Succeed())
 	Eventually(page.FindByName("username")).Should(BeFound())

@@ -30,12 +30,6 @@ func (mir MissingInputReasons) RegisterPinnedVersionUnavailable(inputName string
 	mir[inputName] = fmt.Sprintf(PinnedVersionUnavailable, version)
 }
 
-func (mir MissingInputReasons) Append(otherReasons MissingInputReasons) {
-	for k, v := range otherReasons {
-		mir[k] = v
-	}
-}
-
 type BuildPreparation struct {
 	BuildID             int
 	PausedPipeline      BuildPreparationStatus
@@ -44,16 +38,4 @@ type BuildPreparation struct {
 	Inputs              map[string]BuildPreparationStatus
 	InputsSatisfied     BuildPreparationStatus
 	MissingInputReasons MissingInputReasons
-}
-
-func NewBuildPreparation(buildID int) BuildPreparation {
-	return BuildPreparation{
-		BuildID:             buildID,
-		PausedPipeline:      BuildPreparationStatusUnknown,
-		PausedJob:           BuildPreparationStatusUnknown,
-		MaxRunningBuilds:    BuildPreparationStatusUnknown,
-		Inputs:              map[string]BuildPreparationStatus{},
-		InputsSatisfied:     BuildPreparationStatusUnknown,
-		MissingInputReasons: MissingInputReasons{},
-	}
 }

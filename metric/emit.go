@@ -1,7 +1,6 @@
 package metric
 
 import (
-	"errors"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -20,8 +19,6 @@ var eventAttributes map[string]string
 
 var clientConnected bool
 var emissions = make(chan eventEmission, 1000)
-
-var errQueueFull = errors.New("event queue is full")
 
 func Initialize(logger lager.Logger, riemannAddr string, host string, tags []string, attributes map[string]string) {
 	client := goryman.NewGorymanClient(riemannAddr)

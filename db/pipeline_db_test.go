@@ -2099,7 +2099,6 @@ var _ = Describe("PipelineDB", func() {
 			var (
 				buildMetadata []db.MetadataField
 				vr1           db.VersionedResource
-				vr2           db.VersionedResource
 			)
 
 			BeforeEach(func() {
@@ -2115,14 +2114,6 @@ var _ = Describe("PipelineDB", func() {
 				}
 
 				vr1 = db.VersionedResource{
-					PipelineID: savedPipeline.ID,
-					Resource:   "some-resource",
-					Type:       "some-type",
-					Version:    db.Version{"ver": "1"},
-					Metadata:   buildMetadata,
-				}
-
-				vr2 = db.VersionedResource{
 					PipelineID: savedPipeline.ID,
 					Resource:   "some-other-resource",
 					Type:       "some-type",
@@ -2157,17 +2148,17 @@ var _ = Describe("PipelineDB", func() {
 
 				_, err = build.SaveInput(db.BuildInput{
 					Name:              "some-input",
-					VersionedResource: vr2,
+					VersionedResource: vr1,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
 				inputs, _, err := build.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
-					{Name: "some-input", VersionedResource: vr2, FirstOccurrence: true},
+					{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
 				}))
 
-				withMetadata := vr2
+				withMetadata := vr1
 				withMetadata.Metadata = buildMetadata
 
 				_, err = build.SaveInput(db.BuildInput{
@@ -2202,10 +2193,10 @@ var _ = Describe("PipelineDB", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				withMetadata := vr2
+				withMetadata := vr1
 				withMetadata.Metadata = buildMetadata
 
-				withoutMetadata := vr2
+				withoutMetadata := vr1
 				withoutMetadata.Metadata = nil
 
 				savedVR, err := build.SaveInput(db.BuildInput{
@@ -2587,17 +2578,11 @@ var _ = Describe("PipelineDB", func() {
 
 		Context("when a build is created for a job", func() {
 			var build1DB db.Build
-			var jobConfig atc.JobConfig
 
 			BeforeEach(func() {
 				var err error
 				build1DB, err = pipelineDB.CreateJobBuild("some-job")
-
-				jobConfig = atc.JobConfig{
-					Name:   "some-job",
-					Serial: false,
-				}
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				Expect(build1DB.ID()).NotTo(BeZero())
 				Expect(build1DB.JobName()).To(Equal("some-job"))

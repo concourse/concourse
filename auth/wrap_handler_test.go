@@ -74,7 +74,6 @@ var _ = Describe("WrapHandler", func() {
 
 	Context("when a request is made", func() {
 		var request *http.Request
-		var response *http.Response
 
 		BeforeEach(func() {
 			var err error
@@ -84,9 +83,7 @@ var _ = Describe("WrapHandler", func() {
 		})
 
 		JustBeforeEach(func() {
-			var err error
-
-			response, err = client.Do(request)
+			_, err := client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

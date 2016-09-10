@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"errors"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -33,8 +32,6 @@ type WorkerDB interface {
 	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	SetVolumeTTL(string, time.Duration) error
 }
-
-var ErrMultipleWorkersWithName = errors.New("More than one worker has given worker name")
 
 type dbProvider struct {
 	logger            lager.Logger

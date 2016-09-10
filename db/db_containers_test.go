@@ -17,12 +17,11 @@ var _ = Describe("Keeping track of containers", func() {
 		dbConn   db.Conn
 		listener *pq.Listener
 
-		database           *db.SQLDB
-		teamDB             db.TeamDB
-		savedPipeline      db.SavedPipeline
-		savedOtherPipeline db.SavedPipeline
-		pipelineDB         db.PipelineDB
-		teamID             int
+		database      *db.SQLDB
+		teamDB        db.TeamDB
+		savedPipeline db.SavedPipeline
+		pipelineDB    db.PipelineDB
+		teamID        int
 	)
 
 	BeforeEach(func() {
@@ -85,7 +84,7 @@ var _ = Describe("Keeping track of containers", func() {
 		savedPipeline, _, err = teamDB.SaveConfig("some-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		savedOtherPipeline, _, err = teamDB.SaveConfig("some-other-pipeline", config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfig("some-other-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)

@@ -23,17 +23,6 @@ func createAndFinishBuild(database db.DB, pipelineDB db.PipelineDB, jobName stri
 	return build
 }
 
-func createAndStartBuild(database db.DB, pipelineDB db.PipelineDB, jobName string, engineName string) db.Build {
-	build, err := pipelineDB.CreateJobBuild(jobName)
-	Expect(err).NotTo(HaveOccurred())
-
-	started, err := build.Start(engineName, "so-meta")
-	Expect(started).To(BeTrue())
-	Expect(err).NotTo(HaveOccurred())
-
-	return build
-}
-
 var _ = Describe("Builds", func() {
 	var (
 		dbConn            db.Conn
@@ -172,13 +161,10 @@ var _ = Describe("Builds", func() {
 	})
 
 	Describe("GetPublicBuilds", func() {
-		var oneOffBuild db.Build
-		var privateBuild db.Build
 		var publicBuild db.Build
 
 		BeforeEach(func() {
-			var err error
-			oneOffBuild, err = teamDB.CreateOneOffBuild()
+			_, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
@@ -186,7 +172,7 @@ var _ = Describe("Builds", func() {
 			Expect(err).NotTo(HaveOccurred())
 			privatePipelineDB := pipelineDBFactory.Build(privatePipeline)
 
-			privateBuild, err = privatePipelineDB.CreateJobBuild("some-job")
+			_, err = privatePipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
 			publicPipeline, _, err := teamDB.SaveConfig("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)

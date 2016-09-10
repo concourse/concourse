@@ -384,7 +384,6 @@ var _ = Describe("ExecEngine", func() {
 				aggregatePlan atc.Plan
 				doPlan        atc.Plan
 				timeoutPlan   atc.Plan
-				tryPlan       atc.Plan
 				retryPlan     atc.Plan
 				retryPlanTwo  atc.Plan
 				err           error
@@ -419,10 +418,6 @@ var _ = Describe("ExecEngine", func() {
 				timeoutPlan = planFactory.NewPlan(atc.TimeoutPlan{
 					Step:     doPlan,
 					Duration: "1m",
-				})
-
-				tryPlan = planFactory.NewPlan(atc.TryPlan{
-					Step: timeoutPlan,
 				})
 
 				retryPlan = planFactory.NewPlan(atc.RetryPlan{

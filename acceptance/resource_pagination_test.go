@@ -21,7 +21,6 @@ var _ = Describe("Resource Pagination", func() {
 	var atcCommand *ATCCommand
 	var dbListener *pq.Listener
 	var pipelineDB db.PipelineDB
-	var teamID int
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -42,10 +41,6 @@ var _ = Describe("Resource Pagination", func() {
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-		team, found, err := teamDB.GetTeam()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-		teamID = team.ID
 
 		// job build data
 		_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{

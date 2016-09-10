@@ -1,7 +1,6 @@
 package radar
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/concourse/atc"
@@ -11,14 +10,6 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 )
-
-type ResourceNotConfiguredError struct {
-	ResourceName string
-}
-
-func (err ResourceNotConfiguredError) Error() string {
-	return fmt.Sprintf("resource '%s' was not found in config", err.ResourceName)
-}
 
 //go:generate counterfeiter . Scanner
 

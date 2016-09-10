@@ -122,12 +122,10 @@ var _ = Describe("TeamDB", func() {
 	})
 
 	Describe("GetPublicPipelines", func() {
-		var privatePipeline db.SavedPipeline
 		var publicPipeline db.SavedPipeline
 
 		BeforeEach(func() {
-			var err error
-			privatePipeline, _, err = teamDB.SaveConfig("private-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
+			_, _, err := teamDB.SaveConfig("private-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			publicPipeline, _, err = teamDB.SaveConfig("public-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
@@ -488,25 +486,22 @@ var _ = Describe("TeamDB", func() {
 	})
 
 	Describe("Workers", func() {
-		var myTeamWorker, otherTeamWorker, sharedWorker db.SavedWorker
-
 		BeforeEach(func() {
-			var err error
-			myTeamWorker, err = database.SaveWorker(db.WorkerInfo{
+			_, err := database.SaveWorker(db.WorkerInfo{
 				GardenAddr: "1.2.3.4",
 				Name:       "my-team-worker",
 				TeamID:     savedTeam.ID,
 			}, 5*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherTeamWorker, err = database.SaveWorker(db.WorkerInfo{
+			_, err = database.SaveWorker(db.WorkerInfo{
 				GardenAddr: "1.2.3.5",
 				Name:       "other-team-worker",
 				TeamID:     otherSavedTeam.ID,
 			}, 5*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 
-			sharedWorker, err = database.SaveWorker(db.WorkerInfo{
+			_, err = database.SaveWorker(db.WorkerInfo{
 				GardenAddr: "1.2.3.6",
 				Name:       "shared-worker",
 			}, 5*time.Minute)

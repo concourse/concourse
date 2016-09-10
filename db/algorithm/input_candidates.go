@@ -44,8 +44,6 @@ func (inputVersionCandidates InputVersionCandidates) UsingEveryVersion() bool {
 	return *inputVersionCandidates.usingEveryVersion
 }
 
-const VersionEvery = "every"
-
 func (candidates InputCandidates) String() string {
 	lens := []string{}
 	for _, vcs := range candidates {

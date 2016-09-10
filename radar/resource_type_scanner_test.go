@@ -20,8 +20,6 @@ import (
 
 var _ = Describe("ResourceTypeScanner", func() {
 	var (
-		epoch time.Time
-
 		fakeTracker *rfakes.FakeTracker
 		fakeRadarDB *radarfakes.FakeRadarDB
 		interval    time.Duration
@@ -35,7 +33,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 	)
 
 	BeforeEach(func() {
-		epoch = time.Unix(123, 456).UTC()
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		interval = 1 * time.Minute

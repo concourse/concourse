@@ -39,18 +39,6 @@ type VersionedResource struct {
 	PipelineID int
 }
 
-type VersionedResources []VersionedResource
-
-func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
-	for _, vr := range vrs {
-		if vr.Resource == name {
-			return vr, true
-		}
-	}
-
-	return VersionedResource{}, false
-}
-
 type SavedVersionedResource struct {
 	ID int
 
@@ -64,16 +52,6 @@ type SavedVersionedResource struct {
 }
 
 type SavedVersionedResources []SavedVersionedResource
-
-func (vrs SavedVersionedResources) Lookup(name string) (SavedVersionedResource, bool) {
-	for _, vr := range vrs {
-		if vr.Resource == name {
-			return vr, true
-		}
-	}
-
-	return SavedVersionedResource{}, false
-}
 
 type Version map[string]string
 

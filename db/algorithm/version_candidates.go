@@ -158,19 +158,3 @@ func (candidates VersionCandidates) ForVersion(versionID int) VersionCandidates 
 
 	return newCandidates
 }
-
-type versionCandidatesSorter struct {
-	VersionCandidates []VersionCandidate
-}
-
-func (s versionCandidatesSorter) Len() int {
-	return len(s.VersionCandidates)
-}
-
-func (s versionCandidatesSorter) Swap(i, j int) {
-	s.VersionCandidates[i], s.VersionCandidates[j] = s.VersionCandidates[j], s.VersionCandidates[i]
-}
-
-func (s versionCandidatesSorter) Less(i, j int) bool {
-	return s.VersionCandidates[i].CheckOrder < s.VersionCandidates[j].CheckOrder
-}

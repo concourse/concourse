@@ -19,7 +19,6 @@ type Runner struct {
 
 	scanRunnerFactory ScanRunnerFactory
 	db                db.PipelineDB
-	pipelineDBFactory db.PipelineDBFactory
 	syncInterval      time.Duration
 }
 

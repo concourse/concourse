@@ -3,8 +3,6 @@ package event
 import "github.com/concourse/atc"
 
 const (
-	EventTypeInvalid atc.EventType = ""
-
 	// build log (e.g. from input or build execution)
 	EventTypeLog atc.EventType = "log"
 

@@ -1,9 +1,7 @@
 package worker
 
 import (
-	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -172,45 +170,3 @@ type VolumeIdentifier db.VolumeIdentifier
 
 type Identifier db.ContainerIdentifier
 type Metadata db.ContainerMetadata
-
-type MultipleWorkersFoundContainerError struct {
-	Names []string
-}
-
-func (err MultipleWorkersFoundContainerError) Error() string {
-	return fmt.Sprintf("multiple workers found specified container, expected one: %s", strings.Join(err.Names, ", "))
-}
-
-type MultipleContainersError struct {
-	Handles []string
-}
-
-func (err MultipleContainersError) Error() string {
-	return fmt.Sprintf("multiple containers found, expected one: %s", strings.Join(err.Handles, ", "))
-}
-
-type MultiWorkerError struct {
-	workerErrors map[string]error
-}
-
-func (mwe *MultiWorkerError) AddError(workerName string, err error) {
-	if mwe.workerErrors == nil {
-		mwe.workerErrors = map[string]error{}
-	}
-
-	mwe.workerErrors[workerName] = err
-}
-
-func (mwe MultiWorkerError) Errors() map[string]error {
-	return mwe.workerErrors
-}
-
-func (err MultiWorkerError) Error() string {
-	errorMessage := ""
-	if err.workerErrors != nil {
-		for workerName, err := range err.workerErrors {
-			errorMessage = fmt.Sprintf("%s workerName: %s, error: %s", errorMessage, workerName, err)
-		}
-	}
-	return errorMessage
-}

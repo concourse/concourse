@@ -193,22 +193,6 @@ func (pdb *pipelineDB) UpdateName(newName string) error {
 	return err
 }
 
-func scanIDs(rows *sql.Rows) ([]string, error) {
-	defer rows.Close()
-
-	ids := []string{}
-	for rows.Next() {
-		var id string
-		err := rows.Scan(&id)
-		if err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-
-	return ids, nil
-}
-
 func (pdb *pipelineDB) Destroy() error {
 	tx, err := pdb.conn.Begin()
 	if err != nil {

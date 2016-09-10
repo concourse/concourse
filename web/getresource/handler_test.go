@@ -14,7 +14,6 @@ import (
 
 var _ = Describe("FetchTemplateData", func() {
 	var fakeTeam *cfakes.FakeTeam
-	var templateData TemplateData
 	var fetchErr error
 
 	BeforeEach(func() {
@@ -22,7 +21,7 @@ var _ = Describe("FetchTemplateData", func() {
 	})
 
 	JustBeforeEach(func() {
-		templateData, fetchErr = FetchTemplateData("some-pipeline", "some-resource", fakeTeam, concourse.Page{
+		_, fetchErr = FetchTemplateData("some-pipeline", "some-resource", fakeTeam, concourse.Page{
 			Since: 398,
 			Until: 2,
 		})

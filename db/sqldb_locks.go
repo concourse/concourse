@@ -21,5 +21,3 @@ func (db *SQLDB) GetTaskLock(logger lager.Logger, taskName string) (Lock, bool, 
 
 	return lock, true, nil
 }
-
-const BUILD_TRACKING = 1

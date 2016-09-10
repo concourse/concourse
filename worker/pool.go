@@ -275,17 +275,3 @@ func (*pool) ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error) {
 func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 	return nil, false, errors.New("LookupVolume not implemented for pool")
 }
-
-func (pool *pool) Name() string {
-	return "pool"
-}
-
-type byActiveContainers []Worker
-
-func (cs byActiveContainers) Len() int { return len(cs) }
-
-func (cs byActiveContainers) Swap(i, j int) { cs[i], cs[j] = cs[j], cs[i] }
-
-func (cs byActiveContainers) Less(i, j int) bool {
-	return cs[i].ActiveContainers() < cs[j].ActiveContainers()
-}
