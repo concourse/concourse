@@ -50,11 +50,6 @@ func (team *team) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig
 	}
 }
 
-type pipelineConfigResponse struct {
-	Config *atc.Config
-	Errors []string `json:"errors"`
-}
-
 type configValidationError struct {
 	ErrorMessages []string `json:"errors"`
 }

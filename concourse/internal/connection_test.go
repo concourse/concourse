@@ -23,23 +23,11 @@ var _ = Describe("ATC Connection", func() {
 	var (
 		atcServer *ghttp.Server
 
-		api      string
-		username string
-		password string
-		cert     string
-		insecure bool
-
 		connection Connection
 	)
 
 	BeforeEach(func() {
 		atcServer = ghttp.NewServer()
-
-		api = "f"
-		username = ""
-		password = ""
-		cert = ""
-		insecure = false
 
 		connection = NewConnection(atcServer.URL(), nil)
 	})
