@@ -16,6 +16,11 @@ fetchJobs pi =
   Http.get (Json.Decode.list (Concourse.decodeJob pi))
     ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
 
+fetchJobsRaw : Concourse.PipelineIdentifier -> Task Http.Error Json.Decode.Value
+fetchJobsRaw pi =
+  Http.get Json.Decode.value
+    ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
+
 triggerBuild : Concourse.JobIdentifier -> Task Http.Error Concourse.Build
 triggerBuild job =
   let

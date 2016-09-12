@@ -1,77 +1,26 @@
 {{define "title"}}{{.PipelineName}} - Concourse{{end}}
 
 {{define "body"}}
-{{if .Elm}}
-<div id="elm-app"></div>
-
-<script type="text/javascript">
-var groups = [];
-var groupStates = {{.GroupStates}};
-for (var g in groupStates) {
-  var group = groupStates[g];
-  if (group.Enabled) {
-    groups.push(group.Name);
-  }
-}
-
-var node = document.getElementById("elm-app");
-var app = Elm.PipelinePage.embed(node, {
-  teamName: {{.TeamName}},
-  pipelineName: {{.PipelineName}},
-  groups: groups
-});
-
-topBar.ports.groupsChanged.subscribe(function(groups) {
-  app.ports.setGroups.send(groups);
-});
-
-topBar.ports.setViewingPipeline.send(true);
-</script>
-{{else}}
 <svg class="pipeline-graph test" width="100%" height="100%"></svg>
 
-<dl class="legend">
-  <dt class="pending"></dt>
-    <dd>pending</dd>
-  <dt class="started"></dt>
-    <dd>started</dd>
-  <dt class="succeeded"></dt>
-    <dd>succeeded</dd>
-  <dt class="failed"></dt>
-    <dd>failed</dd>
-  <dt class="errored"></dt>
-    <dd>errored</dd>
-  <dt class="aborted"></dt>
-    <dd>aborted</dd>
-  <dt class="paused"></dt>
-    <dd>paused</dd>
-</dl>
-
-<table class="lower-right-info">
-  <tr>
-    <td class="label">cli:</td>
-    <td>
-      <ul class="cli-downloads">
-        <li><a href="{{url "DownloadCLI" "darwin" "amd64"}}" aria-label="Download OS X CLI"><i class="fa fa-apple"></i></a></li>
-        <li><a href="{{url "DownloadCLI" "windows" "amd64"}}" aria-label="Download Windows CLI"><i class="fa fa-windows"></i></a></li>
-        <li><a href="{{url "DownloadCLI" "linux" "amd64"}}" aria-label="Download Linux CLI"><i class="fa fa-linux"></i></a></li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td class="label">version:</td>
-    <td><div id="concourse-version">v<span class="number"></span></div></td>
-  </tr>
-</table>
+<div id="elm-app"></div>
 
 <script src="{{asset "d3.v355.min.js"}}"></script>
 <script src="{{asset "graph.js"}}"></script>
 <script src="{{asset "index.js"}}"></script>
 
-<script>
+<script type="text/javascript">
 concourse.pipelineName = {{.PipelineName}};
 concourse.teamName = {{.TeamName}};
 concourse.groups = {{.Groups}};
+
+var node = document.getElementById("elm-app");
+var app = Elm.PipelinePage.embed(node, {
+  teamName: {{.TeamName}},
+  pipelineName: {{.PipelineName}}
+});
+
+var svg = createPipelineSvg(d3.select(".pipeline-graph"))
 
 topBar.ports.groupsChanged.subscribe(function(groups) {
   for (var group in concourse.groups) {
@@ -85,9 +34,12 @@ topBar.ports.groupsChanged.subscribe(function(groups) {
 
 topBar.ports.setViewingPipeline.send(true);
 
-$(document).ready(function() {
-  renderPipeline(d3.select(".pipeline-graph"));
+app.ports.renderPipeline.subscribe(function (values) {
+  var jobs = values[0];
+  var resources = values[1];
+  draw(svg, jobs, resources);
+  app.ports.renderFinished.send(true);
 })
+
 </script>
-{{end}}
 {{end}}

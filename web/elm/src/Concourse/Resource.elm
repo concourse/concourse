@@ -1,5 +1,6 @@
 module Concourse.Resource exposing
   ( fetchResource
+  , fetchResourcesRaw
   , pause
   , unpause
   , fetchVersionedResources
@@ -20,6 +21,11 @@ fetchResource rid =
   Http.get Concourse.decodeResource <|
     "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++
     "/resources/" ++ rid.resourceName
+
+fetchResourcesRaw : Concourse.PipelineIdentifier -> Task Http.Error Json.Decode.Value
+fetchResourcesRaw pi =
+  Http.get Json.Decode.value
+    ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/resources")
 
 pause : Concourse.ResourceIdentifier -> Task Http.Error ()
 pause =
@@ -92,7 +98,6 @@ promoteHttpError rawError =
   case rawError of
     Http.RawTimeout -> Http.Timeout
     Http.RawNetworkError -> Http.NetworkError
-
 
 fetchInputTo : Concourse.VersionedResourceIdentifier -> Task Http.Error (List Concourse.Build)
 fetchInputTo =
