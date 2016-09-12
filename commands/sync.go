@@ -7,6 +7,7 @@ import (
 
 	pb "gopkg.in/cheggaaa/pb.v1"
 
+	"github.com/concourse/fly/version"
 	update "github.com/inconshreveable/go-update"
 
 	"github.com/concourse/fly/commands/internal/displayhelpers"
@@ -19,6 +20,15 @@ func (command *SyncCommand) Execute(args []string) error {
 	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
+	}
+	info, err := target.Client().GetInfo()
+	if err != nil {
+		return err
+	}
+
+	if info.Version == version.Version {
+		fmt.Printf("Good news! You already have the appropriate fly binary for this target.\n")
+		return nil
 	}
 
 	client := target.Client()

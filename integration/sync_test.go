@@ -2,25 +2,24 @@ package integration_test
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 
+	"github.com/concourse/fly/version"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Syncing", func() {
 	var (
-		newFlyDir  string
-		newFlyPath string
+		flyVersion string
+		flyPath    string
 	)
 
 	cliHandler := func() http.HandlerFunc {
@@ -41,55 +40,71 @@ var _ = Describe("Syncing", func() {
 		)
 	}
 
-	BeforeEach(func() {
+	JustBeforeEach(func() {
 		var err error
-
-		newFlyDir, err = ioutil.TempDir("", "fly-sync")
+		flyPath, err = gexec.Build(
+			"github.com/concourse/fly",
+			"-ldflags", fmt.Sprintf("-X github.com/concourse/fly/version.Version=%s", flyVersion),
+		)
 		Expect(err).NotTo(HaveOccurred())
 
-		newFlyPath = filepath.Join(newFlyDir, "new-fly.exe.tga.bat.legit.notavirus")
-
-		newFly, err := os.Create(newFlyPath)
-		Expect(err).NotTo(HaveOccurred())
-
-		oldFly, err := os.Open(flyPath)
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = io.Copy(newFly, oldFly)
-		Expect(err).NotTo(HaveOccurred())
-
-		newFly.Close()
-		oldFly.Close()
-
-		err = os.Chmod(newFlyPath, 0755)
-		Expect(err).NotTo(HaveOccurred())
-
-		// replace info handler with sync handler, since sync does not verify client version
-		atcServer.SetHandler(3, cliHandler())
+		atcServer.AppendHandlers(cliHandler())
 	})
 
-	AfterEach(func() {
-		os.RemoveAll(newFlyDir)
+	Context("When versions mismatch between fly + atc", func() {
+		BeforeEach(func() {
+			major, minor, patch, err := version.GetSemver(atcVersion)
+			Expect(err).NotTo(HaveOccurred())
+
+			flyVersion = fmt.Sprintf("%d.%d.%d", major, minor, patch+1)
+		})
+		It("downloads and replaces the currently running executable", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "sync")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+
+			contents, err := ioutil.ReadFile(flyPath)
+			Expect(err).NotTo(HaveOccurred())
+
+			// don't let ginkgo try and output the entire binary as ascii
+			//
+			// that is the way to the dark side
+			contents = contents[:8]
+
+			expected := []byte("this will totally execute")
+			Expect(contents).To(Equal(expected[:8]))
+		})
 	})
+	Context("When versions match between fly + atc", func() {
+		BeforeEach(func() {
+			flyVersion = atcVersion
+		})
+		It("informs the user, and doesn't download/replace the executable", func() {
+			expectedBinary, err := ioutil.ReadFile(flyPath)
+			Expect(err).NotTo(HaveOccurred())
+			expectedBinary = expectedBinary[:8]
 
-	It("downloads and replaces the currently running executable", func() {
-		flyCmd := exec.Command(newFlyPath, "-t", targetName, "sync")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "sync")
 
-		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+			Expect(sess.Out).To(gbytes.Say(`Good news! You already have the appropriate fly binary for this target.`))
 
-		contents, err := ioutil.ReadFile(newFlyPath)
-		Expect(err).NotTo(HaveOccurred())
+			contents, err := ioutil.ReadFile(flyPath)
+			Expect(err).NotTo(HaveOccurred())
 
-		// don't let ginkgo try and output the entire binary as ascii
-		//
-		// that is the way to the dark side
-		contents = contents[:8]
-
-		expected := []byte("this will totally execute")
-		Expect(contents).To(Equal(expected[:8]))
+			// don't let ginkgo try and output the entire binary as ascii
+			//
+			// that is the way to the dark side
+			contents = contents[:8]
+			Expect(contents).To(Equal(expectedBinary))
+		})
 	})
 })
