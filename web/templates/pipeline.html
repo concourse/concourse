@@ -12,7 +12,6 @@
 <script type="text/javascript">
 concourse.pipelineName = {{.PipelineName}};
 concourse.teamName = {{.TeamName}};
-concourse.groups = {{.Groups}};
 
 var node = document.getElementById("elm-app");
 var app = Elm.PipelinePage.embed(node, {
@@ -23,9 +22,13 @@ var app = Elm.PipelinePage.embed(node, {
 var svg = createPipelineSvg(d3.select(".pipeline-graph"))
 
 topBar.ports.groupsChanged.subscribe(function(groups) {
-  for (var group in concourse.groups) {
-    concourse.groups[group] = groups.indexOf(group) !== -1;
+  console.log("groupsChanged groups", groups)
+  concourse.groups = {}
+  for (var i in groups) {
+    concourse.groups[groups[i]] = true
   }
+
+  console.log("concourse.groups", concourse.groups)
 
   if (concourse.redraw !== undefined) {
     concourse.redraw();
