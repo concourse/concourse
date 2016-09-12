@@ -18,7 +18,7 @@ import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 
 type alias Flags =
   { pipeline : Maybe Concourse.PipelineIdentifier
-  , selectedGroups : List String
+  , queryGroups : List String
   }
 
 type alias Model =
@@ -26,6 +26,7 @@ type alias Model =
   , viewingPipeline : Bool
   , ports : Ports
   , location : Location
+  , queryGroups : List String
   , selectedGroups : List String
   , pipeline : Maybe Concourse.Pipeline
   , userState : UserState
@@ -62,7 +63,8 @@ init ports flags initialLocation =
   ( { pipelineIdentifier = flags.pipeline
     , viewingPipeline = False
     , ports = ports
-    , selectedGroups = flags.selectedGroups
+    , queryGroups = flags.queryGroups
+    , selectedGroups = []
     , location = initialLocation
     , pipeline = Nothing
     , userState = UserStateUnknown
@@ -70,10 +72,10 @@ init ports flags initialLocation =
     }
   , Cmd.batch
       [ case flags.pipeline of
-        Just pid ->
-          fetchPipeline pid
-        Nothing ->
-          Cmd.none
+          Just pid ->
+            fetchPipeline pid
+          Nothing ->
+            Cmd.none
       , fetchUser
       ]
   )
@@ -98,9 +100,20 @@ update msg model =
       )
 
     PipelineFetched (Ok pipeline) ->
-      ( { model | pipeline = Just pipeline }
-      , Cmd.none
-      )
+      let
+        firstGroup =
+          List.head pipeline.groups
+        model =
+          { model | pipeline = Just pipeline }
+      in
+        case firstGroup of
+          Nothing ->
+            (model, Cmd.none)
+          Just group ->
+            if (List.length model.queryGroups) > 0 then
+              setGroups model.queryGroups model
+            else
+              setDefaultGroup group.name model
 
     PipelineFetched (Err err) ->
       Debug.log
@@ -169,6 +182,15 @@ setGroups newGroups model =
 
     Nothing ->
       (model, Cmd.none)
+
+setDefaultGroup : String -> Model -> (Model, Cmd Msg)
+setDefaultGroup defaultGroupName model =
+  ( { model | selectedGroups = [defaultGroupName] }
+  , if model.viewingPipeline then
+      model.ports.setGroups [defaultGroupName]
+    else
+      Cmd.none
+  )
 
 urlUpdate : Location -> Model -> (Model, Cmd Msg)
 urlUpdate location model =

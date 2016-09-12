@@ -25,21 +25,12 @@
         <script type="text/javascript">
         Elm.PipelinesNavPage.embed(document.getElementById("pipelines-nav-app"));
 
-        var selectedGroups = [];
-        var groupStates = {{.GroupStates}};
-        for (var g in groupStates) {
-          var group = groupStates[g];
-          if (group.Enabled) {
-            selectedGroups.push(group.Name);
-          }
-        }
-
         var topBar = Elm.TopBarPage.embed(document.getElementById("top-bar-app"), {
           pipeline: {
             teamName: {{.TeamName}},
             pipelineName: {{.PipelineName}}
           },
-          selectedGroups: selectedGroups
+          queryGroups: {{.QueryGroups}}
         });
 
         topBar.ports.toggleSidebar.subscribe(function() {

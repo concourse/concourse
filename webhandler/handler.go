@@ -86,7 +86,7 @@ func NewHandler(
 		AssetInfo: web.AssetInfo,
 	}
 
-	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
+	pipelineHandler := pipeline.NewHandler(logger, pipelineTemplate)
 
 	handlers := map[string]http.Handler{
 		web.Index:                 authredirect.Handler{index.NewHandler(logger, clientFactory, pipelineHandler, noPipelinesTemplate)},
