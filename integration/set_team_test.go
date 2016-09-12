@@ -36,6 +36,53 @@ var _ = Describe("Fly CLI", func() {
 	}
 
 	Describe("flag validation", func() {
+
+		Describe("no auth", func() {
+			Context("auth flag not provided", func() {
+				BeforeEach(func() {
+					cmdParams = []string{}
+				})
+
+				It("returns an error", func() {
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("WARNING:"))
+					Eventually(sess.Err).Should(gbytes.Say("no auth methods configured! to continue, run:"))
+					Eventually(sess.Err).Should(gbytes.Say("fly -t testserver set-team -n venture --no-really-i-dont-want-any-auth"))
+					Eventually(sess.Err).Should(gbytes.Say("this will leave the team open to anyone to mess with!"))
+					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("no really I don't want any auth flag provided", func() {
+				BeforeEach(func() {
+					cmdParams = []string{"--no-really-i-dont-want-any-auth"}
+					confirmHandlers()
+				})
+
+				It("show a warning about creating unauthenticated team", func() {
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, nil, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("WARNING:\nno auth methods configured. you asked for it!"))
+
+					Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
+					Eventually(sess.Out).Should(gbytes.Say("Basic Auth: disabled"))
+					Eventually(sess.Out).Should(gbytes.Say("GitHub Auth: disabled"))
+					Eventually(sess.Out).Should(gbytes.Say("UAA Auth: disabled"))
+
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					yes(stdin)
+
+					Eventually(sess).Should(gexec.Exit(0))
+
+				})
+			})
+
+		})
+
 		Describe("basic auth", func() {
 			Context("username omitted", func() {
 				BeforeEach(func() {
@@ -412,15 +459,7 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("when the user presses y/yes", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
-						ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Team{
-							Name: "venture",
-							ID:   8,
-						}),
-					),
-				)
+				confirmHandlers()
 			})
 
 			It("exits 0", func() {
@@ -741,3 +780,15 @@ var _ = Describe("Fly CLI", func() {
 		})
 	})
 })
+
+func confirmHandlers() {
+	atcServer.AppendHandlers(
+		ghttp.CombineHandlers(
+			ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
+			ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Team{
+				Name: "venture",
+				ID:   8,
+			}),
+		),
+	)
+}

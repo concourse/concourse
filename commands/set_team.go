@@ -3,15 +3,18 @@ package commands
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/fly/ui"
 	"github.com/vito/go-interact/interact"
 )
 
 type SetTeamCommand struct {
 	TeamName     string               `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
+	NoAuth       bool                 `long:"no-really-i-dont-want-any-auth"  description:"Ignore warnings about insecure teams"`
 	BasicAuth    atc.BasicAuthFlag    `group:"Basic Authentication" namespace:"basic-auth"`
 	GitHubAuth   atc.GitHubAuthFlag   `group:"GitHub Authentication" namespace:"github-auth"`
 	UAAAuth      atc.UAAAuthFlag      `group:"UAA Authentication" namespace:"uaa-auth"`
@@ -119,7 +122,29 @@ func (command *SetTeamCommand) Execute([]string) error {
 	return nil
 }
 
+func (command *SetTeamCommand) noAuthConfigured() bool {
+	if command.BasicAuth.IsConfigured() || command.GitHubAuth.IsConfigured() || command.UAAAuth.IsConfigured() || command.GenericOAuth.IsConfigured() {
+		return false
+	}
+	return true
+}
+
 func (command *SetTeamCommand) ValidateFlags() error {
+	if command.noAuthConfigured() {
+		displayhelpers.PrintWarningHeader()
+
+		if !command.NoAuth {
+			fmt.Fprintln(os.Stderr, "no auth methods configured! to continue, run:")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "this will leave the team open to anyone to mess with!")
+			os.Exit(1)
+		}
+
+		fmt.Fprintln(os.Stderr, ui.WarningColor("no auth methods configured. you asked for it!"))
+	}
+
 	if command.BasicAuth.IsConfigured() {
 		err := command.BasicAuth.Validate()
 		if err != nil {
