@@ -160,7 +160,7 @@ setGroups newGroups model =
         ( { model | selectedGroups = newGroups }
         , if model.viewingPipeline then
             Cmd.batch
-              [ Navigation.newUrl newUrl
+              [ Navigation.modifyUrl newUrl
               , model.ports.setGroups newGroups
               ]
           else
