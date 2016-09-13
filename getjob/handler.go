@@ -1,89 +1,33 @@
 package getjob
 
 import (
-	"errors"
 	"html/template"
 	"net/http"
 	"strconv"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/group"
-	"github.com/concourse/go-concourse/concourse"
 )
 
 type Handler struct {
-	logger lager.Logger
-
-	clientFactory web.ClientFactory
-
+	logger   lager.Logger
 	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *Handler {
+func NewHandler(logger lager.Logger, template *template.Template) *Handler {
 	return &Handler{
-		logger:        logger,
-		clientFactory: clientFactory,
-		template:      template,
+		logger:   logger,
+		template: template,
 	}
 }
 
 type TemplateData struct {
-	JobName string
-	Since   int
-	Until   int
-
-	GroupStates  []group.State
-	PipelineName string
 	TeamName     string
-}
+	PipelineName string
+	JobName      string
 
-var ErrConfigNotFound = errors.New("could not find config")
-var ErrJobConfigNotFound = errors.New("could not find job")
-
-func FetchTemplateData(
-	pipelineName string,
-	team concourse.Team,
-	jobName string,
-	page concourse.Page,
-) (TemplateData, error) {
-	pipeline, pipelineFound, err := team.Pipeline(pipelineName)
-	if err != nil {
-		return TemplateData{}, err
-	}
-
-	if !pipelineFound {
-		return TemplateData{}, ErrConfigNotFound
-	}
-
-	_, jobFound, err := team.Job(pipelineName, jobName)
-	if err != nil {
-		return TemplateData{}, err
-	}
-
-	if !jobFound {
-		return TemplateData{}, ErrJobConfigNotFound
-	}
-
-	return TemplateData{
-		TeamName:     team.Name(),
-		PipelineName: pipelineName,
-		JobName:      jobName,
-
-		Since: page.Since,
-		Until: page.Until,
-
-		GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
-			for _, groupJob := range g.Jobs {
-				if groupJob == jobName {
-					return true
-				}
-			}
-
-			return false
-		}),
-	}, nil
+	Since       int
+	Until       int
+	QueryGroups []string
 }
 
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
@@ -105,35 +49,17 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		until = 0
 	}
 
-	teamName := r.FormValue(":team_name")
-	client := handler.clientFactory.Build(r)
-	templateData, err := FetchTemplateData(
-		r.FormValue(":pipeline_name"),
-		client.Team(teamName),
-		jobName,
-		concourse.Page{
-			Since: since,
-			Until: until,
-			Limit: atc.PaginationWebLimit,
-		},
-	)
-	switch err {
-	case ErrJobConfigNotFound:
-		log.Info("could-not-find-job-in-config", lager.Data{
-			"job": jobName,
-		})
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	case nil:
-		break
-	default:
-		log.Error("failed-to-build-template-data", err, lager.Data{
-			"job": jobName,
-		})
-		return err
+	templateData := TemplateData{
+		TeamName:     r.FormValue(":team_name"),
+		PipelineName: r.FormValue(":pipeline_name"),
+		JobName:      jobName,
+
+		Since:       since,
+		Until:       until,
+		QueryGroups: nil,
 	}
 
-	err = handler.template.Execute(w, templateData)
+	err := handler.template.Execute(w, templateData)
 	if err != nil {
 		log.Fatal("failed-to-build-template", err, lager.Data{
 			"template-data": templateData,

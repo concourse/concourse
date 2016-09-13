@@ -16,5 +16,10 @@ app.ports.focusElement.subscribe(function(id) {
     document.getElementById(id).focus();
   });
 });
+
+app.ports.selectBuildGroups.subscribe(function (groups) {
+  topBar.ports.selectGroups.send(groups);
+});
+
 </script>
 {{end}}

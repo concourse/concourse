@@ -8,9 +8,9 @@ var node = document.getElementById("elm-app");
 Elm.ResourcePage.embed(node, {
   teamName: {{.TeamName}},
   pipelineName: {{.PipelineName}},
-  resourceName: {{.Resource.Name}},
+  resourceName: {{.ResourceName}},
   pageSince: {{.Since}},
-  pageUntil: {{.Until}}
+  pageUntil: {{.Until}},
 });
 </script>
 {{end}}
