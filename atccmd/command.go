@@ -733,6 +733,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 		genericOAuth = &db.GenericOAuth{
 			AuthURL:       cmd.GenericOAuth.AuthURL,
 			AuthURLParams: cmd.GenericOAuth.AuthURLParams,
+			Scope:         cmd.GenericOAuth.Scope,
 			TokenURL:      cmd.GenericOAuth.TokenURL,
 			ClientID:      cmd.GenericOAuth.ClientID,
 			ClientSecret:  cmd.GenericOAuth.ClientSecret,

@@ -107,6 +107,7 @@ var _ = Describe("SQL DB Teams", func() {
 					ClientSecret:  "don't tell anyone",
 					AuthURL:       "https://auth.url",
 					AuthURLParams: map[string]string{"allow_humans": "false"},
+					Scope:         "readonly",
 				},
 			}
 			savedTeam4, err := database.CreateTeam(team4)
@@ -273,6 +274,7 @@ var _ = Describe("SQL DB Teams", func() {
 					ClientSecret:  "don't tell anyone",
 					AuthURL:       "https://auth.url",
 					AuthURLParams: map[string]string{"allow_humans": "false"},
+					Scope:         "readonly",
 				},
 			}
 			expectedSavedTeam, err := database.CreateTeam(expectedTeam)

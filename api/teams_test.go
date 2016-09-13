@@ -133,6 +133,7 @@ var _ = Describe("Teams API", func() {
 								ClientSecret:  "don't tell anyone",
 								AuthURL:       "https://auth.url",
 								AuthURLParams: map[string]string{"allow_humans": "false"},
+								Scope:         "readonly",
 								TokenURL:      "https://token.url",
 							},
 						},
@@ -566,6 +567,7 @@ var _ = Describe("Teams API", func() {
 							AuthURLParams: map[string]string{"key": "value"},
 							TokenURL:      "https://goa.token.url",
 							DisplayName:   "CSI",
+							Scope:         "readonly",
 						}
 					})
 
@@ -651,6 +653,7 @@ var _ = Describe("Teams API", func() {
 								Expect(genericOAuth.AuthURL).To(Equal(team.GenericOAuth.AuthURL))
 								Expect(genericOAuth.TokenURL).To(Equal(team.GenericOAuth.TokenURL))
 								Expect(genericOAuth.AuthURLParams).To(Equal(team.GenericOAuth.AuthURLParams))
+								Expect(genericOAuth.Scope).To(Equal(team.GenericOAuth.Scope))
 								Expect(genericOAuth.DisplayName).To(Equal(team.GenericOAuth.DisplayName))
 
 								savedTeam.GenericOAuth = genericOAuth
