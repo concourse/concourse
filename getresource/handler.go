@@ -5,18 +5,22 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/atc/web"
+
 	"code.cloudfoundry.org/lager"
 )
 
 type Handler struct {
-	logger   lager.Logger
-	template *template.Template
+	logger        lager.Logger
+	clientFactory web.ClientFactory
+	template      *template.Template
 }
 
-func NewHandler(logger lager.Logger, template *template.Template) *Handler {
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *Handler {
 	return &Handler{
-		logger:   logger,
-		template: template,
+		logger:        logger,
+		clientFactory: clientFactory,
+		template:      template,
 	}
 }
 
@@ -47,6 +51,28 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		until = 0
 	}
 
+	client := handler.clientFactory.Build(r)
+	team := client.Team(teamName)
+	_, pipelineFound, err := team.Pipeline(pipelineName)
+	if err != nil {
+		return err
+	}
+
+	if !pipelineFound {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+
+	_, resourceFound, err := team.Resource(pipelineName, resourceName)
+	if err != nil {
+		return err
+	}
+
+	if !resourceFound {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+
 	templateData := TemplateData{
 		TeamName:     teamName,
 		PipelineName: pipelineName,
@@ -56,7 +82,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		QueryGroups:  nil,
 	}
 
-	err := handler.template.Execute(w, templateData)
+	err = handler.template.Execute(w, templateData)
 	if err != nil {
 		session.Fatal("failed-to-build-template", err, lager.Data{
 			"template-data": templateData,
