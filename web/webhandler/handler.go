@@ -86,15 +86,15 @@ func NewHandler(
 		AssetInfo: web.AssetInfo,
 	}
 
-	pipelineHandler := pipeline.NewHandler(logger, pipelineTemplate)
+	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 
 	handlers := map[string]http.Handler{
 		web.Index:                 authredirect.Handler{index.NewHandler(logger, clientFactory, pipelineHandler, noPipelinesTemplate)},
 		web.RobotsTxt:             robotstxt.Handler{},
 		web.Pipeline:              authredirect.Handler{pipelineHandler},
 		web.Public:                CacheNearlyForever(http.FileServer(publicFS)),
-		web.GetJob:                authredirect.Handler{getjob.NewHandler(logger, jobTemplate)},
-		web.GetResource:           authredirect.Handler{getresource.NewHandler(logger, resourceTemplate)},
+		web.GetJob:                authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)},
+		web.GetResource:           authredirect.Handler{getresource.NewHandler(logger, clientFactory, resourceTemplate)},
 		web.GetBuild:              authredirect.Handler{getbuild.NewHandler(logger, clientFactory, buildTemplate)},
 		web.GetBuilds:             authredirect.Handler{getbuilds.NewHandler(logger, clientFactory, buildsTemplate)},
 		web.GetJoblessBuild:       authredirect.Handler{getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate)},
