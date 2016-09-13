@@ -83,15 +83,15 @@ var _ = Describe("Fly CLI", func() {
 
 					Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
 						`#- some-group
-job-1: concourse.check %s some-pipeline job-1
-job-2: concourse.check %s some-pipeline job-2
+job-1: concourse.check %s main some-pipeline job-1
+job-2: concourse.check %s main some-pipeline job-2
 
 #- some-other-group
-job-3: concourse.check %s some-pipeline job-3
-job-4: concourse.check %s some-pipeline job-4
+job-3: concourse.check %s main some-pipeline job-3
+job-4: concourse.check %s main some-pipeline job-4
 
 #- misc
-some-orphaned-job: concourse.check %s some-pipeline some-orphaned-job
+some-orphaned-job: concourse.check %s main some-pipeline some-orphaned-job
 
 `, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
 				})
@@ -123,8 +123,8 @@ some-orphaned-job: concourse.check %s some-pipeline some-orphaned-job
 
 					Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
 						`#- some-pipeline
-job-1: concourse.check %s some-pipeline job-1
-job-2: concourse.check %s some-pipeline job-2
+job-1: concourse.check %s main some-pipeline job-1
+job-2: concourse.check %s main some-pipeline job-2
 
 `, atcServer.URL(), atcServer.URL())))
 				})
