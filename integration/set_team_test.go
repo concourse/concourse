@@ -46,7 +46,6 @@ var _ = Describe("Fly CLI", func() {
 				It("returns an error", func() {
 					sess, err := gexec.Start(flyCmd, nil, nil)
 					Expect(err).ToNot(HaveOccurred())
-					Eventually(sess.Err).Should(gbytes.Say("WARNING:"))
 					Eventually(sess.Err).Should(gbytes.Say("no auth methods configured! to continue, run:"))
 					Eventually(sess.Err).Should(gbytes.Say("fly -t testserver set-team -n venture --no-really-i-dont-want-any-auth"))
 					Eventually(sess.Err).Should(gbytes.Say("this will leave the team open to anyone to mess with!"))

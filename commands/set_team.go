@@ -131,8 +131,6 @@ func (command *SetTeamCommand) noAuthConfigured() bool {
 
 func (command *SetTeamCommand) ValidateFlags() error {
 	if command.noAuthConfigured() {
-		displayhelpers.PrintWarningHeader()
-
 		if !command.NoAuth {
 			fmt.Fprintln(os.Stderr, "no auth methods configured! to continue, run:")
 			fmt.Fprintln(os.Stderr, "")
@@ -142,7 +140,9 @@ func (command *SetTeamCommand) ValidateFlags() error {
 			os.Exit(1)
 		}
 
+		displayhelpers.PrintWarningHeader()
 		fmt.Fprintln(os.Stderr, ui.WarningColor("no auth methods configured. you asked for it!"))
+		fmt.Fprintln(os.Stderr, "")
 	}
 
 	if command.BasicAuth.IsConfigured() {
