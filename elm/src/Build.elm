@@ -422,8 +422,7 @@ view model =
           , tabindex 0
           ] <|
           [ viewBuildPrep currentBuild.prep
-          , Html.Lazy.lazy
-              (viewBuildOutput model.browsingIndex) <|
+          , Html.Lazy.lazy2 viewBuildOutput model.browsingIndex <|
               currentBuild.output
           ] ++
             let
