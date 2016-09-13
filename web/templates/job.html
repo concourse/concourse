@@ -5,12 +5,17 @@
 
 <script type="text/javascript">
 var node = document.getElementById("elm-app");
-Elm.JobPage.embed(node, {
+var app = Elm.JobPage.embed(node, {
   jobName: {{.JobName}},
   teamName: {{.TeamName}},
   pipelineName: {{.PipelineName}},
   pageSince: {{.Since}},
   pageUntil: {{.Until}}
 });
+
+app.ports.selectJobGroups.subscribe(function (groups) {
+  topBar.ports.selectGroups.send(groups);
+});
+
 </script>
 {{end}}

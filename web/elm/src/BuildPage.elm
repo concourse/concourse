@@ -10,6 +10,7 @@ import Build exposing (Page (..))
 
 port setTitle : String -> Cmd msg
 port focusElement : String -> Cmd msg
+port selectBuildGroups : List String -> Cmd msg
 
 main : Program Never
 main =
@@ -21,6 +22,7 @@ main =
             Build.init
               { setTitle = setTitle
               , focusElement = focusElement
+              , selectGroups = selectBuildGroups
               }
     , update = Autoscroll.update Build.update
     , urlUpdate = Autoscroll.urlUpdate Build.urlUpdate

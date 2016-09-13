@@ -18,7 +18,7 @@ import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 
 type alias Flags =
   { pipeline : Maybe Concourse.PipelineIdentifier
-  , queryGroups : List String
+  , queryGroups : Maybe (List String)
   }
 
 type alias Model =
@@ -26,7 +26,7 @@ type alias Model =
   , viewingPipeline : Bool
   , ports : Ports
   , location : Location
-  , queryGroups : List String
+  , groupsState : GroupsState
   , selectedGroups : List String
   , pipeline : Maybe Concourse.Pipeline
   , userState : UserState
@@ -38,9 +38,14 @@ type UserState
   | UserStateLoggedOut
   | UserStateUnknown
 
+type GroupsState
+  = GroupsStateSelected (List String)
+  | GroupsStateNotLoaded
+
 type alias Ports =
   { toggleSidebar : () -> Cmd Msg
   , setGroups : List String -> Cmd Msg
+  , selectGroups : (List String -> Msg) -> Sub Msg
   , navigateTo : String -> Cmd Msg
   , setViewingPipeline : (Bool -> Msg) -> Sub Msg
   }
@@ -52,7 +57,8 @@ type Msg
   | FetchPipeline Concourse.PipelineIdentifier
   | ToggleSidebar
   | ToggleGroup Concourse.PipelineGroup
-  | SetGroup Concourse.PipelineGroup
+  | SetGroups (List String)
+  | SelectGroups (List String)
   | LogOut
   | LoggedOut (Result Concourse.User.Error ())
   | ToggleUserMenu
@@ -63,7 +69,12 @@ init ports flags initialLocation =
   ( { pipelineIdentifier = flags.pipeline
     , viewingPipeline = False
     , ports = ports
-    , queryGroups = flags.queryGroups
+    , groupsState =
+        case flags.queryGroups of
+          Nothing ->
+            GroupsStateNotLoaded
+          Just groups ->
+            GroupsStateSelected groups
     , selectedGroups = []
     , location = initialLocation
     , pipeline = Nothing
@@ -109,11 +120,17 @@ update msg model =
         case firstGroup of
           Nothing ->
             (model, Cmd.none)
+
           Just group ->
-            if (List.length model.queryGroups) > 0 then
-              setGroups model.queryGroups model
-            else
-              setDefaultGroup group.name model
+            case model.groupsState of
+              GroupsStateNotLoaded ->
+                (model, Cmd.none)
+
+              GroupsStateSelected groups ->
+                if List.length groups > 0 then
+                  setGroups groups model
+                else
+                  selectGroups [group.name] model
 
     PipelineFetched (Err err) ->
       Debug.log
@@ -130,8 +147,11 @@ update msg model =
       in
         setGroups newGroups model
 
-    SetGroup group ->
-      setGroups [group.name] model
+    SetGroups groups ->
+      setGroups groups model
+
+    SelectGroups groups ->
+      selectGroups groups model
 
     LogOut ->
       (model, logOut)
@@ -153,6 +173,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ model.ports.setViewingPipeline SetViewingPipeline
+    , model.ports.selectGroups SelectGroups
     , case model.pipelineIdentifier of
         Nothing ->
           Sub.none
@@ -170,7 +191,10 @@ setGroups newGroups model =
           locationToHistory pipeline <|
             setGroupsInLocation model.location newGroups
       in
-        ( { model | selectedGroups = newGroups }
+        ( { model
+          | selectedGroups = newGroups
+          , groupsState = GroupsStateSelected newGroups
+          }
         , if model.viewingPipeline then
             Cmd.batch
               [ Navigation.modifyUrl newUrl
@@ -183,11 +207,11 @@ setGroups newGroups model =
     Nothing ->
       (model, Cmd.none)
 
-setDefaultGroup : String -> Model -> (Model, Cmd Msg)
-setDefaultGroup defaultGroupName model =
-  ( { model | selectedGroups = [defaultGroupName] }
+selectGroups : List String -> Model -> (Model, Cmd Msg)
+selectGroups groups model =
+  ( { model | selectedGroups = groups }
   , if model.viewingPipeline then
-      model.ports.setGroups [defaultGroupName]
+      model.ports.setGroups groups
     else
       Cmd.none
   )
@@ -362,7 +386,7 @@ viewGroup selectedGroups url grp =
     ]
     [ Html.a
         [ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
-        , onLeftClickOrShiftLeftClick (SetGroup grp) (ToggleGroup grp)
+        , onLeftClickOrShiftLeftClick (SetGroups [grp.name]) (ToggleGroup grp)
         ]
         [ Html.text grp.name]
     ]

@@ -1,4 +1,4 @@
-module Job exposing (Flags, init, update, view, Msg(ClockTick))
+port module Job exposing (Flags, init, update, view, Msg(ClockTick))
 
 import Array exposing (Array)
 import Dict exposing (Dict)
@@ -22,7 +22,8 @@ import Redirect
 import StrictEvents exposing (onLeftClick)
 
 type alias Model =
-  { jobIdentifier : Concourse.JobIdentifier
+  { ports : Ports
+  , jobIdentifier : Concourse.JobIdentifier
   , job : (Maybe Concourse.Job)
   , pausedChanging : Bool
   , buildsWithResources : Maybe (Array LiveUpdatingBuildWithResources)
@@ -41,6 +42,10 @@ type Msg
   | ClockTick Time
   | TogglePaused
   | PausedToggled (Result Http.Error ())
+
+type alias Ports =
+  { selectGroups : (List String) -> Cmd Msg
+  }
 
 type alias FetchedBuildResources =
   { index : Int
@@ -86,11 +91,12 @@ type alias Flags =
   , pageUntil : Int
   }
 
-init : Flags -> (Model, Cmd Msg)
-init flags =
+init : Ports -> Flags -> (Model, Cmd Msg)
+init ports flags =
   let
     model =
-      { jobIdentifier =
+      { ports = ports
+      , jobIdentifier =
           { jobName = flags.jobName
           , teamName = flags.teamName
           , pipelineName = flags.pipelineName
@@ -140,6 +146,8 @@ update action model =
                 "/jobs/" ++ job.jobName ++
                 "/builds/" ++ build.name
       )
+    BuildTriggered (Err (Http.BadResponse 401 _)) ->
+      (model, redirectToLogin model)
     BuildTriggered (Err err) ->
       Debug.log ("failed to trigger build: " ++ toString err) <|
         (model, Cmd.none)
@@ -150,7 +158,10 @@ update action model =
         (model, Cmd.none)
     JobFetched (Ok job) ->
       ( { model | job = Just job }
-      , fetchJob (5 * Time.second) model.jobIdentifier
+      , Cmd.batch
+          [ fetchJob (5 * Time.second) model.jobIdentifier
+          , model.ports.selectGroups job.groups
+          ]
       )
     JobFetched (Err err) ->
       Debug.log ("failed to fetch job info: " ++ toString err) <|

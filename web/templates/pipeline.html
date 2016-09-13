@@ -22,13 +22,10 @@ var app = Elm.PipelinePage.embed(node, {
 var svg = createPipelineSvg(d3.select(".pipeline-graph"))
 
 topBar.ports.groupsChanged.subscribe(function(groups) {
-  console.log("groupsChanged groups", groups)
   concourse.groups = {}
   for (var i in groups) {
     concourse.groups[groups[i]] = true
   }
-
-  console.log("concourse.groups", concourse.groups)
 
   if (concourse.redraw !== undefined) {
     concourse.redraw();

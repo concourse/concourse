@@ -95,6 +95,7 @@ type Msg
 type alias Ports =
   { setTitle : String -> Cmd Msg
   , focusElement : String -> Cmd Msg
+  , selectGroups : (List String) -> Cmd Msg
   }
 
 init : Ports -> Result String Page -> (Model, Cmd Msg)
@@ -177,6 +178,9 @@ update action model =
         { model
         | history = build :: model.history
         }
+
+    BuildTriggered (Err (Http.BadResponse 401 _)) ->
+      (model, redirectToLogin model)
 
     BuildTriggered (Err err) ->
       Debug.log ("failed to trigger build: " ++ toString err) <|
@@ -326,7 +330,8 @@ handleBuildFetched browsingIndex build model =
                 , Cmd.batch
                     [cmd, fetchBuildPrep Time.second browsingIndex build.id]
                 )
-        else (withBuild, Cmd.none)
+        else
+          (withBuild, Cmd.none)
     in
       ( newModel,
         Cmd.batch
@@ -365,7 +370,7 @@ handleBuildJobFetched job model =
     withJobDetails =
       { model | job = Just job }
   in
-    (withJobDetails, Cmd.none)
+    (withJobDetails, model.ports.selectGroups job.groups)
 
 handleHistoryFetched : Paginated Concourse.Build -> Model -> (Model, Cmd Msg)
 handleHistoryFetched history model =
