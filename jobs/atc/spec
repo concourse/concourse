@@ -92,6 +92,11 @@ properties:
       Log database queries. Log level is debug, so requires development mode.
     default: false
 
+  auth_duration:
+    description: |
+      Specifies how long authentication tokens are valid for.
+    default: 24h
+
   basic_auth_username:
     description: |
       Username for HTTP basic auth.
