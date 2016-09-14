@@ -30,7 +30,7 @@ func NewProvider(
 
 	var oauthVerifier verifier.Verifier
 	if genericOAuth.Scope != "" {
-		oauthVerifier = ScopeVerifier{scope: genericOAuth.Scope}
+		oauthVerifier = NewScopeVerifier(genericOAuth.Scope)
 	} else {
 		oauthVerifier = NoopVerifier{}
 	}
