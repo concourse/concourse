@@ -315,7 +315,7 @@ permalink versionedResources =
       , limit = 100
       }
     Just version ->
-      { direction = Concourse.Pagination.Since (version.id + 1)
+      { direction = Concourse.Pagination.From version.id
       , limit = List.length versionedResources
       }
 
@@ -328,10 +328,13 @@ paginationRoute rid page =
           ("since", Basics.toString bound)
         Concourse.Pagination.Until bound ->
           ("until", Basics.toString bound)
+        Concourse.Pagination.From bound ->
+          ("from", Basics.toString bound)
+        Concourse.Pagination.To bound ->
+          ("to", Basics.toString bound)
     parsedRoute = Erl.parse <| "/teams/" ++ rid.teamName ++
                                "/pipelines/" ++ rid.pipelineName ++
-                               "/resources/" ++ rid.resourceName ++
-                               "/versions"
+                               "/resources/" ++ rid.resourceName
     newParsedRoute = Erl.addQuery param boundary <| Erl.addQuery "limit" (Basics.toString page.limit) parsedRoute
   in
     Erl.toString newParsedRoute

@@ -86,6 +86,8 @@ var _ = Describe("Versions API", func() {
 					Expect(page).To(Equal(db.Page{
 						Since: 0,
 						Until: 0,
+						From:  0,
+						To:    0,
 						Limit: 100,
 					}))
 				})
@@ -93,7 +95,7 @@ var _ = Describe("Versions API", func() {
 
 			Context("when all the params are passed", func() {
 				BeforeEach(func() {
-					queryParams = "?since=2&until=3&limit=8"
+					queryParams = "?since=2&until=3&from=5&to=7&limit=8"
 				})
 
 				It("passes them through", func() {
@@ -104,6 +106,8 @@ var _ = Describe("Versions API", func() {
 					Expect(page).To(Equal(db.Page{
 						Since: 2,
 						Until: 3,
+						From:  5,
+						To:    7,
 						Limit: 8,
 					}))
 				})

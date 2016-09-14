@@ -540,36 +540,60 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 	`
 
 	var rows *sql.Rows
-	if page.Since == 0 && page.Until == 0 {
-		rows, err = pdb.conn.Query(fmt.Sprintf(`
-			%s
-			ORDER BY v.id DESC
-			LIMIT $2
-		`, query), dbResource.ID, page.Limit)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else if page.Until != 0 {
+	if page.Until != 0 {
 		rows, err = pdb.conn.Query(fmt.Sprintf(`
 			SELECT sub.*
 				FROM (
 						%s
-					AND v.id > $2
-				ORDER BY v.id ASC
+					AND v.check_order > (SELECT check_order FROM versioned_resources WHERE id = $2)
+				ORDER BY v.check_order ASC
 				LIMIT $3
 			) sub
-			ORDER BY sub.id DESC
+			ORDER BY sub.check_order DESC
 		`, query), dbResource.ID, page.Until, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else if page.Since != 0 {
+		rows, err = pdb.conn.Query(fmt.Sprintf(`
+			%s
+				AND v.check_order < (SELECT check_order FROM versioned_resources WHERE id = $2)
+			ORDER BY v.check_order DESC
+			LIMIT $3
+		`, query), dbResource.ID, page.Since, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else if page.To != 0 {
+		rows, err = pdb.conn.Query(fmt.Sprintf(`
+			SELECT sub.*
+				FROM (
+						%s
+					AND v.check_order >= (SELECT check_order FROM versioned_resources WHERE id = $2)
+				ORDER BY v.check_order ASC
+				LIMIT $3
+			) sub
+			ORDER BY sub.check_order DESC
+		`, query), dbResource.ID, page.To, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, false, err
+		}
+	} else if page.From != 0 {
+		rows, err = pdb.conn.Query(fmt.Sprintf(`
+			%s
+				AND v.check_order <= (SELECT check_order FROM versioned_resources WHERE id = $2)
+			ORDER BY v.check_order DESC
+			LIMIT $3
+		`, query), dbResource.ID, page.From, page.Limit)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else {
 		rows, err = pdb.conn.Query(fmt.Sprintf(`
 			%s
-				AND v.id < $2
-			ORDER BY v.id DESC
-			LIMIT $3
-		`, query), dbResource.ID, page.Since, page.Limit)
+			ORDER BY v.check_order DESC
+			LIMIT $2
+		`, query), dbResource.ID, page.Limit)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
@@ -615,15 +639,15 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 		return []SavedVersionedResource{}, Pagination{}, true, nil
 	}
 
-	var minID int
-	var maxID int
+	var minCheckOrder int
+	var maxCheckOrder int
 
 	err = pdb.conn.QueryRow(`
-		SELECT COALESCE(MAX(v.id), 0) as maxID,
-			COALESCE(MIN(v.id), 0) as minID
+		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
+			COALESCE(MIN(v.check_order), 0) as minCheckOrder
 		FROM versioned_resources v
 		WHERE v.resource_id = $1
-	`, dbResource.ID).Scan(&maxID, &minID)
+	`, dbResource.ID).Scan(&maxCheckOrder, &minCheckOrder)
 	if err != nil {
 		return nil, Pagination{}, false, err
 	}
@@ -633,14 +657,14 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 
 	var pagination Pagination
 
-	if firstSavedVersionedResource.ID < maxID {
+	if firstSavedVersionedResource.CheckOrder < maxCheckOrder {
 		pagination.Previous = &Page{
 			Until: firstSavedVersionedResource.ID,
 			Limit: page.Limit,
 		}
 	}
 
-	if lastSavedVersionedResource.ID > minID {
+	if lastSavedVersionedResource.CheckOrder > minCheckOrder {
 		pagination.Next = &Page{
 			Since: lastSavedVersionedResource.ID,
 			Limit: page.Limit,
