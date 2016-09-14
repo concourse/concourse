@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e -u -x
+
+mkdir cli-artifacts
+tar -xzf fly_binaries/fly-*.tgz
+mv fly-*/* cli-artifacts/
