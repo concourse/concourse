@@ -28,8 +28,10 @@ type alias Ports =
 type alias Model =
   { ports : Ports
   , pipelineLocator : Concourse.PipelineIdentifier
-  , jobs : Maybe Json.Encode.Value
-  , resources : Maybe Json.Encode.Value
+  , fetchedJobs : Maybe Json.Encode.Value
+  , fetchedResources : Maybe Json.Encode.Value
+  , renderedJobs : Maybe Json.Encode.Value
+  , renderedResources : Maybe Json.Encode.Value
   , concourseVersion : String
   }
 
@@ -42,8 +44,10 @@ init ports flags =
           { teamName = flags.teamName
           , pipelineName = flags.pipelineName
           }
-      , jobs = Nothing
-      , resources = Nothing
+      , fetchedJobs = Nothing
+      , fetchedResources = Nothing
+      , renderedJobs = Nothing
+      , renderedResources = Nothing
       , concourseVersion = ""
       }
   in
@@ -73,30 +77,41 @@ update msg model =
       (model, fetchVersion)
 
     RenderFinished _ ->
-      ( { model | resources = Nothing, jobs = Nothing }
-      , Cmd.batch
-          [ fetchResourcesAfterDelay (4 * Time.second) model.pipelineLocator
-          , fetchJobsAfterDelay (4 * Time.second) model.pipelineLocator
-          ]
-      )
+      scheduleResourcesAndJobsFetching model
 
-    JobsFetched (Ok jobs) ->
-      case model.resources of
-        Just resources ->
-          ({ model | jobs = Just jobs }, model.ports.render (jobs, resources))
-        Nothing ->
-          ({ model | jobs = Just jobs }, Cmd.none)
+    JobsFetched (Ok fetchedJobs) ->
+      let
+        newModel = { model | fetchedJobs = Just fetchedJobs }
+      in
+        case model.fetchedResources of
+          Just fetchedResources ->
+            if model.renderedJobs == Just fetchedJobs then
+              scheduleResourcesAndJobsFetching newModel
+            else
+              ( { newModel | renderedJobs = Just fetchedJobs, renderedResources = Just fetchedResources }
+              , model.ports.render (fetchedJobs, fetchedResources)
+              )
+          Nothing ->
+            (newModel, Cmd.none)
 
     JobsFetched (Err err) ->
       Debug.log ("failed to fetch jobs: " ++ toString err) <|
         (model, Cmd.none)
 
-    ResourcesFetched (Ok resources) ->
-      case model.jobs of
-        Just jobs ->
-          ({ model | resources = Just resources }, model.ports.render (jobs, resources))
-        Nothing ->
-          ({ model | resources = Just resources }, Cmd.none)
+    ResourcesFetched (Ok fetchedResources) ->
+      let
+        newModel = { model | fetchedResources = Just fetchedResources }
+      in
+        case model.fetchedJobs of
+          Just fetchedJobs ->
+              if model.renderedResources == Just fetchedResources then
+                scheduleResourcesAndJobsFetching newModel
+              else
+                ( { newModel | renderedResources = Just fetchedResources, renderedJobs = Just fetchedJobs }
+                , model.ports.render (fetchedJobs, fetchedResources)
+                )
+          Nothing ->
+            (newModel, Cmd.none)
 
     ResourcesFetched (Err err) ->
       Debug.log ("failed to fetch resources: " ++ toString err) <|
@@ -173,6 +188,15 @@ view model =
 autoupdateVersionTimer : Sub Msg
 autoupdateVersionTimer =
   Time.every (1 * Time.minute) AutoupdateVersionTicked
+
+scheduleResourcesAndJobsFetching : Model -> (Model, Cmd Msg)
+scheduleResourcesAndJobsFetching model =
+  ({ model | fetchedResources = Nothing, fetchedJobs = Nothing }
+  , Cmd.batch
+      [ fetchResourcesAfterDelay (4 * Time.second) model.pipelineLocator
+      , fetchJobsAfterDelay (4 * Time.second) model.pipelineLocator
+      ]
+  )
 
 fetchResourcesAfterDelay : Time -> Concourse.PipelineIdentifier -> Cmd Msg
 fetchResourcesAfterDelay delay pid =
