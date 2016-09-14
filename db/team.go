@@ -80,4 +80,5 @@ type GenericOAuth struct {
 	ClientID      string            `json:"client_id"`
 	ClientSecret  string            `json:"client_secret"`
 	DisplayName   string            `json:"display_name"`
+	Scope         string            `json:"scope"`
 }

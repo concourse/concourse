@@ -311,6 +311,7 @@ var _ = Describe("TeamDB", func() {
 				ClientSecret:  "don't tell anyone",
 				AuthURL:       "https://auth.url",
 				AuthURLParams: map[string]string{"option": "1"},
+				Scope:         "read",
 				TokenURL:      "https://token.url",
 			}
 		})
