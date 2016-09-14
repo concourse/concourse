@@ -95,7 +95,7 @@ var _ = Describe("Syncing", func() {
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
-			Expect(sess.Out).To(gbytes.Say(`Good news! You already have the appropriate fly binary for this target.`))
+			Expect(sess.Out).To(gbytes.Say(`version already matches; skipping`))
 
 			contents, err := ioutil.ReadFile(flyPath)
 			Expect(err).NotTo(HaveOccurred())

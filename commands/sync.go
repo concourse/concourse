@@ -27,7 +27,7 @@ func (command *SyncCommand) Execute(args []string) error {
 	}
 
 	if info.Version == version.Version {
-		fmt.Printf("Good news! You already have the appropriate fly binary for this target.\n")
+		fmt.Printf("version already matches; skipping\n")
 		return nil
 	}
 
