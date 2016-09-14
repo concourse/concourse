@@ -473,6 +473,8 @@ paginationParam page =
   case page.direction of
     Concourse.Pagination.Since i -> "since=" ++ toString i
     Concourse.Pagination.Until i -> "until=" ++ toString i
+    Concourse.Pagination.From i -> "from=" ++ toString i
+    Concourse.Pagination.To i -> "to=" ++ toString i
 
 pauseJob : Concourse.JobIdentifier -> Cmd Msg
 pauseJob jobIdentifier =

@@ -25,6 +25,8 @@ type alias Page =
 type Direction
   = Since Int
   | Until Int
+  | From Int
+  | To Int
 
 previousRel : String
 previousRel = "previous"
@@ -49,6 +51,18 @@ equal one two =
       case two.direction of
         Until qq ->
           q == qq
+        _ ->
+          False
+    From f ->
+      case two.direction of
+        From ff ->
+          f == ff
+        _ ->
+          False
+    To t ->
+      case two.direction of
+        To tt ->
+          t == tt
         _ ->
           False
 
@@ -198,9 +212,17 @@ fromQuery query =
     since =
       Maybe.map Since <|
         Dict.get "since" query `Maybe.andThen` parseNum
+
+    from =
+      Maybe.map Since <|
+        Dict.get "from" query `Maybe.andThen` parseNum
+
+    to =
+      Maybe.map Since <|
+        Dict.get "to" query `Maybe.andThen` parseNum
   in
     Maybe.map (\direction -> { direction = direction, limit = limit }) <|
-      Maybe.oneOf [until, since]
+      Maybe.oneOf [until, since, from, to]
 
 toQuery : Maybe Page -> Dict String String
 toQuery page =
@@ -217,6 +239,12 @@ toQuery page =
 
             Until id ->
               ("until", toString id)
+
+            From id ->
+              ("from", toString id)
+
+            To id ->
+              ("to", toString id)
 
         limitParam =
           ("limit", toString limit)
