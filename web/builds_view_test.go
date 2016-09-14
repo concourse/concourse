@@ -102,13 +102,6 @@ var _ = Describe("BuildsView", func() {
 			Expect(page.Find(".builds-list li:first-child a")).To(HaveText("#1"))
 			Eventually(page.Find(".builds-list li:first-child a.succeeded"), 10*time.Second).Should(BeFound())
 
-			buildTimes, err := page.Find(".builds-list li:first-child .build-duration").Text()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(buildTimes).To(ContainSubstring("started"))
-			Expect(buildTimes).To(MatchRegexp("started \\d+s ago"))
-			Expect(buildTimes).To(MatchRegexp("finished \\d+s ago"))
-			Expect(buildTimes).To(MatchRegexp("duration \\d+s"))
-
 			Eventually(page.Find(".builds-list li:first-child .inputs .resource-name"), 10*time.Second).Should(BeFound())
 			Expect(page.Find(".builds-list li:first-child .inputs .resource-name")).To(HaveText("some-input-resource"))
 			Expect(page.Find(".builds-list li:first-child .inputs .resource-version .dict-key")).To(HaveText("ref"))
