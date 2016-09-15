@@ -49,3 +49,6 @@ tags
 
 .bosh
 .gitconfig
+
+#fly binaries
+src/fly_binaries/*

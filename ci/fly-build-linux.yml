@@ -1,0 +1,20 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/atc-ci
+
+inputs:
+  - name: concourse
+  - name: final-version
+
+outputs:
+  - name: linux
+
+params:
+  platform: linux
+
+run:
+  path: concourse/ci/scripts/fly-build

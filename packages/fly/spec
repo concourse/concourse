@@ -6,6 +6,7 @@ dependencies:
   - golang
 
 files:
+  - fly_binaries/*
   - github.com/aryann/difflib/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/concourse/atc/*.go # gosub

@@ -8,6 +8,7 @@ image_resource:
 
 inputs:
 - name: concourse
+- name: fly-binaries
 - name: version
 - name: final-version
 

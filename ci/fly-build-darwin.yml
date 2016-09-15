@@ -1,0 +1,15 @@
+---
+platform: darwin
+
+inputs:
+  - name: concourse
+  - name: final-version
+
+params:
+  platform: darwin
+
+outputs:
+  - name: darwin
+
+run:
+  path: concourse/ci/scripts/fly-build

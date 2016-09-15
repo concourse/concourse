@@ -1,26 +1,41 @@
 set -e
 
-REPO_NAME=github.com/concourse/fly
-
-export GOROOT=$(readlink -nf /var/vcap/packages/golang)
-export GOPATH=$BOSH_INSTALL_TARGET
-export PATH=$GOROOT/bin:$PATH
-
-mkdir ${BOSH_INSTALL_TARGET}/src
-cp -a * ${BOSH_INSTALL_TARGET}/src
-
 VERSION_FILE=/var/vcap/packages/concourse_version/version
 
-for platform in linux darwin windows; do
-  mkdir -p ${BOSH_INSTALL_TARGET}/${platform}/amd64
+FLY_BINARIES_FILENAME=fly_binaries/fly-$(cat $VERSION_FILE).tgz
 
-  GOOS=${platform} GOARCH=amd64 \
-    CGO_ENABLED=0 \
-    go build \
-      -ldflags "-X github.com/concourse/fly/version.Version=$(cat $VERSION_FILE)" \
-      -o ${BOSH_INSTALL_TARGET}/${platform}/amd64/fly \
-      ${REPO_NAME}
-done
+if [ -e "$FLY_BINARIES_FILENAME" ]; then
+  echo "Using existing fly binaries"
+
+  mkdir -p ${BOSH_INSTALL_TARGET}
+
+  tar -xzf $FLY_BINARIES_FILENAME
+  mv fly-$(cat $VERSION_FILE)/* ${BOSH_INSTALL_TARGET}/
+
+else
+  echo "Building fly binaries"
+
+  REPO_NAME=github.com/concourse/fly
+
+  export GOROOT=$(readlink -nf /var/vcap/packages/golang)
+  export GOPATH=$BOSH_INSTALL_TARGET
+  export PATH=$GOROOT/bin:$PATH
+
+  mkdir ${BOSH_INSTALL_TARGET}/src
+  cp -a * ${BOSH_INSTALL_TARGET}/src
+
+
+  for platform in linux darwin windows; do
+    mkdir -p ${BOSH_INSTALL_TARGET}/${platform}/amd64
+
+    GOOS=${platform} GOARCH=amd64 \
+      CGO_ENABLED=0 \
+      go build \
+        -ldflags "-X github.com/concourse/fly/version.Version=$(cat $VERSION_FILE)" \
+        -o ${BOSH_INSTALL_TARGET}/${platform}/amd64/fly \
+        ${REPO_NAME}
+  done
+fi
 
 rm -rf ${BOSH_INSTALL_TARGET}/pkg
 rm -rf ${BOSH_INSTALL_TARGET}/src
