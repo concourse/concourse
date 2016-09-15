@@ -1,1 +1,0 @@
-../../../../node_modules/jasmine-ajax/lib/mock-ajax.js
