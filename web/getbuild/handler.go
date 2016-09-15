@@ -5,16 +5,10 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 )
 
 type TemplateData struct {
-	TeamName     string
-	PipelineName string
-	JobName      string
-
-	Build       atc.Build
 	QueryGroups []string
 }
 
@@ -53,7 +47,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		"build":    buildName,
 	})
 
-	requestedBuild, found, err := team.JobBuild(pipelineName, jobName, buildName)
+	_, found, err := team.JobBuild(pipelineName, jobName, buildName)
 	if err != nil {
 		log.Error("failed-to-get-build", err)
 		return err
@@ -65,12 +59,6 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	templateData := TemplateData{
-		TeamName:     teamName,
-		PipelineName: pipelineName,
-		JobName:      jobName,
-
-		Build: requestedBuild,
-
 		QueryGroups: nil,
 	}
 
