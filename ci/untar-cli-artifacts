@@ -3,4 +3,4 @@
 set -e -u -x
 
 tar -xzf fly-binaries/fly-*.tgz
-mv fly-*/* cli-artifacts/
+mv darwin linux windows cli-artifacts/
