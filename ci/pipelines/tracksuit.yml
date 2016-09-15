@@ -11,8 +11,9 @@ jobs:
     params:
       GITHUB_TOKEN: {{tracksuit-github-token}}
       TRACKER_TOKEN: {{tracksuit-tracker-token}}
-      PROJECT_ID: 1059262
+      PROJECT_ID: "1059262"
       ORGANIZATION: concourse
+      GC_LABELS: "true"
 
 resources:
 - name: tracksuit
