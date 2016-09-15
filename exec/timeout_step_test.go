@@ -24,15 +24,13 @@ var _ = Describe("Timeout Step", func() {
 		timeout StepFactory
 		step    Step
 
-		startStep chan error
-		process   ifrit.Process
+		process ifrit.Process
 
 		timeoutDuration string
 		fakeClock       *fakeclock.FakeClock
 	)
 
 	BeforeEach(func() {
-		startStep = make(chan error, 1)
 		fakeStepFactoryStep = new(execfakes.FakeStepFactory)
 		runStep = new(execfakes.FakeStep)
 		fakeStepFactoryStep.UsingReturns(runStep)

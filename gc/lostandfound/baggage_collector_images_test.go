@@ -49,24 +49,24 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			fakeWorkerClient = new(wfakes.FakeClient)
 
 			workerA = new(wfakes.FakeWorker)
+			workerA.NameReturns("workerA")
 
 			workerB = new(wfakes.FakeWorker)
+			workerB.NameReturns("workerB")
+
 			dockerVolume = new(wfakes.FakeVolume)
 			workerB.LookupVolumeReturns(dockerVolume, true, nil)
 
 			workerC = new(wfakes.FakeWorker)
+			workerC.NameReturns("workerC")
 			crossedWiresVolume = new(wfakes.FakeVolume)
 			workerC.LookupVolumeReturns(crossedWiresVolume, true, nil)
 
-			workerMap := map[string]*wfakes.FakeWorker{
-				"workerA": workerA,
-				"workerB": workerB,
-				"workerC": workerC,
-			}
-
-			fakeWorkerClient.GetWorkerStub = func(name string) (worker.Worker, error) {
-				return workerMap[name], nil
-			}
+			fakeWorkerClient.WorkersReturns([]worker.Worker{
+				workerA,
+				workerB,
+				workerC,
+			}, nil)
 			baggageCollectorLogger := lagertest.NewTestLogger("test")
 
 			fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
@@ -177,7 +177,6 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			Expect(fakePipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)).To(Equal("my-precious-job"))
 			Expect(fakeBuild2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(1))
 			Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
-			Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(3))
 
 			var handle string
 			Expect(workerB.LookupVolumeCallCount()).To(Equal(1))
@@ -241,6 +240,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			fakeWorkerClient = new(wfakes.FakeClient)
 
 			workerA = new(wfakes.FakeWorker)
+			workerA.NameReturns("worker-a")
 			volumeA1 = new(wfakes.FakeVolume)
 			volumeA2 = new(wfakes.FakeVolume)
 			workerA.LookupVolumeStub = func(logger lager.Logger, handle string) (worker.Volume, bool, error) {
@@ -255,19 +255,14 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			}
 
 			workerB = new(wfakes.FakeWorker)
+			workerB.NameReturns("worker-b")
 			volumeB1 = new(wfakes.FakeVolume)
 			workerB.LookupVolumeReturns(volumeB1, true, nil)
 
-			fakeWorkerClient.GetWorkerStub = func(name string) (worker.Worker, error) {
-				switch name {
-				case "worker-a":
-					return workerA, nil
-				case "worker-b":
-					return workerB, nil
-				default:
-					panic("unknown worker name")
-				}
-			}
+			fakeWorkerClient.WorkersReturns([]worker.Worker{
+				workerA,
+				workerB,
+			}, nil)
 
 			baggageCollectorLogger := lagertest.NewTestLogger("test")
 

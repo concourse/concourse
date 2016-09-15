@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
@@ -42,6 +43,8 @@ var _ = Describe("DBProvider", func() {
 
 		fakeImageFactory          *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
+
+		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
 
 		workers    []Worker
 		workersErr error
@@ -81,7 +84,9 @@ var _ = Describe("DBProvider", func() {
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
-		provider = NewDBWorkerProvider(logger, fakeDB, nil, immediateRetryPolicy{}, fakeImageFactory)
+		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
+
+		provider = NewDBWorkerProvider(logger, fakeDB, nil, immediateRetryPolicy{}, fakeImageFactory, fakePipelineDBFactory)
 	})
 
 	AfterEach(func() {

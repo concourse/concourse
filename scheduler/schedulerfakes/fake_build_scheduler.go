@@ -12,12 +12,12 @@ import (
 )
 
 type FakeBuildScheduler struct {
-	ScheduleStub        func(logger lager.Logger, versions *algorithm.VersionsDB, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) error
+	ScheduleStub        func(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) error
 	scheduleMutex       sync.RWMutex
 	scheduleArgsForCall []struct {
 		logger          lager.Logger
 		versions        *algorithm.VersionsDB
-		jobConfig       atc.JobConfig
+		jobConfigs      atc.JobConfigs
 		resourceConfigs atc.ResourceConfigs
 		resourceTypes   atc.ResourceTypes
 	}
@@ -50,19 +50,19 @@ type FakeBuildScheduler struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildScheduler) Schedule(logger lager.Logger, versions *algorithm.VersionsDB, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) error {
+func (fake *FakeBuildScheduler) Schedule(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) error {
 	fake.scheduleMutex.Lock()
 	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
 		logger          lager.Logger
 		versions        *algorithm.VersionsDB
-		jobConfig       atc.JobConfig
+		jobConfigs      atc.JobConfigs
 		resourceConfigs atc.ResourceConfigs
 		resourceTypes   atc.ResourceTypes
-	}{logger, versions, jobConfig, resourceConfigs, resourceTypes})
-	fake.recordInvocation("Schedule", []interface{}{logger, versions, jobConfig, resourceConfigs, resourceTypes})
+	}{logger, versions, jobConfigs, resourceConfigs, resourceTypes})
+	fake.recordInvocation("Schedule", []interface{}{logger, versions, jobConfigs, resourceConfigs, resourceTypes})
 	fake.scheduleMutex.Unlock()
 	if fake.ScheduleStub != nil {
-		return fake.ScheduleStub(logger, versions, jobConfig, resourceConfigs, resourceTypes)
+		return fake.ScheduleStub(logger, versions, jobConfigs, resourceConfigs, resourceTypes)
 	} else {
 		return fake.scheduleReturns.result1
 	}
@@ -74,10 +74,10 @@ func (fake *FakeBuildScheduler) ScheduleCallCount() int {
 	return len(fake.scheduleArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) {
+func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfigs, atc.ResourceConfigs, atc.ResourceTypes) {
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
-	return fake.scheduleArgsForCall[i].logger, fake.scheduleArgsForCall[i].versions, fake.scheduleArgsForCall[i].jobConfig, fake.scheduleArgsForCall[i].resourceConfigs, fake.scheduleArgsForCall[i].resourceTypes
+	return fake.scheduleArgsForCall[i].logger, fake.scheduleArgsForCall[i].versions, fake.scheduleArgsForCall[i].jobConfigs, fake.scheduleArgsForCall[i].resourceConfigs, fake.scheduleArgsForCall[i].resourceTypes
 }
 
 func (fake *FakeBuildScheduler) ScheduleReturns(result1 error) {

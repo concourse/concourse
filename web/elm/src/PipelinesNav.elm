@@ -11,6 +11,7 @@ import Task
 
 import Concourse
 import Concourse.Pipeline
+import StrictEvents exposing (onLeftClick, onLeftMouseDownCapturing)
 
 type alias Model =
   { teams : Maybe (List (String, List UIPipeline))
@@ -402,11 +403,8 @@ viewDraggable maybeDragInfo uip =
               if isPurposeful maybeDragInfo then "draggable dragging purposeful"
               else "draggable dragging"
             else "draggable"
-        , Events.onWithOptions
-            "mousedown"
-            { stopPropagation = False, preventDefault = True } <|
-            Json.Decode.map (StartDragging uip.pipeline.teamName uip.pipeline.name)
-              (checkLeftClick `Json.Decode.andThen` always Mouse.position)
+        , onLeftMouseDownCapturing Mouse.position <|
+            StartDragging uip.pipeline.teamName uip.pipeline.name
         ] ++
           case (maybeDragInfo, dragging) of
             (Just dragInfo, True) -> [ dragStyle dragInfo ]
@@ -417,7 +415,7 @@ viewDraggable maybeDragInfo uip =
         , Html.a
             ( [ href uip.pipeline.url ] ++
               if isPurposeful maybeDragInfo then
-                [ ignoreClicks ]
+                [ onLeftClick Noop ]
               else
                 []
             )
@@ -456,13 +454,6 @@ viewDropArea teamName pipelineName =
     , Events.onMouseLeave <| Unhover teamName <| AfterElement pipelineName
     ]
     []
-
-ignoreClicks : Html.Attribute Msg
-ignoreClicks =
-  Events.onWithOptions
-    "click"
-    { stopPropagation = False, preventDefault = True } <|
-    Json.Decode.succeed Noop
 
 viewPauseButton : UIPipeline -> Html Msg
 viewPauseButton uip =

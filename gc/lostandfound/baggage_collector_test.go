@@ -29,7 +29,6 @@ var _ = Describe("Baggage Collector", func() {
 
 		fakeBaggageCollectorDB *lostandfoundfakes.FakeBaggageCollectorDB
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
-		fakeBuild              *dbfakes.FakeBuild
 
 		lessThanOldResource            = 3 * time.Minute
 		expectedOldResourceGracePeriod = 4 * time.Minute
@@ -58,12 +57,12 @@ var _ = Describe("Baggage Collector", func() {
 		for _, example := range examples {
 			fakeWorkerClient = new(wfakes.FakeClient)
 			fakeWorker = new(wfakes.FakeWorker)
-			fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
+			fakeWorkerClient.WorkersReturns([]worker.Worker{fakeWorker}, nil)
+			fakeWorker.NameReturns("some-worker")
 			baggageCollectorLogger := lagertest.NewTestLogger("test")
 
 			fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
 			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-			fakeBuild = new(dbfakes.FakeBuild)
 
 			baggageCollector = lostandfound.NewBaggageCollector(
 				baggageCollectorLogger,
@@ -238,7 +237,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-2",
 					Identifier: db.VolumeIdentifier{
@@ -249,7 +248,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-3",
 					Identifier: db.VolumeIdentifier{
@@ -260,7 +259,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        worker.VolumeTTL,
 					Handle:     "some-volume-handle-4",
 					Identifier: db.VolumeIdentifier{
@@ -270,7 +269,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        worker.VolumeTTL,
 					Handle:     "some-volume-handle-5",
 					Identifier: db.VolumeIdentifier{
@@ -400,7 +399,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-2",
 					Identifier: db.VolumeIdentifier{
@@ -411,7 +410,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-3",
 					Identifier: db.VolumeIdentifier{
@@ -422,7 +421,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-4",
 					Identifier: db.VolumeIdentifier{
@@ -474,7 +473,7 @@ var _ = Describe("Baggage Collector", func() {
 			},
 			volumeData: []db.Volume{
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-1",
 					Identifier: db.VolumeIdentifier{
@@ -485,7 +484,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-2",
 					Identifier: db.VolumeIdentifier{
@@ -496,7 +495,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 				},
 				{
-					WorkerName: "some-other-worker",
+					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-3",
 					Identifier: db.VolumeIdentifier{

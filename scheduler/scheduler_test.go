@@ -48,7 +48,7 @@ var _ = Describe("Scheduler", func() {
 	Describe("Schedule", func() {
 		var (
 			versionsDB  *algorithm.VersionsDB
-			jobConfig   atc.JobConfig
+			jobConfigs  atc.JobConfigs
 			scheduleErr error
 		)
 
@@ -59,7 +59,7 @@ var _ = Describe("Scheduler", func() {
 			scheduleErr = scheduler.Schedule(
 				lagertest.NewTestLogger("test"),
 				versionsDB,
-				jobConfig,
+				jobConfigs,
 				atc.ResourceConfigs{{Name: "some-resource"}},
 				atc.ResourceTypes{{Name: "some-resource-type"}},
 			)
@@ -70,7 +70,10 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has no inputs", func() {
 			BeforeEach(func() {
-				jobConfig = atc.JobConfig{Name: "some-job"}
+				jobConfigs = atc.JobConfigs{
+					{Name: "some-job-1"},
+					{Name: "some-job-2"},
+				}
 			})
 
 			Context("when saving the next input mapping fails", func() {
@@ -81,18 +84,22 @@ var _ = Describe("Scheduler", func() {
 				It("returns the error", func() {
 					Expect(scheduleErr).To(Equal(disaster))
 				})
-
-				It("saved the next input mapping for the right job and versions", func() {
-					Expect(fakeInputMapper.SaveNextInputMappingCallCount()).To(Equal(1))
-					_, actualVersionsDB, actualJobConfig := fakeInputMapper.SaveNextInputMappingArgsForCall(0)
-					Expect(actualVersionsDB).To(Equal(versionsDB))
-					Expect(actualJobConfig).To(Equal(jobConfig))
-				})
 			})
 
 			Context("when saving the next input mapping succeeds", func() {
 				BeforeEach(func() {
 					fakeInputMapper.SaveNextInputMappingReturns(algorithm.InputMapping{}, nil)
+				})
+
+				It("saved the next input mapping for the right job and versions", func() {
+					Expect(fakeInputMapper.SaveNextInputMappingCallCount()).To(Equal(2))
+					_, actualVersionsDB, actualJobConfig := fakeInputMapper.SaveNextInputMappingArgsForCall(0)
+					Expect(actualVersionsDB).To(Equal(versionsDB))
+					Expect(actualJobConfig).To(Equal(jobConfigs[0]))
+
+					_, actualVersionsDB, actualJobConfig = fakeInputMapper.SaveNextInputMappingArgsForCall(1)
+					Expect(actualVersionsDB).To(Equal(versionsDB))
+					Expect(actualJobConfig).To(Equal(jobConfigs[1]))
 				})
 
 				Context("when starting all pending builds fails", func() {
@@ -106,8 +113,8 @@ var _ = Describe("Scheduler", func() {
 
 					It("started all pending builds for the right job", func() {
 						Expect(fakeBuildStarter.TryStartAllPendingBuildsCallCount()).To(Equal(1))
-						_, actualJob, actualResources, actualResourceTypes := fakeBuildStarter.TryStartAllPendingBuildsArgsForCall(0)
-						Expect(actualJob).To(Equal(jobConfig))
+						_, actualJobs, actualResources, actualResourceTypes := fakeBuildStarter.TryStartAllPendingBuildsArgsForCall(0)
+						Expect(actualJobs).To(Equal(jobConfigs))
 						Expect(actualResources).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 						Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
 					})
@@ -131,11 +138,13 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has one trigger: true input", func() {
 			BeforeEach(func() {
-				jobConfig = atc.JobConfig{
-					Name: "some-job",
-					Plan: atc.PlanSequence{
-						{Get: "a", Trigger: true},
-						{Get: "b", Trigger: false},
+				jobConfigs = atc.JobConfigs{
+					{
+						Name: "some-job",
+						Plan: atc.PlanSequence{
+							{Get: "a", Trigger: true},
+							{Get: "b", Trigger: false},
+						},
 					},
 				}
 
@@ -276,19 +285,19 @@ var _ = Describe("Scheduler", func() {
 					createdBuild = new(dbfakes.FakeBuild)
 					fakeDB.CreateJobBuildStub = func(jobName string) (db.Build, error) {
 						defer GinkgoRecover()
-						Expect(fakeBuildStarter.TryStartAllPendingBuildsCallCount()).To(BeZero())
+						Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(BeZero())
 						return createdBuild, nil
 					}
 				})
 
 				Context("when starting all pending builds fails", func() {
 					BeforeEach(func() {
-						fakeBuildStarter.TryStartAllPendingBuildsReturns(disaster)
+						fakeBuildStarter.TryStartPendingBuildsForJobReturns(disaster)
 					})
 
 					It("tried to start all pending builds after creating the build", func() {
-						Expect(fakeBuildStarter.TryStartAllPendingBuildsCallCount()).To(Equal(1))
-						_, actualJob, actualResources, actualResourceTypes := fakeBuildStarter.TryStartAllPendingBuildsArgsForCall(0)
+						Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
+						_, actualJob, actualResources, actualResourceTypes := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
 						Expect(actualJob).To(Equal(jobConfig))
 						Expect(actualResources).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 						Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
@@ -302,7 +311,7 @@ var _ = Describe("Scheduler", func() {
 
 				Context("when starting all pending builds succeeds", func() {
 					BeforeEach(func() {
-						fakeBuildStarter.TryStartAllPendingBuildsReturns(nil)
+						fakeBuildStarter.TryStartPendingBuildsForJobReturns(nil)
 					})
 
 					It("returns the build", func() {
@@ -434,7 +443,7 @@ var _ = Describe("Scheduler", func() {
 
 							Context("when starting all pending builds fails", func() {
 								BeforeEach(func() {
-									fakeBuildStarter.TryStartAllPendingBuildsStub = func(lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) error {
+									fakeBuildStarter.TryStartPendingBuildsForJobStub = func(lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) error {
 										defer GinkgoRecover()
 										Expect(fakeLease.BreakCallCount()).To(Equal(1))
 										return disaster
@@ -448,8 +457,8 @@ var _ = Describe("Scheduler", func() {
 								})
 
 								It("started all pending builds for the right job after breaking the lock", func() {
-									Expect(fakeBuildStarter.TryStartAllPendingBuildsCallCount()).To(Equal(1))
-									_, actualJob, actualResources, actualResourceTypes := fakeBuildStarter.TryStartAllPendingBuildsArgsForCall(0)
+									Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
+									_, actualJob, actualResources, actualResourceTypes := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
 									Expect(actualJob).To(Equal(jobConfig))
 									Expect(actualResources).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 									Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
@@ -458,7 +467,7 @@ var _ = Describe("Scheduler", func() {
 
 							Context("when starting all pending builds succeeds", func() {
 								BeforeEach(func() {
-									fakeBuildStarter.TryStartAllPendingBuildsReturns(nil)
+									fakeBuildStarter.TryStartPendingBuildsForJobReturns(nil)
 								})
 
 								It("returns the build", func() {

@@ -1,46 +1,9 @@
-function draw(renderFn, completeFn) {
-  $.when(
-    $.ajax({
-      url: "/api/v1/teams/" + concourse.teamName + "/pipelines/" + concourse.pipelineName + "/jobs",
-      dataType: "json"
-    }),
-    $.ajax({
-      url: "/api/v1/teams/" + concourse.teamName + "/pipelines/" + concourse.pipelineName + "/resources",
-      dataType: "json"
-    })
-  ).done(function(a1, a2) {
-    $(".error-message").addClass("hidden");
-
-    var jobs = a1[0];
-    var resources = a2[0];
-    var request = a2[2];
-
-    renderFn(jobs, resources, request.getResponseHeader("X-Concourse-Version"));
-  }).fail(function(data) {
-    if (data.status !== 0) {
-      $(".error-message .explanation").text("response status " + data.status);
-    } else {
-      $(".error-message .explanation").text("could not reach server");
-    }
-
-    $(".error-message").removeClass("hidden");
-  }).always(completeFn);
-}
-
 var currentHighlight;
 
-function drawContinuously(svg) {
-  draw(function(jobs, resources, concourseVersion) {
-    $("#concourse-version .number").text(concourseVersion);
-    concourse.redraw = redrawFunction(svg, jobs, resources);
-    concourse.redraw();
-  }, function() {
-    setTimeout(function() {
-      drawContinuously(svg)
-    }, 4000);
-  });
+function draw(svg, jobs, resources) {
+  concourse.redraw = redrawFunction(svg, jobs, resources);
+  concourse.redraw();
 }
-
 
 function redrawFunction(svg, jobs, resources) {
   return function() {
@@ -264,7 +227,7 @@ function redrawFunction(svg, jobs, resources) {
   }
 };
 
-function renderPipeline(svg) {
+function createPipelineSvg(svg) {
   svg.append("defs").append("filter")
     .attr("id", "embiggen")
     .append("feMorphology")
@@ -282,7 +245,7 @@ function renderPipeline(svg) {
     g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
   }));
 
-  drawContinuously(g);
+  return g
 }
 
 function createGraph(svg, jobs, resources) {

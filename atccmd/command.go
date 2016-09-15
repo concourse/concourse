@@ -65,8 +65,9 @@ type ATCCommand struct {
 	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
 
-	OAuthBaseURL URLFlag       `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
-	AuthExpire   time.Duration `long:"auth-expire" default:"24h" description:"Authorization Expiration Duration."`
+	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
+
+	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 
 	PostgresDataSource string `long:"postgres-data-source" default:"postgres://127.0.0.1:5432/atc?sslmode=disable" description:"PostgreSQL connection string."`
 
@@ -114,6 +115,8 @@ type ATCCommand struct {
 		RiemannPort          uint16 `long:"riemann-port" default:"5555" description:"Port of the Riemann server to emit metrics to."`
 		RiemannServicePrefix string `long:"riemann-service-prefix" default:"" description:"An optional prefix for emitted Riemann services"`
 	} `group:"Metrics & Diagnostics"`
+
+	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -143,6 +146,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	if err != nil {
 		return nil, err
 	}
+	if cmd.LogDBQueries {
+		dbConn = db.Log(logger.Session("log-conn"), dbConn)
+	}
 
 	lockConn, err := cmd.constructLockConn()
 	if err != nil {
@@ -156,7 +162,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 	trackerFactory := resource.NewTrackerFactory()
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
-	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory)
+	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
+	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory, pipelineDBFactory)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
@@ -202,7 +209,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	drain := make(chan struct{})
 
-	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
@@ -227,7 +233,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		providerFactory,
 		teamDBFactory,
 		signingKey,
-		cmd.AuthExpire,
+		cmd.AuthDuration,
 	)
 	if err != nil {
 		return nil, err
@@ -237,7 +243,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		logger,
 		wrappa.NewWebMetricsWrappa(logger),
 		web.NewClientFactory(cmd.internalURL(), cmd.AllowSelfSignedCertificates || cmd.Developer.DevelopmentMode),
-		cmd.AuthExpire,
+		cmd.AuthDuration,
 	)
 	if err != nil {
 		return nil, err
@@ -330,7 +336,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				logger.Session("container-keepaliver"),
 				workerClient,
 				sqlDB,
-				pipelineDBFactory,
 			),
 			"container-keepaliver",
 			sqlDB,
@@ -406,24 +411,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}), nil
 }
 
-func (cmd *ATCCommand) httpsRedirectingHandler(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "GET", "HEAD":
-			u := url.URL{
-				Scheme:   "https",
-				Host:     cmd.ExternalURL.URL().Host,
-				Path:     r.URL.Path,
-				RawQuery: r.URL.RawQuery,
-			}
-
-			http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
-		default:
-			handler.ServeHTTP(w, r)
-		}
-	})
-}
-
 func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		process := ifrit.Background(runner)
@@ -455,12 +442,6 @@ func (cmd *ATCCommand) oauthBaseURL() string {
 
 func (cmd *ATCCommand) authConfigured() bool {
 	return cmd.BasicAuth.IsConfigured() || cmd.GitHubAuth.IsConfigured() || cmd.UAAAuth.IsConfigured() || cmd.GenericOAuth.IsConfigured()
-}
-
-func (cmd *ATCCommand) gitHubAuthConfigured() bool {
-	return len(cmd.GitHubAuth.Organizations) > 0 ||
-		len(cmd.GitHubAuth.Teams) > 0 ||
-		len(cmd.GitHubAuth.Users) > 0
 }
 
 func (cmd *ATCCommand) validate() error {
@@ -639,6 +620,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	sqlDB *db.SQLDB,
 	trackerFactory resource.TrackerFactory,
 	resourceFetcherFactory resource.FetcherFactory,
+	pipelineDBFactory db.PipelineDBFactory,
 ) worker.Client {
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
@@ -649,6 +631,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 				Timeout: 5 * time.Minute,
 			},
 			image.NewFactory(trackerFactory, resourceFetcherFactory),
+			pipelineDBFactory,
 		),
 	)
 }
@@ -752,6 +735,7 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 		genericOAuth = &db.GenericOAuth{
 			AuthURL:       cmd.GenericOAuth.AuthURL,
 			AuthURLParams: cmd.GenericOAuth.AuthURLParams,
+			Scope:         cmd.GenericOAuth.Scope,
 			TokenURL:      cmd.GenericOAuth.TokenURL,
 			ClientID:      cmd.GenericOAuth.ClientID,
 			ClientSecret:  cmd.GenericOAuth.ClientSecret,
@@ -888,7 +872,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		reconfigurableSink,
 
-		cmd.AuthExpire,
+		cmd.AuthDuration,
 
 		cmd.CLIArtifactsDir.Path(),
 		Version,

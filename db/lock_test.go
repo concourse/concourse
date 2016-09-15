@@ -393,7 +393,7 @@ var _ = Describe("Locks", func() {
 		})
 	})
 
-	Describe("GetNextPendingBuild", func() {
+	Describe("GetNextPendingBuildForJob/GetAllPendingBuilds", func() {
 		Context("when a build is created and then the lock is acquired", func() {
 			BeforeEach(func() {
 				_, err := pipelineDB.CreateJobBuild("some-job")
@@ -406,9 +406,14 @@ var _ = Describe("Locks", func() {
 			})
 
 			It("returns the build while the lock is acquired", func() {
-				_, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				_, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
+
+				pendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pendingBuilds).To(HaveLen(1))
+				Expect(pendingBuilds["some-job"]).NotTo(BeNil())
 			})
 		})
 
@@ -425,15 +430,24 @@ var _ = Describe("Locks", func() {
 			})
 
 			It("returns the build only after the lock is broken", func() {
-				_, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				_, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 
+				pendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pendingBuilds).To(HaveLen(0))
+
 				lock.Release()
 
-				_, found, err = pipelineDB.GetNextPendingBuild("some-job")
+				_, found, err = pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
+
+				pendingBuilds, err = pipelineDB.GetAllPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pendingBuilds).To(HaveLen(1))
+				Expect(pendingBuilds["some-job"]).NotTo(BeNil())
 			})
 
 			It("still returns the build after the lock is broken and reacquired", func() {
@@ -443,7 +457,7 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				_, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				_, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})
@@ -454,7 +468,7 @@ var _ = Describe("Locks", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeFalse())
 
-					_, found, err := pipelineDB.GetNextPendingBuild("some-job")
+					_, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeFalse())
 				})
@@ -490,7 +504,7 @@ var _ = Describe("Locks", func() {
 				err := pipelineDB.EnsurePendingBuildExists("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				_, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})
@@ -502,7 +516,7 @@ var _ = Describe("Locks", func() {
 				err = pipelineDB.EnsurePendingBuildExists("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				build2, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				build2, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -510,7 +524,7 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started).To(BeTrue())
 
-				_, found, err = pipelineDB.GetNextPendingBuild("some-job")
+				_, found, err = pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -534,7 +548,7 @@ var _ = Describe("Locks", func() {
 
 				lock.Release()
 
-				build1, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				build1, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -542,7 +556,7 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started).To(BeTrue())
 
-				_, found, err = pipelineDB.GetNextPendingBuild("some-job")
+				_, found, err = pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -564,7 +578,7 @@ var _ = Describe("Locks", func() {
 
 				lock.Release()
 
-				_, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				_, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})

@@ -18,6 +18,8 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB) http.Handler {
 			err   error
 			until int
 			since int
+			from  int
+			to    int
 			limit int
 		)
 
@@ -30,6 +32,12 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB) http.Handler {
 		urlSince := r.FormValue(atc.PaginationQuerySince)
 		since, _ = strconv.Atoi(urlSince)
 
+		urlFrom := r.FormValue(atc.PaginationQueryFrom)
+		from, _ = strconv.Atoi(urlFrom)
+
+		urlTo := r.FormValue(atc.PaginationQueryTo)
+		to, _ = strconv.Atoi(urlTo)
+
 		urlLimit := r.FormValue(atc.PaginationQueryLimit)
 
 		limit, _ = strconv.Atoi(urlLimit)
@@ -37,7 +45,13 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB) http.Handler {
 			limit = atc.PaginationAPIDefaultLimit
 		}
 
-		versions, pagination, found, err := pipelineDB.GetResourceVersions(resourceName, db.Page{Until: until, Since: since, Limit: limit})
+		versions, pagination, found, err := pipelineDB.GetResourceVersions(resourceName, db.Page{
+			Until: until,
+			Since: since,
+			From:  from,
+			To:    to,
+			Limit: limit,
+		})
 		if err != nil {
 			logger.Error("failed-to-get-resource-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)

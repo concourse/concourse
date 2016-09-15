@@ -4,7 +4,6 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)
 import Html.Events exposing (onClick)
 import Http
-import Json.Decode exposing ((:=))
 import List
 import Navigation exposing (Location)
 import String
@@ -15,10 +14,11 @@ import Concourse
 import Concourse.Pipeline
 import Concourse.User
 import Redirect
+import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 
 type alias Flags =
   { pipeline : Maybe Concourse.PipelineIdentifier
-  , selectedGroups : List String
+  , queryGroups : Maybe (List String)
   }
 
 type alias Model =
@@ -26,6 +26,7 @@ type alias Model =
   , viewingPipeline : Bool
   , ports : Ports
   , location : Location
+  , groupsState : GroupsState
   , selectedGroups : List String
   , pipeline : Maybe Concourse.Pipeline
   , userState : UserState
@@ -37,9 +38,14 @@ type UserState
   | UserStateLoggedOut
   | UserStateUnknown
 
+type GroupsState
+  = GroupsStateSelected (List String)
+  | GroupsStateNotLoaded
+
 type alias Ports =
   { toggleSidebar : () -> Cmd Msg
   , setGroups : List String -> Cmd Msg
+  , selectGroups : (List String -> Msg) -> Sub Msg
   , navigateTo : String -> Cmd Msg
   , setViewingPipeline : (Bool -> Msg) -> Sub Msg
   }
@@ -51,7 +57,8 @@ type Msg
   | FetchPipeline Concourse.PipelineIdentifier
   | ToggleSidebar
   | ToggleGroup Concourse.PipelineGroup
-  | SetGroup Concourse.PipelineGroup
+  | SetGroups (List String)
+  | SelectGroups (List String)
   | LogOut
   | LoggedOut (Result Concourse.User.Error ())
   | ToggleUserMenu
@@ -62,7 +69,13 @@ init ports flags initialLocation =
   ( { pipelineIdentifier = flags.pipeline
     , viewingPipeline = False
     , ports = ports
-    , selectedGroups = flags.selectedGroups
+    , groupsState =
+        case flags.queryGroups of
+          Nothing ->
+            GroupsStateNotLoaded
+          Just groups ->
+            GroupsStateSelected groups
+    , selectedGroups = []
     , location = initialLocation
     , pipeline = Nothing
     , userState = UserStateUnknown
@@ -70,10 +83,10 @@ init ports flags initialLocation =
     }
   , Cmd.batch
       [ case flags.pipeline of
-        Just pid ->
-          fetchPipeline pid
-        Nothing ->
-          Cmd.none
+          Just pid ->
+            fetchPipeline pid
+          Nothing ->
+            Cmd.none
       , fetchUser
       ]
   )
@@ -98,9 +111,26 @@ update msg model =
       )
 
     PipelineFetched (Ok pipeline) ->
-      ( { model | pipeline = Just pipeline }
-      , Cmd.none
-      )
+      let
+        firstGroup =
+          List.head pipeline.groups
+        model =
+          { model | pipeline = Just pipeline }
+      in
+        case firstGroup of
+          Nothing ->
+            (model, Cmd.none)
+
+          Just group ->
+            case model.groupsState of
+              GroupsStateNotLoaded ->
+                (model, Cmd.none)
+
+              GroupsStateSelected groups ->
+                if List.length groups > 0 then
+                  setGroups groups model
+                else
+                  selectGroups [group.name] model
 
     PipelineFetched (Err err) ->
       Debug.log
@@ -117,8 +147,11 @@ update msg model =
       in
         setGroups newGroups model
 
-    SetGroup group ->
-      setGroups [group.name] model
+    SetGroups groups ->
+      setGroups groups model
+
+    SelectGroups groups ->
+      selectGroups groups model
 
     LogOut ->
       (model, logOut)
@@ -140,6 +173,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ model.ports.setViewingPipeline SetViewingPipeline
+    , model.ports.selectGroups SelectGroups
     , case model.pipelineIdentifier of
         Nothing ->
           Sub.none
@@ -157,7 +191,10 @@ setGroups newGroups model =
           locationToHistory pipeline <|
             setGroupsInLocation model.location newGroups
       in
-        ( { model | selectedGroups = newGroups }
+        ( { model
+          | selectedGroups = newGroups
+          , groupsState = GroupsStateSelected newGroups
+          }
         , if model.viewingPipeline then
             Cmd.batch
               [ Navigation.modifyUrl newUrl
@@ -169,6 +206,15 @@ setGroups newGroups model =
 
     Nothing ->
       (model, Cmd.none)
+
+selectGroups : List String -> Model -> (Model, Cmd Msg)
+selectGroups groups model =
+  ( { model | selectedGroups = groups }
+  , if model.viewingPipeline then
+      model.ports.setGroups groups
+    else
+      Cmd.none
+  )
 
 urlUpdate : Location -> Model -> (Model, Cmd Msg)
 urlUpdate location model =
@@ -340,7 +386,7 @@ viewGroup selectedGroups url grp =
     ]
     [ Html.a
         [ Html.Attributes.href <| url ++ "?groups=" ++ grp.name
-        , onClickOrShiftClick (SetGroup grp) (ToggleGroup grp)
+        , onLeftClickOrShiftLeftClick (SetGroups [grp.name]) (ToggleGroup grp)
         ]
         [ Html.text grp.name]
     ]
@@ -364,23 +410,3 @@ redirectToHome : Cmd Msg
 redirectToHome =
   Cmd.map (always Noop) << Task.perform Err Ok <|
     Redirect.to "/"
-
-onClickOrShiftClick : Msg -> Msg -> Html.Attribute Msg
-onClickOrShiftClick clickMsg shiftClickMsg =
-  Html.Events.onWithOptions "click"
-    { stopPropagation = False, preventDefault = True } <|
-      Json.Decode.customDecoder
-      (Json.Decode.object2 (,)
-        ("button" := Json.Decode.int)
-        ("shiftKey" := Json.Decode.bool)) <|
-          determineClickMsg clickMsg shiftClickMsg
-
-determineClickMsg : Msg -> Msg -> (Int, Bool) -> Result String Msg
-determineClickMsg clickMsg shiftClickMsg (button, shiftKey) =
-  case (button, shiftKey) of
-    (0, True) ->
-      Ok shiftClickMsg
-    (0, False) ->
-      Ok clickMsg
-    _ ->
-      Err "placeholder error, nothing is wrong"

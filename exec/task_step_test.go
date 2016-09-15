@@ -23,7 +23,6 @@ import (
 	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
-	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -1231,12 +1230,9 @@ var _ = Describe("GardenFactory", func() {
 								Context("when the image artifact is not found in a volume on the worker", func() {
 									var imageVolume *wfakes.FakeVolume
 									var imageCowVolume *wfakes.FakeVolume
-									var fakeBaggageClaimClient *bfakes.FakeClient
 									dummyReader := tar.NewReader(nil)
 
 									BeforeEach(func() {
-										fakeBaggageClaimClient = new(bfakes.FakeClient)
-
 										imageVolume = new(wfakes.FakeVolume)
 										imageVolume.PathReturns("/var/vcap/some-path")
 										imageVolume.HandleReturns("some-handle")

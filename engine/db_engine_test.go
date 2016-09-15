@@ -180,10 +180,7 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			Context("when acquiring the lock fails", func() {
-				var fakeLease *dbfakes.FakeLease
-
 				BeforeEach(func() {
-					fakeLease = new(dbfakes.FakeLease)
 					dbBuild.AcquireTrackingLockReturns(nil, false, nil)
 				})
 
@@ -197,10 +194,7 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			Context("when acquiring the lock errors", func() {
-				var fakeLease *dbfakes.FakeLease
-
 				BeforeEach(func() {
-					fakeLease = new(dbfakes.FakeLease)
 					dbBuild.AcquireTrackingLockReturns(nil, false, errors.New("bad bad bad"))
 				})
 

@@ -7,14 +7,6 @@ var _concourse$atc$Native_Scroll = function() {
     });
   }
 
-  function fromBottom(id) {
-    return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-      var ele = document.getElementById(id);
-      var fromBottom = ele.scrollHeight - (ele.scrollTop + ele.clientHeight);
-      callback(_elm_lang$core$Native_Scheduler.succeed(fromBottom));
-    });
-  }
-
   function scrollElement(id, delta) {
     return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
       document.getElementById(id).scrollLeft -= delta;
@@ -31,7 +23,6 @@ var _concourse$atc$Native_Scroll = function() {
 
   return {
     toBottom: toBottom,
-    fromBottom: fromBottom,
     scrollElement: F2(scrollElement),
     scrollIntoView: scrollIntoView
   };

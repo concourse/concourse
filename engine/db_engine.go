@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -11,8 +10,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 )
-
-var ErrBuildNotActive = errors.New("build not yet active")
 
 const trackLeaseDuration = time.Minute
 

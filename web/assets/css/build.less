@@ -1,0 +1,19 @@
+#build-autoscroll {
+  outline: 0;
+}
+
+// the following is a work-around a performance issue in Chrome wherein
+// updating the values of the duration fields forces a repaint of the entire
+// page.
+//
+// firefox and safari are unaffected.
+.dict-value {
+  position: relative;
+
+  span {
+    /* "remove" element from layout to prevent repainting entire page */
+    position: absolute;
+    width: 100px;
+    top: 0;
+  }
+}

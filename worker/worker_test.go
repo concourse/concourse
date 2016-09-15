@@ -16,6 +16,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
@@ -36,6 +37,7 @@ var _ = Describe("Worker", func() {
 		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
 		fakeWorkerProvider     *wfakes.FakeWorkerProvider
 		fakeClock              *fakeclock.FakeClock
+		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
 		activeContainers       int
 		resourceTypes          []atc.WorkerResourceType
 		platform               string
@@ -63,6 +65,7 @@ var _ = Describe("Worker", func() {
 		fakeImageFactory.NewImageReturns(fakeImage)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
+		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
@@ -87,6 +90,7 @@ var _ = Describe("Worker", func() {
 			fakeVolumeClient,
 			fakeVolumeFactory,
 			fakeImageFactory,
+			fakePipelineDBFactory,
 			fakeGardenWorkerDB,
 			fakeWorkerProvider,
 			fakeClock,
@@ -1218,10 +1222,8 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns the container and no error", func() {
-				foundContainer, found, err := gardenWorker.LookupContainer(logger, handle)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(findErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-
 				Expect(foundContainer.Handle()).To(Equal(fakeContainer.Handle()))
 			})
 
@@ -1325,6 +1327,7 @@ var _ = Describe("Worker", func() {
 								fakeVolumeClient,
 								nil,
 								fakeImageFactory,
+								fakePipelineDBFactory,
 								fakeGardenWorkerDB,
 								fakeWorkerProvider,
 								fakeClock,
@@ -1388,6 +1391,7 @@ var _ = Describe("Worker", func() {
 								fakeVolumeClient,
 								nil,
 								fakeImageFactory,
+								fakePipelineDBFactory,
 								fakeGardenWorkerDB,
 								fakeWorkerProvider,
 								fakeClock,
@@ -1548,6 +1552,216 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
+	Describe("ValidateResourceCheckVersion", func() {
+		var (
+			container db.SavedContainer
+			valid     bool
+			checkErr  error
+		)
+
+		BeforeEach(func() {
+			container = db.SavedContainer{
+				Container: db.Container{
+					ContainerIdentifier: db.ContainerIdentifier{
+						ResourceTypeVersion: atc.Version{
+							"custom-type": "some-version",
+						},
+						CheckType: "custom-type",
+					},
+					ContainerMetadata: db.ContainerMetadata{
+						WorkerName: "some-worker",
+					},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			valid, checkErr = gardenWorker.ValidateResourceCheckVersion(container)
+		})
+
+		Context("when not a check container", func() {
+			BeforeEach(func() {
+				container = db.SavedContainer{
+					Container: db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							WorkerName: "some-worker",
+							Type:       db.ContainerTypeTask,
+						},
+					},
+				}
+			})
+
+			It("returns true", func() {
+				Expect(valid).To(BeTrue())
+				Expect(checkErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when container version matches worker's", func() {
+			BeforeEach(func() {
+				container = db.SavedContainer{
+					Container: db.Container{
+						ContainerIdentifier: db.ContainerIdentifier{
+							ResourceTypeVersion: atc.Version{
+								"some-resource": "some-version",
+							},
+							CheckType: "some-resource",
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							WorkerName: "some-worker",
+							Type:       db.ContainerTypeCheck,
+						},
+					},
+				}
+			})
+
+			It("returns true", func() {
+				Expect(valid).To(BeTrue())
+				Expect(checkErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when container version does not match worker's", func() {
+			BeforeEach(func() {
+				container = db.SavedContainer{
+					Container: db.Container{
+						ContainerIdentifier: db.ContainerIdentifier{
+							ResourceTypeVersion: atc.Version{
+								"some-resource": "some-other-version",
+							},
+							CheckType: "some-resource",
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							WorkerName: "some-worker",
+							Type:       db.ContainerTypeCheck,
+						},
+					},
+				}
+			})
+
+			It("returns false", func() {
+				Expect(valid).To(BeFalse())
+				Expect(checkErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when worker does not provide version for the resource type", func() {
+			BeforeEach(func() {
+				container = db.SavedContainer{
+					Container: db.Container{
+						ContainerIdentifier: db.ContainerIdentifier{
+							ResourceTypeVersion: atc.Version{
+								"some-other-resource": "some-other-version",
+							},
+							CheckType: "some-other-resource",
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							WorkerName: "some-worker",
+							Type:       db.ContainerTypeCheck,
+						},
+					},
+				}
+			})
+
+			It("returns false", func() {
+				Expect(valid).To(BeFalse())
+				Expect(checkErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when container belongs to pipeline", func() {
+			BeforeEach(func() {
+				container = db.SavedContainer{
+					Container: db.Container{
+						ContainerIdentifier: db.ContainerIdentifier{
+							ResourceTypeVersion: atc.Version{
+								"some-resource": "some-version",
+							},
+							CheckType: "some-resource",
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							WorkerName: "some-worker",
+							Type:       db.ContainerTypeCheck,
+							PipelineID: 1,
+						},
+					},
+				}
+			})
+
+			Context("when failing to get pipeline from database", func() {
+				BeforeEach(func() {
+					fakeGardenWorkerDB.GetPipelineByIDReturns(db.SavedPipeline{}, errors.New("disaster"))
+				})
+
+				It("returns an error", func() {
+					Expect(checkErr).To(HaveOccurred())
+					Expect(checkErr.Error()).To(ContainSubstring("disaster"))
+				})
+
+			})
+
+			Context("when pipeline was found", func() {
+				var fakePipelineDB *dbfakes.FakePipelineDB
+				BeforeEach(func() {
+					fakePipelineDB = new(dbfakes.FakePipelineDB)
+					fakePipelineDBFactory.BuildReturns(fakePipelineDB)
+				})
+
+				Context("resource type is not found", func() {
+					BeforeEach(func() {
+						fakePipelineDB.GetResourceTypeReturns(db.SavedResourceType{}, false, nil)
+					})
+
+					Context("when worker version matches", func() {
+						BeforeEach(func() {
+							container.Container.ResourceTypeVersion["some-resource"] = "some-version"
+						})
+
+						It("returns true", func() {
+							Expect(valid).To(BeTrue())
+							Expect(checkErr).NotTo(HaveOccurred())
+						})
+					})
+
+					Context("when worker version does not match", func() {
+						BeforeEach(func() {
+							container.Container.ResourceTypeVersion["some-resource"] = "some-other-version"
+						})
+
+						It("returns false", func() {
+							Expect(valid).To(BeFalse())
+							Expect(checkErr).NotTo(HaveOccurred())
+						})
+					})
+				})
+
+				Context("resource type is found", func() {
+					BeforeEach(func() {
+						fakePipelineDB.GetResourceTypeReturns(db.SavedResourceType{}, true, nil)
+					})
+
+					It("returns true", func() {
+						Expect(valid).To(BeTrue())
+						Expect(checkErr).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("getting resource type fails", func() {
+					BeforeEach(func() {
+						fakePipelineDB.GetResourceTypeReturns(db.SavedResourceType{}, false, errors.New("disaster"))
+					})
+
+					It("returns false and error", func() {
+						Expect(valid).To(BeFalse())
+						Expect(checkErr).To(HaveOccurred())
+						Expect(checkErr.Error()).To(ContainSubstring("disaster"))
+					})
+				})
+			})
+		})
+
+	})
+
 	Describe("FindContainerForIdentifier", func() {
 		var (
 			id Identifier
@@ -1580,8 +1794,8 @@ var _ = Describe("Worker", func() {
 				fakeSavedContainer = db.SavedContainer{
 					Container: db.Container{
 						ContainerIdentifier: db.ContainerIdentifier{
-							CheckType:           "some-check-type",
-							ResourceTypeVersion: atc.Version{"some-check-type": "some-version"},
+							CheckType:           "some-resource",
+							ResourceTypeVersion: atc.Version{"some-resource": "some-version"},
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "provider-handle",
@@ -1590,7 +1804,6 @@ var _ = Describe("Worker", func() {
 					},
 				}
 				fakeWorkerProvider.FindContainerForIdentifierReturns(fakeSavedContainer, true, nil)
-
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
 				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
 			})
@@ -1606,6 +1819,32 @@ var _ = Describe("Worker", func() {
 				Expect(fakeGardenClient.LookupCallCount()).To(Equal(1))
 				lookupHandle := fakeGardenClient.LookupArgsForCall(0)
 				Expect(lookupHandle).To(Equal("provider-handle"))
+			})
+
+			Context("when container is check container", func() {
+				BeforeEach(func() {
+					fakeSavedContainer.Type = db.ContainerTypeCheck
+					fakeWorkerProvider.FindContainerForIdentifierReturns(fakeSavedContainer, true, nil)
+				})
+
+				Context("when container resource version matches worker resource version", func() {
+					It("returns container", func() {
+						Expect(found).To(BeTrue())
+						Expect(foundContainer.Handle()).To(Equal("provider-handle"))
+					})
+				})
+
+				Context("when container resource version does not match worker resource version", func() {
+					BeforeEach(func() {
+						fakeSavedContainer.ResourceTypeVersion = atc.Version{"some-resource": "some-other-version"}
+						fakeWorkerProvider.FindContainerForIdentifierReturns(fakeSavedContainer, true, nil)
+					})
+
+					It("does not return container", func() {
+						Expect(found).To(BeFalse())
+						Expect(lookupErr).NotTo(HaveOccurred())
+					})
+				})
 			})
 
 			Describe("the found container", func() {
@@ -1686,28 +1925,6 @@ var _ = Describe("Worker", func() {
 						foundContainer.Release(nil)
 					}).NotTo(Panic())
 				})
-			})
-		})
-
-		Context("when no containers are found", func() {
-			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerForIdentifierReturns(db.SavedContainer{}, false, nil)
-			})
-
-			It("returns that the container could not be found", func() {
-				Expect(found).To(BeFalse())
-			})
-		})
-
-		Context("when finding the containers fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerForIdentifierReturns(db.SavedContainer{}, false, disaster)
-			})
-
-			It("returns the error", func() {
-				Expect(lookupErr).To(Equal(disaster))
 			})
 		})
 

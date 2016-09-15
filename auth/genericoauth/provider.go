@@ -28,8 +28,15 @@ func NewProvider(
 		endpoint.TokenURL = genericOAuth.TokenURL
 	}
 
+	var oauthVerifier verifier.Verifier
+	if genericOAuth.Scope != "" {
+		oauthVerifier = NewScopeVerifier(genericOAuth.Scope)
+	} else {
+		oauthVerifier = NoopVerifier{}
+	}
+
 	return Provider{
-		Verifier: NoopVerifier{},
+		Verifier: oauthVerifier,
 		Config: ConfigOverride{
 			Config: oauth2.Config{
 				ClientID:     genericOAuth.ClientID,

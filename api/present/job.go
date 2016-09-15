@@ -10,8 +10,7 @@ import (
 
 func Job(
 	teamName string,
-	dbJob db.SavedJob,
-	job atc.JobConfig,
+	job db.SavedJob,
 	groups atc.GroupConfigs,
 	finishedBuild db.Build,
 	nextBuild db.Build,
@@ -22,7 +21,7 @@ func Job(
 		web.GetJob,
 		rata.Params{
 			"job":           job.Name,
-			"pipeline_name": dbJob.PipelineName,
+			"pipeline_name": job.PipelineName,
 			"team_name":     teamName,
 		},
 		nil,
@@ -53,7 +52,7 @@ func Job(
 	}
 
 	sanitizedInputs := []atc.JobInput{}
-	for _, input := range config.JobInputs(job) {
+	for _, input := range config.JobInputs(job.Config) {
 		sanitizedInputs = append(sanitizedInputs, atc.JobInput{
 			Name:     input.Name,
 			Resource: input.Resource,
@@ -63,7 +62,7 @@ func Job(
 	}
 
 	sanitizedOutputs := []atc.JobOutput{}
-	for _, output := range config.JobOutputs(job) {
+	for _, output := range config.JobOutputs(job.Config) {
 		sanitizedOutputs = append(sanitizedOutputs, atc.JobOutput{
 			Name:     output.Name,
 			Resource: output.Resource,
@@ -73,9 +72,9 @@ func Job(
 	return atc.Job{
 		Name:                 job.Name,
 		URL:                  req.URL.String(),
-		DisableManualTrigger: job.DisableManualTrigger,
-		Paused:               dbJob.Paused,
-		FirstLoggedBuildID:   dbJob.FirstLoggedBuildID,
+		DisableManualTrigger: job.Config.DisableManualTrigger,
+		Paused:               job.Paused,
+		FirstLoggedBuildID:   job.FirstLoggedBuildID,
 		FinishedBuild:        presentedFinishedBuild,
 		NextBuild:            presentedNextBuild,
 

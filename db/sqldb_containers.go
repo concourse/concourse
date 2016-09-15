@@ -120,50 +120,12 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		containers = append(containers, container)
 	}
 
-	versionFilteredContainers := []SavedContainer{}
-	for _, container := range containers {
-		if container.Type != ContainerTypeCheck || container.CheckType == "" || container.ResourceTypeVersion == nil {
-			versionFilteredContainers = append(versionFilteredContainers, container)
-			continue
-		}
-
-		if container.PipelineID > 0 {
-			savedPipeline, err := db.GetPipelineByID(container.PipelineID)
-			if err != nil {
-				return SavedContainer{}, false, err
-			}
-
-			pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db.lockFactory)
-			pipelineDB := pipelineDBFactory.Build(savedPipeline)
-
-			_, found, err := pipelineDB.GetResourceType(container.CheckType)
-			if err != nil {
-				return SavedContainer{}, false, err
-			}
-
-			// this is custom resource type, do not validate version on worker
-			if found {
-				versionFilteredContainers = append(versionFilteredContainers, container)
-				continue
-			}
-		}
-
-		workerResourceTypeVersion, found, err := db.FindWorkerCheckResourceTypeVersion(container.WorkerName, container.CheckType)
-		if err != nil {
-			return SavedContainer{}, false, err
-		}
-
-		if found && workerResourceTypeVersion == container.ResourceTypeVersion[container.CheckType] {
-			versionFilteredContainers = append(versionFilteredContainers, container)
-		}
-	}
-
-	switch len(versionFilteredContainers) {
+	switch len(containers) {
 	case 0:
 		return SavedContainer{}, false, nil
 
 	case 1:
-		return versionFilteredContainers[0], true, nil
+		return containers[0], true, nil
 
 	default:
 		return SavedContainer{}, false, ErrMultipleContainersFound

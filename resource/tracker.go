@@ -7,7 +7,6 @@ import (
 )
 
 type ResourceType string
-type ContainerImage string
 
 type Session struct {
 	ID        worker.Identifier
@@ -54,11 +53,6 @@ func (factory *trackerFactory) TrackerFor(client worker.Client) Tracker {
 	return &tracker{
 		workerClient: client,
 	}
-}
-
-type VolumeMount struct {
-	Volume    worker.Volume
-	MountPath string
 }
 
 func (tracker *tracker) InitWithSources(

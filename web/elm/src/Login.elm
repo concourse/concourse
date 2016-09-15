@@ -5,7 +5,6 @@ import Html exposing (Html)
 import Html.Attributes as Attributes exposing (id, class)
 import Html.Events as Events
 import Http
-import Json.Decode exposing ((:=))
 import Navigation
 import String
 import Task
@@ -13,6 +12,7 @@ import Task
 import Concourse
 import Concourse.AuthMethod
 import Concourse.Team
+import StrictEvents exposing (onLeftClick)
 
 type alias PageWithRedirect =
   { page : Page
@@ -253,24 +253,10 @@ viewTeamSelection model =
           ]
       ]
 
-onClickPreventDefault : msg -> Html.Attribute msg
-onClickPreventDefault message =
-  Events.onWithOptions
-    "click"
-    {stopPropagation = False, preventDefault = True} <|
-    Json.Decode.customDecoder
-      ("button" := Json.Decode.int) <|
-      assertLeftButton message
-
-assertLeftButton : a -> Int -> Result String a
-assertLeftButton message button =
-  if button == 0 then Ok message
-  else Err "placeholder error, nothing is wrong"
-
 viewTeam : String -> Concourse.Team -> Html Msg
 viewTeam redirect team =
   Html.a
-    [ onClickPreventDefault <| SelectTeam team.name
+    [ onLeftClick (SelectTeam team.name)
     , Attributes.href <| loginRoute redirect team.name
     ]
     [ Html.text <| team.name ]
@@ -310,7 +296,7 @@ viewLogin model =
     [ Html.div
         [ class "small-title" ]
         [ Html.a
-            [ onClickPreventDefault GoBack
+            [ onLeftClick GoBack
             , Attributes.href <| teamSelectionRoute model.redirect
             ]
             [ Html.i [class "fa fa-fw fa-chevron-left"] []

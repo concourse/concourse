@@ -72,12 +72,7 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 
 	defer lock.Release()
 
-	configResourceType, err := scanner.getResourceTypeConfig(logger, resourceTypeName)
-	if err != nil {
-		return 0, err
-	}
-
-	err = scanner.resourceTypeScan(logger.Session("tick"), configResourceType, savedResourceType.Version)
+	err = scanner.resourceTypeScan(logger.Session("tick"), savedResourceType.Config, savedResourceType.Version)
 	if err != nil {
 		return 0, err
 	}
@@ -162,25 +157,4 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	}
 
 	return nil
-}
-
-func (scanner *resourceTypeScanner) getResourceTypeConfig(logger lager.Logger, resourceTypeName string) (atc.ResourceType, error) {
-	config, _, found, err := scanner.db.GetConfig()
-	if err != nil {
-		logger.Error("failed-to-get-config", err)
-		return atc.ResourceType{}, err
-	}
-
-	if !found {
-		logger.Info("pipeline-removed")
-		return atc.ResourceType{}, errPipelineRemoved
-	}
-
-	resourceType, found := config.ResourceTypes.Lookup(resourceTypeName)
-	if !found {
-		logger.Info("resource-type-removed-from-configuration")
-		return resourceType, ResourceNotConfiguredError{ResourceName: resourceTypeName}
-	}
-
-	return resourceType, nil
 }

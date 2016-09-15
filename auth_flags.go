@@ -74,6 +74,7 @@ type GenericOAuthFlag struct {
 	ClientSecret  string            `long:"client-secret"  description:"Application client secret for enabling generic OAuth."`
 	AuthURL       string            `long:"auth-url"       description:"Generic OAuth provider AuthURL endpoint."`
 	AuthURLParams map[string]string `long:"auth-url-param" description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
+	Scope         string            `long:"scope"          description:"Optional scope required to authorize user"`
 	TokenURL      string            `long:"token-url"      description:"Generic OAuth provider TokenURL endpoint."`
 }
 

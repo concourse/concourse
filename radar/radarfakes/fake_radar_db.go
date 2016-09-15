@@ -38,6 +38,12 @@ type FakeRadarDB struct {
 	teamIDReturns     struct {
 		result1 int
 	}
+	ConfigStub        func() atc.Config
+	configMutex       sync.RWMutex
+	configArgsForCall []struct{}
+	configReturns     struct {
+		result1 atc.Config
+	}
 	IsPausedStub        func() (bool, error)
 	isPausedMutex       sync.RWMutex
 	isPausedArgsForCall []struct{}
@@ -45,14 +51,12 @@ type FakeRadarDB struct {
 		result1 bool
 		result2 error
 	}
-	GetConfigStub        func() (atc.Config, db.ConfigVersion, bool, error)
-	getConfigMutex       sync.RWMutex
-	getConfigArgsForCall []struct{}
-	getConfigReturns     struct {
-		result1 atc.Config
-		result2 db.ConfigVersion
-		result3 bool
-		result4 error
+	ReloadStub        func() (bool, error)
+	reloadMutex       sync.RWMutex
+	reloadArgsForCall []struct{}
+	reloadReturns     struct {
+		result1 bool
+		result2 error
 	}
 	GetLatestVersionedResourceStub        func(resourceName string) (db.SavedVersionedResource, bool, error)
 	getLatestVersionedResourceMutex       sync.RWMutex
@@ -265,6 +269,31 @@ func (fake *FakeRadarDB) TeamIDReturns(result1 int) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) Config() atc.Config {
+	fake.configMutex.Lock()
+	fake.configArgsForCall = append(fake.configArgsForCall, struct{}{})
+	fake.recordInvocation("Config", []interface{}{})
+	fake.configMutex.Unlock()
+	if fake.ConfigStub != nil {
+		return fake.ConfigStub()
+	} else {
+		return fake.configReturns.result1
+	}
+}
+
+func (fake *FakeRadarDB) ConfigCallCount() int {
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
+	return len(fake.configArgsForCall)
+}
+
+func (fake *FakeRadarDB) ConfigReturns(result1 atc.Config) {
+	fake.ConfigStub = nil
+	fake.configReturns = struct {
+		result1 atc.Config
+	}{result1}
+}
+
 func (fake *FakeRadarDB) IsPaused() (bool, error) {
 	fake.isPausedMutex.Lock()
 	fake.isPausedArgsForCall = append(fake.isPausedArgsForCall, struct{}{})
@@ -291,32 +320,30 @@ func (fake *FakeRadarDB) IsPausedReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeRadarDB) GetConfig() (atc.Config, db.ConfigVersion, bool, error) {
-	fake.getConfigMutex.Lock()
-	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct{}{})
-	fake.recordInvocation("GetConfig", []interface{}{})
-	fake.getConfigMutex.Unlock()
-	if fake.GetConfigStub != nil {
-		return fake.GetConfigStub()
+func (fake *FakeRadarDB) Reload() (bool, error) {
+	fake.reloadMutex.Lock()
+	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
+	fake.recordInvocation("Reload", []interface{}{})
+	fake.reloadMutex.Unlock()
+	if fake.ReloadStub != nil {
+		return fake.ReloadStub()
 	} else {
-		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3, fake.getConfigReturns.result4
+		return fake.reloadReturns.result1, fake.reloadReturns.result2
 	}
 }
 
-func (fake *FakeRadarDB) GetConfigCallCount() int {
-	fake.getConfigMutex.RLock()
-	defer fake.getConfigMutex.RUnlock()
-	return len(fake.getConfigArgsForCall)
+func (fake *FakeRadarDB) ReloadCallCount() int {
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
+	return len(fake.reloadArgsForCall)
 }
 
-func (fake *FakeRadarDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 bool, result4 error) {
-	fake.GetConfigStub = nil
-	fake.getConfigReturns = struct {
-		result1 atc.Config
-		result2 db.ConfigVersion
-		result3 bool
-		result4 error
-	}{result1, result2, result3, result4}
+func (fake *FakeRadarDB) ReloadReturns(result1 bool, result2 error) {
+	fake.ReloadStub = nil
+	fake.reloadReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeRadarDB) GetLatestVersionedResource(resourceName string) (db.SavedVersionedResource, bool, error) {
@@ -684,10 +711,12 @@ func (fake *FakeRadarDB) Invocations() map[string][][]interface{} {
 	defer fake.scopedNameMutex.RUnlock()
 	fake.teamIDMutex.RLock()
 	defer fake.teamIDMutex.RUnlock()
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
 	fake.isPausedMutex.RLock()
 	defer fake.isPausedMutex.RUnlock()
-	fake.getConfigMutex.RLock()
-	defer fake.getConfigMutex.RUnlock()
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
 	fake.getLatestVersionedResourceMutex.RLock()
 	defer fake.getLatestVersionedResourceMutex.RUnlock()
 	fake.getResourceMutex.RLock()

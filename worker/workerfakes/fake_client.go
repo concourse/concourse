@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
@@ -47,6 +48,15 @@ type FakeClient struct {
 		result1 worker.Container
 		result2 bool
 		result3 error
+	}
+	ValidateResourceCheckVersionStub        func(container db.SavedContainer) (bool, error)
+	validateResourceCheckVersionMutex       sync.RWMutex
+	validateResourceCheckVersionArgsForCall []struct {
+		container db.SavedContainer
+	}
+	validateResourceCheckVersionReturns struct {
+		result1 bool
+		result2 error
 	}
 	FindResourceTypeByPathStub        func(path string) (atc.WorkerResourceType, bool)
 	findResourceTypeByPathMutex       sync.RWMutex
@@ -117,6 +127,13 @@ type FakeClient struct {
 		arg2 atc.ResourceTypes
 	}
 	allSatisfyingReturns struct {
+		result1 []worker.Worker
+		result2 error
+	}
+	WorkersStub        func() ([]worker.Worker, error)
+	workersMutex       sync.RWMutex
+	workersArgsForCall []struct{}
+	workersReturns     struct {
 		result1 []worker.Worker
 		result2 error
 	}
@@ -243,6 +260,40 @@ func (fake *FakeClient) LookupContainerReturns(result1 worker.Container, result2
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeClient) ValidateResourceCheckVersion(container db.SavedContainer) (bool, error) {
+	fake.validateResourceCheckVersionMutex.Lock()
+	fake.validateResourceCheckVersionArgsForCall = append(fake.validateResourceCheckVersionArgsForCall, struct {
+		container db.SavedContainer
+	}{container})
+	fake.recordInvocation("ValidateResourceCheckVersion", []interface{}{container})
+	fake.validateResourceCheckVersionMutex.Unlock()
+	if fake.ValidateResourceCheckVersionStub != nil {
+		return fake.ValidateResourceCheckVersionStub(container)
+	} else {
+		return fake.validateResourceCheckVersionReturns.result1, fake.validateResourceCheckVersionReturns.result2
+	}
+}
+
+func (fake *FakeClient) ValidateResourceCheckVersionCallCount() int {
+	fake.validateResourceCheckVersionMutex.RLock()
+	defer fake.validateResourceCheckVersionMutex.RUnlock()
+	return len(fake.validateResourceCheckVersionArgsForCall)
+}
+
+func (fake *FakeClient) ValidateResourceCheckVersionArgsForCall(i int) db.SavedContainer {
+	fake.validateResourceCheckVersionMutex.RLock()
+	defer fake.validateResourceCheckVersionMutex.RUnlock()
+	return fake.validateResourceCheckVersionArgsForCall[i].container
+}
+
+func (fake *FakeClient) ValidateResourceCheckVersionReturns(result1 bool, result2 error) {
+	fake.ValidateResourceCheckVersionStub = nil
+	fake.validateResourceCheckVersionReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeClient) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {
@@ -492,6 +543,32 @@ func (fake *FakeClient) AllSatisfyingReturns(result1 []worker.Worker, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeClient) Workers() ([]worker.Worker, error) {
+	fake.workersMutex.Lock()
+	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
+	fake.recordInvocation("Workers", []interface{}{})
+	fake.workersMutex.Unlock()
+	if fake.WorkersStub != nil {
+		return fake.WorkersStub()
+	} else {
+		return fake.workersReturns.result1, fake.workersReturns.result2
+	}
+}
+
+func (fake *FakeClient) WorkersCallCount() int {
+	fake.workersMutex.RLock()
+	defer fake.workersMutex.RUnlock()
+	return len(fake.workersArgsForCall)
+}
+
+func (fake *FakeClient) WorkersReturns(result1 []worker.Worker, result2 error) {
+	fake.WorkersStub = nil
+	fake.workersReturns = struct {
+		result1 []worker.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) GetWorker(workerName string) (worker.Worker, error) {
 	fake.getWorkerMutex.Lock()
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
@@ -535,6 +612,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.findContainerForIdentifierMutex.RUnlock()
 	fake.lookupContainerMutex.RLock()
 	defer fake.lookupContainerMutex.RUnlock()
+	fake.validateResourceCheckVersionMutex.RLock()
+	defer fake.validateResourceCheckVersionMutex.RUnlock()
 	fake.findResourceTypeByPathMutex.RLock()
 	defer fake.findResourceTypeByPathMutex.RUnlock()
 	fake.findVolumeMutex.RLock()
@@ -549,6 +628,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.satisfyingMutex.RUnlock()
 	fake.allSatisfyingMutex.RLock()
 	defer fake.allSatisfyingMutex.RUnlock()
+	fake.workersMutex.RLock()
+	defer fake.workersMutex.RUnlock()
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
 	return fake.invocations

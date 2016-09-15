@@ -5,7 +5,8 @@ import Navigation
 import TopBar
 
 port toggleSidebar : () -> Cmd msg
-port setGroups : List String -> Cmd msg
+port groupsChanged : List String -> Cmd msg
+port selectGroups : (List String -> msg) -> Sub msg
 port navigateTo : String -> Cmd msg
 port setViewingPipeline : (Bool -> msg) -> Sub msg
 
@@ -16,7 +17,8 @@ main =
     { init =
         TopBar.init
           { toggleSidebar = toggleSidebar
-          , setGroups = setGroups
+          , setGroups = groupsChanged
+          , selectGroups = selectGroups
           , navigateTo = navigateTo
           , setViewingPipeline = setViewingPipeline
           }

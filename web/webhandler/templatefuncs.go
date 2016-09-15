@@ -85,22 +85,6 @@ func resourceName(x interface{}) string {
 
 func PathFor(route string, args ...interface{}) (string, error) {
 	switch route {
-	case web.TriggerBuild:
-		switch args[1].(type) {
-		case atc.Job:
-			return web.Routes.CreatePathForRoute(route, rata.Params{
-				"team_name":     args[0].(string),
-				"pipeline_name": args[1].(string),
-				"job":           jobName(args[2]),
-			})
-		default:
-			return web.Routes.CreatePathForRoute(route, rata.Params{
-				"team_name":     args[0].(string),
-				"pipeline_name": args[1].(string),
-				"job":           jobName(args[2]),
-			})
-		}
-
 	case web.GetResource:
 		baseResourceURL, err := web.Routes.CreatePathForRoute(route, rata.Params{
 			"team_name":     args[0].(string),

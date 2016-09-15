@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -70,11 +69,6 @@ func swallowUniqueViolation(err error) error {
 	return nil
 }
 
-func HashResourceConfig(checkType string, source atc.Source) string {
-	sourceJSON, _ := json.Marshal(source)
-	return checkType + string(sourceJSON)
-}
-
 type DB interface {
 	GetTeams() ([]SavedTeam, error)
 	CreateTeam(team Team) (SavedTeam, error)
@@ -115,8 +109,6 @@ type DB interface {
 	SetVolumeTTL(string, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
-
-	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)
 }
 
 //go:generate counterfeiter . Notifier

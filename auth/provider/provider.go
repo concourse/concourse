@@ -9,8 +9,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type Providers map[string]Provider
-
 //go:generate counterfeiter . Provider
 
 type Provider interface {

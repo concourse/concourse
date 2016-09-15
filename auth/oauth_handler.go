@@ -2,7 +2,6 @@ package auth
 
 import (
 	"crypto/rsa"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -50,14 +49,4 @@ func NewOAuthHandler(
 			),
 		},
 	)
-}
-
-func keyFunc(key *rsa.PrivateKey) func(token *jwt.Token) (interface{}, error) {
-	return func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-
-		return key.Public(), nil
-	}
 }

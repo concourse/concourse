@@ -11,9 +11,15 @@ import (
 //go:generate counterfeiter . BuildStarter
 
 type BuildStarter interface {
-	TryStartAllPendingBuilds(
+	TryStartPendingBuildsForJob(
 		logger lager.Logger,
 		jobConfig atc.JobConfig,
+		resourceConfigs atc.ResourceConfigs,
+		resourceTypes atc.ResourceTypes,
+	) error
+	TryStartAllPendingBuilds(
+		logger lager.Logger,
+		jobConfigs atc.JobConfigs,
 		resourceConfigs atc.ResourceConfigs,
 		resourceTypes atc.ResourceTypes,
 	) error
@@ -22,10 +28,11 @@ type BuildStarter interface {
 //go:generate counterfeiter . BuildStarterDB
 
 type BuildStarterDB interface {
-	GetNextPendingBuild(job string) (db.Build, bool, error)
+	GetNextPendingBuildForJob(jobName string) (db.Build, bool, error)
+	GetAllPendingBuilds() (map[string][]db.Build, error)
 	GetNextBuildInputs(jobName string) ([]db.BuildInput, bool, error)
 	IsPaused() (bool, error)
-	GetJob(job string) (db.SavedJob, error)
+	GetJob(job string) (db.SavedJob, bool, error)
 	UpdateBuildToScheduled(int) (bool, error)
 	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
@@ -63,16 +70,25 @@ type buildStarter struct {
 	execEngine         engine.Engine
 }
 
-func (s *buildStarter) TryStartAllPendingBuilds(
+func (s *buildStarter) TryStartPendingBuildsForJob(
 	logger lager.Logger,
 	jobConfig atc.JobConfig,
 	resourceConfigs atc.ResourceConfigs,
 	resourceTypes atc.ResourceTypes,
 ) error {
 	started := true
+
 	for started {
-		var err error
-		started, err = s.tryStartNextPendingBuild(logger, jobConfig, resourceConfigs, resourceTypes)
+		nextPendingBuild, found, err := s.db.GetNextPendingBuildForJob(jobConfig.Name)
+		if err != nil {
+			logger.Error("failed-to-get-next-pending-build-for-job", err)
+			return err
+		}
+		if !found {
+			return nil
+		}
+
+		started, err = s.tryStartNextPendingBuild(logger, nextPendingBuild, jobConfig, resourceConfigs, resourceTypes)
 		if err != nil {
 			return err
 		}
@@ -81,24 +97,47 @@ func (s *buildStarter) TryStartAllPendingBuilds(
 	return nil
 }
 
+func (s *buildStarter) TryStartAllPendingBuilds(
+	logger lager.Logger,
+	jobConfigs atc.JobConfigs,
+	resourceConfigs atc.ResourceConfigs,
+	resourceTypes atc.ResourceTypes,
+) error {
+	nextPendingBuilds, err := s.db.GetAllPendingBuilds()
+	if err != nil {
+		logger.Error("failed-to-get-all-next-pending-builds", err)
+		return err
+	}
+
+	for _, jobConfig := range jobConfigs {
+		nextPendingBuildsForJob, ok := nextPendingBuilds[jobConfig.Name]
+		if !ok {
+			continue
+		}
+
+		for _, nextPendingBuild := range nextPendingBuildsForJob {
+			started, err := s.tryStartNextPendingBuild(logger, nextPendingBuild, jobConfig, resourceConfigs, resourceTypes)
+			if err != nil {
+				return err
+			}
+
+			if !started {
+				break // stop scheduling next builds after failing to schedule a build
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *buildStarter) tryStartNextPendingBuild(
 	logger lager.Logger,
+	nextPendingBuild db.Build,
 	jobConfig atc.JobConfig,
 	resourceConfigs atc.ResourceConfigs,
 	resourceTypes atc.ResourceTypes,
 ) (bool, error) {
-	logger = logger.Session("try-start-next-pending-build")
-
-	nextPendingBuild, found, err := s.db.GetNextPendingBuild(jobConfig.Name)
-	if err != nil {
-		logger.Error("failed-to-get-next-pending-build", err)
-		return false, err
-	}
-	if !found {
-		return false, nil
-	}
-
-	logger = logger.WithData(lager.Data{
+	logger = logger.Session("try-start-next-pending-build", lager.Data{
 		"build-id":   nextPendingBuild.ID(),
 		"build-name": nextPendingBuild.Name(),
 	})
@@ -111,7 +150,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	buildInputs, found, err := s.db.GetNextBuildInputs(jobConfig.Name)
+	buildInputs, found, err := s.db.GetNextBuildInputs(nextPendingBuild.JobName())
 	if err != nil {
 		logger.Error("failed-to-get-next-build-inputs", err)
 		return false, err
@@ -129,10 +168,14 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	job, err := s.db.GetJob(jobConfig.Name)
+	job, found, err := s.db.GetJob(nextPendingBuild.JobName())
 	if err != nil {
 		logger.Error("failed-to-check-if-job-is-paused", err)
 		return false, err
+	}
+	if !found {
+		logger.Debug("job-not-found")
+		return false, nil
 	}
 	if job.Paused {
 		return false, nil

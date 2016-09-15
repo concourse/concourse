@@ -357,7 +357,6 @@ type outputDelegate struct {
 	id   event.OriginID
 
 	delegate *delegate
-	hook     string
 }
 
 func (output *outputDelegate) Initializing() {
@@ -406,8 +405,6 @@ type executionDelegate struct {
 	id   event.OriginID
 
 	delegate *delegate
-
-	hook string
 }
 
 func (execution *executionDelegate) Initializing(config atc.TaskConfig) {
@@ -460,9 +457,6 @@ func (execution *executionDelegate) Stderr() io.Writer {
 }
 
 type dbEventWriter struct {
-	buildID    int
-	pipelineID int
-
 	build db.Build
 
 	origin event.Origin

@@ -30,7 +30,6 @@ func (s *Server) ListJobs(pipelineDB db.PipelineDB) http.Handler {
 				present.Job(
 					teamName,
 					job.Job,
-					job.JobConfig,
 					groups,
 					job.FinishedBuild,
 					job.NextBuild,

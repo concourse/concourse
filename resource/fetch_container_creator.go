@@ -28,7 +28,6 @@ type FetchContainerCreator interface {
 
 type fetchContainerCreator struct {
 	logger                lager.Logger
-	worker                worker.Worker
 	resourceTypes         atc.ResourceTypes
 	tags                  atc.Tags
 	teamID                int

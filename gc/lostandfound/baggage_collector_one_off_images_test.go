@@ -46,19 +46,19 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		fakeWorkerClient = new(wfakes.FakeClient)
 
 		worker1 = new(wfakes.FakeWorker)
+		worker1.NameReturns("worker1")
 
 		worker2 = new(wfakes.FakeWorker)
+		worker2.NameReturns("worker2")
+
 		volume2 = new(wfakes.FakeVolume)
 		worker2.LookupVolumeReturns(volume2, true, nil)
 
-		workerMap := map[string]*wfakes.FakeWorker{
-			"worker1": worker1,
-			"worker2": worker2,
-		}
+		fakeWorkerClient.WorkersReturns([]worker.Worker{
+			worker1,
+			worker2,
+		}, nil)
 
-		fakeWorkerClient.GetWorkerStub = func(name string) (worker.Worker, error) {
-			return workerMap[name], nil
-		}
 		baggageCollectorLogger := lagertest.NewTestLogger("test")
 
 		fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
@@ -158,7 +158,6 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		Expect(fakeBuild2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(1))
 		Expect(fakeBaggageCollectorDB.GetVolumesForOneOffBuildImageResourcesCallCount()).To(Equal(1))
 		Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
-		Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(2))
 
 		Expect(worker2.LookupVolumeCallCount()).To(Equal(1))
 		_, handle := worker2.LookupVolumeArgsForCall(0)

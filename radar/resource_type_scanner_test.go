@@ -20,8 +20,6 @@ import (
 
 var _ = Describe("ResourceTypeScanner", func() {
 	var (
-		epoch time.Time
-
 		fakeTracker *rfakes.FakeTracker
 		fakeRadarDB *radarfakes.FakeRadarDB
 		interval    time.Duration
@@ -35,7 +33,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 	)
 
 	BeforeEach(func() {
-		epoch = time.Unix(123, 456).UTC()
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		interval = 1 * time.Minute
@@ -52,7 +49,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 			return "pipeline:" + thing
 		}
 
-		fakeRadarDB.GetConfigReturns(atc.Config{
+		fakeRadarDB.ReloadReturns(true, nil)
+		fakeRadarDB.ConfigReturns(atc.Config{
 			ResourceTypes: atc.ResourceTypes{
 				{
 					Name:   "some-resource-type",
@@ -60,12 +58,17 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Source: atc.Source{"custom": "source"},
 				},
 			},
-		}, 1, true, nil)
+		})
 
 		savedResourceType = db.SavedResourceType{
 			ID:   39,
 			Name: "some-resource-type",
 			Type: "docker-image",
+			Config: atc.ResourceType{
+				Name:   "some-resource-type",
+				Type:   "docker-image",
+				Source: atc.Source{"custom": "source"},
+			},
 		}
 		fakeRadarDB.TeamIDReturns(teamID)
 

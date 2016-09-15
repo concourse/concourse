@@ -75,17 +75,12 @@ var _ = Describe("Job Builds", func() {
 
 		Context("with a job in the configuration", func() {
 			var pipelineName = "some-pipeline"
-			var teamID int
 
 			BeforeEach(func() {
 				teamDB := teamDBFactory.GetTeamDB(teamName)
-				team, found, err := teamDB.GetTeam()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				teamID = team.ID
 
 				// job build data
-				_, _, err = teamDB.SaveConfig(pipelineName, atc.Config{
+				_, _, err := teamDB.SaveConfig(pipelineName, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},

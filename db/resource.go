@@ -15,12 +15,8 @@ type SavedResource struct {
 	CheckError   error
 	Paused       bool
 	PipelineName string
+	Config       atc.ResourceConfig
 	Resource
-}
-
-type DashboardResource struct {
-	Resource       SavedResource
-	ResourceConfig atc.ResourceConfig
 }
 
 type SavedResourceType struct {
@@ -28,6 +24,7 @@ type SavedResourceType struct {
 	Name    string
 	Type    string
 	Version Version
+	Config  atc.ResourceType
 }
 
 func (r SavedResource) FailingToCheck() bool {
@@ -40,18 +37,6 @@ type VersionedResource struct {
 	Version    Version
 	Metadata   []MetadataField
 	PipelineID int
-}
-
-type VersionedResources []VersionedResource
-
-func (vrs VersionedResources) Lookup(name string) (VersionedResource, bool) {
-	for _, vr := range vrs {
-		if vr.Resource == name {
-			return vr, true
-		}
-	}
-
-	return VersionedResource{}, false
 }
 
 type SavedVersionedResource struct {
@@ -67,16 +52,6 @@ type SavedVersionedResource struct {
 }
 
 type SavedVersionedResources []SavedVersionedResource
-
-func (vrs SavedVersionedResources) Lookup(name string) (SavedVersionedResource, bool) {
-	for _, vr := range vrs {
-		if vr.Resource == name {
-			return vr, true
-		}
-	}
-
-	return SavedVersionedResource{}, false
-}
 
 type Version map[string]string
 

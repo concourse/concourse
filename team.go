@@ -52,4 +52,5 @@ type GenericOAuth struct {
 	AuthURL       string            `json:"auth_url,omitempty"`
 	TokenURL      string            `json:"token_url,omitempty"`
 	AuthURLParams map[string]string `json:"auth_url_params,omitempty"`
+	Scope         string            `json:"scope,omitempty"`
 }

@@ -17,12 +17,11 @@ var _ = Describe("Keeping track of containers", func() {
 		dbConn   db.Conn
 		listener *pq.Listener
 
-		database           *db.SQLDB
-		teamDB             db.TeamDB
-		savedPipeline      db.SavedPipeline
-		savedOtherPipeline db.SavedPipeline
-		pipelineDB         db.PipelineDB
-		teamID             int
+		database      *db.SQLDB
+		teamDB        db.TeamDB
+		savedPipeline db.SavedPipeline
+		pipelineDB    db.PipelineDB
+		teamID        int
 	)
 
 	BeforeEach(func() {
@@ -85,7 +84,7 @@ var _ = Describe("Keeping track of containers", func() {
 		savedPipeline, _, err = teamDB.SaveConfig("some-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		savedOtherPipeline, _, err = teamDB.SaveConfig("some-other-pipeline", config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfig("some-other-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
@@ -1120,29 +1119,6 @@ var _ = Describe("Keeping track of containers", func() {
 		_, found, err = database.FindContainerByIdentifier(
 			stepContainerToCreate.ContainerIdentifier,
 		)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeFalse())
-
-		By("not finding a check container when its resource type version does not match worker's")
-		containerWithWrongVersion := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				Stage:               db.ContainerStageRun,
-				CheckType:           "some-type",
-				CheckSource:         atc.Source{"some-type": "some-source"},
-				ResourceTypeVersion: atc.Version{"some-type": "other-version"},
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "outdated-resource-type-container",
-				WorkerName: "updated-resource-type-worker",
-				Type:       db.ContainerTypeCheck,
-				TeamID:     teamID,
-			},
-		}
-
-		_, err = database.CreateContainer(containerWithWrongVersion, 10*time.Minute, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		_, found, err = database.FindContainerByIdentifier(containerWithWrongVersion.ContainerIdentifier)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
 

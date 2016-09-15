@@ -22,11 +22,9 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeCheckPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
 		fakeCheckBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
 		fakeCheckBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
-		publiclyViewable                        bool
 	)
 
 	BeforeEach(func() {
-		publiclyViewable = true
 		fakeAuthValidator = new(authfakes.FakeValidator)
 		fakeGetTokenValidator = new(authfakes.FakeValidator)
 		fakeUserContextReader = new(authfakes.FakeUserContextReader)

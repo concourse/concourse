@@ -123,4 +123,5 @@ var Migrations = []migration.Migrator{
 	AddGenericOAuthToTeams,
 	MigrateFromLeasesToLocks,
 	AddTeamNameToPipe,
+	AddConfigToJobsResources,
 }

@@ -18,7 +18,7 @@ type BuildScheduler interface {
 	Schedule(
 		logger lager.Logger,
 		versions *algorithm.VersionsDB,
-		jobConfig atc.JobConfig,
+		jobConfigs atc.JobConfigs,
 		resourceConfigs atc.ResourceConfigs,
 		resourceTypes atc.ResourceTypes,
 	) error
@@ -76,16 +76,6 @@ dance:
 }
 
 func (runner *Runner) tick(logger lager.Logger) error {
-	config, _, found, err := runner.DB.GetConfig()
-	if err != nil {
-		logger.Error("failed-to-get-config", err)
-		return nil
-	}
-
-	if !found {
-		return errPipelineRemoved
-	}
-
 	if runner.Noop {
 		return nil
 	}
@@ -122,21 +112,28 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		Duration:     time.Since(start),
 	}.Emit(logger)
 
-	for _, job := range config.Jobs {
-		sLog := logger.Session("scheduling", lager.Data{
-			"job": job.Name,
-		})
-
-		jStart := time.Now()
-
-		runner.Scheduler.Schedule(sLog, versions, job, config.Resources, config.ResourceTypes)
-
-		metric.SchedulingJobDuration{
-			PipelineName: runner.DB.GetPipelineName(),
-			JobName:      job.Name,
-			Duration:     time.Since(jStart),
-		}.Emit(sLog)
+	found, err := runner.DB.Reload()
+	if err != nil {
+		logger.Error("failed-to-update-pipeline-config", err)
+		return nil
 	}
+
+	if !found {
+		return errPipelineRemoved
+	}
+
+	config := runner.DB.Config()
+
+	jStart := time.Now()
+
+	sLog := logger.Session("scheduling")
+
+	runner.Scheduler.Schedule(sLog, versions, config.Jobs, config.Resources, config.ResourceTypes)
+
+	metric.SchedulingJobDuration{
+		PipelineName: runner.DB.GetPipelineName(),
+		Duration:     time.Since(jStart),
+	}.Emit(sLog)
 
 	return nil
 }

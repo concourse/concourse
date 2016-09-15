@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/concourse/atc"
@@ -50,9 +49,6 @@ func ResourcesDir(suffix string) string {
 
 type resource struct {
 	container worker.Container
-	typ       ResourceType
-
-	releaseOnce sync.Once
 
 	ScriptFailure bool
 }

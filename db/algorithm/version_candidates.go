@@ -1,9 +1,6 @@
 package algorithm
 
-import (
-	"fmt"
-	"sort"
-)
+import "fmt"
 
 type VersionCandidate struct {
 	VersionID  int
@@ -16,22 +13,73 @@ func (candidate VersionCandidate) String() string {
 	return fmt.Sprintf("{v%d, j%db%d}", candidate.VersionID, candidate.JobID, candidate.BuildID)
 }
 
-type VersionCandidates map[VersionCandidate]struct{}
+type VersionCandidates struct {
+	versions    Versions
+	constraints Constraints
+	buildIDs    map[int]BuildSet
+}
 
-func (candidates VersionCandidates) IntersectByVersion(otherVersions VersionCandidates) VersionCandidates {
+func (candidates *VersionCandidates) Add(candidate VersionCandidate) {
+	candidates.versions = candidates.versions.With(candidate)
+
+	if candidate.JobID != 0 {
+		if candidates.buildIDs == nil {
+			candidates.buildIDs = map[int]BuildSet{}
+		}
+
+		builds, found := candidates.buildIDs[candidate.JobID]
+		if !found {
+			builds = BuildSet{}
+			candidates.buildIDs[candidate.JobID] = builds
+		}
+
+		builds[candidate.BuildID] = struct{}{}
+	}
+}
+
+func (candidates *VersionCandidates) Merge(version Version) {
+	for jobID, otherBuilds := range version.passed {
+		if candidates.buildIDs == nil {
+			candidates.buildIDs = map[int]BuildSet{}
+		}
+
+		builds, found := candidates.buildIDs[jobID]
+		if !found {
+			builds = BuildSet{}
+			candidates.buildIDs[jobID] = builds
+		}
+
+		for build := range otherBuilds {
+			builds[build] = struct{}{}
+		}
+	}
+
+	candidates.versions = candidates.versions.Merge(version)
+}
+
+func (candidates VersionCandidates) IsEmpty() bool {
+	return len(candidates.versions) == 0
+}
+
+func (candidates VersionCandidates) Len() int {
+	return len(candidates.versions)
+}
+
+func (candidates VersionCandidates) IntersectByVersion(other VersionCandidates) VersionCandidates {
 	intersected := VersionCandidates{}
 
-	for version := range candidates {
+	for _, version := range candidates.versions {
 		found := false
-		for otherVersion := range otherVersions {
-			if otherVersion.VersionID == version.VersionID {
+		for _, otherVersion := range other.versions {
+			if otherVersion.id == version.id {
 				found = true
-				intersected[otherVersion] = struct{}{}
+				intersected.Merge(otherVersion)
+				break
 			}
 		}
 
 		if found {
-			intersected[version] = struct{}{}
+			intersected.Merge(version)
 		}
 	}
 
@@ -39,87 +87,74 @@ func (candidates VersionCandidates) IntersectByVersion(otherVersions VersionCand
 }
 
 func (candidates VersionCandidates) BuildIDs(jobID int) BuildSet {
-	buildIDs := BuildSet{}
-	for version := range candidates {
-		if version.JobID == jobID {
-			buildIDs[version.BuildID] = struct{}{}
-		}
+	builds, found := candidates.buildIDs[jobID]
+	if !found {
+		builds = BuildSet{}
 	}
 
-	return buildIDs
+	return builds
 }
 
-func (candidates VersionCandidates) JobIDs() JobSet {
-	ids := JobSet{}
-	for version := range candidates {
-		if version.JobID == 0 {
+func (candidates VersionCandidates) PruneVersionsOfOtherBuildIDs(jobID int, buildIDs BuildSet) VersionCandidates {
+	newCandidates := candidates
+	newCandidates.constraints = newCandidates.constraints.And(func(v Version) bool {
+		return v.PassedAny(jobID, buildIDs)
+	})
+	return newCandidates
+}
+
+type VersionsIter struct {
+	offset      int
+	versions    Versions
+	constraints Constraints
+}
+
+func (iter *VersionsIter) Next() (int, bool) {
+	for i := iter.offset; i < len(iter.versions); i++ {
+		v := iter.versions[i]
+
+		iter.offset++
+
+		if !iter.constraints.Check(v) {
 			continue
 		}
 
-		ids[version.JobID] = struct{}{}
+		return v.id, true
 	}
 
-	return ids
+	return 0, false
 }
 
-func (candidates VersionCandidates) PruneVersionsOfOtherBuildIDs(jobID int, builds BuildSet) VersionCandidates {
-	remaining := VersionCandidates{}
-	for version := range candidates {
-		if version.JobID != jobID || builds.Contains(version.BuildID) {
-			remaining[version] = struct{}{}
+func (iter *VersionsIter) Peek() (int, bool) {
+	for i := iter.offset; i < len(iter.versions); i++ {
+		v := iter.versions[i]
+
+		if !iter.constraints.Check(v) {
+			iter.offset++
+			continue
 		}
+
+		return v.id, true
 	}
 
-	return remaining
+	return 0, false
 }
 
-func (candidates VersionCandidates) VersionIDs() []int {
-	uniqueVersionIDCandidates := map[int]VersionCandidate{}
-	uniqueCandidates := []VersionCandidate{}
-	for candidate, _ := range candidates {
-		if _, ok := uniqueVersionIDCandidates[candidate.VersionID]; !ok {
-			uniqueVersionIDCandidates[candidate.VersionID] = candidate
-			uniqueCandidates = append(uniqueCandidates, candidate)
-		}
+func (candidates VersionCandidates) VersionIDs() *VersionsIter {
+	return &VersionsIter{
+		versions:    candidates.versions,
+		constraints: candidates.constraints,
 	}
-
-	sorter := versionCandidatesSorter{
-		VersionCandidates: uniqueCandidates,
-	}
-
-	sort.Sort(sort.Reverse(sorter))
-
-	versionIDs := make([]int, len(uniqueCandidates))
-	for i, candidate := range sorter.VersionCandidates {
-		versionIDs[i] = candidate.VersionID
-	}
-
-	return versionIDs
 }
 
 func (candidates VersionCandidates) ForVersion(versionID int) VersionCandidates {
 	newCandidates := VersionCandidates{}
-	for candidate := range candidates {
-		if candidate.VersionID == versionID {
-			newCandidates[candidate] = struct{}{}
+	for _, version := range candidates.versions {
+		if version.id == versionID {
+			newCandidates.Merge(version)
+			break
 		}
 	}
 
 	return newCandidates
-}
-
-type versionCandidatesSorter struct {
-	VersionCandidates []VersionCandidate
-}
-
-func (s versionCandidatesSorter) Len() int {
-	return len(s.VersionCandidates)
-}
-
-func (s versionCandidatesSorter) Swap(i, j int) {
-	s.VersionCandidates[i], s.VersionCandidates[j] = s.VersionCandidates[j], s.VersionCandidates[i]
-}
-
-func (s versionCandidatesSorter) Less(i, j int) bool {
-	return s.VersionCandidates[i].CheckOrder < s.VersionCandidates[j].CheckOrder
 }

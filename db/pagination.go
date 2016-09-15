@@ -1,8 +1,12 @@
 package db
 
 type Page struct {
-	Since int
-	Until int
+	Since int // exclusive
+	Until int // exclusive
+
+	From int // inclusive
+	To   int // inclusive
+
 	Limit int
 }
 

@@ -1,13 +1,6 @@
 package algorithm
 
-import "sort"
-
 type InputConfigs []InputConfig
-
-type Version struct {
-	Every  bool
-	Pinned map[string]string
-}
 
 type InputConfig struct {
 	Name            string
@@ -27,9 +20,24 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 		versionCandidates := VersionCandidates{}
 
 		if len(inputConfig.Passed) == 0 {
-			versionCandidates = db.AllVersionsForResource(inputConfig.ResourceID)
+			if inputConfig.UseEveryVersion {
+				versionCandidates = db.AllVersionsOfResource(inputConfig.ResourceID)
+			} else {
+				var versionCandidate VersionCandidate
+				var found bool
 
-			if len(versionCandidates) == 0 {
+				if inputConfig.PinnedVersionID != 0 {
+					versionCandidate, found = db.FindVersionOfResource(inputConfig.ResourceID, inputConfig.PinnedVersionID)
+				} else {
+					versionCandidate, found = db.LatestVersionOfResource(inputConfig.ResourceID)
+				}
+
+				if found {
+					versionCandidates.Add(versionCandidate)
+				}
+			}
+
+			if versionCandidates.IsEmpty() {
 				return nil, false
 			}
 		} else {
@@ -40,7 +48,7 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 				inputConfig.Passed,
 			)
 
-			if len(versionCandidates) == 0 {
+			if versionCandidates.IsEmpty() {
 				return nil, false
 			}
 		}
@@ -61,8 +69,6 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 		})
 	}
 
-	sort.Sort(byTotalVersions(inputCandidates))
-
 	basicMapping, ok := inputCandidates.Reduce(jobs)
 	if !ok {
 		return nil, false
@@ -80,16 +86,4 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 	}
 
 	return mapping, true
-}
-
-type byTotalVersions InputCandidates
-
-func (candidates byTotalVersions) Len() int { return len(candidates) }
-
-func (candidates byTotalVersions) Swap(i int, j int) {
-	candidates[i], candidates[j] = candidates[j], candidates[i]
-}
-
-func (candidates byTotalVersions) Less(i int, j int) bool {
-	return len(candidates[i].VersionIDs()) > len(candidates[j].VersionIDs())
 }

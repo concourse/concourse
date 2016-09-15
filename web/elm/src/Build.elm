@@ -16,11 +16,9 @@ import Debug
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.App
-import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled, attribute)
-import Html.Events exposing (onClick, on, onWithOptions)
+import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled, attribute, tabindex)
 import Html.Lazy
 import Http
-import Json.Decode exposing ((:=))
 import Navigation
 import Process
 import Task exposing (Task)
@@ -39,6 +37,7 @@ import Concourse.Pagination exposing (Paginated)
 import Favicon
 import LoadingIndicator
 import Redirect
+import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import Scroll
 
 type Page
@@ -61,12 +60,12 @@ type alias CurrentBuild =
   }
 
 type alias Model =
-  { now : Time.Time
+  { ports : Ports
+  , now : Time.Time
   , job : Maybe Concourse.Job
   , history : List Concourse.Build
   , currentBuild : Maybe CurrentBuild
   , browsingIndex : Int
-  , setTitle : String -> Cmd Msg
   , autoScroll : Bool
   }
 
@@ -79,23 +78,28 @@ type StepRenderingState
 type Msg
   = Noop
   | SwitchToBuild Concourse.Build
+  | TriggerBuild (Maybe Concourse.JobIdentifier)
+  | BuildTriggered (Result Http.Error Concourse.Build)
   | AbortBuild Int
   | BuildFetched Int (Result Http.Error Concourse.Build)
   | BuildPrepFetched Int (Result Http.Error Concourse.BuildPrep)
   | BuildHistoryFetched (Result Http.Error (Paginated Concourse.Build))
   | BuildJobDetailsFetched (Result Http.Error Concourse.Job)
   | BuildOutputMsg Int BuildOutput.Msg
-  | ScrollBuilds (Float, Float)
+  | ScrollBuilds StrictEvents.MouseWheelEvent
   | ClockTick Time.Time
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
-  | ScrollOutput (Float, Float)
-  | TouchOutputStart
-  | TouchOutputEnd
-  | ResetAutoScroll Int
+  | OutputScrolled StrictEvents.ScrollState
 
-init : (String -> Cmd Msg) -> Result String Page -> (Model, Cmd Msg)
-init setTitle pageResult =
+type alias Ports =
+  { setTitle : String -> Cmd Msg
+  , focusElement : String -> Cmd Msg
+  , selectGroups : (List String) -> Cmd Msg
+  }
+
+init : Ports -> Result String Page -> (Model, Cmd Msg)
+init ports pageResult =
   changeToBuild
     pageResult
     { now = 0
@@ -103,8 +107,8 @@ init setTitle pageResult =
     , history = []
     , currentBuild = Nothing
     , browsingIndex = 0
-    , setTitle = setTitle
     , autoScroll = True
+    , ports = ports
     }
 
 subscriptions : Model -> Sub Msg
@@ -137,13 +141,13 @@ changeToBuild pageResult model =
 
         Ok (BuildPage buildId) ->
           Cmd.batch
-            [ model.setTitle ("one-off #" ++ toString buildId)
+            [ model.ports.setTitle ("one-off #" ++ toString buildId)
             , fetchBuild 0 newIndex buildId
             ]
 
         Ok (JobBuildPage jbi) ->
           Cmd.batch
-            [ model.setTitle (jbi.jobName ++ " #" ++ jbi.buildName)
+            [ model.ports.setTitle (jbi.jobName ++ " #" ++ jbi.buildName)
             , fetchJobBuild newIndex jbi
             ]
     )
@@ -160,6 +164,27 @@ update action model =
 
     SwitchToBuild build ->
       (model, Navigation.newUrl <| Concourse.Build.url build)
+
+    TriggerBuild job ->
+      case job of
+        Nothing ->
+          (model, Cmd.none)
+        Just someJob ->
+          (model, triggerBuild someJob)
+
+    BuildTriggered (Ok build) ->
+      update
+        (SwitchToBuild build)
+        { model
+        | history = build :: model.history
+        }
+
+    BuildTriggered (Err (Http.BadResponse 401 _)) ->
+      (model, redirectToLogin model)
+
+    BuildTriggered (Err err) ->
+      Debug.log ("failed to trigger build: " ++ toString err) <|
+        (model, Cmd.none)
 
     BuildFetched browsingIndex (Ok build) ->
       handleBuildFetched browsingIndex build model
@@ -231,41 +256,37 @@ update action model =
     RevealCurrentBuildInHistory ->
       (model, scrollToCurrentBuildInHistory)
 
-    ScrollBuilds (0, deltaY) ->
-      (model, scrollBuilds deltaY)
-
-    ScrollBuilds (deltaX, _) ->
-      (model, scrollBuilds -deltaX)
-
-    ScrollOutput (_, deltaY) ->
-      if deltaY < 0 then
-        ({ model | autoScroll = False }, Cmd.none)
+    ScrollBuilds event ->
+      if event.deltaX == 0 then
+        (model, scrollBuilds event.deltaY)
       else
-        ( model
-        , Autoscroll.fromBottom autoscrollElement ResetAutoScroll
-        )
-
-    TouchOutputStart ->
-      ({ model | autoScroll = False }, Cmd.none)
-
-    TouchOutputEnd ->
-      ( model
-      , Autoscroll.fromBottom autoscrollElement ResetAutoScroll
-      )
-
-    ResetAutoScroll fromBottom ->
-      if fromBottom < 16 then
-        ({ model | autoScroll = True }, Cmd.none)
-      else
-        (model, Cmd.none)
+        (model, scrollBuilds -event.deltaX)
 
     ClockTick now ->
       ({ model | now = now }, Cmd.none)
+
+    OutputScrolled {scrollHeight,scrollTop,clientHeight} ->
+      let
+        fromBottom =
+          scrollHeight - (scrollTop + clientHeight)
+      in
+        if fromBottom == 0 then
+          ({ model | autoScroll = True }, Cmd.none)
+        else
+          ({ model | autoScroll = False }, Cmd.none)
 
 handleBuildFetched : Int -> Concourse.Build -> Model -> (Model, Cmd Msg)
 handleBuildFetched browsingIndex build model =
   if browsingIndex == model.browsingIndex then
     let
+      focusOutput =
+        case model.currentBuild of
+          Nothing ->
+            model.ports.focusElement autoscrollElement
+
+          _ ->
+            Cmd.none
+
       currentBuild =
         case model.currentBuild of
           Nothing ->
@@ -309,13 +330,15 @@ handleBuildFetched browsingIndex build model =
                 , Cmd.batch
                     [cmd, fetchBuildPrep Time.second browsingIndex build.id]
                 )
-        else (withBuild, Cmd.none)
+        else
+          (withBuild, Cmd.none)
     in
       ( newModel,
         Cmd.batch
           [ cmd
           , setFavicon build.status
           , fetchJobAndHistory
+          , focusOutput
           ])
   else
     (model, Cmd.none)
@@ -347,7 +370,7 @@ handleBuildJobFetched job model =
     withJobDetails =
       { model | job = Just job }
   in
-    (withJobDetails, Cmd.none)
+    (withJobDetails, model.ports.selectGroups job.groups)
 
 handleHistoryFetched : Paginated Concourse.Build -> Model -> (Model, Cmd Msg)
 handleHistoryFetched history model =
@@ -393,13 +416,13 @@ view model =
         , Html.div
           [ class "scrollable-body"
           , id autoscrollElement
-          , on "mousewheel" (Json.Decode.map ScrollOutput <| decodeScrollEvent)
-          , on "touchstart" (Json.Decode.succeed TouchOutputStart)
-          , on "touchend" (Json.Decode.succeed TouchOutputEnd)
+          , onScroll OutputScrolled
+
+          -- this is necessary to focus the element for some reason
+          , tabindex 0
           ] <|
           [ viewBuildPrep currentBuild.prep
-          , Html.Lazy.lazy
-              (viewBuildOutput model.browsingIndex) <|
+          , Html.Lazy.lazy2 viewBuildOutput model.browsingIndex <|
               currentBuild.output
           ] ++
             let
@@ -562,9 +585,12 @@ viewBuildHeader build {now, job, history} =
               Nothing -> True
               Just job -> job.disableManualTrigger
           in
-            Html.form
-              [class "trigger-build", method "post", action (actionUrl)]
-              [Html.button [class "build-action fr", disabled buttonDisabled, attribute "aria-label" "Trigger Build"] [Html.i [class "fa fa-plus-circle"] []]]
+            Html.button [ class "build-action fr"
+                        , disabled buttonDisabled
+                        , attribute "aria-label" "Trigger Build"
+                        , onLeftClick <| TriggerBuild build.job
+                        ]
+              [ Html.i [class "fa fa-plus-circle"] [] ]
 
         _ ->
           Html.div [] []
@@ -572,7 +598,7 @@ viewBuildHeader build {now, job, history} =
     abortButton =
       if Concourse.BuildStatus.isRunning build.status then
         Html.span
-          [class "build-action build-action-abort fr", onClick (AbortBuild build.id), attribute "aria-label" "Abort Build"]
+          [class "build-action build-action-abort fr", onLeftClick (AbortBuild build.id), attribute "aria-label" "Abort Build"]
           [Html.i [class "fa fa-times-circle"] []]
       else
         Html.span [] []
@@ -593,10 +619,7 @@ viewBuildHeader build {now, job, history} =
           , BuildDuration.view build.duration now
           ]
       , Html.div
-          [ onWithOptions
-              "mousewheel"
-              { stopPropagation = True, preventDefault = True }
-              (Json.Decode.map ScrollBuilds decodeScrollEvent)
+          [ onMouseWheel ScrollBuilds
           ]
           [ lazyViewHistory build history ]
       ]
@@ -619,35 +642,21 @@ viewHistoryItem currentBuild build =
         class (Concourse.BuildStatus.show build.status)
     ]
     [ Html.a
-        [ overrideClick (SwitchToBuild build)
+        [ onLeftClick (SwitchToBuild build)
         , href (Concourse.Build.url build)
         ]
         [ Html.text (build.name)
         ]
     ]
 
-overrideClick : Msg -> Html.Attribute Msg
-overrideClick action =
-  Html.Events.onWithOptions "click"
-    { stopPropagation = True, preventDefault = True } <|
-      Json.Decode.customDecoder
-      ("button" := Json.Decode.int) <|
-        assertLeftButton action
-
-assertLeftButton : Msg -> Int -> Result String Msg
-assertLeftButton action button =
-  if button == 0 then Ok action
-  else Err "placeholder error, nothing is wrong"
-
 durationTitle : Date -> List (Html Msg) -> Html Msg
 durationTitle date content =
   Html.div [title (Date.Format.format "%b" date)] content
 
-decodeScrollEvent : Json.Decode.Decoder (Float, Float)
-decodeScrollEvent =
-  Json.Decode.object2 (,)
-    ("deltaX" := Json.Decode.float)
-    ("deltaY" := Json.Decode.float)
+triggerBuild : Concourse.JobIdentifier -> Cmd Msg
+triggerBuild buildJob =
+  Cmd.map BuildTriggered << Task.perform Err Ok <|
+    Concourse.Job.triggerBuild buildJob
 
 fetchBuild : Time -> Int -> Int -> Cmd Msg
 fetchBuild delay browsingIndex buildId =

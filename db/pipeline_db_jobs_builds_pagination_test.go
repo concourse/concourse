@@ -19,7 +19,6 @@ var _ = Describe("Jobs Builds", func() {
 	var pipelineDBFactory db.PipelineDBFactory
 	var sqlDB *db.SQLDB
 	var pipelineDB db.PipelineDB
-	var otherPipelineDB db.PipelineDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -57,10 +56,7 @@ var _ = Describe("Jobs Builds", func() {
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 		Expect(err).NotTo(HaveOccurred())
 
-		otherSavedPipeline, _, err := teamDB.SaveConfig("another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
-		Expect(err).NotTo(HaveOccurred())
-
-		otherPipelineDB = pipelineDBFactory.Build(otherSavedPipeline)
+		_, _, err = teamDB.SaveConfig("another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

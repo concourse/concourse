@@ -1,4 +1,4 @@
-module Job exposing (Flags, init, update, view, Msg(ClockTick))
+port module Job exposing (Flags, init, update, view, Msg(ClockTick))
 
 import Array exposing (Array)
 import Dict exposing (Dict)
@@ -19,9 +19,11 @@ import Concourse.BuildResources exposing (fetch)
 import BuildDuration
 import DictView
 import Redirect
+import StrictEvents exposing (onLeftClick)
 
 type alias Model =
-  { jobIdentifier : Concourse.JobIdentifier
+  { ports : Ports
+  , jobIdentifier : Concourse.JobIdentifier
   , job : (Maybe Concourse.Job)
   , pausedChanging : Bool
   , buildsWithResources : Maybe (Array LiveUpdatingBuildWithResources)
@@ -32,12 +34,18 @@ type alias Model =
 
 type Msg
   = Noop
+  | BuildTriggered (Result Http.Error Concourse.Build)
+  | TriggerBuild
   | JobBuildsFetched (Result Http.Error (Paginated Concourse.Build))
   | JobFetched (Result Http.Error Concourse.Job)
   | BuildResourcesFetched FetchedBuildResources
   | ClockTick Time
   | TogglePaused
   | PausedToggled (Result Http.Error ())
+
+type alias Ports =
+  { selectGroups : (List String) -> Cmd Msg
+  }
 
 type alias FetchedBuildResources =
   { index : Int
@@ -83,11 +91,12 @@ type alias Flags =
   , pageUntil : Int
   }
 
-init : Flags -> (Model, Cmd Msg)
-init flags =
+init : Ports -> Flags -> (Model, Cmd Msg)
+init ports flags =
   let
     model =
-      { jobIdentifier =
+      { ports = ports
+      , jobIdentifier =
           { jobName = flags.jobName
           , teamName = flags.teamName
           , pipelineName = flags.pipelineName
@@ -122,6 +131,26 @@ update action model =
   case action of
     Noop ->
       (model, Cmd.none)
+    TriggerBuild ->
+      (model, triggerBuild model.jobIdentifier)
+    BuildTriggered (Ok build) ->
+      ( model
+      , case build.job of
+          Nothing ->
+            Cmd.none
+          Just job ->
+            Cmd.map (always Noop) << Task.perform Err Ok <|
+              Redirect.to <|
+                "/teams/" ++ job.teamName ++
+                "/pipelines/" ++ job.pipelineName ++
+                "/jobs/" ++ job.jobName ++
+                "/builds/" ++ build.name
+      )
+    BuildTriggered (Err (Http.BadResponse 401 _)) ->
+      (model, redirectToLogin model)
+    BuildTriggered (Err err) ->
+      Debug.log ("failed to trigger build: " ++ toString err) <|
+        (model, Cmd.none)
     JobBuildsFetched (Ok builds) ->
       handleJobBuildsFetched builds model
     JobBuildsFetched (Err err) ->
@@ -129,7 +158,10 @@ update action model =
         (model, Cmd.none)
     JobFetched (Ok job) ->
       ( { model | job = Just job }
-      , fetchJob (5 * Time.second) model.jobIdentifier
+      , Cmd.batch
+          [ fetchJob (5 * Time.second) model.jobIdentifier
+          , model.ports.selectGroups job.groups
+          ]
       )
     JobFetched (Err err) ->
       Debug.log ("failed to fetch job info: " ++ toString err) <|
@@ -236,9 +268,7 @@ view model =
                   [ Html.i [ class <| "fa fa-fw fa-play " ++ (getPlayPauseLoadIcon job model.pausedChanging) ] [] ]
               , Html.form
                   [ class "trigger-build"
-                  , Html.Attributes.method "post"
-                  , Html.Attributes.action <| "/teams/" ++ model.jobIdentifier.teamName ++ "/pipelines/" ++ model.jobIdentifier.pipelineName
-                    ++ "/jobs/" ++ model.jobIdentifier.jobName ++ "/builds"
+                  , onLeftClick TriggerBuild
                   ]
                   [ Html.button [ class "build-action fr", disabled job.disableManualTrigger, attribute "aria-label" "Trigger Build" ]
                     [ Html.i [ class "fa fa-plus-circle" ] []
@@ -415,6 +445,11 @@ viewVersion version =
   DictView.view << Dict.map (\_ s -> Html.text s) <|
     version
 
+triggerBuild : Concourse.JobIdentifier -> Cmd Msg
+triggerBuild job =
+  Cmd.map BuildTriggered << Task.perform Err Ok <|
+    Concourse.Job.triggerBuild job
+
 fetchJobBuilds : Time -> Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Msg
 fetchJobBuilds delay jobIdentifier page =
   Cmd.map JobBuildsFetched << Task.perform Err Ok <|
@@ -438,6 +473,8 @@ paginationParam page =
   case page.direction of
     Concourse.Pagination.Since i -> "since=" ++ toString i
     Concourse.Pagination.Until i -> "until=" ++ toString i
+    Concourse.Pagination.From i -> "from=" ++ toString i
+    Concourse.Pagination.To i -> "to=" ++ toString i
 
 pauseJob : Concourse.JobIdentifier -> Cmd Msg
 pauseJob jobIdentifier =

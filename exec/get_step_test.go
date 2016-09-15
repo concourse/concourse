@@ -33,7 +33,6 @@ var _ = Describe("Get", func() {
 
 		fakeCache           *rfakes.FakeCache
 		fakeVolume          *wfakes.FakeVolume
-		fakeWorker          *wfakes.FakeWorker
 		fakeVersionedSource *rfakes.FakeVersionedSource
 		fakeFetchSource     *rfakes.FakeFetchSource
 
@@ -78,7 +77,6 @@ var _ = Describe("Get", func() {
 		fakeTracker := new(rfakes.FakeTracker)
 
 		fakeCache = new(rfakes.FakeCache)
-		fakeWorker = new(wfakes.FakeWorker)
 		fakeVolume = new(wfakes.FakeVolume)
 		fakeCache.VolumeReturns(fakeVolume)
 
@@ -227,13 +225,7 @@ var _ = Describe("Get", func() {
 	})
 
 	Context("when fetching resource succeeds", func() {
-		var (
-			fakeContainer *wfakes.FakeContainer
-		)
-
 		BeforeEach(func() {
-			fakeContainer = new(wfakes.FakeContainer)
-
 			fakeResourceFetcher.FetchReturns(fakeFetchSource, nil)
 
 			fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})

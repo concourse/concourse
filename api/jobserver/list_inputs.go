@@ -15,17 +15,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 
-		pipelineConfig, _, found, err := pipelineDB.GetConfig()
-		if err != nil {
-			logger.Error("failed-to-get-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+		pipelineConfig := pipelineDB.Config()
 
 		jobConfig, found := pipelineConfig.Jobs.Lookup(jobName)
 		if !found {
@@ -35,7 +25,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 
 		scheduler := s.schedulerFactory.BuildScheduler(pipelineDB, s.externalURL)
 
-		err = scheduler.SaveNextInputMapping(logger, jobConfig)
+		err := scheduler.SaveNextInputMapping(logger, jobConfig)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

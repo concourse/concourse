@@ -21,7 +21,6 @@ var _ = Describe("Resource Pagination", func() {
 	var atcCommand *ATCCommand
 	var dbListener *pq.Listener
 	var pipelineDB db.PipelineDB
-	var teamID int
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -42,10 +41,6 @@ var _ = Describe("Resource Pagination", func() {
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-		team, found, err := teamDB.GetTeam()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-		teamID = team.ID
 
 		// job build data
 		_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
@@ -128,7 +123,7 @@ var _ = Describe("Resource Pagination", func() {
 
 				// resource detail -> paused resource detail
 				Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/main/resources/resource-name")))
-				Expect(page.Find("h1")).To(HaveText("resource-name"))
+				Eventually(page.Find("h1")).Should(HaveText("resource-name"))
 				Expect(page.All(".pagination").Count()).Should(Equal(1))
 				Expect(page.Find(".resource-versions")).Should(BeFound())
 				Expect(page.All(".resource-versions li").Count()).Should(Equal(100))
@@ -170,7 +165,7 @@ var _ = Describe("Resource Pagination", func() {
 
 				// resource detail -> paused resource detail
 				Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/main/resources/resource-name")))
-				Expect(page.Find("h1")).To(HaveText("resource-name"))
+				Eventually(page.Find("h1")).Should(HaveText("resource-name"))
 				Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())
 				Expect(page.First(".pagination .disabled .fa-arrow-right")).Should(BeFound())
 				Expect(page.Find(".resource-versions")).Should(BeFound())

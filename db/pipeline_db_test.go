@@ -314,10 +314,6 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).NotTo(ContainElement(fetchedPipeline))
 
-			_, _, found, err = fetchedPipelineDB.GetConfig()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeFalse())
-
 			resourceRows, err := dbConn.Query(`select id from resources where pipeline_id = $1`, fetchedPipeline.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resourceRows.Next()).To(BeFalse())
@@ -469,20 +465,14 @@ var _ = Describe("PipelineDB", func() {
 		})
 	})
 
-	Describe("getting the pipeline configuration", func() {
+	Describe("Reload", func() {
 		It("can manage multiple pipeline configurations", func() {
 			By("returning the saved config to later gets")
-			returnedConfig, configVersion, found, err := pipelineDB.GetConfig()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(returnedConfig).To(Equal(pipelineConfig))
-			Expect(configVersion).NotTo(Equal(db.ConfigVersion(0)))
+			Expect(pipelineDB.Config()).To(Equal(pipelineConfig))
+			Expect(pipelineDB.ConfigVersion()).NotTo(Equal(db.ConfigVersion(0)))
 
-			otherReturnedConfig, otherConfigVersion, found, err := otherPipelineDB.GetConfig()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(otherReturnedConfig).To(Equal(otherPipelineConfig))
-			Expect(otherConfigVersion).NotTo(Equal(db.ConfigVersion(0)))
+			Expect(otherPipelineDB.Config()).To(Equal(otherPipelineConfig))
+			Expect(otherPipelineDB.ConfigVersion()).NotTo(Equal(db.ConfigVersion(0)))
 
 			updatedConfig := pipelineConfig
 
@@ -517,23 +507,24 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			By("being able to update the config with a valid config")
-			_, _, err = teamDB.SaveConfig("a-pipeline-name", updatedConfig, configVersion, db.PipelineUnpaused)
+			_, _, err := teamDB.SaveConfig("a-pipeline-name", updatedConfig, pipelineDB.ConfigVersion(), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-			_, _, err = teamDB.SaveConfig("other-pipeline-name", updatedConfig, otherConfigVersion, db.PipelineUnpaused)
+			_, _, err = teamDB.SaveConfig("other-pipeline-name", updatedConfig, otherPipelineDB.ConfigVersion(), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the updated config")
-			returnedConfig, newConfigVersion, found, err := pipelineDB.GetConfig()
+			found, err := pipelineDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(returnedConfig).To(Equal(updatedConfig))
-			Expect(newConfigVersion).NotTo(Equal(configVersion))
 
-			otherReturnedConfig, newOtherConfigVersion, found, err := otherPipelineDB.GetConfig()
+			Expect(pipelineDB.Config()).To(Equal(updatedConfig))
+			Expect(pipelineDB.ConfigVersion()).NotTo(Equal(0))
+
+			found, err = otherPipelineDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(otherReturnedConfig).To(Equal(updatedConfig))
-			Expect(newOtherConfigVersion).NotTo(Equal(otherConfigVersion))
+			Expect(otherPipelineDB.Config()).To(Equal(updatedConfig))
+			Expect(otherPipelineDB.ConfigVersion()).NotTo(Equal(0))
 		})
 	})
 
@@ -567,6 +558,11 @@ var _ = Describe("PipelineDB", func() {
 				Paused:       false,
 				PipelineName: "a-pipeline-name",
 				CheckError:   nil,
+				Config: atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"source-config": "some-value"},
+				},
 			}))
 		})
 
@@ -636,26 +632,32 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		It("can load up versioned resource information relevant to scheduling", func() {
-			job, err := pipelineDB.GetJob("some-job")
+			job, found, err := pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			otherJob, err := pipelineDB.GetJob("some-other-job")
+			otherJob, found, err := pipelineDB.GetJob("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			aJob, err := pipelineDB.GetJob("a-job")
+			aJob, found, err := pipelineDB.GetJob("a-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			sharedJob, err := pipelineDB.GetJob("shared-job")
+			sharedJob, found, err := pipelineDB.GetJob("shared-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			randomJob, err := pipelineDB.GetJob("random-job")
+			randomJob, found, err := pipelineDB.GetJob("random-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			otherSerialGroupJob, err := pipelineDB.GetJob("other-serial-group-job")
+			otherSerialGroupJob, found, err := pipelineDB.GetJob("other-serial-group-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			differentSerialGroupJob, err := pipelineDB.GetJob("different-serial-group-job")
+			differentSerialGroupJob, found, err := pipelineDB.GetJob("different-serial-group-job")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			versions, err := pipelineDB.LoadVersionsDB()
 			Expect(err).NotTo(HaveOccurred())
@@ -678,7 +680,7 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			By("initially having no latest versioned resource")
-			_, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
+			_, found, err = pipelineDB.GetLatestVersionedResource(resource.Name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 
@@ -991,7 +993,7 @@ var _ = Describe("PipelineDB", func() {
 				versions, err := pipelineDB.LoadVersionsDB()
 				Expect(err).NotTo(HaveOccurred())
 
-				aJob, err := pipelineDB.GetJob("a-job")
+				aJob, found, err := pipelineDB.GetJob("a-job")
 				Expect(err).NotTo(HaveOccurred())
 
 				By("omitting it from the list of resource versions")
@@ -1655,7 +1657,7 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		It("initially has no pending build for a job", func() {
-			_, found, err := pipelineDB.GetNextPendingBuild("some-job")
+			_, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -1753,20 +1755,19 @@ var _ = Describe("PipelineDB", func() {
 
 	Describe("GetResources", func() {
 		var (
-			dashboardResource1 db.DashboardResource
-			dashboardResource2 db.DashboardResource
-			dashboardResource3 db.DashboardResource
+			resource1 db.SavedResource
+			resource2 db.SavedResource
+			resource3 db.SavedResource
 		)
+
 		BeforeEach(func() {
-			dashboardResource1 = db.DashboardResource{
-				Resource: db.SavedResource{
-					ID:           0,
-					CheckError:   nil,
-					Paused:       false,
-					PipelineName: "a-pipeline-name",
-					Resource:     db.Resource{Name: "some-resource"},
-				},
-				ResourceConfig: atc.ResourceConfig{
+			resource1 = db.SavedResource{
+				ID:           0,
+				CheckError:   nil,
+				Paused:       false,
+				PipelineName: "a-pipeline-name",
+				Resource:     db.Resource{Name: "some-resource"},
+				Config: atc.ResourceConfig{
 					Name: "some-resource",
 					Type: "some-type",
 					Source: atc.Source{
@@ -1775,15 +1776,13 @@ var _ = Describe("PipelineDB", func() {
 				},
 			}
 
-			dashboardResource2 = db.DashboardResource{
-				Resource: db.SavedResource{
-					ID:           0,
-					CheckError:   nil,
-					Paused:       false,
-					PipelineName: "a-pipeline-name",
-					Resource:     db.Resource{Name: "some-other-resource"},
-				},
-				ResourceConfig: atc.ResourceConfig{
+			resource2 = db.SavedResource{
+				ID:           0,
+				CheckError:   nil,
+				Paused:       false,
+				PipelineName: "a-pipeline-name",
+				Resource:     db.Resource{Name: "some-other-resource"},
+				Config: atc.ResourceConfig{
 					Name: "some-other-resource",
 					Type: "some-type",
 					Source: atc.Source{
@@ -1792,15 +1791,13 @@ var _ = Describe("PipelineDB", func() {
 				},
 			}
 
-			dashboardResource3 = db.DashboardResource{
-				Resource: db.SavedResource{
-					ID:           0,
-					CheckError:   nil,
-					Paused:       false,
-					PipelineName: "a-pipeline-name",
-					Resource:     db.Resource{Name: "some-really-other-resource"},
-				},
-				ResourceConfig: atc.ResourceConfig{
+			resource3 = db.SavedResource{
+				ID:           0,
+				CheckError:   nil,
+				Paused:       false,
+				PipelineName: "a-pipeline-name",
+				Resource:     db.Resource{Name: "some-really-other-resource"},
+				Config: atc.ResourceConfig{
 					Name: "some-really-other-resource",
 					Type: "some-type",
 					Source: atc.Source{
@@ -1809,90 +1806,53 @@ var _ = Describe("PipelineDB", func() {
 				},
 			}
 		})
-		Context("when there is a one-to-one correspondence between saved and configured resources", func() {
-			It("returns all the saved resources", func() {
-				dashboardResources, groupConfigs, found, err := pipelineDB.GetResources()
+
+		It("returns all active resources", func() {
+			resources, found, err := pipelineDB.GetResources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			for i, _ := range resources {
+				resources[i].ID = 0
+			}
+
+			Expect(resources).To(HaveLen(3))
+			Expect(resources).To(ConsistOf(resource1, resource2, resource3))
+		})
+
+		Context("when there is a saved resource that is not active", func() {
+			BeforeEach(func() {
+				pipelineConfig.Resources = atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+				}
+				_, _, err := teamDB.SaveConfig("a-pipeline-name", pipelineConfig, 1, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns the active resources", func() {
+				resources, found, err := pipelineDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				for i, _ := range dashboardResources {
-					dashboardResources[i].Resource.ID = 0
+				for i, _ := range resources {
+					resources[i].ID = 0
 				}
 
-				Expect(dashboardResources).To(HaveLen(3))
-				Expect(dashboardResources).To(ConsistOf(dashboardResource1, dashboardResource2, dashboardResource3))
-				Expect(groupConfigs).To(Equal(atc.GroupConfigs{
-					{
-						Name:      "some-group",
-						Jobs:      []string{"job-1", "job-2"},
-						Resources: []string{"some-resource", "some-other-resource"},
-					},
-				}))
-			})
-		})
-
-		Context("when there is a saved resource that is not configured", func() {
-			BeforeEach(func() {
-				pipelineConfigMinusResource := pipelineConfig
-				pipelineConfigMinusResource.Resources = []atc.ResourceConfig{
-					pipelineConfig.Resources[0],
-					pipelineConfig.Resources[2],
-				}
-
-				_, _, err := teamDB.SaveConfig("a-pipeline-name", pipelineConfigMinusResource, 1, db.PipelineNoChange)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns the configured resources", func() {
-				dashboardResources, groupConfigs, found, err := pipelineDB.GetResources()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				for i, _ := range dashboardResources {
-					dashboardResources[i].Resource.ID = 0
-				}
-
-				Expect(dashboardResources).To(HaveLen(2))
-				Expect(dashboardResources).To(ConsistOf(dashboardResource1, dashboardResource3))
-				Expect(groupConfigs).To(Equal(atc.GroupConfigs{
-					{
-						Name:      "some-group",
-						Jobs:      []string{"job-1", "job-2"},
-						Resources: []string{"some-resource", "some-other-resource"},
-					},
-				}))
-			})
-		})
-
-		Context("when there is a configured resource that is not saved for some reason", func() {
-			BeforeEach(func() {
-				result, err := dbConn.Exec(`
-					delete from resources
-						where pipeline_id = $1
-						and name = 'some-resource'
-					`, pipelineDB.GetPipelineID())
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(1)))
-			})
-			It("returns an error", func() {
-				_, _, _, err := pipelineDB.GetResources()
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(
-					errors.New("found resource in pipeline configuration but not in database: some-resource"),
-				))
-			})
-		})
-
-		Context("when the pipeline has been deleted in the meantime", func() {
-			BeforeEach(func() {
-				err := pipelineDB.Destroy()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns not found", func() {
-				_, _, found, err := pipelineDB.GetResources()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
+				Expect(resources).To(HaveLen(2))
+				Expect(resources).To(ConsistOf(resource1, resource2))
 			})
 		})
 	})
@@ -1973,74 +1933,67 @@ var _ = Describe("PipelineDB", func() {
 			It("returns a Dashboard object with a DashboardJob corresponding to each configured job", func() {
 				pipelineDB.UpdateFirstLoggedBuildID("some-job", 57)
 
-				job, err := pipelineDB.GetJob("some-job")
+				job, found, err := pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				otherJob, err := pipelineDB.GetJob("some-other-job")
+				otherJob, found, err := pipelineDB.GetJob("some-other-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				aJob, err := pipelineDB.GetJob("a-job")
+				aJob, found, err := pipelineDB.GetJob("a-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				sharedJob, err := pipelineDB.GetJob("shared-job")
+				sharedJob, found, err := pipelineDB.GetJob("shared-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				randomJob, err := pipelineDB.GetJob("random-job")
+				randomJob, found, err := pipelineDB.GetJob("random-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				otherSerialGroupJob, err := pipelineDB.GetJob("other-serial-group-job")
+				otherSerialGroupJob, found, err := pipelineDB.GetJob("other-serial-group-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				differentSerialGroupJob, err := pipelineDB.GetJob("different-serial-group-job")
+				differentSerialGroupJob, found, err := pipelineDB.GetJob("different-serial-group-job")
 				Expect(err).NotTo(HaveOccurred())
-
-				lookupConfig := func(jobName string) atc.JobConfig {
-					config, found := pipelineConfig.Jobs.Lookup(jobName)
-					Expect(found).To(BeTrue())
-
-					return config
-				}
+				Expect(found).To(BeTrue())
 
 				By("returning jobs with no builds")
 				expectedDashboard := db.Dashboard{
 					{
-						JobConfig:     lookupConfig(job.Name),
 						Job:           job,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(otherJob.Name),
 						Job:           otherJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(aJob.Name),
 						Job:           aJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(sharedJob.Name),
 						Job:           sharedJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(randomJob.Name),
 						Job:           randomJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(otherSerialGroupJob.Name),
 						Job:           otherSerialGroupJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
 					{
-						JobConfig:     lookupConfig(differentSerialGroupJob.Name),
 						Job:           differentSerialGroupJob,
 						NextBuild:     nil,
 						FinishedBuild: nil,
@@ -2051,7 +2004,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(groups).To(Equal(pipelineConfig.Groups))
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent pending build if there are no running builds")
 				jobBuildOldDB, err := pipelineDB.CreateJobBuild("some-job")
@@ -2062,12 +2015,12 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent started build")
 				jobBuildOldDB.Start("engine", "metadata")
 
-				found, err := jobBuildOldDB.Reload()
+				found, err = jobBuildOldDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2076,7 +2029,7 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent started build even if there is a newer pending build")
 				jobBuild, err := pipelineDB.CreateJobBuild("some-job")
@@ -2087,7 +2040,7 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent finished build")
 				err = jobBuild.Finish(db.StatusSucceeded)
@@ -2103,7 +2056,7 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 
 				By("returning a job's most recent finished build even when there is a newer unfinished build")
 				jobBuildNewDB, err := pipelineDB.CreateJobBuild("some-job")
@@ -2119,7 +2072,7 @@ var _ = Describe("PipelineDB", func() {
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+				Expect(actualDashboard).To(Equal(expectedDashboard))
 			})
 		})
 
@@ -2146,7 +2099,6 @@ var _ = Describe("PipelineDB", func() {
 			var (
 				buildMetadata []db.MetadataField
 				vr1           db.VersionedResource
-				vr2           db.VersionedResource
 			)
 
 			BeforeEach(func() {
@@ -2162,14 +2114,6 @@ var _ = Describe("PipelineDB", func() {
 				}
 
 				vr1 = db.VersionedResource{
-					PipelineID: savedPipeline.ID,
-					Resource:   "some-resource",
-					Type:       "some-type",
-					Version:    db.Version{"ver": "1"},
-					Metadata:   buildMetadata,
-				}
-
-				vr2 = db.VersionedResource{
 					PipelineID: savedPipeline.ID,
 					Resource:   "some-other-resource",
 					Type:       "some-type",
@@ -2204,17 +2148,17 @@ var _ = Describe("PipelineDB", func() {
 
 				_, err = build.SaveInput(db.BuildInput{
 					Name:              "some-input",
-					VersionedResource: vr2,
+					VersionedResource: vr1,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
 				inputs, _, err := build.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
-					{Name: "some-input", VersionedResource: vr2, FirstOccurrence: true},
+					{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
 				}))
 
-				withMetadata := vr2
+				withMetadata := vr1
 				withMetadata.Metadata = buildMetadata
 
 				_, err = build.SaveInput(db.BuildInput{
@@ -2249,10 +2193,10 @@ var _ = Describe("PipelineDB", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				withMetadata := vr2
+				withMetadata := vr1
 				withMetadata.Metadata = buildMetadata
 
-				withoutMetadata := vr2
+				withoutMetadata := vr1
 				withoutMetadata.Metadata = nil
 
 				savedVR, err := build.SaveInput(db.BuildInput{
@@ -2370,8 +2314,9 @@ var _ = Describe("PipelineDB", func() {
 			job := "some-job"
 
 			It("starts out as unpaused", func() {
-				job, err := pipelineDB.GetJob(job)
+				job, found, err := pipelineDB.GetJob(job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				Expect(job.Paused).To(BeFalse())
 			})
@@ -2383,12 +2328,14 @@ var _ = Describe("PipelineDB", func() {
 				err = otherPipelineDB.UnpauseJob(job)
 				Expect(err).NotTo(HaveOccurred())
 
-				pausedJob, err := pipelineDB.GetJob(job)
+				pausedJob, found, err := pipelineDB.GetJob(job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(pausedJob.Paused).To(BeTrue())
 
-				otherJob, err := otherPipelineDB.GetJob(job)
+				otherJob, found, err := otherPipelineDB.GetJob(job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(otherJob.Paused).To(BeFalse())
 			})
 
@@ -2399,8 +2346,9 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.UnpauseJob(job)
 				Expect(err).NotTo(HaveOccurred())
 
-				unpausedJob, err := pipelineDB.GetJob(job)
+				unpausedJob, found, err := pipelineDB.GetJob(job)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				Expect(unpausedJob.Paused).To(BeFalse())
 			})
@@ -2409,8 +2357,9 @@ var _ = Describe("PipelineDB", func() {
 		Describe("UpdateFirstLoggedBuildID", func() {
 			It("updates FirstLoggedBuildID on a job", func() {
 				By("starting out as 0")
-				job, err := pipelineDB.GetJob("some-job")
+				job, found, err := pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				Expect(job.FirstLoggedBuildID).To(BeZero())
 
@@ -2419,7 +2368,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.UpdateFirstLoggedBuildID("some-job", 57)
 				Expect(err).NotTo(HaveOccurred())
 
-				updatedJob, err := pipelineDB.GetJob("some-job")
+				updatedJob, found, err := pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(updatedJob.FirstLoggedBuildID).To(Equal(57))
 
@@ -2443,8 +2392,10 @@ var _ = Describe("PipelineDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				job, err = pipelineDB.GetJob("some-job")
+				var found bool
+				job, found, err = pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				firstBuild, err = pipelineDB.CreateJobBuild(job.Name)
 				Expect(err).NotTo(HaveOccurred())
@@ -2627,17 +2578,11 @@ var _ = Describe("PipelineDB", func() {
 
 		Context("when a build is created for a job", func() {
 			var build1DB db.Build
-			var jobConfig atc.JobConfig
 
 			BeforeEach(func() {
 				var err error
 				build1DB, err = pipelineDB.CreateJobBuild("some-job")
-
-				jobConfig = atc.JobConfig{
-					Name:   "some-job",
-					Serial: false,
-				}
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				Expect(build1DB.ID()).NotTo(BeZero())
 				Expect(build1DB.JobName()).To(Equal("some-job"))
@@ -2646,11 +2591,18 @@ var _ = Describe("PipelineDB", func() {
 				Expect(build1DB.IsScheduled()).To(BeFalse())
 			})
 
-			It("becomes the next pending build", func() {
-				nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
+			It("becomes the next pending build for job", func() {
+				nextPending, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(nextPending).To(Equal(build1DB))
+			})
+
+			It("is in the list of pending builds", func() {
+				nextPendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
+				Expect(nextPendingBuilds["some-job"]).To(Equal([]db.Build{build1DB}))
 			})
 
 			It("is returned in the job's builds", func() {
@@ -2669,11 +2621,18 @@ var _ = Describe("PipelineDB", func() {
 					Expect(otherBuild.IsScheduled()).To(BeFalse())
 				})
 
-				It("does not change the next pending build", func() {
-					nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				It("does not change the next pending build for job", func() {
+					nextPending, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(nextPending).To(Equal(build1DB))
+				})
+
+				It("does not change pending builds", func() {
+					nextPendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
+					Expect(nextPendingBuilds["some-job"]).To(Equal([]db.Build{build1DB}))
 				})
 
 				It("is not returned in the job's builds", func() {
@@ -2689,11 +2648,18 @@ var _ = Describe("PipelineDB", func() {
 					build1DB.Reload()
 				})
 
-				It("remains the next pending build", func() {
-					nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
+				It("remains the next pending build for job", func() {
+					nextPending, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(nextPending).To(Equal(build1DB))
+				})
+
+				It("remains in the list of pending builds", func() {
+					nextPendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
+					Expect(nextPendingBuilds["some-job"]).To(Equal([]db.Build{build1DB}))
 				})
 			})
 
@@ -2756,10 +2722,17 @@ var _ = Describe("PipelineDB", func() {
 
 				Describe("the first build", func() {
 					It("remains the next pending build", func() {
-						nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
+						nextPending, found, err := pipelineDB.GetNextPendingBuildForJob("some-job")
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 						Expect(nextPending.ID()).To(Equal(build1DB.ID()))
+					})
+
+					It("remains in the list of pending builds", func() {
+						nextPendingBuilds, err := pipelineDB.GetAllPendingBuilds()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(nextPendingBuilds["some-job"]).To(HaveLen(2))
+						Expect(nextPendingBuilds["some-job"]).To(ConsistOf(build1DB, build2DB))
 					})
 				})
 			})

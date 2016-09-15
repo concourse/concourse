@@ -55,7 +55,7 @@ var _ = Describe("BuildReaper", func() {
 
 			BeforeEach(func() {
 				disaster = errors.New("sorry pal")
-				fakePipelineDB.GetDashboardReturns(nil, atc.GroupConfigs{}, disaster)
+				fakePipelineDB.GetJobsReturns(nil, disaster)
 			})
 
 			It("built a PipelineDB for the pipeline", func() {
@@ -73,17 +73,15 @@ var _ = Describe("BuildReaper", func() {
 
 		Context("when the dashboard has a job", func() {
 			BeforeEach(func() {
-				fakePipelineDB.GetDashboardReturns(db.Dashboard{
-					{
-						JobConfig: atc.JobConfig{
+				fakePipelineDB.GetJobsReturns([]db.SavedJob{
+					db.SavedJob{
+						Job:                db.Job{Name: "job-1"},
+						FirstLoggedBuildID: 6,
+						Config: atc.JobConfig{
 							BuildLogsToRetain: 10,
 						},
-						Job: db.SavedJob{
-							Job:                db.Job{Name: "job-1"},
-							FirstLoggedBuildID: 6,
-						},
 					},
-				}, atc.GroupConfigs{}, nil)
+				}, nil)
 			})
 
 			Context("when there are more build logs than we can reap in this run", func() {
@@ -314,17 +312,15 @@ var _ = Describe("BuildReaper", func() {
 
 		Context("when FirstLoggedBuildID == 1", func() {
 			BeforeEach(func() {
-				fakePipelineDB.GetDashboardReturns(db.Dashboard{
-					{
-						JobConfig: atc.JobConfig{
+				fakePipelineDB.GetJobsReturns([]db.SavedJob{
+					db.SavedJob{
+						Job:                db.Job{Name: "job-1"},
+						FirstLoggedBuildID: 1,
+						Config: atc.JobConfig{
 							BuildLogsToRetain: 10,
 						},
-						Job: db.SavedJob{
-							Job:                db.Job{Name: "job-1"},
-							FirstLoggedBuildID: 1,
-						},
 					},
-				}, atc.GroupConfigs{}, nil)
+				}, nil)
 			})
 
 			Context("when a build of this job has build id 1", func() {
@@ -438,17 +434,15 @@ var _ = Describe("BuildReaper", func() {
 
 		Context("when FirstLoggedBuildID == 0", func() {
 			BeforeEach(func() {
-				fakePipelineDB.GetDashboardReturns(db.Dashboard{
-					{
-						JobConfig: atc.JobConfig{
+				fakePipelineDB.GetJobsReturns([]db.SavedJob{
+					db.SavedJob{
+						Job:                db.Job{Name: "job-1"},
+						FirstLoggedBuildID: 0,
+						Config: atc.JobConfig{
 							BuildLogsToRetain: 10,
 						},
-						Job: db.SavedJob{
-							Job:                db.Job{Name: "job-1"},
-							FirstLoggedBuildID: 0,
-						},
 					},
-				}, atc.GroupConfigs{}, nil)
+				}, nil)
 			})
 
 			Context("when a build of this job has build id 1", func() {
@@ -495,12 +489,12 @@ var _ = Describe("BuildReaper", func() {
 			BeforeEach(func() {
 				fakePipelineDB.GetDashboardReturns(db.Dashboard{
 					{
-						JobConfig: atc.JobConfig{
-							BuildLogsToRetain: 0,
-						},
 						Job: db.SavedJob{
 							Job:                db.Job{Name: "job-1"},
 							FirstLoggedBuildID: 6,
+							Config: atc.JobConfig{
+								BuildLogsToRetain: 0,
+							},
 						},
 					},
 				}, atc.GroupConfigs{}, nil)

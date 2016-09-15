@@ -13,7 +13,7 @@ import (
 func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 	logger := s.logger.Session("list-resources")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		dashboardResources, groupConfigs, found, err := pipelineDB.GetResources()
+		resources, found, err := pipelineDB.GetResources()
 		if err != nil {
 			logger.Error("failed-to-get-dashboard-resources", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -28,14 +28,13 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 		showCheckErr := auth.IsAuthenticated(r)
 		teamName := r.FormValue(":team_name")
 
-		var resources []atc.Resource
-		for _, dashboardResource := range dashboardResources {
-			resources = append(
-				resources,
+		var presentedResources []atc.Resource
+		for _, resource := range resources {
+			presentedResources = append(
+				presentedResources,
 				present.Resource(
-					dashboardResource.ResourceConfig,
-					groupConfigs,
-					dashboardResource.Resource,
+					resource,
+					pipelineDB.Config().Groups,
 					showCheckErr,
 					teamName,
 				),
@@ -43,6 +42,6 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resources)
+		json.NewEncoder(w).Encode(presentedResources)
 	})
 }

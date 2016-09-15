@@ -32,7 +32,6 @@ var _ = Describe("DependentGet", func() {
 		fakeResourceFetcher *rfakes.FakeFetcher
 		fakeVersionedSource *rfakes.FakeVersionedSource
 		fakeFetchSource     *rfakes.FakeFetchSource
-		fakeCache           *rfakes.FakeCache
 		getDelegate         *execfakes.FakeGetDelegate
 		resourceConfig      atc.ResourceConfig
 		params              atc.Params
@@ -124,7 +123,6 @@ var _ = Describe("DependentGet", func() {
 		repo = NewSourceRepository()
 
 		fakeVersionedSource = new(rfakes.FakeVersionedSource)
-		fakeCache = new(rfakes.FakeCache)
 		fakeFetchSource = new(rfakes.FakeFetchSource)
 		fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
 	})
@@ -181,17 +179,7 @@ var _ = Describe("DependentGet", func() {
 	})
 
 	Context("when the tracker can initialize the resource", func() {
-		var (
-			fakeWorker    *wfakes.FakeWorker
-			fakeContainer *wfakes.FakeContainer
-			fakeVolume    *wfakes.FakeVolume
-		)
-
 		BeforeEach(func() {
-			fakeWorker = new(wfakes.FakeWorker)
-			fakeContainer = new(wfakes.FakeContainer)
-			fakeVolume = new(wfakes.FakeVolume)
-
 			fakeResourceFetcher.FetchReturns(fakeFetchSource, nil)
 			fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
 

@@ -10,10 +10,6 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-type Event interface {
-	Emit(lager.Logger)
-}
-
 var TrackedContainers = &Gauge{}
 var TrackedVolumes = &Gauge{}
 var DatabaseQueries = Meter(0)

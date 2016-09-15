@@ -7,8 +7,6 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-const defaultTaskName = "build"
-
 var ErrResourceNotFound = errors.New("resource not found")
 
 //go:generate counterfeiter . BuildFactory

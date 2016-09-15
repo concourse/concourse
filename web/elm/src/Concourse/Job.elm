@@ -16,6 +16,18 @@ fetchJobs pi =
   Http.get (Json.Decode.list (Concourse.decodeJob pi))
     ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
 
+fetchJobsRaw : Concourse.PipelineIdentifier -> Task Http.Error Json.Decode.Value
+fetchJobsRaw pi =
+  Http.get Json.Decode.value
+    ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
+
+triggerBuild : Concourse.JobIdentifier -> Task Http.Error Concourse.Build
+triggerBuild job =
+  let
+    url = "/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds"
+  in
+    Http.post Concourse.decodeBuild url Http.empty
+
 pause : Concourse.JobIdentifier -> Task Http.Error ()
 pause =
   pauseUnpause True

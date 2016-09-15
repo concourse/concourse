@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/gc/containerkeepaliver"
 	"github.com/concourse/atc/gc/containerkeepaliver/containerkeepaliverfakes"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -19,10 +18,9 @@ var _ = Describe("ContainerKeepAliver", func() {
 	var (
 		containerKeepAliver       containerkeepaliver.ContainerKeepAliver
 		fakeContainerKeepAliverDB *containerkeepaliverfakes.FakeContainerKeepAliverDB
-		fakePipelineDBFactory     *dbfakes.FakePipelineDBFactory
 		fakeWorkerClient          *workerfakes.FakeClient
 		fakeWorkerContainer       *workerfakes.FakeContainer
-		fakePipelineDB            *dbfakes.FakePipelineDB
+		pipelineConfig            atc.Config
 
 		failedContainers []db.SavedContainer
 		jobIDMap         map[int]int
@@ -31,25 +29,22 @@ var _ = Describe("ContainerKeepAliver", func() {
 	BeforeEach(func() {
 		fakeContainerKeepAliverDB = new(containerkeepaliverfakes.FakeContainerKeepAliverDB)
 		containerKeepAliverLogger := lagertest.NewTestLogger("test")
-		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeWorkerContainer = new(workerfakes.FakeContainer)
-		fakePipelineDB = new(dbfakes.FakePipelineDB)
 
 		containerKeepAliver = containerkeepaliver.NewContainerKeepAliver(
 			containerKeepAliverLogger,
 			fakeWorkerClient,
 			fakeContainerKeepAliverDB,
-			fakePipelineDBFactory,
 		)
 
 		failedContainers = []db.SavedContainer{
-			createSavedContainer(1111, "some-job", "some-handle-0", 11),
-			createSavedContainer(1110, "some-job", "some-handle-1", 11),
-			createSavedContainer(1114, "another-other-job", "some-handle-4", 22),
-			createSavedContainer(1112, "some-job", "some-handle-2", 11),
-			createSavedContainer(1113, "some-other-job", "some-handle-3", 33),
-			createSavedContainer(1115, "another-other-job", "some-handle-5", 22),
+			createSavedContainer(1111, "some-job", "some-handle-0", 42),
+			createSavedContainer(1110, "some-job", "some-handle-1", 42),
+			createSavedContainer(1114, "another-other-job", "some-handle-4", 42),
+			createSavedContainer(1112, "some-job", "some-handle-2", 42),
+			createSavedContainer(1113, "some-other-job", "some-handle-3", 42),
+			createSavedContainer(1115, "another-other-job", "some-handle-5", 42),
 		}
 
 		fakeContainerKeepAliverDB.FindLatestSuccessfulBuildsPerJobReturns(map[int]int{1: 2002, 3: 999}, nil)
@@ -70,8 +65,7 @@ var _ = Describe("ContainerKeepAliver", func() {
 		}
 
 		fakeWorkerClient.LookupContainerReturns(fakeWorkerContainer, true, nil)
-		fakePipelineDBFactory.BuildReturns(fakePipelineDB)
-		fakePipelineDB.GetConfigReturns(atc.Config{
+		pipelineConfig = atc.Config{
 			Jobs: atc.JobConfigs{
 				atc.JobConfig{
 					Name: "some-job",
@@ -83,7 +77,15 @@ var _ = Describe("ContainerKeepAliver", func() {
 					Name: "another-other-job",
 				},
 			},
-		}, 0, true, nil)
+		}
+		fakeContainerKeepAliverDB.GetAllPipelinesReturns([]db.SavedPipeline{
+			{
+				ID: 42,
+				Pipeline: db.Pipeline{
+					Config: pipelineConfig,
+				},
+			},
+		}, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -102,13 +104,20 @@ var _ = Describe("ContainerKeepAliver", func() {
 		Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(2))
 	})
 
-	Context("when pipeline is not found", func() {
+	Context("when failing to get all pipelines", func() {
 		BeforeEach(func() {
 			fakeContainerKeepAliverDB.FindJobContainersFromUnsuccessfulBuildsReturns(
 				[]db.SavedContainer{failedContainers[0], failedContainers[1]},
 				nil,
 			)
-			fakeContainerKeepAliverDB.GetPipelineByIDReturns(db.SavedPipeline{}, errors.New("some-error"))
+			fakeContainerKeepAliverDB.GetAllPipelinesReturns([]db.SavedPipeline{
+				{
+					ID: 42,
+					Pipeline: db.Pipeline{
+						Config: pipelineConfig,
+					},
+				},
+			}, errors.New("some-error"))
 		})
 
 		It("does not heartbeat its containers", func() {
@@ -150,7 +159,7 @@ var _ = Describe("ContainerKeepAliver", func() {
 				[]db.SavedContainer{failedContainers[0], failedContainers[1]},
 				nil,
 			)
-			fakePipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+			fakeContainerKeepAliverDB.GetAllPipelinesReturns([]db.SavedPipeline{}, nil)
 		})
 
 		It("does not heartbeat its containers", func() {
@@ -164,11 +173,18 @@ var _ = Describe("ContainerKeepAliver", func() {
 				[]db.SavedContainer{failedContainers[0], failedContainers[1]},
 				nil,
 			)
-			fakePipelineDB.GetConfigReturns(atc.Config{
-				Jobs: atc.JobConfigs{
-					atc.JobConfig{Name: "another-other-job"},
+			fakeContainerKeepAliverDB.GetAllPipelinesReturns([]db.SavedPipeline{
+				{
+					ID: 42,
+					Pipeline: db.Pipeline{
+						Config: atc.Config{
+							Jobs: atc.JobConfigs{
+								atc.JobConfig{Name: "another-other-job"},
+							},
+						},
+					},
 				},
-			}, 0, true, nil)
+			}, nil)
 		})
 
 		It("does not heartbeat its containers", func() {

@@ -7,24 +7,15 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/group"
 )
 
 type TemplateData struct {
-	GroupStates []group.State
-
 	TeamName     string
 	PipelineName string
 	JobName      string
 
-	Build atc.Build
-}
-
-type OldBuildTemplateData struct {
-	TemplateData
-
-	Builds []atc.Build
-	Inputs []atc.PublicBuildInput
+	Build       atc.Build
+	QueryGroups []string
 }
 
 type Handler struct {
@@ -73,33 +64,14 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		return nil
 	}
 
-	pipeline, found, err := team.Pipeline(pipelineName)
-	if err != nil {
-		log.Error("failed-to-get-pipeline", err)
-		return err
-	}
-
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return nil
-	}
-
 	templateData := TemplateData{
-		GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
-			for _, groupJob := range g.Jobs {
-				if groupJob == jobName {
-					return true
-				}
-			}
-
-			return false
-		}),
-
 		TeamName:     teamName,
 		PipelineName: pipelineName,
 		JobName:      jobName,
 
 		Build: requestedBuild,
+
+		QueryGroups: nil,
 	}
 
 	err = handler.template.Execute(w, templateData)

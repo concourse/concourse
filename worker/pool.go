@@ -17,7 +17,6 @@ import (
 type WorkerProvider interface {
 	Workers() ([]Worker, error)
 	GetWorker(string) (Worker, bool, error)
-
 	FindContainerForIdentifier(Identifier) (db.SavedContainer, bool, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
 	ReapContainer(string) error
@@ -64,6 +63,10 @@ func shuffleWorkers(slice []Worker) {
 		j := rand.Intn(i + 1)
 		slice[i], slice[j] = slice[j], slice[i]
 	}
+}
+
+func (pool *pool) Workers() ([]Worker, error) {
+	return pool.provider.Workers()
 }
 
 func (pool *pool) GetWorker(workerName string) (Worker, error) {
@@ -165,6 +168,21 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 		return nil, false, ErrMissingWorker
 	}
 
+	valid, err := worker.ValidateResourceCheckVersion(containerInfo)
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !valid {
+		logger.Info("check-container-version-outdated", lager.Data{
+			"container-handle": containerInfo.Handle,
+			"worker-name":      containerInfo.WorkerName,
+		})
+
+		return nil, false, nil
+	}
+
 	container, found, err := worker.LookupContainer(logger, containerInfo.Handle)
 	if err != nil {
 		return nil, false, err
@@ -234,6 +252,10 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 	return container, true, nil
 }
 
+func (*pool) ValidateResourceCheckVersion(container db.SavedContainer) (bool, error) {
+	return false, errors.New("ValidateResourceCheckVersion not implemented for pool")
+}
+
 func (*pool) FindResourceTypeByPath(string) (atc.WorkerResourceType, bool) {
 	return atc.WorkerResourceType{}, false
 }
@@ -252,18 +274,4 @@ func (*pool) ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error) {
 
 func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 	return nil, false, errors.New("LookupVolume not implemented for pool")
-}
-
-func (pool *pool) Name() string {
-	return "pool"
-}
-
-type byActiveContainers []Worker
-
-func (cs byActiveContainers) Len() int { return len(cs) }
-
-func (cs byActiveContainers) Swap(i, j int) { cs[i], cs[j] = cs[j], cs[i] }
-
-func (cs byActiveContainers) Less(i, j int) bool {
-	return cs[i].ActiveContainers() < cs[j].ActiveContainers()
 }

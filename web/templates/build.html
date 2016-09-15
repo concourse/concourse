@@ -10,5 +10,16 @@ var app = Elm.BuildPage.embed(node);
 app.ports.setTitle.subscribe(function(title) {
   document.title = title + " - Concourse";
 });
+
+app.ports.focusElement.subscribe(function(id) {
+  requestAnimationFrame(function() {
+    document.getElementById(id).focus();
+  });
+});
+
+app.ports.selectBuildGroups.subscribe(function (groups) {
+  topBar.ports.selectGroups.send(groups);
+});
+
 </script>
 {{end}}

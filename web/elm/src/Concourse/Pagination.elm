@@ -1,4 +1,4 @@
-module Concourse.Pagination exposing (Paginated, Pagination, Page, Direction(..), fetch, parseLinks)
+module Concourse.Pagination exposing (Paginated, Pagination, Page, Direction(..), fetch, parseLinks, equal)
 
 import Dict exposing (Dict)
 import Http
@@ -25,6 +25,8 @@ type alias Page =
 type Direction
   = Since Int
   | Until Int
+  | From Int
+  | To Int
 
 previousRel : String
 previousRel = "previous"
@@ -35,6 +37,34 @@ nextRel = "next"
 linkHeaderRegex : Regex
 linkHeaderRegex =
   Regex.regex ("<([^>]+)>; rel=\"(" ++ previousRel ++ "|" ++ nextRel ++ ")\"")
+
+equal : Page -> Page -> Bool
+equal one two =
+  case one.direction of
+    Since p ->
+      case two.direction of
+        Since pp ->
+          p == pp
+        _ ->
+          False
+    Until q ->
+      case two.direction of
+        Until qq ->
+          q == qq
+        _ ->
+          False
+    From f ->
+      case two.direction of
+        From ff ->
+          f == ff
+        _ ->
+          False
+    To t ->
+      case two.direction of
+        To tt ->
+          t == tt
+        _ ->
+          False
 
 fetch : Json.Decode.Decoder a -> String -> Maybe Page -> Task Http.Error (Paginated a)
 fetch decode url page =
@@ -182,9 +212,17 @@ fromQuery query =
     since =
       Maybe.map Since <|
         Dict.get "since" query `Maybe.andThen` parseNum
+
+    from =
+      Maybe.map Since <|
+        Dict.get "from" query `Maybe.andThen` parseNum
+
+    to =
+      Maybe.map Since <|
+        Dict.get "to" query `Maybe.andThen` parseNum
   in
     Maybe.map (\direction -> { direction = direction, limit = limit }) <|
-      Maybe.oneOf [until, since]
+      Maybe.oneOf [until, since, from, to]
 
 toQuery : Maybe Page -> Dict String String
 toQuery page =
@@ -201,6 +239,12 @@ toQuery page =
 
             Until id ->
               ("until", toString id)
+
+            From id ->
+              ("from", toString id)
+
+            To id ->
+              ("to", toString id)
 
         limitParam =
           ("limit", toString limit)

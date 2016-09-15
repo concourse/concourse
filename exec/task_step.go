@@ -630,26 +630,6 @@ func (step *TaskStep) setupOutputs(outputs []atc.TaskOutputConfig) error {
 	return nil
 }
 
-func (TaskStep) mergeTags(tagsOne []string, tagsTwo []string) []string {
-	var ret []string
-
-	uniq := map[string]struct{}{}
-
-	for _, tag := range tagsOne {
-		uniq[tag] = struct{}{}
-	}
-
-	for _, tag := range tagsTwo {
-		uniq[tag] = struct{}{}
-	}
-
-	for tag := range uniq {
-		ret = append(ret, tag)
-	}
-
-	return ret
-}
-
 func (TaskStep) envForParams(params map[string]string) []string {
 	env := make([]string, 0, len(params))
 

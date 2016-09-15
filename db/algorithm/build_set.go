@@ -40,6 +40,23 @@ func (set BuildSet) Intersect(otherSet BuildSet) BuildSet {
 	return result
 }
 
+func (set BuildSet) Overlaps(otherSet BuildSet) bool {
+	check := set
+	against := otherSet
+	if len(check) > len(against) {
+		check, against = against, check
+	}
+
+	for key, _ := range check {
+		_, found := against[key]
+		if found {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (set BuildSet) Equal(otherSet BuildSet) bool {
 	if len(set) != len(otherSet) {
 		return false

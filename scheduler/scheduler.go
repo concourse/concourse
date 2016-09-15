@@ -26,7 +26,8 @@ type SchedulerDB interface {
 	AcquireSchedulingLock(lager.Logger, time.Duration) (db.Lock, bool, error)
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetPipelineName() string
-	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
+	Reload() (bool, error)
+	Config() atc.Config
 	CreateJobBuild(job string) (db.Build, error)
 	EnsurePendingBuildExists(jobName string) error
 	AcquireResourceCheckingForJobLock(logger lager.Logger, job string) (db.Lock, bool, error)
@@ -41,31 +42,33 @@ type Scanner interface {
 func (s *Scheduler) Schedule(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
-	jobConfig atc.JobConfig,
+	jobConfigs atc.JobConfigs,
 	resourceConfigs atc.ResourceConfigs,
 	resourceTypes atc.ResourceTypes,
 ) error {
-	inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, jobConfig)
-	if err != nil {
-		return err
-	}
+	for _, jobConfig := range jobConfigs {
+		inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, jobConfig)
+		if err != nil {
+			return err
+		}
 
-	for _, inputConfig := range config.JobInputs(jobConfig) {
-		inputVersion, ok := inputMapping[inputConfig.Name]
+		for _, inputConfig := range config.JobInputs(jobConfig) {
+			inputVersion, ok := inputMapping[inputConfig.Name]
 
-		//trigger: true, and the version has not been used
-		if ok && inputVersion.FirstOccurrence && inputConfig.Trigger {
-			err := s.DB.EnsurePendingBuildExists(jobConfig.Name)
-			if err != nil {
-				logger.Error("failed-to-ensure-pending-build-exists", err)
-				return err
+			//trigger: true, and the version has not been used
+			if ok && inputVersion.FirstOccurrence && inputConfig.Trigger {
+				err := s.DB.EnsurePendingBuildExists(jobConfig.Name)
+				if err != nil {
+					logger.Error("failed-to-ensure-pending-build-exists", err)
+					return err
+				}
+
+				break
 			}
-
-			break
 		}
 	}
 
-	return s.BuildStarter.TryStartAllPendingBuilds(logger, jobConfig, resourceConfigs, resourceTypes)
+	return s.BuildStarter.TryStartAllPendingBuilds(logger, jobConfigs, resourceConfigs, resourceTypes)
 }
 
 type Waiter interface {
@@ -134,7 +137,7 @@ func (s *Scheduler) TriggerImmediately(
 			lock.Release()
 		}
 
-		err = s.BuildStarter.TryStartAllPendingBuilds(logger, jobConfig, resourceConfigs, resourceTypes)
+		err = s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes)
 	}()
 
 	return build, wg, nil

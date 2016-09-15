@@ -15,10 +15,11 @@ type RadarDB interface {
 	GetPipelineID() int
 	ScopedName(string) string
 	TeamID() int
+	Config() atc.Config
 
 	IsPaused() (bool, error)
 
-	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
+	Reload() (bool, error)
 
 	GetLatestVersionedResource(resourceName string) (db.SavedVersionedResource, bool, error)
 	GetResource(resourceName string) (db.SavedResource, bool, error)
