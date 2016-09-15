@@ -75,10 +75,6 @@ jobs:
       file: concourse/ci/atc-go.yml
       params:
         GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
-    - task: js-unit
-      file: concourse/ci/atc-js.yml
-      attempts: 3
-      timeout: 5m
 
 - name: baggageclaim
   public: true
