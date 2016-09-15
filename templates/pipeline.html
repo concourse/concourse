@@ -56,7 +56,6 @@ topBar.ports.groupsChanged.subscribe(function(groups) {
   }
 
   if (changed && concourse.redraw !== undefined) {
-    console.log("top redraw")
     concourse.redraw();
   }
 });
