@@ -149,6 +149,8 @@ before using it!
     \hyperlink{https://github.com/troykinsella/concourse-fly-resource}{Fly}
   }{
     \hyperlink{https://github.com/jcderr/concourse-kubernetes-resource}{Kubernetes}
+  }{
+    \hyperlink{https://github.com/Docurated/concourse-vault-resource}{Vault}
   }
 
   \section{Adding to this list}{
