@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e -u -x
+
+export GOPATH=$PWD/concourse
+
+FINAL_VERSION="$(cat final-version/version)"
+
+for platform in linux darwin windows; do
+  mkdir -p cli-artifacts/$platform/amd64
+  GOOS=$platform GOARCH=amd64 CGO_ENABLED=0 \
+    go build \
+      -ldflags "-X github.com/concourse/fly/version.Version=${FINAL_VERSION}" \
+      -o cli-artifacts/${platform}/amd64/fly \
+      github.com/concourse/fly
+done

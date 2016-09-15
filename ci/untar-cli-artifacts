@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set -e -u -x
-
-tar -xzf fly-binaries/fly-*.tgz
-mv darwin linux windows cli-artifacts/
