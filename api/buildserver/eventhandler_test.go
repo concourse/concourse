@@ -101,26 +101,31 @@ var _ = Describe("Handler", func() {
 			})
 
 			It("gets the events from the right build, starting at 0", func() {
+				response.Body.Close()
 				Eventually(build.EventsCallCount).Should(Equal(1))
 				actualFrom := build.EventsArgsForCall(0)
 				Expect(actualFrom).To(BeZero())
 			})
 
 			It("returns 200", func() {
+				response.Body.Close()
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
 			It("returns Content-Type as text/event-stream", func() {
+				response.Body.Close()
 				Expect(response.Header.Get("Content-Type")).To(Equal("text/event-stream; charset=utf-8"))
 				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
 				Expect(response.Header.Get("Connection")).NotTo(Equal("keep-alive"))
 			})
 
 			It("returns the protocol version as X-ATC-Stream-Version", func() {
+				response.Body.Close()
 				Expect(response.Header.Get("X-ATC-Stream-Version")).To(Equal("2.0"))
 			})
 
 			It("emits them, followed by an end event", func() {
+				defer response.Body.Close()
 				reader := sse.NewReadCloser(response.Body)
 
 				Expect(reader.Next()).To(Equal(sse.Event{
@@ -142,13 +147,10 @@ var _ = Describe("Handler", func() {
 				}))
 
 				Expect(reader.Next()).To(Equal(sse.Event{
+					ID:   "3",
 					Name: "end",
 					Data: []byte{},
 				}))
-
-				_, err := reader.Next()
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(io.EOF))
 			})
 
 			Context("when the Last-Event-ID header is given", func() {
@@ -157,6 +159,7 @@ var _ = Describe("Handler", func() {
 				})
 
 				It("starts subscribing from after the id", func() {
+					response.Body.Close()
 					Eventually(build.EventsCallCount).Should(Equal(1))
 					actualFrom := build.EventsArgsForCall(0)
 					Expect(actualFrom).To(Equal(uint(2)))

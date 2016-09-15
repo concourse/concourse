@@ -18,17 +18,19 @@ const CurrentProtocolVersion = "2.0"
 
 func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var start uint = 0
+		clientNotifier := w.(http.CloseNotifier)
+
+		var eventID uint = 0
 		if r.Header.Get("Last-Event-ID") != "" {
 			startString := r.Header.Get("Last-Event-ID")
-			_, err := fmt.Sscanf(startString, "%d", &start)
+			_, err := fmt.Sscanf(startString, "%d", &eventID)
 			if err != nil {
 				logger.Info("failed-to-parse-last-event-id", lager.Data{"last-event-id": startString})
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 
-			start++
+			eventID++
 		}
 
 		w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
@@ -52,9 +54,9 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 			writer.writeFlusher = gz
 		}
 
-		events, err := build.Events(start)
+		events, err := build.Events(eventID)
 		if err != nil {
-			logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": build.ID(), "start": start})
+			logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": build.ID(), "start": eventID})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -62,16 +64,18 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 		defer events.Close()
 
 		for {
-			logger = logger.WithData(lager.Data{"id": start})
+			logger = logger.WithData(lager.Data{"id": eventID})
 
 			ev, err := events.Next()
 			if err != nil {
 				if err == db.ErrEndOfBuildEventStream {
-					err := writer.WriteEnd()
+					err := writer.WriteEnd(eventID)
 					if err != nil {
 						logger.Info("failed-to-write-end", lager.Data{"error": err.Error()})
 						return
 					}
+
+					<-clientNotifier.CloseNotify()
 				} else {
 					logger.Error("failed-to-get-next-build-event", err)
 					return
@@ -80,13 +84,13 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 				return
 			}
 
-			err = writer.WriteEvent(start, ev)
+			err = writer.WriteEvent(eventID, ev)
 			if err != nil {
 				logger.Info("failed-to-write-event", lager.Data{"error": err.Error()})
 				return
 			}
 
-			start++
+			eventID++
 		}
 	})
 }
@@ -119,8 +123,8 @@ func (writer eventWriter) WriteEvent(id uint, envelope interface{}) error {
 	return writer.flush()
 }
 
-func (writer eventWriter) WriteEnd() error {
-	err := sse.Event{Name: "end"}.Write(writer.responseWriter)
+func (writer eventWriter) WriteEnd(id uint) error {
+	err := sse.Event{ID: fmt.Sprintf("%d", id), Name: "end"}.Write(writer.responseWriter)
 	if err != nil {
 		return err
 	}
