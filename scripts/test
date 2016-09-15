@@ -20,25 +20,5 @@ if not_installed npm; then
   exit 1
 fi
 
-if not_installed gulp; then
-  echo "# gulp is not installed! run the following commands:"
-  echo "    pushd $atc_dir/web/assets"
-  echo "    npm install"
-  echo "    popd"
-  exit 1
-fi
-
 cd $atc_dir
 ginkgo -r -p -race
-
-cd $atc_dir/web
-export NODE_ENV=production
-
-# This will re-compile the javascript and css
-$(npm bin)/gulp
-$(npm bin)/gulp jasmine-cli
-
-make
-
-cd $atc_dir/web/elm
-$(npm bin)/elm-test TestRunner.elm
