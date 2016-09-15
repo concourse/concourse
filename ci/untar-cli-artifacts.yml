@@ -7,11 +7,10 @@ image_resource:
 
 inputs:
 - name: bin
-- name: concourse
-- name: final-version
+- name: fly-binaries
 
 outputs:
 - name: cli-artifacts
 
 run:
-  path: bin/ci/build-cli-artifacts
+  path: bin/ci/untar-cli-artifacts
