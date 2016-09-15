@@ -70,11 +70,10 @@ jobs:
   plan:
   - get: concourse
     trigger: true
-  - aggregate:
-    - task: go-unit
-      file: concourse/ci/atc-go.yml
-      params:
-        GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
+  - task: go-unit
+    file: concourse/ci/atc-go.yml
+    params:
+      GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
 
 - name: baggageclaim
   public: true
