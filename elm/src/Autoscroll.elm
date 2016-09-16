@@ -66,12 +66,19 @@ view : (subModel -> Html subMsg) -> Model subModel -> Html (Msg subMsg)
 view subView model =
   Html.App.map SubMsg (subView model.subModel)
 
-subscriptions : Model subModel -> Sub (Msg subMsg)
-subscriptions model =
-  if model.scrollBehaviorFunc model.subModel /= NoScroll then
-    AnimationFrame.times (always ScrollDown)
-  else
-    Sub.none
+subscriptions : (subModel -> Sub subMsg) -> Model subModel -> Sub (Msg subMsg)
+subscriptions subSubscriptions model =
+  let
+    subSubs =
+      Sub.map SubMsg (subSubscriptions model.subModel)
+  in
+    if model.scrollBehaviorFunc model.subModel /= NoScroll then
+      Sub.batch
+        [ AnimationFrame.times (always ScrollDown)
+        , subSubs
+        ]
+    else
+      subSubs
 
 scrollToBottom : String -> Cmd (Msg x)
 scrollToBottom ele =

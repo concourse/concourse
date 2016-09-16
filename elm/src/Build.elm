@@ -61,7 +61,7 @@ type alias CurrentBuild =
 
 type alias Model =
   { ports : Ports
-  , now : Time.Time
+  , now : Maybe Time.Time
   , job : Maybe Concourse.Job
   , history : List Concourse.Build
   , currentBuild : Maybe CurrentBuild
@@ -100,25 +100,32 @@ type alias Ports =
 
 init : Ports -> Result String Page -> (Model, Cmd Msg)
 init ports pageResult =
-  changeToBuild
-    pageResult
-    { now = 0
-    , job = Nothing
-    , history = []
-    , currentBuild = Nothing
-    , browsingIndex = 0
-    , autoScroll = True
-    , ports = ports
-    }
+  let
+    (model, cmd) =
+      changeToBuild
+        pageResult
+        { now = Nothing
+        , job = Nothing
+        , history = []
+        , currentBuild = Nothing
+        , browsingIndex = 0
+        , autoScroll = True
+        , ports = ports
+        }
+  in
+    (model, Cmd.batch [cmd, getCurrentTime])
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  case model.currentBuild `Maybe.andThen` .output of
-    Nothing ->
-      Sub.none
+  Sub.batch
+    [ Time.every Time.second ClockTick
+    , case model.currentBuild `Maybe.andThen` .output of
+        Nothing ->
+          Sub.none
 
-    Just buildOutput ->
-      Sub.map (BuildOutputMsg model.browsingIndex) buildOutput.events
+        Just buildOutput ->
+          Sub.map (BuildOutputMsg model.browsingIndex) buildOutput.events
+    ]
 
 changeToBuild : Result String Page -> Model -> (Model, Cmd Msg)
 changeToBuild pageResult model =
@@ -263,7 +270,7 @@ update action model =
         (model, scrollBuilds -event.deltaX)
 
     ClockTick now ->
-      ({ model | now = now }, Cmd.none)
+      ({ model | now = Just now }, Cmd.none)
 
     OutputScrolled {scrollHeight,scrollTop,clientHeight} ->
       let
@@ -616,7 +623,11 @@ viewBuildHeader build {now, job, history} =
       [ Html.div [class ("build-header " ++ Concourse.BuildStatus.show build.status)]
           [ Html.div [class "build-actions fr"] [triggerButton, abortButton]
           , Html.h1 [] [buildTitle]
-          , BuildDuration.view build.duration now
+          , case now of
+              Just n ->
+                BuildDuration.view build.duration n
+              Nothing ->
+                Html.text ""
           ]
       , Html.div
           [ onMouseWheel ScrollBuilds
@@ -775,3 +786,7 @@ updateHistory newBuild =
       newBuild
     else
       build
+
+getCurrentTime : Cmd Msg
+getCurrentTime =
+  Task.perform (always Noop) ClockTick Time.now
