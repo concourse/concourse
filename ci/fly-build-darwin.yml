@@ -5,11 +5,11 @@ inputs:
   - name: concourse
   - name: final-version
 
-params:
-  platform: darwin-binary
-
 outputs:
   - name: darwin-binary
+
+params:
+  platform: darwin
 
 run:
   path: concourse/ci/scripts/fly-build
