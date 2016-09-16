@@ -38,5 +38,5 @@ func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 
-	http.ServeFile(w, r, filepath.Join(s.cliDownloadsDir, platform, arch, "fly"))
+	http.ServeFile(w, r, filepath.Join(s.cliDownloadsDir, "fly_"+platform+"_"+arch))
 }

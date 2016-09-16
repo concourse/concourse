@@ -18,19 +18,10 @@ var _ = Describe("CLI Downloads API", func() {
 	BeforeEach(func() {
 		var err error
 
-		darwinDurr := filepath.Join(cliDownloadsDir, "darwin", "amd64")
-		windowsDurr := filepath.Join(cliDownloadsDir, "windows", "amd64")
-
-		err = os.MkdirAll(darwinDurr, 0755)
+		err = ioutil.WriteFile(filepath.Join(cliDownloadsDir, "fly_darwin_amd64"), []byte("soi soi soi"), 0644)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = os.MkdirAll(windowsDurr, 0755)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = ioutil.WriteFile(filepath.Join(darwinDurr, "fly"), []byte("soi soi soi"), 0644)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = ioutil.WriteFile(filepath.Join(windowsDurr, "fly"), []byte("soi soi soi.notavirus.bat"), 0644)
+		err = ioutil.WriteFile(filepath.Join(cliDownloadsDir, "fly_windows_amd64"), []byte("soi soi soi.notavirus.bat"), 0644)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
