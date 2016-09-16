@@ -1,0 +1,17 @@
+---
+platform: linux
+
+image: docker:///ubuntu
+
+inputs:
+- name: concourse
+- name: linux-binary
+- name: darwin-binary
+- name: windows-binary
+- name: version
+
+outputs:
+- name: release
+
+run:
+  path: concourse/src/github.com/concourse/fly/ci/build-release

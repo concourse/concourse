@@ -27,3 +27,4 @@ _testmain.go
 
 # Ignore Generated Binary
 fly
+fly_*
