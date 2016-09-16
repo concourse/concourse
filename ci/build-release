@@ -12,7 +12,6 @@ You may want to look at [the concourse/concourse releases](https://github.com/co
 EOF
 
 mkdir release/artifacts
-cp
 
 for platform in linux windows darwin; do
   cp ${platform}-binary/* release/artifacts
