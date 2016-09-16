@@ -10,7 +10,7 @@ inputs:
   path: gopath/src/github.com/concourse/bin
 - name: concourse
 - name: garden-runc-release
-- name: cli-artifacts
+- name: fly-rc
 - name: final-version
 
 outputs:

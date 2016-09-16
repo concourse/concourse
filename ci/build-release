@@ -13,6 +13,3 @@ EOF
 
 mkdir release/artifacts
 cp linux-binary/* windows-binary/* darwin-binary/* release/artifacts
-cp cli-artifacts/windows/amd64/fly release/artifacts/fly_windows_amd64.exe
-cp cli-artifacts/linux/amd64/fly release/artifacts/fly_linux_amd64
-cp cli-artifacts/darwin/amd64/fly release/artifacts/fly_darwin_amd64
