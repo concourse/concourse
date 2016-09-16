@@ -5,4 +5,4 @@ set PATH=%CD%\concourse\bin;%PATH%
 
 set /p FinalVersion=<final-version\version
 
-go build -ldflags "-X github.com/concourse/fly/version.Version=%FinalVersion%" -o windows/amd64/fly github.com/concourse/fly
+go build -ldflags "-X github.com/concourse/fly/version.Version=%FinalVersion%" -o windows-binary/fly_windows_amd64.exe github.com/concourse/fly

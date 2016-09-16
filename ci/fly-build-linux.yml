@@ -11,7 +11,7 @@ inputs:
   - name: final-version
 
 outputs:
-  - name: linux
+  - name: linux-binary
 
 params:
   platform: linux

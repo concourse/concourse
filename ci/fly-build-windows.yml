@@ -6,7 +6,7 @@ inputs:
   - name: final-version
 
 outputs:
-  - name: windows
+  - name: windows-binary
 
 params:
   platform: windows

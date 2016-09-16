@@ -170,10 +170,15 @@ jobs:
       file: concourse/ci/fly-build-windows.yml
       timeout: 15m
       attempts: 2
-  - task: tarball-flies
-    file: concourse/ci/tarball-flies.yml
-  - put: fly-binaries
-    params: { file: fly-binaries/fly-*.tgz }
+  - task: build-release
+    file: concourse/src/github.com/concourse/fly/ci/build-release.yml
+  - put: fly-rc
+    params:
+      name: release/name
+      tag: release/tag
+      body: release/body
+      globs: [release/artifacts/*]
+      # commitish: generated-commitish/commitish
 
 - name: bosh-rc
   public: true
@@ -192,9 +197,10 @@ jobs:
     passed: [build-fly]
     params: {bump: final}
     trigger: true
-  - get: fly-binaries
+  - get: fly-rc
     trigger: true
     passed: [build-fly]
+    params: {globs: fly_*}
   - task: create-bosh-rc
     file: concourse/ci/create-bosh-rc.yml
   - put: bosh-rc
@@ -224,13 +230,12 @@ jobs:
     - get: houdini
       trigger: true
     - get: garden-runc-src
-    - get: fly-binaries
+    - get: fly-rc
       trigger: true
       passed: [build-fly]
+      params: {globs: fly_*}
   - task: checkout-release-tag
     file: concourse/ci/checkout-garden-runc.yml
-  - task: untar-cli-artifacts
-    file: bin/ci/untar-cli-artifacts.yml
   - aggregate:
     - task: build-linux
       file: bin/ci/build-linux.yml
@@ -816,14 +821,12 @@ resources:
   source:
     repository: cloudfoundry-incubator/garden-runc-release
 
-- name: fly-binaries
-  type: s3
+- name: fly-rc
+  type: github-release
   source:
-    bucket: concourse-fly
-    regexp: fly-(.*).tgz
-    access_key_id: {{pipeline-bucket-access-key}}
-    secret_access_key: {{pipeline-bucket-secret-key}}
-    region_name: us-west-1
+    access_token: {{concourse-github-release-access-token}}
+    user: concourse
+    repository: fly
 
 - name: tracker
   type: tracker

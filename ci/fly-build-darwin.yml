@@ -6,7 +6,7 @@ inputs:
   - name: final-version
 
 params:
-  platform: darwin
+  platform: darwin-binary
 
 outputs:
   - name: darwin

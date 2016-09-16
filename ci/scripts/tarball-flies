@@ -1,8 +1,0 @@
-#!/bin/bash
-# vim: set ft=sh
-
-set -e -x
-
-VERSION="$(cat version/version)"
-
-tar -czf fly-binaries/fly-${VERSION}.tgz ./darwin ./linux ./windows
