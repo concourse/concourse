@@ -2,12 +2,11 @@
 
 {{define "body"}}
 <svg class="pipeline-graph test" width="100%" height="100%"></svg>
-
-<div id="elm-app"></div>
-
+<script src="{{asset "index.js"}}"></script>
 <script src="{{asset "d3.v355.min.js"}}"></script>
 <script src="{{asset "graph.js"}}"></script>
-<script src="{{asset "index.js"}}"></script>
+
+<div id="elm-app"></div>
 
 <script type="text/javascript">
 concourse.pipelineName = {{.PipelineName}};
@@ -17,7 +16,8 @@ concourse.groups = {};
 var node = document.getElementById("elm-app");
 var app = Elm.PipelinePage.embed(node, {
   teamName: {{.TeamName}},
-  pipelineName: {{.PipelineName}}
+  pipelineName: {{.PipelineName}},
+  turbulenceImgSrc: {{asset "images/buckleup.svg"}}
 });
 
 var svg = createPipelineSvg(d3.select(".pipeline-graph"))

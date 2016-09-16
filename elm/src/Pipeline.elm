@@ -1,7 +1,7 @@
 port module Pipeline exposing (Flags, init, update, view, subscriptions)
 
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, style)
+import Html.Attributes exposing (class, href, id, style, src, width, height)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Encode
@@ -18,6 +18,7 @@ import Concourse.Resource
 type alias Flags =
   { teamName : String
   , pipelineName : String
+  , turbulenceImgSrc : String
   }
 
 type alias Ports =
@@ -33,6 +34,8 @@ type alias Model =
   , renderedJobs : Maybe Json.Encode.Value
   , renderedResources : Maybe Json.Encode.Value
   , concourseVersion : String
+  , turbulenceImgSrc : String
+  , experiencingTurbulence : Bool
   }
 
 init : Ports -> Flags -> (Model, Cmd Msg)
@@ -49,6 +52,8 @@ init ports flags =
       , renderedJobs = Nothing
       , renderedResources = Nothing
       , concourseVersion = ""
+      , turbulenceImgSrc = flags.turbulenceImgSrc
+      , experiencingTurbulence = False
       }
   in
     ( model
@@ -96,7 +101,7 @@ update msg model =
 
     JobsFetched (Err err) ->
       Debug.log ("failed to fetch jobs: " ++ toString err) <|
-        (model, Cmd.none)
+        ({ model | experiencingTurbulence = True }, Cmd.none)
 
     ResourcesFetched (Ok fetchedResources) ->
       let
@@ -115,14 +120,14 @@ update msg model =
 
     ResourcesFetched (Err err) ->
       Debug.log ("failed to fetch resources: " ++ toString err) <|
-        (model, Cmd.none)
+        ({ model | experiencingTurbulence = True }, Cmd.none)
 
     VersionFetched (Ok version) ->
       ({ model | concourseVersion = version }, Cmd.none)
 
     VersionFetched (Err err) ->
       Debug.log ("failed to fetch version: " ++ toString err) <|
-        (model, Cmd.none)
+        ({ model | experiencingTurbulence = True }, Cmd.none)
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -134,55 +139,62 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   Html.div []
-    [ Html.dl [class "legend"]
-        [ Html.dt [class "pending"] []
-        , Html.dd [] [Html.text "pending"]
-        , Html.dt [class "started"] []
-        , Html.dd [] [Html.text "started"]
-        , Html.dt [class "succeeded"] []
-        , Html.dd [] [Html.text "succeeded"]
-        , Html.dt [class "failed"] []
-        , Html.dd [] [Html.text "failed"]
-        , Html.dt [class "errored"] []
-        , Html.dd [] [Html.text "errored"]
-        , Html.dt [class "aborted"] []
-        , Html.dd [] [Html.text "aborted"]
-        , Html.dt [class "paused"] []
-        , Html.dd [] [Html.text "paused"]
+    [ Html.div [if model.experiencingTurbulence then class "error-message" else class "error-message hidden"]
+        [ Html.div [class "message"]
+            [ Html.img [src model.turbulenceImgSrc, class "seatbelt"] []
+            , Html.p [] [Html.text "experiencing turbulence"]
+            , Html.p [class "explanation"] []
+            ]
         ]
-    , Html.table [class "lower-right-info"]
-        [ Html.tr []
-            [ Html.td [class "label"] [ Html.text "cli:"]
-            , Html.td []
-                [ Html.ul [class "cli-downloads"]
-                    [ Html.li []
-                        [ Html.a
-                            [href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI"]
-                            [ Html.i [class "fa fa-apple"] [] ]
+    , Html.dl [class "legend"]
+            [ Html.dt [class "pending"] []
+            , Html.dd [] [Html.text "pending"]
+            , Html.dt [class "started"] []
+            , Html.dd [] [Html.text "started"]
+            , Html.dt [class "succeeded"] []
+            , Html.dd [] [Html.text "succeeded"]
+            , Html.dt [class "failed"] []
+            , Html.dd [] [Html.text "failed"]
+            , Html.dt [class "errored"] []
+            , Html.dd [] [Html.text "errored"]
+            , Html.dt [class "aborted"] []
+            , Html.dd [] [Html.text "aborted"]
+            , Html.dt [class "paused"] []
+            , Html.dd [] [Html.text "paused"]
+            ]
+        , Html.table [class "lower-right-info"]
+            [ Html.tr []
+                [ Html.td [class "label"] [ Html.text "cli:"]
+                , Html.td []
+                    [ Html.ul [class "cli-downloads"]
+                        [ Html.li []
+                            [ Html.a
+                                [href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI"]
+                                [ Html.i [class "fa fa-apple"] [] ]
+                            ]
+                        , Html.li []
+                            [ Html.a
+                                [href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI"]
+                                [ Html.i [class "fa fa-windows"] [] ]
+                            ]
+                        , Html.li []
+                            [ Html.a
+                                [href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI"]
+                                [ Html.i [class "fa fa-linux"] [] ]
+                            ]
                         ]
-                    , Html.li []
-                        [ Html.a
-                            [href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI"]
-                            [ Html.i [class "fa fa-windows"] [] ]
-                        ]
-                    , Html.li []
-                        [ Html.a
-                            [href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI"]
-                            [ Html.i [class "fa fa-linux"] [] ]
+                    ]
+                ]
+            , Html.tr []
+                [ Html.td [class "label"] [ Html.text "version:" ]
+                , Html.td []
+                    [ Html.div [id "concourse-version"]
+                        [ Html.text "v"
+                        , Html.span [class "number"] [Html.text model.concourseVersion]
                         ]
                     ]
                 ]
             ]
-        , Html.tr []
-            [ Html.td [class "label"] [ Html.text "version:" ]
-            , Html.td []
-                [ Html.div [id "concourse-version"]
-                    [ Html.text "v"
-                    , Html.span [class "number"] [Html.text model.concourseVersion]
-                    ]
-                ]
-            ]
-        ]
     ]
 
 autoupdateVersionTimer : Sub Msg
