@@ -1,6 +1,22 @@
 {{define "title"}}{{.PipelineName}} - Concourse{{end}}
 
 {{define "body"}}
+{{if .Elm}}
+<div id="elm-app"></div>
+
+<script type="text/javascript">
+var node = document.getElementById("elm-app");
+var app = Elm.BetaPipelinePage.embed(node, {
+  teamName: {{.TeamName}},
+  pipelineName: {{.PipelineName}},
+  groups: {{.QueryGroups}}
+});
+topBar.ports.groupsChanged.subscribe(function(groups) {
+  app.ports.setGroups.send(groups);
+});
+topBar.ports.setViewingPipeline.send(true);
+</script>
+{{else}}
 <svg class="pipeline-graph test" width="100%" height="100%"></svg>
 <script src="{{asset "index.js"}}"></script>
 <script src="{{asset "d3.v355.min.js"}}"></script>
@@ -55,4 +71,5 @@ app.ports.renderPipeline.subscribe(function (values) {
 })
 
 </script>
+{{end}}
 {{end}}
