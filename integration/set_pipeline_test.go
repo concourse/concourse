@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/gunk/urljoiner"
+	"code.cloudfoundry.org/urljoiner"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
