@@ -2,7 +2,6 @@ port module BuildPage exposing (main)
 
 import Navigation
 import String
-import Time
 import UrlParser exposing ((</>), s)
 
 import Autoscroll
@@ -27,17 +26,7 @@ main =
     , update = Autoscroll.update Build.update
     , urlUpdate = Autoscroll.urlUpdate Build.urlUpdate
     , view = Autoscroll.view Build.view
-    , subscriptions =
-        let
-          tick =
-            Time.every Time.second (Autoscroll.SubMsg << Build.ClockTick)
-        in \model ->
-          Sub.batch
-            [ tick
-            , Autoscroll.subscriptions model
-            , Sub.map Autoscroll.SubMsg <|
-                Build.subscriptions model.subModel
-            ]
+    , subscriptions = Autoscroll.subscriptions Build.subscriptions
     }
 
 pathnameParser : Navigation.Location -> Result String Page
