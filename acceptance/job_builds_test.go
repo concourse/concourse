@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/sclevine/agouti/matchers"
 
-	"code.cloudfoundry.org/gunk/urljoiner"
+	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
