@@ -9,7 +9,7 @@ params:
   platform: darwin-binary
 
 outputs:
-  - name: darwin
+  - name: darwin-binary
 
 run:
   path: concourse/ci/scripts/fly-build
