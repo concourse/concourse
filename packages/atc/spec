@@ -14,8 +14,8 @@ files:
   - code.cloudfoundry.org/garden/client/connection/*.go # gosub
   - code.cloudfoundry.org/garden/routes/*.go # gosub
   - code.cloudfoundry.org/garden/transport/*.go # gosub
-  - code.cloudfoundry.org/gunk/urljoiner/*.go # gosub
   - code.cloudfoundry.org/lager/*.go # gosub
+  - code.cloudfoundry.org/urljoiner/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
   - github.com/Masterminds/squirrel/*.go # gosub
   - github.com/bigdatadev/goryman/*.go # gosub

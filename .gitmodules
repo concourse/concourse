@@ -203,10 +203,6 @@
 	path = src/code.cloudfoundry.org/clock
 	url = https://github.com/cloudfoundry/clock
 	branch = master
-[submodule "src/code.cloudfoundry.org/gunk"]
-	path = src/code.cloudfoundry.org/gunk
-	url = https://github.com/cloudfoundry/gunk
-	branch = master
 [submodule "src/code.cloudfoundry.org/garden"]
 	path = src/code.cloudfoundry.org/garden
 	url = https://github.com/vito/garden
@@ -238,4 +234,8 @@
 [submodule "src/github.com/jackc/pgx"]
 	path = src/github.com/jackc/pgx
 	url = https://github.com/jackc/pgx
+	branch = master
+[submodule "src/code.cloudfoundry.org/urljoiner"]
+	path = src/code.cloudfoundry.org/urljoiner
+	url = https://github.com/cloudfoundry/urljoiner
 	branch = master
