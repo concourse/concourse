@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"code.cloudfoundry.org/gunk/urljoiner"
+	"code.cloudfoundry.org/urljoiner"
 	"code.cloudfoundry.org/lager"
 	"github.com/dgrijalva/jwt-go"
 )
