@@ -1,6 +1,6 @@
 .error-message {
   z-index: 100;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
@@ -36,9 +36,4 @@
       font-size: 1vmax;
     }
   }
-}
-
-.error-message:not(.hidden) + .content-frame {
-  -webkit-filter: blur(5px);
-  filter: blur(5px);
 }
