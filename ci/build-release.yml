@@ -9,7 +9,6 @@ inputs:
 - name: darwin-binary
 - name: windows-binary
 - name: version
-- name: cli-artifacts
 
 outputs:
 - name: release
