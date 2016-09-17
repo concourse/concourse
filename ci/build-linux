@@ -7,11 +7,13 @@ export PATH=$PWD/gopath/bin:$PWD/concourse/bin:$PWD/garden-runc-release:$PATH
 
 FINAL_VERSION="$(cat $PWD/final-version/version)"
 
+mv fly-rc/* cli-artifacts
+
 go get github.com/jteeuwen/go-bindata/go-bindata
 
 ./gopath/src/github.com/concourse/bin/scripts/build-linux
 
-go-bindata -nomemcopy -pkg bindata -o gopath/src/github.com/concourse/bin/bindata/bindata.go fly-rc/... linux/...
+go-bindata -nomemcopy -pkg bindata -o gopath/src/github.com/concourse/bin/bindata/bindata.go cli-artifacts/... linux/...
 
 # must be build with 'daemon' flag because of docker packages :|
 go build \
