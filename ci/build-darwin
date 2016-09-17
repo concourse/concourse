@@ -10,7 +10,8 @@ export PATH=$PWD/gopath/bin:$PATH
 
 FINAL_VERSION="$(cat $PWD/final-version/version)"
 
-mv fly-rc/* cli-artifacts
+mkdir cli-artifacts
+mv fly-rc/fly_* cli-artifacts
 
 go get github.com/jteeuwen/go-bindata
 
