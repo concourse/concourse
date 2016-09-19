@@ -11,7 +11,7 @@ clean:
 	rm -f public/elm.js public/elm.min.js public/main.css bindata.go
 
 public/elm.js: $(ELM_FILES)
-	cd elm && elm make --warn --output ../public/elm.js --yes src/BuildPage.elm src/JobPage.elm src/LoginPage.elm src/PipelinePage.elm src/BetaPipelinePage.elm src/PipelinesNavPage.elm src/ResourcePage.elm src/TopBarPage.elm
+	cd elm && elm make --warn --output ../public/elm.js --yes src/Main.elm
 
 public/main.css: $(LESS_FILES)
 	lessc --clean-css="--advanced" assets/css/main.less $@
@@ -20,5 +20,5 @@ public/elm.min.js: public/elm.js
 	uglifyjs < $< > $@
 
 bindata.go: $(PUBLIC_FILES) $(TEMPLATE_FILES)
-	go-bindata ${DEV} -pkg web templates/... public/...
+	go-bindata ${DEV} -pkg web index.html public/...
 	go fmt bindata.go

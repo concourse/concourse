@@ -1,4 +1,4 @@
-module TopBar exposing (Flags, init, update, urlUpdate, view, subscriptions)
+port module TopBar exposing (Model, Msg, init, update, urlUpdate, view, subscriptions)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)
@@ -16,10 +16,11 @@ import Concourse.User
 import Redirect
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 
-type alias Flags =
-  { pipeline : Maybe Concourse.PipelineIdentifier
-  , queryGroups : Maybe (List String)
-  }
+port toggleSidebar : () -> Cmd msg
+port groupsChanged : List String -> Cmd msg
+port selectGroups : (List String -> msg) -> Sub msg
+port navigateTo : String -> Cmd msg
+port setViewingPipeline : (Bool -> msg) -> Sub msg
 
 type alias Model =
   { pipelineIdentifier : Maybe Concourse.PipelineIdentifier
@@ -64,17 +65,18 @@ type Msg
   | ToggleUserMenu
   | SetViewingPipeline Bool
 
-init : Ports -> Flags -> Location -> (Model, Cmd Msg)
-init ports flags initialLocation =
-  ( { pipelineIdentifier = flags.pipeline
+init : Location -> (Model, Cmd Msg)
+init initialLocation =
+  ( { pipelineIdentifier = Nothing
     , viewingPipeline = False
-    , ports = ports
-    , groupsState =
-        case flags.queryGroups of
-          Nothing ->
-            GroupsStateNotLoaded
-          Just groups ->
-            GroupsStateSelected groups
+    , ports =
+        { toggleSidebar = toggleSidebar
+        , setGroups = groupsChanged
+        , selectGroups = selectGroups
+        , navigateTo = navigateTo
+        , setViewingPipeline = setViewingPipeline
+        }
+    , groupsState = GroupsStateNotLoaded
     , selectedGroups = []
     , location = initialLocation
     , pipeline = Nothing
@@ -82,11 +84,7 @@ init ports flags initialLocation =
     , userMenuVisible = False
     }
   , Cmd.batch
-      [ case flags.pipeline of
-          Just pid ->
-            fetchPipeline pid
-          Nothing ->
-            Cmd.none
+      [ Cmd.none
       , fetchUser
       ]
   )
@@ -130,7 +128,7 @@ update msg model =
                 if List.length groups > 0 then
                   setGroups groups model
                 else
-                  selectGroups [group.name] model
+                  setSelectedGroups [group.name] model
 
     PipelineFetched (Err err) ->
       Debug.log
@@ -151,7 +149,7 @@ update msg model =
       setGroups groups model
 
     SelectGroups groups ->
-      selectGroups groups model
+      setSelectedGroups groups model
 
     LogOut ->
       (model, logOut)
@@ -207,8 +205,8 @@ setGroups newGroups model =
     Nothing ->
       (model, Cmd.none)
 
-selectGroups : List String -> Model -> (Model, Cmd Msg)
-selectGroups groups model =
+setSelectedGroups : List String -> Model -> (Model, Cmd Msg)
+setSelectedGroups groups model =
   ( { model | selectedGroups = groups }
   , if model.viewingPipeline then
       model.ports.setGroups groups
