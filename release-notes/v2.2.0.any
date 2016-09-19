@@ -9,15 +9,15 @@
     candidate set of inputs for a job, and is the second hardest problem in
     Concourse (behind the pipeline UI).
 
-    In some cases, e.g. when disabling a oft-used resource version, The
+    In some cases, e.g. when disabling an oft-used resource version, The
     Algorithm would go buck-wild and use 100% CPU trying to locate the new set
     of version candidates. This was undesirable.
 
     Luckily, we prepared for this kind of degenerative case, and made it easy
     to capture the data sets that replicate the issue. We captured the data
-    set, observed the slowness (literally had a build running for >12 hours
-    before we gave up), thought long and hard, and did a bunch of work to bring
-    that down to ~19 seconds.
+    set, observed the slowness (had a build running for >12 hours before we
+    gave up), thought long and hard, and did a bunch of work to bring that down
+    to ~19 seconds.
 
     Hopefully that's the last of the 100% CPU monster. Overall scheduling
     performance has also improved across the board.
