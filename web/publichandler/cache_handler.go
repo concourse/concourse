@@ -1,4 +1,4 @@
-package webhandler
+package publichandler
 
 import (
 	"fmt"
