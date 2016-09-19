@@ -4,13 +4,6 @@
 
 \release{2016-09-15}{2.2.0}{0.8.0}{
   \note{feature}{
-    The pipeline view will now only redraw if the data has changed. We've also
-    fixed a regression in \reference{v2.0.0} that led to redrawing multiple
-    times on an interval, likely leading to the tab crashing if left in the
-    background.
-  }
-
-  \note{feature}{
     \hyperlink{https://github.com/concourse/atc/tree/master/db/algorithm}{The
     Algorithm} has become much faster. The Algorithm is what computes the
     candidate set of inputs for a job, and is the second hardest problem in
@@ -31,11 +24,27 @@
   }
 
   \note{feature}{
+    The pipeline view will now only redraw if the data has changed. We've also
+    fixed a regression in \reference{v2.0.0} that led to redrawing multiple
+    times on an interval, likely leading to the tab crashing if left in the
+    background.
+  }
+
+  \note{feature}{
     Turns out \reference{fly-set-team} made it stupidly easy to configure a
     team (or reconfigure an existing team) with no auth credentials. I'm not
     saying something bad happened, but uh, it'll now warn you and force you to
     type a really long flag, and even shame you a little bit even when you use
     it.
+  }
+
+  \note{feature}{
+    The \reference{fly-cli}{\code{fly}} binaries are now build natively on each
+    platform, rather than cross-compiled. This removes a few surprises like
+    native DNS and OS X Keychain functionality not working.
+
+    They're also now available for download alongside the rest of Concourse,
+    rather than having to download from a Concourse installation.
   }
 
   \note{feature}{
