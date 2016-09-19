@@ -4,15 +4,13 @@
 set -e -x
 
 export GOPATH=$PWD/concourse
-export PATH=$GOPATH/bin:/usr/local/bin:$PATH
-export HOME=$PWD
+export PATH=$PWD/concourse/bin:$PATH
 
-FINAL_VERSION="$(cat final-version/version)"
+final_version="$(cat final-version/version)"
+platform="$(go env GOOS)"
+arch="$(go env GOARCH)"
 
-cd ${GOPATH}/src/github.com/concourse/fly
-
-GOARCH=amd64 CGO_ENABLED=0 \
-    go build \
-    -ldflags "-X github.com/concourse/fly/version.Version=${FINAL_VERSION}" \
-    -o ${HOME}/${platform}-binary/fly_${platform}_amd64 \
-    github.com/concourse/fly
+go build \
+  -ldflags "-X github.com/concourse/fly/version.Version=${final_version}" \
+  -o "${platform}-binary/fly_${platform}_${arch}" \
+  github.com/concourse/fly

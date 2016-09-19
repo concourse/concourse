@@ -4,17 +4,14 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: concourse/atc-ci
+    repository: concourse/static-golang
 
 inputs:
-  - name: concourse
-  - name: final-version
+- name: concourse
+- name: final-version
 
 outputs:
-  - name: linux-binary
-
-params:
-  platform: linux
+- name: linux-binary
 
 run:
   path: concourse/ci/scripts/fly-build

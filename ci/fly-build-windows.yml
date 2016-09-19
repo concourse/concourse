@@ -8,8 +8,5 @@ inputs:
 outputs:
   - name: windows-binary
 
-params:
-  platform: windows
-
 run:
   path: concourse/ci/scripts/fly-build.bat
