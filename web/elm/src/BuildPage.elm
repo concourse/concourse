@@ -13,21 +13,18 @@ port selectBuildGroups : List String -> Cmd msg
 
 main : Program Never
 main =
-  Navigation.program
-    (Navigation.makeParser pathnameParser)
-    { init =
-        Autoscroll.init
-          Build.getScrollBehavior <<
-            Build.init
-              { setTitle = setTitle
-              , focusElement = focusElement
-              , selectGroups = selectBuildGroups
-              }
-    , update = Autoscroll.update Build.update
-    , urlUpdate = Autoscroll.urlUpdate Build.urlUpdate
-    , view = Autoscroll.view Build.view
-    , subscriptions = Autoscroll.subscriptions Build.subscriptions
-    }
+  { init =
+      Autoscroll.init
+        Build.getScrollBehavior <<
+          Build.init
+            { setTitle = setTitle
+            , focusElement = focusElement
+            , selectGroups = selectBuildGroups
+            }
+  , update = Autoscroll.update Build.update
+  , view = Autoscroll.view Build.view
+  , subscriptions = Autoscroll.subscriptions Build.subscriptions
+  }
 
 pathnameParser : Navigation.Location -> Result String Page
 pathnameParser location =

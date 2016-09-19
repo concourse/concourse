@@ -1,4 +1,4 @@
-package webhandler_test
+package publichandler_test
 
 import (
 	"fmt"

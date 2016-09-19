@@ -1,4 +1,4 @@
-port module Pipeline exposing (Flags, init, update, view, subscriptions)
+port module Pipeline exposing (Model, Msg, Flags, init, update, view, subscriptions)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, style, src, width, height)
@@ -14,12 +14,6 @@ import Concourse.Cli
 import Concourse.Info
 import Concourse.Job
 import Concourse.Resource
-
-type alias Flags =
-  { teamName : String
-  , pipelineName : String
-  , turbulenceImgSrc : String
-  }
 
 type alias Ports =
   { render : (Json.Encode.Value, Json.Encode.Value) -> Cmd Msg
@@ -48,31 +42,11 @@ type FetchedJobsState
   | FetchedJobsStateFetched Json.Encode.Value
   | FetchedJobsStateFailed
 
-init : Ports -> Flags -> (Model, Cmd Msg)
-init ports flags =
-  let
-    model =
-      { ports = ports
-      , pipelineLocator =
-          { teamName = flags.teamName
-          , pipelineName = flags.pipelineName
-          }
-      , fetchedJobs = FetchedJobsStateScheduled
-      , fetchedResources = FetchedResourcesStateScheduled
-      , renderedJobs = Nothing
-      , renderedResources = Nothing
-      , concourseVersion = ""
-      , turbulenceImgSrc = flags.turbulenceImgSrc
-      , experiencingTurbulence = False
-      }
-  in
-    ( model
-    , Cmd.batch
-        [ fetchJobsAfterDelay 0 model.pipelineLocator
-        , fetchResourcesAfterDelay 0 model.pipelineLocator
-        , fetchVersion
-        ]
-    )
+type alias Flags =
+  { teamName : String
+  , pipelineName : String
+  , turbulenceImgSrc : String
+  }
 
 type Msg
   = Noop
@@ -81,6 +55,31 @@ type Msg
   | JobsFetched (Result Http.Error Json.Encode.Value)
   | ResourcesFetched (Result Http.Error Json.Encode.Value)
   | VersionFetched (Result Http.Error String)
+
+init : Ports -> Flags -> (Model, Cmd Msg)
+init ports flags =
+  let
+    pipelineLocator =
+      { teamName = flags.teamName
+      , pipelineName = flags.pipelineName
+      }
+  in
+    ( { ports = ports
+      , pipelineLocator = pipelineLocator
+      , fetchedJobs = FetchedJobsStateScheduled
+      , fetchedResources = FetchedResourcesStateScheduled
+      , renderedJobs = Nothing
+      , renderedResources = Nothing
+      , concourseVersion = ""
+      , turbulenceImgSrc = flags.turbulenceImgSrc
+      , experiencingTurbulence = False
+      }
+    , Cmd.batch
+        [ fetchJobsAfterDelay 0 pipelineLocator
+        , fetchResourcesAfterDelay 0 pipelineLocator
+        , fetchVersion
+        ]
+    )
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =

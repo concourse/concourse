@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Jenkins</title>
+    <link href="{{asset "main.css"}}" media="all" rel="stylesheet" type="text/css" />
+    <link id="favicon" rel="icon" type="image/png" href="{{asset "images/favicon.png"}}" />
+    <meta name="theme-color" content="#000000" />
+    <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
+    <script src="{{asset "concourse.js"}}"></script>
+    <script src="{{asset "elm.min.js"}}"></script>
+  </head>
+  <body>
+    <div class="error-message hidden">
+      <div class="message">
+        <img src="public/images/buckleup.svg" class="seatbelt" />
+        <p>experiencing turbulence</p>
+        <p class="explanation"></p>
+      </div>
+    </div>
+    <div id="content">
+      <div id="elm-app"></div>
+      <script type="text/javascript">
+        var node = document.getElementById("elm-app");
+        var app = Elm.Main.embed(node);
+      </script>
+    </div>
+    <!-- <div class="content-frame">
+      <div id="top-bar-app"></div>
+      <div class="bottom">
+        <div id="pipelines-nav-app" class="sidebar js-sidebar test"></div>
+
+      </div>
+    </div> -->
+  </body>
+</html>

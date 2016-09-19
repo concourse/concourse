@@ -1,4 +1,4 @@
-module Login exposing (Page(..), PageWithRedirect, init, update, urlUpdate, view)
+module Login exposing (Model, Msg, Page(..), PageWithRedirect, init, update, urlUpdate, view, subscriptions)
 
 import Erl
 import Html exposing (Html)
@@ -12,6 +12,7 @@ import Task
 import Concourse
 import Concourse.AuthMethod
 import Concourse.Team
+import Routes
 import StrictEvents exposing (onLeftClick)
 
 type alias PageWithRedirect =
@@ -49,61 +50,56 @@ type Msg
 defaultPage : PageWithRedirect
 defaultPage = { page = TeamSelectionPage, redirect = "" }
 
-init : Result String PageWithRedirect -> (Model, Cmd Msg)
-init pageResult =
-  let
-    pageWithRedirect = Result.withDefault defaultPage pageResult
-  in
-    case pageWithRedirect.page of
-      TeamSelectionPage ->
-        ( TeamSelection
-            { teamFilter = ""
-            , teams = Nothing
-            , redirect = pageWithRedirect.redirect
-            }
-        , Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
-        )
-      LoginPage teamName ->
-        ( Login
-            { teamName = teamName
-            , authMethods = Nothing
-            , hasTeamSelectionInBrowserHistory = False
-            , redirect = pageWithRedirect.redirect
-            }
-        , Cmd.map
-            AuthFetched <|
-            Task.perform
-              Err Ok <|
-                Concourse.AuthMethod.fetchAll teamName
-        )
+init : Routes.Route -> (Model, Cmd Msg)
+init route =
+  case route of
+    Routes.TeamLogin teamName ->
+      ( Login
+          { teamName = teamName
+          , authMethods = Nothing
+          , hasTeamSelectionInBrowserHistory = False
+          , redirect = ""
+          }
+      , Cmd.map
+          AuthFetched <|
+          Task.perform
+            Err Ok <|
+              Concourse.AuthMethod.fetchAll teamName
+      )
+    _ ->
+      ( TeamSelection
+          { teamFilter = ""
+          , teams = Nothing
+          , redirect = ""
+          }
+      , Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
+      )
 
-urlUpdate : Result String PageWithRedirect -> Model -> (Model, Cmd Msg)
-urlUpdate pageResult model =
-  let
-    pageWithRedirect = Result.withDefault defaultPage pageResult
-  in
-    case pageWithRedirect.page of
-      TeamSelectionPage ->
-        ( TeamSelection
-            { teamFilter = ""
-            , teams = Nothing
-            , redirect = pageWithRedirect.redirect
-            }
-        , Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
-        )
-      LoginPage teamName ->
-        ( Login
-            { teamName = teamName
-            , authMethods = Nothing
-            , hasTeamSelectionInBrowserHistory = True
-            , redirect = pageWithRedirect.redirect
-            }
-        , Cmd.map
-            AuthFetched <|
-            Task.perform
-              Err Ok <|
-                Concourse.AuthMethod.fetchAll teamName
-        )
+urlUpdate : Routes.Route -> Model -> (Model, Cmd Msg)
+urlUpdate route model =
+  case route of
+    Routes.TeamLogin teamName ->
+      ( Login
+          { teamName = teamName
+          , authMethods = Nothing
+          , hasTeamSelectionInBrowserHistory = True
+          , redirect = ""
+          }
+      , Cmd.map
+          AuthFetched <|
+          Task.perform
+            Err Ok <|
+              Concourse.AuthMethod.fetchAll teamName
+      )
+    _ ->
+      ( TeamSelection
+          { teamFilter = ""
+          , teams = Nothing
+          , redirect = ""
+          }
+      , Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
+      )
+
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -406,3 +402,7 @@ viewOAuthButton redirect method =
             [ Attributes.href <| routeWithRedirect redirect oAuthMethod.authUrl ]
             [ Html.text <| "login with " ++ oAuthMethod.displayName ]
         ]
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
