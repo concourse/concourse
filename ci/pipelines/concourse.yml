@@ -306,6 +306,8 @@ jobs:
         passed: [bosh-rc]
         trigger: true
         resource: garden-runc
+      - get: fly-rc
+        passed: [bosh-rc]
       - get: lite-stemcell
       - get: deployments
       - get: bosh-lite
@@ -352,6 +354,8 @@ jobs:
     - get: version
       passed: [bin-rc]
       trigger: true
+    - get: fly-rc
+      passed: [bin-rc]
   - task: no-auth
     file: bin/ci/testflight.yml
     privileged: true
@@ -419,6 +423,8 @@ jobs:
       resource: aws-stemcell
     - get: deployments
       trigger: true
+    - get: fly-rc
+      passed: [bosh-testflight]
   - put: aws-deployment
     params:
       cleanup: true
@@ -454,6 +460,8 @@ jobs:
     - get: version
       passed: [bin-testflight]
       trigger: true
+    - get: fly-rc
+      passed: [bin-testflight]
   - task: setup-tugboat
     file: bin/ci/smoke-tests/setup-tugboat.yml
     params:
@@ -498,6 +506,8 @@ jobs:
     - get: ubuntu-image
       params: {save: true}
       trigger: true
+    - get: fly-rc
+      passed: [bin-testflight]
   - task: build-root
     file: concourse-docker/ci/build-root.yml
   - put: concourse-image-rc
@@ -529,6 +539,8 @@ jobs:
       passed: [bosh-deploy]
     - get: bin-rc
       passed: [bin-smoke, bin-docker]
+    - get: fly-rc
+      passed: [bin-smoke, bin-docker, bosh-deploy]
     - get: concourse-image-rc
       passed: [bin-docker]
     - get: deployments
@@ -647,6 +659,9 @@ jobs:
     - get: garden-runc
       passed: [shipit]
       trigger: true
+    - get: fly-rc
+      passed: [shipit]
+      trigger: true
     - get: bin-rc
       passed: [shipit]
       trigger: true
@@ -696,6 +711,7 @@ jobs:
       - final-release/*.tgz
       - renamed-release/garden-runc-*.tgz
       - bin-rc/concourse_*
+      - fly-rc/fly_*
 
 - name: promote-docker
   serial: true
