@@ -9,11 +9,16 @@ yaml = hl load("yaml")
 
 base = require("anatomy/base")
 
+fly-binaries-version = Gem Version new("2.2.0")
+
 fn(release-asset(version, filename)):
   i"https://github.com/concourse/concourse/releases/download/v#{version}/#{filename}"
 
 fn(binary-url(version, platform, extension)):
   release-asset(version, i"concourse_#{platform}_amd64#{extension}")
+
+fn(fly-url(version, platform, extension)):
+  release-asset(version, i"fly_#{platform}_amd64#{extension}")
 
 fn(download-link(label, url, *extra)):
   data Block new(
@@ -78,6 +83,17 @@ def(release(date, concourse-version, garden-runc-version, garden-linux-version =
                     .unordered-list)
                 ]
                 .class("download-links"))
+              when(Gem Version new(concourse-version) >= fly-binaries-version):
+                data Block new(
+                  [ data Block new("Fly Binaries", .header(3))
+                    data Block new(
+                      [ download-link("Linux", fly-url(concourse-version, "linux", ""))
+                        download-link("Windows", fly-url(concourse-version, "windows", ".exe"))
+                        download-link("OS X", fly-url(concourse-version, "darwin", ""))
+                      ]
+                      .unordered-list)
+                  ]
+                  .class("download-links"))
               data Block new(
                 [ data Block new("BOSH Releases", .header(3))
                   data Block new(
