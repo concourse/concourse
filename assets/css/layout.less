@@ -64,25 +64,25 @@ html, body, #elm-app, .content-frame {
 }
 
 .with-fixed-header {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: 100%;
-
   .fixed-header {
-    flex: 0 0 auto;
+    z-index: 1;
+    width: 100%;
   }
 
   .scrollable-body {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
     overflow-y: auto;
-    flex: 1 1 auto;
     padding: 10px;
+    position: absolute;
   }
 }
 
+
 #content { // TODO: kill id
-  flex-grow: 1;
   overflow: auto;
+  flex-grow: 1;
 
   // for absolutely positioned content in pipeline graph
   position: relative;
@@ -129,6 +129,14 @@ nav .groups li a {
 
 .build-actions {
   width: 150px;
+}
+
+#builds {
+  overflow-x: hidden;
+}
+
+.step-body {
+  position: relative;
 }
 
 pre {
