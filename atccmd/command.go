@@ -111,8 +111,9 @@ type ATCCommand struct {
 		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
 		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
 
-		RiemannHost string `long:"riemann-host"                description:"Riemann server address to emit metrics to."`
-		RiemannPort uint16 `long:"riemann-port" default:"5555" description:"Port of the Riemann server to emit metrics to."`
+		RiemannHost          string `long:"riemann-host"                description:"Riemann server address to emit metrics to."`
+		RiemannPort          uint16 `long:"riemann-port" default:"5555" description:"Port of the Riemann server to emit metrics to."`
+		RiemannServicePrefix string `long:"riemann-service-prefix" default:"" description:"An optional prefix for emitted Riemann services"`
 	} `group:"Metrics & Diagnostics"`
 
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
@@ -571,6 +572,7 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 		host,
 		cmd.Metrics.Tags,
 		cmd.Metrics.Attributes,
+		cmd.Metrics.RiemannServicePrefix,
 	)
 }
 

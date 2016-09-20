@@ -16,17 +16,19 @@ var riemannClient *goryman.GorymanClient
 var eventHost string
 var eventTags []string
 var eventAttributes map[string]string
+var eventPrefix string
 
 var clientConnected bool
 var emissions = make(chan eventEmission, 1000)
 
-func Initialize(logger lager.Logger, riemannAddr string, host string, tags []string, attributes map[string]string) {
+func Initialize(logger lager.Logger, riemannAddr string, host string, tags []string, attributes map[string]string, prefix string) {
 	client := goryman.NewGorymanClient(riemannAddr)
 
 	riemannClient = client
 	eventHost = host
 	eventTags = tags
 	eventAttributes = attributes
+	eventPrefix = prefix
 
 	go emitLoop()
 }
@@ -36,6 +38,10 @@ func emit(logger lager.Logger, event goryman.Event) {
 
 	if riemannClient == nil {
 		return
+	}
+
+	if eventPrefix != "" {
+		event.Service = eventPrefix + event.Service
 	}
 
 	event.Host = eventHost
