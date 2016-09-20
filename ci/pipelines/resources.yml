@@ -622,10 +622,12 @@ jobs:
       trigger: true
     - get: bosh-io-stemcell-resource
       trigger: true
+  - task: tests
+    file: bosh-io-stemcell-resource/ci/tests.yml
   - put: bosh-io-stemcell-resource-image
     params:
       load_base: buildroot-curl-image
-      build: bosh-io-stemcell-resource
+      build: built-resource
 
 - name: bump-bosh-io-stemcell-resource
   serial: true
