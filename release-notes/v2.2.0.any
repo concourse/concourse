@@ -57,9 +57,9 @@
     \reference{fly-checklist} now generates a \code{Checkfile} with the team
     name present, thanks to a PR by \ghuser{Amit-PivotalLabs}.
 
-    Once a new version of
-    \hyperlink{http://github.com/cppforlife/checkman}{Checkman} is out, it'll
-    work again.
+    Be sure to upgrade
+    \hyperlink{http://github.com/cppforlife/checkman}{Checkman} as well for
+    this to work.
   }
 
   \note{feature}{
