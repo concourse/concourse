@@ -6,6 +6,9 @@ set -e -x
 export GOPATH=$PWD/concourse
 export PATH=$PWD/concourse/bin:$PATH
 
+# for Go on the Darwin worker
+export PATH=/usr/local/bin:$PATH
+
 final_version="$(cat final-version/version)"
 platform="$(go env GOOS)"
 arch="$(go env GOARCH)"
