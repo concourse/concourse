@@ -230,10 +230,12 @@ as).
 
   \section{Generic oAuth}{generic-oauth}{
     The \code{--generic-oauth-*} flags configure a generic oAuth provider which
-    performs no additional verification about the individual user signing in.
-    It should only be used with internal auth systems. If it were used to
-    configure Google or Twitter oAuth, for example, it would permit just about
-    every person on the internet to create pipelines. It'd be mighty generous.
+    performs no additional verification about the individual user signing in
+    by default. It should only be used with internal auth systems in this way.
+    If it were used to configure Google or Twitter oAuth, for example, it would
+    permit just about every person on the internet to create pipelines. It'd be
+    mighty generous. If you need verification, make sure you are using the
+    \code{--generic-oauth-scope} flag.
 
     \section{Configuring the oAuth client}{
       You'll first need to configure the client with your oAuth provider. The
@@ -266,11 +268,24 @@ as).
           --generic-oauth-client-secret $CLIENT_SECRET \\
           --generic-oauth-auth-url https://oauth.example.com/o/oauth2/auth \\
           --generic-oauth-token-url https://oauth.example.com/o/oauth2/token \\
-          --generic-oauth-auth-url-param=scope:read
+          --generic-oauth-auth-url-param scope:read
       }
 
       The \code{--generic-oauth-auth-url-param} flag can be specified multiple
       times to configure multiple params, in the form of \code{KEY:VALUE}.
+
+      If you need verification of users, you can choose to require users have a
+      particular scope with \code{--generic-oauth-scope}:
+
+      \codeblock{bash}{
+      $ fly set-team -n my-team-in-x \\
+          --generic-oauth-display-name 'X' \\
+          --generic-oauth-client-id $CLIENT_ID \\
+          --generic-oauth-client-secret $CLIENT_SECRET \\
+          --generic-oauth-auth-url https://oauth.example.com/o/oauth2/auth \\
+          --generic-oauth-token-url https://oauth.example.com/o/oauth2/token \\
+          --generic-oauth-scope concourse.main
+      }
     }
 
     \section{Caveats}{
