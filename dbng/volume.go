@@ -80,6 +80,7 @@ type InitializingVolume struct {
 	Handle string
 }
 
+// TODO: set volume size?
 func (volume *InitializingVolume) Initialized(tx Tx) (*InitializedVolume, error) {
 	transitioned, err := stateTransition(volume.ID, tx, VolumeStateInitializing, VolumeStateInitialized)
 	if err != nil {
