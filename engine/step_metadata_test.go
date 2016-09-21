@@ -16,12 +16,14 @@ var _ = Describe("StepMetadata", func() {
 				JobName:      "some-job-name",
 				BuildName:    "42",
 				ExternalURL:  "http://www.example.com",
+				TeamName:     "some-team",
 			}.Env()).To(Equal([]string{
 				"BUILD_ID=1",
 				"BUILD_PIPELINE_NAME=some-pipeline-name",
 				"BUILD_JOB_NAME=some-job-name",
 				"BUILD_NAME=42",
 				"ATC_EXTERNAL_URL=http://www.example.com",
+				"BUILD_TEAM_NAME=some-team",
 			}))
 		})
 

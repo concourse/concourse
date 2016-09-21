@@ -52,12 +52,14 @@ var _ = Describe("Exec Engine with Try", func() {
 		build.NameReturns("42")
 		build.JobNameReturns("some-job")
 		build.PipelineNameReturns("some-pipeline")
+		build.TeamNameReturns("main")
 
 		expectedMetadata = engine.StepMetadata{
 			BuildID:      84,
 			BuildName:    "42",
 			JobName:      "some-job",
 			PipelineName: "some-pipeline",
+			TeamName:     "main",
 			ExternalURL:  "http://example.com",
 		}
 	})
