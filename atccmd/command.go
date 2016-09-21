@@ -41,8 +41,8 @@ import (
 	"github.com/concourse/atc/web/webhandler"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
-	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/wrappa"
+	"github.com/concourse/retryhttp"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx"
@@ -627,7 +627,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			logger,
 			sqlDB,
 			keepaliveDialer,
-			transport.ExponentialRetryPolicy{
+			retryhttp.ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,
 			},
 			image.NewFactory(trackerFactory, resourceFetcherFactory),

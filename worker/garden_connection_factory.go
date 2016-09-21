@@ -22,7 +22,7 @@ type gardenConnectionFactory struct {
 	logger      lager.Logger
 	workerName  string
 	workerHost  string
-	retryPolicy transport.RetryPolicy
+	retryPolicy retryhttp.RetryPolicy
 }
 
 func NewGardenConnectionFactory(
@@ -30,7 +30,7 @@ func NewGardenConnectionFactory(
 	logger lager.Logger,
 	workerName string,
 	workerHost string,
-	retryPolicy transport.RetryPolicy,
+	retryPolicy retryhttp.RetryPolicy,
 ) GardenConnectionFactory {
 	return &gardenConnectionFactory{
 		db:          db,

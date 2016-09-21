@@ -9,9 +9,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
+	"github.com/concourse/retryhttp"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/worker/transport"
 )
 
 //go:generate counterfeiter . WorkerDB
@@ -37,7 +37,7 @@ type dbProvider struct {
 	logger            lager.Logger
 	db                WorkerDB
 	dialer            gconn.DialerFunc
-	retryPolicy       transport.RetryPolicy
+	retryPolicy       retryhttp.RetryPolicy
 	imageFactory      ImageFactory
 	pipelineDBFactory db.PipelineDBFactory
 }
@@ -46,7 +46,7 @@ func NewDBWorkerProvider(
 	logger lager.Logger,
 	db WorkerDB,
 	dialer gconn.DialerFunc,
-	retryPolicy transport.RetryPolicy,
+	retryPolicy retryhttp.RetryPolicy,
 	imageFactory ImageFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 ) WorkerProvider {
