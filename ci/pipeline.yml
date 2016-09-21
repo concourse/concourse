@@ -24,6 +24,14 @@ resources:
     uri: https://github.com/vito/houdini
     branch: master
 
+- name: fly-rc
+  type: github-release
+  # prevent github rate limiting
+  check_every: 10m
+  source:
+    user: concourse
+    repository: fly
+
 - name: bin-releases
   type: github-release
   source:
@@ -41,6 +49,7 @@ jobs:
     - get: garden-runc-release
     - get: bin
     - get: houdini
+    - get: fly-rc
   - task: make-up-final-version
     config:
       platform: linux
@@ -52,8 +61,6 @@ jobs:
       run:
         path: sh
         args: [-c, 'date +%s > final-version/version']
-  - task: build-cli-artifacts
-    file: bin/ci/build-cli-artifacts.yml
   - aggregate:
     - task: build-linux
       file: bin/ci/build-linux.yml
