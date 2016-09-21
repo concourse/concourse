@@ -1,4 +1,4 @@
-set -e
+set -ex
 
 VERSION_FILE=/var/vcap/packages/concourse_version/version
 
@@ -7,7 +7,7 @@ if [ -e "fly_binaries/fly_windows_amd64.exe" ] && [ -e "fly_binaries/fly_linux_a
 
   mkdir -p ${BOSH_INSTALL_TARGET}
   for platform in linux darwin windows; do
-    mv fly_binaries/fly_${platform}_amd64* ${BOSH_INSTALL_TARGET}/fly_${platform}_amd64
+    mv fly_binaries/fly_${platform}_amd64* ${BOSH_INSTALL_TARGET}/
   done
 else
   echo "Building fly binaries"
@@ -25,11 +25,13 @@ else
   for platform in linux darwin windows; do
     mkdir -p ${BOSH_INSTALL_TARGET}/${platform}/amd64
 
+    if [ $platform == "windows" ]; then extension=".exe"; else extension=""; fi
+
     GOOS=${platform} GOARCH=amd64 \
       CGO_ENABLED=0 \
       go build \
         -ldflags "-X github.com/concourse/fly/version.Version=$(cat $VERSION_FILE)" \
-        -o ${BOSH_INSTALL_TARGET}/fly_${platform}_amd64 \
+        -o ${BOSH_INSTALL_TARGET}/fly_${platform}_amd64${extension} \
         ${REPO_NAME}
   done
 fi
