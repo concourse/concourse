@@ -14,13 +14,13 @@ func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
 
 	arch := r.URL.Query().Get("arch")
 
-	var filename string
+	var extension string
 
 	switch platform {
 	case "windows":
-		filename = "fly.exe"
+		extension = ".exe"
 	case "darwin", "linux":
-		filename = "fly"
+		extension = ""
 	default:
 		http.Error(w, "invalid platform", http.StatusBadRequest)
 		return
@@ -36,7 +36,7 @@ func (s *Server) Download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	w.Header().Set("Content-Disposition", "attachment; filename=fly"+extension)
 
-	http.ServeFile(w, r, filepath.Join(s.cliDownloadsDir, "fly_"+platform+"_"+arch))
+	http.ServeFile(w, r, filepath.Join(s.cliDownloadsDir, "fly_"+platform+"_"+arch+extension))
 }
