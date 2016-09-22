@@ -12,32 +12,37 @@
   <body>
     <div class="content-frame">
       <div id="top-bar-app"></div>
+
+      <script type="text/javascript">
+      var topBar = Elm.TopBarPage.embed(document.getElementById("top-bar-app"), {
+        pipeline: {
+          teamName: {{.TeamName}},
+          pipelineName: {{.PipelineName}}
+        },
+        queryGroups: {{.QueryGroups}}
+      });
+
+      topBar.ports.toggleSidebar.subscribe(function() {
+        $('.js-sidebar').toggleClass('visible');
+      });
+
+      topBar.ports.navigateTo.subscribe(function(url) {
+        window.location.href = url;
+      });
+      </script>
+
       <div class="bottom">
         <div id="pipelines-nav-app" class="sidebar js-sidebar test"></div>
 
-        <script type="text/javascript">
-        Elm.PipelinesNavPage.embed(document.getElementById("pipelines-nav-app"));
-
-        var topBar = Elm.TopBarPage.embed(document.getElementById("top-bar-app"), {
-          pipeline: {
-            teamName: {{.TeamName}},
-            pipelineName: {{.PipelineName}}
-          },
-          queryGroups: {{.QueryGroups}}
-        });
-
-        topBar.ports.toggleSidebar.subscribe(function() {
-          $('.js-sidebar').toggleClass('visible');
-        });
-
-        topBar.ports.navigateTo.subscribe(function(url) {
-          window.location.href = url;
-        });
-        </script>
-
+        <!-- This has to be a sibling of the sidebar so we can have the fixed
+        headers offset correctly. -->
         <div id="content">
         {{template "body" .}}
         </div>
+
+        <script type="text/javascript">
+        Elm.PipelinesNavPage.embed(document.getElementById("pipelines-nav-app"));
+        </script>
       </div>
     </div>
   </body>

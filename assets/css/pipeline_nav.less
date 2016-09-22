@@ -2,6 +2,10 @@
 
 @sidebarWidth: 300px;
 
+.sidebar.visible + #content .fixed-header {
+  left: @sidebarWidth;
+}
+
 .sidebar {
   overflow-y: auto;
   overflow-x: hidden;
