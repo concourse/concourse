@@ -1,5 +1,7 @@
 port module TopBar exposing (Model, Msg, init, update, urlUpdate, view, subscriptions)
 
+import Dict
+import Erl
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)
 import Html.Events exposing (onClick)
@@ -215,52 +217,32 @@ setSelectedGroups groups model =
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =
   ( { model
-    | selectedGroups = groupsFromLocation location model.pipeline
-    , location = location
+    | selectedGroups =
+        case Dict.get "groups" route.parsed.query of
+          Nothing -> [] -- TODO handle multiple
+          Just group -> [ group ]
+    , location = route
     }
   , Cmd.none
   )
 
-groupsFromLocation : Routes.ConcourseRoute -> Maybe Concourse.Pipeline -> List String
-groupsFromLocation {search} mpipeline =
-  let
-    noQuestion =
-      String.dropLeft 1 search
-
-    extractGroup query =
-      case query of
-        ["groups", group] ->
-          Just group
-
-        _ ->
-          Nothing
-    in
-      List.filterMap extractGroup <|
-        List.map (String.split "=") <|
-        String.split "&" noQuestion
-
 setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
 setGroupsInLocation loc groups =
   let
-    noQuestion =
-      String.dropLeft 1 loc.search
-
-    nonGroups =
-      List.filter (not << String.startsWith "groups=") <|
-        List.filter (not << String.isEmpty) <|
-        String.split "&" noQuestion
-
-    groupQueries =
-      List.map ((++) "groups=") groups
-
-    search =
-      String.join "&" (nonGroups ++ groupQueries)
+    updatedUrl =
+      case List.head groups of
+        Nothing ->
+          Erl.removeQuery "groups" loc.parsed
+        Just group ->
+          Erl.addQuery "groups" group loc.parsed -- TODO handle multiple
   in
-    { loc | search = "?" ++ search }
+    { loc
+    | parsed = updatedUrl
+    }
 
 locationToHistory : Concourse.Pipeline -> Routes.ConcourseRoute -> String
-locationToHistory {url} {search,hash} =
-  String.join "" [url, search, hash]
+locationToHistory {url} {parsed} =
+  String.join "" [url, Erl.queryToString parsed, parsed.hash]
 
 toggleGroup : Concourse.PipelineGroup -> List String -> Maybe Concourse.Pipeline -> List String
 toggleGroup group names mpipeline =
