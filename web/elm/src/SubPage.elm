@@ -1,98 +1,102 @@
-port module SubPage exposing (Page, Model, Msg, init, update, view, subscriptions)
+port module SubPage exposing (Model, Msg, init, update, view, subscriptions)
 
+import Dict
 import Json.Encode
 import Html exposing (Html)
 import Html.App
 import Login
 import Routes
 import Pipeline
+import TeamSelection
 
 -- TODO: move ports somewhere else
 
 port renderPipeline : (Json.Encode.Value, Json.Encode.Value) -> Cmd msg
 port renderFinished : (Bool -> msg) -> Sub msg
-
-type alias Page =
-  { init : Routes.Route -> (Model, Cmd Msg)
-  , update : Msg -> Model -> (Model, Cmd Msg)
-  , view : Model -> Html Msg
-  , subscriptions : Model -> Sub Msg
-  }
+--
+-- type alias Page =
+--   { init : Routes.ConcourseRoute -> (Model, Cmd Msg)
+--   , update : Msg -> Model -> (Model, Cmd Msg)
+--   , view : Model -> Html Msg
+--   , subscriptions : Model -> Sub Msg
+--   }
 
 type Model
   = LoginModel Login.Model
   | PipelineModel Pipeline.Model
+  | SelectTeamModel TeamSelection.Model
 
 type Msg
   = LoginMsg Login.Msg
   | PipelineMsg Pipeline.Msg
+  | SelectTeamMsg TeamSelection.Msg
 
-init : Routes.Route -> (Model, Cmd Msg)
+superDupleWrap : ((a -> b), (c -> d)) -> (a, Cmd c) -> (b, Cmd d)
+superDupleWrap (modelFunc, msgFunc) (model, msg) =
+  (modelFunc model, Cmd.map msgFunc msg)
+
+init : Routes.ConcourseRoute -> (Model, Cmd Msg)
 init route =
-  case route of
-    Routes.Login ->
+  case route.logical of
+    Routes.SelectTeam ->
       let
-        (subModel, subMsg) = Login.init route -- TODO: remove route from Login
+        redirect =
+          case Dict.get "redirect" route.parsed.query of
+            Nothing ->
+              ""
+            Just path ->
+              path
       in
-        (LoginModel subModel, Cmd.map LoginMsg subMsg)
+        superDupleWrap (SelectTeamModel, SelectTeamMsg) <| TeamSelection.init redirect
     Routes.TeamLogin teamName ->
       let
-        (subModel, subMsg) = Login.init route
+        redirect =
+          case Dict.get "redirect" route.parsed.query of
+            Nothing ->
+              ""
+            Just path ->
+              path
       in
-        (LoginModel subModel, Cmd.map LoginMsg subMsg)
+        superDupleWrap (LoginModel, LoginMsg) <| Login.init teamName redirect
     Routes.Pipeline teamName pipelineName ->
-      let
-        (subModel, subMsg) =
-          Pipeline.init { render = renderPipeline, renderFinished = renderFinished } { teamName = teamName, pipelineName = pipelineName, turbulenceImgSrc = ""}
-      in
-        (PipelineModel subModel, Cmd.map PipelineMsg subMsg)
+      superDupleWrap (PipelineModel, PipelineMsg) <|
+        Pipeline.init
+          { render = renderPipeline
+          , renderFinished = renderFinished
+          }
+          { teamName = teamName
+          , pipelineName = pipelineName
+          , turbulenceImgSrc = "" -- TODO this needs to be a real thing
+          }
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
-  case model of
-    LoginModel lModel ->
-      case msg of
-        LoginMsg lMsg ->
-          let
-            (subModel, subMsg) = Login.update lMsg lModel
-          in
-            (LoginModel subModel, Cmd.map LoginMsg subMsg)
-        _ ->
-          (model, Cmd.none)
-    PipelineModel pModel ->
-      case msg of
-        PipelineMsg pMsg ->
-          let
-            (subModel, subMsg) = Pipeline.update pMsg pModel
-          in
-            (PipelineModel subModel, Cmd.map PipelineMsg subMsg)
-        _ ->
-          (model, Cmd.none)
+update msg mdl =
+  case (msg, mdl) of
+    (LoginMsg message, LoginModel model) ->
+      superDupleWrap (LoginModel, LoginMsg) <| Login.update message model
+    (PipelineMsg message, PipelineModel model) ->
+      superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.update message model
+    (SelectTeamMsg message, SelectTeamModel model) ->
+      superDupleWrap (SelectTeamModel, SelectTeamMsg) <| TeamSelection.update message model
+    _ ->
+      Debug.log "Impossible combination" (mdl, Cmd.none)
 
 view : Model -> Html Msg
-view model =
-  case model of
-    LoginModel lModel ->
-      let
-        subMsg = Login.view lModel
-      in
-        Html.App.map LoginMsg subMsg
-    PipelineModel pModel ->
-      let
-        subMsg = Pipeline.view pModel
-      in
-        Html.App.map PipelineMsg subMsg
+view mdl =
+  case mdl of
+    LoginModel model ->
+      Html.App.map LoginMsg <| Login.view model
+    PipelineModel model ->
+      Html.App.map PipelineMsg <| Pipeline.view model
+    SelectTeamModel model ->
+      Html.App.map SelectTeamMsg <| TeamSelection.view model
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
-  case model of
-    LoginModel lModel ->
-      let
-        subMsg = Login.subscriptions lModel
-      in
-        Sub.map LoginMsg subMsg
-    PipelineModel pModel ->
-      let
-        subMsg = Pipeline.subscriptions pModel
-      in
-        Sub.map PipelineMsg subMsg
+subscriptions mdl =
+  case mdl of
+    LoginModel model ->
+      Sub.map LoginMsg <| Login.subscriptions model
+    PipelineModel model ->
+      Sub.map PipelineMsg <| Pipeline.subscriptions model
+    SelectTeamModel model ->
+      Sub.map SelectTeamMsg <| TeamSelection.subscriptions model

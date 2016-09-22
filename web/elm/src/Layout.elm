@@ -9,8 +9,7 @@ import Routes
 import SubPage
 
 type alias Model =
-  { proto : SubPage.Page
-  , subModel : SubPage.Model
+  { subModel : SubPage.Model
   , topModel : TopBar.Model
   , sideModel : SideBar.Model
   }
@@ -20,11 +19,11 @@ type Msg
   | TopMsg TopBar.Msg
   | SideMsg SideBar.Msg
 
-init : SubPage.Page -> Routes.Concourse -> (Model, Cmd (Msg))
-init sub route =
+init : Routes.ConcourseRoute -> (Model, Cmd (Msg))
+init route =
   let
     (subModel, subCmd) =
-      sub.init route
+      SubPage.init route
 
     (topModel, topCmd) =
       TopBar.init route
@@ -32,8 +31,7 @@ init sub route =
     (sideModel, sideCmd) =
       SideBar.init
   in
-    ( { proto = sub
-      , subModel = subModel
+    ( { subModel = subModel
       , topModel = topModel
       , sideModel = sideModel
       }
@@ -50,7 +48,7 @@ update msg model =
     SubMsg m ->
       Debug.log("got sub message") <|
         let
-          (subModel, subCmd) = model.proto.update m model.subModel
+          (subModel, subCmd) = SubPage.update (Debug.log "message: " m) model.subModel
         in
           ({ model | subModel = subModel }, Cmd.map SubMsg subCmd)
 
@@ -67,7 +65,7 @@ update msg model =
         ({ model | sideModel = sideModel }, Cmd.map SideMsg sideCmd)
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd (Msg))
-urlUpdate route model =
+urlUpdate route model = -- TODO write this??
   -- let
   --   (subModel, subCmd) =
   --     model.sub.init route
@@ -93,10 +91,10 @@ view model =
         [ Html.div [ id "pipelines-nav-app", class "sidebar js-sidebar test" ]
             [ Html.App.map SideMsg (SideBar.view model.sideModel) ]
         , Html.div [ id "content" ]
-            [ Html.App.map SubMsg (model.proto.view model.subModel) ]
+            [ Html.App.map SubMsg (SubPage.view model.subModel) ]
         ]
     ]
 
 subscriptions : Model -> Sub (Msg)
 subscriptions model =
-  Sub.none
+  Sub.none -- TODO this maybe blank? idk
