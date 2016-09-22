@@ -14,6 +14,7 @@ import Concourse
 import Concourse.Pipeline
 import Concourse.User
 import Redirect
+import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 
 port toggleSidebar : () -> Cmd msg
@@ -26,7 +27,7 @@ type alias Model =
   { pipelineIdentifier : Maybe Concourse.PipelineIdentifier
   , viewingPipeline : Bool
   , ports : Ports
-  , location : Location
+  , location : Routes.ConcourseRoute
   , groupsState : GroupsState
   , selectedGroups : List String
   , pipeline : Maybe Concourse.Pipeline
@@ -65,7 +66,7 @@ type Msg
   | ToggleUserMenu
   | SetViewingPipeline Bool
 
-init : Location -> (Model, Cmd Msg)
+init : Routes.ConcourseRoute -> (Model, Cmd Msg)
 init initialLocation =
   ( { pipelineIdentifier = Nothing
     , viewingPipeline = False
@@ -77,16 +78,13 @@ init initialLocation =
         , setViewingPipeline = setViewingPipeline
         }
     , groupsState = GroupsStateNotLoaded
-    , selectedGroups = []
     , location = initialLocation
+    , selectedGroups = []
     , pipeline = Nothing
     , userState = UserStateUnknown
     , userMenuVisible = False
     }
-  , Cmd.batch
-      [ Cmd.none
-      , fetchUser
-      ]
+  , fetchUser
   )
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -214,8 +212,8 @@ setSelectedGroups groups model =
       Cmd.none
   )
 
-urlUpdate : Location -> Model -> (Model, Cmd Msg)
-urlUpdate location model =
+urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
+urlUpdate route model =
   ( { model
     | selectedGroups = groupsFromLocation location model.pipeline
     , location = location
@@ -223,7 +221,7 @@ urlUpdate location model =
   , Cmd.none
   )
 
-groupsFromLocation : Location -> Maybe Concourse.Pipeline -> List String
+groupsFromLocation : Routes.ConcourseRoute -> Maybe Concourse.Pipeline -> List String
 groupsFromLocation {search} mpipeline =
   let
     noQuestion =
@@ -236,15 +234,12 @@ groupsFromLocation {search} mpipeline =
 
         _ ->
           Nothing
-
-    extracted =
+    in
       List.filterMap extractGroup <|
         List.map (String.split "=") <|
         String.split "&" noQuestion
-    in
-      extracted
 
-setGroupsInLocation : Location -> List String -> Location
+setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
 setGroupsInLocation loc groups =
   let
     noQuestion =
@@ -263,7 +258,7 @@ setGroupsInLocation loc groups =
   in
     { loc | search = "?" ++ search }
 
-locationToHistory : Concourse.Pipeline -> Location -> String
+locationToHistory : Concourse.Pipeline -> Routes.ConcourseRoute -> String
 locationToHistory {url} {search,hash} =
   String.join "" [url, search, hash]
 

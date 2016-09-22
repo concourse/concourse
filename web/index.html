@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Jenkins</title>
+    <title>Concourse</title>
     <link href="{{asset "main.css"}}" media="all" rel="stylesheet" type="text/css" />
     <link id="favicon" rel="icon" type="image/png" href="{{asset "images/favicon.png"}}" />
     <meta name="theme-color" content="#000000" />
+    <script src="{{asset "index.js"}}"></script>
+    <script src="{{asset "d3.v355.min.js"}}"></script>
+    <script src="{{asset "graph.js"}}"></script>
     <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "concourse.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
@@ -17,11 +20,22 @@
         <p class="explanation"></p>
       </div>
     </div>
+    <svg class="pipeline-graph test" width="100%" height="100%"></svg>
+    
     <div id="content">
       <div id="elm-app"></div>
       <script type="text/javascript">
         var node = document.getElementById("elm-app");
         var app = Elm.Main.embed(node);
+
+
+        app.ports.renderPipeline.subscribe(function (values) {
+          var svg = createPipelineSvg(d3.select(".pipeline-graph"))
+          var jobs = values[0];
+          var resources = values[1];
+          draw(svg, jobs, resources);
+          app.ports.renderFinished.send(true);
+        })
       </script>
     </div>
     <!-- <div class="content-frame">
@@ -33,3 +47,32 @@
     </div> -->
   </body>
 </html>
+
+<!-- <script type="text/javascript">
+
+
+topBar.ports.groupsChanged.subscribe(function(groups) {
+  var changed = false;
+
+  for (var groupName in concourse.groups) {
+    if (groups.indexOf(groupName) === -1) {
+      changed = true;
+      delete concourse.groups[groupName];
+    }
+  }
+
+  for (var i in groups) {
+    if (!concourse.groups[groups[i]]) {
+      changed = true;
+      concourse.groups[groups[i]] = true;
+    }
+  }
+
+  if (changed && concourse.redraw !== undefined) {
+    concourse.redraw();
+  }
+});
+
+topBar.ports.setViewingPipeline.send(true);
+
+</script> -->
