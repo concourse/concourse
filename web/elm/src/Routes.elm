@@ -1,41 +1,45 @@
-module Routes exposing (Route(..), parsePath, navigateTo, toString)
+module Routes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString)
 
 import Erl
 import Navigation exposing (Location)
 import Route exposing (..)
 
 type Route
-  = Login
+  = SelectTeam
   | TeamLogin String
   | Pipeline String String
 
-type alias ConcourseRoute
-  { route : Route
-  , params : Erl.Query
+type alias ConcourseRoute =
+  { logical : Route
+  , parsed : Erl.Url
   }
 
+login : Route.Route Route
 login =
-  Login := static "login"
+  SelectTeam := static "login"
 
+teamLogin : Route.Route Route
 teamLogin =
   TeamLogin := static "teams" </> string </> static "login"
 
+pipeline : Route.Route Route
 pipeline =
   Pipeline := static "teams" </> string </> static "pipelines" </> string
 
+sitemap : Router Route
 sitemap =
   router [ login, teamLogin, pipeline ]
 
 match : String -> Route
 match =
   Route.match sitemap
-      >> Maybe.withDefault Login
+      >> Maybe.withDefault SelectTeam
 
 toString : Route -> String
 toString route =
   case route of
 
-    Login ->
+    SelectTeam ->
       reverse login []
 
     TeamLogin teamName ->
@@ -48,11 +52,11 @@ parsePath : Location -> ConcourseRoute
 parsePath location =
   let
     parsed =
-      Erl.parse location.url
+      Erl.parse location.href
   in
-  { route = match <| location.pathname
-  , query = parsed.query
-  }
+    { logical = match <| location.pathname
+    , parsed = parsed
+    }
 
 navigateTo : Route -> Cmd msg
 navigateTo =

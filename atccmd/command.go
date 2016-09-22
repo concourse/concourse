@@ -792,14 +792,10 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webMux.Handle("/public/", publicHandler)
 	webMux.Handle("/", webHandler)
 
-	var httpHandler http.Handler
-
-	httpHandler = webMux
-
 	// proxy Authorization header to/from auth cookie,
 	// to support auth from JS (EventSource) and custom JWT auth
-	httpHandler = auth.CookieSetHandler{
-		Handler: httpHandler,
+	httpHandler := auth.CookieSetHandler{
+		Handler: webMux,
 	}
 
 	return httpHandler
