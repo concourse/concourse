@@ -77,6 +77,7 @@ case $1 in
     chown vcap:vcap $KNOWN_HOSTS_FILE
 
     cat /var/vcap/jobs/groundcrew/config/worker.json | \
+      sed -e "s/HOSTNAME_REPLACE_ME/$(hostname | cut -d '-' -f 2-)/g" | \
       sed -e 's/"START_TIME_REPLACE_ME"/'$(date +%s)'/g' | \
       /var/vcap/packages/resource_discovery/bin/resource_discovery /var/vcap/packages/*/resource_metadata.json > \
       $RUN_DIR/worker.json

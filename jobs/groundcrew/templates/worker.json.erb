@@ -34,8 +34,10 @@
     end
   end
 
+  name_prefix = spec.id.split("-")[0]
+
   payload = {
-    "name" => spec.id,
+    "name" => "#{name_prefix}-HOSTNAME_REPLACE_ME",
 
     "start_time" => "START_TIME_REPLACE_ME",
 
