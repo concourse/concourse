@@ -2,29 +2,8 @@ package algorithm
 
 import (
 	"fmt"
-	"os"
 	"strings"
-
-	influxdb "github.com/influxdata/influxdb/client/v2"
 )
-
-var influxdbClient influxdb.Client
-var influxdbDatabase string
-
-func init() {
-	influxdbDatabase = os.Getenv("ALGORITHM_INFLUXDB_DATABASE")
-
-	addr := os.Getenv("ALGORITHM_INFLUXDB_URL")
-	if addr != "" {
-		var err error
-		influxdbClient, err = influxdb.NewHTTPClient(influxdb.HTTPConfig{
-			Addr: addr,
-		})
-		if err != nil {
-			panic(err)
-		}
-	}
-}
 
 type InputCandidates []InputVersionCandidates
 
@@ -74,60 +53,16 @@ func (candidates InputCandidates) String() string {
 	return fmt.Sprintf("[%s]", strings.Join(lens, "; "))
 }
 
-func send(point *influxdb.Point, pointErr error) {
-	if pointErr != nil {
-		panic(pointErr)
-	}
-
-	batch, err := influxdb.NewBatchPoints(influxdb.BatchPointsConfig{
-		Database: influxdbDatabase,
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	batch.AddPoint(point)
-
-	err = influxdbClient.Write(batch)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func (candidates InputCandidates) Reduce(depth int, jobs JobSet) (ResolvedInputs, bool) {
 	newInputCandidates := candidates.pruneToCommonBuilds(jobs)
 
 	for i, inputVersionCandidates := range newInputCandidates {
-		if influxdbClient != nil {
-			send(influxdb.NewPoint("depth", map[string]string{
-				"input": inputVersionCandidates.Input,
-			}, map[string]interface{}{
-				"depth": depth,
-			}))
-		}
-
 		if inputVersionCandidates.Len() == 1 {
-			if influxdbClient != nil {
-				send(influxdb.NewPoint("already-reduced", map[string]string{
-					"input": inputVersionCandidates.Input,
-				}, map[string]interface{}{
-					"depth": depth,
-				}))
-			}
-
+			// already reduced
 			continue
 		}
 
 		if inputVersionCandidates.PinnedVersionID != 0 {
-			if influxdbClient != nil {
-				send(influxdb.NewPoint("pinned", map[string]string{
-					"input": inputVersionCandidates.Input,
-				}, map[string]interface{}{
-					"depth":   depth,
-					"version": inputVersionCandidates.PinnedVersionID,
-				}))
-			}
-
 			newInputCandidates.Pin(i, inputVersionCandidates.PinnedVersionID)
 			continue
 		}
@@ -139,14 +74,7 @@ func (candidates InputCandidates) Reduce(depth int, jobs JobSet) (ResolvedInputs
 		for {
 			id, ok := versionIDs.Next()
 			if !ok {
-				if influxdbClient != nil {
-					send(influxdb.NewPoint("exhausted", map[string]string{
-						"input": inputVersionCandidates.Input,
-					}, map[string]interface{}{
-						"depth": depth,
-					}))
-				}
-
+				// exhaused available versions
 				return nil, false
 			}
 
@@ -154,39 +82,12 @@ func (candidates InputCandidates) Reduce(depth int, jobs JobSet) (ResolvedInputs
 
 			newInputCandidates.Pin(i, id)
 
-			if influxdbClient != nil {
-				send(influxdb.NewPoint("trying", map[string]string{
-					"input": inputVersionCandidates.Input,
-				}, map[string]interface{}{
-					"depth":     depth,
-					"iteration": iteration,
-				}))
-			}
-
 			mapping, ok := newInputCandidates.Reduce(depth+1, jobs)
 			if ok && inputVersionCandidates.IsNext(id, versionIDs) {
-				if influxdbClient != nil {
-					send(influxdb.NewPoint("resolved", map[string]string{
-						"input": inputVersionCandidates.Input,
-					}, map[string]interface{}{
-						"depth":     depth,
-						"iteration": iteration,
-					}))
-				}
-
 				return mapping, true
 			}
 
 			newInputCandidates.Unpin(i, inputVersionCandidates)
-
-			if influxdbClient != nil {
-				send(influxdb.NewPoint("failed", map[string]string{
-					"input": inputVersionCandidates.Input,
-				}, map[string]interface{}{
-					"depth":     depth,
-					"iteration": iteration,
-				}))
-			}
 		}
 	}
 
