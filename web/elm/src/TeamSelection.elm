@@ -57,7 +57,7 @@ update action model =
 
 loginRoute : String -> String -> String
 loginRoute redirect teamName =
-  routeMaybeRedirect redirect <| "teams/" ++ teamName ++ "/login"
+  routeMaybeRedirect redirect <| "/teams/" ++ teamName ++ "/login"
 
 routeMaybeRedirect : String -> String -> String
 routeMaybeRedirect redirect route =
