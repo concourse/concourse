@@ -627,9 +627,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			logger,
 			sqlDB,
 			keepaliveDialer,
-			retryhttp.ExponentialRetryPolicy{
-				Timeout: 5 * time.Minute,
-			},
+			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 			image.NewFactory(trackerFactory, resourceFetcherFactory),
 			pipelineDBFactory,
 		),

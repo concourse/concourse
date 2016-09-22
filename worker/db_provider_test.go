@@ -17,17 +17,12 @@ import (
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/retryhttp/retryhttpfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
-
-type immediateRetryPolicy struct{}
-
-func (immediateRetryPolicy) DelayFor(uint) (time.Duration, bool) {
-	return 0, true
-}
 
 var _ = Describe("DBProvider", func() {
 	var (
@@ -85,8 +80,11 @@ var _ = Describe("DBProvider", func() {
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
+		fakeBackOffFactory := new(retryhttpfakes.FakeBackOffFactory)
+		fakeBackOff := new(retryhttpfakes.FakeBackOff)
+		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
 
-		provider = NewDBWorkerProvider(logger, fakeDB, nil, immediateRetryPolicy{}, fakeImageFactory, fakePipelineDBFactory)
+		provider = NewDBWorkerProvider(logger, fakeDB, nil, fakeBackOffFactory, fakeImageFactory, fakePipelineDBFactory)
 	})
 
 	AfterEach(func() {

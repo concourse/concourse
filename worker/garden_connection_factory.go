@@ -3,7 +3,6 @@ package worker
 import (
 	"net/http"
 
-	"code.cloudfoundry.org/clock"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/garden/routes"
 	"code.cloudfoundry.org/lager"
@@ -18,11 +17,11 @@ type GardenConnectionFactory interface {
 }
 
 type gardenConnectionFactory struct {
-	db          transport.TransportDB
-	logger      lager.Logger
-	workerName  string
-	workerHost  string
-	retryPolicy retryhttp.RetryPolicy
+	db                  transport.TransportDB
+	logger              lager.Logger
+	workerName          string
+	workerHost          string
+	retryBackOffFactory retryhttp.BackOffFactory
 }
 
 func NewGardenConnectionFactory(
@@ -30,31 +29,29 @@ func NewGardenConnectionFactory(
 	logger lager.Logger,
 	workerName string,
 	workerHost string,
-	retryPolicy retryhttp.RetryPolicy,
+	retryBackOffFactory retryhttp.BackOffFactory,
 ) GardenConnectionFactory {
 	return &gardenConnectionFactory{
-		db:          db,
-		logger:      logger,
-		workerName:  workerName,
-		workerHost:  workerHost,
-		retryPolicy: retryPolicy,
+		db:                  db,
+		logger:              logger,
+		workerName:          workerName,
+		workerHost:          workerHost,
+		retryBackOffFactory: retryBackOffFactory,
 	}
 }
 
 func (gcf *gardenConnectionFactory) BuildConnection() gconn.Connection {
 	httpClient := &http.Client{
 		Transport: &retryhttp.RetryRoundTripper{
-			Logger:       gcf.logger.Session("retryable-http-client"),
-			Sleeper:      clock.NewClock(),
-			RetryPolicy:  gcf.retryPolicy,
-			RoundTripper: transport.NewRoundTripper(gcf.workerName, gcf.workerHost, gcf.db, &http.Transport{DisableKeepAlives: true}),
+			Logger:         gcf.logger.Session("retryable-http-client"),
+			BackOffFactory: gcf.retryBackOffFactory,
+			RoundTripper:   transport.NewRoundTripper(gcf.workerName, gcf.workerHost, gcf.db, &http.Transport{DisableKeepAlives: true}),
 		},
 	}
 
 	hijackableClient := &retryhttp.RetryHijackableClient{
 		Logger:           gcf.logger.Session("retry-hijackable-client"),
-		Sleeper:          clock.NewClock(),
-		RetryPolicy:      gcf.retryPolicy,
+		BackOffFactory:   gcf.retryBackOffFactory,
 		HijackableClient: transport.NewHijackableClient(gcf.workerName, gcf.db, retryhttp.DefaultHijackableClient),
 	}
 
