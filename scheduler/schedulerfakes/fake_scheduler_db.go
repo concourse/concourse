@@ -78,6 +78,22 @@ type FakeSchedulerDB struct {
 		result2 bool
 		result3 error
 	}
+	GetAllPendingBuildsStub        func() (map[string][]db.Build, error)
+	getAllPendingBuildsMutex       sync.RWMutex
+	getAllPendingBuildsArgsForCall []struct{}
+	getAllPendingBuildsReturns     struct {
+		result1 map[string][]db.Build
+		result2 error
+	}
+	GetPendingBuildsForJobStub        func(jobName string) ([]db.Build, error)
+	getPendingBuildsForJobMutex       sync.RWMutex
+	getPendingBuildsForJobArgsForCall []struct {
+		jobName string
+	}
+	getPendingBuildsForJobReturns struct {
+		result1 []db.Build
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -323,6 +339,66 @@ func (fake *FakeSchedulerDB) AcquireResourceCheckingForJobLockReturns(result1 db
 	}{result1, result2, result3}
 }
 
+func (fake *FakeSchedulerDB) GetAllPendingBuilds() (map[string][]db.Build, error) {
+	fake.getAllPendingBuildsMutex.Lock()
+	fake.getAllPendingBuildsArgsForCall = append(fake.getAllPendingBuildsArgsForCall, struct{}{})
+	fake.recordInvocation("GetAllPendingBuilds", []interface{}{})
+	fake.getAllPendingBuildsMutex.Unlock()
+	if fake.GetAllPendingBuildsStub != nil {
+		return fake.GetAllPendingBuildsStub()
+	} else {
+		return fake.getAllPendingBuildsReturns.result1, fake.getAllPendingBuildsReturns.result2
+	}
+}
+
+func (fake *FakeSchedulerDB) GetAllPendingBuildsCallCount() int {
+	fake.getAllPendingBuildsMutex.RLock()
+	defer fake.getAllPendingBuildsMutex.RUnlock()
+	return len(fake.getAllPendingBuildsArgsForCall)
+}
+
+func (fake *FakeSchedulerDB) GetAllPendingBuildsReturns(result1 map[string][]db.Build, result2 error) {
+	fake.GetAllPendingBuildsStub = nil
+	fake.getAllPendingBuildsReturns = struct {
+		result1 map[string][]db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeSchedulerDB) GetPendingBuildsForJob(jobName string) ([]db.Build, error) {
+	fake.getPendingBuildsForJobMutex.Lock()
+	fake.getPendingBuildsForJobArgsForCall = append(fake.getPendingBuildsForJobArgsForCall, struct {
+		jobName string
+	}{jobName})
+	fake.recordInvocation("GetPendingBuildsForJob", []interface{}{jobName})
+	fake.getPendingBuildsForJobMutex.Unlock()
+	if fake.GetPendingBuildsForJobStub != nil {
+		return fake.GetPendingBuildsForJobStub(jobName)
+	} else {
+		return fake.getPendingBuildsForJobReturns.result1, fake.getPendingBuildsForJobReturns.result2
+	}
+}
+
+func (fake *FakeSchedulerDB) GetPendingBuildsForJobCallCount() int {
+	fake.getPendingBuildsForJobMutex.RLock()
+	defer fake.getPendingBuildsForJobMutex.RUnlock()
+	return len(fake.getPendingBuildsForJobArgsForCall)
+}
+
+func (fake *FakeSchedulerDB) GetPendingBuildsForJobArgsForCall(i int) string {
+	fake.getPendingBuildsForJobMutex.RLock()
+	defer fake.getPendingBuildsForJobMutex.RUnlock()
+	return fake.getPendingBuildsForJobArgsForCall[i].jobName
+}
+
+func (fake *FakeSchedulerDB) GetPendingBuildsForJobReturns(result1 []db.Build, result2 error) {
+	fake.GetPendingBuildsForJobStub = nil
+	fake.getPendingBuildsForJobReturns = struct {
+		result1 []db.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeSchedulerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -342,6 +418,10 @@ func (fake *FakeSchedulerDB) Invocations() map[string][][]interface{} {
 	defer fake.ensurePendingBuildExistsMutex.RUnlock()
 	fake.acquireResourceCheckingForJobLockMutex.RLock()
 	defer fake.acquireResourceCheckingForJobLockMutex.RUnlock()
+	fake.getAllPendingBuildsMutex.RLock()
+	defer fake.getAllPendingBuildsMutex.RUnlock()
+	fake.getPendingBuildsForJobMutex.RLock()
+	defer fake.getPendingBuildsForJobMutex.RUnlock()
 	return fake.invocations
 }
 

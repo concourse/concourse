@@ -1,8 +1,8 @@
 package provider
 
 import (
-	"code.cloudfoundry.org/urljoiner"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc/auth/genericoauth"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/uaa"

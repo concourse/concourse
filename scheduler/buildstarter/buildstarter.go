@@ -16,20 +16,13 @@ type BuildStarter interface {
 		jobConfig atc.JobConfig,
 		resourceConfigs atc.ResourceConfigs,
 		resourceTypes atc.ResourceTypes,
-	) error
-	TryStartAllPendingBuilds(
-		logger lager.Logger,
-		jobConfigs atc.JobConfigs,
-		resourceConfigs atc.ResourceConfigs,
-		resourceTypes atc.ResourceTypes,
+		nextPendingBuilds []db.Build,
 	) error
 }
 
 //go:generate counterfeiter . BuildStarterDB
 
 type BuildStarterDB interface {
-	GetNextPendingBuildForJob(jobName string) (db.Build, bool, error)
-	GetAllPendingBuilds() (map[string][]db.Build, error)
 	GetNextBuildInputs(jobName string) ([]db.BuildInput, bool, error)
 	IsPaused() (bool, error)
 	GetJob(job string) (db.SavedJob, bool, error)
@@ -75,55 +68,16 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	jobConfig atc.JobConfig,
 	resourceConfigs atc.ResourceConfigs,
 	resourceTypes atc.ResourceTypes,
+	nextPendingBuildsForJob []db.Build,
 ) error {
-	started := true
-
-	for started {
-		nextPendingBuild, found, err := s.db.GetNextPendingBuildForJob(jobConfig.Name)
-		if err != nil {
-			logger.Error("failed-to-get-next-pending-build-for-job", err)
-			return err
-		}
-		if !found {
-			return nil
-		}
-
-		started, err = s.tryStartNextPendingBuild(logger, nextPendingBuild, jobConfig, resourceConfigs, resourceTypes)
+	for _, nextPendingBuild := range nextPendingBuildsForJob {
+		started, err := s.tryStartNextPendingBuild(logger, nextPendingBuild, jobConfig, resourceConfigs, resourceTypes)
 		if err != nil {
 			return err
 		}
-	}
 
-	return nil
-}
-
-func (s *buildStarter) TryStartAllPendingBuilds(
-	logger lager.Logger,
-	jobConfigs atc.JobConfigs,
-	resourceConfigs atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
-) error {
-	nextPendingBuilds, err := s.db.GetAllPendingBuilds()
-	if err != nil {
-		logger.Error("failed-to-get-all-next-pending-builds", err)
-		return err
-	}
-
-	for _, jobConfig := range jobConfigs {
-		nextPendingBuildsForJob, ok := nextPendingBuilds[jobConfig.Name]
-		if !ok {
-			continue
-		}
-
-		for _, nextPendingBuild := range nextPendingBuildsForJob {
-			started, err := s.tryStartNextPendingBuild(logger, nextPendingBuild, jobConfig, resourceConfigs, resourceTypes)
-			if err != nil {
-				return err
-			}
-
-			if !started {
-				break // stop scheduling next builds after failing to schedule a build
-			}
+		if !started {
+			break // stop scheduling next builds after failing to schedule a build
 		}
 	}
 

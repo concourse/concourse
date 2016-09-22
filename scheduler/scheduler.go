@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/scheduler/buildstarter"
 	"github.com/concourse/atc/scheduler/inputmapper"
 )
@@ -31,6 +32,8 @@ type SchedulerDB interface {
 	CreateJobBuild(job string) (db.Build, error)
 	EnsurePendingBuildExists(jobName string) error
 	AcquireResourceCheckingForJobLock(logger lager.Logger, job string) (db.Lock, bool, error)
+	GetAllPendingBuilds() (map[string][]db.Build, error)
+	GetPendingBuildsForJob(jobName string) ([]db.Build, error)
 }
 
 //go:generate counterfeiter . Scanner
@@ -46,7 +49,21 @@ func (s *Scheduler) Schedule(
 	resourceConfigs atc.ResourceConfigs,
 	resourceTypes atc.ResourceTypes,
 ) error {
+	nextPendingBuilds, err := s.DB.GetAllPendingBuilds()
+	if err != nil {
+		logger.Error("failed-to-get-all-next-pending-builds", err)
+		return err
+	}
+
 	for _, jobConfig := range jobConfigs {
+		jStart := time.Now()
+
+		defer metric.SchedulingJobDuration{
+			PipelineName: s.DB.GetPipelineName(),
+			JobName:      jobConfig.Name,
+			Duration:     time.Since(jStart),
+		}.Emit(logger)
+
 		inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, jobConfig)
 		if err != nil {
 			return err
@@ -66,9 +83,20 @@ func (s *Scheduler) Schedule(
 				break
 			}
 		}
+
+		nextPendingBuildsForJob, ok := nextPendingBuilds[jobConfig.Name]
+		if !ok {
+			continue
+		}
+
+		err = s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuildsForJob)
+		if err != nil {
+			logger.Error("failed-to-start-next-pending-build-for-job", err, lager.Data{"job-name": jobConfig.Name})
+			return err
+		}
 	}
 
-	return s.BuildStarter.TryStartAllPendingBuilds(logger, jobConfigs, resourceConfigs, resourceTypes)
+	return nil
 }
 
 type Waiter interface {
@@ -137,7 +165,17 @@ func (s *Scheduler) TriggerImmediately(
 			lock.Release()
 		}
 
-		err = s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes)
+		nextPendingBuilds, err := s.DB.GetPendingBuildsForJob(jobConfig.Name)
+		if err != nil {
+			logger.Error("failed-to-get-next-pending-build-for-job", err)
+			return
+		}
+
+		err = s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuilds)
+		if err != nil {
+			logger.Error("failed-to-start-next-pending-build-for-job", err, lager.Data{"job-name": jobConfig.Name})
+			return
+		}
 	}()
 
 	return build, wg, nil

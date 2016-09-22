@@ -68,7 +68,7 @@ type PipelineDB interface {
 	GetJobBuild(job string, build string) (Build, bool, error)
 	CreateJobBuild(job string) (Build, error)
 	EnsurePendingBuildExists(jobName string) error
-	GetNextPendingBuildForJob(jobName string) (Build, bool, error)
+	GetPendingBuildsForJob(jobName string) ([]Build, error)
 	GetAllPendingBuilds() (map[string][]Build, error)
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 	AcquireResourceCheckingForJobLock(logger lager.Logger, jobName string) (Lock, bool, error)
@@ -1488,25 +1488,27 @@ func (pdb *pipelineDB) SaveOutput(buildID int, vr VersionedResource, explicit bo
 	return svr, nil
 }
 
-func (pdb *pipelineDB) GetNextPendingBuildForJob(jobName string) (Build, bool, error) {
+func (pdb *pipelineDB) GetPendingBuildsForJob(jobName string) ([]Build, error) {
+	builds := []Build{}
+
 	tx, err := pdb.conn.Begin()
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	defer tx.Rollback()
 
 	dbJob, err := pdb.getJob(tx, jobName)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	return pdb.buildFactory.ScanBuild(pdb.conn.QueryRow(`
+	rows, err := pdb.conn.Query(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
@@ -1519,8 +1521,26 @@ func (pdb *pipelineDB) GetNextPendingBuildForJob(jobName string) (Build, bool, e
 			OR j.resource_checking = false
 		)
 		ORDER BY b.id ASC
-		LIMIT 1
-	`, dbJob.ID))
+	`, dbJob.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		build, found, err := pdb.buildFactory.ScanBuild(rows)
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			continue
+		}
+
+		builds = append(builds, build)
+	}
+
+	return builds, nil
 }
 
 func (pdb *pipelineDB) GetAllPendingBuilds() (map[string][]Build, error) {

@@ -124,16 +124,9 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 	config := runner.DB.Config()
 
-	jStart := time.Now()
-
 	sLog := logger.Session("scheduling")
 
 	runner.Scheduler.Schedule(sLog, versions, config.Jobs, config.Resources, config.ResourceTypes)
-
-	metric.SchedulingJobDuration{
-		PipelineName: runner.DB.GetPipelineName(),
-		Duration:     time.Since(jStart),
-	}.Emit(sLog)
 
 	return nil
 }
