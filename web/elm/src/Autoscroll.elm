@@ -21,7 +21,8 @@ type alias Model subModel =
   }
 
 type ScrollBehavior
-  = Scroll String
+  = ScrollElement String
+  | ScrollWindow
   | NoScroll
 
 type Msg subMsg
@@ -45,8 +46,11 @@ update subUpdate action model =
     ScrollDown ->
       ( model
       , case model.scrollBehaviorFunc model.subModel of
-          Scroll ele ->
+          ScrollElement ele ->
             scrollToBottom ele
+
+          ScrollWindow ->
+            scrollToWindowBottom
 
           NoScroll ->
             Cmd.none
@@ -83,3 +87,7 @@ subscriptions subSubscriptions model =
 scrollToBottom : String -> Cmd (Msg x)
 scrollToBottom ele =
   Task.perform (always ScrolledDown) (always ScrolledDown) (Scroll.toBottom ele)
+
+scrollToWindowBottom : Cmd (Msg x)
+scrollToWindowBottom =
+  Task.perform (always ScrolledDown) (always ScrolledDown) (Scroll.toWindowBottom)

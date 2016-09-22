@@ -90,7 +90,7 @@ type Msg
   | ClockTick Time.Time
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
-  | OutputScrolled StrictEvents.ScrollState
+  | WindowScrolled Scroll.FromBottom
 
 type alias Ports =
   { setTitle : String -> Cmd Msg
@@ -119,6 +119,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ Time.every Time.second ClockTick
+    , Scroll.fromWindowBottom WindowScrolled
     , case model.currentBuild `Maybe.andThen` .output of
         Nothing ->
           Sub.none
@@ -272,28 +273,16 @@ update action model =
     ClockTick now ->
       ({ model | now = Just now }, Cmd.none)
 
-    OutputScrolled {scrollHeight,scrollTop,clientHeight} ->
-      let
-        fromBottom =
-          scrollHeight - (scrollTop + clientHeight)
-      in
-        if fromBottom == 0 then
-          ({ model | autoScroll = True }, Cmd.none)
-        else
-          ({ model | autoScroll = False }, Cmd.none)
+    WindowScrolled fromBottom ->
+      if fromBottom == 0 then
+        ({ model | autoScroll = True }, Cmd.none)
+      else
+        ({ model | autoScroll = False }, Cmd.none)
 
 handleBuildFetched : Int -> Concourse.Build -> Model -> (Model, Cmd Msg)
 handleBuildFetched browsingIndex build model =
   if browsingIndex == model.browsingIndex then
     let
-      focusOutput =
-        case model.currentBuild of
-          Nothing ->
-            model.ports.focusElement autoscrollElement
-
-          _ ->
-            Cmd.none
-
       currentBuild =
         case model.currentBuild of
           Nothing ->
@@ -345,7 +334,6 @@ handleBuildFetched browsingIndex build model =
           [ cmd
           , setFavicon build.status
           , fetchJobAndHistory
-          , focusOutput
           ])
   else
     (model, Cmd.none)
@@ -420,14 +408,7 @@ view model =
     Just currentBuild ->
       Html.div [class "with-fixed-header"]
         [ viewBuildHeader currentBuild.build model
-        , Html.div
-          [ class "scrollable-body"
-          , id autoscrollElement
-          , onScroll OutputScrolled
-
-          -- this is necessary to focus the element for some reason
-          , tabindex 0
-          ] <|
+        , Html.div [class "scrollable-body build-body"] <|
           [ viewBuildPrep currentBuild.prep
           , Html.Lazy.lazy2 viewBuildOutput model.browsingIndex <|
               currentBuild.output
@@ -493,10 +474,6 @@ view model =
 
     _ ->
       LoadingIndicator.view
-
-autoscrollElement : String
-autoscrollElement =
-  "build-autoscroll"
 
 mmDDYY : Date -> String
 mmDDYY d =
@@ -722,7 +699,7 @@ getScrollBehavior model =
           Autoscroll.NoScroll
 
         _ ->
-          Autoscroll.Scroll autoscrollElement
+          Autoscroll.ScrollWindow
 
 
 redirectToLogin : Model -> Cmd Msg

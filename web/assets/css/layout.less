@@ -4,15 +4,20 @@ html, body, #elm-app, .content-frame {
   height: 100%;
 }
 
-.content-frame {
-  display: flex;
-  flex-direction: column;
+@top-bar-height: 40px;
+@fixed-header-height: 60px;
+@builds-list-height: 30px;
 
+.content-frame {
   .top-bar {
+    z-index: 10;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     display: flex;
     flex-direction: row;
-    height: 40px;
-    flex-shrink: 0;
+    height: @top-bar-height;
 
     .groups {
       flex-grow: 1;
@@ -51,37 +56,41 @@ html, body, #elm-app, .content-frame {
   }
 
   .bottom {
-    flex-grow: 1;
+    padding-top: @top-bar-height;
+    height: 100%;
+    box-sizing: border-box;
     display: flex;
     flex-direction: row;
     align-items: stretch;
   }
 }
 
-#top-bar-app {
-  // TODO: remove once this intermediary app element isn't there
-  flex-shrink: 0;
-}
-
 .with-fixed-header {
   .fixed-header {
-    z-index: 1;
-    width: 100%;
+    height: @fixed-header-height;
+    position: fixed;
+    top: @top-bar-height;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: @base01;
   }
 
   .scrollable-body {
     width: 100%;
     height: 100%;
     box-sizing: border-box;
-    overflow-y: auto;
     padding: 10px;
+    padding-top: @fixed-header-height + 10px;
     position: absolute;
+
+    &.build-body {
+      padding-top: @fixed-header-height + @builds-list-height + 10px;
+    }
   }
 }
 
-
 #content { // TODO: kill id
-  overflow: auto;
   flex-grow: 1;
 
   // for absolutely positioned content in pipeline graph
