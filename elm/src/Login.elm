@@ -1,4 +1,4 @@
-module Login exposing (Model, Msg, Page(..), PageWithRedirect, init, update, urlUpdate, view, subscriptions)
+module Login exposing (Model, Msg, Page(..), PageWithRedirect, init, update, view, subscriptions)
 
 import Erl
 import Html exposing (Html)
@@ -50,7 +50,7 @@ type Msg
 defaultPage : PageWithRedirect
 defaultPage = { page = TeamSelectionPage, redirect = "" }
 
-init : Routes.Route -> (Model, Cmd Msg)
+init : Routes.ConcourseRoute -> (Model, Cmd Msg)
 init route =
   case route of
     Routes.TeamLogin teamName ->
@@ -58,7 +58,7 @@ init route =
           { teamName = teamName
           , authMethods = Nothing
           , hasTeamSelectionInBrowserHistory = False
-          , redirect = ""
+          , redirect = "/teams/main/pipelines/main"
           }
       , Cmd.map
           AuthFetched <|
@@ -74,32 +74,6 @@ init route =
           }
       , Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
       )
-
-urlUpdate : Routes.Route -> Model -> (Model, Cmd Msg)
-urlUpdate route model =
-  case route of
-    Routes.TeamLogin teamName ->
-      ( Login
-          { teamName = teamName
-          , authMethods = Nothing
-          , hasTeamSelectionInBrowserHistory = True
-          , redirect = ""
-          }
-      , Cmd.map
-          AuthFetched <|
-          Task.perform
-            Err Ok <|
-              Concourse.AuthMethod.fetchAll teamName
-      )
-    _ ->
-      ( TeamSelection
-          { teamFilter = ""
-          , teams = Nothing
-          , redirect = ""
-          }
-      , Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
-      )
-
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =

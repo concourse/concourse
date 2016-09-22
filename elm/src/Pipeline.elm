@@ -122,7 +122,8 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   Html.div []
-    [ Html.div [if model.experiencingTurbulence then class "error-message" else class "error-message hidden"]
+    [---  Html.svg [ class "pipeline-graph test", width 100, height 100] []
+      Html.div [if model.experiencingTurbulence then class "error-message" else class "error-message hidden"]
         [ Html.div [class "message"]
             [ Html.img [src model.turbulenceImgSrc, class "seatbelt"] []
             , Html.p [] [Html.text "experiencing turbulence"]
