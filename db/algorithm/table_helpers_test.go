@@ -1,6 +1,7 @@
 package algorithm_test
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -86,7 +87,10 @@ func (example Example) Run() {
 		dbFile, err := os.Open(example.LoadDB)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = json.NewDecoder(dbFile).Decode(db)
+		gr, err := gzip.NewReader(dbFile)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = json.NewDecoder(gr).Decode(db)
 		Expect(err).ToNot(HaveOccurred())
 
 		for name, id := range db.JobIDs {

@@ -69,7 +69,7 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 		})
 	}
 
-	basicMapping, ok := inputCandidates.Reduce(jobs)
+	basicMapping, ok := inputCandidates.Reduce(0, jobs)
 	if !ok {
 		return nil, false
 	}
