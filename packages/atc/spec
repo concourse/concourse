@@ -21,6 +21,7 @@ files:
   - github.com/bigdatadev/goryman/*.go # gosub
   - github.com/bigdatadev/goryman/proto/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
+  - github.com/cenk/backoff/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/api/*.go # gosub
   - github.com/concourse/atc/api/authserver/*.go # gosub

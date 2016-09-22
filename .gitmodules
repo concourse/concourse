@@ -239,3 +239,7 @@
 	path = src/code.cloudfoundry.org/urljoiner
 	url = https://github.com/cloudfoundry/urljoiner
 	branch = master
+[submodule "src/github.com/cenk/backoff"]
+	path = src/github.com/cenk/backoff
+	url = https://github.com/cenk/backoff
+	branch = master
