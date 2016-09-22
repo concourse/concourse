@@ -16,12 +16,14 @@ type processHandler struct {
 	logger        lager.Logger
 	clientFactory web.ClientFactory
 	expire        time.Duration
+	deferTo       http.Handler
 }
 
 func NewProcessBasicAuthHandler(
 	logger lager.Logger,
 	clientFactory web.ClientFactory,
 	expire time.Duration,
+	webGetter http.Handler,
 ) http.Handler {
 	return &processHandler{
 		logger:        logger,
@@ -31,6 +33,7 @@ func NewProcessBasicAuthHandler(
 }
 
 func (h *processHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// if not POST, defer
 	teamName := r.FormValue(":team_name")
 	username := r.FormValue("username")
 	password := r.FormValue("password")
