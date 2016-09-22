@@ -1,4 +1,4 @@
-port module SubPage exposing (Model, Msg, init, update, view, subscriptions)
+port module SubPage exposing (Model(..), Msg, init, urlUpdate, update, view, subscriptions)
 
 import Dict
 import Json.Encode
@@ -13,13 +13,6 @@ import TeamSelection
 
 port renderPipeline : (Json.Encode.Value, Json.Encode.Value) -> Cmd msg
 port renderFinished : (Bool -> msg) -> Sub msg
---
--- type alias Page =
---   { init : Routes.ConcourseRoute -> (Model, Cmd Msg)
---   , update : Msg -> Model -> (Model, Cmd Msg)
---   , view : Model -> Html Msg
---   , subscriptions : Model -> Sub Msg
---   }
 
 type Model
   = LoginModel Login.Model
@@ -80,6 +73,11 @@ update msg mdl =
       superDupleWrap (SelectTeamModel, SelectTeamMsg) <| TeamSelection.update message model
     _ ->
       Debug.log "Impossible combination" (mdl, Cmd.none)
+
+urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
+urlUpdate route model =
+  -- TODO update this so that pages which require url update handling have a special Msg for it
+  (model, Cmd.none)
 
 view : Model -> Html Msg
 view mdl =

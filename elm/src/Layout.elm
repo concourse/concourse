@@ -65,22 +65,25 @@ update msg model =
         ({ model | sideModel = sideModel }, Cmd.map SideMsg sideCmd)
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd (Msg))
-urlUpdate route model = -- TODO write this??
-  -- let
-  --   (subModel, subCmd) =
-  --     model.sub.init route
-  --   -- (topModel, topCmd) =
-  --   --   TopBar.init route
-  --   --
-  --   -- (sideModel, sideCmd) =
-  --   --   SideBar.init
-  -- in
-  --   ( { model | subModel = subModel }
-  --   , Cmd.batch
-  --       [ Cmd.map SubMsg subCmd
-  --       ]
-  --   )
-  (model, Cmd.none)
+urlUpdate route model =
+  let
+    (newSubmodel, cmd) =
+      if routeMatchesModel route model then
+        SubPage.urlUpdate route model.subModel
+      else
+        SubPage.init route
+    (newTopModel, tCmd) =
+      TopBar.urlUpdate route model.topModel
+  in
+    ( { model
+      | subModel = newSubmodel
+      , topModel = newTopModel
+      }
+    , Cmd.batch
+        [ Cmd.map SubMsg cmd
+        , Cmd.map TopMsg tCmd
+        ]
+    )
 
 view : Model -> Html (Msg)
 view model =
@@ -98,3 +101,15 @@ view model =
 subscriptions : Model -> Sub (Msg)
 subscriptions model =
   Sub.none -- TODO this maybe blank? idk
+
+
+routeMatchesModel : Routes.ConcourseRoute -> Model -> Bool
+routeMatchesModel route model =
+  case (route.logical, model.subModel) of
+    (Routes.SelectTeam, SubPage.SelectTeamModel _) ->
+      True
+    (Routes.TeamLogin _, SubPage.LoginModel _) ->
+      True
+    (Routes.Pipeline _ _, SubPage.PipelineModel _) ->
+      True
+    _ -> False
