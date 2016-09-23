@@ -1,4 +1,4 @@
-port module SubPage exposing (Model(..), Msg, init, urlUpdate, update, view, subscriptions)
+port module SubPage exposing (Model(..), Msg(..), init, urlUpdate, update, view, subscriptions)
 
 import Dict
 import Json.Encode

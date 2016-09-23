@@ -3,6 +3,7 @@ module Layout exposing (Model, Msg, init, update, urlUpdate, view, subscriptions
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
 import Html.App
+import Login exposing (Msg(..))
 import TopBar
 import SideBar
 import Routes
@@ -53,6 +54,19 @@ update msg model =
         | sidebarVisible = not model.sidebarVisible
         }
       , Cmd.none )
+    SubMsg (SubPage.LoginMsg (Login.NoAuthLoginFinished (Ok val))) ->
+      let
+        (subModel, subCmd) =
+          SubPage.update (SubPage.LoginMsg (Login.NoAuthLoginFinished (Ok val))) model.subModel
+      in
+        ( { model
+          | subModel = subModel
+          }
+        , Cmd.batch
+            [ Cmd.map TopMsg TopBar.fetchUser
+            , Cmd.map SubMsg subCmd
+            ]
+        )
     -- otherwise, pass down
     SubMsg m ->
       Debug.log("got sub message") <|
