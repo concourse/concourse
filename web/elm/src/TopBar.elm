@@ -1,4 +1,4 @@
-port module TopBar exposing (Model, Msg, init, update, urlUpdate, view, subscriptions)
+port module TopBar exposing (Model, Msg(..), init, update, urlUpdate, view, subscriptions)
 
 import Dict
 import Erl
@@ -136,7 +136,7 @@ update msg model =
         (model, Cmd.none)
 
     ToggleSidebar ->
-      (model, model.ports.toggleSidebar ())
+      Debug.log "sidebar-toggle-incorrectly-handled: " (model, Cmd.none)
 
     ToggleGroup group ->
       let
