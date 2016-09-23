@@ -78,8 +78,7 @@ view model =
   let filteredTeams =
     filterTeams model.teamFilter <| Maybe.withDefault [] model.teams
   in
-    Html.div
-      []
+    Html.div [ class "login-page" ]
       [ Html.div
           [ class "small-title" ]
           [ Html.text "select a team to login" ]
