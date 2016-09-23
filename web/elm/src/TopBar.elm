@@ -1,4 +1,4 @@
-port module TopBar exposing (Model, Msg(..), init, update, urlUpdate, view, subscriptions)
+port module TopBar exposing (Model, Msg(..), init, update, urlUpdate, view, subscriptions, fetchUser)
 
 import Dict
 import Erl

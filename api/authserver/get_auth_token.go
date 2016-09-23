@@ -2,6 +2,7 @@ package authserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 )
+
+const CookieName = "ATC-Authorization"
 
 func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-auth-token")
@@ -48,6 +51,13 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 
 		token.Type = string(tokenType)
 		token.Value = string(tokenValue)
+
+		http.SetCookie(w, &http.Cookie{
+			Name:    CookieName,
+			Value:   fmt.Sprintf("%s %s", token.Type, token.Value),
+			Path:    "/",
+			Expires: time.Now().Add(s.expire),
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
