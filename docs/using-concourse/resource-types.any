@@ -20,6 +20,9 @@ before using it!
     The \hyperlink{https://github.com/concourse/git-resource}{\code{git}} resource can
     pull and push to git repositories.
   }{
+    The \hyperlink{https://github.com/concourse/hg-resource}{\code{hg}} resource can
+    pull and push to Mercurial repositories.
+  }{
     The \hyperlink{https://github.com/concourse/time-resource}{\code{time}} resource
     can start jobs on a schedule or timestamp outputs.
   }{
