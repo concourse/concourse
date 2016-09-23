@@ -12,6 +12,7 @@ type alias Model =
   { subModel : SubPage.Model
   , topModel : TopBar.Model
   , sideModel : SideBar.Model
+  , sidebarVisible : Bool
   }
 
 type Msg
@@ -34,6 +35,7 @@ init route =
     ( { subModel = subModel
       , topModel = topModel
       , sideModel = sideModel
+      , sidebarVisible = False
       }
     , Cmd.batch
         [ Cmd.map SubMsg subCmd
@@ -45,6 +47,13 @@ init route =
 update : Msg -> Model -> (Model, Cmd (Msg))
 update msg model =
   case msg of
+    -- handle cross-component interactions
+    TopMsg TopBar.ToggleSidebar ->
+      ( { model
+        | sidebarVisible = not model.sidebarVisible
+        }
+      , Cmd.none )
+    -- otherwise, pass down
     SubMsg m ->
       Debug.log("got sub message") <|
         let
@@ -87,16 +96,26 @@ urlUpdate route model =
 
 view : Model -> Html (Msg)
 view model =
-  Html.div [ class "content-frame" ]
-    [ Html.div [ id "top-bar-app" ]
-        [ Html.App.map TopMsg (TopBar.view model.topModel) ]
-    , Html.div [ class "bottom" ]
-        [ Html.div [ id "pipelines-nav-app", class "sidebar js-sidebar test" ]
-            [ Html.App.map SideMsg (SideBar.view model.sideModel) ]
-        , Html.div [ id "content" ]
-            [ Html.App.map SubMsg (SubPage.view model.subModel) ]
-        ]
-    ]
+  let sidebarVisibileAppendage =
+    case model.sidebarVisible of
+      True ->
+        " visible"
+      False ->
+        ""
+  in
+    Html.div [ class "content-frame" ]
+      [ Html.div [ id "top-bar-app" ]
+          [ Html.App.map TopMsg (TopBar.view model.topModel) ]
+      , Html.div [ class "bottom" ]
+          [ Html.div
+              [ id "pipelines-nav-app"
+              , class <| "sidebar test" ++ sidebarVisibileAppendage
+              ]
+              [ Html.App.map SideMsg (SideBar.view model.sideModel) ]
+          , Html.div [ id "content" ]
+              [ Html.App.map SubMsg (SubPage.view model.subModel) ]
+          ]
+      ]
 
 subscriptions : Model -> Sub (Msg)
 subscriptions model =
