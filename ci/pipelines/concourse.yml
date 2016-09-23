@@ -517,6 +517,7 @@ jobs:
       build: concourse-image-build-root
       load_base: ubuntu-image
       tag: version/version
+      tag_as_latest: true
 
 - name: unfudge
   plan:
@@ -994,14 +995,17 @@ resources:
 
 - name: concourse-image-rc
   type: docker-image
-  source: &concourse-image
-    repository: concourse/concourse
+  source:
+    repository: concourse/concourse-rc
     username: {{docker-username}}
     password: {{docker-password}}
 
 - name: concourse-image-final
   type: docker-image
-  source: *concourse-image
+  source:
+    repository: concourse/concourse
+    username: {{docker-username}}
+    password: {{docker-password}}
 
 - name: golang-windows
   type: s3
