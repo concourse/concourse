@@ -86,7 +86,7 @@ indexPageUrl = "/"
 
 view : Model -> Html Msg
 view model =
-  Html.div []
+  Html.div [ class "login-page" ]
     [ Html.div
         [ class "small-title" ]
         [ Html.a
