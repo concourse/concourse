@@ -113,7 +113,9 @@ view model =
               ]
               [ Html.App.map SideMsg (SideBar.view model.sideModel) ]
           , Html.div [ id "content" ]
-              [ Html.App.map SubMsg (SubPage.view model.subModel) ]
+              [ Html.div [ id "subpage" ]
+                  [ Html.App.map SubMsg (SubPage.view model.subModel) ]
+              ]
           ]
       ]
 
