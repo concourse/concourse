@@ -2,6 +2,9 @@ module Concourse exposing
   ( AuthMethod(..)
   , decodeAuthMethod
 
+  , AuthToken
+  , decodeAuthToken
+
   , Build
   , BuildId
   , JobBuildIdentifier
@@ -104,9 +107,30 @@ authMethodFromTuple tuple =
       Err "unknown value for auth method type"
 
 
+-- AuthToken
+
+type alias AuthToken =
+  String
+
+decodeAuthToken : Json.Decode.Decoder AuthToken
+decodeAuthToken =
+  Json.Decode.customDecoder
+    ( Json.Decode.succeed (,)
+        |: ("type" := Json.Decode.string)
+        |: ("value" := Json.Decode.string)
+    )
+    authTokenFromTuple
+
+authTokenFromTuple : (String, String) -> Result String AuthToken
+authTokenFromTuple (t, token) =
+  case t of
+    "Bearer" ->
+      Ok token
+    _ ->
+      Err "unknown token type"
+
 
 -- Build
-
 
 type alias BuildId =
   Int
