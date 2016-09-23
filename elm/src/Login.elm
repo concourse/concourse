@@ -1,4 +1,4 @@
-module Login exposing (Model, Msg, init, update, view, subscriptions)
+module Login exposing (Model, Msg(..), init, update, view, subscriptions)
 
 import Erl
 import Html exposing (Html)
@@ -9,6 +9,7 @@ import Task
 
 import Concourse
 import Concourse.AuthMethod
+import Concourse.Login
 import StrictEvents exposing (onLeftClick)
 
 type alias Model =
@@ -21,7 +22,8 @@ type alias Model =
 type Msg
   = Noop
   | AuthFetched (Result Http.Error (List Concourse.AuthMethod))
-  -- TODO add "submit" button action that calls API
+  | NoAuthSubmit
+  | NoAuthLoginFinished (Result Http.Error Concourse.AuthToken)
   | GoBack
 
 init : String -> String -> (Model, Cmd Msg)
@@ -49,10 +51,21 @@ update action model =
     AuthFetched (Err err) ->
       Debug.log ("failed to fetch auth methods: " ++ toString err) <|
         (model, Cmd.none)
+    NoAuthSubmit ->
+      (model, noAuthSubmit model.teamName)
+    NoAuthLoginFinished (Ok _) ->
+        ( model
+        , Navigation.newUrl <| indexPageUrl ++ model.redirect
+        )
+    NoAuthLoginFinished (Err err) ->
+      Debug.log ("login failed: " ++ toString err) <|
+        (model, Cmd.none)
     GoBack ->
       case model.hasTeamSelectionInBrowserHistory of -- TODO this goes away?
-        True -> (model, Navigation.back 1)
-        False -> (model, Navigation.newUrl <| teamSelectionRoute model.redirect)
+        True ->
+          (model, Navigation.back 1)
+        False ->
+          (model, Navigation.newUrl <| teamSelectionRoute model.redirect)
 
 teamSelectionRoute : String -> String
 teamSelectionRoute redirect = routeMaybeRedirect redirect "/login"
@@ -132,14 +145,13 @@ viewOrBar =
     , Html.span [] [ Html.text "or" ]
     ]
 
-viewNoAuthButton : Html action
+viewNoAuthButton : Html Msg
 viewNoAuthButton =
   Html.form
     [ class "auth-method login-button"
-    , Attributes.method "post"
     ]
     [ Html.button
-        [ Attributes.type' "submit" ]
+        [ onLeftClick NoAuthSubmit ]
         [ Html.text "login" ]
     ]
 
@@ -210,3 +222,8 @@ viewOAuthButton redirect method =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.none
+
+noAuthSubmit : String -> Cmd Msg
+noAuthSubmit teamName =
+  Cmd.map NoAuthLoginFinished << Task.perform Err Ok <|
+    Concourse.Login.noAuth teamName
