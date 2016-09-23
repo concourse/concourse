@@ -3,6 +3,7 @@ package schedulerfakes
 
 import (
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -12,7 +13,7 @@ import (
 )
 
 type FakeBuildScheduler struct {
-	ScheduleStub        func(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) error
+	ScheduleStub        func(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (map[string]time.Duration, error)
 	scheduleMutex       sync.RWMutex
 	scheduleArgsForCall []struct {
 		logger          lager.Logger
@@ -22,7 +23,8 @@ type FakeBuildScheduler struct {
 		resourceTypes   atc.ResourceTypes
 	}
 	scheduleReturns struct {
-		result1 error
+		result1 map[string]time.Duration
+		result2 error
 	}
 	TriggerImmediatelyStub        func(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (db.Build, scheduler.Waiter, error)
 	triggerImmediatelyMutex       sync.RWMutex
@@ -50,7 +52,7 @@ type FakeBuildScheduler struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildScheduler) Schedule(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) error {
+func (fake *FakeBuildScheduler) Schedule(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (map[string]time.Duration, error) {
 	fake.scheduleMutex.Lock()
 	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
 		logger          lager.Logger
@@ -64,7 +66,7 @@ func (fake *FakeBuildScheduler) Schedule(logger lager.Logger, versions *algorith
 	if fake.ScheduleStub != nil {
 		return fake.ScheduleStub(logger, versions, jobConfigs, resourceConfigs, resourceTypes)
 	} else {
-		return fake.scheduleReturns.result1
+		return fake.scheduleReturns.result1, fake.scheduleReturns.result2
 	}
 }
 
@@ -80,11 +82,12 @@ func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algor
 	return fake.scheduleArgsForCall[i].logger, fake.scheduleArgsForCall[i].versions, fake.scheduleArgsForCall[i].jobConfigs, fake.scheduleArgsForCall[i].resourceConfigs, fake.scheduleArgsForCall[i].resourceTypes
 }
 
-func (fake *FakeBuildScheduler) ScheduleReturns(result1 error) {
+func (fake *FakeBuildScheduler) ScheduleReturns(result1 map[string]time.Duration, result2 error) {
 	fake.ScheduleStub = nil
 	fake.scheduleReturns = struct {
-		result1 error
-	}{result1}
+		result1 map[string]time.Duration
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuildScheduler) TriggerImmediately(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (db.Build, scheduler.Waiter, error) {

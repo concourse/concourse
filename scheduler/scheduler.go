@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/scheduler/buildstarter"
 	"github.com/concourse/atc/scheduler/inputmapper"
 )
@@ -48,51 +47,65 @@ func (s *Scheduler) Schedule(
 	jobConfigs atc.JobConfigs,
 	resourceConfigs atc.ResourceConfigs,
 	resourceTypes atc.ResourceTypes,
-) error {
+) (map[string]time.Duration, error) {
+	jobSchedulingTime := map[string]time.Duration{}
+
+	for _, jobConfig := range jobConfigs {
+		jStart := time.Now()
+		err := s.ensurePendingBuildExists(logger, versions, jobConfig)
+		jobSchedulingTime[jobConfig.Name] = time.Since(jStart)
+
+		if err != nil {
+			return jobSchedulingTime, err
+		}
+	}
+
 	nextPendingBuilds, err := s.DB.GetAllPendingBuilds()
 	if err != nil {
 		logger.Error("failed-to-get-all-next-pending-builds", err)
-		return err
+		return jobSchedulingTime, err
 	}
 
 	for _, jobConfig := range jobConfigs {
 		jStart := time.Now()
-
-		defer metric.SchedulingJobDuration{
-			PipelineName: s.DB.GetPipelineName(),
-			JobName:      jobConfig.Name,
-			Duration:     time.Since(jStart),
-		}.Emit(logger)
-
-		inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, jobConfig)
-		if err != nil {
-			return err
-		}
-
-		for _, inputConfig := range config.JobInputs(jobConfig) {
-			inputVersion, ok := inputMapping[inputConfig.Name]
-
-			//trigger: true, and the version has not been used
-			if ok && inputVersion.FirstOccurrence && inputConfig.Trigger {
-				err := s.DB.EnsurePendingBuildExists(jobConfig.Name)
-				if err != nil {
-					logger.Error("failed-to-ensure-pending-build-exists", err)
-					return err
-				}
-
-				break
-			}
-		}
-
 		nextPendingBuildsForJob, ok := nextPendingBuilds[jobConfig.Name]
 		if !ok {
 			continue
 		}
 
-		err = s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuildsForJob)
+		err := s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuildsForJob)
+		jobSchedulingTime[jobConfig.Name] = jobSchedulingTime[jobConfig.Name] + time.Since(jStart)
+
 		if err != nil {
-			logger.Error("failed-to-start-next-pending-build-for-job", err, lager.Data{"job-name": jobConfig.Name})
-			return err
+			return jobSchedulingTime, err
+		}
+	}
+
+	return jobSchedulingTime, nil
+}
+
+func (s *Scheduler) ensurePendingBuildExists(
+	logger lager.Logger,
+	versions *algorithm.VersionsDB,
+	jobConfig atc.JobConfig,
+) error {
+	inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, jobConfig)
+	if err != nil {
+		return err
+	}
+
+	for _, inputConfig := range config.JobInputs(jobConfig) {
+		inputVersion, ok := inputMapping[inputConfig.Name]
+
+		//trigger: true, and the version has not been used
+		if ok && inputVersion.FirstOccurrence && inputConfig.Trigger {
+			err := s.DB.EnsurePendingBuildExists(jobConfig.Name)
+			if err != nil {
+				logger.Error("failed-to-ensure-pending-build-exists", err)
+				return err
+			}
+
+			break
 		}
 	}
 

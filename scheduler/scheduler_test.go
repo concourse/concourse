@@ -70,7 +70,7 @@ var _ = Describe("Scheduler", func() {
 			versionsDB = &algorithm.VersionsDB{JobIDs: map[string]int{"j1": 1}}
 
 			var waiter Waiter
-			scheduleErr = scheduler.Schedule(
+			_, scheduleErr = scheduler.Schedule(
 				lagertest.NewTestLogger("test"),
 				versionsDB,
 				jobConfigs,
