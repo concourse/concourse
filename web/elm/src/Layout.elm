@@ -54,10 +54,10 @@ update msg model =
         | sidebarVisible = not model.sidebarVisible
         }
       , Cmd.none )
-    SubMsg (SubPage.LoginMsg (Login.NoAuthLoginFinished (Ok val))) ->
+    SubMsg (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
       let
         (subModel, subCmd) =
-          SubPage.update (SubPage.LoginMsg (Login.NoAuthLoginFinished (Ok val))) model.subModel
+          SubPage.update (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel
       in
         ( { model
           | subModel = subModel

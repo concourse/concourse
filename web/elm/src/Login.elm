@@ -3,6 +3,7 @@ module Login exposing (Model, Msg(..), init, update, view, subscriptions)
 import Erl
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (id, class)
+import Html.Events exposing (onInput)
 import Http
 import Navigation
 import Task
@@ -12,18 +13,29 @@ import Concourse.AuthMethod
 import Concourse.Login
 import StrictEvents exposing (onLeftClick)
 
+type alias BasicAuthFields =
+    { username : String
+    , password : String
+    }
+
 type alias Model =
   { teamName : String
   , authMethods : Maybe (List Concourse.AuthMethod)
   , hasTeamSelectionInBrowserHistory : Bool
   , redirect : String
+  , basicAuthInput : Maybe BasicAuthFields
   }
 
 type Msg
   = Noop
   | AuthFetched (Result Http.Error (List Concourse.AuthMethod))
   | NoAuthSubmit
-  | NoAuthLoginFinished (Result Http.Error Concourse.AuthToken)
+  | BasicAuthUsernameChanged String
+  | BasicAuthPasswordChanged String
+  | BasicAuthSubmit
+  | LoginTokenReceived (Result Http.Error Concourse.AuthToken)
+  -- | OAuthSubmit
+  -- | OAuthLoginFinished (Result Http.Error ())
   | GoBack
 
 init : String -> String -> (Model, Cmd Msg)
@@ -32,6 +44,7 @@ init teamName redirect =
     , authMethods = Nothing
     , hasTeamSelectionInBrowserHistory = False
     , redirect = redirect
+    , basicAuthInput = Nothing
     }
   , Cmd.map
       AuthFetched <|
@@ -45,21 +58,77 @@ update action model =
     Noop ->
       (model, Cmd.none)
     AuthFetched (Ok authMethods) ->
-      ( { model | authMethods = Just authMethods }
-      , Cmd.none
-      )
+      let
+        newInputFields =
+          if List.member Concourse.AuthMethodBasic authMethods then
+            Just <|
+              { username = ""
+              , password = ""
+              }
+          else
+            Nothing
+      in
+        ( { model
+          | authMethods = Just authMethods
+          , basicAuthInput = newInputFields
+          }
+        , Cmd.none
+        )
     AuthFetched (Err err) ->
       Debug.log ("failed to fetch auth methods: " ++ toString err) <|
         (model, Cmd.none)
     NoAuthSubmit ->
       (model, noAuthSubmit model.teamName)
-    NoAuthLoginFinished (Ok _) ->
+    LoginTokenReceived (Ok _) ->
         ( model
         , Navigation.newUrl <| indexPageUrl ++ model.redirect
         )
-    NoAuthLoginFinished (Err err) ->
+    LoginTokenReceived (Err err) ->
       Debug.log ("login failed: " ++ toString err) <|
         (model, Cmd.none)
+    BasicAuthUsernameChanged un ->
+      ( case model.basicAuthInput of
+          Nothing ->
+            Debug.log "input to nonexistent UN field: "
+              model
+          Just fields ->
+            { model
+            | basicAuthInput =
+                Just
+                  { fields
+                  | username = un
+                  }
+            }
+      , Cmd.none)
+    BasicAuthPasswordChanged pw ->
+      ( case model.basicAuthInput of
+          Nothing ->
+            Debug.log "input to nonexistent PW field: "
+              model
+          Just fields ->
+            { model
+            | basicAuthInput =
+                Just
+                  { fields
+                  | password = pw
+                  }
+            }
+      , Cmd.none)
+    BasicAuthSubmit ->
+      ( model
+      , case model.basicAuthInput of
+          Nothing ->
+            Debug.log "tried to submit illegal basic auth"
+              Cmd.none
+          Just fields ->
+            basicAuthSubmit model.teamName fields
+      )
+-- OAuthSubmit ->
+--   (model, oAuthSubmit model.teamName)
+-- NoAuthLoginFinished (Ok ()) ->
+--     ( model
+--     , Navigation.newUrl <| indexPageUrl ++ model.redirect
+--     )
     GoBack ->
       case model.hasTeamSelectionInBrowserHistory of -- TODO this goes away?
         True ->
@@ -131,13 +200,13 @@ view model =
                 (Nothing, Nothing) -> [ viewNoAuthButton ]
     ]
 
-viewLoading : Html action
+viewLoading : Html Msg
 viewLoading =
   Html.div [class "loading"]
     [ Html.i [class "fa fa-fw fa-spin fa-circle-o-notch"] []
     ]
 
-viewOrBar : Html action
+viewOrBar : Html Msg
 viewOrBar =
   Html.div
     [ class "or-bar" ]
@@ -155,13 +224,13 @@ viewNoAuthButton =
         [ Html.text "login" ]
     ]
 
-viewBasicAuthForm : List Concourse.AuthMethod -> Maybe (Html action)
+viewBasicAuthForm : List Concourse.AuthMethod -> Maybe (Html Msg)
 viewBasicAuthForm methods =
   if List.member Concourse.AuthMethodBasic methods then
     Just <|
       Html.form
         [ class "auth-method basic-auth"
-        , Attributes.method "post"
+        -- , Attributes.method "post"
         ]
         [ Html.label
             [ Attributes.for "basic-auth-username-input" ]
@@ -170,8 +239,9 @@ viewBasicAuthForm methods =
             [ class "input-holder" ]
             [ Html.input
                 [ id "basic-auth-username-input"
-                , Attributes.name "username"
+                -- , Attributes.name "username"
                 , Attributes.type' "text"
+                , onInput BasicAuthUsernameChanged
                 ]
                 []
             ]
@@ -181,22 +251,24 @@ viewBasicAuthForm methods =
         , Html.div [class "input-holder"] -- for LastPass web UI
             [ Html.input
                 [ id "basic-auth-password-input"
-                , Attributes.name "password"
+                -- , Attributes.name "password"
                 , Attributes.type' "password"
+                , onInput BasicAuthPasswordChanged
                 ]
                 []
             ]
         , Html.div
             [ class "login-button" ]
             [ Html.button
-                [ Attributes.type' "submit" ]
+                -- [ Attributes.type' "submit" ]
+                [ onLeftClick BasicAuthSubmit ]
                 [ Html.text "login" ]
             ]
         ]
   else
     Nothing
 
-viewOAuthButtons : String -> List Concourse.AuthMethod -> Maybe (Html action)
+viewOAuthButtons : String -> List Concourse.AuthMethod -> Maybe (Html Msg)
 viewOAuthButtons redirect methods =
   case List.filterMap (viewOAuthButton redirect) methods of
     [] ->
@@ -206,7 +278,7 @@ viewOAuthButtons redirect methods =
       Just <|
         Html.div [class "oauth-buttons"] buttons
 
-viewOAuthButton : String -> Concourse.AuthMethod -> Maybe (Html action)
+viewOAuthButton : String -> Concourse.AuthMethod -> Maybe (Html Msg)
 viewOAuthButton redirect method =
   case method of
     Concourse.AuthMethodBasic ->
@@ -225,5 +297,11 @@ subscriptions model =
 
 noAuthSubmit : String -> Cmd Msg
 noAuthSubmit teamName =
-  Cmd.map NoAuthLoginFinished << Task.perform Err Ok <|
+  Cmd.map LoginTokenReceived << Task.perform Err Ok <|
     Concourse.Login.noAuth teamName
+
+
+basicAuthSubmit : String -> BasicAuthFields -> Cmd Msg
+basicAuthSubmit teamName fields =
+  Cmd.map LoginTokenReceived << Task.perform Err Ok <|
+    Concourse.Login.basicAuth teamName fields.username fields.password
