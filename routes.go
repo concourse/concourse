@@ -41,6 +41,16 @@ var Routes = rata.Routes{
 
 	// public jobs only
 	{Path: "/teams/:team_name/pipelines/:pipeline_name/jobs/:job/builds/:build", Method: "GET", Name: GetBuild},
+	{Path: "/pipelines/:pipeline_name/jobs/:job/builds/:build", Method: "GET", Name: MainGetBuild},
+
+	// private
+	{Path: "/builds", Method: "GET", Name: GetBuilds},
+	{Path: "/builds/:build_id", Method: "GET", Name: GetJoblessBuild},
+
+	// auth
+	{Path: "/login", Method: "GET", Name: LogIn},
+	{Path: "/teams/:team_name/login", Method: "GET", Name: TeamLogIn},
+	{Path: "/teams/:team_name/login", Method: "POST", Name: ProcessBasicAuthLogIn},
 
 	// private
 	{Path: "/builds", Method: "GET", Name: GetBuilds},
