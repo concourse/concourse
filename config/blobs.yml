@@ -11,9 +11,9 @@ postgresql/postgresql-9.3.4.tar.gz:
   object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
   sha: 9f80b3cfebc434ca0860fc8489923cea73456081
 resources/archive-resource.tar.gz:
-  size: 7496455
-  object_id: 302a3cb4-ae89-4cf9-7e81-29780a003864
-  sha: 3eac5867aac10f84b396fd97a71194f50af2a199
+  size: 7496395
+  object_id: ba6ec6e5-9929-4d1f-5cdd-60369d77851f
+  sha: cec4f8cf7f5960edc1ce088a9119729e5cd0036f
 resources/bosh-deployment-resource.tar.gz:
   size: 13154419
   object_id: a87973e7-d6fd-415a-5850-1f01e7727a13
