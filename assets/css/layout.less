@@ -9,9 +9,12 @@ html, body, #elm-app, .content-frame {
 @builds-list-height: 30px;
 @sidebar-width: 300px;
 
+@user-menu-z-index: 100;
+@fixed-header-z-index: @user-menu-z-index - 1;
+
 .content-frame {
   .top-bar {
-    z-index: 10;
+    z-index: @user-menu-z-index;
     position: fixed;
     top: 0;
     left: 0;
@@ -28,10 +31,8 @@ html, body, #elm-app, .content-frame {
 
     .nav-right {
       flex-shrink: 1;
-      z-index: 100;
 
       .user-info {
-        z-index: 100;
         text-align: right;
         cursor: pointer;
         -webkit-user-select: none;
@@ -73,7 +74,7 @@ html, body, #elm-app, .content-frame {
     top: @top-bar-height;
     left: 0;
     right: 0;
-    z-index: 10;
+    z-index: @fixed-header-z-index;
     background: @base01;
   }
 
