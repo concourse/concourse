@@ -1,4 +1,4 @@
-port module Job exposing (Flags, init, update, view, Msg(ClockTick))
+port module Job exposing (Flags, Model, subscriptions, init, update, view, Msg(..))
 
 import Array exposing (Array)
 import Dict exposing (Dict)
@@ -22,8 +22,7 @@ import Redirect
 import StrictEvents exposing (onLeftClick)
 
 type alias Model =
-  { ports : Ports
-  , jobIdentifier : Concourse.JobIdentifier
+  { jobIdentifier : Concourse.JobIdentifier
   , job : (Maybe Concourse.Job)
   , pausedChanging : Bool
   , buildsWithResources : Maybe (Array LiveUpdatingBuildWithResources)
@@ -42,10 +41,6 @@ type Msg
   | ClockTick Time
   | TogglePaused
   | PausedToggled (Result Http.Error ())
-
-type alias Ports =
-  { selectGroups : (List String) -> Cmd Msg
-  }
 
 type alias FetchedBuildResources =
   { index : Int
@@ -91,12 +86,11 @@ type alias Flags =
   , pageUntil : Int
   }
 
-init : Ports -> Flags -> (Model, Cmd Msg)
-init ports flags =
+init : Flags -> (Model, Cmd Msg)
+init flags =
   let
     model =
-      { ports = ports
-      , jobIdentifier =
+      { jobIdentifier =
           { jobName = flags.jobName
           , teamName = flags.teamName
           , pipelineName = flags.pipelineName
@@ -158,10 +152,7 @@ update action model =
         (model, Cmd.none)
     JobFetched (Ok job) ->
       ( { model | job = Just job }
-      , Cmd.batch
-          [ fetchJob (5 * Time.second) model.jobIdentifier
-          , model.ports.selectGroups job.groups
-          ]
+      , fetchJob (5 * Time.second) model.jobIdentifier
       )
     JobFetched (Err err) ->
       Debug.log ("failed to fetch job info: " ++ toString err) <|
@@ -450,6 +441,8 @@ triggerBuild job =
   Cmd.map BuildTriggered << Task.perform Err Ok <|
     Concourse.Job.triggerBuild job
 
+
+-- TODO these two should not use this "delay" thing. Subscriptions instead
 fetchJobBuilds : Time -> Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Msg
 fetchJobBuilds delay jobIdentifier page =
   Cmd.map JobBuildsFetched << Task.perform Err Ok <|
@@ -459,6 +452,7 @@ fetchJob : Time -> Concourse.JobIdentifier -> Cmd Msg
 fetchJob delay jobIdentifier =
   Cmd.map JobFetched << Task.perform Err Ok <|
     Process.sleep delay `Task.andThen` (always <| Concourse.Job.fetchJob jobIdentifier)
+-- TODO ^^^
 
 fetchBuildResources : Int -> Concourse.BuildId -> Cmd Msg
 fetchBuildResources index buildId =
@@ -491,3 +485,7 @@ redirectToLogin : Model -> Cmd Msg
 redirectToLogin model =
   Cmd.map (always Noop) << Task.perform Err Ok <|
     Redirect.to "/login"
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
