@@ -245,11 +245,11 @@ func (db *SQLDB) CreateContainer(
 	}
 	var id int
 	err = tx.QueryRow(`
-		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name,
+		INSERT INTO containers (handle, state, resource_id, step_name, pipeline_id, build_id, type, worker_name,
 			expires_at, ttl, best_if_used_by, check_type, check_source, plan_id, working_directory,
 			env_variables, attempts, stage, image_resource_type, image_resource_source,
 			process_user, resource_type_version, team_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+		VALUES ($1, 'created', $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
 		RETURNING id`,
 		container.Handle,
 		resourceID,
@@ -287,6 +287,7 @@ func (db *SQLDB) CreateContainer(
 	}
 
 	for _, volumeHandle := range volumeHandles {
+		// transition to initialized
 		_, err = tx.Exec(`
 			UPDATE volumes
 			SET container_id = $1

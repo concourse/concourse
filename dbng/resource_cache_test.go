@@ -88,7 +88,7 @@ var _ = Describe("ResourceCache", func() {
 				Source: atc.Source{"some": "source"},
 			},
 			Version: atc.Version{"some": "version"},
-			Params: atc.Params{"some": "params"},
+			Params:  atc.Params{"some": "params"},
 		}
 	})
 

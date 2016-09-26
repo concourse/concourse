@@ -1,6 +1,10 @@
 package dbng
 
-import "errors"
+import (
+	"errors"
+
+	sq "github.com/Masterminds/squirrel"
+)
 
 type VolumeFactory struct {
 	conn Conn
@@ -42,6 +46,65 @@ func (factory *VolumeFactory) CreateContainerVolume(worker *Worker, container *C
 	defer tx.Rollback()
 
 	return factory.createVolume(tx, worker, "container_id", container.ID)
+}
+
+func (factory *VolumeFactory) GetOrphanedVolumes() ([]*InitializedVolume, []*DestroyingVolume, error) {
+	query, args, err := psql.Select("v.id, v.handle, v.state, w.name, w.addr").
+		From("volumes v").
+		LeftJoin("workers w ON v.worker_name = w.name").
+		Where(sq.Eq{
+			"v.resource_cache_id":     nil,
+			"v.base_resource_type_id": nil,
+			"v.container_id":          nil,
+		}).
+		ToSql()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rows, err := factory.conn.Query(query, args...)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	initializedVolumes := []*InitializedVolume{}
+	destroyingVolumes := []*DestroyingVolume{}
+
+	for rows.Next() {
+		var id int
+		var handle string
+		var state string
+		var workerName string
+		var workerAddress string
+
+		err = rows.Scan(&id, &handle, &state, &workerName, &workerAddress)
+		if err != nil {
+			return nil, nil, err
+		}
+		switch state {
+		case VolumeStateInitialized:
+			initializedVolumes = append(initializedVolumes, &InitializedVolume{
+				ID:     id,
+				Handle: handle,
+				Worker: &Worker{
+					Name:       workerName,
+					GardenAddr: workerAddress,
+				},
+			})
+		case VolumeStateDestroying:
+			destroyingVolumes = append(destroyingVolumes, &DestroyingVolume{
+				ID:     id,
+				Handle: handle,
+				Worker: &Worker{
+					Name:       workerName,
+					GardenAddr: workerAddress,
+				},
+			})
+		}
+	}
+
+	return initializedVolumes, destroyingVolumes, nil
 }
 
 // 1. open tx

@@ -51,10 +51,10 @@ type CreatedContainer struct {
 
 func (container *CreatedContainer) Destroying(tx Tx) (*DestroyingContainer, error) {
 	rows, err := psql.Update("containers").
-		Set("state", ContainerStateCreated).
+		Set("state", ContainerStateDestroying).
 		Where(sq.Eq{
 			"id":    container.ID,
-			"state": ContainerStateDestroying,
+			"state": ContainerStateCreated,
 		}).
 		RunWith(tx).
 		Exec()

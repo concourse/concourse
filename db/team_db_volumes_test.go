@@ -44,6 +44,12 @@ var _ = Describe("TeamDB Volumes", func() {
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 		otherTeamDB = teamDBFactory.GetTeamDB("other-team")
+
+		_, err = database.SaveWorker(db.WorkerInfo{
+			Name:       "some-worker-name",
+			GardenAddr: "1.2.3.4:7777",
+		}, 10*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {

@@ -43,6 +43,7 @@ var _ = Describe("VolumeClient", func() {
 			fakeBaggageclaimClient,
 			fakeGardenWorkerDB,
 			fakeVolumeFactory,
+			nil,
 			workerName,
 		)
 	})
@@ -71,6 +72,7 @@ var _ = Describe("VolumeClient", func() {
 					nil,
 					fakeGardenWorkerDB,
 					fakeVolumeFactory,
+					nil,
 					"some-worker",
 				)
 			})
@@ -372,6 +374,7 @@ var _ = Describe("VolumeClient", func() {
 				baggageclaimClient,
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
+				nil,
 				"some-worker",
 			).CreateVolume(testLogger, volumeSpec, teamID)
 		})
@@ -714,6 +717,7 @@ var _ = Describe("VolumeClient", func() {
 				baggageclaimClient,
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
+				nil,
 				workerName,
 			).LookupVolume(testLogger, handle)
 		})
@@ -837,6 +841,7 @@ var _ = Describe("VolumeClient", func() {
 				baggageclaimClient,
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
+				nil,
 				workerName,
 			).ListVolumes(testLogger, properties)
 		})

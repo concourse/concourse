@@ -1,29 +1,134 @@
 package dbng_test
 
-// import (
-// 	"github.com/concourse/atc/dbng"
+import (
+	"github.com/concourse/atc/dbng"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
 
-// 	. "github.com/onsi/ginkgo"
-// 	. "github.com/onsi/gomega"
-// )
+var _ = Describe("VolumeFactory", func() {
+	var (
+		dbConn           dbng.Conn
+		tx               dbng.Tx
+		volumeFactory    *dbng.VolumeFactory
+		containerFactory *dbng.ContainerFactory
+		teamFactory      *dbng.TeamFactory
+		buildFactory     *dbng.BuildFactory
+	)
 
-// var _ = Describe("VolumeFactory", func() {
-// 	var dbConn dbng.Conn
+	BeforeEach(func() {
+		postgresRunner.Truncate()
 
-// 	var factory *dbng.VolumeFactory
+		dbConn = dbng.Wrap(postgresRunner.Open())
+		containerFactory = dbng.NewContainerFactory(dbConn)
+		volumeFactory = dbng.NewVolumeFactory(dbConn)
+		teamFactory = dbng.NewTeamFactory(dbConn)
+		buildFactory = dbng.NewBuildFactory(dbConn)
 
-// 	BeforeEach(func() {
-// 		postgresRunner.Truncate()
+	})
 
-// 		dbConn = dbng.Wrap(postgresRunner.Open())
+	AfterEach(func() {
+		err := dbConn.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
 
-// 		factory = dbng.NewVolumeFactory(dbConn)
-// 	})
+	Describe("GetOrphanedVolumes", func() {
+		var (
+			volume1 *dbng.InitializedVolume
+			volume2 *dbng.InitializedVolume
+			volume3 *dbng.DestroyingVolume
+			volume4 *dbng.InitializedVolume
+			build   *dbng.Build
+		)
 
-// 	AfterEach(func() {
-// 		err := dbConn.Close()
-// 		Expect(err).NotTo(HaveOccurred())
-// 	})
+		BeforeEach(func() {
+			team, err := teamFactory.CreateTeam("some-team")
+			Expect(err).ToNot(HaveOccurred())
+
+			build, err = buildFactory.CreateOneOffBuild(team)
+			Expect(err).ToNot(HaveOccurred())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+			worker := &dbng.Worker{
+				Name:       "some-worker",
+				GardenAddr: "1.2.3.4:7777",
+			}
+			err = worker.Create(setupTx)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			creatingContainer, err := containerFactory.CreateTaskContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+				Type: "task",
+				Name: "some-task",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingVolume1, err := volumeFactory.CreateContainerVolume(worker, creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+			creatingVolume2, err := volumeFactory.CreateContainerVolume(worker, creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+			creatingVolume3, err := volumeFactory.CreateContainerVolume(worker, creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+			creatingVolume4, err := volumeFactory.CreateContainerVolume(worker, creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+
+			tx, err = dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			createdVolume1, err := creatingVolume1.Created(tx, "some-handle-1")
+			Expect(err).NotTo(HaveOccurred())
+			createdVolume2, err := creatingVolume2.Created(tx, "some-handle-2")
+			Expect(err).NotTo(HaveOccurred())
+			createdVolume3, err := creatingVolume3.Created(tx, "some-handle-3")
+			Expect(err).NotTo(HaveOccurred())
+			createdVolume4, err := creatingVolume4.Created(tx, "some-handle-4")
+			Expect(err).NotTo(HaveOccurred())
+
+			initializingVolume1, err := createdVolume1.Initializing(tx, creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+			initializingVolume2, err := createdVolume2.Initializing(tx, creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+			initializingVolume3, err := createdVolume3.Initializing(tx, creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+
+			initializedVolume1, err := initializingVolume1.Initialized(tx)
+			Expect(err).NotTo(HaveOccurred())
+			initializedVolume2, err := initializingVolume2.Initialized(tx)
+			Expect(err).NotTo(HaveOccurred())
+			initializedVolume3, err := initializingVolume3.Initialized(tx)
+			Expect(err).NotTo(HaveOccurred())
+			initializedVolume4, err := createdVolume4.Initialized(tx, creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+
+			destroyingVolume3, err := initializedVolume3.Destroying(tx)
+			Expect(err).NotTo(HaveOccurred())
+
+			volume1 = initializedVolume1
+			volume2 = initializedVolume2
+			volume3 = destroyingVolume3
+			volume4 = initializedVolume4
+
+			createdContainer, err := creatingContainer.Created(tx, "some-handle")
+			Expect(err).NotTo(HaveOccurred())
+			destroyingContainer, err := createdContainer.Destroying(tx)
+			Expect(err).NotTo(HaveOccurred())
+			destroyed, err := destroyingContainer.Destroy(tx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(destroyed).To(BeTrue())
+
+			err = tx.Commit()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns orphaned volumes", func() {
+			initializedVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(initializedVolumes).To(Equal([]*dbng.InitializedVolume{volume1, volume2, volume4}))
+			Expect(destoryingVolumes).To(Equal([]*dbng.DestroyingVolume{volume3}))
+		})
+	})
+})
 
 // 	Describe("CreateWorkerResourceTypeVolume", func() {
 // 		var worker dbng.Worker

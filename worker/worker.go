@@ -375,6 +375,7 @@ func (worker *gardenWorker) CreateContainer(
 
 	volumeMounts := spec.Outputs
 	for _, mount := range spec.Inputs {
+		// TODO: create volume for container in creating > baggageclaim > created > initialized state
 		cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
 			Strategy: ContainerRootFSStrategy{
 				Parent: mount.Volume,

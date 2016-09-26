@@ -45,6 +45,12 @@ var _ = Describe("Keeping track of containers", func() {
 		teamID = savedTeam.ID
 
 		teamDB = teamDBFactory.GetTeamDB("some-team")
+
+		_, err = database.SaveWorker(db.WorkerInfo{
+			Name:       "some-worker",
+			GardenAddr: "1.2.3.4:7777",
+		}, 5*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	getVolumes := func() map[string]db.SavedVolume {
@@ -64,13 +70,15 @@ var _ = Describe("Keeping track of containers", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				volume1 := db.Volume{
-					Handle: "volume-1-handle",
+					WorkerName: "some-worker",
+					Handle:     "volume-1-handle",
 				}
 				err = database.InsertVolume(volume1)
 				Expect(err).NotTo(HaveOccurred())
 
 				volume2 := db.Volume{
-					Handle: "volume-2-handle",
+					WorkerName: "some-worker",
+					Handle:     "volume-2-handle",
 				}
 				err = database.InsertVolume(volume2)
 				Expect(err).NotTo(HaveOccurred())
@@ -84,9 +92,10 @@ var _ = Describe("Keeping track of containers", func() {
 						Stage:   db.ContainerStageRun,
 					},
 					ContainerMetadata: db.ContainerMetadata{
-						Handle: "some-handle-1",
-						Type:   db.ContainerTypeTask,
-						TeamID: teamID,
+						Handle:     "some-handle-1",
+						Type:       db.ContainerTypeTask,
+						TeamID:     teamID,
+						WorkerName: "some-worker",
 					},
 				}
 				savedContainer1, err := database.CreateContainer(container1, 5*time.Minute, 0, []string{
@@ -112,9 +121,10 @@ var _ = Describe("Keeping track of containers", func() {
 						Stage:   db.ContainerStageRun,
 					},
 					ContainerMetadata: db.ContainerMetadata{
-						Handle: "some-handle-2",
-						Type:   db.ContainerTypeTask,
-						TeamID: teamID,
+						Handle:     "some-handle-2",
+						Type:       db.ContainerTypeTask,
+						TeamID:     teamID,
+						WorkerName: "some-worker",
 					},
 				}
 				savedContainer2, err := database.CreateContainer(container2, 19*time.Minute, 0, []string{
@@ -164,13 +174,15 @@ var _ = Describe("Keeping track of containers", func() {
 
 			It("does not return expired volumes", func() {
 				volume1 := db.Volume{
-					Handle: "volume-1-handle",
+					WorkerName: "some-worker",
+					Handle:     "volume-1-handle",
 				}
 				err := database.InsertVolume(volume1)
 				Expect(err).NotTo(HaveOccurred())
 
 				volume2 := db.Volume{
-					Handle: "volume-2-handle",
+					WorkerName: "some-worker",
+					Handle:     "volume-2-handle",
 				}
 				err = database.InsertVolume(volume2)
 				Expect(err).NotTo(HaveOccurred())

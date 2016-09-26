@@ -303,9 +303,12 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		return nil, []inputPair{}, err
 	}
 
+	// create container in creating state
+
 	outputMounts := []worker.VolumeMount{}
 	for _, output := range config.Outputs {
 		path := artifactsPath(output, step.artifactsRoot)
+		// TODO: create volume for container in creating > baggageclaim > created > initialized state
 		outVolume, err := chosenWorker.CreateVolume(
 			step.logger,
 			worker.VolumeSpec{

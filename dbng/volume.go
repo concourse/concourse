@@ -57,7 +57,7 @@ type CreatedVolume struct {
 }
 
 func (volume *CreatedVolume) Initializing(tx Tx, container *CreatingContainer) (*InitializingVolume, error) {
-	transitioned, err := stateTransition(volume.ID, tx, VolumeStateCreated, VolumeStateInitializing)
+	transitioned, err := stateTransition(volume.ID, tx, VolumeStateCreated, VolumeStateInitializing, map[string]interface{}{})
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +74,32 @@ func (volume *CreatedVolume) Initializing(tx Tx, container *CreatingContainer) (
 	}, nil
 }
 
+func (volume *CreatedVolume) Initialized(tx Tx, container *CreatingContainer) (*InitializedVolume, error) {
+	transitioned, err := stateTransition(
+		volume.ID,
+		tx,
+		VolumeStateCreated,
+		VolumeStateInitialized,
+		map[string]interface{}{
+			"container_id": container.ID,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if !transitioned {
+		panic("TESTME")
+		return nil, nil
+	}
+
+	return &InitializedVolume{
+		ID:     volume.ID,
+		Worker: volume.Worker,
+		Handle: volume.Handle,
+	}, nil
+}
+
 type InitializingVolume struct {
 	ID     int
 	Worker *Worker
@@ -82,7 +108,7 @@ type InitializingVolume struct {
 
 // TODO: set volume size?
 func (volume *InitializingVolume) Initialized(tx Tx) (*InitializedVolume, error) {
-	transitioned, err := stateTransition(volume.ID, tx, VolumeStateInitializing, VolumeStateInitialized)
+	transitioned, err := stateTransition(volume.ID, tx, VolumeStateInitializing, VolumeStateInitialized, map[string]interface{}{})
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +228,7 @@ func (volume *InitializedVolume) CreateChildForContainer(tx Tx, container *Creat
 }
 
 func (volume *InitializedVolume) Destroying(tx Tx) (*DestroyingVolume, error) {
-	transitioned, err := stateTransition(volume.ID, tx, VolumeStateInitialized, VolumeStateDestroying)
+	transitioned, err := stateTransition(volume.ID, tx, VolumeStateInitialized, VolumeStateDestroying, map[string]interface{}{})
 	if err != nil {
 		// TODO: return explicit error for failed transition due to volumes using it
 		return nil, err
@@ -251,9 +277,10 @@ func (volume *DestroyingVolume) Destroy(tx Tx) (bool, error) {
 	return true, nil
 }
 
-func stateTransition(volumeID int, tx Tx, from, to VolumeState) (bool, error) {
+func stateTransition(volumeID int, tx Tx, from, to VolumeState, setMap map[string]interface{}) (bool, error) {
 	rows, err := psql.Update("volumes").
 		Set("state", string(to)).
+		SetMap(setMap).
 		Where(sq.Eq{
 			"id":    volumeID,
 			"state": string(from),

@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -23,6 +24,7 @@ type volumeClient struct {
 	baggageclaimClient baggageclaim.Client
 	db                 GardenWorkerDB
 	volumeFactory      VolumeFactory
+	dbVolumeFactory    *dbng.VolumeFactory
 	workerName         string
 }
 
@@ -30,12 +32,14 @@ func NewVolumeClient(
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
 	volumeFactory VolumeFactory,
+	dbVolumeFactory *dbng.VolumeFactory,
 	workerName string,
 ) VolumeClient {
 	return &volumeClient{
 		baggageclaimClient: baggageclaimClient,
 		db:                 db,
 		volumeFactory:      volumeFactory,
+		dbVolumeFactory:    dbVolumeFactory,
 		workerName:         workerName,
 	}
 }
@@ -80,6 +84,8 @@ func (c *volumeClient) CreateVolume(
 		return nil, ErrNoVolumeManager
 	}
 
+	// create volume in creating state
+
 	bcVolume, err := c.baggageclaimClient.CreateVolume(
 		logger.Session("create-volume"),
 		volumeSpec.baggageclaimVolumeSpec(),
@@ -89,8 +95,9 @@ func (c *volumeClient) CreateVolume(
 		return nil, err
 	}
 
+	// mark volume created
+
 	err = c.db.InsertVolume(db.Volume{
-		Handle:     bcVolume.Handle(),
 		TeamID:     teamID,
 		WorkerName: c.workerName,
 		TTL:        volumeSpec.TTL,

@@ -25,9 +25,9 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 
 	var resourceVersion []byte
 
-	columns := []string{"worker_name", "ttl", "handle"}
+	columns := []string{"worker_name", "ttl", "state", "handle"}
 	params := []interface{}{data.WorkerName, data.TTL, data.Handle}
-	values := []string{"$1", "$2", "$3"}
+	values := []string{"$1", "$2", "'initialized'", "$3"}
 
 	if data.TTL == 0 {
 		columns = append(columns, "expires_at")

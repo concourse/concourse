@@ -84,7 +84,7 @@ var _ = Describe("DBProvider", func() {
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
 
-		provider = NewDBWorkerProvider(logger, fakeDB, nil, fakeBackOffFactory, fakeImageFactory, fakePipelineDBFactory)
+		provider = NewDBWorkerProvider(logger, fakeDB, nil, fakeBackOffFactory, fakeImageFactory, nil, fakePipelineDBFactory)
 	})
 
 	AfterEach(func() {

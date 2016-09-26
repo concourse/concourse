@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/retryhttp"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 //go:generate counterfeiter . WorkerDB
@@ -39,6 +40,7 @@ type dbProvider struct {
 	dialer              gconn.DialerFunc
 	retryBackOffFactory retryhttp.BackOffFactory
 	imageFactory        ImageFactory
+	dbVolumeFactory     *dbng.VolumeFactory
 	pipelineDBFactory   db.PipelineDBFactory
 }
 
@@ -48,6 +50,7 @@ func NewDBWorkerProvider(
 	dialer gconn.DialerFunc,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
+	dbVolumeFactory *dbng.VolumeFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 ) WorkerProvider {
 	return &dbProvider{
@@ -56,6 +59,7 @@ func NewDBWorkerProvider(
 		dialer:              dialer,
 		retryBackOffFactory: retryBackOffFactory,
 		imageFactory:        imageFactory,
+		dbVolumeFactory:     dbVolumeFactory,
 		pipelineDBFactory:   pipelineDBFactory,
 	}
 }
@@ -131,6 +135,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		bClient,
 		provider.db,
 		volumeFactory,
+		provider.dbVolumeFactory,
 		savedWorker.Name,
 	)
 
