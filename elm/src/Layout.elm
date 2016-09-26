@@ -53,7 +53,8 @@ update msg model =
       ( { model
         | sidebarVisible = not model.sidebarVisible
         }
-      , Cmd.none )
+      , Cmd.none
+      )
     SubMsg (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
       let
         (subModel, subCmd) =
@@ -64,6 +65,7 @@ update msg model =
           }
         , Cmd.batch
             [ Cmd.map TopMsg TopBar.fetchUser
+            , Cmd.map SideMsg SideBar.fetchPipelines
             , Cmd.map SubMsg subCmd
             ]
         )

@@ -1,4 +1,4 @@
-module SideBar exposing (Model, Msg, init, update, view, subscriptions)
+module SideBar exposing (Model, Msg, init, update, view, subscriptions, fetchPipelines)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, disabled, attribute, style)
