@@ -28,6 +28,22 @@ type FakeWorker struct {
 		result1 worker.Container
 		result2 error
 	}
+	CreateContainerNGStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) (worker.Container, error)
+	createContainerNGMutex       sync.RWMutex
+	createContainerNGArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 <-chan os.Signal
+		arg3 worker.ImageFetchingDelegate
+		arg4 worker.Identifier
+		arg5 worker.Metadata
+		arg6 worker.ContainerSpec
+		arg7 atc.ResourceTypes
+		arg8 map[string]string
+	}
+	createContainerNGReturns struct {
+		result1 worker.Container
+		result2 error
+	}
 	FindContainerForIdentifierStub        func(lager.Logger, worker.Identifier) (worker.Container, bool, error)
 	findContainerForIdentifierMutex       sync.RWMutex
 	findContainerForIdentifierArgsForCall []struct {
@@ -216,6 +232,47 @@ func (fake *FakeWorker) CreateContainerArgsForCall(i int) (lager.Logger, <-chan 
 func (fake *FakeWorker) CreateContainerReturns(result1 worker.Container, result2 error) {
 	fake.CreateContainerStub = nil
 	fake.createContainerReturns = struct {
+		result1 worker.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorker) CreateContainerNG(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ContainerSpec, arg7 atc.ResourceTypes, arg8 map[string]string) (worker.Container, error) {
+	fake.createContainerNGMutex.Lock()
+	fake.createContainerNGArgsForCall = append(fake.createContainerNGArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 <-chan os.Signal
+		arg3 worker.ImageFetchingDelegate
+		arg4 worker.Identifier
+		arg5 worker.Metadata
+		arg6 worker.ContainerSpec
+		arg7 atc.ResourceTypes
+		arg8 map[string]string
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("CreateContainerNG", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.createContainerNGMutex.Unlock()
+	if fake.CreateContainerNGStub != nil {
+		return fake.CreateContainerNGStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	} else {
+		return fake.createContainerNGReturns.result1, fake.createContainerNGReturns.result2
+	}
+}
+
+func (fake *FakeWorker) CreateContainerNGCallCount() int {
+	fake.createContainerNGMutex.RLock()
+	defer fake.createContainerNGMutex.RUnlock()
+	return len(fake.createContainerNGArgsForCall)
+}
+
+func (fake *FakeWorker) CreateContainerNGArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) {
+	fake.createContainerNGMutex.RLock()
+	defer fake.createContainerNGMutex.RUnlock()
+	return fake.createContainerNGArgsForCall[i].arg1, fake.createContainerNGArgsForCall[i].arg2, fake.createContainerNGArgsForCall[i].arg3, fake.createContainerNGArgsForCall[i].arg4, fake.createContainerNGArgsForCall[i].arg5, fake.createContainerNGArgsForCall[i].arg6, fake.createContainerNGArgsForCall[i].arg7, fake.createContainerNGArgsForCall[i].arg8
+}
+
+func (fake *FakeWorker) CreateContainerNGReturns(result1 worker.Container, result2 error) {
+	fake.CreateContainerNGStub = nil
+	fake.createContainerNGReturns = struct {
 		result1 worker.Container
 		result2 error
 	}{result1, result2}
@@ -764,6 +821,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
+	fake.createContainerNGMutex.RLock()
+	defer fake.createContainerNGMutex.RUnlock()
 	fake.findContainerForIdentifierMutex.RLock()
 	defer fake.findContainerForIdentifierMutex.RUnlock()
 	fake.lookupContainerMutex.RLock()

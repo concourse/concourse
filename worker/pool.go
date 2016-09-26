@@ -144,6 +144,20 @@ func (pool *pool) CreateContainer(logger lager.Logger, signals <-chan os.Signal,
 	return container, nil
 }
 
+func (pool *pool) CreateContainerNG(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes, outputPaths map[string]string) (Container, error) {
+	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	container, err := worker.CreateContainerNG(logger, signals, delegate, id, metadata, spec, resourceTypes, outputPaths)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
 func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
 	containerInfo, found, err := pool.provider.FindContainerForIdentifier(id)
 	if err != nil {

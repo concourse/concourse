@@ -305,33 +305,10 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 
 	// create container in creating state
 
-	outputMounts := []worker.VolumeMount{}
+	outputPaths := map[string]string{}
 	for _, output := range config.Outputs {
 		path := artifactsPath(output, step.artifactsRoot)
-		// TODO: create volume for container in creating > baggageclaim > created > initialized state
-		outVolume, err := chosenWorker.CreateVolume(
-			step.logger,
-			worker.VolumeSpec{
-				Strategy:   worker.OutputStrategy{Name: output.Name},
-				Privileged: bool(step.privileged),
-				TTL:        worker.VolumeTTL,
-			},
-			step.teamID,
-		)
-		if err == worker.ErrNoVolumeManager {
-			break
-		}
-
-		if err != nil {
-			return nil, []inputPair{}, err
-		}
-
-		outputMounts = append(outputMounts, worker.VolumeMount{
-			Volume:    outVolume,
-			MountPath: path,
-		})
-
-		step.logger.Debug("created-output-volume", lager.Data{"volume-Handle": outVolume.Handle()})
+		outputPaths[output.Name] = path
 	}
 
 	var imageSpec worker.ImageSpec
@@ -421,7 +398,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		Tags:      step.tags,
 		TeamID:    step.teamID,
 		Inputs:    inputMounts,
-		Outputs:   outputMounts,
+		Outputs:   []worker.VolumeMount{},
 		ImageSpec: imageSpec,
 		User:      config.Run.User,
 	}
@@ -430,7 +407,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	runContainerID.Stage = db.ContainerStageRun
 
 	step.logger.Debug("task-step-creating-container", lager.Data{"container-id": runContainerID})
-	container, err := chosenWorker.CreateContainer(
+	container, err := chosenWorker.CreateContainerNG(
 		step.logger.Session("create-container"),
 		signals,
 		step.delegate,
@@ -438,15 +415,10 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		step.metadata,
 		containerSpec,
 		step.resourceTypes,
+		outputPaths,
 	)
 
 	for _, mount := range inputMounts {
-		// stop heartbeating ourselves now that container has picked up the
-		// volumes
-		mount.Volume.Release(nil)
-	}
-
-	for _, mount := range outputMounts {
 		// stop heartbeating ourselves now that container has picked up the
 		// volumes
 		mount.Volume.Release(nil)

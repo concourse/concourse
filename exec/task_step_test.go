@@ -197,7 +197,7 @@ var _ = Describe("GardenFactory", func() {
 						BeforeEach(func() {
 							fakeContainer = new(wfakes.FakeContainer)
 							fakeContainer.HandleReturns("some-handle")
-							fakeWorker.CreateContainerReturns(fakeContainer, nil)
+							fakeWorker.CreateContainerNGReturns(fakeContainer, nil)
 
 							fakeProcess = new(gfakes.FakeProcess)
 							fakeProcess.IDReturns("process-id")
@@ -210,7 +210,7 @@ var _ = Describe("GardenFactory", func() {
 							BeforeEach(func() {
 								taskDelegate.InitializingStub = func(atc.TaskConfig) {
 									defer GinkgoRecover()
-									Expect(fakeWorker.CreateContainerCallCount()).To(BeZero())
+									Expect(fakeWorker.CreateContainerNGCallCount()).To(BeZero())
 								}
 							})
 
@@ -249,8 +249,8 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("creates a container with the config's image and the session ID as the handle", func() {
-							Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
-							_, _, delegate, createdIdentifier, createdMetadata, spec, actualResourceTypes := fakeWorker.CreateContainerArgsForCall(0)
+							Expect(fakeWorker.CreateContainerNGCallCount()).To(Equal(1))
+							_, _, delegate, createdIdentifier, createdMetadata, spec, actualResourceTypes, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 							Expect(createdIdentifier).To(Equal(worker.Identifier{
 								BuildID: 1234,
 								PlanID:  atc.PlanID("some-plan-id"),
@@ -337,8 +337,8 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("creates the container privileged", func() {
-								Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
-								_, _, _, createdIdentifier, createdMetadata, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+								Expect(fakeWorker.CreateContainerNGCallCount()).To(Equal(1))
+								_, _, _, createdIdentifier, createdMetadata, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 								Expect(createdIdentifier).To(Equal(worker.Identifier{
 									BuildID: 1234,
 									PlanID:  atc.PlanID("some-plan-id"),
@@ -461,7 +461,7 @@ var _ = Describe("GardenFactory", func() {
 									})
 
 									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
-										_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+										_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 										Expect(spec.Inputs).To(Equal([]worker.VolumeMount{
 											{
 												Volume:    inputVolume,
@@ -589,7 +589,7 @@ var _ = Describe("GardenFactory", func() {
 									})
 
 									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
-										_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+										_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 										Expect(spec.Inputs).To(Equal([]worker.VolumeMount{
 											{
 												Volume:    remappedInputVolume,
@@ -782,59 +782,13 @@ var _ = Describe("GardenFactory", func() {
 													fakeWorker.NameReturns("bananapants")
 												})
 
-												It("creates volumes for each output", func() {
-													Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(3))
-
-													_, vSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(0)
-													Expect(vSpec).To(Equal(worker.VolumeSpec{
-														Strategy: worker.OutputStrategy{
-															Name: "some-output",
-														},
-														TTL:        worker.VolumeTTL,
-														Privileged: bool(privileged),
-													}))
-													Expect(actualTeamID).To(Equal(teamID))
-
-													_, vSpec, actualTeamID = fakeWorker.CreateVolumeArgsForCall(1)
-													Expect(vSpec).To(Equal(worker.VolumeSpec{
-														Strategy: worker.OutputStrategy{
-															Name: "some-other-output",
-														},
-														TTL:        worker.VolumeTTL,
-														Privileged: bool(privileged),
-													}))
-													Expect(actualTeamID).To(Equal(teamID))
-
-													_, vSpec, actualTeamID = fakeWorker.CreateVolumeArgsForCall(2)
-													Expect(vSpec).To(Equal(worker.VolumeSpec{
-														Strategy: worker.OutputStrategy{
-															Name: "some-trailing-slash-output",
-														},
-														TTL:        worker.VolumeTTL,
-														Privileged: bool(privileged),
-													}))
-													Expect(actualTeamID).To(Equal(teamID))
-												})
-
 												It("passes the created output volumes to the worker", func() {
-													_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
-													var actualVolumes []worker.Volume
-													var actualPaths []string
-													for _, v := range spec.Outputs {
-														actualVolume, ok := v.Volume.(worker.Volume)
-														Expect(ok).To(BeTrue())
-														actualVolumes = append(actualVolumes, actualVolume)
-														actualPaths = append(actualPaths, v.MountPath)
-													}
-
-													Expect(actualVolumes).To(ConsistOf(fakeNewlyCreatedVolume1, fakeNewlyCreatedVolume2, fakeNewlyCreatedVolume3))
-													Expect(actualPaths).To(ConsistOf(fakeMountPath1, fakeMountPath2, fakeMountPath3))
-												})
-
-												It("releases the volumes given to the worker", func() {
-													Expect(fakeNewlyCreatedVolume1.ReleaseCallCount()).To(Equal(1))
-													Expect(fakeNewlyCreatedVolume2.ReleaseCallCount()).To(Equal(1))
-													Expect(fakeNewlyCreatedVolume3.ReleaseCallCount()).To(Equal(1))
+													_, _, _, _, _, _, _, outputPaths := fakeWorker.CreateContainerNGArgsForCall(0)
+													Expect(outputPaths).To(Equal(map[string]string{
+														"some-output":                "/tmp/build/a1f5c0c1/some-output-configured-path/",
+														"some-other-output":          "/tmp/build/a1f5c0c1/some-other-output/",
+														"some-trailing-slash-output": "/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/",
+													}))
 												})
 
 												Context("when the output volume can be found on the worker", func() {
@@ -1352,7 +1306,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("creates the container with the volume and a metadata stream", func() {
-												_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+												_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 												Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 													ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 														Volume:         imageCowVolume,
@@ -1455,7 +1409,7 @@ var _ = Describe("GardenFactory", func() {
 										})
 
 										It("creates the container with the volume and a metadata stream", func() {
-											_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+											_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 											Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 													Volume:         cowVolume,
@@ -1528,7 +1482,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("still creates the container with the volume's path as ImageURL", func() {
-												_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+												_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 												Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 													ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 														Volume:         cowVolume,
@@ -1557,7 +1511,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("still creates the container with the volume's path as ImageURL", func() {
-												_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+												_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 												Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 													ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 														Volume:         cowVolume,
@@ -1587,7 +1541,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("still creates the container with the volume's path as ImageURL", func() {
-												_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+												_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 												Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 													ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 														Volume:         cowVolume,
@@ -1620,7 +1574,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("adds the user to the container spec", func() {
-								_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+								_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
 								Expect(spec.User).To(Equal("some-user"))
 							})
 
@@ -1929,7 +1883,7 @@ var _ = Describe("GardenFactory", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeWorker.CreateContainerReturns(nil, disaster)
+							fakeWorker.CreateContainerNGReturns(nil, disaster)
 						})
 
 						It("exits with the error", func() {
@@ -2035,14 +1989,14 @@ var _ = Describe("GardenFactory", func() {
 										}
 									}
 
-									fakeWorker.CreateContainerReturns(nil, errors.New("fall out of method here"))
-									fakeWorker2.CreateContainerReturns(nil, errors.New("fall out of method here"))
+									fakeWorker.CreateContainerNGReturns(nil, errors.New("fall out of method here"))
+									fakeWorker2.CreateContainerNGReturns(nil, errors.New("fall out of method here"))
 								})
 
 								It("picks the worker that has the most", func() {
-									Expect(fakeWorker.CreateContainerCallCount()).To(Equal(0))
-									Expect(fakeWorker2.CreateContainerCallCount()).To(Equal(1))
-									Expect(fakeWorker3.CreateContainerCallCount()).To(Equal(0))
+									Expect(fakeWorker.CreateContainerNGCallCount()).To(Equal(0))
+									Expect(fakeWorker2.CreateContainerNGCallCount()).To(Equal(1))
+									Expect(fakeWorker3.CreateContainerNGCallCount()).To(Equal(0))
 								})
 
 								It("releases the volumes on the unused workers", func() {

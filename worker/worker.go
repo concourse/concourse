@@ -500,6 +500,185 @@ func (worker *gardenWorker) CreateContainer(
 	)
 }
 
+func (worker *gardenWorker) CreateContainerNG(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	outputPaths map[string]string,
+) (Container, error) {
+	imageVolume, imageMetadata, resourceTypeVersion, imageURL, err := worker.getImage(
+		logger,
+		spec.ImageSpec,
+		spec.TeamID,
+		cancel,
+		delegate,
+		id,
+		metadata,
+		resourceTypes,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if imageVolume != nil {
+		defer imageVolume.Release(nil)
+	}
+
+	volumeMounts := []VolumeMount{}
+	for name, outputPath := range outputPaths {
+		// TODO: create volume for container in creating > baggageclaim > created > initialized state
+		outVolume, err := worker.CreateVolume(
+			logger,
+			VolumeSpec{
+				Strategy:   OutputStrategy{Name: name},
+				Privileged: bool(spec.ImageSpec.Privileged),
+				TTL:        VolumeTTL,
+			},
+			spec.TeamID,
+		)
+		if err != nil {
+			return nil, err
+		}
+		// release *after* container creation
+		defer outVolume.Release(nil)
+
+		volumeMounts = append(volumeMounts, VolumeMount{
+			Volume:    outVolume,
+			MountPath: outputPath,
+		})
+
+		logger.Debug("created-output-volume", lager.Data{"volume-Handle": outVolume.Handle()})
+	}
+
+	for _, mount := range spec.Inputs {
+		// TODO: create volume for container in creating > baggageclaim > created > initialized state
+		cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
+			Strategy: ContainerRootFSStrategy{
+				Parent: mount.Volume,
+			},
+			Privileged: spec.ImageSpec.Privileged,
+			TTL:        VolumeTTL,
+		}, spec.TeamID)
+		if err != nil {
+			return nil, err
+		}
+		// release *after* container creation
+		defer cowVolume.Release(nil)
+
+		volumeMounts = append(volumeMounts, VolumeMount{
+			Volume:    cowVolume,
+			MountPath: mount.MountPath,
+		})
+
+		logger.Debug("created-cow-volume", lager.Data{
+			"original-volume-handle": mount.Volume.Handle(),
+			"cow-volume-handle":      cowVolume.Handle(),
+		})
+	}
+
+	bindMounts := []garden.BindMount{}
+	volumeHandles := []string{}
+	volumeHandleMounts := map[string]string{}
+	for _, mount := range volumeMounts {
+		volumeHandles = append(volumeHandles, mount.Volume.Handle())
+		bindMounts = append(bindMounts, garden.BindMount{
+			SrcPath: mount.Volume.Path(),
+			DstPath: mount.MountPath,
+			Mode:    garden.BindMountModeRW,
+		})
+		volumeHandleMounts[mount.Volume.Handle()] = mount.MountPath
+	}
+
+	if imageVolume != nil {
+		volumeHandles = append(volumeHandles, imageVolume.Handle())
+	}
+
+	gardenProperties := garden.Properties{userPropertyName: imageMetadata.User}
+	if spec.User != "" {
+		gardenProperties = garden.Properties{userPropertyName: spec.User}
+	}
+
+	if len(volumeHandles) > 0 {
+		volumesJSON, err := json.Marshal(volumeHandles)
+		if err != nil {
+			return nil, err
+		}
+
+		gardenProperties[volumePropertyName] = string(volumesJSON)
+
+		mountsJSON, err := json.Marshal(volumeHandleMounts)
+		if err != nil {
+			return nil, err
+		}
+
+		gardenProperties[volumeMountsPropertyName] = string(mountsJSON)
+	}
+
+	if spec.Ephemeral {
+		gardenProperties[ephemeralPropertyName] = "true"
+	}
+
+	env := append(imageMetadata.Env, spec.Env...)
+
+	if worker.httpProxyURL != "" {
+		env = append(env, fmt.Sprintf("http_proxy=%s", worker.httpProxyURL))
+	}
+
+	if worker.httpsProxyURL != "" {
+		env = append(env, fmt.Sprintf("https_proxy=%s", worker.httpsProxyURL))
+	}
+
+	if worker.noProxy != "" {
+		env = append(env, fmt.Sprintf("no_proxy=%s", worker.noProxy))
+	}
+
+	gardenSpec := garden.ContainerSpec{
+		BindMounts: bindMounts,
+		Privileged: spec.ImageSpec.Privileged,
+		Properties: gardenProperties,
+		RootFSPath: imageURL,
+		Env:        env,
+	}
+
+	gardenContainer, err := worker.gardenClient.Create(gardenSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata.WorkerName = worker.name
+	metadata.Handle = gardenContainer.Handle()
+	metadata.User = gardenSpec.Properties["user"]
+
+	id.ResourceTypeVersion = resourceTypeVersion
+
+	_, err = worker.db.CreateContainer(
+		db.Container{
+			ContainerIdentifier: db.ContainerIdentifier(id),
+			ContainerMetadata:   db.ContainerMetadata(metadata),
+		},
+		ContainerTTL,
+		worker.maxContainerLifetime(metadata),
+		volumeHandles,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return newGardenWorkerContainer(
+		logger,
+		gardenContainer,
+		worker.gardenClient,
+		worker.baggageclaimClient,
+		worker.db,
+		worker.clock,
+		worker.volumeFactory,
+		worker.name,
+	)
+}
+
 func (worker *gardenWorker) maxContainerLifetime(metadata Metadata) time.Duration {
 	if metadata.Type == db.ContainerTypeCheck {
 		uptime := worker.Uptime()

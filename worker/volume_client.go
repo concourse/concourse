@@ -98,6 +98,7 @@ func (c *volumeClient) CreateVolume(
 	// mark volume created
 
 	err = c.db.InsertVolume(db.Volume{
+		Handle:     bcVolume.Handle(),
 		TeamID:     teamID,
 		WorkerName: c.workerName,
 		TTL:        volumeSpec.TTL,

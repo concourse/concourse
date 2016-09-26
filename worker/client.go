@@ -24,6 +24,17 @@ type Client interface {
 		atc.ResourceTypes,
 	) (Container, error)
 
+	CreateContainerNG(
+		lager.Logger,
+		<-chan os.Signal,
+		ImageFetchingDelegate,
+		Identifier,
+		Metadata,
+		ContainerSpec,
+		atc.ResourceTypes,
+		map[string]string,
+	) (Container, error)
+
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 	ValidateResourceCheckVersion(container db.SavedContainer) (bool, error)
