@@ -34,8 +34,6 @@ type Msg
   | BasicAuthPasswordChanged String
   | BasicAuthSubmit
   | LoginTokenReceived (Result Http.Error Concourse.AuthToken)
-  -- | OAuthSubmit
-  -- | OAuthLoginFinished (Result Http.Error ())
   | GoBack
 
 init : String -> String -> (Model, Cmd Msg)
@@ -123,12 +121,6 @@ update action model =
           Just fields ->
             basicAuthSubmit model.teamName fields
       )
--- OAuthSubmit ->
---   (model, oAuthSubmit model.teamName)
--- NoAuthLoginFinished (Ok ()) ->
---     ( model
---     , Navigation.newUrl <| indexPageUrl ++ model.redirect
---     )
     GoBack ->
       case model.hasTeamSelectionInBrowserHistory of -- TODO this goes away?
         True ->
@@ -230,7 +222,6 @@ viewBasicAuthForm methods =
     Just <|
       Html.form
         [ class "auth-method basic-auth"
-        -- , Attributes.method "post"
         ]
         [ Html.label
             [ Attributes.for "basic-auth-username-input" ]
@@ -239,7 +230,6 @@ viewBasicAuthForm methods =
             [ class "input-holder" ]
             [ Html.input
                 [ id "basic-auth-username-input"
-                -- , Attributes.name "username"
                 , Attributes.type' "text"
                 , onInput BasicAuthUsernameChanged
                 , onSubmit BasicAuthSubmit
@@ -252,7 +242,6 @@ viewBasicAuthForm methods =
         , Html.div [class "input-holder"] -- for LastPass web UI
             [ Html.input
                 [ id "basic-auth-password-input"
-                -- , Attributes.name "password"
                 , Attributes.type' "password"
                 , onInput BasicAuthPasswordChanged
                 , onSubmit BasicAuthSubmit
@@ -262,7 +251,6 @@ viewBasicAuthForm methods =
         , Html.div
             [ class "login-button" ]
             [ Html.button
-                -- [ Attributes.type' "submit" ]
                 [ onLeftClick BasicAuthSubmit ]
                 [ Html.text "login" ]
             ]
