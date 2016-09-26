@@ -154,6 +154,7 @@ func buildMetadata(build db.Build, externalURL string) StepMetadata {
 		BuildName:    build.Name(),
 		JobName:      build.JobName(),
 		PipelineName: build.PipelineName(),
+		TeamName:     build.TeamName(),
 		ExternalURL:  externalURL,
 	}
 }

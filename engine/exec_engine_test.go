@@ -95,6 +95,7 @@ var _ = Describe("ExecEngine", func() {
 				BuildName:    "21",
 				JobName:      "some-job",
 				PipelineName: "some-pipeline",
+				TeamName:     "some-team",
 				ExternalURL:  "http://example.com",
 			}
 
@@ -1121,6 +1122,7 @@ var _ = Describe("ExecEngine", func() {
 					BuildName:    "21",
 					JobName:      "some-job",
 					PipelineName: "some-pipeline",
+					TeamName:     "some-team",
 					ExternalURL:  "http://example.com",
 				}))
 				Expect(workerMetadata).To(Equal(worker.Metadata{

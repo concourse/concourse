@@ -51,12 +51,14 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		build.NameReturns("42")
 		build.JobNameReturns("some-job")
 		build.PipelineNameReturns("some-pipeline")
+		build.TeamNameReturns("some-team")
 
 		expectedMetadata = engine.StepMetadata{
 			BuildID:      84,
 			BuildName:    "42",
 			JobName:      "some-job",
 			PipelineName: "some-pipeline",
+			TeamName:     "some-team",
 			ExternalURL:  "http://example.com",
 		}
 	})
