@@ -1,11 +1,11 @@
 module Build exposing
   ( init
   , update
-  , urlUpdate
   , view
   , subscriptions
+  , Model
   , Page(..)
-  , Msg(ClockTick)
+  , Msg(..)
   , getScrollBehavior
   , initJobBuildPage
   )
@@ -60,8 +60,7 @@ type alias CurrentBuild =
   }
 
 type alias Model =
-  { ports : Ports
-  , now : Maybe Time.Time
+  { now : Maybe Time.Time
   , job : Maybe Concourse.Job
   , history : List Concourse.Build
   , currentBuild : Maybe CurrentBuild
@@ -92,25 +91,18 @@ type Msg
   | RevealCurrentBuildInHistory
   | WindowScrolled Scroll.FromBottom
 
-type alias Ports =
-  { setTitle : String -> Cmd Msg
-  , focusElement : String -> Cmd Msg
-  , selectGroups : (List String) -> Cmd Msg
-  }
-
-init : Ports -> Result String Page -> (Model, Cmd Msg)
-init ports pageResult =
+init : Page -> (Model, Cmd Msg)
+init page =
   let
     (model, cmd) =
       changeToBuild
-        pageResult
+        page
         { now = Nothing
         , job = Nothing
         , history = []
         , currentBuild = Nothing
         , browsingIndex = 0
         , autoScroll = True
-        , ports = ports
         }
   in
     (model, Cmd.batch [cmd, getCurrentTime])
@@ -128,8 +120,8 @@ subscriptions model =
           Sub.map (BuildOutputMsg model.browsingIndex) buildOutput.events
     ]
 
-changeToBuild : Result String Page -> Model -> (Model, Cmd Msg)
-changeToBuild pageResult model =
+changeToBuild : Page -> Model -> (Model, Cmd Msg)
+changeToBuild page model =
   let
     newIndex =
       model.browsingIndex + 1
@@ -143,26 +135,13 @@ changeToBuild pageResult model =
       , currentBuild = newBuild
       , autoScroll = True
       }
-    , case pageResult of
-        Err err ->
-          Debug.log err Cmd.none
+    , case page of
+        BuildPage buildId ->
+          fetchBuild 0 newIndex buildId
 
-        Ok (BuildPage buildId) ->
-          Cmd.batch
-            [ model.ports.setTitle ("one-off #" ++ toString buildId)
-            , fetchBuild 0 newIndex buildId
-            ]
-
-        Ok (JobBuildPage jbi) ->
-          Cmd.batch
-            [ model.ports.setTitle (jbi.jobName ++ " #" ++ jbi.buildName)
-            , fetchJobBuild newIndex jbi
-            ]
+        JobBuildPage jbi ->
+          fetchJobBuild newIndex jbi
     )
-
-urlUpdate : Result String Page -> Model -> (Model, Cmd Msg)
-urlUpdate =
-  changeToBuild
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -365,7 +344,7 @@ handleBuildJobFetched job model =
     withJobDetails =
       { model | job = Just job }
   in
-    (withJobDetails, model.ports.selectGroups job.groups)
+    (withJobDetails, Cmd.none)
 
 handleHistoryFetched : Paginated Concourse.Build -> Model -> (Model, Cmd Msg)
 handleHistoryFetched history model =

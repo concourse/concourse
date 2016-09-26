@@ -5,30 +5,56 @@ import Navigation exposing (Location)
 import Route exposing (..)
 
 type Route
-  = SelectTeam
-  | TeamLogin String
+  = Build String String String String
+  | Job String String String
+  | OneOffBuild String
   | Pipeline String String
+  | SelectTeam
+  | TeamLogin String
 
 type alias ConcourseRoute =
   { logical : Route
   , parsed : Erl.Url
   }
 
+-- pages
+
+build : Route.Route Route
+build =
+  Build := static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string </> static "builds" </> string
+
+oneOffBuild : Route.Route Route
+oneOffBuild =
+  OneOffBuild := static "builds" </> string
+
+job : Route.Route Route
+job =
+  Job := static "teams" </> string </> static "pipelines" </> string </> static "jobs" </> string
+
 login : Route.Route Route
 login =
   SelectTeam := static "login"
-
-teamLogin : Route.Route Route
-teamLogin =
-  TeamLogin := static "teams" </> string </> static "login"
 
 pipeline : Route.Route Route
 pipeline =
   Pipeline := static "teams" </> string </> static "pipelines" </> string
 
+teamLogin : Route.Route Route
+teamLogin =
+  TeamLogin := static "teams" </> string </> static "login"
+
+-- router
+
 sitemap : Router Route
 sitemap =
-  router [ login, teamLogin, pipeline ]
+  router
+    [ build
+    , job
+    , login
+    , oneOffBuild
+    , pipeline
+    , teamLogin
+    ]
 
 match : String -> Route
 match =
@@ -38,15 +64,18 @@ match =
 toString : Route -> String
 toString route =
   case route of
-
-    SelectTeam ->
-      reverse login []
-
-    TeamLogin teamName ->
-      reverse teamLogin [ teamName ]
-
+    Build teamName pipelineName jobName buildName ->
+      reverse build [ teamName, pipelineName, jobName, buildName ]
+    Job teamName pipelineName jobName ->
+      reverse job [ teamName, pipelineName, jobName ]
+    OneOffBuild buildId ->
+      reverse oneOffBuild [ buildId ]
     Pipeline teamName pipelineName ->
       reverse pipeline [ teamName, pipelineName ]
+    SelectTeam ->
+      reverse login []
+    TeamLogin teamName ->
+      reverse teamLogin [ teamName ]
 
 parsePath : Location -> ConcourseRoute
 parsePath location =
