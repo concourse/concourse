@@ -3,7 +3,7 @@ module Login exposing (Model, Msg(..), init, update, view, subscriptions)
 import Erl
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (id, class)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onSubmit)
 import Http
 import Navigation
 import Task
@@ -242,6 +242,7 @@ viewBasicAuthForm methods =
                 -- , Attributes.name "username"
                 , Attributes.type' "text"
                 , onInput BasicAuthUsernameChanged
+                , onSubmit BasicAuthSubmit
                 ]
                 []
             ]
@@ -254,6 +255,7 @@ viewBasicAuthForm methods =
                 -- , Attributes.name "password"
                 , Attributes.type' "password"
                 , onInput BasicAuthPasswordChanged
+                , onSubmit BasicAuthSubmit
                 ]
                 []
             ]
