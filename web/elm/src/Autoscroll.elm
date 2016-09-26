@@ -6,6 +6,7 @@ module Autoscroll exposing
   , subscriptions
   , ScrollBehavior(..)
   , Msg(SubMsg)
+  , Model
   )
 
 import AnimationFrame

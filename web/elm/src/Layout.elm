@@ -71,11 +71,10 @@ update msg model =
         )
     -- otherwise, pass down
     SubMsg m ->
-      Debug.log("got sub message") <|
-        let
-          (subModel, subCmd) = SubPage.update (Debug.log "message: " m) model.subModel
-        in
-          ({ model | subModel = subModel }, Cmd.map SubMsg subCmd)
+      let
+        (subModel, subCmd) = SubPage.update m model.subModel
+      in
+        ({ model | subModel = subModel }, Cmd.map SubMsg subCmd)
 
     TopMsg m ->
       let
@@ -135,9 +134,13 @@ view model =
           ]
       ]
 
-subscriptions : Model -> Sub (Msg)
+subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none -- TODO this maybe blank? idk
+  Sub.batch
+    [ Sub.map TopMsg <| TopBar.subscriptions model.topModel
+    , Sub.map SideMsg <| SideBar.subscriptions model.sideModel
+    , Sub.map SubMsg <| SubPage.subscriptions model.subModel
+    ]
 
 
 routeMatchesModel : Routes.ConcourseRoute -> Model -> Bool
