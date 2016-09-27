@@ -1,4 +1,4 @@
-module Resource exposing (Flags, init, update, view, autoupdateTimer)
+module Resource exposing (Flags, Msg(..), Model, init, update, view, autoupdateTimer, subscriptions)
 
 import Concourse
 import Concourse.BuildStatus
@@ -692,3 +692,7 @@ redirectToLogin : Model -> Cmd Msg
 redirectToLogin model =
   Cmd.map (always Noop) << Task.perform Err Ok <|
     Redirect.to "/login"
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
