@@ -21,6 +21,7 @@ type WorkerDB interface {
 	Workers() ([]db.SavedWorker, error)
 	GetWorker(string) (db.SavedWorker, bool, error)
 	CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
+	UpdateContainerTTLToBeRemoved(container db.Container, ttl time.Duration, maxLifetime time.Duration) (db.SavedContainer, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
@@ -40,6 +41,7 @@ type dbProvider struct {
 	dialer              gconn.DialerFunc
 	retryBackOffFactory retryhttp.BackOffFactory
 	imageFactory        ImageFactory
+	dbContainerFactory  *dbng.ContainerFactory
 	dbVolumeFactory     *dbng.VolumeFactory
 	pipelineDBFactory   db.PipelineDBFactory
 }
@@ -50,6 +52,7 @@ func NewDBWorkerProvider(
 	dialer gconn.DialerFunc,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
+	dbContainerFactory *dbng.ContainerFactory,
 	dbVolumeFactory *dbng.VolumeFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 ) WorkerProvider {
@@ -59,6 +62,7 @@ func NewDBWorkerProvider(
 		dialer:              dialer,
 		retryBackOffFactory: retryBackOffFactory,
 		imageFactory:        imageFactory,
+		dbContainerFactory:  dbContainerFactory,
 		dbVolumeFactory:     dbVolumeFactory,
 		pipelineDBFactory:   pipelineDBFactory,
 	}
@@ -146,6 +150,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		volumeFactory,
 		provider.imageFactory,
 		provider.pipelineDBFactory,
+		provider.dbContainerFactory,
 		provider.db,
 		provider,
 		tikTok,
@@ -155,6 +160,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		savedWorker.Tags,
 		savedWorker.TeamID,
 		savedWorker.Name,
+		savedWorker.GardenAddr,
 		savedWorker.StartTime,
 		savedWorker.HTTPProxyURL,
 		savedWorker.HTTPSProxyURL,

@@ -24,7 +24,7 @@ type Client interface {
 		atc.ResourceTypes,
 	) (Container, error)
 
-	CreateContainerNG(
+	CreateTaskContainer(
 		lager.Logger,
 		<-chan os.Signal,
 		ImageFetchingDelegate,

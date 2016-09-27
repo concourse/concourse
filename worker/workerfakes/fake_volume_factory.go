@@ -21,6 +21,16 @@ type FakeVolumeFactory struct {
 		result2 bool
 		result3 error
 	}
+	BuildWithIndefiniteTTLStub        func(lager.Logger, baggageclaim.Volume) (worker.Volume, error)
+	buildWithIndefiniteTTLMutex       sync.RWMutex
+	buildWithIndefiniteTTLArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 baggageclaim.Volume
+	}
+	buildWithIndefiniteTTLReturns struct {
+		result1 worker.Volume
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -61,11 +71,48 @@ func (fake *FakeVolumeFactory) BuildReturns(result1 worker.Volume, result2 bool,
 	}{result1, result2, result3}
 }
 
+func (fake *FakeVolumeFactory) BuildWithIndefiniteTTL(arg1 lager.Logger, arg2 baggageclaim.Volume) (worker.Volume, error) {
+	fake.buildWithIndefiniteTTLMutex.Lock()
+	fake.buildWithIndefiniteTTLArgsForCall = append(fake.buildWithIndefiniteTTLArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 baggageclaim.Volume
+	}{arg1, arg2})
+	fake.recordInvocation("BuildWithIndefiniteTTL", []interface{}{arg1, arg2})
+	fake.buildWithIndefiniteTTLMutex.Unlock()
+	if fake.BuildWithIndefiniteTTLStub != nil {
+		return fake.BuildWithIndefiniteTTLStub(arg1, arg2)
+	} else {
+		return fake.buildWithIndefiniteTTLReturns.result1, fake.buildWithIndefiniteTTLReturns.result2
+	}
+}
+
+func (fake *FakeVolumeFactory) BuildWithIndefiniteTTLCallCount() int {
+	fake.buildWithIndefiniteTTLMutex.RLock()
+	defer fake.buildWithIndefiniteTTLMutex.RUnlock()
+	return len(fake.buildWithIndefiniteTTLArgsForCall)
+}
+
+func (fake *FakeVolumeFactory) BuildWithIndefiniteTTLArgsForCall(i int) (lager.Logger, baggageclaim.Volume) {
+	fake.buildWithIndefiniteTTLMutex.RLock()
+	defer fake.buildWithIndefiniteTTLMutex.RUnlock()
+	return fake.buildWithIndefiniteTTLArgsForCall[i].arg1, fake.buildWithIndefiniteTTLArgsForCall[i].arg2
+}
+
+func (fake *FakeVolumeFactory) BuildWithIndefiniteTTLReturns(result1 worker.Volume, result2 error) {
+	fake.BuildWithIndefiniteTTLStub = nil
+	fake.buildWithIndefiniteTTLReturns = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
+	fake.buildWithIndefiniteTTLMutex.RLock()
+	defer fake.buildWithIndefiniteTTLMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -16,17 +16,17 @@ func NewVolumeFactory(conn Conn) *VolumeFactory {
 	}
 }
 
-func (factory *VolumeFactory) CreateResourceCacheVolume(worker *Worker, resourceCache *UsedResourceCache) (*CreatingVolume, error) {
+func (factory *VolumeFactory) CreateResourceCacheVolume(team *Team, worker *Worker, resourceCache *UsedResourceCache) (*CreatingVolume, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
 	defer tx.Rollback()
-	return factory.createVolume(tx, worker, "resource_cache_id", resourceCache.ID)
+	return factory.createVolume(tx, team.ID, worker, "resource_cache_id", resourceCache.ID)
 }
 
-func (factory *VolumeFactory) CreateBaseResourceTypeVolume(worker *Worker, ubrt *UsedBaseResourceType) (*CreatingVolume, error) {
+func (factory *VolumeFactory) CreateBaseResourceTypeVolume(team *Team, worker *Worker, ubrt *UsedBaseResourceType) (*CreatingVolume, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -34,10 +34,10 @@ func (factory *VolumeFactory) CreateBaseResourceTypeVolume(worker *Worker, ubrt 
 
 	defer tx.Rollback()
 
-	return factory.createVolume(tx, worker, "base_resource_type_id", ubrt.ID)
+	return factory.createVolume(tx, team.ID, worker, "base_resource_type_id", ubrt.ID)
 }
 
-func (factory *VolumeFactory) CreateContainerVolume(worker *Worker, container *CreatingContainer) (*CreatingVolume, error) {
+func (factory *VolumeFactory) CreateContainerVolume(team *Team, worker *Worker, container *CreatingContainer) (*CreatingVolume, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (factory *VolumeFactory) CreateContainerVolume(worker *Worker, container *C
 
 	defer tx.Rollback()
 
-	return factory.createVolume(tx, worker, "container_id", container.ID)
+	return factory.createVolume(tx, team.ID, worker, "container_id", container.ID)
 }
 
 func (factory *VolumeFactory) GetOrphanedVolumes() ([]*InitializedVolume, []*DestroyingVolume, error) {
@@ -123,12 +123,11 @@ var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer e
 // 3. insert into volumes in 'initializing' state
 //   * if fails (fkey violation; worker type gone), fail for same reason as 2.
 // 4. commit tx
-func (factory *VolumeFactory) createVolume(tx Tx, worker *Worker, parentColumnName string, parentColumnValue int) (*CreatingVolume, error) {
-
+func (factory *VolumeFactory) createVolume(tx Tx, teamID int, worker *Worker, parentColumnName string, parentColumnValue int) (*CreatingVolume, error) {
 	var volumeID int
 	err := psql.Insert("volumes").
-		Columns("worker_name", parentColumnName).
-		Values(worker.Name, parentColumnValue).
+		Columns("team_id", "worker_name", parentColumnName).
+		Values(teamID, worker.Name, parentColumnValue).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -147,5 +146,7 @@ func (factory *VolumeFactory) createVolume(tx Tx, worker *Worker, parentColumnNa
 		Worker: worker,
 
 		ID: volumeID,
+
+		conn: factory.conn,
 	}, nil
 }

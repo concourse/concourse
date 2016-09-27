@@ -9,7 +9,6 @@ import (
 var _ = Describe("VolumeFactory", func() {
 	var (
 		dbConn           dbng.Conn
-		tx               dbng.Tx
 		volumeFactory    *dbng.VolumeFactory
 		containerFactory *dbng.ContainerFactory
 		teamFactory      *dbng.TeamFactory
@@ -64,44 +63,39 @@ var _ = Describe("VolumeFactory", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingVolume1, err := volumeFactory.CreateContainerVolume(worker, creatingContainer)
+			creatingVolume1, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer)
 			Expect(err).NotTo(HaveOccurred())
-			creatingVolume2, err := volumeFactory.CreateContainerVolume(worker, creatingContainer)
+			creatingVolume2, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer)
 			Expect(err).NotTo(HaveOccurred())
-			creatingVolume3, err := volumeFactory.CreateContainerVolume(worker, creatingContainer)
+			creatingVolume3, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer)
 			Expect(err).NotTo(HaveOccurred())
-			creatingVolume4, err := volumeFactory.CreateContainerVolume(worker, creatingContainer)
-			Expect(err).NotTo(HaveOccurred())
-
-			tx, err = dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			createdVolume1, err := creatingVolume1.Created(tx, "some-handle-1")
-			Expect(err).NotTo(HaveOccurred())
-			createdVolume2, err := creatingVolume2.Created(tx, "some-handle-2")
-			Expect(err).NotTo(HaveOccurred())
-			createdVolume3, err := creatingVolume3.Created(tx, "some-handle-3")
-			Expect(err).NotTo(HaveOccurred())
-			createdVolume4, err := creatingVolume4.Created(tx, "some-handle-4")
+			creatingVolume4, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer)
 			Expect(err).NotTo(HaveOccurred())
 
-			initializingVolume1, err := createdVolume1.Initializing(tx, creatingContainer)
+			createdVolume1, err := creatingVolume1.Created("some-handle-1")
 			Expect(err).NotTo(HaveOccurred())
-			initializingVolume2, err := createdVolume2.Initializing(tx, creatingContainer)
+			createdVolume2, err := creatingVolume2.Created("some-handle-2")
 			Expect(err).NotTo(HaveOccurred())
-			initializingVolume3, err := createdVolume3.Initializing(tx, creatingContainer)
-			Expect(err).NotTo(HaveOccurred())
-
-			initializedVolume1, err := initializingVolume1.Initialized(tx)
-			Expect(err).NotTo(HaveOccurred())
-			initializedVolume2, err := initializingVolume2.Initialized(tx)
-			Expect(err).NotTo(HaveOccurred())
-			initializedVolume3, err := initializingVolume3.Initialized(tx)
-			Expect(err).NotTo(HaveOccurred())
-			initializedVolume4, err := createdVolume4.Initialized(tx, creatingContainer)
+			createdVolume3, err := creatingVolume3.Created("some-handle-3")
 			Expect(err).NotTo(HaveOccurred())
 
-			destroyingVolume3, err := initializedVolume3.Destroying(tx)
+			initializingVolume1, err := createdVolume1.Initializing(creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+			initializingVolume2, err := createdVolume2.Initializing(creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+			initializingVolume3, err := createdVolume3.Initializing(creatingContainer)
+			Expect(err).NotTo(HaveOccurred())
+
+			initializedVolume1, err := initializingVolume1.Initialized()
+			Expect(err).NotTo(HaveOccurred())
+			initializedVolume2, err := initializingVolume2.Initialized()
+			Expect(err).NotTo(HaveOccurred())
+			initializedVolume3, err := initializingVolume3.Initialized()
+			Expect(err).NotTo(HaveOccurred())
+			initializedVolume4, err := creatingVolume4.Initialized("some-handle-4")
+			Expect(err).NotTo(HaveOccurred())
+
+			destroyingVolume3, err := initializedVolume3.Destroying()
 			Expect(err).NotTo(HaveOccurred())
 
 			volume1 = initializedVolume1
@@ -109,23 +103,29 @@ var _ = Describe("VolumeFactory", func() {
 			volume3 = destroyingVolume3
 			volume4 = initializedVolume4
 
-			createdContainer, err := creatingContainer.Created(tx, "some-handle")
+			createdContainer, err := creatingContainer.Created("some-handle")
 			Expect(err).NotTo(HaveOccurred())
-			destroyingContainer, err := createdContainer.Destroying(tx)
+			destroyingContainer, err := createdContainer.Destroying()
 			Expect(err).NotTo(HaveOccurred())
-			destroyed, err := destroyingContainer.Destroy(tx)
+			destroyed, err := destroyingContainer.Destroy()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(destroyed).To(BeTrue())
-
-			err = tx.Commit()
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns orphaned volumes", func() {
 			initializedVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(initializedVolumes).To(Equal([]*dbng.InitializedVolume{volume1, volume2, volume4}))
-			Expect(destoryingVolumes).To(Equal([]*dbng.DestroyingVolume{volume3}))
+			initializedHandles := []string{}
+			for _, vol := range initializedVolumes {
+				initializedHandles = append(initializedHandles, vol.Handle)
+			}
+			Expect(initializedHandles).To(ConsistOf("some-handle-1", "some-handle-2", "some-handle-4"))
+
+			destoryingHandles := []string{}
+			for _, vol := range destoryingVolumes {
+				destoryingHandles = append(destoryingHandles, vol.Handle)
+			}
+			Expect(destoryingHandles).To(ConsistOf("some-handle-3"))
 		})
 	})
 })

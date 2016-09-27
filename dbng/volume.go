@@ -17,28 +17,34 @@ const (
 type CreatingVolume struct {
 	ID     int
 	Worker *Worker
+	conn   Conn
 }
 
-func (volume *CreatingVolume) Created(tx Tx, handle string) (*CreatedVolume, error) {
-	rows, err := psql.Update("volumes").
-		Set("state", VolumeStateCreated).
-		Set("handle", handle).
-		Where(sq.Eq{
-			"id":    volume.ID,
-			"state": VolumeStateCreating,
-		}).
-		RunWith(tx).
-		Exec()
+func (volume *CreatingVolume) Created(handle string) (*CreatedVolume, error) {
+	tx, err := volume.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	affected, err := rows.RowsAffected()
+	defer tx.Rollback()
+
+	transitioned, err := stateTransition(
+		volume.ID,
+		tx,
+		VolumeStateCreating,
+		VolumeStateCreated,
+		map[string]interface{}{"handle": handle},
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	if affected == 0 {
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	if !transitioned {
 		panic("TESTME")
 		return nil, nil
 	}
@@ -47,6 +53,44 @@ func (volume *CreatingVolume) Created(tx Tx, handle string) (*CreatedVolume, err
 		ID:     volume.ID,
 		Worker: volume.Worker,
 		Handle: handle,
+		conn:   volume.conn,
+	}, nil
+}
+
+func (volume *CreatingVolume) Initialized(handle string) (*InitializedVolume, error) {
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	transitioned, err := stateTransition(
+		volume.ID,
+		tx,
+		VolumeStateCreating,
+		VolumeStateInitialized,
+		map[string]interface{}{"handle": handle},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	if !transitioned {
+		panic("TESTME")
+		return nil, nil
+	}
+
+	return &InitializedVolume{
+		ID:     volume.ID,
+		Worker: volume.Worker,
+		Handle: handle,
+		conn:   volume.conn,
 	}, nil
 }
 
@@ -54,10 +98,23 @@ type CreatedVolume struct {
 	ID     int
 	Worker *Worker
 	Handle string
+	conn   Conn
 }
 
-func (volume *CreatedVolume) Initializing(tx Tx, container *CreatingContainer) (*InitializingVolume, error) {
+func (volume *CreatedVolume) Initializing(container *CreatingContainer) (*InitializingVolume, error) {
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	transitioned, err := stateTransition(volume.ID, tx, VolumeStateCreated, VolumeStateInitializing, map[string]interface{}{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -71,32 +128,7 @@ func (volume *CreatedVolume) Initializing(tx Tx, container *CreatingContainer) (
 		ID:     volume.ID,
 		Worker: volume.Worker,
 		Handle: volume.Handle,
-	}, nil
-}
-
-func (volume *CreatedVolume) Initialized(tx Tx, container *CreatingContainer) (*InitializedVolume, error) {
-	transitioned, err := stateTransition(
-		volume.ID,
-		tx,
-		VolumeStateCreated,
-		VolumeStateInitialized,
-		map[string]interface{}{
-			"container_id": container.ID,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if !transitioned {
-		panic("TESTME")
-		return nil, nil
-	}
-
-	return &InitializedVolume{
-		ID:     volume.ID,
-		Worker: volume.Worker,
-		Handle: volume.Handle,
+		conn:   volume.conn,
 	}, nil
 }
 
@@ -104,11 +136,24 @@ type InitializingVolume struct {
 	ID     int
 	Worker *Worker
 	Handle string
+	conn   Conn
 }
 
 // TODO: set volume size?
-func (volume *InitializingVolume) Initialized(tx Tx) (*InitializedVolume, error) {
+func (volume *InitializingVolume) Initialized() (*InitializedVolume, error) {
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	transitioned, err := stateTransition(volume.ID, tx, VolumeStateInitializing, VolumeStateInitialized, map[string]interface{}{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +167,7 @@ func (volume *InitializingVolume) Initialized(tx Tx) (*InitializedVolume, error)
 		ID:     volume.ID,
 		Worker: volume.Worker,
 		Handle: volume.Handle,
+		conn:   volume.conn,
 	}, nil
 }
 
@@ -200,11 +246,19 @@ type InitializedVolume struct {
 	ID     int
 	Worker *Worker
 	Handle string
+	conn   Conn
 }
 
-func (volume *InitializedVolume) CreateChildForContainer(tx Tx, container *CreatingContainer) (*CreatingVolume, error) {
+func (volume *InitializedVolume) CreateChildForContainer(container *CreatingContainer) (*CreatingVolume, error) {
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	var volumeID int
-	err := psql.Insert("volumes").
+	err = psql.Insert("volumes").
 		Columns("worker_name", "parent_id", "parent_state").
 		Values(volume.Worker.Name, volume.ID, VolumeStateInitialized).
 		Suffix("RETURNING id").
@@ -224,13 +278,26 @@ func (volume *InitializedVolume) CreateChildForContainer(tx Tx, container *Creat
 	return &CreatingVolume{
 		ID:     volume.ID,
 		Worker: volume.Worker,
+		conn:   volume.conn,
 	}, nil
 }
 
-func (volume *InitializedVolume) Destroying(tx Tx) (*DestroyingVolume, error) {
+func (volume *InitializedVolume) Destroying() (*DestroyingVolume, error) {
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	transitioned, err := stateTransition(volume.ID, tx, VolumeStateInitialized, VolumeStateDestroying, map[string]interface{}{})
 	if err != nil {
 		// TODO: return explicit error for failed transition due to volumes using it
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
 		return nil, err
 	}
 
@@ -243,6 +310,7 @@ func (volume *InitializedVolume) Destroying(tx Tx) (*DestroyingVolume, error) {
 		ID:     volume.ID,
 		Worker: volume.Worker,
 		Handle: volume.Handle,
+		conn:   volume.conn,
 	}, nil
 }
 
@@ -250,9 +318,17 @@ type DestroyingVolume struct {
 	ID     int
 	Worker *Worker
 	Handle string
+	conn   Conn
 }
 
-func (volume *DestroyingVolume) Destroy(tx Tx) (bool, error) {
+func (volume *DestroyingVolume) Destroy() (bool, error) {
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer tx.Rollback()
+
 	rows, err := psql.Delete("volumes").
 		Where(sq.Eq{
 			"id":    volume.ID,
@@ -260,6 +336,11 @@ func (volume *DestroyingVolume) Destroy(tx Tx) (bool, error) {
 		}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}

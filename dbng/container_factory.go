@@ -160,6 +160,7 @@ func (factory *ContainerFactory) createPlanContainer(
 	}
 
 	return &CreatingContainer{
-		ID: containerID,
+		ID:   containerID,
+		conn: factory.conn,
 	}, nil
 }

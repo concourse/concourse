@@ -14,6 +14,7 @@ import (
 type VolumeClient interface {
 	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
 	CreateVolume(logger lager.Logger, vs VolumeSpec, teamID int) (Volume, error)
+	CreateVolumeForContainer(lager.Logger, VolumeSpec, *dbng.Worker, *dbng.CreatingContainer, *dbng.Team) (Volume, error)
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
@@ -75,6 +76,43 @@ func (c *volumeClient) FindVolume(
 	return c.LookupVolume(logger, savedVolume.Handle)
 }
 
+func (c *volumeClient) CreateVolumeForContainer(
+	logger lager.Logger,
+	volumeSpec VolumeSpec,
+	worker *dbng.Worker,
+	container *dbng.CreatingContainer,
+	team *dbng.Team,
+) (Volume, error) {
+	creatingVolume, err := c.dbVolumeFactory.CreateContainerVolume(team, worker, container)
+	if err != nil {
+		logger.Error("failed-to-create-volume-in-db", err)
+		return nil, err
+	}
+
+	bcVolume, err := c.baggageclaimClient.CreateVolume(
+		logger.Session("create-volume"),
+		volumeSpec.baggageclaimVolumeSpec(),
+	)
+	if err != nil {
+		logger.Error("failed-to-create-volume-in-baggageclaim", err)
+		return nil, err
+	}
+
+	_, err = creatingVolume.Initialized(bcVolume.Handle())
+	if err != nil {
+		logger.Error("failed-to-initialize-volume", err)
+		return nil, err
+	}
+
+	volume, err := c.volumeFactory.BuildWithIndefiniteTTL(logger, bcVolume)
+	if err != nil {
+		logger.Error("failed-build-volume", err)
+		return nil, err
+	}
+
+	return volume, nil
+}
+
 func (c *volumeClient) CreateVolume(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
@@ -84,8 +122,6 @@ func (c *volumeClient) CreateVolume(
 		return nil, ErrNoVolumeManager
 	}
 
-	// create volume in creating state
-
 	bcVolume, err := c.baggageclaimClient.CreateVolume(
 		logger.Session("create-volume"),
 		volumeSpec.baggageclaimVolumeSpec(),
@@ -94,8 +130,6 @@ func (c *volumeClient) CreateVolume(
 		logger.Error("failed-to-create-volume", err)
 		return nil, err
 	}
-
-	// mark volume created
 
 	err = c.db.InsertVolume(db.Volume{
 		Handle:     bcVolume.Handle(),

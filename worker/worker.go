@@ -16,6 +16,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -61,6 +62,7 @@ type Worker interface {
 
 type GardenWorkerDB interface {
 	CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
+	UpdateContainerTTLToBeRemoved(container db.Container, ttl time.Duration, maxLifetime time.Duration) (db.SavedContainer, error)
 	GetContainer(handle string) (db.SavedContainer, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(string) error
@@ -78,6 +80,7 @@ type gardenWorker struct {
 	volumeFactory      VolumeFactory
 	pipelineDBFactory  db.PipelineDBFactory
 	imageFactory       ImageFactory
+	dbContainerFactory *dbng.ContainerFactory
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -90,6 +93,7 @@ type gardenWorker struct {
 	tags             atc.Tags
 	teamID           int
 	name             string
+	addr             string
 	startTime        int64
 	httpProxyURL     string
 	httpsProxyURL    string
@@ -103,6 +107,7 @@ func NewGardenWorker(
 	volumeFactory VolumeFactory,
 	imageFactory ImageFactory,
 	pipelineDBFactory db.PipelineDBFactory,
+	dbContainerFactory *dbng.ContainerFactory,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
@@ -112,6 +117,7 @@ func NewGardenWorker(
 	tags atc.Tags,
 	teamID int,
 	name string,
+	addr string,
 	startTime int64,
 	httpProxyURL string,
 	httpsProxyURL string,
@@ -123,6 +129,7 @@ func NewGardenWorker(
 		volumeClient:       volumeClient,
 		volumeFactory:      volumeFactory,
 		imageFactory:       imageFactory,
+		dbContainerFactory: dbContainerFactory,
 		db:                 db,
 		provider:           provider,
 		clock:              clock,
@@ -133,6 +140,7 @@ func NewGardenWorker(
 		tags:               tags,
 		teamID:             teamID,
 		name:               name,
+		addr:               addr,
 		startTime:          startTime,
 		httpProxyURL:       httpProxyURL,
 		httpsProxyURL:      httpsProxyURL,
@@ -347,6 +355,38 @@ func loadMetadata(tarReader io.ReadCloser) (ImageMetadata, error) {
 	return imageMetadata, nil
 }
 
+func (worker *gardenWorker) CreateTaskContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	outputPaths map[string]string,
+) (Container, error) {
+	creatingContainer, err := worker.dbContainerFactory.CreateTaskContainer(
+		&dbng.Worker{
+			Name:       worker.name,
+			GardenAddr: worker.addr,
+		},
+		&dbng.Build{
+			ID: id.BuildID,
+		},
+		id.PlanID,
+		dbng.ContainerMetadata{
+			Name: metadata.StepName,
+			Type: string(metadata.Type),
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return worker.createContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, outputPaths)
+}
+
 func (worker *gardenWorker) CreateContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
@@ -475,11 +515,13 @@ func (worker *gardenWorker) CreateContainer(
 
 	id.ResourceTypeVersion = resourceTypeVersion
 
+	cont := db.Container{
+		ContainerIdentifier: db.ContainerIdentifier(id),
+		ContainerMetadata:   db.ContainerMetadata(metadata),
+	}
+
 	_, err = worker.db.CreateContainer(
-		db.Container{
-			ContainerIdentifier: db.ContainerIdentifier(id),
-			ContainerMetadata:   db.ContainerMetadata(metadata),
-		},
+		cont,
 		ContainerTTL,
 		worker.maxContainerLifetime(metadata),
 		volumeHandles,
@@ -500,9 +542,10 @@ func (worker *gardenWorker) CreateContainer(
 	)
 }
 
-func (worker *gardenWorker) CreateContainerNG(
+func (worker *gardenWorker) createContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
+	creatingContainer *dbng.CreatingContainer,
 	delegate ImageFetchingDelegate,
 	id Identifier,
 	metadata Metadata,
@@ -530,20 +573,25 @@ func (worker *gardenWorker) CreateContainerNG(
 	volumeMounts := []VolumeMount{}
 	for name, outputPath := range outputPaths {
 		// TODO: create volume for container in creating > baggageclaim > created > initialized state
-		outVolume, err := worker.CreateVolume(
+		outVolume, err := worker.volumeClient.CreateVolumeForContainer(
 			logger,
 			VolumeSpec{
 				Strategy:   OutputStrategy{Name: name},
 				Privileged: bool(spec.ImageSpec.Privileged),
 				TTL:        VolumeTTL,
 			},
-			spec.TeamID,
+			&dbng.Worker{
+				Name:       worker.name,
+				GardenAddr: worker.addr,
+			},
+			creatingContainer,
+			&dbng.Team{
+				ID: spec.TeamID,
+			},
 		)
 		if err != nil {
 			return nil, err
 		}
-		// release *after* container creation
-		defer outVolume.Release(nil)
 
 		volumeMounts = append(volumeMounts, VolumeMount{
 			Volume:    outVolume,
@@ -554,19 +602,27 @@ func (worker *gardenWorker) CreateContainerNG(
 	}
 
 	for _, mount := range spec.Inputs {
-		// TODO: create volume for container in creating > baggageclaim > created > initialized state
-		cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
-			Strategy: ContainerRootFSStrategy{
-				Parent: mount.Volume,
+		cowVolume, err := worker.volumeClient.CreateVolumeForContainer(
+			logger,
+			VolumeSpec{
+				Strategy: ContainerRootFSStrategy{
+					Parent: mount.Volume,
+				},
+				Privileged: spec.ImageSpec.Privileged,
+				TTL:        VolumeTTL,
 			},
-			Privileged: spec.ImageSpec.Privileged,
-			TTL:        VolumeTTL,
-		}, spec.TeamID)
+			&dbng.Worker{
+				Name:       worker.name,
+				GardenAddr: worker.addr,
+			},
+			creatingContainer,
+			&dbng.Team{
+				ID: spec.TeamID,
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
-		// release *after* container creation
-		defer cowVolume.Release(nil)
 
 		volumeMounts = append(volumeMounts, VolumeMount{
 			Volume:    cowVolume,
@@ -648,22 +704,27 @@ func (worker *gardenWorker) CreateContainerNG(
 		return nil, err
 	}
 
+	_, err = creatingContainer.Created(gardenContainer.Handle())
+	if err != nil {
+		return nil, err
+	}
+
 	metadata.WorkerName = worker.name
 	metadata.Handle = gardenContainer.Handle()
 	metadata.User = gardenSpec.Properties["user"]
 
 	id.ResourceTypeVersion = resourceTypeVersion
 
-	_, err = worker.db.CreateContainer(
+	_, err = worker.db.UpdateContainerTTLToBeRemoved(
 		db.Container{
 			ContainerIdentifier: db.ContainerIdentifier(id),
 			ContainerMetadata:   db.ContainerMetadata(metadata),
 		},
 		ContainerTTL,
 		worker.maxContainerLifetime(metadata),
-		volumeHandles,
 	)
 	if err != nil {
+		logger.Error("failed-to-update-container-ttl", err)
 		return nil, err
 	}
 

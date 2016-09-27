@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -28,6 +29,19 @@ type FakeVolumeClient struct {
 		teamID int
 	}
 	createVolumeReturns struct {
+		result1 worker.Volume
+		result2 error
+	}
+	CreateVolumeForContainerStub        func(lager.Logger, worker.VolumeSpec, *dbng.Worker, *dbng.CreatingContainer, *dbng.Team) (worker.Volume, error)
+	createVolumeForContainerMutex       sync.RWMutex
+	createVolumeForContainerArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 worker.VolumeSpec
+		arg3 *dbng.Worker
+		arg4 *dbng.CreatingContainer
+		arg5 *dbng.Team
+	}
+	createVolumeForContainerReturns struct {
 		result1 worker.Volume
 		result2 error
 	}
@@ -128,6 +142,44 @@ func (fake *FakeVolumeClient) CreateVolumeReturns(result1 worker.Volume, result2
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeClient) CreateVolumeForContainer(arg1 lager.Logger, arg2 worker.VolumeSpec, arg3 *dbng.Worker, arg4 *dbng.CreatingContainer, arg5 *dbng.Team) (worker.Volume, error) {
+	fake.createVolumeForContainerMutex.Lock()
+	fake.createVolumeForContainerArgsForCall = append(fake.createVolumeForContainerArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 worker.VolumeSpec
+		arg3 *dbng.Worker
+		arg4 *dbng.CreatingContainer
+		arg5 *dbng.Team
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("CreateVolumeForContainer", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.createVolumeForContainerMutex.Unlock()
+	if fake.CreateVolumeForContainerStub != nil {
+		return fake.CreateVolumeForContainerStub(arg1, arg2, arg3, arg4, arg5)
+	} else {
+		return fake.createVolumeForContainerReturns.result1, fake.createVolumeForContainerReturns.result2
+	}
+}
+
+func (fake *FakeVolumeClient) CreateVolumeForContainerCallCount() int {
+	fake.createVolumeForContainerMutex.RLock()
+	defer fake.createVolumeForContainerMutex.RUnlock()
+	return len(fake.createVolumeForContainerArgsForCall)
+}
+
+func (fake *FakeVolumeClient) CreateVolumeForContainerArgsForCall(i int) (lager.Logger, worker.VolumeSpec, *dbng.Worker, *dbng.CreatingContainer, *dbng.Team) {
+	fake.createVolumeForContainerMutex.RLock()
+	defer fake.createVolumeForContainerMutex.RUnlock()
+	return fake.createVolumeForContainerArgsForCall[i].arg1, fake.createVolumeForContainerArgsForCall[i].arg2, fake.createVolumeForContainerArgsForCall[i].arg3, fake.createVolumeForContainerArgsForCall[i].arg4, fake.createVolumeForContainerArgsForCall[i].arg5
+}
+
+func (fake *FakeVolumeClient) CreateVolumeForContainerReturns(result1 worker.Volume, result2 error) {
+	fake.CreateVolumeForContainerStub = nil
+	fake.createVolumeForContainerReturns = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeClient) ListVolumes(arg1 lager.Logger, arg2 worker.VolumeProperties) ([]worker.Volume, error) {
 	fake.listVolumesMutex.Lock()
 	fake.listVolumesArgsForCall = append(fake.listVolumesArgsForCall, struct {
@@ -206,6 +258,8 @@ func (fake *FakeVolumeClient) Invocations() map[string][][]interface{} {
 	defer fake.findVolumeMutex.RUnlock()
 	fake.createVolumeMutex.RLock()
 	defer fake.createVolumeMutex.RUnlock()
+	fake.createVolumeForContainerMutex.RLock()
+	defer fake.createVolumeForContainerMutex.RUnlock()
 	fake.listVolumesMutex.RLock()
 	defer fake.listVolumesMutex.RUnlock()
 	fake.lookupVolumeMutex.RLock()

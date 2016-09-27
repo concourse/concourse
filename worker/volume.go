@@ -25,6 +25,7 @@ type VolumeFactoryDB interface {
 
 type VolumeFactory interface {
 	Build(lager.Logger, baggageclaim.Volume) (Volume, bool, error)
+	BuildWithIndefiniteTTL(lager.Logger, baggageclaim.Volume) (Volume, error)
 }
 
 type volumeFactory struct {
@@ -74,6 +75,31 @@ func (vf *volumeFactory) Build(logger lager.Logger, bcVol baggageclaim.Volume) (
 	metric.TrackedVolumes.Inc()
 
 	return vol, true, nil
+}
+
+func (vf *volumeFactory) BuildWithIndefiniteTTL(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, error) {
+	logger = logger.WithData(lager.Data{"volume": bcVol.Handle()})
+
+	bcVol.Release(nil)
+
+	err := bcVol.SetTTL(0)
+	if err != nil {
+		logger.Error("failed-to-set-volume-ttl-in-baggageclaim", err)
+		return nil, err
+	}
+
+	err = vf.db.SetVolumeTTL(bcVol.Handle(), 0)
+	if err != nil {
+		logger.Error("failed-to-set-volume-ttl-in-db", err)
+		return nil, err
+	}
+
+	vol := &volume{
+		Volume: bcVol,
+		db:     vf.db,
+	}
+
+	return vol, nil
 }
 
 //go:generate counterfeiter . Volume

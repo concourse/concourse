@@ -13,10 +13,18 @@ const (
 )
 
 type CreatingContainer struct {
-	ID int
+	ID   int
+	conn Conn
 }
 
-func (container *CreatingContainer) Created(tx Tx, handle string) (*CreatedContainer, error) {
+func (container *CreatingContainer) Created(handle string) (*CreatedContainer, error) {
+	tx, err := container.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	rows, err := psql.Update("containers").
 		Set("state", ContainerStateCreated).
 		Set("handle", handle).
@@ -26,6 +34,11 @@ func (container *CreatingContainer) Created(tx Tx, handle string) (*CreatedConta
 		}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -41,15 +54,24 @@ func (container *CreatingContainer) Created(tx Tx, handle string) (*CreatedConta
 	}
 
 	return &CreatedContainer{
-		ID: container.ID,
+		ID:   container.ID,
+		conn: container.conn,
 	}, nil
 }
 
 type CreatedContainer struct {
-	ID int
+	ID   int
+	conn Conn
 }
 
-func (container *CreatedContainer) Destroying(tx Tx) (*DestroyingContainer, error) {
+func (container *CreatedContainer) Destroying() (*DestroyingContainer, error) {
+	tx, err := container.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	rows, err := psql.Update("containers").
 		Set("state", ContainerStateDestroying).
 		Where(sq.Eq{
@@ -58,6 +80,11 @@ func (container *CreatedContainer) Destroying(tx Tx) (*DestroyingContainer, erro
 		}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -73,15 +100,24 @@ func (container *CreatedContainer) Destroying(tx Tx) (*DestroyingContainer, erro
 	}
 
 	return &DestroyingContainer{
-		ID: container.ID,
+		ID:   container.ID,
+		conn: container.conn,
 	}, nil
 }
 
 type DestroyingContainer struct {
-	ID int
+	ID   int
+	conn Conn
 }
 
-func (container *DestroyingContainer) Destroy(tx Tx) (bool, error) {
+func (container *DestroyingContainer) Destroy() (bool, error) {
+	tx, err := container.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer tx.Rollback()
+
 	rows, err := psql.Delete("containers").
 		Where(sq.Eq{
 			"id":    container.ID,
@@ -89,6 +125,11 @@ func (container *DestroyingContainer) Destroy(tx Tx) (bool, error) {
 		}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}

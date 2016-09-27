@@ -123,7 +123,7 @@ func CreateCaches(tx migration.LimitedTx) error {
 		ALTER TABLE containers
 		ADD FOREIGN KEY (worker_name) REFERENCES workers (name) ON DELETE CASCADE,
 		ALTER COLUMN handle DROP NOT NULL,
-		ADD COLUMN state container_state NOT NULL DEFAULT 'creating',
+		ADD COLUMN state container_state NOT NULL DEFAULT 'created',
 		ADD FOREIGN KEY (build_id) REFERENCES builds (id) ON DELETE SET NULL,
 		ADD COLUMN resource_config_id int REFERENCES resource_configs (id) ON DELETE SET NULL,
 		ADD COLUMN hijacked bool NOT NULL DEFAULT false,
@@ -136,12 +136,20 @@ func CreateCaches(tx migration.LimitedTx) error {
 	}
 
 	_, err = tx.Exec(`
+		ALTER TABLE containers
+		ALTER COLUMN state SET DEFAULT 'creating'
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
 		ALTER TABLE volumes
 		ALTER COLUMN handle DROP NOT NULL,
 		ADD FOREIGN KEY (worker_name) REFERENCES workers (name) ON DELETE CASCADE,
 		ADD COLUMN resource_cache_id int REFERENCES resource_caches (id) ON DELETE SET NULL,
 		ADD COLUMN base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE SET NULL,
-		ADD COLUMN state volume_state NOT NULL DEFAULT 'creating',
+		ADD COLUMN state volume_state NOT NULL DEFAULT 'initialized',
 		ADD COLUMN parent_id int,
 		ADD COLUMN parent_state volume_state,
 		ADD UNIQUE (id, state),
@@ -170,6 +178,14 @@ func CreateCaches(tx migration.LimitedTx) error {
 				)
 			)
 		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		ALTER TABLE volumes
+		ALTER COLUMN state SET DEFAULT 'creating'
 	`)
 	if err != nil {
 		return err

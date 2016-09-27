@@ -150,6 +150,150 @@ func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {
 	return container, true, nil
 }
 
+func (db *SQLDB) UpdateContainerTTLToBeRemoved(
+	container Container,
+	ttl time.Duration,
+	maxLifetime time.Duration,
+) (SavedContainer, error) {
+	if !(isValidCheckID(container.ContainerIdentifier) || isValidStepID(container.ContainerIdentifier)) {
+		return SavedContainer{}, ErrInvalidIdentifier
+	}
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return SavedContainer{}, err
+	}
+
+	defer tx.Rollback()
+
+	checkSource, err := json.Marshal(container.CheckSource)
+	if err != nil {
+		return SavedContainer{}, err
+	}
+
+	envVariables, err := json.Marshal(container.EnvironmentVariables)
+	if err != nil {
+		return SavedContainer{}, err
+	}
+
+	user := container.User
+
+	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
+
+	if container.PipelineName != "" && container.PipelineID == 0 {
+		// containers that belong to some pipeline must be identified by pipeline ID not name
+		return SavedContainer{}, errors.New("container metadata must include pipeline ID")
+	}
+	var pipelineID sql.NullInt64
+	if container.PipelineID != 0 {
+		pipelineID.Int64 = int64(container.PipelineID)
+		pipelineID.Valid = true
+	}
+
+	var resourceID sql.NullInt64
+	if container.ResourceID != 0 {
+		resourceID.Int64 = int64(container.ResourceID)
+		resourceID.Valid = true
+	}
+
+	var resourceTypeVersion string
+	if container.ResourceTypeVersion != nil {
+		resourceTypeVersionBytes, err := json.Marshal(container.ResourceTypeVersion)
+		if err != nil {
+			return SavedContainer{}, err
+		}
+		resourceTypeVersion = string(resourceTypeVersionBytes)
+	}
+
+	var buildID sql.NullInt64
+	if container.BuildID != 0 {
+		buildID.Int64 = int64(container.BuildID)
+		buildID.Valid = true
+	}
+
+	var attempts sql.NullString
+	if len(container.Attempts) > 0 {
+		attemptsBlob, err := json.Marshal(container.Attempts)
+		if err != nil {
+			return SavedContainer{}, err
+		}
+		attempts.Valid = true
+		attempts.String = string(attemptsBlob)
+	}
+
+	var imageResourceSource sql.NullString
+	if container.ImageResourceSource != nil {
+		marshaled, err := json.Marshal(container.ImageResourceSource)
+		if err != nil {
+			return SavedContainer{}, err
+		}
+
+		imageResourceSource.String = string(marshaled)
+		imageResourceSource.Valid = true
+	}
+
+	var imageResourceType sql.NullString
+	if container.ImageResourceType != "" {
+		imageResourceType.String = container.ImageResourceType
+		imageResourceType.Valid = true
+	}
+
+	maxLifetimeValue := "NULL"
+	if maxLifetime > 0 {
+		maxLifetimeValue = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(maxLifetime.Seconds()))
+	}
+	var id int
+	err = tx.QueryRow(`
+		UPDATE containers SET (resource_id, step_name, pipeline_id, build_id, type, worker_name,
+			expires_at, ttl, best_if_used_by, check_type, check_source, plan_id, working_directory,
+			env_variables, attempts, stage, image_resource_type, image_resource_source,
+			process_user, resource_type_version, team_id)
+		= ($2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+		WHERE handle=$1
+		RETURNING id`,
+		container.Handle,
+		resourceID,
+		container.StepName,
+		pipelineID,
+		buildID,
+		container.Type.String(),
+		container.WorkerName,
+		interval,
+		ttl,
+		container.CheckType,
+		checkSource,
+		string(container.PlanID),
+		container.WorkingDirectory,
+		envVariables,
+		attempts,
+		string(container.Stage),
+		imageResourceType,
+		imageResourceSource,
+		user,
+		resourceTypeVersion,
+		container.TeamID,
+	).Scan(&id)
+	if err != nil {
+		return SavedContainer{}, err
+	}
+
+	newContainer, err := scanContainer(tx.QueryRow(`
+		SELECT `+containerColumns+`
+	  FROM containers c `+containerJoins+`
+		WHERE c.id = $1
+	`, id))
+	if err != nil {
+		return SavedContainer{}, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return SavedContainer{}, err
+	}
+
+	return newContainer, nil
+}
+
 func (db *SQLDB) CreateContainer(
 	container Container,
 	ttl time.Duration,

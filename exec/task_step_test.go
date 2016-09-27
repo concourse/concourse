@@ -197,7 +197,7 @@ var _ = Describe("GardenFactory", func() {
 						BeforeEach(func() {
 							fakeContainer = new(wfakes.FakeContainer)
 							fakeContainer.HandleReturns("some-handle")
-							fakeWorker.CreateContainerNGReturns(fakeContainer, nil)
+							fakeWorker.CreateTaskContainerReturns(fakeContainer, nil)
 
 							fakeProcess = new(gfakes.FakeProcess)
 							fakeProcess.IDReturns("process-id")
@@ -210,7 +210,7 @@ var _ = Describe("GardenFactory", func() {
 							BeforeEach(func() {
 								taskDelegate.InitializingStub = func(atc.TaskConfig) {
 									defer GinkgoRecover()
-									Expect(fakeWorker.CreateContainerNGCallCount()).To(BeZero())
+									Expect(fakeWorker.CreateTaskContainerCallCount()).To(BeZero())
 								}
 							})
 
@@ -249,8 +249,8 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("creates a container with the config's image and the session ID as the handle", func() {
-							Expect(fakeWorker.CreateContainerNGCallCount()).To(Equal(1))
-							_, _, delegate, createdIdentifier, createdMetadata, spec, actualResourceTypes, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+							Expect(fakeWorker.CreateTaskContainerCallCount()).To(Equal(1))
+							_, _, delegate, createdIdentifier, createdMetadata, spec, actualResourceTypes, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 							Expect(createdIdentifier).To(Equal(worker.Identifier{
 								BuildID: 1234,
 								PlanID:  atc.PlanID("some-plan-id"),
@@ -337,8 +337,8 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("creates the container privileged", func() {
-								Expect(fakeWorker.CreateContainerNGCallCount()).To(Equal(1))
-								_, _, _, createdIdentifier, createdMetadata, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+								Expect(fakeWorker.CreateTaskContainerCallCount()).To(Equal(1))
+								_, _, _, createdIdentifier, createdMetadata, spec, _, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 								Expect(createdIdentifier).To(Equal(worker.Identifier{
 									BuildID: 1234,
 									PlanID:  atc.PlanID("some-plan-id"),
@@ -461,7 +461,7 @@ var _ = Describe("GardenFactory", func() {
 									})
 
 									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
-										_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+										_, _, _, _, _, spec, _, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 										Expect(spec.Inputs).To(Equal([]worker.VolumeMount{
 											{
 												Volume:    inputVolume,
@@ -589,7 +589,7 @@ var _ = Describe("GardenFactory", func() {
 									})
 
 									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
-										_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+										_, _, _, _, _, spec, _, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 										Expect(spec.Inputs).To(Equal([]worker.VolumeMount{
 											{
 												Volume:    remappedInputVolume,
@@ -783,7 +783,7 @@ var _ = Describe("GardenFactory", func() {
 												})
 
 												It("passes the created output volumes to the worker", func() {
-													_, _, _, _, _, _, _, outputPaths := fakeWorker.CreateContainerNGArgsForCall(0)
+													_, _, _, _, _, _, _, outputPaths := fakeWorker.CreateTaskContainerArgsForCall(0)
 													Expect(outputPaths).To(Equal(map[string]string{
 														"some-output":                "/tmp/build/a1f5c0c1/some-output-configured-path/",
 														"some-other-output":          "/tmp/build/a1f5c0c1/some-other-output/",
@@ -1306,7 +1306,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("creates the container with the volume and a metadata stream", func() {
-												_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+												_, _, _, _, _, spec, _, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 												Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 													ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 														Volume:         imageCowVolume,
@@ -1409,7 +1409,7 @@ var _ = Describe("GardenFactory", func() {
 										})
 
 										It("creates the container with the volume and a metadata stream", func() {
-											_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+											_, _, _, _, _, spec, _, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 											Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 													Volume:         cowVolume,
@@ -1482,7 +1482,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("still creates the container with the volume's path as ImageURL", func() {
-												_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+												_, _, _, _, _, spec, _, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 												Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 													ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 														Volume:         cowVolume,
@@ -1511,7 +1511,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("still creates the container with the volume's path as ImageURL", func() {
-												_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+												_, _, _, _, _, spec, _, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 												Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 													ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 														Volume:         cowVolume,
@@ -1541,7 +1541,7 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("still creates the container with the volume's path as ImageURL", func() {
-												_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+												_, _, _, _, _, spec, _, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 												Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 													ImageVolumeAndMetadata: worker.ImageVolumeAndMetadata{
 														Volume:         cowVolume,
@@ -1574,7 +1574,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("adds the user to the container spec", func() {
-								_, _, _, _, _, spec, _, _ := fakeWorker.CreateContainerNGArgsForCall(0)
+								_, _, _, _, _, spec, _, _ := fakeWorker.CreateTaskContainerArgsForCall(0)
 								Expect(spec.User).To(Equal("some-user"))
 							})
 
@@ -1883,7 +1883,7 @@ var _ = Describe("GardenFactory", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeWorker.CreateContainerNGReturns(nil, disaster)
+							fakeWorker.CreateTaskContainerReturns(nil, disaster)
 						})
 
 						It("exits with the error", func() {
@@ -1989,14 +1989,14 @@ var _ = Describe("GardenFactory", func() {
 										}
 									}
 
-									fakeWorker.CreateContainerNGReturns(nil, errors.New("fall out of method here"))
-									fakeWorker2.CreateContainerNGReturns(nil, errors.New("fall out of method here"))
+									fakeWorker.CreateTaskContainerReturns(nil, errors.New("fall out of method here"))
+									fakeWorker2.CreateTaskContainerReturns(nil, errors.New("fall out of method here"))
 								})
 
 								It("picks the worker that has the most", func() {
-									Expect(fakeWorker.CreateContainerNGCallCount()).To(Equal(0))
-									Expect(fakeWorker2.CreateContainerNGCallCount()).To(Equal(1))
-									Expect(fakeWorker3.CreateContainerNGCallCount()).To(Equal(0))
+									Expect(fakeWorker.CreateTaskContainerCallCount()).To(Equal(0))
+									Expect(fakeWorker2.CreateTaskContainerCallCount()).To(Equal(1))
+									Expect(fakeWorker3.CreateTaskContainerCallCount()).To(Equal(0))
 								})
 
 								It("releases the volumes on the unused workers", func() {

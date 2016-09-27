@@ -406,8 +406,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	runContainerID := step.containerID
 	runContainerID.Stage = db.ContainerStageRun
 
-	step.logger.Debug("task-step-creating-container", lager.Data{"container-id": runContainerID})
-	container, err := chosenWorker.CreateContainerNG(
+	container, err := chosenWorker.CreateTaskContainer(
 		step.logger.Session("create-container"),
 		signals,
 		step.delegate,
@@ -417,6 +416,11 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		step.resourceTypes,
 		outputPaths,
 	)
+
+	if err != nil {
+		step.logger.Error("failed-to-create-task-container", err, lager.Data{"id": runContainerID})
+		return nil, nil, err
+	}
 
 	for _, mount := range inputMounts {
 		// stop heartbeating ourselves now that container has picked up the
