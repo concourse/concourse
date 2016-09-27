@@ -6,6 +6,7 @@ import Route exposing (..)
 
 type Route
   = Build String String String String
+  | Resource String String String
   | Job String String String
   | OneOffBuild String
   | Pipeline String String
@@ -26,6 +27,10 @@ build =
 oneOffBuild : Route.Route Route
 oneOffBuild =
   OneOffBuild := static "builds" </> string
+
+resource : Route.Route Route
+resource =
+  Resource := static "teams" </> string </> static "pipelines" </> string </> static "resources" </> string
 
 job : Route.Route Route
 job =
@@ -49,6 +54,7 @@ sitemap : Router Route
 sitemap =
   router
     [ build
+    , resource
     , job
     , login
     , oneOffBuild
@@ -68,6 +74,8 @@ toString route =
       reverse build [ teamName, pipelineName, jobName, buildName ]
     Job teamName pipelineName jobName ->
       reverse job [ teamName, pipelineName, jobName ]
+    Resource teamName pipelineName resourceName ->
+      reverse job [ teamName, pipelineName, resourceName ]
     OneOffBuild buildId ->
       reverse oneOffBuild [ buildId ]
     Pipeline teamName pipelineName ->
