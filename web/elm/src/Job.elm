@@ -286,7 +286,7 @@ view model =
         loadSpinner
 
       Just bwr ->
-        Html.div [class "scrollable-body"]
+        Html.div [class "scrollable-body job-body"]
           [ Html.ul [ class "jobs-builds-list builds-list" ]
             <| List.map (viewBuildWithResources model) <| Array.toList bwr
           ]

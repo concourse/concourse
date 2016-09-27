@@ -8,6 +8,7 @@ html, body, #elm-app, .content-frame {
 @fixed-header-height: 60px;
 @builds-list-height: 30px;
 @sidebar-width: 300px;
+@pagination-header-height: 60px;
 
 @user-menu-z-index: 100;
 @fixed-header-z-index: @user-menu-z-index - 1;
@@ -89,7 +90,16 @@ html, body, #elm-app, .content-frame {
     &.build-body {
       padding-top: @fixed-header-height + @builds-list-height + 10px;
     }
+
+    &.job-body {
+      padding-top: @fixed-header-height + @pagination-header-height + 10px;
+    }
   }
+}
+
+.pagination-header {
+  background: @base01;
+  line-height: @pagination-header-height;
 }
 
 #content { // TODO: kill id
