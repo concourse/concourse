@@ -8,7 +8,9 @@ import Login
 import String
 
 import Autoscroll
+
 import Job
+import Resource
 import Build
 import Routes
 import Pipeline
@@ -23,6 +25,7 @@ port renderFinished : (Bool -> msg) -> Sub msg
 type Model
   = BuildModel (Autoscroll.Model Build.Model)
   | JobModel Job.Model
+  | ResourceModel Resource.Model
   | LoginModel Login.Model
   | PipelineModel Pipeline.Model
   | SelectTeamModel TeamSelection.Model
@@ -30,6 +33,7 @@ type Model
 type Msg
   = BuildMsg (Autoscroll.Msg Build.Msg)
   | JobMsg Job.Msg
+  | ResourceMsg Resource.Msg
   | LoginMsg Login.Msg
   | PipelineMsg Pipeline.Msg
   | SelectTeamMsg TeamSelection.Msg
@@ -59,20 +63,23 @@ init route =
             Build.init <|
               Build.BuildPage <|
                 Result.withDefault 0 (String.toInt buildId)
+    Routes.Resource teamName pipelineName resourceName ->
+    let
+      (pageSince, pageUntil) =
+        parsePagination route
+    in
+      superDupleWrap (ResourceModel, ResourceMsg) <|
+        Resource.init
+            { resourceName = resourceName
+            , teamName = teamName
+            , pipelineName = pipelineName
+            , pageSince = pageSince
+            , pageUntil = pageUntil
+            }
     Routes.Job teamName pipelineName jobName ->
       let
-        pageSince =
-          case Dict.get "since" route.parsed.query of
-            Nothing ->
-              0
-            Just since ->
-              Result.withDefault 0 (String.toInt since)
-        pageUntil =
-          case Dict.get "until" route.parsed.query of
-            Nothing ->
-              0
-            Just until ->
-              Result.withDefault 0 (String.toInt until)
+        (pageSince, pageUntil) =
+          parsePagination route
       in
         superDupleWrap (JobModel, JobMsg) <|
           Job.init
@@ -113,6 +120,25 @@ init route =
           , turbulenceImgSrc = "" -- TODO this needs to be a real thing
           }
 
+parsePagination : Routes.ConcourseRoute -> (Int, Int)
+parsePagination route =
+  let
+    pageSince =
+      case Dict.get "since" route.parsed.query of
+        Nothing ->
+          0
+        Just since ->
+          Result.withDefault 0 (String.toInt since)
+    pageUntil =
+      case Dict.get "until" route.parsed.query of
+        Nothing ->
+          0
+        Just until ->
+          Result.withDefault 0 (String.toInt until
+          )
+    in
+      (pageSince, pageUntil)
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg mdl =
   case (msg, mdl) of
@@ -141,6 +167,8 @@ view mdl =
       Html.App.map BuildMsg <| Autoscroll.view Build.view model
     JobModel model ->
       Html.App.map JobMsg <| Job.view model
+    ResourceModel model ->
+      Html.App.map ResourceMsg <| Resource.view model
     LoginModel model ->
       Html.App.map LoginMsg <| Login.view model
     PipelineModel model ->
@@ -155,6 +183,8 @@ subscriptions mdl =
       Sub.map BuildMsg <| Autoscroll.subscriptions Build.subscriptions model
     JobModel model ->
       Sub.map JobMsg <| Job.subscriptions model
+    ResourceModel model ->
+      Sub.map ResourceMsg <| Resource.subscriptions model
     LoginModel model ->
       Sub.map LoginMsg <| Login.subscriptions model
     PipelineModel model ->
