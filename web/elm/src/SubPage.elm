@@ -150,6 +150,8 @@ update msg mdl =
       superDupleWrap (LoginModel, LoginMsg) <| Login.update message model
     (PipelineMsg message, PipelineModel model) ->
       superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.update message model
+    (ResourceMsg message, ResourceModel model) ->
+      superDupleWrap (ResourceModel, ResourceMsg) <| Resource.update message model
     (SelectTeamMsg message, SelectTeamModel model) ->
       superDupleWrap (SelectTeamModel, SelectTeamMsg) <| TeamSelection.update message model
     _ ->
@@ -167,12 +169,12 @@ view mdl =
       Html.App.map BuildMsg <| Autoscroll.view Build.view model
     JobModel model ->
       Html.App.map JobMsg <| Job.view model
-    ResourceModel model ->
-      Html.App.map ResourceMsg <| Resource.view model
     LoginModel model ->
       Html.App.map LoginMsg <| Login.view model
     PipelineModel model ->
       Html.App.map PipelineMsg <| Pipeline.view model
+    ResourceModel model ->
+      Html.App.map ResourceMsg <| Resource.view model
     SelectTeamModel model ->
       Html.App.map SelectTeamMsg <| TeamSelection.view model
 
@@ -183,11 +185,11 @@ subscriptions mdl =
       Sub.map BuildMsg <| Autoscroll.subscriptions Build.subscriptions model
     JobModel model ->
       Sub.map JobMsg <| Job.subscriptions model
-    ResourceModel model ->
-      Sub.map ResourceMsg <| Resource.subscriptions model
     LoginModel model ->
       Sub.map LoginMsg <| Login.subscriptions model
     PipelineModel model ->
       Sub.map PipelineMsg <| Pipeline.subscriptions model
+    ResourceModel model ->
+      Sub.map ResourceMsg <| Resource.subscriptions model
     SelectTeamModel model ->
       Sub.map SelectTeamMsg <| TeamSelection.subscriptions model

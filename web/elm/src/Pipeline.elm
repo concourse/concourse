@@ -6,6 +6,8 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Encode
 import Process
+import Svg
+import Svg.Attributes as SvgAttributes
 import Task
 import Time exposing (Time)
 
@@ -122,8 +124,12 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   Html.div []
-    [---  Html.svg [ class "pipeline-graph test", width 100, height 100] []
-      Html.div [if model.experiencingTurbulence then class "error-message" else class "error-message hidden"]
+    [ Svg.svg
+      [ SvgAttributes.class "pipeline-graph test"
+      , SvgAttributes.width "100%"
+      , SvgAttributes.height "100%"
+      ] []
+    , Html.div [if model.experiencingTurbulence then class "error-message" else class "error-message hidden"]
         [ Html.div [class "message"]
             [ Html.img [src model.turbulenceImgSrc, class "seatbelt"] []
             , Html.p [] [Html.text "experiencing turbulence"]
