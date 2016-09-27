@@ -20,18 +20,21 @@
         <p class="explanation"></p>
       </div>
     </div> -->
-    <svg class="pipeline-graph test" width="100%" height="100%"></svg>
     <div id="elm-app-embed"></div>
+
     <script type="text/javascript">
       var node = document.getElementById("elm-app-embed");
       var app = Elm.Main.embed(node);
 
 
       app.ports.renderPipeline.subscribe(function (values) {
-        var svg = createPipelineSvg(d3.select(".pipeline-graph"))
-        var jobs = values[0];
-        var resources = values[1];
-        draw(svg, jobs, resources);
+        foundSvg = d3.select(".pipeline-graph");
+        var svg = createPipelineSvg(foundSvg)
+        if (svg.node() != null) {
+          var jobs = values[0];
+          var resources = values[1];
+          draw(svg, jobs, resources);
+        }
         app.ports.renderFinished.send(true);
       })
       //
