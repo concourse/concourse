@@ -18,6 +18,7 @@ import Concourse.Pagination exposing (Pagination, Paginated, Page)
 import Concourse.BuildResources exposing (fetch)
 import BuildDuration
 import DictView
+import Navigation
 import Redirect
 import StrictEvents exposing (onLeftClick)
 
@@ -41,6 +42,7 @@ type Msg
   | ClockTick Time
   | TogglePaused
   | PausedToggled (Result Http.Error ())
+  | NavTo String
 
 type alias FetchedBuildResources =
   { index : Int
@@ -197,6 +199,8 @@ update action model =
     PausedToggled (Err err) ->
       Debug.log ("failed to pause/unpause job: " ++ toString err) <|
         (model, Cmd.none)
+    NavTo url ->
+      (model, Navigation.newUrl url)
 
 permalink : List Concourse.Build -> Page
 permalink builds =
@@ -327,16 +331,21 @@ viewPaginationBar model =
             ]
           ]
         Just page ->
-          Html.div [ class "btn-page-link"]
-          [ Html.a
-            [ class "arrow"
-            , href <| "/teams/" ++ model.jobIdentifier.teamName ++ "/pipelines/" ++ model.jobIdentifier.pipelineName ++ "/jobs/"
+          let
+            jobUrl =
+              "/teams/" ++ model.jobIdentifier.teamName ++ "/pipelines/" ++ model.jobIdentifier.pipelineName ++ "/jobs/"
               ++ model.jobIdentifier.jobName ++ "?" ++ paginationParam page
-            , attribute "aria-label" "Previous Page"
+          in
+            Html.div [ class "btn-page-link"]
+            [ Html.a
+              [ class "arrow"
+              , StrictEvents.onLeftClick <| NavTo jobUrl
+              , href jobUrl
+              , attribute "aria-label" "Previous Page"
+              ]
+              [ Html.i [ class "fa fa-arrow-left"] []
+              ]
             ]
-            [ Html.i [ class "fa fa-arrow-left"] []
-            ]
-          ]
     , case model.pagination.nextPage of
         Nothing ->
           Html.div [ class "btn-page-link disabled"]
@@ -345,16 +354,21 @@ viewPaginationBar model =
             ]
           ]
         Just page ->
-          Html.div [ class "btn-page-link"]
-          [ Html.a
-            [ class "arrow"
-            , href <| "/teams/" ++ model.jobIdentifier.teamName ++ "/pipelines/" ++ model.jobIdentifier.pipelineName ++ "/jobs/"
-              ++ model.jobIdentifier.jobName ++ "?" ++ paginationParam page
-            , attribute "aria-label" "Next Page"
+          let
+            jobUrl =
+              "/teams/" ++ model.jobIdentifier.teamName ++ "/pipelines/" ++ model.jobIdentifier.pipelineName ++ "/jobs/"
+                ++ model.jobIdentifier.jobName ++ "?" ++ paginationParam page
+          in
+            Html.div [ class "btn-page-link"]
+            [ Html.a
+              [ class "arrow"
+              , StrictEvents.onLeftClick <| NavTo jobUrl
+              , href jobUrl
+              , attribute "aria-label" "Next Page"
+              ]
+              [ Html.i [ class "fa fa-arrow-right"] []
+              ]
             ]
-            [ Html.i [ class "fa fa-arrow-right"] []
-            ]
-          ]
     ]
 
 viewBuildWithResources : Model -> LiveUpdatingBuildWithResources -> Html Msg
@@ -376,6 +390,7 @@ viewBuildHeader : Model -> Concourse.Build -> Html Msg
 viewBuildHeader model b =
   Html.a
   [class <| Concourse.BuildStatus.show b.status
+  , StrictEvents.onLeftClick <| NavTo <| Concourse.Build.url b
   , href <| Concourse.Build.url b
   ]
   [ Html.text ("#" ++ b.name)

@@ -7,6 +7,7 @@ import Http
 import Json.Decode exposing ((:=))
 import List
 import Mouse exposing (Position)
+import Navigation
 import Task
 
 import Concourse
@@ -53,6 +54,7 @@ type Msg
   | Hover String (ListHover String)
   | Unhover String (ListHover String)
   | PipelinesReordered (Result Http.Error ())
+  | NavToPipeline String
 
 init : (Model, Cmd Msg)
 init =
@@ -89,12 +91,16 @@ update action model =
       ( mapModelPipelines (setPaused True) teamName pipelineName model
       , Cmd.none
       )
+    PipelinePaused teamName pipelineName (Err (Http.BadResponse 401 _)) ->
+      (model, Navigation.newUrl "/login")
     PipelinePaused teamName pipelineName (Err err) ->
       Debug.log
         ("failed to pause pipeline: " ++ toString err)
         ( mapModelPipelines updatePauseErrored teamName pipelineName model
         , Cmd.none
         )
+    PipelineUnpaused teamName pipelineName (Err (Http.BadResponse 401 _)) ->
+      (model, Navigation.newUrl "/login")
     PipelineUnpaused teamName pipelineName (Ok ()) ->
       ( mapModelPipelines (setPaused False) teamName pipelineName model
       , Cmd.none
@@ -192,6 +198,8 @@ update action model =
       (model, Cmd.none)
     PipelinesReordered (Err err) ->
       Debug.log ("failed to reorder pipelines: " ++ toString err) (model, Cmd.none)
+    NavToPipeline url ->
+      (model, Navigation.newUrl url)
 
 getPrevHover : Model -> Maybe (ListHover String)
 getPrevHover model =
@@ -413,23 +421,11 @@ viewDraggable maybeDragInfo uip =
     [ Html.div []
         [ viewPauseButton uip
         , Html.a
-            ( [ href uip.pipeline.url ] ++
-              if isPurposeful maybeDragInfo then
-                [ onLeftClick Noop ]
-              else
-                []
-            )
-            [ Html.text uip.pipeline.name ]
+          [ onLeftClick <| NavToPipeline uip.pipeline.url
+          , href uip.pipeline.url
+          ] [ Html.text uip.pipeline.name ]
         ]
     ]
-
-checkLeftClick : Json.Decode.Decoder ()
-checkLeftClick =
-  ("button" := Json.Decode.int) `Json.Decode.andThen` \button ->
-    if button == 0 then
-      Json.Decode.succeed ()
-    else
-      Json.Decode.fail "not left click"
 
 dragStyle : DragInfo -> Html.Attribute action
 dragStyle dragInfo =

@@ -90,6 +90,7 @@ type Msg
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
   | WindowScrolled Scroll.FromBottom
+  | NavTo String
 
 init : Page -> (Model, Cmd Msg)
 init page =
@@ -257,6 +258,9 @@ update action model =
         ({ model | autoScroll = True }, Cmd.none)
       else
         ({ model | autoScroll = False }, Cmd.none)
+
+    NavTo url ->
+      (model, Navigation.newUrl url)
 
 handleBuildFetched : Int -> Concourse.Build -> Model -> (Model, Cmd Msg)
 handleBuildFetched browsingIndex build model =
@@ -569,8 +573,15 @@ viewBuildHeader build {now, job, history} =
     buildTitle =
       case build.job of
         Just {jobName, teamName, pipelineName} ->
-          Html.a [href ("/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName)]
-            [Html.text (jobName ++ " #" ++ build.name)]
+          let
+            jobUrl =
+              "/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName
+          in
+            Html.a
+              [ StrictEvents.onLeftClick <| NavTo jobUrl
+              , href jobUrl
+              ]
+              [Html.text (jobName ++ " #" ++ build.name)]
 
         _ ->
           Html.text ("build #" ++ toString build.id)
