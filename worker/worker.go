@@ -572,7 +572,6 @@ func (worker *gardenWorker) createContainer(
 
 	volumeMounts := []VolumeMount{}
 	for name, outputPath := range outputPaths {
-		// TODO: create volume for container in creating > baggageclaim > created > initialized state
 		outVolume, err := worker.volumeClient.CreateVolumeForContainer(
 			logger,
 			VolumeSpec{
@@ -655,22 +654,6 @@ func (worker *gardenWorker) createContainer(
 	gardenProperties := garden.Properties{userPropertyName: imageMetadata.User}
 	if spec.User != "" {
 		gardenProperties = garden.Properties{userPropertyName: spec.User}
-	}
-
-	if len(volumeHandles) > 0 {
-		volumesJSON, err := json.Marshal(volumeHandles)
-		if err != nil {
-			return nil, err
-		}
-
-		gardenProperties[volumePropertyName] = string(volumesJSON)
-
-		mountsJSON, err := json.Marshal(volumeHandleMounts)
-		if err != nil {
-			return nil, err
-		}
-
-		gardenProperties[volumeMountsPropertyName] = string(mountsJSON)
 	}
 
 	if spec.Ephemeral {

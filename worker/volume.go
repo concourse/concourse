@@ -136,6 +136,10 @@ func (v *volume) Release(finalTTL *time.Duration) {
 	})
 }
 
+func (v *volume) Destroy() error {
+	return v.Volume.Destroy()
+}
+
 func (v *volume) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker, initialTTL time.Duration) {
 	defer v.heartbeating.Done()
 	defer pacemaker.Stop()
