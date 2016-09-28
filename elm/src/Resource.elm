@@ -1,4 +1,4 @@
-module Resource exposing (Flags, Msg(..), Model, init, update, view, autoupdateTimer, subscriptions)
+module Resource exposing (Flags, Msg(..), Model, init, update, view, subscriptions)
 
 import Concourse
 import Concourse.BuildStatus
@@ -13,9 +13,9 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onClick)
 import Http
 import Navigation
+import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
-import Redirect
 
 type alias Model =
   { resourceIdentifier : Concourse.ResourceIdentifier
@@ -51,6 +51,7 @@ type Msg
   | ExpandVersionedResource Int
   | InputToFetched Int (Result Http.Error (List Concourse.Build))
   | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
+  | NavTo String
 
 type alias Flags =
   { teamName : String
@@ -126,7 +127,7 @@ update action model =
     PausedToggled (Ok ()) ->
       ( { model | pausedChanging = Stable} , Cmd.none)
     PausedToggled (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, Navigation.newUrl "/login")
     PausedToggled (Err err) ->
       Debug.log ("failed to pause/unpause resource checking: " ++ toString err) <|
       case model.resource of
@@ -225,7 +226,7 @@ update action model =
         , Cmd.none
         )
     VersionedResourceToggled _ (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, Navigation.newUrl "/login")
     VersionedResourceToggled versionID (Err err) ->
       let
         oldState =
@@ -271,7 +272,7 @@ update action model =
           Cmd.none
         )
     InputToFetched _ (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, Navigation.newUrl "/login")
     InputToFetched _ (Err err) ->
       (model, Cmd.none)
     InputToFetched versionID (Ok builds) ->
@@ -289,7 +290,7 @@ update action model =
         , Cmd.none
         )
     OutputOfFetched _ (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, Navigation.newUrl "/login")
     OutputOfFetched _ (Err err) ->
       (model, Cmd.none)
     OutputOfFetched versionID (Ok builds) ->
@@ -306,6 +307,9 @@ update action model =
           }
         , Cmd.none
         )
+
+    NavTo url ->
+      (model, Navigation.newUrl url)
 
 permalink : List Concourse.VersionedResource -> Page
 permalink versionedResources =
@@ -575,11 +579,11 @@ listToMap builds =
   in
     List.foldr insertBuild Dict.empty builds
 
-viewBuilds : Dict.Dict String (List Concourse.Build) -> List (Html a)
+viewBuilds : Dict.Dict String (List Concourse.Build) -> List (Html Msg)
 viewBuilds buildDict =
   List.concatMap (viewBuildsByJob buildDict) <| Dict.keys buildDict
 
-viewBuildsByJob : Dict.Dict String (List Concourse.Build) -> String -> List (Html a)
+viewBuildsByJob : Dict.Dict String (List Concourse.Build) -> String -> List (Html Msg)
 viewBuildsByJob buildDict jobName =
   let
     oneBuildToLi =
@@ -593,7 +597,10 @@ viewBuildsByJob buildDict jobName =
                 "/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds/" ++ build.name
         in
           Html.li [class <| Concourse.BuildStatus.show build.status]
-            [ Html.a [href link] [Html.text <| "#" ++ build.name]
+            [ Html.a
+              [ StrictEvents.onLeftClick <| NavTo link
+              , href link
+              ] [Html.text <| "#" ++ build.name]
             ]
   in
     [ Html.h3 [class "man pas ansi-bright-black-bg"] [Html.text jobName]
@@ -644,10 +651,6 @@ fetchInputAndOutputs model versionedResource =
     , fetchOutputOf identifier
     ]
 
-autoupdateTimer : Model -> Sub Msg
-autoupdateTimer model =
-  Time.every (5 * Time.second) AutoupdateTimerTicked
-
 fetchResource : Concourse.ResourceIdentifier -> Cmd Msg
 fetchResource resourceIdentifier =
   Cmd.map ResourceFetched << Task.perform Err Ok <|
@@ -688,11 +691,6 @@ fetchOutputOf versionedResourceIdentifier =
   Cmd.map (OutputOfFetched versionedResourceIdentifier.versionID) << Task.perform Err Ok <|
     Concourse.Resource.fetchOutputOf versionedResourceIdentifier
 
-redirectToLogin : Model -> Cmd Msg
-redirectToLogin model =
-  Cmd.map (always Noop) << Task.perform Err Ok <|
-    Redirect.to "/login"
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  Time.every (5 * Time.second) AutoupdateTimerTicked

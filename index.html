@@ -26,7 +26,6 @@
       var node = document.getElementById("elm-app-embed");
       var app = Elm.Main.embed(node);
 
-
       app.ports.renderPipeline.subscribe(function (values) {
         foundSvg = d3.select(".pipeline-graph");
         var svg = createPipelineSvg(foundSvg)
@@ -35,9 +34,8 @@
           var resources = values[1];
           draw(svg, jobs, resources);
         }
-        app.ports.renderFinished.send(true);
       })
-      //
+
       // app.ports.setTitle.subscribe(function(title) {
       //   document.title = title + " - Concourse";
       // });

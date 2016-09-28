@@ -19,7 +19,6 @@ import TeamSelection
 -- TODO: move ports somewhere else
 
 port renderPipeline : (Json.Encode.Value, Json.Encode.Value) -> Cmd msg
-port renderFinished : (Bool -> msg) -> Sub msg
 -- port setTitle : String -> Cmd msg
 
 type Model
@@ -113,7 +112,6 @@ init route =
       superDupleWrap (PipelineModel, PipelineMsg) <|
         Pipeline.init
           { render = renderPipeline
-          , renderFinished = renderFinished
           }
           { teamName = teamName
           , pipelineName = pipelineName
@@ -159,8 +157,16 @@ update msg mdl =
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =
-  -- TODO update this so that pages which require url update handling have a special Msg for it
-  (model, Cmd.none)
+  case (route.logical, model) of
+    (Routes.Pipeline team pipeline, PipelineModel mdl) ->
+      superDupleWrap (PipelineModel, PipelineMsg) <|
+        Pipeline.loadPipeline
+          { teamName = team
+          , pipelineName = pipeline
+          }
+          mdl
+    _ ->
+      (model, Cmd.none)
 
 view : Model -> Html Msg
 view mdl =
