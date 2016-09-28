@@ -4,7 +4,7 @@ import Ansi.Log
 import Date exposing (Date)
 import Html exposing (Html)
 import Html.App
-import Html.Attributes exposing (action, class, classList, href, id, method, title)
+import Html.Attributes exposing (action, class, classList, id, method, title)
 import Http
 import Task exposing (Task)
 

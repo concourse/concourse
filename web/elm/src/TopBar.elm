@@ -15,7 +15,6 @@ import Time
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
-import Redirect
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 
@@ -64,6 +63,7 @@ type Msg
   | SetGroups (List String)
   | SelectGroups (List String)
   | LogOut
+  | NavTo String
   | LoggedOut (Result Concourse.User.Error ())
   | ToggleUserMenu
   | SetViewingPipeline Bool
@@ -155,7 +155,10 @@ update msg model =
       (model, logOut)
 
     LoggedOut (Ok _) ->
-      ({ model | userState = UserStateLoggedOut }, redirectToHome)
+      ({ model | userState = UserStateLoggedOut }, Navigation.newUrl "/")
+
+    NavTo url ->
+      (model, Navigation.newUrl url)
 
     LoggedOut (Err msg) ->
       always (model, Cmd.none) <|
@@ -298,7 +301,8 @@ view model =
               ]
            , Html.li [class "main"]
               [ Html.a
-                  [ Html.Attributes.href <|
+                  [ StrictEvents.onLeftClick <| NavTo "/"
+                  , Html.Attributes.href <|
                       Maybe.withDefault "/" (Maybe.map .url model.pipeline)
                   ]
                   [ Html.i [class "fa fa-home"] []
@@ -325,7 +329,8 @@ viewUserState userState userMenuVisible =
     UserStateLoggedOut ->
       Html.div [class "user-info"]
         [ Html.a
-            [ href "/login"
+            [ StrictEvents.onLeftClick <| NavTo "/login"
+            , href "/login"
             , Html.Attributes.attribute "aria-label" "Log In"
             , class "login-button"
             ]
@@ -380,8 +385,3 @@ logOut : Cmd Msg
 logOut =
   Cmd.map LoggedOut <|
     Task.perform Err Ok Concourse.User.logOut
-
-redirectToHome : Cmd Msg
-redirectToHome =
-  Cmd.map (always Noop) << Task.perform Err Ok <|
-    Redirect.to "/"
