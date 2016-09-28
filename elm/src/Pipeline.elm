@@ -1,13 +1,15 @@
-port module Pipeline exposing (Model, Msg, Flags, init, update, view, subscriptions)
+port module Pipeline exposing (Model, Msg, Flags, init, update, view, subscriptions, loadPipeline)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, style, src, width, height)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Encode
-import Process
-import Svg
+import Json.Decode exposing ((:=))
+import Json.Decode.Extra exposing ((|:))
+import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
+import Svg.Events as SvgEvents
 import Task
 import Time exposing (Time)
 
@@ -19,30 +21,19 @@ import Concourse.Resource
 
 type alias Ports =
   { render : (Json.Encode.Value, Json.Encode.Value) -> Cmd Msg
-  , renderFinished : (Bool -> Msg) -> Sub Msg
   }
 
 type alias Model =
   { ports : Ports
   , pipelineLocator : Concourse.PipelineIdentifier
-  , fetchedJobs : FetchedJobsState
-  , fetchedResources : FetchedResourcesState
+  , fetchedJobs : Maybe Json.Encode.Value
+  , fetchedResources : Maybe Json.Encode.Value
   , renderedJobs : Maybe Json.Encode.Value
   , renderedResources : Maybe Json.Encode.Value
   , concourseVersion : String
   , turbulenceImgSrc : String
   , experiencingTurbulence : Bool
   }
-
-type FetchedResourcesState
-  = FetchedResourcesStateScheduled
-  | FetchedResourcesStateFetched Json.Encode.Value
-  | FetchedResourcesStateFailed
-
-type FetchedJobsState
-  = FetchedJobsStateScheduled
-  | FetchedJobsStateFetched Json.Encode.Value
-  | FetchedJobsStateFailed
 
 type alias Flags =
   { teamName : String
@@ -53,7 +44,7 @@ type alias Flags =
 type Msg
   = Noop
   | AutoupdateVersionTicked Time
-  | RenderFinished Bool
+  | AutoupdateTimerTicked Time
   | JobsFetched (Result Http.Error Json.Encode.Value)
   | ResourcesFetched (Result Http.Error Json.Encode.Value)
   | VersionFetched (Result Http.Error String)
@@ -65,23 +56,36 @@ init ports flags =
       { teamName = flags.teamName
       , pipelineName = flags.pipelineName
       }
-  in
-    ( { ports = ports
-      , pipelineLocator = pipelineLocator
-      , fetchedJobs = FetchedJobsStateScheduled
-      , fetchedResources = FetchedResourcesStateScheduled
-      , renderedJobs = Nothing
-      , renderedResources = Nothing
+    model =
+      { ports = ports
       , concourseVersion = ""
       , turbulenceImgSrc = flags.turbulenceImgSrc
+      , pipelineLocator = pipelineLocator
+      , fetchedJobs = Nothing
+      , fetchedResources = Nothing
+      , renderedJobs = Nothing
+      , renderedResources = Nothing
       , experiencingTurbulence = False
       }
-    , Cmd.batch
-        [ fetchJobsAfterDelay 0 pipelineLocator
-        , fetchResourcesAfterDelay 0 pipelineLocator
-        , fetchVersion
-        ]
-    )
+  in
+    loadPipeline pipelineLocator model
+
+loadPipeline : Concourse.PipelineIdentifier -> Model -> (Model, Cmd Msg)
+loadPipeline pipelineLocator model =
+      ( { model
+        | pipelineLocator = pipelineLocator
+        , fetchedJobs = Nothing
+        , fetchedResources = Nothing
+        , renderedJobs = Nothing
+        , renderedResources = Nothing
+        , experiencingTurbulence = False
+        }
+      , Cmd.batch
+          [ fetchJobs pipelineLocator
+          , fetchResources pipelineLocator
+          , fetchVersion
+          ]
+      )
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -89,23 +93,28 @@ update msg model =
     Noop ->
       (model, Cmd.none)
 
+    AutoupdateTimerTicked timestamp ->
+      ( model
+      , Cmd.batch
+          [ fetchJobs model.pipelineLocator
+          , fetchResources model.pipelineLocator
+          ]
+      )
+
     AutoupdateVersionTicked _ ->
       (model, fetchVersion)
 
-    RenderFinished _ ->
-      scheduleResourcesAndJobsFetching model
-
     JobsFetched (Ok fetchedJobs) ->
-      renderAndSchedule { model | fetchedJobs = FetchedJobsStateFetched fetchedJobs, experiencingTurbulence = False }
+      renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
 
     JobsFetched (Err err) ->
-      renderAndSchedule { model | fetchedJobs = FetchedJobsStateFailed, experiencingTurbulence = True }
+      renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
 
     ResourcesFetched (Ok fetchedResources) ->
-      renderAndSchedule { model | fetchedResources = FetchedResourcesStateFetched fetchedResources, experiencingTurbulence = False }
+      renderIfNeeded { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }
 
     ResourcesFetched (Err err) ->
-      renderAndSchedule { model | fetchedResources = FetchedResourcesStateFailed, experiencingTurbulence = True }
+      renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
 
     VersionFetched (Ok version) ->
       ({ model | concourseVersion = version, experiencingTurbulence = False }, Cmd.none)
@@ -118,7 +127,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ autoupdateVersionTimer
-    , model.ports.renderFinished RenderFinished
+    , Time.every (5 * Time.second) AutoupdateTimerTicked
     ]
 
 view : Model -> Html Msg
@@ -191,49 +200,26 @@ autoupdateVersionTimer : Sub Msg
 autoupdateVersionTimer =
   Time.every (1 * Time.minute) AutoupdateVersionTicked
 
-renderAndSchedule : Model -> (Model, Cmd Msg)
-renderAndSchedule model =
-  case model.fetchedResources of
-    FetchedResourcesStateFetched fetchedResources ->
-      case model.fetchedJobs of
-        FetchedJobsStateFetched fetchedJobs ->
-          if model.renderedJobs == Just fetchedJobs && model.renderedResources == Just fetchedResources then
-            scheduleResourcesAndJobsFetching model
-          else
-            ( { model | renderedJobs = Just fetchedJobs, renderedResources = Just fetchedResources }
-            , model.ports.render (fetchedJobs, fetchedResources)
-            )
-
-        FetchedJobsStateScheduled ->
-          (model, Cmd.none)
-
-        FetchedJobsStateFailed ->
-          scheduleResourcesAndJobsFetching model
-
-    FetchedResourcesStateScheduled ->
+renderIfNeeded : Model -> (Model, Cmd Msg)
+renderIfNeeded model =
+  case (model.fetchedResources, model.fetchedJobs) of
+    (Just fetchedResources, Just fetchedJobs) ->
+      if model.renderedJobs /= Just fetchedJobs || model.renderedResources /= Just fetchedResources then
+        ( { model | renderedJobs = Just fetchedJobs, renderedResources = Just fetchedResources }
+        , model.ports.render (fetchedJobs, fetchedResources)
+        )
+      else
+        (model, Cmd.none)
+    _ ->
       (model, Cmd.none)
 
-    FetchedResourcesStateFailed ->
-      scheduleResourcesAndJobsFetching model
+fetchResources : Concourse.PipelineIdentifier -> Cmd Msg
+fetchResources pid =
+  Cmd.map ResourcesFetched << Task.perform Err Ok <| Concourse.Resource.fetchResourcesRaw pid
 
-scheduleResourcesAndJobsFetching : Model -> (Model, Cmd Msg)
-scheduleResourcesAndJobsFetching model =
-  ({ model | fetchedResources = FetchedResourcesStateScheduled, fetchedJobs = FetchedJobsStateScheduled }
-  , Cmd.batch
-      [ fetchResourcesAfterDelay (4 * Time.second) model.pipelineLocator
-      , fetchJobsAfterDelay (4 * Time.second) model.pipelineLocator
-      ]
-  )
-
-fetchResourcesAfterDelay : Time -> Concourse.PipelineIdentifier -> Cmd Msg
-fetchResourcesAfterDelay delay pid =
-  Cmd.map ResourcesFetched << Task.perform Err Ok <|
-    Process.sleep delay `Task.andThen` (always <| Concourse.Resource.fetchResourcesRaw pid)
-
-fetchJobsAfterDelay : Time -> Concourse.PipelineIdentifier -> Cmd Msg
-fetchJobsAfterDelay delay pid =
-  Cmd.map JobsFetched << Task.perform Err Ok <|
-    Process.sleep delay `Task.andThen` (always <| Concourse.Job.fetchJobsRaw pid)
+fetchJobs : Concourse.PipelineIdentifier -> Cmd Msg
+fetchJobs pid =
+  Cmd.map JobsFetched << Task.perform Err Ok <| Concourse.Job.fetchJobsRaw pid
 
 fetchVersion : Cmd Msg
 fetchVersion =
