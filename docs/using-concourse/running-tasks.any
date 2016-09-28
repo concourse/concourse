@@ -60,7 +60,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 
   \define-attribute{image_resource: object}{
     \italic{Optional.} The base image of the container. This style of
-    specifying the base image has the same affect as \code{image:} above but
+    specifying the base image has the same effect as \code{image:} above but
     uses Concourse resources to download the image.  The contents of this field
     should be the same as a resource configuration in your pipeline (without
     the name).
