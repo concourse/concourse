@@ -5,7 +5,8 @@ import Navigation exposing (Location)
 import Route exposing (..)
 
 type Route
-  = Build String String String String
+  = Home
+  | Build String String String String
   | Resource String String String
   | Job String String String
   | OneOffBuild String
@@ -65,7 +66,7 @@ sitemap =
 match : String -> Route
 match =
   Route.match sitemap
-      >> Maybe.withDefault SelectTeam
+      >> Maybe.withDefault Home
 
 toString : Route -> String
 toString route =
@@ -84,6 +85,8 @@ toString route =
       reverse login []
     TeamLogin teamName ->
       reverse teamLogin [ teamName ]
+    Home ->
+      "/"
 
 parsePath : Location -> ConcourseRoute
 parsePath location =
