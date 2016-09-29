@@ -1,7 +1,6 @@
 ELM_FILES = $(shell find elm/ -type f -name '*.elm' -or -name '*.js')
 LESS_FILES = $(shell find assets/css/ -type f -name '*.less')
 PUBLIC_FILES = $(shell find public/ -type f)
-TEMPLATE_FILES = $(shell find templates/ -type f)
 
 all: public/elm.min.js public/main.css bindata.go
 
@@ -19,6 +18,6 @@ public/main.css: $(LESS_FILES)
 public/elm.min.js: public/elm.js
 	uglifyjs < $< > $@
 
-bindata.go: $(PUBLIC_FILES) $(TEMPLATE_FILES)
+bindata.go: $(PUBLIC_FILES)
 	go-bindata ${DEV} -pkg web index.html public/...
 	go fmt bindata.go

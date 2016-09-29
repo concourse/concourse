@@ -17,8 +17,13 @@ import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
 
+type alias Ports =
+  { title : String -> Cmd Msg
+  }
+
 type alias Model =
-  { resourceIdentifier : Concourse.ResourceIdentifier
+  { ports : Ports
+  , resourceIdentifier : Concourse.ResourceIdentifier
   , resource : (Maybe Concourse.Resource)
   , pausedChanging : PauseChangingOrErrored
   , currentPage : Maybe Page
@@ -62,8 +67,8 @@ type alias Flags =
   }
 
 
-init : Flags -> (Model, Cmd Msg)
-init flags =
+init : Ports -> Flags -> (Model, Cmd Msg)
+init ports flags =
   let
     model =
       { resourceIdentifier =
@@ -82,6 +87,7 @@ init flags =
               }
           }
       , versionedUIStates = Dict.empty
+      , ports = ports
       }
   in
     ( model
@@ -107,7 +113,7 @@ update action model =
       )
     ResourceFetched (Ok resource) ->
       ( { model | resource = Just resource }
-      , Cmd.none
+      , model.ports.title <| resource.name ++ " - "
       )
     ResourceFetched (Err err) ->
       Debug.log ("failed to fetch resource: " ++ toString err) <|
