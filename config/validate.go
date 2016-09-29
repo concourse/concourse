@@ -116,6 +116,8 @@ func validateResources(c atc.Config) error {
 		}
 	}
 
+	errorMessages = append(errorMessages, validateResourcesUnused(c)...)
+
 	return compositeErr(errorMessages)
 }
 
@@ -151,6 +153,35 @@ func validateResourceTypes(c atc.Config) error {
 	}
 
 	return compositeErr(errorMessages)
+}
+
+func validateResourcesUnused(c atc.Config) []string {
+	usedResources := usedResources(c)
+
+	var errorMessages []string
+	for _, resource := range c.Resources {
+		if _, used := usedResources[resource.Name]; !used {
+			message := fmt.Sprintf("resource '%s' is not used", resource.Name)
+			errorMessages = append(errorMessages, message)
+		}
+	}
+
+	return errorMessages
+}
+
+func usedResources(c atc.Config) map[string]bool {
+	usedResources := make(map[string]bool)
+
+	for _, job := range c.Jobs {
+		for _, jobInput := range JobInputs(job) {
+			usedResources[jobInput.Resource] = true
+		}
+		for _, jobOutput := range JobOutputs(job) {
+			usedResources[jobOutput.Resource] = true
+		}
+	}
+
+	return usedResources
 }
 
 func validateJobs(c atc.Config) ([]Warning, error) {

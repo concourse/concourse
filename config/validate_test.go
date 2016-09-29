@@ -182,6 +182,154 @@ var _ = Describe("ValidateConfig", func() {
 		})
 	})
 
+	Describe("unused resources", func() {
+		BeforeEach(func() {
+			config = atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "unused-resource",
+						Type: "some-type",
+					},
+					{
+						Name: "get",
+						Type: "some-type",
+					},
+					{
+						Name: "get-alias",
+						Type: "some-type",
+					},
+					{
+						Name: "resource",
+						Type: "some-type",
+					},
+					{
+						Name: "put",
+						Type: "some-type",
+					},
+					{
+						Name: "put-alias",
+						Type: "some-type",
+					},
+					{
+						Name: "do",
+						Type: "some-type",
+					},
+					{
+						Name: "aggregate",
+						Type: "some-type",
+					},
+					{
+						Name: "failure",
+						Type: "some-type",
+					},
+					{
+						Name: "ensure",
+						Type: "some-type",
+					},
+					{
+						Name: "success",
+						Type: "some-type",
+					},
+					{
+						Name: "try",
+						Type: "some-type",
+					},
+					{
+						Name: "another-job",
+						Type: "some-type",
+					},
+				},
+
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						Plan: atc.PlanSequence{
+							{
+								Get: "get",
+							},
+							{
+								Get:      "get-alias",
+								Resource: "resource",
+							},
+							{
+								Put: "put",
+							},
+							{
+								Put:      "put-alias",
+								Resource: "resource",
+							},
+							{
+								Do: &atc.PlanSequence{
+									{
+										Get: "do",
+									},
+								},
+							},
+							{
+								Aggregate: &atc.PlanSequence{
+									{
+										Get: "aggregate",
+									},
+								},
+							},
+							{
+								Task:           "some-task",
+								TaskConfigPath: "some/config/path.yml",
+								Failure: &atc.PlanConfig{
+									Get: "failure",
+								},
+							},
+							{
+								Task:           "some-task",
+								TaskConfigPath: "some/config/path.yml",
+								Ensure: &atc.PlanConfig{
+									Get: "ensure",
+								},
+							},
+							{
+								Task:           "some-task",
+								TaskConfigPath: "some/config/path.yml",
+								Success: &atc.PlanConfig{
+									Get: "success",
+								},
+							},
+							{
+								Try: &atc.PlanConfig{
+									Get: "try",
+								},
+							},
+							{
+								Task:           "some-task",
+								TaskConfigPath: "some/config/path.yml",
+							},
+						},
+					},
+					{
+						Name: "another-job",
+						Plan: atc.PlanSequence{
+							{
+								Get: "another-job",
+							},
+							{
+								Task:           "some-task",
+								TaskConfigPath: "some/config/path.yml",
+							},
+						},
+					},
+				},
+			}
+		})
+
+		Context("when a resource is not used in any jobs", func() {
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("resource 'unused-resource' is not used"))
+				Expect(errorMessages[0]).To(ContainSubstring("resource 'get-alias' is not used"))
+				Expect(errorMessages[0]).To(ContainSubstring("resource 'put-alias' is not used"))
+			})
+		})
+	})
+
 	Describe("invalid resource types", func() {
 		Context("when a resource type has no name", func() {
 			BeforeEach(func() {
