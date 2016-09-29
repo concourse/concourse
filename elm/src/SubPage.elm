@@ -206,6 +206,21 @@ urlUpdate route model =
           , pipelineName = pipeline
           }
           mdl
+    (Routes.Build teamName pipelineName jobName buildName, BuildModel scrollModel) ->
+      let
+        (submodel, subcmd) =
+          Build.changeToBuild
+            ( Build.JobBuildPage
+                { teamName = teamName
+                , pipelineName = pipelineName
+                , jobName = jobName
+                , buildName = buildName
+                }
+            )
+            scrollModel.subModel
+      in
+        (BuildModel {scrollModel | subModel = submodel}
+        , Cmd.map BuildMsg (Cmd.map Autoscroll.SubMsg subcmd))
     _ ->
       (model, Cmd.none)
 
