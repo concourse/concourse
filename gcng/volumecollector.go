@@ -75,8 +75,8 @@ func (vc *volumeCollector) Run() error {
 			err = volume.Destroy()
 			if err != nil {
 				vc.logger.Error("failed-to-destroy-volume-in-bc", err)
+				continue
 			}
-			continue
 		}
 
 		vc.logger.Debug("destroying-volume", lager.Data{"handle": destroyingVolume.Handle})

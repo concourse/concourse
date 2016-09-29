@@ -1,0 +1,128 @@
+package gcng_test
+
+import (
+	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/gcng"
+	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/worker/workerfakes"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("VolumeCollector", func() {
+	var (
+		volumeCollector gcng.VolumeCollector
+
+		dbConn           dbng.Conn
+		volumeFactory    *dbng.VolumeFactory
+		containerFactory *dbng.ContainerFactory
+		teamFactory      *dbng.TeamFactory
+		buildFactory     *dbng.BuildFactory
+		fakeWorkerClient *workerfakes.FakeClient
+		fakeWorker       *workerfakes.FakeWorker
+		fakeBCVolume     *workerfakes.FakeVolume
+	)
+
+	BeforeEach(func() {
+		postgresRunner.Truncate()
+
+		dbConn = dbng.Wrap(postgresRunner.Open())
+		containerFactory = dbng.NewContainerFactory(dbConn)
+		volumeFactory = dbng.NewVolumeFactory(dbConn)
+		teamFactory = dbng.NewTeamFactory(dbConn)
+		buildFactory = dbng.NewBuildFactory(dbConn)
+
+		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeWorker = new(workerfakes.FakeWorker)
+		fakeWorker.NameReturns("some-worker")
+		fakeBCVolume = new(workerfakes.FakeVolume)
+		fakeWorker.LookupVolumeReturns(fakeBCVolume, true, nil)
+		fakeWorkerClient.WorkersReturns([]worker.Worker{fakeWorker}, nil)
+
+		logger := lagertest.NewTestLogger("volume-collector")
+		volumeCollector = gcng.NewVolumeCollector(
+			logger,
+			volumeFactory,
+			fakeWorkerClient,
+		)
+	})
+
+	AfterEach(func() {
+		err := dbConn.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("Run", func() {
+		BeforeEach(func() {
+			team, err := teamFactory.CreateTeam("some-team")
+			Expect(err).ToNot(HaveOccurred())
+
+			build, err := buildFactory.CreateOneOffBuild(team)
+			Expect(err).ToNot(HaveOccurred())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+			worker := &dbng.Worker{
+				Name:       "some-worker",
+				GardenAddr: "1.2.3.4:7777",
+			}
+			err = worker.Create(setupTx)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			creatingContainer1, err := containerFactory.CreateTaskContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+				Type: "task",
+				Name: "some-task",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingContainer2, err := containerFactory.CreateTaskContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+				Type: "task",
+				Name: "some-task",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingVolume1, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer1)
+			Expect(err).NotTo(HaveOccurred())
+			creatingVolume2, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer2)
+			Expect(err).NotTo(HaveOccurred())
+			creatingVolume3, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer1)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = creatingVolume1.Initialized("some-handle-1")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = creatingVolume2.Initialized("some-handle-2")
+			Expect(err).NotTo(HaveOccurred())
+			initializedVolume3, err := creatingVolume3.Initialized("some-handle-3")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = initializedVolume3.Destroying()
+			Expect(err).NotTo(HaveOccurred())
+
+			createdContainer1, err := creatingContainer1.Created("some-container-handle-1")
+			Expect(err).NotTo(HaveOccurred())
+			destroyingContainer1, err := createdContainer1.Destroying()
+			Expect(err).NotTo(HaveOccurred())
+			destroyed, err := destroyingContainer1.Destroy()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(destroyed).To(BeTrue())
+		})
+
+		It("deletes initialized and destroying orphaned volumes", func() {
+			initializedVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(initializedVolumes).To(HaveLen(1))
+			Expect(destoryingVolumes).To(HaveLen(1))
+
+			err = volumeCollector.Run()
+			Expect(err).NotTo(HaveOccurred())
+
+			initializedVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(initializedVolumes).To(HaveLen(0))
+			Expect(destoryingVolumes).To(HaveLen(0))
+
+			Expect(fakeBCVolume.DestroyCallCount()).To(Equal(2))
+		})
+	})
+})

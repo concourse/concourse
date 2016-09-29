@@ -23,7 +23,6 @@ var _ = Describe("VolumeFactory", func() {
 		volumeFactory = dbng.NewVolumeFactory(dbConn)
 		teamFactory = dbng.NewTeamFactory(dbConn)
 		buildFactory = dbng.NewBuildFactory(dbConn)
-
 	})
 
 	AfterEach(func() {

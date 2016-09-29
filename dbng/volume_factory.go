@@ -91,6 +91,7 @@ func (factory *VolumeFactory) GetOrphanedVolumes() ([]*InitializedVolume, []*Des
 					Name:       workerName,
 					GardenAddr: workerAddress,
 				},
+				conn: factory.conn,
 			})
 		case VolumeStateDestroying:
 			destroyingVolumes = append(destroyingVolumes, &DestroyingVolume{
@@ -100,6 +101,7 @@ func (factory *VolumeFactory) GetOrphanedVolumes() ([]*InitializedVolume, []*Des
 					Name:       workerName,
 					GardenAddr: workerAddress,
 				},
+				conn: factory.conn,
 			})
 		}
 	}

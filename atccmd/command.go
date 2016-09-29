@@ -32,6 +32,7 @@ import (
 	"github.com/concourse/atc/gc/containerkeepaliver"
 	"github.com/concourse/atc/gc/dbgc"
 	"github.com/concourse/atc/gc/lostandfound"
+	"github.com/concourse/atc/gcng"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
@@ -339,6 +340,19 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			sqlDB,
 			clock.NewClock(),
 			cmd.ResourceCacheCleanupInterval,
+		)},
+
+		{"volumecollector", lockrunner.NewRunner(
+			logger.Session("volume-collector"),
+			gcng.NewVolumeCollector(
+				logger.Session("volume-collector"),
+				dbVolumeFactory,
+				workerClient,
+			),
+			"volume-collector",
+			sqlDB,
+			clock.NewClock(),
+			30*time.Second,
 		)},
 
 		{"containerkeepaliver", lockrunner.NewRunner(
