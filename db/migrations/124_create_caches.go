@@ -15,8 +15,6 @@ func CreateCaches(tx migration.LimitedTx) error {
 		CREATE TYPE volume_state AS ENUM (
 			'creating',
 			'created',
-			'initializing',
-			'initialized',
 			'destroying'
 		)
 	`)
@@ -149,7 +147,8 @@ func CreateCaches(tx migration.LimitedTx) error {
 		ADD FOREIGN KEY (worker_name) REFERENCES workers (name) ON DELETE CASCADE,
 		ADD COLUMN resource_cache_id int REFERENCES resource_caches (id) ON DELETE SET NULL,
 		ADD COLUMN base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE SET NULL,
-		ADD COLUMN state volume_state NOT NULL DEFAULT 'initialized',
+		ADD COLUMN state volume_state NOT NULL DEFAULT 'created',
+		ADD COLUMN initialized bool NOT NULL DEFAULT false,
 		ADD COLUMN parent_id int,
 		ADD COLUMN parent_state volume_state,
 		ADD UNIQUE (id, state),
@@ -159,7 +158,7 @@ func CreateCaches(tx migration.LimitedTx) error {
 		),
 		ADD CONSTRAINT cannot_invalidate_during_initialization CHECK (
 			(
-				state IN ('initialized', 'destroying') AND (
+				state IN ('created', 'destroying') AND (
 					(
 						resource_cache_id IS NULL
 					) AND (

@@ -23,7 +23,7 @@ func (factory *VolumeFactory) CreateResourceCacheVolume(team *Team, worker *Work
 	}
 
 	defer tx.Rollback()
-	return factory.createVolume(tx, team.ID, worker, "resource_cache_id", resourceCache.ID)
+	return factory.createVolume(tx, team.ID, worker, map[string]interface{}{"resource_cache_id": resourceCache.ID})
 }
 
 func (factory *VolumeFactory) CreateBaseResourceTypeVolume(team *Team, worker *Worker, ubrt *UsedBaseResourceType) (*CreatingVolume, error) {
@@ -34,10 +34,13 @@ func (factory *VolumeFactory) CreateBaseResourceTypeVolume(team *Team, worker *W
 
 	defer tx.Rollback()
 
-	return factory.createVolume(tx, team.ID, worker, "base_resource_type_id", ubrt.ID)
+	return factory.createVolume(tx, team.ID, worker, map[string]interface{}{
+		"base_resource_type_id": ubrt.ID,
+		"initialized":           true,
+	})
 }
 
-func (factory *VolumeFactory) CreateContainerVolume(team *Team, worker *Worker, container *CreatingContainer) (*CreatingVolume, error) {
+func (factory *VolumeFactory) CreateContainerVolume(team *Team, worker *Worker, container *CreatingContainer, mountPath string) (*CreatingVolume, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -45,10 +48,14 @@ func (factory *VolumeFactory) CreateContainerVolume(team *Team, worker *Worker, 
 
 	defer tx.Rollback()
 
-	return factory.createVolume(tx, team.ID, worker, "container_id", container.ID)
+	return factory.createVolume(tx, team.ID, worker, map[string]interface{}{
+		"container_id": container.ID,
+		"path":         mountPath,
+		"initialized":  true,
+	})
 }
 
-func (factory *VolumeFactory) GetOrphanedVolumes() ([]*InitializedVolume, []*DestroyingVolume, error) {
+func (factory *VolumeFactory) GetOrphanedVolumes() ([]*CreatedVolume, []*DestroyingVolume, error) {
 	query, args, err := psql.Select("v.id, v.handle, v.state, w.name, w.addr").
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
@@ -68,7 +75,7 @@ func (factory *VolumeFactory) GetOrphanedVolumes() ([]*InitializedVolume, []*Des
 	}
 	defer rows.Close()
 
-	initializedVolumes := []*InitializedVolume{}
+	createdVolumes := []*CreatedVolume{}
 	destroyingVolumes := []*DestroyingVolume{}
 
 	for rows.Next() {
@@ -83,8 +90,8 @@ func (factory *VolumeFactory) GetOrphanedVolumes() ([]*InitializedVolume, []*Des
 			return nil, nil, err
 		}
 		switch state {
-		case VolumeStateInitialized:
-			initializedVolumes = append(initializedVolumes, &InitializedVolume{
+		case VolumeStateCreated:
+			createdVolumes = append(createdVolumes, &CreatedVolume{
 				ID:     id,
 				Handle: handle,
 				Worker: &Worker{
@@ -106,7 +113,7 @@ func (factory *VolumeFactory) GetOrphanedVolumes() ([]*InitializedVolume, []*Des
 		}
 	}
 
-	return initializedVolumes, destroyingVolumes, nil
+	return createdVolumes, destroyingVolumes, nil
 }
 
 // 1. open tx
@@ -125,11 +132,18 @@ var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer e
 // 3. insert into volumes in 'initializing' state
 //   * if fails (fkey violation; worker type gone), fail for same reason as 2.
 // 4. commit tx
-func (factory *VolumeFactory) createVolume(tx Tx, teamID int, worker *Worker, parentColumnName string, parentColumnValue int) (*CreatingVolume, error) {
+func (factory *VolumeFactory) createVolume(tx Tx, teamID int, worker *Worker, columns map[string]interface{}) (*CreatingVolume, error) {
 	var volumeID int
+	columnNames := []string{"team_id", "worker_name"}
+	columnValues := []interface{}{teamID, worker.Name}
+	for name, value := range columns {
+		columnNames = append(columnNames, name)
+		columnValues = append(columnValues, value)
+	}
+
 	err := psql.Insert("volumes").
-		Columns("team_id", "worker_name", parentColumnName).
-		Values(teamID, worker.Name, parentColumnValue).
+		Columns(columnNames...).
+		Values(columnValues...).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().

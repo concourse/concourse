@@ -323,7 +323,7 @@ func (worker *gardenWorker) getImageForContainer(
 		defer imageSpec.ImageVolumeAndMetadata.Volume.Release(nil)
 
 		var err error
-		imageVolume, err = worker.volumeClient.CreateVolumeForContainer(
+		imageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
 			VolumeSpec{
 				Strategy: ContainerRootFSStrategy{
@@ -337,9 +337,8 @@ func (worker *gardenWorker) getImageForContainer(
 				GardenAddr: worker.addr,
 			},
 			container,
-			&dbng.Team{
-				ID: teamID,
-			},
+			&dbng.Team{ID: teamID},
+			"/",
 		)
 
 		if err != nil {
@@ -372,7 +371,7 @@ func (worker *gardenWorker) getImageForContainer(
 			return nil, ImageMetadata{}, nil, "", err
 		}
 
-		imageVolume, err = worker.volumeClient.CreateVolumeForContainer(
+		imageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
 			logger.Session("create-cow-volume"),
 			VolumeSpec{
 				Strategy: ContainerRootFSStrategy{
@@ -386,9 +385,9 @@ func (worker *gardenWorker) getImageForContainer(
 				GardenAddr: worker.addr,
 			},
 			container,
-			&dbng.Team{
-				ID: teamID,
-			})
+			&dbng.Team{ID: teamID},
+			"/",
+		)
 
 		if err != nil {
 			return nil, ImageMetadata{}, nil, "", err
@@ -546,7 +545,7 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 
 			defer importVolume.Release(nil)
 
-			cowVolume, err := worker.volumeClient.CreateVolumeForContainer(
+			cowVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 				logger,
 				VolumeSpec{
 					Strategy: ContainerRootFSStrategy{
@@ -562,6 +561,7 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 				},
 				container,
 				&dbng.Team{ID: teamID},
+				"/",
 			)
 			if err != nil {
 				return "", nil, atc.Version{}, err
@@ -806,7 +806,7 @@ func (worker *gardenWorker) createContainer(
 
 	volumeMounts := []VolumeMount{}
 	for name, outputPath := range outputPaths {
-		outVolume, err := worker.volumeClient.CreateVolumeForContainer(
+		outVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
 			VolumeSpec{
 				Strategy:   OutputStrategy{Name: name},
@@ -818,9 +818,8 @@ func (worker *gardenWorker) createContainer(
 				GardenAddr: worker.addr,
 			},
 			creatingContainer,
-			&dbng.Team{
-				ID: spec.TeamID,
-			},
+			&dbng.Team{ID: spec.TeamID},
+			outputPath,
 		)
 		if err != nil {
 			return nil, err
@@ -835,7 +834,7 @@ func (worker *gardenWorker) createContainer(
 	}
 
 	for _, mount := range spec.Inputs {
-		cowVolume, err := worker.volumeClient.CreateVolumeForContainer(
+		cowVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
 			VolumeSpec{
 				Strategy: ContainerRootFSStrategy{
@@ -849,9 +848,8 @@ func (worker *gardenWorker) createContainer(
 				GardenAddr: worker.addr,
 			},
 			creatingContainer,
-			&dbng.Team{
-				ID: spec.TeamID,
-			},
+			&dbng.Team{ID: spec.TeamID},
+			mount.MountPath,
 		)
 		if err != nil {
 			return nil, err

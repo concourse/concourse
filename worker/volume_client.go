@@ -14,7 +14,14 @@ import (
 type VolumeClient interface {
 	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
 	CreateVolume(logger lager.Logger, vs VolumeSpec, teamID int) (Volume, error)
-	CreateVolumeForContainer(lager.Logger, VolumeSpec, *dbng.Worker, *dbng.CreatingContainer, *dbng.Team) (Volume, error)
+	FindOrCreateVolumeForContainer(
+		lager.Logger,
+		VolumeSpec,
+		*dbng.Worker,
+		*dbng.CreatingContainer,
+		*dbng.Team,
+		string,
+	) (Volume, error)
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
@@ -76,14 +83,15 @@ func (c *volumeClient) FindVolume(
 	return c.LookupVolume(logger, savedVolume.Handle)
 }
 
-func (c *volumeClient) CreateVolumeForContainer(
+func (c *volumeClient) FindOrCreateVolumeForContainer(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
 	worker *dbng.Worker,
 	container *dbng.CreatingContainer,
 	team *dbng.Team,
+	mountPath string,
 ) (Volume, error) {
-	creatingVolume, err := c.dbVolumeFactory.CreateContainerVolume(team, worker, container)
+	creatingVolume, err := c.dbVolumeFactory.CreateContainerVolume(team, worker, container, mountPath)
 	if err != nil {
 		logger.Error("failed-to-create-volume-in-db", err)
 		return nil, err
@@ -98,7 +106,7 @@ func (c *volumeClient) CreateVolumeForContainer(
 		return nil, err
 	}
 
-	_, err = creatingVolume.Initialized(bcVolume.Handle())
+	_, err = creatingVolume.Created(bcVolume.Handle())
 	if err != nil {
 		logger.Error("failed-to-initialize-volume", err)
 		return nil, err
