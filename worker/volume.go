@@ -99,6 +99,7 @@ func (vf *volumeFactory) BuildWithIndefiniteTTL(logger lager.Logger, bcVol bagga
 		db:     vf.db,
 	}
 
+	metric.TrackedVolumes.Inc()
 	return vol, nil
 }
 

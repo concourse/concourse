@@ -573,7 +573,8 @@ var _ = Describe("Worker", func() {
 
 				imageVersion = atc.Version{"image": "version"}
 
-				fakeImage.FetchReturns(imageVolume, metadataReader, imageVersion, nil)
+				fakeImage.FetchReturns(new(wfakes.FakeVolume), metadataReader, imageVersion, nil)
+				fakeVolumeClient.CreateVolumeReturns(imageVolume, nil)
 			})
 
 			It("tries to create the container in the db", func() {
@@ -706,7 +707,8 @@ var _ = Describe("Worker", func() {
 
 				imageVersion := atc.Version{"image": "version"}
 
-				fakeImage.FetchReturns(imageVolume, metadataReader, imageVersion, nil)
+				fakeImage.FetchReturns(new(wfakes.FakeVolume), metadataReader, imageVersion, nil)
+				fakeVolumeClient.CreateVolumeReturns(imageVolume, nil)
 			})
 
 			It("tries to create the container in the db", func() {
@@ -1042,9 +1044,10 @@ var _ = Describe("Worker", func() {
 
 				containerMetadata.Type = db.ContainerTypeTask
 				containerSpec.ImageSpec.ImageVolumeAndMetadata = ImageVolumeAndMetadata{
-					Volume:         imageVolume,
+					Volume:         new(wfakes.FakeVolume),
 					MetadataReader: metadataReader,
 				}
+				fakeVolumeClient.CreateVolumeReturns(imageVolume, nil)
 			})
 
 			It("tries to create the container in the db", func() {

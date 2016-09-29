@@ -108,18 +108,6 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 
 	i.logger.Debug("created-volume-for-image", lager.Data{"handle": volume.Handle()})
 
-	volumeSpec := worker.VolumeSpec{
-		Strategy: worker.ContainerRootFSStrategy{
-			Parent: volume,
-		},
-		Privileged: i.privileged,
-		TTL:        worker.ContainerTTL,
-	}
-	cowVolume, err := i.workerClient.CreateVolume(i.logger.Session("create-cow-volume"), volumeSpec, i.teamID)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
 	reader, err := vesionedSource.StreamOut(ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
@@ -138,7 +126,7 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		releaseFunc: func() { fetchSource.Release(nil) },
 	}
 
-	return cowVolume, releasingReader, version, nil
+	return volume, releasingReader, version, nil
 }
 
 func (i *image) getLatestVersion() (atc.Version, error) {

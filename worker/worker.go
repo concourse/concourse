@@ -197,9 +197,33 @@ func (worker *gardenWorker) getImage(
 		}
 	}
 
-	imageVolume := imageSpec.ImageVolumeAndMetadata.Volume
-	imageMetadataReader := imageSpec.ImageVolumeAndMetadata.MetadataReader
+	var imageVolume Volume
+	var imageMetadataReader io.ReadCloser
 	var version atc.Version
+
+	// `image` in task
+	if imageSpec.ImageVolumeAndMetadata.Volume != nil {
+		defer imageSpec.ImageVolumeAndMetadata.Volume.Release(nil)
+
+		var err error
+		imageVolume, err = worker.CreateVolume(
+			logger,
+			VolumeSpec{
+				Strategy: ContainerRootFSStrategy{
+					Parent: imageSpec.ImageVolumeAndMetadata.Volume,
+				},
+				Privileged: imageSpec.Privileged,
+				TTL:        VolumeTTL,
+			},
+			teamID,
+		)
+
+		if err != nil {
+			return nil, ImageMetadata{}, nil, "", err
+		}
+
+		imageMetadataReader = imageSpec.ImageVolumeAndMetadata.MetadataReader
+	}
 
 	// 'image_resource:' in task
 	if imageResource != nil {
@@ -218,7 +242,20 @@ func (worker *gardenWorker) getImage(
 			imageSpec.Privileged,
 		)
 
-		imageVolume, imageMetadataReader, version, err = image.Fetch()
+		var imageParentVolume Volume
+		imageParentVolume, imageMetadataReader, version, err = image.Fetch()
+		if err != nil {
+			return nil, ImageMetadata{}, nil, "", err
+		}
+
+		volumeSpec := VolumeSpec{
+			Strategy: ContainerRootFSStrategy{
+				Parent: imageParentVolume,
+			},
+			Privileged: imageSpec.Privileged,
+			TTL:        ContainerTTL,
+		}
+		imageVolume, err = worker.CreateVolume(logger.Session("create-cow-volume"), volumeSpec, teamID)
 		if err != nil {
 			return nil, ImageMetadata{}, nil, "", err
 		}
@@ -242,6 +279,140 @@ func (worker *gardenWorker) getImage(
 	// built-in resource type specified in step
 	if imageSpec.ResourceType != "" {
 		rootFSURL, volume, resourceTypeVersion, err := worker.getBuiltInResourceTypeImage(logger, imageSpec.ResourceType, teamID)
+		if err != nil {
+			return nil, ImageMetadata{}, nil, "", err
+		}
+
+		return volume, ImageMetadata{}, resourceTypeVersion, rootFSURL, nil
+	}
+
+	// 'image:' in task
+	return nil, ImageMetadata{}, nil, imageSpec.ImageURL, nil
+}
+
+func (worker *gardenWorker) getImageForContainer(
+	logger lager.Logger,
+	container *dbng.CreatingContainer,
+	imageSpec ImageSpec,
+	teamID int,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	resourceTypes atc.ResourceTypes,
+) (Volume, ImageMetadata, atc.Version, string, error) {
+	// convert custom resource type from pipeline config into image_resource
+	updatedResourceTypes := resourceTypes
+	imageResource := imageSpec.ImageResource
+	for _, resourceType := range resourceTypes {
+		if resourceType.Name == imageSpec.ResourceType {
+			updatedResourceTypes = resourceTypes.Without(imageSpec.ResourceType)
+			imageResource = &atc.ImageResource{
+				Source: resourceType.Source,
+				Type:   resourceType.Type,
+			}
+		}
+	}
+
+	var imageVolume Volume
+	var imageMetadataReader io.ReadCloser
+	var version atc.Version
+
+	// `image` in task
+	if imageSpec.ImageVolumeAndMetadata.Volume != nil {
+		defer imageSpec.ImageVolumeAndMetadata.Volume.Release(nil)
+
+		var err error
+		imageVolume, err = worker.volumeClient.CreateVolumeForContainer(
+			logger,
+			VolumeSpec{
+				Strategy: ContainerRootFSStrategy{
+					Parent: imageSpec.ImageVolumeAndMetadata.Volume,
+				},
+				Privileged: imageSpec.Privileged,
+				TTL:        VolumeTTL,
+			},
+			&dbng.Worker{
+				Name:       worker.name,
+				GardenAddr: worker.addr,
+			},
+			container,
+			&dbng.Team{
+				ID: teamID,
+			},
+		)
+
+		if err != nil {
+			return nil, ImageMetadata{}, nil, "", err
+		}
+
+		imageMetadataReader = imageSpec.ImageVolumeAndMetadata.MetadataReader
+	}
+
+	// 'image_resource:' in task
+	if imageResource != nil {
+		image := worker.imageFactory.NewImage(
+			logger.Session("image"),
+			cancel,
+			*imageResource,
+			id,
+			metadata,
+			worker.tags,
+			teamID,
+			updatedResourceTypes,
+			worker,
+			delegate,
+			imageSpec.Privileged,
+		)
+
+		var imageParentVolume Volume
+		var err error
+		imageParentVolume, imageMetadataReader, version, err = image.Fetch()
+		if err != nil {
+			return nil, ImageMetadata{}, nil, "", err
+		}
+
+		imageVolume, err = worker.volumeClient.CreateVolumeForContainer(
+			logger.Session("create-cow-volume"),
+			VolumeSpec{
+				Strategy: ContainerRootFSStrategy{
+					Parent: imageParentVolume,
+				},
+				Privileged: imageSpec.Privileged,
+				TTL:        ContainerTTL,
+			},
+			&dbng.Worker{
+				Name:       worker.name,
+				GardenAddr: worker.addr,
+			},
+			container,
+			&dbng.Team{
+				ID: teamID,
+			})
+
+		if err != nil {
+			return nil, ImageMetadata{}, nil, "", err
+		}
+	}
+
+	// use image artifact from previous step in subsequent task within the same job
+	if imageVolume != nil {
+		metadata, err := loadMetadata(imageMetadataReader)
+		if err != nil {
+			return nil, ImageMetadata{}, nil, "", err
+		}
+
+		imageURL := url.URL{
+			Scheme: RawRootFSScheme,
+			Path:   path.Join(imageVolume.Path(), "rootfs"),
+		}
+
+		return imageVolume, metadata, version, imageURL.String(), nil
+	}
+
+	// built-in resource type specified in step
+	if imageSpec.ResourceType != "" {
+		rootFSURL, volume, resourceTypeVersion, err := worker.getBuiltInResourceTypeImageForContainer(logger, container, imageSpec.ResourceType, teamID)
 		if err != nil {
 			return nil, ImageMetadata{}, nil, "", err
 		}
@@ -342,6 +513,72 @@ func (worker *gardenWorker) getBuiltInResourceTypeImage(
 	return "", nil, atc.Version{}, ErrUnsupportedResourceType
 }
 
+func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
+	logger lager.Logger,
+	container *dbng.CreatingContainer,
+	resourceTypeName string,
+	teamID int,
+) (string, Volume, atc.Version, error) {
+	for _, t := range worker.resourceTypes {
+		if t.Type == resourceTypeName {
+			importVolumeSpec := VolumeSpec{
+				Strategy: HostRootFSStrategy{
+					Path:       t.Image,
+					Version:    &t.Version,
+					WorkerName: worker.Name(),
+				},
+				Privileged: true,
+				Properties: VolumeProperties{},
+				TTL:        0,
+			}
+
+			importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
+			if err != nil {
+				return "", nil, atc.Version{}, err
+			}
+
+			if !found {
+				importVolume, err = worker.CreateVolume(logger, importVolumeSpec, 0)
+				if err != nil {
+					return "", nil, atc.Version{}, err
+				}
+			}
+
+			defer importVolume.Release(nil)
+
+			cowVolume, err := worker.volumeClient.CreateVolumeForContainer(
+				logger,
+				VolumeSpec{
+					Strategy: ContainerRootFSStrategy{
+						Parent: importVolume,
+					},
+					Privileged: true,
+					Properties: VolumeProperties{},
+					TTL:        VolumeTTL,
+				},
+				&dbng.Worker{
+					Name:       worker.name,
+					GardenAddr: worker.addr,
+				},
+				container,
+				&dbng.Team{ID: teamID},
+			)
+			if err != nil {
+				return "", nil, atc.Version{}, err
+			}
+
+			rootFSURL := url.URL{
+				Scheme: RawRootFSScheme,
+				Path:   cowVolume.Path(),
+			}
+
+			return rootFSURL.String(), cowVolume, atc.Version{resourceTypeName: t.Version}, nil
+		}
+	}
+
+	return "", nil, atc.Version{}, ErrUnsupportedResourceType
+}
+
 func loadMetadata(tarReader io.ReadCloser) (ImageMetadata, error) {
 	defer tarReader.Close()
 
@@ -415,7 +652,6 @@ func (worker *gardenWorker) CreateContainer(
 
 	volumeMounts := spec.Outputs
 	for _, mount := range spec.Inputs {
-		// TODO: create volume for container in creating > baggageclaim > created > initialized state
 		cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
 			Strategy: ContainerRootFSStrategy{
 				Parent: mount.Volume,
@@ -553,8 +789,9 @@ func (worker *gardenWorker) createContainer(
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
-	imageVolume, imageMetadata, resourceTypeVersion, imageURL, err := worker.getImage(
+	imageVolume, imageMetadata, resourceTypeVersion, imageURL, err := worker.getImageForContainer(
 		logger,
+		creatingContainer,
 		spec.ImageSpec,
 		spec.TeamID,
 		cancel,
@@ -565,9 +802,6 @@ func (worker *gardenWorker) createContainer(
 	)
 	if err != nil {
 		return nil, err
-	}
-	if imageVolume != nil {
-		defer imageVolume.Release(nil)
 	}
 
 	volumeMounts := []VolumeMount{}

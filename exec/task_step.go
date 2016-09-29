@@ -303,8 +303,6 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		return nil, []inputPair{}, err
 	}
 
-	// create container in creating state
-
 	outputPaths := map[string]string{}
 	for _, output := range config.Outputs {
 		path := artifactsPath(output, step.artifactsRoot)
@@ -325,7 +323,6 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 
 		if existsOnWorker {
 			step.logger.Debug("found-existing-image-artifact-volume")
-			defer volume.Release(nil)
 		} else {
 			step.logger.Debug("creating-image-artifact-volume")
 			volume, err = chosenWorker.CreateVolume(
@@ -343,41 +340,25 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 				return nil, nil, err
 			}
 
-			defer volume.Release(nil)
-
 			dest := workerArtifactDestination{
 				destination: volume,
 			}
 
 			err = source.StreamTo(&dest)
 			if err != nil {
+				volume.Release(nil)
 				return nil, nil, err
 			}
 		}
 
-		cowVolume, err := chosenWorker.CreateVolume(
-			step.logger,
-			worker.VolumeSpec{
-				Strategy: worker.ContainerRootFSStrategy{
-					Parent: volume,
-				},
-				Privileged: bool(step.privileged),
-				TTL:        worker.VolumeTTL,
-			},
-			step.teamID,
-		)
-
-		if err != nil {
-			return nil, nil, err
-		}
-
 		reader, err := source.StreamFile(image.ImageMetadataFile)
 		if err != nil {
+			volume.Release(nil)
 			return nil, nil, err
 		}
 
 		imageMetadata := worker.ImageVolumeAndMetadata{
-			Volume:         cowVolume,
+			Volume:         volume,
 			MetadataReader: reader,
 		}
 
@@ -418,6 +399,9 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	)
 
 	if err != nil {
+		if imageSpec.ImageVolumeAndMetadata.Volume != nil {
+			imageSpec.ImageVolumeAndMetadata.Volume.Release(nil)
+		}
 		step.logger.Error("failed-to-create-task-container", err, lager.Data{"id": runContainerID})
 		return nil, nil, err
 	}
