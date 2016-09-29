@@ -28,8 +28,8 @@ type WorkerCommand struct {
 
 	WorkDir string `long:"work-dir" required:"true" description:"Directory in which to place container data."`
 
-	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for the Garden server."`
-	BindPort uint16 `long:"bind-port" default:"7777"    description:"Port on which to listen for the Garden server."`
+	BindIP   IPFlag `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
+	BindPort uint16 `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`
 
 	PeerIP IPFlag `long:"peer-ip" description:"IP used to reach this worker from the ATC nodes. If omitted, the worker will be forwarded through the SSH connection to the TSA."`
 
