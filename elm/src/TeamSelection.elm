@@ -13,6 +13,11 @@ import Concourse
 import Concourse.Team
 import StrictEvents exposing (onLeftClick)
 
+
+type alias Ports =
+  { title : String -> Cmd Msg
+  }
+
 type alias Model =
   { teamFilter : String
   , teams : Maybe (List Concourse.Team)
@@ -25,14 +30,17 @@ type Msg
   | TeamsFetched (Result Http.Error (List Concourse.Team))
   | SelectTeam String
 
-init : String -> (Model, Cmd Msg)
-init redirect =
-      ( { teamFilter = ""
-        , teams = Nothing
-        , redirect = redirect
-        }
-      , Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
-      )
+init : Ports -> String -> (Model, Cmd Msg)
+init ports redirect =
+  ( { teamFilter = ""
+    , teams = Nothing
+    , redirect = redirect
+    }
+  , Cmd.batch
+      [ Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
+      , ports.title "Login - "
+      ]
+  )
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =

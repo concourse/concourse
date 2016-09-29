@@ -40,6 +40,10 @@ import Redirect
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import Scroll
 
+type alias Ports =
+  { title : String -> Cmd Msg
+  }
+
 type Page
   = BuildPage Int
   | JobBuildPage Concourse.JobBuildIdentifier
@@ -66,6 +70,7 @@ type alias Model =
   , currentBuild : Maybe CurrentBuild
   , browsingIndex : Int
   , autoScroll : Bool
+  , ports : Ports
   }
 
 type StepRenderingState
@@ -92,8 +97,8 @@ type Msg
   | WindowScrolled Scroll.FromBottom
   | NavTo String
 
-init : Page -> (Model, Cmd Msg)
-init page =
+init : Ports -> Page -> (Model, Cmd Msg)
+init ports page =
   let
     (model, cmd) =
       changeToBuild
@@ -104,6 +109,7 @@ init page =
         , currentBuild = Nothing
         , browsingIndex = 0
         , autoScroll = True
+        , ports = ports
         }
   in
     (model, Cmd.batch [cmd, getCurrentTime])
@@ -143,6 +149,15 @@ changeToBuild page model =
         JobBuildPage jbi ->
           fetchJobBuild newIndex jbi
     )
+
+extractTitle : Model -> String
+extractTitle model =
+  case (model.currentBuild, model.job) of
+    (Just build, Just job) ->
+      job.name ++ ((" #" ++ build.build.name) ++ " - ")
+    (Just build, Nothing) ->
+      "#" ++ (build.build.name ++ " - ")
+    _ -> ""
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -316,6 +331,7 @@ handleBuildFetched browsingIndex build model =
         Cmd.batch
           [ cmd
           , setFavicon build.status
+          , model.ports.title <| extractTitle newModel
           , fetchJobAndHistory
           ])
   else
@@ -348,7 +364,7 @@ handleBuildJobFetched job model =
     withJobDetails =
       { model | job = Just job }
   in
-    (withJobDetails, Cmd.none)
+    (withJobDetails, model.ports.title <| extractTitle withJobDetails)
 
 handleHistoryFetched : Paginated Concourse.Build -> Model -> (Model, Cmd Msg)
 handleHistoryFetched history model =

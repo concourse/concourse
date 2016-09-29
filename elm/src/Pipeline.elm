@@ -5,6 +5,7 @@ import Html.Attributes exposing (class, href, id, style, src, width, height)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Encode
+import Navigation
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Task
@@ -18,6 +19,7 @@ import Concourse.Resource
 
 type alias Ports =
   { render : (Json.Encode.Value, Json.Encode.Value) -> Cmd Msg
+  , title : String -> Cmd Msg
   }
 
 type alias Model =
@@ -81,6 +83,7 @@ loadPipeline pipelineLocator model =
           [ fetchJobs pipelineLocator
           , fetchResources pipelineLocator
           , fetchVersion
+          , model.ports.title <| model.pipelineLocator.pipelineName ++ " - "
           ]
       )
 
@@ -104,11 +107,17 @@ update msg model =
     JobsFetched (Ok fetchedJobs) ->
       renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
 
+    JobsFetched (Err (Http.BadResponse 401 _)) ->
+      (model, Navigation.newUrl "/login")
+
     JobsFetched (Err err) ->
       renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
 
     ResourcesFetched (Ok fetchedResources) ->
       renderIfNeeded { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }
+
+    ResourcesFetched (Err (Http.BadResponse 401 _)) ->
+      (model, Navigation.newUrl "/login")
 
     ResourcesFetched (Err err) ->
       renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }

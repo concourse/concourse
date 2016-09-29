@@ -24,6 +24,7 @@ import TeamSelection
 -- TODO: move ports somewhere else
 
 port renderPipeline : (Json.Encode.Value, Json.Encode.Value) -> Cmd msg
+port setTitle : String -> Cmd msg
 -- port setTitle : String -> Cmd msg
 
 type Model
@@ -57,7 +58,7 @@ init turbulencePath route =
       superDupleWrap (BuildModel, BuildMsg) <|
         Autoscroll.init
           Build.getScrollBehavior <<
-            Build.init <|
+            Build.init {title = setTitle} <|
               Build.JobBuildPage
                 { teamName = teamName
                 , pipelineName = pipelineName
@@ -68,16 +69,17 @@ init turbulencePath route =
       superDupleWrap (BuildModel, BuildMsg) <|
         Autoscroll.init
           Build.getScrollBehavior <<
-            Build.init <|
+            Build.init {title = setTitle} <|
               Build.BuildPage <|
                 Result.withDefault 0 (String.toInt buildId)
     Routes.Resource teamName pipelineName resourceName ->
-    let
-      (pageSince, pageUntil) =
-        parsePagination route
-    in
-      superDupleWrap (ResourceModel, ResourceMsg) <|
-        Resource.init
+      let
+        (pageSince, pageUntil) =
+          parsePagination route
+      in
+        superDupleWrap (ResourceModel, ResourceMsg) <|
+          Resource.init
+            { title = setTitle }
             { resourceName = resourceName
             , teamName = teamName
             , pipelineName = pipelineName
@@ -91,6 +93,7 @@ init turbulencePath route =
       in
         superDupleWrap (JobModel, JobMsg) <|
           Job.init
+            { title = setTitle }
             { jobName = jobName
             , teamName = teamName
             , pipelineName = pipelineName
@@ -106,7 +109,8 @@ init turbulencePath route =
             Just path ->
               path
       in
-        superDupleWrap (SelectTeamModel, SelectTeamMsg) <| TeamSelection.init redirect
+        superDupleWrap (SelectTeamModel, SelectTeamMsg) <|
+          TeamSelection.init {title = setTitle} redirect
     Routes.TeamLogin teamName ->
       let
         redirect =
@@ -116,18 +120,25 @@ init turbulencePath route =
             Just path ->
               path
       in
-        superDupleWrap (LoginModel, LoginMsg) <| Login.init teamName redirect
+        superDupleWrap (LoginModel, LoginMsg) <|
+          Login.init {title = setTitle} teamName redirect
     Routes.Pipeline teamName pipelineName ->
       superDupleWrap (PipelineModel, PipelineMsg) <|
         Pipeline.init
           { render = renderPipeline
+          , title = setTitle
           }
           { teamName = teamName
           , pipelineName = pipelineName
           , turbulenceImgSrc = turbulencePath
           }
     Routes.Home ->
-      (WaitingModel, fetchPipelines)
+      ( WaitingModel
+      , Cmd.batch
+          [ fetchPipelines
+          , setTitle ""
+          ]
+      )
 
 parsePagination : Routes.ConcourseRoute -> (Int, Int)
 parsePagination route =
@@ -172,7 +183,7 @@ update turbulence msg mdl =
       in
         case pipeline of
           Nothing ->
-            (NoPipelineModel, Cmd.none)
+            (NoPipelineModel, setTitle "")
           Just p ->
             let
               flags =
@@ -181,7 +192,7 @@ update turbulence msg mdl =
                 , turbulenceImgSrc = turbulence
                 }
             in
-             superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.init {render = renderPipeline} flags
+             superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.init {render = renderPipeline, title = setTitle} flags
     _ ->
       Debug.log "Impossible combination" (mdl, Cmd.none)
 

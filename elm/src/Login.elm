@@ -13,6 +13,10 @@ import Concourse.AuthMethod
 import Concourse.Login
 import StrictEvents exposing (onLeftClick)
 
+type alias Ports =
+  { title : String -> Cmd Msg
+  }
+
 type alias BasicAuthFields =
     { username : String
     , password : String
@@ -36,18 +40,21 @@ type Msg
   | LoginTokenReceived (Result Http.Error Concourse.AuthToken)
   | GoBack
 
-init : String -> String -> (Model, Cmd Msg)
-init teamName redirect =
+init : Ports -> String -> String -> (Model, Cmd Msg)
+init ports teamName redirect =
   ( { teamName = teamName
     , authMethods = Nothing
     , hasTeamSelectionInBrowserHistory = False
     , redirect = redirect
     , basicAuthInput = Nothing
     }
-  , Cmd.map
-      AuthFetched <|
-        Task.perform Err Ok <|
-          Concourse.AuthMethod.fetchAll teamName
+  , Cmd.batch
+      [ Cmd.map
+          AuthFetched <|
+            Task.perform Err Ok <|
+              Concourse.AuthMethod.fetchAll teamName
+      , ports.title "Login - "
+      ]
   )
 
 update : Msg -> Model -> (Model, Cmd Msg)
