@@ -8,6 +8,7 @@ module Build exposing
   , Msg(..)
   , getScrollBehavior
   , initJobBuildPage
+  , changeToBuild
   )
 
 import Date exposing (Date)
