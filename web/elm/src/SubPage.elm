@@ -50,8 +50,8 @@ superDupleWrap : ((a -> b), (c -> d)) -> (a, Cmd c) -> (b, Cmd d)
 superDupleWrap (modelFunc, msgFunc) (model, msg) =
   (modelFunc model, Cmd.map msgFunc msg)
 
-init : Routes.ConcourseRoute -> (Model, Cmd Msg)
-init route =
+init : String -> Routes.ConcourseRoute -> (Model, Cmd Msg)
+init turbulencePath route =
   case route.logical of
     Routes.Build teamName pipelineName jobName buildName ->
       superDupleWrap (BuildModel, BuildMsg) <|
@@ -124,7 +124,7 @@ init route =
           }
           { teamName = teamName
           , pipelineName = pipelineName
-          , turbulenceImgSrc = "" -- TODO this needs to be a real thing
+          , turbulenceImgSrc = turbulencePath
           }
     Routes.Home ->
       (WaitingModel, fetchPipelines)
@@ -148,8 +148,8 @@ parsePagination route =
     in
       (pageSince, pageUntil)
 
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg mdl =
+update : String -> Msg -> Model -> (Model, Cmd Msg)
+update turbulence msg mdl =
   case (msg, mdl) of
     (NoPipelineMsg msg, model) ->
       (model, fetchPipelines)
@@ -178,7 +178,7 @@ update msg mdl =
               flags =
                 { teamName = p.teamName
                 , pipelineName = p.name
-                , turbulenceImgSrc = ""
+                , turbulenceImgSrc = turbulence
                 }
             in
              superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.init {render = renderPipeline} flags
