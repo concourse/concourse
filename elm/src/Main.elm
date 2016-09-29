@@ -4,9 +4,9 @@ import Layout
 import Navigation
 import Routes
 
-main : Program Never
+main : Program Layout.Flags
 main =
-  Navigation.program
+  Navigation.programWithFlags
     (Navigation.makeParser Routes.parsePath)
     { init = Layout.init
     , update = Layout.update
