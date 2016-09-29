@@ -4,14 +4,19 @@ import Dict
 import Json.Encode
 import Html exposing (Html)
 import Html.App
+import Http
 import Login
 import String
+import Task
 
 import Autoscroll
 
+import Concourse
+import Concourse.Pipeline
 import Job
 import Resource
 import Build
+import NoPipeline
 import Routes
 import Pipeline
 import TeamSelection
@@ -22,7 +27,9 @@ port renderPipeline : (Json.Encode.Value, Json.Encode.Value) -> Cmd msg
 -- port setTitle : String -> Cmd msg
 
 type Model
-  = BuildModel (Autoscroll.Model Build.Model)
+  = WaitingModel
+  | NoPipelineModel
+  | BuildModel (Autoscroll.Model Build.Model)
   | JobModel Job.Model
   | ResourceModel Resource.Model
   | LoginModel Login.Model
@@ -30,7 +37,9 @@ type Model
   | SelectTeamModel TeamSelection.Model
 
 type Msg
-  = BuildMsg (Autoscroll.Msg Build.Msg)
+  = PipelinesFetched (Result Http.Error (List Concourse.Pipeline))
+  | NoPipelineMsg NoPipeline.Msg
+  | BuildMsg (Autoscroll.Msg Build.Msg)
   | JobMsg Job.Msg
   | ResourceMsg Resource.Msg
   | LoginMsg Login.Msg
@@ -117,6 +126,8 @@ init route =
           , pipelineName = pipelineName
           , turbulenceImgSrc = "" -- TODO this needs to be a real thing
           }
+    Routes.Home ->
+      (WaitingModel, fetchPipelines)
 
 parsePagination : Routes.ConcourseRoute -> (Int, Int)
 parsePagination route =
@@ -140,6 +151,8 @@ parsePagination route =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg mdl =
   case (msg, mdl) of
+    (NoPipelineMsg msg, model) ->
+      (model, fetchPipelines)
     (BuildMsg message, BuildModel scrollModel) ->
       superDupleWrap (BuildModel, BuildMsg) <| Autoscroll.update Build.update message scrollModel
     (JobMsg message, JobModel model) ->
@@ -152,6 +165,23 @@ update msg mdl =
       superDupleWrap (ResourceModel, ResourceMsg) <| Resource.update message model
     (SelectTeamMsg message, SelectTeamModel model) ->
       superDupleWrap (SelectTeamModel, SelectTeamMsg) <| TeamSelection.update message model
+    (PipelinesFetched (Ok pipelines), model) ->
+      let
+        pipeline =
+          List.head pipelines
+      in
+        case pipeline of
+          Nothing ->
+            (NoPipelineModel, Cmd.none)
+          Just p ->
+            let
+              flags =
+                { teamName = p.teamName
+                , pipelineName = p.name
+                , turbulenceImgSrc = ""
+                }
+            in
+             superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.init {render = renderPipeline} flags
     _ ->
       Debug.log "Impossible combination" (mdl, Cmd.none)
 
@@ -183,6 +213,10 @@ view mdl =
       Html.App.map ResourceMsg <| Resource.view model
     SelectTeamModel model ->
       Html.App.map SelectTeamMsg <| TeamSelection.view model
+    WaitingModel ->
+      Html.div [] []
+    NoPipelineModel ->
+      Html.App.map NoPipelineMsg <| NoPipeline.view
 
 subscriptions : Model -> Sub Msg
 subscriptions mdl =
@@ -193,9 +227,18 @@ subscriptions mdl =
       Sub.map JobMsg <| Job.subscriptions model
     LoginModel model ->
       Sub.map LoginMsg <| Login.subscriptions model
+    NoPipelineModel ->
+      Sub.map NoPipelineMsg <| NoPipeline.subscriptions
     PipelineModel model ->
       Sub.map PipelineMsg <| Pipeline.subscriptions model
     ResourceModel model ->
       Sub.map ResourceMsg <| Resource.subscriptions model
     SelectTeamModel model ->
       Sub.map SelectTeamMsg <| TeamSelection.subscriptions model
+    WaitingModel ->
+      Sub.none
+
+fetchPipelines : Cmd Msg
+fetchPipelines =
+  Cmd.map PipelinesFetched <|
+    Task.perform Err Ok Concourse.Pipeline.fetchPipelines

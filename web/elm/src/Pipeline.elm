@@ -5,11 +5,8 @@ import Html.Attributes exposing (class, href, id, style, src, width, height)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Encode
-import Json.Decode exposing ((:=))
-import Json.Decode.Extra exposing ((|:))
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
-import Svg.Events as SvgEvents
 import Task
 import Time exposing (Time)
 
