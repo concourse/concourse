@@ -1,4 +1,4 @@
-module Layout exposing (Model, Msg, init, update, urlUpdate, view, subscriptions)
+module Layout exposing (Flags, Model, Msg, init, update, urlUpdate, view, subscriptions)
 
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
@@ -9,11 +9,16 @@ import SideBar
 import Routes
 import SubPage
 
+type alias Flags =
+  { turbulenceImgSrc : String
+  }
+
 type alias Model =
   { subModel : SubPage.Model
   , topModel : TopBar.Model
   , sideModel : SideBar.Model
   , sidebarVisible : Bool
+  , turbulenceImgSrc : String
   }
 
 type Msg
@@ -21,11 +26,11 @@ type Msg
   | TopMsg TopBar.Msg
   | SideMsg SideBar.Msg
 
-init : Routes.ConcourseRoute -> (Model, Cmd (Msg))
-init route =
+init : Flags -> Routes.ConcourseRoute -> (Model, Cmd (Msg))
+init flags route =
   let
     (subModel, subCmd) =
-      SubPage.init route
+      SubPage.init flags.turbulenceImgSrc route
 
     (topModel, topCmd) =
       TopBar.init route
@@ -37,6 +42,7 @@ init route =
       , topModel = topModel
       , sideModel = sideModel
       , sidebarVisible = False
+      , turbulenceImgSrc = flags.turbulenceImgSrc
       }
     , Cmd.batch
         [ Cmd.map SubMsg subCmd
@@ -58,7 +64,7 @@ update msg model =
     SubMsg (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
       let
         (subModel, subCmd) =
-          SubPage.update (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel
+          SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel
       in
         ( { model
           | subModel = subModel
@@ -72,7 +78,7 @@ update msg model =
     -- otherwise, pass down
     SubMsg m ->
       let
-        (subModel, subCmd) = SubPage.update m model.subModel
+        (subModel, subCmd) = SubPage.update model.turbulenceImgSrc m model.subModel
       in
         ({ model | subModel = subModel }, Cmd.map SubMsg subCmd)
 
@@ -95,7 +101,7 @@ urlUpdate route model =
       if routeMatchesModel route model then
         SubPage.urlUpdate route model.subModel
       else
-        SubPage.init route
+        SubPage.init model.turbulenceImgSrc route
     (newTopModel, tCmd) =
       TopBar.urlUpdate route model.topModel
   in
