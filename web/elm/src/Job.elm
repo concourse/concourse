@@ -22,6 +22,10 @@ import Navigation
 import Redirect
 import StrictEvents exposing (onLeftClick)
 
+type alias Ports =
+  { title : String -> Cmd Msg
+  }
+
 type alias Model =
   { jobIdentifier : Concourse.JobIdentifier
   , job : (Maybe Concourse.Job)
@@ -30,6 +34,7 @@ type alias Model =
   , now : Time
   , page : Page
   , pagination : Pagination
+  , ports : Ports
   }
 
 type Msg
@@ -88,8 +93,8 @@ type alias Flags =
   , pageUntil : Int
   }
 
-init : Flags -> (Model, Cmd Msg)
-init flags =
+init : Ports -> Flags -> (Model, Cmd Msg)
+init ports flags =
   let
     model =
       { jobIdentifier =
@@ -113,6 +118,7 @@ init flags =
           { previousPage = Nothing
           , nextPage = Nothing
           }
+      , ports = ports
       }
   in
     ( model
@@ -154,7 +160,10 @@ update action model =
         (model, Cmd.none)
     JobFetched (Ok job) ->
       ( { model | job = Just job }
-      , fetchJob (5 * Time.second) model.jobIdentifier
+      , Cmd.batch
+          [ fetchJob (5 * Time.second) model.jobIdentifier
+          , model.ports.title <| job.name ++ " - "
+          ]
       )
     JobFetched (Err err) ->
       Debug.log ("failed to fetch job info: " ++ toString err) <|
