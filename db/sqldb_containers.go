@@ -702,6 +702,10 @@ func (db *SQLDB) ReapExpiredContainers() error {
 		DELETE FROM containers
 		WHERE expires_at IS NOT NULL
 		AND expires_at < NOW()
+		AND id NOT IN (
+			SELECT container_id FROM volumes
+			WHERE state='creating'
+		)
 	`)
 	if err != nil {
 		return err

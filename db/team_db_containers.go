@@ -11,11 +11,6 @@ import (
 const teamContainerJoins = containerJoins + "\nLEFT JOIN teams t ON c.team_id = t.id"
 
 func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, error) {
-	err := db.deleteExpiredContainers()
-	if err != nil {
-		return nil, err
-	}
-
 	var whereCriteria []string
 	var params []interface{}
 
@@ -66,6 +61,7 @@ func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, e
 
 	var checkSourceBlob []byte
 	if id.CheckSource != nil {
+		var err error
 		checkSourceBlob, err = json.Marshal(id.CheckSource)
 		if err != nil {
 			return nil, err
@@ -98,6 +94,7 @@ func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, e
 		SELECT `+containerColumns+`
 		FROM containers c `+teamContainerJoins+`
 		WHERE c.team_id = %d
+		AND (expires_at IS NULL OR expires_at > NOW())
 		`, team.ID)
 
 	if len(whereCriteria) > 0 {
@@ -127,11 +124,6 @@ func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, e
 }
 
 func (db *teamDB) GetContainer(handle string) (SavedContainer, bool, error) {
-	err := db.deleteExpiredContainers()
-	if err != nil {
-		return SavedContainer{}, false, err
-	}
-
 	team, found, err := db.GetTeam()
 	if err != nil {
 		return SavedContainer{}, false, err
@@ -146,6 +138,7 @@ func (db *teamDB) GetContainer(handle string) (SavedContainer, bool, error) {
 	  FROM containers c `+teamContainerJoins+`
 		WHERE c.handle = $1
 		AND c.team_id = %d
+		AND (expires_at IS NULL OR expires_at > NOW())
 	`, team.ID), handle))
 
 	if err != nil {
@@ -156,21 +149,4 @@ func (db *teamDB) GetContainer(handle string) (SavedContainer, bool, error) {
 	}
 
 	return container, true, nil
-}
-
-func (db *teamDB) deleteExpiredContainers() error {
-	_, err := db.conn.Exec(`
-		DELETE FROM containers
-		WHERE expires_at IS NOT NULL
-		AND expires_at < NOW()
-		AND id NOT IN (
-			SELECT container_id FROM volumes
-			WHERE state='creating'
-		)
-	`)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
