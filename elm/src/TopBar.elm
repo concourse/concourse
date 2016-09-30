@@ -1,7 +1,5 @@
 port module TopBar exposing (Model, Msg(..), init, update, urlUpdate, view, subscriptions, fetchUser)
 
-import Dict
-import Erl
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)
 import Html.Events exposing (onClick)
