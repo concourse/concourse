@@ -69,6 +69,30 @@ func (cache ResourceCache) FindOrCreateForResourceType(tx Tx, resourceType *Reso
 	return cache.findOrCreate(tx, usedResourceConfig, "resource_type_id", resourceType.ID)
 }
 
+func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
+	rows, err := psql.Delete("resource_caches").
+		Where(sq.Eq{
+			"id": cache.ID,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return false, err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if affected == 0 {
+		panic("TESTME")
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (cache ResourceCache) findOrCreate(tx Tx, resourceConfig *UsedResourceConfig, forColumnName string, forColumnID int) (*UsedResourceCache, error) {
 	id, found, err := cache.findWithResourceConfig(tx, resourceConfig)
 	if err != nil {

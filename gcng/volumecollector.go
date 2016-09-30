@@ -40,14 +40,14 @@ func (vc *volumeCollector) Run() error {
 		workersMap[worker.Name()] = worker
 	}
 
-	initializedVolumes, destroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
+	createdVolumes, destroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
 	if err != nil {
 		vc.logger.Error("failed-to-get-orphaned-volumes", err)
 		return err
 	}
 
-	for _, initializedVolume := range initializedVolumes {
-		destroyingVolume, err := initializedVolume.Destroying()
+	for _, createdVolume := range createdVolumes {
+		destroyingVolume, err := createdVolume.Destroying()
 		if err != nil {
 			vc.logger.Error("failed-to-mark-volume-as-destroying", err)
 			return err

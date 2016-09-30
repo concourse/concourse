@@ -53,6 +53,17 @@ var _ = Describe("VolumeFactory", func() {
 			}
 			err = worker.Create(setupTx)
 			Expect(err).ToNot(HaveOccurred())
+
+			resourceCache := dbng.ResourceCache{
+				ResourceConfig: dbng.ResourceConfig{
+					CreatedByBaseResourceType: &dbng.BaseResourceType{
+						Name: "some-resource-type",
+					},
+				},
+			}
+			usedResourceCache, err := resourceCache.FindOrCreateForBuild(setupTx, build)
+			Expect(err).NotTo(HaveOccurred())
+
 			Expect(setupTx.Commit()).To(Succeed())
 
 			creatingContainer, err := containerFactory.CreateTaskContainer(worker, build, "some-plan", dbng.ContainerMetadata{
@@ -68,12 +79,28 @@ var _ = Describe("VolumeFactory", func() {
 			creatingVolume3, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer, "some-path-3")
 			Expect(err).NotTo(HaveOccurred())
 
+			resourceCacheVolume, err := volumeFactory.CreateResourceCacheVolume(team, worker, usedResourceCache)
+			Expect(err).NotTo(HaveOccurred())
+
 			createdVolume1, err := creatingVolume1.Created("some-handle-1")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume2, err := creatingVolume2.Created("some-handle-2")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume3, err := creatingVolume3.Created("some-handle-3")
 			Expect(err).NotTo(HaveOccurred())
+			_, err = resourceCacheVolume.Created("some-rc-handle")
+			Expect(err).NotTo(HaveOccurred())
+
+			deleteTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+			deleted, err := build.Delete(deleteTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(deleted).To(BeTrue())
+
+			deleted, err = usedResourceCache.Destroy(deleteTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(deleted).To(BeTrue())
+			Expect(deleteTx.Commit()).To(Succeed())
 
 			destroyingVolume3, err := createdVolume3.Destroying()
 			Expect(err).NotTo(HaveOccurred())

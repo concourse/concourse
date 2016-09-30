@@ -106,7 +106,7 @@ var _ = Describe("VolumeCollector", func() {
 			Expect(destroyed).To(BeTrue())
 		})
 
-		It("deletes initialized and destroying orphaned volumes", func() {
+		It("deletes created and destroying orphaned volumes", func() {
 			createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdVolumes).To(HaveLen(1))

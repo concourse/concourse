@@ -60,6 +60,7 @@ func (factory *VolumeFactory) GetOrphanedVolumes() ([]*CreatedVolume, []*Destroy
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
 		Where(sq.Eq{
+			"v.initialized":           true,
 			"v.resource_cache_id":     nil,
 			"v.base_resource_type_id": nil,
 			"v.container_id":          nil,
