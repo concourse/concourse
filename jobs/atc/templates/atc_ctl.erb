@@ -156,6 +156,9 @@ case $1 in
       --metrics-host-name <%= name %>-<%= index %> \
       --metrics-attribute <%= esc("bosh-deployment:#{spec.deployment}") %> \
       --metrics-attribute <%= esc("bosh-job:#{name}") %> \
+      <% p("riemann.tags").each do |k,v| %> \
+      --metrics-attribute <%= esc(k) %>:<%= esc(v) %> \
+      <% end %> \
       1>>$LOG_DIR/atc.stdout.log \
       2>>$LOG_DIR/atc.stderr.log
 
