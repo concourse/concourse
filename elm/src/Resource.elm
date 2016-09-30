@@ -1,4 +1,4 @@
-module Resource exposing (Flags, Msg(..), Model, init, update, view, subscriptions)
+module Resource exposing (Flags, Msg(..), Model, init, changeToResource, update, view, subscriptions)
 
 import Concourse
 import Concourse.BuildStatus
@@ -26,8 +26,8 @@ type alias Model =
   , resourceIdentifier : Concourse.ResourceIdentifier
   , resource : (Maybe Concourse.Resource)
   , pausedChanging : PauseChangingOrErrored
-  , currentPage : Maybe Page
   , versionedResources : Paginated Concourse.VersionedResource
+  , currentPage : Maybe Page
   , versionedUIStates : Dict.Dict Int VersionUIState
   }
 
@@ -62,39 +62,57 @@ type alias Flags =
   { teamName : String
   , pipelineName : String
   , resourceName : String
-  , pageSince : Int
-  , pageUntil : Int
+  , paging : Maybe Concourse.Pagination.Page
   }
-
 
 init : Ports -> Flags -> (Model, Cmd Msg)
 init ports flags =
   let
-    model =
-      { resourceIdentifier =
-          { teamName = flags.teamName
-          , pipelineName = flags.pipelineName
-          , resourceName = flags.resourceName
-          }
-      , resource = Nothing
-      , pausedChanging = Stable
-      , currentPage = Nothing
-      , versionedResources =
-          { content = []
-          , pagination =
-              { previousPage = Nothing
-              , nextPage = Nothing
-              }
-          }
-      , versionedUIStates = Dict.empty
-      , ports = ports
-      }
+    (model, cmd) =
+      changeToResource flags
+        { resourceIdentifier =
+            { teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            , resourceName = flags.resourceName
+            }
+        , resource = Nothing
+        , pausedChanging = Stable
+        , currentPage = Nothing
+        , versionedResources =
+            { content = []
+            , pagination =
+                { previousPage = Nothing
+                , nextPage = Nothing
+                }
+            }
+        , versionedUIStates = Dict.empty
+        , ports = ports
+        }
   in
     ( model
     , Cmd.batch
         [ fetchResource model.resourceIdentifier
-        , fetchVersionedResources model.resourceIdentifier model.currentPage
+        , cmd
         ]
+    )
+
+changeToResource : Flags -> Model -> (Model, Cmd Msg)
+changeToResource flags model =
+  let
+    model =
+      { model
+      | currentPage = flags.paging
+      , versionedResources =
+        { content = []
+        , pagination =
+            { previousPage = Nothing
+            , nextPage = Nothing
+            }
+        }
+      }
+  in
+    ( model
+    , fetchVersionedResources model.resourceIdentifier flags.paging
     )
 
 update : Msg -> Model -> (Model, Cmd Msg)

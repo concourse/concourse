@@ -27,14 +27,13 @@ type alias Ports =
   }
 
 type alias Model =
-  { jobIdentifier : Concourse.JobIdentifier
+  { ports : Ports
+  , jobIdentifier : Concourse.JobIdentifier
   , job : (Maybe Concourse.Job)
   , pausedChanging : Bool
-  , buildsWithResources : Maybe (Array LiveUpdatingBuildWithResources)
+  , buildsWithResources : Paginated BuildWithResources
+  , currentPage : Maybe Page
   , now : Time
-  , page : Page
-  , pagination : Pagination
-  , ports : Ports
   }
 
 type Msg
@@ -43,89 +42,100 @@ type Msg
   | TriggerBuild
   | JobBuildsFetched (Result Http.Error (Paginated Concourse.Build))
   | JobFetched (Result Http.Error Concourse.Job)
-  | BuildResourcesFetched FetchedBuildResources
+  | BuildResourcesFetched Int (Result Http.Error Concourse.BuildResources)
   | ClockTick Time
   | TogglePaused
   | PausedToggled (Result Http.Error ())
   | NavTo String
-
-type alias FetchedBuildResources =
-  { index : Int
-  , result : (Result Http.Error Concourse.BuildResources)
-  }
+  | SubscriptionTick Time
 
 type alias BuildWithResources =
   { build : Concourse.Build
-  , resources : Concourse.BuildResources
+  , resources : Maybe Concourse.BuildResources
   }
-
-type alias LiveUpdatingBuildWithResources =
-  { buildWithResources : Maybe BuildWithResources
-  , nextBuild : Concourse.Build
-  }
+--
+-- type alias LiveUpdatingBuildWithResources =
+--   { buildWithResources : Maybe BuildWithResources
+--   , nextBuild : Concourse.Build
+--   }
 
 jobBuildsPerPage : Int
 jobBuildsPerPage = 100
-
-addFetchedResources : Concourse.BuildResources -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
-addFetchedResources resources lubwr =
-  { lubwr | buildWithResources = Just {build = lubwr.nextBuild, resources = resources} }
-
-addNextBuild : Concourse.Build -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
-addNextBuild nextBuild buildWithResources =
-  { buildWithResources | nextBuild = nextBuild }
-
-addNextBuildFromArray : Array Concourse.Build -> Int -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
-addNextBuildFromArray newBuilds i lubwr =
-  case (Array.get i newBuilds) of
-    Nothing -> lubwr
-    Just newBuild -> addNextBuild newBuild lubwr
-
-initLiveUpdatingBuildWithResources : Concourse.Build -> LiveUpdatingBuildWithResources
-initLiveUpdatingBuildWithResources nextBuild =
-  {buildWithResources = Nothing, nextBuild = nextBuild}
+--
+-- addFetchedResources : Concourse.BuildResources -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
+-- addFetchedResources resources lubwr =
+--   { lubwr | buildWithResources = Just {build = lubwr.nextBuild, resources = resources} }
+--
+-- addNextBuild : Concourse.Build -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
+-- addNextBuild nextBuild buildWithResources =
+--   { buildWithResources | nextBuild = nextBuild }
+--
+-- addNextBuildFromArray : Array Concourse.Build -> Int -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
+-- addNextBuildFromArray newBuilds i lubwr =
+--   case (Array.get i newBuilds) of
+--     Nothing -> lubwr
+--     Just newBuild -> addNextBuild newBuild lubwr
+--
+-- initLiveUpdatingBuildWithResources : Concourse.Build -> LiveUpdatingBuildWithResources
+-- initLiveUpdatingBuildWithResources nextBuild =
+--   {buildWithResources = Nothing, nextBuild = nextBuild}
 
 type alias Flags =
   { jobName : String
   , teamName : String
   , pipelineName : String
-  , pageSince : Int
-  , pageUntil : Int
+  , paging : Maybe Page
   }
 
 init : Ports -> Flags -> (Model, Cmd Msg)
 init ports flags =
   let
-    model =
-      { jobIdentifier =
-          { jobName = flags.jobName
-          , teamName = flags.teamName
-          , pipelineName = flags.pipelineName
+    (model, cmd) =
+      changeToJob flags
+        { jobIdentifier =
+            { jobName = flags.jobName
+            , teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            }
+        , job = Nothing
+        , pausedChanging = False
+        , buildsWithResources =
+          { content = []
+            , pagination =
+              { previousPage = Nothing
+              , nextPage = Nothing
+              }
           }
-      , job = Nothing
-      , pausedChanging = False
-      , buildsWithResources = Nothing
-      , now = 0
-      , page =
-          { direction =
-              if flags.pageUntil > 0 then
-                Concourse.Pagination.Until flags.pageUntil
-              else
-                Concourse.Pagination.Since flags.pageSince
-          , limit = jobBuildsPerPage
-          }
-      , pagination =
-          { previousPage = Nothing
-          , nextPage = Nothing
-          }
-      , ports = ports
-      }
+        , now = 0
+        , currentPage = flags.paging
+        , ports = ports
+        }
   in
     ( model
     , Cmd.batch
-        [ fetchJobBuilds 0 model.jobIdentifier (Just model.page)
-        , fetchJob 0 model.jobIdentifier
+        [ fetchJob model.jobIdentifier
+        , cmd
         ]
+    )
+
+
+changeToJob : Flags -> Model -> (Model, Cmd Msg)
+changeToJob flags model =
+  let
+    model =
+      { model
+      | currentPage = flags.paging
+      , buildsWithResources =
+        { content = []
+        , pagination =
+            { previousPage = Nothing
+            , nextPage = Nothing
+            }
+        }
+      }
+  in
+    ( model
+    , fetchJobBuilds model.jobIdentifier (Just model.page)
     )
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -160,33 +170,40 @@ update action model =
         (model, Cmd.none)
     JobFetched (Ok job) ->
       ( { model | job = Just job }
-      , Cmd.batch
-          [ fetchJob (5 * Time.second) model.jobIdentifier
-          , model.ports.title <| job.name ++ " - "
-          ]
+      , model.ports.title <| job.name ++ " - "
       )
     JobFetched (Err err) ->
       Debug.log ("failed to fetch job info: " ++ toString err) <|
         (model, Cmd.none)
-    BuildResourcesFetched buildResourcesFetched ->
-      case buildResourcesFetched.result of
-        Ok buildResources ->
-          case model.buildsWithResources of
-            Nothing -> (model, Cmd.none)
-            Just bwr ->
-              case Array.get buildResourcesFetched.index bwr of
-                Nothing -> (model, Cmd.none)
-                Just lubwr ->
-                  ( { model
-                    | buildsWithResources = Just
-                      <| Array.set buildResourcesFetched.index
-                                   (addFetchedResources buildResources lubwr)
-                                   bwr
-                    }
-                  , Cmd.none
-                  )
-        Err err ->
+    BuildResourcesFetched id (Ok buildResources) ->
+      case model.buildsWithResources.content of
+        [] ->
           (model, Cmd.none)
+        anyList ->
+          let
+            transformer = -- LiveUpdatingBuildWithResources -> LiveUpdatingBuildWirth
+              \bwr ->
+                case bwr.build.id of
+                  id ->
+                    { bwr
+                    | build =
+                      { bwr.build
+                      | resources = Just buildResources
+                      }
+                    }
+                  _ ->
+                    brw
+          in
+            ( { model
+              | buildsWithResources =
+                  { model.buildsWithResources
+                  | content = List.map transformer anyList
+                  }
+              }
+            , Cmd.none
+            )
+    BuildResourcesFetched _ (Err err) ->
+      (model, Cmd.none)
     ClockTick now ->
       ({ model | now = now }, Cmd.none)
     TogglePaused ->
@@ -210,6 +227,13 @@ update action model =
         (model, Cmd.none)
     NavTo url ->
       (model, Navigation.newUrl url)
+    SubscriptionTick time ->
+      ( model
+      , Cmd.batch
+          [ fetchJobBuilds model.jobIdentifier model.currentPage
+          , fetchJob model.jobIdentifier
+          ]
+      )
 
 permalink : List Concourse.Build -> Page
 permalink builds =
@@ -223,31 +247,43 @@ permalink builds =
       , limit = List.length builds
       }
 
+paginatedMap : (a -> b) -> Paginated a -> Paginated b
+paginatedMap promoter pagA =
+  { content =
+      List.map promoter pagA.content
+  , pagination = pagA.pagination
+  }
+
+promoteBuild build =
+  { build = build
+  , resources = Nothing
+  }
+
 handleJobBuildsFetched : Paginated Concourse.Build -> Model -> (Model, Cmd Msg)
 handleJobBuildsFetched paginatedBuilds model =
   let
-    fetchedBuilds = Array.fromList paginatedBuilds.content
+    -- fetchedBuilds = Array.fromList paginatedBuilds.content
     newPage = permalink paginatedBuilds.content
   in
     ( { model
-        | buildsWithResources =
-            Just <| case model.buildsWithResources of
-              Nothing -> Array.map initLiveUpdatingBuildWithResources fetchedBuilds
-              Just lubwrs ->
-                Array.indexedMap (addNextBuildFromArray fetchedBuilds) lubwrs
-        , page = newPage
-        , pagination = paginatedBuilds.pagination
+      | buildsWithResources = paginatedMap promoteBuild paginatedBuilds
+      --fix this so that it doesn't throw out the resources each time
+      , page = newPage
       }
-    , Cmd.batch
-        <| (fetchJobBuilds (5 * Time.second) model.jobIdentifier (Just newPage))
-        :: ( Array.toList
-             <| Array.indexedMap fetchBuildResources
-             <| Array.map .id
-             <| case model.buildsWithResources of
-               Nothing -> fetchedBuilds
-               Just lubwrs ->
-                 Array.filter isRunning
-                 <| Array.map .nextBuild lubwrs )
+
+      , -- go through each of the builds in our model; if each has no resources, fetch them;
+        -- also fetch them if it is "running" because it migth be outdated
+        Cmd.none
+        -- ^^^
+    -- , Cmd.batch
+    --     Array.toList
+    --      <| Array.indexedMap fetchBuildResources
+    --      <| Array.map .id
+    --      <| case model.buildsWithResources of
+    --        Nothing -> fetchedBuilds
+    --        Just lubwrs ->
+    --          Array.filter isRunning
+    --          <| Array.map .nextBuild lubwrs )
     )
 
 isRunning : Concourse.Build -> Bool
@@ -465,18 +501,15 @@ triggerBuild job =
   Cmd.map BuildTriggered << Task.perform Err Ok <|
     Concourse.Job.triggerBuild job
 
-
--- TODO these two should not use this "delay" thing. Subscriptions instead
-fetchJobBuilds : Time -> Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Msg
-fetchJobBuilds delay jobIdentifier page =
+fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Msg
+fetchJobBuilds jobIdentifier page =
   Cmd.map JobBuildsFetched << Task.perform Err Ok <|
-    Process.sleep delay `Task.andThen` (always <| Concourse.Build.fetchJobBuilds jobIdentifier page)
+    Concourse.Build.fetchJobBuilds jobIdentifier page
 
-fetchJob : Time -> Concourse.JobIdentifier -> Cmd Msg
-fetchJob delay jobIdentifier =
+fetchJob : Concourse.JobIdentifier -> Cmd Msg
+fetchJob jobIdentifier =
   Cmd.map JobFetched << Task.perform Err Ok <|
-    Process.sleep delay `Task.andThen` (always <| Concourse.Job.fetchJob jobIdentifier)
--- TODO ^^^
+    Concourse.Job.fetchJob jobIdentifier
 
 fetchBuildResources : Int -> Concourse.BuildId -> Cmd Msg
 fetchBuildResources index buildId =
@@ -512,4 +545,4 @@ redirectToLogin model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  Time.every (5 * Time.second) SubscriptionTick

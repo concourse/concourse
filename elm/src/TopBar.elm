@@ -8,6 +8,7 @@ import Html.Events exposing (onClick)
 import Http
 import List
 import Navigation exposing (Location)
+import Route.QueryString as QueryString
 import String
 import Task
 import Time
@@ -221,9 +222,7 @@ urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =
   ( { model
     | selectedGroups =
-        case Dict.get "groups" route.parsed.query of
-          Nothing -> [] -- TODO handle multiple
-          Just group -> [ group ]
+        QueryString.all "group" route.queries
     , location = route
     }
   , Cmd.none
@@ -233,19 +232,19 @@ setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRo
 setGroupsInLocation loc groups =
   let
     updatedUrl =
-      case List.head groups of
-        Nothing ->
-          Erl.removeQuery "groups" loc.parsed
-        Just group ->
-          Erl.addQuery "groups" group loc.parsed -- TODO handle multiple
+      if groups == [] then
+        QueryString.remove "groups" loc.queries
+      else
+        List.foldr
+          (QueryString.add "groups") QueryString.empty groups
   in
     { loc
-    | parsed = updatedUrl
+    | queries = updatedUrl
     }
 
 locationToHistory : Concourse.Pipeline -> Routes.ConcourseRoute -> String
-locationToHistory {url} {parsed} =
-  String.join "" [url, Erl.queryToString parsed, parsed.hash]
+locationToHistory {url} {queries} =
+  String.join "" [url, QueryString.render queries]
 
 toggleGroup : Concourse.PipelineGroup -> List String -> Maybe Concourse.Pipeline -> List String
 toggleGroup group names mpipeline =

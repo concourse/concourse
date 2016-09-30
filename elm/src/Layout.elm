@@ -158,4 +158,10 @@ routeMatchesModel route model =
       True
     (Routes.Pipeline _ _, SubPage.PipelineModel _) ->
       True
+    (Routes.Resource _ _ _, SubPage.ResourceModel _) ->
+      True
+    (Routes.Build _ _ _ _, SubPage.BuildModel _) ->
+      True
+    (Routes.Job _ _ _, SubPage.JobModel _) ->
+      True
     _ -> False
