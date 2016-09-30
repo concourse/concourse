@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 //go:generate counterfeiter . VolumeClient
@@ -26,13 +27,20 @@ type VolumeClient interface {
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
 
+//go:generate counterfeiter . DBVolumeFactory
+
+type DBVolumeFactory interface {
+	CreateContainerVolume(*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
+	FindContainerVolume(*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) (dbng.CreatingVolume, dbng.CreatedVolume, error)
+}
+
 var ErrVolumeExpiredImmediately = errors.New("volume expired immediately after saving")
 
 type volumeClient struct {
 	baggageclaimClient baggageclaim.Client
 	db                 GardenWorkerDB
 	volumeFactory      VolumeFactory
-	dbVolumeFactory    *dbng.VolumeFactory
+	dbVolumeFactory    DBVolumeFactory
 	workerName         string
 }
 
@@ -40,7 +48,7 @@ func NewVolumeClient(
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
 	volumeFactory VolumeFactory,
-	dbVolumeFactory *dbng.VolumeFactory,
+	dbVolumeFactory DBVolumeFactory,
 	workerName string,
 ) VolumeClient {
 	return &volumeClient{
@@ -91,25 +99,65 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 	team *dbng.Team,
 	mountPath string,
 ) (Volume, error) {
-	creatingVolume, err := c.dbVolumeFactory.CreateContainerVolume(team, worker, container, mountPath)
+	var bcVolume baggageclaim.Volume
+	var bcVolumeFound bool
+
+	creatingVolume, createdVolume, err := c.dbVolumeFactory.FindContainerVolume(team, worker, container, mountPath)
 	if err != nil {
-		logger.Error("failed-to-create-volume-in-db", err)
+		logger.Error("failed-to-find-volume-in-db", err)
 		return nil, err
 	}
 
-	bcVolume, err := c.baggageclaimClient.CreateVolume(
-		logger.Session("create-volume"),
-		volumeSpec.baggageclaimVolumeSpec(),
-	)
-	if err != nil {
-		logger.Error("failed-to-create-volume-in-baggageclaim", err)
-		return nil, err
-	}
+	if createdVolume != nil {
+		bcVolume, bcVolumeFound, err = c.baggageclaimClient.LookupVolume(
+			logger.Session("create-volume"),
+			createdVolume.Handle(),
+		)
+		if err != nil {
+			logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
+			return nil, err
+		}
 
-	_, err = creatingVolume.Created(bcVolume.Handle())
-	if err != nil {
-		logger.Error("failed-to-initialize-volume", err)
-		return nil, err
+		if !bcVolumeFound {
+			err := errors.New("failed-to-find-created-volume-in-baggageclaim")
+			logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
+			return nil, err
+		}
+	} else {
+		if creatingVolume != nil {
+			bcVolume, bcVolumeFound, err = c.baggageclaimClient.LookupVolume(
+				logger.Session("create-volume"),
+				creatingVolume.Handle(),
+			)
+			if err != nil {
+				logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
+				return nil, err
+			}
+		} else {
+			creatingVolume, err = c.dbVolumeFactory.CreateContainerVolume(team, worker, container, mountPath)
+			if err != nil {
+				logger.Error("failed-to-create-volume-in-db", err)
+				return nil, err
+			}
+		}
+
+		if !bcVolumeFound {
+			bcVolume, err = c.baggageclaimClient.CreateVolume(
+				logger.Session("create-volume"),
+				creatingVolume.Handle(),
+				volumeSpec.baggageclaimVolumeSpec(),
+			)
+			if err != nil {
+				logger.Error("failed-to-create-volume-in-baggageclaim", err)
+				return nil, err
+			}
+		}
+
+		_, err = creatingVolume.Created()
+		if err != nil {
+			logger.Error("failed-to-initialize-volume", err)
+			return nil, err
+		}
 	}
 
 	volume, err := c.volumeFactory.BuildWithIndefiniteTTL(logger, bcVolume)
@@ -130,8 +178,14 @@ func (c *volumeClient) CreateVolume(
 		return nil, ErrNoVolumeManager
 	}
 
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
 	bcVolume, err := c.baggageclaimClient.CreateVolume(
 		logger.Session("create-volume"),
+		handle.String(),
 		volumeSpec.baggageclaimVolumeSpec(),
 	)
 	if err != nil {

@@ -1,6 +1,9 @@
 package dbng
 
-import sq "github.com/Masterminds/squirrel"
+import (
+	sq "github.com/Masterminds/squirrel"
+	uuid "github.com/nu7hatch/gouuid"
+)
 
 type VolumeState string
 
@@ -12,13 +15,23 @@ const (
 
 // TODO: do not permit nullifying cache_id while creating or created
 
-type CreatingVolume struct {
-	ID     int
-	Worker *Worker
+//go:generate counterfeiter . CreatingVolume
+
+type CreatingVolume interface {
+	Handle() string
+	Created() (CreatedVolume, error)
+}
+
+type creatingVolume struct {
+	id     int
+	worker *Worker
+	handle string
 	conn   Conn
 }
 
-func (volume *CreatingVolume) Created(handle string) (*CreatedVolume, error) {
+func (volume *creatingVolume) Handle() string { return volume.handle }
+
+func (volume *creatingVolume) Created() (CreatedVolume, error) {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -27,11 +40,11 @@ func (volume *CreatingVolume) Created(handle string) (*CreatedVolume, error) {
 	defer tx.Rollback()
 
 	transitioned, err := stateTransition(
-		volume.ID,
+		volume.id,
 		tx,
 		VolumeStateCreating,
 		VolumeStateCreated,
-		map[string]interface{}{"handle": handle},
+		map[string]interface{}{},
 	)
 	if err != nil {
 		return nil, err
@@ -47,20 +60,30 @@ func (volume *CreatingVolume) Created(handle string) (*CreatedVolume, error) {
 		return nil, nil
 	}
 
-	return &CreatedVolume{
-		ID:     volume.ID,
-		Worker: volume.Worker,
-		Handle: handle,
+	return &createdVolume{
+		id:     volume.id,
+		worker: volume.worker,
+		handle: volume.handle,
 		conn:   volume.conn,
 	}, nil
 }
 
-type CreatedVolume struct {
-	ID     int
-	Worker *Worker
-	Handle string
+//go:generate counterfeiter . CreatedVolume
+
+type CreatedVolume interface {
+	Handle() string
+	CreateChildForContainer(*CreatingContainer) (CreatingVolume, error)
+	Destroying() (DestroyingVolume, error)
+}
+
+type createdVolume struct {
+	id     int
+	worker *Worker
+	handle string
 	conn   Conn
 }
+
+func (volume *createdVolume) Handle() string { return volume.handle }
 
 // TODO: do following two methods instead of CreateXVolume? kind of neat since
 // it removes window of time where cache_id/worker_resource_type_id may be
@@ -133,7 +156,7 @@ type CreatedVolume struct {
 // 		}, nil
 // }
 
-func (volume *CreatedVolume) CreateChildForContainer(container *CreatingContainer) (*CreatingVolume, error) {
+func (volume *createdVolume) CreateChildForContainer(container *CreatingContainer) (CreatingVolume, error) {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -141,10 +164,15 @@ func (volume *CreatedVolume) CreateChildForContainer(container *CreatingContaine
 
 	defer tx.Rollback()
 
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
 	var volumeID int
 	err = psql.Insert("volumes").
-		Columns("worker_name", "parent_id", "parent_state").
-		Values(volume.Worker.Name, volume.ID, VolumeStateCreated).
+		Columns("worker_name", "parent_id", "parent_state", "handle").
+		Values(volume.worker.Name, volume.id, VolumeStateCreated, handle).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -159,14 +187,15 @@ func (volume *CreatedVolume) CreateChildForContainer(container *CreatingContaine
 		return nil, err
 	}
 
-	return &CreatingVolume{
-		ID:     volume.ID,
-		Worker: volume.Worker,
+	return &creatingVolume{
+		id:     volume.id,
+		worker: volume.worker,
+		handle: volume.handle,
 		conn:   volume.conn,
 	}, nil
 }
 
-func (volume *CreatedVolume) Destroying() (*DestroyingVolume, error) {
+func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -174,7 +203,7 @@ func (volume *CreatedVolume) Destroying() (*DestroyingVolume, error) {
 
 	defer tx.Rollback()
 
-	transitioned, err := stateTransition(volume.ID, tx, VolumeStateCreated, VolumeStateDestroying, map[string]interface{}{})
+	transitioned, err := stateTransition(volume.id, tx, VolumeStateCreated, VolumeStateDestroying, map[string]interface{}{})
 	if err != nil {
 		// TODO: return explicit error for failed transition due to volumes using it
 		return nil, err
@@ -190,22 +219,31 @@ func (volume *CreatedVolume) Destroying() (*DestroyingVolume, error) {
 		return nil, nil
 	}
 
-	return &DestroyingVolume{
-		ID:     volume.ID,
-		Worker: volume.Worker,
-		Handle: volume.Handle,
+	return &destroyingVolume{
+		id:     volume.id,
+		worker: volume.worker,
+		handle: volume.handle,
 		conn:   volume.conn,
 	}, nil
 }
 
-type DestroyingVolume struct {
-	ID     int
-	Worker *Worker
-	Handle string
+type DestroyingVolume interface {
+	Handle() string
+	Destroy() (bool, error)
+	Worker() *Worker
+}
+
+type destroyingVolume struct {
+	id     int
+	worker *Worker
+	handle string
 	conn   Conn
 }
 
-func (volume *DestroyingVolume) Destroy() (bool, error) {
+func (volume *destroyingVolume) Handle() string  { return volume.handle }
+func (volume *destroyingVolume) Worker() *Worker { return volume.worker }
+
+func (volume *destroyingVolume) Destroy() (bool, error) {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return false, err
@@ -215,7 +253,7 @@ func (volume *DestroyingVolume) Destroy() (bool, error) {
 
 	rows, err := psql.Delete("volumes").
 		Where(sq.Eq{
-			"id":    volume.ID,
+			"id":    volume.id,
 			"state": VolumeStateDestroying,
 		}).
 		RunWith(tx).

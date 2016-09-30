@@ -57,15 +57,15 @@ func (vc *volumeCollector) Run() error {
 	}
 
 	for _, destroyingVolume := range destroyingVolumes {
-		volumeWorker, ok := workersMap[destroyingVolume.Worker.Name]
+		volumeWorker, ok := workersMap[destroyingVolume.Worker().Name]
 		if !ok {
 			vc.logger.Info("could-not-locate-worker", lager.Data{
-				"worker-id": destroyingVolume.Worker.Name,
+				"worker-id": destroyingVolume.Worker().Name,
 			})
 			continue
 		}
 
-		volume, found, err := volumeWorker.LookupVolume(vc.logger, destroyingVolume.Handle)
+		volume, found, err := volumeWorker.LookupVolume(vc.logger, destroyingVolume.Handle())
 		if err != nil {
 			vc.logger.Error("failed-to-lookup-volume", err)
 			continue
@@ -79,7 +79,7 @@ func (vc *volumeCollector) Run() error {
 			}
 		}
 
-		vc.logger.Debug("destroying-volume", lager.Data{"handle": destroyingVolume.Handle})
+		vc.logger.Debug("destroying-volume", lager.Data{"handle": destroyingVolume.Handle()})
 
 		destroyed, err := destroyingVolume.Destroy()
 		if err != nil {
@@ -88,7 +88,7 @@ func (vc *volumeCollector) Run() error {
 		}
 
 		if !destroyed {
-			vc.logger.Info("could-not-destroy-volume-in-db", lager.Data{"handle": destroyingVolume.Handle})
+			vc.logger.Info("could-not-destroy-volume-in-db", lager.Data{"handle": destroyingVolume.Handle()})
 			continue
 		}
 	}

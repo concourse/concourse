@@ -143,7 +143,6 @@ func CreateCaches(tx migration.LimitedTx) error {
 
 	_, err = tx.Exec(`
 		ALTER TABLE volumes
-		ALTER COLUMN handle DROP NOT NULL,
 		ADD FOREIGN KEY (worker_name) REFERENCES workers (name) ON DELETE CASCADE,
 		ADD COLUMN resource_cache_id int REFERENCES resource_caches (id) ON DELETE SET NULL,
 		ADD COLUMN base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE SET NULL,
@@ -153,9 +152,6 @@ func CreateCaches(tx migration.LimitedTx) error {
 		ADD COLUMN parent_state volume_state,
 		ADD UNIQUE (id, state),
 		ADD FOREIGN KEY (parent_id, parent_state) REFERENCES volumes (id, state) ON DELETE RESTRICT,
-		ADD CONSTRAINT handle_when_created CHECK (
-			(state = 'creating' AND handle IS NULL) OR (state != 'creating')
-		),
 		ADD CONSTRAINT cannot_invalidate_during_initialization CHECK (
 			(
 				state IN ('created', 'destroying') AND (
