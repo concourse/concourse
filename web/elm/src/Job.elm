@@ -1,12 +1,10 @@
-port module Job exposing (Flags, Model, subscriptions, init, update, view, Msg(..))
+port module Job exposing (Flags, Model, changeToJob, subscriptions, init, update, view, Msg(..))
 
-import Array exposing (Array)
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, disabled, attribute)
 import Html.Events exposing (onClick)
 import Http
-import Process
 import Task
 import Time exposing (Time)
 
@@ -135,7 +133,7 @@ changeToJob flags model =
       }
   in
     ( model
-    , fetchJobBuilds model.jobIdentifier (Just model.page)
+    , fetchJobBuilds model.jobIdentifier model.currentPage
     )
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -183,20 +181,22 @@ update action model =
           let
             transformer = -- LiveUpdatingBuildWithResources -> LiveUpdatingBuildWirth
               \bwr ->
-                case bwr.build.id of
-                  id ->
+                let
+                  bwrb =
+                    bwr.build
+                in
+                  if bwr.build.id == id then
                     { bwr
-                    | build =
-                      { bwr.build
-                      | resources = Just buildResources
-                      }
+                    | resources = Just buildResources
                     }
-                  _ ->
-                    brw
+                  else
+                    bwr
+            bwrs =
+              model.buildsWithResources
           in
             ( { model
               | buildsWithResources =
-                  { model.buildsWithResources
+                  { bwrs
                   | content = List.map transformer anyList
                   }
               }
@@ -254,36 +254,35 @@ paginatedMap promoter pagA =
   , pagination = pagA.pagination
   }
 
+promoteBuild : Concourse.Build -> BuildWithResources
 promoteBuild build =
   { build = build
   , resources = Nothing
   }
 
+updateResourcesIfNeeded : BuildWithResources -> Maybe (Cmd Msg)
+updateResourcesIfNeeded bwr =
+  case (bwr.resources, isRunning bwr.build) of
+    (Just resources, False) ->
+      Nothing
+    _ ->
+      Just <| fetchBuildResources bwr.build.id
+
+
 handleJobBuildsFetched : Paginated Concourse.Build -> Model -> (Model, Cmd Msg)
 handleJobBuildsFetched paginatedBuilds model =
   let
-    -- fetchedBuilds = Array.fromList paginatedBuilds.content
-    newPage = permalink paginatedBuilds.content
+    newPage =
+      permalink paginatedBuilds.content
+    newBWRs = -- later, consider saving resources info for builds that already existed in the model
+      paginatedMap promoteBuild paginatedBuilds
   in
     ( { model
-      | buildsWithResources = paginatedMap promoteBuild paginatedBuilds
-      --fix this so that it doesn't throw out the resources each time
-      , page = newPage
+      | buildsWithResources = newBWRs
+      , currentPage = Just newPage
       }
 
-      , -- go through each of the builds in our model; if each has no resources, fetch them;
-        -- also fetch them if it is "running" because it migth be outdated
-        Cmd.none
-        -- ^^^
-    -- , Cmd.batch
-    --     Array.toList
-    --      <| Array.indexedMap fetchBuildResources
-    --      <| Array.map .id
-    --      <| case model.buildsWithResources of
-    --        Nothing -> fetchedBuilds
-    --        Just lubwrs ->
-    --          Array.filter isRunning
-    --          <| Array.map .nextBuild lubwrs )
+      , Cmd.batch <| List.filterMap updateResourcesIfNeeded newBWRs.content
     )
 
 isRunning : Concourse.Build -> Bool
@@ -321,14 +320,14 @@ view model =
               , Html.h1 [] [ Html.text("builds") ]
               ]
           ],
-    case model.buildsWithResources of
-      Nothing ->
+    case model.buildsWithResources.content of
+      [] ->
         loadSpinner
 
-      Just bwr ->
+      anyList ->
         Html.div [class "scrollable-body job-body"]
           [ Html.ul [ class "jobs-builds-list builds-list" ]
-            <| List.map (viewBuildWithResources model) <| Array.toList bwr
+            <| List.map (viewBuildWithResources model) anyList
           ]
   ]
 
@@ -368,7 +367,7 @@ headerBuildStatusClass finishedBuild =
 viewPaginationBar : Model -> Html Msg
 viewPaginationBar model =
   Html.div [ class "pagination fr"]
-    [ case model.pagination.previousPage of
+    [ case model.buildsWithResources.pagination.previousPage of
         Nothing ->
           Html.div [ class "btn-page-link disabled"]
           [ Html.span [class "arrow"]
@@ -391,7 +390,7 @@ viewPaginationBar model =
               [ Html.i [ class "fa fa-arrow-left"] []
               ]
             ]
-    , case model.pagination.nextPage of
+    , case model.buildsWithResources.pagination.nextPage of
         Nothing ->
           Html.div [ class "btn-page-link disabled"]
           [ Html.span [class "arrow"]
@@ -416,19 +415,15 @@ viewPaginationBar model =
             ]
     ]
 
-viewBuildWithResources : Model -> LiveUpdatingBuildWithResources -> Html Msg
-viewBuildWithResources model lubwr =
+viewBuildWithResources : Model -> BuildWithResources -> Html Msg
+viewBuildWithResources model bwr =
   Html.li [class "js-build"]
     <| let
-      build =
-        case lubwr.buildWithResources of
-          Nothing -> lubwr.nextBuild
-          Just bwr -> bwr.build
-      buildResourcesView = viewBuildResources model lubwr.buildWithResources
+      buildResourcesView = viewBuildResources model bwr
     in
-      [ viewBuildHeader model build
+      [ viewBuildHeader model bwr.build
       , Html.div [class "pam clearfix"]
-        <| (BuildDuration.view build.duration model.now) :: buildResourcesView
+        <| (BuildDuration.view bwr.build.duration model.now) :: buildResourcesView
       ]
 
 viewBuildHeader : Model -> Concourse.Build -> Html Msg
@@ -441,17 +436,17 @@ viewBuildHeader model b =
   [ Html.text ("#" ++ b.name)
   ]
 
-viewBuildResources : Model -> (Maybe BuildWithResources) -> List (Html Msg)
+viewBuildResources : Model -> BuildWithResources -> List (Html Msg)
 viewBuildResources model buildWithResources =
   let
     inputsTable =
-      case buildWithResources of
+      case buildWithResources.resources of
         Nothing -> loadSpinner
-        Just bwr -> Html.table [class "build-resources"] <| List.map (viewBuildInputs model) bwr.resources.inputs
+        Just resources -> Html.table [class "build-resources"] <| List.map (viewBuildInputs model) resources.inputs
     outputsTable =
-      case buildWithResources of
+      case buildWithResources.resources of
         Nothing -> loadSpinner
-        Just bwr -> Html.table [class "build-resources"] <| List.map (viewBuildOutputs model) bwr.resources.outputs
+        Just resources -> Html.table [class "build-resources"] <| List.map (viewBuildOutputs model) resources.outputs
   in
     [ Html.div [class "inputs mrl"]
       [ Html.div [class "resource-title pbs"]
@@ -511,13 +506,10 @@ fetchJob jobIdentifier =
   Cmd.map JobFetched << Task.perform Err Ok <|
     Concourse.Job.fetchJob jobIdentifier
 
-fetchBuildResources : Int -> Concourse.BuildId -> Cmd Msg
-fetchBuildResources index buildId =
-  Cmd.map (initBuildResourcesFetched index) << Task.perform Err Ok <|
-    Concourse.BuildResources.fetch buildId
-
-initBuildResourcesFetched : Int -> Result Http.Error (Concourse.BuildResources) -> Msg
-initBuildResourcesFetched index result = BuildResourcesFetched { index = index, result = result }
+fetchBuildResources : Concourse.BuildId -> Cmd Msg
+fetchBuildResources buildIdentifier =
+  Cmd.map (BuildResourcesFetched buildIdentifier) << Task.perform Err Ok <|
+    Concourse.BuildResources.fetch buildIdentifier
 
 paginationParam : Page -> String
 paginationParam page =

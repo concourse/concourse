@@ -230,10 +230,12 @@ toQuery page =
     Nothing ->
       Dict.empty
 
-    Just {direction, limit} ->
+    Just somePage ->
       let
+        page2 =
+          Debug.log "page again: " somePage
         directionParam =
-          case direction of
+          case somePage.direction of
             Since id ->
               ("since", toString id)
 

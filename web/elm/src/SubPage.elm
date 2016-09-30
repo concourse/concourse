@@ -1,6 +1,5 @@
 port module SubPage exposing (Model(..), Msg(..), init, urlUpdate, update, view, subscriptions)
 
-import Dict
 import Json.Encode
 import Html exposing (Html)
 import Html.App
@@ -83,19 +82,14 @@ init turbulencePath route =
           , paging = route.page
           }
     Routes.Job teamName pipelineName jobName ->
-      let
-        (pageSince, pageUntil) =
-          parsePagination route
-      in
-        superDupleWrap (JobModel, JobMsg) <|
-          Job.init
-            { title = setTitle }
-            { jobName = jobName
-            , teamName = teamName
-            , pipelineName = pipelineName
-            , pageSince = pageSince
-            , pageUntil = pageUntil
-            }
+      superDupleWrap (JobModel, JobMsg) <|
+        Job.init
+          { title = setTitle }
+          { jobName = jobName
+          , teamName = teamName
+          , pipelineName = pipelineName
+          , paging = route.page
+          }
     Routes.SelectTeam ->
       let
         redirect =
@@ -127,16 +121,6 @@ init turbulencePath route =
           , setTitle ""
           ]
       )
-
-parsePagination : Routes.ConcourseRoute -> (Int, Int)
-parsePagination route =
-  let
-    pageSince =
-      Maybe.withDefault 0 <| QueryString.one QueryString.int "since" route.queries
-    pageUntil =
-      Maybe.withDefault 0 <| QueryString.one QueryString.int "until" route.queries
-    in
-      (pageSince, pageUntil)
 
 update : String -> Msg -> Model -> (Model, Cmd Msg)
 update turbulence msg mdl =
