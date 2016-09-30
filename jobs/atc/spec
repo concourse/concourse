@@ -284,3 +284,11 @@ properties:
     description: |
       An optional prefix for emitted Riemann services
     default: ""
+
+  riemann.tags:
+    description: |
+      An optional map of tags in key: value format
+    default: {}
+    example:
+      env: dev
+      foo: bar
