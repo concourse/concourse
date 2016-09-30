@@ -1,8 +1,10 @@
 module Routes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString)
 
-import Erl
 import Navigation exposing (Location)
 import Route exposing (..)
+import Route.QueryString as QueryString
+
+import Concourse.Pagination as Pagination
 
 type Route
   = Home
@@ -16,7 +18,8 @@ type Route
 
 type alias ConcourseRoute =
   { logical : Route
-  , parsed : Erl.Url
+  , queries : QueryString.QueryString
+  , page : Maybe Pagination.Page
   }
 
 -- pages
@@ -90,13 +93,37 @@ toString route =
 
 parsePath : Location -> ConcourseRoute
 parsePath location =
-  let
-    parsed =
-      Erl.parse location.href
-  in
     { logical = match <| location.pathname
-    , parsed = parsed
+    , queries = QueryString.parse location.search
+    , page = createPageFromSearch location.search
     }
+
+createPageFromSearch : String -> Maybe Pagination.Page
+createPageFromSearch search =
+  let
+    q =
+      QueryString.parse search
+    until =
+      QueryString.one QueryString.int "until" q
+    since =
+      QueryString.one QueryString.int "since" q
+    limit =
+      Maybe.withDefault 100 <| QueryString.one QueryString.int "limit" q
+  in
+    case (since, until) of
+      (Nothing, Just u) ->
+        Just
+          { direction = Pagination.Until u
+          , limit = limit
+          }
+      (Just s, Nothing) ->
+        Just
+          { direction = Pagination.Since s
+          , limit = limit
+          }
+      _ ->
+        Nothing
+
 
 navigateTo : Route -> Cmd msg
 navigateTo =

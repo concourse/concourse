@@ -18,6 +18,7 @@ import Resource
 import Build
 import NoPipeline
 import Routes
+import Route.QueryString as QueryString
 import Pipeline
 import TeamSelection
 
@@ -73,19 +74,14 @@ init turbulencePath route =
               Build.BuildPage <|
                 Result.withDefault 0 (String.toInt buildId)
     Routes.Resource teamName pipelineName resourceName ->
-      let
-        (pageSince, pageUntil) =
-          parsePagination route
-      in
-        superDupleWrap (ResourceModel, ResourceMsg) <|
-          Resource.init
-            { title = setTitle }
-            { resourceName = resourceName
-            , teamName = teamName
-            , pipelineName = pipelineName
-            , pageSince = pageSince
-            , pageUntil = pageUntil
-            }
+      superDupleWrap (ResourceModel, ResourceMsg) <|
+        Resource.init
+          { title = setTitle }
+          { resourceName = resourceName
+          , teamName = teamName
+          , pipelineName = pipelineName
+          , paging = route.page
+          }
     Routes.Job teamName pipelineName jobName ->
       let
         (pageSince, pageUntil) =
@@ -103,22 +99,14 @@ init turbulencePath route =
     Routes.SelectTeam ->
       let
         redirect =
-          case Dict.get "redirect" route.parsed.query of
-            Nothing ->
-              ""
-            Just path ->
-              path
+          Maybe.withDefault "" <| QueryString.one QueryString.string "redirect" route.queries
       in
         superDupleWrap (SelectTeamModel, SelectTeamMsg) <|
           TeamSelection.init {title = setTitle} redirect
     Routes.TeamLogin teamName ->
       let
         redirect =
-          case Dict.get "redirect" route.parsed.query of
-            Nothing ->
-              ""
-            Just path ->
-              path
+          Maybe.withDefault "" <| QueryString.one QueryString.string "redirect" route.queries
       in
         superDupleWrap (LoginModel, LoginMsg) <|
           Login.init {title = setTitle} teamName redirect
@@ -144,18 +132,9 @@ parsePagination : Routes.ConcourseRoute -> (Int, Int)
 parsePagination route =
   let
     pageSince =
-      case Dict.get "since" route.parsed.query of
-        Nothing ->
-          0
-        Just since ->
-          Result.withDefault 0 (String.toInt since)
+      Maybe.withDefault 0 <| QueryString.one QueryString.int "since" route.queries
     pageUntil =
-      case Dict.get "until" route.parsed.query of
-        Nothing ->
-          0
-        Just until ->
-          Result.withDefault 0 (String.toInt until
-          )
+      Maybe.withDefault 0 <| QueryString.one QueryString.int "until" route.queries
     in
       (pageSince, pageUntil)
 
@@ -204,6 +183,25 @@ urlUpdate route model =
         Pipeline.loadPipeline
           { teamName = team
           , pipelineName = pipeline
+          }
+          mdl
+
+    (Routes.Resource teamName pipelineName resourceName, ResourceModel mdl) ->
+      superDupleWrap (ResourceModel, ResourceMsg) <|
+        Resource.changeToResource
+          { teamName = teamName
+          , pipelineName = pipelineName
+          , resourceName = resourceName
+          , paging = route.page
+          }
+          mdl
+    (Routes.Job teamName pipelineName jobName, JobModel mdl) ->
+      superDupleWrap (JobModel, JobMsg) <|
+        Job.changeToJob
+          { teamName = teamName
+          , pipelineName = pipelineName
+          , jobName = jobName
+          , paging = route.page
           }
           mdl
     (Routes.Build teamName pipelineName jobName buildName, BuildModel scrollModel) ->
