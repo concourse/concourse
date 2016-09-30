@@ -73,13 +73,13 @@ var _ = Describe("CookieSetHandler", func() {
 			It("proxies to the handler with the Authorization header set", func() {
 				responseBody, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(responseBody)).To(Equal("auth: " + header("username", "password")))
+				Expect(string(responseBody)).To(ContainSubstring("auth: "))
 			})
 
 			It("sets the Authorization header with the value from the cookie", func() {
 				responseBody, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(responseBody)).To(Equal("auth: " + header("username", "password")))
+				Expect(string(responseBody)).To(ContainSubstring(header("username", "password")))
 			})
 		})
 	})
