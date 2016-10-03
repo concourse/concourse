@@ -50,11 +50,17 @@ func (factory *VolumeFactory) CreateContainerVolume(team *Team, worker *Worker, 
 
 	defer tx.Rollback()
 
-	return factory.createVolume(tx, team.ID, worker, map[string]interface{}{
+	volume, err := factory.createVolume(tx, team.ID, worker, map[string]interface{}{
 		"container_id": container.ID,
 		"path":         mountPath,
 		"initialized":  true,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	volume.path = mountPath
+	return volume, nil
 }
 
 func (factory *VolumeFactory) FindContainerVolume(team *Team, worker *Worker, container *CreatingContainer, mountPath string) (CreatingVolume, CreatedVolume, error) {
@@ -99,6 +105,7 @@ func (factory *VolumeFactory) FindContainerVolume(team *Team, worker *Worker, co
 		return nil, &createdVolume{
 			id:     id,
 			handle: handle,
+			path:   mountPath,
 			worker: &Worker{
 				Name:       workerName,
 				GardenAddr: workerAddress,
@@ -109,6 +116,7 @@ func (factory *VolumeFactory) FindContainerVolume(team *Team, worker *Worker, co
 		return &creatingVolume{
 			id:     id,
 			handle: handle,
+			path:   mountPath,
 			worker: &Worker{
 				Name:       workerName,
 				GardenAddr: workerAddress,
@@ -121,7 +129,7 @@ func (factory *VolumeFactory) FindContainerVolume(team *Team, worker *Worker, co
 }
 
 func (factory *VolumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error) {
-	query, args, err := psql.Select("v.id, v.handle, v.state, w.name, w.addr").
+	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr").
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
 		Where(sq.Eq{
@@ -146,19 +154,27 @@ func (factory *VolumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 	for rows.Next() {
 		var id int
 		var handle string
+		var path sql.NullString
 		var state string
 		var workerName string
 		var workerAddress string
 
-		err = rows.Scan(&id, &handle, &state, &workerName, &workerAddress)
+		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		var pathString string
+		if path.Valid {
+			pathString = path.String
+		}
+
 		switch state {
 		case VolumeStateCreated:
 			createdVolumes = append(createdVolumes, &createdVolume{
 				id:     id,
 				handle: handle,
+				path:   pathString,
 				worker: &Worker{
 					Name:       workerName,
 					GardenAddr: workerAddress,
@@ -197,7 +213,7 @@ var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer e
 // 3. insert into volumes in 'initializing' state
 //   * if fails (fkey violation; worker type gone), fail for same reason as 2.
 // 4. commit tx
-func (factory *VolumeFactory) createVolume(tx Tx, teamID int, worker *Worker, columns map[string]interface{}) (CreatingVolume, error) {
+func (factory *VolumeFactory) createVolume(tx Tx, teamID int, worker *Worker, columns map[string]interface{}) (*creatingVolume, error) {
 	var volumeID int
 	handle, err := uuid.NewV4()
 	if err != nil {

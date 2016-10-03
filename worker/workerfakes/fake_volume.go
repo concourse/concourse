@@ -91,11 +91,8 @@ type FakeVolume struct {
 	destroyReturns     struct {
 		result1 error
 	}
-	HeartbeatingToDBStub        func()
-	heartbeatingToDBMutex       sync.RWMutex
-	heartbeatingToDBArgsForCall []struct{}
-	invocations                 map[string][][]interface{}
-	invocationsMutex            sync.RWMutex
+	invocations      map[string][][]interface{}
+	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeVolume) Handle() string {
@@ -411,22 +408,6 @@ func (fake *FakeVolume) DestroyReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolume) HeartbeatingToDB() {
-	fake.heartbeatingToDBMutex.Lock()
-	fake.heartbeatingToDBArgsForCall = append(fake.heartbeatingToDBArgsForCall, struct{}{})
-	fake.recordInvocation("HeartbeatingToDB", []interface{}{})
-	fake.heartbeatingToDBMutex.Unlock()
-	if fake.HeartbeatingToDBStub != nil {
-		fake.HeartbeatingToDBStub()
-	}
-}
-
-func (fake *FakeVolume) HeartbeatingToDBCallCount() int {
-	fake.heartbeatingToDBMutex.RLock()
-	defer fake.heartbeatingToDBMutex.RUnlock()
-	return len(fake.heartbeatingToDBArgsForCall)
-}
-
 func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -452,8 +433,6 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.sizeInBytesMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
-	fake.heartbeatingToDBMutex.RLock()
-	defer fake.heartbeatingToDBMutex.RUnlock()
 	return fake.invocations
 }
 

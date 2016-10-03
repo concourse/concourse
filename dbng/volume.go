@@ -26,6 +26,7 @@ type creatingVolume struct {
 	id     int
 	worker *Worker
 	handle string
+	path   string
 	conn   Conn
 }
 
@@ -64,6 +65,7 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 		id:     volume.id,
 		worker: volume.worker,
 		handle: volume.handle,
+		path:   volume.path,
 		conn:   volume.conn,
 	}, nil
 }
@@ -72,7 +74,8 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 
 type CreatedVolume interface {
 	Handle() string
-	CreateChildForContainer(*CreatingContainer) (CreatingVolume, error)
+	Path() string
+	CreateChildForContainer(*CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
 }
 
@@ -80,10 +83,12 @@ type createdVolume struct {
 	id     int
 	worker *Worker
 	handle string
+	path   string
 	conn   Conn
 }
 
 func (volume *createdVolume) Handle() string { return volume.handle }
+func (volume *createdVolume) Path() string   { return volume.path }
 
 // TODO: do following two methods instead of CreateXVolume? kind of neat since
 // it removes window of time where cache_id/worker_resource_type_id may be
@@ -156,7 +161,7 @@ func (volume *createdVolume) Handle() string { return volume.handle }
 // 		}, nil
 // }
 
-func (volume *createdVolume) CreateChildForContainer(container *CreatingContainer) (CreatingVolume, error) {
+func (volume *createdVolume) CreateChildForContainer(container *CreatingContainer, mountPath string) (CreatingVolume, error) {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -191,6 +196,7 @@ func (volume *createdVolume) CreateChildForContainer(container *CreatingContaine
 		id:     volume.id,
 		worker: volume.worker,
 		handle: volume.handle,
+		path:   mountPath,
 		conn:   volume.conn,
 	}, nil
 }

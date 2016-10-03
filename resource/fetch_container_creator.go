@@ -80,7 +80,7 @@ func (c *fetchContainerCreator) CreateWithVolume(resourceType string, volume wor
 		},
 	}
 
-	return chosenWorker.CreateContainer(
+	return chosenWorker.CreateTaskContainer(
 		c.logger,
 		nil,
 		c.imageFetchingDelegate,
@@ -88,5 +88,6 @@ func (c *fetchContainerCreator) CreateWithVolume(resourceType string, volume wor
 		c.session.Metadata,
 		containerSpec,
 		c.resourceTypes,
+		map[string]string{"get": ResourcesDir("get")},
 	)
 }

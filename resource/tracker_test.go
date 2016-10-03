@@ -70,7 +70,7 @@ var _ = Describe("Tracker", func() {
 			initType = "type1"
 			delegate = new(wfakes.FakeImageFetchingDelegate)
 
-			workerClient.CreateContainerReturns(fakeContainer, nil)
+			workerClient.CreateTaskContainerReturns(fakeContainer, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -88,7 +88,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("creates a container with the resource's type, env, ephemeral information, and the session as the handle", func() {
-				_, _, _, id, containerMetadata, spec, actualCustomTypes := workerClient.CreateContainerArgsForCall(0)
+				_, _, _, id, containerMetadata, spec, actualCustomTypes, _ := workerClient.CreateTaskContainerArgsForCall(0)
 
 				Expect(id).To(Equal(session.ID))
 				Expect(containerMetadata).To(Equal(session.Metadata))
@@ -111,7 +111,7 @@ var _ = Describe("Tracker", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
-					workerClient.CreateContainerReturns(nil, disaster)
+					workerClient.CreateTaskContainerReturns(nil, disaster)
 				})
 
 				It("returns the error and no resource", func() {
@@ -134,7 +134,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("does not create a container", func() {
-				Expect(workerClient.CreateContainerCallCount()).To(BeZero())
+				Expect(workerClient.CreateTaskContainerCallCount()).To(BeZero())
 			})
 		})
 
@@ -152,7 +152,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("does not create a container", func() {
-				Expect(workerClient.CreateContainerCallCount()).To(BeZero())
+				Expect(workerClient.CreateTaskContainerCallCount()).To(BeZero())
 			})
 		})
 	})
@@ -218,7 +218,7 @@ var _ = Describe("Tracker", func() {
 					satisfyingWorker = new(wfakes.FakeWorker)
 					workerClient.AllSatisfyingReturns([]worker.Worker{satisfyingWorker}, nil)
 
-					satisfyingWorker.CreateContainerReturns(fakeContainer, nil)
+					satisfyingWorker.CreateTaskContainerReturns(fakeContainer, nil)
 				})
 
 				Context("when some volumes are found on the worker", func() {
@@ -269,8 +269,8 @@ var _ = Describe("Tracker", func() {
 					})
 
 					It("creates the container with the cache volume", func() {
-						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
+						Expect(satisfyingWorker.CreateTaskContainerCallCount()).To(Equal(1))
+						_, _, _, id, containerMetadata, spec, actualCustomTypes, _ := satisfyingWorker.CreateTaskContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
@@ -298,11 +298,6 @@ var _ = Describe("Tracker", func() {
 						Expect(actualCustomTypes).To(Equal(customTypes))
 					})
 
-					It("releases the volume, since the container keeps it alive", func() {
-						Expect(inputVolume1.ReleaseCallCount()).To(Equal(1))
-						Expect(inputVolume3.ReleaseCallCount()).To(Equal(1))
-					})
-
 					It("returns the artifact sources that it could not find volumes for", func() {
 						Expect(missingSources).To(ConsistOf("source-2-name"))
 					})
@@ -311,7 +306,7 @@ var _ = Describe("Tracker", func() {
 						disaster := errors.New("oh no!")
 
 						BeforeEach(func() {
-							satisfyingWorker.CreateContainerReturns(nil, disaster)
+							satisfyingWorker.CreateTaskContainerReturns(nil, disaster)
 						})
 
 						It("returns the error and no resource", func() {
@@ -330,8 +325,8 @@ var _ = Describe("Tracker", func() {
 					})
 
 					It("creates a container with no volumes", func() {
-						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
+						Expect(satisfyingWorker.CreateTaskContainerCallCount()).To(Equal(1))
+						_, _, _, id, containerMetadata, spec, actualCustomTypes, _ := satisfyingWorker.CreateTaskContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
@@ -390,9 +385,9 @@ var _ = Describe("Tracker", func() {
 						satisfyingWorker3,
 					}, nil)
 
-					satisfyingWorker1.CreateContainerReturns(fakeContainer, nil)
-					satisfyingWorker2.CreateContainerReturns(fakeContainer, nil)
-					satisfyingWorker3.CreateContainerReturns(fakeContainer, nil)
+					satisfyingWorker1.CreateTaskContainerReturns(fakeContainer, nil)
+					satisfyingWorker2.CreateTaskContainerReturns(fakeContainer, nil)
+					satisfyingWorker3.CreateTaskContainerReturns(fakeContainer, nil)
 				})
 
 				Context("and some workers have more matching input volumes than others", func() {
@@ -439,15 +434,15 @@ var _ = Describe("Tracker", func() {
 						}
 						inputSource3.VolumeOnReturns(nil, false, nil)
 
-						satisfyingWorker1.CreateContainerReturns(nil, errors.New("fall out of method here"))
-						satisfyingWorker2.CreateContainerReturns(nil, errors.New("fall out of method here"))
-						satisfyingWorker3.CreateContainerReturns(nil, errors.New("fall out of method here"))
+						satisfyingWorker1.CreateTaskContainerReturns(nil, errors.New("fall out of method here"))
+						satisfyingWorker2.CreateTaskContainerReturns(nil, errors.New("fall out of method here"))
+						satisfyingWorker3.CreateTaskContainerReturns(nil, errors.New("fall out of method here"))
 					})
 
 					It("picks the worker that has the most", func() {
-						Expect(satisfyingWorker1.CreateContainerCallCount()).To(Equal(0))
-						Expect(satisfyingWorker2.CreateContainerCallCount()).To(Equal(1))
-						Expect(satisfyingWorker3.CreateContainerCallCount()).To(Equal(0))
+						Expect(satisfyingWorker1.CreateTaskContainerCallCount()).To(Equal(0))
+						Expect(satisfyingWorker2.CreateTaskContainerCallCount()).To(Equal(1))
+						Expect(satisfyingWorker3.CreateTaskContainerCallCount()).To(Equal(0))
 					})
 
 					It("releases the volumes on the unused workers", func() {
@@ -493,7 +488,7 @@ var _ = Describe("Tracker", func() {
 
 			It("does not create a container", func() {
 				Expect(workerClient.SatisfyingCallCount()).To(BeZero())
-				Expect(workerClient.CreateContainerCallCount()).To(BeZero())
+				Expect(workerClient.CreateTaskContainerCallCount()).To(BeZero())
 			})
 		})
 
@@ -512,7 +507,7 @@ var _ = Describe("Tracker", func() {
 
 			It("does not create a container", func() {
 				Expect(workerClient.SatisfyingCallCount()).To(BeZero())
-				Expect(workerClient.CreateContainerCallCount()).To(BeZero())
+				Expect(workerClient.CreateTaskContainerCallCount()).To(BeZero())
 			})
 
 			It("returns them all as missing sources", func() {

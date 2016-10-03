@@ -175,12 +175,6 @@ type FakeContainer struct {
 	releaseArgsForCall []struct {
 		arg1 *time.Duration
 	}
-	VolumesStub        func() []worker.Volume
-	volumesMutex       sync.RWMutex
-	volumesArgsForCall []struct{}
-	volumesReturns     struct {
-		result1 []worker.Volume
-	}
 	VolumeMountsStub        func() []worker.VolumeMount
 	volumeMountsMutex       sync.RWMutex
 	volumeMountsArgsForCall []struct{}
@@ -826,31 +820,6 @@ func (fake *FakeContainer) ReleaseArgsForCall(i int) *time.Duration {
 	return fake.releaseArgsForCall[i].arg1
 }
 
-func (fake *FakeContainer) Volumes() []worker.Volume {
-	fake.volumesMutex.Lock()
-	fake.volumesArgsForCall = append(fake.volumesArgsForCall, struct{}{})
-	fake.recordInvocation("Volumes", []interface{}{})
-	fake.volumesMutex.Unlock()
-	if fake.VolumesStub != nil {
-		return fake.VolumesStub()
-	} else {
-		return fake.volumesReturns.result1
-	}
-}
-
-func (fake *FakeContainer) VolumesCallCount() int {
-	fake.volumesMutex.RLock()
-	defer fake.volumesMutex.RUnlock()
-	return len(fake.volumesArgsForCall)
-}
-
-func (fake *FakeContainer) VolumesReturns(result1 []worker.Volume) {
-	fake.VolumesStub = nil
-	fake.volumesReturns = struct {
-		result1 []worker.Volume
-	}{result1}
-}
-
 func (fake *FakeContainer) VolumeMounts() []worker.VolumeMount {
 	fake.volumeMountsMutex.Lock()
 	fake.volumeMountsArgsForCall = append(fake.volumeMountsArgsForCall, struct{}{})
@@ -946,8 +915,6 @@ func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	defer fake.destroyMutex.RUnlock()
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
-	fake.volumesMutex.RLock()
-	defer fake.volumesMutex.RUnlock()
 	fake.volumeMountsMutex.RLock()
 	defer fake.volumeMountsMutex.RUnlock()
 	fake.workerNameMutex.RLock()

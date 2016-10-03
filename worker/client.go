@@ -14,16 +14,6 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateContainer(
-		lager.Logger,
-		<-chan os.Signal,
-		ImageFetchingDelegate,
-		Identifier,
-		Metadata,
-		ContainerSpec,
-		atc.ResourceTypes,
-	) (Container, error)
-
 	CreateTaskContainer(
 		lager.Logger,
 		<-chan os.Signal,
@@ -170,7 +160,6 @@ type Container interface {
 
 	Release(*time.Duration)
 
-	Volumes() []Volume
 	VolumeMounts() []VolumeMount
 
 	WorkerName() string

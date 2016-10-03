@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"encoding/json"
 	"errors"
 	"sync"
 	"time"
@@ -9,6 +8,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
 )
@@ -17,11 +17,11 @@ var ErrMissingVolume = errors.New("volume mounted to container is missing")
 
 type gardenWorkerContainer struct {
 	garden.Container
+	dbContainer *dbng.CreatedContainer
 
 	gardenClient garden.Client
 	db           GardenWorkerDB
 
-	volumes      []Volume
 	volumeMounts []VolumeMount
 
 	user string
@@ -39,6 +39,7 @@ type gardenWorkerContainer struct {
 func newGardenWorkerContainer(
 	logger lager.Logger,
 	container garden.Container,
+	dbContainer *dbng.CreatedContainer,
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
@@ -49,7 +50,8 @@ func newGardenWorkerContainer(
 	logger = logger.WithData(lager.Data{"container": container.Handle()})
 
 	workerContainer := &gardenWorkerContainer{
-		Container: container,
+		Container:   container,
+		dbContainer: dbContainer,
 
 		gardenClient: gardenClient,
 		db:           db,
@@ -71,13 +73,13 @@ func newGardenWorkerContainer(
 
 	metric.TrackedContainers.Inc()
 
-	properties, err := workerContainer.Properties()
+	err := workerContainer.initializeVolumes(logger, baggageclaimClient, volumeFactory)
 	if err != nil {
 		workerContainer.Release(nil)
 		return nil, err
 	}
 
-	err = workerContainer.initializeVolumes(logger, properties, baggageclaimClient, volumeFactory)
+	properties, err := workerContainer.Properties()
 	if err != nil {
 		workerContainer.Release(nil)
 		return nil, err
@@ -106,10 +108,6 @@ func (container *gardenWorkerContainer) Release(finalTTL *time.Duration) {
 		container.release <- finalTTL
 		container.heartbeating.Wait()
 		metric.TrackedContainers.Dec()
-
-		for _, v := range container.volumes {
-			v.Release(finalTTL)
-		}
 	})
 }
 
@@ -118,105 +116,53 @@ func (container *gardenWorkerContainer) Run(spec garden.ProcessSpec, io garden.P
 	return container.Container.Run(spec, io)
 }
 
-func (container *gardenWorkerContainer) Volumes() []Volume {
-	return container.volumes
-}
-
 func (container *gardenWorkerContainer) VolumeMounts() []VolumeMount {
 	return container.volumeMounts
 }
 
 func (container *gardenWorkerContainer) initializeVolumes(
 	logger lager.Logger,
-	properties garden.Properties,
 	baggageclaimClient baggageclaim.Client,
 	volumeFactory VolumeFactory,
 ) error {
-	if baggageclaimClient == nil {
-		return nil
-	}
-
-	volumesByHandle := map[string]Volume{}
-	handlesJSON, found := properties[volumePropertyName]
-	var err error
-	if found {
-		volumesByHandle, err = container.setVolumes(logger, handlesJSON, baggageclaimClient, volumeFactory)
-		if err != nil {
-			return err
-		}
-	}
-
-	mountsJSON, found := properties[volumeMountsPropertyName]
-	if found {
-		var handleToMountPath map[string]string
-		err := json.Unmarshal([]byte(mountsJSON), &handleToMountPath)
-		if err != nil {
-			return err
-		}
-
-		volumeMounts := []VolumeMount{}
-		for h, m := range handleToMountPath {
-			volumeMounts = append(volumeMounts, VolumeMount{
-				Volume:    volumesByHandle[h],
-				MountPath: m,
-			})
-		}
-
-		container.volumeMounts = volumeMounts
-	}
-
-	return nil
-}
-
-func (container *gardenWorkerContainer) setVolumes(
-	logger lager.Logger,
-	handlesJSON string,
-	baggageclaimClient baggageclaim.Client,
-	volumeFactory VolumeFactory,
-) (map[string]Volume, error) {
-	volumesByHandle := map[string]Volume{}
-
-	var handles []string
-	err := json.Unmarshal([]byte(handlesJSON), &handles)
+	volumes, err := container.dbContainer.Volumes()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	volumes := []Volume{}
-	for _, h := range handles {
+	volumeMounts := []VolumeMount{}
+
+	for _, volume := range volumes {
 		volumeLogger := logger.Session("volume", lager.Data{
-			"handle": h,
+			"handle": volume.Handle(),
 		})
 
-		baggageClaimVolume, volumeFound, err := baggageclaimClient.LookupVolume(logger, h)
+		baggageClaimVolume, volumeFound, err := baggageclaimClient.LookupVolume(logger, volume.Handle())
 		if err != nil {
 			volumeLogger.Error("failed-to-lookup-volume", err)
-			return nil, err
+			return err
 		}
 
 		if !volumeFound {
-			volumeLogger.Error("volume-is-missing-on-worker", ErrMissingVolume)
-			return nil, ErrMissingVolume
+			volumeLogger.Error("volume-is-missing-on-worker", ErrMissingVolume, lager.Data{"handle": volume.Handle()})
+			return errors.New("volume mounted to container is missing " + volume.Handle())
 		}
 
-		volume, volumeFound, err := volumeFactory.Build(volumeLogger, baggageClaimVolume)
+		volume, err := volumeFactory.BuildWithIndefiniteTTL(volumeLogger, baggageClaimVolume)
 		if err != nil {
 			volumeLogger.Error("failed-to-build-volume", nil)
-			return nil, err
+			return err
 		}
 
-		if !volumeFound {
-			volumeLogger.Error("volume-is-missing-in-database", ErrMissingVolume)
-			return nil, ErrMissingVolume
-		}
-
-		volumes = append(volumes, volume)
-
-		volumesByHandle[h] = volume
+		volumeMounts = append(volumeMounts, VolumeMount{
+			Volume:    volume,
+			MountPath: volume.Path(),
+		})
 	}
 
-	container.volumes = volumes
-	return volumesByHandle, nil
+	container.volumeMounts = volumeMounts
+
+	return nil
 }
 
 func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker) {

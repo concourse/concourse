@@ -58,6 +58,19 @@ type Worker interface {
 	IsOwnedByTeam() bool
 }
 
+//go:generate counterfeiter . DBContainerFactory
+
+type DBContainerFactory interface {
+	CreateTaskContainer(
+		worker *dbng.Worker,
+		build *dbng.Build,
+		planID atc.PlanID,
+		meta dbng.ContainerMetadata,
+	) (*dbng.CreatingContainer, error)
+
+	FindContainer(handle string) (*dbng.CreatedContainer, bool, error)
+}
+
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
@@ -80,7 +93,7 @@ type gardenWorker struct {
 	volumeFactory      VolumeFactory
 	pipelineDBFactory  db.PipelineDBFactory
 	imageFactory       ImageFactory
-	dbContainerFactory *dbng.ContainerFactory
+	dbContainerFactory DBContainerFactory
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -107,7 +120,7 @@ func NewGardenWorker(
 	volumeFactory VolumeFactory,
 	imageFactory ImageFactory,
 	pipelineDBFactory db.PipelineDBFactory,
-	dbContainerFactory *dbng.ContainerFactory,
+	dbContainerFactory DBContainerFactory,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
@@ -172,122 +185,6 @@ func (worker *gardenWorker) ListVolumes(logger lager.Logger, properties VolumePr
 
 func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
 	return worker.volumeClient.LookupVolume(logger, handle)
-}
-
-func (worker *gardenWorker) getImage(
-	logger lager.Logger,
-	imageSpec ImageSpec,
-	teamID int,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
-	resourceTypes atc.ResourceTypes,
-) (Volume, ImageMetadata, atc.Version, string, error) {
-	// convert custom resource type from pipeline config into image_resource
-	updatedResourceTypes := resourceTypes
-	imageResource := imageSpec.ImageResource
-	for _, resourceType := range resourceTypes {
-		if resourceType.Name == imageSpec.ResourceType {
-			updatedResourceTypes = resourceTypes.Without(imageSpec.ResourceType)
-			imageResource = &atc.ImageResource{
-				Source: resourceType.Source,
-				Type:   resourceType.Type,
-			}
-		}
-	}
-
-	var imageVolume Volume
-	var imageMetadataReader io.ReadCloser
-	var version atc.Version
-
-	// `image` in task
-	if imageSpec.ImageVolumeAndMetadata.Volume != nil {
-		defer imageSpec.ImageVolumeAndMetadata.Volume.Release(nil)
-
-		var err error
-		imageVolume, err = worker.CreateVolume(
-			logger,
-			VolumeSpec{
-				Strategy: ContainerRootFSStrategy{
-					Parent: imageSpec.ImageVolumeAndMetadata.Volume,
-				},
-				Privileged: imageSpec.Privileged,
-				TTL:        VolumeTTL,
-			},
-			teamID,
-		)
-
-		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
-		}
-
-		imageMetadataReader = imageSpec.ImageVolumeAndMetadata.MetadataReader
-	}
-
-	// 'image_resource:' in task
-	if imageResource != nil {
-		var err error
-		image := worker.imageFactory.NewImage(
-			logger.Session("image"),
-			cancel,
-			*imageResource,
-			id,
-			metadata,
-			worker.tags,
-			teamID,
-			updatedResourceTypes,
-			worker,
-			delegate,
-			imageSpec.Privileged,
-		)
-
-		var imageParentVolume Volume
-		imageParentVolume, imageMetadataReader, version, err = image.Fetch()
-		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
-		}
-
-		volumeSpec := VolumeSpec{
-			Strategy: ContainerRootFSStrategy{
-				Parent: imageParentVolume,
-			},
-			Privileged: imageSpec.Privileged,
-			TTL:        ContainerTTL,
-		}
-		imageVolume, err = worker.CreateVolume(logger.Session("create-cow-volume"), volumeSpec, teamID)
-		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
-		}
-	}
-
-	// use image artifact from previous step in subsequent task within the same job
-	if imageVolume != nil {
-		metadata, err := loadMetadata(imageMetadataReader)
-		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
-		}
-
-		imageURL := url.URL{
-			Scheme: RawRootFSScheme,
-			Path:   path.Join(imageVolume.Path(), "rootfs"),
-		}
-
-		return imageVolume, metadata, version, imageURL.String(), nil
-	}
-
-	// built-in resource type specified in step
-	if imageSpec.ResourceType != "" {
-		rootFSURL, volume, resourceTypeVersion, err := worker.getBuiltInResourceTypeImage(logger, imageSpec.ResourceType, teamID)
-		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
-		}
-
-		return volume, ImageMetadata{}, resourceTypeVersion, rootFSURL, nil
-	}
-
-	// 'image:' in task
-	return nil, ImageMetadata{}, nil, imageSpec.ImageURL, nil
 }
 
 func (worker *gardenWorker) getImageForContainer(
@@ -456,62 +353,6 @@ func (worker *gardenWorker) ValidateResourceCheckVersion(container db.SavedConta
 	return false, nil
 }
 
-func (worker *gardenWorker) getBuiltInResourceTypeImage(
-	logger lager.Logger,
-	resourceTypeName string,
-	teamID int,
-) (string, Volume, atc.Version, error) {
-	for _, t := range worker.resourceTypes {
-		if t.Type == resourceTypeName {
-			importVolumeSpec := VolumeSpec{
-				Strategy: HostRootFSStrategy{
-					Path:       t.Image,
-					Version:    &t.Version,
-					WorkerName: worker.Name(),
-				},
-				Privileged: true,
-				Properties: VolumeProperties{},
-				TTL:        0,
-			}
-
-			importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
-			if err != nil {
-				return "", nil, atc.Version{}, err
-			}
-
-			if !found {
-				importVolume, err = worker.CreateVolume(logger, importVolumeSpec, 0)
-				if err != nil {
-					return "", nil, atc.Version{}, err
-				}
-			}
-
-			defer importVolume.Release(nil)
-
-			cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
-				Strategy: ContainerRootFSStrategy{
-					Parent: importVolume,
-				},
-				Privileged: true,
-				Properties: VolumeProperties{},
-				TTL:        VolumeTTL,
-			}, teamID)
-			if err != nil {
-				return "", nil, atc.Version{}, err
-			}
-
-			rootFSURL := url.URL{
-				Scheme: RawRootFSScheme,
-				Path:   cowVolume.Path(),
-			}
-
-			return rootFSURL.String(), cowVolume, atc.Version{resourceTypeName: t.Version}, nil
-		}
-	}
-
-	return "", nil, atc.Version{}, ErrUnsupportedResourceType
-}
-
 func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 	logger lager.Logger,
 	container *dbng.CreatingContainer,
@@ -622,160 +463,6 @@ func (worker *gardenWorker) CreateTaskContainer(
 	}
 
 	return worker.createContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, outputPaths)
-}
-
-func (worker *gardenWorker) CreateContainer(
-	logger lager.Logger,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
-	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-) (Container, error) {
-	imageVolume, imageMetadata, resourceTypeVersion, imageURL, err := worker.getImage(
-		logger,
-		spec.ImageSpec,
-		spec.TeamID,
-		cancel,
-		delegate,
-		id,
-		metadata,
-		resourceTypes,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if imageVolume != nil {
-		defer imageVolume.Release(nil)
-	}
-
-	volumeMounts := spec.Outputs
-	for _, mount := range spec.Inputs {
-		cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
-			Strategy: ContainerRootFSStrategy{
-				Parent: mount.Volume,
-			},
-			Privileged: spec.ImageSpec.Privileged,
-			TTL:        VolumeTTL,
-		}, spec.TeamID)
-		if err != nil {
-			return nil, err
-		}
-		// release *after* container creation
-		defer cowVolume.Release(nil)
-
-		volumeMounts = append(volumeMounts, VolumeMount{
-			Volume:    cowVolume,
-			MountPath: mount.MountPath,
-		})
-
-		logger.Debug("created-cow-volume", lager.Data{
-			"original-volume-handle": mount.Volume.Handle(),
-			"cow-volume-handle":      cowVolume.Handle(),
-		})
-	}
-
-	bindMounts := []garden.BindMount{}
-	volumeHandles := []string{}
-	volumeHandleMounts := map[string]string{}
-	for _, mount := range volumeMounts {
-		volumeHandles = append(volumeHandles, mount.Volume.Handle())
-		bindMounts = append(bindMounts, garden.BindMount{
-			SrcPath: mount.Volume.Path(),
-			DstPath: mount.MountPath,
-			Mode:    garden.BindMountModeRW,
-		})
-		volumeHandleMounts[mount.Volume.Handle()] = mount.MountPath
-	}
-
-	if imageVolume != nil {
-		volumeHandles = append(volumeHandles, imageVolume.Handle())
-	}
-
-	gardenProperties := garden.Properties{userPropertyName: imageMetadata.User}
-	if spec.User != "" {
-		gardenProperties = garden.Properties{userPropertyName: spec.User}
-	}
-
-	if len(volumeHandles) > 0 {
-		volumesJSON, err := json.Marshal(volumeHandles)
-		if err != nil {
-			return nil, err
-		}
-
-		gardenProperties[volumePropertyName] = string(volumesJSON)
-
-		mountsJSON, err := json.Marshal(volumeHandleMounts)
-		if err != nil {
-			return nil, err
-		}
-
-		gardenProperties[volumeMountsPropertyName] = string(mountsJSON)
-	}
-
-	if spec.Ephemeral {
-		gardenProperties[ephemeralPropertyName] = "true"
-	}
-
-	env := append(imageMetadata.Env, spec.Env...)
-
-	if worker.httpProxyURL != "" {
-		env = append(env, fmt.Sprintf("http_proxy=%s", worker.httpProxyURL))
-	}
-
-	if worker.httpsProxyURL != "" {
-		env = append(env, fmt.Sprintf("https_proxy=%s", worker.httpsProxyURL))
-	}
-
-	if worker.noProxy != "" {
-		env = append(env, fmt.Sprintf("no_proxy=%s", worker.noProxy))
-	}
-
-	gardenSpec := garden.ContainerSpec{
-		BindMounts: bindMounts,
-		Privileged: spec.ImageSpec.Privileged,
-		Properties: gardenProperties,
-		RootFSPath: imageURL,
-		Env:        env,
-	}
-
-	gardenContainer, err := worker.gardenClient.Create(gardenSpec)
-	if err != nil {
-		return nil, err
-	}
-
-	metadata.WorkerName = worker.name
-	metadata.Handle = gardenContainer.Handle()
-	metadata.User = gardenSpec.Properties["user"]
-
-	id.ResourceTypeVersion = resourceTypeVersion
-
-	cont := db.Container{
-		ContainerIdentifier: db.ContainerIdentifier(id),
-		ContainerMetadata:   db.ContainerMetadata(metadata),
-	}
-
-	_, err = worker.db.CreateContainer(
-		cont,
-		ContainerTTL,
-		worker.maxContainerLifetime(metadata),
-		volumeHandles,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return newGardenWorkerContainer(
-		logger,
-		gardenContainer,
-		worker.gardenClient,
-		worker.baggageclaimClient,
-		worker.db,
-		worker.clock,
-		worker.volumeFactory,
-		worker.name,
-	)
 }
 
 func (worker *gardenWorker) createContainer(
@@ -919,7 +606,7 @@ func (worker *gardenWorker) createContainer(
 		return nil, err
 	}
 
-	_, err = creatingContainer.Created(gardenContainer.Handle())
+	createdContainer, err := creatingContainer.Created(gardenContainer.Handle())
 	if err != nil {
 		return nil, err
 	}
@@ -946,6 +633,7 @@ func (worker *gardenWorker) createContainer(
 	return newGardenWorkerContainer(
 		logger,
 		gardenContainer,
+		createdContainer,
 		worker.gardenClient,
 		worker.baggageclaimClient,
 		worker.db,
@@ -1030,9 +718,20 @@ func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) 
 		return nil, false, err
 	}
 
+	createdContainer, found, err := worker.dbContainerFactory.FindContainer(handle)
+	if err != nil {
+		logger.Error("failed-to-lookup-in-db", err)
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
 	container, err := newGardenWorkerContainer(
 		logger,
 		gardenContainer,
+		createdContainer,
 		worker.gardenClient,
 		worker.baggageclaimClient,
 		worker.db,

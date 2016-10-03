@@ -31,7 +31,6 @@ import (
 	"github.com/concourse/atc/gc/buildreaper"
 	"github.com/concourse/atc/gc/containerkeepaliver"
 	"github.com/concourse/atc/gc/dbgc"
-	"github.com/concourse/atc/gc/lostandfound"
 	"github.com/concourse/atc/gcng"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
@@ -325,22 +324,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
 		}},
-
-		{"lostandfound", lockrunner.NewRunner(
-			logger.Session("lost-and-found"),
-			lostandfound.NewBaggageCollector(
-				logger.Session("baggage-collector"),
-				workerClient,
-				sqlDB,
-				pipelineDBFactory,
-				cmd.OldResourceGracePeriod,
-				24*time.Hour,
-			),
-			"baggage-collector",
-			sqlDB,
-			clock.NewClock(),
-			cmd.ResourceCacheCleanupInterval,
-		)},
 
 		{"volumecollector", lockrunner.NewRunner(
 			logger.Session("volume-collector"),

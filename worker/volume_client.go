@@ -206,15 +206,9 @@ func (c *volumeClient) CreateVolume(
 		return nil, err
 	}
 
-	volume, found, err := c.volumeFactory.Build(logger, bcVolume)
+	volume, err := c.volumeFactory.BuildWithIndefiniteTTL(logger, bcVolume)
 	if err != nil {
 		logger.Error("failed-build-volume", err)
-		return nil, err
-	}
-
-	if !found {
-		err = ErrVolumeExpiredImmediately
-		logger.Error("volume-expired-immediately", err)
 		return nil, err
 	}
 
@@ -237,13 +231,9 @@ func (c *volumeClient) ListVolumes(logger lager.Logger, properties VolumePropert
 
 	volumes := []Volume{}
 	for _, bcVolume := range bcVolumes {
-		volume, found, err := c.volumeFactory.Build(logger, bcVolume)
+		volume, err := c.volumeFactory.BuildWithIndefiniteTTL(logger, bcVolume)
 		if err != nil {
 			return []Volume{}, err
-		}
-
-		if !found {
-			continue
 		}
 
 		volumes = append(volumes, volume)
@@ -267,7 +257,12 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 		return nil, false, nil
 	}
 
-	return c.volumeFactory.Build(logger, bcVolume)
+	volume, err := c.volumeFactory.BuildWithIndefiniteTTL(logger, bcVolume)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return volume, true, nil
 }
 
 func (c *volumeClient) selectLowestAlphabeticalVolume(logger lager.Logger, volumes []db.SavedVolume) (db.SavedVolume, error) {

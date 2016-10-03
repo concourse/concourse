@@ -149,7 +149,7 @@ func (tracker *tracker) InitWithSources(
 
 	logger.Debug("tracker-init-with-resources-creating-container", lager.Data{"container-id": session.ID})
 
-	container, err = chosenWorker.CreateContainer(
+	container, err = chosenWorker.CreateTaskContainer(
 		logger,
 		nil,
 		imageFetchingDelegate,
@@ -157,6 +157,7 @@ func (tracker *tracker) InitWithSources(
 		session.Metadata,
 		resourceSpec,
 		resourceTypes,
+		map[string]string{},
 	)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
@@ -164,10 +165,6 @@ func (tracker *tracker) InitWithSources(
 	}
 
 	logger.Info("created", lager.Data{"container": container.Handle()})
-
-	for _, mount := range mounts {
-		mount.Volume.Release(nil)
-	}
 
 	return NewResource(container), missingSources, nil
 }
@@ -200,7 +197,7 @@ func (tracker *tracker) Init(
 
 	logger.Debug("tracker-init-creating-container", lager.Data{"container-id": session.ID})
 
-	container, err = tracker.workerClient.CreateContainer(
+	container, err = tracker.workerClient.CreateTaskContainer(
 		logger,
 		nil,
 		imageFetchingDelegate,
@@ -217,6 +214,7 @@ func (tracker *tracker) Init(
 			Env:       metadata.Env(),
 		},
 		resourceTypes,
+		map[string]string{},
 	)
 	if err != nil {
 		return nil, err

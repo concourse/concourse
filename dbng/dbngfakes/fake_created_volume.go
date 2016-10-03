@@ -14,10 +14,17 @@ type FakeCreatedVolume struct {
 	handleReturns     struct {
 		result1 string
 	}
-	CreateChildForContainerStub        func(*dbng.CreatingContainer) (dbng.CreatingVolume, error)
+	PathStub        func() string
+	pathMutex       sync.RWMutex
+	pathArgsForCall []struct{}
+	pathReturns     struct {
+		result1 string
+	}
+	CreateChildForContainerStub        func(*dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
 	createChildForContainerMutex       sync.RWMutex
 	createChildForContainerArgsForCall []struct {
 		arg1 *dbng.CreatingContainer
+		arg2 string
 	}
 	createChildForContainerReturns struct {
 		result1 dbng.CreatingVolume
@@ -59,15 +66,41 @@ func (fake *FakeCreatedVolume) HandleReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeCreatedVolume) CreateChildForContainer(arg1 *dbng.CreatingContainer) (dbng.CreatingVolume, error) {
+func (fake *FakeCreatedVolume) Path() string {
+	fake.pathMutex.Lock()
+	fake.pathArgsForCall = append(fake.pathArgsForCall, struct{}{})
+	fake.recordInvocation("Path", []interface{}{})
+	fake.pathMutex.Unlock()
+	if fake.PathStub != nil {
+		return fake.PathStub()
+	} else {
+		return fake.pathReturns.result1
+	}
+}
+
+func (fake *FakeCreatedVolume) PathCallCount() int {
+	fake.pathMutex.RLock()
+	defer fake.pathMutex.RUnlock()
+	return len(fake.pathArgsForCall)
+}
+
+func (fake *FakeCreatedVolume) PathReturns(result1 string) {
+	fake.PathStub = nil
+	fake.pathReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeCreatedVolume) CreateChildForContainer(arg1 *dbng.CreatingContainer, arg2 string) (dbng.CreatingVolume, error) {
 	fake.createChildForContainerMutex.Lock()
 	fake.createChildForContainerArgsForCall = append(fake.createChildForContainerArgsForCall, struct {
 		arg1 *dbng.CreatingContainer
-	}{arg1})
-	fake.recordInvocation("CreateChildForContainer", []interface{}{arg1})
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("CreateChildForContainer", []interface{}{arg1, arg2})
 	fake.createChildForContainerMutex.Unlock()
 	if fake.CreateChildForContainerStub != nil {
-		return fake.CreateChildForContainerStub(arg1)
+		return fake.CreateChildForContainerStub(arg1, arg2)
 	} else {
 		return fake.createChildForContainerReturns.result1, fake.createChildForContainerReturns.result2
 	}
@@ -79,10 +112,10 @@ func (fake *FakeCreatedVolume) CreateChildForContainerCallCount() int {
 	return len(fake.createChildForContainerArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) CreateChildForContainerArgsForCall(i int) *dbng.CreatingContainer {
+func (fake *FakeCreatedVolume) CreateChildForContainerArgsForCall(i int) (*dbng.CreatingContainer, string) {
 	fake.createChildForContainerMutex.RLock()
 	defer fake.createChildForContainerMutex.RUnlock()
-	return fake.createChildForContainerArgsForCall[i].arg1
+	return fake.createChildForContainerArgsForCall[i].arg1, fake.createChildForContainerArgsForCall[i].arg2
 }
 
 func (fake *FakeCreatedVolume) CreateChildForContainerReturns(result1 dbng.CreatingVolume, result2 error) {
@@ -124,6 +157,8 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
+	fake.pathMutex.RLock()
+	defer fake.pathMutex.RUnlock()
 	fake.createChildForContainerMutex.RLock()
 	defer fake.createChildForContainerMutex.RUnlock()
 	fake.destroyingMutex.RLock()

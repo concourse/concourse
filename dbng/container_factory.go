@@ -1,6 +1,12 @@
 package dbng
 
-import "github.com/concourse/atc"
+import (
+	"database/sql"
+
+	sq "github.com/Masterminds/squirrel"
+
+	"github.com/concourse/atc"
+)
 
 type ContainerFactory struct {
 	conn Conn
@@ -115,6 +121,12 @@ func (factory *ContainerFactory) CreateTaskContainer(
 	return factory.createPlanContainer(worker, build, planID, meta)
 }
 
+func (factory *ContainerFactory) FindContainer(
+	handle string,
+) (*CreatedContainer, bool, error) {
+	return factory.findPlanContainer(handle)
+}
+
 func (factory *ContainerFactory) createPlanContainer(
 	worker *Worker,
 	build *Build,
@@ -163,4 +175,40 @@ func (factory *ContainerFactory) createPlanContainer(
 		ID:   containerID,
 		conn: factory.conn,
 	}, nil
+}
+
+func (factory *ContainerFactory) findPlanContainer(handle string) (*CreatedContainer, bool, error) {
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	var containerID int
+	err = psql.Select("id").
+		From("containers").
+		Where(sq.Eq{
+			"state":  ContainerStateCreated,
+			"handle": handle,
+		}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&containerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return &CreatedContainer{
+		ID:   containerID,
+		conn: factory.conn,
+	}, true, nil
 }

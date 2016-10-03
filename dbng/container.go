@@ -1,6 +1,8 @@
 package dbng
 
 import (
+	"database/sql"
+
 	sq "github.com/Masterminds/squirrel"
 )
 
@@ -62,6 +64,59 @@ func (container *CreatingContainer) Created(handle string) (*CreatedContainer, e
 type CreatedContainer struct {
 	ID   int
 	conn Conn
+}
+
+func (container *CreatedContainer) Volumes() ([]CreatedVolume, error) {
+	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr").
+		From("volumes v").
+		LeftJoin("workers w ON v.worker_name = w.name").
+		Where(sq.Eq{
+			"v.state": VolumeStateCreated,
+		}).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := container.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	createdVolumes := []CreatedVolume{}
+
+	for rows.Next() {
+		var id int
+		var handle string
+		var path sql.NullString
+		var state string
+		var workerName string
+		var workerAddress string
+
+		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		var pathString string
+		if path.Valid {
+			pathString = path.String
+		}
+
+		createdVolumes = append(createdVolumes, &createdVolume{
+			id:     id,
+			handle: handle,
+			path:   pathString,
+			worker: &Worker{
+				Name:       workerName,
+				GardenAddr: workerAddress,
+			},
+			conn: container.conn,
+		})
+	}
+
+	return createdVolumes, nil
 }
 
 func (container *CreatedContainer) Destroying() (*DestroyingContainer, error) {
