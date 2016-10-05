@@ -11,7 +11,7 @@ Composing the three core \reference{concepts} together results in a
 
 A pipeline is the result of configuring \reference{configuring-jobs} and
 \reference{configuring-resources}. When you configure a pipeline, it takes on a
-life of its own, to continously detect resource versions and schedule jobs over
+life of its own, to continuously detect resource versions and schedule jobs over
 time. The mechanics of this are described below.
 
 \section{Scheduling with Resources}{

@@ -136,12 +136,12 @@ added to your workers.
 \section{Registering via the TSA}{registering-via-tsa}{
   Using the \code{/api/v1/workers} API directly is a bit inconvenient. Your
   workers need credentials for the ATC, and must advertise an address that the
-  ATC can reach. The API consumer would also have to continously heartbeat so
+  ATC can reach. The API consumer would also have to continuously heartbeat so
   long as the server it's advertising is healthy.
 
   A typical Concourse installation includes a component called the
   \reference{architecture-tsa}{TSA}. The TSA is used to securely register
-  workers via SSH, and continously health-check and heartbeat them to the ATC.
+  workers via SSH, and continuously health-check and heartbeat them to the ATC.
   These workers can come from any network that can reach the TSA, which is
   usually colocated with the ATC and possibly sitting behind the same load
   balancer (but on a different port, usually \code{2222}).
