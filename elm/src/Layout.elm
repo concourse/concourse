@@ -7,7 +7,9 @@ import Login exposing (Msg(..))
 import TopBar
 import SideBar
 import Routes
+import Route.QueryString as QueryString
 import SubPage
+
 
 type alias Flags =
   { turbulenceImgSrc : String
@@ -19,6 +21,7 @@ type alias Model =
   , sideModel : SideBar.Model
   , sidebarVisible : Bool
   , turbulenceImgSrc : String
+  , selectedGroups : List String
   }
 
 type Msg
@@ -43,6 +46,7 @@ init flags route =
       , sideModel = sideModel
       , sidebarVisible = False
       , turbulenceImgSrc = flags.turbulenceImgSrc
+      , selectedGroups = QueryString.all "groups" route.queries
       }
     , Cmd.batch
         [ Cmd.map SubMsg subCmd
@@ -54,7 +58,6 @@ init flags route =
 update : Msg -> Model -> (Model, Cmd (Msg))
 update msg model =
   case msg of
-    -- handle cross-component interactions
     TopMsg TopBar.ToggleSidebar ->
       ( { model
         | sidebarVisible = not model.sidebarVisible
@@ -64,7 +67,7 @@ update msg model =
     SubMsg (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
       let
         (subModel, subCmd) =
-          SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel
+          SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel model.selectedGroups
       in
         ( { model
           | subModel = subModel
@@ -75,10 +78,41 @@ update msg model =
             , Cmd.map SubMsg subCmd
             ]
         )
+    SubMsg (SubPage.PipelinesFetched (Ok pipelines)) ->
+      let
+        pipeline =
+          List.head pipelines
+        (subModel, subCmd) =
+          SubPage.update
+            model.turbulenceImgSrc
+            (SubPage.DefaultPipelineFetched pipeline)
+            model.subModel
+            model.selectedGroups
+      in
+        case pipeline of
+          Nothing ->
+            ( { model
+              | subModel = subModel
+              }
+            , Cmd.map SubMsg subCmd
+            )
+          Just p ->
+            let
+              (topModel, topCmd) =
+                TopBar.update
+                  (TopBar.FetchPipeline {teamName = p.teamName, pipelineName = p.name})
+                  model.topModel
+            in
+              ( { model
+                | subModel = subModel
+                , topModel = topModel
+                }
+              , Cmd.batch [Cmd.map SubMsg subCmd, Cmd.map TopMsg topCmd]
+              )
     -- otherwise, pass down
     SubMsg m ->
       let
-        (subModel, subCmd) = SubPage.update model.turbulenceImgSrc m model.subModel
+        (subModel, subCmd) = SubPage.update model.turbulenceImgSrc m model.subModel model.selectedGroups
       in
         ({ model | subModel = subModel }, Cmd.map SubMsg subCmd)
 

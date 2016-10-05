@@ -39,6 +39,7 @@ type Model
 
 type Msg
   = PipelinesFetched (Result Http.Error (List Concourse.Pipeline))
+  | DefaultPipelineFetched (Maybe Concourse.Pipeline)
   | NoPipelineMsg NoPipeline.Msg
   | BuildMsg (Autoscroll.Msg Build.Msg)
   | JobMsg Job.Msg
@@ -113,8 +114,11 @@ init turbulencePath route =
           { teamName = teamName
           , pipelineName = pipelineName
           , turbulenceImgSrc = turbulencePath
+          , selectedGroups = QueryString.all "groups" route.queries
+          , defaultGroup = Nothing
           }
     Routes.Home ->
+      flip always (Debug.log ("Routes.home") ()) <|
       ( WaitingModel
       , Cmd.batch
           [ fetchPipelines
@@ -122,8 +126,8 @@ init turbulencePath route =
           ]
       )
 
-update : String -> Msg -> Model -> (Model, Cmd Msg)
-update turbulence msg mdl =
+update : String -> Msg -> Model -> List String -> (Model, Cmd Msg)
+update turbulence msg mdl selectedGroups =
   case (msg, mdl) of
     (NoPipelineMsg msg, model) ->
       (model, fetchPipelines)
@@ -139,23 +143,28 @@ update turbulence msg mdl =
       superDupleWrap (ResourceModel, ResourceMsg) <| Resource.update message model
     (SelectTeamMsg message, SelectTeamModel model) ->
       superDupleWrap (SelectTeamModel, SelectTeamMsg) <| TeamSelection.update message model
-    (PipelinesFetched (Ok pipelines), model) ->
-      let
-        pipeline =
-          List.head pipelines
-      in
-        case pipeline of
-          Nothing ->
-            (NoPipelineModel, setTitle "")
-          Just p ->
-            let
-              flags =
-                { teamName = p.teamName
-                , pipelineName = p.name
-                , turbulenceImgSrc = turbulence
-                }
-            in
-             superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.init {render = renderPipeline, title = setTitle} flags
+    (DefaultPipelineFetched pipeline, model) ->
+      flip always (Debug.log ("SubPage.update") ()) <|
+      case pipeline of
+        Nothing ->
+          (NoPipelineModel, setTitle "")
+        Just p ->
+          let
+            flags =
+              { teamName = p.teamName
+              , pipelineName = p.name
+              , turbulenceImgSrc = turbulence
+              , selectedGroups = selectedGroups
+              , defaultGroup =
+                case List.head p.groups of
+                  Nothing ->
+                    Nothing
+                  Just group ->
+                    Just group.name
+              }
+          in
+            flip always (Debug.log ("SubPage.update " ++ toString flags) ()) <|
+            superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.init {render = renderPipeline, title = setTitle} flags
     _ ->
       Debug.log "Impossible combination" (mdl, Cmd.none)
 
@@ -163,11 +172,13 @@ urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =
   case (route.logical, model) of
     (Routes.Pipeline team pipeline, PipelineModel mdl) ->
+      flip always (Debug.log "urlUpdate" route) <|
       superDupleWrap (PipelineModel, PipelineMsg) <|
         Pipeline.loadPipeline
           { teamName = team
           , pipelineName = pipeline
           }
+          (QueryString.all "groups" route.queries)
           mdl
 
     (Routes.Resource teamName pipelineName resourceName, ResourceModel mdl) ->
