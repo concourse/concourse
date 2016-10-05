@@ -18,31 +18,33 @@ jobs:
       inputs:
       - name: atomy-prs
 
-run foo:
-    - run get:
-        - select worker
-        - compute cache id
-            - find volume for custom resource type
-                - compute cache id
-                    - find volume for worker resource type
-                        - if not found, create volume
-                              - import worker resource type
-                              - initialize
-                        - acquire volume for build (join table)
-                - look for cache volume
-                    - if not found, create container, initialize resource type
-                    - acquire volume for build (join table)
-        - look for cache volume
-            - if not found, create container, initialize cache
-            - acquire for build
-    - run task:
-        - select worker
-        - compute cache id
-          - this is same as before except it should be able to find everything
-            and never have to fetch
+# run foo:
+#     - run get:
+#         - select worker
+#         - compute cache id
+#             - find volume for custom resource type
+#                 - compute cache id
+#                     - find volume for worker resource type
+#                         - if not found, create volume
+#                               - import worker resource type
+#                               - initialize
+#                         - acquire volume for build (join table)
+#                 - look for cache volume
+#                     - if not found, create container, initialize resource type
+#                     - acquire volume for build (join table)
+#         - look for cache volume
+#             - if not found, create container, initialize cache
+#             - acquire for build
+#     - run task:
+#         - select worker
+#         - compute cache id
+#           - this is same as before except it should be able to find everything
+#             and never have to fetch
+#
+# * need join table for find-and-acquire?
 
-* need join table for find-and-acquire?
-
+`get`
+===============
 
 run foo:
     builds:
@@ -58,9 +60,7 @@ run foo:
           {
             created_by_resource_cache: {
               created_by_base_resource_type: {
-                name: docker-image,
-                image: /var/vcap/packages/...,
-                version: sdmnfbdsdjhkfsdf
+                name: docker-image
               },
               source: {repository: jtarchie/foo},
               params: {},
@@ -73,8 +73,12 @@ run foo:
 
           populates resource caches and base resource types, and marks it in use by the build
           base_resource_types:
-          | id | name         | image         | version          |
-          | 1  | docker-image | /var/vcap/... | sdmnfbdsdjhkfsdf |
+          | id | name         |
+          | 1  | docker-image |
+
+          worker_base_resource_types:
+          | id | worker_name | base_resource_type_id | image         | version          |
+          | 1  | some-worker | 1                     | /var/vcap/... | sdmnfbdsdjhkfsdf |
 
           resource_caches:
           | id | resource_cache_id | base_resource_type_id | source                     | params  | version              |
@@ -88,10 +92,10 @@ run foo:
         - look for volume relating to cache ID on worker
             - if found, no-op
               volumes:
-              | id  | worker_name | resource_cache_id | base_resource_type_id | state        |
-              | 5   | some-worker | NULL              | 1                     | initialized  | lock
-              | 9   | some-worker | 1                 | NULL                  | initialized  |
-              | 14  | some-worker | 2                 | NULL                  | initialized  |
+              | id  | worker_name | resource_cache_id | worker_base_resource_type_id | state        |
+              | 5   | some-worker | NULL              | 1                            | initialized  | lock
+              | 9   | some-worker | 1                 | NULL                         | initialized  |
+              | 14  | some-worker | 2                 | NULL                         | initialized  |
 
 
             - if not found, recurse into ResourceCache's creator
@@ -115,3 +119,109 @@ run foo:
         - select worker
         - compute cache ID (same as above)
         - blah
+
+
+`check` (either `image_resource` or pipeline resource)
+====================
+
+resources:
+- name: 30m
+  type: time
+  source: {interval: 30m}
+
+- name: custom-resource
+  type: custom-type
+  source: {custom-resource: config}
+
+resource_types:
+- name: custom-type
+  type: docker-image
+  source: {custom-type: config}
+
+check `30m`:
+
+- generate resource config
+    {
+      base_resource_type: {
+        name: time
+      },
+      source: {
+        interval: 30m
+      }
+    }
+    => UsedResourceConfig
+- acquire checking lock for config
+- find container for resource config
+  - if found:
+    - return container
+  - if not found:
+    - pick worker
+    - find base resource type 'time' for that worker (join table + 'name' lookup)
+    - create container relating to worker_base_resource_types
+- run `check`
+- release lock
+
+
+check `custom-resource`:
+
+- generate resource config
+  - check `custom-type`
+    - generate resource config
+      {
+        base_resource_type: {
+          name: docker-image
+        }
+        source: {
+          custom-type: config
+        }
+      }
+    - acquire checking lock for config
+    - find container for resource config
+      - if found:
+        - return container
+      - if not found:
+        - pick worker
+        - find base resource type 'docker-image' for that worker (join table + 'name' lookup)
+        - create container relating to worker_base_resource_types
+    - run `check`
+    - release lock
+    - returns 'digest: sha256:abcd'
+  - config is now:
+    {
+      resource_cache: {
+        created_by_base_resource_type: {
+          name: docker-image
+        },
+        source: {custom-type: config},
+        params: {},
+        version: {digest: sha256:abcd}
+      },
+      source: {custom-resource: config}
+    }
+    => UsedResourceConfig
+- acquire checking lock for config
+- find container for resource config
+  - if found:
+    - return container
+  - if not found:
+    - pick worker
+    - find volume for resource cache on that worker
+      - if found:
+        - return volume
+      - if not found:
+        - acquire lock for fetching resource cache on worker
+        - create container for fetching resource cache
+        - create volume for resource cache
+        - run `get`
+        - return volume
+    - create container with COW of volume as rootfs
+- run `check`
+- release lock
+
+
+`put`
+====================
+
+
+`task`
+====================

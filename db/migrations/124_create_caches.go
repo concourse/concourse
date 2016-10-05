@@ -37,9 +37,7 @@ func CreateCaches(tx migration.LimitedTx) error {
 		CREATE TABLE base_resource_types (
 			id serial PRIMARY KEY,
 			name text NOT NULL,
-			image text NOT NULL,
-			version text NOT NULL,
-			UNIQUE (name, image, version)
+			UNIQUE (name)
 		)
 	`)
 	if err != nil {
@@ -50,6 +48,9 @@ func CreateCaches(tx migration.LimitedTx) error {
 		CREATE TABLE worker_base_resource_types (
 			worker_name text REFERENCES workers (name) ON DELETE CASCADE,
 			base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE RESTRICT
+			image text NOT NULL,
+			version text NOT NULL,
+			UNIQUE (worker_name, base_resource_type_id)
 		)
 	`)
 	if err != nil {
