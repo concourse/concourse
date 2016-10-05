@@ -5,6 +5,7 @@ import Html.Attributes exposing (class, href, id, style, src, width, height)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Encode
+import Json.Decode
 import Navigation
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
@@ -16,6 +17,7 @@ import Concourse.Cli
 import Concourse.Info
 import Concourse.Job
 import Concourse.Resource
+import Concourse.Pipeline
 
 type alias Ports =
   { render : (Json.Encode.Value, Json.Encode.Value) -> Cmd Msg
@@ -32,12 +34,15 @@ type alias Model =
   , concourseVersion : String
   , turbulenceImgSrc : String
   , experiencingTurbulence : Bool
+  , selectedGroups : List String
   }
 
 type alias Flags =
   { teamName : String
   , pipelineName : String
   , turbulenceImgSrc : String
+  , selectedGroups : List String
+  , defaultGroup : Maybe String
   }
 
 type Msg
@@ -47,6 +52,7 @@ type Msg
   | JobsFetched (Result Http.Error Json.Encode.Value)
   | ResourcesFetched (Result Http.Error Json.Encode.Value)
   | VersionFetched (Result Http.Error String)
+  | PipelineFetched (Result Http.Error Concourse.Pipeline)
 
 init : Ports -> Flags -> (Model, Cmd Msg)
 init ports flags =
@@ -65,27 +71,27 @@ init ports flags =
       , renderedJobs = Nothing
       , renderedResources = Nothing
       , experiencingTurbulence = False
+      , selectedGroups = flags.selectedGroups
       }
   in
-    loadPipeline pipelineLocator model
+    loadPipeline pipelineLocator flags.selectedGroups model
 
-loadPipeline : Concourse.PipelineIdentifier -> Model -> (Model, Cmd Msg)
-loadPipeline pipelineLocator model =
-      ( { model
-        | pipelineLocator = pipelineLocator
-        , fetchedJobs = Nothing
-        , fetchedResources = Nothing
-        , renderedJobs = Nothing
-        , renderedResources = Nothing
-        , experiencingTurbulence = False
-        }
-      , Cmd.batch
-          [ fetchJobs pipelineLocator
-          , fetchResources pipelineLocator
-          , fetchVersion
-          , model.ports.title <| model.pipelineLocator.pipelineName ++ " - "
-          ]
-      )
+loadPipeline : Concourse.PipelineIdentifier -> List String -> Model -> (Model, Cmd Msg)
+loadPipeline pipelineLocator selectedGroups model =
+  -- let selectedGroups =
+  --   if List.empty selectedGroups then
+  ( { model
+    | pipelineLocator = pipelineLocator
+    , selectedGroups = selectedGroups
+    }
+  , Cmd.batch
+      [ fetchPipeline pipelineLocator
+      , fetchJobs pipelineLocator
+      , fetchResources pipelineLocator
+      , fetchVersion
+      , model.ports.title <| model.pipelineLocator.pipelineName ++ " - "
+      ]
+  )
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -96,13 +102,40 @@ update msg model =
     AutoupdateTimerTicked timestamp ->
       ( model
       , Cmd.batch
-          [ fetchJobs model.pipelineLocator
+          [ fetchPipeline model.pipelineLocator
+          , fetchJobs model.pipelineLocator
           , fetchResources model.pipelineLocator
           ]
       )
 
     AutoupdateVersionTicked _ ->
       (model, fetchVersion)
+
+    PipelineFetched (Ok pipeline) ->
+      let
+        firstGroup =
+          List.head pipeline.groups
+        groups =
+          if List.isEmpty model.selectedGroups then
+            case firstGroup of
+              Nothing ->
+                []
+              Just group ->
+                [group.name]
+          else
+            model.selectedGroups
+      in
+        ( { model
+          | selectedGroups = groups
+          }
+        , Cmd.none
+        )
+
+    PipelineFetched (Err (Http.BadResponse 401 _)) ->
+      (model, Navigation.newUrl "/login")
+
+    PipelineFetched (Err err) ->
+      renderIfNeeded { model | experiencingTurbulence = True }
 
     JobsFetched (Ok fetchedJobs) ->
       renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
@@ -206,16 +239,55 @@ autoupdateVersionTimer : Sub Msg
 autoupdateVersionTimer =
   Time.every (1 * Time.minute) AutoupdateVersionTicked
 
+
+jobAppearsInGroups : List String -> Concourse.PipelineIdentifier -> Json.Encode.Value -> Bool
+jobAppearsInGroups groupNames pi jobJson =
+  let concourseJob =
+    Json.Decode.decodeValue (Concourse.decodeJob pi) jobJson
+  in
+    case concourseJob of
+      Ok cj ->
+        anyIntersect cj.groups groupNames
+      Err err ->
+        Debug.log ("failed to check if job is in group: " ++ toString err) False
+
+expandJsonList : Json.Encode.Value -> List Json.Decode.Value
+expandJsonList flatList =
+  let
+    result =
+      Json.Decode.decodeValue (Json.Decode.list Json.Decode.value) flatList
+  in
+    case result of
+      Ok res ->
+        res
+      Err err ->
+        Debug.log ("failed to expand json list: " ++ toString err) []
+
+filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
+filterJobs model value =
+  Json.Encode.list <|
+    List.filter
+      (jobAppearsInGroups model.selectedGroups model.pipelineLocator)
+      (expandJsonList value)
+
 renderIfNeeded : Model -> (Model, Cmd Msg)
 renderIfNeeded model =
   case (model.fetchedResources, model.fetchedJobs) of
     (Just fetchedResources, Just fetchedJobs) ->
-      if model.renderedJobs /= Just fetchedJobs || model.renderedResources /= Just fetchedResources then
-        ( { model | renderedJobs = Just fetchedJobs, renderedResources = Just fetchedResources }
-        , model.ports.render (fetchedJobs, fetchedResources)
-        )
-      else
-        (model, Cmd.none)
+      let
+        filteredFetchedJobs =
+          filterJobs model fetchedJobs
+      in
+        if model.renderedJobs /= Just filteredFetchedJobs
+          || model.renderedResources /= Just fetchedResources then
+            ( { model
+              | renderedJobs = Just filteredFetchedJobs
+              , renderedResources = Just fetchedResources
+              }
+            , model.ports.render (filteredFetchedJobs, fetchedResources)
+            )
+        else
+          (model, Cmd.none)
     _ ->
       (model, Cmd.none)
 
@@ -232,3 +304,16 @@ fetchVersion =
   Concourse.Info.fetchVersion
     |> Task.perform Err Ok
     |> Cmd.map VersionFetched
+
+anyIntersect : List a -> List a -> Bool
+anyIntersect list1 list2 =
+    case list1 of
+      [] -> False
+      first :: rest ->
+        if List.member first list2 then True
+        else anyIntersect rest list2
+
+fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
+fetchPipeline pipelineIdentifier =
+  Cmd.map PipelineFetched <|
+    Task.perform Err Ok (Concourse.Pipeline.fetchPipeline pipelineIdentifier)

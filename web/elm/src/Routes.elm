@@ -93,6 +93,7 @@ toString route =
 
 parsePath : Location -> ConcourseRoute
 parsePath location =
+  flip always (Debug.log ("Rotes.parsePath" ) (location)) <|
     { logical = match <| location.pathname
     , queries = QueryString.parse location.search
     , page = createPageFromSearch location.search
