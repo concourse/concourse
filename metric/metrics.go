@@ -203,13 +203,13 @@ func ms(duration time.Duration) float64 {
 	return float64(duration) / 1000000
 }
 
-type HTTPReponseTime struct {
+type HTTPResponseTime struct {
 	Route    string
 	Path     string
 	Duration time.Duration
 }
 
-func (event HTTPReponseTime) Emit(logger lager.Logger) {
+func (event HTTPResponseTime) Emit(logger lager.Logger) {
 	state := "ok"
 
 	if event.Duration > 100*time.Millisecond {

@@ -26,7 +26,7 @@ func (handler MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	start := time.Now()
 	handler.Handler.ServeHTTP(w, r)
 
-	HTTPReponseTime{
+	HTTPResponseTime{
 		Route:    handler.Route,
 		Path:     r.URL.Path,
 		Duration: time.Since(start),
