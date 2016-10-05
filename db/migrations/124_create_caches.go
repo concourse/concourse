@@ -47,7 +47,7 @@ func CreateCaches(tx migration.LimitedTx) error {
 	_, err = tx.Exec(`
 		CREATE TABLE worker_base_resource_types (
 			worker_name text REFERENCES workers (name) ON DELETE CASCADE,
-			base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE RESTRICT
+			base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE RESTRICT,
 			image text NOT NULL,
 			version text NOT NULL,
 			UNIQUE (worker_name, base_resource_type_id)

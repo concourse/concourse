@@ -1,6 +1,9 @@
 package dbng_test
 
 import (
+	"time"
+
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 
 	. "github.com/onsi/ginkgo"
@@ -12,7 +15,7 @@ var _ = Describe("Container", func() {
 		dbConn           dbng.Conn
 		volumeFactory    *dbng.VolumeFactory
 		containerFactory *dbng.ContainerFactory
-		teamFactory      *dbng.TeamFactory
+		teamFactory      dbng.TeamFactory
 		buildFactory     *dbng.BuildFactory
 
 		createdContainer *dbng.CreatedContainer
@@ -27,6 +30,7 @@ var _ = Describe("Container", func() {
 		volumeFactory = dbng.NewVolumeFactory(dbConn)
 		teamFactory = dbng.NewTeamFactory(dbConn)
 		buildFactory = dbng.NewBuildFactory(dbConn)
+		workerFactory := dbng.NewWorkerFactory(dbConn)
 
 		team, err := teamFactory.CreateTeam("some-team")
 		Expect(err).ToNot(HaveOccurred())
@@ -34,15 +38,11 @@ var _ = Describe("Container", func() {
 		build, err := buildFactory.CreateOneOffBuild(team)
 		Expect(err).ToNot(HaveOccurred())
 
-		setupTx, err := dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-		worker := &dbng.Worker{
+		worker, err := workerFactory.SaveWorker(atc.Worker{
 			Name:       "some-worker",
 			GardenAddr: "1.2.3.4:7777",
-		}
-		err = worker.Create(setupTx)
+		}, 5*time.Minute)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(setupTx.Commit()).To(Succeed())
 
 		creatingContainer, err := containerFactory.CreateTaskContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 			Type: "task",

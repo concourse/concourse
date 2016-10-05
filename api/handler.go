@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/mainredirect"
 	"github.com/concourse/atc/worker"
@@ -45,6 +46,8 @@ func NewHandler(
 
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
+	dbTeamFactory dbng.TeamFactory,
+	dbWorkerFactory dbng.WorkerFactory,
 
 	teamsDB teamserver.TeamsDB,
 	workerDB workerserver.WorkerDB,
@@ -111,7 +114,7 @@ func NewHandler(
 
 	configServer := configserver.NewServer(logger, teamDBFactory, configValidator)
 
-	workerServer := workerserver.NewServer(logger, workerDB, teamDBFactory)
+	workerServer := workerserver.NewServer(logger, workerDB, teamDBFactory, dbTeamFactory, dbWorkerFactory)
 
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 

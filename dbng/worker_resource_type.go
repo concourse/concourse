@@ -1,5 +1,15 @@
 package dbng
 
+import (
+	"database/sql"
+	"errors"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
+)
+
+var ErrWorkerBaseResourceTypeAlreadyExists = errors.New("worker base resource type already exists")
+
 // base_resource_types: <- gced referenced by 0 workers
 // | id | type | image | version |
 
@@ -10,75 +20,84 @@ package dbng
 // | id | resource_cache_id | base_resource_type_id | source_hash | params_hash | version |
 
 type WorkerResourceType struct {
-	WorkerName string
+	Worker  *Worker
+	Image   string // The path to the image, e.g. '/opt/concourse/resources/git'.
+	Version string // The version of the image, e.g. a SHA of the rootfs.
 
-	BaseResourceType
+	BaseResourceType *BaseResourceType
 }
 
-// func (wrt WorkerResourceType) Lookup(tx Tx) (int, bool, error) {
-// 	var id int
-// 	err := psql.Select("id").From("worker_resource_types").Where(sq.Eq{
-// 		"worker_name": wrt.WorkerName,
-// 		"type":        wrt.Type,
-// 		"image":       wrt.Image,
-// 		"version":     wrt.Version,
-// 	}).RunWith(tx).QueryRow().Scan(&id)
-// 	if err != nil {
-// 		if err == sql.ErrNoRows {
-// 			return 0, false, nil
-// 		}
+type UsedWorkerResourceType struct {
+	Worker *Worker
 
-// 		return 0, false, err
-// 	}
+	UsedBaseResourceType *UsedBaseResourceType
+}
 
-// 	return id, true, nil
-// }
+func (wrt WorkerResourceType) FindOrCreate(tx Tx) (*UsedWorkerResourceType, error) {
+	usedBaseResourceType, err := wrt.BaseResourceType.FindOrCreate(tx)
+	if err != nil {
+		return nil, err
+	}
 
-// var ErrWorkerResourceTypeAlreadyExists = errors.New("worker resource type already exists")
+	uwrt, found, err := wrt.find(tx, usedBaseResourceType)
+	if err != nil {
+		return nil, err
+	}
 
-// func (wrt WorkerResourceType) Create(tx Tx) (int, error) {
-// 	var id int
-// 	err := psql.Insert("worker_resource_types").
-// 		Columns(
-// 			"worker_name",
-// 			"type",
-// 			"image",
-// 			"version",
-// 		).
-// 		Values(
-// 			wrt.WorkerName,
-// 			wrt.Type,
-// 			wrt.Image,
-// 			wrt.Version,
-// 		).
-// 		Suffix("RETURNING id").
-// 		RunWith(tx).
-// 		QueryRow().
-// 		Scan(&id)
-// 	if err != nil {
-// 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
-// 			return 0, ErrWorkerResourceTypeAlreadyExists
-// 		}
+	if found {
+		return uwrt, nil
+	}
 
-// 		return 0, err
-// 	}
+	return wrt.create(tx, usedBaseResourceType)
+}
 
-// 	_, err = psql.Delete("worker_resource_types").
-// 		Where(sq.And{
-// 			sq.Eq{
-// 				"worker_name": wrt.WorkerName,
-// 				"type":        wrt.Type,
-// 				"image":       wrt.Image,
-// 			},
-// 			sq.NotEq{
-// 				"version": wrt.Version,
-// 			},
-// 		}).
-// 		RunWith(tx).
-// 		Exec()
-// 	if err != nil {
-// 		return 0, err
-// 	}
+func (wrt WorkerResourceType) find(tx Tx, usedBaseResourceType *UsedBaseResourceType) (*UsedWorkerResourceType, bool, error) {
+	var worker_name string
+	err := psql.Select("worker_name").From("worker_base_resource_types").Where(sq.Eq{
+		"worker_name":           wrt.Worker.Name,
+		"base_resource_type_id": usedBaseResourceType.ID,
+		"image":                 wrt.Image,
+		"version":               wrt.Version,
+	}).RunWith(tx).QueryRow().Scan(&worker_name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
 
-// 	return id, nil
-// }
+	return &UsedWorkerResourceType{
+		Worker:               wrt.Worker,
+		UsedBaseResourceType: usedBaseResourceType,
+	}, true, nil
+}
+
+func (wrt WorkerResourceType) create(tx Tx, usedBaseResourceType *UsedBaseResourceType) (*UsedWorkerResourceType, error) {
+	_, err := psql.Insert("worker_base_resource_types").
+		Columns(
+			"worker_name",
+			"base_resource_type_id",
+			"image",
+			"version",
+		).
+		Values(
+			wrt.Worker.Name,
+			usedBaseResourceType.ID,
+			wrt.Image,
+			wrt.Version,
+		).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+			return nil, ErrWorkerBaseResourceTypeAlreadyExists
+		}
+
+		return nil, err
+	}
+
+	return &UsedWorkerResourceType{
+		Worker:               wrt.Worker,
+		UsedBaseResourceType: usedBaseResourceType,
+	}, nil
+}

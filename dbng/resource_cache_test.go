@@ -37,9 +37,7 @@ var _ = Describe("ResourceCache", func() {
 		// Expect(err).ToNot(HaveOccurred())
 
 		brt := dbng.BaseResourceType{
-			Name:    "some-worker-resource-type",
-			Image:   "some-worker-resource-image",
-			Version: "some-worker-resource-version",
+			Name: "some-worker-resource-type",
 		}
 
 		// ubrt, err := brt.FindOrCreate(setupTx)

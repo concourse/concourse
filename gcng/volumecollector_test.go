@@ -1,7 +1,10 @@
 package gcng_test
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/gcng"
 	"github.com/concourse/atc/worker"
@@ -18,7 +21,8 @@ var _ = Describe("VolumeCollector", func() {
 		dbConn           dbng.Conn
 		volumeFactory    *dbng.VolumeFactory
 		containerFactory *dbng.ContainerFactory
-		teamFactory      *dbng.TeamFactory
+		teamFactory      dbng.TeamFactory
+		workerFactory    dbng.WorkerFactory
 		buildFactory     *dbng.BuildFactory
 		fakeWorkerClient *workerfakes.FakeClient
 		fakeWorker       *workerfakes.FakeWorker
@@ -33,6 +37,7 @@ var _ = Describe("VolumeCollector", func() {
 		volumeFactory = dbng.NewVolumeFactory(dbConn)
 		teamFactory = dbng.NewTeamFactory(dbConn)
 		buildFactory = dbng.NewBuildFactory(dbConn)
+		workerFactory = dbng.NewWorkerFactory(dbConn)
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeWorker = new(workerfakes.FakeWorker)
@@ -62,15 +67,11 @@ var _ = Describe("VolumeCollector", func() {
 			build, err := buildFactory.CreateOneOffBuild(team)
 			Expect(err).ToNot(HaveOccurred())
 
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-			worker := &dbng.Worker{
+			worker, err := workerFactory.SaveWorker(atc.Worker{
 				Name:       "some-worker",
 				GardenAddr: "1.2.3.4:7777",
-			}
-			err = worker.Create(setupTx)
+			}, 5*time.Minute)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
 
 			creatingContainer1, err := containerFactory.CreateTaskContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",

@@ -1,6 +1,9 @@
 package dbng_test
 
 import (
+	"time"
+
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,7 +14,7 @@ var _ = Describe("VolumeFactory", func() {
 		dbConn           dbng.Conn
 		volumeFactory    *dbng.VolumeFactory
 		containerFactory *dbng.ContainerFactory
-		teamFactory      *dbng.TeamFactory
+		teamFactory      dbng.TeamFactory
 		buildFactory     *dbng.BuildFactory
 	)
 
@@ -44,13 +47,14 @@ var _ = Describe("VolumeFactory", func() {
 			build, err = buildFactory.CreateOneOffBuild(team)
 			Expect(err).ToNot(HaveOccurred())
 
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-			worker := &dbng.Worker{
+			workerFactory := dbng.NewWorkerFactory(dbConn)
+			worker, err := workerFactory.SaveWorker(atc.Worker{
 				Name:       "some-worker",
 				GardenAddr: "1.2.3.4:7777",
-			}
-			err = worker.Create(setupTx)
+			}, 5*time.Minute)
+			Expect(err).ToNot(HaveOccurred())
+
+			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceCache := dbng.ResourceCache{

@@ -8,7 +8,7 @@ import (
 	"github.com/lib/pq"
 )
 
-var ErrBaseResourceTypeAlreadyExists = errors.New("cache already exists")
+var ErrBaseResourceTypeAlreadyExists = errors.New("base resource type already exists")
 
 // BaseResourceType represents a resource type provided by workers.
 //
@@ -17,9 +17,7 @@ var ErrBaseResourceTypeAlreadyExists = errors.New("cache already exists")
 // It is removed by gc.BaseResourceTypeCollector, once there are no references
 // to it from worker_base_resource_types.
 type BaseResourceType struct {
-	Name    string // The name of the type, e.g. 'git'.
-	Image   string // The path to the image, e.g. '/opt/concourse/resources/git'.
-	Version string // The version of the image, e.g. a SHA of the rootfs.
+	Name string // The name of the type, e.g. 'git'.
 }
 
 // UsedBaseResourceType is created whenever a ResourceConfig is used, either
@@ -58,9 +56,7 @@ func (brt BaseResourceType) FindOrCreate(tx Tx) (*UsedBaseResourceType, error) {
 func (brt BaseResourceType) find(tx Tx) (*UsedBaseResourceType, bool, error) {
 	var id int
 	err := psql.Select("id").From("base_resource_types").Where(sq.Eq{
-		"name":    brt.Name,
-		"image":   brt.Image,
-		"version": brt.Version,
+		"name": brt.Name,
 	}).RunWith(tx).QueryRow().Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -78,13 +74,9 @@ func (brt BaseResourceType) create(tx Tx) (*UsedBaseResourceType, error) {
 	err := psql.Insert("base_resource_types").
 		Columns(
 			"name",
-			"image",
-			"version",
 		).
 		Values(
 			brt.Name,
-			brt.Image,
-			brt.Version,
 		).
 		Suffix("RETURNING id").
 		RunWith(tx).
