@@ -7,6 +7,8 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
+const CookieName = "ATC-Authorization"
+
 type templateData struct{}
 
 type handler struct {
