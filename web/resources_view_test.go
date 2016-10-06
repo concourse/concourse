@@ -28,6 +28,14 @@ var _ = Describe("Viewing resources", func() {
 						CheckEvery: "",
 					},
 				},
+				Jobs: atc.JobConfigs{
+					{
+						Name: "broken-resource-user",
+						Plan: atc.PlanSequence{
+							{Get: "broken-resource"},
+						},
+					},
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
