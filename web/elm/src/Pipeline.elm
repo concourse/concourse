@@ -279,7 +279,6 @@ filterJobs model value =
 
 renderIfNeeded : Model -> (Model, Cmd Msg)
 renderIfNeeded model =
-  flip always (Debug.log ("renderIfNeeded") ()) <|
   case (model.fetchedResources, model.fetchedJobs) of
     (Just fetchedResources, Just fetchedJobs) ->
       let
@@ -290,7 +289,6 @@ renderIfNeeded model =
           (Just renderedResources, Just renderedJobs) ->
             if (expandJsonList renderedJobs /= expandJsonList filteredFetchedJobs)
               || (expandJsonList renderedResources /= expandJsonList fetchedResources) then
-                flip always (Debug.log ("difference") ()) <|
                 ( { model
                   | renderedJobs = Just filteredFetchedJobs
                   , renderedResources = Just fetchedResources
@@ -298,16 +296,15 @@ renderIfNeeded model =
                 , model.ports.render (filteredFetchedJobs, fetchedResources)
                 )
             else
-              flip always (Debug.log ("here2") ()) <|
-              (model, Cmd.none)
+              (model, Cmd.none )
           _ ->
-            flip always (Debug.log ("here2.5") ()) <|
-            ({ model
+            ( { model
               | renderedJobs = Just filteredFetchedJobs
               , renderedResources = Just fetchedResources
-              }, Cmd.none)
+              }
+            , model.ports.render (filteredFetchedJobs, fetchedResources)
+            )
     _ ->
-      flip always (Debug.log ("here3") ()) <|
       (model, Cmd.none)
 
 fetchResources : Concourse.PipelineIdentifier -> Cmd Msg
