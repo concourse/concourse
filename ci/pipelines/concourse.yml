@@ -846,6 +846,8 @@ resources:
     access_token: {{concourse-github-release-access-token}}
     user: concourse
     repository: fly
+    release: false
+    pre_release: true
 
 - name: tracker
   type: tracker
