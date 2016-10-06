@@ -173,13 +173,24 @@ update msg model =
       Debug.log "sidebar-toggle-incorrectly-handled: " (model, Cmd.none)
 
     ToggleGroup group ->
+      flip always (Debug.log ("toggleGroup") ()) <|
       let
         newGroups =
-          toggleGroup group [] model.pipeline --TODO add groupState stuff
+          case model.groupsState of
+            GroupsStateNotSelected ->
+              flip always (Debug.log ("GroupsStateNotSelected") ()) <|
+              toggleGroup group [] model.pipeline -- TODO add groupState stuff
+            GroupsStateDefault groups ->
+              flip always (Debug.log ("GroupsStateDefault") ()) <|
+              toggleGroup group groups model.pipeline
+            GroupsStateSelected groups ->
+              flip always (Debug.log ("GroupsStateSelected") ()) <|
+              toggleGroup group groups model.pipeline
       in
         setGroups newGroups model
 
     SetGroups groups ->
+      flip always (Debug.log ("SetGroups") ()) <|
       setGroups groups model
 
     SelectGroups groups ->
@@ -241,6 +252,7 @@ setGroups newGroups model =
       pidToUrl model.pipelineIdentifier <|
         setGroupsInLocation model.location newGroups
   in
+    flip always (Debug.log ("setting new url to") (newUrl)) <|
     (model, Navigation.newUrl newUrl)
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
@@ -289,27 +301,24 @@ pidToUrl pid {queries} =
       ""
 
 toggleGroup : Concourse.PipelineGroup -> List String -> Maybe Concourse.Pipeline -> List String
-toggleGroup group names mpipeline =
-  let
-    toggled =
-      if List.member group.name names then
-        List.filter ((/=) group.name) names
-      else
-        group.name :: names
-  in
-    defaultToFirstGroup toggled mpipeline
-
-defaultToFirstGroup : List String -> Maybe Concourse.Pipeline -> List String
-defaultToFirstGroup groups mpipeline =
-  if List.isEmpty groups then
-    case mpipeline of
-      Just {groups} ->
-        List.take 1 (List.map .name groups)
-
-      Nothing ->
-        []
+toggleGroup grp names mpipeline =
+  if List.member grp.name names then
+    List.filter ((/=) grp.name) names
   else
-    groups
+    grp.name :: names
+
+
+-- defaultToFirstGroup : List String -> Maybe Concourse.Pipeline -> List String
+-- defaultToFirstGroup groups mpipeline =
+--   if List.isEmpty groups then
+--     case mpipeline of
+--       Just {groups} ->
+--         List.take 1 (List.map .name groups)
+--
+--       Nothing ->
+--         []
+--   else
+--     groups
 
 view : Model -> Html Msg
 view model =
@@ -409,6 +418,7 @@ viewUserState userState userMenuVisible =
 
 viewGroup : List String -> String -> Concourse.PipelineGroup -> Html Msg
 viewGroup selectedGroups url grp =
+  flip always (Debug.log ("viewGroup") (selectedGroups)) <|
   Html.li
     [ if List.member grp.name selectedGroups
         then class "main active"

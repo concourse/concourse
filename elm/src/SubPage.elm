@@ -118,7 +118,6 @@ init turbulencePath route =
           , defaultGroup = Nothing
           }
     Routes.Home ->
-      flip always (Debug.log ("Routes.home") ()) <|
       ( WaitingModel
       , Cmd.batch
           [ fetchPipelines
@@ -144,7 +143,6 @@ update turbulence msg mdl selectedGroups =
     (SelectTeamMsg message, SelectTeamModel model) ->
       superDupleWrap (SelectTeamModel, SelectTeamMsg) <| TeamSelection.update message model
     (DefaultPipelineFetched pipeline, model) ->
-      flip always (Debug.log ("SubPage.update") ()) <|
       case pipeline of
         Nothing ->
           (NoPipelineModel, setTitle "")
@@ -163,7 +161,6 @@ update turbulence msg mdl selectedGroups =
                     Just group.name
               }
           in
-            flip always (Debug.log ("SubPage.update " ++ toString flags) ()) <|
             superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.init {render = renderPipeline, title = setTitle} flags
     _ ->
       Debug.log "Impossible combination" (mdl, Cmd.none)
@@ -172,7 +169,6 @@ urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =
   case (route.logical, model) of
     (Routes.Pipeline team pipeline, PipelineModel mdl) ->
-      flip always (Debug.log "urlUpdate" route) <|
       superDupleWrap (PipelineModel, PipelineMsg) <|
         Pipeline.loadPipeline
           { teamName = team

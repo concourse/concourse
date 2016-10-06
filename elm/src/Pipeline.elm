@@ -112,6 +112,7 @@ update msg model =
       (model, fetchVersion)
 
     PipelineFetched (Ok pipeline) ->
+      flip always (Debug.log ("piplinefetched1") ()) <|
       let
         firstGroup =
           List.head pipeline.groups
@@ -135,9 +136,11 @@ update msg model =
       (model, Navigation.newUrl "/login")
 
     PipelineFetched (Err err) ->
+      flip always (Debug.log ("piplinefetched2") ()) <|
       renderIfNeeded { model | experiencingTurbulence = True }
 
     JobsFetched (Ok fetchedJobs) ->
+      flip always (Debug.log ("piplinefetched3") ()) <|
       renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
 
     JobsFetched (Err (Http.BadResponse 401 _)) ->
@@ -242,11 +245,13 @@ autoupdateVersionTimer =
 
 jobAppearsInGroups : List String -> Concourse.PipelineIdentifier -> Json.Encode.Value -> Bool
 jobAppearsInGroups groupNames pi jobJson =
+  flip always (Debug.log ("jobAppearsInGroups") (groupNames)) <|
   let concourseJob =
     Json.Decode.decodeValue (Concourse.decodeJob pi) jobJson
   in
     case concourseJob of
       Ok cj ->
+        flip always (Debug.log ("jobAppearsInGroups cj") (cj.groups)) <|
         anyIntersect cj.groups groupNames
       Err err ->
         Debug.log ("failed to check if job is in group: " ++ toString err) False
@@ -265,30 +270,44 @@ expandJsonList flatList =
 
 filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
 filterJobs model value =
+  flip always (Debug.log ("filterJobs") (expandJsonList value)) <|
   Json.Encode.list <|
     List.filter
       (jobAppearsInGroups model.selectedGroups model.pipelineLocator)
       (expandJsonList value)
 
+
 renderIfNeeded : Model -> (Model, Cmd Msg)
 renderIfNeeded model =
+  flip always (Debug.log ("renderIfNeeded") ()) <|
   case (model.fetchedResources, model.fetchedJobs) of
     (Just fetchedResources, Just fetchedJobs) ->
       let
         filteredFetchedJobs =
           filterJobs model fetchedJobs
       in
-        if model.renderedJobs /= Just filteredFetchedJobs
-          || model.renderedResources /= Just fetchedResources then
-            ( { model
+        case (model.renderedResources, model.renderedJobs) of
+          (Just renderedResources, Just renderedJobs) ->
+            if (expandJsonList renderedJobs /= expandJsonList filteredFetchedJobs)
+              || (expandJsonList renderedResources /= expandJsonList fetchedResources) then
+                flip always (Debug.log ("difference") ()) <|
+                ( { model
+                  | renderedJobs = Just filteredFetchedJobs
+                  , renderedResources = Just fetchedResources
+                  }
+                , model.ports.render (filteredFetchedJobs, fetchedResources)
+                )
+            else
+              flip always (Debug.log ("here2") ()) <|
+              (model, Cmd.none)
+          _ ->
+            flip always (Debug.log ("here2.5") ()) <|
+            ({ model
               | renderedJobs = Just filteredFetchedJobs
               , renderedResources = Just fetchedResources
-              }
-            , model.ports.render (filteredFetchedJobs, fetchedResources)
-            )
-        else
-          (model, Cmd.none)
+              }, Cmd.none)
     _ ->
+      flip always (Debug.log ("here3") ()) <|
       (model, Cmd.none)
 
 fetchResources : Concourse.PipelineIdentifier -> Cmd Msg
@@ -307,11 +326,11 @@ fetchVersion =
 
 anyIntersect : List a -> List a -> Bool
 anyIntersect list1 list2 =
-    case list1 of
-      [] -> False
-      first :: rest ->
-        if List.member first list2 then True
-        else anyIntersect rest list2
+  case list1 of
+    [] -> False
+    first :: rest ->
+      if List.member first list2 then flip always (Debug.log ("anyIntersect") ("True")) <| True
+      else anyIntersect rest list2
 
 fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
 fetchPipeline pipelineIdentifier =
