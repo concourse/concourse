@@ -10,7 +10,7 @@ import (
 
 type CheckResourceCommand struct {
 	Resource flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to check version for"`
-	Version  *atc.Version             `short:"f" long:"from" value-name:"VERSION" description:"Version of a resource to check from"`
+	Version  *atc.Version             `short:"f" long:"from"                     value-name:"VERSION"           description:"Version of a resource to check from, e.g. ref:abcd or path:thing-1.2.3.tgz"`
 }
 
 func (command *CheckResourceCommand) Execute(args []string) error {
