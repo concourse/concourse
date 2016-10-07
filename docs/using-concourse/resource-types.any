@@ -153,6 +153,8 @@ before using it!
     \hyperlink{https://github.com/Docurated/concourse-vault-resource}{Vault}
   }{
     \hyperlink{https://github.com/everpeace/aws-kms-resource}{AWS Key Management Service}
+  }{
+    \hyperlink{https://github.com/ckaznocha/marathon-resource}{Marathon}
   }
 
   \section{Adding to this list}{
