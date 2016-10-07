@@ -65,6 +65,7 @@ update msg model =
       , Cmd.none
       )
     SubMsg (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
+      flip always (Debug.log ("Layout SubMsg Login") ()) <|
       let
         (subModel, subCmd) =
           SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel model.selectedGroups
@@ -79,6 +80,7 @@ update msg model =
             ]
         )
     SubMsg (SubPage.PipelinesFetched (Ok pipelines)) ->
+      flip always (Debug.log ("Layout SubMsg Pipelines Fetched") ()) <|
       let
         pipeline =
           List.head pipelines
@@ -117,6 +119,7 @@ update msg model =
         ({ model | subModel = subModel }, Cmd.map SubMsg subCmd)
 
     TopMsg m ->
+      flip always (Debug.log ("tock") ()) <|
       let
         (topModel, topCmd) = TopBar.update m model.topModel
       in
@@ -130,6 +133,7 @@ update msg model =
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd (Msg))
 urlUpdate route model =
+  flip always (Debug.log ("Layout urlUpdate") ()) <|
   let
     (newSubmodel, cmd) =
       if routeMatchesModel route model then
@@ -176,6 +180,7 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
+  flip always (Debug.log ("tick subscriptions") ()) <|
   Sub.batch
     [ Sub.map TopMsg <| TopBar.subscriptions model.topModel
     , Sub.map SideMsg <| SideBar.subscriptions model.sideModel
