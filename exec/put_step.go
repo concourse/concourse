@@ -16,16 +16,16 @@ import (
 // PutStep produces a resource version using preconfigured params and any data
 // available in the SourceRepository.
 type PutStep struct {
-	logger         lager.Logger
-	resourceConfig atc.ResourceConfig
-	params         atc.Params
-	stepMetadata   StepMetadata
-	session        resource.Session
-	tags           atc.Tags
-	teamID         int
-	delegate       PutDelegate
-	tracker        resource.Tracker
-	resourceTypes  atc.ResourceTypes
+	logger          lager.Logger
+	resourceConfig  atc.ResourceConfig
+	params          atc.Params
+	stepMetadata    StepMetadata
+	session         resource.Session
+	tags            atc.Tags
+	teamID          int
+	delegate        PutDelegate
+	resourceFactory resource.ResourceFactory
+	resourceTypes   atc.ResourceTypes
 
 	repository *SourceRepository
 
@@ -48,7 +48,7 @@ func newPutStep(
 	tags atc.Tags,
 	teamID int,
 	delegate PutDelegate,
-	tracker resource.Tracker,
+	resourceFactory resource.ResourceFactory,
 	resourceTypes atc.ResourceTypes,
 	containerSuccessTTL time.Duration,
 	containerFailureTTL time.Duration,
@@ -62,7 +62,7 @@ func newPutStep(
 		tags:                tags,
 		teamID:              teamID,
 		delegate:            delegate,
-		tracker:             tracker,
+		resourceFactory:     resourceFactory,
 		resourceTypes:       resourceTypes,
 		containerSuccessTTL: containerSuccessTTL,
 		containerFailureTTL: containerFailureTTL,
@@ -101,7 +101,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	runSession := step.session
 	runSession.ID.Stage = db.ContainerStageRun
 
-	trackedResource, missingNames, err := step.tracker.InitWithSources(
+	putResource, missingNames, err := step.resourceFactory.NewPutResource(
 		step.logger,
 		step.stepMetadata,
 		runSession,
@@ -112,7 +112,6 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		step.resourceTypes,
 		step.delegate,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -122,7 +121,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		missingSourceNames[i] = SourceName(n)
 	}
 
-	step.resource = trackedResource
+	step.resource = putResource
 
 	scopedRepo, err := step.repository.ScopedTo(missingSourceNames...)
 	if err != nil {

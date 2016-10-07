@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -26,8 +25,8 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeWorkerClient *wfakes.FakeClient
-		fakeTracker      *rfakes.FakeTracker
+		fakeWorkerClient    *wfakes.FakeClient
+		fakeResourceFactory *rfakes.FakeResourceFactory
 
 		factory Factory
 
@@ -49,10 +48,10 @@ var _ = Describe("GardenFactory", func() {
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
-		fakeTracker = new(rfakes.FakeTracker)
+		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeResourceFetcher := new(rfakes.FakeFetcher)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, fakeResourceFetcher)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFactory, fakeResourceFetcher)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -149,7 +148,7 @@ var _ = Describe("GardenFactory", func() {
 
 				BeforeEach(func() {
 					fakeResource = new(rfakes.FakeResource)
-					fakeTracker.InitWithSourcesReturns(fakeResource, []string{"some-source", "some-other-source"}, nil)
+					fakeResourceFactory.NewPutResourceReturns(fakeResource, []string{"some-source", "some-other-source"}, nil)
 
 					fakeVersionedSource = new(rfakes.FakeVersionedSource)
 					fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -159,9 +158,9 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("initializes the resource with the correct type, session, and sources", func() {
-					Expect(fakeTracker.InitWithSourcesCallCount()).To(Equal(1))
+					Expect(fakeResourceFactory.NewPutResourceCallCount()).To(Equal(1))
 
-					_, sm, sid, typ, tags, actualTeamID, sources, actualResourceTypes, delegate := fakeTracker.InitWithSourcesArgsForCall(0)
+					_, sm, sid, typ, tags, actualTeamID, sources, actualResourceTypes, delegate := fakeResourceFactory.NewPutResourceArgsForCall(0)
 					Expect(sm).To(Equal(stepMetadata))
 					Expect(sid).To(Equal(resource.Session{
 						ID: worker.Identifier{
@@ -280,23 +279,6 @@ var _ = Describe("GardenFactory", func() {
 						Version:  atc.Version{"some": "version"},
 						Metadata: []atc.MetadataField{{"some", "metadata"}},
 					}))
-				})
-
-				Context("before initializing the resource", func() {
-					var callCountDuringInit chan int
-
-					BeforeEach(func() {
-						callCountDuringInit = make(chan int, 1)
-
-						fakeTracker.InitWithSourcesStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, int, map[string]resource.ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, []string, error) {
-							callCountDuringInit <- putDelegate.InitializingCallCount()
-							return fakeResource, []string{"some-source", "some-other-source"}, nil
-						}
-					})
-
-					It("calls the Initializing method on the delegate", func() {
-						Expect(<-callCountDuringInit).To(Equal(1))
-					})
 				})
 
 				Describe("signalling", func() {
@@ -433,11 +415,11 @@ var _ = Describe("GardenFactory", func() {
 				})
 			})
 
-			Context("when the tracker fails to initialize the resource", func() {
+			Context("when the resource factory fails to create the put resource", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeTracker.InitWithSourcesReturns(nil, nil, disaster)
+					fakeResourceFactory.NewPutResourceReturns(nil, nil, disaster)
 				})
 
 				It("exits with the failure", func() {
@@ -463,7 +445,7 @@ var _ = Describe("GardenFactory", func() {
 
 			BeforeEach(func() {
 				fakeResource = new(rfakes.FakeResource)
-				fakeTracker.InitWithSourcesReturns(fakeResource, []string{}, nil)
+				fakeResourceFactory.NewPutResourceReturns(fakeResource, []string{}, nil)
 
 				fakeVersionedSource = new(rfakes.FakeVersionedSource)
 				fakeResource.PutReturns(fakeVersionedSource, nil)

@@ -172,9 +172,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory, pipelineDBFactory, dbContainerFactory, dbVolumeFactory)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
+	resourceFactory := resource.NewResourceFactory(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
 	teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
-	engine := cmd.constructEngine(workerClient, tracker, resourceFetcher, teamDBFactory)
+	engine := cmd.constructEngine(workerClient, resourceFactory, resourceFetcher, teamDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
@@ -773,13 +774,13 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 
 func (cmd *ATCCommand) constructEngine(
 	workerClient worker.Client,
-	tracker resource.Tracker,
+	resourceFactory resource.ResourceFactory,
 	resourceFetcher resource.Fetcher,
 	teamDBFactory db.TeamDBFactory,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
-		tracker,
+		resourceFactory,
 		resourceFetcher,
 	)
 

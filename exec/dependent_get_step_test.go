@@ -72,9 +72,9 @@ var _ = Describe("DependentGet", func() {
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeResourceFetcher = new(rfakes.FakeFetcher)
-		fakeTracker := new(rfakes.FakeTracker)
+		fakeResourceFactory := new(rfakes.FakeResourceFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, fakeResourceFetcher)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFactory, fakeResourceFetcher)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()

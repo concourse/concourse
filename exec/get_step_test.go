@@ -74,7 +74,7 @@ var _ = Describe("Get", func() {
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
-		fakeTracker := new(rfakes.FakeTracker)
+		fakeResourceFactory := new(rfakes.FakeResourceFactory)
 
 		fakeCache = new(rfakes.FakeCache)
 		fakeVolume = new(wfakes.FakeVolume)
@@ -118,7 +118,7 @@ var _ = Describe("Get", func() {
 		fakeVersionedSource = new(rfakes.FakeVersionedSource)
 		fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, fakeResourceFetcher)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFactory, fakeResourceFetcher)
 	})
 
 	JustBeforeEach(func() {

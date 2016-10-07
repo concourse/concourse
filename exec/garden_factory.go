@@ -16,7 +16,7 @@ import (
 
 type gardenFactory struct {
 	workerClient    worker.Client
-	tracker         resource.Tracker
+	resourceFactory resource.ResourceFactory
 	resourceFetcher resource.Fetcher
 }
 
@@ -28,12 +28,12 @@ type TrackerFactory interface {
 
 func NewGardenFactory(
 	workerClient worker.Client,
-	tracker resource.Tracker,
+	resourceFactory resource.ResourceFactory,
 	resourceFetcher resource.Fetcher,
 ) Factory {
 	return &gardenFactory{
 		workerClient:    workerClient,
-		tracker:         tracker,
+		resourceFactory: resourceFactory,
 		resourceFetcher: resourceFetcher,
 	}
 }
@@ -148,7 +148,7 @@ func (factory *gardenFactory) Put(
 		tags,
 		teamID,
 		delegate,
-		factory.tracker,
+		factory.resourceFactory,
 		resourceTypes,
 		containerSuccessTTL,
 		containerFailureTTL,

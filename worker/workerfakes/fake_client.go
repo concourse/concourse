@@ -28,6 +28,22 @@ type FakeClient struct {
 		result1 worker.Container
 		result2 error
 	}
+	CreateResourcePutContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) (worker.Container, error)
+	createResourcePutContainerMutex       sync.RWMutex
+	createResourcePutContainerArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 <-chan os.Signal
+		arg3 worker.ImageFetchingDelegate
+		arg4 worker.Identifier
+		arg5 worker.Metadata
+		arg6 worker.ContainerSpec
+		arg7 atc.ResourceTypes
+		arg8 map[string]string
+	}
+	createResourcePutContainerReturns struct {
+		result1 worker.Container
+		result2 error
+	}
 	FindContainerForIdentifierStub        func(lager.Logger, worker.Identifier) (worker.Container, bool, error)
 	findContainerForIdentifierMutex       sync.RWMutex
 	findContainerForIdentifierArgsForCall []struct {
@@ -187,6 +203,47 @@ func (fake *FakeClient) CreateTaskContainerArgsForCall(i int) (lager.Logger, <-c
 func (fake *FakeClient) CreateTaskContainerReturns(result1 worker.Container, result2 error) {
 	fake.CreateTaskContainerStub = nil
 	fake.createTaskContainerReturns = struct {
+		result1 worker.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) CreateResourcePutContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ContainerSpec, arg7 atc.ResourceTypes, arg8 map[string]string) (worker.Container, error) {
+	fake.createResourcePutContainerMutex.Lock()
+	fake.createResourcePutContainerArgsForCall = append(fake.createResourcePutContainerArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 <-chan os.Signal
+		arg3 worker.ImageFetchingDelegate
+		arg4 worker.Identifier
+		arg5 worker.Metadata
+		arg6 worker.ContainerSpec
+		arg7 atc.ResourceTypes
+		arg8 map[string]string
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("CreateResourcePutContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.createResourcePutContainerMutex.Unlock()
+	if fake.CreateResourcePutContainerStub != nil {
+		return fake.CreateResourcePutContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	} else {
+		return fake.createResourcePutContainerReturns.result1, fake.createResourcePutContainerReturns.result2
+	}
+}
+
+func (fake *FakeClient) CreateResourcePutContainerCallCount() int {
+	fake.createResourcePutContainerMutex.RLock()
+	defer fake.createResourcePutContainerMutex.RUnlock()
+	return len(fake.createResourcePutContainerArgsForCall)
+}
+
+func (fake *FakeClient) CreateResourcePutContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) {
+	fake.createResourcePutContainerMutex.RLock()
+	defer fake.createResourcePutContainerMutex.RUnlock()
+	return fake.createResourcePutContainerArgsForCall[i].arg1, fake.createResourcePutContainerArgsForCall[i].arg2, fake.createResourcePutContainerArgsForCall[i].arg3, fake.createResourcePutContainerArgsForCall[i].arg4, fake.createResourcePutContainerArgsForCall[i].arg5, fake.createResourcePutContainerArgsForCall[i].arg6, fake.createResourcePutContainerArgsForCall[i].arg7, fake.createResourcePutContainerArgsForCall[i].arg8
+}
+
+func (fake *FakeClient) CreateResourcePutContainerReturns(result1 worker.Container, result2 error) {
+	fake.CreateResourcePutContainerStub = nil
+	fake.createResourcePutContainerReturns = struct {
 		result1 worker.Container
 		result2 error
 	}{result1, result2}
@@ -610,6 +667,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.createTaskContainerMutex.RLock()
 	defer fake.createTaskContainerMutex.RUnlock()
+	fake.createResourcePutContainerMutex.RLock()
+	defer fake.createResourcePutContainerMutex.RUnlock()
 	fake.findContainerForIdentifierMutex.RLock()
 	defer fake.findContainerForIdentifierMutex.RUnlock()
 	fake.lookupContainerMutex.RLock()
