@@ -78,8 +78,6 @@ init ports flags =
 
 loadPipeline : Concourse.PipelineIdentifier -> List String -> Model -> (Model, Cmd Msg)
 loadPipeline pipelineLocator selectedGroups model =
-  -- let selectedGroups =
-  --   if List.empty selectedGroups then
   ( { model
     | pipelineLocator = pipelineLocator
     , selectedGroups = selectedGroups
@@ -100,6 +98,7 @@ update msg model =
       (model, Cmd.none)
 
     AutoupdateTimerTicked timestamp ->
+      flip always (Debug.log ("tick") ()) <|
       ( model
       , Cmd.batch
           [ fetchPipeline model.pipelineLocator
@@ -112,7 +111,7 @@ update msg model =
       (model, fetchVersion)
 
     PipelineFetched (Ok pipeline) ->
-      flip always (Debug.log ("piplinefetched1") ()) <|
+      flip always (Debug.log ("Pipeline fetched") (pipeline.name)) <|
       let
         firstGroup =
           List.head pipeline.groups
@@ -122,6 +121,7 @@ update msg model =
               Nothing ->
                 []
               Just group ->
+                flip always (Debug.log ("Pipeline: group") (group.name)) <|
                 [group.name]
           else
             model.selectedGroups
@@ -136,11 +136,9 @@ update msg model =
       (model, Navigation.newUrl "/login")
 
     PipelineFetched (Err err) ->
-      flip always (Debug.log ("piplinefetched2") ()) <|
       renderIfNeeded { model | experiencingTurbulence = True }
 
     JobsFetched (Ok fetchedJobs) ->
-      flip always (Debug.log ("piplinefetched3") ()) <|
       renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
 
     JobsFetched (Err (Http.BadResponse 401 _)) ->
@@ -245,13 +243,11 @@ autoupdateVersionTimer =
 
 jobAppearsInGroups : List String -> Concourse.PipelineIdentifier -> Json.Encode.Value -> Bool
 jobAppearsInGroups groupNames pi jobJson =
-  flip always (Debug.log ("jobAppearsInGroups") (groupNames)) <|
   let concourseJob =
     Json.Decode.decodeValue (Concourse.decodeJob pi) jobJson
   in
     case concourseJob of
       Ok cj ->
-        flip always (Debug.log ("jobAppearsInGroups cj") (cj.groups)) <|
         anyIntersect cj.groups groupNames
       Err err ->
         Debug.log ("failed to check if job is in group: " ++ toString err) False
@@ -270,7 +266,6 @@ expandJsonList flatList =
 
 filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
 filterJobs model value =
-  flip always (Debug.log ("filterJobs") (expandJsonList value)) <|
   Json.Encode.list <|
     List.filter
       (jobAppearsInGroups model.selectedGroups model.pipelineLocator)
@@ -283,7 +278,10 @@ renderIfNeeded model =
     (Just fetchedResources, Just fetchedJobs) ->
       let
         filteredFetchedJobs =
-          filterJobs model fetchedJobs
+          if List.isEmpty model.selectedGroups then
+            fetchedJobs
+          else
+            filterJobs model fetchedJobs
       in
         case (model.renderedResources, model.renderedJobs) of
           (Just renderedResources, Just renderedJobs) ->
@@ -326,7 +324,7 @@ anyIntersect list1 list2 =
   case list1 of
     [] -> False
     first :: rest ->
-      if List.member first list2 then flip always (Debug.log ("anyIntersect") ("True")) <| True
+      if List.member first list2 then True
       else anyIntersect rest list2
 
 fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg

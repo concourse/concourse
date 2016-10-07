@@ -85,7 +85,6 @@ init initialLocation =
         , userMenuVisible = False
         }
   in
-    flip always (Debug.log ("TopBar.init") ()) <|
     (model, Cmd.batch[cmd, fetchUser])
 
 
@@ -111,7 +110,25 @@ update msg model =
       (model, Cmd.none)
 
     FetchPipeline pid ->
-      (model, fetchPipeline pid)
+      -- (model, Cmd.none)
+      let
+        groupsInUrl =
+          QueryString.all "groups" model.location.queries
+        groupsState =
+          case model.location.logical of
+            Routes.Home ->
+              getDefaultGroupsState model
+            Routes.SelectTeam ->
+              GroupsStateNotSelected
+            Routes.TeamLogin teamName ->
+              GroupsStateNotSelected
+            _ ->
+              if List.isEmpty groupsInUrl then
+                getDefaultGroupsState model
+              else
+                GroupsStateSelected groupsInUrl
+      in
+        ( {model | groupsState = groupsState}, fetchPipeline pid)
 
     UserFetched (Ok user) ->
       ( { model | userState = UserStateLoggedIn user }
@@ -134,6 +151,7 @@ update msg model =
               Nothing ->
                 []
               Just group ->
+                flip always (Debug.log ("topbar-pipelinefetched") ()) <|
                 [group.name]
           else
             model.selectedGroups
@@ -141,6 +159,8 @@ update msg model =
         model =
           { model | pipeline = Just pipeline }
       in
+        flip always (Debug.log ("PipelineFetched topbar") (pipeline.name)) <|
+
         case firstGroup of
           Nothing ->
             (model, Cmd.none)
@@ -148,20 +168,23 @@ update msg model =
           Just group ->
             case model.groupsState of
               GroupsStateNotSelected ->
-                ( { model |
+                flip always (Debug.log ("GroupsStateNotSelected pipelineName") (pipeline.name)) <|
+                (  { model |
                     groupsState = GroupsStateDefault [group.name]
                     , pipelineIdentifier =
                       Just {pipelineName = pipeline.name, teamName = pipeline.teamName}}
                 , Cmd.none
                 )
               GroupsStateDefault groups ->
-                ( { model |
+                flip always (Debug.log ("GroupsStateDefault pipelineName") (pipeline.name)) <|
+                (   { model |
                     groupsState = GroupsStateDefault [group.name]
                     , pipelineIdentifier =
                       Just {pipelineName = pipeline.name, teamName = pipeline.teamName}}
                 , Cmd.none
                 )
               GroupsStateSelected groups ->
+                flip always (Debug.log ("GroupsStateSelcted pipelinename") (pipeline.name)) <|
                 setGroups groups model
 
     PipelineFetched (Err err) ->
@@ -190,7 +213,6 @@ update msg model =
         setGroups newGroups model
 
     SetGroups groups ->
-      flip always (Debug.log ("SetGroups") ()) <|
       setGroups groups model
 
     SelectGroups groups ->
@@ -217,8 +239,10 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   case model.pipelineIdentifier of
     Nothing ->
+      flip always (Debug.log ("tick tobbar nopid") ()) <|
       Sub.none
     Just pid ->
+      flip always (Debug.log ("tick tobbar") (pid)) <|
       Time.every (5 * Time.second) (always (FetchPipeline pid))
 
 
@@ -245,7 +269,7 @@ extractPidFromRoute route =
 
 setGroups : List String -> Model -> (Model, Cmd Msg)
 setGroups newGroups model =
-  -- flip always (Debug.log "foo" ()) <|
+  flip always (Debug.log "foo" ()) <|
   -- Debug.log ("setGroups: " ++ toString newGroups ++ " - " ++ toString model.selectedGroups) <|
   let
     newUrl =
@@ -257,20 +281,40 @@ setGroups newGroups model =
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =
+  flip always (Debug.log "urlUpdate bar" ()) <|
   let
+    pipelineIdentifier =
+      extractPidFromRoute route.logical
     groupsState =
-      case route.logical of
-        Routes.Home ->
-          GroupsStateDefault <| QueryString.all "groups" route.queries
-        _ ->
-          GroupsStateSelected <| QueryString.all "groups" route.queries
+      GroupsStateNotSelected
   in
-    ( { model
-      | groupsState = groupsState
+    ( { model |
+       pipelineIdentifier = pipelineIdentifier
       , location = route
-      }
-    , Cmd.none
+      , groupsState = groupsState
+    }
+      -- , Cmd.none
+    , case pipelineIdentifier of
+      Nothing ->
+        Cmd.none
+      Just pid ->
+        fetchPipeline pid
     )
+
+
+
+getDefaultGroupsState : Model -> GroupsState
+getDefaultGroupsState model =
+  case model.pipeline of
+    Nothing ->
+      GroupsStateNotSelected
+    Just pipeline ->
+      case List.head pipeline.groups of
+        Nothing ->
+          GroupsStateNotSelected
+        Just first ->
+          GroupsStateDefault [first.name]
+
 
 setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
 setGroupsInLocation loc groups =
@@ -433,6 +477,7 @@ viewGroup selectedGroups url grp =
 
 fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
 fetchPipeline pipelineIdentifier =
+  flip always (Debug.log ("pipelineIdentifier TopBar") (pipelineIdentifier)) <|
   Cmd.map PipelineFetched <|
     Task.perform Err Ok (Concourse.Pipeline.fetchPipeline pipelineIdentifier)
 
