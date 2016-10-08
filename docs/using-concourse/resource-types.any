@@ -90,8 +90,6 @@ before using it!
   }{
     \hyperlink{https://github.com/olhtbr/p4-resource}{Perforce}
   }{
-    \hyperlink{https://github.com/cromega/http-resource}{HTTP client}
-  }{
     \hyperlink{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}{BOSH Errands}
   }{
     \hyperlink{https://github.com/cfmobile/pool-trigger-resource}{Pool Trigger}
