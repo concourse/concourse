@@ -34,36 +34,6 @@
       app.ports.setTitle.subscribe(function(title) {
         document.title = title + "Concourse";
       });
-
     </script>
   </body>
 </html>
-
-<!-- <script type="text/javascript">
-
-
-topBar.ports.groupsChanged.subscribe(function(groups) {
-  var changed = false;
-
-  for (var groupName in concourse.groups) {
-    if (groups.indexOf(groupName) === -1) {
-      changed = true;
-      delete concourse.groups[groupName];
-    }
-  }
-
-  for (var i in groups) {
-    if (!concourse.groups[groups[i]]) {
-      changed = true;
-      concourse.groups[groups[i]] = true;
-    }
-  }
-
-  if (changed && concourse.redraw !== undefined) {
-    concourse.redraw();
-  }
-});
-
-topBar.ports.setViewingPipeline.send(true);
-
-</script> -->

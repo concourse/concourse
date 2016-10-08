@@ -98,7 +98,6 @@ update msg model =
       (model, Cmd.none)
 
     AutoupdateTimerTicked timestamp ->
-      flip always (Debug.log ("tick") ()) <|
       ( model
       , Cmd.batch
           [ fetchPipeline model.pipelineLocator
@@ -111,7 +110,6 @@ update msg model =
       (model, fetchVersion)
 
     PipelineFetched (Ok pipeline) ->
-      flip always (Debug.log ("Pipeline fetched") (pipeline.name)) <|
       let
         firstGroup =
           List.head pipeline.groups
@@ -121,7 +119,6 @@ update msg model =
               Nothing ->
                 []
               Just group ->
-                flip always (Debug.log ("Pipeline: group") (group.name)) <|
                 [group.name]
           else
             model.selectedGroups

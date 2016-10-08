@@ -245,6 +245,8 @@ function createPipelineSvg(svg) {
       var ev = d3.event;
       g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
     }));
+  } else {
+    console.log("not drawing")
   }
 
   return g
