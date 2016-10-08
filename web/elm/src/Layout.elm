@@ -133,7 +133,6 @@ update msg model =
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd (Msg))
 urlUpdate route model =
-  flip always (Debug.log ("Layout urlUpdate") ()) <|
   let
     (newSubmodel, cmd) =
       if routeMatchesModel route model then
