@@ -33,7 +33,7 @@ func (config BeaconConfig) Dial() (*ssh.Client, error) {
 
 	conn, err := net.DialTimeout("tcp", tsaAddr, 10*time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to TSA:", err)
+		return nil, fmt.Errorf("failed to connect to TSA: %s", err)
 	}
 
 	clientConfig := &ssh.ClientConfig{
