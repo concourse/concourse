@@ -349,16 +349,6 @@ flag. Once you've learned what the commands do, you may want to consult
   If you accept then Concourse's pipeline configuration will switch to the
   pipeline definition in the YAML file specified.
 
-  Tip: you can use
-  \hyperlink{https://en.wikipedia.org/wiki/Process_substitution}{process
-  substitution} to quickly replicate a pipeline, potentially between Concourse
-  instances, by composing \reference{fly-get-pipeline} and
-  \reference{fly-set-pipeline} together like so:
-
-  \codeblock{bash}{
-  $ fly -t new set-pipeline -c <(fly -t old get-pipeline -p foo) -p foo
-  }
-
   Note the use of the short flags, just to make it more obfuscated.
 
   \section{Using \code{\{\{parameters\}\}}}{parameters}{
@@ -408,6 +398,30 @@ flag. Once you've learned what the commands do, you may want to consult
     Note that only strings are supported for these values, so that
     interpolating them into the template is trivial. Other types of values, and
     features like concatenation, are not supported.
+  }
+
+  \section{Combining with \code{get-pipeline}}{
+    You can use
+    \hyperlink{https://en.wikipedia.org/wiki/Process_substitution}{process
+    substitution} to quickly replicate a pipeline
+    by composing \reference{fly-get-pipeline} and
+    \reference{fly-set-pipeline} together like so:
+
+    \codeblock{bash}{
+    $ fly -t new set-pipeline -c <(fly -t old get-pipeline -p foo) -p foo
+    }
+
+    While this replication method may be useful for migrating pipelines
+    between concourse instances, note the following caveats:
+
+    \code{get-pipeline} fetches the current pipeline configuration with variables
+    already interpolated. So you are working around any previous parameterization.
+
+    Replicating a pipeline, unmodified, risks resource contention.
+    For example, you could end up with two pipelines pushing to the same S3 bucket.
+
+    If you're starting a new pipeline, we recommend you try to work through
+    the above examples before using this one-step clone.
   }
 }
 
