@@ -1,16 +1,51 @@
 package dbng
 
-type ResourceTypeFactory struct {
+import "github.com/concourse/atc"
+
+//go:generate counterfeiter . ResourceTypeFactory
+
+type ResourceTypeFactory interface {
+	FindResourceType(pipeline *Pipeline, resourceType atc.ResourceType) (*UsedResourceType, bool, error)
+	CreateResourceType(pipeline *Pipeline, resourceType atc.ResourceType, version atc.Version) (*UsedResourceType, error)
+}
+
+type resourceTypeFactory struct {
 	conn Conn
 }
 
-func NewResourceTypeFactory(conn Conn) *ResourceTypeFactory {
-	return &ResourceTypeFactory{
+func NewResourceTypeFactory(conn Conn) ResourceTypeFactory {
+	return &resourceTypeFactory{
 		conn: conn,
 	}
 }
 
-func (factory *ResourceTypeFactory) CreateResourceType(pipeline *Pipeline, name string, typ string, config string) (*ResourceType, error) {
+func (factory *resourceTypeFactory) FindResourceType(pipeline *Pipeline, resourceType atc.ResourceType) (*UsedResourceType, bool, error) {
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	rt := ResourceType{
+		ResourceType: resourceType,
+		Pipeline:     pipeline,
+	}
+
+	urt, found, err := rt.Find(tx)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return urt, found, nil
+}
+
+func (factory *resourceTypeFactory) CreateResourceType(pipeline *Pipeline, resourceType atc.ResourceType, version atc.Version) (*UsedResourceType, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -18,16 +53,14 @@ func (factory *ResourceTypeFactory) CreateResourceType(pipeline *Pipeline, name 
 
 	defer tx.Rollback()
 
-	var resourceTypeID int
-	err = psql.Insert("resource_types").
-		Columns("pipeline_id", "name", "type", "config").
-		Values(pipeline.ID, name, typ, config).
-		Suffix("RETURNING id").
-		RunWith(tx).
-		QueryRow().
-		Scan(&resourceTypeID)
+	rt := ResourceType{
+		ResourceType: resourceType,
+		Pipeline:     pipeline,
+		Version:      version,
+	}
+
+	urt, err := rt.Create(tx)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint
 		return nil, err
 	}
 
@@ -36,7 +69,5 @@ func (factory *ResourceTypeFactory) CreateResourceType(pipeline *Pipeline, name 
 		return nil, err
 	}
 
-	return &ResourceType{
-		ID: resourceTypeID,
-	}, nil
+	return urt, nil
 }

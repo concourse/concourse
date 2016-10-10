@@ -35,5 +35,10 @@ type fetcherFactory struct {
 }
 
 func (f *fetcherFactory) FetcherFor(workerClient worker.Client) Fetcher {
-	return NewFetcher(f.clock, f.db, NewFetchContainerCreatorFactory(), NewFetchSourceProviderFactory(workerClient))
+	return NewFetcher(
+		f.clock,
+		f.db,
+		NewFetchContainerCreatorFactory(),
+		NewFetchSourceProviderFactory(workerClient),
+	)
 }

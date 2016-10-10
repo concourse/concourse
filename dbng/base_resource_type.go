@@ -41,7 +41,7 @@ type UsedBaseResourceType struct {
 // FindOrCreates clashed. The caller should retry from the start of the
 // transaction.
 func (brt BaseResourceType) FindOrCreate(tx Tx) (*UsedBaseResourceType, error) {
-	ubrt, found, err := brt.find(tx)
+	ubrt, found, err := brt.Find(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (brt BaseResourceType) FindOrCreate(tx Tx) (*UsedBaseResourceType, error) {
 	return brt.create(tx)
 }
 
-func (brt BaseResourceType) find(tx Tx) (*UsedBaseResourceType, bool, error) {
+func (brt BaseResourceType) Find(tx Tx) (*UsedBaseResourceType, bool, error) {
 	var id int
 	err := psql.Select("id").From("base_resource_types").Where(sq.Eq{
 		"name": brt.Name,

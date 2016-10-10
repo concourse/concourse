@@ -84,8 +84,8 @@ var _ = Describe("EmptyFetchSource", func() {
 		It("creates container with volume and worker", func() {
 			Expect(initErr).NotTo(HaveOccurred())
 			Expect(fakeContainerCreator.CreateWithVolumeCallCount()).To(Equal(1))
-			resourceType, volume, worker := fakeContainerCreator.CreateWithVolumeArgsForCall(0)
-			Expect(resourceType).To(Equal("fake-resource-type"))
+			resourceOptions, volume, worker := fakeContainerCreator.CreateWithVolumeArgsForCall(0)
+			Expect(string(resourceOptions.ResourceType())).To(Equal("fake-resource-type"))
 			Expect(volume).To(Equal(fakeVolume))
 			Expect(worker).To(Equal(fakeWorker))
 		})
@@ -148,8 +148,8 @@ var _ = Describe("EmptyFetchSource", func() {
 				It("uses newly created cache volume", func() {
 					Expect(initErr).NotTo(HaveOccurred())
 					Expect(fakeContainerCreator.CreateWithVolumeCallCount()).To(Equal(1))
-					resourceType, volume, worker := fakeContainerCreator.CreateWithVolumeArgsForCall(0)
-					Expect(resourceType).To(Equal("fake-resource-type"))
+					resourceOptions, volume, worker := fakeContainerCreator.CreateWithVolumeArgsForCall(0)
+					Expect(string(resourceOptions.ResourceType())).To(Equal("fake-resource-type"))
 					Expect(volume).To(Equal(newVolume))
 					Expect(worker).To(Equal(fakeWorker))
 				})

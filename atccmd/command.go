@@ -169,7 +169,19 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
 	dbTeamFactory := dbng.NewTeamFactory(dbngConn)
 	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
-	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory, pipelineDBFactory, dbContainerFactory, dbVolumeFactory)
+	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn)
+	dbResourceTypeFactory := dbng.NewResourceTypeFactory(dbngConn)
+	workerClient := cmd.constructWorkerPool(
+		logger,
+		sqlDB,
+		trackerFactory,
+		resourceFetcherFactory,
+		pipelineDBFactory,
+		dbContainerFactory,
+		dbResourceCacheFactory,
+		dbResourceTypeFactory,
+		dbVolumeFactory,
+	)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFactory := resource.NewResourceFactory(workerClient)
@@ -641,6 +653,8 @@ func (cmd *ATCCommand) constructWorkerPool(
 	resourceFetcherFactory resource.FetcherFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 	dbContainerFactory *dbng.ContainerFactory,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceTypeFactory dbng.ResourceTypeFactory,
 	dbVolumeFactory *dbng.VolumeFactory,
 ) worker.Client {
 	return worker.NewPool(
@@ -651,6 +665,8 @@ func (cmd *ATCCommand) constructWorkerPool(
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 			image.NewFactory(trackerFactory, resourceFetcherFactory),
 			dbContainerFactory,
+			dbResourceCacheFactory,
+			dbResourceTypeFactory,
 			dbVolumeFactory,
 			pipelineDBFactory,
 		),

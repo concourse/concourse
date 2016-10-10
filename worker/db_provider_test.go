@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
@@ -83,8 +84,10 @@ var _ = Describe("DBProvider", func() {
 		fakeBackOffFactory := new(retryhttpfakes.FakeBackOffFactory)
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
+		fakeDBResourceCacheFactory := new(dbngfakes.FakeResourceCacheFactory)
+		fakeDBResourceTypeFactory := new(dbngfakes.FakeResourceTypeFactory)
 
-		provider = NewDBWorkerProvider(logger, fakeDB, nil, fakeBackOffFactory, fakeImageFactory, nil, nil, fakePipelineDBFactory)
+		provider = NewDBWorkerProvider(logger, fakeDB, nil, fakeBackOffFactory, fakeImageFactory, nil, fakeDBResourceCacheFactory, fakeDBResourceTypeFactory, nil, fakePipelineDBFactory)
 	})
 
 	AfterEach(func() {

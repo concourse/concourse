@@ -36,9 +36,15 @@ var _ = Describe("ResourceCache", func() {
 		// err = worker.Create(setupTx)
 		// Expect(err).ToNot(HaveOccurred())
 
+		setupTx, err := dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
 		brt := dbng.BaseResourceType{
 			Name: "some-worker-resource-type",
 		}
+		_, err = brt.FindOrCreate(setupTx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(setupTx.Commit()).To(Succeed())
 
 		// ubrt, err := brt.FindOrCreate(setupTx)
 		// Expect(err).ToNot(HaveOccurred())
@@ -200,7 +206,7 @@ var _ = Describe("ResourceCache", func() {
 	})
 
 	Describe("creating for a resource type", func() {
-		var resourceType *dbng.ResourceType
+		var resourceType *dbng.UsedResourceType
 
 		BeforeEach(func() {
 			tf := dbng.NewTeamFactory(dbConn)
@@ -213,7 +219,14 @@ var _ = Describe("ResourceCache", func() {
 			pipeline, err := pf.CreatePipeline(team, "some-pipeline", "{}")
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceType, err = rf.CreateResourceType(pipeline, "some-resource-type", "some-resource-type-type", "{}")
+			resourceType, err = rf.CreateResourceType(
+				pipeline,
+				atc.ResourceType{
+					Name: "some-resource-type",
+					Type: "some-resource-type-type",
+				},
+				atc.Version{},
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			tx, err = dbConn.Begin()

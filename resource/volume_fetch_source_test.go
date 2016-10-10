@@ -80,8 +80,8 @@ var _ = Describe("VolumeFetchSource", func() {
 		It("creates container with volume and worker", func() {
 			Expect(initErr).NotTo(HaveOccurred())
 			Expect(fakeContainerCreator.CreateWithVolumeCallCount()).To(Equal(1))
-			resourceType, volume, worker := fakeContainerCreator.CreateWithVolumeArgsForCall(0)
-			Expect(resourceType).To(Equal("fake-resource-type"))
+			resourceOptions, volume, worker := fakeContainerCreator.CreateWithVolumeArgsForCall(0)
+			Expect(string(resourceOptions.ResourceType())).To(Equal("fake-resource-type"))
 			Expect(volume).To(Equal(fakeVolume))
 			Expect(worker).To(Equal(fakeWorker))
 		})

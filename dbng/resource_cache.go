@@ -60,7 +60,7 @@ func (cache ResourceCache) FindOrCreateForResource(tx Tx, resource *Resource) (*
 	return cache.findOrCreate(tx, usedResourceConfig, "resource_id", resource.ID)
 }
 
-func (cache ResourceCache) FindOrCreateForResourceType(tx Tx, resourceType *ResourceType) (*UsedResourceCache, error) {
+func (cache ResourceCache) FindOrCreateForResourceType(tx Tx, resourceType *UsedResourceType) (*UsedResourceCache, error) {
 	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForResourceType(tx, resourceType)
 	if err != nil {
 		return nil, err

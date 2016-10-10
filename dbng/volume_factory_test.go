@@ -56,12 +56,17 @@ var _ = Describe("VolumeFactory", func() {
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
+			defer setupTx.Rollback()
+
+			brt := dbng.BaseResourceType{
+				Name: "some-resource-type",
+			}
+			_, err = brt.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
 
 			resourceCache := dbng.ResourceCache{
 				ResourceConfig: dbng.ResourceConfig{
-					CreatedByBaseResourceType: &dbng.BaseResourceType{
-						Name: "some-resource-type",
-					},
+					CreatedByBaseResourceType: &brt,
 				},
 			}
 			usedResourceCache, err := resourceCache.FindOrCreateForBuild(setupTx, build)

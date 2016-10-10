@@ -45,7 +45,7 @@ func (f *resourceFactory) NewPutResource(
 	resourceTypes atc.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, []string, error) {
-	logger = logger.Session("[super-logs] new-put-resource")
+	logger = logger.Session("new-put-resource")
 
 	logger.Debug("start")
 	defer logger.Debug("done")

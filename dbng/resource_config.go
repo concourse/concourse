@@ -13,6 +13,7 @@ import (
 var ErrResourceConfigAlreadyExists = errors.New("resource config already exists")
 var ErrResourceConfigDisappeared = errors.New("resource config disappeared")
 var ErrResourceConfigParentDisappeared = errors.New("resource config parent disappeared")
+var ErrBaseResourceTypeNotFound = errors.New("base resource type not found")
 
 // ResourceConfig represents a resource type and config source.
 //
@@ -132,7 +133,7 @@ func (resourceConfig ResourceConfig) FindOrCreateForResource(tx Tx, resource *Re
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (resourceConfig ResourceConfig) FindOrCreateForResourceType(tx Tx, resourceType *ResourceType) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) FindOrCreateForResourceType(tx Tx, resourceType *UsedResourceType) (*UsedResourceConfig, error) {
 	var resourceCacheID int
 	if resourceConfig.CreatedByResourceCache != nil {
 		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForResourceType(tx, resourceType)
@@ -159,9 +160,14 @@ func (resourceConfig ResourceConfig) findOrCreate(tx Tx, forColumnName string, f
 		parentColumnName = "base_resource_type_id"
 
 		var err error
-		urc.CreatedByBaseResourceType, err = resourceConfig.CreatedByBaseResourceType.FindOrCreate(tx)
+		var found bool
+		urc.CreatedByBaseResourceType, found, err = resourceConfig.CreatedByBaseResourceType.Find(tx)
 		if err != nil {
 			return nil, err
+		}
+
+		if !found {
+			return nil, ErrBaseResourceTypeNotFound
 		}
 
 		parentID = urc.CreatedByBaseResourceType.ID

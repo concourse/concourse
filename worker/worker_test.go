@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
@@ -24,30 +25,32 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		logger                 *lagertest.TestLogger
-		fakeGardenClient       *gfakes.FakeClient
-		fakeBaggageclaimClient *bfakes.FakeClient
-		fakeVolumeClient       *wfakes.FakeVolumeClient
-		fakeVolumeFactory      *wfakes.FakeVolumeFactory
-		fakeImageFactory       *wfakes.FakeImageFactory
-		fakeImage              *wfakes.FakeImage
-		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
-		fakeWorkerProvider     *wfakes.FakeWorkerProvider
-		fakeClock              *fakeclock.FakeClock
-		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
-		fakeDBContainerFactory *wfakes.FakeDBContainerFactory
-		activeContainers       int
-		resourceTypes          []atc.WorkerResourceType
-		platform               string
-		tags                   atc.Tags
-		teamID                 int
-		workerName             string
-		workerStartTime        int64
-		httpProxyURL           string
-		httpsProxyURL          string
-		noProxy                string
-		origUptime             time.Duration
-		workerUptime           uint64
+		logger                     *lagertest.TestLogger
+		fakeGardenClient           *gfakes.FakeClient
+		fakeBaggageclaimClient     *bfakes.FakeClient
+		fakeVolumeClient           *wfakes.FakeVolumeClient
+		fakeVolumeFactory          *wfakes.FakeVolumeFactory
+		fakeImageFactory           *wfakes.FakeImageFactory
+		fakeImage                  *wfakes.FakeImage
+		fakeGardenWorkerDB         *wfakes.FakeGardenWorkerDB
+		fakeWorkerProvider         *wfakes.FakeWorkerProvider
+		fakeClock                  *fakeclock.FakeClock
+		fakePipelineDBFactory      *dbfakes.FakePipelineDBFactory
+		fakeDBContainerFactory     *wfakes.FakeDBContainerFactory
+		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
+		fakeDBResourceTypeFactory  *dbngfakes.FakeResourceTypeFactory
+		activeContainers           int
+		resourceTypes              []atc.WorkerResourceType
+		platform                   string
+		tags                       atc.Tags
+		teamID                     int
+		workerName                 string
+		workerStartTime            int64
+		httpProxyURL               string
+		httpsProxyURL              string
+		noProxy                    string
+		origUptime                 time.Duration
+		workerUptime               uint64
 
 		gardenWorker Worker
 	)
@@ -81,6 +84,8 @@ var _ = Describe("Worker", func() {
 		workerUptime = 0
 
 		fakeDBContainerFactory = new(wfakes.FakeDBContainerFactory)
+		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeDBResourceTypeFactory = new(dbngfakes.FakeResourceTypeFactory)
 	})
 
 	JustBeforeEach(func() {
@@ -92,6 +97,8 @@ var _ = Describe("Worker", func() {
 			fakeImageFactory,
 			fakePipelineDBFactory,
 			fakeDBContainerFactory,
+			fakeDBResourceCacheFactory,
+			fakeDBResourceTypeFactory,
 			fakeGardenWorkerDB,
 			fakeWorkerProvider,
 			fakeClock,

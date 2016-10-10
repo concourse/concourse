@@ -9,10 +9,10 @@ import (
 )
 
 type FakeFetchContainerCreator struct {
-	CreateWithVolumeStub        func(string, worker.Volume, worker.Worker) (worker.Container, error)
+	CreateWithVolumeStub        func(resource.ResourceOptions, worker.Volume, worker.Worker) (worker.Container, error)
 	createWithVolumeMutex       sync.RWMutex
 	createWithVolumeArgsForCall []struct {
-		arg1 string
+		arg1 resource.ResourceOptions
 		arg2 worker.Volume
 		arg3 worker.Worker
 	}
@@ -24,10 +24,10 @@ type FakeFetchContainerCreator struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetchContainerCreator) CreateWithVolume(arg1 string, arg2 worker.Volume, arg3 worker.Worker) (worker.Container, error) {
+func (fake *FakeFetchContainerCreator) CreateWithVolume(arg1 resource.ResourceOptions, arg2 worker.Volume, arg3 worker.Worker) (worker.Container, error) {
 	fake.createWithVolumeMutex.Lock()
 	fake.createWithVolumeArgsForCall = append(fake.createWithVolumeArgsForCall, struct {
-		arg1 string
+		arg1 resource.ResourceOptions
 		arg2 worker.Volume
 		arg3 worker.Worker
 	}{arg1, arg2, arg3})
@@ -46,7 +46,7 @@ func (fake *FakeFetchContainerCreator) CreateWithVolumeCallCount() int {
 	return len(fake.createWithVolumeArgsForCall)
 }
 
-func (fake *FakeFetchContainerCreator) CreateWithVolumeArgsForCall(i int) (string, worker.Volume, worker.Worker) {
+func (fake *FakeFetchContainerCreator) CreateWithVolumeArgsForCall(i int) (resource.ResourceOptions, worker.Volume, worker.Worker) {
 	fake.createWithVolumeMutex.RLock()
 	defer fake.createWithVolumeMutex.RUnlock()
 	return fake.createWithVolumeArgsForCall[i].arg1, fake.createWithVolumeArgsForCall[i].arg2, fake.createWithVolumeArgsForCall[i].arg3

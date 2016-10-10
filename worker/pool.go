@@ -158,6 +158,46 @@ func (pool *pool) CreateResourcePutContainer(logger lager.Logger, signals <-chan
 	return container, nil
 }
 
+func (pool *pool) CreateResourceGetContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	outputPaths map[string]string,
+	resourceType string,
+	version atc.Version,
+	source atc.Source,
+	params atc.Params,
+) (Container, error) {
+	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	container, err := worker.CreateResourceGetContainer(
+		logger,
+		cancel,
+		delegate,
+		id,
+		metadata,
+		spec,
+		resourceTypes,
+		outputPaths,
+		resourceType,
+		version,
+		source,
+		params,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
 func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
 	containerInfo, found, err := pool.provider.FindContainerForIdentifier(id)
 	if err != nil {

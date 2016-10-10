@@ -88,6 +88,7 @@ func (f *fetcher) Fetch(
 		session,
 		metadata,
 		imageFetchingDelegate,
+		cacheIdentifier,
 	)
 
 	sourceProvider := f.fetchSourceProviderFactory.NewFetchSourceProvider(

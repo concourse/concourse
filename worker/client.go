@@ -36,6 +36,21 @@ type Client interface {
 		map[string]string,
 	) (Container, error)
 
+	CreateResourceGetContainer(
+		logger lager.Logger,
+		cancel <-chan os.Signal,
+		delegate ImageFetchingDelegate,
+		id Identifier,
+		metadata Metadata,
+		spec ContainerSpec,
+		resourceTypes atc.ResourceTypes,
+		outputPaths map[string]string,
+		resourceType string,
+		version atc.Version,
+		source atc.Source,
+		params atc.Params,
+	) (Container, error)
+
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 	ValidateResourceCheckVersion(container db.SavedContainer) (bool, error)

@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -18,7 +17,6 @@ var _ = Describe("Volumes", func() {
 		volumeFactory worker.VolumeFactory
 		fakeVolume    *bfakes.FakeVolume
 		fakeDB        *workerfakes.FakeVolumeFactoryDB
-		fakeClock     *fakeclock.FakeClock
 		logger        *lagertest.TestLogger
 	)
 
@@ -27,10 +25,9 @@ var _ = Describe("Volumes", func() {
 		fakeVolume.HandleReturns("some-handle")
 
 		fakeDB = new(workerfakes.FakeVolumeFactoryDB)
-		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		logger = lagertest.NewTestLogger("test")
 
-		volumeFactory = worker.NewVolumeFactory(fakeDB, fakeClock)
+		volumeFactory = worker.NewVolumeFactory(fakeDB)
 	})
 
 	Context("VolumeFactory", func() {

@@ -51,7 +51,7 @@ func (s *volumeFetchSource) LockName() (string, error) {
 
 func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
-	s.container, err = s.containerCreator.CreateWithVolume(string(s.resourceOptions.ResourceType()), s.volume, s.worker)
+	s.container, err = s.containerCreator.CreateWithVolume(s.resourceOptions, s.volume, s.worker)
 	if err != nil {
 		s.logger.Error("failed-to-create-container", err)
 		return err

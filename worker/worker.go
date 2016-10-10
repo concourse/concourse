@@ -25,6 +25,7 @@ var ErrIncompatiblePlatform = errors.New("incompatible platform")
 var ErrMismatchedTags = errors.New("mismatched tags")
 var ErrNoVolumeManager = errors.New("worker does not support volume management")
 var ErrTeamMismatch = errors.New("mismatched team")
+var ErrResourceTypeNotFound = errors.New("resource type not found")
 
 type MalformedMetadataError struct {
 	UnmarshalError error
@@ -75,6 +76,11 @@ type DBContainerFactory interface {
 		meta dbng.ContainerMetadata,
 	) (*dbng.CreatingContainer, error)
 
+	CreateResourceGetContainer(
+		worker *dbng.Worker,
+		resourceCache *dbng.UsedResourceCache,
+	) (*dbng.CreatingContainer, error)
+
 	FindContainer(handle string) (*dbng.CreatedContainer, bool, error)
 }
 
@@ -94,13 +100,15 @@ type GardenWorkerDB interface {
 }
 
 type gardenWorker struct {
-	gardenClient       garden.Client
-	baggageclaimClient baggageclaim.Client
-	volumeClient       VolumeClient
-	volumeFactory      VolumeFactory
-	pipelineDBFactory  db.PipelineDBFactory
-	imageFactory       ImageFactory
-	dbContainerFactory DBContainerFactory
+	gardenClient           garden.Client
+	baggageclaimClient     baggageclaim.Client
+	volumeClient           VolumeClient
+	volumeFactory          VolumeFactory
+	pipelineDBFactory      db.PipelineDBFactory
+	imageFactory           ImageFactory
+	dbContainerFactory     DBContainerFactory
+	dbResourceCacheFactory dbng.ResourceCacheFactory
+	dbResourceTypeFactory  dbng.ResourceTypeFactory
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -128,6 +136,8 @@ func NewGardenWorker(
 	imageFactory ImageFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 	dbContainerFactory DBContainerFactory,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceTypeFactory dbng.ResourceTypeFactory,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
@@ -144,27 +154,29 @@ func NewGardenWorker(
 	noProxy string,
 ) Worker {
 	return &gardenWorker{
-		gardenClient:       gardenClient,
-		baggageclaimClient: baggageclaimClient,
-		volumeClient:       volumeClient,
-		volumeFactory:      volumeFactory,
-		imageFactory:       imageFactory,
-		dbContainerFactory: dbContainerFactory,
-		db:                 db,
-		provider:           provider,
-		clock:              clock,
-		pipelineDBFactory:  pipelineDBFactory,
-		activeContainers:   activeContainers,
-		resourceTypes:      resourceTypes,
-		platform:           platform,
-		tags:               tags,
-		teamID:             teamID,
-		name:               name,
-		addr:               addr,
-		startTime:          startTime,
-		httpProxyURL:       httpProxyURL,
-		httpsProxyURL:      httpsProxyURL,
-		noProxy:            noProxy,
+		gardenClient:           gardenClient,
+		baggageclaimClient:     baggageclaimClient,
+		volumeClient:           volumeClient,
+		volumeFactory:          volumeFactory,
+		imageFactory:           imageFactory,
+		dbContainerFactory:     dbContainerFactory,
+		dbResourceCacheFactory: dbResourceCacheFactory,
+		dbResourceTypeFactory:  dbResourceTypeFactory,
+		db:                db,
+		provider:          provider,
+		clock:             clock,
+		pipelineDBFactory: pipelineDBFactory,
+		activeContainers:  activeContainers,
+		resourceTypes:     resourceTypes,
+		platform:          platform,
+		tags:              tags,
+		teamID:            teamID,
+		name:              name,
+		addr:              addr,
+		startTime:         startTime,
+		httpProxyURL:      httpProxyURL,
+		httpsProxyURL:     httpsProxyURL,
+		noProxy:           noProxy,
 	}
 }
 
@@ -391,8 +403,6 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 				}
 			}
 
-			defer importVolume.Release(nil)
-
 			cowVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 				logger,
 				VolumeSpec{
@@ -495,6 +505,71 @@ func (worker *gardenWorker) CreateResourcePutContainer(
 			Name: metadata.StepName,
 			Type: string(metadata.Type),
 		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return worker.createContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, outputPaths)
+}
+
+func (worker *gardenWorker) CreateResourceGetContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	outputPaths map[string]string,
+	resourceType string,
+	version atc.Version,
+	source atc.Source,
+	params atc.Params,
+) (Container, error) {
+	dbResourceTypes := []dbng.ResourceType{}
+	for _, resourceType := range resourceTypes {
+		usedResourceType, found, err := worker.dbResourceTypeFactory.FindResourceType(
+			&dbng.Pipeline{ID: metadata.PipelineID},
+			resourceType,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
+			logger.Debug("resource type not found", lager.Data{"resource-type": resourceType})
+			return nil, ErrResourceTypeNotFound
+		}
+		dbResourceType := dbng.ResourceType{
+			ResourceType: resourceType,
+			Version:      usedResourceType.Version,
+			Pipeline:     &dbng.Pipeline{ID: metadata.PipelineID},
+		}
+
+		dbResourceTypes = append(dbResourceTypes, dbResourceType)
+	}
+	resourceCache, err := worker.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+		&dbng.Build{
+			ID: id.BuildID,
+		},
+		resourceType,
+		version,
+		source,
+		params,
+		dbResourceTypes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	creatingContainer, err := worker.dbContainerFactory.CreateResourceGetContainer(
+		&dbng.Worker{
+			Name:       worker.name,
+			GardenAddr: worker.addr,
+		},
+		resourceCache,
 	)
 
 	if err != nil {

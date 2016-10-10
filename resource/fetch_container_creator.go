@@ -17,13 +17,14 @@ type FetchContainerCreatorFactory interface {
 		session Session,
 		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
+		cacheIdentifier CacheIdentifier,
 	) FetchContainerCreator
 }
 
 //go:generate counterfeiter . FetchContainerCreator
 
 type FetchContainerCreator interface {
-	CreateWithVolume(string, worker.Volume, worker.Worker) (worker.Container, error)
+	CreateWithVolume(ResourceOptions, worker.Volume, worker.Worker) (worker.Container, error)
 }
 
 type fetchContainerCreator struct {
@@ -34,6 +35,7 @@ type fetchContainerCreator struct {
 	session               Session
 	metadata              Metadata
 	imageFetchingDelegate worker.ImageFetchingDelegate
+	cacheIdentifier       CacheIdentifier
 }
 
 type fetchContainerCreatorFactory struct{}
@@ -50,6 +52,7 @@ func (f fetchContainerCreatorFactory) NewFetchContainerCreator(
 	session Session,
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
+	cacheIdentifier CacheIdentifier,
 ) FetchContainerCreator {
 	return &fetchContainerCreator{
 		logger:                logger,
@@ -59,13 +62,14 @@ func (f fetchContainerCreatorFactory) NewFetchContainerCreator(
 		session:               session,
 		metadata:              metadata,
 		imageFetchingDelegate: imageFetchingDelegate,
+		cacheIdentifier:       cacheIdentifier,
 	}
 }
 
-func (c *fetchContainerCreator) CreateWithVolume(resourceType string, volume worker.Volume, chosenWorker worker.Worker) (worker.Container, error) {
+func (c *fetchContainerCreator) CreateWithVolume(resourceOptions ResourceOptions, volume worker.Volume, chosenWorker worker.Worker) (worker.Container, error) {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: resourceType,
+			ResourceType: string(resourceOptions.ResourceType()),
 			Privileged:   true,
 		},
 		Ephemeral: c.session.Ephemeral,
@@ -80,7 +84,7 @@ func (c *fetchContainerCreator) CreateWithVolume(resourceType string, volume wor
 		},
 	}
 
-	return chosenWorker.CreateTaskContainer(
+	return chosenWorker.CreateResourceGetContainer(
 		c.logger,
 		nil,
 		c.imageFetchingDelegate,
@@ -89,5 +93,9 @@ func (c *fetchContainerCreator) CreateWithVolume(resourceType string, volume wor
 		containerSpec,
 		c.resourceTypes,
 		map[string]string{"get": ResourcesDir("get")},
+		string(resourceOptions.ResourceType()),
+		resourceOptions.Version(),
+		resourceOptions.Source(),
+		resourceOptions.Params(),
 	)
 }

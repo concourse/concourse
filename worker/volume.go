@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
@@ -28,14 +27,12 @@ type VolumeFactory interface {
 }
 
 type volumeFactory struct {
-	db    VolumeFactoryDB
-	clock clock.Clock
+	db VolumeFactoryDB
 }
 
-func NewVolumeFactory(db VolumeFactoryDB, clock clock.Clock) VolumeFactory {
+func NewVolumeFactory(db VolumeFactoryDB) VolumeFactory {
 	return &volumeFactory{
-		db:    db,
-		clock: clock,
+		db: db,
 	}
 }
 
@@ -84,14 +81,6 @@ type volume struct {
 type VolumeMount struct {
 	Volume    Volume
 	MountPath string
-}
-
-func (v *volume) Release(finalTTL *time.Duration) {
-	v.releaseOnce.Do(func() {
-		v.release <- finalTTL
-		v.heartbeating.Wait()
-		metric.TrackedVolumes.Dec()
-	})
 }
 
 func (v *volume) Destroy() error {
