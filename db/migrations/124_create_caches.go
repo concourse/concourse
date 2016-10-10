@@ -123,8 +123,10 @@ func CreateCaches(tx migration.LimitedTx) error {
 		ADD FOREIGN KEY (worker_name) REFERENCES workers (name) ON DELETE CASCADE,
 		ALTER COLUMN handle DROP NOT NULL,
 		ADD COLUMN state container_state NOT NULL DEFAULT 'created',
+		ALTER COLUMN build_id SET DEFAULT NULL,
 		ADD FOREIGN KEY (build_id) REFERENCES builds (id) ON DELETE SET NULL,
 		ADD COLUMN resource_config_id int REFERENCES resource_configs (id) ON DELETE SET NULL,
+		ADD COLUMN resource_cache_id int REFERENCES resource_caches (id) ON DELETE SET NULL,
 		ADD COLUMN hijacked bool NOT NULL DEFAULT false,
 		ADD CONSTRAINT handle_when_created CHECK (
 			(state = 'creating' AND handle IS NULL) OR (state != 'creating')

@@ -39,10 +39,12 @@ func (factory *ContainerFactory) CreateResourceCheckContainer(
 		Columns(
 			"worker_name",
 			"resource_config_id",
+			"type",
 		).
 		Values(
 			worker.Name,
 			resourceConfig.ID,
+			"check",
 		).
 		Suffix("RETURNING id").
 		RunWith(tx).
@@ -59,13 +61,15 @@ func (factory *ContainerFactory) CreateResourceCheckContainer(
 	}
 
 	return &CreatingContainer{
-		ID: containerID,
+		ID:   containerID,
+		conn: factory.conn,
 	}, nil
 }
 
 func (factory *ContainerFactory) CreateResourceGetContainer(
 	worker *Worker,
 	resourceCache *UsedResourceCache,
+	stepName string,
 ) (*CreatingContainer, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
@@ -79,10 +83,14 @@ func (factory *ContainerFactory) CreateResourceGetContainer(
 		Columns(
 			"worker_name",
 			"resource_cache_id",
+			"type",
+			"step_name",
 		).
 		Values(
 			worker.Name,
 			resourceCache.ID,
+			"get",
+			stepName,
 		).
 		Suffix("RETURNING id").
 		RunWith(tx).
@@ -99,7 +107,8 @@ func (factory *ContainerFactory) CreateResourceGetContainer(
 	}
 
 	return &CreatingContainer{
-		ID: containerID,
+		ID:   containerID,
+		conn: factory.conn,
 	}, nil
 }
 

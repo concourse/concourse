@@ -79,6 +79,7 @@ type DBContainerFactory interface {
 	CreateResourceGetContainer(
 		worker *dbng.Worker,
 		resourceCache *dbng.UsedResourceCache,
+		stepName string,
 	) (*dbng.CreatingContainer, error)
 
 	FindContainer(handle string) (*dbng.CreatedContainer, bool, error)
@@ -570,6 +571,7 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 			GardenAddr: worker.addr,
 		},
 		resourceCache,
+		metadata.StepName,
 	)
 
 	if err != nil {
