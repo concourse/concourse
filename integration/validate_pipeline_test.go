@@ -1,0 +1,70 @@
+package integration_test
+
+import (
+	"os/exec"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
+)
+
+var _ = Describe("Fly CLI", func() {
+	Describe("validate-pipeline", func() {
+		It("returns valid on valid configuration", func() {
+			flyCmd := exec.Command(
+				flyPath,
+				"validate-pipeline",
+				"-c", "fixtures/testConfigValid.yml",
+			)
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess).Should(gbytes.Say("configuration valid"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+		})
+
+		It("returns invalid on validation error", func() {
+			flyCmd := exec.Command(
+				flyPath,
+				"validate-pipeline",
+				"-c", "fixtures/testConfigError.yml",
+			)
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err).Should(gbytes.Say("WARNING:"))
+			Eventually(sess.Err).Should(gbytes.Say("  - invalid resources:"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Err).To(gbytes.Say("configuration invalid"))
+		})
+
+		It("returns invalid on validation warning with strict", func() {
+			flyCmd := exec.Command(
+				flyPath,
+				"validate-pipeline",
+				"-c", "fixtures/testConfigWarning.yml",
+				"--strict",
+			)
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
+			Eventually(sess.Err).Should(gbytes.Say("  - jobs.some-job.plan"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Err).To(gbytes.Say("configuration invalid"))
+		})
+	})
+})
