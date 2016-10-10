@@ -76,8 +76,8 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       Grab the appropriate binary for your platform from the
       \reference{downloads}{downloads} section.
     }{
-      For Linux you'll need kernel v3.19 or later. Windows and Darwin don't
-      really need anything special.
+      For Linux you'll need kernel v3.19 or later, with user namespace support
+      enabled. Windows and Darwin don't really need anything special.
     }{
       PostgresSQL 9.3+
     }
