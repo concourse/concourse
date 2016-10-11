@@ -17,10 +17,6 @@ import Concourse.User
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 
--- port toggleSidebar : () -> Cmd msg
--- port groupsChanged : List String -> Cmd msg
--- port setViewingPipeline : (Bool -> msg) -> Sub msg
-
 type alias Model =
   { pipelineIdentifier : Maybe Concourse.PipelineIdentifier
   , route : Routes.ConcourseRoute
@@ -35,16 +31,6 @@ type UserState
   | UserStateLoggedOut
   | UserStateUnknown
 
-
---
--- type alias Ports =
---   { toggleSidebar : () -> Cmd Msg
---   , setGroups : List String -> Cmd Msg
---   , selectGroups : (List String -> Msg) -> Sub Msg
---   , navigateTo : String -> Cmd Msg
---   , setViewingPipeline : (Bool -> Msg) -> Sub Msg
---   }
-
 type Msg
   = Noop
   | PipelineFetched (Result Http.Error Concourse.Pipeline)
@@ -53,8 +39,8 @@ type Msg
   | ToggleSidebar
   | ToggleGroup Concourse.PipelineGroup
   | SetGroups (List String)
-  | SelectGroups (List String)
   | LogOut
+  | LoggingIn
   | NavTo String
   | LoggedOut (Result Concourse.User.Error ())
   | ToggleUserMenu
@@ -79,7 +65,6 @@ init route =
   in
     (model, Cmd.batch[cmd, fetchUser])
 
-
 updateModel : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 updateModel route model =
   let
@@ -93,7 +78,6 @@ updateModel route model =
         Just pid ->
           fetchPipeline pid
     )
-
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -141,6 +125,7 @@ update msg model =
                   }
                 , Cmd.none
                 )
+
     PipelineFetched (Err err) ->
       Debug.log
         ("failed to load pipeline: " ++ toString err)
@@ -155,15 +140,27 @@ update msg model =
     SetGroups groups ->
       setGroups groups model
 
-    SelectGroups groups ->
-      -- setSelectedGroups groups model -- TODO what?
-      (model, Cmd.none)
+    LoggingIn ->
+      ( { model
+        | pipelineIdentifier = Nothing
+        , selectedGroups = []
+        , pipeline = Nothing
+        }
+      , Navigation.newUrl "/login"
+      )
 
     LogOut ->
       (model, logOut)
 
     LoggedOut (Ok _) ->
-      ({ model | userState = UserStateLoggedOut }, Navigation.newUrl "/")
+      ( { model
+        | userState = UserStateLoggedOut
+        , pipelineIdentifier = Nothing
+        , pipeline = Nothing
+        , selectedGroups = []
+        }
+      , Navigation.newUrl "/"
+      )
 
     NavTo url ->
       (model, Navigation.newUrl url)
@@ -182,7 +179,6 @@ subscriptions model =
       Sub.none
     Just pid ->
       Time.every (5 * Time.second) (always (FetchPipeline pid))
-
 
 extractPidFromRoute : Routes.Route -> Maybe Concourse.PipelineIdentifier
 extractPidFromRoute route =
@@ -216,7 +212,6 @@ setGroups newGroups model =
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =
-  flip always (Debug.log "is this being called????" ()) <|
   let
     pipelineIdentifier =
       extractPidFromRoute route.logical
@@ -232,8 +227,6 @@ urlUpdate route model =
         Just pid ->
           fetchPipeline pid
     )
-
-
 
 getDefaultSelectedGroups : Maybe Concourse.Pipeline -> List String
 getDefaultSelectedGroups pipeline =
@@ -252,7 +245,7 @@ setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRo
 setGroupsInLocation loc groups =
   let
     updatedUrl =
-      if groups == [] then
+      if List.isEmpty groups then
         QueryString.remove "groups" loc.queries
       else
         List.foldr
@@ -280,18 +273,20 @@ toggleGroup grp names mpipeline =
   if List.member grp.name names then
     List.filter ((/=) grp.name) names
   else
-    grp.name :: names
+    if List.isEmpty names then
+      grp.name :: (getDefaultSelectedGroups mpipeline)
+    else
+      grp.name :: names
 
+getSelectedOrDefaultGroups : Model -> List String
 getSelectedOrDefaultGroups model =
-  case model.selectedGroups of
-    [] ->
-      getDefaultSelectedGroups model.pipeline
-    selectedGroups ->
-      selectedGroups
+  if List.isEmpty model.selectedGroups then
+    getDefaultSelectedGroups model.pipeline
+  else
+    model.selectedGroups
 
 view : Model -> Html Msg
 view model =
-  flip always (Debug.log "&&&&&&&&&&&&&&&&&&top bar model: " (model)) <|
   Html.nav
     [ classList
         [ ("top-bar", True)
@@ -349,7 +344,7 @@ viewUserState userState userMenuVisible =
     UserStateLoggedOut ->
       Html.div [class "user-info"]
         [ Html.a
-            [ StrictEvents.onLeftClick <| NavTo "/login"
+            [ StrictEvents.onLeftClick <| LoggingIn
             , href "/login"
             , Html.Attributes.attribute "aria-label" "Log In"
             , class "login-button"

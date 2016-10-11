@@ -7,7 +7,6 @@ import Login exposing (Msg(..))
 import TopBar
 import SideBar
 import Routes
-import Route.QueryString as QueryString
 import SubPage
 
 type alias Flags =

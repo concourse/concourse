@@ -83,19 +83,16 @@ init ports flags =
     loadPipeline pipelineLocator model
 
 loadPipeline : Concourse.PipelineIdentifier -> Model -> (Model, Cmd Msg)
-loadPipeline pipelineLocator  model =
+loadPipeline pipelineLocator model =
   ( { model
     | pipelineLocator = pipelineLocator
     }
   , Cmd.batch
       [ fetchPipeline pipelineLocator
-      , fetchJobs pipelineLocator
-      , fetchResources pipelineLocator
       , fetchVersion
       , model.ports.title <| model.pipelineLocator.pipelineName ++ " - "
       ]
   )
-
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -105,16 +102,11 @@ update msg model =
 
     AutoupdateTimerTicked timestamp ->
       ( model
-      , Cmd.batch
-          [ fetchPipeline model.pipelineLocator
-          , fetchJobs model.pipelineLocator
-          , fetchResources model.pipelineLocator
-          ]
+      , fetchPipeline model.pipelineLocator
       )
 
     PipelineIdentifierFetched pipelineIdentifier ->
-      (model
-      , fetchPipeline pipelineIdentifier)
+      (model, fetchPipeline pipelineIdentifier)
 
     AutoupdateVersionTicked _ ->
       (model, fetchVersion)
@@ -133,10 +125,13 @@ update msg model =
           else
             model.selectedGroups
       in
-        ( { model
+        Debug.log "PipelineFetched" ( { model
           | selectedGroups = groups
           }
-        , Cmd.none
+        , Cmd.batch
+          [ fetchJobs model.pipelineLocator
+          , fetchResources model.pipelineLocator
+          ]
         )
 
     PipelineFetched (Err (Http.BadResponse 401 _)) ->
@@ -152,17 +147,16 @@ update msg model =
       (model, Navigation.newUrl "/login")
 
     JobsFetched (Err err) ->
-      flip always (Debug.log "******************** got an err" ()) <|
       renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
 
     ResourcesFetched (Ok fetchedResources) ->
+      Debug.log "ResourcesFetched"
       renderIfNeeded { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }
 
     ResourcesFetched (Err (Http.BadResponse 401 _)) ->
       (model, Navigation.newUrl "/login")
 
     ResourcesFetched (Err err) ->
-      flip always (Debug.log "####################### got an err" ()) <|
       renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
 
     VersionFetched (Ok version) ->
@@ -249,7 +243,6 @@ autoupdateVersionTimer : Sub Msg
 autoupdateVersionTimer =
   Time.every (1 * Time.minute) AutoupdateVersionTicked
 
-
 jobAppearsInGroups : List String -> Concourse.PipelineIdentifier -> Json.Encode.Value -> Bool
 jobAppearsInGroups groupNames pi jobJson =
   let concourseJob =
@@ -271,7 +264,7 @@ expandJsonList flatList =
       Ok res ->
         res
       Err err ->
-        Debug.log ("failed to expand json list: " ++ toString err) []
+        []
 
 filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
 filterJobs model value =
@@ -280,9 +273,11 @@ filterJobs model value =
       (jobAppearsInGroups model.selectedGroups model.pipelineLocator)
       (expandJsonList value)
 
-
-renderIfNeeded : Model -> (Model, Cmd Msg)
+renderIfNeeded : Model ->  (Model, Cmd Msg)
 renderIfNeeded model =
+
+
+
   case (model.fetchedResources, model.fetchedJobs) of
     (Just fetchedResources, Just fetchedJobs) ->
       let
@@ -296,7 +291,6 @@ renderIfNeeded model =
           (Just renderedResources, Just renderedJobs) ->
             if (expandJsonList renderedJobs /= expandJsonList filteredFetchedJobs)
               || (expandJsonList renderedResources /= expandJsonList fetchedResources) then
-                flip always (Debug.log "replacing something" ()) <|
                 ( { model
                   | renderedJobs = Just filteredFetchedJobs
                   , renderedResources = Just fetchedResources
@@ -304,10 +298,8 @@ renderIfNeeded model =
                 , model.ports.render (filteredFetchedJobs, fetchedResources)
                 )
             else
-              flip always (Debug.log "not rendering: --" ()) <|
-              (model, Cmd.none )
+              (model, Cmd.none)
           _ ->
-            flip always (Debug.log "rendering from nothing" ()) <|
             ( { model
               | renderedJobs = Just filteredFetchedJobs
               , renderedResources = Just fetchedResources
@@ -315,7 +307,6 @@ renderIfNeeded model =
             , model.ports.render (filteredFetchedJobs, fetchedResources)
             )
     _ ->
-      flip always (Debug.log "pipeline failed to fetch" (model)) <|
       (model, Cmd.none)
 
 fetchResources : Concourse.PipelineIdentifier -> Cmd Msg
@@ -332,6 +323,11 @@ fetchVersion =
     |> Task.perform Err Ok
     |> Cmd.map VersionFetched
 
+fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
+fetchPipeline pipelineIdentifier =
+  Cmd.map PipelineFetched <|
+    Task.perform Err Ok (Concourse.Pipeline.fetchPipeline pipelineIdentifier)
+
 anyIntersect : List a -> List a -> Bool
 anyIntersect list1 list2 =
   case list1 of
@@ -339,8 +335,3 @@ anyIntersect list1 list2 =
     first :: rest ->
       if List.member first list2 then True
       else anyIntersect rest list2
-
-fetchPipeline : Concourse.PipelineIdentifier -> Cmd Msg
-fetchPipeline pipelineIdentifier =
-  Cmd.map PipelineFetched <|
-    Task.perform Err Ok (Concourse.Pipeline.fetchPipeline pipelineIdentifier)
