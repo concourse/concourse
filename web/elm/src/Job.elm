@@ -51,32 +51,10 @@ type alias BuildWithResources =
   { build : Concourse.Build
   , resources : Maybe Concourse.BuildResources
   }
---
--- type alias LiveUpdatingBuildWithResources =
---   { buildWithResources : Maybe BuildWithResources
---   , nextBuild : Concourse.Build
---   }
 
 jobBuildsPerPage : Int
 jobBuildsPerPage = 100
---
--- addFetchedResources : Concourse.BuildResources -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
--- addFetchedResources resources lubwr =
---   { lubwr | buildWithResources = Just {build = lubwr.nextBuild, resources = resources} }
---
--- addNextBuild : Concourse.Build -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
--- addNextBuild nextBuild buildWithResources =
---   { buildWithResources | nextBuild = nextBuild }
---
--- addNextBuildFromArray : Array Concourse.Build -> Int -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
--- addNextBuildFromArray newBuilds i lubwr =
---   case (Array.get i newBuilds) of
---     Nothing -> lubwr
---     Just newBuild -> addNextBuild newBuild lubwr
---
--- initLiveUpdatingBuildWithResources : Concourse.Build -> LiveUpdatingBuildWithResources
--- initLiveUpdatingBuildWithResources nextBuild =
---   {buildWithResources = Nothing, nextBuild = nextBuild}
+
 
 type alias Flags =
   { jobName : String
@@ -179,7 +157,7 @@ update action model =
           (model, Cmd.none)
         anyList ->
           let
-            transformer = -- LiveUpdatingBuildWithResources -> LiveUpdatingBuildWirth
+            transformer =
               \bwr ->
                 let
                   bwrb =
@@ -291,25 +269,37 @@ isRunning build =
 
 view : Model -> Html Msg
 view model =
-  Html.div [class "with-fixed-header"] [
+  Html.div [class "with-fixed-header"]
+  [
     case model.job of
       Nothing ->
         loadSpinner
-
       Just job ->
         Html.div [class "fixed-header"]
           [ Html.div [ class ("build-header " ++ headerBuildStatusClass job.finishedBuild)] -- TODO really?
               [ Html.button
                   ( List.append
-                    [id "job-state", attribute "aria-label" "Toggle Job Paused State", class <| "btn-pause btn-large fl " ++ (getPausedState job model.pausedChanging)]
+                    [ id "job-state"
+                    , attribute "aria-label" "Toggle Job Paused State"
+                    , class <|
+                        "btn-pause btn-large fl " ++ (getPausedState job model.pausedChanging)
+                    ]
                     (if not model.pausedChanging then [onClick TogglePaused] else [])
                   )
-                  [ Html.i [ class <| "fa fa-fw fa-play " ++ (getPlayPauseLoadIcon job model.pausedChanging) ] [] ]
+                  [ Html.i
+                    [ class <|
+                        "fa fa-fw fa-play " ++ (getPlayPauseLoadIcon job model.pausedChanging)
+                    ] []
+                  ]
               , Html.form
                   [ class "trigger-build"
                   , onLeftClick TriggerBuild
                   ]
-                  [ Html.button [ class "build-action fr", disabled job.disableManualTrigger, attribute "aria-label" "Trigger Build" ]
+                  [ Html.button
+                    [ class "build-action fr"
+                    , disabled job.disableManualTrigger
+                    , attribute "aria-label" "Trigger Build"
+                    ]
                     [ Html.i [ class "fa fa-plus-circle" ] []
                     ]
                   ]
@@ -441,12 +431,18 @@ viewBuildResources model buildWithResources =
   let
     inputsTable =
       case buildWithResources.resources of
-        Nothing -> loadSpinner
-        Just resources -> Html.table [class "build-resources"] <| List.map (viewBuildInputs model) resources.inputs
+        Nothing ->
+          loadSpinner
+        Just resources ->
+          Html.table [class "build-resources"] <|
+            List.map (viewBuildInputs model) resources.inputs
     outputsTable =
       case buildWithResources.resources of
-        Nothing -> loadSpinner
-        Just resources -> Html.table [class "build-resources"] <| List.map (viewBuildOutputs model) resources.outputs
+        Nothing ->
+          loadSpinner
+        Just resources ->
+          Html.table [class "build-resources"] <|
+            List.map (viewBuildOutputs model) resources.outputs
   in
     [ Html.div [class "inputs mrl"]
       [ Html.div [class "resource-title pbs"]

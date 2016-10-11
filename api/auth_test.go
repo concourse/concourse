@@ -45,33 +45,6 @@ var _ = Describe("Auth API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			for _, b := range []string{"bearer", "BEARER", "Bearer"} {
-				bearer := b
-
-				Context("when the request's authorization is already a "+bearer+" token", func() {
-					BeforeEach(func() {
-						request.Header.Add("Authorization", bearer+" grylls")
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("returns application/json", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-					})
-
-					It("returns the existing token without generating a new one", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(body).To(MatchJSON(`{"type":"` + bearer + `","value":"grylls"}`))
-
-						Expect(fakeTokenGenerator.GenerateTokenCallCount()).To(Equal(0))
-					})
-				})
-			}
-
 			Context("when the request's authorization is some other form", func() {
 				BeforeEach(func() {
 					request.Header.Add("Authorization", "Basic grylls")

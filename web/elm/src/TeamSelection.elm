@@ -52,7 +52,7 @@ update action model =
       , Cmd.none
       )
     TeamsFetched (Ok teams) ->
-      ( Debug.log  "teams fetched: " { model | teams = Just teams }
+      ( { model | teams = Just teams }
       , Cmd.none
       )
     TeamsFetched (Err err) ->

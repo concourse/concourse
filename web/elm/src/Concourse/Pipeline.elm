@@ -12,10 +12,8 @@ order teamName pipelineNames =
   let
     jsonifiedPipelineNames =
       List.map Json.Encode.string pipelineNames
-
     body =
       Json.Encode.encode 0 <| Json.Encode.list jsonifiedPipelineNames
-
     post =
       Http.send Http.defaultSettings
         { verb = "PUT"
@@ -33,9 +31,11 @@ fetchPipeline {teamName,pipelineName} =
     ("/api/v1/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName)
 
 fetchPipelines : Task Http.Error (List Concourse.Pipeline)
-fetchPipelines = Http.get (Json.Decode.list Concourse.decodePipeline) "/api/v1/pipelines"
+fetchPipelines =
+  Http.get
+    (Json.Decode.list Concourse.decodePipeline)
+    "/api/v1/pipelines"
 
--- TODO: take PipelineIdentifier
 pause : String -> String -> Task Http.Error ()
 pause = putAction "pause"
 

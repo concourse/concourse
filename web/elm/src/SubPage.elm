@@ -171,7 +171,7 @@ urlUpdate route model =
           { teamName = team
           , pipelineName = pipeline
           }
-          {mdl | selectedGroups = queryGroupsForRoute route }
+          { mdl | selectedGroups = queryGroupsForRoute route }
 
     (Routes.Resource teamName pipelineName resourceName, ResourceModel mdl) ->
       superDupleWrap (ResourceModel, ResourceMsg) <|
