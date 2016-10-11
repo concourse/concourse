@@ -40,9 +40,8 @@ type targetDetailsYAML struct {
 	Targets map[TargetName]TargetProps
 }
 
-func getFileName() (flyrc string) {
-	flyrc = filepath.Join(userHomeDir(), ".flyrc")
-	return
+func flyrcPath() string {
+	return filepath.Join(userHomeDir(), ".flyrc")
 }
 
 func DeleteTarget(targetName TargetName) error {
@@ -55,7 +54,7 @@ func DeleteTarget(targetName TargetName) error {
 		delete(flyTargets.Targets, targetName)
 	}
 
-	return writeTargets(getFileName(), flyTargets)
+	return writeTargets(flyrcPath(), flyTargets)
 }
 
 func SaveTarget(
@@ -71,7 +70,7 @@ func SaveTarget(
 		return err
 	}
 
-	flyrc := getFileName()
+	flyrc := flyrcPath()
 	newInfo := flyTargets.Targets[targetName]
 	newInfo.API = api
 	newInfo.Insecure = insecure
@@ -119,7 +118,7 @@ func userHomeDir() string {
 func LoadTargets() (*targetDetailsYAML, error) {
 	var flyTargets *targetDetailsYAML
 
-	flyrc := getFileName()
+	flyrc := flyrcPath()
 	if _, err := os.Stat(flyrc); err == nil {
 		flyTargetsBytes, err := ioutil.ReadFile(flyrc)
 		if err != nil {

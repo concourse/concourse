@@ -10,7 +10,7 @@ type LogoutCommand struct {
 	All bool `short:"a" long:"all" description:"Logout of all targets"`
 }
 
-func (command *LogoutCommand) Execute(args []string) (err error) {
+func (command *LogoutCommand) Execute(args []string) error {
 
 	if Fly.Target != "" && !command.All {
 		err = rc.DeleteTarget(Fly.Target)
@@ -27,8 +27,6 @@ func (command *LogoutCommand) Execute(args []string) (err error) {
 		}
 
 	} else {
-		err = errors.New("Must specify either a target (--target/-t) or the all flag (--all/-a)")
+		return errors.New("must specify either a target (--target/-t) or the all flag (--all/-a)")
 	}
-
-	return
 }
