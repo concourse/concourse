@@ -349,8 +349,6 @@ flag. Once you've learned what the commands do, you may want to consult
   If you accept then Concourse's pipeline configuration will switch to the
   pipeline definition in the YAML file specified.
 
-  Note the use of the short flags, just to make it more obfuscated.
-
   \section{Using \code{\{\{parameters\}\}}}{parameters}{
     The pipeline configuration can contain template variable in the form of
     \code{\{\{foo-bar\}\}}. They will be replaced with string values populated
