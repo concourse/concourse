@@ -1,4 +1,4 @@
-port module Pipeline exposing (Model, Msg, Flags, init, update, view, subscriptions, loadPipeline)
+port module Pipeline exposing (Model, Msg(..), Flags, init, update, view, subscriptions, loadPipeline)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, style, src, width, height)
@@ -18,6 +18,8 @@ import Concourse.Info
 import Concourse.Job
 import Concourse.Resource
 import Concourse.Pipeline
+import Route.QueryString as QueryString
+import Routes
 
 type alias Ports =
   { render : (Json.Encode.Value, Json.Encode.Value) -> Cmd Msg
@@ -41,18 +43,22 @@ type alias Flags =
   { teamName : String
   , pipelineName : String
   , turbulenceImgSrc : String
-  , selectedGroups : List String
-  , defaultGroup : Maybe String
+  , route : Routes.ConcourseRoute
   }
 
 type Msg
   = Noop
   | AutoupdateVersionTicked Time
   | AutoupdateTimerTicked Time
+  | PipelineIdentifierFetched Concourse.PipelineIdentifier
   | JobsFetched (Result Http.Error Json.Encode.Value)
   | ResourcesFetched (Result Http.Error Json.Encode.Value)
   | VersionFetched (Result Http.Error String)
   | PipelineFetched (Result Http.Error Concourse.Pipeline)
+
+queryGroupsForRoute : Routes.ConcourseRoute -> List String
+queryGroupsForRoute route =
+  QueryString.all "groups" route.queries
 
 init : Ports -> Flags -> (Model, Cmd Msg)
 init ports flags =
@@ -71,16 +77,15 @@ init ports flags =
       , renderedJobs = Nothing
       , renderedResources = Nothing
       , experiencingTurbulence = False
-      , selectedGroups = flags.selectedGroups
+      , selectedGroups = queryGroupsForRoute flags.route
       }
   in
-    loadPipeline pipelineLocator flags.selectedGroups model
+    loadPipeline pipelineLocator model
 
-loadPipeline : Concourse.PipelineIdentifier -> List String -> Model -> (Model, Cmd Msg)
-loadPipeline pipelineLocator selectedGroups model =
+loadPipeline : Concourse.PipelineIdentifier -> Model -> (Model, Cmd Msg)
+loadPipeline pipelineLocator  model =
   ( { model
     | pipelineLocator = pipelineLocator
-    , selectedGroups = selectedGroups
     }
   , Cmd.batch
       [ fetchPipeline pipelineLocator
@@ -90,6 +95,7 @@ loadPipeline pipelineLocator selectedGroups model =
       , model.ports.title <| model.pipelineLocator.pipelineName ++ " - "
       ]
   )
+
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -105,6 +111,10 @@ update msg model =
           , fetchResources model.pipelineLocator
           ]
       )
+
+    PipelineIdentifierFetched pipelineIdentifier ->
+      (model
+      , fetchPipeline pipelineIdentifier)
 
     AutoupdateVersionTicked _ ->
       (model, fetchVersion)
@@ -142,6 +152,7 @@ update msg model =
       (model, Navigation.newUrl "/login")
 
     JobsFetched (Err err) ->
+      flip always (Debug.log "******************** got an err" ()) <|
       renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
 
     ResourcesFetched (Ok fetchedResources) ->
@@ -151,6 +162,7 @@ update msg model =
       (model, Navigation.newUrl "/login")
 
     ResourcesFetched (Err err) ->
+      flip always (Debug.log "####################### got an err" ()) <|
       renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
 
     VersionFetched (Ok version) ->
@@ -284,6 +296,7 @@ renderIfNeeded model =
           (Just renderedResources, Just renderedJobs) ->
             if (expandJsonList renderedJobs /= expandJsonList filteredFetchedJobs)
               || (expandJsonList renderedResources /= expandJsonList fetchedResources) then
+                flip always (Debug.log "replacing something" ()) <|
                 ( { model
                   | renderedJobs = Just filteredFetchedJobs
                   , renderedResources = Just fetchedResources
@@ -291,8 +304,10 @@ renderIfNeeded model =
                 , model.ports.render (filteredFetchedJobs, fetchedResources)
                 )
             else
+              flip always (Debug.log "not rendering: --" ()) <|
               (model, Cmd.none )
           _ ->
+            flip always (Debug.log "rendering from nothing" ()) <|
             ( { model
               | renderedJobs = Just filteredFetchedJobs
               , renderedResources = Just fetchedResources
@@ -300,6 +315,7 @@ renderIfNeeded model =
             , model.ports.render (filteredFetchedJobs, fetchedResources)
             )
     _ ->
+      flip always (Debug.log "pipeline failed to fetch" (model)) <|
       (model, Cmd.none)
 
 fetchResources : Concourse.PipelineIdentifier -> Cmd Msg

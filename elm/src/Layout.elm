@@ -10,7 +10,6 @@ import Routes
 import Route.QueryString as QueryString
 import SubPage
 
-
 type alias Flags =
   { turbulenceImgSrc : String
   }
@@ -21,7 +20,7 @@ type alias Model =
   , sideModel : SideBar.Model
   , sidebarVisible : Bool
   , turbulenceImgSrc : String
-  , selectedGroups : List String
+  , route : Routes.ConcourseRoute
   }
 
 type Msg
@@ -46,7 +45,7 @@ init flags route =
       , sideModel = sideModel
       , sidebarVisible = False
       , turbulenceImgSrc = flags.turbulenceImgSrc
-      , selectedGroups = QueryString.all "groups" route.queries
+      , route = route
       }
     , Cmd.batch
         [ Cmd.map SubMsg subCmd
@@ -67,7 +66,7 @@ update msg model =
     SubMsg (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
       let
         (subModel, subCmd) =
-          SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel model.selectedGroups
+          SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel
       in
         ( { model
           | subModel = subModel
@@ -87,7 +86,6 @@ update msg model =
             model.turbulenceImgSrc
             (SubPage.DefaultPipelineFetched pipeline)
             model.subModel
-            model.selectedGroups
       in
         case pipeline of
           Nothing ->
@@ -112,7 +110,7 @@ update msg model =
     -- otherwise, pass down
     SubMsg m ->
       let
-        (subModel, subCmd) = SubPage.update model.turbulenceImgSrc m model.subModel model.selectedGroups
+        (subModel, subCmd) = SubPage.update model.turbulenceImgSrc m model.subModel
       in
         ({ model | subModel = subModel }, Cmd.map SubMsg subCmd)
 
@@ -132,16 +130,23 @@ urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd (Msg))
 urlUpdate route model =
   let
     (newSubmodel, cmd) =
-      if routeMatchesModel route model then
-        SubPage.urlUpdate route model.subModel
+      if (route.logical == model.route.logical) && (route.queries == model.route.queries) then
+        (model.subModel, Cmd.none)
       else
-        SubPage.init model.turbulenceImgSrc route
+        if routeMatchesModel route model then
+          SubPage.urlUpdate route model.subModel
+        else
+          SubPage.init model.turbulenceImgSrc route
     (newTopModel, tCmd) =
-      TopBar.urlUpdate route model.topModel
+      if (route.logical == model.route.logical) && (route.queries == model.route.queries) then
+        (model.topModel, Cmd.none)
+      else
+        TopBar.urlUpdate route model.topModel
   in
     ( { model
       | subModel = newSubmodel
       , topModel = newTopModel
+      , route = route
       }
     , Cmd.batch
         [ Cmd.map SubMsg cmd
@@ -198,4 +203,5 @@ routeMatchesModel route model =
       True
     (Routes.Job _ _ _, SubPage.JobModel _) ->
       True
-    _ -> False
+    _ ->
+      False
