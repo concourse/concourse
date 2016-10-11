@@ -78,7 +78,7 @@ flag. Once you've learned what the commands do, you may want to consult
   \code{example} Concourse instance.
 }
 
-\section{\code{logout}\aux{: Remove authentication and delete Concourse targets}}{fly-out}{
+\section{\code{logout}\aux{: Remove authentication and delete Concourse targets}}{fly-logout}{
   There are cases when you would like to remove all evidence of a particular
   target. This is achieved by the \code{logout} command. There are two variants
   of this command, one to get rid of a specific target, and another to remove
