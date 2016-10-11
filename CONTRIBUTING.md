@@ -48,7 +48,7 @@ you are looking to work on, read on for a full list:
 - virtualbox (used by BOSH Lite)
     - `brew install virtualbox`
 - vagrant (also used by BOSH Lite)
-    - `brew install vagrant`
+    - `brew cask install vagrant`
 
 ### Additional tooling for ATC or fly
 - go (Most of the stack is written in golang)
@@ -59,6 +59,8 @@ you are looking to work on, read on for a full list:
     - `go get github.com/onsi/ginkgo/ginkgo`
 - postgresql (ATCs database)
     - `brew install postgresql`
+- chromedriver (used to run our acceptance tests)
+    - `brew install chromedriver`
 
 ### Setting Up a BOSH Lite
 Concourse is a [BOSH](http://bosh.io/docs)
@@ -86,7 +88,7 @@ All set with BOSH Lite?  Great!  Let's grab the concourse release
 through a deployment:
 
 - You may notice that Concourse ships with a .envrc file.  We use a tool
-called direnv (mentioned above) to mange your `$GOPATH`.
+called direnv (mentioned above) to manage your `$GOPATH`.
 - We make extensive use of submodules in this release, you will want to
 run `git submodule update --init` within your Concourse clone.
 
