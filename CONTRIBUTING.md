@@ -106,7 +106,7 @@ You're going to deploy your changes to the various submodules
 directly to your bosh-lite, which requires a couple of things:
 
 - Commit all of the changes directly to the submodules (just don't push them)
-- Upload a [Garden runC](https://github.com/cloudfoundry/garden-runc-release) to your BOSH Lite, which you can grab from [the Concourse GitHub releases](https://github.com/concourse/concourse/releases)
+- Upload a [Garden-runC release](https://github.com/cloudfoundry/garden-runc-release) to your BOSH Lite, which you can grab from [the Concourse GitHub releases](https://github.com/concourse/concourse/releases)
 - Upload the latest BOSH lite stemcell from [bosh.io](http://bosh.io/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent)
 
 Then, from the root of the `concourse` repository, run:
