@@ -27,6 +27,6 @@ func (command *LogoutCommand) Execute(args []string) error {
 		}
 
 	} else {
-		return errors.New("must specify either a target (--target/-t) or the all flag (--all/-a)")
+		return errors.New("must specify either --target or --all")
 	}
 }
