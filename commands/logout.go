@@ -13,15 +13,16 @@ type LogoutCommand struct {
 func (command *LogoutCommand) Execute(args []string) error {
 
 	if Fly.Target != "" && !command.All {
-		err = rc.DeleteTarget(Fly.Target)
+		return rc.DeleteTarget(Fly.Target)
 	} else if Fly.Target == "" && command.All {
+
 		flyYAML, err := rc.LoadTargets()
 		if err != nil {
 			return err
 		}
 
-		for targetName, _ := range flyYAML.Targets {
-			if err = rc.DeleteTarget(targetName); err != nil {
+		for targetName := range flyYAML.Targets {
+			if err := rc.DeleteTarget(targetName); err != nil {
 				return err
 			}
 		}
@@ -29,4 +30,6 @@ func (command *LogoutCommand) Execute(args []string) error {
 	} else {
 		return errors.New("must specify either --target or --all")
 	}
+
+	return nil
 }
