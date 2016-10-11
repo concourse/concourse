@@ -10,8 +10,9 @@ type FlyCommand struct {
 
 	Version func() `short:"v" long:"version" description:"Print the version of Fly and exit"`
 
-	Login LoginCommand `command:"login" alias:"l" description:"Authenticate with the target"`
-	Sync  SyncCommand  `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
+	Login  LoginCommand  `command:"login" alias:"l" description:"Authenticate with the target"`
+	Logout LogoutCommand `command:"logout" alias:"lo" description:"Release authentication with the target"`
+	Sync   SyncCommand   `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
 	SetTeam SetTeamCommand `command:"set-team"  alias:"st" description:"Create or modify a team to have the given credentials"`
 
