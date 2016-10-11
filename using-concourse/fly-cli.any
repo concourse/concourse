@@ -78,19 +78,20 @@ flag. Once you've learned what the commands do, you may want to consult
   \code{example} Concourse instance.
 }
 
-\section{\code{login}\aux{: Authenticating with and saving Concourse targets}}{fly-login}{
-
+\section{\code{logout}\aux{: Remove authentication and delete Concourse targets}}{fly-out}{
   There are cases when you would like to remove all evidence of a particular
-  configuration. This is achieve by the \code{logout} command. There are two
-  variants of this command, one to get rid of a specific target, and another
-  to remove all targets from the \code{~/.flyrc} file.
+  target. This is achieved by the \code{logout} command. There are two variants
+  of this command, one to get rid of a specific target, and another to remove
+  all targets from the \code{~/.flyrc} file.
 
   To remove a specific target run:
+
   \codeblock{bash}{
   $ fly -t example logout
   }
 
   To remove all targets run:
+
   \codeblock{bash}{
   $ fly logout -a
   }
