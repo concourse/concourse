@@ -28,7 +28,7 @@ port setTitle : String -> Cmd msg
 -- port setTitle : String -> Cmd msg
 
 type Model
-  = WaitingModel
+  = WaitingModel Routes.ConcourseRoute
   | NoPipelineModel
   | BuildModel (Autoscroll.Model Build.Model)
   | JobModel Job.Model
@@ -51,6 +51,10 @@ type Msg
 superDupleWrap : ((a -> b), (c -> d)) -> (a, Cmd c) -> (b, Cmd d)
 superDupleWrap (modelFunc, msgFunc) (model, msg) =
   (modelFunc model, Cmd.map msgFunc msg)
+
+queryGroupsForRoute : Routes.ConcourseRoute -> List String
+queryGroupsForRoute route =
+  QueryString.all "groups" route.queries
 
 init : String -> Routes.ConcourseRoute -> (Model, Cmd Msg)
 init turbulencePath route =
@@ -114,19 +118,18 @@ init turbulencePath route =
           { teamName = teamName
           , pipelineName = pipelineName
           , turbulenceImgSrc = turbulencePath
-          , selectedGroups = QueryString.all "groups" route.queries
-          , defaultGroup = Nothing
+          , route = route
           }
     Routes.Home ->
-      ( WaitingModel
+      ( WaitingModel route
       , Cmd.batch
           [ fetchPipelines
           , setTitle ""
           ]
       )
 
-update : String -> Msg -> Model -> List String -> (Model, Cmd Msg)
-update turbulence msg mdl selectedGroups =
+update : String -> Msg -> Model -> (Model, Cmd Msg)
+update turbulence msg mdl =
   case (msg, mdl) of
     (NoPipelineMsg msg, model) ->
       (model, fetchPipelines)
@@ -142,7 +145,7 @@ update turbulence msg mdl selectedGroups =
       superDupleWrap (ResourceModel, ResourceMsg) <| Resource.update message model
     (SelectTeamMsg message, SelectTeamModel model) ->
       superDupleWrap (SelectTeamModel, SelectTeamMsg) <| TeamSelection.update message model
-    (DefaultPipelineFetched pipeline, model) ->
+    (DefaultPipelineFetched pipeline, WaitingModel route) ->
       case pipeline of
         Nothing ->
           (NoPipelineModel, setTitle "")
@@ -152,13 +155,7 @@ update turbulence msg mdl selectedGroups =
               { teamName = p.teamName
               , pipelineName = p.name
               , turbulenceImgSrc = turbulence
-              , selectedGroups = selectedGroups
-              , defaultGroup =
-                case List.head p.groups of
-                  Nothing ->
-                    Nothing
-                  Just group ->
-                    Just group.name
+              , route = route
               }
           in
             superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.init {render = renderPipeline, title = setTitle} flags
@@ -174,8 +171,7 @@ urlUpdate route model =
           { teamName = team
           , pipelineName = pipeline
           }
-          (QueryString.all "groups" route.queries)
-          mdl
+          {mdl | selectedGroups = queryGroupsForRoute route }
 
     (Routes.Resource teamName pipelineName resourceName, ResourceModel mdl) ->
       superDupleWrap (ResourceModel, ResourceMsg) <|
@@ -228,7 +224,7 @@ view mdl =
       Html.App.map ResourceMsg <| Resource.view model
     SelectTeamModel model ->
       Html.App.map SelectTeamMsg <| TeamSelection.view model
-    WaitingModel ->
+    WaitingModel _ ->
       Html.div [] []
     NoPipelineModel ->
       Html.App.map NoPipelineMsg <| NoPipeline.view
@@ -250,7 +246,7 @@ subscriptions mdl =
       Sub.map ResourceMsg <| Resource.subscriptions model
     SelectTeamModel model ->
       Sub.map SelectTeamMsg <| TeamSelection.subscriptions model
-    WaitingModel ->
+    WaitingModel _ ->
       Sub.none
 
 fetchPipelines : Cmd Msg

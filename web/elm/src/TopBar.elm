@@ -1,4 +1,4 @@
-port module TopBar exposing (Model, Msg(..), GroupsState(..), init, update, urlUpdate, view, subscriptions, fetchUser)
+port module TopBar exposing (Model, Msg(..), init, update, urlUpdate, view, subscriptions, fetchUser)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)
@@ -23,8 +23,7 @@ import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 
 type alias Model =
   { pipelineIdentifier : Maybe Concourse.PipelineIdentifier
-  , location : Routes.ConcourseRoute
-  , groupsState : GroupsState
+  , route : Routes.ConcourseRoute
   , selectedGroups : List String
   , pipeline : Maybe Concourse.Pipeline
   , userState : UserState
@@ -36,9 +35,7 @@ type UserState
   | UserStateLoggedOut
   | UserStateUnknown
 
-type GroupsState
-  = Selected (List String)
-  | NoneAvailable
+
 --
 -- type alias Ports =
 --   { toggleSidebar : () -> Cmd Msg
@@ -62,23 +59,19 @@ type Msg
   | LoggedOut (Result Concourse.User.Error ())
   | ToggleUserMenu
 
+queryGroupsForRoute : Routes.ConcourseRoute -> List String
+queryGroupsForRoute route =
+  QueryString.all "groups" route.queries
+
 init : Routes.ConcourseRoute -> (Model, Cmd Msg)
-init initialLocation =
+init route =
   let
-    queryGroups =
-      QueryString.all "groups" initialLocation.queries
     (model, cmd) =
       updateModel
-        initialLocation
+        route
         { pipelineIdentifier = Nothing
-        , groupsState =
-            case queryGroups of
-              [] ->
-                NoneAvailable
-              _ ->
-                Selected queryGroups
-        , location = initialLocation
-        , selectedGroups = queryGroups
+        , selectedGroups = queryGroupsForRoute route
+        , route = route
         , pipeline = Nothing
         , userState = UserStateUnknown
         , userMenuVisible = False
@@ -109,24 +102,7 @@ update msg model =
       (model, Cmd.none)
 
     FetchPipeline pid ->
-      let
-        groupsInUrl =
-          QueryString.all "groups" model.location.queries
-        groupsState =
-          case model.location.logical of
-            Routes.Home ->
-              getDefaultGroupsState model.pipeline
-            Routes.SelectTeam ->
-              NoneAvailable
-            Routes.TeamLogin teamName ->
-              NoneAvailable
-            _ ->
-              if List.isEmpty groupsInUrl then
-                getDefaultGroupsState model.pipeline
-              else
-                Selected groupsInUrl
-      in
-        ( {model | groupsState = groupsState}, fetchPipeline pid)
+      (model, fetchPipeline pid)
 
     UserFetched (Ok user) ->
       ( { model | userState = UserStateLoggedIn user }
@@ -144,16 +120,14 @@ update msg model =
           ( { model
             | pipeline = Just pipeline
             , pipelineIdentifier = Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
-            , groupsState = getDefaultGroupsState <| Just pipeline
             }
           , Cmd.none
           )
         Just p ->
-          if pipeline.groups == [] then
+          if List.isEmpty pipeline.groups then
               ( { model
                 | pipeline = Just pipeline
                 , pipelineIdentifier = Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
-                , groupsState = getDefaultGroupsState <| Just pipeline
                 }
               , Cmd.none
               )
@@ -164,7 +138,6 @@ update msg model =
                 ( { model
                   | pipeline = Just pipeline
                   , pipelineIdentifier = Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
-                  , groupsState = getDefaultGroupsState <| Just pipeline
                   }
                 , Cmd.none
                 )
@@ -177,15 +150,7 @@ update msg model =
       Debug.log "sidebar-toggle-incorrectly-handled: " (model, Cmd.none)
 
     ToggleGroup group ->
-      let
-        newGroups =
-          case model.groupsState of
-            NoneAvailable ->
-              toggleGroup group [] model.pipeline -- TODO add groupState stuff
-            Selected groups ->
-              toggleGroup group groups model.pipeline
-      in
-        setGroups newGroups model
+      setGroups (toggleGroup group model.selectedGroups model.pipeline) model
 
     SetGroups groups ->
       setGroups groups model
@@ -245,34 +210,21 @@ setGroups newGroups model =
   let
     newUrl =
       pidToUrl model.pipelineIdentifier <|
-        setGroupsInLocation model.location newGroups
+        setGroupsInLocation model.route newGroups
   in
     (model, Navigation.newUrl newUrl)
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =
+  flip always (Debug.log "is this being called????" ()) <|
   let
     pipelineIdentifier =
       extractPidFromRoute route.logical
-    selectedGroups =
-      QueryString.all "groups" route.queries
-    groupsState =
-      if
-        selectedGroups == []
-      then
-        if
-          pipelineIdentifier == model.pipelineIdentifier
-        then
-          getDefaultGroupsState model.pipeline
-        else
-          NoneAvailable
-      else
-        Selected selectedGroups
   in
     ( { model
       | pipelineIdentifier = model.pipelineIdentifier
-      , location = route
-      , groupsState = groupsState
+      , route = route
+      , selectedGroups = queryGroupsForRoute route
       }
     , case pipelineIdentifier of
         Nothing ->
@@ -283,17 +235,17 @@ urlUpdate route model =
 
 
 
-getDefaultGroupsState : Maybe Concourse.Pipeline -> GroupsState
-getDefaultGroupsState pipeline =
+getDefaultSelectedGroups : Maybe Concourse.Pipeline -> List String
+getDefaultSelectedGroups pipeline =
   case pipeline of
     Nothing ->
-      NoneAvailable
+      []
     Just pipeline ->
       case List.head pipeline.groups of
         Nothing ->
-          NoneAvailable
+          []
         Just first ->
-          Selected [first.name]
+          [first.name]
 
 
 setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
@@ -330,8 +282,16 @@ toggleGroup grp names mpipeline =
   else
     grp.name :: names
 
+getSelectedOrDefaultGroups model =
+  case model.selectedGroups of
+    [] ->
+      getDefaultSelectedGroups model.pipeline
+    selectedGroups ->
+      selectedGroups
+
 view : Model -> Html Msg
 view model =
+  flip always (Debug.log "&&&&&&&&&&&&&&&&&&top bar model: " (model)) <|
   Html.nav
     [ classList
         [ ("top-bar", True)
@@ -345,13 +305,9 @@ view model =
             Nothing ->
               []
             Just pipeline ->
-              case model.groupsState of
-                NoneAvailable ->
-                  []
-                Selected groups ->
-                  List.map
-                    (viewGroup groups pipeline.url)
-                    pipeline.groups
+              List.map
+                (viewGroup (getSelectedOrDefaultGroups model) pipeline.url)
+                pipeline.groups
       in
         Html.ul [class "groups"] <|
           [ Html.li [class "main"]
