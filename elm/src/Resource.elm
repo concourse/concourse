@@ -151,7 +151,7 @@ update action model =
     PausedToggled (Ok ()) ->
       ( { model | pausedChanging = Stable} , Cmd.none)
     PausedToggled (Err (Http.BadResponse 401 _)) ->
-      (model, Navigation.newUrl "/login")
+      (model, loginRedirect model)
     PausedToggled (Err err) ->
       Debug.log ("failed to pause/unpause resource checking: " ++ toString err) <|
       case model.resource of
@@ -250,7 +250,7 @@ update action model =
         , Cmd.none
         )
     VersionedResourceToggled _ (Err (Http.BadResponse 401 _)) ->
-      (model, Navigation.newUrl "/login")
+      (model, loginRedirect model)
     VersionedResourceToggled versionID (Err err) ->
       let
         oldState =
@@ -296,7 +296,7 @@ update action model =
           Cmd.none
         )
     InputToFetched _ (Err (Http.BadResponse 401 _)) ->
-      (model, Navigation.newUrl "/login")
+      (model, loginRedirect model)
     InputToFetched _ (Err err) ->
       (model, Cmd.none)
     InputToFetched versionID (Ok builds) ->
@@ -314,7 +314,7 @@ update action model =
         , Cmd.none
         )
     OutputOfFetched _ (Err (Http.BadResponse 401 _)) ->
-      (model, Navigation.newUrl "/login")
+      (model, loginRedirect model)
     OutputOfFetched _ (Err err) ->
       (model, Cmd.none)
     OutputOfFetched versionID (Ok builds) ->
@@ -718,3 +718,7 @@ fetchOutputOf versionedResourceIdentifier =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Time.every (5 * Time.second) AutoupdateTimerTicked
+
+loginRedirect : Model -> Cmd Msg
+loginRedirect model =
+  Navigation.newUrl ("/teams/" ++ model.resourceIdentifier.teamName ++ "/login")

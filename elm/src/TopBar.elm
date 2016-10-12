@@ -40,7 +40,7 @@ type Msg
   | ToggleGroup Concourse.PipelineGroup
   | SetGroups (List String)
   | LogOut
-  | LoggingIn
+  | LogIn
   | NavTo String
   | LoggedOut (Result Concourse.User.Error ())
   | ToggleUserMenu
@@ -140,7 +140,7 @@ update msg model =
     SetGroups groups ->
       setGroups groups model
 
-    LoggingIn ->
+    LogIn ->
       ( { model
         | pipelineIdentifier = Nothing
         , selectedGroups = []
@@ -344,7 +344,7 @@ viewUserState userState userMenuVisible =
     UserStateLoggedOut ->
       Html.div [class "user-info"]
         [ Html.a
-            [ StrictEvents.onLeftClick <| LoggingIn
+            [ StrictEvents.onLeftClick <| LogIn
             , href "/login"
             , Html.Attributes.attribute "aria-label" "Log In"
             , class "login-button"

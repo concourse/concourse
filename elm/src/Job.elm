@@ -17,7 +17,6 @@ import Concourse.BuildResources exposing (fetch)
 import BuildDuration
 import DictView
 import Navigation
-import Redirect
 import StrictEvents exposing (onLeftClick)
 
 type alias Ports =
@@ -127,15 +126,14 @@ update action model =
           Nothing ->
             Cmd.none
           Just job ->
-            Cmd.map (always Noop) << Task.perform Err Ok <|
-              Redirect.to <|
-                "/teams/" ++ job.teamName ++
-                "/pipelines/" ++ job.pipelineName ++
-                "/jobs/" ++ job.jobName ++
-                "/builds/" ++ build.name
+            Navigation.newUrl <|
+              "/teams/" ++ job.teamName ++
+              "/pipelines/" ++ job.pipelineName ++
+              "/jobs/" ++ job.jobName ++
+              "/builds/" ++ build.name
       )
     BuildTriggered (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
     BuildTriggered (Err err) ->
       Debug.log ("failed to trigger build: " ++ toString err) <|
         (model, Cmd.none)
@@ -199,7 +197,7 @@ update action model =
     PausedToggled (Ok ()) ->
       ( { model | pausedChanging = False} , Cmd.none)
     PausedToggled (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
     PausedToggled (Err err) ->
       Debug.log ("failed to pause/unpause job: " ++ toString err) <|
         (model, Cmd.none)
@@ -526,11 +524,10 @@ unpauseJob jobIdentifier =
   Cmd.map PausedToggled << Task.perform Err Ok <|
     Concourse.Job.unpause jobIdentifier
 
-redirectToLogin : Model -> Cmd Msg
-redirectToLogin model =
-  Cmd.map (always Noop) << Task.perform Err Ok <|
-    Redirect.to "/login"
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Time.every (5 * Time.second) SubscriptionTick
+
+loginRedirect : Model -> Cmd Msg
+loginRedirect model =
+  Navigation.newUrl ("/teams/" ++ model.jobIdentifier.teamName ++ "/login")

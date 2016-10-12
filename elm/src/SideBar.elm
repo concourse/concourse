@@ -52,7 +52,7 @@ type Msg
   | Drag Position
   | Hover String (ListHover String)
   | Unhover String (ListHover String)
-  | PipelinesReordered (Result Http.Error ())
+  | PipelinesReordered String (Result Http.Error ())
   | NavToPipeline String
 
 init : (Model, Cmd Msg)
@@ -91,7 +91,7 @@ update action model =
       , Cmd.none
       )
     PipelinePaused teamName pipelineName (Err (Http.BadResponse 401 _)) ->
-      (model, Navigation.newUrl "/login")
+      (model, loginRedirect teamName)
     PipelinePaused teamName pipelineName (Err err) ->
       Debug.log
         ("failed to pause pipeline: " ++ toString err)
@@ -99,7 +99,7 @@ update action model =
         , Cmd.none
         )
     PipelineUnpaused teamName pipelineName (Err (Http.BadResponse 401 _)) ->
-      (model, Navigation.newUrl "/login")
+      (model, loginRedirect teamName)
     PipelineUnpaused teamName pipelineName (Ok ()) ->
       ( mapModelPipelines (setPaused False) teamName pipelineName model
       , Cmd.none
@@ -193,9 +193,11 @@ update action model =
             )
           else (model, Cmd.none)
         Nothing -> (model, Cmd.none)
-    PipelinesReordered (Ok ()) ->
+    PipelinesReordered teamName (Ok ()) ->
       (model, Cmd.none)
-    PipelinesReordered (Err err) ->
+    PipelinesReordered teamName (Err (Http.BadResponse 401 _)) ->
+      (model, loginRedirect teamName)
+    PipelinesReordered teamName (Err err) ->
       Debug.log ("failed to reorder pipelines: " ++ toString err) (model, Cmd.none)
     NavToPipeline url ->
       (model, Navigation.newUrl url)
@@ -492,7 +494,7 @@ pausePipeline teamName pipelineName =
 
 orderPipelines : String -> List String -> Cmd Msg
 orderPipelines teamName pipelineNames =
-  Cmd.map PipelinesReordered <|
+  Cmd.map (PipelinesReordered teamName) <|
     Task.perform Err Ok <| Concourse.Pipeline.order teamName pipelineNames
 
 groupPipelinesByTeam : List Concourse.Pipeline -> List (String, List UIPipeline)
@@ -516,3 +518,7 @@ toUIPipeline pipeline =
   , pausedChanging = False
   , pauseErrored = False
   }
+
+loginRedirect : String -> Cmd Msg
+loginRedirect teamName =
+  Navigation.newUrl ("/teams/" ++ teamName ++ "/login")
