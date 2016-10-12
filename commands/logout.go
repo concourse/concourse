@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/concourse/fly/rc"
 )
@@ -13,7 +14,11 @@ type LogoutCommand struct {
 func (command *LogoutCommand) Execute(args []string) error {
 
 	if Fly.Target != "" && !command.All {
-		return rc.DeleteTarget(Fly.Target)
+		if err := rc.DeleteTarget(Fly.Target); err != nil {
+			return err
+		}
+
+		fmt.Println("logged out of target: " + Fly.Target)
 	} else if Fly.Target == "" && command.All {
 
 		flyYAML, err := rc.LoadTargets()
@@ -27,6 +32,7 @@ func (command *LogoutCommand) Execute(args []string) error {
 			}
 		}
 
+		fmt.Println("logged out of all targets")
 	} else {
 		return errors.New("must specify either --target or --all")
 	}
