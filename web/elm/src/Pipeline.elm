@@ -125,7 +125,7 @@ update msg model =
           else
             model.selectedGroups
       in
-        Debug.log "PipelineFetched" ( { model
+        ( { model
           | selectedGroups = groups
           }
         , Cmd.batch
@@ -150,7 +150,6 @@ update msg model =
       renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
 
     ResourcesFetched (Ok fetchedResources) ->
-      Debug.log "ResourcesFetched"
       renderIfNeeded { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }
 
     ResourcesFetched (Err (Http.BadResponse 401 _)) ->
