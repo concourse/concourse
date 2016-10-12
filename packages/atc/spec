@@ -74,6 +74,7 @@ files:
   - github.com/concourse/atc/scheduler/inputmapper/inputconfig/*.go # gosub
   - github.com/concourse/atc/web/*.go # gosub
   - github.com/concourse/atc/web/publichandler/*.go # gosub
+  - github.com/concourse/atc/web/robotstxt/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
   - github.com/concourse/atc/worker/image/*.go # gosub
   - github.com/concourse/atc/worker/transport/*.go # gosub
