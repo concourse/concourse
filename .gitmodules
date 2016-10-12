@@ -243,3 +243,15 @@
 	path = src/github.com/cenk/backoff
 	url = https://github.com/cenk/backoff
 	branch = master
+[submodule "src/github.com/daviddengcn/go-colortext"]
+	path = src/github.com/daviddengcn/go-colortext
+	url = https://github.com/daviddengcn/go-colortext
+	branch = master
+[submodule "src/github.com/mattn/goreman"]
+	path = src/github.com/mattn/goreman
+	url = https://github.com/mattn/goreman
+	branch = master
+[submodule "src/github.com/joho/godotenv"]
+	path = src/github.com/joho/godotenv
+	url = https://github.com/joho/godotenv
+	branch = master

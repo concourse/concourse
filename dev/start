@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)
+
+go install github.com/mattn/goreman
+
+# set up keys
+./setup
+
+# obtain sudo early so worker process can start
+sudo true
+
+# start everything up
+goreman start

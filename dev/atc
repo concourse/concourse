@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e -u
+
+DEVDIR=/tmp/concourse-dev
+KEYSDIR=$DEVDIR/keys
+
+go install github.com/concourse/atc/cmd/atc
+
+external_ip="$(ip route get 8.8.8.8 | grep src | head -1 | sed 's/.*src \([^ ]\+\).*/\1/')"
+
+atc \
+  --development-mode \
+  --external-url "http://${external_ip}:8080" \
+  --session-signing-key $KEYSDIR/web/session_signing_key

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e -u
+
+DEVDIR=/tmp/concourse-dev
+KEYSDIR=$DEVDIR/keys
+
+external_ip="$(ip route get 8.8.8.8 | grep src | head -1 | sed 's/.*src \([^ ]\+\).*/\1/')"
+
+sudo docker run --rm --privileged -v $KEYSDIR/worker:/concourse-keys \
+  concourse/concourse worker --tsa-host "$external_ip"
