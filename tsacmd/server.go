@@ -2,6 +2,7 @@ package tsacmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -76,7 +77,7 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 	var processes []ifrit.Process
 	var process ifrit.Process
 
-	connTeam := server.sessionTeam[string(conn.SessionID())]
+	sessionID := string(conn.SessionID())
 
 	// ensure processes get cleaned up
 	defer func() {
@@ -116,17 +117,6 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 
 		defer channel.Close()
 
-		var worker atc.Worker
-		err = json.NewDecoder(channel).Decode(&worker)
-		if err != nil {
-			return
-		}
-
-		if worker.Team != connTeam {
-			logger.Info("worker not allowed for team: " + worker.Team)
-			return
-		}
-
 		for req := range requests {
 			logger.Info("channel-request", lager.Data{
 				"type": req.Type,
@@ -159,7 +149,7 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 
 				req.Reply(true, nil)
 
-				process, err = server.continuouslyRegisterWorkerDirectly(logger, channel)
+				process, err = server.continuouslyRegisterWorkerDirectly(logger, channel, sessionID)
 				if err != nil {
 					logger.Error("failed-to-register", err)
 					return
@@ -205,6 +195,7 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 							channel,
 							gardenForward.boundPort,
 							0,
+							sessionID,
 						)
 						if err != nil {
 							logger.Error("failed-to-register", err)
@@ -234,6 +225,7 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 						channel,
 						gardenForward.boundPort,
 						baggageclaimForward.boundPort,
+						sessionID,
 					)
 					if err != nil {
 						logger.Error("failed-to-register", err)
@@ -260,6 +252,7 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 func (server *registrarSSHServer) continuouslyRegisterWorkerDirectly(
 	logger lager.Logger,
 	channel ssh.Channel,
+	sessionID string,
 ) (ifrit.Process, error) {
 	logger.Session("start")
 	defer logger.Session("done")
@@ -270,7 +263,29 @@ func (server *registrarSSHServer) continuouslyRegisterWorkerDirectly(
 		return nil, err
 	}
 
+	err = server.validateWorkerTeam(logger, sessionID, worker)
+	if err != nil {
+		return nil, err
+	}
+
 	return server.heartbeatWorker(logger, worker, channel), nil
+}
+
+func (server *registrarSSHServer) validateWorkerTeam(
+	logger lager.Logger,
+	sessionID string,
+	worker atc.Worker,
+) error {
+	connTeam := server.sessionTeam[sessionID]
+	if worker.Team != connTeam {
+		logger.Info("worker-not-allowed", lager.Data{
+			"connection-team": connTeam,
+			"channel-team":    worker.Team,
+		})
+		return errors.New("worker-not-allowed-to-team")
+	}
+
+	return nil
 }
 
 func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
@@ -278,12 +293,18 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 	channel ssh.Channel,
 	gardenPort uint32,
 	baggageclaimPort uint32,
+	sessionID string,
 ) (ifrit.Process, error) {
 	logger.Session("start")
 	defer logger.Session("done")
 
 	var worker atc.Worker
 	err := json.NewDecoder(channel).Decode(&worker)
+	if err != nil {
+		return nil, err
+	}
+
+	err = server.validateWorkerTeam(logger, sessionID, worker)
 	if err != nil {
 		return nil, err
 	}
