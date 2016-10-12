@@ -238,6 +238,7 @@ viewBasicAuthForm methods =
             [ Html.input
                 [ id "basic-auth-username-input"
                 , Attributes.type' "text"
+                , Attributes.name "username"
                 , onInput BasicAuthUsernameChanged
                 , onSubmit BasicAuthSubmit
                 ]
@@ -250,6 +251,7 @@ viewBasicAuthForm methods =
             [ Html.input
                 [ id "basic-auth-password-input"
                 , Attributes.type' "password"
+                , Attributes.name "password"
                 , onInput BasicAuthPasswordChanged
                 , onSubmit BasicAuthSubmit
                 ]
