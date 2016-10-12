@@ -117,33 +117,6 @@ var _ = Describe("Auth", func() {
 	})
 
 	Describe("Basic Auth", func() {
-		Context("with valid arguments", func() {
-			var response *http.Response
-			var responseErr error
-
-			BeforeEach(func() {
-				atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
-				err := atcCommand.Start()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Context("when requesting another team-specific route", func() {
-				BeforeEach(func() {
-					_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
-					Expect(err).NotTo(HaveOccurred())
-
-					request, err := http.NewRequest("GET", atcCommand.URL("/teams/some-team/pipelines/some-pipeline"), nil)
-					Expect(err).NotTo(HaveOccurred())
-					response, responseErr = http.DefaultClient.Do(request)
-				})
-
-				It("returns 404", func() {
-					Expect(responseErr).NotTo(HaveOccurred())
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-		})
-
 		It("errors when only username is specified", func() {
 			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_PASSWORD)
 			session, err := atcCommand.StartAndWait()
