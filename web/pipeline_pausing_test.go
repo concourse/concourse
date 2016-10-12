@@ -66,9 +66,6 @@ var _ = Describe("PipelinePausing", func() {
 			Eventually(page.All(navList).FindByLink("another-pipeline")).Should(BeFound())
 			Expect(page.All(navList).FindByLink("another-pipeline").Click()).To(Succeed())
 			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute(fmt.Sprintf("/teams/%s/pipelines/another-pipeline", teamName))))
-
-			By("toggling the nav")
-			Expect(page.Find(".sidebar-toggle.test").Click()).To(Succeed())
 			Eventually(page.Find(".pipeline-graph.test").Text, loadingTimeout).Should(ContainSubstring("another-job-name"))
 
 			By("pausing another-pipeline")
