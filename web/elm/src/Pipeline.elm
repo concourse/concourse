@@ -1,4 +1,4 @@
-port module Pipeline exposing (Model, Msg(..), Flags, init, update, view, subscriptions, loadPipeline)
+port module Pipeline exposing (Model, Msg(..), Flags, init, update, view, subscriptions, changeToPipelineAndGroups)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, style, src, width, height)
@@ -81,6 +81,19 @@ init ports flags =
       }
   in
     loadPipeline pipelineLocator model
+
+changeToPipelineAndGroups : Flags -> Model -> (Model, Cmd Msg)
+changeToPipelineAndGroups flags model =
+  let
+    pid =
+      { teamName = flags.teamName
+      , pipelineName = flags.pipelineName
+      }
+  in
+    if model.pipelineLocator == pid then
+      ({ model | selectedGroups = queryGroupsForRoute flags.route }, Cmd.none)
+    else
+      init model.ports flags
 
 loadPipeline : Concourse.PipelineIdentifier -> Model -> (Model, Cmd Msg)
 loadPipeline pipelineLocator model =

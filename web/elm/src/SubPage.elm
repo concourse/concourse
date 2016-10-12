@@ -167,11 +167,13 @@ urlUpdate route model =
   case (route.logical, model) of
     (Routes.Pipeline team pipeline, PipelineModel mdl) ->
       superDupleWrap (PipelineModel, PipelineMsg) <|
-        Pipeline.loadPipeline
+        Pipeline.changeToPipelineAndGroups
           { teamName = team
           , pipelineName = pipeline
+          , turbulenceImgSrc = mdl.turbulenceImgSrc
+          , route = route
           }
-          { mdl | selectedGroups = queryGroupsForRoute route }
+          mdl
 
     (Routes.Resource teamName pipelineName resourceName, ResourceModel mdl) ->
       superDupleWrap (ResourceModel, ResourceMsg) <|
