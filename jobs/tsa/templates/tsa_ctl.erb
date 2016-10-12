@@ -24,6 +24,18 @@ set -e
   end
   atc_url ||= "#{p("atc.url")}"
 
+  teamAuthorizedKeys = Hash.new
+  p("team_authorized_keys").each do |a|
+    teamName = a["team"]
+    keys = teamAuthorizedKeys[teamName]
+    if keys == nil
+      keys = [a["ssh_key"]]
+    else
+     keys.push(a["ssh_key"])
+   end
+
+    teamAuthorizedKeys[teamName] = keys
+  end
 %>
 
 RUN_DIR=/var/vcap/sys/run/tsa
@@ -62,6 +74,14 @@ case $1 in
 EOF
     } > /var/vcap/jobs/tsa/config/authorized_keys
 
+<% teamAuthorizedKeys.each do |team, keys| %>
+    {
+      cat <<EOF
+<%= keys.join("\n") %>
+EOF
+    } > /var/vcap/jobs/tsa/config/<%= team %>_authorized_keys
+ <% end %>
+
     # TODO: TSA should support multiple ATCs
     exec chpst -u vcap:vcap /var/vcap/packages/tsa/bin/tsa \
       --atc-url <%= atc_url %> \
@@ -73,6 +93,9 @@ EOF
       --host-key /var/vcap/packages/generated_tsa_host_key/id_rsa \
       <% end %> \
       --authorized-keys /var/vcap/jobs/tsa/config/authorized_keys \
+      <% teamAuthorizedKeys.each do |team, keys| %> \
+      --team-authorized-keys <%= team %>=/var/vcap/jobs/tsa/config/<%= team %>_authorized_keys \
+       <% end %> \
       --session-signing-key $SIGNING_KEY \
       --heartbeat-interval <%= p("heartbeat_interval") %> \
       --yeller-api-key <%= esc(p("yeller.api_key")) %> \

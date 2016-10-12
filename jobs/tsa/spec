@@ -62,6 +62,14 @@ properties:
       Public keys to authorize for SSH connections.
     default: []
 
+  team_authorized_keys:
+    description: |
+      Public keys to authorize team workers for SSH connections.
+    example: |
+      - team: concourse
+        ssh_key: ssh-rsa key key@pivotal.io
+    default: []
+
   authorize_generated_worker_key:
     description: |
       Permit access via generated worker key, local to the deployment. Set to
