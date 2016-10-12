@@ -39,6 +39,7 @@ import (
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/publichandler"
+	"github.com/concourse/atc/web/robotstxt"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/wrappa"
@@ -790,6 +791,7 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webMux.Handle("/api/v1/", apiHandler)
 	webMux.Handle("/auth/", oauthHandler)
 	webMux.Handle("/public/", publicHandler)
+	webMux.Handle("/robots.txt", robotstxt.Handler{})
 	webMux.Handle("/", webHandler)
 
 	// proxy Authorization header to/from auth cookie,
