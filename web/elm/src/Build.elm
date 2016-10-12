@@ -37,7 +37,6 @@ import Concourse.Job
 import Concourse.Pagination exposing (Paginated)
 import Favicon
 import LoadingIndicator
-import Redirect
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import Scroll
 
@@ -184,7 +183,7 @@ update action model =
         }
 
     BuildTriggered (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
 
     BuildTriggered (Err err) ->
       Debug.log ("failed to trigger build: " ++ toString err) <|
@@ -204,7 +203,7 @@ update action model =
       (model, Cmd.none)
 
     BuildAborted (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
 
     BuildAborted (Err err) ->
       Debug.log ("failed to abort build: " ++ toString err) <|
@@ -708,11 +707,14 @@ getScrollBehavior model =
         _ ->
           Autoscroll.ScrollWindow
 
-
-redirectToLogin : Model -> Cmd Msg
-redirectToLogin model =
-  Cmd.map (always Noop) << Task.perform Err Ok <|
-    Redirect.to "/login"
+loginRedirect : Model -> Cmd Msg
+loginRedirect model =
+  Navigation.newUrl <|
+    case model.job of
+      Nothing ->
+        "/login"
+      Just job ->
+        "/teams/" ++ job.pipeline.teamName ++ "/login"
 
 handleOutMsg : BuildOutput.OutMsg -> Model -> (Model, Cmd Msg)
 handleOutMsg outMsg model =
