@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
@@ -220,7 +221,8 @@ func (resourceConfig ResourceConfig) findOrCreate(tx Tx, forColumnName string, f
 		Exec()
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-			return nil, ErrResourceConfigDisappeared
+			return nil, errors.New(fmt.Sprintf("config-disappeared: %s, forColumnName: '%s', forColumnID: '%d'", err.Error(), forColumnName, forColumnID))
+			// insert or update on table \"resource_config_uses\" violates foreign key constraint \"resource_config_uses_build_id_fkey\"
 		}
 
 		return nil, err

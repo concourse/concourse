@@ -18,6 +18,7 @@ type Conn interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 	SetMaxIdleConns(n int)
 	SetMaxOpenConns(n int)
+	Stats() sql.DBStats
 }
 
 //go:generate counterfeiter . Tx

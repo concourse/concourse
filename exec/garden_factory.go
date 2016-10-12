@@ -20,12 +20,6 @@ type gardenFactory struct {
 	resourceFetcher resource.Fetcher
 }
 
-//go:generate counterfeiter . TrackerFactory
-
-type TrackerFactory interface {
-	TrackerFor(client worker.Client) resource.Tracker
-}
-
 func NewGardenFactory(
 	workerClient worker.Client,
 	resourceFactory resource.ResourceFactory,

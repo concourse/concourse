@@ -86,8 +86,6 @@ func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- st
 }
 
 func (s *volumeFetchSource) Release(finalTTL *time.Duration) {
-	s.volume.Release(finalTTL)
-
 	if s.container != nil {
 		s.container.Release(finalTTL)
 	}

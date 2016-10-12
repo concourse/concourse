@@ -10,16 +10,13 @@ import (
 )
 
 type factory struct {
-	trackerFactory         resource.TrackerFactory
 	resourceFetcherFactory resource.FetcherFactory
 }
 
 func NewFactory(
-	trackerFactory resource.TrackerFactory,
 	resourceFetcherFactory resource.FetcherFactory,
 ) worker.ImageFactory {
 	return &factory{
-		trackerFactory:         trackerFactory,
 		resourceFetcherFactory: resourceFetcherFactory,
 	}
 }
@@ -48,7 +45,7 @@ func (f *factory) NewImage(
 		customTypes:           customTypes,
 		workerClient:          workerClient,
 		imageFetchingDelegate: imageFetchingDelegate,
-		tracker:               f.trackerFactory.TrackerFor(workerClient),
+		resourceFactory:       resource.NewResourceFactory(workerClient),
 		resourceFetcher:       f.resourceFetcherFactory.FetcherFor(workerClient),
 		privileged:            privileged,
 	}

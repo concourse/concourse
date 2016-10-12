@@ -11,20 +11,20 @@ import (
 )
 
 type resourceTypeScanner struct {
-	tracker         resource.Tracker
+	resourceFactory resource.ResourceFactory
 	defaultInterval time.Duration
 	db              RadarDB
 	externalURL     string
 }
 
 func NewResourceTypeScanner(
-	tracker resource.Tracker,
+	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
 	db RadarDB,
 	externalURL string,
 ) Scanner {
 	return &resourceTypeScanner{
-		tracker:         tracker,
+		resourceFactory: resourceFactory,
 		defaultInterval: defaultInterval,
 		db:              db,
 		externalURL:     externalURL,
@@ -108,14 +108,16 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		Ephemeral: true,
 	}
 
-	res, err := scanner.tracker.Init(
+	logger.Debug("in resource-type-scanner")
+
+	res, err := scanner.resourceFactory.NewResourceTypeCheckResource(
 		logger.Session("check-image"),
 		resource.EmptyMetadata{},
 		session,
 		resource.ResourceType(resourceType.Type),
 		[]string{},
 		scanner.db.TeamID(),
-		atc.ResourceTypes{},
+		scanner.db.Config().ResourceTypes,
 		worker.NoopImageFetchingDelegate{},
 	)
 	if err != nil {

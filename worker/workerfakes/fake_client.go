@@ -28,9 +28,9 @@ type FakeClient struct {
 		result1 worker.Container
 		result2 error
 	}
-	CreateResourcePutContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) (worker.Container, error)
-	createResourcePutContainerMutex       sync.RWMutex
-	createResourcePutContainerArgsForCall []struct {
+	CreateBuildContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) (worker.Container, error)
+	createBuildContainerMutex       sync.RWMutex
+	createBuildContainerArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 <-chan os.Signal
 		arg3 worker.ImageFetchingDelegate
@@ -40,7 +40,7 @@ type FakeClient struct {
 		arg7 atc.ResourceTypes
 		arg8 map[string]string
 	}
-	createResourcePutContainerReturns struct {
+	createBuildContainerReturns struct {
 		result1 worker.Container
 		result2 error
 	}
@@ -61,6 +61,40 @@ type FakeClient struct {
 		params        atc.Params
 	}
 	createResourceGetContainerReturns struct {
+		result1 worker.Container
+		result2 error
+	}
+	CreateResourceCheckContainerStub        func(logger lager.Logger, cancel <-chan os.Signal, delegate worker.ImageFetchingDelegate, id worker.Identifier, metadata worker.Metadata, spec worker.ContainerSpec, resourceTypes atc.ResourceTypes, resourceType string, source atc.Source) (worker.Container, error)
+	createResourceCheckContainerMutex       sync.RWMutex
+	createResourceCheckContainerArgsForCall []struct {
+		logger        lager.Logger
+		cancel        <-chan os.Signal
+		delegate      worker.ImageFetchingDelegate
+		id            worker.Identifier
+		metadata      worker.Metadata
+		spec          worker.ContainerSpec
+		resourceTypes atc.ResourceTypes
+		resourceType  string
+		source        atc.Source
+	}
+	createResourceCheckContainerReturns struct {
+		result1 worker.Container
+		result2 error
+	}
+	CreateResourceTypeCheckContainerStub        func(logger lager.Logger, cancel <-chan os.Signal, delegate worker.ImageFetchingDelegate, id worker.Identifier, metadata worker.Metadata, spec worker.ContainerSpec, resourceTypes atc.ResourceTypes, resourceType string, source atc.Source) (worker.Container, error)
+	createResourceTypeCheckContainerMutex       sync.RWMutex
+	createResourceTypeCheckContainerArgsForCall []struct {
+		logger        lager.Logger
+		cancel        <-chan os.Signal
+		delegate      worker.ImageFetchingDelegate
+		id            worker.Identifier
+		metadata      worker.Metadata
+		spec          worker.ContainerSpec
+		resourceTypes atc.ResourceTypes
+		resourceType  string
+		source        atc.Source
+	}
+	createResourceTypeCheckContainerReturns struct {
 		result1 worker.Container
 		result2 error
 	}
@@ -228,9 +262,9 @@ func (fake *FakeClient) CreateTaskContainerReturns(result1 worker.Container, res
 	}{result1, result2}
 }
 
-func (fake *FakeClient) CreateResourcePutContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ContainerSpec, arg7 atc.ResourceTypes, arg8 map[string]string) (worker.Container, error) {
-	fake.createResourcePutContainerMutex.Lock()
-	fake.createResourcePutContainerArgsForCall = append(fake.createResourcePutContainerArgsForCall, struct {
+func (fake *FakeClient) CreateBuildContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ContainerSpec, arg7 atc.ResourceTypes, arg8 map[string]string) (worker.Container, error) {
+	fake.createBuildContainerMutex.Lock()
+	fake.createBuildContainerArgsForCall = append(fake.createBuildContainerArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 <-chan os.Signal
 		arg3 worker.ImageFetchingDelegate
@@ -240,30 +274,30 @@ func (fake *FakeClient) CreateResourcePutContainer(arg1 lager.Logger, arg2 <-cha
 		arg7 atc.ResourceTypes
 		arg8 map[string]string
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
-	fake.recordInvocation("CreateResourcePutContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
-	fake.createResourcePutContainerMutex.Unlock()
-	if fake.CreateResourcePutContainerStub != nil {
-		return fake.CreateResourcePutContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	fake.recordInvocation("CreateBuildContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.createBuildContainerMutex.Unlock()
+	if fake.CreateBuildContainerStub != nil {
+		return fake.CreateBuildContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	} else {
-		return fake.createResourcePutContainerReturns.result1, fake.createResourcePutContainerReturns.result2
+		return fake.createBuildContainerReturns.result1, fake.createBuildContainerReturns.result2
 	}
 }
 
-func (fake *FakeClient) CreateResourcePutContainerCallCount() int {
-	fake.createResourcePutContainerMutex.RLock()
-	defer fake.createResourcePutContainerMutex.RUnlock()
-	return len(fake.createResourcePutContainerArgsForCall)
+func (fake *FakeClient) CreateBuildContainerCallCount() int {
+	fake.createBuildContainerMutex.RLock()
+	defer fake.createBuildContainerMutex.RUnlock()
+	return len(fake.createBuildContainerArgsForCall)
 }
 
-func (fake *FakeClient) CreateResourcePutContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) {
-	fake.createResourcePutContainerMutex.RLock()
-	defer fake.createResourcePutContainerMutex.RUnlock()
-	return fake.createResourcePutContainerArgsForCall[i].arg1, fake.createResourcePutContainerArgsForCall[i].arg2, fake.createResourcePutContainerArgsForCall[i].arg3, fake.createResourcePutContainerArgsForCall[i].arg4, fake.createResourcePutContainerArgsForCall[i].arg5, fake.createResourcePutContainerArgsForCall[i].arg6, fake.createResourcePutContainerArgsForCall[i].arg7, fake.createResourcePutContainerArgsForCall[i].arg8
+func (fake *FakeClient) CreateBuildContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) {
+	fake.createBuildContainerMutex.RLock()
+	defer fake.createBuildContainerMutex.RUnlock()
+	return fake.createBuildContainerArgsForCall[i].arg1, fake.createBuildContainerArgsForCall[i].arg2, fake.createBuildContainerArgsForCall[i].arg3, fake.createBuildContainerArgsForCall[i].arg4, fake.createBuildContainerArgsForCall[i].arg5, fake.createBuildContainerArgsForCall[i].arg6, fake.createBuildContainerArgsForCall[i].arg7, fake.createBuildContainerArgsForCall[i].arg8
 }
 
-func (fake *FakeClient) CreateResourcePutContainerReturns(result1 worker.Container, result2 error) {
-	fake.CreateResourcePutContainerStub = nil
-	fake.createResourcePutContainerReturns = struct {
+func (fake *FakeClient) CreateBuildContainerReturns(result1 worker.Container, result2 error) {
+	fake.CreateBuildContainerStub = nil
+	fake.createBuildContainerReturns = struct {
 		result1 worker.Container
 		result2 error
 	}{result1, result2}
@@ -309,6 +343,90 @@ func (fake *FakeClient) CreateResourceGetContainerArgsForCall(i int) (lager.Logg
 func (fake *FakeClient) CreateResourceGetContainerReturns(result1 worker.Container, result2 error) {
 	fake.CreateResourceGetContainerStub = nil
 	fake.createResourceGetContainerReturns = struct {
+		result1 worker.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) CreateResourceCheckContainer(logger lager.Logger, cancel <-chan os.Signal, delegate worker.ImageFetchingDelegate, id worker.Identifier, metadata worker.Metadata, spec worker.ContainerSpec, resourceTypes atc.ResourceTypes, resourceType string, source atc.Source) (worker.Container, error) {
+	fake.createResourceCheckContainerMutex.Lock()
+	fake.createResourceCheckContainerArgsForCall = append(fake.createResourceCheckContainerArgsForCall, struct {
+		logger        lager.Logger
+		cancel        <-chan os.Signal
+		delegate      worker.ImageFetchingDelegate
+		id            worker.Identifier
+		metadata      worker.Metadata
+		spec          worker.ContainerSpec
+		resourceTypes atc.ResourceTypes
+		resourceType  string
+		source        atc.Source
+	}{logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceType, source})
+	fake.recordInvocation("CreateResourceCheckContainer", []interface{}{logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceType, source})
+	fake.createResourceCheckContainerMutex.Unlock()
+	if fake.CreateResourceCheckContainerStub != nil {
+		return fake.CreateResourceCheckContainerStub(logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceType, source)
+	} else {
+		return fake.createResourceCheckContainerReturns.result1, fake.createResourceCheckContainerReturns.result2
+	}
+}
+
+func (fake *FakeClient) CreateResourceCheckContainerCallCount() int {
+	fake.createResourceCheckContainerMutex.RLock()
+	defer fake.createResourceCheckContainerMutex.RUnlock()
+	return len(fake.createResourceCheckContainerArgsForCall)
+}
+
+func (fake *FakeClient) CreateResourceCheckContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, string, atc.Source) {
+	fake.createResourceCheckContainerMutex.RLock()
+	defer fake.createResourceCheckContainerMutex.RUnlock()
+	return fake.createResourceCheckContainerArgsForCall[i].logger, fake.createResourceCheckContainerArgsForCall[i].cancel, fake.createResourceCheckContainerArgsForCall[i].delegate, fake.createResourceCheckContainerArgsForCall[i].id, fake.createResourceCheckContainerArgsForCall[i].metadata, fake.createResourceCheckContainerArgsForCall[i].spec, fake.createResourceCheckContainerArgsForCall[i].resourceTypes, fake.createResourceCheckContainerArgsForCall[i].resourceType, fake.createResourceCheckContainerArgsForCall[i].source
+}
+
+func (fake *FakeClient) CreateResourceCheckContainerReturns(result1 worker.Container, result2 error) {
+	fake.CreateResourceCheckContainerStub = nil
+	fake.createResourceCheckContainerReturns = struct {
+		result1 worker.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) CreateResourceTypeCheckContainer(logger lager.Logger, cancel <-chan os.Signal, delegate worker.ImageFetchingDelegate, id worker.Identifier, metadata worker.Metadata, spec worker.ContainerSpec, resourceTypes atc.ResourceTypes, resourceType string, source atc.Source) (worker.Container, error) {
+	fake.createResourceTypeCheckContainerMutex.Lock()
+	fake.createResourceTypeCheckContainerArgsForCall = append(fake.createResourceTypeCheckContainerArgsForCall, struct {
+		logger        lager.Logger
+		cancel        <-chan os.Signal
+		delegate      worker.ImageFetchingDelegate
+		id            worker.Identifier
+		metadata      worker.Metadata
+		spec          worker.ContainerSpec
+		resourceTypes atc.ResourceTypes
+		resourceType  string
+		source        atc.Source
+	}{logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceType, source})
+	fake.recordInvocation("CreateResourceTypeCheckContainer", []interface{}{logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceType, source})
+	fake.createResourceTypeCheckContainerMutex.Unlock()
+	if fake.CreateResourceTypeCheckContainerStub != nil {
+		return fake.CreateResourceTypeCheckContainerStub(logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceType, source)
+	} else {
+		return fake.createResourceTypeCheckContainerReturns.result1, fake.createResourceTypeCheckContainerReturns.result2
+	}
+}
+
+func (fake *FakeClient) CreateResourceTypeCheckContainerCallCount() int {
+	fake.createResourceTypeCheckContainerMutex.RLock()
+	defer fake.createResourceTypeCheckContainerMutex.RUnlock()
+	return len(fake.createResourceTypeCheckContainerArgsForCall)
+}
+
+func (fake *FakeClient) CreateResourceTypeCheckContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, string, atc.Source) {
+	fake.createResourceTypeCheckContainerMutex.RLock()
+	defer fake.createResourceTypeCheckContainerMutex.RUnlock()
+	return fake.createResourceTypeCheckContainerArgsForCall[i].logger, fake.createResourceTypeCheckContainerArgsForCall[i].cancel, fake.createResourceTypeCheckContainerArgsForCall[i].delegate, fake.createResourceTypeCheckContainerArgsForCall[i].id, fake.createResourceTypeCheckContainerArgsForCall[i].metadata, fake.createResourceTypeCheckContainerArgsForCall[i].spec, fake.createResourceTypeCheckContainerArgsForCall[i].resourceTypes, fake.createResourceTypeCheckContainerArgsForCall[i].resourceType, fake.createResourceTypeCheckContainerArgsForCall[i].source
+}
+
+func (fake *FakeClient) CreateResourceTypeCheckContainerReturns(result1 worker.Container, result2 error) {
+	fake.CreateResourceTypeCheckContainerStub = nil
+	fake.createResourceTypeCheckContainerReturns = struct {
 		result1 worker.Container
 		result2 error
 	}{result1, result2}
@@ -732,10 +850,14 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.createTaskContainerMutex.RLock()
 	defer fake.createTaskContainerMutex.RUnlock()
-	fake.createResourcePutContainerMutex.RLock()
-	defer fake.createResourcePutContainerMutex.RUnlock()
+	fake.createBuildContainerMutex.RLock()
+	defer fake.createBuildContainerMutex.RUnlock()
 	fake.createResourceGetContainerMutex.RLock()
 	defer fake.createResourceGetContainerMutex.RUnlock()
+	fake.createResourceCheckContainerMutex.RLock()
+	defer fake.createResourceCheckContainerMutex.RUnlock()
+	fake.createResourceTypeCheckContainerMutex.RLock()
+	defer fake.createResourceTypeCheckContainerMutex.RUnlock()
 	fake.findContainerForIdentifierMutex.RLock()
 	defer fake.findContainerForIdentifierMutex.RUnlock()
 	fake.lookupContainerMutex.RLock()

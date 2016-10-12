@@ -108,21 +108,22 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		return nil, err
 	}
 
-	cachedVolume, cacheFound, err := f.cacheIdentifier.FindOn(f.logger, chosenWorker)
-	if err != nil {
-		f.logger.Error("failed-to-look-for-cache", err)
-		return nil, err
-	}
+	// cachedVolume, cacheFound, err := f.cacheIdentifier.FindOn(f.logger, chosenWorker)
+	// if err != nil {
+	// 	f.logger.Error("failed-to-look-for-cache", err)
+	// 	return nil, err
+	// }
 
-	if cacheFound {
-		return NewVolumeFetchSource(
-			f.logger,
-			cachedVolume,
-			chosenWorker,
-			f.resourceOptions,
-			f.containerCreator,
-		), nil
-	}
+	// if cacheFound {
+	// 	f.logger.Debug("cache-found")
+	// 	return NewVolumeFetchSource(
+	// 		f.logger,
+	// 		cachedVolume,
+	// 		chosenWorker,
+	// 		f.resourceOptions,
+	// 		f.containerCreator,
+	// 	), nil
+	// }
 
 	return NewEmptyFetchSource(
 		f.logger,

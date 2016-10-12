@@ -83,6 +83,12 @@ type FakeConn struct {
 	setMaxOpenConnsArgsForCall []struct {
 		n int
 	}
+	StatsStub        func() sql.DBStats
+	statsMutex       sync.RWMutex
+	statsArgsForCall []struct{}
+	statsReturns     struct {
+		result1 sql.DBStats
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -374,6 +380,31 @@ func (fake *FakeConn) SetMaxOpenConnsArgsForCall(i int) int {
 	return fake.setMaxOpenConnsArgsForCall[i].n
 }
 
+func (fake *FakeConn) Stats() sql.DBStats {
+	fake.statsMutex.Lock()
+	fake.statsArgsForCall = append(fake.statsArgsForCall, struct{}{})
+	fake.recordInvocation("Stats", []interface{}{})
+	fake.statsMutex.Unlock()
+	if fake.StatsStub != nil {
+		return fake.StatsStub()
+	} else {
+		return fake.statsReturns.result1
+	}
+}
+
+func (fake *FakeConn) StatsCallCount() int {
+	fake.statsMutex.RLock()
+	defer fake.statsMutex.RUnlock()
+	return len(fake.statsArgsForCall)
+}
+
+func (fake *FakeConn) StatsReturns(result1 sql.DBStats) {
+	fake.StatsStub = nil
+	fake.statsReturns = struct {
+		result1 sql.DBStats
+	}{result1}
+}
+
 func (fake *FakeConn) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -397,6 +428,8 @@ func (fake *FakeConn) Invocations() map[string][][]interface{} {
 	defer fake.setMaxIdleConnsMutex.RUnlock()
 	fake.setMaxOpenConnsMutex.RLock()
 	defer fake.setMaxOpenConnsMutex.RUnlock()
+	fake.statsMutex.RLock()
+	defer fake.statsMutex.RUnlock()
 	return fake.invocations
 }
 

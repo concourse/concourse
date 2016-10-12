@@ -25,7 +25,7 @@ type Client interface {
 		map[string]string,
 	) (Container, error)
 
-	CreateResourcePutContainer(
+	CreateBuildContainer(
 		lager.Logger,
 		<-chan os.Signal,
 		ImageFetchingDelegate,
@@ -49,6 +49,30 @@ type Client interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
+	) (Container, error)
+
+	CreateResourceCheckContainer(
+		logger lager.Logger,
+		cancel <-chan os.Signal,
+		delegate ImageFetchingDelegate,
+		id Identifier,
+		metadata Metadata,
+		spec ContainerSpec,
+		resourceTypes atc.ResourceTypes,
+		resourceType string,
+		source atc.Source,
+	) (Container, error)
+
+	CreateResourceTypeCheckContainer(
+		logger lager.Logger,
+		cancel <-chan os.Signal,
+		delegate ImageFetchingDelegate,
+		id Identifier,
+		metadata Metadata,
+		spec ContainerSpec,
+		resourceTypes atc.ResourceTypes,
+		resourceType string,
+		source atc.Source,
 	) (Container, error)
 
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)

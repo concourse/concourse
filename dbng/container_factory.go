@@ -26,6 +26,7 @@ type ContainerMetadata struct {
 func (factory *ContainerFactory) CreateResourceCheckContainer(
 	worker *Worker,
 	resourceConfig *UsedResourceConfig,
+	stepName string,
 ) (*CreatingContainer, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
@@ -40,11 +41,13 @@ func (factory *ContainerFactory) CreateResourceCheckContainer(
 			"worker_name",
 			"resource_config_id",
 			"type",
+			"step_name",
 		).
 		Values(
 			worker.Name,
 			resourceConfig.ID,
 			"check",
+			stepName,
 		).
 		Suffix("RETURNING id").
 		RunWith(tx).
@@ -112,7 +115,7 @@ func (factory *ContainerFactory) CreateResourceGetContainer(
 	}, nil
 }
 
-func (factory *ContainerFactory) CreateResourcePutContainer(
+func (factory *ContainerFactory) CreateBuildContainer(
 	worker *Worker,
 	build *Build,
 	planID atc.PlanID,

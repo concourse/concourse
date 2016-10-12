@@ -33,7 +33,7 @@ type image struct {
 	workerTags            atc.Tags
 	teamID                int
 	customTypes           atc.ResourceTypes
-	tracker               resource.Tracker
+	resourceFactory       resource.ResourceFactory
 	imageFetchingDelegate worker.ImageFetchingDelegate
 	workerClient          worker.Client
 	privileged            bool
@@ -100,25 +100,30 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		return nil, nil, nil, err
 	}
 
-	vesionedSource := fetchSource.VersionedSource()
-	volume := vesionedSource.Volume()
+	versionedSource := fetchSource.VersionedSource()
+	volume := versionedSource.Volume()
 	if volume == nil {
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
 	i.logger.Debug("created-volume-for-image", lager.Data{"handle": volume.Handle()})
 
-	reader, err := vesionedSource.StreamOut(ImageMetadataFile)
+	i.logger.Debug("streaming-out", lager.Data{"ImageMetadataFile": ImageMetadataFile})
+	reader, err := versionedSource.StreamOut(ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	i.logger.Debug("creating-tar-reader")
 	tarReader := tar.NewReader(reader)
 
+	i.logger.Debug("getting-next")
 	_, err = tarReader.Next()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("could not read file \"%s\" from tar", ImageMetadataFile)
 	}
+
+	i.logger.Debug("read-file")
 
 	releasingReader := &releasingReadCloser{
 		Reader:      tarReader,
@@ -142,22 +147,53 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 	checkSess.Metadata.WorkingDirectory = ""
 	checkSess.Metadata.EnvironmentVariables = nil
 
-	checkingResource, err := i.tracker.Init(
-		i.logger.Session("check-image"),
-		resource.EmptyMetadata{},
-		checkSess,
-		resource.ResourceType(i.imageResource.Type),
-		i.workerTags,
-		i.teamID,
-		i.customTypes,
-		i.imageFetchingDelegate,
-	)
+	i.logger.Debug("in getLatestVersion")
+	var err error
+	var checkingResource resource.Resource
+	if checkSess.ID.BuildID != 0 {
+		checkingResource, _, err = i.resourceFactory.NewBuildResource(
+			i.logger.Session("check-image"),
+			resource.EmptyMetadata{},
+			checkSess,
+			resource.ResourceType(i.imageResource.Type),
+			i.workerTags,
+			i.teamID,
+			map[string]resource.ArtifactSource{},
+			i.customTypes,
+			i.imageFetchingDelegate,
+		)
+	} else if checkSess.ID.ResourceID != 0 {
+		checkingResource, err = i.resourceFactory.NewCheckResource(
+			i.logger.Session("check-image"),
+			resource.EmptyMetadata{},
+			checkSess,
+			resource.ResourceType(i.imageResource.Type),
+			i.workerTags,
+			i.teamID,
+			i.customTypes,
+			i.imageFetchingDelegate,
+		)
+	} else {
+		checkingResource, err = i.resourceFactory.NewResourceTypeCheckResource(
+			i.logger.Session("check-image"),
+			resource.EmptyMetadata{},
+			checkSess,
+			resource.ResourceType(i.imageResource.Type),
+			i.workerTags,
+			i.teamID,
+			i.customTypes,
+			i.imageFetchingDelegate,
+		)
+	}
 	if err != nil {
 		return nil, err
 	}
 
+	i.logger.Debug("in getLatestVersion.done")
+
 	defer checkingResource.Release(nil)
 
+	i.logger.Debug("in getLatestVersion.running-check")
 	versions, err := checkingResource.Check(i.imageResource.Source, nil)
 	if err != nil {
 		return nil, err
@@ -167,6 +203,7 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 		return nil, ErrImageUnavailable
 	}
 
+	i.logger.Debug("in getLatestVersion.returning")
 	return versions[0], nil
 }
 

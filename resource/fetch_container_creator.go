@@ -76,7 +76,7 @@ func (c *fetchContainerCreator) CreateWithVolume(resourceOptions ResourceOptions
 		Tags:      c.tags,
 		TeamID:    c.teamID,
 		Env:       c.metadata.Env(),
-		Outputs: []worker.VolumeMount{
+		Mounts: []worker.VolumeMount{
 			{
 				Volume:    volume,
 				MountPath: ResourcesDir("get"),
@@ -92,7 +92,7 @@ func (c *fetchContainerCreator) CreateWithVolume(resourceOptions ResourceOptions
 		c.session.Metadata,
 		containerSpec,
 		c.resourceTypes,
-		map[string]string{"get": ResourcesDir("get")},
+		map[string]string{},
 		string(resourceOptions.ResourceType()),
 		resourceOptions.Version(),
 		resourceOptions.Source(),

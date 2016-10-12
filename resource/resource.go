@@ -20,6 +20,26 @@ type Resource interface {
 	Release(*time.Duration)
 }
 
+type ResourceType string
+
+type Session struct {
+	ID        worker.Identifier
+	Metadata  worker.Metadata
+	Ephemeral bool
+}
+
+//go:generate counterfeiter . Cache
+
+type Cache interface {
+	IsInitialized() (bool, error)
+	Initialize() error
+	Volume() worker.Volume
+}
+
+type Metadata interface {
+	Env() []string
+}
+
 type IOConfig struct {
 	Stdout io.Writer
 	Stderr io.Writer

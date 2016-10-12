@@ -162,7 +162,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	bus := db.NewNotificationsBus(listener, dbConn)
 
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
-	trackerFactory := resource.NewTrackerFactory()
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
@@ -171,32 +170,32 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
 	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn)
 	dbResourceTypeFactory := dbng.NewResourceTypeFactory(dbngConn)
+	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn)
 	workerClient := cmd.constructWorkerPool(
 		logger,
 		sqlDB,
-		trackerFactory,
 		resourceFetcherFactory,
 		pipelineDBFactory,
 		dbContainerFactory,
 		dbResourceCacheFactory,
 		dbResourceTypeFactory,
+		dbResourceConfigFactory,
 		dbVolumeFactory,
 	)
 
-	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFactory := resource.NewResourceFactory(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
 	teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 	engine := cmd.constructEngine(workerClient, resourceFactory, resourceFetcher, teamDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
-		tracker,
+		resourceFactory,
 		cmd.ResourceCheckingInterval,
 		engine,
 	)
 
 	radarScannerFactory := radar.NewScannerFactory(
-		tracker,
+		resourceFactory,
 		cmd.ResourceCheckingInterval,
 		cmd.ExternalURL.String(),
 	)
@@ -649,12 +648,12 @@ func (cmd *ATCCommand) constructLockConn() (*db.RetryableConn, error) {
 func (cmd *ATCCommand) constructWorkerPool(
 	logger lager.Logger,
 	sqlDB *db.SQLDB,
-	trackerFactory resource.TrackerFactory,
 	resourceFetcherFactory resource.FetcherFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 	dbContainerFactory *dbng.ContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceTypeFactory dbng.ResourceTypeFactory,
+	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbVolumeFactory *dbng.VolumeFactory,
 ) worker.Client {
 	return worker.NewPool(
@@ -663,10 +662,11 @@ func (cmd *ATCCommand) constructWorkerPool(
 			sqlDB,
 			keepaliveDialer,
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-			image.NewFactory(trackerFactory, resourceFetcherFactory),
+			image.NewFactory(resourceFetcherFactory),
 			dbContainerFactory,
 			dbResourceCacheFactory,
 			dbResourceTypeFactory,
+			dbResourceConfigFactory,
 			dbVolumeFactory,
 			pipelineDBFactory,
 		),

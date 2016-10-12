@@ -26,8 +26,10 @@ type ContainerSpec struct {
 	// Not Copy-on-Write. Used for a single mount in Get containers.
 	Inputs []VolumeMount
 
-	// Copy-on-Write. Used for mounting multiple resources into a Put container.
 	Outputs []VolumeMount
+
+	// volumes that need to be mounted to container
+	Mounts []VolumeMount
 
 	// Optional user to run processes as. Overwrites the one specified in the docker image.
 	User string

@@ -122,7 +122,7 @@ func selectLowestAlphabeticalVolume(logger lager.Logger, volumes []worker.Volume
 
 	for _, v := range volumes {
 		if v != lowestVolume {
-			v.Release(worker.FinalTTL(reapExtraVolumeTTL))
+			// v.Release(worker.FinalTTL(reapExtraVolumeTTL))
 		}
 	}
 

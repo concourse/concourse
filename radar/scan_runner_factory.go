@@ -31,7 +31,7 @@ type scanRunnerFactory struct {
 }
 
 func NewScanRunnerFactory(
-	tracker resource.Tracker,
+	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
 	db RadarDB,
 	clock clock.Clock,
@@ -39,13 +39,13 @@ func NewScanRunnerFactory(
 ) ScanRunnerFactory {
 	resourceScanner := NewResourceScanner(
 		clock,
-		tracker,
+		resourceFactory,
 		defaultInterval,
 		db,
 		externalURL,
 	)
 	resourceTypeScanner := NewResourceTypeScanner(
-		tracker,
+		resourceFactory,
 		defaultInterval,
 		db,
 		externalURL,

@@ -15,7 +15,7 @@ import (
 
 type resourceScanner struct {
 	clock           clock.Clock
-	tracker         resource.Tracker
+	resourceFactory resource.ResourceFactory
 	defaultInterval time.Duration
 	db              RadarDB
 	externalURL     string
@@ -23,14 +23,14 @@ type resourceScanner struct {
 
 func NewResourceScanner(
 	clock clock.Clock,
-	tracker resource.Tracker,
+	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
 	db RadarDB,
 	externalURL string,
 ) Scanner {
 	return &resourceScanner{
 		clock:           clock,
-		tracker:         tracker,
+		resourceFactory: resourceFactory,
 		defaultInterval: defaultInterval,
 		db:              db,
 		externalURL:     externalURL,
@@ -217,7 +217,9 @@ func (scanner *resourceScanner) scan(
 		return errPipelineRemoved
 	}
 
-	res, err := scanner.tracker.Init(
+	logger.Debug("in resource-scanner")
+
+	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
 		resource.TrackerMetadata{
 			ResourceName: savedResource.Name,

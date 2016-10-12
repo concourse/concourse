@@ -144,13 +144,13 @@ func (pool *pool) CreateTaskContainer(logger lager.Logger, signals <-chan os.Sig
 	return container, nil
 }
 
-func (pool *pool) CreateResourcePutContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes, outputPaths map[string]string) (Container, error) {
+func (pool *pool) CreateBuildContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes, outputPaths map[string]string) (Container, error) {
 	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.CreateResourcePutContainer(logger, signals, delegate, id, metadata, spec, resourceTypes, outputPaths)
+	container, err := worker.CreateBuildContainer(logger, signals, delegate, id, metadata, spec, resourceTypes, outputPaths)
 	if err != nil {
 		return nil, err
 	}
@@ -190,6 +190,74 @@ func (pool *pool) CreateResourceGetContainer(
 		version,
 		source,
 		params,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
+func (pool *pool) CreateResourceCheckContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	resourceType string,
+	source atc.Source,
+) (Container, error) {
+	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	container, err := worker.CreateResourceCheckContainer(
+		logger,
+		cancel,
+		delegate,
+		id,
+		metadata,
+		spec,
+		resourceTypes,
+		resourceType,
+		source,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
+func (pool *pool) CreateResourceTypeCheckContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	resourceType string,
+	source atc.Source,
+) (Container, error) {
+	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	container, err := worker.CreateResourceTypeCheckContainer(
+		logger,
+		cancel,
+		delegate,
+		id,
+		metadata,
+		spec,
+		resourceTypes,
+		resourceType,
+		source,
 	)
 	if err != nil {
 		return nil, err

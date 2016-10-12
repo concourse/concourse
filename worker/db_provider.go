@@ -36,16 +36,17 @@ type WorkerDB interface {
 }
 
 type dbProvider struct {
-	logger                 lager.Logger
-	db                     WorkerDB
-	dialer                 gconn.DialerFunc
-	retryBackOffFactory    retryhttp.BackOffFactory
-	imageFactory           ImageFactory
-	dbContainerFactory     *dbng.ContainerFactory
-	dbResourceCacheFactory dbng.ResourceCacheFactory
-	dbResourceTypeFactory  dbng.ResourceTypeFactory
-	dbVolumeFactory        *dbng.VolumeFactory
-	pipelineDBFactory      db.PipelineDBFactory
+	logger                  lager.Logger
+	db                      WorkerDB
+	dialer                  gconn.DialerFunc
+	retryBackOffFactory     retryhttp.BackOffFactory
+	imageFactory            ImageFactory
+	dbContainerFactory      *dbng.ContainerFactory
+	dbResourceCacheFactory  dbng.ResourceCacheFactory
+	dbResourceTypeFactory   dbng.ResourceTypeFactory
+	dbResourceConfigFactory dbng.ResourceConfigFactory
+	dbVolumeFactory         *dbng.VolumeFactory
+	pipelineDBFactory       db.PipelineDBFactory
 }
 
 func NewDBWorkerProvider(
@@ -57,20 +58,22 @@ func NewDBWorkerProvider(
 	dbContainerFactory *dbng.ContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceTypeFactory dbng.ResourceTypeFactory,
+	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbVolumeFactory *dbng.VolumeFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 ) WorkerProvider {
 	return &dbProvider{
-		logger:                 logger,
-		db:                     db,
-		dialer:                 dialer,
-		retryBackOffFactory:    retryBackOffFactory,
-		imageFactory:           imageFactory,
-		dbContainerFactory:     dbContainerFactory,
-		dbResourceCacheFactory: dbResourceCacheFactory,
-		dbResourceTypeFactory:  dbResourceTypeFactory,
-		dbVolumeFactory:        dbVolumeFactory,
-		pipelineDBFactory:      pipelineDBFactory,
+		logger:                  logger,
+		db:                      db,
+		dialer:                  dialer,
+		retryBackOffFactory:     retryBackOffFactory,
+		imageFactory:            imageFactory,
+		dbContainerFactory:      dbContainerFactory,
+		dbResourceCacheFactory:  dbResourceCacheFactory,
+		dbResourceTypeFactory:   dbResourceTypeFactory,
+		dbResourceConfigFactory: dbResourceConfigFactory,
+		dbVolumeFactory:         dbVolumeFactory,
+		pipelineDBFactory:       pipelineDBFactory,
 	}
 }
 
@@ -156,6 +159,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		provider.dbContainerFactory,
 		provider.dbResourceCacheFactory,
 		provider.dbResourceTypeFactory,
+		provider.dbResourceConfigFactory,
 		provider.db,
 		provider,
 		tikTok,

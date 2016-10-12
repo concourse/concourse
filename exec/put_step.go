@@ -101,7 +101,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	runSession := step.session
 	runSession.ID.Stage = db.ContainerStageRun
 
-	putResource, missingNames, err := step.resourceFactory.NewPutResource(
+	putResource, missingNames, err := step.resourceFactory.NewBuildResource(
 		step.logger,
 		step.stepMetadata,
 		runSession,

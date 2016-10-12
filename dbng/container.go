@@ -3,6 +3,8 @@ package dbng
 import (
 	"database/sql"
 
+	"code.cloudfoundry.org/lager"
+
 	sq "github.com/Masterminds/squirrel"
 )
 
@@ -19,7 +21,8 @@ type CreatingContainer struct {
 	conn Conn
 }
 
-func (container *CreatingContainer) Created(handle string) (*CreatedContainer, error) {
+func (container *CreatingContainer) Created(logger lager.Logger, handle string) (*CreatedContainer, error) {
+	logger.Debug("creating-transaction", lager.Data{"stats": container.conn.Stats()})
 	tx, err := container.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -27,6 +30,7 @@ func (container *CreatingContainer) Created(handle string) (*CreatedContainer, e
 
 	defer tx.Rollback()
 
+	logger.Debug("updating-containers")
 	rows, err := psql.Update("containers").
 		Set("state", ContainerStateCreated).
 		Set("handle", handle).
@@ -40,21 +44,26 @@ func (container *CreatingContainer) Created(handle string) (*CreatedContainer, e
 		return nil, err
 	}
 
+	logger.Debug("commiting-transaction")
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Debug("checking-affected-rows")
 	affected, err := rows.RowsAffected()
 	if err != nil {
 		return nil, err
 	}
 
 	if affected == 0 {
+		logger.Debug("no-rows-affected")
 		panic("TESTME")
 		return nil, nil
 	}
 
+	logger.Debug("returning-created-container")
 	return &CreatedContainer{
 		ID:   container.ID,
 		conn: container.conn,

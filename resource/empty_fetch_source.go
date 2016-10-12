@@ -55,6 +55,7 @@ func (s *emptyFetchSource) Initialize(signals <-chan os.Signal, ready chan<- str
 		return err
 	}
 
+	s.logger.Debug("creating container with volume", lager.Data{"volume": s.cache.Volume()})
 	s.container, err = s.containerCreator.CreateWithVolume(s.resourceOptions, s.cache.Volume(), s.worker)
 	if err != nil {
 		s.logger.Error("failed-to-create-container", err)
@@ -90,10 +91,6 @@ func (s *emptyFetchSource) Initialize(signals <-chan os.Signal, ready chan<- str
 }
 
 func (s *emptyFetchSource) Release(finalTTL *time.Duration) {
-	if s.cache.Volume() != nil {
-		s.cache.Volume().Release(finalTTL)
-	}
-
 	if s.container != nil {
 		s.container.Release(finalTTL)
 	}

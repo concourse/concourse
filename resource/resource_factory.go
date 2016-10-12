@@ -9,7 +9,7 @@ import (
 //go:generate counterfeiter . ResourceFactory
 
 type ResourceFactory interface {
-	NewPutResource(
+	NewBuildResource(
 		logger lager.Logger,
 		metadata Metadata,
 		session Session,
@@ -20,6 +20,28 @@ type ResourceFactory interface {
 		resourceTypes atc.ResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (Resource, []string, error)
+
+	NewCheckResource(
+		logger lager.Logger,
+		metadata Metadata,
+		session Session,
+		typ ResourceType,
+		tags atc.Tags,
+		teamID int,
+		resourceTypes atc.ResourceTypes,
+		imageFetchingDelegate worker.ImageFetchingDelegate,
+	) (Resource, error)
+
+	NewResourceTypeCheckResource(
+		logger lager.Logger,
+		metadata Metadata,
+		session Session,
+		typ ResourceType,
+		tags atc.Tags,
+		teamID int,
+		resourceTypes atc.ResourceTypes,
+		imageFetchingDelegate worker.ImageFetchingDelegate,
+	) (Resource, error)
 }
 
 type resourceFactory struct {
@@ -34,7 +56,7 @@ func NewResourceFactory(
 	}
 }
 
-func (f *resourceFactory) NewPutResource(
+func (f *resourceFactory) NewBuildResource(
 	logger lager.Logger,
 	metadata Metadata,
 	session Session,
@@ -74,11 +96,19 @@ func (f *resourceFactory) NewPutResource(
 	}
 
 	chosenWorker, mounts, missingSources, err := f.findCompatibleWorker(resourceSpec, resourceTypes, sources)
+	if err != nil {
+		if err == worker.ErrNotImplemented { // TODO: fix this
+			chosenWorker = f.workerClient
+		} else {
+			logger.Error("failed-to-choose-worker", err)
+			return nil, nil, err
+		}
+	}
 
-	logger.Debug("creating-container", lager.Data{"container-id": session.ID})
+	logger.Debug("creating-container", lager.Data{"container-id": session.ID, "chosenWorker": chosenWorker})
 
 	resourceSpec.Inputs = mounts
-	container, err = chosenWorker.CreateResourcePutContainer(
+	container, err = chosenWorker.CreateBuildContainer(
 		logger,
 		nil,
 		imageFetchingDelegate,
@@ -98,11 +128,131 @@ func (f *resourceFactory) NewPutResource(
 	return NewResource(container), missingSources, nil
 }
 
+func (f *resourceFactory) NewCheckResource(
+	logger lager.Logger,
+	metadata Metadata,
+	session Session,
+	typ ResourceType,
+	tags atc.Tags,
+	teamID int,
+	resourceTypes atc.ResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
+) (Resource, error) {
+	logger = logger.Session("new-check-resource")
+
+	logger.Debug("start")
+	defer logger.Debug("done")
+
+	container, found, err := f.workerClient.FindContainerForIdentifier(logger, session.ID)
+	if err != nil {
+		logger.Error("failed-to-look-for-existing-container", err, lager.Data{"id": session.ID})
+		return nil, err
+	}
+
+	if found {
+		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
+		return NewResource(container), nil
+	}
+
+	resourceSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: string(typ),
+			Privileged:   true,
+		},
+		Ephemeral: session.Ephemeral,
+		Tags:      tags,
+		TeamID:    teamID,
+		Env:       metadata.Env(),
+	}
+
+	logger.Debug("creating-container", lager.Data{"container-id": session.ID})
+
+	container, err = f.workerClient.CreateResourceCheckContainer(
+		logger,
+		nil,
+		imageFetchingDelegate,
+		session.ID,
+		session.Metadata,
+		resourceSpec,
+		resourceTypes,
+		string(typ),
+		session.ID.CheckSource,
+	)
+	if err != nil {
+		logger.Error("failed-to-create-container", err)
+		return nil, err
+	}
+
+	logger.Info("created", lager.Data{"container": container.Handle()})
+
+	return NewResource(container), nil
+}
+
+func (f *resourceFactory) NewResourceTypeCheckResource(
+	logger lager.Logger,
+	metadata Metadata,
+	session Session,
+	typ ResourceType,
+	tags atc.Tags,
+	teamID int,
+	resourceTypes atc.ResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
+) (Resource, error) {
+	logger = logger.Session("new-resource-type-check-resource")
+
+	logger.Debug("start")
+	defer logger.Debug("done")
+
+	container, found, err := f.workerClient.FindContainerForIdentifier(logger, session.ID)
+	if err != nil {
+		logger.Error("failed-to-look-for-existing-container", err, lager.Data{"id": session.ID})
+		return nil, err
+	}
+
+	if found {
+		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
+		return NewResource(container), nil
+	}
+
+	resourceSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: string(typ),
+			Privileged:   true,
+		},
+		Ephemeral: session.Ephemeral,
+		Tags:      tags,
+		TeamID:    teamID,
+		Env:       metadata.Env(),
+	}
+
+	logger.Debug("creating-container", lager.Data{"container-id": session.ID})
+
+	container, err = f.workerClient.CreateResourceTypeCheckContainer(
+		logger,
+		nil,
+		imageFetchingDelegate,
+		session.ID,
+		session.Metadata,
+		resourceSpec,
+		resourceTypes,
+		string(typ),
+		session.ID.CheckSource,
+	)
+	if err != nil {
+		logger.Error("failed-to-create-container", err)
+		return nil, err
+	}
+
+	logger.Info("created", lager.Data{"container": container.Handle()})
+
+	return NewResource(container), nil
+}
+
 func (f *resourceFactory) findCompatibleWorker(
 	resourceSpec worker.ContainerSpec,
 	resourceTypes atc.ResourceTypes,
 	sources map[string]ArtifactSource,
-) (worker.Worker, []worker.VolumeMount, []string, error) {
+) (worker.Client, []worker.VolumeMount, []string, error) {
 	compatibleWorkers, err := f.workerClient.AllSatisfying(resourceSpec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, nil, nil, err
@@ -134,17 +284,9 @@ func (f *resourceFactory) findCompatibleWorker(
 		}
 
 		if len(candidateMounts) >= len(mounts) {
-			for _, mount := range mounts {
-				mount.Volume.Release(nil)
-			}
-
 			mounts = candidateMounts
 			missingSources = missing
 			chosenWorker = w
-		} else {
-			for _, mount := range candidateMounts {
-				mount.Volume.Release(nil)
-			}
 		}
 	}
 
