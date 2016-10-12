@@ -14,7 +14,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/tsa"
-	"github.com/concourse/tsa/tsacmd/flaghelpers"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/sigmon"
@@ -28,9 +27,9 @@ type TSACommand struct {
 
 	PeerIP string `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
 
-	HostKeyPath            FileFlag                    `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
-	AuthorizedKeysPath     FileFlag                    `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
-	TeamAuthorizedKeysPath []flaghelpers.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	HostKeyPath            FileFlag        `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
+	AuthorizedKeysPath     FileFlag        `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	TeamAuthorizedKeysPath []InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 
 	ATCURL                URLFlag  `long:"atc-url" required:"true" description:"ATC API endpoint to which workers will be registered."`
 	SessionSigningKeyPath FileFlag `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
@@ -41,6 +40,11 @@ type TSACommand struct {
 		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
 		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
 	} `group:"Metrics & Diagnostics"`
+}
+
+type TeamAuthKeys struct {
+	Team     string
+	AuthKeys []ssh.PublicKey
 }
 
 func (cmd *TSACommand) Execute(args []string) error {
@@ -68,12 +72,19 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, fmt.Errorf("failed to load authorized keys: %s", err)
 	}
 
+	teamAuthorizedKeys, err := cmd.loadTeamAuthorizedKeys()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load team authorized keys: %s", err)
+	}
+
 	sessionSigningKey, err := cmd.loadSessionSigningKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load session signing key: %s", err)
 	}
 
-	config, err := cmd.configureSSHServer(authorizedKeys)
+	sessionAuthTeam := make(sessionTeam)
+
+	config, err := cmd.configureSSHServer(sessionAuthTeam, authorizedKeys, teamAuthorizedKeys)
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure SSH server: %s", err)
 	}
@@ -91,6 +102,7 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		forwardHost:       cmd.PeerIP,
 		config:            config,
 		httpClient:        http.DefaultClient,
+		sessionTeam:       sessionAuthTeam,
 	}
 
 	return serverRunner{logger, server, listenAddr}, nil
@@ -118,6 +130,35 @@ func (cmd *TSACommand) loadAuthorizedKeys() ([]ssh.PublicKey, error) {
 	return authorizedKeys, nil
 }
 
+func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
+	var teamKeys []TeamAuthKeys
+
+	for i := range cmd.TeamAuthorizedKeysPath {
+		var teamAuthorizedKeys []ssh.PublicKey
+
+		teamAuthKeysBytes, err := ioutil.ReadFile(string(cmd.TeamAuthorizedKeysPath[i].Path))
+
+		if err != nil {
+			return nil, err
+		}
+
+		for {
+			key, _, _, rest, err := ssh.ParseAuthorizedKey(teamAuthKeysBytes)
+			if err != nil {
+				break
+			}
+
+			teamAuthorizedKeys = append(teamAuthorizedKeys, key)
+
+			teamAuthKeysBytes = rest
+		}
+
+		teamKeys = append(teamKeys, TeamAuthKeys{Team: cmd.TeamAuthorizedKeysPath[i].Name, AuthKeys: teamAuthorizedKeys})
+	}
+
+	return teamKeys, nil
+}
+
 func (cmd *TSACommand) loadSessionSigningKey() (*rsa.PrivateKey, error) {
 	rsaKeyBlob, err := ioutil.ReadFile(string(cmd.SessionSigningKeyPath))
 	if err != nil {
@@ -132,7 +173,7 @@ func (cmd *TSACommand) loadSessionSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *TSACommand) configureSSHServer(authorizedKeys []ssh.PublicKey) (*ssh.ServerConfig, error) {
+func (cmd *TSACommand) configureSSHServer(sessionAuthTeam sessionTeam, authorizedKeys []ssh.PublicKey, teamAuthorizedKeys []TeamAuthKeys) (*ssh.ServerConfig, error) {
 	certChecker := &ssh.CertChecker{
 		IsAuthority: func(key ssh.PublicKey) bool {
 			return false
@@ -142,6 +183,15 @@ func (cmd *TSACommand) configureSSHServer(authorizedKeys []ssh.PublicKey) (*ssh.
 			for _, k := range authorizedKeys {
 				if bytes.Equal(k.Marshal(), key.Marshal()) {
 					return nil, nil
+				}
+			}
+
+			for _, teamKeys := range teamAuthorizedKeys {
+				for _, k := range teamKeys.AuthKeys {
+					if bytes.Equal(k.Marshal(), key.Marshal()) {
+						sessionAuthTeam[string(conn.SessionID())] = teamKeys.Team
+						return nil, nil
+					}
 				}
 			}
 

@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/tsa"
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 	"golang.org/x/crypto/ssh"
@@ -31,7 +31,10 @@ type registrarSSHServer struct {
 	forwardHost       string
 	config            *ssh.ServerConfig
 	httpClient        *http.Client
+	sessionTeam       sessionTeam
 }
+
+type sessionTeam map[string]string
 
 type forwardedTCPIP struct {
 	bindAddr  string
@@ -73,6 +76,8 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 	var processes []ifrit.Process
 	var process ifrit.Process
 
+	connTeam := server.sessionTeam[string(conn.SessionID())]
+
 	// ensure processes get cleaned up
 	defer func() {
 		cleanupLog := logger.Session("cleanup")
@@ -110,6 +115,17 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 		}
 
 		defer channel.Close()
+
+		var worker atc.Worker
+		err = json.NewDecoder(channel).Decode(&worker)
+		if err != nil {
+			return
+		}
+
+		if worker.Team != connTeam {
+			logger.Info("worker not allowed for team: " + worker.Team)
+			return
+		}
 
 		for req := range requests {
 			logger.Info("channel-request", lager.Data{
