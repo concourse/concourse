@@ -76,6 +76,10 @@ flag. Once you've learned what the commands do, you may want to consult
   example} for short) to run a command against the saved target \code{example}.
   For eample, \code{fly -t example builds} will list the last few builds on the
   \code{example} Concourse instance.
+  
+  The \code{-t} flag is intentionally stateless and must be explicitly added
+  to each command. This reduces the risk of accidentally running a command against the
+  wrong environment when you have multiple targets defined. 
 }
 
 \section{\code{targets}\aux{: List the current targets}}{fly-targets}{
