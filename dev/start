@@ -13,4 +13,4 @@ go install github.com/mattn/goreman
 sudo true
 
 # start everything up
-goreman start
+goreman start "$@"
