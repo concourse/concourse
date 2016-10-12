@@ -21,4 +21,4 @@ if not_installed npm; then
 fi
 
 cd $atc_dir
-ginkgo -r -p -race
+ginkgo -r -p -race "$@"
