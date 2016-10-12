@@ -3,29 +3,28 @@ package helpers
 import (
 	"net/http"
 	"os"
-
-	"code.cloudfoundry.org/urljoiner"
 )
 
-const defaultAtcURL = "http://10.244.15.2:8080"
+const defaultATCURL = "http://127.0.0.1:8080"
 
-var storedAtcURL *string
+var storedATCURL string
 
 func AtcURL() string {
-	if storedAtcURL != nil {
-		return *storedAtcURL
+	if storedATCURL != "" {
+		return storedATCURL
 	}
 
 	atcURL := os.Getenv("ATC_URL")
 	if atcURL == "" {
-		response, err := http.Get(urljoiner.Join(defaultAtcURL, "api/v1/auth/methods"))
+		response, err := http.Get(defaultATCURL + "/api/v1/info")
 		if err != nil || response.StatusCode != http.StatusOK {
 			panic("must set $ATC_URL")
 		}
 
-		atcURL = defaultAtcURL
+		atcURL = defaultATCURL
 	}
 
-	storedAtcURL = &atcURL
+	storedATCURL = atcURL
+
 	return atcURL
 }
