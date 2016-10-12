@@ -29,6 +29,7 @@ type alias Ports =
 type alias Model =
   { ports : Ports
   , pipelineLocator : Concourse.PipelineIdentifier
+  , pipeline : Maybe Concourse.Pipeline
   , fetchedJobs : Maybe Json.Encode.Value
   , fetchedResources : Maybe Json.Encode.Value
   , renderedJobs : Maybe Json.Encode.Value
@@ -72,6 +73,7 @@ init ports flags =
       , concourseVersion = ""
       , turbulenceImgSrc = flags.turbulenceImgSrc
       , pipelineLocator = pipelineLocator
+      , pipeline = Nothing
       , fetchedJobs = Nothing
       , fetchedResources = Nothing
       , renderedJobs = Nothing
@@ -125,27 +127,12 @@ update msg model =
       (model, fetchVersion)
 
     PipelineFetched (Ok pipeline) ->
-      let
-        firstGroup =
-          List.head pipeline.groups
-        groups =
-          if List.isEmpty model.selectedGroups then
-            case firstGroup of
-              Nothing ->
-                []
-              Just group ->
-                [group.name]
-          else
-            model.selectedGroups
-      in
-        ( { model
-          | selectedGroups = groups
-          }
-        , Cmd.batch
+      ( { model | pipeline = Just pipeline }
+      , Cmd.batch
           [ fetchJobs model.pipelineLocator
           , fetchResources model.pipelineLocator
           ]
-        )
+      )
 
     PipelineFetched (Err (Http.BadResponse 401 _)) ->
       (model, loginRedirect model)
@@ -282,19 +269,25 @@ filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
 filterJobs model value =
   Json.Encode.list <|
     List.filter
-      (jobAppearsInGroups model.selectedGroups model.pipelineLocator)
+      (jobAppearsInGroups (activeGroups model) model.pipelineLocator)
       (expandJsonList value)
 
-renderIfNeeded : Model ->  (Model, Cmd Msg)
+activeGroups : Model -> List String
+activeGroups model =
+  case (model.selectedGroups, model.pipeline `Maybe.andThen` (List.head << .groups)) of
+    ([], Just firstGroup) ->
+      [firstGroup.name]
+
+    (groups, _) ->
+      groups
+
+renderIfNeeded : Model -> (Model, Cmd Msg)
 renderIfNeeded model =
-
-
-
   case (model.fetchedResources, model.fetchedJobs) of
     (Just fetchedResources, Just fetchedJobs) ->
       let
         filteredFetchedJobs =
-          if List.isEmpty model.selectedGroups then
+          if List.isEmpty (activeGroups model) then
             fetchedJobs
           else
             filterJobs model fetchedJobs
