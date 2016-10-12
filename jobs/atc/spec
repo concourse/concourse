@@ -205,6 +205,10 @@ properties:
       param2: value2
     default: {}
 
+  generic_oauth.scope:
+    description: OAuth scope required for users who will have access.
+    default: ""
+
   generic_oauth.token_url:
     description: Generic OAuth provider token endpoint URL.
     default: ""

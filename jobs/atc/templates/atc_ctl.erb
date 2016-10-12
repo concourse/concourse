@@ -137,6 +137,9 @@ case $1 in
       <% p("generic_oauth.auth_url_params").each do |k, v| %> \
       --generic-oauth-auth-url-param <%= esc(k) %>:<%= esc(v) %> \
       <% end %> \
+      <% if_p("generic_oauth.scope") do |s| %> \
+      --generic-oauth-scope <%= esc(s) %> \
+      <% end %> \
       --generic-oauth-token-url <%= esc(p("generic_oauth.token_url")) %> \
       --generic-oauth-display-name <%= esc(p("generic_oauth.display_name")) %> \
       --session-signing-key $SIGNING_KEY \
