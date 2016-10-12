@@ -78,7 +78,7 @@ flag. Once you've learned what the commands do, you may want to consult
   \code{example} Concourse instance.
   
   The \code{fly} target option is intentionally stateless and must be explicitly added
-  to each command. This reduces the risk of acidentally running a command against the
+  to each command. This reduces the risk of accidentally running a command against the
   wrong environment when you have multiple targets defined. 
 }
 
