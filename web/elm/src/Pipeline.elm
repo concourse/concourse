@@ -91,7 +91,7 @@ changeToPipelineAndGroups flags model =
       }
   in
     if model.pipelineLocator == pid then
-      ({ model | selectedGroups = queryGroupsForRoute flags.route }, Cmd.none)
+      renderIfNeeded { model | selectedGroups = queryGroupsForRoute flags.route }
     else
       init model.ports flags
 
