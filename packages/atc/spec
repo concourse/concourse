@@ -6,7 +6,7 @@ dependencies:
   - concourse_version
 
 files:
-  - github.com/concourse/atc/web/templates/**/*
+  - github.com/concourse/atc/web/index.html
   - github.com/concourse/atc/web/public/**/*
   - code.cloudfoundry.org/clock/*.go # gosub
   - code.cloudfoundry.org/garden/*.go # gosub
@@ -73,17 +73,7 @@ files:
   - github.com/concourse/atc/scheduler/inputmapper/*.go # gosub
   - github.com/concourse/atc/scheduler/inputmapper/inputconfig/*.go # gosub
   - github.com/concourse/atc/web/*.go # gosub
-  - github.com/concourse/atc/web/authredirect/*.go # gosub
-  - github.com/concourse/atc/web/getbuild/*.go # gosub
-  - github.com/concourse/atc/web/getbuilds/*.go # gosub
-  - github.com/concourse/atc/web/getjob/*.go # gosub
-  - github.com/concourse/atc/web/getjoblessbuild/*.go # gosub
-  - github.com/concourse/atc/web/getresource/*.go # gosub
-  - github.com/concourse/atc/web/index/*.go # gosub
-  - github.com/concourse/atc/web/login/*.go # gosub
-  - github.com/concourse/atc/web/pipeline/*.go # gosub
-  - github.com/concourse/atc/web/robotstxt/*.go # gosub
-  - github.com/concourse/atc/web/webhandler/*.go # gosub
+  - github.com/concourse/atc/web/publichandler/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
   - github.com/concourse/atc/worker/image/*.go # gosub
   - github.com/concourse/atc/worker/transport/*.go # gosub
@@ -93,9 +83,6 @@ files:
   - github.com/concourse/baggageclaim/client/*.go # gosub
   - github.com/concourse/baggageclaim/uidjunk/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub
-  - github.com/concourse/go-concourse/concourse/*.go # gosub
-  - github.com/concourse/go-concourse/concourse/eventstream/*.go # gosub
-  - github.com/concourse/go-concourse/concourse/internal/*.go # gosub
   - github.com/concourse/retryhttp/*.go # gosub
   - github.com/contraband/holler/*.go # gosub
   - github.com/dgrijalva/jwt-go/*.go # gosub
@@ -115,7 +102,6 @@ files:
   - github.com/lib/pq/oid/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
-  - github.com/peterhellberg/link/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/ifrit/grouper/*.go # gosub
   - github.com/tedsuo/ifrit/http_server/*.go # gosub
