@@ -1,4 +1,4 @@
-module Resource exposing (Flags, init, update, view, autoupdateTimer)
+module Resource exposing (Flags, Msg(..), Model, init, changeToResource, update, view, subscriptions)
 
 import Concourse
 import Concourse.BuildStatus
@@ -13,16 +13,21 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onClick)
 import Http
 import Navigation
+import StrictEvents
 import Task exposing (Task)
 import Time exposing (Time)
-import Redirect
+
+type alias Ports =
+  { title : String -> Cmd Msg
+  }
 
 type alias Model =
-  { resourceIdentifier : Concourse.ResourceIdentifier
+  { ports : Ports
+  , resourceIdentifier : Concourse.ResourceIdentifier
   , resource : (Maybe Concourse.Resource)
   , pausedChanging : PauseChangingOrErrored
-  , currentPage : Maybe Page
   , versionedResources : Paginated Concourse.VersionedResource
+  , currentPage : Maybe Page
   , versionedUIStates : Dict.Dict Int VersionUIState
   }
 
@@ -51,43 +56,63 @@ type Msg
   | ExpandVersionedResource Int
   | InputToFetched Int (Result Http.Error (List Concourse.Build))
   | OutputOfFetched Int (Result Http.Error (List Concourse.Build))
+  | NavTo String
 
 type alias Flags =
   { teamName : String
   , pipelineName : String
   , resourceName : String
-  , pageSince : Int
-  , pageUntil : Int
+  , paging : Maybe Concourse.Pagination.Page
   }
 
-
-init : Flags -> (Model, Cmd Msg)
-init flags =
+init : Ports -> Flags -> (Model, Cmd Msg)
+init ports flags =
   let
-    model =
-      { resourceIdentifier =
-          { teamName = flags.teamName
-          , pipelineName = flags.pipelineName
-          , resourceName = flags.resourceName
-          }
-      , resource = Nothing
-      , pausedChanging = Stable
-      , currentPage = Nothing
-      , versionedResources =
-          { content = []
-          , pagination =
-              { previousPage = Nothing
-              , nextPage = Nothing
-              }
-          }
-      , versionedUIStates = Dict.empty
-      }
+    (model, cmd) =
+      changeToResource flags
+        { resourceIdentifier =
+            { teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            , resourceName = flags.resourceName
+            }
+        , resource = Nothing
+        , pausedChanging = Stable
+        , currentPage = Nothing
+        , versionedResources =
+            { content = []
+            , pagination =
+                { previousPage = Nothing
+                , nextPage = Nothing
+                }
+            }
+        , versionedUIStates = Dict.empty
+        , ports = ports
+        }
   in
     ( model
     , Cmd.batch
         [ fetchResource model.resourceIdentifier
-        , fetchVersionedResources model.resourceIdentifier model.currentPage
+        , cmd
         ]
+    )
+
+changeToResource : Flags -> Model -> (Model, Cmd Msg)
+changeToResource flags model =
+  let
+    model =
+      { model
+      | currentPage = flags.paging
+      , versionedResources =
+        { content = []
+        , pagination =
+            { previousPage = Nothing
+            , nextPage = Nothing
+            }
+        }
+      }
+  in
+    ( model
+    , fetchVersionedResources model.resourceIdentifier flags.paging
     )
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -106,7 +131,7 @@ update action model =
       )
     ResourceFetched (Ok resource) ->
       ( { model | resource = Just resource }
-      , Cmd.none
+      , model.ports.title <| resource.name ++ " - "
       )
     ResourceFetched (Err err) ->
       Debug.log ("failed to fetch resource: " ++ toString err) <|
@@ -126,7 +151,7 @@ update action model =
     PausedToggled (Ok ()) ->
       ( { model | pausedChanging = Stable} , Cmd.none)
     PausedToggled (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
     PausedToggled (Err err) ->
       Debug.log ("failed to pause/unpause resource checking: " ++ toString err) <|
       case model.resource of
@@ -225,7 +250,7 @@ update action model =
         , Cmd.none
         )
     VersionedResourceToggled _ (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
     VersionedResourceToggled versionID (Err err) ->
       let
         oldState =
@@ -271,7 +296,7 @@ update action model =
           Cmd.none
         )
     InputToFetched _ (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
     InputToFetched _ (Err err) ->
       (model, Cmd.none)
     InputToFetched versionID (Ok builds) ->
@@ -289,7 +314,7 @@ update action model =
         , Cmd.none
         )
     OutputOfFetched _ (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
     OutputOfFetched _ (Err err) ->
       (model, Cmd.none)
     OutputOfFetched versionID (Ok builds) ->
@@ -306,6 +331,9 @@ update action model =
           }
         , Cmd.none
         )
+
+    NavTo url ->
+      (model, Navigation.newUrl url)
 
 permalink : List Concourse.VersionedResource -> Page
 permalink versionedResources =
@@ -575,11 +603,11 @@ listToMap builds =
   in
     List.foldr insertBuild Dict.empty builds
 
-viewBuilds : Dict.Dict String (List Concourse.Build) -> List (Html a)
+viewBuilds : Dict.Dict String (List Concourse.Build) -> List (Html Msg)
 viewBuilds buildDict =
   List.concatMap (viewBuildsByJob buildDict) <| Dict.keys buildDict
 
-viewBuildsByJob : Dict.Dict String (List Concourse.Build) -> String -> List (Html a)
+viewBuildsByJob : Dict.Dict String (List Concourse.Build) -> String -> List (Html Msg)
 viewBuildsByJob buildDict jobName =
   let
     oneBuildToLi =
@@ -593,7 +621,10 @@ viewBuildsByJob buildDict jobName =
                 "/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds/" ++ build.name
         in
           Html.li [class <| Concourse.BuildStatus.show build.status]
-            [ Html.a [href link] [Html.text <| "#" ++ build.name]
+            [ Html.a
+              [ StrictEvents.onLeftClick <| NavTo link
+              , href link
+              ] [Html.text <| "#" ++ build.name]
             ]
   in
     [ Html.h3 [class "man pas ansi-bright-black-bg"] [Html.text jobName]
@@ -644,10 +675,6 @@ fetchInputAndOutputs model versionedResource =
     , fetchOutputOf identifier
     ]
 
-autoupdateTimer : Model -> Sub Msg
-autoupdateTimer model =
-  Time.every (5 * Time.second) AutoupdateTimerTicked
-
 fetchResource : Concourse.ResourceIdentifier -> Cmd Msg
 fetchResource resourceIdentifier =
   Cmd.map ResourceFetched << Task.perform Err Ok <|
@@ -688,7 +715,10 @@ fetchOutputOf versionedResourceIdentifier =
   Cmd.map (OutputOfFetched versionedResourceIdentifier.versionID) << Task.perform Err Ok <|
     Concourse.Resource.fetchOutputOf versionedResourceIdentifier
 
-redirectToLogin : Model -> Cmd Msg
-redirectToLogin model =
-  Cmd.map (always Noop) << Task.perform Err Ok <|
-    Redirect.to "/login"
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Time.every (5 * Time.second) AutoupdateTimerTicked
+
+loginRedirect : Model -> Cmd Msg
+loginRedirect model =
+  Navigation.newUrl ("/teams/" ++ model.resourceIdentifier.teamName ++ "/login")

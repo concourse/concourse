@@ -228,23 +228,24 @@ function redrawFunction(svg, jobs, resources) {
 };
 
 function createPipelineSvg(svg) {
-  svg.append("defs").append("filter")
-    .attr("id", "embiggen")
-    .append("feMorphology")
-    .attr("operator", "dilate")
-    .attr("radius", "4");
+  var g = d3.select("g.test")
+  if (g.empty()) {
+    svg.append("defs").append("filter")
+      .attr("id", "embiggen")
+      .append("feMorphology")
+      .attr("operator", "dilate")
+      .attr("radius", "4");
 
-  var g = svg.append("g");
-
-  svg.on("mousedown", function() {
-    var ev = d3.event;
-    if (ev.button || ev.ctrlKey)
-      ev.stopImmediatePropagation();
-  }).call(d3.behavior.zoom().scaleExtent([0.5, 10]).on("zoom", function() {
-    var ev = d3.event;
-    g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
-  }));
-
+    g = svg.append("g").attr("class", "test")
+    svg.on("mousedown", function() {
+      var ev = d3.event;
+      if (ev.button || ev.ctrlKey)
+        ev.stopImmediatePropagation();
+    }).call(d3.behavior.zoom().scaleExtent([0.5, 10]).on("zoom", function() {
+      var ev = d3.event;
+      g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
+    }));
+  }
   return g
 }
 

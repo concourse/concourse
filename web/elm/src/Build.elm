@@ -1,13 +1,14 @@
 module Build exposing
   ( init
   , update
-  , urlUpdate
   , view
   , subscriptions
+  , Model
   , Page(..)
-  , Msg(ClockTick)
+  , Msg(..)
   , getScrollBehavior
   , initJobBuildPage
+  , changeToBuild
   )
 
 import Date exposing (Date)
@@ -36,9 +37,12 @@ import Concourse.Job
 import Concourse.Pagination exposing (Paginated)
 import Favicon
 import LoadingIndicator
-import Redirect
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import Scroll
+
+type alias Ports =
+  { title : String -> Cmd Msg
+  }
 
 type Page
   = BuildPage Int
@@ -60,13 +64,13 @@ type alias CurrentBuild =
   }
 
 type alias Model =
-  { ports : Ports
-  , now : Maybe Time.Time
+  { now : Maybe Time.Time
   , job : Maybe Concourse.Job
   , history : List Concourse.Build
   , currentBuild : Maybe CurrentBuild
   , browsingIndex : Int
   , autoScroll : Bool
+  , ports : Ports
   }
 
 type StepRenderingState
@@ -91,19 +95,14 @@ type Msg
   | BuildAborted (Result Http.Error ())
   | RevealCurrentBuildInHistory
   | WindowScrolled Scroll.FromBottom
+  | NavTo String
 
-type alias Ports =
-  { setTitle : String -> Cmd Msg
-  , focusElement : String -> Cmd Msg
-  , selectGroups : (List String) -> Cmd Msg
-  }
-
-init : Ports -> Result String Page -> (Model, Cmd Msg)
-init ports pageResult =
+init : Ports -> Page -> (Model, Cmd Msg)
+init ports page =
   let
     (model, cmd) =
       changeToBuild
-        pageResult
+        page
         { now = Nothing
         , job = Nothing
         , history = []
@@ -128,8 +127,8 @@ subscriptions model =
           Sub.map (BuildOutputMsg model.browsingIndex) buildOutput.events
     ]
 
-changeToBuild : Result String Page -> Model -> (Model, Cmd Msg)
-changeToBuild pageResult model =
+changeToBuild : Page -> Model -> (Model, Cmd Msg)
+changeToBuild page model =
   let
     newIndex =
       model.browsingIndex + 1
@@ -143,26 +142,22 @@ changeToBuild pageResult model =
       , currentBuild = newBuild
       , autoScroll = True
       }
-    , case pageResult of
-        Err err ->
-          Debug.log err Cmd.none
+    , case page of
+        BuildPage buildId ->
+          fetchBuild 0 newIndex buildId
 
-        Ok (BuildPage buildId) ->
-          Cmd.batch
-            [ model.ports.setTitle ("one-off #" ++ toString buildId)
-            , fetchBuild 0 newIndex buildId
-            ]
-
-        Ok (JobBuildPage jbi) ->
-          Cmd.batch
-            [ model.ports.setTitle (jbi.jobName ++ " #" ++ jbi.buildName)
-            , fetchJobBuild newIndex jbi
-            ]
+        JobBuildPage jbi ->
+          fetchJobBuild newIndex jbi
     )
 
-urlUpdate : Result String Page -> Model -> (Model, Cmd Msg)
-urlUpdate =
-  changeToBuild
+extractTitle : Model -> String
+extractTitle model =
+  case (model.currentBuild, model.job) of
+    (Just build, Just job) ->
+      job.name ++ ((" #" ++ build.build.name) ++ " - ")
+    (Just build, Nothing) ->
+      "#" ++ (build.build.name ++ " - ")
+    _ -> ""
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -188,7 +183,7 @@ update action model =
         }
 
     BuildTriggered (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
 
     BuildTriggered (Err err) ->
       Debug.log ("failed to trigger build: " ++ toString err) <|
@@ -208,7 +203,7 @@ update action model =
       (model, Cmd.none)
 
     BuildAborted (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
 
     BuildAborted (Err err) ->
       Debug.log ("failed to abort build: " ++ toString err) <|
@@ -279,6 +274,9 @@ update action model =
       else
         ({ model | autoScroll = False }, Cmd.none)
 
+    NavTo url ->
+      (model, Navigation.newUrl url)
+
 handleBuildFetched : Int -> Concourse.Build -> Model -> (Model, Cmd Msg)
 handleBuildFetched browsingIndex build model =
   if browsingIndex == model.browsingIndex then
@@ -333,6 +331,7 @@ handleBuildFetched browsingIndex build model =
         Cmd.batch
           [ cmd
           , setFavicon build.status
+          , model.ports.title <| extractTitle newModel
           , fetchJobAndHistory
           ])
   else
@@ -365,7 +364,7 @@ handleBuildJobFetched job model =
     withJobDetails =
       { model | job = Just job }
   in
-    (withJobDetails, model.ports.selectGroups job.groups)
+    (withJobDetails, model.ports.title <| extractTitle withJobDetails)
 
 handleHistoryFetched : Paginated Concourse.Build -> Model -> (Model, Cmd Msg)
 handleHistoryFetched history model =
@@ -590,8 +589,15 @@ viewBuildHeader build {now, job, history} =
     buildTitle =
       case build.job of
         Just {jobName, teamName, pipelineName} ->
-          Html.a [href ("/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName)]
-            [Html.text (jobName ++ " #" ++ build.name)]
+          let
+            jobUrl =
+              "/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName
+          in
+            Html.a
+              [ StrictEvents.onLeftClick <| NavTo jobUrl
+              , href jobUrl
+              ]
+              [Html.text (jobName ++ " #" ++ build.name)]
 
         _ ->
           Html.text ("build #" ++ toString build.id)
@@ -701,11 +707,14 @@ getScrollBehavior model =
         _ ->
           Autoscroll.ScrollWindow
 
-
-redirectToLogin : Model -> Cmd Msg
-redirectToLogin model =
-  Cmd.map (always Noop) << Task.perform Err Ok <|
-    Redirect.to "/login"
+loginRedirect : Model -> Cmd Msg
+loginRedirect model =
+  Navigation.newUrl <|
+    case model.job of
+      Nothing ->
+        "/login"
+      Just job ->
+        "/teams/" ++ job.pipeline.teamName ++ "/login"
 
 handleOutMsg : BuildOutput.OutMsg -> Model -> (Model, Cmd Msg)
 handleOutMsg outMsg model =

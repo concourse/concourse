@@ -1,12 +1,12 @@
-module PipelinesNav exposing (init, update, view, subscriptions)
+module SideBar exposing (Model, Msg, init, update, view, subscriptions, fetchPipelines)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, disabled, attribute, style)
 import Html.Events as Events
 import Http
-import Json.Decode exposing ((:=))
 import List
 import Mouse exposing (Position)
+import Navigation
 import Task
 
 import Concourse
@@ -52,7 +52,8 @@ type Msg
   | Drag Position
   | Hover String (ListHover String)
   | Unhover String (ListHover String)
-  | PipelinesReordered (Result Http.Error ())
+  | PipelinesReordered String (Result Http.Error ())
+  | NavToPipeline String
 
 init : (Model, Cmd Msg)
 init =
@@ -89,12 +90,16 @@ update action model =
       ( mapModelPipelines (setPaused True) teamName pipelineName model
       , Cmd.none
       )
+    PipelinePaused teamName pipelineName (Err (Http.BadResponse 401 _)) ->
+      (model, loginRedirect teamName)
     PipelinePaused teamName pipelineName (Err err) ->
       Debug.log
         ("failed to pause pipeline: " ++ toString err)
         ( mapModelPipelines updatePauseErrored teamName pipelineName model
         , Cmd.none
         )
+    PipelineUnpaused teamName pipelineName (Err (Http.BadResponse 401 _)) ->
+      (model, loginRedirect teamName)
     PipelineUnpaused teamName pipelineName (Ok ()) ->
       ( mapModelPipelines (setPaused False) teamName pipelineName model
       , Cmd.none
@@ -188,10 +193,14 @@ update action model =
             )
           else (model, Cmd.none)
         Nothing -> (model, Cmd.none)
-    PipelinesReordered (Ok ()) ->
+    PipelinesReordered teamName (Ok ()) ->
       (model, Cmd.none)
-    PipelinesReordered (Err err) ->
+    PipelinesReordered teamName (Err (Http.BadResponse 401 _)) ->
+      (model, loginRedirect teamName)
+    PipelinesReordered teamName (Err err) ->
       Debug.log ("failed to reorder pipelines: " ++ toString err) (model, Cmd.none)
+    NavToPipeline url ->
+      (model, Navigation.newUrl url)
 
 getPrevHover : Model -> Maybe (ListHover String)
 getPrevHover model =
@@ -413,23 +422,11 @@ viewDraggable maybeDragInfo uip =
     [ Html.div []
         [ viewPauseButton uip
         , Html.a
-            ( [ href uip.pipeline.url ] ++
-              if isPurposeful maybeDragInfo then
-                [ onLeftClick Noop ]
-              else
-                []
-            )
-            [ Html.text uip.pipeline.name ]
+          [ onLeftClick <| NavToPipeline uip.pipeline.url
+          , href uip.pipeline.url
+          ] [ Html.text uip.pipeline.name ]
         ]
     ]
-
-checkLeftClick : Json.Decode.Decoder ()
-checkLeftClick =
-  ("button" := Json.Decode.int) `Json.Decode.andThen` \button ->
-    if button == 0 then
-      Json.Decode.succeed ()
-    else
-      Json.Decode.fail "not left click"
 
 dragStyle : DragInfo -> Html.Attribute action
 dragStyle dragInfo =
@@ -497,7 +494,7 @@ pausePipeline teamName pipelineName =
 
 orderPipelines : String -> List String -> Cmd Msg
 orderPipelines teamName pipelineNames =
-  Cmd.map PipelinesReordered <|
+  Cmd.map (PipelinesReordered teamName) <|
     Task.perform Err Ok <| Concourse.Pipeline.order teamName pipelineNames
 
 groupPipelinesByTeam : List Concourse.Pipeline -> List (String, List UIPipeline)
@@ -521,3 +518,7 @@ toUIPipeline pipeline =
   , pausedChanging = False
   , pauseErrored = False
   }
+
+loginRedirect : String -> Cmd Msg
+loginRedirect teamName =
+  Navigation.newUrl ("/teams/" ++ teamName ++ "/login")

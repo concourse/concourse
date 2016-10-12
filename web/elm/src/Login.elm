@@ -1,161 +1,139 @@
-module Login exposing (Page(..), PageWithRedirect, init, update, urlUpdate, view)
+module Login exposing (Model, Msg(..), init, update, view, subscriptions)
 
 import Erl
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (id, class)
-import Html.Events as Events
+import Html.Events exposing (onInput, onSubmit)
 import Http
 import Navigation
-import String
 import Task
 
 import Concourse
 import Concourse.AuthMethod
-import Concourse.Team
+import Concourse.Login
 import StrictEvents exposing (onLeftClick)
 
-type alias PageWithRedirect =
-  { page : Page
-  , redirect : String
+type alias Ports =
+  { title : String -> Cmd Msg
   }
 
-type Page = TeamSelectionPage | LoginPage String
+type alias BasicAuthFields =
+    { username : String
+    , password : String
+    }
 
-type Model
-  = TeamSelection TeamSelectionModel
-  | Login LoginModel
-
-type alias TeamSelectionModel =
-  { teamFilter : String
-  , teams : Maybe (List Concourse.Team)
-  , redirect : String
-  }
-
-type alias LoginModel =
+type alias Model =
   { teamName : String
   , authMethods : Maybe (List Concourse.AuthMethod)
   , hasTeamSelectionInBrowserHistory : Bool
   , redirect : String
+  , basicAuthInput : Maybe BasicAuthFields
   }
 
 type Msg
   = Noop
-  | FilterTeams String
-  | TeamsFetched (Result Http.Error (List Concourse.Team))
-  | SelectTeam String
   | AuthFetched (Result Http.Error (List Concourse.AuthMethod))
+  | NoAuthSubmit
+  | BasicAuthUsernameChanged String
+  | BasicAuthPasswordChanged String
+  | BasicAuthSubmit
+  | LoginTokenReceived (Result Http.Error Concourse.AuthToken)
   | GoBack
 
-defaultPage : PageWithRedirect
-defaultPage = { page = TeamSelectionPage, redirect = "" }
-
-init : Result String PageWithRedirect -> (Model, Cmd Msg)
-init pageResult =
-  let
-    pageWithRedirect = Result.withDefault defaultPage pageResult
-  in
-    case pageWithRedirect.page of
-      TeamSelectionPage ->
-        ( TeamSelection
-            { teamFilter = ""
-            , teams = Nothing
-            , redirect = pageWithRedirect.redirect
-            }
-        , Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
-        )
-      LoginPage teamName ->
-        ( Login
-            { teamName = teamName
-            , authMethods = Nothing
-            , hasTeamSelectionInBrowserHistory = False
-            , redirect = pageWithRedirect.redirect
-            }
-        , Cmd.map
-            AuthFetched <|
-            Task.perform
-              Err Ok <|
-                Concourse.AuthMethod.fetchAll teamName
-        )
-
-urlUpdate : Result String PageWithRedirect -> Model -> (Model, Cmd Msg)
-urlUpdate pageResult model =
-  let
-    pageWithRedirect = Result.withDefault defaultPage pageResult
-  in
-    case pageWithRedirect.page of
-      TeamSelectionPage ->
-        ( TeamSelection
-            { teamFilter = ""
-            , teams = Nothing
-            , redirect = pageWithRedirect.redirect
-            }
-        , Cmd.map TeamsFetched <| Task.perform Err Ok Concourse.Team.fetchTeams
-        )
-      LoginPage teamName ->
-        ( Login
-            { teamName = teamName
-            , authMethods = Nothing
-            , hasTeamSelectionInBrowserHistory = True
-            , redirect = pageWithRedirect.redirect
-            }
-        , Cmd.map
-            AuthFetched <|
-            Task.perform
-              Err Ok <|
-                Concourse.AuthMethod.fetchAll teamName
-        )
+init : Ports -> String -> String -> (Model, Cmd Msg)
+init ports teamName redirect =
+  ( { teamName = teamName
+    , authMethods = Nothing
+    , hasTeamSelectionInBrowserHistory = False
+    , redirect = redirect
+    , basicAuthInput = Nothing
+    }
+  , Cmd.batch
+      [ Cmd.map
+          AuthFetched <|
+            Task.perform Err Ok <|
+              Concourse.AuthMethod.fetchAll teamName
+      , ports.title "Login - "
+      ]
+  )
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Noop ->
       (model, Cmd.none)
-    FilterTeams newTeamFilter ->
-      case model of
-        TeamSelection teamSelectionModel ->
-          ( TeamSelection { teamSelectionModel | teamFilter = newTeamFilter }
-          , Cmd.none
-          )
-        Login _ -> (model, Cmd.none)
-    TeamsFetched (Ok teams) ->
-      case model of
-        TeamSelection teamSelectionModel ->
-          ( TeamSelection { teamSelectionModel | teams = Just teams }
-          , Cmd.none
-          )
-        Login _ -> (model, Cmd.none)
-    TeamsFetched (Err err) ->
-      Debug.log ("failed to fetch teams: " ++ toString err) <|
-        (model, Cmd.none)
-    SelectTeam teamName ->
-      case model of
-        TeamSelection tsModel ->
-          ( model
-          , Navigation.newUrl <| loginRoute tsModel.redirect teamName
-          )
-        Login _ -> (model, Cmd.none)
     AuthFetched (Ok authMethods) ->
-      case model of
-        Login loginModel ->
-          ( Login { loginModel | authMethods = Just authMethods }
-          , Cmd.none
-          )
-        TeamSelection tModel ->
-          (model, Cmd.none)
+      let
+        newInputFields =
+          if List.member Concourse.AuthMethodBasic authMethods then
+            Just <|
+              { username = ""
+              , password = ""
+              }
+          else
+            Nothing
+      in
+        ( { model
+          | authMethods = Just authMethods
+          , basicAuthInput = newInputFields
+          }
+        , Cmd.none
+        )
     AuthFetched (Err err) ->
       Debug.log ("failed to fetch auth methods: " ++ toString err) <|
         (model, Cmd.none)
+    NoAuthSubmit ->
+      (model, noAuthSubmit model.teamName)
+    LoginTokenReceived (Ok _) ->
+        ( model
+        , Navigation.newUrl <| indexPageUrl ++ model.redirect
+        )
+    LoginTokenReceived (Err err) ->
+      Debug.log ("login failed: " ++ toString err) <|
+        (model, Cmd.none)
+    BasicAuthUsernameChanged un ->
+      ( case model.basicAuthInput of
+          Nothing ->
+            Debug.log "input to nonexistent UN field: "
+              model
+          Just fields ->
+            { model
+            | basicAuthInput =
+                Just
+                  { fields
+                  | username = un
+                  }
+            }
+      , Cmd.none)
+    BasicAuthPasswordChanged pw ->
+      ( case model.basicAuthInput of
+          Nothing ->
+            Debug.log "input to nonexistent PW field: "
+              model
+          Just fields ->
+            { model
+            | basicAuthInput =
+                Just
+                  { fields
+                  | password = pw
+                  }
+            }
+      , Cmd.none)
+    BasicAuthSubmit ->
+      ( model
+      , case model.basicAuthInput of
+          Nothing ->
+            Debug.log "tried to submit illegal basic auth"
+              Cmd.none
+          Just fields ->
+            basicAuthSubmit model.teamName fields
+      )
     GoBack ->
-      case model of
-        Login loginModel ->
-          case loginModel.hasTeamSelectionInBrowserHistory of
-            True -> (model, Navigation.back 1)
-            False -> (model, Navigation.newUrl <| teamSelectionRoute loginModel.redirect)
-        TeamSelection _ -> (model, Cmd.none)
-
-loginRoute : String -> String -> String
-loginRoute redirect teamName =
-  routeMaybeRedirect redirect <| "teams/" ++ teamName ++ "/login"
+      case model.hasTeamSelectionInBrowserHistory of -- TODO this goes away?
+        True ->
+          (model, Navigation.back 1)
+        False ->
+          (model, Navigation.newUrl <| teamSelectionRoute model.redirect)
 
 teamSelectionRoute : String -> String
 teamSelectionRoute redirect = routeMaybeRedirect redirect "/login"
@@ -189,110 +167,7 @@ indexPageUrl = "/"
 
 view : Model -> Html Msg
 view model =
-  Html.div [class "login-page"] [
-    case model of
-      TeamSelection tModel ->
-        viewTeamSelection tModel
-
-      Login lModel ->
-        viewLogin lModel
-  ]
-
-viewLoading : Html action
-viewLoading =
-  Html.div [class "loading"]
-    [ Html.i [class "fa fa-fw fa-spin fa-circle-o-notch"] []
-    ]
-
-viewTeamSelection : TeamSelectionModel -> Html Msg
-viewTeamSelection model =
-  let filteredTeams =
-    filterTeams model.teamFilter <| Maybe.withDefault [] model.teams
-  in
-    Html.div
-      []
-      [ Html.div
-          [ class "small-title" ]
-          [ Html.text "select a team to login" ]
-      , Html.div
-          [ class "login-box team-selection" ]
-          [ Html.form
-              [ Events.onSubmit <|
-                  case (List.head filteredTeams, model.teamFilter) of
-                    (Nothing, _) ->
-                      Noop
-                    (Just _, "") ->
-                      Noop
-                    (Just firstTeam, _) ->
-                      SelectTeam firstTeam.name
-              , class "filter-form input-holder"
-              ]
-              [ Html.i [class "fa fa-fw fa-search search-icon"] []
-              , Html.input
-                  [ class "search-input"
-                  , Attributes.placeholder "filter teams"
-                  , Attributes.autofocus True
-                  , Attributes.required True
-                  , Events.onInput FilterTeams
-                  ]
-                  []
-              , Html.button
-                  [ class "clear-button"
-                  , Attributes.type' "reset"
-                  , Attributes.tabindex -1
-                  , Events.onClick (FilterTeams "")
-                  ]
-                  [ Html.i [class "fa fa-fw fa-times-circle"] [] ]
-              ]
-          , case model.teams of
-              Nothing ->
-                viewLoading
-              Just _ ->
-                Html.div [class "teams-list"] <|
-                  List.map (viewTeam model.redirect) filteredTeams
-          ]
-      ]
-
-viewTeam : String -> Concourse.Team -> Html Msg
-viewTeam redirect team =
-  Html.a
-    [ onLeftClick (SelectTeam team.name)
-    , Attributes.href <| loginRoute redirect team.name
-    ]
-    [ Html.text <| team.name ]
-
-filterTeams : String -> List Concourse.Team -> List Concourse.Team
-filterTeams teamFilter teams =
-  let
-    filteredList =
-      List.filter
-        (teamNameContains <| String.toLower teamFilter) teams
-  in let
-    (startingTeams, notStartingTeams) =
-      List.partition (teamNameStartsWith <| String.toLower teamFilter) filteredList
-  in let
-    (caseSensitive, notCaseSensitive) =
-      List.partition (teamNameStartsWithSensitive teamFilter) startingTeams
-  in
-    caseSensitive ++ notCaseSensitive ++ notStartingTeams
-
-teamNameContains : String -> Concourse.Team -> Bool
-teamNameContains substring team =
-  String.contains substring <|
-    String.toLower team.name
-
-teamNameStartsWith : String -> Concourse.Team -> Bool
-teamNameStartsWith substring team =
-  String.startsWith substring <|
-    String.toLower team.name
-
-teamNameStartsWithSensitive : String -> Concourse.Team -> Bool
-teamNameStartsWithSensitive substring team =
-  String.startsWith substring team.name
-
-viewLogin : LoginModel -> Html Msg
-viewLogin model =
-  Html.div []
+  Html.div [ class "login-page" ]
     [ Html.div
         [ class "small-title" ]
         [ Html.a
@@ -324,7 +199,13 @@ viewLogin model =
                 (Nothing, Nothing) -> [ viewNoAuthButton ]
     ]
 
-viewOrBar : Html action
+viewLoading : Html Msg
+viewLoading =
+  Html.div [class "loading"]
+    [ Html.i [class "fa fa-fw fa-spin fa-circle-o-notch"] []
+    ]
+
+viewOrBar : Html Msg
 viewOrBar =
   Html.div
     [ class "or-bar" ]
@@ -332,24 +213,22 @@ viewOrBar =
     , Html.span [] [ Html.text "or" ]
     ]
 
-viewNoAuthButton : Html action
+viewNoAuthButton : Html Msg
 viewNoAuthButton =
   Html.form
     [ class "auth-method login-button"
-    , Attributes.method "post"
     ]
     [ Html.button
-        [ Attributes.type' "submit" ]
+        [ onLeftClick NoAuthSubmit ]
         [ Html.text "login" ]
     ]
 
-viewBasicAuthForm : List Concourse.AuthMethod -> Maybe (Html action)
+viewBasicAuthForm : List Concourse.AuthMethod -> Maybe (Html Msg)
 viewBasicAuthForm methods =
   if List.member Concourse.AuthMethodBasic methods then
     Just <|
       Html.form
         [ class "auth-method basic-auth"
-        , Attributes.method "post"
         ]
         [ Html.label
             [ Attributes.for "basic-auth-username-input" ]
@@ -358,8 +237,10 @@ viewBasicAuthForm methods =
             [ class "input-holder" ]
             [ Html.input
                 [ id "basic-auth-username-input"
-                , Attributes.name "username"
                 , Attributes.type' "text"
+                , Attributes.name "username"
+                , onInput BasicAuthUsernameChanged
+                , onSubmit BasicAuthSubmit
                 ]
                 []
             ]
@@ -369,22 +250,24 @@ viewBasicAuthForm methods =
         , Html.div [class "input-holder"] -- for LastPass web UI
             [ Html.input
                 [ id "basic-auth-password-input"
-                , Attributes.name "password"
                 , Attributes.type' "password"
+                , Attributes.name "password"
+                , onInput BasicAuthPasswordChanged
+                , onSubmit BasicAuthSubmit
                 ]
                 []
             ]
         , Html.div
             [ class "login-button" ]
             [ Html.button
-                [ Attributes.type' "submit" ]
+                [ onLeftClick BasicAuthSubmit ]
                 [ Html.text "login" ]
             ]
         ]
   else
     Nothing
 
-viewOAuthButtons : String -> List Concourse.AuthMethod -> Maybe (Html action)
+viewOAuthButtons : String -> List Concourse.AuthMethod -> Maybe (Html Msg)
 viewOAuthButtons redirect methods =
   case List.filterMap (viewOAuthButton redirect) methods of
     [] ->
@@ -394,7 +277,7 @@ viewOAuthButtons redirect methods =
       Just <|
         Html.div [class "oauth-buttons"] buttons
 
-viewOAuthButton : String -> Concourse.AuthMethod -> Maybe (Html action)
+viewOAuthButton : String -> Concourse.AuthMethod -> Maybe (Html Msg)
 viewOAuthButton redirect method =
   case method of
     Concourse.AuthMethodBasic ->
@@ -406,3 +289,18 @@ viewOAuthButton redirect method =
             [ Attributes.href <| routeWithRedirect redirect oAuthMethod.authUrl ]
             [ Html.text <| "login with " ++ oAuthMethod.displayName ]
         ]
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
+
+noAuthSubmit : String -> Cmd Msg
+noAuthSubmit teamName =
+  Cmd.map LoginTokenReceived << Task.perform Err Ok <|
+    Concourse.Login.noAuth teamName
+
+
+basicAuthSubmit : String -> BasicAuthFields -> Cmd Msg
+basicAuthSubmit teamName fields =
+  Cmd.map LoginTokenReceived << Task.perform Err Ok <|
+    Concourse.Login.basicAuth teamName fields.username fields.password

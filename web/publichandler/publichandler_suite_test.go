@@ -1,4 +1,4 @@
-package webhandler_test
+package publichandler_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestWebhandler(t *testing.T) {
+func TestPublichandler(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Web Handler Suite")
+	RunSpecs(t, "Public Handler Suite")
 }

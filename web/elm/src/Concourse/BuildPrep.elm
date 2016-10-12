@@ -7,4 +7,5 @@ import Concourse
 
 fetch : Concourse.BuildId -> Task Http.Error Concourse.BuildPrep
 fetch buildId =
-  Http.get Concourse.decodeBuildPrep ("/api/v1/builds/" ++ toString buildId ++ "/preparation")
+  Http.get Concourse.decodeBuildPrep <|
+    "/api/v1/builds/" ++ toString buildId ++ "/preparation"

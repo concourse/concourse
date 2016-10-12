@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Concourse</title>
+    <link href="{{asset "main.css"}}" media="all" rel="stylesheet" type="text/css" />
+    <link id="favicon" rel="icon" type="image/png" href="{{asset "images/favicon.png"}}" />
+    <meta name="theme-color" content="#000000" />
+    <script src="{{asset "index.js"}}"></script>
+    <script src="{{asset "d3.v355.min.js"}}"></script>
+    <script src="{{asset "graph.js"}}"></script>
+    <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
+    <script src="{{asset "concourse.js"}}"></script>
+    <script src="{{asset "elm.min.js"}}"></script>
+  </head>
+  <body>
+    <div id="elm-app-embed"></div>
+
+    <script type="text/javascript">
+      var node = document.getElementById("elm-app-embed");
+      var app = Elm.Main.embed(node, {
+        turbulenceImgSrc: {{asset "images/buckleup.svg"}}
+      });
+
+      app.ports.renderPipeline.subscribe(function (values) {
+        foundSvg = d3.select(".pipeline-graph");
+        var svg = createPipelineSvg(foundSvg)
+        if (svg.node() != null) {
+          var jobs = values[0];
+          var resources = values[1];
+          draw(svg, jobs, resources);
+        }
+      })
+
+      app.ports.setTitle.subscribe(function(title) {
+        document.title = title + "Concourse";
+      });
+    </script>
+  </body>
+</html>

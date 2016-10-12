@@ -1,4 +1,4 @@
-module TopBar exposing (Flags, init, update, urlUpdate, view, subscriptions)
+port module TopBar exposing (Model, Msg(..), init, update, urlUpdate, view, subscriptions, fetchUser)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList, href, id, disabled, attribute, style)
@@ -6,6 +6,7 @@ import Html.Events exposing (onClick)
 import Http
 import List
 import Navigation exposing (Location)
+import Route.QueryString as QueryString
 import String
 import Task
 import Time
@@ -13,20 +14,12 @@ import Time
 import Concourse
 import Concourse.Pipeline
 import Concourse.User
-import Redirect
+import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
-
-type alias Flags =
-  { pipeline : Maybe Concourse.PipelineIdentifier
-  , queryGroups : Maybe (List String)
-  }
 
 type alias Model =
   { pipelineIdentifier : Maybe Concourse.PipelineIdentifier
-  , viewingPipeline : Bool
-  , ports : Ports
-  , location : Location
-  , groupsState : GroupsState
+  , route : Routes.ConcourseRoute
   , selectedGroups : List String
   , pipeline : Maybe Concourse.Pipeline
   , userState : UserState
@@ -38,18 +31,6 @@ type UserState
   | UserStateLoggedOut
   | UserStateUnknown
 
-type GroupsState
-  = GroupsStateSelected (List String)
-  | GroupsStateNotLoaded
-
-type alias Ports =
-  { toggleSidebar : () -> Cmd Msg
-  , setGroups : List String -> Cmd Msg
-  , selectGroups : (List String -> Msg) -> Sub Msg
-  , navigateTo : String -> Cmd Msg
-  , setViewingPipeline : (Bool -> Msg) -> Sub Msg
-  }
-
 type Msg
   = Noop
   | PipelineFetched (Result Http.Error Concourse.Pipeline)
@@ -58,38 +39,45 @@ type Msg
   | ToggleSidebar
   | ToggleGroup Concourse.PipelineGroup
   | SetGroups (List String)
-  | SelectGroups (List String)
   | LogOut
+  | LogIn
+  | NavTo String
   | LoggedOut (Result Concourse.User.Error ())
   | ToggleUserMenu
-  | SetViewingPipeline Bool
 
-init : Ports -> Flags -> Location -> (Model, Cmd Msg)
-init ports flags initialLocation =
-  ( { pipelineIdentifier = flags.pipeline
-    , viewingPipeline = False
-    , ports = ports
-    , groupsState =
-        case flags.queryGroups of
-          Nothing ->
-            GroupsStateNotLoaded
-          Just groups ->
-            GroupsStateSelected groups
-    , selectedGroups = []
-    , location = initialLocation
-    , pipeline = Nothing
-    , userState = UserStateUnknown
-    , userMenuVisible = False
-    }
-  , Cmd.batch
-      [ case flags.pipeline of
-          Just pid ->
-            fetchPipeline pid
-          Nothing ->
-            Cmd.none
-      , fetchUser
-      ]
-  )
+queryGroupsForRoute : Routes.ConcourseRoute -> List String
+queryGroupsForRoute route =
+  QueryString.all "groups" route.queries
+
+init : Routes.ConcourseRoute -> (Model, Cmd Msg)
+init route =
+  let
+    (model, cmd) =
+      updateModel
+        route
+        { pipelineIdentifier = Nothing
+        , selectedGroups = queryGroupsForRoute route
+        , route = route
+        , pipeline = Nothing
+        , userState = UserStateUnknown
+        , userMenuVisible = False
+        }
+  in
+    (model, Cmd.batch[cmd, fetchUser])
+
+updateModel : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
+updateModel route model =
+  let
+    pid =
+      extractPidFromRoute route.logical
+  in
+    ( { model | pipelineIdentifier = pid }
+    , case pid of
+        Nothing ->
+          Cmd.none
+        Just pid ->
+          fetchPipeline pid
+    )
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -111,26 +99,32 @@ update msg model =
       )
 
     PipelineFetched (Ok pipeline) ->
-      let
-        firstGroup =
-          List.head pipeline.groups
-        model =
-          { model | pipeline = Just pipeline }
-      in
-        case firstGroup of
-          Nothing ->
-            (model, Cmd.none)
-
-          Just group ->
-            case model.groupsState of
-              GroupsStateNotLoaded ->
+      case model.pipeline of
+        Nothing ->
+          ( { model
+            | pipeline = Just pipeline
+            , pipelineIdentifier = Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
+            }
+          , Cmd.none
+          )
+        Just p ->
+          if List.isEmpty pipeline.groups then
+              ( { model
+                | pipeline = Just pipeline
+                , pipelineIdentifier = Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
+                }
+              , Cmd.none
+              )
+            else
+              if pipeline.groups == p.groups then
                 (model, Cmd.none)
-
-              GroupsStateSelected groups ->
-                if List.length groups > 0 then
-                  setGroups groups model
-                else
-                  selectGroups [group.name] model
+              else
+                ( { model
+                  | pipeline = Just pipeline
+                  , pipelineIdentifier = Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
+                  }
+                , Cmd.none
+                )
 
     PipelineFetched (Err err) ->
       Debug.log
@@ -138,26 +132,38 @@ update msg model =
         (model, Cmd.none)
 
     ToggleSidebar ->
-      (model, model.ports.toggleSidebar ())
+      Debug.log "sidebar-toggle-incorrectly-handled: " (model, Cmd.none)
 
     ToggleGroup group ->
-      let
-        newGroups =
-          toggleGroup group model.selectedGroups model.pipeline
-      in
-        setGroups newGroups model
+      setGroups (toggleGroup group model.selectedGroups model.pipeline) model
 
     SetGroups groups ->
       setGroups groups model
 
-    SelectGroups groups ->
-      selectGroups groups model
+    LogIn ->
+      ( { model
+        | pipelineIdentifier = Nothing
+        , selectedGroups = []
+        , pipeline = Nothing
+        }
+      , Navigation.newUrl "/login"
+      )
 
     LogOut ->
       (model, logOut)
 
     LoggedOut (Ok _) ->
-      ({ model | userState = UserStateLoggedOut }, redirectToHome)
+      ( { model
+        | userState = UserStateLoggedOut
+        , pipelineIdentifier = Nothing
+        , pipeline = Nothing
+        , selectedGroups = []
+        }
+      , Navigation.newUrl "/"
+      )
+
+    NavTo url ->
+      (model, Navigation.newUrl url)
 
     LoggedOut (Err msg) ->
       always (model, Cmd.none) <|
@@ -166,131 +172,118 @@ update msg model =
     ToggleUserMenu ->
       ({ model | userMenuVisible = not model.userMenuVisible }, Cmd.none)
 
-    SetViewingPipeline vp ->
-      ({ model | viewingPipeline = vp }, Cmd.none)
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.batch
-    [ model.ports.setViewingPipeline SetViewingPipeline
-    , model.ports.selectGroups SelectGroups
-    , case model.pipelineIdentifier of
-        Nothing ->
-          Sub.none
+  case model.pipelineIdentifier of
+    Nothing ->
+      Sub.none
+    Just pid ->
+      Time.every (5 * Time.second) (always (FetchPipeline pid))
 
-        Just pid ->
-          Time.every (5 * Time.second) (always (FetchPipeline pid))
-    ]
+extractPidFromRoute : Routes.Route -> Maybe Concourse.PipelineIdentifier
+extractPidFromRoute route =
+  case route of
+    Routes.Build teamName pipelineName jobName buildName ->
+      Just {teamName = teamName, pipelineName = pipelineName}
+    Routes.Job teamName pipelineName jobName ->
+      Just {teamName = teamName, pipelineName = pipelineName}
+    Routes.Resource teamName pipelineName resourceName ->
+      Just {teamName = teamName, pipelineName = pipelineName}
+    Routes.OneOffBuild buildId ->
+      Nothing
+    Routes.Pipeline teamName pipelineName ->
+      Just {teamName = teamName, pipelineName = pipelineName}
+    Routes.SelectTeam ->
+      Nothing
+    Routes.TeamLogin teamName ->
+      Nothing
+    Routes.Home ->
+      Nothing
+
 
 setGroups : List String -> Model -> (Model, Cmd Msg)
 setGroups newGroups model =
-  case model.pipeline of
-    Just pipeline ->
-      let
-        newUrl =
-          locationToHistory pipeline <|
-            setGroupsInLocation model.location newGroups
-      in
-        ( { model
-          | selectedGroups = newGroups
-          , groupsState = GroupsStateSelected newGroups
-          }
-        , if model.viewingPipeline then
-            Cmd.batch
-              [ Navigation.modifyUrl newUrl
-              , model.ports.setGroups newGroups
-              ]
-          else
-            model.ports.navigateTo newUrl
-        )
-
-    Nothing ->
-      (model, Cmd.none)
-
-selectGroups : List String -> Model -> (Model, Cmd Msg)
-selectGroups groups model =
-  ( { model | selectedGroups = groups }
-  , if model.viewingPipeline then
-      model.ports.setGroups groups
-    else
-      Cmd.none
-  )
-
-urlUpdate : Location -> Model -> (Model, Cmd Msg)
-urlUpdate location model =
-  ( { model
-    | selectedGroups = groupsFromLocation location model.pipeline
-    , location = location
-    }
-  , Cmd.none
-  )
-
-groupsFromLocation : Location -> Maybe Concourse.Pipeline -> List String
-groupsFromLocation {search} mpipeline =
   let
-    noQuestion =
-      String.dropLeft 1 search
+    newUrl =
+      pidToUrl model.pipelineIdentifier <|
+        setGroupsInLocation model.route newGroups
+  in
+    (model, Navigation.newUrl newUrl)
 
-    extractGroup query =
-      case query of
-        ["groups", group] ->
-          Just group
+urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
+urlUpdate route model =
+  let
+    pipelineIdentifier =
+      extractPidFromRoute route.logical
+  in
+    ( { model
+      | pipelineIdentifier = model.pipelineIdentifier
+      , route = route
+      , selectedGroups = queryGroupsForRoute route
+      }
+    , case pipelineIdentifier of
+        Nothing ->
+          Cmd.none
+        Just pid ->
+          fetchPipeline pid
+    )
 
-        _ ->
-          Nothing
+getDefaultSelectedGroups : Maybe Concourse.Pipeline -> List String
+getDefaultSelectedGroups pipeline =
+  case pipeline of
+    Nothing ->
+      []
+    Just pipeline ->
+      case List.head pipeline.groups of
+        Nothing ->
+          []
+        Just first ->
+          [first.name]
 
-    extracted =
-      List.filterMap extractGroup <|
-        List.map (String.split "=") <|
-        String.split "&" noQuestion
-    in
-      extracted
 
-setGroupsInLocation : Location -> List String -> Location
+setGroupsInLocation : Routes.ConcourseRoute -> List String -> Routes.ConcourseRoute
 setGroupsInLocation loc groups =
   let
-    noQuestion =
-      String.dropLeft 1 loc.search
-
-    nonGroups =
-      List.filter (not << String.startsWith "groups=") <|
-        List.filter (not << String.isEmpty) <|
-        String.split "&" noQuestion
-
-    groupQueries =
-      List.map ((++) "groups=") groups
-
-    search =
-      String.join "&" (nonGroups ++ groupQueries)
+    updatedUrl =
+      if List.isEmpty groups then
+        QueryString.remove "groups" loc.queries
+      else
+        List.foldr
+          (QueryString.add "groups") QueryString.empty groups
   in
-    { loc | search = "?" ++ search }
+    { loc
+    | queries = updatedUrl
+    }
 
-locationToHistory : Concourse.Pipeline -> Location -> String
-locationToHistory {url} {search,hash} =
-  String.join "" [url, search, hash]
+pidToUrl : Maybe Concourse.PipelineIdentifier -> Routes.ConcourseRoute -> String
+pidToUrl pid {queries} =
+  case pid of
+    Just {teamName, pipelineName} ->
+      String.join ""
+        [ String.join "/"
+            [ "/teams", teamName, "pipelines", pipelineName
+            ]
+        , QueryString.render queries
+        ]
+    Nothing ->
+      ""
 
 toggleGroup : Concourse.PipelineGroup -> List String -> Maybe Concourse.Pipeline -> List String
-toggleGroup group names mpipeline =
-  let
-    toggled =
-      if List.member group.name names then
-        List.filter ((/=) group.name) names
-      else
-        group.name :: names
-  in
-    defaultToFirstGroup toggled mpipeline
-
-defaultToFirstGroup : List String -> Maybe Concourse.Pipeline -> List String
-defaultToFirstGroup groups mpipeline =
-  if List.isEmpty groups then
-    case mpipeline of
-      Just {groups} ->
-        List.take 1 (List.map .name groups)
-
-      Nothing ->
-        []
+toggleGroup grp names mpipeline =
+  if List.member grp.name names then
+    List.filter ((/=) grp.name) names
   else
-    groups
+    if List.isEmpty names then
+      grp.name :: (getDefaultSelectedGroups mpipeline)
+    else
+      grp.name :: names
+
+getSelectedOrDefaultGroups : Model -> List String
+getSelectedOrDefaultGroups model =
+  if List.isEmpty model.selectedGroups then
+    getDefaultSelectedGroups model.pipeline
+  else
+    model.selectedGroups
 
 view : Model -> Html Msg
 view model =
@@ -308,8 +301,8 @@ view model =
               []
             Just pipeline ->
               List.map
-                (viewGroup model.selectedGroups pipeline.url)
-                  pipeline.groups
+                (viewGroup (getSelectedOrDefaultGroups model) pipeline.url)
+                pipeline.groups
       in
         Html.ul [class "groups"] <|
           [ Html.li [class "main"]
@@ -323,7 +316,8 @@ view model =
               ]
            , Html.li [class "main"]
               [ Html.a
-                  [ Html.Attributes.href <|
+                  [ StrictEvents.onLeftClick <| NavTo "/"
+                  , Html.Attributes.href <|
                       Maybe.withDefault "/" (Maybe.map .url model.pipeline)
                   ]
                   [ Html.i [class "fa fa-home"] []
@@ -350,7 +344,8 @@ viewUserState userState userMenuVisible =
     UserStateLoggedOut ->
       Html.div [class "user-info"]
         [ Html.a
-            [ href "/login"
+            [ StrictEvents.onLeftClick <| LogIn
+            , href "/login"
             , Html.Attributes.attribute "aria-label" "Log In"
             , class "login-button"
             ]
@@ -405,8 +400,3 @@ logOut : Cmd Msg
 logOut =
   Cmd.map LoggedOut <|
     Task.perform Err Ok Concourse.User.logOut
-
-redirectToHome : Cmd Msg
-redirectToHome =
-  Cmd.map (always Noop) << Task.perform Err Ok <|
-    Redirect.to "/"

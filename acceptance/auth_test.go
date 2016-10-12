@@ -57,21 +57,26 @@ var _ = Describe("Auth", func() {
 	})
 
 	Describe("GitHub Auth", func() {
-		It("forces a redirect to /teams/main/login", func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH)
-			err := atcCommand.Start()
-			Expect(err).NotTo(HaveOccurred())
-			request, err := http.NewRequest("GET", atcCommand.URL("/teams/main/pipelines/main"), nil)
-			resp, err := http.DefaultClient.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/teams/main/login"))
+		Context("in a browser", func() {
+			var page *agouti.Page
 
-			team, _, err := teamDB.GetTeam()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(team.GitHubAuth.ClientID).To(Equal("admin"))
-			Expect(team.GitHubAuth.ClientSecret).To(Equal("password"))
-			Expect(team.GitHubAuth.Organizations).To(Equal([]string{"myorg"}))
+			BeforeEach(func() {
+				var err error
+				page, err = agoutiDriver.NewPage()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				Expect(page.Destroy()).To(Succeed())
+			})
+
+			It("forces a redirect to /teams/main/login", func() {
+				atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH)
+				err := atcCommand.Start()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main"))).To(Succeed())
+				Eventually(page).Should(HaveURL(atcCommand.URL("/teams/main/login")))
+			})
 		})
 
 		It("requires client id and client secret to be specified", func() {
@@ -112,33 +117,6 @@ var _ = Describe("Auth", func() {
 	})
 
 	Describe("Basic Auth", func() {
-		Context("with valid arguments", func() {
-			var response *http.Response
-			var responseErr error
-
-			BeforeEach(func() {
-				atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
-				err := atcCommand.Start()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Context("when requesting another team-specific route", func() {
-				BeforeEach(func() {
-					_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
-					Expect(err).NotTo(HaveOccurred())
-
-					request, err := http.NewRequest("GET", atcCommand.URL("/teams/some-team/pipelines/some-pipeline"), nil)
-					Expect(err).NotTo(HaveOccurred())
-					response, responseErr = http.DefaultClient.Do(request)
-				})
-
-				It("returns 404", func() {
-					Expect(responseErr).NotTo(HaveOccurred())
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-		})
-
 		It("errors when only username is specified", func() {
 			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH_NO_PASSWORD)
 			session, err := atcCommand.StartAndWait()

@@ -1,11 +1,11 @@
-package webhandler_test
+package publichandler_test
 
 import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/concourse/atc/web/webhandler"
+	"github.com/concourse/atc/web/publichandler"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -16,7 +16,7 @@ var _ = Describe("CacheNearlyForever", func() {
 			fmt.Fprint(w, "The wrapped handler was called!")
 		})
 
-		wrappedHandler := webhandler.CacheNearlyForever(insideHandler)
+		wrappedHandler := publichandler.CacheNearlyForever(insideHandler)
 		recorder := httptest.NewRecorder()
 
 		wrappedHandler.ServeHTTP(recorder, nil) // request is never used

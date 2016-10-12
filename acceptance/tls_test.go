@@ -172,38 +172,4 @@ var _ = Describe("TLS", func() {
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 		Expect(redirectURLs[0]).To(Equal(atcCommand.TLSURL("/auth/github?team_name=main")))
 	})
-
-	It("uses original handler for HTTP traffic that is not a GET or HEAD request when TLS is enabled", func() {
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
-		err := atcCommand.Start()
-		Expect(err).NotTo(HaveOccurred())
-
-		request, err := http.NewRequest("POST", atcCommand.URL("/"), nil)
-		Expect(err).NotTo(HaveOccurred())
-
-		client := authorizedTLSClient(atcCommand)
-		resp, err := client.Do(request)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resp.StatusCode).To(Equal(http.StatusMethodNotAllowed))
-	})
-
-	It("validates certs on client side when not started in development mode", func() {
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, BASIC_AUTH_NO_USERNAME, BASIC_AUTH_NO_PASSWORD)
-		err := atcCommand.Start()
-		Expect(err).NotTo(HaveOccurred())
-
-		request, err := http.NewRequest("GET", atcCommand.URL(""), nil)
-
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-
-		client := &http.Client{
-			Transport: transport,
-		}
-
-		resp, err := client.Do(request)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-	})
 })

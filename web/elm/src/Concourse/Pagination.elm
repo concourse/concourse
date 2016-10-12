@@ -230,10 +230,10 @@ toQuery page =
     Nothing ->
       Dict.empty
 
-    Just {direction, limit} ->
+    Just somePage ->
       let
         directionParam =
-          case direction of
+          case somePage.direction of
             Since id ->
               ("since", toString id)
 
@@ -247,7 +247,7 @@ toQuery page =
               ("to", toString id)
 
         limitParam =
-          ("limit", toString limit)
+          ("limit", toString somePage.limit)
       in
         Dict.fromList [directionParam, limitParam]
 

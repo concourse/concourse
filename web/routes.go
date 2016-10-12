@@ -27,12 +27,13 @@ var Routes = rata.Routes{
 	// public
 	{Path: "/", Method: "GET", Name: Index},
 	{Path: "/robots.txt", Method: "GET", Name: RobotsTxt},
+
+	// --- delete from here down
+
 	{Path: "/teams/:team_name/pipelines/:pipeline", Method: "GET", Name: Pipeline},
 	{Path: "/teams/:team_name/pipelines/:pipeline_name/jobs/:job", Method: "GET", Name: GetJob},
 	{Path: "/teams/:team_name/pipelines/:pipeline_name/resources/:resource", Method: "GET", Name: GetResource},
-	{Path: "/pipelines/:pipeline", Method: "GET", Name: MainPipeline},
-	{Path: "/pipelines/:pipeline_name/jobs/:job", Method: "GET", Name: MainGetJob},
-	{Path: "/pipelines/:pipeline_name/resources/:resource", Method: "GET", Name: MainGetResource},
+
 	{Path: "/public/:filename", Method: "GET", Name: Public},
 	{Path: "/public/fonts/:filename", Method: "GET", Name: Public},
 	{Path: "/public/favicons/:filename", Method: "GET", Name: Public},
@@ -50,4 +51,14 @@ var Routes = rata.Routes{
 	{Path: "/login", Method: "GET", Name: LogIn},
 	{Path: "/teams/:team_name/login", Method: "GET", Name: TeamLogIn},
 	{Path: "/teams/:team_name/login", Method: "POST", Name: ProcessBasicAuthLogIn},
+
+	// private
+	{Path: "/builds", Method: "GET", Name: GetBuilds},
+	{Path: "/builds/:build_id", Method: "GET", Name: GetJoblessBuild},
+
+	//probably leave these in, but remove the above eventually
+	{Path: "/pipelines/:pipeline", Method: "GET", Name: MainPipeline},
+	{Path: "/pipelines/:pipeline_name/jobs/:job", Method: "GET", Name: MainGetJob},
+	{Path: "/pipelines/:pipeline_name/resources/:resource", Method: "GET", Name: MainGetResource},
+	{Path: "/pipelines/:pipeline_name/jobs/:job/builds/:build", Method: "GET", Name: MainGetBuild},
 }

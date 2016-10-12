@@ -38,7 +38,7 @@ import (
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/webhandler"
+	"github.com/concourse/atc/web/publichandler"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/wrappa"
@@ -239,12 +239,13 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	webHandler, err := webhandler.NewHandler(
-		logger,
-		wrappa.NewWebMetricsWrappa(logger),
-		web.NewClientFactory(cmd.internalURL(), cmd.AllowSelfSignedCertificates || cmd.Developer.DevelopmentMode),
-		cmd.AuthDuration,
-	)
+	webHandler, err := web.NewHandler(logger)
+	if err != nil {
+		return nil, err
+	}
+	webHandler = metric.WrapHandler(logger, "web", webHandler)
+
+	publicHandler, err := publichandler.NewHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -255,6 +256,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			tlsRedirectHandler{
 				externalHost: cmd.ExternalURL.URL().Host,
 				baseHandler:  webHandler,
+			},
+			tlsRedirectHandler{
+				externalHost: cmd.ExternalURL.URL().Host,
+				baseHandler:  publicHandler,
 			},
 
 			// note: intentionally not wrapping API; redirecting is more trouble than
@@ -274,12 +279,14 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 		httpsHandler = cmd.constructHTTPHandler(
 			webHandler,
+			publicHandler,
 			apiHandler,
 			oauthHandler,
 		)
 	} else {
 		httpHandler = cmd.constructHTTPHandler(
 			webHandler,
+			publicHandler,
 			apiHandler,
 			oauthHandler,
 		)
@@ -775,22 +782,20 @@ func (cmd *ATCCommand) constructEngine(
 
 func (cmd *ATCCommand) constructHTTPHandler(
 	webHandler http.Handler,
+	publicHandler http.Handler,
 	apiHandler http.Handler,
 	oauthHandler http.Handler,
 ) http.Handler {
 	webMux := http.NewServeMux()
 	webMux.Handle("/api/v1/", apiHandler)
 	webMux.Handle("/auth/", oauthHandler)
+	webMux.Handle("/public/", publicHandler)
 	webMux.Handle("/", webHandler)
-
-	var httpHandler http.Handler
-
-	httpHandler = webMux
 
 	// proxy Authorization header to/from auth cookie,
 	// to support auth from JS (EventSource) and custom JWT auth
-	httpHandler = auth.CookieSetHandler{
-		Handler: httpHandler,
+	httpHandler := auth.CookieSetHandler{
+		Handler: webMux,
 	}
 
 	return httpHandler

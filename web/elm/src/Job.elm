@@ -1,12 +1,10 @@
-port module Job exposing (Flags, init, update, view, Msg(ClockTick))
+port module Job exposing (Flags, Model, changeToJob, subscriptions, init, update, view, Msg(..))
 
-import Array exposing (Array)
 import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, disabled, attribute)
 import Html.Events exposing (onClick)
 import Http
-import Process
 import Task
 import Time exposing (Time)
 
@@ -18,18 +16,21 @@ import Concourse.Pagination exposing (Pagination, Paginated, Page)
 import Concourse.BuildResources exposing (fetch)
 import BuildDuration
 import DictView
-import Redirect
+import Navigation
 import StrictEvents exposing (onLeftClick)
+
+type alias Ports =
+  { title : String -> Cmd Msg
+  }
 
 type alias Model =
   { ports : Ports
   , jobIdentifier : Concourse.JobIdentifier
   , job : (Maybe Concourse.Job)
   , pausedChanging : Bool
-  , buildsWithResources : Maybe (Array LiveUpdatingBuildWithResources)
+  , buildsWithResources : Paginated BuildWithResources
+  , currentPage : Maybe Page
   , now : Time
-  , page : Page
-  , pagination : Pagination
   }
 
 type Msg
@@ -38,92 +39,78 @@ type Msg
   | TriggerBuild
   | JobBuildsFetched (Result Http.Error (Paginated Concourse.Build))
   | JobFetched (Result Http.Error Concourse.Job)
-  | BuildResourcesFetched FetchedBuildResources
+  | BuildResourcesFetched Int (Result Http.Error Concourse.BuildResources)
   | ClockTick Time
   | TogglePaused
   | PausedToggled (Result Http.Error ())
-
-type alias Ports =
-  { selectGroups : (List String) -> Cmd Msg
-  }
-
-type alias FetchedBuildResources =
-  { index : Int
-  , result : (Result Http.Error Concourse.BuildResources)
-  }
+  | NavTo String
+  | SubscriptionTick Time
 
 type alias BuildWithResources =
   { build : Concourse.Build
-  , resources : Concourse.BuildResources
-  }
-
-type alias LiveUpdatingBuildWithResources =
-  { buildWithResources : Maybe BuildWithResources
-  , nextBuild : Concourse.Build
+  , resources : Maybe Concourse.BuildResources
   }
 
 jobBuildsPerPage : Int
 jobBuildsPerPage = 100
 
-addFetchedResources : Concourse.BuildResources -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
-addFetchedResources resources lubwr =
-  { lubwr | buildWithResources = Just {build = lubwr.nextBuild, resources = resources} }
-
-addNextBuild : Concourse.Build -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
-addNextBuild nextBuild buildWithResources =
-  { buildWithResources | nextBuild = nextBuild }
-
-addNextBuildFromArray : Array Concourse.Build -> Int -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
-addNextBuildFromArray newBuilds i lubwr =
-  case (Array.get i newBuilds) of
-    Nothing -> lubwr
-    Just newBuild -> addNextBuild newBuild lubwr
-
-initLiveUpdatingBuildWithResources : Concourse.Build -> LiveUpdatingBuildWithResources
-initLiveUpdatingBuildWithResources nextBuild =
-  {buildWithResources = Nothing, nextBuild = nextBuild}
 
 type alias Flags =
   { jobName : String
   , teamName : String
   , pipelineName : String
-  , pageSince : Int
-  , pageUntil : Int
+  , paging : Maybe Page
   }
 
 init : Ports -> Flags -> (Model, Cmd Msg)
 init ports flags =
   let
-    model =
-      { ports = ports
-      , jobIdentifier =
-          { jobName = flags.jobName
-          , teamName = flags.teamName
-          , pipelineName = flags.pipelineName
+    (model, cmd) =
+      changeToJob flags
+        { jobIdentifier =
+            { jobName = flags.jobName
+            , teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            }
+        , job = Nothing
+        , pausedChanging = False
+        , buildsWithResources =
+          { content = []
+            , pagination =
+              { previousPage = Nothing
+              , nextPage = Nothing
+              }
           }
-      , job = Nothing
-      , pausedChanging = False
-      , buildsWithResources = Nothing
-      , now = 0
-      , page =
-          { direction =
-              if flags.pageUntil > 0 then
-                Concourse.Pagination.Until flags.pageUntil
-              else
-                Concourse.Pagination.Since flags.pageSince
-          , limit = jobBuildsPerPage
-          }
-      , pagination =
-          { previousPage = Nothing
-          , nextPage = Nothing
-          }
-      }
+        , now = 0
+        , currentPage = flags.paging
+        , ports = ports
+        }
   in
     ( model
     , Cmd.batch
-        [ fetchJobBuilds 0 model.jobIdentifier (Just model.page)
-        , fetchJob 0 model.jobIdentifier
+        [ fetchJob model.jobIdentifier
+        , cmd
         ]
+    )
+
+
+changeToJob : Flags -> Model -> (Model, Cmd Msg)
+changeToJob flags model =
+  let
+    model =
+      { model
+      | currentPage = flags.paging
+      , buildsWithResources =
+        { content = []
+        , pagination =
+            { previousPage = Nothing
+            , nextPage = Nothing
+            }
+        }
+      }
+  in
+    ( model
+    , fetchJobBuilds model.jobIdentifier model.currentPage
     )
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -139,15 +126,14 @@ update action model =
           Nothing ->
             Cmd.none
           Just job ->
-            Cmd.map (always Noop) << Task.perform Err Ok <|
-              Redirect.to <|
-                "/teams/" ++ job.teamName ++
-                "/pipelines/" ++ job.pipelineName ++
-                "/jobs/" ++ job.jobName ++
-                "/builds/" ++ build.name
+            Navigation.newUrl <|
+              "/teams/" ++ job.teamName ++
+              "/pipelines/" ++ job.pipelineName ++
+              "/jobs/" ++ job.jobName ++
+              "/builds/" ++ build.name
       )
     BuildTriggered (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
     BuildTriggered (Err err) ->
       Debug.log ("failed to trigger build: " ++ toString err) <|
         (model, Cmd.none)
@@ -158,33 +144,42 @@ update action model =
         (model, Cmd.none)
     JobFetched (Ok job) ->
       ( { model | job = Just job }
-      , Cmd.batch
-          [ fetchJob (5 * Time.second) model.jobIdentifier
-          , model.ports.selectGroups job.groups
-          ]
+      , model.ports.title <| job.name ++ " - "
       )
     JobFetched (Err err) ->
       Debug.log ("failed to fetch job info: " ++ toString err) <|
         (model, Cmd.none)
-    BuildResourcesFetched buildResourcesFetched ->
-      case buildResourcesFetched.result of
-        Ok buildResources ->
-          case model.buildsWithResources of
-            Nothing -> (model, Cmd.none)
-            Just bwr ->
-              case Array.get buildResourcesFetched.index bwr of
-                Nothing -> (model, Cmd.none)
-                Just lubwr ->
-                  ( { model
-                    | buildsWithResources = Just
-                      <| Array.set buildResourcesFetched.index
-                                   (addFetchedResources buildResources lubwr)
-                                   bwr
-                    }
-                  , Cmd.none
-                  )
-        Err err ->
+    BuildResourcesFetched id (Ok buildResources) ->
+      case model.buildsWithResources.content of
+        [] ->
           (model, Cmd.none)
+        anyList ->
+          let
+            transformer =
+              \bwr ->
+                let
+                  bwrb =
+                    bwr.build
+                in
+                  if bwr.build.id == id then
+                    { bwr
+                    | resources = Just buildResources
+                    }
+                  else
+                    bwr
+            bwrs =
+              model.buildsWithResources
+          in
+            ( { model
+              | buildsWithResources =
+                  { bwrs
+                  | content = List.map transformer anyList
+                  }
+              }
+            , Cmd.none
+            )
+    BuildResourcesFetched _ (Err err) ->
+      (model, Cmd.none)
     ClockTick now ->
       ({ model | now = now }, Cmd.none)
     TogglePaused ->
@@ -202,10 +197,19 @@ update action model =
     PausedToggled (Ok ()) ->
       ( { model | pausedChanging = False} , Cmd.none)
     PausedToggled (Err (Http.BadResponse 401 _)) ->
-      (model, redirectToLogin model)
+      (model, loginRedirect model)
     PausedToggled (Err err) ->
       Debug.log ("failed to pause/unpause job: " ++ toString err) <|
         (model, Cmd.none)
+    NavTo url ->
+      (model, Navigation.newUrl url)
+    SubscriptionTick time ->
+      ( model
+      , Cmd.batch
+          [ fetchJobBuilds model.jobIdentifier model.currentPage
+          , fetchJob model.jobIdentifier
+          ]
+      )
 
 permalink : List Concourse.Build -> Page
 permalink builds =
@@ -219,31 +223,42 @@ permalink builds =
       , limit = List.length builds
       }
 
+paginatedMap : (a -> b) -> Paginated a -> Paginated b
+paginatedMap promoter pagA =
+  { content =
+      List.map promoter pagA.content
+  , pagination = pagA.pagination
+  }
+
+promoteBuild : Concourse.Build -> BuildWithResources
+promoteBuild build =
+  { build = build
+  , resources = Nothing
+  }
+
+updateResourcesIfNeeded : BuildWithResources -> Maybe (Cmd Msg)
+updateResourcesIfNeeded bwr =
+  case (bwr.resources, isRunning bwr.build) of
+    (Just resources, False) ->
+      Nothing
+    _ ->
+      Just <| fetchBuildResources bwr.build.id
+
+
 handleJobBuildsFetched : Paginated Concourse.Build -> Model -> (Model, Cmd Msg)
 handleJobBuildsFetched paginatedBuilds model =
   let
-    fetchedBuilds = Array.fromList paginatedBuilds.content
-    newPage = permalink paginatedBuilds.content
+    newPage =
+      permalink paginatedBuilds.content
+    newBWRs = -- later, consider saving resources info for builds that already existed in the model
+      paginatedMap promoteBuild paginatedBuilds
   in
     ( { model
-        | buildsWithResources =
-            Just <| case model.buildsWithResources of
-              Nothing -> Array.map initLiveUpdatingBuildWithResources fetchedBuilds
-              Just lubwrs ->
-                Array.indexedMap (addNextBuildFromArray fetchedBuilds) lubwrs
-        , page = newPage
-        , pagination = paginatedBuilds.pagination
+      | buildsWithResources = newBWRs
+      , currentPage = Just newPage
       }
-    , Cmd.batch
-        <| (fetchJobBuilds (5 * Time.second) model.jobIdentifier (Just newPage))
-        :: ( Array.toList
-             <| Array.indexedMap fetchBuildResources
-             <| Array.map .id
-             <| case model.buildsWithResources of
-               Nothing -> fetchedBuilds
-               Just lubwrs ->
-                 Array.filter isRunning
-                 <| Array.map .nextBuild lubwrs )
+
+      , Cmd.batch <| List.filterMap updateResourcesIfNeeded newBWRs.content
     )
 
 isRunning : Concourse.Build -> Bool
@@ -252,25 +267,37 @@ isRunning build =
 
 view : Model -> Html Msg
 view model =
-  Html.div [class "with-fixed-header"] [
+  Html.div [class "with-fixed-header"]
+  [
     case model.job of
       Nothing ->
         loadSpinner
-
       Just job ->
         Html.div [class "fixed-header"]
           [ Html.div [ class ("build-header " ++ headerBuildStatusClass job.finishedBuild)] -- TODO really?
               [ Html.button
                   ( List.append
-                    [id "job-state", attribute "aria-label" "Toggle Job Paused State", class <| "btn-pause btn-large fl " ++ (getPausedState job model.pausedChanging)]
+                    [ id "job-state"
+                    , attribute "aria-label" "Toggle Job Paused State"
+                    , class <|
+                        "btn-pause btn-large fl " ++ (getPausedState job model.pausedChanging)
+                    ]
                     (if not model.pausedChanging then [onClick TogglePaused] else [])
                   )
-                  [ Html.i [ class <| "fa fa-fw fa-play " ++ (getPlayPauseLoadIcon job model.pausedChanging) ] [] ]
+                  [ Html.i
+                    [ class <|
+                        "fa fa-fw fa-play " ++ (getPlayPauseLoadIcon job model.pausedChanging)
+                    ] []
+                  ]
               , Html.form
                   [ class "trigger-build"
                   , onLeftClick TriggerBuild
                   ]
-                  [ Html.button [ class "build-action fr", disabled job.disableManualTrigger, attribute "aria-label" "Trigger Build" ]
+                  [ Html.button
+                    [ class "build-action fr"
+                    , disabled job.disableManualTrigger
+                    , attribute "aria-label" "Trigger Build"
+                    ]
                     [ Html.i [ class "fa fa-plus-circle" ] []
                     ]
                   ]
@@ -281,14 +308,14 @@ view model =
               , Html.h1 [] [ Html.text("builds") ]
               ]
           ],
-    case model.buildsWithResources of
-      Nothing ->
+    case model.buildsWithResources.content of
+      [] ->
         loadSpinner
 
-      Just bwr ->
+      anyList ->
         Html.div [class "scrollable-body job-body"]
           [ Html.ul [ class "jobs-builds-list builds-list" ]
-            <| List.map (viewBuildWithResources model) <| Array.toList bwr
+            <| List.map (viewBuildWithResources model) anyList
           ]
   ]
 
@@ -328,7 +355,7 @@ headerBuildStatusClass finishedBuild =
 viewPaginationBar : Model -> Html Msg
 viewPaginationBar model =
   Html.div [ class "pagination fr"]
-    [ case model.pagination.previousPage of
+    [ case model.buildsWithResources.pagination.previousPage of
         Nothing ->
           Html.div [ class "btn-page-link disabled"]
           [ Html.span [class "arrow"]
@@ -336,17 +363,22 @@ viewPaginationBar model =
             ]
           ]
         Just page ->
-          Html.div [ class "btn-page-link"]
-          [ Html.a
-            [ class "arrow"
-            , href <| "/teams/" ++ model.jobIdentifier.teamName ++ "/pipelines/" ++ model.jobIdentifier.pipelineName ++ "/jobs/"
+          let
+            jobUrl =
+              "/teams/" ++ model.jobIdentifier.teamName ++ "/pipelines/" ++ model.jobIdentifier.pipelineName ++ "/jobs/"
               ++ model.jobIdentifier.jobName ++ "?" ++ paginationParam page
-            , attribute "aria-label" "Previous Page"
+          in
+            Html.div [ class "btn-page-link"]
+            [ Html.a
+              [ class "arrow"
+              , StrictEvents.onLeftClick <| NavTo jobUrl
+              , href jobUrl
+              , attribute "aria-label" "Previous Page"
+              ]
+              [ Html.i [ class "fa fa-arrow-left"] []
+              ]
             ]
-            [ Html.i [ class "fa fa-arrow-left"] []
-            ]
-          ]
-    , case model.pagination.nextPage of
+    , case model.buildsWithResources.pagination.nextPage of
         Nothing ->
           Html.div [ class "btn-page-link disabled"]
           [ Html.span [class "arrow"]
@@ -354,53 +386,61 @@ viewPaginationBar model =
             ]
           ]
         Just page ->
-          Html.div [ class "btn-page-link"]
-          [ Html.a
-            [ class "arrow"
-            , href <| "/teams/" ++ model.jobIdentifier.teamName ++ "/pipelines/" ++ model.jobIdentifier.pipelineName ++ "/jobs/"
-              ++ model.jobIdentifier.jobName ++ "?" ++ paginationParam page
-            , attribute "aria-label" "Next Page"
+          let
+            jobUrl =
+              "/teams/" ++ model.jobIdentifier.teamName ++ "/pipelines/" ++ model.jobIdentifier.pipelineName ++ "/jobs/"
+                ++ model.jobIdentifier.jobName ++ "?" ++ paginationParam page
+          in
+            Html.div [ class "btn-page-link"]
+            [ Html.a
+              [ class "arrow"
+              , StrictEvents.onLeftClick <| NavTo jobUrl
+              , href jobUrl
+              , attribute "aria-label" "Next Page"
+              ]
+              [ Html.i [ class "fa fa-arrow-right"] []
+              ]
             ]
-            [ Html.i [ class "fa fa-arrow-right"] []
-            ]
-          ]
     ]
 
-viewBuildWithResources : Model -> LiveUpdatingBuildWithResources -> Html Msg
-viewBuildWithResources model lubwr =
+viewBuildWithResources : Model -> BuildWithResources -> Html Msg
+viewBuildWithResources model bwr =
   Html.li [class "js-build"]
     <| let
-      build =
-        case lubwr.buildWithResources of
-          Nothing -> lubwr.nextBuild
-          Just bwr -> bwr.build
-      buildResourcesView = viewBuildResources model lubwr.buildWithResources
+      buildResourcesView = viewBuildResources model bwr
     in
-      [ viewBuildHeader model build
+      [ viewBuildHeader model bwr.build
       , Html.div [class "pam clearfix"]
-        <| (BuildDuration.view build.duration model.now) :: buildResourcesView
+        <| (BuildDuration.view bwr.build.duration model.now) :: buildResourcesView
       ]
 
 viewBuildHeader : Model -> Concourse.Build -> Html Msg
 viewBuildHeader model b =
   Html.a
   [class <| Concourse.BuildStatus.show b.status
+  , StrictEvents.onLeftClick <| NavTo <| Concourse.Build.url b
   , href <| Concourse.Build.url b
   ]
   [ Html.text ("#" ++ b.name)
   ]
 
-viewBuildResources : Model -> (Maybe BuildWithResources) -> List (Html Msg)
+viewBuildResources : Model -> BuildWithResources -> List (Html Msg)
 viewBuildResources model buildWithResources =
   let
     inputsTable =
-      case buildWithResources of
-        Nothing -> loadSpinner
-        Just bwr -> Html.table [class "build-resources"] <| List.map (viewBuildInputs model) bwr.resources.inputs
+      case buildWithResources.resources of
+        Nothing ->
+          loadSpinner
+        Just resources ->
+          Html.table [class "build-resources"] <|
+            List.map (viewBuildInputs model) resources.inputs
     outputsTable =
-      case buildWithResources of
-        Nothing -> loadSpinner
-        Just bwr -> Html.table [class "build-resources"] <| List.map (viewBuildOutputs model) bwr.resources.outputs
+      case buildWithResources.resources of
+        Nothing ->
+          loadSpinner
+        Just resources ->
+          Html.table [class "build-resources"] <|
+            List.map (viewBuildOutputs model) resources.outputs
   in
     [ Html.div [class "inputs mrl"]
       [ Html.div [class "resource-title pbs"]
@@ -450,23 +490,20 @@ triggerBuild job =
   Cmd.map BuildTriggered << Task.perform Err Ok <|
     Concourse.Job.triggerBuild job
 
-fetchJobBuilds : Time -> Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Msg
-fetchJobBuilds delay jobIdentifier page =
+fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Msg
+fetchJobBuilds jobIdentifier page =
   Cmd.map JobBuildsFetched << Task.perform Err Ok <|
-    Process.sleep delay `Task.andThen` (always <| Concourse.Build.fetchJobBuilds jobIdentifier page)
+    Concourse.Build.fetchJobBuilds jobIdentifier page
 
-fetchJob : Time -> Concourse.JobIdentifier -> Cmd Msg
-fetchJob delay jobIdentifier =
+fetchJob : Concourse.JobIdentifier -> Cmd Msg
+fetchJob jobIdentifier =
   Cmd.map JobFetched << Task.perform Err Ok <|
-    Process.sleep delay `Task.andThen` (always <| Concourse.Job.fetchJob jobIdentifier)
+    Concourse.Job.fetchJob jobIdentifier
 
-fetchBuildResources : Int -> Concourse.BuildId -> Cmd Msg
-fetchBuildResources index buildId =
-  Cmd.map (initBuildResourcesFetched index) << Task.perform Err Ok <|
-    Concourse.BuildResources.fetch buildId
-
-initBuildResourcesFetched : Int -> Result Http.Error (Concourse.BuildResources) -> Msg
-initBuildResourcesFetched index result = BuildResourcesFetched { index = index, result = result }
+fetchBuildResources : Concourse.BuildId -> Cmd Msg
+fetchBuildResources buildIdentifier =
+  Cmd.map (BuildResourcesFetched buildIdentifier) << Task.perform Err Ok <|
+    Concourse.BuildResources.fetch buildIdentifier
 
 paginationParam : Page -> String
 paginationParam page =
@@ -487,7 +524,10 @@ unpauseJob jobIdentifier =
   Cmd.map PausedToggled << Task.perform Err Ok <|
     Concourse.Job.unpause jobIdentifier
 
-redirectToLogin : Model -> Cmd Msg
-redirectToLogin model =
-  Cmd.map (always Noop) << Task.perform Err Ok <|
-    Redirect.to "/login"
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Time.every (5 * Time.second) SubscriptionTick
+
+loginRedirect : Model -> Cmd Msg
+loginRedirect model =
+  Navigation.newUrl ("/teams/" ++ model.jobIdentifier.teamName ++ "/login")
