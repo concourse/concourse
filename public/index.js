@@ -1,11 +1,11 @@
 var currentHighlight;
 
-function draw(svg, jobs, resources) {
-  concourse.redraw = redrawFunction(svg, jobs, resources);
+function draw(svg, jobs, resources, newUrl) {
+  concourse.redraw = redrawFunction(svg, jobs, resources, newUrl);
   concourse.redraw();
 }
 
-function redrawFunction(svg, jobs, resources) {
+function redrawFunction(svg, jobs, resources, newUrl) {
   return function() {
     // reset viewbox so calculations are done from a blank slate.
     //
@@ -79,6 +79,10 @@ function redrawFunction(svg, jobs, resources) {
 
     var nodeLink = svgNode.append("svg:a")
       .attr("xlink:href", function(node) { return node.url })
+      .on("click", function(node, ev, x) {
+        d3.event.preventDefault();
+        newUrl.send(node.url);
+      })
 
     var jobStatusBackground = nodeLink.append("rect")
       .attr("height", function(node) { return node.height() })
