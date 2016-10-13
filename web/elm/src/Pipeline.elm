@@ -6,7 +6,6 @@ import Html.Attributes.Aria exposing (ariaLabel)
 import Http
 import Json.Encode
 import Json.Decode
-import Navigation
 import Svg exposing (..)
 import Svg.Attributes as SvgAttributes
 import Task
@@ -20,6 +19,7 @@ import Concourse.Resource
 import Concourse.Pipeline
 import Route.QueryString as QueryString
 import Routes
+import LoginRedirect
 
 type alias Ports =
   { render : (Json.Encode.Value, Json.Encode.Value) -> Cmd Msg
@@ -135,7 +135,7 @@ update msg model =
       )
 
     PipelineFetched (Err (Http.BadResponse 401 _)) ->
-      (model, loginRedirect model)
+      (model, LoginRedirect.requestLoginRedirect "")
 
     PipelineFetched (Err err) ->
       renderIfNeeded { model | experiencingTurbulence = True }
@@ -144,7 +144,7 @@ update msg model =
       renderIfNeeded { model | fetchedJobs = Just fetchedJobs, experiencingTurbulence = False }
 
     JobsFetched (Err (Http.BadResponse 401 _)) ->
-      (model, loginRedirect model)
+      (model, LoginRedirect.requestLoginRedirect "")
 
     JobsFetched (Err err) ->
       renderIfNeeded { model | fetchedJobs = Nothing, experiencingTurbulence = True }
@@ -153,7 +153,7 @@ update msg model =
       renderIfNeeded { model | fetchedResources = Just fetchedResources, experiencingTurbulence = False }
 
     ResourcesFetched (Err (Http.BadResponse 401 _)) ->
-      (model, loginRedirect model)
+      (model, LoginRedirect.requestLoginRedirect "")
 
     ResourcesFetched (Err err) ->
       renderIfNeeded { model | fetchedResources = Nothing, experiencingTurbulence = True }
@@ -340,7 +340,3 @@ anyIntersect list1 list2 =
     first :: rest ->
       if List.member first list2 then True
       else anyIntersect rest list2
-
-loginRedirect : Model -> Cmd Msg
-loginRedirect model =
-  Navigation.newUrl ("/teams/" ++ model.pipelineLocator.teamName ++ "/login")

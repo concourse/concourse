@@ -16,6 +16,7 @@ import Concourse.Pipeline
 import Concourse.User
 import Routes
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
+import LoginRedirect
 
 type alias Model =
   { pipelineIdentifier : Maybe Concourse.PipelineIdentifier
@@ -125,6 +126,9 @@ update msg model =
                   }
                 , Cmd.none
                 )
+
+    PipelineFetched (Err (Http.BadResponse 401 _)) ->
+      (model, LoginRedirect.requestLoginRedirect "")
 
     PipelineFetched (Err err) ->
       Debug.log

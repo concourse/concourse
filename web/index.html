@@ -31,6 +31,22 @@
         }
       })
 
+      var teamNameRegExp =  /\/teams\/([^/]+)\/.*/;
+
+      app.ports.requestLoginRedirect.subscribe(function (message) {
+          var path = document.location.pathname;
+          var redirect = encodeURIComponent(path.substr(1) + document.location.search)
+          var matches = path.match(teamNameRegExp)
+          var loginUrl;
+          if(matches) {
+            var teamName = matches[1];
+            loginUrl = "/teams/" + teamName + "/login?redirect="+ redirect;
+          } else {
+            loginUrl = "/login?redirect="+ redirect;
+          }
+          app.ports.newUrl.send(loginUrl);
+      })
+
       app.ports.setTitle.subscribe(function(title) {
         document.title = title + "Concourse";
       });

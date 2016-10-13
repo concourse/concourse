@@ -57,28 +57,6 @@ var _ = Describe("Auth", func() {
 	})
 
 	Describe("GitHub Auth", func() {
-		Context("in a browser", func() {
-			var page *agouti.Page
-
-			BeforeEach(func() {
-				var err error
-				page, err = agoutiDriver.NewPage()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			AfterEach(func() {
-				Expect(page.Destroy()).To(Succeed())
-			})
-
-			It("forces a redirect to /teams/main/login", func() {
-				atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH)
-				err := atcCommand.Start()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main"))).To(Succeed())
-				Eventually(page).Should(HaveURL(atcCommand.URL("/teams/main/login")))
-			})
-		})
-
 		It("requires client id and client secret to be specified", func() {
 			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, GITHUB_AUTH_NO_CLIENT_SECRET)
 			session, err := atcCommand.StartAndWait()

@@ -39,6 +39,7 @@ import Favicon
 import LoadingIndicator
 import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
 import Scroll
+import LoginRedirect
 
 type alias Ports =
   { title : String -> Cmd Msg
@@ -183,7 +184,7 @@ update action model =
         }
 
     BuildTriggered (Err (Http.BadResponse 401 _)) ->
-      (model, loginRedirect model)
+      (model, LoginRedirect.requestLoginRedirect "")
 
     BuildTriggered (Err err) ->
       Debug.log ("failed to trigger build: " ++ toString err) <|
@@ -191,6 +192,9 @@ update action model =
 
     BuildFetched browsingIndex (Ok build) ->
       handleBuildFetched browsingIndex build model
+
+    BuildFetched _ (Err (Http.BadResponse 401 _)) ->
+      (model, LoginRedirect.requestLoginRedirect "")
 
     BuildFetched _ (Err err) ->
       Debug.log ("failed to fetch build: " ++ toString err) <|
@@ -203,7 +207,7 @@ update action model =
       (model, Cmd.none)
 
     BuildAborted (Err (Http.BadResponse 401 _)) ->
-      (model, loginRedirect model)
+      (model, LoginRedirect.requestLoginRedirect "")
 
     BuildAborted (Err err) ->
       Debug.log ("failed to abort build: " ++ toString err) <|
@@ -706,15 +710,6 @@ getScrollBehavior model =
 
         _ ->
           Autoscroll.ScrollWindow
-
-loginRedirect : Model -> Cmd Msg
-loginRedirect model =
-  Navigation.newUrl <|
-    case model.job of
-      Nothing ->
-        "/login"
-      Just job ->
-        "/teams/" ++ job.pipeline.teamName ++ "/login"
 
 handleOutMsg : BuildOutput.OutMsg -> Model -> (Model, Cmd Msg)
 handleOutMsg outMsg model =

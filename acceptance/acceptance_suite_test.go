@@ -83,8 +83,12 @@ func init() {
 	var _ = Screenshot
 }
 
-func Login(page *agouti.Page, homePage string) {
-	Expect(page.Navigate(homePage + "/teams/main/login")).To(Succeed())
+func Login(page *agouti.Page, baseUrl string) {
+	Expect(page.Navigate(baseUrl + "/teams/main/login")).To(Succeed())
+	FillLoginFormAndSubmit(page)
+}
+
+func FillLoginFormAndSubmit(page *agouti.Page) {
 	Eventually(page.FindByName("username")).Should(BeFound())
 	Expect(page.FindByName("username").Fill("admin")).To(Succeed())
 	Expect(page.FindByName("password").Fill("password")).To(Succeed())
