@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ -z "$DOCKER_HOST" ]; then
+  # assume locally running Docker on linux
+  exec sudo docker "$@"
+else
+  # assume docker-machine or remote docker w/ auth
+  exec docker "$@"
+fi
+

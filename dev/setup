@@ -2,6 +2,10 @@
 
 set -e -u
 
+ROOT=$(cd $(dirname $0)/.. && pwd)
+
+$ROOT/dev/util/docker pull concourse/concourse
+
 DEVDIR=/tmp/concourse-dev
 KEYSDIR=$DEVDIR/keys
 
