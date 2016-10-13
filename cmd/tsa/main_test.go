@@ -21,14 +21,14 @@ import (
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	gserver "code.cloudfoundry.org/garden/server"
+	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/localip"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/lager/lagertest"
-	"code.cloudfoundry.org/localip"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/onsi/gomega/gbytes"
@@ -95,12 +95,16 @@ var _ = Describe("TSA SSH Registrar", func() {
 			hostKey    string
 			hostKeyPub string
 
-			jwtValidator       auth.JWTValidator
-			authorizedKeysFile string
+			jwtValidator           auth.JWTValidator
+			authorizedKeysFile     string
+			teamAuthorizedKeysFile string
 
 			userKnownHostsFile string
 
-			userKey string
+			userKey     string
+			teamUserKey string
+
+			tsaRunner *ginkgomon.Runner
 		)
 
 		BeforeEach(func() {
@@ -155,6 +159,24 @@ var _ = Describe("TSA SSH Registrar", func() {
 			_, err = authorizedKeys.Write(ssh.MarshalAuthorizedKey(userSigner.PublicKey()))
 			Expect(err).NotTo(HaveOccurred())
 
+			teamAuthorizedKeys, err := ioutil.TempFile("", "exampleteam_authorized_keys")
+			Expect(err).NotTo(HaveOccurred())
+
+			defer teamAuthorizedKeys.Close()
+
+			teamAuthorizedKeysFile = teamAuthorizedKeys.Name()
+
+			teamUserKey, _ = generateSSHKeypair()
+
+			teamUserKeyBytes, err := ioutil.ReadFile(teamUserKey)
+			Expect(err).NotTo(HaveOccurred())
+
+			teamSigner, err := ssh.ParsePrivateKey(teamUserKeyBytes)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = teamAuthorizedKeys.Write(ssh.MarshalAuthorizedKey(teamSigner.PublicKey()))
+			Expect(err).NotTo(HaveOccurred())
+
 			forwardHost, err = localip.LocalIP()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -175,12 +197,13 @@ var _ = Describe("TSA SSH Registrar", func() {
 				"--peer-ip", forwardHost,
 				"--host-key", hostKey,
 				"--authorized-keys", authorizedKeysFile,
+				"--team-authorized-keys", "exampleteam="+teamAuthorizedKeysFile,
 				"--session-signing-key", sessionSigningPrivateKeyFile,
 				"--atc-url", atcServer.URL(),
 				"--heartbeat-interval", heartbeatInterval.String(),
 			)
 
-			tsaRunner := ginkgomon.New(ginkgomon.Config{
+			tsaRunner = ginkgomon.New(ginkgomon.Config{
 				Command:       tsaCommand,
 				Name:          "tsa",
 				StartCheck:    "tsa.listening",
@@ -773,6 +796,162 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 				It("exits with failure", func() {
 					Eventually(sshSess, 10).Should(gexec.Exit(255))
+				})
+			})
+
+			Context("with a valid team key", func() {
+				BeforeEach(func() {
+					sshArgv = append(sshArgv, "-i", teamUserKey)
+				})
+
+				Context("when running register-worker", func() {
+					BeforeEach(func() {
+						sshArgv = append(sshArgv, "register-worker")
+					})
+
+					It("does not exit", func() {
+						Consistently(sshSess, 1).ShouldNot(gexec.Exit())
+					})
+
+					Context("sending a worker from the same team's payload on stdin", func() {
+						type registration struct {
+							worker atc.Worker
+							ttl    time.Duration
+						}
+
+						var workerPayload atc.Worker
+						var registered chan registration
+
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								GardenAddr: gardenAddr,
+
+								Platform: "linux",
+								Tags:     []string{"some", "tags"},
+								Team:     "exampleteam",
+
+								ResourceTypes: []atc.WorkerResourceType{
+									{Type: "resource-type-a", Image: "resource-image-a"},
+									{Type: "resource-type-b", Image: "resource-image-b"},
+								},
+							}
+
+							registered = make(chan registration)
+
+							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
+								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
+								err := json.NewDecoder(r.Body).Decode(&worker)
+								Expect(err).NotTo(HaveOccurred())
+
+								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+								Expect(err).NotTo(HaveOccurred())
+
+								registered <- registration{worker, ttl}
+							})
+
+							stubs := make(chan func() ([]garden.Container, error), 4)
+
+							stubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							stubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							stubs <- func() ([]garden.Container, error) {
+								return nil, errors.New("garden was weeded")
+							}
+
+							stubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
+								return (<-stubs)()
+							}
+						})
+
+						JustBeforeEach(func() {
+							err := json.NewEncoder(sshStdin).Encode(workerPayload)
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("continuously registers it with the ATC as long as it works", func() {
+							expectedWorkerPayload := workerPayload
+
+							expectedWorkerPayload.ActiveContainers = 3
+
+							a := time.Now()
+							Expect(<-registered).To(Equal(registration{
+								worker: expectedWorkerPayload,
+								ttl:    2 * heartbeatInterval,
+							}))
+
+							expectedWorkerPayload.ActiveContainers = 2
+
+							b := time.Now()
+							Expect(<-registered).To(Equal(registration{
+								worker: expectedWorkerPayload,
+								ttl:    2 * heartbeatInterval,
+							}))
+
+							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
+
+							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+
+							expectedWorkerPayload.ActiveContainers = 1
+
+							c := time.Now()
+							Expect(<-registered).To(Equal(registration{
+								worker: expectedWorkerPayload,
+								ttl:    2 * heartbeatInterval,
+							}))
+
+							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+
+							Eventually(sshSess.Out).Should(gbytes.Say("heartbeat"))
+						})
+					})
+
+					Context("sending a worker from a different team", func() {
+						var workerPayload atc.Worker
+
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								GardenAddr: gardenAddr,
+
+								Platform: "linux",
+								Tags:     []string{"some", "tags"},
+								Team:     "wrong",
+
+								ResourceTypes: []atc.WorkerResourceType{
+									{Type: "resource-type-a", Image: "resource-image-a"},
+									{Type: "resource-type-b", Image: "resource-image-b"},
+								},
+							}
+						})
+
+						JustBeforeEach(func() {
+							err := json.NewEncoder(sshStdin).Encode(workerPayload)
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("should error with worker not allowed", func() {
+							Eventually(tsaRunner.Buffer()).Should(gbytes.Say("worker-not-allowed-to-team"))
+						})
+					})
 				})
 			})
 		})
