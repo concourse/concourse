@@ -2,14 +2,14 @@
 
 set -e -u
 
-cd $(dirname $0)
-
 ROOT=$(cd $(dirname $0)/.. && pwd)
 
 export GOPATH=$ROOT
 export PATH=$ROOT/bin:$PATH
 
 go install github.com/mattn/goreman
+
+cd $ROOT/dev
 
 # set up keys
 ./setup
