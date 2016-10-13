@@ -23,9 +23,9 @@ resources/bosh-io-release-resource.tar.gz:
   object_id: b0670bb5-6e1e-455d-7f15-aaf24de8d0ba
   sha: 4e178d74d4933d10fc074f28ac1d3e57f31a20f1
 resources/bosh-io-stemcell-resource.tar.gz:
-  size: 7688631
-  object_id: 9fe9f171-ec0d-4057-526f-c0512995a778
-  sha: 1d13cc87e393dae2e097c2b0e32308e9b061b859
+  size: 7688313
+  object_id: f103bb71-511e-48bb-465e-864d3b66e1d4
+  sha: e0633b1112b183879747feea1c36ecc173ff0f99
 resources/cf-resource.tar.gz:
   size: 17891506
   object_id: 342d29a0-ed4e-4846-6a11-04c851f0fa04
