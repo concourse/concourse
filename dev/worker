@@ -9,5 +9,11 @@ KEYSDIR=$DEVDIR/keys
 
 external_ip="$($ROOT/dev/external-ip)"
 
-sudo docker run --rm --privileged -v $KEYSDIR/worker:/concourse-keys \
+docker="sudo docker"
+if [ -n "$DOCKER_HOST" ]; then
+  # assume docker-machine or remote docker w/ auth
+  docker="docker"
+fi
+
+$docker run --rm --privileged -v $KEYSDIR/worker:/concourse-keys \
   concourse/concourse worker --tsa-host "$external_ip"
