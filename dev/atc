@@ -12,7 +12,7 @@ export PATH=$ROOT/bin:$PATH
 
 go install github.com/concourse/atc/cmd/atc
 
-external_ip="$($ROOT/dev/external-ip)"
+external_ip="$($ROOT/dev/util/external-ip)"
 
 atc \
   --development-mode \

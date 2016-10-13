@@ -7,7 +7,7 @@ ROOT=$(cd $(dirname $0)/.. && pwd)
 DEVDIR=/tmp/concourse-dev
 KEYSDIR=$DEVDIR/keys
 
-external_ip="$($ROOT/dev/external-ip)"
+external_ip="$($ROOT/dev/util/external-ip)"
 
 docker="sudo docker"
 if [ -n "$DOCKER_HOST" ]; then
