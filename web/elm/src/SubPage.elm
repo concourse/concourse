@@ -159,7 +159,7 @@ update turbulence msg mdl =
           in
             superDupleWrap (PipelineModel, PipelineMsg) <| Pipeline.init {render = renderPipeline, title = setTitle} flags
     _ ->
-      Debug.log "Impossible combination" (mdl, Cmd.none)
+      Debug.log "impossible combination" (mdl, Cmd.none)
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =

@@ -90,29 +90,25 @@ init =
 
 
 onEffects : Platform.Router msg FromBottom -> List (MySub msg) -> State msg -> Task Never (State msg)
-onEffects router subs state =
-  case state of
-    Nothing ->
-      case subs of
-        [] ->
-          Task.succeed state
+onEffects router newSubs state =
+  case (state, newSubs) of
+    (Nothing, []) ->
+      Task.succeed Nothing
 
-        _ ->
-          Process.spawn (Dom.onWindow "scroll" decodeFromBottom (Platform.sendToSelf router))
-            `Task.andThen` \watcher ->
+    (Just {watcher}, []) ->
+      Process.kill watcher
+        `Task.andThen` \_ ->
 
-          Task.succeed (Just { subs = subs, watcher = watcher })
+      Task.succeed Nothing
 
-    Just {subs,watcher} ->
-      case subs of
-        [] ->
-          Process.kill watcher
-            `Task.andThen` \_ ->
+    (Nothing, _) ->
+      Process.spawn (Dom.onWindow "scroll" decodeFromBottom (Platform.sendToSelf router))
+        `Task.andThen` \watcher ->
 
-          Task.succeed Nothing
+      Task.succeed (Just { subs = newSubs, watcher = watcher })
 
-        _ ->
-          Task.succeed (Just { subs = subs, watcher = watcher })
+    (Just state, _) ->
+      Task.succeed (Just { state | subs = newSubs })
 
 
 onSelfMsg : Platform.Router msg FromBottom -> FromBottom -> State msg -> Task Never (State msg)
