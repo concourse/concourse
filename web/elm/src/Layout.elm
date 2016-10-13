@@ -1,13 +1,16 @@
-module Layout exposing (Flags, Model, Msg, init, update, urlUpdate, view, subscriptions)
+port module Layout exposing (Flags, Model, Msg, init, update, urlUpdate, view, subscriptions)
 
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (class, id)
 import Html.App
 import Login exposing (Msg(..))
+import Navigation
 import TopBar
 import SideBar
 import Routes
 import SubPage
+
+port newUrl : (String -> msg) -> Sub msg
 
 type alias Flags =
   { turbulenceImgSrc : String
@@ -30,6 +33,7 @@ type Msg
   = SubMsg NavIndex SubPage.Msg
   | TopMsg NavIndex TopBar.Msg
   | SideMsg NavIndex SideBar.Msg
+  | NewUrl String
 
 init : Flags -> Routes.ConcourseRoute -> (Model, Cmd (Msg))
 init flags route =
@@ -64,6 +68,9 @@ init flags route =
 update : Msg -> Model -> (Model, Cmd (Msg))
 update msg model =
   case msg of
+    NewUrl url ->
+      (model, Navigation.newUrl url)
+
     TopMsg _ TopBar.ToggleSidebar ->
       ( { model
         | sidebarVisible = not model.sidebarVisible
@@ -210,7 +217,8 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Sub.map (TopMsg model.navIndex) <| TopBar.subscriptions model.topModel
+    [ newUrl NewUrl
+    , Sub.map (TopMsg model.navIndex) <| TopBar.subscriptions model.topModel
     , Sub.map (SideMsg model.navIndex) <| SideBar.subscriptions model.sideModel
     , Sub.map (SubMsg model.navIndex) <| SubPage.subscriptions model.subModel
     ]

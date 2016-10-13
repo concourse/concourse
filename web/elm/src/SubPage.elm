@@ -25,7 +25,6 @@ import TeamSelection
 
 port renderPipeline : (Json.Encode.Value, Json.Encode.Value) -> Cmd msg
 port setTitle : String -> Cmd msg
--- port setTitle : String -> Cmd msg
 
 type Model
   = WaitingModel Routes.ConcourseRoute
