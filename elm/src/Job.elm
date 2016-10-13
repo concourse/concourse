@@ -18,6 +18,7 @@ import BuildDuration
 import DictView
 import Navigation
 import StrictEvents exposing (onLeftClick)
+import LoginRedirect
 
 type alias Ports =
   { title : String -> Cmd Msg
@@ -133,7 +134,7 @@ update action model =
               "/builds/" ++ build.name
       )
     BuildTriggered (Err (Http.BadResponse 401 _)) ->
-      (model, loginRedirect model)
+      (model, LoginRedirect.requestLoginRedirect "")
     BuildTriggered (Err err) ->
       Debug.log ("failed to trigger build: " ++ toString err) <|
         (model, Cmd.none)
@@ -146,6 +147,8 @@ update action model =
       ( { model | job = Just job }
       , model.ports.title <| job.name ++ " - "
       )
+    JobFetched (Err (Http.BadResponse 401 _)) ->
+      (model, LoginRedirect.requestLoginRedirect "")
     JobFetched (Err err) ->
       Debug.log ("failed to fetch job info: " ++ toString err) <|
         (model, Cmd.none)
@@ -197,7 +200,7 @@ update action model =
     PausedToggled (Ok ()) ->
       ( { model | pausedChanging = False} , Cmd.none)
     PausedToggled (Err (Http.BadResponse 401 _)) ->
-      (model, loginRedirect model)
+      (model, LoginRedirect.requestLoginRedirect "")
     PausedToggled (Err err) ->
       Debug.log ("failed to pause/unpause job: " ++ toString err) <|
         (model, Cmd.none)
@@ -527,7 +530,3 @@ unpauseJob jobIdentifier =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Time.every (5 * Time.second) SubscriptionTick
-
-loginRedirect : Model -> Cmd Msg
-loginRedirect model =
-  Navigation.newUrl ("/teams/" ++ model.jobIdentifier.teamName ++ "/login")
