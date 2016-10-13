@@ -13,8 +13,12 @@ type alias Flags =
   { turbulenceImgSrc : String
   }
 
+type alias NavIndex =
+  Int
+
 type alias Model =
-  { subModel : SubPage.Model
+  { navIndex : NavIndex
+  , subModel : SubPage.Model
   , topModel : TopBar.Model
   , sideModel : SideBar.Model
   , sidebarVisible : Bool
@@ -23,9 +27,9 @@ type alias Model =
   }
 
 type Msg
-  = SubMsg SubPage.Msg
-  | TopMsg TopBar.Msg
-  | SideMsg SideBar.Msg
+  = SubMsg NavIndex SubPage.Msg
+  | TopMsg NavIndex TopBar.Msg
+  | SideMsg NavIndex SideBar.Msg
 
 init : Flags -> Routes.ConcourseRoute -> (Model, Cmd (Msg))
 init flags route =
@@ -38,8 +42,12 @@ init flags route =
 
     (sideModel, sideCmd) =
       SideBar.init
+
+    navIndex =
+      1
   in
-    ( { subModel = subModel
+    ( { navIndex = navIndex
+      , subModel = subModel
       , topModel = topModel
       , sideModel = sideModel
       , sidebarVisible = False
@@ -47,22 +55,23 @@ init flags route =
       , route = route
       }
     , Cmd.batch
-        [ Cmd.map SubMsg subCmd
-        , Cmd.map TopMsg topCmd
-        , Cmd.map SideMsg sideCmd
+        [ Cmd.map (SubMsg navIndex) subCmd
+        , Cmd.map (TopMsg navIndex) topCmd
+        , Cmd.map (SideMsg navIndex) sideCmd
         ]
     )
 
 update : Msg -> Model -> (Model, Cmd (Msg))
 update msg model =
   case msg of
-    TopMsg TopBar.ToggleSidebar ->
+    TopMsg _ TopBar.ToggleSidebar ->
       ( { model
         | sidebarVisible = not model.sidebarVisible
         }
       , Cmd.none
       )
-    SubMsg (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
+
+    SubMsg navIndex (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
       let
         (subModel, subCmd) =
           SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel
@@ -71,15 +80,17 @@ update msg model =
           | subModel = subModel
           }
         , Cmd.batch
-            [ Cmd.map TopMsg TopBar.fetchUser
-            , Cmd.map SideMsg SideBar.fetchPipelines
-            , Cmd.map SubMsg subCmd
+            [ Cmd.map (TopMsg navIndex) TopBar.fetchUser
+            , Cmd.map (SideMsg navIndex) SideBar.fetchPipelines
+            , Cmd.map (SubMsg navIndex) subCmd
             ]
         )
-    SubMsg (SubPage.PipelinesFetched (Ok pipelines)) ->
+
+    SubMsg navIndex (SubPage.PipelinesFetched (Ok pipelines)) ->
       let
         pipeline =
           List.head pipelines
+
         (subModel, subCmd) =
           SubPage.update
             model.turbulenceImgSrc
@@ -91,7 +102,7 @@ update msg model =
             ( { model
               | subModel = subModel
               }
-            , Cmd.map SubMsg subCmd
+            , Cmd.map (SubMsg navIndex) subCmd
             )
           Just p ->
             let
@@ -104,30 +115,46 @@ update msg model =
                 | subModel = subModel
                 , topModel = topModel
                 }
-              , Cmd.batch [Cmd.map SubMsg subCmd, Cmd.map TopMsg topCmd]
+              , Cmd.batch
+                  [ Cmd.map (SubMsg navIndex) subCmd
+                  , Cmd.map (TopMsg navIndex) topCmd
+                  ]
               )
+
     -- otherwise, pass down
-    SubMsg m ->
-      let
-        (subModel, subCmd) = SubPage.update model.turbulenceImgSrc m model.subModel
-      in
-        ({ model | subModel = subModel }, Cmd.map SubMsg subCmd)
+    SubMsg navIndex m ->
+      if navIndex /= model.navIndex then
+        (model, Cmd.none)
+      else
+        let
+          (subModel, subCmd) = SubPage.update model.turbulenceImgSrc m model.subModel
+        in
+          ({ model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd)
 
-    TopMsg m ->
-      let
-        (topModel, topCmd) = TopBar.update m model.topModel
-      in
-        ({ model | topModel = topModel }, Cmd.map TopMsg topCmd)
+    TopMsg navIndex m ->
+      if navIndex /= model.navIndex then
+        (model, Cmd.none)
+      else
+        let
+          (topModel, topCmd) = TopBar.update m model.topModel
+        in
+          ({ model | topModel = topModel }, Cmd.map (TopMsg navIndex) topCmd)
 
-    SideMsg m ->
-      let
-        (sideModel, sideCmd) = SideBar.update m model.sideModel
-      in
-        ({ model | sideModel = sideModel }, Cmd.map SideMsg sideCmd)
+    SideMsg navIndex m ->
+      if navIndex /= model.navIndex then
+        (model, Cmd.none)
+      else
+        let
+          (sideModel, sideCmd) = SideBar.update m model.sideModel
+        in
+          ({ model | sideModel = sideModel }, Cmd.map (SideMsg navIndex) sideCmd)
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd (Msg))
 urlUpdate route model =
   let
+    navIndex =
+      model.navIndex + 1
+
     (newSubmodel, cmd) =
       if (route.logical == model.route.logical) && (route.queries == model.route.queries) then
         (model.subModel, Cmd.none)
@@ -136,6 +163,7 @@ urlUpdate route model =
           SubPage.urlUpdate route model.subModel
         else
           SubPage.init model.turbulenceImgSrc route
+
     (newTopModel, tCmd) =
       if (route.logical == model.route.logical) && (route.queries == model.route.queries) then
         (model.topModel, Cmd.none)
@@ -143,13 +171,14 @@ urlUpdate route model =
         TopBar.urlUpdate route model.topModel
   in
     ( { model
-      | subModel = newSubmodel
+      | navIndex = navIndex
+      , subModel = newSubmodel
       , topModel = newTopModel
       , route = route
       }
     , Cmd.batch
-        [ Cmd.map SubMsg cmd
-        , Cmd.map TopMsg tCmd
+        [ Cmd.map (SubMsg navIndex) cmd
+        , Cmd.map (TopMsg navIndex) tCmd
         ]
     )
 
@@ -164,16 +193,16 @@ view model =
   in
     Html.div [ class "content-frame" ]
       [ Html.div [ id "top-bar-app" ]
-          [ Html.App.map TopMsg (TopBar.view model.topModel) ]
+          [ Html.App.map (TopMsg model.navIndex) (TopBar.view model.topModel) ]
       , Html.div [ class "bottom" ]
           [ Html.div
               [ id "pipelines-nav-app"
               , class <| "sidebar test" ++ sidebarVisibileAppendage
               ]
-              [ Html.App.map SideMsg (SideBar.view model.sideModel) ]
+              [ Html.App.map (SideMsg model.navIndex) (SideBar.view model.sideModel) ]
           , Html.div [ id "content" ]
               [ Html.div [ id "subpage" ]
-                  [ Html.App.map SubMsg (SubPage.view model.subModel) ]
+                  [ Html.App.map (SubMsg model.navIndex) (SubPage.view model.subModel) ]
               ]
           ]
       ]
@@ -181,9 +210,9 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Sub.map TopMsg <| TopBar.subscriptions model.topModel
-    , Sub.map SideMsg <| SideBar.subscriptions model.sideModel
-    , Sub.map SubMsg <| SubPage.subscriptions model.subModel
+    [ Sub.map (TopMsg model.navIndex) <| TopBar.subscriptions model.topModel
+    , Sub.map (SideMsg model.navIndex) <| SideBar.subscriptions model.sideModel
+    , Sub.map (SubMsg model.navIndex) <| SubPage.subscriptions model.subModel
     ]
 
 
