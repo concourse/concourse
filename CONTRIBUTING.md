@@ -93,6 +93,7 @@ You'll just need the following:
 
 * Go 1.7+
 * PostgreSQL
+* Docker
 
 To spin up a local Concourse cluster comprising of
 [ATC](https://github.com/concourse/atc),
