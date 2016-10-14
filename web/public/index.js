@@ -79,8 +79,18 @@ function redrawFunction(svg, jobs, resources, newUrl) {
 
     var nodeLink = svgNode.append("svg:a")
       .attr("xlink:href", function(node) { return node.url })
-      .on("click", function(node, ev, x) {
-        d3.event.preventDefault();
+      .on("click", function(node) {
+        var ev = d3.event;
+        if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
+          return;
+        }
+
+        if (ev.button != 0) {
+          return;
+        }
+
+        ev.preventDefault();
+
         newUrl.send(node.url);
       })
 
