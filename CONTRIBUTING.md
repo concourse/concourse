@@ -1,166 +1,190 @@
-# Contributing
+# Improving Concourse
 
-So, you've come here hoping to make Concourse better?  Great!
-Concourse welcomes pull-requests on any one of the many open-source
-pieces we currently have within our
-[organization](https://github.com/concourse).
+So, you've come here hoping to make Concourse better? Rad. There are lots of
+ways to do this, from just hanging around [Slack](https://slack.concourse.ci)
+to contributing to discussions in GitHub issues and, maybe at some point,
+contributing code.
+
+This document will point you in the right direction for whichever ways you
+choose to contribute.
+
+
+# Growing the Community
+
+Contributing to open-source projects can be done in more ways than just
+writing code. Often the most valuable thing for a project's growth is to have
+constant and healthy *discussions*.
+
+There are a few ways you can help out here:
+
+* Just about every large change we're thinking of making will start its life as
+  a GitHub issue with the
+  [`proposal`](https://github.com/issues?q=is%3Aopen+is%3Aissue+user%3Aconcourse+label%3A%22proposal%22)
+  label. These are meant to present a direction we're thinking of going and to
+  collect feedback from the community on whether it'd help them. If a proposal
+  is relevant to you, add GitHub reactions or comments, and feel free to ask
+  questions!
+
+* If you run into a bug or have a feature request, look for an issue for it, or
+  create it if it doesn't already exist. If one already existed, you can either
+  add GitHub reactions to it or make a comment providing additional info, but
+  please don't leave comments that just say "+1" or "this is affecting me too
+  and it's the end of the world".
+
+  GitHub reactions and comments are [literally used to rank the
+  issues](https://github.com/vito/customs/blob/master/src/GitHub.elm#L111-L126)
+  and will get us to pay more attention to them.
+
+* Helping other folks out in [Slack](https://slack.concourse.ci) and [Stack
+  Overflow](http://stackoverflow.com/questions/tagged/concourse) really helps
+  grow the community. We try to help out through the day but relying on one
+  timezone doesn't scale.
+
+
+
+# Contributing Code
+
+If you've got a feature you want to see or a bug you'd like to fix, pull
+requests are the way to go.
+
+## Finding things to work on
+
+If you're a generous soul that just wants to give back to the community, but
+don't know where to start, check out the [`help
+wanted`](https://github.com/issues?q=is%3Aopen+is%3Aissue+user%3Aconcourse+label%3A%22help+wanted%22)
+label! We'll typically apply this label to things that we think are valuable
+but don't have the bandwidth to tackle ourselves. They'll usually be small
+changes that a contributor could start with.
+
+## Submitting Pull Requests
 
 There are only a few ground rules that we like to see respected for
 your pull-request to be considered:
 
-- Make sure that you submit all pull-requests to the develop branch on
-Concourse (they won't build otherwise).
-- Each corresponding change should have an associated test to go along
-with it.  If you are having trouble testing, open an issue to discuss
-it.
-- Please don't forget to update the Concourse
-[documentation](https://github.com/concourse/concourse/tree/develop/docs)
-if you make a change to any the behavior (especially in fly).
-- Double check that all of the tests you have written pass on the
-pull-request
+- Each change should have a corresponding test to go along with it. If you are
+  having trouble testing, you can just submit the PR ahead of time and we'll be
+  happy to help guide you along.
+
+- Pull requests should be focused. Please do not submit changes that mix
+  multiple orthogonal changes together, even if you think they're all good.
+
+- All pull requests to the `concourse/concourse` repo should be made to
+  `develop`, unless they're for documentation found via the repo itself, such as
+  this one. Individual components however should be submitted to `master`.
+
+- Updating the
+  [documentation](https://github.com/concourse/concourse/tree/develop/docs) is
+  encouraged but not necessary; we'll be sure to cover things before we ship
+  the next version if you're not comfortable with writing the docs yourself.
 
 With those ground rules out of the way, let's get you setup to work on
 the project!
 
-# Tips & Tricks
 
-Work directly out of the Concourse release `/src` directory!
-All of the major Concourse components are there and you can
-add your fork of each as a separate downstream remote.  This
-will make your time working on Concourse drastically easier.
 
-# ATC-only development
+# Development
 
-In some cases, you can achieve a more lightweight development cycle by running the ATC outside of a full concourse deployment. For more details, see the [concourse/atc CONTRIBUTING.md](https://github.com/concourse/atc/blob/master/CONTRIBUTING.md). Come back to these instructions to test your changes in a full deployment before submitting a pull request.
+## Running Concourse locally
 
-# Setup
+There are scripts under `dev/` to make running Concourse during development
+easier for rapid iteration.
 
-The tools you will need are highly dependent on the part of Concourse
-you are looking to work on, read on for a full list:
+You'll just need the following:
 
-### Shared Tooling (the minimum you need to get started)
-- ruby (bosh will need this to install the bosh_cli)
-    - use system provided if you have it
-- bosh_cli (deploy Concourse and manage your bosh-lite)
-    - `gem install bosh_cli --no-ri --no-rdoc`
-- direnv (used within Concourse to manage your `$GOPATH`)
-     - `brew install direnv`
-- virtualbox (used by BOSH Lite)
-    - `brew install virtualbox`
-- vagrant (also used by BOSH Lite)
-    - `brew cask install vagrant`
+* Go 1.7+
+* PostgreSQL
 
-### Additional tooling for ATC or fly
-- go (Most of the stack is written in golang)
-    - `brew install go`
-- phantomjs (used to run our acceptance tests)
-    - `brew install phantomjs`
-- ginkgo (unit test runner for golang)
-    - `go get github.com/onsi/ginkgo/ginkgo`
-- postgresql (ATCs database)
-    - `brew install postgresql`
-- chromedriver (used to run our acceptance tests)
-    - `brew install chromedriver`
+To spin up a local Concourse cluster comprising of
+[ATC](https://github.com/concourse/atc),
+[TSA](https://github.com/concourse/tsa), and a single worker, run:
 
-### Setting Up a BOSH Lite
-Concourse is a [BOSH](http://bosh.io/docs)
-release, so you're probably going to want to setup a
-BOSH Lite that you can deploy concourse to before pushing your changes
-to the develop branch.
-
-Jump over to the BOSH Lite [repo](https://github.com/cloudfoundry/bosh-lite)
-and follow the instructions provided
-[for virtual-box](https://github.com/cloudfoundry/bosh-lite#using-the-virtualbox-provider)
-(we recommend virtualbox for the smoothest bootstrapping experience).
-
-Once your BOSH Lite is set up, target it like so:
-
-```
-bosh target 192.168.50.4 lite
+```sh
+./dev/start
 ```
 
-This will point the `bosh` CLI at your local VM and save this target as
-the alias `lite`, should you need to target it again.
+You can also pass arguments to start only certain components. This can be
+useful for starting everything but the bit you're working on, and then starting
+that one separately:
 
-### Grabbing the Concourse Release
-All set with BOSH Lite?  Great!  Let's grab the concourse release
-(just clone the project you are reading this documentation in) and walk
-through a deployment:
-
-- You may notice that Concourse ships with a .envrc file.  We use a tool
-called direnv (mentioned above) to manage your `$GOPATH`.
-- We make extensive use of submodules in this release, you will want to
-run `git submodule update --init` within your Concourse clone.
-
-You should now be all set to bosh deploy Concourse.  A bosh-lite
-manifest has been provided for you in the manifests directory.
-
-### Making Changes
-
-Any changes you would like to make should be done at the submodule
-level.  This will allow you to run a local testflight easily.
-
-### Your First Testflight
-
-This is where your BOSH Lite finally comes in handy.
-
-You're going to deploy your changes to the various submodules
-directly to your bosh-lite, which requires a couple of things:
-
-- Commit all of the changes directly to the submodules (just don't push them)
-- Upload a [Garden-runC release](https://github.com/cloudfoundry/garden-runc-release) to your BOSH Lite, which you can grab from [the Concourse GitHub releases](https://github.com/concourse/concourse/releases)
-- Upload the latest BOSH lite stemcell from [bosh.io](http://bosh.io/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent)
-
-Then, from the root of the `concourse` repository, run:
-
-```
-bosh create release --force
-bosh upload release
-./src/github.com/concourse/testflight/scripts/local_deploy
+```sh
+./dev/start db tsa worker # in shell A
+./dev/atc                 # in shell B
 ```
 
-At this point you should have a Concourse running in your local BOSH Lite
-with your changes active. You can browse around it at `http://10.244.15.2:8080`,
-and run `testflight`, Concourse's integration suite, by running the following:
+Then you can just `Ctrl+C` the `./dev/atc` process and restart it as you make
+changes.
 
+
+## Making changes to Concourse
+
+This repository acts as a Go development workspace, containing all the source
+code for Concourse and its dependencies under `src/`. You should first set
+`$GOPATH` and `$PATH` appropriately, which can be automated with
+[`direnv`](https://direnv.net/).
+
+The other purpose of this repository is to build the [BOSH](https://bosh.io)
+release, which is what `jobs/`, `packages/`, and most of the other directories
+are for. If you're just contributing to Concourse and don't really care about
+BOSH, you can just ignore those. It's purely a convenience for us to have it
+all in one place.
+
+Your workflow should consist of `cd`ing to the component you want to change,
+checking out the `master` branch (they're submodules, so they default to
+pointing to a detached `HEAD`), and working from there, with your `$GOPATH` set
+to the root of this repository.
+
+Then, once you're done with your changes, commit locally and push to a branch.
+From there you can submit a PR.
+
+Don't worry about bumping the submodules; that tends to be too painful
+to synchronize with multiple PRs in flight. We'll take it from there. If your
+changes involve multiple components, though (`atc` and `fly` for example), be
+sure to let us know in each PR.
+
+
+# Testing
+
+There are multiple levels of testing in Concourse. If you're adding a feature
+or fixing a bug, you should also update the tests. If it's a fairly small
+change, it may be enough to just update the component-level tests. If it's
+larger though, it may be worth considering adding something to
+[Testflight](https://github.com/concourse/testflight). This can also be a nice
+place to start as Testflight will definitely show whether or not your shiny new
+feature works, and a failing Testflight test is a nice thing to work towards
+making green.
+
+
+## Component-level unit/integration testing
+
+The typical workflow here is: if you're making changes to a single component,
+say `atc`, just update the tests and then run:
+
+```sh
+./scripts/test
 ```
-./src/github.com/concourse/testflight/scripts/test
+
+This typically just runs `ginkgo -r -p` after doing some additional checks and
+balances.
+
+If the component has a `CONTRIBUTING.md` file of its own, be sure to read it -
+there may be more to do.
+
+
+## Integration testing
+
+[Testflight](https://github.com/concourse/testflight) runs against a real live
+Concourse and runs `fly` commands and configures pipelines and such. It takes a
+little while (on the order of 10 minutes) but is a very good indicator of
+whether things actually, like, work.
+
+Running `testflight` should just be a matter of spinning up all the components
+using the `dev/` scripts, and running `ginkgo -r` out of the `testflight` repo:
+
+```sh
+cd src/github.com/concourse/testflight/
+ginkgo -r
 ```
 
-...or by `cd`ing to `src/github.com/concourse/testflight` and running `ginkgo -r`.
-
-
-### Running ATC Suite
-
-Make sure you've installed all of the related ATC tooling
-listed above.  Once that's done, ATC tests are shockingly
-simple to run:
-
-After cloning ATC run:
-`ginkgo -p -r`
-from the top-level ATC directory
-
-#### Building ATC Javascript
-
-```
-cd src/github.com/concourse/atc/web
-npm install
-env PATH=$(npm bin):$PATH make
-```
-
-### Fly Testing (What to watch for)
-
-Again, relying on the fact that you have already installed
-ginkgo:
-
-After cloning fly run:
-`ginkgo -p -r`
-within the fly directory you just cloned
-
-### Shipit
-
-Do not attempt to bump any of the submodules while working
-within the Concourse release.  You should make
-pull-requests to the various submodules from your fork(s) - the
-maintainers will figure out how to bump the submodules
-appropriately after that and create a new release.
+You may want to speed things up by specifying `-nodes=N` flag. Just don't use
+`-p` as things will get a bit slow if there are too many parallel threads
+contending for your machine's resources. Good values of `N` are 2 or 3.
