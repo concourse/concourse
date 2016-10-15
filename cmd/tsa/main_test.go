@@ -799,6 +799,134 @@ var _ = Describe("TSA SSH Registrar", func() {
 				})
 			})
 
+			Context("with an authorized keys", func() {
+				BeforeEach(func() {
+					sshArgv = append(sshArgv, "-i", userKey)
+				})
+
+				Context("when running register-worker", func() {
+					BeforeEach(func() {
+						sshArgv = append(sshArgv, "register-worker")
+					})
+
+					It("does not exit", func() {
+						Consistently(sshSess, 1).ShouldNot(gexec.Exit())
+					})
+
+					Context("sending a worker from the same team's payload on stdin", func() {
+						type registration struct {
+							worker atc.Worker
+							ttl    time.Duration
+						}
+
+						var workerPayload atc.Worker
+						var registered chan registration
+
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								GardenAddr: gardenAddr,
+
+								Platform: "linux",
+								Tags:     []string{"some", "tags"},
+								Team:     "another-exampleteam",
+
+								ResourceTypes: []atc.WorkerResourceType{
+									{Type: "resource-type-a", Image: "resource-image-a"},
+									{Type: "resource-type-b", Image: "resource-image-b"},
+								},
+							}
+
+							registered = make(chan registration)
+
+							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
+								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
+								err := json.NewDecoder(r.Body).Decode(&worker)
+								Expect(err).NotTo(HaveOccurred())
+
+								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+								Expect(err).NotTo(HaveOccurred())
+
+								registered <- registration{worker, ttl}
+							})
+
+							stubs := make(chan func() ([]garden.Container, error), 4)
+
+							stubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							stubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							stubs <- func() ([]garden.Container, error) {
+								return nil, errors.New("garden was weeded")
+							}
+
+							stubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
+								return (<-stubs)()
+							}
+						})
+
+						JustBeforeEach(func() {
+							err := json.NewEncoder(sshStdin).Encode(workerPayload)
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("continuously registers it with the ATC as long as it works", func() {
+							expectedWorkerPayload := workerPayload
+
+							expectedWorkerPayload.ActiveContainers = 3
+
+							a := time.Now()
+							Expect(<-registered).To(Equal(registration{
+								worker: expectedWorkerPayload,
+								ttl:    2 * heartbeatInterval,
+							}))
+
+							expectedWorkerPayload.ActiveContainers = 2
+
+							b := time.Now()
+							Expect(<-registered).To(Equal(registration{
+								worker: expectedWorkerPayload,
+								ttl:    2 * heartbeatInterval,
+							}))
+
+							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
+
+							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+
+							expectedWorkerPayload.ActiveContainers = 1
+
+							c := time.Now()
+							Expect(<-registered).To(Equal(registration{
+								worker: expectedWorkerPayload,
+								ttl:    2 * heartbeatInterval,
+							}))
+
+							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+
+							Eventually(sshSess.Out).Should(gbytes.Say("heartbeat"))
+						})
+					})
+				})
+			})
+
 			Context("with a valid team key", func() {
 				BeforeEach(func() {
 					sshArgv = append(sshArgv, "-i", teamUserKey)
@@ -813,7 +941,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 						Consistently(sshSess, 1).ShouldNot(gexec.Exit())
 					})
 
-					Context("sending a worker from the same team's payload on stdin", func() {
+					Context("sending a worker with any team payload on stdin", func() {
 						type registration struct {
 							worker atc.Worker
 							ttl    time.Duration

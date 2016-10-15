@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/garden"
-	"github.com/concourse/atc"
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
