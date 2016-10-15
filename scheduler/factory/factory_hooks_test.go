@@ -59,8 +59,10 @@ var _ = Describe("Factory Hooks", func() {
 								Task: "third task",
 							},
 						},
-						Failure: &atc.PlanConfig{
-							Task: "some other failure",
+						CallbackConfig: atc.CallbackConfig{
+							Failure: &atc.PlanConfig{
+								Task: "some other failure",
+							},
 						},
 					},
 				},
@@ -115,8 +117,10 @@ var _ = Describe("Factory Hooks", func() {
 								Task: "those who also resist our will",
 							},
 						},
-						Failure: &atc.PlanConfig{
-							Task: "some other failure",
+						CallbackConfig: atc.CallbackConfig{
+							Failure: &atc.PlanConfig{
+								Task: "some other failure",
+							},
 						},
 					},
 				},
@@ -169,15 +173,17 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "some-task",
-						Success: &atc.PlanConfig{
-							Aggregate: &atc.PlanSequence{
-								{
-									Task: "agg-task-1",
-								},
-								{
-									Aggregate: &atc.PlanSequence{
-										{
-											Task: "agg-agg-task-1",
+						CallbackConfig: atc.CallbackConfig{
+							Success: &atc.PlanConfig{
+								Aggregate: &atc.PlanSequence{
+									{
+										Task: "agg-task-1",
+									},
+									{
+										Aggregate: &atc.PlanSequence{
+											{
+												Task: "agg-agg-task-1",
+											},
 										},
 									},
 								},
@@ -226,10 +232,12 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "some-task",
-						Success: &atc.PlanConfig{
-							Do: &atc.PlanSequence{
-								{
-									Task: "do-task-1",
+						CallbackConfig: atc.CallbackConfig{
+							Success: &atc.PlanConfig{
+								Do: &atc.PlanSequence{
+									{
+										Task: "do-task-1",
+									},
 								},
 							},
 						},
@@ -269,20 +277,24 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "some-task",
-						Success: &atc.PlanConfig{
-							Do: &atc.PlanSequence{
-								{
-									Task: "do-task-1",
-								},
-								{
-									Do: &atc.PlanSequence{
-										{
-											Task: "do-task-2",
-										},
-										{
-											Task: "do-task-3",
-											Success: &atc.PlanConfig{
-												Task: "do-task-4",
+						CallbackConfig: atc.CallbackConfig{
+							Success: &atc.PlanConfig{
+								Do: &atc.PlanSequence{
+									{
+										Task: "do-task-1",
+									},
+									{
+										Do: &atc.PlanSequence{
+											{
+												Task: "do-task-2",
+											},
+											{
+												Task: "do-task-3",
+												CallbackConfig: atc.CallbackConfig{
+													Success: &atc.PlanConfig{
+														Task: "do-task-4",
+													},
+												},
 											},
 										},
 									},
@@ -344,16 +356,20 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "some-task",
-						Success: &atc.PlanConfig{
-							Aggregate: &atc.PlanSequence{
-								{
-									Task: "agg-task-1",
-									Success: &atc.PlanConfig{
-										Task: "agg-task-1-success",
+						CallbackConfig: atc.CallbackConfig{
+							Success: &atc.PlanConfig{
+								Aggregate: &atc.PlanSequence{
+									{
+										Task: "agg-task-1",
+										CallbackConfig: atc.CallbackConfig{
+											Success: &atc.PlanConfig{
+												Task: "agg-task-1-success",
+											},
+										},
 									},
-								},
-								{
-									Task: "agg-task-2",
+									{
+										Task: "agg-task-2",
+									},
 								},
 							},
 						},
@@ -403,8 +419,10 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
-						Failure: &atc.PlanConfig{
-							Get: "some-resource",
+						CallbackConfig: atc.CallbackConfig{
+							Failure: &atc.PlanConfig{
+								Get: "some-resource",
+							},
 						},
 					},
 				},
@@ -437,9 +455,11 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
-						Failure: &atc.PlanConfig{
-							Get:     "some-resource",
-							Timeout: "10s",
+						CallbackConfig: atc.CallbackConfig{
+							Failure: &atc.PlanConfig{
+								Get:     "some-resource",
+								Timeout: "10s",
+							},
 						},
 					},
 				},
@@ -475,10 +495,14 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
-						Failure: &atc.PlanConfig{
-							Get: "some-resource",
+						CallbackConfig: atc.CallbackConfig{
 							Failure: &atc.PlanConfig{
-								Task: "those who still resist our will",
+								Get: "some-resource",
+								CallbackConfig: atc.CallbackConfig{
+									Failure: &atc.PlanConfig{
+										Task: "those who still resist our will",
+									},
+								},
 							},
 						},
 					},
@@ -519,10 +543,14 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
-						Failure: &atc.PlanConfig{
-							Get: "some-resource",
-							Ensure: &atc.PlanConfig{
-								Task: "those who still resist our will",
+						CallbackConfig: atc.CallbackConfig{
+							Failure: &atc.PlanConfig{
+								Get: "some-resource",
+								CallbackConfig: atc.CallbackConfig{
+									Ensure: &atc.PlanConfig{
+										Task: "those who still resist our will",
+									},
+								},
 							},
 						},
 					},
@@ -563,14 +591,16 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
-						Failure: &atc.PlanConfig{
-							Task: "those who failed to resist our will",
-						},
-						Ensure: &atc.PlanConfig{
-							Task: "those who always resist our will",
-						},
-						Success: &atc.PlanConfig{
-							Task: "those who successfully resisted our will",
+						CallbackConfig: atc.CallbackConfig{
+							Failure: &atc.PlanConfig{
+								Task: "those who failed to resist our will",
+							},
+							Ensure: &atc.PlanConfig{
+								Task: "those who always resist our will",
+							},
+							Success: &atc.PlanConfig{
+								Task: "those who successfully resisted our will",
+							},
 						},
 					},
 				},
@@ -612,14 +642,18 @@ var _ = Describe("Factory Hooks", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
-						Failure: &atc.PlanConfig{
-							Get: "some-resource",
-							Ensure: &atc.PlanConfig{
-								Task: "those who still resist our will",
+						CallbackConfig: atc.CallbackConfig{
+							Failure: &atc.PlanConfig{
+								Get: "some-resource",
+								CallbackConfig: atc.CallbackConfig{
+									Ensure: &atc.PlanConfig{
+										Task: "those who still resist our will",
+									},
+								},
 							},
-						},
-						Success: &atc.PlanConfig{
-							Get: "some-resource",
+							Success: &atc.PlanConfig{
+								Get: "some-resource",
+							},
 						},
 					},
 				},
@@ -672,11 +706,13 @@ var _ = Describe("Factory Hooks", func() {
 					Plan: atc.PlanSequence{
 						{
 							Task: "those who resist our will",
-							Failure: &atc.PlanConfig{
-								Task: "some other task",
-							},
-							Success: &atc.PlanConfig{
-								Task: "some other success task",
+							CallbackConfig: atc.CallbackConfig{
+								Failure: &atc.PlanConfig{
+									Task: "some other task",
+								},
+								Success: &atc.PlanConfig{
+									Task: "some other success task",
+								},
 							},
 						},
 						{
@@ -733,11 +769,13 @@ var _ = Describe("Factory Hooks", func() {
 							Do: &atc.PlanSequence{
 								{
 									Task: "those who resist our will",
-									Failure: &atc.PlanConfig{
-										Task: "some other task",
-									},
-									Success: &atc.PlanConfig{
-										Task: "some other success task",
+									CallbackConfig: atc.CallbackConfig{
+										Failure: &atc.PlanConfig{
+											Task: "some other task",
+										},
+										Success: &atc.PlanConfig{
+											Task: "some other success task",
+										},
 									},
 								},
 								{

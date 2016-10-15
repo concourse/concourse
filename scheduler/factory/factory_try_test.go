@@ -75,8 +75,10 @@ var _ = Describe("Factory Try Step", func() {
 						Try: &atc.PlanConfig{
 							Task: "first task",
 						},
-						Success: &atc.PlanConfig{
-							Task: "second task",
+						CallbackConfig: atc.CallbackConfig{
+							Success: &atc.PlanConfig{
+								Task: "second task",
+							},
 						},
 					},
 				},

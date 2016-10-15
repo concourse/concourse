@@ -184,8 +184,10 @@ var _ = Describe("Factory Put", func() {
 					Plan: atc.PlanSequence{
 						{
 							Task: "some-task",
-							Success: &atc.PlanConfig{
-								Put: "some-resource",
+							CallbackConfig: atc.CallbackConfig{
+								Success: &atc.PlanConfig{
+									Put: "some-resource",
+								},
 							},
 						},
 					},
