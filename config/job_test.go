@@ -98,8 +98,10 @@ var _ = Describe("Job config", func() {
 					jobConfig.Plan = atc.PlanSequence{
 						{
 							Get: "a",
-							Ensure: &atc.PlanConfig{
-								Get: "b",
+							CallbackConfig: atc.CallbackConfig{
+								Ensure: &atc.PlanConfig{
+									Get: "b",
+								},
 							},
 						},
 					}
@@ -125,8 +127,10 @@ var _ = Describe("Job config", func() {
 					jobConfig.Plan = atc.PlanSequence{
 						{
 							Get: "a",
-							Success: &atc.PlanConfig{
-								Get: "b",
+							CallbackConfig: atc.CallbackConfig{
+								Success: &atc.PlanConfig{
+									Get: "b",
+								},
 							},
 						},
 					}
@@ -152,8 +156,10 @@ var _ = Describe("Job config", func() {
 					jobConfig.Plan = atc.PlanSequence{
 						{
 							Get: "a",
-							Failure: &atc.PlanConfig{
-								Get: "b",
+							CallbackConfig: atc.CallbackConfig{
+								Failure: &atc.PlanConfig{
+									Get: "b",
+								},
 							},
 						},
 					}
@@ -360,8 +366,10 @@ var _ = Describe("Job config", func() {
 					jobConfig.Plan = atc.PlanSequence{
 						{
 							Put: "a",
-							Ensure: &atc.PlanConfig{
-								Put: "b",
+							CallbackConfig: atc.CallbackConfig{
+								Ensure: &atc.PlanConfig{
+									Put: "b",
+								},
 							},
 						},
 					}
@@ -387,8 +395,10 @@ var _ = Describe("Job config", func() {
 					jobConfig.Plan = atc.PlanSequence{
 						{
 							Put: "a",
-							Success: &atc.PlanConfig{
-								Put: "b",
+							CallbackConfig: atc.CallbackConfig{
+								Success: &atc.PlanConfig{
+									Put: "b",
+								},
 							},
 						},
 					}
@@ -414,8 +424,10 @@ var _ = Describe("Job config", func() {
 					jobConfig.Plan = atc.PlanSequence{
 						{
 							Put: "a",
-							Failure: &atc.PlanConfig{
-								Put: "b",
+							CallbackConfig: atc.CallbackConfig{
+								Failure: &atc.PlanConfig{
+									Put: "b",
+								},
 							},
 						},
 					}
