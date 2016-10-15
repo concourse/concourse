@@ -87,6 +87,17 @@ func (types ResourceTypes) Lookup(name string) (ResourceType, bool) {
 	return ResourceType{}, false
 }
 
+type CallbackConfig struct {
+	// used by any step or plan to run something when the step reports a failure
+	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
+
+	// used on any step or plan to always execute regardless of the step's completed state
+	Ensure *PlanConfig `yaml:"ensure,omitempty" json:"ensure,omitempty" mapstructure:"ensure"`
+
+	// used on any step or plan to execute on successful completion of the step
+	Success *PlanConfig `yaml:"on_success,omitempty" json:"on_success,omitempty" mapstructure:"on_success"`
+}
+
 type JobConfig struct {
 	Name   string `yaml:"name" json:"name" mapstructure:"name"`
 	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
@@ -98,6 +109,8 @@ type JobConfig struct {
 	BuildLogsToRetain    int      `yaml:"build_logs_to_retain,omitempty" json:"build_logs_to_retain,omitempty" mapstructure:"build_logs_to_retain"`
 
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
+
+	CallbackConfig
 }
 
 func (config JobConfig) MaxInFlight() int {
@@ -282,15 +295,6 @@ type PlanConfig struct {
 	// used by any step to specify which workers are eligible to run the step
 	Tags Tags `yaml:"tags,omitempty" json:"tags,omitempty" mapstructure:"tags"`
 
-	// used by any step to run something when the step reports a failure
-	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
-
-	// used on any step to always execute regardless of the step's completed state
-	Ensure *PlanConfig `yaml:"ensure,omitempty" json:"ensure,omitempty" mapstructure:"ensure"`
-
-	// used on any step to execute on successful completion of the step
-	Success *PlanConfig `yaml:"on_success,omitempty" json:"on_success,omitempty" mapstructure:"on_success"`
-
 	// used on any step to swallow failures and errors
 	Try *PlanConfig `yaml:"try,omitempty" json:"try,omitempty" mapstructure:"try"`
 
@@ -304,6 +308,8 @@ type PlanConfig struct {
 	Attempts int `yaml:"attempts,omitempty" json:"attempts,omitempty" mapstructure:"attempts"`
 
 	Version *VersionConfig `yaml:"version,omitempty" json:"version,omitempty" mapstructure:"version"`
+
+	CallbackConfig
 }
 
 func (config PlanConfig) Name() string {
