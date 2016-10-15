@@ -17,14 +17,6 @@ constant and healthy *discussions*.
 
 There are a few ways you can help out here:
 
-* Just about every large change we're thinking of making will start its life as
-  a GitHub issue with the
-  [`proposal`](https://github.com/issues?q=is%3Aopen+is%3Aissue+user%3Aconcourse+label%3A%22proposal%22)
-  label. These are meant to present a direction we're thinking of going and to
-  collect feedback from the community on whether it'd help them. If a proposal
-  is relevant to you, add GitHub reactions or comments, and feel free to ask
-  questions!
-
 * If you run into a bug or have a feature request, look for an issue for it, or
   create it if it doesn't already exist. If one already existed, you can either
   add GitHub reactions to it or make a comment providing additional info, but
@@ -34,6 +26,15 @@ There are a few ways you can help out here:
   GitHub reactions and comments are [literally used to rank the
   issues](https://github.com/vito/customs/blob/master/src/GitHub.elm#L111-L126)
   and will get us to pay more attention to them.
+
+* Just about every large change we're thinking of making will start its life as
+  a GitHub issue with the
+  [`discuss`](https://github.com/issues?q=is%3Aopen+is%3Aissue+user%3Aconcourse+label%3A%22discuss%22)
+  label. These are meant to present a direction we're thinking of going and to
+  collect feedback from the community on whether it'd help them.
+
+  The same rules apply for GitHub reactions and comments; they help us decide
+  which things are affecting more people.
 
 * Helping other folks out in [Slack](https://slack.concourse.ci) and [Stack
   Overflow](http://stackoverflow.com/questions/tagged/concourse) really helps
