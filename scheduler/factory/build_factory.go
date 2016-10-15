@@ -33,6 +33,26 @@ func (factory *buildFactory) Create(
 	resourceTypes atc.ResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
+	plan, err := factory.constructPlanFromJob(job, resources, resourceTypes, inputs)
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	return factory.applyCallbacks(constructionParams{
+		plan:           plan,
+		callbackConfig: job.CallbackConfig,
+		resources:      resources,
+		resourceTypes:  resourceTypes,
+		inputs:         inputs,
+	})
+}
+
+func (factory *buildFactory) constructPlanFromJob(
+	job atc.JobConfig,
+	resources atc.ResourceConfigs,
+	resourceTypes atc.ResourceTypes,
+	inputs []db.BuildInput,
+) (atc.Plan, error) {
 	planSequence := job.Plan
 
 	if len(planSequence) == 1 {
@@ -102,29 +122,13 @@ func (factory *buildFactory) constructPlanFromConfig(
 		plan = factory.planFactory.NewPlan(retryStep)
 	}
 
-	constructionParams, err := factory.failureIfPresent(
-		constructionParams{
-			plan:          plan,
-			planConfig:    planConfig,
-			resources:     resources,
-			resourceTypes: resourceTypes,
-			inputs:        inputs,
-		})
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	constructionParams, err = factory.successIfPresent(constructionParams)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	constructionParams, err = factory.ensureIfPresent(constructionParams)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	return constructionParams.plan, nil
+	return factory.applyCallbacks(constructionParams{
+		plan:           plan,
+		callbackConfig: planConfig.CallbackConfig,
+		resources:      resources,
+		resourceTypes:  resourceTypes,
+		inputs:         inputs,
+	})
 }
 
 func (factory *buildFactory) constructUnhookedPlan(
@@ -280,18 +284,39 @@ func (factory *buildFactory) constructUnhookedPlan(
 }
 
 type constructionParams struct {
-	plan          atc.Plan
-	planConfig    atc.PlanConfig
-	resources     atc.ResourceConfigs
-	resourceTypes atc.ResourceTypes
-	inputs        []db.BuildInput
+	plan           atc.Plan
+	callbackConfig atc.CallbackConfig
+	resources      atc.ResourceConfigs
+	resourceTypes  atc.ResourceTypes
+	inputs         []db.BuildInput
+}
+
+func (factory *buildFactory) applyCallbacks(cp constructionParams) (atc.Plan, error) {
+	var err error
+
+	cp, err = factory.failureIfPresent(cp)
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	cp, err = factory.successIfPresent(cp)
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	cp, err = factory.ensureIfPresent(cp)
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	return cp.plan, nil
 }
 
 func (factory *buildFactory) successIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.planConfig.Success != nil {
+	if cp.callbackConfig.Success != nil {
 
 		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.planConfig.Success,
+			*cp.callbackConfig.Success,
 			cp.resources,
 			cp.resourceTypes,
 			cp.inputs,
@@ -309,9 +334,9 @@ func (factory *buildFactory) successIfPresent(cp constructionParams) (constructi
 }
 
 func (factory *buildFactory) failureIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.planConfig.Failure != nil {
+	if cp.callbackConfig.Failure != nil {
 		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.planConfig.Failure,
+			*cp.callbackConfig.Failure,
 			cp.resources,
 			cp.resourceTypes,
 			cp.inputs,
@@ -330,9 +355,9 @@ func (factory *buildFactory) failureIfPresent(cp constructionParams) (constructi
 }
 
 func (factory *buildFactory) ensureIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.planConfig.Ensure != nil {
+	if cp.callbackConfig.Ensure != nil {
 		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.planConfig.Ensure,
+			*cp.callbackConfig.Ensure,
 			cp.resources,
 			cp.resourceTypes,
 			cp.inputs,
