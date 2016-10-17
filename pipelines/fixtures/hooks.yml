@@ -41,6 +41,36 @@ jobs:
             run:
               path: echo
               args: ["passing job on failure"]
+    ensure:
+      task: passing-job-on-job-ensure
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["passing job on job ensure"]
+    on_success:
+      task: passing-job-on-job-success
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["passing job on job success"]
+    on_failure:
+      task: passing-job-on-job-failure
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["passing job on job failure"]
 
   - name: some-failing-job
     plan:
@@ -82,6 +112,36 @@ jobs:
             run:
               path: echo
               args: ["failing job on failure"]
+    ensure:
+      task: failing-job-on-job-ensure
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["failing job on job ensure"]
+    on_success:
+      task: failing-job-on-job-success
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["failing job on job success"]
+    on_failure:
+      task: failing-job-on-job-failure
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
+        run:
+          path: echo
+          args: ["failing job on job failure"]
 
   - name: some-aborted-job
     plan:
