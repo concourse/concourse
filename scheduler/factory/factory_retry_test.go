@@ -73,10 +73,8 @@ var _ = Describe("Factory Retry Step", func() {
 					{
 						Task:     "second task",
 						Attempts: 3,
-						CallbackConfig: atc.CallbackConfig{
-							Success: &atc.PlanConfig{
-								Task: "second task",
-							},
+						Success: &atc.PlanConfig{
+							Task: "second task",
 						},
 					},
 				},

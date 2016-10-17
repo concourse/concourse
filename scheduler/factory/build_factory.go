@@ -38,12 +38,12 @@ func (factory *buildFactory) Create(
 		return atc.Plan{}, err
 	}
 
-	return factory.applyCallbacks(constructionParams{
-		plan:           plan,
-		callbackConfig: job.CallbackConfig,
-		resources:      resources,
-		resourceTypes:  resourceTypes,
-		inputs:         inputs,
+	return factory.applyHooks(constructionParams{
+		plan:          plan,
+		hooks:         job.Hooks(),
+		resources:     resources,
+		resourceTypes: resourceTypes,
+		inputs:        inputs,
 	})
 }
 
@@ -122,12 +122,12 @@ func (factory *buildFactory) constructPlanFromConfig(
 		plan = factory.planFactory.NewPlan(retryStep)
 	}
 
-	return factory.applyCallbacks(constructionParams{
-		plan:           plan,
-		callbackConfig: planConfig.CallbackConfig,
-		resources:      resources,
-		resourceTypes:  resourceTypes,
-		inputs:         inputs,
+	return factory.applyHooks(constructionParams{
+		plan:          plan,
+		hooks:         planConfig.Hooks(),
+		resources:     resources,
+		resourceTypes: resourceTypes,
+		inputs:        inputs,
 	})
 }
 
@@ -284,14 +284,14 @@ func (factory *buildFactory) constructUnhookedPlan(
 }
 
 type constructionParams struct {
-	plan           atc.Plan
-	callbackConfig atc.CallbackConfig
-	resources      atc.ResourceConfigs
-	resourceTypes  atc.ResourceTypes
-	inputs         []db.BuildInput
+	plan          atc.Plan
+	hooks         atc.Hooks
+	resources     atc.ResourceConfigs
+	resourceTypes atc.ResourceTypes
+	inputs        []db.BuildInput
 }
 
-func (factory *buildFactory) applyCallbacks(cp constructionParams) (atc.Plan, error) {
+func (factory *buildFactory) applyHooks(cp constructionParams) (atc.Plan, error) {
 	var err error
 
 	cp, err = factory.failureIfPresent(cp)
@@ -313,10 +313,10 @@ func (factory *buildFactory) applyCallbacks(cp constructionParams) (atc.Plan, er
 }
 
 func (factory *buildFactory) successIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.callbackConfig.Success != nil {
+	if cp.hooks.Success != nil {
 
 		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.callbackConfig.Success,
+			*cp.hooks.Success,
 			cp.resources,
 			cp.resourceTypes,
 			cp.inputs,
@@ -334,9 +334,9 @@ func (factory *buildFactory) successIfPresent(cp constructionParams) (constructi
 }
 
 func (factory *buildFactory) failureIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.callbackConfig.Failure != nil {
+	if cp.hooks.Failure != nil {
 		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.callbackConfig.Failure,
+			*cp.hooks.Failure,
 			cp.resources,
 			cp.resourceTypes,
 			cp.inputs,
@@ -355,9 +355,9 @@ func (factory *buildFactory) failureIfPresent(cp constructionParams) (constructi
 }
 
 func (factory *buildFactory) ensureIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.callbackConfig.Ensure != nil {
+	if cp.hooks.Ensure != nil {
 		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.callbackConfig.Ensure,
+			*cp.hooks.Ensure,
 			cp.resources,
 			cp.resourceTypes,
 			cp.inputs,

@@ -130,10 +130,8 @@ var _ = Describe("Factory Aggregate", func() {
 						Aggregate: &atc.PlanSequence{
 							{
 								Task: "some thing",
-								CallbackConfig: atc.CallbackConfig{
-									Success: &atc.PlanConfig{
-										Task: "some success hook",
-									},
+								Success: &atc.PlanConfig{
+									Task: "some success hook",
 								},
 							},
 						},
@@ -170,10 +168,8 @@ var _ = Describe("Factory Aggregate", func() {
 								Task: "some thing",
 							},
 						},
-						CallbackConfig: atc.CallbackConfig{
-							Success: &atc.PlanConfig{
-								Task: "some success hook",
-							},
+						Success: &atc.PlanConfig{
+							Task: "some success hook",
 						},
 					},
 				},
