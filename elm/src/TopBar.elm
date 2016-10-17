@@ -299,14 +299,15 @@ view model =
         ]
     ]
     [ let
-        groupList =
+        ( groupList, pipelineUrl ) =
           case model.pipeline of
             Nothing ->
-              []
+              ([], "/")
             Just pipeline ->
-              List.map
+              ( List.map
                 (viewGroup (getSelectedOrDefaultGroups model) pipeline.url)
                 pipeline.groups
+              , pipeline.url)
       in
         Html.ul [class "groups"] <|
           [ Html.li [class "main"]
@@ -320,9 +321,8 @@ view model =
               ]
            , Html.li [class "main"]
               [ Html.a
-                  [ StrictEvents.onLeftClick <| NavTo "/"
-                  , Html.Attributes.href <|
-                      Maybe.withDefault "/" (Maybe.map .url model.pipeline)
+                  [ StrictEvents.onLeftClick <| NavTo pipelineUrl
+                  , Html.Attributes.href pipelineUrl
                   ]
                   [ Html.i [class "fa fa-home"] []
                   ]
