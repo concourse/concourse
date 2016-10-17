@@ -19,8 +19,7 @@ import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import LoginRedirect
 
 type alias Model =
-  { pipelineIdentifier : Maybe Concourse.PipelineIdentifier
-  , route : Routes.ConcourseRoute
+  { route : Routes.ConcourseRoute
   , selectedGroups : List String
   , pipeline : Maybe Concourse.Pipeline
   , userState : UserState
@@ -53,31 +52,19 @@ queryGroupsForRoute route =
 init : Routes.ConcourseRoute -> (Model, Cmd Msg)
 init route =
   let
-    (model, cmd) =
-      updateModel
-        route
-        { pipelineIdentifier = Nothing
-        , selectedGroups = queryGroupsForRoute route
-        , route = route
-        , pipeline = Nothing
-        , userState = UserStateUnknown
-        , userMenuVisible = False
-        }
+    pid = extractPidFromRoute route.logical
   in
-    (model, Cmd.batch[cmd, fetchUser])
-
-updateModel : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
-updateModel route model =
-  let
-    pid =
-      extractPidFromRoute route.logical
-  in
-    ( { model | pipelineIdentifier = pid }
+    ( { selectedGroups = queryGroupsForRoute route
+      , route = route
+      , pipeline = Nothing
+      , userState = UserStateUnknown
+      , userMenuVisible = False
+      }
     , case pid of
         Nothing ->
-          Cmd.none
+          fetchUser
         Just pid ->
-          fetchPipeline pid
+          Cmd.batch[fetchPipeline pid, fetchUser]
     )
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -100,32 +87,11 @@ update msg model =
       )
 
     PipelineFetched (Ok pipeline) ->
-      case model.pipeline of
-        Nothing ->
-          ( { model
-            | pipeline = Just pipeline
-            , pipelineIdentifier = Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
-            }
-          , Cmd.none
-          )
-        Just p ->
-          if List.isEmpty pipeline.groups then
-              ( { model
-                | pipeline = Just pipeline
-                , pipelineIdentifier = Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
-                }
-              , Cmd.none
-              )
-            else
-              if pipeline.groups == p.groups then
-                (model, Cmd.none)
-              else
-                ( { model
-                  | pipeline = Just pipeline
-                  , pipelineIdentifier = Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
-                  }
-                , Cmd.none
-                )
+      ( { model
+        | pipeline = Just pipeline
+        }
+      , Cmd.none
+      )
 
     PipelineFetched (Err (Http.BadResponse 401 _)) ->
       (model, LoginRedirect.requestLoginRedirect "")
@@ -146,8 +112,7 @@ update msg model =
 
     LogIn ->
       ( { model
-        | pipelineIdentifier = Nothing
-        , selectedGroups = []
+        | selectedGroups = []
         , pipeline = Nothing
         }
       , Navigation.newUrl "/login"
@@ -159,7 +124,6 @@ update msg model =
     LoggedOut (Ok _) ->
       ( { model
         | userState = UserStateLoggedOut
-        , pipelineIdentifier = Nothing
         , pipeline = Nothing
         , selectedGroups = []
         }
@@ -178,11 +142,23 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  case model.pipelineIdentifier of
+  case (pipelineIdentifierFromRouteOrModel model.route model) of
     Nothing ->
       Sub.none
     Just pid ->
       Time.every (5 * Time.second) (always (FetchPipeline pid))
+
+pipelineIdentifierFromRouteOrModel : Routes.ConcourseRoute -> Model -> Maybe Concourse.PipelineIdentifier
+pipelineIdentifierFromRouteOrModel route model =
+  case (extractPidFromRoute route.logical) of
+    Nothing ->
+      case model.pipeline of
+        Nothing ->
+          Nothing
+        Just pipeline ->
+          Just { teamName = pipeline.teamName, pipelineName = pipeline.name }
+    Just pidFromRoute ->
+      Just pidFromRoute
 
 extractPidFromRoute : Routes.Route -> Maybe Concourse.PipelineIdentifier
 extractPidFromRoute route =
@@ -209,7 +185,7 @@ setGroups : List String -> Model -> (Model, Cmd Msg)
 setGroups newGroups model =
   let
     newUrl =
-      pidToUrl model.pipelineIdentifier <|
+      pidToUrl (pipelineIdentifierFromRouteOrModel model.route model) <|
         setGroupsInLocation model.route newGroups
   in
     (model, Navigation.newUrl newUrl)
@@ -218,11 +194,10 @@ urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd Msg)
 urlUpdate route model =
   let
     pipelineIdentifier =
-      extractPidFromRoute route.logical
+      pipelineIdentifierFromRouteOrModel route model
   in
     ( { model
-      | pipelineIdentifier = model.pipelineIdentifier
-      , route = route
+      | route = route
       , selectedGroups = queryGroupsForRoute route
       }
     , case pipelineIdentifier of
