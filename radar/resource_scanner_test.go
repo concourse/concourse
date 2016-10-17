@@ -24,10 +24,10 @@ var _ = Describe("ResourceScanner", func() {
 	var (
 		epoch time.Time
 
-		fakeTracker *rfakes.FakeTracker
-		fakeRadarDB *radarfakes.FakeRadarDB
-		fakeClock   *fakeclock.FakeClock
-		interval    time.Duration
+		fakeResourceFactory *rfakes.FakeResourceFactory
+		fakeRadarDB         *radarfakes.FakeRadarDB
+		fakeClock           *fakeclock.FakeClock
+		interval            time.Duration
 
 		scanner Scanner
 
@@ -40,7 +40,7 @@ var _ = Describe("ResourceScanner", func() {
 
 	BeforeEach(func() {
 		epoch = time.Unix(123, 456).UTC()
-		fakeTracker = new(rfakes.FakeTracker)
+		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		fakeClock = fakeclock.NewFakeClock(epoch)
 		interval = 1 * time.Minute
@@ -48,7 +48,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeRadarDB.GetPipelineIDReturns(42)
 		scanner = NewResourceScanner(
 			fakeClock,
-			fakeTracker,
+			fakeResourceFactory,
 			interval,
 			fakeRadarDB,
 			"https://www.example.com",
@@ -102,7 +102,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeTracker.InitReturns(fakeResource, nil)
+			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -134,7 +134,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, session, typ, tags, actualTeamID, customTypes, delegate := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags, actualTeamID, customTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(metadata).To(Equal(resource.TrackerMetadata{
 					ResourceName: "some-resource",
 					PipelineName: "some-pipeline",
@@ -425,7 +425,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeTracker.InitReturns(fakeResource, nil)
+			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -442,7 +442,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, session, typ, tags, actualTeamID, _, _ := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags, actualTeamID, _, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(metadata).To(Equal(resource.TrackerMetadata{
 					ResourceName: "some-resource",
 					PipelineName: "some-pipeline",
@@ -727,8 +727,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeTracker.InitReturns(fakeResource, nil)
-
+			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
 			fromVersion = nil
 		})
 

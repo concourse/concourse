@@ -66,6 +66,16 @@ type FakeDBContainerFactory struct {
 		result2 bool
 		result3 error
 	}
+	ContainerCreatedStub        func(*dbng.CreatingContainer, string) (*dbng.CreatedContainer, error)
+	containerCreatedMutex       sync.RWMutex
+	containerCreatedArgsForCall []struct {
+		arg1 *dbng.CreatingContainer
+		arg2 string
+	}
+	containerCreatedReturns struct {
+		result1 *dbng.CreatedContainer
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -251,6 +261,41 @@ func (fake *FakeDBContainerFactory) FindContainerReturns(result1 *dbng.CreatedCo
 	}{result1, result2, result3}
 }
 
+func (fake *FakeDBContainerFactory) ContainerCreated(arg1 *dbng.CreatingContainer, arg2 string) (*dbng.CreatedContainer, error) {
+	fake.containerCreatedMutex.Lock()
+	fake.containerCreatedArgsForCall = append(fake.containerCreatedArgsForCall, struct {
+		arg1 *dbng.CreatingContainer
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("ContainerCreated", []interface{}{arg1, arg2})
+	fake.containerCreatedMutex.Unlock()
+	if fake.ContainerCreatedStub != nil {
+		return fake.ContainerCreatedStub(arg1, arg2)
+	} else {
+		return fake.containerCreatedReturns.result1, fake.containerCreatedReturns.result2
+	}
+}
+
+func (fake *FakeDBContainerFactory) ContainerCreatedCallCount() int {
+	fake.containerCreatedMutex.RLock()
+	defer fake.containerCreatedMutex.RUnlock()
+	return len(fake.containerCreatedArgsForCall)
+}
+
+func (fake *FakeDBContainerFactory) ContainerCreatedArgsForCall(i int) (*dbng.CreatingContainer, string) {
+	fake.containerCreatedMutex.RLock()
+	defer fake.containerCreatedMutex.RUnlock()
+	return fake.containerCreatedArgsForCall[i].arg1, fake.containerCreatedArgsForCall[i].arg2
+}
+
+func (fake *FakeDBContainerFactory) ContainerCreatedReturns(result1 *dbng.CreatedContainer, result2 error) {
+	fake.ContainerCreatedStub = nil
+	fake.containerCreatedReturns = struct {
+		result1 *dbng.CreatedContainer
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeDBContainerFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -264,6 +309,8 @@ func (fake *FakeDBContainerFactory) Invocations() map[string][][]interface{} {
 	defer fake.createResourceCheckContainerMutex.RUnlock()
 	fake.findContainerMutex.RLock()
 	defer fake.findContainerMutex.RUnlock()
+	fake.containerCreatedMutex.RLock()
+	defer fake.containerCreatedMutex.RUnlock()
 	return fake.invocations
 }
 

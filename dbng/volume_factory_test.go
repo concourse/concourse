@@ -120,7 +120,7 @@ var _ = Describe("VolumeFactory", func() {
 			Expect(deleted).To(BeTrue())
 			Expect(deleteTx.Commit()).To(Succeed())
 
-			createdContainer, err := creatingContainer.Created("some-handle")
+			createdContainer, err := containerFactory.ContainerCreated(creatingContainer, "some-handle")
 			Expect(err).NotTo(HaveOccurred())
 			destroyingContainer, err := createdContainer.Destroying()
 			Expect(err).NotTo(HaveOccurred())

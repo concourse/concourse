@@ -473,11 +473,6 @@ var _ = Describe("GardenFactory", func() {
 										}))
 									})
 
-									It("releases the volumes given to the worker", func() {
-										Expect(inputVolume.ReleaseCallCount()).To(Equal(1))
-										Expect(otherInputVolume.ReleaseCallCount()).To(Equal(1))
-									})
-
 									It("does not stream inputs that had volumes", func() {
 										Expect(inputSource.StreamToCallCount()).To(Equal(0))
 										Expect(otherInputSource.StreamToCallCount()).To(Equal(0))
@@ -595,10 +590,6 @@ var _ = Describe("GardenFactory", func() {
 												MountPath: "/tmp/build/a1f5c0c1/remapped-input",
 											},
 										}))
-									})
-
-									It("releases the volumes given to the worker", func() {
-										Expect(remappedInputVolume.ReleaseCallCount()).To(Equal(1))
 									})
 
 									It("does not stream inputs that had volumes", func() {
@@ -1204,9 +1195,6 @@ var _ = Describe("GardenFactory", func() {
 											Expect(<-process.Wait()).To(Equal(disaster))
 										})
 
-										It("releases the original volume", func() {
-											Expect(imageVolume.ReleaseCallCount()).To(Equal(1))
-										})
 									})
 
 									Context("when streaming the artifact source to the volume succeeds", func() {
@@ -1225,10 +1213,6 @@ var _ = Describe("GardenFactory", func() {
 												Expect(<-process.Wait()).To(Equal(disaster))
 											})
 
-											It("releases the original volume after creating the cow volume", func() {
-												// See fakeWorker.CreateVolumeStub for the rest of this assertion
-												Expect(imageVolume.ReleaseCallCount()).To(Equal(1))
-											})
 										})
 
 										Context("when streaming the metadata from the worker succeeds", func() {

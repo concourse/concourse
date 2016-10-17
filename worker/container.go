@@ -18,6 +18,7 @@ var ErrMissingVolume = errors.New("volume mounted to container is missing")
 type gardenWorkerContainer struct {
 	garden.Container
 	dbContainer *dbng.CreatedContainer
+	dbVolumes   []dbng.CreatedVolume
 
 	gardenClient garden.Client
 	db           GardenWorkerDB
@@ -40,6 +41,7 @@ func newGardenWorkerContainer(
 	logger lager.Logger,
 	container garden.Container,
 	dbContainer *dbng.CreatedContainer,
+	dbContainerVolumes []dbng.CreatedVolume,
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
@@ -52,6 +54,7 @@ func newGardenWorkerContainer(
 	workerContainer := &gardenWorkerContainer{
 		Container:   container,
 		dbContainer: dbContainer,
+		dbVolumes:   dbContainerVolumes,
 
 		gardenClient: gardenClient,
 		db:           db,
@@ -125,27 +128,23 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	baggageclaimClient baggageclaim.Client,
 	volumeFactory VolumeFactory,
 ) error {
-	volumes, err := container.dbContainer.Volumes()
-	if err != nil {
-		return err
-	}
 
 	volumeMounts := []VolumeMount{}
 
-	for _, volume := range volumes {
+	for _, dbVolume := range container.dbVolumes {
 		volumeLogger := logger.Session("volume", lager.Data{
-			"handle": volume.Handle(),
+			"handle": dbVolume.Handle(),
 		})
 
-		baggageClaimVolume, volumeFound, err := baggageclaimClient.LookupVolume(logger, volume.Handle())
+		baggageClaimVolume, volumeFound, err := baggageclaimClient.LookupVolume(logger, dbVolume.Handle())
 		if err != nil {
 			volumeLogger.Error("failed-to-lookup-volume", err)
 			return err
 		}
 
 		if !volumeFound {
-			volumeLogger.Error("volume-is-missing-on-worker", ErrMissingVolume, lager.Data{"handle": volume.Handle()})
-			return errors.New("volume mounted to container is missing " + volume.Handle())
+			volumeLogger.Error("volume-is-missing-on-worker", ErrMissingVolume, lager.Data{"handle": dbVolume.Handle()})
+			return errors.New("volume mounted to container is missing " + dbVolume.Handle() + " from worker " + container.workerName)
 		}
 
 		volume, err := volumeFactory.BuildWithIndefiniteTTL(volumeLogger, baggageClaimVolume)
@@ -156,7 +155,7 @@ func (container *gardenWorkerContainer) initializeVolumes(
 
 		volumeMounts = append(volumeMounts, VolumeMount{
 			Volume:    volume,
-			MountPath: volume.Path(),
+			MountPath: dbVolume.Path(),
 		})
 	}
 

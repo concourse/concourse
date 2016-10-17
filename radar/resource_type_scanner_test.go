@@ -20,9 +20,9 @@ import (
 
 var _ = Describe("ResourceTypeScanner", func() {
 	var (
-		fakeTracker *rfakes.FakeTracker
-		fakeRadarDB *radarfakes.FakeRadarDB
-		interval    time.Duration
+		fakeResourceFactory *rfakes.FakeResourceFactory
+		fakeRadarDB         *radarfakes.FakeRadarDB
+		interval            time.Duration
 
 		scanner Scanner
 
@@ -33,13 +33,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 	)
 
 	BeforeEach(func() {
-		fakeTracker = new(rfakes.FakeTracker)
+		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		interval = 1 * time.Minute
 
 		fakeRadarDB.GetPipelineIDReturns(42)
 		scanner = NewResourceTypeScanner(
-			fakeTracker,
+			fakeResourceFactory,
 			interval,
 			fakeRadarDB,
 			"https://www.example.com",
@@ -86,7 +86,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeTracker.InitReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceTypeCheckResourceReturns(fakeResource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -118,8 +118,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				Expect(fakeTracker.InitCallCount()).To(Equal(1))
-				_, metadata, session, typ, tags, actualTeamID, customTypes, delegate := fakeTracker.InitArgsForCall(0)
+				Expect(fakeResource.CheckCallCount()).To(Equal(1))
+				Expect(fakeResourceFactory.NewResourceTypeCheckResourceCallCount()).To(Equal(1))
+				_, metadata, session, typ, tags, actualTeamID, customTypes, delegate := fakeResourceFactory.NewResourceTypeCheckResourceArgsForCall(0)
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 
 				Expect(session).To(Equal(resource.Session{
@@ -141,7 +142,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(typ).To(Equal(resource.ResourceType("docker-image")))
 				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
 				Expect(actualTeamID).To(Equal(teamID))
-				Expect(customTypes).To(Equal(atc.ResourceTypes{}))
+				Expect(customTypes).To(Equal(atc.ResourceTypes{
+					atc.ResourceType{
+						Name:   "some-resource-type",
+						Type:   "docker-image",
+						Source: atc.Source{"custom": "source"},
+					}}))
 				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 			})
 

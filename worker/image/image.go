@@ -35,7 +35,6 @@ type image struct {
 	customTypes           atc.ResourceTypes
 	resourceFactory       resource.ResourceFactory
 	imageFetchingDelegate worker.ImageFetchingDelegate
-	workerClient          worker.Client
 	privileged            bool
 
 	resourceFetcher resource.Fetcher

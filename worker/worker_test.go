@@ -39,6 +39,8 @@ var _ = Describe("Worker", func() {
 		fakeDBContainerFactory     *wfakes.FakeDBContainerFactory
 		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 		fakeDBResourceTypeFactory  *dbngfakes.FakeResourceTypeFactory
+		fakeResourceConfigFactory  *dbngfakes.FakeResourceConfigFactory
+		fakeDBVolumeFactory        *wfakes.FakeDBVolumeFactory
 		activeContainers           int
 		resourceTypes              []atc.WorkerResourceType
 		platform                   string
@@ -86,6 +88,8 @@ var _ = Describe("Worker", func() {
 		fakeDBContainerFactory = new(wfakes.FakeDBContainerFactory)
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		fakeDBResourceTypeFactory = new(dbngfakes.FakeResourceTypeFactory)
+		fakeResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
+		fakeDBVolumeFactory = new(wfakes.FakeDBVolumeFactory)
 	})
 
 	JustBeforeEach(func() {
@@ -97,8 +101,10 @@ var _ = Describe("Worker", func() {
 			fakeImageFactory,
 			fakePipelineDBFactory,
 			fakeDBContainerFactory,
+			fakeDBVolumeFactory,
 			fakeDBResourceCacheFactory,
 			fakeDBResourceTypeFactory,
+			fakeResourceConfigFactory,
 			fakeGardenWorkerDB,
 			fakeWorkerProvider,
 			fakeClock,
@@ -119,7 +125,7 @@ var _ = Describe("Worker", func() {
 		fakeClock.IncrementBySeconds(workerUptime)
 	})
 
-	XDescribe("LookupContainer", func() {
+	Describe("LookupContainer", func() {
 		var handle string
 
 		BeforeEach(func() {
@@ -137,6 +143,9 @@ var _ = Describe("Worker", func() {
 			BeforeEach(func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("some-handle")
+
+				fakeDBVolumeFactory.FindVolumesForContainerReturns([]dbng.CreatedVolume{}, nil)
+
 				fakeDBContainerFactory.FindContainerReturns(&dbng.CreatedContainer{}, true, nil)
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
 			})
@@ -145,7 +154,7 @@ var _ = Describe("Worker", func() {
 				foundContainer, found, findErr = gardenWorker.LookupContainer(logger, handle)
 			})
 
-			FIt("returns the container and no error", func() {
+			It("returns the container and no error", func() {
 				Expect(findErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(foundContainer.Handle()).To(Equal(fakeContainer.Handle()))
@@ -165,10 +174,16 @@ var _ = Describe("Worker", func() {
 					expectedHandle1Volume = new(wfakes.FakeVolume)
 					expectedHandle2Volume = new(wfakes.FakeVolume)
 
-					fakeContainer.PropertiesReturns(garden.Properties{
-						"concourse:volumes":       `["handle-1","handle-2"]`,
-						"concourse:volume-mounts": `{"handle-1":"/handle-1/path","handle-2":"/handle-2/path"}`,
-					}, nil)
+					fakeVolume1 := new(dbngfakes.FakeCreatedVolume)
+					fakeVolume2 := new(dbngfakes.FakeCreatedVolume)
+
+					fakeVolume1.HandleReturns("handle-1")
+					fakeVolume2.HandleReturns("handle-2")
+
+					fakeVolume1.PathReturns("/handle-1/path")
+					fakeVolume2.PathReturns("/handle-2/path")
+
+					fakeDBVolumeFactory.FindVolumesForContainerReturns([]dbng.CreatedVolume{fakeVolume1, fakeVolume2}, nil)
 
 					fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
 						if handle == "handle-1" {
@@ -221,20 +236,6 @@ var _ = Describe("Worker", func() {
 						It("returns the error on lookup", func() {
 							Expect(findErr).To(Equal(disaster))
 						})
-					})
-				})
-
-				Describe("Release", func() {
-					It("releases the container's volumes once and only once", func() {
-						foundContainer.Release(FinalTTL(time.Minute))
-						Expect(expectedHandle1Volume.ReleaseCallCount()).To(Equal(1))
-						Expect(expectedHandle1Volume.ReleaseArgsForCall(0)).To(Equal(FinalTTL(time.Minute)))
-						Expect(expectedHandle2Volume.ReleaseCallCount()).To(Equal(1))
-						Expect(expectedHandle2Volume.ReleaseArgsForCall(0)).To(Equal(FinalTTL(time.Minute)))
-
-						foundContainer.Release(FinalTTL(time.Hour))
-						Expect(expectedHandle1Volume.ReleaseCallCount()).To(Equal(1))
-						Expect(expectedHandle2Volume.ReleaseCallCount()).To(Equal(1))
 					})
 				})
 			})
@@ -556,10 +557,9 @@ var _ = Describe("Worker", func() {
 				})
 			})
 		})
-
 	})
 
-	XDescribe("FindContainerForIdentifier", func() {
+	Describe("FindContainerForIdentifier", func() {
 		var (
 			id Identifier
 
@@ -602,6 +602,7 @@ var _ = Describe("Worker", func() {
 				}
 				fakeWorkerProvider.FindContainerForIdentifierReturns(fakeSavedContainer, true, nil)
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
+				fakeDBContainerFactory.FindContainerReturns(&dbng.CreatedContainer{}, true, nil)
 				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
 			})
 

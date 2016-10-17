@@ -90,6 +90,7 @@ type DBContainerFactory interface {
 	) (*dbng.CreatingContainer, error)
 
 	FindContainer(handle string) (*dbng.CreatedContainer, bool, error)
+	ContainerCreated(*dbng.CreatingContainer, string) (*dbng.CreatedContainer, error)
 }
 
 //go:generate counterfeiter . GardenWorkerDB
@@ -115,6 +116,7 @@ type gardenWorker struct {
 	pipelineDBFactory       db.PipelineDBFactory
 	imageFactory            ImageFactory
 	dbContainerFactory      DBContainerFactory
+	dbVolumeFactory         DBVolumeFactory
 	dbResourceCacheFactory  dbng.ResourceCacheFactory
 	dbResourceTypeFactory   dbng.ResourceTypeFactory
 	dbResourceConfigFactory dbng.ResourceConfigFactory
@@ -145,6 +147,7 @@ func NewGardenWorker(
 	imageFactory ImageFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 	dbContainerFactory DBContainerFactory,
+	dbVolumeFactory DBVolumeFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceTypeFactory dbng.ResourceTypeFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
@@ -170,6 +173,7 @@ func NewGardenWorker(
 		volumeFactory:           volumeFactory,
 		imageFactory:            imageFactory,
 		dbContainerFactory:      dbContainerFactory,
+		dbVolumeFactory:         dbVolumeFactory,
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceTypeFactory:   dbResourceTypeFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
@@ -249,7 +253,6 @@ func (worker *gardenWorker) getImageForContainer(
 
 	// `image` in task
 	if imageSpec.ImageVolumeAndMetadata.Volume != nil {
-		logger.Debug("[super-logs] ImageVolumeAndMetadata")
 
 		var err error
 		imageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
@@ -279,7 +282,6 @@ func (worker *gardenWorker) getImageForContainer(
 
 	// 'image_resource:' in task
 	if imageResource != nil {
-		logger.Debug("[super-logs] imageResource")
 
 		image := worker.imageFactory.NewImage(
 			logger.Session("image"),
@@ -299,11 +301,8 @@ func (worker *gardenWorker) getImageForContainer(
 		var err error
 		imageParentVolume, imageMetadataReader, version, err = image.Fetch()
 		if err != nil {
-			logger.Debug("[super-logs] failed-to-fetch-image: " + err.Error())
 			return nil, ImageMetadata{}, nil, "", err
 		}
-
-		logger.Debug("[super-logs] FindOrCreateVolumeForContainer")
 
 		imageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
 			logger.Session("create-cow-volume"),
@@ -330,7 +329,6 @@ func (worker *gardenWorker) getImageForContainer(
 
 	// use image artifact from previous step in subsequent task within the same job
 	if imageVolume != nil {
-		logger.Debug("[super-logs] imageVolume")
 
 		metadata, err := loadMetadata(imageMetadataReader)
 		if err != nil {
@@ -347,8 +345,6 @@ func (worker *gardenWorker) getImageForContainer(
 
 	// built-in resource type specified in step
 	if imageSpec.ResourceType != "" {
-		logger.Debug("ResourceType")
-
 		rootFSURL, volume, resourceTypeVersion, err := worker.getBuiltInResourceTypeImageForContainer(logger, container, imageSpec.ResourceType, teamID)
 		if err != nil {
 			return nil, ImageMetadata{}, nil, "", err
@@ -358,7 +354,6 @@ func (worker *gardenWorker) getImageForContainer(
 	}
 
 	// 'image:' in task
-	logger.Debug("[super-logs] our image is nil")
 	return nil, ImageMetadata{}, nil, imageSpec.ImageURL, nil
 }
 
@@ -414,22 +409,18 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 				TTL:        0,
 			}
 
-			logger.Debug("getBuiltInResourceTypeImageForContainer.FindVolume")
-
 			importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
 			if err != nil {
 				return "", nil, atc.Version{}, err
 			}
 
 			if !found {
-				logger.Debug("getBuiltInResourceTypeImageForContainer.CreateVolume")
 				importVolume, err = worker.CreateVolume(logger, importVolumeSpec, 0)
 				if err != nil {
 					return "", nil, atc.Version{}, err
 				}
 			}
 
-			logger.Debug("getBuiltInResourceTypeImageForContainer.FindOrCreateVolumeForContainer")
 			cowVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 				logger,
 				VolumeSpec{
@@ -554,7 +545,6 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	source atc.Source,
 	params atc.Params,
 ) (Container, error) {
-	logger.Debug("CreateResourceGetContainer", lager.Data{"resourceType": resourceType})
 	dbResourceTypes := []dbng.ResourceType{}
 	for _, resourceType := range resourceTypes {
 		usedResourceType, found, err := worker.dbResourceTypeFactory.FindResourceType(
@@ -566,7 +556,7 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 		}
 
 		if !found {
-			logger.Debug("resource type not found", lager.Data{"resource-type": resourceType})
+			logger.Debug("resource-type-not-found", lager.Data{"resource-type": resourceType})
 			return nil, ErrResourceTypeNotFound
 		}
 		dbResourceType := dbng.ResourceType{
@@ -577,7 +567,6 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 
 		dbResourceTypes = append(dbResourceTypes, dbResourceType)
 	}
-	logger.Debug("FindOrCreateResourceCacheForBuild")
 
 	resourceCache, err := worker.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
 		&dbng.Build{
@@ -592,7 +581,6 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	if err != nil {
 		return nil, err
 	}
-	logger.Debug("FindOrCreateResourceCacheForBuild.done")
 
 	creatingContainer, err := worker.dbContainerFactory.CreateResourceGetContainer(
 		&dbng.Worker{
@@ -606,8 +594,6 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	if err != nil {
 		return nil, err
 	}
-
-	logger.Debug("CreateResourceGetContainer.done")
 
 	return worker.createContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, outputPaths)
 }
@@ -623,7 +609,6 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
-	logger.Debug("CreateResourceCheckContainer", lager.Data{"resourceType": resourceType})
 	dbResourceTypes := []dbng.ResourceType{}
 	for _, resourceType := range resourceTypes {
 		usedResourceType, found, err := worker.dbResourceTypeFactory.FindResourceType(
@@ -635,7 +620,6 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 		}
 
 		if !found {
-			logger.Debug("resource type not found", lager.Data{"resource-type": resourceType})
 			return nil, ErrResourceTypeNotFound
 		}
 		dbResourceType := dbng.ResourceType{
@@ -646,7 +630,6 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 
 		dbResourceTypes = append(dbResourceTypes, dbResourceType)
 	}
-	logger.Debug("FindOrCreateResourceConfigForBuild")
 
 	resourceConfig, err := worker.dbResourceConfigFactory.FindOrCreateResourceConfigForResource(
 		&dbng.Resource{
@@ -659,7 +642,6 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 	if err != nil {
 		return nil, err
 	}
-	logger.Debug("FindOrCreateResourceConfigForBuild.done")
 
 	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
 		&dbng.Worker{
@@ -672,8 +654,6 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 	if err != nil {
 		return nil, err
 	}
-
-	logger.Debug("CreateResourceCheckContainer.done")
 
 	return worker.createContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, map[string]string{})
 }
@@ -689,7 +669,6 @@ func (worker *gardenWorker) CreateResourceTypeCheckContainer(
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
-	logger.Debug("CreateResourceTypeCheckContainer", lager.Data{"resourceType": resourceType, "resourceTypes": resourceTypes})
 	dbResourceTypes := []dbng.ResourceType{}
 	var usedResourceType *dbng.UsedResourceType
 
@@ -703,7 +682,7 @@ func (worker *gardenWorker) CreateResourceTypeCheckContainer(
 		}
 
 		if !found {
-			logger.Debug("resource type not found", lager.Data{"resource-type": rt})
+			logger.Debug("resource-type-not-found", lager.Data{"resource-type": rt})
 			return nil, ErrResourceTypeNotFound
 		}
 		dbResourceType := dbng.ResourceType{
@@ -718,7 +697,6 @@ func (worker *gardenWorker) CreateResourceTypeCheckContainer(
 			usedResourceType = urt
 		}
 	}
-	logger.Debug("FindOrCreateResourceConfigForResourceType")
 
 	resourceConfig, err := worker.dbResourceConfigFactory.FindOrCreateResourceConfigForResourceType(
 		usedResourceType,
@@ -729,7 +707,6 @@ func (worker *gardenWorker) CreateResourceTypeCheckContainer(
 	if err != nil {
 		return nil, err
 	}
-	logger.Debug("FindOrCreateResourceConfigForResourceType.done")
 
 	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
 		&dbng.Worker{
@@ -742,8 +719,6 @@ func (worker *gardenWorker) CreateResourceTypeCheckContainer(
 	if err != nil {
 		return nil, err
 	}
-
-	logger.Debug("CreateResourceCheckContainer.done")
 
 	return worker.createContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, map[string]string{})
 }
@@ -759,7 +734,6 @@ func (worker *gardenWorker) createContainer(
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
-	logger.Debug("[super-logs] getting-image")
 	imageVolume, imageMetadata, resourceTypeVersion, imageURL, err := worker.getImageForContainer(
 		logger,
 		creatingContainer,
@@ -775,7 +749,6 @@ func (worker *gardenWorker) createContainer(
 		return nil, err
 	}
 
-	logger.Debug("[super-logs] got-image")
 	volumeMounts := []VolumeMount{}
 	for name, outputPath := range outputPaths {
 		outVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
@@ -801,13 +774,10 @@ func (worker *gardenWorker) createContainer(
 			Volume:    outVolume,
 			MountPath: outputPath,
 		})
-
-		logger.Debug("created-output-volume", lager.Data{"volume-handle": outVolume.Handle()})
 	}
 
 	for _, mount := range spec.Mounts {
 		volumeMounts = append(volumeMounts, mount)
-		logger.Debug("add-mount", lager.Data{"volume-handle": mount.Volume.Handle()})
 	}
 
 	for _, mount := range spec.Inputs {
@@ -836,11 +806,6 @@ func (worker *gardenWorker) createContainer(
 			Volume:    cowVolume,
 			MountPath: mount.MountPath,
 		})
-
-		logger.Debug("created-cow-volume", lager.Data{
-			"original-volume-handle": mount.Volume.Handle(),
-			"cow-volume-handle":      cowVolume.Handle(),
-		})
 	}
 
 	bindMounts := []garden.BindMount{}
@@ -857,7 +822,6 @@ func (worker *gardenWorker) createContainer(
 	}
 
 	if imageVolume != nil {
-		logger.Debug("adding image volume to mounts")
 		volumeHandles = append(volumeHandles, imageVolume.Handle())
 	}
 
@@ -897,23 +861,18 @@ func (worker *gardenWorker) createContainer(
 		return nil, err
 	}
 
-	logger.Debug("marking container as created")
+	createdContainer, err := worker.dbContainerFactory.ContainerCreated(creatingContainer, gardenContainer.Handle())
 
-	createdContainer, err := creatingContainer.Created(logger, gardenContainer.Handle())
 	if err != nil {
-		logger.Debug("failed to mark container as created")
+		logger.Error("failed-to-mark-container-as-created", err)
 		return nil, err
 	}
-
-	logger.Debug("marked container as created")
 
 	metadata.WorkerName = worker.name
 	metadata.Handle = gardenContainer.Handle()
 	metadata.User = gardenSpec.Properties["user"]
 
 	id.ResourceTypeVersion = resourceTypeVersion
-
-	logger.Debug("UpdateContainerTTLToBeRemoved")
 
 	_, err = worker.db.UpdateContainerTTLToBeRemoved(
 		db.Container{
@@ -928,12 +887,16 @@ func (worker *gardenWorker) createContainer(
 		return nil, err
 	}
 
-	logger.Debug("UpdateContainerTTLToBeRemoved.done")
+	createdVolumes, err := worker.dbVolumeFactory.FindVolumesForContainer(createdContainer.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	return newGardenWorkerContainer(
 		logger,
 		gardenContainer,
 		createdContainer,
+		createdVolumes,
 		worker.gardenClient,
 		worker.baggageclaimClient,
 		worker.db,
@@ -966,6 +929,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 	}
 
 	if !found {
+
 		return nil, found, nil
 	}
 
@@ -1000,7 +964,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 			return nil, false, err
 		}
 
-		return nil, false, err
+		return nil, false, nil
 	}
 
 	return container, found, nil
@@ -1028,10 +992,16 @@ func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) 
 		return nil, false, nil
 	}
 
+	createdVolumes, err := worker.dbVolumeFactory.FindVolumesForContainer(createdContainer.ID)
+	if err != nil {
+		return nil, false, err
+	}
+
 	container, err := newGardenWorkerContainer(
 		logger,
 		gardenContainer,
 		createdContainer,
+		createdVolumes,
 		worker.gardenClient,
 		worker.baggageclaimClient,
 		worker.db,

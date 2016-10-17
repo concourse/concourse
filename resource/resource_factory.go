@@ -1,10 +1,18 @@
 package resource
 
 import (
+	"fmt"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 )
+
+//go:generate counterfeiter . ResourceFactoryFactory
+
+type ResourceFactoryFactory interface {
+	FactoryFor(worker.Client) ResourceFactory
+}
 
 //go:generate counterfeiter . ResourceFactory
 
@@ -42,6 +50,17 @@ type ResourceFactory interface {
 		resourceTypes atc.ResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) (Resource, error)
+}
+
+type resourceFactoryFactory struct {
+}
+
+func (f *resourceFactoryFactory) FactoryFor(client worker.Client) ResourceFactory {
+	return NewResourceFactory(client)
+}
+
+func NewResourceFactoryFactory() ResourceFactoryFactory {
+	return &resourceFactoryFactory{}
 }
 
 type resourceFactory struct {
@@ -95,6 +114,8 @@ func (f *resourceFactory) NewBuildResource(
 		Env:       metadata.Env(),
 	}
 
+	logger.Debug("finding-compatible-worker", lager.Data{"resourceSpec": resourceSpec, "resourceTypes": resourceTypes, "sources": sources})
+
 	chosenWorker, mounts, missingSources, err := f.findCompatibleWorker(resourceSpec, resourceTypes, sources)
 	if err != nil {
 		if err == worker.ErrNotImplemented { // TODO: fix this
@@ -105,7 +126,7 @@ func (f *resourceFactory) NewBuildResource(
 		}
 	}
 
-	logger.Debug("creating-container", lager.Data{"container-id": session.ID, "chosenWorker": chosenWorker})
+	// logger.Debug("creating-container-supremo", lager.Data{"container-id": session.ID, "chosenWorker": chosenWorker, "mounts": mounts, "missingSources": missingSources})
 
 	resourceSpec.Inputs = mounts
 	container, err = chosenWorker.CreateBuildContainer(
@@ -263,11 +284,13 @@ func (f *resourceFactory) findCompatibleWorker(
 	missingSources := []string{}
 	var chosenWorker worker.Worker
 
+	// for each worker that matches tags, platform, etc -- what is the etc?
 	for _, w := range compatibleWorkers {
 		candidateMounts := []worker.VolumeMount{}
 		missing := []string{}
 
 		for name, source := range sources {
+			// look at all the inputs/outputs we're looking for
 			ourVolume, found, err := source.VolumeOn(w)
 			if err != nil {
 				return nil, nil, nil, err

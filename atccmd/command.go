@@ -163,6 +163,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
+	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
 	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
@@ -175,6 +176,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		logger,
 		sqlDB,
 		resourceFetcherFactory,
+		resourceFactoryFactory,
 		pipelineDBFactory,
 		dbContainerFactory,
 		dbResourceCacheFactory,
@@ -649,6 +651,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	logger lager.Logger,
 	sqlDB *db.SQLDB,
 	resourceFetcherFactory resource.FetcherFactory,
+	resourceFactoryFactory resource.ResourceFactoryFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 	dbContainerFactory *dbng.ContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
@@ -662,7 +665,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			sqlDB,
 			keepaliveDialer,
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-			image.NewFactory(resourceFetcherFactory),
+			image.NewFactory(resourceFetcherFactory, resourceFactoryFactory),
 			dbContainerFactory,
 			dbResourceCacheFactory,
 			dbResourceTypeFactory,

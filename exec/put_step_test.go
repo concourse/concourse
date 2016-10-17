@@ -148,7 +148,7 @@ var _ = Describe("GardenFactory", func() {
 
 				BeforeEach(func() {
 					fakeResource = new(rfakes.FakeResource)
-					fakeResourceFactory.NewPutResourceReturns(fakeResource, []string{"some-source", "some-other-source"}, nil)
+					fakeResourceFactory.NewBuildResourceReturns(fakeResource, []string{"some-source", "some-other-source"}, nil)
 
 					fakeVersionedSource = new(rfakes.FakeVersionedSource)
 					fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -158,9 +158,9 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("initializes the resource with the correct type, session, and sources", func() {
-					Expect(fakeResourceFactory.NewPutResourceCallCount()).To(Equal(1))
+					Expect(fakeResourceFactory.NewBuildResourceCallCount()).To(Equal(1))
 
-					_, sm, sid, typ, tags, actualTeamID, sources, actualResourceTypes, delegate := fakeResourceFactory.NewPutResourceArgsForCall(0)
+					_, sm, sid, typ, tags, actualTeamID, sources, actualResourceTypes, delegate := fakeResourceFactory.NewBuildResourceArgsForCall(0)
 					Expect(sm).To(Equal(stepMetadata))
 					Expect(sid).To(Equal(resource.Session{
 						ID: worker.Identifier{
@@ -419,7 +419,7 @@ var _ = Describe("GardenFactory", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeResourceFactory.NewPutResourceReturns(nil, nil, disaster)
+					fakeResourceFactory.NewBuildResourceReturns(nil, nil, disaster)
 				})
 
 				It("exits with the failure", func() {
@@ -445,7 +445,7 @@ var _ = Describe("GardenFactory", func() {
 
 			BeforeEach(func() {
 				fakeResource = new(rfakes.FakeResource)
-				fakeResourceFactory.NewPutResourceReturns(fakeResource, []string{}, nil)
+				fakeResourceFactory.NewBuildResourceReturns(fakeResource, []string{}, nil)
 
 				fakeVersionedSource = new(rfakes.FakeVersionedSource)
 				fakeResource.PutReturns(fakeVersionedSource, nil)

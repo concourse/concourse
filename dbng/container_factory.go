@@ -69,6 +69,51 @@ func (factory *ContainerFactory) CreateResourceCheckContainer(
 	}, nil
 }
 
+func (factory *ContainerFactory) ContainerCreated(
+	container *CreatingContainer,
+	gardenHandle string,
+) (*CreatedContainer, error) {
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	rows, err := psql.Update("containers").
+		Set("state", ContainerStateCreated).
+		Set("handle", gardenHandle).
+		Where(sq.Eq{
+			"id":    container.ID,
+			"state": ContainerStateCreating,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if affected == 0 {
+		panic("TESTME")
+		return nil, nil
+	}
+
+	return &CreatedContainer{
+		ID:   container.ID,
+		conn: factory.conn,
+	}, nil
+}
+
 func (factory *ContainerFactory) CreateResourceGetContainer(
 	worker *Worker,
 	resourceCache *UsedResourceCache,

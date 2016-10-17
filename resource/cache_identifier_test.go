@@ -89,8 +89,6 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 					Expect(found).To(BeTrue())
 
 					Expect(aVolume.SetTTLCallCount()).To(Equal(0))
-					Expect(bVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(bVolume.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(time.Minute)))
 				})
 			})
 
@@ -104,8 +102,6 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 					Expect(found).To(BeTrue())
 
 					Expect(aVolume.SetTTLCallCount()).To(Equal(0))
-					Expect(bVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(bVolume.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(time.Minute)))
 				})
 			})
 		})

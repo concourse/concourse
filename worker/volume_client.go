@@ -32,6 +32,7 @@ type VolumeClient interface {
 type DBVolumeFactory interface {
 	CreateContainerVolume(*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
 	FindContainerVolume(*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) (dbng.CreatingVolume, dbng.CreatedVolume, error)
+	FindVolumesForContainer(containerID int) ([]dbng.CreatedVolume, error)
 }
 
 var ErrVolumeExpiredImmediately = errors.New("volume expired immediately after saving")
@@ -278,35 +279,35 @@ func (c *volumeClient) selectLowestAlphabeticalVolume(logger lager.Logger, volum
 
 	for _, v := range volumes {
 		if v != lowestVolume {
-			// expLog := logger.Session("expiring-redundant-volume", lager.Data{
-			// 	"volume-handle": v.Handle,
-			// })
+			expLog := logger.Session("expiring-redundant-volume", lager.Data{
+				"volume-handle": v.Handle,
+			})
 
-			// err := c.expireVolume(expLog, v.Handle)
-			// if err != nil {
-			// 	return db.SavedVolume{}, err
-			// }
+			err := c.expireVolume(expLog, v.Handle)
+			if err != nil {
+				return db.SavedVolume{}, err
+			}
 		}
 	}
 
 	return lowestVolume, nil
 }
 
-// func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error {
-// 	logger.Info("expiring")
-//
-// 	wVol, found, err := c.LookupVolume(logger, handle)
-// 	if err != nil {
-// 		logger.Error("failed-to-look-up-volume", err)
-// 		return err
-// 	}
-//
-// 	if !found {
-// 		logger.Debug("volume-already-gone")
-// 		return nil
-// 	}
-//
-// 	wVol.Release(FinalTTL(VolumeTTL))
-//
-// 	return nil
-// }
+func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error { // TODO consider removing this method?
+	logger.Info("expiring")
+
+	wVol, found, err := c.LookupVolume(logger, handle)
+	if err != nil {
+		logger.Error("failed-to-look-up-volume", err)
+		return err
+	}
+
+	if !found {
+		logger.Debug("volume-already-gone")
+		return nil
+	}
+
+	wVol.Release(FinalTTL(VolumeTTL))
+
+	return nil
+}

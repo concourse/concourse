@@ -101,16 +101,17 @@ var _ = Describe("FetchSourceProvider", func() {
 					fakeWorkerClient.SatisfyingReturns(fakeWorker, nil)
 				})
 
-				Context("when volume is found on worker", func() {
+				Context("when volume is found on worker", func() { //this condition
 					var fakeVolume *workerfakes.FakeVolume
 
 					BeforeEach(func() {
 						fakeVolume = new(workerfakes.FakeVolume)
-						cacheID.FindOnReturns(fakeVolume, true, nil)
+						cacheID.FindOnReturns(fakeVolume, true, nil) // no longer the correct setup for
 					})
 
 					It("returns volume based source", func() {
 						source, err := fetchSourceProvider.Get()
+						Expect(cacheID.FindOnCallCount()).To(Equal(1))
 						Expect(err).NotTo(HaveOccurred())
 
 						expectedSource := NewVolumeFetchSource(logger, fakeVolume, fakeWorker, resourceOptions, fakeContainerCreator)

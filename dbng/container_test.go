@@ -62,7 +62,7 @@ var _ = Describe("Container", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectedHandles = append(expectedHandles, creatingVolume2.Handle())
 
-		createdContainer, err = creatingContainer.Created("some-handle")
+		createdContainer, err = containerFactory.ContainerCreated(creatingContainer, "some-handle")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -73,7 +73,7 @@ var _ = Describe("Container", func() {
 
 	Describe("Volumes", func() {
 		It("returns created container volumes", func() {
-			volumes, err := createdContainer.Volumes()
+			volumes, err := volumeFactory.FindVolumesForContainer(createdContainer.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(volumes).To(HaveLen(2))
 			Expect([]string{volumes[0].Handle(), volumes[1].Handle()}).To(Equal(expectedHandles))

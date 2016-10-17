@@ -199,6 +199,7 @@ func (build *execBuild) Abort(lager.Logger) error {
 
 func (build *execBuild) Resume(logger lager.Logger) {
 	stepFactory := build.buildStepFactory(logger, build.metadata.Plan)
+	logger.Debug("resuming-put-step-maybe", lager.Data{"plan": build.metadata.Plan})
 	source := stepFactory.Using(&exec.NoopStep{}, exec.NewSourceRepository())
 
 	defer source.Release()

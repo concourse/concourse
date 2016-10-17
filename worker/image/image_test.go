@@ -25,10 +25,11 @@ import (
 )
 
 var _ = Describe("Image", func() {
-	var fakeTrackerFactory *rfakes.FakeTrackerFactory
-	var fakeImageTracker *rfakes.FakeTracker
+	var fakeResourceFactory *rfakes.FakeResourceFactory
+	var fakeImageResource *rfakes.FakeResource
 	var fakeResourceFetcherFactory *rfakes.FakeFetcherFactory
 	var fakeResourceFetcher *rfakes.FakeFetcher
+	var fakeResourceFactoryFactory *rfakes.FakeResourceFactoryFactory
 
 	var fetchedImage worker.Image
 
@@ -40,7 +41,7 @@ var _ = Describe("Image", func() {
 	var identifier worker.Identifier
 	var metadata worker.Metadata
 	var fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
-	var fakeWorker *wfakes.FakeClient
+	var fakeWorker *wfakes.FakeWorker
 	var customTypes atc.ResourceTypes
 	var privileged bool
 
@@ -51,15 +52,13 @@ var _ = Describe("Image", func() {
 	var teamID int
 
 	BeforeEach(func() {
-		fakeTrackerFactory = new(rfakes.FakeTrackerFactory)
-
-		fakeImageTracker = new(rfakes.FakeTracker)
-		fakeTrackerFactory.TrackerForReturns(fakeImageTracker)
-
+		fakeResourceFactory = new(rfakes.FakeResourceFactory)
+		fakeImageResource = new(rfakes.FakeResource)
 		fakeResourceFetcherFactory = new(rfakes.FakeFetcherFactory)
 		fakeResourceFetcher = new(rfakes.FakeFetcher)
+		fakeResourceFactoryFactory = new(rfakes.FakeResourceFactoryFactory)
 		fakeResourceFetcherFactory.FetcherForReturns(fakeResourceFetcher)
-
+		fakeResourceFactoryFactory.FactoryForReturns(fakeResourceFactory)
 		stderrBuf = gbytes.NewBuffer()
 
 		logger = lagertest.NewTestLogger("test")
@@ -69,8 +68,7 @@ var _ = Describe("Image", func() {
 		}
 		signals = make(chan os.Signal)
 		identifier = worker.Identifier{
-			BuildID: 1234,
-			PlanID:  "some-plan-id",
+			PlanID: "some-plan-id",
 		}
 		metadata = worker.Metadata{
 			PipelineName:         "some-pipeline",
@@ -81,7 +79,7 @@ var _ = Describe("Image", func() {
 		}
 		fakeImageFetchingDelegate = new(wfakes.FakeImageFetchingDelegate)
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
-		fakeWorker = new(wfakes.FakeClient)
+		fakeWorker = new(wfakes.FakeWorker)
 		teamID = 123
 		customTypes = atc.ResourceTypes{
 			{
@@ -99,8 +97,8 @@ var _ = Describe("Image", func() {
 
 	JustBeforeEach(func() {
 		imageFactory := image.NewFactory(
-			fakeTrackerFactory,
 			fakeResourceFetcherFactory,
+			fakeResourceFactoryFactory,
 		)
 
 		fetchedImage = imageFactory.NewImage(
@@ -127,7 +125,7 @@ var _ = Describe("Image", func() {
 
 		BeforeEach(func() {
 			fakeCheckResource = new(rfakes.FakeResource)
-			fakeImageTracker.InitReturns(fakeCheckResource, nil)
+			fakeResourceFactory.NewResourceTypeCheckResourceReturns(fakeCheckResource, nil)
 		})
 
 		Context("when check returns a version", func() {
@@ -210,18 +208,12 @@ var _ = Describe("Image", func() {
 							Expect(fetchedVersion).To(Equal(atc.Version{"v": "1"}))
 						})
 
-						It("creates a tracker for checking and getting the image resource", func() {
-							Expect(fakeTrackerFactory.TrackerForCallCount()).To(Equal(1))
-							Expect(fakeTrackerFactory.TrackerForArgsForCall(0)).To(Equal(fakeWorker))
-						})
-
 						It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-							Expect(fakeImageTracker.InitCallCount()).To(Equal(1))
-							_, metadata, session, resourceType, tags, actualTeamID, actualCustomTypes, delegate := fakeImageTracker.InitArgsForCall(0)
+							Expect(fakeResourceFactory.NewResourceTypeCheckResourceCallCount()).To(Equal(1))
+							_, metadata, session, resourceType, tags, actualTeamID, actualCustomTypes, delegate := fakeResourceFactory.NewResourceTypeCheckResourceArgsForCall(0)
 							Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 							Expect(session).To(Equal(resource.Session{
 								ID: worker.Identifier{
-									BuildID:             1234,
 									PlanID:              "some-plan-id",
 									ImageResourceType:   "docker",
 									ImageResourceSource: atc.Source{"some": "source"},
@@ -270,7 +262,6 @@ var _ = Describe("Image", func() {
 							Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 							Expect(session).To(Equal(resource.Session{
 								ID: worker.Identifier{
-									BuildID:             1234,
 									PlanID:              "some-plan-id",
 									ImageResourceType:   "docker",
 									ImageResourceSource: atc.Source{"some": "source"},
@@ -389,7 +380,7 @@ var _ = Describe("Image", func() {
 
 		BeforeEach(func() {
 			disaster = errors.New("wah")
-			fakeImageTracker.InitReturns(nil, disaster)
+			fakeResourceFactory.NewResourceTypeCheckResourceReturns(nil, disaster)
 		})
 
 		It("returns the error", func() {

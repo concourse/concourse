@@ -98,7 +98,7 @@ var _ = Describe("VolumeCollector", func() {
 			_, err = createdVolume3.Destroying()
 			Expect(err).NotTo(HaveOccurred())
 
-			createdContainer1, err := creatingContainer1.Created("some-handle")
+			createdContainer1, err := containerFactory.ContainerCreated(creatingContainer1, "some-handle")
 			Expect(err).NotTo(HaveOccurred())
 			destroyingContainer1, err := createdContainer1.Destroying()
 			Expect(err).NotTo(HaveOccurred())

@@ -11,13 +11,16 @@ import (
 
 type factory struct {
 	resourceFetcherFactory resource.FetcherFactory
+	resourceFactoryFactory resource.ResourceFactoryFactory
 }
 
 func NewFactory(
 	resourceFetcherFactory resource.FetcherFactory,
+	resourceFactoryFactory resource.ResourceFactoryFactory,
 ) worker.ImageFactory {
 	return &factory{
 		resourceFetcherFactory: resourceFetcherFactory,
+		resourceFactoryFactory: resourceFactoryFactory,
 	}
 }
 
@@ -43,9 +46,8 @@ func (f *factory) NewImage(
 		workerTags:            workerTags,
 		teamID:                teamID,
 		customTypes:           customTypes,
-		workerClient:          workerClient,
 		imageFetchingDelegate: imageFetchingDelegate,
-		resourceFactory:       resource.NewResourceFactory(workerClient),
+		resourceFactory:       f.resourceFactoryFactory.FactoryFor(workerClient),
 		resourceFetcher:       f.resourceFetcherFactory.FetcherFor(workerClient),
 		privileged:            privileged,
 	}

@@ -342,6 +342,8 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 				return nil, nil, err
 			}
 
+			step.logger.Debug("volume-created-for-image-artifact", lager.Data{"handle": volume.Handle(), "ttl": worker.VolumeTTL})
+
 			dest := workerArtifactDestination{
 				destination: volume,
 			}
@@ -382,7 +384,6 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		Tags:      step.tags,
 		TeamID:    step.teamID,
 		Inputs:    inputMounts,
-		Outputs:   []worker.VolumeMount{},
 		ImageSpec: imageSpec,
 		User:      config.Run.User,
 	}
@@ -413,6 +414,8 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 func (step *TaskStep) registerSource(config atc.TaskConfig) {
 	volumeMounts := step.container.VolumeMounts()
 
+	step.logger.Debug("registering-outputs", lager.Data{"config": config})
+
 	for _, output := range config.Outputs {
 		outputName := output.Name
 		if destinationName, ok := step.outputMapping[output.Name]; ok {
@@ -424,11 +427,13 @@ func (step *TaskStep) registerSource(config atc.TaskConfig) {
 
 			for _, mount := range volumeMounts {
 				if mount.MountPath == outputPath {
+
 					source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
 					step.repo.RegisterSource(SourceName(outputName), source)
 				}
 			}
 		} else {
+			step.logger.Debug("container-has-volume-mounts-NONE")
 			source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
 			step.repo.RegisterSource(SourceName(outputName), source)
 		}

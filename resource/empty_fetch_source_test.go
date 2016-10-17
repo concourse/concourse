@@ -178,14 +178,6 @@ var _ = Describe("EmptyFetchSource", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("releases volume", func() {
-				finalTTL := worker.FinalTTL(5 * time.Second)
-				fetchSource.Release(finalTTL)
-				Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
-				ttl := fakeVolume.ReleaseArgsForCall(0)
-				Expect(ttl).To(Equal(finalTTL))
-			})
-
 			It("releases container", func() {
 				finalTTL := worker.FinalTTL(5 * time.Second)
 				fetchSource.Release(finalTTL)

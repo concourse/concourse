@@ -41,11 +41,11 @@ type dbProvider struct {
 	dialer                  gconn.DialerFunc
 	retryBackOffFactory     retryhttp.BackOffFactory
 	imageFactory            ImageFactory
-	dbContainerFactory      *dbng.ContainerFactory
+	dbContainerFactory      DBContainerFactory
 	dbResourceCacheFactory  dbng.ResourceCacheFactory
 	dbResourceTypeFactory   dbng.ResourceTypeFactory
 	dbResourceConfigFactory dbng.ResourceConfigFactory
-	dbVolumeFactory         *dbng.VolumeFactory
+	dbVolumeFactory         DBVolumeFactory
 	pipelineDBFactory       db.PipelineDBFactory
 }
 
@@ -55,11 +55,11 @@ func NewDBWorkerProvider(
 	dialer gconn.DialerFunc,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
-	dbContainerFactory *dbng.ContainerFactory,
+	dbContainerFactory DBContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceTypeFactory dbng.ResourceTypeFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
-	dbVolumeFactory *dbng.VolumeFactory,
+	dbVolumeFactory DBVolumeFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 ) WorkerProvider {
 	return &dbProvider{
@@ -157,6 +157,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		provider.imageFactory,
 		provider.pipelineDBFactory,
 		provider.dbContainerFactory,
+		provider.dbVolumeFactory,
 		provider.dbResourceCacheFactory,
 		provider.dbResourceTypeFactory,
 		provider.dbResourceConfigFactory,

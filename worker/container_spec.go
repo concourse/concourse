@@ -26,7 +26,7 @@ type ContainerSpec struct {
 	// Not Copy-on-Write. Used for a single mount in Get containers.
 	Inputs []VolumeMount
 
-	Outputs []VolumeMount
+	// Outputs []VolumeMount
 
 	// volumes that need to be mounted to container
 	Mounts []VolumeMount

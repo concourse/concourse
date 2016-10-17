@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -39,6 +40,8 @@ var _ = Describe("DBProvider", func() {
 
 		fakeImageFactory          *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
+		fakeDBVolumeFactory       *workerfakes.FakeDBVolumeFactory
+		fakeDBContainerFactory    *workerfakes.FakeDBContainerFactory
 
 		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
 
@@ -79,6 +82,8 @@ var _ = Describe("DBProvider", func() {
 
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
+		fakeDBContainerFactory = new(workerfakes.FakeDBContainerFactory)
+		fakeDBVolumeFactory = new(workerfakes.FakeDBVolumeFactory)
 
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 		fakeBackOffFactory := new(retryhttpfakes.FakeBackOffFactory)
@@ -87,7 +92,19 @@ var _ = Describe("DBProvider", func() {
 		fakeDBResourceCacheFactory := new(dbngfakes.FakeResourceCacheFactory)
 		fakeDBResourceTypeFactory := new(dbngfakes.FakeResourceTypeFactory)
 
-		provider = NewDBWorkerProvider(logger, fakeDB, nil, fakeBackOffFactory, fakeImageFactory, nil, fakeDBResourceCacheFactory, fakeDBResourceTypeFactory, nil, fakePipelineDBFactory)
+		provider = NewDBWorkerProvider(
+			logger,
+			fakeDB,
+			nil,
+			fakeBackOffFactory,
+			fakeImageFactory,
+			fakeDBContainerFactory,
+			fakeDBResourceCacheFactory,
+			fakeDBResourceTypeFactory,
+			nil,
+			fakeDBVolumeFactory,
+			fakePipelineDBFactory,
+		)
 	})
 
 	AfterEach(func() {
@@ -194,12 +211,19 @@ var _ = Describe("DBProvider", func() {
 				})
 			})
 
+			//TODO doesn't make sense to test this here. Why doesn't worker.CreateTaskContainer have a test, and we stub it here??
 			Describe("a created container", func() {
 				BeforeEach(func() {
+					createdVolume := new(dbngfakes.FakeCreatedVolume)
+					createdVolume.HandleReturns("vol-handle")
 					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
+					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
+
+					createdContainer := &dbng.CreatedContainer{ID: 1}
+					fakeDBContainerFactory.ContainerCreatedReturns(createdContainer, nil)
 				})
 
-				XIt("calls through to garden", func() {
+				It("calls through to garden", func() {
 					id := Identifier{
 						ResourceID: 1234,
 					}
@@ -217,6 +241,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
 					container, err := workers[0].CreateTaskContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
+
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeDB.UpdateContainerTTLToBeRemovedCallCount()).To(Equal(1))
@@ -238,9 +263,11 @@ var _ = Describe("DBProvider", func() {
 			Describe("a looked-up container", func() {
 				BeforeEach(func() {
 					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
+					createdContainer := &dbng.CreatedContainer{ID: 1}
+					fakeDBContainerFactory.FindContainerReturns(createdContainer, true, nil)
 				})
 
-				XIt("calls through to garden", func() {
+				It("calls through to garden", func() {
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("some-handle")
 

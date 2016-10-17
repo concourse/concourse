@@ -34,6 +34,15 @@ type FakeDBVolumeFactory struct {
 		result2 dbng.CreatedVolume
 		result3 error
 	}
+	FindVolumesForContainerStub        func(containerID int) ([]dbng.CreatedVolume, error)
+	findVolumesForContainerMutex       sync.RWMutex
+	findVolumesForContainerArgsForCall []struct {
+		containerID int
+	}
+	findVolumesForContainerReturns struct {
+		result1 []dbng.CreatedVolume
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -113,6 +122,40 @@ func (fake *FakeDBVolumeFactory) FindContainerVolumeReturns(result1 dbng.Creatin
 	}{result1, result2, result3}
 }
 
+func (fake *FakeDBVolumeFactory) FindVolumesForContainer(containerID int) ([]dbng.CreatedVolume, error) {
+	fake.findVolumesForContainerMutex.Lock()
+	fake.findVolumesForContainerArgsForCall = append(fake.findVolumesForContainerArgsForCall, struct {
+		containerID int
+	}{containerID})
+	fake.recordInvocation("FindVolumesForContainer", []interface{}{containerID})
+	fake.findVolumesForContainerMutex.Unlock()
+	if fake.FindVolumesForContainerStub != nil {
+		return fake.FindVolumesForContainerStub(containerID)
+	} else {
+		return fake.findVolumesForContainerReturns.result1, fake.findVolumesForContainerReturns.result2
+	}
+}
+
+func (fake *FakeDBVolumeFactory) FindVolumesForContainerCallCount() int {
+	fake.findVolumesForContainerMutex.RLock()
+	defer fake.findVolumesForContainerMutex.RUnlock()
+	return len(fake.findVolumesForContainerArgsForCall)
+}
+
+func (fake *FakeDBVolumeFactory) FindVolumesForContainerArgsForCall(i int) int {
+	fake.findVolumesForContainerMutex.RLock()
+	defer fake.findVolumesForContainerMutex.RUnlock()
+	return fake.findVolumesForContainerArgsForCall[i].containerID
+}
+
+func (fake *FakeDBVolumeFactory) FindVolumesForContainerReturns(result1 []dbng.CreatedVolume, result2 error) {
+	fake.FindVolumesForContainerStub = nil
+	fake.findVolumesForContainerReturns = struct {
+		result1 []dbng.CreatedVolume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeDBVolumeFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -120,6 +163,8 @@ func (fake *FakeDBVolumeFactory) Invocations() map[string][][]interface{} {
 	defer fake.createContainerVolumeMutex.RUnlock()
 	fake.findContainerVolumeMutex.RLock()
 	defer fake.findContainerVolumeMutex.RUnlock()
+	fake.findVolumesForContainerMutex.RLock()
+	defer fake.findVolumesForContainerMutex.RUnlock()
 	return fake.invocations
 }
 

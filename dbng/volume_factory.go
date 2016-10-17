@@ -63,6 +63,60 @@ func (factory *VolumeFactory) CreateContainerVolume(team *Team, worker *Worker, 
 	return volume, nil
 }
 
+func (factory *VolumeFactory) FindVolumesForContainer(containerID int) ([]CreatedVolume, error) {
+	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr").
+		From("volumes v").
+		LeftJoin("workers w ON v.worker_name = w.name").
+		Where(sq.Eq{
+			"v.state":        VolumeStateCreated,
+			"v.container_id": containerID,
+		}).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := factory.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	createdVolumes := []CreatedVolume{}
+
+	for rows.Next() {
+		var id int
+		var handle string
+		var path sql.NullString
+		var state string
+		var workerName string
+		var workerAddress string
+
+		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		var pathString string
+		if path.Valid {
+			pathString = path.String
+		}
+
+		createdVolumes = append(createdVolumes, &createdVolume{
+			id:     id,
+			handle: handle,
+			path:   pathString,
+			worker: &Worker{
+				Name:       workerName,
+				GardenAddr: workerAddress,
+			},
+			conn: factory.conn,
+		})
+	}
+
+	return createdVolumes, nil
+}
+
 func (factory *VolumeFactory) FindContainerVolume(team *Team, worker *Worker, container *CreatingContainer, mountPath string) (CreatingVolume, CreatedVolume, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
