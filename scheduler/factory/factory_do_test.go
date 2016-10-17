@@ -144,17 +144,15 @@ var _ = Describe("Factory Do", func() {
 				Plan: atc.PlanSequence{
 					{
 						Task: "starting-task",
-						CallbackConfig: atc.CallbackConfig{
-							Success: &atc.PlanConfig{
-								Aggregate: &atc.PlanSequence{
-									{
-										Task: "some thing",
-									},
-									{
-										Do: &atc.PlanSequence{
-											{
-												Task: "some other thing",
-											},
+						Success: &atc.PlanConfig{
+							Aggregate: &atc.PlanSequence{
+								{
+									Task: "some thing",
+								},
+								{
+									Do: &atc.PlanSequence{
+										{
+											Task: "some other thing",
 										},
 									},
 								},

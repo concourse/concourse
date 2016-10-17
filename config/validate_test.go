@@ -275,28 +275,22 @@ var _ = Describe("ValidateConfig", func() {
 							{
 								Task:           "some-task",
 								TaskConfigPath: "some/config/path.yml",
-								CallbackConfig: atc.CallbackConfig{
-									Failure: &atc.PlanConfig{
-										Get: "failure",
-									},
+								Failure: &atc.PlanConfig{
+									Get: "failure",
 								},
 							},
 							{
 								Task:           "some-task",
 								TaskConfigPath: "some/config/path.yml",
-								CallbackConfig: atc.CallbackConfig{
-									Ensure: &atc.PlanConfig{
-										Get: "ensure",
-									},
+								Ensure: &atc.PlanConfig{
+									Get: "ensure",
 								},
 							},
 							{
 								Task:           "some-task",
 								TaskConfigPath: "some/config/path.yml",
-								CallbackConfig: atc.CallbackConfig{
-									Success: &atc.PlanConfig{
-										Get: "success",
-									},
+								Success: &atc.PlanConfig{
+									Get: "success",
 								},
 							},
 							{
@@ -691,10 +685,8 @@ var _ = Describe("ValidateConfig", func() {
 
 					job1.Plan = append(job1.Plan, atc.PlanConfig{
 						Task: "job-one",
-						CallbackConfig: atc.CallbackConfig{
-							Success: &atc.PlanConfig{
-								Put: "some-resource",
-							},
+						Success: &atc.PlanConfig{
+							Put: "some-resource",
 						},
 						TaskConfigPath: "job-one-config-path",
 					})
@@ -726,10 +718,8 @@ var _ = Describe("ValidateConfig", func() {
 
 					job1.Plan = append(job1.Plan, atc.PlanConfig{
 						Task: "job-one",
-						CallbackConfig: atc.CallbackConfig{
-							Success: &atc.PlanConfig{
-								Get: "some-resource",
-							},
+						Success: &atc.PlanConfig{
+							Get: "some-resource",
 						},
 						TaskConfigPath: "job-one-config-path",
 					})
@@ -816,11 +806,9 @@ var _ = Describe("ValidateConfig", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{
 						Get: "some-resource",
-						CallbackConfig: atc.CallbackConfig{
-							Ensure: &atc.PlanConfig{
-								Put:      "custom-name",
-								Resource: "some-missing-resource",
-							},
+						Ensure: &atc.PlanConfig{
+							Put:      "custom-name",
+							Resource: "some-missing-resource",
 						},
 					})
 
@@ -837,11 +825,9 @@ var _ = Describe("ValidateConfig", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{
 						Get: "some-resource",
-						CallbackConfig: atc.CallbackConfig{
-							Success: &atc.PlanConfig{
-								Put:      "custom-name",
-								Resource: "some-missing-resource",
-							},
+						Success: &atc.PlanConfig{
+							Put:      "custom-name",
+							Resource: "some-missing-resource",
 						},
 					})
 
@@ -858,11 +844,9 @@ var _ = Describe("ValidateConfig", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{
 						Get: "some-resource",
-						CallbackConfig: atc.CallbackConfig{
-							Failure: &atc.PlanConfig{
-								Put:      "custom-name",
-								Resource: "some-missing-resource",
-							},
+						Failure: &atc.PlanConfig{
+							Put:      "custom-name",
+							Resource: "some-missing-resource",
 						},
 					})
 
