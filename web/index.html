@@ -35,8 +35,8 @@
 
       app.ports.requestLoginRedirect.subscribe(function (message) {
           var path = document.location.pathname;
-          var redirect = encodeURIComponent(path.substr(1) + document.location.search)
-          var matches = path.match(teamNameRegExp)
+          var redirect = encodeURIComponent(path + document.location.search)
+          var matches = path.match(teamNameRegExp);
           var loginUrl;
           if(matches) {
             var teamName = matches[1];

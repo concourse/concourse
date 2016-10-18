@@ -26,7 +26,7 @@ type alias Model =
   { teamName : String
   , authMethods : Maybe (List Concourse.AuthMethod)
   , hasTeamSelectionInBrowserHistory : Bool
-  , redirect : String
+  , redirect : Maybe String
   , basicAuthInput : Maybe BasicAuthFields
   }
 
@@ -40,7 +40,7 @@ type Msg
   | LoginTokenReceived (Result Http.Error Concourse.AuthToken)
   | GoBack
 
-init : Ports -> String -> String -> (Model, Cmd Msg)
+init : Ports -> String -> Maybe String -> (Model, Cmd Msg)
 init ports teamName redirect =
   ( { teamName = teamName
     , authMethods = Nothing
@@ -86,7 +86,7 @@ update action model =
       (model, noAuthSubmit model.teamName)
     LoginTokenReceived (Ok _) ->
         ( model
-        , Navigation.newUrl <| indexPageUrl ++ model.redirect
+        , Navigation.newUrl (redirectUrl model.redirect)
         )
     LoginTokenReceived (Err err) ->
       Debug.log ("login failed: " ++ toString err) <|
@@ -135,32 +135,35 @@ update action model =
         False ->
           (model, Navigation.newUrl <| teamSelectionRoute model.redirect)
 
-teamSelectionRoute : String -> String
-teamSelectionRoute redirect = routeMaybeRedirect redirect "/login"
+redirectUrl : Maybe String -> String
+redirectUrl redirectParam =
+  case redirectParam of
+    Nothing ->
+      "/"
+    Just redirectUrl ->
+      redirectUrl
 
-routeMaybeRedirect : String -> String -> String
-routeMaybeRedirect redirect route =
-  if redirect /= "" then
-    let
-      parsedRoute = Erl.parse route
-    in let
-      newParsedRoute = Erl.addQuery "redirect" redirect parsedRoute
-    in
-      Erl.toString newParsedRoute
-  else route
+teamSelectionRoute : Maybe String -> String
+teamSelectionRoute redirectParam =
+  case redirectParam of
+    Nothing ->
+      "/login"
+    Just r ->
+      Erl.parse "/login"
+      |> Erl.addQuery "redirect" r
+      |> Erl.toString
 
-routeWithRedirect : String -> String -> String
-routeWithRedirect redirect route =
+routeWithRedirect : Maybe String -> String -> String
+routeWithRedirect redirectParam route =
   let
-    parsedRoute = Erl.parse route
     actualRedirect =
-      case redirect of
-        "" -> indexPageUrl
-        _ -> redirect
-  in let
-    newParsedRoute = Erl.addQuery "redirect" actualRedirect parsedRoute
+      case redirectParam of
+        Nothing -> indexPageUrl
+        Just r -> r
   in
-    Erl.toString newParsedRoute
+    Erl.parse route
+    |> Erl.addQuery "redirect" actualRedirect
+    |> Erl.toString
 
 indexPageUrl : String
 indexPageUrl = "/"
@@ -267,9 +270,9 @@ viewBasicAuthForm methods =
   else
     Nothing
 
-viewOAuthButtons : String -> List Concourse.AuthMethod -> Maybe (Html Msg)
-viewOAuthButtons redirect methods =
-  case List.filterMap (viewOAuthButton redirect) methods of
+viewOAuthButtons : Maybe String -> List Concourse.AuthMethod -> Maybe (Html Msg)
+viewOAuthButtons redirectParam methods =
+  case List.filterMap (viewOAuthButton redirectParam) methods of
     [] ->
       Nothing
 
@@ -277,7 +280,7 @@ viewOAuthButtons redirect methods =
       Just <|
         Html.div [class "oauth-buttons"] buttons
 
-viewOAuthButton : String -> Concourse.AuthMethod -> Maybe (Html Msg)
+viewOAuthButton : Maybe String -> Concourse.AuthMethod -> Maybe (Html Msg)
 viewOAuthButton redirect method =
   case method of
     Concourse.AuthMethodBasic ->

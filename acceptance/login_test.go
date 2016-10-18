@@ -84,7 +84,7 @@ var _ = Describe("Logging In", func() {
 				})
 
 				It("forces a redirect to /teams/main/login with a redirect query param", func() {
-					Eventually(page).Should(HaveURL(atcCommand.URL(fmt.Sprintf("/teams/main/login?redirect=%s", url.QueryEscape("teams/main/pipelines/main")))))
+					Eventually(page).Should(HaveURL(atcCommand.URL(fmt.Sprintf("/teams/main/login?redirect=%s", url.QueryEscape("/teams/main/pipelines/main")))))
 				})
 			})
 
@@ -109,7 +109,7 @@ var _ = Describe("Logging In", func() {
 					})
 
 					It("forces a redirect to /login", func() {
-						Eventually(page).Should(HaveURL(atcCommand.URL(fmt.Sprintf("/login?redirect=%s", url.QueryEscape(buildPath[1:])))))
+						Eventually(page).Should(HaveURL(atcCommand.URL(fmt.Sprintf("/login?redirect=%s", url.QueryEscape(buildPath)))))
 					})
 
 					It("redirects back to the build page when user logs in", func() {
