@@ -276,11 +276,11 @@ func (server *registrarSSHServer) validateWorkerTeam(
 	sessionID string,
 	worker atc.Worker,
 ) error {
-	connTeam := server.sessionTeam[sessionID]
-	if connTeam != "" && worker.Team != connTeam {
+	authorizedTeam, found := server.sessionTeam[sessionID]
+	if found && worker.Team != authorizedTeam {
 		logger.Info("worker-not-allowed", lager.Data{
-			"connection-team": connTeam,
-			"channel-team":    worker.Team,
+			"authorized-team": authorizedTeam,
+			"request-team":    worker.Team,
 		})
 		return errors.New("worker-not-allowed-to-team")
 	}
