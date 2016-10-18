@@ -102,12 +102,8 @@ init turbulencePath route =
         superDupleWrap (SelectTeamModel, SelectTeamMsg) <|
           TeamSelection.init {title = setTitle} redirect
     Routes.TeamLogin teamName ->
-      let
-        redirect =
-          Maybe.withDefault "" <| QueryString.one QueryString.string "redirect" route.queries
-      in
-        superDupleWrap (LoginModel, LoginMsg) <|
-          Login.init {title = setTitle} teamName redirect
+      superDupleWrap (LoginModel, LoginMsg) <|
+        Login.init {title = setTitle} teamName (QueryString.one QueryString.string "redirect" route.queries)
     Routes.Pipeline teamName pipelineName ->
       superDupleWrap (PipelineModel, PipelineMsg) <|
         Pipeline.init
