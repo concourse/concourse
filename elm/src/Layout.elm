@@ -9,6 +9,8 @@ import TopBar
 import SideBar
 import Routes
 import SubPage
+import Task exposing (Task)
+import Favicon
 
 port newUrl : (String -> msg) -> Sub msg
 
@@ -30,7 +32,8 @@ type alias Model =
   }
 
 type Msg
-  = SubMsg NavIndex SubPage.Msg
+  = Noop
+  | SubMsg NavIndex SubPage.Msg
   | TopMsg NavIndex TopBar.Msg
   | SideMsg NavIndex SideBar.Msg
   | NewUrl String
@@ -155,6 +158,8 @@ update msg model =
           (sideModel, sideCmd) = SideBar.update m model.sideModel
         in
           ({ model | sideModel = sideModel }, Cmd.map (SideMsg navIndex) sideCmd)
+    Noop ->
+      (model, Cmd.none)
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd (Msg))
 urlUpdate route model =
@@ -186,8 +191,14 @@ urlUpdate route model =
     , Cmd.batch
         [ Cmd.map (SubMsg navIndex) cmd
         , Cmd.map (TopMsg navIndex) tCmd
+        , resetFavicon
         ]
     )
+
+resetFavicon : Cmd Msg
+resetFavicon =
+  Cmd.map (always Noop) << Task.perform Err Ok <|
+    Favicon.set ("/public/images/favicon.png")
 
 view : Model -> Html (Msg)
 view model =
