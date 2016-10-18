@@ -3,7 +3,6 @@ module Favicon exposing
   )
 
 import Task exposing (Task)
-
 import Native.Favicon
 
 
