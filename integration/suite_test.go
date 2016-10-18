@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/concourse/atc"
 	. "github.com/onsi/ginkgo"
@@ -32,6 +33,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	return []byte(binPath)
 }, func(data []byte) {
 	flyPath = string(data)
+
+	SetDefaultEventuallyTimeout(10 * time.Second)
 })
 
 var _ = SynchronizedAfterSuite(func() {
