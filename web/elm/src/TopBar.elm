@@ -264,6 +264,24 @@ getSelectedOrDefaultGroups model =
   else
     model.selectedGroups
 
+getSelectedGroupsForRoute : Model -> List String
+getSelectedGroupsForRoute model =
+  case model.route.logical of
+    Routes.Build _ _ jobName _ ->
+      getGroupsForJob jobName model.pipeline
+    Routes.Job _ _ jobName ->
+      getGroupsForJob jobName model.pipeline
+    _ ->
+      getSelectedOrDefaultGroups model
+
+getGroupsForJob : String -> Maybe Concourse.Pipeline -> List String
+getGroupsForJob jobName pipeline =
+  case pipeline of
+    Nothing ->
+      []
+    Just pl ->
+      (List.filter (.jobs >> (List.member jobName)) pl.groups |> List.map .name)
+
 view : Model -> Html Msg
 view model =
   Html.nav
@@ -280,7 +298,7 @@ view model =
               ([], "/")
             Just pipeline ->
               ( List.map
-                (viewGroup (getSelectedOrDefaultGroups model) pipeline.url)
+                (viewGroup (getSelectedGroupsForRoute model) pipeline.url)
                 pipeline.groups
               , pipeline.url)
       in
