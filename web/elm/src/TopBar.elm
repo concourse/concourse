@@ -202,9 +202,9 @@ urlUpdate route model =
       }
     , case pipelineIdentifier of
         Nothing ->
-          Cmd.none
+          fetchUser
         Just pid ->
-          fetchPipeline pid
+          Cmd.batch [fetchPipeline pid, fetchUser]
     )
 
 getDefaultSelectedGroups : Maybe Concourse.Pipeline -> List String

@@ -99,8 +99,6 @@ var _ = Describe("Navigation", func() {
 				Expect(page.Navigate(homepage())).To(Succeed())
 				Login(page, homepage())
 				Eventually(page.FindByLink("job-1")).Should(BeFound())
-				err := page.Refresh()
-				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("navigates to the default pipeline when not viewing a pipeline", func() {

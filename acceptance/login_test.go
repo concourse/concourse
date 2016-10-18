@@ -64,6 +64,10 @@ var _ = Describe("Logging In", func() {
 		Expect(dbListener.Close()).To(Succeed())
 	})
 
+	homepage := func() string {
+		return atcCommand.URL("")
+	}
+
 	Describe("logging in via the UI", func() {
 		Context("when user is not logged in", func() {
 			var page *agouti.Page
@@ -76,6 +80,18 @@ var _ = Describe("Logging In", func() {
 
 			AfterEach(func() {
 				Expect(page.Destroy()).To(Succeed())
+			})
+
+			Describe("after the user logs in", func() {
+				It("should display the pipelines the user has access to in the sidebar", func() {
+					Login(page, homepage())
+					Expect(page.FindByClass("sidebar-toggle").Click()).To(Succeed())
+					Eventually(page.FindByLink("main")).Should(BeVisible())
+				})
+
+				It("should no longer display the login link", func() {
+					Eventually(page.FindByLink("login")).ShouldNot(BeFound())
+				})
 			})
 
 			Context("navigating to a team specific page", func() {

@@ -18,8 +18,10 @@ type alias Flags =
   { turbulenceImgSrc : String
   }
 
-type alias NavIndex =
-  Int
+type alias NavIndex = Int
+
+anyNavIndex : NavIndex
+anyNavIndex = -1
 
 type alias Model =
   { navIndex : NavIndex
@@ -90,8 +92,8 @@ update msg model =
           | subModel = subModel
           }
         , Cmd.batch
-            [ Cmd.map (TopMsg navIndex) TopBar.fetchUser
-            , Cmd.map (SideMsg navIndex) SideBar.fetchPipelines
+            [ Cmd.map (TopMsg anyNavIndex) TopBar.fetchUser
+            , Cmd.map (SideMsg anyNavIndex) SideBar.fetchPipelines
             , Cmd.map (SubMsg navIndex) subCmd
             ]
         )
@@ -133,33 +135,40 @@ update msg model =
 
     -- otherwise, pass down
     SubMsg navIndex m ->
-      if navIndex /= model.navIndex then
-        (model, Cmd.none)
-      else
+      if (validNavIndex model.navIndex navIndex) then
         let
           (subModel, subCmd) = SubPage.update model.turbulenceImgSrc m model.subModel
         in
           ({ model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd)
+      else
+        (model, Cmd.none)
 
     TopMsg navIndex m ->
-      if navIndex /= model.navIndex then
-        (model, Cmd.none)
-      else
+      if (validNavIndex model.navIndex navIndex) then
         let
           (topModel, topCmd) = TopBar.update m model.topModel
         in
           ({ model | topModel = topModel }, Cmd.map (TopMsg navIndex) topCmd)
+      else
+        (model, Cmd.none)
 
     SideMsg navIndex m ->
-      if navIndex /= model.navIndex then
-        (model, Cmd.none)
-      else
+      if (validNavIndex model.navIndex navIndex) then
         let
           (sideModel, sideCmd) = SideBar.update m model.sideModel
         in
           ({ model | sideModel = sideModel }, Cmd.map (SideMsg navIndex) sideCmd)
+      else
+        (model, Cmd.none)
     Noop ->
       (model, Cmd.none)
+
+validNavIndex : NavIndex -> NavIndex -> Bool
+validNavIndex modelNavIndex navIndex =
+  if navIndex == anyNavIndex then
+    True
+  else
+    navIndex == modelNavIndex
 
 urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd (Msg))
 urlUpdate route model =
