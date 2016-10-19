@@ -301,15 +301,16 @@ flag. Once you've learned what the commands do, you may want to consult
   $ fly -t example expose-pipeline --pipeline my-pipeline
   }
 
- This feature is useful if you're using Concourse for an open source project
- and you'd like your community to be able to see into your build pipeline.
+  This feature is useful if you're using Concourse for an open source project
+  and you'd like your community to be able to see into your build pipeline.
 
- To undo this change, see \reference{fly-hide-pipeline}.
+  To undo this change, see \reference{fly-hide-pipeline}.
 
- Note that exposing a pipeline simply makes it possible to view the pipeline
- itself, which will only show the name and status of each job. Build output
- will remain hidden by default unless the job configures
- \reference{public}{\code{public: true}}.
+  Exposing a pipeline reveals basically everything but the output of builds.
+  The pipeline will be publicly viewable, as well as resource versions and
+  metadata, which includes things like commit messages. Build output will
+  remain hidden by default unless the job configures
+  \reference{public}{\code{public: true}}.
 }
 
 \section{\code{hide-pipeline}\aux{: Hiding a pipeline from the public}}{fly-hide-pipeline}{
