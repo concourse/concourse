@@ -22,7 +22,8 @@ type UsedResourceType struct {
 
 func (resourceType ResourceType) Find(tx Tx) (*UsedResourceType, bool, error) {
 	var id int
-	var versionString string
+	var version sql.NullString
+
 	err := psql.Select("id", "version").
 		From("resource_types").
 		Where(sq.Eq{
@@ -31,7 +32,7 @@ func (resourceType ResourceType) Find(tx Tx) (*UsedResourceType, bool, error) {
 		}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&id, &versionString)
+		Scan(&id, &version)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -40,21 +41,18 @@ func (resourceType ResourceType) Find(tx Tx) (*UsedResourceType, bool, error) {
 		return nil, false, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, false, err
+	urt := &UsedResourceType{
+		ID: id,
 	}
 
-	var version atc.Version
-	err = json.Unmarshal([]byte(versionString), &version)
-	if err != nil {
-		return nil, false, err
+	if version.Valid {
+		err = json.Unmarshal([]byte(version.String), urt.Version)
+		if err != nil {
+			return nil, false, err
+		}
 	}
 
-	return &UsedResourceType{
-		ID:      id,
-		Version: version,
-	}, true, nil
+	return urt, true, nil
 }
 
 func (resourceType ResourceType) Create(tx Tx) (*UsedResourceType, error) {

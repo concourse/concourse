@@ -151,7 +151,7 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 	var checkingResource resource.Resource
 	if checkSess.ID.BuildID != 0 {
 		checkingResource, _, err = i.resourceFactory.NewBuildResource(
-			i.logger.Session("check-image"),
+			i.logger.Session("build-resource"),
 			resource.EmptyMetadata{},
 			checkSess,
 			resource.ResourceType(i.imageResource.Type),
@@ -163,7 +163,7 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 		)
 	} else if checkSess.ID.ResourceID != 0 {
 		checkingResource, err = i.resourceFactory.NewCheckResource(
-			i.logger.Session("check-image"),
+			i.logger.Session("check-resource"),
 			resource.EmptyMetadata{},
 			checkSess,
 			resource.ResourceType(i.imageResource.Type),
@@ -174,7 +174,7 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 		)
 	} else {
 		checkingResource, err = i.resourceFactory.NewResourceTypeCheckResource(
-			i.logger.Session("check-image"),
+			i.logger.Session("resource-type-check-resource"),
 			resource.EmptyMetadata{},
 			checkSess,
 			resource.ResourceType(i.imageResource.Type),

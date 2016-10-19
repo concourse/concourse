@@ -39,8 +39,6 @@ func NewVolumeFactory(db VolumeFactoryDB) VolumeFactory {
 func (vf *volumeFactory) BuildWithIndefiniteTTL(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, error) {
 	logger = logger.WithData(lager.Data{"volume": bcVol.Handle()})
 
-	bcVol.Release(nil)
-
 	err := bcVol.SetTTL(0)
 	if err != nil {
 		logger.Error("failed-to-set-volume-ttl-in-baggageclaim", err)

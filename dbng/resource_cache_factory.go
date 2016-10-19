@@ -13,6 +13,24 @@ type ResourceCacheFactory interface {
 		params atc.Params,
 		resourceTypes []ResourceType,
 	) (*UsedResourceCache, error)
+
+	FindOrCreateResourceCacheForResource(
+		resource *Resource,
+		resourceType string,
+		version atc.Version,
+		source atc.Source,
+		params atc.Params,
+		resourceTypes []ResourceType,
+	) (*UsedResourceCache, error)
+
+	FindOrCreateResourceCacheForResourceType(
+		usedResourceType *UsedResourceType,
+		resourceType string,
+		version atc.Version,
+		source atc.Source,
+		params atc.Params,
+		resourceTypes []ResourceType,
+	) (*UsedResourceCache, error)
 }
 
 type resourceCacheFactory struct {
@@ -52,6 +70,84 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 	}
 
 	usedResourceCache, err := resourceCache.FindOrCreateForBuild(tx, build)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return usedResourceCache, nil
+}
+
+func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
+	resource *Resource,
+	resourceType string,
+	version atc.Version,
+	source atc.Source,
+	params atc.Params,
+	resourceTypes []ResourceType,
+) (*UsedResourceCache, error) {
+	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	resourceCache := ResourceCache{
+		ResourceConfig: resourceConfig,
+		Version:        version,
+		Params:         params,
+	}
+
+	usedResourceCache, err := resourceCache.FindOrCreateForResource(tx, resource)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return usedResourceCache, nil
+}
+
+func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
+	usedResourceType *UsedResourceType,
+	resourceType string,
+	version atc.Version,
+	source atc.Source,
+	params atc.Params,
+	resourceTypes []ResourceType,
+) (*UsedResourceCache, error) {
+	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	resourceCache := ResourceCache{
+		ResourceConfig: resourceConfig,
+		Version:        version,
+		Params:         params,
+	}
+
+	usedResourceCache, err := resourceCache.FindOrCreateForResourceType(tx, usedResourceType)
 	if err != nil {
 		return nil, err
 	}

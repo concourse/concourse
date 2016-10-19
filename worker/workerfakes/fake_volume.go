@@ -73,11 +73,6 @@ type FakeVolume struct {
 		result1 baggageclaim.VolumeProperties
 		result2 error
 	}
-	ReleaseStub        func(*time.Duration)
-	releaseMutex       sync.RWMutex
-	releaseArgsForCall []struct {
-		arg1 *time.Duration
-	}
 	SizeInBytesStub        func() (int64, error)
 	sizeInBytesMutex       sync.RWMutex
 	sizeInBytesArgsForCall []struct{}
@@ -333,30 +328,6 @@ func (fake *FakeVolume) PropertiesReturns(result1 baggageclaim.VolumeProperties,
 	}{result1, result2}
 }
 
-func (fake *FakeVolume) Release(arg1 *time.Duration) {
-	fake.releaseMutex.Lock()
-	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
-		arg1 *time.Duration
-	}{arg1})
-	fake.recordInvocation("Release", []interface{}{arg1})
-	fake.releaseMutex.Unlock()
-	if fake.ReleaseStub != nil {
-		fake.ReleaseStub(arg1)
-	}
-}
-
-func (fake *FakeVolume) ReleaseCallCount() int {
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
-	return len(fake.releaseArgsForCall)
-}
-
-func (fake *FakeVolume) ReleaseArgsForCall(i int) *time.Duration {
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
-	return fake.releaseArgsForCall[i].arg1
-}
-
 func (fake *FakeVolume) SizeInBytes() (int64, error) {
 	fake.sizeInBytesMutex.Lock()
 	fake.sizeInBytesArgsForCall = append(fake.sizeInBytesArgsForCall, struct{}{})
@@ -427,8 +398,6 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.expirationMutex.RUnlock()
 	fake.propertiesMutex.RLock()
 	defer fake.propertiesMutex.RUnlock()
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
 	fake.sizeInBytesMutex.RLock()
 	defer fake.sizeInBytesMutex.RUnlock()
 	fake.destroyMutex.RLock()

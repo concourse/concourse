@@ -50,6 +50,7 @@ var _ = Describe("Image", func() {
 	var fetchedVersion atc.Version
 	var fetchErr error
 	var teamID int
+	var imageFactory worker.ImageFactory
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
@@ -93,10 +94,8 @@ var _ = Describe("Image", func() {
 				Source: atc.Source{"some": "source"},
 			},
 		}
-	})
 
-	JustBeforeEach(func() {
-		imageFactory := image.NewFactory(
+		imageFactory = image.NewFactory(
 			fakeResourceFetcherFactory,
 			fakeResourceFactoryFactory,
 		)
@@ -114,17 +113,21 @@ var _ = Describe("Image", func() {
 			fakeImageFetchingDelegate,
 			privileged,
 		)
+	})
 
+	JustBeforeEach(func() {
 		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = fetchedImage.Fetch()
 	})
 
 	Context("when initializing the Check resource works", func() {
 		var (
 			fakeCheckResource *rfakes.FakeResource
+			fakeBuildResource *rfakes.FakeResource
 		)
 
 		BeforeEach(func() {
 			fakeCheckResource = new(rfakes.FakeResource)
+			fakeBuildResource = new(rfakes.FakeResource)
 			fakeResourceFactory.NewResourceTypeCheckResourceReturns(fakeCheckResource, nil)
 		})
 
@@ -179,6 +182,108 @@ var _ = Describe("Image", func() {
 							fakeVersionedSource.VolumeReturns(fakeVolume)
 
 							privileged = true
+						})
+
+						Context("calling NewBuildResource", func() {
+							BeforeEach(func() {
+								identifier = worker.Identifier{
+									PlanID:  "some-plan-id",
+									BuildID: 1,
+								}
+
+								fetchedImage = imageFactory.NewImage(
+									logger,
+									signals,
+									imageResource,
+									identifier,
+									metadata,
+									atc.Tags{"worker", "tags"},
+									teamID,
+									customTypes,
+									fakeWorker,
+									fakeImageFetchingDelegate,
+									privileged,
+								)
+								fakeResourceFactory.NewBuildResourceReturns(fakeBuildResource, nil, nil)
+							})
+
+							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
+								Expect(fakeResourceFactory.NewBuildResourceCallCount()).To(Equal(1))
+								_, metadata, session, resourceType, tags, actualTeamID, _, actualCustomTypes, delegate := fakeResourceFactory.NewBuildResourceArgsForCall(0)
+								Expect(metadata).To(Equal(resource.EmptyMetadata{}))
+								Expect(session).To(Equal(resource.Session{
+									ID: worker.Identifier{
+										BuildID:             identifier.BuildID,
+										PlanID:              "some-plan-id",
+										ImageResourceType:   "docker",
+										ImageResourceSource: atc.Source{"some": "source"},
+										Stage:               db.ContainerStageCheck,
+									},
+									Metadata: worker.Metadata{
+										PipelineName:         "some-pipeline",
+										Type:                 db.ContainerTypeCheck,
+										StepName:             "some-step",
+										WorkingDirectory:     "",  // figure this out once we actually support hijacking these
+										EnvironmentVariables: nil, // figure this out once we actually support hijacking these
+									},
+								}))
+								Expect(resourceType).To(Equal(resource.ResourceType("docker")))
+								Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
+								Expect(actualTeamID).To(Equal(teamID))
+								Expect(actualCustomTypes).To(Equal(customTypes))
+								Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+							})
+						})
+
+						Context("calling NewCheckResource", func() {
+							BeforeEach(func() {
+								identifier = worker.Identifier{
+									PlanID:     "some-plan-id",
+									ResourceID: 1,
+								}
+
+								fetchedImage = imageFactory.NewImage(
+									logger,
+									signals,
+									imageResource,
+									identifier,
+									metadata,
+									atc.Tags{"worker", "tags"},
+									teamID,
+									customTypes,
+									fakeWorker,
+									fakeImageFetchingDelegate,
+									privileged,
+								)
+								fakeResourceFactory.NewCheckResourceReturns(fakeCheckResource, nil)
+							})
+
+							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
+								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
+								_, metadata, session, resourceType, tags, actualTeamID, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								Expect(metadata).To(Equal(resource.EmptyMetadata{}))
+								Expect(session).To(Equal(resource.Session{
+									ID: worker.Identifier{
+										ResourceID:          identifier.ResourceID,
+										PlanID:              "some-plan-id",
+										ImageResourceType:   "docker",
+										ImageResourceSource: atc.Source{"some": "source"},
+										Stage:               db.ContainerStageCheck,
+									},
+									Metadata: worker.Metadata{
+										PipelineName:         "some-pipeline",
+										Type:                 db.ContainerTypeCheck,
+										StepName:             "some-step",
+										WorkingDirectory:     "",  // figure this out once we actually support hijacking these
+										EnvironmentVariables: nil, // figure this out once we actually support hijacking these
+									},
+								}))
+								Expect(resourceType).To(Equal(resource.ResourceType("docker")))
+								Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
+								Expect(actualTeamID).To(Equal(teamID))
+								Expect(actualCustomTypes).To(Equal(customTypes))
+								Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+							})
 						})
 
 						It("succeeds", func() {
@@ -253,8 +358,14 @@ var _ = Describe("Image", func() {
 						})
 
 						It("releases the check resource, which includes releasing its volume", func() {
+							// TODO we need to actually make sure that the volume is released
+							// because it seems like it is not
 							Expect(fakeCheckResource.ReleaseCallCount()).To(Equal(1))
 						})
+
+						// TODO It doesn't seem that all cases were being tested because they besically do the same
+						// They all create a resource and that resource calls the Check() function.
+						// Do we want to test the same things
 
 						It("fetches resource with correct session", func() {
 							Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))

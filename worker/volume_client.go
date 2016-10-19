@@ -111,7 +111,7 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 
 	if createdVolume != nil {
 		bcVolume, bcVolumeFound, err = c.baggageclaimClient.LookupVolume(
-			logger.Session("create-volume"),
+			logger.Session("lookup-volume"),
 			createdVolume.Handle(),
 		)
 		if err != nil {
@@ -307,7 +307,9 @@ func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error { 
 		return nil
 	}
 
-	wVol.Release(FinalTTL(VolumeTTL))
+	logger.Debug("releasing a volume " + handle + " [super logs]")
+
+	wVol.Destroy()
 
 	return nil
 }

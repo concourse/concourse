@@ -568,18 +568,72 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 		dbResourceTypes = append(dbResourceTypes, dbResourceType)
 	}
 
-	resourceCache, err := worker.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
-		&dbng.Build{
-			ID: id.BuildID,
-		},
-		resourceType,
-		version,
-		source,
-		params,
-		dbResourceTypes,
-	)
-	if err != nil {
-		return nil, err
+	var resourceCache *dbng.UsedResourceCache
+
+	if id.BuildID != 0 {
+		var err error
+		resourceCache, err = worker.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+			&dbng.Build{
+				ID: id.BuildID,
+			},
+			resourceType,
+			version,
+			source,
+			params,
+			dbResourceTypes,
+		)
+		if err != nil {
+			logger.Error("failed-to-get-resource-cache-for-build", err, lager.Data{"build-id": id.BuildID})
+			return nil, err
+		}
+	} else if id.ResourceID != 0 {
+		var err error
+		resourceCache, err = worker.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
+			&dbng.Resource{
+				ID: id.ResourceID,
+			},
+			resourceType,
+			version,
+			source,
+			params,
+			dbResourceTypes,
+		)
+		if err != nil {
+			logger.Error("failed-to-get-resource-cache-for-resource", err, lager.Data{"resource-id": id.ResourceID})
+			return nil, err
+		}
+	} else {
+		rt, found := resourceTypes.Lookup(resourceType)
+		if !found {
+			logger.Error("custom-resource-type-not-found", ErrResourceTypeNotFound, lager.Data{"resource-type": resourceType})
+			return nil, ErrResourceTypeNotFound
+		}
+
+		foundResourceType, found, err := worker.dbResourceTypeFactory.FindResourceType(
+			&dbng.Pipeline{ID: metadata.PipelineID},
+			rt,
+		)
+		if err != nil {
+			logger.Error("failed-to-find-resource-type-in-database", err, lager.Data{"resource-type": resourceType})
+			return nil, err
+		}
+		if !found {
+			logger.Error("resource-type-not-found-in-database", ErrResourceTypeNotFound, lager.Data{"resource-type": resourceType})
+			return nil, ErrResourceTypeNotFound
+		}
+
+		resourceCache, err = worker.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
+			foundResourceType,
+			resourceType,
+			version,
+			source,
+			params,
+			dbResourceTypes,
+		)
+		if err != nil {
+			logger.Error("failed-to-get-resource-cache-for-resource-type", err, lager.Data{"resource-type": resourceType})
+			return nil, err
+		}
 	}
 
 	creatingContainer, err := worker.dbContainerFactory.CreateResourceGetContainer(
@@ -616,6 +670,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 			resourceType,
 		)
 		if err != nil {
+			logger.Error("create-resource-check-container: FindResourceType", err)
 			return nil, err
 		}
 
@@ -640,6 +695,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 		dbResourceTypes,
 	)
 	if err != nil {
+		logger.Error("create-resource-check-container: FindOrCreateResourceConfigForResource", err)
 		return nil, err
 	}
 
@@ -652,6 +708,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 		metadata.StepName,
 	)
 	if err != nil {
+		logger.Error("create-resource-check-container: CreateResourceCheckContainer", err)
 		return nil, err
 	}
 
@@ -929,7 +986,6 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 	}
 
 	if !found {
-
 		return nil, found, nil
 	}
 

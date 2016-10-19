@@ -282,7 +282,7 @@ func (factory *VolumeFactory) createVolume(tx Tx, teamID int, worker *Worker, co
 	}
 
 	err = psql.Insert("volumes").
-		Columns(columnNames...).
+		Columns(columnNames...). // hey, replace this with SetMap plz
 		Values(columnValues...).
 		Suffix("RETURNING id").
 		RunWith(tx).

@@ -1281,7 +1281,7 @@ var _ = Describe("GardenFactory", func() {
 
 										fakeWorker.CreateVolumeStub = func(logger lager.Logger, spec worker.VolumeSpec, teamID int) (worker.Volume, error) {
 											defer GinkgoRecover()
-											Expect(imageVolume.ReleaseCallCount()).To(BeZero())
+											Expect(imageVolume.DestroyCallCount()).To(BeZero())
 											return cowVolume, nil
 										}
 										imageArtifactSource.VolumeOnReturns(imageVolume, true, nil)

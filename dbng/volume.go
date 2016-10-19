@@ -1,6 +1,8 @@
 package dbng
 
 import (
+	"errors"
+
 	sq "github.com/Masterminds/squirrel"
 	uuid "github.com/nu7hatch/gouuid"
 )
@@ -11,6 +13,12 @@ const (
 	VolumeStateCreating   = "creating"
 	VolumeStateCreated    = "created"
 	VolumeStateDestroying = "destroying"
+)
+
+var (
+	ErrVolumeMarkCreatedFailed     = errors.New("could-not-mark-volume-as-created")
+	ErrVolumeMarkDestroyingFailed  = errors.New("could-not-mark-volume-as-destroying")
+	ErrVolumeStateTransitionFailed = errors.New("could-not-transition-volume-state")
 )
 
 // TODO: do not permit nullifying cache_id while creating or created
@@ -40,25 +48,22 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 
 	defer tx.Rollback()
 
-	transitioned, err := stateTransition(
+	err = stateTransition(
 		volume.id,
 		tx,
 		VolumeStateCreating,
 		VolumeStateCreated,
-		map[string]interface{}{},
 	)
 	if err != nil {
+		if err == ErrVolumeStateTransitionFailed {
+			return nil, ErrVolumeMarkCreatedFailed
+		}
 		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	if !transitioned {
-		panic("TESTME")
-		return nil, nil
 	}
 
 	return &createdVolume{
@@ -209,20 +214,22 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 
 	defer tx.Rollback()
 
-	transitioned, err := stateTransition(volume.id, tx, VolumeStateCreated, VolumeStateDestroying, map[string]interface{}{})
+	err = stateTransition(
+		volume.id,
+		tx,
+		VolumeStateCreated,
+		VolumeStateDestroying,
+	)
 	if err != nil {
-		// TODO: return explicit error for failed transition due to volumes using it
+		if err == ErrVolumeStateTransitionFailed {
+			return nil, ErrVolumeMarkDestroyingFailed
+		}
 		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	if !transitioned {
-		panic("TESTME")
-		return nil, nil
 	}
 
 	return &destroyingVolume{
@@ -279,17 +286,15 @@ func (volume *destroyingVolume) Destroy() (bool, error) {
 	}
 
 	if affected == 0 {
-		panic("TESTME")
 		return false, nil
 	}
 
 	return true, nil
 }
 
-func stateTransition(volumeID int, tx Tx, from, to VolumeState, setMap map[string]interface{}) (bool, error) {
+func stateTransition(volumeID int, tx Tx, from, to VolumeState) error {
 	rows, err := psql.Update("volumes").
 		Set("state", string(to)).
-		SetMap(setMap).
 		Where(sq.Eq{
 			"id":    volumeID,
 			"state": string(from),
@@ -297,18 +302,17 @@ func stateTransition(volumeID int, tx Tx, from, to VolumeState, setMap map[strin
 		RunWith(tx).
 		Exec()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	affected, err := rows.RowsAffected()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if affected == 0 {
-		panic("TESTME")
-		return false, nil
+		return ErrVolumeStateTransitionFailed
 	}
 
-	return true, nil
+	return nil
 }

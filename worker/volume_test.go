@@ -37,32 +37,10 @@ var _ = Describe("Volumes", func() {
 					fakeDB.GetVolumeTTLReturns(time.Minute, true, nil)
 				})
 
-				It("releases the volume it was given", func() {
-					_, err := volumeFactory.BuildWithIndefiniteTTL(logger, fakeVolume)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
-					actualTTL := fakeVolume.ReleaseArgsForCall(0)
-					Expect(actualTTL).To(BeNil())
-				})
-
 				It("embeds the original volume in the wrapped volume", func() {
 					vol, err := volumeFactory.BuildWithIndefiniteTTL(logger, fakeVolume)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(vol.Handle()).To(Equal("some-handle"))
-				})
-			})
-
-			Context("when the volume's TTL cannot be found", func() {
-				BeforeEach(func() {
-					fakeDB.GetVolumeTTLReturns(0, false, nil)
-				})
-
-				It("releases the volume it was given and returns false", func() {
-					_, err := volumeFactory.BuildWithIndefiniteTTL(logger, fakeVolume)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
-					actualTTL := fakeVolume.ReleaseArgsForCall(0)
-					Expect(actualTTL).To(BeNil())
 				})
 			})
 		})

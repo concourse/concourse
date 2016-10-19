@@ -195,10 +195,6 @@ var _ = Describe("VolumeClient", func() {
 				It("returns the error", func() {
 					Expect(err).To(Equal(disaster))
 				})
-
-				It("does not continue to the next volume", func() {
-					Expect(wVol3.ReleaseCallCount()).To(Equal(0))
-				})
 			})
 
 			Context("when a volume which is going to be expired can't be found", func() {
@@ -215,8 +211,7 @@ var _ = Describe("VolumeClient", func() {
 				})
 
 				It("should continue to the next volume", func() {
-					Expect(wVol3.ReleaseCallCount()).To(Equal(1))
-					Expect(wVol3.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(5 * time.Minute)))
+					Expect(wVol3.DestroyCallCount()).To(Equal(1))
 				})
 			})
 		})
