@@ -24,4 +24,5 @@ atc \
   --development-mode \
   --external-url "http://${external_ip}:8080" \
   --session-signing-key $KEYSDIR/web/session_signing_key \
-  --postgres-data-source "user=postgres dbname=atc port=${pg_port} sslmode=disable"
+  --postgres-data-source "user=postgres dbname=atc port=${pg_port} sslmode=disable" \
+  "$@"
