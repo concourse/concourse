@@ -803,30 +803,6 @@ resources:
     password: admin
     deployment: concourse-testflight
 
-- name: lite-deployment-basic-auth-public
-  type: bosh-deployment
-  source:
-    <<: *lite-defaults
-    deployment: concourse-testflight-basic-auth-public
-
-- name: lite-deployment-basic-auth-private
-  type: bosh-deployment
-  source:
-    <<: *lite-defaults
-    deployment: concourse-testflight-basic-auth-private
-
-- name: lite-deployment-github-auth-public
-  type: bosh-deployment
-  source:
-    <<: *lite-defaults
-    deployment: concourse-testflight-github-auth-public
-
-- name: lite-deployment-github-auth-private
-  type: bosh-deployment
-  source:
-    <<: *lite-defaults
-    deployment: concourse-testflight-github-auth-private
-
 - name: virtualbox-box-cloud
   type: vagrant-cloud
   source:
@@ -877,12 +853,6 @@ resources:
   source:
     uri: https://github.com/concourse/concourse.git
     branch: develop
-
-- name: concourse-marketing
-  type: git
-  source:
-    uri: https://github.com/concourse/concourse.git
-    branch: marketing
 
 - name: concourse-docs
   type: cf
