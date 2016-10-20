@@ -4,12 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strings"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
+	"net"
+	"regexp"
 )
 
 type LoginCommand struct {
@@ -126,7 +130,7 @@ func (command *LoginCommand) Execute(args []string) error {
 	}
 
 	client := target.Client()
-	token, err := command.loginWith(chosenMethod, client, caCert)
+	token, err := command.loginWith(chosenMethod, client, caCert, target.Client().URL())
 	if err != nil {
 		return err
 	}
@@ -141,39 +145,69 @@ func (command *LoginCommand) Execute(args []string) error {
 	)
 }
 
+func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, portChannel chan string, targetUrl string) {
+	s := &http.Server{
+		Addr: ":0",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tokenChannel <- r.FormValue("token")
+			http.Redirect(w, r, fmt.Sprintf("%s/public/fly_success", targetUrl), http.StatusTemporaryRedirect)
+
+		}),
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	err := listenAndServeWithPort(s, portChannel)
+
+	if err != nil {
+		errorChannel <- err
+	}
+}
+
 func (command *LoginCommand) loginWith(
 	method atc.AuthMethod,
 	client concourse.Client,
 	caCert string,
+	targetUrl string,
 ) (*atc.AuthToken, error) {
 	var token atc.AuthToken
 
 	switch method.Type {
 	case atc.AuthTypeOAuth:
+
+		var tokenStr string
+
+		stdinChannel := make(chan string)
+		tokenChannel := make(chan string)
+		errorChannel := make(chan error)
+		portChannel := make(chan string)
+
+		go listenForTokenCallback(tokenChannel, errorChannel, portChannel, targetUrl)
+
+		port := <-portChannel
+
 		fmt.Println("navigate to the following URL in your browser:")
 		fmt.Println("")
-		fmt.Printf("    %s\n", method.AuthURL)
+		fmt.Printf("    %s&fly_local_port=%s\n", method.AuthURL, port)
+		fmt.Println("")
 		fmt.Println("")
 
-		for {
-			var tokenStr string
+		go waitForTokenInput(stdinChannel, errorChannel)
 
-			err := interact.NewInteraction("enter token").Resolve(interact.Required(&tokenStr))
-			if err != nil {
-				return nil, err
-			}
-
-			segments := strings.SplitN(tokenStr, " ", 2)
-			if len(segments) != 2 {
-				fmt.Println("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
-				continue
-			}
-
-			token.Type = segments[0]
-			token.Value = segments[1]
-
-			break
+		select {
+		case tokenStrMsg := <-tokenChannel:
+			tokenStr = tokenStrMsg
+		case tokenStrMsg := <-stdinChannel:
+			tokenStr = tokenStrMsg
+		case errorMsg := <-errorChannel:
+			return nil, errorMsg
 		}
+
+		segments := strings.SplitN(tokenStr, " ", 2)
+
+		token.Type = segments[0]
+		token.Value = segments[1]
 
 	case atc.AuthTypeBasic:
 		var username string
@@ -219,6 +253,27 @@ func (command *LoginCommand) loginWith(
 
 	return &token, nil
 }
+func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
+	for {
+		var tokenStr string
+
+		err := interact.NewInteraction("enter token").Resolve(interact.Required(&tokenStr))
+		if err != nil {
+			errorChannel <- err
+			return
+		}
+
+		segments := strings.SplitN(tokenStr, " ", 2)
+		if len(segments) != 2 {
+			fmt.Println("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
+			continue
+		}
+
+		tokenChannel <- tokenStr
+
+		break
+	}
+}
 
 func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCert string) error {
 	err := rc.SaveTarget(
@@ -236,7 +291,30 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 		return err
 	}
 
+	fmt.Println("")
 	fmt.Println("target saved")
 
 	return nil
+}
+
+func listenAndServeWithPort(srv *http.Server, portChannel chan string) error {
+	addr := srv.Addr
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	r, err := regexp.Compile(".*:(\\d+)")
+	if err != nil {
+		return err
+	}
+
+	port := r.FindStringSubmatch(ln.Addr().String())[1]
+	portChannel <- port
+
+	return srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
+}
+
+type tcpKeepAliveListener struct {
+	*net.TCPListener
 }
