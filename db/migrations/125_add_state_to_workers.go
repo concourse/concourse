@@ -16,7 +16,8 @@ func AddStateToWorkers(tx migration.LimitedTx) error {
 
 	_, err = tx.Exec(`
 		ALTER TABLE workers
-		ADD COLUMN state worker_state DEFAULT 'running' NOT NULL
+		ADD COLUMN state worker_state DEFAULT 'running' NOT NULL,
+		ALTER COLUMN addr DROP NOT NULL
 	`)
 	return err
 }
