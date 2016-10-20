@@ -117,13 +117,9 @@ func collectOutputs(plan atc.PlanConfig) []JobOutput {
 	}
 
 	if plan.Aggregate != nil {
-		var outputs []JobOutput
-
 		for _, p := range *plan.Aggregate {
 			outputs = append(outputs, collectOutputs(p)...)
 		}
-
-		return outputs
 	}
 
 	if plan.Put != "" {
