@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -39,6 +38,8 @@ func NewVolumeFactory(db VolumeFactoryDB) VolumeFactory {
 func (vf *volumeFactory) BuildWithIndefiniteTTL(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, error) {
 	logger = logger.WithData(lager.Data{"volume": bcVol.Handle()})
 
+	bcVol.Release(nil)
+
 	err := bcVol.SetTTL(0)
 	if err != nil {
 		logger.Error("failed-to-set-volume-ttl-in-baggageclaim", err)
@@ -64,16 +65,14 @@ func (vf *volumeFactory) BuildWithIndefiniteTTL(logger lager.Logger, bcVol bagga
 
 type Volume interface {
 	baggageclaim.Volume
+
+	Destroy()
 }
 
 type volume struct {
 	baggageclaim.Volume
 
 	db VolumeFactoryDB
-
-	release      chan *time.Duration
-	heartbeating *sync.WaitGroup
-	releaseOnce  sync.Once
 }
 
 type VolumeMount struct {
@@ -81,6 +80,6 @@ type VolumeMount struct {
 	MountPath string
 }
 
-func (v *volume) Destroy() error {
-	return v.Volume.Destroy()
+func (v *volume) Destroy() {
+	v.Volume.Release(FinalTTL(0 * time.Second))
 }

@@ -36,6 +36,7 @@ type DBVolumeFactory interface {
 }
 
 var ErrVolumeExpiredImmediately = errors.New("volume expired immediately after saving")
+var ErrCreatedVolumeNotFound = errors.New("failed-to-find-created-volume-in-baggageclaim")
 
 type volumeClient struct {
 	baggageclaimClient baggageclaim.Client
@@ -120,9 +121,8 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 		}
 
 		if !bcVolumeFound {
-			err := errors.New("failed-to-find-created-volume-in-baggageclaim")
-			logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
-			return nil, err
+			logger.Error("failed-to-lookup-volume-in-baggageclaim", ErrCreatedVolumeNotFound)
+			return nil, ErrCreatedVolumeNotFound
 		}
 	} else {
 		if creatingVolume != nil {

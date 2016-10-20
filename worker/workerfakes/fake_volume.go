@@ -73,6 +73,11 @@ type FakeVolume struct {
 		result1 baggageclaim.VolumeProperties
 		result2 error
 	}
+	ReleaseStub        func(*time.Duration)
+	releaseMutex       sync.RWMutex
+	releaseArgsForCall []struct {
+		arg1 *time.Duration
+	}
 	SizeInBytesStub        func() (int64, error)
 	sizeInBytesMutex       sync.RWMutex
 	sizeInBytesArgsForCall []struct{}
@@ -80,14 +85,11 @@ type FakeVolume struct {
 		result1 int64
 		result2 error
 	}
-	DestroyStub        func() error
+	DestroyStub        func()
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
-	destroyReturns     struct {
-		result1 error
-	}
-	invocations      map[string][][]interface{}
-	invocationsMutex sync.RWMutex
+	invocations        map[string][][]interface{}
+	invocationsMutex   sync.RWMutex
 }
 
 func (fake *FakeVolume) Handle() string {
@@ -328,6 +330,30 @@ func (fake *FakeVolume) PropertiesReturns(result1 baggageclaim.VolumeProperties,
 	}{result1, result2}
 }
 
+func (fake *FakeVolume) Release(arg1 *time.Duration) {
+	fake.releaseMutex.Lock()
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
+		arg1 *time.Duration
+	}{arg1})
+	fake.recordInvocation("Release", []interface{}{arg1})
+	fake.releaseMutex.Unlock()
+	if fake.ReleaseStub != nil {
+		fake.ReleaseStub(arg1)
+	}
+}
+
+func (fake *FakeVolume) ReleaseCallCount() int {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return len(fake.releaseArgsForCall)
+}
+
+func (fake *FakeVolume) ReleaseArgsForCall(i int) *time.Duration {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return fake.releaseArgsForCall[i].arg1
+}
+
 func (fake *FakeVolume) SizeInBytes() (int64, error) {
 	fake.sizeInBytesMutex.Lock()
 	fake.sizeInBytesArgsForCall = append(fake.sizeInBytesArgsForCall, struct{}{})
@@ -354,15 +380,13 @@ func (fake *FakeVolume) SizeInBytesReturns(result1 int64, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeVolume) Destroy() error {
+func (fake *FakeVolume) Destroy() {
 	fake.destroyMutex.Lock()
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
 	fake.recordInvocation("Destroy", []interface{}{})
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
-		return fake.DestroyStub()
-	} else {
-		return fake.destroyReturns.result1
+		fake.DestroyStub()
 	}
 }
 
@@ -370,13 +394,6 @@ func (fake *FakeVolume) DestroyCallCount() int {
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	return len(fake.destroyArgsForCall)
-}
-
-func (fake *FakeVolume) DestroyReturns(result1 error) {
-	fake.DestroyStub = nil
-	fake.destroyReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeVolume) Invocations() map[string][][]interface{} {
@@ -398,6 +415,8 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.expirationMutex.RUnlock()
 	fake.propertiesMutex.RLock()
 	defer fake.propertiesMutex.RUnlock()
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
 	fake.sizeInBytesMutex.RLock()
 	defer fake.sizeInBytesMutex.RUnlock()
 	fake.destroyMutex.RLock()
