@@ -6,14 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
 	"net"
-	"regexp"
 )
 
 type LoginCommand struct {
@@ -153,9 +151,6 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 			http.Redirect(w, r, fmt.Sprintf("%s/public/fly_success", targetUrl), http.StatusTemporaryRedirect)
 
 		}),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
 	}
 
 	err := listenAndServeWithPort(s, portChannel)
@@ -304,12 +299,8 @@ func listenAndServeWithPort(srv *http.Server, portChannel chan string) error {
 		return err
 	}
 
-	r, err := regexp.Compile(".*:(\\d+)")
-	if err != nil {
-		return err
-	}
+	_, port, err := net.SplitHostPort(ln.Addr().String())
 
-	port := r.FindStringSubmatch(ln.Addr().String())[1]
 	portChannel <- port
 
 	return srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
