@@ -145,7 +145,6 @@ func CreateCaches(tx migration.LimitedTx) error {
 
 	_, err = tx.Exec(`
 		ALTER TABLE volumes
-		ADD FOREIGN KEY (worker_name) REFERENCES workers (name) ON DELETE CASCADE,
 		ADD COLUMN resource_cache_id int REFERENCES resource_caches (id) ON DELETE SET NULL,
 		ADD COLUMN base_resource_type_id int REFERENCES base_resource_types (id) ON DELETE SET NULL,
 		ADD COLUMN state volume_state NOT NULL DEFAULT 'created',
