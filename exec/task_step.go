@@ -298,7 +298,6 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 }
 
 func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config atc.TaskConfig, signals <-chan os.Signal) (worker.Container, []inputPair, error) {
-	step.logger.Debug("[super-logs] createContainer")
 	chosenWorker, inputMounts, inputsToStream, err := step.chooseWorkerWithMostVolumes(compatibleWorkers, config.Inputs)
 	if err != nil {
 		return nil, []inputPair{}, err
@@ -312,7 +311,6 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 
 	var imageSpec worker.ImageSpec
 	if step.imageArtifactName != "" {
-		step.logger.Debug("[super-logs] step.imageArtifactName", lager.Data{"name": step.imageArtifactName})
 		source, found := step.repo.SourceFor(SourceName(step.imageArtifactName))
 		if !found {
 			return nil, nil, errors.New("failed-to-lookup-source-for-image-artifact")
@@ -323,10 +321,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 			return nil, nil, err
 		}
 
-		if existsOnWorker {
-			step.logger.Debug("[super-logs] found-existing-image-artifact-volume")
-		} else {
-			step.logger.Debug("[super-logs] creating-image-artifact-volume")
+		if !existsOnWorker {
 			volume, err = chosenWorker.CreateVolume(
 				step.logger,
 				worker.VolumeSpec{
@@ -354,7 +349,6 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 			}
 		}
 
-		step.logger.Debug("[super-logs] streaming metadata file")
 		reader, err := source.StreamFile(image.ImageMetadataFile)
 		if err != nil {
 			return nil, nil, err
@@ -370,8 +364,6 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 			Privileged:             bool(step.privileged),
 		}
 	} else {
-		step.logger.Debug("[super-logs] no imageArtifactName", lager.Data{"image-resource": config.ImageResource})
-
 		imageSpec = worker.ImageSpec{
 			ImageURL:      config.Image,
 			ImageResource: config.ImageResource,
@@ -391,7 +383,6 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	runContainerID := step.containerID
 	runContainerID.Stage = db.ContainerStageRun
 
-	step.logger.Debug("[super-logs] creating task container")
 	container, err := chosenWorker.CreateTaskContainer(
 		step.logger.Session("create-container"),
 		signals,

@@ -232,8 +232,6 @@ func (worker *gardenWorker) getImageForContainer(
 	metadata Metadata,
 	resourceTypes atc.ResourceTypes,
 ) (Volume, ImageMetadata, atc.Version, string, error) {
-	logger.Debug("[super-logs] getImageForContainer")
-
 	// convert custom resource type from pipeline config into image_resource
 	// updatedResourceTypes := resourceTypes
 	imageResource := imageSpec.ImageResource
@@ -670,7 +668,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 			resourceType,
 		)
 		if err != nil {
-			logger.Error("create-resource-check-container: FindResourceType", err)
+			logger.Error("failed-to-find-resource-type-in-database", err)
 			return nil, err
 		}
 
@@ -695,7 +693,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 		dbResourceTypes,
 	)
 	if err != nil {
-		logger.Error("create-resource-check-container: FindOrCreateResourceConfigForResource", err)
+		logger.Error("failed-to-get-resource-config", err)
 		return nil, err
 	}
 
@@ -708,7 +706,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 		metadata.StepName,
 	)
 	if err != nil {
-		logger.Error("create-resource-check-container: CreateResourceCheckContainer", err)
+		logger.Error("failed-to-create-check-container", err)
 		return nil, err
 	}
 
