@@ -153,7 +153,7 @@ func (server *Server) Stop() {
 	err := server.gardenClient.Destroy(server.container.Handle())
 	Expect(err).NotTo(HaveOccurred())
 
-	server.rootfsVol.Destroy()
+	server.rootfsVol.Release(baggageclaim.FinalTTL(time.Second))
 }
 
 func (server *Server) URI() string {
