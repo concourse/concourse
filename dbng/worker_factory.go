@@ -13,6 +13,10 @@ import (
 //go:generate counterfeiter . WorkerFactory
 
 type WorkerFactory interface {
+	GetWorker(name string) (*Worker, bool, error)
+	Workers() ([]*Worker, error)
+	StallWorker(name string) (*Worker, error)
+	StallUnresponsiveWorkers() ([]*Worker, error)
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
 	SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error)
 }
@@ -25,6 +29,190 @@ func NewWorkerFactory(conn Conn) WorkerFactory {
 	return &workerFactory{
 		conn: conn,
 	}
+}
+
+func (f *workerFactory) GetWorker(name string) (*Worker, bool, error) {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	var (
+		workerName  string
+		workerAddr  sql.NullString
+		workerState string
+	)
+
+	err = psql.Select("name, addr, state").
+		From("workers").
+		Where(sq.Eq{"name": name}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&workerName, &workerAddr, &workerState)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	var addr *string
+	if workerAddr.Valid {
+		addr = &workerAddr.String
+	}
+
+	return &Worker{
+		Name:       workerName,
+		State:      WorkerState(workerState),
+		GardenAddr: addr,
+	}, true, nil
+}
+
+func (f *workerFactory) Workers() ([]*Worker, error) {
+	query, args, err := psql.Select("name, addr, state").
+		From("workers").
+		ToSql()
+	if err != nil {
+		return []*Worker{}, err
+	}
+
+	rows, err := f.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	workers := []*Worker{}
+
+	for rows.Next() {
+		var (
+			name       string
+			gardenAddr sql.NullString
+			state      string
+		)
+
+		err = rows.Scan(&name, &gardenAddr, &state)
+		if err != nil {
+			return nil, err
+		}
+
+		var addr *string
+		if gardenAddr.Valid {
+			addr = &gardenAddr.String
+		}
+
+		workers = append(workers, &Worker{
+			Name:       name,
+			GardenAddr: addr,
+			State:      WorkerState(state),
+		})
+	}
+
+	return workers, nil
+}
+
+func (f *workerFactory) StallWorker(name string) (*Worker, error) {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	var (
+		workerName  string
+		gardenAddr  sql.NullString
+		workerState string
+	)
+	err = psql.Update("workers").
+		SetMap(map[string]interface{}{
+			"state":   string(WorkerStateStalled),
+			"expires": nil,
+			"addr":    nil,
+		}).
+		Where(sq.Eq{"name": name}).
+		Suffix("RETURNING name, addr, state").
+		RunWith(tx).
+		QueryRow().
+		Scan(&workerName, &gardenAddr, &workerState)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrWorkerNotPresent
+		}
+		return nil, err
+	}
+
+	var addr *string
+	if gardenAddr.Valid {
+		addr = &gardenAddr.String
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Worker{
+		Name:       workerName,
+		GardenAddr: addr,
+		State:      WorkerState(workerState),
+	}, nil
+}
+
+func (f *workerFactory) StallUnresponsiveWorkers() ([]*Worker, error) {
+	query, args, err := psql.Update("workers").
+		SetMap(map[string]interface{}{
+			"state":   string(WorkerStateStalled),
+			"addr":    nil,
+			"expires": nil,
+		}).
+		Where(sq.Eq{"state": string(WorkerStateRunning)}).
+		Where(sq.Expr("expires < NOW()")).
+		Suffix("RETURNING name, addr, state").
+		ToSql()
+	if err != nil {
+		return []*Worker{}, err
+	}
+
+	rows, err := f.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	workers := []*Worker{}
+
+	for rows.Next() {
+		var (
+			name       string
+			gardenAddr sql.NullString
+			state      string
+		)
+
+		err = rows.Scan(&name, &gardenAddr, &state)
+		if err != nil {
+			return nil, err
+		}
+
+		var addr *string
+		if gardenAddr.Valid {
+			addr = &gardenAddr.String
+		}
+
+		workers = append(workers, &Worker{
+			Name:       name,
+			GardenAddr: addr,
+			State:      WorkerState(state),
+		})
+	}
+
+	return workers, nil
 }
 
 func (f *workerFactory) SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error) {
@@ -77,6 +265,7 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 		Set("name", worker.Name).
 		Set("start_time", worker.StartTime).
 		Set("team_id", teamID).
+		Set("state", string(WorkerStateRunning)).
 		Where(sq.Eq{
 			"name": worker.Name,
 			"addr": worker.GardenAddr,
@@ -108,6 +297,7 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 				"name",
 				"start_time",
 				"team_id",
+				"state",
 			).
 			Values(
 				worker.GardenAddr,
@@ -123,6 +313,7 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 				worker.Name,
 				worker.StartTime,
 				teamID,
+				string(WorkerStateRunning),
 			).
 			RunWith(tx).
 			Exec()
@@ -134,6 +325,7 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 	savedWorker := &Worker{
 		Name:       worker.Name,
 		GardenAddr: &worker.GardenAddr,
+		State:      WorkerStateRunning,
 	}
 
 	baseResourceTypeIDs := []int{}

@@ -356,6 +356,18 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			30*time.Second,
 		)},
 
+		{"workercollector", lockrunner.NewRunner(
+			logger.Session("worker-collector"),
+			gcng.NewWorkerCollector(
+				logger.Session("volume-collector"),
+				dbWorkerFactory,
+			),
+			"worker-collector",
+			sqlDB,
+			clock.NewClock(),
+			5*time.Minute,
+		)},
+
 		{"containerkeepaliver", lockrunner.NewRunner(
 			logger.Session("container-keepaliver"),
 			containerkeepaliver.NewContainerKeepAliver(
