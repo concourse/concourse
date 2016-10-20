@@ -174,10 +174,13 @@ urlUpdate : Routes.ConcourseRoute -> Model -> (Model, Cmd (Msg))
 urlUpdate route model =
   let
     navIndex =
-      model.navIndex + 1
+      if route == model.route then
+        model.navIndex
+      else
+        model.navIndex + 1
 
     (newSubmodel, cmd) =
-      if (route.logical == model.route.logical) && (route.queries == model.route.queries) then
+      if route == model.route then
         (model.subModel, Cmd.none)
       else
         if routeMatchesModel route model then
@@ -186,7 +189,7 @@ urlUpdate route model =
           SubPage.init model.turbulenceImgSrc route
 
     (newTopModel, tCmd) =
-      if (route.logical == model.route.logical) && (route.queries == model.route.queries) then
+      if route == model.route then
         (model.topModel, Cmd.none)
       else
         TopBar.urlUpdate route model.topModel
