@@ -15,8 +15,9 @@ import (
 const OAuthStateCookie = "_concourse_oauth_state"
 
 type OAuthState struct {
-	Redirect string `json:"redirect"`
-	TeamName string `json:"team_name"`
+	Redirect     string `json:"redirect"`
+	TeamName     string `json:"team_name"`
+	FlyLocalPort string `json:"fly_local_port"`
 }
 
 type OAuthBeginHandler struct {
@@ -86,8 +87,9 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	}
 
 	oauthState, err := json.Marshal(OAuthState{
-		Redirect: r.FormValue("redirect"),
-		TeamName: teamName,
+		Redirect:     r.FormValue("redirect"),
+		TeamName:     teamName,
+		FlyLocalPort: r.FormValue("fly_local_port"),
 	})
 	if err != nil {
 		handler.logger.Error("failed-to-marshal-state", err)
