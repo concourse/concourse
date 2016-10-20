@@ -130,20 +130,6 @@ func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (
 	return randomWorker, nil
 }
 
-func (pool *pool) CreateTaskContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes, outputPaths map[string]string) (Container, error) {
-	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	container, err := worker.CreateTaskContainer(logger, signals, delegate, id, metadata, spec, resourceTypes, outputPaths)
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
-}
-
 func (pool *pool) CreateBuildContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes, outputPaths map[string]string) (Container, error) {
 	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {

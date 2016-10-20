@@ -14,17 +14,6 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateTaskContainer(
-		lager.Logger,
-		<-chan os.Signal,
-		ImageFetchingDelegate,
-		Identifier,
-		Metadata,
-		ContainerSpec,
-		atc.ResourceTypes,
-		map[string]string,
-	) (Container, error)
-
 	CreateBuildContainer(
 		lager.Logger,
 		<-chan os.Signal,

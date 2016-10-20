@@ -169,15 +169,6 @@ func (factory *ContainerFactory) CreateBuildContainer(
 	return factory.createPlanContainer(worker, build, planID, meta)
 }
 
-func (factory *ContainerFactory) CreateTaskContainer(
-	worker *Worker,
-	build *Build,
-	planID atc.PlanID,
-	meta ContainerMetadata,
-) (*CreatingContainer, error) {
-	return factory.createPlanContainer(worker, build, planID, meta)
-}
-
 func (factory *ContainerFactory) FindContainer(
 	handle string,
 ) (*CreatedContainer, bool, error) {

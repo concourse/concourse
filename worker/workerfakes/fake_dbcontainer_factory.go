@@ -10,18 +10,6 @@ import (
 )
 
 type FakeDBContainerFactory struct {
-	CreateTaskContainerStub        func(worker *dbng.Worker, build *dbng.Build, planID atc.PlanID, meta dbng.ContainerMetadata) (*dbng.CreatingContainer, error)
-	createTaskContainerMutex       sync.RWMutex
-	createTaskContainerArgsForCall []struct {
-		worker *dbng.Worker
-		build  *dbng.Build
-		planID atc.PlanID
-		meta   dbng.ContainerMetadata
-	}
-	createTaskContainerReturns struct {
-		result1 *dbng.CreatingContainer
-		result2 error
-	}
 	CreateBuildContainerStub        func(worker *dbng.Worker, build *dbng.Build, planID atc.PlanID, meta dbng.ContainerMetadata) (*dbng.CreatingContainer, error)
 	createBuildContainerMutex       sync.RWMutex
 	createBuildContainerArgsForCall []struct {
@@ -78,43 +66,6 @@ type FakeDBContainerFactory struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeDBContainerFactory) CreateTaskContainer(worker *dbng.Worker, build *dbng.Build, planID atc.PlanID, meta dbng.ContainerMetadata) (*dbng.CreatingContainer, error) {
-	fake.createTaskContainerMutex.Lock()
-	fake.createTaskContainerArgsForCall = append(fake.createTaskContainerArgsForCall, struct {
-		worker *dbng.Worker
-		build  *dbng.Build
-		planID atc.PlanID
-		meta   dbng.ContainerMetadata
-	}{worker, build, planID, meta})
-	fake.recordInvocation("CreateTaskContainer", []interface{}{worker, build, planID, meta})
-	fake.createTaskContainerMutex.Unlock()
-	if fake.CreateTaskContainerStub != nil {
-		return fake.CreateTaskContainerStub(worker, build, planID, meta)
-	} else {
-		return fake.createTaskContainerReturns.result1, fake.createTaskContainerReturns.result2
-	}
-}
-
-func (fake *FakeDBContainerFactory) CreateTaskContainerCallCount() int {
-	fake.createTaskContainerMutex.RLock()
-	defer fake.createTaskContainerMutex.RUnlock()
-	return len(fake.createTaskContainerArgsForCall)
-}
-
-func (fake *FakeDBContainerFactory) CreateTaskContainerArgsForCall(i int) (*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) {
-	fake.createTaskContainerMutex.RLock()
-	defer fake.createTaskContainerMutex.RUnlock()
-	return fake.createTaskContainerArgsForCall[i].worker, fake.createTaskContainerArgsForCall[i].build, fake.createTaskContainerArgsForCall[i].planID, fake.createTaskContainerArgsForCall[i].meta
-}
-
-func (fake *FakeDBContainerFactory) CreateTaskContainerReturns(result1 *dbng.CreatingContainer, result2 error) {
-	fake.CreateTaskContainerStub = nil
-	fake.createTaskContainerReturns = struct {
-		result1 *dbng.CreatingContainer
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeDBContainerFactory) CreateBuildContainer(worker *dbng.Worker, build *dbng.Build, planID atc.PlanID, meta dbng.ContainerMetadata) (*dbng.CreatingContainer, error) {
@@ -299,8 +250,6 @@ func (fake *FakeDBContainerFactory) ContainerCreatedReturns(result1 *dbng.Create
 func (fake *FakeDBContainerFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createTaskContainerMutex.RLock()
-	defer fake.createTaskContainerMutex.RUnlock()
 	fake.createBuildContainerMutex.RLock()
 	defer fake.createBuildContainerMutex.RUnlock()
 	fake.createResourceGetContainerMutex.RLock()

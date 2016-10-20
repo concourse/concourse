@@ -63,13 +63,6 @@ type Worker interface {
 //go:generate counterfeiter . DBContainerFactory
 
 type DBContainerFactory interface {
-	CreateTaskContainer(
-		worker *dbng.Worker,
-		build *dbng.Build,
-		planID atc.PlanID,
-		meta dbng.ContainerMetadata,
-	) (*dbng.CreatingContainer, error)
-
 	CreateBuildContainer(
 		worker *dbng.Worker,
 		build *dbng.Build,
@@ -466,38 +459,6 @@ func loadMetadata(tarReader io.ReadCloser) (ImageMetadata, error) {
 	return imageMetadata, nil
 }
 
-func (worker *gardenWorker) CreateTaskContainer(
-	logger lager.Logger,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
-	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-	outputPaths map[string]string,
-) (Container, error) {
-	creatingContainer, err := worker.dbContainerFactory.CreateTaskContainer(
-		&dbng.Worker{
-			Name:       worker.name,
-			GardenAddr: worker.addr,
-		},
-		&dbng.Build{
-			ID: id.BuildID,
-		},
-		id.PlanID,
-		dbng.ContainerMetadata{
-			Name: metadata.StepName,
-			Type: string(metadata.Type),
-		},
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return worker.createContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, outputPaths)
-}
-
 func (worker *gardenWorker) CreateBuildContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
@@ -522,6 +483,7 @@ func (worker *gardenWorker) CreateBuildContainer(
 			Type: string(metadata.Type),
 		},
 	)
+
 	if err != nil {
 		return nil, err
 	}

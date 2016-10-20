@@ -44,7 +44,7 @@ var _ = Describe("Container", func() {
 		}, 5*time.Minute)
 		Expect(err).ToNot(HaveOccurred())
 
-		creatingContainer, err := containerFactory.CreateTaskContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+		creatingContainer, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 			Type: "task",
 			Name: "some-task",
 		})

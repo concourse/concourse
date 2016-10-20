@@ -12,22 +12,6 @@ import (
 )
 
 type FakeClient struct {
-	CreateTaskContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) (worker.Container, error)
-	createTaskContainerMutex       sync.RWMutex
-	createTaskContainerArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 <-chan os.Signal
-		arg3 worker.ImageFetchingDelegate
-		arg4 worker.Identifier
-		arg5 worker.Metadata
-		arg6 worker.ContainerSpec
-		arg7 atc.ResourceTypes
-		arg8 map[string]string
-	}
-	createTaskContainerReturns struct {
-		result1 worker.Container
-		result2 error
-	}
 	CreateBuildContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) (worker.Container, error)
 	createBuildContainerMutex       sync.RWMutex
 	createBuildContainerArgsForCall []struct {
@@ -219,47 +203,6 @@ type FakeClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeClient) CreateTaskContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ContainerSpec, arg7 atc.ResourceTypes, arg8 map[string]string) (worker.Container, error) {
-	fake.createTaskContainerMutex.Lock()
-	fake.createTaskContainerArgsForCall = append(fake.createTaskContainerArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 <-chan os.Signal
-		arg3 worker.ImageFetchingDelegate
-		arg4 worker.Identifier
-		arg5 worker.Metadata
-		arg6 worker.ContainerSpec
-		arg7 atc.ResourceTypes
-		arg8 map[string]string
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
-	fake.recordInvocation("CreateTaskContainer", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
-	fake.createTaskContainerMutex.Unlock()
-	if fake.CreateTaskContainerStub != nil {
-		return fake.CreateTaskContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
-	} else {
-		return fake.createTaskContainerReturns.result1, fake.createTaskContainerReturns.result2
-	}
-}
-
-func (fake *FakeClient) CreateTaskContainerCallCount() int {
-	fake.createTaskContainerMutex.RLock()
-	defer fake.createTaskContainerMutex.RUnlock()
-	return len(fake.createTaskContainerArgsForCall)
-}
-
-func (fake *FakeClient) CreateTaskContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, map[string]string) {
-	fake.createTaskContainerMutex.RLock()
-	defer fake.createTaskContainerMutex.RUnlock()
-	return fake.createTaskContainerArgsForCall[i].arg1, fake.createTaskContainerArgsForCall[i].arg2, fake.createTaskContainerArgsForCall[i].arg3, fake.createTaskContainerArgsForCall[i].arg4, fake.createTaskContainerArgsForCall[i].arg5, fake.createTaskContainerArgsForCall[i].arg6, fake.createTaskContainerArgsForCall[i].arg7, fake.createTaskContainerArgsForCall[i].arg8
-}
-
-func (fake *FakeClient) CreateTaskContainerReturns(result1 worker.Container, result2 error) {
-	fake.CreateTaskContainerStub = nil
-	fake.createTaskContainerReturns = struct {
-		result1 worker.Container
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeClient) CreateBuildContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ContainerSpec, arg7 atc.ResourceTypes, arg8 map[string]string) (worker.Container, error) {
@@ -848,8 +791,6 @@ func (fake *FakeClient) GetWorkerReturns(result1 worker.Worker, result2 error) {
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createTaskContainerMutex.RLock()
-	defer fake.createTaskContainerMutex.RUnlock()
 	fake.createBuildContainerMutex.RLock()
 	defer fake.createBuildContainerMutex.RUnlock()
 	fake.createResourceGetContainerMutex.RLock()

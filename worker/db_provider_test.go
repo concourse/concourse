@@ -185,7 +185,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
-					container, err := workers[0].CreateTaskContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
+					container, err := workers[0].CreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -211,7 +211,6 @@ var _ = Describe("DBProvider", func() {
 				})
 			})
 
-			//TODO doesn't make sense to test this here. Why doesn't worker.CreateTaskContainer have a test, and we stub it here??
 			Describe("a created container", func() {
 				BeforeEach(func() {
 					createdVolume := new(dbngfakes.FakeCreatedVolume)
@@ -240,7 +239,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].CreateTaskContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
+					container, err := workers[0].CreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
 
 					Expect(err).NotTo(HaveOccurred())
 

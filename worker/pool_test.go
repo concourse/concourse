@@ -408,7 +408,7 @@ var _ = Describe("Pool", func() {
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = pool.CreateTaskContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, resourceTypes, nil)
+			createdContainer, createErr = pool.CreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, resourceTypes, nil)
 		})
 
 		Context("with multiple workers", func() {
@@ -433,9 +433,9 @@ var _ = Describe("Pool", func() {
 				workerC.SatisfyingReturns(nil, errors.New("nope"))
 
 				fakeContainer = new(workerfakes.FakeContainer)
-				workerA.CreateTaskContainerReturns(fakeContainer, nil)
-				workerB.CreateTaskContainerReturns(fakeContainer, nil)
-				workerC.CreateTaskContainerReturns(fakeContainer, nil)
+				workerA.CreateBuildContainerReturns(fakeContainer, nil)
+				workerB.CreateBuildContainerReturns(fakeContainer, nil)
+				workerC.CreateBuildContainerReturns(fakeContainer, nil)
 
 				fakeProvider.WorkersReturns([]Worker{workerA, workerB, workerC}, nil)
 			})
@@ -467,21 +467,21 @@ var _ = Describe("Pool", func() {
 
 			It("creates using a random worker", func() {
 				for i := 1; i < 100; i++ { // account for initial create in JustBefore
-					createdContainer, createErr := pool.CreateTaskContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, resourceTypes, nil)
+					createdContainer, createErr := pool.CreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, resourceTypes, nil)
 					Expect(createErr).NotTo(HaveOccurred())
 					Expect(createdContainer).To(Equal(fakeContainer))
 				}
 
-				Expect(workerA.CreateTaskContainerCallCount()).To(BeNumerically("~", workerB.CreateTaskContainerCallCount(), 50))
-				Expect(workerC.CreateTaskContainerCallCount()).To(BeZero())
+				Expect(workerA.CreateBuildContainerCallCount()).To(BeNumerically("~", workerB.CreateBuildContainerCallCount(), 50))
+				Expect(workerC.CreateBuildContainerCallCount()).To(BeZero())
 			})
 
 			Context("when creating the container fails", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					workerA.CreateTaskContainerReturns(nil, disaster)
-					workerB.CreateTaskContainerReturns(nil, disaster)
+					workerA.CreateBuildContainerReturns(nil, disaster)
+					workerB.CreateBuildContainerReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {

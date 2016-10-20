@@ -74,7 +74,7 @@ var _ = Describe("VolumeFactory", func() {
 
 			Expect(setupTx.Commit()).To(Succeed())
 
-			creatingContainer, err := containerFactory.CreateTaskContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
