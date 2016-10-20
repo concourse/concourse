@@ -90,7 +90,7 @@ func (factory *VolumeFactory) FindVolumesForContainer(containerID int) ([]Create
 		var path sql.NullString
 		var state string
 		var workerName string
-		var workerAddress string
+		var workerAddress sql.NullString
 
 		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress)
 		if err != nil {
@@ -102,15 +102,20 @@ func (factory *VolumeFactory) FindVolumesForContainer(containerID int) ([]Create
 			pathString = path.String
 		}
 
+		worker := Worker{
+			Name:       workerName,
+			GardenAddr: nil,
+		}
+		if workerAddress.Valid {
+			worker.GardenAddr = &workerAddress.String
+		}
+
 		createdVolumes = append(createdVolumes, &createdVolume{
 			id:     id,
 			handle: handle,
 			path:   pathString,
-			worker: &Worker{
-				Name:       workerName,
-				GardenAddr: workerAddress,
-			},
-			conn: factory.conn,
+			worker: &worker,
+			conn:   factory.conn,
 		})
 	}
 
@@ -162,7 +167,7 @@ func (factory *VolumeFactory) FindContainerVolume(team *Team, worker *Worker, co
 			path:   mountPath,
 			worker: &Worker{
 				Name:       workerName,
-				GardenAddr: workerAddress,
+				GardenAddr: &workerAddress,
 			},
 			conn: factory.conn,
 		}, nil
@@ -173,7 +178,7 @@ func (factory *VolumeFactory) FindContainerVolume(team *Team, worker *Worker, co
 			path:   mountPath,
 			worker: &Worker{
 				Name:       workerName,
-				GardenAddr: workerAddress,
+				GardenAddr: &workerAddress,
 			},
 			conn: factory.conn,
 		}, nil, nil
@@ -231,7 +236,7 @@ func (factory *VolumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 				path:   pathString,
 				worker: &Worker{
 					Name:       workerName,
-					GardenAddr: workerAddress,
+					GardenAddr: &workerAddress,
 				},
 				conn: factory.conn,
 			})
@@ -241,7 +246,7 @@ func (factory *VolumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 				handle: handle,
 				worker: &Worker{
 					Name:       workerName,
-					GardenAddr: workerAddress,
+					GardenAddr: &workerAddress,
 				},
 				conn: factory.conn,
 			})

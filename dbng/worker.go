@@ -2,5 +2,5 @@ package dbng
 
 type Worker struct {
 	Name       string
-	GardenAddr string
+	GardenAddr *string
 }

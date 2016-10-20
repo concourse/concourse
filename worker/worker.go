@@ -257,7 +257,7 @@ func (worker *gardenWorker) getImageForContainer(
 			},
 			&dbng.Worker{
 				Name:       worker.name,
-				GardenAddr: worker.addr,
+				GardenAddr: &worker.addr,
 			},
 			container,
 			&dbng.Team{ID: teamID},
@@ -306,7 +306,7 @@ func (worker *gardenWorker) getImageForContainer(
 			},
 			&dbng.Worker{
 				Name:       worker.name,
-				GardenAddr: worker.addr,
+				GardenAddr: &worker.addr,
 			},
 			container,
 			&dbng.Team{ID: teamID},
@@ -424,7 +424,7 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 				},
 				&dbng.Worker{
 					Name:       worker.name,
-					GardenAddr: worker.addr,
+					GardenAddr: &worker.addr,
 				},
 				container,
 				&dbng.Team{ID: teamID},
@@ -472,7 +472,7 @@ func (worker *gardenWorker) CreateBuildContainer(
 	creatingContainer, err := worker.dbContainerFactory.CreateBuildContainer(
 		&dbng.Worker{
 			Name:       worker.name,
-			GardenAddr: worker.addr,
+			GardenAddr: &worker.addr,
 		},
 		&dbng.Build{
 			ID: id.BuildID,
@@ -599,7 +599,7 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	creatingContainer, err := worker.dbContainerFactory.CreateResourceGetContainer(
 		&dbng.Worker{
 			Name:       worker.name,
-			GardenAddr: worker.addr,
+			GardenAddr: &worker.addr,
 		},
 		resourceCache,
 		metadata.StepName,
@@ -662,7 +662,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
 		&dbng.Worker{
 			Name:       worker.name,
-			GardenAddr: worker.addr,
+			GardenAddr: &worker.addr,
 		},
 		resourceConfig,
 		metadata.StepName,
@@ -728,7 +728,7 @@ func (worker *gardenWorker) CreateResourceTypeCheckContainer(
 	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
 		&dbng.Worker{
 			Name:       worker.name,
-			GardenAddr: worker.addr,
+			GardenAddr: &worker.addr,
 		},
 		resourceConfig,
 		metadata.StepName,
@@ -777,7 +777,7 @@ func (worker *gardenWorker) createContainer(
 			},
 			&dbng.Worker{
 				Name:       worker.name,
-				GardenAddr: worker.addr,
+				GardenAddr: &worker.addr,
 			},
 			creatingContainer,
 			&dbng.Team{ID: spec.TeamID},
@@ -809,7 +809,7 @@ func (worker *gardenWorker) createContainer(
 			},
 			&dbng.Worker{
 				Name:       worker.name,
-				GardenAddr: worker.addr,
+				GardenAddr: &worker.addr,
 			},
 			creatingContainer,
 			&dbng.Team{ID: spec.TeamID},

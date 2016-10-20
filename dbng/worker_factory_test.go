@@ -61,7 +61,7 @@ var _ = Describe("WorkerFactory", func() {
 			savedWorker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedWorker.Name).To(Equal("some-name"))
-			Expect(savedWorker.GardenAddr).To(Equal("some-garden-addr"))
+			Expect(*savedWorker.GardenAddr).To(Equal("some-garden-addr"))
 		})
 
 		It("saves worker resource types as base resource types", func() {

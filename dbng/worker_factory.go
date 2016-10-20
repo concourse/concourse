@@ -1,6 +1,7 @@
 package dbng
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -132,7 +133,7 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 
 	savedWorker := &Worker{
 		Name:       worker.Name,
-		GardenAddr: worker.GardenAddr,
+		GardenAddr: &worker.GardenAddr,
 	}
 
 	baseResourceTypeIDs := []int{}

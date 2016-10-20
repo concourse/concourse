@@ -58,7 +58,7 @@ var _ = Describe("Volume", func() {
 			It("updates the record to be `created`", func() {
 				foundVolumes, err := volumeFactory.FindVolumesForContainer(defaultCreatedContainer.ID)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(foundVolumes).To(ContainElement(createdVolume))
+				Expect(foundVolumes).To(ContainElement(WithTransform(dbng.CreatedVolume.Path, Equal("/path/to/volume"))))
 			})
 
 			It("returns a createdVolume and no error", func() {
