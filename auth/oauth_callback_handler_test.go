@@ -181,7 +181,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						TeamName:     "some-team",
 						FlyLocalPort: port,
 					})
-					fmt.Println(port)
 					encodedState := base64.RawURLEncoding.EncodeToString(state)
 
 					request.AddCookie(&http.Cookie{
