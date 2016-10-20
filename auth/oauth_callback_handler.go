@@ -193,6 +193,6 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		fmt.Fprintln(w, tokenStr)
 	} else {
 		encodedToken := url.QueryEscape(tokenStr)
-		http.Redirect(w, r, fmt.Sprintf("http://localhost:%s/oauth/callback?token=%s", oauthState.FlyLocalPort, encodedToken), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, fmt.Sprintf("http://127.0.0.1:%s/oauth/callback?token=%s", oauthState.FlyLocalPort, encodedToken), http.StatusTemporaryRedirect)
 	}
 }
