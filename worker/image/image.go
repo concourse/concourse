@@ -95,7 +95,7 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		make(chan struct{}),
 	)
 	if err != nil {
-		i.logger.Debug("failed-to-fetch-image")
+		i.logger.Error("failed-to-fetch-image", err)
 		return nil, nil, nil, err
 	}
 
@@ -105,24 +105,17 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
-	i.logger.Debug("created-volume-for-image", lager.Data{"handle": volume.Handle()})
-
-	i.logger.Debug("streaming-out", lager.Data{"ImageMetadataFile": ImageMetadataFile})
 	reader, err := versionedSource.StreamOut(ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	i.logger.Debug("creating-tar-reader")
 	tarReader := tar.NewReader(reader)
 
-	i.logger.Debug("getting-next")
 	_, err = tarReader.Next()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("could not read file \"%s\" from tar", ImageMetadataFile)
 	}
-
-	i.logger.Debug("read-file")
 
 	releasingReader := &releasingReadCloser{
 		Reader:      tarReader,
@@ -146,7 +139,6 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 	checkSess.Metadata.WorkingDirectory = ""
 	checkSess.Metadata.EnvironmentVariables = nil
 
-	i.logger.Debug("in getLatestVersion")
 	var err error
 	var checkingResource resource.Resource
 	if checkSess.ID.BuildID != 0 {
@@ -188,11 +180,8 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 		return nil, err
 	}
 
-	i.logger.Debug("in getLatestVersion.done")
-
 	defer checkingResource.Release(nil)
 
-	i.logger.Debug("in getLatestVersion.running-check")
 	versions, err := checkingResource.Check(i.imageResource.Source, nil)
 	if err != nil {
 		return nil, err
@@ -202,7 +191,6 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 		return nil, ErrImageUnavailable
 	}
 
-	i.logger.Debug("in getLatestVersion.returning")
 	return versions[0], nil
 }
 

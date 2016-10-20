@@ -120,7 +120,6 @@ func CreateCaches(tx migration.LimitedTx) error {
 
 	_, err = tx.Exec(`
 		ALTER TABLE containers
-		ADD FOREIGN KEY (worker_name) REFERENCES workers (name) ON DELETE CASCADE,
 		ALTER COLUMN handle DROP NOT NULL,
 		ADD COLUMN state container_state NOT NULL DEFAULT 'created',
 		ALTER COLUMN build_id SET DEFAULT NULL,
