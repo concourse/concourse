@@ -54,7 +54,7 @@ func (s *containerFetchSource) LockName() (string, error) {
 
 func (s *containerFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
-	s.versionedSource, err = NewResource(s.container).Get(
+	s.versionedSource, err = NewResourceForContainer(s.container).Get(
 		s.cache.Volume(),
 		s.resourceOptions.IOConfig(),
 		s.resourceOptions.Source(),

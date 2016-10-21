@@ -16,19 +16,19 @@ import (
 
 type gardenFactory struct {
 	workerClient    worker.Client
-	resourceFactory resource.ResourceFactory
 	resourceFetcher resource.Fetcher
+	resourceFactory resource.ResourceFactory
 }
 
 func NewGardenFactory(
 	workerClient worker.Client,
-	resourceFactory resource.ResourceFactory,
 	resourceFetcher resource.Fetcher,
+	resourceFactory resource.ResourceFactory,
 ) Factory {
 	return &gardenFactory{
 		workerClient:    workerClient,
-		resourceFactory: resourceFactory,
 		resourceFetcher: resourceFetcher,
+		resourceFactory: resourceFactory,
 	}
 }
 

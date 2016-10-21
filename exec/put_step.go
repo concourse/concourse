@@ -91,26 +91,34 @@ func (step PutStep) Using(prev Step, repo *SourceRepository) Step {
 func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	step.delegate.Initializing()
 
-	sources := step.repository.AsMap()
+	runSession := step.session
+	runSession.ID.Stage = db.ContainerStageRun
 
-	resourceSources := make(map[string]resource.ArtifactSource)
+	resourceSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: step.resourceConfig.Type,
+			Privileged:   true,
+		},
+		Ephemeral: true,
+		Tags:      step.tags,
+		TeamID:    step.teamID,
+		Env:       step.stepMetadata.Env(),
+	}
+
+	sources := step.repository.AsMap()
+	resourceSources := make(map[string]worker.ArtifactSource)
 	for name, source := range sources {
 		resourceSources[string(name)] = resourceSource{source}
 	}
 
-	runSession := step.session
-	runSession.ID.Stage = db.ContainerStageRun
-
-	putResource, missingNames, err := step.resourceFactory.NewBuildResource(
+	putResource, missingNames, err := step.resourceFactory.NewResource(
 		step.logger,
-		step.stepMetadata,
-		runSession,
-		resource.ResourceType(step.resourceConfig.Type),
-		step.tags,
-		step.teamID,
-		resourceSources,
+		runSession.ID,
+		runSession.Metadata,
+		resourceSpec,
 		step.resourceTypes,
 		step.delegate,
+		resourceSources,
 	)
 	if err != nil {
 		return err

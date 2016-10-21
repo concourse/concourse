@@ -740,6 +740,30 @@ func (worker *gardenWorker) CreateResourceTypeCheckContainer(
 	return worker.createContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, map[string]string{})
 }
 
+func (worker *gardenWorker) FindOrCreateContainerForIdentifier(
+	logger lager.Logger,
+	id Identifier,
+	metadata Metadata,
+	containerSpec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	imageFetchingDelegate ImageFetchingDelegate,
+	resourceSources map[string]ArtifactSource,
+) (Container, []string, error) {
+	container, err := worker.getContainerForIdentifier(
+		logger,
+		id,
+		metadata,
+		containerSpec,
+		resourceTypes,
+		imageFetchingDelegate,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return container, nil, nil
+}
+
 func (worker *gardenWorker) createContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
@@ -1140,4 +1164,75 @@ insert_coin:
 	}
 
 	return true
+}
+
+func (worker *gardenWorker) getContainerForIdentifier(
+	logger lager.Logger,
+	id Identifier,
+	metadata Metadata,
+	resourceSpec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	imageFetchingDelegate ImageFetchingDelegate,
+) (Container, error) {
+	logger = logger.Session("get-container-for-identifier")
+
+	logger.Debug("start")
+	defer logger.Debug("done")
+
+	container, found, err := worker.FindContainerForIdentifier(logger, id)
+	if err != nil {
+		logger.Error("failed-to-look-for-existing-container", err, lager.Data{"id": id})
+		return nil, err
+	}
+
+	if found {
+		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
+		return container, nil
+	}
+
+	if id.BuildID != 0 {
+		container, err = worker.CreateBuildContainer(
+			logger,
+			nil,
+			imageFetchingDelegate,
+			id,
+			metadata,
+			resourceSpec,
+			resourceTypes,
+			map[string]string{},
+		)
+	} else if id.ResourceID != 0 {
+		container, err = worker.CreateResourceCheckContainer(
+			logger,
+			nil,
+			imageFetchingDelegate,
+			id,
+			metadata,
+			resourceSpec,
+			resourceTypes,
+			id.CheckType,
+			id.CheckSource,
+		)
+	} else {
+		container, err = worker.CreateResourceTypeCheckContainer(
+			logger,
+			nil,
+			imageFetchingDelegate,
+			id,
+			metadata,
+			resourceSpec,
+			resourceTypes,
+			id.CheckType,
+			id.CheckSource,
+		)
+	}
+
+	if err != nil {
+		logger.Error("failed-to-create-container", err)
+		return nil, err
+	}
+
+	logger.Info("created", lager.Data{"container": container.Handle()})
+
+	return container, nil
 }

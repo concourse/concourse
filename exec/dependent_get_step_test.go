@@ -74,7 +74,7 @@ var _ = Describe("DependentGet", func() {
 		fakeResourceFetcher = new(rfakes.FakeFetcher)
 		fakeResourceFactory := new(rfakes.FakeResourceFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFactory, fakeResourceFetcher)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()

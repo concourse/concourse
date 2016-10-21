@@ -9,10 +9,10 @@ import (
 )
 
 type FakeResourceFactoryFactory struct {
-	FactoryForStub        func(worker.Client) resource.ResourceFactory
+	FactoryForStub        func(workerClient worker.Client) resource.ResourceFactory
 	factoryForMutex       sync.RWMutex
 	factoryForArgsForCall []struct {
-		arg1 worker.Client
+		workerClient worker.Client
 	}
 	factoryForReturns struct {
 		result1 resource.ResourceFactory
@@ -21,15 +21,15 @@ type FakeResourceFactoryFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceFactoryFactory) FactoryFor(arg1 worker.Client) resource.ResourceFactory {
+func (fake *FakeResourceFactoryFactory) FactoryFor(workerClient worker.Client) resource.ResourceFactory {
 	fake.factoryForMutex.Lock()
 	fake.factoryForArgsForCall = append(fake.factoryForArgsForCall, struct {
-		arg1 worker.Client
-	}{arg1})
-	fake.recordInvocation("FactoryFor", []interface{}{arg1})
+		workerClient worker.Client
+	}{workerClient})
+	fake.recordInvocation("FactoryFor", []interface{}{workerClient})
 	fake.factoryForMutex.Unlock()
 	if fake.FactoryForStub != nil {
-		return fake.FactoryForStub(arg1)
+		return fake.FactoryForStub(workerClient)
 	} else {
 		return fake.factoryForReturns.result1
 	}
@@ -44,7 +44,7 @@ func (fake *FakeResourceFactoryFactory) FactoryForCallCount() int {
 func (fake *FakeResourceFactoryFactory) FactoryForArgsForCall(i int) worker.Client {
 	fake.factoryForMutex.RLock()
 	defer fake.factoryForMutex.RUnlock()
-	return fake.factoryForArgsForCall[i].arg1
+	return fake.factoryForArgsForCall[i].workerClient
 }
 
 func (fake *FakeResourceFactoryFactory) FactoryForReturns(result1 resource.ResourceFactory) {

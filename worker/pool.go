@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -142,6 +143,41 @@ func (pool *pool) CreateBuildContainer(logger lager.Logger, signals <-chan os.Si
 	}
 
 	return container, nil
+}
+
+func (pool *pool) FindOrCreateContainerForIdentifier(
+	logger lager.Logger,
+	id Identifier,
+	metadata Metadata,
+	containerSpec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	imageFetchingDelegate ImageFetchingDelegate,
+	resourceSources map[string]ArtifactSource,
+) (Container, []string, error) {
+	worker, mounts, missingSourceNames, err := pool.findCompatibleWorker(
+		containerSpec,
+		resourceTypes,
+		resourceSources,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	containerSpec.Inputs = mounts
+
+	container, _, err := worker.FindOrCreateContainerForIdentifier(
+		logger,
+		id,
+		metadata,
+		containerSpec,
+		resourceTypes,
+		imageFetchingDelegate,
+		resourceSources,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return container, missingSourceNames, nil
 }
 
 func (pool *pool) CreateResourceGetContainer(
@@ -382,4 +418,59 @@ func (*pool) ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error) {
 
 func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 	return nil, false, errors.New("LookupVolume not implemented for pool")
+}
+
+type ArtifactSource interface {
+	VolumeOn(Worker) (Volume, bool, error)
+}
+
+func (pool *pool) findCompatibleWorker(
+	containerSpec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	sources map[string]ArtifactSource,
+) (Worker, []VolumeMount, []string, error) {
+	compatibleWorkers, err := pool.AllSatisfying(containerSpec.WorkerSpec(), resourceTypes)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// find the worker with the most volumes
+	mounts := []VolumeMount{}
+	missingSources := []string{}
+	var chosenWorker Worker
+
+	// for each worker that matches tags, platform, etc -- what is the etc?
+	for _, w := range compatibleWorkers {
+		candidateMounts := []VolumeMount{}
+		missing := []string{}
+
+		for name, source := range sources {
+			// look at all the inputs/outputs we're looking for
+			ourVolume, found, err := source.VolumeOn(w)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+
+			if found {
+				candidateMounts = append(candidateMounts, VolumeMount{
+					Volume:    ourVolume,
+					MountPath: resourcesDir("put/" + name),
+				})
+			} else {
+				missing = append(missing, name)
+			}
+		}
+
+		if len(candidateMounts) >= len(mounts) {
+			mounts = candidateMounts
+			missingSources = missing
+			chosenWorker = w
+		}
+	}
+
+	return chosenWorker, mounts, missingSources, nil
+}
+
+func resourcesDir(suffix string) string {
+	return filepath.Join("/tmp", "build", suffix)
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-type inRequest struct {
+type getRequest struct {
 	Source  atc.Source  `json:"source"`
 	Params  atc.Params  `json:"params,omitempty"`
 	Version atc.Version `json:"version,omitempty"`
@@ -27,7 +27,7 @@ func (resource *resource) Get(
 	runner := resource.runScript(
 		"/opt/resource/in",
 		[]string{ResourcesDir("get")},
-		inRequest{source, params, version},
+		getRequest{source, params, version},
 		&vr,
 		ioConfig.Stderr,
 		nil,

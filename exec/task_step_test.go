@@ -50,7 +50,7 @@ var _ = Describe("GardenFactory", func() {
 		fakeResourceFactory := new(rfakes.FakeResourceFactory)
 		fakeResourceFetcher := new(rfakes.FakeFetcher)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFactory, fakeResourceFetcher)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()

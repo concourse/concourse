@@ -57,7 +57,7 @@ func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- st
 		return err
 	}
 
-	s.versionedSource, err = NewResource(s.container).Get(
+	s.versionedSource, err = NewResourceForContainer(s.container).Get(
 		s.volume,
 		s.resourceOptions.IOConfig(),
 		s.resourceOptions.Source(),

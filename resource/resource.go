@@ -63,6 +63,7 @@ type ArtifactDestination interface {
 	StreamIn(string, io.Reader) error
 }
 
+// TODO: check if we need it
 func ResourcesDir(suffix string) string {
 	return filepath.Join("/tmp", "build", suffix)
 }
@@ -73,7 +74,7 @@ type resource struct {
 	ScriptFailure bool
 }
 
-func NewResource(container worker.Container) Resource {
+func NewResourceForContainer(container worker.Container) Resource {
 	return &resource{
 		container: container,
 	}

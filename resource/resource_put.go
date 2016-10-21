@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-type outRequest struct {
+type putRequest struct {
 	Source atc.Source `json:"source"`
 	Params atc.Params `json:"params,omitempty"`
 }
@@ -29,7 +29,7 @@ func (resource *resource) Put(
 	runner := resource.runScript(
 		"/opt/resource/out",
 		[]string{resourceDir},
-		outRequest{
+		putRequest{
 			Params: params,
 			Source: source,
 		},

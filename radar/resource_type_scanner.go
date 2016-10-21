@@ -91,42 +91,42 @@ func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourc
 func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceType atc.ResourceType, fromVersion db.Version) error {
 	pipelineID := scanner.db.GetPipelineID()
 
-	session := resource.Session{
-		ID: worker.Identifier{
+	resourceSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: resourceType.Type,
+			Privileged:   true,
+		},
+		Ephemeral: true,
+		Tags:      []string{},
+		TeamID:    scanner.db.TeamID(),
+	}
+
+	res, _, err := scanner.resourceFactory.NewResource(
+		logger,
+		worker.Identifier{
 			Stage:               db.ContainerStageCheck,
 			CheckType:           resourceType.Type,
 			CheckSource:         resourceType.Source,
 			ImageResourceType:   resourceType.Type,
 			ImageResourceSource: resourceType.Source,
 		},
-		Metadata: worker.Metadata{
+		worker.Metadata{
 			Type:                 db.ContainerTypeCheck,
 			PipelineID:           pipelineID,
 			WorkingDirectory:     "",
 			EnvironmentVariables: nil,
 		},
-		Ephemeral: true,
-	}
-
-	logger.Debug("in resource-type-scanner")
-
-	res, err := scanner.resourceFactory.NewResourceTypeCheckResource(
-		logger.Session("check-image"),
-		resource.EmptyMetadata{},
-		session,
-		resource.ResourceType(resourceType.Type),
-		[]string{},
-		scanner.db.TeamID(),
+		resourceSpec,
 		scanner.db.Config().ResourceTypes,
 		worker.NoopImageFetchingDelegate{},
+		nil,
 	)
 	if err != nil {
+		logger.Error("failed-to-initialize-new-container", err)
 		return err
 	}
 
 	defer res.Release(nil)
-
-	logger.Debug("checking")
 
 	newVersions, err := res.Check(resourceType.Source, atc.Version(fromVersion))
 	if err != nil {

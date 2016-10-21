@@ -118,7 +118,7 @@ var _ = Describe("Get", func() {
 		fakeVersionedSource = new(rfakes.FakeVersionedSource)
 		fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFactory, fakeResourceFetcher)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
 	})
 
 	JustBeforeEach(func() {

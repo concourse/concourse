@@ -102,7 +102,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceReturns(fakeResource, nil, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -134,26 +134,17 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, session, typ, tags, actualTeamID, customTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
-				Expect(metadata).To(Equal(resource.TrackerMetadata{
-					ResourceName: "some-resource",
-					PipelineName: "some-pipeline",
-					ExternalURL:  "https://www.example.com",
+				_, id, metadata, resourceSpec, customTypes, delegate, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(id).To(Equal(worker.Identifier{
+					ResourceID:  39,
+					Stage:       db.ContainerStageRun,
+					CheckType:   "git",
+					CheckSource: atc.Source{"uri": "http://example.com"},
 				}))
-
-				Expect(session).To(Equal(resource.Session{
-					ID: worker.Identifier{
-						ResourceID:  39,
-						Stage:       db.ContainerStageRun,
-						CheckType:   "git",
-						CheckSource: atc.Source{"uri": "http://example.com"},
-					},
-					Metadata: worker.Metadata{
-						Type:       db.ContainerTypeCheck,
-						PipelineID: 42,
-						TeamID:     teamID,
-					},
-					Ephemeral: true,
+				Expect(metadata).To(Equal(worker.Metadata{
+					Type:       db.ContainerTypeCheck,
+					PipelineID: 42,
+					TeamID:     teamID,
 				}))
 				Expect(customTypes).To(Equal(atc.ResourceTypes{
 					{
@@ -163,10 +154,20 @@ var _ = Describe("ResourceScanner", func() {
 					},
 				}))
 				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
-
-				Expect(typ).To(Equal(resource.ResourceType("git")))
-				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
-				Expect(actualTeamID).To(Equal(teamID))
+				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+					ImageSpec: worker.ImageSpec{
+						ResourceType: "git",
+						Privileged:   true,
+					},
+					Ephemeral: true,
+					Tags:      []string{},
+					TeamID:    123,
+					Env: []string{
+						"ATC_EXTERNAL_URL=https://www.example.com",
+						"RESOURCE_PIPELINE_NAME=some-pipeline",
+						"RESOURCE_NAME=some-resource",
+					},
+				}))
 			})
 
 			Context("when the resource config has a specified check interval", func() {
@@ -425,7 +426,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceReturns(fakeResource, nil, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -442,31 +443,33 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, session, typ, tags, actualTeamID, _, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
-				Expect(metadata).To(Equal(resource.TrackerMetadata{
-					ResourceName: "some-resource",
-					PipelineName: "some-pipeline",
-					ExternalURL:  "https://www.example.com",
+				_, id, metadata, resourceSpec, _, _, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(id).To(Equal(worker.Identifier{
+					ResourceID:  39,
+					Stage:       db.ContainerStageRun,
+					CheckType:   "git",
+					CheckSource: atc.Source{"uri": "http://example.com"},
+				}))
+				Expect(metadata).To(Equal(worker.Metadata{
+					Type:       db.ContainerTypeCheck,
+					PipelineID: 42,
+					TeamID:     teamID,
 				}))
 
-				Expect(session).To(Equal(resource.Session{
-					ID: worker.Identifier{
-						ResourceID:  39,
-						Stage:       db.ContainerStageRun,
-						CheckType:   "git",
-						CheckSource: atc.Source{"uri": "http://example.com"},
-					},
-					Metadata: worker.Metadata{
-						Type:       db.ContainerTypeCheck,
-						PipelineID: 42,
-						TeamID:     teamID,
+				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+					ImageSpec: worker.ImageSpec{
+						ResourceType: "git",
+						Privileged:   true,
 					},
 					Ephemeral: true,
+					Tags:      []string{},
+					TeamID:    123,
+					Env: []string{
+						"ATC_EXTERNAL_URL=https://www.example.com",
+						"RESOURCE_PIPELINE_NAME=some-pipeline",
+						"RESOURCE_NAME=some-resource",
+					},
 				}))
-
-				Expect(typ).To(Equal(resource.ResourceType("git")))
-				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
-				Expect(actualTeamID).To(Equal(teamID))
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
@@ -727,7 +730,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceReturns(fakeResource, nil, nil)
 			fromVersion = nil
 		})
 

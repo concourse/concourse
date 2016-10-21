@@ -127,55 +127,35 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 }
 
 func (i *image) getLatestVersion() (atc.Version, error) {
-	checkSess := resource.Session{
-		ID:       i.workerID,
-		Metadata: i.workerMetadata,
+	id := i.workerID
+	id.Stage = db.ContainerStageCheck
+	id.ImageResourceType = i.imageResource.Type
+	id.ImageResourceSource = i.imageResource.Source
+
+	metadata := i.workerMetadata
+	metadata.Type = db.ContainerTypeCheck
+	metadata.WorkingDirectory = ""
+	metadata.EnvironmentVariables = nil
+
+	resourceSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: i.imageResource.Type,
+			Privileged:   true,
+		},
+		Ephemeral: true,
+		Tags:      i.workerTags,
+		TeamID:    i.teamID,
 	}
 
-	checkSess.ID.Stage = db.ContainerStageCheck
-	checkSess.ID.ImageResourceType = i.imageResource.Type
-	checkSess.ID.ImageResourceSource = i.imageResource.Source
-	checkSess.Metadata.Type = db.ContainerTypeCheck
-	checkSess.Metadata.WorkingDirectory = ""
-	checkSess.Metadata.EnvironmentVariables = nil
-
-	var err error
-	var checkingResource resource.Resource
-	if checkSess.ID.BuildID != 0 {
-		checkingResource, _, err = i.resourceFactory.NewBuildResource(
-			i.logger.Session("build-resource"),
-			resource.EmptyMetadata{},
-			checkSess,
-			resource.ResourceType(i.imageResource.Type),
-			i.workerTags,
-			i.teamID,
-			map[string]resource.ArtifactSource{},
-			i.customTypes,
-			i.imageFetchingDelegate,
-		)
-	} else if checkSess.ID.ResourceID != 0 {
-		checkingResource, err = i.resourceFactory.NewCheckResource(
-			i.logger.Session("check-resource"),
-			resource.EmptyMetadata{},
-			checkSess,
-			resource.ResourceType(i.imageResource.Type),
-			i.workerTags,
-			i.teamID,
-			i.customTypes,
-			i.imageFetchingDelegate,
-		)
-	} else {
-		checkingResource, err = i.resourceFactory.NewResourceTypeCheckResource(
-			i.logger.Session("resource-type-check-resource"),
-			resource.EmptyMetadata{},
-			checkSess,
-			resource.ResourceType(i.imageResource.Type),
-			i.workerTags,
-			i.teamID,
-			i.customTypes,
-			i.imageFetchingDelegate,
-		)
-	}
+	checkingResource, _, err := i.resourceFactory.NewResource(
+		i.logger,
+		id,
+		metadata,
+		resourceSpec,
+		i.customTypes,
+		i.imageFetchingDelegate,
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}

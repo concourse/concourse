@@ -191,22 +191,6 @@ func (scanner *resourceScanner) scan(
 		resourceTypeVersion = atc.Version(savedResourceType.Version)
 	}
 
-	session := resource.Session{
-		ID: worker.Identifier{
-			ResourceTypeVersion: resourceTypeVersion,
-			ResourceID:          savedResource.ID,
-			Stage:               db.ContainerStageRun,
-			CheckType:           savedResource.Config.Type,
-			CheckSource:         savedResource.Config.Source,
-		},
-		Metadata: worker.Metadata{
-			Type:       db.ContainerTypeCheck,
-			PipelineID: pipelineID,
-			TeamID:     scanner.db.TeamID(),
-		},
-		Ephemeral: true,
-	}
-
 	found, err := scanner.db.Reload()
 	if err != nil {
 		logger.Error("failed-to-reload-scannerdb", err)
@@ -217,24 +201,44 @@ func (scanner *resourceScanner) scan(
 		return errPipelineRemoved
 	}
 
-	logger.Debug("in resource-scanner")
+	metadata := resource.TrackerMetadata{
+		ResourceName: savedResource.Name,
+		PipelineName: savedResource.PipelineName,
+		ExternalURL:  scanner.externalURL,
+	}
 
-	res, err := scanner.resourceFactory.NewCheckResource(
-		logger,
-		resource.TrackerMetadata{
-			ResourceName: savedResource.Name,
-			PipelineName: savedResource.PipelineName,
-			ExternalURL:  scanner.externalURL,
+	resourceSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: savedResource.Config.Type,
+			Privileged:   true,
 		},
-		session,
-		resource.ResourceType(savedResource.Config.Type),
-		[]string{},
-		scanner.db.TeamID(),
+		Ephemeral: true,
+		Tags:      []string{},
+		TeamID:    scanner.db.TeamID(),
+		Env:       metadata.Env(),
+	}
+
+	res, _, err := scanner.resourceFactory.NewResource(
+		logger,
+		worker.Identifier{
+			ResourceTypeVersion: resourceTypeVersion,
+			ResourceID:          savedResource.ID,
+			Stage:               db.ContainerStageRun,
+			CheckType:           savedResource.Config.Type,
+			CheckSource:         savedResource.Config.Source,
+		},
+		worker.Metadata{
+			Type:       db.ContainerTypeCheck,
+			PipelineID: pipelineID,
+			TeamID:     scanner.db.TeamID(),
+		},
+		resourceSpec,
 		scanner.db.Config().ResourceTypes,
 		worker.NoopImageFetchingDelegate{},
+		nil,
 	)
 	if err != nil {
-		logger.Error("failed-to-initialize-new-resource", err)
+		logger.Error("failed-to-initialize-new-container", err)
 		return err
 	}
 

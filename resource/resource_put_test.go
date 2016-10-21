@@ -19,7 +19,7 @@ import (
 	"github.com/concourse/atc/resource/resourcefakes"
 )
 
-var _ = Describe("Resource Out", func() {
+var _ = Describe("Resource Put", func() {
 	var (
 		source             atc.Source
 		params             atc.Params

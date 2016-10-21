@@ -19,7 +19,7 @@ import (
 	. "github.com/concourse/atc/resource"
 )
 
-var _ = Describe("Resource In", func() {
+var _ = Describe("Resource Get", func() {
 	var (
 		source  atc.Source
 		params  atc.Params

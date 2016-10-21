@@ -48,10 +48,10 @@ var _ = Describe("GardenFactory", func() {
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
-		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeResourceFetcher := new(rfakes.FakeFetcher)
+		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFactory, fakeResourceFetcher)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -148,7 +148,7 @@ var _ = Describe("GardenFactory", func() {
 
 				BeforeEach(func() {
 					fakeResource = new(rfakes.FakeResource)
-					fakeResourceFactory.NewBuildResourceReturns(fakeResource, []string{"some-source", "some-other-source"}, nil)
+					fakeResourceFactory.NewResourceReturns(fakeResource, []string{"some-source", "some-other-source"}, nil)
 
 					fakeVersionedSource = new(rfakes.FakeVersionedSource)
 					fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -158,25 +158,29 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("initializes the resource with the correct type, session, and sources", func() {
-					Expect(fakeResourceFactory.NewBuildResourceCallCount()).To(Equal(1))
+					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
 
-					_, sm, sid, typ, tags, actualTeamID, sources, actualResourceTypes, delegate := fakeResourceFactory.NewBuildResourceArgsForCall(0)
-					Expect(sm).To(Equal(stepMetadata))
-					Expect(sid).To(Equal(resource.Session{
-						ID: worker.Identifier{
-							ResourceID: 1234,
-							Stage:      db.ContainerStageRun,
-						},
-						Metadata: worker.Metadata{
-							PipelineName:     "some-pipeline",
-							Type:             db.ContainerTypePut,
-							StepName:         "some-step",
-							WorkingDirectory: "/tmp/build/put",
-						},
+					_, sid, sm, resourceSpec, actualResourceTypes, delegate, sources := fakeResourceFactory.NewResourceArgsForCall(0)
+					Expect(sm).To(Equal(worker.Metadata{
+						PipelineName:     "some-pipeline",
+						Type:             db.ContainerTypePut,
+						StepName:         "some-step",
+						WorkingDirectory: "/tmp/build/put",
 					}))
-					Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
-					Expect(tags).To(ConsistOf("some", "tags"))
-					Expect(actualTeamID).To(Equal(teamID))
+					Expect(sid).To(Equal(worker.Identifier{
+						ResourceID: 1234,
+						Stage:      db.ContainerStageRun,
+					}))
+					Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+						ImageSpec: worker.ImageSpec{
+							ResourceType: "some-resource-type",
+							Privileged:   true,
+						},
+						Ephemeral: true,
+						Tags:      []string{"some", "tags"},
+						TeamID:    123,
+						Env:       []string{"a=1", "b=2"},
+					}))
 					Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
 						{
 							Name:   "custom-resource",
@@ -419,7 +423,7 @@ var _ = Describe("GardenFactory", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeResourceFactory.NewBuildResourceReturns(nil, nil, disaster)
+					fakeResourceFactory.NewResourceReturns(nil, nil, disaster)
 				})
 
 				It("exits with the failure", func() {
@@ -445,7 +449,7 @@ var _ = Describe("GardenFactory", func() {
 
 			BeforeEach(func() {
 				fakeResource = new(rfakes.FakeResource)
-				fakeResourceFactory.NewBuildResourceReturns(fakeResource, []string{}, nil)
+				fakeResourceFactory.NewResourceReturns(fakeResource, []string{}, nil)
 
 				fakeVersionedSource = new(rfakes.FakeVersionedSource)
 				fakeResource.PutReturns(fakeVersionedSource, nil)

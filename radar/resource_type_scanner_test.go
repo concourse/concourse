@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
-	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 
 	"github.com/concourse/atc/db/dbfakes"
@@ -86,7 +85,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceTypeCheckResourceReturns(fakeResource, nil)
+			fakeResourceFactory.NewResourceReturns(fakeResource, nil, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -119,29 +118,22 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResource.CheckCallCount()).To(Equal(1))
-				Expect(fakeResourceFactory.NewResourceTypeCheckResourceCallCount()).To(Equal(1))
-				_, metadata, session, typ, tags, actualTeamID, customTypes, delegate := fakeResourceFactory.NewResourceTypeCheckResourceArgsForCall(0)
-				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
-
-				Expect(session).To(Equal(resource.Session{
-					ID: worker.Identifier{
-						Stage:               db.ContainerStageCheck,
-						CheckType:           "docker-image",
-						CheckSource:         atc.Source{"custom": "source"},
-						ImageResourceType:   "docker-image",
-						ImageResourceSource: atc.Source{"custom": "source"},
-					},
-					Metadata: worker.Metadata{
-						Type:                 db.ContainerTypeCheck,
-						PipelineID:           42,
-						WorkingDirectory:     "",
-						EnvironmentVariables: nil,
-					},
-					Ephemeral: true,
+				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
+				_, id, metadata, resourceSpec, customTypes, delegate, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(id).To(Equal(worker.Identifier{
+					Stage:               db.ContainerStageCheck,
+					CheckType:           "docker-image",
+					CheckSource:         atc.Source{"custom": "source"},
+					ImageResourceType:   "docker-image",
+					ImageResourceSource: atc.Source{"custom": "source"},
 				}))
-				Expect(typ).To(Equal(resource.ResourceType("docker-image")))
-				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
-				Expect(actualTeamID).To(Equal(teamID))
+				Expect(metadata).To(Equal(worker.Metadata{
+					Type:                 db.ContainerTypeCheck,
+					PipelineID:           42,
+					WorkingDirectory:     "",
+					EnvironmentVariables: nil,
+				}))
+
 				Expect(customTypes).To(Equal(atc.ResourceTypes{
 					atc.ResourceType{
 						Name:   "some-resource-type",
@@ -149,6 +141,15 @@ var _ = Describe("ResourceTypeScanner", func() {
 						Source: atc.Source{"custom": "source"},
 					}}))
 				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
+				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
+					ImageSpec: worker.ImageSpec{
+						ResourceType: "docker-image",
+						Privileged:   true,
+					},
+					Ephemeral: true,
+					Tags:      []string{},
+					TeamID:    123,
+				}))
 			})
 
 			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
