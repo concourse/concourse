@@ -2,6 +2,7 @@ package dbng
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -250,70 +251,79 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 		teamID = &team.ID
 	}
 
-	rows, err := psql.Update("workers").
-		Set("addr", worker.GardenAddr).
-		Set("expires", sq.Expr(expires)).
-		Set("active_containers", worker.ActiveContainers).
-		Set("resource_types", resourceTypes).
-		Set("tags", tags).
-		Set("platform", worker.Platform).
-		Set("baggageclaim_url", worker.BaggageclaimURL).
-		Set("http_proxy_url", worker.HTTPProxyURL).
-		Set("https_proxy_url", worker.HTTPSProxyURL).
-		Set("no_proxy", worker.NoProxy).
-		Set("name", worker.Name).
-		Set("start_time", worker.StartTime).
-		Set("team_id", teamID).
-		Set("state", string(WorkerStateRunning)).
-		Where(sq.Eq{
-			"name": worker.Name,
-			"addr": worker.GardenAddr,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, err
-	}
+	var oldTeamID sql.NullInt64
 
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
+	err = psql.Select("team_id").From("workers").Where(sq.Eq{
+		"name": worker.Name,
+	}).RunWith(tx).QueryRow().Scan(&oldTeamID)
 
-	if affected == 0 {
-		_, err = psql.Insert("workers").
-			Columns(
-				"addr",
-				"expires",
-				"active_containers",
-				"resource_types",
-				"tags",
-				"platform",
-				"baggageclaim_url",
-				"http_proxy_url",
-				"https_proxy_url",
-				"no_proxy",
-				"name",
-				"start_time",
-				"team_id",
-				"state",
-			).
-			Values(
-				worker.GardenAddr,
-				sq.Expr(expires),
-				worker.ActiveContainers,
-				resourceTypes,
-				tags,
-				worker.Platform,
-				worker.BaggageclaimURL,
-				worker.HTTPProxyURL,
-				worker.HTTPSProxyURL,
-				worker.NoProxy,
-				worker.Name,
-				worker.StartTime,
-				teamID,
-				string(WorkerStateRunning),
-			).
+	if err != nil {
+		if err == sql.ErrNoRows {
+			_, err = psql.Insert("workers").
+				Columns(
+					"addr",
+					"expires",
+					"active_containers",
+					"resource_types",
+					"tags",
+					"platform",
+					"baggageclaim_url",
+					"http_proxy_url",
+					"https_proxy_url",
+					"no_proxy",
+					"name",
+					"start_time",
+					"team_id",
+					"state",
+				).
+				Values(
+					worker.GardenAddr,
+					sq.Expr(expires),
+					worker.ActiveContainers,
+					resourceTypes,
+					tags,
+					worker.Platform,
+					worker.BaggageclaimURL,
+					worker.HTTPProxyURL,
+					worker.HTTPSProxyURL,
+					worker.NoProxy,
+					worker.Name,
+					worker.StartTime,
+					teamID,
+					string(WorkerStateRunning),
+				).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+
+		if (oldTeamID.Valid == (teamID == nil)) ||
+			(oldTeamID.Valid && (*teamID != int(oldTeamID.Int64))) {
+			return nil, errors.New("update-of-other-teams-worker-not-allowed")
+		}
+
+		_, err = psql.Update("workers").
+			Set("addr", worker.GardenAddr).
+			Set("expires", sq.Expr(expires)).
+			Set("active_containers", worker.ActiveContainers).
+			Set("resource_types", resourceTypes).
+			Set("tags", tags).
+			Set("platform", worker.Platform).
+			Set("baggageclaim_url", worker.BaggageclaimURL).
+			Set("http_proxy_url", worker.HTTPProxyURL).
+			Set("https_proxy_url", worker.HTTPSProxyURL).
+			Set("no_proxy", worker.NoProxy).
+			Set("name", worker.Name).
+			Set("start_time", worker.StartTime).
+			Set("state", string(WorkerStateRunning)).
+			Where(sq.Eq{
+				"name": worker.Name,
+			}).
 			RunWith(tx).
 			Exec()
 		if err != nil {
