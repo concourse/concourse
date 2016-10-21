@@ -9,7 +9,7 @@
 [submodule "src/github.com/concourse/atc"]
 	path = src/github.com/concourse/atc
 	url = https://github.com/concourse/atc
-	branch = mylife
+	branch = life
 [submodule "src/github.com/lib/pq"]
 	path = src/github.com/lib/pq
 	url = https://github.com/lib/pq
