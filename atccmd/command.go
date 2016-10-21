@@ -365,7 +365,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			"worker-collector",
 			sqlDB,
 			clock.NewClock(),
-			5*time.Minute,
+			30*time.Second,
 		)},
 
 		{"containerkeepaliver", lockrunner.NewRunner(
