@@ -1,13 +1,17 @@
 package exec
 
-import "os"
+import (
+	"os"
+
+	"github.com/concourse/atc/worker"
+)
 
 // Identity constructs a step that just propagates the previous step to the
 // next one, without running anything.
 type Identity struct{}
 
 // Using constructs an IdentityStep.
-func (Identity) Using(prev Step, repo *SourceRepository) Step {
+func (Identity) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	return IdentityStep{prev}
 }
 

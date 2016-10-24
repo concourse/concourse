@@ -1,25 +1,25 @@
-package exec_test
+package worker_test
 
 import (
 	"bytes"
 	"errors"
 	"io"
 
-	. "github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/execfakes"
+	. "github.com/concourse/atc/worker"
+	"github.com/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("SourceRepository", func() {
+var _ = Describe("ArtifactRepository", func() {
 	var (
-		repo *SourceRepository
+		repo *ArtifactRepository
 	)
 
 	BeforeEach(func() {
-		repo = NewSourceRepository()
+		repo = NewArtifactRepository()
 	})
 
 	It("initially does not contain any sources", func() {
@@ -29,17 +29,11 @@ var _ = Describe("SourceRepository", func() {
 	})
 
 	Context("when a source is registered", func() {
-		var firstSource *execfakes.FakeArtifactSource
+		var firstSource *workerfakes.FakeArtifactSource
 
 		BeforeEach(func() {
-			firstSource = new(execfakes.FakeArtifactSource)
+			firstSource = new(workerfakes.FakeArtifactSource)
 			repo.RegisterSource("first-source", firstSource)
-		})
-
-		It("can be converted to a map", func() {
-			Expect(repo.AsMap()).To(Equal(map[SourceName]ArtifactSource{
-				"first-source": firstSource,
-			}))
 		})
 
 		Describe("SourceFor", func() {
@@ -57,18 +51,11 @@ var _ = Describe("SourceRepository", func() {
 		})
 
 		Context("when a second source is registered", func() {
-			var secondSource *execfakes.FakeArtifactSource
+			var secondSource *workerfakes.FakeArtifactSource
 
 			BeforeEach(func() {
-				secondSource = new(execfakes.FakeArtifactSource)
+				secondSource = new(workerfakes.FakeArtifactSource)
 				repo.RegisterSource("second-source", secondSource)
-			})
-
-			It("can be converted to a map", func() {
-				Expect(repo.AsMap()).To(Equal(map[SourceName]ArtifactSource{
-					"first-source":  firstSource,
-					"second-source": secondSource,
-				}))
 			})
 
 			Describe("SourceFor", func() {
@@ -92,11 +79,11 @@ var _ = Describe("SourceRepository", func() {
 			})
 
 			Describe("StreamTo", func() {
-				var fakeDestination *execfakes.FakeArtifactDestination
+				var fakeDestination *workerfakes.FakeArtifactDestination
 				var streamErr error
 
 				BeforeEach(func() {
-					fakeDestination = new(execfakes.FakeArtifactDestination)
+					fakeDestination = new(workerfakes.FakeArtifactDestination)
 				})
 
 				JustBeforeEach(func() {
@@ -191,30 +178,6 @@ var _ = Describe("SourceRepository", func() {
 							Expect(streamErr).To(Equal(disaster))
 						})
 					})
-				})
-			})
-
-			Context("when a third source is registered", func() {
-				var thirdSource *execfakes.FakeArtifactSource
-
-				BeforeEach(func() {
-					secondSource = new(execfakes.FakeArtifactSource)
-					repo.RegisterSource("third-source", thirdSource)
-				})
-
-				It("can have a subset extracted from it", func() {
-					scoped, err := repo.ScopedTo("first-source", "third-source")
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(scoped.AsMap()).To(Equal(map[SourceName]ArtifactSource{
-						"first-source": firstSource,
-						"third-source": thirdSource,
-					}))
-				})
-
-				It("errors if one of the requested keys does not exist", func() {
-					_, err := repo.ScopedTo("first-source", "missing-source")
-					Expect(err).To(HaveOccurred())
 				})
 			})
 		})

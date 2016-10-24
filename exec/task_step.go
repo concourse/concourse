@@ -36,7 +36,7 @@ func (err MissingInputsError) Error() string {
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
-// SourceRepository and outputs will be added to the SourceRepository.
+// worker.ArtifactRepository and outputs will be added to the worker.ArtifactRepository.
 type TaskStep struct {
 	logger            lager.Logger
 	containerID       worker.Identifier
@@ -53,7 +53,7 @@ type TaskStep struct {
 	outputMapping     map[string]string
 	imageArtifactName string
 	clock             clock.Clock
-	repo              *SourceRepository
+	repo              *worker.ArtifactRepository
 
 	container           worker.Container
 	containerSuccessTTL time.Duration
@@ -106,7 +106,7 @@ func newTaskStep(
 
 // Using finishes construction of the TaskStep and returns a *TaskStep. If the
 // *TaskStep errors, its error is reported to the delegate.
-func (step TaskStep) Using(prev Step, repo *SourceRepository) Step {
+func (step TaskStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	step.repo = repo
 
 	return errorReporter{
@@ -120,7 +120,7 @@ func (step TaskStep) Using(prev Step, repo *SourceRepository) Step {
 // of volumes for the TaskConfig's inputs. Inputs that did not have volumes
 // available on the worker will be streamed in to the container.
 //
-// If any inputs are not available in the SourceRepository, MissingInputsError
+// If any inputs are not available in the worker.ArtifactRepository, MissingInputsError
 // is returned.
 //
 // Once all the inputs are satisfies, the task's script will be executed, and
@@ -128,7 +128,7 @@ func (step TaskStep) Using(prev Step, repo *SourceRepository) Step {
 // the script.
 //
 // If the script exits successfully, the outputs specified in the TaskConfig
-// are registered with the SourceRepository. If no outputs are specified, the
+// are registered with the worker.ArtifactRepository. If no outputs are specified, the
 // task's entire working directory is registered as an ArtifactSource under the
 // name of the task.
 func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -311,7 +311,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 
 	var imageSpec worker.ImageSpec
 	if step.imageArtifactName != "" {
-		source, found := step.repo.SourceFor(SourceName(step.imageArtifactName))
+		source, found := step.repo.SourceFor(worker.ArtifactName(step.imageArtifactName))
 		if !found {
 			return nil, nil, errors.New("failed-to-lookup-source-for-image-artifact")
 		}
@@ -420,13 +420,13 @@ func (step *TaskStep) registerSource(config atc.TaskConfig) {
 				if mount.MountPath == outputPath {
 
 					source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
-					step.repo.RegisterSource(SourceName(outputName), source)
+					step.repo.RegisterSource(worker.ArtifactName(outputName), source)
 				}
 			}
 		} else {
 			step.logger.Debug("container-has-volume-mounts-NONE")
 			source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
-			step.repo.RegisterSource(SourceName(outputName), source)
+			step.repo.RegisterSource(worker.ArtifactName(outputName), source)
 		}
 	}
 }
@@ -486,7 +486,7 @@ func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Wor
 
 type inputPair struct {
 	input  atc.TaskInputConfig
-	source ArtifactSource
+	source worker.ArtifactSource
 }
 
 func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]worker.VolumeMount, []inputPair, error) {
@@ -502,7 +502,7 @@ func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker
 			inputName = sourceName
 		}
 
-		source, found := step.repo.SourceFor(SourceName(inputName))
+		source, found := step.repo.SourceFor(worker.ArtifactName(inputName))
 		if !found {
 			missingInputs = append(missingInputs, inputName)
 			continue
@@ -636,7 +636,7 @@ func newContainerSource(
 	}
 }
 
-func (src *containerSource) StreamTo(destination ArtifactDestination) error {
+func (src *containerSource) StreamTo(destination worker.ArtifactDestination) error {
 	out, err := src.container.StreamOut(garden.StreamOutSpec{
 		Path: artifactsPath(src.outputConfig, src.artifactsRoot),
 	})

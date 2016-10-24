@@ -17,9 +17,9 @@ import (
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -28,10 +28,10 @@ import (
 
 var _ = Describe("DependentGet", func() {
 	var (
-		fakeWorkerClient    *wfakes.FakeClient
-		fakeResourceFetcher *rfakes.FakeFetcher
-		fakeVersionedSource *rfakes.FakeVersionedSource
-		fakeFetchSource     *rfakes.FakeFetchSource
+		fakeWorkerClient    *workerfakes.FakeClient
+		fakeResourceFetcher *resourcefakes.FakeFetcher
+		fakeVersionedSource *resourcefakes.FakeVersionedSource
+		fakeFetchSource     *resourcefakes.FakeFetchSource
 		getDelegate         *execfakes.FakeGetDelegate
 		resourceConfig      atc.ResourceConfig
 		params              atc.Params
@@ -40,7 +40,7 @@ var _ = Describe("DependentGet", func() {
 		resourceTypes       atc.ResourceTypes
 
 		inStep *execfakes.FakeStep
-		repo   *SourceRepository
+		repo   *worker.ArtifactRepository
 
 		step    Step
 		process ifrit.Process
@@ -62,7 +62,7 @@ var _ = Describe("DependentGet", func() {
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
-		sourceName SourceName = "some-source-name"
+		sourceName worker.ArtifactName = "some-source-name"
 
 		teamID     int = 123
 		successTTL time.Duration
@@ -70,9 +70,9 @@ var _ = Describe("DependentGet", func() {
 	)
 
 	BeforeEach(func() {
-		fakeWorkerClient = new(wfakes.FakeClient)
-		fakeResourceFetcher = new(rfakes.FakeFetcher)
-		fakeResourceFactory := new(rfakes.FakeResourceFactory)
+		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
+		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
 
@@ -120,10 +120,10 @@ var _ = Describe("DependentGet", func() {
 			}
 		}
 
-		repo = NewSourceRepository()
+		repo = worker.NewArtifactRepository()
 
-		fakeVersionedSource = new(rfakes.FakeVersionedSource)
-		fakeFetchSource = new(rfakes.FakeFetchSource)
+		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
+		fakeFetchSource = new(resourcefakes.FakeFetchSource)
 		fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
 	})
 
@@ -227,7 +227,7 @@ var _ = Describe("DependentGet", func() {
 		})
 
 		Describe("the source registered with the repository", func() {
-			var artifactSource ArtifactSource
+			var artifactSource worker.ArtifactSource
 
 			JustBeforeEach(func() {
 				Eventually(process.Wait()).Should(Receive(BeNil()))
@@ -238,10 +238,10 @@ var _ = Describe("DependentGet", func() {
 			})
 
 			Describe("streaming to a destination", func() {
-				var fakeDestination *execfakes.FakeArtifactDestination
+				var fakeDestination *workerfakes.FakeArtifactDestination
 
 				BeforeEach(func() {
-					fakeDestination = new(execfakes.FakeArtifactDestination)
+					fakeDestination = new(workerfakes.FakeArtifactDestination)
 				})
 
 				Context("when the resource can stream out", func() {

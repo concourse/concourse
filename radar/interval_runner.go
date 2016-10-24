@@ -46,7 +46,7 @@ func (r *IntervalRunner) RunFunc(signals <-chan os.Signal, ready chan<- struct{}
 			var err error
 			interval, err = r.scanner.Run(r.logger, r.name)
 			if err != nil {
-				if err == ErrFailedToAcquireLease {
+				if err == ErrFailedToAcquireLock {
 					break
 				}
 				return err

@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker"
 )
 
 // DependentGetStep represents a Get step whose version is determined by the
@@ -13,7 +14,7 @@ import (
 // PutStep.
 type DependentGetStep struct {
 	logger              lager.Logger
-	sourceName          SourceName
+	sourceName          worker.ArtifactName
 	resourceConfig      atc.ResourceConfig
 	params              atc.Params
 	stepMetadata        StepMetadata
@@ -29,7 +30,7 @@ type DependentGetStep struct {
 
 func newDependentGetStep(
 	logger lager.Logger,
-	sourceName SourceName,
+	sourceName worker.ArtifactName,
 	resourceConfig atc.ResourceConfig,
 	params atc.Params,
 	stepMetadata StepMetadata,
@@ -61,7 +62,7 @@ func newDependentGetStep(
 
 // Using constructs a GetStep that will fetch the version of the resource
 // determined by the VersionInfo result of the previous step.
-func (step DependentGetStep) Using(prev Step, repo *SourceRepository) Step {
+func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	var info VersionInfo
 	prev.Result(&info)
 

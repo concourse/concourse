@@ -37,7 +37,7 @@ func NewResourceScanner(
 	}
 }
 
-var ErrFailedToAcquireLease = errors.New("failed-to-acquire-lock")
+var ErrFailedToAcquireLock = errors.New("failed-to-acquire-lock")
 
 func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (time.Duration, error) {
 	savedResource, found, err := scanner.db.GetResource(resourceName)
@@ -69,12 +69,12 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		lockLogger.Error("failed-to-get-lock", err, lager.Data{
 			"resource": resourceName,
 		})
-		return interval, ErrFailedToAcquireLease
+		return interval, ErrFailedToAcquireLock
 	}
 
 	if !acquired {
 		lockLogger.Debug("did-not-get-lock")
-		return interval, ErrFailedToAcquireLease
+		return interval, ErrFailedToAcquireLock
 	}
 
 	defer lock.Release()

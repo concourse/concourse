@@ -22,7 +22,7 @@ var _ = Describe("Runner", func() {
 		fakeDB    *lockrunnerfakes.FakeRunnerDB
 		fakeTask  *lockrunnerfakes.FakeTask
 		fakeClock *fakeclock.FakeClock
-		fakeLease *dbfakes.FakeLease
+		fakeLock  *dbfakes.FakeLock
 
 		interval time.Duration
 
@@ -32,7 +32,7 @@ var _ = Describe("Runner", func() {
 	BeforeEach(func() {
 		fakeDB = new(lockrunnerfakes.FakeRunnerDB)
 		fakeTask = new(lockrunnerfakes.FakeTask)
-		fakeLease = new(dbfakes.FakeLease)
+		fakeLock = new(dbfakes.FakeLock)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
 		interval = 100 * time.Millisecond
@@ -67,7 +67,7 @@ var _ = Describe("Runner", func() {
 
 		Context("when getting a lock succeeds", func() {
 			BeforeEach(func() {
-				fakeDB.GetTaskLockReturns(fakeLease, true, nil)
+				fakeDB.GetTaskLockReturns(fakeLock, true, nil)
 			})
 
 			It("it collects lost baggage", func() {
@@ -75,7 +75,7 @@ var _ = Describe("Runner", func() {
 			})
 
 			It("releases the lock", func() {
-				Eventually(fakeLease.BreakCallCount).Should(Equal(1))
+				Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
 			})
 
 			Context("when collecting fails", func() {
@@ -88,7 +88,7 @@ var _ = Describe("Runner", func() {
 				})
 
 				It("releases the lock", func() {
-					Eventually(fakeLease.BreakCallCount).Should(Equal(1))
+					Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
 				})
 			})
 		})

@@ -1,6 +1,10 @@
 package exec
 
-import "os"
+import (
+	"os"
+
+	"github.com/concourse/atc/worker"
+)
 
 // OnSuccessStep will run one step, and then a second step if the first step
 // succeeds.
@@ -9,7 +13,7 @@ type OnSuccessStep struct {
 	successFactory StepFactory
 
 	prev Step
-	repo *SourceRepository
+	repo *worker.ArtifactRepository
 
 	step    Step
 	success Step
@@ -24,7 +28,7 @@ func OnSuccess(firstStep StepFactory, secondStep StepFactory) OnSuccessStep {
 }
 
 // Using constructs an *OnSuccessStep.
-func (o OnSuccessStep) Using(prev Step, repo *SourceRepository) Step {
+func (o OnSuccessStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	o.repo = repo
 	o.prev = prev
 

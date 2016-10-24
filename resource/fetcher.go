@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-const GetResourceLeaseInterval = 5 * time.Second
+const GetResourceLockInterval = 5 * time.Second
 
 var ErrFailedToGetLock = errors.New("failed-to-get-lock")
 var ErrInterrupted = errors.New("interrupted")
@@ -102,10 +102,10 @@ func (f *fetcher) Fetch(
 		containerCreator,
 	)
 
-	ticker := f.clock.NewTicker(GetResourceLeaseInterval)
+	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
-	fetchSource, err := f.fetchWithLease(logger, sourceProvider, resourceOptions.IOConfig(), signals, ready)
+	fetchSource, err := f.fetchWithLock(logger, sourceProvider, resourceOptions.IOConfig(), signals, ready)
 	if err != ErrFailedToGetLock {
 		return fetchSource, err
 	}
@@ -113,7 +113,7 @@ func (f *fetcher) Fetch(
 	for {
 		select {
 		case <-ticker.C():
-			fetchSource, err := f.fetchWithLease(logger, sourceProvider, resourceOptions.IOConfig(), signals, ready)
+			fetchSource, err := f.fetchWithLock(logger, sourceProvider, resourceOptions.IOConfig(), signals, ready)
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break
@@ -129,7 +129,7 @@ func (f *fetcher) Fetch(
 	}
 }
 
-func (f *fetcher) fetchWithLease(
+func (f *fetcher) fetchWithLock(
 	logger lager.Logger,
 	sourceProvider FetchSourceProvider,
 	ioConfig IOConfig,

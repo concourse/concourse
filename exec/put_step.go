@@ -14,7 +14,7 @@ import (
 )
 
 // PutStep produces a resource version using preconfigured params and any data
-// available in the SourceRepository.
+// available in the worker.ArtifactRepository.
 type PutStep struct {
 	logger          lager.Logger
 	resourceConfig  atc.ResourceConfig
@@ -27,7 +27,7 @@ type PutStep struct {
 	resourceFactory resource.ResourceFactory
 	resourceTypes   atc.ResourceTypes
 
-	repository *SourceRepository
+	repository *worker.ArtifactRepository
 
 	resource resource.Resource
 
@@ -71,7 +71,7 @@ func newPutStep(
 
 // Using finishes construction of the PutStep and returns a *PutStep. If the
 // *PutStep errors, its error is reported to the delegate.
-func (step PutStep) Using(prev Step, repo *SourceRepository) Step {
+func (step PutStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	step.repository = repo
 
 	return errorReporter{
@@ -83,7 +83,7 @@ func (step PutStep) Using(prev Step, repo *SourceRepository) Step {
 // Run chooses a worker that supports the step's resource type and creates a
 // container.
 //
-// All ArtifactSources present in the SourceRepository are then brought into
+// All worker.ArtifactSources present in the worker.ArtifactRepository are then brought into
 // the container, using volumes if possible, and streaming content over if not.
 //
 // The resource's put script is then invoked. The PutStep is ready as soon as
@@ -124,9 +124,9 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		return err
 	}
 
-	missingSourceNames := make([]SourceName, len(missingNames))
+	missingSourceNames := make([]worker.ArtifactName, len(missingNames))
 	for i, n := range missingNames {
-		missingSourceNames[i] = SourceName(n)
+		missingSourceNames[i] = worker.ArtifactName(n)
 	}
 
 	step.resource = putResource
@@ -136,7 +136,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		return err
 	}
 
-	var artifactSource resource.ArtifactSource
+	var artifactSource worker.ArtifactSource
 	if len(sources) == 0 {
 		artifactSource = emptySource{}
 	} else {
@@ -212,18 +212,18 @@ func (step *PutStep) Result(x interface{}) bool {
 }
 
 type resourceSource struct {
-	ArtifactSource
+	worker.ArtifactSource
 }
 
-func (source resourceSource) StreamTo(dest resource.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(resource.ArtifactDestination(dest))
+func (source resourceSource) StreamTo(dest worker.ArtifactDestination) error {
+	return source.ArtifactSource.StreamTo(worker.ArtifactDestination(dest))
 }
 
 type emptySource struct {
-	ArtifactSource
+	worker.ArtifactSource
 }
 
-func (source emptySource) StreamTo(dest resource.ArtifactDestination) error {
+func (source emptySource) StreamTo(dest worker.ArtifactDestination) error {
 	emptyTar := new(bytes.Buffer)
 
 	err := tar.NewWriter(emptyTar).Close()

@@ -27,8 +27,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		savedResourceType db.SavedResourceType
 
-		fakeLease *dbfakes.FakeLease
-		teamID    = 123
+		fakeLock *dbfakes.FakeLock
+		teamID   = 123
 	)
 
 	BeforeEach(func() {
@@ -71,7 +71,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		}
 		fakeRadarDB.TeamIDReturns(teamID)
 
-		fakeLease = &dbfakes.FakeLease{}
+		fakeLock = &dbfakes.FakeLock{}
 
 		fakeRadarDB.GetResourceTypeReturns(savedResourceType, true, nil)
 	})
@@ -102,14 +102,14 @@ var _ = Describe("ResourceTypeScanner", func() {
 			})
 
 			It("returns the configured interval", func() {
-				Expect(runErr).To(Equal(ErrFailedToAcquireLease))
+				Expect(runErr).To(Equal(ErrFailedToAcquireLock))
 				Expect(actualInterval).To(Equal(interval))
 			})
 		})
 
 		Context("when the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.AcquireResourceTypeCheckingLockReturns(fakeLease, true, nil)
+				fakeRadarDB.AcquireResourceTypeCheckingLockReturns(fakeLock, true, nil)
 			})
 
 			It("checks immediately", func() {
@@ -160,7 +160,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())
 
-				Eventually(fakeLease.BreakCallCount).Should(Equal(1))
+				Eventually(fakeLock.ReleaseCallCount()).Should(Equal(1))
 			})
 
 			It("releases after checking", func() {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
+	"github.com/concourse/atc/worker"
 )
 
 var _ = Describe("Ensure Step", func() {
@@ -23,7 +24,7 @@ var _ = Describe("Ensure Step", func() {
 
 		previousStep *execfakes.FakeStep
 
-		repo *exec.SourceRepository
+		repo *worker.ArtifactRepository
 
 		ensureFactory exec.StepFactory
 		ensureStep    exec.Step
@@ -41,7 +42,7 @@ var _ = Describe("Ensure Step", func() {
 		stepFactory.UsingReturns(step)
 		hookFactory.UsingReturns(hook)
 
-		repo = exec.NewSourceRepository()
+		repo = worker.NewArtifactRepository()
 
 		ensureFactory = exec.Ensure(stepFactory, hookFactory)
 		ensureStep = ensureFactory.Using(previousStep, repo)

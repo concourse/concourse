@@ -27,13 +27,13 @@ type FakeResource struct {
 		result1 resource.VersionedSource
 		result2 error
 	}
-	PutStub        func(resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource, <-chan os.Signal, chan<- struct{}) (resource.VersionedSource, error)
+	PutStub        func(resource.IOConfig, atc.Source, atc.Params, worker.ArtifactSource, <-chan os.Signal, chan<- struct{}) (resource.VersionedSource, error)
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 resource.IOConfig
 		arg2 atc.Source
 		arg3 atc.Params
-		arg4 resource.ArtifactSource
+		arg4 worker.ArtifactSource
 		arg5 <-chan os.Signal
 		arg6 chan<- struct{}
 	}
@@ -100,13 +100,13 @@ func (fake *FakeResource) GetReturns(result1 resource.VersionedSource, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 resource.ArtifactSource, arg5 <-chan os.Signal, arg6 chan<- struct{}) (resource.VersionedSource, error) {
+func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 worker.ArtifactSource, arg5 <-chan os.Signal, arg6 chan<- struct{}) (resource.VersionedSource, error) {
 	fake.putMutex.Lock()
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
 		arg1 resource.IOConfig
 		arg2 atc.Source
 		arg3 atc.Params
-		arg4 resource.ArtifactSource
+		arg4 worker.ArtifactSource
 		arg5 <-chan os.Signal
 		arg6 chan<- struct{}
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
@@ -125,7 +125,7 @@ func (fake *FakeResource) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeResource) PutArgsForCall(i int) (resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource, <-chan os.Signal, chan<- struct{}) {
+func (fake *FakeResource) PutArgsForCall(i int) (resource.IOConfig, atc.Source, atc.Params, worker.ArtifactSource, <-chan os.Signal, chan<- struct{}) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
 	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5, fake.putArgsForCall[i].arg6

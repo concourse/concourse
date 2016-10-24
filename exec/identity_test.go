@@ -4,6 +4,7 @@ import (
 	"os"
 
 	. "github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 
 	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
@@ -13,7 +14,7 @@ import (
 var _ = Describe("Identity", func() {
 	var (
 		inStep *execfakes.FakeStep
-		repo   *SourceRepository
+		repo   *worker.ArtifactRepository
 
 		identity Identity
 
@@ -24,7 +25,7 @@ var _ = Describe("Identity", func() {
 		identity = Identity{}
 
 		inStep = new(execfakes.FakeStep)
-		repo = NewSourceRepository()
+		repo = worker.NewArtifactRepository()
 	})
 
 	JustBeforeEach(func() {

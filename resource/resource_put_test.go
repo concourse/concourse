@@ -16,14 +16,14 @@ import (
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/resource"
-	"github.com/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/atc/worker/workerfakes"
 )
 
 var _ = Describe("Resource Put", func() {
 	var (
 		source             atc.Source
 		params             atc.Params
-		fakeArtifactSource *resourcefakes.FakeArtifactSource
+		fakeArtifactSource *workerfakes.FakeArtifactSource
 
 		outScriptStdout     string
 		outScriptStderr     string
@@ -46,7 +46,7 @@ var _ = Describe("Resource Put", func() {
 	BeforeEach(func() {
 		source = atc.Source{"some": "source"}
 		params = atc.Params{"some": "params"}
-		fakeArtifactSource = new(resourcefakes.FakeArtifactSource)
+		fakeArtifactSource = new(workerfakes.FakeArtifactSource)
 
 		outScriptStdout = "{}"
 		outScriptStderr = ""

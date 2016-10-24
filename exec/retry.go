@@ -1,13 +1,17 @@
 package exec
 
-import "os"
+import (
+	"os"
+
+	"github.com/concourse/atc/worker"
+)
 
 // Retry constructs a Step that will run the steps in order until one of them
 // succeeds.
 type Retry []StepFactory
 
 // Using constructs a *RetryStep.
-func (stepFactory Retry) Using(prev Step, repo *SourceRepository) Step {
+func (stepFactory Retry) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	retry := &RetryStep{}
 
 	for _, subStepFactory := range stepFactory {

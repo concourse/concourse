@@ -1,6 +1,10 @@
 package exec
 
-import "os"
+import (
+	"os"
+
+	"github.com/concourse/atc/worker"
+)
 
 // OnFailureStep will run one step, and then a second step if the first step
 // fails (but not errors).
@@ -9,7 +13,7 @@ type OnFailureStep struct {
 	failureFactory StepFactory
 
 	prev Step
-	repo *SourceRepository
+	repo *worker.ArtifactRepository
 
 	step    Step
 	failure Step
@@ -24,7 +28,7 @@ func OnFailure(firstStep StepFactory, secondStep StepFactory) OnFailureStep {
 }
 
 // Using constructs an *OnFailureStep.
-func (o OnFailureStep) Using(prev Step, repo *SourceRepository) Step {
+func (o OnFailureStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	o.repo = repo
 	o.prev = prev
 

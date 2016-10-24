@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
+	"github.com/concourse/atc/worker"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -31,7 +32,7 @@ func Timeout(
 }
 
 // Using constructs a *TimeoutStep.
-func (ts TimeoutStep) Using(prev Step, repo *SourceRepository) Step {
+func (ts TimeoutStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	ts.runStep = ts.step.Using(prev, repo)
 
 	return &ts

@@ -14,9 +14,9 @@ import (
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -25,8 +25,8 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeWorkerClient    *wfakes.FakeClient
-		fakeResourceFactory *rfakes.FakeResourceFactory
+		fakeWorkerClient    *workerfakes.FakeClient
+		fakeResourceFactory *resourcefakes.FakeResourceFactory
 
 		factory Factory
 
@@ -47,9 +47,9 @@ var _ = Describe("GardenFactory", func() {
 	)
 
 	BeforeEach(func() {
-		fakeWorkerClient = new(wfakes.FakeClient)
-		fakeResourceFetcher := new(rfakes.FakeFetcher)
-		fakeResourceFactory = new(rfakes.FakeResourceFactory)
+		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeResourceFetcher := new(resourcefakes.FakeFetcher)
+		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
 
@@ -66,7 +66,7 @@ var _ = Describe("GardenFactory", func() {
 			resourceTypes  atc.ResourceTypes
 
 			inStep *execfakes.FakeStep
-			repo   *SourceRepository
+			repo   *worker.ArtifactRepository
 
 			step    Step
 			process ifrit.Process
@@ -90,7 +90,7 @@ var _ = Describe("GardenFactory", func() {
 			tags = []string{"some", "tags"}
 
 			inStep = new(execfakes.FakeStep)
-			repo = NewSourceRepository()
+			repo = worker.NewArtifactRepository()
 
 			resourceTypes = atc.ResourceTypes{
 				{
@@ -125,15 +125,15 @@ var _ = Describe("GardenFactory", func() {
 
 		Context("when repo contains sources", func() {
 			var (
-				fakeSource        *execfakes.FakeArtifactSource
-				fakeOtherSource   *execfakes.FakeArtifactSource
-				fakeMountedSource *execfakes.FakeArtifactSource
+				fakeSource        *workerfakes.FakeArtifactSource
+				fakeOtherSource   *workerfakes.FakeArtifactSource
+				fakeMountedSource *workerfakes.FakeArtifactSource
 			)
 
 			BeforeEach(func() {
-				fakeSource = new(execfakes.FakeArtifactSource)
-				fakeOtherSource = new(execfakes.FakeArtifactSource)
-				fakeMountedSource = new(execfakes.FakeArtifactSource)
+				fakeSource = new(workerfakes.FakeArtifactSource)
+				fakeOtherSource = new(workerfakes.FakeArtifactSource)
+				fakeMountedSource = new(workerfakes.FakeArtifactSource)
 
 				repo.RegisterSource("some-source", fakeSource)
 				repo.RegisterSource("some-other-source", fakeOtherSource)
@@ -142,15 +142,15 @@ var _ = Describe("GardenFactory", func() {
 
 			Context("when the tracker can initialize the resource", func() {
 				var (
-					fakeResource        *rfakes.FakeResource
-					fakeVersionedSource *rfakes.FakeVersionedSource
+					fakeResource        *resourcefakes.FakeResource
+					fakeVersionedSource *resourcefakes.FakeVersionedSource
 				)
 
 				BeforeEach(func() {
-					fakeResource = new(rfakes.FakeResource)
+					fakeResource = new(resourcefakes.FakeResource)
 					fakeResourceFactory.NewResourceReturns(fakeResource, []string{"some-source", "some-other-source"}, nil)
 
-					fakeVersionedSource = new(rfakes.FakeVersionedSource)
+					fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 					fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
 					fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
 
@@ -203,7 +203,7 @@ var _ = Describe("GardenFactory", func() {
 					Expect(putSource).To(Equal(resourceConfig.Source))
 					Expect(putParams).To(Equal(params))
 
-					dest := new(execfakes.FakeArtifactDestination)
+					dest := new(workerfakes.FakeArtifactDestination)
 
 					err := putArtifactSource.StreamTo(dest)
 					Expect(err).NotTo(HaveOccurred())
@@ -296,7 +296,7 @@ var _ = Describe("GardenFactory", func() {
 							ioConfig resource.IOConfig,
 							source atc.Source,
 							params atc.Params,
-							artifactSource resource.ArtifactSource,
+							artifactSource worker.ArtifactSource,
 							signals <-chan os.Signal,
 							ready chan<- struct{},
 						) (resource.VersionedSource, error) {
@@ -443,21 +443,21 @@ var _ = Describe("GardenFactory", func() {
 
 		Context("when there are no sources in repo", func() {
 			var (
-				fakeResource        *rfakes.FakeResource
-				fakeVersionedSource *rfakes.FakeVersionedSource
+				fakeResource        *resourcefakes.FakeResource
+				fakeVersionedSource *resourcefakes.FakeVersionedSource
 			)
 
 			BeforeEach(func() {
-				fakeResource = new(rfakes.FakeResource)
+				fakeResource = new(resourcefakes.FakeResource)
 				fakeResourceFactory.NewResourceReturns(fakeResource, []string{}, nil)
 
-				fakeVersionedSource = new(rfakes.FakeVersionedSource)
+				fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 				fakeResource.PutReturns(fakeVersionedSource, nil)
 			})
 
 			It("streams in empty source", func() {
 				_, _, _, resourceSource, _, _ := fakeResource.PutArgsForCall(0)
-				fakeDestination := new(rfakes.FakeArtifactDestination)
+				fakeDestination := new(workerfakes.FakeArtifactDestination)
 				resourceSource.StreamTo(fakeDestination)
 
 				Expect(fakeDestination.StreamInCallCount()).To(Equal(1))

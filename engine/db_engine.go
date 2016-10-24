@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc/metric"
 )
 
-const trackLeaseDuration = time.Minute
+const trackLockDuration = time.Minute
 
 func NewDBEngine(engines Engines) Engine {
 	return &dbEngine{
@@ -93,7 +93,7 @@ func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, erro
 func (build *dbBuild) Abort(logger lager.Logger) error {
 	// the order below is very important to avoid races with build creation.
 
-	lock, acquired, err := build.build.AcquireTrackingLock(logger, trackLeaseDuration)
+	lock, acquired, err := build.build.AcquireTrackingLock(logger, trackLockDuration)
 	if err != nil {
 		logger.Error("failed-to-get-lock", err)
 		return err
@@ -160,7 +160,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
-	lock, acquired, err := build.build.AcquireTrackingLock(logger, trackLeaseDuration)
+	lock, acquired, err := build.build.AcquireTrackingLock(logger, trackLockDuration)
 	if err != nil {
 		logger.Error("failed-to-get-lock", err)
 		return

@@ -122,7 +122,7 @@ var _ = Describe("Fetcher", func() {
 					callCount := 0
 					fakeFetchSource.IsInitializedStub = func() (bool, error) {
 						callCount++
-						fakeClock.Increment(GetResourceLeaseInterval)
+						fakeClock.Increment(GetResourceLockInterval)
 						if callCount == 1 {
 							return false, nil
 						}
@@ -161,11 +161,11 @@ var _ = Describe("Fetcher", func() {
 			})
 
 			Context("when getting lock succeeds", func() {
-				var fakeLease *dbfakes.FakeLease
+				var fakeLock *dbfakes.FakeLock
 
 				BeforeEach(func() {
-					fakeLease = new(dbfakes.FakeLease)
-					fakeLockDB.GetTaskLockReturns(fakeLease, true, nil)
+					fakeLock = new(dbfakes.FakeLock)
+					fakeLockDB.GetTaskLockReturns(fakeLock, true, nil)
 				})
 
 				It("acquires a lock with source lock name", func() {
@@ -175,7 +175,7 @@ var _ = Describe("Fetcher", func() {
 				})
 
 				It("releases the lock", func() {
-					Expect(fakeLease.BreakCallCount()).To(Equal(1))
+					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
 
 				It("initializes source", func() {

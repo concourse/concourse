@@ -6,7 +6,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
-	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
 
 	"github.com/concourse/atc/db/dbfakes"
@@ -126,7 +125,7 @@ var _ = Describe("Exec Engine with Try", func() {
 				logger, metadata, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
-				Expect(sourceName).To(Equal(exec.SourceName("some-input")))
+				Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
 					Type:       db.ContainerTypeGet,
 					StepName:   "some-input",

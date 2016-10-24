@@ -420,10 +420,6 @@ func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 	return nil, false, errors.New("LookupVolume not implemented for pool")
 }
 
-type ArtifactSource interface {
-	VolumeOn(Worker) (Volume, bool, error)
-}
-
 func (pool *pool) findCompatibleWorker(
 	containerSpec ContainerSpec,
 	resourceTypes atc.ResourceTypes,

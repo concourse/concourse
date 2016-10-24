@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/concourse/atc/worker"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -12,7 +13,7 @@ import (
 type Aggregate []StepFactory
 
 // Using delegates to each StepFactory and returns an AggregateStep.
-func (a Aggregate) Using(prev Step, repo *SourceRepository) Step {
+func (a Aggregate) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	sources := AggregateStep{}
 
 	for _, step := range a {

@@ -341,7 +341,7 @@ var _ = Describe("ExecEngine", func() {
 					Expect(plan).To(Equal((*outputPlan.Aggregate)[0].OnSuccess.Next.DependentGet.GetPlan()))
 					Expect(planID).NotTo(BeNil())
 
-					Expect(sourceName).To(Equal(exec.SourceName("some-get")))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
 					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
@@ -369,7 +369,7 @@ var _ = Describe("ExecEngine", func() {
 					Expect(plan).To(Equal((*outputPlan.Aggregate)[1].OnSuccess.Next.DependentGet.GetPlan()))
 					Expect(planID).NotTo(BeNil())
 
-					Expect(sourceName).To(Equal(exec.SourceName("some-get-2")))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-get-2")))
 					Expect(resourceConfig.Name).To(Equal("some-input-resource-2"))
 					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source-2"}))
@@ -459,7 +459,7 @@ var _ = Describe("ExecEngine", func() {
 				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeInputDelegate))
 
-				Expect(sourceName).To(Equal(exec.SourceName("some-get")))
+				Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
 				Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 				Expect(resourceConfig.Type).To(Equal("get"))
 				Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
@@ -487,7 +487,7 @@ var _ = Describe("ExecEngine", func() {
 				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeInputDelegate))
 
-				Expect(sourceName).To(Equal(exec.SourceName("some-get")))
+				Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
 				Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 				Expect(resourceConfig.Type).To(Equal("get"))
 				Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
@@ -501,7 +501,7 @@ var _ = Describe("ExecEngine", func() {
 			It("constructs nested steps correctly", func() {
 				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, actualTeamID, configSource, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
-				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
+				Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
 					ResourceName: "",
 					Type:         db.ContainerTypeTask,
@@ -523,7 +523,7 @@ var _ = Describe("ExecEngine", func() {
 
 				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, actualTeamID, configSource, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
-				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
+				Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
 					ResourceName: "",
 					Type:         db.ContainerTypeTask,
@@ -674,7 +674,7 @@ var _ = Describe("ExecEngine", func() {
 						PipelineID:   57,
 						TeamID:       teamID,
 					}))
-					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
 						PlanID:  plan.ID,
@@ -780,7 +780,7 @@ var _ = Describe("ExecEngine", func() {
 
 						logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, actualTeamID, configSource, _, actualInputMapping, actualOutputMapping, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 						Expect(logger).NotTo(BeNil())
-						Expect(sourceName).To(Equal(exec.SourceName("some-task")))
+						Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
 						Expect(workerMetadata).To(Equal(worker.Metadata{
 							ResourceName: "",
 							Type:         db.ContainerTypeTask,
@@ -983,7 +983,7 @@ var _ = Describe("ExecEngine", func() {
 
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))
 					Expect(actualTeamID).To(Equal(teamID))
-					Expect(sourceName).To(Equal(exec.SourceName("some-get")))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
 					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
@@ -1142,7 +1142,7 @@ var _ = Describe("ExecEngine", func() {
 				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeInputDelegate))
 
-				Expect(sourceName).To(Equal(exec.SourceName("some-get")))
+				Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
 				Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 				Expect(resourceConfig.Type).To(Equal("get"))
 				Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))

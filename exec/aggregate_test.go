@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	. "github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 
 	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
@@ -21,7 +22,7 @@ var _ = Describe("Aggregate", func() {
 		aggregate StepFactory
 
 		inStep *execfakes.FakeStep
-		repo   *SourceRepository
+		repo   *worker.ArtifactRepository
 
 		outStepA *execfakes.FakeStep
 		outStepB *execfakes.FakeStep
@@ -40,7 +41,7 @@ var _ = Describe("Aggregate", func() {
 		}
 
 		inStep = new(execfakes.FakeStep)
-		repo = NewSourceRepository()
+		repo = worker.NewArtifactRepository()
 
 		outStepA = new(execfakes.FakeStep)
 		fakeStepA.UsingReturns(outStepA)

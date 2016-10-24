@@ -35,7 +35,7 @@ func NewGardenFactory(
 func (factory *gardenFactory) DependentGet(
 	logger lager.Logger,
 	stepMetadata StepMetadata,
-	sourceName SourceName,
+	sourceName worker.ArtifactName,
 	id worker.Identifier,
 	workerMetadata worker.Metadata,
 	delegate GetDelegate,
@@ -71,7 +71,7 @@ func (factory *gardenFactory) DependentGet(
 func (factory *gardenFactory) Get(
 	logger lager.Logger,
 	stepMetadata StepMetadata,
-	sourceName SourceName,
+	sourceName worker.ArtifactName,
 	id worker.Identifier,
 	workerMetadata worker.Metadata,
 	delegate GetDelegate,
@@ -151,7 +151,7 @@ func (factory *gardenFactory) Put(
 
 func (factory *gardenFactory) Task(
 	logger lager.Logger,
-	sourceName SourceName,
+	sourceName worker.ArtifactName,
 	id worker.Identifier,
 	workerMetadata worker.Metadata,
 	delegate TaskDelegate,
@@ -190,7 +190,7 @@ func (factory *gardenFactory) Task(
 	)
 }
 
-func (factory *gardenFactory) taskWorkingDirectory(sourceName SourceName) string {
+func (factory *gardenFactory) taskWorkingDirectory(sourceName worker.ArtifactName) string {
 	sum := sha1.Sum([]byte(sourceName))
 	return filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
+	"github.com/concourse/atc/worker"
 )
 
 var noError = BeNil
@@ -26,7 +27,7 @@ var _ = Describe("On Success Step", func() {
 
 		previousStep *execfakes.FakeStep
 
-		repo *exec.SourceRepository
+		repo *worker.ArtifactRepository
 
 		onSuccessFactory exec.StepFactory
 		onSuccessStep    exec.Step
@@ -44,7 +45,7 @@ var _ = Describe("On Success Step", func() {
 		stepFactory.UsingReturns(step)
 		successFactory.UsingReturns(hook)
 
-		repo = exec.NewSourceRepository()
+		repo = worker.NewArtifactRepository()
 
 		onSuccessFactory = exec.OnSuccess(stepFactory, successFactory)
 		onSuccessStep = onSuccessFactory.Using(previousStep, repo)

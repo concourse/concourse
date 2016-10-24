@@ -18,7 +18,7 @@ type Factory interface {
 	Get(
 		lager.Logger,
 		StepMetadata,
-		SourceName,
+		worker.ArtifactName,
 		worker.Identifier,
 		worker.Metadata,
 		GetDelegate,
@@ -53,7 +53,7 @@ type Factory interface {
 	DependentGet(
 		lager.Logger,
 		StepMetadata,
-		SourceName,
+		worker.ArtifactName,
 		worker.Identifier,
 		worker.Metadata,
 		GetDelegate,
@@ -69,7 +69,7 @@ type Factory interface {
 	// Task constructs a TaskStep factory.
 	Task(
 		lager.Logger,
-		SourceName,
+		worker.ArtifactName,
 		worker.Identifier,
 		worker.Metadata,
 		TaskDelegate,

@@ -5,14 +5,15 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 )
 
 type FakeStepFactory struct {
-	UsingStub        func(exec.Step, *exec.SourceRepository) exec.Step
+	UsingStub        func(exec.Step, *worker.ArtifactRepository) exec.Step
 	usingMutex       sync.RWMutex
 	usingArgsForCall []struct {
 		arg1 exec.Step
-		arg2 *exec.SourceRepository
+		arg2 *worker.ArtifactRepository
 	}
 	usingReturns struct {
 		result1 exec.Step
@@ -21,11 +22,11 @@ type FakeStepFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeStepFactory) Using(arg1 exec.Step, arg2 *exec.SourceRepository) exec.Step {
+func (fake *FakeStepFactory) Using(arg1 exec.Step, arg2 *worker.ArtifactRepository) exec.Step {
 	fake.usingMutex.Lock()
 	fake.usingArgsForCall = append(fake.usingArgsForCall, struct {
 		arg1 exec.Step
-		arg2 *exec.SourceRepository
+		arg2 *worker.ArtifactRepository
 	}{arg1, arg2})
 	fake.recordInvocation("Using", []interface{}{arg1, arg2})
 	fake.usingMutex.Unlock()
@@ -42,7 +43,7 @@ func (fake *FakeStepFactory) UsingCallCount() int {
 	return len(fake.usingArgsForCall)
 }
 
-func (fake *FakeStepFactory) UsingArgsForCall(i int) (exec.Step, *exec.SourceRepository) {
+func (fake *FakeStepFactory) UsingArgsForCall(i int) (exec.Step, *worker.ArtifactRepository) {
 	fake.usingMutex.RLock()
 	defer fake.usingMutex.RUnlock()
 	return fake.usingArgsForCall[i].arg1, fake.usingArgsForCall[i].arg2

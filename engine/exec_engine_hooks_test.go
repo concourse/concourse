@@ -188,7 +188,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					logger, metadata, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
-					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
 						PipelineID: 57,
 						StepName:   "some-input",
@@ -208,7 +208,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
 					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(2)
 					Expect(logger).NotTo(BeNil())
-					Expect(sourceName).To(Equal(exec.SourceName("some-completion-task")))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-completion-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
 						PipelineID: 57,
 						StepName:   "some-completion-task",
@@ -229,7 +229,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
 					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
-					Expect(sourceName).To(Equal(exec.SourceName("some-failure-task")))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-failure-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
 						PipelineID: 57,
 						StepName:   "some-failure-task",
@@ -250,7 +250,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
 					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
-					Expect(sourceName).To(Equal(exec.SourceName("some-success-task")))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-success-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
 						PipelineID: 57,
 						StepName:   "some-success-task",
@@ -271,7 +271,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
 					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(3)
 					Expect(logger).NotTo(BeNil())
-					Expect(sourceName).To(Equal(exec.SourceName("some-next-task")))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-next-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
 						PipelineID: 57,
 						StepName:   "some-next-task",

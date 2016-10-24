@@ -6,6 +6,8 @@ import (
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
+	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
 	"gopkg.in/yaml.v2"
 
@@ -18,11 +20,11 @@ var _ = Describe("ConfigSource", func() {
 	var (
 		taskConfig atc.TaskConfig
 		taskPlan   atc.TaskPlan
-		repo       *SourceRepository
+		repo       *worker.ArtifactRepository
 	)
 
 	BeforeEach(func() {
-		repo = NewSourceRepository()
+		repo = worker.NewArtifactRepository()
 		taskConfig = atc.TaskConfig{
 			Platform: "some-platform",
 			Image:    "some-image",
@@ -248,10 +250,10 @@ var _ = Describe("ConfigSource", func() {
 		})
 
 		Context("when the file's artifact source can be found in the repository", func() {
-			var fakeArtifactSource *execfakes.FakeArtifactSource
+			var fakeArtifactSource *workerfakes.FakeArtifactSource
 
 			BeforeEach(func() {
-				fakeArtifactSource = new(execfakes.FakeArtifactSource)
+				fakeArtifactSource = new(workerfakes.FakeArtifactSource)
 				repo.RegisterSource("some", fakeArtifactSource)
 			})
 

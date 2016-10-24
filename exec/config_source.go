@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -18,8 +19,8 @@ import (
 // TaskConfigSource is used to determine a Task step's TaskConfig.
 type TaskConfigSource interface {
 	// FetchConfig returns the TaskConfig, and may have to a task config file out
-	// of the SourceRepository.
-	FetchConfig(*SourceRepository) (atc.TaskConfig, error)
+	// of the worker.ArtifactRepository.
+	FetchConfig(*worker.ArtifactRepository) (atc.TaskConfig, error)
 	Warnings() []string
 }
 
@@ -29,7 +30,7 @@ type StaticConfigSource struct {
 }
 
 // FetchConfig returns the configuration.
-func (configSource StaticConfigSource) FetchConfig(*SourceRepository) (atc.TaskConfig, error) {
+func (configSource StaticConfigSource) FetchConfig(*worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig := atc.TaskConfig{}
 
 	if configSource.Plan.Config != nil {
@@ -82,7 +83,7 @@ type DeprecationConfigSource struct {
 }
 
 // FetchConfig returns the configuration. It cannot fail.
-func (configSource DeprecationConfigSource) FetchConfig(repo *SourceRepository) (atc.TaskConfig, error) {
+func (configSource DeprecationConfigSource) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	taskConfig, err := configSource.Delegate.FetchConfig(repo)
 	if err != nil {
 		return atc.TaskConfig{}, err
@@ -100,16 +101,16 @@ func (configSource DeprecationConfigSource) Warnings() []string {
 }
 
 // FileConfigSource represents a dynamically configured TaskConfig, which will
-// be fetched from a specified file in the SourceRepository.
+// be fetched from a specified file in the worker.ArtifactRepository.
 type FileConfigSource struct {
 	Path string
 }
 
-// FetchConfig reads the specified file from the SourceRepository and loads the
+// FetchConfig reads the specified file from the worker.ArtifactRepository and loads the
 // TaskConfig contained therein (expecting it to be YAML format).
 //
 // The path must be in the format SOURCE_NAME/FILE/PATH.yml. The SOURCE_NAME
-// will be used to determine the ArtifactSource in the SourceRepository to
+// will be used to determine the ArtifactSource in the worker.ArtifactRepository to
 // stream the file out of.
 //
 // If the source name is missing (i.e. if the path is just "foo.yml"),
@@ -120,13 +121,13 @@ type FileConfigSource struct {
 //
 // If the task config file is not found, or is invalid YAML, or is an invalid
 // task configuration, the respective errors will be bubbled up.
-func (configSource FileConfigSource) FetchConfig(repo *SourceRepository) (atc.TaskConfig, error) {
+func (configSource FileConfigSource) FetchConfig(repo *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	segs := strings.SplitN(configSource.Path, "/", 2)
 	if len(segs) != 2 {
 		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.Path}
 	}
 
-	sourceName := SourceName(segs[0])
+	sourceName := worker.ArtifactName(segs[0])
 	filePath := segs[1]
 
 	source, found := repo.SourceFor(sourceName)
@@ -170,7 +171,7 @@ type MergedConfigSource struct {
 // FetchConfig fetches both config sources, and merges the second config source
 // into the first. This allows the user to set params required by a task loaded
 // from a file by providing them in static configuration.
-func (configSource MergedConfigSource) FetchConfig(source *SourceRepository) (atc.TaskConfig, error) {
+func (configSource MergedConfigSource) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	aConfig, err := configSource.A.FetchConfig(source)
 	if err != nil {
 		return atc.TaskConfig{}, err
@@ -200,7 +201,7 @@ type ValidatingConfigSource struct {
 
 // FetchConfig fetches the config using the underlying ConfigSource, and checks
 // that it's valid.
-func (configSource ValidatingConfigSource) FetchConfig(source *SourceRepository) (atc.TaskConfig, error) {
+func (configSource ValidatingConfigSource) FetchConfig(source *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	config, err := configSource.ConfigSource.FetchConfig(source)
 	if err != nil {
 		return atc.TaskConfig{}, err
@@ -217,10 +218,10 @@ func (configSource ValidatingConfigSource) Warnings() []string {
 	return configSource.ConfigSource.Warnings()
 }
 
-// UnknownArtifactSourceError is returned when the SourceName specified by the
-// path does not exist in the SourceRepository.
+// UnknownArtifactSourceError is returned when the worker.ArtifactName specified by the
+// path does not exist in the worker.ArtifactRepository.
 type UnknownArtifactSourceError struct {
-	SourceName SourceName
+	SourceName worker.ArtifactName
 }
 
 // Error returns a human-friendly error message.

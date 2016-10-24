@@ -3,6 +3,7 @@ package exec
 import (
 	"os"
 
+	"github.com/concourse/atc/worker"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -13,7 +14,7 @@ type EnsureStep struct {
 	ensureFactory StepFactory
 
 	prev Step
-	repo *SourceRepository
+	repo *worker.ArtifactRepository
 
 	step   Step
 	ensure Step
@@ -28,7 +29,7 @@ func Ensure(firstStep StepFactory, secondStep StepFactory) EnsureStep {
 }
 
 // Using constructs an *EnsureStep.
-func (o EnsureStep) Using(prev Step, repo *SourceRepository) Step {
+func (o EnsureStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	o.repo = repo
 	o.prev = prev
 

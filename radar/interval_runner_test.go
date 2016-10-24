@@ -113,11 +113,11 @@ var _ = Describe("IntervalRunner", func() {
 			})
 		})
 
-		Context("when scanner.Run() returns ErrFailedToAcquireLease error", func() {
+		Context("when scanner.Run() returns ErrFailedToAcquireLock error", func() {
 			BeforeEach(func() {
 				fakeScanner.RunStub = func(lager.Logger, string) (time.Duration, error) {
 					times <- fakeClock.Now()
-					return interval, ErrFailedToAcquireLease
+					return interval, ErrFailedToAcquireLock
 				}
 			})
 

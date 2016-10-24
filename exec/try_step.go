@@ -1,6 +1,10 @@
 package exec
 
-import "os"
+import (
+	"os"
+
+	"github.com/concourse/atc/worker"
+)
 
 // TryStep wraps another step, ignores its errors, and always succeeds.
 type TryStep struct {
@@ -16,7 +20,7 @@ func Try(step StepFactory) TryStep {
 }
 
 // Using constructs a *TryStep.
-func (ts TryStep) Using(prev Step, repo *SourceRepository) Step {
+func (ts TryStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	ts.runStep = ts.step.Using(prev, repo)
 	return &ts
 }

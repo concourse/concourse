@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/worker"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -20,7 +21,7 @@ var ErrInterrupted = errors.New("interrupted")
 // Some steps, i.e. DependentGetStep, use information from the previous step to
 // determine how to run.
 type StepFactory interface {
-	Using(Step, *SourceRepository) Step
+	Using(Step, *worker.ArtifactRepository) Step
 }
 
 //go:generate counterfeiter . Step

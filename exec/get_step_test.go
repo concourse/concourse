@@ -17,9 +17,9 @@ import (
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -28,13 +28,13 @@ import (
 
 var _ = Describe("Get", func() {
 	var (
-		fakeWorkerClient    *wfakes.FakeClient
-		fakeResourceFetcher *rfakes.FakeFetcher
+		fakeWorkerClient    *workerfakes.FakeClient
+		fakeResourceFetcher *resourcefakes.FakeFetcher
 
-		fakeCache           *rfakes.FakeCache
-		fakeVolume          *wfakes.FakeVolume
-		fakeVersionedSource *rfakes.FakeVersionedSource
-		fakeFetchSource     *rfakes.FakeFetchSource
+		fakeCache           *resourcefakes.FakeCache
+		fakeVolume          *workerfakes.FakeVolume
+		fakeVersionedSource *resourcefakes.FakeVersionedSource
+		fakeFetchSource     *resourcefakes.FakeFetchSource
 
 		factory Factory
 
@@ -49,7 +49,7 @@ var _ = Describe("Get", func() {
 		resourceTypes  atc.ResourceTypes
 
 		inStep Step
-		repo   *SourceRepository
+		repo   *worker.ArtifactRepository
 
 		step    Step
 		process ifrit.Process
@@ -68,16 +68,16 @@ var _ = Describe("Get", func() {
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
-		sourceName SourceName = "some-source-name"
-		teamID                = 123
+		sourceName worker.ArtifactName = "some-source-name"
+		teamID                         = 123
 	)
 
 	BeforeEach(func() {
-		fakeWorkerClient = new(wfakes.FakeClient)
-		fakeResourceFactory := new(rfakes.FakeResourceFactory)
+		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
 
-		fakeCache = new(rfakes.FakeCache)
-		fakeVolume = new(wfakes.FakeVolume)
+		fakeCache = new(resourcefakes.FakeCache)
+		fakeVolume = new(workerfakes.FakeVolume)
 		fakeCache.VolumeReturns(fakeVolume)
 
 		getDelegate = new(execfakes.FakeGetDelegate)
@@ -99,7 +99,7 @@ var _ = Describe("Get", func() {
 		version = atc.Version{"some-version": "some-value"}
 
 		inStep = &NoopStep{}
-		repo = NewSourceRepository()
+		repo = worker.NewArtifactRepository()
 
 		resourceTypes = atc.ResourceTypes{
 			{
@@ -112,10 +112,10 @@ var _ = Describe("Get", func() {
 		successTTL = 3 * time.Second
 		failureTTL = 7 * time.Second
 
-		fakeResourceFetcher = new(rfakes.FakeFetcher)
-		fakeFetchSource = new(rfakes.FakeFetchSource)
+		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
+		fakeFetchSource = new(resourcefakes.FakeFetchSource)
 		fakeResourceFetcher.FetchReturns(fakeFetchSource, nil)
-		fakeVersionedSource = new(rfakes.FakeVersionedSource)
+		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 		fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
@@ -233,7 +233,7 @@ var _ = Describe("Get", func() {
 		})
 
 		Describe("the source registered with the repository", func() {
-			var artifactSource ArtifactSource
+			var artifactSource worker.ArtifactSource
 
 			JustBeforeEach(func() {
 				Eventually(process.Wait()).Should(Receive(BeNil()))
@@ -244,10 +244,10 @@ var _ = Describe("Get", func() {
 			})
 
 			Describe("streaming to a destination", func() {
-				var fakeDestination *execfakes.FakeArtifactDestination
+				var fakeDestination *workerfakes.FakeArtifactDestination
 
 				BeforeEach(func() {
-					fakeDestination = new(execfakes.FakeArtifactDestination)
+					fakeDestination = new(workerfakes.FakeArtifactDestination)
 				})
 
 				Context("when the resource can stream out", func() {

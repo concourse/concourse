@@ -384,11 +384,11 @@ var _ = Describe("Locks", func() {
 
 				time.Sleep(time.Second)
 
-				newLease, acquired, err := pipelineDB.AcquireSchedulingLock(logger, 1*time.Second)
+				newLock, acquired, err := pipelineDB.AcquireSchedulingLock(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				newLease.Release()
+				newLock.Release()
 			})
 		})
 	})
@@ -790,11 +790,11 @@ var _ = Describe("Locks", func() {
 
 					time.Sleep(time.Second)
 
-					newLease, acquired, err := pipelineDB.AcquireResourceTypeCheckingLock(logger, someResourceType, 1*time.Second, true)
+					newLock, acquired, err := pipelineDB.AcquireResourceTypeCheckingLock(logger, someResourceType, 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
-					newLease.Release()
+					newLock.Release()
 				})
 
 				It("gets and keeps the lock and stops others from immediately getting it", func() {
@@ -960,11 +960,11 @@ var _ = Describe("Locks", func() {
 
 				lock.Release()
 
-				newLease, acquired, err := sqlDB.GetTaskLock(logger, "some-task-name")
+				newLock, acquired, err := sqlDB.GetTaskLock(logger, "some-task-name")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				newLease.Release()
+				newLock.Release()
 			})
 		})
 	})

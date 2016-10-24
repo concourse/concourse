@@ -345,14 +345,14 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		Context("when it gets the lock", func() {
-			var fakeLease *dbfakes.FakeLease
+			var fakeLock *dbfakes.FakeLock
 
 			BeforeEach(func() {
-				fakeLease = new(dbfakes.FakeLease)
+				fakeLock = new(dbfakes.FakeLock)
 				fakeDB.AcquireResourceCheckingForJobLockStub = func(lager.Logger, string) (db.Lock, bool, error) {
 					defer GinkgoRecover()
 					Expect(fakeDB.CreateJobBuildCallCount()).To(BeZero())
-					return fakeLease, true, nil
+					return fakeLock, true, nil
 				}
 			})
 
@@ -371,7 +371,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("releases the lock", func() {
-					Expect(fakeLease.BreakCallCount()).To(Equal(1))
+					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 
@@ -391,7 +391,7 @@ var _ = Describe("Scheduler", func() {
 					It("releases the lock and returns the build", func() {
 						Expect(triggerErr).NotTo(HaveOccurred())
 						Expect(triggeredBuild).To(Equal(createdBuild))
-						Expect(fakeLease.BreakCallCount()).To(Equal(1))
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 					})
 				})
 
@@ -412,7 +412,7 @@ var _ = Describe("Scheduler", func() {
 						It("releases the lock and returns the build", func() {
 							Expect(triggerErr).NotTo(HaveOccurred())
 							Expect(triggeredBuild).To(Equal(createdBuild))
-							Expect(fakeLease.BreakCallCount()).To(Equal(1))
+							Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 						})
 
 						It("checked for the right resources", func() {
@@ -443,7 +443,7 @@ var _ = Describe("Scheduler", func() {
 							It("releases the lock and returns the build", func() {
 								Expect(triggerErr).NotTo(HaveOccurred())
 								Expect(triggeredBuild).To(Equal(createdBuild))
-								Expect(fakeLease.BreakCallCount()).To(Equal(1))
+								Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 							})
 
 							It("saved the next input mapping for the right job and versions", func() {
@@ -458,7 +458,7 @@ var _ = Describe("Scheduler", func() {
 							BeforeEach(func() {
 								fakeInputMapper.SaveNextInputMappingStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig) (algorithm.InputMapping, error) {
 									defer GinkgoRecover()
-									Expect(fakeLease.BreakCallCount()).To(BeZero())
+									Expect(fakeLock.ReleaseCallCount()).To(BeZero())
 									return nil, nil
 								}
 							})
@@ -467,7 +467,7 @@ var _ = Describe("Scheduler", func() {
 								BeforeEach(func() {
 									fakeBuildStarter.TryStartPendingBuildsForJobStub = func(lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes, []db.Build) error {
 										defer GinkgoRecover()
-										Expect(fakeLease.BreakCallCount()).To(Equal(1))
+										Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 										return disaster
 									}
 								})
@@ -475,7 +475,7 @@ var _ = Describe("Scheduler", func() {
 								It("saved the next input mapping before breaking the lock and returns the build", func() {
 									Expect(triggerErr).NotTo(HaveOccurred())
 									Expect(triggeredBuild).To(Equal(createdBuild))
-									Expect(fakeLease.BreakCallCount()).NotTo(BeZero())
+									Expect(fakeLock.ReleaseCallCount()).NotTo(BeZero())
 								})
 
 								It("started all pending builds for the right job after breaking the lock", func() {

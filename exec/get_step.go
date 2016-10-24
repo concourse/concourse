@@ -20,7 +20,7 @@ import (
 // resource type.
 type GetStep struct {
 	logger          lager.Logger
-	sourceName      SourceName
+	sourceName      worker.ArtifactName
 	resourceConfig  atc.ResourceConfig
 	version         atc.Version
 	params          atc.Params
@@ -33,7 +33,7 @@ type GetStep struct {
 	resourceFetcher resource.Fetcher
 	resourceTypes   atc.ResourceTypes
 
-	repository *SourceRepository
+	repository *worker.ArtifactRepository
 
 	fetchSource resource.FetchSource
 
@@ -45,7 +45,7 @@ type GetStep struct {
 
 func newGetStep(
 	logger lager.Logger,
-	sourceName SourceName,
+	sourceName worker.ArtifactName,
 	resourceConfig atc.ResourceConfig,
 	version atc.Version,
 	params atc.Params,
@@ -81,7 +81,7 @@ func newGetStep(
 
 // Using finishes construction of the GetStep and returns a *GetStep. If the
 // *GetStep errors, its error is reported to the delegate.
-func (step GetStep) Using(prev Step, repo *SourceRepository) Step {
+func (step GetStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 	step.repository = repo
 
 	return errorReporter{
@@ -202,7 +202,7 @@ func (step *GetStep) VolumeOn(worker worker.Worker) (worker.Volume, bool, error)
 }
 
 // StreamTo streams the resource's data to the destination.
-func (step *GetStep) StreamTo(destination ArtifactDestination) error {
+func (step *GetStep) StreamTo(destination worker.ArtifactDestination) error {
 	out, err := step.fetchSource.VersionedSource().StreamOut(".")
 	if err != nil {
 		return err
@@ -275,7 +275,7 @@ func (d *getStepResource) ResourceType() resource.ResourceType {
 }
 
 func (d *getStepResource) LockName(workerName string) (string, error) {
-	id := &getStepLeaseID{
+	id := &getStepLockID{
 		Type:       d.resourceType,
 		Version:    d.version,
 		Source:     d.source,
@@ -290,7 +290,7 @@ func (d *getStepResource) LockName(workerName string) (string, error) {
 	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
 }
 
-type getStepLeaseID struct {
+type getStepLockID struct {
 	Type       resource.ResourceType `json:"type"`
 	Version    atc.Version           `json:"version"`
 	Source     atc.Source            `json:"source"`

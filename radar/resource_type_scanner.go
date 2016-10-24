@@ -62,12 +62,12 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 		lockLogger.Error("failed-to-get-lock", err, lager.Data{
 			"resource-type": resourceTypeName,
 		})
-		return scanner.defaultInterval, ErrFailedToAcquireLease
+		return scanner.defaultInterval, ErrFailedToAcquireLock
 	}
 
 	if !acquired {
 		lockLogger.Debug("did-not-get-lock")
-		return scanner.defaultInterval, ErrFailedToAcquireLease
+		return scanner.defaultInterval, ErrFailedToAcquireLock
 	}
 
 	defer lock.Release()

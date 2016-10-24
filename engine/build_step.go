@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 )
 
 func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
@@ -109,7 +110,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 
 	return build.factory.Task(
 		logger,
-		exec.SourceName(plan.Task.Name),
+		worker.ArtifactName(plan.Task.Name),
 		workerID,
 		workerMetadata,
 		build.delegate.ExecutionDelegate(logger, *plan.Task, event.OriginID(plan.ID)),
@@ -144,7 +145,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 	return build.factory.Get(
 		logger,
 		build.stepMetadata,
-		exec.SourceName(plan.Get.Name),
+		worker.ArtifactName(plan.Get.Name),
 		workerID,
 		workerMetadata,
 		build.delegate.InputDelegate(logger, *plan.Get, event.OriginID(plan.ID)),
@@ -215,7 +216,7 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 	return build.factory.DependentGet(
 		logger,
 		build.stepMetadata,
-		exec.SourceName(getPlan.Name),
+		worker.ArtifactName(getPlan.Name),
 		workerID,
 		workerMetadata,
 		build.delegate.InputDelegate(logger, getPlan, event.OriginID(plan.ID)),

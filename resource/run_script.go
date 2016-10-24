@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/garden"
+	"github.com/concourse/atc/worker"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -46,8 +47,8 @@ func (resource *resource) runScript(
 	input interface{},
 	output interface{},
 	logDest io.Writer,
-	inputSource ArtifactSource,
-	inputDestination ArtifactDestination,
+	inputSource worker.ArtifactSource,
+	inputDestination worker.ArtifactDestination,
 	recoverable bool,
 ) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {

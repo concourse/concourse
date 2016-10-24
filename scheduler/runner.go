@@ -80,7 +80,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return nil
 	}
 
-	schedulingLease, acquired, err := runner.DB.AcquireSchedulingLock(logger, runner.Interval)
+	schedulingLock, acquired, err := runner.DB.AcquireSchedulingLock(logger, runner.Interval)
 	if err != nil {
 		logger.Error("failed-to-acquire-scheduling-lock", err)
 		return nil
@@ -90,7 +90,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return nil
 	}
 
-	defer schedulingLease.Release()
+	defer schedulingLock.Release()
 
 	start := time.Now()
 

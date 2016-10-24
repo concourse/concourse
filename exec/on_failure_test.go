@@ -11,6 +11,7 @@ import (
 
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
+	"github.com/concourse/atc/worker"
 )
 
 var _ = Describe("On Failure Step", func() {
@@ -23,7 +24,7 @@ var _ = Describe("On Failure Step", func() {
 
 		previousStep *execfakes.FakeStep
 
-		repo *exec.SourceRepository
+		repo *worker.ArtifactRepository
 
 		onFailureFactory exec.StepFactory
 		onFailureStep    exec.Step
@@ -41,7 +42,7 @@ var _ = Describe("On Failure Step", func() {
 		stepFactory.UsingReturns(step)
 		failureFactory.UsingReturns(hook)
 
-		repo = exec.NewSourceRepository()
+		repo = worker.NewArtifactRepository()
 
 		onFailureFactory = exec.OnFailure(stepFactory, failureFactory)
 		onFailureStep = onFailureFactory.Using(previousStep, repo)

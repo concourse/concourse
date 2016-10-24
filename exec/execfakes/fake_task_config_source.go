@@ -6,13 +6,14 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 )
 
 type FakeTaskConfigSource struct {
-	FetchConfigStub        func(*exec.SourceRepository) (atc.TaskConfig, error)
+	FetchConfigStub        func(*worker.ArtifactRepository) (atc.TaskConfig, error)
 	fetchConfigMutex       sync.RWMutex
 	fetchConfigArgsForCall []struct {
-		arg1 *exec.SourceRepository
+		arg1 *worker.ArtifactRepository
 	}
 	fetchConfigReturns struct {
 		result1 atc.TaskConfig
@@ -28,10 +29,10 @@ type FakeTaskConfigSource struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTaskConfigSource) FetchConfig(arg1 *exec.SourceRepository) (atc.TaskConfig, error) {
+func (fake *FakeTaskConfigSource) FetchConfig(arg1 *worker.ArtifactRepository) (atc.TaskConfig, error) {
 	fake.fetchConfigMutex.Lock()
 	fake.fetchConfigArgsForCall = append(fake.fetchConfigArgsForCall, struct {
-		arg1 *exec.SourceRepository
+		arg1 *worker.ArtifactRepository
 	}{arg1})
 	fake.recordInvocation("FetchConfig", []interface{}{arg1})
 	fake.fetchConfigMutex.Unlock()
@@ -48,7 +49,7 @@ func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
 	return len(fake.fetchConfigArgsForCall)
 }
 
-func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) *exec.SourceRepository {
+func (fake *FakeTaskConfigSource) FetchConfigArgsForCall(i int) *worker.ArtifactRepository {
 	fake.fetchConfigMutex.RLock()
 	defer fake.fetchConfigMutex.RUnlock()
 	return fake.fetchConfigArgsForCall[i].arg1

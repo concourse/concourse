@@ -23,7 +23,7 @@ var _ = Describe("Runner", func() {
 		scheduler  *schedulerfakes.FakeBuildScheduler
 		noop       bool
 
-		lock *dbfakes.FakeLease
+		lock *dbfakes.FakeLock
 
 		initialConfig atc.Config
 
@@ -87,7 +87,7 @@ var _ = Describe("Runner", func() {
 		pipelineDB.ReloadReturns(true, nil)
 		pipelineDB.ConfigReturns(initialConfig)
 
-		lock = new(dbfakes.FakeLease)
+		lock = new(dbfakes.FakeLock)
 		pipelineDB.AcquireSchedulingLockReturns(lock, true, nil)
 	})
 

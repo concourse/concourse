@@ -13,16 +13,16 @@ import (
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/gardenfakes"
+	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
-	rfakes "github.com/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -31,7 +31,7 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeWorkerClient *wfakes.FakeClient
+		fakeWorkerClient *workerfakes.FakeClient
 
 		factory Factory
 
@@ -39,16 +39,16 @@ var _ = Describe("GardenFactory", func() {
 		stderrBuf *gbytes.Buffer
 		fakeClock *fakeclock.FakeClock
 
-		sourceName        SourceName = "some-source-name"
+		sourceName        worker.ArtifactName = "some-source-name"
 		imageArtifactName string
 		identifier        worker.Identifier
 		workerMetadata    worker.Metadata
 	)
 
 	BeforeEach(func() {
-		fakeWorkerClient = new(wfakes.FakeClient)
-		fakeResourceFactory := new(rfakes.FakeResourceFactory)
-		fakeResourceFetcher := new(rfakes.FakeFetcher)
+		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
+		fakeResourceFetcher := new(resourcefakes.FakeFetcher)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
 
@@ -68,7 +68,7 @@ var _ = Describe("GardenFactory", func() {
 			outputMapping map[string]string
 
 			inStep *execfakes.FakeStep
-			repo   *SourceRepository
+			repo   *worker.ArtifactRepository
 
 			step    Step
 			process ifrit.Process
@@ -88,7 +88,7 @@ var _ = Describe("GardenFactory", func() {
 			configSource = new(execfakes.FakeTaskConfigSource)
 
 			inStep = new(execfakes.FakeStep)
-			repo = NewSourceRepository()
+			repo = worker.NewArtifactRepository()
 
 			resourceTypes = atc.ResourceTypes{
 				{
@@ -180,25 +180,25 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				Context("when a single worker can be located", func() {
-					var fakeWorker *wfakes.FakeWorker
+					var fakeWorker *workerfakes.FakeWorker
 
 					BeforeEach(func() {
-						fakeWorker = new(wfakes.FakeWorker)
+						fakeWorker = new(workerfakes.FakeWorker)
 						fakeWorkerClient.AllSatisfyingReturns([]worker.Worker{fakeWorker}, nil)
 					})
 
 					Context("when creating the task's container works", func() {
 						var (
-							fakeContainer *wfakes.FakeContainer
-							fakeProcess   *gfakes.FakeProcess
+							fakeContainer *workerfakes.FakeContainer
+							fakeProcess   *gardenfakes.FakeProcess
 						)
 
 						BeforeEach(func() {
-							fakeContainer = new(wfakes.FakeContainer)
+							fakeContainer = new(workerfakes.FakeContainer)
 							fakeContainer.HandleReturns("some-handle")
 							fakeWorker.CreateBuildContainerReturns(fakeContainer, nil)
 
-							fakeProcess = new(gfakes.FakeProcess)
+							fakeProcess = new(gardenfakes.FakeProcess)
 							fakeProcess.IDReturns("process-id")
 							fakeContainer.RunReturns(fakeProcess, nil)
 
@@ -379,12 +379,12 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						Context("when the configuration specifies paths for inputs", func() {
-							var inputSource *execfakes.FakeArtifactSource
-							var otherInputSource *execfakes.FakeArtifactSource
+							var inputSource *workerfakes.FakeArtifactSource
+							var otherInputSource *workerfakes.FakeArtifactSource
 
 							BeforeEach(func() {
-								inputSource = new(execfakes.FakeArtifactSource)
-								otherInputSource = new(execfakes.FakeArtifactSource)
+								inputSource = new(workerfakes.FakeArtifactSource)
+								otherInputSource = new(workerfakes.FakeArtifactSource)
 
 								configSource.FetchConfigReturns(atc.TaskConfig{
 									Platform: "some-platform",
@@ -445,14 +445,14 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								Context("when the inputs have volumes on the chosen worker", func() {
-									var inputVolume *wfakes.FakeVolume
-									var otherInputVolume *wfakes.FakeVolume
+									var inputVolume *workerfakes.FakeVolume
+									var otherInputVolume *workerfakes.FakeVolume
 
 									BeforeEach(func() {
-										inputVolume = new(wfakes.FakeVolume)
+										inputVolume = new(workerfakes.FakeVolume)
 										inputVolume.HandleReturns("input-volume")
 
-										otherInputVolume = new(wfakes.FakeVolume)
+										otherInputVolume = new(workerfakes.FakeVolume)
 										otherInputVolume.HandleReturns("other-input-volume")
 
 										inputSource.VolumeOnReturns(inputVolume, true, nil)
@@ -529,10 +529,10 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						Context("when input is remapped", func() {
-							var remappedInputSource *execfakes.FakeArtifactSource
+							var remappedInputSource *workerfakes.FakeArtifactSource
 
 							BeforeEach(func() {
-								remappedInputSource = new(execfakes.FakeArtifactSource)
+								remappedInputSource = new(workerfakes.FakeArtifactSource)
 								inputMapping = map[string]string{"remapped-input": "remapped-input-src"}
 
 								configSource.FetchConfigReturns(atc.TaskConfig{
@@ -573,10 +573,10 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								Context("when the inputs have volumes on the chosen worker", func() {
-									var remappedInputVolume *wfakes.FakeVolume
+									var remappedInputVolume *workerfakes.FakeVolume
 
 									BeforeEach(func() {
-										remappedInputVolume = new(wfakes.FakeVolume)
+										remappedInputVolume = new(workerfakes.FakeVolume)
 										remappedInputVolume.HandleReturns("remapped-input-volume")
 
 										remappedInputSource.VolumeOnReturns(remappedInputVolume, true, nil)
@@ -635,7 +635,7 @@ var _ = Describe("GardenFactory", func() {
 									},
 								}, nil)
 
-								fakeWorker.CreateVolumeReturns(new(wfakes.FakeVolume), nil)
+								fakeWorker.CreateVolumeReturns(new(workerfakes.FakeVolume), nil)
 							})
 
 							It("ensures the output directories exist by streaming in an empty payload", func() {
@@ -676,9 +676,9 @@ var _ = Describe("GardenFactory", func() {
 
 								Describe("the registered sources", func() {
 									var (
-										artifactSource1 ArtifactSource
-										artifactSource2 ArtifactSource
-										artifactSource3 ArtifactSource
+										artifactSource1 worker.ArtifactSource
+										artifactSource2 worker.ArtifactSource
+										artifactSource3 worker.ArtifactSource
 
 										fakeMountPath1 string = "/tmp/build/a1f5c0c1/some-output-configured-path/"
 										fakeMountPath2 string = "/tmp/build/a1f5c0c1/some-other-output/"
@@ -705,10 +705,10 @@ var _ = Describe("GardenFactory", func() {
 									})
 
 									Describe("streaming to a destination", func() {
-										var fakeDestination *execfakes.FakeArtifactDestination
+										var fakeDestination *workerfakes.FakeArtifactDestination
 
 										BeforeEach(func() {
-											fakeDestination = new(execfakes.FakeArtifactDestination)
+											fakeDestination = new(workerfakes.FakeArtifactDestination)
 										})
 
 										Context("when the resource can stream out", func() {
@@ -721,21 +721,21 @@ var _ = Describe("GardenFactory", func() {
 
 											Context("when volumes are configured", func() {
 												var (
-													fakeNewlyCreatedVolume1 *wfakes.FakeVolume
-													fakeNewlyCreatedVolume2 *wfakes.FakeVolume
-													fakeNewlyCreatedVolume3 *wfakes.FakeVolume
+													fakeNewlyCreatedVolume1 *workerfakes.FakeVolume
+													fakeNewlyCreatedVolume2 *workerfakes.FakeVolume
+													fakeNewlyCreatedVolume3 *workerfakes.FakeVolume
 
-													fakeVolume1 *wfakes.FakeVolume
-													fakeVolume2 *wfakes.FakeVolume
-													fakeVolume3 *wfakes.FakeVolume
+													fakeVolume1 *workerfakes.FakeVolume
+													fakeVolume2 *workerfakes.FakeVolume
+													fakeVolume3 *workerfakes.FakeVolume
 												)
 
 												BeforeEach(func() {
-													fakeNewlyCreatedVolume1 = new(wfakes.FakeVolume)
+													fakeNewlyCreatedVolume1 = new(workerfakes.FakeVolume)
 													fakeNewlyCreatedVolume1.HandleReturns("some-handle-1")
-													fakeNewlyCreatedVolume2 = new(wfakes.FakeVolume)
+													fakeNewlyCreatedVolume2 = new(workerfakes.FakeVolume)
 													fakeNewlyCreatedVolume2.HandleReturns("some-handle-2")
-													fakeNewlyCreatedVolume3 = new(wfakes.FakeVolume)
+													fakeNewlyCreatedVolume3 = new(workerfakes.FakeVolume)
 													fakeNewlyCreatedVolume3.HandleReturns("some-handle-3")
 													volumeChannel := make(chan worker.Volume, 3)
 													volumeChannel <- fakeNewlyCreatedVolume1
@@ -747,11 +747,11 @@ var _ = Describe("GardenFactory", func() {
 														return <-volumeChannel, nil
 													}
 
-													fakeVolume1 = new(wfakes.FakeVolume)
+													fakeVolume1 = new(workerfakes.FakeVolume)
 													fakeVolume1.HandleReturns("some-handle-1")
-													fakeVolume2 = new(wfakes.FakeVolume)
+													fakeVolume2 = new(workerfakes.FakeVolume)
 													fakeVolume2.HandleReturns("some-handle-2")
-													fakeVolume3 = new(wfakes.FakeVolume)
+													fakeVolume3 = new(workerfakes.FakeVolume)
 													fakeVolume3.HandleReturns("some-handle-3")
 
 													fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
@@ -1100,7 +1100,7 @@ var _ = Describe("GardenFactory", func() {
 									},
 								}, nil)
 
-								fakeWorker.CreateVolumeReturns(new(wfakes.FakeVolume), nil)
+								fakeWorker.CreateVolumeReturns(new(workerfakes.FakeVolume), nil)
 								fakeProcess.WaitReturns(0, nil)
 							})
 
@@ -1134,16 +1134,16 @@ var _ = Describe("GardenFactory", func() {
 							Context("when volumes are configured", func() {
 								var (
 									fakeMountPath string = "/tmp/build/a1f5c0c1/generic-remapped-output/"
-									fakeVolume    *wfakes.FakeVolume
+									fakeVolume    *workerfakes.FakeVolume
 								)
 
 								BeforeEach(func() {
-									fakeNewlyCreatedVolume := new(wfakes.FakeVolume)
+									fakeNewlyCreatedVolume := new(workerfakes.FakeVolume)
 									fakeNewlyCreatedVolume.HandleReturns("some-handle")
 
 									fakeWorker.CreateVolumeReturns(fakeNewlyCreatedVolume, nil)
 
-									fakeVolume = new(wfakes.FakeVolume)
+									fakeVolume = new(workerfakes.FakeVolume)
 									fakeVolume.HandleReturns("some-handle")
 
 									fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
@@ -1164,19 +1164,19 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							Context("when the image artifact is registered in the source repo", func() {
-								var imageArtifactSource *execfakes.FakeArtifactSource
+								var imageArtifactSource *workerfakes.FakeArtifactSource
 
 								BeforeEach(func() {
-									imageArtifactSource = new(execfakes.FakeArtifactSource)
+									imageArtifactSource = new(workerfakes.FakeArtifactSource)
 									repo.RegisterSource("some-image-artifact", imageArtifactSource)
 								})
 
 								Context("when the image artifact is not found in a volume on the worker", func() {
-									var imageVolume *wfakes.FakeVolume
+									var imageVolume *workerfakes.FakeVolume
 									dummyReader := tar.NewReader(nil)
 
 									BeforeEach(func() {
-										imageVolume = new(wfakes.FakeVolume)
+										imageVolume = new(workerfakes.FakeVolume)
 										imageVolume.PathReturns("/var/vcap/some-path")
 										imageVolume.HandleReturns("some-handle")
 
@@ -1269,13 +1269,13 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								Context("when the image artifact is in a volume on the worker", func() {
-									var imageVolume *wfakes.FakeVolume
-									var cowVolume *wfakes.FakeVolume
+									var imageVolume *workerfakes.FakeVolume
+									var cowVolume *workerfakes.FakeVolume
 
 									BeforeEach(func() {
-										imageVolume = new(wfakes.FakeVolume)
+										imageVolume = new(workerfakes.FakeVolume)
 										imageVolume.PathReturns("/var/vcap/some-path")
-										cowVolume = new(wfakes.FakeVolume)
+										cowVolume = new(workerfakes.FakeVolume)
 										cowVolume.PathReturns("/var/vcap/some-cow-path")
 										cowVolume.HandleReturns("cow-handle")
 
@@ -1321,15 +1321,15 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								Describe("when task config specifies image and/or image resource as well as image artifact", func() {
-									var imageVolume *wfakes.FakeVolume
-									var cowVolume *wfakes.FakeVolume
+									var imageVolume *workerfakes.FakeVolume
+									var cowVolume *workerfakes.FakeVolume
 
 									BeforeEach(func() {
-										imageVolume = new(wfakes.FakeVolume)
+										imageVolume = new(workerfakes.FakeVolume)
 										imageVolume.PathReturns("/var/vcap/some-path")
 										imageArtifactSource.VolumeOnReturns(imageVolume, true, nil)
 
-										cowVolume = new(wfakes.FakeVolume)
+										cowVolume = new(workerfakes.FakeVolume)
 										cowVolume.PathReturns("/var/vcap/some-cow-path")
 										cowVolume.HandleReturns("cow-handle")
 
@@ -1780,25 +1780,25 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				Context("when more than one worker can be located", func() {
-					var fakeWorker *wfakes.FakeWorker
-					var fakeWorker2 *wfakes.FakeWorker
-					var fakeWorker3 *wfakes.FakeWorker
+					var fakeWorker *workerfakes.FakeWorker
+					var fakeWorker2 *workerfakes.FakeWorker
+					var fakeWorker3 *workerfakes.FakeWorker
 
 					BeforeEach(func() {
-						fakeWorker = new(wfakes.FakeWorker)
-						fakeWorker2 = new(wfakes.FakeWorker)
-						fakeWorker3 = new(wfakes.FakeWorker)
+						fakeWorker = new(workerfakes.FakeWorker)
+						fakeWorker2 = new(workerfakes.FakeWorker)
+						fakeWorker3 = new(workerfakes.FakeWorker)
 
 						fakeWorkerClient.AllSatisfyingReturns([]worker.Worker{fakeWorker, fakeWorker2, fakeWorker3}, nil)
 					})
 
 					Context("when the configuration has inputs", func() {
-						var inputSource *execfakes.FakeArtifactSource
-						var otherInputSource *execfakes.FakeArtifactSource
+						var inputSource *workerfakes.FakeArtifactSource
+						var otherInputSource *workerfakes.FakeArtifactSource
 
 						BeforeEach(func() {
-							inputSource = new(execfakes.FakeArtifactSource)
-							otherInputSource = new(execfakes.FakeArtifactSource)
+							inputSource = new(workerfakes.FakeArtifactSource)
+							otherInputSource = new(workerfakes.FakeArtifactSource)
 
 							configSource.FetchConfigReturns(atc.TaskConfig{
 								Platform: "some-platform",
@@ -1822,26 +1822,26 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							Context("and some workers have more matching input volumes than others", func() {
-								var rootVolume *wfakes.FakeVolume
-								var inputVolume *wfakes.FakeVolume
-								var inputVolume2 *wfakes.FakeVolume
-								var inputVolume3 *wfakes.FakeVolume
-								var otherInputVolume *wfakes.FakeVolume
+								var rootVolume *workerfakes.FakeVolume
+								var inputVolume *workerfakes.FakeVolume
+								var inputVolume2 *workerfakes.FakeVolume
+								var inputVolume3 *workerfakes.FakeVolume
+								var otherInputVolume *workerfakes.FakeVolume
 
 								BeforeEach(func() {
-									rootVolume = new(wfakes.FakeVolume)
+									rootVolume = new(workerfakes.FakeVolume)
 									rootVolume.HandleReturns("root-volume")
 
-									inputVolume = new(wfakes.FakeVolume)
+									inputVolume = new(workerfakes.FakeVolume)
 									inputVolume.HandleReturns("input-volume")
 
-									inputVolume2 = new(wfakes.FakeVolume)
+									inputVolume2 = new(workerfakes.FakeVolume)
 									inputVolume2.HandleReturns("input-volume")
 
-									inputVolume3 = new(wfakes.FakeVolume)
+									inputVolume3 = new(workerfakes.FakeVolume)
 									inputVolume3.HandleReturns("input-volume")
 
-									otherInputVolume = new(wfakes.FakeVolume)
+									otherInputVolume = new(workerfakes.FakeVolume)
 									otherInputVolume.HandleReturns("other-input-volume")
 
 									fakeWorker2.CreateVolumeReturns(rootVolume, nil)
@@ -1905,10 +1905,10 @@ var _ = Describe("GardenFactory", func() {
 		})
 
 		Context("when the container already exists", func() {
-			var fakeContainer *wfakes.FakeContainer
+			var fakeContainer *workerfakes.FakeContainer
 
 			BeforeEach(func() {
-				fakeContainer = new(wfakes.FakeContainer)
+				fakeContainer = new(workerfakes.FakeContainer)
 				fakeWorkerClient.FindContainerForIdentifierReturns(fakeContainer, true, nil)
 			})
 			Context("when the configuration specifies paths for outputs", func() {
@@ -2017,10 +2017,10 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					Context("when attaching to the process succeeds", func() {
-						var fakeProcess *gfakes.FakeProcess
+						var fakeProcess *gardenfakes.FakeProcess
 
 						BeforeEach(func() {
-							fakeProcess = new(gfakes.FakeProcess)
+							fakeProcess = new(gardenfakes.FakeProcess)
 							fakeContainer.AttachReturns(fakeProcess, nil)
 						})
 
