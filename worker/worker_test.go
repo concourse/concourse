@@ -3,6 +3,9 @@ package worker_test
 import (
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -554,6 +557,188 @@ var _ = Describe("Worker", func() {
 						Expect(checkErr).To(HaveOccurred())
 						Expect(checkErr.Error()).To(ContainSubstring("disaster"))
 					})
+				})
+			})
+		})
+	})
+
+	Describe("CreateBuildContainer", func() {
+		var container Container
+		var createErr error
+		var imageSpec ImageSpec
+
+		JustBeforeEach(func() {
+			container, createErr = gardenWorker.CreateBuildContainer(
+				logger,
+				nil,
+				nil,
+				Identifier{},
+				Metadata{},
+				ContainerSpec{
+					ImageSpec: imageSpec,
+				},
+				atc.ResourceTypes{},
+				map[string]string{},
+			)
+		})
+
+		BeforeEach(func() {
+			fakeContainer := new(gfakes.FakeContainer)
+			fakeGardenClient.CreateReturns(fakeContainer, nil)
+			fakeCreatedContainer := &dbng.CreatedContainer{ID: 42}
+			fakeDBContainerFactory.ContainerCreatedReturns(fakeCreatedContainer, nil)
+		})
+
+		Describe("fetching image", func() {
+			Context("when image artifact source is specified in imageSpec", func() {
+				var imageArtifactSource *wfakes.FakeArtifactSource
+				var imageVolume *wfakes.FakeVolume
+				var metadataReader io.ReadCloser
+
+				BeforeEach(func() {
+
+					imageArtifactSource = new(wfakes.FakeArtifactSource)
+
+					metadataReader = ioutil.NopCloser(strings.NewReader(`{"env":["some","env"]}`))
+					imageArtifactSource.StreamFileReturns(metadataReader, nil)
+
+					imageVolume = new(wfakes.FakeVolume)
+					imageVolume.PathReturns("/var/vcap/some-path")
+					imageVolume.HandleReturns("some-handle")
+
+					imageSpec = ImageSpec{
+						ImageArtifactSource: imageArtifactSource,
+						ImageArtifactName:   "some-image-artifact-name",
+					}
+				})
+
+				Context("when the image artifact is not found in a volume on the worker", func() {
+					BeforeEach(func() {
+						imageArtifactSource.VolumeOnReturns(nil, false, nil)
+						fakeVolumeClient.FindOrCreateVolumeForContainerReturns(imageVolume, nil)
+					})
+
+					It("looks for an existing image volume on the worker", func() {
+						Expect(imageArtifactSource.VolumeOnCallCount()).To(Equal(1))
+					})
+
+					It("checks whether the artifact is in a volume on the worker", func() {
+						Expect(imageArtifactSource.VolumeOnCallCount()).To(Equal(1))
+						Expect(imageArtifactSource.VolumeOnArgsForCall(0)).To(Equal(gardenWorker))
+					})
+
+					Context("when streaming the artifact source to the volume fails", func() {
+						var disaster error
+						BeforeEach(func() {
+							disaster = errors.New("this is bad")
+							imageArtifactSource.StreamToReturns(disaster)
+						})
+
+						It("returns the error", func() {
+							Expect(createErr).To(Equal(disaster))
+						})
+					})
+
+					Context("when streaming the artifact source to the volume succeeds", func() {
+						BeforeEach(func() {
+							imageArtifactSource.StreamToReturns(nil)
+						})
+
+						Context("when streaming the metadata from the worker fails", func() {
+							var disaster error
+							BeforeEach(func() {
+								disaster = errors.New("got em")
+								imageArtifactSource.StreamFileReturns(nil, disaster)
+							})
+
+							It("returns the error", func() {
+								Expect(createErr).To(Equal(disaster))
+							})
+						})
+
+						Context("when streaming the metadata from the worker succeeds", func() {
+							It("creates container with image volume and metadata", func() {
+								Expect(createErr).ToNot(HaveOccurred())
+
+								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+								gardenSpec := fakeGardenClient.CreateArgsForCall(0)
+								Expect(gardenSpec.Env).To(Equal([]string{"some", "env"}))
+								Expect(gardenSpec.RootFSPath).To(Equal("raw:///var/vcap/some-path/rootfs"))
+							})
+						})
+					})
+				})
+
+				Context("when the image artifact is in a volume on the worker", func() {
+					var imageVolume *wfakes.FakeVolume
+					BeforeEach(func() {
+						metadataReader = ioutil.NopCloser(strings.NewReader(`{"env":["some","env"]}`))
+						imageArtifactSource.StreamFileReturns(metadataReader, nil)
+
+						imageVolume = new(wfakes.FakeVolume)
+						imageVolume.PathReturns("/var/vcap/some-path")
+						imageVolume.HandleReturns("some-handle")
+
+						imageArtifactSource.VolumeOnReturns(imageVolume, true, nil)
+					})
+
+					It("looks for an existing image volume on the worker", func() {
+						Expect(imageArtifactSource.VolumeOnCallCount()).To(Equal(1))
+					})
+
+					It("checks whether the artifact is in a volume on the worker", func() {
+						Expect(imageArtifactSource.VolumeOnCallCount()).To(Equal(1))
+						Expect(imageArtifactSource.VolumeOnArgsForCall(0)).To(Equal(gardenWorker))
+					})
+
+					Context("when streaming the metadata from the worker fails", func() {
+						var disaster error
+						BeforeEach(func() {
+							disaster = errors.New("got em")
+							imageArtifactSource.StreamFileReturns(nil, disaster)
+						})
+
+						It("returns the error", func() {
+							Expect(createErr).To(Equal(disaster))
+						})
+					})
+
+					Context("when streaming the metadata from the worker succeeds", func() {
+						BeforeEach(func() {
+							imageArtifactSource.StreamFileReturns(metadataReader, nil)
+						})
+
+						It("creates container with image volume and metadata", func() {
+							Expect(createErr).ToNot(HaveOccurred())
+
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+							gardenSpec := fakeGardenClient.CreateArgsForCall(0)
+							Expect(gardenSpec.Env).To(Equal([]string{"some", "env"}))
+							Expect(gardenSpec.RootFSPath).To(Equal("raw:///var/vcap/some-path/rootfs"))
+						})
+					})
+
+				})
+			})
+
+			Context("when image resource is specified in imageSpec", func() {
+				var imageResource *atc.ImageResource
+
+				BeforeEach(func() {
+					imageResource = &atc.ImageResource{
+						Type: "some-resource",
+					}
+
+					imageSpec = ImageSpec{
+						ImageResource: imageResource,
+					}
+				})
+
+				It("creates an image from the image resource", func() {
+					Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
+					Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
+					_, _, imageResourceArg, _, _, _, _, _, _, _, _ := fakeImageFactory.NewImageArgsForCall(0)
+					Expect(imageResourceArg).To(Equal(*imageResource))
 				})
 			})
 		})

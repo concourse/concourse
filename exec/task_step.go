@@ -18,7 +18,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/atc/worker/image"
 )
 
 const taskProcessPropertyName = "concourse:task-process"
@@ -309,66 +308,20 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		outputPaths[output.Name] = path
 	}
 
-	var imageSpec worker.ImageSpec
+	imageSpec := worker.ImageSpec{
+		Privileged: bool(step.privileged),
+	}
 	if step.imageArtifactName != "" {
 		source, found := step.repo.SourceFor(worker.ArtifactName(step.imageArtifactName))
 		if !found {
 			return nil, nil, errors.New("failed-to-lookup-source-for-image-artifact")
 		}
 
-		volume, existsOnWorker, err := source.VolumeOn(chosenWorker)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if !existsOnWorker {
-			volume, err = chosenWorker.CreateVolume(
-				step.logger,
-				worker.VolumeSpec{
-					Strategy: worker.ImageArtifactReplicationStrategy{
-						Name: step.imageArtifactName,
-					},
-					Privileged: true,
-					TTL:        worker.VolumeTTL,
-				},
-				step.teamID,
-			)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			step.logger.Debug("volume-created-for-image-artifact", lager.Data{"handle": volume.Handle(), "ttl": worker.VolumeTTL})
-
-			dest := workerArtifactDestination{
-				destination: volume,
-			}
-
-			err = source.StreamTo(&dest)
-			if err != nil {
-				return nil, nil, err
-			}
-		}
-
-		reader, err := source.StreamFile(image.ImageMetadataFile)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		imageMetadata := worker.ImageVolumeAndMetadata{
-			Volume:         volume,
-			MetadataReader: reader,
-		}
-
-		imageSpec = worker.ImageSpec{
-			ImageVolumeAndMetadata: imageMetadata,
-			Privileged:             bool(step.privileged),
-		}
+		imageSpec.ImageArtifactSource = source
+		imageSpec.ImageArtifactName = worker.ArtifactName(step.imageArtifactName)
 	} else {
-		imageSpec = worker.ImageSpec{
-			ImageURL:      config.Image,
-			ImageResource: config.ImageResource,
-			Privileged:    bool(step.privileged),
-		}
+		imageSpec.ImageURL = config.Image
+		imageSpec.ImageResource = config.ImageResource
 	}
 
 	containerSpec := worker.ContainerSpec{
@@ -704,12 +657,4 @@ func createContainerDir(container garden.Container, dir string) error {
 	}
 
 	return nil
-}
-
-type workerArtifactDestination struct {
-	destination worker.Volume
-}
-
-func (wad *workerArtifactDestination) StreamIn(path string, tarStream io.Reader) error {
-	return wad.destination.StreamIn(path, tarStream)
 }

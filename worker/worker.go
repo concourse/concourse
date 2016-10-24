@@ -46,6 +46,7 @@ const volumePropertyName = "concourse:volumes"
 const volumeMountsPropertyName = "concourse:volume-mounts"
 const userPropertyName = "user"
 const RawRootFSScheme = "raw"
+const ImageMetadataFile = "metadata.json"
 
 //go:generate counterfeiter . Worker
 
@@ -224,7 +225,7 @@ func (worker *gardenWorker) getImageForContainer(
 	id Identifier,
 	metadata Metadata,
 	resourceTypes atc.ResourceTypes,
-) (Volume, ImageMetadata, atc.Version, string, error) {
+) (ImageMetadata, atc.Version, string, error) {
 	// convert custom resource type from pipeline config into image_resource
 	// updatedResourceTypes := resourceTypes
 	imageResource := imageSpec.ImageResource
@@ -242,33 +243,50 @@ func (worker *gardenWorker) getImageForContainer(
 	var imageMetadataReader io.ReadCloser
 	var version atc.Version
 
-	// `image` in task
-	if imageSpec.ImageVolumeAndMetadata.Volume != nil {
-
+	// image artifact produced by previous step in pipeline
+	if imageSpec.ImageArtifactSource != nil {
 		var err error
-		imageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
-			logger,
-			VolumeSpec{
-				Strategy: ContainerRootFSStrategy{
-					Parent: imageSpec.ImageVolumeAndMetadata.Volume,
-				},
-				Privileged: imageSpec.Privileged,
-				TTL:        VolumeTTL,
-			},
-			&dbng.Worker{
-				Name:       worker.name,
-				GardenAddr: &worker.addr,
-			},
-			container,
-			&dbng.Team{ID: teamID},
-			"/",
-		)
-
+		var existsOnWorker bool
+		imageVolume, existsOnWorker, err = imageSpec.ImageArtifactSource.VolumeOn(worker)
 		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
+			return ImageMetadata{}, nil, "", err
 		}
 
-		imageMetadataReader = imageSpec.ImageVolumeAndMetadata.MetadataReader
+		if !existsOnWorker {
+			imageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
+				logger,
+				VolumeSpec{
+					Strategy: ImageArtifactReplicationStrategy{
+						Name: string(imageSpec.ImageArtifactName),
+					},
+					Privileged: imageSpec.Privileged,
+					TTL:        VolumeTTL,
+				},
+				&dbng.Worker{
+					Name:       worker.name,
+					GardenAddr: &worker.addr,
+				},
+				container,
+				&dbng.Team{ID: teamID},
+				"/",
+			)
+
+			logger.Debug("volume-created-for-image-artifact", lager.Data{"handle": imageVolume.Handle()})
+
+			dest := artifactDestination{
+				destination: imageVolume,
+			}
+
+			err = imageSpec.ImageArtifactSource.StreamTo(&dest)
+			if err != nil {
+				return ImageMetadata{}, nil, "", err
+			}
+		}
+
+		imageMetadataReader, err = imageSpec.ImageArtifactSource.StreamFile(ImageMetadataFile)
+		if err != nil {
+			return ImageMetadata{}, nil, "", err
+		}
 	}
 
 	// 'image_resource:' in task
@@ -292,7 +310,7 @@ func (worker *gardenWorker) getImageForContainer(
 		var err error
 		imageParentVolume, imageMetadataReader, version, err = image.Fetch()
 		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
+			return ImageMetadata{}, nil, "", err
 		}
 
 		imageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
@@ -314,16 +332,14 @@ func (worker *gardenWorker) getImageForContainer(
 		)
 
 		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
+			return ImageMetadata{}, nil, "", err
 		}
 	}
 
-	// use image artifact from previous step in subsequent task within the same job
 	if imageVolume != nil {
-
 		metadata, err := loadMetadata(imageMetadataReader)
 		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
+			return ImageMetadata{}, nil, "", err
 		}
 
 		imageURL := url.URL{
@@ -331,21 +347,21 @@ func (worker *gardenWorker) getImageForContainer(
 			Path:   path.Join(imageVolume.Path(), "rootfs"),
 		}
 
-		return imageVolume, metadata, version, imageURL.String(), nil
+		return metadata, version, imageURL.String(), nil
 	}
 
 	// built-in resource type specified in step
 	if imageSpec.ResourceType != "" {
-		rootFSURL, volume, resourceTypeVersion, err := worker.getBuiltInResourceTypeImageForContainer(logger, container, imageSpec.ResourceType, teamID)
+		rootFSURL, resourceTypeVersion, err := worker.getBuiltInResourceTypeImageForContainer(logger, container, imageSpec.ResourceType, teamID)
 		if err != nil {
-			return nil, ImageMetadata{}, nil, "", err
+			return ImageMetadata{}, nil, "", err
 		}
 
-		return volume, ImageMetadata{}, resourceTypeVersion, rootFSURL, nil
+		return ImageMetadata{}, resourceTypeVersion, rootFSURL, nil
 	}
 
 	// 'image:' in task
-	return nil, ImageMetadata{}, nil, imageSpec.ImageURL, nil
+	return ImageMetadata{}, nil, imageSpec.ImageURL, nil
 }
 
 func (worker *gardenWorker) ValidateResourceCheckVersion(container db.SavedContainer) (bool, error) {
@@ -386,7 +402,7 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 	container *dbng.CreatingContainer,
 	resourceTypeName string,
 	teamID int,
-) (string, Volume, atc.Version, error) {
+) (string, atc.Version, error) {
 	for _, t := range worker.resourceTypes {
 		if t.Type == resourceTypeName {
 			importVolumeSpec := VolumeSpec{
@@ -402,13 +418,13 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 
 			importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
 			if err != nil {
-				return "", nil, atc.Version{}, err
+				return "", atc.Version{}, err
 			}
 
 			if !found {
 				importVolume, err = worker.CreateVolume(logger, importVolumeSpec, 0)
 				if err != nil {
-					return "", nil, atc.Version{}, err
+					return "", atc.Version{}, err
 				}
 			}
 
@@ -431,7 +447,7 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 				"/",
 			)
 			if err != nil {
-				return "", nil, atc.Version{}, err
+				return "", atc.Version{}, err
 			}
 
 			rootFSURL := url.URL{
@@ -439,11 +455,11 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 				Path:   cowVolume.Path(),
 			}
 
-			return rootFSURL.String(), cowVolume, atc.Version{resourceTypeName: t.Version}, nil
+			return rootFSURL.String(), atc.Version{resourceTypeName: t.Version}, nil
 		}
 	}
 
-	return "", nil, atc.Version{}, ErrUnsupportedResourceType
+	return "", atc.Version{}, ErrUnsupportedResourceType
 }
 
 func loadMetadata(tarReader io.ReadCloser) (ImageMetadata, error) {
@@ -775,7 +791,7 @@ func (worker *gardenWorker) createContainer(
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
-	imageVolume, imageMetadata, resourceTypeVersion, imageURL, err := worker.getImageForContainer(
+	imageMetadata, resourceTypeVersion, imageURL, err := worker.getImageForContainer(
 		logger,
 		creatingContainer,
 		spec.ImageSpec,
@@ -850,20 +866,15 @@ func (worker *gardenWorker) createContainer(
 	}
 
 	bindMounts := []garden.BindMount{}
-	volumeHandles := []string{}
+
 	volumeHandleMounts := map[string]string{}
 	for _, mount := range volumeMounts {
-		volumeHandles = append(volumeHandles, mount.Volume.Handle())
 		bindMounts = append(bindMounts, garden.BindMount{
 			SrcPath: mount.Volume.Path(),
 			DstPath: mount.MountPath,
 			Mode:    garden.BindMountModeRW,
 		})
 		volumeHandleMounts[mount.Volume.Handle()] = mount.MountPath
-	}
-
-	if imageVolume != nil {
-		volumeHandles = append(volumeHandles, imageVolume.Handle())
 	}
 
 	gardenProperties := garden.Properties{userPropertyName: imageMetadata.User}
@@ -1235,4 +1246,12 @@ func (worker *gardenWorker) getContainerForIdentifier(
 	logger.Info("created", lager.Data{"container": container.Handle()})
 
 	return container, nil
+}
+
+type artifactDestination struct {
+	destination Volume
+}
+
+func (wad *artifactDestination) StreamIn(path string, tarStream io.Reader) error {
+	return wad.destination.StreamIn(path, tarStream)
 }
