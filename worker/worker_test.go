@@ -675,11 +675,13 @@ var _ = Describe("Worker", func() {
 						metadataReader = ioutil.NopCloser(strings.NewReader(`{"env":["some","env"]}`))
 						imageArtifactSource.StreamFileReturns(metadataReader, nil)
 
+						cachedImageVolume := new(wfakes.FakeVolume)
+						imageArtifactSource.VolumeOnReturns(cachedImageVolume, true, nil)
+
 						imageVolume = new(wfakes.FakeVolume)
 						imageVolume.PathReturns("/var/vcap/some-path")
 						imageVolume.HandleReturns("some-handle")
-
-						imageArtifactSource.VolumeOnReturns(imageVolume, true, nil)
+						fakeVolumeClient.FindOrCreateVolumeForContainerReturns(imageVolume, nil)
 					})
 
 					It("looks for an existing image volume on the worker", func() {

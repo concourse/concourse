@@ -245,21 +245,20 @@ func (worker *gardenWorker) getImageForContainer(
 
 	// image artifact produced by previous step in pipeline
 	if imageSpec.ImageArtifactSource != nil {
-		var err error
-		var existsOnWorker bool
-		imageVolume, existsOnWorker, err = imageSpec.ImageArtifactSource.VolumeOn(worker)
+		cachedImageVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(worker)
 		if err != nil {
+			logger.Error("failed-to-check-if-volume-exists-on-worker", err)
 			return ImageMetadata{}, nil, "", err
 		}
 
 		if !existsOnWorker {
-			imageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
+			cachedImageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
 				logger,
 				VolumeSpec{
 					Strategy: ImageArtifactReplicationStrategy{
 						Name: string(imageSpec.ImageArtifactName),
 					},
-					Privileged: imageSpec.Privileged,
+					Privileged: true,
 					TTL:        VolumeTTL,
 				},
 				&dbng.Worker{
@@ -268,30 +267,55 @@ func (worker *gardenWorker) getImageForContainer(
 				},
 				container,
 				&dbng.Team{ID: teamID},
-				"/",
+				"", // this image volume is not getting attached to container
 			)
-
-			logger.Debug("volume-created-for-image-artifact", lager.Data{"handle": imageVolume.Handle()})
+			if err != nil {
+				logger.Error("failed-to-create-cached-image-volume", err)
+				return ImageMetadata{}, nil, "", err
+			}
 
 			dest := artifactDestination{
-				destination: imageVolume,
+				destination: cachedImageVolume,
 			}
 
 			err = imageSpec.ImageArtifactSource.StreamTo(&dest)
 			if err != nil {
+				logger.Error("failed-to-stream-image-artifact-source", err)
 				return ImageMetadata{}, nil, "", err
 			}
 		}
 
 		imageMetadataReader, err = imageSpec.ImageArtifactSource.StreamFile(ImageMetadataFile)
 		if err != nil {
+			logger.Error("failed-to-stream-metadata-file", err)
+			return ImageMetadata{}, nil, "", err
+		}
+
+		imageVolume, err = worker.volumeClient.FindOrCreateVolumeForContainer(
+			logger,
+			VolumeSpec{
+				Strategy: ContainerRootFSStrategy{
+					Parent: cachedImageVolume,
+				},
+				Privileged: imageSpec.Privileged,
+				TTL:        VolumeTTL,
+			},
+			&dbng.Worker{
+				Name:       worker.name,
+				GardenAddr: &worker.addr,
+			},
+			container,
+			&dbng.Team{ID: teamID},
+			"/",
+		)
+		if err != nil {
+			logger.Error("failed-to-create-image-artifact-volume", err)
 			return ImageMetadata{}, nil, "", err
 		}
 	}
 
 	// 'image_resource:' in task
 	if imageResource != nil {
-
 		image := worker.imageFactory.NewImage(
 			logger.Session("image"),
 			cancel,
@@ -310,6 +334,7 @@ func (worker *gardenWorker) getImageForContainer(
 		var err error
 		imageParentVolume, imageMetadataReader, version, err = image.Fetch()
 		if err != nil {
+			logger.Error("failed-to-fetch-image", err)
 			return ImageMetadata{}, nil, "", err
 		}
 
@@ -330,8 +355,8 @@ func (worker *gardenWorker) getImageForContainer(
 			&dbng.Team{ID: teamID},
 			"/",
 		)
-
 		if err != nil {
+			logger.Error("failed-to-create-image-resource-volume", err)
 			return ImageMetadata{}, nil, "", err
 		}
 	}
