@@ -110,7 +110,7 @@ type gardenWorker struct {
 	pipelineDBFactory       db.PipelineDBFactory
 	imageFactory            ImageFactory
 	dbContainerFactory      DBContainerFactory
-	dbVolumeFactory         DBVolumeFactory
+	dbVolumeFactory         dbng.VolumeFactory
 	dbResourceCacheFactory  dbng.ResourceCacheFactory
 	dbResourceTypeFactory   dbng.ResourceTypeFactory
 	dbResourceConfigFactory dbng.ResourceConfigFactory
@@ -141,7 +141,7 @@ func NewGardenWorker(
 	imageFactory ImageFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 	dbContainerFactory DBContainerFactory,
-	dbVolumeFactory DBVolumeFactory,
+	dbVolumeFactory dbng.VolumeFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceTypeFactory dbng.ResourceTypeFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
@@ -441,16 +441,18 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 				TTL:        0,
 			}
 
-			importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
+			importVolume, err := worker.volumeClient.FindOrCreateVolumeForBaseResourceType(
+				logger,
+				importVolumeSpec,
+				&dbng.Worker{
+					Name:       worker.name,
+					GardenAddr: &worker.addr,
+				},
+				&dbng.Team{ID: teamID},
+				resourceTypeName,
+			)
 			if err != nil {
 				return "", atc.Version{}, err
-			}
-
-			if !found {
-				importVolume, err = worker.CreateVolume(logger, importVolumeSpec, 0)
-				if err != nil {
-					return "", atc.Version{}, err
-				}
 			}
 
 			cowVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(

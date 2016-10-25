@@ -43,7 +43,7 @@ var _ = Describe("Worker", func() {
 		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 		fakeDBResourceTypeFactory  *dbngfakes.FakeResourceTypeFactory
 		fakeResourceConfigFactory  *dbngfakes.FakeResourceConfigFactory
-		fakeDBVolumeFactory        *wfakes.FakeDBVolumeFactory
+		fakeDBVolumeFactory        *dbngfakes.FakeVolumeFactory
 		activeContainers           int
 		resourceTypes              []atc.WorkerResourceType
 		platform                   string
@@ -92,7 +92,7 @@ var _ = Describe("Worker", func() {
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		fakeDBResourceTypeFactory = new(dbngfakes.FakeResourceTypeFactory)
 		fakeResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
-		fakeDBVolumeFactory = new(wfakes.FakeDBVolumeFactory)
+		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
 	})
 
 	JustBeforeEach(func() {
@@ -741,6 +741,36 @@ var _ = Describe("Worker", func() {
 					Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
 					_, _, imageResourceArg, _, _, _, _, _, _, _, _ := fakeImageFactory.NewImageArgsForCall(0)
 					Expect(imageResourceArg).To(Equal(*imageResource))
+				})
+			})
+
+			Context("when worker resource type is specified in image spec", func() {
+				var importVolume *wfakes.FakeVolume
+
+				BeforeEach(func() {
+					imageSpec = ImageSpec{
+						ResourceType: "some-resource",
+					}
+					importVolume = new(wfakes.FakeVolume)
+					fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeReturns(importVolume, nil)
+					cowVolume := new(wfakes.FakeVolume)
+					cowVolume.PathReturns("/var/vcap/some-path/rootfs")
+					fakeVolumeClient.FindOrCreateVolumeForContainerReturns(cowVolume, nil)
+				})
+
+				It("creates container with base resource type volume", func() {
+					Expect(createErr).ToNot(HaveOccurred())
+					Expect(fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeCallCount()).To(Equal(1))
+
+					Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
+					_, volumeSpec, _, _, _, _ := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+					containerRootFSStrategy, ok := volumeSpec.Strategy.(ContainerRootFSStrategy)
+					Expect(ok).To(BeTrue())
+					Expect(containerRootFSStrategy.Parent).To(Equal(importVolume))
+
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					gardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(gardenSpec.RootFSPath).To(Equal("raw:///var/vcap/some-path/rootfs"))
 				})
 			})
 		})

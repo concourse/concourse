@@ -11,11 +11,15 @@ import (
 
 var _ = Describe("VolumeFactory", func() {
 	var (
-		dbConn           dbng.Conn
-		volumeFactory    *dbng.VolumeFactory
-		containerFactory *dbng.ContainerFactory
-		teamFactory      dbng.TeamFactory
-		buildFactory     *dbng.BuildFactory
+		dbConn            dbng.Conn
+		volumeFactory     dbng.VolumeFactory
+		containerFactory  *dbng.ContainerFactory
+		teamFactory       dbng.TeamFactory
+		buildFactory      *dbng.BuildFactory
+		team              *dbng.Team
+		worker            *dbng.Worker
+		usedResourceCache *dbng.UsedResourceCache
+		build             *dbng.Build
 	)
 
 	BeforeEach(func() {
@@ -26,6 +30,40 @@ var _ = Describe("VolumeFactory", func() {
 		volumeFactory = dbng.NewVolumeFactory(dbConn)
 		teamFactory = dbng.NewTeamFactory(dbConn)
 		buildFactory = dbng.NewBuildFactory(dbConn)
+
+		var err error
+		team, err = teamFactory.CreateTeam("some-team")
+		Expect(err).ToNot(HaveOccurred())
+
+		workerFactory := dbng.NewWorkerFactory(dbConn)
+		worker, err = workerFactory.SaveWorker(atc.Worker{
+			Name:       "some-worker",
+			GardenAddr: "1.2.3.4:7777",
+		}, 5*time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		build, err = buildFactory.CreateOneOffBuild(team)
+		Expect(err).ToNot(HaveOccurred())
+
+		setupTx, err := dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+		defer setupTx.Rollback()
+
+		baseResourceType := dbng.BaseResourceType{
+			Name: "some-resource-type",
+		}
+		_, err = baseResourceType.FindOrCreate(setupTx)
+		Expect(err).NotTo(HaveOccurred())
+
+		resourceCache := dbng.ResourceCache{
+			ResourceConfig: dbng.ResourceConfig{
+				CreatedByBaseResourceType: &baseResourceType,
+			},
+		}
+		usedResourceCache, err = resourceCache.FindOrCreateForBuild(setupTx, build)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(setupTx.Commit()).To(Succeed())
 	})
 
 	AfterEach(func() {
@@ -35,45 +73,11 @@ var _ = Describe("VolumeFactory", func() {
 
 	Describe("GetOrphanedVolumes", func() {
 		var (
-			build                     *dbng.Build
 			expectedCreatedHandles    []string
 			expectedDestroyingHandles []string
 		)
 
 		BeforeEach(func() {
-			team, err := teamFactory.CreateTeam("some-team")
-			Expect(err).ToNot(HaveOccurred())
-
-			build, err = buildFactory.CreateOneOffBuild(team)
-			Expect(err).ToNot(HaveOccurred())
-
-			workerFactory := dbng.NewWorkerFactory(dbConn)
-			worker, err := workerFactory.SaveWorker(atc.Worker{
-				Name:       "some-worker",
-				GardenAddr: "1.2.3.4:7777",
-			}, 5*time.Minute)
-			Expect(err).ToNot(HaveOccurred())
-
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-			defer setupTx.Rollback()
-
-			brt := dbng.BaseResourceType{
-				Name: "some-resource-type",
-			}
-			_, err = brt.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-
-			resourceCache := dbng.ResourceCache{
-				ResourceConfig: dbng.ResourceConfig{
-					CreatedByBaseResourceType: &brt,
-				},
-			}
-			usedResourceCache, err := resourceCache.FindOrCreateForBuild(setupTx, build)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(setupTx.Commit()).To(Succeed())
-
 			creatingContainer, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
@@ -143,6 +147,56 @@ var _ = Describe("VolumeFactory", func() {
 				destoryingHandles = append(destoryingHandles, vol.Handle())
 			}
 			Expect(destoryingHandles).To(Equal(destoryingHandles))
+		})
+	})
+
+	Describe("FindBaseResourceTypeVolume", func() {
+		var usedBaseResourceType *dbng.UsedBaseResourceType
+		BeforeEach(func() {
+			baseResourceTypeFactory := dbng.NewBaseResourceTypeFactory(dbConn)
+			var err error
+			var found bool
+			usedBaseResourceType, found, err = baseResourceTypeFactory.Find("some-resource-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		Context("when there is a created volume for base resource type", func() {
+			var existingVolume dbng.CreatedVolume
+
+			BeforeEach(func() {
+				var err error
+				volume, err := volumeFactory.CreateBaseResourceTypeVolume(team, worker, usedBaseResourceType)
+				Expect(err).NotTo(HaveOccurred())
+				existingVolume, err = volume.Created()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns created volume", func() {
+				creatingVolume, createdVolume, err := volumeFactory.FindBaseResourceTypeVolume(team, worker, usedBaseResourceType)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creatingVolume).To(BeNil())
+				Expect(createdVolume).ToNot(BeNil())
+				Expect(createdVolume.Handle()).To(Equal(existingVolume.Handle()))
+			})
+		})
+
+		Context("when there is a creating volume for base resource type", func() {
+			var existingVolume dbng.CreatingVolume
+
+			BeforeEach(func() {
+				var err error
+				existingVolume, err = volumeFactory.CreateBaseResourceTypeVolume(team, worker, usedBaseResourceType)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns creating volume", func() {
+				creatingVolume, createdVolume, err := volumeFactory.FindBaseResourceTypeVolume(team, worker, usedBaseResourceType)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creatingVolume).ToNot(BeNil())
+				Expect(creatingVolume.Handle()).To(Equal(existingVolume.Handle()))
+				Expect(createdVolume).To(BeNil())
+			})
 		})
 	})
 })

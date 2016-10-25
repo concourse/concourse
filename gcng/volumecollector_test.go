@@ -19,7 +19,7 @@ var _ = Describe("VolumeCollector", func() {
 		volumeCollector gcng.VolumeCollector
 
 		dbConn           dbng.Conn
-		volumeFactory    *dbng.VolumeFactory
+		volumeFactory    dbng.VolumeFactory
 		containerFactory *dbng.ContainerFactory
 		teamFactory      dbng.TeamFactory
 		workerFactory    dbng.WorkerFactory

@@ -38,10 +38,11 @@ var _ = Describe("DBProvider", func() {
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
 
-		fakeImageFactory          *workerfakes.FakeImageFactory
-		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
-		fakeDBVolumeFactory       *workerfakes.FakeDBVolumeFactory
-		fakeDBContainerFactory    *workerfakes.FakeDBContainerFactory
+		fakeImageFactory              *workerfakes.FakeImageFactory
+		fakeImageFetchingDelegate     *workerfakes.FakeImageFetchingDelegate
+		fakeDBVolumeFactory           *dbngfakes.FakeVolumeFactory
+		fakeDBContainerFactory        *workerfakes.FakeDBContainerFactory
+		fakeDBBaseResourceTypeFactory *dbngfakes.FakeBaseResourceTypeFactory
 
 		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
 
@@ -83,7 +84,7 @@ var _ = Describe("DBProvider", func() {
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeDBContainerFactory = new(workerfakes.FakeDBContainerFactory)
-		fakeDBVolumeFactory = new(workerfakes.FakeDBVolumeFactory)
+		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
 
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 		fakeBackOffFactory := new(retryhttpfakes.FakeBackOffFactory)
@@ -91,6 +92,7 @@ var _ = Describe("DBProvider", func() {
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
 		fakeDBResourceCacheFactory := new(dbngfakes.FakeResourceCacheFactory)
 		fakeDBResourceTypeFactory := new(dbngfakes.FakeResourceTypeFactory)
+		fakeDBBaseResourceTypeFactory = new(dbngfakes.FakeBaseResourceTypeFactory)
 
 		provider = NewDBWorkerProvider(
 			logger,
@@ -102,6 +104,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDBResourceCacheFactory,
 			fakeDBResourceTypeFactory,
 			nil,
+			fakeDBBaseResourceTypeFactory,
 			fakeDBVolumeFactory,
 			fakePipelineDBFactory,
 		)
@@ -217,9 +220,13 @@ var _ = Describe("DBProvider", func() {
 					createdVolume.HandleReturns("vol-handle")
 					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
 					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
+					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 
 					createdContainer := &dbng.CreatedContainer{ID: 1}
 					fakeDBContainerFactory.ContainerCreatedReturns(createdContainer, nil)
+
+					baseResourceType := &dbng.UsedBaseResourceType{ID: 42}
+					fakeDBBaseResourceTypeFactory.FindReturns(baseResourceType, true, nil)
 				})
 
 				It("calls through to garden", func() {

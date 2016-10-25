@@ -12,13 +12,13 @@ type VolumeCollector interface {
 
 type volumeCollector struct {
 	logger        lager.Logger
-	volumeFactory *dbng.VolumeFactory
+	volumeFactory dbng.VolumeFactory
 	workerClient  worker.Client
 }
 
 func NewVolumeCollector(
 	logger lager.Logger,
-	volumeFactory *dbng.VolumeFactory,
+	volumeFactory dbng.VolumeFactory,
 	workerClient worker.Client,
 ) VolumeCollector {
 	return &volumeCollector{

@@ -25,7 +25,7 @@ var (
 	dbProcess      ifrit.Process
 
 	dbConn                  dbng.Conn
-	volumeFactory           *dbng.VolumeFactory
+	volumeFactory           dbng.VolumeFactory
 	containerFactory        *dbng.ContainerFactory
 	teamFactory             dbng.TeamFactory
 	workerFactory           dbng.WorkerFactory

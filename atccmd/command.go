@@ -172,6 +172,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn)
 	dbResourceTypeFactory := dbng.NewResourceTypeFactory(dbngConn)
 	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn)
+	dbBaseResourceTypeFactory := dbng.NewBaseResourceTypeFactory(dbngConn)
 	workerClient := cmd.constructWorkerPool(
 		logger,
 		sqlDB,
@@ -182,6 +183,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		dbResourceCacheFactory,
 		dbResourceTypeFactory,
 		dbResourceConfigFactory,
+		dbBaseResourceTypeFactory,
 		dbVolumeFactory,
 	)
 
@@ -669,7 +671,8 @@ func (cmd *ATCCommand) constructWorkerPool(
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceTypeFactory dbng.ResourceTypeFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
-	dbVolumeFactory *dbng.VolumeFactory,
+	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,
+	dbVolumeFactory dbng.VolumeFactory,
 ) worker.Client {
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
@@ -682,6 +685,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			dbResourceCacheFactory,
 			dbResourceTypeFactory,
 			dbResourceConfigFactory,
+			dbBaseResourceTypeFactory,
 			dbVolumeFactory,
 			pipelineDBFactory,
 		),

@@ -24,11 +24,12 @@ var _ = Describe("VolumeClient", func() {
 	var (
 		testLogger *lagertest.TestLogger
 
-		fakeBaggageclaimClient *bfakes.FakeClient
-		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
-		fakeVolumeFactory      *wfakes.FakeVolumeFactory
-		fakeDBVolumeFactory    *wfakes.FakeDBVolumeFactory
-		workerName             string
+		fakeBaggageclaimClient      *bfakes.FakeClient
+		fakeGardenWorkerDB          *wfakes.FakeGardenWorkerDB
+		fakeVolumeFactory           *wfakes.FakeVolumeFactory
+		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
+		fakeBaseResourceTypeFactory *dbngfakes.FakeBaseResourceTypeFactory
+		workerName                  string
 
 		volumeClient worker.VolumeClient
 	)
@@ -42,13 +43,15 @@ var _ = Describe("VolumeClient", func() {
 
 		testLogger = lagertest.NewTestLogger("test")
 
-		fakeDBVolumeFactory = new(wfakes.FakeDBVolumeFactory)
+		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
+		fakeBaseResourceTypeFactory = new(dbngfakes.FakeBaseResourceTypeFactory)
 
 		volumeClient = worker.NewVolumeClient(
 			fakeBaggageclaimClient,
 			fakeGardenWorkerDB,
 			fakeVolumeFactory,
 			fakeDBVolumeFactory,
+			fakeBaseResourceTypeFactory,
 			workerName,
 		)
 	})
@@ -78,6 +81,7 @@ var _ = Describe("VolumeClient", func() {
 					fakeGardenWorkerDB,
 					fakeVolumeFactory,
 					nil,
+					fakeBaseResourceTypeFactory,
 					"some-worker",
 				)
 			})
@@ -452,6 +456,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
 				nil,
+				fakeBaseResourceTypeFactory,
 				"some-worker",
 			).CreateVolume(testLogger, volumeSpec, teamID)
 		})
@@ -756,6 +761,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
 				nil,
+				fakeBaseResourceTypeFactory,
 				workerName,
 			).LookupVolume(testLogger, handle)
 		})
@@ -870,6 +876,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
 				nil,
+				fakeBaseResourceTypeFactory,
 				workerName,
 			).ListVolumes(testLogger, properties)
 		})

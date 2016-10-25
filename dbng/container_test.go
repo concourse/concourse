@@ -13,7 +13,7 @@ import (
 var _ = Describe("Container", func() {
 	var (
 		dbConn           dbng.Conn
-		volumeFactory    *dbng.VolumeFactory
+		volumeFactory    dbng.VolumeFactory
 		containerFactory *dbng.ContainerFactory
 		teamFactory      dbng.TeamFactory
 		buildFactory     *dbng.BuildFactory
