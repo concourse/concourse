@@ -3,9 +3,9 @@ btrfs/btrfs-tools.tar.gz:
   object_id: b201ed45-7a52-4c32-b213-d666b60b1954
   sha: abdf982cee43881659adc24c3e347b37b65f8530
 golang/golang-linux-amd64.tar.gz:
-  size: 82584167
-  object_id: a6ec29bb-e00f-4427-52cc-483cd30fb452
-  sha: dc22b4887dbb3bfaf22593b40ee1195a6b7880b0
+  size: 82565628
+  object_id: ef1beb24-e5a2-4d33-7bd2-a96593f3b0a2
+  sha: ead40e884ad4d6512bcf7b3c7420dd7fa4a96140
 postgresql/postgresql-9.3.4.tar.gz:
   size: 21865589
   object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
@@ -23,9 +23,9 @@ resources/bosh-io-release-resource.tar.gz:
   object_id: 9ae1a8c2-2dbf-4e37-5a6b-ac2cb9fd43f8
   sha: b84aa6febea4d2878a5da497806be79e18219e36
 resources/bosh-io-stemcell-resource.tar.gz:
-  size: 7688313
-  object_id: f103bb71-511e-48bb-465e-864d3b66e1d4
-  sha: e0633b1112b183879747feea1c36ecc173ff0f99
+  size: 7687864
+  object_id: 859d2028-081c-465d-79f2-d4b59aa46092
+  sha: 2db506cec6ed8f71ca4de3f872b1b4541a9921cd
 resources/cf-resource.tar.gz:
   size: 17891506
   object_id: 342d29a0-ed4e-4846-6a11-04c851f0fa04

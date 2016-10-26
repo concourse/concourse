@@ -116,6 +116,12 @@ that one separately:
 Then you can just `Ctrl+C` the `./dev/atc` process and restart it as you make
 changes.
 
+To start everything needed for a full Testflight run, run `./dev/full-start`.
+The only difference is two additional workers: one with a tag, and another with
+a proxiy configured. If your changes don't seem like they'd need those workers,
+you can stick with `./dev/start` - the tests will automatically skip themselves
+if the workers are not present.
+
 
 ## Making changes to Concourse
 

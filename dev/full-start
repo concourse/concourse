@@ -1,0 +1,3 @@
+#!/bin/bash
+
+PROCFILE=Procfile.testflight $(dirname $0)/start

@@ -17,4 +17,5 @@ tsa \
   --host-key $KEYSDIR/web/tsa_host_key \
   --peer-ip 127.0.0.1 \
   --authorized-keys $KEYSDIR/web/authorized_worker_keys \
-  --session-signing-key $KEYSDIR/web/session_signing_key
+  --session-signing-key $KEYSDIR/web/session_signing_key \
+  "$@"

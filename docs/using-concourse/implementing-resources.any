@@ -238,6 +238,10 @@ UI, so you should make your output pretty.
       The pipeline that the build's job lives in.
     }
 
+    \item{\code{$BUILD_TEAM_NAME}}{
+      The team that the build belongs to.
+    }
+
     \item{\code{$ATC_EXTERNAL_URL}}{
       The public URL for your ATC; useful for debugging.
     }
