@@ -1,0 +1,15 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e
+
+OUTPUT="$PWD/bosh-dev"
+
+pushd concourse/
+  # work-around Go BOSH CLI trying to rename blobs downloaded into ~/.root/tmp
+  # into release dir, which is invalid cross-device link
+  export HOME=$PWD
+
+  bosh -n create-release --tarball --name concourse --version "0.0.0+dev.$(date +%s)"
+  mv releases/concourse/concourse-*.tgz "$OUTPUT"
+popd
