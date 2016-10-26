@@ -7,11 +7,12 @@ import (
 	"net/http"
 	"strings"
 
+	"net"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
-	"net"
 )
 
 type LoginCommand struct {
@@ -149,7 +150,6 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenChannel <- r.FormValue("token")
 			http.Redirect(w, r, fmt.Sprintf("%s/public/fly_success", targetUrl), http.StatusTemporaryRedirect)
-
 		}),
 	}
 
@@ -170,7 +170,6 @@ func (command *LoginCommand) loginWith(
 
 	switch method.Type {
 	case atc.AuthTypeOAuth:
-
 		var tokenStr string
 
 		stdinChannel := make(chan string)
@@ -185,7 +184,6 @@ func (command *LoginCommand) loginWith(
 		fmt.Println("navigate to the following URL in your browser:")
 		fmt.Println("")
 		fmt.Printf("    %s&fly_local_port=%s\n", method.AuthURL, port)
-		fmt.Println("")
 		fmt.Println("")
 
 		go waitForTokenInput(stdinChannel, errorChannel)
@@ -248,6 +246,7 @@ func (command *LoginCommand) loginWith(
 
 	return &token, nil
 }
+
 func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
 	for {
 		var tokenStr string
