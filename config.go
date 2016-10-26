@@ -138,6 +138,81 @@ func (config JobConfig) GetSerialGroups() []string {
 	return []string{}
 }
 
+func (config JobConfig) Plans() []PlanConfig {
+	return collectPlans(PlanConfig{
+		Do:      &config.Plan,
+		Ensure:  config.Ensure,
+		Failure: config.Failure,
+		Success: config.Success,
+	})
+}
+
+func collectPlans(plan PlanConfig) []PlanConfig {
+	var plans []PlanConfig
+
+	if plan.Success != nil {
+		plans = append(plans, collectPlans(*plan.Success)...)
+	}
+
+	if plan.Failure != nil {
+		plans = append(plans, collectPlans(*plan.Failure)...)
+	}
+
+	if plan.Ensure != nil {
+		plans = append(plans, collectPlans(*plan.Ensure)...)
+	}
+
+	if plan.Try != nil {
+		plans = append(plans, collectPlans(*plan.Try)...)
+	}
+
+	if plan.Do != nil {
+		for _, p := range *plan.Do {
+			plans = append(plans, collectPlans(p)...)
+		}
+	}
+
+	if plan.Aggregate != nil {
+		for _, p := range *plan.Aggregate {
+			plans = append(plans, collectPlans(p)...)
+		}
+	}
+
+	return append(plans, plan)
+}
+
+func (config JobConfig) Inputs() []string {
+	var inputs []string
+
+	for _, plan := range config.Plans() {
+		if plan.Get != "" {
+			if plan.Resource != "" {
+				inputs = append(inputs, plan.Resource)
+			} else {
+				inputs = append(inputs, plan.Get)
+			}
+		}
+	}
+
+	return inputs
+}
+
+func (config JobConfig) Outputs() []string {
+	var outputs []string
+
+	for _, plan := range config.Plans() {
+		if plan.Put != "" {
+			if plan.Resource != "" {
+				outputs = append(outputs, plan.Resource)
+			} else {
+				outputs = append(outputs, plan.Put)
+			}
+		}
+	}
+
+	return outputs
+}
+
 // A PlanSequence corresponds to a chain of Compose plan, with an implicit
 // `on: [success]` after every Task plan.
 type PlanSequence []PlanConfig

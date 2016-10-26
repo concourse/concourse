@@ -26,7 +26,6 @@ import (
 	"github.com/concourse/atc/api/volumeserver/volumeserverfakes"
 	"github.com/concourse/atc/api/workerserver/workerserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine/enginefakes"
@@ -61,7 +60,7 @@ var (
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
 	configValidationErrorMessages []string
-	configValidationWarnings      []config.Warning
+	configValidationWarnings      []atc.Warning
 	peerAddr                      string
 	drain                         chan struct{}
 	expire                        time.Duration
@@ -114,7 +113,7 @@ var _ = BeforeEach(func() {
 	providerFactory = new(authfakes.FakeProviderFactory)
 
 	configValidationErrorMessages = []string{}
-	configValidationWarnings = []config.Warning{}
+	configValidationWarnings = []atc.Warning{}
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
 
@@ -175,9 +174,6 @@ var _ = BeforeEach(func() {
 		pipeDB,
 		pipelinesDB,
 
-		func(atc.Config) ([]config.Warning, []string) {
-			return configValidationWarnings, configValidationErrorMessages
-		},
 		peerAddr,
 		constructedEventHandler.Construct,
 		drain,

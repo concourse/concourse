@@ -10,7 +10,6 @@ import (
 	"net/textproto"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/rata"
@@ -651,7 +650,7 @@ jobs:
 
 							Context("when the config includes deprecations", func() {
 								BeforeEach(func() {
-									configValidationWarnings = []config.Warning{
+									configValidationWarnings = []atc.Warning{
 										{
 											Type:    "deprecation",
 											Message: "deprecated",
