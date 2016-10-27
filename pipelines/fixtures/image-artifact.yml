@@ -15,10 +15,10 @@ jobs:
     tags: ["tagged"]
     config:
       platform: linux
-      image: docker:///alpine           # this should be overriden
+      image: docker:///ignored          # this should be overriden
       image_resource:                   # this should also be overriden
         type: docker-image
-        source: {repository: alpine}
+        source: {repository: ignored}
       run:
           path: ls
           args: ["-a", "/root"]
@@ -31,10 +31,10 @@ jobs:
     image: a-docker-resource-with-bash  # this should override images specified below
     config:
       platform: linux
-      image: docker:///alpine           # this should be overriden
+      image: docker:///ignored          # this should be overriden
       image_resource:                   # this should also be overriden
         type: docker-image
-        source: {repository: alpine}
+        source: {repository: ignored}
       run:
           path: ls
           args: ["-a", "/root"]
