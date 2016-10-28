@@ -176,7 +176,7 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 		var path sql.NullString
 		var state string
 		var workerName string
-		var workerAddress string
+		var workerAddress sql.NullString
 
 		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress)
 		if err != nil {
@@ -188,6 +188,11 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 			pathString = path.String
 		}
 
+		var workerAddrString string
+		if workerAddress.Valid {
+			workerAddrString = workerAddress.String
+		}
+
 		switch state {
 		case VolumeStateCreated:
 			createdVolumes = append(createdVolumes, &createdVolume{
@@ -196,7 +201,7 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 				path:   pathString,
 				worker: &Worker{
 					Name:       workerName,
-					GardenAddr: &workerAddress,
+					GardenAddr: &workerAddrString,
 				},
 				conn: factory.conn,
 			})
@@ -206,7 +211,7 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 				handle: handle,
 				worker: &Worker{
 					Name:       workerName,
-					GardenAddr: &workerAddress,
+					GardenAddr: &workerAddrString,
 				},
 				conn: factory.conn,
 			})

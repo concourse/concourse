@@ -16,6 +16,7 @@ import (
 type WorkerFactory interface {
 	GetWorker(name string) (*Worker, bool, error)
 	Workers() ([]*Worker, error)
+	WorkersForTeam(teamName string) ([]*Worker, error)
 	StallWorker(name string) (*Worker, error)
 	StallUnresponsiveWorkers() ([]*Worker, error)
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
@@ -40,18 +41,30 @@ func (f *workerFactory) GetWorker(name string) (*Worker, bool, error) {
 
 	defer tx.Rollback()
 
-	var (
-		workerName  string
-		workerAddr  sql.NullString
-		workerState string
-	)
-
-	err = psql.Select("name, addr, state").
-		From("workers").
-		Where(sq.Eq{"name": name}).
+	row := psql.Select(`
+		w.name,
+		w.addr,
+		w.state,
+		w.baggageclaim_url,
+		w.http_proxy_url,
+		w.https_proxy_url,
+		w.no_proxy,
+		w.active_containers,
+		w.resource_types,
+		w.platform,
+		w.tags,
+		w.team_id,
+		w.start_time,
+		t.name,
+		EXTRACT(epoch FROM w.expires - NOW())
+	`).
+		From("workers w").
+		LeftJoin("teams t ON w.team_id = t.id").
+		Where(sq.Eq{"w.name": name}).
 		RunWith(tx).
-		QueryRow().
-		Scan(&workerName, &workerAddr, &workerState)
+		QueryRow()
+
+	worker, err := scanWorker(row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -64,22 +77,49 @@ func (f *workerFactory) GetWorker(name string) (*Worker, bool, error) {
 		return nil, false, err
 	}
 
-	var addr *string
-	if workerAddr.Valid {
-		addr = &workerAddr.String
-	}
-
-	return &Worker{
-		Name:       workerName,
-		State:      WorkerState(workerState),
-		GardenAddr: addr,
-	}, true, nil
+	return worker, true, nil
 }
 
+var workersQuery = psql.Select(`
+		w.name,
+		w.addr,
+		w.state,
+		w.baggageclaim_url,
+		w.http_proxy_url,
+		w.https_proxy_url,
+		w.no_proxy,
+		w.active_containers,
+		w.resource_types,
+		w.platform,
+		w.tags,
+		w.team_id,
+		w.start_time,
+		t.name,
+		EXTRACT(epoch FROM w.expires - NOW())
+	`).
+	From("workers w").
+	LeftJoin("teams t ON w.team_id = t.id")
+
 func (f *workerFactory) Workers() ([]*Worker, error) {
-	query, args, err := psql.Select("name, addr, state").
-		From("workers").
-		ToSql()
+	return f.getWorkers(nil)
+}
+
+func (f *workerFactory) WorkersForTeam(teamName string) ([]*Worker, error) {
+	return f.getWorkers(&teamName)
+}
+
+func (f *workerFactory) getWorkers(teamName *string) ([]*Worker, error) {
+	selectWorkers := workersQuery
+
+	if teamName != nil {
+		selectWorkers = selectWorkers.Where(sq.Or{
+			sq.Eq{"t.name": teamName},
+			sq.Eq{"w.team_id": nil},
+		})
+	}
+
+	query, args, err := selectWorkers.ToSql()
+
 	if err != nil {
 		return []*Worker{}, err
 	}
@@ -93,30 +133,112 @@ func (f *workerFactory) Workers() ([]*Worker, error) {
 	workers := []*Worker{}
 
 	for rows.Next() {
-		var (
-			name       string
-			gardenAddr sql.NullString
-			state      string
-		)
-
-		err = rows.Scan(&name, &gardenAddr, &state)
+		worker, err := scanWorker(rows)
 		if err != nil {
-			return nil, err
+			return []*Worker{}, err
 		}
-
-		var addr *string
-		if gardenAddr.Valid {
-			addr = &gardenAddr.String
-		}
-
-		workers = append(workers, &Worker{
-			Name:       name,
-			GardenAddr: addr,
-			State:      WorkerState(state),
-		})
+		workers = append(workers, worker)
 	}
 
 	return workers, nil
+}
+
+func scanWorker(row scannable) (*Worker, error) {
+	var (
+		name       string
+		gardenAddr sql.NullString
+		state      string
+
+		baggageclaimURL string //TODO: should this become NullString just like gardenAddr? atm it's not allowed to be null
+		httpProxyURL    sql.NullString
+		httpsProxyURL   sql.NullString
+		noProxy         sql.NullString
+
+		activeContainers int
+		resourceTypes    []byte
+		platform         sql.NullString
+		tags             []byte
+		teamID           sql.NullInt64
+		startTime        int64
+
+		teamName  sql.NullString
+		expiresIn *float64
+	)
+
+	err := row.Scan(
+		&name,
+		&gardenAddr,
+		&state,
+		&baggageclaimURL,
+		&httpProxyURL,
+		&httpsProxyURL,
+		&noProxy,
+		&activeContainers,
+		&resourceTypes,
+		&platform,
+		&tags,
+		&teamID,
+		&startTime,
+		&teamName,
+		&expiresIn,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var addr *string
+	if gardenAddr.Valid {
+		addr = &gardenAddr.String
+	}
+
+	worker := Worker{
+		Name:       name,
+		GardenAddr: addr,
+		State:      WorkerState(state),
+
+		BaggageclaimURL:  baggageclaimURL,
+		ActiveContainers: activeContainers,
+		StartTime:        startTime,
+	}
+
+	if expiresIn != nil {
+		worker.ExpiresIn = time.Duration(*expiresIn) * time.Second
+	}
+
+	if httpProxyURL.Valid {
+		worker.HTTPProxyURL = httpProxyURL.String
+	}
+
+	if httpsProxyURL.Valid {
+		worker.HTTPSProxyURL = httpsProxyURL.String
+	}
+
+	if noProxy.Valid {
+		worker.NoProxy = noProxy.String
+	}
+
+	if teamName.Valid {
+		worker.TeamName = teamName.String
+	}
+
+	if teamID.Valid {
+		worker.TeamID = int(teamID.Int64)
+	}
+
+	if platform.Valid {
+		worker.Platform = platform.String
+	}
+
+	err = json.Unmarshal(resourceTypes, &worker.ResourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(tags, &worker.Tags)
+	if err != nil {
+		return nil, err
+	}
+	return &worker, nil
 }
 
 func (f *workerFactory) StallWorker(name string) (*Worker, error) {
