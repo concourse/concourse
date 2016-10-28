@@ -69,6 +69,7 @@ type GardenWorkerDB interface {
 	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	GetVolumeTTL(string) (time.Duration, bool, error)
 	GetVolumesByIdentifier(db.VolumeIdentifier) ([]db.SavedVolume, error)
+	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
 }
 
 type gardenWorker struct {

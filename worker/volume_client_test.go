@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
@@ -25,6 +26,7 @@ var _ = Describe("VolumeClient", func() {
 		fakeBaggageclaimClient *bfakes.FakeClient
 		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
 		fakeVolumeFactory      *wfakes.FakeVolumeFactory
+		fakeClock              *fakeclock.FakeClock
 		workerName             string
 
 		volumeClient worker.VolumeClient
@@ -34,7 +36,7 @@ var _ = Describe("VolumeClient", func() {
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeVolumeFactory = new(wfakes.FakeVolumeFactory)
-
+		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		workerName = "some-worker"
 
 		testLogger = lagertest.NewTestLogger("test")
@@ -43,6 +45,7 @@ var _ = Describe("VolumeClient", func() {
 			fakeBaggageclaimClient,
 			fakeGardenWorkerDB,
 			fakeVolumeFactory,
+			fakeClock,
 			workerName,
 		)
 	})
@@ -71,6 +74,7 @@ var _ = Describe("VolumeClient", func() {
 					nil,
 					fakeGardenWorkerDB,
 					fakeVolumeFactory,
+					fakeClock,
 					"some-worker",
 				)
 			})
@@ -372,6 +376,7 @@ var _ = Describe("VolumeClient", func() {
 				baggageclaimClient,
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
+				fakeClock,
 				"some-worker",
 			).CreateVolume(testLogger, volumeSpec, teamID)
 		})
@@ -714,6 +719,7 @@ var _ = Describe("VolumeClient", func() {
 				baggageclaimClient,
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
+				fakeClock,
 				workerName,
 			).LookupVolume(testLogger, handle)
 		})
@@ -837,6 +843,7 @@ var _ = Describe("VolumeClient", func() {
 				baggageclaimClient,
 				fakeGardenWorkerDB,
 				fakeVolumeFactory,
+				fakeClock,
 				workerName,
 			).ListVolumes(testLogger, properties)
 		})

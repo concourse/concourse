@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
@@ -138,6 +139,17 @@ type FakeWorkerDB struct {
 	}
 	setVolumeTTLReturns struct {
 		result1 error
+	}
+	AcquireVolumeCreatingLockStub        func(lager.Logger, int) (db.Lock, bool, error)
+	acquireVolumeCreatingLockMutex       sync.RWMutex
+	acquireVolumeCreatingLockArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 int
+	}
+	acquireVolumeCreatingLockReturns struct {
+		result1 db.Lock
+		result2 bool
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -621,6 +633,42 @@ func (fake *FakeWorkerDB) SetVolumeTTLReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int) (db.Lock, bool, error) {
+	fake.acquireVolumeCreatingLockMutex.Lock()
+	fake.acquireVolumeCreatingLockArgsForCall = append(fake.acquireVolumeCreatingLockArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 int
+	}{arg1, arg2})
+	fake.recordInvocation("AcquireVolumeCreatingLock", []interface{}{arg1, arg2})
+	fake.acquireVolumeCreatingLockMutex.Unlock()
+	if fake.AcquireVolumeCreatingLockStub != nil {
+		return fake.AcquireVolumeCreatingLockStub(arg1, arg2)
+	} else {
+		return fake.acquireVolumeCreatingLockReturns.result1, fake.acquireVolumeCreatingLockReturns.result2, fake.acquireVolumeCreatingLockReturns.result3
+	}
+}
+
+func (fake *FakeWorkerDB) AcquireVolumeCreatingLockCallCount() int {
+	fake.acquireVolumeCreatingLockMutex.RLock()
+	defer fake.acquireVolumeCreatingLockMutex.RUnlock()
+	return len(fake.acquireVolumeCreatingLockArgsForCall)
+}
+
+func (fake *FakeWorkerDB) AcquireVolumeCreatingLockArgsForCall(i int) (lager.Logger, int) {
+	fake.acquireVolumeCreatingLockMutex.RLock()
+	defer fake.acquireVolumeCreatingLockMutex.RUnlock()
+	return fake.acquireVolumeCreatingLockArgsForCall[i].arg1, fake.acquireVolumeCreatingLockArgsForCall[i].arg2
+}
+
+func (fake *FakeWorkerDB) AcquireVolumeCreatingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+	fake.AcquireVolumeCreatingLockStub = nil
+	fake.acquireVolumeCreatingLockReturns = struct {
+		result1 db.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -652,6 +700,8 @@ func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.setVolumeTTLAndSizeInBytesMutex.RUnlock()
 	fake.setVolumeTTLMutex.RLock()
 	defer fake.setVolumeTTLMutex.RUnlock()
+	fake.acquireVolumeCreatingLockMutex.RLock()
+	defer fake.acquireVolumeCreatingLockMutex.RUnlock()
 	return fake.invocations
 }
 
