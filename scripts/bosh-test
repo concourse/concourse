@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e
+
+not_installed() {
+  ! command -v $1 > /dev/null 2>&1
+}
+
+testflight_dir=$(cd $(dirname $0)/.. && pwd)
+
+if not_installed ginkgo; then
+  echo "# ginkgo is not installed! run the following command:"
+  echo "    go install github.com/onsi/ginkgo/ginkgo"
+  exit 1
+fi
+
+bosh_lite_routes_setup() {
+  (route get 10.244.0.0 || ip route get 10.244.0.0) | grep 192.168.50.4
+}
+
+if ! bosh_lite_routes_setup; then
+  echo "# routes are not added! run the following command in your bosh-lite directory:"
+  echo "    ./bin/add-route"
+  exit 1
+fi
+
+echo "make sure you have created and uploaded your latest release"
+echo "make sure you have run ./testflight/scripts/local_deploy"
+
+cd $testflight_dir
+ATC_URL=http://10.244.15.2:8080 ginkgo -r -nodes=3 "$@"

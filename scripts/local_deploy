@@ -1,15 +1,12 @@
 #!/bin/bash
 
-cd $(dirname $0)/..
-
-director_uuid=$(bosh status --uuid)
-
-cat deployment.yml | sed "s/director_uuid: ~/director_uuid: $director_uuid/g" > scripts/manifests/deployment.yml
+cd $(dirname $0)
 
 if [ -z "$(bosh -v)" ]; then
-  bosh update-cloud-config cloud_config.yml
-  bosh -d concourse-testflight deploy scripts/manifests/deployment.yml "$@"
+  bosh update-cloud-config manifests/cloud_config.yml
+  bosh -d concourse-testflight deploy manifests/deployment.yml "$@"
 else
-  bosh update cloud-config cloud_config.yml
-  bosh -d scripts/manifests/deployment.yml -n deploy "$@"
+  director_uuid=$(bosh status --uuid)
+  bosh update cloud-config manifests/cloud_config.yml
+  bosh -d <(cat manifests/deployment.yml | sed "s/director_uuid: ~/director_uuid: $director_uuid/g") -n deploy "$@"
 fi
