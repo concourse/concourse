@@ -98,6 +98,21 @@ Each configured job consists of the following attributes:
   disabled.
 }
 
+\define-attribute{on_success: step}{job-on-success}{
+  \italic{Optional.} Step to execute when the job succeeds. Equivalent to the
+  \reference{on_success} step attribute.
+}
+
+\define-attribute{on_failure: step}{job-on-failure}{
+  \italic{Optional.} Step to execute when the job fails. Equivalent to the
+  \reference{on_failure} step attribute.
+}
+
+\define-attribute{ensure: step}{job-ensure}{
+  \italic{Optional.} Step to execute regardless of whether the job succeeds,
+  fails, or errors. Equivalent to the \reference{ensure} step attribute.
+}
+
 \define-attribute{plan: [step]}{
   \italic{Required.} The \reference{build-plans}{Build Plan} to execute.
 }
