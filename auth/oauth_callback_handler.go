@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+	"net/url"
 )
 
 type OAuthCallbackHandler struct {
@@ -187,5 +188,11 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	fmt.Fprintln(w, tokenStr)
+	if oauthState.FlyLocalPort == "" {
+		// Old login flow
+		fmt.Fprintln(w, tokenStr)
+	} else {
+		encodedToken := url.QueryEscape(tokenStr)
+		http.Redirect(w, r, fmt.Sprintf("http://127.0.0.1:%s/oauth/callback?token=%s", oauthState.FlyLocalPort, encodedToken), http.StatusTemporaryRedirect)
+	}
 }

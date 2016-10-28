@@ -41,6 +41,53 @@ var _ = Describe("Factory Hooks", func() {
 		}
 	})
 
+	Context("when there are step- and job-level hooks", func() {
+		var input atc.JobConfig
+
+		BeforeEach(func() {
+			input = atc.JobConfig{
+				Plan: atc.PlanSequence{
+					{
+						Task: "those who resist our will",
+						Failure: &atc.PlanConfig{
+							Task: "step failure",
+						},
+					},
+				},
+				Failure: &atc.PlanConfig{
+					Task: "job failure",
+				},
+			}
+		})
+
+		It("builds the plan correctly", func() {
+			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
+				Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
+					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:          "those who resist our will",
+						PipelineID:    42,
+						ResourceTypes: resourceTypes,
+					}),
+					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:          "step failure",
+						PipelineID:    42,
+						ResourceTypes: resourceTypes,
+					}),
+				}),
+				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:          "job failure",
+					PipelineID:    42,
+					ResourceTypes: resourceTypes,
+				}),
+			})
+
+			Expect(actual).To(testhelpers.MatchPlan(expected))
+		})
+	})
+
 	Context("when there is a do with three steps with a hook", func() {
 		var input atc.JobConfig
 

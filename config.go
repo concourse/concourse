@@ -87,6 +87,12 @@ func (types ResourceTypes) Lookup(name string) (ResourceType, bool) {
 	return ResourceType{}, false
 }
 
+type Hooks struct {
+	Failure *PlanConfig
+	Ensure  *PlanConfig
+	Success *PlanConfig
+}
+
 type JobConfig struct {
 	Name   string `yaml:"name" json:"name" mapstructure:"name"`
 	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
@@ -98,6 +104,14 @@ type JobConfig struct {
 	BuildLogsToRetain    int      `yaml:"build_logs_to_retain,omitempty" json:"build_logs_to_retain,omitempty" mapstructure:"build_logs_to_retain"`
 
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
+
+	Failure *PlanConfig `yaml:"on_failure,omitempty" json:"on_failure,omitempty" mapstructure:"on_failure"`
+	Ensure  *PlanConfig `yaml:"ensure,omitempty" json:"ensure,omitempty" mapstructure:"ensure"`
+	Success *PlanConfig `yaml:"on_success,omitempty" json:"on_success,omitempty" mapstructure:"on_success"`
+}
+
+func (config JobConfig) Hooks() Hooks {
+	return Hooks{config.Failure, config.Ensure, config.Success}
 }
 
 func (config JobConfig) MaxInFlight() int {
@@ -343,6 +357,10 @@ func (config PlanConfig) ResourceName() string {
 	}
 
 	panic("no resource name!")
+}
+
+func (config PlanConfig) Hooks() Hooks {
+	return Hooks{config.Failure, config.Ensure, config.Success}
 }
 
 type ResourceConfigs []ResourceConfig

@@ -28,7 +28,29 @@ import (
 	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"regexp"
 )
+
+type testCookieJar struct {
+	cookies []*http.Cookie
+}
+
+func newCookieJar() *testCookieJar {
+	cookies := make([]*http.Cookie, 0, 10)
+	return &testCookieJar{
+		cookies: cookies,
+	}
+}
+
+func (j *testCookieJar) Cookies(_ *url.URL) (_ []*http.Cookie) {
+	return j.cookies
+}
+
+func (j *testCookieJar) SetCookies(_ *url.URL, cookies []*http.Cookie) {
+	for _, cookie := range cookies {
+		j.cookies = append(j.cookies, cookie)
+	}
+}
 
 var _ = Describe("OAuthCallbackHandler", func() {
 	var (
@@ -94,11 +116,15 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(w, "main page")
 		}))
+		mux.Handle("/public/fly_success", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "fly success page")
+		}))
 
 		server = httptest.NewServer(mux)
-
+		jar := newCookieJar()
 		client = &http.Client{
 			Transport: &http.Transport{},
+			Jar:       jar,
 		}
 	})
 
@@ -139,11 +165,22 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 			Context("when the request's state is valid", func() {
 				BeforeEach(func() {
-					state, err := json.Marshal(auth.OAuthState{
-						TeamName: "some-team",
-					})
+
+					flyTarget := ghttp.NewServer()
+					headers := map[string][]string{
+						"Location": []string{fmt.Sprintf("%s://%s/public/fly_success", request.URL.Scheme, request.URL.Host)},
+					}
+
+					flyTarget.AppendHandlers(ghttp.RespondWith(http.StatusTemporaryRedirect, "", headers))
+
+					r, err := regexp.Compile(".*:(\\d+)")
 					Expect(err).ToNot(HaveOccurred())
 
+					port := r.FindStringSubmatch(flyTarget.Addr())[1]
+					state, err := json.Marshal(auth.OAuthState{
+						TeamName:     "some-team",
+						FlyLocalPort: port,
+					})
 					encodedState := base64.RawURLEncoding.EncodeToString(state)
 
 					request.AddCookie(&http.Cookie{
@@ -211,10 +248,11 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						})
 
 						Describe("the ATC-Authorization cookie", func() {
+
 							var cookie *http.Cookie
 
 							JustBeforeEach(func() {
-								cookies := response.Cookies()
+								cookies := client.Jar.Cookies(request.URL)
 								cookie = cookies[0]
 							})
 
@@ -247,13 +285,13 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
-						It("responds with the token and deletes oauth state cookie", func() {
-							cookies := response.Cookies()
+						It("responds with the success page and deletes oauth state cookie", func() {
+							cookies := client.Jar.Cookies(request.URL)
 							Expect(cookies).To(HaveLen(2))
 
 							cookie := cookies[0]
 							Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
-							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte(cookie.Value + "\n")))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("fly success page\n")))
 
 							deletedCookie := cookies[1]
 							Expect(deletedCookie.Name).To(Equal(auth.OAuthStateCookie))

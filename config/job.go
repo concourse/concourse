@@ -21,11 +21,21 @@ type JobOutput struct {
 }
 
 func JobInputs(config atc.JobConfig) []JobInput {
-	return collectInputs(atc.PlanConfig{Do: &config.Plan})
+	return collectInputs(atc.PlanConfig{
+		Do:      &config.Plan,
+		Ensure:  config.Ensure,
+		Failure: config.Failure,
+		Success: config.Success,
+	})
 }
 
 func JobOutputs(config atc.JobConfig) []JobOutput {
-	return collectOutputs(atc.PlanConfig{Do: &config.Plan})
+	return collectOutputs(atc.PlanConfig{
+		Do:      &config.Plan,
+		Ensure:  config.Ensure,
+		Failure: config.Failure,
+		Success: config.Success,
+	})
 }
 
 func collectInputs(plan atc.PlanConfig) []JobInput {
@@ -107,13 +117,9 @@ func collectOutputs(plan atc.PlanConfig) []JobOutput {
 	}
 
 	if plan.Aggregate != nil {
-		var outputs []JobOutput
-
 		for _, p := range *plan.Aggregate {
 			outputs = append(outputs, collectOutputs(p)...)
 		}
-
-		return outputs
 	}
 
 	if plan.Put != "" {
