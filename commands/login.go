@@ -249,9 +249,10 @@ func (command *LoginCommand) loginWith(
 
 func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
 	for {
-		var tokenStr string
+		fmt.Printf("or enter token manually: ")
 
-		err := interact.NewInteraction("enter token").Resolve(interact.Required(&tokenStr))
+		var tokenStr string
+		_, err := fmt.Scanf("%s", &tokenStr)
 		if err != nil {
 			errorChannel <- err
 			return
