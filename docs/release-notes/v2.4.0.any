@@ -73,7 +73,6 @@
 
   \note{fix}{
     The \resource{bosh-io-stemcell} now correctly returns versions in
-    chronological order. You can run \reference{check-resource} from an old
-    version to fix your version history if it's borked.
+    chronological order.
   }
 }
