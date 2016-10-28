@@ -33,6 +33,7 @@ type WorkerDB interface {
 	ReapVolume(handle string) error
 	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	SetVolumeTTL(string, time.Duration) error
+	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
 }
 
 type dbProvider struct {
@@ -150,6 +151,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		volumeFactory,
 		provider.dbVolumeFactory,
 		provider.dbBaseResourceTypeFactory,
+		clock.NewClock(),
 		savedWorker.Name,
 	)
 

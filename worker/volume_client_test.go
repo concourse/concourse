@@ -4,10 +4,12 @@ import (
 	"errors"
 	"time"
 
+	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker"
@@ -29,6 +31,7 @@ var _ = Describe("VolumeClient", func() {
 		fakeVolumeFactory           *wfakes.FakeVolumeFactory
 		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
 		fakeBaseResourceTypeFactory *dbngfakes.FakeBaseResourceTypeFactory
+		fakeClock                   *fakeclock.FakeClock
 		workerName                  string
 
 		volumeClient worker.VolumeClient
@@ -38,7 +41,7 @@ var _ = Describe("VolumeClient", func() {
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeVolumeFactory = new(wfakes.FakeVolumeFactory)
-
+		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		workerName = "some-worker"
 
 		testLogger = lagertest.NewTestLogger("test")
@@ -52,6 +55,7 @@ var _ = Describe("VolumeClient", func() {
 			fakeVolumeFactory,
 			fakeDBVolumeFactory,
 			fakeBaseResourceTypeFactory,
+			fakeClock,
 			workerName,
 		)
 	})
@@ -82,6 +86,7 @@ var _ = Describe("VolumeClient", func() {
 					fakeVolumeFactory,
 					nil,
 					fakeBaseResourceTypeFactory,
+					fakeClock,
 					"some-worker",
 				)
 			})
@@ -317,8 +322,10 @@ var _ = Describe("VolumeClient", func() {
 		var volumeWorker *dbng.Worker
 		var container *dbng.CreatingContainer
 		var fakeCreatingVolume *dbngfakes.FakeCreatingVolume
+		var fakeLock *dbfakes.FakeLock
 
 		BeforeEach(func() {
+			fakeLock = new(dbfakes.FakeLock)
 			fakeBaggageclaimVolume = new(bfakes.FakeVolume)
 			fakeCreatingVolume = new(dbngfakes.FakeCreatingVolume)
 			fakeDBVolumeFactory.CreateContainerVolumeReturns(fakeCreatingVolume, nil)
@@ -353,27 +360,71 @@ var _ = Describe("VolumeClient", func() {
 				fakeDBVolumeFactory.FindContainerVolumeReturns(fakeCreatingVolume, nil, nil)
 			})
 
-			Context("when volume exists in baggageclaim", func() {
+			Context("when acquiring volume creating lock fails", func() {
+				var disaster = errors.New("disaster")
+
 				BeforeEach(func() {
-					fakeBaggageclaimClient.LookupVolumeReturns(fakeBaggageclaimVolume, true, nil)
+					fakeGardenWorkerDB.AcquireVolumeCreatingLockReturns(nil, false, disaster)
 				})
 
-				It("returns the volume", func() {
-					Expect(foundOrCreatedErr).NotTo(HaveOccurred())
-					Expect(foundOrCreatedVolume).NotTo(BeNil())
-					Expect(fakeVolumeFactory.BuildWithIndefiniteTTLCallCount()).To(Equal(1))
+				It("returns error", func() {
+					Expect(fakeGardenWorkerDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
+					Expect(foundOrCreatedErr).To(Equal(disaster))
 				})
 			})
 
-			Context("when volume does not exist in baggageclaim", func() {
+			Context("when it could not acquire creating lock", func() {
 				BeforeEach(func() {
-					fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
+					callCount := 0
+					fakeGardenWorkerDB.AcquireVolumeCreatingLockStub = func(logger lager.Logger, volumeID int) (db.Lock, bool, error) {
+						callCount++
+						go fakeClock.WaitForWatcherAndIncrement(time.Second)
+
+						if callCount < 3 {
+							return nil, false, nil
+						}
+
+						return fakeLock, true, nil
+					}
 				})
 
-				It("creates volume in baggageclaim", func() {
-					Expect(foundOrCreatedErr).NotTo(HaveOccurred())
-					Expect(foundOrCreatedVolume).NotTo(BeNil())
-					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+				It("retries to find volume again", func() {
+					Expect(fakeGardenWorkerDB.AcquireVolumeCreatingLockCallCount()).To(Equal(3))
+					Expect(fakeDBVolumeFactory.FindContainerVolumeCallCount()).To(Equal(3))
+				})
+			})
+
+			Context("when it acquires the lock", func() {
+				BeforeEach(func() {
+					fakeGardenWorkerDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
+				})
+
+				Context("when volume exists in baggageclaim", func() {
+					BeforeEach(func() {
+						fakeBaggageclaimClient.LookupVolumeReturns(fakeBaggageclaimVolume, true, nil)
+					})
+
+					It("returns the volume", func() {
+						Expect(foundOrCreatedErr).NotTo(HaveOccurred())
+						Expect(foundOrCreatedVolume).NotTo(BeNil())
+						Expect(fakeVolumeFactory.BuildWithIndefiniteTTLCallCount()).To(Equal(1))
+					})
+				})
+
+				Context("when volume does not exist in baggageclaim", func() {
+					BeforeEach(func() {
+						fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
+					})
+
+					It("creates volume in baggageclaim", func() {
+						Expect(foundOrCreatedErr).NotTo(HaveOccurred())
+						Expect(foundOrCreatedVolume).NotTo(BeNil())
+						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+					})
+				})
+
+				It("releases the lock", func() {
+					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 		})
@@ -411,6 +462,11 @@ var _ = Describe("VolumeClient", func() {
 		Context("when volume does not exist in db", func() {
 			BeforeEach(func() {
 				fakeDBVolumeFactory.FindContainerVolumeReturns(nil, nil, nil)
+				fakeGardenWorkerDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
+			})
+
+			It("acquires the lock", func() {
+				Expect(fakeGardenWorkerDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
 			})
 
 			It("creates volume in creating state", func() {
@@ -457,6 +513,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeVolumeFactory,
 				nil,
 				fakeBaseResourceTypeFactory,
+				fakeClock,
 				"some-worker",
 			).CreateVolume(testLogger, volumeSpec, teamID)
 		})
@@ -762,6 +819,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeVolumeFactory,
 				nil,
 				fakeBaseResourceTypeFactory,
+				fakeClock,
 				workerName,
 			).LookupVolume(testLogger, handle)
 		})
@@ -877,6 +935,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeVolumeFactory,
 				nil,
 				fakeBaseResourceTypeFactory,
+				fakeClock,
 				workerName,
 			).ListVolumes(testLogger, properties)
 		})

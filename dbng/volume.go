@@ -27,6 +27,7 @@ var (
 
 type CreatingVolume interface {
 	Handle() string
+	ID() int
 	Created() (CreatedVolume, error)
 }
 
@@ -37,6 +38,8 @@ type creatingVolume struct {
 	path   string
 	conn   Conn
 }
+
+func (volume *creatingVolume) ID() int { return volume.id }
 
 func (volume *creatingVolume) Handle() string { return volume.handle }
 

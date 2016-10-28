@@ -14,6 +14,12 @@ type FakeCreatingVolume struct {
 	handleReturns     struct {
 		result1 string
 	}
+	IDStub        func() int
+	iDMutex       sync.RWMutex
+	iDArgsForCall []struct{}
+	iDReturns     struct {
+		result1 int
+	}
 	CreatedStub        func() (dbng.CreatedVolume, error)
 	createdMutex       sync.RWMutex
 	createdArgsForCall []struct{}
@@ -50,6 +56,31 @@ func (fake *FakeCreatingVolume) HandleReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeCreatingVolume) ID() int {
+	fake.iDMutex.Lock()
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
+	fake.recordInvocation("ID", []interface{}{})
+	fake.iDMutex.Unlock()
+	if fake.IDStub != nil {
+		return fake.IDStub()
+	} else {
+		return fake.iDReturns.result1
+	}
+}
+
+func (fake *FakeCreatingVolume) IDCallCount() int {
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	return len(fake.iDArgsForCall)
+}
+
+func (fake *FakeCreatingVolume) IDReturns(result1 int) {
+	fake.IDStub = nil
+	fake.iDReturns = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakeCreatingVolume) Created() (dbng.CreatedVolume, error) {
 	fake.createdMutex.Lock()
 	fake.createdArgsForCall = append(fake.createdArgsForCall, struct{}{})
@@ -81,6 +112,8 @@ func (fake *FakeCreatingVolume) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
 	fake.createdMutex.RLock()
 	defer fake.createdMutex.RUnlock()
 	return fake.invocations

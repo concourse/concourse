@@ -2,13 +2,17 @@ package worker
 
 import (
 	"errors"
+	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 	uuid "github.com/nu7hatch/gouuid"
 )
+
+const creatingVolumeRetryDelay = 1 * time.Second
 
 //go:generate counterfeiter . VolumeClient
 
@@ -44,6 +48,7 @@ type volumeClient struct {
 	volumeFactory             VolumeFactory
 	dbVolumeFactory           dbng.VolumeFactory
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory
+	clock                     clock.Clock
 	workerName                string
 }
 
@@ -53,6 +58,7 @@ func NewVolumeClient(
 	volumeFactory VolumeFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,
+	clock clock.Clock,
 	workerName string,
 ) VolumeClient {
 	return &volumeClient{
@@ -61,7 +67,8 @@ func NewVolumeClient(
 		volumeFactory:             volumeFactory,
 		dbVolumeFactory:           dbVolumeFactory,
 		dbBaseResourceTypeFactory: dbBaseResourceTypeFactory,
-		workerName:                workerName,
+		clock:      clock,
+		workerName: workerName,
 	}
 }
 
@@ -340,6 +347,19 @@ func (c *volumeClient) findOrCreateVolume(
 				return nil, err
 			}
 		}
+
+		lock, acquired, err := c.db.AcquireVolumeCreatingLock(logger, creatingVolume.ID())
+		if err != nil {
+			logger.Error("failed-to-acquire-volume-creating-lock", err)
+			return nil, err
+		}
+
+		if !acquired {
+			c.clock.Sleep(creatingVolumeRetryDelay)
+			return c.findOrCreateVolume(logger, volumeSpec, worker, team, findVolumeFunc, createVolumeFunc)
+		}
+
+		defer lock.Release()
 
 		if !bcVolumeFound {
 			bcVolume, err = c.baggageclaimClient.CreateVolume(
