@@ -1,6 +1,11 @@
 package dbng
 
-import "errors"
+import (
+	"errors"
+	"time"
+
+	"github.com/concourse/atc"
+)
 
 type WorkerState string
 
@@ -18,4 +23,19 @@ type Worker struct {
 	Name       string
 	GardenAddr *string
 	State      WorkerState
+
+	BaggageclaimURL string
+	HTTPProxyURL    string
+	HTTPSProxyURL   string
+	NoProxy         string
+
+	ActiveContainers int
+	ResourceTypes    []atc.WorkerResourceType
+	Platform         string
+	Tags             []string
+	TeamID           int
+	StartTime        int64
+
+	TeamName  string
+	ExpiresIn time.Duration
 }

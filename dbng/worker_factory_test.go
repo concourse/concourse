@@ -198,6 +198,26 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.Name).To(Equal("some-name"))
 				Expect(*foundWorker.GardenAddr).To(Equal("some-garden-addr"))
 				Expect(foundWorker.State).To(Equal(dbng.WorkerStateRunning))
+				Expect(foundWorker.BaggageclaimURL).To(Equal("some-bc-url"))
+				Expect(foundWorker.HTTPProxyURL).To(Equal("some-http-proxy-url"))
+				Expect(foundWorker.HTTPSProxyURL).To(Equal("some-https-proxy-url"))
+				Expect(foundWorker.NoProxy).To(Equal("some-no-proxy"))
+				Expect(foundWorker.ActiveContainers).To(Equal(140))
+				Expect(foundWorker.ResourceTypes).To(Equal([]atc.WorkerResourceType{
+					{
+						Type:    "some-resource-type",
+						Image:   "some-image",
+						Version: "some-version",
+					},
+					{
+						Type:    "other-resource-type",
+						Image:   "other-image",
+						Version: "other-version",
+					},
+				}))
+				Expect(foundWorker.Platform).To(Equal("some-platform"))
+				Expect(foundWorker.Tags).To(Equal([]string{"some", "tags"}))
+				Expect(foundWorker.StartTime).To(Equal(int64(55)))
 			})
 		})
 
@@ -214,12 +234,12 @@ var _ = Describe("WorkerFactory", func() {
 	Describe("Workers", func() {
 		Context("when there are workers", func() {
 			BeforeEach(func() {
-				_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				_, err = workerFactory.SaveWorker(atcWorker, 0)
 				Expect(err).NotTo(HaveOccurred())
 
 				atcWorker.Name = "some-new-worker"
 				atcWorker.GardenAddr = "some-other-garden-addr"
-				_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				_, err = workerFactory.SaveWorker(atcWorker, 0)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -229,18 +249,58 @@ var _ = Describe("WorkerFactory", func() {
 				otherAddr := "some-other-garden-addr"
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(workers)).To(Equal(2))
-				Expect(workers).To(ConsistOf([]*dbng.Worker{
+				Expect(workers).To(ConsistOf(
 					&dbng.Worker{
-						GardenAddr: &addr,
-						Name:       "some-name",
-						State:      "running",
+						GardenAddr:       &addr,
+						Name:             "some-name",
+						State:            "running",
+						BaggageclaimURL:  "some-bc-url",
+						HTTPProxyURL:     "some-http-proxy-url",
+						HTTPSProxyURL:    "some-https-proxy-url",
+						NoProxy:          "some-no-proxy",
+						ActiveContainers: 140,
+						ResourceTypes: []atc.WorkerResourceType{
+							{
+								Type:    "some-resource-type",
+								Image:   "some-image",
+								Version: "some-version",
+							},
+							{
+								Type:    "other-resource-type",
+								Image:   "other-image",
+								Version: "other-version",
+							},
+						},
+						Platform:  "some-platform",
+						Tags:      atc.Tags{"some", "tags"},
+						StartTime: 55,
 					},
 					&dbng.Worker{
-						GardenAddr: &otherAddr,
-						Name:       "some-new-worker",
-						State:      "running",
+						GardenAddr:       &otherAddr,
+						Name:             "some-new-worker",
+						State:            "running",
+						BaggageclaimURL:  "some-bc-url",
+						HTTPProxyURL:     "some-http-proxy-url",
+						HTTPSProxyURL:    "some-https-proxy-url",
+						NoProxy:          "some-no-proxy",
+						ActiveContainers: 140,
+						ResourceTypes: []atc.WorkerResourceType{
+							{
+								Type:    "some-resource-type",
+								Image:   "some-image",
+								Version: "some-version",
+							},
+							{
+								Type:    "other-resource-type",
+								Image:   "other-image",
+								Version: "other-version",
+							},
+						},
+						Platform:  "some-platform",
+						Tags:      atc.Tags{"some", "tags"},
+						StartTime: 55,
 					},
-				}))
+				))
 			})
 		})
 

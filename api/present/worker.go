@@ -2,12 +2,12 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func Worker(workerInfo db.SavedWorker) atc.Worker {
+func Worker(workerInfo dbng.Worker) atc.Worker {
 	return atc.Worker{
-		GardenAddr:       workerInfo.GardenAddr,
+		GardenAddr:       *workerInfo.GardenAddr,
 		BaggageclaimURL:  workerInfo.BaggageclaimURL,
 		HTTPProxyURL:     workerInfo.HTTPProxyURL,
 		HTTPSProxyURL:    workerInfo.HTTPSProxyURL,
@@ -18,5 +18,6 @@ func Worker(workerInfo db.SavedWorker) atc.Worker {
 		Tags:             workerInfo.Tags,
 		Name:             workerInfo.Name,
 		Team:             workerInfo.TeamName,
+		State:            string(workerInfo.State),
 	}
 }

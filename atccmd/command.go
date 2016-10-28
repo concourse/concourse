@@ -31,6 +31,7 @@ import (
 	"github.com/concourse/atc/gc/containerkeepaliver"
 	"github.com/concourse/atc/gc/dbgc"
 	"github.com/concourse/atc/gc/lostandfound"
+	"github.com/concourse/atc/gcng"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
@@ -650,6 +651,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 			image.NewFactory(trackerFactory, resourceFetcherFactory),
 			pipelineDBFactory,
+			dbWorkerFactory,
 		),
 	)
 }
