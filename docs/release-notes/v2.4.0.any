@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2016-10-13}{2.4.0}{1.0.0}{
+\release{2016-10-28}{2.4.0}{1.0.0}{
   \note{feature}{
     Worker keys can now be authorized for only a particular team. This prevents
     workers from being unintentionally (or maliciously) registered as a global
