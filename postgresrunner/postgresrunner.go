@@ -189,8 +189,15 @@ func (runner *Runner) Truncate() {
 							SELECT relname FROM pg_class
 							WHERE relname LIKE 'pipeline_build_events_%'
 							AND relkind = 'r';
+					team_statements CURSOR FOR
+							SELECT relname FROM pg_class
+							WHERE relname LIKE 'team_build_events_%'
+							AND relkind = 'r';
 			BEGIN
 					FOR stmt IN statements LOOP
+							EXECUTE 'DROP TABLE ' || quote_ident(stmt.relname) || ';';
+					END LOOP;
+					FOR stmt IN team_statements LOOP
 							EXECUTE 'DROP TABLE ' || quote_ident(stmt.relname) || ';';
 					END LOOP;
 			END;
@@ -216,6 +223,8 @@ func (runner *Runner) Truncate() {
 			BEGIN
 					FOR stmt IN statements LOOP
 						INSERT INTO teams (name) VALUES ('main');
+						CREATE TABLE team_build_events_1 ()
+						INHERITS (build_events);
 					END LOOP;
 			END;
 			$$ LANGUAGE plpgsql;

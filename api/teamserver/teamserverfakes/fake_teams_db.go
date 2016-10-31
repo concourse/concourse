@@ -25,6 +25,14 @@ type FakeTeamsDB struct {
 		result1 db.SavedTeam
 		result2 error
 	}
+	DeleteTeamByNameStub        func(teamName string) error
+	deleteTeamByNameMutex       sync.RWMutex
+	deleteTeamByNameArgsForCall []struct {
+		teamName string
+	}
+	deleteTeamByNameReturns struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -89,6 +97,39 @@ func (fake *FakeTeamsDB) CreateTeamReturns(result1 db.SavedTeam, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeTeamsDB) DeleteTeamByName(teamName string) error {
+	fake.deleteTeamByNameMutex.Lock()
+	fake.deleteTeamByNameArgsForCall = append(fake.deleteTeamByNameArgsForCall, struct {
+		teamName string
+	}{teamName})
+	fake.recordInvocation("DeleteTeamByName", []interface{}{teamName})
+	fake.deleteTeamByNameMutex.Unlock()
+	if fake.DeleteTeamByNameStub != nil {
+		return fake.DeleteTeamByNameStub(teamName)
+	} else {
+		return fake.deleteTeamByNameReturns.result1
+	}
+}
+
+func (fake *FakeTeamsDB) DeleteTeamByNameCallCount() int {
+	fake.deleteTeamByNameMutex.RLock()
+	defer fake.deleteTeamByNameMutex.RUnlock()
+	return len(fake.deleteTeamByNameArgsForCall)
+}
+
+func (fake *FakeTeamsDB) DeleteTeamByNameArgsForCall(i int) string {
+	fake.deleteTeamByNameMutex.RLock()
+	defer fake.deleteTeamByNameMutex.RUnlock()
+	return fake.deleteTeamByNameArgsForCall[i].teamName
+}
+
+func (fake *FakeTeamsDB) DeleteTeamByNameReturns(result1 error) {
+	fake.DeleteTeamByNameStub = nil
+	fake.deleteTeamByNameReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeTeamsDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -96,6 +137,8 @@ func (fake *FakeTeamsDB) Invocations() map[string][][]interface{} {
 	defer fake.getTeamsMutex.RUnlock()
 	fake.createTeamMutex.RLock()
 	defer fake.createTeamMutex.RUnlock()
+	fake.deleteTeamByNameMutex.RLock()
+	defer fake.deleteTeamByNameMutex.RUnlock()
 	return fake.invocations
 }
 
