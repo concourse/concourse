@@ -44,4 +44,29 @@ var _ = Describe("ATC Handler Workers", func() {
 			Expect(workers).To(Equal(expectedWorkers))
 		})
 	})
+
+	Describe("SaveWorker", func() {
+		var worker atc.Worker
+		BeforeEach(func() {
+			worker = atc.Worker{
+				Name:     "worker-name",
+				Tags:     []string{"some-tag"},
+				Platform: "linux",
+			}
+			expectedURL := "/api/v1/workers"
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, worker),
+				),
+			)
+		})
+
+		It("saves the worker", func() {
+			savedWorker, err := client.SaveWorker(worker, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*savedWorker).To(Equal(worker))
+		})
+	})
 })
