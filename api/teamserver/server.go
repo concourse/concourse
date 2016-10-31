@@ -10,6 +10,7 @@ import (
 type TeamsDB interface {
 	GetTeams() ([]db.SavedTeam, error)
 	CreateTeam(data db.Team) (db.SavedTeam, error)
+	DeleteTeamByName(teamName string) error
 }
 
 type Server struct {

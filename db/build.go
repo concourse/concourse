@@ -209,7 +209,7 @@ func (b *build) Events(from uint) (EventSource, error) {
 		return nil, err
 	}
 
-	table := "build_events"
+	table := fmt.Sprintf("team_build_events_%d", b.teamID)
 	if b.pipelineID != 0 {
 		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
 	}
@@ -957,7 +957,7 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		return err
 	}
 
-	table := "build_events"
+	table := fmt.Sprintf("team_build_events_%d", b.teamID)
 	if b.pipelineID != 0 {
 		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
 	}
