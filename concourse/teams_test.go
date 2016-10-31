@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -83,6 +84,68 @@ var _ = Describe("ATC Handler Teams", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(updated).To(BeTrue())
+			})
+		})
+	})
+
+	Describe("Destroy", func() {
+		var (
+			expectedURL string
+			err         error
+		)
+
+		BeforeEach(func() {
+			expectedURL = "/api/v1/teams/enron"
+			team = client.Team("not-super-important")
+		})
+
+		JustBeforeEach(func() {
+			err = team.DestroyTeam("enron")
+		})
+
+		Context("when passed a team that you can't delete", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", expectedURL),
+						ghttp.RespondWith(http.StatusForbidden, nil),
+					),
+				)
+			})
+
+			It("returns back true for created, and false for updated", func() {
+				Expect(err).To(Equal(concourse.ErrDestroyRefused))
+			})
+		})
+
+		Context("when the server deletes the team", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", expectedURL),
+						ghttp.RespondWith(http.StatusNoContent, nil),
+					),
+				)
+			})
+
+			It("returns back false for created, and true for updated", func() {
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("when the server blows up", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", expectedURL),
+						ghttp.RespondWith(http.StatusInternalServerError, nil),
+					),
+				)
+			})
+
+			It("returns back false for created, and true for updated", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err).NotTo(Equal(concourse.ErrDestroyRefused))
 			})
 		})
 	})
