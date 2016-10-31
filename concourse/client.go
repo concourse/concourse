@@ -3,6 +3,7 @@ package concourse
 import (
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse/internal"
@@ -24,6 +25,7 @@ type Client interface {
 	CreatePipe() (atc.Pipe, error)
 	ListContainers(queryList map[string]string) ([]atc.Container, error)
 	ListVolumes() ([]atc.Volume, error)
+	SaveWorker(atc.Worker, *time.Duration) (*atc.Worker, error)
 	ListWorkers() ([]atc.Worker, error)
 	GetInfo() (atc.Info, error)
 	GetCLIReader(arch, platform string) (io.ReadCloser, http.Header, error)
