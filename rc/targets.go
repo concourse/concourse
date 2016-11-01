@@ -105,11 +105,11 @@ func LoadTargets() (*targetDetailsYAML, error) {
 	if _, err := os.Stat(flyrc); err == nil {
 		flyTargetsBytes, err := ioutil.ReadFile(flyrc)
 		if err != nil {
-			return nil, fmt.Errorf("could not read %s", flyrc)
+			return nil, err
 		}
 		err = yaml.Unmarshal(flyTargetsBytes, &flyTargets)
 		if err != nil {
-			return nil, fmt.Errorf("could not unmarshal %s", flyrc)
+			return nil, err
 		}
 	}
 
@@ -128,12 +128,12 @@ func LoadTargets() (*targetDetailsYAML, error) {
 func writeTargets(configFileLocation string, targetsToWrite *targetDetailsYAML) error {
 	yamlBytes, err := yaml.Marshal(targetsToWrite)
 	if err != nil {
-		return fmt.Errorf("could not marshal %s", configFileLocation)
+		return err
 	}
 
 	err = ioutil.WriteFile(configFileLocation, yamlBytes, os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("could not write %s", configFileLocation)
+		return err
 	}
 
 	return nil
