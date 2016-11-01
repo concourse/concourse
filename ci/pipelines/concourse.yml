@@ -422,12 +422,12 @@ jobs:
       passed: [bosh-testflight]
       trigger: true
     - get: bosh-stemcell
-      resource: aws-stemcell
+      resource: gcp-stemcell
     - get: deployments
       trigger: true
     - get: fly-rc
       passed: [bosh-testflight]
-  - put: aws-deployment
+  - put: prod-deployment
     params:
       cleanup: true
       manifest: deployments/ci/deployments/concourse.yml
@@ -788,7 +788,7 @@ resources:
     access_key_id: {{pipeline-bucket-access-key}}
     secret_access_key: {{pipeline-bucket-secret-key}}
 
-- name: aws-deployment
+- name: prod-deployment
   type: bosh-deployment
   source:
     target: {{bosh-target}}
@@ -832,10 +832,10 @@ resources:
     project_id: "1059262"
     token: {{tracker-token}}
 
-- name: aws-stemcell
+- name: gcp-stemcell
   type: bosh-io-stemcell
   source:
-    name: bosh-aws-xen-hvm-ubuntu-trusty-go_agent
+    name: bosh-google-kvm-ubuntu-trusty-go_agent
 
 - name: lite-stemcell
   type: bosh-io-stemcell
