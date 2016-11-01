@@ -251,21 +251,19 @@ func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
 	for {
 		fmt.Printf("or enter token manually: ")
 
-		var tokenStr string
-		_, err := fmt.Scanf("%s", &tokenStr)
+		var tokenType string
+		var tokenValue string
+		count, err := fmt.Scanf("%s %s", &tokenType, &tokenValue)
 		if err != nil {
+			if count != 2 {
+				fmt.Println("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
+			}
+
 			errorChannel <- err
 			return
 		}
 
-		segments := strings.SplitN(tokenStr, " ", 2)
-		if len(segments) != 2 {
-			fmt.Println("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
-			continue
-		}
-
-		tokenChannel <- tokenStr
-
+		tokenChannel <- tokenType + " " + tokenValue
 		break
 	}
 }
