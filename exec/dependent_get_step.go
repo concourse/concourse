@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -72,12 +73,15 @@ func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) S
 		step.resourceConfig,
 		info.Version,
 		step.params,
-		resource.ResourceCacheIdentifier{
-			Type:    resource.ResourceType(step.resourceConfig.Type),
-			Source:  step.resourceConfig.Source,
-			Params:  step.params,
-			Version: info.Version,
-		},
+		resource.NewBuildResourceInstance(
+			resource.ResourceType(step.resourceConfig.Type),
+			info.Version,
+			step.resourceConfig.Source,
+			step.params,
+			&dbng.Build{
+				ID: step.session.ID.BuildID,
+			},
+		),
 		step.stepMetadata,
 		step.session,
 		step.tags,

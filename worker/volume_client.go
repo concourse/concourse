@@ -18,7 +18,10 @@ const creatingVolumeRetryDelay = 1 * time.Second
 
 type VolumeClient interface {
 	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
-	CreateVolume(logger lager.Logger, vs VolumeSpec, teamID int) (Volume, error)
+	CreateVolumeForResourceCache(
+		lager.Logger,
+		VolumeSpec,
+	) (Volume, error)
 	FindOrCreateVolumeForContainer(
 		lager.Logger,
 		VolumeSpec,
@@ -155,10 +158,9 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 	)
 }
 
-func (c *volumeClient) CreateVolume(
+func (c *volumeClient) CreateVolumeForResourceCache(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	teamID int,
 ) (Volume, error) {
 	if c.baggageclaimClient == nil {
 		return nil, ErrNoVolumeManager
@@ -181,7 +183,7 @@ func (c *volumeClient) CreateVolume(
 
 	err = c.db.InsertVolume(db.Volume{
 		Handle:     bcVolume.Handle(),
-		TeamID:     teamID,
+		TeamID:     0,
 		WorkerName: c.workerName,
 		TTL:        volumeSpec.TTL,
 		Identifier: volumeSpec.Strategy.dbIdentifier(),

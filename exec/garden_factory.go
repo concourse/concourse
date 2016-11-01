@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -91,12 +92,15 @@ func (factory *gardenFactory) Get(
 		resourceConfig,
 		version,
 		params,
-		resource.ResourceCacheIdentifier{
-			Type:    resource.ResourceType(resourceConfig.Type),
-			Source:  resourceConfig.Source,
-			Params:  params,
-			Version: version,
-		},
+		resource.NewBuildResourceInstance(
+			resource.ResourceType(resourceConfig.Type),
+			version,
+			resourceConfig.Source,
+			params,
+			&dbng.Build{
+				ID: id.BuildID,
+			},
+		),
 		stepMetadata,
 		resource.Session{
 			ID:        id,

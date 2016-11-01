@@ -17,7 +17,7 @@ type FetchContainerCreatorFactory interface {
 		session Session,
 		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
-		cacheIdentifier CacheIdentifier,
+		resourceInstance ResourceInstance,
 	) FetchContainerCreator
 }
 
@@ -35,7 +35,7 @@ type fetchContainerCreator struct {
 	session               Session
 	metadata              Metadata
 	imageFetchingDelegate worker.ImageFetchingDelegate
-	cacheIdentifier       CacheIdentifier
+	resourceInstance      ResourceInstance
 }
 
 type fetchContainerCreatorFactory struct{}
@@ -52,7 +52,7 @@ func (f fetchContainerCreatorFactory) NewFetchContainerCreator(
 	session Session,
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
-	cacheIdentifier CacheIdentifier,
+	resourceInstance ResourceInstance,
 ) FetchContainerCreator {
 	return &fetchContainerCreator{
 		logger:                logger,
@@ -62,7 +62,7 @@ func (f fetchContainerCreatorFactory) NewFetchContainerCreator(
 		session:               session,
 		metadata:              metadata,
 		imageFetchingDelegate: imageFetchingDelegate,
-		cacheIdentifier:       cacheIdentifier,
+		resourceInstance:      resourceInstance,
 	}
 }
 

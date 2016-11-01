@@ -65,7 +65,7 @@ var _ = Describe("Fetcher", func() {
 			atc.Tags{},
 			teamID,
 			atc.ResourceTypes{},
-			new(resourcefakes.FakeCacheIdentifier),
+			new(resourcefakes.FakeResourceInstance),
 			EmptyMetadata{},
 			new(workerfakes.FakeImageFetchingDelegate),
 			resourceOptions,

@@ -21,12 +21,12 @@ var _ = Describe("FetchSourceProvider", func() {
 		fakeContainerCreator *resourcefakes.FakeFetchContainerCreator
 		fetchSourceProvider  FetchSourceProvider
 
-		logger          lager.Logger
-		resourceOptions *resourcefakes.FakeResourceOptions
-		cacheID         *resourcefakes.FakeCacheIdentifier
-		tags            atc.Tags
-		resourceTypes   atc.ResourceTypes
-		teamID          = 3
+		logger           lager.Logger
+		resourceOptions  *resourcefakes.FakeResourceOptions
+		resourceInstance *resourcefakes.FakeResourceInstance
+		tags             atc.Tags
+		resourceTypes    atc.ResourceTypes
+		teamID           = 3
 	)
 
 	BeforeEach(func() {
@@ -34,7 +34,7 @@ var _ = Describe("FetchSourceProvider", func() {
 		fetchSourceProviderFactory := NewFetchSourceProviderFactory(fakeWorkerClient)
 		logger = lagertest.NewTestLogger("test")
 		session := Session{}
-		cacheID = new(resourcefakes.FakeCacheIdentifier)
+		resourceInstance = new(resourcefakes.FakeResourceInstance)
 		tags = atc.Tags{"some", "tags"}
 		resourceTypes = atc.ResourceTypes{
 			{
@@ -51,7 +51,7 @@ var _ = Describe("FetchSourceProvider", func() {
 			tags,
 			teamID,
 			resourceTypes,
-			cacheID,
+			resourceInstance,
 			resourceOptions,
 			fakeContainerCreator,
 		)
@@ -106,12 +106,12 @@ var _ = Describe("FetchSourceProvider", func() {
 
 					BeforeEach(func() {
 						fakeVolume = new(workerfakes.FakeVolume)
-						cacheID.FindOnReturns(fakeVolume, true, nil) // no longer the correct setup for
+						resourceInstance.FindOnReturns(fakeVolume, true, nil) // no longer the correct setup for
 					})
 
 					It("returns volume based source", func() {
 						source, err := fetchSourceProvider.Get()
-						Expect(cacheID.FindOnCallCount()).To(Equal(1))
+						Expect(resourceInstance.FindOnCallCount()).To(Equal(1))
 						Expect(err).NotTo(HaveOccurred())
 
 						expectedSource := NewVolumeFetchSource(logger, fakeVolume, fakeWorker, resourceOptions, fakeContainerCreator)
@@ -121,14 +121,14 @@ var _ = Describe("FetchSourceProvider", func() {
 
 				Context("when volume is not found on worker", func() {
 					BeforeEach(func() {
-						cacheID.FindOnReturns(nil, false, nil)
+						resourceInstance.FindOnReturns(nil, false, nil)
 					})
 
 					It("returns empty source", func() {
 						source, err := fetchSourceProvider.Get()
 						Expect(err).NotTo(HaveOccurred())
 
-						expectedSource := NewEmptyFetchSource(logger, fakeWorker, cacheID, fakeContainerCreator, resourceOptions)
+						expectedSource := NewEmptyFetchSource(logger, fakeWorker, resourceInstance, fakeContainerCreator, resourceOptions)
 						Expect(source).To(Equal(expectedSource))
 					})
 				})

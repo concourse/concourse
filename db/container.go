@@ -9,7 +9,9 @@ import (
 
 type ContainerIdentifier struct {
 	// if it's a resource check container
-	ResourceID          int
+	ResourceID     int
+	ResourceTypeID int
+
 	ResourceTypeVersion atc.Version
 	CheckType           string
 	CheckSource         atc.Source

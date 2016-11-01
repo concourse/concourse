@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
@@ -69,7 +70,8 @@ var _ = Describe("Image", func() {
 		}
 		signals = make(chan os.Signal)
 		identifier = worker.Identifier{
-			PlanID: "some-plan-id",
+			PlanID:  "some-plan-id",
+			BuildID: 42,
 		}
 		metadata = worker.Metadata{
 			PipelineName:         "some-pipeline",
@@ -324,6 +326,7 @@ var _ = Describe("Image", func() {
 							_, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 							Expect(id).To(Equal(worker.Identifier{
 								PlanID:              "some-plan-id",
+								BuildID:             42,
 								ImageResourceType:   "docker",
 								ImageResourceSource: atc.Source{"some": "source"},
 								Stage:               db.ContainerStageCheck,
@@ -378,10 +381,11 @@ var _ = Describe("Image", func() {
 
 						It("fetches resource with correct session", func() {
 							Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-							_, session, tags, actualTeamID, actualCustomTypes, cacheID, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+							_, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 							Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 							Expect(session).To(Equal(resource.Session{
 								ID: worker.Identifier{
+									BuildID:             42,
 									PlanID:              "some-plan-id",
 									ImageResourceType:   "docker",
 									ImageResourceSource: atc.Source{"some": "source"},
@@ -397,11 +401,13 @@ var _ = Describe("Image", func() {
 							}))
 							Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
 							Expect(actualTeamID).To(Equal(teamID))
-							Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
-								Type:    "docker",
-								Version: atc.Version{"v": "1"},
-								Source:  atc.Source{"some": "source"},
-							}))
+							Expect(resourceInstance).To(Equal(resource.NewBuildResourceInstance(
+								"docker",
+								atc.Version{"v": "1"},
+								atc.Source{"some": "source"},
+								nil,
+								&dbng.Build{ID: 42},
+							)))
 							Expect(actualCustomTypes).To(Equal(customTypes))
 							Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 							Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("docker")))

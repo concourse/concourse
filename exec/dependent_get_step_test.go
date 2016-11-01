@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
@@ -161,7 +162,7 @@ var _ = Describe("DependentGet", func() {
 				atc.Tags,
 				int,
 				atc.ResourceTypes,
-				resource.CacheIdentifier,
+				resource.ResourceInstance,
 				resource.Metadata,
 				worker.ImageFetchingDelegate,
 				resource.ResourceOptions,
@@ -202,12 +203,13 @@ var _ = Describe("DependentGet", func() {
 			}))
 			Expect(tags).To(ConsistOf("some", "tags"))
 			Expect(actualTeamID).To(Equal(teamID))
-			Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
-				Type:    "some-resource-type",
-				Source:  resourceConfig.Source,
-				Params:  params,
-				Version: version,
-			}))
+			Expect(cacheID).To(Equal(resource.NewBuildResourceInstance(
+				"some-resource-type",
+				version,
+				resourceConfig.Source,
+				params,
+				&dbng.Build{ID: 1234},
+			)))
 			Expect(actualResourceTypes).To(Equal(
 				atc.ResourceTypes{
 					{

@@ -19,19 +19,19 @@ import (
 // GetStep will fetch a version of a resource on a worker that supports the
 // resource type.
 type GetStep struct {
-	logger          lager.Logger
-	sourceName      worker.ArtifactName
-	resourceConfig  atc.ResourceConfig
-	version         atc.Version
-	params          atc.Params
-	cacheIdentifier resource.CacheIdentifier
-	stepMetadata    StepMetadata
-	session         resource.Session
-	tags            atc.Tags
-	teamID          int
-	delegate        GetDelegate
-	resourceFetcher resource.Fetcher
-	resourceTypes   atc.ResourceTypes
+	logger           lager.Logger
+	sourceName       worker.ArtifactName
+	resourceConfig   atc.ResourceConfig
+	version          atc.Version
+	params           atc.Params
+	resourceInstance resource.ResourceInstance
+	stepMetadata     StepMetadata
+	session          resource.Session
+	tags             atc.Tags
+	teamID           int
+	delegate         GetDelegate
+	resourceFetcher  resource.Fetcher
+	resourceTypes    atc.ResourceTypes
 
 	repository *worker.ArtifactRepository
 
@@ -49,7 +49,7 @@ func newGetStep(
 	resourceConfig atc.ResourceConfig,
 	version atc.Version,
 	params atc.Params,
-	cacheIdentifier resource.CacheIdentifier,
+	resourceInstance resource.ResourceInstance,
 	stepMetadata StepMetadata,
 	session resource.Session,
 	tags atc.Tags,
@@ -66,7 +66,7 @@ func newGetStep(
 		resourceConfig:      resourceConfig,
 		version:             version,
 		params:              params,
-		cacheIdentifier:     cacheIdentifier,
+		resourceInstance:    resourceInstance,
 		stepMetadata:        stepMetadata,
 		session:             session,
 		tags:                tags,
@@ -128,13 +128,14 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	}
 
 	var err error
+	// For build
 	step.fetchSource, err = step.resourceFetcher.Fetch(
 		step.logger,
 		runSession,
 		step.tags,
 		step.teamID,
 		step.resourceTypes,
-		step.cacheIdentifier,
+		step.resourceInstance,
 		step.stepMetadata,
 		step.delegate,
 		resourceDefinition,
@@ -198,7 +199,7 @@ func (step *GetStep) Result(x interface{}) bool {
 // VolumeOn locates the cache for the GetStep's resource and version on the
 // given worker.
 func (step *GetStep) VolumeOn(worker worker.Worker) (worker.Volume, bool, error) {
-	return step.cacheIdentifier.FindOn(step.logger.Session("volume-on"), worker)
+	return step.resourceInstance.FindOn(step.logger.Session("volume-on"), worker)
 }
 
 // StreamTo streams the resource's data to the destination.

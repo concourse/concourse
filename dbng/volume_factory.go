@@ -13,9 +13,13 @@ import (
 type VolumeFactory interface {
 	CreateContainerVolume(*Team, *Worker, *CreatingContainer, string) (CreatingVolume, error)
 	FindContainerVolume(*Team, *Worker, *CreatingContainer, string) (CreatingVolume, CreatedVolume, error)
-	CreateBaseResourceTypeVolume(*Team, *Worker, *UsedBaseResourceType) (CreatingVolume, error)
+
 	FindBaseResourceTypeVolume(*Team, *Worker, *UsedBaseResourceType) (CreatingVolume, CreatedVolume, error)
+	CreateBaseResourceTypeVolume(*Team, *Worker, *UsedBaseResourceType) (CreatingVolume, error)
+
+	FindResourceCacheVolume(*Team, *Worker, *UsedResourceCache) (CreatingVolume, CreatedVolume, error)
 	CreateResourceCacheVolume(*Team, *Worker, *UsedResourceCache) (CreatingVolume, error)
+
 	FindVolumesForContainer(containerID int) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
 }
@@ -144,6 +148,12 @@ func (factory *volumeFactory) FindContainerVolume(team *Team, worker *Worker, co
 func (factory *volumeFactory) FindBaseResourceTypeVolume(team *Team, worker *Worker, ubrt *UsedBaseResourceType) (CreatingVolume, CreatedVolume, error) {
 	return factory.findVolume(team, worker, map[string]interface{}{
 		"v.base_resource_type_id": ubrt.ID,
+	})
+}
+
+func (factory *volumeFactory) FindResourceCacheVolume(team *Team, worker *Worker, resourceCache *UsedResourceCache) (CreatingVolume, CreatedVolume, error) {
+	return factory.findVolume(team, worker, map[string]interface{}{
+		"v.resource_cache_id": resourceCache.ID,
 	})
 }
 

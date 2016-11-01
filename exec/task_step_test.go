@@ -635,7 +635,7 @@ var _ = Describe("GardenFactory", func() {
 									},
 								}, nil)
 
-								fakeWorker.CreateVolumeReturns(new(workerfakes.FakeVolume), nil)
+								fakeWorker.CreateVolumeForResourceCacheReturns(new(workerfakes.FakeVolume), nil)
 							})
 
 							It("ensures the output directories exist by streaming in an empty payload", func() {
@@ -743,7 +743,7 @@ var _ = Describe("GardenFactory", func() {
 													volumeChannel <- fakeNewlyCreatedVolume3
 													close(volumeChannel)
 
-													fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec, int) (worker.Volume, error) {
+													fakeWorker.CreateVolumeForResourceCacheStub = func(lager.Logger, worker.VolumeSpec) (worker.Volume, error) {
 														return <-volumeChannel, nil
 													}
 
@@ -1100,7 +1100,7 @@ var _ = Describe("GardenFactory", func() {
 									},
 								}, nil)
 
-								fakeWorker.CreateVolumeReturns(new(workerfakes.FakeVolume), nil)
+								fakeWorker.CreateVolumeForResourceCacheReturns(new(workerfakes.FakeVolume), nil)
 								fakeProcess.WaitReturns(0, nil)
 							})
 
@@ -1141,7 +1141,7 @@ var _ = Describe("GardenFactory", func() {
 									fakeNewlyCreatedVolume := new(workerfakes.FakeVolume)
 									fakeNewlyCreatedVolume.HandleReturns("some-handle")
 
-									fakeWorker.CreateVolumeReturns(fakeNewlyCreatedVolume, nil)
+									fakeWorker.CreateVolumeForResourceCacheReturns(fakeNewlyCreatedVolume, nil)
 
 									fakeVolume = new(workerfakes.FakeVolume)
 									fakeVolume.HandleReturns("some-handle")
@@ -1196,7 +1196,7 @@ var _ = Describe("GardenFactory", func() {
 										cowVolume.PathReturns("/var/vcap/some-cow-path")
 										cowVolume.HandleReturns("cow-handle")
 
-										fakeWorker.CreateVolumeReturns(cowVolume, nil)
+										fakeWorker.CreateVolumeForResourceCacheReturns(cowVolume, nil)
 									})
 
 									Context("when streaming the metadata from the worker succeeds", func() {
@@ -1701,7 +1701,7 @@ var _ = Describe("GardenFactory", func() {
 									otherInputVolume = new(workerfakes.FakeVolume)
 									otherInputVolume.HandleReturns("other-input-volume")
 
-									fakeWorker2.CreateVolumeReturns(rootVolume, nil)
+									fakeWorker2.CreateVolumeForResourceCacheReturns(rootVolume, nil)
 
 									inputSource.VolumeOnStub = func(w worker.Worker) (worker.Volume, bool, error) {
 										if w == fakeWorker {

@@ -199,54 +199,82 @@ var _ = Describe("VolumeFactory", func() {
 			})
 		})
 	})
+
+	Describe("FindResourceCacheVolume", func() {
+		var usedResourceCache *dbng.UsedResourceCache
+
+		BeforeEach(func() {
+			pf := dbng.NewPipelineFactory(dbConn)
+			rf := dbng.NewResourceFactory(dbConn)
+
+			pipeline, err := pf.CreatePipeline(team, "some-pipeline", "{}")
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, err := rf.CreateResource(pipeline, "some-resource", "{}")
+			Expect(err).ToNot(HaveOccurred())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			baseResourceType := dbng.BaseResourceType{
+				Name: "some-base-type",
+			}
+			_, err = baseResourceType.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+
+			cache := dbng.ResourceCache{
+				ResourceConfig: dbng.ResourceConfig{
+					CreatedByBaseResourceType: &baseResourceType,
+
+					Source: atc.Source{"some": "source"},
+				},
+				Version: atc.Version{"some": "version"},
+				Params:  atc.Params{"some": "params"},
+			}
+
+			usedResourceCache, err = cache.FindOrCreateForResource(setupTx, resource)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(setupTx.Commit()).To(Succeed())
+
+		})
+
+		Context("when there is a created volume for resource cache", func() {
+			var existingVolume dbng.CreatedVolume
+
+			BeforeEach(func() {
+				var err error
+				volume, err := volumeFactory.CreateResourceCacheVolume(team, worker, usedResourceCache)
+				Expect(err).NotTo(HaveOccurred())
+				existingVolume, err = volume.Created()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns created volume", func() {
+				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(team, worker, usedResourceCache)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creatingVolume).To(BeNil())
+				Expect(createdVolume).ToNot(BeNil())
+				Expect(createdVolume.Handle()).To(Equal(existingVolume.Handle()))
+			})
+		})
+
+		Context("when there is a creating volume for resource cache", func() {
+			var existingVolume dbng.CreatingVolume
+
+			BeforeEach(func() {
+				var err error
+				existingVolume, err = volumeFactory.CreateResourceCacheVolume(team, worker, usedResourceCache)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns creating volume", func() {
+				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(team, worker, usedResourceCache)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creatingVolume).ToNot(BeNil())
+				Expect(creatingVolume.Handle()).To(Equal(existingVolume.Handle()))
+				Expect(createdVolume).To(BeNil())
+			})
+		})
+	})
 })
-
-// 	Describe("CreateWorkerResourceTypeVolume", func() {
-// 		var worker dbng.Worker
-// 		var wrt dbng.WorkerResourceType
-
-// 		BeforeEach(func() {
-// 			worker = dbng.Worker{
-// 				Name:       "some-worker",
-// 				GardenAddr: "1.2.3.4:7777",
-// 			}
-
-// 			wrt = dbng.WorkerResourceType{
-// 				WorkerName: worker.Name,
-// 				Type:       "some-worker-resource-type",
-// 				Image:      "some-worker-resource-image",
-// 				Version:    "some-worker-resource-version",
-// 			}
-// 		})
-
-// 		Context("when the worker resource type exists", func() {
-// 			BeforeEach(func() {
-// 				setupTx, err := dbConn.Begin()
-// 				Expect(err).ToNot(HaveOccurred())
-
-// 				defer setupTx.Rollback()
-
-// 				err = worker.Create(setupTx)
-// 				Expect(err).ToNot(HaveOccurred())
-
-// 				_, err = wrt.Create(setupTx)
-// 				Expect(err).ToNot(HaveOccurred())
-
-// 				Expect(setupTx.Commit()).To(Succeed())
-// 			})
-
-// 			It("returns the created volume", func() {
-// 				volume, err := factory.CreateWorkerResourceTypeVolume(wrt)
-// 				Expect(err).ToNot(HaveOccurred())
-// 				Expect(volume.ID).ToNot(BeZero())
-// 			})
-// 		})
-
-// 		Context("when the worker resource type does not exist", func() {
-// 			It("returns ErrWorkerResourceTypeNotFound", func() {
-// 				_, err := factory.CreateWorkerResourceTypeVolume(wrt)
-// 				Expect(err).To(Equal(dbng.ErrWorkerResourceTypeNotFound))
-// 			})
-// 		})
-// 	})
-// })

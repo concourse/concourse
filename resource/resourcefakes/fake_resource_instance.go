@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-type FakeCacheIdentifier struct {
+type FakeResourceInstance struct {
 	FindOnStub        func(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	findOnMutex       sync.RWMutex
 	findOnArgsForCall []struct {
@@ -41,7 +41,7 @@ type FakeCacheIdentifier struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCacheIdentifier) FindOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, bool, error) {
+func (fake *FakeResourceInstance) FindOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, bool, error) {
 	fake.findOnMutex.Lock()
 	fake.findOnArgsForCall = append(fake.findOnArgsForCall, struct {
 		arg1 lager.Logger
@@ -56,19 +56,19 @@ func (fake *FakeCacheIdentifier) FindOn(arg1 lager.Logger, arg2 worker.Client) (
 	}
 }
 
-func (fake *FakeCacheIdentifier) FindOnCallCount() int {
+func (fake *FakeResourceInstance) FindOnCallCount() int {
 	fake.findOnMutex.RLock()
 	defer fake.findOnMutex.RUnlock()
 	return len(fake.findOnArgsForCall)
 }
 
-func (fake *FakeCacheIdentifier) FindOnArgsForCall(i int) (lager.Logger, worker.Client) {
+func (fake *FakeResourceInstance) FindOnArgsForCall(i int) (lager.Logger, worker.Client) {
 	fake.findOnMutex.RLock()
 	defer fake.findOnMutex.RUnlock()
 	return fake.findOnArgsForCall[i].arg1, fake.findOnArgsForCall[i].arg2
 }
 
-func (fake *FakeCacheIdentifier) FindOnReturns(result1 worker.Volume, result2 bool, result3 error) {
+func (fake *FakeResourceInstance) FindOnReturns(result1 worker.Volume, result2 bool, result3 error) {
 	fake.FindOnStub = nil
 	fake.findOnReturns = struct {
 		result1 worker.Volume
@@ -77,7 +77,7 @@ func (fake *FakeCacheIdentifier) FindOnReturns(result1 worker.Volume, result2 bo
 	}{result1, result2, result3}
 }
 
-func (fake *FakeCacheIdentifier) CreateOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, error) {
+func (fake *FakeResourceInstance) CreateOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, error) {
 	fake.createOnMutex.Lock()
 	fake.createOnArgsForCall = append(fake.createOnArgsForCall, struct {
 		arg1 lager.Logger
@@ -92,19 +92,19 @@ func (fake *FakeCacheIdentifier) CreateOn(arg1 lager.Logger, arg2 worker.Client)
 	}
 }
 
-func (fake *FakeCacheIdentifier) CreateOnCallCount() int {
+func (fake *FakeResourceInstance) CreateOnCallCount() int {
 	fake.createOnMutex.RLock()
 	defer fake.createOnMutex.RUnlock()
 	return len(fake.createOnArgsForCall)
 }
 
-func (fake *FakeCacheIdentifier) CreateOnArgsForCall(i int) (lager.Logger, worker.Client) {
+func (fake *FakeResourceInstance) CreateOnArgsForCall(i int) (lager.Logger, worker.Client) {
 	fake.createOnMutex.RLock()
 	defer fake.createOnMutex.RUnlock()
 	return fake.createOnArgsForCall[i].arg1, fake.createOnArgsForCall[i].arg2
 }
 
-func (fake *FakeCacheIdentifier) CreateOnReturns(result1 worker.Volume, result2 error) {
+func (fake *FakeResourceInstance) CreateOnReturns(result1 worker.Volume, result2 error) {
 	fake.CreateOnStub = nil
 	fake.createOnReturns = struct {
 		result1 worker.Volume
@@ -112,7 +112,7 @@ func (fake *FakeCacheIdentifier) CreateOnReturns(result1 worker.Volume, result2 
 	}{result1, result2}
 }
 
-func (fake *FakeCacheIdentifier) VolumeIdentifier() worker.VolumeIdentifier {
+func (fake *FakeResourceInstance) VolumeIdentifier() worker.VolumeIdentifier {
 	fake.volumeIdentifierMutex.Lock()
 	fake.volumeIdentifierArgsForCall = append(fake.volumeIdentifierArgsForCall, struct{}{})
 	fake.recordInvocation("VolumeIdentifier", []interface{}{})
@@ -124,20 +124,20 @@ func (fake *FakeCacheIdentifier) VolumeIdentifier() worker.VolumeIdentifier {
 	}
 }
 
-func (fake *FakeCacheIdentifier) VolumeIdentifierCallCount() int {
+func (fake *FakeResourceInstance) VolumeIdentifierCallCount() int {
 	fake.volumeIdentifierMutex.RLock()
 	defer fake.volumeIdentifierMutex.RUnlock()
 	return len(fake.volumeIdentifierArgsForCall)
 }
 
-func (fake *FakeCacheIdentifier) VolumeIdentifierReturns(result1 worker.VolumeIdentifier) {
+func (fake *FakeResourceInstance) VolumeIdentifierReturns(result1 worker.VolumeIdentifier) {
 	fake.VolumeIdentifierStub = nil
 	fake.volumeIdentifierReturns = struct {
 		result1 worker.VolumeIdentifier
 	}{result1}
 }
 
-func (fake *FakeCacheIdentifier) Invocations() map[string][][]interface{} {
+func (fake *FakeResourceInstance) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.findOnMutex.RLock()
@@ -149,7 +149,7 @@ func (fake *FakeCacheIdentifier) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeCacheIdentifier) recordInvocation(key string, args []interface{}) {
+func (fake *FakeResourceInstance) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -161,4 +161,4 @@ func (fake *FakeCacheIdentifier) recordInvocation(key string, args []interface{}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ resource.CacheIdentifier = new(FakeCacheIdentifier)
+var _ resource.ResourceInstance = new(FakeResourceInstance)

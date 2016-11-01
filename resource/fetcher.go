@@ -26,7 +26,7 @@ type Fetcher interface {
 		tags atc.Tags,
 		teamID int,
 		resourceTypes atc.ResourceTypes,
-		cacheIdentifier CacheIdentifier,
+		resourceInstance ResourceInstance,
 		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 		resourceOptions ResourceOptions,
@@ -73,7 +73,7 @@ func (f *fetcher) Fetch(
 	tags atc.Tags,
 	teamID int,
 	resourceTypes atc.ResourceTypes,
-	cacheIdentifier CacheIdentifier,
+	resourceInstance ResourceInstance,
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 	resourceOptions ResourceOptions,
@@ -88,7 +88,7 @@ func (f *fetcher) Fetch(
 		session,
 		metadata,
 		imageFetchingDelegate,
-		cacheIdentifier,
+		resourceInstance,
 	)
 
 	sourceProvider := f.fetchSourceProviderFactory.NewFetchSourceProvider(
@@ -97,7 +97,7 @@ func (f *fetcher) Fetch(
 		tags,
 		teamID,
 		resourceTypes,
-		cacheIdentifier,
+		resourceInstance,
 		resourceOptions,
 		containerCreator,
 	)

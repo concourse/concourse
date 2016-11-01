@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
@@ -59,6 +60,7 @@ var _ = Describe("Get", func() {
 
 		identifier = worker.Identifier{
 			ResourceID: 1234,
+			BuildID:    42,
 		}
 		workerMetadata = worker.Metadata{
 			PipelineName: "some-pipeline",
@@ -163,7 +165,7 @@ var _ = Describe("Get", func() {
 				atc.Tags,
 				int,
 				atc.ResourceTypes,
-				resource.CacheIdentifier,
+				resource.ResourceInstance,
 				resource.Metadata,
 				worker.ImageFetchingDelegate,
 				resource.ResourceOptions,
@@ -187,6 +189,7 @@ var _ = Describe("Get", func() {
 		Expect(sid).To(Equal(resource.Session{
 			ID: worker.Identifier{
 				ResourceID: 1234,
+				BuildID:    42,
 				Stage:      db.ContainerStageRun,
 			},
 			Metadata: worker.Metadata{
@@ -199,12 +202,13 @@ var _ = Describe("Get", func() {
 		}))
 		Expect(tags).To(ConsistOf("some", "tags"))
 		Expect(actualTeamID).To(Equal(teamID))
-		Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
-			Type:    "some-resource-type",
-			Source:  resourceConfig.Source,
-			Params:  params,
-			Version: version,
-		}))
+		Expect(cacheID).To(Equal(resource.NewBuildResourceInstance(
+			"some-resource-type",
+			version,
+			resourceConfig.Source,
+			params,
+			&dbng.Build{ID: 42},
+		)))
 		Expect(actualResourceTypes).To(Equal(
 			atc.ResourceTypes{
 				{

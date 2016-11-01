@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -79,7 +80,7 @@ type Client interface {
 	ValidateResourceCheckVersion(container db.SavedContainer) (bool, error)
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
-	CreateVolume(logger lager.Logger, vs VolumeSpec, teamID int) (Volume, error)
+	CreateVolumeForResourceCache(logger lager.Logger, vs VolumeSpec) (Volume, error)
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 
@@ -110,20 +111,77 @@ type Strategy interface {
 	dbIdentifier() db.VolumeIdentifier
 }
 
-type ResourceCacheStrategy struct {
-	ResourceHash    string
-	ResourceVersion atc.Version
+type buildResourceCacheStrategy struct {
+	resourceCacheStrategy
+	build *dbng.Build
 }
 
-func (ResourceCacheStrategy) baggageclaimStrategy() baggageclaim.Strategy {
+func NewBuildResourceCacheStrategy(
+	resourceHash string,
+	resourceVersion atc.Version,
+	build *dbng.Build,
+) Strategy {
+	return buildResourceCacheStrategy{
+		resourceCacheStrategy: resourceCacheStrategy{
+			resourceHash:    resourceHash,
+			resourceVersion: resourceVersion,
+		},
+		build: build,
+	}
+}
+
+type resourceResourceCacheStrategy struct {
+	resourceCacheStrategy
+	resource *dbng.Resource
+}
+
+func NewResourceResourceCacheStrategy(
+	resourceHash string,
+	resourceVersion atc.Version,
+	resource *dbng.Resource,
+) Strategy {
+	return resourceResourceCacheStrategy{
+		resourceCacheStrategy: resourceCacheStrategy{
+			resourceHash:    resourceHash,
+			resourceVersion: resourceVersion,
+		},
+		resource: resource,
+	}
+}
+
+type resourceTypeResourceCacheStrategy struct {
+	resourceCacheStrategy
+	resourceType *dbng.UsedResourceType
+}
+
+func NewResourceTypeResourceCacheStrategy(
+	resourceHash string,
+	resourceVersion atc.Version,
+	resourceType *dbng.UsedResourceType,
+) Strategy {
+	return resourceTypeResourceCacheStrategy{
+		resourceCacheStrategy: resourceCacheStrategy{
+			resourceHash:    resourceHash,
+			resourceVersion: resourceVersion,
+		},
+		resourceType: resourceType,
+	}
+}
+
+type resourceCacheStrategy struct {
+	resourceHash    string
+	resourceVersion atc.Version
+}
+
+func (resourceCacheStrategy) baggageclaimStrategy() baggageclaim.Strategy {
 	return baggageclaim.EmptyStrategy{}
 }
 
-func (strategy ResourceCacheStrategy) dbIdentifier() db.VolumeIdentifier {
+func (strategy resourceCacheStrategy) dbIdentifier() db.VolumeIdentifier {
 	return db.VolumeIdentifier{
 		ResourceCache: &db.ResourceCacheIdentifier{
-			ResourceHash:    strategy.ResourceHash,
-			ResourceVersion: strategy.ResourceVersion,
+			ResourceHash:    strategy.resourceHash,
+			ResourceVersion: strategy.resourceVersion,
 		},
 	}
 }

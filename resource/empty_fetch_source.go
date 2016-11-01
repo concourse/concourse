@@ -14,7 +14,7 @@ type emptyFetchSource struct {
 	cache            Cache
 	container        worker.Container
 	versionedSource  VersionedSource
-	cacheIdentifier  CacheIdentifier
+	resourceInstance ResourceInstance
 	containerCreator FetchContainerCreator
 	resourceOptions  ResourceOptions
 }
@@ -22,7 +22,7 @@ type emptyFetchSource struct {
 func NewEmptyFetchSource(
 	logger lager.Logger,
 	worker worker.Worker,
-	cacheIdentifier CacheIdentifier,
+	resourceInstance ResourceInstance,
 	containerCreator FetchContainerCreator,
 	resourceOptions ResourceOptions,
 ) FetchSource {
@@ -30,7 +30,7 @@ func NewEmptyFetchSource(
 		logger:           logger,
 		worker:           worker,
 		cache:            noopCache{},
-		cacheIdentifier:  cacheIdentifier,
+		resourceInstance: resourceInstance,
 		containerCreator: containerCreator,
 		resourceOptions:  resourceOptions,
 	}
@@ -100,7 +100,7 @@ func (s *emptyFetchSource) Release(finalTTL *time.Duration) {
 }
 
 func (s *emptyFetchSource) findOrCreateCacheVolume() (Cache, error) {
-	cachedVolume, cacheFound, err := s.cacheIdentifier.FindOn(s.logger, s.worker)
+	cachedVolume, cacheFound, err := s.resourceInstance.FindOn(s.logger, s.worker)
 	if err != nil {
 		s.logger.Error("failed-to-look-for-cache", err)
 		return nil, err
@@ -111,7 +111,7 @@ func (s *emptyFetchSource) findOrCreateCacheVolume() (Cache, error) {
 	} else {
 		s.logger.Debug("no-cache-found")
 
-		cachedVolume, err = s.cacheIdentifier.CreateOn(s.logger, s.worker)
+		cachedVolume, err = s.resourceInstance.CreateOn(s.logger, s.worker)
 		if err != nil {
 			s.logger.Error("failed-to-create-cache", err)
 			return nil, err

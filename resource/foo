@@ -1,0 +1,26 @@
+
+resource_scanner ----------------------------> resource resource cache
+resource_type_scanner -----------------------> resource_type resource_cache
+PutStep#Run ---------------------------------> build resource_cache
+image#Fetch (image#getLatestVersion) -----------------> depends
+    worker#FindOrCreateContainerForIdentifier
+        worker#getContainerForIdentifier
+            worker.CreateResourceCheckContainer
+            worker.CreateResourceTypeCheckContainer
+
+TaskStep#Run --------------------------------> build resource_cache
+            worker.CreateBuildContainer
+
+emptyFetchSource#Initialize  -----------------> depends
+volumeFetchSource#Initialize -----------------> depends
+    fetchContainerCreator#CreateWithVolume
+            worker.CreateResourceGetContainer
+
+                worker#getImageForContainer
+                    image#Fetch
+
+GetStep#Run ----------------------------------> build resource_cache
+                        resource.Fetcher#Fetch
+                            emptyFetchSource#Initialize
+                                ResourceCacheIdentifier#CreateOn <<<<<<< volume spec
+                                    workerClient.CreateVolume

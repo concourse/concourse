@@ -486,7 +486,7 @@ var _ = Describe("VolumeClient", func() {
 		})
 	})
 
-	Describe("CreateVolume", func() {
+	Describe("CreateVolumeForResourceCache", func() {
 		var baggageclaimClient baggageclaim.Client
 
 		var volumeSpec worker.VolumeSpec
@@ -494,9 +494,10 @@ var _ = Describe("VolumeClient", func() {
 		var createdVolume worker.Volume
 		var createErr error
 
-		var teamID int
+		var fakeBaggageclaimVolume *bfakes.FakeVolume
+		var builtVolume *wfakes.FakeVolume
+
 		BeforeEach(func() {
-			teamID = 123
 			volumeSpec = worker.VolumeSpec{
 				Properties: worker.VolumeProperties{
 					"some": "property",
@@ -504,6 +505,16 @@ var _ = Describe("VolumeClient", func() {
 				Privileged: true,
 				TTL:        6 * time.Minute,
 			}
+
+			baggageclaimClient = fakeBaggageclaimClient
+
+			fakeBaggageclaimVolume = new(bfakes.FakeVolume)
+			fakeBaggageclaimVolume.HandleReturns("created-volume")
+
+			fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
+
+			builtVolume = new(wfakes.FakeVolume)
+			fakeVolumeFactory.BuildWithIndefiniteTTLReturns(builtVolume, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -515,285 +526,91 @@ var _ = Describe("VolumeClient", func() {
 				fakeBaseResourceTypeFactory,
 				fakeClock,
 				"some-worker",
-			).CreateVolume(testLogger, volumeSpec, teamID)
+			).CreateVolumeForResourceCache(testLogger, volumeSpec)
 		})
 
-		Context("when there is no baggageclaim client", func() {
+		Context("when creating a BuildResourceCacheStrategy volume", func() {
 			BeforeEach(func() {
-				baggageclaimClient = nil
+				volumeSpec.Strategy = worker.NewBuildResourceCacheStrategy(
+					"some-resource-hash",
+					atc.Version{"some": "resource-version"},
+					&dbng.Build{ID: 42},
+				)
 			})
 
-			It("returns ErrNoVolumeManager", func() {
-				Expect(createErr).To(Equal(worker.ErrNoVolumeManager))
-			})
-		})
-
-		Context("when there is a baggageclaim client", func() {
-			var fakeBaggageclaimVolume *bfakes.FakeVolume
-			var builtVolume *wfakes.FakeVolume
-
-			BeforeEach(func() {
-				baggageclaimClient = fakeBaggageclaimClient
-
-				fakeBaggageclaimVolume = new(bfakes.FakeVolume)
-				fakeBaggageclaimVolume.HandleReturns("created-volume")
-
-				fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
-
-				builtVolume = new(wfakes.FakeVolume)
-				fakeVolumeFactory.BuildWithIndefiniteTTLReturns(builtVolume, nil)
+			It("succeeds", func() {
+				Expect(createErr).ToNot(HaveOccurred())
 			})
 
-			Context("when creating a ResourceCacheStrategy volume", func() {
-				BeforeEach(func() {
-					volumeSpec.Strategy = worker.ResourceCacheStrategy{
+			It("creates the volume via BaggageClaim", func() {
+				Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+
+				_, _, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
+				Expect(spec).To(Equal(baggageclaim.VolumeSpec{
+					Strategy:   baggageclaim.EmptyStrategy{},
+					Properties: baggageclaim.VolumeProperties(volumeSpec.Properties),
+					TTL:        volumeSpec.TTL,
+					Privileged: volumeSpec.Privileged,
+				}))
+			})
+
+			It("inserts the volume into the database", func() {
+				Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(1))
+
+				dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
+				Expect(dbVolume.TeamID).To(Equal(0))
+				Expect(dbVolume.WorkerName).To(Equal(workerName))
+				Expect(dbVolume.TTL).To(Equal(volumeSpec.TTL))
+				Expect(dbVolume.Identifier).To(Equal(db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
 						ResourceHash:    "some-resource-hash",
 						ResourceVersion: atc.Version{"some": "resource-version"},
-					}
+					},
+				}))
+			})
+
+			It("builds the baggageclaim.Volume into a worker.Volume", func() {
+				Expect(fakeVolumeFactory.BuildWithIndefiniteTTLCallCount()).To(Equal(1))
+
+				_, volume := fakeVolumeFactory.BuildWithIndefiniteTTLArgsForCall(0)
+				Expect(volume).To(Equal(fakeBaggageclaimVolume))
+
+				Expect(createdVolume).To(Equal(builtVolume))
+			})
+
+			Context("when creating the volume fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
 				})
 
-				It("succeeds", func() {
-					Expect(createErr).ToNot(HaveOccurred())
-				})
-
-				It("creates the volume via BaggageClaim", func() {
-					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-
-					_, _, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
-					Expect(spec).To(Equal(baggageclaim.VolumeSpec{
-						Strategy:   baggageclaim.EmptyStrategy{},
-						Properties: baggageclaim.VolumeProperties(volumeSpec.Properties),
-						TTL:        volumeSpec.TTL,
-						Privileged: volumeSpec.Privileged,
-					}))
-				})
-
-				It("inserts the volume into the database", func() {
-					Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(1))
-
-					dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
-					Expect(dbVolume.TeamID).To(Equal(teamID))
-					Expect(dbVolume.WorkerName).To(Equal(workerName))
-					Expect(dbVolume.TTL).To(Equal(volumeSpec.TTL))
-					Expect(dbVolume.Identifier).To(Equal(db.VolumeIdentifier{
-						ResourceCache: &db.ResourceCacheIdentifier{
-							ResourceHash:    "some-resource-hash",
-							ResourceVersion: atc.Version{"some": "resource-version"},
-						},
-					}))
-				})
-
-				It("builds the baggageclaim.Volume into a worker.Volume", func() {
-					Expect(fakeVolumeFactory.BuildWithIndefiniteTTLCallCount()).To(Equal(1))
-
-					_, volume := fakeVolumeFactory.BuildWithIndefiniteTTLArgsForCall(0)
-					Expect(volume).To(Equal(fakeBaggageclaimVolume))
-
-					Expect(createdVolume).To(Equal(builtVolume))
-				})
-
-				Context("when creating the volume fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
-				})
-
-				Context("when inserting the volume fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeGardenWorkerDB.InsertVolumeReturns(disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
-				})
-
-				Context("when building the volume fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeVolumeFactory.BuildWithIndefiniteTTLReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
+				It("returns the error", func() {
+					Expect(createErr).To(Equal(disaster))
 				})
 			})
 
-			Context("when creating a OutputStrategy volume", func() {
+			Context("when inserting the volume fails", func() {
+				disaster := errors.New("nope")
+
 				BeforeEach(func() {
-					volumeSpec.Strategy = worker.OutputStrategy{
-						Name: "some-output",
-					}
+					fakeGardenWorkerDB.InsertVolumeReturns(disaster)
 				})
 
-				It("succeeds", func() {
-					Expect(createErr).ToNot(HaveOccurred())
-				})
-
-				It("creates the volume via BaggageClaim", func() {
-					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-
-					_, _, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
-					Expect(spec).To(Equal(baggageclaim.VolumeSpec{
-						Strategy:   baggageclaim.EmptyStrategy{},
-						Properties: baggageclaim.VolumeProperties(volumeSpec.Properties),
-						TTL:        volumeSpec.TTL,
-						Privileged: volumeSpec.Privileged,
-					}))
-				})
-
-				It("inserts the volume into the database", func() {
-					Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(1))
-
-					dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
-					Expect(dbVolume.TeamID).To(Equal(teamID))
-					Expect(dbVolume.WorkerName).To(Equal(workerName))
-					Expect(dbVolume.TTL).To(Equal(volumeSpec.TTL))
-					Expect(dbVolume.Identifier).To(Equal(db.VolumeIdentifier{
-						Output: &db.OutputIdentifier{
-							Name: "some-output",
-						},
-					}))
-				})
-
-				It("builds the baggageclaim.Volume into a worker.Volume", func() {
-					Expect(fakeVolumeFactory.BuildWithIndefiniteTTLCallCount()).To(Equal(1))
-
-					_, volume := fakeVolumeFactory.BuildWithIndefiniteTTLArgsForCall(0)
-					Expect(volume).To(Equal(fakeBaggageclaimVolume))
-
-					Expect(createdVolume).To(Equal(builtVolume))
-				})
-
-				Context("when creating the volume fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
-				})
-
-				Context("when inserting the volume fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeGardenWorkerDB.InsertVolumeReturns(disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
-				})
-
-				Context("when building the volume fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeVolumeFactory.BuildWithIndefiniteTTLReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
+				It("returns the error", func() {
+					Expect(createErr).To(Equal(disaster))
 				})
 			})
 
-			Context("when creating an HostRootFSStrategy volume", func() {
+			Context("when building the volume fails", func() {
+				disaster := errors.New("nope")
+
 				BeforeEach(func() {
-					volumeSpec.Strategy = worker.HostRootFSStrategy{
-						Path:       "some-image-path",
-						WorkerName: workerName,
-					}
+					fakeVolumeFactory.BuildWithIndefiniteTTLReturns(nil, disaster)
 				})
 
-				It("succeeds", func() {
-					Expect(createErr).ToNot(HaveOccurred())
-				})
-
-				It("creates the volume via BaggageClaim", func() {
-					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-
-					_, _, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
-					Expect(spec).To(Equal(baggageclaim.VolumeSpec{
-						Strategy:   baggageclaim.ImportStrategy{Path: "some-image-path"},
-						Properties: baggageclaim.VolumeProperties(volumeSpec.Properties),
-						TTL:        volumeSpec.TTL,
-						Privileged: volumeSpec.Privileged,
-					}))
-				})
-
-				It("inserts the volume into the database", func() {
-					Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(1))
-
-					dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
-					Expect(dbVolume.TeamID).To(Equal(teamID))
-					Expect(dbVolume.WorkerName).To(Equal(workerName))
-					Expect(dbVolume.TTL).To(Equal(volumeSpec.TTL))
-					Expect(dbVolume.Identifier).To(Equal(db.VolumeIdentifier{
-						Import: &db.ImportIdentifier{
-							WorkerName: "some-worker",
-							Path:       "some-image-path",
-						},
-					}))
-				})
-
-				It("builds the baggageclaim.Volume into a worker.Volume", func() {
-					Expect(fakeVolumeFactory.BuildWithIndefiniteTTLCallCount()).To(Equal(1))
-
-					_, volume := fakeVolumeFactory.BuildWithIndefiniteTTLArgsForCall(0)
-					Expect(volume).To(Equal(fakeBaggageclaimVolume))
-
-					Expect(createdVolume).To(Equal(builtVolume))
-				})
-
-				Context("when creating the volume fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
-				})
-
-				Context("when inserting the volume fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeGardenWorkerDB.InsertVolumeReturns(disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
-				})
-
-				Context("when building the volume fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeVolumeFactory.BuildWithIndefiniteTTLReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
+				It("returns the error", func() {
+					Expect(createErr).To(Equal(disaster))
 				})
 			})
 		})

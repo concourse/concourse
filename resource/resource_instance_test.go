@@ -2,12 +2,12 @@ package resource_test
 
 import (
 	"errors"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -16,21 +16,22 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ResourceCacheIdentifier", func() {
+var _ = Describe("ResourceInstance", func() {
 	var logger lager.Logger
-	var cacheIdentifier CacheIdentifier
+	var resourceInstance ResourceInstance
 	var fakeWorkerClient *wfakes.FakeClient
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeWorkerClient = new(wfakes.FakeClient)
 
-		cacheIdentifier = ResourceCacheIdentifier{
-			Type:    "some-resource-type",
-			Version: atc.Version{"some": "version"},
-			Source:  atc.Source{"some": "source"},
-			Params:  atc.Params{"some": "params"},
-		}
+		resourceInstance = NewBuildResourceInstance(
+			"some-resource-type",
+			atc.Version{"some": "version"},
+			atc.Source{"some": "source"},
+			atc.Params{"some": "params"},
+			&dbng.Build{ID: 42},
+		)
 	})
 
 	Describe("FindOn", func() {
@@ -39,7 +40,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 		var findErr error
 
 		JustBeforeEach(func() {
-			foundVolume, found, findErr = cacheIdentifier.FindOn(logger, fakeWorkerClient)
+			foundVolume, found, findErr = resourceInstance.FindOn(logger, fakeWorkerClient)
 		})
 
 		Context("when one cache volume is present", func() {
@@ -123,28 +124,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 		var createErr error
 
 		JustBeforeEach(func() {
-			createdVolume, createErr = cacheIdentifier.CreateOn(logger, fakeWorkerClient)
-		})
-
-		Context("when creating a volume with no version", func() {
-			var volume *wfakes.FakeVolume
-
-			BeforeEach(func() {
-				cacheIdentifier = ResourceCacheIdentifier{
-					Type:    "some-resource-type",
-					Version: nil,
-					Source:  atc.Source{"some": "source"},
-					Params:  atc.Params{"some": "params"},
-				}
-				volume = new(wfakes.FakeVolume)
-				fakeWorkerClient.CreateVolumeReturns(volume, nil)
-			})
-
-			It("sets the TTL to 5 minutes", func() {
-				_, spec, actualTeamID := fakeWorkerClient.CreateVolumeArgsForCall(0)
-				Expect(spec.TTL).To(Equal(5 * time.Minute))
-				Expect(actualTeamID).To(BeZero())
-			})
+			createdVolume, createErr = resourceInstance.CreateOn(logger, fakeWorkerClient)
 		})
 
 		Context("when creating the volume succeeds", func() {
@@ -152,7 +132,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 
 			BeforeEach(func() {
 				volume = new(wfakes.FakeVolume)
-				fakeWorkerClient.CreateVolumeReturns(volume, nil)
+				fakeWorkerClient.CreateVolumeForResourceCacheReturns(volume, nil)
 			})
 
 			It("succeeds", func() {
@@ -164,12 +144,13 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			})
 
 			It("created with the right properties", func() {
-				_, spec, actualTeamID := fakeWorkerClient.CreateVolumeArgsForCall(0)
+				_, spec := fakeWorkerClient.CreateVolumeForResourceCacheArgsForCall(0)
 				Expect(spec).To(Equal(worker.VolumeSpec{
-					Strategy: worker.ResourceCacheStrategy{
-						ResourceVersion: atc.Version{"some": "version"},
-						ResourceHash:    `some-resource-type{"some":"source"}`,
-					},
+					Strategy: worker.NewBuildResourceCacheStrategy(
+						`some-resource-type{"some":"source"}`,
+						atc.Version{"some": "version"},
+						&dbng.Build{ID: 42},
+					),
 					Properties: worker.VolumeProperties{
 						"resource-type":    "some-resource-type",
 						"resource-version": `{"some":"version"}`,
@@ -179,7 +160,6 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 					Privileged: true,
 					TTL:        0,
 				}))
-				Expect(actualTeamID).To(BeZero())
 			})
 		})
 
@@ -187,7 +167,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeWorkerClient.CreateVolumeReturns(nil, disaster)
+				fakeWorkerClient.CreateVolumeForResourceCacheReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -205,7 +185,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 				},
 			}
 
-			Expect(cacheIdentifier.VolumeIdentifier()).To(Equal(expectedIdentifier))
+			Expect(resourceInstance.VolumeIdentifier()).To(Equal(expectedIdentifier))
 		})
 	})
 })

@@ -12,6 +12,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -47,13 +48,35 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		return nil, nil, nil, err
 	}
 
-	cacheID := resource.ResourceCacheIdentifier{
-		Type:    resource.ResourceType(i.imageResource.Type),
-		Version: version,
-		Source:  i.imageResource.Source,
+	var resourceInstance resource.ResourceInstance
+
+	if i.workerID.BuildID != 0 {
+		resourceInstance = resource.NewBuildResourceInstance(
+			resource.ResourceType(i.imageResource.Type),
+			version,
+			i.imageResource.Source,
+			nil,
+			&dbng.Build{ID: i.workerID.BuildID},
+		)
+	} else if i.workerID.ResourceID != 0 {
+		resourceInstance = resource.NewResourceResourceInstance(
+			resource.ResourceType(i.imageResource.Type),
+			version,
+			i.imageResource.Source,
+			nil,
+			&dbng.Resource{ID: i.workerID.ResourceID},
+		)
+	} else {
+		resourceInstance = resource.NewResourceTypeResourceInstance(
+			resource.ResourceType(i.imageResource.Type),
+			version,
+			i.imageResource.Source,
+			nil,
+			&dbng.UsedResourceType{ID: i.workerID.ResourceTypeID},
+		)
 	}
 
-	volumeID := cacheID.VolumeIdentifier()
+	volumeID := resourceInstance.VolumeIdentifier()
 
 	err = i.imageFetchingDelegate.ImageVersionDetermined(volumeID)
 	if err != nil {
@@ -81,13 +104,14 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		resourceType:          resourceType,
 	}
 
+	// we need resource cache for build
 	fetchSource, err := i.resourceFetcher.Fetch(
 		i.logger.Session("init-image"),
 		getSess,
 		i.workerTags,
 		i.teamID,
 		i.customTypes,
-		cacheID,
+		resourceInstance,
 		resource.EmptyMetadata{},
 		i.imageFetchingDelegate,
 		resourceOptions,

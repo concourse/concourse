@@ -204,8 +204,8 @@ func (worker *gardenWorker) FindVolume(logger lager.Logger, volumeSpec VolumeSpe
 	return worker.volumeClient.FindVolume(logger, volumeSpec)
 }
 
-func (worker *gardenWorker) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
-	return worker.volumeClient.CreateVolume(logger, volumeSpec, teamID)
+func (worker *gardenWorker) CreateVolumeForResourceCache(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+	return worker.volumeClient.CreateVolumeForResourceCache(logger, volumeSpec)
 }
 
 func (worker *gardenWorker) ListVolumes(logger lager.Logger, properties VolumeProperties) ([]Volume, error) {
@@ -228,11 +228,9 @@ func (worker *gardenWorker) getImageForContainer(
 	resourceTypes atc.ResourceTypes,
 ) (ImageMetadata, atc.Version, string, error) {
 	// convert custom resource type from pipeline config into image_resource
-	// updatedResourceTypes := resourceTypes
 	imageResource := imageSpec.ImageResource
 	for _, resourceType := range resourceTypes {
 		if resourceType.Name == imageSpec.ResourceType {
-			// updatedResourceTypes = resourceTypes.Without(imageSpec.ResourceType)
 			imageResource = &atc.ImageResource{
 				Source: resourceType.Source,
 				Type:   resourceType.Type,

@@ -26,7 +26,7 @@ var _ = Describe("EmptyFetchSource", func() {
 		resourceOptions      *resourcefakes.FakeResourceOptions
 		fakeVolume           *workerfakes.FakeVolume
 		fakeWorker           *workerfakes.FakeWorker
-		cacheID              *resourcefakes.FakeCacheIdentifier
+		resourceInstance     *resourcefakes.FakeResourceInstance
 
 		signals <-chan os.Signal
 		ready   chan<- struct{}
@@ -57,17 +57,17 @@ var _ = Describe("EmptyFetchSource", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeContainerCreator = new(resourcefakes.FakeFetchContainerCreator)
 		fakeContainerCreator.CreateWithVolumeReturns(fakeContainer, nil)
-		cacheID = new(resourcefakes.FakeCacheIdentifier)
+		resourceInstance = new(resourcefakes.FakeResourceInstance)
 
 		fetchSource = NewEmptyFetchSource(
 			logger,
 			fakeWorker,
-			cacheID,
+			resourceInstance,
 			fakeContainerCreator,
 			resourceOptions,
 		)
 
-		cacheID.FindOnReturns(fakeVolume, true, nil)
+		resourceInstance.FindOnReturns(fakeVolume, true, nil)
 	})
 
 	Describe("Initialize", func() {
@@ -127,7 +127,7 @@ var _ = Describe("EmptyFetchSource", func() {
 
 		Context("when volume is not found", func() {
 			BeforeEach(func() {
-				cacheID.FindOnReturns(nil, false, nil)
+				resourceInstance.FindOnReturns(nil, false, nil)
 			})
 
 			Context("when creating cache volume succeeds", func() {
@@ -135,13 +135,13 @@ var _ = Describe("EmptyFetchSource", func() {
 
 				BeforeEach(func() {
 					newVolume = new(workerfakes.FakeVolume)
-					cacheID.CreateOnReturns(newVolume, nil)
+					resourceInstance.CreateOnReturns(newVolume, nil)
 				})
 
 				It("creates volume", func() {
 					Expect(initErr).NotTo(HaveOccurred())
-					Expect(cacheID.CreateOnCallCount()).To(Equal(1))
-					_, worker := cacheID.CreateOnArgsForCall(0)
+					Expect(resourceInstance.CreateOnCallCount()).To(Equal(1))
+					_, worker := resourceInstance.CreateOnArgsForCall(0)
 					Expect(worker).To(Equal(fakeWorker))
 				})
 
@@ -160,7 +160,7 @@ var _ = Describe("EmptyFetchSource", func() {
 
 				BeforeEach(func() {
 					disaster = errors.New("failed")
-					cacheID.CreateOnReturns(nil, disaster)
+					resourceInstance.CreateOnReturns(nil, disaster)
 				})
 
 				It("returns an error", func() {

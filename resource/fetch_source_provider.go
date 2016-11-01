@@ -18,7 +18,7 @@ type FetchSourceProviderFactory interface {
 		tags atc.Tags,
 		teamID int,
 		resourceTypes atc.ResourceTypes,
-		cacheIdentifier CacheIdentifier,
+		resourceInstance ResourceInstance,
 		resourceOptions ResourceOptions,
 		containerCreator FetchContainerCreator,
 	) FetchSourceProvider
@@ -56,7 +56,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 	tags atc.Tags,
 	teamID int,
 	resourceTypes atc.ResourceTypes,
-	cacheIdentifier CacheIdentifier,
+	resourceInstance ResourceInstance,
 	resourceOptions ResourceOptions,
 	containerCreator FetchContainerCreator,
 ) FetchSourceProvider {
@@ -66,7 +66,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 		tags:             tags,
 		teamID:           teamID,
 		resourceTypes:    resourceTypes,
-		cacheIdentifier:  cacheIdentifier,
+		resourceInstance: resourceInstance,
 		resourceOptions:  resourceOptions,
 		containerCreator: containerCreator,
 		workerClient:     f.workerClient,
@@ -79,7 +79,7 @@ type fetchSourceProvider struct {
 	tags             atc.Tags
 	teamID           int
 	resourceTypes    atc.ResourceTypes
-	cacheIdentifier  CacheIdentifier
+	resourceInstance ResourceInstance
 	resourceOptions  ResourceOptions
 	workerClient     worker.Client
 	containerCreator FetchContainerCreator
@@ -107,7 +107,7 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		f.logger.Error("no-workers-satisfying-spec", err)
 		return nil, err
 	}
-	cachedVolume, cacheFound, err := f.cacheIdentifier.FindOn(f.logger, chosenWorker)
+	cachedVolume, cacheFound, err := f.resourceInstance.FindOn(f.logger, chosenWorker)
 
 	if err != nil {
 		f.logger.Error("failed-to-look-for-cache", err)
@@ -128,7 +128,7 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 	return NewEmptyFetchSource(
 		f.logger,
 		chosenWorker,
-		f.cacheIdentifier,
+		f.resourceInstance,
 		f.containerCreator,
 		f.resourceOptions,
 	), nil

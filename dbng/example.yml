@@ -225,3 +225,72 @@ check `custom-resource`:
 
 `task`
 ====================
+
+
+`resource_cache`
+====================
+
+---
+resource_types:
+- name: a ##################
+  type: docker-image
+  source: {for: a}
+
+resources:
+- name: b ##################
+  type: a
+  source: {for: b}
+
+- name: some-image ########################
+  type: docker-image
+  source: {for: some-image}
+
+jobs:
+- name: some-job
+  plan:
+  - get: b #########################
+    params: {some: params}
+  - get: some-image
+  - task: use-some-image
+    image: some-image
+    file: ...
+  - task: use-some-external-image
+    config:
+      image_resource:
+        type: docker-image
+        source: {for: task_image_resource}
+
+
+assuming some-job ran:
+
+base_resource_type:
+| id | name             |
+| 1  | docker-image     |
+
+resource_configs:
+
+| id | base_resource_type_id | resource_cache_id | source                     |
+| 10 | 1                     | NULL              | {for: a}                   |
+| 20 | 1                     | NULL              | {for: some-image}          |
+| 30 | 1                     | NULL              | {for: task_image_resource} |
+| 40 | NULL                  | 100               | {for: b}                   |
+
+resource_caches:
+
+| id   | resource_config_id | version         | params         |
+| 100  | 10                 | {digest:a-id}   | {}             |
+| 200  | 20                 | {digest:si-id}  | {}             |
+| 300  | 30                 | {digest:tir-id} | {}             |
+| 400  | 40                 | {ref:abc}       | {some: params} |
+
+resource_cache_uses:
+
+| resource_cache_id | build_id | resource_id | resource_type_id |
+| 100               | 42       | NULL        | NULL             |
+| 200               | 42       | NULL        | NULL             |
+| 300               | 42       | NULL        | NULL             |
+| 400               | 42       | NULL        | NULL             |
+
+builds:
+| id |
+| 42 |
