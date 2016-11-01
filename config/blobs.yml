@@ -51,9 +51,9 @@ resources/pool-resource.tar.gz:
   object_id: d45f35dc-9a18-4cbb-6b04-5bc0e1eb1c28
   sha: 572ce3082874ebc17feb4ce068f6b198168fe35a
 resources/s3-resource.tar.gz:
-  size: 11718905
-  object_id: 8a7dd67b-ee6d-49df-4855-863b8ff797d0
-  sha: 2190a0b58caac511e5a7a7bcc9b19ba49413e96d
+  size: 11720048
+  object_id: 6b555a81-d47e-4ce0-5746-4217038faa03
+  sha: 1f9bb8bda49fe1871d772edc726f353c1bf270df
 resources/semver-resource.tar.gz:
   size: 18217261
   object_id: c9060ede-045c-4b5e-6b54-72a7ea4650d5
