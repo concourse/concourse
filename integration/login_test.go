@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,9 +15,10 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 
+	"regexp"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/version"
-	"regexp"
 )
 
 var _ = Describe("login Command", func() {
@@ -32,11 +32,7 @@ var _ = Describe("login Command", func() {
 		tmpDir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).ToNot(HaveOccurred())
 
-		if runtime.GOOS == "windows" {
-			os.Setenv("USERPROFILE", tmpDir)
-		} else {
-			os.Setenv("HOME", tmpDir)
-		}
+		os.Setenv("HOME", tmpDir)
 	})
 
 	AfterEach(func() {

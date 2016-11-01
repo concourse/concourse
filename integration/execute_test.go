@@ -551,11 +551,7 @@ run:
 			tmpDir, err = ioutil.TempDir("", "fly-test")
 			Expect(err).NotTo(HaveOccurred())
 
-			if runtime.GOOS == "windows" {
-				os.Setenv("USERPROFILE", tmpDir)
-			} else {
-				os.Setenv("HOME", tmpDir)
-			}
+			os.Setenv("HOME", tmpDir)
 
 			targetName = "foo"
 			token := rc.TargetToken{

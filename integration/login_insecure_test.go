@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -261,11 +260,7 @@ var _ = Describe("login -k Command", func() {
 					tmpDir, err = ioutil.TempDir("", "fly-test")
 					Expect(err).NotTo(HaveOccurred())
 
-					if runtime.GOOS == "windows" {
-						os.Setenv("USERPROFILE", tmpDir)
-					} else {
-						os.Setenv("HOME", tmpDir)
-					}
+					os.Setenv("HOME", tmpDir)
 				})
 
 				It("succeeds", func() {

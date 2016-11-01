@@ -82,20 +82,24 @@ func selectTarget(selectedTarget TargetName) (TargetProps, error) {
 }
 
 func userHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("USERPROFILE")
-		if home == "" {
-			home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		}
-
-		if home == "" {
-			panic("could not detect home directory for .flyrc")
-		}
-
+	home := os.Getenv("HOME")
+	if home != "" {
 		return home
 	}
 
-	return os.Getenv("HOME")
+	if runtime.GOOS == "windows" {
+		home = os.Getenv("USERPROFILE")
+		if home != "" {
+			return home
+		}
+
+		home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home != "" {
+			return home
+		}
+	}
+
+	panic("could not detect home directory for .flyrc")
 }
 
 func LoadTargets() (*targetDetailsYAML, error) {

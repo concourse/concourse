@@ -88,12 +88,7 @@ var _ = BeforeEach(func() {
 	homeDir, err = ioutil.TempDir("", "fly-test")
 	Expect(err).NotTo(HaveOccurred())
 
-	if runtime.GOOS == "windows" {
-		os.Setenv("USERPROFILE", homeDir)
-	} else {
-		os.Setenv("HOME", homeDir)
-	}
-
+	os.Setenv("HOME", homeDir)
 	loginCmd := exec.Command(flyPath, "-t", targetName, "login", "-c", atcServer.URL())
 
 	session, err := gexec.Start(loginCmd, GinkgoWriter, GinkgoWriter)
@@ -123,13 +118,6 @@ func osFlag(short string, long string) string {
 }
 
 func userHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		if home == "" {
-			home = os.Getenv("USERPROFILE")
-		}
-		return home
-	}
 	return os.Getenv("HOME")
 }
 
