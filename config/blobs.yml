@@ -4,7 +4,7 @@ btrfs/btrfs-tools.tar.gz:
   sha: abdf982cee43881659adc24c3e347b37b65f8530
 golang/golang-linux-amd64.tar.gz:
   size: 82565628
-  object_id: ef1beb24-e5a2-4d33-7bd2-a96593f3b0a2
+  object_id: 441071a2-e294-48ff-7aa3-8ce7429b5e55
   sha: ead40e884ad4d6512bcf7b3c7420dd7fa4a96140
 postgresql/postgresql-9.3.4.tar.gz:
   size: 21865589
