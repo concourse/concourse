@@ -200,12 +200,6 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: node
-  type: docker-image
-  source:
-    repository: node
-    tag: latest
-
 - name: ubuntu-16.04
   type: docker-image
   source:
