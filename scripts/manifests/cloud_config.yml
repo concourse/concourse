@@ -1,6 +1,6 @@
 ---
 networks:
-  - name: concourse
+  - name: testflight
     subnets:
       # network with static ip used for web
       - range: 10.244.15.0/30
@@ -13,8 +13,8 @@ networks:
 
 vm_types:
   - name: concourse
-    network: concourse
+    network: testflight
 
 compilation:
   workers: 3
-  network: concourse
+  network: testflight
