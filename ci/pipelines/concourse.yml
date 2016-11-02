@@ -288,55 +288,45 @@ jobs:
   public: true
   serial: true
   plan:
-  - put: bosh-lites
-    params: {acquire: true}
-  - ensure:
-      put: bosh-lites
-      params: {release: bosh-lites}
-    do:
-    - aggregate:
-      - get: concourse
-        passed: [bosh-rc]
-        trigger: true
-      - get: bosh-rc
-        passed: [bosh-rc]
-        trigger: true
-      - get: version
-        passed: [bosh-rc]
-        trigger: true
-      - get: garden-runc-release
-        passed: [bosh-rc]
-        trigger: true
-        resource: garden-runc
-      - get: fly-rc
-        passed: [bosh-rc]
-      - get: lite-stemcell
-      - get: deployments
-      - get: bosh-lite
-        passed: [provision]
-    - put: lite-deployment
-      params:
-        manifest: deployments/lite/ci/manifests/no_auth_deployment.yml
-        target_file: bosh-lites/metadata
-        stemcells: [lite-stemcell/*.tgz]
-        releases:
-          - garden-runc-release/*.tgz
-          - bosh-rc/concourse-*.tgz
-    - task: no-auth-build
-      file: concourse/ci/testflight.yml
-      params:
-        ATC_URL: "http://10.244.15.2:8080"
-      timeout: 1h
-      on_failure:
-        do:
-          - task: export-bosh-logs
-            file: concourse/ci/export-bosh-logs.yml
-            params:
-              MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
-              BOSH_USER: admin
-              BOSH_PASSWORD: admin
-          - put: testflight-logs
-            params: {file: exported-logs/concourse.*.tgz}
+  - aggregate:
+    - get: concourse
+      passed: [bosh-rc]
+      trigger: true
+    - get: bosh-rc
+      passed: [bosh-rc]
+      trigger: true
+    - get: version
+      passed: [bosh-rc]
+      trigger: true
+    - get: garden-runc
+      passed: [bosh-rc]
+      trigger: true
+    - get: fly-rc
+      passed: [bosh-rc]
+    - get: gcp-stemcell
+    - get: deployments
+  - put: tf-deployment
+    params:
+      manifest: concourse/src/github.com/concourse/testflight/scripts/manifests/deployment.yml
+      stemcells: [gcp-stemcell/*.tgz]
+      releases:
+        - garden-runc-release/*.tgz
+        - bosh-rc/concourse-*.tgz
+  - task: testflight
+    file: concourse/ci/testflight.yml
+    params:
+      ATC_URL: "http://10.244.15.2:8080"
+    timeout: 1h
+    on_failure:
+      do:
+        - task: export-bosh-logs
+          file: concourse/ci/export-bosh-logs.yml
+          params:
+            MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
+            BOSH_USER: admin
+            BOSH_PASSWORD: admin
+        - put: testflight-logs
+          params: {file: exported-logs/concourse.*.tgz}
 
 - name: bin-testflight
   public: true
@@ -796,12 +786,13 @@ resources:
     client_id: {{bosh-client-id}}
     client_secret: {{bosh-client-secret}}
 
-- name: lite-deployment
+- name: tf-deployment
   type: bosh-deployment
-  source: &lite-defaults
-    username: admin
-    password: admin
+  source:
+    target: {{bosh-target}}
     deployment: concourse-testflight
+    client_id: {{bosh-client-id}}
+    client_secret: {{bosh-client-secret}}
 
 - name: virtualbox-box-cloud
   type: vagrant-cloud
@@ -836,11 +827,6 @@ resources:
   type: bosh-io-stemcell
   source:
     name: bosh-google-kvm-ubuntu-trusty-go_agent
-
-- name: lite-stemcell
-  type: bosh-io-stemcell
-  source:
-    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
 
 - name: concourse-lite
   type: git
