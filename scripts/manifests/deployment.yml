@@ -16,7 +16,7 @@ instance_groups:
       - name: testflight
         static_ips: [&web-ip 10.244.15.2]
     persistent_disk: 10240
-    vm_type: concourse
+    vm_type: testflight
     stemcell: trusty
     jobs:
       - release: concourse
@@ -43,7 +43,7 @@ instance_groups:
   - name: default_worker
     instances: 1
     networks: [name: testflight]
-    vm_type: concourse
+    vm_type: testflight
     stemcell: trusty
     jobs:
       - release: concourse
@@ -69,7 +69,7 @@ instance_groups:
   - name: tagged_worker
     instances: 2
     networks: [name: testflight]
-    vm_type: concourse
+    vm_type: testflight
     stemcell: trusty
     jobs:
       - release: concourse
@@ -96,7 +96,7 @@ instance_groups:
   - name: proxy_worker
     instances: 1
     networks: [name: testflight]
-    vm_type: concourse
+    vm_type: testflight
     stemcell: trusty
     jobs:
       - release: concourse
