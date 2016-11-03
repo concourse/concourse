@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp"
@@ -19,7 +19,8 @@ var _ = Describe("HijackableClient #Do", func() {
 	var (
 		request              http.Request
 		fakeDB               *transportfakes.FakeTransportDB
-		savedWorker          db.SavedWorker
+		savedWorker          dbng.Worker
+		savedWorkerAddress   string
 		fakeHijackableClient *retryhttpfakes.FakeHijackableClient
 		hijackableClient     retryhttp.HijackableClient
 		response             *http.Response
@@ -40,14 +41,14 @@ var _ = Describe("HijackableClient #Do", func() {
 			URL: requestUrl,
 		}
 
-		savedWorker = db.SavedWorker{
-			WorkerInfo: db.WorkerInfo{
-				GardenAddr: "some-garden-addr",
-			},
-			ExpiresIn: 123,
+		savedWorkerAddress = "some-garden-addr"
+		savedWorker = dbng.Worker{
+			GardenAddr: &savedWorkerAddress,
+			ExpiresIn:  123,
+			State:      dbng.WorkerStateRunning,
 		}
 
-		fakeDB.GetWorkerReturns(savedWorker, true, nil)
+		fakeDB.GetWorkerReturns(&savedWorker, true, nil)
 
 		fakeHijackableClient.DoReturns(&http.Response{StatusCode: http.StatusTeapot}, fakeHijackCloser, nil)
 	})
@@ -65,7 +66,7 @@ var _ = Describe("HijackableClient #Do", func() {
 	It("sends the request with worker's garden address", func() {
 		Expect(fakeHijackableClient.DoCallCount()).To(Equal(1))
 		actualRequest := fakeHijackableClient.DoArgsForCall(0)
-		Expect(actualRequest.URL.Host).To(Equal(savedWorker.GardenAddr))
+		Expect(actualRequest.URL.Host).To(Equal(*savedWorker.GardenAddr))
 		Expect(actualRequest.URL.Path).To(Equal("/something"))
 	})
 
@@ -73,7 +74,7 @@ var _ = Describe("HijackableClient #Do", func() {
 		var expectedErr error
 		BeforeEach(func() {
 			expectedErr = errors.New("some-db-error")
-			fakeDB.GetWorkerReturns(db.SavedWorker{}, true, expectedErr)
+			fakeDB.GetWorkerReturns(nil, true, expectedErr)
 		})
 
 		It("throws an error", func() {
@@ -84,12 +85,25 @@ var _ = Describe("HijackableClient #Do", func() {
 
 	Context("when the worker is not found in the db", func() {
 		BeforeEach(func() {
-			fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
+			fakeDB.GetWorkerReturns(nil, false, nil)
 		})
 
 		It("throws an error", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(transport.ErrMissingWorker{WorkerName: "some-worker"}))
+		})
+	})
+
+	Context("when the worker is stalled in the db", func() {
+		BeforeEach(func() {
+			fakeDB.GetWorkerReturns(&dbng.Worker{
+				State: dbng.WorkerStateStalled,
+			}, true, nil)
+		})
+
+		It("throws a descriptive error", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(Equal(transport.ErrWorkerStalled{WorkerName: "some-worker"}))
 		})
 	})
 

@@ -122,7 +122,7 @@ func (provider *dbProvider) ReapContainer(handle string) error {
 
 func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbng.Worker) Worker {
 	gcf := NewGardenConnectionFactory(
-		provider.db,
+		provider.dbWorkerFactory,
 		provider.logger.Session("garden-connection"),
 		savedWorker.Name,
 		*(savedWorker.GardenAddr),
