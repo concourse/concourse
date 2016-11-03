@@ -32,8 +32,9 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+
 	if confirm != teamName {
-		return errors.New("you typed in the team name incorrectly, bailing out")
+		return errors.New("incorrect team name; bailing out")
 	}
 
 	err = target.Team().DestroyTeam(teamName)
