@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 //go:generate counterfeiter . WorkerProvider
@@ -408,8 +409,8 @@ func (*pool) FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error) {
 	return nil, false, errors.New("FindVolume not implemented for pool")
 }
 
-func (*pool) CreateVolumeForResourceCache(lager.Logger, VolumeSpec) (Volume, error) {
-	return nil, errors.New("CreateVolumeForResourceCache not implemented for pool")
+func (*pool) FindOrCreateVolumeForResourceCache(lager.Logger, VolumeSpec, *dbng.UsedResourceCache) (Volume, error) {
+	return nil, errors.New("FindOrCreateVolumeForResourceCache not implemented for pool")
 }
 
 func (*pool) ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error) {

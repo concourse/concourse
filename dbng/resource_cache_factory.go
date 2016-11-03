@@ -1,35 +1,43 @@
 package dbng
 
-import "github.com/concourse/atc"
+import (
+	"errors"
+
+	"github.com/concourse/atc"
+)
+
+var ErrResourceTypeNotFound = errors.New("resource type not found")
 
 //go:generate counterfeiter . ResourceCacheFactory
 
 type ResourceCacheFactory interface {
 	FindOrCreateResourceCacheForBuild(
 		build *Build,
-		resourceType string,
+		resourceTypeName string,
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		resourceTypes []ResourceType,
+		pipeline *Pipeline,
+		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceCache, error)
 
 	FindOrCreateResourceCacheForResource(
 		resource *Resource,
-		resourceType string,
+		resourceTypeName string,
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		resourceTypes []ResourceType,
+		pipeline *Pipeline,
+		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceCache, error)
 
 	FindOrCreateResourceCacheForResourceType(
-		usedResourceType *UsedResourceType,
-		resourceType string,
+		resourceTypeName string,
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		resourceTypes []ResourceType,
+		pipeline *Pipeline,
+		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceCache, error)
 }
 
@@ -45,23 +53,29 @@ func NewResourceCacheFactory(conn Conn) ResourceCacheFactory {
 
 func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 	build *Build,
-	resourceType string,
+	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes []ResourceType,
+	pipeline *Pipeline,
+	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceCache, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
 	defer tx.Rollback()
+
+	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceConfig, err := constructResourceConfig(resourceTypeName, source, dbResourceTypes)
+	if err != nil {
+		return nil, err
+	}
 
 	resourceCache := ResourceCache{
 		ResourceConfig: resourceConfig,
@@ -84,23 +98,29 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 
 func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 	resource *Resource,
-	resourceType string,
+	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes []ResourceType,
+	pipeline *Pipeline,
+	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceCache, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
 	defer tx.Rollback()
+
+	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceConfig, err := constructResourceConfig(resourceTypeName, source, dbResourceTypes)
+	if err != nil {
+		return nil, err
+	}
 
 	resourceCache := ResourceCache{
 		ResourceConfig: resourceConfig,
@@ -122,16 +142,16 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 }
 
 func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
-	usedResourceType *UsedResourceType,
-	resourceType string,
+	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes []ResourceType,
+	pipeline *Pipeline,
+	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceCache, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, err
+	resourceType, found := resourceTypes.Lookup(resourceTypeName)
+	if !found {
+		return nil, ErrResourceTypeNotFound
 	}
 
 	tx, err := f.conn.Begin()
@@ -140,6 +160,30 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 	}
 
 	defer tx.Rollback()
+
+	rt := ResourceType{
+		ResourceType: resourceType,
+		Pipeline:     pipeline,
+	}
+
+	usedResourceType, found, err := rt.Find(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return nil, ErrResourceTypeNotFound
+	}
+
+	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceConfig, err := constructResourceConfig(resourceType.Name, source, dbResourceTypes)
+	if err != nil {
+		return nil, err
+	}
 
 	resourceCache := ResourceCache{
 		ResourceConfig: resourceConfig,
@@ -158,4 +202,31 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 	}
 
 	return usedResourceCache, nil
+}
+
+func getDBResourceTypes(
+	tx Tx,
+	pipeline *Pipeline,
+	resourceTypes atc.ResourceTypes,
+) ([]ResourceType, error) {
+	dbResourceTypes := []ResourceType{}
+	for _, resourceType := range resourceTypes {
+		dbResourceType := ResourceType{
+			ResourceType: resourceType,
+			Pipeline:     pipeline,
+		}
+
+		urt, found, err := dbResourceType.Find(tx)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
+			return nil, ErrResourceTypeNotFound
+		}
+
+		dbResourceType.Version = urt.Version
+		dbResourceTypes = append(dbResourceTypes, dbResourceType)
+	}
+	return dbResourceTypes, nil
 }

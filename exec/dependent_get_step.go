@@ -14,19 +14,20 @@ import (
 // previous step. It is used to fetch the resource version produced by a
 // PutStep.
 type DependentGetStep struct {
-	logger              lager.Logger
-	sourceName          worker.ArtifactName
-	resourceConfig      atc.ResourceConfig
-	params              atc.Params
-	stepMetadata        StepMetadata
-	session             resource.Session
-	tags                atc.Tags
-	teamID              int
-	delegate            ResourceDelegate
-	resourceFetcher     resource.Fetcher
-	resourceTypes       atc.ResourceTypes
-	containerSuccessTTL time.Duration
-	containerFailureTTL time.Duration
+	logger                 lager.Logger
+	sourceName             worker.ArtifactName
+	resourceConfig         atc.ResourceConfig
+	params                 atc.Params
+	stepMetadata           StepMetadata
+	session                resource.Session
+	tags                   atc.Tags
+	teamID                 int
+	delegate               ResourceDelegate
+	resourceFetcher        resource.Fetcher
+	resourceTypes          atc.ResourceTypes
+	containerSuccessTTL    time.Duration
+	containerFailureTTL    time.Duration
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
 func newDependentGetStep(
@@ -43,21 +44,23 @@ func newDependentGetStep(
 	resourceTypes atc.ResourceTypes,
 	containerSuccessTTL time.Duration,
 	containerFailureTTL time.Duration,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) DependentGetStep {
 	return DependentGetStep{
-		logger:              logger,
-		sourceName:          sourceName,
-		resourceConfig:      resourceConfig,
-		params:              params,
-		stepMetadata:        stepMetadata,
-		session:             session,
-		tags:                tags,
-		teamID:              teamID,
-		delegate:            delegate,
-		resourceFetcher:     resourceFetcher,
-		resourceTypes:       resourceTypes,
-		containerSuccessTTL: containerSuccessTTL,
-		containerFailureTTL: containerFailureTTL,
+		logger:                 logger,
+		sourceName:             sourceName,
+		resourceConfig:         resourceConfig,
+		params:                 params,
+		stepMetadata:           stepMetadata,
+		session:                session,
+		tags:                   tags,
+		teamID:                 teamID,
+		delegate:               delegate,
+		resourceFetcher:        resourceFetcher,
+		resourceTypes:          resourceTypes,
+		containerSuccessTTL:    containerSuccessTTL,
+		containerFailureTTL:    containerFailureTTL,
+		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
@@ -78,9 +81,10 @@ func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) S
 			info.Version,
 			step.resourceConfig.Source,
 			step.params,
-			&dbng.Build{
-				ID: step.session.ID.BuildID,
-			},
+			&dbng.Build{ID: step.session.ID.BuildID},
+			&dbng.Pipeline{ID: step.session.Metadata.PipelineID},
+			step.resourceTypes,
+			step.dbResourceCacheFactory,
 		),
 		step.stepMetadata,
 		step.session,

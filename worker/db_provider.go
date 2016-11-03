@@ -27,6 +27,7 @@ type WorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
+	UpdateVolumeIdentifierToBeDeleted(db.Volume) error
 	InsertVolume(db.Volume) error
 	GetVolumesByIdentifier(db.VolumeIdentifier) ([]db.SavedVolume, error)
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
@@ -59,7 +60,6 @@ func NewDBWorkerProvider(
 	imageFactory ImageFactory,
 	dbContainerFactory DBContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
-	dbResourceTypeFactory dbng.ResourceTypeFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,
 	dbVolumeFactory dbng.VolumeFactory,
@@ -73,7 +73,6 @@ func NewDBWorkerProvider(
 		imageFactory:              imageFactory,
 		dbContainerFactory:        dbContainerFactory,
 		dbResourceCacheFactory:    dbResourceCacheFactory,
-		dbResourceTypeFactory:     dbResourceTypeFactory,
 		dbResourceConfigFactory:   dbResourceConfigFactory,
 		dbBaseResourceTypeFactory: dbBaseResourceTypeFactory,
 		dbVolumeFactory:           dbVolumeFactory,
@@ -152,7 +151,10 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		provider.dbVolumeFactory,
 		provider.dbBaseResourceTypeFactory,
 		clock.NewClock(),
-		savedWorker.Name,
+		&dbng.Worker{
+			Name:       savedWorker.Name,
+			GardenAddr: &savedWorker.GardenAddr,
+		},
 	)
 
 	return NewGardenWorker(
@@ -165,7 +167,6 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		provider.dbContainerFactory,
 		provider.dbVolumeFactory,
 		provider.dbResourceCacheFactory,
-		provider.dbResourceTypeFactory,
 		provider.dbResourceConfigFactory,
 		provider.db,
 		provider,

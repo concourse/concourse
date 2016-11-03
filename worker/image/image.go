@@ -38,7 +38,8 @@ type image struct {
 	imageFetchingDelegate worker.ImageFetchingDelegate
 	privileged            bool
 
-	resourceFetcher resource.Fetcher
+	resourceFetcher        resource.Fetcher
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
 func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
@@ -57,6 +58,9 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 			i.imageResource.Source,
 			nil,
 			&dbng.Build{ID: i.workerID.BuildID},
+			&dbng.Pipeline{ID: i.workerMetadata.PipelineID},
+			i.customTypes,
+			i.dbResourceCacheFactory,
 		)
 	} else if i.workerID.ResourceID != 0 {
 		resourceInstance = resource.NewResourceResourceInstance(
@@ -65,6 +69,9 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 			i.imageResource.Source,
 			nil,
 			&dbng.Resource{ID: i.workerID.ResourceID},
+			&dbng.Pipeline{ID: i.workerMetadata.PipelineID},
+			i.customTypes,
+			i.dbResourceCacheFactory,
 		)
 	} else {
 		resourceInstance = resource.NewResourceTypeResourceInstance(
@@ -73,6 +80,9 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 			i.imageResource.Source,
 			nil,
 			&dbng.UsedResourceType{ID: i.workerID.ResourceTypeID},
+			&dbng.Pipeline{ID: i.workerMetadata.PipelineID},
+			i.customTypes,
+			i.dbResourceCacheFactory,
 		)
 	}
 

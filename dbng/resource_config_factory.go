@@ -9,21 +9,23 @@ type ResourceConfigFactory interface {
 		build *Build,
 		resourceType string,
 		source atc.Source,
-		resourceTypes []ResourceType,
+		pipeline *Pipeline,
+		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceConfig, error)
 
 	FindOrCreateResourceConfigForResource(
 		resource *Resource,
 		resourceType string,
 		source atc.Source,
-		resourceTypes []ResourceType,
+		pipeline *Pipeline,
+		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceConfig, error)
 
 	FindOrCreateResourceConfigForResourceType(
-		usedResourceType *UsedResourceType,
-		resourceType string,
+		resourceTypeName string,
 		source atc.Source,
-		resourceTypes []ResourceType,
+		pipeline *Pipeline,
+		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceConfig, error)
 }
 
@@ -41,19 +43,25 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 	build *Build,
 	resourceType string,
 	source atc.Source,
-	resourceTypes []ResourceType,
+	pipeline *Pipeline,
+	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceConfig, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
 	defer tx.Rollback()
+
+	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceConfig, err := constructResourceConfig(resourceType, source, dbResourceTypes)
+	if err != nil {
+		return nil, err
+	}
 
 	usedResourceConfig, err := resourceConfig.FindOrCreateForBuild(tx, build)
 	if err != nil {
@@ -72,19 +80,25 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
 	resource *Resource,
 	resourceType string,
 	source atc.Source,
-	resourceTypes []ResourceType,
+	pipeline *Pipeline,
+	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceConfig, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
 	defer tx.Rollback()
+
+	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceConfig, err := constructResourceConfig(resourceType, source, dbResourceTypes)
+	if err != nil {
+		return nil, err
+	}
 
 	usedResourceConfig, err := resourceConfig.FindOrCreateForResource(tx, resource)
 	if err != nil {
@@ -100,14 +114,14 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
 }
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
-	usedResourceType *UsedResourceType,
-	resourceType string,
+	resourceTypeName string,
 	source atc.Source,
-	resourceTypes []ResourceType,
+	pipeline *Pipeline,
+	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceConfig, error) {
-	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, err
+	resourceType, found := resourceTypes.Lookup(resourceTypeName)
+	if !found {
+		return nil, ErrResourceTypeNotFound
 	}
 
 	tx, err := f.conn.Begin()
@@ -116,6 +130,30 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
 	}
 
 	defer tx.Rollback()
+
+	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceConfig, err := constructResourceConfig(resourceTypeName, source, dbResourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	rt := ResourceType{
+		ResourceType: resourceType,
+		Pipeline:     pipeline,
+	}
+
+	usedResourceType, found, err := rt.Find(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return nil, ErrResourceTypeNotFound
+	}
 
 	usedResourceConfig, err := resourceConfig.FindOrCreateForResourceType(tx, usedResourceType)
 	if err != nil {

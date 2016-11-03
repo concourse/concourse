@@ -16,20 +16,23 @@ import (
 )
 
 type gardenFactory struct {
-	workerClient    worker.Client
-	resourceFetcher resource.Fetcher
-	resourceFactory resource.ResourceFactory
+	workerClient           worker.Client
+	resourceFetcher        resource.Fetcher
+	resourceFactory        resource.ResourceFactory
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
 func NewGardenFactory(
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) Factory {
 	return &gardenFactory{
-		workerClient:    workerClient,
-		resourceFetcher: resourceFetcher,
-		resourceFactory: resourceFactory,
+		workerClient:           workerClient,
+		resourceFetcher:        resourceFetcher,
+		resourceFactory:        resourceFactory,
+		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
@@ -66,6 +69,7 @@ func (factory *gardenFactory) DependentGet(
 		resourceTypes,
 		containerSuccessTTL,
 		containerFailureTTL,
+		factory.dbResourceCacheFactory,
 	)
 }
 
@@ -97,9 +101,10 @@ func (factory *gardenFactory) Get(
 			version,
 			resourceConfig.Source,
 			params,
-			&dbng.Build{
-				ID: id.BuildID,
-			},
+			&dbng.Build{ID: id.BuildID},
+			&dbng.Pipeline{ID: workerMetadata.PipelineID},
+			resourceTypes,
+			factory.dbResourceCacheFactory,
 		),
 		stepMetadata,
 		resource.Session{

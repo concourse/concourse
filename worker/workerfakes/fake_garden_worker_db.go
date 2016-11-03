@@ -78,6 +78,14 @@ type FakeGardenWorkerDB struct {
 	insertVolumeReturns struct {
 		result1 error
 	}
+	UpdateVolumeIdentifierToBeDeletedStub        func(db.Volume) error
+	updateVolumeIdentifierToBeDeletedMutex       sync.RWMutex
+	updateVolumeIdentifierToBeDeletedArgsForCall []struct {
+		arg1 db.Volume
+	}
+	updateVolumeIdentifierToBeDeletedReturns struct {
+		result1 error
+	}
 	SetVolumeTTLAndSizeInBytesStub        func(string, time.Duration, int64) error
 	setVolumeTTLAndSizeInBytesMutex       sync.RWMutex
 	setVolumeTTLAndSizeInBytesArgsForCall []struct {
@@ -369,6 +377,39 @@ func (fake *FakeGardenWorkerDB) InsertVolumeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeGardenWorkerDB) UpdateVolumeIdentifierToBeDeleted(arg1 db.Volume) error {
+	fake.updateVolumeIdentifierToBeDeletedMutex.Lock()
+	fake.updateVolumeIdentifierToBeDeletedArgsForCall = append(fake.updateVolumeIdentifierToBeDeletedArgsForCall, struct {
+		arg1 db.Volume
+	}{arg1})
+	fake.recordInvocation("UpdateVolumeIdentifierToBeDeleted", []interface{}{arg1})
+	fake.updateVolumeIdentifierToBeDeletedMutex.Unlock()
+	if fake.UpdateVolumeIdentifierToBeDeletedStub != nil {
+		return fake.UpdateVolumeIdentifierToBeDeletedStub(arg1)
+	} else {
+		return fake.updateVolumeIdentifierToBeDeletedReturns.result1
+	}
+}
+
+func (fake *FakeGardenWorkerDB) UpdateVolumeIdentifierToBeDeletedCallCount() int {
+	fake.updateVolumeIdentifierToBeDeletedMutex.RLock()
+	defer fake.updateVolumeIdentifierToBeDeletedMutex.RUnlock()
+	return len(fake.updateVolumeIdentifierToBeDeletedArgsForCall)
+}
+
+func (fake *FakeGardenWorkerDB) UpdateVolumeIdentifierToBeDeletedArgsForCall(i int) db.Volume {
+	fake.updateVolumeIdentifierToBeDeletedMutex.RLock()
+	defer fake.updateVolumeIdentifierToBeDeletedMutex.RUnlock()
+	return fake.updateVolumeIdentifierToBeDeletedArgsForCall[i].arg1
+}
+
+func (fake *FakeGardenWorkerDB) UpdateVolumeIdentifierToBeDeletedReturns(result1 error) {
+	fake.UpdateVolumeIdentifierToBeDeletedStub = nil
+	fake.updateVolumeIdentifierToBeDeletedReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeGardenWorkerDB) SetVolumeTTLAndSizeInBytes(arg1 string, arg2 time.Duration, arg3 int64) error {
 	fake.setVolumeTTLAndSizeInBytesMutex.Lock()
 	fake.setVolumeTTLAndSizeInBytesArgsForCall = append(fake.setVolumeTTLAndSizeInBytesArgsForCall, struct {
@@ -526,6 +567,8 @@ func (fake *FakeGardenWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.getPipelineByIDMutex.RUnlock()
 	fake.insertVolumeMutex.RLock()
 	defer fake.insertVolumeMutex.RUnlock()
+	fake.updateVolumeIdentifierToBeDeletedMutex.RLock()
+	defer fake.updateVolumeIdentifierToBeDeletedMutex.RUnlock()
 	fake.setVolumeTTLAndSizeInBytesMutex.RLock()
 	defer fake.setVolumeTTLAndSizeInBytesMutex.RUnlock()
 	fake.getVolumeTTLMutex.RLock()

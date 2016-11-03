@@ -97,6 +97,14 @@ type FakeWorkerDB struct {
 		result1 db.SavedPipeline
 		result2 error
 	}
+	UpdateVolumeIdentifierToBeDeletedStub        func(db.Volume) error
+	updateVolumeIdentifierToBeDeletedMutex       sync.RWMutex
+	updateVolumeIdentifierToBeDeletedArgsForCall []struct {
+		arg1 db.Volume
+	}
+	updateVolumeIdentifierToBeDeletedReturns struct {
+		result1 error
+	}
 	InsertVolumeStub        func(db.Volume) error
 	insertVolumeMutex       sync.RWMutex
 	insertVolumeArgsForCall []struct {
@@ -476,6 +484,39 @@ func (fake *FakeWorkerDB) GetPipelineByIDReturns(result1 db.SavedPipeline, resul
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerDB) UpdateVolumeIdentifierToBeDeleted(arg1 db.Volume) error {
+	fake.updateVolumeIdentifierToBeDeletedMutex.Lock()
+	fake.updateVolumeIdentifierToBeDeletedArgsForCall = append(fake.updateVolumeIdentifierToBeDeletedArgsForCall, struct {
+		arg1 db.Volume
+	}{arg1})
+	fake.recordInvocation("UpdateVolumeIdentifierToBeDeleted", []interface{}{arg1})
+	fake.updateVolumeIdentifierToBeDeletedMutex.Unlock()
+	if fake.UpdateVolumeIdentifierToBeDeletedStub != nil {
+		return fake.UpdateVolumeIdentifierToBeDeletedStub(arg1)
+	} else {
+		return fake.updateVolumeIdentifierToBeDeletedReturns.result1
+	}
+}
+
+func (fake *FakeWorkerDB) UpdateVolumeIdentifierToBeDeletedCallCount() int {
+	fake.updateVolumeIdentifierToBeDeletedMutex.RLock()
+	defer fake.updateVolumeIdentifierToBeDeletedMutex.RUnlock()
+	return len(fake.updateVolumeIdentifierToBeDeletedArgsForCall)
+}
+
+func (fake *FakeWorkerDB) UpdateVolumeIdentifierToBeDeletedArgsForCall(i int) db.Volume {
+	fake.updateVolumeIdentifierToBeDeletedMutex.RLock()
+	defer fake.updateVolumeIdentifierToBeDeletedMutex.RUnlock()
+	return fake.updateVolumeIdentifierToBeDeletedArgsForCall[i].arg1
+}
+
+func (fake *FakeWorkerDB) UpdateVolumeIdentifierToBeDeletedReturns(result1 error) {
+	fake.UpdateVolumeIdentifierToBeDeletedStub = nil
+	fake.updateVolumeIdentifierToBeDeletedReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeWorkerDB) InsertVolume(arg1 db.Volume) error {
 	fake.insertVolumeMutex.Lock()
 	fake.insertVolumeArgsForCall = append(fake.insertVolumeArgsForCall, struct {
@@ -737,6 +778,8 @@ func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.reapContainerMutex.RUnlock()
 	fake.getPipelineByIDMutex.RLock()
 	defer fake.getPipelineByIDMutex.RUnlock()
+	fake.updateVolumeIdentifierToBeDeletedMutex.RLock()
+	defer fake.updateVolumeIdentifierToBeDeletedMutex.RUnlock()
 	fake.insertVolumeMutex.RLock()
 	defer fake.insertVolumeMutex.RUnlock()
 	fake.getVolumesByIdentifierMutex.RLock()

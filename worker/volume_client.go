@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
-	uuid "github.com/nu7hatch/gouuid"
 )
 
 const creatingVolumeRetryDelay = 1 * time.Second
@@ -18,14 +17,14 @@ const creatingVolumeRetryDelay = 1 * time.Second
 
 type VolumeClient interface {
 	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
-	CreateVolumeForResourceCache(
+	FindOrCreateVolumeForResourceCache(
 		lager.Logger,
 		VolumeSpec,
+		*dbng.UsedResourceCache,
 	) (Volume, error)
 	FindOrCreateVolumeForContainer(
 		lager.Logger,
 		VolumeSpec,
-		*dbng.Worker,
 		*dbng.CreatingContainer,
 		*dbng.Team,
 		string,
@@ -33,7 +32,6 @@ type VolumeClient interface {
 	FindOrCreateVolumeForBaseResourceType(
 		lager.Logger,
 		VolumeSpec,
-		*dbng.Worker,
 		*dbng.Team,
 		string,
 	) (Volume, error)
@@ -52,7 +50,7 @@ type volumeClient struct {
 	dbVolumeFactory           dbng.VolumeFactory
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory
 	clock                     clock.Clock
-	workerName                string
+	dbWorker                  *dbng.Worker
 }
 
 func NewVolumeClient(
@@ -62,7 +60,7 @@ func NewVolumeClient(
 	dbVolumeFactory dbng.VolumeFactory,
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,
 	clock clock.Clock,
-	workerName string,
+	dbWorker *dbng.Worker,
 ) VolumeClient {
 	return &volumeClient{
 		baggageclaimClient:        baggageclaimClient,
@@ -70,8 +68,8 @@ func NewVolumeClient(
 		volumeFactory:             volumeFactory,
 		dbVolumeFactory:           dbVolumeFactory,
 		dbBaseResourceTypeFactory: dbBaseResourceTypeFactory,
-		clock:      clock,
-		workerName: workerName,
+		clock:    clock,
+		dbWorker: dbWorker,
 	}
 }
 
@@ -109,7 +107,6 @@ func (c *volumeClient) FindVolume(
 func (c *volumeClient) FindOrCreateVolumeForContainer(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	worker *dbng.Worker,
 	container *dbng.CreatingContainer,
 	team *dbng.Team,
 	mountPath string,
@@ -117,13 +114,11 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 	return c.findOrCreateVolume(
 		logger,
 		volumeSpec,
-		worker,
-		team,
 		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
-			return c.dbVolumeFactory.FindContainerVolume(team, worker, container, mountPath)
+			return c.dbVolumeFactory.FindContainerVolume(team, c.dbWorker, container, mountPath)
 		},
 		func() (dbng.CreatingVolume, error) {
-			return c.dbVolumeFactory.CreateContainerVolume(team, worker, container, mountPath)
+			return c.dbVolumeFactory.CreateContainerVolume(team, c.dbWorker, container, mountPath)
 		},
 	)
 }
@@ -131,7 +126,6 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	worker *dbng.Worker,
 	team *dbng.Team,
 	resourceTypeName string,
 ) (Volume, error) {
@@ -147,56 +141,44 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 	return c.findOrCreateVolume(
 		logger,
 		volumeSpec,
-		worker,
-		team,
 		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
-			return c.dbVolumeFactory.FindBaseResourceTypeVolume(team, worker, baseResourceType)
+			return c.dbVolumeFactory.FindBaseResourceTypeVolume(team, c.dbWorker, baseResourceType)
 		},
 		func() (dbng.CreatingVolume, error) {
-			return c.dbVolumeFactory.CreateBaseResourceTypeVolume(team, worker, baseResourceType)
+			return c.dbVolumeFactory.CreateBaseResourceTypeVolume(team, c.dbWorker, baseResourceType)
 		},
 	)
 }
 
-func (c *volumeClient) CreateVolumeForResourceCache(
+func (c *volumeClient) FindOrCreateVolumeForResourceCache(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
+	usedResourceCache *dbng.UsedResourceCache,
 ) (Volume, error) {
-	if c.baggageclaimClient == nil {
-		return nil, ErrNoVolumeManager
-	}
-
-	handle, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
-
-	bcVolume, err := c.baggageclaimClient.CreateVolume(
-		logger.Session("create-volume"),
-		handle.String(),
-		volumeSpec.baggageclaimVolumeSpec(),
+	volume, err := c.findOrCreateVolume(
+		logger,
+		volumeSpec,
+		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
+			return c.dbVolumeFactory.FindResourceCacheVolume(c.dbWorker, usedResourceCache)
+		},
+		func() (dbng.CreatingVolume, error) {
+			return c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker, usedResourceCache)
+		},
 	)
 	if err != nil {
-		logger.Error("failed-to-create-volume", err)
+		logger.Error("failed-to-find-or-create-resource-cache-volume", err)
 		return nil, err
 	}
 
-	err = c.db.InsertVolume(db.Volume{
-		Handle:     bcVolume.Handle(),
-		TeamID:     0,
-		WorkerName: c.workerName,
+	err = c.db.UpdateVolumeIdentifierToBeDeleted(db.Volume{
+		Handle:     volume.Handle(),
+		WorkerName: c.dbWorker.Name,
 		TTL:        volumeSpec.TTL,
 		Identifier: volumeSpec.Strategy.dbIdentifier(),
 	})
 
 	if err != nil {
-		logger.Error("failed-to-save-volume-to-db", err)
-		return nil, err
-	}
-
-	volume, err := c.volumeFactory.BuildWithIndefiniteTTL(logger, bcVolume)
-	if err != nil {
-		logger.Error("failed-build-volume", err)
+		logger.Error("failed-to-update-volume-identifier", err)
 		return nil, err
 	}
 
@@ -304,8 +286,6 @@ func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error { 
 func (c *volumeClient) findOrCreateVolume(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	worker *dbng.Worker,
-	team *dbng.Team,
 	findVolumeFunc func() (dbng.CreatingVolume, dbng.CreatedVolume, error),
 	createVolumeFunc func() (dbng.CreatingVolume, error),
 ) (Volume, error) {
@@ -358,7 +338,7 @@ func (c *volumeClient) findOrCreateVolume(
 
 		if !acquired {
 			c.clock.Sleep(creatingVolumeRetryDelay)
-			return c.findOrCreateVolume(logger, volumeSpec, worker, team, findVolumeFunc, createVolumeFunc)
+			return c.findOrCreateVolume(logger, volumeSpec, findVolumeFunc, createVolumeFunc)
 		}
 
 		defer lock.Release()

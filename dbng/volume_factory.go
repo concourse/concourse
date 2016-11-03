@@ -17,8 +17,8 @@ type VolumeFactory interface {
 	FindBaseResourceTypeVolume(*Team, *Worker, *UsedBaseResourceType) (CreatingVolume, CreatedVolume, error)
 	CreateBaseResourceTypeVolume(*Team, *Worker, *UsedBaseResourceType) (CreatingVolume, error)
 
-	FindResourceCacheVolume(*Team, *Worker, *UsedResourceCache) (CreatingVolume, CreatedVolume, error)
-	CreateResourceCacheVolume(*Team, *Worker, *UsedResourceCache) (CreatingVolume, error)
+	FindResourceCacheVolume(*Worker, *UsedResourceCache) (CreatingVolume, CreatedVolume, error)
+	CreateResourceCacheVolume(*Worker, *UsedResourceCache) (CreatingVolume, error)
 
 	FindVolumesForContainer(containerID int) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
@@ -34,14 +34,14 @@ func NewVolumeFactory(conn Conn) VolumeFactory {
 	}
 }
 
-func (factory *volumeFactory) CreateResourceCacheVolume(team *Team, worker *Worker, resourceCache *UsedResourceCache) (CreatingVolume, error) {
+func (factory *volumeFactory) CreateResourceCacheVolume(worker *Worker, resourceCache *UsedResourceCache) (CreatingVolume, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
 	defer tx.Rollback()
-	return factory.createVolume(tx, team.ID, worker, map[string]interface{}{"resource_cache_id": resourceCache.ID})
+	return factory.createVolume(tx, nil, worker, map[string]interface{}{"resource_cache_id": resourceCache.ID})
 }
 
 func (factory *volumeFactory) CreateBaseResourceTypeVolume(team *Team, worker *Worker, ubrt *UsedBaseResourceType) (CreatingVolume, error) {
@@ -52,7 +52,7 @@ func (factory *volumeFactory) CreateBaseResourceTypeVolume(team *Team, worker *W
 
 	defer tx.Rollback()
 
-	return factory.createVolume(tx, team.ID, worker, map[string]interface{}{
+	return factory.createVolume(tx, team, worker, map[string]interface{}{
 		"base_resource_type_id": ubrt.ID,
 		"initialized":           true,
 	})
@@ -66,7 +66,7 @@ func (factory *volumeFactory) CreateContainerVolume(team *Team, worker *Worker, 
 
 	defer tx.Rollback()
 
-	volume, err := factory.createVolume(tx, team.ID, worker, map[string]interface{}{
+	volume, err := factory.createVolume(tx, team, worker, map[string]interface{}{
 		"container_id": container.ID,
 		"path":         mountPath,
 		"initialized":  true,
@@ -151,8 +151,8 @@ func (factory *volumeFactory) FindBaseResourceTypeVolume(team *Team, worker *Wor
 	})
 }
 
-func (factory *volumeFactory) FindResourceCacheVolume(team *Team, worker *Worker, resourceCache *UsedResourceCache) (CreatingVolume, CreatedVolume, error) {
-	return factory.findVolume(team, worker, map[string]interface{}{
+func (factory *volumeFactory) FindResourceCacheVolume(worker *Worker, resourceCache *UsedResourceCache) (CreatingVolume, CreatedVolume, error) {
+	return factory.findVolume(nil, worker, map[string]interface{}{
 		"v.resource_cache_id": resourceCache.ID,
 	})
 }
@@ -242,18 +242,23 @@ var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer e
 // 3. insert into volumes in 'initializing' state
 //   * if fails (fkey violation; worker type gone), fail for same reason as 2.
 // 4. commit tx
-func (factory *volumeFactory) createVolume(tx Tx, teamID int, worker *Worker, columns map[string]interface{}) (*creatingVolume, error) {
+func (factory *volumeFactory) createVolume(tx Tx, team *Team, worker *Worker, columns map[string]interface{}) (*creatingVolume, error) {
 	var volumeID int
 	handle, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
 
-	columnNames := []string{"team_id", "worker_name", "handle"}
-	columnValues := []interface{}{teamID, worker.Name, handle.String()}
+	columnNames := []string{"worker_name", "handle"}
+	columnValues := []interface{}{worker.Name, handle.String()}
 	for name, value := range columns {
 		columnNames = append(columnNames, name)
 		columnValues = append(columnValues, value)
+	}
+
+	if team != nil {
+		columnNames = append(columnNames, "team_id")
+		columnValues = append(columnValues, team.ID)
 	}
 
 	err = psql.Insert("volumes").
@@ -298,10 +303,11 @@ func (factory *volumeFactory) findVolume(team *Team, worker *Worker, columns map
 	var workerAddress string
 	var path sql.NullString
 
-	whereClause := sq.Eq{
-		"v.team_id":     team.ID,
-		"v.worker_name": worker.Name,
+	whereClause := sq.Eq{"v.worker_name": worker.Name}
+	if team != nil {
+		whereClause["v.team_id"] = team.ID
 	}
+
 	for name, value := range columns {
 		whereClause[name] = value
 	}

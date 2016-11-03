@@ -16,6 +16,8 @@ import (
 
 const reapExtraVolumeTTL = time.Minute
 
+var ErrResourceTypeNotFound = errors.New("resource type not found")
+
 //go:generate counterfeiter . ResourceInstance
 
 type ResourceInstance interface {
@@ -27,7 +29,10 @@ type ResourceInstance interface {
 
 type buildResourceInstance struct {
 	resourceInstance
-	build *dbng.Build
+	build                  *dbng.Build
+	pipeline               *dbng.Pipeline
+	resourceTypes          atc.ResourceTypes
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
 func NewBuildResourceInstance(
@@ -36,6 +41,9 @@ func NewBuildResourceInstance(
 	source atc.Source,
 	params atc.Params,
 	build *dbng.Build,
+	pipeline *dbng.Pipeline,
+	resourceTypes atc.ResourceTypes,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) ResourceInstance {
 	return &buildResourceInstance{
 		resourceInstance: resourceInstance{
@@ -44,29 +52,48 @@ func NewBuildResourceInstance(
 			source:           source,
 			params:           params,
 		},
-		build: build,
+		build:                  build,
+		pipeline:               pipeline,
+		resourceTypes:          resourceTypes,
+		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
 func (bri buildResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
-	return workerClient.CreateVolumeForResourceCache(
+	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+		bri.build,
+		string(bri.resourceTypeName),
+		bri.version,
+		bri.source,
+		bri.params,
+		bri.pipeline,
+		bri.resourceTypes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return workerClient.FindOrCreateVolumeForResourceCache(
 		logger,
 		worker.VolumeSpec{
-			Strategy: worker.NewBuildResourceCacheStrategy(
-				GenerateResourceHash(bri.source, string(bri.resourceTypeName)),
-				bri.version,
-				bri.build,
-			),
+			Strategy: worker.ResourceCacheStrategy{
+				ResourceHash:    GenerateResourceHash(bri.source, string(bri.resourceTypeName)),
+				ResourceVersion: bri.version,
+			},
 			Properties: bri.volumeProperties(),
 			Privileged: true,
 			TTL:        0,
 		},
+		resourceCache,
 	)
 }
 
 type resourceResourceInstance struct {
 	resourceInstance
-	resource *dbng.Resource
+	resource               *dbng.Resource
+	pipeline               *dbng.Pipeline
+	resourceTypes          atc.ResourceTypes
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
 func NewResourceResourceInstance(
@@ -75,6 +102,9 @@ func NewResourceResourceInstance(
 	source atc.Source,
 	params atc.Params,
 	resource *dbng.Resource,
+	pipeline *dbng.Pipeline,
+	resourceTypes atc.ResourceTypes,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) ResourceInstance {
 	return &resourceResourceInstance{
 		resourceInstance: resourceInstance{
@@ -83,29 +113,48 @@ func NewResourceResourceInstance(
 			source:           source,
 			params:           params,
 		},
-		resource: resource,
+		resource:               resource,
+		pipeline:               pipeline,
+		resourceTypes:          resourceTypes,
+		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
 func (rri resourceResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
-	return workerClient.CreateVolumeForResourceCache(
+	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
+		rri.resource,
+		string(rri.resourceTypeName),
+		rri.version,
+		rri.source,
+		rri.params,
+		rri.pipeline,
+		rri.resourceTypes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return workerClient.FindOrCreateVolumeForResourceCache(
 		logger,
 		worker.VolumeSpec{
-			Strategy: worker.NewResourceResourceCacheStrategy(
-				GenerateResourceHash(rri.source, string(rri.resourceTypeName)),
-				rri.version,
-				rri.resource,
-			),
+			Strategy: worker.ResourceCacheStrategy{
+				ResourceHash:    GenerateResourceHash(rri.source, string(rri.resourceTypeName)),
+				ResourceVersion: rri.version,
+			},
 			Properties: rri.volumeProperties(),
 			Privileged: true,
 			TTL:        0,
 		},
+		resourceCache,
 	)
 }
 
 type resourceTypeResourceInstance struct {
 	resourceInstance
-	resourceType *dbng.UsedResourceType
+	resourceType           *dbng.UsedResourceType
+	pipeline               *dbng.Pipeline
+	resourceTypes          atc.ResourceTypes
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
 func NewResourceTypeResourceInstance(
@@ -114,6 +163,9 @@ func NewResourceTypeResourceInstance(
 	source atc.Source,
 	params atc.Params,
 	resourceType *dbng.UsedResourceType,
+	pipeline *dbng.Pipeline,
+	resourceTypes atc.ResourceTypes,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) ResourceInstance {
 	return &resourceTypeResourceInstance{
 		resourceInstance: resourceInstance{
@@ -122,23 +174,39 @@ func NewResourceTypeResourceInstance(
 			source:           source,
 			params:           params,
 		},
-		resourceType: resourceType,
+		resourceType:           resourceType,
+		pipeline:               pipeline,
+		resourceTypes:          resourceTypes,
+		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
 func (rtri resourceTypeResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
-	return workerClient.CreateVolumeForResourceCache(
+	resourceCache, err := rtri.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
+		string(rtri.resourceTypeName),
+		rtri.version,
+		rtri.source,
+		rtri.params,
+		rtri.pipeline,
+		rtri.resourceTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-find-or-create-resource-cache-for-resource-type", err)
+		return nil, err
+	}
+
+	return workerClient.FindOrCreateVolumeForResourceCache(
 		logger,
 		worker.VolumeSpec{
-			Strategy: worker.NewResourceTypeResourceCacheStrategy(
-				GenerateResourceHash(rtri.source, string(rtri.resourceTypeName)),
-				rtri.version,
-				rtri.resourceType,
-			),
+			Strategy: worker.ResourceCacheStrategy{
+				ResourceHash:    GenerateResourceHash(rtri.source, string(rtri.resourceTypeName)),
+				ResourceVersion: rtri.version,
+			},
 			Properties: rtri.volumeProperties(),
 			Privileged: true,
 			TTL:        0,
 		},
+		resourceCache,
 	)
 }
 

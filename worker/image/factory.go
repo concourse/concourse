@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -12,15 +13,18 @@ import (
 type factory struct {
 	resourceFetcherFactory resource.FetcherFactory
 	resourceFactoryFactory resource.ResourceFactoryFactory
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
 func NewFactory(
 	resourceFetcherFactory resource.FetcherFactory,
 	resourceFactoryFactory resource.ResourceFactoryFactory,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) worker.ImageFactory {
 	return &factory{
 		resourceFetcherFactory: resourceFetcherFactory,
 		resourceFactoryFactory: resourceFactoryFactory,
+		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
@@ -38,17 +42,18 @@ func (f *factory) NewImage(
 	privileged bool,
 ) worker.Image {
 	return &image{
-		logger:                logger,
-		signals:               signals,
-		imageResource:         imageResource,
-		workerID:              workerID,
-		workerMetadata:        workerMetadata,
-		workerTags:            workerTags,
-		teamID:                teamID,
-		customTypes:           customTypes,
-		imageFetchingDelegate: imageFetchingDelegate,
-		resourceFactory:       f.resourceFactoryFactory.FactoryFor(workerClient),
-		resourceFetcher:       f.resourceFetcherFactory.FetcherFor(workerClient),
-		privileged:            privileged,
+		logger:                 logger,
+		signals:                signals,
+		imageResource:          imageResource,
+		workerID:               workerID,
+		workerMetadata:         workerMetadata,
+		workerTags:             workerTags,
+		teamID:                 teamID,
+		customTypes:            customTypes,
+		imageFetchingDelegate:  imageFetchingDelegate,
+		resourceFactory:        f.resourceFactoryFactory.FactoryFor(workerClient),
+		resourceFetcher:        f.resourceFetcherFactory.FetcherFor(workerClient),
+		dbResourceCacheFactory: f.dbResourceCacheFactory,
+		privileged:             privileged,
 	}
 }

@@ -75,12 +75,17 @@ type Client interface {
 		resourceSources map[string]ArtifactSource,
 	) (Container, []string, error)
 
+	FindOrCreateVolumeForResourceCache(
+		logger lager.Logger,
+		vs VolumeSpec,
+		resourceCache *dbng.UsedResourceCache,
+	) (Volume, error)
+
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 	ValidateResourceCheckVersion(container db.SavedContainer) (bool, error)
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
-	CreateVolumeForResourceCache(logger lager.Logger, vs VolumeSpec) (Volume, error)
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 
@@ -111,77 +116,20 @@ type Strategy interface {
 	dbIdentifier() db.VolumeIdentifier
 }
 
-type buildResourceCacheStrategy struct {
-	resourceCacheStrategy
-	build *dbng.Build
+type ResourceCacheStrategy struct {
+	ResourceHash    string
+	ResourceVersion atc.Version
 }
 
-func NewBuildResourceCacheStrategy(
-	resourceHash string,
-	resourceVersion atc.Version,
-	build *dbng.Build,
-) Strategy {
-	return buildResourceCacheStrategy{
-		resourceCacheStrategy: resourceCacheStrategy{
-			resourceHash:    resourceHash,
-			resourceVersion: resourceVersion,
-		},
-		build: build,
-	}
-}
-
-type resourceResourceCacheStrategy struct {
-	resourceCacheStrategy
-	resource *dbng.Resource
-}
-
-func NewResourceResourceCacheStrategy(
-	resourceHash string,
-	resourceVersion atc.Version,
-	resource *dbng.Resource,
-) Strategy {
-	return resourceResourceCacheStrategy{
-		resourceCacheStrategy: resourceCacheStrategy{
-			resourceHash:    resourceHash,
-			resourceVersion: resourceVersion,
-		},
-		resource: resource,
-	}
-}
-
-type resourceTypeResourceCacheStrategy struct {
-	resourceCacheStrategy
-	resourceType *dbng.UsedResourceType
-}
-
-func NewResourceTypeResourceCacheStrategy(
-	resourceHash string,
-	resourceVersion atc.Version,
-	resourceType *dbng.UsedResourceType,
-) Strategy {
-	return resourceTypeResourceCacheStrategy{
-		resourceCacheStrategy: resourceCacheStrategy{
-			resourceHash:    resourceHash,
-			resourceVersion: resourceVersion,
-		},
-		resourceType: resourceType,
-	}
-}
-
-type resourceCacheStrategy struct {
-	resourceHash    string
-	resourceVersion atc.Version
-}
-
-func (resourceCacheStrategy) baggageclaimStrategy() baggageclaim.Strategy {
+func (ResourceCacheStrategy) baggageclaimStrategy() baggageclaim.Strategy {
 	return baggageclaim.EmptyStrategy{}
 }
 
-func (strategy resourceCacheStrategy) dbIdentifier() db.VolumeIdentifier {
+func (strategy ResourceCacheStrategy) dbIdentifier() db.VolumeIdentifier {
 	return db.VolumeIdentifier{
 		ResourceCache: &db.ResourceCacheIdentifier{
-			ResourceHash:    strategy.resourceHash,
-			ResourceVersion: strategy.resourceVersion,
+			ResourceHash:    strategy.ResourceHash,
+			ResourceVersion: strategy.ResourceVersion,
 		},
 	}
 }

@@ -170,7 +170,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbTeamFactory := dbng.NewTeamFactory(dbngConn)
 	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
 	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn)
-	dbResourceTypeFactory := dbng.NewResourceTypeFactory(dbngConn)
 	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn)
 	dbBaseResourceTypeFactory := dbng.NewBaseResourceTypeFactory(dbngConn)
 	workerClient := cmd.constructWorkerPool(
@@ -181,7 +180,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		pipelineDBFactory,
 		dbContainerFactory,
 		dbResourceCacheFactory,
-		dbResourceTypeFactory,
 		dbResourceConfigFactory,
 		dbBaseResourceTypeFactory,
 		dbVolumeFactory,
@@ -190,7 +188,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
 	resourceFactory := resourceFactoryFactory.FactoryFor(workerClient)
 	teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
-	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, teamDBFactory)
+	engine := cmd.constructEngine(workerClient, resourceFetcher, resourceFactory, dbResourceCacheFactory, teamDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		resourceFactory,
@@ -669,7 +667,6 @@ func (cmd *ATCCommand) constructWorkerPool(
 	pipelineDBFactory db.PipelineDBFactory,
 	dbContainerFactory *dbng.ContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
-	dbResourceTypeFactory dbng.ResourceTypeFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,
 	dbVolumeFactory dbng.VolumeFactory,
@@ -680,10 +677,9 @@ func (cmd *ATCCommand) constructWorkerPool(
 			sqlDB,
 			keepaliveDialer,
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-			image.NewFactory(resourceFetcherFactory, resourceFactoryFactory),
+			image.NewFactory(resourceFetcherFactory, resourceFactoryFactory, dbResourceCacheFactory),
 			dbContainerFactory,
 			dbResourceCacheFactory,
-			dbResourceTypeFactory,
 			dbResourceConfigFactory,
 			dbBaseResourceTypeFactory,
 			dbVolumeFactory,
@@ -811,12 +807,14 @@ func (cmd *ATCCommand) constructEngine(
 	workerClient worker.Client,
 	resourceFetcher resource.Fetcher,
 	resourceFactory resource.ResourceFactory,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	teamDBFactory db.TeamDBFactory,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
 		resourceFetcher,
 		resourceFactory,
+		dbResourceCacheFactory,
 	)
 
 	execV2Engine := engine.NewExecEngine(

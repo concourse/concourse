@@ -104,6 +104,96 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 	return tx.Commit()
 }
 
+func (db *SQLDB) UpdateVolumeIdentifierToBeDeleted(data Volume) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	var resourceVersion []byte
+
+	columns := []string{"worker_name", "ttl", "state"}
+	params := []interface{}{data.Handle, data.WorkerName, data.TTL}
+	values := []string{"$2", "$3", "'created'"}
+
+	if data.TTL == 0 {
+		columns = append(columns, "expires_at")
+		values = append(values, "NULL")
+	} else {
+		columns = append(columns, "expires_at")
+		params = append(params, fmt.Sprintf("%d second", int(data.TTL.Seconds())))
+		values = append(values, fmt.Sprintf("NOW() + $%d::INTERVAL", len(params)))
+	}
+
+	if data.TeamID != 0 {
+		columns = append(columns, "team_id")
+		params = append(params, data.TeamID)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+	}
+
+	switch {
+	case data.Identifier.ResourceCache != nil:
+		resourceVersion, err = json.Marshal(data.Identifier.ResourceCache.ResourceVersion)
+		if err != nil {
+			return err
+		}
+
+		columns = append(columns, "resource_version")
+		params = append(params, resourceVersion)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+
+		columns = append(columns, "resource_hash")
+		params = append(params, data.Identifier.ResourceCache.ResourceHash)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+	case data.Identifier.COW != nil:
+		columns = append(columns, "original_volume_handle")
+		params = append(params, data.Identifier.COW.ParentVolumeHandle)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+	case data.Identifier.Output != nil:
+		columns = append(columns, "output_name")
+		params = append(params, data.Identifier.Output.Name)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+	case data.Identifier.Import != nil:
+		columns = append(columns, "path")
+		params = append(params, data.Identifier.Import.Path)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+
+		columns = append(columns, "host_path_version")
+		params = append(params, data.Identifier.Import.Version)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+
+	case data.Identifier.Replication != nil:
+		columns = append(columns, "replicated_from")
+		params = append(params, data.Identifier.Replication.ReplicatedVolumeHandle)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+	}
+
+	_, err = tx.Exec(
+		fmt.Sprintf(
+			`
+				UPDATE volumes SET (
+					%s
+				) = (
+					%s
+				)
+				WHERE handle=$1
+			`,
+			strings.Join(columns, ", "),
+			strings.Join(values, ", "),
+		), params...)
+	if err != nil {
+		if strings.Contains(err.Error(), `duplicate key value violates unique constraint "volumes_worker_name_handle_key"`) {
+			return nil
+		}
+
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (db *SQLDB) ReapVolume(handle string) error {
 	_, err := db.conn.Exec(`
 		DELETE FROM volumes
