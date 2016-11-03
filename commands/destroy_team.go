@@ -3,8 +3,10 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
 )
@@ -28,7 +30,7 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 	fmt.Printf("!!! this will remove all data for team `%s`\n\n", teamName)
 
 	var confirm string
-	err = interact.NewInteraction("are you sure? please type the team name to continue:").Resolve(interact.Required(&confirm))
+	err = interact.NewInteraction("please type the team name to confirm").Resolve(interact.Required(&confirm))
 	if err != nil {
 		return err
 	}
@@ -40,13 +42,18 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 	err = target.Team().DestroyTeam(teamName)
 	switch err {
 	case nil:
-		fmt.Printf("%s has been destroyed\n", teamName)
+		fmt.Println()
+		fmt.Printf("`%s` deleted\n", teamName)
 		return nil
 	case concourse.ErrDestroyRefused:
-		fmt.Printf("only admin can delete teams\n")
-		return err
+		fmt.Println()
+		fmt.Printf(ui.WarningColor("could not destroy `%s`\n", teamName))
+		fmt.Println()
+		fmt.Println("either your team is not an admin or it is the last admin team")
+		os.Exit(1)
 	default:
-		fmt.Printf("delete failed due to server error\n")
 		return err
 	}
+
+	panic("unreachable")
 }

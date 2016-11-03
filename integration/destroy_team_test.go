@@ -57,7 +57,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("asks the user to type in the team name again", func() {
-				Eventually(sess).Should(gbytes.Say(`are you sure\? please type the team name to continue:`))
+				Eventually(sess).Should(gbytes.Say("please type the team name to confirm"))
 			})
 
 			Context("when the user types in the name again succesfully", func() {
@@ -76,7 +76,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("tells the user the team has been destoryed", func() {
-						Eventually(sess).Should(gbytes.Say(`some-team has been destroyed`))
+						Eventually(sess).Should(gbytes.Say("`some-team` deleted"))
 					})
 				})
 
@@ -89,22 +89,10 @@ var _ = Describe("Fly CLI", func() {
 							),
 						)
 					})
-					It("tells the user that they are not allowed to do this", func() {
-						Eventually(sess).Should(gbytes.Say(`only admin can delete teams`))
-					})
-				})
-				Context("when the api call returns 500 Internal Server Error", func() {
-					BeforeEach(func() {
-						atcServer.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", "/api/v1/teams/some-team"),
-								ghttp.RespondWith(500, ""),
-							),
-						)
-					})
 
-					It("tells the user that there was a 500 Internal Server Error", func() {
-						Eventually(sess).Should(gbytes.Say(`delete failed due to server error`))
+					It("tells the user that they are not allowed to do this", func() {
+						Eventually(sess).Should(gbytes.Say("could not destroy `some-team`"))
+						Eventually(sess).Should(gbytes.Say(`either your team is not an admin or it is the last admin team`))
 					})
 				})
 			})
@@ -116,7 +104,7 @@ var _ = Describe("Fly CLI", func() {
 
 				It("asks them to try again", func() {
 					Eventually(sess).Should(gexec.Exit(1))
-					Expect(sess.Err).To(gbytes.Say(`you typed in the team name incorrectly, bailing out`))
+					Expect(sess.Err).To(gbytes.Say(`incorrect team name; bailing out`))
 				})
 			})
 		})
