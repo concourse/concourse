@@ -1,6 +1,9 @@
 package transport
 
-import "net/http"
+import (
+	"github.com/concourse/atc/dbng"
+	"net/http"
+)
 
 //go:generate counterfeiter . RoundTripper
 type RoundTripper interface {
@@ -33,7 +36,12 @@ func (c *roundTripper) RoundTrip(request *http.Request) (*http.Response, error) 
 		if !found {
 			return nil, ErrMissingWorker{WorkerName: c.workerName}
 		}
-		c.cachedHost = savedWorker.GardenAddr
+
+		if savedWorker.State == dbng.WorkerStateStalled {
+			return nil, ErrWorkerStalled{WorkerName: c.workerName}
+		}
+
+		c.cachedHost = *savedWorker.GardenAddr
 	}
 
 	updatedURL := *request.URL

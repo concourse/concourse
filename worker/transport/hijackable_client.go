@@ -3,6 +3,7 @@ package transport
 import (
 	"net/http"
 
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/retryhttp"
 )
 
@@ -32,7 +33,12 @@ func (c *hijackableClient) Do(request *http.Request) (*http.Response, retryhttp.
 		if !found {
 			return nil, nil, ErrMissingWorker{WorkerName: c.workerName}
 		}
-		c.cachedHost = savedWorker.GardenAddr
+
+		if savedWorker.State == dbng.WorkerStateStalled {
+			return nil, nil, ErrWorkerStalled{WorkerName: c.workerName}
+		}
+
+		c.cachedHost = *savedWorker.GardenAddr
 	}
 
 	updatedURL := *request.URL
