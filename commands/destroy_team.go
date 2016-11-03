@@ -28,7 +28,7 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 	fmt.Printf("!!! this will remove all data for team `%s`\n\n", teamName)
 
 	var confirm string
-	err = interact.NewInteraction("are you sure? please type the team name to continue:").Resolve(&confirm)
+	err = interact.NewInteraction("are you sure? please type the team name to continue:").Resolve(interact.Required(&confirm))
 	if err != nil {
 		return err
 	}
