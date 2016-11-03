@@ -276,7 +276,7 @@ jobs:
       manifest: concourse/src/github.com/concourse/testflight/scripts/manifests/deployment.yml
       stemcells: [gcp-stemcell/*.tgz]
       releases:
-        - garden-runc-release/*.tgz
+        - garden-runc/*.tgz
         - bosh-rc/concourse-*.tgz
   - task: testflight
     file: concourse/ci/testflight.yml
