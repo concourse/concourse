@@ -336,7 +336,7 @@ jobs:
   - put: prod-deployment
     params:
       cleanup: true
-      manifest: deployments/ci/deployments/concourse.yml
+      manifest: deployments/prod/concourse.yml
       stemcells: [bosh-stemcell/*.tgz]
       releases:
         - garden-runc-release/*.tgz
