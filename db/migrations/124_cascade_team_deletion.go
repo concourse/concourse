@@ -73,12 +73,6 @@ func CascadeTeamDeletes(tx migration.LimitedTx) error {
 	if err != nil {
 		return fmt.Errorf("failed to clean up build events: %s", err)
 	}
-	//_, err = tx.Exec(`
-	//	DROP TABLE IF EXISTS build_events CASCADE;
-	//`)
-	//if err != nil {
-	//	return err
-	//}
 
 	return nil
 }
@@ -115,7 +109,7 @@ func populateTeamBuildEventsTable(tx migration.LimitedTx, teamID int) error {
 			build_id, type, payload, event_id, version
 		)
 		SELECT build_id, type, payload, event_id, version
-		FROM build_events AS e, builds AS b
+		FROM ONLY build_events AS e, builds AS b
 		WHERE b.team_id = $1
 		AND b.id = e.build_id
 	`, teamID), teamID)
@@ -125,4 +119,3 @@ func populateTeamBuildEventsTable(tx migration.LimitedTx, teamID int) error {
 
 	return err
 }
-
