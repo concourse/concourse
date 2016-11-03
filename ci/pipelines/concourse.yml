@@ -284,16 +284,6 @@ jobs:
     params:
       ATC_URL: "http://10.244.15.2:8080"
     timeout: 1h
-    on_failure:
-      do:
-        - task: export-bosh-logs
-          file: concourse/ci/export-bosh-logs.yml
-          params:
-            MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
-            BOSH_USER: admin
-            BOSH_PASSWORD: admin
-        - put: testflight-logs
-          params: {file: exported-logs/concourse.*.tgz}
 
 - name: bin-testflight
   public: true
