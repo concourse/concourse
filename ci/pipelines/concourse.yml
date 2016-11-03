@@ -31,12 +31,6 @@ groups:
   - promote-docker
   - master-merge
 
-- name: bosh-lite
-  jobs:
-  - provision
-  - teardown
-  - unfudge
-
 - name: workers
   jobs:
   - install-go-windows
@@ -256,33 +250,6 @@ jobs:
       tag: release/tag
       body: release/body
       globs: [release/artifacts/*]
-
-- name: provision
-  serial: true
-  plan:
-  - get: deployments
-  - get: bosh-lite
-  - task: provision
-    file: deployments/lite/ci/provision-bosh-lite.yml
-  - put: bosh-lites
-    params:
-      add: bosh-lite-lock
-
-- name: teardown
-  serial: true
-  plan:
-  - put: bosh-lites
-    params: {acquire: true}
-  - do:
-    - get: deployments
-    - task: teardown
-      file: deployments/lite/ci/teardown-bosh-lite.yml
-    on_success:
-      put: bosh-lites
-      params: {remove: bosh-lites}
-    on_failure:
-      put: bosh-lites
-      params: {release: bosh-lites}
 
 - name: bosh-testflight
   public: true
@@ -508,12 +475,6 @@ jobs:
       load_base: ubuntu-image
       tag: version/version
       tag_as_latest: true
-
-- name: unfudge
-  plan:
-  - get: bosh-lites
-  - put: bosh-lites
-    params: {release: bosh-lites}
 
 - name: shipit
   serial_groups: [version]
@@ -870,12 +831,6 @@ resources:
     branch: master
     private_key: {{concourse-repo-private-key}}
 
-- name: bosh-lite
-  type: git
-  source:
-    uri: https://github.com/cloudfoundry/bosh-lite.git
-    branch: master
-
 - name: deployments
   type: git
   source:
@@ -888,14 +843,6 @@ resources:
   source:
     uri: https://github.com/vito/houdini.git
     branch: master
-
-- name: bosh-lites
-  type: pool
-  source:
-    uri: git@github.com:concourse/locks.git
-    branch: master
-    pool: bosh-lites
-    private_key: {{locks-repo-private-key}}
 
 - name: hetzner
   type: pool
