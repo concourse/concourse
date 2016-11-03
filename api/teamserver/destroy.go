@@ -22,6 +22,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 
 	if !authTeam.IsAdmin() {
+		hLog.Info("requesting-team-is-not-admin")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -34,6 +35,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !found {
+		hLog.Info("team-not-found")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -41,6 +43,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 	if savedTeam.Admin {
 		allTeams, err := s.teamsDB.GetTeams()
 		if err != nil {
+			hLog.Error("failed-to-get-teams", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -53,6 +56,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if adminTeams == 1 {
+			hLog.Info("team-is-last-admin-team")
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
@@ -60,6 +64,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 
 	err = s.teamsDB.DeleteTeamByName(teamName)
 	if err != nil {
+		hLog.Error("failed-to-delete-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
