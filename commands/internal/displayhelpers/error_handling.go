@@ -9,16 +9,16 @@ import (
 
 func PrintDeprecationWarningHeader() {
 	printColorFunc := ui.ErroredColor.SprintFunc()
-	fmt.Fprintf(os.Stderr, "%s\n", printColorFunc("DEPRECATION WARNING:"))
+	fmt.Fprintf(ui.Stderr, "%s\n", printColorFunc("DEPRECATION WARNING:"))
 }
 
 func PrintWarningHeader() {
 	printColorFunc := ui.BlinkingErrorColor.SprintFunc()
-	fmt.Fprintf(os.Stderr, "%s\n", printColorFunc("WARNING:"))
+	fmt.Fprintf(ui.Stderr, "%s\n", printColorFunc("WARNING:"))
 }
 
 func Failf(message string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, message+"\n", args...)
+	fmt.Fprintf(ui.Stderr, message+"\n", args...)
 	os.Exit(1)
 }
 

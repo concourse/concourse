@@ -19,25 +19,25 @@ func main() {
 	_, err := parser.Parse()
 	if err != nil {
 		if err == concourse.ErrUnauthorized {
-			fmt.Fprintln(os.Stderr, "not authorized. run the following to log in:")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "    "+ui.Embolden("fly -t %s login", commands.Fly.Target))
-			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "not authorized. run the following to log in:")
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s login", commands.Fly.Target))
+			fmt.Fprintln(ui.Stderr, "")
 		} else if err == rc.ErrNoTargetSpecified {
-			fmt.Fprintln(os.Stderr, "no target specified. specify the target with "+ui.Embolden("-t")+" or log in like so:")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "    "+ui.Embolden("fly -t (alias) login -c (concourse url)"))
-			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "no target specified. specify the target with "+ui.Embolden("-t")+" or log in like so:")
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t (alias) login -c (concourse url)"))
+			fmt.Fprintln(ui.Stderr, "")
 		} else if versionErr, ok := err.(rc.ErrVersionMismatch); ok {
-			fmt.Fprintln(os.Stderr, versionErr.Error())
-			fmt.Fprintln(os.Stderr, ui.WarningColor("cowardly refusing to run due to significant version discrepancy"))
+			fmt.Fprintln(ui.Stderr, versionErr.Error())
+			fmt.Fprintln(ui.Stderr, ui.WarningColor("cowardly refusing to run due to significant version discrepancy"))
 		} else if netErr, ok := err.(net.Error); ok {
-			fmt.Fprintf(os.Stderr, "could not reach the Concourse server called %s:\n", ui.Embolden("%s", commands.Fly.Target))
+			fmt.Fprintf(ui.Stderr, "could not reach the Concourse server called %s:\n", ui.Embolden("%s", commands.Fly.Target))
 
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "    "+ui.Embolden("%s", netErr))
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "is the targeted Concourse running? better go catch it lol")
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("%s", netErr))
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "is the targeted Concourse running? better go catch it lol")
 		} else if err == commands.ErrShowHelpMessage {
 			helpParser := flags.NewParser(&commands.Fly, flags.HelpFlag)
 			helpParser.NamespaceDelimiter = "-"
@@ -45,7 +45,7 @@ func main() {
 			helpParser.WriteHelp(os.Stdout)
 			os.Exit(0)
 		} else {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			fmt.Fprintf(ui.Stderr, "error: %s\n", err)
 		}
 
 		os.Exit(1)

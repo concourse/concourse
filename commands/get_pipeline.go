@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/mattn/go-isatty"
 )
@@ -91,8 +92,8 @@ func dumpRawConfig(rawConfig atc.RawConfig, asJSON bool) error {
 
 func (command *GetPipelineCommand) showConfigWarning() {
 	if isatty.IsTerminal(os.Stdout.Fd()) {
-		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(ui.Stderr, "")
 	}
 	displayhelpers.PrintWarningHeader()
-	fmt.Fprintln(os.Stderr, "Existing config is invalid, it was returned as-is\n")
+	fmt.Fprintln(ui.Stderr, "Existing config is invalid, it was returned as-is\n")
 }
