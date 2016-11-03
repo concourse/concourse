@@ -172,7 +172,6 @@ jobs:
       tag: release/tag
       body: release/body
       globs: [release/artifacts/*]
-      # commitish: generated-commitish/commitish
 
 - name: bosh-rc
   public: true
@@ -309,46 +308,6 @@ jobs:
     file: bin/ci/testflight.yml
     privileged: true
     timeout: 1h
-  # - aggregate:
-  #   - task: basic-auth-public
-  #     file: bin/ci/testflight.yml
-  #     params:
-  #       BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-  #       BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-  #       PIPELINES_PUBLICLY_VIEWABLE: true
-  #     privileged: true
-  #     timeout: 1h
-  #   - task: basic-auth-private
-  #     file: bin/ci/testflight.yml
-  #     params:
-  #       BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-  #       BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-  #       PIPELINES_PUBLICLY_VIEWABLE: false
-  #     privileged: true
-  #     timeout: 1h
-  # - aggregate:
-  #   - task: github-auth-public
-  #     file: bin/ci/testflight.yml
-  #     params:
-  #       GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-  #       GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-  #       GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-  #       GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-public-client-id}}
-  #       GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-public-client-secret}}
-  #       PIPELINES_PUBLICLY_VIEWABLE: true
-  #     privileged: true
-  #     timeout: 1h
-  #   - task: github-auth-private
-  #     file: bin/ci/testflight.yml
-  #     params:
-  #       GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-  #       GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-  #       GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-  #       GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-private-client-id}}
-  #       GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-private-client-secret}}
-  #       PIPELINES_PUBLICLY_VIEWABLE: false
-  #     privileged: true
-  #     timeout: 1h
 
 - name: bosh-deploy
   serial: true
@@ -841,15 +800,6 @@ resources:
     branch: master
     pool: hetzner
     private_key: {{locks-repo-private-key}}
-
-- name: testflight-logs
-  type: s3
-  source:
-    bucket: concourse-testflight-bosh-logs
-    access_key_id: {{s3-testflight-log-access-key}}
-    secret_access_key: {{s3-testflight-log-secret-key}}
-    versioned_file: bosh-logs
-    region_name: us-west-1
 
 - name: bin
   type: git
