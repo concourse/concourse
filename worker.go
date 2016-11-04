@@ -18,6 +18,7 @@ type Worker struct {
 	Team      string   `json:"team"`
 	Name      string   `json:"name"`
 	StartTime int64    `json:"start_time"`
+	State     string   `json:"state"`
 }
 
 type WorkerResourceType struct {

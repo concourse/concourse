@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -35,6 +34,8 @@ var _ = Describe("Workers API", func() {
 			})
 
 			It("fetches workers by team name from user context", func() {
+				Expect(dbWorkerFactory.WorkersForTeamCallCount()).To(Equal(1))
+
 				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
 				teamName := teamDBFactory.GetTeamDBArgsForCall(0)
 				Expect(teamName).To(Equal("some-team"))
@@ -42,32 +43,32 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the workers can be listed", func() {
 				BeforeEach(func() {
-					teamDB.WorkersReturns([]db.SavedWorker{
+					gardenAddr1 := "1.2.3.4:7777"
+					gardenAddr2 := "1.2.3.4:8888"
+					dbWorkerFactory.WorkersForTeamReturns([]*dbng.Worker{
 						{
-							WorkerInfo: db.WorkerInfo{
-								GardenAddr:       "1.2.3.4:7777",
-								BaggageclaimURL:  "5.6.7.8:7788",
-								HTTPProxyURL:     "http://some-proxy.com",
-								HTTPSProxyURL:    "https://some-proxy.com",
-								NoProxy:          "no,proxy",
-								ActiveContainers: 1,
-								ResourceTypes: []atc.WorkerResourceType{
-									{Type: "some-resource", Image: "some-resource-image"},
-								},
-								Platform: "freebsd",
-								Tags:     []string{"demon"},
+							GardenAddr:       &gardenAddr1,
+							BaggageclaimURL:  "5.6.7.8:7788",
+							HTTPProxyURL:     "http://some-proxy.com",
+							HTTPSProxyURL:    "https://some-proxy.com",
+							NoProxy:          "no,proxy",
+							ActiveContainers: 1,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
 							},
+							Platform: "freebsd",
+							Tags:     []string{"demon"},
+							State:    dbng.WorkerStateRunning,
 						},
 						{
-							WorkerInfo: db.WorkerInfo{
-								GardenAddr:       "1.2.3.4:8888",
-								ActiveContainers: 2,
-								ResourceTypes: []atc.WorkerResourceType{
-									{Type: "some-resource", Image: "some-resource-image"},
-								},
-								Platform: "beos",
-								Tags:     []string{"best", "os", "ever", "rip"},
+							GardenAddr:       &gardenAddr2,
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
 							},
+							Platform: "beos",
+							Tags:     []string{"best", "os", "ever", "rip"},
+							State:    dbng.WorkerStateStalled,
 						},
 					}, nil)
 				})
@@ -94,6 +95,7 @@ var _ = Describe("Workers API", func() {
 							},
 							Platform: "freebsd",
 							Tags:     []string{"demon"},
+							State:    "running",
 						},
 						{
 							GardenAddr:       "1.2.3.4:8888",
@@ -103,6 +105,7 @@ var _ = Describe("Workers API", func() {
 							},
 							Platform: "beos",
 							Tags:     []string{"best", "os", "ever", "rip"},
+							State:    "stalled",
 						},
 					}))
 
@@ -111,7 +114,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when getting the workers fails", func() {
 				BeforeEach(func() {
-					teamDB.WorkersReturns(nil, errors.New("oh no!"))
+					dbWorkerFactory.WorkersForTeamReturns(nil, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {

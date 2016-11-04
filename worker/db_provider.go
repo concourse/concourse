@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"errors"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -33,6 +34,8 @@ type WorkerDB interface {
 	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
 }
 
+var ErrDesiredWorkerNotRunning = errors.New("desired-garden-worker-is-not-known-to-be-running")
+
 type dbProvider struct {
 	logger                    lager.Logger
 	db                        WorkerDB
@@ -46,6 +49,7 @@ type dbProvider struct {
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory
 	dbVolumeFactory           dbng.VolumeFactory
 	pipelineDBFactory         db.PipelineDBFactory
+	dbWorkerFactory           dbng.WorkerFactory
 }
 
 func NewDBWorkerProvider(
@@ -60,6 +64,7 @@ func NewDBWorkerProvider(
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	pipelineDBFactory db.PipelineDBFactory,
+	workerFactory dbng.WorkerFactory,
 ) WorkerProvider {
 	return &dbProvider{
 		logger:                    logger,
@@ -72,35 +77,42 @@ func NewDBWorkerProvider(
 		dbResourceConfigFactory:   dbResourceConfigFactory,
 		dbBaseResourceTypeFactory: dbBaseResourceTypeFactory,
 		dbVolumeFactory:           dbVolumeFactory,
+		dbWorkerFactory:           workerFactory,
 		pipelineDBFactory:         pipelineDBFactory,
 	}
 }
 
 func (provider *dbProvider) Workers() ([]Worker, error) {
-	savedWorkers, err := provider.db.Workers()
+	savedWorkers, err := provider.dbWorkerFactory.Workers()
 	if err != nil {
 		return nil, err
 	}
 
 	tikTok := clock.NewClock()
 
-	workers := make([]Worker, len(savedWorkers))
+	workers := []Worker{}
 
-	for i, savedWorker := range savedWorkers {
-		workers[i] = provider.newGardenWorker(tikTok, savedWorker)
+	for _, savedWorker := range savedWorkers {
+		if savedWorker.State == dbng.WorkerStateRunning {
+			workers = append(workers, provider.newGardenWorker(tikTok, savedWorker))
+		}
 	}
 
 	return workers, nil
 }
 
 func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
-	savedWorker, found, err := provider.db.GetWorker(name)
+	savedWorker, found, err := provider.dbWorkerFactory.GetWorker(name)
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !found {
 		return nil, false, nil
+	}
+
+	if savedWorker.State != dbng.WorkerStateRunning {
+		return nil, true, ErrDesiredWorkerNotRunning
 	}
 
 	tikTok := clock.NewClock()
@@ -122,12 +134,12 @@ func (provider *dbProvider) ReapContainer(handle string) error {
 	return provider.db.ReapContainer(handle)
 }
 
-func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.SavedWorker) Worker {
+func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbng.Worker) Worker {
 	gcf := NewGardenConnectionFactory(
-		provider.db,
+		provider.dbWorkerFactory,
 		provider.logger.Session("garden-connection"),
 		savedWorker.Name,
-		savedWorker.GardenAddr,
+		*(savedWorker.GardenAddr),
 		provider.retryBackOffFactory,
 	)
 
@@ -173,7 +185,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		savedWorker.Tags,
 		savedWorker.TeamID,
 		savedWorker.Name,
-		savedWorker.GardenAddr,
+		*savedWorker.GardenAddr,
 		savedWorker.StartTime,
 		savedWorker.HTTPProxyURL,
 		savedWorker.HTTPSProxyURL,

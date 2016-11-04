@@ -126,4 +126,5 @@ var Migrations = []migration.Migrator{
 	AddConfigToJobsResources,
 	CreateCaches,
 	AddStateToWorkers,
+	AddWorkerForeignKeyToVolumesAndContainers,
 }

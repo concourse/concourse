@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp/retryhttpfakes"
 
+	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -65,14 +65,14 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 		BeforeEach(func() {
 			fakeRoundTripper.RoundTripReturns(nil, errors.New("some-error"))
 
-			savedWorker := db.SavedWorker{
-				WorkerInfo: db.WorkerInfo{
-					GardenAddr: "some-new-worker-address",
-				},
-				ExpiresIn: 123,
+			address := "some-new-worker-address"
+			savedWorker := dbng.Worker{
+				GardenAddr: &address,
+				ExpiresIn:  123,
+				State:      dbng.WorkerStateRunning,
 			}
 
-			fakeDB.GetWorkerReturns(savedWorker, true, nil)
+			fakeDB.GetWorkerReturns(&savedWorker, true, nil)
 		})
 
 		It("updates cached request host on subsequent call", func() {
@@ -97,7 +97,7 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 			var expectedErr error
 			BeforeEach(func() {
 				expectedErr = errors.New("some-db-error")
-				fakeDB.GetWorkerReturns(db.SavedWorker{}, true, expectedErr)
+				fakeDB.GetWorkerReturns(nil, true, expectedErr)
 			})
 
 			It("throws an error", func() {
@@ -107,9 +107,23 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 			})
 		})
 
+		Context("when the worker in the DB is stalled", func() {
+			BeforeEach(func() {
+				fakeDB.GetWorkerReturns(&dbng.Worker{
+					State: dbng.WorkerStateStalled,
+				}, true, nil)
+			})
+
+			It("throws a descriptive error", func() {
+				_, err := roundTripper.RoundTrip(&request)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(MatchRegexp("worker .* has not checked in recently$"))
+			})
+		})
+
 		Context("when the worker is not found in the db", func() {
 			BeforeEach(func() {
-				fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
+				fakeDB.GetWorkerReturns(nil, false, nil)
 			})
 
 			It("throws an error", func() {

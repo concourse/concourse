@@ -4,11 +4,11 @@ import (
 	"io"
 	"strings"
 
+	"time"
+
 	"code.cloudfoundry.org/garden"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 )
-
-import "time"
 
 //go:generate counterfeiter . Sleeper
 
