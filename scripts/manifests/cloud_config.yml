@@ -1,20 +1,20 @@
 ---
 networks:
-  - name: concourse
-    subnets:
-      # network with static ip used for web
-      - range: 10.244.15.0/30
-        gateway: 10.244.15.1
-        static: [10.244.15.2]
+- name: testflight
+  subnets:
+    # network with static ip used for web
+    - range: 10.244.15.0/30
+      gateway: 10.244.15.1
+      static: [10.244.15.2]
 
-      # network for dynamic ips
-      - range: 10.244.16.0/24
-        gateway: 10.244.16.1
+    # network for dynamic ips
+    - range: 10.244.16.0/24
+      gateway: 10.244.16.1
 
 vm_types:
-  - name: concourse
-    network: concourse
+- name: testflight
+  network: testflight
 
 compilation:
   workers: 3
-  network: concourse
+  network: testflight
