@@ -6,8 +6,13 @@ import (
 )
 
 func Worker(workerInfo dbng.Worker) atc.Worker {
+	gardenAddr := ""
+	if workerInfo.GardenAddr != nil {
+		gardenAddr = *workerInfo.GardenAddr
+	}
+
 	return atc.Worker{
-		GardenAddr:       *workerInfo.GardenAddr,
+		GardenAddr:       gardenAddr,
 		BaggageclaimURL:  workerInfo.BaggageclaimURL,
 		HTTPProxyURL:     workerInfo.HTTPProxyURL,
 		HTTPSProxyURL:    workerInfo.HTTPSProxyURL,
