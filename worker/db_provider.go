@@ -159,7 +159,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		clock.NewClock(),
 		&dbng.Worker{
 			Name:       savedWorker.Name,
-			GardenAddr: &savedWorker.GardenAddr,
+			GardenAddr: savedWorker.GardenAddr,
 		},
 	)
 
