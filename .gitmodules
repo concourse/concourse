@@ -167,7 +167,7 @@
 [submodule "src/github.com/concourse/go-concourse"]
 	path = src/github.com/concourse/go-concourse
 	url = https://github.com/concourse/go-concourse
-	branch = master
+	branch = life
 [submodule "src/github.com/contraband/holler"]
 	path = src/github.com/contraband/holler
 	url = https://github.com/contraband/holler
