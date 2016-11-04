@@ -40,6 +40,14 @@ type FakeTeam struct {
 		result3 bool
 		result4 error
 	}
+	DestroyTeamStub        func(teamName string) error
+	destroyTeamMutex       sync.RWMutex
+	destroyTeamArgsForCall []struct {
+		teamName string
+	}
+	destroyTeamReturns struct {
+		result1 error
+	}
 	PipelineStub        func(name string) (atc.Pipeline, bool, error)
 	pipelineMutex       sync.RWMutex
 	pipelineArgsForCall []struct {
@@ -408,6 +416,39 @@ func (fake *FakeTeam) CreateOrUpdateReturns(result1 atc.Team, result2 bool, resu
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeTeam) DestroyTeam(teamName string) error {
+	fake.destroyTeamMutex.Lock()
+	fake.destroyTeamArgsForCall = append(fake.destroyTeamArgsForCall, struct {
+		teamName string
+	}{teamName})
+	fake.recordInvocation("DestroyTeam", []interface{}{teamName})
+	fake.destroyTeamMutex.Unlock()
+	if fake.DestroyTeamStub != nil {
+		return fake.DestroyTeamStub(teamName)
+	} else {
+		return fake.destroyTeamReturns.result1
+	}
+}
+
+func (fake *FakeTeam) DestroyTeamCallCount() int {
+	fake.destroyTeamMutex.RLock()
+	defer fake.destroyTeamMutex.RUnlock()
+	return len(fake.destroyTeamArgsForCall)
+}
+
+func (fake *FakeTeam) DestroyTeamArgsForCall(i int) string {
+	fake.destroyTeamMutex.RLock()
+	defer fake.destroyTeamMutex.RUnlock()
+	return fake.destroyTeamArgsForCall[i].teamName
+}
+
+func (fake *FakeTeam) DestroyTeamReturns(result1 error) {
+	fake.DestroyTeamStub = nil
+	fake.destroyTeamReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeTeam) Pipeline(name string) (atc.Pipeline, bool, error) {
@@ -1268,6 +1309,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.authTokenMutex.RUnlock()
 	fake.createOrUpdateMutex.RLock()
 	defer fake.createOrUpdateMutex.RUnlock()
+	fake.destroyTeamMutex.RLock()
+	defer fake.destroyTeamMutex.RUnlock()
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	fake.deletePipelineMutex.RLock()

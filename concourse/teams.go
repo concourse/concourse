@@ -3,6 +3,7 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
+
+var ErrDestroyRefused = errors.New("not-permitted-to-destroy-as-requested")
 
 // CreateOrUpdate creates or updates team teamName with the settings provided in passedTeam.
 // passedTeam should reflect the desired state of team's configuration.
@@ -47,4 +50,22 @@ func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, err
 	}
 
 	return savedTeam, created, updated, nil
+}
+
+// DestroyTeam destroys the team with the name given as argument.
+func (team *team) DestroyTeam(teamName string) error {
+	params := rata.Params{"team_name": teamName}
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.DestroyTeam,
+		Params:      params,
+		Header: http.Header{
+			"Content-Type": {"application/json"},
+		},
+	}, nil)
+
+	if err == internal.ErrForbidden {
+		return ErrDestroyRefused
+	}
+
+	return err
 }
