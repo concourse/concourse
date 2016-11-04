@@ -107,7 +107,7 @@ var _ = Describe("VolumeFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			expectedDestroyingHandles = append(expectedDestroyingHandles, destroyingVolume3.Handle())
 
-			resourceCacheVolume, err := volumeFactory.CreateResourceCacheVolume(team, worker, usedResourceCache)
+			resourceCacheVolume, err := volumeFactory.CreateResourceCacheVolume(worker, usedResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = resourceCacheVolume.Created()
@@ -244,14 +244,14 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				volume, err := volumeFactory.CreateResourceCacheVolume(team, worker, usedResourceCache)
+				volume, err := volumeFactory.CreateResourceCacheVolume(worker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				existingVolume, err = volume.Created()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns created volume", func() {
-				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(team, worker, usedResourceCache)
+				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(worker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingVolume).To(BeNil())
 				Expect(createdVolume).ToNot(BeNil())
@@ -264,12 +264,12 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingVolume, err = volumeFactory.CreateResourceCacheVolume(team, worker, usedResourceCache)
+				existingVolume, err = volumeFactory.CreateResourceCacheVolume(worker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns creating volume", func() {
-				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(team, worker, usedResourceCache)
+				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(worker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingVolume).ToNot(BeNil())
 				Expect(creatingVolume.Handle()).To(Equal(existingVolume.Handle()))

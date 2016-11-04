@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
@@ -25,8 +26,9 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeWorkerClient    *workerfakes.FakeClient
-		fakeResourceFactory *resourcefakes.FakeResourceFactory
+		fakeWorkerClient           *workerfakes.FakeClient
+		fakeResourceFactory        *resourcefakes.FakeResourceFactory
+		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 
 		factory Factory
 
@@ -50,8 +52,9 @@ var _ = Describe("GardenFactory", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFetcher := new(resourcefakes.FakeFetcher)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
+		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()

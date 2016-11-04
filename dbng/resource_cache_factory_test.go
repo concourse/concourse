@@ -18,6 +18,10 @@ var _ = Describe("ResourceCacheFactory", func() {
 		pipeline             *dbng.Pipeline
 
 		usedBaseResourceType *dbng.UsedBaseResourceType
+
+		resourceType1 atc.ResourceType
+		resourceType2 atc.ResourceType
+		resourceType3 atc.ResourceType
 	)
 
 	BeforeEach(func() {
@@ -33,6 +37,10 @@ var _ = Describe("ResourceCacheFactory", func() {
 		build, err = buildFactory.CreateOneOffBuild(team)
 		Expect(err).ToNot(HaveOccurred())
 
+		pipelineFactory := dbng.NewPipelineFactory(dbConn)
+		pipeline, err = pipelineFactory.CreatePipeline(team, "some-pipeline", "{}")
+		Expect(err).ToNot(HaveOccurred())
+
 		setupTx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -41,12 +49,47 @@ var _ = Describe("ResourceCacheFactory", func() {
 		}
 		usedBaseResourceType, err = baseResourceType.FindOrCreate(setupTx)
 		Expect(err).NotTo(HaveOccurred())
+
+		resourceType1 = atc.ResourceType{
+			Name: "some-type",
+			Type: "some-type-type",
+			Source: atc.Source{
+				"some-type": "source",
+			},
+		}
+		_, err = dbng.ResourceType{
+			ResourceType: resourceType1,
+			Pipeline:     pipeline,
+			Version:      atc.Version{"some-type": "version"},
+		}.Create(setupTx)
+		Expect(err).NotTo(HaveOccurred())
+
+		resourceType2 = atc.ResourceType{
+			Name: "some-type-type",
+			Type: "some-base-type",
+			Source: atc.Source{
+				"some-type-type": "source",
+			},
+		}
+		_, err = dbng.ResourceType{
+			ResourceType: resourceType2,
+			Pipeline:     pipeline,
+			Version:      atc.Version{"some-type-type": "version"},
+		}.Create(setupTx)
+		Expect(err).NotTo(HaveOccurred())
+
+		resourceType3 = atc.ResourceType{
+			Name: "some-unused-type",
+			Type: "some-base-type",
+		}
+		_, err = dbng.ResourceType{
+			ResourceType: resourceType3,
+			Pipeline:     pipeline,
+			Version:      atc.Version{"some-unused-type": "version"},
+		}.Create(setupTx)
+		Expect(err).NotTo(HaveOccurred())
+
 		Expect(setupTx.Commit()).To(Succeed())
-
-		pipelineFactory := dbng.NewPipelineFactory(dbConn)
-
-		pipeline, err = pipelineFactory.CreatePipeline(team, "some-pipeline", "{}")
-		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -64,35 +107,11 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				[]dbng.ResourceType{
-					{
-						ResourceType: atc.ResourceType{
-							Name: "some-type",
-							Type: "some-type-type",
-							Source: atc.Source{
-								"some-type": "source",
-							},
-						},
-						Version:  atc.Version{"some-type": "version"},
-						Pipeline: pipeline,
-					},
-					{
-						ResourceType: atc.ResourceType{
-							Name: "some-type-type",
-							Type: "some-base-type",
-							Source: atc.Source{
-								"some-type-type": "source",
-							},
-						},
-						Version:  atc.Version{"some-type-type": "version"},
-						Pipeline: pipeline,
-					},
-					{
-						ResourceType: atc.ResourceType{
-							Name: "some-unused-type",
-							Type: "some-base-type",
-						},
-					},
+				pipeline,
+				atc.ResourceTypes{
+					resourceType1,
+					resourceType2,
+					resourceType3,
 				},
 			)
 			Expect(err).ToNot(HaveOccurred())
@@ -165,23 +184,14 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				[]dbng.ResourceType{
+				pipeline,
+				atc.ResourceTypes{
+					resourceType1,
 					{
-						ResourceType: atc.ResourceType{
-							Name: "some-type",
-							Type: "some-type-type",
-							Source: atc.Source{
-								"some-type": "source",
-							},
-						},
-					},
-					{
-						ResourceType: atc.ResourceType{
-							Name: "some-type-type",
-							Type: "non-existent-base-type",
-							Source: atc.Source{
-								"some-type-type": "source",
-							},
+						Name: "some-type-type",
+						Type: "non-existent-base-type",
+						Source: atc.Source{
+							"some-type-type": "source",
 						},
 					},
 				},

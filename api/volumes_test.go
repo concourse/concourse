@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -41,22 +40,15 @@ var _ = Describe("Volumes API", func() {
 
 			Context("when getting all volumes succeeds", func() {
 				BeforeEach(func() {
-					someVersion := "some-version"
 					teamDB.GetVolumesReturns([]db.SavedVolume{
 						{
 							ID:        3,
 							ExpiresIn: 2 * time.Minute,
 							Volume: db.Volume{
-								WorkerName: "some-worker",
-								TeamID:     1,
-								TTL:        10 * time.Minute,
-								Handle:     "some-resource-cache-handle",
-								Identifier: db.VolumeIdentifier{
-									ResourceCache: &db.ResourceCacheIdentifier{
-										ResourceVersion: atc.Version{"a": "b", "c": "d"},
-										ResourceHash:    "some-hash",
-									},
-								},
+								WorkerName:  "some-worker",
+								TeamID:      1,
+								TTL:         10 * time.Minute,
+								Handle:      "some-resource-cache-handle",
 								SizeInBytes: 1024,
 							},
 						},
@@ -64,17 +56,10 @@ var _ = Describe("Volumes API", func() {
 							ID:        1,
 							ExpiresIn: 23 * time.Hour,
 							Volume: db.Volume{
-								WorkerName: "some-worker",
-								TeamID:     1,
-								TTL:        24 * time.Hour,
-								Handle:     "some-import-handle",
-								Identifier: db.VolumeIdentifier{
-									Import: &db.ImportIdentifier{
-										WorkerName: "some-worker",
-										Path:       "some-path",
-										Version:    &someVersion,
-									},
-								},
+								WorkerName:  "some-worker",
+								TeamID:      1,
+								TTL:         24 * time.Hour,
+								Handle:      "some-import-handle",
 								SizeInBytes: 2048,
 							},
 						},
@@ -82,15 +67,10 @@ var _ = Describe("Volumes API", func() {
 							ID:        1,
 							ExpiresIn: 23 * time.Hour,
 							Volume: db.Volume{
-								WorkerName: "some-other-worker",
-								TeamID:     1,
-								TTL:        24 * time.Hour,
-								Handle:     "some-output-handle",
-								Identifier: db.VolumeIdentifier{
-									Output: &db.OutputIdentifier{
-										Name: "some-output",
-									},
-								},
+								WorkerName:  "some-other-worker",
+								TeamID:      1,
+								TTL:         24 * time.Hour,
+								Handle:      "some-output-handle",
 								SizeInBytes: 4096,
 							},
 						},
@@ -98,15 +78,10 @@ var _ = Describe("Volumes API", func() {
 							ID:        1,
 							ExpiresIn: time.Duration(0),
 							Volume: db.Volume{
-								WorkerName: "some-worker",
-								TeamID:     1,
-								TTL:        time.Duration(0),
-								Handle:     "some-cow-handle",
-								Identifier: db.VolumeIdentifier{
-									COW: &db.COWIdentifier{
-										ParentVolumeHandle: "some-parent-volume-handle",
-									},
-								},
+								WorkerName:  "some-worker",
+								TeamID:      1,
+								TTL:         time.Duration(0),
+								Handle:      "some-cow-handle",
 								SizeInBytes: 8192,
 							},
 						},
@@ -127,8 +102,8 @@ var _ = Describe("Volumes API", func() {
 							"ttl_in_seconds": 120,
 							"validity_in_seconds": 600,
 							"worker_name": "some-worker",
-							"type": "cache",
-							"identifier": "a:b,c:d",
+							"type": "",
+							"identifier": "",
 							"size_in_bytes": 1024
 						},
 						{
@@ -136,8 +111,8 @@ var _ = Describe("Volumes API", func() {
 							"ttl_in_seconds": 82800,
 							"validity_in_seconds": 86400,
 							"worker_name": "some-worker",
-							"type": "import",
-							"identifier": "some-path@some-version",
+							"type": "",
+							"identifier": "",
 							"size_in_bytes": 2048
 						},
 						{
@@ -145,8 +120,8 @@ var _ = Describe("Volumes API", func() {
 							"ttl_in_seconds": 82800,
 							"validity_in_seconds": 86400,
 							"worker_name": "some-other-worker",
-							"type": "output",
-							"identifier": "some-output",
+							"type": "",
+							"identifier": "",
 							"size_in_bytes": 4096
 						},
 						{
@@ -154,8 +129,8 @@ var _ = Describe("Volumes API", func() {
 							"ttl_in_seconds": 0,
 							"validity_in_seconds": 0,
 							"worker_name": "some-worker",
-							"type": "copy",
-							"identifier": "some-parent-volume-handle",
+							"type": "",
+							"identifier": "",
 							"size_in_bytes": 8192
 						}
 					]`))

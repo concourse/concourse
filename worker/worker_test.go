@@ -41,7 +41,6 @@ var _ = Describe("Worker", func() {
 		fakePipelineDBFactory      *dbfakes.FakePipelineDBFactory
 		fakeDBContainerFactory     *wfakes.FakeDBContainerFactory
 		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
-		fakeDBResourceTypeFactory  *dbngfakes.FakeResourceTypeFactory
 		fakeResourceConfigFactory  *dbngfakes.FakeResourceConfigFactory
 		fakeDBVolumeFactory        *dbngfakes.FakeVolumeFactory
 		activeContainers           int
@@ -90,7 +89,6 @@ var _ = Describe("Worker", func() {
 
 		fakeDBContainerFactory = new(wfakes.FakeDBContainerFactory)
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
-		fakeDBResourceTypeFactory = new(dbngfakes.FakeResourceTypeFactory)
 		fakeResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
 	})
@@ -106,7 +104,6 @@ var _ = Describe("Worker", func() {
 			fakeDBContainerFactory,
 			fakeDBVolumeFactory,
 			fakeDBResourceCacheFactory,
-			fakeDBResourceTypeFactory,
 			fakeResourceConfigFactory,
 			fakeGardenWorkerDB,
 			fakeWorkerProvider,
@@ -762,7 +759,7 @@ var _ = Describe("Worker", func() {
 					Expect(fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeCallCount()).To(Equal(1))
 
 					Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-					_, volumeSpec, _, _, _, _ := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+					_, volumeSpec, _, _, _ := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
 					containerRootFSStrategy, ok := volumeSpec.Strategy.(ContainerRootFSStrategy)
 					Expect(ok).To(BeTrue())
 					Expect(containerRootFSStrategy.Parent).To(Equal(importVolume))

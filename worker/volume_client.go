@@ -16,7 +16,6 @@ const creatingVolumeRetryDelay = 1 * time.Second
 //go:generate counterfeiter . VolumeClient
 
 type VolumeClient interface {
-	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
 	FindOrCreateVolumeForResourceCache(
 		lager.Logger,
 		VolumeSpec,
@@ -73,37 +72,6 @@ func NewVolumeClient(
 	}
 }
 
-func (c *volumeClient) FindVolume(
-	logger lager.Logger,
-	volumeSpec VolumeSpec,
-) (Volume, bool, error) {
-	if c.baggageclaimClient == nil {
-		return nil, false, ErrNoVolumeManager
-	}
-
-	volumeIdentifier := volumeSpec.Strategy.dbIdentifier()
-	savedVolumes, err := c.db.GetVolumesByIdentifier(volumeIdentifier)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if len(savedVolumes) == 0 {
-		return nil, false, nil
-	}
-
-	var savedVolume db.SavedVolume
-	if len(savedVolumes) == 1 {
-		savedVolume = savedVolumes[0]
-	} else {
-		savedVolume, err = c.selectLowestAlphabeticalVolume(logger, savedVolumes)
-		if err != nil {
-			return nil, false, err
-		}
-	}
-
-	return c.LookupVolume(logger, savedVolume.Handle)
-}
-
 func (c *volumeClient) FindOrCreateVolumeForContainer(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
@@ -155,7 +123,7 @@ func (c *volumeClient) FindOrCreateVolumeForResourceCache(
 	volumeSpec VolumeSpec,
 	usedResourceCache *dbng.UsedResourceCache,
 ) (Volume, error) {
-	volume, err := c.findOrCreateVolume(
+	return c.findOrCreateVolume(
 		logger,
 		volumeSpec,
 		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
@@ -165,24 +133,6 @@ func (c *volumeClient) FindOrCreateVolumeForResourceCache(
 			return c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker, usedResourceCache)
 		},
 	)
-	if err != nil {
-		logger.Error("failed-to-find-or-create-resource-cache-volume", err)
-		return nil, err
-	}
-
-	err = c.db.UpdateVolumeIdentifierToBeDeleted(db.Volume{
-		Handle:     volume.Handle(),
-		WorkerName: c.dbWorker.Name,
-		TTL:        volumeSpec.TTL,
-		Identifier: volumeSpec.Strategy.dbIdentifier(),
-	})
-
-	if err != nil {
-		logger.Error("failed-to-update-volume-identifier", err)
-		return nil, err
-	}
-
-	return volume, nil
 }
 
 func (c *volumeClient) ListVolumes(logger lager.Logger, properties VolumeProperties) ([]Volume, error) {

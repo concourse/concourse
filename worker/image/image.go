@@ -86,9 +86,9 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		)
 	}
 
-	volumeID := resourceInstance.VolumeIdentifier()
-
-	err = i.imageFetchingDelegate.ImageVersionDetermined(volumeID)
+	err = i.imageFetchingDelegate.ImageVersionDetermined(
+		resourceInstance.ResourceCacheIdentifier(),
+	)
 	if err != nil {
 		return nil, nil, nil, err
 	}

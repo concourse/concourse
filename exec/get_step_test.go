@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
@@ -29,8 +30,9 @@ import (
 
 var _ = Describe("Get", func() {
 	var (
-		fakeWorkerClient    *workerfakes.FakeClient
-		fakeResourceFetcher *resourcefakes.FakeFetcher
+		fakeWorkerClient           *workerfakes.FakeClient
+		fakeResourceFetcher        *resourcefakes.FakeFetcher
+		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 
 		fakeCache           *resourcefakes.FakeCache
 		fakeVolume          *workerfakes.FakeVolume
@@ -63,6 +65,7 @@ var _ = Describe("Get", func() {
 			BuildID:    42,
 		}
 		workerMetadata = worker.Metadata{
+			PipelineID:   4567,
 			PipelineName: "some-pipeline",
 			Type:         db.ContainerTypeGet,
 			StepName:     "some-step",
@@ -120,7 +123,9 @@ var _ = Describe("Get", func() {
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 		fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
+		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
 	})
 
 	JustBeforeEach(func() {
@@ -184,7 +189,7 @@ var _ = Describe("Get", func() {
 
 	It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 		Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-		_, sid, tags, actualTeamID, actualResourceTypes, cacheID, sm, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+		_, sid, tags, actualTeamID, actualResourceTypes, resourceInstance, sm, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 		Expect(sm).To(Equal(stepMetadata))
 		Expect(sid).To(Equal(resource.Session{
 			ID: worker.Identifier{
@@ -193,6 +198,7 @@ var _ = Describe("Get", func() {
 				Stage:      db.ContainerStageRun,
 			},
 			Metadata: worker.Metadata{
+				PipelineID:       4567,
 				PipelineName:     "some-pipeline",
 				Type:             db.ContainerTypeGet,
 				StepName:         "some-step",
@@ -202,12 +208,15 @@ var _ = Describe("Get", func() {
 		}))
 		Expect(tags).To(ConsistOf("some", "tags"))
 		Expect(actualTeamID).To(Equal(teamID))
-		Expect(cacheID).To(Equal(resource.NewBuildResourceInstance(
+		Expect(resourceInstance).To(Equal(resource.NewBuildResourceInstance(
 			"some-resource-type",
 			version,
 			resourceConfig.Source,
 			params,
 			&dbng.Build{ID: 42},
+			&dbng.Pipeline{ID: 4567},
+			resourceTypes,
+			fakeDBResourceCacheFactory,
 		)))
 		Expect(actualResourceTypes).To(Equal(
 			atc.ResourceTypes{

@@ -15,10 +15,10 @@ type FakeImageFetchingDelegate struct {
 	stderrReturns     struct {
 		result1 io.Writer
 	}
-	ImageVersionDeterminedStub        func(worker.VolumeIdentifier) error
+	ImageVersionDeterminedStub        func(worker.ResourceCacheIdentifier) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
-		arg1 worker.VolumeIdentifier
+		arg1 worker.ResourceCacheIdentifier
 	}
 	imageVersionDeterminedReturns struct {
 		result1 error
@@ -52,10 +52,10 @@ func (fake *FakeImageFetchingDelegate) StderrReturns(result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDetermined(arg1 worker.VolumeIdentifier) error {
+func (fake *FakeImageFetchingDelegate) ImageVersionDetermined(arg1 worker.ResourceCacheIdentifier) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
-		arg1 worker.VolumeIdentifier
+		arg1 worker.ResourceCacheIdentifier
 	}{arg1})
 	fake.recordInvocation("ImageVersionDetermined", []interface{}{arg1})
 	fake.imageVersionDeterminedMutex.Unlock()
@@ -72,7 +72,7 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedCallCount() int {
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedArgsForCall(i int) worker.VolumeIdentifier {
+func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedArgsForCall(i int) worker.ResourceCacheIdentifier {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return fake.imageVersionDeterminedArgsForCall[i].arg1

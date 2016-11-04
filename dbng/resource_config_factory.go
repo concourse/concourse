@@ -121,7 +121,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
 ) (*UsedResourceConfig, error) {
 	resourceType, found := resourceTypes.Lookup(resourceTypeName)
 	if !found {
-		return nil, ErrResourceTypeNotFound
+		return nil, ErrResourceTypeNotFound{resourceTypeName}
 	}
 
 	tx, err := f.conn.Begin()
@@ -152,7 +152,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
 	}
 
 	if !found {
-		return nil, ErrResourceTypeNotFound
+		return nil, ErrResourceTypeNotFound{resourceTypeName}
 	}
 
 	usedResourceConfig, err := resourceConfig.FindOrCreateForResourceType(tx, usedResourceType)

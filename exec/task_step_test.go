@@ -18,6 +18,8 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource/resourcefakes"
@@ -31,7 +33,8 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeWorkerClient *workerfakes.FakeClient
+		fakeWorkerClient           *workerfakes.FakeClient
+		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 
 		factory Factory
 
@@ -49,8 +52,9 @@ var _ = Describe("GardenFactory", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
 		fakeResourceFetcher := new(resourcefakes.FakeFetcher)
+		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -635,7 +639,7 @@ var _ = Describe("GardenFactory", func() {
 									},
 								}, nil)
 
-								fakeWorker.CreateVolumeForResourceCacheReturns(new(workerfakes.FakeVolume), nil)
+								fakeWorker.FindOrCreateVolumeForResourceCacheReturns(new(workerfakes.FakeVolume), nil)
 							})
 
 							It("ensures the output directories exist by streaming in an empty payload", func() {
@@ -743,7 +747,7 @@ var _ = Describe("GardenFactory", func() {
 													volumeChannel <- fakeNewlyCreatedVolume3
 													close(volumeChannel)
 
-													fakeWorker.CreateVolumeForResourceCacheStub = func(lager.Logger, worker.VolumeSpec) (worker.Volume, error) {
+													fakeWorker.FindOrCreateVolumeForResourceCacheStub = func(lager.Logger, worker.VolumeSpec, *dbng.UsedResourceCache) (worker.Volume, error) {
 														return <-volumeChannel, nil
 													}
 
@@ -1100,7 +1104,7 @@ var _ = Describe("GardenFactory", func() {
 									},
 								}, nil)
 
-								fakeWorker.CreateVolumeForResourceCacheReturns(new(workerfakes.FakeVolume), nil)
+								fakeWorker.FindOrCreateVolumeForResourceCacheReturns(new(workerfakes.FakeVolume), nil)
 								fakeProcess.WaitReturns(0, nil)
 							})
 
@@ -1141,7 +1145,7 @@ var _ = Describe("GardenFactory", func() {
 									fakeNewlyCreatedVolume := new(workerfakes.FakeVolume)
 									fakeNewlyCreatedVolume.HandleReturns("some-handle")
 
-									fakeWorker.CreateVolumeForResourceCacheReturns(fakeNewlyCreatedVolume, nil)
+									fakeWorker.FindOrCreateVolumeForResourceCacheReturns(fakeNewlyCreatedVolume, nil)
 
 									fakeVolume = new(workerfakes.FakeVolume)
 									fakeVolume.HandleReturns("some-handle")
@@ -1196,7 +1200,7 @@ var _ = Describe("GardenFactory", func() {
 										cowVolume.PathReturns("/var/vcap/some-cow-path")
 										cowVolume.HandleReturns("cow-handle")
 
-										fakeWorker.CreateVolumeForResourceCacheReturns(cowVolume, nil)
+										fakeWorker.FindOrCreateVolumeForResourceCacheReturns(cowVolume, nil)
 									})
 
 									Context("when streaming the metadata from the worker succeeds", func() {
@@ -1701,7 +1705,7 @@ var _ = Describe("GardenFactory", func() {
 									otherInputVolume = new(workerfakes.FakeVolume)
 									otherInputVolume.HandleReturns("other-input-volume")
 
-									fakeWorker2.CreateVolumeForResourceCacheReturns(rootVolume, nil)
+									fakeWorker2.FindOrCreateVolumeForResourceCacheReturns(rootVolume, nil)
 
 									inputSource.VolumeOnStub = func(w worker.Worker) (worker.Volume, bool, error) {
 										if w == fakeWorker {

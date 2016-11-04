@@ -332,8 +332,8 @@ func (input *inputDelegate) Failed(err error) {
 	input.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
-func (input *inputDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
-	return input.delegate.build.SaveImageResourceVersion(atc.PlanID(input.id), *identifier.ResourceCache)
+func (input *inputDelegate) ImageVersionDetermined(resourceCacheIdentifier worker.ResourceCacheIdentifier) error {
+	return input.delegate.build.SaveImageResourceVersion(atc.PlanID(input.id), db.ResourceCacheIdentifier(resourceCacheIdentifier))
 }
 
 func (input *inputDelegate) Stdout() io.Writer {
@@ -380,8 +380,8 @@ func (output *outputDelegate) Failed(err error) {
 	output.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
-func (output *outputDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
-	return output.delegate.build.SaveImageResourceVersion(atc.PlanID(output.id), *identifier.ResourceCache)
+func (output *outputDelegate) ImageVersionDetermined(resourceCacheIdentifier worker.ResourceCacheIdentifier) error {
+	return output.delegate.build.SaveImageResourceVersion(atc.PlanID(output.id), db.ResourceCacheIdentifier(resourceCacheIdentifier))
 }
 
 func (output *outputDelegate) Stdout() io.Writer {
@@ -438,8 +438,8 @@ func (execution *executionDelegate) Failed(err error) {
 	execution.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
-func (execution *executionDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
-	return execution.delegate.build.SaveImageResourceVersion(atc.PlanID(execution.id), *identifier.ResourceCache)
+func (execution *executionDelegate) ImageVersionDetermined(resourceCacheIdentifier worker.ResourceCacheIdentifier) error {
+	return execution.delegate.build.SaveImageResourceVersion(atc.PlanID(execution.id), db.ResourceCacheIdentifier(resourceCacheIdentifier))
 }
 
 func (execution *executionDelegate) Stdout() io.Writer {

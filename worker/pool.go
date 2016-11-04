@@ -405,10 +405,6 @@ func (*pool) FindResourceTypeByPath(string) (atc.WorkerResourceType, bool) {
 	return atc.WorkerResourceType{}, false
 }
 
-func (*pool) FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error) {
-	return nil, false, errors.New("FindVolume not implemented for pool")
-}
-
 func (*pool) FindOrCreateVolumeForResourceCache(lager.Logger, VolumeSpec, *dbng.UsedResourceCache) (Volume, error) {
 	return nil, errors.New("FindOrCreateVolumeForResourceCache not implemented for pool")
 }

@@ -85,7 +85,6 @@ type Client interface {
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 	ValidateResourceCheckVersion(container db.SavedContainer) (bool, error)
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
-	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 
@@ -113,7 +112,6 @@ func (spec VolumeSpec) baggageclaimVolumeSpec() baggageclaim.VolumeSpec {
 
 type Strategy interface {
 	baggageclaimStrategy() baggageclaim.Strategy
-	dbIdentifier() db.VolumeIdentifier
 }
 
 type ResourceCacheStrategy struct {
@@ -125,15 +123,6 @@ func (ResourceCacheStrategy) baggageclaimStrategy() baggageclaim.Strategy {
 	return baggageclaim.EmptyStrategy{}
 }
 
-func (strategy ResourceCacheStrategy) dbIdentifier() db.VolumeIdentifier {
-	return db.VolumeIdentifier{
-		ResourceCache: &db.ResourceCacheIdentifier{
-			ResourceHash:    strategy.ResourceHash,
-			ResourceVersion: strategy.ResourceVersion,
-		},
-	}
-}
-
 type OutputStrategy struct {
 	Name string
 }
@@ -142,28 +131,12 @@ func (OutputStrategy) baggageclaimStrategy() baggageclaim.Strategy {
 	return baggageclaim.EmptyStrategy{}
 }
 
-func (strategy OutputStrategy) dbIdentifier() db.VolumeIdentifier {
-	return db.VolumeIdentifier{
-		Output: &db.OutputIdentifier{
-			Name: strategy.Name,
-		},
-	}
-}
-
 type ImageArtifactReplicationStrategy struct {
 	Name string
 }
 
 func (ImageArtifactReplicationStrategy) baggageclaimStrategy() baggageclaim.Strategy {
 	return baggageclaim.EmptyStrategy{}
-}
-
-func (strategy ImageArtifactReplicationStrategy) dbIdentifier() db.VolumeIdentifier {
-	return db.VolumeIdentifier{
-		Replication: &db.ReplicationIdentifier{
-			ReplicatedVolumeHandle: strategy.Name,
-		},
-	}
 }
 
 type ContainerRootFSStrategy struct {
@@ -176,14 +149,6 @@ func (strategy ContainerRootFSStrategy) baggageclaimStrategy() baggageclaim.Stra
 	}
 }
 
-func (strategy ContainerRootFSStrategy) dbIdentifier() db.VolumeIdentifier {
-	return db.VolumeIdentifier{
-		COW: &db.COWIdentifier{
-			ParentVolumeHandle: strategy.Parent.Handle(),
-		},
-	}
-}
-
 type HostRootFSStrategy struct {
 	Path       string
 	WorkerName string
@@ -193,16 +158,6 @@ type HostRootFSStrategy struct {
 func (strategy HostRootFSStrategy) baggageclaimStrategy() baggageclaim.Strategy {
 	return baggageclaim.ImportStrategy{
 		Path: strategy.Path,
-	}
-}
-
-func (strategy HostRootFSStrategy) dbIdentifier() db.VolumeIdentifier {
-	return db.VolumeIdentifier{
-		Import: &db.ImportIdentifier{
-			Path:       strategy.Path,
-			WorkerName: strategy.WorkerName,
-			Version:    strategy.Version,
-		},
 	}
 }
 
@@ -220,8 +175,8 @@ type Container interface {
 	WorkerName() string
 }
 
+type ResourceCacheIdentifier db.ResourceCacheIdentifier
 type VolumeProperties map[string]string
-type VolumeIdentifier db.VolumeIdentifier
 
 type Identifier db.ContainerIdentifier
 type Metadata db.ContainerMetadata

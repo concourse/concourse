@@ -104,7 +104,7 @@ type TaskDelegate interface {
 	Finished(ExitStatus)
 	Failed(error)
 
-	ImageVersionDetermined(worker.VolumeIdentifier) error
+	ImageVersionDetermined(worker.ResourceCacheIdentifier) error
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -118,7 +118,7 @@ type ResourceDelegate interface {
 	Completed(ExitStatus, *VersionInfo)
 	Failed(error)
 
-	ImageVersionDetermined(worker.VolumeIdentifier) error
+	ImageVersionDetermined(worker.ResourceCacheIdentifier) error
 
 	Stdout() io.Writer
 	Stderr() io.Writer

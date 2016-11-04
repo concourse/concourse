@@ -1,12 +1,6 @@
 package dbng
 
-import (
-	"errors"
-
-	"github.com/concourse/atc"
-)
-
-var ErrResourceTypeNotFound = errors.New("resource type not found")
+import "github.com/concourse/atc"
 
 //go:generate counterfeiter . ResourceCacheFactory
 
@@ -151,7 +145,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 ) (*UsedResourceCache, error) {
 	resourceType, found := resourceTypes.Lookup(resourceTypeName)
 	if !found {
-		return nil, ErrResourceTypeNotFound
+		return nil, ErrResourceTypeNotFound{resourceTypeName}
 	}
 
 	tx, err := f.conn.Begin()
@@ -172,7 +166,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 	}
 
 	if !found {
-		return nil, ErrResourceTypeNotFound
+		return nil, ErrResourceTypeNotFound{resourceTypeName}
 	}
 
 	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
@@ -202,31 +196,4 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 	}
 
 	return usedResourceCache, nil
-}
-
-func getDBResourceTypes(
-	tx Tx,
-	pipeline *Pipeline,
-	resourceTypes atc.ResourceTypes,
-) ([]ResourceType, error) {
-	dbResourceTypes := []ResourceType{}
-	for _, resourceType := range resourceTypes {
-		dbResourceType := ResourceType{
-			ResourceType: resourceType,
-			Pipeline:     pipeline,
-		}
-
-		urt, found, err := dbResourceType.Find(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		if !found {
-			return nil, ErrResourceTypeNotFound
-		}
-
-		dbResourceType.Version = urt.Version
-		dbResourceTypes = append(dbResourceTypes, dbResourceType)
-	}
-	return dbResourceTypes, nil
 }

@@ -15,7 +15,6 @@ const volumeKeepalive = 30 * time.Second
 type VolumeFactoryDB interface {
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
-	SetVolumeTTLAndSizeInBytes(handle string, ttl time.Duration, sizeInBytes int64) error
 	SetVolumeTTL(handle string, ttl time.Duration) error
 }
 

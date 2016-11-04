@@ -91,7 +91,6 @@ var _ = Describe("DBProvider", func() {
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
 		fakeDBResourceCacheFactory := new(dbngfakes.FakeResourceCacheFactory)
-		fakeDBResourceTypeFactory := new(dbngfakes.FakeResourceTypeFactory)
 		fakeDBBaseResourceTypeFactory = new(dbngfakes.FakeBaseResourceTypeFactory)
 
 		provider = NewDBWorkerProvider(
@@ -102,7 +101,6 @@ var _ = Describe("DBProvider", func() {
 			fakeImageFactory,
 			fakeDBContainerFactory,
 			fakeDBResourceCacheFactory,
-			fakeDBResourceTypeFactory,
 			nil,
 			fakeDBBaseResourceTypeFactory,
 			fakeDBVolumeFactory,

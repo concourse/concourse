@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/resource"
 	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
@@ -31,6 +32,7 @@ var _ = Describe("Image", func() {
 	var fakeResourceFetcherFactory *rfakes.FakeFetcherFactory
 	var fakeResourceFetcher *rfakes.FakeFetcher
 	var fakeResourceFactoryFactory *rfakes.FakeResourceFactoryFactory
+	var fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 
 	var fetchedImage worker.Image
 
@@ -74,6 +76,7 @@ var _ = Describe("Image", func() {
 			BuildID: 42,
 		}
 		metadata = worker.Metadata{
+			PipelineID:           4567,
 			PipelineName:         "some-pipeline",
 			Type:                 db.ContainerTypeCheck,
 			StepName:             "some-step",
@@ -97,9 +100,12 @@ var _ = Describe("Image", func() {
 			},
 		}
 
+		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+
 		imageFactory = image.NewFactory(
 			fakeResourceFetcherFactory,
 			fakeResourceFactoryFactory,
+			fakeResourceCacheFactory,
 		)
 
 		fetchedImage = imageFactory.NewImage(
@@ -220,6 +226,7 @@ var _ = Describe("Image", func() {
 									Stage:               db.ContainerStageCheck,
 								}))
 								Expect(metadata).To(Equal(worker.Metadata{
+									PipelineID:           4567,
 									PipelineName:         "some-pipeline",
 									Type:                 db.ContainerTypeCheck,
 									StepName:             "some-step",
@@ -274,6 +281,7 @@ var _ = Describe("Image", func() {
 									Stage:               db.ContainerStageCheck,
 								}))
 								Expect(metadata).To(Equal(worker.Metadata{
+									PipelineID:           4567,
 									PipelineName:         "some-pipeline",
 									Type:                 db.ContainerTypeCheck,
 									StepName:             "some-step",
@@ -332,6 +340,7 @@ var _ = Describe("Image", func() {
 								Stage:               db.ContainerStageCheck,
 							}))
 							Expect(metadata).To(Equal(worker.Metadata{
+								PipelineID:           4567,
 								PipelineName:         "some-pipeline",
 								Type:                 db.ContainerTypeCheck,
 								StepName:             "some-step",
@@ -359,11 +368,9 @@ var _ = Describe("Image", func() {
 						})
 
 						It("saved the image resource version in the database", func() {
-							expectedIdentifier := worker.VolumeIdentifier{
-								ResourceCache: &db.ResourceCacheIdentifier{
-									ResourceVersion: atc.Version{"v": "1"},
-									ResourceHash:    `docker{"some":"source"}`,
-								},
+							expectedIdentifier := worker.ResourceCacheIdentifier{
+								ResourceVersion: atc.Version{"v": "1"},
+								ResourceHash:    `docker{"some":"source"}`,
 							}
 							Expect(fakeImageFetchingDelegate.ImageVersionDeterminedCallCount()).To(Equal(1))
 							Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(expectedIdentifier))
@@ -392,6 +399,7 @@ var _ = Describe("Image", func() {
 									Stage:               db.ContainerStageGet,
 								},
 								Metadata: worker.Metadata{
+									PipelineID:           4567,
 									PipelineName:         "some-pipeline",
 									Type:                 db.ContainerTypeGet,
 									StepName:             "some-step",
@@ -407,6 +415,9 @@ var _ = Describe("Image", func() {
 								atc.Source{"some": "source"},
 								nil,
 								&dbng.Build{ID: 42},
+								&dbng.Pipeline{ID: 4567},
+								customTypes,
+								fakeResourceCacheFactory,
 							)))
 							Expect(actualCustomTypes).To(Equal(customTypes))
 							Expect(delegate).To(Equal(fakeImageFetchingDelegate))

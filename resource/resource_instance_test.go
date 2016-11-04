@@ -6,8 +6,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -24,6 +24,7 @@ var _ = Describe("ResourceInstance", func() {
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeWorkerClient = new(wfakes.FakeClient)
+		fakeResourceCacheFactory := new(dbngfakes.FakeResourceCacheFactory)
 
 		resourceInstance = NewBuildResourceInstance(
 			"some-resource-type",
@@ -31,6 +32,9 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
 			&dbng.Build{ID: 42},
+			&dbng.Pipeline{ID: 43},
+			atc.ResourceTypes{},
+			fakeResourceCacheFactory,
 		)
 	})
 
@@ -132,7 +136,7 @@ var _ = Describe("ResourceInstance", func() {
 
 			BeforeEach(func() {
 				volume = new(wfakes.FakeVolume)
-				fakeWorkerClient.CreateVolumeForResourceCacheReturns(volume, nil)
+				fakeWorkerClient.FindOrCreateVolumeForResourceCacheReturns(volume, nil)
 			})
 
 			It("succeeds", func() {
@@ -144,13 +148,12 @@ var _ = Describe("ResourceInstance", func() {
 			})
 
 			It("created with the right properties", func() {
-				_, spec := fakeWorkerClient.CreateVolumeForResourceCacheArgsForCall(0)
+				_, spec, _ := fakeWorkerClient.FindOrCreateVolumeForResourceCacheArgsForCall(0)
 				Expect(spec).To(Equal(worker.VolumeSpec{
-					Strategy: worker.NewBuildResourceCacheStrategy(
-						`some-resource-type{"some":"source"}`,
-						atc.Version{"some": "version"},
-						&dbng.Build{ID: 42},
-					),
+					Strategy: worker.ResourceCacheStrategy{
+						ResourceHash:    `some-resource-type{"some":"source"}`,
+						ResourceVersion: atc.Version{"some": "version"},
+					},
 					Properties: worker.VolumeProperties{
 						"resource-type":    "some-resource-type",
 						"resource-version": `{"some":"version"}`,
@@ -167,7 +170,7 @@ var _ = Describe("ResourceInstance", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeWorkerClient.CreateVolumeForResourceCacheReturns(nil, disaster)
+				fakeWorkerClient.FindOrCreateVolumeForResourceCacheReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -176,16 +179,14 @@ var _ = Describe("ResourceInstance", func() {
 		})
 	})
 
-	Context("VolumeIdentifier", func() {
+	Context("ResourceCacheIdentifier", func() {
 		It("returns a volume identifier corrsponding to the resource that the identifier is tracking", func() {
-			expectedIdentifier := worker.VolumeIdentifier{
-				ResourceCache: &db.ResourceCacheIdentifier{
-					ResourceVersion: atc.Version{"some": "version"},
-					ResourceHash:    `some-resource-type{"some":"source"}`,
-				},
+			expectedIdentifier := worker.ResourceCacheIdentifier{
+				ResourceVersion: atc.Version{"some": "version"},
+				ResourceHash:    `some-resource-type{"some":"source"}`,
 			}
 
-			Expect(resourceInstance.VolumeIdentifier()).To(Equal(expectedIdentifier))
+			Expect(resourceInstance.ResourceCacheIdentifier()).To(Equal(expectedIdentifier))
 		})
 	})
 })

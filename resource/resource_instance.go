@@ -9,7 +9,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
@@ -24,7 +23,7 @@ type ResourceInstance interface {
 	FindOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	CreateOn(lager.Logger, worker.Client) (worker.Volume, error)
 
-	VolumeIdentifier() worker.VolumeIdentifier
+	ResourceCacheIdentifier() worker.ResourceCacheIdentifier
 }
 
 type buildResourceInstance struct {
@@ -260,12 +259,10 @@ func (instance resourceInstance) initializedVolumeProperties() worker.VolumeProp
 	return props
 }
 
-func (instance resourceInstance) VolumeIdentifier() worker.VolumeIdentifier {
-	return worker.VolumeIdentifier{
-		ResourceCache: &db.ResourceCacheIdentifier{
-			ResourceVersion: instance.version,
-			ResourceHash:    GenerateResourceHash(instance.source, string(instance.resourceTypeName)),
-		},
+func (instance resourceInstance) ResourceCacheIdentifier() worker.ResourceCacheIdentifier {
+	return worker.ResourceCacheIdentifier{
+		ResourceVersion: instance.version,
+		ResourceHash:    GenerateResourceHash(instance.source, string(instance.resourceTypeName)),
 	}
 }
 

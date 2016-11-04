@@ -427,21 +427,19 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("ImageVersionDetermined", func() {
-			var identifier worker.VolumeIdentifier
+			var resourceCacheIdentifier worker.ResourceCacheIdentifier
 
 			BeforeEach(func() {
-				identifier = worker.VolumeIdentifier{
-					ResourceCache: &db.ResourceCacheIdentifier{
-						ResourceVersion: atc.Version{"ref": "asdf"},
-						ResourceHash:    "our-super-sweet-resource-hash",
-					},
+				resourceCacheIdentifier = worker.ResourceCacheIdentifier{
+					ResourceVersion: atc.Version{"ref": "asdf"},
+					ResourceHash:    "our-super-sweet-resource-hash",
 				}
 			})
 
 			It("calls through to the database", func() {
 				fakeBuild.SaveImageResourceVersionReturns(nil)
 
-				err := inputDelegate.ImageVersionDetermined(identifier)
+				err := inputDelegate.ImageVersionDetermined(resourceCacheIdentifier)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
@@ -457,7 +455,7 @@ var _ = Describe("BuildDelegate", func() {
 				distaster := errors.New("sorry mate")
 				fakeBuild.SaveImageResourceVersionReturns(distaster)
 
-				err := inputDelegate.ImageVersionDetermined(identifier)
+				err := inputDelegate.ImageVersionDetermined(resourceCacheIdentifier)
 				Expect(err).To(Equal(distaster))
 			})
 		})
@@ -718,21 +716,19 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("ImageVersionDetermined", func() {
-			var identifier worker.VolumeIdentifier
+			var resourceCacheIdentifier worker.ResourceCacheIdentifier
 
 			BeforeEach(func() {
-				identifier = worker.VolumeIdentifier{
-					ResourceCache: &db.ResourceCacheIdentifier{
-						ResourceVersion: atc.Version{"ref": "asdf"},
-						ResourceHash:    "our-super-sweet-resource-hash",
-					},
+				resourceCacheIdentifier = worker.ResourceCacheIdentifier{
+					ResourceVersion: atc.Version{"ref": "asdf"},
+					ResourceHash:    "our-super-sweet-resource-hash",
 				}
 			})
 
 			It("Calls through to the database", func() {
 				fakeBuild.SaveImageResourceVersionReturns(nil)
 
-				err := executionDelegate.ImageVersionDetermined(identifier)
+				err := executionDelegate.ImageVersionDetermined(resourceCacheIdentifier)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
@@ -748,7 +744,7 @@ var _ = Describe("BuildDelegate", func() {
 				distaster := errors.New("sorry mate")
 				fakeBuild.SaveImageResourceVersionReturns(distaster)
 
-				err := executionDelegate.ImageVersionDetermined(identifier)
+				err := executionDelegate.ImageVersionDetermined(resourceCacheIdentifier)
 				Expect(err).To(Equal(distaster))
 			})
 		})
@@ -1034,21 +1030,19 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("ImageVersionDetermined", func() {
-			var identifier worker.VolumeIdentifier
+			var resourceCacheIdentifier worker.ResourceCacheIdentifier
 
 			BeforeEach(func() {
-				identifier = worker.VolumeIdentifier{
-					ResourceCache: &db.ResourceCacheIdentifier{
-						ResourceVersion: atc.Version{"ref": "asdf"},
-						ResourceHash:    "our-super-sweet-resource-hash",
-					},
+				resourceCacheIdentifier = worker.ResourceCacheIdentifier{
+					ResourceVersion: atc.Version{"ref": "asdf"},
+					ResourceHash:    "our-super-sweet-resource-hash",
 				}
 			})
 
 			It("calls through to the database", func() {
 				fakeBuild.SaveImageResourceVersionReturns(nil)
 
-				err := outputDelegate.ImageVersionDetermined(identifier)
+				err := outputDelegate.ImageVersionDetermined(resourceCacheIdentifier)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
@@ -1064,7 +1058,7 @@ var _ = Describe("BuildDelegate", func() {
 				distaster := errors.New("sorry mate")
 				fakeBuild.SaveImageResourceVersionReturns(distaster)
 
-				err := outputDelegate.ImageVersionDetermined(identifier)
+				err := outputDelegate.ImageVersionDetermined(resourceCacheIdentifier)
 				Expect(err).To(Equal(distaster))
 			})
 		})

@@ -92,7 +92,7 @@ var _ = BeforeEach(func() {
 	defaultResource, err = resourceFactory.CreateResource(defaultPipeline, "default-resource", "{\"resource\":\"config\"}")
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(defaultResource, "some-base-resource-type", atc.Source{}, []dbng.ResourceType{})
+	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(defaultResource, "some-base-resource-type", atc.Source{}, defaultPipeline, atc.ResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
 	deafultCreatingContainer, err = containerFactory.CreateResourceCheckContainer(defaultWorker, defaultResourceConfig, "check-my-stuff")

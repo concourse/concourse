@@ -96,11 +96,7 @@ type GardenWorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
-	InsertVolume(db.Volume) error
-	UpdateVolumeIdentifierToBeDeleted(db.Volume) error
-	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	GetVolumeTTL(string) (time.Duration, bool, error)
-	GetVolumesByIdentifier(db.VolumeIdentifier) ([]db.SavedVolume, error)
 	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
 }
 
@@ -196,10 +192,6 @@ func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResou
 	}
 
 	return atc.WorkerResourceType{}, false
-}
-
-func (worker *gardenWorker) FindVolume(logger lager.Logger, volumeSpec VolumeSpec) (Volume, bool, error) {
-	return worker.volumeClient.FindVolume(logger, volumeSpec)
 }
 
 func (worker *gardenWorker) FindOrCreateVolumeForResourceCache(logger lager.Logger, volumeSpec VolumeSpec, resourceCache *dbng.UsedResourceCache) (Volume, error) {

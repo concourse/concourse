@@ -3,10 +3,19 @@ package dbng
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 )
+
+type ErrResourceTypeNotFound struct {
+	resourceTypeName string
+}
+
+func (e ErrResourceTypeNotFound) Error() string {
+	return fmt.Sprintf("resource type not found %s", e.resourceTypeName)
+}
 
 type ResourceType struct {
 	atc.ResourceType
@@ -46,7 +55,7 @@ func (resourceType ResourceType) Find(tx Tx) (*UsedResourceType, bool, error) {
 	}
 
 	if version.Valid {
-		err = json.Unmarshal([]byte(version.String), urt.Version)
+		err = json.Unmarshal([]byte(version.String), &urt.Version)
 		if err != nil {
 			return nil, false, err
 		}
@@ -56,20 +65,23 @@ func (resourceType ResourceType) Find(tx Tx) (*UsedResourceType, bool, error) {
 }
 
 func (resourceType ResourceType) Create(tx Tx) (*UsedResourceType, error) {
-	versionString, err := json.Marshal(resourceType.Version)
-	if err != nil {
-		return nil, err
-	}
-
 	configPayload, err := json.Marshal(resourceType.ResourceType)
 	if err != nil {
 		return nil, err
 	}
 
+	versionString, err := json.Marshal(resourceType.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	columns := []string{"pipeline_id", "name", "type", "config", "version"}
+	values := []interface{}{resourceType.Pipeline.ID, resourceType.Name, resourceType.Type, configPayload, versionString}
+
 	var id int
 	err = psql.Insert("resource_types").
-		Columns("pipeline_id", "name", "type", "version", "config").
-		Values(resourceType.Pipeline.ID, resourceType.Name, resourceType.Type, versionString, configPayload).
+		Columns(columns...).
+		Values(values...).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -83,4 +95,31 @@ func (resourceType ResourceType) Create(tx Tx) (*UsedResourceType, error) {
 		ID:      id,
 		Version: resourceType.Version,
 	}, nil
+}
+
+func getDBResourceTypes(
+	tx Tx,
+	pipeline *Pipeline,
+	resourceTypes atc.ResourceTypes,
+) ([]ResourceType, error) {
+	dbResourceTypes := []ResourceType{}
+	for _, resourceType := range resourceTypes {
+		dbResourceType := ResourceType{
+			ResourceType: resourceType,
+			Pipeline:     pipeline,
+		}
+
+		urt, found, err := dbResourceType.Find(tx)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
+			return nil, ErrResourceTypeNotFound{resourceType.Name}
+		}
+
+		dbResourceType.Version = urt.Version
+		dbResourceTypes = append(dbResourceTypes, dbResourceType)
+	}
+	return dbResourceTypes, nil
 }

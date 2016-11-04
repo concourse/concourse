@@ -101,11 +101,8 @@ type DB interface {
 
 	DeleteContainer(string) error
 
-	InsertVolume(data Volume) error
 	GetVolumes() ([]SavedVolume, error)
-	GetVolumesByIdentifier(VolumeIdentifier) ([]SavedVolume, error)
 	ReapVolume(string) error
-	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	SetVolumeTTL(string, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)

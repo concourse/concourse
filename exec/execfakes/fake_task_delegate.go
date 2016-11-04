@@ -29,10 +29,10 @@ type FakeTaskDelegate struct {
 	failedArgsForCall []struct {
 		arg1 error
 	}
-	ImageVersionDeterminedStub        func(worker.VolumeIdentifier) error
+	ImageVersionDeterminedStub        func(worker.ResourceCacheIdentifier) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
-		arg1 worker.VolumeIdentifier
+		arg1 worker.ResourceCacheIdentifier
 	}
 	imageVersionDeterminedReturns struct {
 		result1 error
@@ -141,10 +141,10 @@ func (fake *FakeTaskDelegate) FailedArgsForCall(i int) error {
 	return fake.failedArgsForCall[i].arg1
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 worker.VolumeIdentifier) error {
+func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 worker.ResourceCacheIdentifier) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
-		arg1 worker.VolumeIdentifier
+		arg1 worker.ResourceCacheIdentifier
 	}{arg1})
 	fake.recordInvocation("ImageVersionDetermined", []interface{}{arg1})
 	fake.imageVersionDeterminedMutex.Unlock()
@@ -161,7 +161,7 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedCallCount() int {
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) worker.VolumeIdentifier {
+func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) worker.ResourceCacheIdentifier {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return fake.imageVersionDeterminedArgsForCall[i].arg1

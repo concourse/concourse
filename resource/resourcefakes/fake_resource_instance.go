@@ -31,11 +31,11 @@ type FakeResourceInstance struct {
 		result1 worker.Volume
 		result2 error
 	}
-	VolumeIdentifierStub        func() worker.VolumeIdentifier
-	volumeIdentifierMutex       sync.RWMutex
-	volumeIdentifierArgsForCall []struct{}
-	volumeIdentifierReturns     struct {
-		result1 worker.VolumeIdentifier
+	ResourceCacheIdentifierStub        func() worker.ResourceCacheIdentifier
+	resourceCacheIdentifierMutex       sync.RWMutex
+	resourceCacheIdentifierArgsForCall []struct{}
+	resourceCacheIdentifierReturns     struct {
+		result1 worker.ResourceCacheIdentifier
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -112,28 +112,28 @@ func (fake *FakeResourceInstance) CreateOnReturns(result1 worker.Volume, result2
 	}{result1, result2}
 }
 
-func (fake *FakeResourceInstance) VolumeIdentifier() worker.VolumeIdentifier {
-	fake.volumeIdentifierMutex.Lock()
-	fake.volumeIdentifierArgsForCall = append(fake.volumeIdentifierArgsForCall, struct{}{})
-	fake.recordInvocation("VolumeIdentifier", []interface{}{})
-	fake.volumeIdentifierMutex.Unlock()
-	if fake.VolumeIdentifierStub != nil {
-		return fake.VolumeIdentifierStub()
+func (fake *FakeResourceInstance) ResourceCacheIdentifier() worker.ResourceCacheIdentifier {
+	fake.resourceCacheIdentifierMutex.Lock()
+	fake.resourceCacheIdentifierArgsForCall = append(fake.resourceCacheIdentifierArgsForCall, struct{}{})
+	fake.recordInvocation("ResourceCacheIdentifier", []interface{}{})
+	fake.resourceCacheIdentifierMutex.Unlock()
+	if fake.ResourceCacheIdentifierStub != nil {
+		return fake.ResourceCacheIdentifierStub()
 	} else {
-		return fake.volumeIdentifierReturns.result1
+		return fake.resourceCacheIdentifierReturns.result1
 	}
 }
 
-func (fake *FakeResourceInstance) VolumeIdentifierCallCount() int {
-	fake.volumeIdentifierMutex.RLock()
-	defer fake.volumeIdentifierMutex.RUnlock()
-	return len(fake.volumeIdentifierArgsForCall)
+func (fake *FakeResourceInstance) ResourceCacheIdentifierCallCount() int {
+	fake.resourceCacheIdentifierMutex.RLock()
+	defer fake.resourceCacheIdentifierMutex.RUnlock()
+	return len(fake.resourceCacheIdentifierArgsForCall)
 }
 
-func (fake *FakeResourceInstance) VolumeIdentifierReturns(result1 worker.VolumeIdentifier) {
-	fake.VolumeIdentifierStub = nil
-	fake.volumeIdentifierReturns = struct {
-		result1 worker.VolumeIdentifier
+func (fake *FakeResourceInstance) ResourceCacheIdentifierReturns(result1 worker.ResourceCacheIdentifier) {
+	fake.ResourceCacheIdentifierStub = nil
+	fake.resourceCacheIdentifierReturns = struct {
+		result1 worker.ResourceCacheIdentifier
 	}{result1}
 }
 
@@ -144,8 +144,8 @@ func (fake *FakeResourceInstance) Invocations() map[string][][]interface{} {
 	defer fake.findOnMutex.RUnlock()
 	fake.createOnMutex.RLock()
 	defer fake.createOnMutex.RUnlock()
-	fake.volumeIdentifierMutex.RLock()
-	defer fake.volumeIdentifierMutex.RUnlock()
+	fake.resourceCacheIdentifierMutex.RLock()
+	defer fake.resourceCacheIdentifierMutex.RUnlock()
 	return fake.invocations
 }
 

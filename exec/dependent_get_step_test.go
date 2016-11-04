@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
@@ -29,16 +30,17 @@ import (
 
 var _ = Describe("DependentGet", func() {
 	var (
-		fakeWorkerClient    *workerfakes.FakeClient
-		fakeResourceFetcher *resourcefakes.FakeFetcher
-		fakeVersionedSource *resourcefakes.FakeVersionedSource
-		fakeFetchSource     *resourcefakes.FakeFetchSource
-		getDelegate         *execfakes.FakeGetDelegate
-		resourceConfig      atc.ResourceConfig
-		params              atc.Params
-		version             atc.Version
-		tags                []string
-		resourceTypes       atc.ResourceTypes
+		fakeWorkerClient           *workerfakes.FakeClient
+		fakeResourceFetcher        *resourcefakes.FakeFetcher
+		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
+		fakeVersionedSource        *resourcefakes.FakeVersionedSource
+		fakeFetchSource            *resourcefakes.FakeFetchSource
+		getDelegate                *execfakes.FakeGetDelegate
+		resourceConfig             atc.ResourceConfig
+		params                     atc.Params
+		version                    atc.Version
+		tags                       []string
+		resourceTypes              atc.ResourceTypes
 
 		inStep *execfakes.FakeStep
 		repo   *worker.ArtifactRepository
@@ -56,6 +58,7 @@ var _ = Describe("DependentGet", func() {
 			PlanID:  atc.PlanID("some-plan-id"),
 		}
 		workerMetadata = worker.Metadata{
+			PipelineID:   4567,
 			PipelineName: "some-pipeline",
 			Type:         db.ContainerTypeGet,
 			StepName:     "some-step",
@@ -74,8 +77,9 @@ var _ = Describe("DependentGet", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
+		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory)
+		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -209,6 +213,9 @@ var _ = Describe("DependentGet", func() {
 				resourceConfig.Source,
 				params,
 				&dbng.Build{ID: 1234},
+				&dbng.Pipeline{ID: 4567},
+				resourceTypes,
+				fakeDBResourceCacheFactory,
 			)))
 			Expect(actualResourceTypes).To(Equal(
 				atc.ResourceTypes{

@@ -10,8 +10,6 @@ func Volume(volume db.SavedVolume) atc.Volume {
 		ID:                volume.Handle,
 		TTLInSeconds:      int64(volume.ExpiresIn.Seconds()),
 		ValidityInSeconds: int64(volume.TTL.Seconds()),
-		Type:              volume.Volume.Identifier.Type(),
-		Identifier:        volume.Volume.Identifier.String(),
 		WorkerName:        volume.WorkerName,
 		SizeInBytes:       volume.SizeInBytes,
 	}
