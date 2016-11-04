@@ -12,7 +12,7 @@ import (
 	"net/url"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/retryhttp"
 	"github.com/tedsuo/rata"
 )
@@ -25,9 +25,17 @@ func (e ErrMissingWorker) Error() string {
 	return fmt.Sprintf("worker %s not found in database while retrying http request", e.WorkerName)
 }
 
+type ErrWorkerStalled struct {
+	WorkerName string
+}
+
+func (e ErrWorkerStalled) Error() string {
+	return fmt.Sprintf("worker %s has not checked in recently", e.WorkerName)
+}
+
 //go:generate counterfeiter . TransportDB
 type TransportDB interface {
-	GetWorker(string) (db.SavedWorker, bool, error)
+	GetWorker(name string) (*dbng.Worker, bool, error)
 }
 
 //go:generate counterfeiter . ReadCloser

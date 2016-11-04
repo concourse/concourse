@@ -27,6 +27,15 @@ type FakeWorkerFactory struct {
 		result1 []*dbng.Worker
 		result2 error
 	}
+	WorkersForTeamStub        func(teamName string) ([]*dbng.Worker, error)
+	workersForTeamMutex       sync.RWMutex
+	workersForTeamArgsForCall []struct {
+		teamName string
+	}
+	workersForTeamReturns struct {
+		result1 []*dbng.Worker
+		result2 error
+	}
 	StallWorkerStub        func(name string) (*dbng.Worker, error)
 	stallWorkerMutex       sync.RWMutex
 	stallWorkerArgsForCall []struct {
@@ -124,6 +133,40 @@ func (fake *FakeWorkerFactory) WorkersCallCount() int {
 func (fake *FakeWorkerFactory) WorkersReturns(result1 []*dbng.Worker, result2 error) {
 	fake.WorkersStub = nil
 	fake.workersReturns = struct {
+		result1 []*dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorkerFactory) WorkersForTeam(teamName string) ([]*dbng.Worker, error) {
+	fake.workersForTeamMutex.Lock()
+	fake.workersForTeamArgsForCall = append(fake.workersForTeamArgsForCall, struct {
+		teamName string
+	}{teamName})
+	fake.recordInvocation("WorkersForTeam", []interface{}{teamName})
+	fake.workersForTeamMutex.Unlock()
+	if fake.WorkersForTeamStub != nil {
+		return fake.WorkersForTeamStub(teamName)
+	} else {
+		return fake.workersForTeamReturns.result1, fake.workersForTeamReturns.result2
+	}
+}
+
+func (fake *FakeWorkerFactory) WorkersForTeamCallCount() int {
+	fake.workersForTeamMutex.RLock()
+	defer fake.workersForTeamMutex.RUnlock()
+	return len(fake.workersForTeamArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) WorkersForTeamArgsForCall(i int) string {
+	fake.workersForTeamMutex.RLock()
+	defer fake.workersForTeamMutex.RUnlock()
+	return fake.workersForTeamArgsForCall[i].teamName
+}
+
+func (fake *FakeWorkerFactory) WorkersForTeamReturns(result1 []*dbng.Worker, result2 error) {
+	fake.WorkersForTeamStub = nil
+	fake.workersForTeamReturns = struct {
 		result1 []*dbng.Worker
 		result2 error
 	}{result1, result2}
@@ -267,6 +310,8 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.getWorkerMutex.RUnlock()
 	fake.workersMutex.RLock()
 	defer fake.workersMutex.RUnlock()
+	fake.workersForTeamMutex.RLock()
+	defer fake.workersForTeamMutex.RUnlock()
 	fake.stallWorkerMutex.RLock()
 	defer fake.stallWorkerMutex.RUnlock()
 	fake.stallUnresponsiveWorkersMutex.RLock()
