@@ -106,7 +106,6 @@ func (spec VolumeSpec) baggageclaimVolumeSpec() baggageclaim.VolumeSpec {
 		Strategy:   spec.Strategy.baggageclaimStrategy(),
 		Privileged: spec.Privileged,
 		Properties: baggageclaim.VolumeProperties(spec.Properties),
-		TTL:        spec.TTL,
 	}
 }
 

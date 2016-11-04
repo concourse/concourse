@@ -13,9 +13,7 @@ const volumeKeepalive = 30 * time.Second
 //go:generate counterfeiter . VolumeFactoryDB
 
 type VolumeFactoryDB interface {
-	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
-	SetVolumeTTL(handle string, ttl time.Duration) error
 }
 
 //go:generate counterfeiter . VolumeFactory
@@ -34,7 +32,7 @@ func NewVolumeFactory(db VolumeFactoryDB) VolumeFactory {
 	}
 }
 
-func (vf *volumeFactory) BuildWithIndefiniteTTL(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, error) {
+func (vf *volumeFactory) BuildWithIndefiniteTTL(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, error) { // TODO think about this method
 	logger = logger.WithData(lager.Data{"volume": bcVol.Handle()})
 
 	bcVol.Release(nil)
@@ -42,12 +40,6 @@ func (vf *volumeFactory) BuildWithIndefiniteTTL(logger lager.Logger, bcVol bagga
 	err := bcVol.SetTTL(0)
 	if err != nil {
 		logger.Error("failed-to-set-volume-ttl-in-baggageclaim", err)
-		return nil, err
-	}
-
-	err = vf.db.SetVolumeTTL(bcVol.Handle(), 0)
-	if err != nil {
-		logger.Error("failed-to-set-volume-ttl-in-db", err)
 		return nil, err
 	}
 

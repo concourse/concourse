@@ -1,8 +1,6 @@
 package worker_test
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -32,16 +30,10 @@ var _ = Describe("Volumes", func() {
 
 	Context("VolumeFactory", func() {
 		Describe("BuildWithIndefiniteTTL", func() {
-			Context("when the volume's TTL can be found", func() {
-				BeforeEach(func() {
-					fakeDB.GetVolumeTTLReturns(time.Minute, true, nil)
-				})
-
-				It("embeds the original volume in the wrapped volume", func() {
-					vol, err := volumeFactory.BuildWithIndefiniteTTL(logger, fakeVolume)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(vol.Handle()).To(Equal("some-handle"))
-				})
+			It("embeds the original volume in the wrapped volume", func() {
+				vol, err := volumeFactory.BuildWithIndefiniteTTL(logger, fakeVolume)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(vol.Handle()).To(Equal("some-handle"))
 			})
 		})
 	})

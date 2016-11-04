@@ -97,31 +97,12 @@ type FakeWorkerDB struct {
 		result1 db.SavedPipeline
 		result2 error
 	}
-	GetVolumeTTLStub        func(volumeHandle string) (time.Duration, bool, error)
-	getVolumeTTLMutex       sync.RWMutex
-	getVolumeTTLArgsForCall []struct {
-		volumeHandle string
-	}
-	getVolumeTTLReturns struct {
-		result1 time.Duration
-		result2 bool
-		result3 error
-	}
 	ReapVolumeStub        func(handle string) error
 	reapVolumeMutex       sync.RWMutex
 	reapVolumeArgsForCall []struct {
 		handle string
 	}
 	reapVolumeReturns struct {
-		result1 error
-	}
-	SetVolumeTTLStub        func(string, time.Duration) error
-	setVolumeTTLMutex       sync.RWMutex
-	setVolumeTTLArgsForCall []struct {
-		arg1 string
-		arg2 time.Duration
-	}
-	setVolumeTTLReturns struct {
 		result1 error
 	}
 	AcquireVolumeCreatingLockStub        func(lager.Logger, int) (db.Lock, bool, error)
@@ -449,41 +430,6 @@ func (fake *FakeWorkerDB) GetPipelineByIDReturns(result1 db.SavedPipeline, resul
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerDB) GetVolumeTTL(volumeHandle string) (time.Duration, bool, error) {
-	fake.getVolumeTTLMutex.Lock()
-	fake.getVolumeTTLArgsForCall = append(fake.getVolumeTTLArgsForCall, struct {
-		volumeHandle string
-	}{volumeHandle})
-	fake.recordInvocation("GetVolumeTTL", []interface{}{volumeHandle})
-	fake.getVolumeTTLMutex.Unlock()
-	if fake.GetVolumeTTLStub != nil {
-		return fake.GetVolumeTTLStub(volumeHandle)
-	} else {
-		return fake.getVolumeTTLReturns.result1, fake.getVolumeTTLReturns.result2, fake.getVolumeTTLReturns.result3
-	}
-}
-
-func (fake *FakeWorkerDB) GetVolumeTTLCallCount() int {
-	fake.getVolumeTTLMutex.RLock()
-	defer fake.getVolumeTTLMutex.RUnlock()
-	return len(fake.getVolumeTTLArgsForCall)
-}
-
-func (fake *FakeWorkerDB) GetVolumeTTLArgsForCall(i int) string {
-	fake.getVolumeTTLMutex.RLock()
-	defer fake.getVolumeTTLMutex.RUnlock()
-	return fake.getVolumeTTLArgsForCall[i].volumeHandle
-}
-
-func (fake *FakeWorkerDB) GetVolumeTTLReturns(result1 time.Duration, result2 bool, result3 error) {
-	fake.GetVolumeTTLStub = nil
-	fake.getVolumeTTLReturns = struct {
-		result1 time.Duration
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeWorkerDB) ReapVolume(handle string) error {
 	fake.reapVolumeMutex.Lock()
 	fake.reapVolumeArgsForCall = append(fake.reapVolumeArgsForCall, struct {
@@ -513,40 +459,6 @@ func (fake *FakeWorkerDB) ReapVolumeArgsForCall(i int) string {
 func (fake *FakeWorkerDB) ReapVolumeReturns(result1 error) {
 	fake.ReapVolumeStub = nil
 	fake.reapVolumeReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeWorkerDB) SetVolumeTTL(arg1 string, arg2 time.Duration) error {
-	fake.setVolumeTTLMutex.Lock()
-	fake.setVolumeTTLArgsForCall = append(fake.setVolumeTTLArgsForCall, struct {
-		arg1 string
-		arg2 time.Duration
-	}{arg1, arg2})
-	fake.recordInvocation("SetVolumeTTL", []interface{}{arg1, arg2})
-	fake.setVolumeTTLMutex.Unlock()
-	if fake.SetVolumeTTLStub != nil {
-		return fake.SetVolumeTTLStub(arg1, arg2)
-	} else {
-		return fake.setVolumeTTLReturns.result1
-	}
-}
-
-func (fake *FakeWorkerDB) SetVolumeTTLCallCount() int {
-	fake.setVolumeTTLMutex.RLock()
-	defer fake.setVolumeTTLMutex.RUnlock()
-	return len(fake.setVolumeTTLArgsForCall)
-}
-
-func (fake *FakeWorkerDB) SetVolumeTTLArgsForCall(i int) (string, time.Duration) {
-	fake.setVolumeTTLMutex.RLock()
-	defer fake.setVolumeTTLMutex.RUnlock()
-	return fake.setVolumeTTLArgsForCall[i].arg1, fake.setVolumeTTLArgsForCall[i].arg2
-}
-
-func (fake *FakeWorkerDB) SetVolumeTTLReturns(result1 error) {
-	fake.SetVolumeTTLStub = nil
-	fake.setVolumeTTLReturns = struct {
 		result1 error
 	}{result1}
 }
@@ -608,12 +520,8 @@ func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.reapContainerMutex.RUnlock()
 	fake.getPipelineByIDMutex.RLock()
 	defer fake.getPipelineByIDMutex.RUnlock()
-	fake.getVolumeTTLMutex.RLock()
-	defer fake.getVolumeTTLMutex.RUnlock()
 	fake.reapVolumeMutex.RLock()
 	defer fake.reapVolumeMutex.RUnlock()
-	fake.setVolumeTTLMutex.RLock()
-	defer fake.setVolumeTTLMutex.RUnlock()
 	fake.acquireVolumeCreatingLockMutex.RLock()
 	defer fake.acquireVolumeCreatingLockMutex.RUnlock()
 	return fake.invocations

@@ -39,8 +39,6 @@ func (err MalformedMetadataError) Error() string {
 const containerKeepalive = 30 * time.Second
 const ContainerTTL = 5 * time.Minute
 
-const VolumeTTL = 5 * time.Minute
-
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
 const volumeMountsPropertyName = "concourse:volume-mounts"
@@ -96,7 +94,6 @@ type GardenWorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
-	GetVolumeTTL(string) (time.Duration, bool, error)
 	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
 }
 
@@ -251,7 +248,6 @@ func (worker *gardenWorker) getImageForContainer(
 						Parent: artifactVolume,
 					},
 					Privileged: imageSpec.Privileged,
-					TTL:        VolumeTTL,
 				},
 				container,
 				&dbng.Team{ID: teamID},
@@ -269,7 +265,6 @@ func (worker *gardenWorker) getImageForContainer(
 						Name: string(imageSpec.ImageArtifactName),
 					},
 					Privileged: imageSpec.Privileged,
-					TTL:        VolumeTTL,
 				},
 				container,
 				&dbng.Team{ID: teamID},
@@ -329,7 +324,6 @@ func (worker *gardenWorker) getImageForContainer(
 					Parent: imageParentVolume,
 				},
 				Privileged: imageSpec.Privileged,
-				TTL:        ContainerTTL,
 			},
 			container,
 			&dbng.Team{ID: teamID},
@@ -439,7 +433,6 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 					},
 					Privileged: true,
 					Properties: VolumeProperties{},
-					TTL:        VolumeTTL,
 				},
 				container,
 				&dbng.Team{ID: teamID},
@@ -723,7 +716,6 @@ func (worker *gardenWorker) createContainer(
 			VolumeSpec{
 				Strategy:   OutputStrategy{Name: name},
 				Privileged: bool(spec.ImageSpec.Privileged),
-				TTL:        VolumeTTL,
 			},
 			creatingContainer,
 			&dbng.Team{ID: spec.TeamID},
@@ -751,7 +743,6 @@ func (worker *gardenWorker) createContainer(
 					Parent: mount.Volume,
 				},
 				Privileged: spec.ImageSpec.Privileged,
-				TTL:        VolumeTTL,
 			},
 			creatingContainer,
 			&dbng.Team{ID: spec.TeamID},

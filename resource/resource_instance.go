@@ -5,15 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
-
-const reapExtraVolumeTTL = time.Minute
 
 var ErrResourceTypeNotFound = errors.New("resource type not found")
 
@@ -81,7 +78,6 @@ func (bri buildResourceInstance) CreateOn(logger lager.Logger, workerClient work
 			},
 			Properties: bri.volumeProperties(),
 			Privileged: true,
-			TTL:        0,
 		},
 		resourceCache,
 	)
@@ -142,7 +138,6 @@ func (rri resourceResourceInstance) CreateOn(logger lager.Logger, workerClient w
 			},
 			Properties: rri.volumeProperties(),
 			Privileged: true,
-			TTL:        0,
 		},
 		resourceCache,
 	)
@@ -203,7 +198,6 @@ func (rtri resourceTypeResourceInstance) CreateOn(logger lager.Logger, workerCli
 			},
 			Properties: rtri.volumeProperties(),
 			Privileged: true,
-			TTL:        0,
 		},
 		resourceCache,
 	)

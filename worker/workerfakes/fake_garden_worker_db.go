@@ -70,16 +70,6 @@ type FakeGardenWorkerDB struct {
 		result1 db.SavedPipeline
 		result2 error
 	}
-	GetVolumeTTLStub        func(string) (time.Duration, bool, error)
-	getVolumeTTLMutex       sync.RWMutex
-	getVolumeTTLArgsForCall []struct {
-		arg1 string
-	}
-	getVolumeTTLReturns struct {
-		result1 time.Duration
-		result2 bool
-		result3 error
-	}
 	AcquireVolumeCreatingLockStub        func(lager.Logger, int) (db.Lock, bool, error)
 	acquireVolumeCreatingLockMutex       sync.RWMutex
 	acquireVolumeCreatingLockArgsForCall []struct {
@@ -309,41 +299,6 @@ func (fake *FakeGardenWorkerDB) GetPipelineByIDReturns(result1 db.SavedPipeline,
 	}{result1, result2}
 }
 
-func (fake *FakeGardenWorkerDB) GetVolumeTTL(arg1 string) (time.Duration, bool, error) {
-	fake.getVolumeTTLMutex.Lock()
-	fake.getVolumeTTLArgsForCall = append(fake.getVolumeTTLArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("GetVolumeTTL", []interface{}{arg1})
-	fake.getVolumeTTLMutex.Unlock()
-	if fake.GetVolumeTTLStub != nil {
-		return fake.GetVolumeTTLStub(arg1)
-	} else {
-		return fake.getVolumeTTLReturns.result1, fake.getVolumeTTLReturns.result2, fake.getVolumeTTLReturns.result3
-	}
-}
-
-func (fake *FakeGardenWorkerDB) GetVolumeTTLCallCount() int {
-	fake.getVolumeTTLMutex.RLock()
-	defer fake.getVolumeTTLMutex.RUnlock()
-	return len(fake.getVolumeTTLArgsForCall)
-}
-
-func (fake *FakeGardenWorkerDB) GetVolumeTTLArgsForCall(i int) string {
-	fake.getVolumeTTLMutex.RLock()
-	defer fake.getVolumeTTLMutex.RUnlock()
-	return fake.getVolumeTTLArgsForCall[i].arg1
-}
-
-func (fake *FakeGardenWorkerDB) GetVolumeTTLReturns(result1 time.Duration, result2 bool, result3 error) {
-	fake.GetVolumeTTLStub = nil
-	fake.getVolumeTTLReturns = struct {
-		result1 time.Duration
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int) (db.Lock, bool, error) {
 	fake.acquireVolumeCreatingLockMutex.Lock()
 	fake.acquireVolumeCreatingLockArgsForCall = append(fake.acquireVolumeCreatingLockArgsForCall, struct {
@@ -395,8 +350,6 @@ func (fake *FakeGardenWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.reapContainerMutex.RUnlock()
 	fake.getPipelineByIDMutex.RLock()
 	defer fake.getPipelineByIDMutex.RUnlock()
-	fake.getVolumeTTLMutex.RLock()
-	defer fake.getVolumeTTLMutex.RUnlock()
 	fake.acquireVolumeCreatingLockMutex.RLock()
 	defer fake.acquireVolumeCreatingLockMutex.RUnlock()
 	return fake.invocations

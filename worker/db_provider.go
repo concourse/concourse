@@ -27,9 +27,7 @@ type WorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
-	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
-	SetVolumeTTL(string, time.Duration) error
 	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
 }
 

@@ -3,22 +3,11 @@ package workerfakes
 
 import (
 	"sync"
-	"time"
 
 	"github.com/concourse/atc/worker"
 )
 
 type FakeVolumeFactoryDB struct {
-	GetVolumeTTLStub        func(volumeHandle string) (time.Duration, bool, error)
-	getVolumeTTLMutex       sync.RWMutex
-	getVolumeTTLArgsForCall []struct {
-		volumeHandle string
-	}
-	getVolumeTTLReturns struct {
-		result1 time.Duration
-		result2 bool
-		result3 error
-	}
 	ReapVolumeStub        func(handle string) error
 	reapVolumeMutex       sync.RWMutex
 	reapVolumeArgsForCall []struct {
@@ -27,52 +16,8 @@ type FakeVolumeFactoryDB struct {
 	reapVolumeReturns struct {
 		result1 error
 	}
-	SetVolumeTTLStub        func(handle string, ttl time.Duration) error
-	setVolumeTTLMutex       sync.RWMutex
-	setVolumeTTLArgsForCall []struct {
-		handle string
-		ttl    time.Duration
-	}
-	setVolumeTTLReturns struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeVolumeFactoryDB) GetVolumeTTL(volumeHandle string) (time.Duration, bool, error) {
-	fake.getVolumeTTLMutex.Lock()
-	fake.getVolumeTTLArgsForCall = append(fake.getVolumeTTLArgsForCall, struct {
-		volumeHandle string
-	}{volumeHandle})
-	fake.recordInvocation("GetVolumeTTL", []interface{}{volumeHandle})
-	fake.getVolumeTTLMutex.Unlock()
-	if fake.GetVolumeTTLStub != nil {
-		return fake.GetVolumeTTLStub(volumeHandle)
-	} else {
-		return fake.getVolumeTTLReturns.result1, fake.getVolumeTTLReturns.result2, fake.getVolumeTTLReturns.result3
-	}
-}
-
-func (fake *FakeVolumeFactoryDB) GetVolumeTTLCallCount() int {
-	fake.getVolumeTTLMutex.RLock()
-	defer fake.getVolumeTTLMutex.RUnlock()
-	return len(fake.getVolumeTTLArgsForCall)
-}
-
-func (fake *FakeVolumeFactoryDB) GetVolumeTTLArgsForCall(i int) string {
-	fake.getVolumeTTLMutex.RLock()
-	defer fake.getVolumeTTLMutex.RUnlock()
-	return fake.getVolumeTTLArgsForCall[i].volumeHandle
-}
-
-func (fake *FakeVolumeFactoryDB) GetVolumeTTLReturns(result1 time.Duration, result2 bool, result3 error) {
-	fake.GetVolumeTTLStub = nil
-	fake.getVolumeTTLReturns = struct {
-		result1 time.Duration
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakeVolumeFactoryDB) ReapVolume(handle string) error {
@@ -108,49 +53,11 @@ func (fake *FakeVolumeFactoryDB) ReapVolumeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolumeFactoryDB) SetVolumeTTL(handle string, ttl time.Duration) error {
-	fake.setVolumeTTLMutex.Lock()
-	fake.setVolumeTTLArgsForCall = append(fake.setVolumeTTLArgsForCall, struct {
-		handle string
-		ttl    time.Duration
-	}{handle, ttl})
-	fake.recordInvocation("SetVolumeTTL", []interface{}{handle, ttl})
-	fake.setVolumeTTLMutex.Unlock()
-	if fake.SetVolumeTTLStub != nil {
-		return fake.SetVolumeTTLStub(handle, ttl)
-	} else {
-		return fake.setVolumeTTLReturns.result1
-	}
-}
-
-func (fake *FakeVolumeFactoryDB) SetVolumeTTLCallCount() int {
-	fake.setVolumeTTLMutex.RLock()
-	defer fake.setVolumeTTLMutex.RUnlock()
-	return len(fake.setVolumeTTLArgsForCall)
-}
-
-func (fake *FakeVolumeFactoryDB) SetVolumeTTLArgsForCall(i int) (string, time.Duration) {
-	fake.setVolumeTTLMutex.RLock()
-	defer fake.setVolumeTTLMutex.RUnlock()
-	return fake.setVolumeTTLArgsForCall[i].handle, fake.setVolumeTTLArgsForCall[i].ttl
-}
-
-func (fake *FakeVolumeFactoryDB) SetVolumeTTLReturns(result1 error) {
-	fake.SetVolumeTTLStub = nil
-	fake.setVolumeTTLReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeVolumeFactoryDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getVolumeTTLMutex.RLock()
-	defer fake.getVolumeTTLMutex.RUnlock()
 	fake.reapVolumeMutex.RLock()
 	defer fake.reapVolumeMutex.RUnlock()
-	fake.setVolumeTTLMutex.RLock()
-	defer fake.setVolumeTTLMutex.RUnlock()
 	return fake.invocations
 }
 

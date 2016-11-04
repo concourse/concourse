@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 )
 
@@ -86,47 +85,7 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 	return volumes, err
 }
 
-func (db *SQLDB) SetVolumeTTL(handle string, ttl time.Duration) error {
-	if ttl == 0 {
-		_, err := db.conn.Exec(`
-			UPDATE volumes
-			SET expires_at = null, ttl = 0
-			WHERE handle = $1
-		`, handle)
-
-		return err
-	}
-
-	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
-
-	_, err := db.conn.Exec(`
-		UPDATE volumes
-		SET expires_at = NOW() + $1::INTERVAL,
-		ttl = $2
-		WHERE handle = $3
-	`, interval, ttl, handle)
-
-	return err
-}
-
-func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, bool, error) {
-	var ttl time.Duration
-
-	err := db.conn.QueryRow(`
-		SELECT ttl
-		FROM volumes
-		WHERE handle = $1
-	`, handle).Scan(&ttl)
-	if err == sql.ErrNoRows {
-		return 0, false, nil
-	} else if err != nil {
-		return 0, false, err
-	}
-
-	return ttl, true, nil
-}
-
-func (db *SQLDB) ReapExpiredVolumes() error {
+func (db *SQLDB) ReapExpiredVolumes() error { //TODO probably lose this, maybe the whole reaping altogether
 	_, err := db.conn.Exec(`
 		DELETE FROM volumes
 		WHERE expires_at IS NOT NULL

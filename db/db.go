@@ -103,8 +103,6 @@ type DB interface {
 
 	GetVolumes() ([]SavedVolume, error)
 	ReapVolume(string) error
-	SetVolumeTTL(string, time.Duration) error
-	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 }
 

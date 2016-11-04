@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 
 	"code.cloudfoundry.org/garden"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
@@ -71,7 +70,6 @@ var _ = Describe("DBProvider", func() {
 		))
 
 		fakeDB = new(workerfakes.FakeWorkerDB)
-		fakeDB.GetVolumeTTLReturns(1*time.Millisecond, true, nil)
 		fakeDB.GetContainerReturns(db.SavedContainer{}, true, nil)
 
 		gardenAddr = fmt.Sprintf("0.0.0.0:%d", 8888+GinkgoParallelNode())

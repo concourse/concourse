@@ -101,13 +101,13 @@ type FakeWorker struct {
 		result3 error
 	}
 	FindOrCreateVolumeForResourceCacheStub        func(logger lager.Logger, vs worker.VolumeSpec, resourceCache *dbng.UsedResourceCache) (worker.Volume, error)
-	findOrFindOrCreateVolumeForResourceCacheMutex       sync.RWMutex
-	findOrFindOrCreateVolumeForResourceCacheArgsForCall []struct {
+	findOrCreateVolumeForResourceCacheMutex       sync.RWMutex
+	findOrCreateVolumeForResourceCacheArgsForCall []struct {
 		logger        lager.Logger
 		vs            worker.VolumeSpec
 		resourceCache *dbng.UsedResourceCache
 	}
-	findOrFindOrCreateVolumeForResourceCacheReturns struct {
+	findOrCreateVolumeForResourceCacheReturns struct {
 		result1 worker.Volume
 		result2 error
 	}
@@ -454,36 +454,36 @@ func (fake *FakeWorker) FindOrCreateContainerForIdentifierReturns(result1 worker
 }
 
 func (fake *FakeWorker) FindOrCreateVolumeForResourceCache(logger lager.Logger, vs worker.VolumeSpec, resourceCache *dbng.UsedResourceCache) (worker.Volume, error) {
-	fake.findOrFindOrCreateVolumeForResourceCacheMutex.Lock()
-	fake.findOrFindOrCreateVolumeForResourceCacheArgsForCall = append(fake.findOrFindOrCreateVolumeForResourceCacheArgsForCall, struct {
+	fake.findOrCreateVolumeForResourceCacheMutex.Lock()
+	fake.findOrCreateVolumeForResourceCacheArgsForCall = append(fake.findOrCreateVolumeForResourceCacheArgsForCall, struct {
 		logger        lager.Logger
 		vs            worker.VolumeSpec
 		resourceCache *dbng.UsedResourceCache
 	}{logger, vs, resourceCache})
 	fake.recordInvocation("FindOrCreateVolumeForResourceCache", []interface{}{logger, vs, resourceCache})
-	fake.findOrFindOrCreateVolumeForResourceCacheMutex.Unlock()
+	fake.findOrCreateVolumeForResourceCacheMutex.Unlock()
 	if fake.FindOrCreateVolumeForResourceCacheStub != nil {
 		return fake.FindOrCreateVolumeForResourceCacheStub(logger, vs, resourceCache)
 	} else {
-		return fake.findOrFindOrCreateVolumeForResourceCacheReturns.result1, fake.findOrFindOrCreateVolumeForResourceCacheReturns.result2
+		return fake.findOrCreateVolumeForResourceCacheReturns.result1, fake.findOrCreateVolumeForResourceCacheReturns.result2
 	}
 }
 
 func (fake *FakeWorker) FindOrCreateVolumeForResourceCacheCallCount() int {
-	fake.findOrFindOrCreateVolumeForResourceCacheMutex.RLock()
-	defer fake.findOrFindOrCreateVolumeForResourceCacheMutex.RUnlock()
-	return len(fake.findOrFindOrCreateVolumeForResourceCacheArgsForCall)
+	fake.findOrCreateVolumeForResourceCacheMutex.RLock()
+	defer fake.findOrCreateVolumeForResourceCacheMutex.RUnlock()
+	return len(fake.findOrCreateVolumeForResourceCacheArgsForCall)
 }
 
 func (fake *FakeWorker) FindOrCreateVolumeForResourceCacheArgsForCall(i int) (lager.Logger, worker.VolumeSpec, *dbng.UsedResourceCache) {
-	fake.findOrFindOrCreateVolumeForResourceCacheMutex.RLock()
-	defer fake.findOrFindOrCreateVolumeForResourceCacheMutex.RUnlock()
-	return fake.findOrFindOrCreateVolumeForResourceCacheArgsForCall[i].logger, fake.findOrFindOrCreateVolumeForResourceCacheArgsForCall[i].vs, fake.findOrFindOrCreateVolumeForResourceCacheArgsForCall[i].resourceCache
+	fake.findOrCreateVolumeForResourceCacheMutex.RLock()
+	defer fake.findOrCreateVolumeForResourceCacheMutex.RUnlock()
+	return fake.findOrCreateVolumeForResourceCacheArgsForCall[i].logger, fake.findOrCreateVolumeForResourceCacheArgsForCall[i].vs, fake.findOrCreateVolumeForResourceCacheArgsForCall[i].resourceCache
 }
 
 func (fake *FakeWorker) FindOrCreateVolumeForResourceCacheReturns(result1 worker.Volume, result2 error) {
 	fake.FindOrCreateVolumeForResourceCacheStub = nil
-	fake.findOrFindOrCreateVolumeForResourceCacheReturns = struct {
+	fake.findOrCreateVolumeForResourceCacheReturns = struct {
 		result1 worker.Volume
 		result2 error
 	}{result1, result2}
@@ -968,8 +968,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.createResourceTypeCheckContainerMutex.RUnlock()
 	fake.findOrCreateContainerForIdentifierMutex.RLock()
 	defer fake.findOrCreateContainerForIdentifierMutex.RUnlock()
-	fake.findOrFindOrCreateVolumeForResourceCacheMutex.RLock()
-	defer fake.findOrFindOrCreateVolumeForResourceCacheMutex.RUnlock()
+	fake.findOrCreateVolumeForResourceCacheMutex.RLock()
+	defer fake.findOrCreateVolumeForResourceCacheMutex.RUnlock()
 	fake.findContainerForIdentifierMutex.RLock()
 	defer fake.findContainerForIdentifierMutex.RUnlock()
 	fake.lookupContainerMutex.RLock()
