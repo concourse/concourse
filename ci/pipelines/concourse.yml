@@ -73,6 +73,7 @@ jobs:
     trigger: true
   - task: go-unit
     file: concourse/ci/atc-go.yml
+    privileged: true
     params:
       GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
 
