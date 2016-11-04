@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/event"
 )
 
 var _ = Describe("SQL DB Teams", func() {
@@ -22,6 +23,7 @@ var _ = Describe("SQL DB Teams", func() {
 
 	var database db.DB
 	var teamDBFactory db.TeamDBFactory
+	var pipelineDBFactory db.PipelineDBFactory
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -38,6 +40,7 @@ var _ = Describe("SQL DB Teams", func() {
 
 		lockFactory := db.NewLockFactory(retryableConn)
 		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		database.DeleteTeamByName(atc.DefaultTeamName)
@@ -291,9 +294,11 @@ var _ = Describe("SQL DB Teams", func() {
 	})
 
 	Describe("DeleteTeamByName", func() {
+		var savedTeam db.SavedTeam
+		var err error
 		Context("when the team exists", func() {
 			BeforeEach(func() {
-				_, err := database.CreateTeam(db.Team{
+				savedTeam, err = database.CreateTeam(db.Team{
 					Name: "team-name",
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -304,7 +309,7 @@ var _ = Describe("SQL DB Teams", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				var count sql.NullInt64
-				dbConn.QueryRow(`select count(1) from teams where name = 'team-name'`).Scan(&count)
+				err = dbConn.QueryRow(`select count(1) from teams where name = 'team-name'`).Scan(&count)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(count.Valid).To(BeTrue())
 				Expect(count.Int64).To(Equal(int64(0)))
@@ -315,10 +320,78 @@ var _ = Describe("SQL DB Teams", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				var count sql.NullInt64
-				dbConn.QueryRow(`select count(1) from teams where name = 'team-name'`).Scan(&count)
+				err = dbConn.QueryRow(`select count(1) from teams where name = 'team-name'`).Scan(&count)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(count.Valid).To(BeTrue())
 				Expect(count.Int64).To(Equal(int64(0)))
+			})
+
+			Describe("deleting orphaned database entries", func() {
+				JustBeforeEach(func() {
+					config := atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+						},
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+							},
+						},
+					}
+
+					teamDB := teamDBFactory.GetTeamDB("team-name")
+					savedPipeline, _, err := teamDB.SaveConfig("string", config, db.ConfigVersion(1), db.PipelineUnpaused)
+					Expect(err).NotTo(HaveOccurred())
+
+					pipelineDB := pipelineDBFactory.Build(savedPipeline)
+					_, err = pipelineDB.CreateJobBuild("some-job")
+					Expect(err).NotTo(HaveOccurred())
+
+					worker := db.WorkerInfo{
+						Name:       "worker",
+						TeamID:     savedTeam.ID,
+						GardenAddr: "some-place",
+					}
+					_, err = database.SaveWorker(worker, 0)
+					Expect(err).NotTo(HaveOccurred())
+
+					build, err := teamDB.CreateOneOffBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = build.SaveEvent(event.StartTask{})
+
+					err = database.DeleteTeamByName("team-name")
+					Expect(err).NotTo(HaveOccurred())
+				})
+				It("deletes the team's pipelines", func() {
+					var count sql.NullInt64
+					err = dbConn.QueryRow(`select count(1) from pipelines where team_id = $1`, savedTeam.ID).Scan(&count)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(count.Valid).To(BeTrue())
+					Expect(count.Int64).To(Equal(int64(0)))
+				})
+				It("deletes the team's build events", func() {
+					var count sql.NullInt64
+					err = dbConn.QueryRow("select count(1) from $1", fmt.Sprintf("team_build_events_%d", savedTeam.ID)).Scan(&count)
+					Expect(err).To(HaveOccurred())
+				})
+				It("deletes the team's builds", func() {
+					var count sql.NullInt64
+					err = dbConn.QueryRow(`select count(1) from builds where team_id = $1`, savedTeam.ID).Scan(&count)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(count.Valid).To(BeTrue())
+					Expect(count.Int64).To(Equal(int64(0)))
+				})
+				It("deletes the team's workers from the db", func() {
+					var count sql.NullInt64
+					err = dbConn.QueryRow(`select count(1) from workers where team_id = $1`, savedTeam.ID).Scan(&count)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(count.Valid).To(BeTrue())
+					Expect(count.Int64).To(Equal(int64(0)))
+				})
 			})
 		})
 	})
