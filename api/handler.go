@@ -199,8 +199,9 @@ func NewHandler(
 
 		atc.ListVolumes: teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
 
-		atc.ListTeams: http.HandlerFunc(teamServer.ListTeams),
-		atc.SetTeam:   http.HandlerFunc(teamServer.SetTeam),
+		atc.ListTeams:   http.HandlerFunc(teamServer.ListTeams),
+		atc.SetTeam:     http.HandlerFunc(teamServer.SetTeam),
+		atc.DestroyTeam: http.HandlerFunc(teamServer.DestroyTeam),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))

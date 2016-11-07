@@ -199,9 +199,10 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ReadPipe:        authenticated(inputHandlers[atc.ReadPipe]),
 				atc.RegisterWorker:  authenticated(inputHandlers[atc.RegisterWorker]),
 
-				atc.SetTeam:   authenticated(inputHandlers[atc.SetTeam]),
-				atc.WritePipe: authenticated(inputHandlers[atc.WritePipe]),
-				atc.GetUser:   authenticated(inputHandlers[atc.GetUser]),
+				atc.SetTeam:     authenticated(inputHandlers[atc.SetTeam]),
+				atc.DestroyTeam: authenticated(inputHandlers[atc.DestroyTeam]),
+				atc.WritePipe:   authenticated(inputHandlers[atc.WritePipe]),
+				atc.GetUser:     authenticated(inputHandlers[atc.GetUser]),
 
 				// authenticated and is admin
 				atc.GetLogLevel: authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),

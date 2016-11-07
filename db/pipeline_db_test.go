@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/concourse/atc"
@@ -204,11 +205,12 @@ var _ = Describe("PipelineDB", func() {
 		otherPipelineDB    db.PipelineDB
 		savedPipeline      db.SavedPipeline
 		otherSavedPipeline db.SavedPipeline
+		savedTeam          db.SavedTeam
 	)
 
 	BeforeEach(func() {
 		var err error
-		_, err = sqlDB.CreateTeam(db.Team{Name: "some-team"})
+		savedTeam, err = sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
 		teamDB = teamDBFactory.GetTeamDB("some-team")
@@ -296,7 +298,6 @@ var _ = Describe("PipelineDB", func() {
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			// populate build_events table
 			err = build.SaveEvent(event.StartTask{})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -338,7 +339,7 @@ var _ = Describe("PipelineDB", func() {
 
 			jobRows.Close()
 
-			eventRows, err := dbConn.Query(`select build_id from build_events where build_id = $1`, build.ID())
+			eventRows, err := dbConn.Query(fmt.Sprintf(`select build_id from team_build_events_%d where build_id = $1`, savedTeam.ID), build.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(eventRows.Next()).To(BeFalse())
 
