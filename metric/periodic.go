@@ -16,7 +16,6 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 		tLog := logger.Session("tick")
 
 		trackedContainers := TrackedContainers.Max()
-		trackedVolumes := TrackedVolumes.Max()
 		databaseQueries := DatabaseQueries.Delta()
 		databaseConnections := DatabaseConnections.Max()
 
@@ -27,17 +26,6 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 			goryman.Event{
 				Service: "tracked containers",
 				Metric:  trackedContainers,
-				State:   "ok",
-			},
-		)
-
-		emit(
-			tLog.Session("tracked-volumes", lager.Data{
-				"count": trackedVolumes,
-			}),
-			goryman.Event{
-				Service: "tracked volumes",
-				Metric:  trackedVolumes,
 				State:   "ok",
 			},
 		)

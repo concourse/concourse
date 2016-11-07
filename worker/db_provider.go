@@ -148,12 +148,9 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		bClient = bclient.New(savedWorker.BaggageclaimURL)
 	}
 
-	volumeFactory := NewVolumeFactory(provider.db)
-
 	volumeClient := NewVolumeClient(
 		bClient,
 		provider.db,
-		volumeFactory,
 		provider.dbVolumeFactory,
 		provider.dbBaseResourceTypeFactory,
 		clock.NewClock(),
@@ -167,7 +164,6 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		gclient.New(connection),
 		bClient,
 		volumeClient,
-		volumeFactory,
 		provider.imageFactory,
 		provider.pipelineDBFactory,
 		provider.dbContainerFactory,

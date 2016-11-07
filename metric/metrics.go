@@ -11,7 +11,6 @@ import (
 )
 
 var TrackedContainers = &Gauge{}
-var TrackedVolumes = &Gauge{}
 var DatabaseQueries = Meter(0)
 var DatabaseConnections = &Gauge{}
 

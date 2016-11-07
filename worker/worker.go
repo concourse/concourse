@@ -101,7 +101,6 @@ type gardenWorker struct {
 	gardenClient            garden.Client
 	baggageclaimClient      baggageclaim.Client
 	volumeClient            VolumeClient
-	volumeFactory           VolumeFactory
 	pipelineDBFactory       db.PipelineDBFactory
 	imageFactory            ImageFactory
 	dbContainerFactory      DBContainerFactory
@@ -131,7 +130,6 @@ func NewGardenWorker(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
 	volumeClient VolumeClient,
-	volumeFactory VolumeFactory,
 	imageFactory ImageFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 	dbContainerFactory DBContainerFactory,
@@ -157,7 +155,6 @@ func NewGardenWorker(
 		gardenClient:            gardenClient,
 		baggageclaimClient:      baggageclaimClient,
 		volumeClient:            volumeClient,
-		volumeFactory:           volumeFactory,
 		imageFactory:            imageFactory,
 		dbContainerFactory:      dbContainerFactory,
 		dbVolumeFactory:         dbVolumeFactory,
@@ -412,7 +409,6 @@ func (worker *gardenWorker) getBuiltInResourceTypeImageForContainer(
 				},
 				Privileged: true,
 				Properties: VolumeProperties{},
-				TTL:        0,
 			}
 
 			importVolume, err := worker.volumeClient.FindOrCreateVolumeForBaseResourceType(
@@ -846,7 +842,6 @@ func (worker *gardenWorker) createContainer(
 		worker.baggageclaimClient,
 		worker.db,
 		worker.clock,
-		worker.volumeFactory,
 		worker.name,
 	)
 }
@@ -950,7 +945,6 @@ func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) 
 		worker.baggageclaimClient,
 		worker.db,
 		worker.clock,
-		worker.volumeFactory,
 		worker.name,
 	)
 

@@ -46,7 +46,6 @@ func newGardenWorkerContainer(
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
 	clock clock.Clock,
-	volumeFactory VolumeFactory,
 	workerName string,
 ) (Container, error) {
 	logger = logger.WithData(lager.Data{"container": container.Handle()})
@@ -76,7 +75,7 @@ func newGardenWorkerContainer(
 
 	metric.TrackedContainers.Inc()
 
-	err := workerContainer.initializeVolumes(logger, baggageclaimClient, volumeFactory)
+	err := workerContainer.initializeVolumes(logger, baggageclaimClient)
 	if err != nil {
 		workerContainer.Release(nil)
 		return nil, err
@@ -126,7 +125,6 @@ func (container *gardenWorkerContainer) VolumeMounts() []VolumeMount {
 func (container *gardenWorkerContainer) initializeVolumes(
 	logger lager.Logger,
 	baggageclaimClient baggageclaim.Client,
-	volumeFactory VolumeFactory,
 ) error {
 
 	volumeMounts := []VolumeMount{}
@@ -147,14 +145,8 @@ func (container *gardenWorkerContainer) initializeVolumes(
 			return errors.New("volume mounted to container is missing " + dbVolume.Handle() + " from worker " + container.workerName)
 		}
 
-		volume, err := volumeFactory.BuildWithIndefiniteTTL(volumeLogger, baggageClaimVolume)
-		if err != nil {
-			volumeLogger.Error("failed-to-build-volume", nil)
-			return err
-		}
-
 		volumeMounts = append(volumeMounts, VolumeMount{
-			Volume:    volume,
+			Volume:    baggageClaimVolume,
 			MountPath: dbVolume.Path(),
 		})
 	}

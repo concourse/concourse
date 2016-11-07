@@ -45,7 +45,6 @@ var ErrBaseResourceTypeNotFound = errors.New("base-resource-type-not-found")
 type volumeClient struct {
 	baggageclaimClient        baggageclaim.Client
 	db                        GardenWorkerDB
-	volumeFactory             VolumeFactory
 	dbVolumeFactory           dbng.VolumeFactory
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory
 	clock                     clock.Clock
@@ -55,7 +54,6 @@ type volumeClient struct {
 func NewVolumeClient(
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
-	volumeFactory VolumeFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,
 	clock clock.Clock,
@@ -64,7 +62,6 @@ func NewVolumeClient(
 	return &volumeClient{
 		baggageclaimClient:        baggageclaimClient,
 		db:                        db,
-		volumeFactory:             volumeFactory,
 		dbVolumeFactory:           dbVolumeFactory,
 		dbBaseResourceTypeFactory: dbBaseResourceTypeFactory,
 		clock:    clock,
@@ -151,12 +148,7 @@ func (c *volumeClient) ListVolumes(logger lager.Logger, properties VolumePropert
 
 	volumes := []Volume{}
 	for _, bcVolume := range bcVolumes {
-		volume, err := c.volumeFactory.BuildWithIndefiniteTTL(logger, bcVolume)
-		if err != nil {
-			return []Volume{}, err
-		}
-
-		volumes = append(volumes, volume)
+		volumes = append(volumes, bcVolume)
 	}
 
 	return volumes, nil
@@ -177,12 +169,7 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 		return nil, false, nil
 	}
 
-	volume, err := c.volumeFactory.BuildWithIndefiniteTTL(logger, bcVolume)
-	if err != nil {
-		return nil, false, err
-	}
-
-	return volume, true, nil
+	return bcVolume, true, nil
 }
 
 func (c *volumeClient) selectLowestAlphabeticalVolume(logger lager.Logger, volumes []db.SavedVolume) (db.SavedVolume, error) {
@@ -312,11 +299,5 @@ func (c *volumeClient) findOrCreateVolume(
 		}
 	}
 
-	volume, err := c.volumeFactory.BuildWithIndefiniteTTL(logger, bcVolume)
-	if err != nil {
-		logger.Error("failed-build-volume", err)
-		return nil, err
-	}
-
-	return volume, nil
+	return bcVolume, nil
 }

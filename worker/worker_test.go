@@ -32,7 +32,6 @@ var _ = Describe("Worker", func() {
 		fakeGardenClient           *gfakes.FakeClient
 		fakeBaggageclaimClient     *bfakes.FakeClient
 		fakeVolumeClient           *wfakes.FakeVolumeClient
-		fakeVolumeFactory          *wfakes.FakeVolumeFactory
 		fakeImageFactory           *wfakes.FakeImageFactory
 		fakeImage                  *wfakes.FakeImage
 		fakeGardenWorkerDB         *wfakes.FakeGardenWorkerDB
@@ -64,7 +63,6 @@ var _ = Describe("Worker", func() {
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
 		fakeVolumeClient = new(wfakes.FakeVolumeClient)
-		fakeVolumeFactory = new(wfakes.FakeVolumeFactory)
 		fakeImageFactory = new(wfakes.FakeImageFactory)
 		fakeImage = new(wfakes.FakeImage)
 		fakeImageFactory.NewImageReturns(fakeImage)
@@ -98,7 +96,6 @@ var _ = Describe("Worker", func() {
 			fakeGardenClient,
 			fakeBaggageclaimClient,
 			fakeVolumeClient,
-			fakeVolumeFactory,
 			fakeImageFactory,
 			fakePipelineDBFactory,
 			fakeDBContainerFactory,
@@ -194,16 +191,6 @@ var _ = Describe("Worker", func() {
 							panic("unknown handle: " + handle)
 						}
 					}
-
-					fakeVolumeFactory.BuildWithIndefiniteTTLStub = func(logger lager.Logger, vol baggageclaim.Volume) (Volume, error) {
-						if vol == handle1Volume {
-							return expectedHandle1Volume, nil
-						} else if vol == handle2Volume {
-							return expectedHandle2Volume, nil
-						} else {
-							panic("unknown volume: " + vol.Handle())
-						}
-					}
 				})
 
 				Describe("VolumeMounts", func() {
@@ -219,18 +206,6 @@ var _ = Describe("Worker", func() {
 
 						BeforeEach(func() {
 							fakeBaggageclaimClient.LookupVolumeReturns(nil, false, disaster)
-						})
-
-						It("returns the error on lookup", func() {
-							Expect(findErr).To(Equal(disaster))
-						})
-					})
-
-					Context("when Build returns an error", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeVolumeFactory.BuildWithIndefiniteTTLReturns(nil, disaster)
 						})
 
 						It("returns the error on lookup", func() {
