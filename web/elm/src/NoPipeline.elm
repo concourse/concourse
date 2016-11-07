@@ -5,6 +5,8 @@ import Html.Attributes exposing (class, target, href)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Time
 
+import Concourse.Cli
+
 type Msg
   = Tick Time.Time
 
@@ -15,19 +17,19 @@ view =
     , Html.h3 [] [Html.text "first, download the CLI tools:"]
     , Html.ul [class "cli-downloads"]
         [ Html.li []
-            [ Html.a [href "", ariaLabel "Download OS X CLI"]
-                [ Html.i [class "fa fa-apple fa-5x"] []
-                ]
+            [ Html.a
+                [href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI"]
+                [ Html.i [class "fa fa-apple"] [] ]
             ]
         , Html.li []
-            [ Html.a [href "", ariaLabel "Download Windows CLI"]
-                [ Html.i [class "fa fa-windows fa-5x"] []
-                ]
+            [ Html.a
+                [href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI"]
+                [ Html.i [class "fa fa-windows"] [] ]
             ]
         , Html.li []
-            [ Html.a [href "", ariaLabel "Download Linux CLI"]
-                [ Html.i [class "fa fa-linux fa-5x"] []
-                ]
+            [ Html.a
+                [href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI"]
+                [ Html.i [class "fa fa-linux"] [] ]
             ]
         ]
     , Html.h3 []
