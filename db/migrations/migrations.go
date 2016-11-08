@@ -128,4 +128,5 @@ var Migrations = []migration.Migrator{
 	AddWorkerForeignKeyToVolumesAndContainers,
 	CascadeTeamDeletes,
 	UpdateWorkerForeignKeyConstraint,
+	CascadeTeamDeletesOnPipes,
 }
