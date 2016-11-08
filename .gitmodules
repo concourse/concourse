@@ -116,7 +116,7 @@
 [submodule "src/github.com/concourse/fly"]
 	path = src/github.com/concourse/fly
 	url = https://github.com/concourse/fly
-	branch = master
+	branch = life
 [submodule "src/github.com/tedsuo/rata"]
 	path = src/github.com/tedsuo/rata
 	url = https://github.com/tedsuo/rata
