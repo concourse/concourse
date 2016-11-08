@@ -14,12 +14,6 @@ type FakeReaperDB struct {
 	reapExpiredContainersReturns     struct {
 		result1 error
 	}
-	ReapExpiredVolumesStub        func() error
-	reapExpiredVolumesMutex       sync.RWMutex
-	reapExpiredVolumesArgsForCall []struct{}
-	reapExpiredVolumesReturns     struct {
-		result1 error
-	}
 	ReapExpiredWorkersStub        func() error
 	reapExpiredWorkersMutex       sync.RWMutex
 	reapExpiredWorkersArgsForCall []struct{}
@@ -55,31 +49,6 @@ func (fake *FakeReaperDB) ReapExpiredContainersReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeReaperDB) ReapExpiredVolumes() error {
-	fake.reapExpiredVolumesMutex.Lock()
-	fake.reapExpiredVolumesArgsForCall = append(fake.reapExpiredVolumesArgsForCall, struct{}{})
-	fake.recordInvocation("ReapExpiredVolumes", []interface{}{})
-	fake.reapExpiredVolumesMutex.Unlock()
-	if fake.ReapExpiredVolumesStub != nil {
-		return fake.ReapExpiredVolumesStub()
-	} else {
-		return fake.reapExpiredVolumesReturns.result1
-	}
-}
-
-func (fake *FakeReaperDB) ReapExpiredVolumesCallCount() int {
-	fake.reapExpiredVolumesMutex.RLock()
-	defer fake.reapExpiredVolumesMutex.RUnlock()
-	return len(fake.reapExpiredVolumesArgsForCall)
-}
-
-func (fake *FakeReaperDB) ReapExpiredVolumesReturns(result1 error) {
-	fake.ReapExpiredVolumesStub = nil
-	fake.reapExpiredVolumesReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeReaperDB) ReapExpiredWorkers() error {
 	fake.reapExpiredWorkersMutex.Lock()
 	fake.reapExpiredWorkersArgsForCall = append(fake.reapExpiredWorkersArgsForCall, struct{}{})
@@ -110,8 +79,6 @@ func (fake *FakeReaperDB) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.reapExpiredContainersMutex.RLock()
 	defer fake.reapExpiredContainersMutex.RUnlock()
-	fake.reapExpiredVolumesMutex.RLock()
-	defer fake.reapExpiredVolumesMutex.RUnlock()
 	fake.reapExpiredWorkersMutex.RLock()
 	defer fake.reapExpiredWorkersMutex.RUnlock()
 	return fake.invocations

@@ -8,7 +8,6 @@ import (
 
 type ReaperDB interface {
 	ReapExpiredContainers() error
-	ReapExpiredVolumes() error
 	ReapExpiredWorkers() error
 }
 
@@ -35,12 +34,6 @@ func (c *dbGarbageCollector) Run() error {
 	err := c.db.ReapExpiredContainers()
 	if err != nil {
 		c.logger.Error("failed-to-reap-expired-containers", err)
-		return err
-	}
-
-	err = c.db.ReapExpiredVolumes()
-	if err != nil {
-		c.logger.Error("failed-to-reap-expired-volumes", err)
 		return err
 	}
 

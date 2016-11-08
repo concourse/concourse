@@ -85,6 +85,8 @@ type CreatedVolume interface {
 	Path() string
 	CreateChildForContainer(*CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
+	WorkerName() string
+	SizeInBytes() int64
 }
 
 type createdVolume struct {
@@ -92,11 +94,14 @@ type createdVolume struct {
 	worker *Worker
 	handle string
 	path   string
+	bytes  int64
 	conn   Conn
 }
 
-func (volume *createdVolume) Handle() string { return volume.handle }
-func (volume *createdVolume) Path() string   { return volume.path }
+func (volume *createdVolume) Handle() string     { return volume.handle }
+func (volume *createdVolume) Path() string       { return volume.path }
+func (volume *createdVolume) WorkerName() string { return volume.worker.Name }
+func (volume *createdVolume) SizeInBytes() int64 { return volume.bytes }
 
 // TODO: do following two methods instead of CreateXVolume? kind of neat since
 // it removes window of time where cache_id/worker_resource_type_id may be

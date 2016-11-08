@@ -8,6 +8,15 @@ import (
 )
 
 type FakeVolumeFactory struct {
+	GetTeamVolumesStub        func(teamID int) ([]dbng.CreatedVolume, error)
+	getTeamVolumesMutex       sync.RWMutex
+	getTeamVolumesArgsForCall []struct {
+		teamID int
+	}
+	getTeamVolumesReturns struct {
+		result1 []dbng.CreatedVolume
+		result2 error
+	}
 	CreateContainerVolumeStub        func(*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
 	createContainerVolumeMutex       sync.RWMutex
 	createContainerVolumeArgsForCall []struct {
@@ -96,6 +105,40 @@ type FakeVolumeFactory struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeVolumeFactory) GetTeamVolumes(teamID int) ([]dbng.CreatedVolume, error) {
+	fake.getTeamVolumesMutex.Lock()
+	fake.getTeamVolumesArgsForCall = append(fake.getTeamVolumesArgsForCall, struct {
+		teamID int
+	}{teamID})
+	fake.recordInvocation("GetTeamVolumes", []interface{}{teamID})
+	fake.getTeamVolumesMutex.Unlock()
+	if fake.GetTeamVolumesStub != nil {
+		return fake.GetTeamVolumesStub(teamID)
+	} else {
+		return fake.getTeamVolumesReturns.result1, fake.getTeamVolumesReturns.result2
+	}
+}
+
+func (fake *FakeVolumeFactory) GetTeamVolumesCallCount() int {
+	fake.getTeamVolumesMutex.RLock()
+	defer fake.getTeamVolumesMutex.RUnlock()
+	return len(fake.getTeamVolumesArgsForCall)
+}
+
+func (fake *FakeVolumeFactory) GetTeamVolumesArgsForCall(i int) int {
+	fake.getTeamVolumesMutex.RLock()
+	defer fake.getTeamVolumesMutex.RUnlock()
+	return fake.getTeamVolumesArgsForCall[i].teamID
+}
+
+func (fake *FakeVolumeFactory) GetTeamVolumesReturns(result1 []dbng.CreatedVolume, result2 error) {
+	fake.GetTeamVolumesStub = nil
+	fake.getTeamVolumesReturns = struct {
+		result1 []dbng.CreatedVolume
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeVolumeFactory) CreateContainerVolume(arg1 *dbng.Team, arg2 *dbng.Worker, arg3 *dbng.CreatingContainer, arg4 string) (dbng.CreatingVolume, error) {
@@ -381,6 +424,8 @@ func (fake *FakeVolumeFactory) GetOrphanedVolumesReturns(result1 []dbng.CreatedV
 func (fake *FakeVolumeFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.getTeamVolumesMutex.RLock()
+	defer fake.getTeamVolumesMutex.RUnlock()
 	fake.createContainerVolumeMutex.RLock()
 	defer fake.createContainerVolumeMutex.RUnlock()
 	fake.findContainerVolumeMutex.RLock()

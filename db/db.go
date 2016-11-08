@@ -101,9 +101,7 @@ type DB interface {
 
 	DeleteContainer(string) error
 
-	GetVolumes() ([]SavedVolume, error)
 	ReapVolume(string) error
-	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 }
 
 //go:generate counterfeiter . Notifier

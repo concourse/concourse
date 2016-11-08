@@ -159,13 +159,6 @@ type FakeTeamDB struct {
 		result1 []db.SavedContainer
 		result2 error
 	}
-	GetVolumesStub        func() ([]db.SavedVolume, error)
-	getVolumesMutex       sync.RWMutex
-	getVolumesArgsForCall []struct{}
-	getVolumesReturns     struct {
-		result1 []db.SavedVolume
-		result2 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -714,32 +707,6 @@ func (fake *FakeTeamDB) FindContainersByDescriptorsReturns(result1 []db.SavedCon
 	}{result1, result2}
 }
 
-func (fake *FakeTeamDB) GetVolumes() ([]db.SavedVolume, error) {
-	fake.getVolumesMutex.Lock()
-	fake.getVolumesArgsForCall = append(fake.getVolumesArgsForCall, struct{}{})
-	fake.recordInvocation("GetVolumes", []interface{}{})
-	fake.getVolumesMutex.Unlock()
-	if fake.GetVolumesStub != nil {
-		return fake.GetVolumesStub()
-	} else {
-		return fake.getVolumesReturns.result1, fake.getVolumesReturns.result2
-	}
-}
-
-func (fake *FakeTeamDB) GetVolumesCallCount() int {
-	fake.getVolumesMutex.RLock()
-	defer fake.getVolumesMutex.RUnlock()
-	return len(fake.getVolumesArgsForCall)
-}
-
-func (fake *FakeTeamDB) GetVolumesReturns(result1 []db.SavedVolume, result2 error) {
-	fake.GetVolumesStub = nil
-	fake.getVolumesReturns = struct {
-		result1 []db.SavedVolume
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -777,8 +744,6 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.getContainerMutex.RUnlock()
 	fake.findContainersByDescriptorsMutex.RLock()
 	defer fake.findContainersByDescriptorsMutex.RUnlock()
-	fake.getVolumesMutex.RLock()
-	defer fake.getVolumesMutex.RUnlock()
 	return fake.invocations
 }
 

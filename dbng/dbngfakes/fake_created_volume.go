@@ -37,6 +37,18 @@ type FakeCreatedVolume struct {
 		result1 dbng.DestroyingVolume
 		result2 error
 	}
+	WorkerNameStub        func() string
+	workerNameMutex       sync.RWMutex
+	workerNameArgsForCall []struct{}
+	workerNameReturns     struct {
+		result1 string
+	}
+	SizeInBytesStub        func() int64
+	sizeInBytesMutex       sync.RWMutex
+	sizeInBytesArgsForCall []struct{}
+	sizeInBytesReturns     struct {
+		result1 int64
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -152,6 +164,56 @@ func (fake *FakeCreatedVolume) DestroyingReturns(result1 dbng.DestroyingVolume, 
 	}{result1, result2}
 }
 
+func (fake *FakeCreatedVolume) WorkerName() string {
+	fake.workerNameMutex.Lock()
+	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct{}{})
+	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.workerNameMutex.Unlock()
+	if fake.WorkerNameStub != nil {
+		return fake.WorkerNameStub()
+	} else {
+		return fake.workerNameReturns.result1
+	}
+}
+
+func (fake *FakeCreatedVolume) WorkerNameCallCount() int {
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
+	return len(fake.workerNameArgsForCall)
+}
+
+func (fake *FakeCreatedVolume) WorkerNameReturns(result1 string) {
+	fake.WorkerNameStub = nil
+	fake.workerNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeCreatedVolume) SizeInBytes() int64 {
+	fake.sizeInBytesMutex.Lock()
+	fake.sizeInBytesArgsForCall = append(fake.sizeInBytesArgsForCall, struct{}{})
+	fake.recordInvocation("SizeInBytes", []interface{}{})
+	fake.sizeInBytesMutex.Unlock()
+	if fake.SizeInBytesStub != nil {
+		return fake.SizeInBytesStub()
+	} else {
+		return fake.sizeInBytesReturns.result1
+	}
+}
+
+func (fake *FakeCreatedVolume) SizeInBytesCallCount() int {
+	fake.sizeInBytesMutex.RLock()
+	defer fake.sizeInBytesMutex.RUnlock()
+	return len(fake.sizeInBytesArgsForCall)
+}
+
+func (fake *FakeCreatedVolume) SizeInBytesReturns(result1 int64) {
+	fake.SizeInBytesStub = nil
+	fake.sizeInBytesReturns = struct {
+		result1 int64
+	}{result1}
+}
+
 func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -163,6 +225,10 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.createChildForContainerMutex.RUnlock()
 	fake.destroyingMutex.RLock()
 	defer fake.destroyingMutex.RUnlock()
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
+	fake.sizeInBytesMutex.RLock()
+	defer fake.sizeInBytesMutex.RUnlock()
 	return fake.invocations
 }
 

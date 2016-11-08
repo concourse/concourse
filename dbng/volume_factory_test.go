@@ -17,6 +17,7 @@ var _ = Describe("VolumeFactory", func() {
 		teamFactory       dbng.TeamFactory
 		buildFactory      *dbng.BuildFactory
 		team              *dbng.Team
+		team2             *dbng.Team
 		worker            *dbng.Worker
 		usedResourceCache *dbng.UsedResourceCache
 		build             *dbng.Build
@@ -69,6 +70,63 @@ var _ = Describe("VolumeFactory", func() {
 	AfterEach(func() {
 		err := dbConn.Close()
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("GetTeamVolumes", func() {
+		var (
+			team1handles []string
+			team2handles []string
+		)
+
+		BeforeEach(func() {
+			creatingContainer, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+				Type: "task",
+				Name: "some-task",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			team1handles = []string{}
+			team2handles = []string{}
+
+			team2, err = teamFactory.CreateTeam("some-other-team")
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingVolume1, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer, "some-path-1")
+			Expect(err).NotTo(HaveOccurred())
+			createdVolume1, err := creatingVolume1.Created()
+			Expect(err).NotTo(HaveOccurred())
+			team1handles = append(team1handles, createdVolume1.Handle())
+
+			creatingVolume2, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer, "some-path-2")
+			Expect(err).NotTo(HaveOccurred())
+			createdVolume2, err := creatingVolume2.Created()
+			Expect(err).NotTo(HaveOccurred())
+			team1handles = append(team1handles, createdVolume2.Handle())
+
+			creatingVolume3, err := volumeFactory.CreateContainerVolume(team2, worker, creatingContainer, "some-path-3")
+			Expect(err).NotTo(HaveOccurred())
+			createdVolume3, err := creatingVolume3.Created()
+			Expect(err).NotTo(HaveOccurred())
+			team2handles = append(team2handles, createdVolume3.Handle())
+		})
+
+		It("returns only the matching team's volumes", func() {
+			createdVolumes, err := volumeFactory.GetTeamVolumes(team.ID)
+			Expect(err).NotTo(HaveOccurred())
+			createdHandles := []string{}
+			for _, vol := range createdVolumes {
+				createdHandles = append(createdHandles, vol.Handle())
+			}
+			Expect(createdHandles).To(Equal(team1handles))
+
+			createdVolumes2, err := volumeFactory.GetTeamVolumes(team2.ID)
+			Expect(err).NotTo(HaveOccurred())
+			createdHandles2 := []string{}
+			for _, vol := range createdVolumes2 {
+				createdHandles2 = append(createdHandles2, vol.Handle())
+			}
+			Expect(createdHandles2).To(Equal(team2handles))
+		})
 	})
 
 	Describe("GetOrphanedVolumes", func() {

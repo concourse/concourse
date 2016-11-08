@@ -6,7 +6,6 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
@@ -170,33 +169,6 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 	}
 
 	return bcVolume, true, nil
-}
-
-func (c *volumeClient) selectLowestAlphabeticalVolume(logger lager.Logger, volumes []db.SavedVolume) (db.SavedVolume, error) {
-	var lowestVolume db.SavedVolume
-
-	for _, v := range volumes {
-		if lowestVolume.ID == 0 {
-			lowestVolume = v
-		} else if v.ID < lowestVolume.ID {
-			lowestVolume = v
-		}
-	}
-
-	for _, v := range volumes {
-		if v != lowestVolume {
-			expLog := logger.Session("expiring-redundant-volume", lager.Data{
-				"volume-handle": v.Handle,
-			})
-
-			err := c.expireVolume(expLog, v.Handle)
-			if err != nil {
-				return db.SavedVolume{}, err
-			}
-		}
-	}
-
-	return lowestVolume, nil
 }
 
 func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error { // TODO consider removing this method?

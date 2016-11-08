@@ -4,9 +4,10 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -38,112 +39,121 @@ var _ = Describe("Volumes API", func() {
 				userContextReader.GetTeamReturns("some-team", 42, true, true)
 			})
 
-			Context("when getting all volumes succeeds", func() {
+			Context("when identifying the team errors", func() {
 				BeforeEach(func() {
-					teamDB.GetVolumesReturns([]db.SavedVolume{
-						{
-							ID:        3,
-							ExpiresIn: 2 * time.Minute,
-							Volume: db.Volume{
-								WorkerName:  "some-worker",
-								TeamID:      1,
-								TTL:         10 * time.Minute,
-								Handle:      "some-resource-cache-handle",
-								SizeInBytes: 1024,
-							},
-						},
-						{
-							ID:        1,
-							ExpiresIn: 23 * time.Hour,
-							Volume: db.Volume{
-								WorkerName:  "some-worker",
-								TeamID:      1,
-								TTL:         24 * time.Hour,
-								Handle:      "some-import-handle",
-								SizeInBytes: 2048,
-							},
-						},
-						{
-							ID:        1,
-							ExpiresIn: 23 * time.Hour,
-							Volume: db.Volume{
-								WorkerName:  "some-other-worker",
-								TeamID:      1,
-								TTL:         24 * time.Hour,
-								Handle:      "some-output-handle",
-								SizeInBytes: 4096,
-							},
-						},
-						{
-							ID:        1,
-							ExpiresIn: time.Duration(0),
-							Volume: db.Volume{
-								WorkerName:  "some-worker",
-								TeamID:      1,
-								TTL:         time.Duration(0),
-								Handle:      "some-cow-handle",
-								SizeInBytes: 8192,
-							},
-						},
-					}, nil)
-				})
-
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns all volumes", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(body).To(MatchJSON(`[
-						{
-							"id": "some-resource-cache-handle",
-							"ttl_in_seconds": 120,
-							"validity_in_seconds": 600,
-							"worker_name": "some-worker",
-							"type": "",
-							"identifier": "",
-							"size_in_bytes": 1024
-						},
-						{
-							"id": "some-import-handle",
-							"ttl_in_seconds": 82800,
-							"validity_in_seconds": 86400,
-							"worker_name": "some-worker",
-							"type": "",
-							"identifier": "",
-							"size_in_bytes": 2048
-						},
-						{
-							"id": "some-output-handle",
-							"ttl_in_seconds": 82800,
-							"validity_in_seconds": 86400,
-							"worker_name": "some-other-worker",
-							"type": "",
-							"identifier": "",
-							"size_in_bytes": 4096
-						},
-						{
-							"id": "some-cow-handle",
-							"ttl_in_seconds": 0,
-							"validity_in_seconds": 0,
-							"worker_name": "some-worker",
-							"type": "",
-							"identifier": "",
-							"size_in_bytes": 8192
-						}
-					]`))
-				})
-			})
-
-			Context("when getting all builds fails", func() {
-				BeforeEach(func() {
-					teamDB.GetVolumesReturns(nil, errors.New("oh no!"))
+					teamDB.GetTeamReturns(db.SavedTeam{}, true, errors.New("disaster"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			// TODO this test will no longer be meaningful once DBNG takes fully over and we lose the teamDB concept.
+			Context("when the team db gave back a missing team", func() {
+				BeforeEach(func() {
+					teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+				})
+
+				It("returns 401 Not Authorized", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+
+			Context("when identifying the team succeeds", func() {
+				BeforeEach(func() {
+					teamDB.GetTeamReturns(db.SavedTeam{
+						ID: 1,
+					}, true, nil)
+				})
+
+				It("asks the factory for the volumes", func() {
+					Expect(fakeVolumeFactory.GetTeamVolumesCallCount()).To(Equal(1))
+				})
+
+				Context("when getting all volumes succeeds", func() {
+					BeforeEach(func() {
+						fakeVolumeFactory.GetTeamVolumesStub = func(teamID int) ([]dbng.CreatedVolume, error) {
+							if teamID != 1 {
+								return []dbng.CreatedVolume{}, nil
+							}
+
+							volume1 := new(dbngfakes.FakeCreatedVolume)
+							volume1.HandleReturns("some-resource-cache-handle")
+							volume1.WorkerNameReturns("some-worker")
+							volume1.SizeInBytesReturns(1024)
+							volume2 := new(dbngfakes.FakeCreatedVolume)
+							volume2.HandleReturns("some-import-handle")
+							volume2.WorkerNameReturns("some-worker")
+							volume2.SizeInBytesReturns(2048)
+							volume3 := new(dbngfakes.FakeCreatedVolume)
+							volume3.HandleReturns("some-output-handle")
+							volume3.WorkerNameReturns("some-other-worker")
+							volume3.SizeInBytesReturns(4096)
+							volume4 := new(dbngfakes.FakeCreatedVolume)
+							volume4.HandleReturns("some-cow-handle")
+							volume4.WorkerNameReturns("some-worker")
+							volume4.SizeInBytesReturns(8192)
+
+							return []dbng.CreatedVolume{
+								volume1,
+								volume2,
+								volume3,
+								volume4,
+							}, nil
+						}
+					})
+
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns all volumes", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`[
+							{
+								"id": "some-resource-cache-handle",
+								"worker_name": "some-worker",
+								"type": "",
+								"identifier": "",
+								"size_in_bytes": 1024
+							},
+							{
+								"id": "some-import-handle",
+								"worker_name": "some-worker",
+								"type": "",
+								"identifier": "",
+								"size_in_bytes": 2048
+							},
+							{
+								"id": "some-output-handle",
+								"worker_name": "some-other-worker",
+								"type": "",
+								"identifier": "",
+								"size_in_bytes": 4096
+							},
+							{
+								"id": "some-cow-handle",
+								"worker_name": "some-worker",
+								"type": "",
+								"identifier": "",
+								"size_in_bytes": 8192
+							}
+						]`,
+						))
+					})
+				})
+
+				Context("when getting all volumes fails", func() {
+					BeforeEach(func() {
+						fakeVolumeFactory.GetTeamVolumesReturns([]dbng.CreatedVolume{}, errors.New("oh no!"))
+					})
+
+					It("returns 500 Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 		})

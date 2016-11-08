@@ -11,6 +11,8 @@ import (
 //go:generate counterfeiter . VolumeFactory
 
 type VolumeFactory interface {
+	GetTeamVolumes(teamID int) ([]CreatedVolume, error)
+
 	CreateContainerVolume(*Team, *Worker, *CreatingContainer, string) (CreatingVolume, error)
 	FindContainerVolume(*Team, *Worker, *CreatingContainer, string) (CreatingVolume, CreatedVolume, error)
 
@@ -32,6 +34,57 @@ func NewVolumeFactory(conn Conn) VolumeFactory {
 	return &volumeFactory{
 		conn: conn,
 	}
+}
+
+func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error) {
+	query, args, err := psql.Select("id, handle, state, worker_name, size_in_bytes").
+		From("volumes").
+		Where(sq.Or{
+			sq.Eq{
+				"team_id": teamID,
+			},
+			sq.Eq{
+				"team_id": nil,
+			},
+		}).
+		Where(sq.Eq{
+			"state": "created",
+		}).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := factory.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	createdVolumes := []CreatedVolume{}
+
+	for rows.Next() {
+		var id int
+		var handle string
+		var state string
+		var workerName string
+		var bytes int64
+
+		err = rows.Scan(&id, &handle, &state, &workerName, &bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		createdVolumes = append(createdVolumes, &createdVolume{
+			id:     id,
+			handle: handle,
+			worker: &Worker{
+				Name: workerName,
+			},
+			conn: factory.conn,
+		})
+	}
+
+	return createdVolumes, nil
 }
 
 func (factory *volumeFactory) CreateResourceCacheVolume(worker *Worker, resourceCache *UsedResourceCache) (CreatingVolume, error) {

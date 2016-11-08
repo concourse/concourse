@@ -2,30 +2,20 @@ package volumeserver
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 type Server struct {
-	logger lager.Logger
-
-	db            VolumesDB
-	teamDBFactory db.TeamDBFactory
-}
-
-//go:generate counterfeiter . VolumesDB
-
-type VolumesDB interface {
-	GetVolumes() ([]db.SavedVolume, error)
+	logger  lager.Logger
+	factory dbng.VolumeFactory
 }
 
 func NewServer(
 	logger lager.Logger,
-	db VolumesDB,
-	teamDBFactory db.TeamDBFactory,
+	vf dbng.VolumeFactory,
 ) *Server {
 	return &Server{
-		logger:        logger,
-		db:            db,
-		teamDBFactory: teamDBFactory,
+		logger:  logger,
+		factory: vf,
 	}
 }

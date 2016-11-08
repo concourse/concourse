@@ -25,7 +25,6 @@ import (
 	"github.com/concourse/atc/api/pipes/pipesfakes"
 	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
 	"github.com/concourse/atc/api/teamserver/teamserverfakes"
-	"github.com/concourse/atc/api/volumeserver/volumeserverfakes"
 	"github.com/concourse/atc/api/workerserver/workerserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/config"
@@ -49,7 +48,7 @@ var (
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
 	teamServerDB                  *teamserverfakes.FakeTeamsDB
-	volumesDB                     *volumeserverfakes.FakeVolumesDB
+	fakeVolumeFactory             *dbngfakes.FakeVolumeFactory
 	workerDB                      *workerserverfakes.FakeWorkerDB
 	containerDB                   *containerserverfakes.FakeContainerDB
 	pipeDB                        *pipesfakes.FakePipeDB
@@ -111,7 +110,6 @@ var _ = BeforeEach(func() {
 	workerDB = new(workerserverfakes.FakeWorkerDB)
 	buildServerDB = new(buildserverfakes.FakeBuildsDB)
 	containerDB = new(containerserverfakes.FakeContainerDB)
-	volumesDB = new(volumeserverfakes.FakeVolumesDB)
 	pipeDB = new(pipesfakes.FakePipeDB)
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
 	buildsDB = new(authfakes.FakeBuildsDB)
@@ -131,6 +129,8 @@ var _ = BeforeEach(func() {
 
 	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
 	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
+
+	fakeVolumeFactory = new(dbngfakes.FakeVolumeFactory)
 
 	var err error
 
@@ -176,12 +176,12 @@ var _ = BeforeEach(func() {
 		teamDBFactory,
 		dbTeamFactory,
 		dbWorkerFactory,
+		fakeVolumeFactory,
 
 		teamServerDB,
 		workerDB,
 		buildServerDB,
 		containerDB,
-		volumesDB,
 		pipeDB,
 		pipelinesDB,
 

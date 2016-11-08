@@ -16,7 +16,18 @@ func (s *Server) ListVolumes(teamDB db.TeamDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hLog.Debug("listing")
 
-		volumes, err := teamDB.GetVolumes()
+		team, found, err := teamDB.GetTeam()
+		if err != nil {
+			hLog.Error("failed-to-find-team", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
+		if !found {
+			hLog.Error("team-does-not-exist", err)
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+
+		volumes, err := s.factory.GetTeamVolumes(team.ID)
 		if err != nil {
 			hLog.Error("failed-to-find-volumes", err)
 			w.WriteHeader(http.StatusInternalServerError)
