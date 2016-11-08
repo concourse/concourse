@@ -125,4 +125,5 @@ var Migrations = []migration.Migrator{
 	AddTeamNameToPipe,
 	AddConfigToJobsResources,
 	CascadeTeamDeletes,
+	CascadeTeamDeletesOnPipes,
 }
