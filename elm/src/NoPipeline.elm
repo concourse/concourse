@@ -19,17 +19,17 @@ view =
         [ Html.li []
             [ Html.a
                 [href (Concourse.Cli.downloadUrl "amd64" "darwin"), ariaLabel "Download OS X CLI"]
-                [ Html.i [class "fa fa-apple"] [] ]
+                [ Html.i [class "fa fa-apple fa-5x"] [] ]
             ]
         , Html.li []
             [ Html.a
                 [href (Concourse.Cli.downloadUrl "amd64" "windows"), ariaLabel "Download Windows CLI"]
-                [ Html.i [class "fa fa-windows"] [] ]
+                [ Html.i [class "fa fa-windows fa-5x"] [] ]
             ]
         , Html.li []
             [ Html.a
                 [href (Concourse.Cli.downloadUrl "amd64" "linux"), ariaLabel "Download Linux CLI"]
-                [ Html.i [class "fa fa-linux"] [] ]
+                [ Html.i [class "fa fa-linux fa-5x"] [] ]
             ]
         ]
     , Html.h3 []
