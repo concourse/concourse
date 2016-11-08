@@ -33,8 +33,6 @@ func (command *VolumesCommand) Execute([]string) error {
 	table := ui.Table{
 		Headers: ui.TableRow{
 			{Contents: "handle", Color: color.New(color.Bold)},
-			{Contents: "ttl", Color: color.New(color.Bold)},
-			{Contents: "validity", Color: color.New(color.Bold)},
 			{Contents: "worker", Color: color.New(color.Bold)},
 			{Contents: "type", Color: color.New(color.Bold)},
 			{Contents: "identifier", Color: color.New(color.Bold)},
@@ -54,8 +52,6 @@ func (command *VolumesCommand) Execute([]string) error {
 
 		row := ui.TableRow{
 			{Contents: c.ID},
-			{Contents: formatTTL(c.TTLInSeconds)},
-			{Contents: formatTTL(c.ValidityInSeconds)},
 			{Contents: c.WorkerName},
 			{Contents: c.Type},
 			{Contents: c.Identifier},
