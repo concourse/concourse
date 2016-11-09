@@ -380,17 +380,53 @@ var _ = Describe("WorkerFactory", func() {
 			})
 
 			It("marks the worker as `landing`", func() {
-				foundWorker, err := workerFactory.LandWorker("some-name")
+				foundWorker, err := workerFactory.LandWorker(atcWorker.Name)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(foundWorker.Name).To(Equal("some-name"))
+				Expect(foundWorker.Name).To(Equal(atcWorker.Name))
 				Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanding))
 			})
 		})
 
 		Context("when the worker is not present", func() {
 			It("returns an error", func() {
-				foundWorker, err := workerFactory.LandWorker("some-name")
+				foundWorker, err := workerFactory.LandWorker(atcWorker.Name)
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(dbng.ErrWorkerNotPresent))
+				Expect(foundWorker).To(BeNil())
+			})
+		})
+	})
+
+	Describe("HeartbeatWorker", func() {
+		var (
+			ttl     time.Duration
+			epsilon time.Duration
+		)
+
+		BeforeEach(func() {
+			ttl = 5 * time.Minute
+			epsilon = 30 * time.Second
+		})
+
+		Context("when the worker is present", func() {
+			BeforeEach(func() {
+				_, err = workerFactory.SaveWorker(atcWorker, 1*time.Second)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("updates the expires field", func() {
+				foundWorker, err := workerFactory.HeartbeatWorker(atcWorker.Name, ttl)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(foundWorker.Name).To(Equal(atcWorker.Name))
+				Expect(foundWorker.ExpiresIn - ttl).To(And(BeNumerically("<=", epsilon), BeNumerically(">", 0)))
+			})
+		})
+
+		Context("when the worker is not present", func() {
+			It("returns an error", func() {
+				foundWorker, err := workerFactory.HeartbeatWorker(atcWorker.Name, ttl)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(Equal(dbng.ErrWorkerNotPresent))
 				Expect(foundWorker).To(BeNil())

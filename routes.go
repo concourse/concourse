@@ -54,9 +54,10 @@ const (
 	WritePipe  = "WritePipe"
 	ReadPipe   = "ReadPipe"
 
-	RegisterWorker = "RegisterWorker"
-	LandWorker     = "LandWorker"
-	ListWorkers    = "ListWorkers"
+	RegisterWorker  = "RegisterWorker"
+	LandWorker      = "LandWorker"
+	HeartbeatWorker = "HeartbeatWorker"
+	ListWorkers     = "ListWorkers"
 
 	SetLogLevel = "SetLogLevel"
 	GetLogLevel = "GetLogLevel"
@@ -134,6 +135,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
 	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
 	{Path: "/api/v1/workers/:worker_name/land", Method: "PUT", Name: LandWorker},
+	{Path: "/api/v1/workers/:worker_name/heartbeat", Method: "PUT", Name: HeartbeatWorker},
 
 	{Path: "/api/v1/log-level", Method: "GET", Name: GetLogLevel},
 	{Path: "/api/v1/log-level", Method: "PUT", Name: SetLogLevel},

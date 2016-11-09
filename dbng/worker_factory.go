@@ -21,6 +21,7 @@ type WorkerFactory interface {
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
 	SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error)
 	LandWorker(name string) (*Worker, error)
+	HeartbeatWorker(name string, ttl time.Duration) (*Worker, error)
 }
 
 type workerFactory struct {
@@ -277,6 +278,59 @@ func (f *workerFactory) LandWorker(name string) (*Worker, error) {
 	return &Worker{
 		Name:  workerName,
 		State: WorkerState(workerState),
+	}, nil
+}
+
+func (f *workerFactory) HeartbeatWorker(name string, ttl time.Duration) (*Worker, error) {
+	// In order to be able to calculate the ttl that we return to the caller
+	// we must compare time.Now() to the worker.expires column
+	// However, workers.expires column is a "timestamp (without timezone)"
+	// So we format time.Now() without any timezone information and then
+	// parse that using the same layout to strip the timezone information
+	layout := "Jan 2, 2006 15:04:05"
+	nowStr := time.Now().Format(layout)
+	now, err := time.Parse(layout, nowStr)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	expires := "NULL"
+	if ttl != 0 {
+		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
+	}
+
+	var (
+		workerName string
+		expiresAt  time.Time
+	)
+	err = psql.Update("workers").
+		Set("expires", sq.Expr(expires)).
+		Where(sq.Eq{"name": name}).
+		Suffix("RETURNING name, expires").
+		RunWith(tx).
+		QueryRow().
+		Scan(&workerName, &expiresAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrWorkerNotPresent
+		}
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Worker{
+		Name:      workerName,
+		ExpiresIn: expiresAt.Sub(now),
 	}, nil
 }
 
