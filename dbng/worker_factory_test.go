@@ -371,4 +371,30 @@ var _ = Describe("WorkerFactory", func() {
 			})
 		})
 	})
+
+	Describe("LandWorker", func() {
+		Context("when the worker is present", func() {
+			BeforeEach(func() {
+				_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("marks the worker as `landing`", func() {
+				foundWorker, err := workerFactory.LandWorker("some-name")
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(foundWorker.Name).To(Equal("some-name"))
+				Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanding))
+			})
+		})
+
+		Context("when the worker is not present", func() {
+			It("returns an error", func() {
+				foundWorker, err := workerFactory.LandWorker("some-name")
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(dbng.ErrWorkerNotPresent))
+				Expect(foundWorker).To(BeNil())
+			})
+		})
+	})
 })

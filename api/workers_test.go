@@ -375,4 +375,71 @@ var _ = Describe("Workers API", func() {
 			})
 		})
 	})
+
+	Describe("PUT /api/v1/workers/:worker_name/land", func() {
+		var (
+			response   *http.Response
+			workerName string
+		)
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/land", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			workerName = "some-worker"
+			authValidator.IsAuthenticatedReturns(true)
+			dbWorkerFactory.LandWorkerReturns(&dbng.Worker{}, nil)
+		})
+
+		It("returns 200", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("sees if the worker exists and attempts to land it", func() {
+			Expect(dbWorkerFactory.LandWorkerCallCount()).To(Equal(1))
+			Expect(dbWorkerFactory.LandWorkerArgsForCall(0)).To(Equal(workerName))
+		})
+
+		Context("when landing the worker fails", func() {
+			var returnedErr error
+
+			BeforeEach(func() {
+				returnedErr = errors.New("some-error")
+				dbWorkerFactory.LandWorkerReturns(nil, returnedErr)
+			})
+
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		Context("when the worker does not exist", func() {
+			BeforeEach(func() {
+				dbWorkerFactory.LandWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+			})
+
+			It("returns 404", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not land the worker", func() {
+				Expect(dbWorkerFactory.LandWorkerCallCount()).To(BeZero())
+			})
+		})
+	})
 })
