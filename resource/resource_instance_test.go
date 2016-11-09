@@ -123,12 +123,12 @@ var _ = Describe("ResourceInstance", func() {
 		})
 	})
 
-	Context("CreateOn", func() {
+	Context("FindOrCreateOn", func() {
 		var createdVolume worker.Volume
 		var createErr error
 
 		JustBeforeEach(func() {
-			createdVolume, createErr = resourceInstance.CreateOn(logger, fakeWorkerClient)
+			createdVolume, createErr = resourceInstance.FindOrCreateOn(logger, fakeWorkerClient)
 		})
 
 		Context("when creating the volume succeeds", func() {

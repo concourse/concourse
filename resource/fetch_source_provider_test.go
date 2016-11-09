@@ -95,42 +95,22 @@ var _ = Describe("FetchSourceProvider", func() {
 
 			Context("when worker is found for resource types", func() {
 				var fakeWorker *workerfakes.FakeWorker
+				var fakeVolume *workerfakes.FakeVolume
 
 				BeforeEach(func() {
 					fakeWorker = new(workerfakes.FakeWorker)
+					fakeVolume = new(workerfakes.FakeVolume)
 					fakeWorkerClient.SatisfyingReturns(fakeWorker, nil)
+					resourceInstance.FindOrCreateOnReturns(fakeVolume, nil)
 				})
 
-				Context("when volume is found on worker", func() { //this condition
-					var fakeVolume *workerfakes.FakeVolume
+				It("returns volume based source", func() {
+					source, err := fetchSourceProvider.Get()
+					Expect(resourceInstance.FindOrCreateOnCallCount()).To(Equal(1))
+					Expect(err).NotTo(HaveOccurred())
 
-					BeforeEach(func() {
-						fakeVolume = new(workerfakes.FakeVolume)
-						resourceInstance.FindOnReturns(fakeVolume, true, nil) // no longer the correct setup for
-					})
-
-					It("returns volume based source", func() {
-						source, err := fetchSourceProvider.Get()
-						Expect(resourceInstance.FindOnCallCount()).To(Equal(1))
-						Expect(err).NotTo(HaveOccurred())
-
-						expectedSource := NewVolumeFetchSource(logger, fakeVolume, fakeWorker, resourceOptions, fakeContainerCreator)
-						Expect(source).To(Equal(expectedSource))
-					})
-				})
-
-				Context("when volume is not found on worker", func() {
-					BeforeEach(func() {
-						resourceInstance.FindOnReturns(nil, false, nil)
-					})
-
-					It("returns empty source", func() {
-						source, err := fetchSourceProvider.Get()
-						Expect(err).NotTo(HaveOccurred())
-
-						expectedSource := NewEmptyFetchSource(logger, fakeWorker, resourceInstance, fakeContainerCreator, resourceOptions)
-						Expect(source).To(Equal(expectedSource))
-					})
+					expectedSource := NewVolumeFetchSource(logger, fakeVolume, fakeWorker, resourceOptions, fakeContainerCreator)
+					Expect(source).To(Equal(expectedSource))
 				})
 			})
 

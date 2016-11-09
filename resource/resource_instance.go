@@ -18,7 +18,7 @@ var ErrResourceTypeNotFound = errors.New("resource type not found")
 
 type ResourceInstance interface {
 	FindOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
-	CreateOn(lager.Logger, worker.Client) (worker.Volume, error)
+	FindOrCreateOn(lager.Logger, worker.Client) (worker.Volume, error)
 
 	ResourceCacheIdentifier() worker.ResourceCacheIdentifier
 }
@@ -55,7 +55,7 @@ func NewBuildResourceInstance(
 	}
 }
 
-func (bri buildResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
+func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
 		bri.build,
 		string(bri.resourceTypeName),
@@ -115,7 +115,7 @@ func NewResourceResourceInstance(
 	}
 }
 
-func (rri resourceResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
+func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
 		rri.resource,
 		string(rri.resourceTypeName),
@@ -175,7 +175,7 @@ func NewResourceTypeResourceInstance(
 	}
 }
 
-func (rtri resourceTypeResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
+func (rtri resourceTypeResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := rtri.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
 		string(rtri.resourceTypeName),
 		rtri.version,
@@ -228,8 +228,8 @@ func (instance resourceInstance) FindOn(logger lager.Logger, workerClient worker
 	}
 }
 
-func (instance resourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
-	return nil, errors.New("CreateOn not implemented for resourceInstance")
+func (instance resourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
+	return nil, errors.New("FindOrCreateOn not implemented for resourceInstance")
 }
 
 func (instance resourceInstance) volumeProperties() worker.VolumeProperties {
