@@ -453,6 +453,8 @@ var _ = Describe("Workers API", func() {
 			ttlStr     string
 			ttl        time.Duration
 			err        error
+
+			worker atc.Worker
 		)
 
 		BeforeEach(func() {
@@ -461,11 +463,19 @@ var _ = Describe("Workers API", func() {
 			ttl, err = time.ParseDuration(ttlStr)
 			Expect(err).NotTo(HaveOccurred())
 
+			worker = atc.Worker{
+				Name:             workerName,
+				ActiveContainers: 2,
+			}
+
 			authValidator.IsAuthenticatedReturns(true)
 		})
 
 		JustBeforeEach(func() {
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/heartbeat?ttl="+ttlStr, nil)
+			payload, err := json.Marshal(worker)
+			Expect(err).NotTo(HaveOccurred())
+
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/heartbeat?ttl="+ttlStr, ioutil.NopCloser(bytes.NewBuffer(payload)))
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
@@ -479,8 +489,8 @@ var _ = Describe("Workers API", func() {
 		It("sees if the worker exists and attempts to heartbeat with provided ttl", func() {
 			Expect(dbWorkerFactory.HeartbeatWorkerCallCount()).To(Equal(1))
 
-			n, t := dbWorkerFactory.HeartbeatWorkerArgsForCall(0)
-			Expect(n).To(Equal(workerName))
+			w, t := dbWorkerFactory.HeartbeatWorkerArgsForCall(0)
+			Expect(w).To(Equal(worker))
 			Expect(t).To(Equal(ttl))
 		})
 
