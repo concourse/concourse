@@ -73,6 +73,15 @@ type FakeWorkerFactory struct {
 		result1 *dbng.Worker
 		result2 error
 	}
+	LandWorkerStub        func(name string) (*dbng.Worker, error)
+	landWorkerMutex       sync.RWMutex
+	landWorkerArgsForCall []struct {
+		name string
+	}
+	landWorkerReturns struct {
+		result1 *dbng.Worker
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -303,6 +312,40 @@ func (fake *FakeWorkerFactory) SaveTeamWorkerReturns(result1 *dbng.Worker, resul
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerFactory) LandWorker(name string) (*dbng.Worker, error) {
+	fake.landWorkerMutex.Lock()
+	fake.landWorkerArgsForCall = append(fake.landWorkerArgsForCall, struct {
+		name string
+	}{name})
+	fake.recordInvocation("LandWorker", []interface{}{name})
+	fake.landWorkerMutex.Unlock()
+	if fake.LandWorkerStub != nil {
+		return fake.LandWorkerStub(name)
+	} else {
+		return fake.landWorkerReturns.result1, fake.landWorkerReturns.result2
+	}
+}
+
+func (fake *FakeWorkerFactory) LandWorkerCallCount() int {
+	fake.landWorkerMutex.RLock()
+	defer fake.landWorkerMutex.RUnlock()
+	return len(fake.landWorkerArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) LandWorkerArgsForCall(i int) string {
+	fake.landWorkerMutex.RLock()
+	defer fake.landWorkerMutex.RUnlock()
+	return fake.landWorkerArgsForCall[i].name
+}
+
+func (fake *FakeWorkerFactory) LandWorkerReturns(result1 *dbng.Worker, result2 error) {
+	fake.LandWorkerStub = nil
+	fake.landWorkerReturns = struct {
+		result1 *dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -320,6 +363,8 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.saveTeamWorkerMutex.RLock()
 	defer fake.saveTeamWorkerMutex.RUnlock()
+	fake.landWorkerMutex.RLock()
+	defer fake.landWorkerMutex.RUnlock()
 	return fake.invocations
 }
 

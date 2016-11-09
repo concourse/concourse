@@ -20,6 +20,7 @@ type WorkerFactory interface {
 	StallUnresponsiveWorkers() ([]*Worker, error)
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
 	SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error)
+	LandWorker(name string) (*Worker, error)
 }
 
 type workerFactory struct {
@@ -238,6 +239,45 @@ func scanWorker(row scannable) (*Worker, error) {
 		return nil, err
 	}
 	return &worker, nil
+}
+
+func (f *workerFactory) LandWorker(name string) (*Worker, error) {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	var (
+		workerName  string
+		workerState string
+	)
+
+	err = psql.Update("workers").
+		SetMap(map[string]interface{}{
+			"state": string(WorkerStateLanding),
+		}).
+		Where(sq.Eq{"name": name}).
+		Suffix("RETURNING name, state").
+		RunWith(tx).
+		QueryRow().
+		Scan(&workerName, &workerState)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrWorkerNotPresent
+		}
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Worker{
+		Name:  workerName,
+		State: WorkerState(workerState),
+	}, nil
 }
 
 func (f *workerFactory) StallWorker(name string) (*Worker, error) {
