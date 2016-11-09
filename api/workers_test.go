@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"time"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
@@ -439,6 +441,100 @@ var _ = Describe("Workers API", func() {
 
 			It("does not land the worker", func() {
 				Expect(dbWorkerFactory.LandWorkerCallCount()).To(BeZero())
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/workers/:worker_name/heartbeat", func() {
+		var (
+			response   *http.Response
+			workerName string
+			ttlStr     string
+			ttl        time.Duration
+			err        error
+		)
+
+		BeforeEach(func() {
+			workerName = "some-name"
+			ttlStr = "30s"
+			ttl, err = time.ParseDuration(ttlStr)
+			Expect(err).NotTo(HaveOccurred())
+
+			authValidator.IsAuthenticatedReturns(true)
+		})
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/heartbeat?ttl="+ttlStr, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("sees if the worker exists and attempts to heartbeat with provided ttl", func() {
+			Expect(dbWorkerFactory.HeartbeatWorkerCallCount()).To(Equal(1))
+
+			n, t := dbWorkerFactory.HeartbeatWorkerArgsForCall(0)
+			Expect(n).To(Equal(workerName))
+			Expect(t).To(Equal(ttl))
+		})
+
+		Context("when the TTL is invalid", func() {
+			BeforeEach(func() {
+				ttlStr = "invalid-duration"
+			})
+
+			It("returns 400", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+			})
+
+			It("returns the validation error in the response body", func() {
+				Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("malformed ttl")))
+			})
+
+			It("does not heartbeat worker", func() {
+				Expect(dbWorkerFactory.HeartbeatWorkerCallCount()).To(BeZero())
+			})
+		})
+
+		Context("when heartbeating the worker fails", func() {
+			var returnedErr error
+
+			BeforeEach(func() {
+				returnedErr = errors.New("some-error")
+				dbWorkerFactory.HeartbeatWorkerReturns(nil, returnedErr)
+			})
+
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		Context("when the worker does not exist", func() {
+			BeforeEach(func() {
+				dbWorkerFactory.HeartbeatWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+			})
+
+			It("returns 404", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not heartbeat the worker", func() {
+				Expect(dbWorkerFactory.HeartbeatWorkerCallCount()).To(BeZero())
 			})
 		})
 	})

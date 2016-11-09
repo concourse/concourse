@@ -183,9 +183,10 @@ func NewHandler(
 		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
 		atc.ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
 
-		atc.ListWorkers:    teamHandlerFactory.HandlerFor(workerServer.ListWorkers),
-		atc.RegisterWorker: http.HandlerFunc(workerServer.RegisterWorker),
-		atc.LandWorker:     http.HandlerFunc(workerServer.LandWorker),
+		atc.ListWorkers:     teamHandlerFactory.HandlerFor(workerServer.ListWorkers),
+		atc.RegisterWorker:  http.HandlerFunc(workerServer.RegisterWorker),
+		atc.LandWorker:      http.HandlerFunc(workerServer.LandWorker),
+		atc.HeartbeatWorker: http.HandlerFunc(workerServer.HeartbeatWorker),
 
 		atc.SetLogLevel: http.HandlerFunc(logLevelServer.SetMinLevel),
 		atc.GetLogLevel: http.HandlerFunc(logLevelServer.GetMinLevel),

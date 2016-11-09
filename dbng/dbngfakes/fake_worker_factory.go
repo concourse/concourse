@@ -82,6 +82,16 @@ type FakeWorkerFactory struct {
 		result1 *dbng.Worker
 		result2 error
 	}
+	HeartbeatWorkerStub        func(name string, ttl time.Duration) (*dbng.Worker, error)
+	heartbeatWorkerMutex       sync.RWMutex
+	heartbeatWorkerArgsForCall []struct {
+		name string
+		ttl  time.Duration
+	}
+	heartbeatWorkerReturns struct {
+		result1 *dbng.Worker
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -346,6 +356,41 @@ func (fake *FakeWorkerFactory) LandWorkerReturns(result1 *dbng.Worker, result2 e
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerFactory) HeartbeatWorker(name string, ttl time.Duration) (*dbng.Worker, error) {
+	fake.heartbeatWorkerMutex.Lock()
+	fake.heartbeatWorkerArgsForCall = append(fake.heartbeatWorkerArgsForCall, struct {
+		name string
+		ttl  time.Duration
+	}{name, ttl})
+	fake.recordInvocation("HeartbeatWorker", []interface{}{name, ttl})
+	fake.heartbeatWorkerMutex.Unlock()
+	if fake.HeartbeatWorkerStub != nil {
+		return fake.HeartbeatWorkerStub(name, ttl)
+	} else {
+		return fake.heartbeatWorkerReturns.result1, fake.heartbeatWorkerReturns.result2
+	}
+}
+
+func (fake *FakeWorkerFactory) HeartbeatWorkerCallCount() int {
+	fake.heartbeatWorkerMutex.RLock()
+	defer fake.heartbeatWorkerMutex.RUnlock()
+	return len(fake.heartbeatWorkerArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) HeartbeatWorkerArgsForCall(i int) (string, time.Duration) {
+	fake.heartbeatWorkerMutex.RLock()
+	defer fake.heartbeatWorkerMutex.RUnlock()
+	return fake.heartbeatWorkerArgsForCall[i].name, fake.heartbeatWorkerArgsForCall[i].ttl
+}
+
+func (fake *FakeWorkerFactory) HeartbeatWorkerReturns(result1 *dbng.Worker, result2 error) {
+	fake.HeartbeatWorkerStub = nil
+	fake.heartbeatWorkerReturns = struct {
+		result1 *dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -365,6 +410,8 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.saveTeamWorkerMutex.RUnlock()
 	fake.landWorkerMutex.RLock()
 	defer fake.landWorkerMutex.RUnlock()
+	fake.heartbeatWorkerMutex.RLock()
+	defer fake.heartbeatWorkerMutex.RUnlock()
 	return fake.invocations
 }
 
