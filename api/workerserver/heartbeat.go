@@ -1,7 +1,9 @@
 package workerserver
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	"net/http"
 	"time"
@@ -9,8 +11,9 @@ import (
 
 func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 	var (
-		ttl time.Duration
-		err error
+		registration atc.Worker
+		ttl          time.Duration
+		err          error
 	)
 
 	logger := s.logger.Session("heartbeat-worker")
@@ -27,7 +30,15 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err = s.dbWorkerFactory.HeartbeatWorker(workerName, ttl)
+	err = json.NewDecoder(r.Body).Decode(&registration)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	registration.Name = workerName
+
+	_, err = s.dbWorkerFactory.HeartbeatWorker(registration, ttl)
 	if err == dbng.ErrWorkerNotPresent {
 		logger.Error("failed-to-find-worker", err)
 		w.WriteHeader(http.StatusNotFound)

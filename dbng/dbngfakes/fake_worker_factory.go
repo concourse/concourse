@@ -82,11 +82,11 @@ type FakeWorkerFactory struct {
 		result1 *dbng.Worker
 		result2 error
 	}
-	HeartbeatWorkerStub        func(name string, ttl time.Duration) (*dbng.Worker, error)
+	HeartbeatWorkerStub        func(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error)
 	heartbeatWorkerMutex       sync.RWMutex
 	heartbeatWorkerArgsForCall []struct {
-		name string
-		ttl  time.Duration
+		worker atc.Worker
+		ttl    time.Duration
 	}
 	heartbeatWorkerReturns struct {
 		result1 *dbng.Worker
@@ -356,16 +356,16 @@ func (fake *FakeWorkerFactory) LandWorkerReturns(result1 *dbng.Worker, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerFactory) HeartbeatWorker(name string, ttl time.Duration) (*dbng.Worker, error) {
+func (fake *FakeWorkerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error) {
 	fake.heartbeatWorkerMutex.Lock()
 	fake.heartbeatWorkerArgsForCall = append(fake.heartbeatWorkerArgsForCall, struct {
-		name string
-		ttl  time.Duration
-	}{name, ttl})
-	fake.recordInvocation("HeartbeatWorker", []interface{}{name, ttl})
+		worker atc.Worker
+		ttl    time.Duration
+	}{worker, ttl})
+	fake.recordInvocation("HeartbeatWorker", []interface{}{worker, ttl})
 	fake.heartbeatWorkerMutex.Unlock()
 	if fake.HeartbeatWorkerStub != nil {
-		return fake.HeartbeatWorkerStub(name, ttl)
+		return fake.HeartbeatWorkerStub(worker, ttl)
 	} else {
 		return fake.heartbeatWorkerReturns.result1, fake.heartbeatWorkerReturns.result2
 	}
@@ -377,10 +377,10 @@ func (fake *FakeWorkerFactory) HeartbeatWorkerCallCount() int {
 	return len(fake.heartbeatWorkerArgsForCall)
 }
 
-func (fake *FakeWorkerFactory) HeartbeatWorkerArgsForCall(i int) (string, time.Duration) {
+func (fake *FakeWorkerFactory) HeartbeatWorkerArgsForCall(i int) (atc.Worker, time.Duration) {
 	fake.heartbeatWorkerMutex.RLock()
 	defer fake.heartbeatWorkerMutex.RUnlock()
-	return fake.heartbeatWorkerArgsForCall[i].name, fake.heartbeatWorkerArgsForCall[i].ttl
+	return fake.heartbeatWorkerArgsForCall[i].worker, fake.heartbeatWorkerArgsForCall[i].ttl
 }
 
 func (fake *FakeWorkerFactory) HeartbeatWorkerReturns(result1 *dbng.Worker, result2 error) {
