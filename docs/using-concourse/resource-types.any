@@ -156,6 +156,8 @@ before using it!
     \hyperlink{https://github.com/everpeace/aws-kms-resource}{AWS Key Management Service}
   }{
     \hyperlink{https://github.com/ckaznocha/marathon-resource}{Marathon}
+  }{
+    \hyperlink{https://github.com/EMC-Dojo/bosh-config-resource}{BOSH Config: cloud-config and runtime-config}
   }
 
   \section{Adding to this list}{
