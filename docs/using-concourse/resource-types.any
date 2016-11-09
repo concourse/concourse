@@ -95,6 +95,8 @@ before using it!
   }{
     \hyperlink{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}{BOSH Errands}
   }{
+    \hyperlink{https://github.com/EMC-Dojo/bosh-config-resource}{BOSH Config: cloud-config and runtime-config}
+  }{
     \hyperlink{https://github.com/cfmobile/pool-trigger-resource}{Pool Trigger}
   }{
     \hyperlink{https://github.com/pivotal-cf-experimental/pivnet-resource}{Pivotal Network}
