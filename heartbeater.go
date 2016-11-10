@@ -79,10 +79,14 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 			return nil
 
 		case <-heartbeater.clock.NewTimer(currentInterval).C():
-			healthy := heartbeater.register(heartbeater.logger.Session("heartbeat"))
-			if healthy {
+			status := heartbeater.heartbeat(heartbeater.logger.Session("heartbeat"))
+
+			switch status {
+			case HeartbeatStatusGoneAway:
+				return nil
+			case HeartbeatStatusHealthy:
 				currentInterval = heartbeater.interval
-			} else {
+			default:
 				currentInterval = heartbeater.cprInterval
 			}
 		}
@@ -156,6 +160,91 @@ func (heartbeater *heartbeater) register(logger lager.Logger) bool {
 	}
 
 	return true
+}
+
+type HeartbeatStatus int
+
+const (
+	HeartbeatStatusUnhealthy = iota
+	HeartbeatStatusGoneAway
+	HeartbeatStatusHealthy
+)
+
+func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
+	logger.RegisterSink(lager.NewWriterSink(heartbeater.clientWriter, lager.DEBUG))
+
+	heartbeatData := lager.Data{
+		"worker-platform": heartbeater.registration.Platform,
+		"worker-address":  heartbeater.registration.GardenAddr,
+		"worker-tags":     strings.Join(heartbeater.registration.Tags, ","),
+	}
+
+	logger.Info("start", heartbeatData)
+	defer logger.Info("done", heartbeatData)
+
+	before := time.Now()
+
+	containers, err := heartbeater.gardenClient.Containers(nil)
+	if err != nil {
+		logger.Error("failed-to-fetch-containers", err)
+		return HeartbeatStatusUnhealthy
+	}
+
+	after := time.Now()
+
+	logger.Debug("reached-worker", lager.Data{"took": after.Sub(before).String()})
+
+	heartbeater.registration.ActiveContainers = len(containers)
+
+	payload, err := json.Marshal(heartbeater.registration)
+	if err != nil {
+		logger.Error("failed-to-marshal-registration", err)
+		return HeartbeatStatusUnhealthy
+	}
+
+	request, err := heartbeater.atcEndpoint.CreateRequest(atc.HeartbeatWorker, rata.Params{
+		"worker_name": heartbeater.registration.Name,
+	}, bytes.NewBuffer(payload))
+	if err != nil {
+		logger.Error("failed-to-construct-request", err)
+		return HeartbeatStatusUnhealthy
+	}
+
+	jwtToken, err := heartbeater.tokenGenerator.GenerateToken()
+	if err != nil {
+		logger.Error("failed-to-construct-request", err)
+		return HeartbeatStatusUnhealthy
+	}
+
+	request.Header.Add("Authorization", "Bearer "+jwtToken)
+
+	request.URL.RawQuery = url.Values{
+		"ttl": []string{heartbeater.ttl().String()},
+	}.Encode()
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		logger.Error("failed-to-heartbeat", err)
+		return HeartbeatStatusUnhealthy
+	}
+
+	defer response.Body.Close()
+
+	if response.StatusCode == http.StatusNotFound {
+		logger.Error("worker-has-gone-away", nil)
+
+		return HeartbeatStatusGoneAway
+	}
+
+	if response.StatusCode != http.StatusOK {
+		logger.Error("bad-response", nil, lager.Data{
+			"status-code": response.StatusCode,
+		})
+
+		return HeartbeatStatusUnhealthy
+	}
+
+	return HeartbeatStatusHealthy
 }
 
 func (heartbeater *heartbeater) ttl() time.Duration {

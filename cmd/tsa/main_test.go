@@ -273,9 +273,11 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						var workerPayload atc.Worker
 						var registered chan registration
+						var heartbeated chan registration
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
+								Name:       "some-worker",
 								GardenAddr: gardenAddr,
 
 								Platform: "linux",
@@ -288,6 +290,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}
 
 							registered = make(chan registration)
+							heartbeated = make(chan registration)
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
@@ -300,6 +303,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 								Expect(err).NotTo(HaveOccurred())
 
 								registered <- registration{worker, ttl}
+							})
+
+							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
+								err := json.NewDecoder(r.Body).Decode(&worker)
+								Expect(err).NotTo(HaveOccurred())
+
+								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+								Expect(err).NotTo(HaveOccurred())
+
+								heartbeated <- registration{worker, ttl}
 							})
 
 							stubs := make(chan func() ([]garden.Container, error), 4)
@@ -353,19 +369,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload.ActiveContainers = 2
 
 							b := time.Now()
-							Expect(<-registered).To(Equal(registration{
+							Expect(<-heartbeated).To(Equal(registration{
 								worker: expectedWorkerPayload,
 								ttl:    2 * heartbeatInterval,
 							}))
 
 							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
 
-							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 
 							expectedWorkerPayload.ActiveContainers = 1
 
 							c := time.Now()
-							Expect(<-registered).To(Equal(registration{
+							Expect(<-heartbeated).To(Equal(registration{
 								worker: expectedWorkerPayload,
 								ttl:    2 * heartbeatInterval,
 							}))
@@ -388,12 +404,14 @@ var _ = Describe("TSA SSH Registrar", func() {
 								for {
 									select {
 									case <-registered:
+									case <-heartbeated:
 									default:
 										break dance
 									}
 								}
 
 								Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+								Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 							})
 						})
 					})
@@ -416,9 +434,11 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						var workerPayload atc.Worker
 						var registered chan registration
+						var heartbeated chan registration
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
+								Name:     "some-worker",
 								Platform: "linux",
 								Tags:     []string{"some", "tags"},
 
@@ -429,9 +449,12 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}
 
 							registered = make(chan registration)
+							heartbeated = make(chan registration)
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
 
@@ -439,6 +462,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 								Expect(err).NotTo(HaveOccurred())
 
 								registered <- registration{worker, ttl}
+							})
+
+							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
+								err := json.NewDecoder(r.Body).Decode(&worker)
+								Expect(err).NotTo(HaveOccurred())
+
+								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+								Expect(err).NotTo(HaveOccurred())
+
+								heartbeated <- registration{worker, ttl}
 							})
 
 							stubs := make(chan func() ([]garden.Container, error), 4)
@@ -508,7 +544,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Expect(host).To(Equal(forwardHost))
 
 							b := time.Now()
-							registration = <-registered
+							registration = <-heartbeated
 							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
@@ -523,10 +559,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
 
-							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 
 							c := time.Now()
-							registration = <-registered
+							registration = <-heartbeated
 							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
@@ -555,12 +591,14 @@ var _ = Describe("TSA SSH Registrar", func() {
 								for {
 									select {
 									case <-registered:
+									case <-heartbeated:
 									default:
 										break dance
 									}
 								}
 
 								Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+								Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 							})
 						})
 					})
@@ -594,9 +632,11 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						var workerPayload atc.Worker
 						var registered chan registration
+						var heartbeated chan registration
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
+								Name:     "some-worker",
 								Platform: "linux",
 								Tags:     []string{"some", "tags"},
 
@@ -607,9 +647,12 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}
 
 							registered = make(chan registration)
+							heartbeated = make(chan registration)
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
 
@@ -617,6 +660,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 								Expect(err).NotTo(HaveOccurred())
 
 								registered <- registration{worker, ttl}
+							})
+
+							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
+								err := json.NewDecoder(r.Body).Decode(&worker)
+								Expect(err).NotTo(HaveOccurred())
+
+								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+								Expect(err).NotTo(HaveOccurred())
+
+								heartbeated <- registration{worker, ttl}
 							})
 
 							stubs := make(chan func() ([]garden.Container, error), 4)
@@ -708,7 +764,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Expect(host).To(Equal(forwardHost))
 
 							b := time.Now()
-							registration = <-registered
+							registration = <-heartbeated
 							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
@@ -724,10 +780,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
 
-							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 
 							c := time.Now()
-							registration = <-registered
+							registration = <-heartbeated
 							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
 
 							// shortcut for equality w/out checking addr
@@ -766,12 +822,14 @@ var _ = Describe("TSA SSH Registrar", func() {
 								for {
 									select {
 									case <-registered:
+									case <-heartbeated:
 									default:
 										break dance
 									}
 								}
 
 								Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+								Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 							})
 						})
 					})
@@ -821,9 +879,11 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						var workerPayload atc.Worker
 						var registered chan registration
+						var heartbeated chan registration
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
+								Name:       "some-worker",
 								GardenAddr: gardenAddr,
 
 								Platform: "linux",
@@ -837,6 +897,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}
 
 							registered = make(chan registration)
+							heartbeated = make(chan registration)
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
@@ -849,6 +910,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 								Expect(err).NotTo(HaveOccurred())
 
 								registered <- registration{worker, ttl}
+							})
+
+							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
+								err := json.NewDecoder(r.Body).Decode(&worker)
+								Expect(err).NotTo(HaveOccurred())
+
+								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+								Expect(err).NotTo(HaveOccurred())
+
+								heartbeated <- registration{worker, ttl}
 							})
 
 							stubs := make(chan func() ([]garden.Container, error), 4)
@@ -902,19 +976,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload.ActiveContainers = 2
 
 							b := time.Now()
-							Expect(<-registered).To(Equal(registration{
+							Expect(<-heartbeated).To(Equal(registration{
 								worker: expectedWorkerPayload,
 								ttl:    2 * heartbeatInterval,
 							}))
 
 							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
 
-							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 
 							expectedWorkerPayload.ActiveContainers = 1
 
 							c := time.Now()
-							Expect(<-registered).To(Equal(registration{
+							Expect(<-heartbeated).To(Equal(registration{
 								worker: expectedWorkerPayload,
 								ttl:    2 * heartbeatInterval,
 							}))
@@ -949,9 +1023,11 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						var workerPayload atc.Worker
 						var registered chan registration
+						var heartbeated chan registration
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
+								Name:       "some-worker",
 								GardenAddr: gardenAddr,
 
 								Platform: "linux",
@@ -965,6 +1041,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}
 
 							registered = make(chan registration)
+							heartbeated = make(chan registration)
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
@@ -977,6 +1054,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 								Expect(err).NotTo(HaveOccurred())
 
 								registered <- registration{worker, ttl}
+							})
+
+							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
+								err := json.NewDecoder(r.Body).Decode(&worker)
+								Expect(err).NotTo(HaveOccurred())
+
+								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+								Expect(err).NotTo(HaveOccurred())
+
+								heartbeated <- registration{worker, ttl}
 							})
 
 							stubs := make(chan func() ([]garden.Container, error), 4)
@@ -1030,19 +1120,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload.ActiveContainers = 2
 
 							b := time.Now()
-							Expect(<-registered).To(Equal(registration{
+							Expect(<-heartbeated).To(Equal(registration{
 								worker: expectedWorkerPayload,
 								ttl:    2 * heartbeatInterval,
 							}))
 
 							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
 
-							Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
+							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 
 							expectedWorkerPayload.ActiveContainers = 1
 
 							c := time.Now()
-							Expect(<-registered).To(Equal(registration{
+							Expect(<-heartbeated).To(Equal(registration{
 								worker: expectedWorkerPayload,
 								ttl:    2 * heartbeatInterval,
 							}))
@@ -1058,6 +1148,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
+								Name:       "some-worker",
 								GardenAddr: gardenAddr,
 
 								Platform: "linux",

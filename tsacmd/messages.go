@@ -4,6 +4,10 @@ type execRequest struct {
 	Command string
 }
 
+type exitStatusRequest struct {
+	ExitStatus uint32
+}
+
 type tcpipForwardRequest struct {
 	BindIP   string
 	BindPort uint32

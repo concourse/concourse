@@ -157,8 +157,7 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 
 				processes = append(processes, process)
 
-				err = conn.Wait()
-				logger.Error("connection-closed", err)
+				<-waitForProcessOrConnToExit(logger, process, channel, conn)
 
 			case forwardWorkerRequest:
 				logger := logger.Session("forward-worker")
@@ -235,9 +234,7 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 					processes = append(processes, process)
 				}
 
-				err = conn.Wait()
-				logger.Error("connection-closed", err)
-
+				<-waitForProcessOrConnToExit(logger, process, channel, conn)
 			default:
 				logger.Info("invalid-command", lager.Data{
 					"command": request.Command,
@@ -512,4 +509,27 @@ func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
 	return func(string, string) (net.Conn, error) {
 		return keepaliveDialer(network, address)
 	}
+}
+
+func waitForProcessOrConnToExit(logger lager.Logger, process ifrit.Process, channel ssh.Channel, conn *ssh.ServerConn) <-chan struct{} {
+	logger = logger.Session("wait-for-process-or-connection-to-finish")
+
+	finished := make(chan struct{}, 2)
+	go func() {
+		err := <-process.Wait()
+		if err == nil {
+			channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
+		}
+
+		finished <- struct{}{}
+	}()
+
+	go func() {
+		err := conn.Wait()
+		logger.Error("connection-closed", err)
+
+		finished <- struct{}{}
+	}()
+
+	return finished
 }

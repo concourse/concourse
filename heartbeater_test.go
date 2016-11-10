@@ -44,10 +44,14 @@ var _ = Describe("Heartbeater", func() {
 
 		heartbeater ifrit.Process
 
+		verifyRegister  http.HandlerFunc
 		verifyHeartbeat http.HandlerFunc
 
 		registrations <-chan registration
+		heartbeats    <-chan registration
 		clientWriter  *gbytes.Buffer
+
+		worker atc.Worker
 	)
 
 	BeforeEach(func() {
@@ -64,7 +68,16 @@ var _ = Describe("Heartbeater", func() {
 			},
 		}
 
+		worker = atc.Worker{
+			Name:          "some-name",
+			GardenAddr:    addrToRegister,
+			ResourceTypes: resourceTypes,
+			Platform:      "some-platform",
+			Tags:          []string{"some", "tags"},
+		}
+
 		expectedWorker = atc.Worker{
+			Name:             "some-name",
 			GardenAddr:       addrToRegister,
 			ActiveContainers: 2,
 			ResourceTypes:    resourceTypes,
@@ -80,7 +93,10 @@ var _ = Describe("Heartbeater", func() {
 		registered := make(chan registration, 100)
 		registrations = registered
 
-		verifyHeartbeat = ghttp.CombineHandlers(
+		heartbeated := make(chan registration, 100)
+		heartbeats = heartbeated
+
+		verifyRegister = ghttp.CombineHandlers(
 			ghttp.VerifyRequest(registerRoute.Method, registerRoute.Path),
 			func(w http.ResponseWriter, r *http.Request) {
 				var worker atc.Worker
@@ -93,6 +109,22 @@ var _ = Describe("Heartbeater", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				registered <- registration{worker, ttl}
+			},
+		)
+
+		verifyHeartbeat = ghttp.CombineHandlers(
+			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-name/heartbeat"),
+			func(w http.ResponseWriter, r *http.Request) {
+				var worker atc.Worker
+				Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
+
+				err := json.NewDecoder(r.Body).Decode(&worker)
+				Expect(err).NotTo(HaveOccurred())
+
+				ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+				Expect(err).NotTo(HaveOccurred())
+
+				heartbeated <- registration{worker, ttl}
 			},
 		)
 
@@ -114,12 +146,7 @@ var _ = Describe("Heartbeater", func() {
 				fakeGardenClient,
 				atcEndpoint,
 				fakeTokenGenerator,
-				atc.Worker{
-					GardenAddr:    addrToRegister,
-					ResourceTypes: resourceTypes,
-					Platform:      "some-platform",
-					Tags:          []string{"some", "tags"},
-				},
+				worker,
 				clientWriter,
 			),
 		)
@@ -166,9 +193,9 @@ var _ = Describe("Heartbeater", func() {
 			}
 		})
 
-		Context("when the ATC responds to heartbeat requests", func() {
+		Context("when the ATC responds to registration requests", func() {
 			BeforeEach(func() {
-				fakeATC.AppendHandlers(verifyHeartbeat, verifyHeartbeat)
+				fakeATC.AppendHandlers(verifyRegister, verifyHeartbeat)
 			})
 
 			It("immediately registers", func() {
@@ -180,14 +207,14 @@ var _ = Describe("Heartbeater", func() {
 
 				fakeClock.WaitForWatcherAndIncrement(interval)
 				expectedWorker.ActiveContainers = 5
-				Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
+				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 		})
 
 		Context("when the ATC doesn't respond to the first heartbeat", func() {
 			BeforeEach(func() {
 				fakeATC.AppendHandlers(
-					verifyHeartbeat,
+					verifyRegister,
 					ghttp.CombineHandlers(
 						verifyHeartbeat,
 						func(w http.ResponseWriter, r *http.Request) { fakeATC.CloseClientConnections() },
@@ -201,28 +228,28 @@ var _ = Describe("Heartbeater", func() {
 				Expect(registrations).To(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(interval)
-				Eventually(registrations).Should(Receive())
+				Eventually(heartbeats).Should(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(cprInterval)
 				expectedWorker.ActiveContainers = 4
-				Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
+				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 
 			It("goes back to normal after the heartbeat succeeds", func() {
 				Expect(registrations).To(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(interval)
-				Eventually(registrations).Should(Receive())
+				Eventually(heartbeats).Should(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(cprInterval)
-				Eventually(registrations).Should(Receive())
+				Eventually(heartbeats).Should(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(cprInterval)
-				Consistently(registrations).ShouldNot(Receive())
+				Consistently(heartbeats).ShouldNot(Receive())
 
 				fakeClock.WaitForWatcherAndIncrement(interval - cprInterval)
 				expectedWorker.ActiveContainers = 3
-				Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
+				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 		})
 	})
