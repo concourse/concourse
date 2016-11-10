@@ -111,22 +111,10 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		return nil, err
 	}
 
-	cachedVolume, cacheFound, err := f.resourceInstance.FindOn(f.logger, chosenWorker)
+	cachedVolume, err := f.resourceInstance.FindOrCreateOn(f.logger, chosenWorker)
 	if err != nil {
-		f.logger.Error("failed-to-look-for-cache", err)
+		f.logger.Error("failed-to-create-cache", err)
 		return nil, err
-	}
-
-	if cacheFound {
-		f.logger.Debug("found-cache", lager.Data{"volume": cachedVolume.Handle()})
-	} else {
-		f.logger.Debug("no-cache-found")
-
-		cachedVolume, err = f.resourceInstance.FindOrCreateOn(f.logger, chosenWorker)
-		if err != nil {
-			f.logger.Error("failed-to-create-cache", err)
-			return nil, err
-		}
 	}
 
 	return NewVolumeFetchSource(

@@ -116,15 +116,13 @@ func (cache ResourceCache) findOrCreate(tx Tx, resourceConfig *UsedResourceConfi
 			QueryRow().
 			Scan(&id)
 		if err != nil {
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
-				return nil, ErrResourceCacheAlreadyExists
-			}
-
 			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 				return nil, ErrResourceCacheConfigDisappeared
 			}
 
-			return nil, err
+			if pqErr, ok := err.(*pq.Error); !ok || pqErr.Code.Name() != "unique_violation" {
+				return nil, err
+			}
 		}
 	}
 
