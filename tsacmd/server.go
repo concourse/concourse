@@ -173,6 +173,7 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 				processes = append(processes, process)
 
 				<-waitForProcessOrConnToExit(logger, process, channel, conn)
+				break dance
 
 			case forwardWorkerRequest:
 				logger := logger.Session("forward-worker")
@@ -250,6 +251,8 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 				}
 
 				<-waitForProcessOrConnToExit(logger, process, channel, conn)
+				break dance
+
 			default:
 				logger.Info("invalid-command", lager.Data{
 					"command": request.Command,

@@ -289,8 +289,8 @@ var _ = Describe("TSA SSH Registrar", func() {
 								},
 							}
 
-							registered = make(chan registration)
-							heartbeated = make(chan registration)
+							registered = make(chan registration, 100)
+							heartbeated = make(chan registration, 100)
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
@@ -391,6 +391,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Eventually(sshSess.Out).Should(gbytes.Say("heartbeat"))
 						})
 
+						Context("when the ATC returns a 404 for the heartbeat", func() {
+							BeforeEach(func() {
+								atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									w.WriteHeader(404)
+								})
+							})
+
+							It("exits gracefully", func() {
+								Eventually(sshSess, 3).Should(gexec.Exit(0))
+							})
+						})
+
 						Context("when the client goes away", func() {
 							It("stops forwarding", func() {
 								time.Sleep(heartbeatInterval)
@@ -448,8 +461,8 @@ var _ = Describe("TSA SSH Registrar", func() {
 								},
 							}
 
-							registered = make(chan registration)
-							heartbeated = make(chan registration)
+							registered = make(chan registration, 100)
+							heartbeated = make(chan registration, 100)
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
@@ -578,6 +591,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
 						})
 
+						Context("when the ATC returns a 404 for the heartbeat", func() {
+							BeforeEach(func() {
+								atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									w.WriteHeader(404)
+								})
+							})
+
+							It("exits gracefully", func() {
+								Eventually(sshSess, 3).Should(gexec.Exit(0))
+							})
+						})
+
 						Context("when the client goes away", func() {
 							It("stops registering", func() {
 								time.Sleep(heartbeatInterval)
@@ -646,8 +672,8 @@ var _ = Describe("TSA SSH Registrar", func() {
 								},
 							}
 
-							registered = make(chan registration)
-							heartbeated = make(chan registration)
+							registered = make(chan registration, 100)
+							heartbeated = make(chan registration, 100)
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
@@ -807,6 +833,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Expect(port).NotTo(Equal("7788")) // should NOT respect bind addr
 
 							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+						})
+
+						Context("when the ATC returns a 404 for the heartbeat", func() {
+							BeforeEach(func() {
+								atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									w.WriteHeader(404)
+								})
+							})
+
+							It("exits gracefully", func() {
+								Eventually(sshSess, 3).Should(gexec.Exit(0))
+							})
 						})
 
 						Context("when the client goes away", func() {
