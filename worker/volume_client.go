@@ -33,6 +33,10 @@ type VolumeClient interface {
 		*dbng.Team,
 		string,
 	) (Volume, error)
+	FindInitializedVolumeForResourceCache(
+		lager.Logger,
+		*dbng.UsedResourceCache,
+	) (Volume, bool, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
 
@@ -81,7 +85,13 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 			return c.dbVolumeFactory.FindContainerVolume(team, c.dbWorker, container, mountPath)
 		},
 		func() (dbng.CreatingVolume, error) {
-			return c.dbVolumeFactory.CreateContainerVolume(team, c.dbWorker, container, mountPath)
+			v, err := c.dbVolumeFactory.CreateContainerVolume(team, c.dbWorker, container, mountPath)
+			if err != nil {
+				return nil, err
+			}
+
+			logger.Debug("created-volume-for-container", lager.Data{"handle": v.Handle()})
+			return v, nil
 		},
 	)
 }
@@ -108,7 +118,13 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 			return c.dbVolumeFactory.FindBaseResourceTypeVolume(team, c.dbWorker, baseResourceType)
 		},
 		func() (dbng.CreatingVolume, error) {
-			return c.dbVolumeFactory.CreateBaseResourceTypeVolume(team, c.dbWorker, baseResourceType)
+			v, err := c.dbVolumeFactory.CreateBaseResourceTypeVolume(team, c.dbWorker, baseResourceType)
+			if err != nil {
+				return nil, err
+			}
+
+			logger.Debug("created-volume-for-base-resource-type", lager.Data{"handle": v.Handle()})
+			return v, nil
 		},
 	)
 }
@@ -125,9 +141,42 @@ func (c *volumeClient) FindOrCreateVolumeForResourceCache(
 			return c.dbVolumeFactory.FindResourceCacheVolume(c.dbWorker, usedResourceCache)
 		},
 		func() (dbng.CreatingVolume, error) {
-			return c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker, usedResourceCache)
+			v, err := c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker, usedResourceCache)
+			if err != nil {
+				return nil, err
+			}
+
+			logger.Debug("created-volume-for-resource-cache", lager.Data{"handle": v.Handle()})
+			return v, nil
 		},
 	)
+}
+
+func (c *volumeClient) FindInitializedVolumeForResourceCache(
+	logger lager.Logger,
+	usedResourceCache *dbng.UsedResourceCache,
+) (Volume, bool, error) {
+	dbVolume, found, err := c.dbVolumeFactory.FindResourceCacheInitializedVolume(c.dbWorker, usedResourceCache)
+	if err != nil {
+		logger.Error("failed-to-lookup-initialized-volume-in-db", err)
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	bcVolume, found, err := c.baggageclaimClient.LookupVolume(logger, dbVolume.Handle())
+	if err != nil {
+		logger.Error("failed-to-lookup-volume-in-bc", err)
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return NewVolume(bcVolume, dbVolume), true, nil
 }
 
 func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
@@ -201,7 +250,7 @@ func (c *volumeClient) findOrCreateVolume(
 		}
 
 		if !bcVolumeFound {
-			logger.Error("failed-to-lookup-volume-in-baggageclaim", ErrCreatedVolumeNotFound)
+			logger.Error("failed-to-lookup-volume-in-baggageclaim", ErrCreatedVolumeNotFound, lager.Data{"handle": createdVolume.Handle()})
 			return nil, ErrCreatedVolumeNotFound
 		}
 	} else {
@@ -236,6 +285,7 @@ func (c *volumeClient) findOrCreateVolume(
 		defer lock.Release()
 
 		if !bcVolumeFound {
+			logger.Debug("creating-volume-in-baggageclaim", lager.Data{"handle": creatingVolume.Handle()})
 			bcVolume, err = c.baggageclaimClient.CreateVolume(
 				logger.Session("create-volume"),
 				creatingVolume.Handle(),

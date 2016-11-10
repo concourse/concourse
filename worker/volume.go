@@ -27,6 +27,9 @@ type Volume interface {
 
 	COWStrategy() baggageclaim.COWStrategy
 
+	IsInitialized() (bool, error)
+	Initialize() error
+
 	Destroy() error
 }
 
@@ -78,4 +81,12 @@ func (v *volume) COWStrategy() baggageclaim.COWStrategy {
 	return baggageclaim.COWStrategy{
 		Parent: v.bcVolume,
 	}
+}
+
+func (v *volume) IsInitialized() (bool, error) {
+	return v.dbVolume.IsInitialized()
+}
+
+func (v *volume) Initialize() error {
+	return v.dbVolume.Initialize()
 }

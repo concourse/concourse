@@ -20,6 +20,7 @@ type VolumeFactory interface {
 	CreateBaseResourceTypeVolume(*Team, *Worker, *UsedBaseResourceType) (CreatingVolume, error)
 
 	FindResourceCacheVolume(*Worker, *UsedResourceCache) (CreatingVolume, CreatedVolume, error)
+	FindResourceCacheInitializedVolume(*Worker, *UsedResourceCache) (CreatedVolume, bool, error)
 	CreateResourceCacheVolume(*Worker, *UsedResourceCache) (CreatingVolume, error)
 
 	FindVolumesForContainer(containerID int) ([]CreatedVolume, error)
@@ -210,6 +211,22 @@ func (factory *volumeFactory) FindResourceCacheVolume(worker *Worker, resourceCa
 	return factory.findVolume(nil, worker, map[string]interface{}{
 		"v.resource_cache_id": resourceCache.ID,
 	})
+}
+
+func (factory *volumeFactory) FindResourceCacheInitializedVolume(worker *Worker, resourceCache *UsedResourceCache) (CreatedVolume, bool, error) {
+	_, createdVolume, err := factory.findVolume(nil, worker, map[string]interface{}{
+		"v.resource_cache_id": resourceCache.ID,
+		"v.initialized":       true,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	if createdVolume == nil {
+		return nil, false, nil
+	}
+
+	return createdVolume, true, nil
 }
 
 func (factory *volumeFactory) FindCreatedVolume(handle string) (CreatedVolume, bool, error) {

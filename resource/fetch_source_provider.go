@@ -93,7 +93,10 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 	}
 
 	if found {
-		return NewContainerFetchSource(f.logger, container, f.resourceOptions), nil
+		cacheVolume, cacheVolumeFound := findCacheVolumeForContainer(container)
+		if cacheVolumeFound {
+			return NewContainerFetchSource(f.logger, container, cacheVolume, f.resourceOptions), nil
+		}
 	}
 
 	resourceSpec := worker.WorkerSpec{
@@ -133,4 +136,14 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		f.resourceOptions,
 		f.containerCreator,
 	), nil
+}
+
+func findCacheVolumeForContainer(container worker.Container) (worker.Volume, bool) {
+	for _, mount := range container.VolumeMounts() {
+		if mount.MountPath == ResourcesDir("get") {
+			return mount.Volume, true
+		}
+	}
+
+	return nil, false
 }

@@ -192,6 +192,10 @@ func (worker *gardenWorker) FindOrCreateVolumeForResourceCache(logger lager.Logg
 	return worker.volumeClient.FindOrCreateVolumeForResourceCache(logger, volumeSpec, resourceCache)
 }
 
+func (worker *gardenWorker) FindInitializedVolumeForResourceCache(logger lager.Logger, resourceCache *dbng.UsedResourceCache) (Volume, bool, error) {
+	return worker.volumeClient.FindInitializedVolumeForResourceCache(logger, resourceCache)
+}
+
 func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
 	return worker.volumeClient.LookupVolume(logger, handle)
 }

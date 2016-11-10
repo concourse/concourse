@@ -46,6 +46,17 @@ type FakeVolumeClient struct {
 		result1 worker.Volume
 		result2 error
 	}
+	FindInitializedVolumeForResourceCacheStub        func(lager.Logger, *dbng.UsedResourceCache) (worker.Volume, bool, error)
+	findInitializedVolumeForResourceCacheMutex       sync.RWMutex
+	findInitializedVolumeForResourceCacheArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 *dbng.UsedResourceCache
+	}
+	findInitializedVolumeForResourceCacheReturns struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
 	LookupVolumeStub        func(lager.Logger, string) (worker.Volume, bool, error)
 	lookupVolumeMutex       sync.RWMutex
 	lookupVolumeArgsForCall []struct {
@@ -172,6 +183,42 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForBaseResourceTypeReturns(resul
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCache(arg1 lager.Logger, arg2 *dbng.UsedResourceCache) (worker.Volume, bool, error) {
+	fake.findInitializedVolumeForResourceCacheMutex.Lock()
+	fake.findInitializedVolumeForResourceCacheArgsForCall = append(fake.findInitializedVolumeForResourceCacheArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 *dbng.UsedResourceCache
+	}{arg1, arg2})
+	fake.recordInvocation("FindInitializedVolumeForResourceCache", []interface{}{arg1, arg2})
+	fake.findInitializedVolumeForResourceCacheMutex.Unlock()
+	if fake.FindInitializedVolumeForResourceCacheStub != nil {
+		return fake.FindInitializedVolumeForResourceCacheStub(arg1, arg2)
+	} else {
+		return fake.findInitializedVolumeForResourceCacheReturns.result1, fake.findInitializedVolumeForResourceCacheReturns.result2, fake.findInitializedVolumeForResourceCacheReturns.result3
+	}
+}
+
+func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCacheCallCount() int {
+	fake.findInitializedVolumeForResourceCacheMutex.RLock()
+	defer fake.findInitializedVolumeForResourceCacheMutex.RUnlock()
+	return len(fake.findInitializedVolumeForResourceCacheArgsForCall)
+}
+
+func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCacheArgsForCall(i int) (lager.Logger, *dbng.UsedResourceCache) {
+	fake.findInitializedVolumeForResourceCacheMutex.RLock()
+	defer fake.findInitializedVolumeForResourceCacheMutex.RUnlock()
+	return fake.findInitializedVolumeForResourceCacheArgsForCall[i].arg1, fake.findInitializedVolumeForResourceCacheArgsForCall[i].arg2
+}
+
+func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCacheReturns(result1 worker.Volume, result2 bool, result3 error) {
+	fake.FindInitializedVolumeForResourceCacheStub = nil
+	fake.findInitializedVolumeForResourceCacheReturns = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeVolumeClient) LookupVolume(arg1 lager.Logger, arg2 string) (worker.Volume, bool, error) {
 	fake.lookupVolumeMutex.Lock()
 	fake.lookupVolumeArgsForCall = append(fake.lookupVolumeArgsForCall, struct {
@@ -217,6 +264,8 @@ func (fake *FakeVolumeClient) Invocations() map[string][][]interface{} {
 	defer fake.findOrCreateVolumeForContainerMutex.RUnlock()
 	fake.findOrCreateVolumeForBaseResourceTypeMutex.RLock()
 	defer fake.findOrCreateVolumeForBaseResourceTypeMutex.RUnlock()
+	fake.findInitializedVolumeForResourceCacheMutex.RLock()
+	defer fake.findInitializedVolumeForResourceCacheMutex.RUnlock()
 	fake.lookupVolumeMutex.RLock()
 	defer fake.lookupVolumeMutex.RUnlock()
 	return fake.invocations

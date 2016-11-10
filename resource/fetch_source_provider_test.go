@@ -60,9 +60,18 @@ var _ = Describe("FetchSourceProvider", func() {
 	Describe("Get", func() {
 		Context("when container for session exists", func() {
 			var fakeContainer *workerfakes.FakeContainer
+			var fakeVolume *workerfakes.FakeVolume
 
 			BeforeEach(func() {
 				fakeContainer = new(workerfakes.FakeContainer)
+				fakeVolume = new(workerfakes.FakeVolume)
+				fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+					worker.VolumeMount{
+						Volume:    fakeVolume,
+						MountPath: "/tmp/build/get",
+					},
+				})
+
 				fakeWorkerClient.FindContainerForIdentifierReturns(fakeContainer, true, nil)
 			})
 
@@ -70,7 +79,7 @@ var _ = Describe("FetchSourceProvider", func() {
 				source, err := fetchSourceProvider.Get()
 				Expect(err).NotTo(HaveOccurred())
 
-				expectedSource := NewContainerFetchSource(logger, fakeContainer, resourceOptions)
+				expectedSource := NewContainerFetchSource(logger, fakeContainer, fakeVolume, resourceOptions)
 				Expect(source).To(Equal(expectedSource))
 			})
 		})

@@ -12,7 +12,6 @@ type volumeFetchSource struct {
 	logger           lager.Logger
 	volume           worker.Volume
 	container        worker.Container
-	cache            Cache
 	versionedSource  VersionedSource
 	worker           worker.Worker
 	resourceOptions  ResourceOptions
@@ -30,7 +29,6 @@ func NewVolumeFetchSource(
 		logger:           logger,
 		volume:           volume,
 		worker:           worker,
-		cache:            volumeCache{volume},
 		resourceOptions:  resourceOptions,
 		versionedSource:  NewGetVersionedSource(volume, resourceOptions.Version(), nil),
 		containerCreator: containerCreator,
@@ -38,7 +36,7 @@ func NewVolumeFetchSource(
 }
 
 func (s *volumeFetchSource) IsInitialized() (bool, error) {
-	return s.cache.IsInitialized()
+	return s.volume.IsInitialized()
 }
 
 func (s *volumeFetchSource) VersionedSource() VersionedSource {
@@ -76,7 +74,7 @@ func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- st
 		return err
 	}
 
-	err = s.cache.Initialize()
+	err = s.volume.Initialize()
 	if err != nil {
 		s.logger.Error("failed-to-initialize-cache", err)
 		return err

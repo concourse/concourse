@@ -50,16 +50,10 @@ var _ = Describe("ContainerFetchSource", func() {
 
 		fakeVolume = new(workerfakes.FakeVolume)
 
-		fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-			worker.VolumeMount{
-				Volume:    fakeVolume,
-				MountPath: "/tmp/build/get",
-			},
-		})
-
 		fetchSource = NewContainerFetchSource(
 			logger,
 			fakeContainer,
+			fakeVolume,
 			resourceOptions,
 		)
 	})
@@ -74,7 +68,7 @@ var _ = Describe("ContainerFetchSource", func() {
 		It("initializes cache", func() {
 			err := fetchSource.Initialize(signals, ready)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeVolume.SetPropertyCallCount()).To(Equal(1))
+			Expect(fakeVolume.InitializeCallCount()).To(Equal(1))
 		})
 
 		Context("when getting resource fails with ErrAborted", func() {

@@ -335,4 +335,88 @@ var _ = Describe("VolumeFactory", func() {
 			})
 		})
 	})
+
+	Describe("FindResourceCacheInitializedVolume", func() {
+		var usedResourceCache *dbng.UsedResourceCache
+
+		BeforeEach(func() {
+			pf := dbng.NewPipelineFactory(dbConn)
+			rf := dbng.NewResourceFactory(dbConn)
+
+			pipeline, err := pf.CreatePipeline(team, "some-pipeline", "{}")
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, err := rf.CreateResource(pipeline, "some-resource", "{}")
+			Expect(err).ToNot(HaveOccurred())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			baseResourceType := dbng.BaseResourceType{
+				Name: "some-base-type",
+			}
+			_, err = baseResourceType.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+
+			cache := dbng.ResourceCache{
+				ResourceConfig: dbng.ResourceConfig{
+					CreatedByBaseResourceType: &baseResourceType,
+
+					Source: atc.Source{"some": "source"},
+				},
+				Version: atc.Version{"some": "version"},
+				Params:  atc.Params{"some": "params"},
+			}
+
+			usedResourceCache, err = cache.FindOrCreateForResource(setupTx, resource)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(setupTx.Commit()).To(Succeed())
+		})
+
+		Context("when there is a created volume for resource cache", func() {
+			var existingVolume dbng.CreatedVolume
+
+			BeforeEach(func() {
+				var err error
+				volume, err := volumeFactory.CreateResourceCacheVolume(worker, usedResourceCache)
+				Expect(err).NotTo(HaveOccurred())
+				existingVolume, err = volume.Created()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when volume is initialized", func() {
+				BeforeEach(func() {
+					err := existingVolume.Initialize()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns created volume", func() {
+					createdVolume, found, err := volumeFactory.FindResourceCacheInitializedVolume(worker, usedResourceCache)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(createdVolume).ToNot(BeNil())
+					Expect(createdVolume.Handle()).To(Equal(existingVolume.Handle()))
+				})
+			})
+
+			Context("when volume is uninitialized", func() {
+				It("does not return volume", func() {
+					createdVolume, found, err := volumeFactory.FindResourceCacheInitializedVolume(worker, usedResourceCache)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeFalse())
+					Expect(createdVolume).To(BeNil())
+				})
+			})
+		})
+
+		Context("when there is no created volume for resource cache", func() {
+			It("does not return volume", func() {
+				createdVolume, found, err := volumeFactory.FindResourceCacheInitializedVolume(worker, usedResourceCache)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(createdVolume).To(BeNil())
+			})
+		})
+	})
 })

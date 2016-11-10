@@ -93,7 +93,7 @@ var _ = Describe("VolumeFetchSource", func() {
 
 		It("initializes cache", func() {
 			Expect(initErr).NotTo(HaveOccurred())
-			Expect(fakeVolume.SetPropertyCallCount()).To(Equal(1))
+			Expect(fakeVolume.InitializeCallCount()).To(Equal(1))
 		})
 
 		Context("when getting resource fails with ErrAborted", func() {

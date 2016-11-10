@@ -11,37 +11,28 @@ import (
 type containerFetchSource struct {
 	logger          lager.Logger
 	container       worker.Container
-	versionedSource VersionedSource
-	cache           Cache
+	volume          worker.Volume
 	resourceOptions ResourceOptions
+	versionedSource VersionedSource
 }
 
 func NewContainerFetchSource(
 	logger lager.Logger,
 	container worker.Container,
+	volume worker.Volume,
 	resourceOptions ResourceOptions,
 ) FetchSource {
-	mounts := container.VolumeMounts()
-	var cache Cache
-	cache = noopCache{}
-
-	for _, mount := range mounts {
-		if mount.MountPath == ResourcesDir("get") {
-			cache = volumeCache{mount.Volume}
-		}
-	}
-
 	return &containerFetchSource{
 		logger:          logger,
 		container:       container,
-		cache:           cache,
+		volume:          volume,
+		versionedSource: NewGetVersionedSource(volume, resourceOptions.Version(), nil),
 		resourceOptions: resourceOptions,
-		versionedSource: NewGetVersionedSource(cache.Volume(), resourceOptions.Version(), nil),
 	}
 }
 
 func (s *containerFetchSource) IsInitialized() (bool, error) {
-	return s.cache.IsInitialized()
+	return s.volume.IsInitialized()
 }
 
 func (s *containerFetchSource) VersionedSource() VersionedSource {
@@ -55,7 +46,7 @@ func (s *containerFetchSource) LockName() (string, error) {
 func (s *containerFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
 	s.versionedSource, err = NewResourceForContainer(s.container).Get(
-		s.cache.Volume(),
+		s.volume,
 		s.resourceOptions.IOConfig(),
 		s.resourceOptions.Source(),
 		s.resourceOptions.Params(),
@@ -73,7 +64,7 @@ func (s *containerFetchSource) Initialize(signals <-chan os.Signal, ready chan<-
 		return err
 	}
 
-	err = s.cache.Initialize()
+	err = s.volume.Initialize()
 	if err != nil {
 		s.logger.Error("failed-to-initialize-cache", err)
 		return err

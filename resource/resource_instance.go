@@ -83,6 +83,27 @@ func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClien
 	)
 }
 
+func (bri buildResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
+	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+		bri.build,
+		string(bri.resourceTypeName),
+		bri.version,
+		bri.source,
+		bri.params,
+		bri.pipeline,
+		bri.resourceTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-find-or-initialized-volume-resource-cache-for-build", err)
+		return nil, false, err
+	}
+
+	return workerClient.FindInitializedVolumeForResourceCache(
+		logger,
+		resourceCache,
+	)
+}
+
 type resourceResourceInstance struct {
 	resourceInstance
 	resource               *dbng.Resource
@@ -139,6 +160,27 @@ func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerCl
 			Properties: rri.volumeProperties(),
 			Privileged: true,
 		},
+		resourceCache,
+	)
+}
+
+func (rri resourceResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
+	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
+		rri.resource,
+		string(rri.resourceTypeName),
+		rri.version,
+		rri.source,
+		rri.params,
+		rri.pipeline,
+		rri.resourceTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-find-or-initialized-volume-resource-cache-for-resource", err)
+		return nil, false, err
+	}
+
+	return workerClient.FindInitializedVolumeForResourceCache(
+		logger,
 		resourceCache,
 	)
 }
@@ -203,33 +245,31 @@ func (rtri resourceTypeResourceInstance) FindOrCreateOn(logger lager.Logger, wor
 	)
 }
 
+func (rtri resourceTypeResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
+	resourceCache, err := rtri.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
+		string(rtri.resourceTypeName),
+		rtri.version,
+		rtri.source,
+		rtri.params,
+		rtri.pipeline,
+		rtri.resourceTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-find-or-initialized-volume-resource-cache-for-resource-type", err)
+		return nil, false, err
+	}
+
+	return workerClient.FindInitializedVolumeForResourceCache(
+		logger,
+		resourceCache,
+	)
+}
+
 type resourceInstance struct {
 	resourceTypeName ResourceType
 	version          atc.Version
 	source           atc.Source
 	params           atc.Params
-}
-
-func (instance resourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
-	volumes, err := workerClient.ListVolumes(logger, instance.initializedVolumeProperties())
-	if err != nil {
-		logger.Error("failed-to-list-volumes", err)
-		return nil, false, err
-	}
-
-	switch len(volumes) {
-	case 0:
-		logger.Debug("no-volumes-found")
-		return nil, false, nil
-	case 1:
-		return volumes[0], true, nil
-	default:
-		return selectLowestAlphabeticalVolume(logger, volumes), true, nil
-	}
-}
-
-func (instance resourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
-	return nil, errors.New("FindOrCreateOn not implemented for resourceInstance")
 }
 
 func (instance resourceInstance) volumeProperties() worker.VolumeProperties {
@@ -245,12 +285,6 @@ func (instance resourceInstance) volumeProperties() worker.VolumeProperties {
 		"resource-source":  shastr(source),
 		"resource-params":  shastr(params),
 	}
-}
-
-func (instance resourceInstance) initializedVolumeProperties() worker.VolumeProperties {
-	props := instance.volumeProperties()
-	props["initialized"] = "yep"
-	return props
 }
 
 func (instance resourceInstance) ResourceCacheIdentifier() worker.ResourceCacheIdentifier {
