@@ -10,6 +10,8 @@ type request interface{}
 
 type registerWorkerRequest struct{}
 
+type landWorkerRequest struct{}
+
 type forwardWorkerRequest struct {
 	gardenAddr       string
 	baggageclaimAddr string
@@ -53,6 +55,8 @@ func parseRequest(cli string) (request, error) {
 			gardenAddr:       *garden,
 			baggageclaimAddr: *baggageclaim,
 		}, nil
+	case "land-worker":
+		return landWorkerRequest{}, nil
 	default:
 		return nil, fmt.Errorf("unknown command: %s", command)
 	}
