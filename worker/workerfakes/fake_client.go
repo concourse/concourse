@@ -150,16 +150,6 @@ type FakeClient struct {
 		result1 atc.WorkerResourceType
 		result2 bool
 	}
-	ListVolumesStub        func(lager.Logger, worker.VolumeProperties) ([]worker.Volume, error)
-	listVolumesMutex       sync.RWMutex
-	listVolumesArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 worker.VolumeProperties
-	}
-	listVolumesReturns struct {
-		result1 []worker.Volume
-		result2 error
-	}
 	LookupVolumeStub        func(lager.Logger, string) (worker.Volume, bool, error)
 	lookupVolumeMutex       sync.RWMutex
 	lookupVolumeArgsForCall []struct {
@@ -598,41 +588,6 @@ func (fake *FakeClient) FindResourceTypeByPathReturns(result1 atc.WorkerResource
 	}{result1, result2}
 }
 
-func (fake *FakeClient) ListVolumes(arg1 lager.Logger, arg2 worker.VolumeProperties) ([]worker.Volume, error) {
-	fake.listVolumesMutex.Lock()
-	fake.listVolumesArgsForCall = append(fake.listVolumesArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 worker.VolumeProperties
-	}{arg1, arg2})
-	fake.recordInvocation("ListVolumes", []interface{}{arg1, arg2})
-	fake.listVolumesMutex.Unlock()
-	if fake.ListVolumesStub != nil {
-		return fake.ListVolumesStub(arg1, arg2)
-	} else {
-		return fake.listVolumesReturns.result1, fake.listVolumesReturns.result2
-	}
-}
-
-func (fake *FakeClient) ListVolumesCallCount() int {
-	fake.listVolumesMutex.RLock()
-	defer fake.listVolumesMutex.RUnlock()
-	return len(fake.listVolumesArgsForCall)
-}
-
-func (fake *FakeClient) ListVolumesArgsForCall(i int) (lager.Logger, worker.VolumeProperties) {
-	fake.listVolumesMutex.RLock()
-	defer fake.listVolumesMutex.RUnlock()
-	return fake.listVolumesArgsForCall[i].arg1, fake.listVolumesArgsForCall[i].arg2
-}
-
-func (fake *FakeClient) ListVolumesReturns(result1 []worker.Volume, result2 error) {
-	fake.ListVolumesStub = nil
-	fake.listVolumesReturns = struct {
-		result1 []worker.Volume
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeClient) LookupVolume(arg1 lager.Logger, arg2 string) (worker.Volume, bool, error) {
 	fake.lookupVolumeMutex.Lock()
 	fake.lookupVolumeArgsForCall = append(fake.lookupVolumeArgsForCall, struct {
@@ -822,8 +777,6 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.validateResourceCheckVersionMutex.RUnlock()
 	fake.findResourceTypeByPathMutex.RLock()
 	defer fake.findResourceTypeByPathMutex.RUnlock()
-	fake.listVolumesMutex.RLock()
-	defer fake.listVolumesMutex.RUnlock()
 	fake.lookupVolumeMutex.RLock()
 	defer fake.lookupVolumeMutex.RUnlock()
 	fake.satisfyingMutex.RLock()

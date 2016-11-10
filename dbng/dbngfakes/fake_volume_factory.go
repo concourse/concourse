@@ -103,6 +103,16 @@ type FakeVolumeFactory struct {
 		result2 []dbng.DestroyingVolume
 		result3 error
 	}
+	FindCreatedVolumeStub        func(handle string) (dbng.CreatedVolume, bool, error)
+	findCreatedVolumeMutex       sync.RWMutex
+	findCreatedVolumeArgsForCall []struct {
+		handle string
+	}
+	findCreatedVolumeReturns struct {
+		result1 dbng.CreatedVolume
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -421,6 +431,41 @@ func (fake *FakeVolumeFactory) GetOrphanedVolumesReturns(result1 []dbng.CreatedV
 	}{result1, result2, result3}
 }
 
+func (fake *FakeVolumeFactory) FindCreatedVolume(handle string) (dbng.CreatedVolume, bool, error) {
+	fake.findCreatedVolumeMutex.Lock()
+	fake.findCreatedVolumeArgsForCall = append(fake.findCreatedVolumeArgsForCall, struct {
+		handle string
+	}{handle})
+	fake.recordInvocation("FindCreatedVolume", []interface{}{handle})
+	fake.findCreatedVolumeMutex.Unlock()
+	if fake.FindCreatedVolumeStub != nil {
+		return fake.FindCreatedVolumeStub(handle)
+	} else {
+		return fake.findCreatedVolumeReturns.result1, fake.findCreatedVolumeReturns.result2, fake.findCreatedVolumeReturns.result3
+	}
+}
+
+func (fake *FakeVolumeFactory) FindCreatedVolumeCallCount() int {
+	fake.findCreatedVolumeMutex.RLock()
+	defer fake.findCreatedVolumeMutex.RUnlock()
+	return len(fake.findCreatedVolumeArgsForCall)
+}
+
+func (fake *FakeVolumeFactory) FindCreatedVolumeArgsForCall(i int) string {
+	fake.findCreatedVolumeMutex.RLock()
+	defer fake.findCreatedVolumeMutex.RUnlock()
+	return fake.findCreatedVolumeArgsForCall[i].handle
+}
+
+func (fake *FakeVolumeFactory) FindCreatedVolumeReturns(result1 dbng.CreatedVolume, result2 bool, result3 error) {
+	fake.FindCreatedVolumeStub = nil
+	fake.findCreatedVolumeReturns = struct {
+		result1 dbng.CreatedVolume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeVolumeFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -442,6 +487,8 @@ func (fake *FakeVolumeFactory) Invocations() map[string][][]interface{} {
 	defer fake.findVolumesForContainerMutex.RUnlock()
 	fake.getOrphanedVolumesMutex.RLock()
 	defer fake.getOrphanedVolumesMutex.RUnlock()
+	fake.findCreatedVolumeMutex.RLock()
+	defer fake.findCreatedVolumeMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -33,7 +33,6 @@ type VolumeClient interface {
 		*dbng.Team,
 		string,
 	) (Volume, error)
-	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
 
@@ -131,36 +130,10 @@ func (c *volumeClient) FindOrCreateVolumeForResourceCache(
 	)
 }
 
-func (c *volumeClient) ListVolumes(logger lager.Logger, properties VolumeProperties) ([]Volume, error) {
-	if c.baggageclaimClient == nil {
-		return []Volume{}, nil
-	}
-
-	bcVolumes, err := c.baggageclaimClient.ListVolumes(
-		logger,
-		baggageclaim.VolumeProperties(properties),
-	)
-	if err != nil {
-		logger.Error("failed-to-list-volumes", err)
-		return nil, err
-	}
-
-	volumes := []Volume{}
-	for _, bcVolume := range bcVolumes {
-		volumes = append(volumes, bcVolume)
-	}
-
-	return volumes, nil
-}
-
 func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
-	if c.baggageclaimClient == nil {
-		return nil, false, nil
-	}
-
-	bcVolume, found, err := c.baggageclaimClient.LookupVolume(logger, handle)
+	dbVolume, found, err := c.dbVolumeFactory.FindCreatedVolume(handle)
 	if err != nil {
-		logger.Error("failed-to-lookup-volume", err)
+		logger.Error("failed-to-lookup-volume-in-db", err)
 		return nil, false, err
 	}
 
@@ -168,7 +141,17 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 		return nil, false, nil
 	}
 
-	return bcVolume, true, nil
+	bcVolume, found, err := c.baggageclaimClient.LookupVolume(logger, handle)
+	if err != nil {
+		logger.Error("failed-to-lookup-volume-in-bc", err)
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return NewVolume(bcVolume, dbVolume), true, nil
 }
 
 func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error { // TODO consider removing this method?
@@ -264,12 +247,12 @@ func (c *volumeClient) findOrCreateVolume(
 			}
 		}
 
-		_, err = creatingVolume.Created()
+		createdVolume, err = creatingVolume.Created()
 		if err != nil {
 			logger.Error("failed-to-initialize-volume", err)
 			return nil, err
 		}
 	}
 
-	return bcVolume, nil
+	return NewVolume(bcVolume, createdVolume), nil
 }

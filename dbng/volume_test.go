@@ -1,6 +1,7 @@
 package dbng_test
 
 import (
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -65,6 +66,57 @@ var _ = Describe("Volume", func() {
 				Expect(createdVolume).NotTo(BeNil())
 				Expect(err).NotTo(HaveOccurred())
 			})
+		})
+	})
+
+	Describe("createdVolume.Initialize", func() {
+		var createdVolume dbng.CreatedVolume
+
+		BeforeEach(func() {
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+			resourceType := atc.ResourceType{
+				Name: "some-type",
+				Type: "some-base-resource-type",
+				Source: atc.Source{
+					"some-type": "source",
+				},
+			}
+			_, err = dbng.ResourceType{
+				ResourceType: resourceType,
+				Pipeline:     defaultPipeline,
+				Version:      atc.Version{"some-type": "version"},
+			}.Create(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+				defaultBuild,
+				"some-type",
+				atc.Version{"some": "version"},
+				atc.Source{
+					"some": "source",
+				},
+				atc.Params{"some": "params"},
+				defaultPipeline,
+				atc.ResourceTypes{
+					resourceType,
+				},
+			)
+
+			creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, resourceCache)
+			Expect(err).NotTo(HaveOccurred())
+
+			createdVolume, err = creatingVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("sets initialized", func() {
+			Expect(createdVolume.IsInitialized()).To(BeFalse())
+			err := createdVolume.Initialize()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(createdVolume.IsInitialized()).To(BeTrue())
 		})
 	})
 

@@ -31,9 +31,11 @@ var (
 	workerFactory           dbng.WorkerFactory
 	resourceConfigFactory   dbng.ResourceConfigFactory
 	resourceTypeFactory     dbng.ResourceTypeFactory
+	resourceCacheFactory    dbng.ResourceCacheFactory
 	baseResourceTypeFactory dbng.BaseResourceTypeFactory
 	resourceFactory         *dbng.ResourceFactory
 	pipelineFactory         *dbng.PipelineFactory
+	buildFactory            *dbng.BuildFactory
 
 	defaultTeam           *dbng.Team
 	defaultWorker         *dbng.Worker
@@ -42,6 +44,7 @@ var (
 	defaultResourceType      dbng.ResourceType
 	defaultResource          *dbng.Resource
 	defaultPipeline          *dbng.Pipeline
+	defaultBuild             *dbng.Build
 	deafultCreatingContainer *dbng.CreatingContainer
 	defaultCreatedContainer  *dbng.CreatedContainer
 )
@@ -66,9 +69,11 @@ var _ = BeforeEach(func() {
 	workerFactory = dbng.NewWorkerFactory(dbConn)
 	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn)
 	resourceTypeFactory = dbng.NewResourceTypeFactory(dbConn)
+	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn)
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
 	resourceFactory = dbng.NewResourceFactory(dbConn)
 	pipelineFactory = dbng.NewPipelineFactory(dbConn)
+	buildFactory = dbng.NewBuildFactory(dbConn)
 
 	defaultTeam, err = teamFactory.CreateTeam("default-team")
 	Expect(err).NotTo(HaveOccurred())
@@ -89,6 +94,9 @@ var _ = BeforeEach(func() {
 	defaultPipeline, err = pipelineFactory.CreatePipeline(defaultTeam, "default-pipeline", "some-config")
 	Expect(err).NotTo(HaveOccurred())
 
+	defaultBuild, err = buildFactory.CreateOneOffBuild(defaultTeam)
+	Expect(err).NotTo(HaveOccurred())
+
 	defaultResource, err = resourceFactory.CreateResource(defaultPipeline, "default-resource", "{\"resource\":\"config\"}")
 	Expect(err).NotTo(HaveOccurred())
 
@@ -100,7 +108,6 @@ var _ = BeforeEach(func() {
 
 	defaultCreatedContainer, err = containerFactory.ContainerCreated(deafultCreatingContainer, "some-garden-handle")
 	Expect(err).NotTo(HaveOccurred())
-
 })
 
 var _ = AfterEach(func() {

@@ -409,10 +409,6 @@ func (*pool) FindOrCreateVolumeForResourceCache(lager.Logger, VolumeSpec, *dbng.
 	return nil, errors.New("FindOrCreateVolumeForResourceCache not implemented for pool")
 }
 
-func (*pool) ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error) {
-	return nil, errors.New("ListVolumes not implemented for pool")
-}
-
 func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 	return nil, false, errors.New("LookupVolume not implemented for pool")
 }

@@ -146,7 +146,7 @@ func (container *gardenWorkerContainer) initializeVolumes(
 		}
 
 		volumeMounts = append(volumeMounts, VolumeMount{
-			Volume:    baggageClaimVolume,
+			Volume:    NewVolume(baggageClaimVolume, dbVolume),
 			MountPath: dbVolume.Path(),
 		})
 	}

@@ -21,7 +21,7 @@ import (
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
-	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -30,7 +30,7 @@ var _ = Describe("Worker", func() {
 	var (
 		logger                     *lagertest.TestLogger
 		fakeGardenClient           *gfakes.FakeClient
-		fakeBaggageclaimClient     *bfakes.FakeClient
+		fakeBaggageclaimClient     *baggageclaimfakes.FakeClient
 		fakeVolumeClient           *wfakes.FakeVolumeClient
 		fakeImageFactory           *wfakes.FakeImageFactory
 		fakeImage                  *wfakes.FakeImage
@@ -61,7 +61,7 @@ var _ = Describe("Worker", func() {
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeGardenClient = new(gfakes.FakeClient)
-		fakeBaggageclaimClient = new(bfakes.FakeClient)
+		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
 		fakeVolumeClient = new(wfakes.FakeVolumeClient)
 		fakeImageFactory = new(wfakes.FakeImageFactory)
 		fakeImage = new(wfakes.FakeImage)
@@ -159,20 +159,21 @@ var _ = Describe("Worker", func() {
 
 			Context("when the concourse:volumes property is present", func() {
 				var (
-					handle1Volume         *wfakes.FakeVolume
-					handle2Volume         *wfakes.FakeVolume
-					expectedHandle1Volume *wfakes.FakeVolume
-					expectedHandle2Volume *wfakes.FakeVolume
+					handle1Volume         *baggageclaimfakes.FakeVolume
+					handle2Volume         *baggageclaimfakes.FakeVolume
+					expectedHandle1Volume Volume
+					expectedHandle2Volume Volume
 				)
 
 				BeforeEach(func() {
-					handle1Volume = new(wfakes.FakeVolume)
-					handle2Volume = new(wfakes.FakeVolume)
-					expectedHandle1Volume = new(wfakes.FakeVolume)
-					expectedHandle2Volume = new(wfakes.FakeVolume)
+					handle1Volume = new(baggageclaimfakes.FakeVolume)
+					handle2Volume = new(baggageclaimfakes.FakeVolume)
 
 					fakeVolume1 := new(dbngfakes.FakeCreatedVolume)
 					fakeVolume2 := new(dbngfakes.FakeCreatedVolume)
+
+					expectedHandle1Volume = NewVolume(handle1Volume, fakeVolume1)
+					expectedHandle2Volume = NewVolume(handle2Volume, fakeVolume2)
 
 					fakeVolume1.HandleReturns("handle-1")
 					fakeVolume2.HandleReturns("handle-2")

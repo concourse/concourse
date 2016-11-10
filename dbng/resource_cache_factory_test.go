@@ -12,11 +12,6 @@ import (
 
 var _ = Describe("ResourceCacheFactory", func() {
 	var (
-		dbConn               dbng.Conn
-		resourceCacheFactory dbng.ResourceCacheFactory
-		build                *dbng.Build
-		pipeline             *dbng.Pipeline
-
 		usedBaseResourceType *dbng.UsedBaseResourceType
 
 		resourceType1 atc.ResourceType
@@ -25,22 +20,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 	)
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-
-		dbConn = dbng.Wrap(postgresRunner.Open())
-		resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn)
-		teamFactory := dbng.NewTeamFactory(dbConn)
-		team, err := teamFactory.CreateTeam("some-team")
-		Expect(err).ToNot(HaveOccurred())
-
-		buildFactory := dbng.NewBuildFactory(dbConn)
-		build, err = buildFactory.CreateOneOffBuild(team)
-		Expect(err).ToNot(HaveOccurred())
-
-		pipelineFactory := dbng.NewPipelineFactory(dbConn)
-		pipeline, err = pipelineFactory.CreatePipeline(team, "some-pipeline", "{}")
-		Expect(err).ToNot(HaveOccurred())
-
 		setupTx, err := dbConn.Begin()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -59,7 +38,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		}
 		_, err = dbng.ResourceType{
 			ResourceType: resourceType1,
-			Pipeline:     pipeline,
+			Pipeline:     defaultPipeline,
 			Version:      atc.Version{"some-type": "version"},
 		}.Create(setupTx)
 		Expect(err).NotTo(HaveOccurred())
@@ -73,7 +52,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		}
 		_, err = dbng.ResourceType{
 			ResourceType: resourceType2,
-			Pipeline:     pipeline,
+			Pipeline:     defaultPipeline,
 			Version:      atc.Version{"some-type-type": "version"},
 		}.Create(setupTx)
 		Expect(err).NotTo(HaveOccurred())
@@ -84,7 +63,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		}
 		_, err = dbng.ResourceType{
 			ResourceType: resourceType3,
-			Pipeline:     pipeline,
+			Pipeline:     defaultPipeline,
 			Version:      atc.Version{"some-unused-type": "version"},
 		}.Create(setupTx)
 		Expect(err).NotTo(HaveOccurred())
@@ -100,14 +79,14 @@ var _ = Describe("ResourceCacheFactory", func() {
 	Describe("FindOrCreateResourceCacheForBuild", func() {
 		It("creates resource cache in database", func() {
 			_, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
-				build,
+				defaultBuild,
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				pipeline,
+				defaultPipeline,
 				atc.ResourceTypes{
 					resourceType1,
 					resourceType2,
@@ -177,14 +156,14 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 		It("returns an error if base resource type does not exist", func() {
 			_, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
-				build,
+				defaultBuild,
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				pipeline,
+				defaultPipeline,
 				atc.ResourceTypes{
 					resourceType1,
 					{

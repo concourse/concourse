@@ -49,6 +49,19 @@ type FakeCreatedVolume struct {
 	sizeInBytesReturns     struct {
 		result1 int64
 	}
+	InitializeStub        func() error
+	initializeMutex       sync.RWMutex
+	initializeArgsForCall []struct{}
+	initializeReturns     struct {
+		result1 error
+	}
+	IsInitializedStub        func() (bool, error)
+	isInitializedMutex       sync.RWMutex
+	isInitializedArgsForCall []struct{}
+	isInitializedReturns     struct {
+		result1 bool
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -214,6 +227,57 @@ func (fake *FakeCreatedVolume) SizeInBytesReturns(result1 int64) {
 	}{result1}
 }
 
+func (fake *FakeCreatedVolume) Initialize() error {
+	fake.initializeMutex.Lock()
+	fake.initializeArgsForCall = append(fake.initializeArgsForCall, struct{}{})
+	fake.recordInvocation("Initialize", []interface{}{})
+	fake.initializeMutex.Unlock()
+	if fake.InitializeStub != nil {
+		return fake.InitializeStub()
+	} else {
+		return fake.initializeReturns.result1
+	}
+}
+
+func (fake *FakeCreatedVolume) InitializeCallCount() int {
+	fake.initializeMutex.RLock()
+	defer fake.initializeMutex.RUnlock()
+	return len(fake.initializeArgsForCall)
+}
+
+func (fake *FakeCreatedVolume) InitializeReturns(result1 error) {
+	fake.InitializeStub = nil
+	fake.initializeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCreatedVolume) IsInitialized() (bool, error) {
+	fake.isInitializedMutex.Lock()
+	fake.isInitializedArgsForCall = append(fake.isInitializedArgsForCall, struct{}{})
+	fake.recordInvocation("IsInitialized", []interface{}{})
+	fake.isInitializedMutex.Unlock()
+	if fake.IsInitializedStub != nil {
+		return fake.IsInitializedStub()
+	} else {
+		return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
+	}
+}
+
+func (fake *FakeCreatedVolume) IsInitializedCallCount() int {
+	fake.isInitializedMutex.RLock()
+	defer fake.isInitializedMutex.RUnlock()
+	return len(fake.isInitializedArgsForCall)
+}
+
+func (fake *FakeCreatedVolume) IsInitializedReturns(result1 bool, result2 error) {
+	fake.IsInitializedStub = nil
+	fake.isInitializedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -229,6 +293,10 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.workerNameMutex.RUnlock()
 	fake.sizeInBytesMutex.RLock()
 	defer fake.sizeInBytesMutex.RUnlock()
+	fake.initializeMutex.RLock()
+	defer fake.initializeMutex.RUnlock()
+	fake.isInitializedMutex.RLock()
+	defer fake.isInitializedMutex.RUnlock()
 	return fake.invocations
 }
 

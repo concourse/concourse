@@ -19,6 +19,7 @@ var (
 	ErrVolumeMarkCreatedFailed     = errors.New("could-not-mark-volume-as-created")
 	ErrVolumeMarkDestroyingFailed  = errors.New("could-not-mark-volume-as-destroying")
 	ErrVolumeStateTransitionFailed = errors.New("could-not-transition-volume-state")
+	ErrVolumeMissing               = errors.New("volume-no-longer-in-db")
 )
 
 // TODO: do not permit nullifying cache_id while creating or created
@@ -87,6 +88,8 @@ type CreatedVolume interface {
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
 	SizeInBytes() int64
+	Initialize() error
+	IsInitialized() (bool, error)
 }
 
 type createdVolume struct {
@@ -173,6 +176,63 @@ func (volume *createdVolume) SizeInBytes() int64 { return volume.bytes }
 // 			ID: creatingID,
 // 		}, nil
 // }
+
+func (volume *createdVolume) Initialize() error {
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	rows, err := psql.Update("volumes").
+		Set("initialized", sq.Expr("true")).
+		Where(sq.Eq{
+			"id": volume.id,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrVolumeMissing
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (volume *createdVolume) IsInitialized() (bool, error) {
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer tx.Rollback()
+
+	var isInitialized bool
+	err = psql.Select("initialized").
+		From("volumes").
+		Where(sq.Eq{
+			"id": volume.id,
+		}).
+		RunWith(tx).
+		QueryRow().Scan(&isInitialized)
+	if err != nil {
+		return false, err
+	}
+
+	return isInitialized, nil
+}
 
 func (volume *createdVolume) CreateChildForContainer(container *CreatingContainer, mountPath string) (CreatingVolume, error) {
 	tx, err := volume.conn.Begin()

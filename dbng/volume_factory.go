@@ -24,6 +24,8 @@ type VolumeFactory interface {
 
 	FindVolumesForContainer(containerID int) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
+
+	FindCreatedVolume(handle string) (CreatedVolume, bool, error)
 }
 
 type volumeFactory struct {
@@ -210,6 +212,21 @@ func (factory *volumeFactory) FindResourceCacheVolume(worker *Worker, resourceCa
 	})
 }
 
+func (factory *volumeFactory) FindCreatedVolume(handle string) (CreatedVolume, bool, error) {
+	_, createdVolume, err := factory.findVolume(nil, nil, map[string]interface{}{
+		"v.handle": handle,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	if createdVolume == nil {
+		return nil, false, nil
+	}
+
+	return createdVolume, true, nil
+}
+
 func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error) {
 	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr").
 		From("volumes v").
@@ -361,9 +378,12 @@ func (factory *volumeFactory) findVolume(team *Team, worker *Worker, columns map
 	var workerAddress string
 	var path sql.NullString
 
-	whereClause := sq.Eq{"v.worker_name": worker.Name}
+	whereClause := sq.Eq{}
 	if team != nil {
 		whereClause["v.team_id"] = team.ID
+	}
+	if worker != nil {
+		whereClause["v.worker_name"] = worker.Name
 	}
 
 	for name, value := range columns {

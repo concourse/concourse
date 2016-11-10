@@ -85,7 +85,6 @@ type Client interface {
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 	ValidateResourceCheckVersion(container db.SavedContainer) (bool, error)
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
-	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 
 	Satisfying(WorkerSpec, atc.ResourceTypes) (Worker, error)
@@ -143,9 +142,7 @@ type ContainerRootFSStrategy struct {
 }
 
 func (strategy ContainerRootFSStrategy) baggageclaimStrategy() baggageclaim.Strategy {
-	return baggageclaim.COWStrategy{
-		Parent: strategy.Parent,
-	}
+	return strategy.Parent.COWStrategy()
 }
 
 type HostRootFSStrategy struct {
