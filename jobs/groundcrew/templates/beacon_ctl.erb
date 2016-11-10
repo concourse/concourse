@@ -117,6 +117,10 @@ case $1 in
         2>>$LOG_DIR/beacon.stderr.log || \
         true
 
+      if [ $? -eq 0 ]; then
+        break
+      fi
+
       sleep 1
     done
 

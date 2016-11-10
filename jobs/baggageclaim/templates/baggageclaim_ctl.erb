@@ -72,10 +72,6 @@ case $1 in
       1>>$LOG_DIR/baggageclaim.stdout.log \
       2>>$LOG_DIR/baggageclaim.stderr.log
 
-    if [ $? -eq 0 ]; then
-      break
-    fi
-
     ;;
 
   stop)
