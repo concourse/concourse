@@ -1,0 +1,69 @@
+---
+name: ((deployment-name))
+
+releases:
+- name: concourse
+  version: latest
+- name: garden-runc
+  version: latest
+
+instance_groups:
+- name: concourse
+  instances: 1
+  networks:
+  - name: topgun
+    static_ips: [((atc-ip))]
+  persistent_disk: 10240
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
+  - release: concourse
+    name: atc
+    properties:
+      development_mode: true
+      external_url: ((atc-external-url))
+      postgresql_database: atc
+
+  - release: concourse
+    name: tsa
+    properties: {}
+
+  - release: concourse
+    name: postgresql
+    properties:
+      databases:
+      - name: atc
+        role: atc
+        password: dummy-password
+
+  - release: concourse
+    name: groundcrew
+    properties:
+      garden:
+        forward_address: 127.0.0.1:7777
+      baggageclaim:
+        forward_address: 127.0.0.1:7788
+
+  - release: concourse
+    name: baggageclaim
+    properties: {}
+
+  - release: garden-runc
+    name: garden
+    properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+        allow_host_access: true
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: latest
+
+update:
+  canaries: 1
+  max_in_flight: 3
+  serial: false
+  canary_watch_time: 1000-300000
+  update_watch_time: 1000-300000

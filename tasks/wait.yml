@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: busybox}
+
+run:
+  path: sh
+  args:
+  - -c
+  - |
+    until test -f /tmp/stop-waiting; do
+      echo 'waiting for /tmp/stop-waiting to exist'
+      sleep 1
+    done

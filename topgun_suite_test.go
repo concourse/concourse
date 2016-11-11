@@ -2,12 +2,14 @@ package topgun_test
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/go-concourse/concourse"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,6 +35,8 @@ var (
 
 	logger *lagertest.TestLogger
 )
+
+var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 func TestTOPGUN(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -93,18 +97,45 @@ func Deploy(manifest string) {
 }
 
 func bosh(argv ...string) {
-	run("bosh", append([]string{"-n", "-e", boshEnv, "-d", deploymentName}, argv...)...)
+	wait(spawnBosh(argv...))
+}
+
+func spawnBosh(argv ...string) *gexec.Session {
+	return spawn("bosh", append([]string{"-n", "-e", boshEnv, "-d", deploymentName}, argv...)...)
 }
 
 func fly(argv ...string) {
-	run("fly", append([]string{"-t", flyTarget}, argv...)...)
+	wait(spawnFly(argv...))
+}
+
+func spawnFly(argv ...string) *gexec.Session {
+	return spawn(flyBin, append([]string{"-t", flyTarget}, argv...)...)
+}
+
+func spawnFlyInteractive(stdin io.Reader, argv ...string) *gexec.Session {
+	return spawnInteractive(stdin, flyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
 
 func run(argc string, argv ...string) {
-	cmd := exec.Command(argc, argv...)
-	cmd.Stdout = GinkgoWriter
-	cmd.Stderr = GinkgoWriter
+	wait(spawn(argc, argv...))
+}
 
-	err := cmd.Run()
+func spawn(argc string, argv ...string) *gexec.Session {
+	cmd := exec.Command(argc, argv...)
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
+	return session
+}
+
+func spawnInteractive(stdin io.Reader, argc string, argv ...string) *gexec.Session {
+	cmd := exec.Command(argc, argv...)
+	cmd.Stdin = stdin
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).ToNot(HaveOccurred())
+	return session
+}
+
+func wait(session *gexec.Session) {
+	<-session.Exited
+	Expect(session.ExitCode()).To(Equal(0))
 }

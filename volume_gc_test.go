@@ -14,12 +14,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
 var _ = Describe("A volume that belonged to a container that is now gone", func() {
 	var dbConn *sql.DB
-
-	var _ = Expect
 
 	BeforeEach(func() {
 		var err error
