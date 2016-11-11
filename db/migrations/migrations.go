@@ -129,4 +129,5 @@ var Migrations = []migration.Migrator{
 	AddStateToWorkers,
 	AddWorkerForeignKeyToVolumesAndContainers,
 	RemoveTTLFromVolumes,
+	UpdateWorkerForeignKeyConstraint,
 }
