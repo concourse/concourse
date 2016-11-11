@@ -57,7 +57,7 @@ var _ = Describe("Lander", func() {
 		Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
 	})
 
-	Context("when the ATC does not respond to land the worker", func() {
+	Context("when the ATC responds with a 404", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
@@ -65,11 +65,27 @@ var _ = Describe("Lander", func() {
 			))
 		})
 
+		It("exits successfully", func() {
+			err := lander.Land(logger, worker)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
+	})
+
+	Context("when the ATC does not respond to land the worker", func() {
+		BeforeEach(func() {
+			fakeATC.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+				ghttp.RespondWith(500, nil, nil),
+			))
+		})
+
 		It("errors", func() {
 			err := lander.Land(logger, worker)
 			Expect(err).To(HaveOccurred())
 
-			Expect(err).To(MatchError(ContainSubstring("404")))
+			Expect(err).To(MatchError(ContainSubstring("500")))
 			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
 		})
 	})

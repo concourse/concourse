@@ -44,6 +44,11 @@ func (l *Lander) Land(logger lager.Logger, worker atc.Worker) error {
 	}
 	defer response.Body.Close()
 
+	if response.StatusCode == http.StatusNotFound {
+		logger.Info("worker-not-found")
+		return nil
+	}
+
 	if response.StatusCode != http.StatusOK {
 		logger.Error("bad-response", nil, lager.Data{
 			"status-code": response.StatusCode,
