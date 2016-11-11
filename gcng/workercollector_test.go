@@ -1,13 +1,12 @@
 package gcng_test
 
 import (
-	"time"
-
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/gcng"
 
+	"errors"
+
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -16,74 +15,51 @@ var _ = Describe("WorkerCollector", func() {
 	var (
 		workerCollector gcng.WorkerCollector
 
-		dbConn        dbng.Conn
-		teamFactory   dbng.TeamFactory
-		workerFactory dbng.WorkerFactory
+		fakeWorkerFactory *dbngfakes.FakeWorkerFactory
 	)
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-
-		dbConn = dbng.Wrap(postgresRunner.Open())
-		teamFactory = dbng.NewTeamFactory(dbConn)
-		workerFactory = dbng.NewWorkerFactory(dbConn)
-
 		logger := lagertest.NewTestLogger("volume-collector")
+		fakeWorkerFactory = new(dbngfakes.FakeWorkerFactory)
+
 		workerCollector = gcng.NewWorkerCollector(
 			logger,
-			workerFactory,
+			fakeWorkerFactory,
 		)
-	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
+		fakeWorkerFactory.StallUnresponsiveWorkersReturns(nil, nil)
+		fakeWorkerFactory.DeleteFinishedLandingWorkersReturns(nil)
 	})
 
 	Describe("Run", func() {
-		BeforeEach(func() {
-			_, err := teamFactory.CreateTeam("some-team")
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = workerFactory.SaveWorker(atc.Worker{
-				Name:       "some-stallable-worker",
-				GardenAddr: "1.2.3.4:7777",
-			}, -1*time.Minute)
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = workerFactory.SaveWorker(atc.Worker{
-				Name:       "some-immortal-worker",
-				GardenAddr: "1.2.3.4:8888",
-			}, 0)
-			Expect(err).ToNot(HaveOccurred())
-
-			worker1, found1, err := workerFactory.GetWorker("some-stallable-worker")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found1).To(BeTrue())
-			Expect(string(worker1.State)).To(Equal("running"))
-			worker2, found2, err := workerFactory.GetWorker("some-immortal-worker")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found2).To(BeTrue())
-			Expect(string(worker2.State)).To(Equal("running"))
-		})
-
-		It("marks expired workers as `stalled`", func() {
+		It("tells the worker factory to expired stalled workers", func() {
 			err := workerCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
 
-			By("not removing the worker from the DB")
-			worker1, found1, err := workerFactory.GetWorker("some-stallable-worker")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found1).To(BeTrue())
+			Expect(fakeWorkerFactory.StallUnresponsiveWorkersCallCount()).To(Equal(1))
+		})
 
-			By("changing the state in the DB")
-			Expect(string(worker1.State)).To(Equal("stalled"))
-
-			By("leaving workers that haven't expired untouched")
-			worker2, found2, err := workerFactory.GetWorker("some-immortal-worker")
+		It("tells the worker factory to delete finished landing workers", func() {
+			err := workerCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(found2).To(BeTrue())
-			Expect(string(worker2.State)).To(Equal("running"))
+
+			Expect(fakeWorkerFactory.DeleteFinishedLandingWorkersCallCount()).To(Equal(1))
+		})
+
+		It("returns an error if stalling unresponsive workers fails", func() {
+			returnedErr := errors.New("some-error")
+			fakeWorkerFactory.StallUnresponsiveWorkersReturns(nil, returnedErr)
+
+			err := workerCollector.Run()
+			Expect(err).To(MatchError(returnedErr))
+		})
+
+		It("returns an error if deleting finished landing workers fails", func() {
+			returnedErr := errors.New("some-error")
+			fakeWorkerFactory.DeleteFinishedLandingWorkersReturns(returnedErr)
+
+			err := workerCollector.Run()
+			Expect(err).To(MatchError(returnedErr))
 		})
 	})
 })
