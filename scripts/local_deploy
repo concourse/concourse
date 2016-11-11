@@ -7,6 +7,6 @@ if bosh -v | grep -q BOSH; then
   bosh update cloud-config manifests/cloud_config.yml
   bosh -d <(cat manifests/deployment.yml | sed "s/director_uuid: ~/director_uuid: $director_uuid/g") -n deploy "$@"
 else
-  bosh update-cloud-config manifests/cloud_config.yml
+  bosh update-cloud-config manifests/cloud_config.yml "$@"
   bosh -d concourse-testflight deploy manifests/deployment.yml "$@"
 fi
