@@ -53,6 +53,12 @@ type FakeResourceCacheFactory struct {
 		result1 *dbng.UsedResourceCache
 		result2 error
 	}
+	CleanUsesForFinishedBuildsStub        func() error
+	cleanUsesForFinishedBuildsMutex       sync.RWMutex
+	cleanUsesForFinishedBuildsArgsForCall []struct{}
+	cleanUsesForFinishedBuildsReturns     struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -176,6 +182,31 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceTypeRe
 	}{result1, result2}
 }
 
+func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuilds() error {
+	fake.cleanUsesForFinishedBuildsMutex.Lock()
+	fake.cleanUsesForFinishedBuildsArgsForCall = append(fake.cleanUsesForFinishedBuildsArgsForCall, struct{}{})
+	fake.recordInvocation("CleanUsesForFinishedBuilds", []interface{}{})
+	fake.cleanUsesForFinishedBuildsMutex.Unlock()
+	if fake.CleanUsesForFinishedBuildsStub != nil {
+		return fake.CleanUsesForFinishedBuildsStub()
+	} else {
+		return fake.cleanUsesForFinishedBuildsReturns.result1
+	}
+}
+
+func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuildsCallCount() int {
+	fake.cleanUsesForFinishedBuildsMutex.RLock()
+	defer fake.cleanUsesForFinishedBuildsMutex.RUnlock()
+	return len(fake.cleanUsesForFinishedBuildsArgsForCall)
+}
+
+func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuildsReturns(result1 error) {
+	fake.CleanUsesForFinishedBuildsStub = nil
+	fake.cleanUsesForFinishedBuildsReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -185,6 +216,8 @@ func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	defer fake.findOrCreateResourceCacheForResourceMutex.RUnlock()
 	fake.findOrCreateResourceCacheForResourceTypeMutex.RLock()
 	defer fake.findOrCreateResourceCacheForResourceTypeMutex.RUnlock()
+	fake.cleanUsesForFinishedBuildsMutex.RLock()
+	defer fake.cleanUsesForFinishedBuildsMutex.RUnlock()
 	return fake.invocations
 }
 

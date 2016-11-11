@@ -1,8 +1,6 @@
 package dbng
 
-import (
-	sq "github.com/Masterminds/squirrel"
-)
+import sq "github.com/Masterminds/squirrel"
 
 type Build struct {
 	ID int

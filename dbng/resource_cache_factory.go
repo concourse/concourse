@@ -1,6 +1,9 @@
 package dbng
 
-import "github.com/concourse/atc"
+import (
+	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/atc"
+)
 
 //go:generate counterfeiter . ResourceCacheFactory
 
@@ -33,6 +36,8 @@ type ResourceCacheFactory interface {
 		pipeline *Pipeline,
 		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceCache, error)
+
+	CleanUsesForFinishedBuilds() error
 }
 
 type resourceCacheFactory struct {
@@ -196,4 +201,37 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 	}
 
 	return usedResourceCache, nil
+}
+
+func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = psql.Delete("resource_cache_uses cru USING builds b").
+		Where(sq.Or{
+			sq.Eq{
+				"b.status": "succeeded",
+			},
+			sq.Eq{
+				"b.status": "failed",
+			},
+			sq.Eq{
+				"b.status": "aborted",
+			},
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

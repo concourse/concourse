@@ -358,6 +358,18 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			30*time.Second,
 		)},
 
+		{"resource-cache-use-collector", lockrunner.NewRunner(
+			logger.Session("resource-cache-use-collector"),
+			gcng.NewResourceCacheUseCollector(
+				logger.Session("resource-cache-use-collector"),
+				dbResourceCacheFactory,
+			),
+			"resource-cache-use-collector",
+			sqlDB,
+			clock.NewClock(),
+			30*time.Second,
+		)},
+
 		{"workercollector", lockrunner.NewRunner(
 			logger.Session("worker-collector"),
 			gcng.NewWorkerCollector(
