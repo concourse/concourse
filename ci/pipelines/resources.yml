@@ -944,7 +944,10 @@ resources:
 - name: cf-cli
   type: s3
   source:
-    bucket: go-cli
+    bucket: {{cli-bucket-name}}
+    region_name: {{cli-bucket-region}}
+    access_key_id: {{cli-bucket-access-key-id}}
+    secret_access_key: {{cli-bucket-secret-access-key}}
     regexp: releases/v([\d\.]+)/cf-cli_.*_linux_x86-64.tgz
 
 - name: concourse
