@@ -4,6 +4,11 @@ set -e
 
 default_wait_time=30
 
+if [ $1 != "job_shutdown" ]; then
+  echo 0
+  exit 0
+fi
+
 <%
   tsa_addrs = nil
   tsa_port = nil
@@ -29,6 +34,18 @@ chown -R vcap:vcap $RUN_DIR
 
 mkdir -p $LOG_DIR
 chown -R vcap:vcap $LOG_DIR
+
+if [ ! -f $BEACON_PIDFILE ]; then
+  echo 0
+  exit 0
+fi
+
+pid=$(cat $BEACON_PIDFILE)
+
+if [ ! -e /proc/$pid ]; then
+  echo 0
+  exit 0
+fi
 
 for key in /var/vcap/packages/generated_worker_key/id_rsa \
            /var/vcap/jobs/groundcrew/config/private_key; do
@@ -83,18 +100,6 @@ chpst -u vcap:vcap ssh \
 
 if [ $? -ne 0 ]; then
   exit 1
-fi
-
-if [ ! -f $BEACON_PIDFILE ]; then
-  echo 0
-  exit 0
-fi
-
-pid=$(cat $BEACON_PIDFILE)
-
-if [ ! -e /proc/$pid ]; then
-  echo 0
-  exit 0
 fi
 
 echo -$default_wait_time
