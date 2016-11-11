@@ -3,7 +3,7 @@ name: ((deployment-name))
 
 releases:
 - name: concourse
-  version: 2.3.1+dev.2
+  version: latest
 - name: garden-runc
   version: latest
 
