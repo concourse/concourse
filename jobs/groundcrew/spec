@@ -7,6 +7,7 @@ description: >
   shutdown.
 
 templates:
+  drain.erb: bin/drain
   beacon_ctl.erb: bin/beacon_ctl
 
   static_known_hosts.erb: config/static_known_hosts

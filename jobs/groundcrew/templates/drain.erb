@@ -1,0 +1,101 @@
+#!/bin/bash
+
+set -e
+
+default_wait_time=30
+
+<%
+  tsa_addrs = nil
+  tsa_port = nil
+
+  if_p("tsa.host", "tsa.port") do |host, port|
+    tsa_addrs = [host]
+    tsa_port = port
+  end
+
+  if tsa_addrs.nil? && tsa_port.nil?
+    tsa = link("tsa")
+    tsa_addrs = tsa.instances.collect(&:address)
+    tsa_port = tsa.p("bind_port")
+  end
+%>
+
+RUN_DIR=/var/vcap/sys/run/groundcrew
+LOG_DIR=/var/vcap/sys/log/groundcrew
+BEACON_PIDFILE=$RUN_DIR/beacon.pid
+
+mkdir -p $RUN_DIR
+chown -R vcap:vcap $RUN_DIR
+
+mkdir -p $LOG_DIR
+chown -R vcap:vcap $LOG_DIR
+
+for key in /var/vcap/packages/generated_worker_key/id_rsa \
+           /var/vcap/jobs/groundcrew/config/private_key; do
+  chown vcap:vcap $key
+  chmod 0400 $key
+done
+
+# even more ideal would be for each node to have its own key and stop doing
+# the generated_tsa_host_key thing
+{
+  <% tsa_addrs.each do |addr| %>
+  echo -n '[<%= addr %>]:<%= tsa_port %> '
+  cat /var/vcap/packages/generated_tsa_host_key/id_rsa.pub
+  <% end %>
+} > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
+
+KNOWN_HOSTS_FILE=${RUN_DIR}/known_hosts
+
+cat \
+  /var/vcap/jobs/groundcrew/config/static_known_hosts \
+  /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts \
+  > $KNOWN_HOSTS_FILE
+
+chown vcap:vcap $KNOWN_HOSTS_FILE
+
+cat /var/vcap/jobs/groundcrew/config/worker.json | \
+  sed -e "s/HOSTNAME_REPLACE_ME/$(hostname | cut -d '-' -f 2-)/g" | \
+  sed -e 's/"START_TIME_REPLACE_ME"/'$(date +%s)'/g' | \
+  /var/vcap/packages/resource_discovery/bin/resource_discovery /var/vcap/packages/*/resource_metadata.json > \
+  $RUN_DIR/worker.json
+
+tsa_addrs=(<%= tsa_addrs.join(" ") %>)
+
+rand=$RANDOM
+tsa_addr=${tsa_addrs[$rand % ${#tsa_addrs[@]}]}
+
+chpst -u vcap:vcap ssh \
+  -p <%= tsa_port %> $tsa_addr \
+  <% if p("tsa.private_key") != "" %> \
+  -i /var/vcap/jobs/groundcrew/config/private_key \
+  <% else %> \
+  -i /var/vcap/packages/generated_worker_key/id_rsa \
+  <% end %> \
+  -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
+  -o ConnectTimeout=30 \
+  -o ServerAliveInterval=8 \
+  -o ServerAliveCountMax=3 \
+  land-worker \
+  < $RUN_DIR/worker.json \
+  1>>$LOG_DIR/drain.stdout.log \
+  2>>$LOG_DIR/drain.stderr.log
+
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
+if [ ! -f $BEACON_PIDFILE ]; then
+  echo 0
+  exit 0
+fi
+
+pid=$(cat $BEACON_PIDFILE)
+
+if [ ! -e /proc/$pid ]; then
+  echo 0
+  exit 0
+fi
+
+echo -$default_wait_time
+exit 0
