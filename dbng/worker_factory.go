@@ -19,6 +19,7 @@ type WorkerFactory interface {
 	WorkersForTeam(teamName string) ([]*Worker, error)
 	StallWorker(name string) (*Worker, error)
 	StallUnresponsiveWorkers() ([]*Worker, error)
+	DeleteFinishedLandingWorkers() error
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
 	SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error)
 	LandWorker(name string) (*Worker, error)
@@ -435,6 +436,65 @@ func (f *workerFactory) StallUnresponsiveWorkers() ([]*Worker, error) {
 	return workers, nil
 }
 
+func (f *workerFactory) DeleteFinishedLandingWorkers() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Squirrel does not have default support for subqueries in where clauses.
+	// We hacked together a way to do it
+	//
+	// First we generate the subquery's SQL and args using
+	// sq.Select instead of psql.Select so that we get
+	// unordered placeholders instead of psql's ordered placeholders
+	subQ, subQArgs, err := sq.Select("w.name").
+		Distinct().
+		From("builds b").
+		Join("containers c ON b.id = c.build_id").
+		Join("workers w on w.name = c.worker_name").
+		Where(sq.Or{
+			sq.Eq{
+				"b.status": string(BuildStatusStarted),
+			},
+			sq.Eq{
+				"b.status": string(BuildStatusPending),
+			},
+		}).ToSql()
+
+	if err != nil {
+		return err
+	}
+
+	// Then we inject the subquery sql directly into
+	// the where clause, and "add" the args from the
+	// first query to the second query's args
+	//
+	// We use sq.Delete instead of psql.Delete for the same reason
+	// but then change the placeholders using .PlaceholderFormat(sq.Dollar)
+	// to go back to postgres's format
+	_, err = sq.Delete("workers").
+		Where(sq.Eq{
+			"state": string(WorkerStateLanding),
+		}).
+		Where("name NOT IN ("+subQ+")", subQArgs...).
+		PlaceholderFormat(sq.Dollar).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (f *workerFactory) SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error) {
 	return f.saveWorker(worker, nil, ttl)
 }
@@ -477,6 +537,11 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 		"name": worker.Name,
 	}).RunWith(tx).QueryRow().Scan(&oldTeamID)
 
+	workerState := string(worker.State)
+	if workerState == "" {
+		workerState = string(WorkerStateRunning)
+	}
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			_, err = psql.Insert("workers").
@@ -510,7 +575,7 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 					worker.Name,
 					worker.StartTime,
 					teamID,
-					string(WorkerStateRunning),
+					workerState,
 				).
 				RunWith(tx).
 				Exec()

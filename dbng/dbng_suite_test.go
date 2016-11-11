@@ -111,7 +111,8 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	dbConn.Close()
+	err := dbConn.Close()
+	Expect(err).NotTo(HaveOccurred())
 })
 
 var _ = AfterSuite(func() {

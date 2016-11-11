@@ -8,24 +8,17 @@ import (
 	"github.com/concourse/atc/dbng"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("WorkerFactory", func() {
 	var (
-		dbConn        dbng.Conn
-		workerFactory dbng.WorkerFactory
-
 		atcWorker atc.Worker
 		worker    *dbng.Worker
 	)
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-
-		dbConn = dbng.Wrap(postgresRunner.Open())
-		workerFactory = dbng.NewWorkerFactory(dbConn)
-
 		atcWorker = atc.Worker{
 			GardenAddr:       "some-garden-addr",
 			BaggageclaimURL:  "some-bc-url",
@@ -50,11 +43,6 @@ var _ = Describe("WorkerFactory", func() {
 			Name:      "some-name",
 			StartTime: 55,
 		}
-	})
-
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Describe("SaveWorker", func() {
@@ -218,6 +206,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.Platform).To(Equal("some-platform"))
 				Expect(foundWorker.Tags).To(Equal([]string{"some", "tags"}))
 				Expect(foundWorker.StartTime).To(Equal(int64(55)))
+				Expect(foundWorker.State).To(Equal(dbng.WorkerStateRunning))
 			})
 		})
 
@@ -232,6 +221,10 @@ var _ = Describe("WorkerFactory", func() {
 	})
 
 	Describe("Workers", func() {
+		BeforeEach(func() {
+			postgresRunner.Truncate()
+		})
+
 		Context("when there are workers", func() {
 			BeforeEach(func() {
 				_, err = workerFactory.SaveWorker(atcWorker, 0)
@@ -369,6 +362,97 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(stalledWorkers[0].Name).To(Equal("some-name"))
 				Expect(stalledWorkers[0].State).To(Equal(dbng.WorkerStateStalled))
 			})
+		})
+	})
+
+	Describe("DeleteFinishedLandingWorkers", func() {
+		var (
+			dbWorker *dbng.Worker
+		)
+
+		JustBeforeEach(func() {
+			var err error
+			dbWorker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when worker is not landing", func() {
+			JustBeforeEach(func() {
+				var err error
+				atcWorker.State = string(dbng.WorkerStateRunning)
+				dbWorker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("does not delete worker", func() {
+				_, found, err := workerFactory.GetWorker(atcWorker.Name)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = workerFactory.DeleteFinishedLandingWorkers()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, found, err = workerFactory.GetWorker(atcWorker.Name)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+		})
+
+		Context("when worker is landing", func() {
+			BeforeEach(func() {
+				atcWorker.State = string(dbng.WorkerStateLanding)
+			})
+
+			Context("when the worker does not have any running builds", func() {
+				It("deletes worker", func() {
+					_, found, err := workerFactory.GetWorker(atcWorker.Name)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = workerFactory.DeleteFinishedLandingWorkers()
+					Expect(err).NotTo(HaveOccurred())
+
+					_, found, err = workerFactory.GetWorker(atcWorker.Name)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
+			})
+
+			DescribeTable("deleting workers with builds that are",
+				func(s dbng.BuildStatus, expectedExistence bool) {
+					dbBuild, err := buildFactory.CreateOneOffBuild(defaultTeam)
+					Expect(err).NotTo(HaveOccurred())
+
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = dbBuild.SaveStatus(tx, s)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = tx.Commit()
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = containerFactory.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+					Expect(err).NotTo(HaveOccurred())
+
+					_, found, err := workerFactory.GetWorker(atcWorker.Name)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = workerFactory.DeleteFinishedLandingWorkers()
+					Expect(err).NotTo(HaveOccurred())
+
+					_, found, err = workerFactory.GetWorker(atcWorker.Name)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(Equal(expectedExistence))
+				},
+				Entry("pending", dbng.BuildStatusPending, true),
+				Entry("started", dbng.BuildStatusStarted, true),
+				Entry("aborted", dbng.BuildStatusAborted, false),
+				Entry("succeeded", dbng.BuildStatusSucceeded, false),
+				Entry("failed", dbng.BuildStatusFailed, false),
+				Entry("errored", dbng.BuildStatusErrored, false),
+			)
 		})
 	})
 

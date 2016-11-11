@@ -52,6 +52,12 @@ type FakeWorkerFactory struct {
 		result1 []*dbng.Worker
 		result2 error
 	}
+	DeleteFinishedLandingWorkersStub        func() error
+	deleteFinishedLandingWorkersMutex       sync.RWMutex
+	deleteFinishedLandingWorkersArgsForCall []struct{}
+	deleteFinishedLandingWorkersReturns     struct {
+		result1 error
+	}
 	SaveWorkerStub        func(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error)
 	saveWorkerMutex       sync.RWMutex
 	saveWorkerArgsForCall []struct {
@@ -251,6 +257,31 @@ func (fake *FakeWorkerFactory) StallUnresponsiveWorkersReturns(result1 []*dbng.W
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerFactory) DeleteFinishedLandingWorkers() error {
+	fake.deleteFinishedLandingWorkersMutex.Lock()
+	fake.deleteFinishedLandingWorkersArgsForCall = append(fake.deleteFinishedLandingWorkersArgsForCall, struct{}{})
+	fake.recordInvocation("DeleteFinishedLandingWorkers", []interface{}{})
+	fake.deleteFinishedLandingWorkersMutex.Unlock()
+	if fake.DeleteFinishedLandingWorkersStub != nil {
+		return fake.DeleteFinishedLandingWorkersStub()
+	} else {
+		return fake.deleteFinishedLandingWorkersReturns.result1
+	}
+}
+
+func (fake *FakeWorkerFactory) DeleteFinishedLandingWorkersCallCount() int {
+	fake.deleteFinishedLandingWorkersMutex.RLock()
+	defer fake.deleteFinishedLandingWorkersMutex.RUnlock()
+	return len(fake.deleteFinishedLandingWorkersArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) DeleteFinishedLandingWorkersReturns(result1 error) {
+	fake.DeleteFinishedLandingWorkersStub = nil
+	fake.deleteFinishedLandingWorkersReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeWorkerFactory) SaveWorker(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error) {
 	fake.saveWorkerMutex.Lock()
 	fake.saveWorkerArgsForCall = append(fake.saveWorkerArgsForCall, struct {
@@ -404,6 +435,8 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.stallWorkerMutex.RUnlock()
 	fake.stallUnresponsiveWorkersMutex.RLock()
 	defer fake.stallUnresponsiveWorkersMutex.RUnlock()
+	fake.deleteFinishedLandingWorkersMutex.RLock()
+	defer fake.deleteFinishedLandingWorkersMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.saveTeamWorkerMutex.RLock()
