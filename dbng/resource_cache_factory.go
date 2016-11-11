@@ -38,6 +38,8 @@ type ResourceCacheFactory interface {
 	) (*UsedResourceCache, error)
 
 	CleanUsesForFinishedBuilds() error
+	CleanUsesForInactiveResourceTypes() error
+	CleanUsesForInactiveResources() error
 }
 
 type resourceCacheFactory struct {
@@ -210,16 +212,75 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 	}
 	defer tx.Rollback()
 
-	_, err = psql.Delete("resource_cache_uses cru USING builds b").
-		Where(sq.Or{
-			sq.Eq{
-				"b.status": "succeeded",
+	_, err = psql.Delete("resource_cache_uses rcu USING builds b").
+		Where(sq.And{
+			sq.Expr("rcu.build_id = b.id"),
+			sq.Or{
+				sq.Eq{
+					"b.status": "succeeded",
+				},
+				sq.Eq{
+					"b.status": "failed",
+				},
+				sq.Eq{
+					"b.status": "aborted",
+				},
 			},
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *resourceCacheFactory) CleanUsesForInactiveResourceTypes() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = psql.Delete("resource_cache_uses rcu USING resource_types t").
+		Where(sq.And{
+			sq.Expr("rcu.resource_type_id = t.id"),
 			sq.Eq{
-				"b.status": "failed",
+				"t.active": false,
 			},
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *resourceCacheFactory) CleanUsesForInactiveResources() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = psql.Delete("resource_cache_uses rcu USING resources r").
+		Where(sq.And{
+			sq.Expr("rcu.resource_id = r.id"),
 			sq.Eq{
-				"b.status": "aborted",
+				"r.active": false,
 			},
 		}).
 		RunWith(tx).
