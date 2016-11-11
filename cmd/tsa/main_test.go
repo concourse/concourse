@@ -907,7 +907,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 						})
 					})
 
-					Context("when the ATC responds with an error", func() {
+					Context("when the ATC responds with a missing worker (404)", func() {
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
 								Name: "some-worker",
@@ -922,8 +922,29 @@ var _ = Describe("TSA SSH Registrar", func() {
 							))
 						})
 
+						It("exits with no failure", func() {
+							Eventually(sshSess, 3).Should(gexec.Exit(0))
+							Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("when the ATC responds with an error", func() {
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								Name: "some-worker",
+							}
+
+							atcServer.AppendHandlers(ghttp.CombineHandlers(
+								ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+								http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+								}),
+								ghttp.RespondWith(500, nil, nil),
+							))
+						})
+
 						It("exits with failure", func() {
-							Eventually(tsaRunner.Buffer()).Should(gbytes.Say("404"))
+							Eventually(tsaRunner.Buffer()).Should(gbytes.Say("500"))
 
 							Eventually(sshSess, 3).Should(gexec.Exit(1))
 							Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
@@ -1306,7 +1327,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							})
 						})
 
-						Context("when the ATC responds with an error", func() {
+						Context("when the ATC responds a missing worker (404)", func() {
 							BeforeEach(func() {
 								atcServer.AppendHandlers(ghttp.CombineHandlers(
 									ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
@@ -1317,8 +1338,25 @@ var _ = Describe("TSA SSH Registrar", func() {
 								))
 							})
 
+							It("exits with no failure", func() {
+								Eventually(sshSess, 3).Should(gexec.Exit(0))
+								Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+							})
+						})
+
+						Context("when the ATC responds with an error", func() {
+							BeforeEach(func() {
+								atcServer.AppendHandlers(ghttp.CombineHandlers(
+									ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									}),
+									ghttp.RespondWith(500, nil, nil),
+								))
+							})
+
 							It("exits with failure", func() {
-								Eventually(tsaRunner.Buffer()).Should(gbytes.Say("404"))
+								Eventually(tsaRunner.Buffer()).Should(gbytes.Say("500"))
 								Eventually(sshSess, 3).Should(gexec.Exit(1))
 								Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
 							})
