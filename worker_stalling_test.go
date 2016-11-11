@@ -15,7 +15,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = FDescribe("[#129726011] Worker stalling", func() {
+var _ = Describe("[#129726011] Worker stalling", func() {
 	var dbConn *sql.DB
 
 	BeforeEach(func() {
@@ -160,7 +160,7 @@ var _ = FDescribe("[#129726011] Worker stalling", func() {
 				stalledWorkerName = waitForStalledWorker()
 			})
 
-			FIt("does not fail the build", func() {
+			It("does not fail the build", func() {
 				Consistently(buildSession).ShouldNot(gexec.Exit())
 			})
 
