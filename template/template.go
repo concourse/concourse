@@ -28,6 +28,6 @@ func Evaluate(content []byte, variables Variables) ([]byte, error) {
 	}), variableErrors
 }
 
-func EvaluateNil(content []byte) []byte {
-	return templateFormatRegex.ReplaceAll(content, []byte("nil"))
+func EvaluateEmpty(content []byte) []byte {
+	return templateFormatRegex.ReplaceAll(content, []byte(`""`))
 }

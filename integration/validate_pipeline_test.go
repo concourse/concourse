@@ -22,7 +22,7 @@ var _ = Describe("Fly CLI", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gbytes.Say("configuration valid"))
+			Eventually(sess).Should(gbytes.Say("looks good"))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))

@@ -27,7 +27,7 @@ func (command *ValidatePipelineCommand) Execute(args []string) error {
 		displayhelpers.FailWithErrorf("could not read config file", err)
 	}
 
-	configFile = template.EvaluateNil(configFile)
+	configFile = template.EvaluateEmpty(configFile)
 
 	var configStructure interface{}
 	err = yaml.Unmarshal(configFile, &configStructure)
@@ -82,6 +82,6 @@ func (command *ValidatePipelineCommand) Execute(args []string) error {
 		displayhelpers.Failf("configuration invalid")
 	}
 
-	fmt.Println("configuration valid")
+	fmt.Println("looks good")
 	return nil
 }
