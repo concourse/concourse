@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -52,6 +53,11 @@ var _ = SynchronizedAfterSuite(func() {
 }, func() {})
 
 var _ = BeforeEach(func() {
+	SetDefaultEventuallyTimeout(5 * time.Minute)
+	SetDefaultEventuallyPollingInterval(time.Second)
+	SetDefaultConsistentlyDuration(time.Minute)
+	SetDefaultConsistentlyPollingInterval(time.Second)
+
 	logger = lagertest.NewTestLogger("test")
 
 	boshEnv = os.Getenv("BOSH_ENV")
