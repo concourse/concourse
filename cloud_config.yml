@@ -1,0 +1,27 @@
+---
+networks:
+- name: topgun
+  subnets:
+    - range: 10.234.1.0/24
+      gateway: 10.234.1.1
+      static: [10.234.1.2]
+
+    - range: 10.234.2.0/24
+      gateway: 10.234.2.1
+      static: [10.234.2.2]
+
+    - range: 10.234.3.0/24
+      gateway: 10.234.3.1
+      static: [10.234.3.2]
+
+    - range: 10.234.4.0/24
+      gateway: 10.234.4.1
+      static: [10.234.4.2]
+
+vm_types:
+- name: topgun
+  network: topgun
+
+compilation:
+  workers: 3
+  network: topgun
