@@ -45,6 +45,7 @@ instance_groups:
   jobs:
   - release: concourse
     name: groundcrew
+    properties:
       garden:
         forward_address: 127.0.0.1:7777
       baggageclaim:
