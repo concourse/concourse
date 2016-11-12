@@ -307,19 +307,31 @@ func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*
 		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
 	}
 
+	cSql, _, err := sq.Case("state").
+		When("'landing'::worker_state", "'landing'::worker_state").
+		Else("'running'::worker_state").
+		ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		workerName       string
+		workerStateStr   string
 		activeContainers int
 		expiresAt        time.Time
 	)
+
 	err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
 		Set("active_containers", worker.ActiveContainers).
+		Set("state", sq.Expr("(" + cSql + ")")).
 		Where(sq.Eq{"name": worker.Name}).
-		Suffix("RETURNING name, expires, active_containers").
+		Suffix("RETURNING name, state, expires, active_containers").
 		RunWith(tx).
 		QueryRow().
-		Scan(&workerName, &expiresAt, &activeContainers)
+		Scan(&workerName, &workerStateStr, &expiresAt, &activeContainers)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrWorkerNotPresent
@@ -334,6 +346,7 @@ func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*
 
 	return &Worker{
 		Name:             workerName,
+		State:            WorkerState(workerStateStr),
 		ExpiresIn:        expiresAt.Sub(now),
 		ActiveContainers: activeContainers,
 	}, nil
