@@ -498,7 +498,7 @@ var _ = Describe("WorkerFactory", func() {
 		})
 
 		Context("when the worker is present", func() {
-			BeforeEach(func() {
+			JustBeforeEach(func() {
 				_, err = workerFactory.SaveWorker(atcWorker, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -513,6 +513,46 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.ExpiresIn - ttl).To(And(BeNumerically("<=", epsilon), BeNumerically(">", 0)))
 				Expect(foundWorker.ActiveContainers).To(And(Not(Equal(activeContainers)), Equal(1)))
 			})
+
+			Context("when the current state is landing", func() {
+				BeforeEach(func() {
+					atcWorker.State = string(dbng.WorkerStateLanding)
+				})
+
+				It("keeps the state as landing", func() {
+					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanding))
+				})
+			})
+
+			Context("when the current state is running", func() {
+				BeforeEach(func() {
+					atcWorker.State = string(dbng.WorkerStateRunning)
+				})
+
+				It("keeps the state as running", func() {
+					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(foundWorker.State).To(Equal(dbng.WorkerStateRunning))
+				})
+			})
+
+			Context("when the current state is stalled", func() {
+				BeforeEach(func() {
+					atcWorker.State = string(dbng.WorkerStateStalled)
+				})
+
+				It("sets the state as running", func() {
+					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(foundWorker.State).To(Equal(dbng.WorkerStateRunning))
+				})
+			})
+
 		})
 
 		Context("when the worker is not present", func() {
