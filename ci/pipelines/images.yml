@@ -210,7 +210,7 @@ resources:
   type: docker-image
   source:
     repository: selenium/standalone-firefox
-    tag: latest
+    tag: 2.53.1
 
 - name: golang-1.x
   type: docker-image
