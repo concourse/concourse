@@ -157,7 +157,7 @@ before using it!
   }{
     \hyperlink{https://github.com/ckaznocha/marathon-resource}{Marathon}
   }{
-    \hyperlink{https://github.com/EMC-Dojo/bosh-config-resource}{BOSH Config: cloud-config and runtime-config}
+    \hyperlink{https://github.com/suhlig/concourse-rss-resource}{RSS}
   }
 
   \section{Adding to this list}{
