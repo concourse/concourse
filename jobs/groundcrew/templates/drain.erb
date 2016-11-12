@@ -2,9 +2,25 @@
 
 set -e
 
-default_wait_time=30
+default_wait_time=15
+
+RUN_DIR=/var/vcap/sys/run/groundcrew
+LOG_DIR=/var/vcap/sys/log/groundcrew
+BEACON_PIDFILE=$RUN_DIR/beacon.pid
+
+mkdir -p $RUN_DIR
+chown -R vcap:vcap $RUN_DIR
+
+mkdir -p $LOG_DIR
+chown -R vcap:vcap $LOG_DIR
+
+DRAIN_OUT_LOG_FILE=$LOG_DIR/drain.stdout.log
+DRAIN_ERR_LOG_FILE=$LOG_DIR/drain.stderr.log
+
+echo "starting drain" >> $DRAIN_OUT_LOG_FILE
 
 if [ $1 != "job_shutdown" ]; then
+  echo "did not receive shutdown, exiting" >> $DRAIN_OUT_LOG_FILE
   echo 0
   exit 0
 fi
@@ -24,28 +40,6 @@ fi
     tsa_port = tsa.p("bind_port")
   end
 %>
-
-RUN_DIR=/var/vcap/sys/run/groundcrew
-LOG_DIR=/var/vcap/sys/log/groundcrew
-BEACON_PIDFILE=$RUN_DIR/beacon.pid
-
-mkdir -p $RUN_DIR
-chown -R vcap:vcap $RUN_DIR
-
-mkdir -p $LOG_DIR
-chown -R vcap:vcap $LOG_DIR
-
-if [ ! -f $BEACON_PIDFILE ]; then
-  echo 0
-  exit 0
-fi
-
-pid=$(cat $BEACON_PIDFILE)
-
-if [ ! -e /proc/$pid ]; then
-  echo 0
-  exit 0
-fi
 
 for key in /var/vcap/packages/generated_worker_key/id_rsa \
            /var/vcap/jobs/groundcrew/config/private_key; do
@@ -79,28 +73,44 @@ cat /var/vcap/jobs/groundcrew/config/worker.json | \
 
 tsa_addrs=(<%= tsa_addrs.join(" ") %>)
 
-rand=$RANDOM
-tsa_addr=${tsa_addrs[$rand % ${#tsa_addrs[@]}]}
 
-chpst -u vcap:vcap ssh \
-  -p <%= tsa_port %> $tsa_addr \
-  <% if p("tsa.private_key") != "" %> \
-  -i /var/vcap/jobs/groundcrew/config/private_key \
-  <% else %> \
-  -i /var/vcap/packages/generated_worker_key/id_rsa \
-  <% end %> \
-  -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
-  -o ConnectTimeout=30 \
-  -o ServerAliveInterval=8 \
-  -o ServerAliveCountMax=3 \
-  land-worker \
-  < $RUN_DIR/worker.json \
-  1>>$LOG_DIR/drain.stdout.log \
-  2>>$LOG_DIR/drain.stderr.log
+while true; do
 
-if [ $? -ne 0 ]; then
-  exit 1
-fi
+  if [ ! -f $BEACON_PIDFILE ]; then
+    echo "beacon pid file dissapeared" >> $DRAIN_OUT_LOG_FILE
+    echo 0
+    exit 0
+  fi
 
-echo -$default_wait_time
-exit 0
+  pid=$(cat $BEACON_PIDFILE)
+
+  if [ ! -e /proc/$pid ]; then
+    echo "beacon process has gone away" >> $DRAIN_OUT_LOG_FILE
+    echo 0
+    exit 0
+  fi
+
+  rand=$RANDOM
+  tsa_addr=${tsa_addrs[$rand % ${#tsa_addrs[@]}]}
+
+  chpst -u vcap:vcap ssh \
+    -p <%= tsa_port %> $tsa_addr \
+    <% if p("tsa.private_key") != "" %> \
+    -i /var/vcap/jobs/groundcrew/config/private_key \
+    <% else %> \
+    -i /var/vcap/packages/generated_worker_key/id_rsa \
+    <% end %> \
+    -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
+    -o ConnectTimeout=30 \
+    -o ServerAliveInterval=8 \
+    -o ServerAliveCountMax=3 \
+    land-worker \
+    < $RUN_DIR/worker.json \
+    1>>$DRAIN_OUT_LOG_FILE \
+    2>>$DRAIN_ERR_LOG_FILE
+
+  echo "land worker sent" >> $DRAIN_OUT_LOG_FILE
+
+  sleep $default_wait_time
+
+done
