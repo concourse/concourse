@@ -14,3 +14,5 @@ run:
       echo 'waiting for /tmp/stop-waiting to exist'
       sleep 1
     done
+
+    echo done

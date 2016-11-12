@@ -195,6 +195,7 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 					}).Should(Equal(0))
 
 					By("waiting for the build to exit")
+					Eventually(buildSession).Should(gbytes.Say("done"))
 					<-buildSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 				})
