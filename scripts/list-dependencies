@@ -8,6 +8,7 @@ gosub list \
   -a github.com/concourse/baggageclaim/cmd/... \
   -a github.com/concourse/tsa/cmd/... \
   -t github.com/concourse/testflight/... \
+  -t github.com/concourse/topgun/... \
   -t github.com/concourse/atc/... \
   -t github.com/concourse/tsa/... \
   -t github.com/concourse/blackbox/integration/... \

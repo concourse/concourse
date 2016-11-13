@@ -10,6 +10,10 @@ pushd concourse/
   # into release dir, which is invalid cross-device link
   export HOME=$PWD
 
-  bosh -n create-release --tarball --name concourse --version "0.0.0+dev.$(date +%s)"
+  version="0.0.0+dev.$(date +%s)"
+
+  bosh -n create-release --tarball --name concourse --version "$version"
+
   mv dev_releases/concourse/concourse-*.tgz "$OUTPUT"
+  echo "$version" > "$OUTPUT/version"
 popd

@@ -255,3 +255,7 @@
 	path = src/github.com/joho/godotenv
 	url = https://github.com/joho/godotenv
 	branch = master
+[submodule "src/github.com/concourse/topgun"]
+	path = src/github.com/concourse/topgun
+	url = https://github.com/concourse/topgun
+	branch = master
