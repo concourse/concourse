@@ -4,10 +4,10 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/gcng"
-	sq "github.com/masterminds/squirrel"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
