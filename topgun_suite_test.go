@@ -24,6 +24,7 @@ var (
 	atcIP, atcExternalURL string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion string
+	stemcellVersion                                   string
 
 	pipelineName string
 
@@ -72,6 +73,11 @@ var _ = BeforeEach(func() {
 	gardenRuncReleaseVersion = os.Getenv("GARDEN_RUNC_RELEASE_VERSION")
 	if gardenRuncReleaseVersion == "" {
 		gardenRuncReleaseVersion = "latest"
+	}
+
+	stemcellVersion = os.Getenv("STEMCELL_VERSION")
+	if stemcellVersion == "" {
+		stemcellVersion = "latest"
 	}
 
 	deploymentName = fmt.Sprintf("concourse-topgun-%d", GinkgoParallelNode())

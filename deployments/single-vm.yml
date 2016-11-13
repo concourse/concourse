@@ -55,7 +55,7 @@ instance_groups:
 stemcells:
 - alias: trusty
   os: ubuntu-trusty
-  version: latest
+  version: ((stemcell-version))
 
 update:
   canaries: 1
