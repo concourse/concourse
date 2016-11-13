@@ -3,9 +3,9 @@ name: ((deployment-name))
 
 releases:
 - name: concourse
-  version: latest
+  version: ((concourse-release-version))
 - name: garden-runc
-  version: latest
+  version: ((garden-runc-release-version))
 
 instance_groups:
 - name: web

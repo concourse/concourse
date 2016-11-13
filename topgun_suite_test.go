@@ -23,6 +23,8 @@ var (
 
 	atcIP, atcExternalURL string
 
+	concourseReleaseVersion, gardenRuncReleaseVersion string
+
 	pipelineName string
 
 	tmpHome string
@@ -62,6 +64,16 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("test")
 
+	concourseReleaseVersion = os.Getenv("CONCOURSE_RELEASE_VERSION")
+	if concourseReleaseVersion == "" {
+		concourseReleaseVersion = "latest"
+	}
+
+	gardenRuncReleaseVersion = os.Getenv("GARDEN_RUNC_RELEASE_VERSION")
+	if gardenRuncReleaseVersion == "" {
+		gardenRuncReleaseVersion = "latest"
+	}
+
 	deploymentName = fmt.Sprintf("concourse-topgun-%d", GinkgoParallelNode())
 	flyTarget = deploymentName
 
@@ -84,6 +96,8 @@ func Deploy(manifest string) {
 		"-v", "deployment-name="+deploymentName,
 		"-v", "atc-ip="+atcIP,
 		"-v", "atc-external-url="+atcExternalURL,
+		"-v", "concourse-release-version="+concourseReleaseVersion,
+		"-v", "garden-runc-release-version="+gardenRuncReleaseVersion,
 	)
 
 	fly("login", "-c", atcExternalURL)
