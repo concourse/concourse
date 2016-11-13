@@ -90,27 +90,36 @@ while true; do
     exit 0
   fi
 
-  rand=$RANDOM
-  tsa_addr=${tsa_addrs[$rand % ${#tsa_addrs[@]}]}
+  reached_tsa=false
+  for tsa_addr in "${tsa_addrs[@]}"; do
+    chpst -u vcap:vcap ssh \
+      -p <%= tsa_port %> $tsa_addr \
+      <% if p("tsa.private_key") != "" %> \
+      -i /var/vcap/jobs/groundcrew/config/private_key \
+      <% else %> \
+      -i /var/vcap/packages/generated_worker_key/id_rsa \
+      <% end %> \
+      -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
+      -o ConnectTimeout=30 \
+      -o ServerAliveInterval=8 \
+      -o ServerAliveCountMax=3 \
+      land-worker \
+      < $RUN_DIR/worker.json \
+      1>>$DRAIN_OUT_LOG_FILE \
+      2>>$DRAIN_ERR_LOG_FILE || exitstatus=$?
 
-  chpst -u vcap:vcap ssh \
-    -p <%= tsa_port %> $tsa_addr \
-    <% if p("tsa.private_key") != "" %> \
-    -i /var/vcap/jobs/groundcrew/config/private_key \
-    <% else %> \
-    -i /var/vcap/packages/generated_worker_key/id_rsa \
-    <% end %> \
-    -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
-    -o ConnectTimeout=30 \
-    -o ServerAliveInterval=8 \
-    -o ServerAliveCountMax=3 \
-    land-worker \
-    < $RUN_DIR/worker.json \
-    1>>$DRAIN_OUT_LOG_FILE \
-    2>>$DRAIN_ERR_LOG_FILE
+    if [ "$exitstatus" = "0" ]; then
+      reached_tsa=true
 
-  echo "land worker sent" >> $DRAIN_OUT_LOG_FILE
+      echo "land worker sent" >> $DRAIN_OUT_LOG_FILE
+      sleep $default_wait_time
+      break
+    fi
+  done
 
-  sleep $default_wait_time
-
+  if [ "$reached_tsa" = "false" ]; then
+    echo "no TSAs available; assuming cluster is being destroyed" >> $DRAIN_OUT_LOG_FILE
+    echo 0
+    exit 0
+  fi
 done
