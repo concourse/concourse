@@ -19,8 +19,6 @@ import (
 )
 
 var (
-	boshEnv string
-
 	deploymentName, flyTarget string
 
 	atcIP, atcExternalURL string
@@ -64,11 +62,6 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("test")
 
-	boshEnv = os.Getenv("BOSH_ENV")
-	if boshEnv == "" {
-		Fail("must specify $BOSH_ENV")
-	}
-
 	deploymentName = fmt.Sprintf("concourse-topgun-%d", GinkgoParallelNode())
 	flyTarget = deploymentName
 
@@ -101,7 +94,7 @@ func bosh(argv ...string) {
 }
 
 func spawnBosh(argv ...string) *gexec.Session {
-	return spawn("bosh", append([]string{"-n", "-e", boshEnv, "-d", deploymentName}, argv...)...)
+	return spawn("bosh", append([]string{"-n", "-d", deploymentName}, argv...)...)
 }
 
 func fly(argv ...string) {
