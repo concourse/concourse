@@ -104,6 +104,7 @@ func Deploy(manifest string) {
 		"-v", "atc-external-url="+atcExternalURL,
 		"-v", "concourse-release-version="+concourseReleaseVersion,
 		"-v", "garden-runc-release-version="+gardenRuncReleaseVersion,
+		"-v", "stemcell-version="+stemcellVersion,
 	)
 
 	fly("login", "-c", atcExternalURL)
