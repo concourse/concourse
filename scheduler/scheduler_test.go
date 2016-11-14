@@ -125,7 +125,7 @@ var _ = Describe("Scheduler", func() {
 
 					It("started all pending builds for the right job", func() {
 						Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
-						_, actualJob, actualResources, actualResourceTypes, actualPendingBuilds, _, _, _ := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
+						_, actualJob, actualResources, actualResourceTypes, actualPendingBuilds := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
 						Expect(actualJob).To(Equal(jobConfigs[0]))
 						Expect(actualResources).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 						Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
@@ -308,7 +308,7 @@ var _ = Describe("Scheduler", func() {
 
 					It("tries to start builds for the right job", func() {
 						Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
-						_, _, _, _, b, _, _, _ := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
+						_, _, _, _, b := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
 						Expect(b).To(Equal(nextPendingBuilds))
 					})
 				})
