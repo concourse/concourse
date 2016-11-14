@@ -71,7 +71,6 @@ type PipelineDB interface {
 	GetPendingBuildsForJob(jobName string) ([]Build, error)
 	GetAllPendingBuilds() (map[string][]Build, error)
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
-	AcquireResourceCheckingForJobLock(logger lager.Logger, jobName string) (Lock, bool, error)
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (SavedVersionedResource, bool, error)
@@ -438,79 +437,6 @@ func (pdb *pipelineDB) AcquireSchedulingLock(logger lager.Logger, interval time.
 
 	if !acquired {
 		return nil, false, nil
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		lock.Release()
-		return nil, false, err
-	}
-
-	return lock, true, nil
-}
-
-func (pdb *pipelineDB) AcquireResourceCheckingForJobLock(logger lager.Logger, jobName string) (Lock, bool, error) {
-	tx, err := pdb.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
-	savedJob, err := pdb.getJob(tx, jobName)
-	if err != nil {
-		return nil, false, err
-	}
-
-	lock := pdb.lockFactory.NewLock(
-		logger.Session("lock", lager.Data{
-			"job_name": jobName,
-		}),
-		resourceCheckingForJobLockID(savedJob.ID),
-	)
-
-	lock.AfterRelease(func() error {
-		_, err := pdb.conn.Exec(`
-			UPDATE jobs
-			SET resource_checking = false
-			WHERE name = $1
-				AND pipeline_id = $2
-		`, jobName, pdb.ID)
-		return err
-	})
-
-	acquired, err := lock.Acquire()
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	var resourceCheckWaiverEnd int
-	err = tx.QueryRow(`
-		SELECT COALESCE(MAX(b.id), 0)
-			FROM builds b
-			JOIN jobs j ON b.job_id = j.id
-			WHERE j.name = $1
-				AND j.pipeline_id = $2
-	`, jobName, pdb.ID).Scan(&resourceCheckWaiverEnd)
-	if err != nil {
-		lock.Release()
-		return nil, false, err
-	}
-
-	_, err = tx.Exec(`
-		UPDATE jobs
-		SET resource_check_waiver_end = $3,
-			resource_checking = true
-		WHERE name = $1
-			AND pipeline_id = $2
-	`, jobName, pdb.ID, resourceCheckWaiverEnd)
-	if err != nil {
-		lock.Release()
-		return nil, false, err
 	}
 
 	err = tx.Commit()
@@ -1236,8 +1162,8 @@ func (pdb *pipelineDB) CreateJobBuild(jobName string) (Build, error) {
 	// We had to resort to sub-selects here because you can't paramaterize a
 	// RETURNING statement in lib/pq... sorry
 	build, _, err := pdb.buildFactory.ScanBuild(tx.QueryRow(`
-		INSERT INTO builds (name, job_id, team_id, status)
-		VALUES ($1, $2, $3, 'pending')
+		INSERT INTO builds (name, job_id, team_id, status, manually_triggered)
+		VALUES ($1, $2, $3, 'pending', TRUE)
 		RETURNING `+buildColumns+`,
 			(SELECT name FROM jobs WHERE id = $2),
 			(SELECT id FROM pipelines WHERE id = $4),
@@ -1516,10 +1442,6 @@ func (pdb *pipelineDB) GetPendingBuildsForJob(jobName string) ([]Build, error) {
 		INNER JOIN teams t ON b.team_id = t.id
 		WHERE b.job_id = $1
 		AND b.status = 'pending'
-		AND (
-			b.id <= j.resource_check_waiver_end
-			OR j.resource_checking = false
-		)
 		ORDER BY b.id ASC
 	`, dbJob.ID)
 	if err != nil {
@@ -1547,7 +1469,7 @@ func (pdb *pipelineDB) GetAllPendingBuilds() (map[string][]Build, error) {
 	builds := map[string][]Build{}
 
 	rows, err := pdb.conn.Query(`
-		SELECT b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name
+		SELECT b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name
 		FROM builds b
 		JOIN jobs j ON b.job_id = j.id
 		JOIN pipelines p ON j.pipeline_id = p.id
@@ -1555,10 +1477,6 @@ func (pdb *pipelineDB) GetAllPendingBuilds() (map[string][]Build, error) {
 		WHERE b.status = 'pending'
 		AND j.active = true
 		AND p.id = $1
-		AND (
-			b.id <= j.resource_check_waiver_end
-			OR j.resource_checking = false
-	  )
 	  ORDER BY b.id
 	`, pdb.ID)
 	if err != nil {

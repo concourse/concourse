@@ -32,8 +32,9 @@ func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {
 	var endTime pq.NullTime
 	var reapTime pq.NullTime
 	var teamName string
+	var isManuallyTriggered bool
 
-	err := row.Scan(&id, &name, &jobID, &teamID, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &teamName)
+	err := row.Scan(&id, &name, &jobID, &teamID, &status, &isManuallyTriggered, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &teamName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -47,10 +48,11 @@ func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {
 		bus:         f.bus,
 		lockFactory: f.lockFactory,
 
-		id:        id,
-		name:      name,
-		status:    Status(status),
-		scheduled: scheduled,
+		id:                  id,
+		name:                name,
+		status:              Status(status),
+		scheduled:           scheduled,
+		isManuallyTriggered: isManuallyTriggered,
 
 		engine:         engine.String,
 		engineMetadata: engineMetadata.String,

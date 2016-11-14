@@ -129,4 +129,5 @@ var Migrations = []migration.Migrator{
 	CascadeTeamDeletes,
 	UpdateWorkerForeignKeyConstraint,
 	CascadeTeamDeletesOnPipes,
+	RemoveResourceCheckingFromJobsAndAddManualyTriggeredToBuilds,
 }
