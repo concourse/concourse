@@ -39,8 +39,8 @@ plan:
 Additionally, you can control the settings of the implicit \code{get} step by
 setting \code{get_params}. For example, if you did not want a \code{put} step
 utilizing the \hyperlink{https://github.com/concourse/docker-image-resource}{
-\code{docker-image} resource type} you would implement your \code{put} step as
-such:
+\code{docker-image} resource type} to download the image, you would implement 
+your \code{put} step as such:
 
 \codeblock{yaml}{
 plan:
