@@ -35,6 +35,8 @@ var (
 	team   concourse.Team
 
 	logger *lagertest.TestLogger
+
+	boshLogs *gexec.Session
 )
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -93,6 +95,10 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
+	boshLogs.Signal(os.Interrupt)
+	<-boshLogs.Exited
+	boshLogs = nil
+
 	bosh("delete-deployment")
 })
 
@@ -108,6 +114,8 @@ func Deploy(manifest string) {
 	)
 
 	fly("login", "-c", atcExternalURL)
+
+	boshLogs = spawnBosh("logs", "-f")
 }
 
 func bosh(argv ...string) {
