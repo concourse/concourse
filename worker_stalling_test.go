@@ -101,16 +101,15 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 			}, 10*time.Minute).Should(HaveLen(2))
 		})
 
-		Context("when one worker's beacon goes away", func() {
+		Context("when one worker goes away", func() {
 			var stalledWorkerName string
 
 			BeforeEach(func() {
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop beacon")
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop all")
 				stalledWorkerName = waitForStalledWorker()
 			})
 
 			It("enters 'stalled' state and is no longer used for new containers", func() {
-
 				for i := 0; i < 10; i++ {
 					fly("execute", "-c", "tasks/tiny.yml")
 					rows, err := psql.Select("id, worker_name").From("containers").RunWith(dbConn).Query()
@@ -153,8 +152,8 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 				Eventually(buildSession).Should(gbytes.Say("waiting"))
 
-				By("stopping the beacon")
-				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop beacon")
+				By("stopping the worker without draining")
+				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop all")
 
 				By("waiting for it to stall")
 				stalledWorkerName = waitForStalledWorker()
@@ -166,8 +165,8 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 			Context("when the worker comes back", func() {
 				BeforeEach(func() {
-					By("starting the beacon")
-					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start beacon")
+					By("starting the worker")
+					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start all")
 
 					By("waiting for it to be running again")
 					waitForWorkersToBeRunning()
