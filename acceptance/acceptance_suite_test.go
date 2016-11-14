@@ -1,6 +1,7 @@
 package acceptance_test
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -55,11 +56,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	postgresRunner.CreateTestDB()
 
-	if os.Getenv("FORCE_SELENIUM") == "true" {
-		agoutiDriver = agouti.Selenium(agouti.Browser("firefox"))
-	} else {
-		agoutiDriver = agouti.ChromeDriver()
-	}
+	agoutiDriver = agouti.PhantomJS()
 
 	Expect(agoutiDriver.Start()).To(Succeed())
 })
@@ -74,13 +71,23 @@ var _ = SynchronizedAfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-func Screenshot(page *agouti.Page) {
+func Debug(page *agouti.Page) {
 	page.Screenshot("/tmp/screenshot.png")
+
+	logTypes, err := page.LogTypes()
+	Expect(err).NotTo(HaveOccurred())
+	for _, lt := range logTypes {
+		logs, err := page.ReadAllLogs(lt)
+		Expect(err).NotTo(HaveOccurred())
+		for _, l := range logs {
+			fmt.Println("~~~ LOG FROM ", lt+":", l.Message)
+		}
+	}
 }
 
 func init() {
 	// satisfy go-unused
-	var _ = Screenshot
+	var _ = Debug
 }
 
 func Login(page *agouti.Page, baseUrl string) {
