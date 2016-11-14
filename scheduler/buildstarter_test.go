@@ -24,7 +24,6 @@ import (
 var _ = Describe("I'm a BuildStarter", func() {
 	var (
 		fakeDB           *schedulerfakes.FakeBuildStarterDB
-		fakeSchedulerDB  *schedulerfakes.FakeSchedulerDB
 		fakeUpdater      *maxinflightfakes.FakeUpdater
 		fakeFactory      *schedulerfakes.FakeBuildFactory
 		fakeEngine       *enginefakes.FakeEngine
@@ -40,7 +39,6 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 	BeforeEach(func() {
 		fakeDB = new(schedulerfakes.FakeBuildStarterDB)
-		fakeSchedulerDB = new(schedulerfakes.FakeSchedulerDB)
 		fakeUpdater = new(maxinflightfakes.FakeUpdater)
 		fakeFactory = new(schedulerfakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
@@ -48,7 +46,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 		fakeInputMapper = new(inputmapperfakes.FakeInputMapper)
 		fakeBuildStarter = new(schedulerfakes.FakeBuildStarter)
 
-		buildStarter = scheduler.NewBuildStarter(fakeDB, fakeUpdater, fakeFactory, fakeEngine)
+		buildStarter = scheduler.NewBuildStarter(fakeDB, fakeUpdater, fakeFactory, fakeScanner, fakeInputMapper, fakeEngine)
 
 		disaster = errors.New("bad thing")
 	})
@@ -64,7 +62,6 @@ var _ = Describe("I'm a BuildStarter", func() {
 
 				createdBuild = new(dbfakes.FakeBuild)
 				createdBuild.IsManuallyTriggeredReturns(true)
-				fakeSchedulerDB.CreateJobBuildReturns(createdBuild, nil)
 
 				pendingBuilds = []db.Build{createdBuild}
 
@@ -74,11 +71,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					atc.ResourceConfigs{{Name: "some-resource"}},
 					atc.ResourceTypes{{Name: "some-resource-type"}},
 					pendingBuilds,
-					fakeScanner,
-					fakeSchedulerDB,
-					fakeInputMapper,
 				)
-
 			})
 
 			Context("when resource checking fails", func() {
@@ -95,14 +88,14 @@ var _ = Describe("I'm a BuildStarter", func() {
 				BeforeEach(func() {
 					fakeScanner.ScanStub = func(lager.Logger, string) error {
 						defer GinkgoRecover()
-						Expect(fakeSchedulerDB.LoadVersionsDBCallCount()).To(BeZero())
+						Expect(fakeDB.LoadVersionsDBCallCount()).To(BeZero())
 						return nil
 					}
 				})
 
 				Context("when loading the versions DB fails", func() {
 					BeforeEach(func() {
-						fakeSchedulerDB.LoadVersionsDBReturns(nil, disaster)
+						fakeDB.LoadVersionsDBReturns(nil, disaster)
 					})
 
 					It("returns an error", func() {
@@ -117,7 +110,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					})
 
 					It("loaded the versions DB after checking all the resources", func() {
-						Expect(fakeSchedulerDB.LoadVersionsDBCallCount()).To(Equal(1))
+						Expect(fakeDB.LoadVersionsDBCallCount()).To(Equal(1))
 					})
 				})
 
@@ -125,7 +118,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 					var versionsDB *algorithm.VersionsDB
 
 					BeforeEach(func() {
-						fakeSchedulerDB.LoadVersionsDBReturns(&algorithm.VersionsDB{
+						fakeDB.LoadVersionsDBReturns(&algorithm.VersionsDB{
 							ResourceVersions: []algorithm.ResourceVersion{
 								{
 									VersionID:  73,
@@ -166,7 +159,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 						}, nil)
 
 						versionsDB = &algorithm.VersionsDB{JobIDs: map[string]int{"j1": 1}}
-						fakeSchedulerDB.LoadVersionsDBReturns(versionsDB, nil)
+						fakeDB.LoadVersionsDBReturns(versionsDB, nil)
 					})
 
 					Context("when saving the next input mapping fails", func() {
@@ -206,9 +199,6 @@ var _ = Describe("I'm a BuildStarter", func() {
 					atc.ResourceConfigs{{Name: "some-resource"}},
 					atc.ResourceTypes{{Name: "some-resource-type"}},
 					pendingBuilds,
-					fakeScanner,
-					fakeSchedulerDB,
-					fakeInputMapper,
 				)
 			})
 

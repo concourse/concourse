@@ -71,7 +71,7 @@ func (s *Scheduler) Schedule(
 			continue
 		}
 
-		err := s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuildsForJob, s.Scanner, s.DB, s.InputMapper)
+		err := s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuildsForJob)
 		jobSchedulingTime[jobConfig.Name] = jobSchedulingTime[jobConfig.Name] + time.Since(jStart)
 
 		if err != nil {
@@ -139,7 +139,7 @@ func (s *Scheduler) TriggerImmediately(
 			return
 		}
 
-		err = s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuilds, s.Scanner, s.DB, s.InputMapper)
+		err = s.BuildStarter.TryStartPendingBuildsForJob(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuilds)
 		if err != nil {
 			logger.Error("failed-to-start-next-pending-build-for-job", err, lager.Data{"job-name": jobConfig.Name})
 			return

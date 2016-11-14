@@ -53,12 +53,13 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, exter
 		pipelineDB,
 		externalURL,
 	)
+	inputMapper := inputmapper.NewInputMapper(
+		pipelineDB,
+		inputconfig.NewTransformer(pipelineDB),
+	)
 	return &scheduler.Scheduler{
-		DB: pipelineDB,
-		InputMapper: inputmapper.NewInputMapper(
-			pipelineDB,
-			inputconfig.NewTransformer(pipelineDB),
-		),
+		DB:          pipelineDB,
+		InputMapper: inputMapper,
 		BuildStarter: scheduler.NewBuildStarter(
 			pipelineDB,
 			maxinflight.NewUpdater(pipelineDB),
@@ -66,6 +67,8 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, exter
 				pipelineDB.GetPipelineID(),
 				atc.NewPlanFactory(time.Now().Unix()),
 			),
+			scanner,
+			inputMapper,
 			rsf.engine,
 		),
 		Scanner: scanner,
