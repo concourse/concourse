@@ -125,6 +125,7 @@ var Migrations = []migration.Migrator{
 	AddTeamNameToPipe,
 	AddConfigToJobsResources,
 	CascadeTeamDeletes,
+	CascadeTeamDeletesOnPipes,
 	CreateCaches,
 	AddStateToWorkers,
 	AddWorkerForeignKeyToVolumesAndContainers,
