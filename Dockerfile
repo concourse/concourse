@@ -1,9 +1,13 @@
-FROM selenium/standalone-firefox
-
-USER root
+FROM ubuntu:16.04
 
 # The Basics
 RUN apt-get update && apt-get -y install curl
+
+# install PhantomJS 2.1.1
+RUN apt-get update && apt-get -y install libfontconfig
+RUN curl -L https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 | tar -C /tmp -jxf - && \
+      mv /tmp/phantomjs-*/bin/phantomjs /usr/local/bin && \
+      rm -rf /tmp/phantomjs-*
 
 # Go
 ADD go*.tar.gz /usr/local
@@ -15,14 +19,3 @@ RUN apt-get update && apt-get -y install git
 # PostgreSQL
 RUN apt-get update && apt-get -y install postgresql
 ENV PATH $PATH:/usr/lib/postgresql/9.5/bin
-
-# install selenium-driver wrapper binary for Agouti
-RUN echo '#!/bin/sh' >> /usr/local/bin/selenium-server && \
-    echo 'exec java -jar /opt/selenium/selenium-server-standalone.jar "$@" > /tmp/selenium.log 2>&1' >> /usr/local/bin/selenium-server && \
-    chmod +x /usr/local/bin/selenium-server
-
-# force atc and testflight suites to use selenium
-ENV FORCE_SELENIUM true
-
-RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
