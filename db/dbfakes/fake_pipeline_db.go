@@ -392,17 +392,6 @@ type FakePipelineDB struct {
 	useInputsForBuildReturns struct {
 		result1 error
 	}
-	AcquireResourceCheckingForJobLockStub        func(logger lager.Logger, jobName string) (db.Lock, bool, error)
-	acquireResourceCheckingForJobLockMutex       sync.RWMutex
-	acquireResourceCheckingForJobLockArgsForCall []struct {
-		logger  lager.Logger
-		jobName string
-	}
-	acquireResourceCheckingForJobLockReturns struct {
-		result1 db.Lock
-		result2 bool
-		result3 error
-	}
 	LoadVersionsDBStub        func() (*algorithm.VersionsDB, error)
 	loadVersionsDBMutex       sync.RWMutex
 	loadVersionsDBArgsForCall []struct{}
@@ -1984,42 +1973,6 @@ func (fake *FakePipelineDB) UseInputsForBuildReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) AcquireResourceCheckingForJobLock(logger lager.Logger, jobName string) (db.Lock, bool, error) {
-	fake.acquireResourceCheckingForJobLockMutex.Lock()
-	fake.acquireResourceCheckingForJobLockArgsForCall = append(fake.acquireResourceCheckingForJobLockArgsForCall, struct {
-		logger  lager.Logger
-		jobName string
-	}{logger, jobName})
-	fake.recordInvocation("AcquireResourceCheckingForJobLock", []interface{}{logger, jobName})
-	fake.acquireResourceCheckingForJobLockMutex.Unlock()
-	if fake.AcquireResourceCheckingForJobLockStub != nil {
-		return fake.AcquireResourceCheckingForJobLockStub(logger, jobName)
-	} else {
-		return fake.acquireResourceCheckingForJobLockReturns.result1, fake.acquireResourceCheckingForJobLockReturns.result2, fake.acquireResourceCheckingForJobLockReturns.result3
-	}
-}
-
-func (fake *FakePipelineDB) AcquireResourceCheckingForJobLockCallCount() int {
-	fake.acquireResourceCheckingForJobLockMutex.RLock()
-	defer fake.acquireResourceCheckingForJobLockMutex.RUnlock()
-	return len(fake.acquireResourceCheckingForJobLockArgsForCall)
-}
-
-func (fake *FakePipelineDB) AcquireResourceCheckingForJobLockArgsForCall(i int) (lager.Logger, string) {
-	fake.acquireResourceCheckingForJobLockMutex.RLock()
-	defer fake.acquireResourceCheckingForJobLockMutex.RUnlock()
-	return fake.acquireResourceCheckingForJobLockArgsForCall[i].logger, fake.acquireResourceCheckingForJobLockArgsForCall[i].jobName
-}
-
-func (fake *FakePipelineDB) AcquireResourceCheckingForJobLockReturns(result1 db.Lock, result2 bool, result3 error) {
-	fake.AcquireResourceCheckingForJobLockStub = nil
-	fake.acquireResourceCheckingForJobLockReturns = struct {
-		result1 db.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakePipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	fake.loadVersionsDBMutex.Lock()
 	fake.loadVersionsDBArgsForCall = append(fake.loadVersionsDBArgsForCall, struct{}{})
@@ -2676,8 +2629,6 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.getAllPendingBuildsMutex.RUnlock()
 	fake.useInputsForBuildMutex.RLock()
 	defer fake.useInputsForBuildMutex.RUnlock()
-	fake.acquireResourceCheckingForJobLockMutex.RLock()
-	defer fake.acquireResourceCheckingForJobLockMutex.RUnlock()
 	fake.loadVersionsDBMutex.RLock()
 	defer fake.loadVersionsDBMutex.RUnlock()
 	fake.getVersionedResourceByVersionMutex.RLock()

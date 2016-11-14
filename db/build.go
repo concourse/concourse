@@ -23,8 +23,8 @@ const (
 	StatusErrored   Status = "errored"
 )
 
-const buildColumns = "id, name, job_id, team_id, status, scheduled, engine, engine_metadata, start_time, end_time, reap_time"
-const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
+const buildColumns = "id, name, job_id, team_id, status, manually_triggered, scheduled, engine, engine_metadata, start_time, end_time, reap_time"
+const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
 
 //go:generate counterfeiter . Build
 
@@ -44,6 +44,7 @@ type Build interface {
 	IsOneOff() bool
 	IsScheduled() bool
 	IsRunning() bool
+	IsManuallyTriggered() bool
 
 	Reload() (bool, error)
 
@@ -88,6 +89,8 @@ type build struct {
 	teamName     string
 	teamID       int
 
+	isManuallyTriggered bool
+
 	engine         string
 	engineMetadata string
 
@@ -123,6 +126,10 @@ func (b *build) TeamName() string {
 
 func (b *build) TeamID() int {
 	return b.teamID
+}
+
+func (b *build) IsManuallyTriggered() bool {
+	return b.isManuallyTriggered
 }
 
 func (b *build) Engine() string {
@@ -569,23 +576,21 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 	}
 
 	var (
-		pausedPipeline         bool
-		pausedJob              bool
-		maxInFlightReached     bool
-		pipelineID             int
-		resourceCheckIsRunning bool
-		jobName                string
+		pausedPipeline     bool
+		pausedJob          bool
+		maxInFlightReached bool
+		pipelineID         int
+		jobName            string
 	)
 	err := b.conn.QueryRow(`
-			SELECT p.paused, j.paused, j.max_in_flight_reached, j.pipeline_id, j.name,
-				j.resource_checking = true AND j.resource_check_waiver_end < $1
+			SELECT p.paused, j.paused, j.max_in_flight_reached, j.pipeline_id, j.name
 			FROM builds b
 			JOIN jobs j
 				ON b.job_id = j.id
 			JOIN pipelines p
 				ON j.pipeline_id = p.id
 			WHERE b.id = $1
-		`, b.id).Scan(&pausedPipeline, &pausedJob, &maxInFlightReached, &pipelineID, &jobName, &resourceCheckIsRunning)
+		`, b.id).Scan(&pausedPipeline, &pausedJob, &maxInFlightReached, &pipelineID, &jobName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return BuildPreparation{}, false, nil
@@ -606,18 +611,6 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 	maxInFlightReachedStatus := BuildPreparationStatusNotBlocking
 	if maxInFlightReached {
 		maxInFlightReachedStatus = BuildPreparationStatusBlocking
-	}
-
-	if resourceCheckIsRunning {
-		return BuildPreparation{
-			BuildID:             b.id,
-			PausedPipeline:      pausedPipelineStatus,
-			PausedJob:           pausedJobStatus,
-			MaxRunningBuilds:    maxInFlightReachedStatus,
-			Inputs:              map[string]BuildPreparationStatus{},
-			InputsSatisfied:     BuildPreparationStatusUnknown,
-			MissingInputReasons: MissingInputReasons{},
-		}, true, nil
 	}
 
 	tdbf := NewTeamDBFactory(b.conn, b.bus, b.lockFactory)

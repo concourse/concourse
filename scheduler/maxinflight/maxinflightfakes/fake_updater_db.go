@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/scheduler/buildstarter/maxinflight"
+	"github.com/concourse/atc/scheduler/maxinflight"
 )
 
 type FakeUpdaterDB struct {

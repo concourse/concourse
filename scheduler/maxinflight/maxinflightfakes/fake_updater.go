@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/scheduler/buildstarter/maxinflight"
+	"github.com/concourse/atc/scheduler/maxinflight"
 )
 
 type FakeUpdater struct {

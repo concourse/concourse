@@ -2093,6 +2093,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(build.Status()).To(Equal(db.StatusPending))
 				Expect(build.IsScheduled()).To(BeFalse())
 				Expect(build.TeamName()).To(Equal("some-team"))
+				Expect(build.IsManuallyTriggered()).To(BeTrue())
 			})
 		})
 

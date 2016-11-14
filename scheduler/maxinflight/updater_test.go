@@ -7,8 +7,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	"github.com/concourse/atc/scheduler/buildstarter/maxinflight"
-	"github.com/concourse/atc/scheduler/buildstarter/maxinflight/maxinflightfakes"
+	"github.com/concourse/atc/scheduler/maxinflight"
+	"github.com/concourse/atc/scheduler/maxinflight/maxinflightfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

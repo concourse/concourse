@@ -10,11 +10,10 @@ import (
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/scheduler/buildstarter"
-	"github.com/concourse/atc/scheduler/buildstarter/maxinflight"
 	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/scheduler/inputmapper"
 	"github.com/concourse/atc/scheduler/inputmapper/inputconfig"
+	"github.com/concourse/atc/scheduler/maxinflight"
 )
 
 //go:generate counterfeiter . RadarSchedulerFactory
@@ -60,7 +59,7 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, exter
 			pipelineDB,
 			inputconfig.NewTransformer(pipelineDB),
 		),
-		BuildStarter: buildstarter.NewBuildStarter(
+		BuildStarter: scheduler.NewBuildStarter(
 			pipelineDB,
 			maxinflight.NewUpdater(pipelineDB),
 			factory.NewBuildFactory(
