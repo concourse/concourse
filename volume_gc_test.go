@@ -68,10 +68,10 @@ var _ = Describe("A volume that belonged to a container that is now gone", func(
 			Expect(err).ToNot(HaveOccurred())
 
 			var containerNum int
-			err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"build_id": 1}).RunWith(dbConn).QueryRow().Scan(&containerNum)
+			err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": containerIDs}).RunWith(dbConn).QueryRow().Scan(&containerNum)
 			Expect(err).ToNot(HaveOccurred())
 
-			if containerNum > 0 {
+			if containerNum == len(containerIDs) {
 				By(fmt.Sprintf("not expiring volumes so long as their containers are there (%d remaining)", containerNum))
 				Expect(volNum).To(Equal(len(volumeIDs)))
 			}
