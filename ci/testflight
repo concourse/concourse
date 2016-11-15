@@ -7,7 +7,7 @@ chmod +x $CONCOURSE
 
 # start postgres and set up passwordless superuser
 /etc/init.d/postgresql start
-yes "" | sudo su postgres -c "createuser -s -P $(whoami)"
+su postgres -c "createuser -s -P $(whoami)"
 createdb atc
 
 # set up keys
