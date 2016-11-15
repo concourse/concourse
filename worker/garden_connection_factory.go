@@ -46,6 +46,7 @@ func (gcf *gardenConnectionFactory) BuildConnection() gconn.Connection {
 			Logger:         gcf.logger.Session("retryable-http-client"),
 			BackOffFactory: gcf.retryBackOffFactory,
 			RoundTripper:   transport.NewRoundTripper(gcf.workerName, gcf.workerHost, gcf.db, &http.Transport{DisableKeepAlives: true}),
+			Retryer:        &retryhttp.DefaultRetryer{},
 		},
 	}
 
@@ -53,6 +54,7 @@ func (gcf *gardenConnectionFactory) BuildConnection() gconn.Connection {
 		Logger:           gcf.logger.Session("retry-hijackable-client"),
 		BackOffFactory:   gcf.retryBackOffFactory,
 		HijackableClient: transport.NewHijackableClient(gcf.workerName, gcf.db, retryhttp.DefaultHijackableClient),
+		Retryer:          &retryhttp.DefaultRetryer{},
 	}
 
 	// the request generator's address doesn't matter because it's overwritten by the worker lookup clients
