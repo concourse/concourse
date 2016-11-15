@@ -206,12 +206,6 @@ resources:
     repository: ubuntu
     tag: "16.04"
 
-- name: selenium-firefox
-  type: docker-image
-  source:
-    repository: selenium/standalone-firefox
-    tag: 2.53.1
-
 - name: golang-1.x
   type: docker-image
   source:
@@ -340,7 +334,7 @@ jobs:
   - aggregate:
     - get: concourse-atc-ci
       trigger: true
-    - get: selenium-firefox
+    - get: ubuntu-16.04
       trigger: true
       params: {save: true}
     - get: golang-1.x-tarball
@@ -365,7 +359,7 @@ jobs:
           cp golang-1.x-tarball/go* context/
   - put: concourse-atc-ci-image
     params:
-      load_base: selenium-firefox
+      load_base: ubuntu-16.04
       build: context
 
 - name: build-tsa-ci
