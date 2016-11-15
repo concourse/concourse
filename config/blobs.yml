@@ -4,69 +4,69 @@ btrfs/btrfs-tools.tar.gz:
   sha: abdf982cee43881659adc24c3e347b37b65f8530
 golang/golang-linux-amd64.tar.gz:
   size: 82565628
-  object_id: ef1beb24-e5a2-4d33-7bd2-a96593f3b0a2
+  object_id: 441071a2-e294-48ff-7aa3-8ce7429b5e55
   sha: ead40e884ad4d6512bcf7b3c7420dd7fa4a96140
 postgresql/postgresql-9.3.4.tar.gz:
   size: 21865589
   object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
   sha: 9f80b3cfebc434ca0860fc8489923cea73456081
 resources/archive-resource.tar.gz:
-  size: 7495920
-  object_id: 16a68b20-c408-4086-7196-db8b38c28e1a
-  sha: 16e839caa0d176aaff68afde9133f33a5b239077
+  size: 7496207
+  object_id: 8a45ca8b-c26d-42ee-6293-2c83d4633680
+  sha: 8a832eeca53655a413962d2cb4f0d353771983d5
 resources/bosh-deployment-resource.tar.gz:
-  size: 13163928
-  object_id: c236906f-435b-46bb-7254-22cb1a8b183a
-  sha: 6d9bb32078dd1c55a63ad3cf15b418992039ca21
+  size: 13159849
+  object_id: 8a5ab156-84cd-4ade-7296-2fff9c53fda1
+  sha: d4a732d596273b1e5065184bd285d28b08180dd8
 resources/bosh-io-release-resource.tar.gz:
-  size: 5024751
-  object_id: 9ae1a8c2-2dbf-4e37-5a6b-ac2cb9fd43f8
-  sha: b84aa6febea4d2878a5da497806be79e18219e36
+  size: 5025356
+  object_id: fd153bbb-f23d-4a01-558f-05b11d7061ac
+  sha: ca3e2e9146cb49f3260071aff1c32a09b1a47dd5
 resources/bosh-io-stemcell-resource.tar.gz:
-  size: 7687864
-  object_id: 859d2028-081c-465d-79f2-d4b59aa46092
-  sha: 2db506cec6ed8f71ca4de3f872b1b4541a9921cd
+  size: 7701340
+  object_id: 3663d4e8-9d52-4d85-6083-bcfd9b894a83
+  sha: d3ba529adab21ec4fcd94a2c30ab4abc22df09a2
 resources/cf-resource.tar.gz:
-  size: 17891506
-  object_id: 342d29a0-ed4e-4846-6a11-04c851f0fa04
-  sha: 2adff53b1b7f3cbb6507837c73b506de85ba2c4e
+  size: 17893503
+  object_id: 9d60ebaa-19ef-4d22-6378-e9039ccd99fb
+  sha: 20f7a615e1a084d7d50fff1b67b2096485ed5aca
 resources/docker-image-resource.tar.gz:
-  size: 41991151
-  object_id: 1ec72962-1f0a-462c-7fb9-06a6bd8cabbb
-  sha: db0e4656757381ae979a5638eeb720a9ca103134
+  size: 41991207
+  object_id: 1e1585f6-85a3-46ab-77dd-28efc4aae6d2
+  sha: 62f03f94955bfc7ee37a634143a9323af65c2374
 resources/git-resource.tar.gz:
-  size: 15643757
-  object_id: fbb62074-12d6-47ca-5c02-bb2acd2d6ed9
-  sha: b9af52a5d414911d0dc27d922da42a21a845b8c3
+  size: 15643755
+  object_id: 491ad41b-bbb3-446b-758f-a10ac4d623ea
+  sha: 4d72f5b303e42cadcab7b9960d9480432a3ea8c0
 resources/github-release-resource.tar.gz:
-  size: 9971078
-  object_id: 093ca25d-42e1-4ed1-7cf8-5b844db8157f
-  sha: a3b77b92504c1561f3cd1f46831b381eac2dfcc6
+  size: 9968217
+  object_id: 5374f651-147b-49f6-7d23-4c858fc852e1
+  sha: b1165b723af432d8386af997a8e6d4c7d3e09431
 resources/hg-resource.tar.gz:
-  size: 14808860
-  object_id: bd4d3f6a-2986-44de-5502-d1ac2b0f9fe8
-  sha: d2e182b1bf7373c9f88f1756fbb1eb15dd8cd820
+  size: 14811107
+  object_id: e117d00f-ff51-4885-48a9-50ab0a3c1de9
+  sha: 255546e8a14b85c98dd5c06477f22521cec4fe8a
 resources/pool-resource.tar.gz:
-  size: 13021673
-  object_id: d45f35dc-9a18-4cbb-6b04-5bc0e1eb1c28
-  sha: 572ce3082874ebc17feb4ce068f6b198168fe35a
+  size: 13022387
+  object_id: f8b285c9-07de-4117-4b08-2cdfc0630b11
+  sha: 5af3fad8ce2141c5c9daeb75c8cb535a86a89d34
 resources/s3-resource.tar.gz:
-  size: 11720587
-  object_id: bb8a265b-818c-4e43-5f53-c17f962c4e9a
-  sha: d64098bf6742d229745be6e757c73171b9eec8bf
+  size: 11721380
+  object_id: 1b3ed3af-ba06-4bf8-56cc-046fe47e53e3
+  sha: c945114b44b7f191802ea87cd7803c3d96a30d85
 resources/semver-resource.tar.gz:
-  size: 18217261
-  object_id: c9060ede-045c-4b5e-6b54-72a7ea4650d5
-  sha: 7bad02e1cc54191b53ef41428469835640beef3e
+  size: 18219663
+  object_id: 4051a13f-d218-4d48-715e-4ccc92e7e3f6
+  sha: bf11cb74f45855cd8c472ad1e8949be97a2490e3
 resources/time-resource.tar.gz:
-  size: 6100892
-  object_id: 42c32103-35ce-4a62-7b4e-0833dfe4dcc0
-  sha: af98cadf4c6ac3e56752b07140f77d91082bf426
+  size: 6102330
+  object_id: c567762a-1f61-4448-6553-beb5d10d06a7
+  sha: a4a24bb9f11b0529a2ca1ac1055b84ec161a0f9d
 resources/tracker-resource.tar.gz:
-  size: 15577074
-  object_id: fab9510f-fef1-473a-55d5-31d49fbdce8c
-  sha: 744da9b30687dc696ebb577a20c0a4f6808b36d1
+  size: 15577564
+  object_id: 8df0a4c4-8567-47bd-6b46-0c04cd36cc65
+  sha: d49d0074c51bffcfc2ef04225cafd4836e76dbf1
 resources/vagrant-cloud-resource.tar.gz:
-  size: 5026784
-  object_id: c488c6d3-6ca7-4310-73bc-9d5bb8bf7d4b
-  sha: 7fc11251e5d5f12cff6025984737aa7ddadd5cc3
+  size: 5026986
+  object_id: d9cc86ff-f2aa-4b4e-532c-d7f5cecde728
+  sha: 4589c1ef58a85c9f57ae8df9a320b8998ed4cdc1
