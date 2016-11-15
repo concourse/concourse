@@ -1,11 +1,14 @@
-package buildstarter
+package scheduler
 
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/scheduler/buildstarter/maxinflight"
+	"github.com/concourse/atc/scheduler/inputmapper"
+	"github.com/concourse/atc/scheduler/maxinflight"
 )
 
 //go:generate counterfeiter . BuildStarter
@@ -28,6 +31,7 @@ type BuildStarterDB interface {
 	GetJob(job string) (db.SavedJob, bool, error)
 	UpdateBuildToScheduled(int) (bool, error)
 	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
+	LoadVersionsDB() (*algorithm.VersionsDB, error)
 }
 
 //go:generate counterfeiter . BuildStarterBuildsDB
@@ -46,12 +50,16 @@ func NewBuildStarter(
 	db BuildStarterDB,
 	maxInFlightUpdater maxinflight.Updater,
 	factory BuildFactory,
+	scanner Scanner,
+	inputMapper inputmapper.InputMapper,
 	execEngine engine.Engine,
 ) BuildStarter {
 	return &buildStarter{
 		db:                 db,
 		maxInFlightUpdater: maxInFlightUpdater,
 		factory:            factory,
+		scanner:            scanner,
+		inputMapper:        inputMapper,
 		execEngine:         execEngine,
 	}
 }
@@ -61,6 +69,8 @@ type buildStarter struct {
 	maxInFlightUpdater maxinflight.Updater
 	factory            BuildFactory
 	execEngine         engine.Engine
+	scanner            Scanner
+	inputMapper        inputmapper.InputMapper
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
@@ -95,6 +105,32 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		"build-id":   nextPendingBuild.ID(),
 		"build-name": nextPendingBuild.Name(),
 	})
+
+	if nextPendingBuild.IsManuallyTriggered() {
+		jobBuildInputs := config.JobInputs(jobConfig)
+		for _, input := range jobBuildInputs {
+			scanLog := logger.Session("scan", lager.Data{
+				"input":    input.Name,
+				"resource": input.Resource,
+			})
+
+			err := s.scanner.Scan(scanLog, input.Resource)
+			if err != nil {
+				return false, err
+			}
+		}
+
+		versions, err := s.db.LoadVersionsDB()
+		if err != nil {
+			logger.Error("failed-to-load-versions-db", err)
+			return false, err
+		}
+
+		_, err = s.inputMapper.SaveNextInputMapping(logger, versions, jobConfig)
+		if err != nil {
+			return false, err
+		}
+	}
 
 	reachedMaxInFlight, err := s.maxInFlightUpdater.UpdateMaxInFlightReached(logger, jobConfig, nextPendingBuild.ID())
 	if err != nil {
