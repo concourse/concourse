@@ -306,6 +306,20 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	}
 	defer tx.Rollback()
 
+	// cache can be:
+	// - latest image resource version
+	// - still in use
+	// - next build input
+	// if none of the above, delete
+
+	// full db  - cache no in use? -> {id}
+	// {id} - cache next build will use - > remove ids {id}
+	// {id} - cache lastest image resource version - > remove ids {id}
+	// delete {id}
+
+	// keep {id} as a []int in the go code
+	// as opposed to a subquery?
+
 	latestBuildByJobQ, _, err := sq.
 		Select("MAX(b.id) AS build_id", "j.id AS job_id").
 		From("builds b").
@@ -326,7 +340,7 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		Join("(" + latestBuildByJobQ + ") lbbj ON irv.build_id = lbbj.build_id").
 		JoinClause("INNER JOIN resource_config_uses rfu ON rfu.build_id = irv.build_id").
 		JoinClause("INNER JOIN resource_caches rc ON rc.resource_config_id = rfu.resource_config_id").
-		Where(sq.Expr("rc.params_hash IS NULL")).
+		Where(sq.Expr("rc.params_hash = 'null'")).
 		Where(sq.Expr("irv.version = rc.version")).
 		ToSql()
 	if err != nil {
@@ -344,35 +358,12 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 
 	_, err = sq.Delete("resource_caches").
 		Where("id NOT IN (" + extractedCacheIds + ")").
+		//Where("id NOT IN cachesForNextBuilds").
+		//Where("id NOT IN cachesInUseIDs").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(tx).Exec()
-
-	// fmt.Printf(thing)
-
-	// fmt.Printf(latestImageResourceVersionCachesQ)
-	//
-	//
-	// DELETE FROM resource_caches c
-	// WHERE NOT EXISTS (
-	// SELECT irv.version, rfu.resource_config_id, foo.jid, rc.id
-	// FROM image_resource_versions irv
-	// JOIN (SELECT MAX(b.id) as bid, j.id as jid FROM builds b
-	// JOIN jobs j ON j.id = b.job_id
-	// GROUP BY j.id) foo ON foo.bid = irv.build_id
-	// INNER JOIN resource_config_uses rfu ON rfu.build_id = irv.build_id
-	// INNER JOIN resource_caches rc ON rc.resource_config_id = rfu.resource_config_id
-	// WHERE rc.version = irv.version AND rc.id = c.id AND c.params_hash IS NULL)
-
-	// _, err = psql.Delete("resource_cache_uses rcu USING resources r").
-	// 	Where(sq.And{
-	// 		sq.Expr("rcu.resource_id = r.id"),
-	// 		sq.Eq{
-	// 			"r.active": false,
-	// 		},
-	// 	}).
-	// 	RunWith(tx).
-	// 	Exec()
 	if err != nil {
+		//TODO handle fkey constraint cleanly?
 		return err
 	}
 
