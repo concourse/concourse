@@ -257,6 +257,7 @@ func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
 		if err != nil {
 			if count != 2 {
 				fmt.Println("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
+				continue
 			}
 
 			errorChannel <- err
