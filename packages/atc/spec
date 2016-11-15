@@ -68,11 +68,10 @@ files:
   - github.com/concourse/atc/radar/*.go # gosub
   - github.com/concourse/atc/resource/*.go # gosub
   - github.com/concourse/atc/scheduler/*.go # gosub
-  - github.com/concourse/atc/scheduler/buildstarter/*.go # gosub
-  - github.com/concourse/atc/scheduler/buildstarter/maxinflight/*.go # gosub
   - github.com/concourse/atc/scheduler/factory/*.go # gosub
   - github.com/concourse/atc/scheduler/inputmapper/*.go # gosub
   - github.com/concourse/atc/scheduler/inputmapper/inputconfig/*.go # gosub
+  - github.com/concourse/atc/scheduler/maxinflight/*.go # gosub
   - github.com/concourse/atc/web/*.go # gosub
   - github.com/concourse/atc/web/publichandler/*.go # gosub
   - github.com/concourse/atc/web/robotstxt/*.go # gosub
