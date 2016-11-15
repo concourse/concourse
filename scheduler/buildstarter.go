@@ -106,6 +106,14 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		"build-name": nextPendingBuild.Name(),
 	})
 
+	reachedMaxInFlight, err := s.maxInFlightUpdater.UpdateMaxInFlightReached(logger, jobConfig, nextPendingBuild.ID())
+	if err != nil {
+		return false, err
+	}
+	if reachedMaxInFlight {
+		return false, nil
+	}
+
 	if nextPendingBuild.IsManuallyTriggered() {
 		jobBuildInputs := config.JobInputs(jobConfig)
 		for _, input := range jobBuildInputs {
@@ -130,14 +138,6 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		if err != nil {
 			return false, err
 		}
-	}
-
-	reachedMaxInFlight, err := s.maxInFlightUpdater.UpdateMaxInFlightReached(logger, jobConfig, nextPendingBuild.ID())
-	if err != nil {
-		return false, err
-	}
-	if reachedMaxInFlight {
-		return false, nil
 	}
 
 	buildInputs, found, err := s.db.GetNextBuildInputs(nextPendingBuild.JobName())
