@@ -40,6 +40,8 @@ type ResourceCacheFactory interface {
 	CleanUsesForFinishedBuilds() error
 	CleanUsesForInactiveResourceTypes() error
 	CleanUsesForInactiveResources() error
+
+	CleanUpInvalidCaches() error
 }
 
 type resourceCacheFactory struct {
@@ -285,6 +287,91 @@ func (f *resourceCacheFactory) CleanUsesForInactiveResources() error {
 		}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	latestBuildByJobQ, _, err := sq.
+		Select("MAX(b.id) AS build_id", "j.id AS job_id").
+		From("builds b").
+		Join("jobs j ON j.id = b.job_id").
+		GroupBy("j.id").ToSql()
+	if err != nil {
+		return err
+	}
+
+	latestImageResourceVersionsQ, _, err := sq.
+		Select("irv.version",
+			"rfu.resource_config_id",
+			"lbbj.build_id",
+			"lbbj.job_id",
+			"rc.id AS cache_id",
+			"rc.params_hash").
+		From("image_resource_versions irv").
+		Join("(" + latestBuildByJobQ + ") lbbj ON irv.build_id = lbbj.build_id").
+		JoinClause("INNER JOIN resource_config_uses rfu ON rfu.build_id = irv.build_id").
+		JoinClause("INNER JOIN resource_caches rc ON rc.resource_config_id = rfu.resource_config_id").
+		Where(sq.Expr("rc.params_hash IS NULL")).
+		Where(sq.Expr("irv.version = rc.version")).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	extractedCacheIds, _, err := sq.
+		Select("lirvcq.cache_id").
+		Distinct().
+		From("(" + latestImageResourceVersionsQ + ") as lirvcq").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = sq.Delete("resource_caches").
+		Where("id NOT IN (" + extractedCacheIds + ")").
+		PlaceholderFormat(sq.Dollar).
+		RunWith(tx).Exec()
+
+	// fmt.Printf(thing)
+
+	// fmt.Printf(latestImageResourceVersionCachesQ)
+	//
+	//
+	// DELETE FROM resource_caches c
+	// WHERE NOT EXISTS (
+	// SELECT irv.version, rfu.resource_config_id, foo.jid, rc.id
+	// FROM image_resource_versions irv
+	// JOIN (SELECT MAX(b.id) as bid, j.id as jid FROM builds b
+	// JOIN jobs j ON j.id = b.job_id
+	// GROUP BY j.id) foo ON foo.bid = irv.build_id
+	// INNER JOIN resource_config_uses rfu ON rfu.build_id = irv.build_id
+	// INNER JOIN resource_caches rc ON rc.resource_config_id = rfu.resource_config_id
+	// WHERE rc.version = irv.version AND rc.id = c.id AND c.params_hash IS NULL)
+
+	// _, err = psql.Delete("resource_cache_uses rcu USING resources r").
+	// 	Where(sq.And{
+	// 		sq.Expr("rcu.resource_id = r.id"),
+	// 		sq.Eq{
+	// 			"r.active": false,
+	// 		},
+	// 	}).
+	// 	RunWith(tx).
+	// 	Exec()
 	if err != nil {
 		return err
 	}

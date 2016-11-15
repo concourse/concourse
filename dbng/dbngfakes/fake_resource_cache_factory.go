@@ -71,6 +71,12 @@ type FakeResourceCacheFactory struct {
 	cleanUsesForInactiveResourcesReturns     struct {
 		result1 error
 	}
+	CleanUpInvalidCachesStub        func() error
+	cleanUpInvalidCachesMutex       sync.RWMutex
+	cleanUpInvalidCachesArgsForCall []struct{}
+	cleanUpInvalidCachesReturns     struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -269,6 +275,31 @@ func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourcesReturns(resul
 	}{result1}
 }
 
+func (fake *FakeResourceCacheFactory) CleanUpInvalidCaches() error {
+	fake.cleanUpInvalidCachesMutex.Lock()
+	fake.cleanUpInvalidCachesArgsForCall = append(fake.cleanUpInvalidCachesArgsForCall, struct{}{})
+	fake.recordInvocation("CleanUpInvalidCaches", []interface{}{})
+	fake.cleanUpInvalidCachesMutex.Unlock()
+	if fake.CleanUpInvalidCachesStub != nil {
+		return fake.CleanUpInvalidCachesStub()
+	} else {
+		return fake.cleanUpInvalidCachesReturns.result1
+	}
+}
+
+func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesCallCount() int {
+	fake.cleanUpInvalidCachesMutex.RLock()
+	defer fake.cleanUpInvalidCachesMutex.RUnlock()
+	return len(fake.cleanUpInvalidCachesArgsForCall)
+}
+
+func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesReturns(result1 error) {
+	fake.CleanUpInvalidCachesStub = nil
+	fake.cleanUpInvalidCachesReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -284,6 +315,8 @@ func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	defer fake.cleanUsesForInactiveResourceTypesMutex.RUnlock()
 	fake.cleanUsesForInactiveResourcesMutex.RLock()
 	defer fake.cleanUsesForInactiveResourcesMutex.RUnlock()
+	fake.cleanUpInvalidCachesMutex.RLock()
+	defer fake.cleanUpInvalidCachesMutex.RUnlock()
 	return fake.invocations
 }
 

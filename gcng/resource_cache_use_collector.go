@@ -5,27 +5,32 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-type ResourceCacheUseCollector interface {
+type ResourceCacheCollector interface {
 	Run() error
 }
 
-type resourceCacheUseCollector struct {
+type resourceCacheCollector struct {
 	logger       lager.Logger
 	cacheFactory dbng.ResourceCacheFactory
 }
 
-func NewResourceCacheUseCollector(
+func NewResourceCacheCollector(
 	logger lager.Logger,
 	cacheFactory dbng.ResourceCacheFactory,
-) ResourceCacheUseCollector {
-	return &resourceCacheUseCollector{
+) ResourceCacheCollector {
+	return &resourceCacheCollector{
 		logger:       logger.Session("resource-cache-use-collector"),
 		cacheFactory: cacheFactory,
 	}
 }
 
-func (rcuc *resourceCacheUseCollector) Run() error {
+func (rcuc *resourceCacheCollector) Run() error {
 	err := rcuc.cleanUses()
+	if err != nil {
+		return err
+	}
+
+	err = rcuc.cleanCaches()
 	if err != nil {
 		return err
 	}
@@ -33,7 +38,7 @@ func (rcuc *resourceCacheUseCollector) Run() error {
 	return nil
 }
 
-func (rcuc *resourceCacheUseCollector) cleanUses() error {
+func (rcuc *resourceCacheCollector) cleanUses() error {
 	err := rcuc.cacheFactory.CleanUsesForFinishedBuilds()
 	if err != nil {
 		rcuc.logger.Error("unable-to-clean-up-for-builds", err)
@@ -53,4 +58,8 @@ func (rcuc *resourceCacheUseCollector) cleanUses() error {
 	}
 
 	return nil
+}
+
+func (rcuc *resourceCacheCollector) cleanCaches() error {
+	return rcuc.cacheFactory.CleanUpInvalidCaches()
 }
