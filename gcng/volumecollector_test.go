@@ -7,8 +7,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/gcng"
-	"github.com/concourse/atc/worker"
-	"github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/atc/gcng/gcngfakes"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,15 +18,14 @@ var _ = Describe("VolumeCollector", func() {
 	var (
 		volumeCollector gcng.VolumeCollector
 
-		dbConn           dbng.Conn
-		volumeFactory    dbng.VolumeFactory
-		containerFactory *dbng.ContainerFactory
-		teamFactory      dbng.TeamFactory
-		workerFactory    dbng.WorkerFactory
-		buildFactory     *dbng.BuildFactory
-		fakeWorkerClient *workerfakes.FakeClient
-		fakeWorker       *workerfakes.FakeWorker
-		fakeBCVolume     *workerfakes.FakeVolume
+		dbConn                 dbng.Conn
+		volumeFactory          dbng.VolumeFactory
+		containerFactory       *dbng.ContainerFactory
+		teamFactory            dbng.TeamFactory
+		workerFactory          dbng.WorkerFactory
+		buildFactory           *dbng.BuildFactory
+		fakeBCVolume           *baggageclaimfakes.FakeVolume
+		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
 	)
 
 	BeforeEach(func() {
@@ -39,18 +38,18 @@ var _ = Describe("VolumeCollector", func() {
 		buildFactory = dbng.NewBuildFactory(dbConn)
 		workerFactory = dbng.NewWorkerFactory(dbConn)
 
-		fakeWorkerClient = new(workerfakes.FakeClient)
-		fakeWorker = new(workerfakes.FakeWorker)
-		fakeWorker.NameReturns("some-worker")
-		fakeBCVolume = new(workerfakes.FakeVolume)
-		fakeWorker.LookupVolumeReturns(fakeBCVolume, true, nil)
-		fakeWorkerClient.WorkersReturns([]worker.Worker{fakeWorker}, nil)
+		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
+		fakeBaggageclaimClientFactory := new(gcngfakes.FakeBaggageclaimClientFactory)
+		fakeBaggageclaimClientFactory.NewClientReturns(fakeBaggageclaimClient)
+
+		fakeBCVolume = new(baggageclaimfakes.FakeVolume)
+		fakeBaggageclaimClient.LookupVolumeReturns(fakeBCVolume, true, nil)
 
 		logger := lagertest.NewTestLogger("volume-collector")
 		volumeCollector = gcng.NewVolumeCollector(
 			logger,
 			volumeFactory,
-			fakeWorkerClient,
+			fakeBaggageclaimClientFactory,
 		)
 	})
 
@@ -68,8 +67,9 @@ var _ = Describe("VolumeCollector", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			worker, err := workerFactory.SaveWorker(atc.Worker{
-				Name:       "some-worker",
-				GardenAddr: "1.2.3.4:7777",
+				Name:            "some-worker",
+				GardenAddr:      "1.2.3.4:7777",
+				BaggageclaimURL: "1.2.3.4:7788",
 			}, 5*time.Minute)
 			Expect(err).ToNot(HaveOccurred())
 

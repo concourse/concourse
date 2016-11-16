@@ -245,7 +245,7 @@ func (factory *volumeFactory) FindCreatedVolume(handle string) (CreatedVolume, b
 }
 
 func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error) {
-	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr").
+	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr, w.baggageclaim_url").
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
 		Where(sq.Eq{
@@ -274,8 +274,9 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 		var state string
 		var workerName string
 		var workerAddress sql.NullString
+		var workerBaggageclaimURL sql.NullString
 
-		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress)
+		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress, &workerBaggageclaimURL)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -290,6 +291,11 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 			workerAddrString = workerAddress.String
 		}
 
+		var workerBaggageclaimURLString string
+		if workerBaggageclaimURL.Valid {
+			workerBaggageclaimURLString = workerBaggageclaimURL.String
+		}
+
 		switch state {
 		case VolumeStateCreated:
 			createdVolumes = append(createdVolumes, &createdVolume{
@@ -297,8 +303,9 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 				handle: handle,
 				path:   pathString,
 				worker: &Worker{
-					Name:       workerName,
-					GardenAddr: &workerAddrString,
+					Name:            workerName,
+					GardenAddr:      &workerAddrString,
+					BaggageclaimURL: workerBaggageclaimURLString,
 				},
 				conn: factory.conn,
 			})
@@ -307,8 +314,9 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 				id:     id,
 				handle: handle,
 				worker: &Worker{
-					Name:       workerName,
-					GardenAddr: &workerAddrString,
+					Name:            workerName,
+					GardenAddr:      &workerAddrString,
+					BaggageclaimURL: workerBaggageclaimURLString,
 				},
 				conn: factory.conn,
 			})

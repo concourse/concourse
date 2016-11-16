@@ -38,8 +38,9 @@ var _ = Describe("VolumeFactory", func() {
 
 		workerFactory := dbng.NewWorkerFactory(dbConn)
 		worker, err = workerFactory.SaveWorker(atc.Worker{
-			Name:       "some-worker",
-			GardenAddr: "1.2.3.4:7777",
+			Name:            "some-worker",
+			GardenAddr:      "1.2.3.4:7777",
+			BaggageclaimURL: "1.2.3.4:7788",
 		}, 5*time.Minute)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -197,12 +198,14 @@ var _ = Describe("VolumeFactory", func() {
 			createdHandles := []string{}
 			for _, vol := range createdVolumes {
 				createdHandles = append(createdHandles, vol.Handle())
+				Expect(vol.Worker().BaggageclaimURL).To(Equal("1.2.3.4:7788"))
 			}
 			Expect(createdHandles).To(Equal(expectedCreatedHandles))
 
 			destoryingHandles := []string{}
 			for _, vol := range destoryingVolumes {
 				destoryingHandles = append(destoryingHandles, vol.Handle())
+				Expect(vol.Worker().BaggageclaimURL).To(Equal("1.2.3.4:7788"))
 			}
 			Expect(destoryingHandles).To(Equal(destoryingHandles))
 		})

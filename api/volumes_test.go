@@ -80,19 +80,19 @@ var _ = Describe("Volumes API", func() {
 
 							volume1 := new(dbngfakes.FakeCreatedVolume)
 							volume1.HandleReturns("some-resource-cache-handle")
-							volume1.WorkerNameReturns("some-worker")
+							volume1.WorkerReturns(&dbng.Worker{Name: "some-worker"})
 							volume1.SizeInBytesReturns(1024)
 							volume2 := new(dbngfakes.FakeCreatedVolume)
 							volume2.HandleReturns("some-import-handle")
-							volume2.WorkerNameReturns("some-worker")
+							volume2.WorkerReturns(&dbng.Worker{Name: "some-worker"})
 							volume2.SizeInBytesReturns(2048)
 							volume3 := new(dbngfakes.FakeCreatedVolume)
 							volume3.HandleReturns("some-output-handle")
-							volume3.WorkerNameReturns("some-other-worker")
+							volume3.WorkerReturns(&dbng.Worker{Name: "some-other-worker"})
 							volume3.SizeInBytesReturns(4096)
 							volume4 := new(dbngfakes.FakeCreatedVolume)
 							volume4.HandleReturns("some-cow-handle")
-							volume4.WorkerNameReturns("some-worker")
+							volume4.WorkerReturns(&dbng.Worker{Name: "some-worker"})
 							volume4.SizeInBytesReturns(8192)
 
 							return []dbng.CreatedVolume{

@@ -350,7 +350,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			gcng.NewVolumeCollector(
 				logger.Session("volume-collector"),
 				dbVolumeFactory,
-				workerClient,
+				gcng.NewBaggageclaimClientFactory(),
 			),
 			"volume-collector",
 			sqlDB,
@@ -373,7 +373,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		{"workercollector", lockrunner.NewRunner(
 			logger.Session("worker-collector"),
 			gcng.NewWorkerCollector(
-				logger.Session("volume-collector"),
+				logger.Session("worker-collector"),
 				dbWorkerFactory,
 			),
 			"worker-collector",

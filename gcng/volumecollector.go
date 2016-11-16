@@ -3,7 +3,7 @@ package gcng
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/worker"
+	bclient "github.com/concourse/baggageclaim/client"
 )
 
 type VolumeCollector interface {
@@ -11,35 +11,40 @@ type VolumeCollector interface {
 }
 
 type volumeCollector struct {
-	logger        lager.Logger
-	volumeFactory dbng.VolumeFactory
-	workerClient  worker.Client
+	logger                    lager.Logger
+	volumeFactory             dbng.VolumeFactory
+	baggageclaimClientFactory BaggageclaimClientFactory
+}
+
+//go:generate counterfeiter . BaggageclaimClientFactory
+
+type BaggageclaimClientFactory interface {
+	NewClient(apiURL string) bclient.Client
+}
+
+type baggageclaimClientFactory struct{}
+
+func NewBaggageclaimClientFactory() BaggageclaimClientFactory {
+	return &baggageclaimClientFactory{}
+}
+
+func (f *baggageclaimClientFactory) NewClient(apiURL string) bclient.Client {
+	return bclient.New(apiURL)
 }
 
 func NewVolumeCollector(
 	logger lager.Logger,
 	volumeFactory dbng.VolumeFactory,
-	workerClient worker.Client,
+	baggageclaimClientFactory BaggageclaimClientFactory,
 ) VolumeCollector {
 	return &volumeCollector{
-		logger:        logger,
-		volumeFactory: volumeFactory,
-		workerClient:  workerClient,
+		logger:                    logger,
+		volumeFactory:             volumeFactory,
+		baggageclaimClientFactory: baggageclaimClientFactory,
 	}
 }
 
 func (vc *volumeCollector) Run() error {
-	workers, err := vc.workerClient.Workers()
-	if err != nil {
-		vc.logger.Error("failed-to-get-workers", err)
-		return err
-	}
-
-	workersMap := map[string]worker.Worker{}
-	for _, worker := range workers {
-		workersMap[worker.Name()] = worker
-	}
-
 	createdVolumes, destroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
 	if err != nil {
 		vc.logger.Error("failed-to-get-orphaned-volumes", err)
@@ -62,23 +67,18 @@ func (vc *volumeCollector) Run() error {
 			"worker": destroyingVolume.Worker().Name,
 		})
 
-		volumeWorker, ok := workersMap[destroyingVolume.Worker().Name]
-		if !ok {
-			vLog.Info("could-not-locate-worker")
-			continue
-		}
-
-		volume, found, err := volumeWorker.LookupVolume(vc.logger, destroyingVolume.Handle())
+		baggageclaimClient := vc.baggageclaimClientFactory.NewClient(destroyingVolume.Worker().BaggageclaimURL)
+		volume, found, err := baggageclaimClient.LookupVolume(vc.logger, destroyingVolume.Handle())
 		if err != nil {
-			vLog.Error("failed-to-lookup-volume", err)
+			vLog.Error("failed-to-lookup-volume-in-baggageclaim", err)
 			continue
 		}
 
 		if found {
-			vLog.Debug("destroying-worker-volume")
+			vLog.Debug("destroying-baggageclaim-volume")
 			volume.Destroy()
 		} else {
-			vLog.Debug("volume-already-removed-from-worker")
+			vLog.Debug("volume-already-removed-from-baggageclaim")
 		}
 
 		vLog.Debug("destroying-db-volume")

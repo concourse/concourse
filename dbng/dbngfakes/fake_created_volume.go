@@ -37,11 +37,11 @@ type FakeCreatedVolume struct {
 		result1 dbng.DestroyingVolume
 		result2 error
 	}
-	WorkerNameStub        func() string
-	workerNameMutex       sync.RWMutex
-	workerNameArgsForCall []struct{}
-	workerNameReturns     struct {
-		result1 string
+	WorkerStub        func() *dbng.Worker
+	workerMutex       sync.RWMutex
+	workerArgsForCall []struct{}
+	workerReturns     struct {
+		result1 *dbng.Worker
 	}
 	SizeInBytesStub        func() int64
 	sizeInBytesMutex       sync.RWMutex
@@ -177,28 +177,28 @@ func (fake *FakeCreatedVolume) DestroyingReturns(result1 dbng.DestroyingVolume, 
 	}{result1, result2}
 }
 
-func (fake *FakeCreatedVolume) WorkerName() string {
-	fake.workerNameMutex.Lock()
-	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct{}{})
-	fake.recordInvocation("WorkerName", []interface{}{})
-	fake.workerNameMutex.Unlock()
-	if fake.WorkerNameStub != nil {
-		return fake.WorkerNameStub()
+func (fake *FakeCreatedVolume) Worker() *dbng.Worker {
+	fake.workerMutex.Lock()
+	fake.workerArgsForCall = append(fake.workerArgsForCall, struct{}{})
+	fake.recordInvocation("Worker", []interface{}{})
+	fake.workerMutex.Unlock()
+	if fake.WorkerStub != nil {
+		return fake.WorkerStub()
 	} else {
-		return fake.workerNameReturns.result1
+		return fake.workerReturns.result1
 	}
 }
 
-func (fake *FakeCreatedVolume) WorkerNameCallCount() int {
-	fake.workerNameMutex.RLock()
-	defer fake.workerNameMutex.RUnlock()
-	return len(fake.workerNameArgsForCall)
+func (fake *FakeCreatedVolume) WorkerCallCount() int {
+	fake.workerMutex.RLock()
+	defer fake.workerMutex.RUnlock()
+	return len(fake.workerArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) WorkerNameReturns(result1 string) {
-	fake.WorkerNameStub = nil
-	fake.workerNameReturns = struct {
-		result1 string
+func (fake *FakeCreatedVolume) WorkerReturns(result1 *dbng.Worker) {
+	fake.WorkerStub = nil
+	fake.workerReturns = struct {
+		result1 *dbng.Worker
 	}{result1}
 }
 
@@ -289,8 +289,8 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.createChildForContainerMutex.RUnlock()
 	fake.destroyingMutex.RLock()
 	defer fake.destroyingMutex.RUnlock()
-	fake.workerNameMutex.RLock()
-	defer fake.workerNameMutex.RUnlock()
+	fake.workerMutex.RLock()
+	defer fake.workerMutex.RUnlock()
 	fake.sizeInBytesMutex.RLock()
 	defer fake.sizeInBytesMutex.RUnlock()
 	fake.initializeMutex.RLock()

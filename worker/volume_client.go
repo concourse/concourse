@@ -203,27 +203,6 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 	return NewVolume(bcVolume, dbVolume), true, nil
 }
 
-func (c *volumeClient) expireVolume(logger lager.Logger, handle string) error { // TODO consider removing this method?
-	logger.Info("expiring")
-
-	wVol, found, err := c.LookupVolume(logger, handle)
-	if err != nil {
-		logger.Error("failed-to-look-up-volume", err)
-		return err
-	}
-
-	if !found {
-		logger.Debug("volume-already-gone")
-		return nil
-	}
-
-	logger.Debug("releasing a volume " + handle + " [super logs]")
-
-	wVol.Destroy()
-
-	return nil
-}
-
 func (c *volumeClient) findOrCreateVolume(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
