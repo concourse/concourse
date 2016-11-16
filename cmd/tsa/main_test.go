@@ -923,7 +923,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 						})
 
 						It("exits with failure", func() {
-							Eventually(tsaRunner.Buffer()).Should(gbytes.Say("500"))
+							Eventually(tsaRunner.Buffer()).Should(gbytes.Say("404"))
 							Eventually(sshSess, 3).Should(gexec.Exit(1))
 							Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
 						})
