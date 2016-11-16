@@ -125,6 +125,8 @@ var _ = Describe("Heartbeater", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				heartbeated <- registration{worker, ttl}
+
+				json.NewEncoder(w).Encode(atc.Worker{})
 			},
 		)
 
@@ -208,6 +210,43 @@ var _ = Describe("Heartbeater", func() {
 				fakeClock.WaitForWatcherAndIncrement(interval)
 				expectedWorker.ActiveContainers = 5
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
+			})
+		})
+
+		Context("when heartbeat returns worker is landed", func() {
+			BeforeEach(func() {
+				heartbeated := make(chan registration, 100)
+				heartbeats = heartbeated
+
+				fakeATC.AppendHandlers(verifyRegister, ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", "/api/v1/workers/some-name/heartbeat"),
+					func(w http.ResponseWriter, r *http.Request) {
+						var worker atc.Worker
+						Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
+
+						err := json.NewDecoder(r.Body).Decode(&worker)
+						Expect(err).NotTo(HaveOccurred())
+
+						ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+						Expect(err).NotTo(HaveOccurred())
+
+						heartbeated <- registration{worker, ttl}
+
+						json.NewEncoder(w).Encode(atc.Worker{
+							State: "landed",
+						})
+					},
+				))
+			})
+
+			It("exits heartbeater with no error", func() {
+				Expect(registrations).To(Receive())
+
+				fakeClock.WaitForWatcherAndIncrement(interval)
+				Eventually(heartbeats).Should(Receive())
+
+				err := <-heartbeater.Wait()
+				Expect(err).To(BeNil())
 			})
 		})
 

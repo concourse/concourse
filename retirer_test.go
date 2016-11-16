@@ -12,9 +12,9 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-var _ = Describe("Lander", func() {
+var _ = Describe("Retirer", func() {
 	var (
-		lander *tsa.Lander
+		retirer *tsa.Retirer
 
 		logger             *lagertest.TestLogger
 		worker             atc.Worker
@@ -34,7 +34,7 @@ var _ = Describe("Lander", func() {
 
 		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
 
-		lander = &tsa.Lander{
+		retirer = &tsa.Retirer{
 			ATCEndpoint:    atcEndpoint,
 			TokenGenerator: fakeTokenGenerator,
 		}
@@ -44,14 +44,14 @@ var _ = Describe("Lander", func() {
 		fakeATC.Close()
 	})
 
-	It("tells the ATC to land the worker", func() {
+	It("tells the ATC to retire the worker", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
-			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
 			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 			ghttp.RespondWith(200, nil, nil),
 		))
 
-		err := lander.Land(logger, worker)
+		err := retirer.Retire(logger, worker)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
@@ -60,30 +60,29 @@ var _ = Describe("Lander", func() {
 	Context("when the ATC responds with a 404", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
 				ghttp.RespondWith(404, nil, nil),
 			))
 		})
 
-		It("errors", func() {
-			err := lander.Land(logger, worker)
-			Expect(err).To(HaveOccurred())
+		It("exits successfully", func() {
+			err := retirer.Retire(logger, worker)
+			Expect(err).NotTo(HaveOccurred())
 
-			Expect(err).To(MatchError(ContainSubstring("404")))
 			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
 		})
 	})
 
-	Context("when the ATC fails to land the worker", func() {
+	Context("when the ATC does not respond to retire the worker", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
 				ghttp.RespondWith(500, nil, nil),
 			))
 		})
 
 		It("errors", func() {
-			err := lander.Land(logger, worker)
+			err := retirer.Retire(logger, worker)
 			Expect(err).To(HaveOccurred())
 
 			Expect(err).To(MatchError(ContainSubstring("500")))

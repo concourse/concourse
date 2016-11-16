@@ -159,6 +159,22 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 
 				break dance
 
+			case retireWorkerRequest:
+				logger := logger.Session("retire-worker")
+
+				req.Reply(true, nil)
+
+				logger.RegisterSink(lager.NewWriterSink(channel, lager.DEBUG))
+				err := server.retireWorker(logger, channel, sessionID)
+				if err != nil {
+					logger.Error("failed-to-retire-worker", err)
+					channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{1}))
+				} else {
+					channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
+				}
+
+				break dance
+
 			case registerWorkerRequest:
 				logger := logger.Session("register-worker")
 
@@ -308,6 +324,28 @@ func (server *registrarSSHServer) landWorker(
 		ATCEndpoint:    server.atcEndpoint,
 		TokenGenerator: server.tokenGenerator,
 	}).Land(logger, worker)
+}
+
+func (server *registrarSSHServer) retireWorker(
+	logger lager.Logger,
+	channel ssh.Channel,
+	sessionID string,
+) error {
+	var worker atc.Worker
+	err := json.NewDecoder(channel).Decode(&worker)
+	if err != nil {
+		return err
+	}
+
+	err = server.validateWorkerTeam(logger, sessionID, worker)
+	if err != nil {
+		return err
+	}
+
+	return (&tsa.Retirer{
+		ATCEndpoint:    server.atcEndpoint,
+		TokenGenerator: server.tokenGenerator,
+	}).Retire(logger, worker)
 }
 
 func (server *registrarSSHServer) validateWorkerTeam(
