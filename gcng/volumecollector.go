@@ -76,7 +76,11 @@ func (vc *volumeCollector) Run() error {
 
 		if found {
 			vLog.Debug("destroying-baggageclaim-volume")
-			volume.Destroy()
+			err := volume.Destroy()
+			if err != nil {
+				vLog.Error("failed-to-destroy-baggageclaim-volume", err)
+				continue
+			}
 		} else {
 			vLog.Debug("volume-already-removed-from-baggageclaim")
 		}
