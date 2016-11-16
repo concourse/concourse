@@ -56,6 +56,7 @@ const (
 
 	RegisterWorker  = "RegisterWorker"
 	LandWorker      = "LandWorker"
+	RetireWorker    = "RetireWorker"
 	HeartbeatWorker = "HeartbeatWorker"
 	ListWorkers     = "ListWorkers"
 
@@ -135,6 +136,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
 	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
 	{Path: "/api/v1/workers/:worker_name/land", Method: "PUT", Name: LandWorker},
+	{Path: "/api/v1/workers/:worker_name/retire", Method: "PUT", Name: RetireWorker},
 	{Path: "/api/v1/workers/:worker_name/heartbeat", Method: "PUT", Name: HeartbeatWorker},
 
 	{Path: "/api/v1/log-level", Method: "GET", Name: GetLogLevel},

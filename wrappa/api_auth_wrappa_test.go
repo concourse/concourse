@@ -200,6 +200,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.RegisterWorker:  authenticated(inputHandlers[atc.RegisterWorker]),
 				atc.HeartbeatWorker: authenticated(inputHandlers[atc.HeartbeatWorker]),
 				atc.LandWorker:      authenticated(inputHandlers[atc.LandWorker]),
+				atc.RetireWorker:    authenticated(inputHandlers[atc.RetireWorker]),
 
 				atc.SetTeam:     authenticated(inputHandlers[atc.SetTeam]),
 				atc.DestroyTeam: authenticated(inputHandlers[atc.DestroyTeam]),

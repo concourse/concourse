@@ -6,11 +6,11 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) LandWorker(w http.ResponseWriter, r *http.Request) {
-	logger := s.logger.Session("landing-worker")
+func (s *Server) RetireWorker(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("retiring-worker")
 	workerName := r.FormValue(":worker_name")
 
-	_, err := s.dbWorkerFactory.LandWorker(workerName)
+	_, err := s.dbWorkerFactory.RetireWorker(workerName)
 	if err == dbng.ErrWorkerNotPresent {
 		logger.Error("failed-to-find-worker", err)
 		w.WriteHeader(http.StatusNotFound)
@@ -18,7 +18,7 @@ func (s *Server) LandWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		logger.Error("failed-to-land-worker", err)
+		logger.Error("failed-to-retire-worker", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

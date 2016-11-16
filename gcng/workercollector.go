@@ -35,9 +35,15 @@ func (wc *workerCollector) Run() error {
 
 	wc.logger.Debug(fmt.Sprintf("stalled-%d-workers", len(affected)), lager.Data{"stalled-workers": affected})
 
-	err = wc.workerFactory.DeleteFinishedLandingWorkers()
+	err = wc.workerFactory.DeleteFinishedRetiringWorkers()
 	if err != nil {
-		wc.logger.Error("failed-to-delete-finished-landing-workers", err)
+		wc.logger.Error("failed-to-delete-finished-retiring-workers", err)
+		return err
+	}
+
+	err = wc.workerFactory.LandFinishedLandingWorkers()
+	if err != nil {
+		wc.logger.Error("failed-to-land-finished-landing-workers", err)
 		return err
 	}
 

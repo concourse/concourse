@@ -183,6 +183,7 @@ func NewHandler(
 		atc.ListWorkers:     teamHandlerFactory.HandlerFor(workerServer.ListWorkers),
 		atc.RegisterWorker:  http.HandlerFunc(workerServer.RegisterWorker),
 		atc.LandWorker:      http.HandlerFunc(workerServer.LandWorker),
+		atc.RetireWorker:    http.HandlerFunc(workerServer.RetireWorker),
 		atc.HeartbeatWorker: http.HandlerFunc(workerServer.HeartbeatWorker),
 
 		atc.SetLogLevel: http.HandlerFunc(logLevelServer.SetMinLevel),

@@ -367,7 +367,7 @@ package dbng_test
 // 		})
 // 	})
 
-// 	Describe("DeleteFinishedLandingWorkers", func() {
+// 	Describe("DeleteFinishedRetiringWorkers", func() {
 // 		var (
 // 			dbWorker *dbng.Worker
 // 		)
@@ -378,7 +378,7 @@ package dbng_test
 // 			Expect(err).NotTo(HaveOccurred())
 // 		})
 
-// 		Context("when worker is not landing", func() {
+// 		Context("when worker is not retiring", func() {
 // 			JustBeforeEach(func() {
 // 				var err error
 // 				atcWorker.State = string(dbng.WorkerStateRunning)
@@ -391,7 +391,7 @@ package dbng_test
 // 				Expect(err).NotTo(HaveOccurred())
 // 				Expect(found).To(BeTrue())
 
-// 				err = workerFactory.DeleteFinishedLandingWorkers()
+// 				err = workerFactory.DeleteFinishedRetiringWorkers()
 // 				Expect(err).NotTo(HaveOccurred())
 
 // 				_, found, err = workerFactory.GetWorker(atcWorker.Name)
@@ -400,9 +400,9 @@ package dbng_test
 // 			})
 // 		})
 
-// 		Context("when worker is landing", func() {
+// 		Context("when worker is retiring", func() {
 // 			BeforeEach(func() {
-// 				atcWorker.State = string(dbng.WorkerStateLanding)
+// 				atcWorker.State = string(dbng.WorkerStateRetiring)
 // 			})
 
 // 			Context("when the worker does not have any running builds", func() {
@@ -411,7 +411,7 @@ package dbng_test
 // 					Expect(err).NotTo(HaveOccurred())
 // 					Expect(found).To(BeTrue())
 
-// 					err = workerFactory.DeleteFinishedLandingWorkers()
+// 					err = workerFactory.DeleteFinishedRetiringWorkers()
 // 					Expect(err).NotTo(HaveOccurred())
 
 // 					_, found, err = workerFactory.GetWorker(atcWorker.Name)
@@ -441,7 +441,7 @@ package dbng_test
 // 					Expect(err).NotTo(HaveOccurred())
 // 					Expect(found).To(BeTrue())
 
-// 					err = workerFactory.DeleteFinishedLandingWorkers()
+// 					err = workerFactory.DeleteFinishedRetiringWorkers()
 // 					Expect(err).NotTo(HaveOccurred())
 
 // 					_, found, err = workerFactory.GetWorker(atcWorker.Name)
@@ -454,6 +454,100 @@ package dbng_test
 // 				Entry("succeeded", dbng.BuildStatusSucceeded, false),
 // 				Entry("failed", dbng.BuildStatusFailed, false),
 // 				Entry("errored", dbng.BuildStatusErrored, false),
+// 			)
+// 		})
+// 	})
+
+// 	Describe("LandFinishedLandingWorkers", func() {
+// 		var (
+// 			dbWorker *dbng.Worker
+// 		)
+
+// 		JustBeforeEach(func() {
+// 			var err error
+// 			dbWorker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+// 			Expect(err).NotTo(HaveOccurred())
+// 		})
+
+// 		Context("when worker is not landing", func() {
+// 			JustBeforeEach(func() {
+// 				var err error
+// 				atcWorker.State = string(dbng.WorkerStateRunning)
+// 				dbWorker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+// 				Expect(err).NotTo(HaveOccurred())
+// 			})
+
+// 			It("does not land worker", func() {
+// 				_, found, err := workerFactory.GetWorker(atcWorker.Name)
+// 				Expect(err).NotTo(HaveOccurred())
+// 				Expect(found).To(BeTrue())
+
+// 				err = workerFactory.LandFinishedLandingWorkers()
+// 				Expect(err).NotTo(HaveOccurred())
+
+// 				foundWorker, found, err := workerFactory.GetWorker(atcWorker.Name)
+// 				Expect(err).NotTo(HaveOccurred())
+// 				Expect(found).To(BeTrue())
+// 				Expect(foundWorker.State).To(Equal(dbng.WorkerStateRunning))
+// 			})
+// 		})
+
+// 		Context("when worker is landing", func() {
+// 			BeforeEach(func() {
+// 				atcWorker.State = string(dbng.WorkerStateLanding)
+// 			})
+
+// 			Context("when the worker does not have any running builds", func() {
+// 				It("lands worker", func() {
+// 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
+// 					Expect(err).NotTo(HaveOccurred())
+// 					Expect(found).To(BeTrue())
+
+// 					err = workerFactory.LandFinishedLandingWorkers()
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					foundWorker, found, err := workerFactory.GetWorker(atcWorker.Name)
+// 					Expect(err).NotTo(HaveOccurred())
+// 					Expect(found).To(BeTrue())
+// 					Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanded))
+// 				})
+// 			})
+
+// 			DescribeTable("land workers with builds that are",
+// 				func(s dbng.BuildStatus, expectedState dbng.WorkerState) {
+// 					dbBuild, err := buildFactory.CreateOneOffBuild(defaultTeam)
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					tx, err := dbConn.Begin()
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					err = dbBuild.SaveStatus(tx, s)
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					err = tx.Commit()
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					_, err = containerFactory.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
+// 					Expect(err).NotTo(HaveOccurred())
+// 					Expect(found).To(BeTrue())
+
+// 					err = workerFactory.LandFinishedLandingWorkers()
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					foundWorker, found, err := workerFactory.GetWorker(atcWorker.Name)
+// 					Expect(err).NotTo(HaveOccurred())
+// 					Expect(found).To(BeTrue())
+// 					Expect(foundWorker.State).To(Equal(expectedState))
+// 				},
+// 				Entry("pending", dbng.BuildStatusPending, dbng.WorkerStateLanding),
+// 				Entry("started", dbng.BuildStatusStarted, dbng.WorkerStateLanding),
+// 				Entry("aborted", dbng.BuildStatusAborted, dbng.WorkerStateLanded),
+// 				Entry("succeeded", dbng.BuildStatusSucceeded, dbng.WorkerStateLanded),
+// 				Entry("failed", dbng.BuildStatusFailed, dbng.WorkerStateLanded),
+// 				Entry("errored", dbng.BuildStatusErrored, dbng.WorkerStateLanded),
 // 			)
 // 		})
 // 	})
@@ -477,6 +571,32 @@ package dbng_test
 // 		Context("when the worker is not present", func() {
 // 			It("returns an error", func() {
 // 				foundWorker, err := workerFactory.LandWorker(atcWorker.Name)
+// 				Expect(err).To(HaveOccurred())
+// 				Expect(err).To(Equal(dbng.ErrWorkerNotPresent))
+// 				Expect(foundWorker).To(BeNil())
+// 			})
+// 		})
+// 	})
+
+// 	Describe("RetireWorker", func() {
+// 		Context("when the worker is present", func() {
+// 			BeforeEach(func() {
+// 				_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+// 				Expect(err).NotTo(HaveOccurred())
+// 			})
+
+// 			It("marks the worker as `retiring`", func() {
+// 				foundWorker, err := workerFactory.RetireWorker(atcWorker.Name)
+// 				Expect(err).NotTo(HaveOccurred())
+
+// 				Expect(foundWorker.Name).To(Equal(atcWorker.Name))
+// 				Expect(foundWorker.State).To(Equal(dbng.WorkerStateRetiring))
+// 			})
+// 		})
+
+// 		Context("when the worker is not present", func() {
+// 			It("returns an error", func() {
+// 				foundWorker, err := workerFactory.RetireWorker(atcWorker.Name)
 // 				Expect(err).To(HaveOccurred())
 // 				Expect(err).To(Equal(dbng.ErrWorkerNotPresent))
 // 				Expect(foundWorker).To(BeNil())
@@ -526,6 +646,32 @@ package dbng_test
 // 					Expect(err).NotTo(HaveOccurred())
 
 // 					Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanding))
+// 				})
+// 			})
+
+// 			Context("when the current state is landed", func() {
+// 				BeforeEach(func() {
+// 					atcWorker.State = string(dbng.WorkerStateLanded)
+// 				})
+
+// 				It("keeps the state as landed", func() {
+// 					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanded))
+// 				})
+// 			})
+
+// 			Context("when the current state is retiring", func() {
+// 				BeforeEach(func() {
+// 					atcWorker.State = string(dbng.WorkerStateRetiring)
+// 				})
+
+// 				It("keeps the state as landed", func() {
+// 					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					Expect(foundWorker.State).To(Equal(dbng.WorkerStateRetiring))
 // 				})
 // 			})
 
