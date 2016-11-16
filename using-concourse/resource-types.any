@@ -81,6 +81,8 @@ before using it!
   }{
     \hyperlink{https://github.com/jtarchie/pullrequest-resource}{Pull Requests}
   }{
+    \hyperlink{https://github.com/swisscom/gitlab-merge-request-resource}{GitLab Merge Requests}
+  }{
     \hyperlink{https://github.com/sapcc/concourse-swift-resource}{OpenStack Swift}
   }{
     \hyperlink{https://github.com/starkandwayne/flowdock-concourse-notification-resource}{Flowdock notifications}
