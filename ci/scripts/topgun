@@ -8,8 +8,7 @@ export PATH=${PWD}/concourse/bin:$PATH
 
 go install github.com/onsi/ginkgo/ginkgo
 
-# TODO
-wget https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-0.0.104-linux-amd64 -O /usr/local/bin/bosh
+cp bosh-cli/bosh* /usr/local/bin/bosh
 chmod +x /usr/local/bin/bosh
 
 eval $(ssh-agent)

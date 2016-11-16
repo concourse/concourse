@@ -19,6 +19,7 @@ inputs:
 - name: concourse-release
 - name: garden-runc-release
 - name: stemcell
+- name: bosh-cli
 
 run:
   path: concourse/ci/scripts/topgun
