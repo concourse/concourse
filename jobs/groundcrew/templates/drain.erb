@@ -19,10 +19,10 @@ DRAIN_ERR_LOG_FILE=$LOG_DIR/drain.stderr.log
 
 echo "starting drain" >> $DRAIN_OUT_LOG_FILE
 
-if [ $1 != "job_shutdown" ]; then
-  echo "did not receive shutdown, exiting" >> $DRAIN_OUT_LOG_FILE
-  echo 0
-  exit 0
+if [ $1 == "job_shutdown" ]; then
+  tsa_command="retire-worker"
+else
+  tsa_command="land-worker"
 fi
 
 <%
@@ -73,7 +73,6 @@ cat /var/vcap/jobs/groundcrew/config/worker.json | \
 
 tsa_addrs=(<%= tsa_addrs.join(" ") %>)
 
-
 while true; do
 
   if [ ! -f $BEACON_PIDFILE ]; then
@@ -91,6 +90,7 @@ while true; do
   fi
 
   reached_tsa=false
+  exitstatus=0
   for tsa_addr in "${tsa_addrs[@]}"; do
     chpst -u vcap:vcap ssh \
       -p <%= tsa_port %> $tsa_addr \
@@ -103,15 +103,15 @@ while true; do
       -o ConnectTimeout=30 \
       -o ServerAliveInterval=8 \
       -o ServerAliveCountMax=3 \
-      land-worker \
+      $tsa_command \
       < $RUN_DIR/worker.json \
       1>>$DRAIN_OUT_LOG_FILE \
       2>>$DRAIN_ERR_LOG_FILE || exitstatus=$?
 
-    if [ "$exitstatus" = "0" ]; then
+    if [ $exitstatus -eq 0 ]; then
       reached_tsa=true
 
-      echo "land worker sent" >> $DRAIN_OUT_LOG_FILE
+      echo "${tsa_command} sent" >> $DRAIN_OUT_LOG_FILE
       sleep $default_wait_time
       break
     fi
