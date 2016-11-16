@@ -360,7 +360,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 		{"resource-cache-use-collector", lockrunner.NewRunner(
 			logger.Session("resource-cache-use-collector"),
-			gcng.NewResourceCacheUseCollector(
+			gcng.NewResourceCacheCollector(
 				logger.Session("resource-cache-use-collector"),
 				dbResourceCacheFactory,
 			),

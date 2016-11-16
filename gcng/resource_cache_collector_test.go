@@ -191,7 +191,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 					})
 				})
 
-				Context("once the build has failed", func() {
+				FContext("once the build has failed", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
 						finishBuild("failed")
@@ -313,7 +313,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 			})
 		})
 
-		FDescribe("resource caches", func() {
+		Describe("resource caches", func() {
 			countResourceCaches := func() int {
 				tx, err := dbConn.Begin()
 				Expect(err).NotTo(HaveOccurred())
