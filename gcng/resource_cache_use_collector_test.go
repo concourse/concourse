@@ -57,7 +57,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 		usedResource, err = resourceFactory.CreateResource(
 			defaultPipeline,
 			"some-resource",
-			`{"some": "config"}`,
+			`{"some":"source"}`,
 		)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -372,7 +372,29 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 				Context("when the cache is a next_build_input", func() {
 					BeforeEach(func() {
-						Fail("set it up")
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+						defer tx.Rollback()
+						var jobId int
+						err = psql.Insert("jobs").
+							Columns("name", "pipeline_id", "config").
+							Values("lousy-job", defaultPipeline.ID, `{"some":"config"}`).
+							Suffix("RETURNING id").
+							RunWith(tx).QueryRow().Scan(&jobId)
+						Expect(err).NotTo(HaveOccurred())
+						var versionId int
+						err = psql.Insert("versioned_resources").
+							Columns("version", "metadata", "type", "resource_id").
+							Values(`{"some":"version"}`, `[]`, "whatever", usedResource.ID).
+							Suffix("RETURNING id").
+							RunWith(tx).QueryRow().Scan(&versionId)
+						Expect(err).NotTo(HaveOccurred())
+						_, err = psql.Insert("next_build_inputs").
+							Columns("job_id", "input_name", "version_id", "first_occurrence").
+							Values(jobId, "whatever", versionId, false).
+							RunWith(tx).Exec()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(tx.Commit()).NotTo(HaveOccurred())
 					})
 
 					It("leaves it alone", func() {

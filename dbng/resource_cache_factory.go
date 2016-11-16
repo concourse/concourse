@@ -306,20 +306,6 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	}
 	defer tx.Rollback()
 
-	// cache can be:
-	// - latest image resource version
-	// - still in use
-	// - next build input
-	// if none of the above, delete
-
-	// full db  - cache no in use? -> {id}
-	// {id} - cache next build will use - > remove ids {id}
-	// {id} - cache lastest image resource version - > remove ids {id}
-	// delete {id}
-
-	// keep {id} as a []int in the go code
-	// as opposed to a subquery?
-
 	latestBuildByJobQ, _, err := sq.
 		Select("MAX(b.id) AS build_id", "j.id AS job_id").
 		From("builds b").
@@ -356,14 +342,37 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		return err
 	}
 
+	stillInUseCacheIds, _, err := sq.
+		Select("rc.id").
+		Distinct().
+		From("resource_caches rc").
+		JoinClause("INNER JOIN resource_cache_uses rcu ON rc.id = rcu.resource_cache_id").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	nextBuildInputsCacheIds, _, err := sq.
+		Select("rc.id").
+		Distinct().
+		From("next_build_inputs nbi").
+		JoinClause("INNER JOIN versioned_resources vr ON vr.id = nbi.version_id").
+		JoinClause("INNER JOIN resources r ON r.id = vr.resource_id").
+		JoinClause("INNER JOIN resource_caches rc ON rc.version = vr.version").
+		JoinClause("INNER JOIN resource_configs rf ON rc.resource_config_id = rf.id").
+		Where(sq.Expr("r.config::text = rf.source_hash")).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	_, err = sq.Delete("resource_caches").
 		Where("id NOT IN (" + extractedCacheIds + ")").
-		//Where("id NOT IN cachesForNextBuilds").
-		//Where("id NOT IN cachesInUseIDs").
+		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
+		Where("id NOT IN (" + stillInUseCacheIds + ")").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(tx).Exec()
 	if err != nil {
-		//TODO handle fkey constraint cleanly?
 		return err
 	}
 
