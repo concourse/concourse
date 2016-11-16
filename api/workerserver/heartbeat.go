@@ -3,10 +3,12 @@ package workerserver
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
 	"net/http"
 	"time"
+
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/dbng"
 )
 
 func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +40,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 
 	registration.Name = workerName
 
-	_, err = s.dbWorkerFactory.HeartbeatWorker(registration, ttl)
+	savedWorker, err := s.dbWorkerFactory.HeartbeatWorker(registration, ttl)
 	if err == dbng.ErrWorkerNotPresent {
 		logger.Error("failed-to-find-worker", err)
 		w.WriteHeader(http.StatusNotFound)
@@ -50,4 +52,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(present.Worker(*savedWorker))
 }

@@ -10,9 +10,11 @@ import (
 type WorkerState string
 
 const (
-	WorkerStateRunning = WorkerState("running")
-	WorkerStateStalled = WorkerState("stalled")
-	WorkerStateLanding = WorkerState("landing")
+	WorkerStateRunning  = WorkerState("running")
+	WorkerStateStalled  = WorkerState("stalled")
+	WorkerStateLanding  = WorkerState("landing")
+	WorkerStateLanded   = WorkerState("landed")
+	WorkerStateRetiring = WorkerState("retiring")
 )
 
 var (

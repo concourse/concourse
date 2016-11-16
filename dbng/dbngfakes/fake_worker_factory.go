@@ -52,10 +52,16 @@ type FakeWorkerFactory struct {
 		result1 []*dbng.Worker
 		result2 error
 	}
-	DeleteFinishedLandingWorkersStub        func() error
-	deleteFinishedLandingWorkersMutex       sync.RWMutex
-	deleteFinishedLandingWorkersArgsForCall []struct{}
-	deleteFinishedLandingWorkersReturns     struct {
+	DeleteFinishedRetiringWorkersStub        func() error
+	deleteFinishedRetiringWorkersMutex       sync.RWMutex
+	deleteFinishedRetiringWorkersArgsForCall []struct{}
+	deleteFinishedRetiringWorkersReturns     struct {
+		result1 error
+	}
+	LandFinishedLandingWorkersStub        func() error
+	landFinishedLandingWorkersMutex       sync.RWMutex
+	landFinishedLandingWorkersArgsForCall []struct{}
+	landFinishedLandingWorkersReturns     struct {
 		result1 error
 	}
 	SaveWorkerStub        func(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error)
@@ -85,6 +91,15 @@ type FakeWorkerFactory struct {
 		name string
 	}
 	landWorkerReturns struct {
+		result1 *dbng.Worker
+		result2 error
+	}
+	RetireWorkerStub        func(name string) (*dbng.Worker, error)
+	retireWorkerMutex       sync.RWMutex
+	retireWorkerArgsForCall []struct {
+		name string
+	}
+	retireWorkerReturns struct {
 		result1 *dbng.Worker
 		result2 error
 	}
@@ -257,27 +272,52 @@ func (fake *FakeWorkerFactory) StallUnresponsiveWorkersReturns(result1 []*dbng.W
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerFactory) DeleteFinishedLandingWorkers() error {
-	fake.deleteFinishedLandingWorkersMutex.Lock()
-	fake.deleteFinishedLandingWorkersArgsForCall = append(fake.deleteFinishedLandingWorkersArgsForCall, struct{}{})
-	fake.recordInvocation("DeleteFinishedLandingWorkers", []interface{}{})
-	fake.deleteFinishedLandingWorkersMutex.Unlock()
-	if fake.DeleteFinishedLandingWorkersStub != nil {
-		return fake.DeleteFinishedLandingWorkersStub()
+func (fake *FakeWorkerFactory) DeleteFinishedRetiringWorkers() error {
+	fake.deleteFinishedRetiringWorkersMutex.Lock()
+	fake.deleteFinishedRetiringWorkersArgsForCall = append(fake.deleteFinishedRetiringWorkersArgsForCall, struct{}{})
+	fake.recordInvocation("DeleteFinishedRetiringWorkers", []interface{}{})
+	fake.deleteFinishedRetiringWorkersMutex.Unlock()
+	if fake.DeleteFinishedRetiringWorkersStub != nil {
+		return fake.DeleteFinishedRetiringWorkersStub()
 	} else {
-		return fake.deleteFinishedLandingWorkersReturns.result1
+		return fake.deleteFinishedRetiringWorkersReturns.result1
 	}
 }
 
-func (fake *FakeWorkerFactory) DeleteFinishedLandingWorkersCallCount() int {
-	fake.deleteFinishedLandingWorkersMutex.RLock()
-	defer fake.deleteFinishedLandingWorkersMutex.RUnlock()
-	return len(fake.deleteFinishedLandingWorkersArgsForCall)
+func (fake *FakeWorkerFactory) DeleteFinishedRetiringWorkersCallCount() int {
+	fake.deleteFinishedRetiringWorkersMutex.RLock()
+	defer fake.deleteFinishedRetiringWorkersMutex.RUnlock()
+	return len(fake.deleteFinishedRetiringWorkersArgsForCall)
 }
 
-func (fake *FakeWorkerFactory) DeleteFinishedLandingWorkersReturns(result1 error) {
-	fake.DeleteFinishedLandingWorkersStub = nil
-	fake.deleteFinishedLandingWorkersReturns = struct {
+func (fake *FakeWorkerFactory) DeleteFinishedRetiringWorkersReturns(result1 error) {
+	fake.DeleteFinishedRetiringWorkersStub = nil
+	fake.deleteFinishedRetiringWorkersReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorkerFactory) LandFinishedLandingWorkers() error {
+	fake.landFinishedLandingWorkersMutex.Lock()
+	fake.landFinishedLandingWorkersArgsForCall = append(fake.landFinishedLandingWorkersArgsForCall, struct{}{})
+	fake.recordInvocation("LandFinishedLandingWorkers", []interface{}{})
+	fake.landFinishedLandingWorkersMutex.Unlock()
+	if fake.LandFinishedLandingWorkersStub != nil {
+		return fake.LandFinishedLandingWorkersStub()
+	} else {
+		return fake.landFinishedLandingWorkersReturns.result1
+	}
+}
+
+func (fake *FakeWorkerFactory) LandFinishedLandingWorkersCallCount() int {
+	fake.landFinishedLandingWorkersMutex.RLock()
+	defer fake.landFinishedLandingWorkersMutex.RUnlock()
+	return len(fake.landFinishedLandingWorkersArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) LandFinishedLandingWorkersReturns(result1 error) {
+	fake.LandFinishedLandingWorkersStub = nil
+	fake.landFinishedLandingWorkersReturns = struct {
 		result1 error
 	}{result1}
 }
@@ -387,6 +427,40 @@ func (fake *FakeWorkerFactory) LandWorkerReturns(result1 *dbng.Worker, result2 e
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerFactory) RetireWorker(name string) (*dbng.Worker, error) {
+	fake.retireWorkerMutex.Lock()
+	fake.retireWorkerArgsForCall = append(fake.retireWorkerArgsForCall, struct {
+		name string
+	}{name})
+	fake.recordInvocation("RetireWorker", []interface{}{name})
+	fake.retireWorkerMutex.Unlock()
+	if fake.RetireWorkerStub != nil {
+		return fake.RetireWorkerStub(name)
+	} else {
+		return fake.retireWorkerReturns.result1, fake.retireWorkerReturns.result2
+	}
+}
+
+func (fake *FakeWorkerFactory) RetireWorkerCallCount() int {
+	fake.retireWorkerMutex.RLock()
+	defer fake.retireWorkerMutex.RUnlock()
+	return len(fake.retireWorkerArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) RetireWorkerArgsForCall(i int) string {
+	fake.retireWorkerMutex.RLock()
+	defer fake.retireWorkerMutex.RUnlock()
+	return fake.retireWorkerArgsForCall[i].name
+}
+
+func (fake *FakeWorkerFactory) RetireWorkerReturns(result1 *dbng.Worker, result2 error) {
+	fake.RetireWorkerStub = nil
+	fake.retireWorkerReturns = struct {
+		result1 *dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error) {
 	fake.heartbeatWorkerMutex.Lock()
 	fake.heartbeatWorkerArgsForCall = append(fake.heartbeatWorkerArgsForCall, struct {
@@ -435,14 +509,18 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.stallWorkerMutex.RUnlock()
 	fake.stallUnresponsiveWorkersMutex.RLock()
 	defer fake.stallUnresponsiveWorkersMutex.RUnlock()
-	fake.deleteFinishedLandingWorkersMutex.RLock()
-	defer fake.deleteFinishedLandingWorkersMutex.RUnlock()
+	fake.deleteFinishedRetiringWorkersMutex.RLock()
+	defer fake.deleteFinishedRetiringWorkersMutex.RUnlock()
+	fake.landFinishedLandingWorkersMutex.RLock()
+	defer fake.landFinishedLandingWorkersMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.saveTeamWorkerMutex.RLock()
 	defer fake.saveTeamWorkerMutex.RUnlock()
 	fake.landWorkerMutex.RLock()
 	defer fake.landWorkerMutex.RUnlock()
+	fake.retireWorkerMutex.RLock()
+	defer fake.retireWorkerMutex.RUnlock()
 	fake.heartbeatWorkerMutex.RLock()
 	defer fake.heartbeatWorkerMutex.RUnlock()
 	return fake.invocations

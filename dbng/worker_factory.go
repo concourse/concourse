@@ -19,10 +19,12 @@ type WorkerFactory interface {
 	WorkersForTeam(teamName string) ([]*Worker, error)
 	StallWorker(name string) (*Worker, error)
 	StallUnresponsiveWorkers() ([]*Worker, error)
-	DeleteFinishedLandingWorkers() error
+	DeleteFinishedRetiringWorkers() error
+	LandFinishedLandingWorkers() error
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
 	SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error)
 	LandWorker(name string) (*Worker, error)
+	RetireWorker(name string) (*Worker, error)
 	HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
 }
 
@@ -283,6 +285,45 @@ func (f *workerFactory) LandWorker(name string) (*Worker, error) {
 	}, nil
 }
 
+func (f *workerFactory) RetireWorker(name string) (*Worker, error) {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	var (
+		workerName  string
+		workerState string
+	)
+
+	err = psql.Update("workers").
+		SetMap(map[string]interface{}{
+			"state": string(WorkerStateRetiring),
+		}).
+		Where(sq.Eq{"name": name}).
+		Suffix("RETURNING name, state").
+		RunWith(tx).
+		QueryRow().
+		Scan(&workerName, &workerState)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrWorkerNotPresent
+		}
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Worker{
+		Name:  workerName,
+		State: WorkerState(workerState),
+	}, nil
+}
+
 func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*Worker, error) {
 	// In order to be able to calculate the ttl that we return to the caller
 	// we must compare time.Now() to the worker.expires column
@@ -309,6 +350,8 @@ func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*
 
 	cSql, _, err := sq.Case("state").
 		When("'landing'::worker_state", "'landing'::worker_state").
+		When("'landed'::worker_state", "'landed'::worker_state").
+		When("'retiring'::worker_state", "'retiring'::worker_state").
 		Else("'running'::worker_state").
 		ToSql()
 
@@ -326,7 +369,7 @@ func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*
 	err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
 		Set("active_containers", worker.ActiveContainers).
-		Set("state", sq.Expr("(" + cSql + ")")).
+		Set("state", sq.Expr("("+cSql+")")).
 		Where(sq.Eq{"name": worker.Name}).
 		Suffix("RETURNING name, state, expires, active_containers").
 		RunWith(tx).
@@ -449,7 +492,7 @@ func (f *workerFactory) StallUnresponsiveWorkers() ([]*Worker, error) {
 	return workers, nil
 }
 
-func (f *workerFactory) DeleteFinishedLandingWorkers() error {
+func (f *workerFactory) DeleteFinishedRetiringWorkers() error {
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return err
@@ -488,6 +531,53 @@ func (f *workerFactory) DeleteFinishedLandingWorkers() error {
 	// but then change the placeholders using .PlaceholderFormat(sq.Dollar)
 	// to go back to postgres's format
 	_, err = sq.Delete("workers").
+		Where(sq.Eq{
+			"state": string(WorkerStateRetiring),
+		}).
+		Where("name NOT IN ("+subQ+")", subQArgs...).
+		PlaceholderFormat(sq.Dollar).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *workerFactory) LandFinishedLandingWorkers() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	subQ, subQArgs, err := sq.Select("w.name").
+		Distinct().
+		From("builds b").
+		Join("containers c ON b.id = c.build_id").
+		Join("workers w on w.name = c.worker_name").
+		Where(sq.Or{
+			sq.Eq{
+				"b.status": string(BuildStatusStarted),
+			},
+			sq.Eq{
+				"b.status": string(BuildStatusPending),
+			},
+		}).ToSql()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = sq.Update("workers").
+		Set("state", string(WorkerStateLanded)).
 		Where(sq.Eq{
 			"state": string(WorkerStateLanding),
 		}).
@@ -550,9 +640,11 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 		"name": worker.Name,
 	}).RunWith(tx).QueryRow().Scan(&oldTeamID)
 
-	workerState := string(worker.State)
-	if workerState == "" {
-		workerState = string(WorkerStateRunning)
+	var workerState WorkerState
+	if worker.State != "" {
+		workerState = WorkerState(worker.State)
+	} else {
+		workerState = WorkerStateRunning
 	}
 
 	if err != nil {
@@ -588,7 +680,7 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 					worker.Name,
 					worker.StartTime,
 					teamID,
-					workerState,
+					string(workerState),
 				).
 				RunWith(tx).
 				Exec()
@@ -618,7 +710,7 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 			Set("no_proxy", worker.NoProxy).
 			Set("name", worker.Name).
 			Set("start_time", worker.StartTime).
-			Set("state", string(WorkerStateRunning)).
+			Set("state", string(workerState)).
 			Where(sq.Eq{
 				"name": worker.Name,
 			}).
@@ -632,7 +724,7 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 	savedWorker := &Worker{
 		Name:       worker.Name,
 		GardenAddr: &worker.GardenAddr,
-		State:      WorkerStateRunning,
+		State:      workerState,
 	}
 
 	baseResourceTypeIDs := []int{}

@@ -93,6 +93,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.RegisterWorker,
 			atc.HeartbeatWorker,
 			atc.LandWorker,
+			atc.RetireWorker,
 			atc.SetTeam,
 			atc.DestroyTeam,
 			atc.WritePipe,

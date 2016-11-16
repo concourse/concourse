@@ -445,6 +445,73 @@ var _ = Describe("Workers API", func() {
 		})
 	})
 
+	Describe("PUT /api/v1/workers/:worker_name/retire", func() {
+		var (
+			response   *http.Response
+			workerName string
+		)
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/retire", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			workerName = "some-worker"
+			authValidator.IsAuthenticatedReturns(true)
+			dbWorkerFactory.RetireWorkerReturns(&dbng.Worker{}, nil)
+		})
+
+		It("returns 200", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("sees if the worker exists and attempts to retire it", func() {
+			Expect(dbWorkerFactory.RetireWorkerCallCount()).To(Equal(1))
+			Expect(dbWorkerFactory.RetireWorkerArgsForCall(0)).To(Equal(workerName))
+		})
+
+		Context("when retiring the worker fails", func() {
+			var returnedErr error
+
+			BeforeEach(func() {
+				returnedErr = errors.New("some-error")
+				dbWorkerFactory.RetireWorkerReturns(nil, returnedErr)
+			})
+
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		Context("when the worker does not exist", func() {
+			BeforeEach(func() {
+				dbWorkerFactory.RetireWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+			})
+
+			It("returns 404", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not retire the worker", func() {
+				Expect(dbWorkerFactory.RetireWorkerCallCount()).To(BeZero())
+			})
+		})
+	})
+
 	Describe("PUT /api/v1/workers/:worker_name/heartbeat", func() {
 		var (
 			response   *http.Response
@@ -468,6 +535,14 @@ var _ = Describe("Workers API", func() {
 			}
 
 			authValidator.IsAuthenticatedReturns(true)
+			dbWorkerFactory.HeartbeatWorkerReturns(&dbng.Worker{
+				Name:             workerName,
+				ActiveContainers: 2,
+				Platform:         "penguin",
+				Tags:             []string{"some-tag"},
+				State:            dbng.WorkerStateRunning,
+				TeamName:         "some-team",
+			}, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -483,6 +558,25 @@ var _ = Describe("Workers API", func() {
 
 		It("returns 200", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("returns saved worker", func() {
+			contents, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(contents).To(MatchJSON(`{
+				"name": "some-name",
+				"state": "running",
+				"addr": "",
+				"baggageclaim_url": "",
+				"active_containers": 2,
+				"resource_types": null,
+				"platform": "penguin",
+				"tags": ["some-tag"],
+				"team": "some-team",
+				"name": "some-name",
+				"start_time": 0
+			}`))
 		})
 
 		It("sees if the worker exists and attempts to heartbeat with provided ttl", func() {
