@@ -37,9 +37,4 @@
     The \resource{s3} now supports setting a \code{Content-Type} for the file
     being uploaded, thanks to a PR from \ghuser{pdelagrave}!
   }
-
-  \note{feature}{
-    The Vagrant box now supports being configured with an IP other than
-    \code{192.168.100.4}, thanks to a PR from \ghuser{jwiebalk}!
-  }
 }
