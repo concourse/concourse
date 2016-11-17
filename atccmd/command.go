@@ -363,6 +363,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			gcng.NewResourceCacheCollector(
 				logger.Session("resource-cache-use-collector"),
 				dbResourceCacheFactory,
+				dbResourceConfigFactory,
 			),
 			"resource-cache-use-collector",
 			sqlDB,

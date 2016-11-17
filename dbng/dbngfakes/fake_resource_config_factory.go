@@ -47,6 +47,30 @@ type FakeResourceConfigFactory struct {
 		result1 *dbng.UsedResourceConfig
 		result2 error
 	}
+	CleanConfigUsesForFinishedBuildsStub        func() error
+	cleanConfigUsesForFinishedBuildsMutex       sync.RWMutex
+	cleanConfigUsesForFinishedBuildsArgsForCall []struct{}
+	cleanConfigUsesForFinishedBuildsReturns     struct {
+		result1 error
+	}
+	CleanConfigUsesForInactiveResourceTypesStub        func() error
+	cleanConfigUsesForInactiveResourceTypesMutex       sync.RWMutex
+	cleanConfigUsesForInactiveResourceTypesArgsForCall []struct{}
+	cleanConfigUsesForInactiveResourceTypesReturns     struct {
+		result1 error
+	}
+	CleanConfigUsesForInactiveResourcesStub        func() error
+	cleanConfigUsesForInactiveResourcesMutex       sync.RWMutex
+	cleanConfigUsesForInactiveResourcesArgsForCall []struct{}
+	cleanConfigUsesForInactiveResourcesReturns     struct {
+		result1 error
+	}
+	CleanUselessConfigsStub        func() error
+	cleanUselessConfigsMutex       sync.RWMutex
+	cleanUselessConfigsArgsForCall []struct{}
+	cleanUselessConfigsReturns     struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -164,6 +188,106 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForResourceType
 	}{result1, result2}
 }
 
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForFinishedBuilds() error {
+	fake.cleanConfigUsesForFinishedBuildsMutex.Lock()
+	fake.cleanConfigUsesForFinishedBuildsArgsForCall = append(fake.cleanConfigUsesForFinishedBuildsArgsForCall, struct{}{})
+	fake.recordInvocation("CleanConfigUsesForFinishedBuilds", []interface{}{})
+	fake.cleanConfigUsesForFinishedBuildsMutex.Unlock()
+	if fake.CleanConfigUsesForFinishedBuildsStub != nil {
+		return fake.CleanConfigUsesForFinishedBuildsStub()
+	} else {
+		return fake.cleanConfigUsesForFinishedBuildsReturns.result1
+	}
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForFinishedBuildsCallCount() int {
+	fake.cleanConfigUsesForFinishedBuildsMutex.RLock()
+	defer fake.cleanConfigUsesForFinishedBuildsMutex.RUnlock()
+	return len(fake.cleanConfigUsesForFinishedBuildsArgsForCall)
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForFinishedBuildsReturns(result1 error) {
+	fake.CleanConfigUsesForFinishedBuildsStub = nil
+	fake.cleanConfigUsesForFinishedBuildsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourceTypes() error {
+	fake.cleanConfigUsesForInactiveResourceTypesMutex.Lock()
+	fake.cleanConfigUsesForInactiveResourceTypesArgsForCall = append(fake.cleanConfigUsesForInactiveResourceTypesArgsForCall, struct{}{})
+	fake.recordInvocation("CleanConfigUsesForInactiveResourceTypes", []interface{}{})
+	fake.cleanConfigUsesForInactiveResourceTypesMutex.Unlock()
+	if fake.CleanConfigUsesForInactiveResourceTypesStub != nil {
+		return fake.CleanConfigUsesForInactiveResourceTypesStub()
+	} else {
+		return fake.cleanConfigUsesForInactiveResourceTypesReturns.result1
+	}
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourceTypesCallCount() int {
+	fake.cleanConfigUsesForInactiveResourceTypesMutex.RLock()
+	defer fake.cleanConfigUsesForInactiveResourceTypesMutex.RUnlock()
+	return len(fake.cleanConfigUsesForInactiveResourceTypesArgsForCall)
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourceTypesReturns(result1 error) {
+	fake.CleanConfigUsesForInactiveResourceTypesStub = nil
+	fake.cleanConfigUsesForInactiveResourceTypesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResources() error {
+	fake.cleanConfigUsesForInactiveResourcesMutex.Lock()
+	fake.cleanConfigUsesForInactiveResourcesArgsForCall = append(fake.cleanConfigUsesForInactiveResourcesArgsForCall, struct{}{})
+	fake.recordInvocation("CleanConfigUsesForInactiveResources", []interface{}{})
+	fake.cleanConfigUsesForInactiveResourcesMutex.Unlock()
+	if fake.CleanConfigUsesForInactiveResourcesStub != nil {
+		return fake.CleanConfigUsesForInactiveResourcesStub()
+	} else {
+		return fake.cleanConfigUsesForInactiveResourcesReturns.result1
+	}
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourcesCallCount() int {
+	fake.cleanConfigUsesForInactiveResourcesMutex.RLock()
+	defer fake.cleanConfigUsesForInactiveResourcesMutex.RUnlock()
+	return len(fake.cleanConfigUsesForInactiveResourcesArgsForCall)
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourcesReturns(result1 error) {
+	fake.CleanConfigUsesForInactiveResourcesStub = nil
+	fake.cleanConfigUsesForInactiveResourcesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfigFactory) CleanUselessConfigs() error {
+	fake.cleanUselessConfigsMutex.Lock()
+	fake.cleanUselessConfigsArgsForCall = append(fake.cleanUselessConfigsArgsForCall, struct{}{})
+	fake.recordInvocation("CleanUselessConfigs", []interface{}{})
+	fake.cleanUselessConfigsMutex.Unlock()
+	if fake.CleanUselessConfigsStub != nil {
+		return fake.CleanUselessConfigsStub()
+	} else {
+		return fake.cleanUselessConfigsReturns.result1
+	}
+}
+
+func (fake *FakeResourceConfigFactory) CleanUselessConfigsCallCount() int {
+	fake.cleanUselessConfigsMutex.RLock()
+	defer fake.cleanUselessConfigsMutex.RUnlock()
+	return len(fake.cleanUselessConfigsArgsForCall)
+}
+
+func (fake *FakeResourceConfigFactory) CleanUselessConfigsReturns(result1 error) {
+	fake.CleanUselessConfigsStub = nil
+	fake.cleanUselessConfigsReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -173,6 +297,14 @@ func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} 
 	defer fake.findOrCreateResourceConfigForResourceMutex.RUnlock()
 	fake.findOrCreateResourceConfigForResourceTypeMutex.RLock()
 	defer fake.findOrCreateResourceConfigForResourceTypeMutex.RUnlock()
+	fake.cleanConfigUsesForFinishedBuildsMutex.RLock()
+	defer fake.cleanConfigUsesForFinishedBuildsMutex.RUnlock()
+	fake.cleanConfigUsesForInactiveResourceTypesMutex.RLock()
+	defer fake.cleanConfigUsesForInactiveResourceTypesMutex.RUnlock()
+	fake.cleanConfigUsesForInactiveResourcesMutex.RLock()
+	defer fake.cleanConfigUsesForInactiveResourcesMutex.RUnlock()
+	fake.cleanUselessConfigsMutex.RLock()
+	defer fake.cleanUselessConfigsMutex.RUnlock()
 	return fake.invocations
 }
 

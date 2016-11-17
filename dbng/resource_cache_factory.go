@@ -214,6 +214,24 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 	}
 	defer tx.Rollback()
 
+	latestBuildByJobQ, _, err := sq.
+		Select("MAX(b.id) AS build_id", "j.id AS job_id").
+		From("builds b").
+		Join("jobs j ON j.id = b.job_id").
+		GroupBy("j.id").ToSql()
+	if err != nil {
+		return err
+	}
+
+	extractedBuildIds, _, err := sq.
+		Select("lbbjq.build_id").
+		Distinct().
+		From("(" + latestBuildByJobQ + ") as lbbjq").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	_, err = psql.Delete("resource_cache_uses rcu USING builds b").
 		Where(sq.And{
 			sq.Expr("rcu.build_id = b.id"),
@@ -221,8 +239,11 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 				sq.Eq{
 					"b.status": "succeeded",
 				},
-				sq.Eq{
-					"b.status": "failed",
+				sq.And{
+					sq.Expr("b.id NOT IN (" + extractedBuildIds + ")"),
+					sq.Eq{
+						"b.status": "failed",
+					},
 				},
 				sq.Eq{
 					"b.status": "aborted",

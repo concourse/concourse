@@ -1,6 +1,9 @@
 package dbng
 
-import "github.com/concourse/atc"
+import (
+	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/atc"
+)
 
 //go:generate counterfeiter . ResourceConfigFactory
 
@@ -27,6 +30,11 @@ type ResourceConfigFactory interface {
 		pipeline *Pipeline,
 		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceConfig, error)
+
+	CleanConfigUsesForFinishedBuilds() error
+	CleanConfigUsesForInactiveResourceTypes() error
+	CleanConfigUsesForInactiveResources() error
+	CleanUselessConfigs() error
 }
 
 type resourceConfigFactory struct {
@@ -209,6 +217,132 @@ func constructResourceConfig(
 	}
 
 	return resourceConfig, nil
+}
+
+func (f *resourceConfigFactory) CleanConfigUsesForFinishedBuilds() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	latestBuildByJobQ, _, err := sq.
+		Select("MAX(b.id) AS build_id", "j.id AS job_id").
+		From("builds b").
+		Join("jobs j ON j.id = b.job_id").
+		GroupBy("j.id").ToSql()
+	if err != nil {
+		return err
+	}
+
+	extractedBuildIds, _, err := sq.
+		Select("lbbjq.build_id").
+		Distinct().
+		From("(" + latestBuildByJobQ + ") as lbbjq").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Delete("resource_config_uses rcu USING builds b").
+		Where(sq.And{
+			sq.Expr("rcu.build_id = b.id"),
+			sq.Or{
+				sq.Eq{
+					"b.status": "succeeded",
+				},
+				sq.And{
+					sq.Expr("b.id NOT IN (" + extractedBuildIds + ")"),
+					sq.Eq{
+						"b.status": "failed",
+					},
+				},
+				sq.Eq{
+					"b.status": "aborted",
+				},
+			},
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (f *resourceConfigFactory) CleanConfigUsesForInactiveResourceTypes() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = psql.Delete("resource_config_uses rcu USING resource_types t").
+		Where(sq.And{
+			sq.Expr("rcu.resource_type_id = t.id"),
+			sq.Eq{
+				"t.active": false,
+			},
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (f *resourceConfigFactory) CleanConfigUsesForInactiveResources() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = psql.Delete("resource_config_uses rcu USING resources r").
+		Where(sq.And{
+			sq.Expr("rcu.resource_id = r.id"),
+			sq.Eq{
+				"r.active": false,
+			},
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (f *resourceConfigFactory) CleanUselessConfigs() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stillInUseConfigIds, _, err := sq.
+		Select("rf.id").
+		Distinct().
+		From("resource_configs rf").
+		JoinClause("INNER JOIN resource_config_uses rfu ON rf.id = rfu.resource_config_id").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Delete("resource_configs").
+		Where("id NOT IN (" + stillInUseConfigIds + ")").
+		PlaceholderFormat(sq.Dollar).
+		RunWith(tx).Exec()
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func resourceTypesList(resourceTypeName string, allResourceTypes []ResourceType, resultResourceTypes []ResourceType) []ResourceType {
