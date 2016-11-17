@@ -151,7 +151,7 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 				matches := buildRegex.FindSubmatch(buildSession.Out.Contents())
 				buildID = string(matches[1])
 
-				Eventually(buildSession).Should(gbytes.Say("waiting"))
+				Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 				By("stopping the beacon without draining")
 				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop beacon")
@@ -180,7 +180,7 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					By("reattaching to the build")
-					Eventually(buildSession).Should(gbytes.Say("waiting"))
+					Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 					By("hijacking the build to tell it to finish")
 					Eventually(func() int {
