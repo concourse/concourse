@@ -15,12 +15,13 @@ type FetchSourceProviderFactory interface {
 	NewFetchSourceProvider(
 		logger lager.Logger,
 		session Session,
+		metadata Metadata,
 		tags atc.Tags,
 		teamID int,
 		resourceTypes atc.ResourceTypes,
 		resourceInstance ResourceInstance,
 		resourceOptions ResourceOptions,
-		containerCreator FetchContainerCreator,
+		imageFetchingDelegate worker.ImageFetchingDelegate,
 	) FetchSourceProvider
 }
 
@@ -53,36 +54,39 @@ func NewFetchSourceProviderFactory(workerClient worker.Client) FetchSourceProvid
 func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 	logger lager.Logger,
 	session Session,
+	metadata Metadata,
 	tags atc.Tags,
 	teamID int,
 	resourceTypes atc.ResourceTypes,
 	resourceInstance ResourceInstance,
 	resourceOptions ResourceOptions,
-	containerCreator FetchContainerCreator,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) FetchSourceProvider {
 	return &fetchSourceProvider{
-		logger:           logger,
-		session:          session,
-		tags:             tags,
-		teamID:           teamID,
-		resourceTypes:    resourceTypes,
-		resourceInstance: resourceInstance,
-		resourceOptions:  resourceOptions,
-		containerCreator: containerCreator,
-		workerClient:     f.workerClient,
+		logger:                logger,
+		session:               session,
+		metadata:              metadata,
+		tags:                  tags,
+		teamID:                teamID,
+		resourceTypes:         resourceTypes,
+		resourceInstance:      resourceInstance,
+		resourceOptions:       resourceOptions,
+		imageFetchingDelegate: imageFetchingDelegate,
+		workerClient:          f.workerClient,
 	}
 }
 
 type fetchSourceProvider struct {
-	logger           lager.Logger
-	session          Session
-	tags             atc.Tags
-	teamID           int
-	resourceTypes    atc.ResourceTypes
-	resourceInstance ResourceInstance
-	resourceOptions  ResourceOptions
-	workerClient     worker.Client
-	containerCreator FetchContainerCreator
+	logger                lager.Logger
+	session               Session
+	metadata              Metadata
+	tags                  atc.Tags
+	teamID                int
+	resourceTypes         atc.ResourceTypes
+	resourceInstance      ResourceInstance
+	resourceOptions       ResourceOptions
+	workerClient          worker.Client
+	imageFetchingDelegate worker.ImageFetchingDelegate
 }
 
 func (f *fetchSourceProvider) Get() (FetchSource, error) {
@@ -122,7 +126,12 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		cachedVolume,
 		chosenWorker,
 		f.resourceOptions,
-		f.containerCreator,
+		f.resourceTypes,
+		f.tags,
+		f.teamID,
+		f.session,
+		f.metadata,
+		f.imageFetchingDelegate,
 	), nil
 }
 

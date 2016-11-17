@@ -17,13 +17,15 @@ import (
 
 var _ = Describe("FetchSourceProvider", func() {
 	var (
-		fakeWorkerClient     *workerfakes.FakeClient
-		fakeContainerCreator *resourcefakes.FakeFetchContainerCreator
-		fetchSourceProvider  FetchSourceProvider
+		fakeWorkerClient          *workerfakes.FakeClient
+		fetchSourceProvider       FetchSourceProvider
+		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
 		logger           lager.Logger
 		resourceOptions  *resourcefakes.FakeResourceOptions
 		resourceInstance *resourcefakes.FakeResourceInstance
+		metadata         = EmptyMetadata{}
+		session          = Session{}
 		tags             atc.Tags
 		resourceTypes    atc.ResourceTypes
 		teamID           = 3
@@ -33,7 +35,6 @@ var _ = Describe("FetchSourceProvider", func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
 		fetchSourceProviderFactory := NewFetchSourceProviderFactory(fakeWorkerClient)
 		logger = lagertest.NewTestLogger("test")
-		session := Session{}
 		resourceInstance = new(resourcefakes.FakeResourceInstance)
 		tags = atc.Tags{"some", "tags"}
 		resourceTypes = atc.ResourceTypes{
@@ -43,17 +44,18 @@ var _ = Describe("FetchSourceProvider", func() {
 		}
 		resourceOptions = new(resourcefakes.FakeResourceOptions)
 		resourceOptions.ResourceTypeReturns("some-resource-type")
-		fakeContainerCreator = new(resourcefakes.FakeFetchContainerCreator)
+		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 		fetchSourceProvider = fetchSourceProviderFactory.NewFetchSourceProvider(
 			logger,
 			session,
+			metadata,
 			tags,
 			teamID,
 			resourceTypes,
 			resourceInstance,
 			resourceOptions,
-			fakeContainerCreator,
+			fakeImageFetchingDelegate,
 		)
 	})
 
@@ -118,7 +120,18 @@ var _ = Describe("FetchSourceProvider", func() {
 					Expect(resourceInstance.FindOrCreateOnCallCount()).To(Equal(1))
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedSource := NewVolumeFetchSource(logger, fakeVolume, fakeWorker, resourceOptions, fakeContainerCreator)
+					expectedSource := NewVolumeFetchSource(
+						logger,
+						fakeVolume,
+						fakeWorker,
+						resourceOptions,
+						resourceTypes,
+						tags,
+						teamID,
+						session,
+						metadata,
+						fakeImageFetchingDelegate,
+					)
 					Expect(source).To(Equal(expectedSource))
 				})
 			})

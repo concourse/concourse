@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/atc"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
@@ -21,11 +22,10 @@ var _ = Describe("VolumeFetchSource", func() {
 	var (
 		fetchSource FetchSource
 
-		fakeContainer        *workerfakes.FakeContainer
-		fakeContainerCreator *resourcefakes.FakeFetchContainerCreator
-		resourceOptions      *resourcefakes.FakeResourceOptions
-		fakeVolume           *workerfakes.FakeVolume
-		fakeWorker           *workerfakes.FakeWorker
+		fakeContainer   *workerfakes.FakeContainer
+		resourceOptions *resourcefakes.FakeResourceOptions
+		fakeVolume      *workerfakes.FakeVolume
+		fakeWorker      *workerfakes.FakeWorker
 
 		signals <-chan os.Signal
 		ready   chan<- struct{}
@@ -52,17 +52,21 @@ var _ = Describe("VolumeFetchSource", func() {
 			return inProcess, nil
 		}
 
-		fakeVolume = new(workerfakes.FakeVolume)
 		fakeWorker = new(workerfakes.FakeWorker)
-		fakeContainerCreator = new(resourcefakes.FakeFetchContainerCreator)
-		fakeContainerCreator.CreateWithVolumeReturns(fakeContainer, nil)
+		fakeWorker.CreateResourceGetContainerReturns(fakeContainer, nil)
 
+		fakeVolume = new(workerfakes.FakeVolume)
 		fetchSource = NewVolumeFetchSource(
 			logger,
 			fakeVolume,
 			fakeWorker,
 			resourceOptions,
-			fakeContainerCreator,
+			nil,
+			atc.Tags{},
+			42,
+			Session{},
+			EmptyMetadata{},
+			new(workerfakes.FakeImageFetchingDelegate),
 		)
 	})
 
@@ -79,11 +83,7 @@ var _ = Describe("VolumeFetchSource", func() {
 
 		It("creates container with volume and worker", func() {
 			Expect(initErr).NotTo(HaveOccurred())
-			Expect(fakeContainerCreator.CreateWithVolumeCallCount()).To(Equal(1))
-			resourceOptions, volume, worker := fakeContainerCreator.CreateWithVolumeArgsForCall(0)
-			Expect(string(resourceOptions.ResourceType())).To(Equal("fake-resource-type"))
-			Expect(volume).To(Equal(fakeVolume))
-			Expect(worker).To(Equal(fakeWorker))
+			Expect(fakeWorker.CreateResourceGetContainerCallCount()).To(Equal(1))
 		})
 
 		It("fetches versioned source", func() {

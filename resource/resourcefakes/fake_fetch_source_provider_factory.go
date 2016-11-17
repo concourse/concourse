@@ -7,20 +7,22 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker"
 )
 
 type FakeFetchSourceProviderFactory struct {
-	NewFetchSourceProviderStub        func(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, resourceInstance resource.ResourceInstance, resourceOptions resource.ResourceOptions, containerCreator resource.FetchContainerCreator) resource.FetchSourceProvider
+	NewFetchSourceProviderStub        func(logger lager.Logger, session resource.Session, metadata resource.Metadata, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, resourceInstance resource.ResourceInstance, resourceOptions resource.ResourceOptions, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchSourceProvider
 	newFetchSourceProviderMutex       sync.RWMutex
 	newFetchSourceProviderArgsForCall []struct {
-		logger           lager.Logger
-		session          resource.Session
-		tags             atc.Tags
-		teamID           int
-		resourceTypes    atc.ResourceTypes
-		resourceInstance resource.ResourceInstance
-		resourceOptions  resource.ResourceOptions
-		containerCreator resource.FetchContainerCreator
+		logger                lager.Logger
+		session               resource.Session
+		metadata              resource.Metadata
+		tags                  atc.Tags
+		teamID                int
+		resourceTypes         atc.ResourceTypes
+		resourceInstance      resource.ResourceInstance
+		resourceOptions       resource.ResourceOptions
+		imageFetchingDelegate worker.ImageFetchingDelegate
 	}
 	newFetchSourceProviderReturns struct {
 		result1 resource.FetchSourceProvider
@@ -29,22 +31,23 @@ type FakeFetchSourceProviderFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, resourceInstance resource.ResourceInstance, resourceOptions resource.ResourceOptions, containerCreator resource.FetchContainerCreator) resource.FetchSourceProvider {
+func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(logger lager.Logger, session resource.Session, metadata resource.Metadata, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, resourceInstance resource.ResourceInstance, resourceOptions resource.ResourceOptions, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchSourceProvider {
 	fake.newFetchSourceProviderMutex.Lock()
 	fake.newFetchSourceProviderArgsForCall = append(fake.newFetchSourceProviderArgsForCall, struct {
-		logger           lager.Logger
-		session          resource.Session
-		tags             atc.Tags
-		teamID           int
-		resourceTypes    atc.ResourceTypes
-		resourceInstance resource.ResourceInstance
-		resourceOptions  resource.ResourceOptions
-		containerCreator resource.FetchContainerCreator
-	}{logger, session, tags, teamID, resourceTypes, resourceInstance, resourceOptions, containerCreator})
-	fake.recordInvocation("NewFetchSourceProvider", []interface{}{logger, session, tags, teamID, resourceTypes, resourceInstance, resourceOptions, containerCreator})
+		logger                lager.Logger
+		session               resource.Session
+		metadata              resource.Metadata
+		tags                  atc.Tags
+		teamID                int
+		resourceTypes         atc.ResourceTypes
+		resourceInstance      resource.ResourceInstance
+		resourceOptions       resource.ResourceOptions
+		imageFetchingDelegate worker.ImageFetchingDelegate
+	}{logger, session, metadata, tags, teamID, resourceTypes, resourceInstance, resourceOptions, imageFetchingDelegate})
+	fake.recordInvocation("NewFetchSourceProvider", []interface{}{logger, session, metadata, tags, teamID, resourceTypes, resourceInstance, resourceOptions, imageFetchingDelegate})
 	fake.newFetchSourceProviderMutex.Unlock()
 	if fake.NewFetchSourceProviderStub != nil {
-		return fake.NewFetchSourceProviderStub(logger, session, tags, teamID, resourceTypes, resourceInstance, resourceOptions, containerCreator)
+		return fake.NewFetchSourceProviderStub(logger, session, metadata, tags, teamID, resourceTypes, resourceInstance, resourceOptions, imageFetchingDelegate)
 	} else {
 		return fake.newFetchSourceProviderReturns.result1
 	}
@@ -56,10 +59,10 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderCallCount() in
 	return len(fake.newFetchSourceProviderArgsForCall)
 }
 
-func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderArgsForCall(i int) (lager.Logger, resource.Session, atc.Tags, int, atc.ResourceTypes, resource.ResourceInstance, resource.ResourceOptions, resource.FetchContainerCreator) {
+func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderArgsForCall(i int) (lager.Logger, resource.Session, resource.Metadata, atc.Tags, int, atc.ResourceTypes, resource.ResourceInstance, resource.ResourceOptions, worker.ImageFetchingDelegate) {
 	fake.newFetchSourceProviderMutex.RLock()
 	defer fake.newFetchSourceProviderMutex.RUnlock()
-	return fake.newFetchSourceProviderArgsForCall[i].logger, fake.newFetchSourceProviderArgsForCall[i].session, fake.newFetchSourceProviderArgsForCall[i].tags, fake.newFetchSourceProviderArgsForCall[i].teamID, fake.newFetchSourceProviderArgsForCall[i].resourceTypes, fake.newFetchSourceProviderArgsForCall[i].resourceInstance, fake.newFetchSourceProviderArgsForCall[i].resourceOptions, fake.newFetchSourceProviderArgsForCall[i].containerCreator
+	return fake.newFetchSourceProviderArgsForCall[i].logger, fake.newFetchSourceProviderArgsForCall[i].session, fake.newFetchSourceProviderArgsForCall[i].metadata, fake.newFetchSourceProviderArgsForCall[i].tags, fake.newFetchSourceProviderArgsForCall[i].teamID, fake.newFetchSourceProviderArgsForCall[i].resourceTypes, fake.newFetchSourceProviderArgsForCall[i].resourceInstance, fake.newFetchSourceProviderArgsForCall[i].resourceOptions, fake.newFetchSourceProviderArgsForCall[i].imageFetchingDelegate
 }
 
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderReturns(result1 resource.FetchSourceProvider) {

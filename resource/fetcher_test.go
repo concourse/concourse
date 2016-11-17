@@ -20,14 +20,13 @@ import (
 
 var _ = Describe("Fetcher", func() {
 	var (
-		fakeFetchContainerCreator *resourcefakes.FakeFetchContainerCreator
-		fakeFetchSourceProvider   *resourcefakes.FakeFetchSourceProvider
-		fakeClock                 *fakeclock.FakeClock
-		fakeLockDB                *resourcefakes.FakeLockDB
-		fetcher                   Fetcher
-		signals                   chan os.Signal
-		ready                     chan struct{}
-		resourceOptions           *resourcefakes.FakeResourceOptions
+		fakeFetchSourceProvider *resourcefakes.FakeFetchSourceProvider
+		fakeClock               *fakeclock.FakeClock
+		fakeLockDB              *resourcefakes.FakeLockDB
+		fetcher                 Fetcher
+		signals                 chan os.Signal
+		ready                   chan struct{}
+		resourceOptions         *resourcefakes.FakeResourceOptions
 
 		fetchSource FetchSource
 		fetchErr    error
@@ -35,10 +34,6 @@ var _ = Describe("Fetcher", func() {
 	)
 
 	BeforeEach(func() {
-		fakeFetchContainerCreatorFactory := new(resourcefakes.FakeFetchContainerCreatorFactory)
-		fakeFetchContainerCreator = new(resourcefakes.FakeFetchContainerCreator)
-		fakeFetchContainerCreatorFactory.NewFetchContainerCreatorReturns(fakeFetchContainerCreator)
-
 		fakeFetchSourceProviderFactory := new(resourcefakes.FakeFetchSourceProviderFactory)
 		fakeFetchSourceProvider = new(resourcefakes.FakeFetchSourceProvider)
 		fakeFetchSourceProviderFactory.NewFetchSourceProviderReturns(fakeFetchSourceProvider)
@@ -49,7 +44,6 @@ var _ = Describe("Fetcher", func() {
 		fetcher = NewFetcher(
 			fakeClock,
 			fakeLockDB,
-			fakeFetchContainerCreatorFactory,
 			fakeFetchSourceProviderFactory,
 		)
 

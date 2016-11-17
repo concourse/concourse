@@ -49,22 +49,19 @@ type ResourceOptions interface {
 func NewFetcher(
 	clock clock.Clock,
 	db LockDB,
-	fetchContainerCreatorFactory FetchContainerCreatorFactory,
 	fetchSourceProviderFactory FetchSourceProviderFactory,
 ) Fetcher {
 	return &fetcher{
 		clock: clock,
 		db:    db,
-		fetchContainerCreatorFactory: fetchContainerCreatorFactory,
-		fetchSourceProviderFactory:   fetchSourceProviderFactory,
+		fetchSourceProviderFactory: fetchSourceProviderFactory,
 	}
 }
 
 type fetcher struct {
-	clock                        clock.Clock
-	db                           LockDB
-	fetchContainerCreatorFactory FetchContainerCreatorFactory
-	fetchSourceProviderFactory   FetchSourceProviderFactory
+	clock                      clock.Clock
+	db                         LockDB
+	fetchSourceProviderFactory FetchSourceProviderFactory
 }
 
 func (f *fetcher) Fetch(
@@ -80,26 +77,16 @@ func (f *fetcher) Fetch(
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) (FetchSource, error) {
-	containerCreator := f.fetchContainerCreatorFactory.NewFetchContainerCreator(
-		logger,
-		resourceTypes,
-		tags,
-		teamID,
-		session,
-		metadata,
-		imageFetchingDelegate,
-		resourceInstance,
-	)
-
 	sourceProvider := f.fetchSourceProviderFactory.NewFetchSourceProvider(
 		logger,
 		session,
+		metadata,
 		tags,
 		teamID,
 		resourceTypes,
 		resourceInstance,
 		resourceOptions,
-		containerCreator,
+		imageFetchingDelegate,
 	)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)

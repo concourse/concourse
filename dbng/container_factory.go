@@ -172,7 +172,7 @@ func (factory *ContainerFactory) CreateBuildContainer(
 func (factory *ContainerFactory) FindContainer(
 	handle string,
 ) (*CreatedContainer, bool, error) {
-	return factory.findPlanContainer(handle)
+	return factory.findContainer(handle)
 }
 
 func (factory *ContainerFactory) createPlanContainer(
@@ -225,7 +225,7 @@ func (factory *ContainerFactory) createPlanContainer(
 	}, nil
 }
 
-func (factory *ContainerFactory) findPlanContainer(handle string) (*CreatedContainer, bool, error) {
+func (factory *ContainerFactory) findContainer(handle string) (*CreatedContainer, bool, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, false, err

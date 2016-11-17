@@ -128,7 +128,6 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	}
 
 	var err error
-	// For build
 	step.fetchSource, err = step.resourceFetcher.Fetch(
 		step.logger,
 		runSession,

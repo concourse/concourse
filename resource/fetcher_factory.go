@@ -38,7 +38,6 @@ func (f *fetcherFactory) FetcherFor(workerClient worker.Client) Fetcher {
 	return NewFetcher(
 		f.clock,
 		f.db,
-		NewFetchContainerCreatorFactory(),
 		NewFetchSourceProviderFactory(workerClient),
 	)
 }
