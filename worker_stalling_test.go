@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"time"
 
@@ -159,6 +160,11 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 				By("waiting for it to stall")
 				stalledWorkerName = waitForStalledWorker()
+			})
+
+			AfterEach(func() {
+				buildSession.Signal(os.Interrupt)
+				<-buildSession.Exited
 			})
 
 			It("does not fail the build", func() {
