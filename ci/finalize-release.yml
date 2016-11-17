@@ -9,7 +9,6 @@ image_resource:
 inputs:
 - name: concourse
 - name: version
-- name: deployments
 - name: bosh-rc
 
 outputs:

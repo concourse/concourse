@@ -447,9 +447,9 @@ jobs:
       passed: [bin-smoke, bin-docker, bosh-deploy]
     - get: concourse-image-rc
       passed: [bin-docker]
-    - get: deployments
   - task: finalize-release
     file: concourse/ci/finalize-release.yml
+    params: {BOSH_PRIVATE_CONFIG: {{bosh-private-config}}}
   - aggregate:
     - put: version
       params: {file: version/version}
