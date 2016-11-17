@@ -56,8 +56,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = SynchronizedAfterSuite(func() {
+}, func() {
 	gexec.CleanupBuildArtifacts()
-}, func() {})
+})
 
 var _ = BeforeEach(func() {
 	SetDefaultEventuallyTimeout(5 * time.Minute)
