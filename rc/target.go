@@ -335,7 +335,10 @@ func loadCACertPool(caCert string) (cert *x509.CertPool, err error) {
 		return nil, nil
 	}
 
-	pool := x509.NewCertPool()
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, err
+	}
 	ok := pool.AppendCertsFromPEM([]byte(caCert))
 	if !ok {
 		return nil, errors.New("CA Cert not valid")

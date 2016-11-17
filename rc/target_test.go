@@ -114,7 +114,8 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 				base, ok := (*transport).Base.(*http.Transport)
 				Expect(ok).To(BeTrue())
 
-				expectedCaCertPool := x509.NewCertPool()
+				expectedCaCertPool, err := x509.SystemCertPool()
+				Expect(err).NotTo(HaveOccurred())
 				ok = expectedCaCertPool.AppendCertsFromPEM([]byte(rootCA))
 				Expect(ok).To(BeTrue())
 
