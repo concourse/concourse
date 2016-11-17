@@ -345,42 +345,28 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Clock:    clock.NewClock(),
 		}},
 
-		{"volumecollector", lockrunner.NewRunner(
-			logger.Session("volume-collector"),
-			gcng.NewVolumeCollector(
-				logger.Session("volume-collector"),
-				dbVolumeFactory,
-				gcng.NewBaggageclaimClientFactory(),
+		{"ng-collector", lockrunner.NewRunner(
+			logger.Session("ng-collector"),
+			gcng.NewCollector(
+				gcng.NewWorkerCollector(
+					logger.Session("worker-collector"),
+					dbWorkerFactory,
+				),
+				gcng.NewResourceCacheCollector(
+					logger.Session("resource-cache-collector"),
+					dbResourceCacheFactory,
+					dbResourceConfigFactory,
+				),
+				gcng.NewVolumeCollector(
+					logger.Session("volume-collector"),
+					dbVolumeFactory,
+					gcng.NewBaggageclaimClientFactory(),
+				),
 			),
-			"volume-collector",
+			"ng-collector",
 			sqlDB,
 			clock.NewClock(),
 			30*time.Second,
-		)},
-
-		{"resource-cache-use-collector", lockrunner.NewRunner(
-			logger.Session("resource-cache-use-collector"),
-			gcng.NewResourceCacheCollector(
-				logger.Session("resource-cache-use-collector"),
-				dbResourceCacheFactory,
-				dbResourceConfigFactory,
-			),
-			"resource-cache-use-collector",
-			sqlDB,
-			clock.NewClock(),
-			30*time.Second,
-		)},
-
-		{"workercollector", lockrunner.NewRunner(
-			logger.Session("worker-collector"),
-			gcng.NewWorkerCollector(
-				logger.Session("worker-collector"),
-				dbWorkerFactory,
-			),
-			"worker-collector",
-			sqlDB,
-			clock.NewClock(),
-			10*time.Second,
 		)},
 
 		{"containerkeepaliver", lockrunner.NewRunner(

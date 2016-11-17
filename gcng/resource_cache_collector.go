@@ -5,10 +5,6 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-type ResourceCacheCollector interface {
-	Run() error
-}
-
 type resourceCacheCollector struct {
 	logger        lager.Logger
 	cacheFactory  dbng.ResourceCacheFactory
@@ -19,7 +15,7 @@ func NewResourceCacheCollector(
 	logger lager.Logger,
 	cacheFactory dbng.ResourceCacheFactory,
 	configFactory dbng.ResourceConfigFactory,
-) ResourceCacheCollector {
+) Collector {
 	return &resourceCacheCollector{
 		logger:        logger.Session("resource-cache-use-collector"),
 		cacheFactory:  cacheFactory,

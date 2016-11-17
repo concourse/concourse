@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("VolumeCollector", func() {
 	var (
-		volumeCollector gcng.VolumeCollector
+		volumeCollector gcng.Collector
 
 		dbConn                 dbng.Conn
 		volumeFactory          dbng.VolumeFactory

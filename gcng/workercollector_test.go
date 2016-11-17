@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("WorkerCollector", func() {
 	var (
-		workerCollector gcng.WorkerCollector
+		workerCollector gcng.Collector
 
 		fakeWorkerFactory *dbngfakes.FakeWorkerFactory
 	)

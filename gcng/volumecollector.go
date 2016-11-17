@@ -6,10 +6,6 @@ import (
 	bclient "github.com/concourse/baggageclaim/client"
 )
 
-type VolumeCollector interface {
-	Run() error
-}
-
 type volumeCollector struct {
 	logger                    lager.Logger
 	volumeFactory             dbng.VolumeFactory
@@ -36,7 +32,7 @@ func NewVolumeCollector(
 	logger lager.Logger,
 	volumeFactory dbng.VolumeFactory,
 	baggageclaimClientFactory BaggageclaimClientFactory,
-) VolumeCollector {
+) Collector {
 	return &volumeCollector{
 		logger:                    logger,
 		volumeFactory:             volumeFactory,

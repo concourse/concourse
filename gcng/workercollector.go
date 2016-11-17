@@ -7,10 +7,6 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-type WorkerCollector interface {
-	Run() error
-}
-
 type workerCollector struct {
 	logger        lager.Logger
 	workerFactory dbng.WorkerFactory
@@ -19,7 +15,7 @@ type workerCollector struct {
 func NewWorkerCollector(
 	logger lager.Logger,
 	workerFactory dbng.WorkerFactory,
-) WorkerCollector {
+) Collector {
 	return &workerCollector{
 		logger:        logger,
 		workerFactory: workerFactory,

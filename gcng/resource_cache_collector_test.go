@@ -17,7 +17,7 @@ var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 var _ = Describe("ResourceCacheCollector", func() {
 	var (
-		collector gcng.ResourceCacheCollector
+		collector gcng.Collector
 
 		dbConn                dbng.Conn
 		err                   error
