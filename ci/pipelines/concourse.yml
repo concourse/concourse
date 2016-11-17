@@ -716,7 +716,7 @@ resources:
 - name: garden-runc
   type: bosh-io-release
   source:
-    repository: cloudfoundry-incubator/garden-runc-release
+    repository: cloudfoundry/garden-runc-release
 
 - name: fly-rc
   type: github-release
@@ -811,7 +811,7 @@ resources:
 - name: garden-runc-src
   type: git
   source:
-    uri: https://github.com/cloudfoundry-incubator/garden-runc-release
+    uri: https://github.com/cloudfoundry/garden-runc-release
     branch: master
 
 - name: bin-rc
