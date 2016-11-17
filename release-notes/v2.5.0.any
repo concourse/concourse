@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2016-11-16}{2.5.0}{1.0.0}{
+\release{2016-11-16}{2.5.0}{1.0.3}{
   \note{feature}{
     Teams can now be destroyed via \reference{fly-destroy-team}.
   }
