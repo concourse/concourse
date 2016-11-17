@@ -105,7 +105,8 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 			var stalledWorkerName string
 
 			BeforeEach(func() {
-				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop beacon garden")
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop beacon")
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop garden")
 				stalledWorkerName = waitForStalledWorker()
 			})
 
@@ -152,8 +153,9 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 				Eventually(buildSession).Should(gbytes.Say("waiting"))
 
-				By("stopping the worker without draining")
-				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop beacon garden")
+				By("stopping the beacon without draining")
+				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop beacon")
+				bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit stop garden")
 
 				By("waiting for it to stall")
 				stalledWorkerName = waitForStalledWorker()
@@ -166,7 +168,8 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 			Context("when the worker comes back", func() {
 				BeforeEach(func() {
 					By("starting the worker")
-					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start beacon garden")
+					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start beacon")
+					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start garden")
 
 					By("waiting for it to be running again")
 					waitForWorkersToBeRunning()
