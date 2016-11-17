@@ -352,10 +352,21 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 					logger.Session("worker-collector"),
 					dbWorkerFactory,
 				),
+				gcng.NewResourceCacheUseCollector(
+					logger.Session("resource-cache-collector"),
+					dbResourceCacheFactory,
+				),
+				gcng.NewResourceConfigUseCollector(
+					logger.Session("resource-cache-collector"),
+					dbResourceConfigFactory,
+				),
+				gcng.NewResourceConfigCollector(
+					logger.Session("resource-cache-collector"),
+					dbResourceConfigFactory,
+				),
 				gcng.NewResourceCacheCollector(
 					logger.Session("resource-cache-collector"),
 					dbResourceCacheFactory,
-					dbResourceConfigFactory,
 				),
 				gcng.NewVolumeCollector(
 					logger.Session("volume-collector"),
