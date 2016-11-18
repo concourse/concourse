@@ -68,8 +68,6 @@ jobs:
   - task: go-unit
     file: concourse/ci/atc-go.yml
     privileged: true
-    params:
-      GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
 
 - name: baggageclaim
   public: true
@@ -342,12 +340,6 @@ jobs:
       releases:
         - garden-runc-release/*.tgz
         - bosh-rc/concourse-*.tgz
-  - task: emit-yeller-deploy
-    file: concourse/ci/emit-yeller-deploy.yml
-    params:
-      YELLER_API_KEY: {{yeller-api-key}}
-      YELLER_USER: {{yeller-user}}
-      YELLER_ENVIRONMENT: {{yeller-environment-name}}
   - put: tracker
     params: {repos: [concourse]}
 

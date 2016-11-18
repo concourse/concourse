@@ -6,9 +6,6 @@ image_resource:
   source:
     repository: concourse/atc-ci
 
-params:
-  GITHUB_ACCESS_TOKEN:
-
 inputs:
 - name: concourse
 
