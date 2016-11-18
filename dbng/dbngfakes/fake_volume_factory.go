@@ -29,6 +29,19 @@ type FakeVolumeFactory struct {
 		result1 dbng.CreatingVolume
 		result2 error
 	}
+	CreateContainerVolumeWithParentStub        func(*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string, string) (dbng.CreatingVolume, error)
+	createContainerVolumeWithParentMutex       sync.RWMutex
+	createContainerVolumeWithParentArgsForCall []struct {
+		arg1 *dbng.Team
+		arg2 *dbng.Worker
+		arg3 *dbng.CreatingContainer
+		arg4 string
+		arg5 string
+	}
+	createContainerVolumeWithParentReturns struct {
+		result1 dbng.CreatingVolume
+		result2 error
+	}
 	FindContainerVolumeStub        func(*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) (dbng.CreatingVolume, dbng.CreatedVolume, error)
 	findContainerVolumeMutex       sync.RWMutex
 	findContainerVolumeArgsForCall []struct {
@@ -194,6 +207,44 @@ func (fake *FakeVolumeFactory) CreateContainerVolumeArgsForCall(i int) (*dbng.Te
 func (fake *FakeVolumeFactory) CreateContainerVolumeReturns(result1 dbng.CreatingVolume, result2 error) {
 	fake.CreateContainerVolumeStub = nil
 	fake.createContainerVolumeReturns = struct {
+		result1 dbng.CreatingVolume
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolumeFactory) CreateContainerVolumeWithParent(arg1 *dbng.Team, arg2 *dbng.Worker, arg3 *dbng.CreatingContainer, arg4 string, arg5 string) (dbng.CreatingVolume, error) {
+	fake.createContainerVolumeWithParentMutex.Lock()
+	fake.createContainerVolumeWithParentArgsForCall = append(fake.createContainerVolumeWithParentArgsForCall, struct {
+		arg1 *dbng.Team
+		arg2 *dbng.Worker
+		arg3 *dbng.CreatingContainer
+		arg4 string
+		arg5 string
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("CreateContainerVolumeWithParent", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.createContainerVolumeWithParentMutex.Unlock()
+	if fake.CreateContainerVolumeWithParentStub != nil {
+		return fake.CreateContainerVolumeWithParentStub(arg1, arg2, arg3, arg4, arg5)
+	} else {
+		return fake.createContainerVolumeWithParentReturns.result1, fake.createContainerVolumeWithParentReturns.result2
+	}
+}
+
+func (fake *FakeVolumeFactory) CreateContainerVolumeWithParentCallCount() int {
+	fake.createContainerVolumeWithParentMutex.RLock()
+	defer fake.createContainerVolumeWithParentMutex.RUnlock()
+	return len(fake.createContainerVolumeWithParentArgsForCall)
+}
+
+func (fake *FakeVolumeFactory) CreateContainerVolumeWithParentArgsForCall(i int) (*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string, string) {
+	fake.createContainerVolumeWithParentMutex.RLock()
+	defer fake.createContainerVolumeWithParentMutex.RUnlock()
+	return fake.createContainerVolumeWithParentArgsForCall[i].arg1, fake.createContainerVolumeWithParentArgsForCall[i].arg2, fake.createContainerVolumeWithParentArgsForCall[i].arg3, fake.createContainerVolumeWithParentArgsForCall[i].arg4, fake.createContainerVolumeWithParentArgsForCall[i].arg5
+}
+
+func (fake *FakeVolumeFactory) CreateContainerVolumeWithParentReturns(result1 dbng.CreatingVolume, result2 error) {
+	fake.CreateContainerVolumeWithParentStub = nil
+	fake.createContainerVolumeWithParentReturns = struct {
 		result1 dbng.CreatingVolume
 		result2 error
 	}{result1, result2}
@@ -520,6 +571,8 @@ func (fake *FakeVolumeFactory) Invocations() map[string][][]interface{} {
 	defer fake.getTeamVolumesMutex.RUnlock()
 	fake.createContainerVolumeMutex.RLock()
 	defer fake.createContainerVolumeMutex.RUnlock()
+	fake.createContainerVolumeWithParentMutex.RLock()
+	defer fake.createContainerVolumeWithParentMutex.RUnlock()
 	fake.findContainerVolumeMutex.RLock()
 	defer fake.findContainerVolumeMutex.RUnlock()
 	fake.findBaseResourceTypeVolumeMutex.RLock()

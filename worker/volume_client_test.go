@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker"
 
-	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -26,7 +26,7 @@ var _ = Describe("VolumeClient", func() {
 		testLogger *lagertest.TestLogger
 
 		fakeBaggageclaimClient      *baggageclaimfakes.FakeClient
-		fakeGardenWorkerDB          *wfakes.FakeGardenWorkerDB
+		fakeGardenWorkerDB          *workerfakes.FakeGardenWorkerDB
 		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
 		fakeBaseResourceTypeFactory *dbngfakes.FakeBaseResourceTypeFactory
 		fakeClock                   *fakeclock.FakeClock
@@ -37,7 +37,7 @@ var _ = Describe("VolumeClient", func() {
 
 	BeforeEach(func() {
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
-		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
+		fakeGardenWorkerDB = new(workerfakes.FakeGardenWorkerDB)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		dbWorker = &dbng.Worker{Name: "some-worker"}
 
@@ -64,27 +64,30 @@ var _ = Describe("VolumeClient", func() {
 		var team *dbng.Team
 		var container *dbng.CreatingContainer
 		var fakeCreatingVolume *dbngfakes.FakeCreatingVolume
+		var volumeStrategy worker.Strategy
 
 		BeforeEach(func() {
 			fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
 			fakeCreatingVolume = new(dbngfakes.FakeCreatingVolume)
 			fakeBaggageclaimClient.CreateVolumeReturns(fakeBaggageclaimVolume, nil)
 			fakeDBVolumeFactory.CreateContainerVolumeReturns(fakeCreatingVolume, nil)
+
+			version := "some-version"
+			volumeStrategy = worker.HostRootFSStrategy{
+				Path:       "/some/path",
+				WorkerName: "worker-name",
+				Version:    &version,
+			}
 		})
 
 		JustBeforeEach(func() {
 			team = &dbng.Team{}
 			container = &dbng.CreatingContainer{}
 
-			version := "some-version"
 			foundOrCreatedVolume, foundOrCreatedErr = volumeClient.FindOrCreateVolumeForContainer(
 				testLogger,
 				worker.VolumeSpec{
-					Strategy: worker.HostRootFSStrategy{
-						Path:       "/some/path",
-						WorkerName: "worker-name",
-						Version:    &version,
-					},
+					Strategy: volumeStrategy,
 				},
 				container,
 				team,
@@ -210,13 +213,36 @@ var _ = Describe("VolumeClient", func() {
 				Expect(fakeGardenWorkerDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
 			})
 
-			It("creates volume in creating state", func() {
-				Expect(fakeDBVolumeFactory.CreateContainerVolumeCallCount()).To(Equal(1))
-				actualTeam, actualWorker, actualContainer, actualMountPath := fakeDBVolumeFactory.CreateContainerVolumeArgsForCall(0)
-				Expect(actualTeam).To(Equal(team))
-				Expect(actualWorker).To(Equal(dbWorker))
-				Expect(actualContainer).To(Equal(container))
-				Expect(actualMountPath).To(Equal("some-mount-path"))
+			Context("when volume is using ContainerRootFSStrategy", func() {
+				BeforeEach(func() {
+					parentVolume := new(workerfakes.FakeVolume)
+					parentVolume.HandleReturns("fake-parent-handle")
+					volumeStrategy = worker.ContainerRootFSStrategy{
+						Parent: parentVolume,
+					}
+					fakeDBVolumeFactory.CreateContainerVolumeWithParentReturns(fakeCreatingVolume, nil)
+				})
+
+				It("creates volume in creating state with parent volume", func() {
+					Expect(fakeDBVolumeFactory.CreateContainerVolumeWithParentCallCount()).To(Equal(1))
+					actualTeam, actualWorker, actualContainer, actualMountPath, parentVolumeHandle := fakeDBVolumeFactory.CreateContainerVolumeWithParentArgsForCall(0)
+					Expect(actualTeam).To(Equal(team))
+					Expect(actualWorker).To(Equal(dbWorker))
+					Expect(actualContainer).To(Equal(container))
+					Expect(actualMountPath).To(Equal("some-mount-path"))
+					Expect(parentVolumeHandle).To(Equal("fake-parent-handle"))
+				})
+			})
+
+			Context("when volume is using HostRootFSStrategy", func() {
+				It("creates volume in creating state", func() {
+					Expect(fakeDBVolumeFactory.CreateContainerVolumeCallCount()).To(Equal(1))
+					actualTeam, actualWorker, actualContainer, actualMountPath := fakeDBVolumeFactory.CreateContainerVolumeArgsForCall(0)
+					Expect(actualTeam).To(Equal(team))
+					Expect(actualWorker).To(Equal(dbWorker))
+					Expect(actualContainer).To(Equal(container))
+					Expect(actualMountPath).To(Equal("some-mount-path"))
+				})
 			})
 
 			It("creates volume in baggageclaim", func() {
@@ -422,14 +448,14 @@ var _ = Describe("VolumeClient", func() {
 
 		Context("when the volume can be found on baggageclaim", func() {
 			var fakeBaggageclaimVolume *baggageclaimfakes.FakeVolume
-			var builtVolume *wfakes.FakeVolume
+			var builtVolume *workerfakes.FakeVolume
 
 			BeforeEach(func() {
 				fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
 				fakeBaggageclaimVolume.HandleReturns(handle)
 				fakeBaggageclaimClient.LookupVolumeReturns(fakeBaggageclaimVolume, true, nil)
 
-				builtVolume = new(wfakes.FakeVolume)
+				builtVolume = new(workerfakes.FakeVolume)
 			})
 
 			It("succeeds", func() {

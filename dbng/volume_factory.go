@@ -14,6 +14,7 @@ type VolumeFactory interface {
 	GetTeamVolumes(teamID int) ([]CreatedVolume, error)
 
 	CreateContainerVolume(*Team, *Worker, *CreatingContainer, string) (CreatingVolume, error)
+	CreateContainerVolumeWithParent(*Team, *Worker, *CreatingContainer, string, string) (CreatingVolume, error)
 	FindContainerVolume(*Team, *Worker, *CreatingContainer, string) (CreatingVolume, CreatedVolume, error)
 
 	FindBaseResourceTypeVolume(*Team, *Worker, *UsedBaseResourceType) (CreatingVolume, CreatedVolume, error)
@@ -126,6 +127,36 @@ func (factory *volumeFactory) CreateContainerVolume(team *Team, worker *Worker, 
 		"container_id": container.ID,
 		"path":         mountPath,
 		"initialized":  true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	volume.path = mountPath
+	return volume, nil
+}
+
+func (factory *volumeFactory) CreateContainerVolumeWithParent(team *Team, worker *Worker, container *CreatingContainer, mountPath string, parentHandle string) (CreatingVolume, error) {
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	parentIdSubquery, parentIdArgs, err := sq.Select("id").
+		From("volumes").
+		Where(sq.Eq{"handle": parentHandle}).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	volume, err := factory.createVolume(tx, team, worker, map[string]interface{}{
+		"container_id": container.ID,
+		"path":         mountPath,
+		"initialized":  true,
+		"parent_id":    sq.Expr("("+parentIdSubquery+")", parentIdArgs...),
 	})
 	if err != nil {
 		return nil, err

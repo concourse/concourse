@@ -85,7 +85,13 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 			return c.dbVolumeFactory.FindContainerVolume(team, c.dbWorker, container, mountPath)
 		},
 		func() (dbng.CreatingVolume, error) {
-			v, err := c.dbVolumeFactory.CreateContainerVolume(team, c.dbWorker, container, mountPath)
+			var v dbng.CreatingVolume
+			var err error
+			if cowStrategy, ok := volumeSpec.Strategy.(ContainerRootFSStrategy); ok {
+				v, err = c.dbVolumeFactory.CreateContainerVolumeWithParent(team, c.dbWorker, container, mountPath, cowStrategy.Parent.Handle())
+			} else {
+				v, err = c.dbVolumeFactory.CreateContainerVolume(team, c.dbWorker, container, mountPath)
+			}
 			if err != nil {
 				return nil, err
 			}

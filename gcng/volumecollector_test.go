@@ -27,6 +27,11 @@ var _ = Describe("VolumeCollector", func() {
 		buildFactory           *dbng.BuildFactory
 		fakeBCVolume           *baggageclaimfakes.FakeVolume
 		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
+		createdVolume          dbng.CreatedVolume
+		creatingContainer1     *dbng.CreatingContainer
+		creatingContainer2     *dbng.CreatingContainer
+		team                   *dbng.Team
+		worker                 *dbng.Worker
 	)
 
 	BeforeEach(func() {
@@ -61,26 +66,27 @@ var _ = Describe("VolumeCollector", func() {
 
 	Describe("Run", func() {
 		BeforeEach(func() {
-			team, err := teamFactory.CreateTeam("some-team")
+			var err error
+			team, err = teamFactory.CreateTeam("some-team")
 			Expect(err).ToNot(HaveOccurred())
 
 			build, err := buildFactory.CreateOneOffBuild(team)
 			Expect(err).ToNot(HaveOccurred())
 
-			worker, err := workerFactory.SaveWorker(atc.Worker{
+			worker, err = workerFactory.SaveWorker(atc.Worker{
 				Name:            "some-worker",
 				GardenAddr:      "1.2.3.4:7777",
 				BaggageclaimURL: "1.2.3.4:7788",
 			}, 5*time.Minute)
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer1, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer1, err = containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer2, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer2, err = containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -88,11 +94,13 @@ var _ = Describe("VolumeCollector", func() {
 
 			creatingVolume1, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer1, "some-path-1")
 			Expect(err).NotTo(HaveOccurred())
+			createdVolume, err = creatingVolume1.Created()
+			Expect(err).NotTo(HaveOccurred())
+
 			_, err = volumeFactory.CreateContainerVolume(team, worker, creatingContainer2, "some-path-2")
 			Expect(err).NotTo(HaveOccurred())
+
 			creatingVolume3, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer1, "some-path-3")
-			Expect(err).NotTo(HaveOccurred())
-			_, err = creatingVolume1.Created()
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume3, err := creatingVolume3.Created()
 			Expect(err).NotTo(HaveOccurred())
@@ -123,6 +131,30 @@ var _ = Describe("VolumeCollector", func() {
 			Expect(destoryingVolumes).To(HaveLen(0))
 
 			Expect(fakeBCVolume.DestroyCallCount()).To(Equal(2))
+		})
+
+		Context("when destroying the volume in db fails because volume has children", func() {
+			BeforeEach(func() {
+				_, err := volumeFactory.CreateContainerVolumeWithParent(team, worker, creatingContainer2, "some-path-1", createdVolume.Handle())
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("leaves the volume in the db", func() {
+				createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdVolumes).To(HaveLen(1))
+				createdVolumeHandle := createdVolumes[0].Handle()
+				Expect(destoryingVolumes).To(HaveLen(1))
+
+				err = volumeCollector.Run()
+				Expect(err).NotTo(HaveOccurred())
+
+				createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdVolumes).To(HaveLen(0))
+				Expect(destoryingVolumes).To(HaveLen(1))
+				Expect(destoryingVolumes[0].Handle()).To(Equal(createdVolumeHandle))
+			})
 		})
 
 		Context("when destroying the volume in baggageclaim fails", func() {

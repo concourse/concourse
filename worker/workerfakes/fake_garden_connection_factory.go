@@ -4,22 +4,22 @@ package workerfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/garden/client/connection"
+	gconn "code.cloudfoundry.org/garden/client/connection"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeGardenConnectionFactory struct {
-	BuildConnectionStub        func() connection.Connection
+	BuildConnectionStub        func() gconn.Connection
 	buildConnectionMutex       sync.RWMutex
 	buildConnectionArgsForCall []struct{}
 	buildConnectionReturns     struct {
-		result1 connection.Connection
+		result1 gconn.Connection
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnection() connection.Connection {
+func (fake *FakeGardenConnectionFactory) BuildConnection() gconn.Connection {
 	fake.buildConnectionMutex.Lock()
 	fake.buildConnectionArgsForCall = append(fake.buildConnectionArgsForCall, struct{}{})
 	fake.recordInvocation("BuildConnection", []interface{}{})
@@ -37,10 +37,10 @@ func (fake *FakeGardenConnectionFactory) BuildConnectionCallCount() int {
 	return len(fake.buildConnectionArgsForCall)
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnectionReturns(result1 connection.Connection) {
+func (fake *FakeGardenConnectionFactory) BuildConnectionReturns(result1 gconn.Connection) {
 	fake.BuildConnectionStub = nil
 	fake.buildConnectionReturns = struct {
-		result1 connection.Connection
+		result1 gconn.Connection
 	}{result1}
 }
 
