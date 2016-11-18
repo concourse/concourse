@@ -238,6 +238,8 @@ func (c *volumeClient) findOrCreateVolume(
 			logger.Error("failed-to-lookup-volume-in-baggageclaim", ErrCreatedVolumeNotFound, lager.Data{"handle": createdVolume.Handle()})
 			return nil, ErrCreatedVolumeNotFound
 		}
+
+		return NewVolume(bcVolume, createdVolume), nil
 	} else {
 		if creatingVolume != nil {
 			bcVolume, bcVolumeFound, err = c.baggageclaimClient.LookupVolume(

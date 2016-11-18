@@ -161,14 +161,22 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		},
 	)
 
-	return NewGardenWorker(
+	containerProviderFactory := NewContainerProviderFactory(
 		gclient.New(connection),
 		bClient,
 		volumeClient,
 		provider.imageFactory,
-		provider.pipelineDBFactory,
 		provider.dbContainerFactory,
 		provider.dbVolumeFactory,
+		provider.db,
+		tikTok,
+	)
+
+	return NewGardenWorker(
+		containerProviderFactory,
+		volumeClient,
+		provider.pipelineDBFactory,
+		provider.dbContainerFactory,
 		provider.dbResourceCacheFactory,
 		provider.dbResourceConfigFactory,
 		provider.db,

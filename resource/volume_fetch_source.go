@@ -65,7 +65,7 @@ func (s *volumeFetchSource) LockName() (string, error) {
 
 func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
-	s.container, err = s.createContainer()
+	s.container, err = s.findOrCreateContainerForVolume()
 	if err != nil {
 		s.logger.Error("failed-to-create-container", err)
 		return err
@@ -105,7 +105,7 @@ func (s *volumeFetchSource) Release(finalTTL *time.Duration) {
 	}
 }
 
-func (s *volumeFetchSource) createContainer() (worker.Container, error) {
+func (s *volumeFetchSource) findOrCreateContainerForVolume() (worker.Container, error) {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: string(s.resourceOptions.ResourceType()),
@@ -123,7 +123,7 @@ func (s *volumeFetchSource) createContainer() (worker.Container, error) {
 		},
 	}
 
-	return s.worker.CreateResourceGetContainer(
+	return s.worker.FindOrCreateResourceGetContainer(
 		s.logger,
 		nil,
 		s.imageFetchingDelegate,

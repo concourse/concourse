@@ -181,7 +181,7 @@ func (pool *pool) FindOrCreateContainerForIdentifier(
 	return container, missingSourceNames, nil
 }
 
-func (pool *pool) CreateResourceGetContainer(
+func (pool *pool) FindOrCreateResourceGetContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
@@ -200,7 +200,7 @@ func (pool *pool) CreateResourceGetContainer(
 		return nil, err
 	}
 
-	container, err := worker.CreateResourceGetContainer(
+	container, err := worker.FindOrCreateResourceGetContainer(
 		logger,
 		cancel,
 		delegate,

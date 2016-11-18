@@ -53,7 +53,7 @@ var _ = Describe("VolumeFetchSource", func() {
 		}
 
 		fakeWorker = new(workerfakes.FakeWorker)
-		fakeWorker.CreateResourceGetContainerReturns(fakeContainer, nil)
+		fakeWorker.FindOrCreateResourceGetContainerReturns(fakeContainer, nil)
 
 		fakeVolume = new(workerfakes.FakeVolume)
 		fetchSource = NewVolumeFetchSource(
@@ -83,7 +83,7 @@ var _ = Describe("VolumeFetchSource", func() {
 
 		It("creates container with volume and worker", func() {
 			Expect(initErr).NotTo(HaveOccurred())
-			Expect(fakeWorker.CreateResourceGetContainerCallCount()).To(Equal(1))
+			Expect(fakeWorker.FindOrCreateResourceGetContainerCallCount()).To(Equal(1))
 		})
 
 		It("fetches versioned source", func() {

@@ -26,7 +26,7 @@ type Client interface {
 		map[string]string,
 	) (Container, error)
 
-	CreateResourceGetContainer(
+	FindOrCreateResourceGetContainer(
 		logger lager.Logger,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,

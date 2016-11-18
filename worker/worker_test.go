@@ -92,14 +92,21 @@ var _ = Describe("Worker", func() {
 	})
 
 	JustBeforeEach(func() {
-		gardenWorker = NewGardenWorker(
+		containerProviderFactory := NewContainerProviderFactory(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
 			fakeVolumeClient,
 			fakeImageFactory,
-			fakePipelineDBFactory,
 			fakeDBContainerFactory,
 			fakeDBVolumeFactory,
+			fakeGardenWorkerDB,
+			fakeClock,
+		)
+		gardenWorker = NewGardenWorker(
+			containerProviderFactory,
+			fakeVolumeClient,
+			fakePipelineDBFactory,
+			fakeDBContainerFactory,
 			fakeDBResourceCacheFactory,
 			fakeResourceConfigFactory,
 			fakeGardenWorkerDB,
