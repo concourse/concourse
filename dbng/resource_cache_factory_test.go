@@ -39,8 +39,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		_, err = dbng.ResourceType{
 			ResourceType: resourceType1,
 			Pipeline:     defaultPipeline,
-			Version:      atc.Version{"some-type": "version"},
-		}.Create(setupTx)
+		}.Create(setupTx, atc.Version{"some-type": "version"})
 		Expect(err).NotTo(HaveOccurred())
 
 		resourceType2 = atc.ResourceType{
@@ -53,8 +52,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		_, err = dbng.ResourceType{
 			ResourceType: resourceType2,
 			Pipeline:     defaultPipeline,
-			Version:      atc.Version{"some-type-type": "version"},
-		}.Create(setupTx)
+		}.Create(setupTx, atc.Version{"some-type-type": "version"})
 		Expect(err).NotTo(HaveOccurred())
 
 		resourceType3 = atc.ResourceType{
@@ -64,8 +62,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		_, err = dbng.ResourceType{
 			ResourceType: resourceType3,
 			Pipeline:     defaultPipeline,
-			Version:      atc.Version{"some-unused-type": "version"},
-		}.Create(setupTx)
+		}.Create(setupTx, atc.Version{"some-unused-type": "version"})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(setupTx.Commit()).To(Succeed())

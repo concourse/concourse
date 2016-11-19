@@ -56,10 +56,9 @@ func (factory *resourceTypeFactory) CreateResourceType(pipeline *Pipeline, resou
 	rt := ResourceType{
 		ResourceType: resourceType,
 		Pipeline:     pipeline,
-		Version:      version,
 	}
 
-	urt, err := rt.Create(tx)
+	urt, err := rt.Create(tx, version)
 	if err != nil {
 		return nil, err
 	}

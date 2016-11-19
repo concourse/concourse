@@ -62,8 +62,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				resourceType1Used, err = dbng.ResourceType{
 					ResourceType: resourceType1,
 					Pipeline:     defaultPipeline,
-					Version:      atc.Version{"some-type": "version"},
-				}.Create(setupTx)
+				}.Create(setupTx, atc.Version{"some-type": "version"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 			})

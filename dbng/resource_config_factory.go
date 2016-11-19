@@ -61,12 +61,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 
 	defer tx.Rollback()
 
-	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfig, err := constructResourceConfig(resourceType, source, dbResourceTypes)
+	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +93,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
 
 	defer tx.Rollback()
 
-	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfig, err := constructResourceConfig(resourceType, source, dbResourceTypes)
+	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -139,12 +129,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
 
 	defer tx.Rollback()
 
-	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfig, err := constructResourceConfig(resourceTypeName, source, dbResourceTypes)
+	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -177,21 +162,33 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
 }
 
 func constructResourceConfig(
+	tx Tx,
 	resourceType string,
 	source atc.Source,
-	resourceTypes []ResourceType,
+	resourceTypes []atc.ResourceType,
+	pipeline *Pipeline,
 ) (ResourceConfig, error) {
 	resourceConfig := ResourceConfig{
 		Source: source,
 	}
 
-	resourceTypesList := resourceTypesList(resourceType, resourceTypes, []ResourceType{})
+	resourceTypesList := resourceTypesList(resourceType, resourceTypes, []atc.ResourceType{})
 	if len(resourceTypesList) == 0 {
 		resourceConfig.CreatedByBaseResourceType = &BaseResourceType{
 			Name: resourceType,
 		}
 	} else {
 		lastResourceType := resourceTypesList[len(resourceTypesList)-1]
+		urt, found, err := ResourceType{
+			ResourceType: lastResourceType,
+			Pipeline:     pipeline,
+		}.Find(tx)
+		if err != nil {
+			return ResourceConfig{}, err
+		}
+		if !found {
+			return ResourceConfig{}, ErrResourceTypeNotFound{lastResourceType.Name}
+		}
 
 		parentResourceCache := &ResourceCache{
 			ResourceConfig: ResourceConfig{
@@ -200,16 +197,27 @@ func constructResourceConfig(
 				},
 				Source: lastResourceType.Source,
 			},
-			Version: lastResourceType.Version,
+			Version: urt.Version,
 		}
 
 		for i := len(resourceTypesList) - 2; i >= 0; i-- {
+			urt, found, err := ResourceType{
+				ResourceType: resourceTypesList[i],
+				Pipeline:     pipeline,
+			}.Find(tx)
+			if err != nil {
+				return ResourceConfig{}, err
+			}
+			if !found {
+				return ResourceConfig{}, ErrResourceTypeNotFound{resourceTypesList[i].Name}
+			}
+
 			parentResourceCache = &ResourceCache{
 				ResourceConfig: ResourceConfig{
 					CreatedByResourceCache: parentResourceCache,
 					Source:                 resourceTypesList[i].Source,
 				},
-				Version: resourceTypesList[i].Version,
+				Version: urt.Version,
 			}
 		}
 
@@ -345,7 +353,7 @@ func (f *resourceConfigFactory) CleanUselessConfigs() error {
 	return tx.Commit()
 }
 
-func resourceTypesList(resourceTypeName string, allResourceTypes []ResourceType, resultResourceTypes []ResourceType) []ResourceType {
+func resourceTypesList(resourceTypeName string, allResourceTypes []atc.ResourceType, resultResourceTypes []atc.ResourceType) []atc.ResourceType {
 	for _, resourceType := range allResourceTypes {
 		if resourceType.Name == resourceTypeName {
 			resultResourceTypes = append(resultResourceTypes, resourceType)

@@ -20,7 +20,6 @@ func (e ErrResourceTypeNotFound) Error() string {
 type ResourceType struct {
 	atc.ResourceType
 
-	Version  atc.Version
 	Pipeline *Pipeline
 }
 
@@ -64,13 +63,13 @@ func (resourceType ResourceType) Find(tx Tx) (*UsedResourceType, bool, error) {
 	return urt, true, nil
 }
 
-func (resourceType ResourceType) Create(tx Tx) (*UsedResourceType, error) {
+func (resourceType ResourceType) Create(tx Tx, version atc.Version) (*UsedResourceType, error) {
 	configPayload, err := json.Marshal(resourceType.ResourceType)
 	if err != nil {
 		return nil, err
 	}
 
-	versionString, err := json.Marshal(resourceType.Version)
+	versionString, err := json.Marshal(version)
 	if err != nil {
 		return nil, err
 	}
@@ -93,33 +92,6 @@ func (resourceType ResourceType) Create(tx Tx) (*UsedResourceType, error) {
 
 	return &UsedResourceType{
 		ID:      id,
-		Version: resourceType.Version,
+		Version: version,
 	}, nil
-}
-
-func getDBResourceTypes(
-	tx Tx,
-	pipeline *Pipeline,
-	resourceTypes atc.ResourceTypes,
-) ([]ResourceType, error) {
-	dbResourceTypes := []ResourceType{}
-	for _, resourceType := range resourceTypes {
-		dbResourceType := ResourceType{
-			ResourceType: resourceType,
-			Pipeline:     pipeline,
-		}
-
-		urt, found, err := dbResourceType.Find(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		if !found {
-			return nil, ErrResourceTypeNotFound{resourceType.Name}
-		}
-
-		dbResourceType.Version = urt.Version
-		dbResourceTypes = append(dbResourceTypes, dbResourceType)
-	}
-	return dbResourceTypes, nil
 }

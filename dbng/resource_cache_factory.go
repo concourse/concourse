@@ -70,12 +70,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 
 	defer tx.Rollback()
 
-	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfig, err := constructResourceConfig(resourceTypeName, source, dbResourceTypes)
+	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -115,12 +110,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 
 	defer tx.Rollback()
 
-	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfig, err := constructResourceConfig(resourceTypeName, source, dbResourceTypes)
+	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -178,12 +168,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 		return nil, ErrResourceTypeNotFound{resourceTypeName}
 	}
 
-	dbResourceTypes, err := getDBResourceTypes(tx, pipeline, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfig, err := constructResourceConfig(resourceType.Name, source, dbResourceTypes)
+	resourceConfig, err := constructResourceConfig(tx, resourceType.Name, source, resourceTypes, pipeline)
 	if err != nil {
 		return nil, err
 	}

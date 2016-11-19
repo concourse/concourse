@@ -85,8 +85,7 @@ var _ = Describe("Volume", func() {
 			_, err = dbng.ResourceType{
 				ResourceType: resourceType,
 				Pipeline:     defaultPipeline,
-				Version:      atc.Version{"some-type": "version"},
-			}.Create(setupTx)
+			}.Create(setupTx, atc.Version{"some-type": "version"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
