@@ -24,6 +24,7 @@ import (
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
@@ -156,7 +157,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	if err != nil {
 		return nil, err
 	}
-	lockFactory := db.NewLockFactory(lockConn)
+	lockFactory := lock.NewLockFactory(lockConn)
 
 	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
@@ -169,8 +170,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
 	dbTeamFactory := dbng.NewTeamFactory(dbngConn)
 	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
-	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn)
-	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn)
+	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn, lockFactory)
+	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn, lockFactory)
 	dbBaseResourceTypeFactory := dbng.NewBaseResourceTypeFactory(dbngConn)
 	workerClient := cmd.constructWorkerPool(
 		logger,
@@ -646,7 +647,7 @@ func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn,
 	return metric.CountQueries(dbConn), dbngConn, nil
 }
 
-func (cmd *ATCCommand) constructLockConn() (*db.RetryableConn, error) {
+func (cmd *ATCCommand) constructLockConn() (*lock.RetryableConn, error) {
 	var pgxConfig pgx.ConnConfig
 	var err error
 
@@ -661,14 +662,14 @@ func (cmd *ATCCommand) constructLockConn() (*db.RetryableConn, error) {
 		return nil, err
 	}
 
-	connector := &db.PgxConnector{PgxConfig: pgxConfig}
+	connector := &lock.PgxConnector{PgxConfig: pgxConfig}
 
 	pgxConn, err := connector.Connect()
 	if err != nil {
 		return nil, err
 	}
 
-	return &db.RetryableConn{Connector: connector, Conn: pgxConn}, nil
+	return &lock.RetryableConn{Connector: connector, Conn: pgxConn}, nil
 }
 
 func (cmd *ATCCommand) constructWorkerPool(

@@ -16,6 +16,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/baggageclaim"
 )
@@ -94,7 +95,7 @@ type GardenWorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
-	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
+	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 }
 
 type gardenWorker struct {
@@ -514,6 +515,7 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	if id.BuildID != 0 {
 		var err error
 		resourceCache, err = worker.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+			logger,
 			&dbng.Build{ID: id.BuildID},
 			resourceTypeName,
 			version,
@@ -529,6 +531,7 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	} else if id.ResourceID != 0 {
 		var err error
 		resourceCache, err = worker.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
+			logger,
 			&dbng.Resource{
 				ID: id.ResourceID,
 			},
@@ -546,6 +549,7 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	} else {
 		var err error
 		resourceCache, err = worker.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
+			logger,
 			resourceTypeName,
 			version,
 			source,
@@ -587,6 +591,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 	source atc.Source,
 ) (Container, error) {
 	resourceConfig, err := worker.dbResourceConfigFactory.FindOrCreateResourceConfigForResource(
+		logger,
 		&dbng.Resource{
 			ID: id.ResourceID,
 		},
@@ -628,6 +633,7 @@ func (worker *gardenWorker) CreateResourceTypeCheckContainer(
 	source atc.Source,
 ) (Container, error) {
 	resourceConfig, err := worker.dbResourceConfigFactory.FindOrCreateResourceConfigForResourceType(
+		logger,
 		resourceTypeName,
 		source,
 		&dbng.Pipeline{ID: metadata.PipelineID},
@@ -687,9 +693,6 @@ func (worker *gardenWorker) createContainer(
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
-	logger.Debug("[super-logs] running createContainer")
-	defer logger.Debug("[super-logs] finished createContainer")
-
 	imageMetadata, resourceTypeVersion, imageURL, err := worker.getImageForContainer(
 		logger,
 		creatingContainer,

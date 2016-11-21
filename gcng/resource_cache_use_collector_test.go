@@ -70,6 +70,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 			Describe("for builds", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+						logger,
 						defaultBuild,
 						"some-type",
 						atc.Version{"some": "version"},
@@ -222,6 +223,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCacheForResourceType(
+						logger,
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
@@ -277,6 +279,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCacheForResource(
+						logger,
 						usedResource,
 						"some-type",
 						atc.Version{"some-type": "version"},

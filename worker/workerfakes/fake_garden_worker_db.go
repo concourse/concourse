@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/worker"
 )
 
@@ -70,14 +71,14 @@ type FakeGardenWorkerDB struct {
 		result1 db.SavedPipeline
 		result2 error
 	}
-	AcquireVolumeCreatingLockStub        func(lager.Logger, int) (db.Lock, bool, error)
+	AcquireVolumeCreatingLockStub        func(lager.Logger, int) (lock.Lock, bool, error)
 	acquireVolumeCreatingLockMutex       sync.RWMutex
 	acquireVolumeCreatingLockArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 int
 	}
 	acquireVolumeCreatingLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
@@ -299,7 +300,7 @@ func (fake *FakeGardenWorkerDB) GetPipelineByIDReturns(result1 db.SavedPipeline,
 	}{result1, result2}
 }
 
-func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int) (db.Lock, bool, error) {
+func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int) (lock.Lock, bool, error) {
 	fake.acquireVolumeCreatingLockMutex.Lock()
 	fake.acquireVolumeCreatingLockArgsForCall = append(fake.acquireVolumeCreatingLockArgsForCall, struct {
 		arg1 lager.Logger
@@ -326,10 +327,10 @@ func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLockArgsForCall(i int) (lag
 	return fake.acquireVolumeCreatingLockArgsForCall[i].arg1, fake.acquireVolumeCreatingLockArgsForCall[i].arg2
 }
 
-func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireVolumeCreatingLockStub = nil
 	fake.acquireVolumeCreatingLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

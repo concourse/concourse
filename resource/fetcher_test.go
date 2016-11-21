@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -161,10 +161,10 @@ var _ = Describe("Fetcher", func() {
 			})
 
 			Context("when getting lock succeeds", func() {
-				var fakeLock *dbfakes.FakeLock
+				var fakeLock *lockfakes.FakeLock
 
 				BeforeEach(func() {
-					fakeLock = new(dbfakes.FakeLock)
+					fakeLock = new(lockfakes.FakeLock)
 					fakeLockDB.GetTaskLockReturns(fakeLock, true, nil)
 				})
 

@@ -3,7 +3,7 @@ package resource
 import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/worker"
 )
 
@@ -16,7 +16,7 @@ type FetcherFactory interface {
 //go:generate counterfeiter . LockDB
 
 type LockDB interface {
-	GetTaskLock(logger lager.Logger, lockName string) (db.Lock, bool, error)
+	GetTaskLock(logger lager.Logger, lockName string) (lock.Lock, bool, error)
 }
 
 func NewFetcherFactory(

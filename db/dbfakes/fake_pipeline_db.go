@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/db/lock"
 )
 
 type FakePipelineDB struct {
@@ -102,14 +103,14 @@ type FakePipelineDB struct {
 	destroyReturns     struct {
 		result1 error
 	}
-	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (db.Lock, bool, error)
+	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (lock.Lock, bool, error)
 	acquireSchedulingLockMutex       sync.RWMutex
 	acquireSchedulingLockArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 time.Duration
 	}
 	acquireSchedulingLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
@@ -232,7 +233,7 @@ type FakePipelineDB struct {
 	setResourceCheckErrorReturns struct {
 		result1 error
 	}
-	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource db.SavedResource, length time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource db.SavedResource, length time.Duration, immediate bool) (lock.Lock, bool, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct {
 		logger    lager.Logger
@@ -241,11 +242,11 @@ type FakePipelineDB struct {
 		immediate bool
 	}
 	acquireResourceCheckingLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
-	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType db.SavedResourceType, length time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType db.SavedResourceType, length time.Duration, immediate bool) (lock.Lock, bool, error)
 	acquireResourceTypeCheckingLockMutex       sync.RWMutex
 	acquireResourceTypeCheckingLockArgsForCall []struct {
 		logger       lager.Logger
@@ -254,7 +255,7 @@ type FakePipelineDB struct {
 		immediate    bool
 	}
 	acquireResourceTypeCheckingLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
@@ -916,7 +917,7 @@ func (fake *FakePipelineDB) DestroyReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (db.Lock, bool, error) {
+func (fake *FakePipelineDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
 	fake.acquireSchedulingLockMutex.Lock()
 	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
 		arg1 lager.Logger
@@ -943,10 +944,10 @@ func (fake *FakePipelineDB) AcquireSchedulingLockArgsForCall(i int) (lager.Logge
 	return fake.acquireSchedulingLockArgsForCall[i].arg1, fake.acquireSchedulingLockArgsForCall[i].arg2
 }
 
-func (fake *FakePipelineDB) AcquireSchedulingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakePipelineDB) AcquireSchedulingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireSchedulingLockStub = nil
 	fake.acquireSchedulingLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -1395,7 +1396,7 @@ func (fake *FakePipelineDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource db.SavedResource, length time.Duration, immediate bool) (db.Lock, bool, error) {
+func (fake *FakePipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource db.SavedResource, length time.Duration, immediate bool) (lock.Lock, bool, error) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
 		logger    lager.Logger
@@ -1424,16 +1425,16 @@ func (fake *FakePipelineDB) AcquireResourceCheckingLockArgsForCall(i int) (lager
 	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resource, fake.acquireResourceCheckingLockArgsForCall[i].length, fake.acquireResourceCheckingLockArgsForCall[i].immediate
 }
 
-func (fake *FakePipelineDB) AcquireResourceCheckingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakePipelineDB) AcquireResourceCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireResourceCheckingLockStub = nil
 	fake.acquireResourceCheckingLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, length time.Duration, immediate bool) (db.Lock, bool, error) {
+func (fake *FakePipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, length time.Duration, immediate bool) (lock.Lock, bool, error) {
 	fake.acquireResourceTypeCheckingLockMutex.Lock()
 	fake.acquireResourceTypeCheckingLockArgsForCall = append(fake.acquireResourceTypeCheckingLockArgsForCall, struct {
 		logger       lager.Logger
@@ -1462,10 +1463,10 @@ func (fake *FakePipelineDB) AcquireResourceTypeCheckingLockArgsForCall(i int) (l
 	return fake.acquireResourceTypeCheckingLockArgsForCall[i].logger, fake.acquireResourceTypeCheckingLockArgsForCall[i].resourceType, fake.acquireResourceTypeCheckingLockArgsForCall[i].length, fake.acquireResourceTypeCheckingLockArgsForCall[i].immediate
 }
 
-func (fake *FakePipelineDB) AcquireResourceTypeCheckingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakePipelineDB) AcquireResourceTypeCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireResourceTypeCheckingLockStub = nil
 	fake.acquireResourceTypeCheckingLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

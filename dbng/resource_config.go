@@ -1,13 +1,17 @@
 package dbng
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"code.cloudfoundry.org/lager"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
 
@@ -69,10 +73,10 @@ type UsedResourceConfig struct {
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (resourceConfig ResourceConfig) FindOrCreateForBuild(tx Tx, build *Build) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, build *Build) (*UsedResourceConfig, error) {
 	var resourceCacheID int
 	if resourceConfig.CreatedByResourceCache != nil {
-		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForBuild(tx, build)
+		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForBuild(logger, tx, lockFactory, build)
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +84,7 @@ func (resourceConfig ResourceConfig) FindOrCreateForBuild(tx Tx, build *Build) (
 		resourceCacheID = createdByResourceCache.ID
 	}
 
-	return resourceConfig.findOrCreate(tx, "build_id", build.ID, resourceCacheID)
+	return resourceConfig.findOrCreate(logger, tx, lockFactory, "build_id", build.ID, resourceCacheID)
 }
 
 // FindOrCreateForResource creates the ResourceConfig, recursively creating its
@@ -102,17 +106,17 @@ func (resourceConfig ResourceConfig) FindOrCreateForBuild(tx Tx, build *Build) (
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (resourceConfig ResourceConfig) FindOrCreateForResource(tx Tx, resource *Resource) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resource *Resource) (*UsedResourceConfig, error) {
 	var resourceCacheID int
 	if resourceConfig.CreatedByResourceCache != nil {
-		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForResource(tx, resource)
+		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForResource(logger, tx, lockFactory, resource)
 		if err != nil {
 			return nil, err
 		}
 
 		resourceCacheID = createdByResourceCache.ID
 	}
-	return resourceConfig.findOrCreate(tx, "resource_id", resource.ID, resourceCacheID)
+	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_id", resource.ID, resourceCacheID)
 }
 
 // FindOrCreateForResourceType creates the ResourceConfig, recursively creating
@@ -134,20 +138,20 @@ func (resourceConfig ResourceConfig) FindOrCreateForResource(tx Tx, resource *Re
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (resourceConfig ResourceConfig) FindOrCreateForResourceType(tx Tx, resourceType *UsedResourceType) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) FindOrCreateForResourceType(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceType *UsedResourceType) (*UsedResourceConfig, error) {
 	var resourceCacheID int
 	if resourceConfig.CreatedByResourceCache != nil {
-		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForResourceType(tx, resourceType)
+		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForResourceType(logger, tx, lockFactory, resourceType)
 		if err != nil {
 			return nil, err
 		}
 
 		resourceCacheID = createdByResourceCache.ID
 	}
-	return resourceConfig.findOrCreate(tx, "resource_type_id", resourceType.ID, resourceCacheID)
+	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_type_id", resourceType.ID, resourceCacheID)
 }
 
-func (resourceConfig ResourceConfig) findOrCreate(tx Tx, forColumnName string, forColumnID int, resourceCacheID int) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, forColumnName string, forColumnID int, resourceCacheID int) (*UsedResourceConfig, error) {
 	urc := &UsedResourceConfig{}
 
 	var parentID int
@@ -180,30 +184,61 @@ func (resourceConfig ResourceConfig) findOrCreate(tx Tx, forColumnName string, f
 	}
 
 	if !found {
-		err := psql.Insert("resource_configs").
-			Columns(
-				parentColumnName,
-				"source_hash",
-			).
-			Values(
-				parentID,
-				resourceConfig.sourceHash(),
-			).
-			Suffix("RETURNING id").
-			RunWith(tx).
-			QueryRow().
-			Scan(&id)
+		lockName, err := resourceConfig.lockName()
 		if err != nil {
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
-				return nil, ErrResourceConfigAlreadyExists
-			}
-
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-				return nil, ErrResourceConfigParentDisappeared
-			}
-
 			return nil, err
 		}
+
+		lock := lockFactory.NewLock(
+			logger.Session("find-or-create-resource-config"),
+			lock.NewTaskLockID(lockName),
+		)
+
+		acquired, err := lock.Acquire()
+		if err != nil {
+			return nil, err
+		}
+
+		if !acquired {
+			return resourceConfig.findOrCreate(logger, tx, lockFactory, forColumnName, forColumnID, resourceCacheID)
+		}
+
+		defer lock.Release()
+
+		id, found, err = resourceConfig.findWithParentID(tx, parentColumnName, parentID)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
+
+			err := psql.Insert("resource_configs").
+				Columns(
+					parentColumnName,
+					"source_hash",
+				).
+				Values(
+					parentID,
+					resourceConfig.sourceHash(),
+				).
+				Suffix("RETURNING id").
+				RunWith(tx).
+				QueryRow().
+				Scan(&id)
+			if err != nil {
+				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+					return nil, ErrResourceConfigAlreadyExists
+				}
+
+				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+					return nil, ErrResourceConfigParentDisappeared
+				}
+
+				return nil, err
+			}
+		}
+
+		lock.Release()
 	}
 
 	urc.ID = id
@@ -229,6 +264,14 @@ func (resourceConfig ResourceConfig) findOrCreate(tx Tx, forColumnName string, f
 	}
 
 	return urc, nil
+}
+
+func (resourceConfig ResourceConfig) lockName() (string, error) {
+	resourceConfigJSON, err := json.Marshal(resourceConfig)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sha256.Sum256(resourceConfigJSON)), nil
 }
 
 func (resourceConfig ResourceConfig) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, bool, error) {

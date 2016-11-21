@@ -90,6 +90,7 @@ var _ = Describe("Volume", func() {
 			Expect(setupTx.Commit()).To(Succeed())
 
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+				logger,
 				defaultBuild,
 				"some-type",
 				atc.Version{"some": "version"},

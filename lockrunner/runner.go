@@ -6,14 +6,14 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 	"github.com/tedsuo/ifrit"
 )
 
 //go:generate counterfeiter . RunnerDB
 
 type RunnerDB interface {
-	GetTaskLock(logger lager.Logger, lockName string) (db.Lock, bool, error)
+	GetTaskLock(logger lager.Logger, lockName string) (lock.Lock, bool, error)
 }
 
 //go:generate counterfeiter . Task

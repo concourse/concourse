@@ -5,19 +5,19 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/resource"
 )
 
 type FakeLockDB struct {
-	GetTaskLockStub        func(logger lager.Logger, lockName string) (db.Lock, bool, error)
+	GetTaskLockStub        func(logger lager.Logger, lockName string) (lock.Lock, bool, error)
 	getTaskLockMutex       sync.RWMutex
 	getTaskLockArgsForCall []struct {
 		logger   lager.Logger
 		lockName string
 	}
 	getTaskLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
@@ -25,7 +25,7 @@ type FakeLockDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLockDB) GetTaskLock(logger lager.Logger, lockName string) (db.Lock, bool, error) {
+func (fake *FakeLockDB) GetTaskLock(logger lager.Logger, lockName string) (lock.Lock, bool, error) {
 	fake.getTaskLockMutex.Lock()
 	fake.getTaskLockArgsForCall = append(fake.getTaskLockArgsForCall, struct {
 		logger   lager.Logger
@@ -52,10 +52,10 @@ func (fake *FakeLockDB) GetTaskLockArgsForCall(i int) (lager.Logger, string) {
 	return fake.getTaskLockArgsForCall[i].logger, fake.getTaskLockArgsForCall[i].lockName
 }
 
-func (fake *FakeLockDB) GetTaskLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakeLockDB) GetTaskLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.GetTaskLockStub = nil
 	fake.getTaskLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

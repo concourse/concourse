@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 )
@@ -83,7 +84,7 @@ type DB interface {
 	CreatePipe(pipeGUID string, url string, teamID int) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
-	GetTaskLock(logger lager.Logger, taskName string) (Lock, bool, error)
+	GetTaskLock(logger lager.Logger, taskName string) (lock.Lock, bool, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 

@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/worker"
 )
 
@@ -105,14 +106,14 @@ type FakeWorkerDB struct {
 	reapVolumeReturns struct {
 		result1 error
 	}
-	AcquireVolumeCreatingLockStub        func(lager.Logger, int) (db.Lock, bool, error)
+	AcquireVolumeCreatingLockStub        func(lager.Logger, int) (lock.Lock, bool, error)
 	acquireVolumeCreatingLockMutex       sync.RWMutex
 	acquireVolumeCreatingLockArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 int
 	}
 	acquireVolumeCreatingLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
@@ -463,7 +464,7 @@ func (fake *FakeWorkerDB) ReapVolumeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int) (db.Lock, bool, error) {
+func (fake *FakeWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int) (lock.Lock, bool, error) {
 	fake.acquireVolumeCreatingLockMutex.Lock()
 	fake.acquireVolumeCreatingLockArgsForCall = append(fake.acquireVolumeCreatingLockArgsForCall, struct {
 		arg1 lager.Logger
@@ -490,10 +491,10 @@ func (fake *FakeWorkerDB) AcquireVolumeCreatingLockArgsForCall(i int) (lager.Log
 	return fake.acquireVolumeCreatingLockArgsForCall[i].arg1, fake.acquireVolumeCreatingLockArgsForCall[i].arg2
 }
 
-func (fake *FakeWorkerDB) AcquireVolumeCreatingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakeWorkerDB) AcquireVolumeCreatingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireVolumeCreatingLockStub = nil
 	fake.acquireVolumeCreatingLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

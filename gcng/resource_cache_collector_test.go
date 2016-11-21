@@ -1,7 +1,6 @@
 package gcng_test
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/gcng"
@@ -14,7 +13,6 @@ var _ = Describe("ResourceCacheCollector", func() {
 	var collector gcng.Collector
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("resource-cache-use-collector")
 		collector = gcng.NewResourceCacheCollector(logger, resourceCacheFactory)
 	})
 
@@ -43,6 +41,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 			BeforeEach(func() {
 				_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+					logger,
 					defaultBuild,
 					"some-base-type",
 					atc.Version{"some": "version"},
@@ -162,6 +161,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									newBuild, err := buildFactory.CreateOneOffBuild(defaultTeam)
 									Expect(err).NotTo(HaveOccurred())
 									_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+										logger,
 										newBuild,
 										"some-base-type",
 										atc.Version{"new": "version"},

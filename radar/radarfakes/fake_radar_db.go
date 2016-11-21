@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/radar"
 )
 
@@ -131,7 +132,7 @@ type FakeRadarDB struct {
 	setResourceCheckErrorReturns struct {
 		result1 error
 	}
-	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (lock.Lock, bool, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct {
 		logger    lager.Logger
@@ -140,11 +141,11 @@ type FakeRadarDB struct {
 		immediate bool
 	}
 	acquireResourceCheckingLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
-	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (lock.Lock, bool, error)
 	acquireResourceTypeCheckingLockMutex       sync.RWMutex
 	acquireResourceTypeCheckingLockArgsForCall []struct {
 		logger       lager.Logger
@@ -153,7 +154,7 @@ type FakeRadarDB struct {
 		immediate    bool
 	}
 	acquireResourceTypeCheckingLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
@@ -624,7 +625,7 @@ func (fake *FakeRadarDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeRadarDB) AcquireResourceCheckingLock(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (db.Lock, bool, error) {
+func (fake *FakeRadarDB) AcquireResourceCheckingLock(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
 		logger    lager.Logger
@@ -653,16 +654,16 @@ func (fake *FakeRadarDB) AcquireResourceCheckingLockArgsForCall(i int) (lager.Lo
 	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resource, fake.acquireResourceCheckingLockArgsForCall[i].interval, fake.acquireResourceCheckingLockArgsForCall[i].immediate
 }
 
-func (fake *FakeRadarDB) AcquireResourceCheckingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakeRadarDB) AcquireResourceCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireResourceCheckingLockStub = nil
 	fake.acquireResourceCheckingLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeRadarDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (db.Lock, bool, error) {
+func (fake *FakeRadarDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 	fake.acquireResourceTypeCheckingLockMutex.Lock()
 	fake.acquireResourceTypeCheckingLockArgsForCall = append(fake.acquireResourceTypeCheckingLockArgsForCall, struct {
 		logger       lager.Logger
@@ -691,10 +692,10 @@ func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockArgsForCall(i int) (lage
 	return fake.acquireResourceTypeCheckingLockArgsForCall[i].logger, fake.acquireResourceTypeCheckingLockArgsForCall[i].resourceType, fake.acquireResourceTypeCheckingLockArgsForCall[i].interval, fake.acquireResourceTypeCheckingLockArgsForCall[i].immediate
 }
 
-func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireResourceTypeCheckingLockStub = nil
 	fake.acquireResourceTypeCheckingLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

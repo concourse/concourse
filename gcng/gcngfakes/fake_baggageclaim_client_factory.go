@@ -5,23 +5,23 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/gcng"
-	bclient "github.com/concourse/baggageclaim/client"
+	"github.com/concourse/baggageclaim/client"
 )
 
 type FakeBaggageclaimClientFactory struct {
-	NewClientStub        func(apiURL string) bclient.Client
+	NewClientStub        func(apiURL string) client.Client
 	newClientMutex       sync.RWMutex
 	newClientArgsForCall []struct {
 		apiURL string
 	}
 	newClientReturns struct {
-		result1 bclient.Client
+		result1 client.Client
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBaggageclaimClientFactory) NewClient(apiURL string) bclient.Client {
+func (fake *FakeBaggageclaimClientFactory) NewClient(apiURL string) client.Client {
 	fake.newClientMutex.Lock()
 	fake.newClientArgsForCall = append(fake.newClientArgsForCall, struct {
 		apiURL string
@@ -47,10 +47,10 @@ func (fake *FakeBaggageclaimClientFactory) NewClientArgsForCall(i int) string {
 	return fake.newClientArgsForCall[i].apiURL
 }
 
-func (fake *FakeBaggageclaimClientFactory) NewClientReturns(result1 bclient.Client) {
+func (fake *FakeBaggageclaimClientFactory) NewClientReturns(result1 client.Client) {
 	fake.NewClientStub = nil
 	fake.newClientReturns = struct {
-		result1 bclient.Client
+		result1 client.Client
 	}{result1}
 }
 

@@ -9,9 +9,10 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/worker"
 
-	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/resource"
@@ -34,7 +35,7 @@ var _ = Describe("ResourceScanner", func() {
 		resourceConfig atc.ResourceConfig
 		savedResource  db.SavedResource
 
-		fakeLock *dbfakes.FakeLock
+		fakeLock *lockfakes.FakeLock
 		teamID   = 123
 	)
 
@@ -88,7 +89,7 @@ var _ = Describe("ResourceScanner", func() {
 			Config:       resourceConfig,
 		}
 
-		fakeLock = &dbfakes.FakeLock{}
+		fakeLock = &lockfakes.FakeLock{}
 
 		fakeRadarDB.GetResourceReturns(savedResource, true, nil)
 	})
@@ -526,7 +527,7 @@ var _ = Describe("ResourceScanner", func() {
 					results <- true
 					close(results)
 
-					fakeRadarDB.AcquireResourceCheckingLockStub = func(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (db.Lock, bool, error) {
+					fakeRadarDB.AcquireResourceCheckingLockStub = func(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {

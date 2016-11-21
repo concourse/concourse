@@ -62,7 +62,7 @@ var _ = Describe("VolumeFactory", func() {
 				CreatedByBaseResourceType: &baseResourceType,
 			},
 		}
-		usedResourceCache, err = resourceCache.FindOrCreateForBuild(setupTx, build)
+		usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, build)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(setupTx.Commit()).To(Succeed())
@@ -335,7 +335,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = cache.FindOrCreateForResource(setupTx, resource)
+			usedResourceCache, err = cache.FindOrCreateForResource(logger, setupTx, lockFactory, resource)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -413,7 +413,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = cache.FindOrCreateForResource(setupTx, resource)
+			usedResourceCache, err = cache.FindOrCreateForResource(logger, setupTx, lockFactory, resource)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())

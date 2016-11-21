@@ -9,7 +9,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 
@@ -37,10 +38,10 @@ var _ = Describe("Build", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(dbfakes.FakeConnector)
-		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+		fakeConnector := new(lockfakes.FakeConnector)
+		retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
 
-		lockFactory := db.NewLockFactory(retryableConn)
+		lockFactory := lock.NewLockFactory(retryableConn)
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 

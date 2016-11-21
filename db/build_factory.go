@@ -3,10 +3,11 @@ package db
 import (
 	"database/sql"
 
+	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
 
-func newBuildFactory(conn Conn, bus *notificationsBus, lockFactory LockFactory) *buildFactory {
+func newBuildFactory(conn Conn, bus *notificationsBus, lockFactory lock.LockFactory) *buildFactory {
 	return &buildFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -18,7 +19,7 @@ type buildFactory struct {
 	conn Conn
 	bus  *notificationsBus
 
-	lockFactory LockFactory
+	lockFactory lock.LockFactory
 }
 
 func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {

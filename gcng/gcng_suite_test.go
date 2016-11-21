@@ -4,7 +4,11 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagertest"
+
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
@@ -39,6 +43,7 @@ var (
 	defaultBuild    *dbng.Build
 
 	usedResource *dbng.Resource
+	logger       *lagertest.TestLogger
 )
 
 var _ = BeforeSuite(func() {
@@ -88,8 +93,14 @@ var _ = BeforeEach(func() {
 
 	Expect(setupTx.Commit()).To(Succeed())
 
-	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn)
-	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn)
+	pgxConn := postgresRunner.OpenPgx()
+	fakeConnector := new(lockfakes.FakeConnector)
+	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+	lockFactory := lock.NewLockFactory(retryableConn)
+	logger = lagertest.NewTestLogger("gcng-test")
+
+	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)
+	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn, lockFactory)
 })
 
 var _ = AfterSuite(func() {

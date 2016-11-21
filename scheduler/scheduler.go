@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/scheduler/inputmapper"
 )
 
@@ -22,7 +23,7 @@ type Scheduler struct {
 //go:generate counterfeiter . SchedulerDB
 
 type SchedulerDB interface {
-	AcquireSchedulingLock(lager.Logger, time.Duration) (db.Lock, bool, error)
+	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetPipelineName() string
 	Reload() (bool, error)

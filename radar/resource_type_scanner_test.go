@@ -7,11 +7,11 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/worker"
 
-	"github.com/concourse/atc/db/dbfakes"
 	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,7 +27,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		savedResourceType db.SavedResourceType
 
-		fakeLock *dbfakes.FakeLock
+		fakeLock *lockfakes.FakeLock
 		teamID   = 123
 	)
 
@@ -71,7 +71,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		}
 		fakeRadarDB.TeamIDReturns(teamID)
 
-		fakeLock = &dbfakes.FakeLock{}
+		fakeLock = &lockfakes.FakeLock{}
 
 		fakeRadarDB.GetResourceTypeReturns(savedResourceType, true, nil)
 	})

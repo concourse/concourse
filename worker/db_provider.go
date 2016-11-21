@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/retryhttp"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 )
 
@@ -29,7 +30,7 @@ type WorkerDB interface {
 	ReapContainer(handle string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	ReapVolume(handle string) error
-	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
+	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 }
 
 var ErrDesiredWorkerNotRunning = errors.New("desired-garden-worker-is-not-known-to-be-running")

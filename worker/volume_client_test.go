@@ -7,8 +7,8 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker"
@@ -22,7 +22,7 @@ import (
 
 var _ = Describe("VolumeClient", func() {
 	var (
-		fakeLock   *dbfakes.FakeLock
+		fakeLock   *lockfakes.FakeLock
 		testLogger *lagertest.TestLogger
 
 		fakeBaggageclaimClient      *baggageclaimfakes.FakeClient
@@ -45,7 +45,7 @@ var _ = Describe("VolumeClient", func() {
 
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
 		fakeBaseResourceTypeFactory = new(dbngfakes.FakeBaseResourceTypeFactory)
-		fakeLock = new(dbfakes.FakeLock)
+		fakeLock = new(lockfakes.FakeLock)
 
 		volumeClient = worker.NewVolumeClient(
 			fakeBaggageclaimClient,
@@ -116,7 +116,7 @@ var _ = Describe("VolumeClient", func() {
 			Context("when it could not acquire creating lock", func() {
 				BeforeEach(func() {
 					callCount := 0
-					fakeGardenWorkerDB.AcquireVolumeCreatingLockStub = func(logger lager.Logger, volumeID int) (db.Lock, bool, error) {
+					fakeGardenWorkerDB.AcquireVolumeCreatingLockStub = func(logger lager.Logger, volumeID int) (lock.Lock, bool, error) {
 						callCount++
 						go fakeClock.WaitForWatcherAndIncrement(time.Second)
 
@@ -310,7 +310,7 @@ var _ = Describe("VolumeClient", func() {
 			Context("when it could not acquire creating lock", func() {
 				BeforeEach(func() {
 					callCount := 0
-					fakeGardenWorkerDB.AcquireVolumeCreatingLockStub = func(logger lager.Logger, volumeID int) (db.Lock, bool, error) {
+					fakeGardenWorkerDB.AcquireVolumeCreatingLockStub = func(logger lager.Logger, volumeID int) (lock.Lock, bool, error) {
 						callCount++
 						go fakeClock.WaitForWatcherAndIncrement(time.Second)
 

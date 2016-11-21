@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 )
 
 type FakeBuild struct {
@@ -185,14 +186,14 @@ type FakeBuild struct {
 		result1 db.Notifier
 		result2 error
 	}
-	AcquireTrackingLockStub        func(logger lager.Logger, interval time.Duration) (db.Lock, bool, error)
+	AcquireTrackingLockStub        func(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
 	acquireTrackingLockMutex       sync.RWMutex
 	acquireTrackingLockArgsForCall []struct {
 		logger   lager.Logger
 		interval time.Duration
 	}
 	acquireTrackingLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
@@ -964,7 +965,7 @@ func (fake *FakeBuild) AbortNotifierReturns(result1 db.Notifier, result2 error) 
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (db.Lock, bool, error) {
+func (fake *FakeBuild) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
 	fake.acquireTrackingLockMutex.Lock()
 	fake.acquireTrackingLockArgsForCall = append(fake.acquireTrackingLockArgsForCall, struct {
 		logger   lager.Logger
@@ -991,10 +992,10 @@ func (fake *FakeBuild) AcquireTrackingLockArgsForCall(i int) (lager.Logger, time
 	return fake.acquireTrackingLockArgsForCall[i].logger, fake.acquireTrackingLockArgsForCall[i].interval
 }
 
-func (fake *FakeBuild) AcquireTrackingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakeBuild) AcquireTrackingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireTrackingLockStub = nil
 	fake.acquireTrackingLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

@@ -12,7 +12,7 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/lockrunner/lockrunnerfakes"
 )
@@ -22,7 +22,7 @@ var _ = Describe("Runner", func() {
 		fakeDB    *lockrunnerfakes.FakeRunnerDB
 		fakeTask  *lockrunnerfakes.FakeTask
 		fakeClock *fakeclock.FakeClock
-		fakeLock  *dbfakes.FakeLock
+		fakeLock  *lockfakes.FakeLock
 
 		interval time.Duration
 
@@ -32,7 +32,7 @@ var _ = Describe("Runner", func() {
 	BeforeEach(func() {
 		fakeDB = new(lockrunnerfakes.FakeRunnerDB)
 		fakeTask = new(lockrunnerfakes.FakeTask)
-		fakeLock = new(dbfakes.FakeLock)
+		fakeLock = new(lockfakes.FakeLock)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
 		interval = 100 * time.Millisecond

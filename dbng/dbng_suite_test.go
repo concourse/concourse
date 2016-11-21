@@ -5,10 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagertest"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
@@ -47,6 +51,8 @@ var (
 	defaultBuild             *dbng.Build
 	deafultCreatingContainer *dbng.CreatingContainer
 	defaultCreatedContainer  *dbng.CreatedContainer
+	logger                   *lagertest.TestLogger
+	lockFactory              lock.LockFactory
 )
 
 var _ = BeforeSuite(func() {
@@ -63,13 +69,18 @@ var _ = BeforeEach(func() {
 	postgresRunner.Truncate()
 	dbConn = dbng.Wrap(postgresRunner.Open())
 
+	pgxConn := postgresRunner.OpenPgx()
+	fakeConnector := new(lockfakes.FakeConnector)
+	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
 	volumeFactory = dbng.NewVolumeFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)
 	teamFactory = dbng.NewTeamFactory(dbConn)
 	workerFactory = dbng.NewWorkerFactory(dbConn)
-	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn)
+	lockFactory = lock.NewLockFactory(retryableConn)
+	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceTypeFactory = dbng.NewResourceTypeFactory(dbConn)
-	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn)
+	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
 	resourceFactory = dbng.NewResourceFactory(dbConn)
 	pipelineFactory = dbng.NewPipelineFactory(dbConn)
@@ -100,7 +111,8 @@ var _ = BeforeEach(func() {
 	defaultResource, err = resourceFactory.CreateResource(defaultPipeline, "default-resource", "{\"resource\":\"config\"}")
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(defaultResource, "some-base-resource-type", atc.Source{}, defaultPipeline, atc.ResourceTypes{})
+	logger = lagertest.NewTestLogger("test")
+	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(logger, defaultResource, "some-base-resource-type", atc.Source{}, defaultPipeline, atc.ResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
 	deafultCreatingContainer, err = containerFactory.CreateResourceCheckContainer(defaultWorker, defaultResourceConfig, "check-my-stuff")

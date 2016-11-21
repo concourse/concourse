@@ -1,4 +1,4 @@
-package db_test
+package lock_test
 
 import (
 	"errors"
@@ -8,7 +8,8 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/jackc/pgx"
 	"github.com/lib/pq"
 
@@ -20,14 +21,14 @@ var _ = Describe("Locks", func() {
 	var (
 		dbConn            db.Conn
 		listener          *pq.Listener
-		fakeConnector     *dbfakes.FakeConnector
+		fakeConnector     *lockfakes.FakeConnector
 		pgxConn           *pgx.Conn
 		pipelineDBFactory db.PipelineDBFactory
 		teamDBFactory     db.TeamDBFactory
-		lockFactory       db.LockFactory
+		lockFactory       lock.LockFactory
 		sqlDB             *db.SQLDB
 
-		lock       db.Lock
+		dbLock     lock.Lock
 		pipelineDB db.PipelineDB
 		teamDB     db.TeamDB
 
@@ -46,10 +47,10 @@ var _ = Describe("Locks", func() {
 		logger = lagertest.NewTestLogger("test")
 
 		pgxConn = postgresRunner.OpenPgx()
-		fakeConnector = new(dbfakes.FakeConnector)
-		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+		fakeConnector = new(lockfakes.FakeConnector)
+		retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
 
-		lockFactory = db.NewLockFactory(retryableConn)
+		lockFactory = lock.NewLockFactory(retryableConn)
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
@@ -90,7 +91,7 @@ var _ = Describe("Locks", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
-		lock = lockFactory.NewLock(logger, db.LockID{42})
+		dbLock = lockFactory.NewLock(logger, lock.LockID{42})
 	})
 
 	AfterEach(func() {
@@ -100,22 +101,22 @@ var _ = Describe("Locks", func() {
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
 
-		lock.Release()
+		dbLock.Release()
 	})
 
 	Describe("locks in general", func() {
 		It("Acquire can only obtain lock once", func() {
-			acquired, err := lock.Acquire()
+			acquired, err := dbLock.Acquire()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
-			acquired, err = lock.Acquire()
+			acquired, err = dbLock.Acquire()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeFalse())
 		})
 
 		It("Acquire accepts list of ids", func() {
-			lock = lockFactory.NewLock(logger, db.LockID{42, 56})
+			dbLock = lockFactory.NewLock(logger, lock.LockID{42, 56})
 
 			Consistently(func() error {
 				connCount := 3
@@ -128,7 +129,7 @@ var _ = Describe("Locks", func() {
 					go func() {
 						defer wg.Done()
 
-						_, err := lock.Acquire()
+						_, err := dbLock.Acquire()
 						if err != nil {
 							anyError = err
 						}
@@ -141,85 +142,85 @@ var _ = Describe("Locks", func() {
 				return anyError
 			}, 1500*time.Millisecond, 100*time.Millisecond).ShouldNot(HaveOccurred())
 
-			lock = lockFactory.NewLock(logger, db.LockID{56, 42})
+			dbLock = lockFactory.NewLock(logger, lock.LockID{56, 42})
 
-			acquired, err := lock.Acquire()
+			acquired, err := dbLock.Acquire()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
-			acquired, err = lock.Acquire()
+			acquired, err = dbLock.Acquire()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeFalse())
 		})
 
 		It("Release is idempotent", func() {
-			acquired, err := lock.Acquire()
+			acquired, err := dbLock.Acquire()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(acquired).To(BeTrue())
 
-			err = lock.Release()
+			err = dbLock.Release()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = lock.Release()
+			err = dbLock.Release()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when another connection is holding the lock", func() {
-			var lockFactory2 db.LockFactory
+			var lockFactory2 lock.LockFactory
 
 			BeforeEach(func() {
 				pgxConn2 := postgresRunner.OpenPgx()
-				retryableConn2 := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn2}
-				lockFactory2 = db.NewLockFactory(retryableConn2)
+				retryableConn2 := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn2}
+				lockFactory2 = lock.NewLockFactory(retryableConn2)
 			})
 
 			It("does not acquire the lock", func() {
-				acquired, err := lock.Acquire()
+				acquired, err := dbLock.Acquire()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				lock2 := lockFactory2.NewLock(logger, db.LockID{42})
-				acquired, err = lock2.Acquire()
+				dbLock2 := lockFactory2.NewLock(logger, lock.LockID{42})
+				acquired, err = dbLock2.Acquire()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
-				lock.Release()
-				lock2.Release()
+				dbLock.Release()
+				dbLock2.Release()
 			})
 
 			It("acquires the locks once it is released", func() {
-				acquired, err := lock.Acquire()
+				acquired, err := dbLock.Acquire()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				lock2 := lockFactory2.NewLock(logger, db.LockID{42})
-				acquired, err = lock2.Acquire()
+				dbLock2 := lockFactory2.NewLock(logger, lock.LockID{42})
+				acquired, err = dbLock2.Acquire()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeFalse())
 
-				lock.Release()
+				dbLock.Release()
 
-				acquired, err = lock2.Acquire()
+				acquired, err = dbLock2.Acquire()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(acquired).To(BeTrue())
 
-				lock2.Release()
+				dbLock2.Release()
 			})
 		})
 
 		Context("when two locks are being acquired at the same time", func() {
-			var lock1 db.Lock
-			var lock2 db.Lock
-			var fakeLockDB *dbfakes.FakeLockDB
+			var lock1 lock.Lock
+			var lock2 lock.Lock
+			var fakeLockDB *lockfakes.FakeLockDB
 			var acquiredLock2 chan struct{}
 			var lock2Err error
 			var lock2Acquired bool
 
 			BeforeEach(func() {
-				fakeLockDB = new(dbfakes.FakeLockDB)
-				fakeLockFactory := db.NewTestLockFactory(fakeLockDB)
-				lock1 = fakeLockFactory.NewLock(logger, db.LockID{57})
-				lock2 = fakeLockFactory.NewLock(logger, db.LockID{57})
+				fakeLockDB = new(lockfakes.FakeLockDB)
+				fakeLockFactory := lock.NewTestLockFactory(fakeLockDB)
+				lock1 = fakeLockFactory.NewLock(logger, lock.LockID{57})
+				lock2 = fakeLockFactory.NewLock(logger, lock.LockID{57})
 
 				acquiredLock2 = make(chan struct{})
 			})
@@ -228,7 +229,7 @@ var _ = Describe("Locks", func() {
 				called := false
 				readyToAcquire := make(chan struct{})
 
-				fakeLockDB.AcquireStub = func(id db.LockID) (bool, error) {
+				fakeLockDB.AcquireStub = func(id lock.LockID) (bool, error) {
 					if !called {
 						called = true
 
@@ -258,8 +259,8 @@ var _ = Describe("Locks", func() {
 
 			Context("when locks are being created on different lock factory (different db conn)", func() {
 				BeforeEach(func() {
-					fakeLockFactory2 := db.NewTestLockFactory(fakeLockDB)
-					lock2 = fakeLockFactory2.NewLock(logger, db.LockID{57})
+					fakeLockFactory2 := lock.NewTestLockFactory(fakeLockDB)
+					lock2 = fakeLockFactory2.NewLock(logger, lock.LockID{57})
 				})
 
 				It("allows to acquire both locks", func() {
@@ -288,11 +289,11 @@ var _ = Describe("Locks", func() {
 					err := pgxConn.Close()
 					Expect(err).NotTo(HaveOccurred())
 
-					acquired, err := lock.Acquire()
+					acquired, err := dbLock.Acquire()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
-					acquired, err = lock.Acquire()
+					acquired, err = dbLock.Acquire()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeFalse())
 
@@ -300,17 +301,17 @@ var _ = Describe("Locks", func() {
 				})
 
 				It("recreates connection on Release", func() {
-					acquired, err := lock.Acquire()
+					acquired, err := dbLock.Acquire()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					err = pgxConn.Close()
 					Expect(err).NotTo(HaveOccurred())
 
-					err = lock.Release()
+					err = dbLock.Release()
 					Expect(err).NotTo(HaveOccurred())
 
-					acquired, err = lock.Acquire()
+					acquired, err = dbLock.Acquire()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -321,7 +322,7 @@ var _ = Describe("Locks", func() {
 			Context("when it cannot create connection to db", func() {
 				BeforeEach(func() {
 					count := 0
-					fakeConnector.ConnectStub = func() (db.DelegateConn, error) {
+					fakeConnector.ConnectStub = func() (lock.DelegateConn, error) {
 						if count == 0 {
 							count++
 							return nil, errors.New("disaster")
@@ -335,14 +336,14 @@ var _ = Describe("Locks", func() {
 					err := pgxConn.Close()
 					Expect(err).NotTo(HaveOccurred())
 
-					acquired, err := lock.Acquire()
+					acquired, err := dbLock.Acquire()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
-					err = lock.Release()
+					err = dbLock.Release()
 					Expect(err).NotTo(HaveOccurred())
 
-					acquired, err = lock.Acquire()
+					acquired, err = dbLock.Acquire()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -613,13 +614,13 @@ var _ = Describe("Locks", func() {
 				It("gets the lock", func() {
 					var acquired bool
 					var err error
-					lock, acquired, err = pipelineDB.AcquireResourceTypeCheckingLock(logger, someResourceType, 1*time.Second, false)
+					dbLock, acquired, err = pipelineDB.AcquireResourceTypeCheckingLock(logger, someResourceType, 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
-					lock.Release()
+					dbLock.Release()
 
-					lock, acquired, err = pipelineDB.AcquireResourceTypeCheckingLock(logger, someResourceType, 1*time.Second, true)
+					dbLock, acquired, err = pipelineDB.AcquireResourceTypeCheckingLock(logger, someResourceType, 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 				})
@@ -629,11 +630,11 @@ var _ = Describe("Locks", func() {
 				It("does not get the lock", func() {
 					var acquired bool
 					var err error
-					lock, acquired, err = pipelineDB.AcquireResourceTypeCheckingLock(logger, someResourceType, 1*time.Second, false)
+					dbLock, acquired, err = pipelineDB.AcquireResourceTypeCheckingLock(logger, someResourceType, 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
-					lock.Release()
+					dbLock.Release()
 
 					_, acquired, err = pipelineDB.AcquireResourceTypeCheckingLock(logger, someResourceType, 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())

@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . RadarDB
@@ -30,6 +31,6 @@ type RadarDB interface {
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	SaveResourceTypeVersion(atc.ResourceType, atc.Version) error
 	SetResourceCheckError(resource db.SavedResource, err error) error
-	AcquireResourceCheckingLock(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (db.Lock, bool, error)
-	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (db.Lock, bool, error)
+	AcquireResourceCheckingLock(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (lock.Lock, bool, error)
+	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (lock.Lock, bool, error)
 }

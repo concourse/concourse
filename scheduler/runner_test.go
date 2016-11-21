@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/algorithm"
 	dbfakes "github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
 	"github.com/tedsuo/ifrit"
@@ -23,7 +24,7 @@ var _ = Describe("Runner", func() {
 		scheduler  *schedulerfakes.FakeBuildScheduler
 		noop       bool
 
-		lock *dbfakes.FakeLock
+		lock *lockfakes.FakeLock
 
 		initialConfig atc.Config
 
@@ -87,7 +88,7 @@ var _ = Describe("Runner", func() {
 		pipelineDB.ReloadReturns(true, nil)
 		pipelineDB.ConfigReturns(initialConfig)
 
-		lock = new(dbfakes.FakeLock)
+		lock = new(lockfakes.FakeLock)
 		pipelineDB.AcquireSchedulingLockReturns(lock, true, nil)
 	})
 

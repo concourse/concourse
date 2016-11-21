@@ -3,11 +3,13 @@ package db
 import (
 	"fmt"
 	"time"
+
+	"github.com/concourse/atc/db/lock"
 )
 
 type SQLDB struct {
 	conn        Conn
-	lockFactory LockFactory
+	lockFactory lock.LockFactory
 	bus         *notificationsBus
 
 	buildFactory *buildFactory
@@ -16,7 +18,7 @@ type SQLDB struct {
 func NewSQL(
 	sqldbConnection Conn,
 	bus *notificationsBus,
-	lockFactory LockFactory,
+	lockFactory lock.LockFactory,
 ) *SQLDB {
 	return &SQLDB{
 		conn:         sqldbConnection,

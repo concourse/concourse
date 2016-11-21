@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/event"
 )
 
@@ -60,7 +61,7 @@ type Build interface {
 	Abort() error
 	AbortNotifier() (Notifier, error)
 
-	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (Lock, bool, error)
+	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
 
 	GetPreparation() (BuildPreparation, bool, error)
 
@@ -101,7 +102,7 @@ type build struct {
 	conn Conn
 	bus  *notificationsBus
 
-	lockFactory LockFactory
+	lockFactory lock.LockFactory
 }
 
 func (b *build) ID() int {
@@ -833,7 +834,7 @@ func (b *build) GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, e
 	return identifiers, nil
 }
 
-func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (Lock, bool, error) {
+func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -859,7 +860,7 @@ func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration)
 		logger.Session("lock", lager.Data{
 			"build_id": b.id,
 		}),
-		buildTrackingLockID(b.id),
+		lock.NewBuildTrackingLockID(b.id),
 	)
 
 	acquired, err := lock.Acquire()

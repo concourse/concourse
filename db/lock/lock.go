@@ -1,4 +1,4 @@
-package db
+package lock
 
 import (
 	"fmt"
@@ -20,31 +20,31 @@ const (
 	LockTypeVolumeCreating
 )
 
-func buildTrackingLockID(buildID int) LockID {
+func NewBuildTrackingLockID(buildID int) LockID {
 	return LockID{LockTypeBuildTracking, buildID}
 }
 
-func resourceCheckingLockID(resourceID int) LockID {
+func NewResourceCheckingLockID(resourceID int) LockID {
 	return LockID{LockTypeResourceChecking, resourceID}
 }
 
-func resourceTypeCheckingLockID(resourceTypeID int) LockID {
+func NewResourceTypeCheckingLockID(resourceTypeID int) LockID {
 	return LockID{LockTypeResourceTypeChecking, resourceTypeID}
 }
 
-func pipelineSchedulingLockLockID(pipelineID int) LockID {
+func NewPipelineSchedulingLockLockID(pipelineID int) LockID {
 	return LockID{LockTypePipelineScheduling, pipelineID}
 }
 
-func resourceCheckingForJobLockID(jobID int) LockID {
+func NewResourceCheckingForJobLockID(jobID int) LockID {
 	return LockID{LockTypeResourceCheckingForJob, jobID}
 }
 
-func taskLockID(taskName string) LockID {
+func NewTaskLockID(taskName string) LockID {
 	return LockID{LockTypeBatch, lockIDFromString(taskName)}
 }
 
-func volumeCreatingLockID(volumeID int) LockID {
+func NewVolumeCreatingLockID(volumeID int) LockID {
 	return LockID{LockTypeVolumeCreating, volumeID}
 }
 

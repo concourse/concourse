@@ -3,6 +3,8 @@ package dbng_test
 import (
 	"database/sql"
 
+	"code.cloudfoundry.org/lager/lagertest"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 
@@ -17,6 +19,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		resourceType1 atc.ResourceType
 		resourceType2 atc.ResourceType
 		resourceType3 atc.ResourceType
+		logger        *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
@@ -66,6 +69,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(setupTx.Commit()).To(Succeed())
+
+		logger = lagertest.NewTestLogger("test")
 	})
 
 	AfterEach(func() {
@@ -76,6 +81,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 	Describe("FindOrCreateResourceCacheForBuild", func() {
 		It("creates resource cache in database", func() {
 			_, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+				logger,
 				defaultBuild,
 				"some-type",
 				atc.Version{"some": "version"},
@@ -95,6 +101,15 @@ var _ = Describe("ResourceCacheFactory", func() {
 			tx, err := dbConn.Begin()
 			Expect(err).NotTo(HaveOccurred())
 			defer tx.Rollback()
+
+			// var id int
+			// _ = psql.Insert("resource_caches").
+			// 	Columns("resource_config_id").
+			// 	Values(100000).
+			// 	Suffix("RETURNING id").
+			// 	RunWith(tx).
+			// 	QueryRow().
+			// 	Scan(&id)
 
 			rows, err := psql.Select("a.version, a.params_hash, o.source_hash, b.name").
 				From("resource_caches a").
@@ -153,6 +168,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 		It("returns an error if base resource type does not exist", func() {
 			_, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+				logger,
 				defaultBuild,
 				"some-type",
 				atc.Version{"some": "version"},

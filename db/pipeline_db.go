@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . PipelineDB
@@ -33,7 +34,7 @@ type PipelineDB interface {
 	UpdateName(string) error
 	Destroy() error
 
-	AcquireSchedulingLock(lager.Logger, time.Duration) (Lock, bool, error)
+	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
 
 	GetResource(resourceName string) (SavedResource, bool, error)
 	GetResources() ([]SavedResource, bool, error)
@@ -50,8 +51,8 @@ type PipelineDB interface {
 	EnableVersionedResource(versionedResourceID int) error
 	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
-	AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, length time.Duration, immediate bool) (Lock, bool, error)
-	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, length time.Duration, immediate bool) (Lock, bool, error)
+	AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, length time.Duration, immediate bool) (lock.Lock, bool, error)
+	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, length time.Duration, immediate bool) (lock.Lock, bool, error)
 
 	GetJobs() ([]SavedJob, error)
 	GetJob(job string) (SavedJob, bool, error)
@@ -103,7 +104,7 @@ type pipelineDB struct {
 
 	versionsDB *algorithm.VersionsDB
 
-	lockFactory  LockFactory
+	lockFactory  lock.LockFactory
 	buildFactory *buildFactory
 }
 
@@ -291,7 +292,7 @@ func (pdb *pipelineDB) GetResources() ([]SavedResource, bool, error) {
 	return savedResources, true, nil
 }
 
-func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, interval time.Duration, immediate bool) (Lock, bool, error) {
+func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource SavedResource, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -325,7 +326,7 @@ func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource
 		logger.Session("lock", lager.Data{
 			"resource": resource.Name,
 		}),
-		resourceCheckingLockID(resource.ID),
+		lock.NewResourceCheckingLockID(resource.ID),
 	)
 
 	acquired, err := lock.Acquire()
@@ -346,7 +347,7 @@ func (pdb *pipelineDB) AcquireResourceCheckingLock(logger lager.Logger, resource
 	return lock, true, nil
 }
 
-func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, interval time.Duration, immediate bool) (Lock, bool, error) {
+func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -380,7 +381,7 @@ func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, reso
 		logger.Session("lock", lager.Data{
 			"resource-type": resourceType.Name,
 		}),
-		resourceTypeCheckingLockID(resourceType.ID),
+		lock.NewResourceTypeCheckingLockID(resourceType.ID),
 	)
 
 	acquired, err := lock.Acquire()
@@ -401,7 +402,7 @@ func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, reso
 	return lock, true, nil
 }
 
-func (pdb *pipelineDB) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (Lock, bool, error) {
+func (pdb *pipelineDB) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -427,7 +428,7 @@ func (pdb *pipelineDB) AcquireSchedulingLock(logger lager.Logger, interval time.
 		logger.Session("lock", lager.Data{
 			"pipeline": pdb.Name,
 		}),
-		pipelineSchedulingLockLockID(pdb.ID),
+		lock.NewPipelineSchedulingLockLockID(pdb.ID),
 	)
 
 	acquired, err := lock.Acquire()

@@ -22,13 +22,14 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
+	"regexp"
+
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	"regexp"
 )
 
 type testCookieJar struct {

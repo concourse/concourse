@@ -1,5 +1,7 @@
 package db
 
+import "github.com/concourse/atc/db/lock"
+
 //go:generate counterfeiter . PipelineDBFactory
 
 type PipelineDBFactory interface {
@@ -10,13 +12,13 @@ type pipelineDBFactory struct {
 	conn Conn
 	bus  *notificationsBus
 
-	lockFactory LockFactory
+	lockFactory lock.LockFactory
 }
 
 func NewPipelineDBFactory(
 	sqldbConnection Conn,
 	bus *notificationsBus,
-	lockFactory LockFactory,
+	lockFactory lock.LockFactory,
 ) *pipelineDBFactory {
 	return &pipelineDBFactory{
 		conn:        sqldbConnection,

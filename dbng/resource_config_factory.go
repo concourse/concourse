@@ -1,14 +1,17 @@
 package dbng
 
 import (
+	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . ResourceConfigFactory
 
 type ResourceConfigFactory interface {
 	FindOrCreateResourceConfigForBuild(
+		logger lager.Logger,
 		build *Build,
 		resourceType string,
 		source atc.Source,
@@ -17,6 +20,7 @@ type ResourceConfigFactory interface {
 	) (*UsedResourceConfig, error)
 
 	FindOrCreateResourceConfigForResource(
+		logger lager.Logger,
 		resource *Resource,
 		resourceType string,
 		source atc.Source,
@@ -25,6 +29,7 @@ type ResourceConfigFactory interface {
 	) (*UsedResourceConfig, error)
 
 	FindOrCreateResourceConfigForResourceType(
+		logger lager.Logger,
 		resourceTypeName string,
 		source atc.Source,
 		pipeline *Pipeline,
@@ -38,16 +43,19 @@ type ResourceConfigFactory interface {
 }
 
 type resourceConfigFactory struct {
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
-func NewResourceConfigFactory(conn Conn) ResourceConfigFactory {
+func NewResourceConfigFactory(conn Conn, lockFactory lock.LockFactory) ResourceConfigFactory {
 	return &resourceConfigFactory{
-		conn: conn,
+		conn:        conn,
+		lockFactory: lockFactory,
 	}
 }
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
+	logger lager.Logger,
 	build *Build,
 	resourceType string,
 	source atc.Source,
@@ -66,7 +74,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 		return nil, err
 	}
 
-	usedResourceConfig, err := resourceConfig.FindOrCreateForBuild(tx, build)
+	usedResourceConfig, err := resourceConfig.FindOrCreateForBuild(logger, tx, f.lockFactory, build)
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +88,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 }
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
+	logger lager.Logger,
 	resource *Resource,
 	resourceType string,
 	source atc.Source,
@@ -98,7 +107,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
 		return nil, err
 	}
 
-	usedResourceConfig, err := resourceConfig.FindOrCreateForResource(tx, resource)
+	usedResourceConfig, err := resourceConfig.FindOrCreateForResource(logger, tx, f.lockFactory, resource)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +121,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
 }
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
+	logger lager.Logger,
 	resourceTypeName string,
 	source atc.Source,
 	pipeline *Pipeline,
@@ -148,7 +158,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
 		return nil, ErrResourceTypeNotFound{resourceTypeName}
 	}
 
-	usedResourceConfig, err := resourceConfig.FindOrCreateForResourceType(tx, usedResourceType)
+	usedResourceConfig, err := resourceConfig.FindOrCreateForResourceType(logger, tx, f.lockFactory, usedResourceType)
 	if err != nil {
 		return nil, err
 	}

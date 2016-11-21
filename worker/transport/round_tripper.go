@@ -1,8 +1,9 @@
 package transport
 
 import (
-	"github.com/concourse/atc/dbng"
 	"net/http"
+
+	"github.com/concourse/atc/dbng"
 )
 
 //go:generate counterfeiter . RoundTripper

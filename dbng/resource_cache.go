@@ -1,12 +1,17 @@
 package dbng
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+
+	"code.cloudfoundry.org/lager"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
 
@@ -42,31 +47,31 @@ type UsedResourceCache struct {
 	ResourceConfig *UsedResourceConfig
 }
 
-func (cache ResourceCache) FindOrCreateForBuild(tx Tx, build *Build) (*UsedResourceCache, error) {
-	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForBuild(tx, build)
+func (cache ResourceCache) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, build *Build) (*UsedResourceCache, error) {
+	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForBuild(logger, tx, lockFactory, build)
 	if err != nil {
 		return nil, err
 	}
 
-	return cache.findOrCreate(tx, usedResourceConfig, "build_id", build.ID)
+	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "build_id", build.ID)
 }
 
-func (cache ResourceCache) FindOrCreateForResource(tx Tx, resource *Resource) (*UsedResourceCache, error) {
-	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForResource(tx, resource)
+func (cache ResourceCache) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resource *Resource) (*UsedResourceCache, error) {
+	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForResource(logger, tx, lockFactory, resource)
 	if err != nil {
 		return nil, err
 	}
 
-	return cache.findOrCreate(tx, usedResourceConfig, "resource_id", resource.ID)
+	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "resource_id", resource.ID)
 }
 
-func (cache ResourceCache) FindOrCreateForResourceType(tx Tx, resourceType *UsedResourceType) (*UsedResourceCache, error) {
-	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForResourceType(tx, resourceType)
+func (cache ResourceCache) FindOrCreateForResourceType(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceType *UsedResourceType) (*UsedResourceCache, error) {
+	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForResourceType(logger, tx, lockFactory, resourceType)
 	if err != nil {
 		return nil, err
 	}
 
-	return cache.findOrCreate(tx, usedResourceConfig, "resource_type_id", resourceType.ID)
+	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "resource_type_id", resourceType.ID)
 }
 
 func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
@@ -93,37 +98,65 @@ func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
 	return true, nil
 }
 
-func (cache ResourceCache) findOrCreate(tx Tx, resourceConfig *UsedResourceConfig, forColumnName string, forColumnID int) (*UsedResourceCache, error) {
+func (cache ResourceCache) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig *UsedResourceConfig, forColumnName string, forColumnID int) (*UsedResourceCache, error) {
 	id, found, err := cache.findWithResourceConfig(tx, resourceConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	if !found {
-		err := psql.Insert("resource_caches").
-			Columns(
-				"resource_config_id",
-				"version",
-				"params_hash",
-			).
-			Values(
-				resourceConfig.ID,
-				cache.version(),
-				cache.paramsHash(),
-			).
-			Suffix("RETURNING id").
-			RunWith(tx).
-			QueryRow().
-			Scan(&id)
+		lockName, err := cache.lockName()
 		if err != nil {
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-				return nil, ErrResourceCacheConfigDisappeared
-			}
+			return nil, err
+		}
 
-			if pqErr, ok := err.(*pq.Error); !ok || pqErr.Code.Name() != "unique_violation" {
+		lock := lockFactory.NewLock(
+			logger.Session("find-or-create-resource-cache"),
+			lock.NewTaskLockID(lockName),
+		)
+
+		acquired, err := lock.Acquire()
+		if err != nil {
+			return nil, err
+		}
+
+		if !acquired {
+			return cache.findOrCreate(logger, tx, lockFactory, resourceConfig, forColumnName, forColumnID)
+		}
+
+		defer lock.Release()
+
+		id, found, err = cache.findWithResourceConfig(tx, resourceConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
+			err = psql.Insert("resource_caches").
+				Columns(
+					"resource_config_id",
+					"version",
+					"params_hash",
+				).
+				Values(
+					resourceConfig.ID,
+					cache.version(),
+					cache.paramsHash(),
+				).
+				Suffix("RETURNING id").
+				RunWith(tx).
+				QueryRow().
+				Scan(&id)
+			if err != nil {
+				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+					return nil, ErrResourceCacheConfigDisappeared
+				}
+
 				return nil, err
 			}
 		}
+
+		lock.Release()
 	}
 
 	_, err = psql.Insert("resource_cache_uses").
@@ -150,6 +183,14 @@ func (cache ResourceCache) findOrCreate(tx Tx, resourceConfig *UsedResourceConfi
 		ID:             id,
 		ResourceConfig: resourceConfig,
 	}, nil
+}
+
+func (cache ResourceCache) lockName() (string, error) {
+	cacheJSON, err := json.Marshal(cache)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sha256.Sum256(cacheJSON)), nil
 }
 
 func (cache ResourceCache) findWithResourceConfig(tx Tx, resourceConfig *UsedResourceConfig) (int, bool, error) {

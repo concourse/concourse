@@ -124,7 +124,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		It("can be created and used", func() {
-			urc, err := cache.FindOrCreateForBuild(tx, build)
+			urc, err := cache.FindOrCreateForBuild(logger, tx, lockFactory, build)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID).ToNot(BeZero())
 
@@ -139,12 +139,12 @@ var _ = Describe("ResourceCache", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingResourceCache, err = cache.FindOrCreateForBuild(tx, build)
+				existingResourceCache, err = cache.FindOrCreateForBuild(logger, tx, lockFactory, build)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns the same used resource cache", func() {
-				urc, err := cache.FindOrCreateForBuild(tx, build)
+				urc, err := cache.FindOrCreateForBuild(logger, tx, lockFactory, build)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).To(Equal(existingResourceCache.ID))
 			})
@@ -178,7 +178,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		It("can be created and used", func() {
-			urc, err := cache.FindOrCreateForResource(tx, resource)
+			urc, err := cache.FindOrCreateForResource(logger, tx, lockFactory, resource)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID).ToNot(BeZero())
 
@@ -193,12 +193,12 @@ var _ = Describe("ResourceCache", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingResourceCache, err = cache.FindOrCreateForResource(tx, resource)
+				existingResourceCache, err = cache.FindOrCreateForResource(logger, tx, lockFactory, resource)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns the same used resource cache", func() {
-				urc, err := cache.FindOrCreateForResource(tx, resource)
+				urc, err := cache.FindOrCreateForResource(logger, tx, lockFactory, resource)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).To(Equal(existingResourceCache.ID))
 			})
@@ -239,7 +239,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		It("can be created and used", func() {
-			urc, err := cache.FindOrCreateForResourceType(tx, resourceType)
+			urc, err := cache.FindOrCreateForResourceType(logger, tx, lockFactory, resourceType)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID).ToNot(BeZero())
 
@@ -254,12 +254,12 @@ var _ = Describe("ResourceCache", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingResourceCache, err = cache.FindOrCreateForResourceType(tx, resourceType)
+				existingResourceCache, err = cache.FindOrCreateForResourceType(logger, tx, lockFactory, resourceType)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns the same used resource cache", func() {
-				urc, err := cache.FindOrCreateForResourceType(tx, resourceType)
+				urc, err := cache.FindOrCreateForResourceType(logger, tx, lockFactory, resourceType)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).To(Equal(existingResourceCache.ID))
 			})

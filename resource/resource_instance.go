@@ -57,6 +57,7 @@ func NewBuildResourceInstance(
 
 func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+		logger,
 		bri.build,
 		string(bri.resourceTypeName),
 		bri.version,
@@ -85,6 +86,7 @@ func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClien
 
 func (bri buildResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+		logger,
 		bri.build,
 		string(bri.resourceTypeName),
 		bri.version,
@@ -138,6 +140,7 @@ func NewResourceResourceInstance(
 
 func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
+		logger,
 		rri.resource,
 		string(rri.resourceTypeName),
 		rri.version,
@@ -166,6 +169,7 @@ func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerCl
 
 func (rri resourceResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
+		logger,
 		rri.resource,
 		string(rri.resourceTypeName),
 		rri.version,
@@ -219,6 +223,7 @@ func NewResourceTypeResourceInstance(
 
 func (rtri resourceTypeResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := rtri.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
+		logger,
 		string(rtri.resourceTypeName),
 		rtri.version,
 		rtri.source,
@@ -247,6 +252,7 @@ func (rtri resourceTypeResourceInstance) FindOrCreateOn(logger lager.Logger, wor
 
 func (rtri resourceTypeResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	resourceCache, err := rtri.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
+		logger,
 		string(rtri.resourceTypeName),
 		rtri.version,
 		rtri.source,

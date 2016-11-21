@@ -9,18 +9,19 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/scheduler"
 )
 
 type FakeSchedulerDB struct {
-	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (db.Lock, bool, error)
+	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (lock.Lock, bool, error)
 	acquireSchedulingLockMutex       sync.RWMutex
 	acquireSchedulingLockArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 time.Duration
 	}
 	acquireSchedulingLockReturns struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
@@ -87,7 +88,7 @@ type FakeSchedulerDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSchedulerDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (db.Lock, bool, error) {
+func (fake *FakeSchedulerDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
 	fake.acquireSchedulingLockMutex.Lock()
 	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
 		arg1 lager.Logger
@@ -114,10 +115,10 @@ func (fake *FakeSchedulerDB) AcquireSchedulingLockArgsForCall(i int) (lager.Logg
 	return fake.acquireSchedulingLockArgsForCall[i].arg1, fake.acquireSchedulingLockArgsForCall[i].arg2
 }
 
-func (fake *FakeSchedulerDB) AcquireSchedulingLockReturns(result1 db.Lock, result2 bool, result3 error) {
+func (fake *FakeSchedulerDB) AcquireSchedulingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireSchedulingLockStub = nil
 	fake.acquireSchedulingLockReturns = struct {
-		result1 db.Lock
+		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

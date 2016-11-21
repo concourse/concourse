@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 )
@@ -163,10 +164,10 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			Context("when acquiring the lock succeeds", func() {
-				var fakeLock *dbfakes.FakeLock
+				var fakeLock *lockfakes.FakeLock
 
 				BeforeEach(func() {
-					fakeLock = new(dbfakes.FakeLock)
+					fakeLock = new(lockfakes.FakeLock)
 					dbBuild.AcquireTrackingLockReturns(fakeLock, true, nil)
 				})
 
@@ -226,10 +227,10 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			Context("when acquiring the lock succeeds", func() {
-				var fakeLock *dbfakes.FakeLock
+				var fakeLock *lockfakes.FakeLock
 
 				BeforeEach(func() {
-					fakeLock = new(dbfakes.FakeLock)
+					fakeLock = new(lockfakes.FakeLock)
 					dbBuild.AcquireTrackingLockReturns(fakeLock, true, nil)
 				})
 
@@ -450,10 +451,10 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			Context("when acquiring the lock succeeds", func() {
-				var fakeLock *dbfakes.FakeLock
+				var fakeLock *lockfakes.FakeLock
 
 				BeforeEach(func() {
-					fakeLock = new(dbfakes.FakeLock)
+					fakeLock = new(lockfakes.FakeLock)
 					dbBuild.AcquireTrackingLockReturns(fakeLock, true, nil)
 				})
 
@@ -670,10 +671,10 @@ var _ = Describe("DBEngine", func() {
 				publicPlan, publicPlanErr = build.PublicPlan(logger)
 			})
 
-			var fakeLock *dbfakes.FakeLock
+			var fakeLock *lockfakes.FakeLock
 
 			BeforeEach(func() {
-				fakeLock = new(dbfakes.FakeLock)
+				fakeLock = new(lockfakes.FakeLock)
 				dbBuild.AcquireTrackingLockReturns(fakeLock, true, nil)
 			})
 

@@ -1,14 +1,17 @@
 package dbng
 
 import (
+	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . ResourceCacheFactory
 
 type ResourceCacheFactory interface {
 	FindOrCreateResourceCacheForBuild(
+		logger lager.Logger,
 		build *Build,
 		resourceTypeName string,
 		version atc.Version,
@@ -19,6 +22,7 @@ type ResourceCacheFactory interface {
 	) (*UsedResourceCache, error)
 
 	FindOrCreateResourceCacheForResource(
+		logger lager.Logger,
 		resource *Resource,
 		resourceTypeName string,
 		version atc.Version,
@@ -29,6 +33,7 @@ type ResourceCacheFactory interface {
 	) (*UsedResourceCache, error)
 
 	FindOrCreateResourceCacheForResourceType(
+		logger lager.Logger,
 		resourceTypeName string,
 		version atc.Version,
 		source atc.Source,
@@ -45,16 +50,19 @@ type ResourceCacheFactory interface {
 }
 
 type resourceCacheFactory struct {
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
-func NewResourceCacheFactory(conn Conn) ResourceCacheFactory {
+func NewResourceCacheFactory(conn Conn, lockFactory lock.LockFactory) ResourceCacheFactory {
 	return &resourceCacheFactory{
-		conn: conn,
+		conn:        conn,
+		lockFactory: lockFactory,
 	}
 }
 
 func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
+	logger lager.Logger,
 	build *Build,
 	resourceTypeName string,
 	version atc.Version,
@@ -81,7 +89,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 		Params:         params,
 	}
 
-	usedResourceCache, err := resourceCache.FindOrCreateForBuild(tx, build)
+	usedResourceCache, err := resourceCache.FindOrCreateForBuild(logger, tx, f.lockFactory, build)
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +103,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 }
 
 func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
+	logger lager.Logger,
 	resource *Resource,
 	resourceTypeName string,
 	version atc.Version,
@@ -121,7 +130,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 		Params:         params,
 	}
 
-	usedResourceCache, err := resourceCache.FindOrCreateForResource(tx, resource)
+	usedResourceCache, err := resourceCache.FindOrCreateForResource(logger, tx, f.lockFactory, resource)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +144,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 }
 
 func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
+	logger lager.Logger,
 	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
@@ -179,7 +189,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 		Params:         params,
 	}
 
-	usedResourceCache, err := resourceCache.FindOrCreateForResourceType(tx, usedResourceType)
+	usedResourceCache, err := resourceCache.FindOrCreateForResourceType(logger, tx, f.lockFactory, usedResourceType)
 	if err != nil {
 		return nil, err
 	}
