@@ -11,9 +11,10 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
 
+	"net/url"
+
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"net/url"
 )
 
 type OAuthCallbackHandler struct {
