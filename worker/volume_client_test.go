@@ -424,7 +424,6 @@ var _ = Describe("VolumeClient", func() {
 	Describe("LookupVolume", func() {
 		var handle string
 
-		var foundVolume worker.Volume
 		var found bool
 		var lookupErr error
 
@@ -436,7 +435,7 @@ var _ = Describe("VolumeClient", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundVolume, found, lookupErr = worker.NewVolumeClient(
+			_, found, lookupErr = worker.NewVolumeClient(
 				fakeBaggageclaimClient,
 				fakeGardenWorkerDB,
 				fakeDBVolumeFactory,
@@ -448,14 +447,11 @@ var _ = Describe("VolumeClient", func() {
 
 		Context("when the volume can be found on baggageclaim", func() {
 			var fakeBaggageclaimVolume *baggageclaimfakes.FakeVolume
-			var builtVolume *workerfakes.FakeVolume
 
 			BeforeEach(func() {
 				fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
 				fakeBaggageclaimVolume.HandleReturns(handle)
 				fakeBaggageclaimClient.LookupVolumeReturns(fakeBaggageclaimVolume, true, nil)
-
-				builtVolume = new(workerfakes.FakeVolume)
 			})
 
 			It("succeeds", func() {

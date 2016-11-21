@@ -273,7 +273,7 @@ func (p *containerProvider) createGardenContainer(
 
 	volumeMounts := []VolumeMount{}
 	for name, outputPath := range outputPaths {
-		outVolume, err := p.volumeClient.FindOrCreateVolumeForContainer(
+		outVolume, volumeErr := p.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
 			VolumeSpec{
 				Strategy:   OutputStrategy{Name: name},
@@ -283,8 +283,8 @@ func (p *containerProvider) createGardenContainer(
 			&dbng.Team{ID: spec.TeamID},
 			outputPath,
 		)
-		if err != nil {
-			return nil, err
+		if volumeErr != nil {
+			return nil, volumeErr
 		}
 
 		volumeMounts = append(volumeMounts, VolumeMount{
@@ -298,7 +298,7 @@ func (p *containerProvider) createGardenContainer(
 	}
 
 	for _, mount := range spec.Inputs {
-		cowVolume, err := p.volumeClient.FindOrCreateVolumeForContainer(
+		cowVolume, volumeErr := p.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
 			VolumeSpec{
 				Strategy: ContainerRootFSStrategy{
@@ -310,8 +310,8 @@ func (p *containerProvider) createGardenContainer(
 			&dbng.Team{ID: spec.TeamID},
 			mount.MountPath,
 		)
-		if err != nil {
-			return nil, err
+		if volumeErr != nil {
+			return nil, volumeErr
 		}
 
 		volumeMounts = append(volumeMounts, VolumeMount{
