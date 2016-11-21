@@ -366,7 +366,7 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		JoinClause("INNER JOIN resources r ON r.id = vr.resource_id").
 		JoinClause("INNER JOIN resource_caches rc ON rc.version = vr.version").
 		JoinClause("INNER JOIN resource_configs rf ON rc.resource_config_id = rf.id").
-		Where(sq.Expr("r.config::text = rf.source_hash")).
+		Where(sq.Expr("r.config::json->>'source' = rf.source_hash")).
 		ToSql()
 	if err != nil {
 		return err

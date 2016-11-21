@@ -73,7 +73,7 @@ var _ = BeforeEach(func() {
 	usedResource, err = resourceFactory.CreateResource(
 		defaultPipeline,
 		"some-resource",
-		`{"some":"source"}`,
+		`{"name":"some-resource","type":"resource-type","source":{"some":"source"}}`,
 	)
 	Expect(err).NotTo(HaveOccurred())
 
