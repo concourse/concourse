@@ -52,6 +52,7 @@ files:
   - github.com/concourse/atc/config/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
+  - github.com/concourse/atc/db/lock/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
   - github.com/concourse/atc/dbng/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
