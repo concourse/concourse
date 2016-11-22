@@ -147,7 +147,7 @@ var _ = Describe("ContainerProvider", func() {
 					fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeOutputVolume, nil)
 				})
 
-				It("finds or creates the volume using the volume client", func ()  {
+				It("finds or creates the volume using the volume client", func() {
 					Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
 					_, spec, _, _, outputPath := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
 					s, ok := spec.Strategy.(OutputStrategy)
@@ -157,7 +157,7 @@ var _ = Describe("ContainerProvider", func() {
 				})
 
 				Context("when finding / creating the output volume fails", func() {
-					var focVolumeErr     error
+					var focVolumeErr error
 
 					BeforeEach(func() {
 						focVolumeErr = errors.New("oh noes")
@@ -175,28 +175,28 @@ var _ = Describe("ContainerProvider", func() {
 			Context("when inputs are specified on the container spec", func() {
 				var fakeInputVolume *wfakes.FakeVolume
 
-				BeforeEach(func()  {
-						fakeInputVolume = new(wfakes.FakeVolume)
-						fakeInputVolume.PathReturns("/some/volume/path")
-						inputs = []VolumeMount{
-							VolumeMount{
-								Volume : fakeInputVolume,
-								MountPath : "/some/input/path",
-							},
-						}
+				BeforeEach(func() {
+					fakeInputVolume = new(wfakes.FakeVolume)
+					fakeInputVolume.PathReturns("/some/volume/path")
+					inputs = []VolumeMount{
+						VolumeMount{
+							Volume:    fakeInputVolume,
+							MountPath: "/some/input/path",
+						},
+					}
 
-						fakeCOWVolume := new(wfakes.FakeVolume)
-						fakeCOWVolume.PathReturns("/some/volume/path")
-						fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeCOWVolume, nil)
+					fakeCOWVolume := new(wfakes.FakeVolume)
+					fakeCOWVolume.PathReturns("/some/volume/path")
+					fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeCOWVolume, nil)
 				})
 
-				It("finds / creates COW volumes from the inputs", func ()  {
-							Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-							_, spec, _, _, mountPath := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
-							s, ok := spec.Strategy.(ContainerRootFSStrategy)
-							Expect(ok).To(BeTrue())
-							Expect(s.Parent).To(Equal(fakeInputVolume))
-							Expect(mountPath).To(Equal("/some/input/path"))
+				It("finds / creates COW volumes from the inputs", func() {
+					Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
+					_, spec, _, _, mountPath := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+					s, ok := spec.Strategy.(ContainerRootFSStrategy)
+					Expect(ok).To(BeTrue())
+					Expect(s.Parent).To(Equal(fakeInputVolume))
+					Expect(mountPath).To(Equal("/some/input/path"))
 				})
 
 			})

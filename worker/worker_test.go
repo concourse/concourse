@@ -2,7 +2,7 @@ package worker_test
 
 import (
 	"errors"
-		"time"
+	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
@@ -46,7 +46,7 @@ var _ = Describe("Worker", func() {
 		httpsProxyURL                string
 		noProxy                      string
 		workerUptime                 uint64
-		gardenWorker Worker
+		gardenWorker                 Worker
 	)
 
 	BeforeEach(func() {
@@ -112,11 +112,11 @@ var _ = Describe("Worker", func() {
 
 	Describe("LookupContainer", func() {
 		var (
-			handle string
-			foundContainer Container
+			handle            string
+			foundContainer    Container
 			existingContainer *wfakes.FakeContainer
-			found bool
-			checkErr error
+			found             bool
+			checkErr          error
 		)
 
 		BeforeEach(func() {
@@ -129,17 +129,15 @@ var _ = Describe("Worker", func() {
 			foundContainer, found, checkErr = gardenWorker.LookupContainer(logger, handle)
 		})
 
-		It("calls the container provider",func ()  {
-				Expect(fakeContainerProviderFactory.ContainerProviderForCallCount()).To(Equal(1))
+		It("calls the container provider", func() {
+			Expect(fakeContainerProviderFactory.ContainerProviderForCallCount()).To(Equal(1))
 
-				Expect(fakeContainerProvider.FindContainerByHandleCallCount()).To(Equal(1))
+			Expect(fakeContainerProvider.FindContainerByHandleCallCount()).To(Equal(1))
 
-
-				Expect(foundContainer).To(Equal(existingContainer))
-				Expect(checkErr).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+			Expect(foundContainer).To(Equal(existingContainer))
+			Expect(checkErr).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
-
 
 	})
 
@@ -430,8 +428,8 @@ var _ = Describe("Worker", func() {
 
 		Context("when the container can be found", func() {
 			var (
-				fakeContainer      *gfakes.FakeContainer
-				fakeSavedContainer db.SavedContainer
+				fakeContainer       *gfakes.FakeContainer
+				fakeSavedContainer  db.SavedContainer
 				fakeWorkerContainer *wfakes.FakeContainer
 			)
 
@@ -501,7 +499,6 @@ var _ = Describe("Worker", func() {
 					})
 				})
 			})
-
 
 		})
 
