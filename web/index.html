@@ -35,14 +35,15 @@
 
       app.ports.requestLoginRedirect.subscribe(function (message) {
           var path = document.location.pathname;
-          var redirect = encodeURIComponent(path + document.location.search)
+          var redirect = removeRedirectParam(path + document.location.search)
+          var encodedRedirect = encodeURIComponent(redirect)
           var matches = path.match(teamNameRegExp);
           var loginUrl;
           if(matches) {
             var teamName = matches[1];
-            loginUrl = "/teams/" + teamName + "/login?redirect="+ redirect;
+            loginUrl = "/teams/" + teamName + "/login?redirect=" + encodedRedirect;
           } else {
-            loginUrl = "/login?redirect="+ redirect;
+            loginUrl = "/login?redirect=" + encodedRedirect;
           }
           app.ports.newUrl.send(loginUrl);
       })
