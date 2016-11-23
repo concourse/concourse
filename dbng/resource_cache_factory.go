@@ -366,17 +366,6 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		return err
 	}
 
-	s, args, err := sq.Delete("resource_caches").
-		Where("id NOT IN (" + imageResourceCacheIds + ")").
-		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
-		Where("id NOT IN (" + stillInUseCacheIds + ")").
-		PlaceholderFormat(sq.Dollar).ToSql()
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("about to run", lager.Data{"query": s, "args": args})
-
 	_, err = sq.Delete("resource_caches").
 		Where("id NOT IN (" + imageResourceCacheIds + ")").
 		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").

@@ -343,10 +343,18 @@ func (f *resourceConfigFactory) CleanUselessConfigs() error {
 	defer tx.Rollback()
 
 	stillInUseConfigIds, _, err := sq.
-		Select("rf.id").
+		Select("resource_config_id").
 		Distinct().
-		From("resource_configs rf").
-		JoinClause("INNER JOIN resource_config_uses rfu ON rf.id = rfu.resource_config_id").
+		From("resource_config_uses").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	usedByResourceCachesIds, _, err := sq.
+		Select("resource_config_id").
+		Distinct().
+		From("resource_caches").
 		ToSql()
 	if err != nil {
 		return err
@@ -354,6 +362,7 @@ func (f *resourceConfigFactory) CleanUselessConfigs() error {
 
 	_, err = psql.Delete("resource_configs").
 		Where("id NOT IN (" + stillInUseConfigIds + ")").
+		Where("id NOT IN (" + usedByResourceCachesIds + ")").
 		PlaceholderFormat(sq.Dollar).
 		RunWith(tx).Exec()
 	if err != nil {

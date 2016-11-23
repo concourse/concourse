@@ -72,6 +72,38 @@ var _ = Describe("ResourceConfigCollector", func() {
 				})
 			})
 
+			Context("when config is referenced in resource cache", func() {
+				BeforeEach(func() {
+					_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+						logger,
+						defaultBuild,
+						"some-base-type",
+						atc.Version{"some": "version"},
+						atc.Source{
+							"some": "source",
+						},
+						nil,
+						defaultPipeline,
+						atc.ResourceTypes{},
+					)
+					Expect(err).NotTo(HaveOccurred())
+
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
+					defer tx.Rollback()
+					_, err = psql.Delete("resource_config_uses").
+						RunWith(tx).Exec()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(tx.Commit()).To(Succeed())
+				})
+
+				It("preserves the config", func() {
+					Expect(countResourceConfigs()).NotTo(BeZero())
+					Expect(collector.Run()).To(Succeed())
+					Expect(countResourceConfigs()).NotTo(BeZero())
+				})
+			})
+
 			Context("when the config is still in use", func() {
 				It("preserves the config", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
