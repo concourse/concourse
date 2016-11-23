@@ -323,36 +323,20 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	defer tx.Rollback()
 
 	latestBuildByJobQ, _, err := sq.
-		Select("MAX(b.id) AS build_id", "j.id AS job_id").
-		From("builds b").
-		Join("jobs j ON j.id = b.job_id").
-		GroupBy("j.id").ToSql()
-	if err != nil {
-		return err
-	}
-
-	latestImageResourceVersionsQ, _, err := sq.
-		Select("irv.version",
-			"rfu.resource_config_id",
-			"lbbj.build_id",
-			"lbbj.job_id",
-			"rc.id AS cache_id",
-			"rc.params_hash").
+		Select("MAX(b.id) AS max_build_id").
 		From("image_resource_versions irv").
-		Join("(" + latestBuildByJobQ + ") lbbj ON irv.build_id = lbbj.build_id").
-		JoinClause("INNER JOIN resource_config_uses rfu ON rfu.build_id = irv.build_id").
-		JoinClause("INNER JOIN resource_caches rc ON rc.resource_config_id = rfu.resource_config_id").
-		Where(sq.Expr("rc.params_hash = 'null'")).
-		Where(sq.Expr("irv.version = rc.version")).
-		ToSql()
+		Join("builds b ON b.id = irv.build_id").
+		GroupBy("b.job_id").ToSql()
 	if err != nil {
 		return err
 	}
 
-	extractedCacheIds, _, err := sq.
-		Select("lirvcq.cache_id").
-		Distinct().
-		From("(" + latestImageResourceVersionsQ + ") as lirvcq").
+	imageResourceCacheIds, _, err := sq.
+		Select("rc.id").
+		From("image_resource_versions irv").
+		Join("resource_caches rc ON rc.version = irv.version").
+		Where(sq.Expr("rc.params_hash = 'null'")).
+		Where("irv.id IN (" + latestBuildByJobQ + ")").
 		ToSql()
 	if err != nil {
 		return err
@@ -362,7 +346,7 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		Select("rc.id").
 		Distinct().
 		From("resource_caches rc").
-		JoinClause("INNER JOIN resource_cache_uses rcu ON rc.id = rcu.resource_cache_id").
+		Join("resource_cache_uses rcu ON rc.id = rcu.resource_cache_id").
 		ToSql()
 	if err != nil {
 		return err
@@ -372,18 +356,29 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		Select("rc.id").
 		Distinct().
 		From("next_build_inputs nbi").
-		JoinClause("INNER JOIN versioned_resources vr ON vr.id = nbi.version_id").
-		JoinClause("INNER JOIN resources r ON r.id = vr.resource_id").
-		JoinClause("INNER JOIN resource_caches rc ON rc.version = vr.version").
-		JoinClause("INNER JOIN resource_configs rf ON rc.resource_config_id = rf.id").
+		Join("versioned_resources vr ON vr.id = nbi.version_id").
+		Join("resources r ON r.id = vr.resource_id").
+		Join("resource_caches rc ON rc.version = vr.version").
+		Join("resource_configs rf ON rc.resource_config_id = rf.id").
 		Where(sq.Expr("r.config::json->>'source' = rf.source_hash")).
 		ToSql()
 	if err != nil {
 		return err
 	}
 
+	s, args, err := sq.Delete("resource_caches").
+		Where("id NOT IN (" + imageResourceCacheIds + ")").
+		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
+		Where("id NOT IN (" + stillInUseCacheIds + ")").
+		PlaceholderFormat(sq.Dollar).ToSql()
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("about to run", lager.Data{"query": s, "args": args})
+
 	_, err = sq.Delete("resource_caches").
-		Where("id NOT IN (" + extractedCacheIds + ")").
+		Where("id NOT IN (" + imageResourceCacheIds + ")").
 		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
 		Where("id NOT IN (" + stillInUseCacheIds + ")").
 		PlaceholderFormat(sq.Dollar).
