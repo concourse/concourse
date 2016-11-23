@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"os"
 	"regexp"
 	"time"
 
@@ -90,6 +91,10 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				landingWorkerName = waitForLandingWorker()
 			})
 
+			AfterEach(func() {
+				<-restartSession.Exited
+			})
+
 			Context("with a build in-flight", func() {
 				var buildSession *gexec.Session
 				var buildID string
@@ -103,6 +108,11 @@ var _ = Describe("[#129726011] Worker landing", func() {
 					buildID = string(matches[1])
 
 					Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+				})
+
+				AfterEach(func() {
+					buildSession.Signal(os.Interrupt)
+					<-buildSession.Exited
 				})
 
 				It("waits for the build", func() {
