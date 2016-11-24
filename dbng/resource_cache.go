@@ -159,30 +159,49 @@ func (cache ResourceCache) findOrCreate(logger lager.Logger, tx Tx, lockFactory 
 		lock.Release()
 	}
 
-	_, err = psql.Insert("resource_cache_uses").
-		Columns(
-			"resource_cache_id",
-			forColumnName,
-		).
-		Values(
-			id,
-			forColumnID,
-		).
+	rc := &UsedResourceCache{
+		ID:             id,
+		ResourceConfig: resourceConfig,
+	}
+
+	var resourceCacheUseExists int
+	err = psql.Select("1").
+		From("resource_cache_uses").
+		Where(sq.Eq{
+			"resource_cache_id": id,
+			forColumnName:       forColumnID,
+		}).
 		RunWith(tx).
-		Exec()
+		QueryRow().
+		Scan(&resourceCacheUseExists)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-			return nil, ErrResourceCacheDisappeared
+		if err == sql.ErrNoRows {
+			_, err = psql.Insert("resource_cache_uses").
+				Columns(
+					"resource_cache_id",
+					forColumnName,
+				).
+				Values(
+					id,
+					forColumnID,
+				).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+					return nil, ErrResourceCacheDisappeared
+				}
+
+				return nil, err
+			}
+
+			return rc, nil
 		}
 
 		return nil, err
 	}
 
-	// TODO: rename to ResourceVersion?
-	return &UsedResourceCache{
-		ID:             id,
-		ResourceConfig: resourceConfig,
-	}, nil
+	return rc, nil
 }
 
 func (cache ResourceCache) lockName() (string, error) {

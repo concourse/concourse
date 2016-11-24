@@ -243,21 +243,38 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 
 	urc.ID = id
 
-	_, err = psql.Insert("resource_config_uses").
-		Columns(
-			"resource_config_id",
-			forColumnName,
-		).
-		Values(
-			id,
-			forColumnID,
-		).
+	var resourceConfigUseExists int
+	err = psql.Select("1").
+		From("resource_config_uses").
+		Where(sq.Eq{
+			"resource_config_id": id,
+			forColumnName:        forColumnID,
+		}).
 		RunWith(tx).
-		Exec()
+		QueryRow().
+		Scan(&resourceConfigUseExists)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-			return nil, errors.New(fmt.Sprintf("config-disappeared: %s, forColumnName: '%s', forColumnID: '%d'", err.Error(), forColumnName, forColumnID))
-			// insert or update on table \"resource_config_uses\" violates foreign key constraint \"resource_config_uses_build_id_fkey\"
+		if err == sql.ErrNoRows {
+			_, err = psql.Insert("resource_config_uses").
+				Columns(
+					"resource_config_id",
+					forColumnName,
+				).
+				Values(
+					id,
+					forColumnID,
+				).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+					return nil, errors.New(fmt.Sprintf("config-disappeared: %s, forColumnName: '%s', forColumnID: '%d'", err.Error(), forColumnName, forColumnID))
+				}
+
+				return nil, err
+			}
+
+			return urc, nil
 		}
 
 		return nil, err
