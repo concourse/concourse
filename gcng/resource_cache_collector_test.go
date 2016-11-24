@@ -3,6 +3,7 @@ package gcng_test
 import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/gcng"
 
 	. "github.com/onsi/ginkgo"
@@ -67,16 +68,18 @@ var _ = Describe("ResourceCacheCollector", func() {
 			})
 
 			Context("when the cache is no longer in use", func() {
+				var resourceCacheUseCollector gcng.Collector
+
 				JustBeforeEach(func() {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
-
-					_, err = psql.Delete("resource_cache_uses").
-						RunWith(tx).Exec()
+					err = defaultBuild.SaveStatus(tx, dbng.BuildStatusSucceeded)
 					Expect(err).NotTo(HaveOccurred())
+					Expect(tx.Commit()).To(Succeed())
 
-					err = tx.Commit()
+					resourceCacheUseCollector = gcng.NewResourceCacheUseCollector(logger, resourceCacheFactory)
+					err = resourceCacheUseCollector.Run()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -177,7 +180,10 @@ var _ = Describe("ResourceCacheCollector", func() {
 									tx, err := dbConn.Begin()
 									Expect(err).NotTo(HaveOccurred())
 									defer tx.Rollback()
+
+									err = newBuild.SaveStatus(tx, dbng.BuildStatusSucceeded)
 									Expect(err).NotTo(HaveOccurred())
+
 									_, err = psql.Insert("image_resource_versions").
 										Columns("version", "build_id", "plan_id", "resource_hash").
 										Values(`{"new":"version"}`, newBuild.ID, "whatever", "whatever").
@@ -211,7 +217,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						})
 
 						Context("when the cache is for a one-off build", func() {
-							It("is not preserved", func() {
+							It("is deleted after build is finished", func() {
 								Expect(collector.Run()).To(Succeed())
 								Expect(countResourceCaches()).To(BeZero())
 							})

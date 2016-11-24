@@ -209,6 +209,29 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 	}
 	defer tx.Rollback()
 
+	latestImageResourceBuildByJobQ, _, err := sq.
+		Select("MAX(b.id) AS max_build_id").
+		From("image_resource_versions irv").
+		Join("builds b ON b.id = irv.build_id").
+		Where(sq.NotEq{"b.job_id": nil}).
+		GroupBy("b.job_id").ToSql()
+	if err != nil {
+		return err
+	}
+
+	imageResourceCacheIds, _, err := sq.
+		Select("rc.id").
+		From("image_resource_versions irv").
+		Join("resource_caches rc ON rc.version = irv.version").
+		Join("resource_cache_uses rcu ON rcu.resource_cache_id = rc.id").
+		Where(sq.Expr("irv.build_id = rcu.build_id")).
+		Where(sq.Expr("rc.params_hash = 'null'")).
+		Where("irv.id IN (" + latestImageResourceBuildByJobQ + ")").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	latestBuildByJobQ, _, err := sq.
 		Select("MAX(b.id) AS build_id", "j.id AS job_id").
 		From("builds b").
@@ -245,6 +268,7 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 				},
 			},
 		}).
+		Where("b.id NOT IN (" + imageResourceCacheIds + ")").
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -322,26 +346,6 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	}
 	defer tx.Rollback()
 
-	latestBuildByJobQ, _, err := sq.
-		Select("MAX(b.id) AS max_build_id").
-		From("image_resource_versions irv").
-		Join("builds b ON b.id = irv.build_id").
-		GroupBy("b.job_id").ToSql()
-	if err != nil {
-		return err
-	}
-
-	imageResourceCacheIds, _, err := sq.
-		Select("rc.id").
-		From("image_resource_versions irv").
-		Join("resource_caches rc ON rc.version = irv.version").
-		Where(sq.Expr("rc.params_hash = 'null'")).
-		Where("irv.id IN (" + latestBuildByJobQ + ")").
-		ToSql()
-	if err != nil {
-		return err
-	}
-
 	stillInUseCacheIds, _, err := sq.
 		Select("rc.id").
 		Distinct().
@@ -367,7 +371,6 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	}
 
 	_, err = sq.Delete("resource_caches").
-		Where("id NOT IN (" + imageResourceCacheIds + ")").
 		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
 		Where("id NOT IN (" + stillInUseCacheIds + ")").
 		PlaceholderFormat(sq.Dollar).
