@@ -116,7 +116,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				})
 
 				It("waits for the build", func() {
-					Eventually(restartSession).Should(gbytes.Say("Updating job"))
+					Eventually(restartSession).Should(gbytes.Say("Updating instance"))
 					Consistently(restartSession, 5*time.Minute).ShouldNot(gexec.Exit())
 				})
 
