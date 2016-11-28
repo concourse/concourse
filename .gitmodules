@@ -205,8 +205,8 @@
 	branch = master
 [submodule "src/code.cloudfoundry.org/garden"]
 	path = src/code.cloudfoundry.org/garden
-	url = https://github.com/vito/garden
-	branch = log-failed-write
+	url = https://github.com/cloudfoundry/garden
+	branch = master
 [submodule "src/code.cloudfoundry.org/lager"]
 	path = src/code.cloudfoundry.org/lager
 	url = https://github.com/cloudfoundry/lager
