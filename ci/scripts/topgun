@@ -23,4 +23,4 @@ bosh upload-release garden-runc-release/*.tgz
 bosh upload-stemcell stemcell/*.tgz
 
 cd concourse/src/github.com/concourse/topgun/
-ginkgo -nodes=4 -r -race -keepGoing "$@"
+ginkgo -r -race -keepGoing "$@"
