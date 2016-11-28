@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/garden"
-	fconn "code.cloudfoundry.org/garden/client/connection/fakes"
-	gfakes "code.cloudfoundry.org/garden/gardenfakes"
+	"code.cloudfoundry.org/garden/client/connection/connectionfakes"
+	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,11 +14,11 @@ import (
 )
 
 var _ = Describe("Retryable Garden Connection", func() {
-	var innerConnection *fconn.FakeConnection
+	var innerConnection *connectionfakes.FakeConnection
 	var conn *worker.RetryableConnection
 
 	BeforeEach(func() {
-		innerConnection = new(fconn.FakeConnection)
+		innerConnection = new(connectionfakes.FakeConnection)
 		conn = worker.NewRetryableConnection(innerConnection)
 	})
 
@@ -284,7 +284,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 
 	Describe("Attach", func() {
 		var (
-			fakeProcess *gfakes.FakeProcess
+			fakeProcess *gardenfakes.FakeProcess
 			process     garden.Process
 		)
 
@@ -293,7 +293,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 		}
 
 		BeforeEach(func() {
-			fakeProcess = new(gfakes.FakeProcess)
+			fakeProcess = new(gardenfakes.FakeProcess)
 			fakeProcess.IDReturns("process-id")
 			innerConnection.AttachReturns(fakeProcess, nil)
 			var err error
@@ -394,7 +394,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 
 	Describe("Run", func() {
 		var (
-			fakeProcess *gfakes.FakeProcess
+			fakeProcess *gardenfakes.FakeProcess
 			process     garden.Process
 		)
 
@@ -407,7 +407,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 		}
 
 		BeforeEach(func() {
-			fakeProcess = new(gfakes.FakeProcess)
+			fakeProcess = new(gardenfakes.FakeProcess)
 			fakeProcess.IDReturns("process-id")
 			innerConnection.RunReturns(fakeProcess, nil)
 			var err error
