@@ -11,4 +11,4 @@ go get -t -d ./...
 
 go install github.com/onsi/ginkgo/ginkgo
 
-xvfb-run ginkgo -r -p -race "$@"
+ginkgo -r -p -race "$@"
