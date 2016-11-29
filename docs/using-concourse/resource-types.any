@@ -77,91 +77,91 @@ before using it!
   }
 
   \list{
-    \hyperlink{https://github.com/cloudfoundry-community/slack-notification-resource}{Slack notifications}
+    \hyperlink{https://github.com/jdub/ami-resource}{AMI Updates}
   }{
-    \hyperlink{https://github.com/jtarchie/pullrequest-resource}{Pull Requests}
+    \hyperlink{https://github.com/everpeace/aws-kms-resource}{AWS Key Management Service}
   }{
-    \hyperlink{https://github.com/sapcc/concourse-swift-resource}{OpenStack Swift}
+    \hyperlink{https://github.com/pivotal-cloudops/azure-blobstore-concourse-resource}{Azure Blobstore}
   }{
-    \hyperlink{https://github.com/starkandwayne/flowdock-concourse-notification-resource}{Flowdock notifications}
+    \hyperlink{https://github.com/jamiemonserrate/bintray-resource}{Bintray}
+  }{
+    \hyperlink{https://github.com/karunamon/concourse-resource-bitbucket}{Bitbucket Notifications}
+  }{
+    \hyperlink{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}{BOSH Errands}
+  }{
+    \hyperlink{https://github.com/pivotal-cf-experimental/cloudformation-resource}{Cloudformation}
+  }{
+    \hyperlink{https://github.com/robdimsdale/concourse-pipeline-resource}{Concourse Pipelines}
+  }{
+    \hyperlink{https://github.com/jdub/debian-sources-resource}{Debian/Ubuntu Sources Updates}
+  }{
+    \hyperlink{https://github.com/mdomke/concourse-devpi-resource}{Devpi Server: PyPI mirror and package server}
   }{
     \hyperlink{https://github.com/pivotal-cf/email-resource}{Email}
   }{
     \hyperlink{https://github.com/mdomke/concourse-email-resource}{Email with integrated MTA}
   }{
-    \hyperlink{https://github.com/jamiemonserrate/bintray-resource}{Bintray}
-  }{
-    \hyperlink{https://github.com/olhtbr/p4-resource}{Perforce}
-  }{
-    \hyperlink{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}{BOSH Errands}
-  }{
-    \hyperlink{https://github.com/cfmobile/pool-trigger-resource}{Pool Trigger}
-  }{
-    \hyperlink{https://github.com/pivotal-cf-experimental/pivnet-resource}{Pivotal Network}
-  }{
-    \hyperlink{https://github.com/aequitas/concourse-ftp-resource}{FTP}
-  }{
-    \hyperlink{https://github.com/pivotal-cf-experimental/cloudformation-resource}{Cloudformation}
-  }{
-    \hyperlink{https://github.com/aequitas/concourse-http-api-resource}{Generic HTTP API}
-  }{
-    \hyperlink{https://github.com/seadowg/hockey-resource}{Hockey App}
-  }{
-    \hyperlink{https://github.com/robdimsdale/concourse-pipeline-resource}{Concourse Pipelines}
-  }{
-    \hyperlink{https://github.com/ECSTeam/twitter-resource}{Twitter}
-  }{
-    \hyperlink{https://github.com/hpcloud/hipchat-notification-resource}{HipChat Notifications}
-  }{
-    \hyperlink{https://github.com/freelock/matrix-notification-resource}{Matrix Notifications}
-  }{
-    \hyperlink{https://github.com/redfactorlabs/concourse-smuggler-resource}{Smuggler: generic resource framework}
-  }{
-    \hyperlink{https://github.com/dpb587/github-status-resource}{GitHub Commit Status}
-  }{
-    \hyperlink{https://github.com/jdub/ami-resource}{AMI Updates}
-  }{
-    \hyperlink{https://github.com/jdub/debian-sources-resource}{Debian/Ubuntu Sources Updates}
-  }{
-    \hyperlink{https://github.com/SUSE/open-build-service-resource}{Open Build Service}
-  }{
-    \hyperlink{https://github.com/Orange-OpenSource/travis-resource}{Travis-ci}
-  }{
-    \hyperlink{https://github.com/karunamon/concourse-resource-bitbucket}{Bitbucket Notifications}
-  }{
-    \hyperlink{https://github.com/ljfranklin/terraform-resource}{Terraform}
-  }{
-    \hyperlink{https://github.com/pivotal-cloudops/azure-blobstore-concourse-resource}{Azure Blobstore}
-  }{
-    \hyperlink{https://github.com/mrsixw/concourse-rsync-resource}{Rsync}
-  }{
-    \hyperlink{https://github.com/mdomke/concourse-devpi-resource}{Devpi Server: PyPI mirror and package server}
-  }{
-    \hyperlink{https://github.com/danrspencer/jira-resource}{Jira Integration}
-  }{
-    \hyperlink{https://github.com/jpatel-pivotal/google-drive-concourse-resource}{Google Drive}
-  }{
-    \hyperlink{https://github.com/henrytk/calendar-resource}{Google Calendar}
-  }{
-    \hyperlink{https://github.com/FidelityInternational/concourse-pagerduty-notification-resource}{pagerduty Notifications}
-  }{
-    \hyperlink{https://github.com/w32blaster/telegram-notification-resource}{Telegram}
-  }{
-    \hyperlink{https://github.com/frodenas/gcs-resource}{Google Cloud Storage}
+    \hyperlink{https://github.com/starkandwayne/flowdock-concourse-notification-resource}{Flowdock notifications}
   }{
     \hyperlink{https://github.com/troykinsella/concourse-fly-resource}{Fly}
   }{
+    \hyperlink{https://github.com/aequitas/concourse-ftp-resource}{FTP}
+  }{
+    \hyperlink{https://github.com/aequitas/concourse-http-api-resource}{Generic HTTP API}
+  }{
+    \hyperlink{https://github.com/dpb587/github-status-resource}{GitHub Commit Status}
+  }{
+    \hyperlink{https://github.com/henrytk/calendar-resource}{Google Calendar}
+  }{
+    \hyperlink{https://github.com/frodenas/gcs-resource}{Google Cloud Storage}
+  }{
+    \hyperlink{https://github.com/jpatel-pivotal/google-drive-concourse-resource}{Google Drive}
+  }{
+    \hyperlink{https://github.com/hpcloud/hipchat-notification-resource}{HipChat Notifications}
+  }{
+    \hyperlink{https://github.com/seadowg/hockey-resource}{Hockey App}
+  }{
+    \hyperlink{https://github.com/danrspencer/jira-resource}{Jira Integration}
+  }{
     \hyperlink{https://github.com/jcderr/concourse-kubernetes-resource}{Kubernetes}
-  }{
-    \hyperlink{https://github.com/Docurated/concourse-vault-resource}{Vault}
-  }{
-    \hyperlink{https://github.com/everpeace/aws-kms-resource}{AWS Key Management Service}
   }{
     \hyperlink{https://github.com/ckaznocha/marathon-resource}{Marathon}
   }{
-    \hyperlink{https://github.com/suhlig/concourse-rss-resource}{RSS}
+    \hyperlink{https://github.com/freelock/matrix-notification-resource}{Matrix Notifications}
   }{
     \hyperlink{https://github.com/patrickcrocker/maven-resource}{Maven Resource}
+  }{
+    \hyperlink{https://github.com/SUSE/open-build-service-resource}{Open Build Service}
+  }{
+    \hyperlink{https://github.com/sapcc/concourse-swift-resource}{OpenStack Swift}
+  }{
+    \hyperlink{https://github.com/FidelityInternational/concourse-pagerduty-notification-resource}{pagerduty Notifications}
+  }{
+    \hyperlink{https://github.com/olhtbr/p4-resource}{Perforce}
+  }{
+    \hyperlink{https://github.com/pivotal-cf-experimental/pivnet-resource}{Pivotal Network}
+  }{
+    \hyperlink{https://github.com/cfmobile/pool-trigger-resource}{Pool Trigger}
+  }{
+    \hyperlink{https://github.com/jtarchie/pullrequest-resource}{Pull Requests}
+  }{
+    \hyperlink{https://github.com/suhlig/concourse-rss-resource}{RSS}
+  }{
+    \hyperlink{https://github.com/mrsixw/concourse-rsync-resource}{Rsync}
+  }{
+    \hyperlink{https://github.com/cloudfoundry-community/slack-notification-resource}{Slack notifications}
+  }{
+    \hyperlink{https://github.com/redfactorlabs/concourse-smuggler-resource}{Smuggler: generic resource framework}
+  }{
+    \hyperlink{https://github.com/w32blaster/telegram-notification-resource}{Telegram}
+  }{
+    \hyperlink{https://github.com/ljfranklin/terraform-resource}{Terraform}
+  }{
+    \hyperlink{https://github.com/Orange-OpenSource/travis-resource}{Travis-ci}
+  }{
+    \hyperlink{https://github.com/ECSTeam/twitter-resource}{Twitter}
+  }{
+    \hyperlink{https://github.com/Docurated/concourse-vault-resource}{Vault}
   }
 
   \section{Adding to this list}{
