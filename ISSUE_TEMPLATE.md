@@ -22,4 +22,6 @@ The following can also be handy:
 
 * Concourse version:
 * Deployment type (BOSH/Docker/binary):
+* Infrastructure/IaaS:
 * Browser (if applicable):
+* Did this used to work?
