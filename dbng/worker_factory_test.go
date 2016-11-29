@@ -1,6 +1,6 @@
 // it's the thought that counts
 
-package dbng_test
+// package dbng_test
 
 // import (
 // 	"time"
@@ -601,6 +601,22 @@ package dbng_test
 // 				Expect(err).To(Equal(dbng.ErrWorkerNotPresent))
 // 				Expect(foundWorker).To(BeNil())
 // 			})
+// 		})
+// 	})
+
+// 	Describe("DeleteWorker", func() {
+// 		BeforeEach(func() {
+// 			_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+// 			Expect(err).NotTo(HaveOccurred())
+// 		})
+
+// 		It("deletes the record for the worker", func() {
+// 			err := workerFactory.DeleteWorker(atcWorker.Name)
+// 			Expect(err).NotTo(HaveOccurred())
+
+// 			_, found, err := workerFactory.GetWorker(atcWorker.Name)
+// 			Expect(err).NotTo(HaveOccurred())
+// 			Expect(found).To(BeFalse())
 // 		})
 // 	})
 

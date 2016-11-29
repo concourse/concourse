@@ -25,6 +25,7 @@ type WorkerFactory interface {
 	SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error)
 	LandWorker(name string) (*Worker, error)
 	RetireWorker(name string) (*Worker, error)
+	DeleteWorker(name string) error
 	HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
 }
 
@@ -322,6 +323,33 @@ func (f *workerFactory) RetireWorker(name string) (*Worker, error) {
 		Name:  workerName,
 		State: WorkerState(workerState),
 	}, nil
+}
+
+func (f *workerFactory) DeleteWorker(name string) error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = sq.Delete("workers").
+		Where(sq.Eq{
+			"name": name,
+		}).
+		PlaceholderFormat(sq.Dollar).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*Worker, error) {
