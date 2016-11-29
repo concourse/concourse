@@ -103,6 +103,14 @@ type FakeWorkerFactory struct {
 		result1 *dbng.Worker
 		result2 error
 	}
+	DeleteWorkerStub        func(name string) error
+	deleteWorkerMutex       sync.RWMutex
+	deleteWorkerArgsForCall []struct {
+		name string
+	}
+	deleteWorkerReturns struct {
+		result1 error
+	}
 	HeartbeatWorkerStub        func(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error)
 	heartbeatWorkerMutex       sync.RWMutex
 	heartbeatWorkerArgsForCall []struct {
@@ -461,6 +469,39 @@ func (fake *FakeWorkerFactory) RetireWorkerReturns(result1 *dbng.Worker, result2
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerFactory) DeleteWorker(name string) error {
+	fake.deleteWorkerMutex.Lock()
+	fake.deleteWorkerArgsForCall = append(fake.deleteWorkerArgsForCall, struct {
+		name string
+	}{name})
+	fake.recordInvocation("DeleteWorker", []interface{}{name})
+	fake.deleteWorkerMutex.Unlock()
+	if fake.DeleteWorkerStub != nil {
+		return fake.DeleteWorkerStub(name)
+	} else {
+		return fake.deleteWorkerReturns.result1
+	}
+}
+
+func (fake *FakeWorkerFactory) DeleteWorkerCallCount() int {
+	fake.deleteWorkerMutex.RLock()
+	defer fake.deleteWorkerMutex.RUnlock()
+	return len(fake.deleteWorkerArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) DeleteWorkerArgsForCall(i int) string {
+	fake.deleteWorkerMutex.RLock()
+	defer fake.deleteWorkerMutex.RUnlock()
+	return fake.deleteWorkerArgsForCall[i].name
+}
+
+func (fake *FakeWorkerFactory) DeleteWorkerReturns(result1 error) {
+	fake.DeleteWorkerStub = nil
+	fake.deleteWorkerReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeWorkerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error) {
 	fake.heartbeatWorkerMutex.Lock()
 	fake.heartbeatWorkerArgsForCall = append(fake.heartbeatWorkerArgsForCall, struct {
@@ -521,6 +562,8 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.landWorkerMutex.RUnlock()
 	fake.retireWorkerMutex.RLock()
 	defer fake.retireWorkerMutex.RUnlock()
+	fake.deleteWorkerMutex.RLock()
+	defer fake.deleteWorkerMutex.RUnlock()
 	fake.heartbeatWorkerMutex.RLock()
 	defer fake.heartbeatWorkerMutex.RUnlock()
 	return fake.invocations

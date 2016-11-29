@@ -602,6 +602,22 @@ var _ = Describe("WorkerFactory", func() {
 		})
 	})
 
+	Describe("DeleteWorker", func() {
+		BeforeEach(func() {
+			_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("deletes the record for the worker", func() {
+			err := workerFactory.DeleteWorker(atcWorker.Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err := workerFactory.GetWorker(atcWorker.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+	})
+
 	Describe("HeartbeatWorker", func() {
 		var (
 			ttl              time.Duration

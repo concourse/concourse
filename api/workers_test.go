@@ -642,4 +642,61 @@ var _ = Describe("Workers API", func() {
 			})
 		})
 	})
+
+	Describe("DELETE /api/v1/workers/:worker_name", func() {
+		var (
+			response   *http.Response
+			workerName string
+		)
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("DELETE", server.URL+"/api/v1/workers/"+workerName, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			workerName = "some-worker"
+			authValidator.IsAuthenticatedReturns(true)
+			dbWorkerFactory.DeleteWorkerReturns(nil)
+		})
+
+		It("returns 200", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("deletes the worker from the DB", func() {
+			Expect(dbWorkerFactory.DeleteWorkerCallCount()).To(Equal(1))
+			Expect(dbWorkerFactory.DeleteWorkerArgsForCall(0)).To(Equal(workerName))
+		})
+
+		Context("when deleting the worker fails", func() {
+			var returnedErr error
+
+			BeforeEach(func() {
+				returnedErr = errors.New("some-error")
+				dbWorkerFactory.DeleteWorkerReturns(returnedErr)
+			})
+
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not retire the worker", func() {
+				Expect(dbWorkerFactory.DeleteWorkerCallCount()).To(BeZero())
+			})
+		})
+	})
 })
