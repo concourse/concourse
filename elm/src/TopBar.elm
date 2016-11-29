@@ -94,7 +94,13 @@ update msg model =
       )
 
     PipelineFetched (Err (Http.BadResponse 401 _)) ->
-      (model, LoginRedirect.requestLoginRedirect "")
+      case model.route.logical of
+        Routes.SelectTeam ->
+          (model, Cmd.none)
+        Routes.TeamLogin _ ->
+          (model, Cmd.none)
+        _ ->
+          (model, LoginRedirect.requestLoginRedirect "")
 
     PipelineFetched (Err err) ->
       Debug.log
