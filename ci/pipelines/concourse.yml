@@ -418,41 +418,6 @@ jobs:
       tag: version/version
       tag_as_latest: true
 
-- name: shipit
-  serial_groups: [version]
-  plan:
-  - aggregate:
-    - get: concourse
-      passed: [bosh-deploy, bin-smoke]
-      params: {submodules: none}
-    - get: version
-      passed: [bosh-deploy, bin-smoke]
-      params: {bump: final}
-    - get: garden-runc-release
-      passed: [bosh-deploy]
-      resource: garden-runc
-    - get: bosh-rc
-      passed: [bosh-deploy]
-    - get: bin-rc
-      passed: [bin-smoke, bin-docker]
-    - get: fly-rc
-      passed: [bin-smoke, bin-docker, bosh-deploy]
-    - get: concourse-image-rc
-      passed: [bin-docker]
-  - task: finalize-release
-    file: concourse/ci/finalize-release.yml
-    params: {BOSH_PRIVATE_CONFIG: {{bosh-private-config}}}
-  - aggregate:
-    - put: version
-      params: {file: version/version}
-    - put: concourse-master
-      params:
-        repository: final-release-repo
-        tag: version/version
-        tag_prefix: v
-    - put: final-release
-      params: {file: final-release-tarball/concourse-*.tgz}
-
 - name: virtualbox-box
   public: true
   serial: true
@@ -460,15 +425,12 @@ jobs:
   - aggregate:
     - get: binaries
       resource: bin-rc
-      passed: [shipit]
-      trigger: true
+      passed: [bin-testflight]
     - get: concourse
       params: {submodules: none}
-      passed: [shipit]
-      trigger: true
+      passed: [bin-testflight]
     - get: version
-      passed: [shipit]
-      trigger: true
+      passed: [bin-testflight]
     - get: concourse-lite
     - get: concourse-buildbox-ci-image
   - task: build-box
@@ -490,6 +452,8 @@ jobs:
       - get: virtualbox-box
         passed: [virtualbox-box]
         trigger: true
+      - get: bin-rc
+        passed: [virtualbox-box]
       - get: concourse
         passed: [virtualbox-box]
       - get: concourse-lite
@@ -506,18 +470,55 @@ jobs:
       put: hetzner
       params: {release: hetzner}
 
+- name: shipit
+  serial_groups: [version]
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bosh-deploy, bin-smoke, virtualbox-testflight]
+      params: {submodules: none}
+    - get: version
+      passed: [bosh-deploy, bin-smoke, virtualbox-testflight]
+      params: {bump: final}
+    - get: garden-runc-release
+      passed: [bosh-deploy]
+      resource: garden-runc
+    - get: bosh-rc
+      passed: [bosh-deploy]
+    - get: bin-rc
+      passed: [bin-smoke, bin-docker, virtualbox-testflight]
+    - get: fly-rc
+      passed: [bin-smoke, bin-docker, bosh-deploy]
+    - get: concourse-image-rc
+      passed: [bin-docker]
+    - get: virtualbox-box
+      passed: [virtualbox-testflight]
+  - task: finalize-release
+    file: concourse/ci/finalize-release.yml
+    params: {BOSH_PRIVATE_CONFIG: {{bosh-private-config}}}
+  - aggregate:
+    - put: version
+      params: {file: version/version}
+    - put: concourse-master
+      params:
+        repository: final-release-repo
+        tag: version/version
+        tag_prefix: v
+    - put: final-release
+      params: {file: final-release-tarball/concourse-*.tgz}
+
 - name: release-virtualbox-box
   public: true
   serial: true
   plan:
   - aggregate:
     - get: virtualbox-box
-      passed: [virtualbox-testflight]
+      passed: [shipit]
       trigger: true
     - get: version
-      passed: [virtualbox-testflight]
+      passed: [shipit]
     - get: concourse
-      passed: [virtualbox-testflight]
+      passed: [shipit]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
   - put: virtualbox-box-cloud
