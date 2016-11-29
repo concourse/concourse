@@ -1501,6 +1501,94 @@ var _ = Describe("TSA SSH Registrar", func() {
 						})
 					})
 				})
+
+				Context("when running delete-worker", func() {
+					var workerPayload atc.Worker
+
+					BeforeEach(func() {
+						sshArgv = append(sshArgv, "delete-worker")
+					})
+
+					JustBeforeEach(func() {
+						err := json.NewEncoder(sshStdin).Encode(workerPayload)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					Context("when the worker is from the same team as the user", func() {
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								Name: "some-worker",
+								Team: "exampleteam",
+							}
+						})
+
+						Context("when the ATC is working", func() {
+							BeforeEach(func() {
+								atcServer.AppendHandlers(ghttp.CombineHandlers(
+									ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									}),
+									ghttp.RespondWith(200, nil, nil),
+								))
+							})
+
+							It("sends a request to the ATC to delete the worker", func() {
+								Eventually(sshSess, 3).Should(gexec.Exit(0))
+								Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+							})
+						})
+
+						Context("when the ATC responds with an error", func() {
+							BeforeEach(func() {
+								atcServer.AppendHandlers(ghttp.CombineHandlers(
+									ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+									http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+									}),
+									ghttp.RespondWith(500, nil, nil),
+								))
+							})
+
+							It("exits with failure", func() {
+								Eventually(tsaRunner.Buffer()).Should(gbytes.Say("500"))
+								Eventually(sshSess, 3).Should(gexec.Exit(1))
+								Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+							})
+						})
+					})
+
+					Context("when the worker is from a different team", func() {
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								Name: "some-worker",
+								Team: "wrong",
+							}
+						})
+
+						It("exits with failure", func() {
+							Eventually(tsaRunner.Buffer()).Should(gbytes.Say("worker-not-allowed-to-team"))
+							Eventually(sshSess, 3).Should(gexec.Exit(1))
+
+							Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
+						})
+					})
+
+					Context("when retiring a non-team worker", func() {
+						BeforeEach(func() {
+							workerPayload = atc.Worker{
+								Name: "some-worker",
+							}
+						})
+
+						It("exits with failure", func() {
+							Eventually(tsaRunner.Buffer()).Should(gbytes.Say("worker-not-allowed-to-team"))
+							Eventually(sshSess, 3).Should(gexec.Exit(1))
+
+							Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
+						})
+					})
+				})
 			})
 		})
 	})

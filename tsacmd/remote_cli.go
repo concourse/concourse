@@ -12,6 +12,7 @@ type registerWorkerRequest struct{}
 
 type landWorkerRequest struct{}
 type retireWorkerRequest struct{}
+type deleteWorkerRequest struct{}
 
 type forwardWorkerRequest struct {
 	gardenAddr       string
@@ -60,6 +61,8 @@ func parseRequest(cli string) (request, error) {
 		return landWorkerRequest{}, nil
 	case "retire-worker":
 		return retireWorkerRequest{}, nil
+	case "delete-worker":
+		return deleteWorkerRequest{}, nil
 	default:
 		return nil, fmt.Errorf("unknown command: %s", command)
 	}
