@@ -29,6 +29,7 @@ func (handler MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	HTTPResponseTime{
 		Route:    handler.Route,
 		Path:     r.URL.Path,
+		Method:   r.Method,
 		Duration: time.Since(start),
 	}.Emit(handler.Logger)
 }
