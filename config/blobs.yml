@@ -47,9 +47,9 @@ resources/hg-resource.tar.gz:
   object_id: a648e9e5-030b-4d24-50fd-62570a403b63
   sha: fdf3f824ab37085dc7b816ac281a13c7f0f108af
 resources/pool-resource.tar.gz:
-  size: 13021940
-  object_id: 1f9a45d0-afa1-4d95-54e0-af1097a165a1
-  sha: d79432cf6f15622a8cbba2bbda08dc97a1fa2c76
+  size: 13153771
+  object_id: ec97d131-82f9-4f17-4617-5602f6117b32
+  sha: b9c62aa27078dc0694662a5043c235a8bcba94f3
 resources/s3-resource.tar.gz:
   size: 11722558
   object_id: c2a448d7-5822-4a46-5872-61a433b558b1
