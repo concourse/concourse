@@ -19,6 +19,7 @@ packages:
   - generated_tsa_host_key
   - generated_worker_key
   - resource_discovery
+  - groundcrew
 
   # colocate base resources
   - archive_resource

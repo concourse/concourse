@@ -11,6 +11,7 @@ gosub list \
   -t github.com/concourse/topgun/... \
   -t github.com/concourse/atc/... \
   -t github.com/concourse/tsa/... \
+  -t github.com/concourse/groundcrew/... \
   -t github.com/concourse/blackbox/integration/... \
   -t github.com/concourse/baggageclaim/integration/... \
   -a github.com/vito/gosub \
