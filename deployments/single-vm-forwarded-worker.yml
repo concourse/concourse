@@ -44,6 +44,7 @@ instance_groups:
 
       garden:
         forward_address: 127.0.0.1:7777
+
       baggageclaim:
         forward_address: 127.0.0.1:7788
 
@@ -58,6 +59,7 @@ instance_groups:
         listen_network: tcp
         listen_address: 0.0.0.0:7777
         allow_host_access: true
+        network_mtu: 1460
 
 stemcells:
 - alias: trusty
