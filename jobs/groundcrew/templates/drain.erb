@@ -76,6 +76,9 @@ chpst -u vcap:vcap /var/vcap/packages/groundcrew/bin/groundcrew \
   --tsa-ssh-key /var/vcap/packages/generated_worker_key/id_rsa \
   <% end %> \
   --beacon-pid-file=$RUN_DIR/beacon.pid \
+  <% if_p("drain_timeout") do |drain_timeout| %> \
+  --timeout=<%= drain_timeout %> \
+  <% end %> \
   $shutdown_flag \
   1>>$LOG_DIR/drain.stdout.log \
   2>>$LOG_DIR/drain.stderr.log

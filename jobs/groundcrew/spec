@@ -72,7 +72,7 @@ properties:
     default: ""
 
   tsa.private_key:
-    description: >
+    description: |
       Private key to use when authenticating with the TSA.
 
       If not specified, a deployment-scoped default is used.
@@ -140,6 +140,13 @@ properties:
     description: |
       Additional resource types supported by the workers in `[{type: string, image: string}]` format.
     default: []
+
+  drain_timeout:
+    description: |
+      Maximum wait time in Go duration format (1m = 1 minute) for worker drain
+      to be finished. Only applies when worker is getting shutdown.
+
+      If not specified, it will be indefinite.
 
   yeller.api_key:
     description: |
