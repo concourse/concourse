@@ -1,6 +1,6 @@
 // it's the thought that counts
 
-// package dbng_test
+package dbng_test
 
 // import (
 // 	"time"
@@ -565,6 +565,23 @@
 
 // 				Expect(foundWorker.Name).To(Equal(atcWorker.Name))
 // 				Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanding))
+// 			})
+
+// 			Context("when worker is already landed", func() {
+// 				BeforeEach(func() {
+// 					_, err := workerFactory.LandWorker(atcWorker.Name)
+// 					Expect(err).NotTo(HaveOccurred())
+// 					err = workerFactory.LandFinishedLandingWorkers()
+// 					Expect(err).NotTo(HaveOccurred())
+// 				})
+
+// 				It("keeps worker state as landed", func() {
+// 					foundWorker, err := workerFactory.LandWorker(atcWorker.Name)
+// 					Expect(err).NotTo(HaveOccurred())
+
+// 					Expect(foundWorker.Name).To(Equal(atcWorker.Name))
+// 					Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanded))
+// 				})
 // 			})
 // 		})
 

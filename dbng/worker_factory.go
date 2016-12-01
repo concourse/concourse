@@ -259,10 +259,16 @@ func (f *workerFactory) LandWorker(name string) (*Worker, error) {
 		workerState string
 	)
 
+	cSql, _, err := sq.Case("state").
+		When("'landed'::worker_state", "'landed'::worker_state").
+		Else("'landing'::worker_state").
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
 	err = psql.Update("workers").
-		SetMap(map[string]interface{}{
-			"state": string(WorkerStateLanding),
-		}).
+		Set("state", sq.Expr("("+cSql+")")).
 		Where(sq.Eq{"name": name}).
 		Suffix("RETURNING name, state").
 		RunWith(tx).
