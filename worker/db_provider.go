@@ -170,6 +170,9 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		provider.dbVolumeFactory,
 		provider.db,
 		tikTok,
+		savedWorker.HTTPProxyURL,
+		savedWorker.HTTPSProxyURL,
+		savedWorker.NoProxy,
 	)
 
 	return NewGardenWorker(
@@ -190,8 +193,5 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		savedWorker.Name,
 		*savedWorker.GardenAddr,
 		savedWorker.StartTime,
-		savedWorker.HTTPProxyURL,
-		savedWorker.HTTPSProxyURL,
-		savedWorker.NoProxy,
 	)
 }

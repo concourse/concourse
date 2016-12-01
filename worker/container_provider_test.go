@@ -79,7 +79,11 @@ var _ = Describe("ContainerProvider", func() {
 			fakeDBContainerFactory,
 			fakeDBVolumeFactory,
 			fakeGardenWorkerDB,
-			fakeClock)
+			fakeClock,
+			"http://proxy.com",
+			"https://proxy.com",
+			"http://noproxy.com",
+		)
 
 		containerProvider = containerProviderFactory.ContainerProviderFor(fakeWorker)
 		outputPaths = map[string]string{}
@@ -270,7 +274,13 @@ var _ = Describe("ContainerProvider", func() {
 
 									Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 									gardenSpec := fakeGardenClient.CreateArgsForCall(0)
-									Expect(gardenSpec.Env).To(Equal([]string{"some", "env"}))
+									Expect(gardenSpec.Env).To(Equal([]string{
+										"some",
+										"env",
+										"http_proxy=http://proxy.com",
+										"https_proxy=https://proxy.com",
+										"no_proxy=http://noproxy.com",
+									}))
 									Expect(gardenSpec.RootFSPath).To(Equal("raw:///var/vcap/some-path/rootfs"))
 								})
 							})
@@ -323,8 +333,23 @@ var _ = Describe("ContainerProvider", func() {
 
 								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 								gardenSpec := fakeGardenClient.CreateArgsForCall(0)
-								Expect(gardenSpec.Env).To(Equal([]string{"some", "env"}))
+								Expect(gardenSpec.Env).To(Equal([]string{
+									"some",
+									"env",
+									"http_proxy=http://proxy.com",
+									"https_proxy=https://proxy.com",
+									"no_proxy=http://noproxy.com",
+								}))
 								Expect(gardenSpec.RootFSPath).To(Equal("raw:///var/vcap/some-path/rootfs"))
+							})
+
+							It("marks container as created", func() {
+								Expect(err).ToNot(HaveOccurred())
+
+								Expect(fakeDBContainerFactory.ContainerCreatedCallCount()).To(Equal(1))
+								creatingContainer, handle := fakeDBContainerFactory.ContainerCreatedArgsForCall(0)
+								Expect(creatingContainer).To(Equal(fakeCreatingContainer))
+								Expect(handle).To(Equal("some-handle"))
 							})
 						})
 					})

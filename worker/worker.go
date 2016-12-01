@@ -117,9 +117,6 @@ type gardenWorker struct {
 	name             string
 	addr             string
 	startTime        int64
-	httpProxyURL     string
-	httpsProxyURL    string
-	noProxy          string
 }
 
 func NewGardenWorker(
@@ -140,9 +137,6 @@ func NewGardenWorker(
 	name string,
 	addr string,
 	startTime int64,
-	httpProxyURL string,
-	httpsProxyURL string,
-	noProxy string,
 ) Worker {
 	return &gardenWorker{
 		containerProviderFactory: containerProviderFactory,
@@ -164,9 +158,6 @@ func NewGardenWorker(
 		name:              name,
 		addr:              addr,
 		startTime:         startTime,
-		httpProxyURL:      httpProxyURL,
-		httpsProxyURL:     httpsProxyURL,
-		noProxy:           noProxy,
 	}
 }
 

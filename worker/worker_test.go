@@ -42,9 +42,6 @@ var _ = Describe("Worker", func() {
 		teamID                       int
 		workerName                   string
 		workerStartTime              int64
-		httpProxyURL                 string
-		httpsProxyURL                string
-		noProxy                      string
 		workerUptime                 uint64
 		gardenWorker                 Worker
 	)
@@ -102,9 +99,6 @@ var _ = Describe("Worker", func() {
 			workerName,
 			"1.2.3.4",
 			workerStartTime,
-			httpProxyURL,
-			httpsProxyURL,
-			noProxy,
 		)
 
 		fakeClock.IncrementBySeconds(workerUptime)
