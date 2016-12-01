@@ -6,6 +6,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/concourse/atc"
+	"github.com/nu7hatch/gouuid"
 )
 
 type ContainerFactory struct {
@@ -35,6 +36,11 @@ func (factory *ContainerFactory) CreateResourceCheckContainer(
 
 	defer tx.Rollback()
 
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
 	var containerID int
 	err = psql.Insert("containers").
 		Columns(
@@ -42,12 +48,14 @@ func (factory *ContainerFactory) CreateResourceCheckContainer(
 			"resource_config_id",
 			"type",
 			"step_name",
+			"handle",
 		).
 		Values(
 			worker.Name,
 			resourceConfig.ID,
 			"check",
 			stepName,
+			handle.String(),
 		).
 		Suffix("RETURNING id").
 		RunWith(tx).
@@ -64,8 +72,10 @@ func (factory *ContainerFactory) CreateResourceCheckContainer(
 	}
 
 	return &CreatingContainer{
-		ID:   containerID,
-		conn: factory.conn,
+		ID:         containerID,
+		Handle:     handle.String(),
+		WorkerName: worker.Name,
+		conn:       factory.conn,
 	}, nil
 }
 
@@ -109,8 +119,10 @@ func (factory *ContainerFactory) ContainerCreated(
 	}
 
 	return &CreatedContainer{
-		ID:   container.ID,
-		conn: factory.conn,
+		ID:         container.ID,
+		Handle:     container.Handle,
+		WorkerName: container.WorkerName,
+		conn:       factory.conn,
 	}, nil
 }
 
@@ -126,6 +138,11 @@ func (factory *ContainerFactory) CreateResourceGetContainer(
 
 	defer tx.Rollback()
 
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
 	var containerID int
 	err = psql.Insert("containers").
 		Columns(
@@ -133,12 +150,14 @@ func (factory *ContainerFactory) CreateResourceGetContainer(
 			"resource_cache_id",
 			"type",
 			"step_name",
+			"handle",
 		).
 		Values(
 			worker.Name,
 			resourceCache.ID,
 			"get",
 			stepName,
+			handle.String(),
 		).
 		Suffix("RETURNING id").
 		RunWith(tx).
@@ -155,8 +174,10 @@ func (factory *ContainerFactory) CreateResourceGetContainer(
 	}
 
 	return &CreatingContainer{
-		ID:   containerID,
-		conn: factory.conn,
+		ID:         containerID,
+		Handle:     handle.String(),
+		WorkerName: worker.Name,
+		conn:       factory.conn,
 	}, nil
 }
 
@@ -188,6 +209,11 @@ func (factory *ContainerFactory) createPlanContainer(
 
 	defer tx.Rollback()
 
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
 	var containerID int
 	err = psql.Insert("containers").
 		// TODO: should metadata just be JSON?
@@ -197,6 +223,7 @@ func (factory *ContainerFactory) createPlanContainer(
 			"plan_id",
 			"type",
 			"step_name",
+			"handle",
 		).
 		Values(
 			worker.Name,
@@ -204,6 +231,7 @@ func (factory *ContainerFactory) createPlanContainer(
 			string(planID),
 			meta.Type,
 			meta.Name,
+			handle.String(),
 		).
 		Suffix("RETURNING id").
 		RunWith(tx).
@@ -220,8 +248,10 @@ func (factory *ContainerFactory) createPlanContainer(
 	}
 
 	return &CreatingContainer{
-		ID:   containerID,
-		conn: factory.conn,
+		ID:         containerID,
+		Handle:     handle.String(),
+		WorkerName: worker.Name,
+		conn:       factory.conn,
 	}, nil
 }
 

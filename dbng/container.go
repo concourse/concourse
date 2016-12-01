@@ -11,13 +11,17 @@ const (
 )
 
 type CreatingContainer struct {
-	ID   int
-	conn Conn
+	ID         int
+	Handle     string
+	WorkerName string
+	conn       Conn
 }
 
 type CreatedContainer struct {
-	ID   int
-	conn Conn
+	ID         int
+	Handle     string
+	WorkerName string
+	conn       Conn
 }
 
 func (container *CreatedContainer) Destroying() (*DestroyingContainer, error) {
@@ -56,14 +60,18 @@ func (container *CreatedContainer) Destroying() (*DestroyingContainer, error) {
 	}
 
 	return &DestroyingContainer{
-		ID:   container.ID,
-		conn: container.conn,
+		ID:         container.ID,
+		Handle:     container.Handle,
+		WorkerName: container.WorkerName,
+		conn:       container.conn,
 	}, nil
 }
 
 type DestroyingContainer struct {
-	ID   int
-	conn Conn
+	ID         int
+	Handle     string
+	WorkerName string
+	conn       Conn
 }
 
 func (container *DestroyingContainer) Destroy() (bool, error) {

@@ -135,4 +135,5 @@ var Migrations = []migration.Migrator{
 	AddRetiringWorkerState,
 	AddVolumeParentIdForeignKey,
 	DeleteExtraParentConstrainOnVolume,
+	AddNotNullConstraintToContainerHandle,
 }
