@@ -53,8 +53,8 @@ var _ = Describe("ContainerProvider", func() {
 		logger = lagertest.NewTestLogger("test")
 		inputs = []VolumeMount{}
 
-		fakeCreatingContainer = &dbng.CreatingContainer{ID: 42}
-		fakeCreatedContainer = &dbng.CreatedContainer{ID: 42}
+		fakeCreatingContainer = &dbng.CreatingContainer{ID: 42, Handle: "some-handle"}
+		fakeCreatedContainer = &dbng.CreatedContainer{ID: 42, Handle: "some-handle"}
 
 		fakeImageFetchingDelegate = new(wfakes.FakeImageFetchingDelegate)
 
@@ -341,15 +341,15 @@ var _ = Describe("ContainerProvider", func() {
 									"no_proxy=http://noproxy.com",
 								}))
 								Expect(gardenSpec.RootFSPath).To(Equal("raw:///var/vcap/some-path/rootfs"))
+								Expect(gardenSpec.Handle).To(Equal("some-handle"))
 							})
 
 							It("marks container as created", func() {
 								Expect(err).ToNot(HaveOccurred())
 
 								Expect(fakeDBContainerFactory.ContainerCreatedCallCount()).To(Equal(1))
-								creatingContainer, handle := fakeDBContainerFactory.ContainerCreatedArgsForCall(0)
+								creatingContainer := fakeDBContainerFactory.ContainerCreatedArgsForCall(0)
 								Expect(creatingContainer).To(Equal(fakeCreatingContainer))
-								Expect(handle).To(Equal("some-handle"))
 							})
 						})
 					})

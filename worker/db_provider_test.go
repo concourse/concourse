@@ -260,7 +260,10 @@ var _ = Describe("DBProvider", func() {
 					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
 					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 
-					createdContainer := &dbng.CreatedContainer{ID: 1}
+					creatingContainer := &dbng.CreatingContainer{ID: 1, Handle: "some-handle"}
+					fakeDBContainerFactory.CreateBuildContainerReturns(creatingContainer, nil)
+
+					createdContainer := &dbng.CreatedContainer{ID: 1, Handle: "some-handle"}
 					fakeDBContainerFactory.ContainerCreatedReturns(createdContainer, nil)
 
 					baseResourceType := &dbng.UsedBaseResourceType{ID: 42}

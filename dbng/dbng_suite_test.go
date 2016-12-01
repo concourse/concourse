@@ -118,7 +118,7 @@ var _ = BeforeEach(func() {
 	deafultCreatingContainer, err = containerFactory.CreateResourceCheckContainer(defaultWorker, defaultResourceConfig, "check-my-stuff")
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultCreatedContainer, err = containerFactory.ContainerCreated(deafultCreatingContainer, "some-garden-handle")
+	defaultCreatedContainer, err = containerFactory.ContainerCreated(deafultCreatingContainer)
 	Expect(err).NotTo(HaveOccurred())
 })
 

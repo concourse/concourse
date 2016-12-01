@@ -80,7 +80,7 @@ type DBContainerFactory interface {
 	) (*dbng.CreatingContainer, error)
 
 	FindContainer(handle string) (*dbng.CreatedContainer, bool, error)
-	ContainerCreated(*dbng.CreatingContainer, string) (*dbng.CreatedContainer, error)
+	ContainerCreated(*dbng.CreatingContainer) (*dbng.CreatedContainer, error)
 }
 
 //go:generate counterfeiter . GardenWorkerDB

@@ -370,6 +370,7 @@ func (p *containerProvider) createGardenContainer(
 		Properties: gardenProperties,
 		RootFSPath: imageURL,
 		Env:        env,
+		Handle:     creatingContainer.Handle,
 	}
 
 	gardenContainer, err := p.gardenClient.Create(gardenSpec)
@@ -378,7 +379,7 @@ func (p *containerProvider) createGardenContainer(
 		return nil, nil, err
 	}
 
-	createdContainer, err := p.dbContainerFactory.ContainerCreated(creatingContainer, gardenContainer.Handle())
+	createdContainer, err := p.dbContainerFactory.ContainerCreated(creatingContainer)
 	if err != nil {
 		logger.Error("failed-to-mark-container-as-created", err)
 		return nil, nil, err

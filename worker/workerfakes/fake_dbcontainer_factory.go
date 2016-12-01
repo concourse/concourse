@@ -54,11 +54,10 @@ type FakeDBContainerFactory struct {
 		result2 bool
 		result3 error
 	}
-	ContainerCreatedStub        func(*dbng.CreatingContainer, string) (*dbng.CreatedContainer, error)
+	ContainerCreatedStub        func(*dbng.CreatingContainer) (*dbng.CreatedContainer, error)
 	containerCreatedMutex       sync.RWMutex
 	containerCreatedArgsForCall []struct {
 		arg1 *dbng.CreatingContainer
-		arg2 string
 	}
 	containerCreatedReturns struct {
 		result1 *dbng.CreatedContainer
@@ -212,16 +211,15 @@ func (fake *FakeDBContainerFactory) FindContainerReturns(result1 *dbng.CreatedCo
 	}{result1, result2, result3}
 }
 
-func (fake *FakeDBContainerFactory) ContainerCreated(arg1 *dbng.CreatingContainer, arg2 string) (*dbng.CreatedContainer, error) {
+func (fake *FakeDBContainerFactory) ContainerCreated(arg1 *dbng.CreatingContainer) (*dbng.CreatedContainer, error) {
 	fake.containerCreatedMutex.Lock()
 	fake.containerCreatedArgsForCall = append(fake.containerCreatedArgsForCall, struct {
 		arg1 *dbng.CreatingContainer
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("ContainerCreated", []interface{}{arg1, arg2})
+	}{arg1})
+	fake.recordInvocation("ContainerCreated", []interface{}{arg1})
 	fake.containerCreatedMutex.Unlock()
 	if fake.ContainerCreatedStub != nil {
-		return fake.ContainerCreatedStub(arg1, arg2)
+		return fake.ContainerCreatedStub(arg1)
 	} else {
 		return fake.containerCreatedReturns.result1, fake.containerCreatedReturns.result2
 	}
@@ -233,10 +231,10 @@ func (fake *FakeDBContainerFactory) ContainerCreatedCallCount() int {
 	return len(fake.containerCreatedArgsForCall)
 }
 
-func (fake *FakeDBContainerFactory) ContainerCreatedArgsForCall(i int) (*dbng.CreatingContainer, string) {
+func (fake *FakeDBContainerFactory) ContainerCreatedArgsForCall(i int) *dbng.CreatingContainer {
 	fake.containerCreatedMutex.RLock()
 	defer fake.containerCreatedMutex.RUnlock()
-	return fake.containerCreatedArgsForCall[i].arg1, fake.containerCreatedArgsForCall[i].arg2
+	return fake.containerCreatedArgsForCall[i].arg1
 }
 
 func (fake *FakeDBContainerFactory) ContainerCreatedReturns(result1 *dbng.CreatedContainer, result2 error) {

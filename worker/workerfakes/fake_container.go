@@ -96,14 +96,6 @@ type FakeContainer struct {
 	netOutReturns struct {
 		result1 error
 	}
-	BulkNetOutStub        func(netOutRules []garden.NetOutRule) error
-	bulkNetOutMutex       sync.RWMutex
-	bulkNetOutArgsForCall []struct {
-		netOutRules []garden.NetOutRule
-	}
-	bulkNetOutReturns struct {
-		result1 error
-	}
 	RunStub        func(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
 	runMutex       sync.RWMutex
 	runArgsForCall []struct {
@@ -523,44 +515,6 @@ func (fake *FakeContainer) NetOutReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeContainer) BulkNetOut(netOutRules []garden.NetOutRule) error {
-	var netOutRulesCopy []garden.NetOutRule
-	if netOutRules != nil {
-		netOutRulesCopy = make([]garden.NetOutRule, len(netOutRules))
-		copy(netOutRulesCopy, netOutRules)
-	}
-	fake.bulkNetOutMutex.Lock()
-	fake.bulkNetOutArgsForCall = append(fake.bulkNetOutArgsForCall, struct {
-		netOutRules []garden.NetOutRule
-	}{netOutRulesCopy})
-	fake.recordInvocation("BulkNetOut", []interface{}{netOutRulesCopy})
-	fake.bulkNetOutMutex.Unlock()
-	if fake.BulkNetOutStub != nil {
-		return fake.BulkNetOutStub(netOutRules)
-	} else {
-		return fake.bulkNetOutReturns.result1
-	}
-}
-
-func (fake *FakeContainer) BulkNetOutCallCount() int {
-	fake.bulkNetOutMutex.RLock()
-	defer fake.bulkNetOutMutex.RUnlock()
-	return len(fake.bulkNetOutArgsForCall)
-}
-
-func (fake *FakeContainer) BulkNetOutArgsForCall(i int) []garden.NetOutRule {
-	fake.bulkNetOutMutex.RLock()
-	defer fake.bulkNetOutMutex.RUnlock()
-	return fake.bulkNetOutArgsForCall[i].netOutRules
-}
-
-func (fake *FakeContainer) BulkNetOutReturns(result1 error) {
-	fake.BulkNetOutStub = nil
-	fake.bulkNetOutReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeContainer) Run(arg1 garden.ProcessSpec, arg2 garden.ProcessIO) (garden.Process, error) {
 	fake.runMutex.Lock()
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
@@ -941,8 +895,6 @@ func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	defer fake.netInMutex.RUnlock()
 	fake.netOutMutex.RLock()
 	defer fake.netOutMutex.RUnlock()
-	fake.bulkNetOutMutex.RLock()
-	defer fake.bulkNetOutMutex.RUnlock()
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	fake.attachMutex.RLock()

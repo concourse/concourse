@@ -81,7 +81,6 @@ func (factory *ContainerFactory) CreateResourceCheckContainer(
 
 func (factory *ContainerFactory) ContainerCreated(
 	container *CreatingContainer,
-	gardenHandle string,
 ) (*CreatedContainer, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
@@ -92,7 +91,6 @@ func (factory *ContainerFactory) ContainerCreated(
 
 	rows, err := psql.Update("containers").
 		Set("state", ContainerStateCreated).
-		Set("handle", gardenHandle).
 		Where(sq.Eq{
 			"id":    container.ID,
 			"state": ContainerStateCreating,

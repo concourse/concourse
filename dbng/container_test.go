@@ -62,7 +62,7 @@ var _ = Describe("Container", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectedHandles = append(expectedHandles, creatingVolume2.Handle())
 
-		createdContainer, err = containerFactory.ContainerCreated(creatingContainer, "some-handle")
+		createdContainer, err = containerFactory.ContainerCreated(creatingContainer)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
