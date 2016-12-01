@@ -46,8 +46,12 @@ instance_groups:
   - release: concourse
     name: groundcrew
     properties:
+      # prevent tests from hanging forever
+      drain_timeout: 10m
+
       garden:
         forward_address: 127.0.0.1:7777
+
       baggageclaim:
         forward_address: 127.0.0.1:7788
 

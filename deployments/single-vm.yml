@@ -38,7 +38,9 @@ instance_groups:
 
   - release: concourse
     name: groundcrew
-    properties: {}
+    properties:
+      # prevent tests from hanging forever
+      drain_timeout: 10m
 
   - release: concourse
     name: baggageclaim
