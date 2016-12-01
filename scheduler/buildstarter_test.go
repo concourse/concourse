@@ -61,6 +61,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 				jobConfig = atc.JobConfig{Name: "some-job", Plan: atc.PlanSequence{{Get: "input-1"}, {Get: "input-2"}}}
 
 				createdBuild = new(dbfakes.FakeBuild)
+				createdBuild.IDReturns(66)
 				createdBuild.IsManuallyTriggeredReturns(true)
 
 				pendingBuilds = []db.Build{createdBuild}
@@ -74,117 +75,144 @@ var _ = Describe("I'm a BuildStarter", func() {
 				)
 			})
 
-			Context("when resource checking fails", func() {
+			It("updates max in flight for the job", func() {
+				Expect(fakeUpdater.UpdateMaxInFlightReachedCallCount()).To(Equal(1))
+				_, actualJobConfig, actualBuildID := fakeUpdater.UpdateMaxInFlightReachedArgsForCall(0)
+				Expect(actualJobConfig).To(Equal(jobConfig))
+				Expect(actualBuildID).To(Equal(66))
+			})
+
+			Context("when max in flight is reached", func() {
 				BeforeEach(func() {
-					fakeScanner.ScanReturns(disaster)
+					fakeUpdater.UpdateMaxInFlightReachedReturns(true, nil)
 				})
 
-				It("returns an error", func() {
-					Expect(tryStartErr).To(Equal(disaster))
+				It("does not run resource check", func() {
+					Expect(fakeScanner.ScanCallCount()).To(Equal(0))
 				})
 			})
 
-			Context("when resource checking succeeds", func() {
+			Context("when max in flight is not reached", func() {
 				BeforeEach(func() {
-					fakeScanner.ScanStub = func(lager.Logger, string) error {
-						defer GinkgoRecover()
-						Expect(fakeDB.LoadVersionsDBCallCount()).To(BeZero())
-						return nil
-					}
+					fakeUpdater.UpdateMaxInFlightReachedReturns(false, nil)
 				})
 
-				Context("when loading the versions DB fails", func() {
+				It("runs resource check for every job resource", func() {
+					Expect(fakeScanner.ScanCallCount()).To(Equal(2))
+				})
+
+				Context("when resource checking fails", func() {
 					BeforeEach(func() {
-						fakeDB.LoadVersionsDBReturns(nil, disaster)
+						fakeScanner.ScanReturns(disaster)
 					})
 
 					It("returns an error", func() {
 						Expect(tryStartErr).To(Equal(disaster))
 					})
-
-					It("checked for the right resources", func() {
-						Expect(fakeScanner.ScanCallCount()).To(Equal(2))
-						_, resource1 := fakeScanner.ScanArgsForCall(0)
-						_, resource2 := fakeScanner.ScanArgsForCall(1)
-						Expect([]string{resource1, resource2}).To(ConsistOf("input-1", "input-2"))
-					})
-
-					It("loaded the versions DB after checking all the resources", func() {
-						Expect(fakeDB.LoadVersionsDBCallCount()).To(Equal(1))
-					})
 				})
 
-				Context("when loading the versions DB succeeds", func() {
-					var versionsDB *algorithm.VersionsDB
-
+				Context("when resource checking succeeds", func() {
 					BeforeEach(func() {
-						fakeDB.LoadVersionsDBReturns(&algorithm.VersionsDB{
-							ResourceVersions: []algorithm.ResourceVersion{
-								{
-									VersionID:  73,
-									ResourceID: 127,
-									CheckOrder: 123,
-								},
-							},
-							BuildOutputs: []algorithm.BuildOutput{
-								{
-									ResourceVersion: algorithm.ResourceVersion{
+						fakeScanner.ScanStub = func(lager.Logger, string) error {
+							defer GinkgoRecover()
+							Expect(fakeDB.LoadVersionsDBCallCount()).To(BeZero())
+							return nil
+						}
+					})
+
+					Context("when loading the versions DB fails", func() {
+						BeforeEach(func() {
+							fakeDB.LoadVersionsDBReturns(nil, disaster)
+						})
+
+						It("returns an error", func() {
+							Expect(tryStartErr).To(Equal(disaster))
+						})
+
+						It("checked for the right resources", func() {
+							Expect(fakeScanner.ScanCallCount()).To(Equal(2))
+							_, resource1 := fakeScanner.ScanArgsForCall(0)
+							_, resource2 := fakeScanner.ScanArgsForCall(1)
+							Expect([]string{resource1, resource2}).To(ConsistOf("input-1", "input-2"))
+						})
+
+						It("loaded the versions DB after checking all the resources", func() {
+							Expect(fakeDB.LoadVersionsDBCallCount()).To(Equal(1))
+						})
+					})
+
+					Context("when loading the versions DB succeeds", func() {
+						var versionsDB *algorithm.VersionsDB
+
+						BeforeEach(func() {
+							fakeDB.LoadVersionsDBReturns(&algorithm.VersionsDB{
+								ResourceVersions: []algorithm.ResourceVersion{
+									{
 										VersionID:  73,
 										ResourceID: 127,
 										CheckOrder: 123,
 									},
-									BuildID: 66,
-									JobID:   13,
 								},
-							},
-							BuildInputs: []algorithm.BuildInput{
-								{
-									ResourceVersion: algorithm.ResourceVersion{
-										VersionID:  66,
-										ResourceID: 77,
-										CheckOrder: 88,
+								BuildOutputs: []algorithm.BuildOutput{
+									{
+										ResourceVersion: algorithm.ResourceVersion{
+											VersionID:  73,
+											ResourceID: 127,
+											CheckOrder: 123,
+										},
+										BuildID: 66,
+										JobID:   13,
 									},
-									BuildID:   66,
-									JobID:     13,
-									InputName: "some-input-name",
 								},
-							},
-							JobIDs: map[string]int{
-								"bad-luck-job": 13,
-							},
-							ResourceIDs: map[string]int{
-								"resource-127": 127,
-							},
-							CachedAt: time.Unix(42, 0).UTC(),
-						}, nil)
+								BuildInputs: []algorithm.BuildInput{
+									{
+										ResourceVersion: algorithm.ResourceVersion{
+											VersionID:  66,
+											ResourceID: 77,
+											CheckOrder: 88,
+										},
+										BuildID:   66,
+										JobID:     13,
+										InputName: "some-input-name",
+									},
+								},
+								JobIDs: map[string]int{
+									"bad-luck-job": 13,
+								},
+								ResourceIDs: map[string]int{
+									"resource-127": 127,
+								},
+								CachedAt: time.Unix(42, 0).UTC(),
+							}, nil)
 
-						versionsDB = &algorithm.VersionsDB{JobIDs: map[string]int{"j1": 1}}
-						fakeDB.LoadVersionsDBReturns(versionsDB, nil)
-					})
-
-					Context("when saving the next input mapping fails", func() {
-						BeforeEach(func() {
-							fakeInputMapper.SaveNextInputMappingReturns(nil, disaster)
+							versionsDB = &algorithm.VersionsDB{JobIDs: map[string]int{"j1": 1}}
+							fakeDB.LoadVersionsDBReturns(versionsDB, nil)
 						})
 
-						It("saved the next input mapping for the right job and versions", func() {
-							Expect(fakeInputMapper.SaveNextInputMappingCallCount()).To(Equal(1))
-							_, actualVersionsDB, actualJobConfig := fakeInputMapper.SaveNextInputMappingArgsForCall(0)
-							Expect(actualVersionsDB).To(Equal(versionsDB))
-							Expect(actualJobConfig).To(Equal(jobConfig))
-						})
-					})
+						Context("when saving the next input mapping fails", func() {
+							BeforeEach(func() {
+								fakeInputMapper.SaveNextInputMappingReturns(nil, disaster)
+							})
 
-					Context("when saving the next input mapping succeeds", func() {
-						BeforeEach(func() {
-							fakeInputMapper.SaveNextInputMappingStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig) (algorithm.InputMapping, error) {
-								defer GinkgoRecover()
-								return nil, nil
-							}
+							It("saved the next input mapping for the right job and versions", func() {
+								Expect(fakeInputMapper.SaveNextInputMappingCallCount()).To(Equal(1))
+								_, actualVersionsDB, actualJobConfig := fakeInputMapper.SaveNextInputMappingArgsForCall(0)
+								Expect(actualVersionsDB).To(Equal(versionsDB))
+								Expect(actualJobConfig).To(Equal(jobConfig))
+							})
 						})
 
-						It("saved the next input mapping and returns the build", func() {
-							Expect(tryStartErr).NotTo(HaveOccurred())
+						Context("when saving the next input mapping succeeds", func() {
+							BeforeEach(func() {
+								fakeInputMapper.SaveNextInputMappingStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig) (algorithm.InputMapping, error) {
+									defer GinkgoRecover()
+									return nil, nil
+								}
+							})
+
+							It("saved the next input mapping and returns the build", func() {
+								Expect(tryStartErr).NotTo(HaveOccurred())
+							})
 						})
 					})
 				})
