@@ -81,6 +81,8 @@ before using it!
   }{
     \hyperlink{https://github.com/jtarchie/pullrequest-resource}{Pull Requests}
   }{
+    \hyperlink{https://github.com/swisscom/gitlab-merge-request-resource}{GitLab Merge Requests}
+  }{
     \hyperlink{https://github.com/sapcc/concourse-swift-resource}{OpenStack Swift}
   }{
     \hyperlink{https://github.com/starkandwayne/flowdock-concourse-notification-resource}{Flowdock notifications}
@@ -94,6 +96,8 @@ before using it!
     \hyperlink{https://github.com/olhtbr/p4-resource}{Perforce}
   }{
     \hyperlink{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}{BOSH Errands}
+  }{
+    \hyperlink{https://github.com/EMC-Dojo/bosh-config-resource}{BOSH Config: cloud-config and runtime-config}
   }{
     \hyperlink{https://github.com/cfmobile/pool-trigger-resource}{Pool Trigger}
   }{
@@ -140,6 +144,8 @@ before using it!
     \hyperlink{https://github.com/danrspencer/jira-resource}{Jira Integration}
   }{
     \hyperlink{https://github.com/jpatel-pivotal/google-drive-concourse-resource}{Google Drive}
+  }{
+    \hyperlink{https://github.com/henrytk/calendar-resource}{Google Calendar}
   }{
     \hyperlink{https://github.com/FidelityInternational/concourse-pagerduty-notification-resource}{pagerduty Notifications}
   }{

@@ -16,7 +16,7 @@ fi
 
 git clone ./concourse $FINAL_RELEASE_REPO
 
-cp deployments/ci/config/private.yml $FINAL_RELEASE_REPO/config/private.yml
+echo "$BOSH_PRIVATE_CONFIG" > $FINAL_RELEASE_REPO/config/private.yml
 
 cd $FINAL_RELEASE_REPO
 
