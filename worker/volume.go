@@ -30,6 +30,8 @@ type Volume interface {
 	IsInitialized() (bool, error)
 	Initialize() error
 
+	CreateChildForContainer(*dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
+
 	Destroy() error
 }
 
@@ -89,4 +91,8 @@ func (v *volume) IsInitialized() (bool, error) {
 
 func (v *volume) Initialize() error {
 	return v.dbVolume.Initialize()
+}
+
+func (v *volume) CreateChildForContainer(creatingContainer *dbng.CreatingContainer, mountPath string) (dbng.CreatingVolume, error) {
+	return v.dbVolume.CreateChildForContainer(creatingContainer, mountPath)
 }

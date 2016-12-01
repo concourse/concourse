@@ -51,7 +51,7 @@ func (vc *volumeCollector) Run() error {
 		destroyingVolume, err := createdVolume.Destroying()
 		if err != nil {
 			vc.logger.Error("failed-to-mark-volume-as-destroying", err)
-			return err
+			continue
 		}
 
 		destroyingVolumes = append(destroyingVolumes, destroyingVolume)

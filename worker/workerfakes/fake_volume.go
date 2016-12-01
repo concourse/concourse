@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 )
@@ -74,6 +75,16 @@ type FakeVolume struct {
 	initializeArgsForCall []struct{}
 	initializeReturns     struct {
 		result1 error
+	}
+	CreateChildForContainerStub        func(*dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
+	createChildForContainerMutex       sync.RWMutex
+	createChildForContainerArgsForCall []struct {
+		arg1 *dbng.CreatingContainer
+		arg2 string
+	}
+	createChildForContainerReturns struct {
+		result1 dbng.CreatingVolume
+		result2 error
 	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
@@ -339,6 +350,41 @@ func (fake *FakeVolume) InitializeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeVolume) CreateChildForContainer(arg1 *dbng.CreatingContainer, arg2 string) (dbng.CreatingVolume, error) {
+	fake.createChildForContainerMutex.Lock()
+	fake.createChildForContainerArgsForCall = append(fake.createChildForContainerArgsForCall, struct {
+		arg1 *dbng.CreatingContainer
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("CreateChildForContainer", []interface{}{arg1, arg2})
+	fake.createChildForContainerMutex.Unlock()
+	if fake.CreateChildForContainerStub != nil {
+		return fake.CreateChildForContainerStub(arg1, arg2)
+	} else {
+		return fake.createChildForContainerReturns.result1, fake.createChildForContainerReturns.result2
+	}
+}
+
+func (fake *FakeVolume) CreateChildForContainerCallCount() int {
+	fake.createChildForContainerMutex.RLock()
+	defer fake.createChildForContainerMutex.RUnlock()
+	return len(fake.createChildForContainerArgsForCall)
+}
+
+func (fake *FakeVolume) CreateChildForContainerArgsForCall(i int) (*dbng.CreatingContainer, string) {
+	fake.createChildForContainerMutex.RLock()
+	defer fake.createChildForContainerMutex.RUnlock()
+	return fake.createChildForContainerArgsForCall[i].arg1, fake.createChildForContainerArgsForCall[i].arg2
+}
+
+func (fake *FakeVolume) CreateChildForContainerReturns(result1 dbng.CreatingVolume, result2 error) {
+	fake.CreateChildForContainerStub = nil
+	fake.createChildForContainerReturns = struct {
+		result1 dbng.CreatingVolume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolume) Destroy() error {
 	fake.destroyMutex.Lock()
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
@@ -385,6 +431,8 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.isInitializedMutex.RUnlock()
 	fake.initializeMutex.RLock()
 	defer fake.initializeMutex.RUnlock()
+	fake.createChildForContainerMutex.RLock()
+	defer fake.createChildForContainerMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	return fake.invocations

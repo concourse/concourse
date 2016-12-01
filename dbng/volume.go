@@ -249,8 +249,8 @@ func (volume *createdVolume) CreateChildForContainer(container *CreatingContaine
 
 	var volumeID int
 	err = psql.Insert("volumes").
-		Columns("worker_name", "parent_id", "parent_state", "handle").
-		Values(volume.worker.Name, volume.id, VolumeStateCreated, handle).
+		Columns("worker_name", "parent_id", "parent_state", "handle", "container_id").
+		Values(volume.worker.Name, volume.id, VolumeStateCreated, handle.String(), container.ID).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -266,9 +266,9 @@ func (volume *createdVolume) CreateChildForContainer(container *CreatingContaine
 	}
 
 	return &creatingVolume{
-		id:     volume.id,
+		id:     volumeID,
 		worker: volume.worker,
-		handle: volume.handle,
+		handle: handle.String(),
 		path:   mountPath,
 		conn:   volume.conn,
 	}, nil

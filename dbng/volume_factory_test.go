@@ -73,48 +73,6 @@ var _ = Describe("VolumeFactory", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Describe("CreateContainerVolumeWithParent", func() {
-		var parentVolume dbng.CreatedVolume
-		var creatingContainer *dbng.CreatingContainer
-
-		BeforeEach(func() {
-			var err error
-			creatingContainer, err = containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
-				Type: "task",
-				Name: "some-task",
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			creatingParentVolume, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer, "some-path-1")
-			Expect(err).NotTo(HaveOccurred())
-			parentVolume, err = creatingParentVolume.Created()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("creates volume for parent volume", func() {
-			creatingVolume, err := volumeFactory.CreateContainerVolumeWithParent(team, worker, creatingContainer, "some-path-3", parentVolume.Handle())
-			Expect(err).NotTo(HaveOccurred())
-
-			destroyingParentVolume, err := parentVolume.Destroying()
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = destroyingParentVolume.Destroy()
-			Expect(err).To(HaveOccurred())
-
-			createdVolume, err := creatingVolume.Created()
-			Expect(err).NotTo(HaveOccurred())
-			destroyingVolume, err := createdVolume.Destroying()
-			Expect(err).NotTo(HaveOccurred())
-			destroyed, err := destroyingVolume.Destroy()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(destroyed).To(Equal(true))
-
-			destroyed, err = destroyingParentVolume.Destroy()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(destroyed).To(Equal(true))
-		})
-	})
-
 	Describe("GetTeamVolumes", func() {
 		var (
 			team1handles []string

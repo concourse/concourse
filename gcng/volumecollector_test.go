@@ -135,7 +135,7 @@ var _ = Describe("VolumeCollector", func() {
 
 		Context("when destroying the volume in db fails because volume has children", func() {
 			BeforeEach(func() {
-				_, err := volumeFactory.CreateContainerVolumeWithParent(team, worker, creatingContainer2, "some-path-1", createdVolume.Handle())
+				_, err := createdVolume.CreateChildForContainer(creatingContainer2, "some-path-1")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -151,9 +151,9 @@ var _ = Describe("VolumeCollector", func() {
 
 				createdVolumes, destoryingVolumes, err = volumeFactory.GetOrphanedVolumes()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(createdVolumes).To(HaveLen(0))
-				Expect(destoryingVolumes).To(HaveLen(1))
-				Expect(destoryingVolumes[0].Handle()).To(Equal(createdVolumeHandle))
+				Expect(createdVolumes).To(HaveLen(1))
+				Expect(destoryingVolumes).To(HaveLen(0))
+				Expect(createdVolumes[0].Handle()).To(Equal(createdVolumeHandle))
 			})
 		})
 

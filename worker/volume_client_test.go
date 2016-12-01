@@ -214,23 +214,22 @@ var _ = Describe("VolumeClient", func() {
 			})
 
 			Context("when volume is using ContainerRootFSStrategy", func() {
+				var parentVolume *workerfakes.FakeVolume
+
 				BeforeEach(func() {
-					parentVolume := new(workerfakes.FakeVolume)
+					parentVolume = new(workerfakes.FakeVolume)
 					parentVolume.HandleReturns("fake-parent-handle")
 					volumeStrategy = worker.ContainerRootFSStrategy{
 						Parent: parentVolume,
 					}
-					fakeDBVolumeFactory.CreateContainerVolumeWithParentReturns(fakeCreatingVolume, nil)
+					parentVolume.CreateChildForContainerReturns(fakeCreatingVolume, nil)
 				})
 
 				It("creates volume in creating state with parent volume", func() {
-					Expect(fakeDBVolumeFactory.CreateContainerVolumeWithParentCallCount()).To(Equal(1))
-					actualTeam, actualWorker, actualContainer, actualMountPath, parentVolumeHandle := fakeDBVolumeFactory.CreateContainerVolumeWithParentArgsForCall(0)
-					Expect(actualTeam).To(Equal(team))
-					Expect(actualWorker).To(Equal(dbWorker))
+					Expect(parentVolume.CreateChildForContainerCallCount()).To(Equal(1))
+					actualContainer, actualMountPath := parentVolume.CreateChildForContainerArgsForCall(0)
 					Expect(actualContainer).To(Equal(container))
 					Expect(actualMountPath).To(Equal("some-mount-path"))
-					Expect(parentVolumeHandle).To(Equal("fake-parent-handle"))
 				})
 			})
 

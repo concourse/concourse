@@ -120,8 +120,45 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
-	XDescribe("createdVolume.CreateChildForContainer", func() { // TODO TESTME when cow is a thing
+	Describe("createdVolume.CreateChildForContainer", func() { // TODO TESTME when cow is a thing
+		var parentVolume dbng.CreatedVolume
+		var creatingContainer *dbng.CreatingContainer
 
+		BeforeEach(func() {
+			var err error
+			creatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, defaultBuild, "some-plan", dbng.ContainerMetadata{
+				Type: "task",
+				Name: "some-task",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam, defaultWorker, creatingContainer, "some-path-1")
+			Expect(err).NotTo(HaveOccurred())
+			parentVolume, err = creatingParentVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("creates volume for parent volume", func() {
+			creatingChildVolume, err := parentVolume.CreateChildForContainer(creatingContainer, "some-path-3")
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = parentVolume.Destroying()
+			Expect(err).To(HaveOccurred())
+
+			createdChildVolume, err := creatingChildVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+			destroyingChildVolume, err := createdChildVolume.Destroying()
+			Expect(err).NotTo(HaveOccurred())
+			destroyed, err := destroyingChildVolume.Destroy()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(destroyed).To(Equal(true))
+
+			destroyingParentVolume, err := parentVolume.Destroying()
+			Expect(err).NotTo(HaveOccurred())
+			destroyed, err = destroyingParentVolume.Destroy()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(destroyed).To(Equal(true))
+		})
 	})
 
 	Describe("createdVolume.Destroying", func() {

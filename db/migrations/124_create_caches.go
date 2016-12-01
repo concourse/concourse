@@ -143,6 +143,7 @@ func CreateCaches(tx migration.LimitedTx) error {
 		return err
 	}
 
+	// parent_state foreign key prevents any state changes on parent
 	_, err = tx.Exec(`
 		ALTER TABLE volumes
 		ADD COLUMN resource_cache_id int REFERENCES resource_caches (id) ON DELETE SET NULL,
