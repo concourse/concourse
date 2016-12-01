@@ -146,7 +146,7 @@ func (command *LoginCommand) Execute(args []string) error {
 
 func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, portChannel chan string, targetUrl string) {
 	s := &http.Server{
-		Addr: ":0",
+		Addr: "127.0.0.1:0",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenChannel <- r.FormValue("token")
 			http.Redirect(w, r, fmt.Sprintf("%s/public/fly_success", targetUrl), http.StatusTemporaryRedirect)

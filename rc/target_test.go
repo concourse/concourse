@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/concourse/fly/rc"
 	"golang.org/x/oauth2"
@@ -114,7 +115,13 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 				base, ok := (*transport).Base.(*http.Transport)
 				Expect(ok).To(BeTrue())
 
-				expectedCaCertPool := x509.NewCertPool()
+				var expectedCaCertPool *x509.CertPool
+				if runtime.GOOS != "windows" {
+					expectedCaCertPool, err = x509.SystemCertPool()
+					Expect(err).NotTo(HaveOccurred())
+				} else {
+					expectedCaCertPool = x509.NewCertPool()
+				}
 				ok = expectedCaCertPool.AppendCertsFromPEM([]byte(rootCA))
 				Expect(ok).To(BeTrue())
 
