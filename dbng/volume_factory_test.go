@@ -185,9 +185,9 @@ var _ = Describe("VolumeFactory", func() {
 
 			createdContainer, err := containerFactory.ContainerCreated(creatingContainer)
 			Expect(err).NotTo(HaveOccurred())
-			destroyingContainer, err := createdContainer.Destroying()
+			destroyingContainer, err := containerFactory.ContainerDestroying(createdContainer)
 			Expect(err).NotTo(HaveOccurred())
-			destroyed, err := destroyingContainer.Destroy()
+			destroyed, err := containerFactory.ContainerDestroy(destroyingContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(destroyed).To(BeTrue())
 		})
@@ -202,12 +202,12 @@ var _ = Describe("VolumeFactory", func() {
 			}
 			Expect(createdHandles).To(Equal(expectedCreatedHandles))
 
-			destoryingHandles := []string{}
+			destroyingHandles := []string{}
 			for _, vol := range destoryingVolumes {
-				destoryingHandles = append(destoryingHandles, vol.Handle())
+				destroyingHandles = append(destroyingHandles, vol.Handle())
 				Expect(vol.Worker().BaggageclaimURL).To(Equal("1.2.3.4:7788"))
 			}
-			Expect(destoryingHandles).To(Equal(destoryingHandles))
+			Expect(destroyingHandles).To(Equal(destroyingHandles))
 		})
 	})
 

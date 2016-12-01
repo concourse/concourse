@@ -124,6 +124,90 @@ func (factory *ContainerFactory) ContainerCreated(
 	}, nil
 }
 
+func (factory *ContainerFactory) ContainerDestroying(
+	container *CreatedContainer,
+) (*DestroyingContainer, error) {
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	rows, err := psql.Update("containers").
+		Set("state", ContainerStateDestroying).
+		Where(sq.Eq{
+			"id":    container.ID,
+			"state": ContainerStateCreated,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if affected == 0 {
+		panic("TESTME")
+		return nil, nil
+	}
+
+	return &DestroyingContainer{
+		ID:         container.ID,
+		Handle:     container.Handle,
+		WorkerName: container.WorkerName,
+		conn:       factory.conn,
+	}, nil
+}
+
+func (factory *ContainerFactory) ContainerDestroy(
+container *DestroyingContainer,
+) (bool, error) {
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer tx.Rollback()
+
+	rows, err := psql.Delete("containers").
+		Where(sq.Eq{
+		"id":    container.ID,
+		"state": ContainerStateDestroying,
+	}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if affected == 0 {
+		panic("TESTME")
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (factory *ContainerFactory) CreateResourceGetContainer(
 	worker *Worker,
 	resourceCache *UsedResourceCache,
