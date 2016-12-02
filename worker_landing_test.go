@@ -95,6 +95,26 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				<-restartSession.Exited
 			})
 
+			It("is not used for new workloads", func() {
+				for i := 0; i < 10; i++ {
+					fly("execute", "-c", "tasks/tiny.yml")
+					rows, err := psql.Select("id, worker_name").From("containers").RunWith(dbConn).Query()
+					Expect(err).ToNot(HaveOccurred())
+
+					usedWorkers := map[string]struct{}{}
+					for rows.Next() {
+						var id int
+						var workerName string
+						err := rows.Scan(&id, &workerName)
+						Expect(err).ToNot(HaveOccurred())
+						usedWorkers[workerName] = struct{}{}
+					}
+
+					Expect(usedWorkers).To(HaveLen(1))
+					Expect(usedWorkers).ToNot(ContainElement(landingWorkerName))
+				}
+			})
+
 			Context("with a build in-flight", func() {
 				var buildSession *gexec.Session
 				var buildID string
@@ -118,26 +138,6 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				It("waits for the build", func() {
 					Eventually(restartSession).Should(gbytes.Say("Updating instance"))
 					Consistently(restartSession, 5*time.Minute).ShouldNot(gexec.Exit())
-				})
-
-				It("is not used for new workloads", func() {
-					for i := 0; i < 10; i++ {
-						fly("execute", "-c", "tasks/tiny.yml")
-						rows, err := psql.Select("id, worker_name").From("containers").RunWith(dbConn).Query()
-						Expect(err).ToNot(HaveOccurred())
-
-						usedWorkers := map[string]struct{}{}
-						for rows.Next() {
-							var id int
-							var workerName string
-							err := rows.Scan(&id, &workerName)
-							Expect(err).ToNot(HaveOccurred())
-							usedWorkers[workerName] = struct{}{}
-						}
-
-						Expect(usedWorkers).To(HaveLen(1))
-						Expect(usedWorkers).ToNot(ContainElement(landingWorkerName))
-					}
 				})
 
 				Describe("after the build completes", func() {
