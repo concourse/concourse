@@ -47,3 +47,5 @@ Fly is available for download in the lower right-hand corner of the concourse UI
   ```
 
 1. Confirm availability with `which fly`
+
+**Note:** You must use the version of fly that corresponds to your Concourse install. Fly is able to upgrade to the appropriate version for your target by running `fly -t example sync`.
