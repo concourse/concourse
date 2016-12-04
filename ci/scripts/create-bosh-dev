@@ -12,8 +12,6 @@ pushd concourse/
 
   version="0.0.0+dev.$(date +%s)"
 
-  bosh -n create-release --tarball --name concourse --version "$version"
-
-  mv dev_releases/concourse/concourse-*.tgz "$OUTPUT"
+  bosh -n create-release --name concourse --version "$version" --tarball "$OUTPUT/concourse-$version.tgz"
   echo "$version" > "$OUTPUT/version"
 popd
