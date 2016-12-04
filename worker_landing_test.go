@@ -140,32 +140,29 @@ var _ = Describe("[#129726011] Worker landing", func() {
 					Consistently(restartSession, 5*time.Minute).ShouldNot(gexec.Exit())
 				})
 
-				Describe("after the build completes", func() {
-					JustBeforeEach(func() {
-						By("hijacking the build to tell it to finish")
-						Eventually(func() int {
-							session := spawnFlyInteractive(
-								bytes.NewBufferString("3\n"),
-								"hijack",
-								"-b", buildID,
-								"-s", "one-off",
-								"touch", "/tmp/stop-waiting",
-							)
+				It("finishes restarting once the build is done", func() {
+					By("hijacking the build to tell it to finish")
+					Eventually(func() int {
+						session := spawnFlyInteractive(
+							bytes.NewBufferString("3\n"),
+							"hijack",
+							"-b", buildID,
+							"-s", "one-off",
+							"touch", "/tmp/stop-waiting",
+						)
 
-							<-session.Exited
-							return session.ExitCode()
-						}).Should(Equal(0))
+						<-session.Exited
+						return session.ExitCode()
+					}).Should(Equal(0))
 
-						By("waiting for the build to exit")
-						Eventually(buildSession).Should(gbytes.Say("done"))
-						<-buildSession.Exited
-						Expect(buildSession.ExitCode()).To(Equal(0))
-					})
+					By("waiting for the build to exit")
+					Eventually(buildSession).Should(gbytes.Say("done"))
+					<-buildSession.Exited
+					Expect(buildSession.ExitCode()).To(Equal(0))
 
-					It("finishes restarting", func() {
-						<-restartSession.Exited
-						Expect(restartSession.ExitCode()).To(Equal(0))
-					})
+					By("successfully restarting")
+					<-restartSession.Exited
+					Expect(restartSession.ExitCode()).To(Equal(0))
 				})
 			})
 
