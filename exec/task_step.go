@@ -336,7 +336,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	runContainerID := step.containerID
 	runContainerID.Stage = db.ContainerStageRun
 
-	container, err := chosenWorker.CreateBuildContainer(
+	container, err := chosenWorker.FindOrCreateBuildContainer(
 		step.logger.Session("create-container"),
 		signals,
 		step.delegate,

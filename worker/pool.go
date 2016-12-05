@@ -132,13 +132,13 @@ func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (
 	return randomWorker, nil
 }
 
-func (pool *pool) CreateBuildContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes, outputPaths map[string]string) (Container, error) {
+func (pool *pool) FindOrCreateBuildContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes, outputPaths map[string]string) (Container, error) {
 	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.CreateBuildContainer(logger, signals, delegate, id, metadata, spec, resourceTypes, outputPaths)
+	container, err := worker.FindOrCreateBuildContainer(logger, signals, delegate, id, metadata, spec, resourceTypes, outputPaths)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func (pool *pool) FindOrCreateResourceGetContainer(
 	return container, nil
 }
 
-func (pool *pool) CreateResourceCheckContainer(
+func (pool *pool) FindOrCreateResourceCheckContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
@@ -237,7 +237,7 @@ func (pool *pool) CreateResourceCheckContainer(
 		return nil, err
 	}
 
-	container, err := worker.CreateResourceCheckContainer(
+	container, err := worker.FindOrCreateResourceCheckContainer(
 		logger,
 		cancel,
 		delegate,
@@ -255,7 +255,7 @@ func (pool *pool) CreateResourceCheckContainer(
 	return container, nil
 }
 
-func (pool *pool) CreateResourceTypeCheckContainer(
+func (pool *pool) FindOrCreateResourceTypeCheckContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
@@ -271,7 +271,7 @@ func (pool *pool) CreateResourceTypeCheckContainer(
 		return nil, err
 	}
 
-	container, err := worker.CreateResourceTypeCheckContainer(
+	container, err := worker.FindOrCreateResourceTypeCheckContainer(
 		logger,
 		cancel,
 		delegate,

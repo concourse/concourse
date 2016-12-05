@@ -60,7 +60,7 @@ type Worker interface {
 //go:generate counterfeiter . DBContainerFactory
 
 type DBContainerFactory interface {
-	CreateBuildContainer(
+	FindOrCreateBuildContainer(
 		worker *dbng.Worker,
 		build *dbng.Build,
 		planID atc.PlanID,
@@ -73,7 +73,7 @@ type DBContainerFactory interface {
 		stepName string,
 	) (*dbng.CreatingContainer, error)
 
-	CreateResourceCheckContainer(
+	FindOrCreateResourceCheckContainer(
 		worker *dbng.Worker,
 		resourceConfig *dbng.UsedResourceConfig,
 		stepName string,
@@ -216,7 +216,7 @@ func (worker *gardenWorker) ValidateResourceCheckVersion(container db.SavedConta
 	return false, nil
 }
 
-func (worker *gardenWorker) CreateBuildContainer(
+func (worker *gardenWorker) FindOrCreateBuildContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
@@ -226,7 +226,7 @@ func (worker *gardenWorker) CreateBuildContainer(
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
-	creatingContainer, err := worker.dbContainerFactory.CreateBuildContainer(
+	creatingContainer, err := worker.dbContainerFactory.FindOrCreateBuildContainer(
 		&dbng.Worker{
 			Name:       worker.name,
 			GardenAddr: &worker.addr,
@@ -353,7 +353,7 @@ func (worker *gardenWorker) FindOrCreateResourceGetContainer(
 	)
 }
 
-func (worker *gardenWorker) CreateResourceCheckContainer(
+func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
@@ -379,7 +379,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 		return nil, err
 	}
 
-	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
+	creatingContainer, err := worker.dbContainerFactory.FindOrCreateResourceCheckContainer(
 		&dbng.Worker{
 			Name:       worker.name,
 			GardenAddr: &worker.addr,
@@ -396,7 +396,7 @@ func (worker *gardenWorker) CreateResourceCheckContainer(
 	return containerProvider.FindOrCreateContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, map[string]string{})
 }
 
-func (worker *gardenWorker) CreateResourceTypeCheckContainer(
+func (worker *gardenWorker) FindOrCreateResourceTypeCheckContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
@@ -418,7 +418,7 @@ func (worker *gardenWorker) CreateResourceTypeCheckContainer(
 		return nil, err
 	}
 
-	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
+	creatingContainer, err := worker.dbContainerFactory.FindOrCreateResourceCheckContainer(
 		&dbng.Worker{
 			Name:       worker.name,
 			GardenAddr: &worker.addr,
@@ -651,7 +651,7 @@ func (worker *gardenWorker) getContainerForIdentifier(
 	}
 
 	if id.BuildID != 0 {
-		container, err = worker.CreateBuildContainer(
+		container, err = worker.FindOrCreateBuildContainer(
 			logger,
 			nil,
 			imageFetchingDelegate,
@@ -662,7 +662,7 @@ func (worker *gardenWorker) getContainerForIdentifier(
 			map[string]string{},
 		)
 	} else if id.ResourceID != 0 {
-		container, err = worker.CreateResourceCheckContainer(
+		container, err = worker.FindOrCreateResourceCheckContainer(
 			logger,
 			nil,
 			imageFetchingDelegate,
@@ -674,7 +674,7 @@ func (worker *gardenWorker) getContainerForIdentifier(
 			id.CheckSource,
 		)
 	} else {
-		container, err = worker.CreateResourceTypeCheckContainer(
+		container, err = worker.FindOrCreateResourceTypeCheckContainer(
 			logger,
 			nil,
 			imageFetchingDelegate,

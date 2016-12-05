@@ -15,7 +15,7 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateBuildContainer(
+	FindOrCreateBuildContainer(
 		lager.Logger,
 		<-chan os.Signal,
 		ImageFetchingDelegate,
@@ -41,7 +41,7 @@ type Client interface {
 		params atc.Params,
 	) (Container, error)
 
-	CreateResourceCheckContainer(
+	FindOrCreateResourceCheckContainer(
 		logger lager.Logger,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
@@ -53,7 +53,7 @@ type Client interface {
 		source atc.Source,
 	) (Container, error)
 
-	CreateResourceTypeCheckContainer(
+	FindOrCreateResourceTypeCheckContainer(
 		logger lager.Logger,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,

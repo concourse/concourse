@@ -344,14 +344,14 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
-	Describe("CreateBuildContainer", func() {
+	Describe("FindOrCreateBuildContainer", func() {
 		var container Container
 		var fakeContainer Container
 		var createErr error
 		var imageSpec ImageSpec
 
 		JustBeforeEach(func() {
-			container, createErr = gardenWorker.CreateBuildContainer(
+			container, createErr = gardenWorker.FindOrCreateBuildContainer(
 				logger,
 				nil,
 				nil,
@@ -368,7 +368,7 @@ var _ = Describe("Worker", func() {
 		Context("adding creating container to the db succeeds", func() {
 			BeforeEach(func() {
 				fakeCreatingContainer := &dbng.CreatingContainer{ID: 42}
-				fakeDBContainerFactory.CreateBuildContainerReturns(fakeCreatingContainer, nil)
+				fakeDBContainerFactory.FindOrCreateBuildContainerReturns(fakeCreatingContainer, nil)
 			})
 
 			It("delegates container creation to the container provider", func() {
@@ -390,7 +390,7 @@ var _ = Describe("Worker", func() {
 
 		Context("adding creating container to the db fails", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.CreateBuildContainerReturns(nil, errors.New("uh oh"))
+				fakeDBContainerFactory.FindOrCreateBuildContainerReturns(nil, errors.New("uh oh"))
 			})
 
 			It("returns the error from dbContainerFactory", func() {

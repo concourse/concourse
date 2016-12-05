@@ -24,7 +24,7 @@ type ContainerMetadata struct {
 	Name string
 }
 
-func (factory *ContainerFactory) CreateResourceCheckContainer(
+func (factory *ContainerFactory) FindOrCreateResourceCheckContainer(
 	worker *Worker,
 	resourceConfig *UsedResourceConfig,
 	stepName string,
@@ -170,7 +170,7 @@ func (factory *ContainerFactory) ContainerDestroying(
 }
 
 func (factory *ContainerFactory) ContainerDestroy(
-container *DestroyingContainer,
+	container *DestroyingContainer,
 ) (bool, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
@@ -181,9 +181,9 @@ container *DestroyingContainer,
 
 	rows, err := psql.Delete("containers").
 		Where(sq.Eq{
-		"id":    container.ID,
-		"state": ContainerStateDestroying,
-	}).
+			"id":    container.ID,
+			"state": ContainerStateDestroying,
+		}).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -263,7 +263,7 @@ func (factory *ContainerFactory) CreateResourceGetContainer(
 	}, nil
 }
 
-func (factory *ContainerFactory) CreateBuildContainer(
+func (factory *ContainerFactory) FindOrCreateBuildContainer(
 	worker *Worker,
 	build *Build,
 	planID atc.PlanID,

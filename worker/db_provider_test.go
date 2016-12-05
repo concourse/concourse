@@ -226,7 +226,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
-					container, err := workers[0].CreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
+					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -261,7 +261,7 @@ var _ = Describe("DBProvider", func() {
 					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 
 					creatingContainer := &dbng.CreatingContainer{ID: 1, Handle: "some-handle"}
-					fakeDBContainerFactory.CreateBuildContainerReturns(creatingContainer, nil)
+					fakeDBContainerFactory.FindOrCreateBuildContainerReturns(creatingContainer, nil)
 
 					createdContainer := &dbng.CreatedContainer{ID: 1, Handle: "some-handle"}
 					fakeDBContainerFactory.ContainerCreatedReturns(createdContainer, nil)
@@ -287,7 +287,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].CreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
+					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
 
 					Expect(err).NotTo(HaveOccurred())
 

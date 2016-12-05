@@ -80,13 +80,13 @@ var _ = Describe("VolumeCollector", func() {
 			}, 5*time.Minute)
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer1, err = containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer1, err = containerFactory.FindOrCreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer2, err = containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer2, err = containerFactory.FindOrCreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
