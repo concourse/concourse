@@ -15,7 +15,7 @@ var _ = Describe("Volume", func() {
 		)
 
 		BeforeEach(func() {
-			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam, defaultWorker, deafultCreatingContainer, "/path/to/volume")
+			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam, defaultWorker, defaultCreatingContainer, "/path/to/volume")
 		})
 
 		JustBeforeEach(func() {

@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"database/sql"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
@@ -28,6 +29,7 @@ var (
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
 
+	sqlDB                   *sql.DB
 	dbConn                  dbng.Conn
 	volumeFactory           dbng.VolumeFactory
 	containerFactory        *dbng.ContainerFactory
@@ -49,7 +51,7 @@ var (
 	defaultResource          *dbng.Resource
 	defaultPipeline          *dbng.Pipeline
 	defaultBuild             *dbng.Build
-	deafultCreatingContainer *dbng.CreatingContainer
+	defaultCreatingContainer *dbng.CreatingContainer
 	defaultCreatedContainer  *dbng.CreatedContainer
 	logger                   *lagertest.TestLogger
 	lockFactory              lock.LockFactory
@@ -67,7 +69,9 @@ var _ = BeforeSuite(func() {
 
 var _ = BeforeEach(func() {
 	postgresRunner.Truncate()
-	dbConn = dbng.Wrap(postgresRunner.Open())
+	sqlDB = postgresRunner.Open()
+
+	dbConn = dbng.Wrap(sqlDB)
 
 	pgxConn := postgresRunner.OpenPgx()
 	fakeConnector := new(lockfakes.FakeConnector)
@@ -115,10 +119,10 @@ var _ = BeforeEach(func() {
 	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(logger, defaultResource, "some-base-resource-type", atc.Source{}, defaultPipeline, atc.ResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
-	deafultCreatingContainer, err = containerFactory.FindOrCreateResourceCheckContainer(defaultWorker, defaultResourceConfig, "check-my-stuff")
+	defaultCreatingContainer, err = containerFactory.FindOrCreateResourceCheckContainer(defaultWorker, defaultResourceConfig, "check-my-stuff")
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultCreatedContainer, err = containerFactory.ContainerCreated(deafultCreatingContainer)
+	defaultCreatedContainer, err = containerFactory.ContainerCreated(defaultCreatingContainer)
 	Expect(err).NotTo(HaveOccurred())
 })
 
