@@ -374,6 +374,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 					dbVolumeFactory,
 					gcng.NewBaggageclaimClientFactory(),
 				),
+				&gcng.ContainerCollector{
+					Logger:              logger.Session("container-collector"),
+					ContainerProvider:   dbContainerFactory,
+					WorkerProvider:      dbWorkerFactory,
+					GardenClientFactory: gcng.NewGardenClientFactory(),
+				},
 			),
 			"ng-collector",
 			sqlDB,

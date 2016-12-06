@@ -20,6 +20,7 @@ var _ = Describe("Aggregate Collector", func() {
 		fakeResourceConfigCollector    *gcngfakes.FakeCollector
 		fakeResourceCacheCollector     *gcngfakes.FakeCollector
 		fakeVolumeCollector            *gcngfakes.FakeCollector
+		fakeContainerCollector         *gcngfakes.FakeCollector
 
 		err      error
 		disaster error
@@ -32,6 +33,7 @@ var _ = Describe("Aggregate Collector", func() {
 		fakeResourceConfigCollector = new(gcngfakes.FakeCollector)
 		fakeResourceCacheCollector = new(gcngfakes.FakeCollector)
 		fakeVolumeCollector = new(gcngfakes.FakeCollector)
+		fakeContainerCollector = new(gcngfakes.FakeCollector)
 
 		subject = NewCollector(
 			fakeWorkerCollector,
@@ -40,6 +42,7 @@ var _ = Describe("Aggregate Collector", func() {
 			fakeResourceConfigCollector,
 			fakeResourceCacheCollector,
 			fakeVolumeCollector,
+			fakeContainerCollector,
 		)
 
 		disaster = errors.New("disaster")
@@ -151,8 +154,25 @@ var _ = Describe("Aggregate Collector", func() {
 							})
 
 							Context("when the volume collector succeeds", func() {
-								It("does not error at all", func() {
-									Expect(err).NotTo(HaveOccurred())
+								It("attempts to collect containers", func() {
+									Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+								})
+
+								Context("when the container collector errors", func() {
+									BeforeEach(func() {
+										fakeContainerCollector.RunReturns(disaster)
+									})
+
+									It("bubbles up the error", func() {
+										Expect(err).To(HaveOccurred())
+										Expect(err).To(Equal(disaster))
+									})
+								})
+
+								Context("when the container collector succeeds", func() {
+									It("does not error at all", func() {
+										Expect(err).NotTo(HaveOccurred())
+									})
 								})
 							})
 						})

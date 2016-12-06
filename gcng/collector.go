@@ -13,6 +13,7 @@ type aggregateCollector struct {
 	resourceConfigCollector    Collector
 	resourceCacheCollector     Collector
 	volumeCollector            Collector
+	containerCollector         Collector
 }
 
 func NewCollector(
@@ -22,6 +23,7 @@ func NewCollector(
 	resourceConfigs Collector,
 	resourceCaches Collector,
 	volumes Collector,
+	containers Collector,
 ) Collector {
 	return &aggregateCollector{
 		workerCollector:            workers,
@@ -30,6 +32,7 @@ func NewCollector(
 		resourceConfigCollector:    resourceConfigs,
 		resourceCacheCollector:     resourceCaches,
 		volumeCollector:            volumes,
+		containerCollector:         containers,
 	}
 }
 
@@ -62,6 +65,11 @@ func (c *aggregateCollector) Run() error {
 	}
 
 	err = c.volumeCollector.Run()
+	if err != nil {
+		return err
+	}
+
+	err = c.containerCollector.Run()
 	if err != nil {
 		return err
 	}
