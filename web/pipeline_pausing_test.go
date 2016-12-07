@@ -45,7 +45,7 @@ var _ = Describe("PipelinePausing", func() {
 		})
 
 		AfterEach(func() {
-			err := helpers.DeleteAllContainers(client, "another-pipeline")
+			err := helpers.DeleteAllContainers(client, "another-pipeline", logger)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, err = team.DeletePipeline("another-pipeline")

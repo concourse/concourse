@@ -3,6 +3,8 @@ package web_test
 import (
 	"fmt"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/urljoiner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,6 +23,7 @@ var teamName string
 
 var client concourse.Client
 var team concourse.Team
+var logger lager.Logger
 
 func TestWeb(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -62,12 +65,13 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	helpers.WebLogin(page, atcURL)
+	logger = lagertest.NewTestLogger("web-test")
 })
 
 var _ = AfterEach(func() {
 	Expect(page.Destroy()).To(Succeed())
 
-	err := helpers.DeleteAllContainers(client, pipelineName)
+	err := helpers.DeleteAllContainers(client, pipelineName, logger)
 	Expect(err).ToNot(HaveOccurred())
 
 	_, err = team.DeletePipeline(pipelineName)
