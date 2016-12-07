@@ -31,8 +31,6 @@ func (command *ContainersCommand) Execute([]string) error {
 	table := ui.Table{
 		Headers: ui.TableRow{
 			{Contents: "handle", Color: color.New(color.Bold)},
-			{Contents: "ttl", Color: color.New(color.Bold)},
-			{Contents: "validity", Color: color.New(color.Bold)},
 			{Contents: "worker", Color: color.New(color.Bold)},
 			{Contents: "pipeline", Color: color.New(color.Bold)},
 			{Contents: "job", Color: color.New(color.Bold)},
@@ -47,8 +45,6 @@ func (command *ContainersCommand) Execute([]string) error {
 	for _, c := range containers {
 		row := ui.TableRow{
 			{Contents: c.ID},
-			{Contents: formatTTL(c.TTLInSeconds)},
-			{Contents: formatTTL(c.ValidityInSeconds)},
 			{Contents: c.WorkerName},
 			stringOrDefault(c.PipelineName),
 			stringOrDefault(c.JobName),
