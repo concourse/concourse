@@ -15,10 +15,10 @@ type roundTripper struct {
 	db                TransportDB
 	workerName        string
 	innerRoundTripper http.RoundTripper
-	cachedHost        string
+	cachedHost        *string
 }
 
-func NewRoundTripper(workerName string, workerHost string, db TransportDB, innerRoundTripper http.RoundTripper) http.RoundTripper {
+func NewRoundTripper(workerName string, workerHost *string, db TransportDB, innerRoundTripper http.RoundTripper) http.RoundTripper {
 	return &roundTripper{
 		innerRoundTripper: innerRoundTripper,
 		workerName:        workerName,
@@ -28,7 +28,7 @@ func NewRoundTripper(workerName string, workerHost string, db TransportDB, inner
 }
 
 func (c *roundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
-	if c.cachedHost == "" {
+	if c.cachedHost != nil {
 		savedWorker, found, err := c.db.GetWorker(c.workerName)
 		if err != nil {
 			return nil, err
@@ -42,18 +42,22 @@ func (c *roundTripper) RoundTrip(request *http.Request) (*http.Response, error) 
 			return nil, ErrWorkerStalled{WorkerName: c.workerName}
 		}
 
-		c.cachedHost = *savedWorker.GardenAddr
+		if savedWorker.GardenAddr == nil {
+			return nil, ErrWorkerAddrIsMissing{WorkerName: c.workerName}
+		}
+
+		c.cachedHost = savedWorker.GardenAddr
 	}
 
 	updatedURL := *request.URL
-	updatedURL.Host = c.cachedHost
+	updatedURL.Host = *c.cachedHost
 
 	updatedRequest := *request
 	updatedRequest.URL = &updatedURL
 
 	response, err := c.innerRoundTripper.RoundTrip(&updatedRequest)
 	if err != nil {
-		c.cachedHost = ""
+		c.cachedHost = nil
 	}
 
 	return response, err

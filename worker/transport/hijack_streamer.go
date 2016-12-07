@@ -33,6 +33,14 @@ func (e ErrWorkerStalled) Error() string {
 	return fmt.Sprintf("worker %s has not checked in recently", e.WorkerName)
 }
 
+type ErrWorkerAddrIsMissing struct {
+	WorkerName string
+}
+
+func (e ErrWorkerAddrIsMissing) Error() string {
+	return fmt.Sprintf("worker %s address is missing", e.WorkerName)
+}
+
 //go:generate counterfeiter . TransportDB
 type TransportDB interface {
 	GetWorker(name string) (*dbng.Worker, bool, error)

@@ -137,4 +137,5 @@ var Migrations = []migration.Migrator{
 	DeleteExtraParentConstrainOnVolume,
 	AddNotNullConstraintToContainerHandle,
 	RemoveTTLFromContainers,
+	AddRunningWorkerMustHaveAddrConstraint,
 }

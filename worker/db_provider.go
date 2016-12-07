@@ -137,7 +137,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		provider.dbWorkerFactory,
 		provider.logger.Session("garden-connection"),
 		savedWorker.Name,
-		*(savedWorker.GardenAddr),
+		savedWorker.GardenAddr,
 		provider.retryBackOffFactory,
 	)
 

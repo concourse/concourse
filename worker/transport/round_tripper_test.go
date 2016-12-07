@@ -27,7 +27,8 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 	BeforeEach(func() {
 		fakeDB = new(transportfakes.FakeTransportDB)
 		fakeRoundTripper = new(retryhttpfakes.FakeRoundTripper)
-		roundTripper = transport.NewRoundTripper("some-worker", "some-worker-address", fakeDB, fakeRoundTripper)
+		workerAddr := "some-worker-address"
+		roundTripper = transport.NewRoundTripper("some-worker", &workerAddr, fakeDB, fakeRoundTripper)
 		requestUrl, err := url.Parse("http://1.2.3.4/something")
 		Expect(err).NotTo(HaveOccurred())
 
@@ -118,6 +119,21 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 				_, err := roundTripper.RoundTrip(&request)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(MatchRegexp("worker .* has not checked in recently$"))
+			})
+		})
+
+		FContext("when the worker in the DB is not stalled and addr is empty", func() {
+			BeforeEach(func() {
+				fakeDB.GetWorkerReturns(&dbng.Worker{
+					State:      dbng.WorkerStateRunning,
+					GardenAddr: nil,
+				}, true, nil)
+			})
+
+			It("throws a descriptive error", func() {
+				_, err := roundTripper.RoundTrip(&request)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(MatchRegexp("worker .* address is missing$"))
 			})
 		})
 
