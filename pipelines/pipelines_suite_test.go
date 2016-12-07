@@ -7,6 +7,9 @@ import (
 	"regexp"
 	"strings"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
+
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/testflight/helpers"
 	"github.com/mgutz/ansi"
@@ -28,6 +31,7 @@ var (
 	pipelineName string
 
 	tmpHome string
+	logger  lager.Logger
 )
 
 var atcURL = helpers.AtcURL()
@@ -50,6 +54,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	team = client.Team("main")
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
+	logger = lagertest.NewTestLogger("pipelines-test")
 })
 
 var _ = SynchronizedAfterSuite(func() {
@@ -67,7 +72,7 @@ func TestGitPipeline(t *testing.T) {
 }
 
 func destroyPipeline(name string) {
-	err := helpers.DeleteAllContainers(client, name)
+	err := helpers.DeleteAllContainers(client, name, logger)
 	Expect(err).NotTo(HaveOccurred())
 
 	destroyCmd := exec.Command(

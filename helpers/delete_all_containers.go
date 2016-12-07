@@ -3,10 +3,11 @@ package helpers
 import (
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/go-concourse/concourse"
 )
 
-func DeleteAllContainers(client concourse.Client, name string) error {
+func DeleteAllContainers(client concourse.Client, name string, logger lager.Logger) error {
 	workers, err := client.ListWorkers()
 	if err != nil {
 		return err
@@ -24,7 +25,7 @@ func DeleteAllContainers(client concourse.Client, name string) error {
 			if container.WorkerName == worker.Name {
 				err = gardenClient.Destroy(container.ID)
 				if err != nil {
-					return err
+					logger.Error("failed-to-delete-container", err, lager.Data{"handle": container.ID})
 				}
 			}
 		}
