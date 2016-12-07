@@ -131,4 +131,5 @@ var Migrations = []migration.Migrator{
 	CascadeTeamDeletesOnPipes,
 	RemoveResourceCheckingFromJobsAndAddManualyTriggeredToBuilds,
 	AddRetiringWorkerState,
+	AddRunningWorkerMustHaveAddrConstraint,
 }

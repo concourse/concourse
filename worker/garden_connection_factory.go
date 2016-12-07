@@ -20,7 +20,7 @@ type gardenConnectionFactory struct {
 	db                  transport.TransportDB
 	logger              lager.Logger
 	workerName          string
-	workerHost          string
+	workerHost          *string
 	retryBackOffFactory retryhttp.BackOffFactory
 }
 
@@ -28,7 +28,7 @@ func NewGardenConnectionFactory(
 	db transport.TransportDB,
 	logger lager.Logger,
 	workerName string,
-	workerHost string,
+	workerHost *string,
 	retryBackOffFactory retryhttp.BackOffFactory,
 ) GardenConnectionFactory {
 	return &gardenConnectionFactory{
