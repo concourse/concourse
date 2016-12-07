@@ -3,14 +3,12 @@ package resource_test
 import (
 	"errors"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/garden"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
-	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -101,11 +99,9 @@ var _ = Describe("ContainerFetchSource", func() {
 
 	Describe("Release", func() {
 		It("releases container", func() {
-			finalTTL := worker.FinalTTL(5 * time.Second)
-			fetchSource.Release(finalTTL)
+			Expect(fakeContainer.ReleaseCallCount()).To(Equal(0))
+			fetchSource.Release()
 			Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-			ttl := fakeContainer.ReleaseArgsForCall(0)
-			Expect(ttl).To(Equal(finalTTL))
 		})
 	})
 })

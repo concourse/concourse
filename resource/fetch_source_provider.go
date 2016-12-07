@@ -2,7 +2,6 @@ package resource
 
 import (
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -38,7 +37,7 @@ type FetchSource interface {
 	LockName() (string, error)
 	VersionedSource() VersionedSource
 	Initialize(signals <-chan os.Signal, ready chan<- struct{}) error
-	Release(*time.Duration)
+	Release()
 }
 
 type fetchSourceProviderFactory struct {

@@ -121,7 +121,6 @@ var _ = Describe("TeamDbContainers", func() {
 		containersToCreate     []db.Container
 		descriptorsToFilterFor db.Container
 		expectedHandles        []string
-		ttls                   map[string]time.Duration
 	}
 
 	getResourceID := func(name string) int {
@@ -155,12 +154,7 @@ var _ = Describe("TeamDbContainers", func() {
 					containerToCreate.Type = db.ContainerTypeTask
 				}
 
-				_, err := database.CreateContainer(containerToCreate, time.Minute, time.Duration(0), []string{})
-				Expect(err).NotTo(HaveOccurred())
-			}
-
-			for handle, ttl := range example.ttls {
-				err = database.UpdateExpiresAtOnContainer(handle, ttl)
+				_, err := database.CreateContainer(containerToCreate, time.Duration(0), []string{})
 				Expect(err).NotTo(HaveOccurred())
 			}
 
@@ -939,46 +933,6 @@ var _ = Describe("TeamDbContainers", func() {
 				expectedHandles: []string{"a", "c"},
 			}
 		}),
-
-		Entry("does not return expired containers", func() findContainersByDescriptorsExample {
-			return findContainersByDescriptorsExample{
-				containersToCreate: []db.Container{
-					{
-						ContainerIdentifier: db.ContainerIdentifier{
-							Stage:   db.ContainerStageRun,
-							PlanID:  "plan-id",
-							BuildID: build.ID(),
-						},
-						ContainerMetadata: db.ContainerMetadata{
-							Handle:     "a",
-							Type:       db.ContainerTypeTask,
-							WorkerName: "some-worker",
-							PipelineID: 0,
-							TeamID:     teamID,
-						},
-					},
-					{
-						ContainerIdentifier: db.ContainerIdentifier{
-							Stage:   db.ContainerStageRun,
-							PlanID:  "plan-id",
-							BuildID: build.ID(),
-						},
-						ContainerMetadata: db.ContainerMetadata{
-							Handle:     "b",
-							Type:       db.ContainerTypeTask,
-							WorkerName: "some-other-worker",
-							PipelineID: savedPipeline.ID,
-							TeamID:     teamID,
-						},
-					},
-				},
-				ttls: map[string]time.Duration{
-					"a": -15 * time.Minute,
-				},
-				descriptorsToFilterFor: db.Container{ContainerMetadata: db.ContainerMetadata{}},
-				expectedHandles:        []string{"b"},
-			}
-		}),
 	)
 
 	Describe("GetContainer", func() {
@@ -1026,10 +980,10 @@ var _ = Describe("TeamDbContainers", func() {
 				},
 			}
 			var err error
-			savedContainer, err = database.CreateContainer(container, time.Minute, 0, []string{})
+			savedContainer, err = database.CreateContainer(container, 0, []string{})
 			Expect(err).NotTo(HaveOccurred())
 
-			otherSavedContainer, err = database.CreateContainer(otherTeamContainer, time.Minute, 0, []string{})
+			otherSavedContainer, err = database.CreateContainer(otherTeamContainer, 0, []string{})
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -1056,7 +1010,6 @@ var _ = Describe("TeamDbContainers", func() {
 				Expect(actualContainer.CheckType).To(Equal(container.CheckType))
 				Expect(actualContainer.CheckSource).To(Equal(container.CheckSource))
 				Expect(actualContainer.EnvironmentVariables).To(Equal(container.EnvironmentVariables))
-				Expect(actualContainer.TTL).To(Equal(time.Minute))
 				Expect(actualContainer.ResourceTypeVersion).To(Equal(resourceTypeVersion))
 				Expect(actualContainer.TeamID).To(Equal(teamID))
 			})

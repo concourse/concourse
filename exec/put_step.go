@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -34,9 +33,6 @@ type PutStep struct {
 	versionedSource resource.VersionedSource
 
 	succeeded bool
-
-	containerSuccessTTL time.Duration
-	containerFailureTTL time.Duration
 }
 
 func newPutStep(
@@ -50,22 +46,18 @@ func newPutStep(
 	delegate PutDelegate,
 	resourceFactory resource.ResourceFactory,
 	resourceTypes atc.ResourceTypes,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 ) PutStep {
 	return PutStep{
-		logger:              logger,
-		resourceConfig:      resourceConfig,
-		params:              params,
-		stepMetadata:        stepMetadata,
-		session:             session,
-		tags:                tags,
-		teamID:              teamID,
-		delegate:            delegate,
-		resourceFactory:     resourceFactory,
-		resourceTypes:       resourceTypes,
-		containerSuccessTTL: containerSuccessTTL,
-		containerFailureTTL: containerFailureTTL,
+		logger:          logger,
+		resourceConfig:  resourceConfig,
+		params:          params,
+		stepMetadata:    stepMetadata,
+		session:         session,
+		tags:            tags,
+		teamID:          teamID,
+		delegate:        delegate,
+		resourceFactory: resourceFactory,
+		resourceTypes:   resourceTypes,
 	}
 }
 
@@ -182,11 +174,7 @@ func (step *PutStep) Release() {
 		return
 	}
 
-	if step.succeeded {
-		step.resource.Release(worker.FinalTTL(step.containerSuccessTTL))
-	} else {
-		step.resource.Release(worker.FinalTTL(step.containerFailureTTL))
-	}
+	step.resource.Release()
 }
 
 // Result indicates Success as true if the script completed with exit status 0.

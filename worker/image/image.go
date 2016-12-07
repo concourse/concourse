@@ -154,7 +154,7 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 	releasingReader := &releasingReadCloser{
 		Reader:      tarReader,
 		Closer:      reader,
-		releaseFunc: func() { fetchSource.Release(nil) },
+		releaseFunc: func() { fetchSource.Release() },
 	}
 
 	return volume, releasingReader, version, nil
@@ -194,7 +194,7 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 		return nil, err
 	}
 
-	defer checkingResource.Release(nil)
+	defer checkingResource.Release()
 
 	versions, err := checkingResource.Check(i.imageResource.Source, nil)
 	if err != nil {

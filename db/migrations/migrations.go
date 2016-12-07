@@ -136,4 +136,5 @@ var Migrations = []migration.Migrator{
 	AddVolumeParentIdForeignKey,
 	DeleteExtraParentConstrainOnVolume,
 	AddNotNullConstraintToContainerHandle,
+	RemoveTTLFromContainers,
 }

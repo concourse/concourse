@@ -76,9 +76,6 @@ var _ = Describe("GardenFactory", func() {
 
 			step    Step
 			process ifrit.Process
-
-			successTTL time.Duration
-			failureTTL time.Duration
 		)
 
 		BeforeEach(func() {
@@ -106,9 +103,6 @@ var _ = Describe("GardenFactory", func() {
 			outputMapping = nil
 			imageArtifactName = ""
 			fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
-
-			successTTL = 3 * time.Microsecond
-			failureTTL = 5 * time.Second
 
 			identifier = worker.Identifier{
 				BuildID: 1234,
@@ -138,8 +132,6 @@ var _ = Describe("GardenFactory", func() {
 				outputMapping,
 				imageArtifactName,
 				fakeClock,
-				successTTL,
-				failureTTL,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -1357,14 +1349,13 @@ var _ = Describe("GardenFactory", func() {
 								Expect(status).To(Equal(ExitStatus(0)))
 							})
 
-							It("releases with success ttl", func() {
+							It("releases", func() {
 								<-process.Wait()
 
 								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
 
 								step.Release()
 								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-								Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
 							})
 
 							It("doesn't register a source", func() {
@@ -1454,14 +1445,13 @@ var _ = Describe("GardenFactory", func() {
 								Expect(status).To(Equal(ExitStatus(1)))
 							})
 
-							It("releases with failure ttl", func() {
+							It("releases", func() {
 								<-process.Wait()
 
 								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
 
 								step.Release()
 								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-								Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 							})
 
 							Context("when saving the exit status succeeds", func() {
@@ -1820,14 +1810,13 @@ var _ = Describe("GardenFactory", func() {
 						Expect(bool(success)).To(BeFalse())
 					})
 
-					It("releases the container with failure TTL", func() {
+					It("releases the container", func() {
 						<-process.Wait()
 
 						Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
 
 						step.Release()
 						Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-						Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 					})
 
 					It("reports its exit status", func() {
@@ -1904,14 +1893,13 @@ var _ = Describe("GardenFactory", func() {
 							Expect(taskDelegate.StartedCallCount()).To(BeZero())
 						})
 
-						It("releases the container with success TTL", func() {
+						It("releases the container", func() {
 							<-process.Wait()
 
 							Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
 
 							step.Release()
 							Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
 						})
 					})
 

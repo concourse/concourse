@@ -101,7 +101,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		return
 	}
 
-	defer container.Release(nil)
+	defer container.Release()
 
 	stdinR, stdinW := io.Pipe()
 

@@ -12,8 +12,6 @@ func Container(container db.SavedContainer) atc.Container {
 	}
 	return atc.Container{
 		ID:                   container.Handle,
-		TTLInSeconds:         int64(container.ExpiresIn.Seconds()),
-		ValidityInSeconds:    int64(container.TTL.Seconds()),
 		WorkerName:           container.WorkerName,
 		PipelineName:         container.PipelineName,
 		JobName:              container.JobName,

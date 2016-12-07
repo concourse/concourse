@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, ttl, EXTRACT(epoch FROM expires_at - NOW()), c.id, resource_type_version, c.team_id"
+const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, c.id, resource_type_version, c.team_id"
 
 const containerJoins = `
 		LEFT JOIN pipelines p
@@ -56,7 +56,7 @@ func (db *SQLDB) FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, er
 }
 
 func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {
-	conditions := []string{"(expires_at IS NULL OR expires_at > NOW())"}
+	conditions := []string{}
 	params := []interface{}{}
 
 	addParam := func(column string, param interface{}) {
@@ -137,7 +137,6 @@ func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {
 		SELECT `+containerColumns+`
 	  FROM containers c `+containerJoins+`
 		WHERE c.handle = $1
-		AND (expires_at IS NULL OR expires_at > NOW())
 	`, handle))
 
 	if err != nil {
@@ -150,11 +149,7 @@ func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {
 	return container, true, nil
 }
 
-func (db *SQLDB) UpdateContainerTTLToBeRemoved(
-	container Container,
-	ttl time.Duration,
-	maxLifetime time.Duration,
-) (SavedContainer, error) {
+func (db *SQLDB) UpdateContainerTTLToBeRemoved(container Container, maxLifetime time.Duration) (SavedContainer, error) {
 	if !(isValidCheckID(container.ContainerIdentifier) || isValidStepID(container.ContainerIdentifier)) {
 		return SavedContainer{}, ErrInvalidIdentifier
 	}
@@ -177,8 +172,6 @@ func (db *SQLDB) UpdateContainerTTLToBeRemoved(
 	}
 
 	user := container.User
-
-	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	if container.PipelineName != "" && container.PipelineID == 0 {
 		// containers that belong to some pipeline must be identified by pipeline ID not name
@@ -245,10 +238,10 @@ func (db *SQLDB) UpdateContainerTTLToBeRemoved(
 	var id int
 	err = tx.QueryRow(`
 		UPDATE containers SET (resource_id, step_name, pipeline_id, build_id, type, worker_name,
-			expires_at, ttl, best_if_used_by, check_type, check_source, plan_id, working_directory,
+			best_if_used_by, check_type, check_source, plan_id, working_directory,
 			env_variables, attempts, stage, image_resource_type, image_resource_source,
 			process_user, resource_type_version, team_id)
-		= ($2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+		= ($2, $3, $4, $5, $6, $7, `+maxLifetimeValue+`, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		WHERE handle=$1
 		RETURNING id`,
 		container.Handle,
@@ -258,8 +251,6 @@ func (db *SQLDB) UpdateContainerTTLToBeRemoved(
 		buildID,
 		container.Type.String(),
 		container.WorkerName,
-		interval,
-		ttl,
 		container.CheckType,
 		checkSource,
 		string(container.PlanID),
@@ -294,12 +285,7 @@ func (db *SQLDB) UpdateContainerTTLToBeRemoved(
 	return newContainer, nil
 }
 
-func (db *SQLDB) CreateContainer(
-	container Container,
-	ttl time.Duration,
-	maxLifetime time.Duration,
-	volumeHandles []string,
-) (SavedContainer, error) {
+func (db *SQLDB) CreateContainer(container Container, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error) {
 	if !(isValidCheckID(container.ContainerIdentifier) || isValidStepID(container.ContainerIdentifier)) {
 		return SavedContainer{}, ErrInvalidIdentifier
 	}
@@ -322,8 +308,6 @@ func (db *SQLDB) CreateContainer(
 	}
 
 	user := container.User
-
-	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	if container.PipelineName != "" && container.PipelineID == 0 {
 		// containers that belong to some pipeline must be identified by pipeline ID not name
@@ -387,13 +371,14 @@ func (db *SQLDB) CreateContainer(
 	if maxLifetime > 0 {
 		maxLifetimeValue = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(maxLifetime.Seconds()))
 	}
+
 	var id int
 	err = tx.QueryRow(`
 		INSERT INTO containers (handle, state, resource_id, step_name, pipeline_id, build_id, type, worker_name,
-			expires_at, ttl, best_if_used_by, check_type, check_source, plan_id, working_directory,
+			best_if_used_by, check_type, check_source, plan_id, working_directory,
 			env_variables, attempts, stage, image_resource_type, image_resource_source,
 			process_user, resource_type_version, team_id)
-		VALUES ($1, 'created', $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+		VALUES ($1, 'created', $2, $3, $4, $5, $6, $7, `+maxLifetimeValue+`, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		RETURNING id`,
 		container.Handle,
 		resourceID,
@@ -402,8 +387,6 @@ func (db *SQLDB) CreateContainer(
 		buildID,
 		container.Type.String(),
 		container.WorkerName,
-		interval,
-		ttl,
 		container.CheckType,
 		checkSource,
 		string(container.PlanID),
@@ -448,43 +431,6 @@ func (db *SQLDB) CreateContainer(
 	}
 
 	return newContainer, nil
-}
-
-func (db *SQLDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	if ttl == 0 {
-		_, err = tx.Exec(`
-			UPDATE containers SET expires_at = NULL, ttl = 0
-			WHERE handle = $1
-			`, handle)
-
-		if err != nil {
-			return err
-		}
-	} else {
-		interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
-
-		_, err = tx.Exec(`
-				UPDATE containers SET expires_at = NOW() + $2::INTERVAL, ttl = $3
-				WHERE handle = $1
-				`,
-			handle,
-			interval,
-			ttl,
-		)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
 }
 
 func (db *SQLDB) ReapContainer(handle string) error {
@@ -581,7 +527,6 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		infoType            string
 		envVariablesBlob    []byte
 		attempts            sql.NullString
-		ttlInSeconds        *float64
 		resourceTypeVersion []byte
 	)
 	container := SavedContainer{}
@@ -606,8 +551,6 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		&envVariablesBlob,
 		&attempts,
 		&container.User,
-		&container.TTL,
-		&ttlInSeconds,
 		&container.ID,
 		&resourceTypeVersion,
 		&teamID,
@@ -690,26 +633,5 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		container.User = "root"
 	}
 
-	if ttlInSeconds != nil {
-		container.ExpiresIn = time.Duration(*ttlInSeconds) * time.Second
-	}
-
 	return container, nil
-}
-
-func (db *SQLDB) ReapExpiredContainers() error {
-	_, err := db.conn.Exec(`
-		DELETE FROM containers
-		WHERE expires_at IS NOT NULL
-		AND expires_at < NOW()
-		AND id NOT IN (
-			SELECT container_id FROM volumes
-			WHERE state='creating'
-		)
-	`)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

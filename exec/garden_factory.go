@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -48,8 +47,6 @@ func (factory *gardenFactory) DependentGet(
 	teamID int,
 	params atc.Params,
 	resourceTypes atc.ResourceTypes,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 ) StepFactory {
 	return newDependentGetStep(
 		logger,
@@ -67,8 +64,6 @@ func (factory *gardenFactory) DependentGet(
 		delegate,
 		factory.resourceFetcher,
 		resourceTypes,
-		containerSuccessTTL,
-		containerFailureTTL,
 		factory.dbResourceCacheFactory,
 	)
 }
@@ -86,8 +81,6 @@ func (factory *gardenFactory) Get(
 	params atc.Params,
 	version atc.Version,
 	resourceTypes atc.ResourceTypes,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 	return newGetStep(
@@ -117,9 +110,6 @@ func (factory *gardenFactory) Get(
 		delegate,
 		factory.resourceFetcher,
 		resourceTypes,
-
-		containerSuccessTTL,
-		containerFailureTTL,
 	)
 }
 
@@ -134,8 +124,6 @@ func (factory *gardenFactory) Put(
 	teamID int,
 	params atc.Params,
 	resourceTypes atc.ResourceTypes,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 	return newPutStep(
@@ -153,8 +141,6 @@ func (factory *gardenFactory) Put(
 		delegate,
 		factory.resourceFactory,
 		resourceTypes,
-		containerSuccessTTL,
-		containerFailureTTL,
 	)
 }
 
@@ -173,8 +159,6 @@ func (factory *gardenFactory) Task(
 	outputMapping map[string]string,
 	imageArtifactName string,
 	clock clock.Clock,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(sourceName)
 	workerMetadata.WorkingDirectory = workingDirectory
@@ -194,8 +178,6 @@ func (factory *gardenFactory) Task(
 		outputMapping,
 		imageArtifactName,
 		clock,
-		containerSuccessTTL,
-		containerFailureTTL,
 	)
 }
 

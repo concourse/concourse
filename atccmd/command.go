@@ -30,8 +30,6 @@ import (
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/gc/buildreaper"
-	"github.com/concourse/atc/gc/containerkeepaliver"
-	"github.com/concourse/atc/gc/dbgc"
 	"github.com/concourse/atc/gcng"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
@@ -387,19 +385,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			30*time.Second,
 		)},
 
-		{"containerkeepaliver", lockrunner.NewRunner(
-			logger.Session("container-keepaliver"),
-			containerkeepaliver.NewContainerKeepAliver(
-				logger.Session("container-keepaliver"),
-				workerClient,
-				sqlDB,
-			),
-			"container-keepaliver",
-			sqlDB,
-			clock.NewClock(),
-			30*time.Second,
-		)},
-
 		{"buildreaper", lockrunner.NewRunner(
 			logger.Session("build-reaper-runner"),
 			buildreaper.NewBuildReaper(
@@ -412,18 +397,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			sqlDB,
 			clock.NewClock(),
 			30*time.Second,
-		)},
-
-		{"dbgc", lockrunner.NewRunner(
-			logger.Session("dbgc"),
-			dbgc.NewDBGarbageCollector(
-				logger.Session("dbgc"),
-				sqlDB,
-			),
-			"dbgc",
-			sqlDB,
-			clock.NewClock(),
-			60*time.Second,
 		)},
 	}
 

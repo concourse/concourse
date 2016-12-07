@@ -242,7 +242,7 @@ func (scanner *resourceScanner) scan(
 		return err
 	}
 
-	defer res.Release(nil)
+	defer res.Release()
 
 	logger.Debug("checking", lager.Data{
 		"from": fromVersion,

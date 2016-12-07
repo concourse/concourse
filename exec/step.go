@@ -49,11 +49,7 @@ type Step interface {
 	ifrit.Runner
 
 	// Release is called when the build has completed and no more steps will be
-	// executed in the build plan. Steps with containers should release their
-	// containers with infinite ttl
-	// Container reaper will check for successful builds and set the containers' ttl to 5 minutes.
-	// Container reaper also checks for unsuccessful (failed, aborted, errored) builds
-	// that are not the latest builds of a job, and release their containers in 5 minutes
+	// executed in the build plan.
 	Release()
 
 	// Result is used to collect metadata from the step. Usually this is

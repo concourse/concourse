@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/concourse/atc"
 )
@@ -63,9 +62,7 @@ type Container struct {
 type SavedContainer struct {
 	Container
 
-	TTL       time.Duration
-	ExpiresIn time.Duration
-	ID        int
+	ID int
 }
 
 type ContainerType string

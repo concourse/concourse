@@ -3,9 +3,7 @@ package worker
 import (
 	"errors"
 	"sync"
-	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/dbng"
@@ -27,11 +25,6 @@ type gardenWorkerContainer struct {
 
 	user string
 
-	clock clock.Clock
-
-	release      chan *time.Duration
-	heartbeating *sync.WaitGroup
-
 	releaseOnce sync.Once
 
 	workerName string
@@ -45,7 +38,6 @@ func newGardenWorkerContainer(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
-	clock clock.Clock,
 	workerName string,
 ) (Container, error) {
 	logger = logger.WithData(lager.Data{"container": container.Handle()})
@@ -58,32 +50,20 @@ func newGardenWorkerContainer(
 		gardenClient: gardenClient,
 		db:           db,
 
-		clock: clock,
-
-		heartbeating: new(sync.WaitGroup),
-		release:      make(chan *time.Duration, 1),
-		workerName:   workerName,
+		workerName: workerName,
 	}
-
-	workerContainer.heartbeat(logger.Session("initial-heartbeat"), ContainerTTL)
-
-	workerContainer.heartbeating.Add(1)
-	go workerContainer.heartbeatContinuously(
-		logger.Session("continuous-heartbeat"),
-		clock.NewTicker(containerKeepalive),
-	)
 
 	metric.TrackedContainers.Inc()
 
 	err := workerContainer.initializeVolumes(logger, baggageclaimClient)
 	if err != nil {
-		workerContainer.Release(nil)
+		workerContainer.Release()
 		return nil, err
 	}
 
 	properties, err := workerContainer.Properties()
 	if err != nil {
-		workerContainer.Release(nil)
+		workerContainer.Release()
 		return nil, err
 	}
 
@@ -97,7 +77,7 @@ func newGardenWorkerContainer(
 }
 
 func (container *gardenWorkerContainer) Destroy() error {
-	container.Release(nil)
+	container.Release()
 	return container.gardenClient.Destroy(container.Handle())
 }
 
@@ -105,12 +85,8 @@ func (container *gardenWorkerContainer) WorkerName() string {
 	return container.workerName
 }
 
-func (container *gardenWorkerContainer) Release(finalTTL *time.Duration) {
-	container.releaseOnce.Do(func() {
-		container.release <- finalTTL
-		container.heartbeating.Wait()
-		metric.TrackedContainers.Dec()
-	})
+func (container *gardenWorkerContainer) Release() {
+	metric.TrackedContainers.Dec()
 }
 
 func (container *gardenWorkerContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
@@ -154,41 +130,4 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	container.volumeMounts = volumeMounts
 
 	return nil
-}
-
-func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker) {
-	defer container.heartbeating.Done()
-	defer pacemaker.Stop()
-
-	logger.Debug("start")
-	defer logger.Debug("done")
-
-	for {
-		select {
-		case <-pacemaker.C():
-			container.heartbeat(logger.Session("tick"), ContainerTTL)
-
-		case finalTTL := <-container.release:
-			if finalTTL != nil {
-				container.heartbeat(logger.Session("final"), *finalTTL)
-			}
-
-			return
-		}
-	}
-}
-
-func (container *gardenWorkerContainer) heartbeat(logger lager.Logger, ttl time.Duration) {
-	logger.Debug("start")
-	defer logger.Debug("done")
-
-	err := container.db.UpdateExpiresAtOnContainer(container.Handle(), ttl)
-	if err != nil {
-		logger.Error("failed-to-heartbeat-to-db", err)
-	}
-
-	err = container.SetGraceTime(ttl)
-	if err != nil {
-		logger.Error("failed-to-heartbeat-to-container", err)
-	}
 }

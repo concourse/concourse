@@ -29,11 +29,10 @@ type FakeWorkerDB struct {
 		result2 bool
 		result3 error
 	}
-	CreateContainerStub        func(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
+	CreateContainerStub        func(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
 	createContainerMutex       sync.RWMutex
 	createContainerArgsForCall []struct {
 		container     db.Container
-		ttl           time.Duration
 		maxLifetime   time.Duration
 		volumeHandles []string
 	}
@@ -41,11 +40,10 @@ type FakeWorkerDB struct {
 		result1 db.SavedContainer
 		result2 error
 	}
-	UpdateContainerTTLToBeRemovedStub        func(container db.Container, ttl time.Duration, maxLifetime time.Duration) (db.SavedContainer, error)
+	UpdateContainerTTLToBeRemovedStub        func(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
 	updateContainerTTLToBeRemovedMutex       sync.RWMutex
 	updateContainerTTLToBeRemovedArgsForCall []struct {
 		container   db.Container
-		ttl         time.Duration
 		maxLifetime time.Duration
 	}
 	updateContainerTTLToBeRemovedReturns struct {
@@ -71,15 +69,6 @@ type FakeWorkerDB struct {
 		result1 db.SavedContainer
 		result2 bool
 		result3 error
-	}
-	UpdateExpiresAtOnContainerStub        func(handle string, ttl time.Duration) error
-	updateExpiresAtOnContainerMutex       sync.RWMutex
-	updateExpiresAtOnContainerArgsForCall []struct {
-		handle string
-		ttl    time.Duration
-	}
-	updateExpiresAtOnContainerReturns struct {
-		result1 error
 	}
 	ReapContainerStub        func(handle string) error
 	reapContainerMutex       sync.RWMutex
@@ -182,7 +171,7 @@ func (fake *FakeWorkerDB) GetWorkerReturns(result1 db.SavedWorker, result2 bool,
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerDB) CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error) {
+func (fake *FakeWorkerDB) CreateContainer(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error) {
 	var volumeHandlesCopy []string
 	if volumeHandles != nil {
 		volumeHandlesCopy = make([]string, len(volumeHandles))
@@ -191,14 +180,13 @@ func (fake *FakeWorkerDB) CreateContainer(container db.Container, ttl time.Durat
 	fake.createContainerMutex.Lock()
 	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
 		container     db.Container
-		ttl           time.Duration
 		maxLifetime   time.Duration
 		volumeHandles []string
-	}{container, ttl, maxLifetime, volumeHandlesCopy})
-	fake.recordInvocation("CreateContainer", []interface{}{container, ttl, maxLifetime, volumeHandlesCopy})
+	}{container, maxLifetime, volumeHandlesCopy})
+	fake.recordInvocation("CreateContainer", []interface{}{container, maxLifetime, volumeHandlesCopy})
 	fake.createContainerMutex.Unlock()
 	if fake.CreateContainerStub != nil {
-		return fake.CreateContainerStub(container, ttl, maxLifetime, volumeHandles)
+		return fake.CreateContainerStub(container, maxLifetime, volumeHandles)
 	} else {
 		return fake.createContainerReturns.result1, fake.createContainerReturns.result2
 	}
@@ -210,10 +198,10 @@ func (fake *FakeWorkerDB) CreateContainerCallCount() int {
 	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.Duration, time.Duration, []string) {
+func (fake *FakeWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.Duration, []string) {
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
-	return fake.createContainerArgsForCall[i].container, fake.createContainerArgsForCall[i].ttl, fake.createContainerArgsForCall[i].maxLifetime, fake.createContainerArgsForCall[i].volumeHandles
+	return fake.createContainerArgsForCall[i].container, fake.createContainerArgsForCall[i].maxLifetime, fake.createContainerArgsForCall[i].volumeHandles
 }
 
 func (fake *FakeWorkerDB) CreateContainerReturns(result1 db.SavedContainer, result2 error) {
@@ -224,17 +212,16 @@ func (fake *FakeWorkerDB) CreateContainerReturns(result1 db.SavedContainer, resu
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerDB) UpdateContainerTTLToBeRemoved(container db.Container, ttl time.Duration, maxLifetime time.Duration) (db.SavedContainer, error) {
+func (fake *FakeWorkerDB) UpdateContainerTTLToBeRemoved(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error) {
 	fake.updateContainerTTLToBeRemovedMutex.Lock()
 	fake.updateContainerTTLToBeRemovedArgsForCall = append(fake.updateContainerTTLToBeRemovedArgsForCall, struct {
 		container   db.Container
-		ttl         time.Duration
 		maxLifetime time.Duration
-	}{container, ttl, maxLifetime})
-	fake.recordInvocation("UpdateContainerTTLToBeRemoved", []interface{}{container, ttl, maxLifetime})
+	}{container, maxLifetime})
+	fake.recordInvocation("UpdateContainerTTLToBeRemoved", []interface{}{container, maxLifetime})
 	fake.updateContainerTTLToBeRemovedMutex.Unlock()
 	if fake.UpdateContainerTTLToBeRemovedStub != nil {
-		return fake.UpdateContainerTTLToBeRemovedStub(container, ttl, maxLifetime)
+		return fake.UpdateContainerTTLToBeRemovedStub(container, maxLifetime)
 	} else {
 		return fake.updateContainerTTLToBeRemovedReturns.result1, fake.updateContainerTTLToBeRemovedReturns.result2
 	}
@@ -246,10 +233,10 @@ func (fake *FakeWorkerDB) UpdateContainerTTLToBeRemovedCallCount() int {
 	return len(fake.updateContainerTTLToBeRemovedArgsForCall)
 }
 
-func (fake *FakeWorkerDB) UpdateContainerTTLToBeRemovedArgsForCall(i int) (db.Container, time.Duration, time.Duration) {
+func (fake *FakeWorkerDB) UpdateContainerTTLToBeRemovedArgsForCall(i int) (db.Container, time.Duration) {
 	fake.updateContainerTTLToBeRemovedMutex.RLock()
 	defer fake.updateContainerTTLToBeRemovedMutex.RUnlock()
-	return fake.updateContainerTTLToBeRemovedArgsForCall[i].container, fake.updateContainerTTLToBeRemovedArgsForCall[i].ttl, fake.updateContainerTTLToBeRemovedArgsForCall[i].maxLifetime
+	return fake.updateContainerTTLToBeRemovedArgsForCall[i].container, fake.updateContainerTTLToBeRemovedArgsForCall[i].maxLifetime
 }
 
 func (fake *FakeWorkerDB) UpdateContainerTTLToBeRemovedReturns(result1 db.SavedContainer, result2 error) {
@@ -328,40 +315,6 @@ func (fake *FakeWorkerDB) FindContainerByIdentifierReturns(result1 db.SavedConta
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeWorkerDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error {
-	fake.updateExpiresAtOnContainerMutex.Lock()
-	fake.updateExpiresAtOnContainerArgsForCall = append(fake.updateExpiresAtOnContainerArgsForCall, struct {
-		handle string
-		ttl    time.Duration
-	}{handle, ttl})
-	fake.recordInvocation("UpdateExpiresAtOnContainer", []interface{}{handle, ttl})
-	fake.updateExpiresAtOnContainerMutex.Unlock()
-	if fake.UpdateExpiresAtOnContainerStub != nil {
-		return fake.UpdateExpiresAtOnContainerStub(handle, ttl)
-	} else {
-		return fake.updateExpiresAtOnContainerReturns.result1
-	}
-}
-
-func (fake *FakeWorkerDB) UpdateExpiresAtOnContainerCallCount() int {
-	fake.updateExpiresAtOnContainerMutex.RLock()
-	defer fake.updateExpiresAtOnContainerMutex.RUnlock()
-	return len(fake.updateExpiresAtOnContainerArgsForCall)
-}
-
-func (fake *FakeWorkerDB) UpdateExpiresAtOnContainerArgsForCall(i int) (string, time.Duration) {
-	fake.updateExpiresAtOnContainerMutex.RLock()
-	defer fake.updateExpiresAtOnContainerMutex.RUnlock()
-	return fake.updateExpiresAtOnContainerArgsForCall[i].handle, fake.updateExpiresAtOnContainerArgsForCall[i].ttl
-}
-
-func (fake *FakeWorkerDB) UpdateExpiresAtOnContainerReturns(result1 error) {
-	fake.UpdateExpiresAtOnContainerStub = nil
-	fake.updateExpiresAtOnContainerReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeWorkerDB) ReapContainer(handle string) error {
@@ -515,8 +468,6 @@ func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.getContainerMutex.RUnlock()
 	fake.findContainerByIdentifierMutex.RLock()
 	defer fake.findContainerByIdentifierMutex.RUnlock()
-	fake.updateExpiresAtOnContainerMutex.RLock()
-	defer fake.updateExpiresAtOnContainerMutex.RUnlock()
 	fake.reapContainerMutex.RLock()
 	defer fake.reapContainerMutex.RUnlock()
 	fake.getPipelineByIDMutex.RLock()

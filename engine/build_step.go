@@ -123,8 +123,6 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		plan.Task.OutputMapping,
 		plan.Task.ImageArtifactName,
 		clock,
-		build.containerSuccessTTL,
-		build.containerFailureTTL,
 	)
 }
 
@@ -159,8 +157,6 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		plan.Get.Params,
 		plan.Get.Version,
 		plan.Get.ResourceTypes,
-		build.containerSuccessTTL,
-		build.containerFailureTTL,
 	)
 }
 
@@ -193,8 +189,6 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		build.teamID,
 		plan.Put.Params,
 		plan.Put.ResourceTypes,
-		build.containerSuccessTTL,
-		build.containerFailureTTL,
 	)
 }
 
@@ -229,8 +223,6 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 		build.teamID,
 		getPlan.Params,
 		getPlan.ResourceTypes,
-		build.containerSuccessTTL,
-		build.containerFailureTTL,
 	)
 }
 

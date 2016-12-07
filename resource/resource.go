@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -17,7 +16,7 @@ type Resource interface {
 	Put(IOConfig, atc.Source, atc.Params, worker.ArtifactSource, <-chan os.Signal, chan<- struct{}) (VersionedSource, error)
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
-	Release(*time.Duration)
+	Release()
 }
 
 type ResourceType string
@@ -62,6 +61,6 @@ func NewResourceForContainer(container worker.Container) Resource {
 	}
 }
 
-func (resource *resource) Release(finalTTL *time.Duration) {
-	resource.container.Release(finalTTL)
+func (resource *resource) Release() {
+	resource.container.Release()
 }

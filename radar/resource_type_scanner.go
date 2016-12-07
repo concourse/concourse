@@ -126,7 +126,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		return err
 	}
 
-	defer res.Release(nil)
+	defer res.Release()
 
 	newVersions, err := res.Check(resourceType.Source, atc.Version(fromVersion))
 	if err != nil {

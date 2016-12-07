@@ -94,8 +94,7 @@ func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, e
 		SELECT `+containerColumns+`
 		FROM containers c `+teamContainerJoins+`
 		WHERE c.team_id = %d
-		AND (expires_at IS NULL OR expires_at > NOW())
-		`, team.ID)
+	`, team.ID)
 
 	if len(whereCriteria) > 0 {
 		selectQuery += fmt.Sprintf(" AND %s", strings.Join(whereCriteria, " AND "))
@@ -138,7 +137,6 @@ func (db *teamDB) GetContainer(handle string) (SavedContainer, bool, error) {
 	  FROM containers c `+teamContainerJoins+`
 		WHERE c.handle = $1
 		AND c.team_id = %d
-		AND (expires_at IS NULL OR expires_at > NOW())
 	`, team.ID), handle))
 
 	if err != nil {

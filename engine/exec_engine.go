@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"os"
 
@@ -21,8 +20,6 @@ type execMetadata struct {
 }
 
 const execEngineName = "exec.v2"
-const successTTL = 5 * time.Minute
-const failureTTL = 5 * time.Minute
 
 type execEngine struct {
 	factory         exec.Factory
@@ -63,9 +60,6 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan 
 		},
 
 		signals: make(chan os.Signal, 1),
-
-		containerSuccessTTL: successTTL,
-		containerFailureTTL: failureTTL,
 	}, nil
 }
 
@@ -93,9 +87,6 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 		metadata: metadata,
 
 		signals: make(chan os.Signal, 1),
-
-		containerSuccessTTL: successTTL,
-		containerFailureTTL: failureTTL,
 	}, nil
 }
 
@@ -171,9 +162,6 @@ type execBuild struct {
 	signals chan os.Signal
 
 	metadata execMetadata
-
-	containerSuccessTTL time.Duration
-	containerFailureTTL time.Duration
 }
 
 func (build *execBuild) Metadata() string {

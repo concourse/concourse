@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
@@ -73,9 +72,6 @@ var _ = Describe("GardenFactory", func() {
 
 			step    Step
 			process ifrit.Process
-
-			successTTL time.Duration
-			failureTTL time.Duration
 		)
 
 		BeforeEach(func() {
@@ -102,9 +98,6 @@ var _ = Describe("GardenFactory", func() {
 					Source: atc.Source{"some-custom": "source"},
 				},
 			}
-
-			successTTL = 3 * time.Second
-			failureTTL = 10 * time.Second
 		})
 
 		JustBeforeEach(func() {
@@ -119,8 +112,6 @@ var _ = Describe("GardenFactory", func() {
 				teamID,
 				params,
 				resourceTypes,
-				successTTL,
-				failureTTL,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -267,14 +258,13 @@ var _ = Describe("GardenFactory", func() {
 					Expect(bool(success)).To(BeTrue())
 				})
 
-				It("releases the resource with success TTL", func() {
+				It("releases the resource", func() {
 					<-process.Wait()
 
 					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 					step.Release()
 					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
 				})
 
 				It("completes via the delegate", func() {
@@ -337,14 +327,13 @@ var _ = Describe("GardenFactory", func() {
 							Expect(putDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 						})
 
-						It("releases the resource with the failre ttl", func() {
+						It("releases the resource", func() {
 							<-process.Wait()
 
 							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 						})
 					})
 
@@ -366,14 +355,13 @@ var _ = Describe("GardenFactory", func() {
 							Expect(putDelegate.FailedArgsForCall(0)).To(Equal(ErrInterrupted))
 						})
 
-						It("releases the resource with the failre ttl", func() {
+						It("releases the resource", func() {
 							<-process.Wait()
 
 							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 						})
 					})
 
@@ -409,14 +397,13 @@ var _ = Describe("GardenFactory", func() {
 							Expect(bool(success)).To(BeFalse())
 						})
 
-						It("releases the resource with the failure ttl", func() {
+						It("releases the resource", func() {
 							<-process.Wait()
 
 							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 						})
 					})
 				})

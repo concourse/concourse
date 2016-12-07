@@ -2,7 +2,6 @@ package exec
 
 import (
 	"io"
-	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -28,8 +27,6 @@ type Factory interface {
 		atc.Params,
 		atc.Version,
 		atc.ResourceTypes,
-		time.Duration,
-		time.Duration,
 	) StepFactory
 
 	// Put constructs a PutStep factory.
@@ -44,8 +41,6 @@ type Factory interface {
 		int,
 		atc.Params,
 		atc.ResourceTypes,
-		time.Duration,
-		time.Duration,
 	) StepFactory
 
 	// DependentGet constructs a GetStep factory whose version is determined by
@@ -62,8 +57,6 @@ type Factory interface {
 		int,
 		atc.Params,
 		atc.ResourceTypes,
-		time.Duration,
-		time.Duration,
 	) StepFactory
 
 	// Task constructs a TaskStep factory.
@@ -82,8 +75,6 @@ type Factory interface {
 		map[string]string,
 		string,
 		clock.Clock,
-		time.Duration,
-		time.Duration,
 	) StepFactory
 }
 

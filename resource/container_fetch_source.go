@@ -2,7 +2,6 @@ package resource
 
 import (
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/worker"
@@ -73,6 +72,6 @@ func (s *containerFetchSource) Initialize(signals <-chan os.Signal, ready chan<-
 	return nil
 }
 
-func (s *containerFetchSource) Release(finalTTL *time.Duration) {
-	s.container.Release(finalTTL)
+func (s *containerFetchSource) Release() {
+	s.container.Release()
 }

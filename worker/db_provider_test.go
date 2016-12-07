@@ -292,7 +292,7 @@ var _ = Describe("DBProvider", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeDB.UpdateContainerTTLToBeRemovedCallCount()).To(Equal(1))
-					createdInfo, _, _ := fakeDB.UpdateContainerTTLToBeRemovedArgsForCall(0)
+					createdInfo, _ := fakeDB.UpdateContainerTTLToBeRemovedArgsForCall(0)
 					Expect(createdInfo.WorkerName).To(Equal("some-worker"))
 
 					Expect(container.Handle()).To(Equal("created-handle"))

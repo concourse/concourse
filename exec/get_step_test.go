@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -56,9 +55,6 @@ var _ = Describe("Get", func() {
 
 		step    Step
 		process ifrit.Process
-
-		successTTL time.Duration
-		failureTTL time.Duration
 
 		identifier = worker.Identifier{
 			ResourceID: 1234,
@@ -114,9 +110,6 @@ var _ = Describe("Get", func() {
 			},
 		}
 
-		successTTL = 3 * time.Second
-		failureTTL = 7 * time.Second
-
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
 		fakeFetchSource = new(resourcefakes.FakeFetchSource)
 		fakeResourceFetcher.FetchReturns(fakeFetchSource, nil)
@@ -142,8 +135,6 @@ var _ = Describe("Get", func() {
 			params,
 			version,
 			resourceTypes,
-			successTTL,
-			failureTTL,
 		).Using(inStep, repo)
 
 		process = ifrit.Invoke(step)

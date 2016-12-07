@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -64,9 +63,6 @@ var _ = Describe("Containers API", func() {
 					Handle:               handle,
 				},
 			},
-
-			TTL:       5 * time.Minute,
-			ExpiresIn: 2 * time.Minute,
 		}
 	})
 
@@ -116,9 +112,6 @@ var _ = Describe("Containers API", func() {
 									Handle:       "some-other-handle",
 								},
 							},
-
-							TTL:       0,
-							ExpiresIn: 0,
 						}
 
 						fakeContainers = []db.SavedContainer{
@@ -153,8 +146,6 @@ var _ = Describe("Containers API", func() {
 							[
 								{
 									"id": "some-handle",
-									"ttl_in_seconds": 120,
-									"validity_in_seconds": 300,
 									"worker_name": "some-worker-guid",
 									"pipeline_name": "some-pipeline",
 									"job_name": "some-job",
@@ -169,8 +160,6 @@ var _ = Describe("Containers API", func() {
 								},
 								{
 									"id": "some-other-handle",
-									"ttl_in_seconds": 0,
-									"validity_in_seconds": 0,
 									"worker_name": "some-other-worker-guid",
 									"pipeline_name": "some-other-pipeline",
 									"resource_name": "some-resource"
@@ -525,8 +514,6 @@ var _ = Describe("Containers API", func() {
 							"build_id": 1234,
 							"build_name": "2",
 							"id": "some-handle",
-							"ttl_in_seconds": 120,
-							"validity_in_seconds": 300,
 							"worker_name": "some-worker-guid",
 							"working_directory": "/tmp/build/my-favorite-guid",
 							"env_variables": ["VAR1=VAL1"],

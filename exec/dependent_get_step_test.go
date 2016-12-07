@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -68,9 +67,7 @@ var _ = Describe("DependentGet", func() {
 
 		sourceName worker.ArtifactName = "some-source-name"
 
-		teamID     int = 123
-		successTTL time.Duration
-		failureTTL time.Duration
+		teamID int = 123
 	)
 
 	BeforeEach(func() {
@@ -83,9 +80,6 @@ var _ = Describe("DependentGet", func() {
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
-
-		successTTL = 3 * time.Second
-		failureTTL = 10 * time.Second
 
 		getDelegate = new(execfakes.FakeGetDelegate)
 		getDelegate.StdoutReturns(stdoutBuf)
@@ -145,8 +139,6 @@ var _ = Describe("DependentGet", func() {
 			teamID,
 			params,
 			resourceTypes,
-			successTTL,
-			failureTTL,
 		).Using(inStep, repo)
 
 		process = ifrit.Invoke(step)

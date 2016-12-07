@@ -32,9 +32,6 @@ func (err MalformedMetadataError) Error() string {
 	return fmt.Sprintf("malformed image metadata: %s", err.UnmarshalError)
 }
 
-const containerKeepalive = 30 * time.Second
-const ContainerTTL = 5 * time.Minute
-
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
 const volumeMountsPropertyName = "concourse:volume-mounts"
@@ -86,10 +83,9 @@ type DBContainerFactory interface {
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
-	UpdateContainerTTLToBeRemoved(container db.Container, ttl time.Duration, maxLifetime time.Duration) (db.SavedContainer, error)
+	CreateContainer(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
+	UpdateContainerTTLToBeRemoved(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
 	GetContainer(handle string) (db.SavedContainer, bool, error)
-	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)

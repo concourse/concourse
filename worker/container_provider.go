@@ -9,7 +9,6 @@ import (
 	"path"
 	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -34,8 +33,6 @@ type containerProviderFactory struct {
 
 	db GardenWorkerDB
 
-	clock clock.Clock
-
 	httpProxyURL  string
 	httpsProxyURL string
 	noProxy       string
@@ -49,7 +46,6 @@ func NewContainerProviderFactory(
 	dbContainerFactory DBContainerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	db GardenWorkerDB,
-	clock clock.Clock,
 	httpProxyURL string,
 	httpsProxyURL string,
 	noProxy string,
@@ -62,7 +58,6 @@ func NewContainerProviderFactory(
 		dbContainerFactory: dbContainerFactory,
 		dbVolumeFactory:    dbVolumeFactory,
 		db:                 db,
-		clock:              clock,
 		httpProxyURL:       httpProxyURL,
 		httpsProxyURL:      httpsProxyURL,
 		noProxy:            noProxy,
@@ -80,7 +75,6 @@ func (f *containerProviderFactory) ContainerProviderFor(
 		dbContainerFactory: f.dbContainerFactory,
 		dbVolumeFactory:    f.dbVolumeFactory,
 		db:                 f.db,
-		clock:              f.clock,
 		httpProxyURL:       f.httpProxyURL,
 		httpsProxyURL:      f.httpsProxyURL,
 		noProxy:            f.noProxy,
@@ -121,8 +115,6 @@ type containerProvider struct {
 
 	db       GardenWorkerDB
 	provider WorkerProvider
-
-	clock clock.Clock
 
 	worker        Worker
 	httpProxyURL  string
@@ -192,7 +184,6 @@ func (p *containerProvider) FindContainerByHandle(
 		p.gardenClient,
 		p.baggageclaimClient,
 		p.db,
-		p.clock,
 		p.worker.Name(),
 	)
 
@@ -243,7 +234,6 @@ func (p *containerProvider) createContainer(
 		p.gardenClient,
 		p.baggageclaimClient,
 		p.db,
-		p.clock,
 		p.worker.Name(),
 	)
 }
@@ -396,7 +386,6 @@ func (p *containerProvider) createGardenContainer(
 			ContainerIdentifier: db.ContainerIdentifier(id),
 			ContainerMetadata:   db.ContainerMetadata(metadata),
 		},
-		ContainerTTL,
 		p.maxContainerLifetime(metadata),
 	)
 	if err != nil {

@@ -1,8 +1,6 @@
 package exec
 
 import (
-	"time"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
@@ -25,8 +23,6 @@ type DependentGetStep struct {
 	delegate               ResourceDelegate
 	resourceFetcher        resource.Fetcher
 	resourceTypes          atc.ResourceTypes
-	containerSuccessTTL    time.Duration
-	containerFailureTTL    time.Duration
 	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
@@ -42,8 +38,6 @@ func newDependentGetStep(
 	delegate ResourceDelegate,
 	resourceFetcher resource.Fetcher,
 	resourceTypes atc.ResourceTypes,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) DependentGetStep {
 	return DependentGetStep{
@@ -58,8 +52,6 @@ func newDependentGetStep(
 		delegate:               delegate,
 		resourceFetcher:        resourceFetcher,
 		resourceTypes:          resourceTypes,
-		containerSuccessTTL:    containerSuccessTTL,
-		containerFailureTTL:    containerFailureTTL,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
@@ -93,7 +85,5 @@ func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) S
 		step.delegate,
 		step.resourceFetcher,
 		step.resourceTypes,
-		step.containerSuccessTTL,
-		step.containerFailureTTL,
 	).Using(prev, repo)
 }

@@ -6,9 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
-	"time"
 
-	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
@@ -40,7 +38,6 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBContainerFactory *wfakes.FakeDBContainerFactory
 		fakeDBVolumeFactory    *dbngfakes.FakeVolumeFactory
 		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
-		fakeClock              *fakeclock.FakeClock
 		fakeWorker             *wfakes.FakeWorker
 
 		containerProvider        ContainerProvider
@@ -65,7 +62,6 @@ var _ = Describe("ContainerProvider", func() {
 		fakeImage = new(wfakes.FakeImage)
 		fakeImageFactory.NewImageReturns(fakeImage)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
-		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		fakeWorker = new(wfakes.FakeWorker)
 
 		fakeDBContainerFactory = new(wfakes.FakeDBContainerFactory)
@@ -79,7 +75,6 @@ var _ = Describe("ContainerProvider", func() {
 			fakeDBContainerFactory,
 			fakeDBVolumeFactory,
 			fakeGardenWorkerDB,
-			fakeClock,
 			"http://proxy.com",
 			"https://proxy.com",
 			"http://noproxy.com",
@@ -458,74 +453,13 @@ var _ = Describe("ContainerProvider", func() {
 					By("destroying via garden")
 					Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
 					Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("provider-handle"))
-
-					By("no longer heartbeating")
-					fakeClock.Increment(30 * time.Second)
-					Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
-				})
-
-				It("performs an initial heartbeat synchronously", func() {
-					Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
-					Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(1))
-				})
-
-				Describe("every 30 seconds", func() {
-					It("heartbeats to the database and the container", func() {
-						fakeClock.Increment(30 * time.Second)
-
-						Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
-						Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
-
-						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
-						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
-						Expect(handle).To(Equal("provider-handle"))
-						Expect(interval).To(Equal(5 * time.Minute))
-
-						fakeClock.Increment(30 * time.Second)
-
-						Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
-						Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
-
-						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(3))
-						handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(2)
-						Expect(handle).To(Equal("provider-handle"))
-						Expect(interval).To(Equal(5 * time.Minute))
-					})
-				})
-
-				Describe("releasing", func() {
-					It("sets a final ttl on the container and stops heartbeating", func() {
-						foundContainer.Release(FinalTTL(30 * time.Minute))
-
-						Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
-						Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
-
-						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).Should(Equal(2))
-						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
-						Expect(handle).To(Equal("provider-handle"))
-						Expect(interval).To(Equal(30 * time.Minute))
-
-						fakeClock.Increment(30 * time.Second)
-
-						Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
-						Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
-					})
-
-					Context("with no final ttl", func() {
-						It("does not perform a final heartbeat", func() {
-							foundContainer.Release(nil)
-
-							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
-							Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(1))
-						})
-					})
 				})
 
 				It("can be released multiple times", func() {
-					foundContainer.Release(nil)
+					foundContainer.Release()
 
 					Expect(func() {
-						foundContainer.Release(nil)
+						foundContainer.Release()
 					}).NotTo(Panic())
 				})
 			})

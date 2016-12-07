@@ -10,7 +10,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
@@ -54,9 +53,7 @@ type TaskStep struct {
 	clock             clock.Clock
 	repo              *worker.ArtifactRepository
 
-	container           worker.Container
-	containerSuccessTTL time.Duration
-	containerFailureTTL time.Duration
+	container worker.Container
 
 	process garden.Process
 
@@ -79,27 +76,23 @@ func newTaskStep(
 	outputMapping map[string]string,
 	imageArtifactName string,
 	clock clock.Clock,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 ) TaskStep {
 	return TaskStep{
-		logger:              logger,
-		containerID:         containerID,
-		metadata:            metadata,
-		tags:                tags,
-		teamID:              teamID,
-		delegate:            delegate,
-		privileged:          privileged,
-		configSource:        configSource,
-		workerPool:          workerPool,
-		artifactsRoot:       artifactsRoot,
-		resourceTypes:       resourceTypes,
-		inputMapping:        inputMapping,
-		outputMapping:       outputMapping,
-		imageArtifactName:   imageArtifactName,
-		clock:               clock,
-		containerSuccessTTL: containerSuccessTTL,
-		containerFailureTTL: containerFailureTTL,
+		logger:            logger,
+		containerID:       containerID,
+		metadata:          metadata,
+		tags:              tags,
+		teamID:            teamID,
+		delegate:          delegate,
+		privileged:        privileged,
+		configSource:      configSource,
+		workerPool:        workerPool,
+		artifactsRoot:     artifactsRoot,
+		resourceTypes:     resourceTypes,
+		inputMapping:      inputMapping,
+		outputMapping:     outputMapping,
+		imageArtifactName: imageArtifactName,
+		clock:             clock,
 	}
 }
 
@@ -409,11 +402,7 @@ func (step *TaskStep) Release() {
 		return
 	}
 
-	if step.exitStatus == 0 {
-		step.container.Release(worker.FinalTTL(step.containerSuccessTTL))
-	} else {
-		step.container.Release(worker.FinalTTL(step.containerFailureTTL))
-	}
+	step.container.Release()
 }
 
 func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []worker.VolumeMount, []inputPair, error) {

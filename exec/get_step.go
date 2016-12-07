@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -38,9 +37,6 @@ type GetStep struct {
 	fetchSource resource.FetchSource
 
 	succeeded bool
-
-	containerSuccessTTL time.Duration
-	containerFailureTTL time.Duration
 }
 
 func newGetStep(
@@ -57,25 +53,21 @@ func newGetStep(
 	delegate GetDelegate,
 	resourceFetcher resource.Fetcher,
 	resourceTypes atc.ResourceTypes,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 ) GetStep {
 	return GetStep{
-		logger:              logger,
-		sourceName:          sourceName,
-		resourceConfig:      resourceConfig,
-		version:             version,
-		params:              params,
-		resourceInstance:    resourceInstance,
-		stepMetadata:        stepMetadata,
-		session:             session,
-		tags:                tags,
-		teamID:              teamID,
-		delegate:            delegate,
-		resourceFetcher:     resourceFetcher,
-		resourceTypes:       resourceTypes,
-		containerSuccessTTL: containerSuccessTTL,
-		containerFailureTTL: containerFailureTTL,
+		logger:           logger,
+		sourceName:       sourceName,
+		resourceConfig:   resourceConfig,
+		version:          version,
+		params:           params,
+		resourceInstance: resourceInstance,
+		stepMetadata:     stepMetadata,
+		session:          session,
+		tags:             tags,
+		teamID:           teamID,
+		delegate:         delegate,
+		resourceFetcher:  resourceFetcher,
+		resourceTypes:    resourceTypes,
 	}
 }
 
@@ -163,11 +155,7 @@ func (step *GetStep) Release() {
 		return
 	}
 
-	if step.succeeded {
-		step.fetchSource.Release(worker.FinalTTL(step.containerSuccessTTL))
-	} else {
-		step.fetchSource.Release(worker.FinalTTL(step.containerFailureTTL))
-	}
+	step.fetchSource.Release()
 }
 
 // Result indicates Success as true if the script completed successfully (or

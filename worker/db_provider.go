@@ -22,11 +22,10 @@ import (
 type WorkerDB interface {
 	Workers() ([]db.SavedWorker, error)
 	GetWorker(string) (db.SavedWorker, bool, error)
-	CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
-	UpdateContainerTTLToBeRemoved(container db.Container, ttl time.Duration, maxLifetime time.Duration) (db.SavedContainer, error)
+	CreateContainer(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
+	UpdateContainerTTLToBeRemoved(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
-	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	ReapVolume(handle string) error
@@ -169,7 +168,6 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		provider.dbContainerFactory,
 		provider.dbVolumeFactory,
 		provider.db,
-		tikTok,
 		savedWorker.HTTPProxyURL,
 		savedWorker.HTTPSProxyURL,
 		savedWorker.NoProxy,

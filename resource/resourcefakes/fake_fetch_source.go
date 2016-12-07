@@ -4,7 +4,6 @@ package resourcefakes
 import (
 	"os"
 	"sync"
-	"time"
 
 	"github.com/concourse/atc/resource"
 )
@@ -39,13 +38,11 @@ type FakeFetchSource struct {
 	initializeReturns struct {
 		result1 error
 	}
-	ReleaseStub        func(*time.Duration)
+	ReleaseStub        func()
 	releaseMutex       sync.RWMutex
-	releaseArgsForCall []struct {
-		arg1 *time.Duration
-	}
-	invocations      map[string][][]interface{}
-	invocationsMutex sync.RWMutex
+	releaseArgsForCall []struct{}
+	invocations        map[string][][]interface{}
+	invocationsMutex   sync.RWMutex
 }
 
 func (fake *FakeFetchSource) IsInitialized() (bool, error) {
@@ -159,15 +156,13 @@ func (fake *FakeFetchSource) InitializeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeFetchSource) Release(arg1 *time.Duration) {
+func (fake *FakeFetchSource) Release() {
 	fake.releaseMutex.Lock()
-	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
-		arg1 *time.Duration
-	}{arg1})
-	fake.recordInvocation("Release", []interface{}{arg1})
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
+	fake.recordInvocation("Release", []interface{}{})
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
-		fake.ReleaseStub(arg1)
+		fake.ReleaseStub()
 	}
 }
 
@@ -175,12 +170,6 @@ func (fake *FakeFetchSource) ReleaseCallCount() int {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	return len(fake.releaseArgsForCall)
-}
-
-func (fake *FakeFetchSource) ReleaseArgsForCall(i int) *time.Duration {
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
-	return fake.releaseArgsForCall[i].arg1
 }
 
 func (fake *FakeFetchSource) Invocations() map[string][][]interface{} {

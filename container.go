@@ -2,8 +2,6 @@ package atc
 
 type Container struct {
 	ID                   string   `json:"id"`
-	TTLInSeconds         int64    `json:"ttl_in_seconds"`
-	ValidityInSeconds    int64    `json:"validity_in_seconds"`
 	WorkerName           string   `json:"worker_name"`
 	PipelineName         string   `json:"pipeline_name"`
 	JobName              string   `json:"job_name,omitempty"`
