@@ -55,7 +55,7 @@ var _ = Describe("Aborting a build", func() {
 			Eventually(page.Find(".build-action-abort")).Should(BeFound())
 			// if we abort before the script has started running, it never actually
 			// gets aborted
-			Eventually(page.Find(".step-body")).Should(HaveText("running"))
+			Eventually(page.Find(".step-body")).Should(MatchText(".*running"))
 			Expect(page.Find(".build-action-abort").Click()).To(Succeed())
 
 			Eventually(page.Find(".build-header.aborted")).Should(BeFound())
@@ -96,7 +96,7 @@ var _ = Describe("Aborting a build", func() {
 			Eventually(page.Find(".build-action-abort")).Should(BeFound())
 			// if we abort before the script has started running, it never actually
 			// gets aborted
-			Eventually(page.Find(".step-body")).Should(HaveText("running"))
+			Eventually(page.Find(".step-body")).Should(MatchText(".*running"))
 			Expect(page.Find(".build-action-abort").Click()).To(Succeed())
 
 			Eventually(page.Find(".build-header.aborted")).Should(BeFound())
