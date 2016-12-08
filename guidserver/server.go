@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -83,7 +84,7 @@ func Start(client concourse.Client) *Server {
 
 		if rootfsPath != "" {
 			gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
-			baggageclaimClient = bclient.New(w.BaggageclaimURL)
+			baggageclaimClient = bclient.New(w.BaggageclaimURL, http.DefaultTransport)
 		}
 	}
 

@@ -3,6 +3,7 @@ package gitserver
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -59,7 +60,7 @@ func Start(client concourse.Client) *Server {
 
 		if gitServerRootfs != "" {
 			gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
-			baggageclaimClient = bclient.New(w.BaggageclaimURL)
+			baggageclaimClient = bclient.New(w.BaggageclaimURL, http.DefaultTransport)
 		}
 	}
 
