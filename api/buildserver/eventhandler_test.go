@@ -116,6 +116,7 @@ var _ = Describe("Handler", func() {
 				response.Body.Close()
 				Expect(response.Header.Get("Content-Type")).To(Equal("text/event-stream; charset=utf-8"))
 				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
+				Expect(response.Header.Get("X-Accel-Buffering")).To(Equal("no"))
 				Expect(response.Header.Get("Connection")).NotTo(Equal("keep-alive"))
 			})
 
