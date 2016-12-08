@@ -758,7 +758,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							url := registration.worker.BaggageclaimURL
 							Expect(url).ToNot(BeEmpty())
 
-							client := bclient.New(url)
+							client := bclient.New(url, http.DefaultTransport)
 
 							baggageclaimServer.AppendHandlers(
 								ghttp.CombineHandlers(
