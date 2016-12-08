@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"database/sql"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
@@ -100,8 +101,10 @@ var _ = BeforeEach(func() {
 	}
 
 	atcWorker := atc.Worker{
-		ResourceTypes: []atc.WorkerResourceType{baseResourceType},
-		Name:          "default-worker",
+		ResourceTypes:   []atc.WorkerResourceType{baseResourceType},
+		Name:            "default-worker",
+		GardenAddr:      "1.2.3.4:7777",
+		BaggageclaimURL: "5.6.7.8:7878",
 	}
 	defaultWorker, err = workerFactory.SaveWorker(atcWorker, 0)
 	Expect(err).NotTo(HaveOccurred())

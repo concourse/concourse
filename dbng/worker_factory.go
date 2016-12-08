@@ -151,14 +151,13 @@ func (f *workerFactory) getWorkers(teamName *string) ([]*Worker, error) {
 
 func scanWorker(row scannable) (*Worker, error) {
 	var (
-		name       string
-		gardenAddr sql.NullString
-		state      string
-
-		baggageclaimURL string //TODO: should this become NullString just like gardenAddr? atm it's not allowed to be null
-		httpProxyURL    sql.NullString
-		httpsProxyURL   sql.NullString
-		noProxy         sql.NullString
+		name          string
+		addStr        sql.NullString
+		state         string
+		bcURLStr      sql.NullString
+		httpProxyURL  sql.NullString
+		httpsProxyURL sql.NullString
+		noProxy       sql.NullString
 
 		activeContainers int
 		resourceTypes    []byte
@@ -173,9 +172,9 @@ func scanWorker(row scannable) (*Worker, error) {
 
 	err := row.Scan(
 		&name,
-		&gardenAddr,
+		&addStr,
 		&state,
-		&baggageclaimURL,
+		&bcURLStr,
 		&httpProxyURL,
 		&httpsProxyURL,
 		&noProxy,
@@ -193,16 +192,21 @@ func scanWorker(row scannable) (*Worker, error) {
 	}
 
 	var addr *string
-	if gardenAddr.Valid {
-		addr = &gardenAddr.String
+	if addStr.Valid {
+		addr = &addStr.String
+	}
+
+	var bcURL *string
+	if bcURLStr.Valid {
+		bcURL = &bcURLStr.String
 	}
 
 	worker := Worker{
-		Name:       name,
-		GardenAddr: addr,
-		State:      WorkerState(state),
+		Name:            name,
+		GardenAddr:      addr,
+		BaggageclaimURL: bcURL,
+		State:           WorkerState(state),
 
-		BaggageclaimURL:  baggageclaimURL,
 		ActiveContainers: activeContainers,
 		StartTime:        startTime,
 	}
@@ -398,17 +402,21 @@ func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*
 		workerStateStr   string
 		activeContainers int
 		expiresAt        time.Time
+		addrStr          sql.NullString
+		bcURLStr         sql.NullString
 	)
 
 	err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
+		Set("addr", worker.GardenAddr).
+		Set("baggageclaim_url", worker.BaggageclaimURL).
 		Set("active_containers", worker.ActiveContainers).
 		Set("state", sq.Expr("("+cSql+")")).
 		Where(sq.Eq{"name": worker.Name}).
-		Suffix("RETURNING name, state, expires, active_containers").
+		Suffix("RETURNING name, addr, baggageclaim_url, state, expires, active_containers").
 		RunWith(tx).
 		QueryRow().
-		Scan(&workerName, &workerStateStr, &expiresAt, &activeContainers)
+		Scan(&workerName, &addrStr, &bcURLStr, &workerStateStr, &expiresAt, &activeContainers)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrWorkerNotPresent
@@ -421,8 +429,20 @@ func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*
 		return nil, err
 	}
 
+	var addr *string
+	if addrStr.Valid {
+		addr = &addrStr.String
+	}
+
+	var bcURL *string
+	if bcURLStr.Valid {
+		bcURL = &bcURLStr.String
+	}
+
 	return &Worker{
 		Name:             workerName,
+		GardenAddr:       addr,
+		BaggageclaimURL:  bcURL,
 		State:            WorkerState(workerStateStr),
 		ExpiresIn:        expiresAt.Sub(now),
 		ActiveContainers: activeContainers,
@@ -438,20 +458,22 @@ func (f *workerFactory) StallWorker(name string) (*Worker, error) {
 
 	var (
 		workerName  string
-		gardenAddr  sql.NullString
+		addrStr     sql.NullString
+		bcURLStr    sql.NullString
 		workerState string
 	)
 	err = psql.Update("workers").
 		SetMap(map[string]interface{}{
-			"state":   string(WorkerStateStalled),
-			"expires": nil,
-			"addr":    nil,
+			"state":            string(WorkerStateStalled),
+			"expires":          nil,
+			"addr":             nil,
+			"baggageclaim_url": nil,
 		}).
 		Where(sq.Eq{"name": name}).
-		Suffix("RETURNING name, addr, state").
+		Suffix("RETURNING name, addr, baggageclaim_url, state").
 		RunWith(tx).
 		QueryRow().
-		Scan(&workerName, &gardenAddr, &workerState)
+		Scan(&workerName, &addrStr, &bcURLStr, &workerState)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrWorkerNotPresent
@@ -459,33 +481,40 @@ func (f *workerFactory) StallWorker(name string) (*Worker, error) {
 		return nil, err
 	}
 
-	var addr *string
-	if gardenAddr.Valid {
-		addr = &gardenAddr.String
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
+	var addr *string
+	if addrStr.Valid {
+		addr = &addrStr.String
+	}
+
+	var bcURL *string
+	if bcURLStr.Valid {
+		bcURL = &bcURLStr.String
+	}
+
 	return &Worker{
-		Name:       workerName,
-		GardenAddr: addr,
-		State:      WorkerState(workerState),
+		Name:            workerName,
+		GardenAddr:      addr,
+		BaggageclaimURL: bcURL,
+		State:           WorkerState(workerState),
 	}, nil
 }
 
 func (f *workerFactory) StallUnresponsiveWorkers() ([]*Worker, error) {
 	query, args, err := psql.Update("workers").
 		SetMap(map[string]interface{}{
-			"state":   string(WorkerStateStalled),
-			"addr":    nil,
-			"expires": nil,
+			"state":            string(WorkerStateStalled),
+			"addr":             nil,
+			"baggageclaim_url": nil,
+			"expires":          nil,
 		}).
 		Where(sq.Eq{"state": string(WorkerStateRunning)}).
 		Where(sq.Expr("expires < NOW()")).
-		Suffix("RETURNING name, addr, state").
+		Suffix("RETURNING name, addr, baggageclaim_url, state").
 		ToSql()
 	if err != nil {
 		return []*Worker{}, err
@@ -501,25 +530,32 @@ func (f *workerFactory) StallUnresponsiveWorkers() ([]*Worker, error) {
 
 	for rows.Next() {
 		var (
-			name       string
-			gardenAddr sql.NullString
-			state      string
+			name     string
+			addrStr  sql.NullString
+			bcURLStr sql.NullString
+			state    string
 		)
 
-		err = rows.Scan(&name, &gardenAddr, &state)
+		err = rows.Scan(&name, &addrStr, &bcURLStr, &state)
 		if err != nil {
 			return nil, err
 		}
 
 		var addr *string
-		if gardenAddr.Valid {
-			addr = &gardenAddr.String
+		if addrStr.Valid {
+			addr = &addrStr.String
+		}
+
+		var bcURL *string
+		if bcURLStr.Valid {
+			bcURL = &bcURLStr.String
 		}
 
 		workers = append(workers, &Worker{
-			Name:       name,
-			GardenAddr: addr,
-			State:      WorkerState(state),
+			Name:            name,
+			GardenAddr:      addr,
+			BaggageclaimURL: bcURL,
+			State:           WorkerState(state),
 		})
 	}
 

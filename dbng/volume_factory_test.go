@@ -196,16 +196,18 @@ var _ = Describe("VolumeFactory", func() {
 			createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
 			Expect(err).NotTo(HaveOccurred())
 			createdHandles := []string{}
+			expectAddr := "1.2.3.4:7788"
+
 			for _, vol := range createdVolumes {
 				createdHandles = append(createdHandles, vol.Handle())
-				Expect(vol.Worker().BaggageclaimURL).To(Equal("1.2.3.4:7788"))
+				Expect(vol.Worker().BaggageclaimURL).To(Equal(&expectAddr))
 			}
 			Expect(createdHandles).To(Equal(expectedCreatedHandles))
 
 			destroyingHandles := []string{}
 			for _, vol := range destoryingVolumes {
 				destroyingHandles = append(destroyingHandles, vol.Handle())
-				Expect(vol.Worker().BaggageclaimURL).To(Equal("1.2.3.4:7788"))
+				Expect(vol.Worker().BaggageclaimURL).To(Equal(&expectAddr))
 			}
 			Expect(destroyingHandles).To(Equal(destroyingHandles))
 		})

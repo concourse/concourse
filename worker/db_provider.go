@@ -144,8 +144,8 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 	connection := NewRetryableConnection(gcf.BuildConnection())
 
 	var bClient baggageclaim.Client
-	if savedWorker.BaggageclaimURL != "" {
-		bClient = bclient.New(savedWorker.BaggageclaimURL)
+	if savedWorker.BaggageclaimURL != nil {
+		bClient = bclient.New(*savedWorker.BaggageclaimURL)
 	}
 
 	volumeClient := NewVolumeClient(

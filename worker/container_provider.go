@@ -336,12 +336,6 @@ func (p *containerProvider) createGardenContainer(
 
 	env := append(imageMetadata.Env, spec.Env...)
 
-	logger.Debug("[super-logs] creating container with", lager.Data{
-		"httpProxyURL":  p.httpProxyURL,
-		"httpsProxyURL": p.httpsProxyURL,
-		"noProxy":       p.noProxy,
-	})
-
 	if p.httpProxyURL != "" {
 		env = append(env, fmt.Sprintf("http_proxy=%s", p.httpProxyURL))
 	}

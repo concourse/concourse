@@ -33,6 +33,7 @@ var _ = Describe("DBProvider", func() {
 
 		fakeGardenBackend  *gfakes.FakeBackend
 		gardenAddr         string
+		baggageclaimURL    string
 		baggageclaimServer *ghttp.Server
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
@@ -108,6 +109,7 @@ var _ = Describe("DBProvider", func() {
 			fakePipelineDBFactory,
 			fakeDBWorkerFactory,
 		)
+		baggageclaimURL = baggageclaimServer.URL()
 	})
 
 	AfterEach(func() {
@@ -137,7 +139,7 @@ var _ = Describe("DBProvider", func() {
 						Name:             "some-worker",
 						GardenAddr:       &gardenAddr,
 						State:            dbng.WorkerStateRunning,
-						BaggageclaimURL:  baggageclaimServer.URL(),
+						BaggageclaimURL:  &baggageclaimURL,
 						ActiveContainers: 2,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource-a", Image: "some-image-a"},
@@ -146,6 +148,7 @@ var _ = Describe("DBProvider", func() {
 					{
 						Name:             "some-other-worker",
 						GardenAddr:       &gardenAddr,
+						BaggageclaimURL:  &baggageclaimURL,
 						State:            dbng.WorkerStateRunning,
 						ActiveContainers: 2,
 						ResourceTypes: []atc.WorkerResourceType{
@@ -170,7 +173,7 @@ var _ = Describe("DBProvider", func() {
 							Name:             "some-worker",
 							GardenAddr:       &gardenAddr,
 							State:            dbng.WorkerStateRunning,
-							BaggageclaimURL:  baggageclaimServer.URL(),
+							BaggageclaimURL:  &baggageclaimURL,
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource-a", Image: "some-image-a"},
@@ -189,7 +192,7 @@ var _ = Describe("DBProvider", func() {
 							Name:             "landing-worker",
 							GardenAddr:       &gardenAddr,
 							State:            dbng.WorkerStateLanding,
-							BaggageclaimURL:  baggageclaimServer.URL(),
+							BaggageclaimURL:  &baggageclaimURL,
 							ActiveContainers: 5,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource-a", Image: "some-image-a"},
@@ -256,7 +259,7 @@ var _ = Describe("DBProvider", func() {
 				BeforeEach(func() {
 					createdVolume := new(dbngfakes.FakeCreatedVolume)
 					createdVolume.HandleReturns("vol-handle")
-					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
+					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr}, true, nil)
 					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
 					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 
@@ -288,7 +291,6 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
 					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
-
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeDB.UpdateContainerTTLToBeRemovedCallCount()).To(Equal(1))
@@ -309,7 +311,7 @@ var _ = Describe("DBProvider", func() {
 
 			Describe("a looked-up container", func() {
 				BeforeEach(func() {
-					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
+					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr}, true, nil)
 					createdContainer := &dbng.CreatedContainer{ID: 1}
 					fakeDBContainerFactory.FindContainerReturns(createdContainer, true, nil)
 				})

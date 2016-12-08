@@ -46,11 +46,13 @@ var _ = Describe("Workers API", func() {
 			Context("when the workers can be listed", func() {
 				BeforeEach(func() {
 					gardenAddr1 := "1.2.3.4:7777"
-					gardenAddr2 := "1.2.3.4:8888"
+					bcURL1 := "1.2.3.4:8888"
+					gardenAddr2 := "5.6.7.8:7777"
+					bcURL2 := "5.6.7.8:8888"
 					dbWorkerFactory.WorkersForTeamReturns([]*dbng.Worker{
 						{
 							GardenAddr:       &gardenAddr1,
-							BaggageclaimURL:  "5.6.7.8:7788",
+							BaggageclaimURL:  &bcURL1,
 							HTTPProxyURL:     "http://some-proxy.com",
 							HTTPSProxyURL:    "https://some-proxy.com",
 							NoProxy:          "no,proxy",
@@ -64,6 +66,7 @@ var _ = Describe("Workers API", func() {
 						},
 						{
 							GardenAddr:       &gardenAddr2,
+							BaggageclaimURL:  &bcURL2,
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
@@ -87,7 +90,7 @@ var _ = Describe("Workers API", func() {
 					Expect(returnedWorkers).To(Equal([]atc.Worker{
 						{
 							GardenAddr:       "1.2.3.4:7777",
-							BaggageclaimURL:  "5.6.7.8:7788",
+							BaggageclaimURL:  "1.2.3.4:8888",
 							HTTPProxyURL:     "http://some-proxy.com",
 							HTTPSProxyURL:    "https://some-proxy.com",
 							NoProxy:          "no,proxy",
@@ -100,7 +103,8 @@ var _ = Describe("Workers API", func() {
 							State:    "running",
 						},
 						{
-							GardenAddr:       "1.2.3.4:8888",
+							GardenAddr:       "5.6.7.8:7777",
+							BaggageclaimURL:  "5.6.7.8:8888",
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},

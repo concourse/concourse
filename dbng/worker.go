@@ -26,7 +26,7 @@ type Worker struct {
 	GardenAddr *string
 	State      WorkerState
 
-	BaggageclaimURL string
+	BaggageclaimURL *string
 	HTTPProxyURL    string
 	HTTPSProxyURL   string
 	NoProxy         string

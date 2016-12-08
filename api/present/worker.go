@@ -10,10 +10,14 @@ func Worker(workerInfo dbng.Worker) atc.Worker {
 	if workerInfo.GardenAddr != nil {
 		gardenAddr = *workerInfo.GardenAddr
 	}
+	baggageclaimURL := ""
+	if workerInfo.BaggageclaimURL != nil {
+		baggageclaimURL = *workerInfo.BaggageclaimURL
+	}
 
 	return atc.Worker{
 		GardenAddr:       gardenAddr,
-		BaggageclaimURL:  workerInfo.BaggageclaimURL,
+		BaggageclaimURL:  baggageclaimURL,
 		HTTPProxyURL:     workerInfo.HTTPProxyURL,
 		HTTPSProxyURL:    workerInfo.HTTPSProxyURL,
 		NoProxy:          workerInfo.NoProxy,

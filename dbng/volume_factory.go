@@ -305,7 +305,7 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 				worker: &Worker{
 					Name:            workerName,
 					GardenAddr:      &workerAddrString,
-					BaggageclaimURL: workerBaggageclaimURLString,
+					BaggageclaimURL: &workerBaggageclaimURLString,
 				},
 				conn: factory.conn,
 			})
@@ -316,7 +316,7 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 				worker: &Worker{
 					Name:            workerName,
 					GardenAddr:      &workerAddrString,
-					BaggageclaimURL: workerBaggageclaimURLString,
+					BaggageclaimURL: &workerBaggageclaimURLString,
 				},
 				conn: factory.conn,
 			})
