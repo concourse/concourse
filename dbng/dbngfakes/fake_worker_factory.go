@@ -74,11 +74,11 @@ type FakeWorkerFactory struct {
 		result1 *dbng.Worker
 		result2 error
 	}
-	SaveTeamWorkerStub        func(worker atc.Worker, team *Team, ttl time.Duration) (*dbng.Worker, error)
+	SaveTeamWorkerStub        func(worker atc.Worker, team *dbng.Team, ttl time.Duration) (*dbng.Worker, error)
 	saveTeamWorkerMutex       sync.RWMutex
 	saveTeamWorkerArgsForCall []struct {
 		worker atc.Worker
-		team   *Team
+		team   *dbng.Team
 		ttl    time.Duration
 	}
 	saveTeamWorkerReturns struct {
@@ -365,11 +365,11 @@ func (fake *FakeWorkerFactory) SaveWorkerReturns(result1 *dbng.Worker, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerFactory) SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*dbng.Worker, error) {
+func (fake *FakeWorkerFactory) SaveTeamWorker(worker atc.Worker, team *dbng.Team, ttl time.Duration) (*dbng.Worker, error) {
 	fake.saveTeamWorkerMutex.Lock()
 	fake.saveTeamWorkerArgsForCall = append(fake.saveTeamWorkerArgsForCall, struct {
 		worker atc.Worker
-		team   *Team
+		team   *dbng.Team
 		ttl    time.Duration
 	}{worker, team, ttl})
 	fake.recordInvocation("SaveTeamWorker", []interface{}{worker, team, ttl})
@@ -387,7 +387,7 @@ func (fake *FakeWorkerFactory) SaveTeamWorkerCallCount() int {
 	return len(fake.saveTeamWorkerArgsForCall)
 }
 
-func (fake *FakeWorkerFactory) SaveTeamWorkerArgsForCall(i int) (atc.Worker, *Team, time.Duration) {
+func (fake *FakeWorkerFactory) SaveTeamWorkerArgsForCall(i int) (atc.Worker, *dbng.Team, time.Duration) {
 	fake.saveTeamWorkerMutex.RLock()
 	defer fake.saveTeamWorkerMutex.RUnlock()
 	return fake.saveTeamWorkerArgsForCall[i].worker, fake.saveTeamWorkerArgsForCall[i].team, fake.saveTeamWorkerArgsForCall[i].ttl
