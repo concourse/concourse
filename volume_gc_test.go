@@ -3,6 +3,7 @@ package topgun_test
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
 	"time"
 
 	gclient "code.cloudfoundry.org/garden/client"
@@ -103,7 +104,7 @@ var _ = Describe("A volume that belonged to a container that is now gone", func(
 		}, 10*time.Minute, time.Second).Should(BeZero())
 
 		By("having removed the volumes from the worker")
-		bcClient := bgclient.New(fmt.Sprintf("http://%s:7788", atcIP))
+		bcClient := bgclient.New(fmt.Sprintf("http://%s:7788", atcIP), http.DefaultTransport)
 
 		volumes, err := bcClient.ListVolumes(logger, nil)
 		Expect(err).ToNot(HaveOccurred())
