@@ -34,6 +34,7 @@ var _ = Describe("DBProvider", func() {
 
 		fakeGardenBackend  *gfakes.FakeBackend
 		gardenAddr         string
+		baggageclaimURL    string
 		baggageclaimServer *ghttp.Server
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
@@ -118,7 +119,7 @@ var _ = Describe("DBProvider", func() {
 						Name:             "some-worker",
 						GardenAddr:       &gardenAddr,
 						State:            dbng.WorkerStateRunning,
-						BaggageclaimURL:  baggageclaimServer.URL(),
+						BaggageclaimURL:  &baggageclaimURL,
 						ActiveContainers: 2,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource-a", Image: "some-image-a"},
@@ -127,6 +128,7 @@ var _ = Describe("DBProvider", func() {
 					{
 						Name:             "some-other-worker",
 						GardenAddr:       &gardenAddr,
+						BaggageclaimURL:  &baggageclaimURL,
 						State:            dbng.WorkerStateRunning,
 						ActiveContainers: 2,
 						ResourceTypes: []atc.WorkerResourceType{
@@ -151,7 +153,7 @@ var _ = Describe("DBProvider", func() {
 							Name:             "some-worker",
 							GardenAddr:       &gardenAddr,
 							State:            dbng.WorkerStateRunning,
-							BaggageclaimURL:  baggageclaimServer.URL(),
+							BaggageclaimURL:  &baggageclaimURL,
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource-a", Image: "some-image-a"},
@@ -170,7 +172,7 @@ var _ = Describe("DBProvider", func() {
 							Name:             "landing-worker",
 							GardenAddr:       &gardenAddr,
 							State:            dbng.WorkerStateLanding,
-							BaggageclaimURL:  baggageclaimServer.URL(),
+							BaggageclaimURL:  &baggageclaimURL,
 							ActiveContainers: 5,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource-a", Image: "some-image-a"},
@@ -235,7 +237,7 @@ var _ = Describe("DBProvider", func() {
 
 			Describe("a created container", func() {
 				BeforeEach(func() {
-					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
+					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr}, true, nil)
 				})
 
 				It("calls through to garden", func() {

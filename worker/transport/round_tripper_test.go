@@ -122,7 +122,7 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 			})
 		})
 
-		FContext("when the worker in the DB is not stalled and addr is empty", func() {
+		Context("when the worker in the DB is not stalled and addr is empty", func() {
 			BeforeEach(func() {
 				fakeDB.GetWorkerReturns(&dbng.Worker{
 					State:      dbng.WorkerStateRunning,

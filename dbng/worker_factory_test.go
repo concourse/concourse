@@ -95,7 +95,6 @@ package dbng_test
 // 					Expect(savedWorker.State).To(Equal(dbng.WorkerStateRunning))
 // 				})
 // 			})
-
 // 		})
 
 // 		Context("no worker with same name exists", func() {
@@ -188,7 +187,7 @@ package dbng_test
 // 				Expect(foundWorker.Name).To(Equal("some-name"))
 // 				Expect(*foundWorker.GardenAddr).To(Equal("some-garden-addr"))
 // 				Expect(foundWorker.State).To(Equal(dbng.WorkerStateRunning))
-// 				Expect(foundWorker.BaggageclaimURL).To(Equal("some-bc-url"))
+// 				Expect(*foundWorker.BaggageclaimURL).To(Equal("some-bc-url"))
 // 				Expect(foundWorker.HTTPProxyURL).To(Equal("some-http-proxy-url"))
 // 				Expect(foundWorker.HTTPSProxyURL).To(Equal("some-https-proxy-url"))
 // 				Expect(foundWorker.NoProxy).To(Equal("some-no-proxy"))
@@ -234,6 +233,7 @@ package dbng_test
 
 // 				atcWorker.Name = "some-new-worker"
 // 				atcWorker.GardenAddr = "some-other-garden-addr"
+// 				atcWorker.BaggageclaimURL = "some-other-bc-url"
 // 				_, err = workerFactory.SaveWorker(atcWorker, 0)
 // 				Expect(err).NotTo(HaveOccurred())
 // 			})
@@ -241,7 +241,9 @@ package dbng_test
 // 			It("finds them without error", func() {
 // 				workers, err := workerFactory.Workers()
 // 				addr := "some-garden-addr"
+// 				bcURL := "some-bc-url"
 // 				otherAddr := "some-other-garden-addr"
+// 				otherBcURL := "some-other-bc-url"
 // 				Expect(err).NotTo(HaveOccurred())
 // 				Expect(len(workers)).To(Equal(2))
 // 				Expect(workers).To(ConsistOf(
@@ -249,7 +251,7 @@ package dbng_test
 // 						GardenAddr:       &addr,
 // 						Name:             "some-name",
 // 						State:            "running",
-// 						BaggageclaimURL:  "some-bc-url",
+// 						BaggageclaimURL:  &bcURL,
 // 						HTTPProxyURL:     "some-http-proxy-url",
 // 						HTTPSProxyURL:    "some-https-proxy-url",
 // 						NoProxy:          "some-no-proxy",
@@ -274,7 +276,7 @@ package dbng_test
 // 						GardenAddr:       &otherAddr,
 // 						Name:             "some-new-worker",
 // 						State:            "running",
-// 						BaggageclaimURL:  "some-bc-url",
+// 						BaggageclaimURL:  &otherBcURL,
 // 						HTTPProxyURL:     "some-http-proxy-url",
 // 						HTTPSProxyURL:    "some-https-proxy-url",
 // 						NoProxy:          "some-no-proxy",
@@ -434,7 +436,7 @@ package dbng_test
 // 					err = tx.Commit()
 // 					Expect(err).NotTo(HaveOccurred())
 
-// 					_, err = containerFactory.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+// 					_, err = containerFactory.FindOrCreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
 // 					Expect(err).NotTo(HaveOccurred())
 
 // 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -527,7 +529,7 @@ package dbng_test
 // 					err = tx.Commit()
 // 					Expect(err).NotTo(HaveOccurred())
 
-// 					_, err = containerFactory.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+// 					_, err = containerFactory.FindOrCreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
 // 					Expect(err).NotTo(HaveOccurred())
 
 // 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -722,18 +724,27 @@ package dbng_test
 // 			})
 
 // 			Context("when the current state is stalled", func() {
-// 				BeforeEach(func() {
-// 					atcWorker.State = string(dbng.WorkerStateStalled)
+// 				var stalledWorker *dbng.Worker
+
+// 				JustBeforeEach(func() {
+// 					stalledWorker, err = workerFactory.StallWorker(atcWorker.Name)
+// 					Expect(err).NotTo(HaveOccurred())
 // 				})
 
 // 				It("sets the state as running", func() {
+// 					Expect(stalledWorker.GardenAddr).To(BeNil())
+// 					Expect(stalledWorker.BaggageclaimURL).To(BeNil())
+
 // 					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
 // 					Expect(err).NotTo(HaveOccurred())
 
+// 					Expect(foundWorker.GardenAddr).ToNot(BeNil())
+// 					Expect(*foundWorker.GardenAddr).To(Equal("some-garden-addr"))
+// 					Expect(foundWorker.BaggageclaimURL).ToNot(BeNil())
+// 					Expect(*foundWorker.BaggageclaimURL).To(Equal("some-bc-url"))
 // 					Expect(foundWorker.State).To(Equal(dbng.WorkerStateRunning))
 // 				})
 // 			})
-
 // 		})
 
 // 		Context("when the worker is not present", func() {
