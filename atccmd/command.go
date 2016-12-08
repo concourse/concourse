@@ -370,7 +370,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				gcng.NewVolumeCollector(
 					logger.Session("volume-collector"),
 					dbVolumeFactory,
-					gcng.NewBaggageclaimClientFactory(),
+					gcng.NewBaggageclaimClientFactory(dbWorkerFactory),
 				),
 				&gcng.ContainerCollector{
 					Logger:              logger.Session("container-collector"),

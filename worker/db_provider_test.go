@@ -138,8 +138,8 @@ var _ = Describe("DBProvider", func() {
 					{
 						Name:             "some-worker",
 						GardenAddr:       &gardenAddr,
-						State:            dbng.WorkerStateRunning,
 						BaggageclaimURL:  &baggageclaimURL,
+						State:            dbng.WorkerStateRunning,
 						ActiveContainers: 2,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource-a", Image: "some-image-a"},
@@ -172,8 +172,8 @@ var _ = Describe("DBProvider", func() {
 						{
 							Name:             "some-worker",
 							GardenAddr:       &gardenAddr,
-							State:            dbng.WorkerStateRunning,
 							BaggageclaimURL:  &baggageclaimURL,
+							State:            dbng.WorkerStateRunning,
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource-a", Image: "some-image-a"},
@@ -182,6 +182,7 @@ var _ = Describe("DBProvider", func() {
 						{
 							Name:             "stalled-worker",
 							GardenAddr:       &gardenAddr,
+							BaggageclaimURL:  &baggageclaimURL,
 							State:            dbng.WorkerStateStalled,
 							ActiveContainers: 0,
 							ResourceTypes: []atc.WorkerResourceType{
@@ -259,7 +260,7 @@ var _ = Describe("DBProvider", func() {
 				BeforeEach(func() {
 					createdVolume := new(dbngfakes.FakeCreatedVolume)
 					createdVolume.HandleReturns("vol-handle")
-					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr}, true, nil)
+					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr, BaggageclaimURL: &baggageclaimURL}, true, nil)
 					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
 					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 

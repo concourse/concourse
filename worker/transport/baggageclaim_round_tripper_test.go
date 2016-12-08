@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("RoundTripper #RoundTrip", func() {
+var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 	var (
 		request          http.Request
 		fakeDB           *transportfakes.FakeTransportDB
@@ -27,8 +27,8 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 	BeforeEach(func() {
 		fakeDB = new(transportfakes.FakeTransportDB)
 		fakeRoundTripper = new(retryhttpfakes.FakeRoundTripper)
-		workerAddr := "some-worker-address"
-		roundTripper = transport.NewRoundTripper("some-worker", &workerAddr, fakeDB, fakeRoundTripper)
+		workerBaggageClaimURL := "http://1.2.3.4:7878"
+		roundTripper = transport.NewBaggageclaimRoundTripper("some-worker", &workerBaggageClaimURL, fakeDB, fakeRoundTripper)
 		requestUrl, err := url.Parse("http://1.2.3.4/something")
 		Expect(err).NotTo(HaveOccurred())
 
@@ -51,7 +51,7 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 	It("sends the request with worker's garden address", func() {
 		Expect(fakeRoundTripper.RoundTripCallCount()).To(Equal(1))
 		actualRequest := fakeRoundTripper.RoundTripArgsForCall(0)
-		Expect(actualRequest.URL.Host).To(Equal("some-worker-address"))
+		Expect(actualRequest.URL.Host).To(Equal("1.2.3.4:7878"))
 		Expect(actualRequest.URL.Path).To(Equal("/something"))
 	})
 
@@ -66,11 +66,11 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 		BeforeEach(func() {
 			fakeRoundTripper.RoundTripReturns(nil, errors.New("some-error"))
 
-			address := "some-new-worker-address"
+			bcURL := "http://5.6.7.8:7878"
 			savedWorker := dbng.Worker{
-				GardenAddr: &address,
-				ExpiresIn:  123,
-				State:      dbng.WorkerStateRunning,
+				BaggageclaimURL: &bcURL,
+				ExpiresIn:       123,
+				State:           dbng.WorkerStateRunning,
 			}
 
 			fakeDB.GetWorkerReturns(&savedWorker, true, nil)
@@ -82,7 +82,7 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 
 			Expect(fakeRoundTripper.RoundTripCallCount()).To(Equal(1))
 			actualRequest := fakeRoundTripper.RoundTripArgsForCall(0)
-			Expect(actualRequest.URL.Host).To(Equal("some-worker-address"))
+			Expect(actualRequest.URL.Host).To(Equal("1.2.3.4:7878"))
 			Expect(fakeDB.GetWorkerCallCount()).To(Equal(0))
 
 			_, err := roundTripper.RoundTrip(&request)
@@ -91,7 +91,7 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 			Expect(fakeDB.GetWorkerCallCount()).To(Equal(1))
 			Expect(fakeRoundTripper.RoundTripCallCount()).To(Equal(2))
 			actualRequest = fakeRoundTripper.RoundTripArgsForCall(1)
-			Expect(actualRequest.URL.Host).To(Equal("some-new-worker-address"))
+			Expect(actualRequest.URL.Host).To(Equal("5.6.7.8:7878"))
 		})
 
 		Context("when the lookup of the worker in the db errors", func() {
@@ -122,18 +122,18 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 			})
 		})
 
-		Context("when the worker in the DB is not stalled and addr is empty", func() {
+		Context("when the worker in the DB is not stalled and baggageclaim URL is empty", func() {
 			BeforeEach(func() {
 				fakeDB.GetWorkerReturns(&dbng.Worker{
-					State:      dbng.WorkerStateRunning,
-					GardenAddr: nil,
+					State:           dbng.WorkerStateRunning,
+					BaggageclaimURL: nil,
 				}, true, nil)
 			})
 
 			It("throws a descriptive error", func() {
 				_, err := roundTripper.RoundTrip(&request)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(MatchRegexp("worker .* address is missing$"))
+				Expect(err.Error()).To(MatchRegexp("worker .* baggageclaim URL is missing$"))
 			})
 		})
 

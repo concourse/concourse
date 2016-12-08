@@ -41,6 +41,14 @@ func (e ErrWorkerAddrIsMissing) Error() string {
 	return fmt.Sprintf("worker %s address is missing", e.WorkerName)
 }
 
+type ErrWorkerBaggageclaimURLIsMissing struct {
+	WorkerName string
+}
+
+func (e ErrWorkerBaggageclaimURLIsMissing) Error() string {
+	return fmt.Sprintf("worker %s baggageclaim URL is missing", e.WorkerName)
+}
+
 //go:generate counterfeiter . TransportDB
 type TransportDB interface {
 	GetWorker(name string) (*dbng.Worker, bool, error)

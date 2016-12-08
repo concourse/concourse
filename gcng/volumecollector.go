@@ -1,8 +1,11 @@
 package gcng
 
 import (
+	"net/http"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/worker/transport"
 	bclient "github.com/concourse/baggageclaim/client"
 )
 
@@ -15,17 +18,27 @@ type volumeCollector struct {
 //go:generate counterfeiter . BaggageclaimClientFactory
 
 type BaggageclaimClientFactory interface {
-	NewClient(apiURL string) bclient.Client
+	NewClient(apiURL string, workerName string) bclient.Client
 }
 
-type baggageclaimClientFactory struct{}
-
-func NewBaggageclaimClientFactory() BaggageclaimClientFactory {
-	return &baggageclaimClientFactory{}
+type baggageclaimClientFactory struct {
+	dbWorkerFactory dbng.WorkerFactory
 }
 
-func (f *baggageclaimClientFactory) NewClient(apiURL string) bclient.Client {
-	return bclient.New(apiURL)
+func NewBaggageclaimClientFactory(dbWorkerFactory dbng.WorkerFactory) BaggageclaimClientFactory {
+	return &baggageclaimClientFactory{
+		dbWorkerFactory: dbWorkerFactory,
+	}
+}
+
+func (f *baggageclaimClientFactory) NewClient(apiURL string, workerName string) bclient.Client {
+	rountTripper := transport.NewBaggageclaimRoundTripper(
+		workerName,
+		&apiURL,
+		f.dbWorkerFactory,
+		&http.Transport{DisableKeepAlives: true},
+	)
+	return bclient.New(apiURL, rountTripper)
 }
 
 func NewVolumeCollector(
@@ -68,7 +81,7 @@ func (vc *volumeCollector) Run() error {
 			continue
 		}
 
-		baggageclaimClient := vc.baggageclaimClientFactory.NewClient(*destroyingVolume.Worker().BaggageclaimURL)
+		baggageclaimClient := vc.baggageclaimClientFactory.NewClient(*destroyingVolume.Worker().BaggageclaimURL, destroyingVolume.Worker().Name)
 		volume, found, err := baggageclaimClient.LookupVolume(vc.logger, destroyingVolume.Handle())
 		if err != nil {
 			vLog.Error("failed-to-lookup-volume-in-baggageclaim", err)

@@ -49,7 +49,7 @@ func (gcf *gardenConnectionFactory) BuildConnection() gconn.Connection {
 		Transport: &retryhttp.RetryRoundTripper{
 			Logger:         gcf.logger.Session("retryable-http-client"),
 			BackOffFactory: gcf.retryBackOffFactory,
-			RoundTripper:   transport.NewRoundTripper(gcf.workerName, gcf.workerHost, gcf.db, &http.Transport{DisableKeepAlives: true}),
+			RoundTripper:   transport.NewGardenRoundTripper(gcf.workerName, gcf.workerHost, gcf.db, &http.Transport{DisableKeepAlives: true}),
 			Retryer:        retryer,
 		},
 	}
