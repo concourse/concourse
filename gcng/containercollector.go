@@ -53,15 +53,18 @@ func (c *ContainerCollector) Run() error {
 		"containers": cs,
 	})
 
-	for _, container := range cs {
-		w, found, err := c.WorkerProvider.GetWorker(container.WorkerName)
-		if err != nil {
-			c.Logger.Error("get-worker", err, lager.Data{
-				"workername": container.WorkerName,
-			})
-			continue
-		}
+	workers, err := c.WorkerProvider.Workers()
+	if err != nil {
+		c.Logger.Error("failed-to-get-workers", err)
+		return err
+	}
+	workersByName := map[string]*dbng.Worker{}
+	for _, w := range workers {
+		workersByName[w.Name] = w
+	}
 
+	for _, container := range cs {
+		w, found := workersByName[container.WorkerName]
 		if !found {
 			c.Logger.Info("worker-not-found", lager.Data{
 				"workername": container.WorkerName,
