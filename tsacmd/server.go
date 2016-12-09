@@ -74,10 +74,35 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 	forwardedTCPIPs := make(chan forwardedTCPIP, 2)
 	go server.handleForwardRequests(logger, conn, reqs, forwardedTCPIPs)
 
-	var processes []ifrit.Process
-	var process ifrit.Process
-
 	sessionID := string(conn.SessionID())
+
+	chansGroup := new(sync.WaitGroup)
+
+	for newChannel := range chans {
+		if newChannel.ChannelType() != "session" {
+			logger.Info("rejecting-unknown-channel-type", lager.Data{
+				"type": newChannel.ChannelType(),
+			})
+
+			newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
+			continue
+		}
+
+		channel, requests, err := newChannel.Accept()
+		if err != nil {
+			logger.Error("failed-to-accept-channel", err)
+			return
+		}
+
+		chansGroup.Add(1)
+		go server.handleChannel(logger.Session("channel"), sessionID, forwardedTCPIPs, chansGroup, channel, requests)
+	}
+
+	chansGroup.Wait()
+}
+
+func (server *registrarSSHServer) handleChannel(logger lager.Logger, sessionID string, forwardedTCPIPs <-chan forwardedTCPIP, chansGroup *sync.WaitGroup, channel ssh.Channel, requests <-chan *ssh.Request) {
+	var processes []ifrit.Process
 
 	// ensure processes get cleaned up
 	defer func() {
@@ -99,132 +124,84 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 		}
 	}()
 
-	for newChannel := range chans {
-		if newChannel.ChannelType() != "session" {
-			logger.Info("rejecting-unknown-channel-type", lager.Data{
-				"type": newChannel.ChannelType(),
-			})
+	defer chansGroup.Done()
+	defer channel.Close()
 
-			newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
+	for req := range requests {
+		logger.Info("channel-request", lager.Data{
+			"type": req.Type,
+		})
+
+		if req.Type != "exec" {
+			logger.Info("rejecting")
+			req.Reply(false, nil)
 			continue
 		}
 
-		channel, requests, err := newChannel.Accept()
+		var request execRequest
+		err := ssh.Unmarshal(req.Payload, &request)
 		if err != nil {
-			logger.Error("failed-to-accept-channel", err)
+			logger.Error("malformed-exec-request", err)
+			req.Reply(false, nil)
 			return
 		}
 
-		defer channel.Close()
+		workerRequest, err := parseRequest(request.Command)
+		if err != nil {
+			fmt.Fprintf(channel, "invalid command: %s", err)
+			req.Reply(false, nil)
+			continue
+		}
 
-		for req := range requests {
-			logger.Info("channel-request", lager.Data{
-				"type": req.Type,
-			})
+		switch r := workerRequest.(type) {
+		case registerWorkerRequest:
+			logger := logger.Session("register-worker")
 
-			if req.Type != "exec" {
-				logger.Info("rejecting")
-				req.Reply(false, nil)
-				continue
-			}
+			req.Reply(true, nil)
 
-			var request execRequest
-			err = ssh.Unmarshal(req.Payload, &request)
+			process, err := server.continuouslyRegisterWorkerDirectly(logger, channel, sessionID)
 			if err != nil {
-				logger.Error("malformed-exec-request", err)
-				req.Reply(false, nil)
+				logger.Error("failed-to-register", err)
 				return
 			}
 
-			workerRequest, err := parseRequest(request.Command)
-			if err != nil {
-				fmt.Fprintf(channel, "invalid command: %s", err)
-				req.Reply(false, nil)
-				continue
+			processes = append(processes, process)
+
+		case forwardWorkerRequest:
+			logger := logger.Session("forward-worker")
+
+			req.Reply(true, nil)
+
+			forwards := map[string]forwardedTCPIP{}
+
+			for i := 0; i < r.expectedForwards(); i++ {
+				select {
+				case forwarded := <-forwardedTCPIPs:
+					logger.Info("forwarded-tcpip", lager.Data{
+						"bound-port": forwarded.boundPort,
+					})
+
+					processes = append(processes, forwarded.process)
+
+					forwards[forwarded.bindAddr] = forwarded
+
+				case <-time.After(10 * time.Second): // todo better?
+					logger.Info("never-forwarded-tcpip")
+				}
 			}
 
-			switch r := workerRequest.(type) {
-			case registerWorkerRequest:
-				logger := logger.Session("register-worker")
+			switch len(forwards) {
+			case 0:
+				fmt.Fprintf(channel, "requested forwarding but no forwards given\n")
+				return
 
-				req.Reply(true, nil)
-
-				process, err = server.continuouslyRegisterWorkerDirectly(logger, channel, sessionID)
-				if err != nil {
-					logger.Error("failed-to-register", err)
-					return
-				}
-
-				processes = append(processes, process)
-
-				err = conn.Wait()
-				logger.Error("connection-closed", err)
-
-			case forwardWorkerRequest:
-				logger := logger.Session("forward-worker")
-
-				req.Reply(true, nil)
-
-				forwards := map[string]forwardedTCPIP{}
-
-				for i := 0; i < r.expectedForwards(); i++ {
-					select {
-					case forwarded := <-forwardedTCPIPs:
-						logger.Info("forwarded-tcpip", lager.Data{
-							"bound-port": forwarded.boundPort,
-						})
-
-						processes = append(processes, forwarded.process)
-
-						forwards[forwarded.bindAddr] = forwarded
-
-					case <-time.After(10 * time.Second): // todo better?
-						logger.Info("never-forwarded-tcpip")
-					}
-				}
-
-				switch len(forwards) {
-				case 0:
-					fmt.Fprintf(channel, "requested forwarding but no forwards given\n")
-					return
-
-				case 1:
-					for _, gardenForward := range forwards {
-						process, err = server.continuouslyRegisterForwardedWorker(
-							logger,
-							channel,
-							gardenForward.boundPort,
-							0,
-							sessionID,
-						)
-						if err != nil {
-							logger.Error("failed-to-register", err)
-							return
-						}
-
-						processes = append(processes, process)
-
-						break
-					}
-
-				case 2:
-					gardenForward, found := forwards[r.gardenAddr]
-					if !found {
-						fmt.Fprintf(channel, "garden address %s not found in forwards\n", r.gardenAddr)
-						return
-					}
-
-					baggageclaimForward, found := forwards[r.baggageclaimAddr]
-					if !found {
-						fmt.Fprintf(channel, "baggageclaim address %s not found in forwards\n", r.gardenAddr)
-						return
-					}
-
-					process, err = server.continuouslyRegisterForwardedWorker(
+			case 1:
+				for _, gardenForward := range forwards {
+					process, err := server.continuouslyRegisterForwardedWorker(
 						logger,
 						channel,
 						gardenForward.boundPort,
-						baggageclaimForward.boundPort,
+						0,
 						sessionID,
 					)
 					if err != nil {
@@ -233,18 +210,44 @@ func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Con
 					}
 
 					processes = append(processes, process)
+
+					break
 				}
 
-				err = conn.Wait()
-				logger.Error("connection-closed", err)
+			case 2:
+				gardenForward, found := forwards[r.gardenAddr]
+				if !found {
+					fmt.Fprintf(channel, "garden address %s not found in forwards\n", r.gardenAddr)
+					return
+				}
 
-			default:
-				logger.Info("invalid-command", lager.Data{
-					"command": request.Command,
-				})
+				baggageclaimForward, found := forwards[r.baggageclaimAddr]
+				if !found {
+					fmt.Fprintf(channel, "baggageclaim address %s not found in forwards\n", r.gardenAddr)
+					return
+				}
 
-				req.Reply(false, nil)
+				process, err := server.continuouslyRegisterForwardedWorker(
+					logger,
+					channel,
+					gardenForward.boundPort,
+					baggageclaimForward.boundPort,
+					sessionID,
+				)
+				if err != nil {
+					logger.Error("failed-to-register", err)
+					return
+				}
+
+				processes = append(processes, process)
 			}
+
+		default:
+			logger.Info("invalid-command", lager.Data{
+				"command": request.Command,
+			})
+
+			req.Reply(false, nil)
 		}
 	}
 }
