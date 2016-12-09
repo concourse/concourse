@@ -91,6 +91,7 @@ init ports flags =
     , Cmd.batch
         [ fetchJob model.jobIdentifier
         , cmd
+        , getCurrentTime
         ]
     )
 
@@ -527,6 +528,13 @@ unpauseJob jobIdentifier =
   Cmd.map PausedToggled << Task.perform Err Ok <|
     Concourse.Job.unpause jobIdentifier
 
+getCurrentTime : Cmd Msg
+getCurrentTime =
+  Task.perform (always Noop) ClockTick Time.now
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Time.every (5 * Time.second) SubscriptionTick
+  Sub.batch
+    [ Time.every (5 * Time.second) SubscriptionTick
+    , Time.every (1 * Time.second) ClockTick
+    ]
