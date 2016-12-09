@@ -29,7 +29,7 @@
 [submodule "src/github.com/concourse/testflight"]
 	path = src/github.com/concourse/testflight
 	url = https://github.com/concourse/testflight
-	branch = life
+	branch = wip-bc-url
 [submodule "src/github.com/vito/go-sse"]
 	path = src/github.com/vito/go-sse
 	url = https://github.com/vito/go-sse
@@ -69,7 +69,7 @@
 [submodule "src/github.com/concourse/baggageclaim"]
 	path = src/github.com/concourse/baggageclaim
 	url = https://github.com/concourse/baggageclaim
-	branch = life
+	branch = wip-bc-url
 [submodule "src/github.com/xoebus/zest"]
 	path = src/github.com/xoebus/zest
 	url = https://github.com/xoebus/zest
