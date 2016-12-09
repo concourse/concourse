@@ -132,8 +132,29 @@ var _ = Describe("Volume", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam, defaultWorker, creatingContainer, "some-path-1")
+			baseResourceType := dbng.BaseResourceType{
+				Name: "some-resource-type",
+			}
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+			defer setupTx.Rollback()
+
+			_, err = baseResourceType.FindOrCreate(setupTx)
 			Expect(err).NotTo(HaveOccurred())
+
+			resourceCache := dbng.ResourceCache{
+				ResourceConfig: dbng.ResourceConfig{
+					CreatedByBaseResourceType: &baseResourceType,
+				},
+			}
+			usedResourceCache, err := resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, defaultBuild)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			creatingParentVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+			Expect(err).NotTo(HaveOccurred())
+
 			parentVolume, err = creatingParentVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -147,6 +168,7 @@ var _ = Describe("Volume", func() {
 
 			createdChildVolume, err := creatingChildVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
+
 			destroyingChildVolume, err := createdChildVolume.Destroying()
 			Expect(err).NotTo(HaveOccurred())
 			destroyed, err := destroyingChildVolume.Destroy()
@@ -158,6 +180,21 @@ var _ = Describe("Volume", func() {
 			destroyed, err = destroyingParentVolume.Destroy()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(destroyed).To(Equal(true))
+		})
+
+		Context("when parent volume is initialized", func() {
+			It("creates intiialized volume", func() {
+				err := parentVolume.Initialize()
+				Expect(err).NotTo(HaveOccurred())
+
+				creatingChildVolume, err := parentVolume.CreateChildForContainer(creatingContainer, "some-path-3")
+				Expect(err).NotTo(HaveOccurred())
+
+				createdChildVolume, err := creatingChildVolume.Created()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(createdChildVolume.IsInitialized()).To(BeTrue())
+			})
 		})
 	})
 })

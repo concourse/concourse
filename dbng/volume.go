@@ -242,6 +242,18 @@ func (volume *createdVolume) CreateChildForContainer(container *CreatingContaine
 
 	defer tx.Rollback()
 
+	var parentIsInitialized bool
+	err = psql.Select("initialized").
+		From("volumes").
+		Where(sq.Eq{
+			"id": volume.id,
+		}).
+		RunWith(tx).
+		QueryRow().Scan(&parentIsInitialized)
+	if err != nil {
+		return nil, err
+	}
+
 	handle, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -249,8 +261,8 @@ func (volume *createdVolume) CreateChildForContainer(container *CreatingContaine
 
 	var volumeID int
 	err = psql.Insert("volumes").
-		Columns("worker_name", "parent_id", "parent_state", "handle", "container_id").
-		Values(volume.worker.Name, volume.id, VolumeStateCreated, handle.String(), container.ID).
+		Columns("worker_name", "parent_id", "parent_state", "handle", "container_id", "initialized").
+		Values(volume.worker.Name, volume.id, VolumeStateCreated, handle.String(), container.ID, parentIsInitialized).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
