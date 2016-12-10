@@ -140,8 +140,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 					Consistently(restartSession, 5*time.Minute).ShouldNot(gexec.Exit())
 				})
 
-				// Pending baggageclaim retry logic learning new URL.
-				XIt("finishes restarting once the build is done", func() {
+				It("finishes restarting once the build is done", func() {
 					By("hijacking the build to tell it to finish")
 					Eventually(func() int {
 						session := spawnFlyInteractive(
