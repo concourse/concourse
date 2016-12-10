@@ -1,15 +1,25 @@
 package topgun_test
 
 import (
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
 
+	"golang.org/x/oauth2"
+
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 
+	gclient "code.cloudfoundry.org/garden/client"
+	gconn "code.cloudfoundry.org/garden/client/connection"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,9 +40,6 @@ var (
 
 	tmpHome string
 	flyBin  string
-
-	client concourse.Client
-	team   concourse.Team
 
 	logger *lagertest.TestLogger
 
@@ -90,15 +97,14 @@ var _ = BeforeEach(func() {
 
 	atcIP = fmt.Sprintf("10.234.%d.2", GinkgoParallelNode())
 	atcExternalURL = fmt.Sprintf("http://%s:8080", atcIP)
-
-	client = concourse.NewClient(atcExternalURL, nil)
-	team = client.Team("main")
 })
 
 var _ = AfterEach(func() {
 	boshLogs.Signal(os.Interrupt)
 	<-boshLogs.Exited
 	boshLogs = nil
+
+	Expect(deleteAllContainers()).To(Succeed())
 
 	bosh("delete-deployment")
 })
@@ -131,6 +137,37 @@ func fly(argv ...string) {
 	wait(spawnFly(argv...))
 }
 
+func deleteAllContainers() error {
+	token, err := getATCToken(atcExternalURL)
+	Expect(err).NotTo(HaveOccurred())
+	httpClient := oauthClient(token)
+	client := concourse.NewClient(atcExternalURL, httpClient)
+
+	workers, err := client.ListWorkers()
+	if err != nil {
+		return err
+	}
+
+	containers, err := client.ListContainers(map[string]string{})
+	if err != nil {
+		return err
+	}
+
+	for _, worker := range workers {
+		connection := gconn.New("tcp", worker.GardenAddr)
+		gardenClient := gclient.New(connection)
+		for _, container := range containers {
+			if container.WorkerName == worker.Name {
+				err = gardenClient.Destroy(container.ID)
+				if err != nil {
+					logger.Error("failed-to-delete-container", err, lager.Data{"handle": container.ID})
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func spawnFly(argv ...string) *gexec.Session {
 	return spawn(flyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
@@ -161,4 +198,38 @@ func spawnInteractive(stdin io.Reader, argc string, argv ...string) *gexec.Sessi
 func wait(session *gexec.Session) {
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
+}
+
+func getATCToken(atcURL string) (*atc.AuthToken, error) {
+	response, err := http.Get(atcURL + "/api/v1/teams/main/auth/token")
+	if err != nil {
+		return nil, err
+	}
+
+	var token *atc.AuthToken
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(body, &token)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+func oauthClient(atcToken *atc.AuthToken) *http.Client {
+	return &http.Client{
+		Transport: &oauth2.Transport{
+			Source: oauth2.StaticTokenSource(&oauth2.Token{
+				TokenType:   atcToken.Type,
+				AccessToken: atcToken.Value,
+			}),
+			Base: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		},
+	}
 }
