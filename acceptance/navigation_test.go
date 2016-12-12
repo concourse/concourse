@@ -3,6 +3,8 @@ package acceptance_test
 import (
 	"time"
 
+	"code.cloudfoundry.org/urljoiner"
+
 	"github.com/lib/pq"
 	"github.com/sclevine/agouti"
 
@@ -66,9 +68,9 @@ var _ = Describe("Navigation", func() {
 		return atcCommand.URL("")
 	}
 
-	// withPath := func(path string) string {
-	// 	return urljoiner.Join(homepage(), path)
-	// }
+	withPath := func(path string) string {
+		return urljoiner.Join(homepage(), path)
+	}
 
 	Context("with more than one pipeline", func() {
 		BeforeEach(func() {
@@ -99,12 +101,11 @@ var _ = Describe("Navigation", func() {
 				Eventually(page.FindByLink("job-1")).Should(BeFound())
 			})
 
-			// pending #133520341
-			// FIt("navigates to the default pipeline when not viewing a pipeline", func() {
-			// 	Expect(page.Navigate(withPath("/login"))).To(Succeed())
-			// 	Expect(page.FindByClass("fa-home").Click()).To(Succeed())
-			// 	Eventually(page.FindByLink("job-1")).Should(BeFound())
-			// })
+			It("navigates to the default pipeline when not viewing a pipeline", func() {
+				Expect(page.Navigate(withPath("/login"))).To(Succeed())
+				Expect(page.FindByClass("fa-home").Click()).To(Succeed())
+				Eventually(page.FindByLink("job-1")).Should(BeFound())
+			})
 
 			It("navigates to the current pipeline when viewing a non-default pipeline", func() {
 				Expect(page.FindByClass("sidebar-toggle").Click()).To(Succeed())
