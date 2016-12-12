@@ -234,11 +234,38 @@ paginatedMap promoter pagA =
   , pagination = pagA.pagination
   }
 
-promoteBuild : Concourse.Build -> BuildWithResources
-promoteBuild build =
-  { build = build
-  , resources = Nothing
-  }
+setResourcesToOld : Maybe BuildWithResources -> BuildWithResources -> BuildWithResources
+setResourcesToOld existingBuildWithResource newBwr =
+  case existingBuildWithResource of
+    Nothing ->
+      newBwr
+    Just buildWithResources ->
+      { newBwr
+      | resources = buildWithResources.resources
+      }
+
+existingBuild : Concourse.Build -> BuildWithResources -> Bool
+existingBuild build buildWithResources =
+  build == buildWithResources.build
+
+promoteBuild : Model -> Concourse.Build -> BuildWithResources
+promoteBuild model build =
+  let
+    newBwr =
+      { build = build
+      , resources = Nothing
+      }
+
+    existingBuildWithResource =
+      List.head
+        (List.filter (existingBuild build) model.buildsWithResources.content)
+
+  in
+    setResourcesToOld existingBuildWithResource newBwr
+
+setExistingResources : Paginated Concourse.Build -> Model -> Paginated BuildWithResources
+setExistingResources paginatedBuilds model =
+  paginatedMap (promoteBuild model) paginatedBuilds
 
 updateResourcesIfNeeded : BuildWithResources -> Maybe (Cmd Msg)
 updateResourcesIfNeeded bwr =
@@ -254,8 +281,9 @@ handleJobBuildsFetched paginatedBuilds model =
   let
     newPage =
       permalink paginatedBuilds.content
-    newBWRs = -- later, consider saving resources info for builds that already existed in the model
-      paginatedMap promoteBuild paginatedBuilds
+
+    newBWRs =
+      setExistingResources paginatedBuilds model
   in
     ( { model
       | buildsWithResources = newBWRs
