@@ -137,12 +137,12 @@ update action model =
     BuildTriggered (Err (Http.BadResponse 401 _)) ->
       (model, LoginRedirect.requestLoginRedirect "")
     BuildTriggered (Err err) ->
-      Debug.log ("failed to trigger build: " ++ toString err) <|
+      flip always (Debug.log("failed to trigger build") (err) ) <|
         (model, Cmd.none)
     JobBuildsFetched (Ok builds) ->
       handleJobBuildsFetched builds model
     JobBuildsFetched (Err err) ->
-      Debug.log ("failed to fetch builds: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch builds") (err) ) <|
         (model, Cmd.none)
     JobFetched (Ok job) ->
       ( { model | job = Just job }
@@ -151,7 +151,7 @@ update action model =
     JobFetched (Err (Http.BadResponse 401 _)) ->
       (model, LoginRedirect.requestLoginRedirect "")
     JobFetched (Err err) ->
-      Debug.log ("failed to fetch job info: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch job info") (err) ) <|
         (model, Cmd.none)
     BuildResourcesFetched id (Ok buildResources) ->
       case model.buildsWithResources.content of
@@ -203,7 +203,7 @@ update action model =
     PausedToggled (Err (Http.BadResponse 401 _)) ->
       (model, LoginRedirect.requestLoginRedirect "")
     PausedToggled (Err err) ->
-      Debug.log ("failed to pause/unpause job: " ++ toString err) <|
+      flip always (Debug.log("failed to pause/unpause job") (err) ) <|
         (model, Cmd.none)
     NavTo url ->
       (model, Navigation.newUrl url)

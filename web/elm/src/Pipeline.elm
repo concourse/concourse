@@ -162,7 +162,7 @@ update msg model =
       ({ model | concourseVersion = version, experiencingTurbulence = False }, Cmd.none)
 
     VersionFetched (Err err) ->
-      Debug.log ("failed to fetch version: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch version") (err) ) <|
         ({ model | experiencingTurbulence = True }, Cmd.none)
 
 subscriptions : Model -> Sub Msg
@@ -251,7 +251,8 @@ jobAppearsInGroups groupNames pi jobJson =
       Ok cj ->
         anyIntersect cj.groups groupNames
       Err err ->
-        Debug.log ("failed to check if job is in group: " ++ toString err) False
+        flip always (Debug.log("failed to check if job is in group") (err) ) <|
+          False
 
 expandJsonList : Json.Encode.Value -> List Json.Decode.Value
 expandJsonList flatList =
