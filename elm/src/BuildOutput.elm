@@ -81,7 +81,7 @@ update action model =
       )
 
     PlanAndResourcesFetched (Err err) ->
-      Debug.log ("failed to fetch plan: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch plan") (err) ) <|
         (model, Cmd.none, OutNoop)
 
     PlanAndResourcesFetched (Ok (plan, resources)) ->
@@ -120,7 +120,8 @@ handleEventsMsg action model =
       handleEvent event model
 
     Concourse.BuildEvents.Event (Err err) ->
-      (model, Debug.log err Cmd.none, OutNoop)
+      flip always (Debug.log("failed to get event") (err) ) <|
+        (model, Cmd.none, OutNoop)
 
     Concourse.BuildEvents.End ->
       ({ model | state = StepsComplete, events = Sub.none }, Cmd.none, OutNoop)

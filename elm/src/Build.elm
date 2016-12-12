@@ -187,7 +187,7 @@ update action model =
       (model, LoginRedirect.requestLoginRedirect "")
 
     BuildTriggered (Err err) ->
-      Debug.log ("failed to trigger build: " ++ toString err) <|
+      flip always (Debug.log("failed to trigger build") (err) ) <|
         (model, Cmd.none)
 
     BuildFetched browsingIndex (Ok build) ->
@@ -197,7 +197,7 @@ update action model =
       (model, LoginRedirect.requestLoginRedirect "")
 
     BuildFetched _ (Err err) ->
-      Debug.log ("failed to fetch build: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch build") (err) ) <|
         (model, Cmd.none)
 
     AbortBuild buildId ->
@@ -210,14 +210,14 @@ update action model =
       (model, LoginRedirect.requestLoginRedirect "")
 
     BuildAborted (Err err) ->
-      Debug.log ("failed to abort build: " ++ toString err) <|
+      flip always (Debug.log("failed to abort build") (err) ) <|
         (model, Cmd.none)
 
     BuildPrepFetched browsingIndex (Ok buildPrep) ->
       handleBuildPrepFetched browsingIndex buildPrep model
 
     BuildPrepFetched _ (Err err) ->
-      Debug.log ("failed to fetch build preparation: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch build preparation") (err) ) <|
         (model, Cmd.none)
 
     BuildOutputMsg browsingIndex action ->
@@ -247,7 +247,7 @@ update action model =
       else (model, Cmd.none)
 
     BuildHistoryFetched (Err err) ->
-      Debug.log ("failed to fetch build history: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch build history") (err) ) <|
         (model, Cmd.none)
 
     BuildHistoryFetched (Ok history) ->
@@ -257,7 +257,7 @@ update action model =
       handleBuildJobFetched job model
 
     BuildJobDetailsFetched (Err err) ->
-      Debug.log ("failed to fetch build job details: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch build job details") (err) ) <|
         (model, Cmd.none)
 
     RevealCurrentBuildInHistory ->
