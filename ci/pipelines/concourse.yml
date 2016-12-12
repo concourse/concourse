@@ -476,7 +476,6 @@ jobs:
   - aggregate:
     - get: concourse
       passed: [bosh-deploy, bin-smoke, virtualbox-testflight]
-      params: {submodules: none}
     - get: version
       passed: [bosh-deploy, bin-smoke, virtualbox-testflight]
       params: {bump: final}
