@@ -31,8 +31,9 @@ var _ = Describe("We shouldn't reclone cached resources", func() {
 	})
 
 	It("does not reclone on new commits", func() {
-		// We expect to see cloning twice - once for each resource
-		watch := flyWatch("some-passing-job", "1")
+		By("initially cloning twice")
+		watch := triggerJob("some-passing-job")
+		<-watch.Exited
 		Expect(watch).To(gbytes.Say("Cloning into"))
 		Expect(watch).To(gbytes.Say("Cloning into"))
 		Expect(watch).To(gbytes.Say("succeeded"))
@@ -40,8 +41,9 @@ var _ = Describe("We shouldn't reclone cached resources", func() {
 
 		originGitServer.Commit()
 
-		// The second time we only expect to clone one resource
-		watch = flyWatch("some-passing-job", "2")
+		By("hitting the cache for the original version and fetching the new one")
+		watch = triggerJob("some-passing-job")
+		<-watch.Exited
 		Expect(watch).To(gbytes.Say("Cloning into"))
 		Expect(watch).NotTo(gbytes.Say("Cloning into"))
 		Expect(watch).To(gbytes.Say("using version of resource found in cache"))
