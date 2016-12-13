@@ -85,7 +85,8 @@ update action model =
     PipelinesFetched (Ok pipelines)->
       ({ model | teams = Just <| groupPipelinesByTeam pipelines }, Cmd.none)
     PipelinesFetched (Err err) ->
-      Debug.log ("failed to fetch pipelines: " ++ toString err) (model, Cmd.none)
+      flip always (Debug.log("failed to fetch pipelines") (err) ) <|
+        (model, Cmd.none)
     PipelinePaused teamName pipelineName (Ok ()) ->
       ( mapModelPipelines (setPaused True) teamName pipelineName model
       , Cmd.none
@@ -93,8 +94,7 @@ update action model =
     PipelinePaused teamName pipelineName (Err (Http.BadResponse 401 _)) ->
       (model, loginRedirect teamName)
     PipelinePaused teamName pipelineName (Err err) ->
-      Debug.log
-        ("failed to pause pipeline: " ++ toString err)
+      flip always (Debug.log("failed to pause pipeline") (err) ) <|
         ( mapModelPipelines updatePauseErrored teamName pipelineName model
         , Cmd.none
         )
@@ -105,8 +105,7 @@ update action model =
       , Cmd.none
       )
     PipelineUnpaused teamName pipelineName (Err err) ->
-      Debug.log
-        ("failed to unpause pipeline: " ++ toString err)
+      flip always (Debug.log("failed to unpause pipeline") (err) ) <|
         ( mapModelPipelines updatePauseErrored teamName pipelineName model
         , Cmd.none
         )
@@ -198,7 +197,8 @@ update action model =
     PipelinesReordered teamName (Err (Http.BadResponse 401 _)) ->
       (model, loginRedirect teamName)
     PipelinesReordered teamName (Err err) ->
-      Debug.log ("failed to reorder pipelines: " ++ toString err) (model, Cmd.none)
+      flip always (Debug.log("failed to reorder pipelines") (err) ) <|
+        (model, Cmd.none)
     NavToPipeline url ->
       (model, Navigation.newUrl url)
 

@@ -91,6 +91,7 @@ init ports flags =
     , Cmd.batch
         [ fetchJob model.jobIdentifier
         , cmd
+        , getCurrentTime
         ]
     )
 
@@ -136,12 +137,12 @@ update action model =
     BuildTriggered (Err (Http.BadResponse 401 _)) ->
       (model, LoginRedirect.requestLoginRedirect "")
     BuildTriggered (Err err) ->
-      Debug.log ("failed to trigger build: " ++ toString err) <|
+      flip always (Debug.log("failed to trigger build") (err) ) <|
         (model, Cmd.none)
     JobBuildsFetched (Ok builds) ->
       handleJobBuildsFetched builds model
     JobBuildsFetched (Err err) ->
-      Debug.log ("failed to fetch builds: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch builds") (err) ) <|
         (model, Cmd.none)
     JobFetched (Ok job) ->
       ( { model | job = Just job }
@@ -150,7 +151,7 @@ update action model =
     JobFetched (Err (Http.BadResponse 401 _)) ->
       (model, LoginRedirect.requestLoginRedirect "")
     JobFetched (Err err) ->
-      Debug.log ("failed to fetch job info: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch job info") (err) ) <|
         (model, Cmd.none)
     BuildResourcesFetched id (Ok buildResources) ->
       case model.buildsWithResources.content of
@@ -202,7 +203,7 @@ update action model =
     PausedToggled (Err (Http.BadResponse 401 _)) ->
       (model, LoginRedirect.requestLoginRedirect "")
     PausedToggled (Err err) ->
-      Debug.log ("failed to pause/unpause job: " ++ toString err) <|
+      flip always (Debug.log("failed to pause/unpause job") (err) ) <|
         (model, Cmd.none)
     NavTo url ->
       (model, Navigation.newUrl url)
@@ -233,11 +234,38 @@ paginatedMap promoter pagA =
   , pagination = pagA.pagination
   }
 
-promoteBuild : Concourse.Build -> BuildWithResources
-promoteBuild build =
-  { build = build
-  , resources = Nothing
-  }
+setResourcesToOld : Maybe BuildWithResources -> BuildWithResources -> BuildWithResources
+setResourcesToOld existingBuildWithResource newBwr =
+  case existingBuildWithResource of
+    Nothing ->
+      newBwr
+    Just buildWithResources ->
+      { newBwr
+      | resources = buildWithResources.resources
+      }
+
+existingBuild : Concourse.Build -> BuildWithResources -> Bool
+existingBuild build buildWithResources =
+  build == buildWithResources.build
+
+promoteBuild : Model -> Concourse.Build -> BuildWithResources
+promoteBuild model build =
+  let
+    newBwr =
+      { build = build
+      , resources = Nothing
+      }
+
+    existingBuildWithResource =
+      List.head
+        (List.filter (existingBuild build) model.buildsWithResources.content)
+
+  in
+    setResourcesToOld existingBuildWithResource newBwr
+
+setExistingResources : Paginated Concourse.Build -> Model -> Paginated BuildWithResources
+setExistingResources paginatedBuilds model =
+  paginatedMap (promoteBuild model) paginatedBuilds
 
 updateResourcesIfNeeded : BuildWithResources -> Maybe (Cmd Msg)
 updateResourcesIfNeeded bwr =
@@ -253,8 +281,9 @@ handleJobBuildsFetched paginatedBuilds model =
   let
     newPage =
       permalink paginatedBuilds.content
-    newBWRs = -- later, consider saving resources info for builds that already existed in the model
-      paginatedMap promoteBuild paginatedBuilds
+
+    newBWRs =
+      setExistingResources paginatedBuilds model
   in
     ( { model
       | buildsWithResources = newBWRs
@@ -527,6 +556,13 @@ unpauseJob jobIdentifier =
   Cmd.map PausedToggled << Task.perform Err Ok <|
     Concourse.Job.unpause jobIdentifier
 
+getCurrentTime : Cmd Msg
+getCurrentTime =
+  Task.perform (always Noop) ClockTick Time.now
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Time.every (5 * Time.second) SubscriptionTick
+  Sub.batch
+    [ Time.every (5 * Time.second) SubscriptionTick
+    , Time.every (1 * Time.second) ClockTick
+    ]

@@ -56,7 +56,7 @@ update action model =
       , Cmd.none
       )
     TeamsFetched (Err err) ->
-      Debug.log ("failed to fetch teams: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch teams") (err) ) <|
         (model, Cmd.none)
     SelectTeam teamName ->
       ( model
