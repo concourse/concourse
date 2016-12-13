@@ -563,7 +563,7 @@ func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes atc.Res
 	return nil, ErrNotImplemented
 }
 
-func (worker *gardenWorker) Workers() ([]Worker, error) {
+func (worker *gardenWorker) RunningWorkers() ([]Worker, error) {
 	return nil, ErrNotImplemented
 }
 

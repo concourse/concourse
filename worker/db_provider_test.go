@@ -129,7 +129,7 @@ var _ = Describe("DBProvider", func() {
 
 	Context("when we call to get multiple workers", func() {
 		JustBeforeEach(func() {
-			workers, workersErr = provider.Workers()
+			workers, workersErr = provider.RunningWorkers()
 		})
 
 		Context("when the database yields workers", func() {

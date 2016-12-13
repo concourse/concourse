@@ -82,7 +82,7 @@ func NewDBWorkerProvider(
 	}
 }
 
-func (provider *dbProvider) Workers() ([]Worker, error) {
+func (provider *dbProvider) RunningWorkers() ([]Worker, error) {
 	savedWorkers, err := provider.dbWorkerFactory.Workers()
 	if err != nil {
 		return nil, err
