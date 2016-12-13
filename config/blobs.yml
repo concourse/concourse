@@ -30,10 +30,6 @@ resources/cf-resource.tar.gz:
   size: 17894057
   object_id: 6c612aeb-7e0d-40c8-78ff-3f1778901edb
   sha: 49214ab8c635e5bff258cf3b7ede11303ea1108e
-resources/datadog-event-resource.tar.gz:
-  size: 9423536
-  object_id: 448f499b-b669-4979-450b-b864cd363d36
-  sha: a1a15a82dd3ce8b4a88ed7e9c6205cc8d58a1e5c
 resources/docker-image-resource.tar.gz:
   size: 41996601
   object_id: c15d4255-e2e9-42e1-6ada-12aa1bb250ef
