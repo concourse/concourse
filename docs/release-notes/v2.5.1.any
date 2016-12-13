@@ -45,4 +45,8 @@
     header, which hints to reverse proxies to not buffer the response, thanks
     to a PR from \ghuser{jasonkeene}.
   }
+
+  \note{fix}{
+    Fixed the janky autorefresh on the job page.
+  }
 }
