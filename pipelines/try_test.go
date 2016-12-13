@@ -15,8 +15,8 @@ var _ = Describe("A job with a try step", func() {
 	})
 
 	It("proceeds through the plan even if the step fails", func() {
-		triggerJob("try-job")
-		watch := flyWatch("try-job")
+		watch := triggerJob("try-job")
+		<-watch.Exited
 		Expect(watch).To(gbytes.Say("initializing"))
 		Expect(watch).To(gbytes.Say("passing-task succeeded"))
 		Expect(watch).To(gexec.Exit(0))

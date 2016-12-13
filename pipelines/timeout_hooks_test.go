@@ -15,11 +15,11 @@ var _ = Describe("A pipeline containing a job with a timeout and hooks", func() 
 	})
 
 	It("runs the failure and ensure hooks", func() {
-		triggerJob("duration-fail-job")
-		watch := flyWatch("duration-fail-job")
-		Eventually(watch).Should(gbytes.Say("duration fail job on failure"))
-		Eventually(watch).Should(gbytes.Say("duration fail job ensure"))
-		Eventually(watch).Should(gexec.Exit(1))
+		watch := triggerJob("duration-fail-job")
+		<-watch.Exited
+		Expect(watch).To(gbytes.Say("duration fail job on failure"))
+		Expect(watch).To(gbytes.Say("duration fail job ensure"))
+		Expect(watch).To(gexec.Exit(1))
 		Expect(watch.Out.Contents()).NotTo(ContainSubstring("duration fail job on success"))
 	})
 })

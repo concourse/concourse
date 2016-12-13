@@ -15,19 +15,19 @@ var _ = Describe("A job with a task with a timeout", func() {
 	})
 
 	It("enforces the timeout", func() {
-		triggerJob("duration-successful-job")
-		triggerJob("duration-fail-job")
+		successWatch := triggerJob("duration-successful-job")
+		failedWatch := triggerJob("duration-fail-job")
 
 		By("not aborting if the step completes in time")
-		watch := flyWatch("duration-successful-job")
-		Expect(watch).To(gbytes.Say("initializing"))
-		Expect(watch).To(gbytes.Say("passing-task succeeded"))
-		Expect(watch).To(gexec.Exit(0))
+		<-successWatch.Exited
+		Expect(successWatch).To(gbytes.Say("initializing"))
+		Expect(successWatch).To(gbytes.Say("passing-task succeeded"))
+		Expect(successWatch).To(gexec.Exit(0))
 
 		By("aborting when the step takes too long")
-		watch = flyWatch("duration-fail-job")
-		Expect(watch).To(gbytes.Say("initializing"))
-		Expect(watch).To(gbytes.Say("interrupted"))
-		Expect(watch).To(gexec.Exit(1))
+		<-failedWatch.Exited
+		Expect(failedWatch).To(gbytes.Say("initializing"))
+		Expect(failedWatch).To(gbytes.Say("interrupted"))
+		Expect(failedWatch).To(gexec.Exit(1))
 	})
 })
