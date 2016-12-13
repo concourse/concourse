@@ -18,8 +18,8 @@ files:
   - code.cloudfoundry.org/urljoiner/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
   - github.com/Masterminds/squirrel/*.go # gosub
-  - github.com/bigdatadev/goryman/*.go # gosub
-  - github.com/bigdatadev/goryman/proto/*.go # gosub
+  - github.com/The-Cloud-Source/goryman/*.go # gosub
+  - github.com/The-Cloud-Source/goryman/proto/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cenk/backoff/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
