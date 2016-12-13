@@ -21,7 +21,7 @@ echo "$BOSH_PRIVATE_CONFIG" > $FINAL_RELEASE_REPO/config/private.yml
 cd $FINAL_RELEASE_REPO
 
 RELEASE_YML=$PWD/releases/concourse/concourse-${VERSION}.yml
-RELEASE_TGZ=$PWD/releases/concourse/concourse-${VERSION}.tgz
+FINAL_RELEASE_TGZ=$FINAL_RELEASE_TARBALL/concourse-${VERSION}.tgz
 
 # work-around Go BOSH CLI trying to rename blobs downloaded into ~/.root/tmp
 # into release dir, which is invalid cross-device link
@@ -37,6 +37,4 @@ if ! [ -e ${RELEASE_YML} ]; then
   git commit -m "release v${VERSION}"
 fi
 
-bosh -n create-release --tarball ${RELEASE_YML}
-
-mv ${RELEASE_TGZ} ${FINAL_RELEASE_TARBALL}
+bosh -n create-release --tarball ${FINAL_RELEASE_TGZ} ${RELEASE_YML}
