@@ -22,6 +22,7 @@ import (
 	"github.com/concourse/retryhttp/retryhttpfakes"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
@@ -107,7 +108,7 @@ var _ = Describe("DBProvider", func() {
 		baggageclaimServer.Close()
 	})
 
-	Context("when we call to get multiple workers", func() {
+	Describe("RunningWorkers", func() {
 		JustBeforeEach(func() {
 			workers, workersErr = provider.RunningWorkers()
 		})
@@ -328,7 +329,7 @@ var _ = Describe("DBProvider", func() {
 		})
 	})
 
-	Context("when we call to get a single worker", func() {
+	Describe("GetWorker", func() {
 		var found bool
 		var worker Worker
 
@@ -352,38 +353,35 @@ var _ = Describe("DBProvider", func() {
 			})
 		})
 
-		Context("when we find worker", func() {
-			It("returns the found worker", func() {
-				addr := "some-addr"
+		DescribeTable("finding existing worker",
+			func(workerState dbng.WorkerState, expectedExistence bool) {
+				addr := "1.2.3.4:7777"
 				fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{
 					Name:       "some-worker",
 					TeamID:     123,
 					GardenAddr: &addr,
-					State:      dbng.WorkerStateRunning,
+					State:      workerState,
 				}, true, nil)
 
 				worker, found, workersErr = provider.GetWorker("some-worker")
-				Expect(workersErr).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(worker.Name()).To(Equal("some-worker"))
-				Expect(worker.IsOwnedByTeam()).To(BeTrue())
-			})
-
-			Context("when the worker is stalled/landing", func() {
-				It("returns the found worker", func() {
-					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{
-						Name:   "some-worker",
-						TeamID: 123,
-						State:  dbng.WorkerStateStalled,
-					}, true, nil)
-
-					worker, found, workersErr = provider.GetWorker("some-worker")
+				if expectedExistence {
+					Expect(workersErr).NotTo(HaveOccurred())
+				} else {
 					Expect(workersErr).To(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(worker).To(BeNil())
-				})
-			})
-		})
+					Expect(workersErr).To(Equal(ErrDesiredWorkerNotRunning))
+				}
+				Expect(found).To(Equal(expectedExistence))
+				if expectedExistence {
+					Expect(worker.Name()).To(Equal("some-worker"))
+				}
+			},
+
+			Entry("running", dbng.WorkerStateRunning, true),
+			Entry("landing", dbng.WorkerStateLanding, true),
+			Entry("landed", dbng.WorkerStateLanded, false),
+			Entry("stalled", dbng.WorkerStateStalled, false),
+			Entry("retiring", dbng.WorkerStateRetiring, true),
+		)
 	})
 
 	Context("when we call to get a container info by identifier", func() {
