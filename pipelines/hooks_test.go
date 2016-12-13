@@ -43,6 +43,6 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 		abortBuild("some-aborted-job", 1)
 		<-watch.Exited
 		Expect(watch).To(gbytes.Say("aborted job ensure"))
-		Expect(watch).To(gexec.Exit(1))
+		Expect(watch).To(gexec.Exit(3))
 	})
 })
