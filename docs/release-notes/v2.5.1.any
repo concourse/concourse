@@ -13,8 +13,8 @@
 
   \note{fix}{
     The \code{concourse/lite} box will now add Google DNS to the tail of the
-    DNS chain, rather than the end, allowing local DNS resolution settings to
-    be respected. This is thanks to a PR from \ghuser{iMartyn}!
+    DNS chain, rather than the head, allowing local DNS resolution settings to
+    be tried first. This is thanks to a PR from \ghuser{iMartyn}!
   }
 
   \note{feature}{
