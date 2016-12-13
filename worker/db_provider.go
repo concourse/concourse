@@ -111,8 +111,9 @@ func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
 		return nil, false, nil
 	}
 
-	if savedWorker.State != dbng.WorkerStateRunning {
-		return nil, true, ErrDesiredWorkerNotRunning
+	if savedWorker.State == dbng.WorkerStateStalled ||
+		savedWorker.State == dbng.WorkerStateLanded {
+		return nil, false, ErrDesiredWorkerNotRunning
 	}
 
 	tikTok := clock.NewClock()
