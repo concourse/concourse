@@ -40,7 +40,7 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 		By("performing ensure steps on abort")
 		watch = triggerJob("some-aborted-job")
 		Eventually(watch).Should(gbytes.Say("waiting to be aborted"))
-		watch.Interrupt()
+		abortBuild("some-aborted-job", 1)
 		<-watch.Exited
 		Expect(watch).To(gbytes.Say("aborted job ensure"))
 		Expect(watch).To(gexec.Exit(1))

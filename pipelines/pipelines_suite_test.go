@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/concourse/go-concourse/concourse"
@@ -213,10 +214,22 @@ func triggerJob(jobName string) *gexec.Session {
 		"-t",
 		targetedConcourse,
 		"trigger-job",
-		"-j",
-		pipelineName+"/"+jobName,
+		"-j", pipelineName+"/"+jobName,
 		"-w",
 	))
+}
+
+func abortBuild(jobName string, build int) {
+	sess := start(exec.Command(
+		flyBin,
+		"-t",
+		targetedConcourse,
+		"abort-build",
+		"-j", pipelineName+"/"+jobName,
+		"-b", strconv.Itoa(build),
+	))
+	<-sess.Exited
+	Expect(sess).To(gexec.Exit(0))
 }
 
 func triggerPipelineJob(pipeline string, jobName string) *gexec.Session {
@@ -225,8 +238,7 @@ func triggerPipelineJob(pipeline string, jobName string) *gexec.Session {
 		"-t",
 		targetedConcourse,
 		"trigger-job",
-		"-j",
-		pipeline+"/"+jobName,
+		"-j", pipeline+"/"+jobName,
 		"-w",
 	))
 }
