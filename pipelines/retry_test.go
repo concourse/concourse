@@ -29,8 +29,8 @@ var _ = Describe("A job with a step that retries", func() {
 	})
 
 	It("retries until the step succeeds", func() {
-		triggerJob("retry-job")
-		watch := flyWatch("retry-job")
+		watch := triggerJob("retry-job")
+		<-watch.Exited
 		Expect(watch).To(gexec.Exit(0))
 
 		Expect(watch).To(gbytes.Say("initializing"))
@@ -46,9 +46,9 @@ var _ = Describe("A job with a step that retries", func() {
 		var hijack *exec.Cmd
 
 		BeforeEach(func() {
-			triggerJob("retry-job")
+			watch := triggerJob("retry-job")
 			// wait until job finishes before trying to hijack
-			watch := flyWatch("retry-job")
+			<-watch.Exited
 			Expect(watch).To(gexec.Exit(0))
 		})
 

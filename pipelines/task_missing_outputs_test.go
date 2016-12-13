@@ -15,8 +15,8 @@ var _ = Describe("A task with no outputs declared", func() {
 	})
 
 	It("doesn't mount its file system into the next task", func() {
-		triggerJob("missing-outputs-job")
-		watch := flyWatch("missing-outputs-job")
+		watch := triggerJob("missing-outputs-job")
+		<-watch.Exited
 		Expect(watch).To(gexec.Exit(2))
 		Expect(watch).To(gbytes.Say("missing inputs: missing-outputs"))
 	})

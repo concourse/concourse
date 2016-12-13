@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
@@ -212,25 +213,38 @@ func flyWatch(jobName string, buildName ...string) *gexec.Session {
 	}
 }
 
-func triggerJob(jobName string) {
-	start(exec.Command(
+func triggerJob(jobName string) *gexec.Session {
+	return start(exec.Command(
 		flyBin,
 		"-t",
 		targetedConcourse,
 		"trigger-job",
-		"-j",
-		pipelineName+"/"+jobName,
+		"-j", pipelineName+"/"+jobName,
+		"-w",
 	))
 }
 
-func triggerPipelineJob(pipeline string, jobName string) {
-	start(exec.Command(
+func abortBuild(jobName string, build int) {
+	sess := start(exec.Command(
+		flyBin,
+		"-t",
+		targetedConcourse,
+		"abort-build",
+		"-j", pipelineName+"/"+jobName,
+		"-b", strconv.Itoa(build),
+	))
+	<-sess.Exited
+	Expect(sess).To(gexec.Exit(0))
+}
+
+func triggerPipelineJob(pipeline string, jobName string) *gexec.Session {
+	return start(exec.Command(
 		flyBin,
 		"-t",
 		targetedConcourse,
 		"trigger-job",
-		"-j",
-		pipeline+"/"+jobName,
+		"-j", pipeline+"/"+jobName,
+		"-w",
 	))
 }
 

@@ -148,9 +148,17 @@ jobs:
       - task: abort
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           run:
-            path: sleep
-            args: ["5"]
+            path: sh
+            args:
+            - -c
+            - |
+              while sleep 1; do
+                echo waiting to be aborted
+              done
         ensure:
           task: aborted-job-ensure
           config:

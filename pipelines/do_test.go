@@ -14,16 +14,16 @@ var _ = Describe("A pipeline containing a do", func() {
 	})
 
 	It("performs the do steps", func() {
-		triggerJob("do-job")
-		watch := flyWatch("do-job")
+		watch := triggerJob("do-job")
+		<-watch.Exited
 
 		By("running the first step")
-		Eventually(watch).Should(gbytes.Say("running do step 1"))
+		Expect(watch).To(gbytes.Say("running do step 1"))
 
 		By("running the second step")
-		Eventually(watch).Should(gbytes.Say("running do step 2"))
+		Expect(watch).To(gbytes.Say("running do step 2"))
 
 		By("running the third step")
-		Eventually(watch).Should(gbytes.Say("running do step 3"))
+		Expect(watch).To(gbytes.Say("running do step 3"))
 	})
 })

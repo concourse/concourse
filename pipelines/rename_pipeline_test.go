@@ -22,14 +22,15 @@ var _ = Describe("Renaming a pipeline", func() {
 		configurePipeline(
 			"-c", "fixtures/simple.yml",
 		)
-		triggerJob("simple")
-		watch := flyWatch("simple")
-		Eventually(watch).Should(gbytes.Say("Hello, world!"))
+
+		watch := triggerJob("simple")
+		<-watch.Exited
+		Expect(watch).To(gbytes.Say("Hello, world!"))
 
 		renamePipeline(newPipelineName)
 
-		triggerPipelineJob(newPipelineName, "simple")
-		watch = flyWatch("simple")
-		Eventually(watch).Should(gbytes.Say("Hello, world!"))
+		watch = triggerPipelineJob(newPipelineName, "simple")
+		<-watch.Exited
+		Expect(watch).To(gbytes.Say("Hello, world!"))
 	})
 })

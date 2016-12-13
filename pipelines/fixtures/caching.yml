@@ -15,5 +15,4 @@ jobs:
 - name: some-passing-job
   plan:
   - get: some-git-resource
-    trigger: true
   - get: some-cached-resource

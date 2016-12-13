@@ -22,8 +22,8 @@ var _ = Describe("A job with a task that produces outputs", func() {
 		})
 
 		It("propagates the outputs from one task to another", func() {
-			triggerJob("some-job")
-			watch := flyWatch("some-job")
+			watch := triggerJob("some-job")
+			<-watch.Exited
 			Expect(watch).To(gbytes.Say("initializing"))
 			Expect(watch).To(gexec.Exit(0))
 
@@ -44,8 +44,8 @@ var _ = Describe("A job with a task that produces outputs", func() {
 		})
 
 		It("can hijack to task which produces outputs (see #123243131)", func() {
-			triggerJob("some-job")
-			watch := flyWatch("some-job")
+			watch := triggerJob("some-job")
+			<-watch.Exited
 			Expect(watch).To(gexec.Exit(0))
 
 			hijack := exec.Command(flyBin, "-t", targetedConcourse, "hijack",
