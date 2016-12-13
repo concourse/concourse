@@ -651,8 +651,8 @@ func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes atc.Res
 	return nil, errors.New("Not implemented")
 }
 
-func (worker *gardenWorker) Workers() ([]Worker, error) {
-	return nil, errors.New("Not implemented")
+func (worker *gardenWorker) RunningWorkers() ([]Worker, error) {
+	return nil, ErrNotImplemented
 }
 
 func (worker *gardenWorker) GetWorker(name string) (Worker, error) {

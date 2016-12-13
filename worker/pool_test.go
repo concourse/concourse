@@ -116,7 +116,7 @@ var _ = Describe("Pool", func() {
 				workerB.SatisfyingReturns(workerB, nil)
 				workerC.SatisfyingReturns(nil, errors.New("nope"))
 
-				fakeProvider.WorkersReturns([]Worker{workerA, workerB, workerC}, nil)
+				fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
 			})
 
 			It("succeeds", func() {
@@ -169,7 +169,7 @@ var _ = Describe("Pool", func() {
 
 		Context("with no workers", func() {
 			BeforeEach(func() {
-				fakeProvider.WorkersReturns([]Worker{}, nil)
+				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
 			})
 
 			It("returns ErrNoWorkers", func() {
@@ -181,7 +181,7 @@ var _ = Describe("Pool", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeProvider.WorkersReturns(nil, disaster)
+				fakeProvider.RunningWorkersReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -233,7 +233,7 @@ var _ = Describe("Pool", func() {
 				workerB.SatisfyingReturns(workerB, nil)
 				workerC.SatisfyingReturns(nil, errors.New("nope"))
 
-				fakeProvider.WorkersReturns([]Worker{workerA, workerB, workerC}, nil)
+				fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
 			})
 
 			It("succeeds", func() {
@@ -304,7 +304,7 @@ var _ = Describe("Pool", func() {
 				generalWorker = new(workerfakes.FakeWorker)
 				generalWorker.SatisfyingReturns(generalWorker, nil)
 				generalWorker.IsOwnedByTeamReturns(false)
-				fakeProvider.WorkersReturns([]Worker{generalWorker, teamWorker1, teamWorker2, teamWorker3}, nil)
+				fakeProvider.RunningWorkersReturns([]Worker{generalWorker, teamWorker1, teamWorker2, teamWorker3}, nil)
 			})
 
 			It("returns only the team workers that satisfy the spec", func() {
@@ -328,7 +328,7 @@ var _ = Describe("Pool", func() {
 				generalWorker1.IsOwnedByTeamReturns(false)
 				generalWorker2 = new(workerfakes.FakeWorker)
 				generalWorker2.SatisfyingReturns(nil, errors.New("nope"))
-				fakeProvider.WorkersReturns([]Worker{generalWorker1, generalWorker2, teamWorker}, nil)
+				fakeProvider.RunningWorkersReturns([]Worker{generalWorker1, generalWorker2, teamWorker}, nil)
 			})
 
 			It("returns the general workers that satisfy the spec", func() {
@@ -339,7 +339,7 @@ var _ = Describe("Pool", func() {
 
 		Context("with no workers", func() {
 			BeforeEach(func() {
-				fakeProvider.WorkersReturns([]Worker{}, nil)
+				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
 			})
 
 			It("returns ErrNoWorkers", func() {
@@ -351,7 +351,7 @@ var _ = Describe("Pool", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeProvider.WorkersReturns(nil, disaster)
+				fakeProvider.RunningWorkersReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -437,7 +437,7 @@ var _ = Describe("Pool", func() {
 				workerB.CreateContainerReturns(fakeContainer, nil)
 				workerC.CreateContainerReturns(fakeContainer, nil)
 
-				fakeProvider.WorkersReturns([]Worker{workerA, workerB, workerC}, nil)
+				fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
 			})
 
 			It("succeeds", func() {
@@ -508,7 +508,7 @@ var _ = Describe("Pool", func() {
 
 		Context("with no workers", func() {
 			BeforeEach(func() {
-				fakeProvider.WorkersReturns([]Worker{}, nil)
+				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
 			})
 
 			It("returns ErrNoWorkers", func() {
@@ -520,7 +520,7 @@ var _ = Describe("Pool", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeProvider.WorkersReturns(nil, disaster)
+				fakeProvider.RunningWorkersReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
