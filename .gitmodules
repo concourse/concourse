@@ -74,10 +74,6 @@
 	path = src/github.com/xoebus/zest
 	url = https://github.com/xoebus/zest
 	branch = master
-[submodule "src/github.com/bigdatadev/goryman"]
-	path = src/github.com/bigdatadev/goryman
-	url = https://github.com/bigdatadev/goryman
-	branch = master
 [submodule "src/github.com/google/go-querystring"]
 	path = src/github.com/google/go-querystring
 	url = https://github.com/google/go-querystring
@@ -262,4 +258,7 @@
 [submodule "src/github.com/concourse/groundcrew"]
 	path = src/github.com/concourse/groundcrew
 	url = https://github.com/concourse/groundcrew
+[submodule "src/github.com/The-Cloud-Source/goryman"]
+	path = src/github.com/The-Cloud-Source/goryman
+	url = https://github.com/The-Cloud-Source/goryman
 	branch = master

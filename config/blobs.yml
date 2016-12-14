@@ -31,13 +31,13 @@ resources/cf-resource.tar.gz:
   object_id: 6c612aeb-7e0d-40c8-78ff-3f1778901edb
   sha: 49214ab8c635e5bff258cf3b7ede11303ea1108e
 resources/docker-image-resource.tar.gz:
-  size: 41994584
-  object_id: 79562cda-61b6-4e69-5d18-9df13811a212
-  sha: 0b7f0a10a174320aba28462745f679b046ec9776
+  size: 41996601
+  object_id: c15d4255-e2e9-42e1-6ada-12aa1bb250ef
+  sha: c411917e569e592cd10ed20cb24af46315b626cf
 resources/git-resource.tar.gz:
-  size: 15779516
-  object_id: 2eb58d4c-2b00-4619-79af-3cef2af89994
-  sha: 0e079254b8d8c8853ee4d08ecf13f39f893d00d3
+  size: 15780014
+  object_id: 70a5deac-939a-4cc4-4891-413fd8fb207f
+  sha: a8f4b92c65d65498247898995255a7b8e6f327c6
 resources/github-release-resource.tar.gz:
   size: 9968840
   object_id: 671cda2c-784f-44af-4688-c0ef1f7b1edd
@@ -51,9 +51,9 @@ resources/pool-resource.tar.gz:
   object_id: ec97d131-82f9-4f17-4617-5602f6117b32
   sha: b9c62aa27078dc0694662a5043c235a8bcba94f3
 resources/s3-resource.tar.gz:
-  size: 11722558
-  object_id: c2a448d7-5822-4a46-5872-61a433b558b1
-  sha: 223c1b47f1e56d1a31ef301e3ac5bd020210a263
+  size: 11722443
+  object_id: 5eb1a3cf-82c6-4eec-77b8-9a1959c61f70
+  sha: 1df9067484c557a208f6413513983ef0776fc0d9
 resources/semver-resource.tar.gz:
   size: 18354946
   object_id: 763992d8-4b05-4809-55f0-51af35b7a186
