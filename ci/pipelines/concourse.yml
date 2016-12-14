@@ -431,6 +431,7 @@ jobs:
       passed: [bin-testflight]
     - get: version
       passed: [bin-testflight]
+      params: {bump: final}
     - get: concourse-lite
     - get: concourse-buildbox-ci-image
   - task: build-box
