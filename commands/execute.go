@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/eventstream"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
 )
 
@@ -139,16 +140,16 @@ func abortOnSignal(
 ) {
 	<-terminate
 
-	fmt.Fprintf(os.Stderr, "\naborting...\n")
+	fmt.Fprintf(ui.Stderr, "\naborting...\n")
 
 	err := client.AbortBuild(strconv.Itoa(build.ID))
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "failed to abort:", err)
+		fmt.Fprintln(ui.Stderr, "failed to abort:", err)
 		return
 	}
 
 	// if told to terminate again, exit immediately
 	<-terminate
-	fmt.Fprintln(os.Stderr, "exiting immediately")
+	fmt.Fprintln(ui.Stderr, "exiting immediately")
 	os.Exit(2)
 }

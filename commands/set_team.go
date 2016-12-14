@@ -132,17 +132,17 @@ func (command *SetTeamCommand) noAuthConfigured() bool {
 func (command *SetTeamCommand) ValidateFlags() error {
 	if command.noAuthConfigured() {
 		if !command.NoAuth {
-			fmt.Fprintln(os.Stderr, "no auth methods configured! to continue, run:")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "this will leave the team open to anyone to mess with!")
+			fmt.Fprintln(ui.Stderr, "no auth methods configured! to continue, run:")
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
+			fmt.Fprintln(ui.Stderr, "")
+			fmt.Fprintln(ui.Stderr, "this will leave the team open to anyone to mess with!")
 			os.Exit(1)
 		}
 
 		displayhelpers.PrintWarningHeader()
-		fmt.Fprintln(os.Stderr, ui.WarningColor("no auth methods configured. you asked for it!"))
-		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(ui.Stderr, ui.WarningColor("no auth methods configured. you asked for it!"))
+		fmt.Fprintln(ui.Stderr, "")
 	}
 
 	if command.BasicAuth.IsConfigured() {
