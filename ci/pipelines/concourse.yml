@@ -429,9 +429,12 @@ jobs:
     - get: concourse
       params: {submodules: none}
       passed: [bin-testflight]
-    - get: version
+    - get: final-version
+      resource: version
       passed: [bin-testflight]
       params: {bump: final}
+    - get: version
+      passed: [bin-testflight]
     - get: concourse-lite
     - get: concourse-buildbox-ci-image
   - task: build-box
