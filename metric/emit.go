@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/bigdatadev/goryman"
+	"github.com/The-Cloud-Source/goryman"
 )
 
 type eventEmission struct {
