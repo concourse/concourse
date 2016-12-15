@@ -88,6 +88,7 @@ case $1 in
       rand=$RANDOM
       tsa_addr=${tsa_addrs[$rand % ${#tsa_addrs[@]}]}
 
+      exitstatus=0
       chpst -u vcap:vcap ssh \
         -p <%= tsa_port %> $tsa_addr \
         <% if p("tsa.private_key") != "" %> \
@@ -114,8 +115,11 @@ case $1 in
         <% end %> \
         < $RUN_DIR/worker.json \
         1>>$LOG_DIR/beacon.stdout.log \
-        2>>$LOG_DIR/beacon.stderr.log || \
-        true
+        2>>$LOG_DIR/beacon.stderr.log || exitstatus=$?
+
+      if [ $exitstatus -eq 0 ]; then
+        break
+      fi
 
       sleep 1
     done

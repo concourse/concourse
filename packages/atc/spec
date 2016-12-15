@@ -8,6 +8,9 @@ dependencies:
 files:
   - github.com/concourse/atc/web/index.html
   - github.com/concourse/atc/web/public/**/*
+<<<<<<< HEAD
+=======
+>>>>>>> origin/life
   - code.cloudfoundry.org/clock/*.go # gosub
   - code.cloudfoundry.org/garden/*.go # gosub
   - code.cloudfoundry.org/garden/client/*.go # gosub

@@ -1,0 +1,25 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/atc-ci
+
+params:
+  BOSH_ENVIRONMENT:
+  BOSH_USER:
+  BOSH_PASSWORD:
+  BOSH_CLIENT:
+  BOSH_CLIENT_SECRET:
+  BOSH_KEY:
+
+inputs:
+- name: concourse
+- name: concourse-release
+- name: garden-runc-release
+- name: stemcell
+- name: bosh-cli
+
+run:
+  path: concourse/ci/scripts/topgun
