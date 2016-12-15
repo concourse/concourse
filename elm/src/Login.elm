@@ -80,7 +80,7 @@ update action model =
         , Cmd.none
         )
     AuthFetched (Err err) ->
-      Debug.log ("failed to fetch auth methods: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch auth methods") (err)) <|
         (model, Cmd.none)
     NoAuthSubmit ->
       (model, noAuthSubmit model.teamName)
@@ -89,12 +89,12 @@ update action model =
         , Navigation.newUrl (redirectUrl model.redirect)
         )
     LoginTokenReceived (Err err) ->
-      Debug.log ("login failed: " ++ toString err) <|
+      flip always (Debug.log("login failed") (err)) <|
         (model, Cmd.none)
     BasicAuthUsernameChanged un ->
       ( case model.basicAuthInput of
           Nothing ->
-            Debug.log "input to nonexistent UN field: "
+            flip always (Debug.log("input to nonexistent UN field") () ) <|
               model
           Just fields ->
             { model
@@ -108,7 +108,7 @@ update action model =
     BasicAuthPasswordChanged pw ->
       ( case model.basicAuthInput of
           Nothing ->
-            Debug.log "input to nonexistent PW field: "
+            flip always (Debug.log("input to nonexistent PW field") () ) <|
               model
           Just fields ->
             { model

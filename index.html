@@ -22,18 +22,21 @@
       });
 
       app.ports.renderPipeline.subscribe(function (values) {
-        foundSvg = d3.select(".pipeline-graph");
-        var svg = createPipelineSvg(foundSvg)
-        if (svg.node() != null) {
-          var jobs = values[0];
-          var resources = values[1];
-          draw(svg, jobs, resources, app.ports.newUrl);
-        }
+        setTimeout(function(){ // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
+          foundSvg = d3.select(".pipeline-graph");
+          var svg = createPipelineSvg(foundSvg)
+          if (svg.node() != null) {
+            var jobs = values[0];
+            var resources = values[1];
+            draw(svg, jobs, resources, app.ports.newUrl);
+          }
+        }, 0)
       })
 
       var teamNameRegExp =  /\/teams\/([^/]+)\/.*/;
 
       app.ports.requestLoginRedirect.subscribe(function (message) {
+        setTimeout(function(){
           var path = document.location.pathname;
           var redirect = encodeURIComponent(path + document.location.search)
           var matches = path.match(teamNameRegExp);
@@ -45,10 +48,13 @@
             loginUrl = "/login?redirect="+ redirect;
           }
           app.ports.newUrl.send(loginUrl);
+        }, 0)
       })
 
       app.ports.setTitle.subscribe(function(title) {
-        document.title = title + "Concourse";
+        setTimeout(function(){
+          document.title = title + "Concourse";
+        }, 0)
       });
     </script>
   </body>

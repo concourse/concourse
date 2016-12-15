@@ -136,7 +136,7 @@ update action model =
       , model.ports.title <| resource.name ++ " - "
       )
     ResourceFetched (Err err) ->
-      Debug.log ("failed to fetch resource: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch resource") (err) ) <|
         (model, Cmd.none)
     TogglePaused ->
       case model.resource of
@@ -155,7 +155,7 @@ update action model =
     PausedToggled (Err (Http.BadResponse 401 _)) ->
       (model, LoginRedirect.requestLoginRedirect "")
     PausedToggled (Err err) ->
-      Debug.log ("failed to pause/unpause resource checking: " ++ toString err) <|
+      flip always (Debug.log("failed to pause/unpause resource checking") (err) ) <|
       case model.resource of
         Nothing -> (model, Cmd.none)
         Just r ->
@@ -195,7 +195,7 @@ update action model =
             )
 
     VersionedResourcesFetched _ (Err err) ->
-      Debug.log ("failed to fetch versioned resources: " ++ toString err) <|
+      flip always (Debug.log("failed to fetch versioned resources") (err) ) <|
         (model, Cmd.none)
     LoadPage page ->
       ( { model
@@ -263,7 +263,7 @@ update action model =
             , changingErrored = True
           }
       in
-        Debug.log ("failed to enable/disable versioned resources: " ++ toString err) <|
+        flip always (Debug.log("failed to enable/disable versioned resources") (err) ) <|
           ( { model
             | versionedUIStates = setState versionID newState model.versionedUIStates
             }
