@@ -31,9 +31,9 @@ resources/cf-resource.tar.gz:
   object_id: 2d6508bc-81fb-4b9a-789a-7e1f5a32c81f
   sha: 8c67a72dddac56f9f41a4c07479016d640f74ec4
 resources/docker-image-resource.tar.gz:
-  size: 41996698
-  object_id: ca513712-0a01-4bbb-5568-43c4b9911050
-  sha: 8c18b0be46abf16b7a7e78a32e78617ec9938bc5
+  size: 41997104
+  object_id: 5cc3ddb4-e203-4e75-6ba4-21d8d73c3e3c
+  sha: 0fa2463608492faef40a915d4b4ee589be940247
 resources/git-resource.tar.gz:
   size: 15780014
   object_id: 70a5deac-939a-4cc4-4891-413fd8fb207f
