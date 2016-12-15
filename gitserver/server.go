@@ -70,12 +70,8 @@ func Start(client concourse.Client) *Server {
 
 	Eventually(gardenClient.Ping).Should(Succeed())
 
-	handle, err := uuid.NewV4()
-	Expect(err).NotTo(HaveOccurred())
-
 	rootfsVol, err := baggageclaimClient.CreateVolume(
 		logger,
-		handle.String(),
 		baggageclaim.VolumeSpec{
 			Strategy: baggageclaim.ImportStrategy{
 				Path: gitServerRootfs,

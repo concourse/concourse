@@ -17,7 +17,6 @@ import (
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/mgutz/ansi"
-	uuid "github.com/nu7hatch/gouuid"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -94,11 +93,7 @@ func Start(client concourse.Client) *Server {
 
 	Eventually(gardenClient.Ping).Should(Succeed())
 
-	handle, err := uuid.NewV4()
-	Expect(err).NotTo(HaveOccurred())
-
 	rootfsVol, err := baggageclaimClient.CreateVolume(logger,
-		handle.String(),
 		baggageclaim.VolumeSpec{
 			Strategy: baggageclaim.ImportStrategy{
 				Path: rootfsPath,
