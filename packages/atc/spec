@@ -53,6 +53,7 @@ files:
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
+  - github.com/concourse/atc/dbng/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
@@ -60,6 +61,7 @@ files:
   - github.com/concourse/atc/gc/containerkeepaliver/*.go # gosub
   - github.com/concourse/atc/gc/dbgc/*.go # gosub
   - github.com/concourse/atc/gc/lostandfound/*.go # gosub
+  - github.com/concourse/atc/gcng/*.go # gosub
   - github.com/concourse/atc/lockrunner/*.go # gosub
   - github.com/concourse/atc/mainredirect/*.go # gosub
   - github.com/concourse/atc/metric/*.go # gosub
