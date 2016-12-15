@@ -52,6 +52,7 @@ var _ = Describe("DBProvider", func() {
 
 	BeforeEach(func() {
 		baggageclaimServer = ghttp.NewServer()
+		baggageclaimURL = baggageclaimServer.URL()
 
 		baggageclaimServer.RouteToHandler("POST", "/volumes", ghttp.RespondWithJSONEncoded(
 			http.StatusCreated,
@@ -239,7 +240,7 @@ var _ = Describe("DBProvider", func() {
 
 			Describe("a created container", func() {
 				BeforeEach(func() {
-					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr}, true, nil)
+					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr, BaggageclaimURL: &baggageclaimURL}, true, nil)
 				})
 
 				It("calls through to garden", func() {

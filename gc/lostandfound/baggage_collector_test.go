@@ -57,7 +57,7 @@ var _ = Describe("Baggage Collector", func() {
 		for _, example := range examples {
 			fakeWorkerClient = new(wfakes.FakeClient)
 			fakeWorker = new(wfakes.FakeWorker)
-			fakeWorkerClient.WorkersReturns([]worker.Worker{fakeWorker}, nil)
+			fakeWorkerClient.RunningWorkersReturns([]worker.Worker{fakeWorker}, nil)
 			fakeWorker.NameReturns("some-worker")
 			baggageCollectorLogger := lagertest.NewTestLogger("test")
 

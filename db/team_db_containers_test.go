@@ -28,6 +28,7 @@ var _ = Describe("TeamDbContainers", func() {
 		otherTeamID int
 		teamDB      db.TeamDB
 		pipelineDB  db.PipelineDB
+		build       db.Build
 	)
 
 	BeforeEach(func() {
@@ -58,6 +59,21 @@ var _ = Describe("TeamDbContainers", func() {
 		otherTeamID = savedOtherTeam.ID
 
 		teamDB = teamDBFactory.GetTeamDB("team-name")
+
+		build, err = teamDB.CreateOneOffBuild()
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = database.SaveWorker(db.WorkerInfo{
+			Name:       "some-worker",
+			GardenAddr: "1.2.3.4:7777",
+		}, 10*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = database.SaveWorker(db.WorkerInfo{
+			Name:       "some-other-worker",
+			GardenAddr: "1.2.3.5:7777",
+		}, 10*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
@@ -169,7 +185,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "a",
@@ -183,7 +199,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "b",
@@ -197,7 +213,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "c",
@@ -220,7 +236,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "a",
@@ -234,7 +250,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "b",
@@ -257,7 +273,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "a",
@@ -272,7 +288,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "b",
@@ -287,7 +303,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "c",
@@ -368,7 +384,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "a",
@@ -382,7 +398,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "b",
@@ -396,12 +412,12 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "c",
 							Type:       db.ContainerTypeTask,
-							WorkerName: "some-Oother-worker",
+							WorkerName: "some-other-worker",
 							PipelineID: savedPipeline.ID,
 							TeamID:     teamID,
 						},
@@ -419,7 +435,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "a",
@@ -433,7 +449,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "b",
@@ -447,12 +463,12 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "c",
 							Type:       db.ContainerTypeGet,
-							WorkerName: "some-Oother-worker",
+							WorkerName: "some-other-worker",
 							PipelineID: savedPipeline.ID,
 							TeamID:     teamID,
 						},
@@ -470,7 +486,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "a",
@@ -484,7 +500,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "b",
@@ -498,7 +514,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "c",
@@ -596,7 +612,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:       "b",
@@ -800,7 +816,7 @@ var _ = Describe("TeamDbContainers", func() {
 					ContainerIdentifier: db.ContainerIdentifier{
 						Stage:   db.ContainerStageRun,
 						PlanID:  "plan-id",
-						BuildID: 1234,
+						BuildID: build.ID(),
 					},
 					ContainerMetadata: db.ContainerMetadata{
 						Type:       db.ContainerTypeTask,
@@ -815,7 +831,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Type:       db.ContainerTypeTask,
@@ -830,7 +846,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Type:       db.ContainerTypeTask,
@@ -854,7 +870,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							StepName:   "some-name",
@@ -869,7 +885,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							StepName:   "WROONG",
@@ -884,7 +900,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							StepName:   "some-name",
@@ -899,7 +915,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							WorkerName: "some-worker",
@@ -930,7 +946,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "a",
@@ -944,7 +960,7 @@ var _ = Describe("TeamDbContainers", func() {
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
 							PlanID:  "plan-id",
-							BuildID: 1234,
+							BuildID: build.ID(),
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "b",
@@ -998,7 +1014,7 @@ var _ = Describe("TeamDbContainers", func() {
 				ContainerIdentifier: db.ContainerIdentifier{
 					Stage:   db.ContainerStageRun,
 					PlanID:  "plan-id",
-					BuildID: 1234,
+					BuildID: build.ID(),
 				},
 				ContainerMetadata: db.ContainerMetadata{
 					Handle:     "b",

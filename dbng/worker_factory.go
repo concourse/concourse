@@ -797,34 +797,6 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 		State:      workerState,
 	}
 
-	baseResourceTypeIDs := []int{}
-	for _, resourceType := range worker.ResourceTypes {
-		workerResourceType := WorkerResourceType{
-			Worker:  savedWorker,
-			Image:   resourceType.Image,
-			Version: resourceType.Version,
-			BaseResourceType: &BaseResourceType{
-				Name: resourceType.Type,
-			},
-		}
-		uwrt, err := workerResourceType.FindOrCreate(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		baseResourceTypeIDs = append(baseResourceTypeIDs, uwrt.UsedBaseResourceType.ID)
-	}
-
-	_, err = psql.Delete("worker_base_resource_types").
-		Where(sq.Eq{
-			"worker_name": worker.Name,
-		}).
-		Where(sq.NotEq{
-			"base_resource_type_id": baseResourceTypeIDs,
-		}).
-		RunWith(tx).
-		Exec()
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, err

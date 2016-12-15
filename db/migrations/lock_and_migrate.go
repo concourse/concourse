@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 
 	"github.com/BurntSushi/migration"
 )
@@ -55,6 +56,27 @@ func LockDBAndMigrate(logger lager.Logger, sqlDriver string, sqlDataSource strin
 		}
 
 		dbLockConn.Close()
+		break
+	}
+
+	return dbConn, nil
+}
+
+func DBNGConn(logger lager.Logger, sqlDriver string, sqlDataSource string) (dbng.Conn, error) {
+	var err error
+	var dbConn dbng.Conn
+
+	for {
+		dbConn, err = dbng.WrapWithError(sql.Open(sqlDriver, sqlDataSource))
+		if err != nil {
+			if strings.Contains(err.Error(), " dial ") {
+				logger.Error("failed-to-open-db-retrying", err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			return nil, err
+		}
+
 		break
 	}
 

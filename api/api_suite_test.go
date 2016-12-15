@@ -16,6 +16,8 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 
 	"github.com/concourse/atc/api/buildserver/buildserverfakes"
 	"github.com/concourse/atc/api/containerserver/containerserverfakes"
@@ -24,7 +26,6 @@ import (
 	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
 	"github.com/concourse/atc/api/teamserver/teamserverfakes"
 	"github.com/concourse/atc/api/volumeserver/volumeserverfakes"
-	"github.com/concourse/atc/api/workerserver/workerserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
@@ -48,11 +49,12 @@ var (
 	fakeWorkerClient              *workerfakes.FakeClient
 	teamServerDB                  *teamserverfakes.FakeTeamsDB
 	volumesDB                     *volumeserverfakes.FakeVolumesDB
-	workerDB                      *workerserverfakes.FakeWorkerDB
 	containerDB                   *containerserverfakes.FakeContainerDB
 	pipeDB                        *pipesfakes.FakePipeDB
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
+	dbTeamFactory                 *dbngfakes.FakeTeamFactory
+	dbWorkerFactory               *dbngfakes.FakeWorkerFactory
 	teamDB                        *dbfakes.FakeTeamDB
 	pipelinesDB                   *dbfakes.FakePipelinesDB
 	buildsDB                      *authfakes.FakeBuildsDB
@@ -100,13 +102,17 @@ var _ = BeforeEach(func() {
 	teamServerDB = new(teamserverfakes.FakeTeamsDB)
 	teamDB = new(dbfakes.FakeTeamDB)
 	teamDBFactory.GetTeamDBReturns(teamDB)
-	workerDB = new(workerserverfakes.FakeWorkerDB)
 	buildServerDB = new(buildserverfakes.FakeBuildsDB)
 	containerDB = new(containerserverfakes.FakeContainerDB)
 	volumesDB = new(volumeserverfakes.FakeVolumesDB)
 	pipeDB = new(pipesfakes.FakePipeDB)
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
 	buildsDB = new(authfakes.FakeBuildsDB)
+
+	dbTeamFactory = new(dbngfakes.FakeTeamFactory)
+	dbTeamFactory.FindTeamReturns(&dbng.Team{}, true, nil)
+
+	dbWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
@@ -167,8 +173,10 @@ var _ = BeforeEach(func() {
 		pipelineDBFactory,
 		teamDBFactory,
 
+		dbTeamFactory,
+		dbWorkerFactory,
+
 		teamServerDB,
-		workerDB,
 		buildServerDB,
 		containerDB,
 		volumesDB,

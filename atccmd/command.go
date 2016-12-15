@@ -25,6 +25,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/gc/buildreaper"
@@ -144,7 +145,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.configureMetrics(logger)
 	}
 
-	dbConn, err := cmd.constructDBConn(logger)
+	dbConn, dbngConn, err := cmd.constructDBConn(logger)
 	if err != nil {
 		return nil, err
 	}
@@ -162,10 +163,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	bus := db.NewNotificationsBus(listener, dbConn)
 
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
+	dbTeamFactory := dbng.NewTeamFactory(dbngConn)
+	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
 	trackerFactory := resource.NewTrackerFactory()
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
-	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory, pipelineDBFactory)
+	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory, pipelineDBFactory, dbWorkerFactory)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
@@ -216,6 +219,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		reconfigurableSink,
 		sqlDB,
 		teamDBFactory,
+		dbTeamFactory,
+		dbWorkerFactory,
 		providerFactory,
 		signingKey,
 		pipelineDBFactory,
@@ -597,18 +602,24 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 	)
 }
 
-func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, error) {
+func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn, error) {
 	driverName := "connection-counting"
 	metric.SetupConnectionCountingDriver("postgres", cmd.PostgresDataSource, driverName)
 
 	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.PostgresDataSource)
 	if err != nil {
-		return nil, fmt.Errorf("failed to migrate database: %s", err)
+		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
+	}
+
+	dbngConn, err := migrations.DBNGConn(logger.Session("db.migrations"), driverName, cmd.PostgresDataSource)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
 
 	dbConn.SetMaxOpenConns(64)
+	dbngConn.SetMaxOpenConns(64)
 
-	return metric.CountQueries(dbConn), nil
+	return metric.CountQueries(dbConn), dbngConn, nil
 }
 
 func (cmd *ATCCommand) constructLockConn() (*db.RetryableConn, error) {
@@ -642,6 +653,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	trackerFactory resource.TrackerFactory,
 	resourceFetcherFactory resource.FetcherFactory,
 	pipelineDBFactory db.PipelineDBFactory,
+	dbWorkerFactory dbng.WorkerFactory,
 ) worker.Client {
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
@@ -822,6 +834,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
 	teamDBFactory db.TeamDBFactory,
+	dbTeamFactory dbng.TeamFactory,
+	dbWorkerFactory dbng.WorkerFactory,
 	providerFactory provider.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
@@ -871,8 +885,10 @@ func (cmd *ATCCommand) constructAPIHandler(
 		pipelineDBFactory,
 		teamDBFactory,
 
+		dbTeamFactory,
+		dbWorkerFactory,
+
 		sqlDB, // teamserver.TeamDB
-		sqlDB, // workerserver.WorkerDB
 		sqlDB, // buildserver.BuildsDB
 		sqlDB, // containerserver.ContainerDB
 		sqlDB, // volumeserver.VolumesDB

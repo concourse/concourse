@@ -652,7 +652,7 @@ func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes atc.Res
 }
 
 func (worker *gardenWorker) RunningWorkers() ([]Worker, error) {
-	return nil, ErrNotImplemented
+	return nil, errors.New("Not implemented")
 }
 
 func (worker *gardenWorker) GetWorker(name string) (Worker, error) {

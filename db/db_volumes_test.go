@@ -20,6 +20,12 @@ var _ = Describe("Keeping track of volumes", func() {
 	var pipelineDB db.PipelineDB
 	var teamDB db.TeamDB
 	var teamID int
+
+	var workerToInsert db.WorkerInfo
+	var workerToInsert2 db.WorkerInfo
+	var insertedWorker db.SavedWorker
+	var insertedWorker2 db.SavedWorker
+
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
@@ -55,6 +61,31 @@ var _ = Describe("Keeping track of volumes", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
+
+		workerToInsert = db.WorkerInfo{
+			GardenAddr:       "some-garden-address",
+			BaggageclaimURL:  "some-baggageclaim-url",
+			ActiveContainers: 0,
+			ResourceTypes:    []atc.WorkerResourceType{},
+			Platform:         "linux",
+			Tags:             []string{"vsphere"},
+			Name:             "some-worker",
+		}
+		workerToInsert2 = db.WorkerInfo{
+			GardenAddr:       "second-garden-address",
+			BaggageclaimURL:  "some-baggageclaim-url",
+			ActiveContainers: 0,
+			ResourceTypes:    []atc.WorkerResourceType{},
+			Platform:         "linux",
+			Tags:             []string{"vsphere"},
+			Name:             "second-worker",
+		}
+
+		insertedWorker, err = database.SaveWorker(workerToInsert, 2*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
+
+		insertedWorker2, err = database.SaveWorker(workerToInsert2, 2*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -67,11 +98,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 	Context("volume data", func() {
 		var (
-			volumeToInsert  db.Volume
-			workerToInsert  db.WorkerInfo
-			workerToInsert2 db.WorkerInfo
-			insertedWorker  db.SavedWorker
-			insertedWorker2 db.SavedWorker
+			volumeToInsert db.Volume
 		)
 
 		BeforeEach(func() {
@@ -84,25 +111,7 @@ var _ = Describe("Keeping track of volumes", func() {
 						ResourceHash:    "some-hash",
 					},
 				},
-			}
-
-			workerToInsert = db.WorkerInfo{
-				GardenAddr:       "some-garden-address",
-				BaggageclaimURL:  "some-baggageclaim-url",
-				ActiveContainers: 0,
-				ResourceTypes:    []atc.WorkerResourceType{},
-				Platform:         "linux",
-				Tags:             []string{"vsphere"},
-				Name:             "some-worker",
-			}
-			workerToInsert2 = db.WorkerInfo{
-				GardenAddr:       "second-garden-address",
-				BaggageclaimURL:  "some-baggageclaim-url",
-				ActiveContainers: 0,
-				ResourceTypes:    []atc.WorkerResourceType{},
-				Platform:         "linux",
-				Tags:             []string{"vsphere"},
-				Name:             "second-worker",
+				WorkerName: "some-worker",
 			}
 		})
 
@@ -119,7 +128,7 @@ var _ = Describe("Keeping track of volumes", func() {
 				err := database.InsertVolume(db.Volume{
 					Handle:      "volume-1-handle",
 					TeamID:      teamID,
-					WorkerName:  "some-worker-name",
+					WorkerName:  "some-worker",
 					TTL:         5 * time.Minute,
 					Identifier:  identifier,
 					SizeInBytes: int64(1),
@@ -128,7 +137,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 				err = database.InsertVolume(db.Volume{
 					Handle:      "volume-2-handle",
-					WorkerName:  "some-worker-name",
+					WorkerName:  "some-worker",
 					TTL:         5 * time.Minute,
 					Identifier:  identifier,
 					SizeInBytes: int64(1),
@@ -137,7 +146,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 				err = database.InsertVolume(db.Volume{
 					Handle:      "volume-3-handle",
-					WorkerName:  "some-worker-name",
+					WorkerName:  "some-worker",
 					TTL:         5 * time.Minute,
 					Identifier:  identifier,
 					SizeInBytes: int64(1),
@@ -203,7 +212,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 				err := database.InsertVolume(db.Volume{
 					Handle:      "volume-1-handle",
-					WorkerName:  "some-worker-name",
+					WorkerName:  "some-worker",
 					TTL:         5 * time.Minute,
 					Identifier:  identifier,
 					SizeInBytes: int64(1),
@@ -264,7 +273,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 				err := database.InsertVolume(db.Volume{
 					Handle:     "cow-volume-handle",
-					WorkerName: "some-worker-name",
+					WorkerName: "some-worker",
 					TTL:        5 * time.Minute,
 					Identifier: cowIdentifier,
 				})
@@ -280,19 +289,13 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(cowVolume.Volume.Identifier.COW.ParentVolumeHandle).To(Equal("parent-volume-handle"))
 				Expect(cowVolume.TTL).To(Equal(5 * time.Minute))
 				Expect(cowVolume.ExpiresIn).To(BeNumerically("~", 5*time.Minute, time.Second))
-				Expect(cowVolume.WorkerName).To(Equal("some-worker-name"))
+				Expect(cowVolume.WorkerName).To(Equal("some-worker"))
 			})
 		})
 
 		Describe("resource cache", func() {
 			JustBeforeEach(func() {
 				var err error
-
-				insertedWorker, err = database.SaveWorker(workerToInsert, 2*time.Minute)
-				Expect(err).NotTo(HaveOccurred())
-
-				insertedWorker2, err = database.SaveWorker(workerToInsert2, 2*time.Minute)
-				Expect(err).NotTo(HaveOccurred())
 
 				volumeToInsert.WorkerName = insertedWorker.Name
 				err = database.InsertVolume(volumeToInsert)
@@ -601,7 +604,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 			By("returning volumes that are used in both one-off builds and job builds")
 			volume1 := db.Volume{
-				WorkerName: "worker-1",
+				WorkerName: "some-worker",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-1",
 				Identifier: db.VolumeIdentifier{
@@ -620,7 +623,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 			By("returning more than one volume per build ID")
 			volume2 := db.Volume{
-				WorkerName: "worker-2",
+				WorkerName: "some-worker",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-2",
 				Identifier: db.VolumeIdentifier{
@@ -637,7 +640,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 			By("returning more than one volume per VolumeIdentifier")
 			volume3 := db.Volume{
-				WorkerName: "worker-3",
+				WorkerName: "some-worker",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-3",
 				Identifier: db.VolumeIdentifier{
@@ -654,7 +657,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 			By("returning volumes from multiple one-off builds")
 			volume4 := db.Volume{
-				WorkerName: "worker-4",
+				WorkerName: "some-worker",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-4",
 				Identifier: db.VolumeIdentifier{
@@ -671,7 +674,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 			By("ignoring volumes from job builds even if part of the VolumeIdentifier matches")
 			volume5 := db.Volume{
-				WorkerName: "worker-5",
+				WorkerName: "some-worker",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-5",
 				Identifier: db.VolumeIdentifier{
@@ -688,7 +691,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 			By("ignoring expired volumes")
 			volume6 := db.Volume{
-				WorkerName: "worker-6",
+				WorkerName: "some-worker",
 				TTL:        -time.Hour,
 				Handle:     "volume-6",
 				Identifier: db.VolumeIdentifier{

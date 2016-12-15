@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -187,9 +186,9 @@ var _ = Describe("Workers API", func() {
 			})
 
 			It("tries to save the worker", func() {
-				Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
-				savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
-				Expect(savedInfo).To(Equal(db.WorkerInfo{
+				Expect(dbWorkerFactory.SaveWorkerCallCount()).To(Equal(1))
+				savedWorker, savedTTL := dbWorkerFactory.SaveWorkerArgsForCall(0)
+				Expect(savedWorker).To(Equal(atc.Worker{
 					GardenAddr:       "1.2.3.4:7777",
 					Name:             "worker-name",
 					BaggageclaimURL:  "5.6.7.8:7788",
@@ -236,24 +235,21 @@ var _ = Describe("Workers API", func() {
 
 				Context("when specified team exists", func() {
 					BeforeEach(func() {
-						teamDB.GetTeamReturns(db.SavedTeam{
+						dbTeamFactory.FindTeamReturns(&dbng.Team{
 							ID: 2,
-							Team: db.Team{
-								Name: "some-team",
-							},
 						}, true, nil)
 					})
 
 					It("saves team name in db", func() {
-						Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
+						Expect(dbWorkerFactory.SaveTeamWorkerCallCount()).To(Equal(1))
 
-						savedInfo, _ := workerDB.SaveWorkerArgsForCall(0)
-						Expect(savedInfo.TeamID).To(Equal(2))
+						_, team, _ := dbWorkerFactory.SaveTeamWorkerArgsForCall(0)
+						Expect(team.ID).To(Equal(2))
 					})
 
 					Context("when saving the worker succeeds", func() {
 						BeforeEach(func() {
-							workerDB.SaveWorkerReturns(db.SavedWorker{}, nil)
+							dbWorkerFactory.SaveTeamWorkerReturns(&dbng.Worker{}, nil)
 						})
 
 						It("returns 200", func() {
@@ -263,7 +259,7 @@ var _ = Describe("Workers API", func() {
 
 					Context("when saving the worker fails", func() {
 						BeforeEach(func() {
-							workerDB.SaveWorkerReturns(db.SavedWorker{}, errors.New("oh no!"))
+							dbWorkerFactory.SaveTeamWorkerReturns(nil, errors.New("oh no!"))
 						})
 
 						It("returns 500", func() {
@@ -274,7 +270,7 @@ var _ = Describe("Workers API", func() {
 
 				Context("when specified team does not exist", func() {
 					BeforeEach(func() {
-						teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+						dbTeamFactory.FindTeamReturns(nil, false, nil)
 					})
 
 					It("returns 400", func() {
@@ -289,10 +285,10 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("tries to save the worker with the garden address as the name", func() {
-					Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
+					Expect(dbWorkerFactory.SaveWorkerCallCount()).To(Equal(1))
 
-					savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
-					Expect(savedInfo).To(Equal(db.WorkerInfo{
+					savedInfo, savedTTL := dbWorkerFactory.SaveWorkerArgsForCall(0)
+					Expect(savedInfo).To(Equal(atc.Worker{
 						GardenAddr:       "1.2.3.4:7777",
 						Name:             "1.2.3.4:7777",
 						BaggageclaimURL:  "5.6.7.8:7788",
@@ -313,7 +309,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when saving the worker succeeds", func() {
 				BeforeEach(func() {
-					workerDB.SaveWorkerReturns(db.SavedWorker{}, nil)
+					dbWorkerFactory.SaveWorkerReturns(&dbng.Worker{}, nil)
 				})
 
 				It("returns 200", func() {
@@ -323,7 +319,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when saving the worker fails", func() {
 				BeforeEach(func() {
-					workerDB.SaveWorkerReturns(db.SavedWorker{}, errors.New("oh no!"))
+					dbWorkerFactory.SaveWorkerReturns(nil, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
@@ -345,7 +341,8 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("does not save it", func() {
-					Expect(workerDB.SaveWorkerCallCount()).To(BeZero())
+					Expect(dbWorkerFactory.SaveWorkerCallCount()).To(BeZero())
+					Expect(dbWorkerFactory.SaveTeamWorkerCallCount()).To(BeZero())
 				})
 			})
 
@@ -363,7 +360,8 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("does not save it", func() {
-					Expect(workerDB.SaveWorkerCallCount()).To(BeZero())
+					Expect(dbWorkerFactory.SaveWorkerCallCount()).To(BeZero())
+					Expect(dbWorkerFactory.SaveTeamWorkerCallCount()).To(BeZero())
 				})
 			})
 		})
@@ -378,7 +376,8 @@ var _ = Describe("Workers API", func() {
 			})
 
 			It("does not save the config", func() {
-				Expect(workerDB.SaveWorkerCallCount()).To(BeZero())
+				Expect(dbWorkerFactory.SaveWorkerCallCount()).To(BeZero())
+				Expect(dbWorkerFactory.SaveTeamWorkerCallCount()).To(BeZero())
 			})
 		})
 	})

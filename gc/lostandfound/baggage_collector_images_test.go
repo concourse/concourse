@@ -62,7 +62,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			crossedWiresVolume = new(wfakes.FakeVolume)
 			workerC.LookupVolumeReturns(crossedWiresVolume, true, nil)
 
-			fakeWorkerClient.WorkersReturns([]worker.Worker{
+			fakeWorkerClient.RunningWorkersReturns([]worker.Worker{
 				workerA,
 				workerB,
 				workerC,
@@ -259,7 +259,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			volumeB1 = new(wfakes.FakeVolume)
 			workerB.LookupVolumeReturns(volumeB1, true, nil)
 
-			fakeWorkerClient.WorkersReturns([]worker.Worker{
+			fakeWorkerClient.RunningWorkersReturns([]worker.Worker{
 				workerA,
 				workerB,
 			}, nil)
