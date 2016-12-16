@@ -18,9 +18,9 @@ function keygen() {
   [ -f $1 ] || ssh-keygen -t rsa -f $1 -N ''
 }
 
-keygen ./web/tsa_host_key
+keygen ./web/host_key
 keygen ./web/session_signing_key
 keygen ./worker/worker_key
 
 cp ./worker/worker_key.pub ./web/authorized_worker_keys
-cp ./web/tsa_host_key.pub ./worker
+cp ./web/host_key.pub ./worker
