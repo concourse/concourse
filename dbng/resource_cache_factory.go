@@ -226,7 +226,7 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 		Join("resource_cache_uses rcu ON rcu.resource_cache_id = rc.id").
 		Where(sq.Expr("irv.build_id = rcu.build_id")).
 		Where(sq.Expr("rc.params_hash = 'null'")).
-		Where("irv.id IN (" + latestImageResourceBuildByJobQ + ")").
+		Where("irv.build_id IN (" + latestImageResourceBuildByJobQ + ")").
 		ToSql()
 	if err != nil {
 		return err
@@ -268,7 +268,7 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 				},
 			},
 		}).
-		Where("b.id NOT IN (" + imageResourceCacheIds + ")").
+		Where("rcu.resource_cache_id NOT IN (" + imageResourceCacheIds + ")").
 		RunWith(tx).
 		Exec()
 	if err != nil {

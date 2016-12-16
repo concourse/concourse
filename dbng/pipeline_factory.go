@@ -37,6 +37,7 @@ func (factory *PipelineFactory) CreatePipeline(team *Team, name string, config s
 	}
 
 	return &Pipeline{
-		ID: pipelineID,
+		ID:     pipelineID,
+		TeamID: team.ID,
 	}, nil
 }

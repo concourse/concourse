@@ -49,6 +49,27 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				return result
 			}
 
+			finishBuild := func(build *dbng.Build, status string) {
+				tx, err := dbConn.Begin()
+				Expect(err).NotTo(HaveOccurred())
+				defer tx.Rollback()
+
+				var result time.Time
+				err = psql.Update("builds").
+					SetMap(map[string]interface{}{
+						"status":    status,
+						"end_time":  sq.Expr("NOW()"),
+						"completed": true,
+					}).Where(sq.Eq{
+					"id": build.ID,
+				}).Suffix("RETURNING end_time").
+					RunWith(tx).
+					QueryRow().Scan(&result)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(tx.Commit()).NotTo(HaveOccurred())
+			}
+
 			BeforeEach(func() {
 				setupTx, err := dbConn.Begin()
 				Expect(err).ToNot(HaveOccurred())
@@ -67,7 +88,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Expect(setupTx.Commit()).To(Succeed())
 			})
 
-			Describe("for builds", func() {
+			Describe("for one-off builds", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 						logger,
@@ -86,28 +107,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				finishBuild := func(status string) {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-					defer tx.Rollback()
-
-					var result time.Time
-					err = psql.Update("builds").
-						SetMap(map[string]interface{}{
-							"status":    status,
-							"end_time":  sq.Expr("NOW()"),
-							"completed": true,
-						}).Where(sq.Eq{
-						"id": defaultBuild.ID,
-					}).Suffix("RETURNING end_time").
-						RunWith(tx).
-						QueryRow().Scan(&result)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = tx.Commit()
-					Expect(err).NotTo(HaveOccurred())
-				}
-
 				Context("before the build has completed", func() {
 					It("does not clean up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
@@ -119,7 +118,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("once the build has completed successfully", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						finishBuild("succeeded")
+						finishBuild(defaultBuild, "succeeded")
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
@@ -128,7 +127,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("once the build has been aborted", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						finishBuild("aborted")
+						finishBuild(defaultBuild, "aborted")
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
@@ -138,7 +137,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					Context("when the build is a one-off", func() {
 						It("cleans up the uses", func() {
 							Expect(countResourceCacheUses()).NotTo(BeZero())
-							finishBuild("failed")
+							finishBuild(defaultBuild, "failed")
 							Expect(collector.Run()).To(Succeed())
 							Expect(countResourceCacheUses()).To(BeZero())
 						})
@@ -179,7 +178,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						Context("when it is the latest failed build", func() {
 							It("preserves the uses", func() {
 								Expect(countResourceCacheUses()).NotTo(BeZero())
-								finishBuild("failed")
+								finishBuild(defaultBuild, "failed")
 								Expect(collector.Run()).To(Succeed())
 								Expect(countResourceCacheUses()).NotTo(BeZero())
 							})
@@ -197,6 +196,125 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								Expect(countResourceCacheUses()).To(BeZero())
 							})
 						})
+					})
+				})
+
+				Context("if build is using image resource", func() {
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+						defer tx.Rollback()
+
+						err = defaultBuild.SaveImageResourceVersion(tx, atc.PlanID("123"), atc.Version{"ref": "abc"}, "some-resource-hash")
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(tx.Commit()).NotTo(HaveOccurred())
+					})
+
+					It("deletes the use for old build image resource", func() {
+						Expect(countResourceCacheUses()).NotTo(BeZero())
+						finishBuild(defaultBuild, "succeeded")
+						Expect(collector.Run()).To(Succeed())
+						Expect(countResourceCacheUses()).To(BeZero())
+					})
+				})
+			})
+
+			Context("for pipeline builds", func() {
+				Context("if job build is using image resource", func() {
+					var firstBuild *dbng.Build
+
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+						defer tx.Rollback()
+
+						err = defaultPipeline.SaveJob(tx, atc.JobConfig{
+							Name: "some-job",
+						})
+						Expect(err).NotTo(HaveOccurred())
+
+						firstBuild, err = defaultPipeline.CreateJobBuild(tx, "some-job")
+						Expect(err).NotTo(HaveOccurred())
+
+						imageVersion := atc.Version{"ref": "abc"}
+						err = firstBuild.SaveImageResourceVersion(tx, atc.PlanID("123"), imageVersion, "some-resource-hash")
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(tx.Commit()).NotTo(HaveOccurred())
+
+						_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+							logger,
+							firstBuild,
+							"some-base-type",
+							imageVersion,
+							atc.Source{
+								"some": "source",
+							},
+							nil,
+							defaultPipeline,
+							atc.ResourceTypes{},
+						)
+						Expect(err).NotTo(HaveOccurred())
+
+						finishBuild(firstBuild, "succeeded")
+					})
+
+					It("keeps the use for latest build image resource", func() {
+						Expect(countResourceCacheUses()).To(Equal(1))
+						Expect(collector.Run()).To(Succeed())
+						Expect(countResourceCacheUses()).To(Equal(1))
+					})
+
+					It("deletes the use for old build image resource", func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+						defer tx.Rollback()
+
+						secondBuild, err := defaultPipeline.CreateJobBuild(tx, "some-job")
+						Expect(err).NotTo(HaveOccurred())
+
+						imageVersion2 := atc.Version{"ref": "abc2"}
+						err = secondBuild.SaveImageResourceVersion(tx, atc.PlanID("123"), imageVersion2, "some-resource-hash")
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(tx.Commit()).NotTo(HaveOccurred())
+
+						finishBuild(secondBuild, "succeeded")
+
+						_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+							logger,
+							secondBuild,
+							"some-base-type",
+							imageVersion2,
+							atc.Source{
+								"some": "source",
+							},
+							nil,
+							defaultPipeline,
+							atc.ResourceTypes{},
+						)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(countResourceCacheUses()).To(Equal(2))
+
+						Expect(collector.Run()).To(Succeed())
+
+						Expect(countResourceCacheUses()).To(Equal(1))
+
+						tx, err = dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+						defer tx.Rollback()
+
+						var buildID int
+						err = psql.Select("build_id").
+							From("resource_cache_uses").
+							RunWith(tx).
+							QueryRow().
+							Scan(&buildID)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(buildID).To(Equal(secondBuild.ID))
 					})
 				})
 			})
