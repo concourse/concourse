@@ -23,4 +23,3 @@ jobs:
         path: cat
         args:
         - tick-tock/input
-  - put: tick-tock
