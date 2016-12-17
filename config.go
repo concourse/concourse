@@ -63,6 +63,7 @@ type ResourceType struct {
 	Name   string `yaml:"name" json:"name" mapstructure:"name"`
 	Type   string `yaml:"type" json:"type" mapstructure:"type"`
 	Source Source `yaml:"source" json:"source" mapstructure:"source"`
+	Tags   Tags   `yaml:"tags,omitempty" json:"tags" mapstructure:"tags"`
 }
 
 type ResourceTypes []ResourceType

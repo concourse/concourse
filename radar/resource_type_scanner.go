@@ -113,7 +113,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		resource.EmptyMetadata{},
 		session,
 		resource.ResourceType(resourceType.Type),
-		[]string{},
+		resourceType.Tags,
 		scanner.db.TeamID(),
 		atc.ResourceTypes{},
 		worker.NoopImageFetchingDelegate{},
@@ -124,7 +124,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 
 	defer res.Release(nil)
 
-	logger.Debug("checking")
+	logger.Debug("checking", lager.Data{"resource-type-name": resourceType.Name})
 
 	newVersions, err := res.Check(resourceType.Source, atc.Version(fromVersion))
 	if err != nil {

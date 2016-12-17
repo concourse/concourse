@@ -56,6 +56,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Name:   "some-resource-type",
 					Type:   "docker-image",
 					Source: atc.Source{"custom": "source"},
+					Tags:   atc.Tags{"some-tag"},
 				},
 			},
 		})
@@ -68,6 +69,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Name:   "some-resource-type",
 				Type:   "docker-image",
 				Source: atc.Source{"custom": "source"},
+				Tags:   atc.Tags{"some-tag"},
 			},
 		}
 		fakeRadarDB.TeamIDReturns(teamID)
@@ -139,7 +141,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Ephemeral: true,
 				}))
 				Expect(typ).To(Equal(resource.ResourceType("docker-image")))
-				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
+				Expect(tags).To(Equal(atc.Tags{"some-tag"}))
 				Expect(actualTeamID).To(Equal(teamID))
 				Expect(customTypes).To(Equal(atc.ResourceTypes{}))
 				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
@@ -219,6 +221,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 						Name:   "some-resource-type",
 						Type:   "docker-image",
 						Source: atc.Source{"custom": "source"},
+						Tags:   atc.Tags{"some-tag"},
 					}))
 
 					Expect(version).To(Equal(atc.Version{"version": "3"}))
