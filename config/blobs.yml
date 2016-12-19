@@ -11,62 +11,62 @@ postgresql/postgresql-9.3.4.tar.gz:
   object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
   sha: 9f80b3cfebc434ca0860fc8489923cea73456081
 resources/archive-resource.tar.gz:
-  size: 7500578
-  object_id: db2883e0-d913-4af4-76bc-356d1028718d
-  sha: ade0ce29b2f4a3bb09a2c73cb87d6e5215245c3e
+  size: 7500909
+  object_id: 77355aed-61a8-4036-62f4-06ac12656a49
+  sha: 4f20ef32e458dc0e1fe173c1d4c3dff4e1f03be2
 resources/bosh-deployment-resource.tar.gz:
-  size: 13173909
-  object_id: 4417c64d-4e32-4a25-5b8f-64b25134517f
-  sha: 98ea6ec4324460c5821b4ebccdea68b4d5a79fb6
+  size: 13172510
+  object_id: 8c5a8706-888c-477b-6c53-bf56186766f7
+  sha: fe37e1ce6d9c8f81c812faac0ea6b1ff23e188a6
 resources/bosh-io-release-resource.tar.gz:
-  size: 5029125
-  object_id: b1c09d9a-880a-4f74-5054-dbd5ecca5138
-  sha: 7b30e1e1a3d16319228ab5934bd1c6882aa22b1e
+  size: 5030142
+  object_id: 92a05c45-0ca5-4bde-6d46-b82531bca4f1
+  sha: 838dd4f1a838de15e87f43cf9c7a21628653a92a
 resources/bosh-io-stemcell-resource.tar.gz:
-  size: 7702973
-  object_id: 082cdf43-764f-480e-7d54-a5a9ea3ccfe0
-  sha: 533d7bc6e8f3ffe601e4f6e97e7171408b36baab
+  size: 7702462
+  object_id: b6c0c989-fa58-405a-5df0-0b91660c12cd
+  sha: c73c05f795604e7a290c49d3510deff93a3bdf33
 resources/cf-resource.tar.gz:
-  size: 17894057
-  object_id: 6c612aeb-7e0d-40c8-78ff-3f1778901edb
-  sha: 49214ab8c635e5bff258cf3b7ede11303ea1108e
+  size: 17892415
+  object_id: 2d6508bc-81fb-4b9a-789a-7e1f5a32c81f
+  sha: 8c67a72dddac56f9f41a4c07479016d640f74ec4
 resources/docker-image-resource.tar.gz:
-  size: 41996698
-  object_id: ca513712-0a01-4bbb-5568-43c4b9911050
-  sha: 8c18b0be46abf16b7a7e78a32e78617ec9938bc5
+  size: 41997104
+  object_id: 5cc3ddb4-e203-4e75-6ba4-21d8d73c3e3c
+  sha: 0fa2463608492faef40a915d4b4ee589be940247
 resources/git-resource.tar.gz:
-  size: 15780014
-  object_id: 70a5deac-939a-4cc4-4891-413fd8fb207f
-  sha: a8f4b92c65d65498247898995255a7b8e6f327c6
+  size: 15780093
+  object_id: 7f196ca1-987e-4a74-4e78-751ddfc4d73b
+  sha: 6d0b24ebe74828b2e7112c78738653e798e650e7
 resources/github-release-resource.tar.gz:
-  size: 9968840
-  object_id: 671cda2c-784f-44af-4688-c0ef1f7b1edd
-  sha: 81e590573ed984c487f6825309b2dfced3e950d2
+  size: 9968960
+  object_id: dfe9d956-6a5f-403e-7783-3c62ba03d487
+  sha: 89532760e73b363f22f9be178810b2b50b64aa81
 resources/hg-resource.tar.gz:
-  size: 14892255
-  object_id: a648e9e5-030b-4d24-50fd-62570a403b63
-  sha: fdf3f824ab37085dc7b816ac281a13c7f0f108af
+  size: 14892628
+  object_id: 2ad2af7c-f6df-4e96-4944-963fc38a84d9
+  sha: f376d2035e6e45e222e0769678fc4f8061e6d2b2
 resources/pool-resource.tar.gz:
-  size: 13153771
-  object_id: ec97d131-82f9-4f17-4617-5602f6117b32
-  sha: b9c62aa27078dc0694662a5043c235a8bcba94f3
+  size: 13154099
+  object_id: e10a3f9b-10ad-44ce-4557-05f24fa76dbc
+  sha: 5637707e8c2e8da19a610387749bc9adbd77a82d
 resources/s3-resource.tar.gz:
-  size: 11722443
-  object_id: 5eb1a3cf-82c6-4eec-77b8-9a1959c61f70
-  sha: 1df9067484c557a208f6413513983ef0776fc0d9
+  size: 11722299
+  object_id: 75e21567-c5c4-4309-59f2-1d0cbb79e7e6
+  sha: 62708b63166b7bfc34b19d97f0faf7221b99c6b4
 resources/semver-resource.tar.gz:
-  size: 18355891
-  object_id: d5cb2448-9697-43bb-6bbf-1871620326e5
-  sha: c671a6857b186869683cfda34c31cd621649fd79
+  size: 18355017
+  object_id: 7b3a99ac-5958-4569-7f0d-e80983befe48
+  sha: c7657e6ea66592b07ba9780fad4f9eec0b849eea
 resources/time-resource.tar.gz:
   size: 6102330
   object_id: c567762a-1f61-4448-6553-beb5d10d06a7
   sha: a4a24bb9f11b0529a2ca1ac1055b84ec161a0f9d
 resources/tracker-resource.tar.gz:
-  size: 15712664
-  object_id: 79b9ef93-a0a1-4277-7759-6e4f1191a275
-  sha: afd8333df52423790fc387c2b45622b8593132d1
+  size: 15712237
+  object_id: a506dfcb-a56b-4152-4bed-f494d9a51b34
+  sha: d960035a90da6ff267418740fde7441d7b71dda2
 resources/vagrant-cloud-resource.tar.gz:
-  size: 5028855
-  object_id: 14560ab4-d90f-4819-6fa9-8d64e6b7f173
-  sha: cf55a552b302a80ff2b0953b4e2aaef962adca04
+  size: 5029090
+  object_id: dcc98163-488c-4f7b-633b-6708491ce38d
+  sha: 7509ab40e9b91bc2ab22d5b08fa1b5287917d567
