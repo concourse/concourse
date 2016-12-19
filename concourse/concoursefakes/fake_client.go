@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
@@ -110,6 +111,16 @@ type FakeClient struct {
 	listVolumesArgsForCall []struct{}
 	listVolumesReturns     struct {
 		result1 []atc.Volume
+		result2 error
+	}
+	SaveWorkerStub        func(atc.Worker, *time.Duration) (*atc.Worker, error)
+	saveWorkerMutex       sync.RWMutex
+	saveWorkerArgsForCall []struct {
+		arg1 atc.Worker
+		arg2 *time.Duration
+	}
+	saveWorkerReturns struct {
+		result1 *atc.Worker
 		result2 error
 	}
 	ListWorkersStub        func() ([]atc.Worker, error)
@@ -533,6 +544,41 @@ func (fake *FakeClient) ListVolumesReturns(result1 []atc.Volume, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeClient) SaveWorker(arg1 atc.Worker, arg2 *time.Duration) (*atc.Worker, error) {
+	fake.saveWorkerMutex.Lock()
+	fake.saveWorkerArgsForCall = append(fake.saveWorkerArgsForCall, struct {
+		arg1 atc.Worker
+		arg2 *time.Duration
+	}{arg1, arg2})
+	fake.recordInvocation("SaveWorker", []interface{}{arg1, arg2})
+	fake.saveWorkerMutex.Unlock()
+	if fake.SaveWorkerStub != nil {
+		return fake.SaveWorkerStub(arg1, arg2)
+	} else {
+		return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
+	}
+}
+
+func (fake *FakeClient) SaveWorkerCallCount() int {
+	fake.saveWorkerMutex.RLock()
+	defer fake.saveWorkerMutex.RUnlock()
+	return len(fake.saveWorkerArgsForCall)
+}
+
+func (fake *FakeClient) SaveWorkerArgsForCall(i int) (atc.Worker, *time.Duration) {
+	fake.saveWorkerMutex.RLock()
+	defer fake.saveWorkerMutex.RUnlock()
+	return fake.saveWorkerArgsForCall[i].arg1, fake.saveWorkerArgsForCall[i].arg2
+}
+
+func (fake *FakeClient) SaveWorkerReturns(result1 *atc.Worker, result2 error) {
+	fake.SaveWorkerStub = nil
+	fake.saveWorkerReturns = struct {
+		result1 *atc.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) ListWorkers() ([]atc.Worker, error) {
 	fake.listWorkersMutex.Lock()
 	fake.listWorkersArgsForCall = append(fake.listWorkersArgsForCall, struct{}{})
@@ -707,6 +753,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.listContainersMutex.RUnlock()
 	fake.listVolumesMutex.RLock()
 	defer fake.listVolumesMutex.RUnlock()
+	fake.saveWorkerMutex.RLock()
+	defer fake.saveWorkerMutex.RUnlock()
 	fake.listWorkersMutex.RLock()
 	defer fake.listWorkersMutex.RUnlock()
 	fake.getInfoMutex.RLock()
