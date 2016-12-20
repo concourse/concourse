@@ -5,7 +5,8 @@ import "github.com/BurntSushi/migration"
 func AddRunningWorkerMustHaveAddrConstraint(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`
 		ALTER TABLE workers
-		ALTER COLUMN baggageclaim_url DROP NOT NULL
+		ALTER COLUMN baggageclaim_url DROP NOT NULL,
+		ALTER COLUMN baggageclaim_url SET DEFAULT NULL
 	`)
 	if err != nil {
 		return err
