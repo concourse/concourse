@@ -13,6 +13,15 @@ func AddRunningWorkerMustHaveAddrConstraint(tx migration.LimitedTx) error {
 	}
 
 	_, err = tx.Exec(`
+		UPDATE workers
+			SET baggageclaim_url = NULL
+			WHERE baggageclaim_url = ''
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
 		ALTER TABLE workers
     ADD CONSTRAINT addr_when_running CHECK (
 			(
