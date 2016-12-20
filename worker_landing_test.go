@@ -56,28 +56,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 		return landingWorkerName
 	}
 
-	// waitForWorkersToBeRunning := func() {
-	// 	Eventually(func() bool {
-	// 		rows, err := psql.Select("name, state").From("workers").RunWith(dbConn).Query()
-	// 		Expect(err).ToNot(HaveOccurred())
 
-	// 		anyLanding := false
-
-	// 		for rows.Next() {
-	// 			var name string
-	// 			var state string
-
-	// 			err := rows.Scan(&name, &state)
-	// 			Expect(err).ToNot(HaveOccurred())
-
-	// 			if state == "landing" {
-	// 				anyLanding = true
-	// 			}
-	// 		}
-
-	// 		return anyLanding
-	// 	}).Should(BeFalse())
-	// }
 
 	Context("with two workers available", func() {
 		BeforeEach(func() {

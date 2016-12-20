@@ -111,6 +111,12 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 				stalledWorkerName = waitForStalledWorker()
 			})
 
+			AfterEach(func() {
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start beacon")
+				bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit start garden")
+				waitForWorkersToBeRunning()
+			})
+
 			It("enters 'stalled' state and is no longer used for new containers", func() {
 				for i := 0; i < 10; i++ {
 					fly("execute", "-c", "tasks/tiny.yml")
@@ -167,23 +173,28 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 				<-buildSession.Exited
 			})
 
-			It("does not fail the build", func() {
-				Consistently(buildSession).ShouldNot(gexec.Exit())
-			})
-
-			Context("when the worker comes back", func() {
-				BeforeEach(func() {
-					By("starting the worker")
+			Context("when the worker does not come back", func() {
+				AfterEach(func() {
 					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start beacon")
 					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start garden")
-
-					By("waiting for it to be running again")
 					waitForWorkersToBeRunning()
 				})
 
+				It("does not fail the build", func() {
+					Consistently(buildSession).ShouldNot(gexec.Exit())
+				})
+			})
+
+			Context("when the worker comes back", func() {
 				It("resumes the build", func() {
+					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start beacon")
+					bosh("ssh", "concourse/0", "-c", "sudo /var/vcap/bosh/bin/monit start garden")
+					waitForWorkersToBeRunning()
+
+
 					_, err := ioutil.ReadAll(buildSession.Out)
 					Expect(err).ToNot(HaveOccurred())
+
 
 					// Garden doesn't seem to stream output after restarting it. Guardian bug?
 					// By("reattaching to the build")
