@@ -74,12 +74,24 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 		return nil, err
 	}
 
-	usedResourceConfig, err := resourceConfig.FindOrCreateForBuild(logger, tx, f.lockFactory, build)
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	err = tx.Commit()
+	var usedResourceConfig *UsedResourceConfig
+
+	err = safeFindOrCreate(f.conn, func(tx Tx) error {
+		var err error
+
+		usedResourceConfig, err = resourceConfig.FindOrCreateForBuild(logger, tx, f.lockFactory, build)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +119,23 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
 		return nil, err
 	}
 
-	usedResourceConfig, err := resourceConfig.FindOrCreateForResource(logger, tx, f.lockFactory, resource)
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	err = tx.Commit()
+	var usedResourceConfig *UsedResourceConfig
+
+	err = safeFindOrCreate(f.conn, func(tx Tx) error {
+		var err error
+		usedResourceConfig, err = resourceConfig.FindOrCreateForResource(logger, tx, f.lockFactory, resource)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -158,12 +181,23 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
 		return nil, ErrResourceTypeNotFound{resourceTypeName}
 	}
 
-	usedResourceConfig, err := resourceConfig.FindOrCreateForResourceType(logger, tx, f.lockFactory, usedResourceType)
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	err = tx.Commit()
+	var usedResourceConfig *UsedResourceConfig
+
+	err = safeFindOrCreate(f.conn, func(tx Tx) error {
+		var err error
+		usedResourceConfig, err = resourceConfig.FindOrCreateForResourceType(logger, tx, f.lockFactory, usedResourceType)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}

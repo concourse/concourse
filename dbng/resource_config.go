@@ -184,61 +184,30 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 	}
 
 	if !found {
-		lockName, err := resourceConfig.lockName()
+		err := psql.Insert("resource_configs").
+			Columns(
+				parentColumnName,
+				"source_hash",
+			).
+			Values(
+				parentID,
+				resourceConfig.sourceHash(),
+			).
+			Suffix("RETURNING id").
+			RunWith(tx).
+			QueryRow().
+			Scan(&id)
 		if err != nil {
-			return nil, err
-		}
-
-		lock := lockFactory.NewLock(
-			logger.Session("find-or-create-resource-config"),
-			lock.NewTaskLockID(lockName),
-		)
-
-		acquired, err := lock.Acquire()
-		if err != nil {
-			return nil, err
-		}
-
-		if !acquired {
-			return resourceConfig.findOrCreate(logger, tx, lockFactory, forColumnName, forColumnID, resourceCacheID)
-		}
-
-		defer lock.Release()
-
-		id, found, err = resourceConfig.findWithParentID(tx, parentColumnName, parentID)
-		if err != nil {
-			return nil, err
-		}
-
-		if !found {
-
-			err := psql.Insert("resource_configs").
-				Columns(
-					parentColumnName,
-					"source_hash",
-				).
-				Values(
-					parentID,
-					resourceConfig.sourceHash(),
-				).
-				Suffix("RETURNING id").
-				RunWith(tx).
-				QueryRow().
-				Scan(&id)
-			if err != nil {
-				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
-					return nil, ErrResourceConfigAlreadyExists
-				}
-
-				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-					return nil, ErrResourceConfigParentDisappeared
-				}
-
-				return nil, err
+			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+				return nil, ErrSafeRetryFindOrCreate
 			}
-		}
 
-		lock.Release()
+			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+				return nil, ErrSafeRetryFindOrCreate
+			}
+
+			return nil, err
+		}
 	}
 
 	urc.ID = id
@@ -268,7 +237,7 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 				Exec()
 			if err != nil {
 				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-					return nil, errors.New(fmt.Sprintf("config-disappeared: %s, forColumnName: '%s', forColumnID: '%d'", err.Error(), forColumnName, forColumnID))
+					return nil, ErrSafeRetryFindOrCreate
 				}
 
 				return nil, err

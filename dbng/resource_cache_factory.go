@@ -83,18 +83,29 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 		return nil, err
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
 	resourceCache := ResourceCache{
 		ResourceConfig: resourceConfig,
 		Version:        version,
 		Params:         params,
 	}
 
-	usedResourceCache, err := resourceCache.FindOrCreateForBuild(logger, tx, f.lockFactory, build)
-	if err != nil {
-		return nil, err
-	}
+	var usedResourceCache *UsedResourceCache
 
-	err = tx.Commit()
+	err = safeFindOrCreate(f.conn, func(tx Tx) error {
+		var err error
+		usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, tx, f.lockFactory, build)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -130,12 +141,23 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 		Params:         params,
 	}
 
-	usedResourceCache, err := resourceCache.FindOrCreateForResource(logger, tx, f.lockFactory, resource)
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	err = tx.Commit()
+	var usedResourceCache *UsedResourceCache
+
+	err = safeFindOrCreate(f.conn, func(tx Tx) error {
+		var err error
+		usedResourceCache, err = resourceCache.FindOrCreateForResource(logger, tx, f.lockFactory, resource)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -183,18 +205,29 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 		return nil, err
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
 	resourceCache := ResourceCache{
 		ResourceConfig: resourceConfig,
 		Version:        version,
 		Params:         params,
 	}
 
-	usedResourceCache, err := resourceCache.FindOrCreateForResourceType(logger, tx, f.lockFactory, usedResourceType)
-	if err != nil {
-		return nil, err
-	}
+	var usedResourceCache *UsedResourceCache
 
-	err = tx.Commit()
+	err = safeFindOrCreate(f.conn, func(tx Tx) error {
+		var err error
+		usedResourceCache, err = resourceCache.FindOrCreateForResourceType(logger, tx, f.lockFactory, usedResourceType)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}

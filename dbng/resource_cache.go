@@ -105,58 +105,32 @@ func (cache ResourceCache) findOrCreate(logger lager.Logger, tx Tx, lockFactory 
 	}
 
 	if !found {
-		lockName, err := cache.lockName()
+		err = psql.Insert("resource_caches").
+			Columns(
+				"resource_config_id",
+				"version",
+				"params_hash",
+			).
+			Values(
+				resourceConfig.ID,
+				cache.version(),
+				cache.paramsHash(),
+			).
+			Suffix("RETURNING id").
+			RunWith(tx).
+			QueryRow().
+			Scan(&id)
 		if err != nil {
-			return nil, err
-		}
-
-		lock := lockFactory.NewLock(
-			logger.Session("find-or-create-resource-cache"),
-			lock.NewTaskLockID(lockName),
-		)
-
-		acquired, err := lock.Acquire()
-		if err != nil {
-			return nil, err
-		}
-
-		if !acquired {
-			return cache.findOrCreate(logger, tx, lockFactory, resourceConfig, forColumnName, forColumnID)
-		}
-
-		defer lock.Release()
-
-		id, found, err = cache.findWithResourceConfig(tx, resourceConfig)
-		if err != nil {
-			return nil, err
-		}
-
-		if !found {
-			err = psql.Insert("resource_caches").
-				Columns(
-					"resource_config_id",
-					"version",
-					"params_hash",
-				).
-				Values(
-					resourceConfig.ID,
-					cache.version(),
-					cache.paramsHash(),
-				).
-				Suffix("RETURNING id").
-				RunWith(tx).
-				QueryRow().
-				Scan(&id)
-			if err != nil {
-				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-					return nil, ErrResourceCacheConfigDisappeared
-				}
-
-				return nil, err
+			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+				return nil, ErrSafeRetryFindOrCreate
 			}
-		}
 
-		lock.Release()
+			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
+				return nil, ErrSafeRetryFindOrCreate
+			}
+
+			return nil, err
+		}
 	}
 
 	rc := &UsedResourceCache{
@@ -189,7 +163,7 @@ func (cache ResourceCache) findOrCreate(logger lager.Logger, tx Tx, lockFactory 
 				Exec()
 			if err != nil {
 				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-					return nil, ErrResourceCacheDisappeared
+					return nil, ErrSafeRetryFindOrCreate
 				}
 
 				return nil, err
