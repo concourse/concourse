@@ -125,7 +125,7 @@
 [submodule "src/github.com/concourse/tsa"]
 	path = src/github.com/concourse/tsa
 	url = https://github.com/concourse/tsa
-	branch = master
+	branch = life
 [submodule "src/github.com/vito/gosub"]
 	path = src/github.com/vito/gosub
 	url = https://github.com/vito/gosub
