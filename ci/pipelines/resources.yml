@@ -338,6 +338,24 @@ jobs:
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
+- name: datadog-event-resource
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: buildroot-base-image
+      params: {save: true}
+      passed: [buildroot-base]
+      trigger: true
+    - get: datadog-event-resource
+      trigger: true
+  - task: unit-and-build
+    file: datadog-event-resource/build.yml
+  - put: datadog-event-resource-image
+    params:
+      load_base: buildroot-base-image
+      build: built-resource
+
 - name: archive-resource
   serial: true
   public: true
@@ -753,6 +771,12 @@ resources:
     uri: https://github.com/concourse/time-resource.git
     branch: master
 
+- name: datadog-event-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/datadog-event-resource.git
+    branch: master
+
 - name: tracker-resource
   type: git
   source:
@@ -870,6 +894,14 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
     repository: concourse/time-resource
+
+- name: datadog-event-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/datadog-event-resource
 
 - name: tracker-resource-image
   type: docker-image
