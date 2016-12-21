@@ -85,7 +85,7 @@ var _ = Describe("Fly CLI", func() {
 				)
 			})
 
-			It("lists them to the user, ordered by name, and splits stalled workers in separate table", func() {
+			It("lists them to the user, ordered by name, with stalled workers grouped together", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -104,19 +104,6 @@ var _ = Describe("Fly CLI", func() {
 						{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag2, tag3"}, {Contents: "team-1"}, {Contents: "running"}},
 						{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "landed"}},
 						{{Contents: "worker-5"}, {Contents: "5"}, {Contents: "platform5"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}},
-					},
-				}))
-
-				Expect(sess.Out).To(PrintTable(ui.Table{
-					Headers: ui.TableRow{
-						{Contents: "name", Color: color.New(color.Bold)},
-						{Contents: "containers", Color: color.New(color.Bold)},
-						{Contents: "platform", Color: color.New(color.Bold)},
-						{Contents: "tags", Color: color.New(color.Bold)},
-						{Contents: "team", Color: color.New(color.Bold)},
-						{Contents: "state", Color: color.New(color.Bold)},
-					},
-					Data: []ui.TableRow{
 						{{Contents: "worker-4"}, {Contents: "7"}, {Contents: "platform4"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "stalled"}},
 					},
 				}))
@@ -149,19 +136,6 @@ var _ = Describe("Fly CLI", func() {
 							{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag2, tag3"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "1.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "resource-1"}},
 							{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "landed"}, {Contents: "3.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
 							{{Contents: "worker-5"}, {Contents: "5"}, {Contents: "platform5"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}, {Contents: "3.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
-						},
-					}))
-
-					Expect(sess.Out).To(PrintTable(ui.Table{
-						Headers: ui.TableRow{
-							{Contents: "name", Color: color.New(color.Bold)},
-							{Contents: "containers", Color: color.New(color.Bold)},
-							{Contents: "platform", Color: color.New(color.Bold)},
-							{Contents: "tags", Color: color.New(color.Bold)},
-							{Contents: "team", Color: color.New(color.Bold)},
-							{Contents: "state", Color: color.New(color.Bold)},
-						},
-						Data: []ui.TableRow{
 							{{Contents: "worker-4"}, {Contents: "7"}, {Contents: "platform4"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "stalled"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
 						},
 					}))

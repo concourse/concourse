@@ -45,32 +45,32 @@ func (command *WorkersCommand) Execute([]string) error {
 		}
 	}
 
+	dst, isTTY := ui.ForTTY(os.Stdout)
+	if !isTTY {
+		return command.tableFor(append(runningWorkers, stalledWorkers...)).Render(os.Stdout)
+	}
+
 	err = command.tableFor(runningWorkers).Render(os.Stdout)
 	if err != nil {
 		return err
 	}
 
 	if len(stalledWorkers) > 0 {
-		dst, isTTY := ui.ForTTY(os.Stdout)
-		if isTTY {
-			fmt.Fprintln(dst, "")
-			fmt.Fprintln(dst, "")
-			fmt.Fprintln(dst, "the following workers have not checked in recently:")
-			fmt.Fprintln(dst, "")
-		}
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "the following workers have not checked in recently:")
+		fmt.Fprintln(dst, "")
 
 		err = command.tableFor(stalledWorkers).Render(os.Stdout)
 		if err != nil {
 			return err
 		}
 
-		if isTTY {
-			fmt.Fprintln(dst, "")
-			fmt.Fprintln(dst, "these stalled workers can be cleaned up by running:")
-			fmt.Fprintln(dst, "")
-			fmt.Fprintln(dst, "    "+ui.Embolden("fly -t %s prune-worker -w (name)", Fly.Target))
-			fmt.Fprintln(dst, "")
-		}
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "these stalled workers can be cleaned up by running:")
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "    "+ui.Embolden("fly -t %s prune-worker -w (name)", Fly.Target))
+		fmt.Fprintln(dst, "")
 	}
 
 	return nil
