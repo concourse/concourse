@@ -41,9 +41,9 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 
 		go func(terminate <-chan os.Signal) {
 			<-terminate
-			fmt.Fprintf(os.Stderr, "\ndetached, build is still running...\n")
-			fmt.Fprintf(os.Stderr, "re-attach to it with:\n\n")
-			fmt.Fprintf(os.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineName, jobName, build.Name)))
+			fmt.Fprintf(ui.Stderr, "\ndetached, build is still running...\n")
+			fmt.Fprintf(ui.Stderr, "re-attach to it with:\n\n")
+			fmt.Fprintf(ui.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineName, jobName, build.Name)))
 			os.Exit(2)
 		}(terminate)
 

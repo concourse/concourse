@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"runtime"
 	"time"
 
@@ -297,8 +296,8 @@ func (t *target) validate(allowVersionMismatch bool) error {
 	}
 
 	if atcMajor != flyMajor || atcMinor != flyMinor || atcPatch != flyPatch {
-		fmt.Fprintln(os.Stderr, ui.WarningColor("WARNING:\n"))
-		fmt.Fprintln(os.Stderr, ui.WarningColor(NewErrVersionMismatch(version.Version, info.Version, t.name).Error()))
+		fmt.Fprintln(ui.Stderr, ui.WarningColor("WARNING:\n"))
+		fmt.Fprintln(ui.Stderr, ui.WarningColor(NewErrVersionMismatch(version.Version, info.Version, t.name).Error()))
 	}
 
 	return nil

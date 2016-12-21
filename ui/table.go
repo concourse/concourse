@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/fatih/color"
+	colorable "github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
 )
 
@@ -35,6 +37,9 @@ func (table Table) Render(dst io.Writer) error {
 	isTTY := false
 	if file, ok := dst.(*os.File); ok && isatty.IsTerminal(file.Fd()) {
 		isTTY = true
+		if runtime.GOOS == "windows" {
+			dst = colorable.NewColorable(file)
+		}
 	}
 
 	columnWidths := map[int]int{}
