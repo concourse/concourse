@@ -62,7 +62,9 @@ func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
 				organizationTeams[organizationName] = []string{}
 			}
 
+			// We add both forms (slug and name) of team
 			organizationTeams[organizationName] = append(organizationTeams[organizationName], *team.Name)
+			organizationTeams[organizationName] = append(organizationTeams[organizationName], *team.Slug)
 		}
 
 		nextPage = resp.NextPage

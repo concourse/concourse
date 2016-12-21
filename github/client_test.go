@@ -176,8 +176,8 @@ var _ = Describe("Client", func() {
 				teams, err := client.Teams(proxiedClient)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(teams).To(HaveLen(2))
-				Expect(teams["org-1"]).To(ConsistOf([]string{"Team 1", "Team 2"}))
-				Expect(teams["org-2"]).To(ConsistOf([]string{"Team 3"}))
+				Expect(teams["org-1"]).To(ConsistOf([]string{"Team 1", "team-1", "Team 2", "team-2"}))
+				Expect(teams["org-2"]).To(ConsistOf([]string{"Team 3", "team-3"}))
 			})
 		})
 
@@ -267,8 +267,8 @@ var _ = Describe("Client", func() {
 				teams, err := client.Teams(proxiedClient)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(teams).To(HaveLen(2))
-				Expect(teams["org-1"]).To(ConsistOf([]string{"Team 1", "Team 2"}))
-				Expect(teams["org-2"]).To(ConsistOf([]string{"Team 3"}))
+				Expect(teams["org-1"]).To(ConsistOf([]string{"Team 1", "team-1", "Team 2", "team-2"}))
+				Expect(teams["org-2"]).To(ConsistOf([]string{"Team 3", "team-3"}))
 			})
 		})
 
