@@ -54,7 +54,8 @@ func (command *WorkersCommand) Execute([]string) error {
 		dst, isTTY := ui.ForTTY(os.Stdout)
 		if isTTY {
 			fmt.Fprintln(dst, "")
-			fmt.Fprintln(dst, "stalled workers:")
+			fmt.Fprintln(dst, "")
+			fmt.Fprintln(dst, "the following workers have not checked in recently:")
 			fmt.Fprintln(dst, "")
 		}
 
@@ -65,9 +66,9 @@ func (command *WorkersCommand) Execute([]string) error {
 
 		if isTTY {
 			fmt.Fprintln(dst, "")
-			fmt.Fprintln(dst, "the above workers can be cleaned up by running:")
+			fmt.Fprintln(dst, "these stalled workers can be cleaned up by running:")
 			fmt.Fprintln(dst, "")
-			fmt.Fprintln(dst, "    "+ui.Embolden("fly -t %s prune-worker -w NAME", Fly.Target))
+			fmt.Fprintln(dst, "    "+ui.Embolden("fly -t %s prune-worker -w (name)", Fly.Target))
 			fmt.Fprintln(dst, "")
 		}
 	}
