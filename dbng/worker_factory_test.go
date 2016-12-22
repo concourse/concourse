@@ -326,6 +326,7 @@ var _ = Describe("WorkerFactory", func() {
 	Describe("DeleteFinishedRetiringWorkers", func() {
 		var (
 			dbWorker *dbng.Worker
+			dbBuild  *dbng.Build
 		)
 
 		JustBeforeEach(func() {
@@ -376,47 +377,121 @@ var _ = Describe("WorkerFactory", func() {
 				})
 			})
 
-			DescribeTable("deleting workers with builds that are",
-				func(s dbng.BuildStatus, expectedExistence bool) {
-					dbBuild, err := buildFactory.CreateOneOffBuild(defaultTeam)
-					Expect(err).NotTo(HaveOccurred())
+			ItRetiresWorkerWithState := func(s dbng.BuildStatus, expectedExistence bool) {
+				tx, err := dbConn.Begin()
+				Expect(err).NotTo(HaveOccurred())
 
+				err = dbBuild.SaveStatus(tx, s)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = tx.Commit()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = containerFactory.FindOrCreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, found, err := workerFactory.GetWorker(atcWorker.Name)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = workerFactory.DeleteFinishedRetiringWorkers()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, found, err = workerFactory.GetWorker(atcWorker.Name)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(Equal(expectedExistence))
+			}
+
+			Context("when worker has build with uninterruptible job", func() {
+				BeforeEach(func() {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 
-					err = dbBuild.SaveStatus(tx, s)
+					pipeline, created, err := defaultTeam.SavePipeline(tx, "some-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name:          "some-job",
+								Interruptible: false,
+							},
+						},
+					}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(created).To(BeTrue())
+
+					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
 					Expect(err).NotTo(HaveOccurred())
 
-					err = tx.Commit()
+					Expect(tx.Commit()).To(Succeed())
+				})
+
+				DescribeTable("with builds that are",
+					ItRetiresWorkerWithState,
+					Entry("pending", dbng.BuildStatusPending, true),
+					Entry("started", dbng.BuildStatusStarted, true),
+					Entry("aborted", dbng.BuildStatusAborted, false),
+					Entry("succeeded", dbng.BuildStatusSucceeded, false),
+					Entry("failed", dbng.BuildStatusFailed, false),
+					Entry("errored", dbng.BuildStatusErrored, false),
+				)
+			})
+
+			Context("when worker has build with interruptible job", func() {
+				BeforeEach(func() {
+					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 
-					err = containerFactory.FindOrCreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+					pipeline, created, err := defaultTeam.SavePipeline(tx, "some-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name:          "some-job",
+								Interruptible: true,
+							},
+						},
+					}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(created).To(BeTrue())
+
+					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
 					Expect(err).NotTo(HaveOccurred())
 
-					_, found, err := workerFactory.GetWorker(atcWorker.Name)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
+					Expect(tx.Commit()).To(Succeed())
+				})
 
-					err = workerFactory.DeleteFinishedRetiringWorkers()
-					Expect(err).NotTo(HaveOccurred())
+				DescribeTable("with builds that are",
+					ItRetiresWorkerWithState,
+					Entry("pending", dbng.BuildStatusPending, false),
+					Entry("started", dbng.BuildStatusStarted, false),
+					Entry("aborted", dbng.BuildStatusAborted, false),
+					Entry("succeeded", dbng.BuildStatusSucceeded, false),
+					Entry("failed", dbng.BuildStatusFailed, false),
+					Entry("errored", dbng.BuildStatusErrored, false),
+				)
+			})
 
-					_, found, err = workerFactory.GetWorker(atcWorker.Name)
+			Context("when worker has one-off build", func() {
+				BeforeEach(func() {
+					var err error
+					dbBuild, err = buildFactory.CreateOneOffBuild(defaultTeam)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(Equal(expectedExistence))
-				},
-				Entry("pending", dbng.BuildStatusPending, true),
-				Entry("started", dbng.BuildStatusStarted, true),
-				Entry("aborted", dbng.BuildStatusAborted, false),
-				Entry("succeeded", dbng.BuildStatusSucceeded, false),
-				Entry("failed", dbng.BuildStatusFailed, false),
-				Entry("errored", dbng.BuildStatusErrored, false),
-			)
+				})
+
+				DescribeTable("with builds that are",
+					ItRetiresWorkerWithState,
+					Entry("pending", dbng.BuildStatusPending, false),
+					Entry("started", dbng.BuildStatusStarted, false),
+					Entry("aborted", dbng.BuildStatusAborted, false),
+					Entry("succeeded", dbng.BuildStatusSucceeded, false),
+					Entry("failed", dbng.BuildStatusFailed, false),
+					Entry("errored", dbng.BuildStatusErrored, false),
+				)
+			})
 		})
 	})
 
 	Describe("LandFinishedLandingWorkers", func() {
 		var (
 			dbWorker *dbng.Worker
+			dbBuild  *dbng.Build
 		)
 
 		JustBeforeEach(func() {
@@ -469,42 +544,115 @@ var _ = Describe("WorkerFactory", func() {
 				})
 			})
 
-			DescribeTable("land workers with builds that are",
-				func(s dbng.BuildStatus, expectedState dbng.WorkerState) {
-					dbBuild, err := buildFactory.CreateOneOffBuild(defaultTeam)
-					Expect(err).NotTo(HaveOccurred())
+			ItLandsWorkerWithExpectedState := func(s dbng.BuildStatus, expectedState dbng.WorkerState) {
+				tx, err := dbConn.Begin()
+				Expect(err).NotTo(HaveOccurred())
 
+				err = dbBuild.SaveStatus(tx, s)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = tx.Commit()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = containerFactory.FindOrCreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, found, err := workerFactory.GetWorker(atcWorker.Name)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = workerFactory.LandFinishedLandingWorkers()
+				Expect(err).NotTo(HaveOccurred())
+
+				foundWorker, found, err := workerFactory.GetWorker(atcWorker.Name)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(foundWorker.State).To(Equal(expectedState))
+			}
+
+			Context("when worker has build with uninterruptible job", func() {
+				BeforeEach(func() {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 
-					err = dbBuild.SaveStatus(tx, s)
+					pipeline, created, err := defaultTeam.SavePipeline(tx, "some-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name:          "some-job",
+								Interruptible: false,
+							},
+						},
+					}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(created).To(BeTrue())
+
+					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
 					Expect(err).NotTo(HaveOccurred())
 
-					err = tx.Commit()
+					Expect(tx.Commit()).To(Succeed())
+				})
+
+				DescribeTable("with builds that are",
+					ItLandsWorkerWithExpectedState,
+					Entry("pending", dbng.BuildStatusPending, dbng.WorkerStateLanding),
+					Entry("started", dbng.BuildStatusStarted, dbng.WorkerStateLanding),
+					Entry("aborted", dbng.BuildStatusAborted, dbng.WorkerStateLanded),
+					Entry("succeeded", dbng.BuildStatusSucceeded, dbng.WorkerStateLanded),
+					Entry("failed", dbng.BuildStatusFailed, dbng.WorkerStateLanded),
+					Entry("errored", dbng.BuildStatusErrored, dbng.WorkerStateLanded),
+				)
+			})
+
+			Context("when worker has build with interruptible job", func() {
+				BeforeEach(func() {
+					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 
-					err = containerFactory.FindOrCreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+					pipeline, created, err := defaultTeam.SavePipeline(tx, "some-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name:          "some-job",
+								Interruptible: true,
+							},
+						},
+					}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(created).To(BeTrue())
+
+					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
 					Expect(err).NotTo(HaveOccurred())
 
-					_, found, err := workerFactory.GetWorker(atcWorker.Name)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
+					Expect(tx.Commit()).To(Succeed())
+				})
 
-					err = workerFactory.LandFinishedLandingWorkers()
-					Expect(err).NotTo(HaveOccurred())
+				DescribeTable("with builds that are",
+					ItLandsWorkerWithExpectedState,
+					Entry("pending", dbng.BuildStatusPending, dbng.WorkerStateLanded),
+					Entry("started", dbng.BuildStatusStarted, dbng.WorkerStateLanded),
+					Entry("aborted", dbng.BuildStatusAborted, dbng.WorkerStateLanded),
+					Entry("succeeded", dbng.BuildStatusSucceeded, dbng.WorkerStateLanded),
+					Entry("failed", dbng.BuildStatusFailed, dbng.WorkerStateLanded),
+					Entry("errored", dbng.BuildStatusErrored, dbng.WorkerStateLanded),
+				)
+			})
 
-					foundWorker, found, err := workerFactory.GetWorker(atcWorker.Name)
+			Context("when worker has one-off build", func() {
+				BeforeEach(func() {
+					var err error
+					dbBuild, err = buildFactory.CreateOneOffBuild(defaultTeam)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(foundWorker.State).To(Equal(expectedState))
-				},
-				Entry("pending", dbng.BuildStatusPending, dbng.WorkerStateLanding),
-				Entry("started", dbng.BuildStatusStarted, dbng.WorkerStateLanding),
-				Entry("aborted", dbng.BuildStatusAborted, dbng.WorkerStateLanded),
-				Entry("succeeded", dbng.BuildStatusSucceeded, dbng.WorkerStateLanded),
-				Entry("failed", dbng.BuildStatusFailed, dbng.WorkerStateLanded),
-				Entry("errored", dbng.BuildStatusErrored, dbng.WorkerStateLanded),
-			)
+				})
+
+				DescribeTable("with builds that are",
+					ItLandsWorkerWithExpectedState,
+					Entry("pending", dbng.BuildStatusPending, dbng.WorkerStateLanded),
+					Entry("started", dbng.BuildStatusStarted, dbng.WorkerStateLanded),
+					Entry("aborted", dbng.BuildStatusAborted, dbng.WorkerStateLanded),
+					Entry("succeeded", dbng.BuildStatusSucceeded, dbng.WorkerStateLanded),
+					Entry("failed", dbng.BuildStatusFailed, dbng.WorkerStateLanded),
+					Entry("errored", dbng.BuildStatusErrored, dbng.WorkerStateLanded),
+				)
+			})
 		})
 	})
 

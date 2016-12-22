@@ -132,4 +132,5 @@ var Migrations = []migration.Migrator{
 	UpdateWorkerForeignKeyConstraint,
 	AddRetiringWorkerState,
 	AddRunningWorkerMustHaveAddrConstraint,
+	AddInterruptibleToJob,
 }
