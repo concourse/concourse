@@ -26,3 +26,7 @@ type WorkerResourceType struct {
 	Image   string `json:"image"`
 	Version string `json:"version"`
 }
+
+type PruneWorkerResponseBody struct {
+	Stderr string `json:"stderr"`
+}

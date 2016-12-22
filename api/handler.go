@@ -186,6 +186,7 @@ func NewHandler(
 		atc.RegisterWorker:  http.HandlerFunc(workerServer.RegisterWorker),
 		atc.LandWorker:      http.HandlerFunc(workerServer.LandWorker),
 		atc.RetireWorker:    http.HandlerFunc(workerServer.RetireWorker),
+		atc.PruneWorker:     http.HandlerFunc(workerServer.PruneWorker),
 		atc.HeartbeatWorker: http.HandlerFunc(workerServer.HeartbeatWorker),
 		atc.DeleteWorker:    http.HandlerFunc(workerServer.DeleteWorker),
 

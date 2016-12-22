@@ -29,9 +29,13 @@ var (
 	sqlDB  *sql.DB
 	dbConn dbng.Conn
 
-	workerFactory dbng.WorkerFactory
+	workerFactory    dbng.WorkerFactory
+	buildFactory     *dbng.BuildFactory
+	teamFactory      dbng.TeamFactory
+	containerFactory *dbng.ContainerFactory
 
 	defaultWorker *dbng.Worker
+	defaultTeam   *dbng.Team
 
 	psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 )
@@ -51,6 +55,9 @@ var _ = BeforeEach(func() {
 	dbConn = dbng.Wrap(postgresRunner.Open())
 
 	workerFactory = dbng.NewWorkerFactory(dbConn)
+	buildFactory = dbng.NewBuildFactory(dbConn)
+	teamFactory = dbng.NewTeamFactory(dbConn)
+	containerFactory = dbng.NewContainerFactory(dbConn)
 
 	baseResourceType := atc.WorkerResourceType{
 		Type:    "some-base-resource-type",
@@ -66,6 +73,9 @@ var _ = BeforeEach(func() {
 	}
 
 	defaultWorker, err = workerFactory.SaveWorker(atcWorker, 0)
+	Expect(err).NotTo(HaveOccurred())
+
+	defaultTeam, err = teamFactory.CreateTeam("some-team")
 	Expect(err).NotTo(HaveOccurred())
 })
 

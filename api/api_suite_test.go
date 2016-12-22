@@ -152,6 +152,8 @@ var _ = BeforeEach(func() {
 
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(buildsDB)
 
+	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
+
 	handler, err := api.NewHandler(
 		logger,
 
@@ -164,6 +166,7 @@ var _ = BeforeEach(func() {
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,
+			checkWorkerTeamAccessHandlerFactory,
 		),
 
 		fakeTokenGenerator,

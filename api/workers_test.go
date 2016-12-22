@@ -516,6 +516,89 @@ var _ = Describe("Workers API", func() {
 		})
 	})
 
+	Describe("PUT /api/v1/workers/:worker_name/prune", func() {
+		var (
+			response   *http.Response
+			workerName string
+		)
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/prune", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			workerName = "some-worker"
+			dbWorkerFactory.GetWorkerReturns(&dbng.Worker{
+				Name:     "some-worker",
+				TeamName: "some-team",
+			}, true, nil)
+			authValidator.IsAuthenticatedReturns(true)
+			userContextReader.GetTeamReturns("some-team", 1, false, true)
+			dbWorkerFactory.PruneWorkerReturns(nil)
+		})
+
+		It("returns 200", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("sees if the worker exists and attempts to prune it", func() {
+			Expect(dbWorkerFactory.PruneWorkerCallCount()).To(Equal(1))
+			Expect(dbWorkerFactory.PruneWorkerArgsForCall(0)).To(Equal(workerName))
+		})
+
+		Context("when pruning the worker fails", func() {
+			var returnedErr error
+
+			BeforeEach(func() {
+				returnedErr = errors.New("some-error")
+				dbWorkerFactory.PruneWorkerReturns(returnedErr)
+			})
+
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		Context("when the worker does not exist", func() {
+			BeforeEach(func() {
+				dbWorkerFactory.PruneWorkerReturns(dbng.ErrWorkerNotPresent)
+			})
+
+			It("returns 404", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when the worker is running", func() {
+			BeforeEach(func() {
+				dbWorkerFactory.PruneWorkerReturns(dbng.ErrCannotPruneRunningWorker)
+			})
+
+			It("returns 400", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"stderr":"cannot prune running worker"}`))
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not prune the worker", func() {
+				Expect(dbWorkerFactory.PruneWorkerCallCount()).To(BeZero())
+			})
+		})
+	})
+
 	Describe("PUT /api/v1/workers/:worker_name/heartbeat", func() {
 		var (
 			response   *http.Response

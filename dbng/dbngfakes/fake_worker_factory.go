@@ -103,6 +103,14 @@ type FakeWorkerFactory struct {
 		result1 *dbng.Worker
 		result2 error
 	}
+	PruneWorkerStub        func(name string) error
+	pruneWorkerMutex       sync.RWMutex
+	pruneWorkerArgsForCall []struct {
+		name string
+	}
+	pruneWorkerReturns struct {
+		result1 error
+	}
 	DeleteWorkerStub        func(name string) error
 	deleteWorkerMutex       sync.RWMutex
 	deleteWorkerArgsForCall []struct {
@@ -469,6 +477,39 @@ func (fake *FakeWorkerFactory) RetireWorkerReturns(result1 *dbng.Worker, result2
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerFactory) PruneWorker(name string) error {
+	fake.pruneWorkerMutex.Lock()
+	fake.pruneWorkerArgsForCall = append(fake.pruneWorkerArgsForCall, struct {
+		name string
+	}{name})
+	fake.recordInvocation("PruneWorker", []interface{}{name})
+	fake.pruneWorkerMutex.Unlock()
+	if fake.PruneWorkerStub != nil {
+		return fake.PruneWorkerStub(name)
+	} else {
+		return fake.pruneWorkerReturns.result1
+	}
+}
+
+func (fake *FakeWorkerFactory) PruneWorkerCallCount() int {
+	fake.pruneWorkerMutex.RLock()
+	defer fake.pruneWorkerMutex.RUnlock()
+	return len(fake.pruneWorkerArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) PruneWorkerArgsForCall(i int) string {
+	fake.pruneWorkerMutex.RLock()
+	defer fake.pruneWorkerMutex.RUnlock()
+	return fake.pruneWorkerArgsForCall[i].name
+}
+
+func (fake *FakeWorkerFactory) PruneWorkerReturns(result1 error) {
+	fake.PruneWorkerStub = nil
+	fake.pruneWorkerReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeWorkerFactory) DeleteWorker(name string) error {
 	fake.deleteWorkerMutex.Lock()
 	fake.deleteWorkerArgsForCall = append(fake.deleteWorkerArgsForCall, struct {
@@ -562,6 +603,8 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.landWorkerMutex.RUnlock()
 	fake.retireWorkerMutex.RLock()
 	defer fake.retireWorkerMutex.RUnlock()
+	fake.pruneWorkerMutex.RLock()
+	defer fake.pruneWorkerMutex.RUnlock()
 	fake.deleteWorkerMutex.RLock()
 	defer fake.deleteWorkerMutex.RUnlock()
 	fake.heartbeatWorkerMutex.RLock()

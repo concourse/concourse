@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
 
@@ -22,6 +23,7 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeCheckPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
 		fakeCheckBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
 		fakeCheckBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
+		fakeCheckWorkerTeamAccessHandlerFactory auth.CheckWorkerTeamAccessHandlerFactory
 	)
 
 	BeforeEach(func() {
@@ -30,6 +32,7 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeUserContextReader = new(authfakes.FakeUserContextReader)
 		pipelineDBFactory := new(dbfakes.FakePipelineDBFactory)
 		teamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		workerFactory := new(dbngfakes.FakeWorkerFactory)
 		fakeCheckPipelineAccessHandlerFactory = auth.NewCheckPipelineAccessHandlerFactory(
 			pipelineDBFactory,
 			teamDBFactory,
@@ -38,6 +41,7 @@ var _ = Describe("APIAuthWrappa", func() {
 		buildsDB := new(authfakes.FakeBuildsDB)
 		fakeCheckBuildReadAccessHandlerFactory = auth.NewCheckBuildReadAccessHandlerFactory(buildsDB)
 		fakeCheckBuildWriteAccessHandlerFactory = auth.NewCheckBuildWriteAccessHandlerFactory(buildsDB)
+		fakeCheckWorkerTeamAccessHandlerFactory = auth.NewCheckWorkerTeamAccessHandlerFactory(workerFactory)
 	})
 
 	unauthenticated := func(handler http.Handler) http.Handler {
@@ -136,6 +140,17 @@ var _ = Describe("APIAuthWrappa", func() {
 		)
 	}
 
+	checkTeamAccessForWorker := func(handler http.Handler) http.Handler {
+		return auth.WrapHandler(
+			fakeCheckWorkerTeamAccessHandlerFactory.HandlerFor(
+				handler,
+				auth.UnauthorizedRejector{},
+			),
+			fakeAuthValidator,
+			fakeUserContextReader,
+		)
+	}
+
 	Describe("Wrap", func() {
 		var (
 			inputHandlers    rata.Handlers
@@ -173,6 +188,9 @@ var _ = Describe("APIAuthWrappa", func() {
 
 				// resource belongs to authorized team
 				atc.AbortBuild: checkWritePermissionForBuild(inputHandlers[atc.AbortBuild]),
+
+				// resource belongs to authorized team
+				atc.PruneWorker: checkTeamAccessForWorker(inputHandlers[atc.PruneWorker]),
 
 				// belongs to public pipeline or authorized
 				atc.GetPipeline:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetPipeline]),
@@ -243,6 +261,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				fakeCheckPipelineAccessHandlerFactory,
 				fakeCheckBuildReadAccessHandlerFactory,
 				fakeCheckBuildWriteAccessHandlerFactory,
+				fakeCheckWorkerTeamAccessHandlerFactory,
 			).Wrap(inputHandlers)
 		})
 

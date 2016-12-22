@@ -13,6 +13,7 @@ type APIAuthWrappa struct {
 	checkPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
 	checkBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
 	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
+	checkWorkerTeamAccessHandlerFactory auth.CheckWorkerTeamAccessHandlerFactory
 }
 
 func NewAPIAuthWrappa(
@@ -22,6 +23,7 @@ func NewAPIAuthWrappa(
 	checkPipelineAccessHandlerFactory auth.CheckPipelineAccessHandlerFactory,
 	checkBuildReadAccessHandlerFactory auth.CheckBuildReadAccessHandlerFactory,
 	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory,
+	checkWorkerTeamAccessHandlerFactory auth.CheckWorkerTeamAccessHandlerFactory,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
 		authValidator:                       authValidator,
@@ -30,6 +32,7 @@ func NewAPIAuthWrappa(
 		checkPipelineAccessHandlerFactory:   checkPipelineAccessHandlerFactory,
 		checkBuildReadAccessHandlerFactory:  checkBuildReadAccessHandlerFactory,
 		checkBuildWriteAccessHandlerFactory: checkBuildWriteAccessHandlerFactory,
+		checkWorkerTeamAccessHandlerFactory: checkWorkerTeamAccessHandlerFactory,
 	}
 }
 
@@ -66,6 +69,10 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		// resource belongs to authorized team
 		case atc.AbortBuild:
 			newHandler = wrappa.checkBuildWriteAccessHandlerFactory.HandlerFor(handler, rejector)
+
+		// requesting team is admin or owns target worker
+		case atc.PruneWorker:
+			newHandler = wrappa.checkWorkerTeamAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		// pipeline is public or authorized
 		case atc.GetPipeline,
