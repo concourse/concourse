@@ -130,6 +130,14 @@ type FakeClient struct {
 		result1 []atc.Worker
 		result2 error
 	}
+	PruneWorkerStub        func(workerName string) error
+	pruneWorkerMutex       sync.RWMutex
+	pruneWorkerArgsForCall []struct {
+		workerName string
+	}
+	pruneWorkerReturns struct {
+		result1 error
+	}
 	GetInfoStub        func() (atc.Info, error)
 	getInfoMutex       sync.RWMutex
 	getInfoArgsForCall []struct{}
@@ -605,6 +613,39 @@ func (fake *FakeClient) ListWorkersReturns(result1 []atc.Worker, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeClient) PruneWorker(workerName string) error {
+	fake.pruneWorkerMutex.Lock()
+	fake.pruneWorkerArgsForCall = append(fake.pruneWorkerArgsForCall, struct {
+		workerName string
+	}{workerName})
+	fake.recordInvocation("PruneWorker", []interface{}{workerName})
+	fake.pruneWorkerMutex.Unlock()
+	if fake.PruneWorkerStub != nil {
+		return fake.PruneWorkerStub(workerName)
+	} else {
+		return fake.pruneWorkerReturns.result1
+	}
+}
+
+func (fake *FakeClient) PruneWorkerCallCount() int {
+	fake.pruneWorkerMutex.RLock()
+	defer fake.pruneWorkerMutex.RUnlock()
+	return len(fake.pruneWorkerArgsForCall)
+}
+
+func (fake *FakeClient) PruneWorkerArgsForCall(i int) string {
+	fake.pruneWorkerMutex.RLock()
+	defer fake.pruneWorkerMutex.RUnlock()
+	return fake.pruneWorkerArgsForCall[i].workerName
+}
+
+func (fake *FakeClient) PruneWorkerReturns(result1 error) {
+	fake.PruneWorkerStub = nil
+	fake.pruneWorkerReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeClient) GetInfo() (atc.Info, error) {
 	fake.getInfoMutex.Lock()
 	fake.getInfoArgsForCall = append(fake.getInfoArgsForCall, struct{}{})
@@ -757,6 +798,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.listWorkersMutex.RLock()
 	defer fake.listWorkersMutex.RUnlock()
+	fake.pruneWorkerMutex.RLock()
+	defer fake.pruneWorkerMutex.RUnlock()
 	fake.getInfoMutex.RLock()
 	defer fake.getInfoMutex.RUnlock()
 	fake.getCLIReaderMutex.RLock()
