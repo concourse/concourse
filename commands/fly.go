@@ -47,7 +47,9 @@ type FlyCommand struct {
 	TriggerJob TriggerJobCommand `command:"trigger-job" alias:"tj" description:"Start a job in a pipeline"`
 
 	Volumes VolumesCommand `command:"volumes" alias:"vs" description:"List the active volumes"`
-	Workers WorkersCommand `command:"workers" alias:"ws" description:"List the registered workers"`
+
+	Workers     WorkersCommand     `command:"workers" alias:"ws" description:"List the registered workers"`
+	PruneWorker PruneWorkerCommand `command:"prune-worker" alias:"pw" description:"Prune a stalled, landing, landed, or retiring worker"`
 }
 
 var Fly FlyCommand
