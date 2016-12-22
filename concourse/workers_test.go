@@ -88,7 +88,7 @@ var _ = Describe("ATC Handler Workers", func() {
 			})
 		})
 
-		FContext("failing to prune worker due to bad request", func() {
+		Context("failing to prune worker due to bad request", func() {
 			BeforeEach(func() {
 				atcResponse := atc.PruneWorkerResponseBody{
 					Stderr: "failure message",
