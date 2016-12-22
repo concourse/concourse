@@ -441,7 +441,7 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns a single error", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-				Expect(strings.Count(errorMessages[0], "gets a resource multiple times: some-resource")).To(Equal(1))
+				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
 			})
 		})
 
@@ -464,7 +464,7 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns a single error", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-				Expect(strings.Count(errorMessages[0], "gets a resource multiple times: some-resource")).To(Equal(1))
+				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
 			})
 		})
 

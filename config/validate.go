@@ -224,12 +224,12 @@ func validateJobs(c atc.Config) ([]Warning, error) {
 
 		encountered := map[string]int{}
 		for _, input := range JobInputs(job) {
-			encountered[input.Resource]++
+			encountered[input.Name]++
 
-			if encountered[input.Resource] == 2 {
+			if encountered[input.Name] == 2 {
 				errorMessages = append(
 					errorMessages,
-					identifier+fmt.Sprintf(" gets a resource multiple times: %s", input.Resource),
+					identifier+fmt.Sprintf(" has get steps with the same name: %s", input.Name),
 				)
 			}
 		}
