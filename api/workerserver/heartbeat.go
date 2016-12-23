@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/metric"
 )
 
 func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +40,11 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	registration.Name = workerName
+
+	metric.WorkerContainers{
+		WorkerName: registration.Name,
+		Containers: registration.ActiveContainers,
+	}.Emit(s.logger)
 
 	savedWorker, err := s.dbWorkerFactory.HeartbeatWorker(registration, ttl)
 	if err == dbng.ErrWorkerNotPresent {
