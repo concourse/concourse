@@ -56,8 +56,6 @@ var _ = Describe("[#129726011] Worker landing", func() {
 		return landingWorkerName
 	}
 
-
-
 	Context("with two workers available", func() {
 		BeforeEach(func() {
 			Deploy("deployments/two-forwarded-workers.yml")
@@ -117,7 +115,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				})
 
 				It("waits for the build", func() {
-					Eventually(restartSession).Should(gbytes.Say("Updating instance"))
+					Eventually(restartSession).Should(gbytes.Say(`Updating (instance|job)`))
 					Consistently(restartSession, 5*time.Minute).ShouldNot(gexec.Exit())
 				})
 
