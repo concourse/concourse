@@ -8,8 +8,6 @@ import (
 	"regexp"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
-
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -168,44 +166,6 @@ var _ = Describe("[#129726011] Worker landing", func() {
 			Deploy("deployments/one-forwarded-worker.yml")
 		})
 
-		getPersistentContainers := func(dbConn *sql.DB) ([]int, []string) {
-			rows, err := psql.Select("id, handle").From("containers").Where(
-				sq.NotEq{"resource_config_id": nil},
-			).RunWith(dbConn).Query()
-			Expect(err).ToNot(HaveOccurred())
-
-			containerIDs := []int{}
-			containerHandles := []string{}
-			for rows.Next() {
-				var id int
-				var handle string
-				err := rows.Scan(&id, &handle)
-				Expect(err).ToNot(HaveOccurred())
-				containerIDs = append(containerIDs, id)
-				containerHandles = append(containerHandles, handle)
-			}
-
-			return containerIDs, containerHandles
-		}
-
-		getPersistentVolumeHandles := func(dbConn *sql.DB, containerIDs []int) []string {
-			rows, err := psql.Select("handle").From("volumes").Where(
-				sq.NotEq{"resource_cache_id": nil},
-				sq.NotEq{"base_resource_type_id": nil},
-			).RunWith(dbConn).Query()
-			Expect(err).ToNot(HaveOccurred())
-
-			volumeHandles := []string{}
-			for rows.Next() {
-				var handle string
-				err := rows.Scan(&handle)
-				Expect(err).ToNot(HaveOccurred())
-				volumeHandles = append(volumeHandles, handle)
-			}
-
-			return volumeHandles
-		}
-
 		It("keeps volumes and containers after restart", func() {
 			By("setting pipeline that creates volumes for image")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "topgun")
@@ -219,30 +179,29 @@ var _ = Describe("[#129726011] Worker landing", func() {
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(0))
 
-			By("getting existing check containers for resources")
-			firstContainerIDs, firstContainerHandles := getPersistentContainers(dbConn)
-
-			By("getting existing volumes for resource cache and base resource type")
-			firstVolumeHandles := getPersistentVolumeHandles(dbConn, firstContainerIDs)
+			By("getting identifier for check container")
+			hijackSession := spawnFly("hijack", "-c", "topgun/tick-tock", "--", "hostname")
+			<-hijackSession.Exited
+			Expect(buildSession.ExitCode()).To(Equal(0))
+			firstContainerID := hijackSession.Out.Contents()
 
 			By("restarting worker")
 			restartSession := spawnBosh("restart", "worker/0")
 			<-restartSession.Exited
 			Expect(restartSession.ExitCode()).To(Equal(0))
 
-			By("keeping check containers for resources")
-			secondContainerIDs, secondContainerHandles := getPersistentContainers(dbConn)
-			Expect(secondContainerHandles).To(Equal(firstContainerHandles))
-
-			By("keeping volumes for resource cache and base resource type")
-			secondVolumeHandles := getPersistentVolumeHandles(dbConn, secondContainerIDs)
-			Expect(secondVolumeHandles).To(Equal(firstVolumeHandles))
-
-			By("reusing cached image resource in second job build")
+			By("retaining cached image resource in second job build")
 			buildSession = spawnFly("trigger-job", "-w", "-j", "topgun/simple-job")
 			Eventually(buildSession).Should(gbytes.Say("using version of resource found in cache"))
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(0))
+
+			By("retaining check containers")
+			hijackSession = spawnFly("hijack", "-c", "topgun/tick-tock", "--", "hostname")
+			<-hijackSession.Exited
+			Expect(buildSession.ExitCode()).To(Equal(0))
+			secondContainerID := hijackSession.Out.Contents()
+			Expect(secondContainerID).To(Equal(firstContainerID))
 		})
 	})
 })
