@@ -77,7 +77,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = s.dbWorkerFactory.SaveTeamWorker(registration, team, ttl)
+		_, err = team.SaveWorker(registration, ttl)
 		if err != nil {
 			logger.Error("failed-to-save-worker", err)
 			w.WriteHeader(http.StatusInternalServerError)

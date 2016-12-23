@@ -16,7 +16,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 
 	"github.com/concourse/atc/api/buildserver/buildserverfakes"
@@ -110,7 +109,8 @@ var _ = BeforeEach(func() {
 	buildsDB = new(authfakes.FakeBuildsDB)
 
 	dbTeamFactory = new(dbngfakes.FakeTeamFactory)
-	dbTeamFactory.FindTeamReturns(&dbng.Team{}, true, nil)
+	team := new(dbngfakes.FakeTeam)
+	dbTeamFactory.FindTeamReturns(team, true, nil)
 
 	dbWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -234,22 +235,20 @@ var _ = Describe("Workers API", func() {
 				})
 
 				Context("when specified team exists", func() {
+					var foundTeam *dbngfakes.FakeTeam
+
 					BeforeEach(func() {
-						dbTeamFactory.FindTeamReturns(&dbng.Team{
-							ID: 2,
-						}, true, nil)
+						foundTeam = new(dbngfakes.FakeTeam)
+						dbTeamFactory.FindTeamReturns(foundTeam, true, nil)
 					})
 
 					It("saves team name in db", func() {
-						Expect(dbWorkerFactory.SaveTeamWorkerCallCount()).To(Equal(1))
-
-						_, team, _ := dbWorkerFactory.SaveTeamWorkerArgsForCall(0)
-						Expect(team.ID).To(Equal(2))
+						Expect(foundTeam.SaveWorkerCallCount()).To(Equal(1))
 					})
 
 					Context("when saving the worker succeeds", func() {
 						BeforeEach(func() {
-							dbWorkerFactory.SaveTeamWorkerReturns(&dbng.Worker{}, nil)
+							foundTeam.SaveWorkerReturns(&dbng.Worker{}, nil)
 						})
 
 						It("returns 200", func() {
@@ -259,7 +258,7 @@ var _ = Describe("Workers API", func() {
 
 					Context("when saving the worker fails", func() {
 						BeforeEach(func() {
-							dbWorkerFactory.SaveTeamWorkerReturns(nil, errors.New("oh no!"))
+							foundTeam.SaveWorkerReturns(nil, errors.New("oh no!"))
 						})
 
 						It("returns 500", func() {
@@ -342,7 +341,6 @@ var _ = Describe("Workers API", func() {
 
 				It("does not save it", func() {
 					Expect(dbWorkerFactory.SaveWorkerCallCount()).To(BeZero())
-					Expect(dbWorkerFactory.SaveTeamWorkerCallCount()).To(BeZero())
 				})
 			})
 
@@ -361,7 +359,6 @@ var _ = Describe("Workers API", func() {
 
 				It("does not save it", func() {
 					Expect(dbWorkerFactory.SaveWorkerCallCount()).To(BeZero())
-					Expect(dbWorkerFactory.SaveTeamWorkerCallCount()).To(BeZero())
 				})
 			})
 		})
@@ -377,7 +374,6 @@ var _ = Describe("Workers API", func() {
 
 			It("does not save the config", func() {
 				Expect(dbWorkerFactory.SaveWorkerCallCount()).To(BeZero())
-				Expect(dbWorkerFactory.SaveTeamWorkerCallCount()).To(BeZero())
 			})
 		})
 	})

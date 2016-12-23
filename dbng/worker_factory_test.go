@@ -80,52 +80,6 @@ var _ = Describe("WorkerFactory", func() {
 		})
 	})
 
-	Describe("SaveTeamWorker", func() {
-		var (
-			team        *dbng.Team
-			otherTeam   *dbng.Team
-			teamFactory dbng.TeamFactory
-		)
-
-		BeforeEach(func() {
-			var err error
-			teamFactory = dbng.NewTeamFactory(dbConn)
-			team, err = teamFactory.CreateTeam("team")
-			Expect(err).NotTo(HaveOccurred())
-			otherTeam, err = teamFactory.CreateTeam("otherTeam")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("the worker already exists", func() {
-			Context("the worker is not in stalled state", func() {
-				Context("the team_id of the new worker is the same", func() {
-					BeforeEach(func() {
-						_, err := workerFactory.SaveTeamWorker(atcWorker, team, 5*time.Minute)
-						Expect(err).NotTo(HaveOccurred())
-					})
-					It("overwrites all the data", func() {
-						atcWorker.GardenAddr = "new-garden-addr"
-						savedWorker, err := workerFactory.SaveTeamWorker(atcWorker, team, 5*time.Minute)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(savedWorker.Name).To(Equal("some-name"))
-						Expect(*savedWorker.GardenAddr).To(Equal("new-garden-addr"))
-						Expect(savedWorker.State).To(Equal(dbng.WorkerStateRunning))
-					})
-				})
-				Context("the team_id of the new worker is different", func() {
-					BeforeEach(func() {
-						_, err := workerFactory.SaveTeamWorker(atcWorker, otherTeam, 5*time.Minute)
-						Expect(err).NotTo(HaveOccurred())
-					})
-					It("errors", func() {
-						_, err := workerFactory.SaveTeamWorker(atcWorker, team, 5*time.Minute)
-						Expect(err).To(HaveOccurred())
-					})
-				})
-			})
-		})
-	})
-
 	Describe("GetWorker", func() {
 		Context("when the worker is present", func() {
 			BeforeEach(func() {
@@ -404,10 +358,7 @@ var _ = Describe("WorkerFactory", func() {
 
 			Context("when worker has build with uninterruptible job", func() {
 				BeforeEach(func() {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-
-					pipeline, created, err := defaultTeam.SavePipeline(tx, "some-pipeline", atc.Config{
+					pipeline, created, err := defaultTeam.SavePipeline("some-pipeline", atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name:          "some-job",
@@ -417,6 +368,9 @@ var _ = Describe("WorkerFactory", func() {
 					}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
+
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
 
 					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
 					Expect(err).NotTo(HaveOccurred())
@@ -437,10 +391,7 @@ var _ = Describe("WorkerFactory", func() {
 
 			Context("when worker has build with interruptible job", func() {
 				BeforeEach(func() {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-
-					pipeline, created, err := defaultTeam.SavePipeline(tx, "some-pipeline", atc.Config{
+					pipeline, created, err := defaultTeam.SavePipeline("some-pipeline", atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name:          "some-job",
@@ -450,6 +401,9 @@ var _ = Describe("WorkerFactory", func() {
 					}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
+
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
 
 					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
 					Expect(err).NotTo(HaveOccurred())
@@ -471,7 +425,7 @@ var _ = Describe("WorkerFactory", func() {
 			Context("when worker has one-off build", func() {
 				BeforeEach(func() {
 					var err error
-					dbBuild, err = buildFactory.CreateOneOffBuild(defaultTeam)
+					dbBuild, err = defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -572,10 +526,7 @@ var _ = Describe("WorkerFactory", func() {
 
 			Context("when worker has build with uninterruptible job", func() {
 				BeforeEach(func() {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-
-					pipeline, created, err := defaultTeam.SavePipeline(tx, "some-pipeline", atc.Config{
+					pipeline, created, err := defaultTeam.SavePipeline("some-pipeline", atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name:          "some-job",
@@ -585,6 +536,9 @@ var _ = Describe("WorkerFactory", func() {
 					}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
+
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
 
 					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
 					Expect(err).NotTo(HaveOccurred())
@@ -605,10 +559,7 @@ var _ = Describe("WorkerFactory", func() {
 
 			Context("when worker has build with interruptible job", func() {
 				BeforeEach(func() {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-
-					pipeline, created, err := defaultTeam.SavePipeline(tx, "some-pipeline", atc.Config{
+					pipeline, created, err := defaultTeam.SavePipeline("some-pipeline", atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name:          "some-job",
@@ -619,6 +570,8 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
 
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
 					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
 					Expect(err).NotTo(HaveOccurred())
 
@@ -639,7 +592,7 @@ var _ = Describe("WorkerFactory", func() {
 			Context("when worker has one-off build", func() {
 				BeforeEach(func() {
 					var err error
-					dbBuild, err = buildFactory.CreateOneOffBuild(defaultTeam)
+					dbBuild, err = defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 				})
 

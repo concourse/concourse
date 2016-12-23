@@ -5,19 +5,37 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/lib/pq"
 )
 
-type Team struct {
+//go:generate counterfeiter . Team
+
+type Team interface {
+	SavePipeline(
+		pipelineName string,
+		config atc.Config,
+		from ConfigVersion,
+		pausedState PipelinePausedState,
+	) (*Pipeline, bool, error)
+
+	CreateOneOffBuild() (*Build, error)
+
+	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
+}
+
+type team struct {
 	ID int
+
+	conn Conn
 }
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
 
-func (team *Team) SavePipeline(
-	tx Tx,
+func (t *team) SavePipeline(
 	pipelineName string,
 	config atc.Config,
 	from ConfigVersion,
@@ -33,12 +51,19 @@ func (team *Team) SavePipeline(
 
 	var savedPipeline *Pipeline
 
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
 	err = tx.QueryRow(`
 		SELECT COUNT(1)
 		FROM pipelines
 		WHERE name = $1
 	  AND team_id = $2
-	`, pipelineName, team.ID).Scan(&existingConfig)
+	`, pipelineName, t.ID).Scan(&existingConfig)
 	if err != nil {
 		return nil, false, err
 	}
@@ -62,7 +87,7 @@ func (team *Team) SavePipeline(
 		(
 			SELECT t.name as team_name FROM teams t WHERE t.id = $4
 		)
-		`, pipelineName, payload, pausedState.Bool(), team.ID))
+		`, pipelineName, payload, pausedState.Bool(), t.ID))
 		if err != nil {
 			return nil, false, err
 		}
@@ -102,7 +127,7 @@ func (team *Team) SavePipeline(
 			(
 				SELECT t.name as team_name FROM teams t WHERE t.id = $4
 			)
-			`, payload, pipelineName, from, team.ID))
+			`, payload, pipelineName, from, t.ID))
 		} else {
 			savedPipeline, err = scanPipeline(tx.QueryRow(`
 			UPDATE pipelines
@@ -114,7 +139,7 @@ func (team *Team) SavePipeline(
 			(
 				SELECT t.name as team_name FROM teams t WHERE t.id = $4
 			)
-			`, payload, pausedState.Bool(), pipelineName, from, team.ID))
+			`, payload, pausedState.Bool(), pipelineName, from, t.ID))
 		}
 
 		if err != nil && err != sql.ErrNoRows {
@@ -166,37 +191,126 @@ func (team *Team) SavePipeline(
 	}
 
 	for _, resource := range config.Resources {
-		err = team.saveResource(tx, resource, savedPipeline.ID)
+		err = t.saveResource(tx, resource, savedPipeline.ID)
 		if err != nil {
 			return nil, false, err
 		}
 	}
 
 	for _, resourceType := range config.ResourceTypes {
-		err = team.saveResourceType(tx, resourceType, savedPipeline.ID)
+		err = t.saveResourceType(tx, resourceType, savedPipeline.ID)
 		if err != nil {
 			return nil, false, err
 		}
 	}
 
 	for _, job := range config.Jobs {
-		err = team.saveJob(tx, job, savedPipeline.ID)
+		err = t.saveJob(tx, job, savedPipeline.ID)
 		if err != nil {
 			return nil, false, err
 		}
 
 		for _, sg := range job.SerialGroups {
-			err = team.registerSerialGroup(tx, job.Name, sg, savedPipeline.ID)
+			err = t.registerSerialGroup(tx, job.Name, sg, savedPipeline.ID)
 			if err != nil {
 				return nil, false, err
 			}
 		}
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
 	return savedPipeline, created, nil
 }
 
-func (team *Team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
+func (t *team) CreateOneOffBuild() (*Build, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	var buildID int
+	err = psql.Insert("builds").
+		Columns("team_id", "name", "status").
+		Values(t.ID, sq.Expr("nextval('one_off_name')"), "pending").
+		Suffix("RETURNING id").
+		RunWith(tx).
+		QueryRow().
+		Scan(&buildID)
+	if err != nil {
+		// TODO: explicitly handle fkey constraint
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Build{
+		ID: buildID,
+	}, nil
+}
+
+func (t *team) CreatePipeline(name string, config string) (*Pipeline, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	var pipelineID int
+	err = psql.Insert("pipelines").
+		Columns("team_id", "name", "config").
+		Values(t.ID, name, config).
+		Suffix("RETURNING id").
+		RunWith(tx).
+		QueryRow().
+		Scan(&pipelineID)
+	if err != nil {
+		// TODO: explicitly handle fkey constraint
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Pipeline{
+		ID:     pipelineID,
+		TeamID: t.ID,
+	}, nil
+}
+
+func (t *team) SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	savedWorker, err := saveWorker(tx, worker, t, ttl)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return savedWorker, nil
+}
+
+func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
 	configPayload, err := json.Marshal(job)
 	if err != nil {
 		return err
@@ -223,7 +337,7 @@ func (team *Team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
 	return swallowUniqueViolation(err)
 }
 
-func (team *Team) registerSerialGroup(tx Tx, jobName, serialGroup string, pipelineID int) error {
+func (t *team) registerSerialGroup(tx Tx, jobName, serialGroup string, pipelineID int) error {
 	_, err := tx.Exec(`
     INSERT INTO jobs_serial_groups (serial_group, job_id) VALUES
     ($1, (SELECT j.id
@@ -239,7 +353,7 @@ func (team *Team) registerSerialGroup(tx Tx, jobName, serialGroup string, pipeli
 	return swallowUniqueViolation(err)
 }
 
-func (team *Team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) error {
+func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) error {
 	configPayload, err := json.Marshal(resource)
 	if err != nil {
 		return err
@@ -266,7 +380,7 @@ func (team *Team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID in
 	return swallowUniqueViolation(err)
 }
 
-func (team *Team) saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) error {
+func (t *team) saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) error {
 	configPayload, err := json.Marshal(resourceType)
 	if err != nil {
 		return err

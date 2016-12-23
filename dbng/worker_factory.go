@@ -22,7 +22,6 @@ type WorkerFactory interface {
 	DeleteFinishedRetiringWorkers() error
 	LandFinishedLandingWorkers() error
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
-	SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error)
 	LandWorker(name string) (*Worker, error)
 	RetireWorker(name string) (*Worker, error)
 	PruneWorker(name string) error
@@ -736,14 +735,27 @@ func (f *workerFactory) LandFinishedLandingWorkers() error {
 }
 
 func (f *workerFactory) SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error) {
-	return f.saveWorker(worker, nil, ttl)
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	savedWorker, err := saveWorker(tx, worker, nil, ttl)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return savedWorker, nil
 }
 
-func (f *workerFactory) SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error) {
-	return f.saveWorker(worker, team, ttl)
-}
-
-func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error) {
+func saveWorker(tx Tx, worker atc.Worker, team *team, ttl time.Duration) (*Worker, error) {
 	resourceTypes, err := json.Marshal(worker.ResourceTypes)
 	if err != nil {
 		return nil, err
@@ -753,13 +765,6 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 	if err != nil {
 		return nil, err
 	}
-
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
 
 	expires := "NULL"
 	if ttl != 0 {
@@ -862,11 +867,6 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 		Name:       worker.Name,
 		GardenAddr: &worker.GardenAddr,
 		State:      workerState,
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
 	}
 
 	return savedWorker, nil

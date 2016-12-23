@@ -8,22 +8,22 @@ import (
 )
 
 type FakeTeamFactory struct {
-	CreateTeamStub        func(name string) (*dbng.Team, error)
+	CreateTeamStub        func(name string) (dbng.Team, error)
 	createTeamMutex       sync.RWMutex
 	createTeamArgsForCall []struct {
 		name string
 	}
 	createTeamReturns struct {
-		result1 *dbng.Team
+		result1 dbng.Team
 		result2 error
 	}
-	FindTeamStub        func(name string) (*dbng.Team, bool, error)
+	FindTeamStub        func(name string) (dbng.Team, bool, error)
 	findTeamMutex       sync.RWMutex
 	findTeamArgsForCall []struct {
 		name string
 	}
 	findTeamReturns struct {
-		result1 *dbng.Team
+		result1 dbng.Team
 		result2 bool
 		result3 error
 	}
@@ -31,7 +31,7 @@ type FakeTeamFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTeamFactory) CreateTeam(name string) (*dbng.Team, error) {
+func (fake *FakeTeamFactory) CreateTeam(name string) (dbng.Team, error) {
 	fake.createTeamMutex.Lock()
 	fake.createTeamArgsForCall = append(fake.createTeamArgsForCall, struct {
 		name string
@@ -57,15 +57,15 @@ func (fake *FakeTeamFactory) CreateTeamArgsForCall(i int) string {
 	return fake.createTeamArgsForCall[i].name
 }
 
-func (fake *FakeTeamFactory) CreateTeamReturns(result1 *dbng.Team, result2 error) {
+func (fake *FakeTeamFactory) CreateTeamReturns(result1 dbng.Team, result2 error) {
 	fake.CreateTeamStub = nil
 	fake.createTeamReturns = struct {
-		result1 *dbng.Team
+		result1 dbng.Team
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTeamFactory) FindTeam(name string) (*dbng.Team, bool, error) {
+func (fake *FakeTeamFactory) FindTeam(name string) (dbng.Team, bool, error) {
 	fake.findTeamMutex.Lock()
 	fake.findTeamArgsForCall = append(fake.findTeamArgsForCall, struct {
 		name string
@@ -91,10 +91,10 @@ func (fake *FakeTeamFactory) FindTeamArgsForCall(i int) string {
 	return fake.findTeamArgsForCall[i].name
 }
 
-func (fake *FakeTeamFactory) FindTeamReturns(result1 *dbng.Team, result2 bool, result3 error) {
+func (fake *FakeTeamFactory) FindTeamReturns(result1 dbng.Team, result2 bool, result3 error) {
 	fake.FindTeamStub = nil
 	fake.findTeamReturns = struct {
-		result1 *dbng.Team
+		result1 dbng.Team
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

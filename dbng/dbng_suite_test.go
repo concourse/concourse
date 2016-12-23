@@ -30,12 +30,11 @@ var (
 	dbConn dbng.Conn
 
 	workerFactory    dbng.WorkerFactory
-	buildFactory     *dbng.BuildFactory
 	teamFactory      dbng.TeamFactory
 	containerFactory *dbng.ContainerFactory
 
 	defaultWorker *dbng.Worker
-	defaultTeam   *dbng.Team
+	defaultTeam   dbng.Team
 
 	psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 )
@@ -55,7 +54,6 @@ var _ = BeforeEach(func() {
 	dbConn = dbng.Wrap(postgresRunner.Open())
 
 	workerFactory = dbng.NewWorkerFactory(dbConn)
-	buildFactory = dbng.NewBuildFactory(dbConn)
 	teamFactory = dbng.NewTeamFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)
 

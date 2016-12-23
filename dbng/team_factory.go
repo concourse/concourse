@@ -9,8 +9,8 @@ import (
 //go:generate counterfeiter . TeamFactory
 
 type TeamFactory interface {
-	CreateTeam(name string) (*Team, error)
-	FindTeam(name string) (*Team, bool, error)
+	CreateTeam(name string) (Team, error)
+	FindTeam(name string) (Team, bool, error)
 }
 
 type teamFactory struct {
@@ -23,7 +23,7 @@ func NewTeamFactory(conn Conn) TeamFactory {
 	}
 }
 
-func (factory *teamFactory) CreateTeam(name string) (*Team, error) {
+func (factory *teamFactory) CreateTeam(name string) (Team, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -50,12 +50,13 @@ func (factory *teamFactory) CreateTeam(name string) (*Team, error) {
 		return nil, err
 	}
 
-	return &Team{
-		ID: teamID,
+	return &team{
+		ID:   teamID,
+		conn: factory.conn,
 	}, nil
 }
 
-func (factory *teamFactory) FindTeam(name string) (*Team, bool, error) {
+func (factory *teamFactory) FindTeam(name string) (Team, bool, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -82,7 +83,8 @@ func (factory *teamFactory) FindTeam(name string) (*Team, bool, error) {
 		return nil, false, err
 	}
 
-	return &Team{
-		ID: teamID,
+	return &team{
+		ID:   teamID,
+		conn: factory.conn,
 	}, true, nil
 }
