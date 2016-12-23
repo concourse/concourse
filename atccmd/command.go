@@ -328,8 +328,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Clock:    clock.NewClock(),
 		}},
 
-		{"lostandfound", lockrunner.NewRunner(
-			logger.Session("lost-and-found"),
+		{"baggage-collector", lockrunner.NewRunner(
+			logger.Session("baggage-collector-runner"),
 			lostandfound.NewBaggageCollector(
 				logger.Session("baggage-collector"),
 				workerClient,
@@ -344,10 +344,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			cmd.ResourceCacheCleanupInterval,
 		)},
 
-		{"workercollector", lockrunner.NewRunner(
-			logger.Session("worker-collector"),
+		{"worker-collector", lockrunner.NewRunner(
+			logger.Session("worker-collector-runner"),
 			gcng.NewWorkerCollector(
-				logger.Session("volume-collector"),
+				logger.Session("worker-collector"),
 				dbWorkerFactory,
 			),
 			"worker-collector",
@@ -356,8 +356,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			10*time.Second,
 		)},
 
-		{"containerkeepaliver", lockrunner.NewRunner(
-			logger.Session("container-keepaliver"),
+		{"container-keepaliver", lockrunner.NewRunner(
+			logger.Session("container-keepaliver-runner"),
 			containerkeepaliver.NewContainerKeepAliver(
 				logger.Session("container-keepaliver"),
 				workerClient,
@@ -369,7 +369,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			30*time.Second,
 		)},
 
-		{"buildreaper", lockrunner.NewRunner(
+		{"build-reaper", lockrunner.NewRunner(
 			logger.Session("build-reaper-runner"),
 			buildreaper.NewBuildReaper(
 				logger.Session("build-reaper"),
@@ -384,7 +384,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		)},
 
 		{"dbgc", lockrunner.NewRunner(
-			logger.Session("dbgc"),
+			logger.Session("dbgc-runner"),
 			dbgc.NewDBGarbageCollector(
 				logger.Session("dbgc"),
 				sqlDB,
