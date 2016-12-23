@@ -3,9 +3,7 @@ package acceptance_test
 import (
 	"errors"
 	"net/http"
-	"time"
 
-	"github.com/lib/pq"
 	"github.com/sclevine/agouti"
 	. "github.com/sclevine/agouti/matchers"
 
@@ -15,45 +13,29 @@ import (
 	"github.com/onsi/gomega/gexec"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
 )
 
 var _ = Describe("Auth", func() {
 	var atcCommand *ATCCommand
-	var dbListener *pq.Listener
-	var teamDB db.TeamDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
-		dbConn = db.Wrap(postgresRunner.Open())
-		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		bus := db.NewNotificationsBus(dbListener, dbConn)
+		dbngConn = dbng.Wrap(postgresRunner.Open())
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(dbfakes.FakeConnector)
-		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := db.NewLockFactory(retryableConn)
-		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
-
-		err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)
+		teamFactory := dbng.NewTeamFactory(dbngConn)
+		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = sqlDB.CreateTeam(db.Team{Name: atc.DefaultTeamName})
-		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue()) // created by postgresRunner
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
-		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-
-		_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		_, _, err = defaultTeam.SavePipeline(atc.DefaultPipelineName, atc.Config{}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		atcCommand.Stop()
 
-		Expect(dbConn.Close()).To(Succeed())
-		Expect(dbListener.Close()).To(Succeed())
+		Expect(dbngConn.Close()).To(Succeed())
 	})
 
 	Describe("GitHub Auth", func() {

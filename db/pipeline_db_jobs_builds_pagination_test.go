@@ -50,13 +50,13 @@ var _ = Describe("Jobs Builds", func() {
 			},
 		}
 
-		savedPipeline, _, err := teamDB.SaveConfig("a-pipeline-name", config, 0, db.PipelineUnpaused)
+		savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated("a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig("another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated("another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

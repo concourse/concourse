@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
@@ -272,7 +273,7 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("does not save anything", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 						})
 					})
 
@@ -296,7 +297,7 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("does not save anything", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 						})
 					})
 				})
@@ -342,10 +343,7 @@ var _ = Describe("Config API", func() {
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								returnedPipeline := &dbng.Pipeline{
-									ID:     1234,
-									TeamID: 1,
-								}
+								returnedPipeline := new(dbngfakes.FakePipeline)
 								dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 							})
 
@@ -373,7 +371,7 @@ var _ = Describe("Config API", func() {
 							})
 
 							It("does not save it", func() {
-								Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+								Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 							})
 						})
 					})
@@ -483,10 +481,7 @@ jobs:
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								returnedPipeline := &dbng.Pipeline{
-									ID:     1234,
-									TeamID: 1,
-								}
+								returnedPipeline := new(dbngfakes.FakePipeline)
 								dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 							})
 
@@ -583,10 +578,7 @@ jobs:
 
 							Context("when it's the first time the pipeline has been created", func() {
 								BeforeEach(func() {
-									returnedPipeline := &dbng.Pipeline{
-										ID:     1234,
-										TeamID: 1,
-									}
+									returnedPipeline := new(dbngfakes.FakePipeline)
 									dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 								})
 
@@ -757,7 +749,7 @@ jobs:
 								})
 
 								It("does not save anything", func() {
-									Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
+									Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 								})
 							})
 
@@ -796,7 +788,7 @@ jobs:
 								})
 
 								It("does not save anything", func() {
-									Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
+									Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 								})
 							})
 						})
@@ -818,7 +810,7 @@ jobs:
 					})
 
 					It("does not save it", func() {
-						Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+						Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 					})
 				})
 
@@ -849,7 +841,7 @@ jobs:
 					})
 
 					It("does not save it", func() {
-						Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+						Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 					})
 				})
 			})
@@ -873,7 +865,7 @@ jobs:
 				})
 
 				It("does not save it", func() {
-					Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+					Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 				})
 			})
 
@@ -896,7 +888,7 @@ jobs:
 				})
 
 				It("does not save it", func() {
-					Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+					Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -911,7 +903,7 @@ jobs:
 			})
 
 			It("does not save the config", func() {
-				Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+				Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 			})
 		})
 	})

@@ -85,10 +85,10 @@ var _ = Describe("Keeping track of containers", func() {
 		build, err = teamDB.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
 
-		savedPipeline, _, err = teamDB.SaveConfig("some-pipeline", config, 0, db.PipelineUnpaused)
+		savedPipeline, _, err = teamDB.SaveConfigToBeDeprecated("some-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig("some-other-pipeline", config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated("some-other-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)

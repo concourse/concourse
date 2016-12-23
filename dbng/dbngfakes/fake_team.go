@@ -10,7 +10,7 @@ import (
 )
 
 type FakeTeam struct {
-	SavePipelineStub        func(pipelineName string, config atc.Config, from dbng.ConfigVersion, pausedState dbng.PipelinePausedState) (*dbng.Pipeline, bool, error)
+	SavePipelineStub        func(pipelineName string, config atc.Config, from dbng.ConfigVersion, pausedState dbng.PipelinePausedState) (dbng.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
 	savePipelineArgsForCall []struct {
 		pipelineName string
@@ -19,7 +19,7 @@ type FakeTeam struct {
 		pausedState  dbng.PipelinePausedState
 	}
 	savePipelineReturns struct {
-		result1 *dbng.Pipeline
+		result1 dbng.Pipeline
 		result2 bool
 		result3 error
 	}
@@ -44,7 +44,7 @@ type FakeTeam struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from dbng.ConfigVersion, pausedState dbng.PipelinePausedState) (*dbng.Pipeline, bool, error) {
+func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from dbng.ConfigVersion, pausedState dbng.PipelinePausedState) (dbng.Pipeline, bool, error) {
 	fake.savePipelineMutex.Lock()
 	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
 		pipelineName string
@@ -73,10 +73,10 @@ func (fake *FakeTeam) SavePipelineArgsForCall(i int) (string, atc.Config, dbng.C
 	return fake.savePipelineArgsForCall[i].pipelineName, fake.savePipelineArgsForCall[i].config, fake.savePipelineArgsForCall[i].from, fake.savePipelineArgsForCall[i].pausedState
 }
 
-func (fake *FakeTeam) SavePipelineReturns(result1 *dbng.Pipeline, result2 bool, result3 error) {
+func (fake *FakeTeam) SavePipelineReturns(result1 dbng.Pipeline, result2 bool, result3 error) {
 	fake.SavePipelineStub = nil
 	fake.savePipelineReturns = struct {
-		result1 *dbng.Pipeline
+		result1 dbng.Pipeline
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

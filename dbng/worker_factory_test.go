@@ -369,13 +369,8 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
 
-					tx, err := dbConn.Begin()
+					dbBuild, err = pipeline.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
-
-					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(tx.Commit()).To(Succeed())
 				})
 
 				DescribeTable("with builds that are",
@@ -402,13 +397,8 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
 
-					tx, err := dbConn.Begin()
+					dbBuild, err = pipeline.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
-
-					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(tx.Commit()).To(Succeed())
 				})
 
 				DescribeTable("with builds that are",
@@ -537,13 +527,8 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
 
-					tx, err := dbConn.Begin()
+					dbBuild, err = pipeline.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
-
-					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(tx.Commit()).To(Succeed())
 				})
 
 				DescribeTable("with builds that are",
@@ -570,12 +555,8 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(created).To(BeTrue())
 
-					tx, err := dbConn.Begin()
+					dbBuild, err = pipeline.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
-					dbBuild, err = pipeline.CreateJobBuild(tx, "some-job")
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(tx.Commit()).To(Succeed())
 				})
 
 				DescribeTable("with builds that are",

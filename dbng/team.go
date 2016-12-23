@@ -20,7 +20,7 @@ type Team interface {
 		config atc.Config,
 		from ConfigVersion,
 		pausedState PipelinePausedState,
-	) (*Pipeline, bool, error)
+	) (Pipeline, bool, error)
 
 	CreateOneOffBuild() (*Build, error)
 
@@ -40,7 +40,7 @@ func (t *team) SavePipeline(
 	config atc.Config,
 	from ConfigVersion,
 	pausedState PipelinePausedState,
-) (*Pipeline, bool, error) {
+) (Pipeline, bool, error) {
 	payload, err := json.Marshal(config)
 	if err != nil {
 		return nil, false, err
@@ -49,7 +49,7 @@ func (t *team) SavePipeline(
 	var created bool
 	var existingConfig int
 
-	var savedPipeline *Pipeline
+	var savedPipeline *pipeline
 
 	tx, err := t.conn.Begin()
 	if err != nil {
@@ -87,7 +87,7 @@ func (t *team) SavePipeline(
 		(
 			SELECT t.name as team_name FROM teams t WHERE t.id = $4
 		)
-		`, pipelineName, payload, pausedState.Bool(), t.ID))
+		`, pipelineName, payload, pausedState.Bool(), t.ID), t.conn)
 		if err != nil {
 			return nil, false, err
 		}
@@ -127,7 +127,7 @@ func (t *team) SavePipeline(
 			(
 				SELECT t.name as team_name FROM teams t WHERE t.id = $4
 			)
-			`, payload, pipelineName, from, t.ID))
+			`, payload, pipelineName, from, t.ID), t.conn)
 		} else {
 			savedPipeline, err = scanPipeline(tx.QueryRow(`
 			UPDATE pipelines
@@ -139,7 +139,7 @@ func (t *team) SavePipeline(
 			(
 				SELECT t.name as team_name FROM teams t WHERE t.id = $4
 			)
-			`, payload, pausedState.Bool(), pipelineName, from, t.ID))
+			`, payload, pausedState.Bool(), pipelineName, from, t.ID), t.conn)
 		}
 
 		if err != nil && err != sql.ErrNoRows {
@@ -254,38 +254,6 @@ func (t *team) CreateOneOffBuild() (*Build, error) {
 
 	return &Build{
 		ID: buildID,
-	}, nil
-}
-
-func (t *team) CreatePipeline(name string, config string) (*Pipeline, error) {
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	var pipelineID int
-	err = psql.Insert("pipelines").
-		Columns("team_id", "name", "config").
-		Values(t.ID, name, config).
-		Suffix("RETURNING id").
-		RunWith(tx).
-		QueryRow().
-		Scan(&pipelineID)
-	if err != nil {
-		// TODO: explicitly handle fkey constraint
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return &Pipeline{
-		ID:     pipelineID,
-		TeamID: t.ID,
 	}, nil
 }
 

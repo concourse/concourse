@@ -8,9 +8,18 @@ import (
 	"github.com/concourse/atc"
 )
 
-type Pipeline struct {
+//go:generate counterfeiter . Pipeline
+
+type Pipeline interface {
+	SaveJob(job atc.JobConfig) error
+	CreateJobBuild(jobName string) (*Build, error)
+}
+
+type pipeline struct {
 	ID     int
 	TeamID int
+
+	conn Conn
 }
 
 //ConfigVersion is a sequence identifier used for compare-and-swap
@@ -42,7 +51,14 @@ func (state PipelinePausedState) Bool() *bool {
 	}
 }
 
-func (p *Pipeline) CreateJobBuild(tx Tx, jobName string) (*Build, error) {
+func (p *pipeline) CreateJobBuild(jobName string) (*Build, error) {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	buildName, jobID, err := getNewBuildNameForJob(tx, jobName, p.ID)
 	if err != nil {
 		return nil, err
@@ -66,10 +82,22 @@ func (p *Pipeline) CreateJobBuild(tx Tx, jobName string) (*Build, error) {
 		return nil, err
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Build{ID: buildID}, nil
 }
 
-func (p *Pipeline) SaveJob(tx Tx, job atc.JobConfig) error {
+func (p *pipeline) SaveJob(job atc.JobConfig) error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
 	configPayload, err := json.Marshal(job)
 	if err != nil {
 		return err
@@ -105,6 +133,11 @@ func (p *Pipeline) SaveJob(tx Tx, job atc.JobConfig) error {
 		}
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -131,7 +164,7 @@ func buildEventSeq(buildID int) string {
 	return fmt.Sprintf("build_event_id_seq_%d", buildID)
 }
 
-func scanPipeline(rows scannable) (*Pipeline, error) {
+func scanPipeline(rows scannable, conn Conn) (*pipeline, error) {
 	var id int
 	var name string
 	var configBlob []byte
@@ -152,8 +185,10 @@ func scanPipeline(rows scannable) (*Pipeline, error) {
 		return nil, err
 	}
 
-	return &Pipeline{
+	return &pipeline{
 		ID:     id,
 		TeamID: teamID,
+
+		conn: conn,
 	}, nil
 }
