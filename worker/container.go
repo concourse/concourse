@@ -15,7 +15,7 @@ var ErrMissingVolume = errors.New("volume mounted to container is missing")
 
 type gardenWorkerContainer struct {
 	garden.Container
-	dbContainer *dbng.CreatedContainer
+	dbContainer dbng.CreatedContainer
 	dbVolumes   []dbng.CreatedVolume
 
 	gardenClient garden.Client
@@ -33,7 +33,7 @@ type gardenWorkerContainer struct {
 func newGardenWorkerContainer(
 	logger lager.Logger,
 	container garden.Container,
-	dbContainer *dbng.CreatedContainer,
+	dbContainer dbng.CreatedContainer,
 	dbContainerVolumes []dbng.CreatedVolume,
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,

@@ -15,20 +15,11 @@ type FakeContainerProvider struct {
 	markBuildContainersForDeletionReturns     struct {
 		result1 error
 	}
-	FindContainersMarkedForDeletionStub        func() ([]*dbng.DestroyingContainer, error)
+	FindContainersMarkedForDeletionStub        func() ([]dbng.DestroyingContainer, error)
 	findContainersMarkedForDeletionMutex       sync.RWMutex
 	findContainersMarkedForDeletionArgsForCall []struct{}
 	findContainersMarkedForDeletionReturns     struct {
-		result1 []*dbng.DestroyingContainer
-		result2 error
-	}
-	ContainerDestroyStub        func(*dbng.DestroyingContainer) (bool, error)
-	containerDestroyMutex       sync.RWMutex
-	containerDestroyArgsForCall []struct {
-		arg1 *dbng.DestroyingContainer
-	}
-	containerDestroyReturns struct {
-		result1 bool
+		result1 []dbng.DestroyingContainer
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -60,7 +51,7 @@ func (fake *FakeContainerProvider) MarkBuildContainersForDeletionReturns(result1
 	}{result1}
 }
 
-func (fake *FakeContainerProvider) FindContainersMarkedForDeletion() ([]*dbng.DestroyingContainer, error) {
+func (fake *FakeContainerProvider) FindContainersMarkedForDeletion() ([]dbng.DestroyingContainer, error) {
 	fake.findContainersMarkedForDeletionMutex.Lock()
 	fake.findContainersMarkedForDeletionArgsForCall = append(fake.findContainersMarkedForDeletionArgsForCall, struct{}{})
 	fake.recordInvocation("FindContainersMarkedForDeletion", []interface{}{})
@@ -78,44 +69,10 @@ func (fake *FakeContainerProvider) FindContainersMarkedForDeletionCallCount() in
 	return len(fake.findContainersMarkedForDeletionArgsForCall)
 }
 
-func (fake *FakeContainerProvider) FindContainersMarkedForDeletionReturns(result1 []*dbng.DestroyingContainer, result2 error) {
+func (fake *FakeContainerProvider) FindContainersMarkedForDeletionReturns(result1 []dbng.DestroyingContainer, result2 error) {
 	fake.FindContainersMarkedForDeletionStub = nil
 	fake.findContainersMarkedForDeletionReturns = struct {
-		result1 []*dbng.DestroyingContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeContainerProvider) ContainerDestroy(arg1 *dbng.DestroyingContainer) (bool, error) {
-	fake.containerDestroyMutex.Lock()
-	fake.containerDestroyArgsForCall = append(fake.containerDestroyArgsForCall, struct {
-		arg1 *dbng.DestroyingContainer
-	}{arg1})
-	fake.recordInvocation("ContainerDestroy", []interface{}{arg1})
-	fake.containerDestroyMutex.Unlock()
-	if fake.ContainerDestroyStub != nil {
-		return fake.ContainerDestroyStub(arg1)
-	} else {
-		return fake.containerDestroyReturns.result1, fake.containerDestroyReturns.result2
-	}
-}
-
-func (fake *FakeContainerProvider) ContainerDestroyCallCount() int {
-	fake.containerDestroyMutex.RLock()
-	defer fake.containerDestroyMutex.RUnlock()
-	return len(fake.containerDestroyArgsForCall)
-}
-
-func (fake *FakeContainerProvider) ContainerDestroyArgsForCall(i int) *dbng.DestroyingContainer {
-	fake.containerDestroyMutex.RLock()
-	defer fake.containerDestroyMutex.RUnlock()
-	return fake.containerDestroyArgsForCall[i].arg1
-}
-
-func (fake *FakeContainerProvider) ContainerDestroyReturns(result1 bool, result2 error) {
-	fake.ContainerDestroyStub = nil
-	fake.containerDestroyReturns = struct {
-		result1 bool
+		result1 []dbng.DestroyingContainer
 		result2 error
 	}{result1, result2}
 }
@@ -127,8 +84,6 @@ func (fake *FakeContainerProvider) Invocations() map[string][][]interface{} {
 	defer fake.markBuildContainersForDeletionMutex.RUnlock()
 	fake.findContainersMarkedForDeletionMutex.RLock()
 	defer fake.findContainersMarkedForDeletionMutex.RUnlock()
-	fake.containerDestroyMutex.RLock()
-	defer fake.containerDestroyMutex.RUnlock()
 	return fake.invocations
 }
 

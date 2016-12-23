@@ -17,24 +17,24 @@ type FakeVolumeFactory struct {
 		result1 []dbng.CreatedVolume
 		result2 error
 	}
-	CreateContainerVolumeStub        func(*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
+	CreateContainerVolumeStub        func(*dbng.Team, *dbng.Worker, dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
 	createContainerVolumeMutex       sync.RWMutex
 	createContainerVolumeArgsForCall []struct {
 		arg1 *dbng.Team
 		arg2 *dbng.Worker
-		arg3 *dbng.CreatingContainer
+		arg3 dbng.CreatingContainer
 		arg4 string
 	}
 	createContainerVolumeReturns struct {
 		result1 dbng.CreatingVolume
 		result2 error
 	}
-	FindContainerVolumeStub        func(*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) (dbng.CreatingVolume, dbng.CreatedVolume, error)
+	FindContainerVolumeStub        func(*dbng.Team, *dbng.Worker, dbng.CreatingContainer, string) (dbng.CreatingVolume, dbng.CreatedVolume, error)
 	findContainerVolumeMutex       sync.RWMutex
 	findContainerVolumeArgsForCall []struct {
 		arg1 *dbng.Team
 		arg2 *dbng.Worker
-		arg3 *dbng.CreatingContainer
+		arg3 dbng.CreatingContainer
 		arg4 string
 	}
 	findContainerVolumeReturns struct {
@@ -97,10 +97,10 @@ type FakeVolumeFactory struct {
 		result1 dbng.CreatingVolume
 		result2 error
 	}
-	FindVolumesForContainerStub        func(containerID int) ([]dbng.CreatedVolume, error)
+	FindVolumesForContainerStub        func(dbng.CreatedContainer) ([]dbng.CreatedVolume, error)
 	findVolumesForContainerMutex       sync.RWMutex
 	findVolumesForContainerArgsForCall []struct {
-		containerID int
+		arg1 dbng.CreatedContainer
 	}
 	findVolumesForContainerReturns struct {
 		result1 []dbng.CreatedVolume
@@ -162,12 +162,12 @@ func (fake *FakeVolumeFactory) GetTeamVolumesReturns(result1 []dbng.CreatedVolum
 	}{result1, result2}
 }
 
-func (fake *FakeVolumeFactory) CreateContainerVolume(arg1 *dbng.Team, arg2 *dbng.Worker, arg3 *dbng.CreatingContainer, arg4 string) (dbng.CreatingVolume, error) {
+func (fake *FakeVolumeFactory) CreateContainerVolume(arg1 *dbng.Team, arg2 *dbng.Worker, arg3 dbng.CreatingContainer, arg4 string) (dbng.CreatingVolume, error) {
 	fake.createContainerVolumeMutex.Lock()
 	fake.createContainerVolumeArgsForCall = append(fake.createContainerVolumeArgsForCall, struct {
 		arg1 *dbng.Team
 		arg2 *dbng.Worker
-		arg3 *dbng.CreatingContainer
+		arg3 dbng.CreatingContainer
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
 	fake.recordInvocation("CreateContainerVolume", []interface{}{arg1, arg2, arg3, arg4})
@@ -185,7 +185,7 @@ func (fake *FakeVolumeFactory) CreateContainerVolumeCallCount() int {
 	return len(fake.createContainerVolumeArgsForCall)
 }
 
-func (fake *FakeVolumeFactory) CreateContainerVolumeArgsForCall(i int) (*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) {
+func (fake *FakeVolumeFactory) CreateContainerVolumeArgsForCall(i int) (*dbng.Team, *dbng.Worker, dbng.CreatingContainer, string) {
 	fake.createContainerVolumeMutex.RLock()
 	defer fake.createContainerVolumeMutex.RUnlock()
 	return fake.createContainerVolumeArgsForCall[i].arg1, fake.createContainerVolumeArgsForCall[i].arg2, fake.createContainerVolumeArgsForCall[i].arg3, fake.createContainerVolumeArgsForCall[i].arg4
@@ -199,12 +199,12 @@ func (fake *FakeVolumeFactory) CreateContainerVolumeReturns(result1 dbng.Creatin
 	}{result1, result2}
 }
 
-func (fake *FakeVolumeFactory) FindContainerVolume(arg1 *dbng.Team, arg2 *dbng.Worker, arg3 *dbng.CreatingContainer, arg4 string) (dbng.CreatingVolume, dbng.CreatedVolume, error) {
+func (fake *FakeVolumeFactory) FindContainerVolume(arg1 *dbng.Team, arg2 *dbng.Worker, arg3 dbng.CreatingContainer, arg4 string) (dbng.CreatingVolume, dbng.CreatedVolume, error) {
 	fake.findContainerVolumeMutex.Lock()
 	fake.findContainerVolumeArgsForCall = append(fake.findContainerVolumeArgsForCall, struct {
 		arg1 *dbng.Team
 		arg2 *dbng.Worker
-		arg3 *dbng.CreatingContainer
+		arg3 dbng.CreatingContainer
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
 	fake.recordInvocation("FindContainerVolume", []interface{}{arg1, arg2, arg3, arg4})
@@ -222,7 +222,7 @@ func (fake *FakeVolumeFactory) FindContainerVolumeCallCount() int {
 	return len(fake.findContainerVolumeArgsForCall)
 }
 
-func (fake *FakeVolumeFactory) FindContainerVolumeArgsForCall(i int) (*dbng.Team, *dbng.Worker, *dbng.CreatingContainer, string) {
+func (fake *FakeVolumeFactory) FindContainerVolumeArgsForCall(i int) (*dbng.Team, *dbng.Worker, dbng.CreatingContainer, string) {
 	fake.findContainerVolumeMutex.RLock()
 	defer fake.findContainerVolumeMutex.RUnlock()
 	return fake.findContainerVolumeArgsForCall[i].arg1, fake.findContainerVolumeArgsForCall[i].arg2, fake.findContainerVolumeArgsForCall[i].arg3, fake.findContainerVolumeArgsForCall[i].arg4
@@ -417,15 +417,15 @@ func (fake *FakeVolumeFactory) CreateResourceCacheVolumeReturns(result1 dbng.Cre
 	}{result1, result2}
 }
 
-func (fake *FakeVolumeFactory) FindVolumesForContainer(containerID int) ([]dbng.CreatedVolume, error) {
+func (fake *FakeVolumeFactory) FindVolumesForContainer(arg1 dbng.CreatedContainer) ([]dbng.CreatedVolume, error) {
 	fake.findVolumesForContainerMutex.Lock()
 	fake.findVolumesForContainerArgsForCall = append(fake.findVolumesForContainerArgsForCall, struct {
-		containerID int
-	}{containerID})
-	fake.recordInvocation("FindVolumesForContainer", []interface{}{containerID})
+		arg1 dbng.CreatedContainer
+	}{arg1})
+	fake.recordInvocation("FindVolumesForContainer", []interface{}{arg1})
 	fake.findVolumesForContainerMutex.Unlock()
 	if fake.FindVolumesForContainerStub != nil {
-		return fake.FindVolumesForContainerStub(containerID)
+		return fake.FindVolumesForContainerStub(arg1)
 	} else {
 		return fake.findVolumesForContainerReturns.result1, fake.findVolumesForContainerReturns.result2
 	}
@@ -437,10 +437,10 @@ func (fake *FakeVolumeFactory) FindVolumesForContainerCallCount() int {
 	return len(fake.findVolumesForContainerArgsForCall)
 }
 
-func (fake *FakeVolumeFactory) FindVolumesForContainerArgsForCall(i int) int {
+func (fake *FakeVolumeFactory) FindVolumesForContainerArgsForCall(i int) dbng.CreatedContainer {
 	fake.findVolumesForContainerMutex.RLock()
 	defer fake.findVolumesForContainerMutex.RUnlock()
-	return fake.findVolumesForContainerArgsForCall[i].containerID
+	return fake.findVolumesForContainerArgsForCall[i].arg1
 }
 
 func (fake *FakeVolumeFactory) FindVolumesForContainerReturns(result1 []dbng.CreatedVolume, result2 error) {

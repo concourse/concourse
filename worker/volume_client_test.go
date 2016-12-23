@@ -62,7 +62,7 @@ var _ = Describe("VolumeClient", func() {
 		var foundOrCreatedVolume worker.Volume
 		var foundOrCreatedErr error
 		var team *dbng.Team
-		var container *dbng.CreatingContainer
+		var container dbng.CreatingContainer
 		var fakeCreatingVolume *dbngfakes.FakeCreatingVolume
 		var volumeStrategy worker.Strategy
 
@@ -82,8 +82,7 @@ var _ = Describe("VolumeClient", func() {
 
 		JustBeforeEach(func() {
 			team = &dbng.Team{}
-			container = &dbng.CreatingContainer{}
-
+			container = new(dbngfakes.FakeCreatingContainer)
 			foundOrCreatedVolume, foundOrCreatedErr = volumeClient.FindOrCreateVolumeForContainer(
 				testLogger,
 				worker.VolumeSpec{

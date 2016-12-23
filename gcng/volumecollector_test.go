@@ -28,8 +28,8 @@ var _ = Describe("VolumeCollector", func() {
 		fakeBCVolume           *baggageclaimfakes.FakeVolume
 		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
 		createdVolume          dbng.CreatedVolume
-		creatingContainer1     *dbng.CreatingContainer
-		creatingContainer2     *dbng.CreatingContainer
+		creatingContainer1     dbng.CreatingContainer
+		creatingContainer2     dbng.CreatingContainer
 		team                   *dbng.Team
 		worker                 *dbng.Worker
 	)
@@ -107,11 +107,11 @@ var _ = Describe("VolumeCollector", func() {
 			_, err = createdVolume3.Destroying()
 			Expect(err).NotTo(HaveOccurred())
 
-			createdContainer1, err := containerFactory.ContainerCreated(creatingContainer1)
+			createdContainer1, err := creatingContainer1.Created()
 			Expect(err).NotTo(HaveOccurred())
-			destroyingContainer1, err := containerFactory.ContainerDestroying(createdContainer1)
+			destroyingContainer1, err := createdContainer1.Destroying()
 			Expect(err).NotTo(HaveOccurred())
-			destroyed, err := containerFactory.ContainerDestroy(destroyingContainer1)
+			destroyed, err := destroyingContainer1.Destroy()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(destroyed).To(BeTrue())
 		})

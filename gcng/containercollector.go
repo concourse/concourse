@@ -13,8 +13,7 @@ import (
 //go:generate counterfeiter . ContainerProvider
 type ContainerProvider interface {
 	MarkBuildContainersForDeletion() error
-	FindContainersMarkedForDeletion() ([]*dbng.DestroyingContainer, error)
-	ContainerDestroy(*dbng.DestroyingContainer) (bool, error)
+	FindContainersMarkedForDeletion() ([]dbng.DestroyingContainer, error)
 }
 
 type ContainerCollector struct {
@@ -49,8 +48,12 @@ func (c *ContainerCollector) Run() error {
 		c.Logger.Error("find-build-containers-for-deletion", err)
 		return err
 	}
+	containerHandles := []string{}
+	for _, container := range cs {
+		containerHandles = append(containerHandles, container.Handle())
+	}
 	c.Logger.Debug("found-build-containers-for-deletion", lager.Data{
-		"containers": cs,
+		"containers": containerHandles,
 	})
 
 	workers, err := c.WorkerProvider.Workers()
@@ -64,10 +67,10 @@ func (c *ContainerCollector) Run() error {
 	}
 
 	for _, container := range cs {
-		w, found := workersByName[container.WorkerName]
+		w, found := workersByName[container.WorkerName()]
 		if !found {
 			c.Logger.Info("worker-not-found", lager.Data{
-				"workername": container.WorkerName,
+				"workername": container.WorkerName(),
 			})
 			continue
 		}
@@ -80,32 +83,32 @@ func (c *ContainerCollector) Run() error {
 			continue
 		}
 
-		err = gclient.Destroy(container.Handle)
+		err = gclient.Destroy(container.Handle())
 		if err != nil {
 			c.Logger.Error("destroying-garden-container", err, lager.Data{
 				"worker": w,
-				"handle": container.Handle,
+				"handle": container.Handle(),
 			})
 			continue
 		}
 
-		ok, err := c.ContainerProvider.ContainerDestroy(container)
+		ok, err := container.Destroy()
 		if err != nil {
 			c.Logger.Error("container-provider-container-destroy", err, lager.Data{
-				"container": container,
+				"handle": container.Handle(),
 			})
 			continue
 		}
 
 		if !ok {
 			c.Logger.Info("container-provider-container-not-found", lager.Data{
-				"container": container,
+				"handle": container.Handle(),
 			})
 			continue
 		}
 
 		c.Logger.Debug("completed-deleting-container", lager.Data{
-			"container": container,
+			"handle": container.Handle(),
 		})
 	}
 

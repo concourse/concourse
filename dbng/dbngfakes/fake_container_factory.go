@@ -9,27 +9,27 @@ import (
 )
 
 type FakeContainerFactory struct {
-	FindContainerByHandleStub        func(string) (*dbng.CreatedContainer, bool, error)
+	FindContainerByHandleStub        func(string) (dbng.CreatedContainer, bool, error)
 	findContainerByHandleMutex       sync.RWMutex
 	findContainerByHandleArgsForCall []struct {
 		arg1 string
 	}
 	findContainerByHandleReturns struct {
-		result1 *dbng.CreatedContainer
+		result1 dbng.CreatedContainer
 		result2 bool
 		result3 error
 	}
-	CreateResourceCheckContainerStub        func(*dbng.Worker, *dbng.UsedResourceConfig) (*dbng.CreatingContainer, error)
+	CreateResourceCheckContainerStub        func(*dbng.Worker, *dbng.UsedResourceConfig) (dbng.CreatingContainer, error)
 	createResourceCheckContainerMutex       sync.RWMutex
 	createResourceCheckContainerArgsForCall []struct {
 		arg1 *dbng.Worker
 		arg2 *dbng.UsedResourceConfig
 	}
 	createResourceCheckContainerReturns struct {
-		result1 *dbng.CreatingContainer
+		result1 dbng.CreatingContainer
 		result2 error
 	}
-	CreateResourceGetContainerStub        func(*dbng.Worker, *dbng.UsedResourceCache, string) (*dbng.CreatingContainer, error)
+	CreateResourceGetContainerStub        func(*dbng.Worker, *dbng.UsedResourceCache, string) (dbng.CreatingContainer, error)
 	createResourceGetContainerMutex       sync.RWMutex
 	createResourceGetContainerArgsForCall []struct {
 		arg1 *dbng.Worker
@@ -37,10 +37,10 @@ type FakeContainerFactory struct {
 		arg3 string
 	}
 	createResourceGetContainerReturns struct {
-		result1 *dbng.CreatingContainer
+		result1 dbng.CreatingContainer
 		result2 error
 	}
-	CreateBuildContainerStub        func(*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) (*dbng.CreatingContainer, error)
+	CreateBuildContainerStub        func(*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) (dbng.CreatingContainer, error)
 	createBuildContainerMutex       sync.RWMutex
 	createBuildContainerArgsForCall []struct {
 		arg1 *dbng.Worker
@@ -49,41 +49,14 @@ type FakeContainerFactory struct {
 		arg4 dbng.ContainerMetadata
 	}
 	createBuildContainerReturns struct {
-		result1 *dbng.CreatingContainer
+		result1 dbng.CreatingContainer
 		result2 error
 	}
-	ContainerCreatedStub        func(*dbng.CreatingContainer) (*dbng.CreatedContainer, error)
-	containerCreatedMutex       sync.RWMutex
-	containerCreatedArgsForCall []struct {
-		arg1 *dbng.CreatingContainer
-	}
-	containerCreatedReturns struct {
-		result1 *dbng.CreatedContainer
-		result2 error
-	}
-	ContainerDestroyingStub        func(*dbng.CreatedContainer) (*dbng.DestroyingContainer, error)
-	containerDestroyingMutex       sync.RWMutex
-	containerDestroyingArgsForCall []struct {
-		arg1 *dbng.CreatedContainer
-	}
-	containerDestroyingReturns struct {
-		result1 *dbng.DestroyingContainer
-		result2 error
-	}
-	ContainerDestroyStub        func(*dbng.DestroyingContainer) (bool, error)
-	containerDestroyMutex       sync.RWMutex
-	containerDestroyArgsForCall []struct {
-		arg1 *dbng.DestroyingContainer
-	}
-	containerDestroyReturns struct {
-		result1 bool
-		result2 error
-	}
-	FindContainersMarkedForDeletionStub        func() ([]*dbng.DestroyingContainer, error)
+	FindContainersMarkedForDeletionStub        func() ([]dbng.DestroyingContainer, error)
 	findContainersMarkedForDeletionMutex       sync.RWMutex
 	findContainersMarkedForDeletionArgsForCall []struct{}
 	findContainersMarkedForDeletionReturns     struct {
-		result1 []*dbng.DestroyingContainer
+		result1 []dbng.DestroyingContainer
 		result2 error
 	}
 	MarkBuildContainersForDeletionStub        func() error
@@ -96,7 +69,7 @@ type FakeContainerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerFactory) FindContainerByHandle(arg1 string) (*dbng.CreatedContainer, bool, error) {
+func (fake *FakeContainerFactory) FindContainerByHandle(arg1 string) (dbng.CreatedContainer, bool, error) {
 	fake.findContainerByHandleMutex.Lock()
 	fake.findContainerByHandleArgsForCall = append(fake.findContainerByHandleArgsForCall, struct {
 		arg1 string
@@ -122,16 +95,16 @@ func (fake *FakeContainerFactory) FindContainerByHandleArgsForCall(i int) string
 	return fake.findContainerByHandleArgsForCall[i].arg1
 }
 
-func (fake *FakeContainerFactory) FindContainerByHandleReturns(result1 *dbng.CreatedContainer, result2 bool, result3 error) {
+func (fake *FakeContainerFactory) FindContainerByHandleReturns(result1 dbng.CreatedContainer, result2 bool, result3 error) {
 	fake.FindContainerByHandleStub = nil
 	fake.findContainerByHandleReturns = struct {
-		result1 *dbng.CreatedContainer
+		result1 dbng.CreatedContainer
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeContainerFactory) CreateResourceCheckContainer(arg1 *dbng.Worker, arg2 *dbng.UsedResourceConfig) (*dbng.CreatingContainer, error) {
+func (fake *FakeContainerFactory) CreateResourceCheckContainer(arg1 *dbng.Worker, arg2 *dbng.UsedResourceConfig) (dbng.CreatingContainer, error) {
 	fake.createResourceCheckContainerMutex.Lock()
 	fake.createResourceCheckContainerArgsForCall = append(fake.createResourceCheckContainerArgsForCall, struct {
 		arg1 *dbng.Worker
@@ -158,15 +131,15 @@ func (fake *FakeContainerFactory) CreateResourceCheckContainerArgsForCall(i int)
 	return fake.createResourceCheckContainerArgsForCall[i].arg1, fake.createResourceCheckContainerArgsForCall[i].arg2
 }
 
-func (fake *FakeContainerFactory) CreateResourceCheckContainerReturns(result1 *dbng.CreatingContainer, result2 error) {
+func (fake *FakeContainerFactory) CreateResourceCheckContainerReturns(result1 dbng.CreatingContainer, result2 error) {
 	fake.CreateResourceCheckContainerStub = nil
 	fake.createResourceCheckContainerReturns = struct {
-		result1 *dbng.CreatingContainer
+		result1 dbng.CreatingContainer
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainerFactory) CreateResourceGetContainer(arg1 *dbng.Worker, arg2 *dbng.UsedResourceCache, arg3 string) (*dbng.CreatingContainer, error) {
+func (fake *FakeContainerFactory) CreateResourceGetContainer(arg1 *dbng.Worker, arg2 *dbng.UsedResourceCache, arg3 string) (dbng.CreatingContainer, error) {
 	fake.createResourceGetContainerMutex.Lock()
 	fake.createResourceGetContainerArgsForCall = append(fake.createResourceGetContainerArgsForCall, struct {
 		arg1 *dbng.Worker
@@ -194,15 +167,15 @@ func (fake *FakeContainerFactory) CreateResourceGetContainerArgsForCall(i int) (
 	return fake.createResourceGetContainerArgsForCall[i].arg1, fake.createResourceGetContainerArgsForCall[i].arg2, fake.createResourceGetContainerArgsForCall[i].arg3
 }
 
-func (fake *FakeContainerFactory) CreateResourceGetContainerReturns(result1 *dbng.CreatingContainer, result2 error) {
+func (fake *FakeContainerFactory) CreateResourceGetContainerReturns(result1 dbng.CreatingContainer, result2 error) {
 	fake.CreateResourceGetContainerStub = nil
 	fake.createResourceGetContainerReturns = struct {
-		result1 *dbng.CreatingContainer
+		result1 dbng.CreatingContainer
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainerFactory) CreateBuildContainer(arg1 *dbng.Worker, arg2 *dbng.Build, arg3 atc.PlanID, arg4 dbng.ContainerMetadata) (*dbng.CreatingContainer, error) {
+func (fake *FakeContainerFactory) CreateBuildContainer(arg1 *dbng.Worker, arg2 *dbng.Build, arg3 atc.PlanID, arg4 dbng.ContainerMetadata) (dbng.CreatingContainer, error) {
 	fake.createBuildContainerMutex.Lock()
 	fake.createBuildContainerArgsForCall = append(fake.createBuildContainerArgsForCall, struct {
 		arg1 *dbng.Worker
@@ -231,117 +204,15 @@ func (fake *FakeContainerFactory) CreateBuildContainerArgsForCall(i int) (*dbng.
 	return fake.createBuildContainerArgsForCall[i].arg1, fake.createBuildContainerArgsForCall[i].arg2, fake.createBuildContainerArgsForCall[i].arg3, fake.createBuildContainerArgsForCall[i].arg4
 }
 
-func (fake *FakeContainerFactory) CreateBuildContainerReturns(result1 *dbng.CreatingContainer, result2 error) {
+func (fake *FakeContainerFactory) CreateBuildContainerReturns(result1 dbng.CreatingContainer, result2 error) {
 	fake.CreateBuildContainerStub = nil
 	fake.createBuildContainerReturns = struct {
-		result1 *dbng.CreatingContainer
+		result1 dbng.CreatingContainer
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainerFactory) ContainerCreated(arg1 *dbng.CreatingContainer) (*dbng.CreatedContainer, error) {
-	fake.containerCreatedMutex.Lock()
-	fake.containerCreatedArgsForCall = append(fake.containerCreatedArgsForCall, struct {
-		arg1 *dbng.CreatingContainer
-	}{arg1})
-	fake.recordInvocation("ContainerCreated", []interface{}{arg1})
-	fake.containerCreatedMutex.Unlock()
-	if fake.ContainerCreatedStub != nil {
-		return fake.ContainerCreatedStub(arg1)
-	} else {
-		return fake.containerCreatedReturns.result1, fake.containerCreatedReturns.result2
-	}
-}
-
-func (fake *FakeContainerFactory) ContainerCreatedCallCount() int {
-	fake.containerCreatedMutex.RLock()
-	defer fake.containerCreatedMutex.RUnlock()
-	return len(fake.containerCreatedArgsForCall)
-}
-
-func (fake *FakeContainerFactory) ContainerCreatedArgsForCall(i int) *dbng.CreatingContainer {
-	fake.containerCreatedMutex.RLock()
-	defer fake.containerCreatedMutex.RUnlock()
-	return fake.containerCreatedArgsForCall[i].arg1
-}
-
-func (fake *FakeContainerFactory) ContainerCreatedReturns(result1 *dbng.CreatedContainer, result2 error) {
-	fake.ContainerCreatedStub = nil
-	fake.containerCreatedReturns = struct {
-		result1 *dbng.CreatedContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeContainerFactory) ContainerDestroying(arg1 *dbng.CreatedContainer) (*dbng.DestroyingContainer, error) {
-	fake.containerDestroyingMutex.Lock()
-	fake.containerDestroyingArgsForCall = append(fake.containerDestroyingArgsForCall, struct {
-		arg1 *dbng.CreatedContainer
-	}{arg1})
-	fake.recordInvocation("ContainerDestroying", []interface{}{arg1})
-	fake.containerDestroyingMutex.Unlock()
-	if fake.ContainerDestroyingStub != nil {
-		return fake.ContainerDestroyingStub(arg1)
-	} else {
-		return fake.containerDestroyingReturns.result1, fake.containerDestroyingReturns.result2
-	}
-}
-
-func (fake *FakeContainerFactory) ContainerDestroyingCallCount() int {
-	fake.containerDestroyingMutex.RLock()
-	defer fake.containerDestroyingMutex.RUnlock()
-	return len(fake.containerDestroyingArgsForCall)
-}
-
-func (fake *FakeContainerFactory) ContainerDestroyingArgsForCall(i int) *dbng.CreatedContainer {
-	fake.containerDestroyingMutex.RLock()
-	defer fake.containerDestroyingMutex.RUnlock()
-	return fake.containerDestroyingArgsForCall[i].arg1
-}
-
-func (fake *FakeContainerFactory) ContainerDestroyingReturns(result1 *dbng.DestroyingContainer, result2 error) {
-	fake.ContainerDestroyingStub = nil
-	fake.containerDestroyingReturns = struct {
-		result1 *dbng.DestroyingContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeContainerFactory) ContainerDestroy(arg1 *dbng.DestroyingContainer) (bool, error) {
-	fake.containerDestroyMutex.Lock()
-	fake.containerDestroyArgsForCall = append(fake.containerDestroyArgsForCall, struct {
-		arg1 *dbng.DestroyingContainer
-	}{arg1})
-	fake.recordInvocation("ContainerDestroy", []interface{}{arg1})
-	fake.containerDestroyMutex.Unlock()
-	if fake.ContainerDestroyStub != nil {
-		return fake.ContainerDestroyStub(arg1)
-	} else {
-		return fake.containerDestroyReturns.result1, fake.containerDestroyReturns.result2
-	}
-}
-
-func (fake *FakeContainerFactory) ContainerDestroyCallCount() int {
-	fake.containerDestroyMutex.RLock()
-	defer fake.containerDestroyMutex.RUnlock()
-	return len(fake.containerDestroyArgsForCall)
-}
-
-func (fake *FakeContainerFactory) ContainerDestroyArgsForCall(i int) *dbng.DestroyingContainer {
-	fake.containerDestroyMutex.RLock()
-	defer fake.containerDestroyMutex.RUnlock()
-	return fake.containerDestroyArgsForCall[i].arg1
-}
-
-func (fake *FakeContainerFactory) ContainerDestroyReturns(result1 bool, result2 error) {
-	fake.ContainerDestroyStub = nil
-	fake.containerDestroyReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeContainerFactory) FindContainersMarkedForDeletion() ([]*dbng.DestroyingContainer, error) {
+func (fake *FakeContainerFactory) FindContainersMarkedForDeletion() ([]dbng.DestroyingContainer, error) {
 	fake.findContainersMarkedForDeletionMutex.Lock()
 	fake.findContainersMarkedForDeletionArgsForCall = append(fake.findContainersMarkedForDeletionArgsForCall, struct{}{})
 	fake.recordInvocation("FindContainersMarkedForDeletion", []interface{}{})
@@ -359,10 +230,10 @@ func (fake *FakeContainerFactory) FindContainersMarkedForDeletionCallCount() int
 	return len(fake.findContainersMarkedForDeletionArgsForCall)
 }
 
-func (fake *FakeContainerFactory) FindContainersMarkedForDeletionReturns(result1 []*dbng.DestroyingContainer, result2 error) {
+func (fake *FakeContainerFactory) FindContainersMarkedForDeletionReturns(result1 []dbng.DestroyingContainer, result2 error) {
 	fake.FindContainersMarkedForDeletionStub = nil
 	fake.findContainersMarkedForDeletionReturns = struct {
-		result1 []*dbng.DestroyingContainer
+		result1 []dbng.DestroyingContainer
 		result2 error
 	}{result1, result2}
 }
@@ -403,12 +274,6 @@ func (fake *FakeContainerFactory) Invocations() map[string][][]interface{} {
 	defer fake.createResourceGetContainerMutex.RUnlock()
 	fake.createBuildContainerMutex.RLock()
 	defer fake.createBuildContainerMutex.RUnlock()
-	fake.containerCreatedMutex.RLock()
-	defer fake.containerCreatedMutex.RUnlock()
-	fake.containerDestroyingMutex.RLock()
-	defer fake.containerDestroyingMutex.RUnlock()
-	fake.containerDestroyMutex.RLock()
-	defer fake.containerDestroyMutex.RUnlock()
 	fake.findContainersMarkedForDeletionMutex.RLock()
 	defer fake.findContainersMarkedForDeletionMutex.RUnlock()
 	fake.markBuildContainersForDeletionMutex.RLock()

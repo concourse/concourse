@@ -76,10 +76,10 @@ type FakeVolume struct {
 	initializeReturns     struct {
 		result1 error
 	}
-	CreateChildForContainerStub        func(*dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
+	CreateChildForContainerStub        func(dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
 	createChildForContainerMutex       sync.RWMutex
 	createChildForContainerArgsForCall []struct {
-		arg1 *dbng.CreatingContainer
+		arg1 dbng.CreatingContainer
 		arg2 string
 	}
 	createChildForContainerReturns struct {
@@ -350,10 +350,10 @@ func (fake *FakeVolume) InitializeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolume) CreateChildForContainer(arg1 *dbng.CreatingContainer, arg2 string) (dbng.CreatingVolume, error) {
+func (fake *FakeVolume) CreateChildForContainer(arg1 dbng.CreatingContainer, arg2 string) (dbng.CreatingVolume, error) {
 	fake.createChildForContainerMutex.Lock()
 	fake.createChildForContainerArgsForCall = append(fake.createChildForContainerArgsForCall, struct {
-		arg1 *dbng.CreatingContainer
+		arg1 dbng.CreatingContainer
 		arg2 string
 	}{arg1, arg2})
 	fake.recordInvocation("CreateChildForContainer", []interface{}{arg1, arg2})
@@ -371,7 +371,7 @@ func (fake *FakeVolume) CreateChildForContainerCallCount() int {
 	return len(fake.createChildForContainerArgsForCall)
 }
 
-func (fake *FakeVolume) CreateChildForContainerArgsForCall(i int) (*dbng.CreatingContainer, string) {
+func (fake *FakeVolume) CreateChildForContainerArgsForCall(i int) (dbng.CreatingContainer, string) {
 	fake.createChildForContainerMutex.RLock()
 	defer fake.createChildForContainerMutex.RUnlock()
 	return fake.createChildForContainerArgsForCall[i].arg1, fake.createChildForContainerArgsForCall[i].arg2

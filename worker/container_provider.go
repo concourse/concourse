@@ -93,7 +93,7 @@ type ContainerProvider interface {
 	FindOrCreateContainer(
 		logger lager.Logger,
 		cancel <-chan os.Signal,
-		creatingContainer *dbng.CreatingContainer,
+		creatingContainer dbng.CreatingContainer,
 		delegate ImageFetchingDelegate,
 		id Identifier,
 		metadata Metadata,
@@ -125,7 +125,7 @@ type containerProvider struct {
 func (p *containerProvider) FindOrCreateContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
-	creatingContainer *dbng.CreatingContainer,
+	creatingContainer dbng.CreatingContainer,
 	delegate ImageFetchingDelegate,
 	id Identifier,
 	metadata Metadata,
@@ -171,7 +171,7 @@ func (p *containerProvider) FindContainerByHandle(
 		return nil, false, nil
 	}
 
-	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer.ID)
+	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
 	if err != nil {
 		return nil, false, err
 	}
@@ -198,7 +198,7 @@ func (p *containerProvider) FindContainerByHandle(
 func (p *containerProvider) createContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
-	creatingContainer *dbng.CreatingContainer,
+	creatingContainer dbng.CreatingContainer,
 	delegate ImageFetchingDelegate,
 	id Identifier,
 	metadata Metadata,
@@ -221,7 +221,7 @@ func (p *containerProvider) createContainer(
 		return nil, err
 	}
 
-	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer.ID)
+	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -241,14 +241,14 @@ func (p *containerProvider) createContainer(
 func (p *containerProvider) createGardenContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
-	creatingContainer *dbng.CreatingContainer,
+	creatingContainer dbng.CreatingContainer,
 	delegate ImageFetchingDelegate,
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
-) (garden.Container, *dbng.CreatedContainer, error) {
+) (garden.Container, dbng.CreatedContainer, error) {
 	imageMetadata, resourceTypeVersion, imageURL, err := p.getImageForContainer(
 		logger,
 		creatingContainer,
@@ -354,7 +354,7 @@ func (p *containerProvider) createGardenContainer(
 		Properties: gardenProperties,
 		RootFSPath: imageURL,
 		Env:        env,
-		Handle:     creatingContainer.Handle,
+		Handle:     creatingContainer.Handle(),
 	}
 
 	gardenContainer, err := p.gardenClient.Create(gardenSpec)
@@ -363,7 +363,7 @@ func (p *containerProvider) createGardenContainer(
 		return nil, nil, err
 	}
 
-	createdContainer, err := p.dbContainerFactory.ContainerCreated(creatingContainer)
+	createdContainer, err := creatingContainer.Created()
 	if err != nil {
 		logger.Error("failed-to-mark-container-as-created", err)
 		return nil, nil, err
@@ -392,7 +392,7 @@ func (p *containerProvider) createGardenContainer(
 
 func (p *containerProvider) getImageForContainer(
 	logger lager.Logger,
-	container *dbng.CreatingContainer,
+	container dbng.CreatingContainer,
 	imageSpec ImageSpec,
 	teamID int,
 	cancel <-chan os.Signal,
@@ -549,7 +549,7 @@ func (p *containerProvider) getImageForContainer(
 
 func (p *containerProvider) getBuiltInResourceTypeImageForContainer(
 	logger lager.Logger,
-	container *dbng.CreatingContainer,
+	container dbng.CreatingContainer,
 	resourceTypeName string,
 	teamID int,
 ) (string, atc.Version, error) {

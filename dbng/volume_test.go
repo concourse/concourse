@@ -57,7 +57,7 @@ var _ = Describe("Volume", func() {
 
 		Describe("the database query succeeds", func() {
 			It("updates the record to be `created`", func() {
-				foundVolumes, err := volumeFactory.FindVolumesForContainer(defaultCreatedContainer.ID)
+				foundVolumes, err := volumeFactory.FindVolumesForContainer(defaultCreatedContainer)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(foundVolumes).To(ContainElement(WithTransform(dbng.CreatedVolume.Path, Equal("/path/to/volume"))))
 			})
@@ -122,7 +122,7 @@ var _ = Describe("Volume", func() {
 
 	Describe("createdVolume.CreateChildForContainer", func() { // TODO TESTME when cow is a thing
 		var parentVolume dbng.CreatedVolume
-		var creatingContainer *dbng.CreatingContainer
+		var creatingContainer dbng.CreatingContainer
 
 		BeforeEach(func() {
 			var err error

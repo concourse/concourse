@@ -25,7 +25,8 @@ var _ = Describe("ContainerCollector", func() {
 		fakeGardenClient *gardenfakes.FakeClient
 		logger           *lagertest.TestLogger
 
-		destroyingContainers []*dbng.DestroyingContainer
+		destroyingContainer1 *dbngfakes.FakeDestroyingContainer
+		destroyingContainer2 *dbngfakes.FakeDestroyingContainer
 		fakeWorker1          *dbng.Worker
 		fakeWorker2          *dbng.Worker
 
@@ -63,15 +64,21 @@ var _ = Describe("ContainerCollector", func() {
 			Name:       "bar",
 		}
 
-		destroyingContainers = []*dbng.DestroyingContainer{
-			{ID: 1, Handle: "some-handle", WorkerName: "foo"},
-			{ID: 2, Handle: "some-other-handle", WorkerName: "bar"},
-		}
+		destroyingContainer1 = new(dbngfakes.FakeDestroyingContainer)
+		destroyingContainer1.HandleReturns("some-handle")
+		destroyingContainer1.WorkerNameReturns("foo")
+		destroyingContainer2 = new(dbngfakes.FakeDestroyingContainer)
+		destroyingContainer2.HandleReturns("some-other-handle")
+		destroyingContainer2.WorkerNameReturns("bar")
 
-		fakeContainerProvider.FindContainersMarkedForDeletionReturns(destroyingContainers, nil)
+		fakeContainerProvider.FindContainersMarkedForDeletionReturns([]dbng.DestroyingContainer{
+			destroyingContainer1,
+			destroyingContainer2,
+		}, nil)
 		fakeWorkerProvider.WorkersReturns([]*dbng.Worker{fakeWorker1, fakeWorker2}, nil)
 
-		fakeContainerProvider.ContainerDestroyReturns(true, nil)
+		destroyingContainer1.DestroyReturns(true, nil)
+		destroyingContainer2.DestroyReturns(true, nil)
 
 		c = &gcng.ContainerCollector{
 			Logger:              logger,
@@ -109,9 +116,8 @@ var _ = Describe("ContainerCollector", func() {
 			Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle"))
 			Expect(fakeGardenClient.DestroyArgsForCall(1)).To(Equal("some-other-handle"))
 
-			Expect(fakeContainerProvider.ContainerDestroyCallCount()).To(Equal(2))
-			Expect(fakeContainerProvider.ContainerDestroyArgsForCall(0)).To(Equal(destroyingContainers[0]))
-			Expect(fakeContainerProvider.ContainerDestroyArgsForCall(1)).To(Equal(destroyingContainers[1]))
+			Expect(destroyingContainer1.DestroyCallCount()).To(Equal(1))
+			Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
 		})
 
 		Context("when marking builds for deletion fails", func() {
@@ -125,7 +131,8 @@ var _ = Describe("ContainerCollector", func() {
 				Expect(fakeContainerProvider.FindContainersMarkedForDeletionCallCount()).To(Equal(1))
 				Expect(gardenClientFactoryCallCount).To(Equal(2))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(2))
-				Expect(fakeContainerProvider.ContainerDestroyCallCount()).To(Equal(2))
+				Expect(destroyingContainer1.DestroyCallCount()).To(Equal(1))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
 			})
 		})
 
@@ -139,7 +146,8 @@ var _ = Describe("ContainerCollector", func() {
 				Expect(fakeContainerProvider.FindContainersMarkedForDeletionCallCount()).To(Equal(1))
 				Expect(gardenClientFactoryCallCount).To(Equal(0))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(0))
-				Expect(fakeContainerProvider.ContainerDestroyCallCount()).To(Equal(0))
+				Expect(destroyingContainer1.DestroyCallCount()).To(Equal(0))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(0))
 			})
 		})
 
@@ -153,7 +161,8 @@ var _ = Describe("ContainerCollector", func() {
 				Expect(fakeContainerProvider.FindContainersMarkedForDeletionCallCount()).To(Equal(1))
 				Expect(gardenClientFactoryCallCount).To(Equal(0))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(0))
-				Expect(fakeContainerProvider.ContainerDestroyCallCount()).To(Equal(0))
+				Expect(destroyingContainer1.DestroyCallCount()).To(Equal(0))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(0))
 			})
 		})
 
@@ -169,8 +178,8 @@ var _ = Describe("ContainerCollector", func() {
 				Expect(gardenClientFactoryArgs[0]).To(Equal(fakeWorker2))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
 				Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-other-handle"))
-				Expect(fakeContainerProvider.ContainerDestroyCallCount()).To(Equal(1))
-				Expect(fakeContainerProvider.ContainerDestroyArgsForCall(0)).To(Equal(destroyingContainers[1]))
+				Expect(destroyingContainer1.DestroyCallCount()).To(Equal(0))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
 			})
 		})
 
@@ -204,8 +213,8 @@ var _ = Describe("ContainerCollector", func() {
 
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
 				Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-other-handle"))
-				Expect(fakeContainerProvider.ContainerDestroyCallCount()).To(Equal(1))
-				Expect(fakeContainerProvider.ContainerDestroyArgsForCall(0)).To(Equal(destroyingContainers[1]))
+				Expect(destroyingContainer1.DestroyCallCount()).To(Equal(0))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
 			})
 		})
 
@@ -229,23 +238,14 @@ var _ = Describe("ContainerCollector", func() {
 				Expect(gardenClientFactoryCallCount).To(Equal(2))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(2))
 
-				Expect(fakeContainerProvider.ContainerDestroyCallCount()).To(Equal(1))
-				Expect(fakeContainerProvider.ContainerDestroyArgsForCall(0)).To(Equal(destroyingContainers[1]))
+				Expect(destroyingContainer1.DestroyCallCount()).To(Equal(0))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
 			})
 		})
 
 		Context("when destroying a container in the DB errors", func() {
 			BeforeEach(func() {
-				fakeContainerProvider.ContainerDestroyStub = func(container *dbng.DestroyingContainer) (bool, error) {
-					switch container.Handle {
-					case "some-handle":
-						return false, errors.New("some-error")
-					case "some-other-handle":
-						return true, nil
-					default:
-						return true, nil
-					}
-				}
+				destroyingContainer1.DestroyReturns(false, errors.New("some-error"))
 			})
 
 			It("continues destroying the rest of the containers", func() {
@@ -253,22 +253,13 @@ var _ = Describe("ContainerCollector", func() {
 
 				Expect(gardenClientFactoryCallCount).To(Equal(2))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(2))
-				Expect(fakeContainerProvider.ContainerDestroyCallCount()).To(Equal(2))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
 			})
 		})
 
 		Context("when it can't find a container to destroy", func() {
 			BeforeEach(func() {
-				fakeContainerProvider.ContainerDestroyStub = func(container *dbng.DestroyingContainer) (bool, error) {
-					switch container.Handle {
-					case "some-handle":
-						return false, nil
-					case "some-other-handle":
-						return true, nil
-					default:
-						return true, nil
-					}
-				}
+				destroyingContainer1.DestroyReturns(false, nil)
 			})
 
 			It("continues destroying the rest of the containers", func() {
@@ -276,7 +267,7 @@ var _ = Describe("ContainerCollector", func() {
 
 				Expect(gardenClientFactoryCallCount).To(Equal(2))
 				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(2))
-				Expect(fakeContainerProvider.ContainerDestroyCallCount()).To(Equal(2))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
 			})
 		})
 	})

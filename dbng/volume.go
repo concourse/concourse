@@ -84,7 +84,7 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 type CreatedVolume interface {
 	Handle() string
 	Path() string
-	CreateChildForContainer(*CreatingContainer, string) (CreatingVolume, error)
+	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
 	Worker() *Worker
 	SizeInBytes() int64
@@ -114,7 +114,7 @@ func (volume *createdVolume) SizeInBytes() int64 { return volume.bytes }
 
 // func (volume *InitializingVolume) InitializedWorkerResourceType(
 // 	wrt WorkerResourceType,
-// 	cacheWarmingContainer *CreatingContainer,
+// 	cacheWarmingContainer CreatingContainer,
 // ) (*InitializedVolume, *CreatingVolume, error) {
 // 	return nil, nil, nil
 // }
@@ -127,7 +127,7 @@ func (volume *createdVolume) SizeInBytes() int64 { return volume.bytes }
 // 4. commit tx
 // func (volume *InitializingVolume) InitializedCache(
 // 	cache Cache,
-// 	cacheUsingContainer *CreatingContainer,
+// 	cacheUsingContainer CreatingContainer,
 // ) (*InitializedVolume, *CreatingVolume, error) {
 // 	var workerName string
 
@@ -234,7 +234,7 @@ func (volume *createdVolume) IsInitialized() (bool, error) {
 	return isInitialized, nil
 }
 
-func (volume *createdVolume) CreateChildForContainer(container *CreatingContainer, mountPath string) (CreatingVolume, error) {
+func (volume *createdVolume) CreateChildForContainer(container CreatingContainer, mountPath string) (CreatingVolume, error) {
 	tx, err := volume.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -262,7 +262,7 @@ func (volume *createdVolume) CreateChildForContainer(container *CreatingContaine
 	var volumeID int
 	err = psql.Insert("volumes").
 		Columns("worker_name", "parent_id", "parent_state", "handle", "container_id", "initialized").
-		Values(volume.worker.Name, volume.id, VolumeStateCreated, handle.String(), container.ID, parentIsInitialized).
+		Values(volume.worker.Name, volume.id, VolumeStateCreated, handle.String(), container.ID(), parentIsInitialized).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().

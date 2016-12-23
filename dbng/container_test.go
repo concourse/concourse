@@ -18,7 +18,7 @@ var _ = Describe("Container", func() {
 		teamFactory      dbng.TeamFactory
 		buildFactory     *dbng.BuildFactory
 
-		createdContainer *dbng.CreatedContainer
+		createdContainer dbng.CreatedContainer
 		expectedHandles  []string
 	)
 
@@ -62,7 +62,7 @@ var _ = Describe("Container", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectedHandles = append(expectedHandles, creatingVolume2.Handle())
 
-		createdContainer, err = containerFactory.ContainerCreated(creatingContainer)
+		createdContainer, err = creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -73,7 +73,7 @@ var _ = Describe("Container", func() {
 
 	Describe("Volumes", func() {
 		It("returns created container volumes", func() {
-			volumes, err := volumeFactory.FindVolumesForContainer(createdContainer.ID)
+			volumes, err := volumeFactory.FindVolumesForContainer(createdContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(volumes).To(HaveLen(2))
 			Expect([]string{volumes[0].Handle(), volumes[1].Handle()}).To(Equal(expectedHandles))

@@ -12,19 +12,15 @@ import (
 //go:generate counterfeiter . ContainerFactory
 
 type ContainerFactory interface {
-	FindContainerByHandle(string) (*CreatedContainer, bool, error)
+	FindContainerByHandle(string) (CreatedContainer, bool, error)
 
-	// FindResourceCheckContainer(*Worker, *UsedResourceConfig) (*CreatingContainer, *CreatedContainer, error)
-	CreateResourceCheckContainer(*Worker, *UsedResourceConfig) (*CreatingContainer, error)
+	// FindResourceCheckContainer(*Worker, *UsedResourceConfig) (CreatingContainer, CreatedContainer, error)
+	CreateResourceCheckContainer(*Worker, *UsedResourceConfig) (CreatingContainer, error)
 
-	CreateResourceGetContainer(*Worker, *UsedResourceCache, string) (*CreatingContainer, error)
-	CreateBuildContainer(*Worker, *Build, atc.PlanID, ContainerMetadata) (*CreatingContainer, error)
+	CreateResourceGetContainer(*Worker, *UsedResourceCache, string) (CreatingContainer, error)
+	CreateBuildContainer(*Worker, *Build, atc.PlanID, ContainerMetadata) (CreatingContainer, error)
 
-	ContainerCreated(*CreatingContainer) (*CreatedContainer, error)
-	ContainerDestroying(*CreatedContainer) (*DestroyingContainer, error)
-	ContainerDestroy(*DestroyingContainer) (bool, error)
-
-	FindContainersMarkedForDeletion() ([]*DestroyingContainer, error)
+	FindContainersMarkedForDeletion() ([]DestroyingContainer, error)
 	MarkBuildContainersForDeletion() error
 }
 
@@ -46,7 +42,7 @@ type ContainerMetadata struct {
 func (factory *containerFactory) CreateResourceCheckContainer(
 	worker *Worker,
 	resourceConfig *UsedResourceConfig,
-) (*CreatingContainer, error) {
+) (CreatingContainer, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -89,105 +85,15 @@ func (factory *containerFactory) CreateResourceCheckContainer(
 		return nil, err
 	}
 
-	return &CreatingContainer{
-		ID:         containerID,
-		Handle:     handle.String(),
-		WorkerName: worker.Name,
+	return &creatingContainer{
+		id:         containerID,
+		handle:     handle.String(),
+		workerName: worker.Name,
 		conn:       factory.conn,
 	}, nil
 }
 
-func (factory *containerFactory) ContainerCreated(
-	container *CreatingContainer,
-) (*CreatedContainer, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	rows, err := psql.Update("containers").
-		Set("state", ContainerStateCreated).
-		Where(sq.Eq{
-			"id":    container.ID,
-			"state": ContainerStateCreating,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	if affected == 0 {
-		panic("TESTME")
-		return nil, nil
-	}
-
-	return &CreatedContainer{
-		ID:         container.ID,
-		Handle:     container.Handle,
-		WorkerName: container.WorkerName,
-		conn:       factory.conn,
-	}, nil
-}
-
-func (factory *containerFactory) ContainerDestroying(
-	container *CreatedContainer,
-) (*DestroyingContainer, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	rows, err := psql.Update("containers").
-		Set("state", ContainerStateDestroying).
-		Where(sq.Eq{
-			"id":    container.ID,
-			"state": ContainerStateCreated,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	if affected == 0 {
-		panic("TESTME")
-		return nil, nil
-	}
-
-	return &DestroyingContainer{
-		ID:         container.ID,
-		Handle:     container.Handle,
-		WorkerName: container.WorkerName,
-		conn:       factory.conn,
-	}, nil
-}
-
-func (factory *containerFactory) FindContainersMarkedForDeletion() ([]*DestroyingContainer, error) {
+func (factory *containerFactory) FindContainersMarkedForDeletion() ([]DestroyingContainer, error) {
 	query, args, err := psql.Select("id, handle, worker_name").
 		From("containers").
 		Where(sq.Eq{
@@ -205,7 +111,7 @@ func (factory *containerFactory) FindContainersMarkedForDeletion() ([]*Destroyin
 	defer rows.Close()
 
 	var (
-		results    []*DestroyingContainer
+		results    []DestroyingContainer
 		id         int
 		handle     string
 		workerName string
@@ -217,10 +123,11 @@ func (factory *containerFactory) FindContainersMarkedForDeletion() ([]*Destroyin
 			return nil, err
 		}
 
-		results = append(results, &DestroyingContainer{
-			ID:         id,
-			Handle:     handle,
-			WorkerName: workerName,
+		results = append(results, &destroyingContainer{
+			id:         id,
+			handle:     handle,
+			workerName: workerName,
+			conn:       factory.conn,
 		})
 	}
 
@@ -276,50 +183,11 @@ func (factory *containerFactory) MarkBuildContainersForDeletion() error {
 	return nil
 }
 
-func (factory *containerFactory) ContainerDestroy(
-	container *DestroyingContainer,
-) (bool, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
-	rows, err := psql.Delete("containers").
-		Where(sq.Eq{
-			"id":    container.ID,
-			"state": ContainerStateDestroying,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return false, err
-	}
-
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return false, err
-	}
-
-	if affected == 0 {
-		panic("TESTME")
-		return false, nil
-	}
-
-	return true, nil
-}
-
 func (factory *containerFactory) CreateResourceGetContainer(
 	worker *Worker,
 	resourceCache *UsedResourceCache,
 	stepName string,
-) (*CreatingContainer, error) {
+) (CreatingContainer, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -362,10 +230,10 @@ func (factory *containerFactory) CreateResourceGetContainer(
 		return nil, err
 	}
 
-	return &CreatingContainer{
-		ID:         containerID,
-		Handle:     handle.String(),
-		WorkerName: worker.Name,
+	return &creatingContainer{
+		id:         containerID,
+		handle:     handle.String(),
+		workerName: worker.Name,
 		conn:       factory.conn,
 	}, nil
 }
@@ -375,13 +243,13 @@ func (factory *containerFactory) CreateBuildContainer(
 	build *Build,
 	planID atc.PlanID,
 	meta ContainerMetadata,
-) (*CreatingContainer, error) {
+) (CreatingContainer, error) {
 	return factory.createPlanContainer(worker, build, planID, meta)
 }
 
 func (factory *containerFactory) FindContainerByHandle(
 	handle string,
-) (*CreatedContainer, bool, error) {
+) (CreatedContainer, bool, error) {
 	return factory.findContainer(handle)
 }
 
@@ -390,7 +258,7 @@ func (factory *containerFactory) createPlanContainer(
 	build *Build,
 	planID atc.PlanID,
 	meta ContainerMetadata,
-) (*CreatingContainer, error) {
+) (CreatingContainer, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -436,15 +304,15 @@ func (factory *containerFactory) createPlanContainer(
 		return nil, err
 	}
 
-	return &CreatingContainer{
-		ID:         containerID,
-		Handle:     handle.String(),
-		WorkerName: worker.Name,
+	return &creatingContainer{
+		id:         containerID,
+		handle:     handle.String(),
+		workerName: worker.Name,
 		conn:       factory.conn,
 	}, nil
 }
 
-func (factory *containerFactory) findContainer(handle string) (*CreatedContainer, bool, error) {
+func (factory *containerFactory) findContainer(handle string) (CreatedContainer, bool, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -453,7 +321,8 @@ func (factory *containerFactory) findContainer(handle string) (*CreatedContainer
 	defer tx.Rollback()
 
 	var containerID int
-	err = psql.Select("id").
+	var workerName string
+	err = psql.Select("id, worker_name").
 		From("containers").
 		Where(sq.Eq{
 			"state":  ContainerStateCreated,
@@ -461,7 +330,7 @@ func (factory *containerFactory) findContainer(handle string) (*CreatedContainer
 		}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&containerID)
+		Scan(&containerID, &workerName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -474,8 +343,10 @@ func (factory *containerFactory) findContainer(handle string) (*CreatedContainer
 		return nil, false, err
 	}
 
-	return &CreatedContainer{
-		ID:   containerID,
-		conn: factory.conn,
+	return &createdContainer{
+		id:         containerID,
+		handle:     handle,
+		workerName: workerName,
+		conn:       factory.conn,
 	}, true, nil
 }

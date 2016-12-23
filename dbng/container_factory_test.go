@@ -24,7 +24,7 @@ var _ = Describe("ContainerFactory", func() {
 		})
 
 		It("does find deleting containers", func() {
-			destroyingContainer, err := containerFactory.ContainerDestroying(defaultCreatedContainer)
+			destroyingContainer, err := defaultCreatedContainer.Destroying()
 			Expect(err).NotTo(HaveOccurred())
 
 			deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
@@ -33,9 +33,8 @@ var _ = Describe("ContainerFactory", func() {
 			Expect(deletingContainers).To(HaveLen(1))
 
 			destroyedContainer := deletingContainers[0]
-			Expect(destroyedContainer.ID).To(Equal(destroyingContainer.ID))
-			Expect(destroyedContainer.Handle).To(Equal(destroyingContainer.Handle))
-			Expect(destroyedContainer.WorkerName).To(Equal(destroyingContainer.WorkerName))
+			Expect(destroyedContainer.Handle()).To(Equal(destroyingContainer.Handle()))
+			Expect(destroyedContainer.WorkerName()).To(Equal(destroyingContainer.WorkerName()))
 		})
 
 	})
@@ -47,7 +46,7 @@ var _ = Describe("ContainerFactory", func() {
 			dbBuild db.Build
 			build   *dbng.Build
 
-			creatingContainer *dbng.CreatingContainer
+			creatingContainer dbng.CreatingContainer
 
 			pipelineDB db.PipelineDB
 		)
@@ -117,13 +116,13 @@ var _ = Describe("ContainerFactory", func() {
 
 		Context("when the container is created", func() {
 			var (
-				createdContainer *dbng.CreatedContainer
+				createdContainer dbng.CreatedContainer
 
 				ok bool
 			)
 
 			BeforeEach(func() {
-				createdContainer, err = containerFactory.ContainerCreated(creatingContainer)
+				createdContainer, err = creatingContainer.Created()
 			})
 
 			Context("when the build is not finished", func() {
@@ -151,7 +150,7 @@ var _ = Describe("ContainerFactory", func() {
 						laterBuild   *dbng.Build
 						dbLaterBuild db.Build
 
-						laterCreatingContainer *dbng.CreatingContainer
+						laterCreatingContainer dbng.CreatingContainer
 					)
 
 					BeforeEach(func() {
@@ -175,7 +174,7 @@ var _ = Describe("ContainerFactory", func() {
 						laterCreatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, laterBuild, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
 						Expect(err).NotTo(HaveOccurred())
 
-						_, err = containerFactory.ContainerCreated(laterCreatingContainer)
+						_, err = laterCreatingContainer.Created()
 						Expect(err).NotTo(HaveOccurred())
 					})
 
@@ -187,7 +186,7 @@ var _ = Describe("ContainerFactory", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(deletingContainers).ToNot(BeEmpty())
-						Expect(deletingContainers[0].ID).To(Equal(build.ID))
+						Expect(deletingContainers[0].Handle()).NotTo(Equal(laterCreatingContainer.Handle()))
 					})
 				})
 
@@ -196,7 +195,7 @@ var _ = Describe("ContainerFactory", func() {
 						laterBuild   *dbng.Build
 						dbLaterBuild db.Build
 
-						laterCreatingContainer *dbng.CreatingContainer
+						laterCreatingContainer dbng.CreatingContainer
 					)
 
 					BeforeEach(func() {
@@ -214,7 +213,7 @@ var _ = Describe("ContainerFactory", func() {
 						laterCreatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, laterBuild, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
 						Expect(err).NotTo(HaveOccurred())
 
-						_, err = containerFactory.ContainerCreated(laterCreatingContainer)
+						_, err = laterCreatingContainer.Created()
 						Expect(err).NotTo(HaveOccurred())
 					})
 
@@ -283,8 +282,7 @@ var _ = Describe("ContainerFactory", func() {
 							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
 							Expect(err).NotTo(HaveOccurred())
 
-							Expect(deletingContainers).ToNot(BeEmpty())
-							Expect(deletingContainers[0].ID).To(Equal(build.ID))
+							Expect(deletingContainers).To(HaveLen(1))
 						})
 					})
 				})
@@ -354,8 +352,7 @@ var _ = Describe("ContainerFactory", func() {
 							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
 							Expect(err).NotTo(HaveOccurred())
 
-							Expect(deletingContainers).ToNot(BeEmpty())
-							Expect(deletingContainers[0].ID).To(Equal(build.ID))
+							Expect(deletingContainers).To(HaveLen(1))
 						})
 					})
 				})

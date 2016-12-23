@@ -13,8 +13,8 @@ import (
 type VolumeFactory interface {
 	GetTeamVolumes(teamID int) ([]CreatedVolume, error)
 
-	CreateContainerVolume(*Team, *Worker, *CreatingContainer, string) (CreatingVolume, error)
-	FindContainerVolume(*Team, *Worker, *CreatingContainer, string) (CreatingVolume, CreatedVolume, error)
+	CreateContainerVolume(*Team, *Worker, CreatingContainer, string) (CreatingVolume, error)
+	FindContainerVolume(*Team, *Worker, CreatingContainer, string) (CreatingVolume, CreatedVolume, error)
 
 	FindBaseResourceTypeVolume(*Team, *Worker, *UsedBaseResourceType) (CreatingVolume, CreatedVolume, error)
 	CreateBaseResourceTypeVolume(*Team, *Worker, *UsedBaseResourceType) (CreatingVolume, error)
@@ -23,7 +23,7 @@ type VolumeFactory interface {
 	FindResourceCacheInitializedVolume(*Worker, *UsedResourceCache) (CreatedVolume, bool, error)
 	CreateResourceCacheVolume(*Worker, *UsedResourceCache) (CreatingVolume, error)
 
-	FindVolumesForContainer(containerID int) ([]CreatedVolume, error)
+	FindVolumesForContainer(CreatedContainer) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
 
 	FindCreatedVolume(handle string) (CreatedVolume, bool, error)
@@ -114,7 +114,7 @@ func (factory *volumeFactory) CreateBaseResourceTypeVolume(team *Team, worker *W
 	})
 }
 
-func (factory *volumeFactory) CreateContainerVolume(team *Team, worker *Worker, container *CreatingContainer, mountPath string) (CreatingVolume, error) {
+func (factory *volumeFactory) CreateContainerVolume(team *Team, worker *Worker, container CreatingContainer, mountPath string) (CreatingVolume, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (factory *volumeFactory) CreateContainerVolume(team *Team, worker *Worker, 
 	defer tx.Rollback()
 
 	volume, err := factory.createVolume(tx, team, worker, map[string]interface{}{
-		"container_id": container.ID,
+		"container_id": container.ID(),
 		"path":         mountPath,
 		"initialized":  true,
 	})
@@ -135,13 +135,13 @@ func (factory *volumeFactory) CreateContainerVolume(team *Team, worker *Worker, 
 	return volume, nil
 }
 
-func (factory *volumeFactory) FindVolumesForContainer(containerID int) ([]CreatedVolume, error) {
+func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer) ([]CreatedVolume, error) {
 	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr").
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
 		Where(sq.Eq{
 			"v.state":        VolumeStateCreated,
-			"v.container_id": containerID,
+			"v.container_id": container.ID(),
 		}).
 		ToSql()
 	if err != nil {
@@ -194,9 +194,9 @@ func (factory *volumeFactory) FindVolumesForContainer(containerID int) ([]Create
 	return createdVolumes, nil
 }
 
-func (factory *volumeFactory) FindContainerVolume(team *Team, worker *Worker, container *CreatingContainer, mountPath string) (CreatingVolume, CreatedVolume, error) {
+func (factory *volumeFactory) FindContainerVolume(team *Team, worker *Worker, container CreatingContainer, mountPath string) (CreatingVolume, CreatedVolume, error) {
 	return factory.findVolume(team, worker, map[string]interface{}{
-		"v.container_id": container.ID,
+		"v.container_id": container.ID(),
 		"v.path":         mountPath,
 	})
 }

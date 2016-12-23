@@ -23,7 +23,7 @@ type VolumeClient interface {
 	FindOrCreateVolumeForContainer(
 		lager.Logger,
 		VolumeSpec,
-		*dbng.CreatingContainer,
+		dbng.CreatingContainer,
 		*dbng.Team,
 		string,
 	) (Volume, error)
@@ -74,7 +74,7 @@ func NewVolumeClient(
 func (c *volumeClient) FindOrCreateVolumeForContainer(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	container *dbng.CreatingContainer,
+	container dbng.CreatingContainer,
 	team *dbng.Team,
 	mountPath string,
 ) (Volume, error) {

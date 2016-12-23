@@ -27,8 +27,8 @@ var _ = Describe("ContainerProvider", func() {
 		logger                    *lagertest.TestLogger
 		fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
 
-		fakeCreatingContainer *dbng.CreatingContainer
-		fakeCreatedContainer  *dbng.CreatedContainer
+		fakeCreatingContainer *dbngfakes.FakeCreatingContainer
+		fakeCreatedContainer  *dbngfakes.FakeCreatedContainer
 
 		fakeGardenClient       *gfakes.FakeClient
 		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
@@ -50,8 +50,9 @@ var _ = Describe("ContainerProvider", func() {
 		logger = lagertest.NewTestLogger("test")
 		inputs = []VolumeMount{}
 
-		fakeCreatingContainer = &dbng.CreatingContainer{ID: 42, Handle: "some-handle"}
-		fakeCreatedContainer = &dbng.CreatedContainer{ID: 42, Handle: "some-handle"}
+		fakeCreatingContainer = new(dbngfakes.FakeCreatingContainer)
+		fakeCreatingContainer.HandleReturns("some-handle")
+		fakeCreatedContainer = new(dbngfakes.FakeCreatedContainer)
 
 		fakeImageFetchingDelegate = new(wfakes.FakeImageFetchingDelegate)
 
@@ -123,7 +124,7 @@ var _ = Describe("ContainerProvider", func() {
 			var fakeGardenContainer *gfakes.FakeContainer
 
 			BeforeEach(func() {
-				fakeDBContainerFactory.ContainerCreatedReturns(fakeCreatedContainer, nil)
+				fakeCreatingContainer.CreatedReturns(fakeCreatedContainer, nil)
 				fakeGardenContainer = new(gfakes.FakeContainer)
 				fakeGardenContainer.HandleReturns("some-handle")
 				fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
@@ -342,9 +343,7 @@ var _ = Describe("ContainerProvider", func() {
 							It("marks container as created", func() {
 								Expect(err).ToNot(HaveOccurred())
 
-								Expect(fakeDBContainerFactory.ContainerCreatedCallCount()).To(Equal(1))
-								creatingContainer := fakeDBContainerFactory.ContainerCreatedArgsForCall(0)
-								Expect(creatingContainer).To(Equal(fakeCreatingContainer))
+								Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(1))
 							})
 						})
 					})
@@ -435,7 +434,7 @@ var _ = Describe("ContainerProvider", func() {
 
 				fakeDBVolumeFactory.FindVolumesForContainerReturns([]dbng.CreatedVolume{}, nil)
 
-				fakeDBContainerFactory.FindContainerByHandleReturns(&dbng.CreatedContainer{}, true, nil)
+				fakeDBContainerFactory.FindContainerByHandleReturns(fakeCreatedContainer, true, nil)
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
 			})
 

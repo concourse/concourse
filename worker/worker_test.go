@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -367,7 +366,7 @@ var _ = Describe("Worker", func() {
 
 		Context("adding creating container to the db succeeds", func() {
 			BeforeEach(func() {
-				fakeCreatingContainer := &dbng.CreatingContainer{ID: 42}
+				fakeCreatingContainer := new(dbngfakes.FakeCreatingContainer)
 				fakeDBContainerFactory.CreateBuildContainerReturns(fakeCreatingContainer, nil)
 			})
 
@@ -451,7 +450,7 @@ var _ = Describe("Worker", func() {
 
 				fakeContainerProvider.FindContainerByHandleReturns(fakeWorkerContainer, true, nil)
 
-				fakeDBContainerFactory.FindContainerByHandleReturns(&dbng.CreatedContainer{}, true, nil)
+				fakeDBContainerFactory.FindContainerByHandleReturns(new(dbngfakes.FakeCreatedContainer), true, nil)
 				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
 			})
 

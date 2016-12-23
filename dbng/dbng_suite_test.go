@@ -52,8 +52,8 @@ var (
 	defaultResource          *dbng.Resource
 	defaultPipeline          *dbng.Pipeline
 	defaultBuild             *dbng.Build
-	defaultCreatingContainer *dbng.CreatingContainer
-	defaultCreatedContainer  *dbng.CreatedContainer
+	defaultCreatingContainer dbng.CreatingContainer
+	defaultCreatedContainer  dbng.CreatedContainer
 	logger                   *lagertest.TestLogger
 	lockFactory              lock.LockFactory
 )
@@ -125,7 +125,7 @@ var _ = BeforeEach(func() {
 	defaultCreatingContainer, err = containerFactory.CreateResourceCheckContainer(defaultWorker, defaultResourceConfig)
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultCreatedContainer, err = containerFactory.ContainerCreated(defaultCreatingContainer)
+	defaultCreatedContainer, err = defaultCreatingContainer.Created()
 	Expect(err).NotTo(HaveOccurred())
 })
 

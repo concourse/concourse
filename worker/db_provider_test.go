@@ -44,6 +44,8 @@ var _ = Describe("DBProvider", func() {
 		fakeDBVolumeFactory           *dbngfakes.FakeVolumeFactory
 		fakeDBContainerFactory        *dbngfakes.FakeContainerFactory
 		fakeDBBaseResourceTypeFactory *dbngfakes.FakeBaseResourceTypeFactory
+		fakeCreatingContainer         *dbngfakes.FakeCreatingContainer
+		fakeCreatedContainer          *dbngfakes.FakeCreatedContainer
 
 		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
 		fakeDBWorkerFactory   *dbngfakes.FakeWorkerFactory
@@ -265,11 +267,11 @@ var _ = Describe("DBProvider", func() {
 					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
 					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 
-					creatingContainer := &dbng.CreatingContainer{ID: 1, Handle: "some-handle"}
-					fakeDBContainerFactory.CreateBuildContainerReturns(creatingContainer, nil)
-
-					createdContainer := &dbng.CreatedContainer{ID: 1, Handle: "some-handle"}
-					fakeDBContainerFactory.ContainerCreatedReturns(createdContainer, nil)
+					fakeCreatingContainer = new(dbngfakes.FakeCreatingContainer)
+					fakeCreatingContainer.HandleReturns("some-handle")
+					fakeCreatedContainer = new(dbngfakes.FakeCreatedContainer)
+					fakeCreatingContainer.CreatedReturns(fakeCreatedContainer, nil)
+					fakeDBContainerFactory.CreateBuildContainerReturns(fakeCreatingContainer, nil)
 
 					baseResourceType := &dbng.UsedBaseResourceType{ID: 42}
 					fakeDBBaseResourceTypeFactory.FindReturns(baseResourceType, true, nil)
@@ -314,8 +316,7 @@ var _ = Describe("DBProvider", func() {
 			Describe("a looked-up container", func() {
 				BeforeEach(func() {
 					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr}, true, nil)
-					createdContainer := &dbng.CreatedContainer{ID: 1}
-					fakeDBContainerFactory.FindContainerByHandleReturns(createdContainer, true, nil)
+					fakeDBContainerFactory.FindContainerByHandleReturns(fakeCreatedContainer, true, nil)
 				})
 
 				It("calls through to garden", func() {
