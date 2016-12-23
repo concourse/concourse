@@ -11,7 +11,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
@@ -317,18 +317,18 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("saves it", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-							name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
+							name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
-							Expect(id).To(Equal(db.ConfigVersion(42)))
-							Expect(pipelineState).To(Equal(db.PipelineNoChange))
+							Expect(id).To(Equal(dbng.ConfigVersion(42)))
+							Expect(pipelineState).To(Equal(dbng.PipelineNoChange))
 						})
 
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								teamDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
+								dbTeam.SavePipelineReturns(nil, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -342,17 +342,11 @@ var _ = Describe("Config API", func() {
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								returnedPipeline := db.SavedPipeline{
+								returnedPipeline := &dbng.Pipeline{
 									ID:     1234,
-									Paused: true,
 									TeamID: 1,
-									Pipeline: db.Pipeline{
-										Name:    "a-pipeline",
-										Config:  pipelineConfig,
-										Version: db.ConfigVersion(42),
-									},
 								}
-								teamDB.SaveConfigReturns(returnedPipeline, true, nil)
+								dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 							})
 
 							It("returns 201", func() {
@@ -399,19 +393,19 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("saves it", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-							name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
+							name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
-							Expect(id).To(Equal(db.ConfigVersion(42)))
-							Expect(pipelineState).To(Equal(db.PipelineNoChange))
+							Expect(id).To(Equal(dbng.ConfigVersion(42)))
+							Expect(pipelineState).To(Equal(dbng.PipelineNoChange))
 						})
 
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-							_, savedConfig, _, _ := teamDB.SaveConfigArgsForCall(0)
+							_, savedConfig, _, _ := dbTeam.SavePipelineArgsForCall(0)
 							Expect(savedConfig).To(Equal(pipelineConfig))
 
 							_, err := json.Marshal(pipelineConfig)
@@ -446,9 +440,9 @@ jobs:
 							})
 
 							It("saves it", func() {
-								Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+								Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-								name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
+								name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(atc.Config{
 									Resources: []atc.ResourceConfig{
@@ -482,24 +476,18 @@ jobs:
 									},
 								}))
 
-								Expect(id).To(Equal(db.ConfigVersion(42)))
-								Expect(pipelineState).To(Equal(db.PipelineNoChange))
+								Expect(id).To(Equal(dbng.ConfigVersion(42)))
+								Expect(pipelineState).To(Equal(dbng.PipelineNoChange))
 							})
 						})
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								returnedPipeline := db.SavedPipeline{
+								returnedPipeline := &dbng.Pipeline{
 									ID:     1234,
-									Paused: true,
 									TeamID: 1,
-									Pipeline: db.Pipeline{
-										Name:    "a-pipeline",
-										Config:  pipelineConfig,
-										Version: db.ConfigVersion(42),
-									},
 								}
-								teamDB.SaveConfigReturns(returnedPipeline, true, nil)
+								dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 							})
 
 							It("returns 201", func() {
@@ -509,7 +497,7 @@ jobs:
 
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								teamDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
+								dbTeam.SavePipelineReturns(nil, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -540,14 +528,14 @@ jobs:
 							})
 
 							It("does not save it", func() {
-								Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+								Expect(dbTeam.SavePipelineCallCount()).To(BeZero())
 							})
 						})
 					})
 
 					Context("multi-part requests", func() {
 						var pausedValue string
-						var expectedDBValue db.PipelinePausedState
+						var expectedDBValue dbng.PipelinePausedState
 
 						itSavesThePipeline := func() {
 							BeforeEach(func() {
@@ -584,28 +572,22 @@ jobs:
 							})
 
 							It("saves it", func() {
-								Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+								Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-								name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
+								name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(pipelineConfig))
-								Expect(id).To(Equal(db.ConfigVersion(42)))
+								Expect(id).To(Equal(dbng.ConfigVersion(42)))
 								Expect(pipelineState).To(Equal(expectedDBValue))
 							})
 
 							Context("when it's the first time the pipeline has been created", func() {
 								BeforeEach(func() {
-									returnedPipeline := db.SavedPipeline{
+									returnedPipeline := &dbng.Pipeline{
 										ID:     1234,
-										Paused: true,
 										TeamID: 1,
-										Pipeline: db.Pipeline{
-											Name:    "a-pipeline",
-											Config:  pipelineConfig,
-											Version: db.ConfigVersion(42),
-										},
 									}
-									teamDB.SaveConfigReturns(returnedPipeline, true, nil)
+									dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 								})
 
 								It("returns 201", func() {
@@ -615,7 +597,7 @@ jobs:
 
 							Context("and saving it fails", func() {
 								BeforeEach(func() {
-									teamDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
+									dbTeam.SavePipelineReturns(nil, false, errors.New("oh no!"))
 								})
 
 								It("returns 500", func() {
@@ -645,7 +627,7 @@ jobs:
 								})
 
 								It("does not save it", func() {
-									Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+									Expect(dbTeam.SavePipelineCallCount()).To(BeZero())
 								})
 							})
 
@@ -673,7 +655,7 @@ jobs:
 						Context("when paused is specified", func() {
 							BeforeEach(func() {
 								pausedValue = "true"
-								expectedDBValue = db.PipelinePaused
+								expectedDBValue = dbng.PipelinePaused
 							})
 
 							itSavesThePipeline()
@@ -682,7 +664,7 @@ jobs:
 						Context("when unpaused is specified", func() {
 							BeforeEach(func() {
 								pausedValue = "false"
-								expectedDBValue = db.PipelineUnpaused
+								expectedDBValue = dbng.PipelineUnpaused
 							})
 
 							itSavesThePipeline()
@@ -691,7 +673,7 @@ jobs:
 						Context("when neither paused or unpaused is specified", func() {
 							BeforeEach(func() {
 								pausedValue = ""
-								expectedDBValue = db.PipelineNoChange
+								expectedDBValue = dbng.PipelineNoChange
 							})
 
 							itSavesThePipeline()

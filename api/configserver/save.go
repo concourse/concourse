@@ -14,7 +14,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
@@ -57,7 +57,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var version db.ConfigVersion
+	var version dbng.ConfigVersion
 	_, err := fmt.Sscanf(configVersionStr, "%d", &version)
 	if err != nil {
 		session.Error("malformed-config-version", err)
@@ -115,8 +115,20 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	pipelineName := rata.Param(r, "pipeline_name")
 	teamName := rata.Param(r, "team_name")
 
-	teamDB := s.teamDBFactory.GetTeamDB(teamName)
-	_, created, err := teamDB.SaveConfig(pipelineName, config, version, pausedState)
+	team, found, err := s.teamFactory.FindTeam(teamName)
+	if err != nil {
+		session.Error("failed-to-find-team", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
+		session.Debug("team-not-found")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	_, created, err := team.SavePipeline(pipelineName, config, version, pausedState)
 	if err != nil {
 		session.Error("failed-to-save-config", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -154,19 +166,19 @@ func (s *Server) writeSaveConfigResponse(w http.ResponseWriter, saveConfigRespon
 	w.Write(responseJSON)
 }
 
-func requestToConfig(contentType string, requestBody io.ReadCloser, configStructure interface{}) (db.PipelinePausedState, error) {
-	pausedState := db.PipelineNoChange
+func requestToConfig(contentType string, requestBody io.ReadCloser, configStructure interface{}) (dbng.PipelinePausedState, error) {
+	pausedState := dbng.PipelineNoChange
 
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return db.PipelineNoChange, ErrCannotParseContentType
+		return dbng.PipelineNoChange, ErrCannotParseContentType
 	}
 
 	switch mediaType {
 	case "application/json":
 		err := json.NewDecoder(requestBody).Decode(configStructure)
 		if err != nil {
-			return db.PipelineNoChange, ErrMalformedRequestPayload
+			return dbng.PipelineNoChange, ErrMalformedRequestPayload
 		}
 
 	case "application/x-yaml":
@@ -176,7 +188,7 @@ func requestToConfig(contentType string, requestBody io.ReadCloser, configStruct
 		}
 
 		if err != nil {
-			return db.PipelineNoChange, ErrMalformedRequestPayload
+			return dbng.PipelineNoChange, ErrMalformedRequestPayload
 		}
 
 	case "multipart/form-data":
@@ -190,42 +202,42 @@ func requestToConfig(contentType string, requestBody io.ReadCloser, configStruct
 			}
 
 			if err != nil {
-				return db.PipelineNoChange, err
+				return dbng.PipelineNoChange, err
 			}
 
 			if part.FormName() == "paused" {
 				pausedValue, err := ioutil.ReadAll(part)
 				if err != nil {
-					return db.PipelineNoChange, err
+					return dbng.PipelineNoChange, err
 				}
 
 				if string(pausedValue) == "true" {
-					pausedState = db.PipelinePaused
+					pausedState = dbng.PipelinePaused
 				} else if string(pausedValue) == "false" {
-					pausedState = db.PipelineUnpaused
+					pausedState = dbng.PipelineUnpaused
 				} else {
-					return db.PipelineNoChange, ErrInvalidPausedValue
+					return dbng.PipelineNoChange, ErrInvalidPausedValue
 				}
 			} else {
 				partContentType := part.Header.Get("Content-type")
 				_, err := requestToConfig(partContentType, part, configStructure)
 				if err != nil {
-					return db.PipelineNoChange, ErrMalformedRequestPayload
+					return dbng.PipelineNoChange, ErrMalformedRequestPayload
 				}
 			}
 		}
 	default:
-		return db.PipelineNoChange, ErrStatusUnsupportedMediaType
+		return dbng.PipelineNoChange, ErrStatusUnsupportedMediaType
 	}
 
 	return pausedState, nil
 }
 
-func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePausedState, error) {
+func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, dbng.PipelinePausedState, error) {
 	var configStructure interface{}
 	pausedState, err := requestToConfig(r.Header.Get("Content-Type"), r.Body, &configStructure)
 	if err != nil {
-		return atc.Config{}, db.PipelineNoChange, err
+		return atc.Config{}, dbng.PipelineNoChange, err
 	}
 
 	var config atc.Config
@@ -242,15 +254,15 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 
 	decoder, err := mapstructure.NewDecoder(msConfig)
 	if err != nil {
-		return atc.Config{}, db.PipelineNoChange, ErrFailedToConstructDecoder
+		return atc.Config{}, dbng.PipelineNoChange, ErrFailedToConstructDecoder
 	}
 
 	if err := decoder.Decode(configStructure); err != nil {
-		return atc.Config{}, db.PipelineNoChange, ErrCouldNotDecode
+		return atc.Config{}, dbng.PipelineNoChange, ErrCouldNotDecode
 	}
 
 	if len(md.Unused) != 0 {
-		return atc.Config{}, db.PipelineNoChange, ExtraKeysError{extraKeys: md.Unused}
+		return atc.Config{}, dbng.PipelineNoChange, ExtraKeysError{extraKeys: md.Unused}
 	}
 
 	return config, pausedState, nil

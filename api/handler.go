@@ -111,7 +111,7 @@ func NewHandler(
 
 	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory, pipelinesDB)
 
-	configServer := configserver.NewServer(logger, teamDBFactory, configValidator)
+	configServer := configserver.NewServer(logger, teamDBFactory, dbTeamFactory, configValidator)
 
 	workerServer := workerserver.NewServer(logger, teamDBFactory, dbTeamFactory, dbWorkerFactory)
 

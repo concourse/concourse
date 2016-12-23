@@ -59,6 +59,7 @@ var (
 	buildsDB                      *authfakes.FakeBuildsDB
 	buildServerDB                 *buildserverfakes.FakeBuildsDB
 	build                         *dbfakes.FakeBuild
+	dbTeam                        *dbngfakes.FakeTeam
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
 	configValidationErrorMessages []string
@@ -109,8 +110,8 @@ var _ = BeforeEach(func() {
 	buildsDB = new(authfakes.FakeBuildsDB)
 
 	dbTeamFactory = new(dbngfakes.FakeTeamFactory)
-	team := new(dbngfakes.FakeTeam)
-	dbTeamFactory.FindTeamReturns(team, true, nil)
+	dbTeam = new(dbngfakes.FakeTeam)
+	dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 
 	dbWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 
