@@ -13,7 +13,7 @@ var _ = Describe("VolumeFactory", func() {
 	var (
 		dbConn            dbng.Conn
 		volumeFactory     dbng.VolumeFactory
-		containerFactory  *dbng.ContainerFactory
+		containerFactory  dbng.ContainerFactory
 		teamFactory       dbng.TeamFactory
 		buildFactory      *dbng.BuildFactory
 		team              *dbng.Team
@@ -80,7 +80,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := containerFactory.FindOrCreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -137,7 +137,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := containerFactory.FindOrCreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})

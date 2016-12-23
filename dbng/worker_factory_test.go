@@ -434,7 +434,7 @@ var _ = Describe("WorkerFactory", func() {
 					err = tx.Commit()
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = containerFactory.FindOrCreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+					_, err = containerFactory.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -527,7 +527,7 @@ var _ = Describe("WorkerFactory", func() {
 					err = tx.Commit()
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = containerFactory.FindOrCreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+					_, err = containerFactory.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)

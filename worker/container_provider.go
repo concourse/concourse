@@ -28,7 +28,7 @@ type containerProviderFactory struct {
 	baggageclaimClient baggageclaim.Client
 	volumeClient       VolumeClient
 	imageFactory       ImageFactory
-	dbContainerFactory DBContainerFactory
+	dbContainerFactory dbng.ContainerFactory
 	dbVolumeFactory    dbng.VolumeFactory
 
 	db GardenWorkerDB
@@ -43,7 +43,7 @@ func NewContainerProviderFactory(
 	baggageclaimClient baggageclaim.Client,
 	volumeClient VolumeClient,
 	imageFactory ImageFactory,
-	dbContainerFactory DBContainerFactory,
+	dbContainerFactory dbng.ContainerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	db GardenWorkerDB,
 	httpProxyURL string,
@@ -108,7 +108,7 @@ type containerProvider struct {
 	baggageclaimClient      baggageclaim.Client
 	volumeClient            VolumeClient
 	imageFactory            ImageFactory
-	dbContainerFactory      DBContainerFactory
+	dbContainerFactory      dbng.ContainerFactory
 	dbVolumeFactory         dbng.VolumeFactory
 	dbResourceCacheFactory  dbng.ResourceCacheFactory
 	dbResourceConfigFactory dbng.ResourceConfigFactory
@@ -161,7 +161,7 @@ func (p *containerProvider) FindContainerByHandle(
 		return nil, false, err
 	}
 
-	createdContainer, found, err := p.dbContainerFactory.FindContainer(handle)
+	createdContainer, found, err := p.dbContainerFactory.FindContainerByHandle(handle)
 	if err != nil {
 		logger.Error("failed-to-lookup-in-db", err)
 		return nil, false, err

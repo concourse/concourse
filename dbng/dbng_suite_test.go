@@ -33,7 +33,7 @@ var (
 	sqlDB                   *sql.DB
 	dbConn                  dbng.Conn
 	volumeFactory           dbng.VolumeFactory
-	containerFactory        *dbng.ContainerFactory
+	containerFactory        dbng.ContainerFactory
 	teamFactory             dbng.TeamFactory
 	workerFactory           dbng.WorkerFactory
 	resourceConfigFactory   dbng.ResourceConfigFactory
@@ -122,7 +122,7 @@ var _ = BeforeEach(func() {
 	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(logger, defaultResource, "some-base-resource-type", atc.Source{}, defaultPipeline, atc.ResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultCreatingContainer, err = containerFactory.FindOrCreateResourceCheckContainer(defaultWorker, defaultResourceConfig, "check-my-stuff")
+	defaultCreatingContainer, err = containerFactory.CreateResourceCheckContainer(defaultWorker, defaultResourceConfig)
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultCreatedContainer, err = containerFactory.ContainerCreated(defaultCreatingContainer)

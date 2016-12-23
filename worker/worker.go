@@ -54,32 +54,6 @@ type Worker interface {
 	IsOwnedByTeam() bool
 }
 
-//go:generate counterfeiter . DBContainerFactory
-
-type DBContainerFactory interface {
-	FindOrCreateBuildContainer(
-		worker *dbng.Worker,
-		build *dbng.Build,
-		planID atc.PlanID,
-		meta dbng.ContainerMetadata,
-	) (*dbng.CreatingContainer, error)
-
-	CreateResourceGetContainer(
-		worker *dbng.Worker,
-		resourceCache *dbng.UsedResourceCache,
-		stepName string,
-	) (*dbng.CreatingContainer, error)
-
-	FindOrCreateResourceCheckContainer(
-		worker *dbng.Worker,
-		resourceConfig *dbng.UsedResourceConfig,
-		stepName string,
-	) (*dbng.CreatingContainer, error)
-
-	FindContainer(handle string) (*dbng.CreatedContainer, bool, error)
-	ContainerCreated(*dbng.CreatingContainer) (*dbng.CreatedContainer, error)
-}
-
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
@@ -96,7 +70,7 @@ type gardenWorker struct {
 
 	volumeClient            VolumeClient
 	pipelineDBFactory       db.PipelineDBFactory
-	dbContainerFactory      DBContainerFactory
+	dbContainerFactory      dbng.ContainerFactory
 	dbResourceCacheFactory  dbng.ResourceCacheFactory
 	dbResourceConfigFactory dbng.ResourceConfigFactory
 
@@ -119,7 +93,7 @@ func NewGardenWorker(
 	containerProviderFactory ContainerProviderFactory,
 	volumeClient VolumeClient,
 	pipelineDBFactory db.PipelineDBFactory,
-	dbContainerFactory DBContainerFactory,
+	dbContainerFactory dbng.ContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	db GardenWorkerDB,
@@ -222,7 +196,7 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
-	creatingContainer, err := worker.dbContainerFactory.FindOrCreateBuildContainer(
+	creatingContainer, err := worker.dbContainerFactory.CreateBuildContainer(
 		&dbng.Worker{
 			Name:       worker.name,
 			GardenAddr: &worker.addr,
@@ -375,13 +349,12 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 		return nil, err
 	}
 
-	creatingContainer, err := worker.dbContainerFactory.FindOrCreateResourceCheckContainer(
+	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
 		&dbng.Worker{
 			Name:       worker.name,
 			GardenAddr: &worker.addr,
 		},
 		resourceConfig,
-		metadata.StepName,
 	)
 	if err != nil {
 		logger.Error("failed-to-create-check-container", err)
@@ -414,13 +387,12 @@ func (worker *gardenWorker) FindOrCreateResourceTypeCheckContainer(
 		return nil, err
 	}
 
-	creatingContainer, err := worker.dbContainerFactory.FindOrCreateResourceCheckContainer(
+	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
 		&dbng.Worker{
 			Name:       worker.name,
 			GardenAddr: &worker.addr,
 		},
 		resourceConfig,
-		metadata.StepName,
 	)
 	if err != nil {
 		return nil, err

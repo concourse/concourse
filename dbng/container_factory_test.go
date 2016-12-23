@@ -99,7 +99,7 @@ var _ = Describe("ContainerFactory", func() {
 				ID: dbBuild.ID(),
 			}
 
-			creatingContainer, err = containerFactory.FindOrCreateBuildContainer(defaultWorker, build, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+			creatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, build, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -172,7 +172,7 @@ var _ = Describe("ContainerFactory", func() {
 						err = dbLaterBuild.Finish(db.StatusSucceeded)
 						Expect(err).NotTo(HaveOccurred())
 
-						laterCreatingContainer, err = containerFactory.FindOrCreateBuildContainer(defaultWorker, laterBuild, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+						laterCreatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, laterBuild, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
 						Expect(err).NotTo(HaveOccurred())
 
 						_, err = containerFactory.ContainerCreated(laterCreatingContainer)
@@ -211,7 +211,7 @@ var _ = Describe("ContainerFactory", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(ok).To(BeTrue())
 
-						laterCreatingContainer, err = containerFactory.FindOrCreateBuildContainer(defaultWorker, laterBuild, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+						laterCreatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, laterBuild, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
 						Expect(err).NotTo(HaveOccurred())
 
 						_, err = containerFactory.ContainerCreated(laterCreatingContainer)

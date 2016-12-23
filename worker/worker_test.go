@@ -30,7 +30,7 @@ var _ = Describe("Worker", func() {
 		fakeWorkerProvider           *wfakes.FakeWorkerProvider
 		fakeClock                    *fakeclock.FakeClock
 		fakePipelineDBFactory        *dbfakes.FakePipelineDBFactory
-		fakeDBContainerFactory       *wfakes.FakeDBContainerFactory
+		fakeDBContainerFactory       *dbngfakes.FakeContainerFactory
 		fakeDBResourceCacheFactory   *dbngfakes.FakeResourceCacheFactory
 		fakeResourceConfigFactory    *dbngfakes.FakeResourceConfigFactory
 		fakeContainerProviderFactory *wfakes.FakeContainerProviderFactory
@@ -70,7 +70,7 @@ var _ = Describe("Worker", func() {
 		workerStartTime = fakeClock.Now().Unix()
 		workerUptime = 0
 
-		fakeDBContainerFactory = new(wfakes.FakeDBContainerFactory)
+		fakeDBContainerFactory = new(dbngfakes.FakeContainerFactory)
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		fakeResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
 		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
@@ -368,7 +368,7 @@ var _ = Describe("Worker", func() {
 		Context("adding creating container to the db succeeds", func() {
 			BeforeEach(func() {
 				fakeCreatingContainer := &dbng.CreatingContainer{ID: 42}
-				fakeDBContainerFactory.FindOrCreateBuildContainerReturns(fakeCreatingContainer, nil)
+				fakeDBContainerFactory.CreateBuildContainerReturns(fakeCreatingContainer, nil)
 			})
 
 			It("delegates container creation to the container provider", func() {
@@ -390,7 +390,7 @@ var _ = Describe("Worker", func() {
 
 		Context("adding creating container to the db fails", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindOrCreateBuildContainerReturns(nil, errors.New("uh oh"))
+				fakeDBContainerFactory.CreateBuildContainerReturns(nil, errors.New("uh oh"))
 			})
 
 			It("returns the error from dbContainerFactory", func() {
@@ -451,7 +451,7 @@ var _ = Describe("Worker", func() {
 
 				fakeContainerProvider.FindContainerByHandleReturns(fakeWorkerContainer, true, nil)
 
-				fakeDBContainerFactory.FindContainerReturns(&dbng.CreatedContainer{}, true, nil)
+				fakeDBContainerFactory.FindContainerByHandleReturns(&dbng.CreatedContainer{}, true, nil)
 				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
 			})
 

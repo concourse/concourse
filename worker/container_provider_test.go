@@ -35,7 +35,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeVolumeClient       *wfakes.FakeVolumeClient
 		fakeImageFactory       *wfakes.FakeImageFactory
 		fakeImage              *wfakes.FakeImage
-		fakeDBContainerFactory *wfakes.FakeDBContainerFactory
+		fakeDBContainerFactory *dbngfakes.FakeContainerFactory
 		fakeDBVolumeFactory    *dbngfakes.FakeVolumeFactory
 		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
 		fakeWorker             *wfakes.FakeWorker
@@ -64,7 +64,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeWorker = new(wfakes.FakeWorker)
 
-		fakeDBContainerFactory = new(wfakes.FakeDBContainerFactory)
+		fakeDBContainerFactory = new(dbngfakes.FakeContainerFactory)
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
 
 		containerProviderFactory = NewContainerProviderFactory(
@@ -435,7 +435,7 @@ var _ = Describe("ContainerProvider", func() {
 
 				fakeDBVolumeFactory.FindVolumesForContainerReturns([]dbng.CreatedVolume{}, nil)
 
-				fakeDBContainerFactory.FindContainerReturns(&dbng.CreatedContainer{}, true, nil)
+				fakeDBContainerFactory.FindContainerByHandleReturns(&dbng.CreatedContainer{}, true, nil)
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
 			})
 

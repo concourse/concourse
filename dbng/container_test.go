@@ -14,7 +14,7 @@ var _ = Describe("Container", func() {
 	var (
 		dbConn           dbng.Conn
 		volumeFactory    dbng.VolumeFactory
-		containerFactory *dbng.ContainerFactory
+		containerFactory dbng.ContainerFactory
 		teamFactory      dbng.TeamFactory
 		buildFactory     *dbng.BuildFactory
 
@@ -44,7 +44,7 @@ var _ = Describe("Container", func() {
 		}, 5*time.Minute)
 		Expect(err).ToNot(HaveOccurred())
 
-		creatingContainer, err := containerFactory.FindOrCreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+		creatingContainer, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
 			Type: "task",
 			Name: "some-task",
 		})

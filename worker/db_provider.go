@@ -42,7 +42,7 @@ type dbProvider struct {
 	dialer                    gconn.DialerFunc
 	retryBackOffFactory       retryhttp.BackOffFactory
 	imageFactory              ImageFactory
-	dbContainerFactory        DBContainerFactory
+	dbContainerFactory        dbng.ContainerFactory
 	dbResourceCacheFactory    dbng.ResourceCacheFactory
 	dbResourceTypeFactory     dbng.ResourceTypeFactory
 	dbResourceConfigFactory   dbng.ResourceConfigFactory
@@ -58,7 +58,7 @@ func NewDBWorkerProvider(
 	dialer gconn.DialerFunc,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
-	dbContainerFactory DBContainerFactory,
+	dbContainerFactory dbng.ContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,

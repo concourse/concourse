@@ -657,7 +657,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	resourceFetcherFactory resource.FetcherFactory,
 	resourceFactoryFactory resource.ResourceFactoryFactory,
 	pipelineDBFactory db.PipelineDBFactory,
-	dbContainerFactory *dbng.ContainerFactory,
+	dbContainerFactory dbng.ContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,

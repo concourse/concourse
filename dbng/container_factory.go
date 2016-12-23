@@ -9,12 +9,31 @@ import (
 	"github.com/nu7hatch/gouuid"
 )
 
-type ContainerFactory struct {
+//go:generate counterfeiter . ContainerFactory
+
+type ContainerFactory interface {
+	FindContainerByHandle(string) (*CreatedContainer, bool, error)
+
+	// FindResourceCheckContainer(*Worker, *UsedResourceConfig) (*CreatingContainer, *CreatedContainer, error)
+	CreateResourceCheckContainer(*Worker, *UsedResourceConfig) (*CreatingContainer, error)
+
+	CreateResourceGetContainer(*Worker, *UsedResourceCache, string) (*CreatingContainer, error)
+	CreateBuildContainer(*Worker, *Build, atc.PlanID, ContainerMetadata) (*CreatingContainer, error)
+
+	ContainerCreated(*CreatingContainer) (*CreatedContainer, error)
+	ContainerDestroying(*CreatedContainer) (*DestroyingContainer, error)
+	ContainerDestroy(*DestroyingContainer) (bool, error)
+
+	FindContainersMarkedForDeletion() ([]*DestroyingContainer, error)
+	MarkBuildContainersForDeletion() error
+}
+
+type containerFactory struct {
 	conn Conn
 }
 
-func NewContainerFactory(conn Conn) *ContainerFactory {
-	return &ContainerFactory{
+func NewContainerFactory(conn Conn) ContainerFactory {
+	return &containerFactory{
 		conn: conn,
 	}
 }
@@ -24,10 +43,9 @@ type ContainerMetadata struct {
 	Name string
 }
 
-func (factory *ContainerFactory) FindOrCreateResourceCheckContainer(
+func (factory *containerFactory) CreateResourceCheckContainer(
 	worker *Worker,
 	resourceConfig *UsedResourceConfig,
-	stepName string,
 ) (*CreatingContainer, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
@@ -54,7 +72,7 @@ func (factory *ContainerFactory) FindOrCreateResourceCheckContainer(
 			worker.Name,
 			resourceConfig.ID,
 			"check",
-			stepName,
+			"",
 			handle.String(),
 		).
 		Suffix("RETURNING id").
@@ -79,7 +97,7 @@ func (factory *ContainerFactory) FindOrCreateResourceCheckContainer(
 	}, nil
 }
 
-func (factory *ContainerFactory) ContainerCreated(
+func (factory *containerFactory) ContainerCreated(
 	container *CreatingContainer,
 ) (*CreatedContainer, error) {
 	tx, err := factory.conn.Begin()
@@ -124,7 +142,7 @@ func (factory *ContainerFactory) ContainerCreated(
 	}, nil
 }
 
-func (factory *ContainerFactory) ContainerDestroying(
+func (factory *containerFactory) ContainerDestroying(
 	container *CreatedContainer,
 ) (*DestroyingContainer, error) {
 	tx, err := factory.conn.Begin()
@@ -169,7 +187,7 @@ func (factory *ContainerFactory) ContainerDestroying(
 	}, nil
 }
 
-func (factory *ContainerFactory) FindContainersMarkedForDeletion() ([]*DestroyingContainer, error) {
+func (factory *containerFactory) FindContainersMarkedForDeletion() ([]*DestroyingContainer, error) {
 	query, args, err := psql.Select("id, handle, worker_name").
 		From("containers").
 		Where(sq.Eq{
@@ -214,7 +232,7 @@ func (factory *ContainerFactory) FindContainersMarkedForDeletion() ([]*Destroyin
 	return results, nil
 }
 
-func (factory *ContainerFactory) MarkBuildContainersForDeletion() error {
+func (factory *containerFactory) MarkBuildContainersForDeletion() error {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return err
@@ -258,7 +276,7 @@ func (factory *ContainerFactory) MarkBuildContainersForDeletion() error {
 	return nil
 }
 
-func (factory *ContainerFactory) ContainerDestroy(
+func (factory *containerFactory) ContainerDestroy(
 	container *DestroyingContainer,
 ) (bool, error) {
 	tx, err := factory.conn.Begin()
@@ -297,7 +315,7 @@ func (factory *ContainerFactory) ContainerDestroy(
 	return true, nil
 }
 
-func (factory *ContainerFactory) CreateResourceGetContainer(
+func (factory *containerFactory) CreateResourceGetContainer(
 	worker *Worker,
 	resourceCache *UsedResourceCache,
 	stepName string,
@@ -352,7 +370,7 @@ func (factory *ContainerFactory) CreateResourceGetContainer(
 	}, nil
 }
 
-func (factory *ContainerFactory) FindOrCreateBuildContainer(
+func (factory *containerFactory) CreateBuildContainer(
 	worker *Worker,
 	build *Build,
 	planID atc.PlanID,
@@ -361,13 +379,13 @@ func (factory *ContainerFactory) FindOrCreateBuildContainer(
 	return factory.createPlanContainer(worker, build, planID, meta)
 }
 
-func (factory *ContainerFactory) FindContainer(
+func (factory *containerFactory) FindContainerByHandle(
 	handle string,
 ) (*CreatedContainer, bool, error) {
 	return factory.findContainer(handle)
 }
 
-func (factory *ContainerFactory) createPlanContainer(
+func (factory *containerFactory) createPlanContainer(
 	worker *Worker,
 	build *Build,
 	planID atc.PlanID,
@@ -426,7 +444,7 @@ func (factory *ContainerFactory) createPlanContainer(
 	}, nil
 }
 
-func (factory *ContainerFactory) findContainer(handle string) (*CreatedContainer, bool, error) {
+func (factory *containerFactory) findContainer(handle string) (*CreatedContainer, bool, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, false, err
