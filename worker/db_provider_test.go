@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
@@ -95,6 +96,8 @@ var _ = Describe("DBProvider", func() {
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
 		fakeDBResourceCacheFactory := new(dbngfakes.FakeResourceCacheFactory)
 		fakeDBBaseResourceTypeFactory = new(dbngfakes.FakeBaseResourceTypeFactory)
+		fakeLock := new(lockfakes.FakeLock)
+		fakeDB.AcquireContainerCreatingLockReturns(fakeLock, true, nil)
 
 		fakeDBWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 

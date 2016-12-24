@@ -77,6 +77,7 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 
 type CreatedContainer interface {
 	ID() int
+	Handle() string
 	Destroying() (DestroyingContainer, error)
 }
 
@@ -87,7 +88,8 @@ type createdContainer struct {
 	conn       Conn
 }
 
-func (container *createdContainer) ID() int { return container.id }
+func (container *createdContainer) ID() int        { return container.id }
+func (container *createdContainer) Handle() string { return container.handle }
 
 func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 	tx, err := container.conn.Begin()

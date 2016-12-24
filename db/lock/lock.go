@@ -18,6 +18,7 @@ const (
 	LockTypeResourceCheckingForJob
 	LockTypeBatch
 	LockTypeVolumeCreating
+	LockTypeContainerCreating
 )
 
 func NewBuildTrackingLockID(buildID int) LockID {
@@ -46,6 +47,10 @@ func NewTaskLockID(taskName string) LockID {
 
 func NewVolumeCreatingLockID(volumeID int) LockID {
 	return LockID{LockTypeVolumeCreating, volumeID}
+}
+
+func NewContainerCreatingLockID(containerID int) LockID {
+	return LockID{LockTypeContainerCreating, containerID}
 }
 
 //go:generate counterfeiter . LockFactory

@@ -227,6 +227,12 @@ type FakeWorker struct {
 	nameReturns     struct {
 		result1 string
 	}
+	AddressStub        func() *string
+	addressMutex       sync.RWMutex
+	addressArgsForCall []struct{}
+	addressReturns     struct {
+		result1 *string
+	}
 	ResourceTypesStub        func() []atc.WorkerResourceType
 	resourceTypesMutex       sync.RWMutex
 	resourceTypesArgsForCall []struct{}
@@ -919,6 +925,31 @@ func (fake *FakeWorker) NameReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeWorker) Address() *string {
+	fake.addressMutex.Lock()
+	fake.addressArgsForCall = append(fake.addressArgsForCall, struct{}{})
+	fake.recordInvocation("Address", []interface{}{})
+	fake.addressMutex.Unlock()
+	if fake.AddressStub != nil {
+		return fake.AddressStub()
+	} else {
+		return fake.addressReturns.result1
+	}
+}
+
+func (fake *FakeWorker) AddressCallCount() int {
+	fake.addressMutex.RLock()
+	defer fake.addressMutex.RUnlock()
+	return len(fake.addressArgsForCall)
+}
+
+func (fake *FakeWorker) AddressReturns(result1 *string) {
+	fake.AddressStub = nil
+	fake.addressReturns = struct {
+		result1 *string
+	}{result1}
+}
+
 func (fake *FakeWorker) ResourceTypes() []atc.WorkerResourceType {
 	fake.resourceTypesMutex.Lock()
 	fake.resourceTypesArgsForCall = append(fake.resourceTypesArgsForCall, struct{}{})
@@ -1060,6 +1091,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.descriptionMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
+	fake.addressMutex.RLock()
+	defer fake.addressMutex.RUnlock()
 	fake.resourceTypesMutex.RLock()
 	defer fake.resourceTypesMutex.RUnlock()
 	fake.tagsMutex.RLock()

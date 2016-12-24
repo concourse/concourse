@@ -14,6 +14,12 @@ type FakeCreatedContainer struct {
 	iDReturns     struct {
 		result1 int
 	}
+	HandleStub        func() string
+	handleMutex       sync.RWMutex
+	handleArgsForCall []struct{}
+	handleReturns     struct {
+		result1 string
+	}
 	DestroyingStub        func() (dbng.DestroyingContainer, error)
 	destroyingMutex       sync.RWMutex
 	destroyingArgsForCall []struct{}
@@ -50,6 +56,31 @@ func (fake *FakeCreatedContainer) IDReturns(result1 int) {
 	}{result1}
 }
 
+func (fake *FakeCreatedContainer) Handle() string {
+	fake.handleMutex.Lock()
+	fake.handleArgsForCall = append(fake.handleArgsForCall, struct{}{})
+	fake.recordInvocation("Handle", []interface{}{})
+	fake.handleMutex.Unlock()
+	if fake.HandleStub != nil {
+		return fake.HandleStub()
+	} else {
+		return fake.handleReturns.result1
+	}
+}
+
+func (fake *FakeCreatedContainer) HandleCallCount() int {
+	fake.handleMutex.RLock()
+	defer fake.handleMutex.RUnlock()
+	return len(fake.handleArgsForCall)
+}
+
+func (fake *FakeCreatedContainer) HandleReturns(result1 string) {
+	fake.HandleStub = nil
+	fake.handleReturns = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeCreatedContainer) Destroying() (dbng.DestroyingContainer, error) {
 	fake.destroyingMutex.Lock()
 	fake.destroyingArgsForCall = append(fake.destroyingArgsForCall, struct{}{})
@@ -81,6 +112,8 @@ func (fake *FakeCreatedContainer) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.handleMutex.RLock()
+	defer fake.handleMutex.RUnlock()
 	fake.destroyingMutex.RLock()
 	defer fake.destroyingMutex.RUnlock()
 	return fake.invocations

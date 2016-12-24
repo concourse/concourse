@@ -84,9 +84,6 @@ var _ = Describe("Worker", func() {
 			fakeContainerProviderFactory,
 			fakeVolumeClient,
 			fakePipelineDBFactory,
-			fakeDBContainerFactory,
-			fakeDBResourceCacheFactory,
-			fakeResourceConfigFactory,
 			fakeGardenWorkerDB,
 			fakeWorkerProvider,
 			fakeClock,
@@ -345,7 +342,6 @@ var _ = Describe("Worker", func() {
 
 	Describe("FindOrCreateBuildContainer", func() {
 		var container Container
-		var fakeContainer Container
 		var createErr error
 		var imageSpec ImageSpec
 
@@ -364,40 +360,9 @@ var _ = Describe("Worker", func() {
 			)
 		})
 
-		Context("adding creating container to the db succeeds", func() {
-			BeforeEach(func() {
-				fakeCreatingContainer := new(dbngfakes.FakeCreatingContainer)
-				fakeDBContainerFactory.CreateBuildContainerReturns(fakeCreatingContainer, nil)
-			})
-
-			It("delegates container creation to the container provider", func() {
-				Expect(fakeContainerProvider.FindOrCreateContainerCallCount()).To(Equal(1))
-			})
-
-			Context("container provider successfully finds/creates a container", func() {
-				BeforeEach(func() {
-					fakeContainer = new(wfakes.FakeContainer)
-					fakeContainerProvider.FindOrCreateContainerReturns(fakeContainer, nil)
-				})
-
-				It("returns the created container", func() {
-					Expect(fakeContainerProvider.FindOrCreateContainerCallCount()).To(Equal(1))
-					Expect(container).To(Equal(fakeContainer))
-				})
-			})
+		It("delegates container creation to the container provider", func() {
+			Expect(fakeContainerProvider.FindOrCreateBuildContainerCallCount()).To(Equal(1))
 		})
-
-		Context("adding creating container to the db fails", func() {
-			BeforeEach(func() {
-				fakeDBContainerFactory.CreateBuildContainerReturns(nil, errors.New("uh oh"))
-			})
-
-			It("returns the error from dbContainerFactory", func() {
-				Expect(createErr).To(HaveOccurred())
-				Expect(createErr).To(Equal(errors.New("uh oh")))
-			})
-		})
-
 	})
 
 	Describe("FindContainerForIdentifier", func() {

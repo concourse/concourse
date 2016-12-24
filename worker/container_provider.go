@@ -2,6 +2,7 @@ package worker
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"path"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
@@ -17,6 +19,10 @@ import (
 	"github.com/concourse/baggageclaim"
 )
 
+var ErrCreatedContainerNotFound = errors.New("container-in-created-state-not-found-in-garden")
+
+const creatingContainerRetryDelay = 1 * time.Second
+
 //go:generate counterfeiter . ContainerProviderFactory
 
 type ContainerProviderFactory interface {
@@ -24,18 +30,22 @@ type ContainerProviderFactory interface {
 }
 
 type containerProviderFactory struct {
-	gardenClient       garden.Client
-	baggageclaimClient baggageclaim.Client
-	volumeClient       VolumeClient
-	imageFactory       ImageFactory
-	dbContainerFactory dbng.ContainerFactory
-	dbVolumeFactory    dbng.VolumeFactory
+	gardenClient            garden.Client
+	baggageclaimClient      baggageclaim.Client
+	volumeClient            VolumeClient
+	imageFactory            ImageFactory
+	dbContainerFactory      dbng.ContainerFactory
+	dbVolumeFactory         dbng.VolumeFactory
+	dbResourceCacheFactory  dbng.ResourceCacheFactory
+	dbResourceConfigFactory dbng.ResourceConfigFactory
 
 	db GardenWorkerDB
 
 	httpProxyURL  string
 	httpsProxyURL string
 	noProxy       string
+
+	clock clock.Clock
 }
 
 func NewContainerProviderFactory(
@@ -45,22 +55,28 @@ func NewContainerProviderFactory(
 	imageFactory ImageFactory,
 	dbContainerFactory dbng.ContainerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	db GardenWorkerDB,
 	httpProxyURL string,
 	httpsProxyURL string,
 	noProxy string,
+	clock clock.Clock,
 ) ContainerProviderFactory {
 	return &containerProviderFactory{
-		gardenClient:       gardenClient,
-		baggageclaimClient: baggageclaimClient,
-		volumeClient:       volumeClient,
-		imageFactory:       imageFactory,
-		dbContainerFactory: dbContainerFactory,
-		dbVolumeFactory:    dbVolumeFactory,
-		db:                 db,
-		httpProxyURL:       httpProxyURL,
-		httpsProxyURL:      httpsProxyURL,
-		noProxy:            noProxy,
+		gardenClient:            gardenClient,
+		baggageclaimClient:      baggageclaimClient,
+		volumeClient:            volumeClient,
+		imageFactory:            imageFactory,
+		dbContainerFactory:      dbContainerFactory,
+		dbVolumeFactory:         dbVolumeFactory,
+		dbResourceCacheFactory:  dbResourceCacheFactory,
+		dbResourceConfigFactory: dbResourceConfigFactory,
+		db:            db,
+		httpProxyURL:  httpProxyURL,
+		httpsProxyURL: httpsProxyURL,
+		noProxy:       noProxy,
+		clock:         clock,
 	}
 }
 
@@ -68,17 +84,20 @@ func (f *containerProviderFactory) ContainerProviderFor(
 	worker Worker,
 ) ContainerProvider {
 	return &containerProvider{
-		gardenClient:       f.gardenClient,
-		baggageclaimClient: f.baggageclaimClient,
-		volumeClient:       f.volumeClient,
-		imageFactory:       f.imageFactory,
-		dbContainerFactory: f.dbContainerFactory,
-		dbVolumeFactory:    f.dbVolumeFactory,
-		db:                 f.db,
-		httpProxyURL:       f.httpProxyURL,
-		httpsProxyURL:      f.httpsProxyURL,
-		noProxy:            f.noProxy,
-		worker:             worker,
+		gardenClient:            f.gardenClient,
+		baggageclaimClient:      f.baggageclaimClient,
+		volumeClient:            f.volumeClient,
+		imageFactory:            f.imageFactory,
+		dbContainerFactory:      f.dbContainerFactory,
+		dbVolumeFactory:         f.dbVolumeFactory,
+		dbResourceCacheFactory:  f.dbResourceCacheFactory,
+		dbResourceConfigFactory: f.dbResourceConfigFactory,
+		db:            f.db,
+		httpProxyURL:  f.httpProxyURL,
+		httpsProxyURL: f.httpsProxyURL,
+		noProxy:       f.noProxy,
+		clock:         f.clock,
+		worker:        worker,
 	}
 }
 
@@ -90,16 +109,54 @@ type ContainerProvider interface {
 		handle string,
 	) (Container, bool, error)
 
-	FindOrCreateContainer(
+	FindOrCreateBuildContainer(
 		logger lager.Logger,
 		cancel <-chan os.Signal,
-		creatingContainer dbng.CreatingContainer,
 		delegate ImageFetchingDelegate,
 		id Identifier,
 		metadata Metadata,
 		spec ContainerSpec,
 		resourceTypes atc.ResourceTypes,
 		outputPaths map[string]string,
+	) (Container, error)
+
+	FindOrCreateResourceCheckContainer(
+		logger lager.Logger,
+		cancel <-chan os.Signal,
+		delegate ImageFetchingDelegate,
+		id Identifier,
+		metadata Metadata,
+		spec ContainerSpec,
+		resourceTypes atc.ResourceTypes,
+		resourceType string,
+		source atc.Source,
+	) (Container, error)
+
+	FindOrCreateResourceTypeCheckContainer(
+		logger lager.Logger,
+		cancel <-chan os.Signal,
+		delegate ImageFetchingDelegate,
+		id Identifier,
+		metadata Metadata,
+		spec ContainerSpec,
+		resourceTypes atc.ResourceTypes,
+		resourceTypeName string,
+		source atc.Source,
+	) (Container, error)
+
+	FindOrCreateResourceGetContainer(
+		logger lager.Logger,
+		cancel <-chan os.Signal,
+		delegate ImageFetchingDelegate,
+		id Identifier,
+		metadata Metadata,
+		spec ContainerSpec,
+		resourceTypes atc.ResourceTypes,
+		outputPaths map[string]string,
+		resourceTypeName string,
+		version atc.Version,
+		source atc.Source,
+		params atc.Params,
 	) (Container, error)
 }
 
@@ -120,12 +177,38 @@ type containerProvider struct {
 	httpProxyURL  string
 	httpsProxyURL string
 	noProxy       string
+
+	clock clock.Clock
 }
 
-func (p *containerProvider) FindOrCreateContainer(
+// TODO split this method into different methods:
+// FindOrCreateBuildContainer, FindOrCreateResourceCheckContainer, FindOrCreateResourceGetContainer, FindOrCreateResourceTypeCheckContainer
+// (called <METHODS> bellow)
+//
+// * private findOrCreateContainer takes in also funcs to find and create in dbng separately.
+// So these methods will be different depending on what this container is created for.
+// See volume_client how findOrCreateVolume is used and different dbng methods for find or create are provided
+// depending what the volume is being created for.
+//
+// * use <METHODS> in worker/worker instead of FindOrCreateContainer appropriately
+// worker/worker already has separate methods for containers so move logic for these methods from worker/worker down here
+// see how volume_client is used in worker/worker
+//
+// * dbng ContainerFactory has methods to create containers for different purposed but not find.
+// See dbng.VolumeFactory how each create has a corresponding find
+//
+// * make sure testflight pass before fixing unit tests
+//
+// p.findOrCreateContainer has no unit test coverage. Please add. See volume_client_test how the behaviour is tested for volumes
+// different cases, e.g. container found in DB but not found in garden. If it is created container we raise error.
+// If it is creating container, that means that ATC might have failed after container was created in DB but not in garden.
+// So create in garden. Mark as created. We use lock so that if two threads find it in this state only one will create in garden.
+//
+// * have fun!
+
+func (p *containerProvider) FindOrCreateBuildContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
-	creatingContainer dbng.CreatingContainer,
 	delegate ImageFetchingDelegate,
 	id Identifier,
 	metadata Metadata,
@@ -133,16 +216,222 @@ func (p *containerProvider) FindOrCreateContainer(
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
-	return p.createContainer(
+	return p.findOrCreateContainer(
 		logger,
 		cancel,
-		creatingContainer,
 		delegate,
 		id,
 		metadata,
 		spec,
 		resourceTypes,
 		outputPaths,
+		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+			return nil, nil, nil
+		},
+		func() (dbng.CreatingContainer, error) {
+			return p.dbContainerFactory.CreateBuildContainer(
+				&dbng.Worker{
+					Name:       p.worker.Name(),
+					GardenAddr: p.worker.Address(),
+				},
+				&dbng.Build{
+					ID: id.BuildID,
+				},
+				id.PlanID,
+				dbng.ContainerMetadata{
+					Name: metadata.StepName,
+					Type: string(metadata.Type),
+				},
+			)
+		},
+	)
+}
+
+func (p *containerProvider) FindOrCreateResourceCheckContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	resourceType string,
+	source atc.Source,
+) (Container, error) {
+	return p.findOrCreateContainer(
+		logger,
+		cancel,
+		delegate,
+		id,
+		metadata,
+		spec,
+		resourceTypes,
+		map[string]string{},
+		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+			return nil, nil, nil
+		},
+		func() (dbng.CreatingContainer, error) {
+			resourceConfig, err := p.dbResourceConfigFactory.FindOrCreateResourceConfigForResource(
+				logger,
+				&dbng.Resource{
+					ID: id.ResourceID,
+				},
+				resourceType,
+				source,
+				&dbng.Pipeline{ID: metadata.PipelineID},
+				resourceTypes,
+			)
+			if err != nil {
+				logger.Error("failed-to-get-resource-config", err)
+				return nil, err
+			}
+
+			return p.dbContainerFactory.CreateResourceCheckContainer(
+				&dbng.Worker{
+					Name:       p.worker.Name(),
+					GardenAddr: p.worker.Address(),
+				},
+				resourceConfig,
+			)
+		},
+	)
+}
+
+func (p *containerProvider) FindOrCreateResourceTypeCheckContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	resourceTypeName string,
+	source atc.Source,
+) (Container, error) {
+	return p.findOrCreateContainer(
+		logger,
+		cancel,
+		delegate,
+		id,
+		metadata,
+		spec,
+		resourceTypes,
+		map[string]string{},
+		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+			return nil, nil, nil
+		},
+		func() (dbng.CreatingContainer, error) {
+			resourceConfig, err := p.dbResourceConfigFactory.FindOrCreateResourceConfigForResourceType(
+				logger,
+				resourceTypeName,
+				source,
+				&dbng.Pipeline{ID: metadata.PipelineID},
+				resourceTypes,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			return p.dbContainerFactory.CreateResourceCheckContainer(
+				&dbng.Worker{
+					Name:       p.worker.Name(),
+					GardenAddr: p.worker.Address(),
+				},
+				resourceConfig,
+			)
+		},
+	)
+}
+
+func (p *containerProvider) FindOrCreateResourceGetContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+	outputPaths map[string]string,
+	resourceTypeName string,
+	version atc.Version,
+	source atc.Source,
+	params atc.Params,
+) (Container, error) {
+	return p.findOrCreateContainer(
+		logger,
+		cancel,
+		delegate,
+		id,
+		metadata,
+		spec,
+		resourceTypes,
+		map[string]string{},
+		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+			return nil, nil, nil
+		},
+		func() (dbng.CreatingContainer, error) {
+			var resourceCache *dbng.UsedResourceCache
+
+			if id.BuildID != 0 {
+				var err error
+				resourceCache, err = p.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+					logger,
+					&dbng.Build{ID: id.BuildID},
+					resourceTypeName,
+					version,
+					source,
+					params,
+					&dbng.Pipeline{ID: metadata.PipelineID},
+					resourceTypes,
+				)
+				if err != nil {
+					logger.Error("failed-to-get-resource-cache-for-build", err, lager.Data{"build-id": id.BuildID})
+					return nil, err
+				}
+			} else if id.ResourceID != 0 {
+				var err error
+				resourceCache, err = p.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
+					logger,
+					&dbng.Resource{
+						ID: id.ResourceID,
+					},
+					resourceTypeName,
+					version,
+					source,
+					params,
+					&dbng.Pipeline{ID: metadata.PipelineID},
+					resourceTypes,
+				)
+				if err != nil {
+					logger.Error("failed-to-get-resource-cache-for-resource", err, lager.Data{"resource-id": id.ResourceID})
+					return nil, err
+				}
+			} else {
+				var err error
+				resourceCache, err = p.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
+					logger,
+					resourceTypeName,
+					version,
+					source,
+					params,
+					&dbng.Pipeline{ID: metadata.PipelineID},
+					resourceTypes,
+				)
+				if err != nil {
+					logger.Error("failed-to-get-resource-cache-for-resource-type", err, lager.Data{"resource-type": resourceTypeName})
+					return nil, err
+				}
+			}
+
+			return p.dbContainerFactory.CreateResourceGetContainer(
+				&dbng.Worker{
+					Name:       p.worker.Name(),
+					GardenAddr: p.worker.Address(),
+				},
+				resourceCache,
+				metadata.StepName,
+			)
+		},
 	)
 }
 
@@ -195,34 +484,155 @@ func (p *containerProvider) FindContainerByHandle(
 	return container, true, nil
 }
 
-func (p *containerProvider) createContainer(
+func (p *containerProvider) findOrCreateContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
-	creatingContainer dbng.CreatingContainer,
 	delegate ImageFetchingDelegate,
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
+	findContainerFunc func() (dbng.CreatingContainer, dbng.CreatedContainer, error),
+	createContainerFunc func() (dbng.CreatingContainer, error),
 ) (Container, error) {
-	gardenContainer, createdContainer, err := p.createGardenContainer(
-		logger,
-		cancel,
-		creatingContainer,
-		delegate,
-		id,
-		metadata,
-		spec,
-		resourceTypes,
-		outputPaths,
-	)
+	var gardenContainer garden.Container
+
+	creatingContainer, createdContainer, err := findContainerFunc()
 	if err != nil {
+		logger.Error("failed-to-find-container-in-db", err)
 		return nil, err
+	}
+
+	if createdContainer != nil {
+		gardenContainer, err = p.gardenClient.Lookup(createdContainer.Handle())
+		if err != nil {
+			logger.Error("failed-to-lookup-created-container-in-garden", err)
+			return nil, err
+		}
+
+		createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
+		if err != nil {
+			logger.Error("failed-to-find-container-volumes", err)
+			return nil, err
+		}
+
+		return newGardenWorkerContainer(
+			logger,
+			gardenContainer,
+			createdContainer,
+			createdVolumes,
+			p.gardenClient,
+			p.baggageclaimClient,
+			p.db,
+			p.worker.Name(),
+		)
+	} else {
+		if creatingContainer != nil {
+			gardenContainer, err = p.gardenClient.Lookup(createdContainer.Handle())
+			if err != nil {
+				if _, ok := err.(garden.ContainerNotFoundError); !ok {
+					logger.Error("failed-to-lookup-creating-container-in-garden", err)
+					return nil, err
+				}
+			}
+		} else {
+			creatingContainer, err = createContainerFunc()
+			if err != nil {
+				logger.Error("failed-to-create-container-in-db", err)
+				return nil, err
+			}
+		}
+
+		lock, acquired, err := p.db.AcquireContainerCreatingLock(logger, creatingContainer.ID())
+		if err != nil {
+			logger.Error("failed-to-acquire-volume-creating-lock", err)
+			return nil, err
+		}
+
+		if !acquired {
+			p.clock.Sleep(creatingContainerRetryDelay)
+			return p.findOrCreateContainer(
+				logger,
+				cancel,
+				delegate,
+				id,
+				metadata,
+				spec,
+				resourceTypes,
+				outputPaths,
+				findContainerFunc,
+				createContainerFunc,
+			)
+		}
+
+		defer lock.Release()
+
+		if gardenContainer == nil {
+			logger.Debug("creating-container-in-garden", lager.Data{"handle": creatingContainer.Handle()})
+			imageMetadata, imageResourceTypeVersion, imageURL, err := p.getImageForContainer(
+				logger,
+				creatingContainer,
+				spec.ImageSpec,
+				spec.TeamID,
+				cancel,
+				delegate,
+				id,
+				metadata,
+				resourceTypes,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			gardenContainer, err = p.createGardenContainer(
+				logger,
+				creatingContainer,
+				id,
+				metadata,
+				spec,
+				outputPaths,
+				imageMetadata,
+				imageURL,
+			)
+			if err != nil {
+				logger.Error("failed-to-create-container-in-garden", err)
+				return nil, err
+			}
+
+			metadata.WorkerName = p.worker.Name()
+			metadata.Handle = gardenContainer.Handle()
+
+			metadata.User = imageMetadata.User
+			if spec.User != "" {
+				metadata.User = spec.User
+			}
+
+			id.ResourceTypeVersion = imageResourceTypeVersion
+
+			_, err = p.db.UpdateContainerTTLToBeRemoved(
+				db.Container{
+					ContainerIdentifier: db.ContainerIdentifier(id),
+					ContainerMetadata:   db.ContainerMetadata(metadata),
+				},
+				p.maxContainerLifetime(metadata),
+			)
+			if err != nil {
+				logger.Error("failed-to-update-container-ttl", err)
+				return nil, err
+			}
+		}
+
+		createdContainer, err = creatingContainer.Created()
+		if err != nil {
+			logger.Error("failed-to-mark-container-as-created", err)
+			return nil, err
+		}
 	}
 
 	createdVolumes, err := p.dbVolumeFactory.FindVolumesForContainer(createdContainer)
 	if err != nil {
+		logger.Error("failed-to-find-container-volumes", err)
 		return nil, err
 	}
 
@@ -240,30 +650,14 @@ func (p *containerProvider) createContainer(
 
 func (p *containerProvider) createGardenContainer(
 	logger lager.Logger,
-	cancel <-chan os.Signal,
 	creatingContainer dbng.CreatingContainer,
-	delegate ImageFetchingDelegate,
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
-) (garden.Container, dbng.CreatedContainer, error) {
-	imageMetadata, resourceTypeVersion, imageURL, err := p.getImageForContainer(
-		logger,
-		creatingContainer,
-		spec.ImageSpec,
-		spec.TeamID,
-		cancel,
-		delegate,
-		id,
-		metadata,
-		resourceTypes,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
+	imageMetadata ImageMetadata,
+	imageURL string,
+) (garden.Container, error) {
 	volumeMounts := []VolumeMount{}
 	for name, outputPath := range outputPaths {
 		outVolume, volumeErr := p.volumeClient.FindOrCreateVolumeForContainer(
@@ -277,7 +671,7 @@ func (p *containerProvider) createGardenContainer(
 			outputPath,
 		)
 		if volumeErr != nil {
-			return nil, nil, volumeErr
+			return nil, volumeErr
 		}
 
 		volumeMounts = append(volumeMounts, VolumeMount{
@@ -304,7 +698,7 @@ func (p *containerProvider) createGardenContainer(
 			mount.MountPath,
 		)
 		if volumeErr != nil {
-			return nil, nil, volumeErr
+			return nil, volumeErr
 		}
 
 		volumeMounts = append(volumeMounts, VolumeMount{
@@ -357,37 +751,7 @@ func (p *containerProvider) createGardenContainer(
 		Handle:     creatingContainer.Handle(),
 	}
 
-	gardenContainer, err := p.gardenClient.Create(gardenSpec)
-	if err != nil {
-		logger.Error("failed-to-create-container-in-garden", err)
-		return nil, nil, err
-	}
-
-	createdContainer, err := creatingContainer.Created()
-	if err != nil {
-		logger.Error("failed-to-mark-container-as-created", err)
-		return nil, nil, err
-	}
-
-	metadata.WorkerName = p.worker.Name()
-	metadata.Handle = gardenContainer.Handle()
-	metadata.User = gardenSpec.Properties["user"]
-
-	id.ResourceTypeVersion = resourceTypeVersion
-
-	_, err = p.db.UpdateContainerTTLToBeRemoved(
-		db.Container{
-			ContainerIdentifier: db.ContainerIdentifier(id),
-			ContainerMetadata:   db.ContainerMetadata(metadata),
-		},
-		p.maxContainerLifetime(metadata),
-	)
-	if err != nil {
-		logger.Error("failed-to-update-container-ttl", err)
-		return nil, nil, err
-	}
-
-	return gardenContainer, createdContainer, nil
+	return p.gardenClient.Create(gardenSpec)
 }
 
 func (p *containerProvider) getImageForContainer(

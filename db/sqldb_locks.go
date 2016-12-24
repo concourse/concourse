@@ -40,3 +40,21 @@ func (db *SQLDB) AcquireVolumeCreatingLock(logger lager.Logger, volumeID int) (l
 
 	return lock, true, nil
 }
+
+func (db *SQLDB) AcquireContainerCreatingLock(logger lager.Logger, containerID int) (lock.Lock, bool, error) {
+	lock := db.lockFactory.NewLock(
+		logger.Session("container-creating-lock"),
+		lock.NewContainerCreatingLockID(containerID),
+	)
+
+	acquired, err := lock.Acquire()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !acquired {
+		return nil, false, nil
+	}
+
+	return lock, true, nil
+}

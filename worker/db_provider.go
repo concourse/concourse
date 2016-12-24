@@ -32,6 +32,7 @@ type WorkerDB interface {
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	ReapVolume(handle string) error
 	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
+	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 }
 
 var ErrDesiredWorkerNotRunning = errors.New("desired-garden-worker-is-not-known-to-be-running")
@@ -176,19 +177,19 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		provider.imageFactory,
 		provider.dbContainerFactory,
 		provider.dbVolumeFactory,
+		provider.dbResourceCacheFactory,
+		provider.dbResourceConfigFactory,
 		provider.db,
 		savedWorker.HTTPProxyURL,
 		savedWorker.HTTPSProxyURL,
 		savedWorker.NoProxy,
+		clock.NewClock(),
 	)
 
 	return NewGardenWorker(
 		containerProviderFactory,
 		volumeClient,
 		provider.pipelineDBFactory,
-		provider.dbContainerFactory,
-		provider.dbResourceCacheFactory,
-		provider.dbResourceConfigFactory,
 		provider.db,
 		provider,
 		tikTok,

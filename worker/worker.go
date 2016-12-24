@@ -48,6 +48,7 @@ type Worker interface {
 
 	Description() string
 	Name() string
+	Address() *string
 	ResourceTypes() []atc.WorkerResourceType
 	Tags() atc.Tags
 	Uptime() time.Duration
@@ -63,16 +64,14 @@ type GardenWorkerDB interface {
 	ReapContainer(string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
+	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 }
 
 type gardenWorker struct {
 	containerProviderFactory ContainerProviderFactory
 
-	volumeClient            VolumeClient
-	pipelineDBFactory       db.PipelineDBFactory
-	dbContainerFactory      dbng.ContainerFactory
-	dbResourceCacheFactory  dbng.ResourceCacheFactory
-	dbResourceConfigFactory dbng.ResourceConfigFactory
+	volumeClient      VolumeClient
+	pipelineDBFactory db.PipelineDBFactory
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -93,9 +92,6 @@ func NewGardenWorker(
 	containerProviderFactory ContainerProviderFactory,
 	volumeClient VolumeClient,
 	pipelineDBFactory db.PipelineDBFactory,
-	dbContainerFactory dbng.ContainerFactory,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
-	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
@@ -111,10 +107,7 @@ func NewGardenWorker(
 	return &gardenWorker{
 		containerProviderFactory: containerProviderFactory,
 
-		volumeClient:            volumeClient,
-		dbContainerFactory:      dbContainerFactory,
-		dbResourceCacheFactory:  dbResourceCacheFactory,
-		dbResourceConfigFactory: dbResourceConfigFactory,
+		volumeClient: volumeClient,
 
 		db:                db,
 		provider:          provider,
@@ -196,30 +189,11 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 	resourceTypes atc.ResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
-	creatingContainer, err := worker.dbContainerFactory.CreateBuildContainer(
-		&dbng.Worker{
-			Name:       worker.name,
-			GardenAddr: &worker.addr,
-		},
-		&dbng.Build{
-			ID: id.BuildID,
-		},
-		id.PlanID,
-		dbng.ContainerMetadata{
-			Name: metadata.StepName,
-			Type: string(metadata.Type),
-		},
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-	return containerProvider.FindOrCreateContainer(
+
+	return containerProvider.FindOrCreateBuildContainer(
 		logger,
 		cancel,
-		creatingContainer,
 		delegate,
 		id,
 		metadata,
@@ -243,83 +217,20 @@ func (worker *gardenWorker) FindOrCreateResourceGetContainer(
 	source atc.Source,
 	params atc.Params,
 ) (Container, error) {
-	var resourceCache *dbng.UsedResourceCache
-
-	if id.BuildID != 0 {
-		var err error
-		resourceCache, err = worker.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
-			logger,
-			&dbng.Build{ID: id.BuildID},
-			resourceTypeName,
-			version,
-			source,
-			params,
-			&dbng.Pipeline{ID: metadata.PipelineID},
-			resourceTypes,
-		)
-		if err != nil {
-			logger.Error("failed-to-get-resource-cache-for-build", err, lager.Data{"build-id": id.BuildID})
-			return nil, err
-		}
-	} else if id.ResourceID != 0 {
-		var err error
-		resourceCache, err = worker.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
-			logger,
-			&dbng.Resource{
-				ID: id.ResourceID,
-			},
-			resourceTypeName,
-			version,
-			source,
-			params,
-			&dbng.Pipeline{ID: metadata.PipelineID},
-			resourceTypes,
-		)
-		if err != nil {
-			logger.Error("failed-to-get-resource-cache-for-resource", err, lager.Data{"resource-id": id.ResourceID})
-			return nil, err
-		}
-	} else {
-		var err error
-		resourceCache, err = worker.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
-			logger,
-			resourceTypeName,
-			version,
-			source,
-			params,
-			&dbng.Pipeline{ID: metadata.PipelineID},
-			resourceTypes,
-		)
-		if err != nil {
-			logger.Error("failed-to-get-resource-cache-for-resource-type", err, lager.Data{"resource-type": resourceTypeName})
-			return nil, err
-		}
-	}
-
-	creatingContainer, err := worker.dbContainerFactory.CreateResourceGetContainer(
-		&dbng.Worker{
-			Name:       worker.name,
-			GardenAddr: &worker.addr,
-		},
-		resourceCache,
-		metadata.StepName,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-	return containerProvider.FindOrCreateContainer(
+	return containerProvider.FindOrCreateResourceGetContainer(
 		logger,
 		cancel,
-		creatingContainer,
 		delegate,
 		id,
 		metadata,
 		spec,
 		resourceTypes,
 		outputPaths,
+		resourceTypeName,
+		version,
+		source,
+		params,
 	)
 }
 
@@ -334,35 +245,19 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
-	resourceConfig, err := worker.dbResourceConfigFactory.FindOrCreateResourceConfigForResource(
+	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
+
+	return containerProvider.FindOrCreateResourceCheckContainer(
 		logger,
-		&dbng.Resource{
-			ID: id.ResourceID,
-		},
+		cancel,
+		delegate,
+		id,
+		metadata,
+		spec,
+		resourceTypes,
 		resourceType,
 		source,
-		&dbng.Pipeline{ID: metadata.PipelineID},
-		resourceTypes,
 	)
-	if err != nil {
-		logger.Error("failed-to-get-resource-config", err)
-		return nil, err
-	}
-
-	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
-		&dbng.Worker{
-			Name:       worker.name,
-			GardenAddr: &worker.addr,
-		},
-		resourceConfig,
-	)
-	if err != nil {
-		logger.Error("failed-to-create-check-container", err)
-		return nil, err
-	}
-
-	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-	return containerProvider.FindOrCreateContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, map[string]string{})
 }
 
 func (worker *gardenWorker) FindOrCreateResourceTypeCheckContainer(
@@ -376,30 +271,19 @@ func (worker *gardenWorker) FindOrCreateResourceTypeCheckContainer(
 	resourceTypeName string,
 	source atc.Source,
 ) (Container, error) {
-	resourceConfig, err := worker.dbResourceConfigFactory.FindOrCreateResourceConfigForResourceType(
+	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
+
+	return containerProvider.FindOrCreateResourceTypeCheckContainer(
 		logger,
+		cancel,
+		delegate,
+		id,
+		metadata,
+		spec,
+		resourceTypes,
 		resourceTypeName,
 		source,
-		&dbng.Pipeline{ID: metadata.PipelineID},
-		resourceTypes,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	creatingContainer, err := worker.dbContainerFactory.CreateResourceCheckContainer(
-		&dbng.Worker{
-			Name:       worker.name,
-			GardenAddr: &worker.addr,
-		},
-		resourceConfig,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-	return containerProvider.FindOrCreateContainer(logger, cancel, creatingContainer, delegate, id, metadata, spec, resourceTypes, map[string]string{})
 }
 
 func (worker *gardenWorker) FindOrCreateContainerForIdentifier(
@@ -557,6 +441,10 @@ func (worker *gardenWorker) Description() string {
 
 func (worker *gardenWorker) Name() string {
 	return worker.name
+}
+
+func (worker *gardenWorker) Address() *string {
+	return &worker.addr
 }
 
 func (worker *gardenWorker) ResourceTypes() []atc.WorkerResourceType {
