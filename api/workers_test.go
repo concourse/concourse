@@ -32,7 +32,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				userContextReader.GetTeamReturns("some-team", 5, false, true)
+				userContextReader.GetTeamReturns("some-team", false, true)
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
@@ -166,7 +166,7 @@ var _ = Describe("Workers API", func() {
 			}
 
 			ttl = "30s"
-			userContextReader.GetTeamReturns("some-team", 1, true, true)
+			userContextReader.GetTeamReturns("some-team", true, true)
 			userContextReader.GetSystemReturns(true, true)
 		})
 
@@ -533,7 +533,7 @@ var _ = Describe("Workers API", func() {
 				TeamName: "some-team",
 			}, true, nil)
 			authValidator.IsAuthenticatedReturns(true)
-			userContextReader.GetTeamReturns("some-team", 1, false, true)
+			userContextReader.GetTeamReturns("some-team", false, true)
 			dbWorkerFactory.PruneWorkerReturns(nil)
 		})
 

@@ -68,7 +68,7 @@ var _ = Describe("Pipes API", func() {
 		Describe("POST /api/v1/pipes", func() {
 			Context("when team not found", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("", 0, false, false)
+					userContextReader.GetTeamReturns("", false, false)
 				})
 				It("returns 500", func() {
 					createPipeWithError(http.StatusInternalServerError)
@@ -83,12 +83,12 @@ var _ = Describe("Pipes API", func() {
 				var pipe atc.Pipe
 
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("team1", 42, false, true)
+					userContextReader.GetTeamReturns("team1", false, true)
 					pipe = createPipe()
 					pipeDB.GetPipeReturns(db.Pipe{
-						ID:     pipe.ID,
-						URL:    peerAddr,
-						TeamID: 42,
+						ID:       pipe.ID,
+						URL:      peerAddr,
+						TeamName: "team1",
 					}, nil)
 				})
 
@@ -104,17 +104,17 @@ var _ = Describe("Pipes API", func() {
 
 				It("saves it", func() {
 					Expect(pipeDB.CreatePipeCallCount()).To(Equal(1))
-					_, _, teamID := pipeDB.CreatePipeArgsForCall(0)
-					Expect(teamID).To(Equal(42))
+					_, _, teamName := pipeDB.CreatePipeArgsForCall(0)
+					Expect(teamName).To(Equal("team1"))
 				})
 
 				Describe("GET /api/v1/pipes/:pipe", func() {
 					var readRes *http.Response
 					Context("when not authorized", func() {
 						BeforeEach(func() {
-							userContextReader.GetTeamReturns("team", 42, false, true)
+							userContextReader.GetTeamReturns("team", false, true)
 							pipe := createPipe()
-							userContextReader.GetTeamReturns("another-team", 3, false, true)
+							userContextReader.GetTeamReturns("another-team", false, true)
 							readRes = readPipe(pipe.ID)
 						})
 						It("returns 403 Forbidden", func() {
@@ -124,9 +124,9 @@ var _ = Describe("Pipes API", func() {
 
 					Context("when team not found", func() {
 						BeforeEach(func() {
-							userContextReader.GetTeamReturns("team", 42, false, true)
+							userContextReader.GetTeamReturns("team", false, true)
 							pipe := createPipe()
-							userContextReader.GetTeamReturns("", 0, false, false)
+							userContextReader.GetTeamReturns("", false, false)
 							readRes = readPipe(pipe.ID)
 						})
 						It("returns 500", func() {
@@ -151,7 +151,7 @@ var _ = Describe("Pipes API", func() {
 							var writeRes *http.Response
 							Context("when not authorized", func() {
 								BeforeEach(func() {
-									userContextReader.GetTeamReturns("another-team", 3, false, true)
+									userContextReader.GetTeamReturns("another-team", false, true)
 									writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
 								})
 								It("returns 403 Forbidden", func() {
@@ -161,7 +161,7 @@ var _ = Describe("Pipes API", func() {
 
 							Context("when team not found", func() {
 								BeforeEach(func() {
-									userContextReader.GetTeamReturns("", 0, false, false)
+									userContextReader.GetTeamReturns("", false, false)
 									writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
 								})
 								It("returns 500", func() {
@@ -171,7 +171,7 @@ var _ = Describe("Pipes API", func() {
 
 							Context("when authorized", func() {
 								BeforeEach(func() {
-									userContextReader.GetTeamReturns("team", 42, false, true)
+									userContextReader.GetTeamReturns("team1", false, true)
 									writeRes = writePipe(pipe.ID, bytes.NewBufferString("some data"))
 								})
 
@@ -236,9 +236,9 @@ var _ = Describe("Pipes API", func() {
 						otherATCServer = ghttp.NewServer()
 
 						pipeDB.GetPipeReturns(db.Pipe{
-							ID:     "some-guid",
-							URL:    otherATCServer.URL(),
-							TeamID: 42,
+							ID:       "some-guid",
+							URL:      otherATCServer.URL(),
+							TeamName: "team1",
 						}, nil)
 					})
 

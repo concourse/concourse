@@ -331,7 +331,7 @@ var _ = Describe("Auth API", func() {
 
 				Context("auth found in the context", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-team", 5, false, true)
+						userContextReader.GetTeamReturns("some-team", false, true)
 					})
 
 					Context("as an user in a some-team", func() {

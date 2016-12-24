@@ -141,7 +141,7 @@ var _ = Describe("Config API", func() {
 		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 42, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
 			Context("when the config can be loaded", func() {
@@ -244,7 +244,7 @@ var _ = Describe("Config API", func() {
 		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 42, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
 			Context("when a config version is specified", func() {

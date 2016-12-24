@@ -99,7 +99,7 @@ var _ = Describe("Resources API", func() {
 			Context("when not authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(false)
-					userContextReader.GetTeamReturns("", 0, false, false)
+					userContextReader.GetTeamReturns("", false, false)
 				})
 
 				Context("and the pipeline is private", func() {
@@ -155,7 +155,7 @@ var _ = Describe("Resources API", func() {
 			Context("when authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 1, true, true)
+					userContextReader.GetTeamReturns("a-team", true, true)
 				})
 
 				It("returns 200 OK", func() {
@@ -237,7 +237,7 @@ var _ = Describe("Resources API", func() {
 		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", 0, false, false)
+				userContextReader.GetTeamReturns("", false, false)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -289,7 +289,7 @@ var _ = Describe("Resources API", func() {
 		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 1, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
 			It("looks it up in the database", func() {
@@ -392,7 +392,7 @@ var _ = Describe("Resources API", func() {
 		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 42, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
 			It("injects the proper pipelineDB", func() {
@@ -474,7 +474,7 @@ var _ = Describe("Resources API", func() {
 		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 42, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
 			It("injects the proper pipelineDB", func() {
@@ -559,7 +559,7 @@ var _ = Describe("Resources API", func() {
 		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 42, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
 			It("injects the proper pipelineDB", func() {

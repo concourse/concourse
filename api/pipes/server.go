@@ -25,7 +25,7 @@ type Server struct {
 //go:generate counterfeiter . PipeDB
 
 type PipeDB interface {
-	CreatePipe(pipeGUID string, url string, teamID int) error
+	CreatePipe(pipeGUID string, url string, teamName string) error
 	GetPipe(pipeGUID string) (db.Pipe, error)
 }
 
