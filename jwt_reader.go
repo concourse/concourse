@@ -11,26 +11,24 @@ type JWTReader struct {
 	PublicKey *rsa.PublicKey
 }
 
-func (jr JWTReader) GetTeam(r *http.Request) (string, int, bool, bool) {
+func (jr JWTReader) GetTeam(r *http.Request) (string, bool, bool) {
 	token, err := getJWT(r, jr.PublicKey)
 	if err != nil {
-		return "", 0, false, false
+		return "", false, false
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
 	teamNameInterface, teamNameOK := claims[teamNameClaimKey]
-	teamIDInterface, teamIDOK := claims[teamIDClaimKey]
 	isAdminInterface, isAdminOK := claims[isAdminClaimKey]
 
-	if !(teamNameOK && teamIDOK && isAdminOK) {
-		return "", 0, false, false
+	if !(teamNameOK && isAdminOK) {
+		return "", false, false
 	}
 
 	teamName := teamNameInterface.(string)
-	teamID := int(teamIDInterface.(float64))
 	isAdmin := isAdminInterface.(bool)
 
-	return teamName, teamID, isAdmin, true
+	return teamName, isAdmin, true
 }
 
 func (jr JWTReader) GetSystem(r *http.Request) (bool, bool) {

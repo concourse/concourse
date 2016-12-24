@@ -109,7 +109,7 @@ var _ = Describe("WrapHandler", func() {
 
 		Context("when the userContextReader finds team information", func() {
 			BeforeEach(func() {
-				fakeUserContextReader.GetTeamReturns("some-team", 9, true, true)
+				fakeUserContextReader.GetTeamReturns("some-team", true, true)
 			})
 
 			It("passes the team information along in the request object", func() {
@@ -121,7 +121,7 @@ var _ = Describe("WrapHandler", func() {
 
 		Context("when the userContextReader does not find team information", func() {
 			BeforeEach(func() {
-				fakeUserContextReader.GetTeamReturns("", 0, false, false)
+				fakeUserContextReader.GetTeamReturns("", false, false)
 			})
 
 			It("does not pass team information along in the request object", func() {
