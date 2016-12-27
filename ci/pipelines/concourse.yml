@@ -310,6 +310,7 @@ jobs:
 
 - name: bosh-deploy
   serial: true
+  interruptible: true
   plan:
   - aggregate:
     - get: concourse
