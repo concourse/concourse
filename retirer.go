@@ -29,7 +29,7 @@ func (l *Retirer) Retire(logger lager.Logger, worker atc.Worker) error {
 		return err
 	}
 
-	jwtToken, err := l.TokenGenerator.GenerateToken()
+	jwtToken, err := l.TokenGenerator.GenerateSystemToken()
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
 		return err

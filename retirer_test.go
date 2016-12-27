@@ -28,7 +28,7 @@ var _ = Describe("Retirer", func() {
 			Name: "some-worker",
 		}
 		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
-		fakeTokenGenerator.GenerateTokenReturns("yo", nil)
+		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
 
 		fakeATC = ghttp.NewServer()
 

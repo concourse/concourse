@@ -133,7 +133,8 @@ var _ = Describe("Heartbeater", func() {
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
 
-		fakeTokenGenerator.GenerateTokenReturns("yo", nil)
+		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
+		fakeTokenGenerator.GenerateTeamTokenReturns("yo", nil)
 		clientWriter = gbytes.NewBuffer()
 	})
 

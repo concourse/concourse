@@ -8,10 +8,19 @@ import (
 )
 
 type FakeTokenGenerator struct {
-	GenerateTokenStub        func() (string, error)
-	generateTokenMutex       sync.RWMutex
-	generateTokenArgsForCall []struct{}
-	generateTokenReturns     struct {
+	GenerateSystemTokenStub        func() (string, error)
+	generateSystemTokenMutex       sync.RWMutex
+	generateSystemTokenArgsForCall []struct{}
+	generateSystemTokenReturns     struct {
+		result1 string
+		result2 error
+	}
+	GenerateTeamTokenStub        func(teamName string) (string, error)
+	generateTeamTokenMutex       sync.RWMutex
+	generateTeamTokenArgsForCall []struct {
+		teamName string
+	}
+	generateTeamTokenReturns struct {
 		result1 string
 		result2 error
 	}
@@ -19,27 +28,61 @@ type FakeTokenGenerator struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTokenGenerator) GenerateToken() (string, error) {
-	fake.generateTokenMutex.Lock()
-	fake.generateTokenArgsForCall = append(fake.generateTokenArgsForCall, struct{}{})
-	fake.recordInvocation("GenerateToken", []interface{}{})
-	fake.generateTokenMutex.Unlock()
-	if fake.GenerateTokenStub != nil {
-		return fake.GenerateTokenStub()
+func (fake *FakeTokenGenerator) GenerateSystemToken() (string, error) {
+	fake.generateSystemTokenMutex.Lock()
+	fake.generateSystemTokenArgsForCall = append(fake.generateSystemTokenArgsForCall, struct{}{})
+	fake.recordInvocation("GenerateSystemToken", []interface{}{})
+	fake.generateSystemTokenMutex.Unlock()
+	if fake.GenerateSystemTokenStub != nil {
+		return fake.GenerateSystemTokenStub()
 	} else {
-		return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2
+		return fake.generateSystemTokenReturns.result1, fake.generateSystemTokenReturns.result2
 	}
 }
 
-func (fake *FakeTokenGenerator) GenerateTokenCallCount() int {
-	fake.generateTokenMutex.RLock()
-	defer fake.generateTokenMutex.RUnlock()
-	return len(fake.generateTokenArgsForCall)
+func (fake *FakeTokenGenerator) GenerateSystemTokenCallCount() int {
+	fake.generateSystemTokenMutex.RLock()
+	defer fake.generateSystemTokenMutex.RUnlock()
+	return len(fake.generateSystemTokenArgsForCall)
 }
 
-func (fake *FakeTokenGenerator) GenerateTokenReturns(result1 string, result2 error) {
-	fake.GenerateTokenStub = nil
-	fake.generateTokenReturns = struct {
+func (fake *FakeTokenGenerator) GenerateSystemTokenReturns(result1 string, result2 error) {
+	fake.GenerateSystemTokenStub = nil
+	fake.generateSystemTokenReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTokenGenerator) GenerateTeamToken(teamName string) (string, error) {
+	fake.generateTeamTokenMutex.Lock()
+	fake.generateTeamTokenArgsForCall = append(fake.generateTeamTokenArgsForCall, struct {
+		teamName string
+	}{teamName})
+	fake.recordInvocation("GenerateTeamToken", []interface{}{teamName})
+	fake.generateTeamTokenMutex.Unlock()
+	if fake.GenerateTeamTokenStub != nil {
+		return fake.GenerateTeamTokenStub(teamName)
+	} else {
+		return fake.generateTeamTokenReturns.result1, fake.generateTeamTokenReturns.result2
+	}
+}
+
+func (fake *FakeTokenGenerator) GenerateTeamTokenCallCount() int {
+	fake.generateTeamTokenMutex.RLock()
+	defer fake.generateTeamTokenMutex.RUnlock()
+	return len(fake.generateTeamTokenArgsForCall)
+}
+
+func (fake *FakeTokenGenerator) GenerateTeamTokenArgsForCall(i int) string {
+	fake.generateTeamTokenMutex.RLock()
+	defer fake.generateTeamTokenMutex.RUnlock()
+	return fake.generateTeamTokenArgsForCall[i].teamName
+}
+
+func (fake *FakeTokenGenerator) GenerateTeamTokenReturns(result1 string, result2 error) {
+	fake.GenerateTeamTokenStub = nil
+	fake.generateTeamTokenReturns = struct {
 		result1 string
 		result2 error
 	}{result1, result2}
@@ -48,8 +91,10 @@ func (fake *FakeTokenGenerator) GenerateTokenReturns(result1 string, result2 err
 func (fake *FakeTokenGenerator) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.generateTokenMutex.RLock()
-	defer fake.generateTokenMutex.RUnlock()
+	fake.generateSystemTokenMutex.RLock()
+	defer fake.generateSystemTokenMutex.RUnlock()
+	fake.generateTeamTokenMutex.RLock()
+	defer fake.generateTeamTokenMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -133,7 +133,7 @@ func (heartbeater *heartbeater) register(logger lager.Logger) bool {
 		return false
 	}
 
-	jwtToken, err := heartbeater.tokenGenerator.GenerateToken()
+	jwtToken, err := heartbeater.tokenGenerator.GenerateSystemToken()
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
 		return false
@@ -213,7 +213,7 @@ func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 		return HeartbeatStatusUnhealthy
 	}
 
-	jwtToken, err := heartbeater.tokenGenerator.GenerateToken()
+	jwtToken, err := heartbeater.tokenGenerator.GenerateSystemToken()
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
 		return HeartbeatStatusUnhealthy

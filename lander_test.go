@@ -28,7 +28,8 @@ var _ = Describe("Lander", func() {
 			Name: "some-worker",
 		}
 		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
-		fakeTokenGenerator.GenerateTokenReturns("yo", nil)
+		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
+		fakeTokenGenerator.GenerateTeamTokenReturns("yo-team", nil)
 
 		fakeATC = ghttp.NewServer()
 
@@ -44,6 +45,25 @@ var _ = Describe("Lander", func() {
 		fakeATC.Close()
 	})
 
+	Context("when the worker request is for a team-owned worker", func() {
+		BeforeEach(func() {
+			worker.Team = "some-team"
+		})
+
+		It("generates a team-specific token", func() {
+			fakeATC.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+				ghttp.VerifyHeaderKV("Authorization", "Bearer yo-team"),
+				ghttp.RespondWith(200, nil, nil),
+			))
+
+			err := lander.Land(logger, worker)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
+	})
+
 	It("tells the ATC to land the worker", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
 			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
@@ -55,6 +75,23 @@ var _ = Describe("Lander", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+	})
+
+	Context("when the ATC responds with a 403", func() {
+		BeforeEach(func() {
+			fakeATC.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+				ghttp.RespondWith(403, nil, nil),
+			))
+		})
+
+		It("errors", func() {
+			err := lander.Land(logger, worker)
+			Expect(err).To(HaveOccurred())
+
+			Expect(err).To(MatchError(ContainSubstring("403")))
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
 	})
 
 	Context("when the ATC responds with a 404", func() {
