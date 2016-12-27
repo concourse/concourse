@@ -9,12 +9,11 @@ import (
 )
 
 type FakeTokenGenerator struct {
-	GenerateTokenStub        func(expiration time.Time, teamName string, teamID int, isAdmin bool) (auth.TokenType, auth.TokenValue, error)
+	GenerateTokenStub        func(expiration time.Time, teamName string, isAdmin bool) (auth.TokenType, auth.TokenValue, error)
 	generateTokenMutex       sync.RWMutex
 	generateTokenArgsForCall []struct {
 		expiration time.Time
 		teamName   string
-		teamID     int
 		isAdmin    bool
 	}
 	generateTokenReturns struct {
@@ -26,18 +25,17 @@ type FakeTokenGenerator struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTokenGenerator) GenerateToken(expiration time.Time, teamName string, teamID int, isAdmin bool) (auth.TokenType, auth.TokenValue, error) {
+func (fake *FakeTokenGenerator) GenerateToken(expiration time.Time, teamName string, isAdmin bool) (auth.TokenType, auth.TokenValue, error) {
 	fake.generateTokenMutex.Lock()
 	fake.generateTokenArgsForCall = append(fake.generateTokenArgsForCall, struct {
 		expiration time.Time
 		teamName   string
-		teamID     int
 		isAdmin    bool
-	}{expiration, teamName, teamID, isAdmin})
-	fake.recordInvocation("GenerateToken", []interface{}{expiration, teamName, teamID, isAdmin})
+	}{expiration, teamName, isAdmin})
+	fake.recordInvocation("GenerateToken", []interface{}{expiration, teamName, isAdmin})
 	fake.generateTokenMutex.Unlock()
 	if fake.GenerateTokenStub != nil {
-		return fake.GenerateTokenStub(expiration, teamName, teamID, isAdmin)
+		return fake.GenerateTokenStub(expiration, teamName, isAdmin)
 	} else {
 		return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2, fake.generateTokenReturns.result3
 	}
@@ -49,10 +47,10 @@ func (fake *FakeTokenGenerator) GenerateTokenCallCount() int {
 	return len(fake.generateTokenArgsForCall)
 }
 
-func (fake *FakeTokenGenerator) GenerateTokenArgsForCall(i int) (time.Time, string, int, bool) {
+func (fake *FakeTokenGenerator) GenerateTokenArgsForCall(i int) (time.Time, string, bool) {
 	fake.generateTokenMutex.RLock()
 	defer fake.generateTokenMutex.RUnlock()
-	return fake.generateTokenArgsForCall[i].expiration, fake.generateTokenArgsForCall[i].teamName, fake.generateTokenArgsForCall[i].teamID, fake.generateTokenArgsForCall[i].isAdmin
+	return fake.generateTokenArgsForCall[i].expiration, fake.generateTokenArgsForCall[i].teamName, fake.generateTokenArgsForCall[i].isAdmin
 }
 
 func (fake *FakeTokenGenerator) GenerateTokenReturns(result1 auth.TokenType, result2 auth.TokenValue, result3 error) {
