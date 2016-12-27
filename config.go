@@ -181,32 +181,24 @@ func collectPlans(plan PlanConfig) []PlanConfig {
 	return append(plans, plan)
 }
 
-func (config JobConfig) Inputs() []string {
-	var inputs []string
+func (config JobConfig) Inputs() []PlanConfig {
+	var inputs []PlanConfig
 
 	for _, plan := range config.Plans() {
 		if plan.Get != "" {
-			if plan.Resource != "" {
-				inputs = append(inputs, plan.Resource)
-			} else {
-				inputs = append(inputs, plan.Get)
-			}
+			inputs = append(inputs, plan)
 		}
 	}
 
 	return inputs
 }
 
-func (config JobConfig) Outputs() []string {
-	var outputs []string
+func (config JobConfig) Outputs() []PlanConfig {
+	var outputs []PlanConfig
 
 	for _, plan := range config.Plans() {
 		if plan.Put != "" {
-			if plan.Resource != "" {
-				outputs = append(outputs, plan.Resource)
-			} else {
-				outputs = append(outputs, plan.Put)
-			}
+			outputs = append(outputs, plan)
 		}
 	}
 

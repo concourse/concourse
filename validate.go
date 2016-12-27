@@ -172,10 +172,10 @@ func usedResources(c Config) map[string]bool {
 
 	for _, job := range c.Jobs {
 		for _, input := range job.Inputs() {
-			usedResources[input] = true
+			usedResources[input.Resource] = true
 		}
 		for _, output := range job.Outputs() {
-			usedResources[output] = true
+			usedResources[output.Resource] = true
 		}
 	}
 
@@ -355,14 +355,14 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []st
 				foundResource := false
 
 				for _, input := range jobConfig.Inputs() {
-					if input == plan.ResourceName() {
+					if input.ResourceName() == plan.ResourceName() {
 						foundResource = true
 						break
 					}
 				}
 
 				for _, output := range jobConfig.Outputs() {
-					if output == plan.ResourceName() {
+					if output.ResourceName() == plan.ResourceName() {
 						foundResource = true
 						break
 					}
