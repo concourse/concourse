@@ -28,10 +28,10 @@ func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if authTeam.ID() != dbPipe.TeamID {
+	if authTeam.Name() != dbPipe.TeamName {
 		logger.Error("team-not-authorized-to-read-pipe",
 			errors.New("team-not-authorized-to-read-pipe"),
-			lager.Data{"TeamID": authTeam.ID(), "PipeID": dbPipe.ID})
+			lager.Data{"TeamName": authTeam.Name(), "PipeID": dbPipe.ID})
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}

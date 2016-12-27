@@ -44,11 +44,5 @@ func (c *dbGarbageCollector) Run() error {
 		return err
 	}
 
-	err = c.db.ReapExpiredWorkers()
-	if err != nil {
-		c.logger.Error("failed-to-reap-expired-workers", err)
-		return err
-	}
-
 	return nil
 }

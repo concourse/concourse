@@ -14,12 +14,15 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/retryhttp/retryhttpfakes"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
@@ -32,6 +35,7 @@ var _ = Describe("DBProvider", func() {
 
 		fakeGardenBackend  *gfakes.FakeBackend
 		gardenAddr         string
+		baggageclaimURL    string
 		baggageclaimServer *ghttp.Server
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
@@ -40,6 +44,7 @@ var _ = Describe("DBProvider", func() {
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
 		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
+		fakeDBWorkerFactory   *dbngfakes.FakeWorkerFactory
 
 		workers    []Worker
 		workersErr error
@@ -47,6 +52,7 @@ var _ = Describe("DBProvider", func() {
 
 	BeforeEach(func() {
 		baggageclaimServer = ghttp.NewServer()
+		baggageclaimURL = baggageclaimServer.URL()
 
 		baggageclaimServer.RouteToHandler("POST", "/volumes", ghttp.RespondWithJSONEncoded(
 			http.StatusCreated,
@@ -84,7 +90,8 @@ var _ = Describe("DBProvider", func() {
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
 
-		provider = NewDBWorkerProvider(logger, fakeDB, nil, fakeBackOffFactory, fakeImageFactory, fakePipelineDBFactory)
+		fakeDBWorkerFactory = new(dbngfakes.FakeWorkerFactory)
+		provider = NewDBWorkerProvider(logger, fakeDB, nil, fakeBackOffFactory, fakeImageFactory, fakePipelineDBFactory, fakeDBWorkerFactory)
 	})
 
 	AfterEach(func() {
@@ -102,33 +109,32 @@ var _ = Describe("DBProvider", func() {
 		baggageclaimServer.Close()
 	})
 
-	Context("when we call to get multiple workers", func() {
+	Describe("RunningWorkers", func() {
 		JustBeforeEach(func() {
-			workers, workersErr = provider.Workers()
+			workers, workersErr = provider.RunningWorkers()
 		})
 
 		Context("when the database yields workers", func() {
 			BeforeEach(func() {
-				fakeDB.WorkersReturns([]db.SavedWorker{
+				fakeDBWorkerFactory.WorkersReturns([]*dbng.Worker{
 					{
-						WorkerInfo: db.WorkerInfo{
-							Name:             "some-worker",
-							GardenAddr:       gardenAddr,
-							BaggageclaimURL:  baggageclaimServer.URL(),
-							ActiveContainers: 2,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource-a", Image: "some-image-a"},
-							},
+						Name:             "some-worker",
+						GardenAddr:       &gardenAddr,
+						BaggageclaimURL:  &baggageclaimURL,
+						State:            dbng.WorkerStateRunning,
+						ActiveContainers: 2,
+						ResourceTypes: []atc.WorkerResourceType{
+							{Type: "some-resource-a", Image: "some-image-a"},
 						},
 					},
 					{
-						WorkerInfo: db.WorkerInfo{
-							Name:             "some-other-worker",
-							GardenAddr:       gardenAddr,
-							ActiveContainers: 2,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource-b", Image: "some-image-b"},
-							},
+						Name:             "some-other-worker",
+						GardenAddr:       &gardenAddr,
+						BaggageclaimURL:  &baggageclaimURL,
+						State:            dbng.WorkerStateRunning,
+						ActiveContainers: 2,
+						ResourceTypes: []atc.WorkerResourceType{
+							{Type: "some-resource-b", Image: "some-image-b"},
 						},
 					},
 				}, nil)
@@ -140,6 +146,47 @@ var _ = Describe("DBProvider", func() {
 
 			It("returns a worker for each one", func() {
 				Expect(workers).To(HaveLen(2))
+			})
+
+			Context("when some of the workers returned are stalled or landing", func() {
+				BeforeEach(func() {
+					fakeDBWorkerFactory.WorkersReturns([]*dbng.Worker{
+						{
+							Name:             "some-worker",
+							GardenAddr:       &gardenAddr,
+							BaggageclaimURL:  &baggageclaimURL,
+							State:            dbng.WorkerStateRunning,
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource-a", Image: "some-image-a"},
+							},
+						},
+						{
+							Name:             "stalled-worker",
+							GardenAddr:       &gardenAddr,
+							BaggageclaimURL:  &baggageclaimURL,
+							State:            dbng.WorkerStateStalled,
+							ActiveContainers: 0,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource-b", Image: "some-image-b"},
+							},
+						},
+						{
+							Name:             "landing-worker",
+							GardenAddr:       &gardenAddr,
+							State:            dbng.WorkerStateLanding,
+							BaggageclaimURL:  &baggageclaimURL,
+							ActiveContainers: 5,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource-a", Image: "some-image-a"},
+							},
+						},
+					}, nil)
+				})
+
+				It("only returns workers for the running ones", func() {
+					Expect(workers).To(HaveLen(1))
+				})
 			})
 
 			Context("creating the connection to garden", func() {
@@ -193,7 +240,7 @@ var _ = Describe("DBProvider", func() {
 
 			Describe("a created container", func() {
 				BeforeEach(func() {
-					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
+					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr, BaggageclaimURL: &baggageclaimURL}, true, nil)
 				})
 
 				It("calls through to garden", func() {
@@ -274,7 +321,7 @@ var _ = Describe("DBProvider", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeDB.WorkersReturns(nil, disaster)
+				fakeDBWorkerFactory.WorkersReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -283,13 +330,13 @@ var _ = Describe("DBProvider", func() {
 		})
 	})
 
-	Context("when we call to get a single worker", func() {
+	Describe("GetWorker", func() {
 		var found bool
 		var worker Worker
 
 		Context("when looking up workers returns an error", func() {
 			It("returns an error", func() {
-				fakeDB.GetWorkerReturns(db.SavedWorker{}, true, errors.New("disaster"))
+				fakeDBWorkerFactory.GetWorkerReturns(nil, false, errors.New("disaster"))
 
 				worker, found, workersErr = provider.GetWorker("a-worker")
 				Expect(workersErr).To(HaveOccurred())
@@ -300,8 +347,6 @@ var _ = Describe("DBProvider", func() {
 
 		Context("when we find no workers", func() {
 			It("returns found as false", func() {
-				fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
-
 				worker, found, workersErr = provider.GetWorker("no-worker")
 				Expect(workersErr).NotTo(HaveOccurred())
 				Expect(worker).To(BeNil())
@@ -309,22 +354,35 @@ var _ = Describe("DBProvider", func() {
 			})
 		})
 
-		Context("when we find worker", func() {
-			It("returns the found worker", func() {
-				fakeDB.GetWorkerReturns(db.SavedWorker{
-					WorkerInfo: db.WorkerInfo{
-						Name:   "some-worker",
-						TeamID: 123,
-					},
+		DescribeTable("finding existing worker",
+			func(workerState dbng.WorkerState, expectedExistence bool) {
+				addr := "1.2.3.4:7777"
+				fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{
+					Name:       "some-worker",
+					TeamID:     123,
+					GardenAddr: &addr,
+					State:      workerState,
 				}, true, nil)
 
 				worker, found, workersErr = provider.GetWorker("some-worker")
-				Expect(workersErr).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(worker.Name()).To(Equal("some-worker"))
-				Expect(worker.IsOwnedByTeam()).To(BeTrue())
-			})
-		})
+				if expectedExistence {
+					Expect(workersErr).NotTo(HaveOccurred())
+				} else {
+					Expect(workersErr).To(HaveOccurred())
+					Expect(workersErr).To(Equal(ErrDesiredWorkerNotRunning))
+				}
+				Expect(found).To(Equal(expectedExistence))
+				if expectedExistence {
+					Expect(worker.Name()).To(Equal("some-worker"))
+				}
+			},
+
+			Entry("running", dbng.WorkerStateRunning, true),
+			Entry("landing", dbng.WorkerStateLanding, true),
+			Entry("landed", dbng.WorkerStateLanded, false),
+			Entry("stalled", dbng.WorkerStateStalled, false),
+			Entry("retiring", dbng.WorkerStateRetiring, true),
+		)
 	})
 
 	Context("when we call to get a container info by identifier", func() {

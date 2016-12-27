@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/concourse/atc"
@@ -204,19 +205,20 @@ var _ = Describe("PipelineDB", func() {
 		otherPipelineDB    db.PipelineDB
 		savedPipeline      db.SavedPipeline
 		otherSavedPipeline db.SavedPipeline
+		savedTeam          db.SavedTeam
 	)
 
 	BeforeEach(func() {
 		var err error
-		_, err = sqlDB.CreateTeam(db.Team{Name: "some-team"})
+		savedTeam, err = sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 
-		savedPipeline, _, err = teamDB.SaveConfig("a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+		savedPipeline, _, err = teamDB.SaveConfigToBeDeprecated("a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		otherSavedPipeline, _, err = teamDB.SaveConfig("other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
+		otherSavedPipeline, _, err = teamDB.SaveConfigToBeDeprecated("other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
@@ -226,7 +228,7 @@ var _ = Describe("PipelineDB", func() {
 	Describe("destroying a pipeline", func() {
 		It("can be deleted", func() {
 			// populate pipelines table
-			pipelineThatWillBeDeleted, _, err := teamDB.SaveConfig("a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
+			pipelineThatWillBeDeleted, _, err := teamDB.SaveConfigToBeDeprecated("a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			fetchedPipeline, found, err := teamDB.GetPipelineByName("a-pipeline-that-will-be-deleted")
@@ -296,7 +298,6 @@ var _ = Describe("PipelineDB", func() {
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			// populate build_events table
 			err = build.SaveEvent(event.StartTask{})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -338,7 +339,7 @@ var _ = Describe("PipelineDB", func() {
 
 			jobRows.Close()
 
-			eventRows, err := dbConn.Query(`select build_id from build_events where build_id = $1`, build.ID())
+			eventRows, err := dbConn.Query(fmt.Sprintf(`select build_id from team_build_events_%d where build_id = $1`, savedTeam.ID), build.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(eventRows.Next()).To(BeFalse())
 
@@ -440,7 +441,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				team2DB = teamDBFactory.GetTeamDB(team2.Name)
-				_, _, err = team2DB.SaveConfig("a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+				_, _, err = team2DB.SaveConfigToBeDeprecated("a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -507,9 +508,9 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			By("being able to update the config with a valid config")
-			_, _, err := teamDB.SaveConfig("a-pipeline-name", updatedConfig, pipelineDB.ConfigVersion(), db.PipelineUnpaused)
+			_, _, err := teamDB.SaveConfigToBeDeprecated("a-pipeline-name", updatedConfig, pipelineDB.ConfigVersion(), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-			_, _, err = teamDB.SaveConfig("other-pipeline-name", updatedConfig, otherPipelineDB.ConfigVersion(), db.PipelineUnpaused)
+			_, _, err = teamDB.SaveConfigToBeDeprecated("other-pipeline-name", updatedConfig, otherPipelineDB.ConfigVersion(), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the updated config")
@@ -1838,7 +1839,7 @@ var _ = Describe("PipelineDB", func() {
 						},
 					},
 				}
-				_, _, err := teamDB.SaveConfig("a-pipeline-name", pipelineConfig, 1, db.PipelineUnpaused)
+				_, _, err := teamDB.SaveConfigToBeDeprecated("a-pipeline-name", pipelineConfig, 1, db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -2092,6 +2093,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(build.Status()).To(Equal(db.StatusPending))
 				Expect(build.IsScheduled()).To(BeFalse())
 				Expect(build.TeamName()).To(Equal("some-team"))
+				Expect(build.IsManuallyTriggered()).To(BeTrue())
 			})
 		})
 

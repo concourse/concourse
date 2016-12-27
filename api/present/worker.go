@@ -2,13 +2,22 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func Worker(workerInfo db.SavedWorker) atc.Worker {
+func Worker(workerInfo dbng.Worker) atc.Worker {
+	gardenAddr := ""
+	if workerInfo.GardenAddr != nil {
+		gardenAddr = *workerInfo.GardenAddr
+	}
+	baggageclaimURL := ""
+	if workerInfo.BaggageclaimURL != nil {
+		baggageclaimURL = *workerInfo.BaggageclaimURL
+	}
+
 	return atc.Worker{
-		GardenAddr:       workerInfo.GardenAddr,
-		BaggageclaimURL:  workerInfo.BaggageclaimURL,
+		GardenAddr:       gardenAddr,
+		BaggageclaimURL:  baggageclaimURL,
 		HTTPProxyURL:     workerInfo.HTTPProxyURL,
 		HTTPSProxyURL:    workerInfo.HTTPSProxyURL,
 		NoProxy:          workerInfo.NoProxy,
@@ -18,5 +27,6 @@ func Worker(workerInfo db.SavedWorker) atc.Worker {
 		Tags:             workerInfo.Tags,
 		Name:             workerInfo.Name,
 		Team:             workerInfo.TeamName,
+		State:            string(workerInfo.State),
 	}
 }

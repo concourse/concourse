@@ -111,7 +111,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		Context("when authenticated and accessing same team's build", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", 42, true, true)
+				userContextReader.GetTeamReturns("some-team", true, true)
 			})
 
 			WithExistingBuild(ItReturnsTheBuild)
@@ -120,7 +120,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		Context("when authenticated but accessing different team's build", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("other-team-name", 0, false, true)
+				userContextReader.GetTeamReturns("other-team-name", false, true)
 			})
 
 			WithExistingBuild(func() {
@@ -147,7 +147,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", 0, false, false)
+				userContextReader.GetTeamReturns("", false, false)
 			})
 
 			WithExistingBuild(func() {
@@ -257,7 +257,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		Context("when authenticated and accessing same team's build", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", 42, true, true)
+				userContextReader.GetTeamReturns("some-team", true, true)
 			})
 
 			WithExistingBuild(ItReturnsTheBuild)
@@ -266,7 +266,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		Context("when authenticated but accessing different team's build", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("other-team-name", 0, false, true)
+				userContextReader.GetTeamReturns("other-team-name", false, true)
 			})
 
 			WithExistingBuild(func() {
@@ -277,7 +277,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", 0, false, false)
+				userContextReader.GetTeamReturns("", false, false)
 			})
 
 			WithExistingBuild(func() {

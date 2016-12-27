@@ -35,6 +35,7 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 
 		w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
 		w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Add("X-Accel-Buffering", "no")
 		w.Header().Add(ProtocolVersionHeader, CurrentProtocolVersion)
 
 		writer := eventWriter{

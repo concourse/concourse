@@ -140,7 +140,7 @@ var _ = Describe("Volumes are reaped", func() {
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{fakeSavedPipeline}, nil)
 			fakePipelineDBFactory.BuildReturns(&fakePipelineDB)
 			fakePipelineDB.GetLatestEnabledVersionedResourceReturns(fakeSavedVersionedResource, true, nil)
-			fakeWorkerClient.WorkersReturns([]worker.Worker{fakeWorker}, nil)
+			fakeWorkerClient.RunningWorkersReturns([]worker.Worker{fakeWorker}, nil)
 			fakeWorker.LookupVolumeReturns(fakeVolume, true, nil)
 		})
 
@@ -154,7 +154,7 @@ var _ = Describe("Volumes are reaped", func() {
 
 	Context("when the worker can not be found", func() {
 		BeforeEach(func() {
-			fakeWorkerClient.WorkersReturns([]worker.Worker{}, nil)
+			fakeWorkerClient.RunningWorkersReturns([]worker.Worker{}, nil)
 		})
 
 		It("does not expire volume", func() {
@@ -167,7 +167,7 @@ var _ = Describe("Volumes are reaped", func() {
 
 	Context("the volume is no longer found on the worker", func() {
 		BeforeEach(func() {
-			fakeWorkerClient.WorkersReturns([]worker.Worker{fakeWorker}, nil)
+			fakeWorkerClient.RunningWorkersReturns([]worker.Worker{fakeWorker}, nil)
 			fakeWorker.LookupVolumeReturns(nil, false, nil)
 		})
 

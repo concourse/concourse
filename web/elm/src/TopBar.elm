@@ -94,15 +94,21 @@ update msg model =
       )
 
     PipelineFetched (Err (Http.BadResponse 401 _)) ->
-      (model, LoginRedirect.requestLoginRedirect "")
+      case model.route.logical of
+        Routes.SelectTeam ->
+          (model, Cmd.none)
+        Routes.TeamLogin _ ->
+          (model, Cmd.none)
+        _ ->
+          (model, LoginRedirect.requestLoginRedirect "")
 
     PipelineFetched (Err err) ->
-      Debug.log
-        ("failed to load pipeline: " ++ toString err)
+      flip always (Debug.log("failed to load pipeline") (err) ) <|
         (model, Cmd.none)
 
     ToggleSidebar ->
-      Debug.log "sidebar-toggle-incorrectly-handled: " (model, Cmd.none)
+      flip always (Debug.log("sidebar-toggle-incorrectly-handled") () ) <|
+        (model, Cmd.none)
 
     ToggleGroup group ->
       setGroups (toggleGroup group model.selectedGroups model.pipeline) model
@@ -133,9 +139,9 @@ update msg model =
     NavTo url ->
       (model, Navigation.newUrl url)
 
-    LoggedOut (Err msg) ->
-      always (model, Cmd.none) <|
-        Debug.log "failed to log out" msg
+    LoggedOut (Err err) ->
+      flip always (Debug.log("failed to log out") (err) ) <|
+        (model, Cmd.none)
 
     ToggleUserMenu ->
       ({ model | userMenuVisible = not model.userMenuVisible }, Cmd.none)

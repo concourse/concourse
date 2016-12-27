@@ -34,7 +34,6 @@ var _ = Describe("VolumeClient", func() {
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeVolumeFactory = new(wfakes.FakeVolumeFactory)
-
 		workerName = "some-worker"
 
 		testLogger = lagertest.NewTestLogger("test")

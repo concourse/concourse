@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
 )
 
 var _ = Describe("Resource Pausing", func() {
@@ -26,23 +27,14 @@ var _ = Describe("Resource Pausing", func() {
 		postgresRunner.Truncate()
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		bus := db.NewNotificationsBus(dbListener, dbConn)
+		dbngConn = dbng.Wrap(postgresRunner.Open())
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(dbfakes.FakeConnector)
-		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := db.NewLockFactory(retryableConn)
-		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
-
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
-		err := atcCommand.Start()
+		teamFactory := dbng.NewTeamFactory(dbngConn)
+		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue()) // created by postgresRunner
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
-		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-		// job build data
-		_, _, err = teamDB.SaveConfig("some-pipeline", atc.Config{
+		_, _, err = defaultTeam.SavePipeline("some-pipeline", atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",
@@ -56,8 +48,23 @@ var _ = Describe("Resource Pausing", func() {
 			Resources: atc.ResourceConfigs{
 				{Name: "resource-name"},
 			},
-		}, db.ConfigVersion(1), db.PipelineUnpaused)
+		}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
+
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
+		err = atcCommand.Start()
+		Expect(err).NotTo(HaveOccurred())
+
+		bus := db.NewNotificationsBus(dbListener, dbConn)
+
+		pgxConn := postgresRunner.OpenPgx()
+		fakeConnector := new(dbfakes.FakeConnector)
+		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+		lockFactory := db.NewLockFactory(retryableConn)
+		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		savedPipeline, found, err := teamDB.GetPipelineByName("some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
@@ -69,6 +76,8 @@ var _ = Describe("Resource Pausing", func() {
 
 	AfterEach(func() {
 		atcCommand.Stop()
+
+		Expect(dbngConn.Close()).To(Succeed())
 
 		Expect(dbConn.Close()).To(Succeed())
 		Expect(dbListener.Close()).To(Succeed())

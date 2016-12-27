@@ -62,7 +62,7 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 	Context("when team is in auth context", func() {
 		BeforeEach(func() {
 			authValidator.IsAuthenticatedReturns(true)
-			userContextReader.GetTeamReturns("some-team", 5, false, true)
+			userContextReader.GetTeamReturns("some-team", false, true)
 		})
 
 		It("creates teamDB with team name from context", func() {
@@ -79,7 +79,7 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 	Context("when team is not in auth context", func() {
 		BeforeEach(func() {
 			authValidator.IsAuthenticatedReturns(true)
-			userContextReader.GetTeamReturns("", 5, false, false)
+			userContextReader.GetTeamReturns("", false, false)
 		})
 
 		It("returns 500", func() {

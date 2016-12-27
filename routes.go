@@ -54,8 +54,13 @@ const (
 	WritePipe  = "WritePipe"
 	ReadPipe   = "ReadPipe"
 
-	RegisterWorker = "RegisterWorker"
-	ListWorkers    = "ListWorkers"
+	RegisterWorker  = "RegisterWorker"
+	LandWorker      = "LandWorker"
+	RetireWorker    = "RetireWorker"
+	PruneWorker     = "PruneWorker"
+	HeartbeatWorker = "HeartbeatWorker"
+	ListWorkers     = "ListWorkers"
+	DeleteWorker    = "DeleteWorker"
 
 	SetLogLevel = "SetLogLevel"
 	GetLogLevel = "GetLogLevel"
@@ -73,8 +78,9 @@ const (
 	GetAuthToken    = "GetAuthToken"
 	GetUser         = "GetUser"
 
-	ListTeams = "ListTeams"
-	SetTeam   = "SetTeam"
+	ListTeams   = "ListTeams"
+	SetTeam     = "SetTeam"
+	DestroyTeam = "DestroyTeam"
 )
 
 var Routes = rata.Routes([]rata.Route{
@@ -131,6 +137,11 @@ var Routes = rata.Routes([]rata.Route{
 
 	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
 	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
+	{Path: "/api/v1/workers/:worker_name/land", Method: "PUT", Name: LandWorker},
+	{Path: "/api/v1/workers/:worker_name/retire", Method: "PUT", Name: RetireWorker},
+	{Path: "/api/v1/workers/:worker_name/prune", Method: "PUT", Name: PruneWorker},
+	{Path: "/api/v1/workers/:worker_name/heartbeat", Method: "PUT", Name: HeartbeatWorker},
+	{Path: "/api/v1/workers/:worker_name", Method: "DELETE", Name: DeleteWorker},
 
 	{Path: "/api/v1/log-level", Method: "GET", Name: GetLogLevel},
 	{Path: "/api/v1/log-level", Method: "PUT", Name: SetLogLevel},
@@ -150,4 +161,5 @@ var Routes = rata.Routes([]rata.Route{
 
 	{Path: "/api/v1/teams", Method: "GET", Name: ListTeams},
 	{Path: "/api/v1/teams/:team_name", Method: "PUT", Name: SetTeam},
+	{Path: "/api/v1/teams/:team_name", Method: "DELETE", Name: DestroyTeam},
 })

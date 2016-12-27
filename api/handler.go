@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/mainredirect"
 	"github.com/concourse/atc/worker"
@@ -45,9 +46,10 @@ func NewHandler(
 
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
+	dbTeamFactory dbng.TeamFactory,
+	dbWorkerFactory dbng.WorkerFactory,
 
 	teamsDB teamserver.TeamsDB,
-	workerDB workerserver.WorkerDB,
 	buildsDB buildserver.BuildsDB,
 	containerDB containerserver.ContainerDB,
 	volumesDB volumeserver.VolumesDB,
@@ -108,9 +110,9 @@ func NewHandler(
 
 	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory, pipelinesDB)
 
-	configServer := configserver.NewServer(logger, teamDBFactory)
+	configServer := configserver.NewServer(logger, teamDBFactory, dbTeamFactory)
 
-	workerServer := workerserver.NewServer(logger, workerDB, teamDBFactory)
+	workerServer := workerserver.NewServer(logger, teamDBFactory, dbTeamFactory, dbWorkerFactory)
 
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 
@@ -179,8 +181,13 @@ func NewHandler(
 		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),
 		atc.ReadPipe:   http.HandlerFunc(pipeServer.ReadPipe),
 
-		atc.ListWorkers:    teamHandlerFactory.HandlerFor(workerServer.ListWorkers),
-		atc.RegisterWorker: http.HandlerFunc(workerServer.RegisterWorker),
+		atc.ListWorkers:     teamHandlerFactory.HandlerFor(workerServer.ListWorkers),
+		atc.RegisterWorker:  http.HandlerFunc(workerServer.RegisterWorker),
+		atc.LandWorker:      http.HandlerFunc(workerServer.LandWorker),
+		atc.RetireWorker:    http.HandlerFunc(workerServer.RetireWorker),
+		atc.PruneWorker:     http.HandlerFunc(workerServer.PruneWorker),
+		atc.HeartbeatWorker: http.HandlerFunc(workerServer.HeartbeatWorker),
+		atc.DeleteWorker:    http.HandlerFunc(workerServer.DeleteWorker),
 
 		atc.SetLogLevel: http.HandlerFunc(logLevelServer.SetMinLevel),
 		atc.GetLogLevel: http.HandlerFunc(logLevelServer.GetMinLevel),
@@ -195,8 +202,9 @@ func NewHandler(
 
 		atc.ListVolumes: teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
 
-		atc.ListTeams: http.HandlerFunc(teamServer.ListTeams),
-		atc.SetTeam:   http.HandlerFunc(teamServer.SetTeam),
+		atc.ListTeams:   http.HandlerFunc(teamServer.ListTeams),
+		atc.SetTeam:     http.HandlerFunc(teamServer.SetTeam),
+		atc.DestroyTeam: http.HandlerFunc(teamServer.DestroyTeam),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))

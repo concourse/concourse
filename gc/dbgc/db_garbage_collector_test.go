@@ -26,7 +26,6 @@ var _ = Describe("DbGarbageCollector", func() {
 
 			Expect(fakeDB.ReapExpiredContainersCallCount()).To(Equal(1))
 			Expect(fakeDB.ReapExpiredVolumesCallCount()).To(Equal(1))
-			Expect(fakeDB.ReapExpiredWorkersCallCount()).To(Equal(1))
 		})
 	})
 })

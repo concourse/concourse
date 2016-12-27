@@ -101,6 +101,12 @@ type FakeBuild struct {
 	isRunningReturns     struct {
 		result1 bool
 	}
+	IsManuallyTriggeredStub        func() bool
+	isManuallyTriggeredMutex       sync.RWMutex
+	isManuallyTriggeredArgsForCall []struct{}
+	isManuallyTriggeredReturns     struct {
+		result1 bool
+	}
 	ReloadStub        func() (bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct{}
@@ -631,6 +637,31 @@ func (fake *FakeBuild) IsRunningCallCount() int {
 func (fake *FakeBuild) IsRunningReturns(result1 bool) {
 	fake.IsRunningStub = nil
 	fake.isRunningReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) IsManuallyTriggered() bool {
+	fake.isManuallyTriggeredMutex.Lock()
+	fake.isManuallyTriggeredArgsForCall = append(fake.isManuallyTriggeredArgsForCall, struct{}{})
+	fake.recordInvocation("IsManuallyTriggered", []interface{}{})
+	fake.isManuallyTriggeredMutex.Unlock()
+	if fake.IsManuallyTriggeredStub != nil {
+		return fake.IsManuallyTriggeredStub()
+	} else {
+		return fake.isManuallyTriggeredReturns.result1
+	}
+}
+
+func (fake *FakeBuild) IsManuallyTriggeredCallCount() int {
+	fake.isManuallyTriggeredMutex.RLock()
+	defer fake.isManuallyTriggeredMutex.RUnlock()
+	return len(fake.isManuallyTriggeredArgsForCall)
+}
+
+func (fake *FakeBuild) IsManuallyTriggeredReturns(result1 bool) {
+	fake.IsManuallyTriggeredStub = nil
+	fake.isManuallyTriggeredReturns = struct {
 		result1 bool
 	}{result1}
 }
@@ -1244,6 +1275,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.isScheduledMutex.RUnlock()
 	fake.isRunningMutex.RLock()
 	defer fake.isRunningMutex.RUnlock()
+	fake.isManuallyTriggeredMutex.RLock()
+	defer fake.isManuallyTriggeredMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
 	fake.eventsMutex.RLock()

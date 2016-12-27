@@ -14,19 +14,20 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	gconn "code.cloudfoundry.org/garden/client/connection"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"
 
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/retryhttp/retryhttpfakes"
 )
 
 var _ = Describe("hijackStreamer", func() {
 	var (
-		savedWorker          db.SavedWorker
+		savedWorker          dbng.Worker
+		savedWorkerAddress   string
 		fakeDB               *transportfakes.FakeTransportDB
 		fakeRoundTripper     *transportfakes.FakeRoundTripper
 		fakeHijackableClient *retryhttpfakes.FakeHijackableClient
@@ -38,14 +39,14 @@ var _ = Describe("hijackStreamer", func() {
 		contentType          string
 	)
 	BeforeEach(func() {
-		savedWorker = db.SavedWorker{
-			WorkerInfo: db.WorkerInfo{
-				GardenAddr: "some-garden-addr",
-			},
-			ExpiresIn: 123,
+		savedWorkerAddress = "some-garden-addr"
+		savedWorker = dbng.Worker{
+			GardenAddr: &savedWorkerAddress,
+			ExpiresIn:  123,
+			State:      dbng.WorkerStateRunning,
 		}
 		fakeDB = new(transportfakes.FakeTransportDB)
-		fakeDB.GetWorkerReturns(savedWorker, true, nil)
+		fakeDB.GetWorkerReturns(&savedWorker, true, nil)
 
 		fakeRequestGenerator = new(transportfakes.FakeRequestGenerator)
 

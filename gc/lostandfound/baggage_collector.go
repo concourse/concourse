@@ -173,7 +173,7 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 
 	sort.Sort(sortByHandle(volumesToExpire))
 
-	workers, err := bc.workerClient.Workers()
+	workers, err := bc.workerClient.RunningWorkers()
 	if err != nil {
 		bc.logger.Error("failed-to-get-workers", err)
 		return err

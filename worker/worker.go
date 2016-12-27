@@ -69,6 +69,7 @@ type GardenWorkerDB interface {
 	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	GetVolumeTTL(string) (time.Duration, bool, error)
 	GetVolumesByIdentifier(db.VolumeIdentifier) ([]db.SavedVolume, error)
+	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
 }
 
 type gardenWorker struct {
@@ -650,7 +651,7 @@ func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes atc.Res
 	return nil, errors.New("Not implemented")
 }
 
-func (worker *gardenWorker) Workers() ([]Worker, error) {
+func (worker *gardenWorker) RunningWorkers() ([]Worker, error) {
 	return nil, errors.New("Not implemented")
 }
 

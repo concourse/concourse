@@ -44,6 +44,12 @@ var _ = Describe("TeamDB Volumes", func() {
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 		otherTeamDB = teamDBFactory.GetTeamDB("other-team")
+
+		_, err = database.SaveWorker(db.WorkerInfo{
+			Name:       "some-worker",
+			GardenAddr: "1.2.3.4:7777",
+		}, 10*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -77,7 +83,7 @@ var _ = Describe("TeamDB Volumes", func() {
 			err = database.InsertVolume(db.Volume{
 				Handle:      "my-handle",
 				TeamID:      someTeamID,
-				WorkerName:  "some-worker-name",
+				WorkerName:  "some-worker",
 				TTL:         5 * time.Minute,
 				Identifier:  identifier,
 				SizeInBytes: int64(1),
@@ -87,7 +93,7 @@ var _ = Describe("TeamDB Volumes", func() {
 			err = database.InsertVolume(db.Volume{
 				Handle:      "other-handle",
 				TeamID:      otherTeamID,
-				WorkerName:  "some-worker-name",
+				WorkerName:  "some-worker",
 				TTL:         5 * time.Minute,
 				Identifier:  identifier,
 				SizeInBytes: int64(1),
@@ -96,7 +102,7 @@ var _ = Describe("TeamDB Volumes", func() {
 
 			err = database.InsertVolume(db.Volume{
 				Handle:      "resource-cache-handle",
-				WorkerName:  "some-worker-name",
+				WorkerName:  "some-worker",
 				TTL:         5 * time.Minute,
 				Identifier:  identifier,
 				SizeInBytes: int64(1),

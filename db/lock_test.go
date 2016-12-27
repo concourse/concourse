@@ -86,7 +86,7 @@ var _ = Describe("Locks", func() {
 			},
 		}
 
-		savedPipeline, _, err := teamDB.SaveConfig("pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+		savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated("pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
@@ -394,18 +394,13 @@ var _ = Describe("Locks", func() {
 	})
 
 	Describe("GetPendingBuildsForJob/GetAllPendingBuilds", func() {
-		Context("when a build is created and then the lock is acquired", func() {
+		Context("when a build is created", func() {
 			BeforeEach(func() {
 				_, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
-
-				var acquired bool
-				lock, acquired, err = pipelineDB.AcquireResourceCheckingForJobLock(logger, "some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
 			})
 
-			It("returns the build while the lock is acquired", func() {
+			It("returns the build", func() {
 				pendingBuildsForJob, err := pipelineDB.GetPendingBuildsForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pendingBuildsForJob).To(HaveLen(1))
@@ -414,77 +409,6 @@ var _ = Describe("Locks", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pendingBuilds).To(HaveLen(1))
 				Expect(pendingBuilds["some-job"]).NotTo(BeNil())
-			})
-		})
-
-		Context("when the lock is acquired and then a build is created", func() {
-			BeforeEach(func() {
-				var err error
-				var acquired bool
-				lock, acquired, err = pipelineDB.AcquireResourceCheckingForJobLock(logger, "some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-
-				_, err = pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns the build only after the lock is broken", func() {
-				pendingBuildsForJob, err := pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pendingBuildsForJob).To(HaveLen(0))
-
-				pendingBuilds, err := pipelineDB.GetAllPendingBuilds()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pendingBuilds).To(HaveLen(0))
-
-				lock.Release()
-
-				pendingBuildsForJob, err = pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pendingBuildsForJob).To(HaveLen(1))
-
-				pendingBuilds, err = pipelineDB.GetAllPendingBuilds()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pendingBuilds).To(HaveLen(1))
-				Expect(pendingBuilds["some-job"]).NotTo(BeNil())
-			})
-
-			It("still returns the build after the lock is broken and reacquired", func() {
-				lock.Release()
-
-				_, acquired, err := pipelineDB.AcquireResourceCheckingForJobLock(logger, "some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-
-				pendingBuildsForJob, err := pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pendingBuildsForJob).To(HaveLen(1))
-			})
-
-			Context("when someone else attempts to acquire the lock", func() {
-				It("still doesn't return the build before the lock is broken", func() {
-					_, acquired, err := pipelineDB.AcquireResourceCheckingForJobLock(logger, "some-job")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(acquired).To(BeFalse())
-
-					pendingBuildsForJob, err := pipelineDB.GetPendingBuildsForJob("some-job")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(pendingBuildsForJob).To(HaveLen(0))
-				})
-			})
-
-			Context("when failing to run AfterRelease (e.g. disconnected)", func() {
-				It("still can acquire the lock", func() {
-					// release but don't run after release
-					lock.AfterRelease(func() error { return nil })
-					lock.Release()
-
-					lock, acquired, err := pipelineDB.AcquireResourceCheckingForJobLock(logger, "some-job")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-					lock.Release()
-				})
 			})
 		})
 	})
@@ -527,60 +451,6 @@ var _ = Describe("Locks", func() {
 				builds2, err = pipelineDB.GetPendingBuildsForJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(builds2).To(HaveLen(0))
-			})
-		})
-
-		Context("when the lock is acquired and then a build is created", func() {
-			BeforeEach(func() {
-				var err error
-				var acquired bool
-				lock, acquired, err = pipelineDB.AcquireResourceCheckingForJobLock(logger, "some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-
-				_, err = pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("doesn't create another build", func() {
-				err := pipelineDB.EnsurePendingBuildExists("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				lock.Release()
-
-				builds1, err := pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(builds1).To(HaveLen(1))
-
-				started, err := builds1[0].Start("some-engine", "some-metadata")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(started).To(BeTrue())
-
-				builds1, err = pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(builds1).To(HaveLen(0))
-			})
-		})
-
-		Context("when the lock is acquired and no pending build exists", func() {
-			var lock db.Lock
-			BeforeEach(func() {
-				var err error
-				var acquired bool
-				lock, acquired, err = pipelineDB.AcquireResourceCheckingForJobLock(logger, "some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-			})
-
-			It("creates a build", func() {
-				err := pipelineDB.EnsurePendingBuildExists("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				lock.Release()
-
-				pendingBuilds, err := pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pendingBuilds).To(HaveLen(1))
 			})
 		})
 	})

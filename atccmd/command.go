@@ -24,12 +24,14 @@ import (
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/gc/buildreaper"
 	"github.com/concourse/atc/gc/containerkeepaliver"
 	"github.com/concourse/atc/gc/dbgc"
 	"github.com/concourse/atc/gc/lostandfound"
+	"github.com/concourse/atc/gcng"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
@@ -142,7 +144,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.configureMetrics(logger)
 	}
 
-	dbConn, err := cmd.constructDBConn(logger)
+	dbConn, dbngConn, err := cmd.constructDBConn(logger)
 	if err != nil {
 		return nil, err
 	}
@@ -160,10 +162,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	bus := db.NewNotificationsBus(listener, dbConn)
 
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
+	dbTeamFactory := dbng.NewTeamFactory(dbngConn)
+	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
 	trackerFactory := resource.NewTrackerFactory()
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
-	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory, pipelineDBFactory)
+	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory, pipelineDBFactory, dbWorkerFactory)
 
 	tracker := trackerFactory.TrackerFor(workerClient)
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
@@ -214,6 +218,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		reconfigurableSink,
 		sqlDB,
 		teamDBFactory,
+		dbTeamFactory,
+		dbWorkerFactory,
 		providerFactory,
 		signingKey,
 		pipelineDBFactory,
@@ -321,8 +327,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Clock:    clock.NewClock(),
 		}},
 
-		{"lostandfound", lockrunner.NewRunner(
-			logger.Session("lost-and-found"),
+		{"baggage-collector", lockrunner.NewRunner(
+			logger.Session("baggage-collector-runner"),
 			lostandfound.NewBaggageCollector(
 				logger.Session("baggage-collector"),
 				workerClient,
@@ -337,8 +343,20 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			cmd.ResourceCacheCleanupInterval,
 		)},
 
-		{"containerkeepaliver", lockrunner.NewRunner(
-			logger.Session("container-keepaliver"),
+		{"worker-collector", lockrunner.NewRunner(
+			logger.Session("worker-collector-runner"),
+			gcng.NewWorkerCollector(
+				logger.Session("worker-collector"),
+				dbWorkerFactory,
+			),
+			"worker-collector",
+			sqlDB,
+			clock.NewClock(),
+			10*time.Second,
+		)},
+
+		{"container-keepaliver", lockrunner.NewRunner(
+			logger.Session("container-keepaliver-runner"),
 			containerkeepaliver.NewContainerKeepAliver(
 				logger.Session("container-keepaliver"),
 				workerClient,
@@ -350,7 +368,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			30*time.Second,
 		)},
 
-		{"buildreaper", lockrunner.NewRunner(
+		{"build-reaper", lockrunner.NewRunner(
 			logger.Session("build-reaper-runner"),
 			buildreaper.NewBuildReaper(
 				logger.Session("build-reaper"),
@@ -365,7 +383,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		)},
 
 		{"dbgc", lockrunner.NewRunner(
-			logger.Session("dbgc"),
+			logger.Session("dbgc-runner"),
 			dbgc.NewDBGarbageCollector(
 				logger.Session("dbgc"),
 				sqlDB,
@@ -583,18 +601,24 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 	)
 }
 
-func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, error) {
+func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn, error) {
 	driverName := "connection-counting"
 	metric.SetupConnectionCountingDriver("postgres", cmd.PostgresDataSource, driverName)
 
 	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.PostgresDataSource)
 	if err != nil {
-		return nil, fmt.Errorf("failed to migrate database: %s", err)
+		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
+	}
+
+	dbngConn, err := migrations.DBNGConn(logger.Session("db.migrations"), driverName, cmd.PostgresDataSource)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
 
 	dbConn.SetMaxOpenConns(64)
+	dbngConn.SetMaxOpenConns(64)
 
-	return metric.CountQueries(dbConn), nil
+	return metric.CountQueries(dbConn), dbngConn, nil
 }
 
 func (cmd *ATCCommand) constructLockConn() (*db.RetryableConn, error) {
@@ -628,6 +652,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	trackerFactory resource.TrackerFactory,
 	resourceFetcherFactory resource.FetcherFactory,
 	pipelineDBFactory db.PipelineDBFactory,
+	dbWorkerFactory dbng.WorkerFactory,
 ) worker.Client {
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
@@ -637,6 +662,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 			image.NewFactory(trackerFactory, resourceFetcherFactory),
 			pipelineDBFactory,
+			dbWorkerFactory,
 		),
 	)
 }
@@ -807,6 +833,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
 	teamDBFactory db.TeamDBFactory,
+	dbTeamFactory dbng.TeamFactory,
+	dbWorkerFactory dbng.WorkerFactory,
 	providerFactory provider.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
@@ -831,6 +859,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(sqlDB)
 
+	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
+
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
@@ -840,6 +870,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,
+			checkWorkerTeamAccessHandlerFactory,
 		),
 		wrappa.NewConcourseVersionWrappa(Version),
 	}
@@ -856,8 +887,10 @@ func (cmd *ATCCommand) constructAPIHandler(
 		pipelineDBFactory,
 		teamDBFactory,
 
+		dbTeamFactory,
+		dbWorkerFactory,
+
 		sqlDB, // teamserver.TeamDB
-		sqlDB, // workerserver.WorkerDB
 		sqlDB, // buildserver.BuildsDB
 		sqlDB, // containerserver.ContainerDB
 		sqlDB, // volumeserver.VolumesDB

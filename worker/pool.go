@@ -15,7 +15,7 @@ import (
 //go:generate counterfeiter . WorkerProvider
 
 type WorkerProvider interface {
-	Workers() ([]Worker, error)
+	RunningWorkers() ([]Worker, error)
 	GetWorker(string) (Worker, bool, error)
 	FindContainerForIdentifier(Identifier) (db.SavedContainer, bool, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
@@ -65,8 +65,8 @@ func shuffleWorkers(slice []Worker) {
 	}
 }
 
-func (pool *pool) Workers() ([]Worker, error) {
-	return pool.provider.Workers()
+func (pool *pool) RunningWorkers() ([]Worker, error) {
+	return pool.provider.RunningWorkers()
 }
 
 func (pool *pool) GetWorker(workerName string) (Worker, error) {
@@ -83,7 +83,7 @@ func (pool *pool) GetWorker(workerName string) (Worker, error) {
 }
 
 func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) ([]Worker, error) {
-	workers, err := pool.provider.Workers()
+	workers, err := pool.provider.RunningWorkers()
 	if err != nil {
 		return nil, err
 	}

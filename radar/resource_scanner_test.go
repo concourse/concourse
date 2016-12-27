@@ -58,6 +58,7 @@ var _ = Describe("ResourceScanner", func() {
 			Name:   "some-resource",
 			Type:   "git",
 			Source: atc.Source{"uri": "http://example.com"},
+			Tags:   atc.Tags{"some-tag"},
 		}
 
 		fakeRadarDB.ScopedNameStub = func(thing string) string {
@@ -165,7 +166,7 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 
 				Expect(typ).To(Equal(resource.ResourceType("git")))
-				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
+				Expect(tags).To(Equal(atc.Tags{"some-tag"}))
 				Expect(actualTeamID).To(Equal(teamID))
 			})
 
@@ -291,6 +292,7 @@ var _ = Describe("ResourceScanner", func() {
 						Name:   "some-resource",
 						Type:   "git",
 						Source: atc.Source{"uri": "http://example.com"},
+						Tags:   atc.Tags{"some-tag"},
 					}))
 
 					Expect(versions).To(Equal([]atc.Version{
@@ -465,7 +467,7 @@ var _ = Describe("ResourceScanner", func() {
 				}))
 
 				Expect(typ).To(Equal(resource.ResourceType("git")))
-				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
+				Expect(tags).To(Equal(atc.Tags{"some-tag"}))
 				Expect(actualTeamID).To(Equal(teamID))
 			})
 
@@ -664,6 +666,7 @@ var _ = Describe("ResourceScanner", func() {
 						Name:   "some-resource",
 						Type:   "git",
 						Source: atc.Source{"uri": "http://example.com"},
+						Tags:   atc.Tags{"some-tag"},
 					}))
 
 					Expect(versions).To(Equal([]atc.Version{

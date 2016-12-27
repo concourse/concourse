@@ -29,7 +29,7 @@ type TeamDB interface {
 	UpdateGenericOAuth(genericOAuth *GenericOAuth) (SavedTeam, error)
 
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
-	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
+	SaveConfigToBeDeprecated(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 
 	CreateOneOffBuild() (Build, error)
 	GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, error)
@@ -230,7 +230,8 @@ func (db *teamDB) GetConfig(pipelineName string) (atc.Config, atc.RawConfig, Con
 	return config, atc.RawConfig(string(configBlob)), ConfigVersion(version), nil
 }
 
-func (db *teamDB) SaveConfig(
+// only used for tests in db package, use dbng.Team.SavePipeline instead
+func (db *teamDB) SaveConfigToBeDeprecated(
 	pipelineName string,
 	config atc.Config,
 	from ConfigVersion,

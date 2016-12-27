@@ -84,7 +84,7 @@ var _ = Describe("Builds", func() {
 			},
 		}
 
-		pipeline, _, err = teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+		pipeline, _, err = teamDB.SaveConfigToBeDeprecated("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
@@ -168,14 +168,14 @@ var _ = Describe("Builds", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := teamDB.SaveConfig("private-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			privatePipeline, _, err := teamDB.SaveConfigToBeDeprecated("private-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 			privatePipelineDB := pipelineDBFactory.Build(privatePipeline)
 
 			_, err = privatePipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := teamDB.SaveConfig("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			publicPipeline, _, err := teamDB.SaveConfigToBeDeprecated("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 			publicPipelineDB := pipelineDBFactory.Build(publicPipeline)
 			publicPipelineDB.Expose()

@@ -54,7 +54,7 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		volume2 = new(wfakes.FakeVolume)
 		worker2.LookupVolumeReturns(volume2, true, nil)
 
-		fakeWorkerClient.WorkersReturns([]worker.Worker{
+		fakeWorkerClient.RunningWorkersReturns([]worker.Worker{
 			worker1,
 			worker2,
 		}, nil)

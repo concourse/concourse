@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/bigdatadev/goryman"
+	"github.com/The-Cloud-Source/goryman"
 
 	"github.com/concourse/atc/db"
 )

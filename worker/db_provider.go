@@ -1,17 +1,21 @@
 package worker
 
 import (
+	"errors"
+	"net/http"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/retryhttp"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 //go:generate counterfeiter . WorkerDB
@@ -31,7 +35,10 @@ type WorkerDB interface {
 	ReapVolume(handle string) error
 	SetVolumeTTLAndSizeInBytes(string, time.Duration, int64) error
 	SetVolumeTTL(string, time.Duration) error
+	AcquireVolumeCreatingLock(lager.Logger, int) (db.Lock, bool, error)
 }
+
+var ErrDesiredWorkerNotRunning = errors.New("desired-garden-worker-is-not-known-to-be-running")
 
 type dbProvider struct {
 	logger              lager.Logger
@@ -40,6 +47,7 @@ type dbProvider struct {
 	retryBackOffFactory retryhttp.BackOffFactory
 	imageFactory        ImageFactory
 	pipelineDBFactory   db.PipelineDBFactory
+	dbWorkerFactory     dbng.WorkerFactory
 }
 
 func NewDBWorkerProvider(
@@ -49,6 +57,7 @@ func NewDBWorkerProvider(
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
 	pipelineDBFactory db.PipelineDBFactory,
+	workerFactory dbng.WorkerFactory,
 ) WorkerProvider {
 	return &dbProvider{
 		logger:              logger,
@@ -57,34 +66,42 @@ func NewDBWorkerProvider(
 		retryBackOffFactory: retryBackOffFactory,
 		imageFactory:        imageFactory,
 		pipelineDBFactory:   pipelineDBFactory,
+		dbWorkerFactory:     workerFactory,
 	}
 }
 
-func (provider *dbProvider) Workers() ([]Worker, error) {
-	savedWorkers, err := provider.db.Workers()
+func (provider *dbProvider) RunningWorkers() ([]Worker, error) {
+	savedWorkers, err := provider.dbWorkerFactory.Workers()
 	if err != nil {
 		return nil, err
 	}
 
 	tikTok := clock.NewClock()
 
-	workers := make([]Worker, len(savedWorkers))
+	workers := []Worker{}
 
-	for i, savedWorker := range savedWorkers {
-		workers[i] = provider.newGardenWorker(tikTok, savedWorker)
+	for _, savedWorker := range savedWorkers {
+		if savedWorker.State == dbng.WorkerStateRunning {
+			workers = append(workers, provider.newGardenWorker(tikTok, savedWorker))
+		}
 	}
 
 	return workers, nil
 }
 
 func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
-	savedWorker, found, err := provider.db.GetWorker(name)
+	savedWorker, found, err := provider.dbWorkerFactory.GetWorker(name)
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !found {
 		return nil, false, nil
+	}
+
+	if savedWorker.State == dbng.WorkerStateStalled ||
+		savedWorker.State == dbng.WorkerStateLanded {
+		return nil, false, ErrDesiredWorkerNotRunning
 	}
 
 	tikTok := clock.NewClock()
@@ -106,9 +123,9 @@ func (provider *dbProvider) ReapContainer(handle string) error {
 	return provider.db.ReapContainer(handle)
 }
 
-func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.SavedWorker) Worker {
+func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbng.Worker) Worker {
 	gcf := NewGardenConnectionFactory(
-		provider.db,
+		provider.dbWorkerFactory,
 		provider.logger.Session("garden-connection"),
 		savedWorker.Name,
 		savedWorker.GardenAddr,
@@ -118,8 +135,14 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 	connection := NewRetryableConnection(gcf.BuildConnection())
 
 	var bClient baggageclaim.Client
-	if savedWorker.BaggageclaimURL != "" {
-		bClient = bclient.New(savedWorker.BaggageclaimURL)
+	if savedWorker.BaggageclaimURL != nil {
+		rountTripper := transport.NewBaggageclaimRoundTripper(
+			savedWorker.Name,
+			savedWorker.BaggageclaimURL,
+			provider.dbWorkerFactory,
+			&http.Transport{DisableKeepAlives: true},
+		)
+		bClient = bclient.New(*savedWorker.BaggageclaimURL, rountTripper)
 	}
 
 	volumeFactory := NewVolumeFactory(

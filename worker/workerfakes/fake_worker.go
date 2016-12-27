@@ -131,10 +131,10 @@ type FakeWorker struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	WorkersStub        func() ([]worker.Worker, error)
-	workersMutex       sync.RWMutex
-	workersArgsForCall []struct{}
-	workersReturns     struct {
+	RunningWorkersStub        func() ([]worker.Worker, error)
+	runningWorkersMutex       sync.RWMutex
+	runningWorkersArgsForCall []struct{}
+	runningWorkersReturns     struct {
 		result1 []worker.Worker
 		result2 error
 	}
@@ -574,27 +574,27 @@ func (fake *FakeWorker) AllSatisfyingReturns(result1 []worker.Worker, result2 er
 	}{result1, result2}
 }
 
-func (fake *FakeWorker) Workers() ([]worker.Worker, error) {
-	fake.workersMutex.Lock()
-	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
-	fake.recordInvocation("Workers", []interface{}{})
-	fake.workersMutex.Unlock()
-	if fake.WorkersStub != nil {
-		return fake.WorkersStub()
+func (fake *FakeWorker) RunningWorkers() ([]worker.Worker, error) {
+	fake.runningWorkersMutex.Lock()
+	fake.runningWorkersArgsForCall = append(fake.runningWorkersArgsForCall, struct{}{})
+	fake.recordInvocation("RunningWorkers", []interface{}{})
+	fake.runningWorkersMutex.Unlock()
+	if fake.RunningWorkersStub != nil {
+		return fake.RunningWorkersStub()
 	} else {
-		return fake.workersReturns.result1, fake.workersReturns.result2
+		return fake.runningWorkersReturns.result1, fake.runningWorkersReturns.result2
 	}
 }
 
-func (fake *FakeWorker) WorkersCallCount() int {
-	fake.workersMutex.RLock()
-	defer fake.workersMutex.RUnlock()
-	return len(fake.workersArgsForCall)
+func (fake *FakeWorker) RunningWorkersCallCount() int {
+	fake.runningWorkersMutex.RLock()
+	defer fake.runningWorkersMutex.RUnlock()
+	return len(fake.runningWorkersArgsForCall)
 }
 
-func (fake *FakeWorker) WorkersReturns(result1 []worker.Worker, result2 error) {
-	fake.WorkersStub = nil
-	fake.workersReturns = struct {
+func (fake *FakeWorker) RunningWorkersReturns(result1 []worker.Worker, result2 error) {
+	fake.RunningWorkersStub = nil
+	fake.runningWorkersReturns = struct {
 		result1 []worker.Worker
 		result2 error
 	}{result1, result2}
@@ -784,8 +784,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.satisfyingMutex.RUnlock()
 	fake.allSatisfyingMutex.RLock()
 	defer fake.allSatisfyingMutex.RUnlock()
-	fake.workersMutex.RLock()
-	defer fake.workersMutex.RUnlock()
+	fake.runningWorkersMutex.RLock()
+	defer fake.runningWorkersMutex.RUnlock()
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
 	fake.activeContainersMutex.RLock()

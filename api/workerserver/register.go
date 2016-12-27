@@ -10,7 +10,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
 )
 
@@ -35,23 +34,6 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
-	}
-
-	var teamID int
-	if registration.Team != "" {
-		team, found, err := s.teamDBFactory.GetTeamDB(registration.Team).GetTeam()
-		if err != nil {
-			logger.Error("failed-to-get-team", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !found {
-			logger.Error("team-not-found", errors.New("team-not-found"), lager.Data{"team-name": registration.Team})
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		teamID = team.ID
 	}
 
 	if len(registration.GardenAddr) == 0 {
@@ -81,24 +63,33 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		Containers: registration.ActiveContainers,
 	}.Emit(s.logger)
 
-	_, err = s.db.SaveWorker(db.WorkerInfo{
-		GardenAddr:       registration.GardenAddr,
-		BaggageclaimURL:  registration.BaggageclaimURL,
-		HTTPProxyURL:     registration.HTTPProxyURL,
-		HTTPSProxyURL:    registration.HTTPSProxyURL,
-		NoProxy:          registration.NoProxy,
-		ActiveContainers: registration.ActiveContainers,
-		ResourceTypes:    registration.ResourceTypes,
-		Platform:         registration.Platform,
-		Tags:             registration.Tags,
-		TeamID:           teamID,
-		Name:             registration.Name,
-		StartTime:        registration.StartTime,
-	}, ttl)
-	if err != nil {
-		logger.Error("failed-to-save-worker", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	if registration.Team != "" {
+		team, found, err := s.dbTeamFactory.FindTeam(registration.Team)
+		if err != nil {
+			logger.Error("failed-to-get-team", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			logger.Error("team-not-found", errors.New("team-not-found"), lager.Data{"team-name": registration.Team})
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		_, err = team.SaveWorker(registration, ttl)
+		if err != nil {
+			logger.Error("failed-to-save-worker", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	} else {
+		_, err := s.dbWorkerFactory.SaveWorker(registration, ttl)
+		if err != nil {
+			logger.Error("failed-to-save-worker", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)

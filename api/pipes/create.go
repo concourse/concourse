@@ -26,7 +26,7 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.db.CreatePipe(guid.String(), s.url, authTeam.ID())
+	err = s.db.CreatePipe(guid.String(), s.url, authTeam.Name())
 	if err != nil {
 		logger.Error("failed-to-create-pipe", err)
 		w.WriteHeader(http.StatusInternalServerError)

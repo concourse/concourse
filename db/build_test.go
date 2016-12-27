@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
@@ -71,7 +70,7 @@ var _ = Describe("Build", func() {
 		}
 
 		var err error
-		pipeline, _, err = teamDB.SaveConfig("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+		pipeline, _, err = teamDB.SaveConfigToBeDeprecated("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
@@ -687,7 +686,7 @@ var _ = Describe("Build", func() {
 						},
 					}
 
-					pipeline, _, err = teamDB.SaveConfig("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+					pipeline, _, err = teamDB.SaveConfigToBeDeprecated("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = pipelineDB.SaveResourceVersions(
@@ -745,74 +744,6 @@ var _ = Describe("Build", func() {
 					Expect(found).To(BeTrue())
 					Expect(buildPrep).To(Equal(expectedBuildPrep))
 				})
-			})
-		})
-
-		Context("for job that is still checking resources", func() {
-			var build1, build2 db.Build
-			var lock db.Lock
-
-			BeforeEach(func() {
-				pipelineConfig = atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							Plan: atc.PlanSequence{
-								{Get: "input1"},
-								{Get: "input2"},
-							},
-						},
-					},
-				}
-
-				pipeline, _, err = teamDB.SaveConfig("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				build1, err = pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				var created bool
-				lock, created, err = pipelineDB.AcquireResourceCheckingForJobLock(
-					lagertest.NewTestLogger("build-preparation"),
-					"some-job",
-				)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(created).To(BeTrue())
-
-				build2, err = pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			AfterEach(func() {
-				lock.Release()
-			})
-
-			It("returns inputs satisfied blocking for checked build", func() {
-				expectedBuildPrep.BuildID = build1.ID()
-				expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
-					"input1": db.BuildPreparationStatusBlocking,
-					"input2": db.BuildPreparationStatusBlocking,
-				}
-				expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
-				expectedBuildPrep.MissingInputReasons = db.MissingInputReasons{
-					"input1": db.NoVersionsAvailable,
-					"input2": db.NoVersionsAvailable,
-				}
-
-				buildPrep, found, err := build1.GetPreparation()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(buildPrep).To(Equal(expectedBuildPrep))
-			})
-
-			It("returns inputs satisfied unknown for checking build", func() {
-				expectedBuildPrep.BuildID = build2.ID()
-				expectedBuildPrep.InputsSatisfied = db.BuildPreparationStatusUnknown
-
-				buildPrep, found, err := build2.GetPreparation()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(buildPrep).To(Equal(expectedBuildPrep))
 			})
 		})
 	})
