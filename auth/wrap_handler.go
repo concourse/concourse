@@ -7,7 +7,6 @@ import (
 
 var authenticated = "authenticated"
 var teamNameKey = "teamName"
-var teamIDKey = "teamID"
 var isAdminKey = "isAdmin"
 var isSystemKey = "system"
 

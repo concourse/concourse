@@ -22,13 +22,14 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
+	"regexp"
+
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	"regexp"
 )
 
 type testCookieJar struct {
@@ -270,13 +271,12 @@ var _ = Describe("OAuthCallbackHandler", func() {
 								Expect(token.Valid).To(BeTrue())
 							})
 
-							It("contains the team name and ID", func() {
+							It("contains the team name", func() {
 								token, err := jwt.Parse(strings.Replace(cookie.Value, "Bearer ", "", -1), keyFunc)
 								Expect(err).ToNot(HaveOccurred())
 
 								claims := token.Claims.(jwt.MapClaims)
 								Expect(claims["teamName"]).To(Equal(team.Name))
-								Expect(claims["teamID"]).To(BeNumerically("==", team.ID))
 								Expect(token.Valid).To(BeTrue())
 							})
 						})
