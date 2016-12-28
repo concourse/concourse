@@ -172,10 +172,10 @@ func usedResources(c Config) map[string]bool {
 
 	for _, job := range c.Jobs {
 		for _, input := range job.Inputs() {
-			usedResources[input.Resource] = true
+			usedResources[input.ResourceName()] = true
 		}
 		for _, output := range job.Outputs() {
-			usedResources[output.Resource] = true
+			usedResources[output.ResourceName()] = true
 		}
 	}
 

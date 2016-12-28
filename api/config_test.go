@@ -39,8 +39,8 @@ var _ = Describe("Config API", func() {
 			Groups: atc.GroupConfigs{
 				{
 					Name:      "some-group",
-					Jobs:      []string{"job-1", "job-2"},
-					Resources: []string{"resource-1", "resource-2"},
+					Jobs:      []string{"some-job"},
+					Resources: []string{"some-resource"},
 				},
 			},
 
@@ -79,7 +79,6 @@ var _ = Describe("Config API", func() {
 						{
 							Get:      "some-input",
 							Resource: "some-resource",
-							Passed:   []string{"job-1", "job-2"},
 							Params: atc.Params{
 								"some-param": "some-value",
 								"nested": map[string]interface{}{
@@ -93,9 +92,8 @@ var _ = Describe("Config API", func() {
 							},
 						},
 						{
-							Task:           "some-task",
-							Privileged:     true,
-							TaskConfigPath: "some/config/path.yml",
+							Task:       "some-task",
+							Privileged: true,
 							TaskConfig: &atc.TaskConfig{
 								Image: "some-image",
 							},
@@ -353,7 +351,10 @@ var _ = Describe("Config API", func() {
 
 						Context("when the config is invalid", func() {
 							BeforeEach(func() {
-								configValidationErrorMessages = []string{"totally invalid"}
+								pipelineConfig.Groups[0].Resources = []string{"missing-resource"}
+								payload, err := json.Marshal(pipelineConfig)
+								Expect(err).NotTo(HaveOccurred())
+								request.Body = gbytes.BufferWithBytes(payload)
 							})
 
 							It("returns 400", func() {
@@ -364,7 +365,7 @@ var _ = Describe("Config API", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"totally invalid"
+										"invalid groups:\n\tgroup 'some-group' has unknown resource 'missing-resource'\n"
 									]
 								}`))
 							})
@@ -419,6 +420,7 @@ resources:
 jobs:
 - name: some-job
   plan:
+  - get: some-resource
   - task: some-task
     config:
       run:
@@ -454,6 +456,9 @@ jobs:
 										{
 											Name: "some-job",
 											Plan: atc.PlanSequence{
+												{
+													Get: "some-resource",
+												},
 												{
 													Task: "some-task",
 													TaskConfig: &atc.TaskConfig{
@@ -505,7 +510,10 @@ jobs:
 
 						Context("when the config is invalid", func() {
 							BeforeEach(func() {
-								configValidationErrorMessages = []string{"totally invalid"}
+								pipelineConfig.Groups[0].Resources = []string{"missing-resource"}
+								payload, err := json.Marshal(pipelineConfig)
+								Expect(err).NotTo(HaveOccurred())
+								request.Body = gbytes.BufferWithBytes(payload)
 							})
 
 							It("returns 400", func() {
@@ -516,7 +524,7 @@ jobs:
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"totally invalid"
+										"invalid groups:\n\tgroup 'some-group' has unknown resource 'missing-resource'\n"
 									]
 								}`))
 							})
@@ -531,35 +539,37 @@ jobs:
 						var pausedValue string
 						var expectedDBValue dbng.PipelinePausedState
 
+						writeMultiPart := func() {
+							body := &bytes.Buffer{}
+							writer := multipart.NewWriter(body)
+
+							yamlWriter, err := writer.CreatePart(
+								textproto.MIMEHeader{
+									"Content-type": {"application/x-yaml"},
+								},
+							)
+							Expect(err).NotTo(HaveOccurred())
+
+							yml, err := yaml.Marshal(pipelineConfig)
+							Expect(err).NotTo(HaveOccurred())
+
+							_, err = yamlWriter.Write(yml)
+
+							Expect(err).NotTo(HaveOccurred())
+
+							if pausedValue != "" {
+								err = writer.WriteField("paused", pausedValue)
+								Expect(err).NotTo(HaveOccurred())
+							}
+
+							writer.Close()
+
+							request.Header.Set("Content-Type", writer.FormDataContentType())
+							request.Body = gbytes.BufferWithBytes(body.Bytes())
+						}
+
 						itSavesThePipeline := func() {
-							BeforeEach(func() {
-								body := &bytes.Buffer{}
-								writer := multipart.NewWriter(body)
-
-								yamlWriter, err := writer.CreatePart(
-									textproto.MIMEHeader{
-										"Content-type": {"application/x-yaml"},
-									},
-								)
-								Expect(err).NotTo(HaveOccurred())
-
-								yml, err := yaml.Marshal(pipelineConfig)
-								Expect(err).NotTo(HaveOccurred())
-
-								_, err = yamlWriter.Write(yml)
-
-								Expect(err).NotTo(HaveOccurred())
-
-								if pausedValue != "" {
-									err = writer.WriteField("paused", pausedValue)
-									Expect(err).NotTo(HaveOccurred())
-								}
-
-								writer.Close()
-
-								request.Header.Set("Content-Type", writer.FormDataContentType())
-								request.Body = gbytes.BufferWithBytes(body.Bytes())
-							})
+							BeforeEach(writeMultiPart)
 
 							It("returns 200", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
@@ -602,7 +612,8 @@ jobs:
 
 							Context("when the config is invalid", func() {
 								BeforeEach(func() {
-									configValidationErrorMessages = []string{"totally invalid"}
+									pipelineConfig.Groups[0].Resources = []string{"missing-resource"}
+									writeMultiPart()
 								})
 
 								It("returns 400", func() {
@@ -612,7 +623,7 @@ jobs:
 								It("returns error JSON", func() {
 									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
 										"errors": [
-											"totally invalid"
+											"invalid groups:\n\tgroup 'some-group' has unknown resource 'missing-resource'\n"
 										]
 									}`))
 								})
@@ -624,20 +635,17 @@ jobs:
 
 							Context("when the config includes deprecations", func() {
 								BeforeEach(func() {
-									configValidationWarnings = []atc.Warning{
-										{
-											Type:    "deprecation",
-											Message: "deprecated",
-										},
-									}
+									pipelineConfig.Jobs[0].Plan[1].TaskConfigPath = "some/config/path.yml"
+									writeMultiPart()
 								})
 
 								It("returns warnings", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusOK))
 									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
-										"warnings": [
-										  {"type":"deprecation", "message":"deprecated"}
-										]
+										"warnings": [{
+											"type": "deprecation",
+											"message": "jobs.some-job.plan[1].task.some-task specifies both ` + "`file` and `config`" + ` in a task step"
+										}]
 									}`))
 								})
 							})
