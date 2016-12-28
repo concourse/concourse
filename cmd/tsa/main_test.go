@@ -405,7 +405,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 						})
 
 						Context("when the client goes away", func() {
-							It("stops forwarding", func() {
+							It("stops registering", func() {
 								time.Sleep(heartbeatInterval)
 
 								sshSess.Interrupt().Wait(10 * time.Second)
@@ -591,16 +591,53 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
 						})
 
-						Context("when the ATC returns a 404 for the heartbeat", func() {
-							BeforeEach(func() {
+						Context("when the ATC returns a 404 for a heartbeat", func() {
+							It("exits gracefully", func() {
+								<-heartbeated
+
 								atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
 									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
 									w.WriteHeader(404)
 								})
+
+								Eventually(sshSess, 3).Should(gexec.Exit(0))
 							})
 
-							It("exits gracefully", func() {
-								Eventually(sshSess, 3).Should(gexec.Exit(0))
+							Context("while a forwarded connection is active", func() {
+								It("interrupts the connection and exits gracefully", func() {
+									registration := <-registered
+									addr := registration.worker.GardenAddr
+
+									client := gclient.New(gconn.New("tcp", addr))
+
+									creating := make(chan struct{})
+									wait := make(chan struct{})
+									defer close(wait)
+
+									fakeBackend.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
+										close(creating)
+										<-wait
+										return new(gfakes.FakeContainer), nil
+									}
+
+									createErrs := make(chan error, 1)
+
+									go func() {
+										_, err := client.Create(garden.ContainerSpec{})
+										createErrs <- err
+									}()
+
+									<-creating
+
+									atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+										w.WriteHeader(404)
+									})
+
+									createErr := <-createErrs
+									Expect(createErr).To(HaveOccurred())
+									Expect(createErr.Error()).To(ContainSubstring("EOF"))
+								})
 							})
 						})
 
