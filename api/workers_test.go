@@ -396,37 +396,64 @@ var _ = Describe("Workers API", func() {
 			workerName = "some-worker"
 			authValidator.IsAuthenticatedReturns(true)
 			dbWorkerFactory.LandWorkerReturns(&dbng.Worker{}, nil)
+			dbWorkerFactory.GetWorkerReturns(&dbng.Worker{TeamName: "some-team"}, true, nil)
 		})
 
-		It("returns 200", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-		})
-
-		It("sees if the worker exists and attempts to land it", func() {
-			Expect(dbWorkerFactory.LandWorkerCallCount()).To(Equal(1))
-			Expect(dbWorkerFactory.LandWorkerArgsForCall(0)).To(Equal(workerName))
-		})
-
-		Context("when landing the worker fails", func() {
-			var returnedErr error
-
+		Context("when the request is authenticated as system", func() {
 			BeforeEach(func() {
-				returnedErr = errors.New("some-error")
-				dbWorkerFactory.LandWorkerReturns(nil, returnedErr)
+				userContextReader.GetSystemReturns(true, true)
 			})
 
-			It("returns 500", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("sees if the worker exists and attempts to land it", func() {
+				Expect(dbWorkerFactory.LandWorkerCallCount()).To(Equal(1))
+				Expect(dbWorkerFactory.LandWorkerArgsForCall(0)).To(Equal(workerName))
+			})
+
+			Context("when landing the worker fails", func() {
+				var returnedErr error
+
+				BeforeEach(func() {
+					returnedErr = errors.New("some-error")
+					dbWorkerFactory.LandWorkerReturns(nil, returnedErr)
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the worker does not exist", func() {
+				BeforeEach(func() {
+					dbWorkerFactory.LandWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
 			})
 		})
 
-		Context("when the worker does not exist", func() {
+		Context("when the request is authenticated as the worker's owner", func() {
 			BeforeEach(func() {
-				dbWorkerFactory.LandWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+				userContextReader.GetTeamReturns("some-team", false, true)
 			})
 
-			It("returns 404", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+		})
+
+		Context("when the request is authenticated as the wrong team", func() {
+			BeforeEach(func() {
+				userContextReader.GetTeamReturns("some-other-team", false, true)
+			})
+
+			It("returns 403", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 		})
 
@@ -463,37 +490,64 @@ var _ = Describe("Workers API", func() {
 			workerName = "some-worker"
 			authValidator.IsAuthenticatedReturns(true)
 			dbWorkerFactory.RetireWorkerReturns(&dbng.Worker{}, nil)
+			dbWorkerFactory.GetWorkerReturns(&dbng.Worker{TeamName: "some-team"}, true, nil)
 		})
 
-		It("returns 200", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-		})
-
-		It("sees if the worker exists and attempts to retire it", func() {
-			Expect(dbWorkerFactory.RetireWorkerCallCount()).To(Equal(1))
-			Expect(dbWorkerFactory.RetireWorkerArgsForCall(0)).To(Equal(workerName))
-		})
-
-		Context("when retiring the worker fails", func() {
-			var returnedErr error
-
+		Context("when autheticated as system", func() {
 			BeforeEach(func() {
-				returnedErr = errors.New("some-error")
-				dbWorkerFactory.RetireWorkerReturns(nil, returnedErr)
+				userContextReader.GetSystemReturns(true, true)
 			})
 
-			It("returns 500", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("sees if the worker exists and attempts to retire it", func() {
+				Expect(dbWorkerFactory.RetireWorkerCallCount()).To(Equal(1))
+				Expect(dbWorkerFactory.RetireWorkerArgsForCall(0)).To(Equal(workerName))
+			})
+
+			Context("when retiring the worker fails", func() {
+				var returnedErr error
+
+				BeforeEach(func() {
+					returnedErr = errors.New("some-error")
+					dbWorkerFactory.RetireWorkerReturns(nil, returnedErr)
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the worker does not exist", func() {
+				BeforeEach(func() {
+					dbWorkerFactory.RetireWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
 			})
 		})
 
-		Context("when the worker does not exist", func() {
+		Context("when autheticated as as the worker's owner", func() {
 			BeforeEach(func() {
-				dbWorkerFactory.RetireWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+				userContextReader.GetTeamReturns("some-team", false, true)
 			})
 
-			It("returns 404", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+		})
+
+		Context("when autheticated as some other team", func() {
+			BeforeEach(func() {
+				userContextReader.GetTeamReturns("some-other-team", false, true)
+			})
+
+			It("returns 403", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 		})
 

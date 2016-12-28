@@ -70,8 +70,10 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case atc.AbortBuild:
 			newHandler = wrappa.checkBuildWriteAccessHandlerFactory.HandlerFor(handler, rejector)
 
-		// requesting team is admin or owns target worker
-		case atc.PruneWorker:
+		// requester is system, admin team, or worker owning team
+		case atc.PruneWorker,
+			atc.LandWorker,
+			atc.RetireWorker:
 			newHandler = wrappa.checkWorkerTeamAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		// pipeline is public or authorized
@@ -100,8 +102,6 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.RegisterWorker,
 			atc.HeartbeatWorker,
 			atc.DeleteWorker,
-			atc.LandWorker,
-			atc.RetireWorker,
 			atc.SetTeam,
 			atc.DestroyTeam,
 			atc.WritePipe,

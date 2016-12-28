@@ -190,7 +190,9 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.AbortBuild: checkWritePermissionForBuild(inputHandlers[atc.AbortBuild]),
 
 				// resource belongs to authorized team
-				atc.PruneWorker: checkTeamAccessForWorker(inputHandlers[atc.PruneWorker]),
+				atc.PruneWorker:  checkTeamAccessForWorker(inputHandlers[atc.PruneWorker]),
+				atc.LandWorker:   checkTeamAccessForWorker(inputHandlers[atc.LandWorker]),
+				atc.RetireWorker: checkTeamAccessForWorker(inputHandlers[atc.RetireWorker]),
 
 				// belongs to public pipeline or authorized
 				atc.GetPipeline:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetPipeline]),
@@ -217,8 +219,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ReadPipe:        authenticated(inputHandlers[atc.ReadPipe]),
 				atc.RegisterWorker:  authenticated(inputHandlers[atc.RegisterWorker]),
 				atc.HeartbeatWorker: authenticated(inputHandlers[atc.HeartbeatWorker]),
-				atc.LandWorker:      authenticated(inputHandlers[atc.LandWorker]),
-				atc.RetireWorker:    authenticated(inputHandlers[atc.RetireWorker]),
 				atc.DeleteWorker:    authenticated(inputHandlers[atc.DeleteWorker]),
 
 				atc.SetTeam:     authenticated(inputHandlers[atc.SetTeam]),

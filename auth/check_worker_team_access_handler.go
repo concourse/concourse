@@ -45,6 +45,11 @@ func (h checkWorkerTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if IsSystem(r) {
+		h.delegateHandler.ServeHTTP(w, r)
+		return
+	}
+
 	team, found := GetTeam(r)
 	if !found {
 		h.rejector.Unauthorized(w, r)
