@@ -112,6 +112,10 @@ func (cmd *WorkerCommand) beaconRunner(logger lager.Logger, worker atc.Worker) i
 	return restart.Restarter{
 		Runner: beaconRunner,
 		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
+			if prevErr == nil {
+				return nil
+			}
+
 			if _, ok := prevErr.(*ssh.ExitError); !ok {
 				logger.Error("restarting", prevErr)
 				time.Sleep(5 * time.Second)
