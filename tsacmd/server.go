@@ -639,14 +639,22 @@ func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
 }
 
 func watchForProcessToExit(logger lager.Logger, process ifrit.Process, channel ssh.Channel) {
-	logger = logger.Session("wait-for-process-or-connection-to-finish")
+	logger = logger.Session("wait-for-process")
 
 	go func() {
 		err := <-process.Wait()
 		if err == nil {
+			logger.Debug("exited-successfully")
 			channel.SendRequest("exit-status", false, ssh.Marshal(exitStatusRequest{0}))
+		} else {
+			logger.Error("exited-with-error", err)
 		}
 
-		channel.Close()
+		err = channel.Close()
+		if err != nil {
+			logger.Error("failed-to-close-channel", err)
+		} else {
+			logger.Debug("closed-channel")
+		}
 	}()
 }
