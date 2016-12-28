@@ -324,6 +324,7 @@ jobs:
       passed: [bosh-rc]
       trigger: true
     - get: gcp-stemcell
+    - get: bosh-cli
   - task: topgun
     file: concourse/ci/topgun.yml
     input_mapping:
@@ -895,3 +896,9 @@ resources:
   type: docker-image
   source:
     repository: concourse/buildbox-ci
+
+- name: bosh-cli
+  type: s3
+  source:
+    bucket: bosh-cli-artifacts
+    regexp: bosh-cli-([^-]+)-linux-amd64
