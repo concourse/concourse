@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/template"
 	"github.com/mitchellh/mapstructure"
@@ -54,7 +53,7 @@ func (command *ValidatePipelineCommand) Execute(args []string) error {
 		displayhelpers.FailWithErrorf("failed to decode config", err)
 	}
 
-	warnings, errorMessages := config.ValidateConfig(newConfig)
+	warnings, errorMessages := newConfig.Validate()
 
 	if len(warnings) > 0 {
 		fmt.Fprintln(os.Stderr, "")
