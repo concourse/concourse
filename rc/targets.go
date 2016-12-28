@@ -82,20 +82,24 @@ func selectTarget(selectedTarget TargetName) (TargetProps, error) {
 }
 
 func userHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("USERPROFILE")
-		if home == "" {
-			home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		}
-
-		if home == "" {
-			panic("could not detect home directory for .flyrc")
-		}
-
+	home := os.Getenv("HOME")
+	if home != "" {
 		return home
 	}
 
-	return os.Getenv("HOME")
+	if runtime.GOOS == "windows" {
+		home = os.Getenv("USERPROFILE")
+		if home != "" {
+			return home
+		}
+
+		home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home != "" {
+			return home
+		}
+	}
+
+	panic("could not detect home directory for .flyrc")
 }
 
 func LoadTargets() (*targetDetailsYAML, error) {
@@ -105,11 +109,11 @@ func LoadTargets() (*targetDetailsYAML, error) {
 	if _, err := os.Stat(flyrc); err == nil {
 		flyTargetsBytes, err := ioutil.ReadFile(flyrc)
 		if err != nil {
-			return nil, fmt.Errorf("could not read %s", flyrc)
+			return nil, err
 		}
 		err = yaml.Unmarshal(flyTargetsBytes, &flyTargets)
 		if err != nil {
-			return nil, fmt.Errorf("could not unmarshal %s", flyrc)
+			return nil, err
 		}
 	}
 
@@ -128,12 +132,12 @@ func LoadTargets() (*targetDetailsYAML, error) {
 func writeTargets(configFileLocation string, targetsToWrite *targetDetailsYAML) error {
 	yamlBytes, err := yaml.Marshal(targetsToWrite)
 	if err != nil {
-		return fmt.Errorf("could not marshal %s", configFileLocation)
+		return err
 	}
 
 	err = ioutil.WriteFile(configFileLocation, yamlBytes, os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("could not write %s", configFileLocation)
+		return err
 	}
 
 	return nil

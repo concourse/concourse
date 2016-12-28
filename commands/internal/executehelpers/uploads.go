@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"os/exec"
 
+	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-archive/tgzfs"
 	"github.com/concourse/go-concourse/concourse"
 )
@@ -23,7 +23,7 @@ func Upload(client concourse.Client, input Input, excludeIgnored bool) {
 	if excludeIgnored {
 		files, err = getGitFiles(path)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "could not determine ignored files:", err)
+			fmt.Fprintln(ui.Stderr, "could not determine ignored files:", err)
 			return
 		}
 	} else {
@@ -43,14 +43,14 @@ func Upload(client concourse.Client, input Input, excludeIgnored bool) {
 
 	response, err := client.HTTPClient().Do(upload)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "upload request failed:", err)
+		fmt.Fprintln(ui.Stderr, "upload request failed:", err)
 		return
 	}
 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		fmt.Fprintln(os.Stderr, badResponseError("uploading bits", response))
+		fmt.Fprintln(ui.Stderr, badResponseError("uploading bits", response))
 	}
 }
 

@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/eventstream"
@@ -25,13 +26,23 @@ func (command *WatchCommand) Execute(args []string) error {
 		return err
 	}
 
+	var buildId int
 	client := target.Client()
-	build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineName)
-	if err != nil {
-		return err
+	if command.Job.JobName != "" || command.Build == "" {
+		build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineName)
+		if err != nil {
+			return err
+		}
+		buildId = build.ID
+	} else if command.Build != "" {
+		buildId, err = strconv.Atoi(command.Build)
+
+		if err != nil {
+			return err
+		}
 	}
 
-	eventSource, err := client.BuildEvents(fmt.Sprintf("%d", build.ID))
+	eventSource, err := client.BuildEvents(fmt.Sprintf("%d", buildId))
 	if err != nil {
 		return err
 	}

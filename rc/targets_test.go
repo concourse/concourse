@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
@@ -21,11 +20,7 @@ var _ = Describe("Targets", func() {
 		tmpDir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).ToNot(HaveOccurred())
 
-		if runtime.GOOS == "windows" {
-			os.Setenv("USERPROFILE", tmpDir)
-		} else {
-			os.Setenv("HOME", tmpDir)
-		}
+		os.Setenv("HOME", tmpDir)
 
 		flyrc = filepath.Join(userHomeDir(), ".flyrc")
 	})

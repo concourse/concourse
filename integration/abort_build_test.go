@@ -83,32 +83,6 @@ var _ = Describe("AbortBuild", func() {
 		})
 	})
 
-	Context("when getting the job build fails", func() {
-		BeforeEach(func() {
-			expectedJobBuildURL := "/api/v1/teams/main/pipelines/my-pipeline/jobs/my-job/builds/42"
-
-			atcServer.SetHandler(4, ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", expectedJobBuildURL),
-				ghttp.RespondWith(http.StatusInternalServerError, "{}"),
-			))
-		})
-
-		It("returns a helpful error message", func() {
-			Expect(func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess).Should(gexec.Exit(1))
-
-				Expect(sess.Err).To(gbytes.Say("error: failed to get job build"))
-			}).To(Change(func() int {
-				return len(atcServer.ReceivedRequests())
-			}).By(2))
-		})
-	})
-
 	Context("when the build or pipeline does not exist", func() {
 		BeforeEach(func() {
 			expectedJobBuildURL := "/api/v1/teams/main/pipelines/my-pipeline/jobs/my-job/builds/42"
@@ -130,33 +104,6 @@ var _ = Describe("AbortBuild", func() {
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(2))
-		})
-	})
-
-	Context("when the build abort fails", func() {
-		BeforeEach(func() {
-			expectedAbortURL := "/api/v1/builds/23/abort"
-
-			atcServer.SetHandler(5, ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", expectedAbortURL),
-				ghttp.RespondWith(http.StatusTeapot, ""),
-			),
-			)
-		})
-
-		It("returns a helpful error message", func() {
-			Expect(func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess).Should(gexec.Exit(1))
-
-				Expect(sess.Err).To(gbytes.Say("error: failed to abort build"))
-			}).To(Change(func() int {
-				return len(atcServer.ReceivedRequests())
-			}).By(3))
 		})
 	})
 })

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"strconv"
@@ -32,12 +33,57 @@ func (command *WorkersCommand) Execute([]string) error {
 		return err
 	}
 
+	sort.Sort(byWorkerName(workers))
+
+	var runningWorkers []atc.Worker
+	var stalledWorkers []atc.Worker
+	for _, w := range workers {
+		if w.State == "stalled" {
+			stalledWorkers = append(stalledWorkers, w)
+		} else {
+			runningWorkers = append(runningWorkers, w)
+		}
+	}
+
+	dst, isTTY := ui.ForTTY(os.Stdout)
+	if !isTTY {
+		return command.tableFor(append(runningWorkers, stalledWorkers...)).Render(os.Stdout)
+	}
+
+	err = command.tableFor(runningWorkers).Render(os.Stdout)
+	if err != nil {
+		return err
+	}
+
+	if len(stalledWorkers) > 0 {
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "the following workers have not checked in recently:")
+		fmt.Fprintln(dst, "")
+
+		err = command.tableFor(stalledWorkers).Render(os.Stdout)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "these stalled workers can be cleaned up by running:")
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "    "+ui.Embolden("fly -t %s prune-worker -w (name)", Fly.Target))
+		fmt.Fprintln(dst, "")
+	}
+
+	return nil
+}
+
+func (command *WorkersCommand) tableFor(workers []atc.Worker) ui.Table {
 	headers := ui.TableRow{
 		{Contents: "name", Color: color.New(color.Bold)},
 		{Contents: "containers", Color: color.New(color.Bold)},
 		{Contents: "platform", Color: color.New(color.Bold)},
 		{Contents: "tags", Color: color.New(color.Bold)},
 		{Contents: "team", Color: color.New(color.Bold)},
+		{Contents: "state", Color: color.New(color.Bold)},
 	}
 
 	if command.Details {
@@ -50,8 +96,6 @@ func (command *WorkersCommand) Execute([]string) error {
 
 	table := ui.Table{Headers: headers}
 
-	sort.Sort(byWorkerName(workers))
-
 	for _, w := range workers {
 		row := ui.TableRow{
 			{Contents: w.Name},
@@ -59,6 +103,7 @@ func (command *WorkersCommand) Execute([]string) error {
 			{Contents: w.Platform},
 			stringOrDefault(strings.Join(w.Tags, ", ")),
 			stringOrDefault(w.Team),
+			{Contents: w.State},
 		}
 
 		if command.Details {
@@ -67,7 +112,7 @@ func (command *WorkersCommand) Execute([]string) error {
 				resourceTypes = append(resourceTypes, t.Type)
 			}
 
-			row = append(row, ui.TableCell{Contents: w.GardenAddr})
+			row = append(row, stringOrDefault(w.GardenAddr))
 			row = append(row, stringOrDefault(w.BaggageclaimURL))
 			row = append(row, stringOrDefault(strings.Join(resourceTypes, ", ")))
 		}
@@ -75,7 +120,7 @@ func (command *WorkersCommand) Execute([]string) error {
 		table.Data = append(table.Data, row)
 	}
 
-	return table.Render(os.Stdout)
+	return table
 }
 
 type byWorkerName []atc.Worker

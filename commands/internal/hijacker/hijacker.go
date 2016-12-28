@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/fly/ui"
 	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
 	"github.com/tedsuo/rata"
@@ -119,7 +120,7 @@ func (h *Hijacker) handleOutput(conn *websocket.Conn, pio ProcessIO) int {
 		if output.ExitStatus != nil {
 			exitStatus = *output.ExitStatus
 		} else if len(output.Error) > 0 {
-			fmt.Fprintf(os.Stderr, "%s\n", ansi.Color(output.Error, "red+b"))
+			fmt.Fprintf(ui.Stderr, "%s\n", ansi.Color(output.Error, "red+b"))
 			exitStatus = 255
 		} else if len(output.Stdout) > 0 {
 			pio.Out.Write(output.Stdout)
@@ -140,13 +141,13 @@ func (h *Hijacker) handleInput(conn *websocket.Conn, inputs <-chan atc.HijackInp
 		case input := <-inputs:
 			err := conn.WriteJSON(input)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to send input: %s", err.Error())
+				fmt.Fprintf(ui.Stderr, "failed to send input: %s", err.Error())
 				return
 			}
 		case t := <-ticker.C:
 			err := conn.WriteControl(websocket.PingMessage, []byte(t.String()), time.Now().Add(time.Second))
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to send heartbeat: %s", err.Error())
+				fmt.Fprintf(ui.Stderr, "failed to send heartbeat: %s", err.Error())
 			}
 		case <-finished:
 			return

@@ -26,7 +26,7 @@ func (command *AbortBuildCommand) Execute([]string) error {
 
 	build, exists, err := target.Team().JobBuild(command.Job.PipelineName, command.Job.JobName, command.Build)
 	if err != nil {
-		return fmt.Errorf("failed to get job build")
+		return err
 	}
 
 	if !exists {
@@ -34,7 +34,7 @@ func (command *AbortBuildCommand) Execute([]string) error {
 	}
 
 	if err := target.Client().AbortBuild(strconv.Itoa(build.ID)); err != nil {
-		return fmt.Errorf("failed to abort build")
+		return err
 	}
 
 	fmt.Println("build successfully aborted")

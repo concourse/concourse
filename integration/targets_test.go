@@ -5,8 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
 
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -28,13 +26,7 @@ var _ = Describe("Fly CLI", func() {
 		tmpDir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).NotTo(HaveOccurred())
 
-		if runtime.GOOS == "windows" {
-			os.Setenv("USERPROFILE", tmpDir)
-			os.Setenv("HOMEPATH", strings.TrimPrefix(tmpDir, os.Getenv("HOMEDRIVE")))
-		} else {
-			os.Setenv("HOME", tmpDir)
-		}
-
+		os.Setenv("HOME", tmpDir)
 		flyrc = filepath.Join(userHomeDir(), ".flyrc")
 
 		flyFixtureFile, err := os.OpenFile("./fixtures/flyrc.yml", os.O_RDONLY, 0600)

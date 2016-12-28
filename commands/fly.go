@@ -13,7 +13,8 @@ type FlyCommand struct {
 	Login LoginCommand `command:"login" alias:"l" description:"Authenticate with the target"`
 	Sync  SyncCommand  `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
-	SetTeam SetTeamCommand `command:"set-team"  alias:"st" description:"Create or modify a team to have the given credentials"`
+	SetTeam     SetTeamCommand     `command:"set-team"  alias:"st" description:"Create or modify a team to have the given credentials"`
+	DestroyTeam DestroyTeamCommand `command:"destroy-team"  alias:"dt" description:"Destroy a team and delete all of its data"`
 
 	Checklist ChecklistCommand `command:"checklist" alias:"cl" description:"Print a Checkfile of the given pipeline"`
 
@@ -47,7 +48,9 @@ type FlyCommand struct {
 	TriggerJob TriggerJobCommand `command:"trigger-job" alias:"tj" description:"Start a job in a pipeline"`
 
 	Volumes VolumesCommand `command:"volumes" alias:"vs" description:"List the active volumes"`
-	Workers WorkersCommand `command:"workers" alias:"ws" description:"List the registered workers"`
+
+	Workers     WorkersCommand     `command:"workers" alias:"ws" description:"List the registered workers"`
+	PruneWorker PruneWorkerCommand `command:"prune-worker" alias:"pw" description:"Prune a stalled, landing, landed, or retiring worker"`
 }
 
 var Fly FlyCommand

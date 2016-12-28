@@ -111,6 +111,18 @@ var _ = Describe("Watching", func() {
 		})
 	})
 
+	Context("with a build ID and no job", func() {
+		BeforeEach(func() {
+			atcServer.AppendHandlers(
+				eventsHandler(),
+			)
+		})
+
+		It("Watches the given build id", func() {
+			watch("--build", "3")
+		})
+	})
+
 	Context("with a specific job and pipeline", func() {
 		Context("when the job has no builds", func() {
 			BeforeEach(func() {

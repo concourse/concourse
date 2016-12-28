@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/template"
+	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/mitchellh/mapstructure"
 	"github.com/onsi/gomega/gexec"
@@ -130,26 +131,26 @@ func (atcConfig ATCConfig) newConfig(configPath atc.PathFlag, templateVariablesF
 }
 
 func (atcConfig ATCConfig) showPipelineConfigErrors(errorMessages []string) {
-	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(ui.Stderr, "")
 	displayhelpers.PrintWarningHeader()
 
-	fmt.Fprintln(os.Stderr, "Error loading existing config:")
+	fmt.Fprintln(ui.Stderr, "Error loading existing config:")
 	for _, errorMessage := range errorMessages {
-		fmt.Fprintf(os.Stderr, "  - %s\n", errorMessage)
+		fmt.Fprintf(ui.Stderr, "  - %s\n", errorMessage)
 	}
 
-	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(ui.Stderr, "")
 }
 
 func (atcConfig ATCConfig) showWarnings(warnings []concourse.ConfigWarning) {
-	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(ui.Stderr, "")
 	displayhelpers.PrintDeprecationWarningHeader()
 
 	for _, warning := range warnings {
-		fmt.Fprintf(os.Stderr, "  - %s\n", warning.Message)
+		fmt.Fprintf(ui.Stderr, "  - %s\n", warning.Message)
 	}
 
-	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(ui.Stderr, "")
 }
 
 func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {

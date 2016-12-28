@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
+	"runtime"
 	"time"
 
 	"github.com/concourse/fly/ui"
@@ -296,8 +296,8 @@ func (t *target) validate(allowVersionMismatch bool) error {
 	}
 
 	if atcMajor != flyMajor || atcMinor != flyMinor || atcPatch != flyPatch {
-		fmt.Fprintln(os.Stderr, ui.WarningColor("WARNING:\n"))
-		fmt.Fprintln(os.Stderr, ui.WarningColor(NewErrVersionMismatch(version.Version, info.Version, t.name).Error()))
+		fmt.Fprintln(ui.Stderr, ui.WarningColor("WARNING:\n"))
+		fmt.Fprintln(ui.Stderr, ui.WarningColor(NewErrVersionMismatch(version.Version, info.Version, t.name).Error()))
 	}
 
 	return nil
@@ -335,7 +335,20 @@ func loadCACertPool(caCert string) (cert *x509.CertPool, err error) {
 		return nil, nil
 	}
 
-	pool := x509.NewCertPool()
+	// TODO: remove else block once we switch to go 1.8
+	// x509.SystemCertPool is not supported in go 1.7 on Windows
+	// see: https://github.com/golang/go/issues/16736
+	var pool *x509.CertPool
+	if runtime.GOOS != "windows" {
+		var err error
+		pool, err = x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		pool = x509.NewCertPool()
+	}
+
 	ok := pool.AppendCertsFromPEM([]byte(caCert))
 	if !ok {
 		return nil, errors.New("CA Cert not valid")

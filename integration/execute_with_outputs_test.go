@@ -281,7 +281,7 @@ run:
 				Expect(err).NotTo(HaveOccurred())
 
 				// sync with after create
-				Eventually(streaming, 5.0).Should(BeClosed())
+				Eventually(streaming).Should(BeClosed())
 
 				close(events)
 

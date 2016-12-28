@@ -276,7 +276,7 @@ run: {}
 			Expect(err).NotTo(HaveOccurred())
 
 			// sync with after create
-			Eventually(streaming, 5.0).Should(BeClosed())
+			Eventually(streaming).Should(BeClosed())
 
 			close(events)
 
@@ -302,7 +302,7 @@ run: {}
 			Expect(err).NotTo(HaveOccurred())
 
 			// sync with after create
-			Eventually(streaming, 5.0).Should(BeClosed())
+			Eventually(streaming).Should(BeClosed())
 
 			close(events)
 
@@ -418,7 +418,7 @@ run:
 			Expect(err).NotTo(HaveOccurred())
 
 			// sync with after create
-			Eventually(streaming, 5.0).Should(BeClosed())
+			Eventually(streaming).Should(BeClosed())
 
 			close(events)
 
@@ -464,7 +464,7 @@ run:
 			Expect(err).NotTo(HaveOccurred())
 
 			// sync with after create
-			Eventually(streaming, 5.0).Should(BeClosed())
+			Eventually(streaming).Should(BeClosed())
 
 			close(events)
 
@@ -500,13 +500,13 @@ run:
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).ToNot(HaveOccurred())
 
-					Eventually(streaming, 5).Should(BeClosed())
+					Eventually(streaming).Should(BeClosed())
 
 					Eventually(uploadingBits).Should(BeClosed())
 
 					sess.Signal(os.Interrupt)
 
-					Eventually(aborted, 5.0).Should(BeClosed())
+					Eventually(aborted).Should(BeClosed())
 
 					events <- event.Status{Status: atc.StatusErrored}
 					close(events)
@@ -524,13 +524,13 @@ run:
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).ToNot(HaveOccurred())
 
-					Eventually(streaming, 5).Should(BeClosed())
+					Eventually(streaming).Should(BeClosed())
 
 					Eventually(uploadingBits).Should(BeClosed())
 
 					sess.Signal(syscall.SIGTERM)
 
-					Eventually(aborted, 5.0).Should(BeClosed())
+					Eventually(aborted).Should(BeClosed())
 
 					events <- event.Status{Status: atc.StatusErrored}
 					close(events)
@@ -551,11 +551,7 @@ run:
 			tmpDir, err = ioutil.TempDir("", "fly-test")
 			Expect(err).NotTo(HaveOccurred())
 
-			if runtime.GOOS == "windows" {
-				os.Setenv("USERPROFILE", tmpDir)
-			} else {
-				os.Setenv("HOME", tmpDir)
-			}
+			os.Setenv("HOME", tmpDir)
 
 			targetName = "foo"
 			token := rc.TargetToken{
@@ -590,7 +586,7 @@ run:
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
-			Eventually(streaming, 5).Should(BeClosed())
+			Eventually(streaming).Should(BeClosed())
 
 			events <- event.Status{Status: atc.StatusSucceeded}
 			close(events)
@@ -610,7 +606,7 @@ run:
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
-			Eventually(streaming, 5).Should(BeClosed())
+			Eventually(streaming).Should(BeClosed())
 
 			events <- event.Status{Status: atc.StatusSucceeded}
 			close(events)
@@ -630,7 +626,7 @@ run:
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
-			Eventually(streaming, 5).Should(BeClosed())
+			Eventually(streaming).Should(BeClosed())
 
 			events <- event.Status{Status: atc.StatusFailed}
 			close(events)
@@ -650,7 +646,7 @@ run:
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
-			Eventually(streaming, 5).Should(BeClosed())
+			Eventually(streaming).Should(BeClosed())
 
 			events <- event.Status{Status: atc.StatusErrored}
 			close(events)

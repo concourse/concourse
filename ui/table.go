@@ -3,11 +3,9 @@ package ui
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/mattn/go-isatty"
 )
 
 type Table struct {
@@ -32,10 +30,7 @@ func (d Data) Less(i int, j int) bool {
 }
 
 func (table Table) Render(dst io.Writer) error {
-	isTTY := false
-	if file, ok := dst.(*os.File); ok && isatty.IsTerminal(file.Fd()) {
-		isTTY = true
-	}
+	dst, isTTY := ForTTY(dst)
 
 	columnWidths := map[int]int{}
 
