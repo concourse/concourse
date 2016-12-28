@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("garbage collecting build containers", func() {
+var _ = Describe(":life Garbage collecting build containers", func() {
 	var dbConn *sql.DB
 
 	BeforeEach(func() {

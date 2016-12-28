@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("A volume that belonged to a container that is now gone", func() {
+var _ = Describe(":life A volume that belonged to a container that is now gone", func() {
 	var dbConn *sql.DB
 
 	BeforeEach(func() {

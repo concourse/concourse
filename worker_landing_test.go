@@ -142,7 +142,6 @@ var _ = Describe("[#129726011] Worker landing", func() {
 					Expect(restartSession.ExitCode()).To(Equal(0))
 				})
 			})
-
 		})
 
 		// Describe("recreating the worker", func() {
@@ -166,42 +165,78 @@ var _ = Describe("[#129726011] Worker landing", func() {
 			Deploy("deployments/one-forwarded-worker.yml")
 		})
 
-		It("keeps volumes and containers after restart", func() {
-			By("setting pipeline that creates volumes for image")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "topgun")
+		Describe("restarting the worker", func() {
+			var restartSession *gexec.Session
 
-			By("unpausing the pipeline")
-			fly("unpause-pipeline", "-p", "topgun")
+			JustBeforeEach(func() {
+				restartSession = spawnBosh("restart", "worker/0")
+			})
 
-			By("triggering a job")
-			buildSession := spawnFly("trigger-job", "-w", "-j", "topgun/simple-job")
-			Eventually(buildSession).Should(gbytes.Say("Pulling .*busybox.*"))
-			<-buildSession.Exited
-			Expect(buildSession.ExitCode()).To(Equal(0))
+			Context("with volumes and containers present", func() {
+				var preservedContainerID string
 
-			By("getting identifier for check container")
-			hijackSession := spawnFly("hijack", "-c", "topgun/tick-tock", "--", "hostname")
-			<-hijackSession.Exited
-			Expect(buildSession.ExitCode()).To(Equal(0))
-			firstContainerID := hijackSession.Out.Contents()
+				BeforeEach(func() {
+					By("setting pipeline that creates volumes for image")
+					fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "topgun")
 
-			By("restarting worker")
-			restartSession := spawnBosh("restart", "worker/0")
-			<-restartSession.Exited
-			Expect(restartSession.ExitCode()).To(Equal(0))
+					By("unpausing the pipeline")
+					fly("unpause-pipeline", "-p", "topgun")
 
-			By("retaining cached image resource in second job build")
-			buildSession = spawnFly("trigger-job", "-w", "-j", "topgun/simple-job")
-			Eventually(buildSession).Should(gbytes.Say("using version of resource found in cache"))
-			<-buildSession.Exited
-			Expect(buildSession.ExitCode()).To(Equal(0))
+					By("triggering a job")
+					buildSession := spawnFly("trigger-job", "-w", "-j", "topgun/simple-job")
+					Eventually(buildSession).Should(gbytes.Say("Pulling .*busybox.*"))
+					<-buildSession.Exited
+					Expect(buildSession.ExitCode()).To(Equal(0))
 
-			By("retaining check containers")
-			hijackSession = spawnFly("hijack", "-c", "topgun/tick-tock", "--", "hostname")
-			<-hijackSession.Exited
-			Expect(buildSession.ExitCode()).To(Equal(0))
-			secondContainerID := hijackSession.Out.Contents()
-			Expect(secondContainerID).To(Equal(firstContainerID))
+					By("getting identifier for check container")
+					hijackSession := spawnFly("hijack", "-c", "topgun/tick-tock", "--", "hostname")
+					<-hijackSession.Exited
+					Expect(buildSession.ExitCode()).To(Equal(0))
+
+					preservedContainerID = string(hijackSession.Out.Contents())
+				})
+
+				It("keeps volumes and containers after restart", func() {
+					By("completing the restart")
+					<-restartSession.Exited
+					Expect(restartSession.ExitCode()).To(Equal(0))
+
+					By("retaining cached image resource in second job build")
+					buildSession := spawnFly("trigger-job", "-w", "-j", "topgun/simple-job")
+					Eventually(buildSession).Should(gbytes.Say("using version of resource found in cache"))
+					<-buildSession.Exited
+					Expect(buildSession.ExitCode()).To(Equal(0))
+
+					By("retaining check containers")
+					hijackSession := spawnFly("hijack", "-c", "topgun/tick-tock", "--", "hostname")
+					<-hijackSession.Exited
+					Expect(buildSession.ExitCode()).To(Equal(0))
+
+					currentContainerID := string(hijackSession.Out.Contents())
+					Expect(currentContainerID).To(Equal(preservedContainerID))
+				})
+			})
+
+			Context("with an interruptible build in-flight", func() {
+				var buildSession *gexec.Session
+
+				BeforeEach(func() {
+					By("setting pipeline that has an infinite but interruptible job")
+					fly("set-pipeline", "-n", "-c", "pipelines/interruptible.yml", "-p", "topgun")
+
+					By("unpausing the pipeline")
+					fly("unpause-pipeline", "-p", "topgun")
+
+					By("triggering a job")
+					buildSession = spawnFly("trigger-job", "-w", "-j", "topgun/interruptible-job")
+					Eventually(buildSession).Should(gbytes.Say("waiting forever"))
+				})
+
+				It("does not wait for the build", func() {
+					By("completing the restart without the drain timeout kicking in")
+					Eventually(restartSession, 5*time.Minute).Should(gexec.Exit(0))
+				})
+			})
 		})
 	})
 })
