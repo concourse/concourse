@@ -1,6 +1,8 @@
 package config_test
 
 import (
+	"strings"
+
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/config"
 
@@ -421,6 +423,48 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job has negative build_logs_to_retain: -1"))
+			})
+		})
+
+		Context("when a job has duplicate inputs", func() {
+			BeforeEach(func() {
+				job.Plan = append(job.Plan, atc.PlanConfig{
+					Get: "some-resource",
+				})
+				job.Plan = append(job.Plan, atc.PlanConfig{
+					Get: "some-resource",
+				})
+
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns a single error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
+			})
+		})
+
+		Context("when a job has duplicate inputs via aggregate", func() {
+			BeforeEach(func() {
+				job.Plan = append(job.Plan, atc.PlanConfig{
+					Get: "some-resource",
+				})
+				job.Plan = append(job.Plan, atc.PlanConfig{
+					Aggregate: &atc.PlanSequence{
+						{
+							Get: "some-resource",
+						},
+					},
+				})
+
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns a single error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
 			})
 		})
 
