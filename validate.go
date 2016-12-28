@@ -219,6 +219,18 @@ func validateJobs(c Config) ([]Warning, error) {
 		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", PlanConfig{Do: &job.Plan})
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)
+
+		encountered := map[string]int{}
+		for _, input := range job.Inputs() {
+			encountered[input.ResourceName()]++
+
+			if encountered[input.ResourceName()] == 2 {
+				errorMessages = append(
+					errorMessages,
+					identifier+fmt.Sprintf(" has get steps with the same name: %s", input.ResourceName()),
+				)
+			}
+		}
 	}
 
 	return warnings, compositeErr(errorMessages)
