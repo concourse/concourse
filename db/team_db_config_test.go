@@ -575,7 +575,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		pipelines, err := teamDB.GetPipelines()
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(pipelines).To(Equal([]db.SavedPipeline{
+		Expect(pipelines).To(ConsistOf([]db.SavedPipeline{
 			{
 				ID:       5,
 				TeamID:   team.ID,
