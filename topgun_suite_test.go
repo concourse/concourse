@@ -1,9 +1,7 @@
 package topgun_test
 
 import (
-	"bytes"
 	"crypto/tls"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -248,16 +246,13 @@ func waitForStalledWorker() string {
 func waitForWorkerInState(desiredStates ...string) string {
 	var workerName string
 	Eventually(func() string {
-		workersSession := spawnFly("workers")
-		<-workersSession.Exited
+		session := spawnFly("workers")
+		<-session.Exited
 
-		reader := csv.NewReader(bytes.NewBuffer(workersSession.Out.Contents()))
-		reader.Comma = ' '
+		rows := strings.Split(string(session.Out.Contents()), "\n")
+		for _, row := range rows {
+			worker := strings.Fields(row)
 
-		workers, err := reader.ReadAll()
-		Expect(err).ToNot(HaveOccurred())
-
-		for _, worker := range workers {
 			name := worker[0]
 			state := worker[len(worker)-1]
 
@@ -287,17 +282,15 @@ func waitForWorkerInState(desiredStates ...string) string {
 
 func waitForWorkersToBeRunning() {
 	Eventually(func() bool {
-		workersSession := spawnFly("workers")
-		<-workersSession.Exited
-
-		reader := csv.NewReader(bytes.NewBuffer(workersSession.Out.Contents()))
-		reader.Comma = ' '
-
-		workers, err := reader.ReadAll()
-		Expect(err).ToNot(HaveOccurred())
+		session := spawnFly("workers")
+		<-session.Exited
 
 		anyNotRunning := false
-		for _, worker := range workers {
+
+		rows := strings.Split(string(session.Out.Contents()), "\n")
+		for _, row := range rows {
+			worker := strings.Fields(row)
+
 			state := worker[len(worker)-1]
 
 			if state != "running" {
@@ -310,18 +303,14 @@ func waitForWorkersToBeRunning() {
 }
 
 func workersWithContainers() []string {
-	containersSession := spawnFly("containers")
-	<-containersSession.Exited
-
-	reader := csv.NewReader(bytes.NewBuffer(containersSession.Out.Contents()))
-	reader.Comma = ' '
-
-	rows, err := reader.ReadAll()
-	Expect(err).ToNot(HaveOccurred())
+	session := spawnFly("containers")
+	<-session.Exited
 
 	usedWorkers := map[string]struct{}{}
+	rows := strings.Split(string(session.Out.Contents()), "\n")
 	for _, row := range rows {
-		workerName := row[3]
+		worker := strings.Fields(row)
+		workerName := worker[3]
 		usedWorkers[workerName] = struct{}{}
 	}
 
