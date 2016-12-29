@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -236,16 +237,16 @@ func oauthClient(atcToken *atc.AuthToken) *http.Client {
 	}
 }
 
-func waitForLandingWorker() string {
-	return waitForWorkerInState("landing")
+func waitForLandingOrLandedWorker() string {
+	return waitForWorkerInState("landing", "landed")
 }
 
 func waitForStalledWorker() string {
 	return waitForWorkerInState("stalled")
 }
 
-func waitForWorkerInState(desiredState string) string {
-	var landingWorkerName string
+func waitForWorkerInState(desiredStates ...string) string {
+	var workerName string
 	Eventually(func() string {
 		workersSession := spawnFly("workers")
 		<-workersSession.Exited
@@ -260,21 +261,28 @@ func waitForWorkerInState(desiredState string) string {
 			name := worker[0]
 			state := worker[len(worker)-1]
 
-			if state != desiredState {
+			anyMatched := false
+			for _, desiredState := range desiredStates {
+				if state == desiredState {
+					anyMatched = true
+				}
+			}
+
+			if !anyMatched {
 				continue
 			}
 
-			if landingWorkerName != "" {
-				Fail("multiple workers " + desiredState)
+			if workerName != "" {
+				Fail("multiple workers in states: " + strings.Join(desiredStates, ", "))
 			}
 
-			landingWorkerName = name
+			workerName = name
 		}
 
-		return landingWorkerName
+		return workerName
 	}).ShouldNot(BeEmpty())
 
-	return landingWorkerName
+	return workerName
 }
 
 func waitForWorkersToBeRunning() {

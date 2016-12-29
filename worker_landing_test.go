@@ -20,25 +20,35 @@ var _ = Describe("[#129726011] Worker landing", func() {
 		})
 
 		Describe("restarting the worker", func() {
-			var landingWorkerName string
+			var restartingWorkerName string
 			var restartSession *gexec.Session
 
 			JustBeforeEach(func() {
 				restartSession = spawnBosh("restart", "worker/0")
-				landingWorkerName = waitForLandingWorker()
+				restartingWorkerName = waitForLandingOrLandedWorker()
 			})
 
 			AfterEach(func() {
 				<-restartSession.Exited
 			})
 
-			It("is not used for new workloads", func() {
-				for i := 0; i < 10; i++ {
-					fly("execute", "-c", "tasks/tiny.yml")
-					usedWorkers := workersWithContainers()
-					Expect(usedWorkers).To(HaveLen(1))
-					Expect(usedWorkers).ToNot(ContainElement(landingWorkerName))
-				}
+			Context("while in landing or landed state", func() {
+				// technically this is timing-dependent but it doesn't seem worth the
+				// time cost of explicit tests for both
+
+				It("is not used for new workloads", func() {
+					for i := 0; i < 10; i++ {
+						fly("execute", "-c", "tasks/tiny.yml")
+						usedWorkers := workersWithContainers()
+						Expect(usedWorkers).To(HaveLen(1))
+						Expect(usedWorkers).ToNot(ContainElement(restartingWorkerName))
+					}
+				})
+
+				It("can be pruned", func() {
+					fly("prune-worker", "-w", restartingWorkerName)
+					waitForWorkersToBeRunning()
+				})
 			})
 
 			Context("with a build in-flight", func() {

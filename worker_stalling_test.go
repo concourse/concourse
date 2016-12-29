@@ -49,6 +49,11 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 					Expect(usedWorkers).ToNot(ContainElement(stalledWorkerName))
 				}
 			})
+
+			It("can be pruned while in stalled state", func() {
+				fly("prune-worker", "-w", stalledWorkerName)
+				waitForWorkersToBeRunning()
+			})
 		})
 	})
 
