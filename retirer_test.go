@@ -28,7 +28,8 @@ var _ = Describe("Retirer", func() {
 			Name: "some-worker",
 		}
 		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
-		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
+		fakeTokenGenerator.GenerateSystemTokenReturns("no", nil)
+		fakeTokenGenerator.GenerateTeamTokenReturns("yo", nil)
 
 		fakeATC = ghttp.NewServer()
 
@@ -44,10 +45,29 @@ var _ = Describe("Retirer", func() {
 		fakeATC.Close()
 	})
 
+	Context("when the worker request is for a team-owned worker", func() {
+		BeforeEach(func() {
+			worker.Team = "some-team"
+		})
+
+		It("generates a team-specific token", func() {
+			fakeATC.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+				ghttp.RespondWith(200, nil, nil),
+			))
+
+			err := retirer.Retire(logger, worker)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
+	})
+
 	It("tells the ATC to retire the worker", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
 			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
-			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+			ghttp.VerifyHeaderKV("Authorization", "Bearer no"),
 			ghttp.RespondWith(200, nil, nil),
 		))
 
@@ -55,6 +75,23 @@ var _ = Describe("Retirer", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+	})
+
+	Context("when the ATC responds with a 403", func() {
+		BeforeEach(func() {
+			fakeATC.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+				ghttp.RespondWith(403, nil, nil),
+			))
+		})
+
+		It("errors", func() {
+			err := retirer.Retire(logger, worker)
+			Expect(err).To(HaveOccurred())
+
+			Expect(err).To(MatchError(ContainSubstring("403")))
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
 	})
 
 	Context("when the ATC responds with a 404", func() {
