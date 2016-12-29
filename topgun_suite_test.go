@@ -1,6 +1,7 @@
 package topgun_test
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/csv"
 	"encoding/json"
@@ -249,7 +250,7 @@ func waitForWorkerInState(desiredState string) string {
 		workersSession := spawnFly("workers")
 		<-workersSession.Exited
 
-		reader := csv.NewReader(workersSession.Out)
+		reader := csv.NewReader(bytes.NewBuffer(workersSession.Out.Contents()))
 		reader.Comma = ' '
 
 		workers, err := reader.ReadAll()
@@ -281,7 +282,7 @@ func waitForWorkersToBeRunning() {
 		workersSession := spawnFly("workers")
 		<-workersSession.Exited
 
-		reader := csv.NewReader(workersSession.Out)
+		reader := csv.NewReader(bytes.NewBuffer(workersSession.Out.Contents()))
 		reader.Comma = ' '
 
 		workers, err := reader.ReadAll()
@@ -304,7 +305,7 @@ func workersWithContainers() []string {
 	containersSession := spawnFly("containers")
 	<-containersSession.Exited
 
-	reader := csv.NewReader(containersSession.Out)
+	reader := csv.NewReader(bytes.NewBuffer(containersSession.Out.Contents()))
 	reader.Comma = ' '
 
 	rows, err := reader.ReadAll()
