@@ -56,6 +56,17 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 	return beacon.run("register-worker", client, signals, ready)
 }
 
+func (beacon *Beacon) RetireWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
+	client, err := beacon.Config.Dial()
+	if err != nil {
+		return fmt.Errorf("failed to dial: %s", err)
+	}
+
+	defer client.Close()
+
+	return beacon.run("retire-worker", client, signals, ready)
+}
+
 func (beacon *Beacon) LandWorker(signals <-chan os.Signal, ready chan<- struct{}) error {
 	client, err := beacon.Config.Dial()
 	if err != nil {

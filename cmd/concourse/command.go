@@ -8,7 +8,8 @@ type ConcourseCommand struct {
 	Web    WebCommand    `command:"web"    description:"Run the web UI and build scheduler."`
 	Worker WorkerCommand `command:"worker" description:"Run and register a worker."`
 
-	LandWorker LandWorkerCommand `command:"land-worker" description:"Safely remove a worker from the cluster."`
+	LandWorker   LandWorkerCommand   `command:"land-worker" description:"Safely drain a worker's assignments for temporary downtime."`
+	RetireWorker RetireWorkerCommand `command:"retire-worker" description:"Safely remove a worker from the cluster permanently."`
 }
 
 func (cmd ConcourseCommand) lessenRequirements(parser *flags.Parser) {
