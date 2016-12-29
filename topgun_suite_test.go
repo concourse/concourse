@@ -251,6 +251,10 @@ func waitForWorkerInState(desiredStates ...string) string {
 
 		rows := strings.Split(string(session.Out.Contents()), "\n")
 		for _, row := range rows {
+			if row == "" {
+				continue
+			}
+
 			worker := strings.Fields(row)
 
 			name := worker[0]
@@ -289,6 +293,10 @@ func waitForWorkersToBeRunning() {
 
 		rows := strings.Split(string(session.Out.Contents()), "\n")
 		for _, row := range rows {
+			if row == "" {
+				continue
+			}
+
 			worker := strings.Fields(row)
 
 			state := worker[len(worker)-1]
@@ -309,6 +317,10 @@ func workersWithContainers() []string {
 	usedWorkers := map[string]struct{}{}
 	rows := strings.Split(string(session.Out.Contents()), "\n")
 	for _, row := range rows {
+		if row == "" {
+			continue
+		}
+
 		worker := strings.Fields(row)
 		workerName := worker[3]
 		usedWorkers[workerName] = struct{}{}
