@@ -2,8 +2,6 @@ package topgun_test
 
 import (
 	"bytes"
-	"database/sql"
-	"fmt"
 	"os"
 	"regexp"
 	"time"
@@ -16,88 +14,15 @@ import (
 )
 
 var _ = Describe("[#129726011] Worker stalling", func() {
-	var dbConn *sql.DB
-
-	BeforeEach(func() {
-		var err error
-		dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", atcIP))
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	waitForStalledWorker := func() string {
-		var stalledWorkerName string
-		Eventually(func() string {
-			rows, err := psql.Select("name, state").From("workers").RunWith(dbConn).Query()
-			Expect(err).ToNot(HaveOccurred())
-
-			for rows.Next() {
-				var name string
-				var state string
-
-				err := rows.Scan(&name, &state)
-				Expect(err).ToNot(HaveOccurred())
-
-				if state != "stalled" {
-					continue
-				}
-
-				if stalledWorkerName != "" {
-					Fail("multiple workers stalled")
-				}
-
-				stalledWorkerName = name
-			}
-
-			return stalledWorkerName
-		}).ShouldNot(BeEmpty())
-
-		return stalledWorkerName
-	}
-
-	waitForWorkersToBeRunning := func() {
-		Eventually(func() bool {
-			rows, err := psql.Select("name, state").From("workers").RunWith(dbConn).Query()
-			Expect(err).ToNot(HaveOccurred())
-
-			anyStalled := false
-
-			for rows.Next() {
-				var name string
-				var state string
-
-				err := rows.Scan(&name, &state)
-				Expect(err).ToNot(HaveOccurred())
-
-				if state == "stalled" {
-					anyStalled = true
-				}
-			}
-
-			return anyStalled
-		}).Should(BeFalse())
-	}
-
 	Context("with two workers available", func() {
 		BeforeEach(func() {
 			Deploy("deployments/two-forwarded-workers.yml")
 		})
 
 		It("initially runs tasks across all workers", func() {
-			Eventually(func() map[string]struct{} {
+			Eventually(func() []string {
 				fly("execute", "-c", "tasks/tiny.yml")
-				rows, err := psql.Select("id, worker_name").From("containers").RunWith(dbConn).Query()
-				Expect(err).ToNot(HaveOccurred())
-
-				usedWorkers := map[string]struct{}{}
-				for rows.Next() {
-					var id int
-					var workerName string
-					err := rows.Scan(&id, &workerName)
-					Expect(err).ToNot(HaveOccurred())
-					usedWorkers[workerName] = struct{}{}
-				}
-
-				return usedWorkers
+				return workersWithContainers()
 			}, 10*time.Minute).Should(HaveLen(2))
 		})
 
@@ -119,18 +44,7 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 			It("enters 'stalled' state and is no longer used for new containers", func() {
 				for i := 0; i < 10; i++ {
 					fly("execute", "-c", "tasks/tiny.yml")
-					rows, err := psql.Select("id, worker_name").From("containers").RunWith(dbConn).Query()
-					Expect(err).ToNot(HaveOccurred())
-
-					usedWorkers := map[string]struct{}{}
-					for rows.Next() {
-						var id int
-						var workerName string
-						err := rows.Scan(&id, &workerName)
-						Expect(err).ToNot(HaveOccurred())
-						usedWorkers[workerName] = struct{}{}
-					}
-
+					usedWorkers := workersWithContainers()
 					Expect(usedWorkers).To(HaveLen(1))
 					Expect(usedWorkers).ToNot(ContainElement(stalledWorkerName))
 				}

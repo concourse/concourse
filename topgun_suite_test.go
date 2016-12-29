@@ -2,6 +2,7 @@ package topgun_test
 
 import (
 	"crypto/tls"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -232,4 +233,93 @@ func oauthClient(atcToken *atc.AuthToken) *http.Client {
 			},
 		},
 	}
+}
+
+func waitForLandingWorker() string {
+	return waitForWorkerInState("landing")
+}
+
+func waitForStalledWorker() string {
+	return waitForWorkerInState("stalled")
+}
+
+func waitForWorkerInState(desiredState string) string {
+	var landingWorkerName string
+	Eventually(func() string {
+		workersSession := spawnFly("workers")
+		<-workersSession.Exited
+
+		reader := csv.NewReader(workersSession.Out)
+		reader.Comma = ' '
+
+		workers, err := reader.ReadAll()
+		Expect(err).ToNot(HaveOccurred())
+
+		for _, worker := range workers {
+			name := worker[0]
+			state := worker[len(worker)-1]
+
+			if state != desiredState {
+				continue
+			}
+
+			if landingWorkerName != "" {
+				Fail("multiple workers " + desiredState)
+			}
+
+			landingWorkerName = name
+		}
+
+		return landingWorkerName
+	}).ShouldNot(BeEmpty())
+
+	return landingWorkerName
+}
+
+func waitForWorkersToBeRunning() {
+	Eventually(func() bool {
+		workersSession := spawnFly("workers")
+		<-workersSession.Exited
+
+		reader := csv.NewReader(workersSession.Out)
+		reader.Comma = ' '
+
+		workers, err := reader.ReadAll()
+		Expect(err).ToNot(HaveOccurred())
+
+		anyNotRunning := false
+		for _, worker := range workers {
+			state := worker[len(worker)-1]
+
+			if state != "running" {
+				anyNotRunning = true
+			}
+		}
+
+		return anyNotRunning
+	}).Should(BeFalse())
+}
+
+func workersWithContainers() []string {
+	containersSession := spawnFly("containers")
+	<-containersSession.Exited
+
+	reader := csv.NewReader(containersSession.Out)
+	reader.Comma = ' '
+
+	rows, err := reader.ReadAll()
+	Expect(err).ToNot(HaveOccurred())
+
+	usedWorkers := map[string]struct{}{}
+	for _, row := range rows {
+		workerName := row[3]
+		usedWorkers[workerName] = struct{}{}
+	}
+
+	var workerNames []string
+	for worker, _ := range usedWorkers {
+		workerNames = append(workerNames, worker)
+	}
+
+	return workerNames
 }

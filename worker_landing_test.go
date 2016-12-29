@@ -2,8 +2,6 @@ package topgun_test
 
 import (
 	"bytes"
-	"database/sql"
-	"fmt"
 	"os"
 	"regexp"
 	"time"
@@ -16,44 +14,6 @@ import (
 )
 
 var _ = Describe("[#129726011] Worker landing", func() {
-	var dbConn *sql.DB
-
-	BeforeEach(func() {
-		var err error
-		dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", atcIP))
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	waitForLandingWorker := func() string {
-		var landingWorkerName string
-		Eventually(func() string {
-			rows, err := psql.Select("name, state").From("workers").RunWith(dbConn).Query()
-			Expect(err).ToNot(HaveOccurred())
-
-			for rows.Next() {
-				var name string
-				var state string
-
-				err := rows.Scan(&name, &state)
-				Expect(err).ToNot(HaveOccurred())
-
-				if state != "landing" {
-					continue
-				}
-
-				if landingWorkerName != "" {
-					Fail("multiple workers landing")
-				}
-
-				landingWorkerName = name
-			}
-
-			return landingWorkerName
-		}).ShouldNot(BeEmpty())
-
-		return landingWorkerName
-	}
-
 	Context("with two workers available", func() {
 		BeforeEach(func() {
 			Deploy("deployments/two-forwarded-workers.yml")
@@ -75,18 +35,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 			It("is not used for new workloads", func() {
 				for i := 0; i < 10; i++ {
 					fly("execute", "-c", "tasks/tiny.yml")
-					rows, err := psql.Select("id, worker_name").From("containers").RunWith(dbConn).Query()
-					Expect(err).ToNot(HaveOccurred())
-
-					usedWorkers := map[string]struct{}{}
-					for rows.Next() {
-						var id int
-						var workerName string
-						err := rows.Scan(&id, &workerName)
-						Expect(err).ToNot(HaveOccurred())
-						usedWorkers[workerName] = struct{}{}
-					}
-
+					usedWorkers := workersWithContainers()
 					Expect(usedWorkers).To(HaveLen(1))
 					Expect(usedWorkers).ToNot(ContainElement(landingWorkerName))
 				}
