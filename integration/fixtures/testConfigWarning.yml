@@ -1,0 +1,8 @@
+groups: []
+resources: []
+jobs:
+- name: some-job
+  plan:
+  - task: some-task
+    file: some-file
+    config: {}
