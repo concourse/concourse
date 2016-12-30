@@ -13,7 +13,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/dbng/dbngfakes"
@@ -26,7 +25,6 @@ import (
 	"github.com/concourse/atc/api/teamserver/teamserverfakes"
 	"github.com/concourse/atc/api/volumeserver/volumeserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine/enginefakes"
@@ -40,35 +38,33 @@ var (
 	externalURL  = "https://example.com"
 	oAuthBaseURL = "https://oauth.example.com"
 
-	authValidator                 *authfakes.FakeValidator
-	userContextReader             *authfakes.FakeUserContextReader
-	fakeTokenGenerator            *authfakes.FakeTokenGenerator
-	providerFactory               *authfakes.FakeProviderFactory
-	fakeEngine                    *enginefakes.FakeEngine
-	fakeWorkerClient              *workerfakes.FakeClient
-	teamServerDB                  *teamserverfakes.FakeTeamsDB
-	volumesDB                     *volumeserverfakes.FakeVolumesDB
-	containerDB                   *containerserverfakes.FakeContainerDB
-	pipeDB                        *pipesfakes.FakePipeDB
-	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
-	teamDBFactory                 *dbfakes.FakeTeamDBFactory
-	dbTeamFactory                 *dbngfakes.FakeTeamFactory
-	dbWorkerFactory               *dbngfakes.FakeWorkerFactory
-	teamDB                        *dbfakes.FakeTeamDB
-	pipelinesDB                   *dbfakes.FakePipelinesDB
-	buildsDB                      *authfakes.FakeBuildsDB
-	buildServerDB                 *buildserverfakes.FakeBuildsDB
-	build                         *dbfakes.FakeBuild
-	dbTeam                        *dbngfakes.FakeTeam
-	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
-	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
-	configValidationErrorMessages []string
-	configValidationWarnings      []config.Warning
-	peerAddr                      string
-	drain                         chan struct{}
-	expire                        time.Duration
-	cliDownloadsDir               string
-	logger                        *lagertest.TestLogger
+	authValidator        *authfakes.FakeValidator
+	userContextReader    *authfakes.FakeUserContextReader
+	fakeTokenGenerator   *authfakes.FakeTokenGenerator
+	providerFactory      *authfakes.FakeProviderFactory
+	fakeEngine           *enginefakes.FakeEngine
+	fakeWorkerClient     *workerfakes.FakeClient
+	teamServerDB         *teamserverfakes.FakeTeamsDB
+	volumesDB            *volumeserverfakes.FakeVolumesDB
+	containerDB          *containerserverfakes.FakeContainerDB
+	pipeDB               *pipesfakes.FakePipeDB
+	pipelineDBFactory    *dbfakes.FakePipelineDBFactory
+	teamDBFactory        *dbfakes.FakeTeamDBFactory
+	dbTeamFactory        *dbngfakes.FakeTeamFactory
+	dbWorkerFactory      *dbngfakes.FakeWorkerFactory
+	teamDB               *dbfakes.FakeTeamDB
+	pipelinesDB          *dbfakes.FakePipelinesDB
+	buildsDB             *authfakes.FakeBuildsDB
+	buildServerDB        *buildserverfakes.FakeBuildsDB
+	build                *dbfakes.FakeBuild
+	dbTeam               *dbngfakes.FakeTeam
+	fakeSchedulerFactory *jobserverfakes.FakeSchedulerFactory
+	fakeScannerFactory   *resourceserverfakes.FakeScannerFactory
+	peerAddr             string
+	drain                chan struct{}
+	expire               time.Duration
+	cliDownloadsDir      string
+	logger               *lagertest.TestLogger
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -120,8 +116,6 @@ var _ = BeforeEach(func() {
 	fakeTokenGenerator = new(authfakes.FakeTokenGenerator)
 	providerFactory = new(authfakes.FakeProviderFactory)
 
-	configValidationErrorMessages = []string{}
-	configValidationWarnings = []config.Warning{}
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
 
@@ -187,9 +181,6 @@ var _ = BeforeEach(func() {
 		pipeDB,
 		pipelinesDB,
 
-		func(atc.Config) ([]config.Warning, []string) {
-			return configValidationWarnings, configValidationErrorMessages
-		},
 		peerAddr,
 		constructedEventHandler.Construct,
 		drain,

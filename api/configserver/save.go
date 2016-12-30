@@ -13,7 +13,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/dbng"
 	"github.com/mitchellh/mapstructure"
 	"github.com/tedsuo/rata"
@@ -45,8 +44,8 @@ func (eke ExtraKeysError) Error() string {
 }
 
 type SaveConfigResponse struct {
-	Errors   []string         `json:"errors,omitempty"`
-	Warnings []config.Warning `json:"warnings,omitempty"`
+	Errors   []string      `json:"errors,omitempty"`
+	Warnings []atc.Warning `json:"warnings,omitempty"`
 }
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +102,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	warnings, errorMessages := s.validate(config)
+	warnings, errorMessages := config.Validate()
 	if len(errorMessages) > 0 {
 		session.Error("ignoring-invalid-config", err)
 		s.handleBadRequest(w, errorMessages, session)

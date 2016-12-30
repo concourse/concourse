@@ -22,7 +22,6 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/dbng"
@@ -898,7 +897,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		sqlDB, // pipes.PipeDB
 		sqlDB, // db.PipelinesDB
 
-		config.ValidateConfig,
 		cmd.PeerURL.String(),
 		buildserver.NewEventHandler,
 		drain,

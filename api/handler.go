@@ -56,7 +56,6 @@ func NewHandler(
 	pipeDB pipes.PipeDB,
 	pipelinesDB db.PipelinesDB,
 
-	configValidator configserver.ConfigValidator,
 	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
 	drain <-chan struct{},
@@ -111,7 +110,7 @@ func NewHandler(
 
 	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory, pipelinesDB)
 
-	configServer := configserver.NewServer(logger, teamDBFactory, dbTeamFactory, configValidator)
+	configServer := configserver.NewServer(logger, teamDBFactory, dbTeamFactory)
 
 	workerServer := workerserver.NewServer(logger, teamDBFactory, dbTeamFactory, dbWorkerFactory)
 
