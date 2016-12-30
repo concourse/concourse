@@ -79,7 +79,7 @@ var _ = Describe("Template", func() {
 	It("raises an error for each variable that is undefined", func() {
 		byteSlice := []byte("{{not-specified-one}}{{not-specified-two}}")
 		variables := template.Variables{}
-		errorMsg := `2 error(s) occurred:
+		errorMsg := `2 errors occurred:
 
 * unbound variable in template: 'not-specified-one'
 * unbound variable in template: 'not-specified-two'`
