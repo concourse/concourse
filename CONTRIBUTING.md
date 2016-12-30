@@ -86,7 +86,8 @@ Concourse should be live at http://localhost:8080
 
 ## Building the fly command line tool
 
-If you try to use a realse version of `fly` you will get errors like this:
+If you try to use a released version of `fly` against a development version of atc,
+you will get the following error:
 
 ```
 fly -t local ps 
