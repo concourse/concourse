@@ -94,6 +94,9 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image
     resource}. If you'd like to make a resource of your own that supports this
     please use that as a reference implementation for now.
+    
+    If you want to use an artifact source within the plan containing an image, 
+    you must set the \reference{task-image} in the plan step instead.
   }
 
   \define-attribute{image: string}{task-config-image}{
