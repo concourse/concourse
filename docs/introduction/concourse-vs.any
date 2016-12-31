@@ -67,7 +67,7 @@ attempt.
     Trying to find the build output log for a failed build in Jenkins can be up
     to 3 clicks from the home page.
 
-    The Concourse UI is build and designed around making that sort of
+    The Concourse UI is built and designed around making that sort of
     information as quick to get to as possible. Getting to the most recent build
     log is a single click.
   }
