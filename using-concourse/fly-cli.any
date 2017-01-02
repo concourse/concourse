@@ -352,6 +352,18 @@ flag. Once you've learned what the commands do, you may want to consult
   \hyperlink{http://stedolan.github.io/jq/}{jq}.
 }
 
+\section{\code{validate-pipeline}\aux{: Validating a pipeline's configuration}}{fly-validate-pipeline}{
+  To validate a local pipeline configuration without submitting it to Concourse,
+  run `validate-pipeline`:
+
+  \codeblock{bash}{
+  $ fly validate-pipeline --config pipeline.yml
+  }
+
+  By default, pipeline errors will cause `validate-pipeline` to fail, but
+  warnings won't. To fail on both errors and warnings, pass the `--strict` flag.
+}
+
 \section{\code{set-pipeline}\aux{: Configuring Pipelines}}{fly-set-pipeline}{
   \omit-children-from-table-of-contents
 
