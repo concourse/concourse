@@ -628,7 +628,7 @@ func (f *workerFactory) DeleteFinishedRetiringWorkers() error {
 		From("builds b").
 		Join("containers c ON b.id = c.build_id").
 		Join("workers w ON w.name = c.worker_name").
-		Join("jobs j ON j.id = b.job_id").
+		LeftJoin("jobs j ON j.id = b.job_id").
 		Where(sq.Or{
 			sq.Eq{
 				"b.status": string(BuildStatusStarted),
@@ -690,7 +690,7 @@ func (f *workerFactory) LandFinishedLandingWorkers() error {
 		From("builds b").
 		Join("containers c ON b.id = c.build_id").
 		Join("workers w ON w.name = c.worker_name").
-		Join("jobs j ON j.id = b.job_id").
+		LeftJoin("jobs j ON j.id = b.job_id").
 		Where(sq.Or{
 			sq.Eq{
 				"b.status": string(BuildStatusStarted),

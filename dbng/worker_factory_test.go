@@ -421,8 +421,8 @@ var _ = Describe("WorkerFactory", func() {
 
 				DescribeTable("with builds that are",
 					ItRetiresWorkerWithState,
-					Entry("pending", dbng.BuildStatusPending, false),
-					Entry("started", dbng.BuildStatusStarted, false),
+					Entry("pending", dbng.BuildStatusPending, true),
+					Entry("started", dbng.BuildStatusStarted, true),
 					Entry("aborted", dbng.BuildStatusAborted, false),
 					Entry("succeeded", dbng.BuildStatusSucceeded, false),
 					Entry("failed", dbng.BuildStatusFailed, false),
@@ -579,8 +579,8 @@ var _ = Describe("WorkerFactory", func() {
 
 				DescribeTable("with builds that are",
 					ItLandsWorkerWithExpectedState,
-					Entry("pending", dbng.BuildStatusPending, dbng.WorkerStateLanded),
-					Entry("started", dbng.BuildStatusStarted, dbng.WorkerStateLanded),
+					Entry("pending", dbng.BuildStatusPending, dbng.WorkerStateLanding),
+					Entry("started", dbng.BuildStatusStarted, dbng.WorkerStateLanding),
 					Entry("aborted", dbng.BuildStatusAborted, dbng.WorkerStateLanded),
 					Entry("succeeded", dbng.BuildStatusSucceeded, dbng.WorkerStateLanded),
 					Entry("failed", dbng.BuildStatusFailed, dbng.WorkerStateLanded),
