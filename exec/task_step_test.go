@@ -1305,7 +1305,7 @@ var _ = Describe("GardenFactory", func() {
 												Eventually(process.Wait()).Should(Receive(BeNil()))
 											})
 
-											It("Creates a volume to stream the image into", func() {
+											It("creates a volume to stream the image into", func() {
 												Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(2))
 												_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(0)
 												Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
@@ -1318,7 +1318,7 @@ var _ = Describe("GardenFactory", func() {
 												Expect(actualTeamID).To(Equal(teamID))
 											})
 
-											It("Streams the artifact source to the target volume", func() {
+											It("streams the artifact source to the target volume", func() {
 												Expect(imageArtifactSource.StreamToCallCount()).To(Equal(1))
 												actualDest := imageArtifactSource.StreamToArgsForCall(0)
 												actualDest.StreamIn(imageVolume.Handle(), dummyReader)
@@ -1328,7 +1328,7 @@ var _ = Describe("GardenFactory", func() {
 												Expect(actualReader).To(Equal(dummyReader))
 											})
 
-											It("Creates a cow volume to set the correct privilege", func() {
+											It("creates a cow volume to set the correct privilege", func() {
 												Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(2))
 												_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(1)
 												Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
@@ -1366,7 +1366,7 @@ var _ = Describe("GardenFactory", func() {
 													privileged = true
 												})
 
-												It("Creates a privileged volume to stream the image into", func() {
+												It("creates a privileged volume to stream the image into", func() {
 													Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(2))
 													_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(0)
 													Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
@@ -1379,7 +1379,7 @@ var _ = Describe("GardenFactory", func() {
 													Expect(actualTeamID).To(Equal(teamID))
 												})
 
-												It("Creates a cow volume with the correct privilege", func() {
+												It("creates a cow volume with the correct privilege", func() {
 													Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(2))
 													_, actualVolumeSpec, actualTeamID := fakeWorker.CreateVolumeArgsForCall(1)
 													Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
