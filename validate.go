@@ -222,12 +222,12 @@ func validateJobs(c Config) ([]Warning, error) {
 
 		encountered := map[string]int{}
 		for _, input := range job.Inputs() {
-			encountered[input.ResourceName()]++
+			encountered[input.Get]++
 
-			if encountered[input.ResourceName()] == 2 {
+			if encountered[input.Get] == 2 {
 				errorMessages = append(
 					errorMessages,
-					identifier+fmt.Sprintf(" has get steps with the same name: %s", input.ResourceName()),
+					fmt.Sprintf("%s has get steps with the same name: %s", identifier, input.Get),
 				)
 			}
 		}

@@ -1,8 +1,9 @@
 package atc_test
 
 import (
-	. "github.com/concourse/atc"
 	"strings"
+
+	. "github.com/concourse/atc"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -440,6 +441,46 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
+			})
+		})
+
+		Context("when a job has duplicate inputs with different resources", func() {
+			BeforeEach(func() {
+				job.Plan = append(job.Plan, PlanConfig{
+					Get:      "some-resource",
+					Resource: "a",
+				})
+				job.Plan = append(job.Plan, PlanConfig{
+					Get:      "some-resource",
+					Resource: "b",
+				})
+
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns a single error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
+			})
+		})
+
+		Context("when a job gets the same resource multiple times but with different names", func() {
+			BeforeEach(func() {
+				job.Plan = append(job.Plan, PlanConfig{
+					Get:      "a",
+					Resource: "some-resource",
+				})
+				job.Plan = append(job.Plan, PlanConfig{
+					Get:      "b",
+					Resource: "some-resource",
+				})
+
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns no errors", func() {
+				Expect(errorMessages).To(HaveLen(0))
 			})
 		})
 
