@@ -56,7 +56,6 @@ func (command *ValidatePipelineCommand) Execute(args []string) error {
 	warnings, errorMessages := newConfig.Validate()
 
 	if len(warnings) > 0 {
-		fmt.Fprintln(os.Stderr, "")
 		displayhelpers.PrintDeprecationWarningHeader()
 
 		for _, warning := range warnings {
@@ -67,7 +66,6 @@ func (command *ValidatePipelineCommand) Execute(args []string) error {
 	}
 
 	if len(errorMessages) > 0 {
-		fmt.Fprintln(os.Stderr, "")
 		displayhelpers.PrintWarningHeader()
 
 		for _, errorMessage := range errorMessages {
