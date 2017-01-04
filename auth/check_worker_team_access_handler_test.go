@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -39,9 +41,23 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 	})
 
 	JustBeforeEach(func() {
-		server = httptest.NewServer(handler)
+		routes := rata.Routes{}
+		for _, route := range atc.Routes {
+			if route.Name == atc.RetireWorker {
+				routes = append(routes, route)
+			}
+		}
 
-		request, err := http.NewRequest("POST", server.URL+"?:worker_name=some-worker", nil)
+		router, err := rata.NewRouter(routes, map[string]http.Handler{
+			atc.RetireWorker: handler,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		server = httptest.NewServer(router)
+
+		requestGenerator := rata.NewRequestGenerator(server.URL, atc.Routes)
+		request, err := requestGenerator.CreateRequest(atc.RetireWorker, rata.Params{
+			"worker_name": "some-worker",
+		}, nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		response, err = new(http.Client).Do(request)
@@ -85,6 +101,10 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 					userContextReader.GetTeamReturns("some-team", false, true)
 				})
 
+				It("fetches worker by the correct name", func() {
+					Expect(workerFactory.GetWorkerArgsForCall(0)).To(Equal("some-worker"))
+				})
+
 				It("calls worker delegate", func() {
 					Expect(delegate.IsCalled).To(BeTrue())
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
@@ -94,6 +114,10 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 			Context("when team in auth does not match worker team", func() {
 				BeforeEach(func() {
 					userContextReader.GetTeamReturns("some-other-team", false, true)
+				})
+
+				It("fetches worker by the correct name", func() {
+					Expect(workerFactory.GetWorkerArgsForCall(0)).To(Equal("some-worker"))
 				})
 
 				It("does not call worker delegate", func() {
