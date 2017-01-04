@@ -87,13 +87,14 @@ var _ = Describe("logout Command", func() {
 				Headers: ui.TableRow{
 					{Contents: "name", Color: color.New(color.Bold)},
 					{Contents: "url", Color: color.New(color.Bold)},
+					{Contents: "team", Color: color.New(color.Bold)},
 					{Contents: "expiry", Color: color.New(color.Bold)},
 				},
 				Data: []ui.TableRow{
-					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "n/a"}},
-					{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
+					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
+					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
+					{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
+					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
 				},
 			}))
 		})
@@ -173,10 +174,10 @@ var _ = Describe("logout Command", func() {
 					{Contents: "expiry", Color: color.New(color.Bold)},
 				},
 				Data: []ui.TableRow{
-					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "n/a"}},
-					{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
+					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
+					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
+					{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
+					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
 				},
 			}))
 		})
@@ -191,12 +192,13 @@ var _ = Describe("logout Command", func() {
 				Headers: ui.TableRow{
 					{Contents: "name", Color: color.New(color.Bold)},
 					{Contents: "url", Color: color.New(color.Bold)},
+					{Contents: "team", Color: color.New(color.Bold)},
 					{Contents: "expiry", Color: color.New(color.Bold)},
 				},
 				Data: []ui.TableRow{
-					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "n/a"}},
-					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
+					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
+					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
+					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
 				},
 			}))
 
