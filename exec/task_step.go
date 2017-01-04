@@ -3,7 +3,6 @@ package exec
 import (
 	"archive/tar"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -335,7 +334,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	if step.imageArtifactName != "" {
 		source, found := step.repo.SourceFor(SourceName(step.imageArtifactName))
 		if !found {
-			return nil, nil, errors.New("failed-to-lookup-source-for-image-artifact")
+			return nil, nil, MissingTaskImageSourceError{step.imageArtifactName}
 		}
 
 		volume, existsOnWorker, err := source.VolumeOn(chosenWorker)
@@ -766,4 +765,14 @@ type workerArtifactDestination struct {
 
 func (wad *workerArtifactDestination) StreamIn(path string, tarStream io.Reader) error {
 	return wad.destination.StreamIn(path, tarStream)
+}
+
+type MissingTaskImageSourceError struct {
+	SourceName string
+}
+
+func (err MissingTaskImageSourceError) Error() string {
+	return fmt.Sprintf(`missing image artifact source: %s
+
+make sure there's a corresponding 'get' step, or a task that produces it as an output`, err.SourceName)
 }

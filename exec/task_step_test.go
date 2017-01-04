@@ -1599,6 +1599,12 @@ var _ = Describe("GardenFactory", func() {
 									})
 								})
 							})
+
+							Context("when the image artifact is NOT registered in the source repo", func() {
+								It("exits with the MissingTaskImageSourceError", func() {
+									Eventually(process.Wait()).Should(Receive(Equal(MissingTaskImageSourceError{"some-image-artifact"})))
+								})
+							})
 						})
 
 						Context("when a run dir is specified", func() {
