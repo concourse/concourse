@@ -354,13 +354,13 @@ flag. Once you've learned what the commands do, you may want to consult
 
 \section{\code{validate-pipeline}\aux{: Validating a pipeline's configuration}}{fly-validate-pipeline}{
   To validate a local pipeline configuration without submitting it to Concourse,
-  run `validate-pipeline`:
+  run \code{validate-pipeline}:
 
   \codeblock{bash}{
   $ fly validate-pipeline --config pipeline.yml
   }
 
-  By default, pipeline errors will cause `validate-pipeline` to fail, but
+  By default, pipeline errors will cause \code{validate-pipeline} to fail, but
   warnings won't. To fail on both errors and warnings, pass the `--strict` flag.
 }
 
