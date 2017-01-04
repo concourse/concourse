@@ -61,7 +61,7 @@ func (h checkWorkerTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	workerName := r.FormValue("worker-name")
+	workerName := r.FormValue(":worker_name")
 
 	worker, found, err := h.workerFactory.GetWorker(workerName)
 	if err != nil {
