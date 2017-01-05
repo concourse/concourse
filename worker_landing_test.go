@@ -119,11 +119,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 		// })
 	})
 
-	Context("with one worker", func() {
-		BeforeEach(func() {
-			Deploy("deployments/one-forwarded-worker.yml")
-		})
-
+	describeRestartingTheWorker := func() {
 		Describe("restarting the worker", func() {
 			var restartSession *gexec.Session
 
@@ -197,5 +193,24 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				})
 			})
 		})
+	}
+
+	Context("with one worker", func() {
+		BeforeEach(func() {
+			Deploy("deployments/one-forwarded-worker.yml")
+		})
+
+		describeRestartingTheWorker()
+	})
+
+	Context("with a single team worker", func() {
+		BeforeEach(func() {
+			Deploy("deployments/team-worker.yml")
+
+			fly("set-team", "-n", "team-a", "--no-really-i-dont-want-any-auth")
+			fly("login", "-c", atcExternalURL, "-n", "team-a")
+		})
+
+		describeRestartingTheWorker()
 	})
 })
