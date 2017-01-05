@@ -239,6 +239,10 @@ func waitForLandingOrLandedWorker() string {
 	return waitForWorkerInState("landing", "landed")
 }
 
+func waitForRunningWorker() string {
+	return waitForWorkerInState("running")
+}
+
 func waitForStalledWorker() string {
 	return waitForWorkerInState("stalled")
 }

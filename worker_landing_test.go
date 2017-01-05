@@ -211,6 +211,9 @@ var _ = Describe("[#129726011] Worker landing", func() {
 			<-setTeam.Exited
 			Expect(setTeam.ExitCode()).To(Equal(0))
 
+			// wait for the team's worker to arrive now that team exists
+			waitForRunningWorker()
+
 			fly("login", "-c", atcExternalURL, "-n", "team-a")
 		})
 
