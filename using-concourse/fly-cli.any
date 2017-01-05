@@ -374,18 +374,6 @@ flag. Once you've learned what the commands do, you may want to consult
   \hyperlink{http://stedolan.github.io/jq/}{jq}.
 }
 
-\section{\code{validate-pipeline}\aux{: Validating a pipeline's configuration}}{fly-validate-pipeline}{
-  To validate a local pipeline configuration without submitting it to Concourse,
-  run \code{validate-pipeline}:
-
-  \codeblock{bash}{
-  $ fly validate-pipeline --config pipeline.yml
-  }
-
-  By default, pipeline errors will cause \code{validate-pipeline} to fail, but
-  warnings won't. To fail on both errors and warnings, pass the `--strict` flag.
-}
-
 \section{\code{set-pipeline}\aux{: Configuring Pipelines}}{fly-set-pipeline}{
   \omit-children-from-table-of-contents
 
@@ -474,19 +462,16 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 }
 
-\section{\code{validate-pipeline}\aux{: Validating a config locally}}{fly-validate-pipeline}{
-  \omit-children-from-table-of-contents
-
-  To run the validations that \reference{fly-set-pipeline} performs
-  server-side, but locally, run your config through \code{validate-pipeline}
-  like so:
+\section{\code{validate-pipeline}\aux{: Validate a pipeline's configuration}}{fly-validate-pipeline}{
+  To validate a local pipeline configuration without submitting it to Concourse,
+  run \code{validate-pipeline}:
 
   \codeblock{bash}{
-  $ fly -t example set-pipeline --config pipeline.yml --pipeline my-pipeline
+  $ fly validate-pipeline --config pipeline.yml
   }
 
-  This will print out any errors and deprecations and exit \code{0} if the
-  pipeline config is valid.
+  By default, pipeline errors will cause \code{validate-pipeline} to fail, but
+  warnings won't. To fail on both errors and warnings, pass the `--strict` flag.
 }
 
 \section{\code{destroy-pipeline}\aux{: Removing Pipelines}}{fly-destroy-pipeline}{
