@@ -207,7 +207,10 @@ var _ = Describe("[#129726011] Worker landing", func() {
 		BeforeEach(func() {
 			Deploy("deployments/team-worker.yml")
 
-			fly("set-team", "-n", "team-a", "--no-really-i-dont-want-any-auth")
+			setTeam := spawnFlyInteractive(bytes.NewBufferString("y\n"), "set-team", "-n", "team-a", "--no-really-i-dont-want-any-auth")
+			<-setTeam.Exited
+			Expect(setTeam.ExitCode()).To(Equal(0))
+
 			fly("login", "-c", atcExternalURL, "-n", "team-a")
 		})
 
