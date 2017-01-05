@@ -65,6 +65,13 @@ Each configured resource consists of the following attributes:
 
 \define-attribute{check_every: string}{
   \italic{Optional. Default \code{1m}.} The interval on which to check for new
-  versions of the resource. Acceptable interval options are defined by the 
+  versions of the resource. Acceptable interval options are defined by the
   \hyperlink{https://golang.org/pkg/time/#ParseDuration}{time.ParseDuration function}.
+}
+
+\define-attribute{tags: [string]}{resource-tags}{
+  \italic{Optional. Default \code{[]}.} A list of tags to determine which
+  workers the checks will be performed on. You'll want to specify this if the
+  source is internal to a worker's network, for example. See also
+  \reference{step-tags} on a step.
 }

@@ -76,10 +76,10 @@ flag. Once you've learned what the commands do, you may want to consult
   example} for short) to run a command against the saved target \code{example}.
   For eample, \code{fly -t example builds} will list the last few builds on the
   \code{example} Concourse instance.
-  
+
   The \code{-t} flag is intentionally stateless and must be explicitly added
   to each command. This reduces the risk of accidentally running a command against the
-  wrong environment when you have multiple targets defined. 
+  wrong environment when you have multiple targets defined.
 }
 
 \section{\code{logout}\aux{: Remove authentication and delete Concourse targets}}{fly-logout}{
@@ -462,6 +462,21 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 }
 
+\section{\code{validate-pipeline}\aux{: Validating a config locally}}{fly-validate-pipeline}{
+  \omit-children-from-table-of-contents
+
+  To run the validations that \reference{fly-set-pipeline} performs
+  server-side, but locally, run your config through \code{validate-pipeline}
+  like so:
+
+  \codeblock{bash}{
+  $ fly -t example set-pipeline --config pipeline.yml --pipeline my-pipeline
+  }
+
+  This will print out any errors and deprecations and exit \code{0} if the
+  pipeline config is valid.
+}
+
 \section{\code{destroy-pipeline}\aux{: Removing Pipelines}}{fly-destroy-pipeline}{
   Every now and then you just don't want a pipeline to be around anymore.
   Running \code{fly destroy-pipeline} will stop the pipeline activity and remove
@@ -713,6 +728,18 @@ flag. Once you've learned what the commands do, you may want to consult
   This can be useful for monitoring the status of your workers, if you suspect
   that one keeps dropping out of the pool or getting tasked with too many
   containers, etc.
+}
+
+\section{\code{prune-worker}\aux{: Reap a non-running worker}}{fly-prune-worker}{
+  To remove a stalled, landing, landed, or retiring worker, run:
+
+  \codeblock{bash}{
+  $ fly -t example prune-worker --worker worker-name
+  }
+
+  This is for those cases where you know a worker is not coming back. Note that
+  running workers cannot be pruned, since they'll just re-register themselves
+  anyway.
 }
 
 \section{\code{volumes}\aux{: Listing active volumes}}{fly-volumes}{
