@@ -1,6 +1,6 @@
 module Login exposing (Model, Msg(..), init, update, view, subscriptions)
 
-import Erl
+import String
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (id, class)
 import Html.Events exposing (onInput, onSubmit)
@@ -137,21 +137,16 @@ update action model =
 
 redirectUrl : Maybe String -> String
 redirectUrl redirectParam =
-  case redirectParam of
-    Nothing ->
-      "/"
-    Just redirectUrl ->
-      redirectUrl
+  Maybe.withDefault "/" redirectParam
 
 teamSelectionRoute : Maybe String -> String
 teamSelectionRoute redirectParam =
+  -- TODO: Replace this back with Erl...if we ever go back (#134461889)
   case redirectParam of
     Nothing ->
       "/login"
     Just r ->
-      Erl.parse "/login"
-      |> Erl.addQuery "redirect" r
-      |> Erl.toString
+      "/login?redirect=" ++ r
 
 routeWithRedirect : Maybe String -> String -> String
 routeWithRedirect redirectParam route =
@@ -160,10 +155,13 @@ routeWithRedirect redirectParam route =
       case redirectParam of
         Nothing -> indexPageUrl
         Just r -> r
+
   in
-    Erl.parse route
-    |> Erl.addQuery "redirect" actualRedirect
-    |> Erl.toString
+    -- TODO: Replace this back with Erl...if we ever go back (#134461889)
+    if List.length (String.split "?" route) == 2 then
+      route ++ "&redirect=" ++ actualRedirect
+    else
+      route ++ "?redirect=" ++ actualRedirect
 
 indexPageUrl : String
 indexPageUrl = "/"
