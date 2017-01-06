@@ -73,9 +73,6 @@ func TestGitPipeline(t *testing.T) {
 }
 
 func destroyPipeline(name string) {
-	err := helpers.DeleteAllContainers(client, name, logger)
-	Expect(err).NotTo(HaveOccurred())
-
 	destroyCmd := exec.Command(
 		flyBin,
 		"-t", targetedConcourse,
