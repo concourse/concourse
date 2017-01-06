@@ -36,3 +36,53 @@ Each component has its own repository:
 
 To learn more about how they fit together, see [Concourse
 Architecture](https://concourse.ci/architecture.html).
+
+### Quick Start
+
+Install GoLang
+```
+wget https://storage.googleapis.com/golang/go1.7.4.linux-amd64.tar.gz
+sudo tar zxvf go1.7.4.linux-amd64.tar.gz -C /usr/local
+
+GOROOT=/usr/local/go
+GOPATH=/usr/local
+PATH="/usr/local/go/bin:/usr/local/bin:$PATH"
+```
+
+Install other dependencies
+```
+sudo apt-get -y install npm nodejs-legacy make ruby git
+sudo npm install -g less elm@0.17.0 uglifyjs less-plugin-clean-css
+sudo GOPATH=/usr/local/ /usr/local/go/bin/go get -u github.com/jteeuwen/go-bindata/...
+sudo gem install bosh_cli
+```
+
+Checkout concourse and fetch git submodules
+```
+git clone https://github.com/concourse/concourse.git
+cd concourse
+./scripts/update
+(cd src/github.com/concourse/atc && make)
+```
+
+Create a release
+```
+bosh create release --name <release-name> --version <version> --force --with-tarball
+```
+
+Target the director
+```
+# defaults: admin/admin
+bosh target 10.0.0.6
+```
+
+Upload release
+```
+bosh upload release --name <release-name> --version <version>
+```
+
+Set `release` and `version` in `concourse.yml` then run:
+```
+bosh deployment concourse.yml
+bosh deploy
+```
