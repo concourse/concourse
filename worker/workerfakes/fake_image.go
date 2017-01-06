@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-type FakeImageFetcher struct {
+type FakeImage struct {
 	FetchForContainerStub        func(logger lager.Logger, container dbng.CreatingContainer) (worker.FetchedImage, error)
 	fetchForContainerMutex       sync.RWMutex
 	fetchForContainerArgsForCall []struct {
@@ -24,7 +24,7 @@ type FakeImageFetcher struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageFetcher) FetchForContainer(logger lager.Logger, container dbng.CreatingContainer) (worker.FetchedImage, error) {
+func (fake *FakeImage) FetchForContainer(logger lager.Logger, container dbng.CreatingContainer) (worker.FetchedImage, error) {
 	fake.fetchForContainerMutex.Lock()
 	fake.fetchForContainerArgsForCall = append(fake.fetchForContainerArgsForCall, struct {
 		logger    lager.Logger
@@ -39,19 +39,19 @@ func (fake *FakeImageFetcher) FetchForContainer(logger lager.Logger, container d
 	}
 }
 
-func (fake *FakeImageFetcher) FetchForContainerCallCount() int {
+func (fake *FakeImage) FetchForContainerCallCount() int {
 	fake.fetchForContainerMutex.RLock()
 	defer fake.fetchForContainerMutex.RUnlock()
 	return len(fake.fetchForContainerArgsForCall)
 }
 
-func (fake *FakeImageFetcher) FetchForContainerArgsForCall(i int) (lager.Logger, dbng.CreatingContainer) {
+func (fake *FakeImage) FetchForContainerArgsForCall(i int) (lager.Logger, dbng.CreatingContainer) {
 	fake.fetchForContainerMutex.RLock()
 	defer fake.fetchForContainerMutex.RUnlock()
 	return fake.fetchForContainerArgsForCall[i].logger, fake.fetchForContainerArgsForCall[i].container
 }
 
-func (fake *FakeImageFetcher) FetchForContainerReturns(result1 worker.FetchedImage, result2 error) {
+func (fake *FakeImage) FetchForContainerReturns(result1 worker.FetchedImage, result2 error) {
 	fake.FetchForContainerStub = nil
 	fake.fetchForContainerReturns = struct {
 		result1 worker.FetchedImage
@@ -59,7 +59,7 @@ func (fake *FakeImageFetcher) FetchForContainerReturns(result1 worker.FetchedIma
 	}{result1, result2}
 }
 
-func (fake *FakeImageFetcher) Invocations() map[string][][]interface{} {
+func (fake *FakeImage) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.fetchForContainerMutex.RLock()
@@ -67,7 +67,7 @@ func (fake *FakeImageFetcher) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeImageFetcher) recordInvocation(key string, args []interface{}) {
+func (fake *FakeImage) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -79,4 +79,4 @@ func (fake *FakeImageFetcher) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ worker.ImageFetcher = new(FakeImageFetcher)
+var _ worker.Image = new(FakeImage)

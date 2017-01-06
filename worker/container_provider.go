@@ -29,7 +29,7 @@ type containerProviderFactory struct {
 	gardenClient            garden.Client
 	baggageclaimClient      baggageclaim.Client
 	volumeClient            VolumeClient
-	imageFetcherFactory     ImageFetcherFactory
+	imageFactory            ImageFactory
 	dbContainerFactory      dbng.ContainerFactory
 	dbVolumeFactory         dbng.VolumeFactory
 	dbResourceCacheFactory  dbng.ResourceCacheFactory
@@ -48,7 +48,7 @@ func NewContainerProviderFactory(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
 	volumeClient VolumeClient,
-	imageFetcherFactory ImageFetcherFactory,
+	imageFactory ImageFactory,
 	dbContainerFactory dbng.ContainerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
@@ -63,7 +63,7 @@ func NewContainerProviderFactory(
 		gardenClient:            gardenClient,
 		baggageclaimClient:      baggageclaimClient,
 		volumeClient:            volumeClient,
-		imageFetcherFactory:     imageFetcherFactory,
+		imageFactory:            imageFactory,
 		dbContainerFactory:      dbContainerFactory,
 		dbVolumeFactory:         dbVolumeFactory,
 		dbResourceCacheFactory:  dbResourceCacheFactory,
@@ -83,7 +83,7 @@ func (f *containerProviderFactory) ContainerProviderFor(
 		gardenClient:            f.gardenClient,
 		baggageclaimClient:      f.baggageclaimClient,
 		volumeClient:            f.volumeClient,
-		imageFetcherFactory:     f.imageFetcherFactory,
+		imageFactory:            f.imageFactory,
 		dbContainerFactory:      f.dbContainerFactory,
 		dbVolumeFactory:         f.dbVolumeFactory,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
@@ -160,7 +160,7 @@ type containerProvider struct {
 	gardenClient            garden.Client
 	baggageclaimClient      baggageclaim.Client
 	volumeClient            VolumeClient
-	imageFetcherFactory     ImageFetcherFactory
+	imageFactory            ImageFactory
 	dbContainerFactory      dbng.ContainerFactory
 	dbVolumeFactory         dbng.VolumeFactory
 	dbResourceCacheFactory  dbng.ResourceCacheFactory
@@ -542,7 +542,7 @@ func (p *containerProvider) findOrCreateContainer(
 		}
 
 		if gardenContainer == nil {
-			imageFetcher, err := p.imageFetcherFactory.GetImageFetcher(
+			image, err := p.imageFactory.GetImage(
 				logger,
 				p.worker,
 				p.volumeClient,
@@ -558,10 +558,12 @@ func (p *containerProvider) findOrCreateContainer(
 				return nil, err
 			}
 
-			creatingContainer, err = createContainerFunc()
-			if err != nil {
-				logger.Error("failed-to-create-container-in-db", err)
-				return nil, err
+			if creatingContainer == nil {
+				creatingContainer, err = createContainerFunc()
+				if err != nil {
+					logger.Error("failed-to-create-container-in-db", err)
+					return nil, err
+				}
 			}
 
 			lock, acquired, err := p.db.AcquireContainerCreatingLock(logger, creatingContainer.ID())
@@ -588,7 +590,11 @@ func (p *containerProvider) findOrCreateContainer(
 
 			defer lock.Release()
 
-			fetchedImage, err := imageFetcher.FetchForContainer(logger, creatingContainer)
+			fetchedImage, err := image.FetchForContainer(logger, creatingContainer)
+			if err != nil {
+				logger.Error("failed-to-fetch-image-for-container", err)
+				return nil, err
+			}
 
 			gardenContainer, err = p.createGardenContainer(
 				logger,

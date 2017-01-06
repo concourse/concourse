@@ -34,7 +34,7 @@ var _ = Describe("Image", func() {
 	var fakeResourceFactoryFactory *rfakes.FakeResourceFactoryFactory
 	var fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 
-	var fetchedImage image.Image
+	var imageResourceFetcher image.ImageResourceFetcher
 
 	var stderrBuf *gbytes.Buffer
 
@@ -53,7 +53,6 @@ var _ = Describe("Image", func() {
 	var fetchedVersion atc.Version
 	var fetchErr error
 	var teamID int
-	var imageFactory image.Factory
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
@@ -102,29 +101,27 @@ var _ = Describe("Image", func() {
 
 		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 
-		imageFactory = image.NewFactory(
+		imageResourceFetcher = image.NewImageResourceFetcherFactory(
 			fakeResourceFetcherFactory,
 			fakeResourceFactoryFactory,
 			fakeResourceCacheFactory,
-		)
+		).ImageResourceFetcherFor(fakeWorker)
+	})
 
-		fetchedImage = imageFactory.NewImage(
+	JustBeforeEach(func() {
+		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = imageResourceFetcher.Fetch(
 			logger,
 			signals,
-			imageResource,
+			imageResource.Type,
+			imageResource.Source,
 			identifier,
 			metadata,
 			atc.Tags{"worker", "tags"},
 			teamID,
 			customTypes,
-			fakeWorker,
 			fakeImageFetchingDelegate,
 			privileged,
 		)
-	})
-
-	JustBeforeEach(func() {
-		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = fetchedImage.Fetch()
 	})
 
 	Context("when initializing the Check resource works", func() {
@@ -198,20 +195,6 @@ var _ = Describe("Image", func() {
 									PlanID:  "some-plan-id",
 									BuildID: 1,
 								}
-
-								fetchedImage = imageFactory.NewImage(
-									logger,
-									signals,
-									imageResource,
-									identifier,
-									metadata,
-									atc.Tags{"worker", "tags"},
-									teamID,
-									customTypes,
-									fakeWorker,
-									fakeImageFetchingDelegate,
-									privileged,
-								)
 								fakeResourceFactory.NewResourceReturns(fakeBuildResource, nil, nil)
 							})
 
@@ -253,20 +236,6 @@ var _ = Describe("Image", func() {
 									PlanID:     "some-plan-id",
 									ResourceID: 1,
 								}
-
-								fetchedImage = imageFactory.NewImage(
-									logger,
-									signals,
-									imageResource,
-									identifier,
-									metadata,
-									atc.Tags{"worker", "tags"},
-									teamID,
-									customTypes,
-									fakeWorker,
-									fakeImageFetchingDelegate,
-									privileged,
-								)
 								fakeResourceFactory.NewResourceReturns(fakeCheckResource, nil, nil)
 							})
 

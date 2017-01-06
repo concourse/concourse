@@ -664,14 +664,18 @@ func (cmd *ATCCommand) constructWorkerPool(
 	dbVolumeFactory dbng.VolumeFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 ) worker.Client {
-	imageFactory := image.NewFactory(resourceFetcherFactory, resourceFactoryFactory, dbResourceCacheFactory)
+	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+		resourceFetcherFactory,
+		resourceFactoryFactory,
+		dbResourceCacheFactory,
+	)
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
 			logger,
 			sqlDB,
 			keepaliveDialer,
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-			image.NewImageFetcherFactory(imageFactory),
+			image.NewImageFactory(imageResourceFetcherFactory),
 			dbContainerFactory,
 			dbResourceCacheFactory,
 			dbResourceConfigFactory,

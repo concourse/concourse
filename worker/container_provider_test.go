@@ -10,6 +10,8 @@ import (
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
@@ -29,9 +31,11 @@ var _ = Describe("ContainerProvider", func() {
 		fakeCreatedContainer  *dbngfakes.FakeCreatedContainer
 
 		fakeGardenClient            *gfakes.FakeClient
+		fakeGardenContainer         *gfakes.FakeContainer
 		fakeBaggageclaimClient      *baggageclaimfakes.FakeClient
 		fakeVolumeClient            *wfakes.FakeVolumeClient
-		fakeImageFetcherFactory     *wfakes.FakeImageFetcherFactory
+		fakeImageFactory            *wfakes.FakeImageFactory
+		fakeImage                   *wfakes.FakeImage
 		fakeDBContainerFactory      *dbngfakes.FakeContainerFactory
 		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
 		fakeDBResourceCacheFactory  *dbngfakes.FakeResourceCacheFactory
@@ -43,7 +47,12 @@ var _ = Describe("ContainerProvider", func() {
 		containerProviderFactory ContainerProviderFactory
 		outputPaths              map[string]string
 		inputs                   []VolumeMount
+
+		findOrCreateErr       error
+		findOrCreateContainer Container
 	)
+
+	disasterErr := errors.New("disaster")
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
@@ -58,7 +67,9 @@ var _ = Describe("ContainerProvider", func() {
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
 		fakeVolumeClient = new(wfakes.FakeVolumeClient)
-		fakeImageFetcherFactory = new(wfakes.FakeImageFetcherFactory)
+		fakeImageFactory = new(wfakes.FakeImageFactory)
+		fakeImage = new(wfakes.FakeImage)
+		fakeImageFactory.GetImageReturns(fakeImage, nil)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeWorker = new(wfakes.FakeWorker)
 
@@ -67,12 +78,14 @@ var _ = Describe("ContainerProvider", func() {
 		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		fakeDBResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
+		fakeGardenContainer = new(gfakes.FakeContainer)
+		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 
 		containerProviderFactory = NewContainerProviderFactory(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
 			fakeVolumeClient,
-			fakeImageFetcherFactory,
+			fakeImageFactory,
 			fakeDBContainerFactory,
 			fakeDBVolumeFactory,
 			fakeDBResourceCacheFactory,
@@ -88,330 +101,384 @@ var _ = Describe("ContainerProvider", func() {
 		outputPaths = map[string]string{}
 	})
 
-	XDescribe("FindOrCreateContainer", func() {
-		var (
-			container Container
-			err       error
-		)
+	ItHandlesContainerInCreatingState := func() {
+		Context("when container exists in garden", func() {
+			BeforeEach(func() {
+				fakeGardenClient.LookupReturns(fakeGardenContainer, nil)
+			})
 
-		JustBeforeEach(func() {
-			// container, err = containerProvider.FindOrCreateContainer(
-			// 	logger,
-			// 	nil,
-			// 	fakeCreatingContainer,
-			// 	fakeImageFetchingDelegate,
-			// 	Identifier{},
-			// 	Metadata{},
-			// 	ContainerSpec{
-			// 		ImageSpec: imageSpec,
-			// 		Inputs:    inputs,
-			// 	},
-			// 	atc.ResourceTypes{
-			// 		{
-			// 			Type:   "some-resource",
-			// 			Name:   "custom-type-b",
-			// 			Source: atc.Source{"some": "source"},
-			// 		},
-			// 	},
-			// 	outputPaths,
-			// )
+			It("does not acquire lock", func() {
+				Expect(fakeGardenWorkerDB.AcquireContainerCreatingLockCallCount()).To(Equal(0))
+			})
+
+			It("marks container as created", func() {
+				Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(1))
+			})
+
+			It("returns worker container", func() {
+				Expect(findOrCreateContainer).ToNot(BeNil())
+			})
 		})
 
-		XContext("there is an existing container matching", func() {
+		Context("when container does not exist in garden", func() {
+			BeforeEach(func() {
+				fakeGardenClient.LookupReturns(nil, garden.ContainerNotFoundError{})
+			})
 
+			It("gets image", func() {
+				Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
+				Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
+			})
+
+			It("acquires lock", func() {
+				Expect(fakeGardenWorkerDB.AcquireContainerCreatingLockCallCount()).To(Equal(1))
+			})
+
+			It("creates container in garden", func() {
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+			})
+
+			It("marks container as created", func() {
+				Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(1))
+			})
+
+			It("returns worker container", func() {
+				Expect(findOrCreateContainer).ToNot(BeNil())
+			})
+
+			Context("when failing to create container in garden", func() {
+				BeforeEach(func() {
+					fakeGardenClient.CreateReturns(nil, disasterErr)
+				})
+
+				It("returns an error", func() {
+					Expect(findOrCreateErr).To(Equal(disasterErr))
+				})
+
+				It("does not mark container as created", func() {
+					Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when getting image fails", func() {
+				BeforeEach(func() {
+					fakeImageFactory.GetImageReturns(nil, disasterErr)
+				})
+
+				It("returns an error", func() {
+					Expect(findOrCreateErr).To(Equal(disasterErr))
+				})
+
+				It("does not create container in garden", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(0))
+				})
+			})
+		})
+	}
+
+	ItHandlesContainerInCreatedState := func() {
+		Context("when container exists in garden", func() {
+			BeforeEach(func() {
+				fakeGardenClient.LookupReturns(fakeGardenContainer, nil)
+			})
+
+			It("returns container", func() {
+				Expect(findOrCreateContainer).ToNot(BeNil())
+			})
 		})
 
-		Context("a new container is needed", func() {
-
-			var fakeGardenContainer *gfakes.FakeContainer
+		Context("when container does not exist in garden", func() {
+			var containerNotFoundErr error
 
 			BeforeEach(func() {
-				fakeCreatingContainer.CreatedReturns(fakeCreatedContainer, nil)
-				fakeGardenContainer = new(gfakes.FakeContainer)
-				fakeGardenContainer.HandleReturns("some-handle")
-				fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
+				containerNotFoundErr = garden.ContainerNotFoundError{}
+				fakeGardenClient.LookupReturns(nil, containerNotFoundErr)
 			})
 
-			It("returns the newly created container", func() {
-				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-				Expect(container.Handle()).To(Equal("some-handle"))
+			It("returns an error", func() {
+				Expect(findOrCreateErr).To(Equal(containerNotFoundErr))
 			})
+		})
+	}
 
-			Context("when output paths are specified", func() {
-				var (
-					fakeOutputVolume *wfakes.FakeVolume
-				)
-
-				BeforeEach(func() {
-					outputPaths = map[string]string{"output": "/some/path"}
-					fakeOutputVolume = new(wfakes.FakeVolume)
-					fakeOutputVolume.HandleReturns("output-volume-handle")
-					fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeOutputVolume, nil)
-				})
-
-				It("finds or creates the volume using the volume client", func() {
-					Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-					_, spec, _, _, outputPath := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
-					s, ok := spec.Strategy.(OutputStrategy)
-					Expect(ok).To(BeTrue())
-					Expect(s.Name).To(Equal("output"))
-					Expect(outputPath).To(Equal("/some/path"))
-				})
-
-				Context("when finding / creating the output volume fails", func() {
-					var focVolumeErr error
-
-					BeforeEach(func() {
-						focVolumeErr = errors.New("oh noes")
-						fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeOutputVolume, focVolumeErr)
-					})
-
-					It("returns the error", func() {
-						Expect(err).To(Equal(focVolumeErr))
-					})
-
-				})
-
-			})
-
-			Context("when inputs are specified on the container spec", func() {
-				var fakeInputVolume *wfakes.FakeVolume
-
-				BeforeEach(func() {
-					fakeInputVolume = new(wfakes.FakeVolume)
-					fakeInputVolume.PathReturns("/some/volume/path")
-					inputs = []VolumeMount{
-						VolumeMount{
-							Volume:    fakeInputVolume,
-							MountPath: "/some/input/path",
-						},
-					}
-
-					fakeCOWVolume := new(wfakes.FakeVolume)
-					fakeCOWVolume.PathReturns("/some/volume/path")
-					fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeCOWVolume, nil)
-				})
-
-				It("finds / creates COW volumes from the inputs", func() {
-					Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-					_, spec, _, _, mountPath := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
-					s, ok := spec.Strategy.(ContainerRootFSStrategy)
-					Expect(ok).To(BeTrue())
-					Expect(s.Parent).To(Equal(fakeInputVolume))
-					Expect(mountPath).To(Equal("/some/input/path"))
-				})
-
-			})
-
-			// Describe("fetching image", func() {
-			// 	Context("when image artifact source is specified in imageSpec", func() {
-			// 		var imageArtifactSource *wfakes.FakeArtifactSource
-			// 		var imageVolume *wfakes.FakeVolume
-			// 		var metadataReader io.ReadCloser
-			//
-			// 		BeforeEach(func() {
-			// 			imageArtifactSource = new(wfakes.FakeArtifactSource)
-			// 			metadataReader = ioutil.NopCloser(strings.NewReader(`{"env":["some","env"]}`))
-			// 			imageArtifactSource.StreamFileReturns(metadataReader, nil)
-			// 			imageVolume = new(wfakes.FakeVolume)
-			// 			imageVolume.PathReturns("/var/vcap/some-path")
-			// 			imageVolume.HandleReturns("some-handle")
-			// 			imageSpec = ImageSpec{
-			// 				ImageArtifactSource: imageArtifactSource,
-			// 				ImageArtifactName:   "some-image-artifact-name",
-			// 			}
-			// 		})
-			//
-			// 		Context("when the image artifact is not found in a volume on the worker", func() {
-			// 			BeforeEach(func() {
-			// 				imageArtifactSource.VolumeOnReturns(nil, false, nil)
-			// 				fakeVolumeClient.FindOrCreateVolumeForContainerReturns(imageVolume, nil)
-			// 			})
-			//
-			// 			It("looks for an existing image volume on the worker", func() {
-			// 				Expect(imageArtifactSource.VolumeOnCallCount()).To(Equal(1))
-			// 			})
-			//
-			// 			It("checks whether the artifact is in a volume on the worker", func() {
-			// 				Expect(imageArtifactSource.VolumeOnCallCount()).To(Equal(1))
-			// 				Expect(imageArtifactSource.VolumeOnArgsForCall(0)).To(Equal(fakeWorker))
-			// 			})
-			//
-			// 			Context("when streaming the artifact source to the volume fails", func() {
-			// 				var disaster error
-			// 				BeforeEach(func() {
-			// 					disaster = errors.New("this is bad")
-			// 					imageArtifactSource.StreamToReturns(disaster)
-			// 				})
-			//
-			// 				It("returns the error", func() {
-			// 					Expect(err).To(Equal(disaster))
-			// 				})
-			// 			})
-			//
-			// 			Context("when streaming the artifact source to the volume succeeds", func() {
-			// 				BeforeEach(func() {
-			// 					imageArtifactSource.StreamToReturns(nil)
-			// 				})
-			//
-			// 				Context("when streaming the metadata from the worker fails", func() {
-			// 					var disaster error
-			// 					BeforeEach(func() {
-			// 						disaster = errors.New("got em")
-			// 						imageArtifactSource.StreamFileReturns(nil, disaster)
-			// 					})
-			//
-			// 					It("returns the error", func() {
-			// 						Expect(err).To(Equal(disaster))
-			// 					})
-			// 				})
-			//
-			// 				Context("when streaming the metadata from the worker succeeds", func() {
-			// 					It("creates container with image volume and metadata", func() {
-			// 						Expect(err).ToNot(HaveOccurred())
-			//
-			// 						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-			// 						gardenSpec := fakeGardenClient.CreateArgsForCall(0)
-			// 						Expect(gardenSpec.Env).To(Equal([]string{
-			// 							"some",
-			// 							"env",
-			// 							"http_proxy=http://proxy.com",
-			// 							"https_proxy=https://proxy.com",
-			// 							"no_proxy=http://noproxy.com",
-			// 						}))
-			// 						Expect(gardenSpec.RootFSPath).To(Equal("raw:///var/vcap/some-path/rootfs"))
-			// 					})
-			// 				})
-			// 			})
-			// 		})
-			//
-			// 		Context("when the image artifact is in a volume on the worker", func() {
-			// 			var imageVolume *wfakes.FakeVolume
-			// 			BeforeEach(func() {
-			// 				metadataReader = ioutil.NopCloser(strings.NewReader(`{"env":["some","env"]}`))
-			// 				imageArtifactSource.StreamFileReturns(metadataReader, nil)
-			//
-			// 				artifactVolume := new(wfakes.FakeVolume)
-			// 				imageArtifactSource.VolumeOnReturns(artifactVolume, true, nil)
-			//
-			// 				imageVolume = new(wfakes.FakeVolume)
-			// 				imageVolume.PathReturns("/var/vcap/some-path")
-			// 				imageVolume.HandleReturns("some-handle")
-			// 				fakeVolumeClient.FindOrCreateVolumeForContainerReturns(imageVolume, nil)
-			// 			})
-			//
-			// 			It("looks for an existing image volume on the worker", func() {
-			// 				Expect(imageArtifactSource.VolumeOnCallCount()).To(Equal(1))
-			// 			})
-			//
-			// 			It("checks whether the artifact is in a volume on the worker", func() {
-			// 				Expect(imageArtifactSource.VolumeOnCallCount()).To(Equal(1))
-			// 				Expect(imageArtifactSource.VolumeOnArgsForCall(0)).To(Equal(fakeWorker))
-			// 			})
-			//
-			// 			Context("when streaming the metadata from the worker fails", func() {
-			// 				var disaster error
-			// 				BeforeEach(func() {
-			// 					disaster = errors.New("got em")
-			// 					imageArtifactSource.StreamFileReturns(nil, disaster)
-			// 				})
-			//
-			// 				It("returns the error", func() {
-			// 					Expect(err).To(Equal(disaster))
-			// 				})
-			// 			})
-			//
-			// 			Context("when streaming the metadata from the worker succeeds", func() {
-			// 				BeforeEach(func() {
-			// 					imageArtifactSource.StreamFileReturns(metadataReader, nil)
-			// 				})
-			//
-			// 				It("creates container with image volume and metadata", func() {
-			// 					Expect(err).ToNot(HaveOccurred())
-			//
-			// 					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-			// 					gardenSpec := fakeGardenClient.CreateArgsForCall(0)
-			// 					Expect(gardenSpec.Env).To(Equal([]string{
-			// 						"some",
-			// 						"env",
-			// 						"http_proxy=http://proxy.com",
-			// 						"https_proxy=https://proxy.com",
-			// 						"no_proxy=http://noproxy.com",
-			// 					}))
-			// 					Expect(gardenSpec.RootFSPath).To(Equal("raw:///var/vcap/some-path/rootfs"))
-			// 					Expect(gardenSpec.Handle).To(Equal("some-handle"))
-			// 				})
-			//
-			// 				It("marks container as created", func() {
-			// 					Expect(err).ToNot(HaveOccurred())
-			//
-			// 					Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(1))
-			// 				})
-			// 			})
-			// 		})
-			// 	})
-			//
-			// 	Context("when image resource is specified in imageSpec", func() {
-			// 		var imageResource *atc.ImageResource
-			//
-			// 		BeforeEach(func() {
-			// 			imageResource = &atc.ImageResource{
-			// 				Type: "some-resource",
-			// 			}
-			//
-			// 			imageSpec = ImageSpec{
-			// 				ImageResource: imageResource,
-			// 			}
-			// 		})
-			//
-			// 		It("creates an image from the image resource", func() {
-			// 			Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
-			// 			Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
-			// 			_, _, imageResourceArg, _, _, _, _, _, _, _, _ := fakeImageFactory.NewImageArgsForCall(0)
-			// 			Expect(imageResourceArg).To(Equal(*imageResource))
-			// 		})
-			// 	})
-			//
-			// 	Context("when worker resource type is specified in image spec", func() {
-			// 		var importVolume *wfakes.FakeVolume
-			//
-			// 		BeforeEach(func() {
-			// 			imageSpec = ImageSpec{
-			// 				ResourceType: "some-resource",
-			// 			}
-			// 			importVolume = new(wfakes.FakeVolume)
-			// 			fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeReturns(importVolume, nil)
-			// 			cowVolume := new(wfakes.FakeVolume)
-			// 			cowVolume.PathReturns("/var/vcap/some-path/rootfs")
-			// 			fakeVolumeClient.FindOrCreateVolumeForContainerReturns(cowVolume, nil)
-			// 			resourceTypes := []atc.WorkerResourceType{
-			// 				{
-			// 					Type:    "some-resource",
-			// 					Image:   "some-resource-image",
-			// 					Version: "some-version",
-			// 				},
-			// 			}
-			// 			fakeWorker.ResourceTypesReturns(resourceTypes)
-			// 		})
-			//
-			// 		It("creates container with base resource type volume", func() {
-			// 			Expect(err).ToNot(HaveOccurred())
-			// 			Expect(fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeCallCount()).To(Equal(1))
-			//
-			// 			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-			// 			_, volumeSpec, _, _, _ := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
-			// 			containerRootFSStrategy, ok := volumeSpec.Strategy.(ContainerRootFSStrategy)
-			// 			Expect(ok).To(BeTrue())
-			// 			Expect(containerRootFSStrategy.Parent).To(Equal(importVolume))
-			//
-			// 			Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-			// 			gardenSpec := fakeGardenClient.CreateArgsForCall(0)
-			// 			Expect(gardenSpec.RootFSPath).To(Equal("raw:///var/vcap/some-path/rootfs"))
-			// 		})
-			// 	})
-			// })
+	ItHandlesNonExistentContainer := func(createDatabaseCallCountFunc func() int) {
+		It("gets image", func() {
+			Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
+			Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
 		})
 
+		It("creates container in database", func() {
+			Expect(createDatabaseCallCountFunc()).To(Equal(1))
+		})
+
+		It("acquires lock", func() {
+			Expect(fakeGardenWorkerDB.AcquireContainerCreatingLockCallCount()).To(Equal(1))
+		})
+
+		It("creates container in garden", func() {
+			Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+		})
+
+		It("marks container as created", func() {
+			Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(1))
+		})
+
+		Context("when getting image fails", func() {
+			BeforeEach(func() {
+				fakeImageFactory.GetImageReturns(nil, disasterErr)
+			})
+
+			It("returns an error", func() {
+				Expect(findOrCreateErr).To(Equal(disasterErr))
+			})
+
+			It("does not create container in database", func() {
+				Expect(createDatabaseCallCountFunc()).To(Equal(0))
+			})
+
+			It("does not create container in garden", func() {
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when failing to create container in garden", func() {
+			BeforeEach(func() {
+				fakeGardenClient.CreateReturns(nil, disasterErr)
+			})
+
+			It("returns an error", func() {
+				Expect(findOrCreateErr).To(Equal(disasterErr))
+			})
+
+			It("does not mark container as created", func() {
+				Expect(fakeCreatingContainer.CreatedCallCount()).To(Equal(0))
+			})
+		})
+	}
+
+	Describe("FindOrCreateBuildContainer", func() {
+		BeforeEach(func() {
+			fakeDBContainerFactory.CreateBuildContainerReturns(fakeCreatingContainer, nil)
+			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
+		})
+
+		JustBeforeEach(func() {
+			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateBuildContainer(
+				logger, nil,
+				fakeImageFetchingDelegate,
+				Identifier{},
+				Metadata{},
+				ContainerSpec{
+					ImageSpec: ImageSpec{},
+					Inputs:    inputs,
+				},
+				atc.ResourceTypes{
+					{
+						Type:   "some-resource",
+						Name:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+				},
+				outputPaths,
+			)
+		})
+
+		Context("when container exists in database in creating state", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindBuildContainerReturns(fakeCreatingContainer, nil, nil)
+			})
+
+			ItHandlesContainerInCreatingState()
+		})
+
+		Context("when container exists in database in created state", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindBuildContainerReturns(nil, fakeCreatedContainer, nil)
+			})
+
+			ItHandlesContainerInCreatedState()
+		})
+
+		Context("when container does not exist in database", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindBuildContainerReturns(nil, nil, nil)
+			})
+
+			ItHandlesNonExistentContainer(func() int {
+				return fakeDBContainerFactory.CreateBuildContainerCallCount()
+			})
+		})
+	})
+
+	Describe("FindOrCreateResourceCheckContainer", func() {
+		BeforeEach(func() {
+			fakeDBContainerFactory.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
+			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
+		})
+
+		JustBeforeEach(func() {
+			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateResourceCheckContainer(
+				logger,
+				nil,
+				fakeImageFetchingDelegate,
+				Identifier{},
+				Metadata{},
+				ContainerSpec{
+					ImageSpec: ImageSpec{},
+					Inputs:    inputs,
+				},
+				atc.ResourceTypes{
+					{
+						Type:   "some-resource",
+						Name:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+				},
+				"some-resource",
+				atc.Source{"some": "source"},
+			)
+		})
+
+		Context("when container exists in database in creating state", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindResourceCheckContainerReturns(fakeCreatingContainer, nil, nil)
+			})
+
+			ItHandlesContainerInCreatingState()
+		})
+
+		Context("when container exists in database in created state", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindResourceCheckContainerReturns(nil, fakeCreatedContainer, nil)
+			})
+
+			ItHandlesContainerInCreatedState()
+		})
+
+		Context("when container does not exist in database", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindResourceCheckContainerReturns(nil, nil, nil)
+			})
+
+			ItHandlesNonExistentContainer(func() int {
+				return fakeDBContainerFactory.CreateResourceCheckContainerCallCount()
+			})
+		})
+	})
+
+	Describe("FindOrCreateResourceTypeCheckContainer", func() {
+		BeforeEach(func() {
+			fakeDBContainerFactory.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
+			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
+		})
+
+		JustBeforeEach(func() {
+			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateResourceTypeCheckContainer(
+				logger,
+				nil,
+				fakeImageFetchingDelegate,
+				Identifier{},
+				Metadata{},
+				ContainerSpec{
+					ImageSpec: ImageSpec{},
+					Inputs:    inputs,
+				},
+				atc.ResourceTypes{
+					{
+						Type:   "some-resource",
+						Name:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+				},
+				"some-resource",
+				atc.Source{"some": "source"},
+			)
+		})
+
+		Context("when container exists in database in creating state", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindResourceCheckContainerReturns(fakeCreatingContainer, nil, nil)
+			})
+
+			ItHandlesContainerInCreatingState()
+		})
+
+		Context("when container exists in database in created state", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindResourceCheckContainerReturns(nil, fakeCreatedContainer, nil)
+			})
+
+			ItHandlesContainerInCreatedState()
+		})
+
+		Context("when container does not exist in database", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindResourceCheckContainerReturns(nil, nil, nil)
+			})
+
+			ItHandlesNonExistentContainer(func() int {
+				return fakeDBContainerFactory.CreateResourceCheckContainerCallCount()
+			})
+		})
+	})
+
+	Describe("FindOrCreateResourceTypeCheckContainer", func() {
+		BeforeEach(func() {
+			fakeDBContainerFactory.CreateResourceGetContainerReturns(fakeCreatingContainer, nil)
+			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
+		})
+
+		JustBeforeEach(func() {
+			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateResourceGetContainer(
+				logger,
+				nil,
+				fakeImageFetchingDelegate,
+				Identifier{},
+				Metadata{},
+				ContainerSpec{
+					ImageSpec: ImageSpec{},
+					Inputs:    inputs,
+				},
+				atc.ResourceTypes{
+					{
+						Type:   "some-resource",
+						Name:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+				},
+				outputPaths,
+				"some-resource",
+				atc.Version{"some": "version"},
+				atc.Source{"some": "source"},
+				atc.Params{},
+			)
+		})
+
+		Context("when container exists in database in creating state", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindResourceGetContainerReturns(fakeCreatingContainer, nil, nil)
+			})
+
+			ItHandlesContainerInCreatingState()
+		})
+
+		Context("when container exists in database in created state", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindResourceGetContainerReturns(nil, fakeCreatedContainer, nil)
+			})
+
+			ItHandlesContainerInCreatedState()
+		})
+
+		Context("when container does not exist in database", func() {
+			BeforeEach(func() {
+				fakeDBContainerFactory.FindResourceGetContainerReturns(nil, nil, nil)
+			})
+
+			ItHandlesNonExistentContainer(func() int {
+				return fakeDBContainerFactory.CreateResourceGetContainerCallCount()
+			})
+		})
 	})
 
 	Describe("FindContainerByHandle", func() {

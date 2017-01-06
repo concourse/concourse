@@ -23,7 +23,7 @@ var _ = Describe("Worker", func() {
 	var (
 		logger                       *lagertest.TestLogger
 		fakeVolumeClient             *wfakes.FakeVolumeClient
-		fakeImageFetcherFactory      *wfakes.FakeImageFetcherFactory
+		fakeImageFactory             *wfakes.FakeImageFactory
 		fakeGardenWorkerDB           *wfakes.FakeGardenWorkerDB
 		fakeWorkerProvider           *wfakes.FakeWorkerProvider
 		fakeClock                    *fakeclock.FakeClock
@@ -47,7 +47,7 @@ var _ = Describe("Worker", func() {
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeVolumeClient = new(wfakes.FakeVolumeClient)
-		fakeImageFetcherFactory = new(wfakes.FakeImageFetcherFactory)
+		fakeImageFactory = new(wfakes.FakeImageFactory)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))

@@ -10,10 +10,10 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-//go:generate counterfeiter . ImageFetcherFactory
+//go:generate counterfeiter . ImageFactory
 
-type ImageFetcherFactory interface {
-	GetImageFetcher(
+type ImageFactory interface {
+	GetImage(
 		lager.Logger,
 		Worker,
 		VolumeClient,
@@ -24,7 +24,7 @@ type ImageFetcherFactory interface {
 		Identifier,
 		Metadata,
 		atc.ResourceTypes,
-	) (ImageFetcher, error)
+	) (Image, error)
 }
 
 type FetchedImage struct {
@@ -33,9 +33,9 @@ type FetchedImage struct {
 	URL      string
 }
 
-//go:generate counterfeiter . ImageFetcher
+//go:generate counterfeiter . Image
 
-type ImageFetcher interface {
+type Image interface {
 	FetchForContainer(
 		logger lager.Logger,
 		container dbng.CreatingContainer,
