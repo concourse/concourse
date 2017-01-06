@@ -19,6 +19,17 @@ type FakeContainerFactory struct {
 		result2 bool
 		result3 error
 	}
+	FindResourceCheckContainerStub        func(*dbng.Worker, *dbng.UsedResourceConfig) (dbng.CreatingContainer, dbng.CreatedContainer, error)
+	findResourceCheckContainerMutex       sync.RWMutex
+	findResourceCheckContainerArgsForCall []struct {
+		arg1 *dbng.Worker
+		arg2 *dbng.UsedResourceConfig
+	}
+	findResourceCheckContainerReturns struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}
 	CreateResourceCheckContainerStub        func(*dbng.Worker, *dbng.UsedResourceConfig) (dbng.CreatingContainer, error)
 	createResourceCheckContainerMutex       sync.RWMutex
 	createResourceCheckContainerArgsForCall []struct {
@@ -28,6 +39,18 @@ type FakeContainerFactory struct {
 	createResourceCheckContainerReturns struct {
 		result1 dbng.CreatingContainer
 		result2 error
+	}
+	FindResourceGetContainerStub        func(*dbng.Worker, *dbng.UsedResourceCache, string) (dbng.CreatingContainer, dbng.CreatedContainer, error)
+	findResourceGetContainerMutex       sync.RWMutex
+	findResourceGetContainerArgsForCall []struct {
+		arg1 *dbng.Worker
+		arg2 *dbng.UsedResourceCache
+		arg3 string
+	}
+	findResourceGetContainerReturns struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
 	}
 	CreateResourceGetContainerStub        func(*dbng.Worker, *dbng.UsedResourceCache, string) (dbng.CreatingContainer, error)
 	createResourceGetContainerMutex       sync.RWMutex
@@ -39,6 +62,19 @@ type FakeContainerFactory struct {
 	createResourceGetContainerReturns struct {
 		result1 dbng.CreatingContainer
 		result2 error
+	}
+	FindBuildContainerStub        func(*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) (dbng.CreatingContainer, dbng.CreatedContainer, error)
+	findBuildContainerMutex       sync.RWMutex
+	findBuildContainerArgsForCall []struct {
+		arg1 *dbng.Worker
+		arg2 *dbng.Build
+		arg3 atc.PlanID
+		arg4 dbng.ContainerMetadata
+	}
+	findBuildContainerReturns struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
 	}
 	CreateBuildContainerStub        func(*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) (dbng.CreatingContainer, error)
 	createBuildContainerMutex       sync.RWMutex
@@ -104,6 +140,42 @@ func (fake *FakeContainerFactory) FindContainerByHandleReturns(result1 dbng.Crea
 	}{result1, result2, result3}
 }
 
+func (fake *FakeContainerFactory) FindResourceCheckContainer(arg1 *dbng.Worker, arg2 *dbng.UsedResourceConfig) (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+	fake.findResourceCheckContainerMutex.Lock()
+	fake.findResourceCheckContainerArgsForCall = append(fake.findResourceCheckContainerArgsForCall, struct {
+		arg1 *dbng.Worker
+		arg2 *dbng.UsedResourceConfig
+	}{arg1, arg2})
+	fake.recordInvocation("FindResourceCheckContainer", []interface{}{arg1, arg2})
+	fake.findResourceCheckContainerMutex.Unlock()
+	if fake.FindResourceCheckContainerStub != nil {
+		return fake.FindResourceCheckContainerStub(arg1, arg2)
+	} else {
+		return fake.findResourceCheckContainerReturns.result1, fake.findResourceCheckContainerReturns.result2, fake.findResourceCheckContainerReturns.result3
+	}
+}
+
+func (fake *FakeContainerFactory) FindResourceCheckContainerCallCount() int {
+	fake.findResourceCheckContainerMutex.RLock()
+	defer fake.findResourceCheckContainerMutex.RUnlock()
+	return len(fake.findResourceCheckContainerArgsForCall)
+}
+
+func (fake *FakeContainerFactory) FindResourceCheckContainerArgsForCall(i int) (*dbng.Worker, *dbng.UsedResourceConfig) {
+	fake.findResourceCheckContainerMutex.RLock()
+	defer fake.findResourceCheckContainerMutex.RUnlock()
+	return fake.findResourceCheckContainerArgsForCall[i].arg1, fake.findResourceCheckContainerArgsForCall[i].arg2
+}
+
+func (fake *FakeContainerFactory) FindResourceCheckContainerReturns(result1 dbng.CreatingContainer, result2 dbng.CreatedContainer, result3 error) {
+	fake.FindResourceCheckContainerStub = nil
+	fake.findResourceCheckContainerReturns = struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeContainerFactory) CreateResourceCheckContainer(arg1 *dbng.Worker, arg2 *dbng.UsedResourceConfig) (dbng.CreatingContainer, error) {
 	fake.createResourceCheckContainerMutex.Lock()
 	fake.createResourceCheckContainerArgsForCall = append(fake.createResourceCheckContainerArgsForCall, struct {
@@ -137,6 +209,43 @@ func (fake *FakeContainerFactory) CreateResourceCheckContainerReturns(result1 db
 		result1 dbng.CreatingContainer
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeContainerFactory) FindResourceGetContainer(arg1 *dbng.Worker, arg2 *dbng.UsedResourceCache, arg3 string) (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+	fake.findResourceGetContainerMutex.Lock()
+	fake.findResourceGetContainerArgsForCall = append(fake.findResourceGetContainerArgsForCall, struct {
+		arg1 *dbng.Worker
+		arg2 *dbng.UsedResourceCache
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("FindResourceGetContainer", []interface{}{arg1, arg2, arg3})
+	fake.findResourceGetContainerMutex.Unlock()
+	if fake.FindResourceGetContainerStub != nil {
+		return fake.FindResourceGetContainerStub(arg1, arg2, arg3)
+	} else {
+		return fake.findResourceGetContainerReturns.result1, fake.findResourceGetContainerReturns.result2, fake.findResourceGetContainerReturns.result3
+	}
+}
+
+func (fake *FakeContainerFactory) FindResourceGetContainerCallCount() int {
+	fake.findResourceGetContainerMutex.RLock()
+	defer fake.findResourceGetContainerMutex.RUnlock()
+	return len(fake.findResourceGetContainerArgsForCall)
+}
+
+func (fake *FakeContainerFactory) FindResourceGetContainerArgsForCall(i int) (*dbng.Worker, *dbng.UsedResourceCache, string) {
+	fake.findResourceGetContainerMutex.RLock()
+	defer fake.findResourceGetContainerMutex.RUnlock()
+	return fake.findResourceGetContainerArgsForCall[i].arg1, fake.findResourceGetContainerArgsForCall[i].arg2, fake.findResourceGetContainerArgsForCall[i].arg3
+}
+
+func (fake *FakeContainerFactory) FindResourceGetContainerReturns(result1 dbng.CreatingContainer, result2 dbng.CreatedContainer, result3 error) {
+	fake.FindResourceGetContainerStub = nil
+	fake.findResourceGetContainerReturns = struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeContainerFactory) CreateResourceGetContainer(arg1 *dbng.Worker, arg2 *dbng.UsedResourceCache, arg3 string) (dbng.CreatingContainer, error) {
@@ -173,6 +282,44 @@ func (fake *FakeContainerFactory) CreateResourceGetContainerReturns(result1 dbng
 		result1 dbng.CreatingContainer
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeContainerFactory) FindBuildContainer(arg1 *dbng.Worker, arg2 *dbng.Build, arg3 atc.PlanID, arg4 dbng.ContainerMetadata) (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+	fake.findBuildContainerMutex.Lock()
+	fake.findBuildContainerArgsForCall = append(fake.findBuildContainerArgsForCall, struct {
+		arg1 *dbng.Worker
+		arg2 *dbng.Build
+		arg3 atc.PlanID
+		arg4 dbng.ContainerMetadata
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FindBuildContainer", []interface{}{arg1, arg2, arg3, arg4})
+	fake.findBuildContainerMutex.Unlock()
+	if fake.FindBuildContainerStub != nil {
+		return fake.FindBuildContainerStub(arg1, arg2, arg3, arg4)
+	} else {
+		return fake.findBuildContainerReturns.result1, fake.findBuildContainerReturns.result2, fake.findBuildContainerReturns.result3
+	}
+}
+
+func (fake *FakeContainerFactory) FindBuildContainerCallCount() int {
+	fake.findBuildContainerMutex.RLock()
+	defer fake.findBuildContainerMutex.RUnlock()
+	return len(fake.findBuildContainerArgsForCall)
+}
+
+func (fake *FakeContainerFactory) FindBuildContainerArgsForCall(i int) (*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) {
+	fake.findBuildContainerMutex.RLock()
+	defer fake.findBuildContainerMutex.RUnlock()
+	return fake.findBuildContainerArgsForCall[i].arg1, fake.findBuildContainerArgsForCall[i].arg2, fake.findBuildContainerArgsForCall[i].arg3, fake.findBuildContainerArgsForCall[i].arg4
+}
+
+func (fake *FakeContainerFactory) FindBuildContainerReturns(result1 dbng.CreatingContainer, result2 dbng.CreatedContainer, result3 error) {
+	fake.FindBuildContainerStub = nil
+	fake.findBuildContainerReturns = struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeContainerFactory) CreateBuildContainer(arg1 *dbng.Worker, arg2 *dbng.Build, arg3 atc.PlanID, arg4 dbng.ContainerMetadata) (dbng.CreatingContainer, error) {
@@ -268,10 +415,16 @@ func (fake *FakeContainerFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.findContainerByHandleMutex.RLock()
 	defer fake.findContainerByHandleMutex.RUnlock()
+	fake.findResourceCheckContainerMutex.RLock()
+	defer fake.findResourceCheckContainerMutex.RUnlock()
 	fake.createResourceCheckContainerMutex.RLock()
 	defer fake.createResourceCheckContainerMutex.RUnlock()
+	fake.findResourceGetContainerMutex.RLock()
+	defer fake.findResourceGetContainerMutex.RUnlock()
 	fake.createResourceGetContainerMutex.RLock()
 	defer fake.createResourceGetContainerMutex.RUnlock()
+	fake.findBuildContainerMutex.RLock()
+	defer fake.findBuildContainerMutex.RUnlock()
 	fake.createBuildContainerMutex.RLock()
 	defer fake.createBuildContainerMutex.RUnlock()
 	fake.findContainersMarkedForDeletionMutex.RLock()

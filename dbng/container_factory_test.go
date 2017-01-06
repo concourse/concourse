@@ -360,4 +360,109 @@ var _ = Describe("ContainerFactory", func() {
 		})
 
 	})
+
+	Describe("FindResourceCheckContainer", func() {
+		var resourceConfig *dbng.UsedResourceConfig
+
+		BeforeEach(func() {
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(
+				logger,
+				defaultResource,
+				"some-base-resource-type",
+				atc.Source{"some": "source"},
+				defaultPipeline,
+				atc.ResourceTypes{},
+			)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when there is a creating container", func() {
+			BeforeEach(func() {
+				_, err := containerFactory.CreateResourceCheckContainer(defaultWorker, resourceConfig)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns it", func() {
+				creatingContainer, createdContainer, err := containerFactory.FindResourceCheckContainer(defaultWorker, resourceConfig)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdContainer).To(BeNil())
+				Expect(creatingContainer).NotTo(BeNil())
+			})
+		})
+
+		Context("when there is a created container", func() {
+			BeforeEach(func() {
+				creatingContainer, err := containerFactory.CreateResourceCheckContainer(defaultWorker, resourceConfig)
+				Expect(err).NotTo(HaveOccurred())
+				_, err = creatingContainer.Created()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns it", func() {
+				creatingContainer, createdContainer, err := containerFactory.FindResourceCheckContainer(defaultWorker, resourceConfig)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdContainer).NotTo(BeNil())
+				Expect(creatingContainer).To(BeNil())
+			})
+		})
+
+		Context("when there is no container", func() {
+			It("returns nil", func() {
+				creatingContainer, createdContainer, err := containerFactory.FindResourceCheckContainer(defaultWorker, resourceConfig)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdContainer).To(BeNil())
+				Expect(creatingContainer).To(BeNil())
+			})
+		})
+	})
+
+	Describe("FindResourceGetContainer", func() {
+		var containerMetadata dbng.ContainerMetadata
+
+		BeforeEach(func() {
+			containerMetadata = dbng.ContainerMetadata{
+				Type: "task",
+				Name: "some-task",
+			}
+		})
+
+		Context("when there is a creating container", func() {
+			BeforeEach(func() {
+				_, err := containerFactory.CreateBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns it", func() {
+				creatingContainer, createdContainer, err := containerFactory.FindBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdContainer).To(BeNil())
+				Expect(creatingContainer).NotTo(BeNil())
+			})
+		})
+
+		Context("when there is a created container", func() {
+			BeforeEach(func() {
+				creatingContainer, err := containerFactory.CreateBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				Expect(err).NotTo(HaveOccurred())
+				_, err = creatingContainer.Created()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns it", func() {
+				creatingContainer, createdContainer, err := containerFactory.FindBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdContainer).NotTo(BeNil())
+				Expect(creatingContainer).To(BeNil())
+			})
+		})
+
+		Context("when there is no container", func() {
+			It("returns nil", func() {
+				creatingContainer, createdContainer, err := containerFactory.FindBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdContainer).To(BeNil())
+				Expect(creatingContainer).To(BeNil())
+			})
+		})
+	})
 })

@@ -352,15 +352,15 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 					dbWorkerFactory,
 				),
 				gcng.NewResourceCacheUseCollector(
-					logger.Session("resource-cache-collector"),
+					logger.Session("resource-cache-use-collector"),
 					dbResourceCacheFactory,
 				),
 				gcng.NewResourceConfigUseCollector(
-					logger.Session("resource-cache-collector"),
+					logger.Session("resource-config-use-collector"),
 					dbResourceConfigFactory,
 				),
 				gcng.NewResourceConfigCollector(
-					logger.Session("resource-cache-collector"),
+					logger.Session("resource-config-collector"),
 					dbResourceConfigFactory,
 				),
 				gcng.NewResourceCacheCollector(
@@ -664,13 +664,14 @@ func (cmd *ATCCommand) constructWorkerPool(
 	dbVolumeFactory dbng.VolumeFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 ) worker.Client {
+	imageFactory := image.NewFactory(resourceFetcherFactory, resourceFactoryFactory, dbResourceCacheFactory)
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
 			logger,
 			sqlDB,
 			keepaliveDialer,
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-			image.NewFactory(resourceFetcherFactory, resourceFactoryFactory, dbResourceCacheFactory),
+			image.NewImageFetcherFactory(imageFactory),
 			dbContainerFactory,
 			dbResourceCacheFactory,
 			dbResourceConfigFactory,

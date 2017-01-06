@@ -40,7 +40,7 @@ var _ = Describe("DBProvider", func() {
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
 
-		fakeImageFactory              *workerfakes.FakeImageFactory
+		fakeImageFetcherFactory       *workerfakes.FakeImageFetcherFactory
 		fakeImageFetchingDelegate     *workerfakes.FakeImageFetchingDelegate
 		fakeDBVolumeFactory           *dbngfakes.FakeVolumeFactory
 		fakeDBContainerFactory        *dbngfakes.FakeContainerFactory
@@ -85,7 +85,10 @@ var _ = Describe("DBProvider", func() {
 		err := gardenServer.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		fakeImageFactory = new(workerfakes.FakeImageFactory)
+		fakeImageFetcherFactory = new(workerfakes.FakeImageFetcherFactory)
+		fakeFetcher := new(workerfakes.FakeImageFetcher)
+		fakeFetcher.FetchForContainerReturns(FetchedImage{}, nil)
+		fakeImageFetcherFactory.GetImageFetcherReturns(fakeFetcher, nil)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeDBContainerFactory = new(dbngfakes.FakeContainerFactory)
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
@@ -106,7 +109,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDB,
 			nil,
 			fakeBackOffFactory,
-			fakeImageFactory,
+			fakeImageFetcherFactory,
 			fakeDBContainerFactory,
 			fakeDBResourceCacheFactory,
 			nil,

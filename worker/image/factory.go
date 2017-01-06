@@ -1,6 +1,7 @@
 package image
 
 import (
+	"io"
 	"os"
 
 	"code.cloudfoundry.org/lager"
@@ -9,6 +10,26 @@ import (
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
+
+type Factory interface {
+	NewImage(
+		logger lager.Logger,
+		cancel <-chan os.Signal,
+		imageResource atc.ImageResource,
+		id worker.Identifier,
+		metadata worker.Metadata,
+		tags atc.Tags,
+		teamID int,
+		resourceTypes atc.ResourceTypes,
+		workerClient worker.Client,
+		delegate worker.ImageFetchingDelegate,
+		privileged bool,
+	) Image
+}
+
+type Image interface {
+	Fetch() (worker.Volume, io.ReadCloser, atc.Version, error)
+}
 
 type factory struct {
 	resourceFetcherFactory resource.FetcherFactory
@@ -20,7 +41,7 @@ func NewFactory(
 	resourceFetcherFactory resource.FetcherFactory,
 	resourceFactoryFactory resource.ResourceFactoryFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
-) worker.ImageFactory {
+) Factory {
 	return &factory{
 		resourceFetcherFactory: resourceFetcherFactory,
 		resourceFactoryFactory: resourceFactoryFactory,
@@ -40,7 +61,7 @@ func (f *factory) NewImage(
 	workerClient worker.Client,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 	privileged bool,
-) worker.Image {
+) Image {
 	return &image{
 		logger:                 logger,
 		signals:                signals,

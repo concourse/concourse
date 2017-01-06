@@ -34,7 +34,7 @@ var _ = Describe("Image", func() {
 	var fakeResourceFactoryFactory *rfakes.FakeResourceFactoryFactory
 	var fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 
-	var fetchedImage worker.Image
+	var fetchedImage image.Image
 
 	var stderrBuf *gbytes.Buffer
 
@@ -53,7 +53,7 @@ var _ = Describe("Image", func() {
 	var fetchedVersion atc.Version
 	var fetchErr error
 	var teamID int
-	var imageFactory worker.ImageFactory
+	var imageFactory image.Factory
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)

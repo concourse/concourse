@@ -7,30 +7,39 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 )
 
-//go:generate counterfeiter . ImageFactory
+//go:generate counterfeiter . ImageFetcherFactory
 
-type ImageFactory interface {
-	NewImage(
-		logger lager.Logger,
-		cancel <-chan os.Signal,
-		imageResource atc.ImageResource,
-		id Identifier,
-		metadata Metadata,
-		tags atc.Tags,
-		teamID int,
-		resourceTypes atc.ResourceTypes,
-		workerClient Client,
-		delegate ImageFetchingDelegate,
-		privileged bool,
-	) Image
+type ImageFetcherFactory interface {
+	GetImageFetcher(
+		lager.Logger,
+		Worker,
+		VolumeClient,
+		ImageSpec,
+		int,
+		<-chan os.Signal,
+		ImageFetchingDelegate,
+		Identifier,
+		Metadata,
+		atc.ResourceTypes,
+	) (ImageFetcher, error)
 }
 
-//go:generate counterfeiter . Image
+type FetchedImage struct {
+	Metadata ImageMetadata
+	Version  atc.Version
+	URL      string
+}
 
-type Image interface {
-	Fetch() (Volume, io.ReadCloser, atc.Version, error)
+//go:generate counterfeiter . ImageFetcher
+
+type ImageFetcher interface {
+	FetchForContainer(
+		logger lager.Logger,
+		container dbng.CreatingContainer,
+	) (FetchedImage, error)
 }
 
 //go:generate counterfeiter . ImageFetchingDelegate

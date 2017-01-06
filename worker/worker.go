@@ -295,7 +295,7 @@ func (worker *gardenWorker) FindOrCreateContainerForIdentifier(
 	imageFetchingDelegate ImageFetchingDelegate,
 	resourceSources map[string]ArtifactSource,
 ) (Container, []string, error) {
-	container, err := worker.getContainerForIdentifier(
+	container, err := worker.findOrCreateContainerForIdentifier(
 		logger,
 		id,
 		metadata,
@@ -482,7 +482,7 @@ insert_coin:
 	return true
 }
 
-func (worker *gardenWorker) getContainerForIdentifier(
+func (worker *gardenWorker) findOrCreateContainerForIdentifier(
 	logger lager.Logger,
 	id Identifier,
 	metadata Metadata,
@@ -505,6 +505,24 @@ func (worker *gardenWorker) getContainerForIdentifier(
 		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
 		return container, nil
 	}
+
+	logger.Debug("creating-container-for-identifier", lager.Data{"id": id})
+	// if id.ImageResourceType != "" {
+	// 	container, err = worker.FindOrCreateResourceGetContainer(
+	// 		logger,
+	// 		nil,
+	// 		imageFetchingDelegate,
+	// 		id,
+	// 		metadata,
+	// 		resourceSpec,
+	// 		resourceTypes,
+	// 		map[string]string{},
+	// 		string(id.ImageResourceType),
+	// 		s.resourceOptions.Version(),
+	// 		id.ImageResourceSource,
+	// 		s.resourceOptions.Params(),
+	// 	)
+	// }
 
 	if id.BuildID != 0 {
 		container, err = worker.FindOrCreateBuildContainer(
