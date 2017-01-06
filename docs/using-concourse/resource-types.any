@@ -91,6 +91,8 @@ before using it!
   }{
     \hyperlink{https://github.com/mdomke/concourse-email-resource}{Email with integrated MTA}
   }{
+    \hyperlink{https://github.com/santoshjpawar/concourse-email-notification}{Email with dynamic recipients and pattern replacement}
+  }{
     \hyperlink{https://github.com/jamiemonserrate/bintray-resource}{Bintray}
   }{
     \hyperlink{https://github.com/olhtbr/p4-resource}{Perforce}
