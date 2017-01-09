@@ -4,15 +4,16 @@ import (
 	"fmt"
 
 	"github.com/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
 )
 
 type RenamePipelineCommand struct {
-	Pipeline string `short:"o"  long:"old-name" required:"true"  description:"Pipeline to rename"`
-	Name     string `short:"n"  long:"new-name" required:"true"  description:"Name to set as pipeline name"`
+	Pipeline flaghelpers.PipelineFlag `short:"o"  long:"old-name" required:"true"  description:"Pipeline to rename"`
+	Name     string                   `short:"n"  long:"new-name" required:"true"  description:"Name to set as pipeline name"`
 }
 
-func (rp *RenamePipelineCommand) Execute([]string) error {
+func (command *RenamePipelineCommand) Execute([]string) error {
 	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
@@ -23,17 +24,19 @@ func (rp *RenamePipelineCommand) Execute([]string) error {
 		return err
 	}
 
-	found, err := target.Team().RenamePipeline(rp.Pipeline, rp.Name)
+	pipelineName := string(command.Pipeline)
+
+	found, err := target.Team().RenamePipeline(pipelineName, command.Name)
 	if err != nil {
 		return err
 	}
 
 	if !found {
-		displayhelpers.Failf("pipeline '%s' not found\n", rp.Pipeline)
+		displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
 		return nil
 	}
 
-	fmt.Printf("pipeline successfully renamed to %s\n", rp.Name)
+	fmt.Printf("pipeline successfully renamed to %s\n", command.Name)
 
 	return nil
 }

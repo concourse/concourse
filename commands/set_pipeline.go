@@ -11,7 +11,7 @@ import (
 )
 
 type SetPipelineCommand struct {
-	Pipeline        string                         `short:"p"  long:"pipeline" required:"true"      description:"Pipeline to configure"`
+	Pipeline        flaghelpers.PipelineFlag       `short:"p"  long:"pipeline" required:"true"      description:"Pipeline to configure"`
 	Config          atc.PathFlag                   `short:"c"  long:"config" required:"true"        description:"Pipeline configuration file"`
 	Var             []flaghelpers.VariablePairFlag `short:"v"  long:"var" value-name:"[SECRET=KEY]" description:"Variable flag that can be used for filling in template values in configuration"`
 	VarsFrom        []atc.PathFlag                 `short:"l"  long:"load-vars-from"                description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
@@ -21,7 +21,7 @@ type SetPipelineCommand struct {
 func (command *SetPipelineCommand) Execute(args []string) error {
 	configPath := command.Config
 	templateVariablesFiles := command.VarsFrom
-	pipelineName := command.Pipeline
+	pipelineName := string(command.Pipeline)
 
 	templateVariables := template.Variables{}
 	for _, v := range command.Var {

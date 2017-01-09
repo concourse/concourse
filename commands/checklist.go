@@ -5,11 +5,12 @@ import (
 	"sort"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
 )
 
 type ChecklistCommand struct {
-	Pipeline string `short:"p" long:"pipeline" required:"true" description:"The pipeline from which to generate the Checkfile"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"The pipeline from which to generate the Checkfile"`
 }
 
 func (command *ChecklistCommand) Execute([]string) error {
@@ -23,7 +24,7 @@ func (command *ChecklistCommand) Execute([]string) error {
 		return err
 	}
 
-	pipelineName := command.Pipeline
+	pipelineName := string(command.Pipeline)
 
 	config, _, _, _, err := target.Team().PipelineConfig(pipelineName)
 	if err != nil {
