@@ -25,6 +25,14 @@ var ErrImageUnavailable = errors.New("no versions of image available")
 
 var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not produce a volume")
 
+//go:generate counterfeiter . ImageResourceFetcherFactory
+
+type ImageResourceFetcherFactory interface {
+	ImageResourceFetcherFor(worker.Worker) ImageResourceFetcher
+}
+
+//go:generate counterfeiter . ImageResourceFetcher
+
 type ImageResourceFetcher interface {
 	Fetch(
 		logger lager.Logger,
@@ -51,7 +59,7 @@ func NewImageResourceFetcherFactory(
 	resourceFetcherFactory resource.FetcherFactory,
 	resourceFactoryFactory resource.ResourceFactoryFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
-) *imageResourceFetcherFactory {
+) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
 		resourceFetcherFactory: resourceFetcherFactory,
 		resourceFactoryFactory: resourceFactoryFactory,

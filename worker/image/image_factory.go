@@ -12,11 +12,11 @@ import (
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 
 type imageFactory struct {
-	imageResourceFetcherFactory *imageResourceFetcherFactory
+	imageResourceFetcherFactory ImageResourceFetcherFactory
 }
 
 func NewImageFactory(
-	imageResourceFetcherFactory *imageResourceFetcherFactory,
+	imageResourceFetcherFactory ImageResourceFetcherFactory,
 ) worker.ImageFactory {
 	return &imageFactory{
 		imageResourceFetcherFactory: imageResourceFetcherFactory,
