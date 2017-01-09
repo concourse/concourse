@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/jessevdk/go-flags"
 )
 
 type PathFlag string
@@ -28,4 +30,15 @@ func (path *PathFlag) UnmarshalFlag(value string) error {
 
 	*path = PathFlag(matches[0])
 	return nil
+}
+
+func (path *PathFlag) Complete(match string) []flags.Completion {
+	matches, _ := filepath.Glob(match + "*")
+	comps := make([]flags.Completion, len(matches))
+
+	for i, v := range matches {
+		comps[i].Item = v
+	}
+
+	return comps
 }
