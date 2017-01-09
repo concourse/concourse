@@ -34,24 +34,49 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 -----END CERTIFICATE-----
 `
 
-	Describe("LoadTarget", func() {
-		var tmpDir string
-		var flyrc string
+	var (
+		tmpDir string
+		flyrc  string
+	)
 
+	BeforeEach(func() {
+		var err error
+		tmpDir, err = ioutil.TempDir("", "fly-test")
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("HOME", tmpDir)
+
+		flyrc = filepath.Join(userHomeDir(), ".flyrc")
+	})
+
+	AfterEach(func() {
+		os.RemoveAll(tmpDir)
+	})
+
+	Describe("Complete", func() {
 		BeforeEach(func() {
-			var err error
-			tmpDir, err = ioutil.TempDir("", "fly-test")
-			Expect(err).ToNot(HaveOccurred())
-
-			os.Setenv("HOME", tmpDir)
-
-			flyrc = filepath.Join(userHomeDir(), ".flyrc")
+			flyrcContents := `targets:
+  some-target-b: {}
+  some-target-a: {}
+  another-target: {}
+  `
+			ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
 		})
 
 		AfterEach(func() {
 			os.RemoveAll(tmpDir)
 		})
 
+		It("lists matching targets in order", func() {
+			name := rc.TargetName("some-target")
+			comps := name.Complete("some-target")
+			Expect(comps).To(HaveLen(2))
+			Expect(comps[0].Item).To(Equal("some-target-a"))
+			Expect(comps[1].Item).To(Equal("some-target-b"))
+		})
+	})
+
+	Describe("LoadTarget", func() {
 		Context("when there is no ca-cert", func() {
 			BeforeEach(func() {
 				flyrcContents := `targets:
