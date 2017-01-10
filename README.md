@@ -14,7 +14,7 @@ get Rubinius installed.
 
 1. Install [Rubinius](https://rubini.us).
 1. `bundle install`
-1. `bundle exec anatomy -i concourse.any -o /tmp/docs`
+1. `bundle exec anatomy -i index.any -o /tmp/docs`
 1. Open `/tmp/docs/index.html` in your browser.
 
 Alternatively, pass `-s` to `anatomy` and it'll spin up a web server that
