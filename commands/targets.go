@@ -24,6 +24,7 @@ func (command *TargetsCommand) Execute([]string) error {
 		Headers: ui.TableRow{
 			{Contents: "name", Color: color.New(color.Bold)},
 			{Contents: "url", Color: color.New(color.Bold)},
+			{Contents: "team", Color: color.New(color.Bold)},
 			{Contents: "expiry", Color: color.New(color.Bold)},
 		},
 	}
@@ -34,6 +35,7 @@ func (command *TargetsCommand) Execute([]string) error {
 		row := ui.TableRow{
 			{Contents: string(targetName)},
 			{Contents: targetValues.API},
+			{Contents: targetValues.TeamName},
 			{Contents: expirationTime},
 		}
 

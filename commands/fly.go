@@ -10,8 +10,9 @@ type FlyCommand struct {
 
 	Version func() `short:"v" long:"version" description:"Print the version of Fly and exit"`
 
-	Login LoginCommand `command:"login" alias:"l" description:"Authenticate with the target"`
-	Sync  SyncCommand  `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
+	Login  LoginCommand  `command:"login" alias:"l" description:"Authenticate with the target"`
+	Logout LogoutCommand `command:"logout" alias:"o" description:"Release authentication with the target"`
+	Sync   SyncCommand   `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
 	SetTeam     SetTeamCommand     `command:"set-team"  alias:"st" description:"Create or modify a team to have the given credentials"`
 	DestroyTeam DestroyTeamCommand `command:"destroy-team"  alias:"dt" description:"Destroy a team and delete all of its data"`
@@ -27,15 +28,16 @@ type FlyCommand struct {
 	PauseJob   PauseJobCommand   `command:"pause-job" alias:"pj" description:"Pause a job"`
 	UnpauseJob UnpauseJobCommand `command:"unpause-job" alias:"uj" description:"Unpause a job"`
 
-	Pipelines       PipelinesCommand       `command:"pipelines"        alias:"ps" description:"List the configured pipelines"`
-	DestroyPipeline DestroyPipelineCommand `command:"destroy-pipeline" alias:"dp" description:"Destroy a pipeline"`
-	GetPipeline     GetPipelineCommand     `command:"get-pipeline"     alias:"gp" description:"Get a pipeline's current configuration"`
-	SetPipeline     SetPipelineCommand     `command:"set-pipeline"     alias:"sp" description:"Create or update a pipeline's configuration"`
-	PausePipeline   PausePipelineCommand   `command:"pause-pipeline"   alias:"pp" description:"Pause a pipeline"`
-	UnpausePipeline UnpausePipelineCommand `command:"unpause-pipeline" alias:"up" description:"Un-pause a pipeline"`
-	ExposePipeline  ExposePipelineCommand  `command:"expose-pipeline"  alias:"ep" description:"Make a pipeline publicly viewable"`
-	HidePipeline    HidePipelineCommand    `command:"hide-pipeline"    alias:"hp" description:"Hide a pipeline from the public"`
-	RenamePipeline  RenamePipelineCommand  `command:"rename-pipeline"  alias:"rp" description:"Rename a pipeline"`
+	Pipelines        PipelinesCommand        `command:"pipelines"         alias:"ps" description:"List the configured pipelines"`
+	DestroyPipeline  DestroyPipelineCommand  `command:"destroy-pipeline"  alias:"dp" description:"Destroy a pipeline"`
+	ValidatePipeline ValidatePipelineCommand `command:"validate-pipeline" alias:"vp" description:"Validate a pipeline's current configuration"`
+	GetPipeline      GetPipelineCommand      `command:"get-pipeline"      alias:"gp" description:"Get a pipeline's current configuration"`
+	SetPipeline      SetPipelineCommand      `command:"set-pipeline"      alias:"sp" description:"Create or update a pipeline's configuration"`
+	PausePipeline    PausePipelineCommand    `command:"pause-pipeline"    alias:"pp" description:"Pause a pipeline"`
+	UnpausePipeline  UnpausePipelineCommand  `command:"unpause-pipeline"  alias:"up" description:"Un-pause a pipeline"`
+	ExposePipeline   ExposePipelineCommand   `command:"expose-pipeline"   alias:"ep" description:"Make a pipeline publicly viewable"`
+	HidePipeline     HidePipelineCommand     `command:"hide-pipeline"     alias:"hp" description:"Hide a pipeline from the public"`
+	RenamePipeline   RenamePipelineCommand   `command:"rename-pipeline"   alias:"rp" description:"Rename a pipeline"`
 
 	CheckResource   CheckResourceCommand   `command:"check-resource"    alias:"cr" description:"Check a resource"`
 	PauseResource   PauseResourceCommand   `command:"pause-resource"    alias:"pr" description:"Pause a resource"`
@@ -47,7 +49,9 @@ type FlyCommand struct {
 	TriggerJob TriggerJobCommand `command:"trigger-job" alias:"tj" description:"Start a job in a pipeline"`
 
 	Volumes VolumesCommand `command:"volumes" alias:"vs" description:"List the active volumes"`
-	Workers WorkersCommand `command:"workers" alias:"ws" description:"List the registered workers"`
+
+	Workers     WorkersCommand     `command:"workers" alias:"ws" description:"List the registered workers"`
+	PruneWorker PruneWorkerCommand `command:"prune-worker" alias:"pw" description:"Prune a stalled, landing, landed, or retiring worker"`
 }
 
 var Fly FlyCommand
