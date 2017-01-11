@@ -16,9 +16,49 @@ var _ = Describe("Get version of a resource", func() {
 	var getVolume baggageclaim.Volume
 	var getErr error
 
+	var (
+		check string
+		in    string
+		out   string
+	)
+
 	Context("whose type is a base resource type", func() {
 
 		BeforeEach(func() {
+			in = `#!/bin/bash
+			set -e
+			TMPDIR=${TMPDIR:-/tmp}
+
+			exec 3>&1 # make stdout available as fd 3 for the result
+			exec 1>&2 # redirect all output to stderr for logging
+
+			destination=$1
+
+			mkdir -p $destination
+
+			payload=$TMPDIR/echo-request
+			cat > $payload <&0
+
+			version=$(jq -r '.version // ""' < $payload)
+
+			echo $version > $destination/version
+
+			echo '{ "version" : {}, "metadata": []  }' >&3
+			`
+
+			c := NewResourceContainer(check, in, out)
+
+			r, err := c.RootFSify()
+			Expect(err).NotTo(HaveOccurred())
+
+			rootFSPath, err := createBaseResourceVolume(r)
+			Expect(err).ToNot(HaveOccurred())
+
+			baseResourceType = BaseResourceType{
+				RootFSPath: rootFSPath,
+				Name:       "echo",
+			}
+
 			source := atc.Source{
 				"versions": []map[string]string{
 					{"ref": "123"},

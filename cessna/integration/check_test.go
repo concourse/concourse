@@ -16,12 +16,49 @@ import (
 
 var _ = Describe("Check for new versions of resources", func() {
 
-	var checkVersions []atc.Version
-	var checkErr error
+	var (
+		checkVersions []atc.Version
+		checkErr      error
+		check         string
+		in            string
+		out           string
+	)
 
 	Context("whose type is a base resource type", func() {
 
 		BeforeEach(func() {
+			check = `#!/bin/bash
+			set -e
+			TMPDIR=${TMPDIR:-/tmp}
+
+			exec 3>&1 # make stdout available as fd 3 for the result
+			exec 1>&2 # redirect all output to stderr for logging
+
+			mkdir /opt/resource/logs
+			logs=/opt/resource/logs/check.log
+			touch $logs
+
+			payload=$TMPDIR/echo-request
+			cat > $payload <&0
+
+			versions=$(jq -r '.source.versions // ""' < $payload)
+			echo $versions >> $logs
+			echo $versions >&3
+			`
+
+			c := NewResourceContainer(check, in, out)
+
+			r, err := c.RootFSify()
+			Expect(err).NotTo(HaveOccurred())
+
+			rootFSPath, err := createBaseResourceVolume(r)
+			Expect(err).ToNot(HaveOccurred())
+
+			baseResourceType = BaseResourceType{
+				RootFSPath: rootFSPath,
+				Name:       "echo",
+			}
+
 			source := atc.Source{
 				"versions": []map[string]string{
 					{"ref": "123"},

@@ -18,6 +18,10 @@ import (
 
 	"testing"
 
+	"archive/tar"
+	"bytes"
+	"io"
+
 	"code.cloudfoundry.org/lager/lagertest"
 )
 
@@ -41,19 +45,10 @@ var _ = BeforeSuite(func() {
 
 	Expect(found).To(BeTrue(), "Must set WORKER_IP")
 
-	tarPath, found = os.LookupEnv("TAR_PATH")
-	Expect(found).To(BeTrue(), "Must set TAR_PATH")
+	tarPath, found = os.LookupEnv("ROOTFS_TAR_PATH")
+	Expect(found).To(BeTrue(), "Must set ROOTFS_TAR_PATH")
 
 	testWorker = cessna.NewWorker(fmt.Sprintf("%s:7777", workerIp), fmt.Sprintf("http://%s:7788", workerIp))
-
-	rootFSPath, err := createBaseResourceVolume(tarPath)
-
-	Expect(err).ToNot(HaveOccurred())
-
-	baseResourceType = BaseResourceType{
-		RootFSPath: rootFSPath,
-		Name:       "echo",
-	}
 
 	logger = lagertest.NewTestLogger("resource-test")
 })
@@ -64,7 +59,7 @@ func TestResource(t *testing.T) {
 
 }
 
-func createBaseResourceVolume(tarPath string) (string, error) {
+func createBaseResourceVolume(r io.Reader) (string, error) {
 	baggageclaimClient := bclient.New(fmt.Sprintf("http://%s:7788", workerIp), http.DefaultTransport)
 
 	volumeSpec := baggageclaim.VolumeSpec{
@@ -80,15 +75,105 @@ func createBaseResourceVolume(tarPath string) (string, error) {
 		return "", err
 	}
 
-	tarfile, err := os.Open(tarPath)
-	if err != nil {
-		return "", err
-	}
-
-	err = volume.StreamIn("/", tarfile)
+	err = volume.StreamIn("/", r)
 	if err != nil {
 		return "", err
 	}
 
 	return volume.Path(), nil
+}
+
+func NewResourceContainer(check string, in string, out string) ResourceContainer {
+	return ResourceContainer{
+		Check:         check,
+		In:            in,
+		Out:           out,
+		RootFSTarPath: tarPath,
+	}
+}
+
+type ResourceContainer struct {
+	Check         string
+	In            string
+	Out           string
+	RootFSTarPath string
+}
+
+func (r ResourceContainer) RootFSify() (io.Reader, error) {
+	f, err := os.Open(r.RootFSTarPath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	buffer := new(bytes.Buffer)
+
+	t := tar.NewWriter(buffer)
+	rootFS := tar.NewReader(f)
+
+	err = t.WriteHeader(&tar.Header{
+		Name: "./opt/resource/check",
+		Mode: 0755,
+		Size: int64(len(r.Check)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.Write([]byte(r.Check))
+	if err != nil {
+		return nil, err
+	}
+
+	err = t.WriteHeader(&tar.Header{
+		Name: "./opt/resource/in",
+		Mode: 0755,
+		Size: int64(len(r.In)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.Write([]byte(r.In))
+	if err != nil {
+		return nil, err
+	}
+
+	err = t.WriteHeader(&tar.Header{
+		Name: "./opt/resource/out",
+		Mode: 0755,
+		Size: int64(len(r.Out)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.Write([]byte(r.Out))
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		header, err := rootFS.Next()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+
+		err = t.WriteHeader(header)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = io.Copy(t, rootFS)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = t.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewBuffer(buffer.Bytes()), nil
 }
