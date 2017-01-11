@@ -83,6 +83,10 @@ func (r ResourceGet) Get(logger lager.Logger, worker *cessna.Worker) (baggagecla
 	return volumeForGet, nil
 }
 
+func (r ResourceGet) RootFSVolumeFor(logger lager.Logger, worker *cessna.Worker) (baggageclaim.Volume, error) {
+	return r.Get(logger, worker)
+}
+
 func (r ResourceGet) newGetCommandProcess(container garden.Container, mountPath string) (*getCommandProcess, error) {
 	p := &cessna.ContainerProcess{
 		Container: container,
