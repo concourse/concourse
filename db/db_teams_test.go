@@ -344,7 +344,7 @@ var _ = Describe("SQL DB Teams", func() {
 					}
 
 					teamDB := teamDBFactory.GetTeamDB("team-name")
-					savedPipeline, _, err := teamDB.SaveConfig("string", config, db.ConfigVersion(1), db.PipelineUnpaused)
+					savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated("string", config, db.ConfigVersion(1), db.PipelineUnpaused)
 					Expect(err).NotTo(HaveOccurred())
 
 					pipelineDB := pipelineDBFactory.Build(savedPipeline)

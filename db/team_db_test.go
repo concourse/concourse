@@ -76,10 +76,10 @@ var _ = Describe("TeamDB", func() {
 		var savedPipeline db.SavedPipeline
 		BeforeEach(func() {
 			var err error
-			savedPipeline, _, err = teamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
+			savedPipeline, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, err = otherTeamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
+			_, _, err = otherTeamDB.SaveConfigToBeDeprecated("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -97,16 +97,16 @@ var _ = Describe("TeamDB", func() {
 
 		BeforeEach(func() {
 			var err error
-			savedPipeline1, _, err = teamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			savedPipeline1, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+			savedPipeline2, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherSavedPublicPipeline, _, err := otherTeamDB.SaveConfig("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			otherSavedPublicPipeline, _, err := otherTeamDB.SaveConfigToBeDeprecated("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+			_, _, err = otherTeamDB.SaveConfigToBeDeprecated("other-team-pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(otherSavedPublicPipeline)
@@ -126,10 +126,10 @@ var _ = Describe("TeamDB", func() {
 		var publicPipeline db.SavedPipeline
 
 		BeforeEach(func() {
-			_, _, err := teamDB.SaveConfig("private-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
+			_, _, err := teamDB.SaveConfigToBeDeprecated("private-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err = teamDB.SaveConfig("public-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
+			publicPipeline, _, err = teamDB.SaveConfigToBeDeprecated("public-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(publicPipeline)
@@ -157,22 +157,22 @@ var _ = Describe("TeamDB", func() {
 		var otherSavedPublicPipeline3 db.SavedPipeline
 		BeforeEach(func() {
 			var err error
-			savedPipeline1, _, err = teamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			savedPipeline1, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+			savedPipeline2, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			savedPipeline3, _, err = teamDB.SaveConfig("pipeline-name-c", atc.Config{}, 0, db.PipelineUnpaused)
+			savedPipeline3, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-name-c", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherSavedPublicPipeline1, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			otherSavedPublicPipeline1, _, err = otherTeamDB.SaveConfigToBeDeprecated("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherSavedPublicPipeline2, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+			otherSavedPublicPipeline2, _, err = otherTeamDB.SaveConfigToBeDeprecated("other-team-pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherSavedPublicPipeline3, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-c", atc.Config{}, 0, db.PipelineUnpaused)
+			otherSavedPublicPipeline3, _, err = otherTeamDB.SaveConfigToBeDeprecated("other-team-pipeline-name-c", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB1 := pipelineDBFactory.Build(savedPipeline1)
@@ -236,14 +236,14 @@ var _ = Describe("TeamDB", func() {
 
 		BeforeEach(func() {
 			var err error
-			savedPipeline1, _, err = teamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			savedPipeline1, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-			savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+			savedPipeline2, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherTeamSavedPipeline1, _, err = otherTeamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			otherTeamSavedPipeline1, _, err = otherTeamDB.SaveConfigToBeDeprecated("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-			otherTeamSavedPipeline2, _, err = otherTeamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+			otherTeamSavedPipeline2, _, err = otherTeamDB.SaveConfigToBeDeprecated("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -620,7 +620,7 @@ var _ = Describe("TeamDB", func() {
 						},
 					},
 				}
-				pipeline, _, err := teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+				pipeline, _, err := teamDB.SaveConfigToBeDeprecated("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipelineDB = pipelineDBFactory.Build(pipeline)

@@ -2,6 +2,7 @@ package dbng
 
 import (
 	"database/sql"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -9,8 +10,8 @@ import (
 //go:generate counterfeiter . TeamFactory
 
 type TeamFactory interface {
-	CreateTeam(name string) (*Team, error)
-	FindTeam(name string) (*Team, bool, error)
+	CreateTeam(name string) (Team, error)
+	FindTeam(name string) (Team, bool, error)
 }
 
 type teamFactory struct {
@@ -23,7 +24,7 @@ func NewTeamFactory(conn Conn) TeamFactory {
 	}
 }
 
-func (factory *teamFactory) CreateTeam(name string) (*Team, error) {
+func (factory *teamFactory) CreateTeam(name string) (Team, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -45,17 +46,26 @@ func (factory *teamFactory) CreateTeam(name string) (*Team, error) {
 		return nil, err
 	}
 
+	createTableString := fmt.Sprintf(`
+		CREATE TABLE team_build_events_%d ()
+		INHERITS (build_events);`, teamID)
+	_, err = tx.Exec(createTableString)
+	if err != nil {
+		return nil, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	return &Team{
-		ID: teamID,
+	return &team{
+		id:   teamID,
+		conn: factory.conn,
 	}, nil
 }
 
-func (factory *teamFactory) FindTeam(name string) (*Team, bool, error) {
+func (factory *teamFactory) FindTeam(name string) (Team, bool, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -82,7 +92,8 @@ func (factory *teamFactory) FindTeam(name string) (*Team, bool, error) {
 		return nil, false, err
 	}
 
-	return &Team{
-		ID: teamID,
+	return &team{
+		id:   teamID,
+		conn: factory.conn,
 	}, true, nil
 }

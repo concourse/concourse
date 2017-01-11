@@ -22,7 +22,6 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/migrations"
@@ -385,7 +384,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			30*time.Second,
 		)},
 
-		{"buildreaper", lockrunner.NewRunner(
+		{"build-reaper", lockrunner.NewRunner(
 			logger.Session("build-reaper-runner"),
 			buildreaper.NewBuildReaper(
 				logger.Session("build-reaper"),
@@ -882,6 +881,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(sqlDB)
 
+	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
+
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
@@ -891,6 +892,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,
+			checkWorkerTeamAccessHandlerFactory,
 		),
 		wrappa.NewConcourseVersionWrappa(Version),
 	}
@@ -917,7 +919,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		sqlDB, // pipes.PipeDB
 		sqlDB, // db.PipelinesDB
 
-		config.ValidateConfig,
 		cmd.PeerURL.String(),
 		buildserver.NewEventHandler,
 		drain,

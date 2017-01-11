@@ -249,7 +249,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 		},
 		resourceType,
 		source,
-		&dbng.Pipeline{ID: metadata.PipelineID},
+		metadata.PipelineID,
 		resourceTypes,
 	)
 	if err != nil {
@@ -302,7 +302,7 @@ func (p *containerProvider) FindOrCreateResourceTypeCheckContainer(
 		logger,
 		resourceTypeName,
 		source,
-		&dbng.Pipeline{ID: metadata.PipelineID},
+		metadata.PipelineID,
 		resourceTypes,
 	)
 	if err != nil {
@@ -364,7 +364,7 @@ func (p *containerProvider) FindOrCreateResourceGetContainer(
 			version,
 			source,
 			params,
-			&dbng.Pipeline{ID: metadata.PipelineID},
+			metadata.PipelineID,
 			resourceTypes,
 		)
 		if err != nil {
@@ -382,7 +382,7 @@ func (p *containerProvider) FindOrCreateResourceGetContainer(
 			version,
 			source,
 			params,
-			&dbng.Pipeline{ID: metadata.PipelineID},
+			metadata.PipelineID,
 			resourceTypes,
 		)
 		if err != nil {
@@ -397,7 +397,7 @@ func (p *containerProvider) FindOrCreateResourceGetContainer(
 			version,
 			source,
 			params,
-			&dbng.Pipeline{ID: metadata.PipelineID},
+			metadata.PipelineID,
 			resourceTypes,
 		)
 		if err != nil {
@@ -678,7 +678,7 @@ func (p *containerProvider) createGardenContainer(
 				Privileged: bool(spec.ImageSpec.Privileged),
 			},
 			creatingContainer,
-			&dbng.Team{ID: spec.TeamID},
+			spec.TeamID,
 			outputPath,
 		)
 		if volumeErr != nil {
@@ -705,7 +705,7 @@ func (p *containerProvider) createGardenContainer(
 				Privileged: spec.ImageSpec.Privileged,
 			},
 			creatingContainer,
-			&dbng.Team{ID: spec.TeamID},
+			spec.TeamID,
 			mount.MountPath,
 		)
 		if volumeErr != nil {

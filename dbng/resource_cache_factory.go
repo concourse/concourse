@@ -17,7 +17,7 @@ type ResourceCacheFactory interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		pipeline *Pipeline,
+		pipelineID int,
 		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceCache, error)
 
@@ -28,7 +28,7 @@ type ResourceCacheFactory interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		pipeline *Pipeline,
+		pipelineID int,
 		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceCache, error)
 
@@ -38,7 +38,7 @@ type ResourceCacheFactory interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		pipeline *Pipeline,
+		pipelineID int,
 		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceCache, error)
 
@@ -68,7 +68,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	pipeline *Pipeline,
+	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceCache, error) {
 	tx, err := f.conn.Begin()
@@ -78,7 +78,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 
 	defer tx.Rollback()
 
-	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipeline)
+	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipelineID)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	pipeline *Pipeline,
+	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceCache, error) {
 	tx, err := f.conn.Begin()
@@ -130,7 +130,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 
 	defer tx.Rollback()
 
-	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipeline)
+	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipelineID)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	pipeline *Pipeline,
+	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceCache, error) {
 	resourceType, found := resourceTypes.Lookup(resourceTypeName)
@@ -188,7 +188,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 
 	rt := ResourceType{
 		ResourceType: resourceType,
-		Pipeline:     pipeline,
+		PipelineID:   pipelineID,
 	}
 
 	usedResourceType, found, err := rt.Find(tx)
@@ -200,7 +200,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
 		return nil, ErrResourceTypeNotFound{resourceTypeName}
 	}
 
-	resourceConfig, err := constructResourceConfig(tx, resourceType.Name, source, resourceTypes, pipeline)
+	resourceConfig, err := constructResourceConfig(tx, resourceType.Name, source, resourceTypes, pipelineID)
 	if err != nil {
 		return nil, err
 	}

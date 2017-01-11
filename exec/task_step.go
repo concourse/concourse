@@ -3,7 +3,6 @@ package exec
 import (
 	"archive/tar"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -31,6 +30,15 @@ type MissingInputsError struct {
 // Error prints a human-friendly message listing the inputs that were missing.
 func (err MissingInputsError) Error() string {
 	return fmt.Sprintf("missing inputs: %s", strings.Join(err.Inputs, ", "))
+}
+
+type MissingTaskImageSourceError struct {
+	SourceName string
+}
+
+func (err MissingTaskImageSourceError) Error() string {
+	return fmt.Sprintf(`missing image artifact source: %s
+make sure there's a corresponding 'get' step, or a task that produces it as an output`, err.SourceName)
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -307,7 +315,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	if step.imageArtifactName != "" {
 		source, found := step.repo.SourceFor(worker.ArtifactName(step.imageArtifactName))
 		if !found {
-			return nil, nil, errors.New("failed-to-lookup-source-for-image-artifact")
+			return nil, nil, MissingTaskImageSourceError{step.imageArtifactName}
 		}
 
 		imageSpec.ImageArtifactSource = source

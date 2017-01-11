@@ -63,7 +63,7 @@ var _ = Describe("next build inputs for job", func() {
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB := teamDBFactory.GetTeamDB("some-team")
-		savedPipeline, _, err := teamDB.SaveConfig("some-pipeline", config, 0, db.PipelineUnpaused)
+		savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated("some-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
@@ -100,7 +100,7 @@ var _ = Describe("next build inputs for job", func() {
 
 		versions = []db.SavedVersionedResource{reversions[2], reversions[1], reversions[0]}
 
-		savedPipeline2, _, err := teamDB.SaveConfig("some-pipeline-2", config, 1, db.PipelineUnpaused)
+		savedPipeline2, _, err := teamDB.SaveConfigToBeDeprecated("some-pipeline-2", config, 1, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB2 = pipelineDBFactory.Build(savedPipeline2)

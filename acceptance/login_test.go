@@ -3,9 +3,7 @@ package acceptance_test
 import (
 	"fmt"
 	"net/url"
-	"time"
 
-	"github.com/lib/pq"
 	"github.com/sclevine/agouti"
 
 	. "github.com/onsi/ginkgo"
@@ -14,55 +12,45 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/dbng"
 )
 
 var _ = Describe("Logging In", func() {
 	var atcCommand *ATCCommand
-	var dbListener *pq.Listener
-	var pipelineDBFactory db.PipelineDBFactory
-	var pipelineDB db.PipelineDB
-	var teamDBFactory db.TeamDBFactory
-	var teamName = atc.DefaultTeamName
-	var pipelineName = atc.DefaultPipelineName
-	var teamDB db.TeamDB
+	var defaultTeam dbng.Team
+	var pipelineName string
+	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 		dbConn = db.Wrap(postgresRunner.Open())
-		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		bus := db.NewNotificationsBus(dbListener, dbConn)
+		dbngConn = dbng.Wrap(postgresRunner.Open())
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(lockfakes.FakeConnector)
-		retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := lock.NewLockFactory(retryableConn)
-		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
-
-		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
-		err := atcCommand.Start()
+		teamFactory := dbng.NewTeamFactory(dbngConn)
+		var err error
+		var found bool
+		defaultTeam, found, err = teamFactory.FindTeam(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue()) // created by postgresRunner
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		pipelineName = atc.DefaultPipelineName
 
-		teamDB = teamDBFactory.GetTeamDB(teamName)
-		_, _, err = teamDB.SaveConfig(pipelineName, atc.Config{
+		pipeline, _, err = defaultTeam.SavePipeline(pipelineName, atc.Config{
 			Jobs: atc.JobConfigs{
 				{Name: "job-name"},
 			},
-		}, db.ConfigVersion(1), db.PipelineUnpaused)
+		}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
+		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
+		err = atcCommand.Start()
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		atcCommand.Stop()
 
-		Expect(dbConn.Close()).To(Succeed())
-		Expect(dbListener.Close()).To(Succeed())
+		Expect(dbngConn.Close()).To(Succeed())
 	})
 
 	homepage := func() string {
@@ -110,14 +98,9 @@ var _ = Describe("Logging In", func() {
 
 				BeforeEach(func() {
 					// job build data
-					savedPipeline, found, err := teamDB.GetPipelineByName(pipelineName)
+					build, err := pipeline.CreateJobBuild("job-name")
 					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					pipelineDB = pipelineDBFactory.Build(savedPipeline)
-					build, err := pipelineDB.CreateJobBuild("job-name")
-					Expect(err).NotTo(HaveOccurred())
-					buildPath = fmt.Sprintf("/builds/%d", build.ID())
+					buildPath = fmt.Sprintf("/builds/%d", build.ID)
 				})
 
 				Context("navigating to a team specific page that exists", func() {
@@ -130,8 +113,8 @@ var _ = Describe("Logging In", func() {
 					})
 
 					It("redirects back to the build page when user logs in", func() {
-						Eventually(page.FindByLink(teamName)).Should(BeFound())
-						Expect(page.FindByLink(teamName).Click()).To(Succeed())
+						Eventually(page.FindByLink(atc.DefaultTeamName)).Should(BeFound())
+						Expect(page.FindByLink(atc.DefaultTeamName).Click()).To(Succeed())
 						FillLoginFormAndSubmit(page)
 						Eventually(page).Should(HaveURL(atcCommand.URL(buildPath)))
 					})

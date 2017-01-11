@@ -53,14 +53,14 @@ var _ = Describe("Pipes", func() {
 			myGuid, err := uuid.NewV4()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = database.CreatePipe(myGuid.String(), "a-url", savedTeam.ID)
+			err = database.CreatePipe(myGuid.String(), "a-url", savedTeam.Name)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipe, err := database.GetPipe(myGuid.String())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipe.ID).To(Equal(myGuid.String()))
 			Expect(pipe.URL).To(Equal("a-url"))
-			Expect(pipe.TeamID).To(Equal(savedTeam.ID))
+			Expect(pipe.TeamName).To(Equal(savedTeam.Name))
 		})
 	})
 })

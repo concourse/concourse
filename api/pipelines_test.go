@@ -112,7 +112,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when team is set in user context", func() {
 			BeforeEach(func() {
-				userContextReader.GetTeamReturns("some-team", 5, false, true)
+				userContextReader.GetTeamReturns("some-team", false, true)
 			})
 
 			It("constructs teamDB with provided team name", func() {
@@ -123,7 +123,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				userContextReader.GetTeamReturns("", 5, false, false)
+				userContextReader.GetTeamReturns("", false, false)
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
@@ -158,7 +158,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				userContextReader.GetTeamReturns("main", 5, false, true)
+				userContextReader.GetTeamReturns("main", false, true)
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
@@ -232,7 +232,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated as requested team", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("main", 0, false, true)
+				userContextReader.GetTeamReturns("main", false, true)
 			})
 
 			It("returns 200 OK", func() {
@@ -297,7 +297,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated as another team", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("another-team", 0, false, true)
+				userContextReader.GetTeamReturns("another-team", false, true)
 			})
 
 			It("returns only team's public pipelines", func() {
@@ -325,7 +325,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", 0, false, false)
+				userContextReader.GetTeamReturns("", false, false)
 			})
 
 			It("returns only team's public pipelines", func() {
@@ -395,7 +395,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", 0, false, false)
+				userContextReader.GetTeamReturns("", false, false)
 			})
 
 			It("returns 401", func() {
@@ -406,7 +406,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated as requested team", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 1, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
 			It("returns 200 ok", func() {
@@ -447,7 +447,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated as another team", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("another-team", 1, true, true)
+				userContextReader.GetTeamReturns("another-team", true, true)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -474,7 +474,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when not authenticated at all", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", 1, true, false)
+				userContextReader.GetTeamReturns("", true, false)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -517,7 +517,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 42, true, true)
+					userContextReader.GetTeamReturns("a-team", true, true)
 				})
 
 				It("returns 204 No Content", func() {
@@ -556,7 +556,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("another-team", 42, true, true)
+					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
 				It("returns 403 Forbidden", func() {
@@ -593,7 +593,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 42, true, true)
+					userContextReader.GetTeamReturns("a-team", true, true)
 				})
 
 				It("constructs teamDB with provided team name", func() {
@@ -633,7 +633,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("another-team", 42, true, true)
+					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
 				It("returns 403 Forbidden", func() {
@@ -670,7 +670,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 42, true, true)
+					userContextReader.GetTeamReturns("a-team", true, true)
 				})
 
 				It("constructs teamDB with provided team name", func() {
@@ -710,7 +710,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("another-team", 42, true, true)
+					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
 				It("returns 403 Forbidden", func() {
@@ -747,7 +747,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 42, true, true)
+					userContextReader.GetTeamReturns("a-team", true, true)
 				})
 
 				It("constructs teamDB with provided team name", func() {
@@ -787,7 +787,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("another-team", 42, true, true)
+					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
 				It("returns 403 Forbidden", func() {
@@ -824,7 +824,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 42, true, true)
+					userContextReader.GetTeamReturns("a-team", true, true)
 				})
 
 				It("constructs teamDB with provided team name", func() {
@@ -864,7 +864,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("another-team", 42, true, true)
+					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
 				It("returns 403 Forbidden", func() {
@@ -914,7 +914,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester belonbgs to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 42, true, true)
+					userContextReader.GetTeamReturns("a-team", true, true)
 				})
 
 				Context("with invalid json", func() {
@@ -972,7 +972,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("another-team", 42, true, true)
+					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
 				It("returns 403 Forbidden", func() {
@@ -1008,7 +1008,7 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 42, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 				//construct Version db
 
 				pipelineDB.LoadVersionsDBReturns(
@@ -1138,7 +1138,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester belongs to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("a-team", 42, true, true)
+					userContextReader.GetTeamReturns("a-team", true, true)
 				})
 
 				It("constructs teamDB with provided team name", func() {
@@ -1178,7 +1178,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when requester does not belong to the team", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("another-team", 42, true, true)
+					userContextReader.GetTeamReturns("another-team", true, true)
 				})
 
 				It("returns 403 Forbidden", func() {

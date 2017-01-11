@@ -83,7 +83,7 @@ var _ = Describe("CheckAdminHandler", func() {
 
 			Context("when is admin", func() {
 				BeforeEach(func() {
-					fakeUserContextReader.GetTeamReturns("team-name", 42, true, true)
+					fakeUserContextReader.GetTeamReturns("team-name", true, true)
 				})
 
 				It("returns 200 OK", func() {

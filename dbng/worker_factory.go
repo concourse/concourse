@@ -22,9 +22,9 @@ type WorkerFactory interface {
 	DeleteFinishedRetiringWorkers() error
 	LandFinishedLandingWorkers() error
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
-	SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error)
 	LandWorker(name string) (*Worker, error)
 	RetireWorker(name string) (*Worker, error)
+	PruneWorker(name string) error
 	DeleteWorker(name string) error
 	HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
 }
@@ -335,6 +335,54 @@ func (f *workerFactory) RetireWorker(name string) (*Worker, error) {
 	}, nil
 }
 
+func (f *workerFactory) PruneWorker(name string) error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	rows, err := sq.Delete("workers").
+		Where(sq.Eq{
+			"name": name,
+		}).
+		Where(sq.NotEq{
+			"state": string(WorkerStateRunning),
+		}).
+		PlaceholderFormat(sq.Dollar).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		_, found, err := f.GetWorker(name)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return ErrWorkerNotPresent
+		}
+
+		return ErrCannotPruneRunningWorker
+	}
+
+	return nil
+}
+
 func (f *workerFactory) DeleteWorker(name string) error {
 	tx, err := f.conn.Begin()
 	if err != nil {
@@ -579,13 +627,22 @@ func (f *workerFactory) DeleteFinishedRetiringWorkers() error {
 		Distinct().
 		From("builds b").
 		Join("containers c ON b.id = c.build_id").
-		Join("workers w on w.name = c.worker_name").
+		Join("workers w ON w.name = c.worker_name").
+		LeftJoin("jobs j ON j.id = b.job_id").
 		Where(sq.Or{
 			sq.Eq{
 				"b.status": string(BuildStatusStarted),
 			},
 			sq.Eq{
 				"b.status": string(BuildStatusPending),
+			},
+		}).
+		Where(sq.Or{
+			sq.Eq{
+				"j.interruptible": false,
+			},
+			sq.Eq{
+				"b.job_id": nil,
 			},
 		}).ToSql()
 
@@ -632,13 +689,22 @@ func (f *workerFactory) LandFinishedLandingWorkers() error {
 		Distinct().
 		From("builds b").
 		Join("containers c ON b.id = c.build_id").
-		Join("workers w on w.name = c.worker_name").
+		Join("workers w ON w.name = c.worker_name").
+		LeftJoin("jobs j ON j.id = b.job_id").
 		Where(sq.Or{
 			sq.Eq{
 				"b.status": string(BuildStatusStarted),
 			},
 			sq.Eq{
 				"b.status": string(BuildStatusPending),
+			},
+		}).
+		Where(sq.Or{
+			sq.Eq{
+				"j.interruptible": false,
+			},
+			sq.Eq{
+				"b.job_id": nil,
 			},
 		}).ToSql()
 
@@ -669,14 +735,27 @@ func (f *workerFactory) LandFinishedLandingWorkers() error {
 }
 
 func (f *workerFactory) SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error) {
-	return f.saveWorker(worker, nil, ttl)
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	savedWorker, err := saveWorker(tx, worker, nil, ttl)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return savedWorker, nil
 }
 
-func (f *workerFactory) SaveTeamWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error) {
-	return f.saveWorker(worker, team, ttl)
-}
-
-func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Duration) (*Worker, error) {
+func saveWorker(tx Tx, worker atc.Worker, teamID *int, ttl time.Duration) (*Worker, error) {
 	resourceTypes, err := json.Marshal(worker.ResourceTypes)
 	if err != nil {
 		return nil, err
@@ -687,21 +766,9 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 		return nil, err
 	}
 
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	expires := "NULL"
 	if ttl != 0 {
 		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
-	}
-
-	var teamID *int
-	if team != nil {
-		teamID = &team.ID
 	}
 
 	var oldTeamID sql.NullInt64
@@ -824,11 +891,6 @@ func (f *workerFactory) saveWorker(worker atc.Worker, team *Team, ttl time.Durat
 		}).
 		RunWith(tx).
 		Exec()
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
 
 	return savedWorker, nil
 }

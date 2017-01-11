@@ -18,7 +18,8 @@ const (
 )
 
 var (
-	ErrWorkerNotPresent = errors.New("worker-not-present-in-db")
+	ErrWorkerNotPresent         = errors.New("worker-not-present-in-db")
+	ErrCannotPruneRunningWorker = errors.New("worker-not-stalled-for-pruning")
 )
 
 type Worker struct {

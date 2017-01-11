@@ -61,7 +61,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				}
 				resourceType1Used, err = dbng.ResourceType{
 					ResourceType: resourceType1,
-					Pipeline:     defaultPipeline,
+					PipelineID:   defaultPipeline.ID(),
 				}.Create(setupTx, atc.Version{"some-type": "version"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
@@ -76,7 +76,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						atc.Source{
 							"some": "source",
 						},
-						defaultPipeline,
+						defaultPipeline.ID(),
 						atc.ResourceTypes{
 							resourceType1,
 						},
@@ -151,7 +151,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							defer tx.Rollback()
 							err = psql.Insert("jobs").
 								Columns("name", "pipeline_id", "config").
-								Values("lousy-job", defaultPipeline.ID, `{"some":"config"}`).
+								Values("lousy-job", defaultPipeline.ID(), `{"some":"config"}`).
 								Suffix("RETURNING id").
 								RunWith(tx).QueryRow().Scan(&jobId)
 							Expect(err).NotTo(HaveOccurred())
@@ -185,7 +185,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 
 						Context("when a later build of the same job has failed also", func() {
 							BeforeEach(func() {
-								_, err = buildFactory.CreateOneOffBuild(defaultTeam)
+								_, err = defaultTeam.CreateOneOffBuild()
 								Expect(err).NotTo(HaveOccurred())
 							})
 
@@ -226,7 +226,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						atc.Source{
 							"cache": "source",
 						},
-						defaultPipeline,
+						defaultPipeline.ID(),
 						atc.ResourceTypes{
 							resourceType1,
 						},
@@ -283,7 +283,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						defaultPipeline,
+						defaultPipeline.ID(),
 						atc.ResourceTypes{
 							resourceType1,
 						},

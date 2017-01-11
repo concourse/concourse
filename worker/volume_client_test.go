@@ -61,7 +61,6 @@ var _ = Describe("VolumeClient", func() {
 		var fakeBaggageclaimVolume *baggageclaimfakes.FakeVolume
 		var foundOrCreatedVolume worker.Volume
 		var foundOrCreatedErr error
-		var team *dbng.Team
 		var container dbng.CreatingContainer
 		var fakeCreatingVolume *dbngfakes.FakeCreatingVolume
 		var volumeStrategy worker.Strategy
@@ -81,7 +80,6 @@ var _ = Describe("VolumeClient", func() {
 		})
 
 		JustBeforeEach(func() {
-			team = &dbng.Team{}
 			container = new(dbngfakes.FakeCreatingContainer)
 			foundOrCreatedVolume, foundOrCreatedErr = volumeClient.FindOrCreateVolumeForContainer(
 				testLogger,
@@ -89,7 +87,7 @@ var _ = Describe("VolumeClient", func() {
 					Strategy: volumeStrategy,
 				},
 				container,
-				team,
+				42,
 				"some-mount-path",
 			)
 		})
@@ -235,8 +233,8 @@ var _ = Describe("VolumeClient", func() {
 			Context("when volume is using HostRootFSStrategy", func() {
 				It("creates volume in creating state", func() {
 					Expect(fakeDBVolumeFactory.CreateContainerVolumeCallCount()).To(Equal(1))
-					actualTeam, actualWorker, actualContainer, actualMountPath := fakeDBVolumeFactory.CreateContainerVolumeArgsForCall(0)
-					Expect(actualTeam).To(Equal(team))
+					actualTeamID, actualWorker, actualContainer, actualMountPath := fakeDBVolumeFactory.CreateContainerVolumeArgsForCall(0)
+					Expect(actualTeamID).To(Equal(42))
 					Expect(actualWorker).To(Equal(dbWorker))
 					Expect(actualContainer).To(Equal(container))
 					Expect(actualMountPath).To(Equal("some-mount-path"))

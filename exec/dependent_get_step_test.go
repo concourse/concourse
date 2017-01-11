@@ -205,7 +205,7 @@ var _ = Describe("DependentGet", func() {
 				resourceConfig.Source,
 				params,
 				&dbng.Build{ID: 1234},
-				&dbng.Pipeline{ID: 4567},
+				4567,
 				resourceTypes,
 				fakeDBResourceCacheFactory,
 			)))

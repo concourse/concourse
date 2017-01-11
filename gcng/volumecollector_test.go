@@ -24,13 +24,12 @@ var _ = Describe("VolumeCollector", func() {
 		containerFactory       dbng.ContainerFactory
 		teamFactory            dbng.TeamFactory
 		workerFactory          dbng.WorkerFactory
-		buildFactory           *dbng.BuildFactory
 		fakeBCVolume           *baggageclaimfakes.FakeVolume
 		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
 		createdVolume          dbng.CreatedVolume
 		creatingContainer1     dbng.CreatingContainer
 		creatingContainer2     dbng.CreatingContainer
-		team                   *dbng.Team
+		team                   dbng.Team
 		worker                 *dbng.Worker
 	)
 
@@ -41,7 +40,6 @@ var _ = Describe("VolumeCollector", func() {
 		containerFactory = dbng.NewContainerFactory(dbConn)
 		volumeFactory = dbng.NewVolumeFactory(dbConn)
 		teamFactory = dbng.NewTeamFactory(dbConn)
-		buildFactory = dbng.NewBuildFactory(dbConn)
 		workerFactory = dbng.NewWorkerFactory(dbConn)
 
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
@@ -70,7 +68,7 @@ var _ = Describe("VolumeCollector", func() {
 			team, err = teamFactory.CreateTeam("some-team")
 			Expect(err).ToNot(HaveOccurred())
 
-			build, err := buildFactory.CreateOneOffBuild(team)
+			build, err := team.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
 			worker, err = workerFactory.SaveWorker(atc.Worker{
@@ -92,15 +90,15 @@ var _ = Describe("VolumeCollector", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingVolume1, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer1, "some-path-1")
+			creatingVolume1, err := volumeFactory.CreateContainerVolume(team.ID(), worker, creatingContainer1, "some-path-1")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume, err = creatingVolume1.Created()
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = volumeFactory.CreateContainerVolume(team, worker, creatingContainer2, "some-path-2")
+			_, err = volumeFactory.CreateContainerVolume(team.ID(), worker, creatingContainer2, "some-path-2")
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingVolume3, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer1, "some-path-3")
+			creatingVolume3, err := volumeFactory.CreateContainerVolume(team.ID(), worker, creatingContainer1, "some-path-3")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume3, err := creatingVolume3.Created()
 			Expect(err).NotTo(HaveOccurred())

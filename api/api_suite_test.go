@@ -13,10 +13,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 
 	"github.com/concourse/atc/api/buildserver/buildserverfakes"
@@ -27,7 +25,6 @@ import (
 	"github.com/concourse/atc/api/teamserver/teamserverfakes"
 	"github.com/concourse/atc/api/workerserver/workerserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine/enginefakes"
@@ -61,10 +58,10 @@ var (
 	buildsDB                      *authfakes.FakeBuildsDB
 	buildServerDB                 *buildserverfakes.FakeBuildsDB
 	build                         *dbfakes.FakeBuild
+	dbTeam                        *dbngfakes.FakeTeam
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
 	configValidationErrorMessages []string
-	configValidationWarnings      []config.Warning
 	peerAddr                      string
 	drain                         chan struct{}
 	expire                        time.Duration
@@ -101,7 +98,8 @@ var _ = BeforeEach(func() {
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
 	dbTeamFactory = new(dbngfakes.FakeTeamFactory)
-	dbTeamFactory.FindTeamReturns(&dbng.Team{}, true, nil)
+	dbTeam = new(dbngfakes.FakeTeam)
+	dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 
 	dbWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 	teamServerDB = new(teamserverfakes.FakeTeamsDB)
@@ -119,8 +117,6 @@ var _ = BeforeEach(func() {
 	fakeTokenGenerator = new(authfakes.FakeTokenGenerator)
 	providerFactory = new(authfakes.FakeProviderFactory)
 
-	configValidationErrorMessages = []string{}
-	configValidationWarnings = []config.Warning{}
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
 
@@ -154,6 +150,8 @@ var _ = BeforeEach(func() {
 
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(buildsDB)
 
+	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
+
 	handler, err := api.NewHandler(
 		logger,
 
@@ -166,6 +164,7 @@ var _ = BeforeEach(func() {
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,
+			checkWorkerTeamAccessHandlerFactory,
 		),
 
 		fakeTokenGenerator,
@@ -185,9 +184,6 @@ var _ = BeforeEach(func() {
 		pipeDB,
 		pipelinesDB,
 
-		func(atc.Config) ([]config.Warning, []string) {
-			return configValidationWarnings, configValidationErrorMessages
-		},
 		peerAddr,
 		constructedEventHandler.Construct,
 		drain,

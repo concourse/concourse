@@ -81,7 +81,7 @@ var _ = Describe("Image", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-			_, volumeSpec, container, team, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+			_, volumeSpec, container, teamID, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
 				Strategy: worker.ContainerRootFSStrategy{
 					Parent: fakeArtifactVolume,
@@ -89,7 +89,7 @@ var _ = Describe("Image", func() {
 				Privileged: true,
 			}))
 			Expect(container).To(Equal(fakeContainer))
-			Expect(team.ID).To(Equal(42))
+			Expect(teamID).To(Equal(42))
 			Expect(path).To(Equal("/"))
 		})
 
@@ -151,7 +151,7 @@ var _ = Describe("Image", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-			_, volumeSpec, container, team, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+			_, volumeSpec, container, teamID, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
 				Strategy: worker.ImageArtifactReplicationStrategy{
 					Name: "some-image-artifact-name",
@@ -159,7 +159,7 @@ var _ = Describe("Image", func() {
 				Privileged: true,
 			}))
 			Expect(container).To(Equal(fakeContainer))
-			Expect(team.ID).To(Equal(42))
+			Expect(teamID).To(Equal(42))
 			Expect(path).To(Equal("/"))
 		})
 
@@ -233,7 +233,7 @@ var _ = Describe("Image", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-			_, volumeSpec, container, team, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+			_, volumeSpec, container, teamID, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
 				Strategy: worker.ContainerRootFSStrategy{
 					Parent: fakeResourceImageVolume,
@@ -241,7 +241,7 @@ var _ = Describe("Image", func() {
 				Privileged: true,
 			}))
 			Expect(container).To(Equal(fakeContainer))
-			Expect(team.ID).To(Equal(42))
+			Expect(teamID).To(Equal(42))
 			Expect(path).To(Equal("/"))
 		})
 
@@ -301,7 +301,7 @@ var _ = Describe("Image", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeCallCount()).To(Equal(1))
-			_, volumeSpec, team, resourceTypeName := fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeArgsForCall(0)
+			_, volumeSpec, teamID, resourceTypeName := fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeArgsForCall(0)
 			expectedVersion := "some-base-version"
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
 				Strategy: worker.HostRootFSStrategy{
@@ -312,7 +312,7 @@ var _ = Describe("Image", func() {
 				Privileged: true,
 				Properties: worker.VolumeProperties{},
 			}))
-			Expect(team.ID).To(Equal(42))
+			Expect(teamID).To(Equal(42))
 			Expect(resourceTypeName).To(Equal("some-base-resource-type"))
 		})
 
@@ -322,7 +322,7 @@ var _ = Describe("Image", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-			_, volumeSpec, container, team, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+			_, volumeSpec, container, teamID, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
 				Strategy: worker.ContainerRootFSStrategy{
 					Parent: fakeImportVolume,
@@ -330,7 +330,7 @@ var _ = Describe("Image", func() {
 				Privileged: true,
 				Properties: worker.VolumeProperties{},
 			}))
-			Expect(team.ID).To(Equal(42))
+			Expect(teamID).To(Equal(42))
 			Expect(container).To(Equal(fakeContainer))
 			Expect(path).To(Equal("/"))
 		})

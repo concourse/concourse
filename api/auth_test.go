@@ -69,10 +69,9 @@ var _ = Describe("Auth API", func() {
 
 						Expect(body).To(MatchJSON(`{"type":"some type","value":"some value"}`))
 
-						expiration, teamName, teamID, isAdmin := fakeTokenGenerator.GenerateTokenArgsForCall(0)
+						expiration, teamName, isAdmin := fakeTokenGenerator.GenerateTokenArgsForCall(0)
 						Expect(expiration).To(BeTemporally("~", time.Now().Add(24*time.Hour), time.Minute))
 						Expect(teamName).To(Equal(savedTeam.Name))
-						Expect(teamID).To(Equal(savedTeam.ID))
 						Expect(isAdmin).To(Equal(savedTeam.Admin))
 					})
 				})
@@ -331,7 +330,7 @@ var _ = Describe("Auth API", func() {
 
 				Context("auth found in the context", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-team", 5, false, true)
+						userContextReader.GetTeamReturns("some-team", false, true)
 					})
 
 					Context("as an user in a some-team", func() {

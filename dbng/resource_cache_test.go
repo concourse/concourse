@@ -9,19 +9,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
 var _ = Describe("ResourceCache", func() {
-	var dbConn dbng.Conn
 	var tx dbng.Tx
 
 	var cache dbng.ResourceCache
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-
-		dbConn = dbng.Wrap(postgresRunner.Open())
-
 		// vf := dbng.NewVolumeFactory(dbConn)
 		// cf := dbng.NewContainerFactory(dbConn)
 
@@ -96,22 +89,11 @@ var _ = Describe("ResourceCache", func() {
 		}
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("creating for a build", func() {
 		var build *dbng.Build
 
 		BeforeEach(func() {
-			tf := dbng.NewTeamFactory(dbConn)
-			bf := dbng.NewBuildFactory(dbConn)
-
-			team, err := tf.CreateTeam("some-team")
-			Expect(err).ToNot(HaveOccurred())
-
-			build, err = bf.CreateOneOffBuild(team)
+			build, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
 			tx, err = dbConn.Begin()
@@ -155,17 +137,7 @@ var _ = Describe("ResourceCache", func() {
 		var resource *dbng.Resource
 
 		BeforeEach(func() {
-			tf := dbng.NewTeamFactory(dbConn)
-			pf := dbng.NewPipelineFactory(dbConn)
-			rf := dbng.NewResourceFactory(dbConn)
-
-			team, err := tf.CreateTeam("some-team")
-			Expect(err).ToNot(HaveOccurred())
-
-			pipeline, err := pf.CreatePipeline(team, "some-pipeline", "{}")
-			Expect(err).ToNot(HaveOccurred())
-
-			resource, err = rf.CreateResource(pipeline, "some-resource", "{}")
+			resource, err = defaultPipeline.CreateResource("some-resource", "{}")
 			Expect(err).ToNot(HaveOccurred())
 
 			tx, err = dbConn.Begin()
@@ -209,18 +181,9 @@ var _ = Describe("ResourceCache", func() {
 		var resourceType *dbng.UsedResourceType
 
 		BeforeEach(func() {
-			tf := dbng.NewTeamFactory(dbConn)
-			pf := dbng.NewPipelineFactory(dbConn)
 			rf := dbng.NewResourceTypeFactory(dbConn)
-
-			team, err := tf.CreateTeam("some-team")
-			Expect(err).ToNot(HaveOccurred())
-
-			pipeline, err := pf.CreatePipeline(team, "some-pipeline", "{}")
-			Expect(err).ToNot(HaveOccurred())
-
 			resourceType, err = rf.CreateResourceType(
-				pipeline,
+				defaultPipeline.ID(),
 				atc.ResourceType{
 					Name: "some-resource-type",
 					Type: "some-resource-type-type",

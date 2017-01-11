@@ -1,8 +1,6 @@
 package dbng_test
 
 import (
-	"time"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
@@ -11,40 +9,13 @@ import (
 
 var _ = Describe("VolumeFactory", func() {
 	var (
-		dbConn            dbng.Conn
-		volumeFactory     dbng.VolumeFactory
-		containerFactory  dbng.ContainerFactory
-		teamFactory       dbng.TeamFactory
-		buildFactory      *dbng.BuildFactory
-		team              *dbng.Team
-		team2             *dbng.Team
-		worker            *dbng.Worker
+		team2             dbng.Team
 		usedResourceCache *dbng.UsedResourceCache
 		build             *dbng.Build
 	)
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-
-		dbConn = dbng.Wrap(postgresRunner.Open())
-		containerFactory = dbng.NewContainerFactory(dbConn)
-		volumeFactory = dbng.NewVolumeFactory(dbConn)
-		teamFactory = dbng.NewTeamFactory(dbConn)
-		buildFactory = dbng.NewBuildFactory(dbConn)
-
-		var err error
-		team, err = teamFactory.CreateTeam("some-team")
-		Expect(err).ToNot(HaveOccurred())
-
-		workerFactory := dbng.NewWorkerFactory(dbConn)
-		worker, err = workerFactory.SaveWorker(atc.Worker{
-			Name:            "some-worker",
-			GardenAddr:      "1.2.3.4:7777",
-			BaggageclaimURL: "1.2.3.4:7788",
-		}, 5*time.Minute)
-		Expect(err).ToNot(HaveOccurred())
-
-		build, err = buildFactory.CreateOneOffBuild(team)
+		build, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
 
 		setupTx, err := dbConn.Begin()
@@ -80,7 +51,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := containerFactory.CreateBuildContainer(defaultWorker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -89,30 +60,30 @@ var _ = Describe("VolumeFactory", func() {
 			team1handles = []string{}
 			team2handles = []string{}
 
-			team2, err = teamFactory.CreateTeam("some-other-team")
+			team2, err = teamFactory.CreateTeam("some-other-defaultTeam")
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingVolume1, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer, "some-path-1")
+			creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path-1")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume1, err := creatingVolume1.Created()
 			Expect(err).NotTo(HaveOccurred())
 			team1handles = append(team1handles, createdVolume1.Handle())
 
-			creatingVolume2, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer, "some-path-2")
+			creatingVolume2, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path-2")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume2, err := creatingVolume2.Created()
 			Expect(err).NotTo(HaveOccurred())
 			team1handles = append(team1handles, createdVolume2.Handle())
 
-			creatingVolume3, err := volumeFactory.CreateContainerVolume(team2, worker, creatingContainer, "some-path-3")
+			creatingVolume3, err := volumeFactory.CreateContainerVolume(team2.ID(), defaultWorker, creatingContainer, "some-path-3")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume3, err := creatingVolume3.Created()
 			Expect(err).NotTo(HaveOccurred())
 			team2handles = append(team2handles, createdVolume3.Handle())
 		})
 
-		It("returns only the matching team's volumes", func() {
-			createdVolumes, err := volumeFactory.GetTeamVolumes(team.ID)
+		It("returns only the matching defaultTeam's volumes", func() {
+			createdVolumes, err := volumeFactory.GetTeamVolumes(defaultTeam.ID())
 			Expect(err).NotTo(HaveOccurred())
 			createdHandles := []string{}
 			for _, vol := range createdVolumes {
@@ -120,7 +91,7 @@ var _ = Describe("VolumeFactory", func() {
 			}
 			Expect(createdHandles).To(Equal(team1handles))
 
-			createdVolumes2, err := volumeFactory.GetTeamVolumes(team2.ID)
+			createdVolumes2, err := volumeFactory.GetTeamVolumes(team2.ID())
 			Expect(err).NotTo(HaveOccurred())
 			createdHandles2 := []string{}
 			for _, vol := range createdVolumes2 {
@@ -137,7 +108,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := containerFactory.CreateBuildContainer(worker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := containerFactory.CreateBuildContainer(defaultWorker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -146,19 +117,19 @@ var _ = Describe("VolumeFactory", func() {
 			expectedCreatedHandles = []string{}
 			expectedDestroyingHandles = []string{}
 
-			creatingVolume1, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer, "some-path-1")
+			creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path-1")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume1, err := creatingVolume1.Created()
 			Expect(err).NotTo(HaveOccurred())
 			expectedCreatedHandles = append(expectedCreatedHandles, createdVolume1.Handle())
 
-			creatingVolume2, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer, "some-path-2")
+			creatingVolume2, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path-2")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume2, err := creatingVolume2.Created()
 			Expect(err).NotTo(HaveOccurred())
 			expectedCreatedHandles = append(expectedCreatedHandles, createdVolume2.Handle())
 
-			creatingVolume3, err := volumeFactory.CreateContainerVolume(team, worker, creatingContainer, "some-path-3")
+			creatingVolume3, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path-3")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume3, err := creatingVolume3.Created()
 			Expect(err).NotTo(HaveOccurred())
@@ -166,7 +137,7 @@ var _ = Describe("VolumeFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			expectedDestroyingHandles = append(expectedDestroyingHandles, destroyingVolume3.Handle())
 
-			resourceCacheVolume, err := volumeFactory.CreateResourceCacheVolume(worker, usedResourceCache)
+			resourceCacheVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = resourceCacheVolume.Created()
@@ -196,7 +167,7 @@ var _ = Describe("VolumeFactory", func() {
 			createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
 			Expect(err).NotTo(HaveOccurred())
 			createdHandles := []string{}
-			expectAddr := "1.2.3.4:7788"
+			expectAddr := "5.6.7.8:7878"
 
 			for _, vol := range createdVolumes {
 				createdHandles = append(createdHandles, vol.Handle())
@@ -229,14 +200,14 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				volume, err := volumeFactory.CreateBaseResourceTypeVolume(team, worker, usedBaseResourceType)
+				volume, err := volumeFactory.CreateBaseResourceTypeVolume(defaultTeam.ID(), defaultWorker, usedBaseResourceType)
 				Expect(err).NotTo(HaveOccurred())
 				existingVolume, err = volume.Created()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns created volume", func() {
-				creatingVolume, createdVolume, err := volumeFactory.FindBaseResourceTypeVolume(team, worker, usedBaseResourceType)
+				creatingVolume, createdVolume, err := volumeFactory.FindBaseResourceTypeVolume(defaultTeam.ID(), defaultWorker, usedBaseResourceType)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingVolume).To(BeNil())
 				Expect(createdVolume).ToNot(BeNil())
@@ -249,12 +220,12 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingVolume, err = volumeFactory.CreateBaseResourceTypeVolume(team, worker, usedBaseResourceType)
+				existingVolume, err = volumeFactory.CreateBaseResourceTypeVolume(defaultTeam.ID(), defaultWorker, usedBaseResourceType)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns creating volume", func() {
-				creatingVolume, createdVolume, err := volumeFactory.FindBaseResourceTypeVolume(team, worker, usedBaseResourceType)
+				creatingVolume, createdVolume, err := volumeFactory.FindBaseResourceTypeVolume(defaultTeam.ID(), defaultWorker, usedBaseResourceType)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingVolume).ToNot(BeNil())
 				Expect(creatingVolume.Handle()).To(Equal(existingVolume.Handle()))
@@ -267,13 +238,7 @@ var _ = Describe("VolumeFactory", func() {
 		var usedResourceCache *dbng.UsedResourceCache
 
 		BeforeEach(func() {
-			pf := dbng.NewPipelineFactory(dbConn)
-			rf := dbng.NewResourceFactory(dbConn)
-
-			pipeline, err := pf.CreatePipeline(team, "some-pipeline", "{}")
-			Expect(err).ToNot(HaveOccurred())
-
-			resource, err := rf.CreateResource(pipeline, "some-resource", "{}")
+			resource, err := defaultPipeline.CreateResource("some-resource", "{}")
 			Expect(err).ToNot(HaveOccurred())
 
 			setupTx, err := dbConn.Begin()
@@ -307,14 +272,14 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				volume, err := volumeFactory.CreateResourceCacheVolume(worker, usedResourceCache)
+				volume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				existingVolume, err = volume.Created()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns created volume", func() {
-				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(worker, usedResourceCache)
+				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(defaultWorker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingVolume).To(BeNil())
 				Expect(createdVolume).ToNot(BeNil())
@@ -327,12 +292,12 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingVolume, err = volumeFactory.CreateResourceCacheVolume(worker, usedResourceCache)
+				existingVolume, err = volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns creating volume", func() {
-				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(worker, usedResourceCache)
+				creatingVolume, createdVolume, err := volumeFactory.FindResourceCacheVolume(defaultWorker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingVolume).ToNot(BeNil())
 				Expect(creatingVolume.Handle()).To(Equal(existingVolume.Handle()))
@@ -345,13 +310,7 @@ var _ = Describe("VolumeFactory", func() {
 		var usedResourceCache *dbng.UsedResourceCache
 
 		BeforeEach(func() {
-			pf := dbng.NewPipelineFactory(dbConn)
-			rf := dbng.NewResourceFactory(dbConn)
-
-			pipeline, err := pf.CreatePipeline(team, "some-pipeline", "{}")
-			Expect(err).ToNot(HaveOccurred())
-
-			resource, err := rf.CreateResource(pipeline, "some-resource", "{}")
+			resource, err := defaultPipeline.CreateResource("some-resource", "{}")
 			Expect(err).ToNot(HaveOccurred())
 
 			setupTx, err := dbConn.Begin()
@@ -384,7 +343,7 @@ var _ = Describe("VolumeFactory", func() {
 
 			BeforeEach(func() {
 				var err error
-				volume, err := volumeFactory.CreateResourceCacheVolume(worker, usedResourceCache)
+				volume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				existingVolume, err = volume.Created()
 				Expect(err).NotTo(HaveOccurred())
@@ -397,7 +356,7 @@ var _ = Describe("VolumeFactory", func() {
 				})
 
 				It("returns created volume", func() {
-					createdVolume, found, err := volumeFactory.FindResourceCacheInitializedVolume(worker, usedResourceCache)
+					createdVolume, found, err := volumeFactory.FindResourceCacheInitializedVolume(defaultWorker, usedResourceCache)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(createdVolume).ToNot(BeNil())
@@ -407,7 +366,7 @@ var _ = Describe("VolumeFactory", func() {
 
 			Context("when volume is uninitialized", func() {
 				It("does not return volume", func() {
-					createdVolume, found, err := volumeFactory.FindResourceCacheInitializedVolume(worker, usedResourceCache)
+					createdVolume, found, err := volumeFactory.FindResourceCacheInitializedVolume(defaultWorker, usedResourceCache)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeFalse())
 					Expect(createdVolume).To(BeNil())
@@ -417,7 +376,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		Context("when there is no created volume for resource cache", func() {
 			It("does not return volume", func() {
-				createdVolume, found, err := volumeFactory.FindResourceCacheInitializedVolume(worker, usedResourceCache)
+				createdVolume, found, err := volumeFactory.FindResourceCacheInitializedVolume(defaultWorker, usedResourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(createdVolume).To(BeNil())

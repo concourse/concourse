@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/metric"
 )
 
@@ -23,9 +24,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("register-worker")
 	var registration atc.Worker
 
-	isSystem, present := r.Context().Value("system").(bool)
-
-	if !present || !isSystem {
+	if !auth.IsSystem(r) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -77,7 +76,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = s.dbWorkerFactory.SaveTeamWorker(registration, team, ttl)
+		_, err = team.SaveWorker(registration, ttl)
 		if err != nil {
 			logger.Error("failed-to-save-worker", err)
 			w.WriteHeader(http.StatusInternalServerError)

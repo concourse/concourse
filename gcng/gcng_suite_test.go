@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
@@ -33,13 +34,10 @@ var (
 	resourceCacheFactory  dbng.ResourceCacheFactory
 	resourceConfigFactory dbng.ResourceConfigFactory
 
-	teamFactory     dbng.TeamFactory
-	buildFactory    *dbng.BuildFactory
-	pipelineFactory *dbng.PipelineFactory
-	resourceFactory *dbng.ResourceFactory
+	teamFactory dbng.TeamFactory
 
-	defaultTeam     *dbng.Team
-	defaultPipeline *dbng.Pipeline
+	defaultTeam     dbng.Team
+	defaultPipeline dbng.Pipeline
 	defaultBuild    *dbng.Build
 
 	usedResource *dbng.Resource
@@ -62,21 +60,17 @@ var _ = BeforeEach(func() {
 	dbConn = dbng.Wrap(postgresRunner.Open())
 
 	teamFactory = dbng.NewTeamFactory(dbConn)
-	buildFactory = dbng.NewBuildFactory(dbConn)
-	pipelineFactory = dbng.NewPipelineFactory(dbConn)
-	resourceFactory = dbng.NewResourceFactory(dbConn)
 
 	defaultTeam, err = teamFactory.CreateTeam("default-team")
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultBuild, err = buildFactory.CreateOneOffBuild(defaultTeam)
+	defaultBuild, err = defaultTeam.CreateOneOffBuild()
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultPipeline, err = pipelineFactory.CreatePipeline(defaultTeam, "default-pipeline", "some-config")
+	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 	Expect(err).NotTo(HaveOccurred())
 
-	usedResource, err = resourceFactory.CreateResource(
-		defaultPipeline,
+	usedResource, err = defaultPipeline.CreateResource(
 		"some-resource",
 		`{"name":"some-resource","type":"resource-type","source":{"some":"source"}}`,
 	)

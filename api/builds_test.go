@@ -55,7 +55,7 @@ var _ = Describe("Builds API", func() {
 		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", 5, false, true)
+				userContextReader.GetTeamReturns("some-team", false, true)
 			})
 
 			Context("when creating a one-off build succeeds", func() {
@@ -407,7 +407,7 @@ var _ = Describe("Builds API", func() {
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-other-team", 5, false, true)
+					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
 
 				It("returns 403", func() {
@@ -418,7 +418,7 @@ var _ = Describe("Builds API", func() {
 			Context("when authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", 5, false, true)
+					userContextReader.GetTeamReturns("some-team", false, true)
 				})
 
 				It("returns 200 OK", func() {
@@ -626,7 +626,7 @@ var _ = Describe("Builds API", func() {
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("", 0, false, false)
+				userContextReader.GetTeamReturns("", false, false)
 			})
 
 			Context("when no params are passed", func() {
@@ -737,7 +737,7 @@ var _ = Describe("Builds API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
-				userContextReader.GetTeamReturns("some-team", 5, false, true)
+				userContextReader.GetTeamReturns("some-team", false, true)
 			})
 
 			Context("when no params are passed", func() {
@@ -883,7 +883,7 @@ var _ = Describe("Builds API", func() {
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-other-team", 5, false, true)
+					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
 
 				It("returns 403", func() {
@@ -894,7 +894,7 @@ var _ = Describe("Builds API", func() {
 			Context("when authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", 5, false, true)
+					userContextReader.GetTeamReturns("some-team", false, true)
 				})
 
 				It("returns 200", func() {
@@ -1054,7 +1054,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when accessing same team's build", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-team", 2, true, true)
+						userContextReader.GetTeamReturns("some-team", true, true)
 					})
 
 					Context("when the engine returns a build", func() {
@@ -1103,7 +1103,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when accessing other team's build", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-other-team", 2, true, true)
+						userContextReader.GetTeamReturns("some-other-team", true, true)
 					})
 
 					It("returns 403", func() {
@@ -1182,7 +1182,7 @@ var _ = Describe("Builds API", func() {
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-other-team", 5, false, true)
+					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
 
 				It("returns 403", func() {
@@ -1253,7 +1253,7 @@ var _ = Describe("Builds API", func() {
 			Context("when authenticated", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", 5, false, true)
+					userContextReader.GetTeamReturns("some-team", false, true)
 				})
 
 				It("fetches data from the db", func() {
@@ -1364,7 +1364,7 @@ var _ = Describe("Builds API", func() {
 			Context("when authenticated, but not authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-other-team", 5, false, true)
+					userContextReader.GetTeamReturns("some-other-team", false, true)
 				})
 
 				It("returns 403", func() {
@@ -1435,7 +1435,7 @@ var _ = Describe("Builds API", func() {
 			Context("when authenticated", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", 5, false, true)
+					userContextReader.GetTeamReturns("some-team", false, true)
 				})
 
 				Context("when the build returns a plan", func() {

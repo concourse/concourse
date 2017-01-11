@@ -101,6 +101,7 @@ type JobConfig struct {
 
 	DisableManualTrigger bool     `yaml:"disable_manual_trigger,omitempty" json:"disable_manual_trigger,omitempty" mapstructure:"disable_manual_trigger"`
 	Serial               bool     `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
+	Interruptible        bool     `yaml:"interruptible,omitempty" json:"interruptible,omitempty" mapstructure:"interruptible"`
 	SerialGroups         []string `yaml:"serial_groups,omitempty" json:"serial_groups,omitempty" mapstructure:"serial_groups"`
 	RawMaxInFlight       int      `yaml:"max_in_flight,omitempty" json:"max_in_flight,omitempty" mapstructure:"max_in_flight"`
 	BuildLogsToRetain    int      `yaml:"build_logs_to_retain,omitempty" json:"build_logs_to_retain,omitempty" mapstructure:"build_logs_to_retain"`
@@ -138,6 +139,73 @@ func (config JobConfig) GetSerialGroups() []string {
 	}
 
 	return []string{}
+}
+
+func (config JobConfig) Plans() []PlanConfig {
+	return collectPlans(PlanConfig{
+		Do:      &config.Plan,
+		Ensure:  config.Ensure,
+		Failure: config.Failure,
+		Success: config.Success,
+	})
+}
+
+func collectPlans(plan PlanConfig) []PlanConfig {
+	var plans []PlanConfig
+
+	if plan.Success != nil {
+		plans = append(plans, collectPlans(*plan.Success)...)
+	}
+
+	if plan.Failure != nil {
+		plans = append(plans, collectPlans(*plan.Failure)...)
+	}
+
+	if plan.Ensure != nil {
+		plans = append(plans, collectPlans(*plan.Ensure)...)
+	}
+
+	if plan.Try != nil {
+		plans = append(plans, collectPlans(*plan.Try)...)
+	}
+
+	if plan.Do != nil {
+		for _, p := range *plan.Do {
+			plans = append(plans, collectPlans(p)...)
+		}
+	}
+
+	if plan.Aggregate != nil {
+		for _, p := range *plan.Aggregate {
+			plans = append(plans, collectPlans(p)...)
+		}
+	}
+
+	return append(plans, plan)
+}
+
+func (config JobConfig) Inputs() []PlanConfig {
+	var inputs []PlanConfig
+
+	for _, plan := range config.Plans() {
+		if plan.Get != "" {
+			inputs = append(inputs, plan)
+		}
+	}
+
+	return inputs
+}
+
+func (config JobConfig) Outputs() []PlanConfig {
+	var outputs []PlanConfig
+
+	for _, plan := range config.Plans() {
+		if plan.Put != "" {
+			outputs = append(outputs, plan)
+		}
+	}
+
+	return outputs
 }
 
 // A PlanSequence corresponds to a chain of Compose plan, with an implicit

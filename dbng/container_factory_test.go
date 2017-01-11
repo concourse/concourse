@@ -1,15 +1,8 @@
 package dbng_test
 
 import (
-	"errors"
-	"time"
-
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
-	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -36,67 +29,17 @@ var _ = Describe("ContainerFactory", func() {
 			Expect(destroyedContainer.Handle()).To(Equal(destroyingContainer.Handle()))
 			Expect(destroyedContainer.WorkerName()).To(Equal(destroyingContainer.WorkerName()))
 		})
-
 	})
 
 	Describe("MarkBuildContainersForDeletion", func() {
 		var (
-			listener *pq.Listener
-
-			dbBuild db.Build
-			build   *dbng.Build
-
 			creatingContainer dbng.CreatingContainer
-
-			pipelineDB db.PipelineDB
+			build             *dbng.Build
 		)
 
 		BeforeEach(func() {
-			oldDBConn := db.Wrap(sqlDB)
-
-			listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-			Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
-			bus := db.NewNotificationsBus(listener, oldDBConn)
-
-			pgxConn := postgresRunner.OpenPgx()
-			fakeConnector := new(lockfakes.FakeConnector)
-			retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-			lockFactory := lock.NewLockFactory(retryableConn)
-			teamDBFactory := db.NewTeamDBFactory(oldDBConn, bus, lockFactory)
-
-			teamDB := teamDBFactory.GetTeamDB("default-team")
-
-			savedPipeline, ok, err := teamDB.SaveConfig("some-pipeline", atc.Config{
-				Jobs: []atc.JobConfig{
-					{
-						Name:   "some-job",
-						Public: true,
-						Plan: atc.PlanSequence{
-							{
-								Task:           "some-task",
-								Privileged:     true,
-								TaskConfigPath: "some/config/path.yml",
-								TaskConfig: &atc.TaskConfig{
-									Image: "some-image",
-								},
-							},
-						},
-					},
-				},
-			}, db.ConfigVersion(0), db.PipelineUnpaused)
+			build, err = defaultPipeline.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(ok).To(BeTrue())
-
-			pipelineDBFactory := db.NewPipelineDBFactory(oldDBConn, bus, lockFactory)
-			pipelineDB = pipelineDBFactory.Build(savedPipeline)
-
-			dbBuild, err = pipelineDB.CreateJobBuild("some-job")
-			Expect(err).NotTo(HaveOccurred())
-
-			build = &dbng.Build{
-				ID: dbBuild.ID(),
-			}
 
 			creatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, build, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
 			Expect(err).NotTo(HaveOccurred())
@@ -115,11 +58,7 @@ var _ = Describe("ContainerFactory", func() {
 		})
 
 		Context("when the container is created", func() {
-			var (
-				createdContainer dbng.CreatedContainer
-
-				ok bool
-			)
+			var createdContainer dbng.CreatedContainer
 
 			BeforeEach(func() {
 				createdContainer, err = creatingContainer.Created()
@@ -138,227 +77,255 @@ var _ = Describe("ContainerFactory", func() {
 				})
 			})
 
-			Context("when the build is finished", func() {
+			Context("when the build failed and there is a more recent build which has finished", func() {
+				var (
+					laterBuild             *dbng.Build
+					laterCreatingContainer dbng.CreatingContainer
+				)
+
 				BeforeEach(func() {
-					ok, err = dbBuild.Start("engine", "metadata")
+					laterBuild, err = defaultPipeline.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
-					Expect(ok).To(BeTrue())
+
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = laterBuild.Finish(tx, dbng.BuildStatusSucceeded)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = build.Finish(tx, dbng.BuildStatusFailed)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(tx.Commit()).To(Succeed())
+
+					laterCreatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, build, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = laterCreatingContainer.Created()
+					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Context("and there is a more recent build which has finished", func() {
-					var (
-						laterBuild   *dbng.Build
-						dbLaterBuild db.Build
+				It("marks the older container for deletion", func() {
+					err = containerFactory.MarkBuildContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
 
-						laterCreatingContainer dbng.CreatingContainer
-					)
+					deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+					Expect(err).NotTo(HaveOccurred())
 
+					Expect(deletingContainers).ToNot(BeEmpty())
+					Expect(deletingContainers[0].Handle()).NotTo(Equal(laterCreatingContainer.Handle()))
+				})
+			})
+
+			Context("when there is a more recent build which is started and not finished", func() {
+				var (
+					laterBuild *dbng.Build
+
+					laterCreatingContainer dbng.CreatingContainer
+				)
+
+				BeforeEach(func() {
+					laterBuild, err = defaultPipeline.CreateJobBuild("some-job")
+					Expect(err).NotTo(HaveOccurred())
+
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = laterBuild.SaveStatus(tx, dbng.BuildStatusStarted)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(tx.Commit()).To(Succeed())
+
+					laterCreatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, laterBuild, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = laterCreatingContainer.Created()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Context("when the build is failing", func() {
 					BeforeEach(func() {
-						err = dbBuild.MarkAsFailed(errors.New("some-error"))
+						tx, err := dbConn.Begin()
 						Expect(err).NotTo(HaveOccurred())
 
-						dbLaterBuild, err = pipelineDB.CreateJobBuild("some-job")
+						err = build.Finish(tx, dbng.BuildStatusFailed)
 						Expect(err).NotTo(HaveOccurred())
 
-						laterBuild = &dbng.Build{
-							ID: dbLaterBuild.ID(),
-						}
-
-						ok, err = dbLaterBuild.Start("engine", "metadata")
-						Expect(err).NotTo(HaveOccurred())
-						Expect(ok).To(BeTrue())
-
-						err = dbLaterBuild.Finish(db.StatusSucceeded)
-						Expect(err).NotTo(HaveOccurred())
-
-						laterCreatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, laterBuild, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
-						Expect(err).NotTo(HaveOccurred())
-
-						_, err = laterCreatingContainer.Created()
-						Expect(err).NotTo(HaveOccurred())
+						Expect(tx.Commit()).To(Succeed())
 					})
 
-					It("marks the older container for deletion", func() {
+					It("does not mark the container for deletion", func() {
 						err = containerFactory.MarkBuildContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
 						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(deletingContainers).ToNot(BeEmpty())
-						Expect(deletingContainers[0].Handle()).NotTo(Equal(laterCreatingContainer.Handle()))
+						Expect(deletingContainers).To(BeEmpty())
 					})
 				})
 
-				Context("and there is a more recent build which is started and not finished", func() {
-					var (
-						laterBuild   *dbng.Build
-						dbLaterBuild db.Build
-
-						laterCreatingContainer dbng.CreatingContainer
-					)
-
+				Context("when the build errors", func() {
 					BeforeEach(func() {
-						dbLaterBuild, err = pipelineDB.CreateJobBuild("some-job")
+						tx, err := dbConn.Begin()
 						Expect(err).NotTo(HaveOccurred())
 
-						laterBuild = &dbng.Build{
-							ID: dbLaterBuild.ID(),
-						}
-
-						ok, err = dbLaterBuild.Start("engine", "metadata")
-						Expect(err).NotTo(HaveOccurred())
-						Expect(ok).To(BeTrue())
-
-						laterCreatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, laterBuild, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+						err = build.Finish(tx, dbng.BuildStatusErrored)
 						Expect(err).NotTo(HaveOccurred())
 
-						_, err = laterCreatingContainer.Created()
+						Expect(tx.Commit()).To(Succeed())
+					})
+
+					It("does not mark the container for deletion", func() {
+						err = containerFactory.MarkBuildContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
-					})
 
-					Context("when the build is failing", func() {
-						BeforeEach(func() {
-							err = dbBuild.Finish(db.StatusFailed)
-							Expect(err).NotTo(HaveOccurred())
-						})
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
 
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkBuildContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-
-					Context("when the build errors", func() {
-						BeforeEach(func() {
-							err = dbBuild.Finish(db.StatusErrored)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkBuildContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-
-					Context("when the build is aborted", func() {
-						BeforeEach(func() {
-							err = dbBuild.Finish(db.StatusAborted)
-							Expect(err).NotTo(HaveOccurred())
-
-						})
-
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkBuildContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-
-					Context("when the build passed", func() {
-						BeforeEach(func() {
-							err = dbBuild.Finish(db.StatusSucceeded)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("marks the container for deletion", func() {
-							err = containerFactory.MarkBuildContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(HaveLen(1))
-						})
+						Expect(deletingContainers).To(BeEmpty())
 					})
 				})
 
-				Context("when this is the most recent build", func() {
-					Context("when the build is failing", func() {
-						BeforeEach(func() {
-							err = dbBuild.Finish(db.StatusFailed)
-							Expect(err).NotTo(HaveOccurred())
-						})
+				Context("when the build is aborted", func() {
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
 
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkBuildContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
+						err = build.Finish(tx, dbng.BuildStatusAborted)
+						Expect(err).NotTo(HaveOccurred())
 
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
+						Expect(tx.Commit()).To(Succeed())
 					})
 
-					Context("when the build errors", func() {
-						BeforeEach(func() {
-							err = dbBuild.Finish(db.StatusErrored)
-							Expect(err).NotTo(HaveOccurred())
-						})
+					It("does not mark the container for deletion", func() {
+						err = containerFactory.MarkBuildContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
 
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkBuildContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
 
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
+						Expect(deletingContainers).To(BeEmpty())
+					})
+				})
 
-							Expect(deletingContainers).To(BeEmpty())
-						})
+				Context("when the build passed", func() {
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+
+						err = build.Finish(tx, dbng.BuildStatusSucceeded)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(tx.Commit()).To(Succeed())
 					})
 
-					Context("when the build is aborted", func() {
-						BeforeEach(func() {
-							err = dbBuild.Finish(db.StatusAborted)
-							Expect(err).NotTo(HaveOccurred())
-						})
+					It("marks the container for deletion", func() {
+						err = containerFactory.MarkBuildContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
 
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkBuildContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
 
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
+						Expect(deletingContainers).To(HaveLen(1))
+					})
+				})
+			})
 
-							Expect(deletingContainers).To(BeEmpty())
-						})
+			Context("when this is the most recent build", func() {
+				Context("when the build is failing", func() {
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+
+						err = build.Finish(tx, dbng.BuildStatusFailed)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(tx.Commit()).To(Succeed())
 					})
 
-					Context("when the build passed", func() {
-						BeforeEach(func() {
-							err = dbBuild.Finish(db.StatusSucceeded)
-							Expect(err).NotTo(HaveOccurred())
-						})
+					It("does not mark the container for deletion", func() {
+						err = containerFactory.MarkBuildContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
 
-						It("marks the container for deletion", func() {
-							err = containerFactory.MarkBuildContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
 
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
+						Expect(deletingContainers).To(BeEmpty())
+					})
+				})
 
-							Expect(deletingContainers).To(HaveLen(1))
-						})
+				Context("when the build errors", func() {
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+
+						err = build.Finish(tx, dbng.BuildStatusErrored)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(tx.Commit()).To(Succeed())
+					})
+
+					It("does not mark the container for deletion", func() {
+						err = containerFactory.MarkBuildContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(deletingContainers).To(BeEmpty())
+					})
+				})
+
+				Context("when the build is aborted", func() {
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+
+						err = build.Finish(tx, dbng.BuildStatusAborted)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(tx.Commit()).To(Succeed())
+					})
+
+					It("does not mark the container for deletion", func() {
+						err = containerFactory.MarkBuildContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(deletingContainers).To(BeEmpty())
+					})
+				})
+
+				Context("when the build passed", func() {
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+
+						err = build.Finish(tx, dbng.BuildStatusSucceeded)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(tx.Commit()).To(Succeed())
+					})
+
+					It("marks the container for deletion", func() {
+						_, foundCreatedContainer, err := containerFactory.FindBuildContainer(defaultWorker, build, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+						Expect(err).NotTo(HaveOccurred())
+						Expect(foundCreatedContainer).NotTo(BeNil())
+
+						err = containerFactory.MarkBuildContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(deletingContainers).To(HaveLen(1))
 					})
 				})
 			})
 		})
-
 	})
 
 	Describe("FindResourceCheckContainer", func() {
@@ -370,7 +337,7 @@ var _ = Describe("ContainerFactory", func() {
 				defaultResource,
 				"some-base-resource-type",
 				atc.Source{"some": "source"},
-				defaultPipeline,
+				defaultPipeline.ID(),
 				atc.ResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())

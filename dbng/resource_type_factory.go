@@ -5,8 +5,8 @@ import "github.com/concourse/atc"
 //go:generate counterfeiter . ResourceTypeFactory
 
 type ResourceTypeFactory interface {
-	FindResourceType(pipeline *Pipeline, resourceType atc.ResourceType) (*UsedResourceType, bool, error)
-	CreateResourceType(pipeline *Pipeline, resourceType atc.ResourceType, version atc.Version) (*UsedResourceType, error)
+	FindResourceType(pipelineID int, resourceType atc.ResourceType) (*UsedResourceType, bool, error)
+	CreateResourceType(pipelineID int, resourceType atc.ResourceType, version atc.Version) (*UsedResourceType, error)
 }
 
 type resourceTypeFactory struct {
@@ -19,7 +19,7 @@ func NewResourceTypeFactory(conn Conn) ResourceTypeFactory {
 	}
 }
 
-func (factory *resourceTypeFactory) FindResourceType(pipeline *Pipeline, resourceType atc.ResourceType) (*UsedResourceType, bool, error) {
+func (factory *resourceTypeFactory) FindResourceType(pipelineID int, resourceType atc.ResourceType) (*UsedResourceType, bool, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -29,7 +29,7 @@ func (factory *resourceTypeFactory) FindResourceType(pipeline *Pipeline, resourc
 
 	rt := ResourceType{
 		ResourceType: resourceType,
-		Pipeline:     pipeline,
+		PipelineID:   pipelineID,
 	}
 
 	urt, found, err := rt.Find(tx)
@@ -45,7 +45,7 @@ func (factory *resourceTypeFactory) FindResourceType(pipeline *Pipeline, resourc
 	return urt, found, nil
 }
 
-func (factory *resourceTypeFactory) CreateResourceType(pipeline *Pipeline, resourceType atc.ResourceType, version atc.Version) (*UsedResourceType, error) {
+func (factory *resourceTypeFactory) CreateResourceType(pipelineID int, resourceType atc.ResourceType, version atc.Version) (*UsedResourceType, error) {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (factory *resourceTypeFactory) CreateResourceType(pipeline *Pipeline, resou
 
 	rt := ResourceType{
 		ResourceType: resourceType,
-		Pipeline:     pipeline,
+		PipelineID:   pipelineID,
 	}
 
 	urt, err := rt.Create(tx, version)

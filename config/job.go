@@ -21,119 +21,49 @@ type JobOutput struct {
 }
 
 func JobInputs(config atc.JobConfig) []JobInput {
-	return collectInputs(atc.PlanConfig{
-		Do:      &config.Plan,
-		Ensure:  config.Ensure,
-		Failure: config.Failure,
-		Success: config.Success,
-	})
-}
-
-func JobOutputs(config atc.JobConfig) []JobOutput {
-	return collectOutputs(atc.PlanConfig{
-		Do:      &config.Plan,
-		Ensure:  config.Ensure,
-		Failure: config.Failure,
-		Success: config.Success,
-	})
-}
-
-func collectInputs(plan atc.PlanConfig) []JobInput {
 	var inputs []JobInput
 
-	if plan.Success != nil {
-		inputs = append(inputs, collectInputs(*plan.Success)...)
-	}
+	for _, plan := range config.Plans() {
+		if plan.Get != "" {
+			get := plan.Get
 
-	if plan.Failure != nil {
-		inputs = append(inputs, collectInputs(*plan.Failure)...)
-	}
+			resource := get
+			if plan.Resource != "" {
+				resource = plan.Resource
+			}
 
-	if plan.Ensure != nil {
-		inputs = append(inputs, collectInputs(*plan.Ensure)...)
-	}
-
-	if plan.Try != nil {
-		inputs = append(inputs, collectInputs(*plan.Try)...)
-	}
-
-	if plan.Do != nil {
-		for _, p := range *plan.Do {
-			inputs = append(inputs, collectInputs(p)...)
+			inputs = append(inputs, JobInput{
+				Name:     get,
+				Resource: resource,
+				Passed:   plan.Passed,
+				Version:  plan.Version,
+				Trigger:  plan.Trigger,
+				Params:   plan.Params,
+				Tags:     plan.Tags,
+			})
 		}
-	}
-
-	if plan.Aggregate != nil {
-		for _, p := range *plan.Aggregate {
-			inputs = append(inputs, collectInputs(p)...)
-		}
-	}
-
-	if plan.Get != "" {
-		get := plan.Get
-
-		resource := get
-		if plan.Resource != "" {
-			resource = plan.Resource
-		}
-
-		inputs = append(inputs, JobInput{
-			Name:     get,
-			Resource: resource,
-			Passed:   plan.Passed,
-			Version:  plan.Version,
-			Trigger:  plan.Trigger,
-			Params:   plan.Params,
-			Tags:     plan.Tags,
-		})
 	}
 
 	return inputs
 }
 
-func collectOutputs(plan atc.PlanConfig) []JobOutput {
+func JobOutputs(config atc.JobConfig) []JobOutput {
 	var outputs []JobOutput
 
-	if plan.Success != nil {
-		outputs = append(outputs, collectOutputs(*plan.Success)...)
-	}
+	for _, plan := range config.Plans() {
+		if plan.Put != "" {
+			put := plan.Put
 
-	if plan.Failure != nil {
-		outputs = append(outputs, collectOutputs(*plan.Failure)...)
-	}
+			resource := put
+			if plan.Resource != "" {
+				resource = plan.Resource
+			}
 
-	if plan.Ensure != nil {
-		outputs = append(outputs, collectOutputs(*plan.Ensure)...)
-	}
-
-	if plan.Try != nil {
-		outputs = append(outputs, collectOutputs(*plan.Try)...)
-	}
-
-	if plan.Do != nil {
-		for _, p := range *plan.Do {
-			outputs = append(outputs, collectOutputs(p)...)
+			outputs = append(outputs, JobOutput{
+				Name:     put,
+				Resource: resource,
+			})
 		}
-	}
-
-	if plan.Aggregate != nil {
-		for _, p := range *plan.Aggregate {
-			outputs = append(outputs, collectOutputs(p)...)
-		}
-	}
-
-	if plan.Put != "" {
-		put := plan.Put
-
-		resource := put
-		if plan.Resource != "" {
-			resource = plan.Resource
-		}
-
-		outputs = append(outputs, JobOutput{
-			Name:     put,
-			Resource: resource,
-		})
 	}
 
 	return outputs

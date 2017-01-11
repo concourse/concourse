@@ -9,10 +9,10 @@ import (
 )
 
 type FakeResourceTypeFactory struct {
-	FindResourceTypeStub        func(pipeline *dbng.Pipeline, resourceType atc.ResourceType) (*dbng.UsedResourceType, bool, error)
+	FindResourceTypeStub        func(pipelineID int, resourceType atc.ResourceType) (*dbng.UsedResourceType, bool, error)
 	findResourceTypeMutex       sync.RWMutex
 	findResourceTypeArgsForCall []struct {
-		pipeline     *dbng.Pipeline
+		pipelineID   int
 		resourceType atc.ResourceType
 	}
 	findResourceTypeReturns struct {
@@ -20,10 +20,10 @@ type FakeResourceTypeFactory struct {
 		result2 bool
 		result3 error
 	}
-	CreateResourceTypeStub        func(pipeline *dbng.Pipeline, resourceType atc.ResourceType, version atc.Version) (*dbng.UsedResourceType, error)
+	CreateResourceTypeStub        func(pipelineID int, resourceType atc.ResourceType, version atc.Version) (*dbng.UsedResourceType, error)
 	createResourceTypeMutex       sync.RWMutex
 	createResourceTypeArgsForCall []struct {
-		pipeline     *dbng.Pipeline
+		pipelineID   int
 		resourceType atc.ResourceType
 		version      atc.Version
 	}
@@ -35,16 +35,16 @@ type FakeResourceTypeFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceTypeFactory) FindResourceType(pipeline *dbng.Pipeline, resourceType atc.ResourceType) (*dbng.UsedResourceType, bool, error) {
+func (fake *FakeResourceTypeFactory) FindResourceType(pipelineID int, resourceType atc.ResourceType) (*dbng.UsedResourceType, bool, error) {
 	fake.findResourceTypeMutex.Lock()
 	fake.findResourceTypeArgsForCall = append(fake.findResourceTypeArgsForCall, struct {
-		pipeline     *dbng.Pipeline
+		pipelineID   int
 		resourceType atc.ResourceType
-	}{pipeline, resourceType})
-	fake.recordInvocation("FindResourceType", []interface{}{pipeline, resourceType})
+	}{pipelineID, resourceType})
+	fake.recordInvocation("FindResourceType", []interface{}{pipelineID, resourceType})
 	fake.findResourceTypeMutex.Unlock()
 	if fake.FindResourceTypeStub != nil {
-		return fake.FindResourceTypeStub(pipeline, resourceType)
+		return fake.FindResourceTypeStub(pipelineID, resourceType)
 	} else {
 		return fake.findResourceTypeReturns.result1, fake.findResourceTypeReturns.result2, fake.findResourceTypeReturns.result3
 	}
@@ -56,10 +56,10 @@ func (fake *FakeResourceTypeFactory) FindResourceTypeCallCount() int {
 	return len(fake.findResourceTypeArgsForCall)
 }
 
-func (fake *FakeResourceTypeFactory) FindResourceTypeArgsForCall(i int) (*dbng.Pipeline, atc.ResourceType) {
+func (fake *FakeResourceTypeFactory) FindResourceTypeArgsForCall(i int) (int, atc.ResourceType) {
 	fake.findResourceTypeMutex.RLock()
 	defer fake.findResourceTypeMutex.RUnlock()
-	return fake.findResourceTypeArgsForCall[i].pipeline, fake.findResourceTypeArgsForCall[i].resourceType
+	return fake.findResourceTypeArgsForCall[i].pipelineID, fake.findResourceTypeArgsForCall[i].resourceType
 }
 
 func (fake *FakeResourceTypeFactory) FindResourceTypeReturns(result1 *dbng.UsedResourceType, result2 bool, result3 error) {
@@ -71,17 +71,17 @@ func (fake *FakeResourceTypeFactory) FindResourceTypeReturns(result1 *dbng.UsedR
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceTypeFactory) CreateResourceType(pipeline *dbng.Pipeline, resourceType atc.ResourceType, version atc.Version) (*dbng.UsedResourceType, error) {
+func (fake *FakeResourceTypeFactory) CreateResourceType(pipelineID int, resourceType atc.ResourceType, version atc.Version) (*dbng.UsedResourceType, error) {
 	fake.createResourceTypeMutex.Lock()
 	fake.createResourceTypeArgsForCall = append(fake.createResourceTypeArgsForCall, struct {
-		pipeline     *dbng.Pipeline
+		pipelineID   int
 		resourceType atc.ResourceType
 		version      atc.Version
-	}{pipeline, resourceType, version})
-	fake.recordInvocation("CreateResourceType", []interface{}{pipeline, resourceType, version})
+	}{pipelineID, resourceType, version})
+	fake.recordInvocation("CreateResourceType", []interface{}{pipelineID, resourceType, version})
 	fake.createResourceTypeMutex.Unlock()
 	if fake.CreateResourceTypeStub != nil {
-		return fake.CreateResourceTypeStub(pipeline, resourceType, version)
+		return fake.CreateResourceTypeStub(pipelineID, resourceType, version)
 	} else {
 		return fake.createResourceTypeReturns.result1, fake.createResourceTypeReturns.result2
 	}
@@ -93,10 +93,10 @@ func (fake *FakeResourceTypeFactory) CreateResourceTypeCallCount() int {
 	return len(fake.createResourceTypeArgsForCall)
 }
 
-func (fake *FakeResourceTypeFactory) CreateResourceTypeArgsForCall(i int) (*dbng.Pipeline, atc.ResourceType, atc.Version) {
+func (fake *FakeResourceTypeFactory) CreateResourceTypeArgsForCall(i int) (int, atc.ResourceType, atc.Version) {
 	fake.createResourceTypeMutex.RLock()
 	defer fake.createResourceTypeMutex.RUnlock()
-	return fake.createResourceTypeArgsForCall[i].pipeline, fake.createResourceTypeArgsForCall[i].resourceType, fake.createResourceTypeArgsForCall[i].version
+	return fake.createResourceTypeArgsForCall[i].pipelineID, fake.createResourceTypeArgsForCall[i].resourceType, fake.createResourceTypeArgsForCall[i].version
 }
 
 func (fake *FakeResourceTypeFactory) CreateResourceTypeReturns(result1 *dbng.UsedResourceType, result2 error) {

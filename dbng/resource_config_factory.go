@@ -15,7 +15,7 @@ type ResourceConfigFactory interface {
 		build *Build,
 		resourceType string,
 		source atc.Source,
-		pipeline *Pipeline,
+		pipelineID int,
 		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceConfig, error)
 
@@ -24,7 +24,7 @@ type ResourceConfigFactory interface {
 		resource *Resource,
 		resourceType string,
 		source atc.Source,
-		pipeline *Pipeline,
+		pipelineID int,
 		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceConfig, error)
 
@@ -32,7 +32,7 @@ type ResourceConfigFactory interface {
 		logger lager.Logger,
 		resourceTypeName string,
 		source atc.Source,
-		pipeline *Pipeline,
+		pipelineID int,
 		resourceTypes atc.ResourceTypes,
 	) (*UsedResourceConfig, error)
 
@@ -59,7 +59,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 	build *Build,
 	resourceType string,
 	source atc.Source,
-	pipeline *Pipeline,
+	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceConfig, error) {
 	tx, err := f.conn.Begin()
@@ -69,7 +69,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 
 	defer tx.Rollback()
 
-	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipeline)
+	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipelineID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
 	resource *Resource,
 	resourceType string,
 	source atc.Source,
-	pipeline *Pipeline,
+	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceConfig, error) {
 	tx, err := f.conn.Begin()
@@ -114,7 +114,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
 
 	defer tx.Rollback()
 
-	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipeline)
+	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipelineID)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
 	logger lager.Logger,
 	resourceTypeName string,
 	source atc.Source,
-	pipeline *Pipeline,
+	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceConfig, error) {
 	resourceType, found := resourceTypes.Lookup(resourceTypeName)
@@ -162,14 +162,14 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
 
 	defer tx.Rollback()
 
-	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipeline)
+	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipelineID)
 	if err != nil {
 		return nil, err
 	}
 
 	rt := ResourceType{
 		ResourceType: resourceType,
-		Pipeline:     pipeline,
+		PipelineID:   pipelineID,
 	}
 
 	usedResourceType, found, err := rt.Find(tx)
@@ -210,7 +210,7 @@ func constructResourceConfig(
 	resourceType string,
 	source atc.Source,
 	resourceTypes []atc.ResourceType,
-	pipeline *Pipeline,
+	pipelineID int,
 ) (ResourceConfig, error) {
 	resourceConfig := ResourceConfig{
 		Source: source,
@@ -225,7 +225,7 @@ func constructResourceConfig(
 		lastResourceType := resourceTypesList[len(resourceTypesList)-1]
 		urt, found, err := ResourceType{
 			ResourceType: lastResourceType,
-			Pipeline:     pipeline,
+			PipelineID:   pipelineID,
 		}.Find(tx)
 		if err != nil {
 			return ResourceConfig{}, err
@@ -247,7 +247,7 @@ func constructResourceConfig(
 		for i := len(resourceTypesList) - 2; i >= 0; i-- {
 			urt, found, err := ResourceType{
 				ResourceType: resourceTypesList[i],
-				Pipeline:     pipeline,
+				PipelineID:   pipelineID,
 			}.Find(tx)
 			if err != nil {
 				return ResourceConfig{}, err

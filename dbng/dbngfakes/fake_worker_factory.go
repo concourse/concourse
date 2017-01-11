@@ -74,17 +74,6 @@ type FakeWorkerFactory struct {
 		result1 *dbng.Worker
 		result2 error
 	}
-	SaveTeamWorkerStub        func(worker atc.Worker, team *dbng.Team, ttl time.Duration) (*dbng.Worker, error)
-	saveTeamWorkerMutex       sync.RWMutex
-	saveTeamWorkerArgsForCall []struct {
-		worker atc.Worker
-		team   *dbng.Team
-		ttl    time.Duration
-	}
-	saveTeamWorkerReturns struct {
-		result1 *dbng.Worker
-		result2 error
-	}
 	LandWorkerStub        func(name string) (*dbng.Worker, error)
 	landWorkerMutex       sync.RWMutex
 	landWorkerArgsForCall []struct {
@@ -102,6 +91,14 @@ type FakeWorkerFactory struct {
 	retireWorkerReturns struct {
 		result1 *dbng.Worker
 		result2 error
+	}
+	PruneWorkerStub        func(name string) error
+	pruneWorkerMutex       sync.RWMutex
+	pruneWorkerArgsForCall []struct {
+		name string
+	}
+	pruneWorkerReturns struct {
+		result1 error
 	}
 	DeleteWorkerStub        func(name string) error
 	deleteWorkerMutex       sync.RWMutex
@@ -365,42 +362,6 @@ func (fake *FakeWorkerFactory) SaveWorkerReturns(result1 *dbng.Worker, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerFactory) SaveTeamWorker(worker atc.Worker, team *dbng.Team, ttl time.Duration) (*dbng.Worker, error) {
-	fake.saveTeamWorkerMutex.Lock()
-	fake.saveTeamWorkerArgsForCall = append(fake.saveTeamWorkerArgsForCall, struct {
-		worker atc.Worker
-		team   *dbng.Team
-		ttl    time.Duration
-	}{worker, team, ttl})
-	fake.recordInvocation("SaveTeamWorker", []interface{}{worker, team, ttl})
-	fake.saveTeamWorkerMutex.Unlock()
-	if fake.SaveTeamWorkerStub != nil {
-		return fake.SaveTeamWorkerStub(worker, team, ttl)
-	} else {
-		return fake.saveTeamWorkerReturns.result1, fake.saveTeamWorkerReturns.result2
-	}
-}
-
-func (fake *FakeWorkerFactory) SaveTeamWorkerCallCount() int {
-	fake.saveTeamWorkerMutex.RLock()
-	defer fake.saveTeamWorkerMutex.RUnlock()
-	return len(fake.saveTeamWorkerArgsForCall)
-}
-
-func (fake *FakeWorkerFactory) SaveTeamWorkerArgsForCall(i int) (atc.Worker, *dbng.Team, time.Duration) {
-	fake.saveTeamWorkerMutex.RLock()
-	defer fake.saveTeamWorkerMutex.RUnlock()
-	return fake.saveTeamWorkerArgsForCall[i].worker, fake.saveTeamWorkerArgsForCall[i].team, fake.saveTeamWorkerArgsForCall[i].ttl
-}
-
-func (fake *FakeWorkerFactory) SaveTeamWorkerReturns(result1 *dbng.Worker, result2 error) {
-	fake.SaveTeamWorkerStub = nil
-	fake.saveTeamWorkerReturns = struct {
-		result1 *dbng.Worker
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeWorkerFactory) LandWorker(name string) (*dbng.Worker, error) {
 	fake.landWorkerMutex.Lock()
 	fake.landWorkerArgsForCall = append(fake.landWorkerArgsForCall, struct {
@@ -467,6 +428,39 @@ func (fake *FakeWorkerFactory) RetireWorkerReturns(result1 *dbng.Worker, result2
 		result1 *dbng.Worker
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeWorkerFactory) PruneWorker(name string) error {
+	fake.pruneWorkerMutex.Lock()
+	fake.pruneWorkerArgsForCall = append(fake.pruneWorkerArgsForCall, struct {
+		name string
+	}{name})
+	fake.recordInvocation("PruneWorker", []interface{}{name})
+	fake.pruneWorkerMutex.Unlock()
+	if fake.PruneWorkerStub != nil {
+		return fake.PruneWorkerStub(name)
+	} else {
+		return fake.pruneWorkerReturns.result1
+	}
+}
+
+func (fake *FakeWorkerFactory) PruneWorkerCallCount() int {
+	fake.pruneWorkerMutex.RLock()
+	defer fake.pruneWorkerMutex.RUnlock()
+	return len(fake.pruneWorkerArgsForCall)
+}
+
+func (fake *FakeWorkerFactory) PruneWorkerArgsForCall(i int) string {
+	fake.pruneWorkerMutex.RLock()
+	defer fake.pruneWorkerMutex.RUnlock()
+	return fake.pruneWorkerArgsForCall[i].name
+}
+
+func (fake *FakeWorkerFactory) PruneWorkerReturns(result1 error) {
+	fake.PruneWorkerStub = nil
+	fake.pruneWorkerReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeWorkerFactory) DeleteWorker(name string) error {
@@ -556,12 +550,12 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.landFinishedLandingWorkersMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
-	fake.saveTeamWorkerMutex.RLock()
-	defer fake.saveTeamWorkerMutex.RUnlock()
 	fake.landWorkerMutex.RLock()
 	defer fake.landWorkerMutex.RUnlock()
 	fake.retireWorkerMutex.RLock()
 	defer fake.retireWorkerMutex.RUnlock()
+	fake.pruneWorkerMutex.RLock()
+	defer fake.pruneWorkerMutex.RUnlock()
 	fake.deleteWorkerMutex.RLock()
 	defer fake.deleteWorkerMutex.RUnlock()
 	fake.heartbeatWorkerMutex.RLock()

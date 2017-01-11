@@ -10,8 +10,8 @@ import (
 	"net/textproto"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
@@ -39,8 +39,8 @@ var _ = Describe("Config API", func() {
 			Groups: atc.GroupConfigs{
 				{
 					Name:      "some-group",
-					Jobs:      []string{"job-1", "job-2"},
-					Resources: []string{"resource-1", "resource-2"},
+					Jobs:      []string{"some-job"},
+					Resources: []string{"some-resource"},
 				},
 			},
 
@@ -79,7 +79,6 @@ var _ = Describe("Config API", func() {
 						{
 							Get:      "some-input",
 							Resource: "some-resource",
-							Passed:   []string{"job-1", "job-2"},
 							Params: atc.Params{
 								"some-param": "some-value",
 								"nested": map[string]interface{}{
@@ -93,9 +92,8 @@ var _ = Describe("Config API", func() {
 							},
 						},
 						{
-							Task:           "some-task",
-							Privileged:     true,
-							TaskConfigPath: "some/config/path.yml",
+							Task:       "some-task",
+							Privileged: true,
 							TaskConfig: &atc.TaskConfig{
 								Image: "some-image",
 							},
@@ -140,7 +138,7 @@ var _ = Describe("Config API", func() {
 		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 42, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
 			Context("when the config can be loaded", func() {
@@ -243,7 +241,7 @@ var _ = Describe("Config API", func() {
 		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 42, true, true)
+				userContextReader.GetTeamReturns("a-team", true, true)
 			})
 
 			Context("when a config version is specified", func() {
@@ -272,7 +270,7 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("does not save anything", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 						})
 					})
 
@@ -296,7 +294,7 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("does not save anything", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 						})
 					})
 				})
@@ -317,18 +315,18 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("saves it", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-							name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
+							name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
-							Expect(id).To(Equal(db.ConfigVersion(42)))
-							Expect(pipelineState).To(Equal(db.PipelineNoChange))
+							Expect(id).To(Equal(dbng.ConfigVersion(42)))
+							Expect(pipelineState).To(Equal(dbng.PipelineNoChange))
 						})
 
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								teamDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
+								dbTeam.SavePipelineReturns(nil, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -342,17 +340,8 @@ var _ = Describe("Config API", func() {
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								returnedPipeline := db.SavedPipeline{
-									ID:     1234,
-									Paused: true,
-									TeamID: 1,
-									Pipeline: db.Pipeline{
-										Name:    "a-pipeline",
-										Config:  pipelineConfig,
-										Version: db.ConfigVersion(42),
-									},
-								}
-								teamDB.SaveConfigReturns(returnedPipeline, true, nil)
+								returnedPipeline := new(dbngfakes.FakePipeline)
+								dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 							})
 
 							It("returns 201", func() {
@@ -362,7 +351,10 @@ var _ = Describe("Config API", func() {
 
 						Context("when the config is invalid", func() {
 							BeforeEach(func() {
-								configValidationErrorMessages = []string{"totally invalid"}
+								pipelineConfig.Groups[0].Resources = []string{"missing-resource"}
+								payload, err := json.Marshal(pipelineConfig)
+								Expect(err).NotTo(HaveOccurred())
+								request.Body = gbytes.BufferWithBytes(payload)
 							})
 
 							It("returns 400", func() {
@@ -373,13 +365,13 @@ var _ = Describe("Config API", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"totally invalid"
+										"invalid groups:\n\tgroup 'some-group' has unknown resource 'missing-resource'\n"
 									]
 								}`))
 							})
 
 							It("does not save it", func() {
-								Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+								Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 							})
 						})
 					})
@@ -399,19 +391,19 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("saves it", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-							name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
+							name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
-							Expect(id).To(Equal(db.ConfigVersion(42)))
-							Expect(pipelineState).To(Equal(db.PipelineNoChange))
+							Expect(id).To(Equal(dbng.ConfigVersion(42)))
+							Expect(pipelineState).To(Equal(dbng.PipelineNoChange))
 						})
 
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
-							Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+							Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-							_, savedConfig, _, _ := teamDB.SaveConfigArgsForCall(0)
+							_, savedConfig, _, _ := dbTeam.SavePipelineArgsForCall(0)
 							Expect(savedConfig).To(Equal(pipelineConfig))
 
 							_, err := json.Marshal(pipelineConfig)
@@ -428,6 +420,7 @@ resources:
 jobs:
 - name: some-job
   plan:
+  - get: some-resource
   - task: some-task
     config:
       run:
@@ -446,9 +439,9 @@ jobs:
 							})
 
 							It("saves it", func() {
-								Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+								Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-								name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
+								name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(atc.Config{
 									Resources: []atc.ResourceConfig{
@@ -463,6 +456,9 @@ jobs:
 										{
 											Name: "some-job",
 											Plan: atc.PlanSequence{
+												{
+													Get: "some-resource",
+												},
 												{
 													Task: "some-task",
 													TaskConfig: &atc.TaskConfig{
@@ -482,24 +478,15 @@ jobs:
 									},
 								}))
 
-								Expect(id).To(Equal(db.ConfigVersion(42)))
-								Expect(pipelineState).To(Equal(db.PipelineNoChange))
+								Expect(id).To(Equal(dbng.ConfigVersion(42)))
+								Expect(pipelineState).To(Equal(dbng.PipelineNoChange))
 							})
 						})
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								returnedPipeline := db.SavedPipeline{
-									ID:     1234,
-									Paused: true,
-									TeamID: 1,
-									Pipeline: db.Pipeline{
-										Name:    "a-pipeline",
-										Config:  pipelineConfig,
-										Version: db.ConfigVersion(42),
-									},
-								}
-								teamDB.SaveConfigReturns(returnedPipeline, true, nil)
+								returnedPipeline := new(dbngfakes.FakePipeline)
+								dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 							})
 
 							It("returns 201", func() {
@@ -509,7 +496,7 @@ jobs:
 
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								teamDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
+								dbTeam.SavePipelineReturns(nil, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -523,7 +510,10 @@ jobs:
 
 						Context("when the config is invalid", func() {
 							BeforeEach(func() {
-								configValidationErrorMessages = []string{"totally invalid"}
+								pipelineConfig.Groups[0].Resources = []string{"missing-resource"}
+								payload, err := json.Marshal(pipelineConfig)
+								Expect(err).NotTo(HaveOccurred())
+								request.Body = gbytes.BufferWithBytes(payload)
 							})
 
 							It("returns 400", func() {
@@ -534,78 +524,71 @@ jobs:
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"totally invalid"
+										"invalid groups:\n\tgroup 'some-group' has unknown resource 'missing-resource'\n"
 									]
 								}`))
 							})
 
 							It("does not save it", func() {
-								Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+								Expect(dbTeam.SavePipelineCallCount()).To(BeZero())
 							})
 						})
 					})
 
 					Context("multi-part requests", func() {
 						var pausedValue string
-						var expectedDBValue db.PipelinePausedState
+						var expectedDBValue dbng.PipelinePausedState
+
+						writeMultiPart := func() {
+							body := &bytes.Buffer{}
+							writer := multipart.NewWriter(body)
+
+							yamlWriter, err := writer.CreatePart(
+								textproto.MIMEHeader{
+									"Content-type": {"application/x-yaml"},
+								},
+							)
+							Expect(err).NotTo(HaveOccurred())
+
+							yml, err := yaml.Marshal(pipelineConfig)
+							Expect(err).NotTo(HaveOccurred())
+
+							_, err = yamlWriter.Write(yml)
+
+							Expect(err).NotTo(HaveOccurred())
+
+							if pausedValue != "" {
+								err = writer.WriteField("paused", pausedValue)
+								Expect(err).NotTo(HaveOccurred())
+							}
+
+							writer.Close()
+
+							request.Header.Set("Content-Type", writer.FormDataContentType())
+							request.Body = gbytes.BufferWithBytes(body.Bytes())
+						}
 
 						itSavesThePipeline := func() {
-							BeforeEach(func() {
-								body := &bytes.Buffer{}
-								writer := multipart.NewWriter(body)
-
-								yamlWriter, err := writer.CreatePart(
-									textproto.MIMEHeader{
-										"Content-type": {"application/x-yaml"},
-									},
-								)
-								Expect(err).NotTo(HaveOccurred())
-
-								yml, err := yaml.Marshal(pipelineConfig)
-								Expect(err).NotTo(HaveOccurred())
-
-								_, err = yamlWriter.Write(yml)
-
-								Expect(err).NotTo(HaveOccurred())
-
-								if pausedValue != "" {
-									err = writer.WriteField("paused", pausedValue)
-									Expect(err).NotTo(HaveOccurred())
-								}
-
-								writer.Close()
-
-								request.Header.Set("Content-Type", writer.FormDataContentType())
-								request.Body = gbytes.BufferWithBytes(body.Bytes())
-							})
+							BeforeEach(writeMultiPart)
 
 							It("returns 200", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
 							It("saves it", func() {
-								Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
+								Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-								name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
+								name, savedConfig, id, pipelineState := dbTeam.SavePipelineArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(pipelineConfig))
-								Expect(id).To(Equal(db.ConfigVersion(42)))
+								Expect(id).To(Equal(dbng.ConfigVersion(42)))
 								Expect(pipelineState).To(Equal(expectedDBValue))
 							})
 
 							Context("when it's the first time the pipeline has been created", func() {
 								BeforeEach(func() {
-									returnedPipeline := db.SavedPipeline{
-										ID:     1234,
-										Paused: true,
-										TeamID: 1,
-										Pipeline: db.Pipeline{
-											Name:    "a-pipeline",
-											Config:  pipelineConfig,
-											Version: db.ConfigVersion(42),
-										},
-									}
-									teamDB.SaveConfigReturns(returnedPipeline, true, nil)
+									returnedPipeline := new(dbngfakes.FakePipeline)
+									dbTeam.SavePipelineReturns(returnedPipeline, true, nil)
 								})
 
 								It("returns 201", func() {
@@ -615,7 +598,7 @@ jobs:
 
 							Context("and saving it fails", func() {
 								BeforeEach(func() {
-									teamDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
+									dbTeam.SavePipelineReturns(nil, false, errors.New("oh no!"))
 								})
 
 								It("returns 500", func() {
@@ -629,7 +612,8 @@ jobs:
 
 							Context("when the config is invalid", func() {
 								BeforeEach(func() {
-									configValidationErrorMessages = []string{"totally invalid"}
+									pipelineConfig.Groups[0].Resources = []string{"missing-resource"}
+									writeMultiPart()
 								})
 
 								It("returns 400", func() {
@@ -639,32 +623,29 @@ jobs:
 								It("returns error JSON", func() {
 									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
 										"errors": [
-											"totally invalid"
+											"invalid groups:\n\tgroup 'some-group' has unknown resource 'missing-resource'\n"
 										]
 									}`))
 								})
 
 								It("does not save it", func() {
-									Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+									Expect(dbTeam.SavePipelineCallCount()).To(BeZero())
 								})
 							})
 
 							Context("when the config includes deprecations", func() {
 								BeforeEach(func() {
-									configValidationWarnings = []config.Warning{
-										{
-											Type:    "deprecation",
-											Message: "deprecated",
-										},
-									}
+									pipelineConfig.Jobs[0].Plan[1].TaskConfigPath = "some/config/path.yml"
+									writeMultiPart()
 								})
 
 								It("returns warnings", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusOK))
 									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
-										"warnings": [
-										  {"type":"deprecation", "message":"deprecated"}
-										]
+										"warnings": [{
+											"type": "deprecation",
+											"message": "jobs.some-job.plan[1].task.some-task specifies both ` + "`file` and `config`" + ` in a task step"
+										}]
 									}`))
 								})
 							})
@@ -673,7 +654,7 @@ jobs:
 						Context("when paused is specified", func() {
 							BeforeEach(func() {
 								pausedValue = "true"
-								expectedDBValue = db.PipelinePaused
+								expectedDBValue = dbng.PipelinePaused
 							})
 
 							itSavesThePipeline()
@@ -682,7 +663,7 @@ jobs:
 						Context("when unpaused is specified", func() {
 							BeforeEach(func() {
 								pausedValue = "false"
-								expectedDBValue = db.PipelineUnpaused
+								expectedDBValue = dbng.PipelineUnpaused
 							})
 
 							itSavesThePipeline()
@@ -691,7 +672,7 @@ jobs:
 						Context("when neither paused or unpaused is specified", func() {
 							BeforeEach(func() {
 								pausedValue = ""
-								expectedDBValue = db.PipelineNoChange
+								expectedDBValue = dbng.PipelineNoChange
 							})
 
 							itSavesThePipeline()
@@ -775,7 +756,7 @@ jobs:
 								})
 
 								It("does not save anything", func() {
-									Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
+									Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 								})
 							})
 
@@ -814,7 +795,7 @@ jobs:
 								})
 
 								It("does not save anything", func() {
-									Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
+									Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 								})
 							})
 						})
@@ -836,7 +817,7 @@ jobs:
 					})
 
 					It("does not save it", func() {
-						Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+						Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 					})
 				})
 
@@ -867,7 +848,7 @@ jobs:
 					})
 
 					It("does not save it", func() {
-						Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+						Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 					})
 				})
 			})
@@ -891,7 +872,7 @@ jobs:
 				})
 
 				It("does not save it", func() {
-					Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+					Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 				})
 			})
 
@@ -914,7 +895,7 @@ jobs:
 				})
 
 				It("does not save it", func() {
-					Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+					Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -929,7 +910,7 @@ jobs:
 			})
 
 			It("does not save the config", func() {
-				Expect(teamDB.SaveConfigCallCount()).To(BeZero())
+				Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 			})
 		})
 	})

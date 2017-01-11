@@ -71,7 +71,7 @@ var _ = Describe("Build", func() {
 		}
 
 		var err error
-		pipeline, _, err = teamDB.SaveConfig("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+		pipeline, _, err = teamDB.SaveConfigToBeDeprecated("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
@@ -687,7 +687,7 @@ var _ = Describe("Build", func() {
 						},
 					}
 
-					pipeline, _, err = teamDB.SaveConfig("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
+					pipeline, _, err = teamDB.SaveConfigToBeDeprecated("some-pipeline", pipelineConfig, db.ConfigVersion(1), db.PipelineUnpaused)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = pipelineDB.SaveResourceVersions(

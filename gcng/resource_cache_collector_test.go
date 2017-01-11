@@ -50,7 +50,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						"some": "source",
 					},
 					nil,
-					defaultPipeline,
+					defaultPipeline.ID(),
 					atc.ResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -91,7 +91,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						var jobId int
 						err = psql.Insert("jobs").
 							Columns("name", "pipeline_id", "config").
-							Values("lousy-job", defaultPipeline.ID, `{"some":"config"}`).
+							Values("lousy-job", defaultPipeline.ID(), `{"some":"config"}`).
 							Suffix("RETURNING id").
 							RunWith(tx).QueryRow().Scan(&jobId)
 						Expect(err).NotTo(HaveOccurred())
@@ -139,7 +139,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 								defer tx.Rollback()
 								err = psql.Insert("jobs").
 									Columns("name", "pipeline_id", "config").
-									Values("lousy-job", defaultPipeline.ID, `{"some":"config"}`).
+									Values("lousy-job", defaultPipeline.ID(), `{"some":"config"}`).
 									Suffix("RETURNING id").
 									RunWith(tx).QueryRow().Scan(&jobId)
 								Expect(err).NotTo(HaveOccurred())
@@ -161,7 +161,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 							Context("when the cache is for an older image_resource_version", func() {
 								BeforeEach(func() {
-									newBuild, err := buildFactory.CreateOneOffBuild(defaultTeam)
+									newBuild, err := defaultTeam.CreateOneOffBuild()
 									Expect(err).NotTo(HaveOccurred())
 									_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 										logger,
@@ -172,7 +172,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 											"some": "source",
 										},
 										nil,
-										defaultPipeline,
+										defaultPipeline.ID(),
 										atc.ResourceTypes{},
 									)
 									Expect(err).NotTo(HaveOccurred())

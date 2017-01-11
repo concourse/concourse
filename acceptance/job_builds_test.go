@@ -1,9 +1,6 @@
 package acceptance_test
 
 import (
-	"time"
-
-	"github.com/lib/pq"
 	"github.com/sclevine/agouti"
 
 	. "github.com/onsi/ginkgo"
@@ -12,45 +9,33 @@ import (
 
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/dbng"
 )
 
 var _ = Describe("Job Builds", func() {
 	var atcCommand *ATCCommand
-	var dbListener *pq.Listener
-	var pipelineDBFactory db.PipelineDBFactory
-	var pipelineDB db.PipelineDB
-	var teamDBFactory db.TeamDBFactory
-	var teamName = atc.DefaultTeamName
+	var defaultTeam dbng.Team
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
-		dbConn = db.Wrap(postgresRunner.Open())
-		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		bus := db.NewNotificationsBus(dbListener, dbConn)
+		dbngConn = dbng.Wrap(postgresRunner.Open())
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(lockfakes.FakeConnector)
-		retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := lock.NewLockFactory(retryableConn)
-		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
+		teamFactory := dbng.NewTeamFactory(dbngConn)
+		var err error
+		var found bool
+		defaultTeam, found, err = teamFactory.FindTeam(atc.DefaultTeamName)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue()) // created by postgresRunner
 
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
-		err := atcCommand.Start()
+		err = atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
-
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
 	})
 
 	AfterEach(func() {
 		atcCommand.Stop()
 
-		Expect(dbConn.Close()).To(Succeed())
-		Expect(dbListener.Close()).To(Succeed())
+		Expect(dbngConn.Close()).To(Succeed())
 	})
 
 	Describe("viewing a jobs builds", func() {
@@ -76,29 +61,22 @@ var _ = Describe("Job Builds", func() {
 
 		Context("with a job in the configuration", func() {
 			var pipelineName = "some-pipeline"
+			var pipeline dbng.Pipeline
 
 			BeforeEach(func() {
-				teamDB := teamDBFactory.GetTeamDB(teamName)
-
-				// job build data
-				_, _, err := teamDB.SaveConfig(pipelineName, atc.Config{
+				var err error
+				pipeline, _, err = defaultTeam.SavePipeline(pipelineName, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
-
-				savedPipeline, found, err := teamDB.GetPipelineByName(pipelineName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				pipelineDB = pipelineDBFactory.Build(savedPipeline)
 			})
 
 			Context("with more then 100 job builds", func() {
 				BeforeEach(func() {
 					for i := 1; i < 104; i++ {
-						_, err := pipelineDB.CreateJobBuild("job-name")
+						_, err := pipeline.CreateJobBuild("job-name")
 						Expect(err).NotTo(HaveOccurred())
 					}
 				})
@@ -116,7 +94,7 @@ var _ = Describe("Job Builds", func() {
 					// job detail w/build info -> job detail
 					Eventually(page.Find("h1 a")).Should(BeFound())
 					Expect(page.Find("h1 a").Click()).To(Succeed())
-					Eventually(page).Should(HaveURL(withPath("/teams/" + teamName + "/pipelines/" + pipelineName + "/jobs/job-name")))
+					Eventually(page).Should(HaveURL(withPath("/teams/" + atc.DefaultTeamName + "/pipelines/" + pipelineName + "/jobs/job-name")))
 					Eventually(page.All(".js-build").Count).Should(Equal(100))
 
 					Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())

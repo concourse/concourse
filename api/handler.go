@@ -57,7 +57,6 @@ func NewHandler(
 	pipeDB pipes.PipeDB,
 	pipelinesDB db.PipelinesDB,
 
-	configValidator configserver.ConfigValidator,
 	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
 	drain <-chan struct{},
@@ -112,7 +111,7 @@ func NewHandler(
 
 	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory, pipelinesDB)
 
-	configServer := configserver.NewServer(logger, teamDBFactory, configValidator)
+	configServer := configserver.NewServer(logger, teamDBFactory, dbTeamFactory)
 
 	workerServer := workerserver.NewServer(logger, workerDB, teamDBFactory, dbTeamFactory, dbWorkerFactory)
 
@@ -187,6 +186,7 @@ func NewHandler(
 		atc.RegisterWorker:  http.HandlerFunc(workerServer.RegisterWorker),
 		atc.LandWorker:      http.HandlerFunc(workerServer.LandWorker),
 		atc.RetireWorker:    http.HandlerFunc(workerServer.RetireWorker),
+		atc.PruneWorker:     http.HandlerFunc(workerServer.PruneWorker),
 		atc.HeartbeatWorker: http.HandlerFunc(workerServer.HeartbeatWorker),
 		atc.DeleteWorker:    http.HandlerFunc(workerServer.DeleteWorker),
 

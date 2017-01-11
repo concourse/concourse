@@ -82,7 +82,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				}
 				resourceType1Used, err = dbng.ResourceType{
 					ResourceType: resourceType1,
-					Pipeline:     defaultPipeline,
+					PipelineID:   defaultPipeline.ID(),
 				}.Create(setupTx, atc.Version{"some-type": "version"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
@@ -99,7 +99,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						defaultPipeline,
+						defaultPipeline.ID(),
 						atc.ResourceTypes{
 							resourceType1,
 						},
@@ -152,7 +152,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							defer tx.Rollback()
 							err = psql.Insert("jobs").
 								Columns("name", "pipeline_id", "config").
-								Values("lousy-job", defaultPipeline.ID, `{"some":"config"}`).
+								Values("lousy-job", defaultPipeline.ID(), `{"some":"config"}`).
 								Suffix("RETURNING id").
 								RunWith(tx).QueryRow().Scan(&jobId)
 							Expect(err).NotTo(HaveOccurred())
@@ -186,7 +186,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						Context("when a later build of the same job has failed also", func() {
 							BeforeEach(func() {
-								_, err = buildFactory.CreateOneOffBuild(defaultTeam)
+								_, err = defaultTeam.CreateOneOffBuild()
 								Expect(err).NotTo(HaveOccurred())
 							})
 
@@ -225,17 +225,17 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					var firstBuild *dbng.Build
 
 					BeforeEach(func() {
-						tx, err := dbConn.Begin()
-						Expect(err).NotTo(HaveOccurred())
-						defer tx.Rollback()
-
-						err = defaultPipeline.SaveJob(tx, atc.JobConfig{
+						err = defaultPipeline.SaveJob(atc.JobConfig{
 							Name: "some-job",
 						})
 						Expect(err).NotTo(HaveOccurred())
 
-						firstBuild, err = defaultPipeline.CreateJobBuild(tx, "some-job")
+						firstBuild, err = defaultPipeline.CreateJobBuild("some-job")
 						Expect(err).NotTo(HaveOccurred())
+
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+						defer tx.Rollback()
 
 						imageVersion := atc.Version{"ref": "abc"}
 						err = firstBuild.SaveImageResourceVersion(tx, atc.PlanID("123"), imageVersion, "some-resource-hash")
@@ -252,7 +252,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								"some": "source",
 							},
 							nil,
-							defaultPipeline,
+							defaultPipeline.ID(),
 							atc.ResourceTypes{},
 						)
 						Expect(err).NotTo(HaveOccurred())
@@ -267,13 +267,12 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					})
 
 					It("deletes the use for old build image resource", func() {
+						secondBuild, err := defaultPipeline.CreateJobBuild("some-job")
+						Expect(err).NotTo(HaveOccurred())
+
 						tx, err := dbConn.Begin()
 						Expect(err).NotTo(HaveOccurred())
 						defer tx.Rollback()
-
-						secondBuild, err := defaultPipeline.CreateJobBuild(tx, "some-job")
-						Expect(err).NotTo(HaveOccurred())
-
 						imageVersion2 := atc.Version{"ref": "abc2"}
 						err = secondBuild.SaveImageResourceVersion(tx, atc.PlanID("123"), imageVersion2, "some-resource-hash")
 						Expect(err).NotTo(HaveOccurred())
@@ -291,7 +290,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								"some": "source",
 							},
 							nil,
-							defaultPipeline,
+							defaultPipeline.ID(),
 							atc.ResourceTypes{},
 						)
 						Expect(err).NotTo(HaveOccurred())
@@ -348,7 +347,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						defaultPipeline,
+						defaultPipeline.ID(),
 						atc.ResourceTypes{
 							resourceType1,
 						},
@@ -405,7 +404,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						defaultPipeline,
+						defaultPipeline.ID(),
 						atc.ResourceTypes{
 							resourceType1,
 						},

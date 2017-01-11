@@ -1167,10 +1167,6 @@ var _ = Describe("GardenFactory", func() {
 									repo.RegisterSource("some-image-artifact", imageArtifactSource)
 								})
 
-								JustBeforeEach(func() {
-									Eventually(process.Wait()).Should(Receive(BeNil()))
-								})
-
 								It("creates the container with the image artifact source", func() {
 									_, _, _, _, _, spec, _, _ := fakeWorker.FindOrCreateBuildContainerArgsForCall(0)
 									Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
@@ -1285,6 +1281,12 @@ var _ = Describe("GardenFactory", func() {
 											})
 										})
 									})
+								})
+							})
+
+							Context("when the image artifact is NOT registered in the source repo", func() {
+								It("exits with the MissingTaskImageSourceError", func() {
+									Eventually(process.Wait()).Should(Receive(Equal(MissingTaskImageSourceError{"some-image-artifact"})))
 								})
 							})
 						})

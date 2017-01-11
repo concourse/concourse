@@ -138,4 +138,5 @@ var Migrations = []migration.Migrator{
 	AddNotNullConstraintToContainerHandle,
 	RemoveTTLFromContainers,
 	AddRunningWorkerMustHaveAddrConstraint,
+	AddInterruptibleToJob,
 }

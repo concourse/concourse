@@ -33,7 +33,7 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenType, tokenValue, err := s.tokenGenerator.GenerateToken(time.Now().Add(s.expire), team.Name, team.ID, team.Admin)
+	tokenType, tokenValue, err := s.tokenGenerator.GenerateToken(time.Now().Add(s.expire), team.Name, team.Admin)
 	if err != nil {
 		logger.Error("generate-token", err)
 		w.WriteHeader(http.StatusInternalServerError)

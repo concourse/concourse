@@ -36,7 +36,7 @@ var _ = Describe("Volumes API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("some-team", 42, true, true)
+				userContextReader.GetTeamReturns("some-team", true, true)
 			})
 
 			Context("when identifying the team errors", func() {

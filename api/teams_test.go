@@ -205,7 +205,7 @@ var _ = Describe("Teams API", func() {
 
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns(atc.DefaultTeamName, 1, true, true)
+				userContextReader.GetTeamReturns(atc.DefaultTeamName, true, true)
 			})
 
 			Describe("request body validation", func() {
@@ -853,7 +853,7 @@ var _ = Describe("Teams API", func() {
 						},
 					}
 					teamDB.GetTeamReturns(savedTeam, true, nil)
-					userContextReader.GetTeamReturns("non-admin-team", 5, false, true)
+					userContextReader.GetTeamReturns("non-admin-team", false, true)
 				})
 
 				It("updates requested team", func() {
@@ -892,7 +892,7 @@ var _ = Describe("Teams API", func() {
 
 			Context("when updating another team", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("another-non-admin-team", 5, false, true)
+					userContextReader.GetTeamReturns("another-non-admin-team", false, true)
 				})
 
 				It("updates requested team", func() {
@@ -907,7 +907,7 @@ var _ = Describe("Teams API", func() {
 
 			Context("when team does not exist", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("non-admin-team", 5, false, true)
+					userContextReader.GetTeamReturns("non-admin-team", false, true)
 					teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 				})
 
@@ -931,7 +931,7 @@ var _ = Describe("Teams API", func() {
 
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("", 0, false, false)
+				userContextReader.GetTeamReturns("", false, false)
 			})
 
 			It("returns 500 internal server error", func() {
@@ -974,7 +974,7 @@ var _ = Describe("Teams API", func() {
 
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns(atc.DefaultTeamName, 1, true, true)
+				userContextReader.GetTeamReturns(atc.DefaultTeamName, true, true)
 			})
 
 			Context("when there's a problem finding teams", func() {
@@ -1058,7 +1058,7 @@ var _ = Describe("Teams API", func() {
 
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns(atc.DefaultTeamName, 1, false, true)
+				userContextReader.GetTeamReturns(atc.DefaultTeamName, false, true)
 			})
 
 			It("returns 403 forbidden", func() {
@@ -1080,7 +1080,7 @@ var _ = Describe("Teams API", func() {
 
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("", 0, false, false)
+				userContextReader.GetTeamReturns("", false, false)
 			})
 
 			It("returns 500 internal server error", func() {

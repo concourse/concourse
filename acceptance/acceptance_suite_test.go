@@ -11,6 +11,7 @@ import (
 	. "github.com/sclevine/agouti/matchers"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
 
@@ -30,6 +31,7 @@ var (
 
 	postgresRunner postgresrunner.Runner
 	dbConn         db.Conn
+	dbngConn       dbng.Conn
 	dbProcess      ifrit.Process
 
 	sqlDB *db.SQLDB

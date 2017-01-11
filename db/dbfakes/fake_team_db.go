@@ -103,15 +103,15 @@ type FakeTeamDB struct {
 		result3 db.ConfigVersion
 		result4 error
 	}
-	SaveConfigStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.SavedPipeline, bool, error)
-	saveConfigMutex       sync.RWMutex
-	saveConfigArgsForCall []struct {
+	SaveConfigToBeDeprecatedStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.SavedPipeline, bool, error)
+	saveConfigToBeDeprecatedMutex       sync.RWMutex
+	saveConfigToBeDeprecatedArgsForCall []struct {
 		arg1 string
 		arg2 atc.Config
 		arg3 db.ConfigVersion
 		arg4 db.PipelinePausedState
 	}
-	saveConfigReturns struct {
+	saveConfigToBeDeprecatedReturns struct {
 		result1 db.SavedPipeline
 		result2 bool
 		result3 error
@@ -513,38 +513,38 @@ func (fake *FakeTeamDB) GetConfigReturns(result1 atc.Config, result2 atc.RawConf
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeTeamDB) SaveConfig(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) (db.SavedPipeline, bool, error) {
-	fake.saveConfigMutex.Lock()
-	fake.saveConfigArgsForCall = append(fake.saveConfigArgsForCall, struct {
+func (fake *FakeTeamDB) SaveConfigToBeDeprecated(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) (db.SavedPipeline, bool, error) {
+	fake.saveConfigToBeDeprecatedMutex.Lock()
+	fake.saveConfigToBeDeprecatedArgsForCall = append(fake.saveConfigToBeDeprecatedArgsForCall, struct {
 		arg1 string
 		arg2 atc.Config
 		arg3 db.ConfigVersion
 		arg4 db.PipelinePausedState
 	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("SaveConfig", []interface{}{arg1, arg2, arg3, arg4})
-	fake.saveConfigMutex.Unlock()
-	if fake.SaveConfigStub != nil {
-		return fake.SaveConfigStub(arg1, arg2, arg3, arg4)
+	fake.recordInvocation("SaveConfigToBeDeprecated", []interface{}{arg1, arg2, arg3, arg4})
+	fake.saveConfigToBeDeprecatedMutex.Unlock()
+	if fake.SaveConfigToBeDeprecatedStub != nil {
+		return fake.SaveConfigToBeDeprecatedStub(arg1, arg2, arg3, arg4)
 	} else {
-		return fake.saveConfigReturns.result1, fake.saveConfigReturns.result2, fake.saveConfigReturns.result3
+		return fake.saveConfigToBeDeprecatedReturns.result1, fake.saveConfigToBeDeprecatedReturns.result2, fake.saveConfigToBeDeprecatedReturns.result3
 	}
 }
 
-func (fake *FakeTeamDB) SaveConfigCallCount() int {
-	fake.saveConfigMutex.RLock()
-	defer fake.saveConfigMutex.RUnlock()
-	return len(fake.saveConfigArgsForCall)
+func (fake *FakeTeamDB) SaveConfigToBeDeprecatedCallCount() int {
+	fake.saveConfigToBeDeprecatedMutex.RLock()
+	defer fake.saveConfigToBeDeprecatedMutex.RUnlock()
+	return len(fake.saveConfigToBeDeprecatedArgsForCall)
 }
 
-func (fake *FakeTeamDB) SaveConfigArgsForCall(i int) (string, atc.Config, db.ConfigVersion, db.PipelinePausedState) {
-	fake.saveConfigMutex.RLock()
-	defer fake.saveConfigMutex.RUnlock()
-	return fake.saveConfigArgsForCall[i].arg1, fake.saveConfigArgsForCall[i].arg2, fake.saveConfigArgsForCall[i].arg3, fake.saveConfigArgsForCall[i].arg4
+func (fake *FakeTeamDB) SaveConfigToBeDeprecatedArgsForCall(i int) (string, atc.Config, db.ConfigVersion, db.PipelinePausedState) {
+	fake.saveConfigToBeDeprecatedMutex.RLock()
+	defer fake.saveConfigToBeDeprecatedMutex.RUnlock()
+	return fake.saveConfigToBeDeprecatedArgsForCall[i].arg1, fake.saveConfigToBeDeprecatedArgsForCall[i].arg2, fake.saveConfigToBeDeprecatedArgsForCall[i].arg3, fake.saveConfigToBeDeprecatedArgsForCall[i].arg4
 }
 
-func (fake *FakeTeamDB) SaveConfigReturns(result1 db.SavedPipeline, result2 bool, result3 error) {
-	fake.SaveConfigStub = nil
-	fake.saveConfigReturns = struct {
+func (fake *FakeTeamDB) SaveConfigToBeDeprecatedReturns(result1 db.SavedPipeline, result2 bool, result3 error) {
+	fake.SaveConfigToBeDeprecatedStub = nil
+	fake.saveConfigToBeDeprecatedReturns = struct {
 		result1 db.SavedPipeline
 		result2 bool
 		result3 error
@@ -732,8 +732,8 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.updateGenericOAuthMutex.RUnlock()
 	fake.getConfigMutex.RLock()
 	defer fake.getConfigMutex.RUnlock()
-	fake.saveConfigMutex.RLock()
-	defer fake.saveConfigMutex.RUnlock()
+	fake.saveConfigToBeDeprecatedMutex.RLock()
+	defer fake.saveConfigToBeDeprecatedMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()
 	defer fake.createOneOffBuildMutex.RUnlock()
 	fake.getPrivateAndPublicBuildsMutex.RLock()

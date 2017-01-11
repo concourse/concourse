@@ -95,7 +95,7 @@ func (factory *gardenFactory) Get(
 			resourceConfig.Source,
 			params,
 			&dbng.Build{ID: id.BuildID},
-			&dbng.Pipeline{ID: workerMetadata.PipelineID},
+			workerMetadata.PipelineID,
 			resourceTypes,
 			factory.dbResourceCacheFactory,
 		),

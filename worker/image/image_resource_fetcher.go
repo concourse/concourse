@@ -109,7 +109,7 @@ func (i *imageResourceFetcher) Fetch(
 			imageResourceSource,
 			nil,
 			&dbng.Build{ID: id.BuildID},
-			&dbng.Pipeline{ID: metadata.PipelineID},
+			metadata.PipelineID,
 			customTypes,
 			i.dbResourceCacheFactory,
 		)
@@ -120,7 +120,7 @@ func (i *imageResourceFetcher) Fetch(
 			imageResourceSource,
 			nil,
 			&dbng.Resource{ID: id.ResourceID},
-			&dbng.Pipeline{ID: metadata.PipelineID},
+			metadata.PipelineID,
 			customTypes,
 			i.dbResourceCacheFactory,
 		)
@@ -131,7 +131,7 @@ func (i *imageResourceFetcher) Fetch(
 			imageResourceSource,
 			nil,
 			&dbng.UsedResourceType{ID: id.ResourceTypeID},
-			&dbng.Pipeline{ID: metadata.PipelineID},
+			metadata.PipelineID,
 			customTypes,
 			i.dbResourceCacheFactory,
 		)

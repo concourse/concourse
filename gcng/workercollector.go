@@ -1,8 +1,6 @@
 package gcng
 
 import (
-	"fmt"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/dbng"
 )
@@ -23,27 +21,38 @@ func NewWorkerCollector(
 }
 
 func (wc *workerCollector) Run() error {
+	logger := wc.logger.Session("collect")
+
 	affected, err := wc.workerFactory.StallUnresponsiveWorkers()
 	if err != nil {
-		wc.logger.Error("failed-to-mark-workers-as-stalled", err)
+		logger.Error("failed-to-mark-workers-as-stalled", err)
 		return err
 	}
 
-	wc.logger.Debug(fmt.Sprintf("stalled-%d-workers", len(affected)), lager.Data{"stalled-workers": affected})
+	if len(affected) > 0 {
+		workerNames := make([]string, len(affected))
+		for i, w := range affected {
+			workerNames[i] = w.Name
+		}
+
+		logger.Debug("stalled", lager.Data{"count": len(affected), "workers": workerNames})
+	}
 
 	err = wc.workerFactory.DeleteFinishedRetiringWorkers()
 	if err != nil {
-		wc.logger.Error("failed-to-delete-finished-retiring-workers", err)
+		logger.Error("failed-to-delete-finished-retiring-workers", err)
 		return err
 	}
+
+	logger.Debug("deleted-finished-retiring-workers")
 
 	err = wc.workerFactory.LandFinishedLandingWorkers()
 	if err != nil {
-		wc.logger.Error("failed-to-land-finished-landing-workers", err)
+		logger.Error("failed-to-land-finished-landing-workers", err)
 		return err
 	}
 
-	wc.logger.Debug("completed-deleting-finished-landing-workers")
+	logger.Debug("landed-finished-landing-workers")
 
 	return nil
 }

@@ -87,7 +87,7 @@ var _ = Describe("Locks", func() {
 			},
 		}
 
-		savedPipeline, _, err := teamDB.SaveConfig("pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+		savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated("pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)

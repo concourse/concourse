@@ -20,7 +20,7 @@ func (e ErrResourceTypeNotFound) Error() string {
 type ResourceType struct {
 	atc.ResourceType
 
-	Pipeline *Pipeline
+	PipelineID int
 }
 
 type UsedResourceType struct {
@@ -35,7 +35,7 @@ func (resourceType ResourceType) Find(tx Tx) (*UsedResourceType, bool, error) {
 	err := psql.Select("id", "version").
 		From("resource_types").
 		Where(sq.Eq{
-			"pipeline_id": resourceType.Pipeline.ID,
+			"pipeline_id": resourceType.PipelineID,
 			"name":        resourceType.Name,
 		}).
 		RunWith(tx).
@@ -75,7 +75,7 @@ func (resourceType ResourceType) Create(tx Tx, version atc.Version) (*UsedResour
 	}
 
 	columns := []string{"pipeline_id", "name", "type", "config", "version"}
-	values := []interface{}{resourceType.Pipeline.ID, resourceType.Name, resourceType.Type, configPayload, versionString}
+	values := []interface{}{resourceType.PipelineID, resourceType.Name, resourceType.Type, configPayload, versionString}
 
 	var id int
 	err = psql.Insert("resource_types").

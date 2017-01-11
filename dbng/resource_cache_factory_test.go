@@ -41,7 +41,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		}
 		_, err = dbng.ResourceType{
 			ResourceType: resourceType1,
-			Pipeline:     defaultPipeline,
+			PipelineID:   defaultPipeline.ID(),
 		}.Create(setupTx, atc.Version{"some-type": "version"})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -54,7 +54,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		}
 		_, err = dbng.ResourceType{
 			ResourceType: resourceType2,
-			Pipeline:     defaultPipeline,
+			PipelineID:   defaultPipeline.ID(),
 		}.Create(setupTx, atc.Version{"some-type-type": "version"})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -64,7 +64,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		}
 		_, err = dbng.ResourceType{
 			ResourceType: resourceType3,
-			Pipeline:     defaultPipeline,
+			PipelineID:   defaultPipeline.ID(),
 		}.Create(setupTx, atc.Version{"some-unused-type": "version"})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -89,7 +89,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				defaultPipeline,
+				defaultPipeline.ID(),
 				atc.ResourceTypes{
 					resourceType1,
 					resourceType2,
@@ -176,7 +176,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				defaultPipeline,
+				defaultPipeline.ID(),
 				atc.ResourceTypes{
 					resourceType1,
 					{

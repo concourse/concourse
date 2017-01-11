@@ -384,7 +384,7 @@ var _ = Describe("Image", func() {
 								atc.Source{"some": "source"},
 								nil,
 								&dbng.Build{ID: 42},
-								&dbng.Pipeline{ID: 4567},
+								4567,
 								customTypes,
 								fakeResourceCacheFactory,
 							)))

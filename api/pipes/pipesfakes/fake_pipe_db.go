@@ -9,12 +9,12 @@ import (
 )
 
 type FakePipeDB struct {
-	CreatePipeStub        func(pipeGUID string, url string, teamID int) error
+	CreatePipeStub        func(pipeGUID string, url string, teamName string) error
 	createPipeMutex       sync.RWMutex
 	createPipeArgsForCall []struct {
 		pipeGUID string
 		url      string
-		teamID   int
+		teamName string
 	}
 	createPipeReturns struct {
 		result1 error
@@ -32,17 +32,17 @@ type FakePipeDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePipeDB) CreatePipe(pipeGUID string, url string, teamID int) error {
+func (fake *FakePipeDB) CreatePipe(pipeGUID string, url string, teamName string) error {
 	fake.createPipeMutex.Lock()
 	fake.createPipeArgsForCall = append(fake.createPipeArgsForCall, struct {
 		pipeGUID string
 		url      string
-		teamID   int
-	}{pipeGUID, url, teamID})
-	fake.recordInvocation("CreatePipe", []interface{}{pipeGUID, url, teamID})
+		teamName string
+	}{pipeGUID, url, teamName})
+	fake.recordInvocation("CreatePipe", []interface{}{pipeGUID, url, teamName})
 	fake.createPipeMutex.Unlock()
 	if fake.CreatePipeStub != nil {
-		return fake.CreatePipeStub(pipeGUID, url, teamID)
+		return fake.CreatePipeStub(pipeGUID, url, teamName)
 	} else {
 		return fake.createPipeReturns.result1
 	}
@@ -54,10 +54,10 @@ func (fake *FakePipeDB) CreatePipeCallCount() int {
 	return len(fake.createPipeArgsForCall)
 }
 
-func (fake *FakePipeDB) CreatePipeArgsForCall(i int) (string, string, int) {
+func (fake *FakePipeDB) CreatePipeArgsForCall(i int) (string, string, string) {
 	fake.createPipeMutex.RLock()
 	defer fake.createPipeMutex.RUnlock()
-	return fake.createPipeArgsForCall[i].pipeGUID, fake.createPipeArgsForCall[i].url, fake.createPipeArgsForCall[i].teamID
+	return fake.createPipeArgsForCall[i].pipeGUID, fake.createPipeArgsForCall[i].url, fake.createPipeArgsForCall[i].teamName
 }
 
 func (fake *FakePipeDB) CreatePipeReturns(result1 error) {

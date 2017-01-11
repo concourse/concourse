@@ -166,13 +166,13 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("returns true for created", func() {
-			_, created, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, created, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(created).To(BeTrue())
 		})
 
 		It("caches the team id", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
@@ -182,7 +182,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("can be saved as paused", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
@@ -193,7 +193,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("can be saved as unpaused", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
@@ -204,7 +204,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("defaults to paused", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
@@ -215,7 +215,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("creates all of the resources from the pipeline in the database", func() {
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
@@ -233,14 +233,14 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("updates resource config", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			config.Resources[0].Source = atc.Source{
 				"source-other-config": "some-other-value",
 			}
 
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 1, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 1, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
@@ -258,12 +258,12 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("marks resource as inactive if it is no longer in config", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			config.Resources = []atc.ResourceConfig{}
 
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 1, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 1, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
@@ -274,7 +274,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("creates all of the resource types from the pipeline in the database", func() {
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
@@ -292,14 +292,14 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("updates resource type config from the pipeline in the database", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			config.ResourceTypes[0].Source = atc.Source{
 				"source-other-config": "some-other-value",
 			}
 
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 1, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 1, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
@@ -317,12 +317,12 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("marks resource type as inactive if it is no longer in config", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			config.ResourceTypes = []atc.ResourceType{}
 
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 1, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 1, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
@@ -333,7 +333,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("creates all of the jobs from the pipeline in the database", func() {
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
@@ -345,12 +345,12 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("updates job config", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			config.Jobs[0].Public = false
 
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 1, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 1, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
@@ -362,12 +362,12 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("marks job inactive", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			config.Jobs = []atc.JobConfig{}
 
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 1, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 1, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipelineDB := pipelineDBFactory.Build(savedPipeline)
@@ -378,7 +378,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("creates all of the serial groups from the jobs in the database", func() {
-			savedPipeline, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			serialGroups := []SerialGroup{}
@@ -419,19 +419,19 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("it returns created as false", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, _, configVersion, err := teamDB.GetConfig(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, created, err := teamDB.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
+			_, created, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, configVersion, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(created).To(BeFalse())
 		})
 
 		It("updating from paused to unpaused", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
@@ -442,7 +442,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, configVersion, err := teamDB.GetConfig(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, err = teamDB.SaveConfig(pipelineName, config, configVersion, db.PipelineUnpaused)
+			_, _, err = teamDB.SaveConfigToBeDeprecated(pipelineName, config, configVersion, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, found, err = teamDB.GetPipelineByName(pipelineName)
@@ -452,7 +452,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("updating from unpaused to paused", func() {
-			_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+			_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
@@ -463,7 +463,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			_, _, configVersion, err := teamDB.GetConfig(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, err = teamDB.SaveConfig(pipelineName, config, configVersion, db.PipelinePaused)
+			_, _, err = teamDB.SaveConfigToBeDeprecated(pipelineName, config, configVersion, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, found, err = teamDB.GetPipelineByName(pipelineName)
@@ -474,7 +474,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 		Context("updating with no change", func() {
 			It("maintains paused if the pipeline is paused", func() {
-				_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
+				_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelinePaused)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
@@ -485,7 +485,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				_, _, configVersion, err := teamDB.GetConfig(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, _, err = teamDB.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
+				_, _, err = teamDB.SaveConfigToBeDeprecated(pipelineName, config, configVersion, db.PipelineNoChange)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, found, err = teamDB.GetPipelineByName(pipelineName)
@@ -495,7 +495,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			})
 
 			It("maintains unpaused if the pipeline is unpaused", func() {
-				_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+				_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
@@ -506,7 +506,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				_, _, configVersion, err := teamDB.GetConfig(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, _, err = teamDB.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
+				_, _, err = teamDB.SaveConfigToBeDeprecated(pipelineName, config, configVersion, db.PipelineNoChange)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, found, err = teamDB.GetPipelineByName(pipelineName)
@@ -521,9 +521,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		pipelineName := "a-pipeline-name"
 		otherPipelineName := "an-other-pipeline-name"
 
-		_, _, err := teamDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+		_, _, err := teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
-		_, _, err = teamDB.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipeline, found, err := teamDB.GetPipelineByName(pipelineName)
@@ -542,22 +542,22 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 	})
 
 	It("can order pipelines", func() {
-		_, _, err := teamDB.SaveConfig("some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		_, _, err := teamDB.SaveConfigToBeDeprecated("some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig("pipeline-1", config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-1", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig("pipeline-2", config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-2", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig("pipeline-3", config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-3", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig("pipeline-4", config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-4", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig("pipeline-5", config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-5", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = teamDB.OrderPipelines([]string{
@@ -570,13 +570,13 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig("pipeline-6", config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated("pipeline-6", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelines, err := teamDB.GetPipelines()
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(pipelines).To(Equal([]db.SavedPipeline{
+		Expect(pipelines).To(ConsistOf([]db.SavedPipeline{
 			{
 				ID:       5,
 				TeamID:   team.ID,
@@ -655,13 +655,13 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		pipelineName := "a-pipeline-name"
 		otherPipelineName := "an-other-pipeline-name"
 
-		_, _, err := teamDB.SaveConfig("some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		_, _, err := teamDB.SaveConfigToBeDeprecated("some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = teamDB.OrderPipelines([]string{
@@ -708,7 +708,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 	})
 
 	It("can lookup configs by build id", func() {
-		savedPipeline, _, err := teamDB.SaveConfig("my-pipeline", config, 0, db.PipelineUnpaused)
+		savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated("my-pipeline", config, 0, db.PipelineUnpaused)
 
 		myPipelineDB := pipelineDBFactory.Build(savedPipeline)
 
@@ -732,10 +732,10 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		Expect(initialOtherConfig).To(BeZero())
 
 		By("being able to save the config")
-		_, _, err = teamDB.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(pipelineName, config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = teamDB.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("returning the saved config to later gets")
@@ -788,22 +788,22 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		By("not allowing non-sequential updates")
-		_, _, err = teamDB.SaveConfig(pipelineName, updatedConfig, configVersion-1, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(pipelineName, updatedConfig, configVersion-1, db.PipelineUnpaused)
 		Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
-		_, _, err = teamDB.SaveConfig(pipelineName, updatedConfig, configVersion+10, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(pipelineName, updatedConfig, configVersion+10, db.PipelineUnpaused)
 		Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
-		_, _, err = teamDB.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion-1, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(otherPipelineName, updatedConfig, otherConfigVersion-1, db.PipelineUnpaused)
 		Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
-		_, _, err = teamDB.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion+10, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(otherPipelineName, updatedConfig, otherConfigVersion+10, db.PipelineUnpaused)
 		Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
 		By("being able to update the config with a valid con")
-		_, _, err = teamDB.SaveConfig(pipelineName, updatedConfig, configVersion, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(pipelineName, updatedConfig, configVersion, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
-		_, _, err = teamDB.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(otherPipelineName, updatedConfig, otherConfigVersion, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("returning the updated config")
@@ -823,7 +823,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 		By("being able to retrieve invalid config")
 		invalidPipelineName := "invalid-config"
-		_, _, err = teamDB.SaveConfig(invalidPipelineName, config, 1, db.PipelineUnpaused)
+		_, _, err = teamDB.SaveConfigToBeDeprecated(invalidPipelineName, config, 1, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		dbConn.Exec(`
@@ -849,11 +849,11 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		})
 
 		It("can allow pipelines with the same name across teams", func() {
-			_, _, err := teamDB.SaveConfig("steve", config, 0, db.PipelineUnpaused)
+			_, _, err := teamDB.SaveConfigToBeDeprecated("steve", config, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("allowing you to save a pipeline with the same name in another team")
-			_, _, err = otherTeamDB.SaveConfig("steve", otherConfig, 0, db.PipelineUnpaused)
+			_, _, err = otherTeamDB.SaveConfigToBeDeprecated("steve", otherConfig, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("getting the config for the correct team's pipeline")
@@ -864,10 +864,10 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			Expect(actualOtherConfig).To(Equal(otherConfig))
 
 			By("updating the pipeline config for the correct team's pipeline")
-			_, _, err = teamDB.SaveConfig("steve", otherConfig, teamPipelineVersion, db.PipelineNoChange)
+			_, _, err = teamDB.SaveConfigToBeDeprecated("steve", otherConfig, teamPipelineVersion, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, err = otherTeamDB.SaveConfig("steve", config, otherTeamPipelineVersion, db.PipelineNoChange)
+			_, _, err = otherTeamDB.SaveConfigToBeDeprecated("steve", config, otherTeamPipelineVersion, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			actualOtherConfig, _, teamPipelineVersion, err = teamDB.GetConfig("steve")
@@ -877,7 +877,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			Expect(actualConfig).To(Equal(config))
 
 			By("pausing the correct team's pipeline")
-			_, _, err = teamDB.SaveConfig("steve", otherConfig, teamPipelineVersion, db.PipelinePaused)
+			_, _, err = teamDB.SaveConfigToBeDeprecated("steve", otherConfig, teamPipelineVersion, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pausedPipeline, found, err := teamDB.GetPipelineByName("steve")
@@ -892,10 +892,10 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			Expect(unpausedPipeline.Paused).To(BeFalse())
 
 			By("cannot cross update configs")
-			_, _, err = teamDB.SaveConfig("steve", otherConfig, otherTeamPipelineVersion, db.PipelineNoChange)
+			_, _, err = teamDB.SaveConfigToBeDeprecated("steve", otherConfig, otherTeamPipelineVersion, db.PipelineNoChange)
 			Expect(err).To(HaveOccurred())
 
-			_, _, err = teamDB.SaveConfig("steve", otherConfig, otherTeamPipelineVersion, db.PipelinePaused)
+			_, _, err = teamDB.SaveConfigToBeDeprecated("steve", otherConfig, otherTeamPipelineVersion, db.PipelinePaused)
 			Expect(err).To(HaveOccurred())
 		})
 	})

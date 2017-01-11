@@ -82,3 +82,24 @@ go run cmd/atc/*.go -d
 ```
 
 Concourse should be live at http://localhost:8080
+
+
+## Building the fly command line tool
+
+If you try to use a released version of `fly` against a development version of atc,
+you will get the following error:
+
+```
+fly -t local ps 
+targeting http://localhost:8080
+
+error: strconv.ParseInt: parsing "0-dev": invalid syntax
+```
+
+To work around that you need to build a local copy and use that instead
+
+```
+cd ${concourse}/src/github.com/concourse/fly
+go build -o fly main.go
+alias fly=${concourse}/src/github.com/concourse/fly/fly
+```

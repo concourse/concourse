@@ -24,13 +24,13 @@ type VolumeClient interface {
 		lager.Logger,
 		VolumeSpec,
 		dbng.CreatingContainer,
-		*dbng.Team,
+		int,
 		string,
 	) (Volume, error)
 	FindOrCreateVolumeForBaseResourceType(
 		lager.Logger,
 		VolumeSpec,
-		*dbng.Team,
+		int,
 		string,
 	) (Volume, error)
 	FindInitializedVolumeForResourceCache(
@@ -75,14 +75,14 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
 	container dbng.CreatingContainer,
-	team *dbng.Team,
+	teamID int,
 	mountPath string,
 ) (Volume, error) {
 	return c.findOrCreateVolume(
 		logger,
 		volumeSpec,
 		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
-			return c.dbVolumeFactory.FindContainerVolume(team, c.dbWorker, container, mountPath)
+			return c.dbVolumeFactory.FindContainerVolume(teamID, c.dbWorker, container, mountPath)
 		},
 		func() (dbng.CreatingVolume, error) {
 			var v dbng.CreatingVolume
@@ -90,7 +90,7 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 			if cowStrategy, ok := volumeSpec.Strategy.(ContainerRootFSStrategy); ok {
 				v, err = cowStrategy.Parent.CreateChildForContainer(container, mountPath)
 			} else {
-				v, err = c.dbVolumeFactory.CreateContainerVolume(team, c.dbWorker, container, mountPath)
+				v, err = c.dbVolumeFactory.CreateContainerVolume(teamID, c.dbWorker, container, mountPath)
 			}
 			if err != nil {
 				return nil, err
@@ -105,7 +105,7 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
-	team *dbng.Team,
+	teamID int,
 	resourceTypeName string,
 ) (Volume, error) {
 	baseResourceType, found, err := c.dbBaseResourceTypeFactory.Find(resourceTypeName)
@@ -121,10 +121,10 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 		logger,
 		volumeSpec,
 		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
-			return c.dbVolumeFactory.FindBaseResourceTypeVolume(team, c.dbWorker, baseResourceType)
+			return c.dbVolumeFactory.FindBaseResourceTypeVolume(teamID, c.dbWorker, baseResourceType)
 		},
 		func() (dbng.CreatingVolume, error) {
-			v, err := c.dbVolumeFactory.CreateBaseResourceTypeVolume(team, c.dbWorker, baseResourceType)
+			v, err := c.dbVolumeFactory.CreateBaseResourceTypeVolume(teamID, c.dbWorker, baseResourceType)
 			if err != nil {
 				return nil, err
 			}

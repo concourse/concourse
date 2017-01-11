@@ -33,7 +33,7 @@ func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
 			Privileged: i.imageSpec.Privileged,
 		},
 		container,
-		&dbng.Team{ID: i.teamID},
+		i.teamID,
 		"/",
 	)
 	if err != nil {
@@ -82,7 +82,7 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 			Privileged: i.imageSpec.Privileged,
 		},
 		container,
-		&dbng.Team{ID: i.teamID},
+		i.teamID,
 		"/",
 	)
 	if err != nil {
@@ -144,7 +144,7 @@ func (i *imageFromResource) FetchForContainer(
 			Privileged: i.imageSpec.Privileged,
 		},
 		container,
-		&dbng.Team{ID: i.teamID},
+		i.teamID,
 		"/",
 	)
 	if err != nil {
@@ -195,7 +195,7 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 			importVolume, err := i.volumeClient.FindOrCreateVolumeForBaseResourceType(
 				logger,
 				importVolumeSpec,
-				&dbng.Team{ID: i.teamID},
+				i.teamID,
 				i.resourceTypeName,
 			)
 			if err != nil {
@@ -212,7 +212,7 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 					Properties: worker.VolumeProperties{},
 				},
 				container,
-				&dbng.Team{ID: i.teamID},
+				i.teamID,
 				"/",
 			)
 			if err != nil {

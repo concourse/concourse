@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	sq "github.com/Masterminds/squirrel"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -40,22 +41,20 @@ var (
 	resourceTypeFactory     dbng.ResourceTypeFactory
 	resourceCacheFactory    dbng.ResourceCacheFactory
 	baseResourceTypeFactory dbng.BaseResourceTypeFactory
-	resourceFactory         *dbng.ResourceFactory
-	pipelineFactory         *dbng.PipelineFactory
-	buildFactory            *dbng.BuildFactory
 
-	defaultTeam           *dbng.Team
-	defaultWorker         *dbng.Worker
-	defaultResourceConfig *dbng.UsedResourceConfig
-	// defaultUsedResourceType  *dbng.UsedResourceType
+	defaultTeam              dbng.Team
+	defaultWorker            *dbng.Worker
+	defaultResourceConfig    *dbng.UsedResourceConfig
 	defaultResourceType      dbng.ResourceType
 	defaultResource          *dbng.Resource
-	defaultPipeline          *dbng.Pipeline
+	defaultPipeline          dbng.Pipeline
 	defaultBuild             *dbng.Build
 	defaultCreatingContainer dbng.CreatingContainer
 	defaultCreatedContainer  dbng.CreatedContainer
 	logger                   *lagertest.TestLogger
 	lockFactory              lock.LockFactory
+
+	psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 )
 
 var _ = BeforeSuite(func() {
@@ -87,9 +86,7 @@ var _ = BeforeEach(func() {
 	resourceTypeFactory = dbng.NewResourceTypeFactory(dbConn)
 	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
-	resourceFactory = dbng.NewResourceFactory(dbConn)
-	pipelineFactory = dbng.NewPipelineFactory(dbConn)
-	buildFactory = dbng.NewBuildFactory(dbConn)
+	teamFactory = dbng.NewTeamFactory(dbConn)
 
 	defaultTeam, err = teamFactory.CreateTeam("default-team")
 	Expect(err).NotTo(HaveOccurred())
@@ -109,17 +106,23 @@ var _ = BeforeEach(func() {
 	defaultWorker, err = workerFactory.SaveWorker(atcWorker, 0)
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultPipeline, err = pipelineFactory.CreatePipeline(defaultTeam, "default-pipeline", "some-config")
+	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
+		Jobs: atc.JobConfigs{
+			{
+				Name: "some-job",
+			},
+		},
+	}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultBuild, err = buildFactory.CreateOneOffBuild(defaultTeam)
+	defaultBuild, err = defaultTeam.CreateOneOffBuild()
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultResource, err = resourceFactory.CreateResource(defaultPipeline, "default-resource", "{\"resource\":\"config\"}")
+	defaultResource, err = defaultPipeline.CreateResource("default-resource", "{\"resource\":\"config\"}")
 	Expect(err).NotTo(HaveOccurred())
 
 	logger = lagertest.NewTestLogger("test")
-	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(logger, defaultResource, "some-base-resource-type", atc.Source{}, defaultPipeline, atc.ResourceTypes{})
+	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(logger, defaultResource, "some-base-resource-type", atc.Source{}, defaultPipeline.ID(), atc.ResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultCreatingContainer, err = containerFactory.CreateResourceCheckContainer(defaultWorker, defaultResourceConfig)

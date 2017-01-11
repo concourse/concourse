@@ -26,7 +26,7 @@ type ResourceInstance interface {
 type buildResourceInstance struct {
 	resourceInstance
 	build                  *dbng.Build
-	pipeline               *dbng.Pipeline
+	pipelineID             int
 	resourceTypes          atc.ResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
@@ -37,7 +37,7 @@ func NewBuildResourceInstance(
 	source atc.Source,
 	params atc.Params,
 	build *dbng.Build,
-	pipeline *dbng.Pipeline,
+	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) ResourceInstance {
@@ -49,7 +49,7 @@ func NewBuildResourceInstance(
 			params:           params,
 		},
 		build:                  build,
-		pipeline:               pipeline,
+		pipelineID:             pipelineID,
 		resourceTypes:          resourceTypes,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
@@ -63,7 +63,7 @@ func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClien
 		bri.version,
 		bri.source,
 		bri.params,
-		bri.pipeline,
+		bri.pipelineID,
 		bri.resourceTypes,
 	)
 	if err != nil {
@@ -92,7 +92,7 @@ func (bri buildResourceInstance) FindOn(logger lager.Logger, workerClient worker
 		bri.version,
 		bri.source,
 		bri.params,
-		bri.pipeline,
+		bri.pipelineID,
 		bri.resourceTypes,
 	)
 	if err != nil {
@@ -109,7 +109,7 @@ func (bri buildResourceInstance) FindOn(logger lager.Logger, workerClient worker
 type resourceResourceInstance struct {
 	resourceInstance
 	resource               *dbng.Resource
-	pipeline               *dbng.Pipeline
+	pipelineID             int
 	resourceTypes          atc.ResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
@@ -120,7 +120,7 @@ func NewResourceResourceInstance(
 	source atc.Source,
 	params atc.Params,
 	resource *dbng.Resource,
-	pipeline *dbng.Pipeline,
+	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) ResourceInstance {
@@ -132,7 +132,7 @@ func NewResourceResourceInstance(
 			params:           params,
 		},
 		resource:               resource,
-		pipeline:               pipeline,
+		pipelineID:             pipelineID,
 		resourceTypes:          resourceTypes,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
@@ -146,7 +146,7 @@ func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerCl
 		rri.version,
 		rri.source,
 		rri.params,
-		rri.pipeline,
+		rri.pipelineID,
 		rri.resourceTypes,
 	)
 	if err != nil {
@@ -175,7 +175,7 @@ func (rri resourceResourceInstance) FindOn(logger lager.Logger, workerClient wor
 		rri.version,
 		rri.source,
 		rri.params,
-		rri.pipeline,
+		rri.pipelineID,
 		rri.resourceTypes,
 	)
 	if err != nil {
@@ -192,7 +192,7 @@ func (rri resourceResourceInstance) FindOn(logger lager.Logger, workerClient wor
 type resourceTypeResourceInstance struct {
 	resourceInstance
 	resourceType           *dbng.UsedResourceType
-	pipeline               *dbng.Pipeline
+	pipelineID             int
 	resourceTypes          atc.ResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
@@ -203,7 +203,7 @@ func NewResourceTypeResourceInstance(
 	source atc.Source,
 	params atc.Params,
 	resourceType *dbng.UsedResourceType,
-	pipeline *dbng.Pipeline,
+	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) ResourceInstance {
@@ -215,7 +215,7 @@ func NewResourceTypeResourceInstance(
 			params:           params,
 		},
 		resourceType:           resourceType,
-		pipeline:               pipeline,
+		pipelineID:             pipelineID,
 		resourceTypes:          resourceTypes,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
@@ -228,7 +228,7 @@ func (rtri resourceTypeResourceInstance) FindOrCreateOn(logger lager.Logger, wor
 		rtri.version,
 		rtri.source,
 		rtri.params,
-		rtri.pipeline,
+		rtri.pipelineID,
 		rtri.resourceTypes,
 	)
 	if err != nil {
@@ -257,7 +257,7 @@ func (rtri resourceTypeResourceInstance) FindOn(logger lager.Logger, workerClien
 		rtri.version,
 		rtri.source,
 		rtri.params,
-		rtri.pipeline,
+		rtri.pipelineID,
 		rtri.resourceTypes,
 	)
 	if err != nil {

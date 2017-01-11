@@ -37,7 +37,7 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
 			&dbng.Build{ID: 42},
-			&dbng.Pipeline{ID: 43},
+			43,
 			atc.ResourceTypes{},
 			fakeResourceCacheFactory,
 		)

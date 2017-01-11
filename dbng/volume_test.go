@@ -15,7 +15,7 @@ var _ = Describe("Volume", func() {
 		)
 
 		BeforeEach(func() {
-			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam, defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
 		})
 
 		JustBeforeEach(func() {
@@ -84,7 +84,7 @@ var _ = Describe("Volume", func() {
 			}
 			_, err = dbng.ResourceType{
 				ResourceType: resourceType,
-				Pipeline:     defaultPipeline,
+				PipelineID:   defaultPipeline.ID(),
 			}.Create(setupTx, atc.Version{"some-type": "version"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
@@ -98,7 +98,7 @@ var _ = Describe("Volume", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				defaultPipeline,
+				defaultPipeline.ID(),
 				atc.ResourceTypes{
 					resourceType,
 				},

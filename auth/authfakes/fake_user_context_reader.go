@@ -9,16 +9,15 @@ import (
 )
 
 type FakeUserContextReader struct {
-	GetTeamStub        func(r *http.Request) (string, int, bool, bool)
+	GetTeamStub        func(r *http.Request) (string, bool, bool)
 	getTeamMutex       sync.RWMutex
 	getTeamArgsForCall []struct {
 		r *http.Request
 	}
 	getTeamReturns struct {
 		result1 string
-		result2 int
+		result2 bool
 		result3 bool
-		result4 bool
 	}
 	GetSystemStub        func(r *http.Request) (bool, bool)
 	getSystemMutex       sync.RWMutex
@@ -33,7 +32,7 @@ type FakeUserContextReader struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeUserContextReader) GetTeam(r *http.Request) (string, int, bool, bool) {
+func (fake *FakeUserContextReader) GetTeam(r *http.Request) (string, bool, bool) {
 	fake.getTeamMutex.Lock()
 	fake.getTeamArgsForCall = append(fake.getTeamArgsForCall, struct {
 		r *http.Request
@@ -43,7 +42,7 @@ func (fake *FakeUserContextReader) GetTeam(r *http.Request) (string, int, bool, 
 	if fake.GetTeamStub != nil {
 		return fake.GetTeamStub(r)
 	} else {
-		return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3, fake.getTeamReturns.result4
+		return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 	}
 }
 
@@ -59,14 +58,13 @@ func (fake *FakeUserContextReader) GetTeamArgsForCall(i int) *http.Request {
 	return fake.getTeamArgsForCall[i].r
 }
 
-func (fake *FakeUserContextReader) GetTeamReturns(result1 string, result2 int, result3 bool, result4 bool) {
+func (fake *FakeUserContextReader) GetTeamReturns(result1 string, result2 bool, result3 bool) {
 	fake.GetTeamStub = nil
 	fake.getTeamReturns = struct {
 		result1 string
-		result2 int
+		result2 bool
 		result3 bool
-		result4 bool
-	}{result1, result2, result3, result4}
+	}{result1, result2, result3}
 }
 
 func (fake *FakeUserContextReader) GetSystem(r *http.Request) (bool, bool) {

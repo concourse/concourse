@@ -1,4 +1,4 @@
-package config
+package atc
 
 import (
 	"errors"
@@ -6,8 +6,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/concourse/atc"
 )
 
 func formatErr(groupName string, err error) string {
@@ -33,7 +31,7 @@ func newDeprecationWarning(message string) Warning {
 	}
 }
 
-func ValidateConfig(c atc.Config) ([]Warning, []string) {
+func (c Config) Validate() ([]Warning, []string) {
 	warnings := []Warning{}
 	errorMessages := []string{}
 
@@ -61,7 +59,7 @@ func ValidateConfig(c atc.Config) ([]Warning, []string) {
 	return warnings, errorMessages
 }
 
-func validateGroups(c atc.Config) error {
+func validateGroups(c Config) error {
 	errorMessages := []string{}
 
 	for _, group := range c.Groups {
@@ -85,7 +83,7 @@ func validateGroups(c atc.Config) error {
 	return compositeErr(errorMessages)
 }
 
-func validateResources(c atc.Config) error {
+func validateResources(c Config) error {
 	errorMessages := []string{}
 
 	names := map[string]int{}
@@ -121,7 +119,7 @@ func validateResources(c atc.Config) error {
 	return compositeErr(errorMessages)
 }
 
-func validateResourceTypes(c atc.Config) error {
+func validateResourceTypes(c Config) error {
 	errorMessages := []string{}
 
 	names := map[string]int{}
@@ -155,7 +153,7 @@ func validateResourceTypes(c atc.Config) error {
 	return compositeErr(errorMessages)
 }
 
-func validateResourcesUnused(c atc.Config) []string {
+func validateResourcesUnused(c Config) []string {
 	usedResources := usedResources(c)
 
 	var errorMessages []string
@@ -169,22 +167,22 @@ func validateResourcesUnused(c atc.Config) []string {
 	return errorMessages
 }
 
-func usedResources(c atc.Config) map[string]bool {
+func usedResources(c Config) map[string]bool {
 	usedResources := make(map[string]bool)
 
 	for _, job := range c.Jobs {
-		for _, jobInput := range JobInputs(job) {
-			usedResources[jobInput.Resource] = true
+		for _, input := range job.Inputs() {
+			usedResources[input.ResourceName()] = true
 		}
-		for _, jobOutput := range JobOutputs(job) {
-			usedResources[jobOutput.Resource] = true
+		for _, output := range job.Outputs() {
+			usedResources[output.ResourceName()] = true
 		}
 	}
 
 	return usedResources
 }
 
-func validateJobs(c atc.Config) ([]Warning, error) {
+func validateJobs(c Config) ([]Warning, error) {
 	errorMessages := []string{}
 	warnings := []Warning{}
 
@@ -218,9 +216,21 @@ func validateJobs(c atc.Config) ([]Warning, error) {
 			)
 		}
 
-		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", atc.PlanConfig{Do: &job.Plan})
+		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", PlanConfig{Do: &job.Plan})
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)
+
+		encountered := map[string]int{}
+		for _, input := range job.Inputs() {
+			encountered[input.Get]++
+
+			if encountered[input.Get] == 2 {
+				errorMessages = append(
+					errorMessages,
+					fmt.Sprintf("%s has get steps with the same name: %s", identifier, input.Get),
+				)
+			}
+		}
 	}
 
 	return warnings, compositeErr(errorMessages)
@@ -255,7 +265,7 @@ func (ft foundTypes) IsValid() (bool, string) {
 	return true, ""
 }
 
-func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) ([]Warning, []string) {
+func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []string) {
 	foundTypes := foundTypes{
 		identifier: identifier,
 		found:      make(map[string]bool),
@@ -356,15 +366,15 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) ([]Warni
 			} else {
 				foundResource := false
 
-				for _, jobInput := range JobInputs(jobConfig) {
-					if jobInput.Resource == plan.ResourceName() {
+				for _, input := range jobConfig.Inputs() {
+					if input.ResourceName() == plan.ResourceName() {
 						foundResource = true
 						break
 					}
 				}
 
-				for _, jobOutput := range JobOutputs(jobConfig) {
-					if jobOutput.Resource == plan.ResourceName() {
+				for _, output := range jobConfig.Outputs() {
+					if output.ResourceName() == plan.ResourceName() {
 						foundResource = true
 						break
 					}
@@ -484,7 +494,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) ([]Warni
 	return warnings, errorMessages
 }
 
-func validateInapplicableFields(inapplicableFields []string, plan atc.PlanConfig, identifier string) []string {
+func validateInapplicableFields(inapplicableFields []string, plan PlanConfig, identifier string) []string {
 	errorMessages := []string{}
 	foundInapplicableFields := []string{}
 
