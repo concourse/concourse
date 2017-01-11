@@ -12,7 +12,7 @@ import (
 
 //go:generate counterfeiter . ContainerProvider
 type ContainerProvider interface {
-	MarkBuildContainersForDeletion() error
+	MarkContainersForDeletion() error
 	FindContainersMarkedForDeletion() ([]dbng.DestroyingContainer, error)
 }
 
@@ -37,7 +37,7 @@ func NewGardenClientFactory() GardenClientFactory {
 }
 
 func (c *ContainerCollector) Run() error {
-	err := c.ContainerProvider.MarkBuildContainersForDeletion()
+	err := c.ContainerProvider.MarkContainersForDeletion()
 	if err != nil {
 		c.Logger.Error("marking-build-containers-for-deletion", err)
 	}

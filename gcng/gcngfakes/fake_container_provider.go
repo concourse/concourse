@@ -9,10 +9,10 @@ import (
 )
 
 type FakeContainerProvider struct {
-	MarkBuildContainersForDeletionStub        func() error
-	markBuildContainersForDeletionMutex       sync.RWMutex
-	markBuildContainersForDeletionArgsForCall []struct{}
-	markBuildContainersForDeletionReturns     struct {
+	MarkContainersForDeletionStub        func() error
+	markContainersForDeletionMutex       sync.RWMutex
+	markContainersForDeletionArgsForCall []struct{}
+	markContainersForDeletionReturns     struct {
 		result1 error
 	}
 	FindContainersMarkedForDeletionStub        func() ([]dbng.DestroyingContainer, error)
@@ -26,27 +26,27 @@ type FakeContainerProvider struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerProvider) MarkBuildContainersForDeletion() error {
-	fake.markBuildContainersForDeletionMutex.Lock()
-	fake.markBuildContainersForDeletionArgsForCall = append(fake.markBuildContainersForDeletionArgsForCall, struct{}{})
-	fake.recordInvocation("MarkBuildContainersForDeletion", []interface{}{})
-	fake.markBuildContainersForDeletionMutex.Unlock()
-	if fake.MarkBuildContainersForDeletionStub != nil {
-		return fake.MarkBuildContainersForDeletionStub()
+func (fake *FakeContainerProvider) MarkContainersForDeletion() error {
+	fake.markContainersForDeletionMutex.Lock()
+	fake.markContainersForDeletionArgsForCall = append(fake.markContainersForDeletionArgsForCall, struct{}{})
+	fake.recordInvocation("MarkContainersForDeletion", []interface{}{})
+	fake.markContainersForDeletionMutex.Unlock()
+	if fake.MarkContainersForDeletionStub != nil {
+		return fake.MarkContainersForDeletionStub()
 	} else {
-		return fake.markBuildContainersForDeletionReturns.result1
+		return fake.markContainersForDeletionReturns.result1
 	}
 }
 
-func (fake *FakeContainerProvider) MarkBuildContainersForDeletionCallCount() int {
-	fake.markBuildContainersForDeletionMutex.RLock()
-	defer fake.markBuildContainersForDeletionMutex.RUnlock()
-	return len(fake.markBuildContainersForDeletionArgsForCall)
+func (fake *FakeContainerProvider) MarkContainersForDeletionCallCount() int {
+	fake.markContainersForDeletionMutex.RLock()
+	defer fake.markContainersForDeletionMutex.RUnlock()
+	return len(fake.markContainersForDeletionArgsForCall)
 }
 
-func (fake *FakeContainerProvider) MarkBuildContainersForDeletionReturns(result1 error) {
-	fake.MarkBuildContainersForDeletionStub = nil
-	fake.markBuildContainersForDeletionReturns = struct {
+func (fake *FakeContainerProvider) MarkContainersForDeletionReturns(result1 error) {
+	fake.MarkContainersForDeletionStub = nil
+	fake.markContainersForDeletionReturns = struct {
 		result1 error
 	}{result1}
 }
@@ -80,8 +80,8 @@ func (fake *FakeContainerProvider) FindContainersMarkedForDeletionReturns(result
 func (fake *FakeContainerProvider) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.markBuildContainersForDeletionMutex.RLock()
-	defer fake.markBuildContainersForDeletionMutex.RUnlock()
+	fake.markContainersForDeletionMutex.RLock()
+	defer fake.markContainersForDeletionMutex.RUnlock()
 	fake.findContainersMarkedForDeletionMutex.RLock()
 	defer fake.findContainersMarkedForDeletionMutex.RUnlock()
 	return fake.invocations

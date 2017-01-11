@@ -24,7 +24,7 @@ type ContainerFactory interface {
 	CreateBuildContainer(*Worker, *Build, atc.PlanID, ContainerMetadata) (CreatingContainer, error)
 
 	FindContainersMarkedForDeletion() ([]DestroyingContainer, error)
-	MarkBuildContainersForDeletion() error
+	MarkContainersForDeletion() error
 }
 
 type containerFactory struct {
@@ -152,7 +152,7 @@ func (factory *containerFactory) FindContainersMarkedForDeletion() ([]Destroying
 	return results, nil
 }
 
-func (factory *containerFactory) MarkBuildContainersForDeletion() error {
+func (factory *containerFactory) MarkContainersForDeletion() error {
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return err
@@ -177,11 +177,15 @@ func (factory *containerFactory) MarkBuildContainersForDeletion() error {
 	        )
 	    )
 		UPDATE containers SET state = $1
-		WHERE build_id IS NOT NULL AND build_id NOT IN (SELECT id FROM builds_to_keep)`,
+		WHERE
+			(build_id IS NOT NULL AND build_id NOT IN (SELECT id FROM builds_to_keep))
+		OR
+			(type=$5 AND best_if_used_by < NOW())`,
 		string(ContainerStateDestroying),
 		string(BuildStatusAborted),
 		string(BuildStatusErrored),
 		string(BuildStatusFailed),
+		string(ContainerStageCheck),
 	)
 
 	if err != nil {

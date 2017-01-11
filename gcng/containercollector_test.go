@@ -102,7 +102,7 @@ var _ = Describe("ContainerCollector", func() {
 		})
 
 		It("marks build containers for deletion", func() {
-			Expect(fakeContainerProvider.MarkBuildContainersForDeletionCallCount()).To(Equal(1))
+			Expect(fakeContainerProvider.MarkContainersForDeletionCallCount()).To(Equal(1))
 		})
 
 		It("finds all containers in deleting state, tells garden to destroy it, and then removes it from the DB", func() {
@@ -122,7 +122,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		Context("when marking builds for deletion fails", func() {
 			BeforeEach(func() {
-				fakeContainerProvider.MarkBuildContainersForDeletionReturns(errors.New("some-error"))
+				fakeContainerProvider.MarkContainersForDeletionReturns(errors.New("some-error"))
 			})
 
 			It("logs the errors and continues", func() {
