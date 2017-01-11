@@ -271,13 +271,12 @@ var _ = Describe("OAuthCallbackHandler", func() {
 								Expect(token.Valid).To(BeTrue())
 							})
 
-							It("contains the team name and ID", func() {
+							It("contains the team name", func() {
 								token, err := jwt.Parse(strings.Replace(cookie.Value, "Bearer ", "", -1), keyFunc)
 								Expect(err).ToNot(HaveOccurred())
 
 								claims := token.Claims.(jwt.MapClaims)
 								Expect(claims["teamName"]).To(Equal(team.Name))
-								Expect(claims["teamID"]).To(BeNumerically("==", team.ID))
 								Expect(token.Valid).To(BeTrue())
 							})
 						})

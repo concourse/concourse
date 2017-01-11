@@ -18,7 +18,7 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 	var (
 		response      *http.Response
 		server        *httptest.Server
-		delegate      *delegateHandler
+		delegate      *pipelineDelegateHandler
 		teamDBFactory *dbfakes.FakeTeamDBFactory
 		teamDB        *dbfakes.FakeTeamDB
 		pipelineDB    *dbfakes.FakePipelineDB
@@ -43,7 +43,7 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 		authValidator = new(authfakes.FakeValidator)
 		userContextReader = new(authfakes.FakeUserContextReader)
 
-		delegate = &delegateHandler{}
+		delegate = &pipelineDelegateHandler{}
 		checkPipelineAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
 		handler = auth.WrapHandler(checkPipelineAccessHandler, authValidator, userContextReader)
 	})
@@ -86,7 +86,7 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 			Context("and authorized", func() {
 				BeforeEach(func() {
 					authValidator.IsAuthenticatedReturns(true)
-					userContextReader.GetTeamReturns("some-team", 42, true, true)
+					userContextReader.GetTeamReturns("some-team", true, true)
 				})
 
 				It("calls pipelineScopedHandler with pipelineDB in context", func() {
@@ -101,7 +101,7 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 
 			Context("and unauthorized", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("some-other-team", 42, true, true)
+					userContextReader.GetTeamReturns("some-other-team", true, true)
 				})
 
 				Context("and is authenticated", func() {
@@ -156,12 +156,12 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 	})
 })
 
-type delegateHandler struct {
+type pipelineDelegateHandler struct {
 	IsCalled          bool
 	ContextPipelineDB db.PipelineDB
 }
 
-func (handler *delegateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *pipelineDelegateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.IsCalled = true
 	handler.ContextPipelineDB = r.Context().Value(auth.PipelineDBKey).(db.PipelineDB)
 }
