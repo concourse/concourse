@@ -285,7 +285,7 @@ func (db *SQLDB) UpdateContainerTTLToBeRemoved(container Container, maxLifetime 
 	return newContainer, nil
 }
 
-func (db *SQLDB) CreateContainer(container Container, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error) {
+func (db *SQLDB) CreateContainerToBeRemoved(container Container, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error) {
 	if !(isValidCheckID(container.ContainerIdentifier) || isValidStepID(container.ContainerIdentifier)) {
 		return SavedContainer{}, ErrInvalidIdentifier
 	}

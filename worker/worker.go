@@ -58,7 +58,7 @@ type Worker interface {
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	CreateContainer(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
+	CreateContainerToBeRemoved(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
 	UpdateContainerTTLToBeRemoved(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
 	GetContainer(handle string) (db.SavedContainer, bool, error)
 	ReapContainer(string) error

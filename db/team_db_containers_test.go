@@ -154,7 +154,7 @@ var _ = Describe("TeamDbContainers", func() {
 					containerToCreate.Type = db.ContainerTypeTask
 				}
 
-				_, err := database.CreateContainer(containerToCreate, time.Duration(0), []string{})
+				_, err := database.CreateContainerToBeRemoved(containerToCreate, time.Duration(0), []string{})
 				Expect(err).NotTo(HaveOccurred())
 			}
 
@@ -980,10 +980,10 @@ var _ = Describe("TeamDbContainers", func() {
 				},
 			}
 			var err error
-			savedContainer, err = database.CreateContainer(container, 0, []string{})
+			savedContainer, err = database.CreateContainerToBeRemoved(container, 0, []string{})
 			Expect(err).NotTo(HaveOccurred())
 
-			otherSavedContainer, err = database.CreateContainer(otherTeamContainer, 0, []string{})
+			otherSavedContainer, err = database.CreateContainerToBeRemoved(otherTeamContainer, 0, []string{})
 			Expect(err).NotTo(HaveOccurred())
 		})
 

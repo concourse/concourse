@@ -93,7 +93,7 @@ type DB interface {
 	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)
 
 	GetContainer(string) (SavedContainer, bool, error)
-	CreateContainer(container Container, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error)
+	CreateContainerToBeRemoved(container Container, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
 	FindLatestSuccessfulBuildsPerJob() (map[int]int, error)
 	FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, error)
