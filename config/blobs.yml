@@ -27,17 +27,17 @@ resources/bosh-io-stemcell-resource.tar.gz:
   object_id: b6c0c989-fa58-405a-5df0-0b91660c12cd
   sha: c73c05f795604e7a290c49d3510deff93a3bdf33
 resources/cf-resource.tar.gz:
-  size: 17892415
-  object_id: 2d6508bc-81fb-4b9a-789a-7e1f5a32c81f
-  sha: 8c67a72dddac56f9f41a4c07479016d640f74ec4
+  size: 18041343
+  object_id: 5ccd1bf1-52f1-47b4-460c-d852966e3a1e
+  sha: a1918b5307d39ec57b0ae39252ded7917bbdea5e
 resources/docker-image-resource.tar.gz:
-  size: 41997104
-  object_id: 5cc3ddb4-e203-4e75-6ba4-21d8d73c3e3c
-  sha: 0fa2463608492faef40a915d4b4ee589be940247
+  size: 42121509
+  object_id: dd90a98d-fe51-4b6d-48a1-d4954944c70b
+  sha: a9e073a2711f427a8a4b281bec32c6cdf58aed55
 resources/git-resource.tar.gz:
-  size: 15780093
-  object_id: 7f196ca1-987e-4a74-4e78-751ddfc4d73b
-  sha: 6d0b24ebe74828b2e7112c78738653e798e650e7
+  size: 15435202
+  object_id: a01e8e84-72ad-4698-535c-cc65d18a4ae2
+  sha: 248050dc8bd330d6e70d72701bffd877b084b0cc
 resources/github-release-resource.tar.gz:
   size: 9968960
   object_id: dfe9d956-6a5f-403e-7783-3c62ba03d487
@@ -51,17 +51,17 @@ resources/pool-resource.tar.gz:
   object_id: e10a3f9b-10ad-44ce-4557-05f24fa76dbc
   sha: 5637707e8c2e8da19a610387749bc9adbd77a82d
 resources/s3-resource.tar.gz:
-  size: 11722299
-  object_id: 75e21567-c5c4-4309-59f2-1d0cbb79e7e6
-  sha: 62708b63166b7bfc34b19d97f0faf7221b99c6b4
+  size: 11723121
+  object_id: de32566e-3d7b-4344-4bec-fd87d37af633
+  sha: a2d258681b74382c546a03bf2b3139941c82d848
 resources/semver-resource.tar.gz:
   size: 18355017
   object_id: 7b3a99ac-5958-4569-7f0d-e80983befe48
   sha: c7657e6ea66592b07ba9780fad4f9eec0b849eea
 resources/time-resource.tar.gz:
-  size: 6102330
-  object_id: c567762a-1f61-4448-6553-beb5d10d06a7
-  sha: a4a24bb9f11b0529a2ca1ac1055b84ec161a0f9d
+  size: 6102305
+  object_id: 12f6591a-db01-4733-4c6d-44c41c20c6b1
+  sha: 5ec40a8c095844f31edaaabe1884b9a8854b8036
 resources/tracker-resource.tar.gz:
   size: 15712237
   object_id: a506dfcb-a56b-4152-4bed-f494d9a51b34

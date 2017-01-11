@@ -13,6 +13,7 @@ params:
   BOSH_CLIENT:
   BOSH_CLIENT_SECRET:
   BOSH_KEY:
+  SKIP:
 
 inputs:
 - name: concourse

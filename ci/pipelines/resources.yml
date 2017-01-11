@@ -269,6 +269,8 @@ jobs:
   public: true
   plan:
   - aggregate:
+    - get: docker
+      trigger: true
     - get: docker-image-resource
       trigger: true
     - get: buildroot-iptables-image
@@ -1111,3 +1113,9 @@ resources:
   source:
     repository: ubuntu
     tag: "16.04"
+
+- name: docker
+  type: github-release
+  source:
+    user: docker
+    repository: docker

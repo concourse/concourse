@@ -33,7 +33,12 @@ case $1 in
   <% if p('volumes_image_size_mb') > 0 %>
     IMAGE_SIZE=<%= p('volumes_image_size_mb') %>
   <% else %>
-    IMAGE_SIZE=$(($(df -m /var/vcap/data | tail -n1 | awk '{print $2}') - 10 * 1024))
+    DISK_SIZE=$(df -m /var/vcap/data | tail -n1 | awk '{print $2}')
+    IMAGE_SIZE=$(($DISK_SIZE - 10 * 1024))
+
+    if [[ $IMAGE_SIZE -lt 0 ]]; then
+      IMAGE_SIZE=$DISK_SIZE
+    fi
   <% end %>
     mkdir -p $(dirname ${IMAGE_PATH})
 

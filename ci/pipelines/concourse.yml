@@ -16,6 +16,7 @@ groups:
   - bin-smoke
   - bin-docker
   - bosh-deploy
+  - topgun
 
 - name: publish
   jobs:
@@ -308,8 +309,38 @@ jobs:
     privileged: true
     timeout: 1h
 
+- name: topgun
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bosh-rc]
+      trigger: true
+    - get: bosh-rc
+      passed: [bosh-rc]
+      trigger: true
+    - get: garden-runc
+      passed: [bosh-rc]
+      trigger: true
+    - get: gcp-stemcell
+    - get: bosh-cli
+  - task: topgun
+    file: concourse/ci/topgun.yml
+    input_mapping:
+      concourse-release: bosh-rc
+      garden-runc-release: garden-runc
+      stemcell: gcp-stemcell
+    params:
+      BOSH_ENVIRONMENT: bosh.concourse.ci
+      BOSH_CLIENT: {{bosh-client-id}}
+      BOSH_CLIENT_SECRET: {{bosh-client-secret}}
+      BOSH_KEY: {{topgun-bosh-key}}
+      SKIP: ":life"
+
 - name: bosh-deploy
   serial: true
+  interruptible: true
   plan:
   - aggregate:
     - get: concourse
@@ -865,3 +896,9 @@ resources:
   type: docker-image
   source:
     repository: concourse/buildbox-ci
+
+- name: bosh-cli
+  type: s3
+  source:
+    bucket: bosh-cli-artifacts
+    regexp: bosh-cli-([^-]+)-linux-amd64
