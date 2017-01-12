@@ -1,4 +1,4 @@
-package resource
+package cessna
 
 import (
 	"bytes"
@@ -10,7 +10,6 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/cessna"
 	"github.com/concourse/baggageclaim"
 	"github.com/tedsuo/ifrit"
 )
@@ -28,7 +27,7 @@ type Task struct {
 type TaskResponse struct {
 }
 
-func (t *Task) Run(logger lager.Logger, worker *cessna.Worker, inputs NamedArtifacts, outputs NamedArtifacts) error {
+func (t *Task) Run(logger lager.Logger, worker *Worker, inputs NamedArtifacts, outputs NamedArtifacts) error {
 	rootFSPath, err := t.RootFSGenerator.RootFSPathFor(logger, worker)
 	cowArtifacts := make(NamedArtifacts)
 
@@ -103,7 +102,7 @@ func (t *Task) Run(logger lager.Logger, worker *cessna.Worker, inputs NamedArtif
 	return <-task.Wait()
 }
 
-func (t *Task) RunnerFor(logger lager.Logger, container garden.Container, workingDir string) ifrit.Runner {
+func (t *Task) RunnerFor(logger lager.Logger, container garden.Container, workingDir string) *taskContainerProcess {
 	var (
 		stdout bytes.Buffer
 		stderr bytes.Buffer
@@ -124,7 +123,7 @@ func (t *Task) RunnerFor(logger lager.Logger, container garden.Container, workin
 	}
 
 	return &taskContainerProcess{
-		ContainerProcess: cessna.ContainerProcess{
+		ContainerProcess: ContainerProcess{
 			Container:   container,
 			ProcessSpec: spec,
 			ProcessIO:   io,
@@ -136,7 +135,7 @@ func (t *Task) RunnerFor(logger lager.Logger, container garden.Container, workin
 }
 
 type taskContainerProcess struct {
-	cessna.ContainerProcess
+	ContainerProcess
 
 	out *bytes.Buffer
 	err *bytes.Buffer
@@ -146,7 +145,7 @@ func (t *taskContainerProcess) Run(signals <-chan os.Signal, ready chan<- struct
 	err := t.ContainerProcess.Run(signals, ready)
 
 	switch e := err.(type) {
-	case cessna.ErrScriptFailed:
+	case ErrScriptFailed:
 		e.Stderr = string(t.err.Bytes())
 		return e
 	}

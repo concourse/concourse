@@ -10,8 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/cessna"
-	. "github.com/concourse/atc/cessna/resource"
+	. "github.com/concourse/atc/cessna"
 	"github.com/concourse/baggageclaim"
 
 	bclient "github.com/concourse/baggageclaim/client"
@@ -27,7 +26,7 @@ import (
 
 var (
 	testBaseResource Resource
-	testWorker       *cessna.Worker
+	testWorker       *Worker
 	baseResourceType BaseResourceType
 	workerIp         string
 	tarPath          string
@@ -48,7 +47,7 @@ var _ = BeforeSuite(func() {
 	tarPath, found = os.LookupEnv("ROOTFS_TAR_PATH")
 	Expect(found).To(BeTrue(), "Must set ROOTFS_TAR_PATH")
 
-	testWorker = cessna.NewWorker(fmt.Sprintf("%s:7777", workerIp), fmt.Sprintf("http://%s:7788", workerIp))
+	testWorker = NewWorker(fmt.Sprintf("%s:7777", workerIp), fmt.Sprintf("http://%s:7788", workerIp))
 
 	logger = lagertest.NewTestLogger("resource-test")
 })

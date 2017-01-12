@@ -1,4 +1,4 @@
-package resource
+package cessna
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/cessna"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -16,7 +15,7 @@ type ResourceCheck struct {
 	Version *atc.Version
 }
 
-func (r ResourceCheck) Check(logger lager.Logger, worker *cessna.Worker) (CheckResponse, error) {
+func (r ResourceCheck) Check(logger lager.Logger, worker *Worker) (CheckResponse, error) {
 	rootFSPath, err := r.ResourceType.RootFSPathFor(logger, worker)
 	if err != nil {
 		return nil, err
@@ -50,7 +49,7 @@ func (r ResourceCheck) Check(logger lager.Logger, worker *cessna.Worker) (CheckR
 }
 
 func (r ResourceCheck) newCheckCommandProcess(container garden.Container) (*checkCommandProcess, error) {
-	p := &cessna.ContainerProcess{
+	p := &ContainerProcess{
 		Container: container,
 		ProcessSpec: garden.ProcessSpec{
 			Path: "/opt/resource/check",
@@ -87,7 +86,7 @@ func (r ResourceCheck) newCheckCommandProcess(container garden.Container) (*chec
 }
 
 type checkCommandProcess struct {
-	*cessna.ContainerProcess
+	*ContainerProcess
 
 	out *bytes.Buffer
 	err *bytes.Buffer

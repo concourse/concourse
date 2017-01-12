@@ -1,4 +1,4 @@
-package resource
+package cessna
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/cessna"
 	"github.com/concourse/baggageclaim"
 	"github.com/tedsuo/ifrit"
 )
@@ -21,7 +20,7 @@ type ResourcePut struct {
 	Params atc.Params
 }
 
-func (r ResourcePut) Put(logger lager.Logger, worker *cessna.Worker, artifacts NamedArtifacts) (OutResponse, error) {
+func (r ResourcePut) Put(logger lager.Logger, worker *Worker, artifacts NamedArtifacts) (OutResponse, error) {
 	rootFSPath, err := r.ResourceType.RootFSPathFor(logger, worker)
 	if err != nil {
 		return OutResponse{}, err
@@ -104,7 +103,7 @@ func (r ResourcePut) Put(logger lager.Logger, worker *cessna.Worker, artifacts N
 }
 
 func (r ResourcePut) newPutCommandProcess(container garden.Container, artifactsDirectory string) (*putCommandProcess, error) {
-	p := &cessna.ContainerProcess{
+	p := &ContainerProcess{
 		Container: container,
 		ProcessSpec: garden.ProcessSpec{
 			Path: "/opt/resource/out",
@@ -139,7 +138,7 @@ func (r ResourcePut) newPutCommandProcess(container garden.Container, artifactsD
 }
 
 type putCommandProcess struct {
-	*cessna.ContainerProcess
+	*ContainerProcess
 
 	out *bytes.Buffer
 	err *bytes.Buffer
@@ -149,7 +148,7 @@ func (g *putCommandProcess) Run(signals <-chan os.Signal, ready chan<- struct{})
 	err := g.ContainerProcess.Run(signals, ready)
 	if err != nil {
 		switch e := err.(type) {
-		case cessna.ErrScriptFailed:
+		case ErrScriptFailed:
 			e.Stderr = string(g.err.Bytes())
 
 			err = e

@@ -1,9 +1,8 @@
-package resource
+package cessna
 
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/cessna"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -19,7 +18,7 @@ type Resource struct {
 
 //go:generate counterfeiter . RootFSable
 type RootFSable interface {
-	RootFSPathFor(logger lager.Logger, worker *cessna.Worker) (string, error)
+	RootFSPathFor(logger lager.Logger, worker *Worker) (string, error)
 }
 
 func NewBaseResource(resourceType BaseResourceType, source atc.Source) Resource {
@@ -29,7 +28,7 @@ func NewBaseResource(resourceType BaseResourceType, source atc.Source) Resource 
 	}
 }
 
-func (r BaseResourceType) RootFSPathFor(logger lager.Logger, worker *cessna.Worker) (string, error) {
+func (r BaseResourceType) RootFSPathFor(logger lager.Logger, worker *Worker) (string, error) {
 	spec := baggageclaim.VolumeSpec{
 		Strategy: baggageclaim.ImportStrategy{
 			Path: r.RootFSPath,

@@ -1,4 +1,4 @@
-package resource
+package cessna
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/cessna"
 	"github.com/concourse/baggageclaim"
 	"github.com/tedsuo/ifrit"
 )
@@ -18,7 +17,7 @@ type ResourceGet struct {
 	Params  atc.Params
 }
 
-func (r ResourceGet) Get(logger lager.Logger, worker *cessna.Worker) (baggageclaim.Volume, error) {
+func (r ResourceGet) Get(logger lager.Logger, worker *Worker) (baggageclaim.Volume, error) {
 	rootFSPath, err := r.ResourceType.RootFSPathFor(logger, worker)
 	if err != nil {
 		return nil, err
@@ -71,7 +70,7 @@ func (r ResourceGet) Get(logger lager.Logger, worker *cessna.Worker) (baggagecla
 	return volumeForGet, nil
 }
 
-func (r ResourceGet) RootFSPathFor(logger lager.Logger, worker *cessna.Worker) (string, error) {
+func (r ResourceGet) RootFSPathFor(logger lager.Logger, worker *Worker) (string, error) {
 	v, err := r.Get(logger, worker)
 	if err != nil {
 		return "", err
@@ -94,7 +93,7 @@ func (r ResourceGet) RootFSPathFor(logger lager.Logger, worker *cessna.Worker) (
 }
 
 func (r ResourceGet) newGetCommandProcess(container garden.Container, mountPath string) (*getCommandProcess, error) {
-	p := &cessna.ContainerProcess{
+	p := &ContainerProcess{
 		Container: container,
 		ProcessSpec: garden.ProcessSpec{
 			Path: "/opt/resource/in",
@@ -130,7 +129,7 @@ func (r ResourceGet) newGetCommandProcess(container garden.Container, mountPath 
 }
 
 type getCommandProcess struct {
-	*cessna.ContainerProcess
+	*ContainerProcess
 
 	out *bytes.Buffer
 	err *bytes.Buffer

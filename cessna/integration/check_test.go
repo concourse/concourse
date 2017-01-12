@@ -8,7 +8,7 @@ import (
 	gclient "code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/garden/client/connection"
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/cessna/resource"
+	. "github.com/concourse/atc/cessna"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"

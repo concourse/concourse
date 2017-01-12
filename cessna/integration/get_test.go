@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/cessna/resource"
+	. "github.com/concourse/atc/cessna"
 	"github.com/concourse/baggageclaim"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

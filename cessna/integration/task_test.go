@@ -4,8 +4,8 @@ import (
 	"archive/tar"
 	"io/ioutil"
 
-	. "github.com/concourse/atc/cessna/resource"
-	"github.com/concourse/atc/cessna/resource/resourcefakes"
+	. "github.com/concourse/atc/cessna"
+	"github.com/concourse/atc/cessna/cessnafakes"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/go-archive/archivetest"
 	. "github.com/onsi/ginkgo"
@@ -14,7 +14,7 @@ import (
 
 var _ = Describe("Running a task", func() {
 	It("it mounts the inputs as COWs and the outputs directly", func() {
-		rootFSgenerator := new(resourcefakes.FakeRootFSable)
+		rootFSgenerator := new(cessnafakes.FakeRootFSable)
 
 		rootFSgenerator.RootFSPathForReturns("docker:///alpine", nil)
 
