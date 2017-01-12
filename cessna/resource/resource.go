@@ -54,7 +54,7 @@ func (r BaseResourceType) RootFSPathFor(logger lager.Logger, worker *cessna.Work
 	if err != nil {
 		return "", err
 	}
-	return v.Path(), nil
+	return "raw://" + v.Path(), nil
 }
 
 type CheckRequest struct {

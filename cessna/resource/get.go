@@ -90,7 +90,7 @@ func (r ResourceGet) RootFSPathFor(logger lager.Logger, worker *cessna.Worker) (
 		return "", err
 	}
 
-	return rootFSVolume.Path(), nil
+	return "raw://" + rootFSVolume.Path(), nil
 }
 
 func (r ResourceGet) newGetCommandProcess(container garden.Container, mountPath string) (*getCommandProcess, error) {
