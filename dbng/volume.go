@@ -7,6 +7,13 @@ import (
 	uuid "github.com/nu7hatch/gouuid"
 )
 
+var (
+	ErrVolumeMarkCreatedFailed     = errors.New("could-not-mark-volume-as-created")
+	ErrVolumeMarkDestroyingFailed  = errors.New("could-not-mark-volume-as-destroying")
+	ErrVolumeStateTransitionFailed = errors.New("could-not-transition-volume-state")
+	ErrVolumeMissing               = errors.New("volume-no-longer-in-db")
+)
+
 type VolumeState string
 
 const (
@@ -15,11 +22,13 @@ const (
 	VolumeStateDestroying = "destroying"
 )
 
-var (
-	ErrVolumeMarkCreatedFailed     = errors.New("could-not-mark-volume-as-created")
-	ErrVolumeMarkDestroyingFailed  = errors.New("could-not-mark-volume-as-destroying")
-	ErrVolumeStateTransitionFailed = errors.New("could-not-transition-volume-state")
-	ErrVolumeMissing               = errors.New("volume-no-longer-in-db")
+type VolumeType string
+
+const (
+	VolumeTypeContainer    = "container"
+	VolumeTypeResource     = "resource"
+	VolumeTypeResourceType = "resource-type"
+	VolumeTypeUknown       = "unknown" // for migration to life
 )
 
 // TODO: do not permit nullifying cache_id while creating or created
@@ -37,6 +46,7 @@ type creatingVolume struct {
 	worker *Worker
 	handle string
 	path   string
+	typ    VolumeType
 	conn   Conn
 }
 
@@ -73,6 +83,7 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 	return &createdVolume{
 		id:     volume.id,
 		worker: volume.worker,
+		typ:    volume.typ,
 		handle: volume.handle,
 		path:   volume.path,
 		conn:   volume.conn,
@@ -84,6 +95,7 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 type CreatedVolume interface {
 	Handle() string
 	Path() string
+	Type() VolumeType
 	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
 	Worker() *Worker
@@ -97,6 +109,7 @@ type createdVolume struct {
 	worker *Worker
 	handle string
 	path   string
+	typ    VolumeType
 	bytes  int64
 	conn   Conn
 }
@@ -105,6 +118,7 @@ func (volume *createdVolume) Handle() string     { return volume.handle }
 func (volume *createdVolume) Path() string       { return volume.path }
 func (volume *createdVolume) Worker() *Worker    { return volume.worker }
 func (volume *createdVolume) SizeInBytes() int64 { return volume.bytes }
+func (volume *createdVolume) Type() VolumeType   { return volume.typ }
 
 // TODO: do following two methods instead of CreateXVolume? kind of neat since
 // it removes window of time where cache_id/worker_resource_type_id may be

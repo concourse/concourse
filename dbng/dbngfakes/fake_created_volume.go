@@ -20,6 +20,12 @@ type FakeCreatedVolume struct {
 	pathReturns     struct {
 		result1 string
 	}
+	TypeStub        func() dbng.VolumeType
+	typeMutex       sync.RWMutex
+	typeArgsForCall []struct{}
+	typeReturns     struct {
+		result1 dbng.VolumeType
+	}
 	CreateChildForContainerStub        func(dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
 	createChildForContainerMutex       sync.RWMutex
 	createChildForContainerArgsForCall []struct {
@@ -113,6 +119,31 @@ func (fake *FakeCreatedVolume) PathReturns(result1 string) {
 	fake.PathStub = nil
 	fake.pathReturns = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeCreatedVolume) Type() dbng.VolumeType {
+	fake.typeMutex.Lock()
+	fake.typeArgsForCall = append(fake.typeArgsForCall, struct{}{})
+	fake.recordInvocation("Type", []interface{}{})
+	fake.typeMutex.Unlock()
+	if fake.TypeStub != nil {
+		return fake.TypeStub()
+	} else {
+		return fake.typeReturns.result1
+	}
+}
+
+func (fake *FakeCreatedVolume) TypeCallCount() int {
+	fake.typeMutex.RLock()
+	defer fake.typeMutex.RUnlock()
+	return len(fake.typeArgsForCall)
+}
+
+func (fake *FakeCreatedVolume) TypeReturns(result1 dbng.VolumeType) {
+	fake.TypeStub = nil
+	fake.typeReturns = struct {
+		result1 dbng.VolumeType
 	}{result1}
 }
 
@@ -285,6 +316,8 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.handleMutex.RUnlock()
 	fake.pathMutex.RLock()
 	defer fake.pathMutex.RUnlock()
+	fake.typeMutex.RLock()
+	defer fake.typeMutex.RUnlock()
 	fake.createChildForContainerMutex.RLock()
 	defer fake.createChildForContainerMutex.RUnlock()
 	fake.destroyingMutex.RLock()

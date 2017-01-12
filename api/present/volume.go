@@ -8,6 +8,7 @@ import (
 func Volume(volume dbng.CreatedVolume) atc.Volume {
 	return atc.Volume{
 		ID:          volume.Handle(),
+		Type:        string(volume.Type()),
 		WorkerName:  volume.Worker().Name,
 		SizeInBytes: volume.SizeInBytes(),
 	}

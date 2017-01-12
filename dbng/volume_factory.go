@@ -40,7 +40,7 @@ func NewVolumeFactory(conn Conn) VolumeFactory {
 }
 
 func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error) {
-	query, args, err := psql.Select("id, handle, state, worker_name, size_in_bytes").
+	query, args, err := psql.Select("id, handle, state, worker_name, size_in_bytes", factory.typeSelector()).
 		From("volumes").
 		Where(sq.Or{
 			sq.Eq{
@@ -71,8 +71,9 @@ func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error
 		var state string
 		var workerName string
 		var bytes int64
+		var volumeType VolumeType
 
-		err = rows.Scan(&id, &handle, &state, &workerName, &bytes)
+		err = rows.Scan(&id, &handle, &state, &workerName, &bytes, &volumeType)
 		if err != nil {
 			return nil, err
 		}
@@ -80,6 +81,7 @@ func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error
 		createdVolumes = append(createdVolumes, &createdVolume{
 			id:     id,
 			handle: handle,
+			typ:    volumeType,
 			worker: &Worker{
 				Name: workerName,
 			},
@@ -97,7 +99,14 @@ func (factory *volumeFactory) CreateResourceCacheVolume(worker *Worker, resource
 	}
 
 	defer tx.Rollback()
-	return factory.createVolume(tx, 0, worker, map[string]interface{}{"resource_cache_id": resourceCache.ID})
+
+	return factory.createVolume(
+		tx,
+		0,
+		worker,
+		map[string]interface{}{"resource_cache_id": resourceCache.ID},
+		VolumeTypeResource,
+	)
 }
 
 func (factory *volumeFactory) CreateBaseResourceTypeVolume(teamID int, worker *Worker, ubrt *UsedBaseResourceType) (CreatingVolume, error) {
@@ -108,10 +117,16 @@ func (factory *volumeFactory) CreateBaseResourceTypeVolume(teamID int, worker *W
 
 	defer tx.Rollback()
 
-	return factory.createVolume(tx, teamID, worker, map[string]interface{}{
-		"base_resource_type_id": ubrt.ID,
-		"initialized":           true,
-	})
+	return factory.createVolume(
+		tx,
+		teamID,
+		worker,
+		map[string]interface{}{
+			"base_resource_type_id": ubrt.ID,
+			"initialized":           true,
+		},
+		VolumeTypeResourceType,
+	)
 }
 
 func (factory *volumeFactory) CreateContainerVolume(teamID int, worker *Worker, container CreatingContainer, mountPath string) (CreatingVolume, error) {
@@ -122,11 +137,17 @@ func (factory *volumeFactory) CreateContainerVolume(teamID int, worker *Worker, 
 
 	defer tx.Rollback()
 
-	volume, err := factory.createVolume(tx, teamID, worker, map[string]interface{}{
-		"container_id": container.ID(),
-		"path":         mountPath,
-		"initialized":  true,
-	})
+	volume, err := factory.createVolume(
+		tx,
+		teamID,
+		worker,
+		map[string]interface{}{
+			"container_id": container.ID(),
+			"path":         mountPath,
+			"initialized":  true,
+		},
+		VolumeTypeContainer,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +157,7 @@ func (factory *volumeFactory) CreateContainerVolume(teamID int, worker *Worker, 
 }
 
 func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer) ([]CreatedVolume, error) {
-	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr").
+	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr", factory.typeSelector()).
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
 		Where(sq.Eq{
@@ -163,8 +184,9 @@ func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer
 		var state string
 		var workerName string
 		var workerAddress sql.NullString
+		var volumeType VolumeType
 
-		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress)
+		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress, &volumeType)
 		if err != nil {
 			return nil, err
 		}
@@ -185,6 +207,7 @@ func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer
 		createdVolumes = append(createdVolumes, &createdVolume{
 			id:     id,
 			handle: handle,
+			typ:    volumeType,
 			path:   pathString,
 			worker: &worker,
 			conn:   factory.conn,
@@ -342,7 +365,7 @@ var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer e
 // 3. insert into volumes in 'initializing' state
 //   * if fails (fkey violation; worker type gone), fail for same reason as 2.
 // 4. commit tx
-func (factory *volumeFactory) createVolume(tx Tx, teamID int, worker *Worker, columns map[string]interface{}) (*creatingVolume, error) {
+func (factory *volumeFactory) createVolume(tx Tx, teamID int, worker *Worker, columns map[string]interface{}, volumeType VolumeType) (*creatingVolume, error) {
 	var volumeID int
 	handle, err := uuid.NewV4()
 	if err != nil {
@@ -383,6 +406,7 @@ func (factory *volumeFactory) createVolume(tx Tx, teamID int, worker *Worker, co
 
 		id:     volumeID,
 		handle: handle.String(),
+		typ:    volumeType,
 
 		conn: factory.conn,
 	}, nil
@@ -402,6 +426,7 @@ func (factory *volumeFactory) findVolume(teamID int, worker *Worker, columns map
 	var workerName string
 	var workerAddress string
 	var path sql.NullString
+	var volumeType VolumeType
 
 	whereClause := sq.Eq{}
 	if teamID != 0 {
@@ -415,13 +440,15 @@ func (factory *volumeFactory) findVolume(teamID int, worker *Worker, columns map
 		whereClause[name] = value
 	}
 
-	err = psql.Select("v.id, v.handle, v.state, v.path, w.name, w.addr").
+	err = psql.Select(
+		"v.id, v.handle, v.state, v.path, w.name, w.addr",
+		factory.typeSelector()).
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
 		Where(whereClause).
 		RunWith(tx).
 		QueryRow().
-		Scan(&id, &handle, &state, &path, &workerName, &workerAddress)
+		Scan(&id, &handle, &state, &path, &workerName, &workerAddress, &volumeType)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil, nil
@@ -443,6 +470,7 @@ func (factory *volumeFactory) findVolume(teamID int, worker *Worker, columns map
 		return nil, &createdVolume{
 			id:     id,
 			handle: handle,
+			typ:    volumeType,
 			path:   pathString,
 			worker: &Worker{
 				Name:       workerName,
@@ -454,6 +482,7 @@ func (factory *volumeFactory) findVolume(teamID int, worker *Worker, columns map
 		return &creatingVolume{
 			id:     id,
 			handle: handle,
+			typ:    volumeType,
 			path:   pathString,
 			worker: &Worker{
 				Name:       workerName,
@@ -464,4 +493,12 @@ func (factory *volumeFactory) findVolume(teamID int, worker *Worker, columns map
 	}
 
 	return nil, nil, nil
+}
+
+func (factory *volumeFactory) typeSelector() string {
+	return `case when container_id is not NULL then 'container'
+	  when resource_cache_id is not NULL then 'resource'
+		when base_resource_type_id is not NULL then 'resource-type'
+		else 'unknown'
+	end`
 }
