@@ -13,11 +13,11 @@ type BaseResourceType struct {
 }
 
 type Resource struct {
-	ResourceType ResourceType
+	ResourceType RootFSable
 	Source       atc.Source
 }
 
-type ResourceType interface {
+type RootFSable interface {
 	RootFSVolumeFor(logger lager.Logger, worker *cessna.Worker) (baggageclaim.Volume, error)
 }
 
@@ -36,7 +36,19 @@ func (r BaseResourceType) RootFSVolumeFor(logger lager.Logger, worker *cessna.Wo
 		Privileged: true,
 	}
 
-	return worker.BaggageClaimClient().CreateVolume(logger.Session("create-base-resource-type-rootfs-volume"), spec)
+	parentVolume, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
+	if err != nil {
+		return nil, err
+	}
+
+	// COW of RootFS Volume
+	s := baggageclaim.VolumeSpec{
+		Strategy: baggageclaim.COWStrategy{
+			Parent: parentVolume,
+		},
+		Privileged: false,
+	}
+	return worker.BaggageClaimClient().CreateVolume(logger, s)
 }
 
 type CheckRequest struct {

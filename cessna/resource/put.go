@@ -22,19 +22,7 @@ type ResourcePut struct {
 }
 
 func (r ResourcePut) Put(logger lager.Logger, worker *cessna.Worker, artifacts NamedArtifacts) (OutResponse, error) {
-	parentVolume, err := r.ResourceType.RootFSVolumeFor(logger, worker)
-	if err != nil {
-		return OutResponse{}, err
-	}
-
-	// COW of RootFS Volume
-	spec := baggageclaim.VolumeSpec{
-		Strategy: baggageclaim.COWStrategy{
-			Parent: parentVolume,
-		},
-		Privileged: false,
-	}
-	rootFSVolume, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
+	rootFSVolume, err := r.ResourceType.RootFSVolumeFor(logger, worker)
 	if err != nil {
 		return OutResponse{}, err
 	}
@@ -42,6 +30,7 @@ func (r ResourcePut) Put(logger lager.Logger, worker *cessna.Worker, artifacts N
 	// Turning artifacts into COWs
 	cowArtifacts := make(NamedArtifacts)
 
+	var spec baggageclaim.VolumeSpec
 	for name, volume := range artifacts {
 		spec = baggageclaim.VolumeSpec{
 			Strategy: baggageclaim.COWStrategy{

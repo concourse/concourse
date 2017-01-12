@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/cessna"
-	"github.com/concourse/baggageclaim"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -18,19 +17,7 @@ type ResourceCheck struct {
 }
 
 func (r ResourceCheck) Check(logger lager.Logger, worker *cessna.Worker) (CheckResponse, error) {
-	parentVolume, err := r.ResourceType.RootFSVolumeFor(logger, worker)
-	if err != nil {
-		return nil, err
-	}
-
-	// COW of RootFS Volume
-	spec := baggageclaim.VolumeSpec{
-		Strategy: baggageclaim.COWStrategy{
-			Parent: parentVolume,
-		},
-		Privileged: false,
-	}
-	rootFSVolume, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
+	rootFSVolume, err := r.ResourceType.RootFSVolumeFor(logger, worker)
 	if err != nil {
 		return nil, err
 	}
