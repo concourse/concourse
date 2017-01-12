@@ -5,6 +5,8 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	uuid "github.com/nu7hatch/gouuid"
+
+	"github.com/concourse/atc"
 )
 
 var (
@@ -42,12 +44,17 @@ type CreatingVolume interface {
 }
 
 type creatingVolume struct {
-	id     int
-	worker *Worker
-	handle string
-	path   string
-	typ    VolumeType
-	conn   Conn
+	id               int
+	worker           *Worker
+	handle           string
+	path             string
+	teamID           int
+	typ              VolumeType
+	containerHandle  string
+	parentHandle     string
+	resourceType     *VolumeResourceType
+	baseResourceType *VolumeBaseResourceType
+	conn             Conn
 }
 
 func (volume *creatingVolume) ID() int { return volume.id }
@@ -81,12 +88,17 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 	}
 
 	return &createdVolume{
-		id:     volume.id,
-		worker: volume.worker,
-		typ:    volume.typ,
-		handle: volume.handle,
-		path:   volume.path,
-		conn:   volume.conn,
+		id:               volume.id,
+		worker:           volume.worker,
+		typ:              volume.typ,
+		handle:           volume.handle,
+		path:             volume.path,
+		teamID:           volume.teamID,
+		conn:             volume.conn,
+		containerHandle:  volume.containerHandle,
+		parentHandle:     volume.parentHandle,
+		resourceType:     volume.resourceType,
+		baseResourceType: volume.baseResourceType,
 	}, nil
 }
 
@@ -102,23 +114,51 @@ type CreatedVolume interface {
 	SizeInBytes() int64
 	Initialize() error
 	IsInitialized() (bool, error)
+	ContainerHandle() string
+	ParentHandle() string
+	ResourceType() *VolumeResourceType
+	BaseResourceType() *VolumeBaseResourceType
 }
 
 type createdVolume struct {
-	id     int
-	worker *Worker
-	handle string
-	path   string
-	typ    VolumeType
-	bytes  int64
-	conn   Conn
+	id               int
+	worker           *Worker
+	handle           string
+	path             string
+	teamID           int
+	typ              VolumeType
+	bytes            int64
+	containerHandle  string
+	parentHandle     string
+	resourceType     *VolumeResourceType
+	baseResourceType *VolumeBaseResourceType
+	conn             Conn
 }
 
-func (volume *createdVolume) Handle() string     { return volume.handle }
-func (volume *createdVolume) Path() string       { return volume.path }
-func (volume *createdVolume) Worker() *Worker    { return volume.worker }
-func (volume *createdVolume) SizeInBytes() int64 { return volume.bytes }
-func (volume *createdVolume) Type() VolumeType   { return volume.typ }
+type VolumeResourceType struct {
+	BaseResourceType *VolumeBaseResourceType
+	ResourceType     *VolumeResourceType
+	Version          atc.Version
+}
+
+// different from resource cache, since it includes specific version of base resource type
+// that is used by volume on the same worker
+type VolumeBaseResourceType struct {
+	Name    string
+	Version string
+}
+
+func (volume *createdVolume) Handle() string                    { return volume.handle }
+func (volume *createdVolume) Path() string                      { return volume.path }
+func (volume *createdVolume) Worker() *Worker                   { return volume.worker }
+func (volume *createdVolume) SizeInBytes() int64                { return volume.bytes }
+func (volume *createdVolume) Type() VolumeType                  { return volume.typ }
+func (volume *createdVolume) ContainerHandle() string           { return volume.containerHandle }
+func (volume *createdVolume) ParentHandle() string              { return volume.parentHandle }
+func (volume *createdVolume) ResourceType() *VolumeResourceType { return volume.resourceType }
+func (volume *createdVolume) BaseResourceType() *VolumeBaseResourceType {
+	return volume.baseResourceType
+}
 
 // TODO: do following two methods instead of CreateXVolume? kind of neat since
 // it removes window of time where cache_id/worker_resource_type_id may be
@@ -273,10 +313,34 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 		return nil, err
 	}
 
+	columnNames := []string{
+		"worker_name",
+		"parent_id",
+		"parent_state",
+		"handle",
+		"container_id",
+		"initialized",
+		"path",
+	}
+	columnValues := []interface{}{
+		volume.worker.Name,
+		volume.id,
+		VolumeStateCreated,
+		handle.String(),
+		container.ID(),
+		parentIsInitialized,
+		mountPath,
+	}
+
+	if volume.teamID != 0 {
+		columnNames = append(columnNames, "team_id")
+		columnValues = append(columnValues, volume.teamID)
+	}
+
 	var volumeID int
 	err = psql.Insert("volumes").
-		Columns("worker_name", "parent_id", "parent_state", "handle", "container_id", "initialized").
-		Values(volume.worker.Name, volume.id, VolumeStateCreated, handle.String(), container.ID(), parentIsInitialized).
+		Columns(columnNames...).
+		Values(columnValues...).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -292,11 +356,15 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 	}
 
 	return &creatingVolume{
-		id:     volumeID,
-		worker: volume.worker,
-		handle: handle.String(),
-		path:   mountPath,
-		conn:   volume.conn,
+		id:              volumeID,
+		worker:          volume.worker,
+		handle:          handle.String(),
+		path:            mountPath,
+		teamID:          volume.teamID,
+		typ:             VolumeTypeContainer,
+		containerHandle: container.Handle(),
+		parentHandle:    volume.Handle(),
+		conn:            volume.conn,
 	}, nil
 }
 

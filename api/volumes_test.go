@@ -89,6 +89,8 @@ var _ = Describe("Volumes API", func() {
 							volume3 := new(dbngfakes.FakeCreatedVolume)
 							volume3.HandleReturns("some-output-handle")
 							volume3.WorkerReturns(&dbng.Worker{Name: "some-other-worker"})
+							volume3.ContainerHandleReturns("some-container-handle")
+							volume3.ParentHandleReturns("some-parent-handle")
 							volume3.SizeInBytesReturns(4096)
 							volume4 := new(dbngfakes.FakeCreatedVolume)
 							volume4.HandleReturns("some-cow-handle")
@@ -118,28 +120,36 @@ var _ = Describe("Volumes API", func() {
 								"worker_name": "some-worker",
 								"type": "",
 								"identifier": "",
-								"size_in_bytes": 1024
+								"size_in_bytes": 1024,
+								"container_handle": "",
+								"parent_handle": ""
 							},
 							{
 								"id": "some-import-handle",
 								"worker_name": "some-worker",
 								"type": "",
 								"identifier": "",
-								"size_in_bytes": 2048
+								"size_in_bytes": 2048,
+								"container_handle": "",
+								"parent_handle": ""
 							},
 							{
 								"id": "some-output-handle",
 								"worker_name": "some-other-worker",
 								"type": "",
 								"identifier": "",
-								"size_in_bytes": 4096
+								"size_in_bytes": 4096,
+								"container_handle": "some-container-handle",
+								"parent_handle": "some-parent-handle"
 							},
 							{
 								"id": "some-cow-handle",
 								"worker_name": "some-worker",
 								"type": "",
 								"identifier": "",
-								"size_in_bytes": 8192
+								"size_in_bytes": 8192,
+								"container_handle": "",
+								"parent_handle": ""
 							}
 						]`,
 						))

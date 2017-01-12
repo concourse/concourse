@@ -120,21 +120,53 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
-	Describe("createdVolume.Type", func() {
-		It("returns VolumeTypeContainer", func() {
+	Context("when volume type is VolumeTypeContainer", func() {
+		It("returns volume type, container handle, mount path", func() {
 			creatingVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume, err := creatingVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeContainer)))
+			Expect(createdVolume.ContainerHandle()).To(Equal(defaultCreatingContainer.Handle()))
+			Expect(createdVolume.Path()).To(Equal("/path/to/volume"))
 
 			_, createdVolume, err = volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeContainer)))
+			Expect(createdVolume.ContainerHandle()).To(Equal(defaultCreatingContainer.Handle()))
+			Expect(createdVolume.Path()).To(Equal("/path/to/volume"))
 		})
+	})
 
-		It("returns VolumeTypeResource", func() {
+	Context("when volume has parent", func() {
+		It("returns parent handle", func() {
+			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			Expect(err).NotTo(HaveOccurred())
+			createdParentVolume, err := creatingParentVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+
+			childCreatingVolume, err := createdParentVolume.CreateChildForContainer(defaultCreatingContainer, "/path/to/child/volume")
+			Expect(err).NotTo(HaveOccurred())
+			childVolume, err := childCreatingVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(childVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeContainer)))
+			Expect(childVolume.ContainerHandle()).To(Equal(defaultCreatingContainer.Handle()))
+			Expect(childVolume.Path()).To(Equal("/path/to/child/volume"))
+			Expect(childVolume.ParentHandle()).To(Equal(createdParentVolume.Handle()))
+
+			_, childVolume, err = volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/child/volume")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(childVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeContainer)))
+			Expect(childVolume.ContainerHandle()).To(Equal(defaultCreatingContainer.Handle()))
+			Expect(childVolume.Path()).To(Equal("/path/to/child/volume"))
+			Expect(childVolume.ParentHandle()).To(Equal(createdParentVolume.Handle()))
+		})
+	})
+
+	XContext("when volume type is VolumeTypeResource", func() {
+		It("returns volume type, resource type, resource version", func() {
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 				logger,
 				defaultBuild,
@@ -153,13 +185,29 @@ var _ = Describe("Volume", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResource)))
+			Expect(createdVolume.ResourceType()).To(Equal(&dbng.VolumeResourceType{
+				BaseResourceType: &dbng.VolumeBaseResourceType{
+					Name:    "some-base-resource-type",
+					Version: "some-brt-version",
+				},
+				Version: atc.Version{"some": "version"},
+			}))
 
 			_, createdVolume, err = volumeFactory.FindResourceCacheVolume(defaultWorker, resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResource)))
+			Expect(createdVolume.ResourceType()).To(Equal(&dbng.VolumeResourceType{
+				BaseResourceType: &dbng.VolumeBaseResourceType{
+					Name:    "some-base-resource-type",
+					Version: "some-brt-version",
+				},
+				Version: atc.Version{"some": "version"},
+			}))
 		})
+	})
 
-		It("returns VolumeTypeResourceType", func() {
+	XContext("when volume type is VolumeTypeResourceType", func() {
+		It("returns volume type, base resource type name, base resource type version", func() {
 			usedBaseResourceType, found, err := baseResourceTypeFactory.Find("some-base-resource-type")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -169,10 +217,18 @@ var _ = Describe("Volume", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResourceType)))
+			Expect(createdVolume.BaseResourceType()).To(Equal(&dbng.VolumeBaseResourceType{
+				Name:    "some-base-resource-type",
+				Version: "some-brt-version",
+			}))
 
 			_, createdVolume, err = volumeFactory.FindBaseResourceTypeVolume(defaultTeam.ID(), defaultWorker, usedBaseResourceType)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResourceType)))
+			Expect(createdVolume.BaseResourceType()).To(Equal(&dbng.VolumeBaseResourceType{
+				Name:    "some-base-resource-type",
+				Version: "some-brt-version",
+			}))
 		})
 	})
 

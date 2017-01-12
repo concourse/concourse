@@ -40,18 +40,21 @@ func NewVolumeFactory(conn Conn) VolumeFactory {
 }
 
 func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error) {
-	query, args, err := psql.Select("id, handle, state, worker_name, size_in_bytes", factory.typeSelector()).
-		From("volumes").
+	query, args, err := psql.Select(volumeColumns...).
+		From("volumes v").
+		LeftJoin("workers w ON v.worker_name = w.name").
+		LeftJoin("containers c ON v.container_id = c.id").
+		LeftJoin("volumes pv ON v.parent_id = pv.id").
 		Where(sq.Or{
 			sq.Eq{
-				"team_id": teamID,
+				"v.team_id": teamID,
 			},
 			sq.Eq{
-				"team_id": nil,
+				"v.team_id": nil,
 			},
 		}).
 		Where(sq.Eq{
-			"state": "created",
+			"v.state": "created",
 		}).ToSql()
 	if err != nil {
 		return nil, err
@@ -66,27 +69,12 @@ func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error
 	createdVolumes := []CreatedVolume{}
 
 	for rows.Next() {
-		var id int
-		var handle string
-		var state string
-		var workerName string
-		var bytes int64
-		var volumeType VolumeType
-
-		err = rows.Scan(&id, &handle, &state, &workerName, &bytes, &volumeType)
+		_, createdVolume, _, err := scanVolume(rows, factory.conn)
 		if err != nil {
 			return nil, err
 		}
 
-		createdVolumes = append(createdVolumes, &createdVolume{
-			id:     id,
-			handle: handle,
-			typ:    volumeType,
-			worker: &Worker{
-				Name: workerName,
-			},
-			conn: factory.conn,
-		})
+		createdVolumes = append(createdVolumes, createdVolume)
 	}
 
 	return createdVolumes, nil
@@ -153,13 +141,17 @@ func (factory *volumeFactory) CreateContainerVolume(teamID int, worker *Worker, 
 	}
 
 	volume.path = mountPath
+	volume.containerHandle = container.Handle()
+	volume.teamID = teamID
 	return volume, nil
 }
 
 func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer) ([]CreatedVolume, error) {
-	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr", factory.typeSelector()).
+	query, args, err := psql.Select(volumeColumns...).
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
+		LeftJoin("containers c ON v.container_id = c.id").
+		LeftJoin("volumes pv ON v.parent_id = pv.id").
 		Where(sq.Eq{
 			"v.state":        VolumeStateCreated,
 			"v.container_id": container.ID(),
@@ -178,40 +170,12 @@ func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer
 	createdVolumes := []CreatedVolume{}
 
 	for rows.Next() {
-		var id int
-		var handle string
-		var path sql.NullString
-		var state string
-		var workerName string
-		var workerAddress sql.NullString
-		var volumeType VolumeType
-
-		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress, &volumeType)
+		_, createdVolume, _, err := scanVolume(rows, factory.conn)
 		if err != nil {
 			return nil, err
 		}
 
-		var pathString string
-		if path.Valid {
-			pathString = path.String
-		}
-
-		worker := Worker{
-			Name:       workerName,
-			GardenAddr: nil,
-		}
-		if workerAddress.Valid {
-			worker.GardenAddr = &workerAddress.String
-		}
-
-		createdVolumes = append(createdVolumes, &createdVolume{
-			id:     id,
-			handle: handle,
-			typ:    volumeType,
-			path:   pathString,
-			worker: &worker,
-			conn:   factory.conn,
-		})
+		createdVolumes = append(createdVolumes, createdVolume)
 	}
 
 	return createdVolumes, nil
@@ -268,9 +232,11 @@ func (factory *volumeFactory) FindCreatedVolume(handle string) (CreatedVolume, b
 }
 
 func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error) {
-	query, args, err := psql.Select("v.id, v.handle, v.path, v.state, w.name, w.addr, w.baggageclaim_url").
+	query, args, err := psql.Select(volumeColumns...).
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
+		LeftJoin("containers c ON v.container_id = c.id").
+		LeftJoin("volumes pv ON v.parent_id = pv.id").
 		Where(sq.Eq{
 			"v.initialized":           true,
 			"v.resource_cache_id":     nil,
@@ -291,58 +257,17 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 	destroyingVolumes := []DestroyingVolume{}
 
 	for rows.Next() {
-		var id int
-		var handle string
-		var path sql.NullString
-		var state string
-		var workerName string
-		var workerAddress sql.NullString
-		var workerBaggageclaimURL sql.NullString
-
-		err = rows.Scan(&id, &handle, &path, &state, &workerName, &workerAddress, &workerBaggageclaimURL)
+		_, createdVolume, destroyingVolume, err := scanVolume(rows, factory.conn)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		var pathString string
-		if path.Valid {
-			pathString = path.String
+		if createdVolume != nil {
+			createdVolumes = append(createdVolumes, createdVolume)
 		}
 
-		var workerAddrString string
-		if workerAddress.Valid {
-			workerAddrString = workerAddress.String
-		}
-
-		var workerBaggageclaimURLString string
-		if workerBaggageclaimURL.Valid {
-			workerBaggageclaimURLString = workerBaggageclaimURL.String
-		}
-
-		switch state {
-		case VolumeStateCreated:
-			createdVolumes = append(createdVolumes, &createdVolume{
-				id:     id,
-				handle: handle,
-				path:   pathString,
-				worker: &Worker{
-					Name:            workerName,
-					GardenAddr:      &workerAddrString,
-					BaggageclaimURL: &workerBaggageclaimURLString,
-				},
-				conn: factory.conn,
-			})
-		case VolumeStateDestroying:
-			destroyingVolumes = append(destroyingVolumes, &destroyingVolume{
-				id:     id,
-				handle: handle,
-				worker: &Worker{
-					Name:            workerName,
-					GardenAddr:      &workerAddrString,
-					BaggageclaimURL: &workerBaggageclaimURLString,
-				},
-				conn: factory.conn,
-			})
+		if destroyingVolume != nil {
+			destroyingVolumes = append(destroyingVolumes, destroyingVolume)
 		}
 	}
 
@@ -365,7 +290,13 @@ var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer e
 // 3. insert into volumes in 'initializing' state
 //   * if fails (fkey violation; worker type gone), fail for same reason as 2.
 // 4. commit tx
-func (factory *volumeFactory) createVolume(tx Tx, teamID int, worker *Worker, columns map[string]interface{}, volumeType VolumeType) (*creatingVolume, error) {
+func (factory *volumeFactory) createVolume(
+	tx Tx,
+	teamID int,
+	worker *Worker,
+	columns map[string]interface{},
+	volumeType VolumeType,
+) (*creatingVolume, error) {
 	var volumeID int
 	handle, err := uuid.NewV4()
 	if err != nil {
@@ -407,6 +338,7 @@ func (factory *volumeFactory) createVolume(tx Tx, teamID int, worker *Worker, co
 		id:     volumeID,
 		handle: handle.String(),
 		typ:    volumeType,
+		teamID: teamID,
 
 		conn: factory.conn,
 	}, nil
@@ -420,14 +352,6 @@ func (factory *volumeFactory) findVolume(teamID int, worker *Worker, columns map
 
 	defer tx.Rollback()
 
-	var id int
-	var handle string
-	var state string
-	var workerName string
-	var workerAddress string
-	var path sql.NullString
-	var volumeType VolumeType
-
 	whereClause := sq.Eq{}
 	if teamID != 0 {
 		whereClause["v.team_id"] = teamID
@@ -440,15 +364,15 @@ func (factory *volumeFactory) findVolume(teamID int, worker *Worker, columns map
 		whereClause[name] = value
 	}
 
-	err = psql.Select(
-		"v.id, v.handle, v.state, v.path, w.name, w.addr",
-		factory.typeSelector()).
+	row := psql.Select(volumeColumns...).
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
+		LeftJoin("containers c ON v.container_id = c.id").
+		LeftJoin("volumes pv ON v.parent_id = pv.id").
 		Where(whereClause).
 		RunWith(tx).
-		QueryRow().
-		Scan(&id, &handle, &state, &path, &workerName, &workerAddress, &volumeType)
+		QueryRow()
+	creatingVolume, createdVolume, _, err := scanVolume(row, factory.conn)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil, nil
@@ -460,9 +384,81 @@ func (factory *volumeFactory) findVolume(teamID int, worker *Worker, columns map
 		return nil, nil, err
 	}
 
-	var pathString string
-	if path.Valid {
-		pathString = path.String
+	return creatingVolume, createdVolume, nil
+}
+
+var volumeColumns = []string{
+	"v.id",
+	"v.handle",
+	"v.state",
+	"w.name",
+	"w.addr",
+	"w.baggageclaim_url",
+	"v.path",
+	"c.handle",
+	"pv.handle",
+	"v.team_id",
+	`case when v.container_id is not NULL then 'container'
+	  when v.resource_cache_id is not NULL then 'resource'
+		when v.base_resource_type_id is not NULL then 'resource-type'
+		else 'unknown'
+	end`,
+}
+
+func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, DestroyingVolume, error) {
+	var id int
+	var handle string
+	var state string
+	var workerName string
+	var workerAddress string
+	var sqWorkerBaggageclaimURL sql.NullString
+	var sqPath sql.NullString
+	var sqContainerHandle sql.NullString
+	var sqParentHandle sql.NullString
+	var sqTeamID sql.NullInt64
+
+	var volumeType VolumeType
+
+	err := row.Scan(
+		&id,
+		&handle,
+		&state,
+		&workerName,
+		&workerAddress,
+		&sqWorkerBaggageclaimURL,
+		&sqPath,
+		&sqContainerHandle,
+		&sqParentHandle,
+		&sqTeamID,
+		&volumeType,
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	var path string
+	if sqPath.Valid {
+		path = sqPath.String
+	}
+
+	var containerHandle string
+	if sqContainerHandle.Valid {
+		containerHandle = sqContainerHandle.String
+	}
+
+	var parentHandle string
+	if sqParentHandle.Valid {
+		parentHandle = sqParentHandle.String
+	}
+
+	var workerBaggageclaimURL string
+	if sqWorkerBaggageclaimURL.Valid {
+		workerBaggageclaimURL = sqWorkerBaggageclaimURL.String
+	}
+
+	var teamID int
+	if sqTeamID.Valid {
+		teamID = int(sqTeamID.Int64)
 	}
 
 	switch state {
@@ -471,34 +467,53 @@ func (factory *volumeFactory) findVolume(teamID int, worker *Worker, columns map
 			id:     id,
 			handle: handle,
 			typ:    volumeType,
-			path:   pathString,
+			path:   path,
+			teamID: teamID,
 			worker: &Worker{
-				Name:       workerName,
-				GardenAddr: &workerAddress,
+				Name:            workerName,
+				GardenAddr:      &workerAddress,
+				BaggageclaimURL: &workerBaggageclaimURL,
 			},
-			conn: factory.conn,
-		}, nil
+			containerHandle: containerHandle,
+			parentHandle:    parentHandle,
+			// resourceType:            resourceType,
+			// resourceVersion:         resourceVersion,
+			// baseResourceTypeName:    baseResourceTypeName,
+			// baseResourceTypeVersion: baseResourceTypeVersion,
+			conn: conn,
+		}, nil, nil
 	case VolumeStateCreating:
 		return &creatingVolume{
 			id:     id,
 			handle: handle,
 			typ:    volumeType,
-			path:   pathString,
+			path:   path,
+			teamID: teamID,
 			worker: &Worker{
-				Name:       workerName,
-				GardenAddr: &workerAddress,
+				Name:            workerName,
+				GardenAddr:      &workerAddress,
+				BaggageclaimURL: &workerBaggageclaimURL,
 			},
-			conn: factory.conn,
-		}, nil, nil
+			containerHandle: containerHandle,
+			parentHandle:    parentHandle,
+			// resourceType:            resourceType,
+			// resourceVersion:         resourceVersion,
+			// baseResourceTypeName:    baseResourceTypeName,
+			// baseResourceTypeVersion: baseResourceTypeVersion,
+			conn: conn,
+		}, nil, nil, nil
+	case VolumeStateDestroying:
+		return nil, nil, &destroyingVolume{
+			id:     id,
+			handle: handle,
+			worker: &Worker{
+				Name:            workerName,
+				GardenAddr:      &workerAddress,
+				BaggageclaimURL: &workerBaggageclaimURL,
+			},
+			conn: conn,
+		}, nil
 	}
 
-	return nil, nil, nil
-}
-
-func (factory *volumeFactory) typeSelector() string {
-	return `case when container_id is not NULL then 'container'
-	  when resource_cache_id is not NULL then 'resource'
-		when base_resource_type_id is not NULL then 'resource-type'
-		else 'unknown'
-	end`
+	return nil, nil, nil, nil
 }

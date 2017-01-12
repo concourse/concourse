@@ -45,6 +45,7 @@ type ResourceCache struct {
 type UsedResourceCache struct {
 	ID             int
 	ResourceConfig *UsedResourceConfig
+	Version        atc.Version
 }
 
 func (cache ResourceCache) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, build *Build) (*UsedResourceCache, error) {
@@ -98,7 +99,14 @@ func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
 	return true, nil
 }
 
-func (cache ResourceCache) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig *UsedResourceConfig, forColumnName string, forColumnID int) (*UsedResourceCache, error) {
+func (cache ResourceCache) findOrCreate(
+	logger lager.Logger,
+	tx Tx,
+	lockFactory lock.LockFactory,
+	resourceConfig *UsedResourceConfig,
+	forColumnName string,
+	forColumnID int,
+) (*UsedResourceCache, error) {
 	id, found, err := cache.findWithResourceConfig(tx, resourceConfig)
 	if err != nil {
 		return nil, err
@@ -136,6 +144,7 @@ func (cache ResourceCache) findOrCreate(logger lager.Logger, tx Tx, lockFactory 
 	rc := &UsedResourceCache{
 		ID:             id,
 		ResourceConfig: resourceConfig,
+		Version:        cache.Version,
 	}
 
 	var resourceCacheUseExists int

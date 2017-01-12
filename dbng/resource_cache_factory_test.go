@@ -80,7 +80,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 	Describe("FindOrCreateResourceCacheForBuild", func() {
 		It("creates resource cache in database", func() {
-			_, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 				logger,
 				defaultBuild,
 				"some-type",
@@ -97,6 +97,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				},
 			)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(usedResourceCache.Version).To(Equal(atc.Version{"some": "version"}))
 
 			tx, err := dbConn.Begin()
 			Expect(err).NotTo(HaveOccurred())
