@@ -17,7 +17,7 @@ type ResourceCheck struct {
 }
 
 func (r ResourceCheck) Check(logger lager.Logger, worker *cessna.Worker) (CheckResponse, error) {
-	rootFSVolume, err := r.ResourceType.RootFSVolumeFor(logger, worker)
+	rootFSPath, err := r.ResourceType.RootFSPathFor(logger, worker)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func (r ResourceCheck) Check(logger lager.Logger, worker *cessna.Worker) (CheckR
 	// Turn RootFS COW into Container
 	gardenSpec := garden.ContainerSpec{
 		Privileged: false,
-		RootFSPath: rootFSVolume.Path(),
+		RootFSPath: rootFSPath,
 	}
 
 	gardenContainer, err := worker.GardenClient().Create(gardenSpec)

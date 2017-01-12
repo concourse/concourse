@@ -18,7 +18,7 @@ type Resource struct {
 }
 
 type RootFSable interface {
-	RootFSVolumeFor(logger lager.Logger, worker *cessna.Worker) (baggageclaim.Volume, error)
+	RootFSPathFor(logger lager.Logger, worker *cessna.Worker) (string, error)
 }
 
 func NewBaseResource(resourceType BaseResourceType, source atc.Source) Resource {
@@ -28,7 +28,7 @@ func NewBaseResource(resourceType BaseResourceType, source atc.Source) Resource 
 	}
 }
 
-func (r BaseResourceType) RootFSVolumeFor(logger lager.Logger, worker *cessna.Worker) (baggageclaim.Volume, error) {
+func (r BaseResourceType) RootFSPathFor(logger lager.Logger, worker *cessna.Worker) (string, error) {
 	spec := baggageclaim.VolumeSpec{
 		Strategy: baggageclaim.ImportStrategy{
 			Path: r.RootFSPath,
@@ -38,7 +38,7 @@ func (r BaseResourceType) RootFSVolumeFor(logger lager.Logger, worker *cessna.Wo
 
 	parentVolume, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// COW of RootFS Volume
@@ -48,7 +48,12 @@ func (r BaseResourceType) RootFSVolumeFor(logger lager.Logger, worker *cessna.Wo
 		},
 		Privileged: false,
 	}
-	return worker.BaggageClaimClient().CreateVolume(logger, s)
+
+	v, err := worker.BaggageClaimClient().CreateVolume(logger, s)
+	if err != nil {
+		return "", err
+	}
+	return v.Path(), nil
 }
 
 type CheckRequest struct {

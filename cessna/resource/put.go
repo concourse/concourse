@@ -22,7 +22,7 @@ type ResourcePut struct {
 }
 
 func (r ResourcePut) Put(logger lager.Logger, worker *cessna.Worker, artifacts NamedArtifacts) (OutResponse, error) {
-	rootFSVolume, err := r.ResourceType.RootFSVolumeFor(logger, worker)
+	rootFSPath, err := r.ResourceType.RootFSPathFor(logger, worker)
 	if err != nil {
 		return OutResponse{}, err
 	}
@@ -61,7 +61,7 @@ func (r ResourcePut) Put(logger lager.Logger, worker *cessna.Worker, artifacts N
 	// Create container
 	gardenSpec := garden.ContainerSpec{
 		Privileged: false,
-		RootFSPath: rootFSVolume.Path(),
+		RootFSPath: rootFSPath,
 		BindMounts: bindMounts,
 	}
 
