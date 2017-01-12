@@ -17,6 +17,7 @@ type Resource struct {
 	Source       atc.Source
 }
 
+//go:generate counterfeiter . RootFSable
 type RootFSable interface {
 	RootFSPathFor(logger lager.Logger, worker *cessna.Worker) (string, error)
 }
