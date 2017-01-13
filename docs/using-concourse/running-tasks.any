@@ -25,7 +25,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 \section{Configuring a Task}{configuring-tasks}{
   Conventionally a task's configuration is placed in the same repository as the
   code it's testing, possibly under some \code{ci} directory. For a simple Ruby
-  app with unit tests it may be called \code{ci/unit.yml}, and look something
+  app with unit tests it may be called \code{ci/unit.yml}, and looks something
   like:
 
   \titled-codeblock{task.yml}{yaml}{
@@ -63,7 +63,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     specifying the base image has the same effect as \code{image:} above but
     uses Concourse resources to download the image.  The contents of this field
     should be the same as a resource configuration in your pipeline (without
-    the name).
+    the \code{name}).
 
     The following example configures the task to use the \code{golang:1.6}
     Docker image:
