@@ -20,7 +20,7 @@ type ResourcePut struct {
 	Params atc.Params
 }
 
-func (r ResourcePut) Put(logger lager.Logger, worker *Worker, artifacts NamedArtifacts) (OutResponse, error) {
+func (r ResourcePut) Put(logger lager.Logger, worker Worker, artifacts NamedArtifacts) (OutResponse, error) {
 	rootFSPath, err := r.ResourceType.RootFSPathFor(logger, worker)
 	if err != nil {
 		return OutResponse{}, err
@@ -59,7 +59,7 @@ func (r ResourcePut) Put(logger lager.Logger, worker *Worker, artifacts NamedArt
 
 	// Create container
 	gardenSpec := garden.ContainerSpec{
-		Privileged: false,
+		Privileged: true,
 		RootFSPath: rootFSPath,
 		BindMounts: bindMounts,
 	}

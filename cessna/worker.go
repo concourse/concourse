@@ -11,22 +11,28 @@ import (
 	"code.cloudfoundry.org/garden/client/connection"
 )
 
-func NewWorker(gardenAddr string, baggageclaimAddr string) *Worker {
-	return &Worker{
+//go:generate counterfeiter . Worker
+type Worker interface {
+	GardenClient() garden.Client
+	BaggageClaimClient() baggageclaim.Client
+}
+
+func NewWorker(gardenAddr string, baggageclaimAddr string) *worker {
+	return &worker{
 		gardenAddr:       gardenAddr,
 		baggageclaimAddr: baggageclaimAddr,
 	}
 }
 
-type Worker struct {
+type worker struct {
 	gardenAddr       string
 	baggageclaimAddr string
 }
 
-func (w *Worker) GardenClient() garden.Client {
+func (w *worker) GardenClient() garden.Client {
 	return gclient.New(connection.New("tcp", w.gardenAddr))
 }
 
-func (w *Worker) BaggageClaimClient() baggageclaim.Client {
+func (w *worker) BaggageClaimClient() baggageclaim.Client {
 	return bclient.New(w.baggageclaimAddr, http.DefaultTransport)
 }

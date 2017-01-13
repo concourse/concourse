@@ -90,7 +90,7 @@ var _ = Describe("Put a resource", func() {
 
 			getBaseResource = NewBaseResource(baseResourceType, source)
 
-			getVolume, getErr = ResourceGet{Resource: getBaseResource, Version: atc.Version{"beep": "boop"}}.Get(logger, testWorker)
+			getVolume, getErr = ResourceGet{Resource: getBaseResource, Version: atc.Version{"beep": "boop"}}.Get(logger, worker)
 
 			putBaseResource = NewBaseResource(baseResourceType, source)
 		})
@@ -101,19 +101,15 @@ var _ = Describe("Put a resource", func() {
 				Params: atc.Params{
 					"path": "inputresource/version",
 				},
-			}.Put(logger, testWorker, NamedArtifacts{
+			}.Put(logger, worker, NamedArtifacts{
 				"inputresource": getVolume,
 			})
 		})
 
 		It("runs the out script", func() {
 			Expect(putErr).ShouldNot(HaveOccurred())
-		})
-
-		It("outputs the version that was in the path param file", func() {
 			Expect(putResponse.Version).To(Equal(atc.Version{"beep": "boop"}))
 		})
-
 	})
 
 })

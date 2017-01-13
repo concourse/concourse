@@ -27,7 +27,7 @@ type Task struct {
 type TaskResponse struct {
 }
 
-func (t *Task) Run(logger lager.Logger, worker *Worker, inputs NamedArtifacts, outputs NamedArtifacts) error {
+func (t *Task) Run(logger lager.Logger, worker Worker, inputs NamedArtifacts, outputs NamedArtifacts) error {
 	rootFSPath, err := t.RootFSGenerator.RootFSPathFor(logger, worker)
 	cowArtifacts := make(NamedArtifacts)
 

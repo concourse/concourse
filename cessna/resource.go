@@ -18,7 +18,7 @@ type Resource struct {
 
 //go:generate counterfeiter . RootFSable
 type RootFSable interface {
-	RootFSPathFor(logger lager.Logger, worker *Worker) (string, error)
+	RootFSPathFor(logger lager.Logger, worker Worker) (string, error)
 }
 
 func NewBaseResource(resourceType BaseResourceType, source atc.Source) Resource {
@@ -28,7 +28,7 @@ func NewBaseResource(resourceType BaseResourceType, source atc.Source) Resource 
 	}
 }
 
-func (r BaseResourceType) RootFSPathFor(logger lager.Logger, worker *Worker) (string, error) {
+func (r BaseResourceType) RootFSPathFor(logger lager.Logger, worker Worker) (string, error) {
 	spec := baggageclaim.VolumeSpec{
 		Strategy: baggageclaim.ImportStrategy{
 			Path: r.RootFSPath,
@@ -46,7 +46,7 @@ func (r BaseResourceType) RootFSPathFor(logger lager.Logger, worker *Worker) (st
 		Strategy: baggageclaim.COWStrategy{
 			Parent: parentVolume,
 		},
-		Privileged: false,
+		Privileged: true,
 	}
 
 	v, err := worker.BaggageClaimClient().CreateVolume(logger, s)

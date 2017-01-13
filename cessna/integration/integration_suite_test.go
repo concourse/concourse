@@ -21,17 +21,24 @@ import (
 	"bytes"
 	"io"
 
+	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/atc/cessna/cessnafakes"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
 )
 
 var (
 	testBaseResource Resource
-	testWorker       *Worker
+	worker           Worker
 	baseResourceType BaseResourceType
 	workerIp         string
 	tarPath          string
 
 	logger lager.Logger
+
+	fakeWorker             *cessnafakes.FakeWorker
+	fakeGardenClient       *gardenfakes.FakeClient
+	fakeBaggageClaimClient *baggageclaimfakes.FakeClient
 )
 
 var _ = BeforeSuite(func() {
@@ -47,15 +54,24 @@ var _ = BeforeSuite(func() {
 	tarPath, found = os.LookupEnv("ROOTFS_TAR_PATH")
 	Expect(found).To(BeTrue(), "Must set ROOTFS_TAR_PATH")
 
-	testWorker = NewWorker(fmt.Sprintf("%s:7777", workerIp), fmt.Sprintf("http://%s:7788", workerIp))
-
 	logger = lagertest.NewTestLogger("resource-test")
+
+})
+
+var _ = BeforeEach(func() {
+	fakeWorker = new(cessnafakes.FakeWorker)
+	fakeGardenClient = new(gardenfakes.FakeClient)
+	fakeBaggageClaimClient = new(baggageclaimfakes.FakeClient)
+
+	fakeWorker.BaggageClaimClientReturns(fakeBaggageClaimClient)
+	fakeWorker.GardenClientReturns(fakeGardenClient)
+
+	worker = NewWorker(fmt.Sprintf("%s:7777", workerIp), fmt.Sprintf("http://%s:7788", workerIp))
 })
 
 func TestResource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Resource Suite")
-
+	RunSpecs(t, "Cessna Integration Suite")
 }
 
 func createBaseResourceVolume(r io.Reader) (string, error) {

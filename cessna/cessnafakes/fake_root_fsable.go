@@ -9,11 +9,11 @@ import (
 )
 
 type FakeRootFSable struct {
-	RootFSPathForStub        func(logger lager.Logger, worker *cessna.Worker) (string, error)
+	RootFSPathForStub        func(logger lager.Logger, worker cessna.Worker) (string, error)
 	rootFSPathForMutex       sync.RWMutex
 	rootFSPathForArgsForCall []struct {
 		logger lager.Logger
-		worker *cessna.Worker
+		worker cessna.Worker
 	}
 	rootFSPathForReturns struct {
 		result1 string
@@ -23,11 +23,11 @@ type FakeRootFSable struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRootFSable) RootFSPathFor(logger lager.Logger, worker *cessna.Worker) (string, error) {
+func (fake *FakeRootFSable) RootFSPathFor(logger lager.Logger, worker cessna.Worker) (string, error) {
 	fake.rootFSPathForMutex.Lock()
 	fake.rootFSPathForArgsForCall = append(fake.rootFSPathForArgsForCall, struct {
 		logger lager.Logger
-		worker *cessna.Worker
+		worker cessna.Worker
 	}{logger, worker})
 	fake.recordInvocation("RootFSPathFor", []interface{}{logger, worker})
 	fake.rootFSPathForMutex.Unlock()
@@ -44,7 +44,7 @@ func (fake *FakeRootFSable) RootFSPathForCallCount() int {
 	return len(fake.rootFSPathForArgsForCall)
 }
 
-func (fake *FakeRootFSable) RootFSPathForArgsForCall(i int) (lager.Logger, *cessna.Worker) {
+func (fake *FakeRootFSable) RootFSPathForArgsForCall(i int) (lager.Logger, cessna.Worker) {
 	fake.rootFSPathForMutex.RLock()
 	defer fake.rootFSPathForMutex.RUnlock()
 	return fake.rootFSPathForArgsForCall[i].logger, fake.rootFSPathForArgsForCall[i].worker

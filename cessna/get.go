@@ -17,7 +17,7 @@ type ResourceGet struct {
 	Params  atc.Params
 }
 
-func (r ResourceGet) Get(logger lager.Logger, worker *Worker) (baggageclaim.Volume, error) {
+func (r ResourceGet) Get(logger lager.Logger, worker Worker) (baggageclaim.Volume, error) {
 	rootFSPath, err := r.ResourceType.RootFSPathFor(logger, worker)
 	if err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func (r ResourceGet) Get(logger lager.Logger, worker *Worker) (baggageclaim.Volu
 	// Empty Volume for Get
 	spec := baggageclaim.VolumeSpec{
 		Strategy:   baggageclaim.EmptyStrategy{},
-		Privileged: false,
+		Privileged: true,
 	}
 	volumeForGet, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
 	if err != nil {
@@ -44,7 +44,7 @@ func (r ResourceGet) Get(logger lager.Logger, worker *Worker) (baggageclaim.Volu
 	bindMounts := []garden.BindMount{mount}
 
 	gardenSpec := garden.ContainerSpec{
-		Privileged: false,
+		Privileged: true,
 		RootFSPath: rootFSPath,
 		BindMounts: bindMounts,
 	}
@@ -70,7 +70,7 @@ func (r ResourceGet) Get(logger lager.Logger, worker *Worker) (baggageclaim.Volu
 	return volumeForGet, nil
 }
 
-func (r ResourceGet) RootFSPathFor(logger lager.Logger, worker *Worker) (string, error) {
+func (r ResourceGet) RootFSPathFor(logger lager.Logger, worker Worker) (string, error) {
 	v, err := r.Get(logger, worker)
 	if err != nil {
 		return "", err
@@ -81,7 +81,7 @@ func (r ResourceGet) RootFSPathFor(logger lager.Logger, worker *Worker) (string,
 		Strategy: baggageclaim.COWStrategy{
 			Parent: v,
 		},
-		Privileged: false,
+		Privileged: true,
 	}
 
 	rootFSVolume, err := worker.BaggageClaimClient().CreateVolume(logger, spec)

@@ -76,7 +76,7 @@ var _ = Describe("Check for new versions of resources", func() {
 			checkVersions, checkErr = ResourceCheck{
 				Resource: testBaseResource,
 				Version:  nil,
-			}.Check(logger, testWorker)
+			}.Check(logger, worker)
 		})
 
 		It("runs the check script", func() {
@@ -177,7 +177,7 @@ var _ = Describe("Check for new versions of resources", func() {
 		})
 
 		It("works", func() {
-			checkResponse, checkErr := resourceCheck.Check(logger, testWorker)
+			checkResponse, checkErr := resourceCheck.Check(logger, worker)
 			Expect(checkErr).NotTo(HaveOccurred())
 
 			Expect(checkResponse).To(ContainElement(atc.Version{"abc": "123"}))

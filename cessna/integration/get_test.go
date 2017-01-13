@@ -74,7 +74,7 @@ var _ = Describe("Get version of a resource", func() {
 				Resource: testBaseResource,
 				Version:  atc.Version{"beep": "boop"},
 				Params:   nil,
-			}.Get(logger, testWorker)
+			}.Get(logger, worker)
 		})
 
 		It("runs the get script", func() {
@@ -161,7 +161,7 @@ var _ = Describe("Get version of a resource", func() {
 		})
 
 		It("works", func() {
-			getVolume, getErr := resourceGet.Get(logger, testWorker)
+			getVolume, getErr := resourceGet.Get(logger, worker)
 			Expect(getErr).NotTo(HaveOccurred())
 
 			file, err := getVolume.StreamOut("/version")

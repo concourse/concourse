@@ -15,7 +15,7 @@ type ResourceCheck struct {
 	Version *atc.Version
 }
 
-func (r ResourceCheck) Check(logger lager.Logger, worker *Worker) (CheckResponse, error) {
+func (r ResourceCheck) Check(logger lager.Logger, worker Worker) (CheckResponse, error) {
 	rootFSPath, err := r.ResourceType.RootFSPathFor(logger, worker)
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func (r ResourceCheck) Check(logger lager.Logger, worker *Worker) (CheckResponse
 
 	// Turn RootFS COW into Container
 	gardenSpec := garden.ContainerSpec{
-		Privileged: false,
+		Privileged: true,
 		RootFSPath: rootFSPath,
 	}
 
