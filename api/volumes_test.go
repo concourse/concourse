@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
@@ -81,21 +82,42 @@ var _ = Describe("Volumes API", func() {
 							volume1 := new(dbngfakes.FakeCreatedVolume)
 							volume1.HandleReturns("some-resource-cache-handle")
 							volume1.WorkerReturns(&dbng.Worker{Name: "some-worker"})
+							volume1.TypeReturns(dbng.VolumeTypeResource)
 							volume1.SizeInBytesReturns(1024)
+							volume1.ResourceTypeReturns(&dbng.VolumeResourceType{
+								ResourceType: &dbng.VolumeResourceType{
+									BaseResourceType: &dbng.WorkerBaseResourceType{
+										Name:    "some-base-resource-type",
+										Version: "some-base-version",
+									},
+									Version: atc.Version{"custom": "version"},
+								},
+								Version: atc.Version{"some": "version"},
+							}, nil)
 							volume2 := new(dbngfakes.FakeCreatedVolume)
 							volume2.HandleReturns("some-import-handle")
 							volume2.WorkerReturns(&dbng.Worker{Name: "some-worker"})
 							volume2.SizeInBytesReturns(2048)
+							volume2.TypeReturns(dbng.VolumeTypeResourceType)
+							volume2.BaseResourceTypeReturns(&dbng.WorkerBaseResourceType{
+								Name:    "some-base-resource-type",
+								Version: "some-base-version",
+							}, nil)
 							volume3 := new(dbngfakes.FakeCreatedVolume)
 							volume3.HandleReturns("some-output-handle")
 							volume3.WorkerReturns(&dbng.Worker{Name: "some-other-worker"})
 							volume3.ContainerHandleReturns("some-container-handle")
+							volume3.PathReturns("some-path")
 							volume3.ParentHandleReturns("some-parent-handle")
 							volume3.SizeInBytesReturns(4096)
+							volume3.TypeReturns(dbng.VolumeTypeContainer)
 							volume4 := new(dbngfakes.FakeCreatedVolume)
 							volume4.HandleReturns("some-cow-handle")
 							volume4.WorkerReturns(&dbng.Worker{Name: "some-worker"})
+							volume4.ContainerHandleReturns("some-container-handle")
+							volume4.PathReturns("some-path")
 							volume4.SizeInBytesReturns(8192)
+							volume4.TypeReturns(dbng.VolumeTypeContainer)
 
 							return []dbng.CreatedVolume{
 								volume1,
@@ -118,38 +140,60 @@ var _ = Describe("Volumes API", func() {
 							{
 								"id": "some-resource-cache-handle",
 								"worker_name": "some-worker",
-								"type": "",
-								"identifier": "",
+								"type": "resource",
 								"size_in_bytes": 1024,
 								"container_handle": "",
-								"parent_handle": ""
+								"path": "",
+								"parent_handle": "",
+								"resource_type": {
+									"resource_type": {
+									  "resource_type": null,
+										"base_resource_type": {
+											"name": "some-base-resource-type",
+											"version": "some-base-version"
+										},
+										"version": {"custom": "version"}
+									},
+									"base_resource_type": null,
+									"version": {"some": "version"}
+								},
+								"base_resource_type": null
 							},
 							{
 								"id": "some-import-handle",
 								"worker_name": "some-worker",
-								"type": "",
-								"identifier": "",
+								"type": "resource-type",
 								"size_in_bytes": 2048,
 								"container_handle": "",
-								"parent_handle": ""
+								"path": "",
+								"parent_handle": "",
+								"resource_type": null,
+								"base_resource_type": {
+									"name": "some-base-resource-type",
+									"version": "some-base-version"
+								}
 							},
 							{
 								"id": "some-output-handle",
 								"worker_name": "some-other-worker",
-								"type": "",
-								"identifier": "",
+								"type": "container",
 								"size_in_bytes": 4096,
 								"container_handle": "some-container-handle",
-								"parent_handle": "some-parent-handle"
+								"path": "some-path",
+								"parent_handle": "some-parent-handle",
+								"resource_type": null,
+								"base_resource_type": null
 							},
 							{
 								"id": "some-cow-handle",
 								"worker_name": "some-worker",
-								"type": "",
-								"identifier": "",
+								"type": "container",
 								"size_in_bytes": 8192,
-								"container_handle": "",
-								"parent_handle": ""
+								"container_handle": "some-container-handle",
+								"parent_handle": "",
+								"path": "some-path",
+								"resource_type": null,
+								"base_resource_type": null
 							}
 						]`,
 						))

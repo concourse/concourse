@@ -39,7 +39,12 @@ func (s *Server) ListVolumes(teamDB db.TeamDB) http.Handler {
 		presentedVolumes := make([]atc.Volume, len(volumes))
 		for i := 0; i < len(volumes); i++ {
 			volume := volumes[i]
-			presentedVolumes[i] = present.Volume(volume)
+			presentedVolumes[i], err = present.Volume(volume)
+			if err != nil {
+				hLog.Error("failed-to-present-volume", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 
 		json.NewEncoder(w).Encode(presentedVolumes)

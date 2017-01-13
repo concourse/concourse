@@ -1,6 +1,8 @@
 package dbng
 
 import (
+	"database/sql"
+	"encoding/json"
 	"errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -14,6 +16,7 @@ var (
 	ErrVolumeMarkDestroyingFailed  = errors.New("could-not-mark-volume-as-destroying")
 	ErrVolumeStateTransitionFailed = errors.New("could-not-transition-volume-state")
 	ErrVolumeMissing               = errors.New("volume-no-longer-in-db")
+	ErrInvalidResourceCache        = errors.New("invalid-resource-cache")
 )
 
 type VolumeState string
@@ -44,17 +47,17 @@ type CreatingVolume interface {
 }
 
 type creatingVolume struct {
-	id               int
-	worker           *Worker
-	handle           string
-	path             string
-	teamID           int
-	typ              VolumeType
-	containerHandle  string
-	parentHandle     string
-	resourceType     *VolumeResourceType
-	baseResourceType *VolumeBaseResourceType
-	conn             Conn
+	id                 int
+	worker             *Worker
+	handle             string
+	path               string
+	teamID             int
+	typ                VolumeType
+	containerHandle    string
+	parentHandle       string
+	resourceCacheID    int
+	baseResourceTypeID int
+	conn               Conn
 }
 
 func (volume *creatingVolume) ID() int { return volume.id }
@@ -88,17 +91,17 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 	}
 
 	return &createdVolume{
-		id:               volume.id,
-		worker:           volume.worker,
-		typ:              volume.typ,
-		handle:           volume.handle,
-		path:             volume.path,
-		teamID:           volume.teamID,
-		conn:             volume.conn,
-		containerHandle:  volume.containerHandle,
-		parentHandle:     volume.parentHandle,
-		resourceType:     volume.resourceType,
-		baseResourceType: volume.baseResourceType,
+		id:                 volume.id,
+		worker:             volume.worker,
+		typ:                volume.typ,
+		handle:             volume.handle,
+		path:               volume.path,
+		teamID:             volume.teamID,
+		conn:               volume.conn,
+		containerHandle:    volume.containerHandle,
+		parentHandle:       volume.parentHandle,
+		resourceCacheID:    volume.resourceCacheID,
+		baseResourceTypeID: volume.baseResourceTypeID,
 	}, nil
 }
 
@@ -116,48 +119,140 @@ type CreatedVolume interface {
 	IsInitialized() (bool, error)
 	ContainerHandle() string
 	ParentHandle() string
-	ResourceType() *VolumeResourceType
-	BaseResourceType() *VolumeBaseResourceType
+	ResourceType() (*VolumeResourceType, error)
+	BaseResourceType() (*WorkerBaseResourceType, error)
 }
 
 type createdVolume struct {
-	id               int
-	worker           *Worker
-	handle           string
-	path             string
-	teamID           int
-	typ              VolumeType
-	bytes            int64
-	containerHandle  string
-	parentHandle     string
-	resourceType     *VolumeResourceType
-	baseResourceType *VolumeBaseResourceType
-	conn             Conn
+	id                 int
+	worker             *Worker
+	handle             string
+	path               string
+	teamID             int
+	typ                VolumeType
+	bytes              int64
+	containerHandle    string
+	parentHandle       string
+	resourceCacheID    int
+	baseResourceTypeID int
+	conn               Conn
 }
 
 type VolumeResourceType struct {
-	BaseResourceType *VolumeBaseResourceType
+	BaseResourceType *WorkerBaseResourceType
 	ResourceType     *VolumeResourceType
 	Version          atc.Version
 }
 
-// different from resource cache, since it includes specific version of base resource type
-// that is used by volume on the same worker
-type VolumeBaseResourceType struct {
-	Name    string
-	Version string
+func (volume *createdVolume) Handle() string          { return volume.handle }
+func (volume *createdVolume) Path() string            { return volume.path }
+func (volume *createdVolume) Worker() *Worker         { return volume.worker }
+func (volume *createdVolume) SizeInBytes() int64      { return volume.bytes }
+func (volume *createdVolume) Type() VolumeType        { return volume.typ }
+func (volume *createdVolume) ContainerHandle() string { return volume.containerHandle }
+func (volume *createdVolume) ParentHandle() string    { return volume.parentHandle }
+
+func (volume *createdVolume) ResourceType() (*VolumeResourceType, error) {
+	if volume.resourceCacheID == 0 {
+		return nil, nil
+	}
+
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	return volume.findVolumeResourceTypeByCacheID(tx, volume.resourceCacheID)
 }
 
-func (volume *createdVolume) Handle() string                    { return volume.handle }
-func (volume *createdVolume) Path() string                      { return volume.path }
-func (volume *createdVolume) Worker() *Worker                   { return volume.worker }
-func (volume *createdVolume) SizeInBytes() int64                { return volume.bytes }
-func (volume *createdVolume) Type() VolumeType                  { return volume.typ }
-func (volume *createdVolume) ContainerHandle() string           { return volume.containerHandle }
-func (volume *createdVolume) ParentHandle() string              { return volume.parentHandle }
-func (volume *createdVolume) ResourceType() *VolumeResourceType { return volume.resourceType }
-func (volume *createdVolume) BaseResourceType() *VolumeBaseResourceType {
-	return volume.baseResourceType
+func (volume *createdVolume) BaseResourceType() (*WorkerBaseResourceType, error) {
+	if volume.baseResourceTypeID == 0 {
+		return nil, nil
+	}
+
+	tx, err := volume.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	return volume.findBaseResourceTypeByID(tx, volume.baseResourceTypeID)
+}
+
+func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCacheID int) (*VolumeResourceType, error) {
+	var versionString []byte
+	var sqBaseResourceTypeID sql.NullInt64
+	var sqResourceCacheID sql.NullInt64
+
+	err := psql.Select("rc.version, rcfg.base_resource_type_id, rcfg.resource_cache_id").
+		From("resource_caches rc").
+		LeftJoin("resource_configs rcfg ON rcfg.id = rc.resource_config_id").
+		Where(sq.Eq{
+			"rc.id": resourceCacheID,
+		}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&versionString, &sqBaseResourceTypeID, &sqResourceCacheID)
+	if err != nil {
+		return nil, err
+	}
+
+	var version atc.Version
+	err = json.Unmarshal(versionString, &version)
+	if err != nil {
+		return nil, err
+	}
+
+	if sqBaseResourceTypeID.Valid {
+		baseResourceType, err := volume.findBaseResourceTypeByID(tx, int(sqBaseResourceTypeID.Int64))
+		if err != nil {
+			return nil, err
+		}
+
+		return &VolumeResourceType{
+			BaseResourceType: baseResourceType,
+			Version:          version,
+		}, nil
+	}
+
+	if sqResourceCacheID.Valid {
+		resourceType, err := volume.findVolumeResourceTypeByCacheID(tx, int(sqResourceCacheID.Int64))
+		if err != nil {
+			return nil, err
+		}
+
+		return &VolumeResourceType{
+			ResourceType: resourceType,
+			Version:      version,
+		}, nil
+	}
+
+	return nil, ErrInvalidResourceCache
+}
+
+func (volume *createdVolume) findBaseResourceTypeByID(tx Tx, baseResourceTypeID int) (*WorkerBaseResourceType, error) {
+	var name string
+	var version string
+
+	err := psql.Select("brt.name, wbrt.version").
+		From("worker_base_resource_types wbrt").
+		LeftJoin("base_resource_types brt ON brt.id = wbrt.base_resource_type_id").
+		Where(sq.Eq{
+			"brt.id":           baseResourceTypeID,
+			"wbrt.worker_name": volume.worker.Name,
+		}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&name, &version)
+	if err != nil {
+		return nil, err
+	}
+
+	return &WorkerBaseResourceType{
+		Name:    name,
+		Version: version,
+	}, nil
 }
 
 // TODO: do following two methods instead of CreateXVolume? kind of neat since

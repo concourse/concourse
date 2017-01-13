@@ -80,17 +80,19 @@ type FakeCreatedVolume struct {
 	parentHandleReturns     struct {
 		result1 string
 	}
-	ResourceTypeStub        func() *dbng.VolumeResourceType
+	ResourceTypeStub        func() (*dbng.VolumeResourceType, error)
 	resourceTypeMutex       sync.RWMutex
 	resourceTypeArgsForCall []struct{}
 	resourceTypeReturns     struct {
 		result1 *dbng.VolumeResourceType
+		result2 error
 	}
-	BaseResourceTypeStub        func() *dbng.VolumeBaseResourceType
+	BaseResourceTypeStub        func() (*dbng.WorkerBaseResourceType, error)
 	baseResourceTypeMutex       sync.RWMutex
 	baseResourceTypeArgsForCall []struct{}
 	baseResourceTypeReturns     struct {
-		result1 *dbng.VolumeBaseResourceType
+		result1 *dbng.WorkerBaseResourceType
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -383,7 +385,7 @@ func (fake *FakeCreatedVolume) ParentHandleReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeCreatedVolume) ResourceType() *dbng.VolumeResourceType {
+func (fake *FakeCreatedVolume) ResourceType() (*dbng.VolumeResourceType, error) {
 	fake.resourceTypeMutex.Lock()
 	fake.resourceTypeArgsForCall = append(fake.resourceTypeArgsForCall, struct{}{})
 	fake.recordInvocation("ResourceType", []interface{}{})
@@ -391,7 +393,7 @@ func (fake *FakeCreatedVolume) ResourceType() *dbng.VolumeResourceType {
 	if fake.ResourceTypeStub != nil {
 		return fake.ResourceTypeStub()
 	} else {
-		return fake.resourceTypeReturns.result1
+		return fake.resourceTypeReturns.result1, fake.resourceTypeReturns.result2
 	}
 }
 
@@ -401,14 +403,15 @@ func (fake *FakeCreatedVolume) ResourceTypeCallCount() int {
 	return len(fake.resourceTypeArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) ResourceTypeReturns(result1 *dbng.VolumeResourceType) {
+func (fake *FakeCreatedVolume) ResourceTypeReturns(result1 *dbng.VolumeResourceType, result2 error) {
 	fake.ResourceTypeStub = nil
 	fake.resourceTypeReturns = struct {
 		result1 *dbng.VolumeResourceType
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeCreatedVolume) BaseResourceType() *dbng.VolumeBaseResourceType {
+func (fake *FakeCreatedVolume) BaseResourceType() (*dbng.WorkerBaseResourceType, error) {
 	fake.baseResourceTypeMutex.Lock()
 	fake.baseResourceTypeArgsForCall = append(fake.baseResourceTypeArgsForCall, struct{}{})
 	fake.recordInvocation("BaseResourceType", []interface{}{})
@@ -416,7 +419,7 @@ func (fake *FakeCreatedVolume) BaseResourceType() *dbng.VolumeBaseResourceType {
 	if fake.BaseResourceTypeStub != nil {
 		return fake.BaseResourceTypeStub()
 	} else {
-		return fake.baseResourceTypeReturns.result1
+		return fake.baseResourceTypeReturns.result1, fake.baseResourceTypeReturns.result2
 	}
 }
 
@@ -426,11 +429,12 @@ func (fake *FakeCreatedVolume) BaseResourceTypeCallCount() int {
 	return len(fake.baseResourceTypeArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) BaseResourceTypeReturns(result1 *dbng.VolumeBaseResourceType) {
+func (fake *FakeCreatedVolume) BaseResourceTypeReturns(result1 *dbng.WorkerBaseResourceType, result2 error) {
 	fake.BaseResourceTypeStub = nil
 	fake.baseResourceTypeReturns = struct {
-		result1 *dbng.VolumeBaseResourceType
-	}{result1}
+		result1 *dbng.WorkerBaseResourceType
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
