@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"time"
+
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
@@ -12,7 +15,9 @@ import (
 	"github.com/fatih/color"
 )
 
-type VolumesCommand struct{}
+type VolumesCommand struct {
+	Details bool `short:"d" long:"details" description:"Print additional information for each volume"`
+}
 
 func (command *VolumesCommand) Execute([]string) error {
 	target, err := rc.LoadTarget(Fly.Target)
@@ -54,7 +59,7 @@ func (command *VolumesCommand) Execute([]string) error {
 			{Contents: c.ID},
 			{Contents: c.WorkerName},
 			{Contents: c.Type},
-			{Contents: c.Identifier},
+			{Contents: command.volumeIdentifier(c)},
 			{Contents: size},
 		}
 
@@ -62,6 +67,53 @@ func (command *VolumesCommand) Execute([]string) error {
 	}
 
 	return table.Render(os.Stdout)
+}
+
+func (command *VolumesCommand) volumeIdentifier(volume atc.Volume) string {
+	switch volume.Type {
+	case "container":
+		if command.Details {
+			identifier := fmt.Sprintf("container:%s,path:%s", volume.ContainerHandle, volume.Path)
+			if volume.ParentHandle != "" {
+				identifier = fmt.Sprintf("%s,parent:%s", identifier, volume.ParentHandle)
+			}
+			return identifier
+		}
+
+		return volume.ContainerHandle
+	case "resource":
+		if command.Details {
+			return presentResourceType(volume.ResourceType)
+		}
+		return presentMap(volume.ResourceType.Version)
+	case "resource-type":
+		if command.Details {
+			return presentMap(volume.BaseResourceType)
+		}
+		return volume.BaseResourceType.Name
+	}
+
+	return ""
+}
+
+func presentMap(version interface{}) string {
+	marshalled, _ := yaml.Marshal(version)
+	lines := strings.Split(strings.TrimSpace(string(marshalled)), "\n")
+	return strings.Replace(strings.Join(lines, ","), " ", "", -1)
+}
+
+func presentResourceType(resourceType *atc.VolumeResourceType) string {
+	if resourceType.BaseResourceType != nil {
+		return presentMap(resourceType.BaseResourceType)
+	}
+
+	if resourceType.ResourceType != nil {
+		innerResourceType := presentResourceType(resourceType.ResourceType)
+		version := presentMap(resourceType.Version)
+		return fmt.Sprintf("type:resource(%s),version:%s", innerResourceType, version)
+	}
+
+	return ""
 }
 
 type volumesByWorkerAndHandle []atc.Volume

@@ -30,38 +30,54 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.VerifyRequest("GET", "/api/v1/volumes"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Volume{
 							{
-								ID:          "bbbbbb",
-								WorkerName:  "cccccc",
-								Type:        "copy",
-								Identifier:  "some-parent-handle",
-								SizeInBytes: 1024 * 1024,
+								ID:              "bbbbbb",
+								WorkerName:      "cccccc",
+								Type:            "container",
+								SizeInBytes:     1024 * 1024,
+								ContainerHandle: "container-handle-b",
+								Path:            "container-path-b",
 							},
 							{
 								ID:          "aaaaaa",
 								WorkerName:  "dddddd",
-								Type:        "import",
-								Identifier:  "path:version",
+								Type:        "resource",
 								SizeInBytes: 1741 * 1024,
+								ResourceType: &atc.VolumeResourceType{
+									ResourceType: &atc.VolumeResourceType{
+										BaseResourceType: &atc.VolumeBaseResourceType{
+											Name:    "base-resource-type",
+											Version: "base-resource-version",
+										},
+										Version: atc.Version{"custom": "version"},
+									},
+									Version: atc.Version{"a": "b", "c": "d"},
+								},
 							},
 							{
 								ID:          "aaabbb",
 								WorkerName:  "cccccc",
-								Type:        "output",
-								Identifier:  "some-output",
+								Type:        "resource-type",
 								SizeInBytes: 4096 * 1024,
+								BaseResourceType: &atc.VolumeBaseResourceType{
+									Name:    "base-resource-type",
+									Version: "base-resource-version",
+								},
 							},
 							{
-								ID:          "eeeeee",
-								WorkerName:  "ffffff",
-								Type:        "cow",
-								Identifier:  "some-version",
-								SizeInBytes: 8294 * 1024,
+								ID:              "eeeeee",
+								WorkerName:      "ffffff",
+								Type:            "container",
+								SizeInBytes:     8294 * 1024,
+								ContainerHandle: "container-handle-e",
+								Path:            "container-path-e",
 							},
 							{
-								ID:         "ihavenosize",
-								WorkerName: "ffffff",
-								Type:       "cow",
-								Identifier: "some-version",
+								ID:              "ihavenosize",
+								WorkerName:      "ffffff",
+								Type:            "container",
+								ContainerHandle: "container-handle-i",
+								Path:            "container-path-i",
+								ParentHandle:    "parent-handle-i",
 							},
 						}),
 					),
@@ -83,13 +99,103 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "size", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "aaabbb"}, {Contents: "cccccc"}, {Contents: "output"}, {Contents: "some-output"}, {Contents: "4.0 MiB"}},
-						{{Contents: "bbbbbb"}, {Contents: "cccccc"}, {Contents: "copy"}, {Contents: "some-parent-handle"}, {Contents: "1.0 MiB"}},
-						{{Contents: "aaaaaa"}, {Contents: "dddddd"}, {Contents: "import"}, {Contents: "path:version"}, {Contents: "1.7 MiB"}},
-						{{Contents: "eeeeee"}, {Contents: "ffffff"}, {Contents: "cow"}, {Contents: "some-version"}, {Contents: "8.1 MiB"}},
-						{{Contents: "ihavenosize"}, {Contents: "ffffff"}, {Contents: "cow"}, {Contents: "some-version"}, {Contents: "unknown"}},
+						{
+							{Contents: "aaabbb"},
+							{Contents: "cccccc"},
+							{Contents: "resource-type"},
+							{Contents: "base-resource-type"},
+							{Contents: "4.0 MiB"},
+						},
+						{
+							{Contents: "bbbbbb"},
+							{Contents: "cccccc"},
+							{Contents: "container"},
+							{Contents: "container-handle-b"},
+							{Contents: "1.0 MiB"},
+						},
+						{
+							{Contents: "aaaaaa"},
+							{Contents: "dddddd"},
+							{Contents: "resource"},
+							{Contents: "a:b,c:d"},
+							{Contents: "1.7 MiB"},
+						},
+						{
+							{Contents: "eeeeee"},
+							{Contents: "ffffff"},
+							{Contents: "container"},
+							{Contents: "container-handle-e"},
+							{Contents: "8.1 MiB"},
+						},
+						{
+							{Contents: "ihavenosize"},
+							{Contents: "ffffff"},
+							{Contents: "container"},
+							{Contents: "container-handle-i"},
+							{Contents: "unknown"},
+						},
 					},
 				}))
+			})
+
+			Context("when --details flag is set", func() {
+				BeforeEach(func() {
+					flyCmd = exec.Command(flyPath, "-t", targetName, "volumes", "--details")
+				})
+
+				It("displays detailed identifiers", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+
+					Expect(sess.Out).To(PrintTable(ui.Table{
+						Headers: ui.TableRow{
+							{Contents: "handle", Color: color.New(color.Bold)},
+							{Contents: "worker", Color: color.New(color.Bold)},
+							{Contents: "type", Color: color.New(color.Bold)},
+							{Contents: "identifier", Color: color.New(color.Bold)},
+							{Contents: "size", Color: color.New(color.Bold)},
+						},
+						Data: []ui.TableRow{
+							{
+								{Contents: "aaabbb"},
+								{Contents: "cccccc"},
+								{Contents: "resource-type"},
+								{Contents: "name:base-resource-type,version:base-resource-version"},
+								{Contents: "4.0 MiB"},
+							},
+							{
+								{Contents: "bbbbbb"},
+								{Contents: "cccccc"},
+								{Contents: "container"},
+								{Contents: "container:container-handle-b,path:container-path-b"},
+								{Contents: "1.0 MiB"},
+							},
+							{
+								{Contents: "aaaaaa"},
+								{Contents: "dddddd"},
+								{Contents: "resource"},
+								{Contents: "type:resource(name:base-resource-type,version:base-resource-version),version:a:b,c:d"},
+								{Contents: "1.7 MiB"},
+							},
+							{
+								{Contents: "eeeeee"},
+								{Contents: "ffffff"},
+								{Contents: "container"},
+								{Contents: "container:container-handle-e,path:container-path-e"},
+								{Contents: "8.1 MiB"},
+							},
+							{
+								{Contents: "ihavenosize"},
+								{Contents: "ffffff"},
+								{Contents: "container"},
+								{Contents: "container:container-handle-i,path:container-path-i,parent:parent-handle-i"},
+								{Contents: "unknown"},
+							},
+						},
+					}))
+				})
 			})
 		})
 
