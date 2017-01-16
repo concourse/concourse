@@ -138,10 +138,12 @@ var _ = Describe("Resource Pagination", func() {
 				Expect(page.All(".resource-versions li").Count()).Should(Equal(100))
 
 				Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())
+				Expect(page.First(".pagination .fa-arrow-right")).Should(BeFound())
 				Expect(page.First(".pagination .fa-arrow-right").Click()).To(Succeed())
 				Eventually(page.All(".resource-versions li").Count).Should(Equal(4))
 
 				Expect(page.First(".pagination .disabled .fa-arrow-right")).Should(BeFound())
+				Expect(page.First(".pagination .fa-arrow-left")).Should(BeFound())
 				Expect(page.First(".pagination .fa-arrow-left").Click()).To(Succeed())
 				Eventually(page.All(".resource-versions li").Count).Should(Equal(100))
 			})
