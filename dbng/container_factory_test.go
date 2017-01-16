@@ -34,6 +34,30 @@ var _ = Describe("ContainerFactory", func() {
 		})
 	})
 
+	Context("when worker is no longer in database", func() {
+		var createdContainer dbng.CreatedContainer
+
+		BeforeEach(func() {
+			build, err := defaultPipeline.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			creatingContainer, err := containerFactory.CreateBuildContainer(defaultWorker, build, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+			Expect(err).NotTo(HaveOccurred())
+
+			createdContainer, err = creatingContainer.Created()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("the container goes away from the db", func() {
+			err = workerFactory.DeleteWorker(defaultWorker.Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err := containerFactory.FindContainerByHandle(createdContainer.Handle())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+	})
+
 	Describe("MarkContainersForDeletion", func() {
 		Describe("build containers", func() {
 			var (
