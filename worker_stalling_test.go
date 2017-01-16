@@ -20,9 +20,14 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 		})
 
 		It("initially runs tasks across all workers", func() {
-			Eventually(func() []string {
+			usedWorkers := map[string]struct{}{}
+			Eventually(func() map[string]struct{} {
 				fly("execute", "-c", "tasks/tiny.yml")
-				return workersWithContainers()
+				workerNames := workersWithContainers()
+				for _, w := range workerNames {
+					usedWorkers[w] = struct{}{}
+				}
+				return usedWorkers
 			}, 10*time.Minute).Should(HaveLen(2))
 		})
 

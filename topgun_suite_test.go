@@ -138,12 +138,15 @@ func fly(argv ...string) {
 	wait(spawnFly(argv...))
 }
 
-func deleteAllContainers() error {
+func concourseClient() concourse.Client {
 	token, err := getATCToken(atcExternalURL)
 	Expect(err).NotTo(HaveOccurred())
 	httpClient := oauthClient(token)
-	client := concourse.NewClient(atcExternalURL, httpClient)
+	return concourse.NewClient(atcExternalURL, httpClient)
+}
 
+func deleteAllContainers() error {
+	client := concourseClient()
 	workers, err := client.ListWorkers()
 	if err != nil {
 		return err
@@ -315,19 +318,14 @@ func waitForWorkersToBeRunning() {
 }
 
 func workersWithContainers() []string {
-	session := spawnFly("containers")
-	<-session.Exited
+	client := concourseClient()
+	containers, err := client.ListContainers(map[string]string{})
+	Expect(err).NotTo(HaveOccurred())
 
 	usedWorkers := map[string]struct{}{}
-	rows := strings.Split(string(session.Out.Contents()), "\n")
-	for _, row := range rows {
-		if row == "" {
-			continue
-		}
 
-		worker := strings.Fields(row)
-		workerName := worker[3]
-		usedWorkers[workerName] = struct{}{}
+	for _, container := range containers {
+		usedWorkers[container.WorkerName] = struct{}{}
 	}
 
 	var workerNames []string
