@@ -21,16 +21,16 @@ var _ = Describe("ATC Handler Volumes", func() {
 
 			expectedVolumes = []atc.Volume{
 				{
-					ID:         "myid-1",
-					WorkerName: "some-worker",
-					Type:       "some-type",
-					Identifier: "some-identifier",
+					ID:              "myid-1",
+					WorkerName:      "some-worker",
+					Type:            "some-type",
+					ContainerHandle: "some-container-handle",
 				},
 				{
-					ID:         "myid-2",
-					WorkerName: "some-other-worker",
-					Type:       "some-other-type",
-					Identifier: "some-other-identifier",
+					ID:              "myid-2",
+					WorkerName:      "some-other-worker",
+					Type:            "some-other-type",
+					ContainerHandle: "some-other-container-handle",
 				},
 			}
 
