@@ -98,10 +98,12 @@ var _ = Describe("Job Builds", func() {
 					Eventually(page.All(".js-build").Count).Should(Equal(100))
 
 					Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())
+					Expect(page.First(".pagination .fa-arrow-right")).Should(BeFound())
 					Expect(page.First(".pagination .fa-arrow-right").Click()).To(Succeed())
 					Eventually(page.All(".js-build").Count).Should(Equal(3))
 
 					Expect(page.First(".pagination .disabled .fa-arrow-right")).Should(BeFound())
+					Expect(page.First(".pagination .fa-arrow-left")).Should(BeFound())
 					Expect(page.First(".pagination .fa-arrow-left").Click()).To(Succeed())
 					Eventually(page.All(".js-build").Count).Should(Equal(100))
 				})
