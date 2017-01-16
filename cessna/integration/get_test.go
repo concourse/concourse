@@ -107,6 +107,7 @@ var _ = Describe("Get version of a resource", func() {
 
 		BeforeEach(func() {
 			quineIn = `#!/bin/bash
+			set -eux
 
 			TMPDIR=${TMPDIR:-/tmp}
 
@@ -118,10 +119,11 @@ var _ = Describe("Get version of a resource", func() {
 
 			destination=$1
 
-			cp -a / $destination/ || true
+			curl ` + tarURL + ` | tar -x -C $destination
 
 			version=$(jq -r '.version // ""' < $payload)
 
+			cp -R /opt/resource $destination/opt/resource
 			echo $version > $destination/version
 			`
 			c := NewResourceContainer(quineCheck, quineIn, quineOut)

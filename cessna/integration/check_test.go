@@ -139,8 +139,11 @@ var _ = Describe("Check for new versions of resources", func() {
 			`
 
 			quineIn = `#!/bin/bash
+			destination=$1
 
-			cp -a / $1/ || true
+			curl ` + tarURL + ` | tar -x -C $destination
+
+			cp -R /opt/resource $destination/opt/resource
 			`
 
 			c := NewResourceContainer(quineCheck, quineIn, quineOut)

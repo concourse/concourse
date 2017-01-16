@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 
+	"archive/tar"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim"
 	"github.com/tedsuo/ifrit"
+	"os"
 )
 
 type ResourceGet struct {
@@ -54,6 +56,20 @@ func (r ResourceGet) Get(logger lager.Logger, worker Worker) (baggageclaim.Volum
 		logger.Error("failed-to-create-gardenContainer-in-garden", err)
 		return nil, err
 	}
+
+	// Stream fake tar into container to make sure directory exists
+	// stream into baseDirectory
+	emptyTar := new(bytes.Buffer)
+
+	err = tar.NewWriter(emptyTar).Close()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.StreamIn(garden.StreamInSpec{
+		Path:      mountPath,
+		TarStream: emptyTar,
+	})
 
 	runner, err := r.newGetCommandProcess(container, mountPath)
 	if err != nil {
@@ -144,4 +160,19 @@ func (g *getCommandProcess) Response() (InResponse, error) {
 	}
 
 	return r, nil
+}
+
+func (g *getCommandProcess) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	err := g.ContainerProcess.Run(signals, ready)
+	if err != nil {
+		switch e := err.(type) {
+		case ErrScriptFailed:
+			e.Stderr = string(g.err.Bytes())
+			e.Stdout = string(g.out.Bytes())
+
+			err = e
+		}
+	}
+
+	return err
 }

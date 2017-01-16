@@ -16,6 +16,7 @@ type ErrScriptFailed struct {
 	ExitStatus int
 
 	Stderr string
+	Stdout string
 }
 
 func (err ErrScriptFailed) Error() string {
@@ -28,6 +29,10 @@ func (err ErrScriptFailed) Error() string {
 
 	if len(err.Stderr) > 0 {
 		msg += "\n\nstderr:\n" + err.Stderr
+	}
+
+	if len(err.Stdout) > 0 {
+		msg += "\n\nstdout:\n" + err.Stdout
 	}
 
 	return msg

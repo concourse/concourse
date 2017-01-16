@@ -33,6 +33,9 @@ var (
 	baseResourceType BaseResourceType
 	workerIp         string
 	tarPath          string
+	tarURL           string
+
+	found bool
 
 	logger lager.Logger
 
@@ -42,21 +45,31 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	_, found := os.LookupEnv("RUN_CESSNA_TESTS")
+	_, found = os.LookupEnv("RUN_CESSNA_TESTS")
 	if !found {
 		Skip("Must set RUN_CESSNA_TESTS")
 	}
+}, 10)
 
-	workerIp, found = os.LookupEnv("WORKER_IP")
+var _ = SynchronizedAfterSuite(func() {}, func() {
+	worker = NewWorker(fmt.Sprintf("%s:7777", workerIp), fmt.Sprintf("http://%s:7788", workerIp))
 
-	Expect(found).To(BeTrue(), "Must set WORKER_IP")
+	containers, err := worker.GardenClient().Containers(nil)
+	Expect(err).NotTo(HaveOccurred())
 
-	tarPath, found = os.LookupEnv("ROOTFS_TAR_PATH")
-	Expect(found).To(BeTrue(), "Must set ROOTFS_TAR_PATH")
+	for _, container := range containers {
+		err = worker.GardenClient().Destroy(container.Handle())
+		Expect(err).NotTo(HaveOccurred())
+	}
 
-	logger = lagertest.NewTestLogger("resource-test")
+	volumes, err := worker.BaggageClaimClient().ListVolumes(logger, nil)
+	Expect(err).NotTo(HaveOccurred())
 
-})
+	for _, volume := range volumes {
+		err = volume.Destroy()
+		Expect(err).NotTo(HaveOccurred())
+	}
+}, 10)
 
 var _ = BeforeEach(func() {
 	fakeWorker = new(cessnafakes.FakeWorker)
@@ -66,7 +79,17 @@ var _ = BeforeEach(func() {
 	fakeWorker.BaggageClaimClientReturns(fakeBaggageClaimClient)
 	fakeWorker.GardenClientReturns(fakeGardenClient)
 
+	workerIp, found = os.LookupEnv("WORKER_IP")
+	Expect(found).To(BeTrue(), "Must set WORKER_IP")
+
+	tarPath, found = os.LookupEnv("ROOTFS_TAR_PATH")
+	Expect(found).To(BeTrue(), "Must set ROOTFS_TAR_PATH")
+
+	tarURL, found = os.LookupEnv("ROOTFS_TAR_URL")
+	Expect(found).To(BeTrue(), "Must set ROOTFS_TAR_URL")
+
 	worker = NewWorker(fmt.Sprintf("%s:7777", workerIp), fmt.Sprintf("http://%s:7788", workerIp))
+	logger = lagertest.NewTestLogger("logger-test")
 })
 
 func TestResource(t *testing.T) {
