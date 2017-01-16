@@ -334,4 +334,22 @@ var _ = Describe("Volume", func() {
 			})
 		})
 	})
+
+	Context("when worker is no longer in database", func() {
+		var creatingVolume dbng.CreatingVolume
+
+		BeforeEach(func() {
+			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+		})
+
+		It("the container goes away from the db", func() {
+			err = workerFactory.DeleteWorker(defaultWorker.Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			creatingVolume, createdVolume, err := volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(creatingVolume).To(BeNil())
+			Expect(createdVolume).To(BeNil())
+		})
+	})
 })
