@@ -157,7 +157,7 @@ jobs:
   plan:
   - get: concourse
     trigger: true
-    passed: [atc, fly, go-concourse, blackbox, tsa, baggageclaim, cessna]
+    passed: [atc, fly, go-concourse, blackbox, tsa, baggageclaim]
   - get: garden-runc
   - get: version
     params: {pre: rc}
