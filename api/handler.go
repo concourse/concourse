@@ -49,6 +49,7 @@ func NewHandler(
 	dbTeamFactory dbng.TeamFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 	volumeFactory dbng.VolumeFactory,
+	containerFactory dbng.ContainerFactory,
 
 	teamsDB teamserver.TeamsDB,
 	workerDB workerserver.WorkerDB,
@@ -81,7 +82,7 @@ func NewHandler(
 
 	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory)
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
-	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, teamDBFactory)
+	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, teamDBFactory, containerFactory)
 
 	authServer := authserver.NewServer(
 		logger,

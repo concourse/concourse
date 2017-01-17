@@ -236,6 +236,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		dbTeamFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
+		dbContainerFactory,
 		providerFactory,
 		signingKey,
 		pipelineDBFactory,
@@ -857,6 +858,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	dbTeamFactory dbng.TeamFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
+	dbContainerFactory dbng.ContainerFactory,
 	providerFactory provider.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
@@ -911,6 +913,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		dbTeamFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
+		dbContainerFactory,
 
 		sqlDB, // teamserver.TeamDB
 		sqlDB, // workerserver.WorkerDB

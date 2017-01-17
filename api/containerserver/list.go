@@ -10,9 +10,10 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListContainers(teamDB db.TeamDB) http.Handler {
+func (s *Server) ListContainers(teamDB db.TeamDB, containerFactory dbng.ContainerFactory) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.RawQuery
 		hLog := s.logger.Session("list-containers", lager.Data{

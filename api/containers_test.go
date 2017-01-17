@@ -19,6 +19,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker/workerfakes"
 )
 
@@ -596,13 +597,14 @@ var _ = Describe("Containers API", func() {
 
 			Context("and the worker client returns a container", func() {
 				var (
-					fakeDBContainer db.SavedContainer
+					fakeDBContainer *dbngfakes.FakeCreatedContainer
 					fakeContainer   *workerfakes.FakeContainer
 				)
 
 				BeforeEach(func() {
-					fakeDBContainer = db.SavedContainer{}
-					teamDB.GetContainerReturns(fakeDBContainer, true, nil)
+					fakeDBContainer = new(dbngfakes.FakeCreatedContainer)
+					fakeContainerFactory.FindContainerByHandleReturns(fakeDBContainer, true, nil)
+					fakeDBContainer.HandleReturns("some-handle")
 
 					fakeContainer = new(workerfakes.FakeContainer)
 					fakeWorkerClient.LookupContainerReturns(fakeContainer, true, nil)
@@ -684,6 +686,12 @@ var _ = Describe("Containers API", func() {
 						Expect(io.Stdin).NotTo(BeNil())
 						Expect(io.Stdout).NotTo(BeNil())
 						Expect(io.Stderr).NotTo(BeNil())
+					})
+
+					It("marks container as hijacked", func() {
+						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+
+						Expect(fakeDBContainer.MarkAsHijackedCallCount()).To(Equal(1))
 					})
 
 					Context("when stdin is sent over the API", func() {
@@ -846,7 +854,7 @@ var _ = Describe("Containers API", func() {
 				BeforeEach(func() {
 					expectBadHandshake = true
 
-					teamDB.GetContainerReturns(db.SavedContainer{}, false, nil)
+					fakeContainerFactory.FindContainerByHandleReturns(nil, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
@@ -860,7 +868,7 @@ var _ = Describe("Containers API", func() {
 					expectBadHandshake = true
 
 					fakeErr := errors.New("error")
-					teamDB.GetContainerReturns(db.SavedContainer{}, false, fakeErr)
+					fakeContainerFactory.FindContainerByHandleReturns(nil, false, fakeErr)
 				})
 
 				It("returns 500 internal error", func() {

@@ -110,6 +110,9 @@ var _ = Describe("Resource Pausing", func() {
 			Login(page, homepage())
 
 			Expect(page.Navigate(homepage())).To(Succeed())
+
+			Eventually(page.Find("#subpage .pipeline-graph")).Should(BeVisible())
+
 			Eventually(page.FindByLink("resource-name")).Should(BeFound())
 			Expect(page.FindByLink("resource-name").Click()).To(Succeed())
 

@@ -82,6 +82,7 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 		id:         container.id,
 		handle:     container.handle,
 		workerName: container.workerName,
+		hijacked:   false,
 		conn:       container.conn,
 	}, nil
 }
@@ -108,7 +109,6 @@ type createdContainer struct {
 func (container *createdContainer) ID() int            { return container.id }
 func (container *createdContainer) Handle() string     { return container.handle }
 func (container *createdContainer) WorkerName() string { return container.workerName }
-func (container *createdContainer) IsHijacked() bool   { return container.hijacked }
 
 func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 	tx, err := container.conn.Begin()
@@ -198,6 +198,10 @@ func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
 }
 
 func (container *createdContainer) MarkAsHijacked() error {
+	if container.hijacked {
+		return nil
+	}
+
 	tx, err := container.conn.Begin()
 	if err != nil {
 		return err

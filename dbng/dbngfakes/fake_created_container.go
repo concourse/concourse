@@ -40,6 +40,12 @@ type FakeCreatedContainer struct {
 	workerNameReturns     struct {
 		result1 string
 	}
+	IsHijackedStub        func() bool
+	isHijackedMutex       sync.RWMutex
+	isHijackedArgsForCall []struct{}
+	isHijackedReturns     struct {
+		result1 bool
+	}
 	MarkAsHijackedStub        func() error
 	markAsHijackedMutex       sync.RWMutex
 	markAsHijackedArgsForCall []struct{}
@@ -177,6 +183,31 @@ func (fake *FakeCreatedContainer) WorkerNameReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeCreatedContainer) IsHijacked() bool {
+	fake.isHijackedMutex.Lock()
+	fake.isHijackedArgsForCall = append(fake.isHijackedArgsForCall, struct{}{})
+	fake.recordInvocation("IsHijacked", []interface{}{})
+	fake.isHijackedMutex.Unlock()
+	if fake.IsHijackedStub != nil {
+		return fake.IsHijackedStub()
+	} else {
+		return fake.isHijackedReturns.result1
+	}
+}
+
+func (fake *FakeCreatedContainer) IsHijackedCallCount() int {
+	fake.isHijackedMutex.RLock()
+	defer fake.isHijackedMutex.RUnlock()
+	return len(fake.isHijackedArgsForCall)
+}
+
+func (fake *FakeCreatedContainer) IsHijackedReturns(result1 bool) {
+	fake.IsHijackedStub = nil
+	fake.isHijackedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeCreatedContainer) MarkAsHijacked() error {
 	fake.markAsHijackedMutex.Lock()
 	fake.markAsHijackedArgsForCall = append(fake.markAsHijackedArgsForCall, struct{}{})
@@ -215,6 +246,8 @@ func (fake *FakeCreatedContainer) Invocations() map[string][][]interface{} {
 	defer fake.destroyingMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
+	fake.isHijackedMutex.RLock()
+	defer fake.isHijackedMutex.RUnlock()
 	fake.markAsHijackedMutex.RLock()
 	defer fake.markAsHijackedMutex.RUnlock()
 	return fake.invocations

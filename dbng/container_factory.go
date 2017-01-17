@@ -47,10 +47,13 @@ func (factory *containerFactory) FindResourceCheckContainer(
 	worker *Worker,
 	resourceConfig *UsedResourceConfig,
 ) (CreatingContainer, CreatedContainer, error) {
-	return factory.findContainer(map[string]interface{}{
-		"worker_name":        worker.Name,
-		"resource_config_id": resourceConfig.ID,
-	})
+	return findContainer(
+		map[string]interface{}{
+			"worker_name":        worker.Name,
+			"resource_config_id": resourceConfig.ID,
+		},
+		factory.conn,
+	)
 }
 
 func (factory *containerFactory) CreateResourceCheckContainer(
@@ -225,6 +228,7 @@ func (factory *containerFactory) FindHijackedContainersForDeletion() ([]CreatedC
 			id:         id,
 			handle:     handle,
 			workerName: workerName,
+			hijacked:   true,
 			conn:       factory.conn,
 		})
 	}
@@ -242,11 +246,14 @@ func (factory *containerFactory) FindResourceGetContainer(
 	resourceCache *UsedResourceCache,
 	stepName string,
 ) (CreatingContainer, CreatedContainer, error) {
-	return factory.findContainer(map[string]interface{}{
-		"worker_name":       worker.Name,
-		"resource_cache_id": resourceCache.ID,
-		"step_name":         stepName,
-	})
+	return findContainer(
+		map[string]interface{}{
+			"worker_name":       worker.Name,
+			"resource_cache_id": resourceCache.ID,
+			"step_name":         stepName,
+		},
+		factory.conn,
+	)
 }
 
 func (factory *containerFactory) CreateResourceGetContainer(
@@ -310,13 +317,16 @@ func (factory *containerFactory) FindBuildContainer(
 	planID atc.PlanID,
 	meta ContainerMetadata,
 ) (CreatingContainer, CreatedContainer, error) {
-	return factory.findContainer(map[string]interface{}{
-		"worker_name": worker.Name,
-		"build_id":    build.ID,
-		"plan_id":     string(planID),
-		"type":        meta.Type,
-		"step_name":   meta.Name,
-	})
+	return findContainer(
+		map[string]interface{}{
+			"worker_name": worker.Name,
+			"build_id":    build.ID,
+			"plan_id":     string(planID),
+			"type":        meta.Type,
+			"step_name":   meta.Name,
+		},
+		factory.conn,
+	)
 }
 
 func (factory *containerFactory) CreateBuildContainer(
@@ -381,9 +391,12 @@ func (factory *containerFactory) CreateBuildContainer(
 func (factory *containerFactory) FindContainerByHandle(
 	handle string,
 ) (CreatedContainer, bool, error) {
-	_, createdContainer, err := factory.findContainer(map[string]interface{}{
-		"handle": handle,
-	})
+	_, createdContainer, err := findContainer(
+		map[string]interface{}{
+			"handle": handle,
+		},
+		factory.conn,
+	)
 	if err != nil {
 		return nil, false, err
 	}
@@ -395,8 +408,8 @@ func (factory *containerFactory) FindContainerByHandle(
 	return nil, false, nil
 }
 
-func (factory *containerFactory) findContainer(columns map[string]interface{}) (CreatingContainer, CreatedContainer, error) {
-	tx, err := factory.conn.Begin()
+func findContainer(columns map[string]interface{}, conn Conn) (CreatingContainer, CreatedContainer, error) {
+	tx, err := conn.Begin()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -411,13 +424,14 @@ func (factory *containerFactory) findContainer(columns map[string]interface{}) (
 	var containerID int
 	var workerName string
 	var state string
+	var hijacked bool
 	var handle string
-	err = psql.Select("id, worker_name, state, handle").
+	err = psql.Select("id, worker_name, state, hijacked, handle").
 		From("containers").
 		Where(whereClause).
 		RunWith(tx).
 		QueryRow().
-		Scan(&containerID, &workerName, &state, &handle)
+		Scan(&containerID, &workerName, &state, &hijacked, &handle)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil, nil
@@ -436,14 +450,15 @@ func (factory *containerFactory) findContainer(columns map[string]interface{}) (
 			id:         containerID,
 			handle:     handle,
 			workerName: workerName,
-			conn:       factory.conn,
+			hijacked:   hijacked,
+			conn:       conn,
 		}, nil
 	case ContainerStateCreating:
 		return &creatingContainer{
 			id:         containerID,
 			handle:     handle,
 			workerName: workerName,
-			conn:       factory.conn,
+			conn:       conn,
 		}, nil, nil
 	}
 

@@ -8,24 +8,28 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 type TeamScopedHandlerFactory struct {
-	logger        lager.Logger
-	teamDBFactory db.TeamDBFactory
+	logger           lager.Logger
+	teamDBFactory    db.TeamDBFactory
+	containerFactory dbng.ContainerFactory
 }
 
 func NewTeamScopedHandlerFactory(
 	logger lager.Logger,
 	teamDBFactory db.TeamDBFactory,
+	containerFactory dbng.ContainerFactory,
 ) *TeamScopedHandlerFactory {
 	return &TeamScopedHandlerFactory{
-		logger:        logger,
-		teamDBFactory: teamDBFactory,
+		logger:           logger,
+		teamDBFactory:    teamDBFactory,
+		containerFactory: containerFactory,
 	}
 }
 
-func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.TeamDB) http.Handler) http.HandlerFunc {
+func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.TeamDB, dbng.ContainerFactory) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := f.logger.Session("team-scoped-handler")
 
@@ -37,6 +41,6 @@ func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.TeamDB) 
 		}
 
 		teamDB := f.teamDBFactory.GetTeamDB(authTeam.Name())
-		teamScopedHandler(teamDB).ServeHTTP(w, r)
+		teamScopedHandler(teamDB, f.containerFactory).ServeHTTP(w, r)
 	}
 }

@@ -46,6 +46,7 @@ var (
 	fakeWorkerClient              *workerfakes.FakeClient
 	teamServerDB                  *teamserverfakes.FakeTeamsDB
 	fakeVolumeFactory             *dbngfakes.FakeVolumeFactory
+	fakeContainerFactory          *dbngfakes.FakeContainerFactory
 	workerDB                      *workerserverfakes.FakeWorkerDB
 	containerDB                   *containerserverfakes.FakeContainerDB
 	pipeDB                        *pipesfakes.FakePipeDB
@@ -127,6 +128,7 @@ var _ = BeforeEach(func() {
 	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
 
 	fakeVolumeFactory = new(dbngfakes.FakeVolumeFactory)
+	fakeContainerFactory = new(dbngfakes.FakeContainerFactory)
 
 	var err error
 
@@ -176,6 +178,7 @@ var _ = BeforeEach(func() {
 		dbTeamFactory,
 		dbWorkerFactory,
 		fakeVolumeFactory,
+		fakeContainerFactory,
 
 		teamServerDB,
 		workerDB,

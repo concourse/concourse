@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -36,7 +37,7 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 
 		logger := lagertest.NewTestLogger("test")
 
-		handlerFactory := api.NewTeamScopedHandlerFactory(logger, teamDBFactory)
+		handlerFactory := api.NewTeamScopedHandlerFactory(logger, teamDBFactory, fakeContainerFactory)
 		innerHandler := handlerFactory.HandlerFor(delegate.GetHandler)
 
 		authValidator = new(authfakes.FakeValidator)
@@ -98,9 +99,9 @@ type delegateHandler struct {
 	TeamDB   db.TeamDB
 }
 
-func (handler *delegateHandler) GetHandler(pipelineDB db.TeamDB) http.Handler {
+func (handler *delegateHandler) GetHandler(teamDB db.TeamDB, containerFactory dbng.ContainerFactory) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.IsCalled = true
-		handler.TeamDB = pipelineDB
+		handler.TeamDB = teamDB
 	})
 }
