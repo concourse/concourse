@@ -20,12 +20,31 @@ type FakeCreatedContainer struct {
 	handleReturns     struct {
 		result1 string
 	}
+	DiscontinueStub        func() (dbng.DestroyingContainer, error)
+	discontinueMutex       sync.RWMutex
+	discontinueArgsForCall []struct{}
+	discontinueReturns     struct {
+		result1 dbng.DestroyingContainer
+		result2 error
+	}
 	DestroyingStub        func() (dbng.DestroyingContainer, error)
 	destroyingMutex       sync.RWMutex
 	destroyingArgsForCall []struct{}
 	destroyingReturns     struct {
 		result1 dbng.DestroyingContainer
 		result2 error
+	}
+	WorkerNameStub        func() string
+	workerNameMutex       sync.RWMutex
+	workerNameArgsForCall []struct{}
+	workerNameReturns     struct {
+		result1 string
+	}
+	MarkAsHijackedStub        func() error
+	markAsHijackedMutex       sync.RWMutex
+	markAsHijackedArgsForCall []struct{}
+	markAsHijackedReturns     struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -81,6 +100,32 @@ func (fake *FakeCreatedContainer) HandleReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeCreatedContainer) Discontinue() (dbng.DestroyingContainer, error) {
+	fake.discontinueMutex.Lock()
+	fake.discontinueArgsForCall = append(fake.discontinueArgsForCall, struct{}{})
+	fake.recordInvocation("Discontinue", []interface{}{})
+	fake.discontinueMutex.Unlock()
+	if fake.DiscontinueStub != nil {
+		return fake.DiscontinueStub()
+	} else {
+		return fake.discontinueReturns.result1, fake.discontinueReturns.result2
+	}
+}
+
+func (fake *FakeCreatedContainer) DiscontinueCallCount() int {
+	fake.discontinueMutex.RLock()
+	defer fake.discontinueMutex.RUnlock()
+	return len(fake.discontinueArgsForCall)
+}
+
+func (fake *FakeCreatedContainer) DiscontinueReturns(result1 dbng.DestroyingContainer, result2 error) {
+	fake.DiscontinueStub = nil
+	fake.discontinueReturns = struct {
+		result1 dbng.DestroyingContainer
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCreatedContainer) Destroying() (dbng.DestroyingContainer, error) {
 	fake.destroyingMutex.Lock()
 	fake.destroyingArgsForCall = append(fake.destroyingArgsForCall, struct{}{})
@@ -107,6 +152,56 @@ func (fake *FakeCreatedContainer) DestroyingReturns(result1 dbng.DestroyingConta
 	}{result1, result2}
 }
 
+func (fake *FakeCreatedContainer) WorkerName() string {
+	fake.workerNameMutex.Lock()
+	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct{}{})
+	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.workerNameMutex.Unlock()
+	if fake.WorkerNameStub != nil {
+		return fake.WorkerNameStub()
+	} else {
+		return fake.workerNameReturns.result1
+	}
+}
+
+func (fake *FakeCreatedContainer) WorkerNameCallCount() int {
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
+	return len(fake.workerNameArgsForCall)
+}
+
+func (fake *FakeCreatedContainer) WorkerNameReturns(result1 string) {
+	fake.WorkerNameStub = nil
+	fake.workerNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeCreatedContainer) MarkAsHijacked() error {
+	fake.markAsHijackedMutex.Lock()
+	fake.markAsHijackedArgsForCall = append(fake.markAsHijackedArgsForCall, struct{}{})
+	fake.recordInvocation("MarkAsHijacked", []interface{}{})
+	fake.markAsHijackedMutex.Unlock()
+	if fake.MarkAsHijackedStub != nil {
+		return fake.MarkAsHijackedStub()
+	} else {
+		return fake.markAsHijackedReturns.result1
+	}
+}
+
+func (fake *FakeCreatedContainer) MarkAsHijackedCallCount() int {
+	fake.markAsHijackedMutex.RLock()
+	defer fake.markAsHijackedMutex.RUnlock()
+	return len(fake.markAsHijackedArgsForCall)
+}
+
+func (fake *FakeCreatedContainer) MarkAsHijackedReturns(result1 error) {
+	fake.MarkAsHijackedStub = nil
+	fake.markAsHijackedReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeCreatedContainer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -114,8 +209,14 @@ func (fake *FakeCreatedContainer) Invocations() map[string][][]interface{} {
 	defer fake.iDMutex.RUnlock()
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
+	fake.discontinueMutex.RLock()
+	defer fake.discontinueMutex.RUnlock()
 	fake.destroyingMutex.RLock()
 	defer fake.destroyingMutex.RUnlock()
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
+	fake.markAsHijackedMutex.RLock()
+	defer fake.markAsHijackedMutex.RUnlock()
 	return fake.invocations
 }
 

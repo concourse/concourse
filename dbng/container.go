@@ -1,8 +1,13 @@
 package dbng
 
 import (
+	"database/sql"
+	"errors"
+
 	sq "github.com/Masterminds/squirrel"
 )
+
+var ErrContainerNotPresent = errors.New("container-not-present-in-db")
 
 type ContainerState string
 
@@ -86,18 +91,24 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 type CreatedContainer interface {
 	ID() int
 	Handle() string
+	Discontinue() (DestroyingContainer, error)
 	Destroying() (DestroyingContainer, error)
+	WorkerName() string
+	MarkAsHijacked() error
 }
 
 type createdContainer struct {
 	id         int
 	handle     string
 	workerName string
+	hijacked   bool
 	conn       Conn
 }
 
-func (container *createdContainer) ID() int        { return container.id }
-func (container *createdContainer) Handle() string { return container.handle }
+func (container *createdContainer) ID() int            { return container.id }
+func (container *createdContainer) Handle() string     { return container.handle }
+func (container *createdContainer) WorkerName() string { return container.workerName }
+func (container *createdContainer) IsHijacked() bool   { return container.hijacked }
 
 func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 	tx, err := container.conn.Begin()
@@ -107,8 +118,51 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 
 	defer tx.Rollback()
 
+	var isDiscontinued bool
+
+	err = psql.Update("containers").
+		Set("state", ContainerStateDestroying).
+		Where(sq.Eq{
+			"id":    container.id,
+			"state": ContainerStateCreated,
+		}).
+		Suffix("RETURNING discontinued").
+		RunWith(tx).
+		QueryRow().
+		Scan(&isDiscontinued)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrContainerNotPresent
+		}
+
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &destroyingContainer{
+		id:             container.id,
+		handle:         container.handle,
+		workerName:     container.workerName,
+		isDiscontinued: isDiscontinued,
+		conn:           container.conn,
+	}, nil
+}
+
+func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
+	tx, err := container.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
 	rows, err := psql.Update("containers").
 		Set("state", ContainerStateDestroying).
+		Set("discontinued", true).
 		Where(sq.Eq{
 			"id":    container.id,
 			"state": ContainerStateCreated,
@@ -131,15 +185,54 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 
 	if affected == 0 {
 		panic("TESTME")
-		return nil, nil
+		return nil, err
 	}
 
 	return &destroyingContainer{
-		id:         container.id,
-		handle:     container.handle,
-		workerName: container.workerName,
-		conn:       container.conn,
+		id:             container.id,
+		handle:         container.handle,
+		workerName:     container.workerName,
+		isDiscontinued: true,
+		conn:           container.conn,
 	}, nil
+}
+
+func (container *createdContainer) MarkAsHijacked() error {
+	tx, err := container.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	rows, err := psql.Update("containers").
+		Set("hijacked", true).
+		Where(sq.Eq{
+			"id":    container.id,
+			"state": ContainerStateCreated,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		panic("TESTME")
+		return nil
+	}
+
+	return nil
 }
 
 //go:generate counterfeiter . DestroyingContainer
@@ -148,17 +241,20 @@ type DestroyingContainer interface {
 	Handle() string
 	WorkerName() string
 	Destroy() (bool, error)
+	IsDiscontinued() bool
 }
 
 type destroyingContainer struct {
-	id         int
-	handle     string
-	workerName string
-	conn       Conn
+	id             int
+	handle         string
+	workerName     string
+	isDiscontinued bool
+	conn           Conn
 }
 
-func (container *destroyingContainer) Handle() string     { return container.handle }
-func (container *destroyingContainer) WorkerName() string { return container.workerName }
+func (container *destroyingContainer) Handle() string       { return container.handle }
+func (container *destroyingContainer) WorkerName() string   { return container.workerName }
+func (container *destroyingContainer) IsDiscontinued() bool { return container.isDiscontinued }
 
 func (container *destroyingContainer) Destroy() (bool, error) {
 	tx, err := container.conn.Begin()

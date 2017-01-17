@@ -139,4 +139,5 @@ var Migrations = []migration.Migrator{
 	RemoveTTLFromContainers,
 	AddRunningWorkerMustHaveAddrConstraint,
 	AddInterruptibleToJob,
+	AddDiscontinuedToContainers,
 }

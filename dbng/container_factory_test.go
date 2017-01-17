@@ -109,6 +109,7 @@ var _ = Describe("ContainerFactory", func() {
 					var (
 						laterBuild             *dbng.Build
 						laterCreatingContainer dbng.CreatingContainer
+						laterCreatedContainer  dbng.CreatedContainer
 					)
 
 					BeforeEach(func() {
@@ -129,7 +130,7 @@ var _ = Describe("ContainerFactory", func() {
 						laterCreatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, build, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
 						Expect(err).NotTo(HaveOccurred())
 
-						_, err = laterCreatingContainer.Created()
+						laterCreatedContainer, err = laterCreatingContainer.Created()
 						Expect(err).NotTo(HaveOccurred())
 					})
 
@@ -142,6 +143,40 @@ var _ = Describe("ContainerFactory", func() {
 
 						Expect(deletingContainers).ToNot(BeEmpty())
 						Expect(deletingContainers[0].Handle()).NotTo(Equal(laterCreatingContainer.Handle()))
+					})
+
+					Context("when containers are hijacked", func() {
+						BeforeEach(func() {
+							err := createdContainer.MarkAsHijacked()
+							Expect(err).NotTo(HaveOccurred())
+
+							err = laterCreatedContainer.MarkAsHijacked()
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("returns hijacked containers in FindHijackedContainersForDeletion", func() {
+							foundContainers, err := containerFactory.FindHijackedContainersForDeletion()
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(foundContainers).To(HaveLen(2))
+							Expect([]string{
+								foundContainers[0].Handle(),
+								foundContainers[1].Handle(),
+							}).To(ConsistOf([]string{
+								createdContainer.Handle(),
+								laterCreatedContainer.Handle(),
+							}))
+						})
+
+						It("does not mark containers for deletion", func() {
+							err = containerFactory.MarkContainersForDeletion()
+							Expect(err).NotTo(HaveOccurred())
+
+							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(deletingContainers).To(BeEmpty())
+						})
 					})
 				})
 

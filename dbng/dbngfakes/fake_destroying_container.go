@@ -27,6 +27,12 @@ type FakeDestroyingContainer struct {
 		result1 bool
 		result2 error
 	}
+	IsDiscontinuedStub        func() bool
+	isDiscontinuedMutex       sync.RWMutex
+	isDiscontinuedArgsForCall []struct{}
+	isDiscontinuedReturns     struct {
+		result1 bool
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -107,6 +113,31 @@ func (fake *FakeDestroyingContainer) DestroyReturns(result1 bool, result2 error)
 	}{result1, result2}
 }
 
+func (fake *FakeDestroyingContainer) IsDiscontinued() bool {
+	fake.isDiscontinuedMutex.Lock()
+	fake.isDiscontinuedArgsForCall = append(fake.isDiscontinuedArgsForCall, struct{}{})
+	fake.recordInvocation("IsDiscontinued", []interface{}{})
+	fake.isDiscontinuedMutex.Unlock()
+	if fake.IsDiscontinuedStub != nil {
+		return fake.IsDiscontinuedStub()
+	} else {
+		return fake.isDiscontinuedReturns.result1
+	}
+}
+
+func (fake *FakeDestroyingContainer) IsDiscontinuedCallCount() int {
+	fake.isDiscontinuedMutex.RLock()
+	defer fake.isDiscontinuedMutex.RUnlock()
+	return len(fake.isDiscontinuedArgsForCall)
+}
+
+func (fake *FakeDestroyingContainer) IsDiscontinuedReturns(result1 bool) {
+	fake.IsDiscontinuedStub = nil
+	fake.isDiscontinuedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeDestroyingContainer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -116,6 +147,8 @@ func (fake *FakeDestroyingContainer) Invocations() map[string][][]interface{} {
 	defer fake.workerNameMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
+	fake.isDiscontinuedMutex.RLock()
+	defer fake.isDiscontinuedMutex.RUnlock()
 	return fake.invocations
 }
 
