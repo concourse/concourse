@@ -1,7 +1,3 @@
-[submodule "src/github.com/BurntSushi/migration"]
-	path = src/github.com/BurntSushi/migration
-	url = https://github.com/BurntSushi/migration
-	branch = master
 [submodule "src/github.com/bmizerany/pat"]
 	path = src/github.com/bmizerany/pat
 	url = https://github.com/bmizerany/pat
