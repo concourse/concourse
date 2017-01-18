@@ -3,17 +3,14 @@ package gitserver
 import (
 	"bytes"
 	"fmt"
-	"net/http"
 	"net/url"
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
-	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/testflight/helpers"
 	"github.com/mgutz/ansi"
 	"github.com/nu7hatch/gouuid"
 
@@ -36,39 +33,7 @@ type Server struct {
 func Start(client concourse.Client) *Server {
 	logger := lagertest.NewTestLogger("git-server")
 
-	gLog := logger.Session("garden-connection")
-
-	workers, err := client.ListWorkers()
-	Expect(err).NotTo(HaveOccurred())
-
-	var gitServerRootfs string
-	var gardenClient garden.Client
-	var baggageclaimClient baggageclaim.Client
-
-	for _, w := range workers {
-		if len(w.Tags) > 0 {
-			continue
-		}
-
-		gitServerRootfs = ""
-
-		for _, r := range w.ResourceTypes {
-			if r.Type == "git" {
-				gitServerRootfs = r.Image
-			}
-		}
-
-		if gitServerRootfs != "" {
-			gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
-			baggageclaimClient = bclient.New(w.BaggageclaimURL, http.DefaultTransport)
-		}
-	}
-
-	if gitServerRootfs == "" {
-		ginkgo.Fail("must have at least one worker that supports git resource type")
-	}
-
-	Eventually(gardenClient.Ping).Should(Succeed())
+	gitServerRootfs, gardenClient, baggageclaimClient := helpers.WorkerWithResourceType(logger, client, "git")
 
 	rootfsVol, err := baggageclaimClient.CreateVolume(
 		logger,

@@ -5,17 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
 	"net/url"
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
-	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/testflight/helpers"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -59,39 +56,7 @@ type Server struct {
 func Start(client concourse.Client) *Server {
 	logger := lagertest.NewTestLogger("guid-server")
 
-	gLog := logger.Session("garden-connection")
-
-	workers, err := client.ListWorkers()
-	Expect(err).NotTo(HaveOccurred())
-
-	var rootfsPath string
-	var gardenClient garden.Client
-	var baggageclaimClient baggageclaim.Client
-
-	for _, w := range workers {
-		if len(w.Tags) > 0 {
-			continue
-		}
-
-		rootfsPath = ""
-
-		for _, r := range w.ResourceTypes {
-			if r.Type == "bosh-deployment" {
-				rootfsPath = r.Image
-			}
-		}
-
-		if rootfsPath != "" {
-			gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
-			baggageclaimClient = bclient.New(w.BaggageclaimURL, http.DefaultTransport)
-		}
-	}
-
-	if rootfsPath == "" {
-		ginkgo.Fail("must have at least one worker that supports bosh-deployment resource type")
-	}
-
-	Eventually(gardenClient.Ping).Should(Succeed())
+	rootfsPath, gardenClient, baggageclaimClient := helpers.WorkerWithResourceType(logger, client, "bosh-deployment")
 
 	rootfsVol, err := baggageclaimClient.CreateVolume(logger,
 		baggageclaim.VolumeSpec{
