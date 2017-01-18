@@ -32,7 +32,7 @@ func WorkerWithResourceType(logger lager.Logger, client concourse.Client, resour
 		rootfs = ""
 
 		for _, r := range w.ResourceTypes {
-			if r.Type == "git" {
+			if r.Type == resourceType {
 				rootfs = r.Image
 			}
 		}
