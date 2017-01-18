@@ -220,11 +220,18 @@ func (c *containerCollector) tryToDestroyContainer(container dbng.DestroyingCont
 	} else {
 		err = gclient.Destroy(container.Handle())
 		if err != nil {
-			c.logger.Error("failed-to-destroy-garden-container", err, lager.Data{
-				"worker-name": container.WorkerName(),
-				"handle":      container.Handle(),
-			})
-			return
+			if _, ok := err.(garden.ContainerNotFoundError); ok {
+				c.logger.Debug("container-no-longer-present-in-garden", lager.Data{
+					"handle": container.Handle(),
+				})
+
+			} else {
+				c.logger.Error("failed-to-destroy-garden-container", err, lager.Data{
+					"worker-name": container.WorkerName(),
+					"handle":      container.Handle(),
+				})
+				return
+			}
 		}
 	}
 

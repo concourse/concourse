@@ -320,6 +320,31 @@ var _ = Describe("ContainerCollector", func() {
 			})
 		})
 
+		Context("when destroying a garden container errors because container is not found", func() {
+			BeforeEach(func() {
+				fakeGardenClient.DestroyStub = func(handle string) error {
+					switch handle {
+					case "some-handle":
+						return garden.ContainerNotFoundError{Handle: "some-handle"}
+					case "some-other-handle":
+						return nil
+					default:
+						return nil
+					}
+				}
+			})
+
+			It("deletes container from database", func() {
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(gardenClientFactoryCallCount).To(Equal(2))
+				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(2))
+
+				Expect(destroyingContainer1.DestroyCallCount()).To(Equal(1))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
+			})
+		})
+
 		Context("when destroying a container in the DB errors", func() {
 			BeforeEach(func() {
 				destroyingContainer1.DestroyReturns(false, errors.New("some-error"))
