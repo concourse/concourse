@@ -1,6 +1,6 @@
 package migrations
 
-import "github.com/BurntSushi/migration"
+import "github.com/concourse/atc/dbng/migration"
 
 func MakeContainerIdentifiersUnique(tx migration.LimitedTx) error {
 	// This migration used to run the following, which led to errors from

@@ -1,6 +1,6 @@
 package migrations
 
-import "github.com/BurntSushi/migration"
+import "github.com/concourse/atc/dbng/migration"
 
 func CreateLocks(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`CREATE TABLE resource_checking_lock ()`)

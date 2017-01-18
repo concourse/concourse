@@ -10,7 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/BurntSushi/migration"
+	"github.com/concourse/atc/dbng/migration"
 
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/db/migrations/migrationsfakes"

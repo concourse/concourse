@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/BurntSushi/migration"
+	"github.com/concourse/atc/dbng/migration"
 )
 
 func CreateEventIDSequencesForInFlightBuilds(tx migration.LimitedTx) error {
