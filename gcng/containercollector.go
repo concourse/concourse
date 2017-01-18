@@ -164,14 +164,14 @@ func (c *containerCollector) markHijackedContainersAsDestroying(workersByName ma
 func (c *containerCollector) findContainersToDelete() ([]dbng.DestroyingContainer, error) {
 	containers, err := c.containerFactory.FindContainersMarkedForDeletion()
 	if err != nil {
-		c.logger.Error("find-build-containers-for-deletion", err)
+		c.logger.Error("find-containers-for-deletion", err)
 		return nil, err
 	}
 	containerHandles := []string{}
 	for _, container := range containers {
 		containerHandles = append(containerHandles, container.Handle())
 	}
-	c.logger.Debug("found-build-containers-for-deletion", lager.Data{
+	c.logger.Debug("found-containers-for-deletion", lager.Data{
 		"containers": containerHandles,
 	})
 

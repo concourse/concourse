@@ -77,7 +77,6 @@ var _ = Describe("ContainerFactory", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(deletingContainers).To(BeEmpty())
-
 					})
 				})
 
@@ -387,8 +386,8 @@ var _ = Describe("ContainerFactory", func() {
 
 		Describe("check containers", func() {
 			var (
-				createdContainer dbng.CreatedContainer
-				resourceConfig   *dbng.UsedResourceConfig
+				creatingContainer dbng.CreatingContainer
+				resourceConfig    *dbng.UsedResourceConfig
 			)
 
 			BeforeEach(func() {
@@ -402,50 +401,18 @@ var _ = Describe("ContainerFactory", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err := defaultTeam.CreateResourceCheckContainer(defaultWorker, resourceConfig)
-				Expect(err).NotTo(HaveOccurred())
-
-				createdContainer, err = creatingContainer.Created()
+				creatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker, resourceConfig)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when check container best if use by date is expired", func() {
+			Context("when the container is creating", func() {
 				BeforeEach(func() {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = psql.Update("containers").
 						Set("best_if_used_by", sq.Expr("NOW() - '1 second'::INTERVAL")).
-						Where(sq.Eq{"id": createdContainer.ID()}).
-						RunWith(tx).Exec()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(tx.Commit()).To(Succeed())
-				})
-
-				It("marks the container for deletion", func() {
-					_, foundCreatedContainer, err := defaultTeam.FindResourceCheckContainer(defaultWorker, resourceConfig)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(foundCreatedContainer).NotTo(BeNil())
-
-					err = containerFactory.MarkContainersForDeletion()
-					Expect(err).NotTo(HaveOccurred())
-
-					deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(deletingContainers).To(HaveLen(1))
-				})
-			})
-
-			Context("when check container best if use by date did not expire", func() {
-				BeforeEach(func() {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-
-					_, err = psql.Update("containers").
-						Set("best_if_used_by", sq.Expr("NOW() + '1 hour'::INTERVAL")).
-						Where(sq.Eq{"id": createdContainer.ID()}).
+						Where(sq.Eq{"id": creatingContainer.ID()}).
 						RunWith(tx).Exec()
 					Expect(err).NotTo(HaveOccurred())
 
@@ -463,33 +430,96 @@ var _ = Describe("ContainerFactory", func() {
 				})
 			})
 
-			Context("when the resource config is deleted", func() {
+			Context("when container is created", func() {
+				var createdContainer dbng.CreatedContainer
+
 				BeforeEach(func() {
-					err := defaultPipeline.Destroy()
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceConfigFactory.CleanConfigUsesForInactiveResources()
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceConfigFactory.CleanUselessConfigs()
+					createdContainer, err = creatingContainer.Created()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("marks the container for deletion", func() {
-					err = containerFactory.MarkContainersForDeletion()
-					Expect(err).NotTo(HaveOccurred())
+				Context("when check container best if use by date is expired", func() {
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
 
-					deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-					Expect(err).NotTo(HaveOccurred())
+						_, err = psql.Update("containers").
+							Set("best_if_used_by", sq.Expr("NOW() - '1 second'::INTERVAL")).
+							Where(sq.Eq{"id": createdContainer.ID()}).
+							RunWith(tx).Exec()
+						Expect(err).NotTo(HaveOccurred())
 
-					Expect(deletingContainers).To(HaveLen(2))
-					Expect([]string{
-						deletingContainers[0].Handle(),
-						deletingContainers[1].Handle(),
-					}).To(ConsistOf([]string{
-						defaultCreatedContainer.Handle(),
-						createdContainer.Handle(),
-					}))
+						Expect(tx.Commit()).To(Succeed())
+					})
+
+					It("marks the container for deletion", func() {
+						_, foundCreatedContainer, err := defaultTeam.FindResourceCheckContainer(defaultWorker, resourceConfig)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(foundCreatedContainer).NotTo(BeNil())
+
+						err = containerFactory.MarkContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(deletingContainers).To(HaveLen(1))
+					})
+				})
+
+				Context("when check container best if use by date did not expire", func() {
+					BeforeEach(func() {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+
+						_, err = psql.Update("containers").
+							Set("best_if_used_by", sq.Expr("NOW() + '1 hour'::INTERVAL")).
+							Where(sq.Eq{"id": createdContainer.ID()}).
+							RunWith(tx).Exec()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(tx.Commit()).To(Succeed())
+					})
+
+					It("does not mark the container for deletion", func() {
+						err = containerFactory.MarkContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(deletingContainers).To(BeEmpty())
+					})
+				})
+
+				Context("when the resource config is deleted", func() {
+					BeforeEach(func() {
+						err := defaultPipeline.Destroy()
+						Expect(err).NotTo(HaveOccurred())
+
+						err = resourceConfigFactory.CleanConfigUsesForInactiveResources()
+						Expect(err).NotTo(HaveOccurred())
+
+						err = resourceConfigFactory.CleanUselessConfigs()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("marks the container for deletion", func() {
+						err = containerFactory.MarkContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(deletingContainers).To(HaveLen(2))
+						Expect([]string{
+							deletingContainers[0].Handle(),
+							deletingContainers[1].Handle(),
+						}).To(ConsistOf([]string{
+							defaultCreatedContainer.Handle(),
+							createdContainer.Handle(),
+						}))
+					})
 				})
 			})
 		})
