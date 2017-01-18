@@ -159,6 +159,7 @@ func (factory *containerFactory) FindHijackedContainersForDeletion() ([]CreatedC
 var containersToDeleteCondition = sq.Or{
 	sq.Expr("(build_id IS NOT NULL AND build_id NOT IN (SELECT id FROM builds_to_keep))"),
 	sq.Expr("(type = ? AND best_if_used_by < NOW())", string(ContainerStageCheck)),
+	sq.Expr("(build_id IS NULL AND resource_config_id IS NULL AND resource_cache_id IS NULL)"),
 }
 
 var containersToDeletePrefixQuery, containersToDeletePrefixArgs = `WITH

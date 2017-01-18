@@ -2,6 +2,7 @@ package dbng
 
 import (
 	"encoding/json"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
@@ -14,6 +15,7 @@ type Pipeline interface {
 	SaveJob(job atc.JobConfig) error
 	CreateJobBuild(jobName string) (*Build, error)
 	CreateResource(name string, config string) (*Resource, error)
+	Destroy() error
 }
 
 type pipeline struct {
@@ -177,6 +179,31 @@ func (p *pipeline) SaveJob(job atc.JobConfig) error {
 	}
 
 	return nil
+}
+
+func (p *pipeline) Destroy() error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(fmt.Sprintf(`
+		DROP TABLE pipeline_build_events_%d
+	`, p.id))
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		DELETE FROM pipelines WHERE id = $1;
+	`, p.id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {
