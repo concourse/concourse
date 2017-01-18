@@ -51,7 +51,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := containerFactory.CreateBuildContainer(defaultWorker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -108,7 +108,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := containerFactory.CreateBuildContainer(defaultWorker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})

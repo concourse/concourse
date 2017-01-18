@@ -30,10 +30,10 @@ type containerProviderFactory struct {
 	baggageclaimClient      baggageclaim.Client
 	volumeClient            VolumeClient
 	imageFactory            ImageFactory
-	dbContainerFactory      dbng.ContainerFactory
 	dbVolumeFactory         dbng.VolumeFactory
 	dbResourceCacheFactory  dbng.ResourceCacheFactory
 	dbResourceConfigFactory dbng.ResourceConfigFactory
+	dbTeamFactory           dbng.TeamFactory
 
 	db GardenWorkerDB
 
@@ -49,10 +49,10 @@ func NewContainerProviderFactory(
 	baggageclaimClient baggageclaim.Client,
 	volumeClient VolumeClient,
 	imageFactory ImageFactory,
-	dbContainerFactory dbng.ContainerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
+	dbTeamFactory dbng.TeamFactory,
 	db GardenWorkerDB,
 	httpProxyURL string,
 	httpsProxyURL string,
@@ -64,15 +64,15 @@ func NewContainerProviderFactory(
 		baggageclaimClient:      baggageclaimClient,
 		volumeClient:            volumeClient,
 		imageFactory:            imageFactory,
-		dbContainerFactory:      dbContainerFactory,
 		dbVolumeFactory:         dbVolumeFactory,
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
-		db:            db,
-		httpProxyURL:  httpProxyURL,
-		httpsProxyURL: httpsProxyURL,
-		noProxy:       noProxy,
-		clock:         clock,
+		dbTeamFactory:           dbTeamFactory,
+		db:                      db,
+		httpProxyURL:            httpProxyURL,
+		httpsProxyURL:           httpsProxyURL,
+		noProxy:                 noProxy,
+		clock:                   clock,
 	}
 }
 
@@ -84,16 +84,16 @@ func (f *containerProviderFactory) ContainerProviderFor(
 		baggageclaimClient:      f.baggageclaimClient,
 		volumeClient:            f.volumeClient,
 		imageFactory:            f.imageFactory,
-		dbContainerFactory:      f.dbContainerFactory,
 		dbVolumeFactory:         f.dbVolumeFactory,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
-		db:            f.db,
-		httpProxyURL:  f.httpProxyURL,
-		httpsProxyURL: f.httpsProxyURL,
-		noProxy:       f.noProxy,
-		clock:         f.clock,
-		worker:        worker,
+		dbTeamFactory:           f.dbTeamFactory,
+		db:                      f.db,
+		httpProxyURL:            f.httpProxyURL,
+		httpsProxyURL:           f.httpsProxyURL,
+		noProxy:                 f.noProxy,
+		clock:                   f.clock,
+		worker:                  worker,
 	}
 }
 
@@ -103,6 +103,7 @@ type ContainerProvider interface {
 	FindContainerByHandle(
 		logger lager.Logger,
 		handle string,
+		teamID int,
 	) (Container, bool, error)
 
 	FindOrCreateBuildContainer(
@@ -161,10 +162,10 @@ type containerProvider struct {
 	baggageclaimClient      baggageclaim.Client
 	volumeClient            VolumeClient
 	imageFactory            ImageFactory
-	dbContainerFactory      dbng.ContainerFactory
 	dbVolumeFactory         dbng.VolumeFactory
 	dbResourceCacheFactory  dbng.ResourceCacheFactory
 	dbResourceConfigFactory dbng.ResourceConfigFactory
+	dbTeamFactory           dbng.TeamFactory
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -197,7 +198,7 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 		resourceTypes,
 		outputPaths,
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
-			return p.dbContainerFactory.FindBuildContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).FindBuildContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
@@ -213,7 +214,7 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 			)
 		},
 		func() (dbng.CreatingContainer, error) {
-			return p.dbContainerFactory.CreateBuildContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).CreateBuildContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
@@ -267,7 +268,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 		resourceTypes,
 		map[string]string{},
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
-			return p.dbContainerFactory.FindResourceCheckContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
@@ -276,7 +277,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 			)
 		},
 		func() (dbng.CreatingContainer, error) {
-			return p.dbContainerFactory.CreateResourceCheckContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceCheckContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
@@ -319,7 +320,7 @@ func (p *containerProvider) FindOrCreateResourceTypeCheckContainer(
 		resourceTypes,
 		map[string]string{},
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
-			return p.dbContainerFactory.FindResourceCheckContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
@@ -328,7 +329,7 @@ func (p *containerProvider) FindOrCreateResourceTypeCheckContainer(
 			)
 		},
 		func() (dbng.CreatingContainer, error) {
-			return p.dbContainerFactory.CreateResourceCheckContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceCheckContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
@@ -416,7 +417,7 @@ func (p *containerProvider) FindOrCreateResourceGetContainer(
 		resourceTypes,
 		map[string]string{},
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
-			return p.dbContainerFactory.FindResourceGetContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceGetContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
@@ -426,7 +427,7 @@ func (p *containerProvider) FindOrCreateResourceGetContainer(
 			)
 		},
 		func() (dbng.CreatingContainer, error) {
-			return p.dbContainerFactory.CreateResourceGetContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceGetContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
@@ -441,6 +442,7 @@ func (p *containerProvider) FindOrCreateResourceGetContainer(
 func (p *containerProvider) FindContainerByHandle(
 	logger lager.Logger,
 	handle string,
+	teamID int,
 ) (Container, bool, error) {
 	gardenContainer, err := p.gardenClient.Lookup(handle)
 	if err != nil {
@@ -453,7 +455,7 @@ func (p *containerProvider) FindContainerByHandle(
 		return nil, false, err
 	}
 
-	createdContainer, found, err := p.dbContainerFactory.FindContainerByHandle(handle)
+	createdContainer, found, err := p.dbTeamFactory.GetByID(teamID).FindContainerByHandle(handle)
 	if err != nil {
 		logger.Error("failed-to-lookup-in-db", err)
 		return nil, false, err

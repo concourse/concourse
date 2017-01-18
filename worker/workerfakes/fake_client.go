@@ -132,13 +132,14 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	LookupContainerStub        func(lager.Logger, string) (worker.Container, bool, error)
-	lookupContainerMutex       sync.RWMutex
-	lookupContainerArgsForCall []struct {
+	FindContainerByHandleStub        func(lager.Logger, string, int) (worker.Container, bool, error)
+	findContainerByHandleMutex       sync.RWMutex
+	findContainerByHandleArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
+		arg3 int
 	}
-	lookupContainerReturns struct {
+	findContainerByHandleReturns struct {
 		result1 worker.Container
 		result2 bool
 		result3 error
@@ -531,36 +532,37 @@ func (fake *FakeClient) FindContainerForIdentifierReturns(result1 worker.Contain
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) LookupContainer(arg1 lager.Logger, arg2 string) (worker.Container, bool, error) {
-	fake.lookupContainerMutex.Lock()
-	fake.lookupContainerArgsForCall = append(fake.lookupContainerArgsForCall, struct {
+func (fake *FakeClient) FindContainerByHandle(arg1 lager.Logger, arg2 string, arg3 int) (worker.Container, bool, error) {
+	fake.findContainerByHandleMutex.Lock()
+	fake.findContainerByHandleArgsForCall = append(fake.findContainerByHandleArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("LookupContainer", []interface{}{arg1, arg2})
-	fake.lookupContainerMutex.Unlock()
-	if fake.LookupContainerStub != nil {
-		return fake.LookupContainerStub(arg1, arg2)
+		arg3 int
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("FindContainerByHandle", []interface{}{arg1, arg2, arg3})
+	fake.findContainerByHandleMutex.Unlock()
+	if fake.FindContainerByHandleStub != nil {
+		return fake.FindContainerByHandleStub(arg1, arg2, arg3)
 	} else {
-		return fake.lookupContainerReturns.result1, fake.lookupContainerReturns.result2, fake.lookupContainerReturns.result3
+		return fake.findContainerByHandleReturns.result1, fake.findContainerByHandleReturns.result2, fake.findContainerByHandleReturns.result3
 	}
 }
 
-func (fake *FakeClient) LookupContainerCallCount() int {
-	fake.lookupContainerMutex.RLock()
-	defer fake.lookupContainerMutex.RUnlock()
-	return len(fake.lookupContainerArgsForCall)
+func (fake *FakeClient) FindContainerByHandleCallCount() int {
+	fake.findContainerByHandleMutex.RLock()
+	defer fake.findContainerByHandleMutex.RUnlock()
+	return len(fake.findContainerByHandleArgsForCall)
 }
 
-func (fake *FakeClient) LookupContainerArgsForCall(i int) (lager.Logger, string) {
-	fake.lookupContainerMutex.RLock()
-	defer fake.lookupContainerMutex.RUnlock()
-	return fake.lookupContainerArgsForCall[i].arg1, fake.lookupContainerArgsForCall[i].arg2
+func (fake *FakeClient) FindContainerByHandleArgsForCall(i int) (lager.Logger, string, int) {
+	fake.findContainerByHandleMutex.RLock()
+	defer fake.findContainerByHandleMutex.RUnlock()
+	return fake.findContainerByHandleArgsForCall[i].arg1, fake.findContainerByHandleArgsForCall[i].arg2, fake.findContainerByHandleArgsForCall[i].arg3
 }
 
-func (fake *FakeClient) LookupContainerReturns(result1 worker.Container, result2 bool, result3 error) {
-	fake.LookupContainerStub = nil
-	fake.lookupContainerReturns = struct {
+func (fake *FakeClient) FindContainerByHandleReturns(result1 worker.Container, result2 bool, result3 error) {
+	fake.FindContainerByHandleStub = nil
+	fake.findContainerByHandleReturns = struct {
 		result1 worker.Container
 		result2 bool
 		result3 error
@@ -820,8 +822,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.findInitializedVolumeForResourceCacheMutex.RUnlock()
 	fake.findContainerForIdentifierMutex.RLock()
 	defer fake.findContainerForIdentifierMutex.RUnlock()
-	fake.lookupContainerMutex.RLock()
-	defer fake.lookupContainerMutex.RUnlock()
+	fake.findContainerByHandleMutex.RLock()
+	defer fake.findContainerByHandleMutex.RUnlock()
 	fake.validateResourceCheckVersionMutex.RLock()
 	defer fake.validateResourceCheckVersionMutex.RUnlock()
 	fake.findResourceTypeByPathMutex.RLock()

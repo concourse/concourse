@@ -43,12 +43,12 @@ type dbProvider struct {
 	dialer                    gconn.DialerFunc
 	retryBackOffFactory       retryhttp.BackOffFactory
 	imageFactory              ImageFactory
-	dbContainerFactory        dbng.ContainerFactory
 	dbResourceCacheFactory    dbng.ResourceCacheFactory
 	dbResourceTypeFactory     dbng.ResourceTypeFactory
 	dbResourceConfigFactory   dbng.ResourceConfigFactory
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory
 	dbVolumeFactory           dbng.VolumeFactory
+	dbTeamFactory             dbng.TeamFactory
 	pipelineDBFactory         db.PipelineDBFactory
 	dbWorkerFactory           dbng.WorkerFactory
 }
@@ -59,11 +59,11 @@ func NewDBWorkerProvider(
 	dialer gconn.DialerFunc,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
-	dbContainerFactory dbng.ContainerFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,
 	dbVolumeFactory dbng.VolumeFactory,
+	dbTeamFactory dbng.TeamFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 	workerFactory dbng.WorkerFactory,
 ) WorkerProvider {
@@ -73,11 +73,11 @@ func NewDBWorkerProvider(
 		dialer:                    dialer,
 		retryBackOffFactory:       retryBackOffFactory,
 		imageFactory:              imageFactory,
-		dbContainerFactory:        dbContainerFactory,
 		dbResourceCacheFactory:    dbResourceCacheFactory,
 		dbResourceConfigFactory:   dbResourceConfigFactory,
 		dbBaseResourceTypeFactory: dbBaseResourceTypeFactory,
 		dbVolumeFactory:           dbVolumeFactory,
+		dbTeamFactory:             dbTeamFactory,
 		dbWorkerFactory:           workerFactory,
 		pipelineDBFactory:         pipelineDBFactory,
 	}
@@ -175,10 +175,10 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		bClient,
 		volumeClient,
 		provider.imageFactory,
-		provider.dbContainerFactory,
 		provider.dbVolumeFactory,
 		provider.dbResourceCacheFactory,
 		provider.dbResourceConfigFactory,
+		provider.dbTeamFactory,
 		provider.db,
 		savedWorker.HTTPProxyURL,
 		savedWorker.HTTPSProxyURL,

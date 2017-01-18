@@ -335,7 +335,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 		return nil, false, nil
 	}
 
-	container, found, err := worker.LookupContainer(logger, containerInfo.Handle)
+	container, found, err := worker.FindContainerByHandle(logger, containerInfo.Handle, containerInfo.TeamID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -357,9 +357,9 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 	return container, found, nil
 }
 
-func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) (Container, bool, error) {
+func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, handle string, teamID int) (Container, bool, error) {
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-	return containerProvider.FindContainerByHandle(logger, handle)
+	return containerProvider.FindContainerByHandle(logger, handle, teamID)
 }
 
 func (worker *gardenWorker) ActiveContainers() int {

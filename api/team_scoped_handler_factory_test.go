@@ -37,7 +37,7 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 
 		logger := lagertest.NewTestLogger("test")
 
-		handlerFactory := api.NewTeamScopedHandlerFactory(logger, teamDBFactory, fakeContainerFactory)
+		handlerFactory := api.NewTeamScopedHandlerFactory(logger, teamDBFactory, dbTeamFactory)
 		innerHandler := handlerFactory.HandlerFor(delegate.GetHandler)
 
 		authValidator = new(authfakes.FakeValidator)
@@ -74,6 +74,7 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 		It("calls scoped handler with teamDB from context", func() {
 			Expect(delegate.IsCalled).To(BeTrue())
 			Expect(delegate.TeamDB).To(BeIdenticalTo(teamDB))
+			Expect(delegate.Team).To(BeIdenticalTo(dbTeam))
 		})
 	})
 
@@ -90,6 +91,7 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 		It("does not call scoped handler", func() {
 			Expect(delegate.IsCalled).To(BeFalse())
 			Expect(delegate.TeamDB).To(BeNil())
+			Expect(delegate.Team).To(BeNil())
 		})
 	})
 })
@@ -97,11 +99,13 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 type delegateHandler struct {
 	IsCalled bool
 	TeamDB   db.TeamDB
+	Team     dbng.Team
 }
 
-func (handler *delegateHandler) GetHandler(teamDB db.TeamDB, containerFactory dbng.ContainerFactory) http.Handler {
+func (handler *delegateHandler) GetHandler(teamDB db.TeamDB, dbTeam dbng.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.IsCalled = true
 		handler.TeamDB = teamDB
+		handler.Team = dbTeam
 	})
 }

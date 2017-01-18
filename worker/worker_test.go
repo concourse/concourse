@@ -28,7 +28,6 @@ var _ = Describe("Worker", func() {
 		fakeWorkerProvider           *wfakes.FakeWorkerProvider
 		fakeClock                    *fakeclock.FakeClock
 		fakePipelineDBFactory        *dbfakes.FakePipelineDBFactory
-		fakeDBContainerFactory       *dbngfakes.FakeContainerFactory
 		fakeDBResourceCacheFactory   *dbngfakes.FakeResourceCacheFactory
 		fakeResourceConfigFactory    *dbngfakes.FakeResourceConfigFactory
 		fakeContainerProviderFactory *wfakes.FakeContainerProviderFactory
@@ -66,7 +65,6 @@ var _ = Describe("Worker", func() {
 		workerStartTime = fakeClock.Now().Unix()
 		workerUptime = 0
 
-		fakeDBContainerFactory = new(dbngfakes.FakeContainerFactory)
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		fakeResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
 		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
@@ -97,7 +95,7 @@ var _ = Describe("Worker", func() {
 		fakeClock.IncrementBySeconds(workerUptime)
 	})
 
-	Describe("LookupContainer", func() {
+	Describe("FindContainerByHandle", func() {
 		var (
 			handle            string
 			foundContainer    Container
@@ -113,7 +111,7 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, found, checkErr = gardenWorker.LookupContainer(logger, handle)
+			foundContainer, found, checkErr = gardenWorker.FindContainerByHandle(logger, handle, 42)
 		})
 
 		It("calls the container provider", func() {
@@ -412,7 +410,8 @@ var _ = Describe("Worker", func() {
 
 				fakeContainerProvider.FindContainerByHandleReturns(fakeWorkerContainer, true, nil)
 
-				fakeDBContainerFactory.FindContainerByHandleReturns(new(dbngfakes.FakeCreatedContainer), true, nil)
+				fakeDBTeam := new(dbngfakes.FakeTeam)
+				fakeDBTeam.FindContainerByHandleReturns(new(dbngfakes.FakeCreatedContainer), true, nil)
 				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
 			})
 
@@ -425,7 +424,7 @@ var _ = Describe("Worker", func() {
 				Expect(fakeWorkerProvider.FindContainerForIdentifierArgsForCall(0)).To(Equal(id))
 
 				Expect(fakeContainerProvider.FindContainerByHandleCallCount()).To(Equal(1))
-				_, lookupHandle := fakeContainerProvider.FindContainerByHandleArgsForCall(0)
+				_, lookupHandle, _ := fakeContainerProvider.FindContainerByHandleArgsForCall(0)
 				Expect(lookupHandle).To(Equal("provider-handle"))
 			})
 

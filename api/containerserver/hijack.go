@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/worker"
 	"github.com/gorilla/websocket"
 )
 
@@ -18,7 +19,7 @@ var upgrader = websocket.Upgrader{
 	HandshakeTimeout: 5 * time.Second,
 }
 
-func (s *Server) HijackContainer(teamDB db.TeamDB, containerFactory dbng.ContainerFactory) http.Handler {
+func (s *Server) HijackContainer(teamDB db.TeamDB, team dbng.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handle := r.FormValue(":id")
 
@@ -26,7 +27,7 @@ func (s *Server) HijackContainer(teamDB db.TeamDB, containerFactory dbng.Contain
 			"handle": handle,
 		})
 
-		container, found, err := containerFactory.FindContainerByHandle(handle)
+		container, found, err := s.workerClient.FindContainerByHandle(hLog, handle, team.ID())
 		if err != nil {
 			hLog.Error("failed-to-find-container", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -67,7 +68,7 @@ func (s *Server) HijackContainer(teamDB db.TeamDB, containerFactory dbng.Contain
 }
 
 type hijackRequest struct {
-	Container dbng.CreatedContainer
+	Container worker.Container
 	Process   atc.HijackProcessSpec
 }
 
@@ -89,20 +90,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		"process": request.Process,
 	})
 
-	container, found, err := s.workerClient.LookupContainer(hLog, request.Container.Handle())
-	if err != nil {
-		hLog.Error("failed-to-lookup-container", err)
-		closeWithErr(hLog, conn, websocket.CloseInternalServerErr, "failed to lookup container")
-		return
-	}
-
-	if !found {
-		hLog.Info("could-not-find-container")
-		closeWithErr(hLog, conn, websocket.CloseInternalServerErr, fmt.Sprintf("could not find container"))
-		return
-	}
-
-	defer container.Release()
+	defer request.Container.Release()
 
 	stdinR, stdinW := io.Pipe()
 
@@ -135,7 +123,7 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		}
 	}
 
-	process, err := container.Run(garden.ProcessSpec{
+	process, err := request.Container.Run(garden.ProcessSpec{
 		Path: request.Process.Path,
 		Args: request.Process.Args,
 		Env:  request.Process.Env,

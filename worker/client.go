@@ -87,7 +87,7 @@ type Client interface {
 	) (Volume, bool, error)
 
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
-	LookupContainer(lager.Logger, string) (Container, bool, error)
+	FindContainerByHandle(lager.Logger, string, int) (Container, bool, error)
 	ValidateResourceCheckVersion(container db.SavedContainer) (bool, error)
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
@@ -174,6 +174,8 @@ type Container interface {
 	VolumeMounts() []VolumeMount
 
 	WorkerName() string
+
+	MarkAsHijacked() error
 }
 
 type ResourceCacheIdentifier db.ResourceCacheIdentifier

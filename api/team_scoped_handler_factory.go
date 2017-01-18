@@ -12,24 +12,24 @@ import (
 )
 
 type TeamScopedHandlerFactory struct {
-	logger           lager.Logger
-	teamDBFactory    db.TeamDBFactory
-	containerFactory dbng.ContainerFactory
+	logger        lager.Logger
+	teamDBFactory db.TeamDBFactory
+	teamFactory   dbng.TeamFactory
 }
 
 func NewTeamScopedHandlerFactory(
 	logger lager.Logger,
 	teamDBFactory db.TeamDBFactory,
-	containerFactory dbng.ContainerFactory,
+	teamFactory dbng.TeamFactory,
 ) *TeamScopedHandlerFactory {
 	return &TeamScopedHandlerFactory{
-		logger:           logger,
-		teamDBFactory:    teamDBFactory,
-		containerFactory: containerFactory,
+		logger:        logger,
+		teamDBFactory: teamDBFactory,
+		teamFactory:   teamFactory,
 	}
 }
 
-func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.TeamDB, dbng.ContainerFactory) http.Handler) http.HandlerFunc {
+func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.TeamDB, dbng.Team) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := f.logger.Session("team-scoped-handler")
 
@@ -41,6 +41,19 @@ func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.TeamDB, 
 		}
 
 		teamDB := f.teamDBFactory.GetTeamDB(authTeam.Name())
-		teamScopedHandler(teamDB, f.containerFactory).ServeHTTP(w, r)
+		team, found, err := f.teamFactory.FindTeam(authTeam.Name())
+		if err != nil {
+			logger.Error("failed-to-find-team-in-db", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			logger.Error("team-not-found-in-database", errors.New("team-not-found-in-database"), lager.Data{"team-name": authTeam.Name()})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		teamScopedHandler(teamDB, team).ServeHTTP(w, r)
 	}
 }

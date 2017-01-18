@@ -27,6 +27,14 @@ type FakeTeamFactory struct {
 		result2 bool
 		result3 error
 	}
+	GetByIDStub        func(teamID int) dbng.Team
+	getByIDMutex       sync.RWMutex
+	getByIDArgsForCall []struct {
+		teamID int
+	}
+	getByIDReturns struct {
+		result1 dbng.Team
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -100,6 +108,39 @@ func (fake *FakeTeamFactory) FindTeamReturns(result1 dbng.Team, result2 bool, re
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeamFactory) GetByID(teamID int) dbng.Team {
+	fake.getByIDMutex.Lock()
+	fake.getByIDArgsForCall = append(fake.getByIDArgsForCall, struct {
+		teamID int
+	}{teamID})
+	fake.recordInvocation("GetByID", []interface{}{teamID})
+	fake.getByIDMutex.Unlock()
+	if fake.GetByIDStub != nil {
+		return fake.GetByIDStub(teamID)
+	} else {
+		return fake.getByIDReturns.result1
+	}
+}
+
+func (fake *FakeTeamFactory) GetByIDCallCount() int {
+	fake.getByIDMutex.RLock()
+	defer fake.getByIDMutex.RUnlock()
+	return len(fake.getByIDArgsForCall)
+}
+
+func (fake *FakeTeamFactory) GetByIDArgsForCall(i int) int {
+	fake.getByIDMutex.RLock()
+	defer fake.getByIDMutex.RUnlock()
+	return fake.getByIDArgsForCall[i].teamID
+}
+
+func (fake *FakeTeamFactory) GetByIDReturns(result1 dbng.Team) {
+	fake.GetByIDStub = nil
+	fake.getByIDReturns = struct {
+		result1 dbng.Team
+	}{result1}
+}
+
 func (fake *FakeTeamFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -107,6 +148,8 @@ func (fake *FakeTeamFactory) Invocations() map[string][][]interface{} {
 	defer fake.createTeamMutex.RUnlock()
 	fake.findTeamMutex.RLock()
 	defer fake.findTeamMutex.RUnlock()
+	fake.getByIDMutex.RLock()
+	defer fake.getByIDMutex.RUnlock()
 	return fake.invocations
 }
 

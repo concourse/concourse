@@ -603,36 +603,34 @@ var _ = Describe("Containers API", func() {
 
 				BeforeEach(func() {
 					fakeDBContainer = new(dbngfakes.FakeCreatedContainer)
-					fakeContainerFactory.FindContainerByHandleReturns(fakeDBContainer, true, nil)
+					dbTeam.FindContainerByHandleReturns(fakeDBContainer, true, nil)
 					fakeDBContainer.HandleReturns("some-handle")
 
 					fakeContainer = new(workerfakes.FakeContainer)
-					fakeWorkerClient.LookupContainerReturns(fakeContainer, true, nil)
+					fakeWorkerClient.FindContainerByHandleReturns(fakeContainer, true, nil)
 				})
 
 				Context("when the call to lookup the container returns an error", func() {
 					BeforeEach(func() {
-						fakeWorkerClient.LookupContainerReturns(nil, false, errors.New("nope"))
+						expectBadHandshake = true
+
+						fakeWorkerClient.FindContainerByHandleReturns(nil, false, errors.New("nope"))
 					})
 
-					It("closes the websocket connection with an error", func() {
-						_, _, err := conn.ReadMessage()
-
-						Expect(websocket.IsCloseError(err, 1011)).To(BeTrue()) // internal server error
-						Expect(err).To(MatchError(ContainSubstring("failed to lookup container")))
+					It("returns 500 internal error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 
 				Context("when the container could not be found on the worker client", func() {
 					BeforeEach(func() {
-						fakeWorkerClient.LookupContainerReturns(nil, false, nil)
+						expectBadHandshake = true
+
+						fakeWorkerClient.FindContainerByHandleReturns(nil, false, nil)
 					})
 
-					It("closes the websocket connection with an error", func() {
-						_, _, err := conn.ReadMessage()
-
-						Expect(websocket.IsCloseError(err, 1011)).To(BeTrue()) // internal server error
-						Expect(err).To(MatchError(ContainSubstring("could not find container")))
+					It("returns 404 Not Found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 
@@ -674,7 +672,7 @@ var _ = Describe("Containers API", func() {
 					It("hijacks the build", func() {
 						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-						_, lookedUpID := fakeWorkerClient.LookupContainerArgsForCall(0)
+						_, lookedUpID, _ := fakeWorkerClient.FindContainerByHandleArgsForCall(0)
 						Expect(lookedUpID).To(Equal(handle))
 
 						spec, io := fakeContainer.RunArgsForCall(0)
@@ -691,7 +689,7 @@ var _ = Describe("Containers API", func() {
 					It("marks container as hijacked", func() {
 						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-						Expect(fakeDBContainer.MarkAsHijackedCallCount()).To(Equal(1))
+						Expect(fakeContainer.MarkAsHijackedCallCount()).To(Equal(1))
 					})
 
 					Context("when stdin is sent over the API", func() {
@@ -847,32 +845,6 @@ var _ = Describe("Containers API", func() {
 							}))
 						})
 					})
-				})
-			})
-
-			Context("when the container cannot be found", func() {
-				BeforeEach(func() {
-					expectBadHandshake = true
-
-					fakeContainerFactory.FindContainerByHandleReturns(nil, false, nil)
-				})
-
-				It("returns 404 Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					Expect(fakeWorkerClient.LookupContainerCallCount()).To(Equal(0))
-				})
-			})
-
-			Context("when the db request fails", func() {
-				BeforeEach(func() {
-					expectBadHandshake = true
-
-					fakeErr := errors.New("error")
-					fakeContainerFactory.FindContainerByHandleReturns(nil, false, fakeErr)
-				})
-
-				It("returns 500 internal error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})

@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListVolumes(teamDB db.TeamDB, containerFactory dbng.ContainerFactory) http.Handler {
+func (s *Server) ListVolumes(teamDB db.TeamDB, team dbng.Team) http.Handler {
 	hLog := s.logger.Session("list-volumes")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

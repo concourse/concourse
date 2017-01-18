@@ -85,6 +85,10 @@ func (container *gardenWorkerContainer) WorkerName() string {
 	return container.workerName
 }
 
+func (container *gardenWorkerContainer) MarkAsHijacked() error {
+	return container.dbContainer.MarkAsHijacked()
+}
+
 func (container *gardenWorkerContainer) Release() {
 	metric.TrackedContainers.Dec()
 }

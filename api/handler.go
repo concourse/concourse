@@ -82,7 +82,7 @@ func NewHandler(
 
 	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory)
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
-	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, teamDBFactory, containerFactory)
+	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, teamDBFactory, dbTeamFactory)
 
 	authServer := authserver.NewServer(
 		logger,

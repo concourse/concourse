@@ -328,7 +328,7 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 		return nil, false, nil
 	}
 
-	container, found, err := worker.LookupContainer(logger, containerInfo.Handle)
+	container, found, err := worker.FindContainerByHandle(logger, containerInfo.Handle, containerInfo.TeamID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -350,7 +350,7 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 	return container, true, nil
 }
 
-func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container, bool, error) {
+func (pool *pool) FindContainerByHandle(logger lager.Logger, handle string, teamID int) (Container, bool, error) {
 	logger.Info("looking-up-container", lager.Data{"handle": handle})
 
 	containerInfo, found, err := pool.provider.GetContainer(handle)
@@ -375,7 +375,7 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 		return nil, false, ErrMissingWorker
 	}
 
-	container, found, err := worker.LookupContainer(logger, handle)
+	container, found, err := worker.FindContainerByHandle(logger, handle, teamID)
 	if err != nil {
 		return nil, false, err
 	}

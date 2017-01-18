@@ -12,6 +12,7 @@ import (
 type TeamFactory interface {
 	CreateTeam(name string) (Team, error)
 	FindTeam(name string) (Team, bool, error)
+	GetByID(teamID int) Team
 }
 
 type teamFactory struct {
@@ -63,6 +64,13 @@ func (factory *teamFactory) CreateTeam(name string) (Team, error) {
 		id:   teamID,
 		conn: factory.conn,
 	}, nil
+}
+
+func (factory *teamFactory) GetByID(teamID int) Team {
+	return &team{
+		id:   teamID,
+		conn: factory.conn,
+	}
 }
 
 func (factory *teamFactory) FindTeam(name string) (Team, bool, error) {

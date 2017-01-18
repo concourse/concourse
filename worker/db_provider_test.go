@@ -43,7 +43,7 @@ var _ = Describe("DBProvider", func() {
 		fakeImageFactory              *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate     *workerfakes.FakeImageFetchingDelegate
 		fakeDBVolumeFactory           *dbngfakes.FakeVolumeFactory
-		fakeDBContainerFactory        *dbngfakes.FakeContainerFactory
+		fakeDBTeam                    *dbngfakes.FakeTeam
 		fakeDBBaseResourceTypeFactory *dbngfakes.FakeBaseResourceTypeFactory
 		fakeCreatingContainer         *dbngfakes.FakeCreatingContainer
 		fakeCreatedContainer          *dbngfakes.FakeCreatedContainer
@@ -90,7 +90,9 @@ var _ = Describe("DBProvider", func() {
 		fakeImage.FetchForContainerReturns(FetchedImage{}, nil)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
-		fakeDBContainerFactory = new(dbngfakes.FakeContainerFactory)
+		fakeDBTeamFactory := new(dbngfakes.FakeTeamFactory)
+		fakeDBTeam = new(dbngfakes.FakeTeam)
+		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
 
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
@@ -110,11 +112,11 @@ var _ = Describe("DBProvider", func() {
 			nil,
 			fakeBackOffFactory,
 			fakeImageFactory,
-			fakeDBContainerFactory,
 			fakeDBResourceCacheFactory,
 			nil,
 			fakeDBBaseResourceTypeFactory,
 			fakeDBVolumeFactory,
+			fakeDBTeamFactory,
 			fakePipelineDBFactory,
 			fakeDBWorkerFactory,
 		)
@@ -277,7 +279,7 @@ var _ = Describe("DBProvider", func() {
 					fakeCreatingContainer.HandleReturns("some-handle")
 					fakeCreatedContainer = new(dbngfakes.FakeCreatedContainer)
 					fakeCreatingContainer.CreatedReturns(fakeCreatedContainer, nil)
-					fakeDBContainerFactory.CreateBuildContainerReturns(fakeCreatingContainer, nil)
+					fakeDBTeam.CreateBuildContainerReturns(fakeCreatingContainer, nil)
 
 					baseResourceType := &dbng.UsedBaseResourceType{ID: 42}
 					fakeDBBaseResourceTypeFactory.FindReturns(baseResourceType, true, nil)
@@ -322,7 +324,7 @@ var _ = Describe("DBProvider", func() {
 			Describe("a looked-up container", func() {
 				BeforeEach(func() {
 					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr}, true, nil)
-					fakeDBContainerFactory.FindContainerByHandleReturns(fakeCreatedContainer, true, nil)
+					fakeDBTeam.FindContainerByHandleReturns(fakeCreatedContainer, true, nil)
 				})
 
 				It("calls through to garden", func() {

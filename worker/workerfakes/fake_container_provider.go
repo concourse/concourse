@@ -11,11 +11,12 @@ import (
 )
 
 type FakeContainerProvider struct {
-	FindContainerByHandleStub        func(logger lager.Logger, handle string) (worker.Container, bool, error)
+	FindContainerByHandleStub        func(logger lager.Logger, handle string, teamID int) (worker.Container, bool, error)
 	findContainerByHandleMutex       sync.RWMutex
 	findContainerByHandleArgsForCall []struct {
 		logger lager.Logger
 		handle string
+		teamID int
 	}
 	findContainerByHandleReturns struct {
 		result1 worker.Container
@@ -96,16 +97,17 @@ type FakeContainerProvider struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerProvider) FindContainerByHandle(logger lager.Logger, handle string) (worker.Container, bool, error) {
+func (fake *FakeContainerProvider) FindContainerByHandle(logger lager.Logger, handle string, teamID int) (worker.Container, bool, error) {
 	fake.findContainerByHandleMutex.Lock()
 	fake.findContainerByHandleArgsForCall = append(fake.findContainerByHandleArgsForCall, struct {
 		logger lager.Logger
 		handle string
-	}{logger, handle})
-	fake.recordInvocation("FindContainerByHandle", []interface{}{logger, handle})
+		teamID int
+	}{logger, handle, teamID})
+	fake.recordInvocation("FindContainerByHandle", []interface{}{logger, handle, teamID})
 	fake.findContainerByHandleMutex.Unlock()
 	if fake.FindContainerByHandleStub != nil {
-		return fake.FindContainerByHandleStub(logger, handle)
+		return fake.FindContainerByHandleStub(logger, handle, teamID)
 	} else {
 		return fake.findContainerByHandleReturns.result1, fake.findContainerByHandleReturns.result2, fake.findContainerByHandleReturns.result3
 	}
@@ -117,10 +119,10 @@ func (fake *FakeContainerProvider) FindContainerByHandleCallCount() int {
 	return len(fake.findContainerByHandleArgsForCall)
 }
 
-func (fake *FakeContainerProvider) FindContainerByHandleArgsForCall(i int) (lager.Logger, string) {
+func (fake *FakeContainerProvider) FindContainerByHandleArgsForCall(i int) (lager.Logger, string, int) {
 	fake.findContainerByHandleMutex.RLock()
 	defer fake.findContainerByHandleMutex.RUnlock()
-	return fake.findContainerByHandleArgsForCall[i].logger, fake.findContainerByHandleArgsForCall[i].handle
+	return fake.findContainerByHandleArgsForCall[i].logger, fake.findContainerByHandleArgsForCall[i].handle, fake.findContainerByHandleArgsForCall[i].teamID
 }
 
 func (fake *FakeContainerProvider) FindContainerByHandleReturns(result1 worker.Container, result2 bool, result3 error) {

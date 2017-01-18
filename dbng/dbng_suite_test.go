@@ -125,7 +125,7 @@ var _ = BeforeEach(func() {
 	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(logger, defaultResource, "some-base-resource-type", atc.Source{}, defaultPipeline.ID(), atc.ResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultCreatingContainer, err = containerFactory.CreateResourceCheckContainer(defaultWorker, defaultResourceConfig)
+	defaultCreatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker, defaultResourceConfig)
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultCreatedContainer, err = defaultCreatingContainer.Created()

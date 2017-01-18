@@ -10,6 +10,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/lib/pq"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
@@ -28,6 +29,17 @@ type Team interface {
 	CreateOneOffBuild() (*Build, error)
 
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
+
+	FindContainerByHandle(string) (CreatedContainer, bool, error)
+
+	FindResourceCheckContainer(*Worker, *UsedResourceConfig) (CreatingContainer, CreatedContainer, error)
+	CreateResourceCheckContainer(*Worker, *UsedResourceConfig) (CreatingContainer, error)
+
+	FindResourceGetContainer(*Worker, *UsedResourceCache, string) (CreatingContainer, CreatedContainer, error)
+	CreateResourceGetContainer(*Worker, *UsedResourceCache, string) (CreatingContainer, error)
+
+	FindBuildContainer(*Worker, *Build, atc.PlanID, ContainerMetadata) (CreatingContainer, CreatedContainer, error)
+	CreateBuildContainer(*Worker, *Build, atc.PlanID, ContainerMetadata) (CreatingContainer, error)
 }
 
 type team struct {
@@ -36,6 +48,234 @@ type team struct {
 }
 
 func (t *team) ID() int { return t.id }
+
+func (t *team) FindResourceCheckContainer(
+	worker *Worker,
+	resourceConfig *UsedResourceConfig,
+) (CreatingContainer, CreatedContainer, error) {
+	return t.findContainer(map[string]interface{}{
+		"worker_name":        worker.Name,
+		"resource_config_id": resourceConfig.ID,
+	})
+}
+
+func (t *team) CreateResourceCheckContainer(
+	worker *Worker,
+	resourceConfig *UsedResourceConfig,
+) (CreatingContainer, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
+	var containerID int
+	err = psql.Insert("containers").
+		Columns(
+			"worker_name",
+			"resource_config_id",
+			"type",
+			"step_name",
+			"handle",
+			"team_id",
+		).
+		Values(
+			worker.Name,
+			resourceConfig.ID,
+			"check",
+			"",
+			handle.String(),
+			t.id,
+		).
+		Suffix("RETURNING id").
+		RunWith(tx).
+		QueryRow().
+		Scan(&containerID)
+	if err != nil {
+		// TODO: explicitly handle fkey constraint
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &creatingContainer{
+		id:         containerID,
+		handle:     handle.String(),
+		workerName: worker.Name,
+		conn:       t.conn,
+	}, nil
+}
+
+func (t *team) FindResourceGetContainer(
+	worker *Worker,
+	resourceCache *UsedResourceCache,
+	stepName string,
+) (CreatingContainer, CreatedContainer, error) {
+	return t.findContainer(map[string]interface{}{
+		"worker_name":       worker.Name,
+		"resource_cache_id": resourceCache.ID,
+		"step_name":         stepName,
+	})
+}
+
+func (t *team) CreateResourceGetContainer(
+	worker *Worker,
+	resourceCache *UsedResourceCache,
+	stepName string,
+) (CreatingContainer, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
+	var containerID int
+	err = psql.Insert("containers").
+		Columns(
+			"worker_name",
+			"resource_cache_id",
+			"type",
+			"step_name",
+			"handle",
+			"team_id",
+		).
+		Values(
+			worker.Name,
+			resourceCache.ID,
+			"get",
+			stepName,
+			handle.String(),
+			t.id,
+		).
+		Suffix("RETURNING id").
+		RunWith(tx).
+		QueryRow().
+		Scan(&containerID)
+	if err != nil {
+		// TODO: explicitly handle fkey constraint
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &creatingContainer{
+		id:         containerID,
+		handle:     handle.String(),
+		workerName: worker.Name,
+		conn:       t.conn,
+	}, nil
+}
+
+func (t *team) FindBuildContainer(
+	worker *Worker,
+	build *Build,
+	planID atc.PlanID,
+	meta ContainerMetadata,
+) (CreatingContainer, CreatedContainer, error) {
+	return t.findContainer(map[string]interface{}{
+		"worker_name": worker.Name,
+		"build_id":    build.ID,
+		"plan_id":     string(planID),
+		"type":        meta.Type,
+		"step_name":   meta.Name,
+	})
+}
+
+func (t *team) CreateBuildContainer(
+	worker *Worker,
+	build *Build,
+	planID atc.PlanID,
+	meta ContainerMetadata,
+) (CreatingContainer, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
+	var containerID int
+	err = psql.Insert("containers").
+		// TODO: should metadata just be JSON?
+		Columns(
+			"worker_name",
+			"build_id",
+			"plan_id",
+			"type",
+			"step_name",
+			"handle",
+			"team_id",
+		).
+		Values(
+			worker.Name,
+			build.ID,
+			string(planID),
+			meta.Type,
+			meta.Name,
+			handle.String(),
+			t.id,
+		).
+		Suffix("RETURNING id").
+		RunWith(tx).
+		QueryRow().
+		Scan(&containerID)
+	if err != nil {
+		// TODO: explicitly handle fkey constraint
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &creatingContainer{
+		id:         containerID,
+		handle:     handle.String(),
+		workerName: worker.Name,
+		conn:       t.conn,
+	}, nil
+}
+
+func (t *team) FindContainerByHandle(
+	handle string,
+) (CreatedContainer, bool, error) {
+	_, createdContainer, err := t.findContainer(map[string]interface{}{
+		"handle": handle,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	if createdContainer != nil {
+		return createdContainer, true, nil
+	}
+
+	return nil, false, nil
+}
 
 func (t *team) SavePipeline(
 	pipelineName string,
@@ -413,4 +653,62 @@ func swallowUniqueViolation(err error) error {
 	}
 
 	return nil
+}
+
+func (t *team) findContainer(columns map[string]interface{}) (CreatingContainer, CreatedContainer, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer tx.Rollback()
+
+	whereClause := sq.Eq{}
+	for name, value := range columns {
+		whereClause[name] = value
+	}
+
+	var containerID int
+	var workerName string
+	var state string
+	var hijacked bool
+	var handle string
+	err = psql.Select("id, worker_name, state, hijacked, handle").
+		From("containers").
+		Where(whereClause).
+		Where(sq.Eq{"team_id": t.id}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&containerID, &workerName, &state, &hijacked, &handle)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil, nil
+		}
+		return nil, nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	switch state {
+	case ContainerStateCreated:
+		return nil, &createdContainer{
+			id:         containerID,
+			handle:     handle,
+			workerName: workerName,
+			hijacked:   hijacked,
+			conn:       t.conn,
+		}, nil
+	case ContainerStateCreating:
+		return &creatingContainer{
+			id:         containerID,
+			handle:     handle,
+			workerName: workerName,
+			conn:       t.conn,
+		}, nil, nil
+	}
+
+	return nil, nil, nil
 }

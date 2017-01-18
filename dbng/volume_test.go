@@ -263,7 +263,7 @@ var _ = Describe("Volume", func() {
 
 		BeforeEach(func() {
 			var err error
-			creatingContainer, err = containerFactory.CreateBuildContainer(defaultWorker, defaultBuild, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild, "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})

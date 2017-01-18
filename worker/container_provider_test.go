@@ -36,7 +36,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeVolumeClient            *wfakes.FakeVolumeClient
 		fakeImageFactory            *wfakes.FakeImageFactory
 		fakeImage                   *wfakes.FakeImage
-		fakeDBContainerFactory      *dbngfakes.FakeContainerFactory
+		fakeDBTeam                  *dbngfakes.FakeTeam
 		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
 		fakeDBResourceCacheFactory  *dbngfakes.FakeResourceCacheFactory
 		fakeDBResourceConfigFactory *dbngfakes.FakeResourceConfigFactory
@@ -73,7 +73,9 @@ var _ = Describe("ContainerProvider", func() {
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeWorker = new(wfakes.FakeWorker)
 
-		fakeDBContainerFactory = new(dbngfakes.FakeContainerFactory)
+		fakeDBTeamFactory := new(dbngfakes.FakeTeamFactory)
+		fakeDBTeam = new(dbngfakes.FakeTeam)
+		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
 		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
@@ -86,10 +88,10 @@ var _ = Describe("ContainerProvider", func() {
 			fakeBaggageclaimClient,
 			fakeVolumeClient,
 			fakeImageFactory,
-			fakeDBContainerFactory,
 			fakeDBVolumeFactory,
 			fakeDBResourceCacheFactory,
 			fakeDBResourceConfigFactory,
+			fakeDBTeamFactory,
 			fakeGardenWorkerDB,
 			"http://proxy.com",
 			"https://proxy.com",
@@ -258,7 +260,7 @@ var _ = Describe("ContainerProvider", func() {
 
 	Describe("FindOrCreateBuildContainer", func() {
 		BeforeEach(func() {
-			fakeDBContainerFactory.CreateBuildContainerReturns(fakeCreatingContainer, nil)
+			fakeDBTeam.CreateBuildContainerReturns(fakeCreatingContainer, nil)
 			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
 		})
 
@@ -285,7 +287,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindBuildContainerReturns(fakeCreatingContainer, nil, nil)
+				fakeDBTeam.FindBuildContainerReturns(fakeCreatingContainer, nil, nil)
 			})
 
 			ItHandlesContainerInCreatingState()
@@ -293,7 +295,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in created state", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindBuildContainerReturns(nil, fakeCreatedContainer, nil)
+				fakeDBTeam.FindBuildContainerReturns(nil, fakeCreatedContainer, nil)
 			})
 
 			ItHandlesContainerInCreatedState()
@@ -301,18 +303,18 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindBuildContainerReturns(nil, nil, nil)
+				fakeDBTeam.FindBuildContainerReturns(nil, nil, nil)
 			})
 
 			ItHandlesNonExistentContainer(func() int {
-				return fakeDBContainerFactory.CreateBuildContainerCallCount()
+				return fakeDBTeam.CreateBuildContainerCallCount()
 			})
 		})
 	})
 
 	Describe("FindOrCreateResourceCheckContainer", func() {
 		BeforeEach(func() {
-			fakeDBContainerFactory.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
+			fakeDBTeam.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
 			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
 		})
 
@@ -341,7 +343,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindResourceCheckContainerReturns(fakeCreatingContainer, nil, nil)
+				fakeDBTeam.FindResourceCheckContainerReturns(fakeCreatingContainer, nil, nil)
 			})
 
 			ItHandlesContainerInCreatingState()
@@ -349,7 +351,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in created state", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindResourceCheckContainerReturns(nil, fakeCreatedContainer, nil)
+				fakeDBTeam.FindResourceCheckContainerReturns(nil, fakeCreatedContainer, nil)
 			})
 
 			ItHandlesContainerInCreatedState()
@@ -357,18 +359,18 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindResourceCheckContainerReturns(nil, nil, nil)
+				fakeDBTeam.FindResourceCheckContainerReturns(nil, nil, nil)
 			})
 
 			ItHandlesNonExistentContainer(func() int {
-				return fakeDBContainerFactory.CreateResourceCheckContainerCallCount()
+				return fakeDBTeam.CreateResourceCheckContainerCallCount()
 			})
 		})
 	})
 
 	Describe("FindOrCreateResourceTypeCheckContainer", func() {
 		BeforeEach(func() {
-			fakeDBContainerFactory.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
+			fakeDBTeam.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
 			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
 		})
 
@@ -397,7 +399,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindResourceCheckContainerReturns(fakeCreatingContainer, nil, nil)
+				fakeDBTeam.FindResourceCheckContainerReturns(fakeCreatingContainer, nil, nil)
 			})
 
 			ItHandlesContainerInCreatingState()
@@ -405,7 +407,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in created state", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindResourceCheckContainerReturns(nil, fakeCreatedContainer, nil)
+				fakeDBTeam.FindResourceCheckContainerReturns(nil, fakeCreatedContainer, nil)
 			})
 
 			ItHandlesContainerInCreatedState()
@@ -413,18 +415,18 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindResourceCheckContainerReturns(nil, nil, nil)
+				fakeDBTeam.FindResourceCheckContainerReturns(nil, nil, nil)
 			})
 
 			ItHandlesNonExistentContainer(func() int {
-				return fakeDBContainerFactory.CreateResourceCheckContainerCallCount()
+				return fakeDBTeam.CreateResourceCheckContainerCallCount()
 			})
 		})
 	})
 
 	Describe("FindOrCreateResourceTypeCheckContainer", func() {
 		BeforeEach(func() {
-			fakeDBContainerFactory.CreateResourceGetContainerReturns(fakeCreatingContainer, nil)
+			fakeDBTeam.CreateResourceGetContainerReturns(fakeCreatingContainer, nil)
 			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
 		})
 
@@ -456,7 +458,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindResourceGetContainerReturns(fakeCreatingContainer, nil, nil)
+				fakeDBTeam.FindResourceGetContainerReturns(fakeCreatingContainer, nil, nil)
 			})
 
 			ItHandlesContainerInCreatingState()
@@ -464,7 +466,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in created state", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindResourceGetContainerReturns(nil, fakeCreatedContainer, nil)
+				fakeDBTeam.FindResourceGetContainerReturns(nil, fakeCreatedContainer, nil)
 			})
 
 			ItHandlesContainerInCreatedState()
@@ -472,11 +474,11 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
-				fakeDBContainerFactory.FindResourceGetContainerReturns(nil, nil, nil)
+				fakeDBTeam.FindResourceGetContainerReturns(nil, nil, nil)
 			})
 
 			ItHandlesNonExistentContainer(func() int {
-				return fakeDBContainerFactory.CreateResourceGetContainerCallCount()
+				return fakeDBTeam.CreateResourceGetContainerCallCount()
 			})
 		})
 	})
@@ -489,7 +491,7 @@ var _ = Describe("ContainerProvider", func() {
 		)
 
 		JustBeforeEach(func() {
-			foundContainer, found, findErr = containerProvider.FindContainerByHandle(logger, "some-container-handle")
+			foundContainer, found, findErr = containerProvider.FindContainerByHandle(logger, "some-container-handle", 42)
 		})
 
 		Context("when the gardenClient returns a container and no error", func() {
@@ -503,7 +505,7 @@ var _ = Describe("ContainerProvider", func() {
 
 				fakeDBVolumeFactory.FindVolumesForContainerReturns([]dbng.CreatedVolume{}, nil)
 
-				fakeDBContainerFactory.FindContainerByHandleReturns(fakeCreatedContainer, true, nil)
+				fakeDBTeam.FindContainerByHandleReturns(fakeCreatedContainer, true, nil)
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
 			})
 
