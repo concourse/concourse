@@ -32,8 +32,9 @@ import (
 
 var (
 	deploymentName, flyTarget string
-
-	atcIP, atcExternalURL string
+	dbIP                      string
+	atcIP, atcExternalURL     string
+	atcIP2, atcExternalURL2   string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion string
 	stemcellVersion                                   string
@@ -98,7 +99,11 @@ var _ = BeforeEach(func() {
 	bosh("delete-deployment")
 
 	atcIP = fmt.Sprintf("10.234.%d.2", GinkgoParallelNode())
+	atcIP2 = fmt.Sprintf("10.234.%d.3", GinkgoParallelNode())
+	dbIP = fmt.Sprintf("10.234.%d.4", GinkgoParallelNode())
+
 	atcExternalURL = fmt.Sprintf("http://%s:8080", atcIP)
+	atcExternalURL2 = fmt.Sprintf("http://%s:8080", atcIP2)
 })
 
 var _ = AfterEach(func() {
@@ -122,7 +127,10 @@ func Deploy(manifest string, operations ...string) {
 			"deploy", manifest,
 			"-v", "deployment-name=" + deploymentName,
 			"-v", "atc-ip=" + atcIP,
+			"-v", "atc-ip-2=" + atcIP2,
+			"-v", "db-ip=" + dbIP,
 			"-v", "atc-external-url=" + atcExternalURL,
+			"-v", "atc-external-url-2=" + atcExternalURL2,
 			"-v", "concourse-release-version=" + concourseReleaseVersion,
 			"-v", "garden-runc-release-version=" + gardenRuncReleaseVersion,
 			"-v", "stemcell-version=" + stemcellVersion,
@@ -261,10 +269,8 @@ func waitForStalledWorker() string {
 func waitForWorkerInState(desiredStates ...string) string {
 	var workerName string
 	Eventually(func() string {
-		session := spawnFly("workers")
-		<-session.Exited
 
-		rows := strings.Split(string(session.Out.Contents()), "\n")
+		rows := listWorkers()
 		for _, row := range rows {
 			if row == "" {
 				continue
@@ -337,14 +343,18 @@ func splitFlyColumns(row string) []string {
 	return regexp.MustCompile(`\s{2,}`).Split(strings.TrimSpace(row), -1)
 }
 
+func listWorkers() []string {
+	session := spawnFly("workers")
+	<-session.Exited
+
+	return strings.Split(string(session.Out.Contents()), "\n")
+}
+
 func waitForWorkersToBeRunning() {
 	Eventually(func() bool {
-		session := spawnFly("workers")
-		<-session.Exited
 
+		rows := listWorkers()
 		anyNotRunning := false
-
-		rows := strings.Split(string(session.Out.Contents()), "\n")
 		for _, row := range rows {
 			if row == "" {
 				continue

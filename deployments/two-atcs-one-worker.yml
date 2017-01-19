@@ -1,0 +1,92 @@
+---
+name: ((deployment-name))
+
+releases:
+- name: concourse
+  version: ((concourse-release-version))
+- name: garden-runc
+  version: ((garden-runc-release-version))
+
+instance_groups:
+- name: web
+  instances: 2
+  networks:
+  - name: topgun
+    static_ips: [((atc-ip)),((atc-ip-2))]
+  persistent_disk: 1240
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
+  - release: concourse
+    name: atc
+    properties:
+      development_mode: true
+      external_url: ((atc-external-url))
+      postgresql_database: atc
+      postgresql:
+        address: ((db-ip)):5432
+
+  - release: concourse
+    name: tsa
+    properties: {}
+
+- name: db
+  instances: 1
+  networks:
+  - name: topgun
+    static_ips: [((db-ip))]
+  persistent_disk: 10240
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
+  - name: postgresql
+    release: concourse
+    properties:
+      databases:
+      - name: atc
+        role: atc
+        password: dummy-password
+
+- name: worker
+  instances: 1
+  networks:
+  - name: topgun
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
+  - release: concourse
+    name: groundcrew
+    properties:
+      # prevent tests from hanging forever
+      drain_timeout: 10m
+
+      garden:
+        forward_address: 127.0.0.1:7777
+
+      baggageclaim:
+        forward_address: 127.0.0.1:7788
+
+  - release: concourse
+    name: baggageclaim
+    properties: {}
+
+  - release: garden-runc
+    name: garden
+    properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+        allow_host_access: true
+        network_mtu: 1460
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: ((stemcell-version))
+
+update:
+  canaries: 1
+  max_in_flight: 3
+  serial: false
+  canary_watch_time: 1000-300000
+  update_watch_time: 1000-300000

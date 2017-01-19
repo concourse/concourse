@@ -1,6 +1,8 @@
 package topgun_test
 
 import (
+	"fmt"
+
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
