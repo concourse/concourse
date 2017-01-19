@@ -41,7 +41,7 @@ type scannable interface {
 type conditionNotifier struct {
 	cond func() (bool, error)
 
-	bus     *notificationsBus
+	bus     NotificationsBus
 	channel string
 
 	notified chan bool
