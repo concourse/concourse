@@ -7,7 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-var ErrContainerNotPresent = errors.New("container-not-present-in-db")
+var ErrContainerDisappeared = errors.New("container-disappeared-from-db")
 
 type ContainerState string
 
@@ -74,8 +74,7 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 	}
 
 	if affected == 0 {
-		panic("TESTME")
-		return nil, nil
+		return nil, ErrContainerDisappeared
 	}
 
 	return &createdContainer{
@@ -132,7 +131,7 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 		Scan(&isDiscontinued)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrContainerNotPresent
+			return nil, ErrContainerDisappeared
 		}
 
 		return nil, err
@@ -184,8 +183,7 @@ func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
 	}
 
 	if affected == 0 {
-		panic("TESTME")
-		return nil, err
+		return nil, ErrContainerDisappeared
 	}
 
 	return &destroyingContainer{
@@ -232,8 +230,7 @@ func (container *createdContainer) MarkAsHijacked() error {
 	}
 
 	if affected == 0 {
-		panic("TESTME")
-		return nil
+		return ErrContainerDisappeared
 	}
 
 	return nil
@@ -290,8 +287,7 @@ func (container *destroyingContainer) Destroy() (bool, error) {
 	}
 
 	if affected == 0 {
-		panic("TESTME")
-		return false, nil
+		return false, ErrContainerDisappeared
 	}
 
 	return true, nil

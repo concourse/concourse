@@ -15,9 +15,9 @@ import (
 	"github.com/lib/pq"
 )
 
-var ErrResourceCacheAlreadyExists = errors.New("resource cache already exists")
-var ErrResourceCacheDisappeared = errors.New("resource cache disappeared")
-var ErrResourceCacheConfigDisappeared = errors.New("resource cache config disappeared")
+var ErrResourceCacheAlreadyExists = errors.New("resource-cache-already-exists")
+var ErrResourceCacheDisappeared = errors.New("resource-cache-disappeared")
+var ErrResourceCacheConfigDisappeared = errors.New("resource-cache-config-disappeared")
 
 // ResourceCache represents an instance of a ResourceConfig's version.
 //
@@ -92,8 +92,7 @@ func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
 	}
 
 	if affected == 0 {
-		panic("TESTME")
-		return false, nil
+		return false, ErrResourceCacheDisappeared
 	}
 
 	return true, nil

@@ -2,6 +2,7 @@ package dbng
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -28,6 +29,8 @@ type Build struct {
 	teamID     int
 }
 
+var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
+
 func (build *Build) SaveStatus(tx Tx, s BuildStatus) error {
 	rows, err := psql.Update("builds").
 		Set("status", string(s)).
@@ -46,8 +49,7 @@ func (build *Build) SaveStatus(tx Tx, s BuildStatus) error {
 	}
 
 	if affected == 0 {
-		panic("TESTME")
-		return nil
+		return ErrBuildDisappeared
 	}
 
 	return nil
@@ -101,8 +103,7 @@ func (build *Build) Delete(tx Tx) (bool, error) {
 	}
 
 	if affected == 0 {
-		panic("TESTME")
-		return false, nil
+		return false, ErrBuildDisappeared
 	}
 
 	return true, nil
