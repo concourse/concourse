@@ -1,6 +1,7 @@
 package dbng
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 
@@ -13,8 +14,8 @@ import (
 type Pipeline interface {
 	ID() int
 	SaveJob(job atc.JobConfig) error
-	CreateJobBuild(jobName string) (*Build, error)
-	CreateResource(name string, config string) (*Resource, error)
+	CreateJobBuild(jobName string) (Build, error)
+	CreateResource(name string, config atc.ResourceConfig) (*Resource, error)
 	Destroy() error
 }
 
@@ -56,7 +57,7 @@ func (state PipelinePausedState) Bool() *bool {
 
 func (p *pipeline) ID() int { return p.id }
 
-func (p *pipeline) CreateJobBuild(jobName string) (*Build, error) {
+func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -78,7 +79,6 @@ func (p *pipeline) CreateJobBuild(jobName string) (*Build, error) {
 		QueryRow().
 		Scan(&buildID)
 	if err != nil {
-		// TODO: expicitly handle fkey constraint
 		return nil, err
 	}
 
@@ -92,14 +92,15 @@ func (p *pipeline) CreateJobBuild(jobName string) (*Build, error) {
 		return nil, err
 	}
 
-	return &Build{
-		ID:         buildID,
+	return &build{
+		id:         buildID,
 		pipelineID: p.id,
 		teamID:     p.TeamID,
+		conn:       p.conn,
 	}, nil
 }
 
-func (p *pipeline) CreateResource(name string, config string) (*Resource, error) {
+func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (*Resource, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -107,16 +108,20 @@ func (p *pipeline) CreateResource(name string, config string) (*Resource, error)
 
 	defer tx.Rollback()
 
+	configPayload, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+
 	var resourceID int
 	err = psql.Insert("resources").
-		Columns("pipeline_id", "name", "config").
-		Values(p.id, name, config).
+		Columns("pipeline_id", "name", "config", "source_hash").
+		Values(p.id, name, configPayload, mapHash(config.Source)).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
 		Scan(&resourceID)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint
 		return nil, err
 	}
 
@@ -131,54 +136,32 @@ func (p *pipeline) CreateResource(name string, config string) (*Resource, error)
 }
 
 func (p *pipeline) SaveJob(job atc.JobConfig) error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
 	configPayload, err := json.Marshal(job)
 	if err != nil {
 		return err
 	}
 
-	rows, err := psql.Update("jobs").
-		Set("config", configPayload).
-		Set("active", true).
-		Where(sq.Eq{
-			"name":        job.Name,
-			"pipeline_id": p.id,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if affected == 0 {
-		_, err := psql.Insert("jobs").
-			Columns("name", "pipeline_id", "config", "active").
-			Values(job.Name, p.id, configPayload, true).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			// TODO: handle unique violation err
-			return err
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return safeCreateOrUpdate(
+		p.conn,
+		func(tx Tx) (sql.Result, error) {
+			return psql.Insert("jobs").
+				Columns("name", "pipeline_id", "config", "active").
+				Values(job.Name, p.id, configPayload, true).
+				RunWith(tx).
+				Exec()
+		},
+		func(tx Tx) (sql.Result, error) {
+			return psql.Update("jobs").
+				Set("config", configPayload).
+				Set("active", true).
+				Where(sq.Eq{
+					"name":        job.Name,
+					"pipeline_id": p.id,
+				}).
+				RunWith(tx).
+				Exec()
+		},
+	)
 }
 
 func (p *pipeline) Destroy() error {

@@ -25,7 +25,7 @@ type ResourceInstance interface {
 
 type buildResourceInstance struct {
 	resourceInstance
-	build                  *dbng.Build
+	buildID                int
 	pipelineID             int
 	resourceTypes          atc.ResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
@@ -36,7 +36,7 @@ func NewBuildResourceInstance(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	build *dbng.Build,
+	buildID int,
 	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
@@ -48,7 +48,7 @@ func NewBuildResourceInstance(
 			source:           source,
 			params:           params,
 		},
-		build:                  build,
+		buildID:                buildID,
 		pipelineID:             pipelineID,
 		resourceTypes:          resourceTypes,
 		dbResourceCacheFactory: dbResourceCacheFactory,
@@ -58,7 +58,7 @@ func NewBuildResourceInstance(
 func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
 		logger,
-		bri.build,
+		bri.buildID,
 		string(bri.resourceTypeName),
 		bri.version,
 		bri.source,
@@ -87,7 +87,7 @@ func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClien
 func (bri buildResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
 		logger,
-		bri.build,
+		bri.buildID,
 		string(bri.resourceTypeName),
 		bri.version,
 		bri.source,

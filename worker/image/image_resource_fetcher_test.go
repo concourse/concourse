@@ -13,7 +13,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/resource"
 	rfakes "github.com/concourse/atc/resource/resourcefakes"
@@ -383,7 +382,7 @@ var _ = Describe("Image", func() {
 								atc.Version{"v": "1"},
 								atc.Source{"some": "source"},
 								nil,
-								&dbng.Build{ID: 42},
+								42,
 								4567,
 								customTypes,
 								fakeResourceCacheFactory,

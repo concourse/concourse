@@ -86,7 +86,6 @@ func (resourceType ResourceType) Create(tx Tx, version atc.Version) (*UsedResour
 		QueryRow().
 		Scan(&id)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint
 		return nil, err
 	}
 

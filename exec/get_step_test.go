@@ -13,7 +13,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
@@ -204,7 +203,7 @@ var _ = Describe("Get", func() {
 			version,
 			resourceConfig.Source,
 			params,
-			&dbng.Build{ID: 42},
+			42,
 			4567,
 			resourceTypes,
 			fakeDBResourceCacheFactory,

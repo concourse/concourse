@@ -7,12 +7,14 @@ import (
 	"github.com/concourse/atc/db/lock"
 )
 
+var EmptyParamsHash = mapHash(atc.Params{})
+
 //go:generate counterfeiter . ResourceCacheFactory
 
 type ResourceCacheFactory interface {
 	FindOrCreateResourceCacheForBuild(
 		logger lager.Logger,
-		build *Build,
+		buildID int,
 		resourceTypeName string,
 		version atc.Version,
 		source atc.Source,
@@ -63,7 +65,7 @@ func NewResourceCacheFactory(conn Conn, lockFactory lock.LockFactory) ResourceCa
 
 func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 	logger lager.Logger,
-	build *Build,
+	buildID int,
 	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
@@ -98,7 +100,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 
 	err = safeFindOrCreate(f.conn, func(tx Tx) error {
 		var err error
-		usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, tx, f.lockFactory, build)
+		usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, tx, f.lockFactory, buildID)
 		if err != nil {
 			return err
 		}
@@ -252,13 +254,13 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 		return err
 	}
 
-	imageResourceCacheIds, _, err := sq.
+	imageResourceCacheIds, imageResourceCacheArgs, err := sq.
 		Select("rc.id").
 		From("image_resource_versions irv").
 		Join("resource_caches rc ON rc.version = irv.version").
 		Join("resource_cache_uses rcu ON rcu.resource_cache_id = rc.id").
 		Where(sq.Expr("irv.build_id = rcu.build_id")).
-		Where(sq.Expr("rc.params_hash = 'null'")).
+		Where(sq.Eq{"rc.params_hash": EmptyParamsHash}).
 		Where("irv.build_id IN (" + latestImageResourceBuildByJobQ + ")").
 		ToSql()
 	if err != nil {
@@ -301,7 +303,7 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 				},
 			},
 		}).
-		Where("rcu.resource_cache_id NOT IN (" + imageResourceCacheIds + ")").
+		Where("rcu.resource_cache_id NOT IN ("+imageResourceCacheIds+")", imageResourceCacheArgs...).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -397,7 +399,7 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		Join("resources r ON r.id = vr.resource_id").
 		Join("resource_caches rc ON rc.version = vr.version").
 		Join("resource_configs rf ON rc.resource_config_id = rf.id").
-		Where(sq.Expr("r.config::json->>'source' = rf.source_hash")).
+		Where(sq.Expr("r.source_hash = rf.source_hash")).
 		ToSql()
 	if err != nil {
 		return err

@@ -48,7 +48,7 @@ var (
 	defaultResourceType      dbng.ResourceType
 	defaultResource          *dbng.Resource
 	defaultPipeline          dbng.Pipeline
-	defaultBuild             *dbng.Build
+	defaultBuild             dbng.Build
 	defaultCreatingContainer dbng.CreatingContainer
 	defaultCreatedContainer  dbng.CreatedContainer
 	logger                   *lagertest.TestLogger
@@ -118,7 +118,7 @@ var _ = BeforeEach(func() {
 	defaultBuild, err = defaultTeam.CreateOneOffBuild()
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultResource, err = defaultPipeline.CreateResource("default-resource", "{\"resource\":\"config\"}")
+	defaultResource, err = defaultPipeline.CreateResource("default-resource", atc.ResourceConfig{})
 	Expect(err).NotTo(HaveOccurred())
 
 	logger = lagertest.NewTestLogger("test")

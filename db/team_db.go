@@ -1,6 +1,7 @@
 package db
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -471,9 +472,9 @@ func (db *teamDB) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID in
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resources
-		SET config = $3, active = true
+		SET config = $3, source_hash = $4, active = true
 		WHERE name = $1 AND pipeline_id = $2
-	`, resource.Name, pipelineID, configPayload)
+	`, resource.Name, pipelineID, configPayload, mapHash(resource.Source))
 	if err != nil {
 		return err
 	}
@@ -483,9 +484,9 @@ func (db *teamDB) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID in
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO resources (name, pipeline_id, config, active)
-		VALUES ($1, $2, $3, true)
-	`, resource.Name, pipelineID, configPayload)
+		INSERT INTO resources (name, pipeline_id, config, source_hash, active)
+		VALUES ($1, $2, $3, $4, true)
+	`, resource.Name, pipelineID, configPayload, mapHash(resource.Source))
 
 	return swallowUniqueViolation(err)
 }
@@ -819,4 +820,9 @@ func (state PipelinePausedState) Bool() *bool {
 	default:
 		panic("unknown pipeline state")
 	}
+}
+
+func mapHash(m map[string]interface{}) string {
+	j, _ := json.Marshal(m)
+	return fmt.Sprintf("%x", sha256.Sum256(j))
 }

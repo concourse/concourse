@@ -369,7 +369,7 @@ var _ = Describe("WorkerFactory", func() {
 	Describe("DeleteFinishedRetiringWorkers", func() {
 		var (
 			dbWorker *dbng.Worker
-			dbBuild  *dbng.Build
+			dbBuild  dbng.Build
 		)
 
 		JustBeforeEach(func() {
@@ -425,16 +425,10 @@ var _ = Describe("WorkerFactory", func() {
 					dbBuild, err := defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 
-					tx, err := dbConn.Begin()
+					err = dbBuild.SaveStatus(s)
 					Expect(err).NotTo(HaveOccurred())
 
-					err = dbBuild.SaveStatus(tx, s)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = tx.Commit()
-					Expect(err).NotTo(HaveOccurred())
-
-					_, err = defaultTeam.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+					_, err = defaultTeam.CreateBuildContainer(dbWorker, dbBuild.ID(), atc.PlanID(4), dbng.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -457,16 +451,10 @@ var _ = Describe("WorkerFactory", func() {
 			)
 
 			ItRetiresWorkerWithState := func(s dbng.BuildStatus, expectedExistence bool) {
-				tx, err := dbConn.Begin()
+				err := dbBuild.SaveStatus(s)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = dbBuild.SaveStatus(tx, s)
-				Expect(err).NotTo(HaveOccurred())
-
-				err = tx.Commit()
-				Expect(err).NotTo(HaveOccurred())
-
-				_, err = defaultTeam.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+				_, err = defaultTeam.CreateBuildContainer(dbWorker, dbBuild.ID(), atc.PlanID(4), dbng.ContainerMetadata{})
 				Expect(err).NotTo(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -560,7 +548,7 @@ var _ = Describe("WorkerFactory", func() {
 	Describe("LandFinishedLandingWorkers", func() {
 		var (
 			dbWorker *dbng.Worker
-			dbBuild  *dbng.Build
+			dbBuild  dbng.Build
 		)
 
 		JustBeforeEach(func() {
@@ -618,16 +606,10 @@ var _ = Describe("WorkerFactory", func() {
 					dbBuild, err := defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 
-					tx, err := dbConn.Begin()
+					err = dbBuild.SaveStatus(s)
 					Expect(err).NotTo(HaveOccurred())
 
-					err = dbBuild.SaveStatus(tx, s)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = tx.Commit()
-					Expect(err).NotTo(HaveOccurred())
-
-					_, err = defaultTeam.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+					_, err = defaultTeam.CreateBuildContainer(dbWorker, dbBuild.ID(), atc.PlanID(4), dbng.ContainerMetadata{})
 					Expect(err).NotTo(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -651,16 +633,10 @@ var _ = Describe("WorkerFactory", func() {
 			)
 
 			ItLandsWorkerWithExpectedState := func(s dbng.BuildStatus, expectedState dbng.WorkerState) {
-				tx, err := dbConn.Begin()
+				err := dbBuild.SaveStatus(s)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = dbBuild.SaveStatus(tx, s)
-				Expect(err).NotTo(HaveOccurred())
-
-				err = tx.Commit()
-				Expect(err).NotTo(HaveOccurred())
-
-				_, err = defaultTeam.CreateBuildContainer(dbWorker, dbBuild, atc.PlanID(4), dbng.ContainerMetadata{})
+				_, err = defaultTeam.CreateBuildContainer(dbWorker, dbBuild.ID(), atc.PlanID(4), dbng.ContainerMetadata{})
 				Expect(err).NotTo(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)

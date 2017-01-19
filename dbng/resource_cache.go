@@ -17,7 +17,6 @@ import (
 
 var ErrResourceCacheAlreadyExists = errors.New("resource-cache-already-exists")
 var ErrResourceCacheDisappeared = errors.New("resource-cache-disappeared")
-var ErrResourceCacheConfigDisappeared = errors.New("resource-cache-config-disappeared")
 
 // ResourceCache represents an instance of a ResourceConfig's version.
 //
@@ -48,13 +47,13 @@ type UsedResourceCache struct {
 	Version        atc.Version
 }
 
-func (cache ResourceCache) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, build *Build) (*UsedResourceCache, error) {
-	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForBuild(logger, tx, lockFactory, build)
+func (cache ResourceCache) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, buildID int) (*UsedResourceCache, error) {
+	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForBuild(logger, tx, lockFactory, buildID)
 	if err != nil {
 		return nil, err
 	}
 
-	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "build_id", build.ID)
+	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "build_id", buildID)
 }
 
 func (cache ResourceCache) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resource *Resource) (*UsedResourceCache, error) {
@@ -121,7 +120,7 @@ func (cache ResourceCache) findOrCreate(
 			Values(
 				resourceConfig.ID,
 				cache.version(),
-				cache.paramsHash(),
+				paramsHash(cache.Params),
 			).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -216,7 +215,15 @@ func (cache ResourceCache) version() string {
 	return string(j)
 }
 
-func (cache ResourceCache) paramsHash() string {
-	j, _ := json.Marshal(cache.Params)
-	return string(j) // TODO: actually hash
+func paramsHash(p atc.Params) string {
+	if p != nil {
+		return mapHash(p)
+	}
+
+	return mapHash(atc.Params{})
+}
+
+func mapHash(m map[string]interface{}) string {
+	j, _ := json.Marshal(m)
+	return fmt.Sprintf("%x", sha256.Sum256(j))
 }

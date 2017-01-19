@@ -38,7 +38,7 @@ var (
 
 	defaultTeam     dbng.Team
 	defaultPipeline dbng.Pipeline
-	defaultBuild    *dbng.Build
+	defaultBuild    dbng.Build
 
 	usedResource *dbng.Resource
 	logger       *lagertest.TestLogger
@@ -72,7 +72,11 @@ var _ = BeforeEach(func() {
 
 	usedResource, err = defaultPipeline.CreateResource(
 		"some-resource",
-		`{"name":"some-resource","type":"resource-type","source":{"some":"source"}}`,
+		atc.ResourceConfig{
+			Name:   "some-resource",
+			Type:   "resource-type",
+			Source: atc.Source{"some": "source"},
+		},
 	)
 	Expect(err).NotTo(HaveOccurred())
 

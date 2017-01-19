@@ -71,7 +71,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceConfigFactory.FindOrCreateResourceConfigForBuild(
 						logger,
-						defaultBuild,
+						defaultBuild.ID(),
 						"some-type",
 						atc.Source{
 							"some": "source",
@@ -96,7 +96,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							"end_time":  sq.Expr("NOW()"),
 							"completed": true,
 						}).Where(sq.Eq{
-						"id": defaultBuild.ID,
+						"id": defaultBuild.ID(),
 					}).Suffix("RETURNING end_time").
 						RunWith(tx).
 						QueryRow().Scan(&result)

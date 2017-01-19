@@ -73,10 +73,10 @@ type UsedResourceConfig struct {
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (resourceConfig ResourceConfig) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, build *Build) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, buildID int) (*UsedResourceConfig, error) {
 	var resourceCacheID int
 	if resourceConfig.CreatedByResourceCache != nil {
-		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForBuild(logger, tx, lockFactory, build)
+		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForBuild(logger, tx, lockFactory, buildID)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +84,7 @@ func (resourceConfig ResourceConfig) FindOrCreateForBuild(logger lager.Logger, t
 		resourceCacheID = createdByResourceCache.ID
 	}
 
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, "build_id", build.ID, resourceCacheID)
+	return resourceConfig.findOrCreate(logger, tx, lockFactory, "build_id", buildID, resourceCacheID)
 }
 
 // FindOrCreateForResource creates the ResourceConfig, recursively creating its
@@ -191,7 +191,7 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 			).
 			Values(
 				parentID,
-				resourceConfig.sourceHash(),
+				mapHash(resourceConfig.Source),
 			).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -264,7 +264,7 @@ func (resourceConfig ResourceConfig) findWithParentID(tx Tx, parentColumnName st
 	var id int
 	err := psql.Select("id").From("resource_configs").Where(sq.Eq{
 		parentColumnName: parentID,
-		"source_hash":    resourceConfig.sourceHash(),
+		"source_hash":    mapHash(resourceConfig.Source),
 	}).RunWith(tx).QueryRow().Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -275,9 +275,4 @@ func (resourceConfig ResourceConfig) findWithParentID(tx Tx, parentColumnName st
 	}
 
 	return id, true, nil
-}
-
-func (config ResourceConfig) sourceHash() string {
-	j, _ := json.Marshal(config.Source)
-	return string(j) // TODO: actually hash
 }

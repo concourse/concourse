@@ -11,7 +11,7 @@ var _ = Describe("VolumeFactory", func() {
 	var (
 		team2             dbng.Team
 		usedResourceCache *dbng.UsedResourceCache
-		build             *dbng.Build
+		build             dbng.Build
 	)
 
 	BeforeEach(func() {
@@ -33,7 +33,7 @@ var _ = Describe("VolumeFactory", func() {
 				CreatedByBaseResourceType: &baseResourceType,
 			},
 		}
-		usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, build)
+		usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, build.ID())
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(setupTx.Commit()).To(Succeed())
@@ -51,7 +51,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build.ID(), "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -108,7 +108,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build.ID(), "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -143,12 +143,12 @@ var _ = Describe("VolumeFactory", func() {
 			_, err = resourceCacheVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
 
-			deleteTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-			deleted, err := build.Delete(deleteTx)
+			deleted, err := build.Delete()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(deleted).To(BeTrue())
 
+			deleteTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
 			deleted, err = usedResourceCache.Destroy(deleteTx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(deleted).To(BeTrue())
@@ -238,7 +238,7 @@ var _ = Describe("VolumeFactory", func() {
 		var usedResourceCache *dbng.UsedResourceCache
 
 		BeforeEach(func() {
-			resource, err := defaultPipeline.CreateResource("some-resource", "{}")
+			resource, err := defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
 			Expect(err).ToNot(HaveOccurred())
 
 			setupTx, err := dbConn.Begin()
@@ -310,7 +310,7 @@ var _ = Describe("VolumeFactory", func() {
 		var usedResourceCache *dbng.UsedResourceCache
 
 		BeforeEach(func() {
-			resource, err := defaultPipeline.CreateResource("some-resource", "{}")
+			resource, err := defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
 			Expect(err).ToNot(HaveOccurred())
 
 			setupTx, err := dbConn.Begin()

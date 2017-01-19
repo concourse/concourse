@@ -6,7 +6,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -36,7 +35,7 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Version{"some": "version"},
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
-			&dbng.Build{ID: 42},
+			42,
 			43,
 			atc.ResourceTypes{},
 			fakeResourceCacheFactory,

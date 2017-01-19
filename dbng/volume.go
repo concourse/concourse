@@ -36,8 +36,6 @@ const (
 	VolumeTypeUknown       = "unknown" // for migration to life
 )
 
-// TODO: do not permit nullifying cache_id while creating or created
-
 //go:generate counterfeiter . CreatingVolume
 
 type CreatingVolume interface {
@@ -370,7 +368,6 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 		QueryRow().
 		Scan(&volumeID)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint on wrt id
 		return nil, err
 	}
 

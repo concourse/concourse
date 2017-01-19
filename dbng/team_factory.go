@@ -35,7 +35,6 @@ func (factory *teamFactory) CreateTeam(name string) (Team, error) {
 
 	var teamID int
 	err = psql.Insert("teams").
-		// TODO: should metadata just be JSON?
 		Columns("name").
 		Values(name).
 		Suffix("RETURNING id").
@@ -43,7 +42,6 @@ func (factory *teamFactory) CreateTeam(name string) (Team, error) {
 		QueryRow().
 		Scan(&teamID)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint
 		return nil, err
 	}
 

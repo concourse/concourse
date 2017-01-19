@@ -100,7 +100,7 @@ var _ = Describe("Logging In", func() {
 					// job build data
 					build, err := pipeline.CreateJobBuild("job-name")
 					Expect(err).NotTo(HaveOccurred())
-					buildPath = fmt.Sprintf("/builds/%d", build.ID)
+					buildPath = fmt.Sprintf("/builds/%d", build.ID())
 				})
 
 				Context("navigating to a team specific page that exists", func() {

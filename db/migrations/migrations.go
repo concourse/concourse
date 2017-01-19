@@ -140,4 +140,5 @@ var Migrations = []migration.Migrator{
 	AddRunningWorkerMustHaveAddrConstraint,
 	AddInterruptibleToJob,
 	AddDiscontinuedToContainers,
+	AddSourceHashToResources,
 }

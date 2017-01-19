@@ -23,20 +23,20 @@ type FakePipeline struct {
 	saveJobReturns struct {
 		result1 error
 	}
-	CreateJobBuildStub        func(jobName string) (*dbng.Build, error)
+	CreateJobBuildStub        func(jobName string) (dbng.Build, error)
 	createJobBuildMutex       sync.RWMutex
 	createJobBuildArgsForCall []struct {
 		jobName string
 	}
 	createJobBuildReturns struct {
-		result1 *dbng.Build
+		result1 dbng.Build
 		result2 error
 	}
-	CreateResourceStub        func(name string, config string) (*dbng.Resource, error)
+	CreateResourceStub        func(name string, config atc.ResourceConfig) (*dbng.Resource, error)
 	createResourceMutex       sync.RWMutex
 	createResourceArgsForCall []struct {
 		name   string
-		config string
+		config atc.ResourceConfig
 	}
 	createResourceReturns struct {
 		result1 *dbng.Resource
@@ -110,7 +110,7 @@ func (fake *FakePipeline) SaveJobReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipeline) CreateJobBuild(jobName string) (*dbng.Build, error) {
+func (fake *FakePipeline) CreateJobBuild(jobName string) (dbng.Build, error) {
 	fake.createJobBuildMutex.Lock()
 	fake.createJobBuildArgsForCall = append(fake.createJobBuildArgsForCall, struct {
 		jobName string
@@ -136,19 +136,19 @@ func (fake *FakePipeline) CreateJobBuildArgsForCall(i int) string {
 	return fake.createJobBuildArgsForCall[i].jobName
 }
 
-func (fake *FakePipeline) CreateJobBuildReturns(result1 *dbng.Build, result2 error) {
+func (fake *FakePipeline) CreateJobBuildReturns(result1 dbng.Build, result2 error) {
 	fake.CreateJobBuildStub = nil
 	fake.createJobBuildReturns = struct {
-		result1 *dbng.Build
+		result1 dbng.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) CreateResource(name string, config string) (*dbng.Resource, error) {
+func (fake *FakePipeline) CreateResource(name string, config atc.ResourceConfig) (*dbng.Resource, error) {
 	fake.createResourceMutex.Lock()
 	fake.createResourceArgsForCall = append(fake.createResourceArgsForCall, struct {
 		name   string
-		config string
+		config atc.ResourceConfig
 	}{name, config})
 	fake.recordInvocation("CreateResource", []interface{}{name, config})
 	fake.createResourceMutex.Unlock()
@@ -165,7 +165,7 @@ func (fake *FakePipeline) CreateResourceCallCount() int {
 	return len(fake.createResourceArgsForCall)
 }
 
-func (fake *FakePipeline) CreateResourceArgsForCall(i int) (string, string) {
+func (fake *FakePipeline) CreateResourceArgsForCall(i int) (string, atc.ResourceConfig) {
 	fake.createResourceMutex.RLock()
 	defer fake.createResourceMutex.RUnlock()
 	return fake.createResourceArgsForCall[i].name, fake.createResourceArgsForCall[i].config

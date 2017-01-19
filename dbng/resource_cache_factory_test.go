@@ -1,7 +1,9 @@
 package dbng_test
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"fmt"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -82,7 +84,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("creates resource cache in database", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 				logger,
-				defaultBuild,
+				defaultBuild.ID(),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -102,15 +104,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 			tx, err := dbConn.Begin()
 			Expect(err).NotTo(HaveOccurred())
 			defer tx.Rollback()
-
-			// var id int
-			// _ = psql.Insert("resource_caches").
-			// 	Columns("resource_config_id").
-			// 	Values(100000).
-			// 	Suffix("RETURNING id").
-			// 	RunWith(tx).
-			// 	QueryRow().
-			// 	Scan(&id)
 
 			rows, err := psql.Select("a.version, a.params_hash, o.source_hash, b.name").
 				From("resource_caches a").
@@ -147,22 +140,26 @@ var _ = Describe("ResourceCacheFactory", func() {
 				})
 			}
 
+			var toHash = func(s string) string {
+				return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
+			}
+
 			Expect(resourceCaches).To(ConsistOf(
 				resourceCache{
 					Version:          `{"some-type-type":"version"}`,
-					ParamsHash:       "null",
+					ParamsHash:       toHash(`{}`),
 					BaseResourceName: "some-base-type",
-					SourceHash:       `{"some-type-type":"source"}`,
+					SourceHash:       toHash(`{"some-type-type":"source"}`),
 				},
 				resourceCache{
 					Version:    `{"some-type":"version"}`,
-					ParamsHash: "null",
-					SourceHash: `{"some-type":"source"}`,
+					ParamsHash: toHash(`{}`),
+					SourceHash: toHash(`{"some-type":"source"}`),
 				},
 				resourceCache{
 					Version:    `{"some":"version"}`,
-					ParamsHash: `{"some":"params"}`,
-					SourceHash: `{"some":"source"}`,
+					ParamsHash: toHash(`{"some":"params"}`),
+					SourceHash: toHash(`{"some":"source"}`),
 				},
 			))
 		})
@@ -170,7 +167,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("returns an error if base resource type does not exist", func() {
 			_, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 				logger,
-				defaultBuild,
+				defaultBuild.ID(),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{

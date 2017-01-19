@@ -12,7 +12,7 @@ import (
 type ResourceConfigFactory interface {
 	FindOrCreateResourceConfigForBuild(
 		logger lager.Logger,
-		build *Build,
+		buildID int,
 		resourceType string,
 		source atc.Source,
 		pipelineID int,
@@ -56,7 +56,7 @@ func NewResourceConfigFactory(conn Conn, lockFactory lock.LockFactory) ResourceC
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 	logger lager.Logger,
-	build *Build,
+	buildID int,
 	resourceType string,
 	source atc.Source,
 	pipelineID int,
@@ -84,7 +84,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 	err = safeFindOrCreate(f.conn, func(tx Tx) error {
 		var err error
 
-		usedResourceConfig, err = resourceConfig.FindOrCreateForBuild(logger, tx, f.lockFactory, build)
+		usedResourceConfig, err = resourceConfig.FindOrCreateForBuild(logger, tx, f.lockFactory, buildID)
 		if err != nil {
 			return err
 		}

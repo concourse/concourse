@@ -29,11 +29,11 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
-	CreateOneOffBuildStub        func() (*dbng.Build, error)
+	CreateOneOffBuildStub        func() (dbng.Build, error)
 	createOneOffBuildMutex       sync.RWMutex
 	createOneOffBuildArgsForCall []struct{}
 	createOneOffBuildReturns     struct {
-		result1 *dbng.Build
+		result1 dbng.Build
 		result2 error
 	}
 	SaveWorkerStub        func(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error)
@@ -100,11 +100,11 @@ type FakeTeam struct {
 		result1 dbng.CreatingContainer
 		result2 error
 	}
-	FindBuildContainerStub        func(*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) (dbng.CreatingContainer, dbng.CreatedContainer, error)
+	FindBuildContainerStub        func(*dbng.Worker, int, atc.PlanID, dbng.ContainerMetadata) (dbng.CreatingContainer, dbng.CreatedContainer, error)
 	findBuildContainerMutex       sync.RWMutex
 	findBuildContainerArgsForCall []struct {
 		arg1 *dbng.Worker
-		arg2 *dbng.Build
+		arg2 int
 		arg3 atc.PlanID
 		arg4 dbng.ContainerMetadata
 	}
@@ -113,11 +113,11 @@ type FakeTeam struct {
 		result2 dbng.CreatedContainer
 		result3 error
 	}
-	CreateBuildContainerStub        func(*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) (dbng.CreatingContainer, error)
+	CreateBuildContainerStub        func(*dbng.Worker, int, atc.PlanID, dbng.ContainerMetadata) (dbng.CreatingContainer, error)
 	createBuildContainerMutex       sync.RWMutex
 	createBuildContainerArgsForCall []struct {
 		arg1 *dbng.Worker
-		arg2 *dbng.Build
+		arg2 int
 		arg3 atc.PlanID
 		arg4 dbng.ContainerMetadata
 	}
@@ -192,7 +192,7 @@ func (fake *FakeTeam) SavePipelineReturns(result1 dbng.Pipeline, result2 bool, r
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) CreateOneOffBuild() (*dbng.Build, error) {
+func (fake *FakeTeam) CreateOneOffBuild() (dbng.Build, error) {
 	fake.createOneOffBuildMutex.Lock()
 	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct{}{})
 	fake.recordInvocation("CreateOneOffBuild", []interface{}{})
@@ -210,10 +210,10 @@ func (fake *FakeTeam) CreateOneOffBuildCallCount() int {
 	return len(fake.createOneOffBuildArgsForCall)
 }
 
-func (fake *FakeTeam) CreateOneOffBuildReturns(result1 *dbng.Build, result2 error) {
+func (fake *FakeTeam) CreateOneOffBuildReturns(result1 dbng.Build, result2 error) {
 	fake.CreateOneOffBuildStub = nil
 	fake.createOneOffBuildReturns = struct {
-		result1 *dbng.Build
+		result1 dbng.Build
 		result2 error
 	}{result1, result2}
 }
@@ -432,11 +432,11 @@ func (fake *FakeTeam) CreateResourceGetContainerReturns(result1 dbng.CreatingCon
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) FindBuildContainer(arg1 *dbng.Worker, arg2 *dbng.Build, arg3 atc.PlanID, arg4 dbng.ContainerMetadata) (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+func (fake *FakeTeam) FindBuildContainer(arg1 *dbng.Worker, arg2 int, arg3 atc.PlanID, arg4 dbng.ContainerMetadata) (dbng.CreatingContainer, dbng.CreatedContainer, error) {
 	fake.findBuildContainerMutex.Lock()
 	fake.findBuildContainerArgsForCall = append(fake.findBuildContainerArgsForCall, struct {
 		arg1 *dbng.Worker
-		arg2 *dbng.Build
+		arg2 int
 		arg3 atc.PlanID
 		arg4 dbng.ContainerMetadata
 	}{arg1, arg2, arg3, arg4})
@@ -455,7 +455,7 @@ func (fake *FakeTeam) FindBuildContainerCallCount() int {
 	return len(fake.findBuildContainerArgsForCall)
 }
 
-func (fake *FakeTeam) FindBuildContainerArgsForCall(i int) (*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) {
+func (fake *FakeTeam) FindBuildContainerArgsForCall(i int) (*dbng.Worker, int, atc.PlanID, dbng.ContainerMetadata) {
 	fake.findBuildContainerMutex.RLock()
 	defer fake.findBuildContainerMutex.RUnlock()
 	return fake.findBuildContainerArgsForCall[i].arg1, fake.findBuildContainerArgsForCall[i].arg2, fake.findBuildContainerArgsForCall[i].arg3, fake.findBuildContainerArgsForCall[i].arg4
@@ -470,11 +470,11 @@ func (fake *FakeTeam) FindBuildContainerReturns(result1 dbng.CreatingContainer, 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) CreateBuildContainer(arg1 *dbng.Worker, arg2 *dbng.Build, arg3 atc.PlanID, arg4 dbng.ContainerMetadata) (dbng.CreatingContainer, error) {
+func (fake *FakeTeam) CreateBuildContainer(arg1 *dbng.Worker, arg2 int, arg3 atc.PlanID, arg4 dbng.ContainerMetadata) (dbng.CreatingContainer, error) {
 	fake.createBuildContainerMutex.Lock()
 	fake.createBuildContainerArgsForCall = append(fake.createBuildContainerArgsForCall, struct {
 		arg1 *dbng.Worker
-		arg2 *dbng.Build
+		arg2 int
 		arg3 atc.PlanID
 		arg4 dbng.ContainerMetadata
 	}{arg1, arg2, arg3, arg4})
@@ -493,7 +493,7 @@ func (fake *FakeTeam) CreateBuildContainerCallCount() int {
 	return len(fake.createBuildContainerArgsForCall)
 }
 
-func (fake *FakeTeam) CreateBuildContainerArgsForCall(i int) (*dbng.Worker, *dbng.Build, atc.PlanID, dbng.ContainerMetadata) {
+func (fake *FakeTeam) CreateBuildContainerArgsForCall(i int) (*dbng.Worker, int, atc.PlanID, dbng.ContainerMetadata) {
 	fake.createBuildContainerMutex.RLock()
 	defer fake.createBuildContainerMutex.RUnlock()
 	return fake.createBuildContainerArgsForCall[i].arg1, fake.createBuildContainerArgsForCall[i].arg2, fake.createBuildContainerArgsForCall[i].arg3, fake.createBuildContainerArgsForCall[i].arg4

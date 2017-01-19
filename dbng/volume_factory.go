@@ -332,7 +332,6 @@ func (factory *volumeFactory) createVolume(
 		QueryRow().
 		Scan(&volumeID)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint on wrt id
 		return nil, err
 	}
 

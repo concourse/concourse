@@ -99,7 +99,7 @@ var _ = Describe("Team", func() {
 			build, err := defaultPipeline.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build, atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
 			Expect(err).NotTo(HaveOccurred())
 
 			createdContainer, err = creatingContainer.Created()
@@ -215,19 +215,19 @@ var _ = Describe("Team", func() {
 
 		Context("when there is a creating container", func() {
 			BeforeEach(func() {
-				_, err := defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				_, err := defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", containerMetadata)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns it", func() {
-				creatingContainer, createdContainer, err := defaultTeam.FindBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				creatingContainer, createdContainer, err := defaultTeam.FindBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", containerMetadata)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdContainer).To(BeNil())
 				Expect(creatingContainer).NotTo(BeNil())
 			})
 
 			It("does not find container for another team", func() {
-				creatingContainer, createdContainer, err := otherTeam.FindBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				creatingContainer, createdContainer, err := otherTeam.FindBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", containerMetadata)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingContainer).To(BeNil())
 				Expect(createdContainer).To(BeNil())
@@ -236,21 +236,21 @@ var _ = Describe("Team", func() {
 
 		Context("when there is a created container", func() {
 			BeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", containerMetadata)
 				Expect(err).NotTo(HaveOccurred())
 				_, err = creatingContainer.Created()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns it", func() {
-				creatingContainer, createdContainer, err := defaultTeam.FindBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				creatingContainer, createdContainer, err := defaultTeam.FindBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", containerMetadata)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdContainer).NotTo(BeNil())
 				Expect(creatingContainer).To(BeNil())
 			})
 
 			It("does not find container for another team", func() {
-				creatingContainer, createdContainer, err := otherTeam.FindBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				creatingContainer, createdContainer, err := otherTeam.FindBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", containerMetadata)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingContainer).To(BeNil())
 				Expect(createdContainer).To(BeNil())
@@ -259,7 +259,7 @@ var _ = Describe("Team", func() {
 
 		Context("when there is no container", func() {
 			It("returns nil", func() {
-				creatingContainer, createdContainer, err := defaultTeam.FindBuildContainer(defaultWorker, defaultBuild, "some-plan", containerMetadata)
+				creatingContainer, createdContainer, err := defaultTeam.FindBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", containerMetadata)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdContainer).To(BeNil())
 				Expect(creatingContainer).To(BeNil())

@@ -203,9 +203,7 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
 				},
-				&dbng.Build{
-					ID: id.BuildID,
-				},
+				id.BuildID,
 				id.PlanID,
 				dbng.ContainerMetadata{
 					Name: metadata.StepName,
@@ -219,9 +217,7 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 					Name:       p.worker.Name(),
 					GardenAddr: p.worker.Address(),
 				},
-				&dbng.Build{
-					ID: id.BuildID,
-				},
+				id.BuildID,
 				id.PlanID,
 				dbng.ContainerMetadata{
 					Name: metadata.StepName,
@@ -360,7 +356,7 @@ func (p *containerProvider) FindOrCreateResourceGetContainer(
 		var err error
 		resourceCache, err = p.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
 			logger,
-			&dbng.Build{ID: id.BuildID},
+			id.BuildID,
 			resourceTypeName,
 			version,
 			source,

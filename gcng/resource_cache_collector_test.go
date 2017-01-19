@@ -43,7 +43,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 			BeforeEach(func() {
 				_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 					logger,
-					defaultBuild,
+					defaultBuild.ID(),
 					"some-base-type",
 					atc.Version{"some": "version"},
 					atc.Source{
@@ -71,12 +71,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 				var resourceCacheUseCollector gcng.Collector
 
 				JustBeforeEach(func() {
-					tx, err := dbConn.Begin()
+					err := defaultBuild.Finish(dbng.BuildStatusSucceeded)
 					Expect(err).NotTo(HaveOccurred())
-					defer tx.Rollback()
-					err = defaultBuild.SaveStatus(tx, dbng.BuildStatusSucceeded)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(tx.Commit()).To(Succeed())
 
 					resourceCacheUseCollector = gcng.NewResourceCacheUseCollector(logger, resourceCacheFactory)
 					err = resourceCacheUseCollector.Run()
@@ -124,7 +120,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 							defer tx.Rollback()
 							_, err = psql.Insert("image_resource_versions").
 								Columns("version", "build_id", "plan_id", "resource_hash").
-								Values(`{"some":"version"}`, defaultBuild.ID, "whatever", "whatever").
+								Values(`{"some":"version"}`, defaultBuild.ID(), "whatever", "whatever").
 								RunWith(tx).Exec()
 							Expect(err).NotTo(HaveOccurred())
 							Expect(tx.Commit()).NotTo(HaveOccurred())
@@ -146,7 +142,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 								_, err = psql.Update("builds").
 									Set("job_id", jobId).
-									Where(sq.Eq{"id": defaultBuild.ID}).
+									Where(sq.Eq{"id": defaultBuild.ID()}).
 									RunWith(tx).Exec()
 								Expect(err).NotTo(HaveOccurred())
 								Expect(tx.Commit()).To(Succeed())
@@ -165,7 +161,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									Expect(err).NotTo(HaveOccurred())
 									_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 										logger,
-										newBuild,
+										newBuild.ID(),
 										"some-base-type",
 										atc.Version{"new": "version"},
 										atc.Source{
@@ -177,21 +173,21 @@ var _ = Describe("ResourceCacheCollector", func() {
 									)
 									Expect(err).NotTo(HaveOccurred())
 
+									err = newBuild.SaveStatus(dbng.BuildStatusSucceeded)
+									Expect(err).NotTo(HaveOccurred())
+
 									tx, err := dbConn.Begin()
 									Expect(err).NotTo(HaveOccurred())
 									defer tx.Rollback()
 
-									err = newBuild.SaveStatus(tx, dbng.BuildStatusSucceeded)
-									Expect(err).NotTo(HaveOccurred())
-
 									_, err = psql.Insert("image_resource_versions").
 										Columns("version", "build_id", "plan_id", "resource_hash").
-										Values(`{"new":"version"}`, newBuild.ID, "whatever", "whatever").
+										Values(`{"new":"version"}`, newBuild.ID(), "whatever", "whatever").
 										RunWith(tx).Exec()
 									Expect(err).NotTo(HaveOccurred())
 									_, err = psql.Update("builds").
 										Set("job_id", jobId).
-										Where(sq.Eq{"id": newBuild.ID}).
+										Where(sq.Eq{"id": newBuild.ID()}).
 										RunWith(tx).Exec()
 									Expect(err).NotTo(HaveOccurred())
 									Expect(tx.Commit()).To(Succeed())

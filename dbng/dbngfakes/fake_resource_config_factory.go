@@ -10,11 +10,11 @@ import (
 )
 
 type FakeResourceConfigFactory struct {
-	FindOrCreateResourceConfigForBuildStub        func(logger lager.Logger, build *dbng.Build, resourceType string, source atc.Source, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceConfig, error)
+	FindOrCreateResourceConfigForBuildStub        func(logger lager.Logger, buildID int, resourceType string, source atc.Source, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceConfig, error)
 	findOrCreateResourceConfigForBuildMutex       sync.RWMutex
 	findOrCreateResourceConfigForBuildArgsForCall []struct {
 		logger        lager.Logger
-		build         *dbng.Build
+		buildID       int
 		resourceType  string
 		source        atc.Source
 		pipelineID    int
@@ -79,20 +79,20 @@ type FakeResourceConfigFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForBuild(logger lager.Logger, build *dbng.Build, resourceType string, source atc.Source, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceConfig, error) {
+func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForBuild(logger lager.Logger, buildID int, resourceType string, source atc.Source, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceConfig, error) {
 	fake.findOrCreateResourceConfigForBuildMutex.Lock()
 	fake.findOrCreateResourceConfigForBuildArgsForCall = append(fake.findOrCreateResourceConfigForBuildArgsForCall, struct {
 		logger        lager.Logger
-		build         *dbng.Build
+		buildID       int
 		resourceType  string
 		source        atc.Source
 		pipelineID    int
 		resourceTypes atc.ResourceTypes
-	}{logger, build, resourceType, source, pipelineID, resourceTypes})
-	fake.recordInvocation("FindOrCreateResourceConfigForBuild", []interface{}{logger, build, resourceType, source, pipelineID, resourceTypes})
+	}{logger, buildID, resourceType, source, pipelineID, resourceTypes})
+	fake.recordInvocation("FindOrCreateResourceConfigForBuild", []interface{}{logger, buildID, resourceType, source, pipelineID, resourceTypes})
 	fake.findOrCreateResourceConfigForBuildMutex.Unlock()
 	if fake.FindOrCreateResourceConfigForBuildStub != nil {
-		return fake.FindOrCreateResourceConfigForBuildStub(logger, build, resourceType, source, pipelineID, resourceTypes)
+		return fake.FindOrCreateResourceConfigForBuildStub(logger, buildID, resourceType, source, pipelineID, resourceTypes)
 	} else {
 		return fake.findOrCreateResourceConfigForBuildReturns.result1, fake.findOrCreateResourceConfigForBuildReturns.result2
 	}
@@ -104,10 +104,10 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForBuildCallCou
 	return len(fake.findOrCreateResourceConfigForBuildArgsForCall)
 }
 
-func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForBuildArgsForCall(i int) (lager.Logger, *dbng.Build, string, atc.Source, int, atc.ResourceTypes) {
+func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForBuildArgsForCall(i int) (lager.Logger, int, string, atc.Source, int, atc.ResourceTypes) {
 	fake.findOrCreateResourceConfigForBuildMutex.RLock()
 	defer fake.findOrCreateResourceConfigForBuildMutex.RUnlock()
-	return fake.findOrCreateResourceConfigForBuildArgsForCall[i].logger, fake.findOrCreateResourceConfigForBuildArgsForCall[i].build, fake.findOrCreateResourceConfigForBuildArgsForCall[i].resourceType, fake.findOrCreateResourceConfigForBuildArgsForCall[i].source, fake.findOrCreateResourceConfigForBuildArgsForCall[i].pipelineID, fake.findOrCreateResourceConfigForBuildArgsForCall[i].resourceTypes
+	return fake.findOrCreateResourceConfigForBuildArgsForCall[i].logger, fake.findOrCreateResourceConfigForBuildArgsForCall[i].buildID, fake.findOrCreateResourceConfigForBuildArgsForCall[i].resourceType, fake.findOrCreateResourceConfigForBuildArgsForCall[i].source, fake.findOrCreateResourceConfigForBuildArgsForCall[i].pipelineID, fake.findOrCreateResourceConfigForBuildArgsForCall[i].resourceTypes
 }
 
 func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForBuildReturns(result1 *dbng.UsedResourceConfig, result2 error) {

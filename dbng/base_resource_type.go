@@ -8,7 +8,7 @@ import (
 	"github.com/lib/pq"
 )
 
-var ErrBaseResourceTypeAlreadyExists = errors.New("base resource type already exists")
+var ErrBaseResourceTypeAlreadyExists = errors.New("base-resource-type-already-exists")
 
 // BaseResourceType represents a resource type provided by workers.
 //

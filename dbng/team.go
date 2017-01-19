@@ -13,7 +13,8 @@ import (
 	uuid "github.com/nu7hatch/gouuid"
 )
 
-var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
+var ErrConfigComparisonFailed = errors.New("comparison-with-existing-config-failed-during-save")
+var ErrTeamDisappeared = errors.New("team-disappeared")
 
 //go:generate counterfeiter . Team
 
@@ -26,7 +27,7 @@ type Team interface {
 		pausedState PipelinePausedState,
 	) (Pipeline, bool, error)
 
-	CreateOneOffBuild() (*Build, error)
+	CreateOneOffBuild() (Build, error)
 
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
 
@@ -38,8 +39,8 @@ type Team interface {
 	FindResourceGetContainer(*Worker, *UsedResourceCache, string) (CreatingContainer, CreatedContainer, error)
 	CreateResourceGetContainer(*Worker, *UsedResourceCache, string) (CreatingContainer, error)
 
-	FindBuildContainer(*Worker, *Build, atc.PlanID, ContainerMetadata) (CreatingContainer, CreatedContainer, error)
-	CreateBuildContainer(*Worker, *Build, atc.PlanID, ContainerMetadata) (CreatingContainer, error)
+	FindBuildContainer(*Worker, int, atc.PlanID, ContainerMetadata) (CreatingContainer, CreatedContainer, error)
+	CreateBuildContainer(*Worker, int, atc.PlanID, ContainerMetadata) (CreatingContainer, error)
 }
 
 type team struct {
@@ -98,7 +99,10 @@ func (t *team) CreateResourceCheckContainer(
 		QueryRow().
 		Scan(&containerID)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+			return nil, ErrResourceConfigDisappeared
+		}
+
 		return nil, err
 	}
 
@@ -167,7 +171,10 @@ func (t *team) CreateResourceGetContainer(
 		QueryRow().
 		Scan(&containerID)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+			return nil, ErrResourceCacheDisappeared
+		}
+
 		return nil, err
 	}
 
@@ -186,13 +193,13 @@ func (t *team) CreateResourceGetContainer(
 
 func (t *team) FindBuildContainer(
 	worker *Worker,
-	build *Build,
+	buildID int,
 	planID atc.PlanID,
 	meta ContainerMetadata,
 ) (CreatingContainer, CreatedContainer, error) {
 	return t.findContainer(map[string]interface{}{
 		"worker_name": worker.Name,
-		"build_id":    build.ID,
+		"build_id":    buildID,
 		"plan_id":     string(planID),
 		"type":        meta.Type,
 		"step_name":   meta.Name,
@@ -201,7 +208,7 @@ func (t *team) FindBuildContainer(
 
 func (t *team) CreateBuildContainer(
 	worker *Worker,
-	build *Build,
+	buildID int,
 	planID atc.PlanID,
 	meta ContainerMetadata,
 ) (CreatingContainer, error) {
@@ -219,7 +226,6 @@ func (t *team) CreateBuildContainer(
 
 	var containerID int
 	err = psql.Insert("containers").
-		// TODO: should metadata just be JSON?
 		Columns(
 			"worker_name",
 			"build_id",
@@ -231,7 +237,7 @@ func (t *team) CreateBuildContainer(
 		).
 		Values(
 			worker.Name,
-			build.ID,
+			buildID,
 			string(planID),
 			meta.Type,
 			meta.Name,
@@ -243,7 +249,9 @@ func (t *team) CreateBuildContainer(
 		QueryRow().
 		Scan(&containerID)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+			return nil, ErrBuildDisappeared
+		}
 		return nil, err
 	}
 
@@ -468,7 +476,7 @@ func (t *team) SavePipeline(
 	return savedPipeline, created, nil
 }
 
-func (t *team) CreateOneOffBuild() (*Build, error) {
+func (t *team) CreateOneOffBuild() (Build, error) {
 	tx, err := t.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -485,7 +493,9 @@ func (t *team) CreateOneOffBuild() (*Build, error) {
 		QueryRow().
 		Scan(&buildID)
 	if err != nil {
-		// TODO: explicitly handle fkey constraint
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+			return nil, ErrTeamDisappeared
+		}
 		return nil, err
 	}
 
@@ -499,9 +509,10 @@ func (t *team) CreateOneOffBuild() (*Build, error) {
 		return nil, err
 	}
 
-	return &Build{
-		ID:     buildID,
+	return &build{
+		id:     buildID,
 		teamID: t.id,
+		conn:   t.conn,
 	}, nil
 }
 
@@ -575,11 +586,13 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 		return err
 	}
 
+	sourceHash := mapHash(resource.Source)
+
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resources
-		SET config = $3, active = true
+		SET config = $3, source_hash=$4, active = true
 		WHERE name = $1 AND pipeline_id = $2
-	`, resource.Name, pipelineID, configPayload)
+	`, resource.Name, pipelineID, configPayload, sourceHash)
 	if err != nil {
 		return err
 	}
@@ -589,9 +602,9 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO resources (name, pipeline_id, config, active)
-		VALUES ($1, $2, $3, true)
-	`, resource.Name, pipelineID, configPayload)
+		INSERT INTO resources (name, pipeline_id, config, source_hash, active)
+		VALUES ($1, $2, $3, $4, true)
+	`, resource.Name, pipelineID, configPayload, sourceHash)
 
 	return swallowUniqueViolation(err)
 }

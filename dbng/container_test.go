@@ -14,7 +14,7 @@ var _ = Describe("Container", func() {
 	)
 
 	BeforeEach(func() {
-		creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild, "some-plan", dbng.ContainerMetadata{
+		creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", dbng.ContainerMetadata{
 			Type: "task",
 			Name: "some-task",
 		})

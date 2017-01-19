@@ -49,7 +49,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				return result
 			}
 
-			finishBuild := func(build *dbng.Build, status string) {
+			finishBuild := func(build dbng.Build, status string) {
 				tx, err := dbConn.Begin()
 				Expect(err).NotTo(HaveOccurred())
 				defer tx.Rollback()
@@ -61,7 +61,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						"end_time":  sq.Expr("NOW()"),
 						"completed": true,
 					}).Where(sq.Eq{
-					"id": build.ID,
+					"id": build.ID(),
 				}).Suffix("RETURNING end_time").
 					RunWith(tx).
 					QueryRow().Scan(&result)
@@ -92,7 +92,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 						logger,
-						defaultBuild,
+						defaultBuild.ID(),
 						"some-type",
 						atc.Version{"some": "version"},
 						atc.Source{
@@ -201,14 +201,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 				Context("if build is using image resource", func() {
 					BeforeEach(func() {
-						tx, err := dbConn.Begin()
+						err := defaultBuild.SaveImageResourceVersion(atc.PlanID("123"), atc.Version{"ref": "abc"}, "some-resource-hash")
 						Expect(err).NotTo(HaveOccurred())
-						defer tx.Rollback()
-
-						err = defaultBuild.SaveImageResourceVersion(tx, atc.PlanID("123"), atc.Version{"ref": "abc"}, "some-resource-hash")
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(tx.Commit()).NotTo(HaveOccurred())
 					})
 
 					It("deletes the use for old build image resource", func() {
@@ -222,7 +216,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 			Context("for pipeline builds", func() {
 				Context("if job build is using image resource", func() {
-					var firstBuild *dbng.Build
+					var firstBuild dbng.Build
 
 					BeforeEach(func() {
 						err = defaultPipeline.SaveJob(atc.JobConfig{
@@ -233,19 +227,13 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						firstBuild, err = defaultPipeline.CreateJobBuild("some-job")
 						Expect(err).NotTo(HaveOccurred())
 
-						tx, err := dbConn.Begin()
-						Expect(err).NotTo(HaveOccurred())
-						defer tx.Rollback()
-
 						imageVersion := atc.Version{"ref": "abc"}
-						err = firstBuild.SaveImageResourceVersion(tx, atc.PlanID("123"), imageVersion, "some-resource-hash")
+						err = firstBuild.SaveImageResourceVersion(atc.PlanID("123"), imageVersion, "some-resource-hash")
 						Expect(err).NotTo(HaveOccurred())
-
-						Expect(tx.Commit()).NotTo(HaveOccurred())
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 							logger,
-							firstBuild,
+							firstBuild.ID(),
 							"some-base-type",
 							imageVersion,
 							atc.Source{
@@ -270,20 +258,15 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						secondBuild, err := defaultPipeline.CreateJobBuild("some-job")
 						Expect(err).NotTo(HaveOccurred())
 
-						tx, err := dbConn.Begin()
-						Expect(err).NotTo(HaveOccurred())
-						defer tx.Rollback()
 						imageVersion2 := atc.Version{"ref": "abc2"}
-						err = secondBuild.SaveImageResourceVersion(tx, atc.PlanID("123"), imageVersion2, "some-resource-hash")
+						err = secondBuild.SaveImageResourceVersion(atc.PlanID("123"), imageVersion2, "some-resource-hash")
 						Expect(err).NotTo(HaveOccurred())
-
-						Expect(tx.Commit()).NotTo(HaveOccurred())
 
 						finishBuild(secondBuild, "succeeded")
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 							logger,
-							secondBuild,
+							secondBuild.ID(),
 							"some-base-type",
 							imageVersion2,
 							atc.Source{
@@ -301,7 +284,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						Expect(countResourceCacheUses()).To(Equal(1))
 
-						tx, err = dbConn.Begin()
+						tx, err := dbConn.Begin()
 						Expect(err).NotTo(HaveOccurred())
 						defer tx.Rollback()
 
@@ -313,7 +296,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							Scan(&buildID)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(buildID).To(Equal(secondBuild.ID))
+						Expect(buildID).To(Equal(secondBuild.ID()))
 					})
 				})
 			})

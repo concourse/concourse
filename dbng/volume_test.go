@@ -91,7 +91,7 @@ var _ = Describe("Volume", func() {
 
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 				logger,
-				defaultBuild,
+				defaultBuild.ID(),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -185,7 +185,7 @@ var _ = Describe("Volume", func() {
 
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
 				logger,
-				defaultBuild,
+				defaultBuild.ID(),
 				"some-custom-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
@@ -257,13 +257,13 @@ var _ = Describe("Volume", func() {
 		})
 	})
 
-	Describe("createdVolume.CreateChildForContainer", func() { // TODO TESTME when cow is a thing
+	Describe("createdVolume.CreateChildForContainer", func() {
 		var parentVolume dbng.CreatedVolume
 		var creatingContainer dbng.CreatingContainer
 
 		BeforeEach(func() {
 			var err error
-			creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild, "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -285,7 +285,7 @@ var _ = Describe("Volume", func() {
 					CreatedByBaseResourceType: &baseResourceType,
 				},
 			}
-			usedResourceCache, err := resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, defaultBuild)
+			usedResourceCache, err := resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, defaultBuild.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
