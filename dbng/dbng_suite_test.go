@@ -79,14 +79,13 @@ var _ = BeforeEach(func() {
 
 	volumeFactory = dbng.NewVolumeFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)
-	teamFactory = dbng.NewTeamFactory(dbConn)
-	workerFactory = dbng.NewWorkerFactory(dbConn)
 	lockFactory = lock.NewLockFactory(retryableConn)
+	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
+	workerFactory = dbng.NewWorkerFactory(dbConn)
 	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceTypeFactory = dbng.NewResourceTypeFactory(dbConn)
 	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
-	teamFactory = dbng.NewTeamFactory(dbConn)
 
 	defaultTeam, err = teamFactory.CreateTeam("default-team")
 	Expect(err).NotTo(HaveOccurred())

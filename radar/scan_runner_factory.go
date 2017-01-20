@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/tedsuo/ifrit"
 
@@ -34,6 +35,7 @@ func NewScanRunnerFactory(
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
 	db RadarDB,
+	dbPipeline dbng.Pipeline,
 	clock clock.Clock,
 	externalURL string,
 ) ScanRunnerFactory {
@@ -42,6 +44,7 @@ func NewScanRunnerFactory(
 		resourceFactory,
 		defaultInterval,
 		db,
+		dbPipeline,
 		externalURL,
 	)
 	resourceTypeScanner := NewResourceTypeScanner(

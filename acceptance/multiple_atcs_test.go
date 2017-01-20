@@ -6,38 +6,18 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"time"
-
-	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
 )
 
 var _ = Describe("Multiple ATCs", func() {
 	var atcOneCommand *ATCCommand
 	var atcTwoCommand *ATCCommand
 
-	var dbListener *pq.Listener
-
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-		dbConn = db.Wrap(postgresRunner.Open())
-		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		bus := db.NewNotificationsBus(dbListener, dbConn)
-
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(lockfakes.FakeConnector)
-		retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := lock.NewLockFactory(retryableConn)
-		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
-
 		atcOneCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
 		err := atcOneCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
@@ -50,9 +30,6 @@ var _ = Describe("Multiple ATCs", func() {
 	AfterEach(func() {
 		atcOneCommand.Stop()
 		atcTwoCommand.Stop()
-
-		Expect(dbConn.Close()).To(Succeed())
-		Expect(dbListener.Close()).To(Succeed())
 	})
 
 	Describe("Pipes", func() {

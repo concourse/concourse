@@ -2,13 +2,14 @@ package resourceserver
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/radar"
 )
 
 //go:generate counterfeiter . ScannerFactory
 
 type ScannerFactory interface {
-	NewResourceScanner(db radar.RadarDB) radar.Scanner
+	NewResourceScanner(db radar.RadarDB, pipeline dbng.Pipeline) radar.Scanner
 }
 
 type Server struct {

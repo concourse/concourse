@@ -6,9 +6,10 @@ import (
 
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) GetJob(pipelineDB db.PipelineDB) http.Handler {
+func (s *Server) GetJob(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("get-job")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")

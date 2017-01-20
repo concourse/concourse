@@ -6,15 +6,17 @@ import (
 
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/scheduler"
 )
 
 type FakeSchedulerFactory struct {
-	BuildSchedulerStub        func(db.PipelineDB, string) scheduler.BuildScheduler
+	BuildSchedulerStub        func(db.PipelineDB, dbng.Pipeline, string) scheduler.BuildScheduler
 	buildSchedulerMutex       sync.RWMutex
 	buildSchedulerArgsForCall []struct {
 		arg1 db.PipelineDB
-		arg2 string
+		arg2 dbng.Pipeline
+		arg3 string
 	}
 	buildSchedulerReturns struct {
 		result1 scheduler.BuildScheduler
@@ -23,16 +25,17 @@ type FakeSchedulerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.PipelineDB, arg2 string) scheduler.BuildScheduler {
+func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.PipelineDB, arg2 dbng.Pipeline, arg3 string) scheduler.BuildScheduler {
 	fake.buildSchedulerMutex.Lock()
 	fake.buildSchedulerArgsForCall = append(fake.buildSchedulerArgsForCall, struct {
 		arg1 db.PipelineDB
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("BuildScheduler", []interface{}{arg1, arg2})
+		arg2 dbng.Pipeline
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("BuildScheduler", []interface{}{arg1, arg2, arg3})
 	fake.buildSchedulerMutex.Unlock()
 	if fake.BuildSchedulerStub != nil {
-		return fake.BuildSchedulerStub(arg1, arg2)
+		return fake.BuildSchedulerStub(arg1, arg2, arg3)
 	} else {
 		return fake.buildSchedulerReturns.result1
 	}
@@ -44,10 +47,10 @@ func (fake *FakeSchedulerFactory) BuildSchedulerCallCount() int {
 	return len(fake.buildSchedulerArgsForCall)
 }
 
-func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.PipelineDB, string) {
+func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.PipelineDB, dbng.Pipeline, string) {
 	fake.buildSchedulerMutex.RLock()
 	defer fake.buildSchedulerMutex.RUnlock()
-	return fake.buildSchedulerArgsForCall[i].arg1, fake.buildSchedulerArgsForCall[i].arg2
+	return fake.buildSchedulerArgsForCall[i].arg1, fake.buildSchedulerArgsForCall[i].arg2, fake.buildSchedulerArgsForCall[i].arg3
 }
 
 func (fake *FakeSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {

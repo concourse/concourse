@@ -4,9 +4,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
+
+	"code.cloudfoundry.org/lager"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . Pipeline
@@ -16,14 +20,16 @@ type Pipeline interface {
 	SaveJob(job atc.JobConfig) error
 	CreateJobBuild(jobName string) (Build, error)
 	CreateResource(name string, config atc.ResourceConfig) (*Resource, error)
+	AcquireResourceCheckingLock(logger lager.Logger, resource *Resource, length time.Duration, immediate bool) (lock.Lock, bool, error)
 	Destroy() error
 }
 
 type pipeline struct {
 	id     int
-	TeamID int
+	teamID int
 
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
 //ConfigVersion is a sequence identifier used for compare-and-swap
@@ -73,7 +79,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	var buildID int
 	err = psql.Insert("builds").
 		Columns("name", "job_id", "team_id", "status", "manually_triggered").
-		Values(buildName, jobID, p.TeamID, "pending", true).
+		Values(buildName, jobID, p.teamID, "pending", true).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -95,7 +101,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	return &build{
 		id:         buildID,
 		pipelineID: p.id,
-		teamID:     p.TeamID,
+		teamID:     p.teamID,
 		conn:       p.conn,
 	}, nil
 }
@@ -131,7 +137,8 @@ func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (*Reso
 	}
 
 	return &Resource{
-		ID: resourceID,
+		ID:   resourceID,
+		Name: name,
 	}, nil
 }
 
@@ -199,33 +206,4 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 		RETURNING build_number_seq, id
 	`, jobName, pipelineID).Scan(&buildName, &jobID)
 	return buildName, jobID, err
-}
-
-func scanPipeline(rows scannable, conn Conn) (*pipeline, error) {
-	var id int
-	var name string
-	var configBlob []byte
-	var version int
-	var paused bool
-	var public bool
-	var teamID int
-	var teamName string
-
-	err := rows.Scan(&id, &name, &configBlob, &version, &paused, &teamID, &public, &teamName)
-	if err != nil {
-		return nil, err
-	}
-
-	var config atc.Config
-	err = json.Unmarshal(configBlob, &config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pipeline{
-		id:     id,
-		TeamID: teamID,
-
-		conn: conn,
-	}, nil
 }

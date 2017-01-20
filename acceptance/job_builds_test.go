@@ -17,10 +17,7 @@ var _ = Describe("Job Builds", func() {
 	var defaultTeam dbng.Team
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-		dbngConn = dbng.Wrap(postgresRunner.Open())
-
-		teamFactory := dbng.NewTeamFactory(dbngConn)
+		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 		var err error
 		var found bool
 		defaultTeam, found, err = teamFactory.FindTeam(atc.DefaultTeamName)
@@ -34,8 +31,6 @@ var _ = Describe("Job Builds", func() {
 
 	AfterEach(func() {
 		atcCommand.Stop()
-
-		Expect(dbngConn.Close()).To(Succeed())
 	})
 
 	Describe("viewing a jobs builds", func() {

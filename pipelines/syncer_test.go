@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/pipelines/pipelinesfakes"
 	. "github.com/onsi/ginkgo"
@@ -34,13 +36,17 @@ var _ = Describe("Pipelines Syncer", func() {
 	BeforeEach(func() {
 		syncherDB = new(pipelinesfakes.FakeSyncherDB)
 		pipelineDB = new(dbfakes.FakePipelineDB)
+		otherPipelineDB = new(dbfakes.FakePipelineDB)
+		pipelineDB.PipelineReturns(db.SavedPipeline{ID: 42})
+		otherPipelineDB.PipelineReturns(db.SavedPipeline{ID: 43})
 
 		pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
+		dbPipelineFactory := new(dbngfakes.FakePipelineFactory)
 
 		fakeRunner = new(fake_runner.FakeRunner)
 		otherFakeRunner = new(fake_runner.FakeRunner)
 
-		pipelineRunnerFactory = func(pipelineDBArg db.PipelineDB) ifrit.Runner {
+		pipelineRunnerFactory = func(pipelineDBArg db.PipelineDB, _ dbng.Pipeline) ifrit.Runner {
 			switch pipelineDBArg {
 			case pipelineDB:
 				return fakeRunner
@@ -91,9 +97,9 @@ var _ = Describe("Pipelines Syncer", func() {
 
 		syncer = NewSyncer(
 			lagertest.NewTestLogger("test"),
-
 			syncherDB,
 			pipelineDBFactory,
+			dbPipelineFactory,
 			pipelineRunnerFactory,
 		)
 	})

@@ -5,10 +5,11 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) UnpauseResource(pipelineDB db.PipelineDB) http.Handler {
+func (s *Server) UnpauseResource(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := rata.Param(r, "resource_name")
 

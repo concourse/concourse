@@ -19,10 +19,8 @@ var _ = Describe("VolumeCollector", func() {
 	var (
 		volumeCollector gcng.Collector
 
-		dbConn                 dbng.Conn
 		volumeFactory          dbng.VolumeFactory
 		containerFactory       dbng.ContainerFactory
-		teamFactory            dbng.TeamFactory
 		workerFactory          dbng.WorkerFactory
 		fakeBCVolume           *baggageclaimfakes.FakeVolume
 		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
@@ -36,10 +34,8 @@ var _ = Describe("VolumeCollector", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = dbng.Wrap(postgresRunner.Open())
 		containerFactory = dbng.NewContainerFactory(dbConn)
 		volumeFactory = dbng.NewVolumeFactory(dbConn)
-		teamFactory = dbng.NewTeamFactory(dbConn)
 		workerFactory = dbng.NewWorkerFactory(dbConn)
 
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)

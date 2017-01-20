@@ -1379,7 +1379,7 @@ var _ = Describe("Jobs API", func() {
 						})
 
 						It("created the scheduler with the correct pipelineDB and external URL", func() {
-							actualPipelineDB, actualExternalURL := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
+							actualPipelineDB, _, actualExternalURL := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
 							Expect(actualPipelineDB).To(Equal(pipelineDB))
 							Expect(actualExternalURL).To(Equal(externalURL))
 						})

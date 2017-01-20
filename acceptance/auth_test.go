@@ -20,10 +20,7 @@ var _ = Describe("Auth", func() {
 	var atcCommand *ATCCommand
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-		dbngConn = dbng.Wrap(postgresRunner.Open())
-
-		teamFactory := dbng.NewTeamFactory(dbngConn)
+		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue()) // created by postgresRunner
@@ -34,8 +31,6 @@ var _ = Describe("Auth", func() {
 
 	AfterEach(func() {
 		atcCommand.Stop()
-
-		Expect(dbngConn.Close()).To(Succeed())
 	})
 
 	Describe("GitHub Auth", func() {

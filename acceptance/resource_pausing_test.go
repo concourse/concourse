@@ -2,9 +2,7 @@ package acceptance_test
 
 import (
 	"errors"
-	"time"
 
-	"github.com/lib/pq"
 	"github.com/sclevine/agouti"
 
 	. "github.com/onsi/ginkgo"
@@ -14,23 +12,15 @@ import (
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 )
 
 var _ = Describe("Resource Pausing", func() {
 	var atcCommand *ATCCommand
-	var dbListener *pq.Listener
 	var pipelineDB db.PipelineDB
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-		dbConn = db.Wrap(postgresRunner.Open())
-		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		dbngConn = dbng.Wrap(postgresRunner.Open())
-
-		teamFactory := dbng.NewTeamFactory(dbngConn)
+		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue()) // created by postgresRunner
@@ -56,32 +46,17 @@ var _ = Describe("Resource Pausing", func() {
 		err = atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		bus := db.NewNotificationsBus(dbListener, dbConn)
-
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(lockfakes.FakeConnector)
-		retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := lock.NewLockFactory(retryableConn)
-		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
-		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		savedPipeline, found, err := teamDB.GetPipelineByName("some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
 	AfterEach(func() {
 		atcCommand.Stop()
-
-		Expect(dbngConn.Close()).To(Succeed())
-
-		Expect(dbConn.Close()).To(Succeed())
-		Expect(dbListener.Close()).To(Succeed())
 	})
 
 	Describe("pausing a resource", func() {

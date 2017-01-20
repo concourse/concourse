@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -18,6 +19,7 @@ type resourceScanner struct {
 	resourceFactory resource.ResourceFactory
 	defaultInterval time.Duration
 	db              RadarDB
+	dbPipeline      dbng.Pipeline
 	externalURL     string
 }
 
@@ -26,6 +28,7 @@ func NewResourceScanner(
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
 	db RadarDB,
+	dbPipeline dbng.Pipeline,
 	externalURL string,
 ) Scanner {
 	return &resourceScanner{
@@ -33,6 +36,7 @@ func NewResourceScanner(
 		resourceFactory: resourceFactory,
 		defaultInterval: defaultInterval,
 		db:              db,
+		dbPipeline:      dbPipeline,
 		externalURL:     externalURL,
 	}
 }
@@ -63,7 +67,12 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		"resource": resourceName,
 	})
 
-	lock, acquired, err := scanner.db.AcquireResourceCheckingLock(logger, savedResource, interval, false)
+	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
+		logger,
+		&dbng.Resource{ID: savedResource.ID, Name: savedResource.Name},
+		interval,
+		false,
+	)
 
 	if err != nil {
 		lockLogger.Error("failed-to-get-lock", err, lager.Data{
@@ -123,7 +132,12 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 	}
 
 	for {
-		lock, acquired, err := scanner.db.AcquireResourceCheckingLock(logger, savedResource, interval, true)
+		lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
+			logger,
+			&dbng.Resource{ID: savedResource.ID, Name: savedResource.Name},
+			interval,
+			true,
+		)
 		if err != nil {
 			lockLogger.Error("failed-to-get-lock", err, lager.Data{
 				"resource": resourceName,

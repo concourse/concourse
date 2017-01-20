@@ -9,6 +9,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 	uuid "github.com/nu7hatch/gouuid"
 )
@@ -27,6 +28,8 @@ type Team interface {
 		pausedState PipelinePausedState,
 	) (Pipeline, bool, error)
 
+	FindPipelineByName(pipelineName string) (Pipeline, bool, error)
+
 	CreateOneOffBuild() (Build, error)
 
 	SaveWorker(worker atc.Worker, ttl time.Duration) (*Worker, error)
@@ -44,8 +47,9 @@ type Team interface {
 }
 
 type team struct {
-	id   int
-	conn Conn
+	id          int
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
 func (t *team) ID() int { return t.id }
@@ -323,7 +327,7 @@ func (t *team) SavePipeline(
 			pausedState = PipelinePaused
 		}
 
-		savedPipeline, err = scanPipeline(tx.QueryRow(`
+		savedPipeline, err = t.scanPipeline(tx.QueryRow(`
 		INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
 		VALUES (
 			$1,
@@ -337,7 +341,7 @@ func (t *team) SavePipeline(
 		(
 			SELECT t.name as team_name FROM teams t WHERE t.id = $4
 		)
-		`, pipelineName, payload, pausedState.Bool(), t.id), t.conn)
+		`, pipelineName, payload, pausedState.Bool(), t.id))
 		if err != nil {
 			return nil, false, err
 		}
@@ -367,7 +371,7 @@ func (t *team) SavePipeline(
 		}
 	} else {
 		if pausedState == PipelineNoChange {
-			savedPipeline, err = scanPipeline(tx.QueryRow(`
+			savedPipeline, err = t.scanPipeline(tx.QueryRow(`
 			UPDATE pipelines
 			SET config = $1, version = nextval('config_version_seq')
 			WHERE name = $2
@@ -377,9 +381,9 @@ func (t *team) SavePipeline(
 			(
 				SELECT t.name as team_name FROM teams t WHERE t.id = $4
 			)
-			`, payload, pipelineName, from, t.id), t.conn)
+			`, payload, pipelineName, from, t.id))
 		} else {
-			savedPipeline, err = scanPipeline(tx.QueryRow(`
+			savedPipeline, err = t.scanPipeline(tx.QueryRow(`
 			UPDATE pipelines
 			SET config = $1, version = nextval('config_version_seq'), paused = $2
 			WHERE name = $3
@@ -389,7 +393,7 @@ func (t *team) SavePipeline(
 			(
 				SELECT t.name as team_name FROM teams t WHERE t.id = $4
 			)
-			`, payload, pausedState.Bool(), pipelineName, from, t.id), t.conn)
+			`, payload, pausedState.Bool(), pipelineName, from, t.id))
 		}
 
 		if err != nil && err != sql.ErrNoRows {
@@ -474,6 +478,38 @@ func (t *team) SavePipeline(
 	}
 
 	return savedPipeline, created, nil
+}
+
+func (t *team) FindPipelineByName(pipelineName string) (Pipeline, bool, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	var pipelineID int
+	err = psql.Select("p.id").
+		From("pipelines p").
+		Join("teams t ON t.id = p.team_id").
+		Where(sq.Eq{"p.name": pipelineName}).
+		Where(sq.Eq{"team_id": t.id}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&pipelineID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return &pipeline{
+		id:          pipelineID,
+		teamID:      t.id,
+		conn:        t.conn,
+		lockFactory: t.lockFactory,
+	}, true, nil
 }
 
 func (t *team) CreateOneOffBuild() (Build, error) {
@@ -724,4 +760,34 @@ func (t *team) findContainer(columns map[string]interface{}) (CreatingContainer,
 	}
 
 	return nil, nil, nil
+}
+
+func (t *team) scanPipeline(rows scannable) (*pipeline, error) {
+	var id int
+	var name string
+	var configBlob []byte
+	var version int
+	var paused bool
+	var public bool
+	var teamID int
+	var teamName string
+
+	err := rows.Scan(&id, &name, &configBlob, &version, &paused, &teamID, &public, &teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	var config atc.Config
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pipeline{
+		id:     id,
+		teamID: teamID,
+
+		conn:        t.conn,
+		lockFactory: t.lockFactory,
+	}, nil
 }

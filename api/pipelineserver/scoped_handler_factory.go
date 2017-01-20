@@ -5,24 +5,28 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 type ScopedHandlerFactory struct {
 	pipelineDBFactory db.PipelineDBFactory
 	teamDBFactory     db.TeamDBFactory
+	pipelineFactory   dbng.PipelineFactory
 }
 
 func NewScopedHandlerFactory(
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
+	pipelineFactory dbng.PipelineFactory,
 ) *ScopedHandlerFactory {
 	return &ScopedHandlerFactory{
 		pipelineDBFactory: pipelineDBFactory,
 		teamDBFactory:     teamDBFactory,
+		pipelineFactory:   pipelineFactory,
 	}
 }
 
-func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB) http.Handler) http.HandlerFunc {
+func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB, dbng.Pipeline) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pipelineDB, ok := r.Context().Value(auth.PipelineDBKey).(db.PipelineDB)
 		if !ok {
@@ -44,6 +48,8 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipel
 			pipelineDB = pdbh.pipelineDBFactory.Build(savedPipeline)
 		}
 
-		pipelineScopedHandler(pipelineDB).ServeHTTP(w, r)
+		dbPipeline := pdbh.pipelineFactory.GetPipelineByID(pipelineDB.TeamID(), pipelineDB.Pipeline().ID)
+
+		pipelineScopedHandler(pipelineDB, dbPipeline).ServeHTTP(w, r)
 	}
 }

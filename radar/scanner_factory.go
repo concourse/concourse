@@ -4,11 +4,12 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 )
 
 type ScannerFactory interface {
-	NewResourceScanner(db RadarDB) Scanner
+	NewResourceScanner(db RadarDB, dbPipeline dbng.Pipeline) Scanner
 }
 
 type scannerFactory struct {
@@ -29,6 +30,6 @@ func NewScannerFactory(
 	}
 }
 
-func (f *scannerFactory) NewResourceScanner(db RadarDB) Scanner {
-	return NewResourceScanner(clock.NewClock(), f.resourceFactory, f.defaultInterval, db, f.externalURL)
+func (f *scannerFactory) NewResourceScanner(db RadarDB, dbPipeline dbng.Pipeline) Scanner {
+	return NewResourceScanner(clock.NewClock(), f.resourceFactory, f.defaultInterval, db, dbPipeline, f.externalURL)
 }

@@ -7,9 +7,10 @@ import (
 
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) CreateJobBuild(pipelineDB db.PipelineDB) http.Handler {
+func (s *Server) CreateJobBuild(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("create-job-build")
 
@@ -28,7 +29,7 @@ func (s *Server) CreateJobBuild(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		scheduler := s.schedulerFactory.BuildScheduler(pipelineDB, s.externalURL)
+		scheduler := s.schedulerFactory.BuildScheduler(pipelineDB, dbPipeline, s.externalURL)
 
 		build, _, err := scheduler.TriggerImmediately(logger, job, config.Resources, config.ResourceTypes)
 		if err != nil {

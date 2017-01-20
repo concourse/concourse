@@ -5,14 +5,16 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/api/resourceserver"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/radar"
 )
 
 type FakeScannerFactory struct {
-	NewResourceScannerStub        func(db radar.RadarDB) radar.Scanner
+	NewResourceScannerStub        func(db radar.RadarDB, pipeline dbng.Pipeline) radar.Scanner
 	newResourceScannerMutex       sync.RWMutex
 	newResourceScannerArgsForCall []struct {
-		db radar.RadarDB
+		db       radar.RadarDB
+		pipeline dbng.Pipeline
 	}
 	newResourceScannerReturns struct {
 		result1 radar.Scanner
@@ -21,15 +23,16 @@ type FakeScannerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeScannerFactory) NewResourceScanner(db radar.RadarDB) radar.Scanner {
+func (fake *FakeScannerFactory) NewResourceScanner(db radar.RadarDB, pipeline dbng.Pipeline) radar.Scanner {
 	fake.newResourceScannerMutex.Lock()
 	fake.newResourceScannerArgsForCall = append(fake.newResourceScannerArgsForCall, struct {
-		db radar.RadarDB
-	}{db})
-	fake.recordInvocation("NewResourceScanner", []interface{}{db})
+		db       radar.RadarDB
+		pipeline dbng.Pipeline
+	}{db, pipeline})
+	fake.recordInvocation("NewResourceScanner", []interface{}{db, pipeline})
 	fake.newResourceScannerMutex.Unlock()
 	if fake.NewResourceScannerStub != nil {
-		return fake.NewResourceScannerStub(db)
+		return fake.NewResourceScannerStub(db, pipeline)
 	} else {
 		return fake.newResourceScannerReturns.result1
 	}
@@ -41,10 +44,10 @@ func (fake *FakeScannerFactory) NewResourceScannerCallCount() int {
 	return len(fake.newResourceScannerArgsForCall)
 }
 
-func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) radar.RadarDB {
+func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) (radar.RadarDB, dbng.Pipeline) {
 	fake.newResourceScannerMutex.RLock()
 	defer fake.newResourceScannerMutex.RUnlock()
-	return fake.newResourceScannerArgsForCall[i].db
+	return fake.newResourceScannerArgsForCall[i].db, fake.newResourceScannerArgsForCall[i].pipeline
 }
 
 func (fake *FakeScannerFactory) NewResourceScannerReturns(result1 radar.Scanner) {

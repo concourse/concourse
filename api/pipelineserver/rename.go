@@ -6,9 +6,10 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) RenamePipeline(pipelineDB db.PipelineDB) http.Handler {
+func (s *Server) RenamePipeline(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {

@@ -11,6 +11,8 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker"
 
 	. "github.com/concourse/atc/radar"
@@ -27,6 +29,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeResourceFactory *rfakes.FakeResourceFactory
 		fakeRadarDB         *radarfakes.FakeRadarDB
+		fakeDBPipeline      *dbngfakes.FakePipeline
 		fakeClock           *fakeclock.FakeClock
 		interval            time.Duration
 
@@ -43,6 +46,7 @@ var _ = Describe("ResourceScanner", func() {
 		epoch = time.Unix(123, 456).UTC()
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
+		fakeDBPipeline = new(dbngfakes.FakePipeline)
 		fakeClock = fakeclock.NewFakeClock(epoch)
 		interval = 1 * time.Minute
 
@@ -52,6 +56,7 @@ var _ = Describe("ResourceScanner", func() {
 			fakeResourceFactory,
 			interval,
 			fakeRadarDB,
+			fakeDBPipeline,
 			"https://www.example.com",
 		)
 
@@ -112,7 +117,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("when the lock cannot be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.AcquireResourceCheckingLockReturns(nil, false, nil)
+				fakeDBPipeline.AcquireResourceCheckingLockReturns(nil, false, nil)
 			})
 
 			It("does not check", func() {
@@ -127,7 +132,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("when the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeDBPipeline.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
 			})
 
 			It("checks immediately", func() {
@@ -178,9 +183,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("leases for the configured interval", func() {
-					Expect(fakeRadarDB.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 
-					_, resource, leaseInterval, immediate := fakeRadarDB.AcquireResourceCheckingLockArgsForCall(0)
+					_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeFalse())
@@ -213,9 +218,9 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
-				Expect(fakeRadarDB.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+				Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 
-				_, resource, leaseInterval, immediate := fakeRadarDB.AcquireResourceCheckingLockArgsForCall(0)
+				_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 				Expect(resource.Name).To(Equal("some-resource"))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())
@@ -436,7 +441,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("if the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeDBPipeline.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
 			})
 
 			It("succeeds", func() {
@@ -474,9 +479,9 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
-				Expect(fakeRadarDB.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+				Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 
-				_, resource, leaseInterval, immediate := fakeRadarDB.AcquireResourceCheckingLockArgsForCall(0)
+				_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 				Expect(resource.Name).To(Equal("some-resource"))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeTrue())
@@ -491,9 +496,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("leases for the configured interval", func() {
-					Expect(fakeRadarDB.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 
-					_, resource, leaseInterval, immediate := fakeRadarDB.AcquireResourceCheckingLockArgsForCall(0)
+					_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeTrue())
@@ -527,7 +532,7 @@ var _ = Describe("ResourceScanner", func() {
 					results <- true
 					close(results)
 
-					fakeRadarDB.AcquireResourceCheckingLockStub = func(logger lager.Logger, resource db.SavedResource, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+					fakeDBPipeline.AcquireResourceCheckingLockStub = func(logger lager.Logger, resource *dbng.Resource, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {
@@ -539,19 +544,19 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("retries every second until it is", func() {
-					Expect(fakeRadarDB.AcquireResourceCheckingLockCallCount()).To(Equal(3))
+					Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(3))
 
-					_, resource, leaseInterval, immediate := fakeRadarDB.AcquireResourceCheckingLockArgsForCall(0)
+					_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					_, resource, leaseInterval, immediate = fakeRadarDB.AcquireResourceCheckingLockArgsForCall(1)
+					_, resource, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(1)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					_, resource, leaseInterval, immediate = fakeRadarDB.AcquireResourceCheckingLockArgsForCall(2)
+					_, resource, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(2)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
@@ -741,7 +746,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("if the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeRadarDB.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeDBPipeline.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
 			})
 
 			Context("when fromVersion is nil", func() {

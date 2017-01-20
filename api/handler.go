@@ -47,6 +47,7 @@ func NewHandler(
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
 	dbTeamFactory dbng.TeamFactory,
+	dbPipelineFactory dbng.PipelineFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 	volumeFactory dbng.VolumeFactory,
 	containerFactory dbng.ContainerFactory,
@@ -80,7 +81,7 @@ func NewHandler(
 		return nil, err
 	}
 
-	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory)
+	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory, dbPipelineFactory)
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, teamDBFactory, dbTeamFactory)
 

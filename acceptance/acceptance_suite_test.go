@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -11,6 +12,8 @@ import (
 	. "github.com/sclevine/agouti/matchers"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
@@ -29,10 +32,14 @@ var (
 
 	certTmpDir string
 
-	postgresRunner postgresrunner.Runner
-	dbConn         db.Conn
-	dbngConn       dbng.Conn
-	dbProcess      ifrit.Process
+	postgresRunner    postgresrunner.Runner
+	dbConn            db.Conn
+	dbngConn          dbng.Conn
+	lockFactory       lock.LockFactory
+	dbProcess         ifrit.Process
+	dbListener        *pq.Listener
+	teamDBFactory     db.TeamDBFactory
+	pipelineDBFactory db.PipelineDBFactory
 
 	sqlDB *db.SQLDB
 
@@ -71,6 +78,30 @@ var _ = SynchronizedAfterSuite(func() {
 }, func() {
 	err := os.RemoveAll(certTmpDir)
 	Expect(err).NotTo(HaveOccurred())
+})
+
+var _ = BeforeEach(func() {
+	postgresRunner.Truncate()
+	dbngConn = dbng.Wrap(postgresRunner.Open())
+
+	dbConn = db.Wrap(postgresRunner.Open())
+	dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
+	bus := db.NewNotificationsBus(dbListener, dbConn)
+
+	pgxConn := postgresRunner.OpenPgx()
+	fakeConnector := new(lockfakes.FakeConnector)
+	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+
+	lockFactory = lock.NewLockFactory(retryableConn)
+	sqlDB = db.NewSQL(dbConn, bus, lockFactory)
+
+	teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
+	pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
+})
+
+var _ = AfterEach(func() {
+	Expect(dbConn.Close()).To(Succeed())
+	Expect(dbListener.Close()).To(Succeed())
 })
 
 func Debug(page *agouti.Page) {

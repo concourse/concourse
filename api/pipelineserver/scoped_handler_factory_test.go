@@ -9,6 +9,8 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,7 +38,9 @@ var _ = Describe("Handler", func() {
 		pipelineDBFactory := new(dbfakes.FakePipelineDBFactory)
 		pipelineDBFactory.BuildReturns(pipelineDB)
 
-		handlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory)
+		dbPipelineFactory := new(dbngfakes.FakePipelineFactory)
+
+		handlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory, dbPipelineFactory)
 		handler = handlerFactory.HandlerFor(delegate.GetHandler)
 	})
 
@@ -114,7 +118,7 @@ type delegateHandler struct {
 	PipelineDB db.PipelineDB
 }
 
-func (handler *delegateHandler) GetHandler(pipelineDB db.PipelineDB) http.Handler {
+func (handler *delegateHandler) GetHandler(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.IsCalled = true
 		handler.PipelineDB = pipelineDB

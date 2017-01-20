@@ -5,9 +5,10 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) DeletePipeline(pipelineDB db.PipelineDB) http.Handler {
+func (s *Server) DeletePipeline(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("destroying-pipeline", lager.Data{
 			"name": pipelineDB.GetPipelineName(),

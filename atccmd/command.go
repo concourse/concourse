@@ -165,7 +165,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
 	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
-	dbTeamFactory := dbng.NewTeamFactory(dbngConn)
+	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
+	dbPipelineFactory := dbng.NewPipelineFactory(dbngConn, lockFactory)
 	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
 	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn, lockFactory)
 	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn, lockFactory)
@@ -234,6 +235,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		sqlDB,
 		teamDBFactory,
 		dbTeamFactory,
+		dbPipelineFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
 		dbContainerFactory,
@@ -328,6 +330,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				logger.Session("syncer"),
 				sqlDB,
 				pipelineDBFactory,
+				dbPipelineFactory,
 				radarSchedulerFactory,
 			),
 			Interval: 10 * time.Second,
@@ -856,6 +859,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	sqlDB *db.SQLDB,
 	teamDBFactory db.TeamDBFactory,
 	dbTeamFactory dbng.TeamFactory,
+	dbPipelineFactory dbng.PipelineFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbContainerFactory dbng.ContainerFactory,
@@ -911,6 +915,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		pipelineDBFactory,
 		teamDBFactory,
 		dbTeamFactory,
+		dbPipelineFactory,
 		dbWorkerFactory,
 		dbVolumeFactory,
 		dbContainerFactory,
@@ -964,20 +969,22 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 	logger lager.Logger,
 	sqlDB *db.SQLDB,
 	pipelineDBFactory db.PipelineDBFactory,
+	dbPipelineFactory dbng.PipelineFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 ) *pipelines.Syncer {
 	return pipelines.NewSyncer(
 		logger,
 		sqlDB,
 		pipelineDBFactory,
-		func(pipelineDB db.PipelineDB) ifrit.Runner {
+		dbPipelineFactory,
+		func(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) ifrit.Runner {
 			return grouper.NewParallel(os.Interrupt, grouper.Members{
 				{
 					pipelineDB.ScopedName("radar"),
 					radar.NewRunner(
 						logger.Session(pipelineDB.ScopedName("radar")),
 						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildScanRunnerFactory(pipelineDB, cmd.ExternalURL.String()),
+						radarSchedulerFactory.BuildScanRunnerFactory(pipelineDB, dbPipeline, cmd.ExternalURL.String()),
 						pipelineDB,
 						1*time.Minute,
 					),
@@ -989,7 +996,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 
 						DB: pipelineDB,
 
-						Scheduler: radarSchedulerFactory.BuildScheduler(pipelineDB, cmd.ExternalURL.String()),
+						Scheduler: radarSchedulerFactory.BuildScheduler(pipelineDB, dbPipeline, cmd.ExternalURL.String()),
 
 						Noop: cmd.Developer.Noop,
 

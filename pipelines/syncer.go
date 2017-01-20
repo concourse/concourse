@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -14,13 +15,14 @@ type SyncherDB interface {
 	GetAllPipelines() ([]db.SavedPipeline, error)
 }
 
-type PipelineRunnerFactory func(db.PipelineDB) ifrit.Runner
+type PipelineRunnerFactory func(db.PipelineDB, dbng.Pipeline) ifrit.Runner
 
 type Syncer struct {
 	logger lager.Logger
 
 	syncherDB             SyncherDB
 	pipelineDBFactory     db.PipelineDBFactory
+	pipelineFactory       dbng.PipelineFactory
 	pipelineRunnerFactory PipelineRunnerFactory
 
 	runningPipelines map[int]runningPipeline
@@ -38,12 +40,14 @@ func NewSyncer(
 	logger lager.Logger,
 	syncherDB SyncherDB,
 	pipelineDBFactory db.PipelineDBFactory,
+	pipelineFactory dbng.PipelineFactory,
 	pipelineRunnerFactory PipelineRunnerFactory,
 ) *Syncer {
 	return &Syncer{
 		logger:                logger,
 		syncherDB:             syncherDB,
 		pipelineDBFactory:     pipelineDBFactory,
+		pipelineFactory:       pipelineFactory,
 		pipelineRunnerFactory: pipelineRunnerFactory,
 
 		runningPipelines: map[int]runningPipeline{},
@@ -89,7 +93,8 @@ func (syncer *Syncer) Sync() {
 		}
 
 		pipelineDB := syncer.pipelineDBFactory.Build(pipeline)
-		runner := syncer.pipelineRunnerFactory(pipelineDB)
+		dbPipeline := syncer.pipelineFactory.GetPipelineByID(pipelineDB.TeamID(), pipelineDB.Pipeline().ID)
+		runner := syncer.pipelineRunnerFactory(pipelineDB, dbPipeline)
 
 		syncer.logger.Debug("starting-pipeline", lager.Data{"pipeline": pipeline.Name})
 

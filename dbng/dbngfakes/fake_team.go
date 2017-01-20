@@ -29,6 +29,16 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	FindPipelineByNameStub        func(pipelineName string) (dbng.Pipeline, bool, error)
+	findPipelineByNameMutex       sync.RWMutex
+	findPipelineByNameArgsForCall []struct {
+		pipelineName string
+	}
+	findPipelineByNameReturns struct {
+		result1 dbng.Pipeline
+		result2 bool
+		result3 error
+	}
 	CreateOneOffBuildStub        func() (dbng.Build, error)
 	createOneOffBuildMutex       sync.RWMutex
 	createOneOffBuildArgsForCall []struct{}
@@ -186,6 +196,41 @@ func (fake *FakeTeam) SavePipelineArgsForCall(i int) (string, atc.Config, dbng.C
 func (fake *FakeTeam) SavePipelineReturns(result1 dbng.Pipeline, result2 bool, result3 error) {
 	fake.SavePipelineStub = nil
 	fake.savePipelineReturns = struct {
+		result1 dbng.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) FindPipelineByName(pipelineName string) (dbng.Pipeline, bool, error) {
+	fake.findPipelineByNameMutex.Lock()
+	fake.findPipelineByNameArgsForCall = append(fake.findPipelineByNameArgsForCall, struct {
+		pipelineName string
+	}{pipelineName})
+	fake.recordInvocation("FindPipelineByName", []interface{}{pipelineName})
+	fake.findPipelineByNameMutex.Unlock()
+	if fake.FindPipelineByNameStub != nil {
+		return fake.FindPipelineByNameStub(pipelineName)
+	} else {
+		return fake.findPipelineByNameReturns.result1, fake.findPipelineByNameReturns.result2, fake.findPipelineByNameReturns.result3
+	}
+}
+
+func (fake *FakeTeam) FindPipelineByNameCallCount() int {
+	fake.findPipelineByNameMutex.RLock()
+	defer fake.findPipelineByNameMutex.RUnlock()
+	return len(fake.findPipelineByNameArgsForCall)
+}
+
+func (fake *FakeTeam) FindPipelineByNameArgsForCall(i int) string {
+	fake.findPipelineByNameMutex.RLock()
+	defer fake.findPipelineByNameMutex.RUnlock()
+	return fake.findPipelineByNameArgsForCall[i].pipelineName
+}
+
+func (fake *FakeTeam) FindPipelineByNameReturns(result1 dbng.Pipeline, result2 bool, result3 error) {
+	fake.FindPipelineByNameStub = nil
+	fake.findPipelineByNameReturns = struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
@@ -514,6 +559,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.iDMutex.RUnlock()
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
+	fake.findPipelineByNameMutex.RLock()
+	defer fake.findPipelineByNameMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()
 	defer fake.createOneOffBuildMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()

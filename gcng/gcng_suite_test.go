@@ -59,7 +59,12 @@ var _ = BeforeEach(func() {
 
 	dbConn = dbng.Wrap(postgresRunner.Open())
 
-	teamFactory = dbng.NewTeamFactory(dbConn)
+	pgxConn := postgresRunner.OpenPgx()
+	fakeConnector := new(lockfakes.FakeConnector)
+	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+	lockFactory := lock.NewLockFactory(retryableConn)
+
+	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
 
 	defaultTeam, err = teamFactory.CreateTeam("default-team")
 	Expect(err).NotTo(HaveOccurred())
@@ -91,10 +96,6 @@ var _ = BeforeEach(func() {
 
 	Expect(setupTx.Commit()).To(Succeed())
 
-	pgxConn := postgresRunner.OpenPgx()
-	fakeConnector := new(lockfakes.FakeConnector)
-	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-	lockFactory := lock.NewLockFactory(retryableConn)
 	logger = lagertest.NewTestLogger("gcng-test")
 
 	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)

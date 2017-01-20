@@ -5,10 +5,11 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) EnableResourceVersion(pipelineDB db.PipelineDB) http.Handler {
+func (s *Server) EnableResourceVersion(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("enable-resource-version")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceID, err := strconv.Atoi(rata.Param(r, "resource_version_id"))

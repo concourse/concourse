@@ -21,16 +21,14 @@ var _ = Describe("Team", func() {
 
 	Describe("SaveWorker", func() {
 		var (
-			team        dbng.Team
-			otherTeam   dbng.Team
-			teamFactory dbng.TeamFactory
+			team      dbng.Team
+			otherTeam dbng.Team
 
 			atcWorker atc.Worker
 		)
 
 		BeforeEach(func() {
 			var err error
-			teamFactory = dbng.NewTeamFactory(dbConn)
 			team, err = teamFactory.CreateTeam("team")
 			Expect(err).NotTo(HaveOccurred())
 			otherTeam, err = teamFactory.CreateTeam("otherTeam")

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	LockTypeResourceChecking = iota
+	LockTypeResourceConfigChecking = iota
 	LockTypeResourceTypeChecking
 	LockTypeBuildTracking
 	LockTypePipelineScheduling
@@ -25,8 +25,8 @@ func NewBuildTrackingLockID(buildID int) LockID {
 	return LockID{LockTypeBuildTracking, buildID}
 }
 
-func NewResourceCheckingLockID(resourceID int) LockID {
-	return LockID{LockTypeResourceChecking, resourceID}
+func NewResourceConfigCheckingLockID(resourceConfigID int) LockID {
+	return LockID{LockTypeResourceConfigChecking, resourceConfigID}
 }
 
 func NewResourceTypeCheckingLockID(resourceTypeID int) LockID {

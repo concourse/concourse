@@ -11,7 +11,6 @@ import (
 	. "github.com/sclevine/agouti/matchers"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
@@ -22,11 +21,7 @@ var _ = Describe("Logging In", func() {
 	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
-		dbConn = db.Wrap(postgresRunner.Open())
-		dbngConn = dbng.Wrap(postgresRunner.Open())
-
-		teamFactory := dbng.NewTeamFactory(dbngConn)
+		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 		var err error
 		var found bool
 		defaultTeam, found, err = teamFactory.FindTeam(atc.DefaultTeamName)
@@ -49,8 +44,6 @@ var _ = Describe("Logging In", func() {
 
 	AfterEach(func() {
 		atcCommand.Stop()
-
-		Expect(dbngConn.Close()).To(Succeed())
 	})
 
 	homepage := func() string {

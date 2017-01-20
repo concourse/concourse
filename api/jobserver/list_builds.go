@@ -9,9 +9,10 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
+func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
 			builds []db.Build

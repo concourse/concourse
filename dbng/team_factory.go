@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . TeamFactory
@@ -16,12 +17,14 @@ type TeamFactory interface {
 }
 
 type teamFactory struct {
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
-func NewTeamFactory(conn Conn) TeamFactory {
+func NewTeamFactory(conn Conn, lockFactory lock.LockFactory) TeamFactory {
 	return &teamFactory{
-		conn: conn,
+		conn:        conn,
+		lockFactory: lockFactory,
 	}
 }
 
@@ -59,15 +62,17 @@ func (factory *teamFactory) CreateTeam(name string) (Team, error) {
 	}
 
 	return &team{
-		id:   teamID,
-		conn: factory.conn,
+		id:          teamID,
+		conn:        factory.conn,
+		lockFactory: factory.lockFactory,
 	}, nil
 }
 
 func (factory *teamFactory) GetByID(teamID int) Team {
 	return &team{
-		id:   teamID,
-		conn: factory.conn,
+		id:          teamID,
+		conn:        factory.conn,
+		lockFactory: factory.lockFactory,
 	}
 }
 
@@ -99,7 +104,8 @@ func (factory *teamFactory) FindTeam(name string) (Team, bool, error) {
 	}
 
 	return &team{
-		id:   teamID,
-		conn: factory.conn,
+		id:          teamID,
+		conn:        factory.conn,
+		lockFactory: factory.lockFactory,
 	}, true, nil
 }

@@ -1,5 +1,6 @@
 package dbng
 
 type Resource struct {
-	ID int
+	ID   int
+	Name string
 }

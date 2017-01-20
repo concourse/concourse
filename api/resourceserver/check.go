@@ -7,11 +7,12 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) CheckResource(pipelineDB db.PipelineDB) http.Handler {
+func (s *Server) CheckResource(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("check-resource")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +40,7 @@ func (s *Server) CheckResource(pipelineDB db.PipelineDB) http.Handler {
 			}
 		}
 
-		scanner := s.scannerFactory.NewResourceScanner(pipelineDB)
+		scanner := s.scannerFactory.NewResourceScanner(pipelineDB, dbPipeline)
 
 		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)
 		switch scanErr := err.(type) {

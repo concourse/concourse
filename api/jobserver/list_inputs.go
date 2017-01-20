@@ -8,9 +8,10 @@ import (
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
+func (s *Server) ListJobInputs(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("list-job-inputs")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
@@ -23,7 +24,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		scheduler := s.schedulerFactory.BuildScheduler(pipelineDB, s.externalURL)
+		scheduler := s.schedulerFactory.BuildScheduler(pipelineDB, dbPipeline, s.externalURL)
 
 		err := scheduler.SaveNextInputMapping(logger, jobConfig)
 		if err != nil {
