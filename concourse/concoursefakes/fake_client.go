@@ -163,6 +163,13 @@ type FakeClient struct {
 		result1 []atc.Pipeline
 		result2 error
 	}
+	ListTeamsStub        func() ([]atc.Team, error)
+	listTeamsMutex       sync.RWMutex
+	listTeamsArgsForCall []struct{}
+	listTeamsReturns     struct {
+		result1 []atc.Team
+		result2 error
+	}
 	TeamStub        func(teamName string) concourse.Team
 	teamMutex       sync.RWMutex
 	teamArgsForCall []struct {
@@ -734,6 +741,31 @@ func (fake *FakeClient) ListPipelinesReturns(result1 []atc.Pipeline, result2 err
 	}{result1, result2}
 }
 
+func (fake *FakeClient) ListTeams() ([]atc.Team, error) {
+	fake.listTeamsMutex.Lock()
+	fake.listTeamsArgsForCall = append(fake.listTeamsArgsForCall, struct{}{})
+	fake.recordInvocation("ListTeams", []interface{}{})
+	fake.listTeamsMutex.Unlock()
+	if fake.ListTeamsStub != nil {
+		return fake.ListTeamsStub()
+	}
+	return fake.listTeamsReturns.result1, fake.listTeamsReturns.result2
+}
+
+func (fake *FakeClient) ListTeamsCallCount() int {
+	fake.listTeamsMutex.RLock()
+	defer fake.listTeamsMutex.RUnlock()
+	return len(fake.listTeamsArgsForCall)
+}
+
+func (fake *FakeClient) ListTeamsReturns(result1 []atc.Team, result2 error) {
+	fake.ListTeamsStub = nil
+	fake.listTeamsReturns = struct {
+		result1 []atc.Team
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) Team(teamName string) concourse.Team {
 	fake.teamMutex.Lock()
 	fake.teamArgsForCall = append(fake.teamArgsForCall, struct {
@@ -806,6 +838,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.getCLIReaderMutex.RUnlock()
 	fake.listPipelinesMutex.RLock()
 	defer fake.listPipelinesMutex.RUnlock()
+	fake.listTeamsMutex.RLock()
+	defer fake.listTeamsMutex.RUnlock()
 	fake.teamMutex.RLock()
 	defer fake.teamMutex.RUnlock()
 	return fake.invocations
