@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 
-	"github.com/BurntSushi/migration"
+	"github.com/concourse/atc/dbng/migration"
 )
 
 func LockDBAndMigrate(logger lager.Logger, sqlDriver string, sqlDataSource string) (db.Conn, error) {
@@ -45,7 +45,7 @@ func LockDBAndMigrate(logger lager.Logger, sqlDriver string, sqlDataSource strin
 		logger.Info("migration-lock-acquired")
 
 		migrations := Translogrifier(logger, Migrations)
-		dbConn, err = db.WrapWithError(migration.OpenWith(sqlDriver, sqlDataSource, migrations, safeGetVersion, safeSetVersion))
+		dbConn, err = db.WrapWithError(migration.Open(sqlDriver, sqlDataSource, migrations))
 		if err != nil {
 			logger.Fatal("failed-to-run-migrations", err)
 		}
@@ -81,55 +81,4 @@ func DBNGConn(logger lager.Logger, sqlDriver string, sqlDataSource string) (dbng
 	}
 
 	return dbConn, nil
-}
-
-func safeGetVersion(tx migration.LimitedTx) (int, error) {
-	v, err := getVersion(tx)
-	if err != nil {
-		if err := createVersionTable(tx); err != nil {
-			return 0, err
-		}
-		return getVersion(tx)
-	}
-	return v, nil
-}
-
-func safeSetVersion(tx migration.LimitedTx, version int) error {
-	if err := setVersion(tx, version); err != nil {
-		if err := createVersionTable(tx); err != nil {
-			return err
-		}
-		return setVersion(tx, version)
-	}
-	return nil
-}
-
-func getVersion(tx migration.LimitedTx) (int, error) {
-	var version int
-	r := tx.QueryRow("SELECT version FROM migration_version")
-	if err := r.Scan(&version); err != nil {
-		return 0, err
-	}
-	return version, nil
-}
-
-func setVersion(tx migration.LimitedTx, version int) error {
-	_, err := tx.Exec("UPDATE migration_version SET version = $1", version)
-	return err
-}
-
-func createVersionTable(tx migration.LimitedTx) error {
-	_, err := tx.Exec(`
-		CREATE TABLE migration_version (
-			version INTEGER
-		)
-	`)
-	if err != nil {
-		return nil
-	}
-
-	_, err = tx.Exec(`
-		INSERT INTO migration_version (version) VALUES (0)
-	`)
-	return err
 }

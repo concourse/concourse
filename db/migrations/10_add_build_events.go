@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/BurntSushi/migration"
+	"github.com/concourse/atc/dbng/migration"
 )
 
 func AddBuildEvents(tx migration.LimitedTx) error {

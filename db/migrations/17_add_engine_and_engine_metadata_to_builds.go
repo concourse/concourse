@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	"github.com/BurntSushi/migration"
+	"github.com/concourse/atc/dbng/migration"
 )
 
 type turbineMetadata struct {

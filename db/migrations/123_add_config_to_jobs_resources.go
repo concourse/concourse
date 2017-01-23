@@ -3,7 +3,7 @@ package migrations
 import (
 	"encoding/json"
 
-	"github.com/BurntSushi/migration"
+	"github.com/concourse/atc/dbng/migration"
 	"github.com/concourse/atc"
 )
 

@@ -1,6 +1,6 @@
 package migrations
 
-import "github.com/BurntSushi/migration"
+import "github.com/concourse/atc/dbng/migration"
 
 func AddInterruptibleToJob(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`

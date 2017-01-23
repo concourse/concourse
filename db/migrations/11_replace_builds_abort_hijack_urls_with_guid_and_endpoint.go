@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/BurntSushi/migration"
+	"github.com/concourse/atc/dbng/migration"
 )
 
 func ReplaceBuildsAbortHijackURLsWithGuidAndEndpoint(tx migration.LimitedTx) error {

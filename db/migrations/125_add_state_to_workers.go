@@ -1,13 +1,15 @@
 package migrations
 
-import "github.com/BurntSushi/migration"
+import "github.com/concourse/atc/dbng/migration"
 
 func AddStateToWorkers(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`
 		CREATE TYPE worker_state AS ENUM (
 			'running',
 			'stalled',
-			'landing'
+			'landing',
+			'landed',
+			'retiring'
 		)
 	`)
 	if err != nil {
