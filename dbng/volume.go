@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	uuid "github.com/nu7hatch/gouuid"
@@ -12,12 +13,19 @@ import (
 )
 
 var (
-	ErrVolumeMarkCreatedFailed     = errors.New("could-not-mark-volume-as-created")
 	ErrVolumeMarkDestroyingFailed  = errors.New("could-not-mark-volume-as-destroying")
 	ErrVolumeStateTransitionFailed = errors.New("could-not-transition-volume-state")
 	ErrVolumeMissing               = errors.New("volume-no-longer-in-db")
 	ErrInvalidResourceCache        = errors.New("invalid-resource-cache")
 )
+
+type ErrVolumeMarkCreatedFailed struct {
+	Handle string
+}
+
+func (e ErrVolumeMarkCreatedFailed) Error() string {
+	return fmt.Sprintf("failed to mark volume as created %s", e.Handle)
+}
 
 type VolumeState string
 
@@ -78,7 +86,7 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 	)
 	if err != nil {
 		if err == ErrVolumeStateTransitionFailed {
-			return nil, ErrVolumeMarkCreatedFailed
+			return nil, ErrVolumeMarkCreatedFailed{Handle: volume.handle}
 		}
 		return nil, err
 	}
