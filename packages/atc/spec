@@ -16,7 +16,6 @@ files:
   - code.cloudfoundry.org/garden/transport/*.go # gosub
   - code.cloudfoundry.org/lager/*.go # gosub
   - code.cloudfoundry.org/urljoiner/*.go # gosub
-  - github.com/BurntSushi/migration/*.go # gosub
   - github.com/Masterminds/squirrel/*.go # gosub
   - github.com/The-Cloud-Source/goryman/*.go # gosub
   - github.com/The-Cloud-Source/goryman/proto/*.go # gosub
@@ -55,6 +54,7 @@ files:
   - github.com/concourse/atc/db/lock/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
   - github.com/concourse/atc/dbng/*.go # gosub
+  - github.com/concourse/atc/dbng/migration/*.go # gosub
   - github.com/concourse/atc/engine/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub

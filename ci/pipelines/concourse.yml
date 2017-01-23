@@ -7,6 +7,7 @@ groups:
   - go-concourse
   - baggageclaim
   - tsa
+  - cessna
   - rc
   - build-fly
   - bin-rc
@@ -95,6 +96,31 @@ jobs:
     trigger: true
   - task: build
     file: concourse/ci/tsa.yml
+
+- name: cessna
+  plan:
+    - get: concourse
+      trigger: true
+    - get: gcp-stemcell
+    - get: garden-runc
+    - get: bosh-rc
+    - put: cessna-bosh-deployment
+      params:
+        manifest: concourse/src/github.com/concourse/atc/cessna/ci/deployments/worker.yml
+        stemcells: [gcp-stemcell/*.tgz]
+        releases:
+          - garden-runc/*.tgz
+          - bosh-rc/concourse-*.tgz
+    - task: run-cessna-tests
+      file: concourse/src/github.com/concourse/atc/cessna/ci/run-cessna-tests.yml
+      input_mapping:
+        concourse-release: bosh-rc
+        garden-runc-release: garden-runc
+        stemcell: gcp-stemcell
+      params:
+        WORKER_IP: {{cessna_worker_ip}}
+        ROOTFS_TAR_URL: {{rootfs_tar_url}}
+        RUN_CESSNA_TESTS: true
 
 - name: major
   public: true
@@ -729,6 +755,14 @@ resources:
   source:
     target: {{bosh-target}}
     deployment: concourse-testflight
+    client_id: {{bosh-client-id}}
+    client_secret: {{bosh-client-secret}}
+
+- name: cessna-bosh-deployment
+  type: bosh-deployment
+  source:
+    target: {{bosh-target}}
+    deployment: concourse-cessna
     client_id: {{bosh-client-id}}
     client_secret: {{bosh-client-secret}}
 

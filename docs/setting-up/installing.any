@@ -93,7 +93,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
         tokens in the requests it makes to the ATC.
       }
 
-      \item{\code{host_key}}{
+      \item{\code{tsa_host_key}}{
         Used for the TSA's SSH server. This is the key whose fingerprint you
         see when the \code{ssh} command warns you when connecting to a host it
         hasn't seen before.
@@ -109,7 +109,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     To generate these keys, run:
 
     \codeblock{bash}{
-    ssh-keygen -t rsa -f host_key -N ''
+    ssh-keygen -t rsa -f tsa_host_key -N ''
     ssh-keygen -t rsa -f worker_key -N ''
     ssh-keygen -t rsa -f session_signing_key -N ''
     }
@@ -144,7 +144,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
         --basic-auth-username myuser \\
         --basic-auth-password mypass \\
         --session-signing-key session_signing_key \\
-        --tsa-host-key host_key \\
+        --tsa-host-key tsa_host_key \\
         --tsa-authorized-keys authorized_worker_keys \\
         --external-url http://my-ci.example.com
       }
@@ -196,7 +196,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
         --basic-auth-username myuser \\
         --basic-auth-password mypass \\
         --session-signing-key session_signing_key \\
-        --tsa-host-key host_key \\
+        --tsa-host-key tsa_host_key \\
         --tsa-authorized-keys authorized_worker_keys \\
         --postgres-data-source postgres://user:pass@10.0.32.0/concourse \\
         --external-url https://ci.example.com \\
@@ -210,7 +210,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
         --basic-auth-username myuser \\
         --basic-auth-password mypass \\
         --session-signing-key session_signing_key \\
-        --tsa-host-key host_key \\
+        --tsa-host-key tsa_host_key \\
         --tsa-authorized-keys authorized_worker_keys \\
         --postgres-data-source postgres://user:pass@10.0.32.0/concourse \\
         --external-url https://ci.example.com \\
@@ -239,7 +239,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     sudo concourse worker \\
       --work-dir /opt/concourse/worker \\
       --tsa-host 127.0.0.1 \\
-      --tsa-public-key host_key.pub \\
+      --tsa-public-key tsa_host_key.pub \\
       --tsa-worker-private-key worker_key
     }
 
@@ -313,13 +313,13 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
   \codeblock{bash}{
     mkdir -p keys/web keys/worker
 
-    ssh-keygen -t rsa -f ./keys/web/host_key -N ''
+    ssh-keygen -t rsa -f ./keys/web/tsa_host_key -N ''
     ssh-keygen -t rsa -f ./keys/web/session_signing_key -N ''
 
     ssh-keygen -t rsa -f ./keys/worker/worker_key -N ''
 
     cp ./keys/worker/worker_key.pub ./keys/web/authorized_worker_keys
-    cp ./keys/web/host_key.pub ./keys/worker
+    cp ./keys/web/tsa_host_key.pub ./keys/worker
   }
 
   The next thing you'll need is an address that can be used to reach the

@@ -14,7 +14,7 @@ go install github.com/concourse/tsa/cmd/tsa
 
 tsa \
   --atc-url http://127.0.0.1:8080 \
-  --host-key $KEYSDIR/web/host_key \
+  --host-key $KEYSDIR/web/tsa_host_key \
   --peer-ip 127.0.0.1 \
   --authorized-keys $KEYSDIR/web/authorized_worker_keys \
   --session-signing-key $KEYSDIR/web/session_signing_key \

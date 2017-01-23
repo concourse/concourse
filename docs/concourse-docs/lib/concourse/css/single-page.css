@@ -4,10 +4,12 @@
 
 #content {
   background: #FFF;
+  min-width: 200px;
 }
 
 #sidebar {
-  width: 270px;
+  min-width: 270px;
+  max-width: 270px;
 }
 
 .sidebar-spacing {
