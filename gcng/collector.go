@@ -64,12 +64,12 @@ func (c *aggregateCollector) Run() error {
 		return err
 	}
 
-	err = c.volumeCollector.Run()
+	err = c.containerCollector.Run()
 	if err != nil {
 		return err
 	}
 
-	err = c.containerCollector.Run()
+	err = c.volumeCollector.Run()
 	if err != nil {
 		return err
 	}
