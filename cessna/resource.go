@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 type BaseResourceType struct {
@@ -36,7 +37,12 @@ func (r BaseResourceType) RootFSPathFor(logger lager.Logger, worker Worker) (str
 		Privileged: true,
 	}
 
-	parentVolume, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
+
+	parentVolume, err := worker.BaggageClaimClient().CreateVolume(logger, handle.String(), spec)
 	if err != nil {
 		return "", err
 	}
@@ -49,7 +55,12 @@ func (r BaseResourceType) RootFSPathFor(logger lager.Logger, worker Worker) (str
 		Privileged: true,
 	}
 
-	v, err := worker.BaggageClaimClient().CreateVolume(logger, s)
+	handle, err = uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
+
+	v, err := worker.BaggageClaimClient().CreateVolume(logger, handle.String(), s)
 	if err != nil {
 		return "", err
 	}

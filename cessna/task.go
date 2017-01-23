@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -39,7 +40,12 @@ func (t *Task) Run(logger lager.Logger, worker Worker, inputs NamedArtifacts, ou
 			},
 			Privileged: t.Privileged,
 		}
-		v, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
+		handle, err := uuid.NewV4()
+		if err != nil {
+			return err
+		}
+
+		v, err := worker.BaggageClaimClient().CreateVolume(logger, handle.String(), spec)
 		if err != nil {
 			return err
 		}

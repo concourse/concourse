@@ -18,14 +18,22 @@ var _ = Describe("Running a task", func() {
 
 		rootFSgenerator.RootFSPathForReturns("docker:///alpine", nil)
 
-		inputVolume, err := worker.BaggageClaimClient().CreateVolume(logger, baggageclaim.VolumeSpec{
-			Strategy: baggageclaim.EmptyStrategy{},
-		})
+		inputVolume, err := worker.BaggageClaimClient().CreateVolume(
+			logger,
+			"some-input-volume-handle",
+			baggageclaim.VolumeSpec{
+				Strategy: baggageclaim.EmptyStrategy{},
+			},
+		)
 		Expect(err).NotTo(HaveOccurred())
 
-		outputVolume, err := worker.BaggageClaimClient().CreateVolume(logger, baggageclaim.VolumeSpec{
-			Strategy: baggageclaim.EmptyStrategy{},
-		})
+		outputVolume, err := worker.BaggageClaimClient().CreateVolume(
+			logger,
+			"some-output-volume-handle",
+			baggageclaim.VolumeSpec{
+				Strategy: baggageclaim.EmptyStrategy{},
+			},
+		)
 		Expect(err).NotTo(HaveOccurred())
 
 		a := archivetest.Archive{

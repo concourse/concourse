@@ -12,6 +12,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim"
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -37,7 +38,12 @@ func (r ResourcePut) Put(logger lager.Logger, worker Worker, artifacts NamedArti
 			},
 			Privileged: false,
 		}
-		v, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
+		handle, err := uuid.NewV4()
+		if err != nil {
+			return OutResponse{}, err
+		}
+
+		v, err := worker.BaggageClaimClient().CreateVolume(logger, handle.String(), spec)
 		if err != nil {
 			return OutResponse{}, err
 		}

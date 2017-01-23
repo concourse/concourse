@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -105,9 +106,16 @@ func createBaseResourceVolume(r io.Reader) (string, error) {
 		Privileged: true,
 	}
 
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
+
 	volume, err := baggageclaimClient.CreateVolume(
 		lager.NewLogger("create-volume-for-base-resource"),
-		volumeSpec)
+		handle.String(),
+		volumeSpec,
+	)
 
 	if err != nil {
 		return "", err

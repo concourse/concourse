@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 
 	"archive/tar"
+	"os"
+
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim"
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/ifrit"
-	"os"
 )
 
 type ResourceGet struct {
@@ -30,7 +32,12 @@ func (r ResourceGet) Get(logger lager.Logger, worker Worker) (baggageclaim.Volum
 		Strategy:   baggageclaim.EmptyStrategy{},
 		Privileged: true,
 	}
-	volumeForGet, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+
+	volumeForGet, err := worker.BaggageClaimClient().CreateVolume(logger, handle.String(), spec)
 	if err != nil {
 		return nil, err
 
@@ -99,8 +106,12 @@ func (r ResourceGet) RootFSPathFor(logger lager.Logger, worker Worker) (string, 
 		},
 		Privileged: true,
 	}
+	handle, err := uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
 
-	rootFSVolume, err := worker.BaggageClaimClient().CreateVolume(logger, spec)
+	rootFSVolume, err := worker.BaggageClaimClient().CreateVolume(logger, handle.String(), spec)
 	if err != nil {
 		return "", err
 	}

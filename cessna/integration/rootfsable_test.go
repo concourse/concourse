@@ -22,7 +22,7 @@ var _ = Describe("RootFSable", func() {
 			importVolume := new(baggageclaimfakes.FakeVolume)
 			importVolume.PathReturns("/importpath")
 
-			fakeBaggageClaimClient.CreateVolumeStub = func(lager.Logger, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+			fakeBaggageClaimClient.CreateVolumeStub = func(lager.Logger, string, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
 				callCount++
 				if callCount == 1 {
 					return parentVolume, nil
@@ -41,7 +41,7 @@ var _ = Describe("RootFSable", func() {
 
 			Expect(gardenHandle).To(Equal("raw:///importpath"))
 
-			_, spec := fakeBaggageClaimClient.CreateVolumeArgsForCall(0)
+			_, _, spec := fakeBaggageClaimClient.CreateVolumeArgsForCall(0)
 			Expect(spec).To(Equal(baggageclaim.VolumeSpec{
 				Strategy: baggageclaim.ImportStrategy{
 					Path: "foobar",
@@ -49,7 +49,7 @@ var _ = Describe("RootFSable", func() {
 				Privileged: true,
 			}))
 
-			_, spec = fakeBaggageClaimClient.CreateVolumeArgsForCall(1)
+			_, _, spec = fakeBaggageClaimClient.CreateVolumeArgsForCall(1)
 			Expect(spec).To(Equal(baggageclaim.VolumeSpec{
 				Strategy: baggageclaim.COWStrategy{
 					Parent: parentVolume,
@@ -77,7 +77,7 @@ var _ = Describe("RootFSable", func() {
 			importVolume.PathReturns("/importpath")
 
 			var callCount int
-			fakeBaggageClaimClient.CreateVolumeStub = func(lager.Logger, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+			fakeBaggageClaimClient.CreateVolumeStub = func(lager.Logger, string, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
 				callCount++
 				if callCount == 1 {
 					return emptyVolume, nil
@@ -102,13 +102,13 @@ var _ = Describe("RootFSable", func() {
 
 			Expect(gardenHandle).To(Equal("raw:///importpath"))
 
-			_, spec := fakeBaggageClaimClient.CreateVolumeArgsForCall(0)
+			_, _, spec := fakeBaggageClaimClient.CreateVolumeArgsForCall(0)
 			Expect(spec).To(Equal(baggageclaim.VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: true,
 			}))
 
-			_, spec = fakeBaggageClaimClient.CreateVolumeArgsForCall(1)
+			_, _, spec = fakeBaggageClaimClient.CreateVolumeArgsForCall(1)
 			Expect(spec).To(Equal(baggageclaim.VolumeSpec{
 				Strategy: baggageclaim.COWStrategy{
 					Parent: emptyVolume,

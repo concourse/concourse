@@ -31,7 +31,7 @@ var _ = Describe("Volume", func() {
 
 				It("returns the correct error", func() {
 					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(dbng.ErrVolumeMarkCreatedFailed))
+					Expect(err).To(Equal(dbng.ErrVolumeMarkCreatedFailed{Handle: creatingVolume.Handle()}))
 				})
 			})
 
@@ -50,7 +50,7 @@ var _ = Describe("Volume", func() {
 
 				It("returns the correct error", func() {
 					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(dbng.ErrVolumeMarkCreatedFailed))
+					Expect(err).To(Equal(dbng.ErrVolumeMarkCreatedFailed{Handle: creatingVolume.Handle()}))
 				})
 			})
 		})
