@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -590,20 +589,6 @@ var _ = Describe("ExecEngine", func() {
 					_, _, planID := fakeDelegate.InputDelegateArgsForCall(0)
 					Expect(planID).To(Equal(event.OriginID(plan.ID)))
 				})
-
-				It("releases inputs correctly", func() {
-					inputStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
-						defer GinkgoRecover()
-						Consistently(inputStep.ReleaseCallCount).Should(BeZero())
-						return nil
-					}
-					var err error
-					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-					Expect(err).NotTo(HaveOccurred())
-					build.Resume(logger)
-
-					Expect(inputStep.ReleaseCallCount()).To(Equal(1))
-				})
 			})
 
 			Context("that contains tasks", func() {
@@ -737,20 +722,6 @@ var _ = Describe("ExecEngine", func() {
 							Expect(ok).To(BeTrue())
 						})
 					})
-
-					It("releases the tasks correctly", func() {
-						taskStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
-							defer GinkgoRecover()
-							Consistently(taskStep.ReleaseCallCount).Should(BeZero())
-							return nil
-						}
-						var err error
-						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-						Expect(err).NotTo(HaveOccurred())
-						build.Resume(logger)
-
-						Expect(taskStep.ReleaseCallCount()).To(Equal(1))
-					})
 				})
 			})
 
@@ -858,16 +829,6 @@ var _ = Describe("ExecEngine", func() {
 
 					_, _, planID := fakeDelegate.InputDelegateArgsForCall(0)
 					Expect(planID).To(Equal(event.OriginID(dependentGetPlan.ID)))
-				})
-
-				It("releases all sources", func() {
-					var err error
-					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-					Expect(err).NotTo(HaveOccurred())
-
-					build.Resume(logger)
-					Expect(outputStep.ReleaseCallCount()).To(Equal(1))
-					Expect(dependentStep.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 		})

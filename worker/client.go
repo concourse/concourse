@@ -169,8 +169,6 @@ type Container interface {
 
 	Destroy() error
 
-	Release()
-
 	VolumeMounts() []VolumeMount
 
 	WorkerName() string

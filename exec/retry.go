@@ -56,13 +56,6 @@ func (step *RetryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 	return attemptErr
 }
 
-// Release releases each nested step.
-func (step *RetryStep) Release() {
-	for _, src := range step.Attempts {
-		src.Release()
-	}
-}
-
 // Result delegates to the last step that it ran.
 func (step *RetryStep) Result(x interface{}) bool {
 	return step.LastAttempt.Result(x)

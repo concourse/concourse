@@ -170,10 +170,8 @@ var _ = Describe("Exec Engine with Try", func() {
 				build.Resume(logger)
 
 				Expect(inputStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
 
 				Expect(taskStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(BeNumerically(">", 0))
 			})
 		})
 	})

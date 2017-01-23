@@ -69,7 +69,13 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 
 	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
 		logger,
-		&dbng.Resource{ID: savedResource.ID, Name: savedResource.Name},
+		&dbng.Resource{
+			ID:     savedResource.ID,
+			Name:   savedResource.Name,
+			Type:   savedResource.Config.Type,
+			Source: savedResource.Config.Source,
+		},
+		scanner.db.Config().ResourceTypes,
 		interval,
 		false,
 	)
@@ -134,7 +140,13 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 	for {
 		lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
 			logger,
-			&dbng.Resource{ID: savedResource.ID, Name: savedResource.Name},
+			&dbng.Resource{
+				ID:     savedResource.ID,
+				Name:   savedResource.Name,
+				Type:   savedResource.Config.Type,
+				Source: savedResource.Config.Source,
+			},
+			scanner.db.Config().ResourceTypes,
 			interval,
 			true,
 		)
@@ -232,7 +244,7 @@ func (scanner *resourceScanner) scan(
 		Env:       metadata.Env(),
 	}
 
-	res, _, err := scanner.resourceFactory.NewResource(
+	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
 		worker.Identifier{
 			ResourceTypeVersion: resourceTypeVersion,
@@ -248,15 +260,11 @@ func (scanner *resourceScanner) scan(
 		},
 		resourceSpec,
 		scanner.db.Config().ResourceTypes,
-		worker.NoopImageFetchingDelegate{},
-		nil,
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)
 		return err
 	}
-
-	defer res.Release()
 
 	logger.Debug("checking", lager.Data{
 		"from": fromVersion,

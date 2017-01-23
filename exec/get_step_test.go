@@ -139,13 +139,6 @@ var _ = Describe("Get", func() {
 		process = ifrit.Invoke(step)
 	})
 
-	Describe("Release", func() {
-		It("releases the fetch source", func() {
-			step.Release()
-			Expect(fakeFetchSource.ReleaseCallCount()).To(Equal(1))
-		})
-	})
-
 	Context("before initializing the resource", func() {
 		var callCountDuringInit chan int
 

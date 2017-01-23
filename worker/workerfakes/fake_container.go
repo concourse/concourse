@@ -178,9 +178,6 @@ type FakeContainer struct {
 	destroyReturns     struct {
 		result1 error
 	}
-	ReleaseStub             func()
-	releaseMutex            sync.RWMutex
-	releaseArgsForCall      []struct{}
 	VolumeMountsStub        func() []worker.VolumeMount
 	volumeMountsMutex       sync.RWMutex
 	volumeMountsArgsForCall []struct{}
@@ -846,22 +843,6 @@ func (fake *FakeContainer) DestroyReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeContainer) Release() {
-	fake.releaseMutex.Lock()
-	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
-	fake.recordInvocation("Release", []interface{}{})
-	fake.releaseMutex.Unlock()
-	if fake.ReleaseStub != nil {
-		fake.ReleaseStub()
-	}
-}
-
-func (fake *FakeContainer) ReleaseCallCount() int {
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
-	return len(fake.releaseArgsForCall)
-}
-
 func (fake *FakeContainer) VolumeMounts() []worker.VolumeMount {
 	fake.volumeMountsMutex.Lock()
 	fake.volumeMountsArgsForCall = append(fake.volumeMountsArgsForCall, struct{}{})
@@ -982,8 +963,6 @@ func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	defer fake.removePropertyMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
 	fake.volumeMountsMutex.RLock()
 	defer fake.volumeMountsMutex.RUnlock()
 	fake.workerNameMutex.RLock()

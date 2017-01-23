@@ -4,10 +4,31 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
 )
 
-func (p *pipeline) AcquireResourceCheckingLock(logger lager.Logger, resource *Resource, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+func (p *pipeline) AcquireResourceCheckingLock(
+	logger lager.Logger,
+	resource *Resource,
+	resourceTypes atc.ResourceTypes,
+	interval time.Duration,
+	immediate bool,
+) (lock.Lock, bool, error) {
+	resourceConfig, err := findOrCreateResourceConfigForResource(
+		p.conn,
+		p.lockFactory,
+		logger,
+		resource.ID,
+		resource.Type,
+		resource.Source,
+		p.id,
+		resourceTypes,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -41,7 +62,7 @@ func (p *pipeline) AcquireResourceCheckingLock(logger lager.Logger, resource *Re
 		logger.Session("lock", lager.Data{
 			"resource": resource.Name,
 		}),
-		lock.NewResourceConfigCheckingLockID(resource.ID),
+		lock.NewResourceConfigCheckingLockID(resourceConfig.ID),
 	)
 
 	acquired, err := lock.Acquire()

@@ -781,11 +781,6 @@ var _ = Describe("Containers API", func() {
 							Expect(hijackOutput).To(Equal(atc.HijackOutput{
 								ExitStatus: &exitStatus,
 							}))
-
-						})
-
-						It("releases the container", func() {
-							Eventually(fakeContainer.ReleaseCallCount).Should(Equal(1))
 						})
 					})
 

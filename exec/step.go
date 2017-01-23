@@ -48,10 +48,6 @@ type Step interface {
 	// how far the step got.
 	ifrit.Runner
 
-	// Release is called when the build has completed and no more steps will be
-	// executed in the build plan.
-	Release()
-
 	// Result is used to collect metadata from the step. Usually this is
 	// `Success`, but some steps support more types (e.g. `VersionInfo`).
 	//
@@ -86,9 +82,6 @@ type NoopStep struct{}
 func (NoopStep) Run(<-chan os.Signal, chan<- struct{}) error {
 	return nil
 }
-
-// Release does nothing as there are no resources consumed by the NoopStep.
-func (NoopStep) Release() {}
 
 // Result returns false. Arguably it should at least be able to indicate
 // Success (as true), though it currently does not.

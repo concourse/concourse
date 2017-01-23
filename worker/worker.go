@@ -21,7 +21,6 @@ var ErrIncompatiblePlatform = errors.New("incompatible platform")
 var ErrMismatchedTags = errors.New("mismatched tags")
 var ErrNoVolumeManager = errors.New("worker does not support volume management")
 var ErrTeamMismatch = errors.New("mismatched team")
-var ErrResourceTypeNotFound = errors.New("resource type not found")
 var ErrNotImplemented = errors.New("Not implemented")
 
 type MalformedMetadataError struct {
@@ -507,23 +506,6 @@ func (worker *gardenWorker) findOrCreateContainerForIdentifier(
 	}
 
 	logger.Debug("creating-container-for-identifier", lager.Data{"id": id})
-	// if id.ImageResourceType != "" {
-	// 	container, err = worker.FindOrCreateResourceGetContainer(
-	// 		logger,
-	// 		nil,
-	// 		imageFetchingDelegate,
-	// 		id,
-	// 		metadata,
-	// 		resourceSpec,
-	// 		resourceTypes,
-	// 		map[string]string{},
-	// 		string(id.ImageResourceType),
-	// 		s.resourceOptions.Version(),
-	// 		id.ImageResourceSource,
-	// 		s.resourceOptions.Params(),
-	// 	)
-	// }
-
 	if id.BuildID != 0 {
 		container, err = worker.FindOrCreateBuildContainer(
 			logger,

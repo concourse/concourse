@@ -3,7 +3,6 @@ package resource
 import (
 	"crypto/sha512"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
@@ -11,8 +10,6 @@ import (
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
-
-var ErrResourceTypeNotFound = errors.New("resource type not found")
 
 //go:generate counterfeiter . ResourceInstance
 
@@ -108,7 +105,7 @@ func (bri buildResourceInstance) FindOn(logger lager.Logger, workerClient worker
 
 type resourceResourceInstance struct {
 	resourceInstance
-	resource               *dbng.Resource
+	resourceID             int
 	pipelineID             int
 	resourceTypes          atc.ResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
@@ -119,7 +116,7 @@ func NewResourceResourceInstance(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resource *dbng.Resource,
+	resourceID int,
 	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
@@ -131,7 +128,7 @@ func NewResourceResourceInstance(
 			source:           source,
 			params:           params,
 		},
-		resource:               resource,
+		resourceID:             resourceID,
 		pipelineID:             pipelineID,
 		resourceTypes:          resourceTypes,
 		dbResourceCacheFactory: dbResourceCacheFactory,
@@ -141,7 +138,7 @@ func NewResourceResourceInstance(
 func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
 		logger,
-		rri.resource,
+		rri.resourceID,
 		string(rri.resourceTypeName),
 		rri.version,
 		rri.source,
@@ -170,7 +167,7 @@ func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerCl
 func (rri resourceResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
 		logger,
-		rri.resource,
+		rri.resourceID,
 		string(rri.resourceTypeName),
 		rri.version,
 		rri.source,

@@ -85,7 +85,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeResource, nil, nil)
+			fakeResourceFactory.NewCheckResourceForResourceTypeReturns(fakeResource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -118,8 +118,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResource.CheckCallCount()).To(Equal(1))
-				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-				_, id, metadata, resourceSpec, customTypes, delegate, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(fakeResourceFactory.NewCheckResourceForResourceTypeCallCount()).To(Equal(1))
+				_, id, metadata, resourceSpec, customTypes := fakeResourceFactory.NewCheckResourceForResourceTypeArgsForCall(0)
 				Expect(id).To(Equal(worker.Identifier{
 					Stage:               db.ContainerStageCheck,
 					CheckType:           "docker-image",
@@ -140,7 +140,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 						Type:   "docker-image",
 						Source: atc.Source{"custom": "source"},
 					}}))
-				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "docker-image",
@@ -161,10 +160,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Expect(immediate).To(BeFalse())
 
 				Eventually(fakeLock.ReleaseCallCount()).Should(Equal(1))
-			})
-
-			It("releases after checking", func() {
-				Eventually(fakeResource.ReleaseCallCount).Should(Equal(1))
 			})
 
 			Context("when there is no current version", func() {

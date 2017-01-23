@@ -192,41 +192,5 @@ var _ = Describe("On Success Step", func() {
 				})
 			})
 		})
-
-		Describe("Release", func() {
-			var (
-				signals chan os.Signal
-				ready   chan struct{}
-			)
-
-			Context("when both step and hook are run", func() {
-				BeforeEach(func() {
-					signals = make(chan os.Signal, 1)
-					ready = make(chan struct{}, 1)
-
-					step.ResultStub = successResult(true)
-				})
-				It("calls release on both step and hook", func() {
-					onSuccessStep.Run(signals, ready)
-					onSuccessStep.Release()
-					Expect(step.ReleaseCallCount()).To(Equal(1))
-					Expect(hook.ReleaseCallCount()).To(Equal(1))
-				})
-			})
-			Context("when only step runs", func() {
-				BeforeEach(func() {
-					signals = make(chan os.Signal, 1)
-					ready = make(chan struct{}, 1)
-
-					step.ResultStub = successResult(false)
-				})
-				It("calls release on step", func() {
-					onSuccessStep.Run(signals, ready)
-					onSuccessStep.Release()
-					Expect(step.ReleaseCallCount()).To(Equal(1))
-					Expect(hook.ReleaseCallCount()).To(Equal(0))
-				})
-			})
-		})
 	})
 })

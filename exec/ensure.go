@@ -88,14 +88,3 @@ func (o *EnsureStep) Result(x interface{}) bool {
 		return false
 	}
 }
-
-// Release releases both steps.
-func (o *EnsureStep) Release() {
-	if o.step != nil {
-		o.step.Release()
-	}
-
-	if o.ensure != nil {
-		o.ensure.Release()
-	}
-}

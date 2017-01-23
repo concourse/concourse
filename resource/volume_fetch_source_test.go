@@ -119,19 +119,4 @@ var _ = Describe("VolumeFetchSource", func() {
 			})
 		})
 	})
-
-	Describe("Release", func() {
-		Context("when initialized", func() {
-			BeforeEach(func() {
-				err := fetchSource.Initialize(signals, ready)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("releases container", func() {
-				Expect(fakeContainer.ReleaseCallCount()).To(Equal(0))
-				fetchSource.Release()
-				Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-			})
-		})
-	})
 })

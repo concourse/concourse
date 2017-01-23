@@ -50,11 +50,8 @@ type FakeResource struct {
 		result1 []atc.Version
 		result2 error
 	}
-	ReleaseStub        func()
-	releaseMutex       sync.RWMutex
-	releaseArgsForCall []struct{}
-	invocations        map[string][][]interface{}
-	invocationsMutex   sync.RWMutex
+	invocations      map[string][][]interface{}
+	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeResource) Get(arg1 worker.Volume, arg2 resource.IOConfig, arg3 atc.Source, arg4 atc.Params, arg5 atc.Version, arg6 <-chan os.Signal, arg7 chan<- struct{}) (resource.VersionedSource, error) {
@@ -171,22 +168,6 @@ func (fake *FakeResource) CheckReturns(result1 []atc.Version, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeResource) Release() {
-	fake.releaseMutex.Lock()
-	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
-	fake.recordInvocation("Release", []interface{}{})
-	fake.releaseMutex.Unlock()
-	if fake.ReleaseStub != nil {
-		fake.ReleaseStub()
-	}
-}
-
-func (fake *FakeResource) ReleaseCallCount() int {
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
-	return len(fake.releaseArgsForCall)
-}
-
 func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -196,8 +177,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.putMutex.RUnlock()
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
 	return fake.invocations
 }
 

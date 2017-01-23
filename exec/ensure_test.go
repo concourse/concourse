@@ -197,27 +197,5 @@ var _ = Describe("Ensure Step", func() {
 				})
 			})
 		})
-
-		Describe("Release", func() {
-			var (
-				signals chan os.Signal
-				ready   chan struct{}
-			)
-
-			Context("when both step and hook are run", func() {
-				BeforeEach(func() {
-					signals = make(chan os.Signal, 1)
-					ready = make(chan struct{}, 1)
-
-					step.ResultStub = successResult(true)
-				})
-				It("calls release on both step and hook", func() {
-					ensureStep.Run(signals, ready)
-					ensureStep.Release()
-					Expect(step.ReleaseCallCount()).To(Equal(1))
-					Expect(hook.ReleaseCallCount()).To(Equal(1))
-				})
-			})
-		})
 	})
 })

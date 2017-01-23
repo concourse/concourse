@@ -78,13 +78,6 @@ func (step AggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) e
 	return nil
 }
 
-// Release iterates over the steps and Releases them individually.
-func (step AggregateStep) Release() {
-	for _, src := range step {
-		src.Release()
-	}
-}
-
 // Result indicates Success as true if all of the steps indicate Success as
 // true, or if there were no steps at all. If none of the steps can indicate
 // Success, it will return false and not indicate success itself.

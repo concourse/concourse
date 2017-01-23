@@ -85,11 +85,6 @@ dance:
 	return nil
 }
 
-// Release releases the nested step.
-func (ts *TimeoutStep) Release() {
-	ts.runStep.Release()
-}
-
 // Result indicates Success as true if the nested step completed successfully
 // and did not time out.
 //

@@ -89,14 +89,3 @@ func (o *OnSuccessStep) Result(x interface{}) bool {
 		return false
 	}
 }
-
-// Release releases both steps.
-func (o *OnSuccessStep) Release() {
-	if o.step != nil {
-		o.step.Release()
-	}
-
-	if o.success != nil {
-		o.success.Release()
-	}
-}

@@ -343,18 +343,4 @@ var _ = Describe("Retry Step", func() {
 			})
 		})
 	})
-
-	Describe("releasing", func() {
-		It("releases all sources", func() {
-			Expect(attempt1Step.ReleaseCallCount()).To(Equal(0))
-			Expect(attempt2Step.ReleaseCallCount()).To(Equal(0))
-			Expect(attempt3Step.ReleaseCallCount()).To(Equal(0))
-
-			step.Release()
-
-			Expect(attempt1Step.ReleaseCallCount()).To(Equal(1))
-			Expect(attempt2Step.ReleaseCallCount()).To(Equal(1))
-			Expect(attempt3Step.ReleaseCallCount()).To(Equal(1))
-		})
-	})
 })

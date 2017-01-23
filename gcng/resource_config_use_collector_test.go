@@ -276,7 +276,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCacheForResource(
 						logger,
-						usedResource,
+						usedResource.ID,
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{

@@ -96,12 +96,4 @@ var _ = Describe("ContainerFetchSource", func() {
 			})
 		})
 	})
-
-	Describe("Release", func() {
-		It("releases container", func() {
-			Expect(fakeContainer.ReleaseCallCount()).To(Equal(0))
-			fetchSource.Release()
-			Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-		})
-	})
 })

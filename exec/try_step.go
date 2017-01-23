@@ -35,11 +35,6 @@ func (ts *TryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	return nil
 }
 
-// Release releases the nested step.
-func (ts *TryStep) Release() {
-	ts.runStep.Release()
-}
-
 // Result indicates Success as true, and delegates everything else to the
 // nested step.
 func (ts *TryStep) Result(x interface{}) bool {

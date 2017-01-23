@@ -169,14 +169,6 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return nil
 }
 
-func (step *PutStep) Release() {
-	if step.resource == nil {
-		return
-	}
-
-	step.resource.Release()
-}
-
 // Result indicates Success as true if the script completed with exit status 0.
 //
 // It also indicates VersionInfo returned by the script.

@@ -21,7 +21,7 @@ type ResourceConfigFactory interface {
 
 	FindOrCreateResourceConfigForResource(
 		logger lager.Logger,
-		resource *Resource,
+		resourceID int,
 		resourceType string,
 		source atc.Source,
 		pipelineID int,
@@ -101,46 +101,22 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
 	logger lager.Logger,
-	resource *Resource,
+	resourceID int,
 	resourceType string,
 	source atc.Source,
 	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 ) (*UsedResourceConfig, error) {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipelineID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	var usedResourceConfig *UsedResourceConfig
-
-	err = safeFindOrCreate(f.conn, func(tx Tx) error {
-		var err error
-		usedResourceConfig, err = resourceConfig.FindOrCreateForResource(logger, tx, f.lockFactory, resource)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return usedResourceConfig, nil
+	return findOrCreateResourceConfigForResource(
+		f.conn,
+		f.lockFactory,
+		logger,
+		resourceID,
+		resourceType,
+		source,
+		pipelineID,
+		resourceTypes,
+	)
 }
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
@@ -415,4 +391,50 @@ func resourceTypesList(resourceTypeName string, allResourceTypes []atc.ResourceT
 	}
 
 	return resultResourceTypes
+}
+
+func findOrCreateResourceConfigForResource(
+	conn Conn,
+	lockFactory lock.LockFactory,
+	logger lager.Logger,
+	resourceID int,
+	resourceType string,
+	source atc.Source,
+	pipelineID int,
+	resourceTypes atc.ResourceTypes,
+) (*UsedResourceConfig, error) {
+	tx, err := conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipelineID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	var usedResourceConfig *UsedResourceConfig
+
+	err = safeFindOrCreate(conn, func(tx Tx) error {
+		var err error
+		usedResourceConfig, err = resourceConfig.FindOrCreateForResource(logger, tx, lockFactory, resourceID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return usedResourceConfig, nil
 }

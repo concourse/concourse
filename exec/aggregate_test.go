@@ -149,15 +149,6 @@ var _ = Describe("Aggregate", func() {
 		})
 	})
 
-	Describe("releasing", func() {
-		It("releases all sources", func() {
-			step.Release()
-
-			Expect(outStepA.ReleaseCallCount()).To(Equal(1))
-			Expect(outStepB.ReleaseCallCount()).To(Equal(1))
-		})
-	})
-
 	Describe("getting a result", func() {
 		Context("when the result type is bad", func() {
 			It("returns false", func() {

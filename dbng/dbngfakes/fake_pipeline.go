@@ -45,13 +45,14 @@ type FakePipeline struct {
 		result1 *dbng.Resource
 		result2 error
 	}
-	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource *dbng.Resource, length time.Duration, immediate bool) (lock.Lock, bool, error)
+	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.ResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct {
-		logger    lager.Logger
-		resource  *dbng.Resource
-		length    time.Duration
-		immediate bool
+		logger        lager.Logger
+		resource      *dbng.Resource
+		resourceTypes atc.ResourceTypes
+		length        time.Duration
+		immediate     bool
 	}
 	acquireResourceCheckingLockReturns struct {
 		result1 lock.Lock
@@ -195,18 +196,19 @@ func (fake *FakePipeline) CreateResourceReturns(result1 *dbng.Resource, result2 
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLock(logger lager.Logger, resource *dbng.Resource, length time.Duration, immediate bool) (lock.Lock, bool, error) {
+func (fake *FakePipeline) AcquireResourceCheckingLock(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.ResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
-		logger    lager.Logger
-		resource  *dbng.Resource
-		length    time.Duration
-		immediate bool
-	}{logger, resource, length, immediate})
-	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{logger, resource, length, immediate})
+		logger        lager.Logger
+		resource      *dbng.Resource
+		resourceTypes atc.ResourceTypes
+		length        time.Duration
+		immediate     bool
+	}{logger, resource, resourceTypes, length, immediate})
+	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{logger, resource, resourceTypes, length, immediate})
 	fake.acquireResourceCheckingLockMutex.Unlock()
 	if fake.AcquireResourceCheckingLockStub != nil {
-		return fake.AcquireResourceCheckingLockStub(logger, resource, length, immediate)
+		return fake.AcquireResourceCheckingLockStub(logger, resource, resourceTypes, length, immediate)
 	} else {
 		return fake.acquireResourceCheckingLockReturns.result1, fake.acquireResourceCheckingLockReturns.result2, fake.acquireResourceCheckingLockReturns.result3
 	}
@@ -218,10 +220,10 @@ func (fake *FakePipeline) AcquireResourceCheckingLockCallCount() int {
 	return len(fake.acquireResourceCheckingLockArgsForCall)
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, *dbng.Resource, time.Duration, bool) {
+func (fake *FakePipeline) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, *dbng.Resource, atc.ResourceTypes, time.Duration, bool) {
 	fake.acquireResourceCheckingLockMutex.RLock()
 	defer fake.acquireResourceCheckingLockMutex.RUnlock()
-	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resource, fake.acquireResourceCheckingLockArgsForCall[i].length, fake.acquireResourceCheckingLockArgsForCall[i].immediate
+	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resource, fake.acquireResourceCheckingLockArgsForCall[i].resourceTypes, fake.acquireResourceCheckingLockArgsForCall[i].length, fake.acquireResourceCheckingLockArgsForCall[i].immediate
 }
 
 func (fake *FakePipeline) AcquireResourceCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {

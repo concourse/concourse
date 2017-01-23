@@ -524,14 +524,6 @@ var _ = Describe("ContainerProvider", func() {
 					Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
 					Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("provider-handle"))
 				})
-
-				It("can be released multiple times", func() {
-					foundContainer.Release()
-
-					Expect(func() {
-						foundContainer.Release()
-					}).NotTo(Panic())
-				})
 			})
 
 			Context("when the concourse:volumes property is present", func() {

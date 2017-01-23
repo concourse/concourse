@@ -241,9 +241,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 ) (Container, error) {
 	resourceConfig, err := p.dbResourceConfigFactory.FindOrCreateResourceConfigForResource(
 		logger,
-		&dbng.Resource{
-			ID: id.ResourceID,
-		},
+		id.ResourceID,
 		resourceType,
 		source,
 		metadata.PipelineID,
@@ -372,9 +370,7 @@ func (p *containerProvider) FindOrCreateResourceGetContainer(
 		var err error
 		resourceCache, err = p.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
 			logger,
-			&dbng.Resource{
-				ID: id.ResourceID,
-			},
+			id.ResourceID,
 			resourceTypeName,
 			version,
 			source,

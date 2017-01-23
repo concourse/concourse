@@ -315,10 +315,8 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				build.Resume(logger)
 
 				Expect(inputStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(taskStep.RunCallCount()).To(Equal(1))
-				Expect(taskStep.ReleaseCallCount()).To(Equal(1))
 			})
 
 			It("runs the success hooks, and completion hooks", func() {
@@ -349,16 +347,12 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				build.Resume(logger)
 
 				Expect(inputStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(taskStep.RunCallCount()).To(Equal(1))
-				Expect(taskStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(outputStep.RunCallCount()).To(Equal(1))
-				Expect(outputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(dependentStep.RunCallCount()).To(Equal(1))
-				Expect(dependentStep.ReleaseCallCount()).To(Equal(1))
 			})
 
 			Context("when the success hook fails, and has a failure hook", func() {
@@ -395,16 +389,12 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					build.Resume(logger)
 
 					Expect(inputStep.RunCallCount()).To(Equal(1))
-					Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 					Expect(taskStep.RunCallCount()).To(Equal(2))
-					Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 					Expect(outputStep.RunCallCount()).To(Equal(0))
-					Expect(outputStep.ReleaseCallCount()).To(Equal(0))
 
 					Expect(dependentStep.RunCallCount()).To(Equal(0))
-					Expect(dependentStep.ReleaseCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -440,13 +430,10 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				build.Resume(logger)
 
 				Expect(inputStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(taskStep.RunCallCount()).To(Equal(1))
-				Expect(inputStep.ReleaseCallCount()).To(Equal(1))
 
 				Expect(outputStep.RunCallCount()).To(Equal(0))
-				Expect(outputStep.ReleaseCallCount()).To(Equal(0))
 
 				_, cbErr, successful, aborted := fakeDelegate.FinishArgsForCall(0)
 				Expect(cbErr).NotTo(HaveOccurred())

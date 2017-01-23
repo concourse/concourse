@@ -38,11 +38,8 @@ type FakeFetchSource struct {
 	initializeReturns struct {
 		result1 error
 	}
-	ReleaseStub        func()
-	releaseMutex       sync.RWMutex
-	releaseArgsForCall []struct{}
-	invocations        map[string][][]interface{}
-	invocationsMutex   sync.RWMutex
+	invocations      map[string][][]interface{}
+	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeFetchSource) IsInitialized() (bool, error) {
@@ -156,22 +153,6 @@ func (fake *FakeFetchSource) InitializeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeFetchSource) Release() {
-	fake.releaseMutex.Lock()
-	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
-	fake.recordInvocation("Release", []interface{}{})
-	fake.releaseMutex.Unlock()
-	if fake.ReleaseStub != nil {
-		fake.ReleaseStub()
-	}
-}
-
-func (fake *FakeFetchSource) ReleaseCallCount() int {
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
-	return len(fake.releaseArgsForCall)
-}
-
 func (fake *FakeFetchSource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -183,8 +164,6 @@ func (fake *FakeFetchSource) Invocations() map[string][][]interface{} {
 	defer fake.versionedSourceMutex.RUnlock()
 	fake.initializeMutex.RLock()
 	defer fake.initializeMutex.RUnlock()
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -108,7 +108,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeResource, nil, nil)
+			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -140,7 +140,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, id, metadata, resourceSpec, customTypes, delegate, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, id, metadata, resourceSpec, customTypes := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(id).To(Equal(worker.Identifier{
 					ResourceID:  39,
 					Stage:       db.ContainerStageRun,
@@ -159,7 +159,6 @@ var _ = Describe("ResourceScanner", func() {
 						Source: atc.Source{"custom": "source"},
 					},
 				}))
-				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "git",
@@ -185,8 +184,15 @@ var _ = Describe("ResourceScanner", func() {
 				It("leases for the configured interval", func() {
 					Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 
-					_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
+						{
+							Name:   "some-custom-resource",
+							Type:   "docker-image",
+							Source: atc.Source{"custom": "source"},
+						},
+					}))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeFalse())
 
@@ -220,16 +226,19 @@ var _ = Describe("ResourceScanner", func() {
 			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
 				Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 
-				_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 				Expect(resource.Name).To(Equal("some-resource"))
+				Expect(resourceTypes).To(Equal(atc.ResourceTypes{
+					{
+						Name:   "some-custom-resource",
+						Type:   "docker-image",
+						Source: atc.Source{"custom": "source"},
+					},
+				}))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())
 
 				Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
-			})
-
-			It("releases after checking", func() {
-				Eventually(fakeResource.ReleaseCallCount).Should(Equal(1))
 			})
 
 			Context("when there is no current version", func() {
@@ -432,7 +441,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeResource, nil, nil)
+			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -449,7 +458,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, id, metadata, resourceSpec, _, _, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+				_, id, metadata, resourceSpec, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(id).To(Equal(worker.Identifier{
 					ResourceID:  39,
 					Stage:       db.ContainerStageRun,
@@ -481,8 +490,15 @@ var _ = Describe("ResourceScanner", func() {
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
 				Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 
-				_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 				Expect(resource.Name).To(Equal("some-resource"))
+				Expect(resourceTypes).To(Equal(atc.ResourceTypes{
+					{
+						Name:   "some-custom-resource",
+						Type:   "docker-image",
+						Source: atc.Source{"custom": "source"},
+					},
+				}))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeTrue())
 
@@ -498,8 +514,15 @@ var _ = Describe("ResourceScanner", func() {
 				It("leases for the configured interval", func() {
 					Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
 
-					_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
+						{
+							Name:   "some-custom-resource",
+							Type:   "docker-image",
+							Source: atc.Source{"custom": "source"},
+						},
+					}))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeTrue())
 
@@ -532,7 +555,7 @@ var _ = Describe("ResourceScanner", func() {
 					results <- true
 					close(results)
 
-					fakeDBPipeline.AcquireResourceCheckingLockStub = func(logger lager.Logger, resource *dbng.Resource, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+					fakeDBPipeline.AcquireResourceCheckingLockStub = func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.ResourceTypes, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {
@@ -546,27 +569,44 @@ var _ = Describe("ResourceScanner", func() {
 				It("retries every second until it is", func() {
 					Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(3))
 
-					_, resource, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
+						{
+							Name:   "some-custom-resource",
+							Type:   "docker-image",
+							Source: atc.Source{"custom": "source"},
+						},
+					}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					_, resource, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(1)
+					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(1)
 					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
+						{
+							Name:   "some-custom-resource",
+							Type:   "docker-image",
+							Source: atc.Source{"custom": "source"},
+						},
+					}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					_, resource, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(2)
+					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(2)
 					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
+						{
+							Name:   "some-custom-resource",
+							Type:   "docker-image",
+							Source: atc.Source{"custom": "source"},
+						},
+					}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
 					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
-			})
-
-			It("releases the resource", func() {
-				Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
 			})
 
 			It("clears the resource's check error", func() {
@@ -736,7 +776,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeResource, nil, nil)
+			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
 			fromVersion = nil
 		})
 

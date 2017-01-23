@@ -258,15 +258,6 @@ var _ = Describe("GardenFactory", func() {
 					Expect(bool(success)).To(BeTrue())
 				})
 
-				It("releases the resource", func() {
-					<-process.Wait()
-
-					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-					step.Release()
-					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-				})
-
 				It("completes via the delegate", func() {
 					Eventually(putDelegate.CompletedCallCount).Should(Equal(1))
 
@@ -326,15 +317,6 @@ var _ = Describe("GardenFactory", func() {
 							Expect(putDelegate.FailedCallCount()).To(Equal(1))
 							Expect(putDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 						})
-
-						It("releases the resource", func() {
-							<-process.Wait()
-
-							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-							step.Release()
-							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-						})
 					})
 
 					Context("by being interrupted", func() {
@@ -353,15 +335,6 @@ var _ = Describe("GardenFactory", func() {
 
 							Expect(putDelegate.FailedCallCount()).To(Equal(1))
 							Expect(putDelegate.FailedArgsForCall(0)).To(Equal(ErrInterrupted))
-						})
-
-						It("releases the resource", func() {
-							<-process.Wait()
-
-							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-							step.Release()
-							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
 						})
 					})
 
@@ -395,15 +368,6 @@ var _ = Describe("GardenFactory", func() {
 
 							Expect(step.Result(&success)).To(BeTrue())
 							Expect(bool(success)).To(BeFalse())
-						})
-
-						It("releases the resource", func() {
-							<-process.Wait()
-
-							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-							step.Release()
-							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
 						})
 					})
 				})

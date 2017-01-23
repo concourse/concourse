@@ -71,7 +71,3 @@ func (s *containerFetchSource) Initialize(signals <-chan os.Signal, ready chan<-
 
 	return nil
 }
-
-func (s *containerFetchSource) Release() {
-	s.container.Release()
-}

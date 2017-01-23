@@ -150,14 +150,6 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return nil
 }
 
-func (step *GetStep) Release() {
-	if step.fetchSource == nil {
-		return
-	}
-
-	step.fetchSource.Release()
-}
-
 // Result indicates Success as true if the script completed successfully (or
 // didn't have to run) and everything else worked fine.
 //

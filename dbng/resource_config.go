@@ -106,17 +106,17 @@ func (resourceConfig ResourceConfig) FindOrCreateForBuild(logger lager.Logger, t
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (resourceConfig ResourceConfig) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resource *Resource) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceID int) (*UsedResourceConfig, error) {
 	var resourceCacheID int
 	if resourceConfig.CreatedByResourceCache != nil {
-		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForResource(logger, tx, lockFactory, resource)
+		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForResource(logger, tx, lockFactory, resourceID)
 		if err != nil {
 			return nil, err
 		}
 
 		resourceCacheID = createdByResourceCache.ID
 	}
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_id", resource.ID, resourceCacheID)
+	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_id", resourceID, resourceCacheID)
 }
 
 // FindOrCreateForResourceType creates the ResourceConfig, recursively creating

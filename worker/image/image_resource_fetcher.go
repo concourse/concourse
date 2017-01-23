@@ -119,7 +119,7 @@ func (i *imageResourceFetcher) Fetch(
 			version,
 			imageResourceSource,
 			nil,
-			&dbng.Resource{ID: id.ResourceID},
+			id.ResourceID,
 			metadata.PipelineID,
 			customTypes,
 			i.dbResourceCacheFactory,
@@ -202,10 +202,9 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, fmt.Errorf("could not read file \"%s\" from tar", ImageMetadataFile)
 	}
 
-	releasingReader := &releasingReadCloser{
-		Reader:      tarReader,
-		Closer:      reader,
-		releaseFunc: func() { fetchSource.Release() },
+	releasingReader := &readCloser{
+		Reader: tarReader,
+		Closer: reader,
 	}
 
 	return volume, releasingReader, version, nil
@@ -252,8 +251,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 	if err != nil {
 		return nil, err
 	}
-
-	defer checkingResource.Release()
 
 	versions, err := checkingResource.Check(imageResourceSource, nil)
 	if err != nil {
@@ -319,13 +316,7 @@ func (ir *imageResourceOptions) LockName(workerName string) (string, error) {
 	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
 }
 
-type releasingReadCloser struct {
+type readCloser struct {
 	io.Reader
 	io.Closer
-	releaseFunc func()
-}
-
-func (r *releasingReadCloser) Close() error {
-	r.releaseFunc()
-	return r.Closer.Close()
 }

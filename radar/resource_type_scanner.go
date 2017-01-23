@@ -101,7 +101,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		TeamID:    scanner.db.TeamID(),
 	}
 
-	res, _, err := scanner.resourceFactory.NewResource(
+	res, err := scanner.resourceFactory.NewCheckResourceForResourceType(
 		logger,
 		worker.Identifier{
 			Stage:               db.ContainerStageCheck,
@@ -118,15 +118,11 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		},
 		resourceSpec,
 		scanner.db.Config().ResourceTypes,
-		worker.NoopImageFetchingDelegate{},
-		nil,
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)
 		return err
 	}
-
-	defer res.Release()
 
 	newVersions, err := res.Check(resourceType.Source, atc.Version(fromVersion))
 	if err != nil {

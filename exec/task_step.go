@@ -405,14 +405,6 @@ func (step *TaskStep) Result(x interface{}) bool {
 	}
 }
 
-func (step *TaskStep) Release() {
-	if step.container == nil {
-		return
-	}
-
-	step.container.Release()
-}
-
 func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []worker.VolumeMount, []inputPair, error) {
 	inputMounts := []worker.VolumeMount{}
 	inputsToStream := []inputPair{}

@@ -138,7 +138,7 @@ var _ = Describe("Team", func() {
 		BeforeEach(func() {
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(
 				logger,
-				defaultResource,
+				defaultResource.ID,
 				"some-base-resource-type",
 				atc.Source{"some": "source"},
 				defaultPipeline.ID(),

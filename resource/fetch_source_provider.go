@@ -37,7 +37,6 @@ type FetchSource interface {
 	LockName() (string, error)
 	VersionedSource() VersionedSource
 	Initialize(signals <-chan os.Signal, ready chan<- struct{}) error
-	Release()
 }
 
 type fetchSourceProviderFactory struct {

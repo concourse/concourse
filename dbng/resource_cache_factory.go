@@ -25,7 +25,7 @@ type ResourceCacheFactory interface {
 
 	FindOrCreateResourceCacheForResource(
 		logger lager.Logger,
-		resource *Resource,
+		resourceID int,
 		resourceTypeName string,
 		version atc.Version,
 		source atc.Source,
@@ -117,7 +117,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 
 func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 	logger lager.Logger,
-	resource *Resource,
+	resourceID int,
 	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
@@ -152,7 +152,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
 
 	err = safeFindOrCreate(f.conn, func(tx Tx) error {
 		var err error
-		usedResourceCache, err = resourceCache.FindOrCreateForResource(logger, tx, f.lockFactory, resource)
+		usedResourceCache, err = resourceCache.FindOrCreateForResource(logger, tx, f.lockFactory, resourceID)
 		if err != nil {
 			return err
 		}

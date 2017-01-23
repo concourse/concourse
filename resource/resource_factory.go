@@ -36,6 +36,22 @@ type ResourceFactory interface {
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 		resourceSources map[string]worker.ArtifactSource,
 	) (Resource, []string, error)
+
+	NewCheckResource(
+		logger lager.Logger,
+		id worker.Identifier,
+		metadata worker.Metadata,
+		resourceSpec worker.ContainerSpec,
+		resourceTypes atc.ResourceTypes,
+	) (Resource, error)
+
+	NewCheckResourceForResourceType(
+		logger lager.Logger,
+		id worker.Identifier,
+		metadata worker.Metadata,
+		resourceSpec worker.ContainerSpec,
+		resourceTypes atc.ResourceTypes,
+	) (Resource, error)
 }
 
 type resourceFactory struct {
@@ -65,4 +81,54 @@ func (f *resourceFactory) NewResource(
 	}
 
 	return NewResourceForContainer(container), missingSourceNames, nil
+}
+
+func (f *resourceFactory) NewCheckResource(
+	logger lager.Logger,
+	id worker.Identifier,
+	metadata worker.Metadata,
+	resourceSpec worker.ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+) (Resource, error) {
+	container, err := f.workerClient.FindOrCreateResourceCheckContainer(
+		logger,
+		nil,
+		worker.NoopImageFetchingDelegate{},
+		id,
+		metadata,
+		resourceSpec,
+		resourceTypes,
+		id.CheckType,
+		id.CheckSource,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewResourceForContainer(container), nil
+}
+
+func (f *resourceFactory) NewCheckResourceForResourceType(
+	logger lager.Logger,
+	id worker.Identifier,
+	metadata worker.Metadata,
+	resourceSpec worker.ContainerSpec,
+	resourceTypes atc.ResourceTypes,
+) (Resource, error) {
+	container, err := f.workerClient.FindOrCreateResourceTypeCheckContainer(
+		logger,
+		nil,
+		worker.NoopImageFetchingDelegate{},
+		id,
+		metadata,
+		resourceSpec,
+		resourceTypes,
+		id.CheckType,
+		id.CheckSource,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewResourceForContainer(container), nil
 }

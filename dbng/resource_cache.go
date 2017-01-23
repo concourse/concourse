@@ -56,13 +56,13 @@ func (cache ResourceCache) FindOrCreateForBuild(logger lager.Logger, tx Tx, lock
 	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "build_id", buildID)
 }
 
-func (cache ResourceCache) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resource *Resource) (*UsedResourceCache, error) {
-	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForResource(logger, tx, lockFactory, resource)
+func (cache ResourceCache) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceID int) (*UsedResourceCache, error) {
+	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForResource(logger, tx, lockFactory, resourceID)
 	if err != nil {
 		return nil, err
 	}
 
-	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "resource_id", resource.ID)
+	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "resource_id", resourceID)
 }
 
 func (cache ResourceCache) FindOrCreateForResourceType(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceType *UsedResourceType) (*UsedResourceCache, error) {

@@ -190,8 +190,6 @@ func (build *execBuild) Resume(logger lager.Logger) {
 	logger.Debug("resuming-put-step-maybe", lager.Data{"plan": build.metadata.Plan})
 	source := stepFactory.Using(&exec.NoopStep{}, worker.NewArtifactRepository())
 
-	defer source.Release()
-
 	process := ifrit.Background(source)
 
 	exited := process.Wait()

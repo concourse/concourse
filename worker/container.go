@@ -57,13 +57,11 @@ func newGardenWorkerContainer(
 
 	err := workerContainer.initializeVolumes(logger, baggageclaimClient)
 	if err != nil {
-		workerContainer.Release()
 		return nil, err
 	}
 
 	properties, err := workerContainer.Properties()
 	if err != nil {
-		workerContainer.Release()
 		return nil, err
 	}
 
@@ -77,7 +75,7 @@ func newGardenWorkerContainer(
 }
 
 func (container *gardenWorkerContainer) Destroy() error {
-	container.Release()
+	metric.TrackedContainers.Dec()
 	return container.gardenClient.Destroy(container.Handle())
 }
 
@@ -87,10 +85,6 @@ func (container *gardenWorkerContainer) WorkerName() string {
 
 func (container *gardenWorkerContainer) MarkAsHijacked() error {
 	return container.dbContainer.MarkAsHijacked()
-}
-
-func (container *gardenWorkerContainer) Release() {
-	metric.TrackedContainers.Dec()
 }
 
 func (container *gardenWorkerContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {

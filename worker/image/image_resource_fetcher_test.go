@@ -287,12 +287,6 @@ var _ = Describe("Image", func() {
 							Expect(ioutil.ReadAll(fetchedMetadataReader)).To(Equal([]byte("some-tar-contents")))
 						})
 
-						It("closing the tar stream releases the fetch source", func() {
-							Expect(fakeFetchSource.ReleaseCallCount()).To(Equal(0))
-							fetchedMetadataReader.Close()
-							Expect(fakeFetchSource.ReleaseCallCount()).To(Equal(1))
-						})
-
 						It("has the version on the image", func() {
 							Expect(fetchedVersion).To(Equal(atc.Version{"v": "1"}))
 						})
@@ -342,12 +336,6 @@ var _ = Describe("Image", func() {
 							}
 							Expect(fakeImageFetchingDelegate.ImageVersionDeterminedCallCount()).To(Equal(1))
 							Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(expectedIdentifier))
-						})
-
-						It("releases the check resource, which includes releasing its volume", func() {
-							// TODO we need to actually make sure that the volume is released
-							// because it seems like it is not
-							Expect(fakeCheckResource.ReleaseCallCount()).To(Equal(1))
 						})
 
 						// TODO It doesn't seem that all cases were being tested because they besically do the same

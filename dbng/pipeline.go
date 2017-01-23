@@ -20,7 +20,13 @@ type Pipeline interface {
 	SaveJob(job atc.JobConfig) error
 	CreateJobBuild(jobName string) (Build, error)
 	CreateResource(name string, config atc.ResourceConfig) (*Resource, error)
-	AcquireResourceCheckingLock(logger lager.Logger, resource *Resource, length time.Duration, immediate bool) (lock.Lock, bool, error)
+	AcquireResourceCheckingLock(
+		logger lager.Logger,
+		resource *Resource,
+		resourceTypes atc.ResourceTypes,
+		length time.Duration,
+		immediate bool,
+	) (lock.Lock, bool, error)
 	Destroy() error
 }
 
@@ -137,8 +143,10 @@ func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (*Reso
 	}
 
 	return &Resource{
-		ID:   resourceID,
-		Name: name,
+		ID:     resourceID,
+		Name:   name,
+		Type:   config.Type,
+		Source: config.Source,
 	}, nil
 }
 

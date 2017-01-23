@@ -1351,15 +1351,6 @@ var _ = Describe("GardenFactory", func() {
 								Expect(status).To(Equal(ExitStatus(0)))
 							})
 
-							It("releases", func() {
-								<-process.Wait()
-
-								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
-
-								step.Release()
-								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-							})
-
 							It("doesn't register a source", func() {
 								Eventually(process.Wait()).Should(Receive(BeNil()))
 
@@ -1445,15 +1436,6 @@ var _ = Describe("GardenFactory", func() {
 								var status ExitStatus
 								Expect(step.Result(&status)).To(BeTrue())
 								Expect(status).To(Equal(ExitStatus(1)))
-							})
-
-							It("releases", func() {
-								<-process.Wait()
-
-								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
-
-								step.Release()
-								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
 							})
 
 							Context("when saving the exit status succeeds", func() {
@@ -1812,15 +1794,6 @@ var _ = Describe("GardenFactory", func() {
 						Expect(bool(success)).To(BeFalse())
 					})
 
-					It("releases the container", func() {
-						<-process.Wait()
-
-						Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
-
-						step.Release()
-						Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-					})
-
 					It("reports its exit status", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
@@ -1893,15 +1866,6 @@ var _ = Describe("GardenFactory", func() {
 
 						It("does not invoke the delegate's Started callback", func() {
 							Expect(taskDelegate.StartedCallCount()).To(BeZero())
-						})
-
-						It("releases the container", func() {
-							<-process.Wait()
-
-							Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
-
-							step.Release()
-							Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
 						})
 					})
 

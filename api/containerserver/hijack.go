@@ -90,8 +90,6 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		"process": request.Process,
 	})
 
-	defer request.Container.Release()
-
 	stdinR, stdinW := io.Pipe()
 
 	inputs := make(chan atc.HijackInput)

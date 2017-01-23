@@ -343,7 +343,7 @@ var _ = Describe("ContainerFactory", func() {
 			BeforeEach(func() {
 				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(
 					logger,
-					defaultResource,
+					defaultResource.ID,
 					"some-base-resource-type",
 					atc.Source{"some": "source"},
 					defaultPipeline.ID(),
@@ -483,7 +483,7 @@ var _ = Describe("ContainerFactory", func() {
 			BeforeEach(func() {
 				resourceCache, err = resourceCacheFactory.FindOrCreateResourceCacheForResource(
 					logger,
-					defaultResource,
+					defaultResource.ID,
 					"some-base-resource-type",
 					atc.Version{"some": "version"},
 					atc.Source{"some": "source"},

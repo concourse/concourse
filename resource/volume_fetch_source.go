@@ -98,12 +98,6 @@ func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- st
 	return nil
 }
 
-func (s *volumeFetchSource) Release() {
-	if s.container != nil {
-		s.container.Release()
-	}
-}
-
 func (s *volumeFetchSource) findOrCreateContainerForVolume() (worker.Container, error) {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
