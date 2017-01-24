@@ -105,7 +105,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		logger,
 		worker.Identifier{
 			Stage:               db.ContainerStageCheck,
-			CheckType:           resourceType.Type,
+			CheckType:           resourceType.Name,
 			CheckSource:         resourceType.Source,
 			ImageResourceType:   resourceType.Type,
 			ImageResourceSource: resourceType.Source,

@@ -122,7 +122,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				_, id, metadata, resourceSpec, customTypes := fakeResourceFactory.NewCheckResourceForResourceTypeArgsForCall(0)
 				Expect(id).To(Equal(worker.Identifier{
 					Stage:               db.ContainerStageCheck,
-					CheckType:           "docker-image",
+					CheckType:           "some-resource-type",
 					CheckSource:         atc.Source{"custom": "source"},
 					ImageResourceType:   "docker-image",
 					ImageResourceSource: atc.Source{"custom": "source"},

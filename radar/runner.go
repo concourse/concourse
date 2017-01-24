@@ -122,7 +122,7 @@ func (runner *Runner) tick(
 
 		scanningResourceTypes[scopedName] = true
 
-		logger := runner.logger.Session("scan", lager.Data{
+		logger := runner.logger.Session("scan-resource-type", lager.Data{
 			"pipeline-scoped-name": scopedName,
 		})
 		runner := runner.scanRunnerFactory.ScanResourceTypeRunner(logger, resourceType.Name)
@@ -146,7 +146,7 @@ func (runner *Runner) tick(
 
 		scanning[scopedName] = true
 
-		logger := runner.logger.Session("scan", lager.Data{
+		logger := runner.logger.Session("scan-resource", lager.Data{
 			"pipeline-scoped-name": scopedName,
 		})
 		runner := runner.scanRunnerFactory.ScanResourceRunner(logger, resource.Name)
