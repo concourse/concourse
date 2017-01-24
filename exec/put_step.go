@@ -97,28 +97,31 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		Env:       step.stepMetadata.Env(),
 	}
 
-	sources := step.repository.AsMap()
-	resourceSources := make(map[string]worker.ArtifactSource)
-	for name, source := range sources {
-		resourceSources[string(name)] = resourceSource{source}
+	inputSources := []resource.InputSource{}
+	for name, source := range step.repository.AsMap() {
+		inputSources = append(inputSources, &putInputSource{
+			name:   name,
+			source: resourceSource{source},
+		})
 	}
 
-	putResource, missingNames, err := step.resourceFactory.NewResource(
+	putResource, missingSources, err := step.resourceFactory.NewBuildResource(
 		step.logger,
 		runSession.ID,
 		runSession.Metadata,
 		resourceSpec,
 		step.resourceTypes,
 		step.delegate,
-		resourceSources,
+		inputSources,
+		map[string]string{},
 	)
 	if err != nil {
 		return err
 	}
 
-	missingSourceNames := make([]worker.ArtifactName, len(missingNames))
-	for i, n := range missingNames {
-		missingSourceNames[i] = worker.ArtifactName(n)
+	missingSourceNames := []worker.ArtifactName{}
+	for _, missingSource := range missingSources {
+		missingSourceNames = append(missingSourceNames, worker.ArtifactName(missingSource.Name()))
 	}
 
 	step.resource = putResource
@@ -129,7 +132,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	}
 
 	var artifactSource worker.ArtifactSource
-	if len(sources) == 0 {
+	if len(inputSources) == 0 {
 		artifactSource = emptySource{}
 	} else {
 		artifactSource = resourceSource{scopedRepo}
@@ -218,3 +221,12 @@ func (source emptySource) StreamTo(dest worker.ArtifactDestination) error {
 
 	return nil
 }
+
+type putInputSource struct {
+	name   worker.ArtifactName
+	source worker.ArtifactSource
+}
+
+func (s *putInputSource) Name() worker.ArtifactName     { return s.name }
+func (s *putInputSource) Source() worker.ArtifactSource { return s.source }
+func (s *putInputSource) MountPath() string             { return resource.ResourcesDir("put/" + string(s.name)) }

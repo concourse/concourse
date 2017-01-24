@@ -527,6 +527,8 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		infoType            string
 		envVariablesBlob    []byte
 		attempts            sql.NullString
+		checkType           sql.NullString
+		user                sql.NullString
 		resourceTypeVersion []byte
 	)
 	container := SavedContainer{}
@@ -534,7 +536,7 @@ func scanContainer(row scannable) (SavedContainer, error) {
 	err := row.Scan(
 		&container.WorkerName,
 		&resourceID,
-		&container.CheckType,
+		&checkType,
 		&checkSourceBlob,
 		&buildID,
 		&planID,
@@ -550,7 +552,7 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		&container.WorkingDirectory,
 		&envVariablesBlob,
 		&attempts,
-		&container.User,
+		&user,
 		&container.ID,
 		&resourceTypeVersion,
 		&teamID,
@@ -570,6 +572,14 @@ func scanContainer(row scannable) (SavedContainer, error) {
 
 	if teamID.Valid {
 		container.TeamID = int(teamID.Int64)
+	}
+
+	if checkType.Valid {
+		container.CheckType = checkType.String
+	}
+
+	if user.Valid {
+		container.User = user.String
 	}
 
 	container.PlanID = atc.PlanID(planID.String)

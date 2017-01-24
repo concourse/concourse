@@ -15,6 +15,7 @@ type Resource interface {
 	Get(worker.Volume, IOConfig, atc.Source, atc.Params, atc.Version, <-chan os.Signal, chan<- struct{}) (VersionedSource, error)
 	Put(IOConfig, atc.Source, atc.Params, worker.ArtifactSource, <-chan os.Signal, chan<- struct{}) (VersionedSource, error)
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
+	Container() worker.Container
 }
 
 type ResourceType string
@@ -57,4 +58,8 @@ func NewResourceForContainer(container worker.Container) Resource {
 	return &resource{
 		container: container,
 	}
+}
+
+func (r *resource) Container() worker.Container {
+	return r.container
 }

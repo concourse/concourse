@@ -27,6 +27,23 @@ type FakeResourceFactory struct {
 		result2 []string
 		result3 error
 	}
+	NewBuildResourceStub        func(logger lager.Logger, id worker.Identifier, metadata worker.Metadata, containerSpec worker.ContainerSpec, resourceTypes atc.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, inputSources []resource.InputSource, outputPaths map[string]string) (resource.Resource, []resource.InputSource, error)
+	newBuildResourceMutex       sync.RWMutex
+	newBuildResourceArgsForCall []struct {
+		logger                lager.Logger
+		id                    worker.Identifier
+		metadata              worker.Metadata
+		containerSpec         worker.ContainerSpec
+		resourceTypes         atc.ResourceTypes
+		imageFetchingDelegate worker.ImageFetchingDelegate
+		inputSources          []resource.InputSource
+		outputPaths           map[string]string
+	}
+	newBuildResourceReturns struct {
+		result1 resource.Resource
+		result2 []resource.InputSource
+		result3 error
+	}
 	NewCheckResourceStub        func(logger lager.Logger, id worker.Identifier, metadata worker.Metadata, resourceSpec worker.ContainerSpec, resourceTypes atc.ResourceTypes) (resource.Resource, error)
 	newCheckResourceMutex       sync.RWMutex
 	newCheckResourceArgsForCall []struct {
@@ -94,6 +111,53 @@ func (fake *FakeResourceFactory) NewResourceReturns(result1 resource.Resource, r
 	fake.newResourceReturns = struct {
 		result1 resource.Resource
 		result2 []string
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResourceFactory) NewBuildResource(logger lager.Logger, id worker.Identifier, metadata worker.Metadata, containerSpec worker.ContainerSpec, resourceTypes atc.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, inputSources []resource.InputSource, outputPaths map[string]string) (resource.Resource, []resource.InputSource, error) {
+	var inputSourcesCopy []resource.InputSource
+	if inputSources != nil {
+		inputSourcesCopy = make([]resource.InputSource, len(inputSources))
+		copy(inputSourcesCopy, inputSources)
+	}
+	fake.newBuildResourceMutex.Lock()
+	fake.newBuildResourceArgsForCall = append(fake.newBuildResourceArgsForCall, struct {
+		logger                lager.Logger
+		id                    worker.Identifier
+		metadata              worker.Metadata
+		containerSpec         worker.ContainerSpec
+		resourceTypes         atc.ResourceTypes
+		imageFetchingDelegate worker.ImageFetchingDelegate
+		inputSources          []resource.InputSource
+		outputPaths           map[string]string
+	}{logger, id, metadata, containerSpec, resourceTypes, imageFetchingDelegate, inputSourcesCopy, outputPaths})
+	fake.recordInvocation("NewBuildResource", []interface{}{logger, id, metadata, containerSpec, resourceTypes, imageFetchingDelegate, inputSourcesCopy, outputPaths})
+	fake.newBuildResourceMutex.Unlock()
+	if fake.NewBuildResourceStub != nil {
+		return fake.NewBuildResourceStub(logger, id, metadata, containerSpec, resourceTypes, imageFetchingDelegate, inputSources, outputPaths)
+	} else {
+		return fake.newBuildResourceReturns.result1, fake.newBuildResourceReturns.result2, fake.newBuildResourceReturns.result3
+	}
+}
+
+func (fake *FakeResourceFactory) NewBuildResourceCallCount() int {
+	fake.newBuildResourceMutex.RLock()
+	defer fake.newBuildResourceMutex.RUnlock()
+	return len(fake.newBuildResourceArgsForCall)
+}
+
+func (fake *FakeResourceFactory) NewBuildResourceArgsForCall(i int) (lager.Logger, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes, worker.ImageFetchingDelegate, []resource.InputSource, map[string]string) {
+	fake.newBuildResourceMutex.RLock()
+	defer fake.newBuildResourceMutex.RUnlock()
+	return fake.newBuildResourceArgsForCall[i].logger, fake.newBuildResourceArgsForCall[i].id, fake.newBuildResourceArgsForCall[i].metadata, fake.newBuildResourceArgsForCall[i].containerSpec, fake.newBuildResourceArgsForCall[i].resourceTypes, fake.newBuildResourceArgsForCall[i].imageFetchingDelegate, fake.newBuildResourceArgsForCall[i].inputSources, fake.newBuildResourceArgsForCall[i].outputPaths
+}
+
+func (fake *FakeResourceFactory) NewBuildResourceReturns(result1 resource.Resource, result2 []resource.InputSource, result3 error) {
+	fake.NewBuildResourceStub = nil
+	fake.newBuildResourceReturns = struct {
+		result1 resource.Resource
+		result2 []resource.InputSource
 		result3 error
 	}{result1, result2, result3}
 }
@@ -179,6 +243,8 @@ func (fake *FakeResourceFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.newResourceMutex.RLock()
 	defer fake.newResourceMutex.RUnlock()
+	fake.newBuildResourceMutex.RLock()
+	defer fake.newBuildResourceMutex.RUnlock()
 	fake.newCheckResourceMutex.RLock()
 	defer fake.newCheckResourceMutex.RUnlock()
 	fake.newCheckResourceForResourceTypeMutex.RLock()

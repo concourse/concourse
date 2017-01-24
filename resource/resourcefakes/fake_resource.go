@@ -50,6 +50,12 @@ type FakeResource struct {
 		result1 []atc.Version
 		result2 error
 	}
+	ContainerStub        func() worker.Container
+	containerMutex       sync.RWMutex
+	containerArgsForCall []struct{}
+	containerReturns     struct {
+		result1 worker.Container
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -168,6 +174,31 @@ func (fake *FakeResource) CheckReturns(result1 []atc.Version, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeResource) Container() worker.Container {
+	fake.containerMutex.Lock()
+	fake.containerArgsForCall = append(fake.containerArgsForCall, struct{}{})
+	fake.recordInvocation("Container", []interface{}{})
+	fake.containerMutex.Unlock()
+	if fake.ContainerStub != nil {
+		return fake.ContainerStub()
+	} else {
+		return fake.containerReturns.result1
+	}
+}
+
+func (fake *FakeResource) ContainerCallCount() int {
+	fake.containerMutex.RLock()
+	defer fake.containerMutex.RUnlock()
+	return len(fake.containerArgsForCall)
+}
+
+func (fake *FakeResource) ContainerReturns(result1 worker.Container) {
+	fake.ContainerStub = nil
+	fake.containerReturns = struct {
+		result1 worker.Container
+	}{result1}
+}
+
 func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -177,6 +208,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.putMutex.RUnlock()
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
+	fake.containerMutex.RLock()
+	defer fake.containerMutex.RUnlock()
 	return fake.invocations
 }
 

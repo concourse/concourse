@@ -142,7 +142,11 @@ var _ = Describe("GardenFactory", func() {
 
 				BeforeEach(func() {
 					fakeResource = new(resourcefakes.FakeResource)
-					fakeResourceFactory.NewResourceReturns(fakeResource, []string{"some-source", "some-other-source"}, nil)
+					fakeMissingInputSource1 := new(resourcefakes.FakeInputSource)
+					fakeMissingInputSource1.NameReturns("some-source")
+					fakeMissingInputSource2 := new(resourcefakes.FakeInputSource)
+					fakeMissingInputSource2.NameReturns("some-other-source")
+					fakeResourceFactory.NewBuildResourceReturns(fakeResource, []resource.InputSource{fakeMissingInputSource1, fakeMissingInputSource2}, nil)
 
 					fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 					fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -152,9 +156,9 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("initializes the resource with the correct type, session, and sources", func() {
-					Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
+					Expect(fakeResourceFactory.NewBuildResourceCallCount()).To(Equal(1))
 
-					_, sid, sm, resourceSpec, actualResourceTypes, delegate, sources := fakeResourceFactory.NewResourceArgsForCall(0)
+					_, sid, sm, resourceSpec, actualResourceTypes, delegate, sources, _ := fakeResourceFactory.NewBuildResourceArgsForCall(0)
 					Expect(sm).To(Equal(worker.Metadata{
 						PipelineName:     "some-pipeline",
 						Type:             db.ContainerTypePut,
@@ -184,10 +188,15 @@ var _ = Describe("GardenFactory", func() {
 					}))
 					Expect(delegate).To(Equal(putDelegate))
 
-					// TODO: Can we test the map values?
-					Expect(sources).To(HaveKey("some-source"))
-					Expect(sources).To(HaveKey("some-other-source"))
-					Expect(sources).To(HaveKey("some-mounted-source"))
+					Expect([]string{
+						string(sources[0].Name()),
+						string(sources[1].Name()),
+						string(sources[2].Name()),
+					}).To(ConsistOf([]string{
+						"some-source",
+						"some-other-source",
+						"some-mounted-source",
+					}))
 				})
 
 				It("puts the resource with the correct source and params, and the full repository as the artifact source", func() {
@@ -377,7 +386,7 @@ var _ = Describe("GardenFactory", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeResourceFactory.NewResourceReturns(nil, nil, disaster)
+					fakeResourceFactory.NewBuildResourceReturns(nil, nil, disaster)
 				})
 
 				It("exits with the failure", func() {
@@ -403,7 +412,7 @@ var _ = Describe("GardenFactory", func() {
 
 			BeforeEach(func() {
 				fakeResource = new(resourcefakes.FakeResource)
-				fakeResourceFactory.NewResourceReturns(fakeResource, []string{}, nil)
+				fakeResourceFactory.NewBuildResourceReturns(fakeResource, []resource.InputSource{}, nil)
 
 				fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 				fakeResource.PutReturns(fakeVersionedSource, nil)

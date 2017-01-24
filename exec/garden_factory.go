@@ -172,6 +172,7 @@ func (factory *gardenFactory) Task(
 		privileged,
 		configSource,
 		factory.workerClient,
+		factory.resourceFactory,
 		workingDirectory,
 		resourceTypes,
 		inputMapping,

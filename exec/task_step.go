@@ -15,6 +15,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
 
@@ -53,6 +54,7 @@ type TaskStep struct {
 	privileged        Privileged
 	configSource      TaskConfigSource
 	workerPool        worker.Client
+	resourceFactory   resource.ResourceFactory
 	artifactsRoot     string
 	resourceTypes     atc.ResourceTypes
 	inputMapping      map[string]string
@@ -60,8 +62,6 @@ type TaskStep struct {
 	imageArtifactName string
 	clock             clock.Clock
 	repo              *worker.ArtifactRepository
-
-	container worker.Container
 
 	process garden.Process
 
@@ -78,6 +78,7 @@ func newTaskStep(
 	privileged Privileged,
 	configSource TaskConfigSource,
 	workerPool worker.Client,
+	resourceFactory resource.ResourceFactory,
 	artifactsRoot string,
 	resourceTypes atc.ResourceTypes,
 	inputMapping map[string]string,
@@ -95,6 +96,7 @@ func newTaskStep(
 		privileged:        privileged,
 		configSource:      configSource,
 		workerPool:        workerPool,
+		resourceFactory:   resourceFactory,
 		artifactsRoot:     artifactsRoot,
 		resourceTypes:     resourceTypes,
 		inputMapping:      inputMapping,
@@ -155,13 +157,13 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	runContainerID := step.containerID
 	runContainerID.Stage = db.ContainerStageRun
 
-	step.container, found, err = step.workerPool.FindContainerForIdentifier(
+	container, found, err := step.workerPool.FindContainerForIdentifier(
 		step.logger.Session("found-container"),
 		runContainerID,
 	)
 
 	if err == nil && found {
-		exitStatusProp, err := step.container.Property(taskExitStatusPropertyName)
+		exitStatusProp, err := container.Property(taskExitStatusPropertyName)
 		if err == nil {
 			step.logger.Info("already-exited", lager.Data{"status": exitStatusProp})
 
@@ -172,11 +174,11 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				return err
 			}
 
-			step.registerSource(config)
+			step.registerSource(config, container)
 			return nil
 		}
 
-		processID, err := step.container.Property(taskProcessPropertyName)
+		processID, err := container.Property(taskProcessPropertyName)
 		if err != nil {
 			// rogue container? perhaps did not shut down cleanly.
 			return err
@@ -185,7 +187,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		step.logger.Info("already-running", lager.Data{"process-id": processID})
 
 		// process still running; re-attach
-		step.process, err = step.container.Attach(processID, processIO)
+		step.process, err = container.Attach(processID, processIO)
 		if err != nil {
 			return err
 		}
@@ -206,36 +208,30 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			workerSpec.ResourceType = config.ImageResource.Type
 		}
 
-		compatibleWorkers, err := step.workerPool.AllSatisfying(workerSpec, step.resourceTypes)
+		runResource, inputsToStream, err := step.createContainer(config, signals)
+		if err != nil {
+			return err
+		}
+		container = runResource.Container()
+
+		err = step.ensureBuildDirExists(container)
 		if err != nil {
 			return err
 		}
 
-		var inputsToStream []inputPair
-		step.container, inputsToStream, err = step.createContainer(compatibleWorkers, config, signals)
-
+		err = step.streamInputs(inputsToStream, container)
 		if err != nil {
 			return err
 		}
 
-		err = step.ensureBuildDirExists(step.container)
-		if err != nil {
-			return err
-		}
-
-		err = step.streamInputs(inputsToStream)
-		if err != nil {
-			return err
-		}
-
-		err = step.setupOutputs(config.Outputs)
+		err = step.setupOutputs(config.Outputs, container)
 		if err != nil {
 			return err
 		}
 
 		step.delegate.Started()
 
-		step.process, err = step.container.Run(garden.ProcessSpec{
+		step.process, err = container.Run(garden.ProcessSpec{
 			Path: config.Run.Path,
 			Args: config.Run.Args,
 			Env:  step.envForParams(config.Params),
@@ -247,7 +243,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		err = step.container.SetProperty(taskProcessPropertyName, step.process.ID())
+		err = container.SetProperty(taskProcessPropertyName, step.process.ID())
 		if err != nil {
 			return err
 		}
@@ -266,9 +262,9 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	select {
 	case <-signals:
-		step.registerSource(config)
+		step.registerSource(config, container)
 
-		err = step.container.Stop(false)
+		err = container.Stop(false)
 		if err != nil {
 			step.logger.Error("stopping-container", err)
 		}
@@ -282,11 +278,11 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return processErr
 		}
 
-		step.registerSource(config)
+		step.registerSource(config, container)
 
 		step.exitStatus = processStatus
 
-		err := step.container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
+		err := container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
 		if err != nil {
 			return err
 		}
@@ -297,12 +293,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	}
 }
 
-func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config atc.TaskConfig, signals <-chan os.Signal) (worker.Container, []inputPair, error) {
-	chosenWorker, inputMounts, inputsToStream, err := step.chooseWorkerWithMostVolumes(compatibleWorkers, config.Inputs)
-	if err != nil {
-		return nil, []inputPair{}, err
-	}
-
+func (step *TaskStep) createContainer(config atc.TaskConfig, signals <-chan os.Signal) (resource.Resource, []resource.InputSource, error) {
 	outputPaths := map[string]string{}
 	for _, output := range config.Outputs {
 		path := artifactsPath(output, step.artifactsRoot)
@@ -325,39 +316,62 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		imageSpec.ImageResource = config.ImageResource
 	}
 
+	runContainerID := step.containerID
+	runContainerID.Stage = db.ContainerStageRun
+
+	var missingInputs []string
+	inputSources := []resource.InputSource{}
+	for _, input := range config.Inputs {
+		inputName := input.Name
+		if sourceName, ok := step.inputMapping[inputName]; ok {
+			inputName = sourceName
+		}
+
+		source, found := step.repo.SourceFor(worker.ArtifactName(inputName))
+		if !found {
+			missingInputs = append(missingInputs, inputName)
+			continue
+		}
+
+		inputSources = append(inputSources, &taskInputSource{
+			name:          worker.ArtifactName(inputName),
+			config:        input,
+			source:        source,
+			artifactsRoot: step.artifactsRoot,
+		})
+	}
+
+	if len(missingInputs) > 0 {
+		return nil, nil, MissingInputsError{missingInputs}
+	}
+
 	containerSpec := worker.ContainerSpec{
 		Platform:  config.Platform,
 		Tags:      step.tags,
 		TeamID:    step.teamID,
-		Inputs:    inputMounts,
 		ImageSpec: imageSpec,
 		User:      config.Run.User,
 	}
 
-	runContainerID := step.containerID
-	runContainerID.Stage = db.ContainerStageRun
-
-	container, err := chosenWorker.FindOrCreateBuildContainer(
-		step.logger.Session("create-container"),
-		signals,
-		step.delegate,
+	resource, missingInputSources, err := step.resourceFactory.NewBuildResource(
+		step.logger,
 		runContainerID,
 		step.metadata,
 		containerSpec,
 		step.resourceTypes,
+		step.delegate,
+		inputSources,
 		outputPaths,
 	)
-
 	if err != nil {
-		step.logger.Error("failed-to-create-task-container", err, lager.Data{"id": runContainerID})
 		return nil, nil, err
 	}
 
-	return container, inputsToStream, err
+	return resource, missingInputSources, nil
 }
 
-func (step *TaskStep) registerSource(config atc.TaskConfig) {
-	volumeMounts := step.container.VolumeMounts()
+func (step *TaskStep) registerSource(config atc.TaskConfig, container worker.Container) {
+	volumeMounts := container.VolumeMounts()
 
 	step.logger.Debug("registering-outputs", lager.Data{"config": config})
 
@@ -373,13 +387,13 @@ func (step *TaskStep) registerSource(config atc.TaskConfig) {
 			for _, mount := range volumeMounts {
 				if mount.MountPath == outputPath {
 
-					source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
+					source := newContainerSource(step.artifactsRoot, container, output, step.logger, mount.Volume.Handle())
 					step.repo.RegisterSource(worker.ArtifactName(outputName), source)
 				}
 			}
 		} else {
 			step.logger.Debug("container-has-volume-mounts-NONE")
-			source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
+			source := newContainerSource(step.artifactsRoot, container, output, step.logger, "")
 			step.repo.RegisterSource(worker.ArtifactName(outputName), source)
 		}
 	}
@@ -405,98 +419,18 @@ func (step *TaskStep) Result(x interface{}) bool {
 	}
 }
 
-func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []worker.VolumeMount, []inputPair, error) {
-	inputMounts := []worker.VolumeMount{}
-	inputsToStream := []inputPair{}
-
-	var chosenWorker worker.Worker
-	for _, w := range compatibleWorkers {
-		mounts, toStream, err := step.inputsOn(inputs, w)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		if len(mounts) >= len(inputMounts) {
-			inputMounts = mounts
-			inputsToStream = toStream
-			chosenWorker = w
-		}
-	}
-
-	return chosenWorker, inputMounts, inputsToStream, nil
-}
-
-type inputPair struct {
-	input  atc.TaskInputConfig
-	source worker.ArtifactSource
-}
-
-func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]worker.VolumeMount, []inputPair, error) {
-	var mounts []worker.VolumeMount
-
-	var inputPairs []inputPair
-
-	var missingInputs []string
-
-	for _, input := range inputs {
-		inputName := input.Name
-		if sourceName, ok := step.inputMapping[inputName]; ok {
-			inputName = sourceName
-		}
-
-		source, found := step.repo.SourceFor(worker.ArtifactName(inputName))
-		if !found {
-			missingInputs = append(missingInputs, inputName)
-			continue
-		}
-
-		ourVolume, existsOnWorker, err := source.VolumeOn(chosenWorker)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if existsOnWorker {
-			mounts = append(mounts, worker.VolumeMount{
-				Volume:    ourVolume,
-				MountPath: step.inputDestination(input),
-			})
-		} else {
-			inputPairs = append(inputPairs, inputPair{
-				input:  input,
-				source: source,
-			})
-		}
-	}
-
-	if len(missingInputs) > 0 {
-		return nil, nil, MissingInputsError{missingInputs}
-	}
-
-	return mounts, inputPairs, nil
-}
-
-func (step *TaskStep) inputDestination(config atc.TaskInputConfig) string {
-	subdir := config.Path
-	if config.Path == "" {
-		subdir = config.Name
-	}
-
-	return filepath.Join(step.artifactsRoot, subdir)
-}
-
-func (step *TaskStep) ensureBuildDirExists(container garden.Container) error {
+func (step *TaskStep) ensureBuildDirExists(container worker.Container) error {
 	return createContainerDir(container, step.artifactsRoot)
 }
 
-func (step *TaskStep) streamInputs(inputPairs []inputPair) error {
-	for _, pair := range inputPairs {
+func (step *TaskStep) streamInputs(inputSources []resource.InputSource, container worker.Container) error {
+	for _, inputSource := range inputSources {
 		destination := newContainerDestination(
-			step.artifactsRoot,
-			step.container,
-			pair.input,
+			inputSource,
+			container,
 		)
 
-		err := pair.source.StreamTo(destination)
+		err := inputSource.Source().StreamTo(destination)
 		if err != nil {
 			return err
 		}
@@ -505,9 +439,9 @@ func (step *TaskStep) streamInputs(inputPairs []inputPair) error {
 	return nil
 }
 
-func (step *TaskStep) setupOutputs(outputs []atc.TaskOutputConfig) error {
+func (step *TaskStep) setupOutputs(outputs []atc.TaskOutputConfig, container worker.Container) error {
 	for _, output := range outputs {
-		source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
+		source := newContainerSource(step.artifactsRoot, container, output, step.logger, "")
 
 		err := source.initialize()
 		if err != nil {
@@ -529,27 +463,20 @@ func (TaskStep) envForParams(params map[string]string) []string {
 }
 
 type containerDestination struct {
-	container     garden.Container
-	inputConfig   atc.TaskInputConfig
-	artifactsRoot string
+	container   garden.Container
+	inputSource resource.InputSource
 }
 
-func newContainerDestination(artifactsRoot string, container garden.Container, inputConfig atc.TaskInputConfig) *containerDestination {
+func newContainerDestination(inputSource resource.InputSource, container worker.Container) *containerDestination {
 	return &containerDestination{
-		container:     container,
-		inputConfig:   inputConfig,
-		artifactsRoot: artifactsRoot,
+		container:   container,
+		inputSource: inputSource,
 	}
 }
 
 func (dest *containerDestination) StreamIn(dst string, src io.Reader) error {
-	inputDst := dest.inputConfig.Path
-	if len(inputDst) == 0 {
-		inputDst = dest.inputConfig.Name
-	}
-
 	return dest.container.StreamIn(garden.StreamInSpec{
-		Path:      dest.artifactsRoot + "/" + inputDst + "/" + dst,
+		Path:      filepath.Join(dest.inputSource.MountPath(), dst),
 		TarStream: src,
 	})
 }
@@ -646,4 +573,22 @@ func createContainerDir(container garden.Container, dir string) error {
 	}
 
 	return nil
+}
+
+type taskInputSource struct {
+	name          worker.ArtifactName
+	config        atc.TaskInputConfig
+	source        worker.ArtifactSource
+	artifactsRoot string
+}
+
+func (s *taskInputSource) Name() worker.ArtifactName     { return s.name }
+func (s *taskInputSource) Source() worker.ArtifactSource { return s.source }
+func (s *taskInputSource) MountPath() string {
+	subdir := s.config.Path
+	if s.config.Path == "" {
+		subdir = s.config.Name
+	}
+
+	return filepath.Join(s.artifactsRoot, subdir)
 }
