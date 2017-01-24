@@ -33,6 +33,9 @@ func Open(driver, dsn string, migrations []Migrator) (*sql.DB, error) {
 	    NOT EXISTS (
 		SELECT * FROM migration_version
 	    );`)
+	if err != nil {
+		return nil, err
+	}
 
 	var dbVersion int
 	r := db.QueryRow("SELECT version FROM migration_version")
@@ -56,7 +59,7 @@ func Open(driver, dsn string, migrations []Migrator) (*sql.DB, error) {
 
 	for i, m := range migrations {
 		version := i + 1
-		if version < dbVersion {
+		if version <= dbVersion {
 			continue
 		}
 
