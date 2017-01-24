@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("Migration", func() {
+var _ = Describe("Migration", func() {
 	var dbConn *sql.DB
 	var err error
 
