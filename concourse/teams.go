@@ -69,3 +69,14 @@ func (team *team) DestroyTeam(teamName string) error {
 
 	return err
 }
+
+func (client *client) ListTeams() ([]atc.Team, error) {
+	var teams []atc.Team
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.ListTeams,
+	}, &internal.Response{
+		Result: &teams,
+	})
+
+	return teams, err
+}

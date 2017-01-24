@@ -31,6 +31,7 @@ type Client interface {
 	GetInfo() (atc.Info, error)
 	GetCLIReader(arch, platform string) (io.ReadCloser, http.Header, error)
 	ListPipelines() ([]atc.Pipeline, error)
+	ListTeams() ([]atc.Team, error)
 
 	Team(teamName string) Team
 }
