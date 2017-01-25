@@ -149,4 +149,40 @@ var _ = Describe("ATC Handler Teams", func() {
 			})
 		})
 	})
+
+	Describe("ListTeams", func() {
+		var expectedTeams []atc.Team
+
+		BeforeEach(func() {
+			expectedURL := "/api/v1/teams"
+
+			expectedTeams = []atc.Team{
+				{
+					ID:   1,
+					Name: "main",
+				},
+				{
+					ID:   2,
+					Name: "a-team",
+				},
+				{
+					ID:   3,
+					Name: "b-team",
+				},
+			}
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedTeams),
+				),
+			)
+		})
+
+		It("returns all of the teams", func() {
+			teams, err := client.ListTeams()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(teams).To(Equal(expectedTeams))
+		})
+	})
 })
