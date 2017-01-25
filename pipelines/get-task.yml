@@ -2,7 +2,7 @@ resources:
 - name: tick-tock
   type: time
   source:
-    interval: 1h
+    interval: 1s
 
 jobs:
 - name: simple-job
