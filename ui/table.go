@@ -29,12 +29,12 @@ func (d Data) Less(i int, j int) bool {
 	return d[i][0].Contents < d[j][0].Contents
 }
 
-func (table Table) Render(dst io.Writer) error {
+func (table Table) Render(dst io.Writer, isPrintHeader bool) error {
 	dst, isTTY := ForTTY(dst)
 
 	columnWidths := map[int]int{}
 
-	if isTTY {
+	if isPrintHeader || isTTY {
 		for i, column := range table.Headers {
 			columnWidth := len(column.Contents)
 
@@ -54,7 +54,7 @@ func (table Table) Render(dst io.Writer) error {
 		}
 	}
 
-	if isTTY && table.Headers != nil {
+	if (isPrintHeader || isTTY) && table.Headers != nil {
 		err := table.renderRow(dst, table.Headers, columnWidths, isTTY)
 		if err != nil {
 			return err

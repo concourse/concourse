@@ -122,7 +122,7 @@ func (command *BuildsCommand) Execute([]string) error {
 		})
 	}
 
-	return table.Render(os.Stdout)
+	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
 func populateTimeCells(startTime time.Time, endTime time.Time) (ui.TableCell, ui.TableCell, ui.TableCell) {

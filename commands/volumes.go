@@ -66,7 +66,7 @@ func (command *VolumesCommand) Execute([]string) error {
 		table.Data = append(table.Data, row)
 	}
 
-	return table.Render(os.Stdout)
+	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
 func (command *VolumesCommand) volumeIdentifier(volume atc.Volume) string {

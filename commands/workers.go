@@ -47,10 +47,10 @@ func (command *WorkersCommand) Execute([]string) error {
 
 	dst, isTTY := ui.ForTTY(os.Stdout)
 	if !isTTY {
-		return command.tableFor(append(runningWorkers, stalledWorkers...)).Render(os.Stdout)
+		return command.tableFor(append(runningWorkers, stalledWorkers...)).Render(os.Stdout, Fly.PrintTableHeaders)
 	}
 
-	err = command.tableFor(runningWorkers).Render(os.Stdout)
+	err = command.tableFor(runningWorkers).Render(os.Stdout, Fly.PrintTableHeaders)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (command *WorkersCommand) Execute([]string) error {
 		fmt.Fprintln(dst, "the following workers have not checked in recently:")
 		fmt.Fprintln(dst, "")
 
-		err = command.tableFor(stalledWorkers).Render(os.Stdout)
+		err = command.tableFor(stalledWorkers).Render(os.Stdout, Fly.PrintTableHeaders)
 		if err != nil {
 			return err
 		}
