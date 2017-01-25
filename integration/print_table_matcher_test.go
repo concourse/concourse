@@ -49,7 +49,7 @@ func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
 		return false, err
 	}
 
-	err = matcher.table.Render(buf)
+	err = matcher.table.Render(buf, false)
 	if err != nil {
 		return false, err
 	}

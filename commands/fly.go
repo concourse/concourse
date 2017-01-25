@@ -10,6 +10,8 @@ type FlyCommand struct {
 
 	Version func() `short:"v" long:"version" description:"Print the version of Fly and exit"`
 
+	PrintTableHeaders bool `long:"print-table-headers" description:"Print table headers even for redirected output"`
+
 	Login  LoginCommand  `command:"login" alias:"l" description:"Authenticate with the target"`
 	Logout LogoutCommand `command:"logout" alias:"o" description:"Release authentication with the target"`
 	Sync   SyncCommand   `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`

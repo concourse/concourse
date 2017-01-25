@@ -43,5 +43,5 @@ func (command *TeamsCommand) Execute([]string) error {
 
 	sort.Sort(table.Data)
 
-	return table.Render(os.Stdout)
+	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }

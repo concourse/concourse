@@ -75,7 +75,7 @@ var _ = Describe("Table", func() {
 
 				sort.Sort(table.Data)
 
-				err := table.Render(buf)
+				err := table.Render(buf, false)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(string(buf.Contents())).To(Equal(expectedOutput))
@@ -93,8 +93,25 @@ var _ = Describe("Table", func() {
 
 				buf := gbytes.NewBuffer()
 
-				err := table.Render(buf)
+				err := table.Render(buf, false)
 				Expect(err).ToNot(HaveOccurred())
+
+				Expect(string(buf.Contents())).To(Equal(expectedOutput))
+			})
+		})
+
+		Context("when the render method is called without a TTY but with print headers flag", func() {
+			It("prints the headers and the data without color", func() {
+				buf := gbytes.NewBuffer()
+
+				err := table.Render(buf, true)
+				Expect(err).ToNot(HaveOccurred())
+
+				expectedOutput := "" +
+					"column1  column2\n" +
+					"r1c1     r1c2   \n" +
+					"r2c1     r2c2   \n" +
+					"r3c1     r3c2   \n"
 
 				Expect(string(buf.Contents())).To(Equal(expectedOutput))
 			})
@@ -115,7 +132,7 @@ var _ = Describe("Table", func() {
 
 				go io.Copy(buf, pty.PTYR)
 
-				err = table.Render(pty.TTYW)
+				err = table.Render(pty.TTYW, false)
 				Expect(err).ToNot(HaveOccurred())
 
 				expectedOutput := "" +

@@ -44,7 +44,7 @@ func (command *TargetsCommand) Execute([]string) error {
 
 	sort.Sort(table.Data)
 
-	return table.Render(os.Stdout)
+	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
 func GetExpirationFromString(token *rc.TargetToken) string {

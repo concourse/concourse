@@ -64,7 +64,7 @@ func (command *ContainersCommand) Execute([]string) error {
 
 	sort.Sort(table.Data)
 
-	return table.Render(os.Stdout)
+	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
 func buildIDOrNone(id int) ui.TableCell {

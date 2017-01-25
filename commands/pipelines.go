@@ -71,5 +71,5 @@ func (command *PipelinesCommand) Execute([]string) error {
 		table.Data = append(table.Data, row)
 	}
 
-	return table.Render(os.Stdout)
+	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
