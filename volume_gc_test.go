@@ -23,7 +23,7 @@ var _ = Describe(":life volume gc", func() {
 		dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", atcIP))
 		Expect(err).ToNot(HaveOccurred())
 
-		// Deploy("deployments/single-vm.yml")
+		Deploy("deployments/single-vm.yml")
 	})
 
 	Describe("A volume that belonged to a container that is now gone", func() {

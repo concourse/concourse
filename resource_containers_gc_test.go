@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,37 +33,40 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 			fly("check-resource", "-r", "volume-gc-test/tick-tock")
 
 			By("getting the resource config container")
-			var containerID int
-			var contanerHandle string
-			err := psql.Select("id, handle").
-				From("containers").
-				Where(sq.NotEq{"resource_config_id": nil}).
-				RunWith(dbConn).
-				QueryRow().
-				Scan(&containerID, &contanerHandle)
-			Expect(err).ToNot(HaveOccurred())
+			containers := flyTable("containers")
+			var checkContainerHandle string
+			for _, container := range containers {
+				if container["type"] == "check" {
+					checkContainerHandle = container["handle"]
+					break
+				}
+			}
+			Expect(checkContainerHandle).NotTo(BeEmpty())
 
-			By(fmt.Sprintf("eventually expiring the resource config container: %s", contanerHandle))
-			Eventually(func() int {
-				var containerNum int
-				err := psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": containerID}).RunWith(dbConn).QueryRow().Scan(&containerNum)
-				Expect(err).ToNot(HaveOccurred())
-				return containerNum
-			}, 10*time.Minute, time.Second).Should(BeZero())
+			By(fmt.Sprintf("eventually expiring the resource config container: %s", checkContainerHandle))
+			Eventually(func() bool {
+				containers := flyTable("containers")
+				for _, container := range containers {
+					if container["type"] == "check" {
+						return true
+					}
+				}
+				return false
+			}, 10*time.Minute, time.Second).Should(BeFalse())
 
 			By("checking resource again")
 			fly("check-resource", "-r", "volume-gc-test/tick-tock")
 
 			By("getting the resource config container")
-			var newContainerID int
-			err = psql.Select("id").
-				From("containers").
-				Where(sq.NotEq{"resource_config_id": nil}).
-				RunWith(dbConn).
-				QueryRow().
-				Scan(&newContainerID)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(newContainerID).NotTo(Equal(containerID))
+			containers = flyTable("containers")
+			var newCheckContainerHandle string
+			for _, container := range containers {
+				if container["type"] == "check" {
+					newCheckContainerHandle = container["handle"]
+					break
+				}
+			}
+			Expect(newCheckContainerHandle).NotTo(Equal(checkContainerHandle))
 		})
 	})
 })
