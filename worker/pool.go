@@ -133,17 +133,20 @@ func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (
 }
 
 func (pool *pool) FindOrCreateBuildContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes, outputPaths map[string]string) (Container, error) {
+	container, found, err := pool.FindContainerForIdentifier(logger, id)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		return container, nil
+	}
+
 	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.FindOrCreateBuildContainer(logger, signals, delegate, id, metadata, spec, resourceTypes, outputPaths)
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
+	return worker.FindOrCreateBuildContainer(logger, signals, delegate, id, metadata, spec, resourceTypes, outputPaths)
 }
 
 func (pool *pool) FindOrCreateContainerForIdentifier(
@@ -195,12 +198,20 @@ func (pool *pool) FindOrCreateResourceGetContainer(
 	source atc.Source,
 	params atc.Params,
 ) (Container, error) {
+	container, found, err := pool.FindContainerForIdentifier(logger, id)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		return container, nil
+	}
+
 	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.FindOrCreateResourceGetContainer(
+	return worker.FindOrCreateResourceGetContainer(
 		logger,
 		cancel,
 		delegate,
@@ -214,11 +225,6 @@ func (pool *pool) FindOrCreateResourceGetContainer(
 		source,
 		params,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
 }
 
 func (pool *pool) FindOrCreateResourceCheckContainer(
@@ -232,12 +238,20 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
+	container, found, err := pool.FindContainerForIdentifier(logger, id)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		return container, nil
+	}
+
 	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.FindOrCreateResourceCheckContainer(
+	return worker.FindOrCreateResourceCheckContainer(
 		logger,
 		cancel,
 		delegate,
@@ -248,11 +262,6 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 		resourceType,
 		source,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
 }
 
 func (pool *pool) FindOrCreateResourceTypeCheckContainer(
@@ -266,12 +275,20 @@ func (pool *pool) FindOrCreateResourceTypeCheckContainer(
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
+	container, found, err := pool.FindContainerForIdentifier(logger, id)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		return container, nil
+	}
+
 	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.FindOrCreateResourceTypeCheckContainer(
+	return worker.FindOrCreateResourceTypeCheckContainer(
 		logger,
 		cancel,
 		delegate,
@@ -282,11 +299,6 @@ func (pool *pool) FindOrCreateResourceTypeCheckContainer(
 		resourceType,
 		source,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
 }
 
 func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
