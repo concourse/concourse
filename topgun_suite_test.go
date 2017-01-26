@@ -111,15 +111,22 @@ var _ = AfterEach(func() {
 	bosh("delete-deployment")
 })
 
-func Deploy(manifest string) {
+func Deploy(manifest string, operations ...string) {
+	opFlags := []string{}
+	for _, op := range operations {
+		opFlags = append(opFlags, fmt.Sprintf("-o=%s", op))
+	}
+
 	bosh(
-		"deploy", manifest,
-		"-v", "deployment-name="+deploymentName,
-		"-v", "atc-ip="+atcIP,
-		"-v", "atc-external-url="+atcExternalURL,
-		"-v", "concourse-release-version="+concourseReleaseVersion,
-		"-v", "garden-runc-release-version="+gardenRuncReleaseVersion,
-		"-v", "stemcell-version="+stemcellVersion,
+		append([]string{
+			"deploy", manifest,
+			"-v", "deployment-name=" + deploymentName,
+			"-v", "atc-ip=" + atcIP,
+			"-v", "atc-external-url=" + atcExternalURL,
+			"-v", "concourse-release-version=" + concourseReleaseVersion,
+			"-v", "garden-runc-release-version=" + gardenRuncReleaseVersion,
+			"-v", "stemcell-version=" + stemcellVersion,
+		}, opFlags...)...,
 	)
 
 	fly("login", "-c", atcExternalURL)
