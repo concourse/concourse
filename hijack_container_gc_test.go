@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = Describe("[#129726125] Hijacked containers", func() {
+var _ = Describe(":life [#129726125] Hijacked containers", func() {
 	var (
 		gClient gclient.Client
 
