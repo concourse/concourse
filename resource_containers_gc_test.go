@@ -24,7 +24,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 	Describe("A container that is used by resource checking on freshly deployed worker", func() {
 		It("is recreated in database and worker [#129726933]", func() {
 			By("setting pipeline that creates resource cache")
-			fly("set-pipeline", "-n", "-c", "pipelines/resource_containers_gc_test/get-task.yml", "-p", "volume-gc-test")
+			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
 			fly("unpause-pipeline", "-p", "volume-gc-test")

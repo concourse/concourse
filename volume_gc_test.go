@@ -124,7 +124,7 @@ var _ = Describe(":life volume gc", func() {
 	Describe("A volume that belonged to a resource cache that is no longer in use", func() {
 		It("is removed from the database and worker [#129726933]", func() {
 			By("setting pipeline that creates resource cache")
-			fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "volume-gc-test")
+			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
 
 			By("unpausing the pipeline")
 			fly("unpause-pipeline", "-p", "volume-gc-test")
