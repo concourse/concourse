@@ -168,6 +168,8 @@ before using it!
     \hyperlink{https://github.com/suhlig/concourse-rss-resource}{RSS}
   }{
     \hyperlink{https://github.com/patrickcrocker/maven-resource}{Maven Resource}
+  }{
+    \hyperlink{https://github.com/mastertinner/apache-directory-index-resource}{Apache Directory Index}
   }
 
   \section{Adding to this list}{
