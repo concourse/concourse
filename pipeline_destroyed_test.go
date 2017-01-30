@@ -24,7 +24,7 @@ var _ = Describe(":life [#130495079] Garbage collecting containers for destroyed
 		gClient = gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
 	})
 
-	FIt("should be removed", func() {
+	It("should be removed", func() {
 		By("setting a pipeline")
 		fly("set-pipeline", "-n", "-c", "pipelines/get-task-put.yml", "-p", "pipeline-destroyed-test")
 
