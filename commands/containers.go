@@ -51,7 +51,7 @@ func (command *ContainersCommand) Execute([]string) error {
 			stringOrDefault(c.BuildName),
 			buildIDOrNone(c.BuildID),
 			stringOrDefault(c.StepType, "check"),
-			{Contents: (c.StepName + c.ResourceName)},
+			stringOrDefault(c.StepName + c.ResourceName),
 			stringOrDefault(SliceItoa(c.Attempts), "n/a"),
 		}
 
