@@ -98,6 +98,7 @@ jobs:
     file: concourse/ci/tsa.yml
 
 - name: cessna
+  serial: true
   plan:
     - get: concourse
       trigger: true
