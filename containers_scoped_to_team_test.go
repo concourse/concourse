@@ -36,6 +36,7 @@ var _ = Describe(":life [#136140165] Container scope", func() {
 					bytes.NewBufferString(strconv.Itoa(i)+"\n"),
 					"hijack",
 					"-b", "1",
+					"hostname",
 				)
 
 				<-hijackSession.Exited
