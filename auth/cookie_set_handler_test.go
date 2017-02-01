@@ -2,8 +2,6 @@ package auth_test
 
 import (
 	"bytes"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 
@@ -14,10 +12,12 @@ import (
 )
 
 var _ = Describe("CookieSetHandler", func() {
+	var (
+		givenRequest *http.Request
+	)
+
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if auth := r.Header.Get("Authorization"); auth != "" {
-			fmt.Fprintf(w, "auth: %s", auth)
-		}
+		givenRequest = r
 	})
 
 	var server *httptest.Server
@@ -53,33 +53,29 @@ var _ = Describe("CookieSetHandler", func() {
 		})
 
 		It("proxies to the handler without setting the Authorization header", func() {
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(responseBody)).To(Equal(""))
+			Expect(givenRequest.Header.Get("Authorization")).To(BeEmpty())
 		})
 
 		Context("with the ATC-Authorization cookie", func() {
 			BeforeEach(func() {
 				request.AddCookie(&http.Cookie{
 					Name:  auth.CookieName,
-					Value: header("username", "password"),
+					Value: "username:password",
 				})
 			})
 
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("proxies to the handler with the Authorization header set", func() {
-				responseBody, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(responseBody)).To(ContainSubstring("auth: "))
-			})
-
 			It("sets the Authorization header with the value from the cookie", func() {
-				responseBody, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(responseBody)).To(ContainSubstring(header("username", "password")))
+				Expect(givenRequest.Header.Get("Authorization")).To(Equal("username:password"))
+			})
+
+			Context("and the request also has an Authorization header", func() {
+				BeforeEach(func() {
+					request.Header.Set("Authorization", "foobar")
+				})
+
+				It("does not override the Authorization header", func() {
+					Expect(givenRequest.Header.Get("Authorization")).To(Equal("foobar"))
+				})
 			})
 		})
 	})
