@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/concourse/atc/dbng/migration"
 	. "github.com/concourse/atc/db/migrations"
+	"github.com/concourse/atc/dbng/migration"
 	"github.com/concourse/atc/postgresrunner"
 	_ "github.com/lib/pq"
 	"github.com/tedsuo/ifrit"

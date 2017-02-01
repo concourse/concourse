@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/concourse/atc/dbng/migration"
 	"github.com/concourse/atc/db/migrations"
+	"github.com/concourse/atc/dbng/migration"
 	"github.com/jackc/pgx"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
