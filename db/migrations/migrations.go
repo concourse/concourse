@@ -133,6 +133,7 @@ var Migrations = []migration.Migrator{
 	AddRetiringWorkerState,
 	AddRunningWorkerMustHaveAddrConstraint,
 	AddInterruptibleToJob,
+	AddLandedWorkerCannotHaveAddrConstraint,
 	CreateCaches,
 	RemoveTTLFromVolumes,
 	AddVolumeParentIdForeignKey,

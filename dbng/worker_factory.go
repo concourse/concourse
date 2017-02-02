@@ -273,6 +273,8 @@ func (f *workerFactory) LandWorker(name string) (*Worker, error) {
 
 	err = psql.Update("workers").
 		Set("state", sq.Expr("("+cSql+")")).
+		Set("addr", "NULL").
+		Set("baggageclaim_url", "NULL").
 		Where(sq.Eq{"name": name}).
 		Suffix("RETURNING name, state").
 		RunWith(tx).
@@ -445,6 +447,22 @@ func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*
 		return nil, err
 	}
 
+	addrSql, _, err := sq.Case("state").
+		When("'landed'::worker_state", "NULL").
+		Else("'" + worker.GardenAddr + "'").
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	bcSql, _, err := sq.Case("state").
+		When("'landed'::worker_state", "NULL").
+		Else("'" + worker.BaggageclaimURL + "'").
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		workerName       string
 		workerStateStr   string
@@ -456,8 +474,8 @@ func (f *workerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (*
 
 	err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
-		Set("addr", worker.GardenAddr).
-		Set("baggageclaim_url", worker.BaggageclaimURL).
+		Set("addr", sq.Expr("("+addrSql+")")).
+		Set("baggageclaim_url", sq.Expr("("+bcSql+")")).
 		Set("active_containers", worker.ActiveContainers).
 		Set("state", sq.Expr("("+cSql+")")).
 		Where(sq.Eq{"name": worker.Name}).

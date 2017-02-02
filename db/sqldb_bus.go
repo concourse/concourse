@@ -6,6 +6,12 @@ import (
 	"github.com/lib/pq"
 )
 
+type NotificationsBus interface {
+	Listen(channel string) (chan bool, error)
+	Notify(channel string) error
+	Unlisten(channel string, notify chan bool) error
+}
+
 type notificationsBus struct {
 	listener *pq.Listener
 	conn     Conn

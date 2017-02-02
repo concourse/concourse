@@ -15,14 +15,18 @@ import (
 
 var _ = Describe("TrackerRunner", func() {
 	var fakeTracker *buildsfakes.FakeBuildTracker
+	var fakeListener *buildsfakes.FakeATCListener
 	var fakeClock *fakeclock.FakeClock
 	var tracked <-chan struct{}
+	var notify chan<- bool
+	var notifyrec <-chan bool
 	var trackerRunner TrackerRunner
 	var process ifrit.Process
 	var interval = 10 * time.Second
 
 	BeforeEach(func() {
 		fakeTracker = new(buildsfakes.FakeBuildTracker)
+		fakeListener = new(buildsfakes.FakeATCListener)
 
 		t := make(chan struct{})
 		tracked = t
@@ -30,12 +34,18 @@ var _ = Describe("TrackerRunner", func() {
 			t <- struct{}{}
 		}
 
+		n := make(chan bool)
+		notify = n
+		notifyrec = n
+		fakeListener.ListenReturns(n, nil)
+
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 
 		trackerRunner = TrackerRunner{
-			Tracker:  fakeTracker,
-			Interval: interval,
-			Clock:    fakeClock,
+			Tracker:   fakeTracker,
+			ListenBus: fakeListener,
+			Interval:  interval,
+			Clock:     fakeClock,
 		}
 	})
 
@@ -50,6 +60,22 @@ var _ = Describe("TrackerRunner", func() {
 
 	It("tracks immediately", func() {
 		<-tracked
+	})
+
+	Context("when it recives an ATC shutdown notice", func() {
+		JustBeforeEach(func() {
+			<-tracked
+			go func() {
+				notify <- true
+			}()
+		})
+
+		It("tracks", func() {
+			By("waiting for it to track again")
+			<-tracked
+			By("consistently not tracking again")
+			Consistently(tracked).ShouldNot(Receive())
+		})
 	})
 
 	Context("when the interval elapses", func() {

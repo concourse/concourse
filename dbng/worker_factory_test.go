@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 
+	"database/sql"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -759,6 +760,28 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanded))
 				})
 			})
+
+			It("clears out the garden/baggageclaim addresses", func() {
+				var (
+					a1 sql.NullString
+					b1 sql.NullString
+					a2 sql.NullString
+					b2 sql.NullString
+				)
+
+				dbConn.QueryRow("SELECT addr, baggageclaim_url FROM workers WHERE name = '"+atcWorker.Name+"'").Scan(&a1, &b1)
+
+				Expect(a1.Valid).To(BeTrue())
+				Expect(b1.Valid).To(BeTrue())
+
+				_, err := workerFactory.LandWorker(atcWorker.Name)
+				Expect(err).NotTo(HaveOccurred())
+
+				dbConn.QueryRow("SELECT addr, baggageclaim_url FROM workers WHERE name = "+atcWorker.Name+"'").Scan(&a2, &b2)
+
+				Expect(a2.Valid).To(BeFalse())
+				Expect(b2.Valid).To(BeFalse())
+			})
 		})
 
 		Context("when the worker is not present", func() {
@@ -892,6 +915,8 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.Name).To(Equal(atcWorker.Name))
 				Expect(foundWorker.ExpiresIn - ttl).To(And(BeNumerically("<=", epsilon), BeNumerically(">", 0)))
 				Expect(foundWorker.ActiveContainers).To(And(Not(Equal(activeContainers)), Equal(1)))
+				Expect(*foundWorker.GardenAddr).To(Equal("some-garden-addr"))
+				Expect(*foundWorker.BaggageclaimURL).To(Equal("some-bc-url"))
 			})
 
 			Context("when the current state is landing", func() {
@@ -910,6 +935,8 @@ var _ = Describe("WorkerFactory", func() {
 			Context("when the current state is landed", func() {
 				BeforeEach(func() {
 					atcWorker.State = string(dbng.WorkerStateLanded)
+					atcWorker.GardenAddr = ""
+					atcWorker.BaggageclaimURL = ""
 				})
 
 				It("keeps the state as landed", func() {
@@ -918,6 +945,14 @@ var _ = Describe("WorkerFactory", func() {
 
 					Expect(foundWorker.State).To(Equal(dbng.WorkerStateLanded))
 				})
+
+				It("sets the garden/baggageclaim addresses to be NULL", func() {
+					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(foundWorker.GardenAddr).To(BeNil())
+					Expect(foundWorker.BaggageclaimURL).To(BeNil())
+				})
 			})
 
 			Context("when the current state is retiring", func() {
@@ -925,7 +960,7 @@ var _ = Describe("WorkerFactory", func() {
 					atcWorker.State = string(dbng.WorkerStateRetiring)
 				})
 
-				It("keeps the state as landed", func() {
+				It("keeps the state as retiring", func() {
 					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -961,9 +996,7 @@ var _ = Describe("WorkerFactory", func() {
 					foundWorker, err := workerFactory.HeartbeatWorker(atcWorker, ttl)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(foundWorker.GardenAddr).ToNot(BeNil())
 					Expect(*foundWorker.GardenAddr).To(Equal("some-garden-addr"))
-					Expect(foundWorker.BaggageclaimURL).ToNot(BeNil())
 					Expect(*foundWorker.BaggageclaimURL).To(Equal("some-bc-url"))
 					Expect(foundWorker.State).To(Equal(dbng.WorkerStateRunning))
 				})
