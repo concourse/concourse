@@ -486,9 +486,12 @@ func (volume *destroyingVolume) Destroy() (bool, error) {
 func stateTransition(volumeID int, tx Tx, from, to VolumeState) error {
 	rows, err := psql.Update("volumes").
 		Set("state", string(to)).
-		Where(sq.Eq{
-			"id":    volumeID,
-			"state": string(from),
+		Where(sq.And{
+			sq.Eq{"id": volumeID},
+			sq.Or{
+				sq.Eq{"state": string(from)},
+				sq.Eq{"state": string(to)},
+			},
 		}).
 		RunWith(tx).
 		Exec()

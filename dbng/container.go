@@ -53,9 +53,12 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 
 	rows, err := psql.Update("containers").
 		Set("state", ContainerStateCreated).
-		Where(sq.Eq{
-			"id":    container.id,
-			"state": ContainerStateCreating,
+		Where(sq.And{
+			sq.Eq{"id": container.id},
+			sq.Or{
+				sq.Eq{"state": string(ContainerStateCreating)},
+				sq.Eq{"state": string(ContainerStateCreated)},
+			},
 		}).
 		RunWith(tx).
 		Exec()
@@ -121,9 +124,12 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 
 	err = psql.Update("containers").
 		Set("state", ContainerStateDestroying).
-		Where(sq.Eq{
-			"id":    container.id,
-			"state": ContainerStateCreated,
+		Where(sq.And{
+			sq.Eq{"id": container.id},
+			sq.Or{
+				sq.Eq{"state": string(ContainerStateDestroying)},
+				sq.Eq{"state": string(ContainerStateCreated)},
+			},
 		}).
 		Suffix("RETURNING discontinued").
 		RunWith(tx).
@@ -162,9 +168,12 @@ func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
 	rows, err := psql.Update("containers").
 		Set("state", ContainerStateDestroying).
 		Set("discontinued", true).
-		Where(sq.Eq{
-			"id":    container.id,
-			"state": ContainerStateCreated,
+		Where(sq.And{
+			sq.Eq{"id": container.id},
+			sq.Or{
+				sq.Eq{"state": string(ContainerStateDestroying)},
+				sq.Eq{"state": string(ContainerStateCreated)},
+			},
 		}).
 		RunWith(tx).
 		Exec()

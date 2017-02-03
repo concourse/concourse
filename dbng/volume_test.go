@@ -23,9 +23,11 @@ var _ = Describe("Volume", func() {
 		})
 
 		Describe("the database query fails", func() {
-			Context("when the volume has exited the `creating` state", func() {
+			Context("when the volume is not in creating or created state", func() {
 				BeforeEach(func() {
-					_, err = creatingVolume.Created()
+					createdVolume, err := creatingVolume.Created()
+					Expect(err).NotTo(HaveOccurred())
+					_, err = createdVolume.Destroying()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -65,6 +67,18 @@ var _ = Describe("Volume", func() {
 			It("returns a createdVolume and no error", func() {
 				Expect(createdVolume).NotTo(BeNil())
 				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when volume is already in provided state", func() {
+				BeforeEach(func() {
+					_, err := creatingVolume.Created()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns a createdVolume and no error", func() {
+					Expect(createdVolume).NotTo(BeNil())
+					Expect(err).NotTo(HaveOccurred())
+				})
 			})
 		})
 	})
