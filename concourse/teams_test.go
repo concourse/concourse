@@ -185,4 +185,70 @@ var _ = Describe("ATC Handler Teams", func() {
 			Expect(teams).To(Equal(expectedTeams))
 		})
 	})
+
+	Describe("RenameTeam", func() {
+		var (
+			expectedURL string
+			err         error
+		)
+
+		BeforeEach(func() {
+			expectedURL = "/api/v1/teams/enron/rename"
+			team = client.Team("not-super-important")
+		})
+
+		JustBeforeEach(func() {
+			err = client.RenameTeam("enron", "not-super-duper-important")
+		})
+
+		Context("when passed a team that you can't be renamed", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWith(http.StatusForbidden, nil),
+					),
+				)
+			})
+
+			It("returns back a forbidden error", func() {
+				Expect(err).To(Equal(concourse.ErrForbidden))
+			})
+		})
+
+		Context("when the server rename's the team", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWith(http.StatusOK, `{
+							"id": 1,
+							"name": "not-super-duper-important"
+						}`),
+					),
+				)
+			})
+
+			It("returns back status ok", func() {
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("when the server blows up", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWith(http.StatusInternalServerError, nil),
+					),
+				)
+			})
+
+			It("returns the error, but is not forbidden", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err).NotTo(Equal(concourse.ErrForbidden))
+			})
+		})
+
+	})
 })
