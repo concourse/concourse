@@ -98,6 +98,7 @@ jobs:
     file: concourse/ci/tsa.yml
 
 - name: cessna
+  serial: true
   plan:
     - get: concourse
       trigger: true
@@ -118,8 +119,8 @@ jobs:
         garden-runc-release: garden-runc
         stemcell: gcp-stemcell
       params:
-        WORKER_IP: {{cessna_worker_ip}}
-        ROOTFS_TAR_URL: {{rootfs_tar_url}}
+        WORKER_IP: {{cessna-worker-ip}}
+        ROOTFS_TAR_URL: {{cessna-rootfs-tar-url}}
         RUN_CESSNA_TESTS: true
 
 - name: major
