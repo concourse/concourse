@@ -34,7 +34,24 @@ func (db *SQLDB) GetTeams() ([]SavedTeam, error) {
 	return teams, nil
 }
 
-func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
+func (db *SQLDB) CreateAdminTeamIfNotExists() error {
+	var id sql.NullInt64
+	err := db.conn.QueryRow(`
+			SELECT id
+			FROM teams
+			WHERE admin = true
+		`).Scan(&id)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err := db.createDefaultTeamIfNotExists()
+			return err
+		}
+	}
+	return nil
+}
+
+func (db *SQLDB) createDefaultTeamIfNotExists() error {
 	var id sql.NullInt64
 	err := db.conn.QueryRow(`
 			SELECT id
