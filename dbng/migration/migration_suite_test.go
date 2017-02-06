@@ -26,8 +26,14 @@ var _ = BeforeSuite(func() {
 	}
 	dbProcess = ifrit.Invoke(postgresRunner)
 
+})
+
+var _ = BeforeEach(func() {
 	postgresRunner.CreateTestDB()
-	postgresRunner.Truncate()
+})
+
+var _ = AfterEach(func() {
+	postgresRunner.DropTestDB()
 })
 
 var _ = AfterSuite(func() {
