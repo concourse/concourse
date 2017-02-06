@@ -20,7 +20,7 @@ type LoginCommand struct {
 	Insecure bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
 	Username string       `short:"u" long:"username" description:"Username for basic auth"`
 	Password string       `short:"p" long:"password" description:"Password for basic auth"`
-	TeamName string       `short:"n" long:"team-name" description:"Team to authenticate with" default:"main"`
+	TeamName string       `short:"n" long:"team-name" description:"Team to authenticate with"`
 	CACert   atc.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
 }
 
@@ -42,6 +42,11 @@ func (command *LoginCommand) Execute(args []string) error {
 	}
 
 	if command.ATCURL != "" {
+
+		if command.TeamName == "" {
+			command.TeamName = atc.DefaultTeamName
+		}
+
 		target, err = rc.NewUnauthenticatedTarget(
 			Fly.Target,
 			command.ATCURL,
@@ -60,6 +65,9 @@ func (command *LoginCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+
+	command.TeamName = target.Team().Name()
+	fmt.Printf("Logging in to team '%s'\n", command.TeamName)
 
 	err = target.ValidateWithWarningOnly()
 	if err != nil {
