@@ -94,9 +94,9 @@ var _ = Describe("Auth", func() {
 		})
 	})
 
-	Describe("No authentication via development mode", func() {
+	Describe("No authentication via no auth flag", func() {
 		BeforeEach(func() {
-			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, DEVELOPMENT_MODE)
+			atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)
 			err := atcCommand.Start()
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -116,7 +116,7 @@ var _ = Describe("Auth", func() {
 			session, err := atcCommand.StartAndWait()
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("must configure basic auth, OAuth, UAAAuth, or turn on development mode"))
+			Expect(session.Err).To(gbytes.Say("must configure basic auth, OAuth, UAAAuth, or provide no-auth flag"))
 		})
 	})
 

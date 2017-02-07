@@ -56,7 +56,16 @@ import (
 	"github.com/xoebus/zest"
 )
 
+const (
+	LogLevelDebug = "debug"
+	LogLevelInfo  = "info"
+	LogLevelError = "error"
+	LogLevelFatal = "fatal"
+)
+
 type ATCCommand struct {
+	Authentication atc.AuthFlags `group:"Authentication"`
+
 	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
@@ -85,8 +94,8 @@ type ATCCommand struct {
 	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
 	Developer struct {
-		DevelopmentMode bool `short:"d" long:"development-mode"  description:"Lax security rules to make local development easier."`
-		Noop            bool `short:"n" long:"noop"              description:"Don't actually do any automatic scheduling or checking."`
+		LogLevel string `short:"d" long:"log-level" default:"info" choice:"debug" choice:"info" choice:"error" choice:"fatal" description:"Level of logs to make local development easier."`
+		Noop     bool   `short:"n" long:"noop"              description:"Don't actually do any automatic scheduling or checking."`
 	} `group:"Developer Options"`
 
 	AllowSelfSignedCertificates bool `long:"allow-self-signed-certificates" description:"Allow self signed certificates."`
@@ -96,14 +105,6 @@ type ATCCommand struct {
 		BaggageclaimURL URLFlag           `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
 		ResourceTypes   map[string]string `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
 	} `group:"Static Worker (optional)" namespace:"worker"`
-
-	BasicAuth atc.BasicAuthFlag `group:"Basic Authentication" namespace:"basic-auth"`
-
-	GitHubAuth atc.GitHubAuthFlag `group:"GitHub Authentication" namespace:"github-auth"`
-
-	UAAAuth atc.UAAAuthFlag `group:"UAA Authentication" namespace:"uaa-auth"`
-
-	GenericOAuth atc.GenericOAuthFlag `group:"Generic OAuth Authentication (Allows access to ALL authenticated users)" namespace:"generic-oauth"`
 
 	Metrics struct {
 		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`
@@ -467,20 +468,20 @@ func (cmd *ATCCommand) oauthBaseURL() string {
 }
 
 func (cmd *ATCCommand) authConfigured() bool {
-	return cmd.BasicAuth.IsConfigured() || cmd.GitHubAuth.IsConfigured() || cmd.UAAAuth.IsConfigured() || cmd.GenericOAuth.IsConfigured()
+	return cmd.Authentication.BasicAuth.IsConfigured() || cmd.Authentication.GitHubAuth.IsConfigured() || cmd.Authentication.UAAAuth.IsConfigured() || cmd.Authentication.GenericOAuth.IsConfigured()
 }
 
 func (cmd *ATCCommand) validate() error {
 	var errs *multierror.Error
 
-	if !cmd.authConfigured() && !cmd.Developer.DevelopmentMode {
+	if !cmd.authConfigured() && !cmd.Authentication.NoAuth {
 		errs = multierror.Append(
 			errs,
-			errors.New("must configure basic auth, OAuth, UAAAuth, or turn on development mode"),
+			errors.New("must configure basic auth, OAuth, UAAAuth, or provide no-auth flag"),
 		)
 	}
 
-	if cmd.GitHubAuth.IsConfigured() {
+	if cmd.Authentication.GitHubAuth.IsConfigured() {
 		if cmd.ExternalURL.URL() == nil {
 			errs = multierror.Append(
 				errs,
@@ -488,28 +489,28 @@ func (cmd *ATCCommand) validate() error {
 			)
 		}
 
-		err := cmd.GitHubAuth.Validate()
+		err := cmd.Authentication.GitHubAuth.Validate()
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
 	}
 
-	if cmd.GenericOAuth.IsConfigured() {
-		err := cmd.GenericOAuth.Validate()
+	if cmd.Authentication.GenericOAuth.IsConfigured() {
+		err := cmd.Authentication.GenericOAuth.Validate()
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
 	}
 
-	if cmd.BasicAuth.IsConfigured() {
-		err := cmd.BasicAuth.Validate()
+	if cmd.Authentication.BasicAuth.IsConfigured() {
+		err := cmd.Authentication.BasicAuth.Validate()
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
 	}
 
-	if cmd.UAAAuth.IsConfigured() {
-		err := cmd.UAAAuth.Validate()
+	if cmd.Authentication.UAAAuth.IsConfigured() {
+		err := cmd.Authentication.UAAAuth.Validate()
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
@@ -569,10 +570,20 @@ func (cmd *ATCCommand) debugBindAddr() string {
 
 func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
 	logger := lager.NewLogger("atc")
+	var logLevel lager.LogLevel
 
-	logLevel := lager.INFO
-	if cmd.Developer.DevelopmentMode {
+	switch cmd.Developer.LogLevel {
+	case LogLevelDebug:
 		logLevel = lager.DEBUG
+
+	case LogLevelError:
+		logLevel = lager.ERROR
+
+	case LogLevelFatal:
+		logLevel = lager.FATAL
+
+	default:
+		logLevel = lager.INFO
 	}
 
 	reconfigurableSink := lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), logLevel)
@@ -697,10 +708,10 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 	var basicAuth *db.BasicAuth
-	if cmd.BasicAuth.IsConfigured() {
+	if cmd.Authentication.BasicAuth.IsConfigured() {
 		basicAuth = &db.BasicAuth{
-			BasicAuthUsername: cmd.BasicAuth.Username,
-			BasicAuthPassword: cmd.BasicAuth.Password,
+			BasicAuthUsername: cmd.Authentication.BasicAuth.Username,
+			BasicAuthPassword: cmd.Authentication.BasicAuth.Password,
 		}
 	}
 	_, err := teamDB.UpdateBasicAuth(basicAuth)
@@ -709,9 +720,9 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 	}
 
 	var gitHubAuth *db.GitHubAuth
-	if cmd.GitHubAuth.IsConfigured() {
+	if cmd.Authentication.GitHubAuth.IsConfigured() {
 		gitHubTeams := []db.GitHubTeam{}
-		for _, gitHubTeam := range cmd.GitHubAuth.Teams {
+		for _, gitHubTeam := range cmd.Authentication.GitHubAuth.Teams {
 			gitHubTeams = append(gitHubTeams, db.GitHubTeam{
 				TeamName:         gitHubTeam.TeamName,
 				OrganizationName: gitHubTeam.OrganizationName,
@@ -719,14 +730,14 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 		}
 
 		gitHubAuth = &db.GitHubAuth{
-			ClientID:      cmd.GitHubAuth.ClientID,
-			ClientSecret:  cmd.GitHubAuth.ClientSecret,
-			Organizations: cmd.GitHubAuth.Organizations,
+			ClientID:      cmd.Authentication.GitHubAuth.ClientID,
+			ClientSecret:  cmd.Authentication.GitHubAuth.ClientSecret,
+			Organizations: cmd.Authentication.GitHubAuth.Organizations,
 			Teams:         gitHubTeams,
-			Users:         cmd.GitHubAuth.Users,
-			AuthURL:       cmd.GitHubAuth.AuthURL,
-			TokenURL:      cmd.GitHubAuth.TokenURL,
-			APIURL:        cmd.GitHubAuth.APIURL,
+			Users:         cmd.Authentication.GitHubAuth.Users,
+			AuthURL:       cmd.Authentication.GitHubAuth.AuthURL,
+			TokenURL:      cmd.Authentication.GitHubAuth.TokenURL,
+			APIURL:        cmd.Authentication.GitHubAuth.APIURL,
 		}
 	}
 
@@ -736,10 +747,10 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 	}
 
 	var uaaAuth *db.UAAAuth
-	if cmd.UAAAuth.IsConfigured() {
+	if cmd.Authentication.UAAAuth.IsConfigured() {
 		cfCACert := ""
-		if cmd.UAAAuth.CFCACert != "" {
-			cfCACertFileContents, err := ioutil.ReadFile(string(cmd.UAAAuth.CFCACert))
+		if cmd.Authentication.UAAAuth.CFCACert != "" {
+			cfCACertFileContents, err := ioutil.ReadFile(string(cmd.Authentication.UAAAuth.CFCACert))
 			if err != nil {
 				return err
 			}
@@ -747,12 +758,12 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 		}
 
 		uaaAuth = &db.UAAAuth{
-			ClientID:     cmd.UAAAuth.ClientID,
-			ClientSecret: cmd.UAAAuth.ClientSecret,
-			CFSpaces:     cmd.UAAAuth.CFSpaces,
-			AuthURL:      cmd.UAAAuth.AuthURL,
-			TokenURL:     cmd.UAAAuth.TokenURL,
-			CFURL:        cmd.UAAAuth.CFURL,
+			ClientID:     cmd.Authentication.UAAAuth.ClientID,
+			ClientSecret: cmd.Authentication.UAAAuth.ClientSecret,
+			CFSpaces:     cmd.Authentication.UAAAuth.CFSpaces,
+			AuthURL:      cmd.Authentication.UAAAuth.AuthURL,
+			TokenURL:     cmd.Authentication.UAAAuth.TokenURL,
+			CFURL:        cmd.Authentication.UAAAuth.CFURL,
 			CFCACert:     cfCACert,
 		}
 	}
@@ -763,15 +774,15 @@ func (cmd *ATCCommand) configureAuthForDefaultTeam(teamDBFactory db.TeamDBFactor
 	}
 
 	var genericOAuth *db.GenericOAuth
-	if cmd.GenericOAuth.IsConfigured() {
+	if cmd.Authentication.GenericOAuth.IsConfigured() {
 		genericOAuth = &db.GenericOAuth{
-			AuthURL:       cmd.GenericOAuth.AuthURL,
-			AuthURLParams: cmd.GenericOAuth.AuthURLParams,
-			Scope:         cmd.GenericOAuth.Scope,
-			TokenURL:      cmd.GenericOAuth.TokenURL,
-			ClientID:      cmd.GenericOAuth.ClientID,
-			ClientSecret:  cmd.GenericOAuth.ClientSecret,
-			DisplayName:   cmd.GenericOAuth.DisplayName,
+			AuthURL:       cmd.Authentication.GenericOAuth.AuthURL,
+			AuthURLParams: cmd.Authentication.GenericOAuth.AuthURLParams,
+			Scope:         cmd.Authentication.GenericOAuth.Scope,
+			TokenURL:      cmd.Authentication.GenericOAuth.TokenURL,
+			ClientID:      cmd.Authentication.GenericOAuth.ClientID,
+			ClientSecret:  cmd.Authentication.GenericOAuth.ClientSecret,
+			DisplayName:   cmd.Authentication.GenericOAuth.DisplayName,
 		}
 	}
 
