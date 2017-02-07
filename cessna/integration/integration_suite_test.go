@@ -29,6 +29,8 @@ import (
 )
 
 var (
+	skipped bool
+
 	testBaseResource Resource
 	worker           Worker
 	baseResourceType BaseResourceType
@@ -48,11 +50,15 @@ var (
 var _ = BeforeSuite(func() {
 	_, found = os.LookupEnv("RUN_CESSNA_TESTS")
 	if !found {
-		Skip("Must set RUN_CESSNA_TESTS")
+		skipped = true
 	}
-}, 10)
+})
 
-var _ = SynchronizedAfterSuite(func() {}, func() {
+var _ = AfterSuite(func() {
+	if skipped {
+		return
+	}
+
 	worker = NewWorker(fmt.Sprintf("%s:7777", workerIp), fmt.Sprintf("http://%s:7788", workerIp))
 
 	containers, err := worker.GardenClient().Containers(nil)
@@ -70,9 +76,13 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 		err = volume.Destroy()
 		Expect(err).NotTo(HaveOccurred())
 	}
-}, 10)
+})
 
 var _ = BeforeEach(func() {
+	if skipped {
+		Skip("$RUN_CESSNA_TESTS not set; skipping")
+	}
+
 	fakeWorker = new(cessnafakes.FakeWorker)
 	fakeGardenClient = new(gardenfakes.FakeClient)
 	fakeBaggageClaimClient = new(baggageclaimfakes.FakeClient)
