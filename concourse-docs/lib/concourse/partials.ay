@@ -125,4 +125,7 @@ def(bottom-nav(part)):
                 "BOSH Releases"
 
       <div(class = "sponsorship navbar-link"):
-        ["Sponsored by ", <a(href = "http://pivotal.io/"): "Pivotal Software, Inc."]
+        [ "Sponsored by ", <a(href = "http://pivotal.io/") { "Pivotal Software, Inc." }
+        , " - "
+        , link-to(part, "trademarks", "Trademark Guidelines")
+        ]
