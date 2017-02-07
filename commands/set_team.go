@@ -13,12 +13,8 @@ import (
 )
 
 type SetTeamCommand struct {
-	TeamName     string               `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
-	NoAuth       bool                 `long:"no-really-i-dont-want-any-auth"  description:"Ignore warnings about insecure teams"`
-	BasicAuth    atc.BasicAuthFlag    `group:"Basic Authentication" namespace:"basic-auth"`
-	GitHubAuth   atc.GitHubAuthFlag   `group:"GitHub Authentication" namespace:"github-auth"`
-	UAAAuth      atc.UAAAuthFlag      `group:"UAA Authentication" namespace:"uaa-auth"`
-	GenericOAuth atc.GenericOAuthFlag `group:"Generic OAuth Authentication" namespace:"generic-oauth"`
+	TeamName       string        `short:"n" long:"team-name" required:"true"        description:"The team to create or modify"`
+	Authentication atc.AuthFlags `group:"Authentication"`
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
@@ -38,10 +34,10 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 
 	fmt.Println("Team Name:", command.TeamName)
-	fmt.Println("Basic Auth:", authMethodStatusDescription(command.BasicAuth.IsConfigured()))
-	fmt.Println("GitHub Auth:", authMethodStatusDescription(command.GitHubAuth.IsConfigured()))
-	fmt.Println("UAA Auth:", authMethodStatusDescription(command.UAAAuth.IsConfigured()))
-	fmt.Println("Generic OAuth:", authMethodStatusDescription(command.GenericOAuth.IsConfigured()))
+	fmt.Println("Basic Auth:", authMethodStatusDescription(command.Authentication.BasicAuth.IsConfigured()))
+	fmt.Println("GitHub Auth:", authMethodStatusDescription(command.Authentication.GitHubAuth.IsConfigured()))
+	fmt.Println("UAA Auth:", authMethodStatusDescription(command.Authentication.UAAAuth.IsConfigured()))
+	fmt.Println("Generic OAuth:", authMethodStatusDescription(command.Authentication.GenericOAuth.IsConfigured()))
 
 	confirm := false
 	err = interact.NewInteraction("apply configuration?").Resolve(&confirm)
@@ -55,25 +51,25 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	team := atc.Team{}
 
-	if command.BasicAuth.IsConfigured() {
+	if command.Authentication.BasicAuth.IsConfigured() {
 		team.BasicAuth = &atc.BasicAuth{
-			BasicAuthUsername: command.BasicAuth.Username,
-			BasicAuthPassword: command.BasicAuth.Password,
+			BasicAuthUsername: command.Authentication.BasicAuth.Username,
+			BasicAuthPassword: command.Authentication.BasicAuth.Password,
 		}
 	}
 
-	if command.GitHubAuth.IsConfigured() {
+	if command.Authentication.GitHubAuth.IsConfigured() {
 		team.GitHubAuth = &atc.GitHubAuth{
-			ClientID:      command.GitHubAuth.ClientID,
-			ClientSecret:  command.GitHubAuth.ClientSecret,
-			Organizations: command.GitHubAuth.Organizations,
-			Users:         command.GitHubAuth.Users,
-			AuthURL:       command.GitHubAuth.AuthURL,
-			TokenURL:      command.GitHubAuth.TokenURL,
-			APIURL:        command.GitHubAuth.APIURL,
+			ClientID:      command.Authentication.GitHubAuth.ClientID,
+			ClientSecret:  command.Authentication.GitHubAuth.ClientSecret,
+			Organizations: command.Authentication.GitHubAuth.Organizations,
+			Users:         command.Authentication.GitHubAuth.Users,
+			AuthURL:       command.Authentication.GitHubAuth.AuthURL,
+			TokenURL:      command.Authentication.GitHubAuth.TokenURL,
+			APIURL:        command.Authentication.GitHubAuth.APIURL,
 		}
 
-		for _, ghTeam := range command.GitHubAuth.Teams {
+		for _, ghTeam := range command.Authentication.GitHubAuth.Teams {
 			team.GitHubAuth.Teams = append(team.GitHubAuth.Teams, atc.GitHubTeam{
 				OrganizationName: ghTeam.OrganizationName,
 				TeamName:         ghTeam.TeamName,
@@ -81,10 +77,10 @@ func (command *SetTeamCommand) Execute([]string) error {
 		}
 	}
 
-	if command.UAAAuth.IsConfigured() {
+	if command.Authentication.UAAAuth.IsConfigured() {
 		cfCACert := ""
-		if command.UAAAuth.CFCACert != "" {
-			cfCACertFileContents, err := ioutil.ReadFile(string(command.UAAAuth.CFCACert))
+		if command.Authentication.UAAAuth.CFCACert != "" {
+			cfCACertFileContents, err := ioutil.ReadFile(string(command.Authentication.UAAAuth.CFCACert))
 			if err != nil {
 				return err
 			}
@@ -92,24 +88,24 @@ func (command *SetTeamCommand) Execute([]string) error {
 		}
 
 		team.UAAAuth = &atc.UAAAuth{
-			ClientID:     command.UAAAuth.ClientID,
-			ClientSecret: command.UAAAuth.ClientSecret,
-			AuthURL:      command.UAAAuth.AuthURL,
-			TokenURL:     command.UAAAuth.TokenURL,
-			CFSpaces:     command.UAAAuth.CFSpaces,
-			CFURL:        command.UAAAuth.CFURL,
+			ClientID:     command.Authentication.UAAAuth.ClientID,
+			ClientSecret: command.Authentication.UAAAuth.ClientSecret,
+			AuthURL:      command.Authentication.UAAAuth.AuthURL,
+			TokenURL:     command.Authentication.UAAAuth.TokenURL,
+			CFSpaces:     command.Authentication.UAAAuth.CFSpaces,
+			CFURL:        command.Authentication.UAAAuth.CFURL,
 			CFCACert:     cfCACert,
 		}
 	}
 
-	if command.GenericOAuth.IsConfigured() {
+	if command.Authentication.GenericOAuth.IsConfigured() {
 		team.GenericOAuth = &atc.GenericOAuth{
-			ClientID:      command.GenericOAuth.ClientID,
-			ClientSecret:  command.GenericOAuth.ClientSecret,
-			AuthURL:       command.GenericOAuth.AuthURL,
-			TokenURL:      command.GenericOAuth.TokenURL,
-			DisplayName:   command.GenericOAuth.DisplayName,
-			AuthURLParams: command.GenericOAuth.AuthURLParams,
+			ClientID:      command.Authentication.GenericOAuth.ClientID,
+			ClientSecret:  command.Authentication.GenericOAuth.ClientSecret,
+			AuthURL:       command.Authentication.GenericOAuth.AuthURL,
+			TokenURL:      command.Authentication.GenericOAuth.TokenURL,
+			DisplayName:   command.Authentication.GenericOAuth.DisplayName,
+			AuthURLParams: command.Authentication.GenericOAuth.AuthURLParams,
 		}
 	}
 
@@ -123,7 +119,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 }
 
 func (command *SetTeamCommand) noAuthConfigured() bool {
-	if command.BasicAuth.IsConfigured() || command.GitHubAuth.IsConfigured() || command.UAAAuth.IsConfigured() || command.GenericOAuth.IsConfigured() {
+	if command.Authentication.BasicAuth.IsConfigured() || command.Authentication.GitHubAuth.IsConfigured() || command.Authentication.UAAAuth.IsConfigured() || command.Authentication.GenericOAuth.IsConfigured() {
 		return false
 	}
 	return true
@@ -131,7 +127,7 @@ func (command *SetTeamCommand) noAuthConfigured() bool {
 
 func (command *SetTeamCommand) ValidateFlags() error {
 	if command.noAuthConfigured() {
-		if !command.NoAuth {
+		if !command.Authentication.NoAuth {
 			fmt.Fprintln(ui.Stderr, "no auth methods configured! to continue, run:")
 			fmt.Fprintln(ui.Stderr, "")
 			fmt.Fprintln(ui.Stderr, "    "+ui.Embolden("fly -t %s set-team -n %s --no-really-i-dont-want-any-auth", Fly.Target, command.TeamName))
@@ -145,29 +141,29 @@ func (command *SetTeamCommand) ValidateFlags() error {
 		fmt.Fprintln(ui.Stderr, "")
 	}
 
-	if command.BasicAuth.IsConfigured() {
-		err := command.BasicAuth.Validate()
+	if command.Authentication.BasicAuth.IsConfigured() {
+		err := command.Authentication.BasicAuth.Validate()
 		if err != nil {
 			return err
 		}
 	}
 
-	if command.GitHubAuth.IsConfigured() {
-		err := command.GitHubAuth.Validate()
+	if command.Authentication.GitHubAuth.IsConfigured() {
+		err := command.Authentication.GitHubAuth.Validate()
 		if err != nil {
 			return err
 		}
 	}
 
-	if command.UAAAuth.IsConfigured() {
-		err := command.UAAAuth.Validate()
+	if command.Authentication.UAAAuth.IsConfigured() {
+		err := command.Authentication.UAAAuth.Validate()
 		if err != nil {
 			return err
 		}
 	}
 
-	if command.GenericOAuth.IsConfigured() {
-		err := command.GenericOAuth.Validate()
+	if command.Authentication.GenericOAuth.IsConfigured() {
+		err := command.Authentication.GenericOAuth.Validate()
 		if err != nil {
 			return err
 		}
