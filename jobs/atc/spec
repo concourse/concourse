@@ -81,7 +81,7 @@ properties:
       Allow self-signed certificates.
     default: false
 
-  development_mode:
+  no_auth:
     description: |
       Loosen up security for development purposes. This allows the ATC to be
       configured with no authentication methods.
