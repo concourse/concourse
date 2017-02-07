@@ -77,7 +77,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       \reference{downloads}{downloads} section.
     }{
       For Linux you'll need kernel v3.19 or later, with user namespace support
-      enabled. Windows and Darwin don't really need anything special.
+      enabled. Windows and Darwin don't really need anything special, except fact that you will need Linux worker anyway for fetching resources.
     }{
       openssl
     }{
