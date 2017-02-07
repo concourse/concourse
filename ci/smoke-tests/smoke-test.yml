@@ -44,7 +44,8 @@ run:
     set +x
     echo "starting web"
     ./concourse web \
-      --development-mode \
+      --log-level debug \
+      --no-really-i-dont-want-any-auth \
       --session-signing-key session_signing_key \
       --tsa-host-key host_key \
       --tsa-authorized-keys authorized_worker_keys > web.stdout.log 2> web.stderr.log &

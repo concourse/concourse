@@ -46,7 +46,8 @@ $CONCOURSE web \
   --tsa-host-key /etc/concourse/tsa-host \
   --tsa-authorized-keys /etc/concourse/worker.pub \
   --session-signing-key /etc/concourse/session-signing-key \
-  --development-mode \
+  --log-level debug \
+  --no-really-i-dont-want-any-auth \
   --resource-checking-interval 5s \
   --basic-auth-username "$BASIC_AUTH_USERNAME" \
   --basic-auth-password "$BASIC_AUTH_PASSWORD" \

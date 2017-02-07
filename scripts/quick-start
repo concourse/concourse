@@ -22,7 +22,8 @@ if [ -z "$concourse" ]; then
 fi
 
 $concourse web \
-  --development-mode \
+  --log-level debug \
+  --no-really-i-dont-want-any-auth \
   --session-signing-key $session_key \
   --tsa-bind-port 2223 \
   --tsa-host-key $tsa_key \
