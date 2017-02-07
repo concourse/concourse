@@ -63,13 +63,14 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 					startSession = spawnBosh("start", "web/1")
 					Eventually(stopSession).Should(gexec.Exit(0))
 					spawnFly("login", "-c", atcExternalURL2)
-
 				})
 
 				AfterEach(func() {
 					buildSession.Signal(os.Interrupt)
 					<-buildSession.Exited
 					<-startSession.Exited
+					restartSession := spawnBosh("start", "web/0")
+					Eventually(restartSession).Should(gexec.Exit(0))
 				})
 
 				Context("when the atc tracking the build shuts down", func() {
