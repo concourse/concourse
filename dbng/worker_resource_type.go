@@ -28,6 +28,8 @@ type WorkerResourceType struct {
 }
 
 type UsedWorkerResourceType struct {
+	ID int
+
 	Worker *Worker
 
 	UsedBaseResourceType *UsedBaseResourceType
@@ -52,13 +54,16 @@ func (wrt WorkerResourceType) FindOrCreate(tx Tx) (*UsedWorkerResourceType, erro
 }
 
 func (wrt WorkerResourceType) find(tx Tx, usedBaseResourceType *UsedBaseResourceType) (*UsedWorkerResourceType, bool, error) {
-	var worker_name string
-	err := psql.Select("worker_name").From("worker_base_resource_types").Where(sq.Eq{
+	var (
+		worker_name string
+		id          int
+	)
+	err := psql.Select("id", "worker_name").From("worker_base_resource_types").Where(sq.Eq{
 		"worker_name":           wrt.Worker.Name,
 		"base_resource_type_id": usedBaseResourceType.ID,
 		"image":                 wrt.Image,
 		"version":               wrt.Version,
-	}).RunWith(tx).QueryRow().Scan(&worker_name)
+	}).RunWith(tx).QueryRow().Scan(&id, &worker_name)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -67,13 +72,15 @@ func (wrt WorkerResourceType) find(tx Tx, usedBaseResourceType *UsedBaseResource
 	}
 
 	return &UsedWorkerResourceType{
+		ID:                   id,
 		Worker:               wrt.Worker,
 		UsedBaseResourceType: usedBaseResourceType,
 	}, true, nil
 }
 
 func (wrt WorkerResourceType) create(tx Tx, usedBaseResourceType *UsedBaseResourceType) (*UsedWorkerResourceType, error) {
-	_, err := psql.Insert("worker_base_resource_types").
+	var id int
+	err := psql.Insert("worker_base_resource_types").
 		Columns(
 			"worker_name",
 			"base_resource_type_id",
@@ -86,8 +93,10 @@ func (wrt WorkerResourceType) create(tx Tx, usedBaseResourceType *UsedBaseResour
 			wrt.Image,
 			wrt.Version,
 		).
+		Suffix("RETURNING id").
 		RunWith(tx).
-		Exec()
+		QueryRow().
+		Scan(&id)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
 			return nil, ErrWorkerBaseResourceTypeAlreadyExists
@@ -97,6 +106,7 @@ func (wrt WorkerResourceType) create(tx Tx, usedBaseResourceType *UsedBaseResour
 	}
 
 	return &UsedWorkerResourceType{
+		ID:                   id,
 		Worker:               wrt.Worker,
 		UsedBaseResourceType: usedBaseResourceType,
 	}, nil

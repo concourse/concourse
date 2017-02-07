@@ -882,7 +882,7 @@ func saveWorker(tx Tx, worker atc.Worker, teamID *int, ttl time.Duration) (*Work
 		State:      workerState,
 	}
 
-	baseResourceTypeIDs := []int{}
+	workerBaseResourceTypeIDs := []int{}
 	for _, resourceType := range worker.ResourceTypes {
 		workerResourceType := WorkerResourceType{
 			Worker:  savedWorker,
@@ -892,12 +892,35 @@ func saveWorker(tx Tx, worker atc.Worker, teamID *int, ttl time.Duration) (*Work
 				Name: resourceType.Type,
 			},
 		}
+
+		brt := BaseResourceType{
+			Name: resourceType.Type,
+		}
+
+		ubrt, err := brt.FindOrCreate(tx)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = psql.Delete("worker_base_resource_types").
+			Where(sq.Eq{
+				"worker_name":           worker.Name,
+				"base_resource_type_id": ubrt.ID,
+			}).
+			Where(sq.NotEq{
+				"version": resourceType.Version,
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return nil, err
+		}
 		uwrt, err := workerResourceType.FindOrCreate(tx)
 		if err != nil {
 			return nil, err
 		}
 
-		baseResourceTypeIDs = append(baseResourceTypeIDs, uwrt.UsedBaseResourceType.ID)
+		workerBaseResourceTypeIDs = append(workerBaseResourceTypeIDs, uwrt.ID)
 	}
 
 	_, err = psql.Delete("worker_base_resource_types").
@@ -905,10 +928,13 @@ func saveWorker(tx Tx, worker atc.Worker, teamID *int, ttl time.Duration) (*Work
 			"worker_name": worker.Name,
 		}).
 		Where(sq.NotEq{
-			"base_resource_type_id": baseResourceTypeIDs,
+			"id": workerBaseResourceTypeIDs,
 		}).
 		RunWith(tx).
 		Exec()
+	if err != nil {
+		return nil, err
+	}
 
 	return savedWorker, nil
 }

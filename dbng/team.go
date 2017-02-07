@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -80,6 +81,10 @@ func (t *team) CreateResourceCheckContainer(
 		return nil, err
 	}
 
+
+	brtID := t.findBaseResourceTypeID(resourceConfig)
+	wbrtID, err := t.findWorkerBaseResourceType(brtID, worker, tx)
+
 	var containerID int
 	err = psql.Insert("containers").
 		Columns(
@@ -89,6 +94,7 @@ func (t *team) CreateResourceCheckContainer(
 			"step_name",
 			"handle",
 			"team_id",
+			"worker_base_resource_types_id",
 		).
 		Values(
 			worker.Name,
@@ -97,6 +103,7 @@ func (t *team) CreateResourceCheckContainer(
 			"",
 			handle.String(),
 			t.id,
+			*wbrtID,
 		).
 		Suffix("RETURNING id").
 		RunWith(tx).
@@ -121,6 +128,30 @@ func (t *team) CreateResourceCheckContainer(
 		workerName: worker.Name,
 		conn:       t.conn,
 	}, nil
+}
+
+func (t *team) findBaseResourceTypeID(resourceConfig *UsedResourceConfig) *UsedBaseResourceType {
+	json.NewEncoder(os.Stderr).Encode(resourceConfig)
+	if resourceConfig.CreatedByBaseResourceType != nil {
+		return resourceConfig.CreatedByBaseResourceType
+	} else {
+		return t.findBaseResourceTypeID(resourceConfig.CreatedByResourceCache.ResourceConfig)
+	}
+}
+
+func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResourceType, worker *Worker, tx Tx) (*int, error) {
+	var wbrtID int
+
+	err := psql.Select("id").From("worker_base_resource_types").Where(sq.Eq{
+		"worker_name":           worker.Name,
+		"base_resource_type_id": usedBaseResourceType.ID,
+	}).RunWith(tx).QueryRow().Scan(&wbrtID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &wbrtID, nil
 }
 
 func (t *team) FindResourceGetContainer(

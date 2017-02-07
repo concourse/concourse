@@ -43,6 +43,7 @@ var (
 	baseResourceTypeFactory dbng.BaseResourceTypeFactory
 
 	defaultTeam              dbng.Team
+	defaultWorkerPayload     atc.Worker
 	defaultWorker            *dbng.Worker
 	defaultResourceConfig    *dbng.UsedResourceConfig
 	defaultResourceType      dbng.ResourceType
@@ -96,13 +97,14 @@ var _ = BeforeEach(func() {
 		Version: "some-brt-version",
 	}
 
-	atcWorker := atc.Worker{
+	defaultWorkerPayload = atc.Worker{
 		ResourceTypes:   []atc.WorkerResourceType{baseResourceType},
 		Name:            "default-worker",
 		GardenAddr:      "1.2.3.4:7777",
 		BaggageclaimURL: "5.6.7.8:7878",
 	}
-	defaultWorker, err = workerFactory.SaveWorker(atcWorker, 0)
+
+	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{

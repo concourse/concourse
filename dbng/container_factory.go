@@ -161,6 +161,7 @@ var containersToDeleteCondition = sq.And{
 		sq.Expr("(build_id IS NOT NULL AND build_id NOT IN (SELECT id FROM builds_to_keep))"),
 		sq.Expr("(type = ? AND best_if_used_by < NOW())", string(ContainerStageCheck)),
 		sq.Expr("(build_id IS NULL AND resource_config_id IS NULL AND resource_cache_id IS NULL)"),
+		sq.Expr("(resource_config_id IS NOT NULL AND worker_base_resource_types_id IS NULL)"),
 	},
 	sq.Eq{"state": string(ContainerStateCreated)},
 }

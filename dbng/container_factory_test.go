@@ -471,6 +471,54 @@ var _ = Describe("ContainerFactory", func() {
 						}))
 					})
 				})
+
+				Context("when the worker base resource type has a new version", func() {
+					BeforeEach(func() {
+						newlyUpdatedWorker := defaultWorkerPayload
+						newlyUpdatedResource := defaultWorkerPayload.ResourceTypes[0]
+						newlyUpdatedResource.Version = newlyUpdatedResource.Version + "-new"
+						newlyUpdatedWorker.ResourceTypes = []atc.WorkerResourceType{newlyUpdatedResource}
+
+						defaultWorker, err = workerFactory.SaveWorker(newlyUpdatedWorker, 0)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("marks the container for deletion", func() {
+						err = containerFactory.MarkContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(deletingContainers).To(HaveLen(2))
+						Expect([]string{
+							deletingContainers[0].Handle(),
+							deletingContainers[1].Handle(),
+						}).To(ConsistOf([]string{
+							defaultCreatedContainer.Handle(),
+							createdContainer.Handle(),
+						}))
+					})
+				})
+
+				Context("when the same worker base resource type is saved", func() {
+					BeforeEach(func() {
+						sameWorker := defaultWorkerPayload
+
+						defaultWorker, err = workerFactory.SaveWorker(sameWorker, 0)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("does not mark the container for deletion", func() {
+						err = containerFactory.MarkContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(deletingContainers).To(HaveLen(0))
+					})
+				})
 			})
 		})
 
