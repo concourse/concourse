@@ -74,17 +74,16 @@ type UsedResourceConfig struct {
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
 func (resourceConfig ResourceConfig) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, buildID int) (*UsedResourceConfig, error) {
-	var resourceCacheID int
+	var usedResourceCache *UsedResourceCache
 	if resourceConfig.CreatedByResourceCache != nil {
-		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForBuild(logger, tx, lockFactory, buildID)
+		var err error
+		usedResourceCache, err = resourceConfig.CreatedByResourceCache.FindOrCreateForBuild(logger, tx, lockFactory, buildID)
 		if err != nil {
 			return nil, err
 		}
-
-		resourceCacheID = createdByResourceCache.ID
 	}
 
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, "build_id", buildID, resourceCacheID)
+	return resourceConfig.findOrCreate(logger, tx, lockFactory, "build_id", buildID, usedResourceCache)
 }
 
 // FindOrCreateForResource creates the ResourceConfig, recursively creating its
@@ -107,16 +106,16 @@ func (resourceConfig ResourceConfig) FindOrCreateForBuild(logger lager.Logger, t
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
 func (resourceConfig ResourceConfig) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceID int) (*UsedResourceConfig, error) {
-	var resourceCacheID int
+	var usedResourceCache *UsedResourceCache
 	if resourceConfig.CreatedByResourceCache != nil {
-		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForResource(logger, tx, lockFactory, resourceID)
+		var err error
+		usedResourceCache, err = resourceConfig.CreatedByResourceCache.FindOrCreateForResource(logger, tx, lockFactory, resourceID)
 		if err != nil {
 			return nil, err
 		}
-
-		resourceCacheID = createdByResourceCache.ID
 	}
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_id", resourceID, resourceCacheID)
+
+	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_id", resourceID, usedResourceCache)
 }
 
 // FindOrCreateForResourceType creates the ResourceConfig, recursively creating
@@ -139,26 +138,28 @@ func (resourceConfig ResourceConfig) FindOrCreateForResource(logger lager.Logger
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
 func (resourceConfig ResourceConfig) FindOrCreateForResourceType(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceType *UsedResourceType) (*UsedResourceConfig, error) {
-	var resourceCacheID int
+	var usedResourceCache *UsedResourceCache
 	if resourceConfig.CreatedByResourceCache != nil {
-		createdByResourceCache, err := resourceConfig.CreatedByResourceCache.FindOrCreateForResourceType(logger, tx, lockFactory, resourceType)
+		var err error
+		usedResourceCache, err = resourceConfig.CreatedByResourceCache.FindOrCreateForResourceType(logger, tx, lockFactory, resourceType)
 		if err != nil {
 			return nil, err
 		}
-
-		resourceCacheID = createdByResourceCache.ID
 	}
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_type_id", resourceType.ID, resourceCacheID)
+
+	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_type_id", resourceType.ID, usedResourceCache)
 }
 
-func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, forColumnName string, forColumnID int, resourceCacheID int) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, forColumnName string, forColumnID int, resourceCache *UsedResourceCache) (*UsedResourceConfig, error) {
 	urc := &UsedResourceConfig{}
 
 	var parentID int
 	var parentColumnName string
 	if resourceConfig.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
-		parentID = resourceCacheID
+		parentID = resourceCache.ID
+
+		urc.CreatedByResourceCache = resourceCache
 	}
 
 	if resourceConfig.CreatedByBaseResourceType != nil {
