@@ -142,4 +142,5 @@ var Migrations = []migration.Migrator{
 	RemoveTTLFromContainers,
 	AddDiscontinuedToContainers,
 	AddSourceHashToResources,
+	AddWorkerBaseResourceTypeIdToContainers,
 }
