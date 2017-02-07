@@ -64,9 +64,7 @@ var _ = Describe(":life [#136140165] Container scope", func() {
 			fly("login", "-n", "main")
 
 			By("stopping the build")
-			hijackSession = spawnFlyInteractive(
-				bytes.NewBufferString("3\n"),
-				"hijack",
+			hijackSession = flyHijackTask(
 				"-b", "1",
 				"touch", "/tmp/stop-waiting",
 			)

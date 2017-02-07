@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"bytes"
 	"os"
 	"regexp"
 	"time"
@@ -122,9 +121,7 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 					By("hijacking the build to tell it to finish")
 					Eventually(func() int {
-						session := spawnFlyInteractive(
-							bytes.NewBufferString("3\n"),
-							"hijack",
+						session := flyHijackTask(
 							"-b", buildID,
 							"-s", "one-off",
 							"touch", "/tmp/stop-waiting",

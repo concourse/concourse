@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"bytes"
 	"database/sql"
 	"fmt"
 	"os"
@@ -31,7 +30,6 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 		})
 
 		Describe("tracking builds previously tracked by shutdown ATC", func() {
-
 			var stopSession *gexec.Session
 			var landSession *gexec.Session
 
@@ -75,7 +73,6 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 				})
 
 				Context("when the atc tracking the build shuts down", func() {
-
 					JustBeforeEach(func() {
 						By("stopping the first web instance")
 						landSession = spawnBosh("stop", "web/0")
@@ -87,12 +84,9 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 					})
 
 					It("continues tracking the build progress", func() {
-
 						By("hijacking the build to tell it to finish")
 						Eventually(func() int {
-							session := spawnFlyInteractive(
-								bytes.NewBufferString("3\n"),
-								"hijack",
+							session := flyHijackTask(
 								"-b", buildID,
 								"-s", "one-off",
 								"touch", "/tmp/stop-waiting",
@@ -106,14 +100,9 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 						Eventually(buildSession).Should(gbytes.Say("done"))
 						<-buildSession.Exited
 						Expect(buildSession.ExitCode()).To(Equal(0))
-
 					})
 				})
-
 			})
-
 		})
-
 	})
-
 })

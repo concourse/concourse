@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
@@ -58,9 +57,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 		By("hijacking into the build container")
-		hijackSession := spawnFlyInteractive(
-			bytes.NewBufferString("3\n"),
-			"hijack",
+		hijackSession := flyHijackTask(
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "1",
 			"-s", "simple-task",
@@ -72,9 +69,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		<-buildSession.Exited
 		buildSession = spawnFly("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
-		<-spawnFlyInteractive(
-			bytes.NewBufferString("3\n"),
-			"hijack",
+		<-flyHijackTask(
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "2",
 			"-s", "simple-task",
@@ -97,9 +92,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 		By("hijacking into the build container")
-		hijackSession := spawnFlyInteractive(
-			bytes.NewBufferString("3\n"),
-			"hijack",
+		hijackSession := flyHijackTask(
 			"-b", "1",
 			"touch", "/tmp/stop-waiting",
 			"and", "sleep", "3600",
@@ -127,9 +120,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		fly("check-resource", "-r", "hijacked-resource-test/tick-tock")
 
 		By("hijacking into the build container")
-		hijackSession := spawnFlyInteractive(
-			bytes.NewBufferString("3\n"),
-			"hijack",
+		hijackSession := flyHijackTask(
 			"-c", "hijacked-resource-test/tick-tock",
 			"sleep", "3600",
 		)

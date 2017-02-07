@@ -79,9 +79,7 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				It("finishes restarting once the build is done", func() {
 					By("hijacking the build to tell it to finish")
 					Eventually(func() int {
-						session := spawnFlyInteractive(
-							bytes.NewBufferString("3\n"),
-							"hijack",
+						session := flyHijackTask(
 							"-b", buildID,
 							"-s", "one-off",
 							"touch", "/tmp/stop-waiting",
