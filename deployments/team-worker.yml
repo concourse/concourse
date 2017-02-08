@@ -20,7 +20,8 @@ instance_groups:
   - release: concourse
     name: atc
     properties:
-      development_mode: true
+      no_really_i_dont_want_any_auth: true
+      log_level: debug
       external_url: ((atc-external-url))
       postgresql_database: atc
 
