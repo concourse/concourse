@@ -47,12 +47,12 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 			Eventually(func() bool {
 				containers := flyTable("containers")
 				for _, container := range containers {
-					if container["type"] == "check" {
+					if container["type"] == "check" && container["handle"] == checkContainerHandle {
 						return true
 					}
 				}
 				return false
-			}, 10*time.Minute, time.Second).Should(BeFalse())
+			}, 10*time.Minute, 10*time.Second).Should(BeFalse())
 
 			By("checking resource again")
 			fly("check-resource", "-r", "volume-gc-test/tick-tock")
