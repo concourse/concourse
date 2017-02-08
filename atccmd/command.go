@@ -56,14 +56,9 @@ import (
 	"github.com/xoebus/zest"
 )
 
-const (
-	LogLevelDebug = "debug"
-	LogLevelInfo  = "info"
-	LogLevelError = "error"
-	LogLevelFatal = "fatal"
-)
-
 type ATCCommand struct {
+	Logger LagerFlag
+
 	Authentication atc.AuthFlags `group:"Authentication"`
 
 	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
@@ -94,8 +89,7 @@ type ATCCommand struct {
 	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
 	Developer struct {
-		LogLevel string `short:"d" long:"log-level" default:"info" choice:"debug" choice:"info" choice:"error" choice:"fatal" description:"Level of logs to make local development easier."`
-		Noop     bool   `short:"n" long:"noop"              description:"Don't actually do any automatic scheduling or checking."`
+		Noop bool `short:"n" long:"noop"              description:"Don't actually do any automatic scheduling or checking."`
 	} `group:"Developer Options"`
 
 	AllowSelfSignedCertificates bool `long:"allow-self-signed-certificates" description:"Allow self signed certificates."`
@@ -569,25 +563,7 @@ func (cmd *ATCCommand) debugBindAddr() string {
 }
 
 func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
-	logger := lager.NewLogger("atc")
-	var logLevel lager.LogLevel
-
-	switch cmd.Developer.LogLevel {
-	case LogLevelDebug:
-		logLevel = lager.DEBUG
-
-	case LogLevelError:
-		logLevel = lager.ERROR
-
-	case LogLevelFatal:
-		logLevel = lager.FATAL
-
-	default:
-		logLevel = lager.INFO
-	}
-
-	reconfigurableSink := lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), logLevel)
-	logger.RegisterSink(reconfigurableSink)
+	logger, reconfigurableSink := cmd.Logger.Logger("atc")
 
 	if cmd.Metrics.YellerAPIKey != "" {
 		yellerSink := zest.NewYellerSink(cmd.Metrics.YellerAPIKey, cmd.Metrics.YellerEnvironment)
