@@ -42,7 +42,6 @@ func (command *LoginCommand) Execute(args []string) error {
 	}
 
 	if command.ATCURL != "" {
-
 		if command.TeamName == "" {
 			command.TeamName = atc.DefaultTeamName
 		}
@@ -67,7 +66,8 @@ func (command *LoginCommand) Execute(args []string) error {
 	}
 
 	command.TeamName = target.Team().Name()
-	fmt.Printf("Logging in to team '%s'\n", command.TeamName)
+
+	fmt.Printf("logging in to team '%s'\n\n", command.TeamName)
 
 	err = target.ValidateWithWarningOnly()
 	if err != nil {

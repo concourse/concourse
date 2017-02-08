@@ -95,7 +95,7 @@ var _ = Describe("login Command", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gbytes.Say("Logging in to team 'main'"))
+			Eventually(sess).Should(gbytes.Say("logging in to team 'main'"))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
@@ -130,7 +130,7 @@ var _ = Describe("login Command", func() {
 				flyCmd := exec.Command(flyPath, "-t", "some-target", "login")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
-				Eventually(sess).Should(gbytes.Say("Logging in to team 'some-team'"))
+				Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
@@ -164,7 +164,7 @@ var _ = Describe("login Command", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gbytes.Say("Logging in to team 'some-team'"))
+			Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
