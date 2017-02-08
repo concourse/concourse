@@ -78,16 +78,11 @@ var _ = Describe("[#129726011] Worker landing", func() {
 
 				It("finishes restarting once the build is done", func() {
 					By("hijacking the build to tell it to finish")
-					Eventually(func() int {
-						session := flyHijackTask(
-							"-b", buildID,
-							"-s", "one-off",
-							"touch", "/tmp/stop-waiting",
-						)
-
-						<-session.Exited
-						return session.ExitCode()
-					}).Should(Equal(0))
+					<-flyHijackTask(
+						"-b", buildID,
+						"-s", "one-off",
+						"touch", "/tmp/stop-waiting",
+					).Exited
 
 					By("waiting for the build to exit")
 					Eventually(buildSession).Should(gbytes.Say("done"))
