@@ -156,8 +156,8 @@ var _ = Describe("[#129726011] Worker landing", func() {
 
 					By("retaining cached image resource in second job build")
 					buildSession := spawnFly("trigger-job", "-w", "-j", "topgun/simple-job")
-					Eventually(buildSession).Should(gbytes.Say("using version of resource found in cache"))
 					<-buildSession.Exited
+					Expect(buildSession).NotTo(gbytes.Say("Pulling .*busybox.*"))
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
 					By("retaining check containers")

@@ -73,6 +73,7 @@ var _ = Describe(":life [#136140165] Container scope", func() {
 			Expect(hijackSession.ExitCode()).To(Equal(0))
 
 			Eventually(buildSession).Should(gbytes.Say("done"))
+			<-buildSession.Exited
 		})
 	})
 })
