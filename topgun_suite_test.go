@@ -112,7 +112,7 @@ var _ = AfterEach(func() {
 	<-boshLogs.Exited
 	boshLogs = nil
 
-	Expect(deleteAllContainers()).To(Succeed())
+	deleteAllContainers()
 
 	bosh("delete-deployment")
 })
@@ -162,17 +162,13 @@ func concourseClient() concourse.Client {
 	return concourse.NewClient(atcExternalURL, httpClient)
 }
 
-func deleteAllContainers() error {
+func deleteAllContainers() {
 	client := concourseClient()
 	workers, err := client.ListWorkers()
-	if err != nil {
-		return err
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	containers, err := client.ListContainers(map[string]string{})
-	if err != nil {
-		return err
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	for _, worker := range workers {
 		connection := gconn.New("tcp", worker.GardenAddr)
@@ -186,7 +182,6 @@ func deleteAllContainers() error {
 			}
 		}
 	}
-	return nil
 }
 
 func flyHijackTask(argv ...string) *gexec.Session {
