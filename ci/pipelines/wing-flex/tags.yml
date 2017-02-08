@@ -1,0 +1,62 @@
+---
+resource_types:
+- name: cron
+  type: docker-image
+  source: {repository: cftoolsmiths/cron-test}
+  tags: [tagged]
+
+resources:
+- name: 10m
+  type: time
+  source: {interval: 10m}
+
+- name: tagged-10m
+  type: time
+  source: {interval: 10m}
+  tags: [tagged]
+
+- name: 10m-cron
+  type: cron
+  source: {expression: "*/10 * * * *", location: America/New_York}
+
+- name: tagged-10m-cron
+  type: cron
+  source: {expression: "*/10 * * * *", location: America/New_York}
+  tags: [tagged]
+
+jobs:
+- name: 10m
+  plan:
+  - get: 10m
+
+- name: 10m-tagged
+  plan:
+  - get: 10m
+    tags: [tagged]
+
+- name: 10m-cron
+  plan:
+  - get: 10m-cron
+
+- name: 10m-cron-tagged
+  plan:
+  - get: 10m-cron
+    tags: [tagged]
+
+- name: tagged-10m
+  plan:
+  - get: tagged-10m
+
+- name: tagged-10m-tagged
+  plan:
+  - get: tagged-10m
+    tags: [tagged]
+
+- name: tagged-10m-cron
+  plan:
+  - get: tagged-10m-cron
+
+- name: tagged-10m-cron-tagged
+  plan:
+  - get: tagged-10m-cron
+    tags: [tagged]
