@@ -80,10 +80,10 @@ case $1 in
       --peer-url <%= p("peer_url", "http://#{spec.address}:#{p("bind_port")}") %> \
       --external-url <%= esc(p("external_url")) %> \
       --postgres-data-source <%= esc("postgres://#{postgres_role_name}:#{postgres_role_password}@#{postgres_addr}/#{postgres_database}?sslmode=disable") %> \
-      <% if p("development_mode") %> \
-      --no-really-i-dont-want-any-auth true \
-      --log-level debug \
+      <% if p("no_really_i_dont_want_any_auth") %> \
+      --no-really-i-dont-want-any-auth \
       <% end %> \
+      --log-level <%= p("log_level") %> \
       <% if p("log_db_queries") %> \
       --log-db-queries \
       <% end %> \
