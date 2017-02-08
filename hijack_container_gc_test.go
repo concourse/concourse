@@ -61,12 +61,20 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "1",
 			"-s", "simple-task",
-			"touch", "/tmp/stop-waiting",
-			"and", "sleep", "3600",
+			"--",
+			"while true; do sleep 1; done",
 		)
 
-		By("triggering a new build")
+		By("finishing the build")
+		<-flyHijackTask(
+			"-j", "hijacked-containers-test/simple-job",
+			"-b", "1",
+			"-s", "simple-task",
+			"touch", "/tmp/stop-waiting",
+		).Exited
 		<-buildSession.Exited
+
+		By("triggering a new build")
 		buildSession = spawnFly("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 		<-flyHijackTask(
@@ -75,12 +83,13 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 			"-s", "simple-task",
 			"touch", "/tmp/stop-waiting",
 		).Exited
+		<-buildSession.Exited
 
 		By("verifying the hijacked container exists via fly and Garden")
 		Consistently(getContainer("build #", "1"), 2*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{true, true}))
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")
-		hijackSession.Terminate()
+		hijackSession.Interrupt()
 		<-hijackSession.Exited
 
 		Eventually(getContainer("build #", "1"), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
@@ -94,18 +103,22 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		By("hijacking into the build container")
 		hijackSession := flyHijackTask(
 			"-b", "1",
-			"touch", "/tmp/stop-waiting",
-			"and", "sleep", "3600",
+			"--",
+			"while true; do sleep 1; done",
 		)
 
 		By("waiting for build to finish")
+		<-flyHijackTask(
+			"-b", "1",
+			"touch", "/tmp/stop-waiting",
+		).Exited
 		<-buildSession.Exited
 
 		By("verifying the hijacked container exists via fly and Garden")
 		Consistently(getContainer("build #", "1"), 2*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{true, true}))
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")
-		hijackSession.Terminate()
+		hijackSession.Interrupt()
 		<-hijackSession.Exited
 
 		Eventually(getContainer("build #", "1"), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
@@ -119,10 +132,11 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		By("checking resource")
 		fly("check-resource", "-r", "hijacked-resource-test/tick-tock")
 
-		By("hijacking into the build container")
-		hijackSession := flyHijackTask(
+		By("hijacking into the resource container")
+		hijackSession := spawnFly(
+			"hijack",
 			"-c", "hijacked-resource-test/tick-tock",
-			"sleep", "3600",
+			"--", "while true; do sleep 1; done",
 		)
 
 		By("reconfiguring pipeline without resource")
@@ -132,10 +146,10 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		Consistently(getContainer("type", "check"), 2*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{true, true}))
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")
-		hijackSession.Terminate()
+		hijackSession.Interrupt()
 		<-hijackSession.Exited
 
-		Eventually(getContainer("type", "check"), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
+		Eventually(getContainer("type", "check"), 40*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
 	})
 })
 
