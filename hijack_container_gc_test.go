@@ -61,7 +61,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "1",
 			"-s", "simple-task",
-			"--", "/bin/sh", "-c", "while true; do sleep 1; done",
+			"sleep", "120",
 		)
 
 		By("finishing the build")
@@ -135,7 +135,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		hijackSession := spawnFly(
 			"hijack",
 			"-c", "hijacked-resource-test/tick-tock",
-			"--", "/bin/sh", "-c", "while true; do sleep 1; done",
+			"sleep", "120",
 		)
 
 		By("reconfiguring pipeline without resource")
