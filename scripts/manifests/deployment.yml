@@ -23,8 +23,7 @@ instance_groups:
         name: atc
         properties:
           # turn off and provide auth for a real vagrant instance
-          no_auth: true
-          log_level: debug
+          development_mode: true
           default_check_interval: 5s
           external_url: http://10.244.15.2:8080
           postgresql_database: atc
