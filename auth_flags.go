@@ -6,6 +6,18 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 )
 
+type AuthFlags struct {
+	NoAuth bool `long:"no-really-i-dont-want-any-auth" description:"Ignore warnings about not configuring auth"`
+
+	BasicAuth BasicAuthFlag `group:"Basic Authentication" namespace:"basic-auth"`
+
+	GitHubAuth GitHubAuthFlag `group:"GitHub Authentication" namespace:"github-auth"`
+
+	UAAAuth UAAAuthFlag `group:"UAA Authentication" namespace:"uaa-auth"`
+
+	GenericOAuth GenericOAuthFlag `group:"Generic OAuth Authentication (Allows access to ALL authenticated users)" namespace:"generic-oauth"`
+}
+
 type BasicAuthFlag struct {
 	Username string `long:"username" description:"Username to use for basic auth."`
 	Password string `long:"password" description:"Password to use for basic auth."`

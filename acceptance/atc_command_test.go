@@ -40,8 +40,8 @@ const GENERIC_OAUTH_AUTH_NO_CLIENT_SECRET = "generic-oauth-no-secret"
 const GENERIC_OAUTH_AUTH_NO_TOKEN_URL = "generic-oauth-no-token-url"
 const GENERIC_OAUTH_AUTH_NO_DISPLAY_NAME = "generic-oauth-no-display-name"
 const NOT_CONFIGURED_AUTH = "not-configured"
-const DEVELOPMENT_MODE = "dev"
-const NO_AUTH = DEVELOPMENT_MODE
+const LOG_LEVEL = "log-level"
+const NO_AUTH = "no-really-i-dont-want-any-auth"
 
 type ATCCommand struct {
 	atcBin                 string
@@ -306,8 +306,8 @@ func (a *ATCCommand) getATCCommand() *exec.Cmd {
 				"--generic-oauth-auth-url", "https://goa.example.com/oauth/authorize",
 				"--generic-oauth-token-url", "https://goa.example.com/oauth/token",
 			)
-		case DEVELOPMENT_MODE:
-			params = append(params, "--development-mode")
+		case NO_AUTH:
+			params = append(params, "--no-really-i-dont-want-any-auth")
 		case NOT_CONFIGURED_AUTH:
 		default:
 			panic("unknown auth type")
