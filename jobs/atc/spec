@@ -81,15 +81,25 @@ properties:
       Allow self-signed certificates.
     default: false
 
-  development_mode:
+  log_level:
     description: |
-      Loosen up security for development purposes. This allows the ATC to be
-      configured with no authentication methods.
-    default: false
+      The log level for the ATC. When set to debug, you'll see a lot more
+      information about scheduling, resource scanning, etc., but it'll be quite
+      chatty.
+    default: info
 
   log_db_queries:
     description: |
-      Log database queries. Log level is debug, so requires development mode.
+      Log database queries. Log level is debug, so you'll need to set the
+      log_level property as well. This is mainly useful for Concourse
+      developers to analyze query counts.
+    default: false
+
+  no_really_i_dont_want_any_auth:
+    description: |
+      A safeguard to prevent accidentally forgetting to configure auth. Set
+      this to true if you really don't want auth configured. This will leave
+      your Concourse wide open and writable.
     default: false
 
   basic_auth_username:

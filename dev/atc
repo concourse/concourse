@@ -21,7 +21,8 @@ until createdb -U postgres -p ${pg_port} atc 2>&1 | grep 'already exists' >/dev/
 done
 
 atc \
-  --development-mode \
+  --log-level debug \
+  --no-really-i-dont-want-any-auth \
   --external-url "http://${external_ip}:8080" \
   --session-signing-key $KEYSDIR/web/session_signing_key \
   --postgres-data-source "user=postgres dbname=atc port=${pg_port} sslmode=disable" \
