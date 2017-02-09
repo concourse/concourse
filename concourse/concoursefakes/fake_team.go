@@ -242,6 +242,13 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	ListJobsStub        func() ([]atc.Job, error)
+	listJobsMutex       sync.RWMutex
+	listJobsArgsForCall []struct{}
+	listJobsReturns     struct {
+		result1 []atc.Job
+		result2 error
+	}
 	ResourceStub        func(pipelineName string, resourceName string) (atc.Resource, bool, error)
 	resourceMutex       sync.RWMutex
 	resourceArgsForCall []struct {
@@ -1110,6 +1117,32 @@ func (fake *FakeTeam) UnpauseJobReturns(result1 bool, result2 error) {
 	fake.UnpauseJobStub = nil
 	fake.unpauseJobReturns = struct {
 		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) ListJobs(pipelineName string) ([]atc.Job, error) {
+	fake.listJobsMutex.Lock()
+	fake.listJobsArgsForCall = append(fake.listJobsArgsForCall, struct{}{})
+	fake.recordInvocation("ListJobs", []interface{}{})
+	fake.listJobsMutex.Unlock()
+	if fake.ListJobsStub != nil {
+		return fake.ListJobsStub()
+	} else {
+		return fake.listJobsReturns.result1, fake.listJobsReturns.result2
+	}
+}
+
+func (fake *FakeTeam) ListJobsCallCount() int {
+	fake.listJobsMutex.RLock()
+	defer fake.listJobsMutex.RUnlock()
+	return len(fake.listJobsArgsForCall)
+}
+
+func (fake *FakeTeam) ListJobsReturns(result1 []atc.Job, result2 error) {
+	fake.ListJobsStub = nil
+	fake.listJobsReturns = struct {
+		result1 []atc.Job
 		result2 error
 	}{result1, result2}
 }
