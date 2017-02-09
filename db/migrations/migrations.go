@@ -134,6 +134,7 @@ var Migrations = []migration.Migrator{
 	AddRunningWorkerMustHaveAddrConstraint,
 	AddInterruptibleToJob,
 	AddLandedWorkerCannotHaveAddrConstraint,
+	FixWorkerAddrConstraint,
 	CreateCaches,
 	RemoveTTLFromVolumes,
 	AddVolumeParentIdForeignKey,
