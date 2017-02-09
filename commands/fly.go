@@ -30,6 +30,7 @@ type FlyCommand struct {
 	Containers ContainersCommand `command:"containers" alias:"cs" description:"Print the active containers"`
 	Hijack     HijackCommand     `command:"hijack"     alias:"intercept" alias:"i" description:"Execute a command in a container"`
 
+	Jobs       JobsCommand       `command:"jobs"      alias:"js" description:"List the jobs in the pipelines"`
 	PauseJob   PauseJobCommand   `command:"pause-job" alias:"pj" description:"Pause a job"`
 	UnpauseJob UnpauseJobCommand `command:"unpause-job" alias:"uj" description:"Unpause a job"`
 
