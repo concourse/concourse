@@ -273,8 +273,6 @@ func (f *workerFactory) LandWorker(name string) (*Worker, error) {
 
 	err = psql.Update("workers").
 		Set("state", sq.Expr("("+cSql+")")).
-		Set("addr", "NULL").
-		Set("baggageclaim_url", "NULL").
 		Where(sq.Eq{"name": name}).
 		Suffix("RETURNING name, state").
 		RunWith(tx).
@@ -732,6 +730,8 @@ func (f *workerFactory) LandFinishedLandingWorkers() error {
 
 	_, err = sq.Update("workers").
 		Set("state", string(WorkerStateLanded)).
+		Set("addr", nil).
+		Set("baggageclaim_url", nil).
 		Where(sq.Eq{
 			"state": string(WorkerStateLanding),
 		}).

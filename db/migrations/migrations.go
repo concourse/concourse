@@ -134,4 +134,5 @@ var Migrations = []migration.Migrator{
 	AddRunningWorkerMustHaveAddrConstraint,
 	AddInterruptibleToJob,
 	AddLandedWorkerCannotHaveAddrConstraint,
+	FixWorkerAddrConstraint,
 }
