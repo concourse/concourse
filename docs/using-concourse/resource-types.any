@@ -159,6 +159,8 @@ before using it!
   }{
     \hyperlink{https://github.com/jcderr/concourse-kubernetes-resource}{Kubernetes}
   }{
+    \hyperlink{https://github.com/linkyard/concourse-helm-resource}{Kubernetes Helm}
+  }{
     \hyperlink{https://github.com/Docurated/concourse-vault-resource}{Vault}
   }{
     \hyperlink{https://github.com/everpeace/aws-kms-resource}{AWS Key Management Service}
