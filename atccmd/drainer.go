@@ -19,8 +19,8 @@ func (d drainer) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 
 	<-signals
 
-	d.bus.Notify("atc_shutdown")
 	close(d.drain)
+	d.bus.Notify("atc_shutdown")
 
 	return nil
 }
