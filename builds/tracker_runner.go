@@ -24,6 +24,7 @@ type TrackerRunner struct {
 	ListenBus ATCListener
 	Interval  time.Duration
 	Clock     clock.Clock
+	DrainCh   <-chan struct{}
 }
 
 func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -40,6 +41,8 @@ func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{})
 
 	for {
 		select {
+		case <-runner.DrainCh:
+			return nil
 		case <-notify:
 			runner.Tracker.Track()
 		case <-ticker.C():

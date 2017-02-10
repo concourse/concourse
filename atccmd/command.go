@@ -321,6 +321,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			ListenBus: bus,
 			Interval:  10 * time.Second,
 			Clock:     clock.NewClock(),
+			DrainCh:   drain,
 		}},
 
 		{"baggage-collector", lockrunner.NewRunner(
