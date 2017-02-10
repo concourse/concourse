@@ -325,6 +325,7 @@ func waitForWorkerInState(desiredStates ...string) string {
 func flyTable(argv ...string) []map[string]string {
 	session := spawnFly(append([]string{"--print-table-headers"}, argv...)...)
 	<-session.Exited
+	Expect(session.ExitCode()).To(Equal(0))
 
 	result := []map[string]string{}
 	var headers []string
