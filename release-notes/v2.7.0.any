@@ -6,10 +6,13 @@
   \note{fix}{
     A long-standing bug in Golang's \code{golang.org/x/crypto/ssh} package has
     been fixed. This bug led to workers becoming stuck and/or unregistered
-    after 1GB of data was transferred over their SSH connection. This bug
-    affected many people with workers forwarding their registration through the
-    TSA, as is the default for the binary distribution, and is a common
-    configuration for external workers.
+    after 1GB of data was transferred over their SSH connection. This resulted
+    in builds being stuck in a pending/started state, and resource checking no
+    longer occurring.
+
+    This bug affected many people with workers forwarding their registration
+    through the TSA, as is the default for the binary distribution, and is a
+    common configuration for external workers.
 
     For more info, read on.
 
