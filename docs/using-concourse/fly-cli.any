@@ -147,6 +147,15 @@ flag. Once you've learned what the commands do, you may want to consult
   \reference{authentication} for more information.
 }
 
+\section{\code{rename-team}\aux{: Renaming Teams}}{fly-rename-team}{
+  To rename a team, including all of its pipelines and one-off builds, first
+  log in as the \reference{main-team}{\code{main} team}, and then run:
+
+  \codeblock{bash}{
+  $ fly -t example rename-team --old-name my-team --new-name my-cool-team
+  }
+}
+
 \section{\code{destroy-team}\aux{: Removing Teams}}{fly-destroy-team}{
   To remove a team, including all of its pipelines and one-off builds, first
   log in as the \reference{main-team}{\code{main} team}, and then run:

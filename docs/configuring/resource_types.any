@@ -97,3 +97,10 @@ consists of the following attributes:
   resource} (or whatever resource type your resource type uses) for more
   information.
 }
+
+\define-attribute{tags: [string]}{resource-type-tags}{
+  \italic{Optional. Default \code{[]}.} A list of tags to determine which
+  workers the checks will be performed on. You'll want to specify this if the
+  source is internal to a worker's network, for example. See also
+  \reference{step-tags} on a step.
+}
