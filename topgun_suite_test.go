@@ -216,6 +216,7 @@ func run(argc string, argv ...string) {
 }
 
 func spawn(argc string, argv ...string) *gexec.Session {
+	By("running: " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
@@ -223,6 +224,7 @@ func spawn(argc string, argv ...string) *gexec.Session {
 }
 
 func spawnInteractive(stdin io.Reader, argc string, argv ...string) *gexec.Session {
+	By("interactively running: " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
 	cmd.Stdin = stdin
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
