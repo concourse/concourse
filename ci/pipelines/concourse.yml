@@ -105,9 +105,10 @@ jobs:
     - get: gcp-stemcell
     - get: garden-runc
     - get: bosh-rc
+    - get: deployments
     - put: cessna-bosh-deployment
       params:
-        manifest: concourse/src/github.com/concourse/atc/cessna/ci/deployments/worker.yml
+        manifest: deployments/prod/cessna.yml
         stemcells: [gcp-stemcell/*.tgz]
         releases:
           - garden-runc/*.tgz
