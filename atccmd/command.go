@@ -186,7 +186,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	err = sqlDB.CreateAdminTeamIfNotExists()
+	err = sqlDB.CreateDefaultTeamIfNotExists()
 	if err != nil {
 		return nil, err
 	}

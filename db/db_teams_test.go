@@ -122,13 +122,13 @@ var _ = Describe("SQL DB Teams", func() {
 		})
 	})
 
-	Describe("CreateAdminTeamIfNotExists", func() {
-		It("creates an admin team with the default name", func() {
-			err := database.CreateAdminTeamIfNotExists()
+	Describe("CreateDefaultTeamIfNotExists", func() {
+		It("creates the default team", func() {
+			err := database.CreateDefaultTeamIfNotExists()
 			Expect(err).NotTo(HaveOccurred())
 
 			var count sql.NullInt64
-			dbConn.QueryRow(fmt.Sprintf(`select count(1) from teams where admin = 'true'`)).Scan(&count)
+			dbConn.QueryRow(fmt.Sprintf(`select count(1) from teams where name = '%s'`, atc.DefaultTeamName)).Scan(&count)
 
 			Expect(count.Valid).To(BeTrue())
 			Expect(count.Int64).To(Equal(int64(1)))
@@ -136,10 +136,9 @@ var _ = Describe("SQL DB Teams", func() {
 			team, _, err := teamDBFactory.GetTeamDB(atc.DefaultTeamName).GetTeam()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(team.Admin).To(BeTrue())
-			Expect(team.Name).To(Equal(atc.DefaultTeamName))
 		})
 
-		Context("when an admin team already exists", func() {
+		Context("when the default team already exists", func() {
 			BeforeEach(func() {
 				defaultTeam := db.Team{
 					Name: atc.DefaultTeamName,
@@ -148,15 +147,25 @@ var _ = Describe("SQL DB Teams", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("does not create another admin team", func() {
-				err := database.CreateAdminTeamIfNotExists()
+			It("does not duplicate the default team", func() {
+				err := database.CreateDefaultTeamIfNotExists()
 				Expect(err).NotTo(HaveOccurred())
 
 				var count sql.NullInt64
-				dbConn.QueryRow(fmt.Sprintf(`select count(1) from teams where admin = 'true'`)).Scan(&count)
+				dbConn.QueryRow(fmt.Sprintf(`select count(1) from teams where name = '%s'`, atc.DefaultTeamName)).Scan(&count)
 
 				Expect(count.Valid).To(BeTrue())
 				Expect(count.Int64).To(Equal(int64(1)))
+			})
+
+			It("sets admin permissions on that team", func() {
+				err := database.CreateDefaultTeamIfNotExists()
+				Expect(err).NotTo(HaveOccurred())
+
+				var admin bool
+				dbConn.QueryRow(fmt.Sprintf(`select admin from teams where name = '%s'`, atc.DefaultTeamName)).Scan(&admin)
+
+				Expect(admin).To(BeTrue())
 			})
 		})
 	})

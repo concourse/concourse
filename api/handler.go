@@ -204,7 +204,6 @@ func NewHandler(
 
 		atc.ListTeams:   http.HandlerFunc(teamServer.ListTeams),
 		atc.SetTeam:     http.HandlerFunc(teamServer.SetTeam),
-		atc.RenameTeam:  http.HandlerFunc(teamServer.RenameTeam),
 		atc.DestroyTeam: http.HandlerFunc(teamServer.DestroyTeam),
 	}
 
