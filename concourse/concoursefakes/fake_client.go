@@ -178,15 +178,6 @@ type FakeClient struct {
 	teamReturns struct {
 		result1 concourse.Team
 	}
-	RenameTeamStub        func(teamName string, newName string) error
-	renameTeamMutex       sync.RWMutex
-	renameTeamArgsForCall []struct {
-		teamName string
-		newName  string
-	}
-	renameTeamReturns struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -757,9 +748,8 @@ func (fake *FakeClient) ListTeams() ([]atc.Team, error) {
 	fake.listTeamsMutex.Unlock()
 	if fake.ListTeamsStub != nil {
 		return fake.ListTeamsStub()
-	} else {
-		return fake.listTeamsReturns.result1, fake.listTeamsReturns.result2
 	}
+	return fake.listTeamsReturns.result1, fake.listTeamsReturns.result2
 }
 
 func (fake *FakeClient) ListTeamsCallCount() int {
@@ -809,40 +799,6 @@ func (fake *FakeClient) TeamReturns(result1 concourse.Team) {
 	}{result1}
 }
 
-func (fake *FakeClient) RenameTeam(teamName string, newName string) error {
-	fake.renameTeamMutex.Lock()
-	fake.renameTeamArgsForCall = append(fake.renameTeamArgsForCall, struct {
-		teamName string
-		newName  string
-	}{teamName, newName})
-	fake.recordInvocation("RenameTeam", []interface{}{teamName, newName})
-	fake.renameTeamMutex.Unlock()
-	if fake.RenameTeamStub != nil {
-		return fake.RenameTeamStub(teamName, newName)
-	} else {
-		return fake.renameTeamReturns.result1
-	}
-}
-
-func (fake *FakeClient) RenameTeamCallCount() int {
-	fake.renameTeamMutex.RLock()
-	defer fake.renameTeamMutex.RUnlock()
-	return len(fake.renameTeamArgsForCall)
-}
-
-func (fake *FakeClient) RenameTeamArgsForCall(i int) (string, string) {
-	fake.renameTeamMutex.RLock()
-	defer fake.renameTeamMutex.RUnlock()
-	return fake.renameTeamArgsForCall[i].teamName, fake.renameTeamArgsForCall[i].newName
-}
-
-func (fake *FakeClient) RenameTeamReturns(result1 error) {
-	fake.RenameTeamStub = nil
-	fake.renameTeamReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -886,8 +842,6 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.listTeamsMutex.RUnlock()
 	fake.teamMutex.RLock()
 	defer fake.teamMutex.RUnlock()
-	fake.renameTeamMutex.RLock()
-	defer fake.renameTeamMutex.RUnlock()
 	return fake.invocations
 }
 

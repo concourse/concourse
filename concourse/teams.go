@@ -80,25 +80,3 @@ func (client *client) ListTeams() ([]atc.Team, error) {
 
 	return teams, err
 }
-
-func (client *client) RenameTeam(teamName string, newName string) error {
-	params := rata.Params{
-		"team_name": teamName,
-	}
-
-	jsonBytes, err := json.Marshal(struct {
-		Name string `json:"name"`
-	}{Name: newName})
-	if err != nil {
-		return err
-	}
-
-	err = client.connection.Send(internal.Request{
-		RequestName: atc.RenameTeam,
-		Params:      params,
-		Body:        bytes.NewBuffer(jsonBytes),
-		Header:      http.Header{"Content-Type": []string{"application/json"}},
-	}, nil)
-
-	return err
-}

@@ -34,7 +34,6 @@ type Client interface {
 	ListTeams() ([]atc.Team, error)
 
 	Team(teamName string) Team
-	RenameTeam(teamName string, newName string) error
 }
 
 type client struct {
