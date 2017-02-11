@@ -222,7 +222,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.DeleteWorker:    authenticated(inputHandlers[atc.DeleteWorker]),
 
 				atc.SetTeam:     authenticated(inputHandlers[atc.SetTeam]),
-				atc.RenameTeam:  authenticated(inputHandlers[atc.RenameTeam]),
 				atc.DestroyTeam: authenticated(inputHandlers[atc.DestroyTeam]),
 				atc.WritePipe:   authenticated(inputHandlers[atc.WritePipe]),
 				atc.GetUser:     authenticated(inputHandlers[atc.GetUser]),

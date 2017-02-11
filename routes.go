@@ -80,7 +80,6 @@ const (
 
 	ListTeams   = "ListTeams"
 	SetTeam     = "SetTeam"
-	RenameTeam  = "RenameTeam"
 	DestroyTeam = "DestroyTeam"
 )
 
@@ -162,6 +161,5 @@ var Routes = rata.Routes([]rata.Route{
 
 	{Path: "/api/v1/teams", Method: "GET", Name: ListTeams},
 	{Path: "/api/v1/teams/:team_name", Method: "PUT", Name: SetTeam},
-	{Path: "/api/v1/teams/:team_name/rename", Method: "PUT", Name: RenameTeam},
 	{Path: "/api/v1/teams/:team_name", Method: "DELETE", Name: DestroyTeam},
 })

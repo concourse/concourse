@@ -24,7 +24,6 @@ type TeamDB interface {
 	OrderPipelines([]string) error
 
 	GetTeam() (SavedTeam, bool, error)
-	UpdateName(teamName string) (SavedTeam, error)
 	UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error)
 	UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error)
 	UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error)
@@ -594,20 +593,6 @@ func (db *teamDB) queryTeam(query string, params []interface{}) (SavedTeam, erro
 	}
 
 	return savedTeam, nil
-}
-
-func (db *teamDB) UpdateName(teamName string) (SavedTeam, error) {
-
-	query := `
-		UPDATE teams
-		SET name = $1
-		WHERE LOWER(name) = LOWER($2)
-		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth
-	`
-
-	params := []interface{}{teamName, db.teamName}
-
-	return db.queryTeam(query, params)
 }
 
 func (db *teamDB) UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error) {

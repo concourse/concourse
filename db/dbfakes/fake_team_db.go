@@ -56,15 +56,6 @@ type FakeTeamDB struct {
 		result2 bool
 		result3 error
 	}
-	UpdateNameStub        func(teamName string) (db.SavedTeam, error)
-	updateNameMutex       sync.RWMutex
-	updateNameArgsForCall []struct {
-		teamName string
-	}
-	updateNameReturns struct {
-		result1 db.SavedTeam
-		result2 error
-	}
 	UpdateBasicAuthStub        func(basicAuth *db.BasicAuth) (db.SavedTeam, error)
 	updateBasicAuthMutex       sync.RWMutex
 	updateBasicAuthArgsForCall []struct {
@@ -348,40 +339,6 @@ func (fake *FakeTeamDB) GetTeamReturns(result1 db.SavedTeam, result2 bool, resul
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeTeamDB) UpdateName(teamName string) (db.SavedTeam, error) {
-	fake.updateNameMutex.Lock()
-	fake.updateNameArgsForCall = append(fake.updateNameArgsForCall, struct {
-		teamName string
-	}{teamName})
-	fake.recordInvocation("UpdateName", []interface{}{teamName})
-	fake.updateNameMutex.Unlock()
-	if fake.UpdateNameStub != nil {
-		return fake.UpdateNameStub(teamName)
-	} else {
-		return fake.updateNameReturns.result1, fake.updateNameReturns.result2
-	}
-}
-
-func (fake *FakeTeamDB) UpdateNameCallCount() int {
-	fake.updateNameMutex.RLock()
-	defer fake.updateNameMutex.RUnlock()
-	return len(fake.updateNameArgsForCall)
-}
-
-func (fake *FakeTeamDB) UpdateNameArgsForCall(i int) string {
-	fake.updateNameMutex.RLock()
-	defer fake.updateNameMutex.RUnlock()
-	return fake.updateNameArgsForCall[i].teamName
-}
-
-func (fake *FakeTeamDB) UpdateNameReturns(result1 db.SavedTeam, result2 error) {
-	fake.UpdateNameStub = nil
-	fake.updateNameReturns = struct {
-		result1 db.SavedTeam
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeTeamDB) UpdateBasicAuth(basicAuth *db.BasicAuth) (db.SavedTeam, error) {
@@ -765,8 +722,6 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.orderPipelinesMutex.RUnlock()
 	fake.getTeamMutex.RLock()
 	defer fake.getTeamMutex.RUnlock()
-	fake.updateNameMutex.RLock()
-	defer fake.updateNameMutex.RUnlock()
 	fake.updateBasicAuthMutex.RLock()
 	defer fake.updateBasicAuthMutex.RUnlock()
 	fake.updateGitHubAuthMutex.RLock()
