@@ -19,7 +19,6 @@ type FlyCommand struct {
 	Teams       TeamsCommand       `command:"teams" alias:"t" description:"List the configured teams"`
 	SetTeam     SetTeamCommand     `command:"set-team"  alias:"st" description:"Create or modify a team to have the given credentials"`
 	DestroyTeam DestroyTeamCommand `command:"destroy-team"  alias:"dt" description:"Destroy a team and delete all of its data"`
-	RenameTeam  RenameTeamCommand  `command:"rename-team"  alias:"rt" description:"Update team name"`
 
 	Checklist ChecklistCommand `command:"checklist" alias:"cl" description:"Print a Checkfile of the given pipeline"`
 
