@@ -93,10 +93,6 @@
   }
 
   \note{feature}{
-    \reference{fly-rename-team} is a thing now.
-  }
-
-  \note{feature}{
     An ATC that's going away will now fire off a flare for any builds it was
     tracking, allowing other ATCs to swoop in and pick them up immediately,
     rather than relying on the arbitrary polling interval we chose. This'll
