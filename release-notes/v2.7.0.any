@@ -91,11 +91,4 @@
     (under the original name, in \code{landed} state), and you'll just have to
     run \reference{fly-prune-worker} to clean it up.
   }
-
-  \note{feature}{
-    An ATC that's going away will now fire off a flare for any builds it was
-    tracking, allowing other ATCs to swoop in and pick them up immediately,
-    rather than relying on the arbitrary polling interval we chose. This'll
-    allow for more airtight rolling deploys.
-  }
 }
