@@ -119,6 +119,15 @@ func CreateCaches(tx migration.LimitedTx) error {
 	}
 
 	_, err = tx.Exec(`
+		UPDATE containers
+		SET build_id = NULL
+		WHERE build_id NOT IN (SELECT id FROM builds)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
 		ALTER TABLE containers
 		ALTER COLUMN handle DROP NOT NULL,
 		ADD COLUMN state container_state NOT NULL DEFAULT 'created',
