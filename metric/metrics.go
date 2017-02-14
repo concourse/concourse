@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-var TrackedContainers = &Gauge{}
 var DatabaseQueries = Meter(0)
 var DatabaseConnections = &Gauge{}
 

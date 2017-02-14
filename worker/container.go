@@ -7,7 +7,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -53,8 +52,6 @@ func newGardenWorkerContainer(
 		workerName: workerName,
 	}
 
-	metric.TrackedContainers.Inc()
-
 	err := workerContainer.initializeVolumes(logger, baggageclaimClient)
 	if err != nil {
 		return nil, err
@@ -75,7 +72,6 @@ func newGardenWorkerContainer(
 }
 
 func (container *gardenWorkerContainer) Destroy() error {
-	metric.TrackedContainers.Dec()
 	return container.gardenClient.Destroy(container.Handle())
 }
 
