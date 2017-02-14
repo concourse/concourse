@@ -51,6 +51,7 @@ files:
   - github.com/concourse/atc/config/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
+  - github.com/concourse/atc/db/lock/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub
   - github.com/concourse/atc/dbng/*.go # gosub
   - github.com/concourse/atc/dbng/migration/*.go # gosub
@@ -58,9 +59,6 @@ files:
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/exec/*.go # gosub
   - github.com/concourse/atc/gc/buildreaper/*.go # gosub
-  - github.com/concourse/atc/gc/containerkeepaliver/*.go # gosub
-  - github.com/concourse/atc/gc/dbgc/*.go # gosub
-  - github.com/concourse/atc/gc/lostandfound/*.go # gosub
   - github.com/concourse/atc/gcng/*.go # gosub
   - github.com/concourse/atc/lockrunner/*.go # gosub
   - github.com/concourse/atc/mainredirect/*.go # gosub
@@ -83,7 +81,7 @@ files:
   - github.com/concourse/baggageclaim/*.go # gosub
   - github.com/concourse/baggageclaim/api/*.go # gosub
   - github.com/concourse/baggageclaim/client/*.go # gosub
-  - github.com/concourse/baggageclaim/uidjunk/*.go # gosub
+  - github.com/concourse/baggageclaim/uidgid/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub
   - github.com/concourse/retryhttp/*.go # gosub
   - github.com/contraband/holler/*.go # gosub
