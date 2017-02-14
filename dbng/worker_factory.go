@@ -191,24 +191,19 @@ func scanWorker(row scannable) (*Worker, error) {
 		return nil, err
 	}
 
-	var addr *string
-	if addStr.Valid {
-		addr = &addStr.String
-	}
-
-	var bcURL *string
-	if bcURLStr.Valid {
-		bcURL = &bcURLStr.String
-	}
-
 	worker := Worker{
-		Name:            name,
-		GardenAddr:      addr,
-		BaggageclaimURL: bcURL,
-		State:           WorkerState(state),
-
+		Name:             name,
+		State:            WorkerState(state),
 		ActiveContainers: activeContainers,
 		StartTime:        startTime,
+	}
+
+	if addStr.Valid {
+		worker.GardenAddr = &addStr.String
+	}
+
+	if bcURLStr.Valid {
+		worker.BaggageclaimURL = &bcURLStr.String
 	}
 
 	if expiresIn != nil {

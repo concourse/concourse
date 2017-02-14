@@ -50,7 +50,7 @@ var _ = Describe("VolumeFactory", func() {
 			team2handles []string
 		)
 
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build.ID(), "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
@@ -98,6 +98,23 @@ var _ = Describe("VolumeFactory", func() {
 				createdHandles2 = append(createdHandles2, vol.Handle())
 			}
 			Expect(createdHandles2).To(Equal(team2handles))
+		})
+
+		Context("when worker is stalled", func() {
+			BeforeEach(func() {
+				_, err := workerFactory.StallWorker(defaultWorker.Name)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns worker address as nil", func() {
+				createdVolumes, err := volumeFactory.GetTeamVolumes(defaultTeam.ID())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdVolumes).To(HaveLen(2))
+				Expect(createdVolumes[0].Worker().GardenAddr).To(BeNil())
+				Expect(createdVolumes[0].Worker().BaggageclaimURL).To(BeNil())
+				Expect(createdVolumes[1].Worker().GardenAddr).To(BeNil())
+				Expect(createdVolumes[1].Worker().BaggageclaimURL).To(BeNil())
+			})
 		})
 	})
 

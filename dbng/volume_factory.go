@@ -420,7 +420,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	var handle string
 	var state string
 	var workerName string
-	var workerAddress string
+	var sqWorkerAddress sql.NullString
 	var sqWorkerBaggageclaimURL sql.NullString
 	var sqPath sql.NullString
 	var sqContainerHandle sql.NullString
@@ -436,7 +436,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		&handle,
 		&state,
 		&workerName,
-		&workerAddress,
+		&sqWorkerAddress,
 		&sqWorkerBaggageclaimURL,
 		&sqPath,
 		&sqContainerHandle,
@@ -465,11 +465,6 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		parentHandle = sqParentHandle.String
 	}
 
-	var workerBaggageclaimURL string
-	if sqWorkerBaggageclaimURL.Valid {
-		workerBaggageclaimURL = sqWorkerBaggageclaimURL.String
-	}
-
 	var teamID int
 	if sqTeamID.Valid {
 		teamID = int(sqTeamID.Int64)
@@ -485,19 +480,27 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		baseResourceTypeID = int(sqBaseResourceTypeID.Int64)
 	}
 
+	worker := &Worker{
+		Name: workerName,
+	}
+
+	if sqWorkerAddress.Valid {
+		worker.GardenAddr = &sqWorkerAddress.String
+	}
+
+	if sqWorkerBaggageclaimURL.Valid {
+		worker.BaggageclaimURL = &sqWorkerBaggageclaimURL.String
+	}
+
 	switch state {
 	case VolumeStateCreated:
 		return nil, &createdVolume{
-			id:     id,
-			handle: handle,
-			typ:    volumeType,
-			path:   path,
-			teamID: teamID,
-			worker: &Worker{
-				Name:            workerName,
-				GardenAddr:      &workerAddress,
-				BaggageclaimURL: &workerBaggageclaimURL,
-			},
+			id:                 id,
+			handle:             handle,
+			typ:                volumeType,
+			path:               path,
+			teamID:             teamID,
+			worker:             worker,
 			containerHandle:    containerHandle,
 			parentHandle:       parentHandle,
 			resourceCacheID:    resourceCacheID,
@@ -506,16 +509,12 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		}, nil, nil
 	case VolumeStateCreating:
 		return &creatingVolume{
-			id:     id,
-			handle: handle,
-			typ:    volumeType,
-			path:   path,
-			teamID: teamID,
-			worker: &Worker{
-				Name:            workerName,
-				GardenAddr:      &workerAddress,
-				BaggageclaimURL: &workerBaggageclaimURL,
-			},
+			id:                 id,
+			handle:             handle,
+			typ:                volumeType,
+			path:               path,
+			teamID:             teamID,
+			worker:             worker,
 			containerHandle:    containerHandle,
 			parentHandle:       parentHandle,
 			resourceCacheID:    resourceCacheID,
@@ -526,12 +525,8 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		return nil, nil, &destroyingVolume{
 			id:     id,
 			handle: handle,
-			worker: &Worker{
-				Name:            workerName,
-				GardenAddr:      &workerAddress,
-				BaggageclaimURL: &workerBaggageclaimURL,
-			},
-			conn: conn,
+			worker: worker,
+			conn:   conn,
 		}, nil
 	}
 

@@ -172,8 +172,9 @@ var _ = Describe("WorkerFactory", func() {
 
 	Describe("GetWorker", func() {
 		Context("when the worker is present", func() {
+			var createdWorker *dbng.Worker
 			BeforeEach(func() {
-				_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				createdWorker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -206,6 +207,21 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.Tags).To(Equal([]string{"some", "tags"}))
 				Expect(foundWorker.StartTime).To(Equal(int64(55)))
 				Expect(foundWorker.State).To(Equal(dbng.WorkerStateRunning))
+			})
+
+			Context("when worker is stalled", func() {
+				BeforeEach(func() {
+					_, err := workerFactory.StallWorker("some-name")
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("sets its garden and baggageclaim address to nil", func() {
+					foundWorker, found, err := workerFactory.GetWorker("some-name")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(foundWorker.GardenAddr).To(BeNil())
+					Expect(foundWorker.BaggageclaimURL).To(BeNil())
+				})
 			})
 		})
 
