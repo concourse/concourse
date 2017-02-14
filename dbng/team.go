@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -81,7 +80,6 @@ func (t *team) CreateResourceCheckContainer(
 		return nil, err
 	}
 
-
 	brtID := t.findBaseResourceTypeID(resourceConfig)
 	wbrtID, err := t.findWorkerBaseResourceType(brtID, worker, tx)
 
@@ -131,7 +129,6 @@ func (t *team) CreateResourceCheckContainer(
 }
 
 func (t *team) findBaseResourceTypeID(resourceConfig *UsedResourceConfig) *UsedBaseResourceType {
-	json.NewEncoder(os.Stderr).Encode(resourceConfig)
 	if resourceConfig.CreatedByBaseResourceType != nil {
 		return resourceConfig.CreatedByBaseResourceType
 	} else {
