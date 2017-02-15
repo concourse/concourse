@@ -1,0 +1,18 @@
+---
+resources:
+- name: some-git-resource
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+jobs:
+- name: without-params
+  plan:
+  - get: some-git-resource
+
+- name: with-params
+  plan:
+  - get: some-git-resource
+    params:
+      foo: bar
