@@ -172,6 +172,7 @@ var containersToDeletePrefixQuery, containersToDeletePrefixArgs = `WITH
 				FROM builds b, jobs j
 				WHERE b.job_id = j.id
 				AND b.completed
+				GROUP BY j.id
 		),
 		builds_to_keep AS (
 				SELECT id FROM builds

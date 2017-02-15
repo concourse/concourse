@@ -35,7 +35,60 @@ var _ = Describe("ContainerFactory", func() {
 	})
 
 	Describe("MarkContainersForDeletion", func() {
-		Describe("build containers", func() {
+		Describe("multiple most recent builds", func() {
+			var (
+				creatingContainer  dbng.CreatingContainer
+				creatingContainer2 dbng.CreatingContainer
+				build              dbng.Build
+				build2             dbng.Build
+			)
+
+			BeforeEach(func() {
+				p, _, err := defaultTeam.SavePipeline("other-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-other-job",
+						},
+					},
+				}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+
+				build, err = defaultPipeline.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				build2, err = p.CreateJobBuild("some-other-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker, build.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+				Expect(err).NotTo(HaveOccurred())
+
+				creatingContainer2, err = defaultTeam.CreateBuildContainer(defaultWorker, build2.ID(), atc.PlanID("some-other-job"), dbng.ContainerMetadata{Type: "task", Name: "some-other-task"})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("[#139963615] does not mark either of them for deletion", func() {
+				var err error
+
+				_, err = creatingContainer.Created()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = creatingContainer2.Created()
+				Expect(err).NotTo(HaveOccurred())
+
+				build.Finish(dbng.BuildStatusErrored)
+				build2.Finish(dbng.BuildStatusErrored)
+
+				err = containerFactory.MarkContainersForDeletion()
+				Expect(err).NotTo(HaveOccurred())
+
+				deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(len(deletingContainers)).To(BeZero())
+			})
+		})
+
+		Describe("task containers", func() {
 			var (
 				creatingContainer dbng.CreatingContainer
 				build             dbng.Build
