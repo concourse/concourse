@@ -47,7 +47,7 @@ type GardenClientFactory func(*dbng.Worker) (garden.Client, error)
 func NewGardenClientFactory() GardenClientFactory {
 	return func(w *dbng.Worker) (garden.Client, error) {
 		if w.GardenAddr == nil {
-			return nil, errors.New("worker-does-not-have-garden-address")
+			return nil, errors.New("worker does not have a garden address")
 		}
 
 		gconn := connection.New("tcp", *w.GardenAddr)
