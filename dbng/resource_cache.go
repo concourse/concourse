@@ -198,6 +198,7 @@ func (cache ResourceCache) findWithResourceConfig(tx Tx, resourceConfig *UsedRes
 	err := psql.Select("id").From("resource_caches").Where(sq.Eq{
 		"resource_config_id": resourceConfig.ID,
 		"version":            cache.version(),
+		"params_hash":        paramsHash(cache.Params),
 	}).RunWith(tx).QueryRow().Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
