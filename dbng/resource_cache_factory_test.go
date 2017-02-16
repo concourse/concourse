@@ -190,6 +190,78 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(err).To(Equal(dbng.ErrBaseResourceTypeNotFound))
 		})
 	})
+
+	Describe("CleanUpInvalidCaches", func() {
+		countResourceCaches := func() int {
+			tx, err := dbConn.Begin()
+			Expect(err).NotTo(HaveOccurred())
+			defer tx.Rollback()
+
+			var result int
+			err = psql.Select("count(*)").
+				From("resource_caches").
+				RunWith(tx).
+				QueryRow().
+				Scan(&result)
+			Expect(err).NotTo(HaveOccurred())
+
+			return result
+		}
+
+		Context("when there is resource cache", func() {
+			var usedResourceCache *dbng.UsedResourceCache
+			var build dbng.Build
+
+			BeforeEach(func() {
+				build, err = defaultTeam.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+				defer setupTx.Rollback()
+				baseResourceType := dbng.BaseResourceType{
+					Name: "some-resource-type",
+				}
+				_, err = baseResourceType.FindOrCreate(setupTx)
+				Expect(err).NotTo(HaveOccurred())
+
+				resourceCache := dbng.ResourceCache{
+					ResourceConfig: dbng.ResourceConfig{
+						CreatedByBaseResourceType: &baseResourceType,
+					},
+				}
+				usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, build.ID())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+			})
+
+			Context("when resource cache is not used any more", func() {
+				BeforeEach(func() {
+					_, err := build.Delete()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("deletes the resource cache", func() {
+					err := resourceCacheFactory.CleanUpInvalidCaches()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(countResourceCaches()).To(BeZero())
+				})
+
+				Context("when there is a volume that was created for resource cache", func() {
+					BeforeEach(func() {
+						_, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("does not delete the cache", func() {
+						err := resourceCacheFactory.CleanUpInvalidCaches()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(countResourceCaches()).To(Equal(1))
+					})
+				})
+			})
+		})
+	})
 })
 
 type resourceCache struct {
