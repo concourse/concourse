@@ -1,5 +1,7 @@
 package gcng
 
+import "code.cloudfoundry.org/lager"
+
 //go:generate counterfeiter . Collector
 
 type Collector interface {
@@ -7,6 +9,7 @@ type Collector interface {
 }
 
 type aggregateCollector struct {
+	logger                     lager.Logger
 	workerCollector            Collector
 	resourceCacheUseCollector  Collector
 	resourceConfigUseCollector Collector
@@ -17,6 +20,7 @@ type aggregateCollector struct {
 }
 
 func NewCollector(
+	logger lager.Logger,
 	workers Collector,
 	resourceCacheUses Collector,
 	resourceConfigUses Collector,
@@ -26,6 +30,7 @@ func NewCollector(
 	containers Collector,
 ) Collector {
 	return &aggregateCollector{
+		logger:                     logger,
 		workerCollector:            workers,
 		resourceCacheUseCollector:  resourceCacheUses,
 		resourceConfigUseCollector: resourceConfigUses,
@@ -41,37 +46,37 @@ func (c *aggregateCollector) Run() error {
 
 	err = c.workerCollector.Run()
 	if err != nil {
-		return err
+		c.logger.Error("failed-to-run-worker-collector", err)
 	}
 
 	err = c.resourceCacheUseCollector.Run()
 	if err != nil {
-		return err
+		c.logger.Error("failed-to-run-resource-cache-use-collector", err)
 	}
 
 	err = c.resourceConfigUseCollector.Run()
 	if err != nil {
-		return err
+		c.logger.Error("failed-to-run-resource-config-use-collector", err)
 	}
 
 	err = c.resourceConfigCollector.Run()
 	if err != nil {
-		return err
+		c.logger.Error("failed-to-run-resource-config-collector", err)
 	}
 
 	err = c.resourceCacheCollector.Run()
 	if err != nil {
-		return err
+		c.logger.Error("failed-to-run-resource-cache-collector", err)
 	}
 
 	err = c.containerCollector.Run()
 	if err != nil {
-		return err
+		c.logger.Error("container-collector", err)
 	}
 
 	err = c.volumeCollector.Run()
 	if err != nil {
-		return err
+		c.logger.Error("volume-collector", err)
 	}
 
 	return nil

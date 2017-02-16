@@ -345,8 +345,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		}},
 
 		{"ng-collector", lockrunner.NewRunner(
-			logger.Session("ng-collector"),
+			logger.Session("ng-collector-runner"),
 			gcng.NewCollector(
+				logger.Session("ng-collector"),
 				gcng.NewWorkerCollector(
 					logger.Session("worker-collector"),
 					dbWorkerFactory,
