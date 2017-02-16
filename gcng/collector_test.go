@@ -16,6 +16,7 @@ var _ = Describe("Aggregate Collector", func() {
 	var (
 		subject Collector
 
+		fakeBuildCollector             *gcngfakes.FakeCollector
 		fakeWorkerCollector            *gcngfakes.FakeCollector
 		fakeResourceCacheUseCollector  *gcngfakes.FakeCollector
 		fakeResourceConfigUseCollector *gcngfakes.FakeCollector
@@ -30,6 +31,7 @@ var _ = Describe("Aggregate Collector", func() {
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("collector")
+		fakeBuildCollector = new(gcngfakes.FakeCollector)
 		fakeWorkerCollector = new(gcngfakes.FakeCollector)
 		fakeResourceCacheUseCollector = new(gcngfakes.FakeCollector)
 		fakeResourceConfigUseCollector = new(gcngfakes.FakeCollector)
@@ -40,6 +42,7 @@ var _ = Describe("Aggregate Collector", func() {
 
 		subject = NewCollector(
 			logger,
+			fakeBuildCollector,
 			fakeWorkerCollector,
 			fakeResourceCacheUseCollector,
 			fakeResourceConfigUseCollector,
@@ -57,13 +60,13 @@ var _ = Describe("Aggregate Collector", func() {
 			err = subject.Run()
 		})
 
-		It("attempts to collect workers", func() {
-			Expect(fakeWorkerCollector.RunCallCount()).To(Equal(1))
+		It("runs the build collector", func() {
+			Expect(fakeBuildCollector.RunCallCount()).To(Equal(1))
 		})
 
-		Context("when the worker collector errors", func() {
+		Context("when the build collector errors", func() {
 			BeforeEach(func() {
-				fakeWorkerCollector.RunReturns(disaster)
+				fakeBuildCollector.RunReturns(disaster)
 			})
 
 			It("does not return an error", func() {
@@ -71,6 +74,7 @@ var _ = Describe("Aggregate Collector", func() {
 			})
 
 			It("runs the rest of collectors", func() {
+				Expect(fakeWorkerCollector.RunCallCount()).To(Equal(1))
 				Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
 				Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
 				Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
@@ -78,16 +82,17 @@ var _ = Describe("Aggregate Collector", func() {
 				Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 				Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
 			})
+
 		})
 
-		Context("when the worker collector succeeds", func() {
-			It("attempts to collect cache uses", func() {
-				Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
+		Context("when the build collector succeeds", func() {
+			It("attempts to collect workers", func() {
+				Expect(fakeWorkerCollector.RunCallCount()).To(Equal(1))
 			})
 
-			Context("when the cache use collector errors", func() {
+			Context("when the worker collector errors", func() {
 				BeforeEach(func() {
-					fakeResourceCacheUseCollector.RunReturns(disaster)
+					fakeWorkerCollector.RunReturns(disaster)
 				})
 
 				It("does not return an error", func() {
@@ -95,7 +100,7 @@ var _ = Describe("Aggregate Collector", func() {
 				})
 
 				It("runs the rest of collectors", func() {
-					Expect(fakeWorkerCollector.RunCallCount()).To(Equal(1))
+					Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
 					Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
 					Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
 					Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
@@ -104,14 +109,14 @@ var _ = Describe("Aggregate Collector", func() {
 				})
 			})
 
-			Context("when the cache use collector succeeds", func() {
-				It("attempts to collect config uses", func() {
-					Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
+			Context("when the worker collector succeeds", func() {
+				It("attempts to collect cache uses", func() {
+					Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
 				})
 
-				Context("when the config use collector errors", func() {
+				Context("when the cache use collector errors", func() {
 					BeforeEach(func() {
-						fakeResourceConfigUseCollector.RunReturns(disaster)
+						fakeResourceCacheUseCollector.RunReturns(disaster)
 					})
 
 					It("does not return an error", func() {
@@ -120,7 +125,7 @@ var _ = Describe("Aggregate Collector", func() {
 
 					It("runs the rest of collectors", func() {
 						Expect(fakeWorkerCollector.RunCallCount()).To(Equal(1))
-						Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
+						Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
 						Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
 						Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 						Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
@@ -128,14 +133,14 @@ var _ = Describe("Aggregate Collector", func() {
 					})
 				})
 
-				Context("when the config use collector succeeds", func() {
-					It("attempts to collect configs", func() {
-						Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
+				Context("when the cache use collector succeeds", func() {
+					It("attempts to collect config uses", func() {
+						Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
 					})
 
-					Context("when the config collector errors", func() {
+					Context("when the config use collector errors", func() {
 						BeforeEach(func() {
-							fakeResourceConfigCollector.RunReturns(disaster)
+							fakeResourceConfigUseCollector.RunReturns(disaster)
 						})
 
 						It("does not return an error", func() {
@@ -145,7 +150,7 @@ var _ = Describe("Aggregate Collector", func() {
 						It("runs the rest of collectors", func() {
 							Expect(fakeWorkerCollector.RunCallCount()).To(Equal(1))
 							Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
-							Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
+							Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
 							Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 							Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 							Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
@@ -153,13 +158,13 @@ var _ = Describe("Aggregate Collector", func() {
 					})
 
 					Context("when the config use collector succeeds", func() {
-						It("attempts to collect caches", func() {
-							Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
+						It("attempts to collect configs", func() {
+							Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
 						})
 
-						Context("when the cache collector errors", func() {
+						Context("when the config collector errors", func() {
 							BeforeEach(func() {
-								fakeResourceCacheCollector.RunReturns(disaster)
+								fakeResourceConfigCollector.RunReturns(disaster)
 							})
 
 							It("does not return an error", func() {
@@ -170,20 +175,20 @@ var _ = Describe("Aggregate Collector", func() {
 								Expect(fakeWorkerCollector.RunCallCount()).To(Equal(1))
 								Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
 								Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
-								Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
+								Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 								Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 								Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
 							})
 						})
 
 						Context("when the config use collector succeeds", func() {
-							It("attempts to collect volumes", func() {
-								Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
+							It("attempts to collect caches", func() {
+								Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
 							})
 
-							Context("when the volume collector errors", func() {
+							Context("when the cache collector errors", func() {
 								BeforeEach(func() {
-									fakeVolumeCollector.RunReturns(disaster)
+									fakeResourceCacheCollector.RunReturns(disaster)
 								})
 
 								It("does not return an error", func() {
@@ -195,19 +200,19 @@ var _ = Describe("Aggregate Collector", func() {
 									Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
 									Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
 									Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
-									Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
+									Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 									Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
 								})
 							})
 
-							Context("when the volume collector succeeds", func() {
-								It("attempts to collect containers", func() {
-									Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+							Context("when the config use collector succeeds", func() {
+								It("attempts to collect volumes", func() {
+									Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
 								})
 
-								Context("when the container collector errors", func() {
+								Context("when the volume collector errors", func() {
 									BeforeEach(func() {
-										fakeContainerCollector.RunReturns(disaster)
+										fakeVolumeCollector.RunReturns(disaster)
 									})
 
 									It("does not return an error", func() {
@@ -220,7 +225,32 @@ var _ = Describe("Aggregate Collector", func() {
 										Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
 										Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
 										Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
-										Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
+										Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+									})
+								})
+
+								Context("when the volume collector succeeds", func() {
+									It("attempts to collect containers", func() {
+										Expect(fakeContainerCollector.RunCallCount()).To(Equal(1))
+									})
+
+									Context("when the container collector errors", func() {
+										BeforeEach(func() {
+											fakeContainerCollector.RunReturns(disaster)
+										})
+
+										It("does not return an error", func() {
+											Expect(err).NotTo(HaveOccurred())
+										})
+
+										It("runs the rest of collectors", func() {
+											Expect(fakeWorkerCollector.RunCallCount()).To(Equal(1))
+											Expect(fakeResourceCacheUseCollector.RunCallCount()).To(Equal(1))
+											Expect(fakeResourceConfigUseCollector.RunCallCount()).To(Equal(1))
+											Expect(fakeResourceConfigCollector.RunCallCount()).To(Equal(1))
+											Expect(fakeResourceCacheCollector.RunCallCount()).To(Equal(1))
+											Expect(fakeVolumeCollector.RunCallCount()).To(Equal(1))
+										})
 									})
 								})
 							})

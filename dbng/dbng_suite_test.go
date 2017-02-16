@@ -33,6 +33,7 @@ var (
 
 	sqlDB                   *sql.DB
 	dbConn                  dbng.Conn
+	buildFactory            dbng.BuildFactory
 	volumeFactory           dbng.VolumeFactory
 	containerFactory        dbng.ContainerFactory
 	teamFactory             dbng.TeamFactory
@@ -78,6 +79,7 @@ var _ = BeforeEach(func() {
 	fakeConnector := new(lockfakes.FakeConnector)
 	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
 
+	buildFactory = dbng.NewBuildFactory(dbConn)
 	volumeFactory = dbng.NewVolumeFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)
 	lockFactory = lock.NewLockFactory(retryableConn)

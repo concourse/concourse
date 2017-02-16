@@ -158,6 +158,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
+	dbBuildFactory := dbng.NewBuildFactory(dbngConn)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
 	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
 	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
@@ -348,6 +349,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			logger.Session("ng-collector-runner"),
 			gcng.NewCollector(
 				logger.Session("ng-collector"),
+				gcng.NewBuildCollector(
+					logger.Session("build-collector"),
+					dbBuildFactory,
+				),
 				gcng.NewWorkerCollector(
 					logger.Session("worker-collector"),
 					dbWorkerFactory,

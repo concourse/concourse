@@ -144,4 +144,5 @@ var Migrations = []migration.Migrator{
 	AddDiscontinuedToContainers,
 	AddSourceHashToResources,
 	AddWorkerBaseResourceTypeIdToContainers,
+	AddInterceptibleToBuilds,
 }

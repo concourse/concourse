@@ -29,6 +29,8 @@ type Build interface {
 	Finish(s BuildStatus) error
 	Delete() (bool, error)
 	SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error
+
+	Interceptible() (bool, error)
 }
 
 type build struct {
@@ -42,6 +44,30 @@ type build struct {
 var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
 
 func (b *build) ID() int { return b.id }
+
+func (b *build) Interceptible() (bool, error) {
+	var interceptible bool
+
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return true, err
+	}
+	defer tx.Commit()
+
+	err = psql.Select("interceptible").
+		From("builds").
+		Where(sq.Eq{
+			"id": b.id,
+		}).RunWith(tx).
+		QueryRow().Scan(&interceptible)
+
+	if err != nil {
+		return true, err
+	}
+
+	return interceptible, nil
+
+}
 
 func (b *build) SaveStatus(s BuildStatus) error {
 	tx, err := b.conn.Begin()

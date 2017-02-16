@@ -10,6 +10,7 @@ type Collector interface {
 
 type aggregateCollector struct {
 	logger                     lager.Logger
+	buildCollector             Collector
 	workerCollector            Collector
 	resourceCacheUseCollector  Collector
 	resourceConfigUseCollector Collector
@@ -21,6 +22,7 @@ type aggregateCollector struct {
 
 func NewCollector(
 	logger lager.Logger,
+	buildCollector Collector,
 	workers Collector,
 	resourceCacheUses Collector,
 	resourceConfigUses Collector,
@@ -31,6 +33,7 @@ func NewCollector(
 ) Collector {
 	return &aggregateCollector{
 		logger:                     logger,
+		buildCollector:             buildCollector,
 		workerCollector:            workers,
 		resourceCacheUseCollector:  resourceCacheUses,
 		resourceConfigUseCollector: resourceConfigUses,
@@ -43,6 +46,11 @@ func NewCollector(
 
 func (c *aggregateCollector) Run() error {
 	var err error
+
+	err = c.buildCollector.Run()
+	if err != nil {
+		c.logger.Error("failed-to-run-build-collector", err)
+	}
 
 	err = c.workerCollector.Run()
 	if err != nil {

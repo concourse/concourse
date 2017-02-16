@@ -81,9 +81,8 @@ func (factory *containerFactory) MarkContainersForDeletion() error {
 
 	defer tx.Rollback()
 
-	_, err = sq.Update("").
+	_, err = sq.Update("containers").
 		Prefix(containersToDeletePrefixQuery, containersToDeletePrefixArgs...).
-		Table("containers").
 		Set("state", string(ContainerStateDestroying)).
 		Where(containersToDeleteCondition).
 		Where(sq.Eq{"hijacked": false}).
