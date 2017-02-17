@@ -58,9 +58,13 @@ func (t *team) FindResourceCheckContainer(
 	worker *Worker,
 	resourceConfig *UsedResourceConfig,
 ) (CreatingContainer, CreatedContainer, error) {
-	return t.findContainer(map[string]interface{}{
-		"worker_name":        worker.Name,
-		"resource_config_id": resourceConfig.ID,
+	return t.findContainer(sq.And{
+		sq.Eq{"worker_name": worker.Name},
+		sq.Eq{"resource_config_id": resourceConfig.ID},
+		sq.Or{
+			sq.Eq{"best_if_used_by": nil},
+			sq.Expr("best_if_used_by > NOW()"),
+		},
 	})
 }
 
@@ -156,10 +160,10 @@ func (t *team) FindResourceGetContainer(
 	resourceCache *UsedResourceCache,
 	stepName string,
 ) (CreatingContainer, CreatedContainer, error) {
-	return t.findContainer(map[string]interface{}{
-		"worker_name":       worker.Name,
-		"resource_cache_id": resourceCache.ID,
-		"step_name":         stepName,
+	return t.findContainer(sq.And{
+		sq.Eq{"worker_name": worker.Name},
+		sq.Eq{"resource_cache_id": resourceCache.ID},
+		sq.Eq{"step_name": stepName},
 	})
 }
 
@@ -229,12 +233,12 @@ func (t *team) FindBuildContainer(
 	planID atc.PlanID,
 	meta ContainerMetadata,
 ) (CreatingContainer, CreatedContainer, error) {
-	return t.findContainer(map[string]interface{}{
-		"worker_name": worker.Name,
-		"build_id":    buildID,
-		"plan_id":     string(planID),
-		"type":        meta.Type,
-		"step_name":   meta.Name,
+	return t.findContainer(sq.And{
+		sq.Eq{"worker_name": worker.Name},
+		sq.Eq{"build_id": buildID},
+		sq.Eq{"plan_id": string(planID)},
+		sq.Eq{"type": meta.Type},
+		sq.Eq{"step_name": meta.Name},
 	})
 }
 
@@ -303,9 +307,7 @@ func (t *team) CreateBuildContainer(
 func (t *team) FindContainerByHandle(
 	handle string,
 ) (CreatedContainer, bool, error) {
-	_, createdContainer, err := t.findContainer(map[string]interface{}{
-		"handle": handle,
-	})
+	_, createdContainer, err := t.findContainer(sq.Eq{"handle": handle})
 	if err != nil {
 		return nil, false, err
 	}
@@ -732,18 +734,13 @@ func swallowUniqueViolation(err error) error {
 	return nil
 }
 
-func (t *team) findContainer(columns map[string]interface{}) (CreatingContainer, CreatedContainer, error) {
+func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, CreatedContainer, error) {
 	tx, err := t.conn.Begin()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	defer tx.Rollback()
-
-	whereClause := sq.Eq{}
-	for name, value := range columns {
-		whereClause[name] = value
-	}
 
 	var containerID int
 	var workerName string

@@ -3,6 +3,7 @@ package dbng_test
 import (
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 
@@ -169,10 +170,12 @@ var _ = Describe("Team", func() {
 		})
 
 		Context("when there is a created container", func() {
+			var originalCreatedContainer dbng.CreatedContainer
+
 			BeforeEach(func() {
 				creatingContainer, err := defaultTeam.CreateResourceCheckContainer(defaultWorker, resourceConfig)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = creatingContainer.Created()
+				originalCreatedContainer, err = creatingContainer.Created()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -188,6 +191,28 @@ var _ = Describe("Team", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creatingContainer).To(BeNil())
 				Expect(createdContainer).To(BeNil())
+			})
+
+			Context("when container is expired", func() {
+				BeforeEach(func() {
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = psql.Update("containers").
+						Set("best_if_used_by", sq.Expr("NOW() - '1 second'::INTERVAL")).
+						Where(sq.Eq{"id": originalCreatedContainer.ID()}).
+						RunWith(tx).Exec()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(tx.Commit()).To(Succeed())
+				})
+
+				It("does not find it", func() {
+					creatingContainer, createdContainer, err := defaultTeam.FindResourceCheckContainer(defaultWorker, resourceConfig)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(creatingContainer).To(BeNil())
+					Expect(createdContainer).To(BeNil())
+				})
 			})
 		})
 
