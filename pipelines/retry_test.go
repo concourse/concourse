@@ -46,7 +46,7 @@ var _ = Describe("A job with a step that retries", func() {
 		var hijack *exec.Cmd
 
 		BeforeEach(func() {
-			watch := triggerJob("retry-job")
+			watch := triggerJob("retry-job-fail-for-hijacking")
 			// wait until job finishes before trying to hijack
 			<-watch.Exited
 			Expect(watch).To(gexec.Exit(0))

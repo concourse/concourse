@@ -2,7 +2,8 @@
 jobs:
 - name: retry-job
   plan:
-  - task: register-server-until-3-registrations
+  - &attempts-task
+    task: register-server-until-3-registrations
     attempts: 5
     config:
       platform: linux
@@ -37,3 +38,16 @@ jobs:
             puts "failing"
             exit 1
           end
+
+- name: retry-job-fail-for-hijacking
+  plan:
+  - *attempts-task
+  - task: fail
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+
+      run: {path: 'false'}
