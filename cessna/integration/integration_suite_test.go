@@ -55,7 +55,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	if skipped {
+	if skipped || workerIp == "" {
 		return
 	}
 
