@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 
 	uuid "github.com/nu7hatch/gouuid"
@@ -69,8 +70,10 @@ var _ = AfterSuite(func() {
 		err = worker.GardenClient().Destroy(container.Handle())
 		if err != nil {
 			// once garden fixes container grace timeout to be indefinite we can remove this check
-			if err != gserver.ErrConcurrentDestroy {
-				Expect(err).NotTo(HaveOccurred())
+			if _, ok := err.(garden.ContainerNotFoundError); !ok {
+				if err != gserver.ErrConcurrentDestroy {
+					Expect(err).NotTo(HaveOccurred())
+				}
 			}
 		}
 	}
