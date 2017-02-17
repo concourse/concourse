@@ -69,8 +69,13 @@ var _ = Describe("ContainerFactory", func() {
 					createdContainer, err = creatingContainer.Created()
 				})
 
-				Context("when the build is not finished", func() {
-					It("does not mark the container for deletion", func() {
+				Context("when the build is marked as interceptible", func() {
+					BeforeEach(func() {
+						err = build.SetInterceptible(true)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("does not mark container for deletion", func() {
 						err = containerFactory.MarkContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
@@ -81,237 +86,21 @@ var _ = Describe("ContainerFactory", func() {
 					})
 				})
 
-				Context("when the build failed and there is a more recent build which has finished", func() {
-					var (
-						laterBuild             dbng.Build
-						laterCreatingContainer dbng.CreatingContainer
-						laterCreatedContainer  dbng.CreatedContainer
-					)
-
+				Context("when the build is marked as non-interceptible", func() {
 					BeforeEach(func() {
-						laterBuild, err = defaultPipeline.CreateJobBuild("some-job")
-						Expect(err).NotTo(HaveOccurred())
-
-						err = laterBuild.Finish(dbng.BuildStatusSucceeded)
-						Expect(err).NotTo(HaveOccurred())
-
-						err = build.Finish(dbng.BuildStatusFailed)
-						Expect(err).NotTo(HaveOccurred())
-
-						laterCreatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker, build.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
-						Expect(err).NotTo(HaveOccurred())
-
-						laterCreatedContainer, err = laterCreatingContainer.Created()
+						err = build.SetInterceptible(false)
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("marks the older container for deletion", func() {
+					It("marks container for deletion", func() {
 						err = containerFactory.MarkContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
 						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(deletingContainers).ToNot(BeEmpty())
-						Expect(deletingContainers[0].Handle()).NotTo(Equal(laterCreatingContainer.Handle()))
-					})
-
-					Context("when containers are hijacked", func() {
-						BeforeEach(func() {
-							err := createdContainer.MarkAsHijacked()
-							Expect(err).NotTo(HaveOccurred())
-
-							err = laterCreatedContainer.MarkAsHijacked()
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("returns hijacked containers in FindHijackedContainersForDeletion", func() {
-							foundContainers, err := containerFactory.FindHijackedContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(foundContainers).To(HaveLen(2))
-							Expect([]string{
-								foundContainers[0].Handle(),
-								foundContainers[1].Handle(),
-							}).To(ConsistOf([]string{
-								createdContainer.Handle(),
-								laterCreatedContainer.Handle(),
-							}))
-						})
-
-						It("does not mark containers for deletion", func() {
-							err = containerFactory.MarkContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-				})
-
-				Context("when there is a more recent build which is started and not finished", func() {
-					var (
-						laterBuild dbng.Build
-
-						laterCreatingContainer dbng.CreatingContainer
-					)
-
-					BeforeEach(func() {
-						laterBuild, err = defaultPipeline.CreateJobBuild("some-job")
-						Expect(err).NotTo(HaveOccurred())
-
-						err = laterBuild.SaveStatus(dbng.BuildStatusStarted)
-						Expect(err).NotTo(HaveOccurred())
-
-						laterCreatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker, laterBuild.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
-						Expect(err).NotTo(HaveOccurred())
-
-						_, err = laterCreatingContainer.Created()
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					Context("when the build is failing", func() {
-						BeforeEach(func() {
-							err := build.Finish(dbng.BuildStatusFailed)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-
-					Context("when the build errors", func() {
-						BeforeEach(func() {
-							err := build.Finish(dbng.BuildStatusErrored)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-
-					Context("when the build is aborted", func() {
-						BeforeEach(func() {
-							err := build.Finish(dbng.BuildStatusAborted)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-
-					Context("when the build passed", func() {
-						BeforeEach(func() {
-							err := build.Finish(dbng.BuildStatusSucceeded)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("marks the container for deletion", func() {
-							err = containerFactory.MarkContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(HaveLen(1))
-						})
-					})
-				})
-
-				Context("when this is the most recent build", func() {
-					Context("when the build is failing", func() {
-						BeforeEach(func() {
-							err := build.Finish(dbng.BuildStatusFailed)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-
-					Context("when the build errors", func() {
-						BeforeEach(func() {
-							err := build.Finish(dbng.BuildStatusErrored)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-
-					Context("when the build is aborted", func() {
-						BeforeEach(func() {
-							err := build.Finish(dbng.BuildStatusAborted)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("does not mark the container for deletion", func() {
-							err = containerFactory.MarkContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(BeEmpty())
-						})
-					})
-
-					Context("when the build passed", func() {
-						BeforeEach(func() {
-							err := build.Finish(dbng.BuildStatusSucceeded)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("marks the container for deletion", func() {
-							_, foundCreatedContainer, err := defaultTeam.FindBuildContainer(defaultWorker, build.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
-							Expect(err).NotTo(HaveOccurred())
-							Expect(foundCreatedContainer).NotTo(BeNil())
-
-							err = containerFactory.MarkContainersForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(deletingContainers).To(HaveLen(1))
-						})
+						Expect(deletingContainers).To(HaveLen(1))
+						Expect(deletingContainers[0].Handle()).To(Equal(createdContainer.Handle()))
 					})
 				})
 

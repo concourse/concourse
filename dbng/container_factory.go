@@ -82,7 +82,6 @@ func (factory *containerFactory) MarkContainersForDeletion() error {
 	defer tx.Rollback()
 
 	_, err = sq.Update("containers").
-		Prefix(containersToDeletePrefixQuery, containersToDeletePrefixArgs...).
 		Set("state", string(ContainerStateDestroying)).
 		Where(containersToDeleteCondition).
 		Where(sq.Eq{"hijacked": false}).
@@ -112,7 +111,6 @@ func (factory *containerFactory) FindHijackedContainersForDeletion() ([]CreatedC
 
 	rows, err := sq.Select("id, handle, worker_name").
 		From("containers").
-		Prefix(containersToDeletePrefixQuery, containersToDeletePrefixArgs...).
 		Where(containersToDeleteCondition).
 		Where(sq.Eq{"hijacked": true}).
 		Where(sq.Eq{"state": string(ContainerStateCreated)}).
@@ -157,33 +155,10 @@ func (factory *containerFactory) FindHijackedContainersForDeletion() ([]CreatedC
 
 var containersToDeleteCondition = sq.And{
 	sq.Or{
-		sq.Expr("(build_id IS NOT NULL AND build_id NOT IN (SELECT id FROM builds_to_keep))"),
+		sq.Expr("(build_id IS NOT NULL AND build_id IN (SELECT id FROM builds WHERE interceptible = false))"),
 		sq.Expr("(type = ? AND best_if_used_by < NOW())", string(ContainerStageCheck)),
 		sq.Expr("(build_id IS NULL AND resource_config_id IS NULL AND resource_cache_id IS NULL)"),
 		sq.Expr("(resource_config_id IS NOT NULL AND worker_base_resource_types_id IS NULL)"),
 	},
 	sq.Eq{"state": string(ContainerStateCreated)},
 }
-
-var containersToDeletePrefixQuery, containersToDeletePrefixArgs = `WITH
-		latest_builds AS (
-				SELECT COALESCE(MAX(b.id)) AS build_id
-				FROM builds b, jobs j
-				WHERE b.job_id = j.id
-				AND b.completed
-				GROUP BY j.id
-		),
-		builds_to_keep AS (
-				SELECT id FROM builds
-				WHERE (
-						(status = ? OR status = ? OR status = ?)
-						AND id IN (SELECT build_id FROM latest_builds)
-				) OR (
-						NOT completed
-				)
-		)`,
-	[]interface{}{
-		string(BuildStatusAborted),
-		string(BuildStatusErrored),
-		string(BuildStatusFailed),
-	}

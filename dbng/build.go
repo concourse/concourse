@@ -25,12 +25,14 @@ const (
 
 type Build interface {
 	ID() int
+	Interceptible() (bool, error)
+
 	SaveStatus(s BuildStatus) error
+	SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error
+	SetInterceptible(bool) error
+
 	Finish(s BuildStatus) error
 	Delete() (bool, error)
-	SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error
-
-	Interceptible() (bool, error)
 }
 
 type build struct {
@@ -66,6 +68,41 @@ func (b *build) Interceptible() (bool, error) {
 	}
 
 	return interceptible, nil
+}
+
+func (b *build) SetInterceptible(i bool) error {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Commit()
+
+	rows, err := psql.Update("builds").
+		Set("interceptible", i).
+		Where(sq.Eq{
+			"id": b.id,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	affected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		return ErrBuildDisappeared
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 
 }
 
