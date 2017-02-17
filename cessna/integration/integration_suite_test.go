@@ -23,6 +23,7 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/garden/gardenfakes"
+	gserver "code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc/cessna/cessnafakes"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
@@ -66,7 +67,12 @@ var _ = AfterSuite(func() {
 
 	for _, container := range containers {
 		err = worker.GardenClient().Destroy(container.Handle())
-		Expect(err).NotTo(HaveOccurred())
+		if err != nil {
+			// once garden fixes container grace timeout to be indefinite we can remove this check
+			if err != gserver.ErrConcurrentDestroy {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		}
 	}
 
 	volumes, err := worker.BaggageClaimClient().ListVolumes(logger, nil)
