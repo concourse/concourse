@@ -314,6 +314,9 @@ var _ = Describe("ContainerProvider", func() {
 
 	Describe("FindOrCreateResourceCheckContainer", func() {
 		BeforeEach(func() {
+			fakeDBResourceConfigFactory.FindOrCreateResourceConfigForResourceReturns(&dbng.UsedResourceConfig{
+				ID: 42,
+			}, nil)
 			fakeDBTeam.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
 			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
 		})
