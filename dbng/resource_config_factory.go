@@ -254,44 +254,12 @@ func (f *resourceConfigFactory) CleanConfigUsesForFinishedBuilds() error {
 	}
 	defer tx.Rollback()
 
-	latestBuildByJobQ, _, err := sq.
-		Select("MAX(b.id) AS build_id", "j.id AS job_id").
-		From("builds b").
-		Join("jobs j ON j.id = b.job_id").
-		GroupBy("j.id").ToSql()
-	if err != nil {
-		return err
-	}
-
-	extractedBuildIds, _, err := sq.
-		Select("lbbjq.build_id").
-		Distinct().
-		From("(" + latestBuildByJobQ + ") as lbbjq").
-		ToSql()
-	if err != nil {
-		return err
-	}
-
 	_, err = psql.Delete("resource_config_uses rcu USING builds b").
-		Where(sq.And{
-			sq.Expr("rcu.build_id = b.id"),
-			sq.Or{
-				sq.Eq{
-					"b.status": "succeeded",
-				},
-				sq.And{
-					sq.Expr("b.id NOT IN (" + extractedBuildIds + ")"),
-					sq.Eq{
-						"b.status": "failed",
-					},
-				},
-				sq.Eq{
-					"b.status": "aborted",
-				},
-			},
-		}).
+		Where(sq.Expr("rcu.build_id = b.id")).
+		Where(sq.Expr("rcu.build_id IN (SELECT id FROM builds WHERE interceptible=false)")).
 		RunWith(tx).
 		Exec()
+
 	if err != nil {
 		return err
 	}

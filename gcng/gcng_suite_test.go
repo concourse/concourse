@@ -33,6 +33,7 @@ var (
 	err                   error
 	resourceCacheFactory  dbng.ResourceCacheFactory
 	resourceConfigFactory dbng.ResourceConfigFactory
+	buildFactory          dbng.BuildFactory
 
 	teamFactory dbng.TeamFactory
 
@@ -65,6 +66,8 @@ var _ = BeforeEach(func() {
 	lockFactory := lock.NewLockFactory(retryableConn)
 
 	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
+
+	buildFactory = dbng.NewBuildFactory(dbConn)
 
 	defaultTeam, err = teamFactory.CreateTeam("default-team")
 	Expect(err).NotTo(HaveOccurred())

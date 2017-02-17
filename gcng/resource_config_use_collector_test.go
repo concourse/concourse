@@ -15,10 +15,12 @@ import (
 
 var _ = Describe("ResourceConfigUseCollector", func() {
 	var collector gcng.Collector
+	var buildCollector gcng.Collector
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("resource-cache-use-collector")
 		collector = gcng.NewResourceConfigUseCollector(logger, resourceConfigFactory)
+		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
 
 	AfterEach(func() {
@@ -109,6 +111,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				Context("before the build has completed", func() {
 					It("does not clean up the uses", func() {
 						Expect(countResourceConfigUses()).NotTo(BeZero())
+						Expect(buildCollector.Run()).To(Succeed())
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceConfigUses()).NotTo(BeZero())
 					})
@@ -118,6 +121,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceConfigUses()).NotTo(BeZero())
 						finishBuild("succeeded")
+						Expect(buildCollector.Run()).To(Succeed())
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceConfigUses()).To(BeZero())
 					})
@@ -127,6 +131,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceConfigUses()).NotTo(BeZero())
 						finishBuild("aborted")
+						Expect(buildCollector.Run()).To(Succeed())
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceConfigUses()).To(BeZero())
 					})
@@ -137,6 +142,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						It("cleans up the uses", func() {
 							Expect(countResourceConfigUses()).NotTo(BeZero())
 							finishBuild("failed")
+							Expect(buildCollector.Run()).To(Succeed())
 							Expect(collector.Run()).To(Succeed())
 							Expect(countResourceConfigUses()).To(BeZero())
 						})
@@ -178,6 +184,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							It("preserves the uses", func() {
 								Expect(countResourceConfigUses()).NotTo(BeZero())
 								finishBuild("failed")
+								Expect(buildCollector.Run()).To(Succeed())
 								Expect(collector.Run()).To(Succeed())
 								Expect(countResourceConfigUses()).NotTo(BeZero())
 							})
@@ -191,6 +198,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 
 							It("cleans up the uses", func() {
 								Expect(countResourceConfigUses()).NotTo(BeZero())
+								Expect(buildCollector.Run()).To(Succeed())
 								Expect(collector.Run()).To(Succeed())
 								Expect(countResourceConfigUses()).To(BeZero())
 							})
