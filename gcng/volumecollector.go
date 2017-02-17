@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker/transport"
+	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
 )
 
@@ -61,9 +62,14 @@ func (vc *volumeCollector) Run() error {
 	}
 
 	for _, createdVolume := range createdVolumes {
+		vLog := vc.logger.Session("mark-destroying", lager.Data{
+			"volume": createdVolume.Handle(),
+			"worker": createdVolume.Worker().Name,
+		})
+
 		destroyingVolume, err := createdVolume.Destroying()
 		if err != nil {
-			vc.logger.Error("failed-to-mark-volume-as-destroying", err)
+			vLog.Error("failed-to-transition", err)
 			continue
 		}
 
@@ -77,41 +83,57 @@ func (vc *volumeCollector) Run() error {
 		})
 
 		if destroyingVolume.Worker().BaggageclaimURL == nil {
-			vLog.Debug("baggageclaim-url-is-missing", lager.Data{"worker-name": destroyingVolume.Worker().Name})
+			vLog.Info("baggageclaim-url-is-missing")
 			continue
 		}
 
 		baggageclaimClient := vc.baggageclaimClientFactory.NewClient(*destroyingVolume.Worker().BaggageclaimURL, destroyingVolume.Worker().Name)
+
 		volume, found, err := baggageclaimClient.LookupVolume(vc.logger, destroyingVolume.Handle())
 		if err != nil {
 			vLog.Error("failed-to-lookup-volume-in-baggageclaim", err)
 			continue
 		}
 
-		if found {
-			vLog.Debug("destroying-baggageclaim-volume")
-			err := volume.Destroy()
-			if err != nil {
-				vLog.Error("failed-to-destroy-baggageclaim-volume", err)
-				continue
-			}
-		} else {
-			vLog.Debug("volume-already-removed-from-baggageclaim")
-		}
-
-		vLog.Debug("destroying-db-volume")
-
-		destroyed, err := destroyingVolume.Destroy()
-		if err != nil {
-			vc.logger.Error("failed-to-destroy-volume-in-db", err)
-			continue
-		}
-
-		if !destroyed {
-			vLog.Info("could-not-destroy-volume-in-db")
-			continue
+		if vc.destroyRealVolume(vLog.Session("in-worker"), volume, found) {
+			vc.destroyDBVolume(vLog.Session("in-db"), destroyingVolume)
 		}
 	}
 
 	return nil
+}
+
+func (vc *volumeCollector) destroyRealVolume(logger lager.Logger, volume baggageclaim.Volume, found bool) bool {
+	if found {
+		logger.Debug("destroying")
+
+		err := volume.Destroy()
+		if err != nil {
+			logger.Error("failed-to-destroy", err)
+			return false
+		}
+
+		logger.Debug("destroyed")
+	} else {
+		logger.Debug("already-removed")
+	}
+
+	return true
+}
+
+func (vc *volumeCollector) destroyDBVolume(logger lager.Logger, dbVolume dbng.DestroyingVolume) {
+	logger.Debug("destroying")
+
+	destroyed, err := dbVolume.Destroy()
+	if err != nil {
+		logger.Error("failed-to-destroy", err)
+		return
+	}
+
+	if !destroyed {
+		logger.Info("could-not-destroy")
+		return
+	}
+
+	logger.Debug("destroyed")
 }
