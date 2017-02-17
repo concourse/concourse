@@ -262,6 +262,12 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 		resourceTypes,
 		map[string]string{},
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
+			logger.Debug("looking-for-container-in-db", lager.Data{
+				"team-id":            spec.TeamID,
+				"worker-name":        p.worker.Name(),
+				"garden-addr":        p.worker.Address(),
+				"resource-config-id": resourceConfig.ID,
+			})
 			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
@@ -271,6 +277,12 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 			)
 		},
 		func() (dbng.CreatingContainer, error) {
+			logger.Debug("creating-container-in-db", lager.Data{
+				"team-id":            spec.TeamID,
+				"worker-name":        p.worker.Name(),
+				"garden-addr":        p.worker.Address(),
+				"resource-config-id": resourceConfig.ID,
+			})
 			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceCheckContainer(
 				&dbng.Worker{
 					Name:       p.worker.Name(),
@@ -502,6 +514,7 @@ func (p *containerProvider) findOrCreateContainer(
 	}
 
 	if createdContainer != nil {
+		logger.Debug("found-created-container-in-db")
 		gardenContainer, err = p.gardenClient.Lookup(createdContainer.Handle())
 		if err != nil {
 			logger.Error("failed-to-lookup-created-container-in-garden", err)
@@ -526,6 +539,7 @@ func (p *containerProvider) findOrCreateContainer(
 		)
 	} else {
 		if creatingContainer != nil {
+			logger.Debug("found-creating-container-in-db")
 			gardenContainer, err = p.gardenClient.Lookup(creatingContainer.Handle())
 			if err != nil {
 				if _, ok := err.(garden.ContainerNotFoundError); !ok {
@@ -553,6 +567,7 @@ func (p *containerProvider) findOrCreateContainer(
 			}
 
 			if creatingContainer == nil {
+				logger.Debug("creating-container-in-db")
 				creatingContainer, err = createContainerFunc()
 				if err != nil {
 					logger.Error("failed-to-create-container-in-db", err)
