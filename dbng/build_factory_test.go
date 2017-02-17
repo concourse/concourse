@@ -13,7 +13,35 @@ import (
 var _ = Describe("BuildFactory", func() {
 	Describe("MarkNonInterceptibleBuilds", func() {
 		Context("one-off builds", func() {
+			DescribeTable("completed builds",
+				func(status dbng.BuildStatus, matcher types.GomegaMatcher) {
+					b, err := defaultTeam.CreateOneOffBuild()
+					Expect(err).NotTo(HaveOccurred())
 
+					var i bool
+					b.Finish(status)
+					err = buildFactory.MarkNonInterceptibleBuilds()
+					i, err = b.Interceptible()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(i).To(matcher)
+				},
+				Entry("succeeded is non-interceptible", dbng.BuildStatusSucceeded, BeFalse()),
+				Entry("aborted is non-interceptible", dbng.BuildStatusAborted, BeFalse()),
+				Entry("errored is non-interceptible", dbng.BuildStatusErrored, BeFalse()),
+				Entry("failed is non-interceptible", dbng.BuildStatusFailed, BeFalse()),
+			)
+
+			It("non-completed is interceptible", func() {
+				b, err := defaultTeam.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				var i bool
+				err = buildFactory.MarkNonInterceptibleBuilds()
+				i, err = b.Interceptible()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(i).To(BeTrue())
+
+			})
 		})
 
 		Context("pipeline builds", func() {
