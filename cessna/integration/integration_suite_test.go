@@ -71,7 +71,7 @@ var _ = AfterSuite(func() {
 		if err != nil {
 			// once garden fixes container grace timeout to be indefinite we can remove this check
 			if _, ok := err.(garden.ContainerNotFoundError); !ok {
-				if err != gserver.ErrConcurrentDestroy {
+				if err.Error() != gserver.ErrConcurrentDestroy.Error() {
 					Expect(err).NotTo(HaveOccurred())
 				}
 			}
