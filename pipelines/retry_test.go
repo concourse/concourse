@@ -49,7 +49,7 @@ var _ = Describe("A job with a step that retries", func() {
 			watch := triggerJob("retry-job-fail-for-hijacking")
 			// wait until job finishes before trying to hijack
 			<-watch.Exited
-			Expect(watch).To(gexec.Exit(0))
+			Expect(watch).To(gexec.Exit(1))
 		})
 
 		It("permits hijacking a specific attempt", func() {
