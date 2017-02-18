@@ -378,7 +378,7 @@ jobs:
       passed: [bosh-testflight]
       trigger: true
     - get: bosh-rc
-      passed: [bosh-testflight]
+      passed: [bosh-testflight, topgun]
       trigger: true
     - get: garden-runc-release
       resource: garden-runc
