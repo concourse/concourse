@@ -83,7 +83,9 @@ var _ = AfterSuite(func() {
 
 	for _, volume := range volumes {
 		err = volume.Destroy()
-		Expect(err).NotTo(HaveOccurred())
+		if err != nil && err != baggageclaim.ErrVolumeNotFound {
+			Expect(err).NotTo(HaveOccurred())
+		}
 	}
 })
 
