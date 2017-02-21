@@ -22,9 +22,11 @@ import (
 
 const btrfsFSType = 0x9123683e
 
-type GardenBackend guardiancmd.GuardianCommand
+type GardenBackend guardiancmd.ServerCommand
 
 func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
+	command.FindOptionByLongName("garden-bind-ip").Default = []string{"7777"}
+
 	command.FindOptionByLongName("garden-depot").Required = false
 	command.FindOptionByLongName("garden-graph").Required = false
 	command.FindOptionByLongName("garden-runc-bin").Required = false
@@ -59,7 +61,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 
 	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP)
 
-	cmd.Garden.Containers.Dir = guardiancmd.DirFlag(depotDir)
+	cmd.Garden.Containers.Dir = depotDir
 
 	cmd.Garden.Bin.Runc = filepath.Join(assetsDir, "bin", "runc")
 	cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "dadoo"))
@@ -96,7 +98,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	runner := guardiancmd.GuardianCommand(cmd.Garden)
+	runner := guardiancmd.ServerCommand(cmd.Garden)
 	return worker, &runner, nil
 }
 
