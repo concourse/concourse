@@ -33,12 +33,10 @@ import (
 var (
 	skipped bool
 
-	testBaseResource Resource
-	worker           Worker
-	baseResourceType BaseResourceType
-	workerIp         string
-	tarPath          string
-	tarURL           string
+	worker   Worker
+	workerIp string
+	tarPath  string
+	tarURL   string
 
 	found bool
 
@@ -56,7 +54,7 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-var _ = AfterSuite(func() {
+var _ = AfterEach(func() {
 	if skipped || workerIp == "" {
 		return
 	}

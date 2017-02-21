@@ -6,26 +6,16 @@ import (
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/cessna"
-	"github.com/concourse/baggageclaim"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Get version of a resource", func() {
-
-	var getVolume baggageclaim.Volume
-	var getErr error
-
-	var (
-		check string
-		in    string
-		out   string
-	)
-
 	Context("whose type is a base resource type", func() {
+		var testBaseResource Resource
 
 		BeforeEach(func() {
-			in = `#!/bin/bash
+			in := `#!/bin/bash
 			set -e
 			TMPDIR=${TMPDIR:-/tmp}
 
@@ -45,6 +35,8 @@ var _ = Describe("Get version of a resource", func() {
 
 			echo '{ "version" : {}, "metadata": []  }' >&3
 			`
+			check := ""
+			out := ""
 
 			c := NewResourceContainer(check, in, out)
 
@@ -54,7 +46,7 @@ var _ = Describe("Get version of a resource", func() {
 			rootFSPath, err := createBaseResourceVolume(r)
 			Expect(err).ToNot(HaveOccurred())
 
-			baseResourceType = BaseResourceType{
+			baseResourceType := BaseResourceType{
 				RootFSPath: rootFSPath,
 				Name:       "echo",
 			}
@@ -69,19 +61,14 @@ var _ = Describe("Get version of a resource", func() {
 			testBaseResource = NewBaseResource(baseResourceType, source)
 		})
 
-		JustBeforeEach(func() {
-			getVolume, getErr = ResourceGet{
+		It("returns a volume with the result of running the get script", func() {
+			getVolume, getErr := ResourceGet{
 				Resource: testBaseResource,
 				Version:  atc.Version{"beep": "boop"},
 				Params:   nil,
 			}.Get(logger, worker)
-		})
-
-		It("runs the get script", func() {
 			Expect(getErr).ShouldNot(HaveOccurred())
-		})
 
-		It("returns a volume with the result of running the get script", func() {
 			file, err := getVolume.StreamOut("/version")
 			Expect(err).ToNot(HaveOccurred())
 			defer file.Close()
@@ -97,16 +84,10 @@ var _ = Describe("Get version of a resource", func() {
 	})
 
 	Context("whose type is a custom resource type", func() {
-		var (
-			quineCheck string
-			quineIn    string
-			quineOut   string
-
-			resourceGet ResourceGet
-		)
+		var resourceGet ResourceGet
 
 		BeforeEach(func() {
-			quineIn = `#!/bin/bash
+			quineIn := `#!/bin/bash
 			set -eux
 
 			TMPDIR=${TMPDIR:-/tmp}
@@ -126,6 +107,8 @@ var _ = Describe("Get version of a resource", func() {
 			cp -R /opt/resource $destination/opt/resource
 			echo $version > $destination/version
 			`
+			quineCheck := ""
+			quineOut := ""
 			c := NewResourceContainer(quineCheck, quineIn, quineOut)
 
 			r, err := c.RootFSify()

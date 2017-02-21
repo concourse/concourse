@@ -13,5 +13,5 @@ pushd concourse/src/github.com/concourse/atc/cessna
 
   go install github.com/onsi/ginkgo/ginkgo
   export ROOTFS_TAR_PATH=$HOME/buildroot.tar
-  ginkgo -r -nodes=3 -race "$@"
+  ginkgo -r -race -randomizeAllSpecs -randomizeSuites "$@"
 popd

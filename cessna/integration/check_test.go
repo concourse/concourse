@@ -22,6 +22,10 @@ var _ = Describe("Check for new versions of resources", func() {
 	)
 
 	Context("whose type is a base resource type", func() {
+		var (
+			testBaseResource Resource
+			baseResourceType BaseResourceType
+		)
 
 		BeforeEach(func() {
 			var (
@@ -57,7 +61,7 @@ var _ = Describe("Check for new versions of resources", func() {
 			rootFSPath, err := createBaseResourceVolume(r)
 			Expect(err).ToNot(HaveOccurred())
 
-			baseResourceType = BaseResourceType{
+			baseResourceType := BaseResourceType{
 				RootFSPath: rootFSPath,
 				Name:       "echo",
 			}

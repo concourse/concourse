@@ -22,6 +22,8 @@ var _ = Describe("Put a resource", func() {
 		check string
 		in    string
 		out   string
+
+		baseResourceType BaseResourceType
 	)
 
 	Context("whose type is a base resource type", func() {
