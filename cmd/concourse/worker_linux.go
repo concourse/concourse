@@ -27,8 +27,14 @@ type GardenBackend guardiancmd.ServerCommand
 func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
 	command.FindOptionByLongName("garden-bind-ip").Default = []string{"7777"}
 
+	// configured as work-dir/depot
 	command.FindOptionByLongName("garden-depot").Required = false
+
+	// un-configure graph (default /var/gdn/graph)
 	command.FindOptionByLongName("garden-graph").Required = false
+	command.FindOptionByLongName("garden-graph").Default = []string{}
+
+	// these are provided as assets embedded in the 'concourse' binary
 	command.FindOptionByLongName("garden-runc-bin").Required = false
 	command.FindOptionByLongName("garden-dadoo-bin").Required = false
 	command.FindOptionByLongName("garden-init-bin").Required = false
