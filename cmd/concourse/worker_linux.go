@@ -25,7 +25,7 @@ const btrfsFSType = 0x9123683e
 type GardenBackend guardiancmd.ServerCommand
 
 func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
-	command.FindOptionByLongName("garden-bind-ip").Default = []string{"7777"}
+	command.FindOptionByLongName("garden-bind-port").Default = []string{"7777"}
 
 	// configured as work-dir/depot
 	command.FindOptionByLongName("garden-depot").Required = false
