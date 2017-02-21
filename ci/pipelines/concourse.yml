@@ -247,16 +247,14 @@ jobs:
     - get: garden-runc
       passed: [build-fly]
       trigger: true
-    - get: bin
-      trigger: true
-    - get: houdini
-      trigger: true
-    - get: garden-runc-src
     - get: fly-rc
       trigger: true
       passed: [build-fly]
       params:
         globs: [fly_*]
+    - get: bin
+    - get: houdini
+    - get: garden-runc-src
   - task: checkout-release-tag
     file: concourse/ci/checkout-garden-runc.yml
   - aggregate:
