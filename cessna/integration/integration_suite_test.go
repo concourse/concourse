@@ -54,7 +54,7 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-var _ = AfterEach(func() {
+var _ = SynchronizedAfterSuite(func() {}, func() {
 	if skipped || workerIp == "" {
 		return
 	}
