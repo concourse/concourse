@@ -6,250 +6,270 @@ import Json.Decode
 import Regex exposing (Regex)
 import String
 import Task exposing (Task)
+import Maybe.Extra
+
 
 type alias Paginated a =
-  { content : List a
-  , pagination : Pagination
-  }
+    { content : List a
+    , pagination : Pagination
+    }
+
 
 type alias Pagination =
-  { previousPage : Maybe Page
-  , nextPage : Maybe Page
-  }
+    { previousPage : Maybe Page
+    , nextPage : Maybe Page
+    }
+
 
 type alias Page =
-  { direction : Direction
-  , limit : Int
-  }
+    { direction : Direction
+    , limit : Int
+    }
+
 
 type Direction
-  = Since Int
-  | Until Int
-  | From Int
-  | To Int
+    = Since Int
+    | Until Int
+    | From Int
+    | To Int
+
 
 previousRel : String
-previousRel = "previous"
+previousRel =
+    "previous"
+
 
 nextRel : String
-nextRel = "next"
+nextRel =
+    "next"
+
 
 linkHeaderRegex : Regex
 linkHeaderRegex =
-  Regex.regex ("<([^>]+)>; rel=\"(" ++ previousRel ++ "|" ++ nextRel ++ ")\"")
+    Regex.regex ("<([^>]+)>; rel=\"(" ++ previousRel ++ "|" ++ nextRel ++ ")\"")
+
 
 equal : Page -> Page -> Bool
 equal one two =
-  case one.direction of
-    Since p ->
-      case two.direction of
-        Since pp ->
-          p == pp
-        _ ->
-          False
-    Until q ->
-      case two.direction of
-        Until qq ->
-          q == qq
-        _ ->
-          False
-    From f ->
-      case two.direction of
-        From ff ->
-          f == ff
-        _ ->
-          False
-    To t ->
-      case two.direction of
-        To tt ->
-          t == tt
-        _ ->
-          False
+    case one.direction of
+        Since p ->
+            case two.direction of
+                Since pp ->
+                    p == pp
+
+                _ ->
+                    False
+
+        Until q ->
+            case two.direction of
+                Until qq ->
+                    q == qq
+
+                _ ->
+                    False
+
+        From f ->
+            case two.direction of
+                From ff ->
+                    f == ff
+
+                _ ->
+                    False
+
+        To t ->
+            case two.direction of
+                To tt ->
+                    t == tt
+
+                _ ->
+                    False
+
 
 fetch : Json.Decode.Decoder a -> String -> Maybe Page -> Task Http.Error (Paginated a)
 fetch decode url page =
-  let
-    get =
-      Http.send
-        Http.defaultSettings
-        { verb = "GET"
-        , headers = []
-        , url = addParams url page
-        , body = Http.empty
-        }
-  in
-    Task.mapError promoteHttpError get `Task.andThen` parsePagination decode
+    Http.toTask <|
+        Http.request
+            { method = "GET"
+            , headers = []
+            , url = addParams url page
+            , body = Http.emptyBody
+            , expect = Http.expectStringResponse (parsePagination decode)
+            , timeout = Nothing
+            , withCredentials = False
+            }
 
-parsePagination : Json.Decode.Decoder a -> Http.Response -> Task Http.Error (Paginated a)
+
+parsePagination : Json.Decode.Decoder a -> Http.Response String -> Result String (Paginated a)
 parsePagination decode response =
-  let
-    pagination =
-      parseLinks response
+    let
+        pagination =
+            parseLinks response
 
-    decoded =
-      handleResponse response `Result.andThen` \body ->
-        Json.Decode.decodeString (Json.Decode.list decode) body
-          |> Result.formatError Http.UnexpectedPayload
-  in
-    case decoded of
-      Err err ->
-        Task.fail err
+        decoded =
+            Json.Decode.decodeString (Json.Decode.list decode) response.body
+    in
+        case decoded of
+            Err err ->
+                Err err
 
-      Ok content ->
-        Task.succeed { content = content, pagination = pagination }
+            Ok content ->
+                Ok { content = content, pagination = pagination }
 
-handleResponse : Http.Response -> Result Http.Error String
-handleResponse response =
-  if 200 <= response.status && response.status < 300 then
-    case response.value of
-      Http.Text str ->
-        Ok str
 
-      _ ->
-        Err (Http.UnexpectedPayload "Response body is a blob, expecting a string.")
-  else
-    Err (Http.BadResponse response.status response.statusText)
-
-promoteHttpError : Http.RawError -> Http.Error
-promoteHttpError rawError =
-  case rawError of
-    Http.RawTimeout -> Http.Timeout
-    Http.RawNetworkError -> Http.NetworkError
-
-parseLinks : Http.Response -> Pagination
+parseLinks : Http.Response String -> Pagination
 parseLinks response =
-  case Dict.get "link" <| keysToLower response.headers of
-    Nothing ->
-      Pagination Nothing Nothing
+    case Dict.get "link" <| keysToLower response.headers of
+        Nothing ->
+            Pagination Nothing Nothing
 
-    Just commaSeparatedCraziness ->
-      let
-        headers = String.split ", " commaSeparatedCraziness
-        parsed = Dict.fromList <| List.filterMap parseLinkTuple headers
-      in
-        Pagination
-          (Dict.get previousRel parsed `Maybe.andThen` parseParams)
-          (Dict.get nextRel parsed `Maybe.andThen` parseParams)
+        Just commaSeparatedCraziness ->
+            let
+                headers =
+                    String.split ", " commaSeparatedCraziness
+
+                parsed =
+                    Dict.fromList <| List.filterMap parseLinkTuple headers
+            in
+                Pagination
+                    (Dict.get previousRel parsed |> Maybe.andThen parseParams)
+                    (Dict.get nextRel parsed |> Maybe.andThen parseParams)
+
 
 keysToLower : Dict String a -> Dict String a
-keysToLower = Dict.fromList << List.map fstToLower << Dict.toList
+keysToLower =
+    Dict.fromList << List.map fstToLower << Dict.toList
 
-fstToLower : (String, a) -> (String, a)
-fstToLower (x, y) = (String.toLower x, y)
 
-parseLinkTuple : String -> Maybe (String, String)
+fstToLower : ( String, a ) -> ( String, a )
+fstToLower ( x, y ) =
+    ( String.toLower x, y )
+
+
+parseLinkTuple : String -> Maybe ( String, String )
 parseLinkTuple header =
-  case Regex.find (Regex.AtMost 1) linkHeaderRegex header of
-    [] ->
-      Nothing
+    case Regex.find (Regex.AtMost 1) linkHeaderRegex header of
+        [] ->
+            Nothing
 
-    {submatches} :: _ ->
-      case submatches of
-        (Just url :: Just rel :: _) ->
-          Just (rel, url)
+        { submatches } :: _ ->
+            case submatches of
+                (Just url) :: (Just rel) :: _ ->
+                    Just ( rel, url )
 
-        _ ->
-          Nothing
+                _ ->
+                    Nothing
+
 
 parseParams : String -> Maybe Page
 parseParams =
-  fromQuery << snd << extractQuery
+    fromQuery << Tuple.second << extractQuery
 
-extractQuery : String -> (String, Dict String String)
+
+extractQuery : String -> ( String, Dict String String )
 extractQuery url =
-  case String.split "?" url of
-    baseURL :: query :: _ ->
-      (baseURL, parseQuery query)
+    case String.split "?" url of
+        baseURL :: query :: _ ->
+            ( baseURL, parseQuery query )
 
-    _ ->
-      (url, Dict.empty)
+        _ ->
+            ( url, Dict.empty )
+
 
 setQuery : String -> Dict String String -> String
 setQuery baseURL query =
-  let
-    params =
-      String.join "&" <|
-        List.map (\(k, v) -> k ++ "=" ++ v) (Dict.toList query)
-  in
-    if params == "" then
-      baseURL
-    else
-      baseURL ++ "?" ++ params
+    let
+        params =
+            String.join "&" <|
+                List.map (\( k, v ) -> k ++ "=" ++ v) (Dict.toList query)
+    in
+        if params == "" then
+            baseURL
+        else
+            baseURL ++ "?" ++ params
+
 
 parseQuery : String -> Dict String String
 parseQuery query =
-  let
-    parseParam p =
-      case String.split "=" p of
-        k :: vs ->
-          (k, String.join "=" vs)
+    let
+        parseParam p =
+            case String.split "=" p of
+                k :: vs ->
+                    ( k, String.join "=" vs )
 
-        [] ->
-          ("", "")
-  in
-    Dict.fromList <|
-      List.map parseParam <|
-        String.split "&" query
+                [] ->
+                    ( "", "" )
+    in
+        Dict.fromList <|
+            List.map parseParam <|
+                String.split "&" query
+
 
 addParams : String -> Maybe Page -> String
 addParams url page =
-  let
-    (baseURL, query) = extractQuery url
-  in
-    setQuery baseURL (Dict.union query (toQuery page))
+    let
+        ( baseURL, query ) =
+            extractQuery url
+    in
+        setQuery baseURL (Dict.union query (toQuery page))
+
 
 fromQuery : Dict String String -> Maybe Page
 fromQuery query =
-  let
-    limit =
-      Maybe.withDefault 0 <|
-        Dict.get "limit" query `Maybe.andThen` parseNum
+    let
+        limit =
+            Maybe.withDefault 0 <|
+                (Dict.get "limit" query |> Maybe.andThen parseNum)
 
-    until =
-      Maybe.map Until <|
-        Dict.get "until" query `Maybe.andThen` parseNum
+        until =
+            Maybe.map Until <|
+                (Dict.get "until" query |> Maybe.andThen parseNum)
 
-    since =
-      Maybe.map Since <|
-        Dict.get "since" query `Maybe.andThen` parseNum
+        since =
+            Maybe.map Since <|
+                (Dict.get "since" query |> Maybe.andThen parseNum)
 
-    from =
-      Maybe.map Since <|
-        Dict.get "from" query `Maybe.andThen` parseNum
+        from =
+            Maybe.map Since <|
+                (Dict.get "from" query |> Maybe.andThen parseNum)
 
-    to =
-      Maybe.map Since <|
-        Dict.get "to" query `Maybe.andThen` parseNum
-  in
-    Maybe.map (\direction -> { direction = direction, limit = limit }) <|
-      Maybe.oneOf [until, since, from, to]
+        to =
+            Maybe.map Since <|
+                (Dict.get "to" query |> Maybe.andThen parseNum)
+    in
+        Maybe.map (\direction -> { direction = direction, limit = limit }) <|
+            Maybe.Extra.or until <|
+                Maybe.Extra.or since <|
+                    Maybe.Extra.or from to
+
 
 toQuery : Maybe Page -> Dict String String
 toQuery page =
-  case page of
-    Nothing ->
-      Dict.empty
+    case page of
+        Nothing ->
+            Dict.empty
 
-    Just somePage ->
-      let
-        directionParam =
-          case somePage.direction of
-            Since id ->
-              ("since", toString id)
+        Just somePage ->
+            let
+                directionParam =
+                    case somePage.direction of
+                        Since id ->
+                            ( "since", toString id )
 
-            Until id ->
-              ("until", toString id)
+                        Until id ->
+                            ( "until", toString id )
 
-            From id ->
-              ("from", toString id)
+                        From id ->
+                            ( "from", toString id )
 
-            To id ->
-              ("to", toString id)
+                        To id ->
+                            ( "to", toString id )
 
-        limitParam =
-          ("limit", toString somePage.limit)
-      in
-        Dict.fromList [directionParam, limitParam]
+                limitParam =
+                    ( "limit", toString somePage.limit )
+            in
+                Dict.fromList [ directionParam, limitParam ]
+
 
 parseNum : String -> Maybe Int
-parseNum = Result.toMaybe << String.toInt
+parseNum =
+    Result.toMaybe << String.toInt

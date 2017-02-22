@@ -1,4 +1,5 @@
 module Focus exposing (Focus, get, set, update, (=>), create)
+
 {-| Our goal is to update a field deep inside some nested records. For example,
 if we want to add one to `object.physics.velocity.x` or set it to zero, we would
 be writing code like this:
@@ -29,11 +30,11 @@ Maybe this means a certain field in a record or a certain element in an array.
 The focus then lets you `get`, `set`, and `update` this small part of a big
 value.
 -}
-type Focus big small =
-  Focus
-    { get : big -> small
-    , update : (small -> small) -> big -> big
-    }
+type Focus big small
+    = Focus
+        { get : big -> small
+        , update : (small -> small) -> big -> big
+        }
 
 
 {-| A `Focus` is a value. It describes a strategy for getting and updating
@@ -42,7 +43,7 @@ function and an `update` function.
 -}
 create : (big -> small) -> ((small -> small) -> big -> big) -> Focus big small
 create get update =
-  Focus { get = get, update = update }
+    Focus { get = get, update = update }
 
 
 {-| Get a small part of a big thing.
@@ -53,7 +54,7 @@ will become much more useful when we can begin to compose foci, so keep reading!
 -}
 get : Focus big small -> big -> small
 get (Focus focus) big =
-  focus.get big
+    focus.get big
 
 
 {-| Set a small part of a big thing.
@@ -62,7 +63,7 @@ get (Focus focus) big =
 -}
 set : Focus big small -> small -> big -> big
 set (Focus focus) small big =
-  focus.update (always small) big
+    focus.update (always small) big
 
 
 {-| Update a small part of a big thing.
@@ -80,7 +81,7 @@ best to use a mix `Focus` and typical record updates to minimize traversals.
 -}
 update : Focus big small -> (small -> small) -> big -> big
 update (Focus focus) f big =
-  focus.update f big
+    focus.update f big
 
 
 
@@ -109,11 +110,11 @@ record updates so that this can be done in one pass.
 -}
 (=>) : Focus big medium -> Focus medium small -> Focus big small
 (=>) (Focus largerFocus) (Focus smallerFocus) =
-  let
-    get big =
-      smallerFocus.get (largerFocus.get big)
+    let
+        get big =
+            smallerFocus.get (largerFocus.get big)
 
-    update f big =
-      largerFocus.update (smallerFocus.update f) big
-  in
-    Focus { get = get, update = update }
+        update f big =
+            largerFocus.update (smallerFocus.update f) big
+    in
+        Focus { get = get, update = update }

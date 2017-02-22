@@ -3,50 +3,35 @@ module Concourse.Login exposing (..)
 import Base64
 import Http
 import Task exposing (Task)
-
 import Concourse
+
 
 noAuth : String -> Task Http.Error Concourse.AuthToken
 noAuth teamName =
-  Http.get Concourse.decodeAuthToken ("/api/v1/teams/" ++ teamName ++ "/auth/token")
+    Http.toTask <| Http.get ("/api/v1/teams/" ++ teamName ++ "/auth/token") Concourse.decodeAuthToken
+
 
 basicAuth : String -> String -> String -> Task Http.Error Concourse.AuthToken
 basicAuth teamName username password =
-  case encodedAuthHeader username password of
-    Nothing ->
-      Task.fail <| Http.UnexpectedPayload "could-not-encode"
-    Just header ->
-      let
-        delivery =
-          Http.send Http.defaultSettings
-            { verb = "GET"
-            , headers = [ header ]
+    Http.toTask <|
+        Http.request
+            { method = "GET"
             , url = "/api/v1/teams/" ++ teamName ++ "/auth/token"
-            , body = Http.empty
+            , headers = [ encodedAuthHeader username password ]
+            , body = Http.emptyBody
+            , expect = Http.expectJson Concourse.decodeAuthToken
+            , timeout = Nothing
+            , withCredentials = False
             }
-      in
-        Http.fromJson Concourse.decodeAuthToken delivery
 
-encodedAuthHeader : String -> String -> Maybe (String, String)
+
+encodedAuthHeader : String -> String -> Http.Header
 encodedAuthHeader username password =
-  case Base64.encode (username ++ ":" ++ password) of
-    Ok code ->
-      Just
-        ( "Authorization"
-        , "Basic " ++ code
-        )
-    Err err ->
-      Nothing
+    Http.header "Authorization" <|
+        case Base64.encode (username ++ ":" ++ password) of
+            Ok code ->
+                "Basic " ++ code
 
-handleResponse : Http.Response -> Task Http.Error ()
-handleResponse response =
-  if 200 <= response.status && response.status < 300 then
-    Task.succeed ()
-  else
-    Task.fail (Http.BadResponse response.status response.statusText)
-
-promoteHttpError : Http.RawError -> Http.Error
-promoteHttpError rawError =
-  case rawError of
-    Http.RawTimeout -> Http.Timeout
-    Http.RawNetworkError -> Http.NetworkError
+            Err err ->
+                -- hacky but prevents a lot of type system pain
+                "!!! error: " ++ err
