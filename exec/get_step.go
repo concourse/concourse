@@ -178,7 +178,7 @@ func (step *GetStep) Result(x interface{}) bool {
 // VolumeOn locates the cache for the GetStep's resource and version on the
 // given worker.
 func (step *GetStep) VolumeOn(worker worker.Worker) (worker.Volume, bool, error) {
-	return step.resourceInstance.FindOn(step.logger.Session("volume-on"), worker)
+	return step.resourceInstance.FindInitializedOn(step.logger.Session("volume-on"), worker)
 }
 
 // StreamTo streams the resource's data to the destination.

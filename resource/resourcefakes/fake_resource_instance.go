@@ -10,13 +10,13 @@ import (
 )
 
 type FakeResourceInstance struct {
-	FindOnStub        func(lager.Logger, worker.Client) (worker.Volume, bool, error)
-	findOnMutex       sync.RWMutex
-	findOnArgsForCall []struct {
+	FindInitializedOnStub        func(lager.Logger, worker.Client) (worker.Volume, bool, error)
+	findInitializedOnMutex       sync.RWMutex
+	findInitializedOnArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 worker.Client
 	}
-	findOnReturns struct {
+	findInitializedOnReturns struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error
@@ -41,35 +41,35 @@ type FakeResourceInstance struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceInstance) FindOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, bool, error) {
-	fake.findOnMutex.Lock()
-	fake.findOnArgsForCall = append(fake.findOnArgsForCall, struct {
+func (fake *FakeResourceInstance) FindInitializedOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, bool, error) {
+	fake.findInitializedOnMutex.Lock()
+	fake.findInitializedOnArgsForCall = append(fake.findInitializedOnArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.Client
 	}{arg1, arg2})
-	fake.recordInvocation("FindOn", []interface{}{arg1, arg2})
-	fake.findOnMutex.Unlock()
-	if fake.FindOnStub != nil {
-		return fake.FindOnStub(arg1, arg2)
+	fake.recordInvocation("FindInitializedOn", []interface{}{arg1, arg2})
+	fake.findInitializedOnMutex.Unlock()
+	if fake.FindInitializedOnStub != nil {
+		return fake.FindInitializedOnStub(arg1, arg2)
 	}
-	return fake.findOnReturns.result1, fake.findOnReturns.result2, fake.findOnReturns.result3
+	return fake.findInitializedOnReturns.result1, fake.findInitializedOnReturns.result2, fake.findInitializedOnReturns.result3
 }
 
-func (fake *FakeResourceInstance) FindOnCallCount() int {
-	fake.findOnMutex.RLock()
-	defer fake.findOnMutex.RUnlock()
-	return len(fake.findOnArgsForCall)
+func (fake *FakeResourceInstance) FindInitializedOnCallCount() int {
+	fake.findInitializedOnMutex.RLock()
+	defer fake.findInitializedOnMutex.RUnlock()
+	return len(fake.findInitializedOnArgsForCall)
 }
 
-func (fake *FakeResourceInstance) FindOnArgsForCall(i int) (lager.Logger, worker.Client) {
-	fake.findOnMutex.RLock()
-	defer fake.findOnMutex.RUnlock()
-	return fake.findOnArgsForCall[i].arg1, fake.findOnArgsForCall[i].arg2
+func (fake *FakeResourceInstance) FindInitializedOnArgsForCall(i int) (lager.Logger, worker.Client) {
+	fake.findInitializedOnMutex.RLock()
+	defer fake.findInitializedOnMutex.RUnlock()
+	return fake.findInitializedOnArgsForCall[i].arg1, fake.findInitializedOnArgsForCall[i].arg2
 }
 
-func (fake *FakeResourceInstance) FindOnReturns(result1 worker.Volume, result2 bool, result3 error) {
-	fake.FindOnStub = nil
-	fake.findOnReturns = struct {
+func (fake *FakeResourceInstance) FindInitializedOnReturns(result1 worker.Volume, result2 bool, result3 error) {
+	fake.FindInitializedOnStub = nil
+	fake.findInitializedOnReturns = struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error
@@ -137,8 +137,8 @@ func (fake *FakeResourceInstance) ResourceCacheIdentifierReturns(result1 worker.
 func (fake *FakeResourceInstance) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.findOnMutex.RLock()
-	defer fake.findOnMutex.RUnlock()
+	fake.findInitializedOnMutex.RLock()
+	defer fake.findInitializedOnMutex.RUnlock()
 	fake.findOrCreateOnMutex.RLock()
 	defer fake.findOrCreateOnMutex.RUnlock()
 	fake.resourceCacheIdentifierMutex.RLock()

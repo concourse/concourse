@@ -42,7 +42,7 @@ var _ = Describe("ResourceInstance", func() {
 		)
 	})
 
-	Describe("FindOn", func() {
+	Describe("FindInitializedOn", func() {
 		var (
 			foundVolume worker.Volume
 			found       bool
@@ -50,7 +50,7 @@ var _ = Describe("ResourceInstance", func() {
 		)
 
 		JustBeforeEach(func() {
-			foundVolume, found, findErr = resourceInstance.FindOn(logger, fakeWorkerClient)
+			foundVolume, found, findErr = resourceInstance.FindInitializedOn(logger, fakeWorkerClient)
 		})
 
 		Context("when failing to find or create cache in database", func() {

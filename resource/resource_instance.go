@@ -14,7 +14,7 @@ import (
 //go:generate counterfeiter . ResourceInstance
 
 type ResourceInstance interface {
-	FindOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
+	FindInitializedOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	FindOrCreateOn(lager.Logger, worker.Client) (worker.Volume, error)
 
 	ResourceCacheIdentifier() worker.ResourceCacheIdentifier
@@ -81,7 +81,7 @@ func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClien
 	)
 }
 
-func (bri buildResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
+func (bri buildResourceInstance) FindInitializedOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
 		logger,
 		bri.buildID,
@@ -164,7 +164,7 @@ func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerCl
 	)
 }
 
-func (rri resourceResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
+func (rri resourceResourceInstance) FindInitializedOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
 		logger,
 		rri.resourceID,
@@ -247,7 +247,7 @@ func (rtri resourceTypeResourceInstance) FindOrCreateOn(logger lager.Logger, wor
 	)
 }
 
-func (rtri resourceTypeResourceInstance) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
+func (rtri resourceTypeResourceInstance) FindInitializedOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	resourceCache, err := rtri.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
 		logger,
 		string(rtri.resourceTypeName),
