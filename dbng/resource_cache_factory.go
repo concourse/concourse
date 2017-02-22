@@ -391,11 +391,13 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		return err
 	}
 
-	cacheIdsForVolumes, _, err := sq.
+	cacheIdsForVolumes, cacheIdsForVolumesArgs, err := sq.
 		Select("resource_cache_id").
 		Distinct().
 		From("volumes").
 		Where(sq.NotEq{"resource_cache_id": nil}).
+		Where(sq.NotEq{"state": string(VolumeStateCreated)}).
+		Where(sq.NotEq{"state": string(VolumeStateDestroying)}).
 		ToSql()
 	if err != nil {
 		return err
@@ -416,9 +418,9 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	}
 
 	_, err = sq.Delete("resource_caches").
-		Where("id NOT IN (" + nextBuildInputsCacheIds + ")").
-		Where("id NOT IN (" + stillInUseCacheIds + ")").
-		Where("id NOT IN (" + cacheIdsForVolumes + ")").
+		Where("id NOT IN ("+nextBuildInputsCacheIds+")").
+		Where("id NOT IN ("+stillInUseCacheIds+")").
+		Where("id NOT IN ("+cacheIdsForVolumes+")", cacheIdsForVolumesArgs...).
 		PlaceholderFormat(sq.Dollar).
 		RunWith(tx).Exec()
 	if err != nil {

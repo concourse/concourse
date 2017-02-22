@@ -247,7 +247,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					Expect(countResourceCaches()).To(BeZero())
 				})
 
-				Context("when there is a volume that was created for resource cache", func() {
+				Context("when there is a volume for resource cache in creating state", func() {
 					BeforeEach(func() {
 						_, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
 						Expect(err).NotTo(HaveOccurred())
@@ -257,6 +257,38 @@ var _ = Describe("ResourceCacheFactory", func() {
 						err := resourceCacheFactory.CleanUpInvalidCaches()
 						Expect(err).NotTo(HaveOccurred())
 						Expect(countResourceCaches()).To(Equal(1))
+					})
+				})
+
+				Context("when there is a volume for resource cache in created state", func() {
+					BeforeEach(func() {
+						creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+						Expect(err).NotTo(HaveOccurred())
+						_, err = creatingVolume.Created()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("deletes the cache", func() {
+						err := resourceCacheFactory.CleanUpInvalidCaches()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(countResourceCaches()).To(Equal(0))
+					})
+				})
+
+				Context("when there is a volume for resource cache in destroying state", func() {
+					BeforeEach(func() {
+						creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+						Expect(err).NotTo(HaveOccurred())
+						createdVolume, err := creatingVolume.Created()
+						Expect(err).NotTo(HaveOccurred())
+						_, err = createdVolume.Destroying()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("deletes the cache", func() {
+						err := resourceCacheFactory.CleanUpInvalidCaches()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(countResourceCaches()).To(Equal(0))
 					})
 				})
 			})
