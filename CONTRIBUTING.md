@@ -8,30 +8,25 @@ You need to checkout the `concourse/concourse` repo. `atc` will be picked up as 
 ```
 $ git clone https://github.com/concourse/concourse
 git checkout develop
-git submodule update --init --recursive  
+git submodule update --init --recursive
 ```
 
 ## Install development tools
 Consourse is built with Go and Elm. You also need Node and few modules. Assuming you're using a mac:
 
-- Install Elm 0.17 from http://install.elm-lang.org/Elm-Platform-0.17.1.pkg
+- Install Elm 0.18 from http://install.elm-lang.org/Elm-Platform-0.18.pkg
 - Install homebrew from http://brew.sh/
 
 Then use homebrew to install the following:
 
 ```
-brew install go
-brew install node
-brew install bzr
-brew install postgres
+brew install go node postgres
 ```
 
 Finally use Node to install the javascript tools:
 
 ```
-npm install uglify-js -g
-npm install -g less
-npm install -g less-plugin-clean-css
+npm install -g uglify-js less less-plugin-clean-css
 ```
 
 ## Setting up the database
