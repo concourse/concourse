@@ -74,7 +74,7 @@ func (h checkWorkerTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if worker.TeamName != team.Name() {
+	if worker.TeamName() != team.Name() {
 		h.rejector.Forbidden(w, r)
 		return
 	}
