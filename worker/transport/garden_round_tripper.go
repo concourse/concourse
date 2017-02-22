@@ -33,15 +33,15 @@ func (c *gardenRoundTripper) RoundTrip(request *http.Request) (*http.Response, e
 			return nil, ErrMissingWorker{WorkerName: c.workerName}
 		}
 
-		if savedWorker.State == dbng.WorkerStateStalled {
+		if savedWorker.State() == dbng.WorkerStateStalled {
 			return nil, ErrWorkerStalled{WorkerName: c.workerName}
 		}
 
-		if savedWorker.GardenAddr == nil {
-			return nil, ErrWorkerAddrIsMissing{WorkerName: savedWorker.Name}
+		if savedWorker.GardenAddr() == nil {
+			return nil, ErrWorkerAddrIsMissing{WorkerName: savedWorker.Name()}
 		}
 
-		c.cachedHost = savedWorker.GardenAddr
+		c.cachedHost = savedWorker.GardenAddr()
 	}
 
 	updatedURL := *request.URL

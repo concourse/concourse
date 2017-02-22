@@ -13,23 +13,22 @@ import (
 
 var _ = Describe("WorkerCollector", func() {
 	var (
-		workerCollector gcng.Collector
-
-		fakeWorkerFactory *dbngfakes.FakeWorkerFactory
+		workerCollector     gcng.Collector
+		fakeWorkerLifecycle *dbngfakes.FakeWorkerLifecycle
 	)
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("volume-collector")
-		fakeWorkerFactory = new(dbngfakes.FakeWorkerFactory)
+		fakeWorkerLifecycle = new(dbngfakes.FakeWorkerLifecycle)
 
 		workerCollector = gcng.NewWorkerCollector(
 			logger,
-			fakeWorkerFactory,
+			fakeWorkerLifecycle,
 		)
 
-		fakeWorkerFactory.StallUnresponsiveWorkersReturns(nil, nil)
-		fakeWorkerFactory.DeleteFinishedRetiringWorkersReturns(nil)
-		fakeWorkerFactory.LandFinishedLandingWorkersReturns(nil)
+		fakeWorkerLifecycle.StallUnresponsiveWorkersReturns(nil, nil)
+		fakeWorkerLifecycle.DeleteFinishedRetiringWorkersReturns(nil, nil)
+		fakeWorkerLifecycle.LandFinishedLandingWorkersReturns(nil, nil)
 	})
 
 	Describe("Run", func() {
@@ -37,26 +36,26 @@ var _ = Describe("WorkerCollector", func() {
 			err := workerCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(fakeWorkerFactory.StallUnresponsiveWorkersCallCount()).To(Equal(1))
+			Expect(fakeWorkerLifecycle.StallUnresponsiveWorkersCallCount()).To(Equal(1))
 		})
 
 		It("tells the worker factory to delete finished retiring workers", func() {
 			err := workerCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(fakeWorkerFactory.DeleteFinishedRetiringWorkersCallCount()).To(Equal(1))
+			Expect(fakeWorkerLifecycle.DeleteFinishedRetiringWorkersCallCount()).To(Equal(1))
 		})
 
 		It("tells the worker factory to land finished landing workers", func() {
 			err := workerCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(fakeWorkerFactory.LandFinishedLandingWorkersCallCount()).To(Equal(1))
+			Expect(fakeWorkerLifecycle.LandFinishedLandingWorkersCallCount()).To(Equal(1))
 		})
 
 		It("returns an error if stalling unresponsive workers fails", func() {
 			returnedErr := errors.New("some-error")
-			fakeWorkerFactory.StallUnresponsiveWorkersReturns(nil, returnedErr)
+			fakeWorkerLifecycle.StallUnresponsiveWorkersReturns(nil, returnedErr)
 
 			err := workerCollector.Run()
 			Expect(err).To(MatchError(returnedErr))
@@ -64,7 +63,7 @@ var _ = Describe("WorkerCollector", func() {
 
 		It("returns an error if deleting finished retiring workers fails", func() {
 			returnedErr := errors.New("some-error")
-			fakeWorkerFactory.DeleteFinishedRetiringWorkersReturns(returnedErr)
+			fakeWorkerLifecycle.DeleteFinishedRetiringWorkersReturns(nil, returnedErr)
 
 			err := workerCollector.Run()
 			Expect(err).To(MatchError(returnedErr))
@@ -72,7 +71,7 @@ var _ = Describe("WorkerCollector", func() {
 
 		It("returns an error if landing finished landing workers fails", func() {
 			returnedErr := errors.New("some-error")
-			fakeWorkerFactory.LandFinishedLandingWorkersReturns(returnedErr)
+			fakeWorkerLifecycle.LandFinishedLandingWorkersReturns(nil, returnedErr)
 
 			err := workerCollector.Run()
 			Expect(err).To(MatchError(returnedErr))

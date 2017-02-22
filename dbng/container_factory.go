@@ -117,10 +117,10 @@ func (factory *containerFactory) FindHijackedContainersForDeletion() ([]CreatedC
 		PlaceholderFormat(sq.Dollar).
 		RunWith(tx).
 		Query()
-
 	if err != nil {
 		return nil, err
 	}
+
 	defer rows.Close()
 
 	var (

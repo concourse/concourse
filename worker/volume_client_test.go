@@ -30,7 +30,7 @@ var _ = Describe("VolumeClient", func() {
 		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
 		fakeBaseResourceTypeFactory *dbngfakes.FakeBaseResourceTypeFactory
 		fakeClock                   *fakeclock.FakeClock
-		dbWorker                    *dbng.Worker
+		dbWorker                    *dbngfakes.FakeWorker
 
 		volumeClient worker.VolumeClient
 	)
@@ -39,7 +39,8 @@ var _ = Describe("VolumeClient", func() {
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
 		fakeGardenWorkerDB = new(workerfakes.FakeGardenWorkerDB)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
-		dbWorker = &dbng.Worker{Name: "some-worker"}
+		dbWorker = new(dbngfakes.FakeWorker)
+		dbWorker.NameReturns("some-worker")
 
 		testLogger = lagertest.NewTestLogger("test")
 

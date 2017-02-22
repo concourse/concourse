@@ -94,7 +94,7 @@ func (provider *dbProvider) RunningWorkers() ([]Worker, error) {
 	workers := []Worker{}
 
 	for _, savedWorker := range savedWorkers {
-		if savedWorker.State == dbng.WorkerStateRunning {
+		if savedWorker.State() == dbng.WorkerStateRunning {
 			workers = append(workers, provider.newGardenWorker(tikTok, savedWorker))
 		}
 	}
@@ -112,8 +112,8 @@ func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
 		return nil, false, nil
 	}
 
-	if savedWorker.State == dbng.WorkerStateStalled ||
-		savedWorker.State == dbng.WorkerStateLanded {
+	if savedWorker.State() == dbng.WorkerStateStalled ||
+		savedWorker.State() == dbng.WorkerStateLanded {
 		return nil, false, ErrDesiredWorkerNotRunning
 	}
 
@@ -136,26 +136,26 @@ func (provider *dbProvider) ReapContainer(handle string) error {
 	return provider.db.ReapContainer(handle)
 }
 
-func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbng.Worker) Worker {
+func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker dbng.Worker) Worker {
 	gcf := NewGardenConnectionFactory(
 		provider.dbWorkerFactory,
 		provider.logger.Session("garden-connection"),
-		savedWorker.Name,
-		savedWorker.GardenAddr,
+		savedWorker.Name(),
+		savedWorker.GardenAddr(),
 		provider.retryBackOffFactory,
 	)
 
 	connection := NewRetryableConnection(gcf.BuildConnection())
 
 	var bClient baggageclaim.Client
-	if savedWorker.BaggageclaimURL != nil {
-		rountTripper := transport.NewBaggageclaimRoundTripper(
-			savedWorker.Name,
-			savedWorker.BaggageclaimURL,
+	if savedWorker.BaggageclaimURL() != nil {
+		roundTripper := transport.NewBaggageclaimRoundTripper(
+			savedWorker.Name(),
+			savedWorker.BaggageclaimURL(),
 			provider.dbWorkerFactory,
 			&http.Transport{DisableKeepAlives: true},
 		)
-		bClient = bclient.New(*savedWorker.BaggageclaimURL, rountTripper)
+		bClient = bclient.New(*savedWorker.BaggageclaimURL(), roundTripper)
 	}
 
 	volumeClient := NewVolumeClient(
@@ -164,10 +164,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		provider.dbVolumeFactory,
 		provider.dbBaseResourceTypeFactory,
 		clock.NewClock(),
-		&dbng.Worker{
-			Name:       savedWorker.Name,
-			GardenAddr: savedWorker.GardenAddr,
-		},
+		savedWorker,
 	)
 
 	containerProviderFactory := NewContainerProviderFactory(
@@ -180,9 +177,9 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		provider.dbResourceConfigFactory,
 		provider.dbTeamFactory,
 		provider.db,
-		savedWorker.HTTPProxyURL,
-		savedWorker.HTTPSProxyURL,
-		savedWorker.NoProxy,
+		savedWorker.HTTPProxyURL(),
+		savedWorker.HTTPSProxyURL(),
+		savedWorker.NoProxy(),
 		clock.NewClock(),
 	)
 
@@ -193,13 +190,13 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker *dbn
 		provider.db,
 		provider,
 		tikTok,
-		savedWorker.ActiveContainers,
-		savedWorker.ResourceTypes,
-		savedWorker.Platform,
-		savedWorker.Tags,
-		savedWorker.TeamID,
-		savedWorker.Name,
-		*savedWorker.GardenAddr,
-		savedWorker.StartTime,
+		savedWorker.ActiveContainers(),
+		savedWorker.ResourceTypes(),
+		savedWorker.Platform(),
+		savedWorker.Tags(),
+		savedWorker.TeamID(),
+		savedWorker.Name(),
+		*savedWorker.GardenAddr(),
+		savedWorker.StartTime(),
 	)
 }

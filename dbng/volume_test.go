@@ -277,7 +277,7 @@ var _ = Describe("Volume", func() {
 
 		BeforeEach(func() {
 			var err error
-			creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker, defaultBuild.ID(), "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -357,7 +357,7 @@ var _ = Describe("Volume", func() {
 		})
 
 		It("the container goes away from the db", func() {
-			err = workerFactory.DeleteWorker(defaultWorker.Name)
+			err = defaultWorker.Delete()
 			Expect(err).NotTo(HaveOccurred())
 
 			creatingVolume, createdVolume, err := volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")

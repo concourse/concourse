@@ -27,13 +27,13 @@ var _ = Describe("ContainerCollector", func() {
 
 		destroyingContainer1 *dbngfakes.FakeDestroyingContainer
 		destroyingContainer2 *dbngfakes.FakeDestroyingContainer
-		fakeWorker1          *dbng.Worker
-		fakeWorker2          *dbng.Worker
+		fakeWorker1          *dbngfakes.FakeWorker
+		fakeWorker2          *dbngfakes.FakeWorker
 
 		gardenAddr string
 
 		gardenClientFactoryCallCount int
-		gardenClientFactoryArgs      []*dbng.Worker
+		gardenClientFactoryArgs      []dbng.Worker
 
 		collector gcng.Collector
 	)
@@ -45,7 +45,7 @@ var _ = Describe("ContainerCollector", func() {
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		gardenClientFactoryCallCount = 0
 		gardenClientFactoryArgs = nil
-		fakeGardenClientFactory = func(worker *dbng.Worker) (garden.Client, error) {
+		fakeGardenClientFactory = func(worker dbng.Worker) (garden.Client, error) {
 			gardenClientFactoryCallCount++
 			gardenClientFactoryArgs = append(gardenClientFactoryArgs, worker)
 
@@ -55,14 +55,14 @@ var _ = Describe("ContainerCollector", func() {
 		logger = lagertest.NewTestLogger("test")
 
 		gardenAddr = "127.0.0.1"
-		fakeWorker1 = &dbng.Worker{
-			GardenAddr: &gardenAddr,
-			Name:       "foo",
-		}
-		fakeWorker2 = &dbng.Worker{
-			GardenAddr: &gardenAddr,
-			Name:       "bar",
-		}
+
+		fakeWorker1 = new(dbngfakes.FakeWorker)
+		fakeWorker1.NameReturns("foo")
+		fakeWorker1.GardenAddrReturns(&gardenAddr)
+
+		fakeWorker2 = new(dbngfakes.FakeWorker)
+		fakeWorker2.NameReturns("bar")
+		fakeWorker2.GardenAddrReturns(&gardenAddr)
 
 		destroyingContainer1 = new(dbngfakes.FakeDestroyingContainer)
 		destroyingContainer1.HandleReturns("some-handle")
@@ -75,7 +75,7 @@ var _ = Describe("ContainerCollector", func() {
 			destroyingContainer1,
 			destroyingContainer2,
 		}, nil)
-		fakeWorkerProvider.WorkersReturns([]*dbng.Worker{fakeWorker1, fakeWorker2}, nil)
+		fakeWorkerProvider.WorkersReturns([]dbng.Worker{fakeWorker1, fakeWorker2}, nil)
 
 		destroyingContainer1.DestroyReturns(true, nil)
 		destroyingContainer2.DestroyReturns(true, nil)
@@ -245,7 +245,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		Context("when a container's worker is not found", func() {
 			BeforeEach(func() {
-				fakeWorkerProvider.WorkersReturns([]*dbng.Worker{fakeWorker2}, nil)
+				fakeWorkerProvider.WorkersReturns([]dbng.Worker{fakeWorker2}, nil)
 			})
 
 			It("continues destroying the rest of the containers", func() {
@@ -262,7 +262,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		Context("when getting a garden client for a worker errors", func() {
 			BeforeEach(func() {
-				fakeGardenClientFactory = func(worker *dbng.Worker) (garden.Client, error) {
+				fakeGardenClientFactory = func(worker dbng.Worker) (garden.Client, error) {
 					gardenClientFactoryCallCount++
 					gardenClientFactoryArgs = append(gardenClientFactoryArgs, worker)
 

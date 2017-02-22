@@ -14,6 +14,14 @@ import (
 )
 
 var _ = Describe("Volumes API", func() {
+
+	var fakeWorker *dbngfakes.FakeWorker
+
+	BeforeEach(func() {
+		fakeWorker = new(dbngfakes.FakeWorker)
+		fakeWorker.NameReturns("some-worker")
+	})
+
 	Describe("GET /api/v1/volumes", func() {
 		var response *http.Response
 
@@ -74,6 +82,9 @@ var _ = Describe("Volumes API", func() {
 
 				Context("when getting all volumes succeeds", func() {
 					BeforeEach(func() {
+						someOtherFakeWorker := new(dbngfakes.FakeWorker)
+						someOtherFakeWorker.NameReturns("some-other-worker")
+
 						fakeVolumeFactory.GetTeamVolumesStub = func(teamID int) ([]dbng.CreatedVolume, error) {
 							if teamID != 1 {
 								return []dbng.CreatedVolume{}, nil
@@ -81,7 +92,7 @@ var _ = Describe("Volumes API", func() {
 
 							volume1 := new(dbngfakes.FakeCreatedVolume)
 							volume1.HandleReturns("some-resource-cache-handle")
-							volume1.WorkerReturns(&dbng.Worker{Name: "some-worker"})
+							volume1.WorkerReturns(fakeWorker)
 							volume1.TypeReturns(dbng.VolumeTypeResource)
 							volume1.SizeInBytesReturns(1024)
 							volume1.ResourceTypeReturns(&dbng.VolumeResourceType{
@@ -96,7 +107,7 @@ var _ = Describe("Volumes API", func() {
 							}, nil)
 							volume2 := new(dbngfakes.FakeCreatedVolume)
 							volume2.HandleReturns("some-import-handle")
-							volume2.WorkerReturns(&dbng.Worker{Name: "some-worker"})
+							volume2.WorkerReturns(fakeWorker)
 							volume2.SizeInBytesReturns(2048)
 							volume2.TypeReturns(dbng.VolumeTypeResourceType)
 							volume2.BaseResourceTypeReturns(&dbng.WorkerBaseResourceType{
@@ -105,7 +116,7 @@ var _ = Describe("Volumes API", func() {
 							}, nil)
 							volume3 := new(dbngfakes.FakeCreatedVolume)
 							volume3.HandleReturns("some-output-handle")
-							volume3.WorkerReturns(&dbng.Worker{Name: "some-other-worker"})
+							volume3.WorkerReturns(someOtherFakeWorker)
 							volume3.ContainerHandleReturns("some-container-handle")
 							volume3.PathReturns("some-path")
 							volume3.ParentHandleReturns("some-parent-handle")
@@ -113,7 +124,7 @@ var _ = Describe("Volumes API", func() {
 							volume3.TypeReturns(dbng.VolumeTypeContainer)
 							volume4 := new(dbngfakes.FakeCreatedVolume)
 							volume4.HandleReturns("some-cow-handle")
-							volume4.WorkerReturns(&dbng.Worker{Name: "some-worker"})
+							volume4.WorkerReturns(fakeWorker)
 							volume4.ContainerHandleReturns("some-container-handle")
 							volume4.PathReturns("some-path")
 							volume4.SizeInBytesReturns(8192)

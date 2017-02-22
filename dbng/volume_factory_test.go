@@ -51,7 +51,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		JustBeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build.ID(), "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -99,23 +99,6 @@ var _ = Describe("VolumeFactory", func() {
 			}
 			Expect(createdHandles2).To(Equal(team2handles))
 		})
-
-		Context("when worker is stalled", func() {
-			BeforeEach(func() {
-				_, err := workerFactory.StallWorker(defaultWorker.Name)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns worker address as nil", func() {
-				createdVolumes, err := volumeFactory.GetTeamVolumes(defaultTeam.ID())
-				Expect(err).NotTo(HaveOccurred())
-				Expect(createdVolumes).To(HaveLen(2))
-				Expect(createdVolumes[0].Worker().GardenAddr).To(BeNil())
-				Expect(createdVolumes[0].Worker().BaggageclaimURL).To(BeNil())
-				Expect(createdVolumes[1].Worker().GardenAddr).To(BeNil())
-				Expect(createdVolumes[1].Worker().BaggageclaimURL).To(BeNil())
-			})
-		})
 	})
 
 	Describe("GetOrphanedVolumes", func() {
@@ -125,7 +108,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
-			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker, build.ID(), "some-plan", dbng.ContainerMetadata{
+			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
@@ -188,14 +171,14 @@ var _ = Describe("VolumeFactory", func() {
 
 			for _, vol := range createdVolumes {
 				createdHandles = append(createdHandles, vol.Handle())
-				Expect(vol.Worker().BaggageclaimURL).To(Equal(&expectAddr))
+				Expect(*vol.Worker().BaggageclaimURL()).To(Equal(expectAddr))
 			}
 			Expect(createdHandles).To(Equal(expectedCreatedHandles))
 
 			destroyingHandles := []string{}
 			for _, vol := range destoryingVolumes {
 				destroyingHandles = append(destroyingHandles, vol.Handle())
-				Expect(vol.Worker().BaggageclaimURL).To(Equal(&expectAddr))
+				Expect(*vol.Worker().BaggageclaimURL()).To(Equal(expectAddr))
 			}
 			Expect(destroyingHandles).To(Equal(destroyingHandles))
 		})

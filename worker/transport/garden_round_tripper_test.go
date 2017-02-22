@@ -4,7 +4,9 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"time"
 
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp/retryhttpfakes"
@@ -67,13 +69,12 @@ var _ = Describe("GardenRoundTripper #RoundTrip", func() {
 			fakeRoundTripper.RoundTripReturns(nil, errors.New("some-error"))
 
 			address := "some-new-worker-address"
-			savedWorker := dbng.Worker{
-				GardenAddr: &address,
-				ExpiresIn:  123,
-				State:      dbng.WorkerStateRunning,
-			}
+			savedWorker := new(dbngfakes.FakeWorker)
+			savedWorker.GardenAddrReturns(&address)
+			savedWorker.ExpiresAtReturns(time.Now().Add(123 * time.Minute))
+			savedWorker.StateReturns(dbng.WorkerStateRunning)
 
-			fakeDB.GetWorkerReturns(&savedWorker, true, nil)
+			fakeDB.GetWorkerReturns(savedWorker, true, nil)
 		})
 
 		It("updates cached request host on subsequent call", func() {
@@ -110,9 +111,9 @@ var _ = Describe("GardenRoundTripper #RoundTrip", func() {
 
 		Context("when the worker in the DB is stalled", func() {
 			BeforeEach(func() {
-				fakeDB.GetWorkerReturns(&dbng.Worker{
-					State: dbng.WorkerStateStalled,
-				}, true, nil)
+				stalledWorker := new(dbngfakes.FakeWorker)
+				stalledWorker.StateReturns(dbng.WorkerStateStalled)
+				fakeDB.GetWorkerReturns(stalledWorker, true, nil)
 			})
 
 			It("throws a descriptive error", func() {
@@ -124,10 +125,11 @@ var _ = Describe("GardenRoundTripper #RoundTrip", func() {
 
 		Context("when the worker in the DB is not stalled and addr is empty", func() {
 			BeforeEach(func() {
-				fakeDB.GetWorkerReturns(&dbng.Worker{
-					State:      dbng.WorkerStateRunning,
-					GardenAddr: nil,
-				}, true, nil)
+				runningWorker := new(dbngfakes.FakeWorker)
+				runningWorker.StateReturns(dbng.WorkerStateRunning)
+				runningWorker.GardenAddrReturns(nil)
+
+				fakeDB.GetWorkerReturns(runningWorker, true, nil)
 			})
 
 			It("throws a descriptive error", func() {

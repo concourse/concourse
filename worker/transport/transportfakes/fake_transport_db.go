@@ -9,13 +9,13 @@ import (
 )
 
 type FakeTransportDB struct {
-	GetWorkerStub        func(name string) (*dbng.Worker, bool, error)
+	GetWorkerStub        func(name string) (dbng.Worker, bool, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
 		name string
 	}
 	getWorkerReturns struct {
-		result1 *dbng.Worker
+		result1 dbng.Worker
 		result2 bool
 		result3 error
 	}
@@ -23,7 +23,7 @@ type FakeTransportDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTransportDB) GetWorker(name string) (*dbng.Worker, bool, error) {
+func (fake *FakeTransportDB) GetWorker(name string) (dbng.Worker, bool, error) {
 	fake.getWorkerMutex.Lock()
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
 		name string
@@ -49,10 +49,10 @@ func (fake *FakeTransportDB) GetWorkerArgsForCall(i int) string {
 	return fake.getWorkerArgsForCall[i].name
 }
 
-func (fake *FakeTransportDB) GetWorkerReturns(result1 *dbng.Worker, result2 bool, result3 error) {
+func (fake *FakeTransportDB) GetWorkerReturns(result1 dbng.Worker, result2 bool, result3 error) {
 	fake.GetWorkerStub = nil
 	fake.getWorkerReturns = struct {
-		result1 *dbng.Worker
+		result1 dbng.Worker
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

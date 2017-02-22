@@ -60,5 +60,5 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(present.Worker(*savedWorker))
+	json.NewEncoder(w).Encode(present.Worker(savedWorker))
 }

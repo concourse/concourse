@@ -28,7 +28,7 @@ var _ = Describe("VolumeCollector", func() {
 		creatingContainer1     dbng.CreatingContainer
 		creatingContainer2     dbng.CreatingContainer
 		team                   dbng.Team
-		worker                 *dbng.Worker
+		worker                 dbng.Worker
 	)
 
 	BeforeEach(func() {
@@ -74,13 +74,13 @@ var _ = Describe("VolumeCollector", func() {
 			}, 5*time.Minute)
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer1, err = team.CreateBuildContainer(worker, build.ID(), "some-plan", dbng.ContainerMetadata{
+			creatingContainer1, err = team.CreateBuildContainer(worker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			creatingContainer2, err = team.CreateBuildContainer(worker, build.ID(), "some-plan", dbng.ContainerMetadata{
+			creatingContainer2, err = team.CreateBuildContainer(worker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
 				Type: "task",
 				Name: "some-task",
 			})

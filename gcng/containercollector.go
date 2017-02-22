@@ -42,15 +42,15 @@ func NewContainerCollector(
 	}
 }
 
-type GardenClientFactory func(*dbng.Worker) (garden.Client, error)
+type GardenClientFactory func(dbng.Worker) (garden.Client, error)
 
 func NewGardenClientFactory() GardenClientFactory {
-	return func(w *dbng.Worker) (garden.Client, error) {
-		if w.GardenAddr == nil {
+	return func(w dbng.Worker) (garden.Client, error) {
+		if w.GardenAddr() == nil {
 			return nil, errors.New("worker does not have a garden address")
 		}
 
-		gconn := connection.New("tcp", *w.GardenAddr)
+		gconn := connection.New("tcp", *w.GardenAddr())
 		return client.New(gconn), nil
 	}
 }
@@ -61,9 +61,9 @@ func (c *containerCollector) Run() error {
 		c.logger.Error("failed-to-get-workers", err)
 		return err
 	}
-	workersByName := map[string]*dbng.Worker{}
+	workersByName := map[string]dbng.Worker{}
 	for _, w := range workers {
-		workersByName[w.Name] = w
+		workersByName[w.Name()] = w
 	}
 
 	err = c.markHijackedContainersAsDestroying(workersByName)
@@ -90,7 +90,7 @@ func (c *containerCollector) Run() error {
 	return nil
 }
 
-func (c *containerCollector) markHijackedContainersAsDestroying(workersByName map[string]*dbng.Worker) error {
+func (c *containerCollector) markHijackedContainersAsDestroying(workersByName map[string]dbng.Worker) error {
 	hijackedContainersForDeletion, err := c.containerFactory.FindHijackedContainersForDeletion()
 	if err != nil {
 		c.logger.Error("failed-to-get-hijacked-containers-for-deletion", err)
@@ -178,7 +178,7 @@ func (c *containerCollector) findContainersToDelete() ([]dbng.DestroyingContaine
 	return containers, nil
 }
 
-func (c *containerCollector) tryToDestroyContainer(container dbng.DestroyingContainer, workersByName map[string]*dbng.Worker) {
+func (c *containerCollector) tryToDestroyContainer(container dbng.DestroyingContainer, workersByName map[string]dbng.Worker) {
 	w, found := workersByName[container.WorkerName()]
 	if !found {
 		c.logger.Info("worker-not-found", lager.Data{

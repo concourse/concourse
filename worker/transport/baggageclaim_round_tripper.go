@@ -34,15 +34,15 @@ func (c *baggageclaimRoundTripper) RoundTrip(request *http.Request) (*http.Respo
 			return nil, ErrMissingWorker{WorkerName: c.workerName}
 		}
 
-		if savedWorker.State == dbng.WorkerStateStalled {
+		if savedWorker.State() == dbng.WorkerStateStalled {
 			return nil, ErrWorkerStalled{WorkerName: c.workerName}
 		}
 
-		if savedWorker.BaggageclaimURL == nil {
-			return nil, ErrWorkerBaggageclaimURLIsMissing{WorkerName: savedWorker.Name}
+		if savedWorker.BaggageclaimURL() == nil {
+			return nil, ErrWorkerBaggageclaimURLIsMissing{WorkerName: savedWorker.Name()}
 		}
 
-		c.cachedBaggageclaimURL = savedWorker.BaggageclaimURL
+		c.cachedBaggageclaimURL = savedWorker.BaggageclaimURL()
 	}
 
 	baggageclaimURL, err := url.Parse(*c.cachedBaggageclaimURL)

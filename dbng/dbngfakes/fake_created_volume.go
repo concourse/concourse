@@ -43,11 +43,11 @@ type FakeCreatedVolume struct {
 		result1 dbng.DestroyingVolume
 		result2 error
 	}
-	WorkerStub        func() *dbng.Worker
+	WorkerStub        func() dbng.Worker
 	workerMutex       sync.RWMutex
 	workerArgsForCall []struct{}
 	workerReturns     struct {
-		result1 *dbng.Worker
+		result1 dbng.Worker
 	}
 	SizeInBytesStub        func() int64
 	sizeInBytesMutex       sync.RWMutex
@@ -234,7 +234,7 @@ func (fake *FakeCreatedVolume) DestroyingReturns(result1 dbng.DestroyingVolume, 
 	}{result1, result2}
 }
 
-func (fake *FakeCreatedVolume) Worker() *dbng.Worker {
+func (fake *FakeCreatedVolume) Worker() dbng.Worker {
 	fake.workerMutex.Lock()
 	fake.workerArgsForCall = append(fake.workerArgsForCall, struct{}{})
 	fake.recordInvocation("Worker", []interface{}{})
@@ -252,10 +252,10 @@ func (fake *FakeCreatedVolume) WorkerCallCount() int {
 	return len(fake.workerArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) WorkerReturns(result1 *dbng.Worker) {
+func (fake *FakeCreatedVolume) WorkerReturns(result1 dbng.Worker) {
 	fake.WorkerStub = nil
 	fake.workerReturns = struct {
-		result1 *dbng.Worker
+		result1 dbng.Worker
 	}{result1}
 }
 

@@ -182,7 +182,7 @@ var _ = Describe("Config API", func() {
 
 			Context("when getting the config fails because it is malformed", func() {
 				BeforeEach(func() {
-					teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig("raw-config"), 42, atc.MalformedConfigError{errors.New("invalid character")})
+					teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig("raw-config"), 42, atc.MalformedConfigError{UnmarshalError: errors.New("invalid character")})
 				})
 
 				It("returns 200", func() {

@@ -4,7 +4,9 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"time"
 
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp/retryhttpfakes"
@@ -67,13 +69,12 @@ var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 			fakeRoundTripper.RoundTripReturns(nil, errors.New("some-error"))
 
 			bcURL := "http://5.6.7.8:7878"
-			savedWorker := dbng.Worker{
-				BaggageclaimURL: &bcURL,
-				ExpiresIn:       123,
-				State:           dbng.WorkerStateRunning,
-			}
+			savedWorker := new(dbngfakes.FakeWorker)
+			savedWorker.BaggageclaimURLReturns(&bcURL)
+			savedWorker.ExpiresAtReturns(time.Now().Add(123 * time.Minute))
+			savedWorker.StateReturns(dbng.WorkerStateRunning)
 
-			fakeDB.GetWorkerReturns(&savedWorker, true, nil)
+			fakeDB.GetWorkerReturns(savedWorker, true, nil)
 		})
 
 		It("updates cached request host on subsequent call", func() {
@@ -110,9 +111,9 @@ var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 
 		Context("when the worker in the DB is stalled", func() {
 			BeforeEach(func() {
-				fakeDB.GetWorkerReturns(&dbng.Worker{
-					State: dbng.WorkerStateStalled,
-				}, true, nil)
+				stalledWorker := new(dbngfakes.FakeWorker)
+				stalledWorker.StateReturns(dbng.WorkerStateStalled)
+				fakeDB.GetWorkerReturns(stalledWorker, true, nil)
 			})
 
 			It("throws a descriptive error", func() {
@@ -124,10 +125,12 @@ var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 
 		Context("when the worker in the DB is not stalled and baggageclaim URL is empty", func() {
 			BeforeEach(func() {
-				fakeDB.GetWorkerReturns(&dbng.Worker{
-					State:           dbng.WorkerStateRunning,
-					BaggageclaimURL: nil,
-				}, true, nil)
+
+				runningWorker := new(dbngfakes.FakeWorker)
+				runningWorker.StateReturns(dbng.WorkerStateRunning)
+				runningWorker.BaggageclaimURLReturns(nil)
+
+				fakeDB.GetWorkerReturns(runningWorker, true, nil)
 			})
 
 			It("throws a descriptive error", func() {

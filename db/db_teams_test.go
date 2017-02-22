@@ -18,7 +18,7 @@ import (
 	"github.com/concourse/atc/event"
 )
 
-var _ = Describe("SQL DB Teams", func() {
+var _ = XDescribe("SQL DB Teams", func() {
 	var dbConn db.Conn
 	var listener *pq.Listener
 

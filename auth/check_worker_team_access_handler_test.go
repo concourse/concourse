@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/tedsuo/rata"
 
@@ -26,6 +25,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 		authValidator     *authfakes.FakeValidator
 		userContextReader *authfakes.FakeUserContextReader
+		fakeWorker        *dbngfakes.FakeWorker
 	)
 
 	BeforeEach(func() {
@@ -90,10 +90,11 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 		Context("when worker exists and belongs to a team", func() {
 			BeforeEach(func() {
-				workerFactory.GetWorkerReturns(&dbng.Worker{
-					Name:     "some-worker",
-					TeamName: "some-team",
-				}, true, nil)
+				fakeWorker = new(dbngfakes.FakeWorker)
+				fakeWorker.NameReturns("some-worker")
+				fakeWorker.TeamNameReturns("some-team")
+
+				workerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			})
 
 			Context("when team in auth matches worker team", func() {
@@ -132,9 +133,10 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 		Context("when worker is not owned by a team", func() {
 			BeforeEach(func() {
-				workerFactory.GetWorkerReturns(&dbng.Worker{
-					Name: "some-worker",
-				}, true, nil)
+				fakeWorker = new(dbngfakes.FakeWorker)
+				fakeWorker.NameReturns("some-worker")
+
+				workerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			})
 
 			Context("when team in auth is admin", func() {

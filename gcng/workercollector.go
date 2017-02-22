@@ -6,53 +6,52 @@ import (
 )
 
 type workerCollector struct {
-	logger        lager.Logger
-	workerFactory dbng.WorkerFactory
+	logger          lager.Logger
+	workerLifecycle dbng.WorkerLifecycle
 }
 
 func NewWorkerCollector(
 	logger lager.Logger,
-	workerFactory dbng.WorkerFactory,
+	workerLifecycle dbng.WorkerLifecycle,
 ) Collector {
 	return &workerCollector{
-		logger:        logger,
-		workerFactory: workerFactory,
+		logger:          logger,
+		workerLifecycle: workerLifecycle,
 	}
 }
 
 func (wc *workerCollector) Run() error {
 	logger := wc.logger.Session("collect")
 
-	affected, err := wc.workerFactory.StallUnresponsiveWorkers()
+	affected, err := wc.workerLifecycle.StallUnresponsiveWorkers()
 	if err != nil {
 		logger.Error("failed-to-mark-workers-as-stalled", err)
 		return err
 	}
 
 	if len(affected) > 0 {
-		workerNames := make([]string, len(affected))
-		for i, w := range affected {
-			workerNames[i] = w.Name
-		}
-
-		logger.Debug("stalled", lager.Data{"count": len(affected), "workers": workerNames})
+		logger.Debug("stalled", lager.Data{"count": len(affected), "workers": affected})
 	}
 
-	err = wc.workerFactory.DeleteFinishedRetiringWorkers()
+	affected, err = wc.workerLifecycle.DeleteFinishedRetiringWorkers()
 	if err != nil {
 		logger.Error("failed-to-delete-finished-retiring-workers", err)
 		return err
 	}
 
-	logger.Debug("deleted-finished-retiring-workers")
+	if len(affected) > 0 {
+		logger.Debug("retired", lager.Data{"count": len(affected), "workers": affected})
+	}
 
-	err = wc.workerFactory.LandFinishedLandingWorkers()
+	affected, err = wc.workerLifecycle.LandFinishedLandingWorkers()
 	if err != nil {
 		logger.Error("failed-to-land-finished-landing-workers", err)
 		return err
 	}
 
-	logger.Debug("landed-finished-landing-workers")
+	if len(affected) > 0 {
+		logger.Debug("landed", lager.Data{"count": len(affected), "workers": affected})
+	}
 
 	return nil
 }
