@@ -20,17 +20,15 @@ func NewBuildCollector(
 		logger:       logger,
 		buildFactory: buildFactory,
 	}
-
 }
 
 func (b *buildCollector) Run() error {
-	b.logger.Debug("starting")
-	defer b.logger.Debug("finishing")
-	b.logger.Debug("marking builds as non-interceptible")
+	b.logger.Debug("start")
+	defer b.logger.Debug("done")
 
 	err := b.buildFactory.MarkNonInterceptibleBuilds()
 	if err != nil {
-		b.logger.Error("error marking builds as non-interceptible", err)
+		b.logger.Error("failed-to-mark-non-interceptible-builds", err)
 		return err
 	}
 
