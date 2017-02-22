@@ -125,7 +125,12 @@ func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
 }
 
 func (provider *dbProvider) FindContainerForIdentifier(id Identifier) (db.SavedContainer, bool, error) {
-	return provider.db.FindContainerByIdentifier(db.ContainerIdentifier(id))
+	container, found, err := provider.db.FindContainerByIdentifier(db.ContainerIdentifier(id))
+	if err != nil {
+		provider.logger.Error("failed-to-find-container-by-identifier", err, lager.Data{"id": id})
+	}
+
+	return container, found, err
 }
 
 func (provider *dbProvider) GetContainer(handle string) (db.SavedContainer, bool, error) {
