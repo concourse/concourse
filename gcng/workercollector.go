@@ -21,7 +21,10 @@ func NewWorkerCollector(
 }
 
 func (wc *workerCollector) Run() error {
-	logger := wc.logger.Session("collect")
+	logger := wc.logger.Session("run")
+
+	logger.Debug("start")
+	defer logger.Debug("done")
 
 	affected, err := wc.workerFactory.StallUnresponsiveWorkers()
 	if err != nil {

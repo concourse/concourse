@@ -347,8 +347,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			DrainCh:   drain,
 		}},
 
-		{"ng-collector", lockrunner.NewRunner(
-			logger.Session("ng-collector-runner"),
+		{"collector", lockrunner.NewRunner(
+			logger.Session("collector-runner"),
 			gcng.NewCollector(
 				logger.Session("ng-collector"),
 				gcng.NewBuildCollector(
@@ -387,7 +387,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 					gcng.NewGardenClientFactory(),
 				),
 			),
-			"ng-collector",
+			"collector",
 			sqlDB,
 			clock.NewClock(),
 			cmd.GCInterval,
