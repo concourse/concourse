@@ -613,9 +613,11 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		return SavedContainer{}, err
 	}
 
-	err = json.Unmarshal(checkSourceBlob, &container.CheckSource)
-	if err != nil {
-		return SavedContainer{}, err
+	if checkSourceBlob != nil {
+		err = json.Unmarshal(checkSourceBlob, &container.CheckSource)
+		if err != nil {
+			return SavedContainer{}, err
+		}
 	}
 
 	if len(resourceTypeVersion) > 0 {
