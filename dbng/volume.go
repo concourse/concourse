@@ -7,16 +7,18 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 	uuid "github.com/nu7hatch/gouuid"
 
 	"github.com/concourse/atc"
 )
 
 var (
-	ErrVolumeMarkDestroyingFailed  = errors.New("could-not-mark-volume-as-destroying")
-	ErrVolumeStateTransitionFailed = errors.New("could-not-transition-volume-state")
-	ErrVolumeMissing               = errors.New("volume-no-longer-in-db")
-	ErrInvalidResourceCache        = errors.New("invalid-resource-cache")
+	ErrVolumeMarkDestroyingFailed                 = errors.New("could not mark volume as destroying")
+	ErrVolumeCannotBeDestroyedWithChildrenPresent = errors.New("volume cannot be destroyed as children are present")
+	ErrVolumeStateTransitionFailed                = errors.New("could not transition volume state")
+	ErrVolumeMissing                              = errors.New("volume no longer in db")
+	ErrInvalidResourceCache                       = errors.New("invalid resource cache")
 )
 
 type ErrVolumeMarkCreatedFailed struct {
@@ -415,6 +417,13 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 		if err == ErrVolumeStateTransitionFailed {
 			return nil, ErrVolumeMarkDestroyingFailed
 		}
+
+		if pqErr, ok := err.(*pq.Error); ok &&
+			pqErr.Code.Name() == "foreign_key_violation" &&
+			pqErr.Constraint == "volumes_parent_id_fkey" {
+			return nil, ErrVolumeCannotBeDestroyedWithChildrenPresent
+		}
+
 		return nil, err
 	}
 

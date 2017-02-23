@@ -177,6 +177,21 @@ var _ = Describe("Volume", func() {
 			Expect(childVolume.Path()).To(Equal("/path/to/child/volume"))
 			Expect(childVolume.ParentHandle()).To(Equal(createdParentVolume.Handle()))
 		})
+
+		It("prevents the parent from being destroyed", func() {
+			creatingParentVolume, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			Expect(err).NotTo(HaveOccurred())
+			createdParentVolume, err := creatingParentVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+
+			childCreatingVolume, err := createdParentVolume.CreateChildForContainer(defaultCreatingContainer, "/path/to/child/volume")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = childCreatingVolume.Created()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = createdParentVolume.Destroying()
+			Expect(err).To(Equal(dbng.ErrVolumeCannotBeDestroyedWithChildrenPresent))
+		})
 	})
 
 	Context("when volume type is VolumeTypeResource", func() {
