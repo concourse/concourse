@@ -11,7 +11,7 @@ import (
 )
 
 type volumeCollector struct {
-	logger                    lager.Logger
+	rootLogger                lager.Logger
 	volumeFactory             dbng.VolumeFactory
 	baggageclaimClientFactory BaggageclaimClientFactory
 }
@@ -48,13 +48,18 @@ func NewVolumeCollector(
 	baggageclaimClientFactory BaggageclaimClientFactory,
 ) Collector {
 	return &volumeCollector{
-		logger:                    logger,
+		rootLogger:                logger,
 		volumeFactory:             volumeFactory,
 		baggageclaimClientFactory: baggageclaimClientFactory,
 	}
 }
 
 func (vc *volumeCollector) Run() error {
+	logger := vc.rootLogger.Session("run")
+
+	logger.Debug("start")
+	defer logger.Debug("done")
+
 	var (
 		creatingVolumes   []dbng.CreatingVolume
 		createdVolumes    []dbng.CreatedVolume
@@ -64,20 +69,21 @@ func (vc *volumeCollector) Run() error {
 
 	creatingVolumes, createdVolumes, destroyingVolumes, err = vc.volumeFactory.GetDuplicateResourceCacheVolumes()
 	if err != nil {
-		vc.logger.Error("failed-to-get-duplicate-resource-cache-volumes", err)
+		logger.Error("failed-to-get-duplicate-resource-cache-volumes", err)
 		return err
 	}
 
 	orphanedCreatedVolumes, orphanedDestroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
 	if err != nil {
-		vc.logger.Error("failed-to-get-orphaned-volumes", err)
+		logger.Error("failed-to-get-orphaned-volumes", err)
 		return err
 	}
+
 	createdVolumes = append(createdVolumes, orphanedCreatedVolumes...)
 	destroyingVolumes = append(destroyingVolumes, orphanedDestroyingVolumes...)
 
 	for _, creatingVolume := range creatingVolumes {
-		vLog := vc.logger.Session("mark-creating-as-created", lager.Data{
+		vLog := logger.Session("mark-creating-as-created", lager.Data{
 			"volume": creatingVolume.Handle(),
 		})
 
@@ -91,7 +97,7 @@ func (vc *volumeCollector) Run() error {
 	}
 
 	for _, createdVolume := range createdVolumes {
-		vLog := vc.logger.Session("mark-created-as-destroying", lager.Data{
+		vLog := logger.Session("mark-created-as-destroying", lager.Data{
 			"volume": createdVolume.Handle(),
 			"worker": createdVolume.Worker().Name,
 		})
@@ -106,7 +112,7 @@ func (vc *volumeCollector) Run() error {
 	}
 
 	for _, destroyingVolume := range destroyingVolumes {
-		vLog := vc.logger.Session("destroy", lager.Data{
+		vLog := logger.Session("destroy", lager.Data{
 			"handle": destroyingVolume.Handle(),
 			"worker": destroyingVolume.Worker().Name,
 		})
@@ -118,7 +124,7 @@ func (vc *volumeCollector) Run() error {
 
 		baggageclaimClient := vc.baggageclaimClientFactory.NewClient(*destroyingVolume.Worker().BaggageclaimURL, destroyingVolume.Worker().Name)
 
-		volume, found, err := baggageclaimClient.LookupVolume(vc.logger, destroyingVolume.Handle())
+		volume, found, err := baggageclaimClient.LookupVolume(vLog, destroyingVolume.Handle())
 		if err != nil {
 			vLog.Error("failed-to-lookup-volume-in-baggageclaim", err)
 			continue
