@@ -147,6 +147,8 @@ func (l *lock) Acquire() (bool, error) {
 
 	l.locks.Register(l.id)
 
+	logger.Debug("acquired")
+
 	return true, nil
 }
 
@@ -159,6 +161,8 @@ func (l *lock) Release() error {
 	}
 
 	l.locks.Unregister(l.id)
+
+	logger.Debug("released")
 
 	return nil
 }
