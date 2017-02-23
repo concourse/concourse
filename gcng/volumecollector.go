@@ -55,14 +55,43 @@ func NewVolumeCollector(
 }
 
 func (vc *volumeCollector) Run() error {
-	createdVolumes, destroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
+	var (
+		creatingVolumes   []dbng.CreatingVolume
+		createdVolumes    []dbng.CreatedVolume
+		destroyingVolumes []dbng.DestroyingVolume
+		err               error
+	)
+
+	creatingVolumes, createdVolumes, destroyingVolumes, err = vc.volumeFactory.GetDuplicateResourceCacheVolumes()
+	if err != nil {
+		vc.logger.Error("failed-to-get-duplicate-resource-cache-volumes", err)
+		return err
+	}
+
+	orphanedCreatedVolumes, orphanedDestroyingVolumes, err := vc.volumeFactory.GetOrphanedVolumes()
 	if err != nil {
 		vc.logger.Error("failed-to-get-orphaned-volumes", err)
 		return err
 	}
+	createdVolumes = append(createdVolumes, orphanedCreatedVolumes...)
+	destroyingVolumes = append(destroyingVolumes, orphanedDestroyingVolumes...)
+
+	for _, creatingVolume := range creatingVolumes {
+		vLog := vc.logger.Session("mark-creating-as-created", lager.Data{
+			"volume": creatingVolume.Handle(),
+		})
+
+		createdVolume, err := creatingVolume.Created()
+		if err != nil {
+			vLog.Error("failed-to-transition-from-creating-to-created", err)
+			continue
+		}
+
+		createdVolumes = append(createdVolumes, createdVolume)
+	}
 
 	for _, createdVolume := range createdVolumes {
-		vLog := vc.logger.Session("mark-destroying", lager.Data{
+		vLog := vc.logger.Session("mark-created-as-destroying", lager.Data{
 			"volume": createdVolume.Handle(),
 			"worker": createdVolume.Worker().Name,
 		})

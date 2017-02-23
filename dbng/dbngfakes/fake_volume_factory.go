@@ -114,6 +114,15 @@ type FakeVolumeFactory struct {
 		result2 []dbng.DestroyingVolume
 		result3 error
 	}
+	GetDuplicateResourceCacheVolumesStub        func() ([]dbng.CreatingVolume, []dbng.CreatedVolume, []dbng.DestroyingVolume, error)
+	getDuplicateResourceCacheVolumesMutex       sync.RWMutex
+	getDuplicateResourceCacheVolumesArgsForCall []struct{}
+	getDuplicateResourceCacheVolumesReturns     struct {
+		result1 []dbng.CreatingVolume
+		result2 []dbng.CreatedVolume
+		result3 []dbng.DestroyingVolume
+		result4 error
+	}
 	FindCreatedVolumeStub        func(handle string) (dbng.CreatedVolume, bool, error)
 	findCreatedVolumeMutex       sync.RWMutex
 	findCreatedVolumeArgsForCall []struct {
@@ -468,6 +477,34 @@ func (fake *FakeVolumeFactory) GetOrphanedVolumesReturns(result1 []dbng.CreatedV
 	}{result1, result2, result3}
 }
 
+func (fake *FakeVolumeFactory) GetDuplicateResourceCacheVolumes() ([]dbng.CreatingVolume, []dbng.CreatedVolume, []dbng.DestroyingVolume, error) {
+	fake.getDuplicateResourceCacheVolumesMutex.Lock()
+	fake.getDuplicateResourceCacheVolumesArgsForCall = append(fake.getDuplicateResourceCacheVolumesArgsForCall, struct{}{})
+	fake.recordInvocation("GetDuplicateResourceCacheVolumes", []interface{}{})
+	fake.getDuplicateResourceCacheVolumesMutex.Unlock()
+	if fake.GetDuplicateResourceCacheVolumesStub != nil {
+		return fake.GetDuplicateResourceCacheVolumesStub()
+	} else {
+		return fake.getDuplicateResourceCacheVolumesReturns.result1, fake.getDuplicateResourceCacheVolumesReturns.result2, fake.getDuplicateResourceCacheVolumesReturns.result3, fake.getDuplicateResourceCacheVolumesReturns.result4
+	}
+}
+
+func (fake *FakeVolumeFactory) GetDuplicateResourceCacheVolumesCallCount() int {
+	fake.getDuplicateResourceCacheVolumesMutex.RLock()
+	defer fake.getDuplicateResourceCacheVolumesMutex.RUnlock()
+	return len(fake.getDuplicateResourceCacheVolumesArgsForCall)
+}
+
+func (fake *FakeVolumeFactory) GetDuplicateResourceCacheVolumesReturns(result1 []dbng.CreatingVolume, result2 []dbng.CreatedVolume, result3 []dbng.DestroyingVolume, result4 error) {
+	fake.GetDuplicateResourceCacheVolumesStub = nil
+	fake.getDuplicateResourceCacheVolumesReturns = struct {
+		result1 []dbng.CreatingVolume
+		result2 []dbng.CreatedVolume
+		result3 []dbng.DestroyingVolume
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
 func (fake *FakeVolumeFactory) FindCreatedVolume(handle string) (dbng.CreatedVolume, bool, error) {
 	fake.findCreatedVolumeMutex.Lock()
 	fake.findCreatedVolumeArgsForCall = append(fake.findCreatedVolumeArgsForCall, struct {
@@ -525,6 +562,8 @@ func (fake *FakeVolumeFactory) Invocations() map[string][][]interface{} {
 	defer fake.findVolumesForContainerMutex.RUnlock()
 	fake.getOrphanedVolumesMutex.RLock()
 	defer fake.getOrphanedVolumesMutex.RUnlock()
+	fake.getDuplicateResourceCacheVolumesMutex.RLock()
+	defer fake.getDuplicateResourceCacheVolumesMutex.RUnlock()
 	fake.findCreatedVolumeMutex.RLock()
 	defer fake.findCreatedVolumeMutex.RUnlock()
 	return fake.invocations

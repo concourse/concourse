@@ -1,6 +1,8 @@
 package dbng_test
 
 import (
+	"time"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
@@ -397,6 +399,165 @@ var _ = Describe("VolumeFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(createdVolume).To(BeNil())
+			})
+		})
+	})
+
+	Describe("GetDuplicateResourceCacheVolumes", func() {
+		var (
+			usedResourceCache   *dbng.UsedResourceCache
+			uninitializedVolume dbng.CreatingVolume
+			resource            *dbng.Resource
+			baseResourceType    dbng.BaseResourceType
+		)
+
+		BeforeEach(func() {
+			resource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
+			Expect(err).ToNot(HaveOccurred())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			baseResourceType = dbng.BaseResourceType{
+				Name: "some-base-type",
+			}
+			_, err = baseResourceType.FindOrCreate(setupTx)
+			Expect(err).NotTo(HaveOccurred())
+
+			cache := dbng.ResourceCache{
+				ResourceConfig: dbng.ResourceConfig{
+					CreatedByBaseResourceType: &baseResourceType,
+
+					Source: atc.Source{"some": "source"},
+				},
+				Version: atc.Version{"some": "version"},
+				Params:  atc.Params{"some": "params"},
+			}
+
+			usedResourceCache, err = cache.FindOrCreateForResource(logger, setupTx, lockFactory, resource.ID)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(setupTx.Commit()).To(Succeed())
+
+			uninitializedVolume, err = volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when there is a duplicate volume for resource cache", func() {
+			var duplicateVolume dbng.CreatingVolume
+
+			Context("where volume is on the same worker", func() {
+				BeforeEach(func() {
+					duplicateVolume, err = volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Context("when volume is not initialized and other volume is initialized", func() {
+					BeforeEach(func() {
+						createdVolume, err := duplicateVolume.Created()
+						Expect(err).NotTo(HaveOccurred())
+						err = createdVolume.Initialize()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					Context("when volume in creating state", func() {
+						It("returns uninitialized volume", func() {
+							creatingVolumes, _, _, err := volumeFactory.GetDuplicateResourceCacheVolumes()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(creatingVolumes).To(HaveLen(1))
+							Expect(creatingVolumes[0].Handle()).To(Equal(uninitializedVolume.Handle()))
+						})
+					})
+
+					Context("when volume in created state", func() {
+						BeforeEach(func() {
+							_, err := uninitializedVolume.Created()
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("returns uninitialized volume", func() {
+							_, createdVolumes, _, err := volumeFactory.GetDuplicateResourceCacheVolumes()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(createdVolumes).To(HaveLen(1))
+							Expect(createdVolumes[0].Handle()).To(Equal(uninitializedVolume.Handle()))
+						})
+					})
+
+					Context("when volume in destroying state", func() {
+						BeforeEach(func() {
+							createdVolume, err := uninitializedVolume.Created()
+							Expect(err).NotTo(HaveOccurred())
+							_, err = createdVolume.Destroying()
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("returns uninitialized volume", func() {
+							_, _, destroyingVolumes, err := volumeFactory.GetDuplicateResourceCacheVolumes()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(destroyingVolumes).To(HaveLen(1))
+							Expect(destroyingVolumes[0].Handle()).To(Equal(uninitializedVolume.Handle()))
+						})
+					})
+				})
+
+				Context("when both volumes are not initialized", func() {
+					It("does not return any volume", func() {
+						creatingVolumes, createdVolumes, destroyingVolumes, err := volumeFactory.GetDuplicateResourceCacheVolumes()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(creatingVolumes).To(HaveLen(0))
+						Expect(createdVolumes).To(HaveLen(0))
+						Expect(destroyingVolumes).To(HaveLen(0))
+					})
+				})
+			})
+
+			Context("when volume is on different worker", func() {
+				BeforeEach(func() {
+					anotherWorker, err := workerFactory.SaveWorker(atc.Worker{
+						GardenAddr:      "some-garden-addr",
+						BaggageclaimURL: "some-bc-url",
+					}, 5*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+					_, err = volumeFactory.CreateResourceCacheVolume(anotherWorker, usedResourceCache)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not return any volume", func() {
+					creatingVolumes, createdVolumes, destroyingVolumes, err := volumeFactory.GetDuplicateResourceCacheVolumes()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(creatingVolumes).To(HaveLen(0))
+					Expect(createdVolumes).To(HaveLen(0))
+					Expect(destroyingVolumes).To(HaveLen(0))
+				})
+			})
+		})
+
+		Context("when there is volume for different resource cache", func() {
+			BeforeEach(func() {
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+				anotherResourceCache := dbng.ResourceCache{
+					ResourceConfig: dbng.ResourceConfig{
+						CreatedByBaseResourceType: &baseResourceType,
+
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+					Params:  atc.Params{"some": "params"},
+				}
+
+				usedResourceCache, err = anotherResourceCache.FindOrCreateForResource(logger, setupTx, lockFactory, resource.ID)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(setupTx.Commit()).To(Succeed())
+			})
+
+			It("does not return any volume", func() {
+				creatingVolumes, createdVolumes, destroyingVolumes, err := volumeFactory.GetDuplicateResourceCacheVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(creatingVolumes).To(HaveLen(0))
+				Expect(createdVolumes).To(HaveLen(0))
+				Expect(destroyingVolumes).To(HaveLen(0))
 			})
 		})
 	})

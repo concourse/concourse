@@ -25,6 +25,7 @@ type VolumeFactory interface {
 
 	FindVolumesForContainer(CreatedContainer) ([]CreatedVolume, error)
 	GetOrphanedVolumes() ([]CreatedVolume, []DestroyingVolume, error)
+	GetDuplicateResourceCacheVolumes() ([]CreatingVolume, []CreatedVolume, []DestroyingVolume, error)
 
 	FindCreatedVolume(handle string) (CreatedVolume, bool, error)
 }
@@ -281,6 +282,53 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 	}
 
 	return createdVolumes, destroyingVolumes, nil
+}
+
+func (factory *volumeFactory) GetDuplicateResourceCacheVolumes() ([]CreatingVolume, []CreatedVolume, []DestroyingVolume, error) {
+	query, args, err := psql.Select(volumeColumns...).
+		From("volumes v").
+		LeftJoin("workers w ON v.worker_name = w.name").
+		LeftJoin("containers c ON v.container_id = c.id").
+		LeftJoin("volumes pv ON v.parent_id = pv.id").
+		LeftJoin("volumes dv ON v.resource_cache_id = dv.resource_cache_id AND v.worker_name = dv.worker_name").
+		Where(sq.Eq{
+			"v.initialized":  false,
+			"dv.initialized": true,
+		}).ToSql()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	rows, err := factory.conn.Query(query, args...)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer rows.Close()
+
+	creatingVolumes := []CreatingVolume{}
+	createdVolumes := []CreatedVolume{}
+	destroyingVolumes := []DestroyingVolume{}
+
+	for rows.Next() {
+		creatingVolume, createdVolume, destroyingVolume, err := scanVolume(rows, factory.conn)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		if creatingVolume != nil {
+			creatingVolumes = append(creatingVolumes, creatingVolume)
+		}
+
+		if createdVolume != nil {
+			createdVolumes = append(createdVolumes, createdVolume)
+		}
+
+		if destroyingVolume != nil {
+			destroyingVolumes = append(destroyingVolumes, destroyingVolume)
+		}
+	}
+
+	return creatingVolumes, createdVolumes, destroyingVolumes, nil
 }
 
 // 1. open tx
