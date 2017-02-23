@@ -41,9 +41,8 @@ func (fake *FakeUserContextReader) GetTeam(r *http.Request) (string, bool, bool)
 	fake.getTeamMutex.Unlock()
 	if fake.GetTeamStub != nil {
 		return fake.GetTeamStub(r)
-	} else {
-		return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 	}
+	return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 }
 
 func (fake *FakeUserContextReader) GetTeamCallCount() int {
@@ -76,9 +75,8 @@ func (fake *FakeUserContextReader) GetSystem(r *http.Request) (bool, bool) {
 	fake.getSystemMutex.Unlock()
 	if fake.GetSystemStub != nil {
 		return fake.GetSystemStub(r)
-	} else {
-		return fake.getSystemReturns.result1, fake.getSystemReturns.result2
 	}
+	return fake.getSystemReturns.result1, fake.getSystemReturns.result2
 }
 
 func (fake *FakeUserContextReader) GetSystemCallCount() int {

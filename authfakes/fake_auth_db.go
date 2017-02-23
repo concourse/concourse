@@ -28,9 +28,8 @@ func (fake *FakeAuthDB) GetTeam() (db.SavedTeam, bool, error) {
 	fake.getTeamMutex.Unlock()
 	if fake.GetTeamStub != nil {
 		return fake.GetTeamStub()
-	} else {
-		return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 	}
+	return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 }
 
 func (fake *FakeAuthDB) GetTeamCallCount() int {

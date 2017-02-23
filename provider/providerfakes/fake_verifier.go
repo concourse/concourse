@@ -34,9 +34,8 @@ func (fake *FakeVerifier) Verify(arg1 lager.Logger, arg2 *http.Client) (bool, er
 	fake.verifyMutex.Unlock()
 	if fake.VerifyStub != nil {
 		return fake.VerifyStub(arg1, arg2)
-	} else {
-		return fake.verifyReturns.result1, fake.verifyReturns.result2
 	}
+	return fake.verifyReturns.result1, fake.verifyReturns.result2
 }
 
 func (fake *FakeVerifier) VerifyCallCount() int {
