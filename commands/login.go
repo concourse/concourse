@@ -142,6 +142,8 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
+	fmt.Println("")
+
 	return command.saveTarget(
 		client.URL(),
 		&rc.TargetToken{
@@ -293,7 +295,6 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 		return err
 	}
 
-	fmt.Println("")
 	fmt.Println("target saved")
 
 	return nil
