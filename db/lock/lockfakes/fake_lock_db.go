@@ -38,9 +38,8 @@ func (fake *FakeLockDB) Acquire(id lock.LockID) (bool, error) {
 	fake.acquireMutex.Unlock()
 	if fake.AcquireStub != nil {
 		return fake.AcquireStub(id)
-	} else {
-		return fake.acquireReturns.result1, fake.acquireReturns.result2
 	}
+	return fake.acquireReturns.result1, fake.acquireReturns.result2
 }
 
 func (fake *FakeLockDB) AcquireCallCount() int {
@@ -72,9 +71,8 @@ func (fake *FakeLockDB) Release(id lock.LockID) error {
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
 		return fake.ReleaseStub(id)
-	} else {
-		return fake.releaseReturns.result1
 	}
+	return fake.releaseReturns.result1
 }
 
 func (fake *FakeLockDB) ReleaseCallCount() int {

@@ -52,9 +52,8 @@ func (fake *FakeDelegateConn) Query(sql string, args ...interface{}) (*pgx.Rows,
 	fake.queryMutex.Unlock()
 	if fake.QueryStub != nil {
 		return fake.QueryStub(sql, args...)
-	} else {
-		return fake.queryReturns.result1, fake.queryReturns.result2
 	}
+	return fake.queryReturns.result1, fake.queryReturns.result2
 }
 
 func (fake *FakeDelegateConn) QueryCallCount() int {
@@ -87,9 +86,8 @@ func (fake *FakeDelegateConn) QueryRow(sql string, args ...interface{}) *pgx.Row
 	fake.queryRowMutex.Unlock()
 	if fake.QueryRowStub != nil {
 		return fake.QueryRowStub(sql, args...)
-	} else {
-		return fake.queryRowReturns.result1
 	}
+	return fake.queryRowReturns.result1
 }
 
 func (fake *FakeDelegateConn) QueryRowCallCount() int {
@@ -121,9 +119,8 @@ func (fake *FakeDelegateConn) Exec(sql string, arguments ...interface{}) (comman
 	fake.execMutex.Unlock()
 	if fake.ExecStub != nil {
 		return fake.ExecStub(sql, arguments...)
-	} else {
-		return fake.execReturns.result1, fake.execReturns.result2
 	}
+	return fake.execReturns.result1, fake.execReturns.result2
 }
 
 func (fake *FakeDelegateConn) ExecCallCount() int {

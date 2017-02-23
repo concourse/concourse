@@ -32,9 +32,8 @@ func (fake *FakeLockFactory) NewLock(logger lager.Logger, ids lock.LockID) lock.
 	fake.newLockMutex.Unlock()
 	if fake.NewLockStub != nil {
 		return fake.NewLockStub(logger, ids)
-	} else {
-		return fake.newLockReturns.result1
 	}
+	return fake.newLockReturns.result1
 }
 
 func (fake *FakeLockFactory) NewLockCallCount() int {

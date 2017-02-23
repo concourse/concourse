@@ -105,7 +105,6 @@ func (f *lockFactory) NewLock(logger lager.Logger, id LockID) Lock {
 type Lock interface {
 	Acquire() (bool, error)
 	Release() error
-	AfterRelease(func() error)
 }
 
 //go:generate counterfeiter . LockDB
@@ -122,8 +121,6 @@ type lock struct {
 	db           LockDB
 	locks        lockRepo
 	acquireMutex *sync.Mutex
-
-	afterRelease func() error
 }
 
 func (l *lock) Acquire() (bool, error) {
@@ -133,21 +130,21 @@ func (l *lock) Acquire() (bool, error) {
 	logger := l.logger.Session("acquire", lager.Data{"id": l.id})
 
 	if l.locks.IsRegistered(l.id) {
-		logger.Debug("already-registered")
+		logger.Debug("not-acquired-already-held-locally")
 		return false, nil
 	}
 
 	acquired, err := l.db.Acquire(l.id)
 	if err != nil {
-		logger.Debug("failed-to-register-in-db")
+		logger.Error("failed-to-register-in-db", err)
 		return false, err
 	}
 
 	if !acquired {
+		logger.Debug("not-acquired-already-held-in-db")
 		return false, err
 	}
 
-	logger.Debug("registering-in-repo")
 	l.locks.Register(l.id)
 
 	return true, nil
@@ -156,22 +153,14 @@ func (l *lock) Acquire() (bool, error) {
 func (l *lock) Release() error {
 	logger := l.logger.Session("release", lager.Data{"id": l.id})
 
-	logger.Debug("releasing-in-db")
-	l.db.Release(l.id)
-
-	logger.Debug("unregistering-from-repo")
-	l.locks.Unregister(l.id)
-
-	if l.afterRelease != nil {
-		logger.Debug("running-after-release")
-		return l.afterRelease()
+	err := l.db.Release(l.id)
+	if err != nil {
+		logger.Error("failed-to-release-in-db-but-continuing-anyway", err)
 	}
 
-	return nil
-}
+	l.locks.Unregister(l.id)
 
-func (l *lock) AfterRelease(afterReleaseFunc func() error) {
-	l.afterRelease = afterReleaseFunc
+	return nil
 }
 
 type lockDB struct {

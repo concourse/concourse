@@ -26,9 +26,8 @@ func (fake *FakeConnector) Connect() (lock.DelegateConn, error) {
 	fake.connectMutex.Unlock()
 	if fake.ConnectStub != nil {
 		return fake.ConnectStub()
-	} else {
-		return fake.connectReturns.result1, fake.connectReturns.result2
 	}
+	return fake.connectReturns.result1, fake.connectReturns.result2
 }
 
 func (fake *FakeConnector) ConnectCallCount() int {
