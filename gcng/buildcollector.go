@@ -7,7 +7,6 @@ type buildCollector struct {
 	buildFactory buildFactory
 }
 
-//go:generate counterfeiter . buildFactory
 type buildFactory interface {
 	MarkNonInterceptibleBuilds() error
 }

@@ -23,6 +23,7 @@ var _ = Describe("VolumeFetchSource", func() {
 		fakeContainer   *workerfakes.FakeContainer
 		resourceOptions *resourcefakes.FakeResourceOptions
 		fakeVolume      *workerfakes.FakeVolume
+		fakeResourceInstance *resourcefakes.FakeResourceInstance
 		fakeWorker      *workerfakes.FakeWorker
 
 		signals <-chan os.Signal
@@ -54,9 +55,11 @@ var _ = Describe("VolumeFetchSource", func() {
 		fakeWorker.FindOrCreateResourceGetContainerReturns(fakeContainer, nil)
 
 		fakeVolume = new(workerfakes.FakeVolume)
-		fetchSource = NewVolumeFetchSource(
+		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
+		fakeResourceInstance.FindOrCreateOnReturns(fakeVolume, nil)
+		fetchSource = NewResourceInstanceFetchSource(
 			logger,
-			fakeVolume,
+			fakeResourceInstance,
 			fakeWorker,
 			resourceOptions,
 			nil,
@@ -68,6 +71,34 @@ var _ = Describe("VolumeFetchSource", func() {
 		)
 	})
 
+	Describe("IsInitialized", func() {
+		Context("when there is initialized volume", func() {
+			BeforeEach(func() {
+				fakeResourceInstance.FindInitializedOnReturns(fakeVolume, true, nil)
+			})
+
+			It("finds initialized volume and sets versioned source", func() {
+				initialized, err := fetchSource.IsInitialized()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(initialized).To(BeTrue())
+				Expect(fetchSource.VersionedSource()).NotTo(BeNil())
+			})
+		})
+
+
+		Context("when there is no initialized volume", func() {
+			BeforeEach(func() {
+				fakeResourceInstance.FindInitializedOnReturns(nil, false, nil)
+			})
+
+			It("does not find initialized volume", func() {
+				initialized, err := fetchSource.IsInitialized()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(initialized).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("Initialize", func() {
 		var initErr error
 
@@ -77,6 +108,13 @@ var _ = Describe("VolumeFetchSource", func() {
 
 		JustBeforeEach(func() {
 			initErr = fetchSource.Initialize(signals, ready)
+		})
+
+		It("creates volume for resource instance on provided worker", func() {
+			Expect(initErr).NotTo(HaveOccurred())
+			Expect(fakeResourceInstance.FindOrCreateOnCallCount()).To(Equal(1))
+			_, worker := fakeResourceInstance.FindOrCreateOnArgsForCall(0)
+			Expect(worker).To(Equal(fakeWorker))
 		})
 
 		It("creates container with volume and worker", func() {

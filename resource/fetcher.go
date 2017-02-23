@@ -123,6 +123,11 @@ func (f *fetcher) fetchWithLock(
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) (FetchSource, error) {
+	// This is supposed to be a fast-feedback kind of Get
+	//
+	// Will return back a volume in any kind of state
+	// so that if it's already initialized
+	// we can use the initialized volume
 	source, err := sourceProvider.Get()
 	if err != nil {
 		return nil, err

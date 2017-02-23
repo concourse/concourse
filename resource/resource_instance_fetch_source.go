@@ -8,10 +8,9 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-type volumeFetchSource struct {
+type resourceInstanceFetchSource struct {
 	logger                lager.Logger
-	volume                worker.Volume
-	container             worker.Container
+	resourceInstance      ResourceInstance
 	versionedSource       VersionedSource
 	worker                worker.Worker
 	resourceOptions       ResourceOptions
@@ -23,9 +22,9 @@ type volumeFetchSource struct {
 	imageFetchingDelegate worker.ImageFetchingDelegate
 }
 
-func NewVolumeFetchSource(
+func NewResourceInstanceFetchSource(
 	logger lager.Logger,
-	volume worker.Volume,
+	resourceInstance ResourceInstance,
 	worker worker.Worker,
 	resourceOptions ResourceOptions,
 	resourceTypes atc.ResourceTypes,
@@ -35,12 +34,11 @@ func NewVolumeFetchSource(
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) FetchSource {
-	return &volumeFetchSource{
+	return &resourceInstanceFetchSource{
 		logger:                logger,
-		volume:                volume,
+		resourceInstance:      resourceInstance,
 		worker:                worker,
 		resourceOptions:       resourceOptions,
-		versionedSource:       NewGetVersionedSource(volume, resourceOptions.Version(), nil),
 		resourceTypes:         resourceTypes,
 		tags:                  tags,
 		teamID:                teamID,
@@ -50,28 +48,44 @@ func NewVolumeFetchSource(
 	}
 }
 
-func (s *volumeFetchSource) IsInitialized() (bool, error) {
-	return s.volume.IsInitialized()
+func (s *resourceInstanceFetchSource) IsInitialized() (bool, error) {
+	volume, found, err := s.resourceInstance.FindInitializedOn(s.logger, s.worker)
+	if err != nil {
+		return false, err
+	}
+
+	if found {
+		s.versionedSource = NewGetVersionedSource(volume, s.resourceOptions.Version(), nil)
+	}
+
+	return found, nil
 }
 
-func (s *volumeFetchSource) VersionedSource() VersionedSource {
+func (s *resourceInstanceFetchSource) VersionedSource() VersionedSource {
 	return s.versionedSource
 }
 
-func (s *volumeFetchSource) LockName() (string, error) {
+func (s *resourceInstanceFetchSource) LockName() (string, error) {
 	return s.resourceOptions.LockName(s.worker.Name())
 }
 
-func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (s *resourceInstanceFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
-	s.container, err = s.findOrCreateContainerForVolume()
+
+	volume, err := s.resourceInstance.FindOrCreateOn(s.logger, s.worker)
+	if err != nil {
+		s.logger.Error("failed-to-create-cache", err)
+		return err
+	}
+
+	container, err := s.findOrCreateContainerForVolume(volume)
 	if err != nil {
 		s.logger.Error("failed-to-create-container", err)
 		return err
 	}
 
-	s.versionedSource, err = NewResourceForContainer(s.container).Get(
-		s.volume,
+	s.versionedSource, err = NewResourceForContainer(container).Get(
+		volume,
 		s.resourceOptions.IOConfig(),
 		s.resourceOptions.Source(),
 		s.resourceOptions.Params(),
@@ -80,7 +94,7 @@ func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- st
 		ready,
 	)
 	if err == ErrAborted {
-		s.logger.Error("get-run-resource-aborted", err, lager.Data{"container": s.container.Handle()})
+		s.logger.Error("get-run-resource-aborted", err, lager.Data{"container": container.Handle()})
 		return ErrInterrupted
 	}
 
@@ -89,7 +103,7 @@ func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- st
 		return err
 	}
 
-	err = s.volume.Initialize()
+	err = volume.Initialize()
 	if err != nil {
 		s.logger.Error("failed-to-initialize-cache", err)
 		return err
@@ -98,7 +112,7 @@ func (s *volumeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- st
 	return nil
 }
 
-func (s *volumeFetchSource) findOrCreateContainerForVolume() (worker.Container, error) {
+func (s *resourceInstanceFetchSource) findOrCreateContainerForVolume(volume worker.Volume) (worker.Container, error) {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: string(s.resourceOptions.ResourceType()),
@@ -110,7 +124,7 @@ func (s *volumeFetchSource) findOrCreateContainerForVolume() (worker.Container, 
 		Env:       s.metadata.Env(),
 		Mounts: []worker.VolumeMount{
 			{
-				Volume:    s.volume,
+				Volume:    volume,
 				MountPath: ResourcesDir("get"),
 			},
 		},

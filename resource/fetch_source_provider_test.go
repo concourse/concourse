@@ -106,23 +106,19 @@ var _ = Describe("FetchSourceProvider", func() {
 
 			Context("when worker is found for resource types", func() {
 				var fakeWorker *workerfakes.FakeWorker
-				var fakeVolume *workerfakes.FakeVolume
 
 				BeforeEach(func() {
 					fakeWorker = new(workerfakes.FakeWorker)
-					fakeVolume = new(workerfakes.FakeVolume)
 					fakeWorkerClient.SatisfyingReturns(fakeWorker, nil)
-					resourceInstance.FindOrCreateOnReturns(fakeVolume, nil)
 				})
 
-				It("returns volume based source", func() {
+				It("returns resource instance source", func() {
 					source, err := fetchSourceProvider.Get()
-					Expect(resourceInstance.FindOrCreateOnCallCount()).To(Equal(1))
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedSource := NewVolumeFetchSource(
+					expectedSource := NewResourceInstanceFetchSource(
 						logger,
-						fakeVolume,
+						resourceInstance,
 						fakeWorker,
 						resourceOptions,
 						resourceTypes,
