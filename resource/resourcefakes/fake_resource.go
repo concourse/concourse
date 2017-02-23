@@ -75,9 +75,8 @@ func (fake *FakeResource) Get(arg1 worker.Volume, arg2 resource.IOConfig, arg3 a
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
 		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
-	} else {
-		return fake.getReturns.result1, fake.getReturns.result2
 	}
+	return fake.getReturns.result1, fake.getReturns.result2
 }
 
 func (fake *FakeResource) GetCallCount() int {
@@ -114,9 +113,8 @@ func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
 		return fake.PutStub(arg1, arg2, arg3, arg4, arg5, arg6)
-	} else {
-		return fake.putReturns.result1, fake.putReturns.result2
 	}
+	return fake.putReturns.result1, fake.putReturns.result2
 }
 
 func (fake *FakeResource) PutCallCount() int {
@@ -149,9 +147,8 @@ func (fake *FakeResource) Check(arg1 atc.Source, arg2 atc.Version) ([]atc.Versio
 	fake.checkMutex.Unlock()
 	if fake.CheckStub != nil {
 		return fake.CheckStub(arg1, arg2)
-	} else {
-		return fake.checkReturns.result1, fake.checkReturns.result2
 	}
+	return fake.checkReturns.result1, fake.checkReturns.result2
 }
 
 func (fake *FakeResource) CheckCallCount() int {
@@ -181,9 +178,8 @@ func (fake *FakeResource) Container() worker.Container {
 	fake.containerMutex.Unlock()
 	if fake.ContainerStub != nil {
 		return fake.ContainerStub()
-	} else {
-		return fake.containerReturns.result1
 	}
+	return fake.containerReturns.result1
 }
 
 func (fake *FakeResource) ContainerCallCount() int {

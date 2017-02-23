@@ -59,9 +59,8 @@ func (fake *FakeResourceOptions) IOConfig() resource.IOConfig {
 	fake.iOConfigMutex.Unlock()
 	if fake.IOConfigStub != nil {
 		return fake.IOConfigStub()
-	} else {
-		return fake.iOConfigReturns.result1
 	}
+	return fake.iOConfigReturns.result1
 }
 
 func (fake *FakeResourceOptions) IOConfigCallCount() int {
@@ -84,9 +83,8 @@ func (fake *FakeResourceOptions) Source() atc.Source {
 	fake.sourceMutex.Unlock()
 	if fake.SourceStub != nil {
 		return fake.SourceStub()
-	} else {
-		return fake.sourceReturns.result1
 	}
+	return fake.sourceReturns.result1
 }
 
 func (fake *FakeResourceOptions) SourceCallCount() int {
@@ -109,9 +107,8 @@ func (fake *FakeResourceOptions) Params() atc.Params {
 	fake.paramsMutex.Unlock()
 	if fake.ParamsStub != nil {
 		return fake.ParamsStub()
-	} else {
-		return fake.paramsReturns.result1
 	}
+	return fake.paramsReturns.result1
 }
 
 func (fake *FakeResourceOptions) ParamsCallCount() int {
@@ -134,9 +131,8 @@ func (fake *FakeResourceOptions) Version() atc.Version {
 	fake.versionMutex.Unlock()
 	if fake.VersionStub != nil {
 		return fake.VersionStub()
-	} else {
-		return fake.versionReturns.result1
 	}
+	return fake.versionReturns.result1
 }
 
 func (fake *FakeResourceOptions) VersionCallCount() int {
@@ -159,9 +155,8 @@ func (fake *FakeResourceOptions) ResourceType() resource.ResourceType {
 	fake.resourceTypeMutex.Unlock()
 	if fake.ResourceTypeStub != nil {
 		return fake.ResourceTypeStub()
-	} else {
-		return fake.resourceTypeReturns.result1
 	}
+	return fake.resourceTypeReturns.result1
 }
 
 func (fake *FakeResourceOptions) ResourceTypeCallCount() int {
@@ -186,9 +181,8 @@ func (fake *FakeResourceOptions) LockName(workerName string) (string, error) {
 	fake.lockNameMutex.Unlock()
 	if fake.LockNameStub != nil {
 		return fake.LockNameStub(workerName)
-	} else {
-		return fake.lockNameReturns.result1, fake.lockNameReturns.result2
 	}
+	return fake.lockNameReturns.result1, fake.lockNameReturns.result2
 }
 
 func (fake *FakeResourceOptions) LockNameCallCount() int {

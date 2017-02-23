@@ -44,9 +44,8 @@ func (fake *FakeConn) Prepare(query string) (driver.Stmt, error) {
 	fake.prepareMutex.Unlock()
 	if fake.PrepareStub != nil {
 		return fake.PrepareStub(query)
-	} else {
-		return fake.prepareReturns.result1, fake.prepareReturns.result2
 	}
+	return fake.prepareReturns.result1, fake.prepareReturns.result2
 }
 
 func (fake *FakeConn) PrepareCallCount() int {
@@ -76,9 +75,8 @@ func (fake *FakeConn) Close() error {
 	fake.closeMutex.Unlock()
 	if fake.CloseStub != nil {
 		return fake.CloseStub()
-	} else {
-		return fake.closeReturns.result1
 	}
+	return fake.closeReturns.result1
 }
 
 func (fake *FakeConn) CloseCallCount() int {
@@ -101,9 +99,8 @@ func (fake *FakeConn) Begin() (driver.Tx, error) {
 	fake.beginMutex.Unlock()
 	if fake.BeginStub != nil {
 		return fake.BeginStub()
-	} else {
-		return fake.beginReturns.result1, fake.beginReturns.result2
 	}
+	return fake.beginReturns.result1, fake.beginReturns.result2
 }
 
 func (fake *FakeConn) BeginCallCount() int {

@@ -34,9 +34,8 @@ func (fake *FakeSaveWorkerDB) SaveWorker(arg1 db.WorkerInfo, arg2 time.Duration)
 	fake.saveWorkerMutex.Unlock()
 	if fake.SaveWorkerStub != nil {
 		return fake.SaveWorkerStub(arg1, arg2)
-	} else {
-		return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 	}
+	return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 }
 
 func (fake *FakeSaveWorkerDB) SaveWorkerCallCount() int {

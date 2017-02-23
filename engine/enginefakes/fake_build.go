@@ -49,9 +49,8 @@ func (fake *FakeBuild) Metadata() string {
 	fake.metadataMutex.Unlock()
 	if fake.MetadataStub != nil {
 		return fake.MetadataStub()
-	} else {
-		return fake.metadataReturns.result1
 	}
+	return fake.metadataReturns.result1
 }
 
 func (fake *FakeBuild) MetadataCallCount() int {
@@ -76,9 +75,8 @@ func (fake *FakeBuild) PublicPlan(arg1 lager.Logger) (atc.PublicBuildPlan, error
 	fake.publicPlanMutex.Unlock()
 	if fake.PublicPlanStub != nil {
 		return fake.PublicPlanStub(arg1)
-	} else {
-		return fake.publicPlanReturns.result1, fake.publicPlanReturns.result2
 	}
+	return fake.publicPlanReturns.result1, fake.publicPlanReturns.result2
 }
 
 func (fake *FakeBuild) PublicPlanCallCount() int {
@@ -110,9 +108,8 @@ func (fake *FakeBuild) Abort(arg1 lager.Logger) error {
 	fake.abortMutex.Unlock()
 	if fake.AbortStub != nil {
 		return fake.AbortStub(arg1)
-	} else {
-		return fake.abortReturns.result1
 	}
+	return fake.abortReturns.result1
 }
 
 func (fake *FakeBuild) AbortCallCount() int {

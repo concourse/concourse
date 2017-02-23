@@ -103,9 +103,8 @@ func (fake *FakeVolume) Handle() string {
 	fake.handleMutex.Unlock()
 	if fake.HandleStub != nil {
 		return fake.HandleStub()
-	} else {
-		return fake.handleReturns.result1
 	}
+	return fake.handleReturns.result1
 }
 
 func (fake *FakeVolume) HandleCallCount() int {
@@ -128,9 +127,8 @@ func (fake *FakeVolume) Path() string {
 	fake.pathMutex.Unlock()
 	if fake.PathStub != nil {
 		return fake.PathStub()
-	} else {
-		return fake.pathReturns.result1
 	}
+	return fake.pathReturns.result1
 }
 
 func (fake *FakeVolume) PathCallCount() int {
@@ -156,9 +154,8 @@ func (fake *FakeVolume) SetProperty(key string, value string) error {
 	fake.setPropertyMutex.Unlock()
 	if fake.SetPropertyStub != nil {
 		return fake.SetPropertyStub(key, value)
-	} else {
-		return fake.setPropertyReturns.result1
 	}
+	return fake.setPropertyReturns.result1
 }
 
 func (fake *FakeVolume) SetPropertyCallCount() int {
@@ -187,9 +184,8 @@ func (fake *FakeVolume) Properties() (baggageclaim.VolumeProperties, error) {
 	fake.propertiesMutex.Unlock()
 	if fake.PropertiesStub != nil {
 		return fake.PropertiesStub()
-	} else {
-		return fake.propertiesReturns.result1, fake.propertiesReturns.result2
 	}
+	return fake.propertiesReturns.result1, fake.propertiesReturns.result2
 }
 
 func (fake *FakeVolume) PropertiesCallCount() int {
@@ -216,9 +212,8 @@ func (fake *FakeVolume) StreamIn(path string, tarStream io.Reader) error {
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
 		return fake.StreamInStub(path, tarStream)
-	} else {
-		return fake.streamInReturns.result1
 	}
+	return fake.streamInReturns.result1
 }
 
 func (fake *FakeVolume) StreamInCallCount() int {
@@ -249,9 +244,8 @@ func (fake *FakeVolume) StreamOut(path string) (io.ReadCloser, error) {
 	fake.streamOutMutex.Unlock()
 	if fake.StreamOutStub != nil {
 		return fake.StreamOutStub(path)
-	} else {
-		return fake.streamOutReturns.result1, fake.streamOutReturns.result2
 	}
+	return fake.streamOutReturns.result1, fake.streamOutReturns.result2
 }
 
 func (fake *FakeVolume) StreamOutCallCount() int {
@@ -281,9 +275,8 @@ func (fake *FakeVolume) COWStrategy() baggageclaim.COWStrategy {
 	fake.cOWStrategyMutex.Unlock()
 	if fake.COWStrategyStub != nil {
 		return fake.COWStrategyStub()
-	} else {
-		return fake.cOWStrategyReturns.result1
 	}
+	return fake.cOWStrategyReturns.result1
 }
 
 func (fake *FakeVolume) COWStrategyCallCount() int {
@@ -306,9 +299,8 @@ func (fake *FakeVolume) IsInitialized() (bool, error) {
 	fake.isInitializedMutex.Unlock()
 	if fake.IsInitializedStub != nil {
 		return fake.IsInitializedStub()
-	} else {
-		return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 	}
+	return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 }
 
 func (fake *FakeVolume) IsInitializedCallCount() int {
@@ -332,9 +324,8 @@ func (fake *FakeVolume) Initialize() error {
 	fake.initializeMutex.Unlock()
 	if fake.InitializeStub != nil {
 		return fake.InitializeStub()
-	} else {
-		return fake.initializeReturns.result1
 	}
+	return fake.initializeReturns.result1
 }
 
 func (fake *FakeVolume) InitializeCallCount() int {
@@ -360,9 +351,8 @@ func (fake *FakeVolume) CreateChildForContainer(arg1 dbng.CreatingContainer, arg
 	fake.createChildForContainerMutex.Unlock()
 	if fake.CreateChildForContainerStub != nil {
 		return fake.CreateChildForContainerStub(arg1, arg2)
-	} else {
-		return fake.createChildForContainerReturns.result1, fake.createChildForContainerReturns.result2
 	}
+	return fake.createChildForContainerReturns.result1, fake.createChildForContainerReturns.result2
 }
 
 func (fake *FakeVolume) CreateChildForContainerCallCount() int {
@@ -392,9 +382,8 @@ func (fake *FakeVolume) Destroy() error {
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
 		return fake.DestroyStub()
-	} else {
-		return fake.destroyReturns.result1
 	}
+	return fake.destroyReturns.result1
 }
 
 func (fake *FakeVolume) DestroyCallCount() int {

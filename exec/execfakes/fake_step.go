@@ -40,9 +40,8 @@ func (fake *FakeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
 		return fake.RunStub(signals, ready)
-	} else {
-		return fake.runReturns.result1
 	}
+	return fake.runReturns.result1
 }
 
 func (fake *FakeStep) RunCallCount() int {
@@ -73,9 +72,8 @@ func (fake *FakeStep) Result(arg1 interface{}) bool {
 	fake.resultMutex.Unlock()
 	if fake.ResultStub != nil {
 		return fake.ResultStub(arg1)
-	} else {
-		return fake.resultReturns.result1
 	}
+	return fake.resultReturns.result1
 }
 
 func (fake *FakeStep) ResultCallCount() int {

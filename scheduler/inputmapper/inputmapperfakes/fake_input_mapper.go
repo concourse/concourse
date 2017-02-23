@@ -37,9 +37,8 @@ func (fake *FakeInputMapper) SaveNextInputMapping(logger lager.Logger, versions 
 	fake.saveNextInputMappingMutex.Unlock()
 	if fake.SaveNextInputMappingStub != nil {
 		return fake.SaveNextInputMappingStub(logger, versions, job)
-	} else {
-		return fake.saveNextInputMappingReturns.result1, fake.saveNextInputMappingReturns.result2
 	}
+	return fake.saveNextInputMappingReturns.result1, fake.saveNextInputMappingReturns.result2
 }
 
 func (fake *FakeInputMapper) SaveNextInputMappingCallCount() int {

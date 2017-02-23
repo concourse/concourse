@@ -65,9 +65,8 @@ func (fake *FakeWorkerProvider) RunningWorkers() ([]worker.Worker, error) {
 	fake.runningWorkersMutex.Unlock()
 	if fake.RunningWorkersStub != nil {
 		return fake.RunningWorkersStub()
-	} else {
-		return fake.runningWorkersReturns.result1, fake.runningWorkersReturns.result2
 	}
+	return fake.runningWorkersReturns.result1, fake.runningWorkersReturns.result2
 }
 
 func (fake *FakeWorkerProvider) RunningWorkersCallCount() int {
@@ -93,9 +92,8 @@ func (fake *FakeWorkerProvider) GetWorker(arg1 string) (worker.Worker, bool, err
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
 		return fake.GetWorkerStub(arg1)
-	} else {
-		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 	}
+	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 }
 
 func (fake *FakeWorkerProvider) GetWorkerCallCount() int {
@@ -128,9 +126,8 @@ func (fake *FakeWorkerProvider) FindContainerForIdentifier(arg1 worker.Identifie
 	fake.findContainerForIdentifierMutex.Unlock()
 	if fake.FindContainerForIdentifierStub != nil {
 		return fake.FindContainerForIdentifierStub(arg1)
-	} else {
-		return fake.findContainerForIdentifierReturns.result1, fake.findContainerForIdentifierReturns.result2, fake.findContainerForIdentifierReturns.result3
 	}
+	return fake.findContainerForIdentifierReturns.result1, fake.findContainerForIdentifierReturns.result2, fake.findContainerForIdentifierReturns.result3
 }
 
 func (fake *FakeWorkerProvider) FindContainerForIdentifierCallCount() int {
@@ -163,9 +160,8 @@ func (fake *FakeWorkerProvider) GetContainer(arg1 string) (db.SavedContainer, bo
 	fake.getContainerMutex.Unlock()
 	if fake.GetContainerStub != nil {
 		return fake.GetContainerStub(arg1)
-	} else {
-		return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 	}
+	return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 }
 
 func (fake *FakeWorkerProvider) GetContainerCallCount() int {
@@ -198,9 +194,8 @@ func (fake *FakeWorkerProvider) ReapContainer(arg1 string) error {
 	fake.reapContainerMutex.Unlock()
 	if fake.ReapContainerStub != nil {
 		return fake.ReapContainerStub(arg1)
-	} else {
-		return fake.reapContainerReturns.result1
 	}
+	return fake.reapContainerReturns.result1
 }
 
 func (fake *FakeWorkerProvider) ReapContainerCallCount() int {

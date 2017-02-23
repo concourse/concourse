@@ -33,9 +33,8 @@ func (fake *FakeRootFSable) RootFSPathFor(logger lager.Logger, worker cessna.Wor
 	fake.rootFSPathForMutex.Unlock()
 	if fake.RootFSPathForStub != nil {
 		return fake.RootFSPathForStub(logger, worker)
-	} else {
-		return fake.rootFSPathForReturns.result1, fake.rootFSPathForReturns.result2
 	}
+	return fake.rootFSPathForReturns.result1, fake.rootFSPathForReturns.result2
 }
 
 func (fake *FakeRootFSable) RootFSPathForCallCount() int {

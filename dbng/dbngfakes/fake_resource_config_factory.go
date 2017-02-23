@@ -93,9 +93,8 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForBuild(logger
 	fake.findOrCreateResourceConfigForBuildMutex.Unlock()
 	if fake.FindOrCreateResourceConfigForBuildStub != nil {
 		return fake.FindOrCreateResourceConfigForBuildStub(logger, buildID, resourceType, source, pipelineID, resourceTypes)
-	} else {
-		return fake.findOrCreateResourceConfigForBuildReturns.result1, fake.findOrCreateResourceConfigForBuildReturns.result2
 	}
+	return fake.findOrCreateResourceConfigForBuildReturns.result1, fake.findOrCreateResourceConfigForBuildReturns.result2
 }
 
 func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForBuildCallCount() int {
@@ -132,9 +131,8 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForResource(log
 	fake.findOrCreateResourceConfigForResourceMutex.Unlock()
 	if fake.FindOrCreateResourceConfigForResourceStub != nil {
 		return fake.FindOrCreateResourceConfigForResourceStub(logger, resourceID, resourceType, source, pipelineID, resourceTypes)
-	} else {
-		return fake.findOrCreateResourceConfigForResourceReturns.result1, fake.findOrCreateResourceConfigForResourceReturns.result2
 	}
+	return fake.findOrCreateResourceConfigForResourceReturns.result1, fake.findOrCreateResourceConfigForResourceReturns.result2
 }
 
 func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForResourceCallCount() int {
@@ -170,9 +168,8 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForResourceType
 	fake.findOrCreateResourceConfigForResourceTypeMutex.Unlock()
 	if fake.FindOrCreateResourceConfigForResourceTypeStub != nil {
 		return fake.FindOrCreateResourceConfigForResourceTypeStub(logger, resourceTypeName, source, pipelineID, resourceTypes)
-	} else {
-		return fake.findOrCreateResourceConfigForResourceTypeReturns.result1, fake.findOrCreateResourceConfigForResourceTypeReturns.result2
 	}
+	return fake.findOrCreateResourceConfigForResourceTypeReturns.result1, fake.findOrCreateResourceConfigForResourceTypeReturns.result2
 }
 
 func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigForResourceTypeCallCount() int {
@@ -202,9 +199,8 @@ func (fake *FakeResourceConfigFactory) CleanConfigUsesForFinishedBuilds() error 
 	fake.cleanConfigUsesForFinishedBuildsMutex.Unlock()
 	if fake.CleanConfigUsesForFinishedBuildsStub != nil {
 		return fake.CleanConfigUsesForFinishedBuildsStub()
-	} else {
-		return fake.cleanConfigUsesForFinishedBuildsReturns.result1
 	}
+	return fake.cleanConfigUsesForFinishedBuildsReturns.result1
 }
 
 func (fake *FakeResourceConfigFactory) CleanConfigUsesForFinishedBuildsCallCount() int {
@@ -227,9 +223,8 @@ func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourceTypes()
 	fake.cleanConfigUsesForInactiveResourceTypesMutex.Unlock()
 	if fake.CleanConfigUsesForInactiveResourceTypesStub != nil {
 		return fake.CleanConfigUsesForInactiveResourceTypesStub()
-	} else {
-		return fake.cleanConfigUsesForInactiveResourceTypesReturns.result1
 	}
+	return fake.cleanConfigUsesForInactiveResourceTypesReturns.result1
 }
 
 func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourceTypesCallCount() int {
@@ -252,9 +247,8 @@ func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResources() err
 	fake.cleanConfigUsesForInactiveResourcesMutex.Unlock()
 	if fake.CleanConfigUsesForInactiveResourcesStub != nil {
 		return fake.CleanConfigUsesForInactiveResourcesStub()
-	} else {
-		return fake.cleanConfigUsesForInactiveResourcesReturns.result1
 	}
+	return fake.cleanConfigUsesForInactiveResourcesReturns.result1
 }
 
 func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourcesCallCount() int {
@@ -277,9 +271,8 @@ func (fake *FakeResourceConfigFactory) CleanUselessConfigs() error {
 	fake.cleanUselessConfigsMutex.Unlock()
 	if fake.CleanUselessConfigsStub != nil {
 		return fake.CleanUselessConfigsStub()
-	} else {
-		return fake.cleanUselessConfigsReturns.result1
 	}
+	return fake.cleanUselessConfigsReturns.result1
 }
 
 func (fake *FakeResourceConfigFactory) CleanUselessConfigsCallCount() int {

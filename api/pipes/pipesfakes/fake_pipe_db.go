@@ -43,9 +43,8 @@ func (fake *FakePipeDB) CreatePipe(pipeGUID string, url string, teamName string)
 	fake.createPipeMutex.Unlock()
 	if fake.CreatePipeStub != nil {
 		return fake.CreatePipeStub(pipeGUID, url, teamName)
-	} else {
-		return fake.createPipeReturns.result1
 	}
+	return fake.createPipeReturns.result1
 }
 
 func (fake *FakePipeDB) CreatePipeCallCount() int {
@@ -76,9 +75,8 @@ func (fake *FakePipeDB) GetPipe(pipeGUID string) (db.Pipe, error) {
 	fake.getPipeMutex.Unlock()
 	if fake.GetPipeStub != nil {
 		return fake.GetPipeStub(pipeGUID)
-	} else {
-		return fake.getPipeReturns.result1, fake.getPipeReturns.result2
 	}
+	return fake.getPipeReturns.result1, fake.getPipeReturns.result2
 }
 
 func (fake *FakePipeDB) GetPipeCallCount() int {

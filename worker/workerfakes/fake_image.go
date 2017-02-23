@@ -34,9 +34,8 @@ func (fake *FakeImage) FetchForContainer(logger lager.Logger, container dbng.Cre
 	fake.fetchForContainerMutex.Unlock()
 	if fake.FetchForContainerStub != nil {
 		return fake.FetchForContainerStub(logger, container)
-	} else {
-		return fake.fetchForContainerReturns.result1, fake.fetchForContainerReturns.result2
 	}
+	return fake.fetchForContainerReturns.result1, fake.fetchForContainerReturns.result2
 }
 
 func (fake *FakeImage) FetchForContainerCallCount() int {

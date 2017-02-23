@@ -34,9 +34,8 @@ func (fake *FakeImageFetchingDelegate) Stderr() io.Writer {
 	fake.stderrMutex.Unlock()
 	if fake.StderrStub != nil {
 		return fake.StderrStub()
-	} else {
-		return fake.stderrReturns.result1
 	}
+	return fake.stderrReturns.result1
 }
 
 func (fake *FakeImageFetchingDelegate) StderrCallCount() int {
@@ -61,9 +60,8 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDetermined(arg1 worker.Resour
 	fake.imageVersionDeterminedMutex.Unlock()
 	if fake.ImageVersionDeterminedStub != nil {
 		return fake.ImageVersionDeterminedStub(arg1)
-	} else {
-		return fake.imageVersionDeterminedReturns.result1
 	}
+	return fake.imageVersionDeterminedReturns.result1
 }
 
 func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedCallCount() int {

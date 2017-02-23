@@ -29,9 +29,8 @@ func (fake *FakeContainerProviderFactory) ContainerProviderFor(arg1 worker.Worke
 	fake.containerProviderForMutex.Unlock()
 	if fake.ContainerProviderForStub != nil {
 		return fake.ContainerProviderForStub(arg1)
-	} else {
-		return fake.containerProviderForReturns.result1
 	}
+	return fake.containerProviderForReturns.result1
 }
 
 func (fake *FakeContainerProviderFactory) ContainerProviderForCallCount() int {

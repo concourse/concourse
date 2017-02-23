@@ -30,9 +30,8 @@ func (fake *FakeBuildDelegateFactory) Delegate(arg1 db.Build) engine.BuildDelega
 	fake.delegateMutex.Unlock()
 	if fake.DelegateStub != nil {
 		return fake.DelegateStub(arg1)
-	} else {
-		return fake.delegateReturns.result1
 	}
+	return fake.delegateReturns.result1
 }
 
 func (fake *FakeBuildDelegateFactory) DelegateCallCount() int {

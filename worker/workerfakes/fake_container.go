@@ -207,9 +207,8 @@ func (fake *FakeContainer) Handle() string {
 	fake.handleMutex.Unlock()
 	if fake.HandleStub != nil {
 		return fake.HandleStub()
-	} else {
-		return fake.handleReturns.result1
 	}
+	return fake.handleReturns.result1
 }
 
 func (fake *FakeContainer) HandleCallCount() int {
@@ -234,9 +233,8 @@ func (fake *FakeContainer) Stop(kill bool) error {
 	fake.stopMutex.Unlock()
 	if fake.StopStub != nil {
 		return fake.StopStub(kill)
-	} else {
-		return fake.stopReturns.result1
 	}
+	return fake.stopReturns.result1
 }
 
 func (fake *FakeContainer) StopCallCount() int {
@@ -265,9 +263,8 @@ func (fake *FakeContainer) Info() (garden.ContainerInfo, error) {
 	fake.infoMutex.Unlock()
 	if fake.InfoStub != nil {
 		return fake.InfoStub()
-	} else {
-		return fake.infoReturns.result1, fake.infoReturns.result2
 	}
+	return fake.infoReturns.result1, fake.infoReturns.result2
 }
 
 func (fake *FakeContainer) InfoCallCount() int {
@@ -293,9 +290,8 @@ func (fake *FakeContainer) StreamIn(spec garden.StreamInSpec) error {
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
 		return fake.StreamInStub(spec)
-	} else {
-		return fake.streamInReturns.result1
 	}
+	return fake.streamInReturns.result1
 }
 
 func (fake *FakeContainer) StreamInCallCount() int {
@@ -326,9 +322,8 @@ func (fake *FakeContainer) StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, 
 	fake.streamOutMutex.Unlock()
 	if fake.StreamOutStub != nil {
 		return fake.StreamOutStub(spec)
-	} else {
-		return fake.streamOutReturns.result1, fake.streamOutReturns.result2
 	}
+	return fake.streamOutReturns.result1, fake.streamOutReturns.result2
 }
 
 func (fake *FakeContainer) StreamOutCallCount() int {
@@ -358,9 +353,8 @@ func (fake *FakeContainer) CurrentBandwidthLimits() (garden.BandwidthLimits, err
 	fake.currentBandwidthLimitsMutex.Unlock()
 	if fake.CurrentBandwidthLimitsStub != nil {
 		return fake.CurrentBandwidthLimitsStub()
-	} else {
-		return fake.currentBandwidthLimitsReturns.result1, fake.currentBandwidthLimitsReturns.result2
 	}
+	return fake.currentBandwidthLimitsReturns.result1, fake.currentBandwidthLimitsReturns.result2
 }
 
 func (fake *FakeContainer) CurrentBandwidthLimitsCallCount() int {
@@ -384,9 +378,8 @@ func (fake *FakeContainer) CurrentCPULimits() (garden.CPULimits, error) {
 	fake.currentCPULimitsMutex.Unlock()
 	if fake.CurrentCPULimitsStub != nil {
 		return fake.CurrentCPULimitsStub()
-	} else {
-		return fake.currentCPULimitsReturns.result1, fake.currentCPULimitsReturns.result2
 	}
+	return fake.currentCPULimitsReturns.result1, fake.currentCPULimitsReturns.result2
 }
 
 func (fake *FakeContainer) CurrentCPULimitsCallCount() int {
@@ -410,9 +403,8 @@ func (fake *FakeContainer) CurrentDiskLimits() (garden.DiskLimits, error) {
 	fake.currentDiskLimitsMutex.Unlock()
 	if fake.CurrentDiskLimitsStub != nil {
 		return fake.CurrentDiskLimitsStub()
-	} else {
-		return fake.currentDiskLimitsReturns.result1, fake.currentDiskLimitsReturns.result2
 	}
+	return fake.currentDiskLimitsReturns.result1, fake.currentDiskLimitsReturns.result2
 }
 
 func (fake *FakeContainer) CurrentDiskLimitsCallCount() int {
@@ -436,9 +428,8 @@ func (fake *FakeContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) {
 	fake.currentMemoryLimitsMutex.Unlock()
 	if fake.CurrentMemoryLimitsStub != nil {
 		return fake.CurrentMemoryLimitsStub()
-	} else {
-		return fake.currentMemoryLimitsReturns.result1, fake.currentMemoryLimitsReturns.result2
 	}
+	return fake.currentMemoryLimitsReturns.result1, fake.currentMemoryLimitsReturns.result2
 }
 
 func (fake *FakeContainer) CurrentMemoryLimitsCallCount() int {
@@ -465,9 +456,8 @@ func (fake *FakeContainer) NetIn(hostPort uint32, containerPort uint32) (uint32,
 	fake.netInMutex.Unlock()
 	if fake.NetInStub != nil {
 		return fake.NetInStub(hostPort, containerPort)
-	} else {
-		return fake.netInReturns.result1, fake.netInReturns.result2, fake.netInReturns.result3
 	}
+	return fake.netInReturns.result1, fake.netInReturns.result2, fake.netInReturns.result3
 }
 
 func (fake *FakeContainer) NetInCallCount() int {
@@ -500,9 +490,8 @@ func (fake *FakeContainer) NetOut(netOutRule garden.NetOutRule) error {
 	fake.netOutMutex.Unlock()
 	if fake.NetOutStub != nil {
 		return fake.NetOutStub(netOutRule)
-	} else {
-		return fake.netOutReturns.result1
 	}
+	return fake.netOutReturns.result1
 }
 
 func (fake *FakeContainer) NetOutCallCount() int {
@@ -538,9 +527,8 @@ func (fake *FakeContainer) BulkNetOut(netOutRules []garden.NetOutRule) error {
 	fake.bulkNetOutMutex.Unlock()
 	if fake.BulkNetOutStub != nil {
 		return fake.BulkNetOutStub(netOutRules)
-	} else {
-		return fake.bulkNetOutReturns.result1
 	}
+	return fake.bulkNetOutReturns.result1
 }
 
 func (fake *FakeContainer) BulkNetOutCallCount() int {
@@ -572,9 +560,8 @@ func (fake *FakeContainer) Run(arg1 garden.ProcessSpec, arg2 garden.ProcessIO) (
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
 		return fake.RunStub(arg1, arg2)
-	} else {
-		return fake.runReturns.result1, fake.runReturns.result2
 	}
+	return fake.runReturns.result1, fake.runReturns.result2
 }
 
 func (fake *FakeContainer) RunCallCount() int {
@@ -607,9 +594,8 @@ func (fake *FakeContainer) Attach(processID string, io garden.ProcessIO) (garden
 	fake.attachMutex.Unlock()
 	if fake.AttachStub != nil {
 		return fake.AttachStub(processID, io)
-	} else {
-		return fake.attachReturns.result1, fake.attachReturns.result2
 	}
+	return fake.attachReturns.result1, fake.attachReturns.result2
 }
 
 func (fake *FakeContainer) AttachCallCount() int {
@@ -639,9 +625,8 @@ func (fake *FakeContainer) Metrics() (garden.Metrics, error) {
 	fake.metricsMutex.Unlock()
 	if fake.MetricsStub != nil {
 		return fake.MetricsStub()
-	} else {
-		return fake.metricsReturns.result1, fake.metricsReturns.result2
 	}
+	return fake.metricsReturns.result1, fake.metricsReturns.result2
 }
 
 func (fake *FakeContainer) MetricsCallCount() int {
@@ -667,9 +652,8 @@ func (fake *FakeContainer) SetGraceTime(graceTime time.Duration) error {
 	fake.setGraceTimeMutex.Unlock()
 	if fake.SetGraceTimeStub != nil {
 		return fake.SetGraceTimeStub(graceTime)
-	} else {
-		return fake.setGraceTimeReturns.result1
 	}
+	return fake.setGraceTimeReturns.result1
 }
 
 func (fake *FakeContainer) SetGraceTimeCallCount() int {
@@ -698,9 +682,8 @@ func (fake *FakeContainer) Properties() (garden.Properties, error) {
 	fake.propertiesMutex.Unlock()
 	if fake.PropertiesStub != nil {
 		return fake.PropertiesStub()
-	} else {
-		return fake.propertiesReturns.result1, fake.propertiesReturns.result2
 	}
+	return fake.propertiesReturns.result1, fake.propertiesReturns.result2
 }
 
 func (fake *FakeContainer) PropertiesCallCount() int {
@@ -726,9 +709,8 @@ func (fake *FakeContainer) Property(name string) (string, error) {
 	fake.propertyMutex.Unlock()
 	if fake.PropertyStub != nil {
 		return fake.PropertyStub(name)
-	} else {
-		return fake.propertyReturns.result1, fake.propertyReturns.result2
 	}
+	return fake.propertyReturns.result1, fake.propertyReturns.result2
 }
 
 func (fake *FakeContainer) PropertyCallCount() int {
@@ -761,9 +743,8 @@ func (fake *FakeContainer) SetProperty(name string, value string) error {
 	fake.setPropertyMutex.Unlock()
 	if fake.SetPropertyStub != nil {
 		return fake.SetPropertyStub(name, value)
-	} else {
-		return fake.setPropertyReturns.result1
 	}
+	return fake.setPropertyReturns.result1
 }
 
 func (fake *FakeContainer) SetPropertyCallCount() int {
@@ -794,9 +775,8 @@ func (fake *FakeContainer) RemoveProperty(name string) error {
 	fake.removePropertyMutex.Unlock()
 	if fake.RemovePropertyStub != nil {
 		return fake.RemovePropertyStub(name)
-	} else {
-		return fake.removePropertyReturns.result1
 	}
+	return fake.removePropertyReturns.result1
 }
 
 func (fake *FakeContainer) RemovePropertyCallCount() int {
@@ -825,9 +805,8 @@ func (fake *FakeContainer) Destroy() error {
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
 		return fake.DestroyStub()
-	} else {
-		return fake.destroyReturns.result1
 	}
+	return fake.destroyReturns.result1
 }
 
 func (fake *FakeContainer) DestroyCallCount() int {
@@ -850,9 +829,8 @@ func (fake *FakeContainer) VolumeMounts() []worker.VolumeMount {
 	fake.volumeMountsMutex.Unlock()
 	if fake.VolumeMountsStub != nil {
 		return fake.VolumeMountsStub()
-	} else {
-		return fake.volumeMountsReturns.result1
 	}
+	return fake.volumeMountsReturns.result1
 }
 
 func (fake *FakeContainer) VolumeMountsCallCount() int {
@@ -875,9 +853,8 @@ func (fake *FakeContainer) WorkerName() string {
 	fake.workerNameMutex.Unlock()
 	if fake.WorkerNameStub != nil {
 		return fake.WorkerNameStub()
-	} else {
-		return fake.workerNameReturns.result1
 	}
+	return fake.workerNameReturns.result1
 }
 
 func (fake *FakeContainer) WorkerNameCallCount() int {
@@ -900,9 +877,8 @@ func (fake *FakeContainer) MarkAsHijacked() error {
 	fake.markAsHijackedMutex.Unlock()
 	if fake.MarkAsHijackedStub != nil {
 		return fake.MarkAsHijackedStub()
-	} else {
-		return fake.markAsHijackedReturns.result1
 	}
+	return fake.markAsHijackedReturns.result1
 }
 
 func (fake *FakeContainer) MarkAsHijackedCallCount() int {

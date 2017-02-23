@@ -30,9 +30,8 @@ func (fake *FakeATCListener) Listen(channel string) (chan bool, error) {
 	fake.listenMutex.Unlock()
 	if fake.ListenStub != nil {
 		return fake.ListenStub(channel)
-	} else {
-		return fake.listenReturns.result1, fake.listenReturns.result2
 	}
+	return fake.listenReturns.result1, fake.listenReturns.result2
 }
 
 func (fake *FakeATCListener) ListenCallCount() int {

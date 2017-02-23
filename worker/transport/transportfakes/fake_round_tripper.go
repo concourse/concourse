@@ -31,9 +31,8 @@ func (fake *FakeRoundTripper) RoundTrip(arg1 *http.Request) (*http.Response, err
 	fake.roundTripMutex.Unlock()
 	if fake.RoundTripStub != nil {
 		return fake.RoundTripStub(arg1)
-	} else {
-		return fake.roundTripReturns.result1, fake.roundTripReturns.result2
 	}
+	return fake.roundTripReturns.result1, fake.roundTripReturns.result2
 }
 
 func (fake *FakeRoundTripper) RoundTripCallCount() int {

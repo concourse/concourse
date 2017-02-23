@@ -32,9 +32,8 @@ func (fake *FakeContainerDB) GetContainer(handle string) (db.SavedContainer, boo
 	fake.getContainerMutex.Unlock()
 	if fake.GetContainerStub != nil {
 		return fake.GetContainerStub(handle)
-	} else {
-		return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 	}
+	return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 }
 
 func (fake *FakeContainerDB) GetContainerCallCount() int {

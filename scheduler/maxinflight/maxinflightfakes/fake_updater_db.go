@@ -58,9 +58,8 @@ func (fake *FakeUpdaterDB) GetRunningBuildsBySerialGroup(jobName string, serialG
 	fake.getRunningBuildsBySerialGroupMutex.Unlock()
 	if fake.GetRunningBuildsBySerialGroupStub != nil {
 		return fake.GetRunningBuildsBySerialGroupStub(jobName, serialGroups)
-	} else {
-		return fake.getRunningBuildsBySerialGroupReturns.result1, fake.getRunningBuildsBySerialGroupReturns.result2
 	}
+	return fake.getRunningBuildsBySerialGroupReturns.result1, fake.getRunningBuildsBySerialGroupReturns.result2
 }
 
 func (fake *FakeUpdaterDB) GetRunningBuildsBySerialGroupCallCount() int {
@@ -98,9 +97,8 @@ func (fake *FakeUpdaterDB) GetNextPendingBuildBySerialGroup(jobName string, seri
 	fake.getNextPendingBuildBySerialGroupMutex.Unlock()
 	if fake.GetNextPendingBuildBySerialGroupStub != nil {
 		return fake.GetNextPendingBuildBySerialGroupStub(jobName, serialGroups)
-	} else {
-		return fake.getNextPendingBuildBySerialGroupReturns.result1, fake.getNextPendingBuildBySerialGroupReturns.result2, fake.getNextPendingBuildBySerialGroupReturns.result3
 	}
+	return fake.getNextPendingBuildBySerialGroupReturns.result1, fake.getNextPendingBuildBySerialGroupReturns.result2, fake.getNextPendingBuildBySerialGroupReturns.result3
 }
 
 func (fake *FakeUpdaterDB) GetNextPendingBuildBySerialGroupCallCount() int {
@@ -134,9 +132,8 @@ func (fake *FakeUpdaterDB) SetMaxInFlightReached(jobName string, reached bool) e
 	fake.setMaxInFlightReachedMutex.Unlock()
 	if fake.SetMaxInFlightReachedStub != nil {
 		return fake.SetMaxInFlightReachedStub(jobName, reached)
-	} else {
-		return fake.setMaxInFlightReachedReturns.result1
 	}
+	return fake.setMaxInFlightReachedReturns.result1
 }
 
 func (fake *FakeUpdaterDB) SetMaxInFlightReachedCallCount() int {

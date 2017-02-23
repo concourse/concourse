@@ -35,9 +35,8 @@ func (fake *FakeProviderFactory) GetProvider(arg1 db.SavedTeam, arg2 string) (pr
 	fake.getProviderMutex.Unlock()
 	if fake.GetProviderStub != nil {
 		return fake.GetProviderStub(arg1, arg2)
-	} else {
-		return fake.getProviderReturns.result1, fake.getProviderReturns.result2, fake.getProviderReturns.result3
 	}
+	return fake.getProviderReturns.result1, fake.getProviderReturns.result2, fake.getProviderReturns.result3
 }
 
 func (fake *FakeProviderFactory) GetProviderCallCount() int {

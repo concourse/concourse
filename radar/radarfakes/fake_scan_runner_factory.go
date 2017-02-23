@@ -42,9 +42,8 @@ func (fake *FakeScanRunnerFactory) ScanResourceRunner(arg1 lager.Logger, arg2 st
 	fake.scanResourceRunnerMutex.Unlock()
 	if fake.ScanResourceRunnerStub != nil {
 		return fake.ScanResourceRunnerStub(arg1, arg2)
-	} else {
-		return fake.scanResourceRunnerReturns.result1
 	}
+	return fake.scanResourceRunnerReturns.result1
 }
 
 func (fake *FakeScanRunnerFactory) ScanResourceRunnerCallCount() int {
@@ -76,9 +75,8 @@ func (fake *FakeScanRunnerFactory) ScanResourceTypeRunner(arg1 lager.Logger, arg
 	fake.scanResourceTypeRunnerMutex.Unlock()
 	if fake.ScanResourceTypeRunnerStub != nil {
 		return fake.ScanResourceTypeRunnerStub(arg1, arg2)
-	} else {
-		return fake.scanResourceTypeRunnerReturns.result1
 	}
+	return fake.scanResourceTypeRunnerReturns.result1
 }
 
 func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerCallCount() int {

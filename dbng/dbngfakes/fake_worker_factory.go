@@ -131,9 +131,8 @@ func (fake *FakeWorkerFactory) GetWorker(name string) (*dbng.Worker, bool, error
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
 		return fake.GetWorkerStub(name)
-	} else {
-		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 	}
+	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 }
 
 func (fake *FakeWorkerFactory) GetWorkerCallCount() int {
@@ -164,9 +163,8 @@ func (fake *FakeWorkerFactory) Workers() ([]*dbng.Worker, error) {
 	fake.workersMutex.Unlock()
 	if fake.WorkersStub != nil {
 		return fake.WorkersStub()
-	} else {
-		return fake.workersReturns.result1, fake.workersReturns.result2
 	}
+	return fake.workersReturns.result1, fake.workersReturns.result2
 }
 
 func (fake *FakeWorkerFactory) WorkersCallCount() int {
@@ -192,9 +190,8 @@ func (fake *FakeWorkerFactory) WorkersForTeam(teamName string) ([]*dbng.Worker, 
 	fake.workersForTeamMutex.Unlock()
 	if fake.WorkersForTeamStub != nil {
 		return fake.WorkersForTeamStub(teamName)
-	} else {
-		return fake.workersForTeamReturns.result1, fake.workersForTeamReturns.result2
 	}
+	return fake.workersForTeamReturns.result1, fake.workersForTeamReturns.result2
 }
 
 func (fake *FakeWorkerFactory) WorkersForTeamCallCount() int {
@@ -226,9 +223,8 @@ func (fake *FakeWorkerFactory) StallWorker(name string) (*dbng.Worker, error) {
 	fake.stallWorkerMutex.Unlock()
 	if fake.StallWorkerStub != nil {
 		return fake.StallWorkerStub(name)
-	} else {
-		return fake.stallWorkerReturns.result1, fake.stallWorkerReturns.result2
 	}
+	return fake.stallWorkerReturns.result1, fake.stallWorkerReturns.result2
 }
 
 func (fake *FakeWorkerFactory) StallWorkerCallCount() int {
@@ -258,9 +254,8 @@ func (fake *FakeWorkerFactory) StallUnresponsiveWorkers() ([]*dbng.Worker, error
 	fake.stallUnresponsiveWorkersMutex.Unlock()
 	if fake.StallUnresponsiveWorkersStub != nil {
 		return fake.StallUnresponsiveWorkersStub()
-	} else {
-		return fake.stallUnresponsiveWorkersReturns.result1, fake.stallUnresponsiveWorkersReturns.result2
 	}
+	return fake.stallUnresponsiveWorkersReturns.result1, fake.stallUnresponsiveWorkersReturns.result2
 }
 
 func (fake *FakeWorkerFactory) StallUnresponsiveWorkersCallCount() int {
@@ -284,9 +279,8 @@ func (fake *FakeWorkerFactory) DeleteFinishedRetiringWorkers() error {
 	fake.deleteFinishedRetiringWorkersMutex.Unlock()
 	if fake.DeleteFinishedRetiringWorkersStub != nil {
 		return fake.DeleteFinishedRetiringWorkersStub()
-	} else {
-		return fake.deleteFinishedRetiringWorkersReturns.result1
 	}
+	return fake.deleteFinishedRetiringWorkersReturns.result1
 }
 
 func (fake *FakeWorkerFactory) DeleteFinishedRetiringWorkersCallCount() int {
@@ -309,9 +303,8 @@ func (fake *FakeWorkerFactory) LandFinishedLandingWorkers() error {
 	fake.landFinishedLandingWorkersMutex.Unlock()
 	if fake.LandFinishedLandingWorkersStub != nil {
 		return fake.LandFinishedLandingWorkersStub()
-	} else {
-		return fake.landFinishedLandingWorkersReturns.result1
 	}
+	return fake.landFinishedLandingWorkersReturns.result1
 }
 
 func (fake *FakeWorkerFactory) LandFinishedLandingWorkersCallCount() int {
@@ -337,9 +330,8 @@ func (fake *FakeWorkerFactory) SaveWorker(worker atc.Worker, ttl time.Duration) 
 	fake.saveWorkerMutex.Unlock()
 	if fake.SaveWorkerStub != nil {
 		return fake.SaveWorkerStub(worker, ttl)
-	} else {
-		return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 	}
+	return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 }
 
 func (fake *FakeWorkerFactory) SaveWorkerCallCount() int {
@@ -371,9 +363,8 @@ func (fake *FakeWorkerFactory) LandWorker(name string) (*dbng.Worker, error) {
 	fake.landWorkerMutex.Unlock()
 	if fake.LandWorkerStub != nil {
 		return fake.LandWorkerStub(name)
-	} else {
-		return fake.landWorkerReturns.result1, fake.landWorkerReturns.result2
 	}
+	return fake.landWorkerReturns.result1, fake.landWorkerReturns.result2
 }
 
 func (fake *FakeWorkerFactory) LandWorkerCallCount() int {
@@ -405,9 +396,8 @@ func (fake *FakeWorkerFactory) RetireWorker(name string) (*dbng.Worker, error) {
 	fake.retireWorkerMutex.Unlock()
 	if fake.RetireWorkerStub != nil {
 		return fake.RetireWorkerStub(name)
-	} else {
-		return fake.retireWorkerReturns.result1, fake.retireWorkerReturns.result2
 	}
+	return fake.retireWorkerReturns.result1, fake.retireWorkerReturns.result2
 }
 
 func (fake *FakeWorkerFactory) RetireWorkerCallCount() int {
@@ -439,9 +429,8 @@ func (fake *FakeWorkerFactory) PruneWorker(name string) error {
 	fake.pruneWorkerMutex.Unlock()
 	if fake.PruneWorkerStub != nil {
 		return fake.PruneWorkerStub(name)
-	} else {
-		return fake.pruneWorkerReturns.result1
 	}
+	return fake.pruneWorkerReturns.result1
 }
 
 func (fake *FakeWorkerFactory) PruneWorkerCallCount() int {
@@ -472,9 +461,8 @@ func (fake *FakeWorkerFactory) DeleteWorker(name string) error {
 	fake.deleteWorkerMutex.Unlock()
 	if fake.DeleteWorkerStub != nil {
 		return fake.DeleteWorkerStub(name)
-	} else {
-		return fake.deleteWorkerReturns.result1
 	}
+	return fake.deleteWorkerReturns.result1
 }
 
 func (fake *FakeWorkerFactory) DeleteWorkerCallCount() int {
@@ -506,9 +494,8 @@ func (fake *FakeWorkerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Durat
 	fake.heartbeatWorkerMutex.Unlock()
 	if fake.HeartbeatWorkerStub != nil {
 		return fake.HeartbeatWorkerStub(worker, ttl)
-	} else {
-		return fake.heartbeatWorkerReturns.result1, fake.heartbeatWorkerReturns.result2
 	}
+	return fake.heartbeatWorkerReturns.result1, fake.heartbeatWorkerReturns.result2
 }
 
 func (fake *FakeWorkerFactory) HeartbeatWorkerCallCount() int {

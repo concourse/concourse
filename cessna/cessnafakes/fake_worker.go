@@ -33,9 +33,8 @@ func (fake *FakeWorker) GardenClient() garden.Client {
 	fake.gardenClientMutex.Unlock()
 	if fake.GardenClientStub != nil {
 		return fake.GardenClientStub()
-	} else {
-		return fake.gardenClientReturns.result1
 	}
+	return fake.gardenClientReturns.result1
 }
 
 func (fake *FakeWorker) GardenClientCallCount() int {
@@ -58,9 +57,8 @@ func (fake *FakeWorker) BaggageClaimClient() baggageclaim.Client {
 	fake.baggageClaimClientMutex.Unlock()
 	if fake.BaggageClaimClientStub != nil {
 		return fake.BaggageClaimClientStub()
-	} else {
-		return fake.baggageClaimClientReturns.result1
 	}
+	return fake.baggageClaimClientReturns.result1
 }
 
 func (fake *FakeWorker) BaggageClaimClientCallCount() int {

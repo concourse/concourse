@@ -49,9 +49,8 @@ func (fake *FakeArtifactSource) StreamTo(arg1 worker.ArtifactDestination) error 
 	fake.streamToMutex.Unlock()
 	if fake.StreamToStub != nil {
 		return fake.StreamToStub(arg1)
-	} else {
-		return fake.streamToReturns.result1
 	}
+	return fake.streamToReturns.result1
 }
 
 func (fake *FakeArtifactSource) StreamToCallCount() int {
@@ -82,9 +81,8 @@ func (fake *FakeArtifactSource) StreamFile(path string) (io.ReadCloser, error) {
 	fake.streamFileMutex.Unlock()
 	if fake.StreamFileStub != nil {
 		return fake.StreamFileStub(path)
-	} else {
-		return fake.streamFileReturns.result1, fake.streamFileReturns.result2
 	}
+	return fake.streamFileReturns.result1, fake.streamFileReturns.result2
 }
 
 func (fake *FakeArtifactSource) StreamFileCallCount() int {
@@ -116,9 +114,8 @@ func (fake *FakeArtifactSource) VolumeOn(arg1 worker.Worker) (worker.Volume, boo
 	fake.volumeOnMutex.Unlock()
 	if fake.VolumeOnStub != nil {
 		return fake.VolumeOnStub(arg1)
-	} else {
-		return fake.volumeOnReturns.result1, fake.volumeOnReturns.result2, fake.volumeOnReturns.result3
 	}
+	return fake.volumeOnReturns.result1, fake.volumeOnReturns.result2, fake.volumeOnReturns.result3
 }
 
 func (fake *FakeArtifactSource) VolumeOnCallCount() int {

@@ -137,9 +137,8 @@ func (fake *FakeVolumeFactory) GetTeamVolumes(teamID int) ([]dbng.CreatedVolume,
 	fake.getTeamVolumesMutex.Unlock()
 	if fake.GetTeamVolumesStub != nil {
 		return fake.GetTeamVolumesStub(teamID)
-	} else {
-		return fake.getTeamVolumesReturns.result1, fake.getTeamVolumesReturns.result2
 	}
+	return fake.getTeamVolumesReturns.result1, fake.getTeamVolumesReturns.result2
 }
 
 func (fake *FakeVolumeFactory) GetTeamVolumesCallCount() int {
@@ -174,9 +173,8 @@ func (fake *FakeVolumeFactory) CreateContainerVolume(arg1 int, arg2 *dbng.Worker
 	fake.createContainerVolumeMutex.Unlock()
 	if fake.CreateContainerVolumeStub != nil {
 		return fake.CreateContainerVolumeStub(arg1, arg2, arg3, arg4)
-	} else {
-		return fake.createContainerVolumeReturns.result1, fake.createContainerVolumeReturns.result2
 	}
+	return fake.createContainerVolumeReturns.result1, fake.createContainerVolumeReturns.result2
 }
 
 func (fake *FakeVolumeFactory) CreateContainerVolumeCallCount() int {
@@ -211,9 +209,8 @@ func (fake *FakeVolumeFactory) FindContainerVolume(arg1 int, arg2 *dbng.Worker, 
 	fake.findContainerVolumeMutex.Unlock()
 	if fake.FindContainerVolumeStub != nil {
 		return fake.FindContainerVolumeStub(arg1, arg2, arg3, arg4)
-	} else {
-		return fake.findContainerVolumeReturns.result1, fake.findContainerVolumeReturns.result2, fake.findContainerVolumeReturns.result3
 	}
+	return fake.findContainerVolumeReturns.result1, fake.findContainerVolumeReturns.result2, fake.findContainerVolumeReturns.result3
 }
 
 func (fake *FakeVolumeFactory) FindContainerVolumeCallCount() int {
@@ -248,9 +245,8 @@ func (fake *FakeVolumeFactory) FindBaseResourceTypeVolume(arg1 int, arg2 *dbng.W
 	fake.findBaseResourceTypeVolumeMutex.Unlock()
 	if fake.FindBaseResourceTypeVolumeStub != nil {
 		return fake.FindBaseResourceTypeVolumeStub(arg1, arg2, arg3)
-	} else {
-		return fake.findBaseResourceTypeVolumeReturns.result1, fake.findBaseResourceTypeVolumeReturns.result2, fake.findBaseResourceTypeVolumeReturns.result3
 	}
+	return fake.findBaseResourceTypeVolumeReturns.result1, fake.findBaseResourceTypeVolumeReturns.result2, fake.findBaseResourceTypeVolumeReturns.result3
 }
 
 func (fake *FakeVolumeFactory) FindBaseResourceTypeVolumeCallCount() int {
@@ -285,9 +281,8 @@ func (fake *FakeVolumeFactory) CreateBaseResourceTypeVolume(arg1 int, arg2 *dbng
 	fake.createBaseResourceTypeVolumeMutex.Unlock()
 	if fake.CreateBaseResourceTypeVolumeStub != nil {
 		return fake.CreateBaseResourceTypeVolumeStub(arg1, arg2, arg3)
-	} else {
-		return fake.createBaseResourceTypeVolumeReturns.result1, fake.createBaseResourceTypeVolumeReturns.result2
 	}
+	return fake.createBaseResourceTypeVolumeReturns.result1, fake.createBaseResourceTypeVolumeReturns.result2
 }
 
 func (fake *FakeVolumeFactory) CreateBaseResourceTypeVolumeCallCount() int {
@@ -320,9 +315,8 @@ func (fake *FakeVolumeFactory) FindResourceCacheVolume(arg1 *dbng.Worker, arg2 *
 	fake.findResourceCacheVolumeMutex.Unlock()
 	if fake.FindResourceCacheVolumeStub != nil {
 		return fake.FindResourceCacheVolumeStub(arg1, arg2)
-	} else {
-		return fake.findResourceCacheVolumeReturns.result1, fake.findResourceCacheVolumeReturns.result2, fake.findResourceCacheVolumeReturns.result3
 	}
+	return fake.findResourceCacheVolumeReturns.result1, fake.findResourceCacheVolumeReturns.result2, fake.findResourceCacheVolumeReturns.result3
 }
 
 func (fake *FakeVolumeFactory) FindResourceCacheVolumeCallCount() int {
@@ -356,9 +350,8 @@ func (fake *FakeVolumeFactory) FindResourceCacheInitializedVolume(arg1 *dbng.Wor
 	fake.findResourceCacheInitializedVolumeMutex.Unlock()
 	if fake.FindResourceCacheInitializedVolumeStub != nil {
 		return fake.FindResourceCacheInitializedVolumeStub(arg1, arg2)
-	} else {
-		return fake.findResourceCacheInitializedVolumeReturns.result1, fake.findResourceCacheInitializedVolumeReturns.result2, fake.findResourceCacheInitializedVolumeReturns.result3
 	}
+	return fake.findResourceCacheInitializedVolumeReturns.result1, fake.findResourceCacheInitializedVolumeReturns.result2, fake.findResourceCacheInitializedVolumeReturns.result3
 }
 
 func (fake *FakeVolumeFactory) FindResourceCacheInitializedVolumeCallCount() int {
@@ -392,9 +385,8 @@ func (fake *FakeVolumeFactory) CreateResourceCacheVolume(arg1 *dbng.Worker, arg2
 	fake.createResourceCacheVolumeMutex.Unlock()
 	if fake.CreateResourceCacheVolumeStub != nil {
 		return fake.CreateResourceCacheVolumeStub(arg1, arg2)
-	} else {
-		return fake.createResourceCacheVolumeReturns.result1, fake.createResourceCacheVolumeReturns.result2
 	}
+	return fake.createResourceCacheVolumeReturns.result1, fake.createResourceCacheVolumeReturns.result2
 }
 
 func (fake *FakeVolumeFactory) CreateResourceCacheVolumeCallCount() int {
@@ -426,9 +418,8 @@ func (fake *FakeVolumeFactory) FindVolumesForContainer(arg1 dbng.CreatedContaine
 	fake.findVolumesForContainerMutex.Unlock()
 	if fake.FindVolumesForContainerStub != nil {
 		return fake.FindVolumesForContainerStub(arg1)
-	} else {
-		return fake.findVolumesForContainerReturns.result1, fake.findVolumesForContainerReturns.result2
 	}
+	return fake.findVolumesForContainerReturns.result1, fake.findVolumesForContainerReturns.result2
 }
 
 func (fake *FakeVolumeFactory) FindVolumesForContainerCallCount() int {
@@ -458,9 +449,8 @@ func (fake *FakeVolumeFactory) GetOrphanedVolumes() ([]dbng.CreatedVolume, []dbn
 	fake.getOrphanedVolumesMutex.Unlock()
 	if fake.GetOrphanedVolumesStub != nil {
 		return fake.GetOrphanedVolumesStub()
-	} else {
-		return fake.getOrphanedVolumesReturns.result1, fake.getOrphanedVolumesReturns.result2, fake.getOrphanedVolumesReturns.result3
 	}
+	return fake.getOrphanedVolumesReturns.result1, fake.getOrphanedVolumesReturns.result2, fake.getOrphanedVolumesReturns.result3
 }
 
 func (fake *FakeVolumeFactory) GetOrphanedVolumesCallCount() int {
@@ -487,9 +477,8 @@ func (fake *FakeVolumeFactory) FindCreatedVolume(handle string) (dbng.CreatedVol
 	fake.findCreatedVolumeMutex.Unlock()
 	if fake.FindCreatedVolumeStub != nil {
 		return fake.FindCreatedVolumeStub(handle)
-	} else {
-		return fake.findCreatedVolumeReturns.result1, fake.findCreatedVolumeReturns.result2, fake.findCreatedVolumeReturns.result3
 	}
+	return fake.findCreatedVolumeReturns.result1, fake.findCreatedVolumeReturns.result2, fake.findCreatedVolumeReturns.result3
 }
 
 func (fake *FakeVolumeFactory) FindCreatedVolumeCallCount() int {

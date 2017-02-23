@@ -41,9 +41,8 @@ func (fake *FakeTransformer) TransformInputConfigs(db *algorithm.VersionsDB, job
 	fake.transformInputConfigsMutex.Unlock()
 	if fake.TransformInputConfigsStub != nil {
 		return fake.TransformInputConfigsStub(db, jobName, inputs)
-	} else {
-		return fake.transformInputConfigsReturns.result1, fake.transformInputConfigsReturns.result2
 	}
+	return fake.transformInputConfigsReturns.result1, fake.transformInputConfigsReturns.result2
 }
 
 func (fake *FakeTransformer) TransformInputConfigsCallCount() int {

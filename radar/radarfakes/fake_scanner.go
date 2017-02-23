@@ -54,9 +54,8 @@ func (fake *FakeScanner) Run(arg1 lager.Logger, arg2 string) (time.Duration, err
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
 		return fake.RunStub(arg1, arg2)
-	} else {
-		return fake.runReturns.result1, fake.runReturns.result2
 	}
+	return fake.runReturns.result1, fake.runReturns.result2
 }
 
 func (fake *FakeScanner) RunCallCount() int {
@@ -89,9 +88,8 @@ func (fake *FakeScanner) Scan(arg1 lager.Logger, arg2 string) error {
 	fake.scanMutex.Unlock()
 	if fake.ScanStub != nil {
 		return fake.ScanStub(arg1, arg2)
-	} else {
-		return fake.scanReturns.result1
 	}
+	return fake.scanReturns.result1
 }
 
 func (fake *FakeScanner) ScanCallCount() int {
@@ -124,9 +122,8 @@ func (fake *FakeScanner) ScanFromVersion(arg1 lager.Logger, arg2 string, arg3 at
 	fake.scanFromVersionMutex.Unlock()
 	if fake.ScanFromVersionStub != nil {
 		return fake.ScanFromVersionStub(arg1, arg2, arg3)
-	} else {
-		return fake.scanFromVersionReturns.result1
 	}
+	return fake.scanFromVersionReturns.result1
 }
 
 func (fake *FakeScanner) ScanFromVersionCallCount() int {

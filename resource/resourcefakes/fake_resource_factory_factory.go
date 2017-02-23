@@ -30,9 +30,8 @@ func (fake *FakeResourceFactoryFactory) FactoryFor(workerClient worker.Client) r
 	fake.factoryForMutex.Unlock()
 	if fake.FactoryForStub != nil {
 		return fake.FactoryForStub(workerClient)
-	} else {
-		return fake.factoryForReturns.result1
 	}
+	return fake.factoryForReturns.result1
 }
 
 func (fake *FakeResourceFactoryFactory) FactoryForCallCount() int {

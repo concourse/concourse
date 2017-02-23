@@ -278,9 +278,8 @@ func (fake *FakeWorker) FindOrCreateBuildContainer(arg1 lager.Logger, arg2 <-cha
 	fake.findOrCreateBuildContainerMutex.Unlock()
 	if fake.FindOrCreateBuildContainerStub != nil {
 		return fake.FindOrCreateBuildContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
-	} else {
-		return fake.findOrCreateBuildContainerReturns.result1, fake.findOrCreateBuildContainerReturns.result2
 	}
+	return fake.findOrCreateBuildContainerReturns.result1, fake.findOrCreateBuildContainerReturns.result2
 }
 
 func (fake *FakeWorker) FindOrCreateBuildContainerCallCount() int {
@@ -323,9 +322,8 @@ func (fake *FakeWorker) FindOrCreateResourceGetContainer(logger lager.Logger, ca
 	fake.findOrCreateResourceGetContainerMutex.Unlock()
 	if fake.FindOrCreateResourceGetContainerStub != nil {
 		return fake.FindOrCreateResourceGetContainerStub(logger, cancel, delegate, id, metadata, spec, resourceTypes, outputPaths, resourceType, version, source, params)
-	} else {
-		return fake.findOrCreateResourceGetContainerReturns.result1, fake.findOrCreateResourceGetContainerReturns.result2
 	}
+	return fake.findOrCreateResourceGetContainerReturns.result1, fake.findOrCreateResourceGetContainerReturns.result2
 }
 
 func (fake *FakeWorker) FindOrCreateResourceGetContainerCallCount() int {
@@ -365,9 +363,8 @@ func (fake *FakeWorker) FindOrCreateResourceCheckContainer(logger lager.Logger, 
 	fake.findOrCreateResourceCheckContainerMutex.Unlock()
 	if fake.FindOrCreateResourceCheckContainerStub != nil {
 		return fake.FindOrCreateResourceCheckContainerStub(logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceType, source)
-	} else {
-		return fake.findOrCreateResourceCheckContainerReturns.result1, fake.findOrCreateResourceCheckContainerReturns.result2
 	}
+	return fake.findOrCreateResourceCheckContainerReturns.result1, fake.findOrCreateResourceCheckContainerReturns.result2
 }
 
 func (fake *FakeWorker) FindOrCreateResourceCheckContainerCallCount() int {
@@ -407,9 +404,8 @@ func (fake *FakeWorker) FindOrCreateResourceTypeCheckContainer(logger lager.Logg
 	fake.findOrCreateResourceTypeCheckContainerMutex.Unlock()
 	if fake.FindOrCreateResourceTypeCheckContainerStub != nil {
 		return fake.FindOrCreateResourceTypeCheckContainerStub(logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceType, source)
-	} else {
-		return fake.findOrCreateResourceTypeCheckContainerReturns.result1, fake.findOrCreateResourceTypeCheckContainerReturns.result2
 	}
+	return fake.findOrCreateResourceTypeCheckContainerReturns.result1, fake.findOrCreateResourceTypeCheckContainerReturns.result2
 }
 
 func (fake *FakeWorker) FindOrCreateResourceTypeCheckContainerCallCount() int {
@@ -447,9 +443,8 @@ func (fake *FakeWorker) FindOrCreateContainerForIdentifier(logger lager.Logger, 
 	fake.findOrCreateContainerForIdentifierMutex.Unlock()
 	if fake.FindOrCreateContainerForIdentifierStub != nil {
 		return fake.FindOrCreateContainerForIdentifierStub(logger, id, metadata, containerSpec, resourceTypes, imageFetchingDelegate, resourceSources)
-	} else {
-		return fake.findOrCreateContainerForIdentifierReturns.result1, fake.findOrCreateContainerForIdentifierReturns.result2, fake.findOrCreateContainerForIdentifierReturns.result3
 	}
+	return fake.findOrCreateContainerForIdentifierReturns.result1, fake.findOrCreateContainerForIdentifierReturns.result2, fake.findOrCreateContainerForIdentifierReturns.result3
 }
 
 func (fake *FakeWorker) FindOrCreateContainerForIdentifierCallCount() int {
@@ -484,9 +479,8 @@ func (fake *FakeWorker) FindOrCreateVolumeForResourceCache(logger lager.Logger, 
 	fake.findOrCreateVolumeForResourceCacheMutex.Unlock()
 	if fake.FindOrCreateVolumeForResourceCacheStub != nil {
 		return fake.FindOrCreateVolumeForResourceCacheStub(logger, vs, resourceCache)
-	} else {
-		return fake.findOrCreateVolumeForResourceCacheReturns.result1, fake.findOrCreateVolumeForResourceCacheReturns.result2
 	}
+	return fake.findOrCreateVolumeForResourceCacheReturns.result1, fake.findOrCreateVolumeForResourceCacheReturns.result2
 }
 
 func (fake *FakeWorker) FindOrCreateVolumeForResourceCacheCallCount() int {
@@ -519,9 +513,8 @@ func (fake *FakeWorker) FindInitializedVolumeForResourceCache(logger lager.Logge
 	fake.findInitializedVolumeForResourceCacheMutex.Unlock()
 	if fake.FindInitializedVolumeForResourceCacheStub != nil {
 		return fake.FindInitializedVolumeForResourceCacheStub(logger, resourceCache)
-	} else {
-		return fake.findInitializedVolumeForResourceCacheReturns.result1, fake.findInitializedVolumeForResourceCacheReturns.result2, fake.findInitializedVolumeForResourceCacheReturns.result3
 	}
+	return fake.findInitializedVolumeForResourceCacheReturns.result1, fake.findInitializedVolumeForResourceCacheReturns.result2, fake.findInitializedVolumeForResourceCacheReturns.result3
 }
 
 func (fake *FakeWorker) FindInitializedVolumeForResourceCacheCallCount() int {
@@ -555,9 +548,8 @@ func (fake *FakeWorker) FindContainerForIdentifier(arg1 lager.Logger, arg2 worke
 	fake.findContainerForIdentifierMutex.Unlock()
 	if fake.FindContainerForIdentifierStub != nil {
 		return fake.FindContainerForIdentifierStub(arg1, arg2)
-	} else {
-		return fake.findContainerForIdentifierReturns.result1, fake.findContainerForIdentifierReturns.result2, fake.findContainerForIdentifierReturns.result3
 	}
+	return fake.findContainerForIdentifierReturns.result1, fake.findContainerForIdentifierReturns.result2, fake.findContainerForIdentifierReturns.result3
 }
 
 func (fake *FakeWorker) FindContainerForIdentifierCallCount() int {
@@ -592,9 +584,8 @@ func (fake *FakeWorker) FindContainerByHandle(arg1 lager.Logger, arg2 string, ar
 	fake.findContainerByHandleMutex.Unlock()
 	if fake.FindContainerByHandleStub != nil {
 		return fake.FindContainerByHandleStub(arg1, arg2, arg3)
-	} else {
-		return fake.findContainerByHandleReturns.result1, fake.findContainerByHandleReturns.result2, fake.findContainerByHandleReturns.result3
 	}
+	return fake.findContainerByHandleReturns.result1, fake.findContainerByHandleReturns.result2, fake.findContainerByHandleReturns.result3
 }
 
 func (fake *FakeWorker) FindContainerByHandleCallCount() int {
@@ -627,9 +618,8 @@ func (fake *FakeWorker) ValidateResourceCheckVersion(container db.SavedContainer
 	fake.validateResourceCheckVersionMutex.Unlock()
 	if fake.ValidateResourceCheckVersionStub != nil {
 		return fake.ValidateResourceCheckVersionStub(container)
-	} else {
-		return fake.validateResourceCheckVersionReturns.result1, fake.validateResourceCheckVersionReturns.result2
 	}
+	return fake.validateResourceCheckVersionReturns.result1, fake.validateResourceCheckVersionReturns.result2
 }
 
 func (fake *FakeWorker) ValidateResourceCheckVersionCallCount() int {
@@ -661,9 +651,8 @@ func (fake *FakeWorker) FindResourceTypeByPath(path string) (atc.WorkerResourceT
 	fake.findResourceTypeByPathMutex.Unlock()
 	if fake.FindResourceTypeByPathStub != nil {
 		return fake.FindResourceTypeByPathStub(path)
-	} else {
-		return fake.findResourceTypeByPathReturns.result1, fake.findResourceTypeByPathReturns.result2
 	}
+	return fake.findResourceTypeByPathReturns.result1, fake.findResourceTypeByPathReturns.result2
 }
 
 func (fake *FakeWorker) FindResourceTypeByPathCallCount() int {
@@ -696,9 +685,8 @@ func (fake *FakeWorker) LookupVolume(arg1 lager.Logger, arg2 string) (worker.Vol
 	fake.lookupVolumeMutex.Unlock()
 	if fake.LookupVolumeStub != nil {
 		return fake.LookupVolumeStub(arg1, arg2)
-	} else {
-		return fake.lookupVolumeReturns.result1, fake.lookupVolumeReturns.result2, fake.lookupVolumeReturns.result3
 	}
+	return fake.lookupVolumeReturns.result1, fake.lookupVolumeReturns.result2, fake.lookupVolumeReturns.result3
 }
 
 func (fake *FakeWorker) LookupVolumeCallCount() int {
@@ -732,9 +720,8 @@ func (fake *FakeWorker) Satisfying(arg1 worker.WorkerSpec, arg2 atc.ResourceType
 	fake.satisfyingMutex.Unlock()
 	if fake.SatisfyingStub != nil {
 		return fake.SatisfyingStub(arg1, arg2)
-	} else {
-		return fake.satisfyingReturns.result1, fake.satisfyingReturns.result2
 	}
+	return fake.satisfyingReturns.result1, fake.satisfyingReturns.result2
 }
 
 func (fake *FakeWorker) SatisfyingCallCount() int {
@@ -767,9 +754,8 @@ func (fake *FakeWorker) AllSatisfying(arg1 worker.WorkerSpec, arg2 atc.ResourceT
 	fake.allSatisfyingMutex.Unlock()
 	if fake.AllSatisfyingStub != nil {
 		return fake.AllSatisfyingStub(arg1, arg2)
-	} else {
-		return fake.allSatisfyingReturns.result1, fake.allSatisfyingReturns.result2
 	}
+	return fake.allSatisfyingReturns.result1, fake.allSatisfyingReturns.result2
 }
 
 func (fake *FakeWorker) AllSatisfyingCallCount() int {
@@ -799,9 +785,8 @@ func (fake *FakeWorker) RunningWorkers() ([]worker.Worker, error) {
 	fake.runningWorkersMutex.Unlock()
 	if fake.RunningWorkersStub != nil {
 		return fake.RunningWorkersStub()
-	} else {
-		return fake.runningWorkersReturns.result1, fake.runningWorkersReturns.result2
 	}
+	return fake.runningWorkersReturns.result1, fake.runningWorkersReturns.result2
 }
 
 func (fake *FakeWorker) RunningWorkersCallCount() int {
@@ -827,9 +812,8 @@ func (fake *FakeWorker) GetWorker(workerName string) (worker.Worker, error) {
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
 		return fake.GetWorkerStub(workerName)
-	} else {
-		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2
 	}
+	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2
 }
 
 func (fake *FakeWorker) GetWorkerCallCount() int {
@@ -859,9 +843,8 @@ func (fake *FakeWorker) ActiveContainers() int {
 	fake.activeContainersMutex.Unlock()
 	if fake.ActiveContainersStub != nil {
 		return fake.ActiveContainersStub()
-	} else {
-		return fake.activeContainersReturns.result1
 	}
+	return fake.activeContainersReturns.result1
 }
 
 func (fake *FakeWorker) ActiveContainersCallCount() int {
@@ -884,9 +867,8 @@ func (fake *FakeWorker) Description() string {
 	fake.descriptionMutex.Unlock()
 	if fake.DescriptionStub != nil {
 		return fake.DescriptionStub()
-	} else {
-		return fake.descriptionReturns.result1
 	}
+	return fake.descriptionReturns.result1
 }
 
 func (fake *FakeWorker) DescriptionCallCount() int {
@@ -909,9 +891,8 @@ func (fake *FakeWorker) Name() string {
 	fake.nameMutex.Unlock()
 	if fake.NameStub != nil {
 		return fake.NameStub()
-	} else {
-		return fake.nameReturns.result1
 	}
+	return fake.nameReturns.result1
 }
 
 func (fake *FakeWorker) NameCallCount() int {
@@ -934,9 +915,8 @@ func (fake *FakeWorker) Address() *string {
 	fake.addressMutex.Unlock()
 	if fake.AddressStub != nil {
 		return fake.AddressStub()
-	} else {
-		return fake.addressReturns.result1
 	}
+	return fake.addressReturns.result1
 }
 
 func (fake *FakeWorker) AddressCallCount() int {
@@ -959,9 +939,8 @@ func (fake *FakeWorker) ResourceTypes() []atc.WorkerResourceType {
 	fake.resourceTypesMutex.Unlock()
 	if fake.ResourceTypesStub != nil {
 		return fake.ResourceTypesStub()
-	} else {
-		return fake.resourceTypesReturns.result1
 	}
+	return fake.resourceTypesReturns.result1
 }
 
 func (fake *FakeWorker) ResourceTypesCallCount() int {
@@ -984,9 +963,8 @@ func (fake *FakeWorker) Tags() atc.Tags {
 	fake.tagsMutex.Unlock()
 	if fake.TagsStub != nil {
 		return fake.TagsStub()
-	} else {
-		return fake.tagsReturns.result1
 	}
+	return fake.tagsReturns.result1
 }
 
 func (fake *FakeWorker) TagsCallCount() int {
@@ -1009,9 +987,8 @@ func (fake *FakeWorker) Uptime() time.Duration {
 	fake.uptimeMutex.Unlock()
 	if fake.UptimeStub != nil {
 		return fake.UptimeStub()
-	} else {
-		return fake.uptimeReturns.result1
 	}
+	return fake.uptimeReturns.result1
 }
 
 func (fake *FakeWorker) UptimeCallCount() int {
@@ -1034,9 +1011,8 @@ func (fake *FakeWorker) IsOwnedByTeam() bool {
 	fake.isOwnedByTeamMutex.Unlock()
 	if fake.IsOwnedByTeamStub != nil {
 		return fake.IsOwnedByTeamStub()
-	} else {
-		return fake.isOwnedByTeamReturns.result1
 	}
+	return fake.isOwnedByTeamReturns.result1
 }
 
 func (fake *FakeWorker) IsOwnedByTeamCallCount() int {

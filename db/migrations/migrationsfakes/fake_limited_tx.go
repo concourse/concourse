@@ -69,9 +69,8 @@ func (fake *FakeLimitedTx) Exec(query string, args ...interface{}) (sql.Result, 
 	fake.execMutex.Unlock()
 	if fake.ExecStub != nil {
 		return fake.ExecStub(query, args...)
-	} else {
-		return fake.execReturns.result1, fake.execReturns.result2
 	}
+	return fake.execReturns.result1, fake.execReturns.result2
 }
 
 func (fake *FakeLimitedTx) ExecCallCount() int {
@@ -103,9 +102,8 @@ func (fake *FakeLimitedTx) Prepare(query string) (*sql.Stmt, error) {
 	fake.prepareMutex.Unlock()
 	if fake.PrepareStub != nil {
 		return fake.PrepareStub(query)
-	} else {
-		return fake.prepareReturns.result1, fake.prepareReturns.result2
 	}
+	return fake.prepareReturns.result1, fake.prepareReturns.result2
 }
 
 func (fake *FakeLimitedTx) PrepareCallCount() int {
@@ -138,9 +136,8 @@ func (fake *FakeLimitedTx) Query(query string, args ...interface{}) (*sql.Rows, 
 	fake.queryMutex.Unlock()
 	if fake.QueryStub != nil {
 		return fake.QueryStub(query, args...)
-	} else {
-		return fake.queryReturns.result1, fake.queryReturns.result2
 	}
+	return fake.queryReturns.result1, fake.queryReturns.result2
 }
 
 func (fake *FakeLimitedTx) QueryCallCount() int {
@@ -173,9 +170,8 @@ func (fake *FakeLimitedTx) QueryRow(query string, args ...interface{}) *sql.Row 
 	fake.queryRowMutex.Unlock()
 	if fake.QueryRowStub != nil {
 		return fake.QueryRowStub(query, args...)
-	} else {
-		return fake.queryRowReturns.result1
 	}
+	return fake.queryRowReturns.result1
 }
 
 func (fake *FakeLimitedTx) QueryRowCallCount() int {
@@ -206,9 +202,8 @@ func (fake *FakeLimitedTx) Stmt(stmt *sql.Stmt) *sql.Stmt {
 	fake.stmtMutex.Unlock()
 	if fake.StmtStub != nil {
 		return fake.StmtStub(stmt)
-	} else {
-		return fake.stmtReturns.result1
 	}
+	return fake.stmtReturns.result1
 }
 
 func (fake *FakeLimitedTx) StmtCallCount() int {

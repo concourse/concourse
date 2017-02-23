@@ -33,9 +33,8 @@ func (fake *FakeEventSource) Next() (event.Envelope, error) {
 	fake.nextMutex.Unlock()
 	if fake.NextStub != nil {
 		return fake.NextStub()
-	} else {
-		return fake.nextReturns.result1, fake.nextReturns.result2
 	}
+	return fake.nextReturns.result1, fake.nextReturns.result2
 }
 
 func (fake *FakeEventSource) NextCallCount() int {
@@ -59,9 +58,8 @@ func (fake *FakeEventSource) Close() error {
 	fake.closeMutex.Unlock()
 	if fake.CloseStub != nil {
 		return fake.CloseStub()
-	} else {
-		return fake.closeReturns.result1
 	}
+	return fake.closeReturns.result1
 }
 
 func (fake *FakeEventSource) CloseCallCount() int {

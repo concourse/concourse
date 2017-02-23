@@ -101,9 +101,8 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForBuild(logger l
 	fake.findOrCreateResourceCacheForBuildMutex.Unlock()
 	if fake.FindOrCreateResourceCacheForBuildStub != nil {
 		return fake.FindOrCreateResourceCacheForBuildStub(logger, buildID, resourceTypeName, version, source, params, pipelineID, resourceTypes)
-	} else {
-		return fake.findOrCreateResourceCacheForBuildReturns.result1, fake.findOrCreateResourceCacheForBuildReturns.result2
 	}
+	return fake.findOrCreateResourceCacheForBuildReturns.result1, fake.findOrCreateResourceCacheForBuildReturns.result2
 }
 
 func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForBuildCallCount() int {
@@ -142,9 +141,8 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResource(logge
 	fake.findOrCreateResourceCacheForResourceMutex.Unlock()
 	if fake.FindOrCreateResourceCacheForResourceStub != nil {
 		return fake.FindOrCreateResourceCacheForResourceStub(logger, resourceID, resourceTypeName, version, source, params, pipelineID, resourceTypes)
-	} else {
-		return fake.findOrCreateResourceCacheForResourceReturns.result1, fake.findOrCreateResourceCacheForResourceReturns.result2
 	}
+	return fake.findOrCreateResourceCacheForResourceReturns.result1, fake.findOrCreateResourceCacheForResourceReturns.result2
 }
 
 func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceCallCount() int {
@@ -182,9 +180,8 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceType(l
 	fake.findOrCreateResourceCacheForResourceTypeMutex.Unlock()
 	if fake.FindOrCreateResourceCacheForResourceTypeStub != nil {
 		return fake.FindOrCreateResourceCacheForResourceTypeStub(logger, resourceTypeName, version, source, params, pipelineID, resourceTypes)
-	} else {
-		return fake.findOrCreateResourceCacheForResourceTypeReturns.result1, fake.findOrCreateResourceCacheForResourceTypeReturns.result2
 	}
+	return fake.findOrCreateResourceCacheForResourceTypeReturns.result1, fake.findOrCreateResourceCacheForResourceTypeReturns.result2
 }
 
 func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceTypeCallCount() int {
@@ -214,9 +211,8 @@ func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuilds() error {
 	fake.cleanUsesForFinishedBuildsMutex.Unlock()
 	if fake.CleanUsesForFinishedBuildsStub != nil {
 		return fake.CleanUsesForFinishedBuildsStub()
-	} else {
-		return fake.cleanUsesForFinishedBuildsReturns.result1
 	}
+	return fake.cleanUsesForFinishedBuildsReturns.result1
 }
 
 func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuildsCallCount() int {
@@ -239,9 +235,8 @@ func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourceTypes() error 
 	fake.cleanUsesForInactiveResourceTypesMutex.Unlock()
 	if fake.CleanUsesForInactiveResourceTypesStub != nil {
 		return fake.CleanUsesForInactiveResourceTypesStub()
-	} else {
-		return fake.cleanUsesForInactiveResourceTypesReturns.result1
 	}
+	return fake.cleanUsesForInactiveResourceTypesReturns.result1
 }
 
 func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourceTypesCallCount() int {
@@ -264,9 +259,8 @@ func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResources() error {
 	fake.cleanUsesForInactiveResourcesMutex.Unlock()
 	if fake.CleanUsesForInactiveResourcesStub != nil {
 		return fake.CleanUsesForInactiveResourcesStub()
-	} else {
-		return fake.cleanUsesForInactiveResourcesReturns.result1
 	}
+	return fake.cleanUsesForInactiveResourcesReturns.result1
 }
 
 func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourcesCallCount() int {
@@ -289,9 +283,8 @@ func (fake *FakeResourceCacheFactory) CleanUpInvalidCaches() error {
 	fake.cleanUpInvalidCachesMutex.Unlock()
 	if fake.CleanUpInvalidCachesStub != nil {
 		return fake.CleanUpInvalidCachesStub()
-	} else {
-		return fake.cleanUpInvalidCachesReturns.result1
 	}
+	return fake.cleanUpInvalidCachesReturns.result1
 }
 
 func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesCallCount() int {

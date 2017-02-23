@@ -57,9 +57,8 @@ func (fake *FakeCreatedContainer) ID() int {
 	fake.iDMutex.Unlock()
 	if fake.IDStub != nil {
 		return fake.IDStub()
-	} else {
-		return fake.iDReturns.result1
 	}
+	return fake.iDReturns.result1
 }
 
 func (fake *FakeCreatedContainer) IDCallCount() int {
@@ -82,9 +81,8 @@ func (fake *FakeCreatedContainer) Handle() string {
 	fake.handleMutex.Unlock()
 	if fake.HandleStub != nil {
 		return fake.HandleStub()
-	} else {
-		return fake.handleReturns.result1
 	}
+	return fake.handleReturns.result1
 }
 
 func (fake *FakeCreatedContainer) HandleCallCount() int {
@@ -107,9 +105,8 @@ func (fake *FakeCreatedContainer) Discontinue() (dbng.DestroyingContainer, error
 	fake.discontinueMutex.Unlock()
 	if fake.DiscontinueStub != nil {
 		return fake.DiscontinueStub()
-	} else {
-		return fake.discontinueReturns.result1, fake.discontinueReturns.result2
 	}
+	return fake.discontinueReturns.result1, fake.discontinueReturns.result2
 }
 
 func (fake *FakeCreatedContainer) DiscontinueCallCount() int {
@@ -133,9 +130,8 @@ func (fake *FakeCreatedContainer) Destroying() (dbng.DestroyingContainer, error)
 	fake.destroyingMutex.Unlock()
 	if fake.DestroyingStub != nil {
 		return fake.DestroyingStub()
-	} else {
-		return fake.destroyingReturns.result1, fake.destroyingReturns.result2
 	}
+	return fake.destroyingReturns.result1, fake.destroyingReturns.result2
 }
 
 func (fake *FakeCreatedContainer) DestroyingCallCount() int {
@@ -159,9 +155,8 @@ func (fake *FakeCreatedContainer) WorkerName() string {
 	fake.workerNameMutex.Unlock()
 	if fake.WorkerNameStub != nil {
 		return fake.WorkerNameStub()
-	} else {
-		return fake.workerNameReturns.result1
 	}
+	return fake.workerNameReturns.result1
 }
 
 func (fake *FakeCreatedContainer) WorkerNameCallCount() int {
@@ -184,9 +179,8 @@ func (fake *FakeCreatedContainer) MarkAsHijacked() error {
 	fake.markAsHijackedMutex.Unlock()
 	if fake.MarkAsHijackedStub != nil {
 		return fake.MarkAsHijackedStub()
-	} else {
-		return fake.markAsHijackedReturns.result1
 	}
+	return fake.markAsHijackedReturns.result1
 }
 
 func (fake *FakeCreatedContainer) MarkAsHijackedCallCount() int {

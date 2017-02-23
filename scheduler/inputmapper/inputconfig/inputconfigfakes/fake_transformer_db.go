@@ -35,9 +35,8 @@ func (fake *FakeTransformerDB) GetVersionedResourceByVersion(atcVersion atc.Vers
 	fake.getVersionedResourceByVersionMutex.Unlock()
 	if fake.GetVersionedResourceByVersionStub != nil {
 		return fake.GetVersionedResourceByVersionStub(atcVersion, resourceName)
-	} else {
-		return fake.getVersionedResourceByVersionReturns.result1, fake.getVersionedResourceByVersionReturns.result2, fake.getVersionedResourceByVersionReturns.result3
 	}
+	return fake.getVersionedResourceByVersionReturns.result1, fake.getVersionedResourceByVersionReturns.result2, fake.getVersionedResourceByVersionReturns.result3
 }
 
 func (fake *FakeTransformerDB) GetVersionedResourceByVersionCallCount() int {

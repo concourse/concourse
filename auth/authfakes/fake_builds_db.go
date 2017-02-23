@@ -32,9 +32,8 @@ func (fake *FakeBuildsDB) GetBuildByID(buildID int) (db.Build, bool, error) {
 	fake.getBuildByIDMutex.Unlock()
 	if fake.GetBuildByIDStub != nil {
 		return fake.GetBuildByIDStub(buildID)
-	} else {
-		return fake.getBuildByIDReturns.result1, fake.getBuildByIDReturns.result2, fake.getBuildByIDReturns.result3
 	}
+	return fake.getBuildByIDReturns.result1, fake.getBuildByIDReturns.result2, fake.getBuildByIDReturns.result3
 }
 
 func (fake *FakeBuildsDB) GetBuildByIDCallCount() int {

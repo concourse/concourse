@@ -31,9 +31,8 @@ func (fake *FakePipelineFactory) GetPipelineByID(teamID int, pipelineID int) dbn
 	fake.getPipelineByIDMutex.Unlock()
 	if fake.GetPipelineByIDStub != nil {
 		return fake.GetPipelineByIDStub(teamID, pipelineID)
-	} else {
-		return fake.getPipelineByIDReturns.result1
 	}
+	return fake.getPipelineByIDReturns.result1
 }
 
 func (fake *FakePipelineFactory) GetPipelineByIDCallCount() int {

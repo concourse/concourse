@@ -57,9 +57,8 @@ func (fake *FakeImageResourceFetcher) Fetch(logger lager.Logger, signals <-chan 
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
 		return fake.FetchStub(logger, signals, imageResourceType, imageResourceSource, id, metadata, tags, teamID, customTypes, imageFetchingDelegate, privileged)
-	} else {
-		return fake.fetchReturns.result1, fake.fetchReturns.result2, fake.fetchReturns.result3, fake.fetchReturns.result4
 	}
+	return fake.fetchReturns.result1, fake.fetchReturns.result2, fake.fetchReturns.result3, fake.fetchReturns.result4
 }
 
 func (fake *FakeImageResourceFetcher) FetchCallCount() int {

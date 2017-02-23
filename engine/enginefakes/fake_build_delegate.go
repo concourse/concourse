@@ -65,9 +65,8 @@ func (fake *FakeBuildDelegate) InputDelegate(arg1 lager.Logger, arg2 atc.GetPlan
 	fake.inputDelegateMutex.Unlock()
 	if fake.InputDelegateStub != nil {
 		return fake.InputDelegateStub(arg1, arg2, arg3)
-	} else {
-		return fake.inputDelegateReturns.result1
 	}
+	return fake.inputDelegateReturns.result1
 }
 
 func (fake *FakeBuildDelegate) InputDelegateCallCount() int {
@@ -100,9 +99,8 @@ func (fake *FakeBuildDelegate) ExecutionDelegate(arg1 lager.Logger, arg2 atc.Tas
 	fake.executionDelegateMutex.Unlock()
 	if fake.ExecutionDelegateStub != nil {
 		return fake.ExecutionDelegateStub(arg1, arg2, arg3)
-	} else {
-		return fake.executionDelegateReturns.result1
 	}
+	return fake.executionDelegateReturns.result1
 }
 
 func (fake *FakeBuildDelegate) ExecutionDelegateCallCount() int {
@@ -135,9 +133,8 @@ func (fake *FakeBuildDelegate) OutputDelegate(arg1 lager.Logger, arg2 atc.PutPla
 	fake.outputDelegateMutex.Unlock()
 	if fake.OutputDelegateStub != nil {
 		return fake.OutputDelegateStub(arg1, arg2, arg3)
-	} else {
-		return fake.outputDelegateReturns.result1
 	}
+	return fake.outputDelegateReturns.result1
 }
 
 func (fake *FakeBuildDelegate) OutputDelegateCallCount() int {

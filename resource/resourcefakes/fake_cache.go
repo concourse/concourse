@@ -39,9 +39,8 @@ func (fake *FakeCache) IsInitialized() (bool, error) {
 	fake.isInitializedMutex.Unlock()
 	if fake.IsInitializedStub != nil {
 		return fake.IsInitializedStub()
-	} else {
-		return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 	}
+	return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 }
 
 func (fake *FakeCache) IsInitializedCallCount() int {
@@ -65,9 +64,8 @@ func (fake *FakeCache) Initialize() error {
 	fake.initializeMutex.Unlock()
 	if fake.InitializeStub != nil {
 		return fake.InitializeStub()
-	} else {
-		return fake.initializeReturns.result1
 	}
+	return fake.initializeReturns.result1
 }
 
 func (fake *FakeCache) InitializeCallCount() int {
@@ -90,9 +88,8 @@ func (fake *FakeCache) Volume() worker.Volume {
 	fake.volumeMutex.Unlock()
 	if fake.VolumeStub != nil {
 		return fake.VolumeStub()
-	} else {
-		return fake.volumeReturns.result1
 	}
+	return fake.volumeReturns.result1
 }
 
 func (fake *FakeCache) VolumeCallCount() int {

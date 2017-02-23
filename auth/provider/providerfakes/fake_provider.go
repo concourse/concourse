@@ -68,9 +68,8 @@ func (fake *FakeProvider) PreTokenClient() (*http.Client, error) {
 	fake.preTokenClientMutex.Unlock()
 	if fake.PreTokenClientStub != nil {
 		return fake.PreTokenClientStub()
-	} else {
-		return fake.preTokenClientReturns.result1, fake.preTokenClientReturns.result2
 	}
+	return fake.preTokenClientReturns.result1, fake.preTokenClientReturns.result2
 }
 
 func (fake *FakeProvider) PreTokenClientCallCount() int {
@@ -97,9 +96,8 @@ func (fake *FakeProvider) AuthCodeURL(arg1 string, arg2 ...oauth2.AuthCodeOption
 	fake.authCodeURLMutex.Unlock()
 	if fake.AuthCodeURLStub != nil {
 		return fake.AuthCodeURLStub(arg1, arg2...)
-	} else {
-		return fake.authCodeURLReturns.result1
 	}
+	return fake.authCodeURLReturns.result1
 }
 
 func (fake *FakeProvider) AuthCodeURLCallCount() int {
@@ -131,9 +129,8 @@ func (fake *FakeProvider) Exchange(arg1 context.Context, arg2 string) (*oauth2.T
 	fake.exchangeMutex.Unlock()
 	if fake.ExchangeStub != nil {
 		return fake.ExchangeStub(arg1, arg2)
-	} else {
-		return fake.exchangeReturns.result1, fake.exchangeReturns.result2
 	}
+	return fake.exchangeReturns.result1, fake.exchangeReturns.result2
 }
 
 func (fake *FakeProvider) ExchangeCallCount() int {
@@ -166,9 +163,8 @@ func (fake *FakeProvider) Client(arg1 context.Context, arg2 *oauth2.Token) *http
 	fake.clientMutex.Unlock()
 	if fake.ClientStub != nil {
 		return fake.ClientStub(arg1, arg2)
-	} else {
-		return fake.clientReturns.result1
 	}
+	return fake.clientReturns.result1
 }
 
 func (fake *FakeProvider) ClientCallCount() int {
@@ -200,9 +196,8 @@ func (fake *FakeProvider) Verify(arg1 lager.Logger, arg2 *http.Client) (bool, er
 	fake.verifyMutex.Unlock()
 	if fake.VerifyStub != nil {
 		return fake.VerifyStub(arg1, arg2)
-	} else {
-		return fake.verifyReturns.result1, fake.verifyReturns.result2
 	}
+	return fake.verifyReturns.result1, fake.verifyReturns.result2
 }
 
 func (fake *FakeProvider) VerifyCallCount() int {

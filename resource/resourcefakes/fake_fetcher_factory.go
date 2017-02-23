@@ -30,9 +30,8 @@ func (fake *FakeFetcherFactory) FetcherFor(workerClient worker.Client) resource.
 	fake.fetcherForMutex.Unlock()
 	if fake.FetcherForStub != nil {
 		return fake.FetcherForStub(workerClient)
-	} else {
-		return fake.fetcherForReturns.result1
 	}
+	return fake.fetcherForReturns.result1
 }
 
 func (fake *FakeFetcherFactory) FetcherForCallCount() int {

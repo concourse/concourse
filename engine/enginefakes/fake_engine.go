@@ -49,9 +49,8 @@ func (fake *FakeEngine) Name() string {
 	fake.nameMutex.Unlock()
 	if fake.NameStub != nil {
 		return fake.NameStub()
-	} else {
-		return fake.nameReturns.result1
 	}
+	return fake.nameReturns.result1
 }
 
 func (fake *FakeEngine) NameCallCount() int {
@@ -78,9 +77,8 @@ func (fake *FakeEngine) CreateBuild(arg1 lager.Logger, arg2 db.Build, arg3 atc.P
 	fake.createBuildMutex.Unlock()
 	if fake.CreateBuildStub != nil {
 		return fake.CreateBuildStub(arg1, arg2, arg3)
-	} else {
-		return fake.createBuildReturns.result1, fake.createBuildReturns.result2
 	}
+	return fake.createBuildReturns.result1, fake.createBuildReturns.result2
 }
 
 func (fake *FakeEngine) CreateBuildCallCount() int {
@@ -113,9 +111,8 @@ func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.Build) (engine.Bu
 	fake.lookupBuildMutex.Unlock()
 	if fake.LookupBuildStub != nil {
 		return fake.LookupBuildStub(arg1, arg2)
-	} else {
-		return fake.lookupBuildReturns.result1, fake.lookupBuildReturns.result2
 	}
+	return fake.lookupBuildReturns.result1, fake.lookupBuildReturns.result2
 }
 
 func (fake *FakeEngine) LookupBuildCallCount() int {

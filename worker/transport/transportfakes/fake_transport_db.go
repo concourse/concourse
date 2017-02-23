@@ -32,9 +32,8 @@ func (fake *FakeTransportDB) GetWorker(name string) (*dbng.Worker, bool, error) 
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
 		return fake.GetWorkerStub(name)
-	} else {
-		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 	}
+	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 }
 
 func (fake *FakeTransportDB) GetWorkerCallCount() int {

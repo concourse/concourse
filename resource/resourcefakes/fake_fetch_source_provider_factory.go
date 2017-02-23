@@ -48,9 +48,8 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(logger lager.
 	fake.newFetchSourceProviderMutex.Unlock()
 	if fake.NewFetchSourceProviderStub != nil {
 		return fake.NewFetchSourceProviderStub(logger, session, metadata, tags, teamID, resourceTypes, resourceInstance, resourceOptions, imageFetchingDelegate)
-	} else {
-		return fake.newFetchSourceProviderReturns.result1
 	}
+	return fake.newFetchSourceProviderReturns.result1
 }
 
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderCallCount() int {

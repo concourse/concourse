@@ -38,9 +38,8 @@ func (fake *FakeInputSource) Name() worker.ArtifactName {
 	fake.nameMutex.Unlock()
 	if fake.NameStub != nil {
 		return fake.NameStub()
-	} else {
-		return fake.nameReturns.result1
 	}
+	return fake.nameReturns.result1
 }
 
 func (fake *FakeInputSource) NameCallCount() int {
@@ -63,9 +62,8 @@ func (fake *FakeInputSource) Source() worker.ArtifactSource {
 	fake.sourceMutex.Unlock()
 	if fake.SourceStub != nil {
 		return fake.SourceStub()
-	} else {
-		return fake.sourceReturns.result1
 	}
+	return fake.sourceReturns.result1
 }
 
 func (fake *FakeInputSource) SourceCallCount() int {
@@ -88,9 +86,8 @@ func (fake *FakeInputSource) MountPath() string {
 	fake.mountPathMutex.Unlock()
 	if fake.MountPathStub != nil {
 		return fake.MountPathStub()
-	} else {
-		return fake.mountPathReturns.result1
 	}
+	return fake.mountPathReturns.result1
 }
 
 func (fake *FakeInputSource) MountPathCallCount() int {

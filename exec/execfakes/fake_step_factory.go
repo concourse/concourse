@@ -32,9 +32,8 @@ func (fake *FakeStepFactory) Using(arg1 exec.Step, arg2 *worker.ArtifactReposito
 	fake.usingMutex.Unlock()
 	if fake.UsingStub != nil {
 		return fake.UsingStub(arg1, arg2)
-	} else {
-		return fake.usingReturns.result1
 	}
+	return fake.usingReturns.result1
 }
 
 func (fake *FakeStepFactory) UsingCallCount() int {

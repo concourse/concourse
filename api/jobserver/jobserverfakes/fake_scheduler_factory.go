@@ -36,9 +36,8 @@ func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.PipelineDB, arg2 dbng.P
 	fake.buildSchedulerMutex.Unlock()
 	if fake.BuildSchedulerStub != nil {
 		return fake.BuildSchedulerStub(arg1, arg2, arg3)
-	} else {
-		return fake.buildSchedulerReturns.result1
 	}
+	return fake.buildSchedulerReturns.result1
 }
 
 func (fake *FakeSchedulerFactory) BuildSchedulerCallCount() int {

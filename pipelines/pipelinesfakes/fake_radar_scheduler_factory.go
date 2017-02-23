@@ -47,9 +47,8 @@ func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactory(pipelineDB db.Pipe
 	fake.buildScanRunnerFactoryMutex.Unlock()
 	if fake.BuildScanRunnerFactoryStub != nil {
 		return fake.BuildScanRunnerFactoryStub(pipelineDB, dbPipeline, externalURL)
-	} else {
-		return fake.buildScanRunnerFactoryReturns.result1
 	}
+	return fake.buildScanRunnerFactoryReturns.result1
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryCallCount() int {
@@ -82,9 +81,8 @@ func (fake *FakeRadarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, 
 	fake.buildSchedulerMutex.Unlock()
 	if fake.BuildSchedulerStub != nil {
 		return fake.BuildSchedulerStub(pipelineDB, dbPipeline, externalURL)
-	} else {
-		return fake.buildSchedulerReturns.result1
 	}
+	return fake.buildSchedulerReturns.result1
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildSchedulerCallCount() int {

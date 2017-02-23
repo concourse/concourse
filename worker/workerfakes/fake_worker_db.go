@@ -128,9 +128,8 @@ func (fake *FakeWorkerDB) Workers() ([]db.SavedWorker, error) {
 	fake.workersMutex.Unlock()
 	if fake.WorkersStub != nil {
 		return fake.WorkersStub()
-	} else {
-		return fake.workersReturns.result1, fake.workersReturns.result2
 	}
+	return fake.workersReturns.result1, fake.workersReturns.result2
 }
 
 func (fake *FakeWorkerDB) WorkersCallCount() int {
@@ -156,9 +155,8 @@ func (fake *FakeWorkerDB) GetWorker(arg1 string) (db.SavedWorker, bool, error) {
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
 		return fake.GetWorkerStub(arg1)
-	} else {
-		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 	}
+	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 }
 
 func (fake *FakeWorkerDB) GetWorkerCallCount() int {
@@ -198,9 +196,8 @@ func (fake *FakeWorkerDB) CreateContainerToBeRemoved(container db.Container, max
 	fake.createContainerToBeRemovedMutex.Unlock()
 	if fake.CreateContainerToBeRemovedStub != nil {
 		return fake.CreateContainerToBeRemovedStub(container, maxLifetime, volumeHandles)
-	} else {
-		return fake.createContainerToBeRemovedReturns.result1, fake.createContainerToBeRemovedReturns.result2
 	}
+	return fake.createContainerToBeRemovedReturns.result1, fake.createContainerToBeRemovedReturns.result2
 }
 
 func (fake *FakeWorkerDB) CreateContainerToBeRemovedCallCount() int {
@@ -233,9 +230,8 @@ func (fake *FakeWorkerDB) UpdateContainerTTLToBeRemoved(container db.Container, 
 	fake.updateContainerTTLToBeRemovedMutex.Unlock()
 	if fake.UpdateContainerTTLToBeRemovedStub != nil {
 		return fake.UpdateContainerTTLToBeRemovedStub(container, maxLifetime)
-	} else {
-		return fake.updateContainerTTLToBeRemovedReturns.result1, fake.updateContainerTTLToBeRemovedReturns.result2
 	}
+	return fake.updateContainerTTLToBeRemovedReturns.result1, fake.updateContainerTTLToBeRemovedReturns.result2
 }
 
 func (fake *FakeWorkerDB) UpdateContainerTTLToBeRemovedCallCount() int {
@@ -267,9 +263,8 @@ func (fake *FakeWorkerDB) GetContainer(arg1 string) (db.SavedContainer, bool, er
 	fake.getContainerMutex.Unlock()
 	if fake.GetContainerStub != nil {
 		return fake.GetContainerStub(arg1)
-	} else {
-		return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 	}
+	return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 }
 
 func (fake *FakeWorkerDB) GetContainerCallCount() int {
@@ -302,9 +297,8 @@ func (fake *FakeWorkerDB) FindContainerByIdentifier(arg1 db.ContainerIdentifier)
 	fake.findContainerByIdentifierMutex.Unlock()
 	if fake.FindContainerByIdentifierStub != nil {
 		return fake.FindContainerByIdentifierStub(arg1)
-	} else {
-		return fake.findContainerByIdentifierReturns.result1, fake.findContainerByIdentifierReturns.result2, fake.findContainerByIdentifierReturns.result3
 	}
+	return fake.findContainerByIdentifierReturns.result1, fake.findContainerByIdentifierReturns.result2, fake.findContainerByIdentifierReturns.result3
 }
 
 func (fake *FakeWorkerDB) FindContainerByIdentifierCallCount() int {
@@ -337,9 +331,8 @@ func (fake *FakeWorkerDB) ReapContainer(handle string) error {
 	fake.reapContainerMutex.Unlock()
 	if fake.ReapContainerStub != nil {
 		return fake.ReapContainerStub(handle)
-	} else {
-		return fake.reapContainerReturns.result1
 	}
+	return fake.reapContainerReturns.result1
 }
 
 func (fake *FakeWorkerDB) ReapContainerCallCount() int {
@@ -370,9 +363,8 @@ func (fake *FakeWorkerDB) GetPipelineByID(pipelineID int) (db.SavedPipeline, err
 	fake.getPipelineByIDMutex.Unlock()
 	if fake.GetPipelineByIDStub != nil {
 		return fake.GetPipelineByIDStub(pipelineID)
-	} else {
-		return fake.getPipelineByIDReturns.result1, fake.getPipelineByIDReturns.result2
 	}
+	return fake.getPipelineByIDReturns.result1, fake.getPipelineByIDReturns.result2
 }
 
 func (fake *FakeWorkerDB) GetPipelineByIDCallCount() int {
@@ -404,9 +396,8 @@ func (fake *FakeWorkerDB) ReapVolume(handle string) error {
 	fake.reapVolumeMutex.Unlock()
 	if fake.ReapVolumeStub != nil {
 		return fake.ReapVolumeStub(handle)
-	} else {
-		return fake.reapVolumeReturns.result1
 	}
+	return fake.reapVolumeReturns.result1
 }
 
 func (fake *FakeWorkerDB) ReapVolumeCallCount() int {
@@ -438,9 +429,8 @@ func (fake *FakeWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int)
 	fake.acquireVolumeCreatingLockMutex.Unlock()
 	if fake.AcquireVolumeCreatingLockStub != nil {
 		return fake.AcquireVolumeCreatingLockStub(arg1, arg2)
-	} else {
-		return fake.acquireVolumeCreatingLockReturns.result1, fake.acquireVolumeCreatingLockReturns.result2, fake.acquireVolumeCreatingLockReturns.result3
 	}
+	return fake.acquireVolumeCreatingLockReturns.result1, fake.acquireVolumeCreatingLockReturns.result2, fake.acquireVolumeCreatingLockReturns.result3
 }
 
 func (fake *FakeWorkerDB) AcquireVolumeCreatingLockCallCount() int {
@@ -474,9 +464,8 @@ func (fake *FakeWorkerDB) AcquireContainerCreatingLock(arg1 lager.Logger, arg2 i
 	fake.acquireContainerCreatingLockMutex.Unlock()
 	if fake.AcquireContainerCreatingLockStub != nil {
 		return fake.AcquireContainerCreatingLockStub(arg1, arg2)
-	} else {
-		return fake.acquireContainerCreatingLockReturns.result1, fake.acquireContainerCreatingLockReturns.result2, fake.acquireContainerCreatingLockReturns.result3
 	}
+	return fake.acquireContainerCreatingLockReturns.result1, fake.acquireContainerCreatingLockReturns.result2, fake.acquireContainerCreatingLockReturns.result3
 }
 
 func (fake *FakeWorkerDB) AcquireContainerCreatingLockCallCount() int {

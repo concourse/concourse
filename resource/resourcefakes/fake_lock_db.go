@@ -35,9 +35,8 @@ func (fake *FakeLockDB) GetTaskLock(logger lager.Logger, lockName string) (lock.
 	fake.getTaskLockMutex.Unlock()
 	if fake.GetTaskLockStub != nil {
 		return fake.GetTaskLockStub(logger, lockName)
-	} else {
-		return fake.getTaskLockReturns.result1, fake.getTaskLockReturns.result2, fake.getTaskLockReturns.result3
 	}
+	return fake.getTaskLockReturns.result1, fake.getTaskLockReturns.result2, fake.getTaskLockReturns.result3
 }
 
 func (fake *FakeLockDB) GetTaskLockCallCount() int {

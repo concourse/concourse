@@ -156,9 +156,8 @@ func (fake *FakeRadarDB) GetPipelineName() string {
 	fake.getPipelineNameMutex.Unlock()
 	if fake.GetPipelineNameStub != nil {
 		return fake.GetPipelineNameStub()
-	} else {
-		return fake.getPipelineNameReturns.result1
 	}
+	return fake.getPipelineNameReturns.result1
 }
 
 func (fake *FakeRadarDB) GetPipelineNameCallCount() int {
@@ -181,9 +180,8 @@ func (fake *FakeRadarDB) GetPipelineID() int {
 	fake.getPipelineIDMutex.Unlock()
 	if fake.GetPipelineIDStub != nil {
 		return fake.GetPipelineIDStub()
-	} else {
-		return fake.getPipelineIDReturns.result1
 	}
+	return fake.getPipelineIDReturns.result1
 }
 
 func (fake *FakeRadarDB) GetPipelineIDCallCount() int {
@@ -208,9 +206,8 @@ func (fake *FakeRadarDB) ScopedName(arg1 string) string {
 	fake.scopedNameMutex.Unlock()
 	if fake.ScopedNameStub != nil {
 		return fake.ScopedNameStub(arg1)
-	} else {
-		return fake.scopedNameReturns.result1
 	}
+	return fake.scopedNameReturns.result1
 }
 
 func (fake *FakeRadarDB) ScopedNameCallCount() int {
@@ -239,9 +236,8 @@ func (fake *FakeRadarDB) TeamID() int {
 	fake.teamIDMutex.Unlock()
 	if fake.TeamIDStub != nil {
 		return fake.TeamIDStub()
-	} else {
-		return fake.teamIDReturns.result1
 	}
+	return fake.teamIDReturns.result1
 }
 
 func (fake *FakeRadarDB) TeamIDCallCount() int {
@@ -264,9 +260,8 @@ func (fake *FakeRadarDB) Config() atc.Config {
 	fake.configMutex.Unlock()
 	if fake.ConfigStub != nil {
 		return fake.ConfigStub()
-	} else {
-		return fake.configReturns.result1
 	}
+	return fake.configReturns.result1
 }
 
 func (fake *FakeRadarDB) ConfigCallCount() int {
@@ -289,9 +284,8 @@ func (fake *FakeRadarDB) IsPaused() (bool, error) {
 	fake.isPausedMutex.Unlock()
 	if fake.IsPausedStub != nil {
 		return fake.IsPausedStub()
-	} else {
-		return fake.isPausedReturns.result1, fake.isPausedReturns.result2
 	}
+	return fake.isPausedReturns.result1, fake.isPausedReturns.result2
 }
 
 func (fake *FakeRadarDB) IsPausedCallCount() int {
@@ -315,9 +309,8 @@ func (fake *FakeRadarDB) Reload() (bool, error) {
 	fake.reloadMutex.Unlock()
 	if fake.ReloadStub != nil {
 		return fake.ReloadStub()
-	} else {
-		return fake.reloadReturns.result1, fake.reloadReturns.result2
 	}
+	return fake.reloadReturns.result1, fake.reloadReturns.result2
 }
 
 func (fake *FakeRadarDB) ReloadCallCount() int {
@@ -343,9 +336,8 @@ func (fake *FakeRadarDB) GetLatestVersionedResource(resourceName string) (db.Sav
 	fake.getLatestVersionedResourceMutex.Unlock()
 	if fake.GetLatestVersionedResourceStub != nil {
 		return fake.GetLatestVersionedResourceStub(resourceName)
-	} else {
-		return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2, fake.getLatestVersionedResourceReturns.result3
 	}
+	return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2, fake.getLatestVersionedResourceReturns.result3
 }
 
 func (fake *FakeRadarDB) GetLatestVersionedResourceCallCount() int {
@@ -378,9 +370,8 @@ func (fake *FakeRadarDB) GetResource(resourceName string) (db.SavedResource, boo
 	fake.getResourceMutex.Unlock()
 	if fake.GetResourceStub != nil {
 		return fake.GetResourceStub(resourceName)
-	} else {
-		return fake.getResourceReturns.result1, fake.getResourceReturns.result2, fake.getResourceReturns.result3
 	}
+	return fake.getResourceReturns.result1, fake.getResourceReturns.result2, fake.getResourceReturns.result3
 }
 
 func (fake *FakeRadarDB) GetResourceCallCount() int {
@@ -413,9 +404,8 @@ func (fake *FakeRadarDB) GetResourceType(resourceTypeName string) (db.SavedResou
 	fake.getResourceTypeMutex.Unlock()
 	if fake.GetResourceTypeStub != nil {
 		return fake.GetResourceTypeStub(resourceTypeName)
-	} else {
-		return fake.getResourceTypeReturns.result1, fake.getResourceTypeReturns.result2, fake.getResourceTypeReturns.result3
 	}
+	return fake.getResourceTypeReturns.result1, fake.getResourceTypeReturns.result2, fake.getResourceTypeReturns.result3
 }
 
 func (fake *FakeRadarDB) GetResourceTypeCallCount() int {
@@ -448,9 +438,8 @@ func (fake *FakeRadarDB) PauseResource(resourceName string) error {
 	fake.pauseResourceMutex.Unlock()
 	if fake.PauseResourceStub != nil {
 		return fake.PauseResourceStub(resourceName)
-	} else {
-		return fake.pauseResourceReturns.result1
 	}
+	return fake.pauseResourceReturns.result1
 }
 
 func (fake *FakeRadarDB) PauseResourceCallCount() int {
@@ -481,9 +470,8 @@ func (fake *FakeRadarDB) UnpauseResource(resourceName string) error {
 	fake.unpauseResourceMutex.Unlock()
 	if fake.UnpauseResourceStub != nil {
 		return fake.UnpauseResourceStub(resourceName)
-	} else {
-		return fake.unpauseResourceReturns.result1
 	}
+	return fake.unpauseResourceReturns.result1
 }
 
 func (fake *FakeRadarDB) UnpauseResourceCallCount() int {
@@ -520,9 +508,8 @@ func (fake *FakeRadarDB) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 []at
 	fake.saveResourceVersionsMutex.Unlock()
 	if fake.SaveResourceVersionsStub != nil {
 		return fake.SaveResourceVersionsStub(arg1, arg2)
-	} else {
-		return fake.saveResourceVersionsReturns.result1
 	}
+	return fake.saveResourceVersionsReturns.result1
 }
 
 func (fake *FakeRadarDB) SaveResourceVersionsCallCount() int {
@@ -554,9 +541,8 @@ func (fake *FakeRadarDB) SaveResourceTypeVersion(arg1 atc.ResourceType, arg2 atc
 	fake.saveResourceTypeVersionMutex.Unlock()
 	if fake.SaveResourceTypeVersionStub != nil {
 		return fake.SaveResourceTypeVersionStub(arg1, arg2)
-	} else {
-		return fake.saveResourceTypeVersionReturns.result1
 	}
+	return fake.saveResourceTypeVersionReturns.result1
 }
 
 func (fake *FakeRadarDB) SaveResourceTypeVersionCallCount() int {
@@ -588,9 +574,8 @@ func (fake *FakeRadarDB) SetResourceCheckError(resource db.SavedResource, err er
 	fake.setResourceCheckErrorMutex.Unlock()
 	if fake.SetResourceCheckErrorStub != nil {
 		return fake.SetResourceCheckErrorStub(resource, err)
-	} else {
-		return fake.setResourceCheckErrorReturns.result1
 	}
+	return fake.setResourceCheckErrorReturns.result1
 }
 
 func (fake *FakeRadarDB) SetResourceCheckErrorCallCount() int {
@@ -624,9 +609,8 @@ func (fake *FakeRadarDB) AcquireResourceTypeCheckingLock(logger lager.Logger, re
 	fake.acquireResourceTypeCheckingLockMutex.Unlock()
 	if fake.AcquireResourceTypeCheckingLockStub != nil {
 		return fake.AcquireResourceTypeCheckingLockStub(logger, resourceType, interval, immediate)
-	} else {
-		return fake.acquireResourceTypeCheckingLockReturns.result1, fake.acquireResourceTypeCheckingLockReturns.result2, fake.acquireResourceTypeCheckingLockReturns.result3
 	}
+	return fake.acquireResourceTypeCheckingLockReturns.result1, fake.acquireResourceTypeCheckingLockReturns.result2, fake.acquireResourceTypeCheckingLockReturns.result3
 }
 
 func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockCallCount() int {

@@ -44,9 +44,8 @@ func (fake *FakeTeamsDB) GetTeams() ([]db.SavedTeam, error) {
 	fake.getTeamsMutex.Unlock()
 	if fake.GetTeamsStub != nil {
 		return fake.GetTeamsStub()
-	} else {
-		return fake.getTeamsReturns.result1, fake.getTeamsReturns.result2
 	}
+	return fake.getTeamsReturns.result1, fake.getTeamsReturns.result2
 }
 
 func (fake *FakeTeamsDB) GetTeamsCallCount() int {
@@ -72,9 +71,8 @@ func (fake *FakeTeamsDB) CreateTeam(data db.Team) (db.SavedTeam, error) {
 	fake.createTeamMutex.Unlock()
 	if fake.CreateTeamStub != nil {
 		return fake.CreateTeamStub(data)
-	} else {
-		return fake.createTeamReturns.result1, fake.createTeamReturns.result2
 	}
+	return fake.createTeamReturns.result1, fake.createTeamReturns.result2
 }
 
 func (fake *FakeTeamsDB) CreateTeamCallCount() int {
@@ -106,9 +104,8 @@ func (fake *FakeTeamsDB) DeleteTeamByName(teamName string) error {
 	fake.deleteTeamByNameMutex.Unlock()
 	if fake.DeleteTeamByNameStub != nil {
 		return fake.DeleteTeamByNameStub(teamName)
-	} else {
-		return fake.deleteTeamByNameReturns.result1
 	}
+	return fake.deleteTeamByNameReturns.result1
 }
 
 func (fake *FakeTeamsDB) DeleteTeamByNameCallCount() int {

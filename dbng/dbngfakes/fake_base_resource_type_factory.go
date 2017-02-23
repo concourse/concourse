@@ -31,9 +31,8 @@ func (fake *FakeBaseResourceTypeFactory) Find(name string) (*dbng.UsedBaseResour
 	fake.findMutex.Unlock()
 	if fake.FindStub != nil {
 		return fake.FindStub(name)
-	} else {
-		return fake.findReturns.result1, fake.findReturns.result2, fake.findReturns.result3
 	}
+	return fake.findReturns.result1, fake.findReturns.result2, fake.findReturns.result3
 }
 
 func (fake *FakeBaseResourceTypeFactory) FindCallCount() int {

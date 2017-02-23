@@ -30,9 +30,8 @@ func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherFor(arg1 worker
 	fake.imageResourceFetcherForMutex.Unlock()
 	if fake.ImageResourceFetcherForStub != nil {
 		return fake.ImageResourceFetcherForStub(arg1)
-	} else {
-		return fake.imageResourceFetcherForReturns.result1
 	}
+	return fake.imageResourceFetcherForReturns.result1
 }
 
 func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherForCallCount() int {

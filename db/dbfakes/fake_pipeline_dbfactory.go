@@ -29,9 +29,8 @@ func (fake *FakePipelineDBFactory) Build(pipeline db.SavedPipeline) db.PipelineD
 	fake.buildMutex.Unlock()
 	if fake.BuildStub != nil {
 		return fake.BuildStub(pipeline)
-	} else {
-		return fake.buildReturns.result1
 	}
+	return fake.buildReturns.result1
 }
 
 func (fake *FakePipelineDBFactory) BuildCallCount() int {

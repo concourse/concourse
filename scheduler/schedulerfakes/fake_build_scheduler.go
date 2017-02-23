@@ -65,9 +65,8 @@ func (fake *FakeBuildScheduler) Schedule(logger lager.Logger, versions *algorith
 	fake.scheduleMutex.Unlock()
 	if fake.ScheduleStub != nil {
 		return fake.ScheduleStub(logger, versions, jobConfigs, resourceConfigs, resourceTypes)
-	} else {
-		return fake.scheduleReturns.result1, fake.scheduleReturns.result2
 	}
+	return fake.scheduleReturns.result1, fake.scheduleReturns.result2
 }
 
 func (fake *FakeBuildScheduler) ScheduleCallCount() int {
@@ -102,9 +101,8 @@ func (fake *FakeBuildScheduler) TriggerImmediately(logger lager.Logger, jobConfi
 	fake.triggerImmediatelyMutex.Unlock()
 	if fake.TriggerImmediatelyStub != nil {
 		return fake.TriggerImmediatelyStub(logger, jobConfig, resourceConfigs, resourceTypes)
-	} else {
-		return fake.triggerImmediatelyReturns.result1, fake.triggerImmediatelyReturns.result2, fake.triggerImmediatelyReturns.result3
 	}
+	return fake.triggerImmediatelyReturns.result1, fake.triggerImmediatelyReturns.result2, fake.triggerImmediatelyReturns.result3
 }
 
 func (fake *FakeBuildScheduler) TriggerImmediatelyCallCount() int {
@@ -138,9 +136,8 @@ func (fake *FakeBuildScheduler) SaveNextInputMapping(logger lager.Logger, job at
 	fake.saveNextInputMappingMutex.Unlock()
 	if fake.SaveNextInputMappingStub != nil {
 		return fake.SaveNextInputMappingStub(logger, job)
-	} else {
-		return fake.saveNextInputMappingReturns.result1
 	}
+	return fake.saveNextInputMappingReturns.result1
 }
 
 func (fake *FakeBuildScheduler) SaveNextInputMappingCallCount() int {

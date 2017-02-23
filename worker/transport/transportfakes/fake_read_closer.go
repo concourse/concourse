@@ -41,9 +41,8 @@ func (fake *FakeReadCloser) Read(p []byte) (n int, err error) {
 	fake.readMutex.Unlock()
 	if fake.ReadStub != nil {
 		return fake.ReadStub(p)
-	} else {
-		return fake.readReturns.result1, fake.readReturns.result2
 	}
+	return fake.readReturns.result1, fake.readReturns.result2
 }
 
 func (fake *FakeReadCloser) ReadCallCount() int {
@@ -73,9 +72,8 @@ func (fake *FakeReadCloser) Close() error {
 	fake.closeMutex.Unlock()
 	if fake.CloseStub != nil {
 		return fake.CloseStub()
-	} else {
-		return fake.closeReturns.result1
 	}
+	return fake.closeReturns.result1
 }
 
 func (fake *FakeReadCloser) CloseCallCount() int {

@@ -36,9 +36,8 @@ func (fake *FakeUpdater) UpdateMaxInFlightReached(logger lager.Logger, jobConfig
 	fake.updateMaxInFlightReachedMutex.Unlock()
 	if fake.UpdateMaxInFlightReachedStub != nil {
 		return fake.UpdateMaxInFlightReachedStub(logger, jobConfig, buildID)
-	} else {
-		return fake.updateMaxInFlightReachedReturns.result1, fake.updateMaxInFlightReachedReturns.result2
 	}
+	return fake.updateMaxInFlightReachedReturns.result1, fake.updateMaxInFlightReachedReturns.result2
 }
 
 func (fake *FakeUpdater) UpdateMaxInFlightReachedCallCount() int {

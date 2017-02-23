@@ -105,9 +105,8 @@ func (fake *FakeCreatedVolume) Handle() string {
 	fake.handleMutex.Unlock()
 	if fake.HandleStub != nil {
 		return fake.HandleStub()
-	} else {
-		return fake.handleReturns.result1
 	}
+	return fake.handleReturns.result1
 }
 
 func (fake *FakeCreatedVolume) HandleCallCount() int {
@@ -130,9 +129,8 @@ func (fake *FakeCreatedVolume) Path() string {
 	fake.pathMutex.Unlock()
 	if fake.PathStub != nil {
 		return fake.PathStub()
-	} else {
-		return fake.pathReturns.result1
 	}
+	return fake.pathReturns.result1
 }
 
 func (fake *FakeCreatedVolume) PathCallCount() int {
@@ -155,9 +153,8 @@ func (fake *FakeCreatedVolume) Type() dbng.VolumeType {
 	fake.typeMutex.Unlock()
 	if fake.TypeStub != nil {
 		return fake.TypeStub()
-	} else {
-		return fake.typeReturns.result1
 	}
+	return fake.typeReturns.result1
 }
 
 func (fake *FakeCreatedVolume) TypeCallCount() int {
@@ -183,9 +180,8 @@ func (fake *FakeCreatedVolume) CreateChildForContainer(arg1 dbng.CreatingContain
 	fake.createChildForContainerMutex.Unlock()
 	if fake.CreateChildForContainerStub != nil {
 		return fake.CreateChildForContainerStub(arg1, arg2)
-	} else {
-		return fake.createChildForContainerReturns.result1, fake.createChildForContainerReturns.result2
 	}
+	return fake.createChildForContainerReturns.result1, fake.createChildForContainerReturns.result2
 }
 
 func (fake *FakeCreatedVolume) CreateChildForContainerCallCount() int {
@@ -215,9 +211,8 @@ func (fake *FakeCreatedVolume) Destroying() (dbng.DestroyingVolume, error) {
 	fake.destroyingMutex.Unlock()
 	if fake.DestroyingStub != nil {
 		return fake.DestroyingStub()
-	} else {
-		return fake.destroyingReturns.result1, fake.destroyingReturns.result2
 	}
+	return fake.destroyingReturns.result1, fake.destroyingReturns.result2
 }
 
 func (fake *FakeCreatedVolume) DestroyingCallCount() int {
@@ -241,9 +236,8 @@ func (fake *FakeCreatedVolume) Worker() *dbng.Worker {
 	fake.workerMutex.Unlock()
 	if fake.WorkerStub != nil {
 		return fake.WorkerStub()
-	} else {
-		return fake.workerReturns.result1
 	}
+	return fake.workerReturns.result1
 }
 
 func (fake *FakeCreatedVolume) WorkerCallCount() int {
@@ -266,9 +260,8 @@ func (fake *FakeCreatedVolume) SizeInBytes() int64 {
 	fake.sizeInBytesMutex.Unlock()
 	if fake.SizeInBytesStub != nil {
 		return fake.SizeInBytesStub()
-	} else {
-		return fake.sizeInBytesReturns.result1
 	}
+	return fake.sizeInBytesReturns.result1
 }
 
 func (fake *FakeCreatedVolume) SizeInBytesCallCount() int {
@@ -291,9 +284,8 @@ func (fake *FakeCreatedVolume) Initialize() error {
 	fake.initializeMutex.Unlock()
 	if fake.InitializeStub != nil {
 		return fake.InitializeStub()
-	} else {
-		return fake.initializeReturns.result1
 	}
+	return fake.initializeReturns.result1
 }
 
 func (fake *FakeCreatedVolume) InitializeCallCount() int {
@@ -316,9 +308,8 @@ func (fake *FakeCreatedVolume) IsInitialized() (bool, error) {
 	fake.isInitializedMutex.Unlock()
 	if fake.IsInitializedStub != nil {
 		return fake.IsInitializedStub()
-	} else {
-		return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 	}
+	return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 }
 
 func (fake *FakeCreatedVolume) IsInitializedCallCount() int {
@@ -342,9 +333,8 @@ func (fake *FakeCreatedVolume) ContainerHandle() string {
 	fake.containerHandleMutex.Unlock()
 	if fake.ContainerHandleStub != nil {
 		return fake.ContainerHandleStub()
-	} else {
-		return fake.containerHandleReturns.result1
 	}
+	return fake.containerHandleReturns.result1
 }
 
 func (fake *FakeCreatedVolume) ContainerHandleCallCount() int {
@@ -367,9 +357,8 @@ func (fake *FakeCreatedVolume) ParentHandle() string {
 	fake.parentHandleMutex.Unlock()
 	if fake.ParentHandleStub != nil {
 		return fake.ParentHandleStub()
-	} else {
-		return fake.parentHandleReturns.result1
 	}
+	return fake.parentHandleReturns.result1
 }
 
 func (fake *FakeCreatedVolume) ParentHandleCallCount() int {
@@ -392,9 +381,8 @@ func (fake *FakeCreatedVolume) ResourceType() (*dbng.VolumeResourceType, error) 
 	fake.resourceTypeMutex.Unlock()
 	if fake.ResourceTypeStub != nil {
 		return fake.ResourceTypeStub()
-	} else {
-		return fake.resourceTypeReturns.result1, fake.resourceTypeReturns.result2
 	}
+	return fake.resourceTypeReturns.result1, fake.resourceTypeReturns.result2
 }
 
 func (fake *FakeCreatedVolume) ResourceTypeCallCount() int {
@@ -418,9 +406,8 @@ func (fake *FakeCreatedVolume) BaseResourceType() (*dbng.WorkerBaseResourceType,
 	fake.baseResourceTypeMutex.Unlock()
 	if fake.BaseResourceTypeStub != nil {
 		return fake.BaseResourceTypeStub()
-	} else {
-		return fake.baseResourceTypeReturns.result1, fake.baseResourceTypeReturns.result2
 	}
+	return fake.baseResourceTypeReturns.result1, fake.baseResourceTypeReturns.result2
 }
 
 func (fake *FakeCreatedVolume) BaseResourceTypeCallCount() int {

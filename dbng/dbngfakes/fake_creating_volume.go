@@ -38,9 +38,8 @@ func (fake *FakeCreatingVolume) Handle() string {
 	fake.handleMutex.Unlock()
 	if fake.HandleStub != nil {
 		return fake.HandleStub()
-	} else {
-		return fake.handleReturns.result1
 	}
+	return fake.handleReturns.result1
 }
 
 func (fake *FakeCreatingVolume) HandleCallCount() int {
@@ -63,9 +62,8 @@ func (fake *FakeCreatingVolume) ID() int {
 	fake.iDMutex.Unlock()
 	if fake.IDStub != nil {
 		return fake.IDStub()
-	} else {
-		return fake.iDReturns.result1
 	}
+	return fake.iDReturns.result1
 }
 
 func (fake *FakeCreatingVolume) IDCallCount() int {
@@ -88,9 +86,8 @@ func (fake *FakeCreatingVolume) Created() (dbng.CreatedVolume, error) {
 	fake.createdMutex.Unlock()
 	if fake.CreatedStub != nil {
 		return fake.CreatedStub()
-	} else {
-		return fake.createdReturns.result1, fake.createdReturns.result2
 	}
+	return fake.createdReturns.result1, fake.createdReturns.result2
 }
 
 func (fake *FakeCreatingVolume) CreatedCallCount() int {

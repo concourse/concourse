@@ -39,9 +39,8 @@ func (fake *FakeContainerFactory) MarkContainersForDeletion() error {
 	fake.markContainersForDeletionMutex.Unlock()
 	if fake.MarkContainersForDeletionStub != nil {
 		return fake.MarkContainersForDeletionStub()
-	} else {
-		return fake.markContainersForDeletionReturns.result1
 	}
+	return fake.markContainersForDeletionReturns.result1
 }
 
 func (fake *FakeContainerFactory) MarkContainersForDeletionCallCount() int {
@@ -64,9 +63,8 @@ func (fake *FakeContainerFactory) FindContainersMarkedForDeletion() ([]dbng.Dest
 	fake.findContainersMarkedForDeletionMutex.Unlock()
 	if fake.FindContainersMarkedForDeletionStub != nil {
 		return fake.FindContainersMarkedForDeletionStub()
-	} else {
-		return fake.findContainersMarkedForDeletionReturns.result1, fake.findContainersMarkedForDeletionReturns.result2
 	}
+	return fake.findContainersMarkedForDeletionReturns.result1, fake.findContainersMarkedForDeletionReturns.result2
 }
 
 func (fake *FakeContainerFactory) FindContainersMarkedForDeletionCallCount() int {
@@ -90,9 +88,8 @@ func (fake *FakeContainerFactory) FindHijackedContainersForDeletion() ([]dbng.Cr
 	fake.findHijackedContainersForDeletionMutex.Unlock()
 	if fake.FindHijackedContainersForDeletionStub != nil {
 		return fake.FindHijackedContainersForDeletionStub()
-	} else {
-		return fake.findHijackedContainersForDeletionReturns.result1, fake.findHijackedContainersForDeletionReturns.result2
 	}
+	return fake.findHijackedContainersForDeletionReturns.result1, fake.findHijackedContainersForDeletionReturns.result2
 }
 
 func (fake *FakeContainerFactory) FindHijackedContainersForDeletionCallCount() int {

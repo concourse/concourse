@@ -32,9 +32,8 @@ func (fake *FakeArtifactDestination) StreamIn(arg1 string, arg2 io.Reader) error
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
 		return fake.StreamInStub(arg1, arg2)
-	} else {
-		return fake.streamInReturns.result1
 	}
+	return fake.streamInReturns.result1
 }
 
 func (fake *FakeArtifactDestination) StreamInCallCount() int {

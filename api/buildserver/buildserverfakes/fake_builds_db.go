@@ -32,9 +32,8 @@ func (fake *FakeBuildsDB) GetPublicBuilds(page db.Page) ([]db.Build, db.Paginati
 	fake.getPublicBuildsMutex.Unlock()
 	if fake.GetPublicBuildsStub != nil {
 		return fake.GetPublicBuildsStub(page)
-	} else {
-		return fake.getPublicBuildsReturns.result1, fake.getPublicBuildsReturns.result2, fake.getPublicBuildsReturns.result3
 	}
+	return fake.getPublicBuildsReturns.result1, fake.getPublicBuildsReturns.result2, fake.getPublicBuildsReturns.result3
 }
 
 func (fake *FakeBuildsDB) GetPublicBuildsCallCount() int {

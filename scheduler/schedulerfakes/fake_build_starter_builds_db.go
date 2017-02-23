@@ -34,9 +34,8 @@ func (fake *FakeBuildStarterBuildsDB) FinishBuild(buildID int, pipelineID int, s
 	fake.finishBuildMutex.Unlock()
 	if fake.FinishBuildStub != nil {
 		return fake.FinishBuildStub(buildID, pipelineID, status)
-	} else {
-		return fake.finishBuildReturns.result1
 	}
+	return fake.finishBuildReturns.result1
 }
 
 func (fake *FakeBuildStarterBuildsDB) FinishBuildCallCount() int {

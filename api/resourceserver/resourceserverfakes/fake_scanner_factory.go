@@ -33,9 +33,8 @@ func (fake *FakeScannerFactory) NewResourceScanner(db radar.RadarDB, pipeline db
 	fake.newResourceScannerMutex.Unlock()
 	if fake.NewResourceScannerStub != nil {
 		return fake.NewResourceScannerStub(db, pipeline)
-	} else {
-		return fake.newResourceScannerReturns.result1
 	}
+	return fake.newResourceScannerReturns.result1
 }
 
 func (fake *FakeScannerFactory) NewResourceScannerCallCount() int {

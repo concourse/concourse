@@ -49,9 +49,8 @@ func (fake *FakeClient) CurrentUser(arg1 *http.Client) (string, error) {
 	fake.currentUserMutex.Unlock()
 	if fake.CurrentUserStub != nil {
 		return fake.CurrentUserStub(arg1)
-	} else {
-		return fake.currentUserReturns.result1, fake.currentUserReturns.result2
 	}
+	return fake.currentUserReturns.result1, fake.currentUserReturns.result2
 }
 
 func (fake *FakeClient) CurrentUserCallCount() int {
@@ -83,9 +82,8 @@ func (fake *FakeClient) Organizations(arg1 *http.Client) ([]string, error) {
 	fake.organizationsMutex.Unlock()
 	if fake.OrganizationsStub != nil {
 		return fake.OrganizationsStub(arg1)
-	} else {
-		return fake.organizationsReturns.result1, fake.organizationsReturns.result2
 	}
+	return fake.organizationsReturns.result1, fake.organizationsReturns.result2
 }
 
 func (fake *FakeClient) OrganizationsCallCount() int {
@@ -117,9 +115,8 @@ func (fake *FakeClient) Teams(arg1 *http.Client) (github.OrganizationTeams, erro
 	fake.teamsMutex.Unlock()
 	if fake.TeamsStub != nil {
 		return fake.TeamsStub(arg1)
-	} else {
-		return fake.teamsReturns.result1, fake.teamsReturns.result2
 	}
+	return fake.teamsReturns.result1, fake.teamsReturns.result2
 }
 
 func (fake *FakeClient) TeamsCallCount() int {

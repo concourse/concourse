@@ -49,9 +49,8 @@ func (fake *FakeInputMapperDB) SaveIndependentInputMapping(inputVersions algorit
 	fake.saveIndependentInputMappingMutex.Unlock()
 	if fake.SaveIndependentInputMappingStub != nil {
 		return fake.SaveIndependentInputMappingStub(inputVersions, jobName)
-	} else {
-		return fake.saveIndependentInputMappingReturns.result1
 	}
+	return fake.saveIndependentInputMappingReturns.result1
 }
 
 func (fake *FakeInputMapperDB) SaveIndependentInputMappingCallCount() int {
@@ -83,9 +82,8 @@ func (fake *FakeInputMapperDB) SaveNextInputMapping(inputVersions algorithm.Inpu
 	fake.saveNextInputMappingMutex.Unlock()
 	if fake.SaveNextInputMappingStub != nil {
 		return fake.SaveNextInputMappingStub(inputVersions, jobName)
-	} else {
-		return fake.saveNextInputMappingReturns.result1
 	}
+	return fake.saveNextInputMappingReturns.result1
 }
 
 func (fake *FakeInputMapperDB) SaveNextInputMappingCallCount() int {
@@ -116,9 +114,8 @@ func (fake *FakeInputMapperDB) DeleteNextInputMapping(jobName string) error {
 	fake.deleteNextInputMappingMutex.Unlock()
 	if fake.DeleteNextInputMappingStub != nil {
 		return fake.DeleteNextInputMappingStub(jobName)
-	} else {
-		return fake.deleteNextInputMappingReturns.result1
 	}
+	return fake.deleteNextInputMappingReturns.result1
 }
 
 func (fake *FakeInputMapperDB) DeleteNextInputMappingCallCount() int {

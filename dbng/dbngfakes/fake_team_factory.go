@@ -48,9 +48,8 @@ func (fake *FakeTeamFactory) CreateTeam(name string) (dbng.Team, error) {
 	fake.createTeamMutex.Unlock()
 	if fake.CreateTeamStub != nil {
 		return fake.CreateTeamStub(name)
-	} else {
-		return fake.createTeamReturns.result1, fake.createTeamReturns.result2
 	}
+	return fake.createTeamReturns.result1, fake.createTeamReturns.result2
 }
 
 func (fake *FakeTeamFactory) CreateTeamCallCount() int {
@@ -82,9 +81,8 @@ func (fake *FakeTeamFactory) FindTeam(name string) (dbng.Team, bool, error) {
 	fake.findTeamMutex.Unlock()
 	if fake.FindTeamStub != nil {
 		return fake.FindTeamStub(name)
-	} else {
-		return fake.findTeamReturns.result1, fake.findTeamReturns.result2, fake.findTeamReturns.result3
 	}
+	return fake.findTeamReturns.result1, fake.findTeamReturns.result2, fake.findTeamReturns.result3
 }
 
 func (fake *FakeTeamFactory) FindTeamCallCount() int {
@@ -117,9 +115,8 @@ func (fake *FakeTeamFactory) GetByID(teamID int) dbng.Team {
 	fake.getByIDMutex.Unlock()
 	if fake.GetByIDStub != nil {
 		return fake.GetByIDStub(teamID)
-	} else {
-		return fake.getByIDReturns.result1
 	}
+	return fake.getByIDReturns.result1
 }
 
 func (fake *FakeTeamFactory) GetByIDCallCount() int {

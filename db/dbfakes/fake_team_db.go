@@ -170,9 +170,8 @@ func (fake *FakeTeamDB) GetPipelines() ([]db.SavedPipeline, error) {
 	fake.getPipelinesMutex.Unlock()
 	if fake.GetPipelinesStub != nil {
 		return fake.GetPipelinesStub()
-	} else {
-		return fake.getPipelinesReturns.result1, fake.getPipelinesReturns.result2
 	}
+	return fake.getPipelinesReturns.result1, fake.getPipelinesReturns.result2
 }
 
 func (fake *FakeTeamDB) GetPipelinesCallCount() int {
@@ -196,9 +195,8 @@ func (fake *FakeTeamDB) GetPublicPipelines() ([]db.SavedPipeline, error) {
 	fake.getPublicPipelinesMutex.Unlock()
 	if fake.GetPublicPipelinesStub != nil {
 		return fake.GetPublicPipelinesStub()
-	} else {
-		return fake.getPublicPipelinesReturns.result1, fake.getPublicPipelinesReturns.result2
 	}
+	return fake.getPublicPipelinesReturns.result1, fake.getPublicPipelinesReturns.result2
 }
 
 func (fake *FakeTeamDB) GetPublicPipelinesCallCount() int {
@@ -222,9 +220,8 @@ func (fake *FakeTeamDB) GetPrivateAndAllPublicPipelines() ([]db.SavedPipeline, e
 	fake.getPrivateAndAllPublicPipelinesMutex.Unlock()
 	if fake.GetPrivateAndAllPublicPipelinesStub != nil {
 		return fake.GetPrivateAndAllPublicPipelinesStub()
-	} else {
-		return fake.getPrivateAndAllPublicPipelinesReturns.result1, fake.getPrivateAndAllPublicPipelinesReturns.result2
 	}
+	return fake.getPrivateAndAllPublicPipelinesReturns.result1, fake.getPrivateAndAllPublicPipelinesReturns.result2
 }
 
 func (fake *FakeTeamDB) GetPrivateAndAllPublicPipelinesCallCount() int {
@@ -250,9 +247,8 @@ func (fake *FakeTeamDB) GetPipelineByName(pipelineName string) (db.SavedPipeline
 	fake.getPipelineByNameMutex.Unlock()
 	if fake.GetPipelineByNameStub != nil {
 		return fake.GetPipelineByNameStub(pipelineName)
-	} else {
-		return fake.getPipelineByNameReturns.result1, fake.getPipelineByNameReturns.result2, fake.getPipelineByNameReturns.result3
 	}
+	return fake.getPipelineByNameReturns.result1, fake.getPipelineByNameReturns.result2, fake.getPipelineByNameReturns.result3
 }
 
 func (fake *FakeTeamDB) GetPipelineByNameCallCount() int {
@@ -290,9 +286,8 @@ func (fake *FakeTeamDB) OrderPipelines(arg1 []string) error {
 	fake.orderPipelinesMutex.Unlock()
 	if fake.OrderPipelinesStub != nil {
 		return fake.OrderPipelinesStub(arg1)
-	} else {
-		return fake.orderPipelinesReturns.result1
 	}
+	return fake.orderPipelinesReturns.result1
 }
 
 func (fake *FakeTeamDB) OrderPipelinesCallCount() int {
@@ -321,9 +316,8 @@ func (fake *FakeTeamDB) GetTeam() (db.SavedTeam, bool, error) {
 	fake.getTeamMutex.Unlock()
 	if fake.GetTeamStub != nil {
 		return fake.GetTeamStub()
-	} else {
-		return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 	}
+	return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 }
 
 func (fake *FakeTeamDB) GetTeamCallCount() int {
@@ -350,9 +344,8 @@ func (fake *FakeTeamDB) UpdateBasicAuth(basicAuth *db.BasicAuth) (db.SavedTeam, 
 	fake.updateBasicAuthMutex.Unlock()
 	if fake.UpdateBasicAuthStub != nil {
 		return fake.UpdateBasicAuthStub(basicAuth)
-	} else {
-		return fake.updateBasicAuthReturns.result1, fake.updateBasicAuthReturns.result2
 	}
+	return fake.updateBasicAuthReturns.result1, fake.updateBasicAuthReturns.result2
 }
 
 func (fake *FakeTeamDB) UpdateBasicAuthCallCount() int {
@@ -384,9 +377,8 @@ func (fake *FakeTeamDB) UpdateGitHubAuth(gitHubAuth *db.GitHubAuth) (db.SavedTea
 	fake.updateGitHubAuthMutex.Unlock()
 	if fake.UpdateGitHubAuthStub != nil {
 		return fake.UpdateGitHubAuthStub(gitHubAuth)
-	} else {
-		return fake.updateGitHubAuthReturns.result1, fake.updateGitHubAuthReturns.result2
 	}
+	return fake.updateGitHubAuthReturns.result1, fake.updateGitHubAuthReturns.result2
 }
 
 func (fake *FakeTeamDB) UpdateGitHubAuthCallCount() int {
@@ -418,9 +410,8 @@ func (fake *FakeTeamDB) UpdateUAAAuth(uaaAuth *db.UAAAuth) (db.SavedTeam, error)
 	fake.updateUAAAuthMutex.Unlock()
 	if fake.UpdateUAAAuthStub != nil {
 		return fake.UpdateUAAAuthStub(uaaAuth)
-	} else {
-		return fake.updateUAAAuthReturns.result1, fake.updateUAAAuthReturns.result2
 	}
+	return fake.updateUAAAuthReturns.result1, fake.updateUAAAuthReturns.result2
 }
 
 func (fake *FakeTeamDB) UpdateUAAAuthCallCount() int {
@@ -452,9 +443,8 @@ func (fake *FakeTeamDB) UpdateGenericOAuth(genericOAuth *db.GenericOAuth) (db.Sa
 	fake.updateGenericOAuthMutex.Unlock()
 	if fake.UpdateGenericOAuthStub != nil {
 		return fake.UpdateGenericOAuthStub(genericOAuth)
-	} else {
-		return fake.updateGenericOAuthReturns.result1, fake.updateGenericOAuthReturns.result2
 	}
+	return fake.updateGenericOAuthReturns.result1, fake.updateGenericOAuthReturns.result2
 }
 
 func (fake *FakeTeamDB) UpdateGenericOAuthCallCount() int {
@@ -486,9 +476,8 @@ func (fake *FakeTeamDB) GetConfig(pipelineName string) (atc.Config, atc.RawConfi
 	fake.getConfigMutex.Unlock()
 	if fake.GetConfigStub != nil {
 		return fake.GetConfigStub(pipelineName)
-	} else {
-		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3, fake.getConfigReturns.result4
 	}
+	return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3, fake.getConfigReturns.result4
 }
 
 func (fake *FakeTeamDB) GetConfigCallCount() int {
@@ -525,9 +514,8 @@ func (fake *FakeTeamDB) SaveConfigToBeDeprecated(arg1 string, arg2 atc.Config, a
 	fake.saveConfigToBeDeprecatedMutex.Unlock()
 	if fake.SaveConfigToBeDeprecatedStub != nil {
 		return fake.SaveConfigToBeDeprecatedStub(arg1, arg2, arg3, arg4)
-	} else {
-		return fake.saveConfigToBeDeprecatedReturns.result1, fake.saveConfigToBeDeprecatedReturns.result2, fake.saveConfigToBeDeprecatedReturns.result3
 	}
+	return fake.saveConfigToBeDeprecatedReturns.result1, fake.saveConfigToBeDeprecatedReturns.result2, fake.saveConfigToBeDeprecatedReturns.result3
 }
 
 func (fake *FakeTeamDB) SaveConfigToBeDeprecatedCallCount() int {
@@ -558,9 +546,8 @@ func (fake *FakeTeamDB) CreateOneOffBuild() (db.Build, error) {
 	fake.createOneOffBuildMutex.Unlock()
 	if fake.CreateOneOffBuildStub != nil {
 		return fake.CreateOneOffBuildStub()
-	} else {
-		return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
 	}
+	return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
 }
 
 func (fake *FakeTeamDB) CreateOneOffBuildCallCount() int {
@@ -586,9 +573,8 @@ func (fake *FakeTeamDB) GetPrivateAndPublicBuilds(page db.Page) ([]db.Build, db.
 	fake.getPrivateAndPublicBuildsMutex.Unlock()
 	if fake.GetPrivateAndPublicBuildsStub != nil {
 		return fake.GetPrivateAndPublicBuildsStub(page)
-	} else {
-		return fake.getPrivateAndPublicBuildsReturns.result1, fake.getPrivateAndPublicBuildsReturns.result2, fake.getPrivateAndPublicBuildsReturns.result3
 	}
+	return fake.getPrivateAndPublicBuildsReturns.result1, fake.getPrivateAndPublicBuildsReturns.result2, fake.getPrivateAndPublicBuildsReturns.result3
 }
 
 func (fake *FakeTeamDB) GetPrivateAndPublicBuildsCallCount() int {
@@ -619,9 +605,8 @@ func (fake *FakeTeamDB) Workers() ([]db.SavedWorker, error) {
 	fake.workersMutex.Unlock()
 	if fake.WorkersStub != nil {
 		return fake.WorkersStub()
-	} else {
-		return fake.workersReturns.result1, fake.workersReturns.result2
 	}
+	return fake.workersReturns.result1, fake.workersReturns.result2
 }
 
 func (fake *FakeTeamDB) WorkersCallCount() int {
@@ -647,9 +632,8 @@ func (fake *FakeTeamDB) GetContainer(handle string) (db.SavedContainer, bool, er
 	fake.getContainerMutex.Unlock()
 	if fake.GetContainerStub != nil {
 		return fake.GetContainerStub(handle)
-	} else {
-		return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 	}
+	return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 }
 
 func (fake *FakeTeamDB) GetContainerCallCount() int {
@@ -682,9 +666,8 @@ func (fake *FakeTeamDB) FindContainersByDescriptors(id db.Container) ([]db.Saved
 	fake.findContainersByDescriptorsMutex.Unlock()
 	if fake.FindContainersByDescriptorsStub != nil {
 		return fake.FindContainersByDescriptorsStub(id)
-	} else {
-		return fake.findContainersByDescriptorsReturns.result1, fake.findContainersByDescriptorsReturns.result2
 	}
+	return fake.findContainersByDescriptorsReturns.result1, fake.findContainersByDescriptorsReturns.result2
 }
 
 func (fake *FakeTeamDB) FindContainersByDescriptorsCallCount() int {

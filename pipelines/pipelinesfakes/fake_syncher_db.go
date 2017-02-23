@@ -27,9 +27,8 @@ func (fake *FakeSyncherDB) GetAllPipelines() ([]db.SavedPipeline, error) {
 	fake.getAllPipelinesMutex.Unlock()
 	if fake.GetAllPipelinesStub != nil {
 		return fake.GetAllPipelinesStub()
-	} else {
-		return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
 	}
+	return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
 }
 
 func (fake *FakeSyncherDB) GetAllPipelinesCallCount() int {

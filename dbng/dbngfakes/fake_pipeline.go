@@ -76,9 +76,8 @@ func (fake *FakePipeline) ID() int {
 	fake.iDMutex.Unlock()
 	if fake.IDStub != nil {
 		return fake.IDStub()
-	} else {
-		return fake.iDReturns.result1
 	}
+	return fake.iDReturns.result1
 }
 
 func (fake *FakePipeline) IDCallCount() int {
@@ -103,9 +102,8 @@ func (fake *FakePipeline) SaveJob(job atc.JobConfig) error {
 	fake.saveJobMutex.Unlock()
 	if fake.SaveJobStub != nil {
 		return fake.SaveJobStub(job)
-	} else {
-		return fake.saveJobReturns.result1
 	}
+	return fake.saveJobReturns.result1
 }
 
 func (fake *FakePipeline) SaveJobCallCount() int {
@@ -136,9 +134,8 @@ func (fake *FakePipeline) CreateJobBuild(jobName string) (dbng.Build, error) {
 	fake.createJobBuildMutex.Unlock()
 	if fake.CreateJobBuildStub != nil {
 		return fake.CreateJobBuildStub(jobName)
-	} else {
-		return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 	}
+	return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 }
 
 func (fake *FakePipeline) CreateJobBuildCallCount() int {
@@ -171,9 +168,8 @@ func (fake *FakePipeline) CreateResource(name string, config atc.ResourceConfig)
 	fake.createResourceMutex.Unlock()
 	if fake.CreateResourceStub != nil {
 		return fake.CreateResourceStub(name, config)
-	} else {
-		return fake.createResourceReturns.result1, fake.createResourceReturns.result2
 	}
+	return fake.createResourceReturns.result1, fake.createResourceReturns.result2
 }
 
 func (fake *FakePipeline) CreateResourceCallCount() int {
@@ -209,9 +205,8 @@ func (fake *FakePipeline) AcquireResourceCheckingLock(logger lager.Logger, resou
 	fake.acquireResourceCheckingLockMutex.Unlock()
 	if fake.AcquireResourceCheckingLockStub != nil {
 		return fake.AcquireResourceCheckingLockStub(logger, resource, resourceTypes, length, immediate)
-	} else {
-		return fake.acquireResourceCheckingLockReturns.result1, fake.acquireResourceCheckingLockReturns.result2, fake.acquireResourceCheckingLockReturns.result3
 	}
+	return fake.acquireResourceCheckingLockReturns.result1, fake.acquireResourceCheckingLockReturns.result2, fake.acquireResourceCheckingLockReturns.result3
 }
 
 func (fake *FakePipeline) AcquireResourceCheckingLockCallCount() int {
@@ -242,9 +237,8 @@ func (fake *FakePipeline) Destroy() error {
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
 		return fake.DestroyStub()
-	} else {
-		return fake.destroyReturns.result1
 	}
+	return fake.destroyReturns.result1
 }
 
 func (fake *FakePipeline) DestroyCallCount() int {

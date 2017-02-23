@@ -100,9 +100,8 @@ func (fake *FakeConn) Begin() (dbng.Tx, error) {
 	fake.beginMutex.Unlock()
 	if fake.BeginStub != nil {
 		return fake.BeginStub()
-	} else {
-		return fake.beginReturns.result1, fake.beginReturns.result2
 	}
+	return fake.beginReturns.result1, fake.beginReturns.result2
 }
 
 func (fake *FakeConn) BeginCallCount() int {
@@ -126,9 +125,8 @@ func (fake *FakeConn) Close() error {
 	fake.closeMutex.Unlock()
 	if fake.CloseStub != nil {
 		return fake.CloseStub()
-	} else {
-		return fake.closeReturns.result1
 	}
+	return fake.closeReturns.result1
 }
 
 func (fake *FakeConn) CloseCallCount() int {
@@ -151,9 +149,8 @@ func (fake *FakeConn) Driver() driver.Driver {
 	fake.driverMutex.Unlock()
 	if fake.DriverStub != nil {
 		return fake.DriverStub()
-	} else {
-		return fake.driverReturns.result1
 	}
+	return fake.driverReturns.result1
 }
 
 func (fake *FakeConn) DriverCallCount() int {
@@ -179,9 +176,8 @@ func (fake *FakeConn) Exec(query string, args ...interface{}) (sql.Result, error
 	fake.execMutex.Unlock()
 	if fake.ExecStub != nil {
 		return fake.ExecStub(query, args...)
-	} else {
-		return fake.execReturns.result1, fake.execReturns.result2
 	}
+	return fake.execReturns.result1, fake.execReturns.result2
 }
 
 func (fake *FakeConn) ExecCallCount() int {
@@ -211,9 +207,8 @@ func (fake *FakeConn) Ping() error {
 	fake.pingMutex.Unlock()
 	if fake.PingStub != nil {
 		return fake.PingStub()
-	} else {
-		return fake.pingReturns.result1
 	}
+	return fake.pingReturns.result1
 }
 
 func (fake *FakeConn) PingCallCount() int {
@@ -238,9 +233,8 @@ func (fake *FakeConn) Prepare(query string) (*sql.Stmt, error) {
 	fake.prepareMutex.Unlock()
 	if fake.PrepareStub != nil {
 		return fake.PrepareStub(query)
-	} else {
-		return fake.prepareReturns.result1, fake.prepareReturns.result2
 	}
+	return fake.prepareReturns.result1, fake.prepareReturns.result2
 }
 
 func (fake *FakeConn) PrepareCallCount() int {
@@ -273,9 +267,8 @@ func (fake *FakeConn) Query(query string, args ...interface{}) (*sql.Rows, error
 	fake.queryMutex.Unlock()
 	if fake.QueryStub != nil {
 		return fake.QueryStub(query, args...)
-	} else {
-		return fake.queryReturns.result1, fake.queryReturns.result2
 	}
+	return fake.queryReturns.result1, fake.queryReturns.result2
 }
 
 func (fake *FakeConn) QueryCallCount() int {
@@ -308,9 +301,8 @@ func (fake *FakeConn) QueryRow(query string, args ...interface{}) *sql.Row {
 	fake.queryRowMutex.Unlock()
 	if fake.QueryRowStub != nil {
 		return fake.QueryRowStub(query, args...)
-	} else {
-		return fake.queryRowReturns.result1
 	}
+	return fake.queryRowReturns.result1
 }
 
 func (fake *FakeConn) QueryRowCallCount() int {
@@ -387,9 +379,8 @@ func (fake *FakeConn) Stats() sql.DBStats {
 	fake.statsMutex.Unlock()
 	if fake.StatsStub != nil {
 		return fake.StatsStub()
-	} else {
-		return fake.statsReturns.result1
 	}
+	return fake.statsReturns.result1
 }
 
 func (fake *FakeConn) StatsCallCount() int {

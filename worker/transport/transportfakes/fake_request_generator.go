@@ -37,9 +37,8 @@ func (fake *FakeRequestGenerator) CreateRequest(name string, params rata.Params,
 	fake.createRequestMutex.Unlock()
 	if fake.CreateRequestStub != nil {
 		return fake.CreateRequestStub(name, params, body)
-	} else {
-		return fake.createRequestReturns.result1, fake.createRequestReturns.result2
 	}
+	return fake.createRequestReturns.result1, fake.createRequestReturns.result2
 }
 
 func (fake *FakeRequestGenerator) CreateRequestCallCount() int {

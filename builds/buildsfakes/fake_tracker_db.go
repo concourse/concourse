@@ -27,9 +27,8 @@ func (fake *FakeTrackerDB) GetAllStartedBuilds() ([]db.Build, error) {
 	fake.getAllStartedBuildsMutex.Unlock()
 	if fake.GetAllStartedBuildsStub != nil {
 		return fake.GetAllStartedBuildsStub()
-	} else {
-		return fake.getAllStartedBuildsReturns.result1, fake.getAllStartedBuildsReturns.result2
 	}
+	return fake.getAllStartedBuildsReturns.result1, fake.getAllStartedBuildsReturns.result2
 }
 
 func (fake *FakeTrackerDB) GetAllStartedBuildsCallCount() int {

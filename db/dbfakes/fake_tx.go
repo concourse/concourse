@@ -78,9 +78,8 @@ func (fake *FakeTx) Commit() error {
 	fake.commitMutex.Unlock()
 	if fake.CommitStub != nil {
 		return fake.CommitStub()
-	} else {
-		return fake.commitReturns.result1
 	}
+	return fake.commitReturns.result1
 }
 
 func (fake *FakeTx) CommitCallCount() int {
@@ -106,9 +105,8 @@ func (fake *FakeTx) Exec(query string, args ...interface{}) (sql.Result, error) 
 	fake.execMutex.Unlock()
 	if fake.ExecStub != nil {
 		return fake.ExecStub(query, args...)
-	} else {
-		return fake.execReturns.result1, fake.execReturns.result2
 	}
+	return fake.execReturns.result1, fake.execReturns.result2
 }
 
 func (fake *FakeTx) ExecCallCount() int {
@@ -140,9 +138,8 @@ func (fake *FakeTx) Prepare(query string) (*sql.Stmt, error) {
 	fake.prepareMutex.Unlock()
 	if fake.PrepareStub != nil {
 		return fake.PrepareStub(query)
-	} else {
-		return fake.prepareReturns.result1, fake.prepareReturns.result2
 	}
+	return fake.prepareReturns.result1, fake.prepareReturns.result2
 }
 
 func (fake *FakeTx) PrepareCallCount() int {
@@ -175,9 +172,8 @@ func (fake *FakeTx) Query(query string, args ...interface{}) (*sql.Rows, error) 
 	fake.queryMutex.Unlock()
 	if fake.QueryStub != nil {
 		return fake.QueryStub(query, args...)
-	} else {
-		return fake.queryReturns.result1, fake.queryReturns.result2
 	}
+	return fake.queryReturns.result1, fake.queryReturns.result2
 }
 
 func (fake *FakeTx) QueryCallCount() int {
@@ -210,9 +206,8 @@ func (fake *FakeTx) QueryRow(query string, args ...interface{}) *sql.Row {
 	fake.queryRowMutex.Unlock()
 	if fake.QueryRowStub != nil {
 		return fake.QueryRowStub(query, args...)
-	} else {
-		return fake.queryRowReturns.result1
 	}
+	return fake.queryRowReturns.result1
 }
 
 func (fake *FakeTx) QueryRowCallCount() int {
@@ -241,9 +236,8 @@ func (fake *FakeTx) Rollback() error {
 	fake.rollbackMutex.Unlock()
 	if fake.RollbackStub != nil {
 		return fake.RollbackStub()
-	} else {
-		return fake.rollbackReturns.result1
 	}
+	return fake.rollbackReturns.result1
 }
 
 func (fake *FakeTx) RollbackCallCount() int {
@@ -268,9 +262,8 @@ func (fake *FakeTx) Stmt(stmt *sql.Stmt) *sql.Stmt {
 	fake.stmtMutex.Unlock()
 	if fake.StmtStub != nil {
 		return fake.StmtStub(stmt)
-	} else {
-		return fake.stmtReturns.result1
 	}
+	return fake.stmtReturns.result1
 }
 
 func (fake *FakeTx) StmtCallCount() int {

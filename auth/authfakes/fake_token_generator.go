@@ -36,9 +36,8 @@ func (fake *FakeTokenGenerator) GenerateToken(expiration time.Time, teamName str
 	fake.generateTokenMutex.Unlock()
 	if fake.GenerateTokenStub != nil {
 		return fake.GenerateTokenStub(expiration, teamName, isAdmin)
-	} else {
-		return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2, fake.generateTokenReturns.result3
 	}
+	return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2, fake.generateTokenReturns.result3
 }
 
 func (fake *FakeTokenGenerator) GenerateTokenCallCount() int {

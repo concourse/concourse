@@ -29,9 +29,8 @@ func (fake *FakeVolumeFactoryDB) ReapVolume(handle string) error {
 	fake.reapVolumeMutex.Unlock()
 	if fake.ReapVolumeStub != nil {
 		return fake.ReapVolumeStub(handle)
-	} else {
-		return fake.reapVolumeReturns.result1
 	}
+	return fake.reapVolumeReturns.result1
 }
 
 func (fake *FakeVolumeFactoryDB) ReapVolumeCallCount() int {

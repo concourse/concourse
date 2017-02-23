@@ -75,9 +75,8 @@ func (fake *FakeBuildStarterDB) GetNextBuildInputs(jobName string) ([]db.BuildIn
 	fake.getNextBuildInputsMutex.Unlock()
 	if fake.GetNextBuildInputsStub != nil {
 		return fake.GetNextBuildInputsStub(jobName)
-	} else {
-		return fake.getNextBuildInputsReturns.result1, fake.getNextBuildInputsReturns.result2, fake.getNextBuildInputsReturns.result3
 	}
+	return fake.getNextBuildInputsReturns.result1, fake.getNextBuildInputsReturns.result2, fake.getNextBuildInputsReturns.result3
 }
 
 func (fake *FakeBuildStarterDB) GetNextBuildInputsCallCount() int {
@@ -108,9 +107,8 @@ func (fake *FakeBuildStarterDB) IsPaused() (bool, error) {
 	fake.isPausedMutex.Unlock()
 	if fake.IsPausedStub != nil {
 		return fake.IsPausedStub()
-	} else {
-		return fake.isPausedReturns.result1, fake.isPausedReturns.result2
 	}
+	return fake.isPausedReturns.result1, fake.isPausedReturns.result2
 }
 
 func (fake *FakeBuildStarterDB) IsPausedCallCount() int {
@@ -136,9 +134,8 @@ func (fake *FakeBuildStarterDB) GetJob(job string) (db.SavedJob, bool, error) {
 	fake.getJobMutex.Unlock()
 	if fake.GetJobStub != nil {
 		return fake.GetJobStub(job)
-	} else {
-		return fake.getJobReturns.result1, fake.getJobReturns.result2, fake.getJobReturns.result3
 	}
+	return fake.getJobReturns.result1, fake.getJobReturns.result2, fake.getJobReturns.result3
 }
 
 func (fake *FakeBuildStarterDB) GetJobCallCount() int {
@@ -171,9 +168,8 @@ func (fake *FakeBuildStarterDB) UpdateBuildToScheduled(arg1 int) (bool, error) {
 	fake.updateBuildToScheduledMutex.Unlock()
 	if fake.UpdateBuildToScheduledStub != nil {
 		return fake.UpdateBuildToScheduledStub(arg1)
-	} else {
-		return fake.updateBuildToScheduledReturns.result1, fake.updateBuildToScheduledReturns.result2
 	}
+	return fake.updateBuildToScheduledReturns.result1, fake.updateBuildToScheduledReturns.result2
 }
 
 func (fake *FakeBuildStarterDB) UpdateBuildToScheduledCallCount() int {
@@ -211,9 +207,8 @@ func (fake *FakeBuildStarterDB) UseInputsForBuild(buildID int, inputs []db.Build
 	fake.useInputsForBuildMutex.Unlock()
 	if fake.UseInputsForBuildStub != nil {
 		return fake.UseInputsForBuildStub(buildID, inputs)
-	} else {
-		return fake.useInputsForBuildReturns.result1
 	}
+	return fake.useInputsForBuildReturns.result1
 }
 
 func (fake *FakeBuildStarterDB) UseInputsForBuildCallCount() int {
@@ -242,9 +237,8 @@ func (fake *FakeBuildStarterDB) LoadVersionsDB() (*algorithm.VersionsDB, error) 
 	fake.loadVersionsDBMutex.Unlock()
 	if fake.LoadVersionsDBStub != nil {
 		return fake.LoadVersionsDBStub()
-	} else {
-		return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
 	}
+	return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
 }
 
 func (fake *FakeBuildStarterDB) LoadVersionsDBCallCount() int {

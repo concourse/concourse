@@ -58,9 +58,8 @@ func (fake *FakeVersionedSource) Version() atc.Version {
 	fake.versionMutex.Unlock()
 	if fake.VersionStub != nil {
 		return fake.VersionStub()
-	} else {
-		return fake.versionReturns.result1
 	}
+	return fake.versionReturns.result1
 }
 
 func (fake *FakeVersionedSource) VersionCallCount() int {
@@ -83,9 +82,8 @@ func (fake *FakeVersionedSource) Metadata() []atc.MetadataField {
 	fake.metadataMutex.Unlock()
 	if fake.MetadataStub != nil {
 		return fake.MetadataStub()
-	} else {
-		return fake.metadataReturns.result1
 	}
+	return fake.metadataReturns.result1
 }
 
 func (fake *FakeVersionedSource) MetadataCallCount() int {
@@ -110,9 +108,8 @@ func (fake *FakeVersionedSource) StreamOut(arg1 string) (io.ReadCloser, error) {
 	fake.streamOutMutex.Unlock()
 	if fake.StreamOutStub != nil {
 		return fake.StreamOutStub(arg1)
-	} else {
-		return fake.streamOutReturns.result1, fake.streamOutReturns.result2
 	}
+	return fake.streamOutReturns.result1, fake.streamOutReturns.result2
 }
 
 func (fake *FakeVersionedSource) StreamOutCallCount() int {
@@ -145,9 +142,8 @@ func (fake *FakeVersionedSource) StreamIn(arg1 string, arg2 io.Reader) error {
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
 		return fake.StreamInStub(arg1, arg2)
-	} else {
-		return fake.streamInReturns.result1
 	}
+	return fake.streamInReturns.result1
 }
 
 func (fake *FakeVersionedSource) StreamInCallCount() int {
@@ -176,9 +172,8 @@ func (fake *FakeVersionedSource) Volume() worker.Volume {
 	fake.volumeMutex.Unlock()
 	if fake.VolumeStub != nil {
 		return fake.VolumeStub()
-	} else {
-		return fake.volumeReturns.result1
 	}
+	return fake.volumeReturns.result1
 }
 
 func (fake *FakeVersionedSource) VolumeCallCount() int {

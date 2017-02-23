@@ -83,9 +83,8 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForResourceCache(arg1 lager.Logg
 	fake.findOrCreateVolumeForResourceCacheMutex.Unlock()
 	if fake.FindOrCreateVolumeForResourceCacheStub != nil {
 		return fake.FindOrCreateVolumeForResourceCacheStub(arg1, arg2, arg3)
-	} else {
-		return fake.findOrCreateVolumeForResourceCacheReturns.result1, fake.findOrCreateVolumeForResourceCacheReturns.result2
 	}
+	return fake.findOrCreateVolumeForResourceCacheReturns.result1, fake.findOrCreateVolumeForResourceCacheReturns.result2
 }
 
 func (fake *FakeVolumeClient) FindOrCreateVolumeForResourceCacheCallCount() int {
@@ -121,9 +120,8 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForContainer(arg1 lager.Logger, 
 	fake.findOrCreateVolumeForContainerMutex.Unlock()
 	if fake.FindOrCreateVolumeForContainerStub != nil {
 		return fake.FindOrCreateVolumeForContainerStub(arg1, arg2, arg3, arg4, arg5)
-	} else {
-		return fake.findOrCreateVolumeForContainerReturns.result1, fake.findOrCreateVolumeForContainerReturns.result2
 	}
+	return fake.findOrCreateVolumeForContainerReturns.result1, fake.findOrCreateVolumeForContainerReturns.result2
 }
 
 func (fake *FakeVolumeClient) FindOrCreateVolumeForContainerCallCount() int {
@@ -158,9 +156,8 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForBaseResourceType(arg1 lager.L
 	fake.findOrCreateVolumeForBaseResourceTypeMutex.Unlock()
 	if fake.FindOrCreateVolumeForBaseResourceTypeStub != nil {
 		return fake.FindOrCreateVolumeForBaseResourceTypeStub(arg1, arg2, arg3, arg4)
-	} else {
-		return fake.findOrCreateVolumeForBaseResourceTypeReturns.result1, fake.findOrCreateVolumeForBaseResourceTypeReturns.result2
 	}
+	return fake.findOrCreateVolumeForBaseResourceTypeReturns.result1, fake.findOrCreateVolumeForBaseResourceTypeReturns.result2
 }
 
 func (fake *FakeVolumeClient) FindOrCreateVolumeForBaseResourceTypeCallCount() int {
@@ -193,9 +190,8 @@ func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCache(arg1 lager.L
 	fake.findInitializedVolumeForResourceCacheMutex.Unlock()
 	if fake.FindInitializedVolumeForResourceCacheStub != nil {
 		return fake.FindInitializedVolumeForResourceCacheStub(arg1, arg2)
-	} else {
-		return fake.findInitializedVolumeForResourceCacheReturns.result1, fake.findInitializedVolumeForResourceCacheReturns.result2, fake.findInitializedVolumeForResourceCacheReturns.result3
 	}
+	return fake.findInitializedVolumeForResourceCacheReturns.result1, fake.findInitializedVolumeForResourceCacheReturns.result2, fake.findInitializedVolumeForResourceCacheReturns.result3
 }
 
 func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCacheCallCount() int {
@@ -229,9 +225,8 @@ func (fake *FakeVolumeClient) LookupVolume(arg1 lager.Logger, arg2 string) (work
 	fake.lookupVolumeMutex.Unlock()
 	if fake.LookupVolumeStub != nil {
 		return fake.LookupVolumeStub(arg1, arg2)
-	} else {
-		return fake.lookupVolumeReturns.result1, fake.lookupVolumeReturns.result2, fake.lookupVolumeReturns.result3
 	}
+	return fake.lookupVolumeReturns.result1, fake.lookupVolumeReturns.result2, fake.lookupVolumeReturns.result3
 }
 
 func (fake *FakeVolumeClient) LookupVolumeCallCount() int {

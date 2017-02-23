@@ -31,9 +31,8 @@ func (fake *FakeNotifier) Notify() <-chan struct{} {
 	fake.notifyMutex.Unlock()
 	if fake.NotifyStub != nil {
 		return fake.NotifyStub()
-	} else {
-		return fake.notifyReturns.result1
 	}
+	return fake.notifyReturns.result1
 }
 
 func (fake *FakeNotifier) NotifyCallCount() int {
@@ -56,9 +55,8 @@ func (fake *FakeNotifier) Close() error {
 	fake.closeMutex.Unlock()
 	if fake.CloseStub != nil {
 		return fake.CloseStub()
-	} else {
-		return fake.closeReturns.result1
 	}
+	return fake.closeReturns.result1
 }
 
 func (fake *FakeNotifier) CloseCallCount() int {

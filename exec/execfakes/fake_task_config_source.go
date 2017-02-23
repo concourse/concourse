@@ -38,9 +38,8 @@ func (fake *FakeTaskConfigSource) FetchConfig(arg1 *worker.ArtifactRepository) (
 	fake.fetchConfigMutex.Unlock()
 	if fake.FetchConfigStub != nil {
 		return fake.FetchConfigStub(arg1)
-	} else {
-		return fake.fetchConfigReturns.result1, fake.fetchConfigReturns.result2
 	}
+	return fake.fetchConfigReturns.result1, fake.fetchConfigReturns.result2
 }
 
 func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
@@ -70,9 +69,8 @@ func (fake *FakeTaskConfigSource) Warnings() []string {
 	fake.warningsMutex.Unlock()
 	if fake.WarningsStub != nil {
 		return fake.WarningsStub()
-	} else {
-		return fake.warningsReturns.result1
 	}
+	return fake.warningsReturns.result1
 }
 
 func (fake *FakeTaskConfigSource) WarningsCallCount() int {

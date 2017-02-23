@@ -98,9 +98,8 @@ func (fake *FakeSchedulerDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.
 	fake.acquireSchedulingLockMutex.Unlock()
 	if fake.AcquireSchedulingLockStub != nil {
 		return fake.AcquireSchedulingLockStub(arg1, arg2)
-	} else {
-		return fake.acquireSchedulingLockReturns.result1, fake.acquireSchedulingLockReturns.result2, fake.acquireSchedulingLockReturns.result3
 	}
+	return fake.acquireSchedulingLockReturns.result1, fake.acquireSchedulingLockReturns.result2, fake.acquireSchedulingLockReturns.result3
 }
 
 func (fake *FakeSchedulerDB) AcquireSchedulingLockCallCount() int {
@@ -131,9 +130,8 @@ func (fake *FakeSchedulerDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	fake.loadVersionsDBMutex.Unlock()
 	if fake.LoadVersionsDBStub != nil {
 		return fake.LoadVersionsDBStub()
-	} else {
-		return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
 	}
+	return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
 }
 
 func (fake *FakeSchedulerDB) LoadVersionsDBCallCount() int {
@@ -157,9 +155,8 @@ func (fake *FakeSchedulerDB) GetPipelineName() string {
 	fake.getPipelineNameMutex.Unlock()
 	if fake.GetPipelineNameStub != nil {
 		return fake.GetPipelineNameStub()
-	} else {
-		return fake.getPipelineNameReturns.result1
 	}
+	return fake.getPipelineNameReturns.result1
 }
 
 func (fake *FakeSchedulerDB) GetPipelineNameCallCount() int {
@@ -182,9 +179,8 @@ func (fake *FakeSchedulerDB) Reload() (bool, error) {
 	fake.reloadMutex.Unlock()
 	if fake.ReloadStub != nil {
 		return fake.ReloadStub()
-	} else {
-		return fake.reloadReturns.result1, fake.reloadReturns.result2
 	}
+	return fake.reloadReturns.result1, fake.reloadReturns.result2
 }
 
 func (fake *FakeSchedulerDB) ReloadCallCount() int {
@@ -208,9 +204,8 @@ func (fake *FakeSchedulerDB) Config() atc.Config {
 	fake.configMutex.Unlock()
 	if fake.ConfigStub != nil {
 		return fake.ConfigStub()
-	} else {
-		return fake.configReturns.result1
 	}
+	return fake.configReturns.result1
 }
 
 func (fake *FakeSchedulerDB) ConfigCallCount() int {
@@ -235,9 +230,8 @@ func (fake *FakeSchedulerDB) CreateJobBuild(job string) (db.Build, error) {
 	fake.createJobBuildMutex.Unlock()
 	if fake.CreateJobBuildStub != nil {
 		return fake.CreateJobBuildStub(job)
-	} else {
-		return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 	}
+	return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 }
 
 func (fake *FakeSchedulerDB) CreateJobBuildCallCount() int {
@@ -269,9 +263,8 @@ func (fake *FakeSchedulerDB) EnsurePendingBuildExists(jobName string) error {
 	fake.ensurePendingBuildExistsMutex.Unlock()
 	if fake.EnsurePendingBuildExistsStub != nil {
 		return fake.EnsurePendingBuildExistsStub(jobName)
-	} else {
-		return fake.ensurePendingBuildExistsReturns.result1
 	}
+	return fake.ensurePendingBuildExistsReturns.result1
 }
 
 func (fake *FakeSchedulerDB) EnsurePendingBuildExistsCallCount() int {
@@ -300,9 +293,8 @@ func (fake *FakeSchedulerDB) GetAllPendingBuilds() (map[string][]db.Build, error
 	fake.getAllPendingBuildsMutex.Unlock()
 	if fake.GetAllPendingBuildsStub != nil {
 		return fake.GetAllPendingBuildsStub()
-	} else {
-		return fake.getAllPendingBuildsReturns.result1, fake.getAllPendingBuildsReturns.result2
 	}
+	return fake.getAllPendingBuildsReturns.result1, fake.getAllPendingBuildsReturns.result2
 }
 
 func (fake *FakeSchedulerDB) GetAllPendingBuildsCallCount() int {
@@ -328,9 +320,8 @@ func (fake *FakeSchedulerDB) GetPendingBuildsForJob(jobName string) ([]db.Build,
 	fake.getPendingBuildsForJobMutex.Unlock()
 	if fake.GetPendingBuildsForJobStub != nil {
 		return fake.GetPendingBuildsForJobStub(jobName)
-	} else {
-		return fake.getPendingBuildsForJobReturns.result1, fake.getPendingBuildsForJobReturns.result2
 	}
+	return fake.getPendingBuildsForJobReturns.result1, fake.getPendingBuildsForJobReturns.result2
 }
 
 func (fake *FakeSchedulerDB) GetPendingBuildsForJobCallCount() int {

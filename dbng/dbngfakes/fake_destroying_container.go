@@ -44,9 +44,8 @@ func (fake *FakeDestroyingContainer) Handle() string {
 	fake.handleMutex.Unlock()
 	if fake.HandleStub != nil {
 		return fake.HandleStub()
-	} else {
-		return fake.handleReturns.result1
 	}
+	return fake.handleReturns.result1
 }
 
 func (fake *FakeDestroyingContainer) HandleCallCount() int {
@@ -69,9 +68,8 @@ func (fake *FakeDestroyingContainer) WorkerName() string {
 	fake.workerNameMutex.Unlock()
 	if fake.WorkerNameStub != nil {
 		return fake.WorkerNameStub()
-	} else {
-		return fake.workerNameReturns.result1
 	}
+	return fake.workerNameReturns.result1
 }
 
 func (fake *FakeDestroyingContainer) WorkerNameCallCount() int {
@@ -94,9 +92,8 @@ func (fake *FakeDestroyingContainer) Destroy() (bool, error) {
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
 		return fake.DestroyStub()
-	} else {
-		return fake.destroyReturns.result1, fake.destroyReturns.result2
 	}
+	return fake.destroyReturns.result1, fake.destroyReturns.result2
 }
 
 func (fake *FakeDestroyingContainer) DestroyCallCount() int {
@@ -120,9 +117,8 @@ func (fake *FakeDestroyingContainer) IsDiscontinued() bool {
 	fake.isDiscontinuedMutex.Unlock()
 	if fake.IsDiscontinuedStub != nil {
 		return fake.IsDiscontinuedStub()
-	} else {
-		return fake.isDiscontinuedReturns.result1
 	}
+	return fake.isDiscontinuedReturns.result1
 }
 
 func (fake *FakeDestroyingContainer) IsDiscontinuedCallCount() int {

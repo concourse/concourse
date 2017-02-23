@@ -108,9 +108,8 @@ func (fake *FakeContainerProvider) FindContainerByHandle(logger lager.Logger, ha
 	fake.findContainerByHandleMutex.Unlock()
 	if fake.FindContainerByHandleStub != nil {
 		return fake.FindContainerByHandleStub(logger, handle, teamID)
-	} else {
-		return fake.findContainerByHandleReturns.result1, fake.findContainerByHandleReturns.result2, fake.findContainerByHandleReturns.result3
 	}
+	return fake.findContainerByHandleReturns.result1, fake.findContainerByHandleReturns.result2, fake.findContainerByHandleReturns.result3
 }
 
 func (fake *FakeContainerProvider) FindContainerByHandleCallCount() int {
@@ -150,9 +149,8 @@ func (fake *FakeContainerProvider) FindOrCreateBuildContainer(logger lager.Logge
 	fake.findOrCreateBuildContainerMutex.Unlock()
 	if fake.FindOrCreateBuildContainerStub != nil {
 		return fake.FindOrCreateBuildContainerStub(logger, cancel, delegate, id, metadata, spec, resourceTypes, outputPaths)
-	} else {
-		return fake.findOrCreateBuildContainerReturns.result1, fake.findOrCreateBuildContainerReturns.result2
 	}
+	return fake.findOrCreateBuildContainerReturns.result1, fake.findOrCreateBuildContainerReturns.result2
 }
 
 func (fake *FakeContainerProvider) FindOrCreateBuildContainerCallCount() int {
@@ -192,9 +190,8 @@ func (fake *FakeContainerProvider) FindOrCreateResourceCheckContainer(logger lag
 	fake.findOrCreateResourceCheckContainerMutex.Unlock()
 	if fake.FindOrCreateResourceCheckContainerStub != nil {
 		return fake.FindOrCreateResourceCheckContainerStub(logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceType, source)
-	} else {
-		return fake.findOrCreateResourceCheckContainerReturns.result1, fake.findOrCreateResourceCheckContainerReturns.result2
 	}
+	return fake.findOrCreateResourceCheckContainerReturns.result1, fake.findOrCreateResourceCheckContainerReturns.result2
 }
 
 func (fake *FakeContainerProvider) FindOrCreateResourceCheckContainerCallCount() int {
@@ -234,9 +231,8 @@ func (fake *FakeContainerProvider) FindOrCreateResourceTypeCheckContainer(logger
 	fake.findOrCreateResourceTypeCheckContainerMutex.Unlock()
 	if fake.FindOrCreateResourceTypeCheckContainerStub != nil {
 		return fake.FindOrCreateResourceTypeCheckContainerStub(logger, cancel, delegate, id, metadata, spec, resourceTypes, resourceTypeName, source)
-	} else {
-		return fake.findOrCreateResourceTypeCheckContainerReturns.result1, fake.findOrCreateResourceTypeCheckContainerReturns.result2
 	}
+	return fake.findOrCreateResourceTypeCheckContainerReturns.result1, fake.findOrCreateResourceTypeCheckContainerReturns.result2
 }
 
 func (fake *FakeContainerProvider) FindOrCreateResourceTypeCheckContainerCallCount() int {
@@ -279,9 +275,8 @@ func (fake *FakeContainerProvider) FindOrCreateResourceGetContainer(logger lager
 	fake.findOrCreateResourceGetContainerMutex.Unlock()
 	if fake.FindOrCreateResourceGetContainerStub != nil {
 		return fake.FindOrCreateResourceGetContainerStub(logger, cancel, delegate, id, metadata, spec, resourceTypes, outputPaths, resourceTypeName, version, source, params)
-	} else {
-		return fake.findOrCreateResourceGetContainerReturns.result1, fake.findOrCreateResourceGetContainerReturns.result2
 	}
+	return fake.findOrCreateResourceGetContainerReturns.result1, fake.findOrCreateResourceGetContainerReturns.result2
 }
 
 func (fake *FakeContainerProvider) FindOrCreateResourceGetContainerCallCount() int {

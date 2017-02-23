@@ -51,9 +51,8 @@ func (fake *FakeResourceInstance) FindOn(arg1 lager.Logger, arg2 worker.Client) 
 	fake.findOnMutex.Unlock()
 	if fake.FindOnStub != nil {
 		return fake.FindOnStub(arg1, arg2)
-	} else {
-		return fake.findOnReturns.result1, fake.findOnReturns.result2, fake.findOnReturns.result3
 	}
+	return fake.findOnReturns.result1, fake.findOnReturns.result2, fake.findOnReturns.result3
 }
 
 func (fake *FakeResourceInstance) FindOnCallCount() int {
@@ -87,9 +86,8 @@ func (fake *FakeResourceInstance) FindOrCreateOn(arg1 lager.Logger, arg2 worker.
 	fake.findOrCreateOnMutex.Unlock()
 	if fake.FindOrCreateOnStub != nil {
 		return fake.FindOrCreateOnStub(arg1, arg2)
-	} else {
-		return fake.findOrCreateOnReturns.result1, fake.findOrCreateOnReturns.result2
 	}
+	return fake.findOrCreateOnReturns.result1, fake.findOrCreateOnReturns.result2
 }
 
 func (fake *FakeResourceInstance) FindOrCreateOnCallCount() int {
@@ -119,9 +117,8 @@ func (fake *FakeResourceInstance) ResourceCacheIdentifier() worker.ResourceCache
 	fake.resourceCacheIdentifierMutex.Unlock()
 	if fake.ResourceCacheIdentifierStub != nil {
 		return fake.ResourceCacheIdentifierStub()
-	} else {
-		return fake.resourceCacheIdentifierReturns.result1
 	}
+	return fake.resourceCacheIdentifierReturns.result1
 }
 
 func (fake *FakeResourceInstance) ResourceCacheIdentifierCallCount() int {

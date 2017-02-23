@@ -51,9 +51,8 @@ func (fake *FakeImageFactory) GetImage(arg1 lager.Logger, arg2 worker.Worker, ar
 	fake.getImageMutex.Unlock()
 	if fake.GetImageStub != nil {
 		return fake.GetImageStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
-	} else {
-		return fake.getImageReturns.result1, fake.getImageReturns.result2
 	}
+	return fake.getImageReturns.result1, fake.getImageReturns.result2
 }
 
 func (fake *FakeImageFactory) GetImageCallCount() int {

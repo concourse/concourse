@@ -54,9 +54,8 @@ func (fake *FakeFetcher) Fetch(logger lager.Logger, session resource.Session, ta
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
 		return fake.FetchStub(logger, session, tags, teamID, resourceTypes, resourceInstance, metadata, imageFetchingDelegate, resourceOptions, signals, ready)
-	} else {
-		return fake.fetchReturns.result1, fake.fetchReturns.result2
 	}
+	return fake.fetchReturns.result1, fake.fetchReturns.result2
 }
 
 func (fake *FakeFetcher) FetchCallCount() int {

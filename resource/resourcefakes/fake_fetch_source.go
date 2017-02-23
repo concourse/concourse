@@ -49,9 +49,8 @@ func (fake *FakeFetchSource) IsInitialized() (bool, error) {
 	fake.isInitializedMutex.Unlock()
 	if fake.IsInitializedStub != nil {
 		return fake.IsInitializedStub()
-	} else {
-		return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 	}
+	return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 }
 
 func (fake *FakeFetchSource) IsInitializedCallCount() int {
@@ -75,9 +74,8 @@ func (fake *FakeFetchSource) LockName() (string, error) {
 	fake.lockNameMutex.Unlock()
 	if fake.LockNameStub != nil {
 		return fake.LockNameStub()
-	} else {
-		return fake.lockNameReturns.result1, fake.lockNameReturns.result2
 	}
+	return fake.lockNameReturns.result1, fake.lockNameReturns.result2
 }
 
 func (fake *FakeFetchSource) LockNameCallCount() int {
@@ -101,9 +99,8 @@ func (fake *FakeFetchSource) VersionedSource() resource.VersionedSource {
 	fake.versionedSourceMutex.Unlock()
 	if fake.VersionedSourceStub != nil {
 		return fake.VersionedSourceStub()
-	} else {
-		return fake.versionedSourceReturns.result1
 	}
+	return fake.versionedSourceReturns.result1
 }
 
 func (fake *FakeFetchSource) VersionedSourceCallCount() int {
@@ -129,9 +126,8 @@ func (fake *FakeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- s
 	fake.initializeMutex.Unlock()
 	if fake.InitializeStub != nil {
 		return fake.InitializeStub(signals, ready)
-	} else {
-		return fake.initializeReturns.result1
 	}
+	return fake.initializeReturns.result1
 }
 
 func (fake *FakeFetchSource) InitializeCallCount() int {

@@ -45,9 +45,8 @@ func (fake *FakeResourceTypeFactory) FindResourceType(pipelineID int, resourceTy
 	fake.findResourceTypeMutex.Unlock()
 	if fake.FindResourceTypeStub != nil {
 		return fake.FindResourceTypeStub(pipelineID, resourceType)
-	} else {
-		return fake.findResourceTypeReturns.result1, fake.findResourceTypeReturns.result2, fake.findResourceTypeReturns.result3
 	}
+	return fake.findResourceTypeReturns.result1, fake.findResourceTypeReturns.result2, fake.findResourceTypeReturns.result3
 }
 
 func (fake *FakeResourceTypeFactory) FindResourceTypeCallCount() int {
@@ -82,9 +81,8 @@ func (fake *FakeResourceTypeFactory) CreateResourceType(pipelineID int, resource
 	fake.createResourceTypeMutex.Unlock()
 	if fake.CreateResourceTypeStub != nil {
 		return fake.CreateResourceTypeStub(pipelineID, resourceType, version)
-	} else {
-		return fake.createResourceTypeReturns.result1, fake.createResourceTypeReturns.result2
 	}
+	return fake.createResourceTypeReturns.result1, fake.createResourceTypeReturns.result2
 }
 
 func (fake *FakeResourceTypeFactory) CreateResourceTypeCallCount() int {

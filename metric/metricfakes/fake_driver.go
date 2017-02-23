@@ -31,9 +31,8 @@ func (fake *FakeDriver) Open(name string) (driver.Conn, error) {
 	fake.openMutex.Unlock()
 	if fake.OpenStub != nil {
 		return fake.OpenStub(name)
-	} else {
-		return fake.openReturns.result1, fake.openReturns.result2
 	}
+	return fake.openReturns.result1, fake.openReturns.result2
 }
 
 func (fake *FakeDriver) OpenCallCount() int {

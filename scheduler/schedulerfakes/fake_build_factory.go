@@ -43,9 +43,8 @@ func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfig
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
 		return fake.CreateStub(arg1, arg2, arg3, arg4)
-	} else {
-		return fake.createReturns.result1, fake.createReturns.result2
 	}
+	return fake.createReturns.result1, fake.createReturns.result2
 }
 
 func (fake *FakeBuildFactory) CreateCallCount() int {

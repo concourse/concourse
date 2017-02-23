@@ -26,9 +26,8 @@ func (fake *FakePipelinesDB) GetAllPublicPipelines() ([]db.SavedPipeline, error)
 	fake.getAllPublicPipelinesMutex.Unlock()
 	if fake.GetAllPublicPipelinesStub != nil {
 		return fake.GetAllPublicPipelinesStub()
-	} else {
-		return fake.getAllPublicPipelinesReturns.result1, fake.getAllPublicPipelinesReturns.result2
 	}
+	return fake.getAllPublicPipelinesReturns.result1, fake.getAllPublicPipelinesReturns.result2
 }
 
 func (fake *FakePipelinesDB) GetAllPublicPipelinesCallCount() int {

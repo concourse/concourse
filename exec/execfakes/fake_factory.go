@@ -111,9 +111,8 @@ func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 exec.StepMetadata, arg3 wor
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
 		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)
-	} else {
-		return fake.getReturns.result1
 	}
+	return fake.getReturns.result1
 }
 
 func (fake *FakeFactory) GetCallCount() int {
@@ -153,9 +152,8 @@ func (fake *FakeFactory) Put(arg1 lager.Logger, arg2 exec.StepMetadata, arg3 wor
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
 		return fake.PutStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
-	} else {
-		return fake.putReturns.result1
 	}
+	return fake.putReturns.result1
 }
 
 func (fake *FakeFactory) PutCallCount() int {
@@ -196,9 +194,8 @@ func (fake *FakeFactory) DependentGet(arg1 lager.Logger, arg2 exec.StepMetadata,
 	fake.dependentGetMutex.Unlock()
 	if fake.DependentGetStub != nil {
 		return fake.DependentGetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)
-	} else {
-		return fake.dependentGetReturns.result1
 	}
+	return fake.dependentGetReturns.result1
 }
 
 func (fake *FakeFactory) DependentGetCallCount() int {
@@ -242,9 +239,8 @@ func (fake *FakeFactory) Task(arg1 lager.Logger, arg2 worker.ArtifactName, arg3 
 	fake.taskMutex.Unlock()
 	if fake.TaskStub != nil {
 		return fake.TaskStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14)
-	} else {
-		return fake.taskReturns.result1
 	}
+	return fake.taskReturns.result1
 }
 
 func (fake *FakeFactory) TaskCallCount() int {

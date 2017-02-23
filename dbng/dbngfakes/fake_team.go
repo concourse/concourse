@@ -146,9 +146,8 @@ func (fake *FakeTeam) ID() int {
 	fake.iDMutex.Unlock()
 	if fake.IDStub != nil {
 		return fake.IDStub()
-	} else {
-		return fake.iDReturns.result1
 	}
+	return fake.iDReturns.result1
 }
 
 func (fake *FakeTeam) IDCallCount() int {
@@ -176,9 +175,8 @@ func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from 
 	fake.savePipelineMutex.Unlock()
 	if fake.SavePipelineStub != nil {
 		return fake.SavePipelineStub(pipelineName, config, from, pausedState)
-	} else {
-		return fake.savePipelineReturns.result1, fake.savePipelineReturns.result2, fake.savePipelineReturns.result3
 	}
+	return fake.savePipelineReturns.result1, fake.savePipelineReturns.result2, fake.savePipelineReturns.result3
 }
 
 func (fake *FakeTeam) SavePipelineCallCount() int {
@@ -211,9 +209,8 @@ func (fake *FakeTeam) FindPipelineByName(pipelineName string) (dbng.Pipeline, bo
 	fake.findPipelineByNameMutex.Unlock()
 	if fake.FindPipelineByNameStub != nil {
 		return fake.FindPipelineByNameStub(pipelineName)
-	} else {
-		return fake.findPipelineByNameReturns.result1, fake.findPipelineByNameReturns.result2, fake.findPipelineByNameReturns.result3
 	}
+	return fake.findPipelineByNameReturns.result1, fake.findPipelineByNameReturns.result2, fake.findPipelineByNameReturns.result3
 }
 
 func (fake *FakeTeam) FindPipelineByNameCallCount() int {
@@ -244,9 +241,8 @@ func (fake *FakeTeam) CreateOneOffBuild() (dbng.Build, error) {
 	fake.createOneOffBuildMutex.Unlock()
 	if fake.CreateOneOffBuildStub != nil {
 		return fake.CreateOneOffBuildStub()
-	} else {
-		return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
 	}
+	return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
 }
 
 func (fake *FakeTeam) CreateOneOffBuildCallCount() int {
@@ -273,9 +269,8 @@ func (fake *FakeTeam) SaveWorker(worker atc.Worker, ttl time.Duration) (*dbng.Wo
 	fake.saveWorkerMutex.Unlock()
 	if fake.SaveWorkerStub != nil {
 		return fake.SaveWorkerStub(worker, ttl)
-	} else {
-		return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 	}
+	return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 }
 
 func (fake *FakeTeam) SaveWorkerCallCount() int {
@@ -307,9 +302,8 @@ func (fake *FakeTeam) FindContainerByHandle(arg1 string) (dbng.CreatedContainer,
 	fake.findContainerByHandleMutex.Unlock()
 	if fake.FindContainerByHandleStub != nil {
 		return fake.FindContainerByHandleStub(arg1)
-	} else {
-		return fake.findContainerByHandleReturns.result1, fake.findContainerByHandleReturns.result2, fake.findContainerByHandleReturns.result3
 	}
+	return fake.findContainerByHandleReturns.result1, fake.findContainerByHandleReturns.result2, fake.findContainerByHandleReturns.result3
 }
 
 func (fake *FakeTeam) FindContainerByHandleCallCount() int {
@@ -343,9 +337,8 @@ func (fake *FakeTeam) FindResourceCheckContainer(arg1 *dbng.Worker, arg2 *dbng.U
 	fake.findResourceCheckContainerMutex.Unlock()
 	if fake.FindResourceCheckContainerStub != nil {
 		return fake.FindResourceCheckContainerStub(arg1, arg2)
-	} else {
-		return fake.findResourceCheckContainerReturns.result1, fake.findResourceCheckContainerReturns.result2, fake.findResourceCheckContainerReturns.result3
 	}
+	return fake.findResourceCheckContainerReturns.result1, fake.findResourceCheckContainerReturns.result2, fake.findResourceCheckContainerReturns.result3
 }
 
 func (fake *FakeTeam) FindResourceCheckContainerCallCount() int {
@@ -379,9 +372,8 @@ func (fake *FakeTeam) CreateResourceCheckContainer(arg1 *dbng.Worker, arg2 *dbng
 	fake.createResourceCheckContainerMutex.Unlock()
 	if fake.CreateResourceCheckContainerStub != nil {
 		return fake.CreateResourceCheckContainerStub(arg1, arg2)
-	} else {
-		return fake.createResourceCheckContainerReturns.result1, fake.createResourceCheckContainerReturns.result2
 	}
+	return fake.createResourceCheckContainerReturns.result1, fake.createResourceCheckContainerReturns.result2
 }
 
 func (fake *FakeTeam) CreateResourceCheckContainerCallCount() int {
@@ -415,9 +407,8 @@ func (fake *FakeTeam) FindResourceGetContainer(arg1 *dbng.Worker, arg2 *dbng.Use
 	fake.findResourceGetContainerMutex.Unlock()
 	if fake.FindResourceGetContainerStub != nil {
 		return fake.FindResourceGetContainerStub(arg1, arg2, arg3)
-	} else {
-		return fake.findResourceGetContainerReturns.result1, fake.findResourceGetContainerReturns.result2, fake.findResourceGetContainerReturns.result3
 	}
+	return fake.findResourceGetContainerReturns.result1, fake.findResourceGetContainerReturns.result2, fake.findResourceGetContainerReturns.result3
 }
 
 func (fake *FakeTeam) FindResourceGetContainerCallCount() int {
@@ -452,9 +443,8 @@ func (fake *FakeTeam) CreateResourceGetContainer(arg1 *dbng.Worker, arg2 *dbng.U
 	fake.createResourceGetContainerMutex.Unlock()
 	if fake.CreateResourceGetContainerStub != nil {
 		return fake.CreateResourceGetContainerStub(arg1, arg2, arg3)
-	} else {
-		return fake.createResourceGetContainerReturns.result1, fake.createResourceGetContainerReturns.result2
 	}
+	return fake.createResourceGetContainerReturns.result1, fake.createResourceGetContainerReturns.result2
 }
 
 func (fake *FakeTeam) CreateResourceGetContainerCallCount() int {
@@ -489,9 +479,8 @@ func (fake *FakeTeam) FindBuildContainer(arg1 *dbng.Worker, arg2 int, arg3 atc.P
 	fake.findBuildContainerMutex.Unlock()
 	if fake.FindBuildContainerStub != nil {
 		return fake.FindBuildContainerStub(arg1, arg2, arg3, arg4)
-	} else {
-		return fake.findBuildContainerReturns.result1, fake.findBuildContainerReturns.result2, fake.findBuildContainerReturns.result3
 	}
+	return fake.findBuildContainerReturns.result1, fake.findBuildContainerReturns.result2, fake.findBuildContainerReturns.result3
 }
 
 func (fake *FakeTeam) FindBuildContainerCallCount() int {
@@ -527,9 +516,8 @@ func (fake *FakeTeam) CreateBuildContainer(arg1 *dbng.Worker, arg2 int, arg3 atc
 	fake.createBuildContainerMutex.Unlock()
 	if fake.CreateBuildContainerStub != nil {
 		return fake.CreateBuildContainerStub(arg1, arg2, arg3, arg4)
-	} else {
-		return fake.createBuildContainerReturns.result1, fake.createBuildContainerReturns.result2
 	}
+	return fake.createBuildContainerReturns.result1, fake.createBuildContainerReturns.result2
 }
 
 func (fake *FakeTeam) CreateBuildContainerCallCount() int {

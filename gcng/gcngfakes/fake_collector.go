@@ -25,9 +25,8 @@ func (fake *FakeCollector) Run() error {
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
 		return fake.RunStub()
-	} else {
-		return fake.runReturns.result1
 	}
+	return fake.runReturns.result1
 }
 
 func (fake *FakeCollector) RunCallCount() int {

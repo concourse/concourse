@@ -45,9 +45,8 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(logger lager.Logger, j
 	fake.tryStartPendingBuildsForJobMutex.Unlock()
 	if fake.TryStartPendingBuildsForJobStub != nil {
 		return fake.TryStartPendingBuildsForJobStub(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuilds)
-	} else {
-		return fake.tryStartPendingBuildsForJobReturns.result1
 	}
+	return fake.tryStartPendingBuildsForJobReturns.result1
 }
 
 func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCallCount() int {

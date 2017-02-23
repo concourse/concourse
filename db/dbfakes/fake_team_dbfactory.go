@@ -29,9 +29,8 @@ func (fake *FakeTeamDBFactory) GetTeamDB(arg1 string) db.TeamDB {
 	fake.getTeamDBMutex.Unlock()
 	if fake.GetTeamDBStub != nil {
 		return fake.GetTeamDBStub(arg1)
-	} else {
-		return fake.getTeamDBReturns.result1
 	}
+	return fake.getTeamDBReturns.result1
 }
 
 func (fake *FakeTeamDBFactory) GetTeamDBCallCount() int {

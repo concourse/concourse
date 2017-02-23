@@ -89,9 +89,8 @@ func (fake *FakeResourceFactory) NewResource(logger lager.Logger, id worker.Iden
 	fake.newResourceMutex.Unlock()
 	if fake.NewResourceStub != nil {
 		return fake.NewResourceStub(logger, id, metadata, resourceSpec, resourceTypes, imageFetchingDelegate, resourceSources)
-	} else {
-		return fake.newResourceReturns.result1, fake.newResourceReturns.result2, fake.newResourceReturns.result3
 	}
+	return fake.newResourceReturns.result1, fake.newResourceReturns.result2, fake.newResourceReturns.result3
 }
 
 func (fake *FakeResourceFactory) NewResourceCallCount() int {
@@ -136,9 +135,8 @@ func (fake *FakeResourceFactory) NewBuildResource(logger lager.Logger, id worker
 	fake.newBuildResourceMutex.Unlock()
 	if fake.NewBuildResourceStub != nil {
 		return fake.NewBuildResourceStub(logger, id, metadata, containerSpec, resourceTypes, imageFetchingDelegate, inputSources, outputPaths)
-	} else {
-		return fake.newBuildResourceReturns.result1, fake.newBuildResourceReturns.result2, fake.newBuildResourceReturns.result3
 	}
+	return fake.newBuildResourceReturns.result1, fake.newBuildResourceReturns.result2, fake.newBuildResourceReturns.result3
 }
 
 func (fake *FakeResourceFactory) NewBuildResourceCallCount() int {
@@ -175,9 +173,8 @@ func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, id worker
 	fake.newCheckResourceMutex.Unlock()
 	if fake.NewCheckResourceStub != nil {
 		return fake.NewCheckResourceStub(logger, id, metadata, resourceSpec, resourceTypes)
-	} else {
-		return fake.newCheckResourceReturns.result1, fake.newCheckResourceReturns.result2
 	}
+	return fake.newCheckResourceReturns.result1, fake.newCheckResourceReturns.result2
 }
 
 func (fake *FakeResourceFactory) NewCheckResourceCallCount() int {
@@ -213,9 +210,8 @@ func (fake *FakeResourceFactory) NewCheckResourceForResourceType(logger lager.Lo
 	fake.newCheckResourceForResourceTypeMutex.Unlock()
 	if fake.NewCheckResourceForResourceTypeStub != nil {
 		return fake.NewCheckResourceForResourceTypeStub(logger, id, metadata, resourceSpec, resourceTypes)
-	} else {
-		return fake.newCheckResourceForResourceTypeReturns.result1, fake.newCheckResourceForResourceTypeReturns.result2
 	}
+	return fake.newCheckResourceForResourceTypeReturns.result1, fake.newCheckResourceForResourceTypeReturns.result2
 }
 
 func (fake *FakeResourceFactory) NewCheckResourceForResourceTypeCallCount() int {

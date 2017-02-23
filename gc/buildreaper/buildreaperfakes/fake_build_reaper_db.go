@@ -35,9 +35,8 @@ func (fake *FakeBuildReaperDB) GetAllPipelines() ([]db.SavedPipeline, error) {
 	fake.getAllPipelinesMutex.Unlock()
 	if fake.GetAllPipelinesStub != nil {
 		return fake.GetAllPipelinesStub()
-	} else {
-		return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
 	}
+	return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
 }
 
 func (fake *FakeBuildReaperDB) GetAllPipelinesCallCount() int {
@@ -68,9 +67,8 @@ func (fake *FakeBuildReaperDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error
 	fake.deleteBuildEventsByBuildIDsMutex.Unlock()
 	if fake.DeleteBuildEventsByBuildIDsStub != nil {
 		return fake.DeleteBuildEventsByBuildIDsStub(buildIDs)
-	} else {
-		return fake.deleteBuildEventsByBuildIDsReturns.result1
 	}
+	return fake.deleteBuildEventsByBuildIDsReturns.result1
 }
 
 func (fake *FakeBuildReaperDB) DeleteBuildEventsByBuildIDsCallCount() int {

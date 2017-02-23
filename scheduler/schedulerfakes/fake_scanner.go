@@ -32,9 +32,8 @@ func (fake *FakeScanner) Scan(arg1 lager.Logger, arg2 string) error {
 	fake.scanMutex.Unlock()
 	if fake.ScanStub != nil {
 		return fake.ScanStub(arg1, arg2)
-	} else {
-		return fake.scanReturns.result1
 	}
+	return fake.scanReturns.result1
 }
 
 func (fake *FakeScanner) ScanCallCount() int {

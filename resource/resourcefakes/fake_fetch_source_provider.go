@@ -26,9 +26,8 @@ func (fake *FakeFetchSourceProvider) Get() (resource.FetchSource, error) {
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
 		return fake.GetStub()
-	} else {
-		return fake.getReturns.result1, fake.getReturns.result2
 	}
+	return fake.getReturns.result1, fake.getReturns.result2
 }
 
 func (fake *FakeFetchSourceProvider) GetCallCount() int {

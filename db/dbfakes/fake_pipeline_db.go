@@ -543,9 +543,8 @@ func (fake *FakePipelineDB) Pipeline() db.SavedPipeline {
 	fake.pipelineMutex.Unlock()
 	if fake.PipelineStub != nil {
 		return fake.PipelineStub()
-	} else {
-		return fake.pipelineReturns.result1
 	}
+	return fake.pipelineReturns.result1
 }
 
 func (fake *FakePipelineDB) PipelineCallCount() int {
@@ -568,9 +567,8 @@ func (fake *FakePipelineDB) GetPipelineName() string {
 	fake.getPipelineNameMutex.Unlock()
 	if fake.GetPipelineNameStub != nil {
 		return fake.GetPipelineNameStub()
-	} else {
-		return fake.getPipelineNameReturns.result1
 	}
+	return fake.getPipelineNameReturns.result1
 }
 
 func (fake *FakePipelineDB) GetPipelineNameCallCount() int {
@@ -593,9 +591,8 @@ func (fake *FakePipelineDB) GetPipelineID() int {
 	fake.getPipelineIDMutex.Unlock()
 	if fake.GetPipelineIDStub != nil {
 		return fake.GetPipelineIDStub()
-	} else {
-		return fake.getPipelineIDReturns.result1
 	}
+	return fake.getPipelineIDReturns.result1
 }
 
 func (fake *FakePipelineDB) GetPipelineIDCallCount() int {
@@ -620,9 +617,8 @@ func (fake *FakePipelineDB) ScopedName(arg1 string) string {
 	fake.scopedNameMutex.Unlock()
 	if fake.ScopedNameStub != nil {
 		return fake.ScopedNameStub(arg1)
-	} else {
-		return fake.scopedNameReturns.result1
 	}
+	return fake.scopedNameReturns.result1
 }
 
 func (fake *FakePipelineDB) ScopedNameCallCount() int {
@@ -651,9 +647,8 @@ func (fake *FakePipelineDB) TeamID() int {
 	fake.teamIDMutex.Unlock()
 	if fake.TeamIDStub != nil {
 		return fake.TeamIDStub()
-	} else {
-		return fake.teamIDReturns.result1
 	}
+	return fake.teamIDReturns.result1
 }
 
 func (fake *FakePipelineDB) TeamIDCallCount() int {
@@ -676,9 +671,8 @@ func (fake *FakePipelineDB) Config() atc.Config {
 	fake.configMutex.Unlock()
 	if fake.ConfigStub != nil {
 		return fake.ConfigStub()
-	} else {
-		return fake.configReturns.result1
 	}
+	return fake.configReturns.result1
 }
 
 func (fake *FakePipelineDB) ConfigCallCount() int {
@@ -701,9 +695,8 @@ func (fake *FakePipelineDB) ConfigVersion() db.ConfigVersion {
 	fake.configVersionMutex.Unlock()
 	if fake.ConfigVersionStub != nil {
 		return fake.ConfigVersionStub()
-	} else {
-		return fake.configVersionReturns.result1
 	}
+	return fake.configVersionReturns.result1
 }
 
 func (fake *FakePipelineDB) ConfigVersionCallCount() int {
@@ -726,9 +719,8 @@ func (fake *FakePipelineDB) Reload() (bool, error) {
 	fake.reloadMutex.Unlock()
 	if fake.ReloadStub != nil {
 		return fake.ReloadStub()
-	} else {
-		return fake.reloadReturns.result1, fake.reloadReturns.result2
 	}
+	return fake.reloadReturns.result1, fake.reloadReturns.result2
 }
 
 func (fake *FakePipelineDB) ReloadCallCount() int {
@@ -752,9 +744,8 @@ func (fake *FakePipelineDB) Pause() error {
 	fake.pauseMutex.Unlock()
 	if fake.PauseStub != nil {
 		return fake.PauseStub()
-	} else {
-		return fake.pauseReturns.result1
 	}
+	return fake.pauseReturns.result1
 }
 
 func (fake *FakePipelineDB) PauseCallCount() int {
@@ -777,9 +768,8 @@ func (fake *FakePipelineDB) Unpause() error {
 	fake.unpauseMutex.Unlock()
 	if fake.UnpauseStub != nil {
 		return fake.UnpauseStub()
-	} else {
-		return fake.unpauseReturns.result1
 	}
+	return fake.unpauseReturns.result1
 }
 
 func (fake *FakePipelineDB) UnpauseCallCount() int {
@@ -802,9 +792,8 @@ func (fake *FakePipelineDB) IsPaused() (bool, error) {
 	fake.isPausedMutex.Unlock()
 	if fake.IsPausedStub != nil {
 		return fake.IsPausedStub()
-	} else {
-		return fake.isPausedReturns.result1, fake.isPausedReturns.result2
 	}
+	return fake.isPausedReturns.result1, fake.isPausedReturns.result2
 }
 
 func (fake *FakePipelineDB) IsPausedCallCount() int {
@@ -828,9 +817,8 @@ func (fake *FakePipelineDB) IsPublic() bool {
 	fake.isPublicMutex.Unlock()
 	if fake.IsPublicStub != nil {
 		return fake.IsPublicStub()
-	} else {
-		return fake.isPublicReturns.result1
 	}
+	return fake.isPublicReturns.result1
 }
 
 func (fake *FakePipelineDB) IsPublicCallCount() int {
@@ -855,9 +843,8 @@ func (fake *FakePipelineDB) UpdateName(arg1 string) error {
 	fake.updateNameMutex.Unlock()
 	if fake.UpdateNameStub != nil {
 		return fake.UpdateNameStub(arg1)
-	} else {
-		return fake.updateNameReturns.result1
 	}
+	return fake.updateNameReturns.result1
 }
 
 func (fake *FakePipelineDB) UpdateNameCallCount() int {
@@ -886,9 +873,8 @@ func (fake *FakePipelineDB) Destroy() error {
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
 		return fake.DestroyStub()
-	} else {
-		return fake.destroyReturns.result1
 	}
+	return fake.destroyReturns.result1
 }
 
 func (fake *FakePipelineDB) DestroyCallCount() int {
@@ -914,9 +900,8 @@ func (fake *FakePipelineDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.D
 	fake.acquireSchedulingLockMutex.Unlock()
 	if fake.AcquireSchedulingLockStub != nil {
 		return fake.AcquireSchedulingLockStub(arg1, arg2)
-	} else {
-		return fake.acquireSchedulingLockReturns.result1, fake.acquireSchedulingLockReturns.result2, fake.acquireSchedulingLockReturns.result3
 	}
+	return fake.acquireSchedulingLockReturns.result1, fake.acquireSchedulingLockReturns.result2, fake.acquireSchedulingLockReturns.result3
 }
 
 func (fake *FakePipelineDB) AcquireSchedulingLockCallCount() int {
@@ -949,9 +934,8 @@ func (fake *FakePipelineDB) GetResource(resourceName string) (db.SavedResource, 
 	fake.getResourceMutex.Unlock()
 	if fake.GetResourceStub != nil {
 		return fake.GetResourceStub(resourceName)
-	} else {
-		return fake.getResourceReturns.result1, fake.getResourceReturns.result2, fake.getResourceReturns.result3
 	}
+	return fake.getResourceReturns.result1, fake.getResourceReturns.result2, fake.getResourceReturns.result3
 }
 
 func (fake *FakePipelineDB) GetResourceCallCount() int {
@@ -982,9 +966,8 @@ func (fake *FakePipelineDB) GetResources() ([]db.SavedResource, bool, error) {
 	fake.getResourcesMutex.Unlock()
 	if fake.GetResourcesStub != nil {
 		return fake.GetResourcesStub()
-	} else {
-		return fake.getResourcesReturns.result1, fake.getResourcesReturns.result2, fake.getResourcesReturns.result3
 	}
+	return fake.getResourcesReturns.result1, fake.getResourcesReturns.result2, fake.getResourcesReturns.result3
 }
 
 func (fake *FakePipelineDB) GetResourcesCallCount() int {
@@ -1011,9 +994,8 @@ func (fake *FakePipelineDB) GetResourceType(resourceTypeName string) (db.SavedRe
 	fake.getResourceTypeMutex.Unlock()
 	if fake.GetResourceTypeStub != nil {
 		return fake.GetResourceTypeStub(resourceTypeName)
-	} else {
-		return fake.getResourceTypeReturns.result1, fake.getResourceTypeReturns.result2, fake.getResourceTypeReturns.result3
 	}
+	return fake.getResourceTypeReturns.result1, fake.getResourceTypeReturns.result2, fake.getResourceTypeReturns.result3
 }
 
 func (fake *FakePipelineDB) GetResourceTypeCallCount() int {
@@ -1047,9 +1029,8 @@ func (fake *FakePipelineDB) GetResourceVersions(resourceName string, page db.Pag
 	fake.getResourceVersionsMutex.Unlock()
 	if fake.GetResourceVersionsStub != nil {
 		return fake.GetResourceVersionsStub(resourceName, page)
-	} else {
-		return fake.getResourceVersionsReturns.result1, fake.getResourceVersionsReturns.result2, fake.getResourceVersionsReturns.result3, fake.getResourceVersionsReturns.result4
 	}
+	return fake.getResourceVersionsReturns.result1, fake.getResourceVersionsReturns.result2, fake.getResourceVersionsReturns.result3, fake.getResourceVersionsReturns.result4
 }
 
 func (fake *FakePipelineDB) GetResourceVersionsCallCount() int {
@@ -1083,9 +1064,8 @@ func (fake *FakePipelineDB) PauseResource(resourceName string) error {
 	fake.pauseResourceMutex.Unlock()
 	if fake.PauseResourceStub != nil {
 		return fake.PauseResourceStub(resourceName)
-	} else {
-		return fake.pauseResourceReturns.result1
 	}
+	return fake.pauseResourceReturns.result1
 }
 
 func (fake *FakePipelineDB) PauseResourceCallCount() int {
@@ -1116,9 +1096,8 @@ func (fake *FakePipelineDB) UnpauseResource(resourceName string) error {
 	fake.unpauseResourceMutex.Unlock()
 	if fake.UnpauseResourceStub != nil {
 		return fake.UnpauseResourceStub(resourceName)
-	} else {
-		return fake.unpauseResourceReturns.result1
 	}
+	return fake.unpauseResourceReturns.result1
 }
 
 func (fake *FakePipelineDB) UnpauseResourceCallCount() int {
@@ -1155,9 +1134,8 @@ func (fake *FakePipelineDB) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 [
 	fake.saveResourceVersionsMutex.Unlock()
 	if fake.SaveResourceVersionsStub != nil {
 		return fake.SaveResourceVersionsStub(arg1, arg2)
-	} else {
-		return fake.saveResourceVersionsReturns.result1
 	}
+	return fake.saveResourceVersionsReturns.result1
 }
 
 func (fake *FakePipelineDB) SaveResourceVersionsCallCount() int {
@@ -1189,9 +1167,8 @@ func (fake *FakePipelineDB) SaveResourceTypeVersion(arg1 atc.ResourceType, arg2 
 	fake.saveResourceTypeVersionMutex.Unlock()
 	if fake.SaveResourceTypeVersionStub != nil {
 		return fake.SaveResourceTypeVersionStub(arg1, arg2)
-	} else {
-		return fake.saveResourceTypeVersionReturns.result1
 	}
+	return fake.saveResourceTypeVersionReturns.result1
 }
 
 func (fake *FakePipelineDB) SaveResourceTypeVersionCallCount() int {
@@ -1222,9 +1199,8 @@ func (fake *FakePipelineDB) GetLatestVersionedResource(resourceName string) (db.
 	fake.getLatestVersionedResourceMutex.Unlock()
 	if fake.GetLatestVersionedResourceStub != nil {
 		return fake.GetLatestVersionedResourceStub(resourceName)
-	} else {
-		return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2, fake.getLatestVersionedResourceReturns.result3
 	}
+	return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2, fake.getLatestVersionedResourceReturns.result3
 }
 
 func (fake *FakePipelineDB) GetLatestVersionedResourceCallCount() int {
@@ -1257,9 +1233,8 @@ func (fake *FakePipelineDB) GetLatestEnabledVersionedResource(resourceName strin
 	fake.getLatestEnabledVersionedResourceMutex.Unlock()
 	if fake.GetLatestEnabledVersionedResourceStub != nil {
 		return fake.GetLatestEnabledVersionedResourceStub(resourceName)
-	} else {
-		return fake.getLatestEnabledVersionedResourceReturns.result1, fake.getLatestEnabledVersionedResourceReturns.result2, fake.getLatestEnabledVersionedResourceReturns.result3
 	}
+	return fake.getLatestEnabledVersionedResourceReturns.result1, fake.getLatestEnabledVersionedResourceReturns.result2, fake.getLatestEnabledVersionedResourceReturns.result3
 }
 
 func (fake *FakePipelineDB) GetLatestEnabledVersionedResourceCallCount() int {
@@ -1292,9 +1267,8 @@ func (fake *FakePipelineDB) EnableVersionedResource(versionedResourceID int) err
 	fake.enableVersionedResourceMutex.Unlock()
 	if fake.EnableVersionedResourceStub != nil {
 		return fake.EnableVersionedResourceStub(versionedResourceID)
-	} else {
-		return fake.enableVersionedResourceReturns.result1
 	}
+	return fake.enableVersionedResourceReturns.result1
 }
 
 func (fake *FakePipelineDB) EnableVersionedResourceCallCount() int {
@@ -1325,9 +1299,8 @@ func (fake *FakePipelineDB) DisableVersionedResource(versionedResourceID int) er
 	fake.disableVersionedResourceMutex.Unlock()
 	if fake.DisableVersionedResourceStub != nil {
 		return fake.DisableVersionedResourceStub(versionedResourceID)
-	} else {
-		return fake.disableVersionedResourceReturns.result1
 	}
+	return fake.disableVersionedResourceReturns.result1
 }
 
 func (fake *FakePipelineDB) DisableVersionedResourceCallCount() int {
@@ -1359,9 +1332,8 @@ func (fake *FakePipelineDB) SetResourceCheckError(resource db.SavedResource, err
 	fake.setResourceCheckErrorMutex.Unlock()
 	if fake.SetResourceCheckErrorStub != nil {
 		return fake.SetResourceCheckErrorStub(resource, err)
-	} else {
-		return fake.setResourceCheckErrorReturns.result1
 	}
+	return fake.setResourceCheckErrorReturns.result1
 }
 
 func (fake *FakePipelineDB) SetResourceCheckErrorCallCount() int {
@@ -1395,9 +1367,8 @@ func (fake *FakePipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger,
 	fake.acquireResourceTypeCheckingLockMutex.Unlock()
 	if fake.AcquireResourceTypeCheckingLockStub != nil {
 		return fake.AcquireResourceTypeCheckingLockStub(logger, resourceType, length, immediate)
-	} else {
-		return fake.acquireResourceTypeCheckingLockReturns.result1, fake.acquireResourceTypeCheckingLockReturns.result2, fake.acquireResourceTypeCheckingLockReturns.result3
 	}
+	return fake.acquireResourceTypeCheckingLockReturns.result1, fake.acquireResourceTypeCheckingLockReturns.result2, fake.acquireResourceTypeCheckingLockReturns.result3
 }
 
 func (fake *FakePipelineDB) AcquireResourceTypeCheckingLockCallCount() int {
@@ -1428,9 +1399,8 @@ func (fake *FakePipelineDB) GetJobs() ([]db.SavedJob, error) {
 	fake.getJobsMutex.Unlock()
 	if fake.GetJobsStub != nil {
 		return fake.GetJobsStub()
-	} else {
-		return fake.getJobsReturns.result1, fake.getJobsReturns.result2
 	}
+	return fake.getJobsReturns.result1, fake.getJobsReturns.result2
 }
 
 func (fake *FakePipelineDB) GetJobsCallCount() int {
@@ -1456,9 +1426,8 @@ func (fake *FakePipelineDB) GetJob(job string) (db.SavedJob, bool, error) {
 	fake.getJobMutex.Unlock()
 	if fake.GetJobStub != nil {
 		return fake.GetJobStub(job)
-	} else {
-		return fake.getJobReturns.result1, fake.getJobReturns.result2, fake.getJobReturns.result3
 	}
+	return fake.getJobReturns.result1, fake.getJobReturns.result2, fake.getJobReturns.result3
 }
 
 func (fake *FakePipelineDB) GetJobCallCount() int {
@@ -1491,9 +1460,8 @@ func (fake *FakePipelineDB) PauseJob(job string) error {
 	fake.pauseJobMutex.Unlock()
 	if fake.PauseJobStub != nil {
 		return fake.PauseJobStub(job)
-	} else {
-		return fake.pauseJobReturns.result1
 	}
+	return fake.pauseJobReturns.result1
 }
 
 func (fake *FakePipelineDB) PauseJobCallCount() int {
@@ -1524,9 +1492,8 @@ func (fake *FakePipelineDB) UnpauseJob(job string) error {
 	fake.unpauseJobMutex.Unlock()
 	if fake.UnpauseJobStub != nil {
 		return fake.UnpauseJobStub(job)
-	} else {
-		return fake.unpauseJobReturns.result1
 	}
+	return fake.unpauseJobReturns.result1
 }
 
 func (fake *FakePipelineDB) UnpauseJobCallCount() int {
@@ -1558,9 +1525,8 @@ func (fake *FakePipelineDB) SetMaxInFlightReached(arg1 string, arg2 bool) error 
 	fake.setMaxInFlightReachedMutex.Unlock()
 	if fake.SetMaxInFlightReachedStub != nil {
 		return fake.SetMaxInFlightReachedStub(arg1, arg2)
-	} else {
-		return fake.setMaxInFlightReachedReturns.result1
 	}
+	return fake.setMaxInFlightReachedReturns.result1
 }
 
 func (fake *FakePipelineDB) SetMaxInFlightReachedCallCount() int {
@@ -1592,9 +1558,8 @@ func (fake *FakePipelineDB) UpdateFirstLoggedBuildID(job string, newFirstLoggedB
 	fake.updateFirstLoggedBuildIDMutex.Unlock()
 	if fake.UpdateFirstLoggedBuildIDStub != nil {
 		return fake.UpdateFirstLoggedBuildIDStub(job, newFirstLoggedBuildID)
-	} else {
-		return fake.updateFirstLoggedBuildIDReturns.result1
 	}
+	return fake.updateFirstLoggedBuildIDReturns.result1
 }
 
 func (fake *FakePipelineDB) UpdateFirstLoggedBuildIDCallCount() int {
@@ -1625,9 +1590,8 @@ func (fake *FakePipelineDB) GetJobFinishedAndNextBuild(job string) (db.Build, db
 	fake.getJobFinishedAndNextBuildMutex.Unlock()
 	if fake.GetJobFinishedAndNextBuildStub != nil {
 		return fake.GetJobFinishedAndNextBuildStub(job)
-	} else {
-		return fake.getJobFinishedAndNextBuildReturns.result1, fake.getJobFinishedAndNextBuildReturns.result2, fake.getJobFinishedAndNextBuildReturns.result3
 	}
+	return fake.getJobFinishedAndNextBuildReturns.result1, fake.getJobFinishedAndNextBuildReturns.result2, fake.getJobFinishedAndNextBuildReturns.result3
 }
 
 func (fake *FakePipelineDB) GetJobFinishedAndNextBuildCallCount() int {
@@ -1661,9 +1625,8 @@ func (fake *FakePipelineDB) GetJobBuilds(job string, page db.Page) ([]db.Build, 
 	fake.getJobBuildsMutex.Unlock()
 	if fake.GetJobBuildsStub != nil {
 		return fake.GetJobBuildsStub(job, page)
-	} else {
-		return fake.getJobBuildsReturns.result1, fake.getJobBuildsReturns.result2, fake.getJobBuildsReturns.result3
 	}
+	return fake.getJobBuildsReturns.result1, fake.getJobBuildsReturns.result2, fake.getJobBuildsReturns.result3
 }
 
 func (fake *FakePipelineDB) GetJobBuildsCallCount() int {
@@ -1696,9 +1659,8 @@ func (fake *FakePipelineDB) GetAllJobBuilds(job string) ([]db.Build, error) {
 	fake.getAllJobBuildsMutex.Unlock()
 	if fake.GetAllJobBuildsStub != nil {
 		return fake.GetAllJobBuildsStub(job)
-	} else {
-		return fake.getAllJobBuildsReturns.result1, fake.getAllJobBuildsReturns.result2
 	}
+	return fake.getAllJobBuildsReturns.result1, fake.getAllJobBuildsReturns.result2
 }
 
 func (fake *FakePipelineDB) GetAllJobBuildsCallCount() int {
@@ -1731,9 +1693,8 @@ func (fake *FakePipelineDB) GetJobBuild(job string, build string) (db.Build, boo
 	fake.getJobBuildMutex.Unlock()
 	if fake.GetJobBuildStub != nil {
 		return fake.GetJobBuildStub(job, build)
-	} else {
-		return fake.getJobBuildReturns.result1, fake.getJobBuildReturns.result2, fake.getJobBuildReturns.result3
 	}
+	return fake.getJobBuildReturns.result1, fake.getJobBuildReturns.result2, fake.getJobBuildReturns.result3
 }
 
 func (fake *FakePipelineDB) GetJobBuildCallCount() int {
@@ -1766,9 +1727,8 @@ func (fake *FakePipelineDB) CreateJobBuild(job string) (db.Build, error) {
 	fake.createJobBuildMutex.Unlock()
 	if fake.CreateJobBuildStub != nil {
 		return fake.CreateJobBuildStub(job)
-	} else {
-		return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 	}
+	return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 }
 
 func (fake *FakePipelineDB) CreateJobBuildCallCount() int {
@@ -1800,9 +1760,8 @@ func (fake *FakePipelineDB) EnsurePendingBuildExists(jobName string) error {
 	fake.ensurePendingBuildExistsMutex.Unlock()
 	if fake.EnsurePendingBuildExistsStub != nil {
 		return fake.EnsurePendingBuildExistsStub(jobName)
-	} else {
-		return fake.ensurePendingBuildExistsReturns.result1
 	}
+	return fake.ensurePendingBuildExistsReturns.result1
 }
 
 func (fake *FakePipelineDB) EnsurePendingBuildExistsCallCount() int {
@@ -1833,9 +1792,8 @@ func (fake *FakePipelineDB) GetPendingBuildsForJob(jobName string) ([]db.Build, 
 	fake.getPendingBuildsForJobMutex.Unlock()
 	if fake.GetPendingBuildsForJobStub != nil {
 		return fake.GetPendingBuildsForJobStub(jobName)
-	} else {
-		return fake.getPendingBuildsForJobReturns.result1, fake.getPendingBuildsForJobReturns.result2
 	}
+	return fake.getPendingBuildsForJobReturns.result1, fake.getPendingBuildsForJobReturns.result2
 }
 
 func (fake *FakePipelineDB) GetPendingBuildsForJobCallCount() int {
@@ -1865,9 +1823,8 @@ func (fake *FakePipelineDB) GetAllPendingBuilds() (map[string][]db.Build, error)
 	fake.getAllPendingBuildsMutex.Unlock()
 	if fake.GetAllPendingBuildsStub != nil {
 		return fake.GetAllPendingBuildsStub()
-	} else {
-		return fake.getAllPendingBuildsReturns.result1, fake.getAllPendingBuildsReturns.result2
 	}
+	return fake.getAllPendingBuildsReturns.result1, fake.getAllPendingBuildsReturns.result2
 }
 
 func (fake *FakePipelineDB) GetAllPendingBuildsCallCount() int {
@@ -1899,9 +1856,8 @@ func (fake *FakePipelineDB) UseInputsForBuild(buildID int, inputs []db.BuildInpu
 	fake.useInputsForBuildMutex.Unlock()
 	if fake.UseInputsForBuildStub != nil {
 		return fake.UseInputsForBuildStub(buildID, inputs)
-	} else {
-		return fake.useInputsForBuildReturns.result1
 	}
+	return fake.useInputsForBuildReturns.result1
 }
 
 func (fake *FakePipelineDB) UseInputsForBuildCallCount() int {
@@ -1930,9 +1886,8 @@ func (fake *FakePipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	fake.loadVersionsDBMutex.Unlock()
 	if fake.LoadVersionsDBStub != nil {
 		return fake.LoadVersionsDBStub()
-	} else {
-		return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
 	}
+	return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
 }
 
 func (fake *FakePipelineDB) LoadVersionsDBCallCount() int {
@@ -1959,9 +1914,8 @@ func (fake *FakePipelineDB) GetVersionedResourceByVersion(atcVersion atc.Version
 	fake.getVersionedResourceByVersionMutex.Unlock()
 	if fake.GetVersionedResourceByVersionStub != nil {
 		return fake.GetVersionedResourceByVersionStub(atcVersion, resourceName)
-	} else {
-		return fake.getVersionedResourceByVersionReturns.result1, fake.getVersionedResourceByVersionReturns.result2, fake.getVersionedResourceByVersionReturns.result3
 	}
+	return fake.getVersionedResourceByVersionReturns.result1, fake.getVersionedResourceByVersionReturns.result2, fake.getVersionedResourceByVersionReturns.result3
 }
 
 func (fake *FakePipelineDB) GetVersionedResourceByVersionCallCount() int {
@@ -1995,9 +1949,8 @@ func (fake *FakePipelineDB) SaveIndependentInputMapping(inputMapping algorithm.I
 	fake.saveIndependentInputMappingMutex.Unlock()
 	if fake.SaveIndependentInputMappingStub != nil {
 		return fake.SaveIndependentInputMappingStub(inputMapping, jobName)
-	} else {
-		return fake.saveIndependentInputMappingReturns.result1
 	}
+	return fake.saveIndependentInputMappingReturns.result1
 }
 
 func (fake *FakePipelineDB) SaveIndependentInputMappingCallCount() int {
@@ -2028,9 +1981,8 @@ func (fake *FakePipelineDB) GetIndependentBuildInputs(jobName string) ([]db.Buil
 	fake.getIndependentBuildInputsMutex.Unlock()
 	if fake.GetIndependentBuildInputsStub != nil {
 		return fake.GetIndependentBuildInputsStub(jobName)
-	} else {
-		return fake.getIndependentBuildInputsReturns.result1, fake.getIndependentBuildInputsReturns.result2
 	}
+	return fake.getIndependentBuildInputsReturns.result1, fake.getIndependentBuildInputsReturns.result2
 }
 
 func (fake *FakePipelineDB) GetIndependentBuildInputsCallCount() int {
@@ -2063,9 +2015,8 @@ func (fake *FakePipelineDB) SaveNextInputMapping(inputMapping algorithm.InputMap
 	fake.saveNextInputMappingMutex.Unlock()
 	if fake.SaveNextInputMappingStub != nil {
 		return fake.SaveNextInputMappingStub(inputMapping, jobName)
-	} else {
-		return fake.saveNextInputMappingReturns.result1
 	}
+	return fake.saveNextInputMappingReturns.result1
 }
 
 func (fake *FakePipelineDB) SaveNextInputMappingCallCount() int {
@@ -2096,9 +2047,8 @@ func (fake *FakePipelineDB) GetNextBuildInputs(jobName string) ([]db.BuildInput,
 	fake.getNextBuildInputsMutex.Unlock()
 	if fake.GetNextBuildInputsStub != nil {
 		return fake.GetNextBuildInputsStub(jobName)
-	} else {
-		return fake.getNextBuildInputsReturns.result1, fake.getNextBuildInputsReturns.result2, fake.getNextBuildInputsReturns.result3
 	}
+	return fake.getNextBuildInputsReturns.result1, fake.getNextBuildInputsReturns.result2, fake.getNextBuildInputsReturns.result3
 }
 
 func (fake *FakePipelineDB) GetNextBuildInputsCallCount() int {
@@ -2131,9 +2081,8 @@ func (fake *FakePipelineDB) DeleteNextInputMapping(jobName string) error {
 	fake.deleteNextInputMappingMutex.Unlock()
 	if fake.DeleteNextInputMappingStub != nil {
 		return fake.DeleteNextInputMappingStub(jobName)
-	} else {
-		return fake.deleteNextInputMappingReturns.result1
 	}
+	return fake.deleteNextInputMappingReturns.result1
 }
 
 func (fake *FakePipelineDB) DeleteNextInputMappingCallCount() int {
@@ -2170,9 +2119,8 @@ func (fake *FakePipelineDB) GetRunningBuildsBySerialGroup(jobName string, serial
 	fake.getRunningBuildsBySerialGroupMutex.Unlock()
 	if fake.GetRunningBuildsBySerialGroupStub != nil {
 		return fake.GetRunningBuildsBySerialGroupStub(jobName, serialGroups)
-	} else {
-		return fake.getRunningBuildsBySerialGroupReturns.result1, fake.getRunningBuildsBySerialGroupReturns.result2
 	}
+	return fake.getRunningBuildsBySerialGroupReturns.result1, fake.getRunningBuildsBySerialGroupReturns.result2
 }
 
 func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupCallCount() int {
@@ -2210,9 +2158,8 @@ func (fake *FakePipelineDB) GetNextPendingBuildBySerialGroup(jobName string, ser
 	fake.getNextPendingBuildBySerialGroupMutex.Unlock()
 	if fake.GetNextPendingBuildBySerialGroupStub != nil {
 		return fake.GetNextPendingBuildBySerialGroupStub(jobName, serialGroups)
-	} else {
-		return fake.getNextPendingBuildBySerialGroupReturns.result1, fake.getNextPendingBuildBySerialGroupReturns.result2, fake.getNextPendingBuildBySerialGroupReturns.result3
 	}
+	return fake.getNextPendingBuildBySerialGroupReturns.result1, fake.getNextPendingBuildBySerialGroupReturns.result2, fake.getNextPendingBuildBySerialGroupReturns.result3
 }
 
 func (fake *FakePipelineDB) GetNextPendingBuildBySerialGroupCallCount() int {
@@ -2245,9 +2192,8 @@ func (fake *FakePipelineDB) UpdateBuildToScheduled(buildID int) (bool, error) {
 	fake.updateBuildToScheduledMutex.Unlock()
 	if fake.UpdateBuildToScheduledStub != nil {
 		return fake.UpdateBuildToScheduledStub(buildID)
-	} else {
-		return fake.updateBuildToScheduledReturns.result1, fake.updateBuildToScheduledReturns.result2
 	}
+	return fake.updateBuildToScheduledReturns.result1, fake.updateBuildToScheduledReturns.result2
 }
 
 func (fake *FakePipelineDB) UpdateBuildToScheduledCallCount() int {
@@ -2280,9 +2226,8 @@ func (fake *FakePipelineDB) SaveInput(buildID int, input db.BuildInput) (db.Save
 	fake.saveInputMutex.Unlock()
 	if fake.SaveInputStub != nil {
 		return fake.SaveInputStub(buildID, input)
-	} else {
-		return fake.saveInputReturns.result1, fake.saveInputReturns.result2
 	}
+	return fake.saveInputReturns.result1, fake.saveInputReturns.result2
 }
 
 func (fake *FakePipelineDB) SaveInputCallCount() int {
@@ -2316,9 +2261,8 @@ func (fake *FakePipelineDB) SaveOutput(buildID int, vr db.VersionedResource, exp
 	fake.saveOutputMutex.Unlock()
 	if fake.SaveOutputStub != nil {
 		return fake.SaveOutputStub(buildID, vr, explicit)
-	} else {
-		return fake.saveOutputReturns.result1, fake.saveOutputReturns.result2
 	}
+	return fake.saveOutputReturns.result1, fake.saveOutputReturns.result2
 }
 
 func (fake *FakePipelineDB) SaveOutputCallCount() int {
@@ -2350,9 +2294,8 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int)
 	fake.getBuildsWithVersionAsInputMutex.Unlock()
 	if fake.GetBuildsWithVersionAsInputStub != nil {
 		return fake.GetBuildsWithVersionAsInputStub(versionedResourceID)
-	} else {
-		return fake.getBuildsWithVersionAsInputReturns.result1, fake.getBuildsWithVersionAsInputReturns.result2
 	}
+	return fake.getBuildsWithVersionAsInputReturns.result1, fake.getBuildsWithVersionAsInputReturns.result2
 }
 
 func (fake *FakePipelineDB) GetBuildsWithVersionAsInputCallCount() int {
@@ -2384,9 +2327,8 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int
 	fake.getBuildsWithVersionAsOutputMutex.Unlock()
 	if fake.GetBuildsWithVersionAsOutputStub != nil {
 		return fake.GetBuildsWithVersionAsOutputStub(versionedResourceID)
-	} else {
-		return fake.getBuildsWithVersionAsOutputReturns.result1, fake.getBuildsWithVersionAsOutputReturns.result2
 	}
+	return fake.getBuildsWithVersionAsOutputReturns.result1, fake.getBuildsWithVersionAsOutputReturns.result2
 }
 
 func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputCallCount() int {
@@ -2416,9 +2358,8 @@ func (fake *FakePipelineDB) GetDashboard() (db.Dashboard, atc.GroupConfigs, erro
 	fake.getDashboardMutex.Unlock()
 	if fake.GetDashboardStub != nil {
 		return fake.GetDashboardStub()
-	} else {
-		return fake.getDashboardReturns.result1, fake.getDashboardReturns.result2, fake.getDashboardReturns.result3
 	}
+	return fake.getDashboardReturns.result1, fake.getDashboardReturns.result2, fake.getDashboardReturns.result3
 }
 
 func (fake *FakePipelineDB) GetDashboardCallCount() int {
@@ -2443,9 +2384,8 @@ func (fake *FakePipelineDB) Expose() error {
 	fake.exposeMutex.Unlock()
 	if fake.ExposeStub != nil {
 		return fake.ExposeStub()
-	} else {
-		return fake.exposeReturns.result1
 	}
+	return fake.exposeReturns.result1
 }
 
 func (fake *FakePipelineDB) ExposeCallCount() int {
@@ -2468,9 +2408,8 @@ func (fake *FakePipelineDB) Hide() error {
 	fake.hideMutex.Unlock()
 	if fake.HideStub != nil {
 		return fake.HideStub()
-	} else {
-		return fake.hideReturns.result1
 	}
+	return fake.hideReturns.result1
 }
 
 func (fake *FakePipelineDB) HideCallCount() int {

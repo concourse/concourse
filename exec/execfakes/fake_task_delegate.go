@@ -150,9 +150,8 @@ func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 worker.ResourceCacheId
 	fake.imageVersionDeterminedMutex.Unlock()
 	if fake.ImageVersionDeterminedStub != nil {
 		return fake.ImageVersionDeterminedStub(arg1)
-	} else {
-		return fake.imageVersionDeterminedReturns.result1
 	}
+	return fake.imageVersionDeterminedReturns.result1
 }
 
 func (fake *FakeTaskDelegate) ImageVersionDeterminedCallCount() int {
@@ -181,9 +180,8 @@ func (fake *FakeTaskDelegate) Stdout() io.Writer {
 	fake.stdoutMutex.Unlock()
 	if fake.StdoutStub != nil {
 		return fake.StdoutStub()
-	} else {
-		return fake.stdoutReturns.result1
 	}
+	return fake.stdoutReturns.result1
 }
 
 func (fake *FakeTaskDelegate) StdoutCallCount() int {
@@ -206,9 +204,8 @@ func (fake *FakeTaskDelegate) Stderr() io.Writer {
 	fake.stderrMutex.Unlock()
 	if fake.StderrStub != nil {
 		return fake.StderrStub()
-	} else {
-		return fake.stderrReturns.result1
 	}
+	return fake.stderrReturns.result1
 }
 
 func (fake *FakeTaskDelegate) StderrCallCount() int {

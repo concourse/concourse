@@ -30,9 +30,8 @@ func (fake *FakeValidator) IsAuthenticated(arg1 *http.Request) bool {
 	fake.isAuthenticatedMutex.Unlock()
 	if fake.IsAuthenticatedStub != nil {
 		return fake.IsAuthenticatedStub(arg1)
-	} else {
-		return fake.isAuthenticatedReturns.result1
 	}
+	return fake.isAuthenticatedReturns.result1
 }
 
 func (fake *FakeValidator) IsAuthenticatedCallCount() int {
