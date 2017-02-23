@@ -25,7 +25,7 @@ image_resource:
   source: {repository: busybox}
 run:
   path: sh
-  args: ["-c", "printenv SOURCE_PARAM"]
+  args: ["-ec", "echo -n 'SOURCE_PARAM is '; printenv SOURCE_PARAM; echo ."]
 params:
   SOURCE_PARAM: file_source
 `
