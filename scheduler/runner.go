@@ -53,7 +53,7 @@ func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	}
 
 	runner.Logger.Info("start", lager.Data{
-		"inverval": runner.Interval.String(),
+		"interval": runner.Interval.String(),
 	})
 
 	defer runner.Logger.Info("done")
