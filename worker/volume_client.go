@@ -15,7 +15,7 @@ const creatingVolumeRetryDelay = 1 * time.Second
 //go:generate counterfeiter . VolumeClient
 
 type VolumeClient interface {
-	FindOrCreateVolumeForResourceCache(
+	CreateVolumeForResourceCache(
 		lager.Logger,
 		VolumeSpec,
 		*dbng.UsedResourceCache,
@@ -135,7 +135,7 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 	)
 }
 
-func (c *volumeClient) FindOrCreateVolumeForResourceCache(
+func (c *volumeClient) CreateVolumeForResourceCache(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
 	usedResourceCache *dbng.UsedResourceCache,
@@ -144,7 +144,7 @@ func (c *volumeClient) FindOrCreateVolumeForResourceCache(
 		logger,
 		volumeSpec,
 		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
-			return c.dbVolumeFactory.FindResourceCacheVolume(c.dbWorker, usedResourceCache)
+			return nil, nil, nil
 		},
 		func() (dbng.CreatingVolume, error) {
 			v, err := c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker, usedResourceCache)

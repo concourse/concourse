@@ -15,7 +15,7 @@ import (
 
 type ResourceInstance interface {
 	FindInitializedOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
-	FindOrCreateOn(lager.Logger, worker.Client) (worker.Volume, error)
+	CreateOn(lager.Logger, worker.Client) (worker.Volume, error)
 
 	ResourceCacheIdentifier() worker.ResourceCacheIdentifier
 }
@@ -52,7 +52,7 @@ func NewBuildResourceInstance(
 	}
 }
 
-func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
+func (bri buildResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
 		logger,
 		bri.buildID,
@@ -67,7 +67,7 @@ func (bri buildResourceInstance) FindOrCreateOn(logger lager.Logger, workerClien
 		return nil, err
 	}
 
-	return workerClient.FindOrCreateVolumeForResourceCache(
+	return workerClient.CreateVolumeForResourceCache(
 		logger,
 		worker.VolumeSpec{
 			Strategy: worker.ResourceCacheStrategy{
@@ -135,7 +135,7 @@ func NewResourceResourceInstance(
 	}
 }
 
-func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
+func (rri resourceResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
 		logger,
 		rri.resourceID,
@@ -150,7 +150,7 @@ func (rri resourceResourceInstance) FindOrCreateOn(logger lager.Logger, workerCl
 		return nil, err
 	}
 
-	return workerClient.FindOrCreateVolumeForResourceCache(
+	return workerClient.CreateVolumeForResourceCache(
 		logger,
 		worker.VolumeSpec{
 			Strategy: worker.ResourceCacheStrategy{
@@ -218,7 +218,7 @@ func NewResourceTypeResourceInstance(
 	}
 }
 
-func (rtri resourceTypeResourceInstance) FindOrCreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
+func (rtri resourceTypeResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
 	resourceCache, err := rtri.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
 		logger,
 		string(rtri.resourceTypeName),
@@ -233,7 +233,7 @@ func (rtri resourceTypeResourceInstance) FindOrCreateOn(logger lager.Logger, wor
 		return nil, err
 	}
 
-	return workerClient.FindOrCreateVolumeForResourceCache(
+	return workerClient.CreateVolumeForResourceCache(
 		logger,
 		worker.VolumeSpec{
 			Strategy: worker.ResourceCacheStrategy{

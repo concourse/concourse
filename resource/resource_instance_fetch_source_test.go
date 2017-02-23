@@ -20,11 +20,11 @@ var _ = Describe("VolumeFetchSource", func() {
 	var (
 		fetchSource FetchSource
 
-		fakeContainer   *workerfakes.FakeContainer
-		resourceOptions *resourcefakes.FakeResourceOptions
-		fakeVolume      *workerfakes.FakeVolume
+		fakeContainer        *workerfakes.FakeContainer
+		resourceOptions      *resourcefakes.FakeResourceOptions
+		fakeVolume           *workerfakes.FakeVolume
 		fakeResourceInstance *resourcefakes.FakeResourceInstance
-		fakeWorker      *workerfakes.FakeWorker
+		fakeWorker           *workerfakes.FakeWorker
 
 		signals <-chan os.Signal
 		ready   chan<- struct{}
@@ -56,7 +56,7 @@ var _ = Describe("VolumeFetchSource", func() {
 
 		fakeVolume = new(workerfakes.FakeVolume)
 		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
-		fakeResourceInstance.FindOrCreateOnReturns(fakeVolume, nil)
+		fakeResourceInstance.CreateOnReturns(fakeVolume, nil)
 		fetchSource = NewResourceInstanceFetchSource(
 			logger,
 			fakeResourceInstance,
@@ -85,7 +85,6 @@ var _ = Describe("VolumeFetchSource", func() {
 			})
 		})
 
-
 		Context("when there is no initialized volume", func() {
 			BeforeEach(func() {
 				fakeResourceInstance.FindInitializedOnReturns(nil, false, nil)
@@ -112,8 +111,8 @@ var _ = Describe("VolumeFetchSource", func() {
 
 		It("creates volume for resource instance on provided worker", func() {
 			Expect(initErr).NotTo(HaveOccurred())
-			Expect(fakeResourceInstance.FindOrCreateOnCallCount()).To(Equal(1))
-			_, worker := fakeResourceInstance.FindOrCreateOnArgsForCall(0)
+			Expect(fakeResourceInstance.CreateOnCallCount()).To(Equal(1))
+			_, worker := fakeResourceInstance.CreateOnArgsForCall(0)
 			Expect(worker).To(Equal(fakeWorker))
 		})
 

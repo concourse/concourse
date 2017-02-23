@@ -417,8 +417,8 @@ func (*pool) FindResourceTypeByPath(string) (atc.WorkerResourceType, bool) {
 	return atc.WorkerResourceType{}, false
 }
 
-func (*pool) FindOrCreateVolumeForResourceCache(lager.Logger, VolumeSpec, *dbng.UsedResourceCache) (Volume, error) {
-	return nil, errors.New("FindOrCreateVolumeForResourceCache not implemented for pool")
+func (*pool) CreateVolumeForResourceCache(lager.Logger, VolumeSpec, *dbng.UsedResourceCache) (Volume, error) {
+	return nil, errors.New("CreateVolumeForResourceCache not implemented for pool")
 }
 
 func (*pool) FindInitializedVolumeForResourceCache(logger lager.Logger, resourceCache *dbng.UsedResourceCache) (Volume, bool, error) {

@@ -103,12 +103,12 @@ var _ = Describe("ResourceInstance", func() {
 		})
 	})
 
-	Context("FindOrCreateOn", func() {
+	Context("CreateOn", func() {
 		var createdVolume worker.Volume
 		var createErr error
 
 		JustBeforeEach(func() {
-			createdVolume, createErr = resourceInstance.FindOrCreateOn(logger, fakeWorkerClient)
+			createdVolume, createErr = resourceInstance.CreateOn(logger, fakeWorkerClient)
 		})
 
 		Context("when creating the volume succeeds", func() {
@@ -116,7 +116,7 @@ var _ = Describe("ResourceInstance", func() {
 
 			BeforeEach(func() {
 				volume = new(workerfakes.FakeVolume)
-				fakeWorkerClient.FindOrCreateVolumeForResourceCacheReturns(volume, nil)
+				fakeWorkerClient.CreateVolumeForResourceCacheReturns(volume, nil)
 			})
 
 			It("succeeds", func() {
@@ -128,7 +128,7 @@ var _ = Describe("ResourceInstance", func() {
 			})
 
 			It("created with the right properties", func() {
-				_, spec, _ := fakeWorkerClient.FindOrCreateVolumeForResourceCacheArgsForCall(0)
+				_, spec, _ := fakeWorkerClient.CreateVolumeForResourceCacheArgsForCall(0)
 				Expect(spec).To(Equal(worker.VolumeSpec{
 					Strategy: worker.ResourceCacheStrategy{
 						ResourceHash:    `some-resource-type{"some":"source"}`,
@@ -148,7 +148,7 @@ var _ = Describe("ResourceInstance", func() {
 
 		Context("when creating the volume fails", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.FindOrCreateVolumeForResourceCacheReturns(nil, disaster)
+				fakeWorkerClient.CreateVolumeForResourceCacheReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {

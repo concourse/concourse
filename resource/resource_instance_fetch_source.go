@@ -72,7 +72,7 @@ func (s *resourceInstanceFetchSource) LockName() (string, error) {
 func (s *resourceInstanceFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
 
-	volume, err := s.resourceInstance.FindOrCreateOn(s.logger, s.worker)
+	volume, err := s.resourceInstance.CreateOn(s.logger, s.worker)
 	if err != nil {
 		s.logger.Error("failed-to-create-cache", err)
 		return err

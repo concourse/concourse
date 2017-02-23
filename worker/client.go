@@ -75,7 +75,7 @@ type Client interface {
 		resourceSources map[string]ArtifactSource,
 	) (Container, []string, error)
 
-	FindOrCreateVolumeForResourceCache(
+	CreateVolumeForResourceCache(
 		logger lager.Logger,
 		vs VolumeSpec,
 		resourceCache *dbng.UsedResourceCache,

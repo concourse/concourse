@@ -249,13 +249,14 @@ var _ = Describe("VolumeClient", func() {
 		})
 	})
 
-	Describe("FindOrCreateVolumeForResourceCache", func() {
+	Describe("CreateVolumeForResourceCache", func() {
 		var foundOrCreatedVolume worker.Volume
 		var foundOrCreatedErr error
 
 		var fakeBaggageclaimVolume *baggageclaimfakes.FakeVolume
 		var fakeCreatingVolume *dbngfakes.FakeCreatingVolume
 		var resourcCache *dbng.UsedResourceCache
+		var fakeCreatedVolume *dbngfakes.FakeCreatedVolume
 
 		BeforeEach(func() {
 			fakeBaggageclaimVolume = new(baggageclaimfakes.FakeVolume)
@@ -266,10 +267,16 @@ var _ = Describe("VolumeClient", func() {
 			fakeCreatingVolume = new(dbngfakes.FakeCreatingVolume)
 
 			resourcCache = &dbng.UsedResourceCache{ID: 52}
+
+			fakeCreatedVolume = new(dbngfakes.FakeCreatedVolume)
+			fakeDBVolumeFactory.FindResourceCacheVolumeReturns(nil, nil, nil)
+			fakeDBVolumeFactory.CreateResourceCacheVolumeReturns(fakeCreatingVolume, nil)
+			fakeGardenWorkerDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
+			fakeCreatingVolume.CreatedReturns(fakeCreatedVolume, nil)
 		})
 
 		JustBeforeEach(func() {
-			foundOrCreatedVolume, foundOrCreatedErr = volumeClient.FindOrCreateVolumeForResourceCache(
+			foundOrCreatedVolume, foundOrCreatedErr = volumeClient.CreateVolumeForResourceCache(
 				testLogger,
 				worker.VolumeSpec{
 					Strategy: worker.HostRootFSStrategy{
@@ -285,135 +292,21 @@ var _ = Describe("VolumeClient", func() {
 			)
 		})
 
-		Context("when volume exists in creating state", func() {
-			BeforeEach(func() {
-				fakeDBVolumeFactory.FindResourceCacheVolumeReturns(fakeCreatingVolume, nil, nil)
-			})
-
-			Context("when acquiring volume creating lock fails", func() {
-				var disaster = errors.New("disaster")
-
-				BeforeEach(func() {
-					fakeGardenWorkerDB.AcquireVolumeCreatingLockReturns(nil, false, disaster)
-				})
-
-				It("returns error", func() {
-					Expect(fakeGardenWorkerDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
-					Expect(foundOrCreatedErr).To(Equal(disaster))
-				})
-			})
-
-			Context("when it could not acquire creating lock", func() {
-				BeforeEach(func() {
-					callCount := 0
-					fakeGardenWorkerDB.AcquireVolumeCreatingLockStub = func(logger lager.Logger, volumeID int) (lock.Lock, bool, error) {
-						callCount++
-						go fakeClock.WaitForWatcherAndIncrement(time.Second)
-
-						if callCount < 3 {
-							return nil, false, nil
-						}
-
-						return fakeLock, true, nil
-					}
-				})
-
-				It("retries to find volume again", func() {
-					Expect(fakeGardenWorkerDB.AcquireVolumeCreatingLockCallCount()).To(Equal(3))
-					Expect(fakeDBVolumeFactory.FindResourceCacheVolumeCallCount()).To(Equal(3))
-				})
-			})
-
-			Context("when it acquires the lock", func() {
-				BeforeEach(func() {
-					fakeGardenWorkerDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
-				})
-
-				Context("when volume exists in baggageclaim", func() {
-					BeforeEach(func() {
-						fakeBaggageclaimClient.LookupVolumeReturns(fakeBaggageclaimVolume, true, nil)
-					})
-
-					It("returns the volume", func() {
-						Expect(foundOrCreatedErr).NotTo(HaveOccurred())
-						Expect(foundOrCreatedVolume).NotTo(BeNil())
-					})
-				})
-
-				Context("when volume does not exist in baggageclaim", func() {
-					BeforeEach(func() {
-						fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
-					})
-
-					It("creates volume in baggageclaim", func() {
-						Expect(foundOrCreatedErr).NotTo(HaveOccurred())
-						Expect(foundOrCreatedVolume).NotTo(BeNil())
-						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-					})
-				})
-
-				It("releases the lock", func() {
-					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
-				})
-			})
+		It("acquires the lock", func() {
+			Expect(fakeGardenWorkerDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
 		})
 
-		Context("when volume exists in created state", func() {
-			BeforeEach(func() {
-				fakeCreatedVolume := new(dbngfakes.FakeCreatedVolume)
-				fakeDBVolumeFactory.FindResourceCacheVolumeReturns(nil, fakeCreatedVolume, nil)
-			})
-
-			Context("when volume exists in baggageclaim", func() {
-				BeforeEach(func() {
-					fakeBaggageclaimClient.LookupVolumeReturns(fakeBaggageclaimVolume, true, nil)
-				})
-
-				It("returns the volume", func() {
-					Expect(foundOrCreatedErr).NotTo(HaveOccurred())
-					Expect(foundOrCreatedVolume).NotTo(BeNil())
-				})
-			})
-
-			Context("when volume does not exist in baggageclaim", func() {
-				BeforeEach(func() {
-					fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
-				})
-
-				It("returns an error", func() {
-					Expect(foundOrCreatedErr).To(HaveOccurred())
-					Expect(foundOrCreatedErr.Error()).To(ContainSubstring("failed-to-find-created-volume-in-baggageclaim"))
-				})
-			})
+		It("creates volume in creating state", func() {
+			Expect(fakeDBVolumeFactory.CreateResourceCacheVolumeCallCount()).To(Equal(1))
+			actualWorker, actualResourceCache := fakeDBVolumeFactory.CreateResourceCacheVolumeArgsForCall(0)
+			Expect(actualWorker).To(Equal(dbWorker))
+			Expect(actualResourceCache).To(Equal(resourcCache))
 		})
 
-		Context("when volume does not exist in db", func() {
-			var fakeCreatedVolume *dbngfakes.FakeCreatedVolume
-
-			BeforeEach(func() {
-				fakeCreatedVolume = new(dbngfakes.FakeCreatedVolume)
-				fakeDBVolumeFactory.FindResourceCacheVolumeReturns(nil, nil, nil)
-				fakeDBVolumeFactory.CreateResourceCacheVolumeReturns(fakeCreatingVolume, nil)
-				fakeGardenWorkerDB.AcquireVolumeCreatingLockReturns(fakeLock, true, nil)
-				fakeCreatingVolume.CreatedReturns(fakeCreatedVolume, nil)
-			})
-
-			It("acquires the lock", func() {
-				Expect(fakeGardenWorkerDB.AcquireVolumeCreatingLockCallCount()).To(Equal(1))
-			})
-
-			It("creates volume in creating state", func() {
-				Expect(fakeDBVolumeFactory.CreateResourceCacheVolumeCallCount()).To(Equal(1))
-				actualWorker, actualResourceCache := fakeDBVolumeFactory.CreateResourceCacheVolumeArgsForCall(0)
-				Expect(actualWorker).To(Equal(dbWorker))
-				Expect(actualResourceCache).To(Equal(resourcCache))
-			})
-
-			It("creates volume in baggageclaim", func() {
-				Expect(foundOrCreatedErr).NotTo(HaveOccurred())
-				Expect(foundOrCreatedVolume).To(Equal(worker.NewVolume(fakeBaggageclaimVolume, fakeCreatedVolume)))
-				Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-			})
+		It("creates volume in baggageclaim", func() {
+			Expect(foundOrCreatedErr).NotTo(HaveOccurred())
+			Expect(foundOrCreatedVolume).To(Equal(worker.NewVolume(fakeBaggageclaimVolume, fakeCreatedVolume)))
+			Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
 		})
 	})
 
