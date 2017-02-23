@@ -112,6 +112,8 @@ type ATCCommand struct {
 	} `group:"Metrics & Diagnostics"`
 
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
+
+	GCInterval time.Duration `long:"gc-interval" default:"30s" description:"Interval on which to perform garbage collection."`
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -388,7 +390,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			"ng-collector",
 			sqlDB,
 			clock.NewClock(),
-			30*time.Second,
+			cmd.GCInterval,
 		)},
 
 		{"build-reaper", lockrunner.NewRunner(
