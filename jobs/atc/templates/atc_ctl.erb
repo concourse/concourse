@@ -147,6 +147,7 @@ case $1 in
       --resource-checking-interval <%= p("default_check_interval") %> \
       --old-resource-grace-period <%= p("old_resource_grace_period") %> \
       --resource-cache-cleanup-interval <%= p("resource_cache_cleanup_interval") %> \
+      --gc-interval <%= p("gc_interval") %> \
       --cli-artifacts-dir /var/vcap/packages/fly \
       --yeller-api-key <%= esc(p("yeller.api_key")) %> \
       --yeller-environment <%= esc(p("yeller.environment_name")) %> \
