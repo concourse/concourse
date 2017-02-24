@@ -32,7 +32,7 @@ var _ = Describe("Keeping track of containers", func() {
 		dbngWorkerFactory         dbng.WorkerFactory
 		dbngResourceConfigFactory dbng.ResourceConfigFactory
 		dbngTeam                  dbng.Team
-		dbngWorker                *dbng.Worker
+		dbngWorker                dbng.Worker
 		dbngResourceCacheFactory  dbng.ResourceCacheFactory
 
 		logger *lagertest.TestLogger
@@ -696,7 +696,7 @@ var _ = Describe("Keeping track of containers", func() {
 			atc.ResourceTypes{},
 		)
 		Expect(err).NotTo(HaveOccurred())
-		creatingContainer, err := dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err := dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		createdContainer, err := creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -720,7 +720,7 @@ var _ = Describe("Keeping track of containers", func() {
 			Stage:               db.ContainerStageGet,
 		}
 
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		createdContainer, err = creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -745,7 +745,7 @@ var _ = Describe("Keeping track of containers", func() {
 			Stage:               db.ContainerStageCheck,
 		}
 
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		createdContainer, err = creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -769,7 +769,7 @@ var _ = Describe("Keeping track of containers", func() {
 			Stage:               db.ContainerStageGet,
 		}
 
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		createdContainer, err = creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -792,7 +792,7 @@ var _ = Describe("Keeping track of containers", func() {
 			Stage:       db.ContainerStageRun,
 		}
 
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		createdContainer, err = creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -852,7 +852,7 @@ var _ = Describe("Keeping track of containers", func() {
 			atc.ResourceTypes{},
 		)
 		Expect(err).NotTo(HaveOccurred())
-		creatingContainer, err := dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err := dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		createdContainer, err := creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -867,7 +867,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}, time.Duration(0))
 		Expect(err).NotTo(HaveOccurred())
 
-		otherWorker, err := dbngWorkerFactory.SaveWorker(atc.Worker{
+		_, err = dbngWorkerFactory.SaveWorker(atc.Worker{
 			Name:            "some-other-worker",
 			GardenAddr:      "5.6.7.8:7777",
 			BaggageclaimURL: "5.6.7.8:7788",
@@ -889,7 +889,7 @@ var _ = Describe("Keeping track of containers", func() {
 			atc.ResourceTypes{},
 		)
 		Expect(err).NotTo(HaveOccurred())
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(otherWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-other-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		createdContainer, err = creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -942,7 +942,7 @@ var _ = Describe("Keeping track of containers", func() {
 		)
 		Expect(err).NotTo(HaveOccurred())
 
-		creatingContainer, err := dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err := dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		containerToCreateCreated, err := creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -966,7 +966,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 		}
 
-		creatingContainer, err = dbngTeam.CreateBuildContainer(dbngWorker, build.ID(), atc.PlanID("plan-id"), dbng.ContainerMetadata{
+		creatingContainer, err = dbngTeam.CreateBuildContainer("some-worker", build.ID(), atc.PlanID("plan-id"), dbng.ContainerMetadata{
 			Type: string(db.ContainerTypeTask),
 			Name: "other-container",
 		})
@@ -993,7 +993,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 		}
 
-		creatingContainer, err = dbngTeam.CreateBuildContainer(dbngWorker, build.ID(), atc.PlanID("other-plan-id"), dbng.ContainerMetadata{
+		creatingContainer, err = dbngTeam.CreateBuildContainer("some-worker", build.ID(), atc.PlanID("other-plan-id"), dbng.ContainerMetadata{
 			Type: string(db.ContainerTypeTask),
 			Name: "other-container",
 		})
@@ -1116,7 +1116,7 @@ var _ = Describe("Keeping track of containers", func() {
 			atc.ResourceTypes{},
 		)
 		Expect(err).NotTo(HaveOccurred())
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		newSourceContainerToCreateCreated, err := creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -1161,7 +1161,7 @@ var _ = Describe("Keeping track of containers", func() {
 			atc.ResourceTypes{},
 		)
 		Expect(err).NotTo(HaveOccurred())
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		newCheckTypeContainerToCreateCreated, err := creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -1205,7 +1205,7 @@ var _ = Describe("Keeping track of containers", func() {
 			atc.ResourceTypes{},
 		)
 		Expect(err).NotTo(HaveOccurred())
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		matchingContainerToCreateCreated, err := creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -1306,7 +1306,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 		)
 		Expect(err).NotTo(HaveOccurred())
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		customContainerCreated, err := creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -1343,7 +1343,7 @@ var _ = Describe("Keeping track of containers", func() {
 			atc.ResourceTypes{},
 		)
 		Expect(err).NotTo(HaveOccurred())
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		containerWithCorrectVersionCreated, err := creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -1395,7 +1395,7 @@ var _ = Describe("Keeping track of containers", func() {
 			atc.ResourceTypes{},
 		)
 		Expect(err).NotTo(HaveOccurred())
-		creatingContainer, err = dbngTeam.CreateResourceCheckContainer(dbngWorker, resourceConfig)
+		creatingContainer, err = dbngTeam.CreateResourceCheckContainer("some-worker", resourceConfig)
 		Expect(err).NotTo(HaveOccurred())
 		sourContainerCreated, err := creatingContainer.Created()
 		Expect(err).NotTo(HaveOccurred())
@@ -1430,7 +1430,7 @@ var _ = Describe("Keeping track of containers", func() {
 				TeamID:       teamID,
 			},
 		}
-		creatingContainer, err = dbngTeam.CreateBuildContainer(dbngWorker, build.ID(), atc.PlanID("non-sour-plan-id"), dbng.ContainerMetadata{
+		creatingContainer, err = dbngTeam.CreateBuildContainer("some-worker", build.ID(), atc.PlanID("non-sour-plan-id"), dbng.ContainerMetadata{
 			Type: string(db.ContainerTypeTask),
 			Name: "non-sour-container",
 		})
