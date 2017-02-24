@@ -256,7 +256,7 @@ func (f *resourceConfigFactory) CleanConfigUsesForFinishedBuilds() error {
 
 	_, err = psql.Delete("resource_config_uses rcu USING builds b").
 		Where(sq.Expr("rcu.build_id = b.id")).
-		Where(sq.Expr("rcu.build_id IN (SELECT id FROM builds WHERE interceptible=false)")).
+		Where(sq.Expr("NOT b.interceptible")).
 		RunWith(tx).
 		Exec()
 
