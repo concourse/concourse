@@ -15,21 +15,26 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/event"
 )
 
-var _ = XDescribe("SQL DB Teams", func() {
+var _ = Describe("SQL DB Teams", func() {
 	var dbConn db.Conn
+	var dbngConn dbng.Conn
 	var listener *pq.Listener
 
 	var database db.DB
+	var workerFactory dbng.WorkerFactory
 	var teamDBFactory db.TeamDBFactory
 	var pipelineDBFactory db.PipelineDBFactory
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = db.Wrap(postgresRunner.Open())
+		pqConn := postgresRunner.Open()
+		dbConn = db.Wrap(pqConn)
+		dbngConn = dbng.Wrap(pqConn)
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
@@ -44,6 +49,7 @@ var _ = XDescribe("SQL DB Teams", func() {
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		database = db.NewSQL(dbConn, bus, lockFactory)
 
+		workerFactory = dbng.NewWorkerFactory(dbngConn)
 		database.DeleteTeamByName(atc.DefaultTeamName)
 	})
 
@@ -351,12 +357,12 @@ var _ = XDescribe("SQL DB Teams", func() {
 					_, err = pipelineDB.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
 
-					worker := db.WorkerInfo{
+					worker := atc.Worker{
 						Name:       "worker",
-						TeamID:     savedTeam.ID,
+						Team:       savedTeam.Name,
 						GardenAddr: "some-place",
 					}
-					_, err = database.SaveWorker(worker, 0)
+					_, err = workerFactory.SaveWorker(worker, 0)
 					Expect(err).NotTo(HaveOccurred())
 
 					build, err := teamDB.CreateOneOffBuild()

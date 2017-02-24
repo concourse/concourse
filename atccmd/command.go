@@ -410,7 +410,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	if cmd.Worker.GardenURL.URL() != nil {
-		members = cmd.appendStaticWorker(logger, sqlDB, members)
+		members = cmd.appendStaticWorker(logger, dbWorkerFactory, members)
 	}
 
 	if httpsHandler != nil {
@@ -919,7 +919,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		dbContainerFactory,
 
 		sqlDB, // teamserver.TeamDB
-		sqlDB, // workerserver.WorkerDB
 		sqlDB, // buildserver.BuildsDB
 		sqlDB, // containerserver.ContainerDB
 		sqlDB, // pipes.PipeDB
@@ -1008,7 +1007,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 
 func (cmd *ATCCommand) appendStaticWorker(
 	logger lager.Logger,
-	sqlDB *db.SQLDB,
+	workerFactory dbng.WorkerFactory,
 	members []grouper.Member,
 ) []grouper.Member {
 	var resourceTypes []atc.WorkerResourceType
@@ -1024,7 +1023,7 @@ func (cmd *ATCCommand) appendStaticWorker(
 			Name: "static-worker",
 			Runner: worker.NewHardcoded(
 				logger,
-				sqlDB,
+				workerFactory,
 				clock.NewClock(),
 				cmd.Worker.GardenURL.URL().Host,
 				cmd.Worker.BaggageclaimURL.String(),

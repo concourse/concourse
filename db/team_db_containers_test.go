@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/dbng"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -14,13 +15,15 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = XDescribe("TeamDbContainers", func() {
+var _ = Describe("TeamDbContainers", func() {
 	var (
 		dbConn   db.Conn
+		dbngConn dbng.Conn
 		listener *pq.Listener
 
 		database      db.DB
 		teamDBFactory db.TeamDBFactory
+		workerFactory dbng.WorkerFactory
 
 		savedPipeline      db.SavedPipeline
 		savedOtherPipeline db.SavedPipeline
@@ -35,7 +38,10 @@ var _ = XDescribe("TeamDbContainers", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = db.Wrap(postgresRunner.Open())
+		pqConn := postgresRunner.Open()
+		dbConn = db.Wrap(pqConn)
+		dbngConn = dbng.Wrap(pqConn)
+
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
@@ -64,13 +70,15 @@ var _ = XDescribe("TeamDbContainers", func() {
 		build, err = teamDB.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveWorker(db.WorkerInfo{
+		workerFactory = dbng.NewWorkerFactory(dbngConn)
+
+		_, err = workerFactory.SaveWorker(atc.Worker{
 			Name:       "some-worker",
 			GardenAddr: "1.2.3.4:7777",
 		}, 10*time.Minute)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveWorker(db.WorkerInfo{
+		_, err = workerFactory.SaveWorker(atc.Worker{
 			Name:       "some-other-worker",
 			GardenAddr: "1.2.3.5:7777",
 		}, 10*time.Minute)

@@ -233,7 +233,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
 					By("connecting to the worker")
-					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
+					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
 					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
 					Expect(err).NotTo(HaveOccurred())
 

@@ -12,23 +12,6 @@ import (
 )
 
 type FakeWorkerDB struct {
-	WorkersStub        func() ([]db.SavedWorker, error)
-	workersMutex       sync.RWMutex
-	workersArgsForCall []struct{}
-	workersReturns     struct {
-		result1 []db.SavedWorker
-		result2 error
-	}
-	GetWorkerStub        func(string) (db.SavedWorker, bool, error)
-	getWorkerMutex       sync.RWMutex
-	getWorkerArgsForCall []struct {
-		arg1 string
-	}
-	getWorkerReturns struct {
-		result1 db.SavedWorker
-		result2 bool
-		result3 error
-	}
 	CreateContainerToBeRemovedStub        func(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
 	createContainerToBeRemovedMutex       sync.RWMutex
 	createContainerToBeRemovedArgsForCall []struct {
@@ -119,65 +102,6 @@ type FakeWorkerDB struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeWorkerDB) Workers() ([]db.SavedWorker, error) {
-	fake.workersMutex.Lock()
-	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
-	fake.recordInvocation("Workers", []interface{}{})
-	fake.workersMutex.Unlock()
-	if fake.WorkersStub != nil {
-		return fake.WorkersStub()
-	}
-	return fake.workersReturns.result1, fake.workersReturns.result2
-}
-
-func (fake *FakeWorkerDB) WorkersCallCount() int {
-	fake.workersMutex.RLock()
-	defer fake.workersMutex.RUnlock()
-	return len(fake.workersArgsForCall)
-}
-
-func (fake *FakeWorkerDB) WorkersReturns(result1 []db.SavedWorker, result2 error) {
-	fake.WorkersStub = nil
-	fake.workersReturns = struct {
-		result1 []db.SavedWorker
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeWorkerDB) GetWorker(arg1 string) (db.SavedWorker, bool, error) {
-	fake.getWorkerMutex.Lock()
-	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("GetWorker", []interface{}{arg1})
-	fake.getWorkerMutex.Unlock()
-	if fake.GetWorkerStub != nil {
-		return fake.GetWorkerStub(arg1)
-	}
-	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
-}
-
-func (fake *FakeWorkerDB) GetWorkerCallCount() int {
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
-	return len(fake.getWorkerArgsForCall)
-}
-
-func (fake *FakeWorkerDB) GetWorkerArgsForCall(i int) string {
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
-	return fake.getWorkerArgsForCall[i].arg1
-}
-
-func (fake *FakeWorkerDB) GetWorkerReturns(result1 db.SavedWorker, result2 bool, result3 error) {
-	fake.GetWorkerStub = nil
-	fake.getWorkerReturns = struct {
-		result1 db.SavedWorker
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakeWorkerDB) CreateContainerToBeRemoved(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error) {
@@ -492,10 +416,6 @@ func (fake *FakeWorkerDB) AcquireContainerCreatingLockReturns(result1 lock.Lock,
 func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.workersMutex.RLock()
-	defer fake.workersMutex.RUnlock()
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
 	fake.createContainerToBeRemovedMutex.RLock()
 	defer fake.createContainerToBeRemovedMutex.RUnlock()
 	fake.updateContainerTTLToBeRemovedMutex.RLock()

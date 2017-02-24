@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
@@ -88,10 +87,6 @@ type DB interface {
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
-	Workers() ([]SavedWorker, error) // auto-expires workers based on ttl
-	GetWorker(workerName string) (SavedWorker, bool, error)
-	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)
-
 	GetContainer(string) (SavedContainer, bool, error)
 	CreateContainerToBeRemoved(container Container, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
@@ -135,27 +130,4 @@ type BuildInput struct {
 
 type BuildOutput struct {
 	VersionedResource
-}
-
-type SavedWorker struct {
-	WorkerInfo
-
-	TeamName  string
-	ExpiresAt time.Time
-}
-
-type WorkerInfo struct {
-	GardenAddr      string
-	BaggageclaimURL string
-	HTTPProxyURL    string
-	HTTPSProxyURL   string
-	NoProxy         string
-
-	ActiveContainers int
-	ResourceTypes    []atc.WorkerResourceType
-	Platform         string
-	Tags             []string
-	TeamID           int
-	Name             string
-	StartTime        int64
 }

@@ -11,11 +11,13 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/dbng"
 )
 
-var _ = XDescribe("Keeping track of containers", func() {
+var _ = Describe("Keeping track of containers", func() {
 	var (
 		dbConn   db.Conn
+		dbngConn dbng.Conn
 		listener *pq.Listener
 
 		database      *db.SQLDB
@@ -31,7 +33,9 @@ var _ = XDescribe("Keeping track of containers", func() {
 
 		postgresRunner.Truncate()
 
-		dbConn = db.Wrap(postgresRunner.Open())
+		pqConn := postgresRunner.Open()
+		dbConn = db.Wrap(pqConn)
+		dbngConn = dbng.Wrap(pqConn)
 
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
@@ -95,13 +99,14 @@ var _ = XDescribe("Keeping track of containers", func() {
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 
-		_, err = database.SaveWorker(db.WorkerInfo{
+		wf := dbng.NewWorkerFactory(dbngConn)
+		_, err = wf.SaveWorker(atc.Worker{
 			Name:       "some-worker",
 			GardenAddr: "1.2.3.4:7777",
 		}, 10*time.Minute)
 		Expect(err).NotTo(HaveOccurred())
 
-		workerInfo := db.WorkerInfo{
+		workerInfo := atc.Worker{
 			Name: "updated-resource-type-worker",
 			ResourceTypes: []atc.WorkerResourceType{
 				atc.WorkerResourceType{
@@ -110,7 +115,7 @@ var _ = XDescribe("Keeping track of containers", func() {
 				},
 			},
 		}
-		_, err = database.SaveWorker(workerInfo, 10*time.Minute)
+		_, err = wf.SaveWorker(workerInfo, 10*time.Minute)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

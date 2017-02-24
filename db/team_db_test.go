@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = XDescribe("TeamDB", func() {
+var _ = Describe("TeamDB", func() {
 	var (
 		dbConn   db.Conn
 		listener *pq.Listener
@@ -484,108 +484,6 @@ var _ = XDescribe("TeamDB", func() {
 			Expect(nextOneOffBuild.Name()).To(Equal("2"))
 			Expect(nextOneOffBuild.TeamName()).To(Equal(savedTeam.Name))
 			Expect(nextOneOffBuild.Status()).To(Equal(db.StatusPending))
-		})
-	})
-
-	Describe("Workers", func() {
-		BeforeEach(func() {
-			_, err := database.SaveWorker(db.WorkerInfo{
-				GardenAddr: "1.2.3.4",
-				Name:       "my-team-worker",
-				TeamID:     savedTeam.ID,
-			}, 5*time.Minute)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = database.SaveWorker(db.WorkerInfo{
-				GardenAddr: "1.2.3.5",
-				Name:       "other-team-worker",
-				TeamID:     otherSavedTeam.ID,
-			}, 5*time.Minute)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = database.SaveWorker(db.WorkerInfo{
-				GardenAddr: "1.2.3.6",
-				Name:       "shared-worker",
-			}, 5*time.Minute)
-
-			_, err = database.SaveWorker(db.WorkerInfo{
-				GardenAddr: "1.2.3.7",
-				Name:       "expired-worker",
-				TeamID:     savedTeam.ID,
-			}, -time.Minute)
-
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns non-expired workers that belong to current team or that do not belong to any team", func() {
-			workers, err := teamDB.Workers()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(workers).To(HaveLen(2))
-			Expect([]db.SavedWorker{
-				{
-					WorkerInfo: db.WorkerInfo{
-						Name:   workers[0].Name,
-						TeamID: workers[0].TeamID,
-					},
-					TeamName: workers[0].TeamName,
-				},
-				{
-					WorkerInfo: db.WorkerInfo{
-						Name:   workers[1].Name,
-						TeamID: workers[1].TeamID,
-					},
-					TeamName: workers[1].TeamName,
-				},
-			}).To(ConsistOf([]db.SavedWorker{
-				{
-					WorkerInfo: db.WorkerInfo{
-						Name:   "my-team-worker",
-						TeamID: savedTeam.ID,
-					},
-					TeamName: savedTeam.Name,
-				},
-				{
-					WorkerInfo: db.WorkerInfo{
-						Name:   "shared-worker",
-						TeamID: 0,
-					},
-					TeamName: "",
-				},
-			}))
-
-			otherTeamWorkers, err := otherTeamDB.Workers()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(otherTeamWorkers).To(HaveLen(2))
-			Expect([]string{
-				otherTeamWorkers[0].Name,
-				otherTeamWorkers[1].Name,
-			}).To(ConsistOf([]string{"other-team-worker", "shared-worker"}))
-		})
-
-		It("returns shared workers if current team has no workers", func() {
-			noWorkersTeamDB := teamDBFactory.GetTeamDB("no-workers-team-name")
-			workers, err := noWorkersTeamDB.Workers()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(workers).To(HaveLen(1))
-			Expect(workers[0].Name).To(Equal("shared-worker"))
-		})
-
-		It("reaps expired workers", func() {
-			_, err := database.SaveWorker(db.WorkerInfo{
-				GardenAddr: "1.2.3.7",
-				Name:       "expired-worker",
-				TeamID:     savedTeam.ID,
-			}, 1*time.Nanosecond)
-			Expect(err).NotTo(HaveOccurred())
-			time.Sleep(2 * time.Nanosecond)
-
-			workers, err := teamDB.Workers()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(workers).To(HaveLen(2))
-			Expect([]string{
-				workers[0].Name,
-				workers[1].Name,
-			}).To(ConsistOf([]string{"my-team-worker", "shared-worker"}))
 		})
 	})
 

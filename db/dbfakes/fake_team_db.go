@@ -133,13 +133,6 @@ type FakeTeamDB struct {
 		result2 db.Pagination
 		result3 error
 	}
-	WorkersStub        func() ([]db.SavedWorker, error)
-	workersMutex       sync.RWMutex
-	workersArgsForCall []struct{}
-	workersReturns     struct {
-		result1 []db.SavedWorker
-		result2 error
-	}
 	GetContainerStub        func(handle string) (db.SavedContainer, bool, error)
 	getContainerMutex       sync.RWMutex
 	getContainerArgsForCall []struct {
@@ -598,31 +591,6 @@ func (fake *FakeTeamDB) GetPrivateAndPublicBuildsReturns(result1 []db.Build, res
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeamDB) Workers() ([]db.SavedWorker, error) {
-	fake.workersMutex.Lock()
-	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
-	fake.recordInvocation("Workers", []interface{}{})
-	fake.workersMutex.Unlock()
-	if fake.WorkersStub != nil {
-		return fake.WorkersStub()
-	}
-	return fake.workersReturns.result1, fake.workersReturns.result2
-}
-
-func (fake *FakeTeamDB) WorkersCallCount() int {
-	fake.workersMutex.RLock()
-	defer fake.workersMutex.RUnlock()
-	return len(fake.workersArgsForCall)
-}
-
-func (fake *FakeTeamDB) WorkersReturns(result1 []db.SavedWorker, result2 error) {
-	fake.WorkersStub = nil
-	fake.workersReturns = struct {
-		result1 []db.SavedWorker
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeTeamDB) GetContainer(handle string) (db.SavedContainer, bool, error) {
 	fake.getContainerMutex.Lock()
 	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
@@ -721,8 +689,6 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.createOneOffBuildMutex.RUnlock()
 	fake.getPrivateAndPublicBuildsMutex.RLock()
 	defer fake.getPrivateAndPublicBuildsMutex.RUnlock()
-	fake.workersMutex.RLock()
-	defer fake.workersMutex.RUnlock()
 	fake.getContainerMutex.RLock()
 	defer fake.getContainerMutex.RUnlock()
 	fake.findContainersByDescriptorsMutex.RLock()

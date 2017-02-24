@@ -9,25 +9,29 @@ import (
 	"github.com/tedsuo/ifrit"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 //go:generate counterfeiter . SaveWorkerDB
 
 type SaveWorkerDB interface {
-	SaveWorker(db.WorkerInfo, time.Duration) (db.SavedWorker, error)
+	SaveWorker(atc.Worker, time.Duration) (dbng.Worker, error)
 }
 
 func NewHardcoded(
-	logger lager.Logger, workerDB SaveWorkerDB, clock c.Clock,
-	gardenAddr string, baggageclaimURL string, resourceTypesNG []atc.WorkerResourceType,
+	logger lager.Logger,
+	workerDB SaveWorkerDB,
+	clock c.Clock,
+	gardenAddr string,
+	baggageclaimURL string,
+	resourceTypes []atc.WorkerResourceType,
 ) ifrit.RunFunc {
 	return func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		workerInfo := db.WorkerInfo{
+		workerInfo := atc.Worker{
 			GardenAddr:       gardenAddr,
 			BaggageclaimURL:  baggageclaimURL,
 			ActiveContainers: 0,
-			ResourceTypes:    resourceTypesNG,
+			ResourceTypes:    resourceTypes,
 			Platform:         "linux",
 			Tags:             []string{},
 			Name:             gardenAddr,

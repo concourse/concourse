@@ -35,7 +35,6 @@ type TeamDB interface {
 	CreateOneOffBuild() (Build, error)
 	GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, error)
 
-	Workers() ([]SavedWorker, error)
 	GetContainer(handle string) (SavedContainer, bool, error)
 	FindContainersByDescriptors(id Container) ([]SavedContainer, error)
 }
@@ -697,45 +696,6 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 	}
 
 	return build, nil
-}
-
-func (db *teamDB) Workers() ([]SavedWorker, error) {
-	team, found, err := db.GetTeam()
-	if err != nil {
-		return nil, err
-	}
-
-	var teamID int
-	if found {
-		teamID = team.ID
-	}
-
-	rows, err := db.conn.Query(`
-		SELECT `+workerColumns+`
-		FROM workers as w
-		LEFT OUTER JOIN teams as t
-			ON t.id = w.team_id
-		WHERE (t.id = $1 OR w.team_id IS NULL)
-		AND (expires IS NULL OR expires > NOW())
-	`, teamID)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	savedWorkers := []SavedWorker{}
-	for rows.Next() {
-		savedWorker, err := scanWorker(rows, true)
-		if err != nil {
-			return nil, err
-		}
-
-		savedWorkers = append(savedWorkers, savedWorker)
-	}
-
-	return savedWorkers, nil
 }
 
 func (db *teamDB) GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {

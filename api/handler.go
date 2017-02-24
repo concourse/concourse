@@ -53,7 +53,6 @@ func NewHandler(
 	containerFactory dbng.ContainerFactory,
 
 	teamsDB teamserver.TeamsDB,
-	workerDB workerserver.WorkerDB,
 	buildsDB buildserver.BuildsDB,
 	containerDB containerserver.ContainerDB,
 	pipeDB pipes.PipeDB,
@@ -115,7 +114,7 @@ func NewHandler(
 
 	configServer := configserver.NewServer(logger, teamDBFactory, dbTeamFactory)
 
-	workerServer := workerserver.NewServer(logger, workerDB, teamDBFactory, dbTeamFactory, dbWorkerFactory)
+	workerServer := workerserver.NewServer(logger, teamDBFactory, dbTeamFactory, dbWorkerFactory)
 
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 

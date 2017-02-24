@@ -14,7 +14,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 )
@@ -56,7 +55,7 @@ var _ = Describe("Hardcoded", func() {
 		})
 
 		It("registers it and then keeps registering it on an interval", func() {
-			expectedWorkerInfo := db.WorkerInfo{
+			expectedWorker := atc.Worker{
 				Name:             gardenAddr,
 				GardenAddr:       gardenAddr,
 				BaggageclaimURL:  baggageClaimAddr,
@@ -69,19 +68,19 @@ var _ = Describe("Hardcoded", func() {
 
 			Eventually(workerDB.SaveWorkerCallCount()).Should(Equal(1))
 			workerInfo, ttl := workerDB.SaveWorkerArgsForCall(0)
-			Expect(workerInfo).To(Equal(expectedWorkerInfo))
+			Expect(workerInfo).To(Equal(expectedWorker))
 			Expect(ttl).To(Equal(expectedTTL))
 
 			fakeClock.Increment(11 * time.Second)
 
 			Eventually(workerDB.SaveWorkerCallCount).Should(Equal(2))
 			workerInfo, ttl = workerDB.SaveWorkerArgsForCall(1)
-			Expect(workerInfo).To(Equal(expectedWorkerInfo))
+			Expect(workerInfo).To(Equal(expectedWorker))
 			Expect(ttl).To(Equal(expectedTTL))
 		})
 
 		It("can be interrupted", func() {
-			expectedWorkerInfo := db.WorkerInfo{
+			expectedWorker := atc.Worker{
 				Name:             gardenAddr,
 				GardenAddr:       gardenAddr,
 				BaggageclaimURL:  baggageClaimAddr,
@@ -94,7 +93,7 @@ var _ = Describe("Hardcoded", func() {
 
 			Eventually(workerDB.SaveWorkerCallCount()).Should(Equal(1))
 			workerInfo, ttl := workerDB.SaveWorkerArgsForCall(0)
-			Expect(workerInfo).To(Equal(expectedWorkerInfo))
+			Expect(workerInfo).To(Equal(expectedWorker))
 			Expect(ttl).To(Equal(expectedTTL))
 
 			ginkgomon.Interrupt(process)
@@ -109,7 +108,7 @@ var _ = Describe("Hardcoded", func() {
 		disaster := errors.New("bad bad bad")
 
 		BeforeEach(func() {
-			workerDB.SaveWorkerReturns(db.SavedWorker{}, disaster)
+			workerDB.SaveWorkerReturns(nil, disaster)
 		})
 
 		It("exits early", func() {

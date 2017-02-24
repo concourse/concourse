@@ -23,7 +23,6 @@ import (
 	"github.com/concourse/atc/api/pipes/pipesfakes"
 	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
 	"github.com/concourse/atc/api/teamserver/teamserverfakes"
-	"github.com/concourse/atc/api/workerserver/workerserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
@@ -47,7 +46,6 @@ var (
 	teamServerDB                  *teamserverfakes.FakeTeamsDB
 	fakeVolumeFactory             *dbngfakes.FakeVolumeFactory
 	fakeContainerFactory          *dbngfakes.FakeContainerFactory
-	workerDB                      *workerserverfakes.FakeWorkerDB
 	containerDB                   *containerserverfakes.FakeContainerDB
 	pipeDB                        *pipesfakes.FakePipeDB
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
@@ -109,7 +107,6 @@ var _ = BeforeEach(func() {
 	teamServerDB = new(teamserverfakes.FakeTeamsDB)
 	teamDB = new(dbfakes.FakeTeamDB)
 	teamDBFactory.GetTeamDBReturns(teamDB)
-	workerDB = new(workerserverfakes.FakeWorkerDB)
 	buildServerDB = new(buildserverfakes.FakeBuildsDB)
 	containerDB = new(containerserverfakes.FakeContainerDB)
 	pipeDB = new(pipesfakes.FakePipeDB)
@@ -185,7 +182,6 @@ var _ = BeforeEach(func() {
 		fakeContainerFactory,
 
 		teamServerDB,
-		workerDB,
 		buildServerDB,
 		containerDB,
 		pipeDB,

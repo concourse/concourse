@@ -5,29 +5,30 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeSaveWorkerDB struct {
-	SaveWorkerStub        func(db.WorkerInfo, time.Duration) (db.SavedWorker, error)
+	SaveWorkerStub        func(atc.Worker, time.Duration) (dbng.Worker, error)
 	saveWorkerMutex       sync.RWMutex
 	saveWorkerArgsForCall []struct {
-		arg1 db.WorkerInfo
+		arg1 atc.Worker
 		arg2 time.Duration
 	}
 	saveWorkerReturns struct {
-		result1 db.SavedWorker
+		result1 dbng.Worker
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSaveWorkerDB) SaveWorker(arg1 db.WorkerInfo, arg2 time.Duration) (db.SavedWorker, error) {
+func (fake *FakeSaveWorkerDB) SaveWorker(arg1 atc.Worker, arg2 time.Duration) (dbng.Worker, error) {
 	fake.saveWorkerMutex.Lock()
 	fake.saveWorkerArgsForCall = append(fake.saveWorkerArgsForCall, struct {
-		arg1 db.WorkerInfo
+		arg1 atc.Worker
 		arg2 time.Duration
 	}{arg1, arg2})
 	fake.recordInvocation("SaveWorker", []interface{}{arg1, arg2})
@@ -44,16 +45,16 @@ func (fake *FakeSaveWorkerDB) SaveWorkerCallCount() int {
 	return len(fake.saveWorkerArgsForCall)
 }
 
-func (fake *FakeSaveWorkerDB) SaveWorkerArgsForCall(i int) (db.WorkerInfo, time.Duration) {
+func (fake *FakeSaveWorkerDB) SaveWorkerArgsForCall(i int) (atc.Worker, time.Duration) {
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
 	return fake.saveWorkerArgsForCall[i].arg1, fake.saveWorkerArgsForCall[i].arg2
 }
 
-func (fake *FakeSaveWorkerDB) SaveWorkerReturns(result1 db.SavedWorker, result2 error) {
+func (fake *FakeSaveWorkerDB) SaveWorkerReturns(result1 dbng.Worker, result2 error) {
 	fake.SaveWorkerStub = nil
 	fake.saveWorkerReturns = struct {
-		result1 db.SavedWorker
+		result1 dbng.Worker
 		result2 error
 	}{result1, result2}
 }
