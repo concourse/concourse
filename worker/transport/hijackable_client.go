@@ -34,11 +34,11 @@ func (c *hijackableClient) Do(request *http.Request) (*http.Response, retryhttp.
 			return nil, nil, ErrMissingWorker{WorkerName: c.workerName}
 		}
 
-		if savedWorker.State == dbng.WorkerStateStalled {
+		if savedWorker.State() == dbng.WorkerStateStalled {
 			return nil, nil, ErrWorkerStalled{WorkerName: c.workerName}
 		}
 
-		c.cachedHost = *savedWorker.GardenAddr
+		c.cachedHost = *savedWorker.GardenAddr()
 	}
 
 	updatedURL := *request.URL

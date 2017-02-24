@@ -56,7 +56,7 @@ type CreatingVolume interface {
 
 type creatingVolume struct {
 	id                 int
-	worker             *Worker
+	worker             Worker
 	handle             string
 	path               string
 	teamID             int
@@ -121,7 +121,7 @@ type CreatedVolume interface {
 	Type() VolumeType
 	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
-	Worker() *Worker
+	Worker() Worker
 	SizeInBytes() int64
 	Initialize() error
 	IsInitialized() (bool, error)
@@ -133,7 +133,7 @@ type CreatedVolume interface {
 
 type createdVolume struct {
 	id                 int
-	worker             *Worker
+	worker             Worker
 	handle             string
 	path               string
 	teamID             int
@@ -154,7 +154,7 @@ type VolumeResourceType struct {
 
 func (volume *createdVolume) Handle() string          { return volume.handle }
 func (volume *createdVolume) Path() string            { return volume.path }
-func (volume *createdVolume) Worker() *Worker         { return volume.worker }
+func (volume *createdVolume) Worker() Worker          { return volume.worker }
 func (volume *createdVolume) SizeInBytes() int64      { return volume.bytes }
 func (volume *createdVolume) Type() VolumeType        { return volume.typ }
 func (volume *createdVolume) ContainerHandle() string { return volume.containerHandle }
@@ -248,7 +248,7 @@ func (volume *createdVolume) findBaseResourceTypeByID(tx Tx, baseResourceTypeID 
 		LeftJoin("base_resource_types brt ON brt.id = wbrt.base_resource_type_id").
 		Where(sq.Eq{
 			"brt.id":           baseResourceTypeID,
-			"wbrt.worker_name": volume.worker.Name,
+			"wbrt.worker_name": volume.worker.Name(),
 		}).
 		RunWith(tx).
 		QueryRow().
@@ -355,7 +355,7 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 		"path",
 	}
 	columnValues := []interface{}{
-		volume.worker.Name,
+		volume.worker.Name(),
 		volume.id,
 		VolumeStateCreated,
 		handle.String(),
@@ -443,18 +443,18 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 type DestroyingVolume interface {
 	Handle() string
 	Destroy() (bool, error)
-	Worker() *Worker
+	Worker() Worker
 }
 
 type destroyingVolume struct {
 	id     int
-	worker *Worker
+	worker Worker
 	handle string
 	conn   Conn
 }
 
-func (volume *destroyingVolume) Handle() string  { return volume.handle }
-func (volume *destroyingVolume) Worker() *Worker { return volume.worker }
+func (volume *destroyingVolume) Handle() string { return volume.handle }
+func (volume *destroyingVolume) Worker() Worker { return volume.worker }
 
 func (volume *destroyingVolume) Destroy() (bool, error) {
 	tx, err := volume.conn.Begin()

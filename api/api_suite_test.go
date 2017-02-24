@@ -54,6 +54,7 @@ var (
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	dbTeamFactory                 *dbngfakes.FakeTeamFactory
 	dbWorkerFactory               *dbngfakes.FakeWorkerFactory
+	dbWorkerLifecycle             *dbngfakes.FakeWorkerLifecycle
 	teamDB                        *dbfakes.FakeTeamDB
 	pipelinesDB                   *dbfakes.FakePipelinesDB
 	buildsDB                      *authfakes.FakeBuildsDB
@@ -104,6 +105,7 @@ var _ = BeforeEach(func() {
 	dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 
 	dbWorkerFactory = new(dbngfakes.FakeWorkerFactory)
+	dbWorkerLifecycle = new(dbngfakes.FakeWorkerLifecycle)
 	teamServerDB = new(teamserverfakes.FakeTeamsDB)
 	teamDB = new(dbfakes.FakeTeamDB)
 	teamDBFactory.GetTeamDBReturns(teamDB)

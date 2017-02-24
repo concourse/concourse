@@ -37,7 +37,7 @@ var _ = Describe("Workers API", func() {
 			})
 
 			It("fetches workers by team name from user context", func() {
-				Expect(dbWorkerFactory.WorkersForTeamCallCount()).To(Equal(1))
+				Expect(dbTeam.WorkersCallCount()).To(Equal(1))
 
 				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
 				teamName := teamDBFactory.GetTeamDBArgsForCall(0)
@@ -45,37 +45,28 @@ var _ = Describe("Workers API", func() {
 			})
 
 			Context("when the workers can be listed", func() {
+				var (
+					teamWorker1 *dbngfakes.FakeWorker
+					teamWorker2 *dbngfakes.FakeWorker
+				)
+
 				BeforeEach(func() {
+
+					teamWorker1 = new(dbngfakes.FakeWorker)
 					gardenAddr1 := "1.2.3.4:7777"
+					teamWorker1.GardenAddrReturns(&gardenAddr1)
 					bcURL1 := "1.2.3.4:8888"
+					teamWorker1.BaggageclaimURLReturns(&bcURL1)
+
+					teamWorker2 = new(dbngfakes.FakeWorker)
 					gardenAddr2 := "5.6.7.8:7777"
+					teamWorker2.GardenAddrReturns(&gardenAddr2)
 					bcURL2 := "5.6.7.8:8888"
-					dbWorkerFactory.WorkersForTeamReturns([]*dbng.Worker{
-						{
-							GardenAddr:       &gardenAddr1,
-							BaggageclaimURL:  &bcURL1,
-							HTTPProxyURL:     "http://some-proxy.com",
-							HTTPSProxyURL:    "https://some-proxy.com",
-							NoProxy:          "no,proxy",
-							ActiveContainers: 1,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource", Image: "some-resource-image"},
-							},
-							Platform: "freebsd",
-							Tags:     []string{"demon"},
-							State:    dbng.WorkerStateRunning,
-						},
-						{
-							GardenAddr:       &gardenAddr2,
-							BaggageclaimURL:  &bcURL2,
-							ActiveContainers: 2,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource", Image: "some-resource-image"},
-							},
-							Platform: "beos",
-							Tags:     []string{"best", "os", "ever", "rip"},
-							State:    dbng.WorkerStateStalled,
-						},
+					teamWorker2.BaggageclaimURLReturns(&bcURL2)
+
+					dbTeam.WorkersReturns([]dbng.Worker{
+						teamWorker1,
+						teamWorker2,
 					}, nil)
 				})
 
@@ -90,29 +81,12 @@ var _ = Describe("Workers API", func() {
 
 					Expect(returnedWorkers).To(Equal([]atc.Worker{
 						{
-							GardenAddr:       "1.2.3.4:7777",
-							BaggageclaimURL:  "1.2.3.4:8888",
-							HTTPProxyURL:     "http://some-proxy.com",
-							HTTPSProxyURL:    "https://some-proxy.com",
-							NoProxy:          "no,proxy",
-							ActiveContainers: 1,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource", Image: "some-resource-image"},
-							},
-							Platform: "freebsd",
-							Tags:     []string{"demon"},
-							State:    "running",
+							GardenAddr:      "1.2.3.4:7777",
+							BaggageclaimURL: "1.2.3.4:8888",
 						},
 						{
-							GardenAddr:       "5.6.7.8:7777",
-							BaggageclaimURL:  "5.6.7.8:8888",
-							ActiveContainers: 2,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource", Image: "some-resource-image"},
-							},
-							Platform: "beos",
-							Tags:     []string{"best", "os", "ever", "rip"},
-							State:    "stalled",
+							GardenAddr:      "5.6.7.8:7777",
+							BaggageclaimURL: "5.6.7.8:8888",
 						},
 					}))
 
@@ -121,7 +95,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when getting the workers fails", func() {
 				BeforeEach(func() {
-					dbWorkerFactory.WorkersForTeamReturns(nil, errors.New("oh no!"))
+					dbTeam.WorkersReturns(nil, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
@@ -248,7 +222,7 @@ var _ = Describe("Workers API", func() {
 
 					Context("when saving the worker succeeds", func() {
 						BeforeEach(func() {
-							foundTeam.SaveWorkerReturns(&dbng.Worker{}, nil)
+							foundTeam.SaveWorkerReturns(new(dbngfakes.FakeWorker), nil)
 						})
 
 						It("returns 200", func() {
@@ -308,7 +282,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when saving the worker succeeds", func() {
 				BeforeEach(func() {
-					dbWorkerFactory.SaveWorkerReturns(&dbng.Worker{}, nil)
+					dbWorkerFactory.SaveWorkerReturns(new(dbngfakes.FakeWorker), nil)
 				})
 
 				It("returns 200", func() {
@@ -382,6 +356,7 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
+			fakeWorker *dbngfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
@@ -393,10 +368,14 @@ var _ = Describe("Workers API", func() {
 		})
 
 		BeforeEach(func() {
+			fakeWorker = new(dbngfakes.FakeWorker)
 			workerName = "some-worker"
+			fakeWorker.NameReturns(workerName)
+			fakeWorker.TeamNameReturns("some-team")
+			fakeWorker.LandReturns(nil)
+
 			authValidator.IsAuthenticatedReturns(true)
-			dbWorkerFactory.LandWorkerReturns(&dbng.Worker{}, nil)
-			dbWorkerFactory.GetWorkerReturns(&dbng.Worker{TeamName: "some-team"}, true, nil)
+			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 		})
 
 		Context("when the request is authenticated as system", func() {
@@ -409,8 +388,9 @@ var _ = Describe("Workers API", func() {
 			})
 
 			It("sees if the worker exists and attempts to land it", func() {
-				Expect(dbWorkerFactory.LandWorkerCallCount()).To(Equal(1))
-				Expect(dbWorkerFactory.LandWorkerArgsForCall(0)).To(Equal(workerName))
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(1))
+				Expect(dbWorkerFactory.GetWorkerArgsForCall(0)).To(Equal(workerName))
+				Expect(fakeWorker.LandCallCount()).To(Equal(1))
 			})
 
 			Context("when landing the worker fails", func() {
@@ -418,7 +398,7 @@ var _ = Describe("Workers API", func() {
 
 				BeforeEach(func() {
 					returnedErr = errors.New("some-error")
-					dbWorkerFactory.LandWorkerReturns(nil, returnedErr)
+					fakeWorker.LandReturns(returnedErr)
 				})
 
 				It("returns 500", func() {
@@ -428,7 +408,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the worker does not exist", func() {
 				BeforeEach(func() {
-					dbWorkerFactory.LandWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+					dbWorkerFactory.GetWorkerReturns(nil, false, nil)
 				})
 
 				It("returns 404", func() {
@@ -466,8 +446,8 @@ var _ = Describe("Workers API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
-			It("does not land the worker", func() {
-				Expect(dbWorkerFactory.LandWorkerCallCount()).To(BeZero())
+			It("does not attempt to find the worker", func() {
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(BeZero())
 			})
 		})
 	})
@@ -476,6 +456,7 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
+			fakeWorker *dbngfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
@@ -487,10 +468,15 @@ var _ = Describe("Workers API", func() {
 		})
 
 		BeforeEach(func() {
+			fakeWorker = new(dbngfakes.FakeWorker)
 			workerName = "some-worker"
+			fakeWorker.NameReturns(workerName)
+			fakeWorker.TeamNameReturns("some-team")
+
 			authValidator.IsAuthenticatedReturns(true)
-			dbWorkerFactory.RetireWorkerReturns(&dbng.Worker{}, nil)
-			dbWorkerFactory.GetWorkerReturns(&dbng.Worker{TeamName: "some-team"}, true, nil)
+
+			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
+			fakeWorker.RetireReturns(nil)
 		})
 
 		Context("when autheticated as system", func() {
@@ -503,8 +489,10 @@ var _ = Describe("Workers API", func() {
 			})
 
 			It("sees if the worker exists and attempts to retire it", func() {
-				Expect(dbWorkerFactory.RetireWorkerCallCount()).To(Equal(1))
-				Expect(dbWorkerFactory.RetireWorkerArgsForCall(0)).To(Equal(workerName))
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(1))
+				Expect(dbWorkerFactory.GetWorkerArgsForCall(0)).To(Equal(workerName))
+
+				Expect(fakeWorker.RetireCallCount()).To(Equal(1))
 			})
 
 			Context("when retiring the worker fails", func() {
@@ -512,7 +500,7 @@ var _ = Describe("Workers API", func() {
 
 				BeforeEach(func() {
 					returnedErr = errors.New("some-error")
-					dbWorkerFactory.RetireWorkerReturns(nil, returnedErr)
+					fakeWorker.RetireReturns(returnedErr)
 				})
 
 				It("returns 500", func() {
@@ -522,7 +510,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the worker does not exist", func() {
 				BeforeEach(func() {
-					dbWorkerFactory.RetireWorkerReturns(nil, dbng.ErrWorkerNotPresent)
+					dbWorkerFactory.GetWorkerReturns(nil, false, nil)
 				})
 
 				It("returns 404", func() {
@@ -560,8 +548,8 @@ var _ = Describe("Workers API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
-			It("does not retire the worker", func() {
-				Expect(dbWorkerFactory.RetireWorkerCallCount()).To(BeZero())
+			It("does not attempt to find the worker", func() {
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(BeZero())
 			})
 		})
 	})
@@ -570,6 +558,7 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
+			fakeWorker *dbngfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
@@ -581,14 +570,15 @@ var _ = Describe("Workers API", func() {
 		})
 
 		BeforeEach(func() {
+			fakeWorker = new(dbngfakes.FakeWorker)
 			workerName = "some-worker"
-			dbWorkerFactory.GetWorkerReturns(&dbng.Worker{
-				Name:     "some-worker",
-				TeamName: "some-team",
-			}, true, nil)
+			fakeWorker.NameReturns(workerName)
+			fakeWorker.TeamNameReturns("some-team")
+
+			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			authValidator.IsAuthenticatedReturns(true)
 			userContextReader.GetTeamReturns("some-team", false, true)
-			dbWorkerFactory.PruneWorkerReturns(nil)
+			fakeWorker.PruneReturns(nil)
 		})
 
 		It("returns 200", func() {
@@ -596,8 +586,8 @@ var _ = Describe("Workers API", func() {
 		})
 
 		It("sees if the worker exists and attempts to prune it", func() {
-			Expect(dbWorkerFactory.PruneWorkerCallCount()).To(Equal(1))
-			Expect(dbWorkerFactory.PruneWorkerArgsForCall(0)).To(Equal(workerName))
+			Expect(dbWorkerFactory.GetWorkerArgsForCall(0)).To(Equal(workerName))
+			Expect(fakeWorker.PruneCallCount()).To(Equal(1))
 		})
 
 		Context("when pruning the worker fails", func() {
@@ -605,7 +595,7 @@ var _ = Describe("Workers API", func() {
 
 			BeforeEach(func() {
 				returnedErr = errors.New("some-error")
-				dbWorkerFactory.PruneWorkerReturns(returnedErr)
+				fakeWorker.PruneReturns(returnedErr)
 			})
 
 			It("returns 500", func() {
@@ -615,7 +605,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when the worker does not exist", func() {
 			BeforeEach(func() {
-				dbWorkerFactory.PruneWorkerReturns(dbng.ErrWorkerNotPresent)
+				dbWorkerFactory.GetWorkerReturns(nil, false, nil)
 			})
 
 			It("returns 404", func() {
@@ -625,7 +615,7 @@ var _ = Describe("Workers API", func() {
 
 		Context("when the worker is running", func() {
 			BeforeEach(func() {
-				dbWorkerFactory.PruneWorkerReturns(dbng.ErrCannotPruneRunningWorker)
+				fakeWorker.PruneReturns(dbng.ErrCannotPruneRunningWorker)
 			})
 
 			It("returns 400", func() {
@@ -643,8 +633,8 @@ var _ = Describe("Workers API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
-			It("does not prune the worker", func() {
-				Expect(dbWorkerFactory.PruneWorkerCallCount()).To(BeZero())
+			It("does not attempt to find the worker", func() {
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(BeZero())
 			})
 		})
 	})
@@ -657,11 +647,20 @@ var _ = Describe("Workers API", func() {
 			ttl        time.Duration
 			err        error
 
-			worker atc.Worker
+			worker     atc.Worker
+			fakeWorker *dbngfakes.FakeWorker
 		)
 
 		BeforeEach(func() {
+			fakeWorker = new(dbngfakes.FakeWorker)
 			workerName = "some-name"
+			fakeWorker.NameReturns(workerName)
+			fakeWorker.ActiveContainersReturns(2)
+			fakeWorker.PlatformReturns("penguin")
+			fakeWorker.TagsReturns([]string{"some-tag"})
+			fakeWorker.StateReturns(dbng.WorkerStateRunning)
+			fakeWorker.TeamNameReturns("some-team")
+
 			ttlStr = "30s"
 			ttl, err = time.ParseDuration(ttlStr)
 			Expect(err).NotTo(HaveOccurred())
@@ -672,14 +671,7 @@ var _ = Describe("Workers API", func() {
 			}
 
 			authValidator.IsAuthenticatedReturns(true)
-			dbWorkerFactory.HeartbeatWorkerReturns(&dbng.Worker{
-				Name:             workerName,
-				ActiveContainers: 2,
-				Platform:         "penguin",
-				Tags:             []string{"some-tag"},
-				State:            dbng.WorkerStateRunning,
-				TeamName:         "some-team",
-			}, nil)
+			dbWorkerFactory.HeartbeatWorkerReturns(fakeWorker, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -784,6 +776,7 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
+			fakeWorker *dbngfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
@@ -795,9 +788,13 @@ var _ = Describe("Workers API", func() {
 		})
 
 		BeforeEach(func() {
+			fakeWorker = new(dbngfakes.FakeWorker)
 			workerName = "some-worker"
+			fakeWorker.NameReturns(workerName)
+
 			authValidator.IsAuthenticatedReturns(true)
-			dbWorkerFactory.DeleteWorkerReturns(nil)
+			fakeWorker.DeleteReturns(nil)
+			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 		})
 
 		It("returns 200", func() {
@@ -805,8 +802,10 @@ var _ = Describe("Workers API", func() {
 		})
 
 		It("deletes the worker from the DB", func() {
-			Expect(dbWorkerFactory.DeleteWorkerCallCount()).To(Equal(1))
-			Expect(dbWorkerFactory.DeleteWorkerArgsForCall(0)).To(Equal(workerName))
+			Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(1))
+			Expect(dbWorkerFactory.GetWorkerArgsForCall(0)).To(Equal(workerName))
+
+			Expect(fakeWorker.DeleteCallCount()).To(Equal(1))
 		})
 
 		Context("when deleting the worker fails", func() {
@@ -814,7 +813,7 @@ var _ = Describe("Workers API", func() {
 
 			BeforeEach(func() {
 				returnedErr = errors.New("some-error")
-				dbWorkerFactory.DeleteWorkerReturns(returnedErr)
+				fakeWorker.DeleteReturns(returnedErr)
 			})
 
 			It("returns 500", func() {
@@ -831,8 +830,8 @@ var _ = Describe("Workers API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
-			It("does not retire the worker", func() {
-				Expect(dbWorkerFactory.DeleteWorkerCallCount()).To(BeZero())
+			It("does not attempt to find the worker", func() {
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(BeZero())
 			})
 		})
 	})

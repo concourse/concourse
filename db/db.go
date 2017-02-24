@@ -141,7 +141,7 @@ type SavedWorker struct {
 	WorkerInfo
 
 	TeamName  string
-	ExpiresIn time.Duration
+	ExpiresAt time.Time
 }
 
 type WorkerInfo struct {

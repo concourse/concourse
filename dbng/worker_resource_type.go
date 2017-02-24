@@ -20,7 +20,7 @@ var ErrWorkerBaseResourceTypeAlreadyExists = errors.New("worker base resource ty
 // | id | resource_cache_id | base_resource_type_id | source_hash | params_hash | version |
 
 type WorkerResourceType struct {
-	Worker  *Worker
+	Worker  Worker
 	Image   string // The path to the image, e.g. '/opt/concourse/resources/git'.
 	Version string // The version of the image, e.g. a SHA of the rootfs.
 
@@ -30,7 +30,7 @@ type WorkerResourceType struct {
 type UsedWorkerResourceType struct {
 	ID int
 
-	Worker *Worker
+	Worker Worker
 
 	UsedBaseResourceType *UsedBaseResourceType
 }
@@ -40,7 +40,6 @@ func (wrt WorkerResourceType) FindOrCreate(tx Tx) (*UsedWorkerResourceType, erro
 	if err != nil {
 		return nil, err
 	}
-
 	uwrt, found, err := wrt.find(tx, usedBaseResourceType)
 	if err != nil {
 		return nil, err
@@ -59,7 +58,7 @@ func (wrt WorkerResourceType) find(tx Tx, usedBaseResourceType *UsedBaseResource
 		id          int
 	)
 	err := psql.Select("id", "worker_name").From("worker_base_resource_types").Where(sq.Eq{
-		"worker_name":           wrt.Worker.Name,
+		"worker_name":           wrt.Worker.Name(),
 		"base_resource_type_id": usedBaseResourceType.ID,
 		"image":                 wrt.Image,
 		"version":               wrt.Version,
@@ -88,7 +87,7 @@ func (wrt WorkerResourceType) create(tx Tx, usedBaseResourceType *UsedBaseResour
 			"version",
 		).
 		Values(
-			wrt.Worker.Name,
+			wrt.Worker.Name(),
 			usedBaseResourceType.ID,
 			wrt.Image,
 			wrt.Version,

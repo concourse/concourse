@@ -114,7 +114,7 @@ func (vc *volumeCollector) Run() error {
 	for _, createdVolume := range createdVolumes {
 		vLog := logger.Session("mark-created-as-destroying", lager.Data{
 			"volume": createdVolume.Handle(),
-			"worker": createdVolume.Worker().Name,
+			"worker": createdVolume.Worker().Name(),
 		})
 
 		destroyingVolume, err := createdVolume.Destroying()
@@ -129,15 +129,15 @@ func (vc *volumeCollector) Run() error {
 	for _, destroyingVolume := range destroyingVolumes {
 		vLog := logger.Session("destroy", lager.Data{
 			"handle": destroyingVolume.Handle(),
-			"worker": destroyingVolume.Worker().Name,
+			"worker": destroyingVolume.Worker().Name(),
 		})
 
-		if destroyingVolume.Worker().BaggageclaimURL == nil {
+		if destroyingVolume.Worker().BaggageclaimURL() == nil {
 			vLog.Info("baggageclaim-url-is-missing")
 			continue
 		}
 
-		baggageclaimClient := vc.baggageclaimClientFactory.NewClient(*destroyingVolume.Worker().BaggageclaimURL, destroyingVolume.Worker().Name)
+		baggageclaimClient := vc.baggageclaimClientFactory.NewClient(*destroyingVolume.Worker().BaggageclaimURL(), destroyingVolume.Worker().Name())
 
 		volume, found, err := baggageclaimClient.LookupVolume(vLog, destroyingVolume.Handle())
 		if err != nil {

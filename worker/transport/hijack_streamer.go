@@ -51,7 +51,7 @@ func (e ErrWorkerBaggageclaimURLIsMissing) Error() string {
 
 //go:generate counterfeiter . TransportDB
 type TransportDB interface {
-	GetWorker(name string) (*dbng.Worker, bool, error)
+	GetWorker(name string) (dbng.Worker, bool, error)
 }
 
 //go:generate counterfeiter . ReadCloser

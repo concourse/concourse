@@ -166,6 +166,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
 	dbPipelineFactory := dbng.NewPipelineFactory(dbngConn, lockFactory)
 	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
+	dbWorkerLifecycle := dbng.NewWorkerLifecycle(dbngConn)
 	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn, lockFactory)
 	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn, lockFactory)
 	dbBaseResourceTypeFactory := dbng.NewBaseResourceTypeFactory(dbngConn)
@@ -357,7 +358,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				),
 				gcng.NewWorkerCollector(
 					logger.Session("worker-collector"),
-					dbWorkerFactory,
+					dbWorkerLifecycle,
 				),
 				gcng.NewResourceCacheUseCollector(
 					logger.Session("resource-cache-use-collector"),

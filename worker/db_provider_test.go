@@ -53,6 +53,9 @@ var _ = Describe("DBProvider", func() {
 
 		workers    []Worker
 		workersErr error
+
+		fakeWorker1 *dbngfakes.FakeWorker
+		fakeWorker2 *dbngfakes.FakeWorker
 	)
 
 	BeforeEach(func() {
@@ -84,6 +87,24 @@ var _ = Describe("DBProvider", func() {
 		gardenServer = server.New("tcp", gardenAddr, 0, fakeGardenBackend, logger)
 		err := gardenServer.Start()
 		Expect(err).NotTo(HaveOccurred())
+
+		fakeWorker1 = new(dbngfakes.FakeWorker)
+		fakeWorker1.NameReturns("some-worker")
+		fakeWorker1.GardenAddrReturns(&gardenAddr)
+		fakeWorker1.BaggageclaimURLReturns(&baggageclaimURL)
+		fakeWorker1.StateReturns(dbng.WorkerStateRunning)
+		fakeWorker1.ActiveContainersReturns(2)
+		fakeWorker1.ResourceTypesReturns([]atc.WorkerResourceType{
+			{Type: "some-resource-a", Image: "some-image-a"}})
+
+		fakeWorker2 = new(dbngfakes.FakeWorker)
+		fakeWorker2.NameReturns("some-other-worker")
+		fakeWorker2.GardenAddrReturns(&gardenAddr)
+		fakeWorker2.BaggageclaimURLReturns(&baggageclaimURL)
+		fakeWorker2.StateReturns(dbng.WorkerStateRunning)
+		fakeWorker2.ActiveContainersReturns(2)
+		fakeWorker2.ResourceTypesReturns([]atc.WorkerResourceType{
+			{Type: "some-resource-b", Image: "some-image-b"}})
 
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage := new(workerfakes.FakeImage)
@@ -145,28 +166,7 @@ var _ = Describe("DBProvider", func() {
 
 		Context("when the database yields workers", func() {
 			BeforeEach(func() {
-				fakeDBWorkerFactory.WorkersReturns([]*dbng.Worker{
-					{
-						Name:             "some-worker",
-						GardenAddr:       &gardenAddr,
-						BaggageclaimURL:  &baggageclaimURL,
-						State:            dbng.WorkerStateRunning,
-						ActiveContainers: 2,
-						ResourceTypes: []atc.WorkerResourceType{
-							{Type: "some-resource-a", Image: "some-image-a"},
-						},
-					},
-					{
-						Name:             "some-other-worker",
-						GardenAddr:       &gardenAddr,
-						BaggageclaimURL:  &baggageclaimURL,
-						State:            dbng.WorkerStateRunning,
-						ActiveContainers: 2,
-						ResourceTypes: []atc.WorkerResourceType{
-							{Type: "some-resource-b", Image: "some-image-b"},
-						},
-					},
-				}, nil)
+				fakeDBWorkerFactory.WorkersReturns([]dbng.Worker{fakeWorker1, fakeWorker2}, nil)
 			})
 
 			It("succeeds", func() {
@@ -179,38 +179,31 @@ var _ = Describe("DBProvider", func() {
 
 			Context("when some of the workers returned are stalled or landing", func() {
 				BeforeEach(func() {
-					fakeDBWorkerFactory.WorkersReturns([]*dbng.Worker{
-						{
-							Name:             "some-worker",
-							GardenAddr:       &gardenAddr,
-							BaggageclaimURL:  &baggageclaimURL,
-							State:            dbng.WorkerStateRunning,
-							ActiveContainers: 2,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource-a", Image: "some-image-a"},
-							},
-						},
-						{
-							Name:             "stalled-worker",
-							GardenAddr:       &gardenAddr,
-							BaggageclaimURL:  &baggageclaimURL,
-							State:            dbng.WorkerStateStalled,
-							ActiveContainers: 0,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource-b", Image: "some-image-b"},
-							},
-						},
-						{
-							Name:             "landing-worker",
-							GardenAddr:       &gardenAddr,
-							State:            dbng.WorkerStateLanding,
-							BaggageclaimURL:  &baggageclaimURL,
-							ActiveContainers: 5,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource-a", Image: "some-image-a"},
-							},
-						},
-					}, nil)
+
+					landingWorker := new(dbngfakes.FakeWorker)
+					landingWorker.NameReturns("landing-worker")
+					landingWorker.GardenAddrReturns(&gardenAddr)
+					landingWorker.BaggageclaimURLReturns(&baggageclaimURL)
+					landingWorker.StateReturns(dbng.WorkerStateLanding)
+					landingWorker.ActiveContainersReturns(5)
+					landingWorker.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+
+					stalledWorker := new(dbngfakes.FakeWorker)
+					stalledWorker.NameReturns("stalled-worker")
+					stalledWorker.GardenAddrReturns(&gardenAddr)
+					stalledWorker.BaggageclaimURLReturns(&baggageclaimURL)
+					stalledWorker.StateReturns(dbng.WorkerStateStalled)
+					stalledWorker.ActiveContainersReturns(0)
+					stalledWorker.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+
+					fakeDBWorkerFactory.WorkersReturns(
+						[]dbng.Worker{
+							fakeWorker1,
+							stalledWorker,
+							landingWorker,
+						}, nil)
 				})
 
 				It("only returns workers for the running ones", func() {
@@ -271,7 +264,7 @@ var _ = Describe("DBProvider", func() {
 				BeforeEach(func() {
 					createdVolume := new(dbngfakes.FakeCreatedVolume)
 					createdVolume.HandleReturns("vol-handle")
-					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr, BaggageclaimURL: &baggageclaimURL}, true, nil)
+					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
 					fakeDBVolumeFactory.FindContainerVolumeReturns(nil, createdVolume, nil)
 					fakeDBVolumeFactory.FindBaseResourceTypeVolumeReturns(nil, createdVolume, nil)
 
@@ -323,7 +316,7 @@ var _ = Describe("DBProvider", func() {
 
 			Describe("a looked-up container", func() {
 				BeforeEach(func() {
-					fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{GardenAddr: &gardenAddr}, true, nil)
+					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
 					fakeDBTeam.FindContainerByHandleReturns(fakeCreatedContainer, true, nil)
 				})
 
@@ -400,12 +393,14 @@ var _ = Describe("DBProvider", func() {
 		DescribeTable("finding existing worker",
 			func(workerState dbng.WorkerState, expectedExistence bool) {
 				addr := "1.2.3.4:7777"
-				fakeDBWorkerFactory.GetWorkerReturns(&dbng.Worker{
-					Name:       "some-worker",
-					TeamID:     123,
-					GardenAddr: &addr,
-					State:      workerState,
-				}, true, nil)
+
+				fakeExistingWorker := new(dbngfakes.FakeWorker)
+				fakeExistingWorker.NameReturns("some-worker")
+				fakeExistingWorker.TeamIDReturns(123)
+				fakeExistingWorker.GardenAddrReturns(&addr)
+				fakeExistingWorker.StateReturns(workerState)
+
+				fakeDBWorkerFactory.GetWorkerReturns(fakeExistingWorker, true, nil)
 
 				worker, found, workersErr = provider.GetWorker("some-worker")
 				if expectedExistence {

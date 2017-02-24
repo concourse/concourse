@@ -145,4 +145,5 @@ var Migrations = []migration.Migrator{
 	AddSourceHashToResources,
 	AddWorkerBaseResourceTypeIdToContainers,
 	AddInterceptibleToBuilds,
+	AlterExpiresToIncludeTimezoneInWorkers,
 }

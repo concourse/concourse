@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("TeamDB", func() {
+var _ = XDescribe("TeamDB", func() {
 	var (
 		dbConn   db.Conn
 		listener *pq.Listener

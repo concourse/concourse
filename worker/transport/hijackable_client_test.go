@@ -4,11 +4,13 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp"
@@ -19,7 +21,7 @@ var _ = Describe("HijackableClient #Do", func() {
 	var (
 		request              http.Request
 		fakeDB               *transportfakes.FakeTransportDB
-		savedWorker          dbng.Worker
+		savedWorker          *dbngfakes.FakeWorker
 		savedWorkerAddress   string
 		fakeHijackableClient *retryhttpfakes.FakeHijackableClient
 		hijackableClient     retryhttp.HijackableClient
@@ -42,13 +44,12 @@ var _ = Describe("HijackableClient #Do", func() {
 		}
 
 		savedWorkerAddress = "some-garden-addr"
-		savedWorker = dbng.Worker{
-			GardenAddr: &savedWorkerAddress,
-			ExpiresIn:  123,
-			State:      dbng.WorkerStateRunning,
-		}
+		savedWorker = new(dbngfakes.FakeWorker)
+		savedWorker.GardenAddrReturns(&savedWorkerAddress)
+		savedWorker.ExpiresAtReturns(time.Now().Add(123 * time.Minute))
+		savedWorker.StateReturns(dbng.WorkerStateRunning)
 
-		fakeDB.GetWorkerReturns(&savedWorker, true, nil)
+		fakeDB.GetWorkerReturns(savedWorker, true, nil)
 
 		fakeHijackableClient.DoReturns(&http.Response{StatusCode: http.StatusTeapot}, fakeHijackCloser, nil)
 	})
@@ -66,7 +67,7 @@ var _ = Describe("HijackableClient #Do", func() {
 	It("sends the request with worker's garden address", func() {
 		Expect(fakeHijackableClient.DoCallCount()).To(Equal(1))
 		actualRequest := fakeHijackableClient.DoArgsForCall(0)
-		Expect(actualRequest.URL.Host).To(Equal(*savedWorker.GardenAddr))
+		Expect(actualRequest.URL.Host).To(Equal(*savedWorker.GardenAddr()))
 		Expect(actualRequest.URL.Path).To(Equal("/something"))
 	})
 
@@ -96,9 +97,9 @@ var _ = Describe("HijackableClient #Do", func() {
 
 	Context("when the worker is stalled in the db", func() {
 		BeforeEach(func() {
-			fakeDB.GetWorkerReturns(&dbng.Worker{
-				State: dbng.WorkerStateStalled,
-			}, true, nil)
+			stalledWorker := new(dbngfakes.FakeWorker)
+			stalledWorker.StateReturns(dbng.WorkerStateStalled)
+			fakeDB.GetWorkerReturns(stalledWorker, true, nil)
 		})
 
 		It("throws a descriptive error", func() {

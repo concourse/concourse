@@ -19,7 +19,7 @@ func Volume(volume dbng.CreatedVolume) (atc.Volume, error) {
 	return atc.Volume{
 		ID:               volume.Handle(),
 		Type:             string(volume.Type()),
-		WorkerName:       volume.Worker().Name,
+		WorkerName:       volume.Worker().Name(),
 		SizeInBytes:      volume.SizeInBytes(),
 		ContainerHandle:  volume.ContainerHandle(),
 		Path:             volume.Path(),

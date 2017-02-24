@@ -46,7 +46,7 @@ var _ = Describe("ContainerFactory", func() {
 				build, err = defaultPipeline.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker, build.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+				creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -141,7 +141,7 @@ var _ = Describe("ContainerFactory", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker, resourceConfig)
+				creatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), resourceConfig)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -327,7 +327,7 @@ var _ = Describe("ContainerFactory", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err := defaultTeam.CreateResourceGetContainer(defaultWorker, resourceCache, "some-task")
+				creatingContainer, err := defaultTeam.CreateResourceGetContainer(defaultWorker.Name(), resourceCache, "some-task")
 				Expect(err).NotTo(HaveOccurred())
 
 				createdContainer, err = creatingContainer.Created()
