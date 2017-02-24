@@ -9,5 +9,5 @@ KEYSDIR=$DEVDIR/keys
 
 external_ip="$($ROOT/dev/util/external-ip)"
 
-$ROOT/dev/util/docker run --rm --privileged -v $KEYSDIR/worker:/concourse-keys \
+exec $ROOT/dev/util/docker run --rm --privileged -v $KEYSDIR/worker:/concourse-keys \
   concourse/concourse-rc worker --tsa-host "$external_ip" "$@"

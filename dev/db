@@ -9,4 +9,4 @@ DBDIR=$DEVDIR/db
 
 [ -d $DBDIR ] || initdb -U postgres -D $DBDIR -E UTF8 --no-local
 
-postgres -D $DBDIR -h 127.0.0.1 -p ${POSTGRES_PORT:-6543} "$@"
+exec postgres -D $DBDIR -h 127.0.0.1 -p ${POSTGRES_PORT:-6543} "$@"

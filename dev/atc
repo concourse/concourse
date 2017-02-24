@@ -20,7 +20,7 @@ until createdb -U postgres -p ${pg_port} atc 2>&1 | grep 'already exists' >/dev/
   sleep 1
 done
 
-atc \
+exec atc \
   --log-level debug \
   --no-really-i-dont-want-any-auth \
   --external-url "http://${external_ip}:8080" \
