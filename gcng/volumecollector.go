@@ -89,8 +89,8 @@ func (vc *volumeCollector) Run() error {
 
 	if len(orphanedCreatedVolumes) > 0 || len(orphanedDestroyingVolumes) > 0 {
 		logger.Debug("found-orphaned-volumes", lager.Data{
-			"created":    len(createdVolumes),
-			"destroying": len(destroyingVolumes),
+			"created":    len(orphanedCreatedVolumes),
+			"destroying": len(orphanedDestroyingVolumes),
 		})
 	}
 
