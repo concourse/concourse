@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, c.id, resource_type_version, c.team_id"
+const containerColumns = "c.worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, c.id, resource_type_version, c.team_id"
 
 const containerJoins = `
 		LEFT JOIN pipelines p
@@ -58,32 +58,11 @@ func (db *SQLDB) FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, er
 func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {
 	conditions := []string{}
 	params := []interface{}{}
+	extraJoins := ""
 
 	addParam := func(column string, param interface{}) {
 		conditions = append(conditions, fmt.Sprintf("%s = $%d", column, len(params)+1))
 		params = append(params, param)
-	}
-
-	switch {
-	case isValidCheckID(id):
-		checkSourceBlob, err := json.Marshal(id.CheckSource)
-		if err != nil {
-			return SavedContainer{}, false, err
-		}
-
-		if id.ResourceID > 0 {
-			addParam("resource_id", id.ResourceID)
-		}
-		addParam("check_type", id.CheckType)
-		addParam("check_source", checkSourceBlob)
-		addParam("stage", string(id.Stage))
-		conditions = append(conditions, "(best_if_used_by IS NULL OR best_if_used_by > NOW())")
-	case isValidStepID(id):
-		addParam("build_id", id.BuildID)
-		addParam("plan_id", string(id.PlanID))
-		addParam("stage", string(id.Stage))
-	default:
-		return SavedContainer{}, false, ErrInvalidIdentifier
 	}
 
 	if id.ImageResourceSource != nil && id.ImageResourceType != "" {
@@ -101,11 +80,38 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		}...)
 	}
 
+	switch {
+	case isValidCheckID(id):
+		checkSourceBlob, err := json.Marshal(id.CheckSource)
+		if err != nil {
+			return SavedContainer{}, false, err
+		}
+
+		if id.ResourceID > 0 {
+			addParam("resource_id", id.ResourceID)
+		}
+		addParam("check_type", id.CheckType)
+		addParam("check_source", checkSourceBlob)
+		addParam("stage", string(id.Stage))
+		conditions = append(conditions, "(best_if_used_by IS NULL OR best_if_used_by > NOW())")
+
+		extraJoins = "LEFT JOIN worker_base_resource_types wbrt ON c.worker_base_resource_types_id = wbrt.id"
+		subQ := `SELECT max(worker_base_resource_types_id) FROM containers WHERE ` + strings.Join(conditions, " AND ")
+		conditions = append(conditions, `c.worker_base_resource_types_id IN (`+subQ+`)`)
+	case isValidStepID(id):
+		addParam("build_id", id.BuildID)
+		addParam("plan_id", string(id.PlanID))
+		addParam("stage", string(id.Stage))
+	default:
+		return SavedContainer{}, false, ErrInvalidIdentifier
+	}
+
 	selectQuery := `
 		SELECT ` + containerColumns + `
 		FROM containers c ` + containerJoins + `
-		LEFT JOIN workers w ON c.worker_name = w.name
+		LEFT JOIN workers w ON c.worker_name = w.name ` + extraJoins + `
 		WHERE w.state = 'running'
+		AND c.state = 'created'
 		AND ` + strings.Join(conditions, " AND ")
 
 	rows, err := db.conn.Query(selectQuery, params...)
