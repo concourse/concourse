@@ -55,17 +55,17 @@ type CreatingVolume interface {
 }
 
 type creatingVolume struct {
-	id                 int
-	worker             Worker
-	handle             string
-	path               string
-	teamID             int
-	typ                VolumeType
-	containerHandle    string
-	parentHandle       string
-	resourceCacheID    int
-	baseResourceTypeID int
-	conn               Conn
+	id                       int
+	worker                   Worker
+	handle                   string
+	path                     string
+	teamID                   int
+	typ                      VolumeType
+	containerHandle          string
+	parentHandle             string
+	resourceCacheID          int
+	workerBaseResourceTypeID int
+	conn                     Conn
 }
 
 func (volume *creatingVolume) ID() int { return volume.id }
@@ -99,17 +99,17 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 	}
 
 	return &createdVolume{
-		id:                 volume.id,
-		worker:             volume.worker,
-		typ:                volume.typ,
-		handle:             volume.handle,
-		path:               volume.path,
-		teamID:             volume.teamID,
-		conn:               volume.conn,
-		containerHandle:    volume.containerHandle,
-		parentHandle:       volume.parentHandle,
-		resourceCacheID:    volume.resourceCacheID,
-		baseResourceTypeID: volume.baseResourceTypeID,
+		id:                       volume.id,
+		worker:                   volume.worker,
+		typ:                      volume.typ,
+		handle:                   volume.handle,
+		path:                     volume.path,
+		teamID:                   volume.teamID,
+		conn:                     volume.conn,
+		containerHandle:          volume.containerHandle,
+		parentHandle:             volume.parentHandle,
+		resourceCacheID:          volume.resourceCacheID,
+		workerBaseResourceTypeID: volume.workerBaseResourceTypeID,
 	}, nil
 }
 
@@ -132,24 +132,24 @@ type CreatedVolume interface {
 }
 
 type createdVolume struct {
-	id                 int
-	worker             Worker
-	handle             string
-	path               string
-	teamID             int
-	typ                VolumeType
-	bytes              int64
-	containerHandle    string
-	parentHandle       string
-	resourceCacheID    int
-	baseResourceTypeID int
-	conn               Conn
+	id                       int
+	worker                   Worker
+	handle                   string
+	path                     string
+	teamID                   int
+	typ                      VolumeType
+	bytes                    int64
+	containerHandle          string
+	parentHandle             string
+	resourceCacheID          int
+	workerBaseResourceTypeID int
+	conn                     Conn
 }
 
 type VolumeResourceType struct {
-	BaseResourceType *WorkerBaseResourceType
-	ResourceType     *VolumeResourceType
-	Version          atc.Version
+	WorkerBaseResourceType *WorkerBaseResourceType
+	ResourceType           *VolumeResourceType
+	Version                atc.Version
 }
 
 func (volume *createdVolume) Handle() string          { return volume.handle }
@@ -175,7 +175,7 @@ func (volume *createdVolume) ResourceType() (*VolumeResourceType, error) {
 }
 
 func (volume *createdVolume) BaseResourceType() (*WorkerBaseResourceType, error) {
-	if volume.baseResourceTypeID == 0 {
+	if volume.workerBaseResourceTypeID == 0 {
 		return nil, nil
 	}
 
@@ -185,7 +185,7 @@ func (volume *createdVolume) BaseResourceType() (*WorkerBaseResourceType, error)
 	}
 	defer tx.Rollback()
 
-	return volume.findBaseResourceTypeByID(tx, volume.baseResourceTypeID)
+	return volume.findWorkerBaseResourceTypeByID(tx, volume.workerBaseResourceTypeID)
 }
 
 func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCacheID int) (*VolumeResourceType, error) {
@@ -213,14 +213,14 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCach
 	}
 
 	if sqBaseResourceTypeID.Valid {
-		baseResourceType, err := volume.findBaseResourceTypeByID(tx, int(sqBaseResourceTypeID.Int64))
+		workerBaseResourceType, err := volume.findWorkerBaseResourceTypeByBaseResourceTypeID(tx, int(sqBaseResourceTypeID.Int64))
 		if err != nil {
 			return nil, err
 		}
 
 		return &VolumeResourceType{
-			BaseResourceType: baseResourceType,
-			Version:          version,
+			WorkerBaseResourceType: workerBaseResourceType,
+			Version:                version,
 		}, nil
 	}
 
@@ -239,11 +239,36 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCach
 	return nil, ErrInvalidResourceCache
 }
 
-func (volume *createdVolume) findBaseResourceTypeByID(tx Tx, baseResourceTypeID int) (*WorkerBaseResourceType, error) {
+func (volume *createdVolume) findWorkerBaseResourceTypeByID(tx Tx, workerBaseResourceTypeID int) (*WorkerBaseResourceType, error) {
 	var name string
 	var version string
 
 	err := psql.Select("brt.name, wbrt.version").
+		From("worker_base_resource_types wbrt").
+		LeftJoin("base_resource_types brt ON brt.id = wbrt.base_resource_type_id").
+		Where(sq.Eq{
+			"wbrt.id":          workerBaseResourceTypeID,
+			"wbrt.worker_name": volume.worker.Name(),
+		}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&name, &version)
+	if err != nil {
+		return nil, err
+	}
+
+	return &WorkerBaseResourceType{
+		Name:    name,
+		Version: version,
+	}, nil
+}
+
+func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(tx Tx, baseResourceTypeID int) (*WorkerBaseResourceType, error) {
+	var id int
+	var name string
+	var version string
+
+	err := psql.Select("wbrt.id, brt.name, wbrt.version").
 		From("worker_base_resource_types wbrt").
 		LeftJoin("base_resource_types brt ON brt.id = wbrt.base_resource_type_id").
 		Where(sq.Eq{
@@ -252,7 +277,7 @@ func (volume *createdVolume) findBaseResourceTypeByID(tx Tx, baseResourceTypeID 
 		}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&name, &version)
+		Scan(&id, &name, &version)
 	if err != nil {
 		return nil, err
 	}

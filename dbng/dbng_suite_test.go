@@ -31,18 +31,19 @@ var (
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
 
-	sqlDB                   *sql.DB
-	dbConn                  dbng.Conn
-	buildFactory            dbng.BuildFactory
-	volumeFactory           dbng.VolumeFactory
-	containerFactory        dbng.ContainerFactory
-	teamFactory             dbng.TeamFactory
-	workerFactory           dbng.WorkerFactory
-	workerLifecycle         dbng.WorkerLifecycle
-	resourceConfigFactory   dbng.ResourceConfigFactory
-	resourceTypeFactory     dbng.ResourceTypeFactory
-	resourceCacheFactory    dbng.ResourceCacheFactory
-	baseResourceTypeFactory dbng.BaseResourceTypeFactory
+	sqlDB                         *sql.DB
+	dbConn                        dbng.Conn
+	buildFactory                  dbng.BuildFactory
+	volumeFactory                 dbng.VolumeFactory
+	containerFactory              dbng.ContainerFactory
+	teamFactory                   dbng.TeamFactory
+	workerFactory                 dbng.WorkerFactory
+	workerLifecycle               dbng.WorkerLifecycle
+	resourceConfigFactory         dbng.ResourceConfigFactory
+	resourceTypeFactory           dbng.ResourceTypeFactory
+	resourceCacheFactory          dbng.ResourceCacheFactory
+	baseResourceTypeFactory       dbng.BaseResourceTypeFactory
+	workerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
 
 	defaultTeam              dbng.Team
 	defaultWorkerPayload     atc.Worker
@@ -91,6 +92,7 @@ var _ = BeforeEach(func() {
 	resourceTypeFactory = dbng.NewResourceTypeFactory(dbConn)
 	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
+	workerBaseResourceTypeFactory = dbng.NewWorkerBaseResourceTypeFactory(dbConn)
 
 	defaultTeam, err = teamFactory.CreateTeam("default-team")
 	Expect(err).NotTo(HaveOccurred())

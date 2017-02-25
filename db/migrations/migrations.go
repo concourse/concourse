@@ -146,4 +146,5 @@ var Migrations = []migration.Migrator{
 	AddWorkerBaseResourceTypeIdToContainers,
 	AddInterceptibleToBuilds,
 	AlterExpiresToIncludeTimezoneInWorkers,
+	ChangeVolumeBaseResourceTypeToWorkerBaseResourceType,
 }

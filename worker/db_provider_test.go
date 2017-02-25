@@ -40,13 +40,13 @@ var _ = Describe("DBProvider", func() {
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
 
-		fakeImageFactory              *workerfakes.FakeImageFactory
-		fakeImageFetchingDelegate     *workerfakes.FakeImageFetchingDelegate
-		fakeDBVolumeFactory           *dbngfakes.FakeVolumeFactory
-		fakeDBTeam                    *dbngfakes.FakeTeam
-		fakeDBBaseResourceTypeFactory *dbngfakes.FakeBaseResourceTypeFactory
-		fakeCreatingContainer         *dbngfakes.FakeCreatingContainer
-		fakeCreatedContainer          *dbngfakes.FakeCreatedContainer
+		fakeImageFactory                    *workerfakes.FakeImageFactory
+		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
+		fakeDBVolumeFactory                 *dbngfakes.FakeVolumeFactory
+		fakeDBTeam                          *dbngfakes.FakeTeam
+		fakeDBWorkerBaseResourceTypeFactory *dbngfakes.FakeWorkerBaseResourceTypeFactory
+		fakeCreatingContainer               *dbngfakes.FakeCreatingContainer
+		fakeCreatedContainer                *dbngfakes.FakeCreatedContainer
 
 		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
 		fakeDBWorkerFactory   *dbngfakes.FakeWorkerFactory
@@ -121,7 +121,7 @@ var _ = Describe("DBProvider", func() {
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
 		fakeDBResourceCacheFactory := new(dbngfakes.FakeResourceCacheFactory)
-		fakeDBBaseResourceTypeFactory = new(dbngfakes.FakeBaseResourceTypeFactory)
+		fakeDBWorkerBaseResourceTypeFactory = new(dbngfakes.FakeWorkerBaseResourceTypeFactory)
 		fakeLock := new(lockfakes.FakeLock)
 		fakeDB.AcquireContainerCreatingLockReturns(fakeLock, true, nil)
 
@@ -135,7 +135,7 @@ var _ = Describe("DBProvider", func() {
 			fakeImageFactory,
 			fakeDBResourceCacheFactory,
 			nil,
-			fakeDBBaseResourceTypeFactory,
+			fakeDBWorkerBaseResourceTypeFactory,
 			fakeDBVolumeFactory,
 			fakeDBTeamFactory,
 			fakePipelineDBFactory,
@@ -274,8 +274,8 @@ var _ = Describe("DBProvider", func() {
 					fakeCreatingContainer.CreatedReturns(fakeCreatedContainer, nil)
 					fakeDBTeam.CreateBuildContainerReturns(fakeCreatingContainer, nil)
 
-					baseResourceType := &dbng.UsedBaseResourceType{ID: 42}
-					fakeDBBaseResourceTypeFactory.FindReturns(baseResourceType, true, nil)
+					workerBaseResourceType := &dbng.UsedWorkerBaseResourceType{ID: 42}
+					fakeDBWorkerBaseResourceTypeFactory.FindReturns(workerBaseResourceType, true, nil)
 				})
 
 				It("calls through to garden", func() {

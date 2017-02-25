@@ -97,7 +97,7 @@ var _ = Describe("Volumes API", func() {
 							volume1.SizeInBytesReturns(1024)
 							volume1.ResourceTypeReturns(&dbng.VolumeResourceType{
 								ResourceType: &dbng.VolumeResourceType{
-									BaseResourceType: &dbng.WorkerBaseResourceType{
+									WorkerBaseResourceType: &dbng.WorkerBaseResourceType{
 										Name:    "some-base-resource-type",
 										Version: "some-base-version",
 									},

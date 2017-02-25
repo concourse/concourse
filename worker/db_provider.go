@@ -36,19 +36,19 @@ type WorkerDB interface {
 var ErrDesiredWorkerNotRunning = errors.New("desired-garden-worker-is-not-known-to-be-running")
 
 type dbProvider struct {
-	logger                    lager.Logger
-	db                        WorkerDB
-	dialer                    gconn.DialerFunc
-	retryBackOffFactory       retryhttp.BackOffFactory
-	imageFactory              ImageFactory
-	dbResourceCacheFactory    dbng.ResourceCacheFactory
-	dbResourceTypeFactory     dbng.ResourceTypeFactory
-	dbResourceConfigFactory   dbng.ResourceConfigFactory
-	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory
-	dbVolumeFactory           dbng.VolumeFactory
-	dbTeamFactory             dbng.TeamFactory
-	pipelineDBFactory         db.PipelineDBFactory
-	dbWorkerFactory           dbng.WorkerFactory
+	logger                          lager.Logger
+	db                              WorkerDB
+	dialer                          gconn.DialerFunc
+	retryBackOffFactory             retryhttp.BackOffFactory
+	imageFactory                    ImageFactory
+	dbResourceCacheFactory          dbng.ResourceCacheFactory
+	dbResourceTypeFactory           dbng.ResourceTypeFactory
+	dbResourceConfigFactory         dbng.ResourceConfigFactory
+	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
+	dbVolumeFactory                 dbng.VolumeFactory
+	dbTeamFactory                   dbng.TeamFactory
+	pipelineDBFactory               db.PipelineDBFactory
+	dbWorkerFactory                 dbng.WorkerFactory
 }
 
 func NewDBWorkerProvider(
@@ -59,25 +59,25 @@ func NewDBWorkerProvider(
 	imageFactory ImageFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
-	dbBaseResourceTypeFactory dbng.BaseResourceTypeFactory,
+	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbTeamFactory dbng.TeamFactory,
 	pipelineDBFactory db.PipelineDBFactory,
 	workerFactory dbng.WorkerFactory,
 ) WorkerProvider {
 	return &dbProvider{
-		logger:                    logger,
-		db:                        db,
-		dialer:                    dialer,
-		retryBackOffFactory:       retryBackOffFactory,
-		imageFactory:              imageFactory,
-		dbResourceCacheFactory:    dbResourceCacheFactory,
-		dbResourceConfigFactory:   dbResourceConfigFactory,
-		dbBaseResourceTypeFactory: dbBaseResourceTypeFactory,
-		dbVolumeFactory:           dbVolumeFactory,
-		dbTeamFactory:             dbTeamFactory,
-		dbWorkerFactory:           workerFactory,
-		pipelineDBFactory:         pipelineDBFactory,
+		logger:                          logger,
+		db:                              db,
+		dialer:                          dialer,
+		retryBackOffFactory:             retryBackOffFactory,
+		imageFactory:                    imageFactory,
+		dbResourceCacheFactory:          dbResourceCacheFactory,
+		dbResourceConfigFactory:         dbResourceConfigFactory,
+		dbWorkerBaseResourceTypeFactory: dbWorkerBaseResourceTypeFactory,
+		dbVolumeFactory:                 dbVolumeFactory,
+		dbTeamFactory:                   dbTeamFactory,
+		dbWorkerFactory:                 workerFactory,
+		pipelineDBFactory:               pipelineDBFactory,
 	}
 }
 
@@ -165,7 +165,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker dbng
 		bClient,
 		provider.db,
 		provider.dbVolumeFactory,
-		provider.dbBaseResourceTypeFactory,
+		provider.dbWorkerBaseResourceTypeFactory,
 		clock.NewClock(),
 		savedWorker,
 	)

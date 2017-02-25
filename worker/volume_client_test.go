@@ -25,12 +25,12 @@ var _ = Describe("VolumeClient", func() {
 		fakeLock   *lockfakes.FakeLock
 		testLogger *lagertest.TestLogger
 
-		fakeBaggageclaimClient      *baggageclaimfakes.FakeClient
-		fakeGardenWorkerDB          *workerfakes.FakeGardenWorkerDB
-		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
-		fakeBaseResourceTypeFactory *dbngfakes.FakeBaseResourceTypeFactory
-		fakeClock                   *fakeclock.FakeClock
-		dbWorker                    *dbngfakes.FakeWorker
+		fakeBaggageclaimClient            *baggageclaimfakes.FakeClient
+		fakeGardenWorkerDB                *workerfakes.FakeGardenWorkerDB
+		fakeDBVolumeFactory               *dbngfakes.FakeVolumeFactory
+		fakeWorkerBaseResourceTypeFactory *dbngfakes.FakeWorkerBaseResourceTypeFactory
+		fakeClock                         *fakeclock.FakeClock
+		dbWorker                          *dbngfakes.FakeWorker
 
 		volumeClient worker.VolumeClient
 	)
@@ -45,14 +45,14 @@ var _ = Describe("VolumeClient", func() {
 		testLogger = lagertest.NewTestLogger("test")
 
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
-		fakeBaseResourceTypeFactory = new(dbngfakes.FakeBaseResourceTypeFactory)
+		fakeWorkerBaseResourceTypeFactory = new(dbngfakes.FakeWorkerBaseResourceTypeFactory)
 		fakeLock = new(lockfakes.FakeLock)
 
 		volumeClient = worker.NewVolumeClient(
 			fakeBaggageclaimClient,
 			fakeGardenWorkerDB,
 			fakeDBVolumeFactory,
-			fakeBaseResourceTypeFactory,
+			fakeWorkerBaseResourceTypeFactory,
 			fakeClock,
 			dbWorker,
 		)
@@ -329,7 +329,7 @@ var _ = Describe("VolumeClient", func() {
 				fakeBaggageclaimClient,
 				fakeGardenWorkerDB,
 				fakeDBVolumeFactory,
-				fakeBaseResourceTypeFactory,
+				fakeWorkerBaseResourceTypeFactory,
 				fakeClock,
 				dbWorker,
 			).LookupVolume(testLogger, handle)

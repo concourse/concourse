@@ -235,7 +235,7 @@ var _ = Describe("Volume", func() {
 
 			Expect(createdVolume.ResourceType()).To(Equal(&dbng.VolumeResourceType{
 				ResourceType: &dbng.VolumeResourceType{
-					BaseResourceType: &dbng.WorkerBaseResourceType{
+					WorkerBaseResourceType: &dbng.WorkerBaseResourceType{
 						Name:    "some-base-resource-type",
 						Version: "some-brt-version",
 					},
@@ -249,7 +249,7 @@ var _ = Describe("Volume", func() {
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResource)))
 			Expect(createdVolume.ResourceType()).To(Equal(&dbng.VolumeResourceType{
 				ResourceType: &dbng.VolumeResourceType{
-					BaseResourceType: &dbng.WorkerBaseResourceType{
+					WorkerBaseResourceType: &dbng.WorkerBaseResourceType{
 						Name:    "some-base-resource-type",
 						Version: "some-brt-version",
 					},
@@ -262,10 +262,10 @@ var _ = Describe("Volume", func() {
 
 	Context("when volume type is VolumeTypeResourceType", func() {
 		It("returns volume type, base resource type name, base resource type version", func() {
-			usedBaseResourceType, found, err := baseResourceTypeFactory.Find("some-base-resource-type")
+			usedWorkerBaseResourceType, found, err := workerBaseResourceTypeFactory.Find("some-base-resource-type", defaultWorker)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			creatingVolume, err := volumeFactory.CreateBaseResourceTypeVolume(defaultTeam.ID(), defaultWorker, usedBaseResourceType)
+			creatingVolume, err := volumeFactory.CreateBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
 			Expect(err).NotTo(HaveOccurred())
 			createdVolume, err := creatingVolume.Created()
 			Expect(err).NotTo(HaveOccurred())
@@ -276,7 +276,7 @@ var _ = Describe("Volume", func() {
 				Version: "some-brt-version",
 			}))
 
-			_, createdVolume, err = volumeFactory.FindBaseResourceTypeVolume(defaultTeam.ID(), defaultWorker, usedBaseResourceType)
+			_, createdVolume, err = volumeFactory.FindBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResourceType)))
 			Expect(createdVolume.BaseResourceType()).To(Equal(&dbng.WorkerBaseResourceType{
