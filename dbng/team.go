@@ -104,7 +104,7 @@ func (t *team) CreateResourceCheckContainer(
 			"step_name",
 			"handle",
 			"team_id",
-			"worker_base_resource_types_id",
+			"worker_base_resource_type_id",
 		).
 		Values(
 			workerName,

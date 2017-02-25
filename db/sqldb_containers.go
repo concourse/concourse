@@ -95,9 +95,9 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		addParam("stage", string(id.Stage))
 		conditions = append(conditions, "(best_if_used_by IS NULL OR best_if_used_by > NOW())")
 
-		extraJoins = "LEFT JOIN worker_base_resource_types wbrt ON c.worker_base_resource_types_id = wbrt.id"
-		subQ := `SELECT max(worker_base_resource_types_id) FROM containers WHERE ` + strings.Join(conditions, " AND ")
-		conditions = append(conditions, `c.worker_base_resource_types_id IN (`+subQ+`)`)
+		extraJoins = "LEFT JOIN worker_base_resource_types wbrt ON c.worker_base_resource_type_id = wbrt.id"
+		subQ := `SELECT max(worker_base_resource_type_id) FROM containers WHERE ` + strings.Join(conditions, " AND ")
+		conditions = append(conditions, `c.worker_base_resource_type_id IN (`+subQ+`)`)
 	case isValidStepID(id):
 		addParam("build_id", id.BuildID)
 		addParam("plan_id", string(id.PlanID))
