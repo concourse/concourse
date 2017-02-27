@@ -49,8 +49,11 @@ func NewResourceInstanceFetchSource(
 }
 
 func (s *resourceInstanceFetchSource) IsInitialized() (bool, error) {
+	sLog := s.logger.Session("is-initialized")
+
 	volume, found, err := s.resourceInstance.FindInitializedOn(s.logger, s.worker)
 	if err != nil {
+		sLog.Error("failed-to-find-initialized-on", err)
 		return false, err
 	}
 
@@ -69,18 +72,32 @@ func (s *resourceInstanceFetchSource) LockName() (string, error) {
 	return s.resourceOptions.LockName(s.worker.Name())
 }
 
+// Initialize runs under the lock but we need to make sure volume
+// does not exist yet before creating it under the lock
 func (s *resourceInstanceFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
-	var err error
+	sLog := s.logger.Session("initialize")
 
-	volume, err := s.resourceInstance.CreateOn(s.logger, s.worker)
+	volume, found, err := s.resourceInstance.FindInitializedOn(s.logger, s.worker)
 	if err != nil {
-		s.logger.Error("failed-to-create-cache", err)
+		sLog.Error("failed-to-find-initialized-on", err)
+		return err
+	}
+
+	if found {
+		sLog.Debug("already-initialized")
+		s.versionedSource = NewGetVersionedSource(volume, s.resourceOptions.Version(), nil)
+		return nil
+	}
+
+	volume, err = s.resourceInstance.CreateOn(sLog, s.worker)
+	if err != nil {
+		sLog.Error("failed-to-create-cache", err)
 		return err
 	}
 
 	container, err := s.findOrCreateContainerForVolume(volume)
 	if err != nil {
-		s.logger.Error("failed-to-create-container", err)
+		sLog.Error("failed-to-create-container", err)
 		return err
 	}
 
@@ -94,18 +111,18 @@ func (s *resourceInstanceFetchSource) Initialize(signals <-chan os.Signal, ready
 		ready,
 	)
 	if err == ErrAborted {
-		s.logger.Error("get-run-resource-aborted", err, lager.Data{"container": container.Handle()})
+		sLog.Error("get-run-resource-aborted", err, lager.Data{"container": container.Handle()})
 		return ErrInterrupted
 	}
 
 	if err != nil {
-		s.logger.Error("failed-to-fetch-resource", err)
+		sLog.Error("failed-to-fetch-resource", err)
 		return err
 	}
 
 	err = volume.Initialize()
 	if err != nil {
-		s.logger.Error("failed-to-initialize-cache", err)
+		sLog.Error("failed-to-initialize-cache", err)
 		return err
 	}
 

@@ -109,50 +109,73 @@ var _ = Describe("VolumeFetchSource", func() {
 			initErr = fetchSource.Initialize(signals, ready)
 		})
 
-		It("creates volume for resource instance on provided worker", func() {
-			Expect(initErr).NotTo(HaveOccurred())
-			Expect(fakeResourceInstance.CreateOnCallCount()).To(Equal(1))
-			_, worker := fakeResourceInstance.CreateOnArgsForCall(0)
-			Expect(worker).To(Equal(fakeWorker))
-		})
-
-		It("creates container with volume and worker", func() {
-			Expect(initErr).NotTo(HaveOccurred())
-			Expect(fakeWorker.FindOrCreateResourceGetContainerCallCount()).To(Equal(1))
-		})
-
-		It("fetches versioned source", func() {
-			Expect(initErr).NotTo(HaveOccurred())
-			Expect(fakeContainer.RunCallCount()).To(Equal(1))
-		})
-
-		It("initializes cache", func() {
-			Expect(initErr).NotTo(HaveOccurred())
-			Expect(fakeVolume.InitializeCallCount()).To(Equal(1))
-		})
-
-		Context("when getting resource fails with ErrAborted", func() {
+		Context("when there is initialized volume", func() {
 			BeforeEach(func() {
-				fakeContainer.RunReturns(nil, ErrAborted)
+				fakeResourceInstance.FindInitializedOnReturns(fakeVolume, true, nil)
 			})
 
-			It("returns ErrInterrupted", func() {
-				Expect(initErr).To(HaveOccurred())
-				Expect(initErr).To(Equal(ErrInterrupted))
+			It("does not fetch resource", func() {
+				Expect(initErr).NotTo(HaveOccurred())
+				Expect(fakeResourceInstance.CreateOnCallCount()).To(Equal(0))
+				Expect(fakeContainer.RunCallCount()).To(Equal(0))
+			})
+
+			It("finds initialized volume and sets versioned source", func() {
+				Expect(initErr).NotTo(HaveOccurred())
+				Expect(fetchSource.VersionedSource()).NotTo(BeNil())
 			})
 		})
 
-		Context("when getting resource fails with other error", func() {
-			var disaster error
-
+		Context("when there is no initialized volume", func() {
 			BeforeEach(func() {
-				disaster = errors.New("failed")
-				fakeContainer.RunReturns(nil, disaster)
+				fakeResourceInstance.FindInitializedOnReturns(nil, false, nil)
 			})
 
-			It("returns the error", func() {
-				Expect(initErr).To(HaveOccurred())
-				Expect(initErr).To(Equal(disaster))
+			It("creates volume for resource instance on provided worker", func() {
+				Expect(initErr).NotTo(HaveOccurred())
+				Expect(fakeResourceInstance.CreateOnCallCount()).To(Equal(1))
+				_, worker := fakeResourceInstance.CreateOnArgsForCall(0)
+				Expect(worker).To(Equal(fakeWorker))
+			})
+
+			It("creates container with volume and worker", func() {
+				Expect(initErr).NotTo(HaveOccurred())
+				Expect(fakeWorker.FindOrCreateResourceGetContainerCallCount()).To(Equal(1))
+			})
+
+			It("fetches versioned source", func() {
+				Expect(initErr).NotTo(HaveOccurred())
+				Expect(fakeContainer.RunCallCount()).To(Equal(1))
+			})
+
+			It("initializes cache", func() {
+				Expect(initErr).NotTo(HaveOccurred())
+				Expect(fakeVolume.InitializeCallCount()).To(Equal(1))
+			})
+
+			Context("when getting resource fails with ErrAborted", func() {
+				BeforeEach(func() {
+					fakeContainer.RunReturns(nil, ErrAborted)
+				})
+
+				It("returns ErrInterrupted", func() {
+					Expect(initErr).To(HaveOccurred())
+					Expect(initErr).To(Equal(ErrInterrupted))
+				})
+			})
+
+			Context("when getting resource fails with other error", func() {
+				var disaster error
+
+				BeforeEach(func() {
+					disaster = errors.New("failed")
+					fakeContainer.RunReturns(nil, disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(initErr).To(HaveOccurred())
+					Expect(initErr).To(Equal(disaster))
+				})
 			})
 		})
 	})

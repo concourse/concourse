@@ -42,8 +42,22 @@ func (s *containerFetchSource) LockName() (string, error) {
 	return s.resourceOptions.LockName(s.container.WorkerName())
 }
 
+// Initialize runs under the lock but we need to make sure volume
+// does not exist yet before creating it under the lock
 func (s *containerFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
-	var err error
+	sLog := s.logger.Session("initialize")
+
+	initialized, err := s.volume.IsInitialized()
+	if err != nil {
+		sLog.Error("failed-to-check-if-initialized", err)
+		return err
+	}
+
+	if initialized {
+		sLog.Debug("already-initialized")
+		return nil
+	}
+
 	s.versionedSource, err = NewResourceForContainer(s.container).Get(
 		s.volume,
 		s.resourceOptions.IOConfig(),
@@ -54,18 +68,18 @@ func (s *containerFetchSource) Initialize(signals <-chan os.Signal, ready chan<-
 		ready,
 	)
 	if err == ErrAborted {
-		s.logger.Error("get-run-resource-aborted", err, lager.Data{"container": s.container.Handle()})
+		sLog.Error("get-run-resource-aborted", err, lager.Data{"container": s.container.Handle()})
 		return ErrInterrupted
 	}
 
 	if err != nil {
-		s.logger.Error("failed-to-fetch-resource", err)
+		sLog.Error("failed-to-fetch-resource", err)
 		return err
 	}
 
 	err = s.volume.Initialize()
 	if err != nil {
-		s.logger.Error("failed-to-initialize-cache", err)
+		sLog.Error("failed-to-initialize-cache", err)
 		return err
 	}
 
