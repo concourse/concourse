@@ -30,7 +30,7 @@ func (command *JobsCommand) Execute([]string) error {
 	var jobs []atc.Job
 
 	jobs, err = target.Team().ListJobs(pipelineName)
-	headers = []string{"name", "pausd"}
+	headers = []string{"name", "paused"}
 	if err != nil {
 		return err
 	}

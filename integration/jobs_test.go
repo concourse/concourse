@@ -57,7 +57,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Headers: ui.TableRow{
 						{Contents: "name", Color: color.New(color.Bold)},
-						{Contents: "public", Color: color.New(color.Bold)},
+						{Contents: "paused", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
 						{{Contents: "job-1"}, {Contents: "no"}},
