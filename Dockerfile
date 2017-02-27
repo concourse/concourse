@@ -9,7 +9,8 @@ RUN curl -L https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linu
       mv /tmp/phantomjs-*/bin/phantomjs /usr/local/bin && \
       rm -rf /tmp/phantomjs-*
 
-# Go
+# Go, with build-essential for gcc
+RUN apt-get update && apt-get -y install build-essential
 ADD go*.tar.gz /usr/local
 ENV PATH $PATH:/usr/local/go/bin
 
