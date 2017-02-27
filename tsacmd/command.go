@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -174,6 +175,8 @@ func (cmd *TSACommand) loadSessionSigningKey() (*rsa.PrivateKey, error) {
 }
 
 func (cmd *TSACommand) configureSSHServer(sessionAuthTeam sessionTeam, authorizedKeys []ssh.PublicKey, teamAuthorizedKeys []TeamAuthKeys) (*ssh.ServerConfig, error) {
+	var lock = &sync.Mutex{}
+
 	certChecker := &ssh.CertChecker{
 		IsAuthority: func(key ssh.PublicKey) bool {
 			return false
@@ -189,7 +192,9 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam sessionTeam, authorize
 			for _, teamKeys := range teamAuthorizedKeys {
 				for _, k := range teamKeys.AuthKeys {
 					if bytes.Equal(k.Marshal(), key.Marshal()) {
+						lock.Lock()
 						sessionAuthTeam[string(conn.SessionID())] = teamKeys.Team
+						lock.Unlock()
 						return nil, nil
 					}
 				}
