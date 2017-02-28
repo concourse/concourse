@@ -169,13 +169,13 @@ var _ = Describe("hijackStreamer", func() {
 			})
 
 			It("httpClient makes the right request", func() {
-				expectedRequest, err := http.NewRequest("POST", "http://example.url", strings.NewReader("some-request-body"))
-				expectedRequest.Header.Add("Content-Type", "application/json")
-				expectedRequest.URL.RawQuery = "key=some&key=values"
-				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeRoundTripper.RoundTripCallCount()).To(Equal(1))
 				actualRequest := fakeRoundTripper.RoundTripArgsForCall(0)
-				Expect(actualRequest).To(Equal(expectedRequest))
+				Expect(actualRequest.Method).To(Equal("POST"))
+				Expect(actualRequest.Header["Content-Type"]).To(Equal([]string{"application/json"}))
+				Expect(actualRequest.URL.RawQuery).To(Equal("key=some&key=values"))
+				Expect(actualRequest.URL.Host).To(Equal("example.url"))
+				Expect(ioutil.ReadAll(actualRequest.Body)).To(Equal([]byte("some-request-body")))
 			})
 		})
 	})
@@ -281,13 +281,13 @@ var _ = Describe("hijackStreamer", func() {
 			})
 
 			It("makes the right request", func() {
-				expectedRequest, err := http.NewRequest("POST", "http://example.url", strings.NewReader("some-request-body"))
-				expectedRequest.Header.Add("Content-Type", "application/json")
-				expectedRequest.URL.RawQuery = "key=some&key=values"
-				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeHijackableClient.DoCallCount()).To(Equal(1))
 				actualRequest := fakeHijackableClient.DoArgsForCall(0)
-				Expect(actualRequest).To(Equal(expectedRequest))
+				Expect(actualRequest.Method).To(Equal("POST"))
+				Expect(actualRequest.Header["Content-Type"]).To(Equal([]string{"application/json"}))
+				Expect(actualRequest.URL.RawQuery).To(Equal("key=some&key=values"))
+				Expect(actualRequest.URL.Host).To(Equal("example.url"))
+				Expect(ioutil.ReadAll(actualRequest.Body)).To(Equal([]byte("some-request-body")))
 			})
 		})
 	})
