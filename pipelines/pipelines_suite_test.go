@@ -261,3 +261,45 @@ func start(cmd *exec.Cmd) *gexec.Session {
 
 	return session
 }
+
+func flyTable(argv ...string) []map[string]string {
+	session := start(exec.Command(
+		flyBin,
+		append([]string{"-t", targetedConcourse, "--print-table-headers"}, argv...)...,
+	))
+	<-session.Exited
+	Expect(session.ExitCode()).To(Equal(0))
+
+	result := []map[string]string{}
+	var headers []string
+
+	rows := strings.Split(string(session.Out.Contents()), "\n")
+	for i, row := range rows {
+		if i == 0 {
+			headers = splitFlyColumns(row)
+			continue
+		}
+		if row == "" {
+			continue
+		}
+
+		result = append(result, map[string]string{})
+		columns := splitFlyColumns(row)
+
+		Expect(columns).To(HaveLen(len(headers)))
+
+		for j, header := range headers {
+			if header == "" || columns[j] == "" {
+				continue
+			}
+
+			result[i-1][header] = columns[j]
+		}
+	}
+
+	return result
+}
+
+func splitFlyColumns(row string) []string {
+	return regexp.MustCompile(`\s{2,}`).Split(strings.TrimSpace(row), -1)
+}
