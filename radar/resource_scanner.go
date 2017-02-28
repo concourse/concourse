@@ -239,7 +239,7 @@ func (scanner *resourceScanner) scan(
 			Privileged:   true,
 		},
 		Ephemeral: true,
-		Tags:      []string{},
+		Tags:      savedResource.Config.Tags,
 		TeamID:    scanner.db.TeamID(),
 		Env:       metadata.Env(),
 	}

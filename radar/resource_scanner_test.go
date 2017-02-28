@@ -64,6 +64,7 @@ var _ = Describe("ResourceScanner", func() {
 			Name:   "some-resource",
 			Type:   "git",
 			Source: atc.Source{"uri": "http://example.com"},
+			Tags:   atc.Tags{"some-tag"},
 		}
 
 		fakeRadarDB.ScopedNameStub = func(thing string) string {
@@ -165,7 +166,7 @@ var _ = Describe("ResourceScanner", func() {
 						Privileged:   true,
 					},
 					Ephemeral: true,
-					Tags:      []string{},
+					Tags:      atc.Tags{"some-tag"},
 					TeamID:    123,
 					Env: []string{
 						"ATC_EXTERNAL_URL=https://www.example.com",
@@ -307,6 +308,7 @@ var _ = Describe("ResourceScanner", func() {
 						Name:   "some-resource",
 						Type:   "git",
 						Source: atc.Source{"uri": "http://example.com"},
+						Tags:   atc.Tags{"some-tag"},
 					}))
 
 					Expect(versions).To(Equal([]atc.Version{
@@ -477,7 +479,7 @@ var _ = Describe("ResourceScanner", func() {
 						Privileged:   true,
 					},
 					Ephemeral: true,
-					Tags:      []string{},
+					Tags:      atc.Tags{"some-tag"},
 					TeamID:    123,
 					Env: []string{
 						"ATC_EXTERNAL_URL=https://www.example.com",
@@ -713,6 +715,7 @@ var _ = Describe("ResourceScanner", func() {
 						Name:   "some-resource",
 						Type:   "git",
 						Source: atc.Source{"uri": "http://example.com"},
+						Tags:   atc.Tags{"some-tag"},
 					}))
 
 					Expect(versions).To(Equal([]atc.Version{
