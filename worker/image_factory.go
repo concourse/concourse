@@ -21,6 +21,7 @@ type ImageFactory interface {
 		int,
 		<-chan os.Signal,
 		ImageFetchingDelegate,
+		dbng.ResourceUser,
 		Identifier,
 		Metadata,
 		atc.ResourceTypes,

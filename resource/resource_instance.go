@@ -14,54 +14,61 @@ import (
 //go:generate counterfeiter . ResourceInstance
 
 type ResourceInstance interface {
+	ResourceUser() dbng.ResourceUser
+
 	FindInitializedOn(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	CreateOn(lager.Logger, worker.Client) (worker.Volume, error)
 
 	ResourceCacheIdentifier() worker.ResourceCacheIdentifier
 }
 
-type buildResourceInstance struct {
-	resourceInstance
-	buildID                int
+type resourceInstance struct {
+	resourceTypeName       ResourceType
+	version                atc.Version
+	source                 atc.Source
+	params                 atc.Params
+	resourceUser           dbng.ResourceUser
 	pipelineID             int
 	resourceTypes          atc.ResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
-func NewBuildResourceInstance(
+func NewResourceInstance(
 	resourceTypeName ResourceType,
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	buildID int,
+	resourceUser dbng.ResourceUser,
 	pipelineID int,
 	resourceTypes atc.ResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) ResourceInstance {
-	return &buildResourceInstance{
-		resourceInstance: resourceInstance{
-			resourceTypeName: resourceTypeName,
-			version:          version,
-			source:           source,
-			params:           params,
-		},
-		buildID:                buildID,
+	return &resourceInstance{
+		resourceTypeName:       resourceTypeName,
+		version:                version,
+		source:                 source,
+		params:                 params,
+		resourceUser:           resourceUser,
 		pipelineID:             pipelineID,
 		resourceTypes:          resourceTypes,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
-func (bri buildResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
-	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+func (instance resourceInstance) ResourceUser() dbng.ResourceUser {
+	return instance.resourceUser
+}
+
+func (instance resourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
+	resourceCache, err := instance.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
-		bri.buildID,
-		string(bri.resourceTypeName),
-		bri.version,
-		bri.source,
-		bri.params,
-		bri.pipelineID,
-		bri.resourceTypes,
+		instance.resourceUser,
+		string(instance.resourceTypeName),
+		instance.version,
+		instance.source,
+		instance.params,
+		instance.pipelineID,
+		instance.resourceTypes,
 	)
 	if err != nil {
 		return nil, err
@@ -71,26 +78,26 @@ func (bri buildResourceInstance) CreateOn(logger lager.Logger, workerClient work
 		logger,
 		worker.VolumeSpec{
 			Strategy: worker.ResourceCacheStrategy{
-				ResourceHash:    GenerateResourceHash(bri.source, string(bri.resourceTypeName)),
-				ResourceVersion: bri.version,
+				ResourceHash:    GenerateResourceHash(instance.source, string(instance.resourceTypeName)),
+				ResourceVersion: instance.version,
 			},
-			Properties: bri.volumeProperties(),
+			Properties: instance.volumeProperties(),
 			Privileged: true,
 		},
 		resourceCache,
 	)
 }
 
-func (bri buildResourceInstance) FindInitializedOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
-	resourceCache, err := bri.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
+func (instance resourceInstance) FindInitializedOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
+	resourceCache, err := instance.dbResourceCacheFactory.FindOrCreateResourceCache(
 		logger,
-		bri.buildID,
-		string(bri.resourceTypeName),
-		bri.version,
-		bri.source,
-		bri.params,
-		bri.pipelineID,
-		bri.resourceTypes,
+		instance.resourceUser,
+		string(instance.resourceTypeName),
+		instance.version,
+		instance.source,
+		instance.params,
+		instance.pipelineID,
+		instance.resourceTypes,
 	)
 	if err != nil {
 		logger.Error("failed-to-find-or-initialized-volume-resource-cache-for-build", err)
@@ -101,178 +108,6 @@ func (bri buildResourceInstance) FindInitializedOn(logger lager.Logger, workerCl
 		logger,
 		resourceCache,
 	)
-}
-
-type resourceResourceInstance struct {
-	resourceInstance
-	resourceID             int
-	pipelineID             int
-	resourceTypes          atc.ResourceTypes
-	dbResourceCacheFactory dbng.ResourceCacheFactory
-}
-
-func NewResourceResourceInstance(
-	resourceTypeName ResourceType,
-	version atc.Version,
-	source atc.Source,
-	params atc.Params,
-	resourceID int,
-	pipelineID int,
-	resourceTypes atc.ResourceTypes,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
-) ResourceInstance {
-	return &resourceResourceInstance{
-		resourceInstance: resourceInstance{
-			resourceTypeName: resourceTypeName,
-			version:          version,
-			source:           source,
-			params:           params,
-		},
-		resourceID:             resourceID,
-		pipelineID:             pipelineID,
-		resourceTypes:          resourceTypes,
-		dbResourceCacheFactory: dbResourceCacheFactory,
-	}
-}
-
-func (rri resourceResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
-	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
-		logger,
-		rri.resourceID,
-		string(rri.resourceTypeName),
-		rri.version,
-		rri.source,
-		rri.params,
-		rri.pipelineID,
-		rri.resourceTypes,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return workerClient.CreateVolumeForResourceCache(
-		logger,
-		worker.VolumeSpec{
-			Strategy: worker.ResourceCacheStrategy{
-				ResourceHash:    GenerateResourceHash(rri.source, string(rri.resourceTypeName)),
-				ResourceVersion: rri.version,
-			},
-			Properties: rri.volumeProperties(),
-			Privileged: true,
-		},
-		resourceCache,
-	)
-}
-
-func (rri resourceResourceInstance) FindInitializedOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
-	resourceCache, err := rri.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
-		logger,
-		rri.resourceID,
-		string(rri.resourceTypeName),
-		rri.version,
-		rri.source,
-		rri.params,
-		rri.pipelineID,
-		rri.resourceTypes,
-	)
-	if err != nil {
-		logger.Error("failed-to-find-or-initialized-volume-resource-cache-for-resource", err)
-		return nil, false, err
-	}
-
-	return workerClient.FindInitializedVolumeForResourceCache(
-		logger,
-		resourceCache,
-	)
-}
-
-type resourceTypeResourceInstance struct {
-	resourceInstance
-	resourceType           *dbng.UsedResourceType
-	pipelineID             int
-	resourceTypes          atc.ResourceTypes
-	dbResourceCacheFactory dbng.ResourceCacheFactory
-}
-
-func NewResourceTypeResourceInstance(
-	resourceTypeName ResourceType,
-	version atc.Version,
-	source atc.Source,
-	params atc.Params,
-	resourceType *dbng.UsedResourceType,
-	pipelineID int,
-	resourceTypes atc.ResourceTypes,
-	dbResourceCacheFactory dbng.ResourceCacheFactory,
-) ResourceInstance {
-	return &resourceTypeResourceInstance{
-		resourceInstance: resourceInstance{
-			resourceTypeName: resourceTypeName,
-			version:          version,
-			source:           source,
-			params:           params,
-		},
-		resourceType:           resourceType,
-		pipelineID:             pipelineID,
-		resourceTypes:          resourceTypes,
-		dbResourceCacheFactory: dbResourceCacheFactory,
-	}
-}
-
-func (rtri resourceTypeResourceInstance) CreateOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, error) {
-	resourceCache, err := rtri.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
-		logger,
-		string(rtri.resourceTypeName),
-		rtri.version,
-		rtri.source,
-		rtri.params,
-		rtri.pipelineID,
-		rtri.resourceTypes,
-	)
-	if err != nil {
-		logger.Error("failed-to-find-or-create-resource-cache-for-resource-type", err)
-		return nil, err
-	}
-
-	return workerClient.CreateVolumeForResourceCache(
-		logger,
-		worker.VolumeSpec{
-			Strategy: worker.ResourceCacheStrategy{
-				ResourceHash:    GenerateResourceHash(rtri.source, string(rtri.resourceTypeName)),
-				ResourceVersion: rtri.version,
-			},
-			Properties: rtri.volumeProperties(),
-			Privileged: true,
-		},
-		resourceCache,
-	)
-}
-
-func (rtri resourceTypeResourceInstance) FindInitializedOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
-	resourceCache, err := rtri.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
-		logger,
-		string(rtri.resourceTypeName),
-		rtri.version,
-		rtri.source,
-		rtri.params,
-		rtri.pipelineID,
-		rtri.resourceTypes,
-	)
-	if err != nil {
-		logger.Error("failed-to-find-or-initialized-volume-resource-cache-for-resource-type", err)
-		return nil, false, err
-	}
-
-	return workerClient.FindInitializedVolumeForResourceCache(
-		logger,
-		resourceCache,
-	)
-}
-
-type resourceInstance struct {
-	resourceTypeName ResourceType
-	version          atc.Version
-	source           atc.Source
-	params           atc.Params
 }
 
 func (instance resourceInstance) volumeProperties() worker.VolumeProperties {

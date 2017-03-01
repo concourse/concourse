@@ -15,21 +15,22 @@ func (p *pipeline) AcquireResourceCheckingLock(
 	interval time.Duration,
 	immediate bool,
 ) (lock.Lock, bool, error) {
-	resourceConfig, err := findOrCreateResourceConfigForResource(
-		p.conn,
-		p.lockFactory,
-		logger,
-		resource.ID,
-		resource.Type,
-		resource.Source,
-		p.id,
-		resourceTypes,
-	)
+	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, false, err
 	}
 
-	tx, err := p.conn.Begin()
+	resourceConfig, err := constructResourceConfig(tx, resource.Type, resource.Source, resourceTypes, p.id)
+	if err != nil {
+		return nil, false, err
+	}
+
+	usedResourceConfig, err := ForResource{ResourceID: resource.ID}.UseResourceConfig(
+		logger,
+		tx,
+		p.lockFactory,
+		resourceConfig,
+	)
 	if err != nil {
 		return nil, false, err
 	}
@@ -62,7 +63,7 @@ func (p *pipeline) AcquireResourceCheckingLock(
 		logger.Session("lock", lager.Data{
 			"resource": resource.Name,
 		}),
-		lock.NewResourceConfigCheckingLockID(resourceConfig.ID),
+		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
 	)
 
 	acquired, err := lock.Acquire()

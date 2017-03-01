@@ -5,11 +5,18 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeResourceInstance struct {
+	ResourceUserStub        func() dbng.ResourceUser
+	resourceUserMutex       sync.RWMutex
+	resourceUserArgsForCall []struct{}
+	resourceUserReturns     struct {
+		result1 dbng.ResourceUser
+	}
 	FindInitializedOnStub        func(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	findInitializedOnMutex       sync.RWMutex
 	findInitializedOnArgsForCall []struct {
@@ -39,6 +46,30 @@ type FakeResourceInstance struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeResourceInstance) ResourceUser() dbng.ResourceUser {
+	fake.resourceUserMutex.Lock()
+	fake.resourceUserArgsForCall = append(fake.resourceUserArgsForCall, struct{}{})
+	fake.recordInvocation("ResourceUser", []interface{}{})
+	fake.resourceUserMutex.Unlock()
+	if fake.ResourceUserStub != nil {
+		return fake.ResourceUserStub()
+	}
+	return fake.resourceUserReturns.result1
+}
+
+func (fake *FakeResourceInstance) ResourceUserCallCount() int {
+	fake.resourceUserMutex.RLock()
+	defer fake.resourceUserMutex.RUnlock()
+	return len(fake.resourceUserArgsForCall)
+}
+
+func (fake *FakeResourceInstance) ResourceUserReturns(result1 dbng.ResourceUser) {
+	fake.ResourceUserStub = nil
+	fake.resourceUserReturns = struct {
+		result1 dbng.ResourceUser
+	}{result1}
 }
 
 func (fake *FakeResourceInstance) FindInitializedOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, bool, error) {
@@ -137,6 +168,8 @@ func (fake *FakeResourceInstance) ResourceCacheIdentifierReturns(result1 worker.
 func (fake *FakeResourceInstance) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.resourceUserMutex.RLock()
+	defer fake.resourceUserMutex.RUnlock()
 	fake.findInitializedOnMutex.RLock()
 	defer fake.findInitializedOnMutex.RUnlock()
 	fake.createOnMutex.RLock()

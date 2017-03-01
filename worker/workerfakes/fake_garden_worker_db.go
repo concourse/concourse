@@ -12,24 +12,13 @@ import (
 )
 
 type FakeGardenWorkerDB struct {
-	CreateContainerToBeRemovedStub        func(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
-	createContainerToBeRemovedMutex       sync.RWMutex
-	createContainerToBeRemovedArgsForCall []struct {
-		container     db.Container
-		maxLifetime   time.Duration
-		volumeHandles []string
-	}
-	createContainerToBeRemovedReturns struct {
-		result1 db.SavedContainer
-		result2 error
-	}
-	UpdateContainerTTLToBeRemovedStub        func(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
-	updateContainerTTLToBeRemovedMutex       sync.RWMutex
-	updateContainerTTLToBeRemovedArgsForCall []struct {
+	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub        func(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
+	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex       sync.RWMutex
+	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall []struct {
 		container   db.Container
 		maxLifetime time.Duration
 	}
-	updateContainerTTLToBeRemovedReturns struct {
+	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns struct {
 		result1 db.SavedContainer
 		result2 error
 	}
@@ -86,75 +75,35 @@ type FakeGardenWorkerDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainerToBeRemoved(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error) {
-	var volumeHandlesCopy []string
-	if volumeHandles != nil {
-		volumeHandlesCopy = make([]string, len(volumeHandles))
-		copy(volumeHandlesCopy, volumeHandles)
-	}
-	fake.createContainerToBeRemovedMutex.Lock()
-	fake.createContainerToBeRemovedArgsForCall = append(fake.createContainerToBeRemovedArgsForCall, struct {
-		container     db.Container
-		maxLifetime   time.Duration
-		volumeHandles []string
-	}{container, maxLifetime, volumeHandlesCopy})
-	fake.recordInvocation("CreateContainerToBeRemoved", []interface{}{container, maxLifetime, volumeHandlesCopy})
-	fake.createContainerToBeRemovedMutex.Unlock()
-	if fake.CreateContainerToBeRemovedStub != nil {
-		return fake.CreateContainerToBeRemovedStub(container, maxLifetime, volumeHandles)
-	}
-	return fake.createContainerToBeRemovedReturns.result1, fake.createContainerToBeRemovedReturns.result2
-}
-
-func (fake *FakeGardenWorkerDB) CreateContainerToBeRemovedCallCount() int {
-	fake.createContainerToBeRemovedMutex.RLock()
-	defer fake.createContainerToBeRemovedMutex.RUnlock()
-	return len(fake.createContainerToBeRemovedArgsForCall)
-}
-
-func (fake *FakeGardenWorkerDB) CreateContainerToBeRemovedArgsForCall(i int) (db.Container, time.Duration, []string) {
-	fake.createContainerToBeRemovedMutex.RLock()
-	defer fake.createContainerToBeRemovedMutex.RUnlock()
-	return fake.createContainerToBeRemovedArgsForCall[i].container, fake.createContainerToBeRemovedArgsForCall[i].maxLifetime, fake.createContainerToBeRemovedArgsForCall[i].volumeHandles
-}
-
-func (fake *FakeGardenWorkerDB) CreateContainerToBeRemovedReturns(result1 db.SavedContainer, result2 error) {
-	fake.CreateContainerToBeRemovedStub = nil
-	fake.createContainerToBeRemovedReturns = struct {
-		result1 db.SavedContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeGardenWorkerDB) UpdateContainerTTLToBeRemoved(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error) {
-	fake.updateContainerTTLToBeRemovedMutex.Lock()
-	fake.updateContainerTTLToBeRemovedArgsForCall = append(fake.updateContainerTTLToBeRemovedArgsForCall, struct {
+func (fake *FakeGardenWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error) {
+	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.Lock()
+	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall = append(fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall, struct {
 		container   db.Container
 		maxLifetime time.Duration
 	}{container, maxLifetime})
-	fake.recordInvocation("UpdateContainerTTLToBeRemoved", []interface{}{container, maxLifetime})
-	fake.updateContainerTTLToBeRemovedMutex.Unlock()
-	if fake.UpdateContainerTTLToBeRemovedStub != nil {
-		return fake.UpdateContainerTTLToBeRemovedStub(container, maxLifetime)
+	fake.recordInvocation("PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater", []interface{}{container, maxLifetime})
+	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.Unlock()
+	if fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub != nil {
+		return fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub(container, maxLifetime)
 	}
-	return fake.updateContainerTTLToBeRemovedReturns.result1, fake.updateContainerTTLToBeRemovedReturns.result2
+	return fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns.result1, fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns.result2
 }
 
-func (fake *FakeGardenWorkerDB) UpdateContainerTTLToBeRemovedCallCount() int {
-	fake.updateContainerTTLToBeRemovedMutex.RLock()
-	defer fake.updateContainerTTLToBeRemovedMutex.RUnlock()
-	return len(fake.updateContainerTTLToBeRemovedArgsForCall)
+func (fake *FakeGardenWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterCallCount() int {
+	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RLock()
+	defer fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RUnlock()
+	return len(fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall)
 }
 
-func (fake *FakeGardenWorkerDB) UpdateContainerTTLToBeRemovedArgsForCall(i int) (db.Container, time.Duration) {
-	fake.updateContainerTTLToBeRemovedMutex.RLock()
-	defer fake.updateContainerTTLToBeRemovedMutex.RUnlock()
-	return fake.updateContainerTTLToBeRemovedArgsForCall[i].container, fake.updateContainerTTLToBeRemovedArgsForCall[i].maxLifetime
+func (fake *FakeGardenWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall(i int) (db.Container, time.Duration) {
+	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RLock()
+	defer fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RUnlock()
+	return fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall[i].container, fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall[i].maxLifetime
 }
 
-func (fake *FakeGardenWorkerDB) UpdateContainerTTLToBeRemovedReturns(result1 db.SavedContainer, result2 error) {
-	fake.UpdateContainerTTLToBeRemovedStub = nil
-	fake.updateContainerTTLToBeRemovedReturns = struct {
+func (fake *FakeGardenWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns(result1 db.SavedContainer, result2 error) {
+	fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub = nil
+	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns = struct {
 		result1 db.SavedContainer
 		result2 error
 	}{result1, result2}
@@ -332,10 +281,8 @@ func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLockReturns(result1 lock
 func (fake *FakeGardenWorkerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createContainerToBeRemovedMutex.RLock()
-	defer fake.createContainerToBeRemovedMutex.RUnlock()
-	fake.updateContainerTTLToBeRemovedMutex.RLock()
-	defer fake.updateContainerTTLToBeRemovedMutex.RUnlock()
+	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RLock()
+	defer fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RUnlock()
 	fake.getContainerMutex.RLock()
 	defer fake.getContainerMutex.RUnlock()
 	fake.reapContainerMutex.RLock()

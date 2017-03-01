@@ -46,14 +46,6 @@ type FakeWorkerProvider struct {
 		result2 bool
 		result3 error
 	}
-	ReapContainerStub        func(string) error
-	reapContainerMutex       sync.RWMutex
-	reapContainerArgsForCall []struct {
-		arg1 string
-	}
-	reapContainerReturns struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -185,38 +177,6 @@ func (fake *FakeWorkerProvider) GetContainerReturns(result1 db.SavedContainer, r
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerProvider) ReapContainer(arg1 string) error {
-	fake.reapContainerMutex.Lock()
-	fake.reapContainerArgsForCall = append(fake.reapContainerArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("ReapContainer", []interface{}{arg1})
-	fake.reapContainerMutex.Unlock()
-	if fake.ReapContainerStub != nil {
-		return fake.ReapContainerStub(arg1)
-	}
-	return fake.reapContainerReturns.result1
-}
-
-func (fake *FakeWorkerProvider) ReapContainerCallCount() int {
-	fake.reapContainerMutex.RLock()
-	defer fake.reapContainerMutex.RUnlock()
-	return len(fake.reapContainerArgsForCall)
-}
-
-func (fake *FakeWorkerProvider) ReapContainerArgsForCall(i int) string {
-	fake.reapContainerMutex.RLock()
-	defer fake.reapContainerMutex.RUnlock()
-	return fake.reapContainerArgsForCall[i].arg1
-}
-
-func (fake *FakeWorkerProvider) ReapContainerReturns(result1 error) {
-	fake.ReapContainerStub = nil
-	fake.reapContainerReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -228,8 +188,6 @@ func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	defer fake.findContainerForIdentifierMutex.RUnlock()
 	fake.getContainerMutex.RLock()
 	defer fake.getContainerMutex.RUnlock()
-	fake.reapContainerMutex.RLock()
-	defer fake.reapContainerMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -298,8 +298,8 @@ var _ = Describe("DBProvider", func() {
 					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakeDB.UpdateContainerTTLToBeRemovedCallCount()).To(Equal(1))
-					createdInfo, _ := fakeDB.UpdateContainerTTLToBeRemovedArgsForCall(0)
+					Expect(fakeDB.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterCallCount()).To(Equal(1))
+					createdInfo, _ := fakeDB.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall(0)
 					Expect(createdInfo.WorkerName).To(Equal("some-worker"))
 
 					Expect(container.Handle()).To(Equal("created-handle"))

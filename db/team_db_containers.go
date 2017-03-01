@@ -49,25 +49,9 @@ func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, e
 		params = append(params, id.WorkerName)
 	}
 
-	if id.CheckType != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("check_type = $%d", len(params)+1))
-		params = append(params, id.CheckType)
-	}
-
 	if id.BuildName != "" {
 		whereCriteria = append(whereCriteria, fmt.Sprintf("b.name = $%d", len(params)+1))
 		params = append(params, id.BuildName)
-	}
-
-	var checkSourceBlob []byte
-	if id.CheckSource != nil {
-		var err error
-		checkSourceBlob, err = json.Marshal(id.CheckSource)
-		if err != nil {
-			return nil, err
-		}
-		whereCriteria = append(whereCriteria, fmt.Sprintf("check_source = $%d", len(params)+1))
-		params = append(params, checkSourceBlob)
 	}
 
 	if len(id.Attempts) > 0 {

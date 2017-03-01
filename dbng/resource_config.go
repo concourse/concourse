@@ -54,109 +54,19 @@ type UsedResourceConfig struct {
 	CreatedByBaseResourceType *UsedBaseResourceType
 }
 
-// FindOrCreateForBuild creates the ResourceConfig, recursively creating its
-// parent ResourceConfig or BaseResourceType, and registers a "Use" for the
-// given build.
-//
-// An `image_resource` or a `get` within a build will result in a
-// UsedResourceConfig.
-//
-// ErrResourceConfigDisappeared may be returned if the resource config was
-// found initially but was removed before we could use it.
-//
-// ErrResourceConfigAlreadyExists may be returned if a concurrent call resulted
-// in a conflict.
-//
-// ErrResourceConfigParentDisappeared may be returned if the resource config's
-// parent ResourceConfig or BaseResourceType was found initially but was
-// removed before we could create the ResourceConfig.
-//
-// Each of these errors should result in the caller retrying from the start of
-// the transaction.
-func (resourceConfig ResourceConfig) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, buildID int) (*UsedResourceConfig, error) {
-	var usedResourceCache *UsedResourceCache
-	if resourceConfig.CreatedByResourceCache != nil {
-		var err error
-		usedResourceCache, err = resourceConfig.CreatedByResourceCache.FindOrCreateForBuild(logger, tx, lockFactory, buildID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, "build_id", buildID, usedResourceCache)
-}
-
-// FindOrCreateForResource creates the ResourceConfig, recursively creating its
-// parent ResourceConfig or BaseResourceType, and registers a "Use" for the
-// given resource.
-//
-// A periodic check for a pipeline's resource will result in a
-// UsedResourceConfig.
-//
-// ErrResourceConfigDisappeared may be returned if the resource config was
-// found initially but was removed before we could use it.
-//
-// ErrResourceConfigAlreadyExists may be returned if a concurrent call resulted
-// in a conflict.
-//
-// ErrResourceConfigParentDisappeared may be returned if the resource config's
-// parent ResourceConfig or BaseResourceType was found initially but was
-// removed before we could create the ResourceConfig.
-//
-// Each of these errors should result in the caller retrying from the start of
-// the transaction.
-func (resourceConfig ResourceConfig) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceID int) (*UsedResourceConfig, error) {
-	var usedResourceCache *UsedResourceCache
-	if resourceConfig.CreatedByResourceCache != nil {
-		var err error
-		usedResourceCache, err = resourceConfig.CreatedByResourceCache.FindOrCreateForResource(logger, tx, lockFactory, resourceID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_id", resourceID, usedResourceCache)
-}
-
-// FindOrCreateForResourceType creates the ResourceConfig, recursively creating
-// its parent ResourceConfig or BaseResourceType, and registers a "Use" for the
-// given resource type.
-//
-// A periodic check for a pipeline's resource type will result in a
-// UsedResourceConfig.
-//
-// ErrResourceConfigDisappeared may be returned if the resource config was
-// found initially but was removed before we could use it.
-//
-// ErrResourceConfigAlreadyExists may be returned if a concurrent call resulted
-// in a conflict.
-//
-// ErrResourceConfigParentDisappeared may be returned if the resource config's
-// parent ResourceConfig or BaseResourceType was found initially but was
-// removed before we could create the ResourceConfig.
-//
-// Each of these errors should result in the caller retrying from the start of
-// the transaction.
-func (resourceConfig ResourceConfig) FindOrCreateForResourceType(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceType *UsedResourceType) (*UsedResourceConfig, error) {
-	var usedResourceCache *UsedResourceCache
-	if resourceConfig.CreatedByResourceCache != nil {
-		var err error
-		usedResourceCache, err = resourceConfig.CreatedByResourceCache.FindOrCreateForResourceType(logger, tx, lockFactory, resourceType)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return resourceConfig.findOrCreate(logger, tx, lockFactory, "resource_type_id", resourceType.ID, usedResourceCache)
-}
-
-func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, forColumnName string, forColumnID int, resourceCache *UsedResourceCache) (*UsedResourceConfig, error) {
+func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, user ResourceUser, forColumnName string, forColumnID int) (*UsedResourceConfig, error) {
 	urc := &UsedResourceConfig{}
 
 	var parentID int
 	var parentColumnName string
 	if resourceConfig.CreatedByResourceCache != nil {
 		parentColumnName = "resource_cache_id"
+
+		resourceCache, err := user.UseResourceCache(logger, tx, lockFactory, *resourceConfig.CreatedByResourceCache)
+		if err != nil {
+			return nil, err
+		}
+
 		parentID = resourceCache.ID
 
 		urc.CreatedByResourceCache = resourceCache
@@ -199,6 +109,7 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 			QueryRow().
 			Scan(&id)
 		if err != nil {
+			logger.Error("failed-inserting-into-resource-configs-XXX", err)
 			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
 				return nil, ErrSafeRetryFindOrCreate
 			}
@@ -237,6 +148,7 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 				RunWith(tx).
 				Exec()
 			if err != nil {
+				logger.Error("failed-inserting-into-resource-config-uses-XXX", err)
 				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 					return nil, ErrSafeRetryFindOrCreate
 				}

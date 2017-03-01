@@ -57,8 +57,7 @@ type Worker interface {
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	CreateContainerToBeRemoved(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
-	UpdateContainerTTLToBeRemoved(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
+	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) error
 	GetContainer(handle string) (db.SavedContainer, bool, error)
 	ReapContainer(string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
@@ -145,39 +144,6 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 	return worker.volumeClient.LookupVolume(logger, handle)
 }
 
-func (worker *gardenWorker) ValidateResourceCheckVersion(container db.SavedContainer) (bool, error) {
-	if container.Type != db.ContainerTypeCheck || container.CheckType == "" || container.ResourceTypeVersion == nil {
-		return true, nil
-	}
-
-	if container.PipelineID > 0 {
-		savedPipeline, err := worker.db.GetPipelineByID(container.PipelineID)
-		if err != nil {
-			return false, err
-		}
-
-		pipelineDB := worker.pipelineDBFactory.Build(savedPipeline)
-
-		_, found, err := pipelineDB.GetResourceType(container.CheckType)
-		if err != nil {
-			return false, err
-		}
-
-		// this is custom resource type, do not validate version on worker
-		if found {
-			return true, nil
-		}
-	}
-
-	for _, workerResourceType := range worker.resourceTypes {
-		if container.CheckType == workerResourceType.Type && workerResourceType.Version == container.ResourceTypeVersion[container.CheckType] {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
 func (worker *gardenWorker) FindOrCreateBuildContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
@@ -204,6 +170,7 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 
 func (worker *gardenWorker) FindOrCreateResourceGetContainer(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -219,6 +186,7 @@ func (worker *gardenWorker) FindOrCreateResourceGetContainer(
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
 	return containerProvider.FindOrCreateResourceGetContainer(
 		logger,
+		resourceUser,
 		cancel,
 		delegate,
 		id,
@@ -235,6 +203,7 @@ func (worker *gardenWorker) FindOrCreateResourceGetContainer(
 
 func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -248,6 +217,7 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 
 	return containerProvider.FindOrCreateResourceCheckContainer(
 		logger,
+		resourceUser,
 		cancel,
 		delegate,
 		id,
@@ -259,97 +229,35 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	)
 }
 
-func (worker *gardenWorker) FindOrCreateResourceTypeCheckContainer(
-	logger lager.Logger,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
-	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-	resourceTypeName string,
-	source atc.Source,
-) (Container, error) {
-	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-
-	return containerProvider.FindOrCreateResourceTypeCheckContainer(
-		logger,
-		cancel,
-		delegate,
-		id,
-		metadata,
-		spec,
-		resourceTypes,
-		resourceTypeName,
-		source,
-	)
-}
-
-func (worker *gardenWorker) FindOrCreateContainerForIdentifier(
-	logger lager.Logger,
-	id Identifier,
-	metadata Metadata,
-	containerSpec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-	imageFetchingDelegate ImageFetchingDelegate,
-	resourceSources map[string]ArtifactSource,
-) (Container, []string, error) {
-	container, err := worker.findOrCreateContainerForIdentifier(
-		logger,
-		id,
-		metadata,
-		containerSpec,
-		resourceTypes,
-		imageFetchingDelegate,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return container, nil, nil
-}
-
 func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
+	cLog := logger.Session("find-container-for-identifier", lager.Data{
+		"id": id,
+	})
+
 	containerInfo, found, err := worker.provider.FindContainerForIdentifier(id)
 	if err != nil {
+		cLog.Error("failed-to-find-container-for-identifier", err)
 		return nil, false, err
 	}
 
 	if !found {
-		return nil, found, nil
-	}
-
-	valid, err := worker.ValidateResourceCheckVersion(containerInfo)
-
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !valid {
-		logger.Debug("check-container-version-outdated", lager.Data{
-			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.WorkerName,
-		})
-
+		cLog.Info("not-found")
 		return nil, false, nil
 	}
 
+	cLog = cLog.WithData(lager.Data{
+		"container": containerInfo.Handle,
+		"worker":    containerInfo.WorkerName,
+	})
+
 	container, found, err := worker.FindContainerByHandle(logger, containerInfo.Handle, containerInfo.TeamID)
 	if err != nil {
+		cLog.Error("failed-to-find-container-by-handle", err)
 		return nil, false, err
 	}
 
 	if !found {
-		logger.Info("reaping-container-not-found-on-worker", lager.Data{
-			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.WorkerName,
-		})
-
-		err := worker.provider.ReapContainer(containerInfo.Handle)
-		if err != nil {
-			return nil, false, err
-		}
-
+		cLog.Info("missing-on-worker")
 		return nil, false, nil
 	}
 
@@ -479,78 +387,6 @@ insert_coin:
 	}
 
 	return true
-}
-
-func (worker *gardenWorker) findOrCreateContainerForIdentifier(
-	logger lager.Logger,
-	id Identifier,
-	metadata Metadata,
-	resourceSpec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-	imageFetchingDelegate ImageFetchingDelegate,
-) (Container, error) {
-	logger = logger.Session("get-container-for-identifier")
-
-	logger.Debug("start")
-	defer logger.Debug("done")
-
-	container, found, err := worker.FindContainerForIdentifier(logger, id)
-	if err != nil {
-		logger.Error("failed-to-look-for-existing-container", err, lager.Data{"id": id})
-		return nil, err
-	}
-
-	if found {
-		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
-		return container, nil
-	}
-
-	logger.Debug("creating-container-for-identifier", lager.Data{"id": id})
-	if id.BuildID != 0 {
-		container, err = worker.FindOrCreateBuildContainer(
-			logger,
-			nil,
-			imageFetchingDelegate,
-			id,
-			metadata,
-			resourceSpec,
-			resourceTypes,
-			map[string]string{},
-		)
-	} else if id.ResourceID != 0 {
-		container, err = worker.FindOrCreateResourceCheckContainer(
-			logger,
-			nil,
-			imageFetchingDelegate,
-			id,
-			metadata,
-			resourceSpec,
-			resourceTypes,
-			id.CheckType,
-			id.CheckSource,
-		)
-	} else {
-		container, err = worker.FindOrCreateResourceTypeCheckContainer(
-			logger,
-			nil,
-			imageFetchingDelegate,
-			id,
-			metadata,
-			resourceSpec,
-			resourceTypes,
-			id.CheckType,
-			id.CheckSource,
-		)
-	}
-
-	if err != nil {
-		logger.Error("failed-to-create-container", err)
-		return nil, err
-	}
-
-	logger.Info("created", lager.Data{"container": container.Handle()})
-
-	return container, nil
 }
 
 type artifactDestination struct {

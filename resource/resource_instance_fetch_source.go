@@ -132,6 +132,7 @@ func (s *resourceInstanceFetchSource) findOrCreateContainerForVolume(volume work
 
 	return s.worker.FindOrCreateResourceGetContainer(
 		s.logger,
+		s.resourceInstance.ResourceUser(),
 		nil,
 		s.imageFetchingDelegate,
 		s.session.ID,

@@ -3,6 +3,7 @@ package resource
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -27,16 +28,6 @@ func (f *resourceFactoryFactory) FactoryFor(workerClient worker.Client) Resource
 //go:generate counterfeiter . ResourceFactory
 
 type ResourceFactory interface {
-	NewResource(
-		logger lager.Logger,
-		id worker.Identifier,
-		metadata worker.Metadata,
-		resourceSpec worker.ContainerSpec,
-		resourceTypes atc.ResourceTypes,
-		imageFetchingDelegate worker.ImageFetchingDelegate,
-		resourceSources map[string]worker.ArtifactSource,
-	) (Resource, []string, error)
-
 	NewBuildResource(
 		logger lager.Logger,
 		id worker.Identifier,
@@ -50,18 +41,13 @@ type ResourceFactory interface {
 
 	NewCheckResource(
 		logger lager.Logger,
+		resourceUser dbng.ResourceUser,
 		id worker.Identifier,
 		metadata worker.Metadata,
 		resourceSpec worker.ContainerSpec,
 		resourceTypes atc.ResourceTypes,
-	) (Resource, error)
-
-	NewCheckResourceForResourceType(
-		logger lager.Logger,
-		id worker.Identifier,
-		metadata worker.Metadata,
-		resourceSpec worker.ContainerSpec,
-		resourceTypes atc.ResourceTypes,
+		imageFetchingDelegate worker.ImageFetchingDelegate,
+		resourceConfig atc.ResourceConfig,
 	) (Resource, error)
 }
 
@@ -75,31 +61,6 @@ type InputSource interface {
 
 type resourceFactory struct {
 	workerClient worker.Client
-}
-
-func (f *resourceFactory) NewResource(
-	logger lager.Logger,
-	id worker.Identifier,
-	metadata worker.Metadata,
-	resourceSpec worker.ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-	imageFetchingDelegate worker.ImageFetchingDelegate,
-	resourceSources map[string]worker.ArtifactSource,
-) (Resource, []string, error) {
-	container, missingSourceNames, err := f.workerClient.FindOrCreateContainerForIdentifier(
-		logger,
-		id,
-		metadata,
-		resourceSpec,
-		resourceTypes,
-		imageFetchingDelegate,
-		resourceSources,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return NewResourceForContainer(container), missingSourceNames, nil
 }
 
 func (f *resourceFactory) NewBuildResource(
@@ -170,46 +131,25 @@ func (f *resourceFactory) NewBuildResource(
 
 func (f *resourceFactory) NewCheckResource(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	id worker.Identifier,
 	metadata worker.Metadata,
 	resourceSpec worker.ContainerSpec,
 	resourceTypes atc.ResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
+	resourceConfig atc.ResourceConfig,
 ) (Resource, error) {
 	container, err := f.workerClient.FindOrCreateResourceCheckContainer(
 		logger,
+		resourceUser,
 		nil,
-		worker.NoopImageFetchingDelegate{},
+		imageFetchingDelegate,
 		id,
 		metadata,
 		resourceSpec,
 		resourceTypes,
-		id.CheckType,
-		id.CheckSource,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewResourceForContainer(container), nil
-}
-
-func (f *resourceFactory) NewCheckResourceForResourceType(
-	logger lager.Logger,
-	id worker.Identifier,
-	metadata worker.Metadata,
-	resourceSpec worker.ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-) (Resource, error) {
-	container, err := f.workerClient.FindOrCreateResourceTypeCheckContainer(
-		logger,
-		nil,
-		worker.NoopImageFetchingDelegate{},
-		id,
-		metadata,
-		resourceSpec,
-		resourceTypes,
-		id.CheckType,
-		id.CheckSource,
+		resourceConfig.Type,
+		resourceConfig.Source,
 	)
 	if err != nil {
 		return nil, err

@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -72,7 +73,7 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 
 	defer lock.Release()
 
-	err = scanner.resourceTypeScan(logger.Session("tick"), savedResourceType.Config, savedResourceType.Version)
+	err = scanner.resourceTypeScan(logger.Session("tick"), savedResourceType)
 	if err != nil {
 		return 0, err
 	}
@@ -88,12 +89,12 @@ func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourc
 	return nil
 }
 
-func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceType atc.ResourceType, fromVersion db.Version) error {
+func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedResourceType db.SavedResourceType) error {
 	pipelineID := scanner.db.GetPipelineID()
 
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: resourceType.Type,
+			ResourceType: savedResourceType.Config.Type,
 			Privileged:   true,
 		},
 		Ephemeral: true,
@@ -101,30 +102,34 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		TeamID:    scanner.db.TeamID(),
 	}
 
-	res, err := scanner.resourceFactory.NewCheckResourceForResourceType(
+	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
+		dbng.ForResourceType{
+			ResourceTypeID: savedResourceType.ID,
+		},
 		worker.Identifier{
 			Stage:               db.ContainerStageCheck,
-			CheckType:           resourceType.Name,
-			CheckSource:         resourceType.Source,
-			ImageResourceType:   resourceType.Type,
-			ImageResourceSource: resourceType.Source,
+			ImageResourceType:   savedResourceType.Config.Type,
+			ImageResourceSource: savedResourceType.Config.Source,
 		},
 		worker.Metadata{
-			Type:                 db.ContainerTypeCheck,
-			PipelineID:           pipelineID,
-			WorkingDirectory:     "",
-			EnvironmentVariables: nil,
+			Type:       db.ContainerTypeCheck,
+			PipelineID: pipelineID,
 		},
 		resourceSpec,
 		scanner.db.Config().ResourceTypes,
+		worker.NoopImageFetchingDelegate{},
+		atc.ResourceConfig{
+			Type:   savedResourceType.Config.Type, // XXX think deeply why this used to be .Name
+			Source: savedResourceType.Config.Source,
+		},
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)
 		return err
 	}
 
-	newVersions, err := res.Check(resourceType.Source, atc.Version(fromVersion))
+	newVersions, err := res.Check(savedResourceType.Config.Source, atc.Version(savedResourceType.Version))
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
@@ -146,7 +151,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	})
 
 	version := newVersions[len(newVersions)-1]
-	err = scanner.db.SaveResourceTypeVersion(resourceType, version)
+	err = scanner.db.SaveResourceTypeVersion(savedResourceType.Config, version)
 	if err != nil {
 		logger.Error("failed-to-save-resource-type-version", err, lager.Data{
 			"version": version,

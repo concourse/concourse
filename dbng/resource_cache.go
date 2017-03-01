@@ -47,33 +47,6 @@ type UsedResourceCache struct {
 	Version        atc.Version
 }
 
-func (cache ResourceCache) FindOrCreateForBuild(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, buildID int) (*UsedResourceCache, error) {
-	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForBuild(logger, tx, lockFactory, buildID)
-	if err != nil {
-		return nil, err
-	}
-
-	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "build_id", buildID)
-}
-
-func (cache ResourceCache) FindOrCreateForResource(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceID int) (*UsedResourceCache, error) {
-	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForResource(logger, tx, lockFactory, resourceID)
-	if err != nil {
-		return nil, err
-	}
-
-	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "resource_id", resourceID)
-}
-
-func (cache ResourceCache) FindOrCreateForResourceType(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceType *UsedResourceType) (*UsedResourceCache, error) {
-	usedResourceConfig, err := cache.ResourceConfig.FindOrCreateForResourceType(logger, tx, lockFactory, resourceType)
-	if err != nil {
-		return nil, err
-	}
-
-	return cache.findOrCreate(logger, tx, lockFactory, usedResourceConfig, "resource_type_id", resourceType.ID)
-}
-
 func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
 	rows, err := psql.Delete("resource_caches").
 		Where(sq.Eq{
@@ -101,11 +74,16 @@ func (cache ResourceCache) findOrCreate(
 	logger lager.Logger,
 	tx Tx,
 	lockFactory lock.LockFactory,
-	resourceConfig *UsedResourceConfig,
+	user ResourceUser,
 	forColumnName string,
 	forColumnID int,
 ) (*UsedResourceCache, error) {
-	id, found, err := cache.findWithResourceConfig(tx, resourceConfig)
+	usedResourceConfig, err := user.UseResourceConfig(logger, tx, lockFactory, cache.ResourceConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	id, found, err := cache.findWithResourceConfig(tx, usedResourceConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +96,7 @@ func (cache ResourceCache) findOrCreate(
 				"params_hash",
 			).
 			Values(
-				resourceConfig.ID,
+				usedResourceConfig.ID,
 				cache.version(),
 				paramsHash(cache.Params),
 			).
@@ -127,6 +105,7 @@ func (cache ResourceCache) findOrCreate(
 			QueryRow().
 			Scan(&id)
 		if err != nil {
+			logger.Error("failed-inserting-into-resource-caches-XXX", err)
 			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 				return nil, ErrSafeRetryFindOrCreate
 			}
@@ -141,7 +120,7 @@ func (cache ResourceCache) findOrCreate(
 
 	rc := &UsedResourceCache{
 		ID:             id,
-		ResourceConfig: resourceConfig,
+		ResourceConfig: usedResourceConfig,
 		Version:        cache.Version,
 	}
 
@@ -169,6 +148,7 @@ func (cache ResourceCache) findOrCreate(
 				RunWith(tx).
 				Exec()
 			if err != nil {
+				logger.Error("failed-inserting-into-resource-cache-uses-XXX", err)
 				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 					return nil, ErrSafeRetryFindOrCreate
 				}

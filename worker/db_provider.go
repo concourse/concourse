@@ -22,8 +22,7 @@ import (
 //go:generate counterfeiter . WorkerDB
 
 type WorkerDB interface {
-	CreateContainerToBeRemoved(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
-	UpdateContainerTTLToBeRemoved(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
+	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) error
 	GetContainer(string) (db.SavedContainer, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
 	ReapContainer(handle string) error

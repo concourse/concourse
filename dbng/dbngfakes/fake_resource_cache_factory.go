@@ -10,11 +10,11 @@ import (
 )
 
 type FakeResourceCacheFactory struct {
-	FindOrCreateResourceCacheForBuildStub        func(logger lager.Logger, buildID int, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceCache, error)
-	findOrCreateResourceCacheForBuildMutex       sync.RWMutex
-	findOrCreateResourceCacheForBuildArgsForCall []struct {
+	FindOrCreateResourceCacheStub        func(logger lager.Logger, resourceUser dbng.ResourceUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceCache, error)
+	findOrCreateResourceCacheMutex       sync.RWMutex
+	findOrCreateResourceCacheArgsForCall []struct {
 		logger           lager.Logger
-		buildID          int
+		resourceUser     dbng.ResourceUser
 		resourceTypeName string
 		version          atc.Version
 		source           atc.Source
@@ -22,38 +22,7 @@ type FakeResourceCacheFactory struct {
 		pipelineID       int
 		resourceTypes    atc.ResourceTypes
 	}
-	findOrCreateResourceCacheForBuildReturns struct {
-		result1 *dbng.UsedResourceCache
-		result2 error
-	}
-	FindOrCreateResourceCacheForResourceStub        func(logger lager.Logger, resourceID int, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceCache, error)
-	findOrCreateResourceCacheForResourceMutex       sync.RWMutex
-	findOrCreateResourceCacheForResourceArgsForCall []struct {
-		logger           lager.Logger
-		resourceID       int
-		resourceTypeName string
-		version          atc.Version
-		source           atc.Source
-		params           atc.Params
-		pipelineID       int
-		resourceTypes    atc.ResourceTypes
-	}
-	findOrCreateResourceCacheForResourceReturns struct {
-		result1 *dbng.UsedResourceCache
-		result2 error
-	}
-	FindOrCreateResourceCacheForResourceTypeStub        func(logger lager.Logger, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceCache, error)
-	findOrCreateResourceCacheForResourceTypeMutex       sync.RWMutex
-	findOrCreateResourceCacheForResourceTypeArgsForCall []struct {
-		logger           lager.Logger
-		resourceTypeName string
-		version          atc.Version
-		source           atc.Source
-		params           atc.Params
-		pipelineID       int
-		resourceTypes    atc.ResourceTypes
-	}
-	findOrCreateResourceCacheForResourceTypeReturns struct {
+	findOrCreateResourceCacheReturns struct {
 		result1 *dbng.UsedResourceCache
 		result2 error
 	}
@@ -85,120 +54,41 @@ type FakeResourceCacheFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForBuild(logger lager.Logger, buildID int, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceCache, error) {
-	fake.findOrCreateResourceCacheForBuildMutex.Lock()
-	fake.findOrCreateResourceCacheForBuildArgsForCall = append(fake.findOrCreateResourceCacheForBuildArgsForCall, struct {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(logger lager.Logger, resourceUser dbng.ResourceUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceCache, error) {
+	fake.findOrCreateResourceCacheMutex.Lock()
+	fake.findOrCreateResourceCacheArgsForCall = append(fake.findOrCreateResourceCacheArgsForCall, struct {
 		logger           lager.Logger
-		buildID          int
+		resourceUser     dbng.ResourceUser
 		resourceTypeName string
 		version          atc.Version
 		source           atc.Source
 		params           atc.Params
 		pipelineID       int
 		resourceTypes    atc.ResourceTypes
-	}{logger, buildID, resourceTypeName, version, source, params, pipelineID, resourceTypes})
-	fake.recordInvocation("FindOrCreateResourceCacheForBuild", []interface{}{logger, buildID, resourceTypeName, version, source, params, pipelineID, resourceTypes})
-	fake.findOrCreateResourceCacheForBuildMutex.Unlock()
-	if fake.FindOrCreateResourceCacheForBuildStub != nil {
-		return fake.FindOrCreateResourceCacheForBuildStub(logger, buildID, resourceTypeName, version, source, params, pipelineID, resourceTypes)
+	}{logger, resourceUser, resourceTypeName, version, source, params, pipelineID, resourceTypes})
+	fake.recordInvocation("FindOrCreateResourceCache", []interface{}{logger, resourceUser, resourceTypeName, version, source, params, pipelineID, resourceTypes})
+	fake.findOrCreateResourceCacheMutex.Unlock()
+	if fake.FindOrCreateResourceCacheStub != nil {
+		return fake.FindOrCreateResourceCacheStub(logger, resourceUser, resourceTypeName, version, source, params, pipelineID, resourceTypes)
 	}
-	return fake.findOrCreateResourceCacheForBuildReturns.result1, fake.findOrCreateResourceCacheForBuildReturns.result2
+	return fake.findOrCreateResourceCacheReturns.result1, fake.findOrCreateResourceCacheReturns.result2
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForBuildCallCount() int {
-	fake.findOrCreateResourceCacheForBuildMutex.RLock()
-	defer fake.findOrCreateResourceCacheForBuildMutex.RUnlock()
-	return len(fake.findOrCreateResourceCacheForBuildArgsForCall)
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheCallCount() int {
+	fake.findOrCreateResourceCacheMutex.RLock()
+	defer fake.findOrCreateResourceCacheMutex.RUnlock()
+	return len(fake.findOrCreateResourceCacheArgsForCall)
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForBuildArgsForCall(i int) (lager.Logger, int, string, atc.Version, atc.Source, atc.Params, int, atc.ResourceTypes) {
-	fake.findOrCreateResourceCacheForBuildMutex.RLock()
-	defer fake.findOrCreateResourceCacheForBuildMutex.RUnlock()
-	return fake.findOrCreateResourceCacheForBuildArgsForCall[i].logger, fake.findOrCreateResourceCacheForBuildArgsForCall[i].buildID, fake.findOrCreateResourceCacheForBuildArgsForCall[i].resourceTypeName, fake.findOrCreateResourceCacheForBuildArgsForCall[i].version, fake.findOrCreateResourceCacheForBuildArgsForCall[i].source, fake.findOrCreateResourceCacheForBuildArgsForCall[i].params, fake.findOrCreateResourceCacheForBuildArgsForCall[i].pipelineID, fake.findOrCreateResourceCacheForBuildArgsForCall[i].resourceTypes
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheArgsForCall(i int) (lager.Logger, dbng.ResourceUser, string, atc.Version, atc.Source, atc.Params, int, atc.ResourceTypes) {
+	fake.findOrCreateResourceCacheMutex.RLock()
+	defer fake.findOrCreateResourceCacheMutex.RUnlock()
+	return fake.findOrCreateResourceCacheArgsForCall[i].logger, fake.findOrCreateResourceCacheArgsForCall[i].resourceUser, fake.findOrCreateResourceCacheArgsForCall[i].resourceTypeName, fake.findOrCreateResourceCacheArgsForCall[i].version, fake.findOrCreateResourceCacheArgsForCall[i].source, fake.findOrCreateResourceCacheArgsForCall[i].params, fake.findOrCreateResourceCacheArgsForCall[i].pipelineID, fake.findOrCreateResourceCacheArgsForCall[i].resourceTypes
 }
 
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForBuildReturns(result1 *dbng.UsedResourceCache, result2 error) {
-	fake.FindOrCreateResourceCacheForBuildStub = nil
-	fake.findOrCreateResourceCacheForBuildReturns = struct {
-		result1 *dbng.UsedResourceCache
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResource(logger lager.Logger, resourceID int, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceCache, error) {
-	fake.findOrCreateResourceCacheForResourceMutex.Lock()
-	fake.findOrCreateResourceCacheForResourceArgsForCall = append(fake.findOrCreateResourceCacheForResourceArgsForCall, struct {
-		logger           lager.Logger
-		resourceID       int
-		resourceTypeName string
-		version          atc.Version
-		source           atc.Source
-		params           atc.Params
-		pipelineID       int
-		resourceTypes    atc.ResourceTypes
-	}{logger, resourceID, resourceTypeName, version, source, params, pipelineID, resourceTypes})
-	fake.recordInvocation("FindOrCreateResourceCacheForResource", []interface{}{logger, resourceID, resourceTypeName, version, source, params, pipelineID, resourceTypes})
-	fake.findOrCreateResourceCacheForResourceMutex.Unlock()
-	if fake.FindOrCreateResourceCacheForResourceStub != nil {
-		return fake.FindOrCreateResourceCacheForResourceStub(logger, resourceID, resourceTypeName, version, source, params, pipelineID, resourceTypes)
-	}
-	return fake.findOrCreateResourceCacheForResourceReturns.result1, fake.findOrCreateResourceCacheForResourceReturns.result2
-}
-
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceCallCount() int {
-	fake.findOrCreateResourceCacheForResourceMutex.RLock()
-	defer fake.findOrCreateResourceCacheForResourceMutex.RUnlock()
-	return len(fake.findOrCreateResourceCacheForResourceArgsForCall)
-}
-
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceArgsForCall(i int) (lager.Logger, int, string, atc.Version, atc.Source, atc.Params, int, atc.ResourceTypes) {
-	fake.findOrCreateResourceCacheForResourceMutex.RLock()
-	defer fake.findOrCreateResourceCacheForResourceMutex.RUnlock()
-	return fake.findOrCreateResourceCacheForResourceArgsForCall[i].logger, fake.findOrCreateResourceCacheForResourceArgsForCall[i].resourceID, fake.findOrCreateResourceCacheForResourceArgsForCall[i].resourceTypeName, fake.findOrCreateResourceCacheForResourceArgsForCall[i].version, fake.findOrCreateResourceCacheForResourceArgsForCall[i].source, fake.findOrCreateResourceCacheForResourceArgsForCall[i].params, fake.findOrCreateResourceCacheForResourceArgsForCall[i].pipelineID, fake.findOrCreateResourceCacheForResourceArgsForCall[i].resourceTypes
-}
-
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceReturns(result1 *dbng.UsedResourceCache, result2 error) {
-	fake.FindOrCreateResourceCacheForResourceStub = nil
-	fake.findOrCreateResourceCacheForResourceReturns = struct {
-		result1 *dbng.UsedResourceCache
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceType(logger lager.Logger, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceCache, error) {
-	fake.findOrCreateResourceCacheForResourceTypeMutex.Lock()
-	fake.findOrCreateResourceCacheForResourceTypeArgsForCall = append(fake.findOrCreateResourceCacheForResourceTypeArgsForCall, struct {
-		logger           lager.Logger
-		resourceTypeName string
-		version          atc.Version
-		source           atc.Source
-		params           atc.Params
-		pipelineID       int
-		resourceTypes    atc.ResourceTypes
-	}{logger, resourceTypeName, version, source, params, pipelineID, resourceTypes})
-	fake.recordInvocation("FindOrCreateResourceCacheForResourceType", []interface{}{logger, resourceTypeName, version, source, params, pipelineID, resourceTypes})
-	fake.findOrCreateResourceCacheForResourceTypeMutex.Unlock()
-	if fake.FindOrCreateResourceCacheForResourceTypeStub != nil {
-		return fake.FindOrCreateResourceCacheForResourceTypeStub(logger, resourceTypeName, version, source, params, pipelineID, resourceTypes)
-	}
-	return fake.findOrCreateResourceCacheForResourceTypeReturns.result1, fake.findOrCreateResourceCacheForResourceTypeReturns.result2
-}
-
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceTypeCallCount() int {
-	fake.findOrCreateResourceCacheForResourceTypeMutex.RLock()
-	defer fake.findOrCreateResourceCacheForResourceTypeMutex.RUnlock()
-	return len(fake.findOrCreateResourceCacheForResourceTypeArgsForCall)
-}
-
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceTypeArgsForCall(i int) (lager.Logger, string, atc.Version, atc.Source, atc.Params, int, atc.ResourceTypes) {
-	fake.findOrCreateResourceCacheForResourceTypeMutex.RLock()
-	defer fake.findOrCreateResourceCacheForResourceTypeMutex.RUnlock()
-	return fake.findOrCreateResourceCacheForResourceTypeArgsForCall[i].logger, fake.findOrCreateResourceCacheForResourceTypeArgsForCall[i].resourceTypeName, fake.findOrCreateResourceCacheForResourceTypeArgsForCall[i].version, fake.findOrCreateResourceCacheForResourceTypeArgsForCall[i].source, fake.findOrCreateResourceCacheForResourceTypeArgsForCall[i].params, fake.findOrCreateResourceCacheForResourceTypeArgsForCall[i].pipelineID, fake.findOrCreateResourceCacheForResourceTypeArgsForCall[i].resourceTypes
-}
-
-func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheForResourceTypeReturns(result1 *dbng.UsedResourceCache, result2 error) {
-	fake.FindOrCreateResourceCacheForResourceTypeStub = nil
-	fake.findOrCreateResourceCacheForResourceTypeReturns = struct {
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheReturns(result1 *dbng.UsedResourceCache, result2 error) {
+	fake.FindOrCreateResourceCacheStub = nil
+	fake.findOrCreateResourceCacheReturns = struct {
 		result1 *dbng.UsedResourceCache
 		result2 error
 	}{result1, result2}
@@ -303,12 +193,8 @@ func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesReturns(result1 error)
 func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.findOrCreateResourceCacheForBuildMutex.RLock()
-	defer fake.findOrCreateResourceCacheForBuildMutex.RUnlock()
-	fake.findOrCreateResourceCacheForResourceMutex.RLock()
-	defer fake.findOrCreateResourceCacheForResourceMutex.RUnlock()
-	fake.findOrCreateResourceCacheForResourceTypeMutex.RLock()
-	defer fake.findOrCreateResourceCacheForResourceTypeMutex.RUnlock()
+	fake.findOrCreateResourceCacheMutex.RLock()
+	defer fake.findOrCreateResourceCacheMutex.RUnlock()
 	fake.cleanUsesForFinishedBuildsMutex.RLock()
 	defer fake.cleanUsesForFinishedBuildsMutex.RUnlock()
 	fake.cleanUsesForInactiveResourceTypesMutex.RLock()
