@@ -183,13 +183,15 @@ func (db *SQLDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(contain
 			image_resource_type,
 			image_resource_source,
 			process_user,
-			attempts
+			attempts,
+			pipeline_id
 		) = (
 			`+maxLifetimeValue+`,
 			$2,
 			$3,
 			$4,
-			$5
+			$5,
+			$6
 		)
 		WHERE handle = $1
 		RETURNING id`,
@@ -198,6 +200,7 @@ func (db *SQLDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(contain
 		imageResourceSource,
 		container.User,
 		attempts,
+		container.PipelineID,
 	).Scan(&id)
 	if err != nil {
 		return err
