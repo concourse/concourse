@@ -35,8 +35,14 @@ var _ = Describe("Configuring a resouce with a tag", func() {
 		}
 
 		containerTable := flyTable("containers")
-		Expect(containerTable).To(HaveLen(1))
-		Expect(containerTable[0]["type"]).To(Equal("check"))
-		Expect(taggedWorkerHandles).To(ContainElement(containerTable[0]["worker"]))
+		currentPipelineContainers := []map[string]string{}
+		for _, c := range containerTable {
+			if c["pipeline"] == pipelineName {
+				currentPipelineContainers = append(currentPipelineContainers, c)
+			}
+		}
+		Expect(currentPipelineContainers).To(HaveLen(1))
+		Expect(currentPipelineContainers[0]["type"]).To(Equal("check"))
+		Expect(taggedWorkerHandles).To(ContainElement(currentPipelineContainers[0]["worker"]))
 	})
 })
