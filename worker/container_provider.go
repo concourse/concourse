@@ -141,7 +141,7 @@ type ContainerProvider interface {
 		source atc.Source,
 	) (Container, error)
 
-	FindOrCreateResourceGetContainer(
+	CreateResourceGetContainer(
 		logger lager.Logger,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
@@ -328,7 +328,7 @@ func (p *containerProvider) FindOrCreateResourceTypeCheckContainer(
 	)
 }
 
-func (p *containerProvider) FindOrCreateResourceGetContainer(
+func (p *containerProvider) CreateResourceGetContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
@@ -403,11 +403,7 @@ func (p *containerProvider) FindOrCreateResourceGetContainer(
 		resourceTypes,
 		map[string]string{},
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceGetContainer(
-				p.worker.Name(),
-				resourceCache,
-				metadata.StepName,
-			)
+			return nil, nil, nil
 		},
 		func() (dbng.CreatingContainer, error) {
 			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceGetContainer(

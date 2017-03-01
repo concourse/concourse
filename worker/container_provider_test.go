@@ -427,14 +427,14 @@ var _ = Describe("ContainerProvider", func() {
 		})
 	})
 
-	Describe("FindOrCreateResourceTypeCheckContainer", func() {
+	Describe("CreateResourceGetContainer", func() {
 		BeforeEach(func() {
 			fakeDBTeam.CreateResourceGetContainerReturns(fakeCreatingContainer, nil)
 			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
 		})
 
 		JustBeforeEach(func() {
-			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateResourceGetContainer(
+			findOrCreateContainer, findOrCreateErr = containerProvider.CreateResourceGetContainer(
 				logger,
 				nil,
 				fakeImageFetchingDelegate,
@@ -459,30 +459,8 @@ var _ = Describe("ContainerProvider", func() {
 			)
 		})
 
-		Context("when container exists in database in creating state", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindResourceGetContainerReturns(fakeCreatingContainer, nil, nil)
-			})
-
-			ItHandlesContainerInCreatingState()
-		})
-
-		Context("when container exists in database in created state", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindResourceGetContainerReturns(nil, fakeCreatedContainer, nil)
-			})
-
-			ItHandlesContainerInCreatedState()
-		})
-
-		Context("when container does not exist in database", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindResourceGetContainerReturns(nil, nil, nil)
-			})
-
-			ItHandlesNonExistentContainer(func() int {
-				return fakeDBTeam.CreateResourceGetContainerCallCount()
-			})
+		ItHandlesNonExistentContainer(func() int {
+			return fakeDBTeam.CreateResourceGetContainerCallCount()
 		})
 	})
 

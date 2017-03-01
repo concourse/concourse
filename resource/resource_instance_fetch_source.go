@@ -95,7 +95,7 @@ func (s *resourceInstanceFetchSource) Initialize(signals <-chan os.Signal, ready
 		return err
 	}
 
-	container, err := s.findOrCreateContainerForVolume(volume)
+	container, err := s.createContainerForVolume(volume)
 	if err != nil {
 		sLog.Error("failed-to-create-container", err)
 		return err
@@ -129,7 +129,7 @@ func (s *resourceInstanceFetchSource) Initialize(signals <-chan os.Signal, ready
 	return nil
 }
 
-func (s *resourceInstanceFetchSource) findOrCreateContainerForVolume(volume worker.Volume) (worker.Container, error) {
+func (s *resourceInstanceFetchSource) createContainerForVolume(volume worker.Volume) (worker.Container, error) {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: string(s.resourceOptions.ResourceType()),
@@ -147,7 +147,7 @@ func (s *resourceInstanceFetchSource) findOrCreateContainerForVolume(volume work
 		},
 	}
 
-	return s.worker.FindOrCreateResourceGetContainer(
+	return s.worker.CreateResourceGetContainer(
 		s.logger,
 		nil,
 		s.imageFetchingDelegate,

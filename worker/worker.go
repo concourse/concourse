@@ -202,7 +202,7 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 	)
 }
 
-func (worker *gardenWorker) FindOrCreateResourceGetContainer(
+func (worker *gardenWorker) CreateResourceGetContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
@@ -217,7 +217,7 @@ func (worker *gardenWorker) FindOrCreateResourceGetContainer(
 	params atc.Params,
 ) (Container, error) {
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-	return containerProvider.FindOrCreateResourceGetContainer(
+	return containerProvider.CreateResourceGetContainer(
 		logger,
 		cancel,
 		delegate,
