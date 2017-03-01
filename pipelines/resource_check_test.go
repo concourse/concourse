@@ -10,6 +10,12 @@ import (
 )
 
 var _ = Describe("Configuring a resouce with a tag", func() {
+	BeforeEach(func() {
+		if !hasTaggedWorkers() {
+			Skip("this only runs when a worker with the 'tagged' tag is available")
+		}
+	})
+
 	It("puts the resource check container on the tagged worker", func() {
 		configurePipeline(
 			"-c", "fixtures/tagged_resource.yml",
