@@ -212,6 +212,40 @@ var _ = Describe("VolumeFactory", func() {
 			}
 			Expect(destroyingHandles).To(Equal(destroyingHandles))
 		})
+
+		Context("when worker is stalled", func() {
+			BeforeEach(func() {
+				defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+				stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(stalledWorkers).To(ContainElement(defaultWorker.Name()))
+			})
+
+			It("does not return volumes", func() {
+				createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdVolumes).To(HaveLen(0))
+				Expect(destoryingVolumes).To(HaveLen(0))
+			})
+		})
+
+		Context("when worker is landed", func() {
+			BeforeEach(func() {
+				err := defaultWorker.Land()
+				Expect(err).NotTo(HaveOccurred())
+				landedWorkers, err := workerLifecycle.LandFinishedLandingWorkers()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(landedWorkers).To(ContainElement(defaultWorker.Name()))
+			})
+
+			It("does not return volumes", func() {
+				createdVolumes, destoryingVolumes, err := volumeFactory.GetOrphanedVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(createdVolumes).To(HaveLen(0))
+				Expect(destoryingVolumes).To(HaveLen(0))
+			})
+		})
 	})
 
 	Describe("FindBaseResourceTypeVolume", func() {
@@ -507,6 +541,38 @@ var _ = Describe("VolumeFactory", func() {
 							Expect(err).NotTo(HaveOccurred())
 							Expect(destroyingVolumes).To(HaveLen(1))
 							Expect(destroyingVolumes[0].Handle()).To(Equal(uninitializedVolume.Handle()))
+						})
+					})
+
+					Context("when worker is stalled", func() {
+						BeforeEach(func() {
+							defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
+							Expect(err).NotTo(HaveOccurred())
+							stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(stalledWorkers).To(ContainElement(defaultWorker.Name()))
+						})
+
+						It("does not return volumes", func() {
+							creatingVolumes, _, _, err := volumeFactory.GetDuplicateResourceCacheVolumes()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(creatingVolumes).To(HaveLen(0))
+						})
+					})
+
+					Context("when worker is landed", func() {
+						BeforeEach(func() {
+							err := defaultWorker.Land()
+							Expect(err).NotTo(HaveOccurred())
+							landedWorkers, err := workerLifecycle.LandFinishedLandingWorkers()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(landedWorkers).To(ContainElement(defaultWorker.Name()))
+						})
+
+						It("does not return volumes", func() {
+							creatingVolumes, _, _, err := volumeFactory.GetDuplicateResourceCacheVolumes()
+							Expect(err).NotTo(HaveOccurred())
+							Expect(creatingVolumes).To(HaveLen(0))
 						})
 					})
 				})

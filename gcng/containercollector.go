@@ -185,6 +185,10 @@ func (c *containerCollector) tryToDestroyContainer(logger lager.Logger, containe
 		logger.Info("worker-not-found")
 		return
 	}
+	if w.State() == dbng.WorkerStateStalled || w.State() == dbng.WorkerStateLanded {
+		logger.Debug("worker-is-not-available", lager.Data{"state": string(w.State())})
+		return
+	}
 
 	gclient, err := c.gardenClientFactory(w)
 	if err != nil {

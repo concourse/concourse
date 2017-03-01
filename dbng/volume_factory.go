@@ -252,7 +252,13 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 			"v.resource_cache_id":            nil,
 			"v.worker_base_resource_type_id": nil,
 			"v.container_id":                 nil,
-		}).ToSql()
+		}).
+		Where(sq.Or{
+			sq.Eq{"w.state": WorkerStateRunning},
+			sq.Eq{"w.state": WorkerStateLanding},
+			sq.Eq{"w.state": WorkerStateRetiring},
+		}).
+		ToSql()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -294,7 +300,13 @@ func (factory *volumeFactory) GetDuplicateResourceCacheVolumes() ([]CreatingVolu
 		Where(sq.Eq{
 			"v.initialized":  false,
 			"dv.initialized": true,
-		}).ToSql()
+		}).
+		Where(sq.Or{
+			sq.Eq{"w.state": WorkerStateRunning},
+			sq.Eq{"w.state": WorkerStateLanding},
+			sq.Eq{"w.state": WorkerStateRetiring},
+		}).
+		ToSql()
 	if err != nil {
 		return nil, nil, nil, err
 	}

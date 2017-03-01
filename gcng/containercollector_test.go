@@ -260,6 +260,40 @@ var _ = Describe("ContainerCollector", func() {
 			})
 		})
 
+		Context("when a container's worker is stalled", func() {
+			BeforeEach(func() {
+				fakeWorker1.StateReturns(dbng.WorkerStateStalled)
+			})
+
+			It("continues destroying the rest of the containers", func() {
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(gardenClientFactoryCallCount).To(Equal(1))
+				Expect(gardenClientFactoryArgs[0]).To(Equal(fakeWorker2))
+				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
+				Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-other-handle"))
+				Expect(destroyingContainer1.DestroyCallCount()).To(Equal(0))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when a container's worker is landed", func() {
+			BeforeEach(func() {
+				fakeWorker1.StateReturns(dbng.WorkerStateLanded)
+			})
+
+			It("continues destroying the rest of the containers", func() {
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(gardenClientFactoryCallCount).To(Equal(1))
+				Expect(gardenClientFactoryArgs[0]).To(Equal(fakeWorker2))
+				Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
+				Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-other-handle"))
+				Expect(destroyingContainer1.DestroyCallCount()).To(Equal(0))
+				Expect(destroyingContainer2.DestroyCallCount()).To(Equal(1))
+			})
+		})
+
 		Context("when getting a garden client for a worker errors", func() {
 			BeforeEach(func() {
 				fakeGardenClientFactory = func(worker dbng.Worker) (garden.Client, error) {
