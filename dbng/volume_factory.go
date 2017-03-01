@@ -468,7 +468,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	var handle string
 	var state string
 	var workerName string
-	var workerAddress string
+	var sqWorkerAddress sql.NullString
 	var sqWorkerBaggageclaimURL sql.NullString
 	var sqPath sql.NullString
 	var sqContainerHandle sql.NullString
@@ -484,7 +484,7 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 		&handle,
 		&state,
 		&workerName,
-		&workerAddress,
+		&sqWorkerAddress,
 		&sqWorkerBaggageclaimURL,
 		&sqPath,
 		&sqContainerHandle,
@@ -516,6 +516,11 @@ func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, De
 	var workerBaggageclaimURL string
 	if sqWorkerBaggageclaimURL.Valid {
 		workerBaggageclaimURL = sqWorkerBaggageclaimURL.String
+	}
+
+	var workerAddress string
+	if sqWorkerAddress.Valid {
+		workerAddress = sqWorkerAddress.String
 	}
 
 	var teamID int

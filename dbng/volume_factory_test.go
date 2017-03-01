@@ -101,6 +101,34 @@ var _ = Describe("VolumeFactory", func() {
 			}
 			Expect(createdHandles2).To(Equal(team2handles))
 		})
+
+		Context("when worker is stalled", func() {
+			BeforeEach(func() {
+				defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
+				Expect(err).NotTo(HaveOccurred())
+				stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(stalledWorkers).To(ContainElement(defaultWorker.Name()))
+			})
+
+			It("returns volumes", func() {
+				createdVolumes, err := volumeFactory.GetTeamVolumes(defaultTeam.ID())
+				Expect(err).NotTo(HaveOccurred())
+				createdHandles := []string{}
+				for _, vol := range createdVolumes {
+					createdHandles = append(createdHandles, vol.Handle())
+				}
+				Expect(createdHandles).To(Equal(team1handles))
+
+				createdVolumes2, err := volumeFactory.GetTeamVolumes(team2.ID())
+				Expect(err).NotTo(HaveOccurred())
+				createdHandles2 := []string{}
+				for _, vol := range createdVolumes2 {
+					createdHandles2 = append(createdHandles2, vol.Handle())
+				}
+				Expect(createdHandles2).To(Equal(team2handles))
+			})
+		})
 	})
 
 	Describe("GetOrphanedVolumes", func() {
