@@ -388,6 +388,26 @@ var _ = Describe("ContainerFactory", func() {
 					Expect(destroyingContainers).To(BeEmpty())
 				})
 			})
+
+			Context("when there are no uses for resource cache", func() {
+				BeforeEach(func() {
+					err := defaultPipeline.Destroy()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = resourceCacheFactory.CleanUsesForInactiveResources()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("finds the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(creatingContainers).To(HaveLen(1))
+					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
 		})
 	})
 })
