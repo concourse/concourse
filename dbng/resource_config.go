@@ -109,7 +109,6 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 			QueryRow().
 			Scan(&id)
 		if err != nil {
-			logger.Error("failed-inserting-into-resource-configs-XXX", err)
 			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "unique_violation" {
 				return nil, ErrSafeRetryFindOrCreate
 			}
@@ -148,7 +147,6 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 				RunWith(tx).
 				Exec()
 			if err != nil {
-				logger.Error("failed-inserting-into-resource-config-uses-XXX", err)
 				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 					return nil, ErrSafeRetryFindOrCreate
 				}

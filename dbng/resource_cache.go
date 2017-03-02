@@ -105,7 +105,6 @@ func (cache ResourceCache) findOrCreate(
 			QueryRow().
 			Scan(&id)
 		if err != nil {
-			logger.Error("failed-inserting-into-resource-caches-XXX", err)
 			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 				return nil, ErrSafeRetryFindOrCreate
 			}
@@ -148,7 +147,6 @@ func (cache ResourceCache) findOrCreate(
 				RunWith(tx).
 				Exec()
 			if err != nil {
-				logger.Error("failed-inserting-into-resource-cache-uses-XXX", err)
 				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 					return nil, ErrSafeRetryFindOrCreate
 				}
