@@ -103,9 +103,9 @@ var _ = Describe("Volume", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				defaultBuild.ID(),
+				dbng.ForBuild{defaultBuild.ID()},
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -213,9 +213,9 @@ var _ = Describe("Volume", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				defaultBuild.ID(),
+				dbng.ForBuild{defaultBuild.ID()},
 				"some-custom-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
@@ -315,7 +315,7 @@ var _ = Describe("Volume", func() {
 					CreatedByBaseResourceType: &baseResourceType,
 				},
 			}
-			usedResourceCache, err := resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, defaultBuild.ID())
+			usedResourceCache, err := dbng.ForBuild{defaultBuild.ID()}.UseResourceCache(logger, setupTx, lockFactory, resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 

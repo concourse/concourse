@@ -35,7 +35,7 @@ var _ = Describe("VolumeFactory", func() {
 				CreatedByBaseResourceType: &baseResourceType,
 			},
 		}
-		usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, build.ID())
+		usedResourceCache, err = dbng.ForBuild{build.ID()}.UseResourceCache(logger, setupTx, lockFactory, resourceCache)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(setupTx.Commit()).To(Succeed())
@@ -262,7 +262,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = cache.FindOrCreateForResource(logger, setupTx, lockFactory, resource.ID)
+			usedResourceCache, err = dbng.ForResource{resource.ID}.UseResourceCache(logger, setupTx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -334,7 +334,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = cache.FindOrCreateForResource(logger, setupTx, lockFactory, resource.ID)
+			usedResourceCache, err = dbng.ForResource{resource.ID}.UseResourceCache(logger, setupTx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -417,7 +417,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = cache.FindOrCreateForResource(logger, setupTx, lockFactory, resource.ID)
+			usedResourceCache, err = dbng.ForResource{resource.ID}.UseResourceCache(logger, setupTx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -529,7 +529,7 @@ var _ = Describe("VolumeFactory", func() {
 					Params:  atc.Params{"some": "params"},
 				}
 
-				usedResourceCache, err = anotherResourceCache.FindOrCreateForResource(logger, setupTx, lockFactory, resource.ID)
+				usedResourceCache, err = dbng.ForResource{resource.ID}.UseResourceCache(logger, setupTx, lockFactory, anotherResourceCache)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(setupTx.Commit()).To(Succeed())

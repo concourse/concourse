@@ -71,9 +71,9 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 
 			Describe("for builds", func() {
 				BeforeEach(func() {
-					_, err = resourceConfigFactory.FindOrCreateResourceConfigForBuild(
+					_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 						logger,
-						defaultBuild.ID(),
+						dbng.ForBuild{defaultBuild.ID()},
 						"some-type",
 						atc.Source{
 							"some": "source",
@@ -228,8 +228,9 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				}
 
 				BeforeEach(func() {
-					_, err = resourceConfigFactory.FindOrCreateResourceConfigForResourceType(
+					_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 						logger,
+						dbng.ForResourceType{resourceType1Used.ID},
 						"some-type",
 						atc.Source{
 							"cache": "source",
@@ -282,9 +283,9 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				}
 
 				BeforeEach(func() {
-					_, err = resourceCacheFactory.FindOrCreateResourceCacheForResource(
+					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						usedResource.ID,
+						dbng.ForResource{usedResource.ID},
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{

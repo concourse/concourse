@@ -3,6 +3,7 @@ package gcng_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/gcng"
 
 	. "github.com/onsi/ginkgo"
@@ -41,9 +42,9 @@ var _ = Describe("ResourceConfigCollector", func() {
 			}
 
 			BeforeEach(func() {
-				_, err = resourceConfigFactory.FindOrCreateResourceConfigForBuild(
+				_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
-					defaultBuild.ID(),
+					dbng.ForBuild{defaultBuild.ID()},
 					"some-base-type",
 					atc.Source{
 						"some": "source",
@@ -74,9 +75,9 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 			Context("when config is referenced in resource cache", func() {
 				BeforeEach(func() {
-					_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						defaultBuild.ID(),
+						dbng.ForBuild{defaultBuild.ID()},
 						"some-base-type",
 						atc.Version{"some": "version"},
 						atc.Source{

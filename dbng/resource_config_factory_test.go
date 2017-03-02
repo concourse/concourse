@@ -2,6 +2,7 @@ package dbng_test
 
 import (
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -16,7 +17,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 			err = b.SetInterceptible(i)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = resourceConfigFactory.FindOrCreateResourceConfigForBuild(logger, b.ID(), "some-base-resource-type", atc.Source{}, defaultPipeline.ID(), atc.ResourceTypes{})
+			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForBuild{BuildID: b.ID()}, "some-base-resource-type", atc.Source{}, defaultPipeline.ID(), atc.ResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
 			var (
