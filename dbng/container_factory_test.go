@@ -367,6 +367,27 @@ var _ = Describe("ContainerFactory", func() {
 					})
 				})
 			})
+
+			Context("when volume for resource cache is initialized", func() {
+				BeforeEach(func() {
+					creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, resourceCache)
+					Expect(err).NotTo(HaveOccurred())
+					createdVolume, err := creatingVolume.Created()
+					Expect(err).NotTo(HaveOccurred())
+					err = createdVolume.Initialize()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("finds the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(creatingContainers).To(HaveLen(1))
+					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
 		})
 	})
 })

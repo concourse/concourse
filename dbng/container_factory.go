@@ -27,11 +27,13 @@ func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContaine
 	query, args, err := psql.Select("c.id, c.handle, c.worker_name, c.hijacked, c.discontinued, c.state").
 		From("containers c").
 		LeftJoin("builds b ON c.build_id = b.id").
+		LeftJoin("volumes v ON (c.resource_cache_id = v.resource_cache_id AND c.worker_name = v.worker_name)").
 		Where(sq.Or{
 			sq.Expr("(c.build_id IS NOT NULL AND b.interceptible = false)"),
 			sq.Expr("(c.type = ? AND c.best_if_used_by < NOW())", string(ContainerStageCheck)),
 			sq.Expr("(c.build_id IS NULL AND c.resource_config_id IS NULL AND c.resource_cache_id IS NULL)"),
 			sq.Expr("(c.resource_config_id IS NOT NULL AND c.worker_base_resource_type_id IS NULL)"),
+			sq.Expr("(c.resource_cache_id IS NOT NULL AND v.initialized = true)"),
 		}).
 		ToSql()
 	if err != nil {
