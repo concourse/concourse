@@ -14,17 +14,17 @@ import (
 
 type ImageFactory interface {
 	GetImage(
-		lager.Logger,
-		Worker,
-		VolumeClient,
-		ImageSpec,
-		int,
-		<-chan os.Signal,
-		ImageFetchingDelegate,
-		dbng.ResourceUser,
-		Identifier,
-		Metadata,
-		atc.ResourceTypes,
+		logger lager.Logger,
+		worker Worker,
+		volumeClient VolumeClient,
+		imageSpec ImageSpec,
+		teamID int,
+		signals <-chan os.Signal,
+		delegate ImageFetchingDelegate,
+		resourceUser dbng.ResourceUser,
+		id Identifier,
+		metadata Metadata,
+		resourceTypes atc.ResourceTypes,
 	) (Image, error)
 }
 

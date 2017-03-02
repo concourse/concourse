@@ -314,7 +314,7 @@ var _ = Describe("ContainerProvider", func() {
 
 	Describe("FindOrCreateResourceCheckContainer", func() {
 		BeforeEach(func() {
-			fakeDBResourceConfigFactory.FindOrCreateResourceConfigForResourceReturns(&dbng.UsedResourceConfig{
+			fakeDBResourceConfigFactory.FindOrCreateResourceConfigReturns(&dbng.UsedResourceConfig{
 				ID: 42,
 			}, nil)
 			fakeDBTeam.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
@@ -324,6 +324,7 @@ var _ = Describe("ContainerProvider", func() {
 		JustBeforeEach(func() {
 			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateResourceCheckContainer(
 				logger,
+				dbng.ForBuild{BuildID: 42},
 				nil,
 				fakeImageFetchingDelegate,
 				Identifier{},
@@ -371,63 +372,7 @@ var _ = Describe("ContainerProvider", func() {
 		})
 	})
 
-	Describe("FindOrCreateResourceTypeCheckContainer", func() {
-		BeforeEach(func() {
-			fakeDBTeam.CreateResourceCheckContainerReturns(fakeCreatingContainer, nil)
-			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
-		})
-
-		JustBeforeEach(func() {
-			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateResourceTypeCheckContainer(
-				logger,
-				nil,
-				fakeImageFetchingDelegate,
-				Identifier{},
-				Metadata{},
-				ContainerSpec{
-					ImageSpec: ImageSpec{},
-					Inputs:    inputs,
-				},
-				atc.ResourceTypes{
-					{
-						Type:   "some-resource",
-						Name:   "custom-type-b",
-						Source: atc.Source{"some": "source"},
-					},
-				},
-				"some-resource",
-				atc.Source{"some": "source"},
-			)
-		})
-
-		Context("when container exists in database in creating state", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindResourceCheckContainerReturns(fakeCreatingContainer, nil, nil)
-			})
-
-			ItHandlesContainerInCreatingState()
-		})
-
-		Context("when container exists in database in created state", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindResourceCheckContainerReturns(nil, fakeCreatedContainer, nil)
-			})
-
-			ItHandlesContainerInCreatedState()
-		})
-
-		Context("when container does not exist in database", func() {
-			BeforeEach(func() {
-				fakeDBTeam.FindResourceCheckContainerReturns(nil, nil, nil)
-			})
-
-			ItHandlesNonExistentContainer(func() int {
-				return fakeDBTeam.CreateResourceCheckContainerCallCount()
-			})
-		})
-	})
-
-	Describe("FindOrCreateResourceTypeCheckContainer", func() {
+	Describe("FindOrCreateResourceGetContainer", func() {
 		BeforeEach(func() {
 			fakeDBTeam.CreateResourceGetContainerReturns(fakeCreatingContainer, nil)
 			fakeGardenWorkerDB.AcquireContainerCreatingLockReturns(new(lockfakes.FakeLock), true, nil)
@@ -436,6 +381,7 @@ var _ = Describe("ContainerProvider", func() {
 		JustBeforeEach(func() {
 			findOrCreateContainer, findOrCreateErr = containerProvider.FindOrCreateResourceGetContainer(
 				logger,
+				dbng.ForBuild{BuildID: 42},
 				nil,
 				fakeImageFetchingDelegate,
 				Identifier{},

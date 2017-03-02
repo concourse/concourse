@@ -187,8 +187,7 @@ var _ = Describe("Worker", func() {
 				fakeSavedContainer = db.SavedContainer{
 					Container: db.Container{
 						ContainerIdentifier: db.ContainerIdentifier{
-							CheckType:           "some-resource",
-							ResourceTypeVersion: atc.Version{"some-resource": "some-version"},
+							ResourceID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "provider-handle",

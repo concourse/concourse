@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/dbng"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/worker"
@@ -85,7 +86,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		BeforeEach(func() {
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewCheckResourceForResourceTypeReturns(fakeResource, nil)
+			fakeResourceFactory.NewCheckResourceReturns(fakeResource, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -118,12 +119,11 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResource.CheckCallCount()).To(Equal(1))
-				Expect(fakeResourceFactory.NewCheckResourceForResourceTypeCallCount()).To(Equal(1))
-				_, id, metadata, resourceSpec, customTypes := fakeResourceFactory.NewCheckResourceForResourceTypeArgsForCall(0)
+				Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
+				_, user, id, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				Expect(user).To(Equal(dbng.ForResourceType{ResourceTypeID: 39}))
 				Expect(id).To(Equal(worker.Identifier{
 					Stage:               db.ContainerStageCheck,
-					CheckType:           "some-resource-type",
-					CheckSource:         atc.Source{"custom": "source"},
 					ImageResourceType:   "docker-image",
 					ImageResourceSource: atc.Source{"custom": "source"},
 				}))
@@ -133,13 +133,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 					WorkingDirectory:     "",
 					EnvironmentVariables: nil,
 				}))
-
 				Expect(customTypes).To(Equal(atc.ResourceTypes{
 					atc.ResourceType{
 						Name:   "some-resource-type",
 						Type:   "docker-image",
 						Source: atc.Source{"custom": "source"},
-					}}))
+					},
+				}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "docker-image",
@@ -148,6 +148,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Ephemeral: true,
 					Tags:      []string{},
 					TeamID:    123,
+				}))
+				Expect(resourceConfig).To(Equal(atc.ResourceConfig{
+					Type:   "docker-image", /// XXX: this used to be 'some-resource-type'. why? misuse of CheckType field?
+					Source: atc.Source{"custom": "source"},
 				}))
 			})
 
