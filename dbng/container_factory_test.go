@@ -2,7 +2,6 @@ package dbng_test
 
 import (
 	sq "github.com/Masterminds/squirrel"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 
@@ -11,31 +10,7 @@ import (
 )
 
 var _ = Describe("ContainerFactory", func() {
-	Describe("FindContainersMarkedForDeletion", func() {
-		It("does not find non-deleting containers", func() {
-			deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(deletingContainers).To(BeEmpty())
-		})
-
-		It("does find deleting containers", func() {
-			destroyingContainer, err := defaultCreatedContainer.Destroying()
-			Expect(err).NotTo(HaveOccurred())
-
-			deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(deletingContainers).To(HaveLen(1))
-
-			destroyedContainer := deletingContainers[0]
-			Expect(destroyedContainer.Handle()).To(Equal(destroyingContainer.Handle()))
-			Expect(destroyedContainer.WorkerName()).To(Equal(destroyingContainer.WorkerName()))
-		})
-	})
-
-	Describe("MarkContainersForDeletion", func() {
-
+	Describe("FindContainersForDeletion", func() {
 		Describe("task containers", func() {
 			var (
 				creatingContainer dbng.CreatingContainer
@@ -50,76 +25,91 @@ var _ = Describe("ContainerFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when the container is creating", func() {
-				It("does not mark the container for deletion", func() {
-					err = containerFactory.MarkContainersForDeletion()
+			Context("when the build is finded as interceptible", func() {
+				BeforeEach(func() {
+					err = build.SetInterceptible(true)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not find container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
-					deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(deletingContainers).To(BeEmpty())
+					Expect(creatingContainers).To(BeEmpty())
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
 				})
 			})
 
-			Context("when the container is created", func() {
-				var createdContainer dbng.CreatedContainer
-
+			Context("when the build is marked as non-interceptible", func() {
 				BeforeEach(func() {
-					createdContainer, err = creatingContainer.Created()
+					err = build.SetInterceptible(false)
+					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Context("when the build is marked as interceptible", func() {
-					BeforeEach(func() {
-						err = build.SetInterceptible(true)
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("does not mark container for deletion", func() {
-						err = containerFactory.MarkContainersForDeletion()
+				Context("when the container is creating", func() {
+					It("finds container for deletion", func() {
+						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
-						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(deletingContainers).To(BeEmpty())
+						Expect(creatingContainers).To(HaveLen(1))
+						Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+						Expect(createdContainers).To(BeEmpty())
+						Expect(destroyingContainers).To(BeEmpty())
 					})
 				})
 
-				Context("when the build is marked as non-interceptible", func() {
+				Context("when the container is created", func() {
 					BeforeEach(func() {
-						err = build.SetInterceptible(false)
+						_, err := creatingContainer.Created()
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("marks container for deletion", func() {
-						err = containerFactory.MarkContainersForDeletion()
+					It("finds container for deletion", func() {
+						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
-						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(deletingContainers).To(HaveLen(1))
-						Expect(deletingContainers[0].Handle()).To(Equal(createdContainer.Handle()))
+						Expect(creatingContainers).To(BeEmpty())
+						Expect(createdContainers).To(HaveLen(1))
+						Expect(createdContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+						Expect(destroyingContainers).To(BeEmpty())
 					})
 				})
 
-				Context("when build is deleted", func() {
+				Context("when the container is destroying", func() {
 					BeforeEach(func() {
-						err := defaultPipeline.Destroy()
+						createdContainer, err := creatingContainer.Created()
+						Expect(err).NotTo(HaveOccurred())
+						_, err = createdContainer.Destroying()
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("marks container for deletion", func() {
-						err = containerFactory.MarkContainersForDeletion()
+					It("finds container for deletion", func() {
+						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
 						Expect(err).NotTo(HaveOccurred())
 
-						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(deletingContainers).To(HaveLen(1))
-						Expect(deletingContainers[0].Handle()).To(Equal(createdContainer.Handle()))
+						Expect(creatingContainers).To(BeEmpty())
+						Expect(createdContainers).To(BeEmpty())
+						Expect(destroyingContainers).To(HaveLen(1))
+						Expect(destroyingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
 					})
+				})
+			})
+
+			Context("when build is deleted", func() {
+				BeforeEach(func() {
+					err := defaultPipeline.Destroy()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("finds container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(creatingContainers).To(HaveLen(1))
+					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
 				})
 			})
 		})
@@ -145,7 +135,7 @@ var _ = Describe("ContainerFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when the container is creating", func() {
+			Context("when check container best if use by date is expired", func() {
 				BeforeEach(func() {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
@@ -159,159 +149,147 @@ var _ = Describe("ContainerFactory", func() {
 					Expect(tx.Commit()).To(Succeed())
 				})
 
-				It("does not mark the container for deletion", func() {
-					err = containerFactory.MarkContainersForDeletion()
-					Expect(err).NotTo(HaveOccurred())
+				Context("when container is creating", func() {
+					It("finds the container for deletion", func() {
+						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
 
-					deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-					Expect(err).NotTo(HaveOccurred())
+						Expect(creatingContainers).To(HaveLen(1))
+						Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+						Expect(createdContainers).To(BeEmpty())
+						Expect(destroyingContainers).To(BeEmpty())
+					})
+				})
 
-					Expect(deletingContainers).To(BeEmpty())
+				Context("when container is created", func() {
+					BeforeEach(func() {
+						_, err := creatingContainer.Created()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("finds the container for deletion", func() {
+						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(creatingContainers).To(BeEmpty())
+						Expect(createdContainers).To(HaveLen(1))
+						Expect(createdContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+						Expect(destroyingContainers).To(BeEmpty())
+					})
+				})
+
+				Context("when container is destroying", func() {
+					BeforeEach(func() {
+						createdContainer, err := creatingContainer.Created()
+						Expect(err).NotTo(HaveOccurred())
+						_, err = createdContainer.Destroying()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("finds the container for deletion", func() {
+						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(creatingContainers).To(BeEmpty())
+						Expect(createdContainers).To(BeEmpty())
+						Expect(destroyingContainers).To(HaveLen(1))
+						Expect(destroyingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					})
 				})
 			})
 
-			Context("when container is created", func() {
-				var createdContainer dbng.CreatedContainer
-
+			Context("when check container best if use by date did not expire", func() {
 				BeforeEach(func() {
-					createdContainer, err = creatingContainer.Created()
+					tx, err := dbConn.Begin()
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = psql.Update("containers").
+						Set("best_if_used_by", sq.Expr("NOW() + '1 hour'::INTERVAL")).
+						Where(sq.Eq{"id": creatingContainer.ID()}).
+						RunWith(tx).Exec()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(tx.Commit()).To(Succeed())
+				})
+
+				It("does not find the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(creatingContainers).To(BeEmpty())
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
+
+			Context("when the resource config is deleted", func() {
+				BeforeEach(func() {
+					err := defaultPipeline.Destroy()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = resourceConfigFactory.CleanConfigUsesForInactiveResources()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = resourceConfigFactory.CleanUselessConfigs()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Context("when check container best if use by date is expired", func() {
-					BeforeEach(func() {
-						tx, err := dbConn.Begin()
-						Expect(err).NotTo(HaveOccurred())
+				It("finds the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(creatingContainers).To(HaveLen(1))
+					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(createdContainers).To(HaveLen(1))
+					Expect(createdContainers[0].Handle()).To(Equal(defaultCreatedContainer.Handle()))
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
 
-						_, err = psql.Update("containers").
-							Set("best_if_used_by", sq.Expr("NOW() - '1 second'::INTERVAL")).
-							Where(sq.Eq{"id": createdContainer.ID()}).
-							RunWith(tx).Exec()
-						Expect(err).NotTo(HaveOccurred())
+			Context("when the worker base resource type has a new version", func() {
+				BeforeEach(func() {
+					newlyUpdatedWorker := defaultWorkerPayload
+					newlyUpdatedResource := defaultWorkerPayload.ResourceTypes[0]
+					newlyUpdatedResource.Version = newlyUpdatedResource.Version + "-new"
+					newlyUpdatedWorker.ResourceTypes = []atc.WorkerResourceType{newlyUpdatedResource}
 
-						Expect(tx.Commit()).To(Succeed())
-					})
-
-					It("marks the container for deletion", func() {
-						err = containerFactory.MarkContainersForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(deletingContainers).To(HaveLen(1))
-					})
+					defaultWorker, err = workerFactory.SaveWorker(newlyUpdatedWorker, 0)
+					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Context("when check container best if use by date did not expire", func() {
-					BeforeEach(func() {
-						tx, err := dbConn.Begin()
-						Expect(err).NotTo(HaveOccurred())
+				It("finds the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(creatingContainers).To(HaveLen(1))
+					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(createdContainers).To(HaveLen(1))
+					Expect(createdContainers[0].Handle()).To(Equal(defaultCreatedContainer.Handle()))
+					Expect(destroyingContainers).To(BeEmpty())
+				})
+			})
 
-						_, err = psql.Update("containers").
-							Set("best_if_used_by", sq.Expr("NOW() + '1 hour'::INTERVAL")).
-							Where(sq.Eq{"id": createdContainer.ID()}).
-							RunWith(tx).Exec()
-						Expect(err).NotTo(HaveOccurred())
+			Context("when the same worker base resource type is saved", func() {
+				BeforeEach(func() {
+					sameWorker := defaultWorkerPayload
 
-						Expect(tx.Commit()).To(Succeed())
-					})
-
-					It("does not mark the container for deletion", func() {
-						err = containerFactory.MarkContainersForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(deletingContainers).To(BeEmpty())
-					})
+					defaultWorker, err = workerFactory.SaveWorker(sameWorker, 0)
+					Expect(err).NotTo(HaveOccurred())
 				})
 
-				Context("when the resource config is deleted", func() {
-					BeforeEach(func() {
-						err := defaultPipeline.Destroy()
-						Expect(err).NotTo(HaveOccurred())
+				It("does not find the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+					Expect(err).NotTo(HaveOccurred())
 
-						err = resourceConfigFactory.CleanConfigUsesForInactiveResources()
-						Expect(err).NotTo(HaveOccurred())
-
-						err = resourceConfigFactory.CleanUselessConfigs()
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("marks the container for deletion", func() {
-						err = containerFactory.MarkContainersForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(deletingContainers).To(HaveLen(2))
-						Expect([]string{
-							deletingContainers[0].Handle(),
-							deletingContainers[1].Handle(),
-						}).To(ConsistOf([]string{
-							defaultCreatedContainer.Handle(),
-							createdContainer.Handle(),
-						}))
-					})
-				})
-
-				Context("when the worker base resource type has a new version", func() {
-					BeforeEach(func() {
-						newlyUpdatedWorker := defaultWorkerPayload
-						newlyUpdatedResource := defaultWorkerPayload.ResourceTypes[0]
-						newlyUpdatedResource.Version = newlyUpdatedResource.Version + "-new"
-						newlyUpdatedWorker.ResourceTypes = []atc.WorkerResourceType{newlyUpdatedResource}
-
-						defaultWorker, err = workerFactory.SaveWorker(newlyUpdatedWorker, 0)
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("marks the container for deletion", func() {
-						err = containerFactory.MarkContainersForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(deletingContainers).To(HaveLen(2))
-						Expect([]string{
-							deletingContainers[0].Handle(),
-							deletingContainers[1].Handle(),
-						}).To(ConsistOf([]string{
-							defaultCreatedContainer.Handle(),
-							createdContainer.Handle(),
-						}))
-					})
-				})
-
-				Context("when the same worker base resource type is saved", func() {
-					BeforeEach(func() {
-						sameWorker := defaultWorkerPayload
-
-						defaultWorker, err = workerFactory.SaveWorker(sameWorker, 0)
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("does not mark the container for deletion", func() {
-						err = containerFactory.MarkContainersForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(deletingContainers).To(HaveLen(0))
-					})
+					Expect(creatingContainers).To(BeEmpty())
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
 				})
 			})
 		})
 
 		Describe("get containers", func() {
 			var (
-				createdContainer dbng.CreatedContainer
-				resourceCache    *dbng.UsedResourceCache
+				creatingContainer dbng.CreatingContainer
+				resourceCache     *dbng.UsedResourceCache
 			)
 
 			BeforeEach(func() {
@@ -327,10 +305,7 @@ var _ = Describe("ContainerFactory", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				creatingContainer, err := defaultTeam.CreateResourceGetContainer(defaultWorker.Name(), resourceCache, "some-task")
-				Expect(err).NotTo(HaveOccurred())
-
-				createdContainer, err = creatingContainer.Created()
+				creatingContainer, err = defaultTeam.CreateResourceGetContainer(defaultWorker.Name(), resourceCache, "some-task")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -346,15 +321,50 @@ var _ = Describe("ContainerFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("marks the container for deletion", func() {
-					err = containerFactory.MarkContainersForDeletion()
+				It("finds the container for deletion", func() {
+					creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
 					Expect(err).NotTo(HaveOccurred())
 
-					deletingContainers, err := containerFactory.FindContainersMarkedForDeletion()
-					Expect(err).NotTo(HaveOccurred())
+					Expect(creatingContainers).To(HaveLen(1))
+					Expect(creatingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					Expect(createdContainers).To(BeEmpty())
+					Expect(destroyingContainers).To(BeEmpty())
+				})
 
-					Expect(deletingContainers).To(HaveLen(1))
-					Expect(deletingContainers[0].Handle()).To(Equal(createdContainer.Handle()))
+				Context("when container is created", func() {
+					BeforeEach(func() {
+						_, err = creatingContainer.Created()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("finds the container for deletion", func() {
+						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(creatingContainers).To(BeEmpty())
+						Expect(createdContainers).To(HaveLen(1))
+						Expect(createdContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+						Expect(destroyingContainers).To(BeEmpty())
+					})
+				})
+
+				Context("when container is destroying", func() {
+					BeforeEach(func() {
+						createdContainer, err := creatingContainer.Created()
+						Expect(err).NotTo(HaveOccurred())
+						_, err = createdContainer.Destroying()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("finds the container for deletion", func() {
+						creatingContainers, createdContainers, destroyingContainers, err := containerFactory.FindContainersForDeletion()
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(creatingContainers).To(BeEmpty())
+						Expect(createdContainers).To(BeEmpty())
+						Expect(destroyingContainers).To(HaveLen(1))
+						Expect(destroyingContainers[0].Handle()).To(Equal(creatingContainer.Handle()))
+					})
 				})
 			})
 		})

@@ -16,9 +16,7 @@ const HijackedContainerTimeout = 5 * time.Minute
 //go:generate counterfeiter . containerFactory
 
 type containerFactory interface {
-	MarkContainersForDeletion() error
-	FindContainersMarkedForDeletion() ([]dbng.DestroyingContainer, error)
-	FindHijackedContainersForDeletion() ([]dbng.CreatedContainer, error)
+	FindContainersForDeletion() ([]dbng.CreatingContainer, []dbng.CreatedContainer, []dbng.DestroyingContainer, error)
 }
 
 type containerCollector struct {
@@ -72,38 +70,88 @@ func (c *containerCollector) Run() error {
 		workersByName[w.Name()] = w
 	}
 
-	hijackedContainersForDeletion, err := c.containerFactory.FindHijackedContainersForDeletion()
+	creatingContainers, createdContainers, destroyingContainers, err := c.containerFactory.FindContainersForDeletion()
 	if err != nil {
-		logger.Error("failed-to-get-hijacked-containers-for-deletion", err)
+		logger.Error("failed-to-get-containers-for-deletion", err)
 		return err
 	}
 
-	for _, hijackedContainer := range hijackedContainersForDeletion {
-		cLog := logger.Session("mark-hijacked-container", lager.Data{
-			"container": hijackedContainer.Handle(),
-			"worker":    hijackedContainer.WorkerName(),
+	creatingContainerHandles := []string{}
+	createdContainerHandles := []string{}
+	destroyingContainerHandles := []string{}
+
+	if len(creatingContainers) > 0 {
+		for _, container := range creatingContainers {
+			creatingContainerHandles = append(creatingContainerHandles, container.Handle())
+		}
+	}
+
+	if len(createdContainers) > 0 {
+		for _, container := range createdContainers {
+			createdContainerHandles = append(createdContainerHandles, container.Handle())
+		}
+	}
+
+	if len(destroyingContainers) > 0 {
+		for _, container := range destroyingContainers {
+			destroyingContainerHandles = append(destroyingContainerHandles, container.Handle())
+		}
+	}
+
+	logger.Debug("found-containers-for-deletion", lager.Data{
+		"creating-containers":   creatingContainerHandles,
+		"created-containers":    createdContainerHandles,
+		"destroying-containers": destroyingContainerHandles,
+	})
+
+	for _, creatingContainer := range creatingContainers {
+		cLog := logger.Session("mark-creating-as-created", lager.Data{
+			"container": creatingContainer.Handle(),
 		})
 
-		c.markHijackedContainerAsDestroying(cLog, hijackedContainer, workersByName)
+		createdContainer, err := creatingContainer.Created()
+		if err != nil {
+			cLog.Error("failed-to-transition", err)
+			continue
+		}
+
+		createdContainers = append(createdContainers, createdContainer)
 	}
 
-	err = c.containerFactory.MarkContainersForDeletion()
-	if err != nil {
-		logger.Error("marking-build-containers-for-deletion", err)
+	for _, createdContainer := range createdContainers {
+		if createdContainer.IsHijacked() {
+			cLog := logger.Session("mark-hijacked-container", lager.Data{
+				"container": createdContainer.Handle(),
+				"worker":    createdContainer.WorkerName(),
+			})
+
+			destroyingContainer := c.markHijackedContainerAsDestroying(cLog, createdContainer, workersByName)
+			if destroyingContainer != nil {
+				destroyingContainers = append(destroyingContainers, destroyingContainer)
+			}
+		} else {
+			cLog := logger.Session("mark-created-as-destroying", lager.Data{
+				"container": createdContainer.Handle(),
+				"worker":    createdContainer.WorkerName(),
+			})
+
+			destroyingContainer, err := createdContainer.Destroying()
+			if err != nil {
+				cLog.Error("failed-to-transition", err)
+				continue
+			}
+
+			destroyingContainers = append(destroyingContainers, destroyingContainer)
+		}
 	}
 
-	containersToDelete, err := c.findContainersToDelete(logger)
-	if err != nil {
-		return err
-	}
-
-	for _, container := range containersToDelete {
+	for _, destroyingContainer := range destroyingContainers {
 		cLog := logger.Session("destroy-container", lager.Data{
-			"container": container.Handle(),
-			"worker":    container.WorkerName(),
+			"container": destroyingContainer.Handle(),
+			"worker":    destroyingContainer.WorkerName(),
 		})
 
-		c.tryToDestroyContainer(cLog, container, workersByName)
+		c.tryToDestroyContainer(cLog, destroyingContainer, workersByName)
 	}
 
 	return nil
@@ -113,17 +161,17 @@ func (c *containerCollector) markHijackedContainerAsDestroying(
 	logger lager.Logger,
 	hijackedContainer dbng.CreatedContainer,
 	workersByName map[string]dbng.Worker,
-) {
+) dbng.DestroyingContainer {
 	w, found := workersByName[hijackedContainer.WorkerName()]
 	if !found {
 		logger.Info("worker-not-found")
-		return
+		return nil
 	}
 
 	gclient, err := c.gardenClientFactory(w)
 	if err != nil {
 		logger.Error("failed-to-get-garden-client-for-worker", err)
-		return
+		return nil
 	}
 
 	gardenContainer, err := gclient.Lookup(hijackedContainer.Handle())
@@ -131,49 +179,30 @@ func (c *containerCollector) markHijackedContainerAsDestroying(
 		if _, ok := err.(garden.ContainerNotFoundError); ok {
 			logger.Debug("hijacked-container-not-found-in-garden")
 
-			_, err = hijackedContainer.Destroying()
+			destroyingContainer, err := hijackedContainer.Destroying()
 			if err != nil {
 				logger.Error("failed-to-mark-container-as-destroying", err)
-				return
+				return destroyingContainer
 			}
 		}
 
 		logger.Error("failed-to-lookup-garden-container", err)
-		return
+		return nil
 	} else {
 		err = gardenContainer.SetGraceTime(HijackedContainerTimeout)
 		if err != nil {
 			logger.Error("failed-to-set-grace-time-on-hijacked-container", err)
-			return
+			return nil
 		}
 
 		_, err = hijackedContainer.Discontinue()
 		if err != nil {
 			logger.Error("failed-to-mark-container-as-destroying", err)
-			return
+			return nil
 		}
 	}
-}
 
-func (c *containerCollector) findContainersToDelete(logger lager.Logger) ([]dbng.DestroyingContainer, error) {
-	containers, err := c.containerFactory.FindContainersMarkedForDeletion()
-	if err != nil {
-		logger.Error("failed-to-find-containers-for-deletion", err)
-		return nil, err
-	}
-
-	if len(containers) > 0 {
-		containerHandles := []string{}
-		for _, container := range containers {
-			containerHandles = append(containerHandles, container.Handle())
-		}
-
-		logger.Debug("found-containers-for-deletion", lager.Data{
-			"containers": containerHandles,
-		})
-	}
-
-	return containers, nil
+	return nil
 }
 
 func (c *containerCollector) tryToDestroyContainer(logger lager.Logger, container dbng.DestroyingContainer, workersByName map[string]dbng.Worker) {

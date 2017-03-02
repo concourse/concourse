@@ -96,6 +96,7 @@ type CreatedContainer interface {
 	Handle() string
 	Discontinue() (DestroyingContainer, error)
 	Destroying() (DestroyingContainer, error)
+	IsHijacked() bool
 	WorkerName() string
 	MarkAsHijacked() error
 }
@@ -111,6 +112,7 @@ type createdContainer struct {
 func (container *createdContainer) ID() int            { return container.id }
 func (container *createdContainer) Handle() string     { return container.handle }
 func (container *createdContainer) WorkerName() string { return container.workerName }
+func (container *createdContainer) IsHijacked() bool   { return container.hijacked }
 
 func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 	tx, err := container.conn.Begin()
