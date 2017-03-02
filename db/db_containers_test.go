@@ -1356,19 +1356,6 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(found).To(BeTrue())
 		Expect(foundContainer.Handle).To(Equal(containerWithCorrectVersion.Handle))
 
-		By("not finding a container if its worker is not running")
-		_, err = dbConn.Exec(`update workers set state=$1, addr=NULL, baggageclaim_url=NULL where name=$2`, "stalled", "some-worker")
-		Expect(err).NotTo(HaveOccurred())
-		foundContainer, found, err = database.FindContainerByIdentifier(containerWithCorrectVersion.ContainerIdentifier)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeFalse())
-		_, err = dbConn.Exec(`update workers set state=$1, addr=$2, baggageclaim_url=$3 where name=$4`, "running", "1.2.3.4:7777", "1.2.3.4:7788", "some-worker")
-		Expect(err).NotTo(HaveOccurred())
-
-		By("not finding a container if its in creating state")
-
-		By("not finding a check container if its worker base resource type version is updated")
-
 		By("not finding a check container whose best_used_by_time has elapsed")
 		sourContainer := db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{

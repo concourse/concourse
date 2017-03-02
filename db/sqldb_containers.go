@@ -109,9 +109,8 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 	selectQuery := `
 		SELECT ` + containerColumns + `
 		FROM containers c ` + containerJoins + `
-		LEFT JOIN workers w ON c.worker_name = w.name ` + extraJoins + `
-		WHERE w.state = 'running'
-		AND c.state = 'created'
+		` + extraJoins + `
+		WHERE c.state = 'created'
 		AND ` + strings.Join(conditions, " AND ")
 
 	rows, err := db.conn.Query(selectQuery, params...)
