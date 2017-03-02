@@ -511,6 +511,9 @@ func (b *build) getVersionedResources(resourceRequest string) (SavedVersionedRes
 		var versionJSON []byte
 		var metadataJSON []byte
 		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource, &versionedResource.PipelineID, &versionedResource.ModifiedTime)
+		if err != nil {
+			return nil, err
+		}
 
 		err = json.Unmarshal(versionJSON, &versionedResource.Version)
 		if err != nil {
@@ -639,6 +642,9 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 	configInputs := config.JobInputs(jobConfig)
 
 	nextBuildInputs, found, err := pdb.GetNextBuildInputs(jobName)
+	if err != nil {
+		return BuildPreparation{}, false, err
+	}
 
 	inputsSatisfiedStatus := BuildPreparationStatusBlocking
 	inputs := map[string]BuildPreparationStatus{}

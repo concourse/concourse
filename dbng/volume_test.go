@@ -117,6 +117,7 @@ var _ = Describe("Volume", func() {
 					resourceType,
 				},
 			)
+			Expect(err).NotTo(HaveOccurred())
 
 			creatingVolume, err := volumeFactory.CreateResourceCacheVolume(defaultWorker, resourceCache)
 			Expect(err).NotTo(HaveOccurred())
