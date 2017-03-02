@@ -59,7 +59,6 @@ type Worker interface {
 type GardenWorkerDB interface {
 	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) error
 	GetContainer(handle string) (db.SavedContainer, bool, error)
-	ReapContainer(string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)

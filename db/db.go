@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db/lock"
@@ -88,15 +87,7 @@ type DB interface {
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
 	GetContainer(string) (SavedContainer, bool, error)
-	CreateContainerToBeRemoved(container Container, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
-	FindLatestSuccessfulBuildsPerJob() (map[int]int, error)
-	FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, error)
-	ReapContainer(handle string) error
-
-	DeleteContainer(string) error
-
-	ReapVolume(string) error
 }
 
 //go:generate counterfeiter . Notifier
