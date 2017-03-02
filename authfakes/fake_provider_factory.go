@@ -21,12 +21,18 @@ type FakeProviderFactory struct {
 		result2 bool
 		result3 error
 	}
+	getProviderReturnsOnCall map[int]struct {
+		result1 provider.Provider
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeProviderFactory) GetProvider(arg1 db.SavedTeam, arg2 string) (provider.Provider, bool, error) {
 	fake.getProviderMutex.Lock()
+	ret, specificReturn := fake.getProviderReturnsOnCall[len(fake.getProviderArgsForCall)]
 	fake.getProviderArgsForCall = append(fake.getProviderArgsForCall, struct {
 		arg1 db.SavedTeam
 		arg2 string
@@ -35,6 +41,9 @@ func (fake *FakeProviderFactory) GetProvider(arg1 db.SavedTeam, arg2 string) (pr
 	fake.getProviderMutex.Unlock()
 	if fake.GetProviderStub != nil {
 		return fake.GetProviderStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getProviderReturns.result1, fake.getProviderReturns.result2, fake.getProviderReturns.result3
 }
@@ -54,6 +63,22 @@ func (fake *FakeProviderFactory) GetProviderArgsForCall(i int) (db.SavedTeam, st
 func (fake *FakeProviderFactory) GetProviderReturns(result1 provider.Provider, result2 bool, result3 error) {
 	fake.GetProviderStub = nil
 	fake.getProviderReturns = struct {
+		result1 provider.Provider
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeProviderFactory) GetProviderReturnsOnCall(i int, result1 provider.Provider, result2 bool, result3 error) {
+	fake.GetProviderStub = nil
+	if fake.getProviderReturnsOnCall == nil {
+		fake.getProviderReturnsOnCall = make(map[int]struct {
+			result1 provider.Provider
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getProviderReturnsOnCall[i] = struct {
 		result1 provider.Provider
 		result2 bool
 		result3 error
