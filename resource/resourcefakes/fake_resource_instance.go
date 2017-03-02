@@ -17,6 +17,9 @@ type FakeResourceInstance struct {
 	resourceUserReturns     struct {
 		result1 dbng.ResourceUser
 	}
+	resourceUserReturnsOnCall map[int]struct {
+		result1 dbng.ResourceUser
+	}
 	FindInitializedOnStub        func(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	findInitializedOnMutex       sync.RWMutex
 	findInitializedOnArgsForCall []struct {
@@ -24,6 +27,11 @@ type FakeResourceInstance struct {
 		arg2 worker.Client
 	}
 	findInitializedOnReturns struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
+	findInitializedOnReturnsOnCall map[int]struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error
@@ -38,10 +46,17 @@ type FakeResourceInstance struct {
 		result1 worker.Volume
 		result2 error
 	}
+	createOnReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 error
+	}
 	ResourceCacheIdentifierStub        func() worker.ResourceCacheIdentifier
 	resourceCacheIdentifierMutex       sync.RWMutex
 	resourceCacheIdentifierArgsForCall []struct{}
 	resourceCacheIdentifierReturns     struct {
+		result1 worker.ResourceCacheIdentifier
+	}
+	resourceCacheIdentifierReturnsOnCall map[int]struct {
 		result1 worker.ResourceCacheIdentifier
 	}
 	invocations      map[string][][]interface{}
@@ -50,11 +65,15 @@ type FakeResourceInstance struct {
 
 func (fake *FakeResourceInstance) ResourceUser() dbng.ResourceUser {
 	fake.resourceUserMutex.Lock()
+	ret, specificReturn := fake.resourceUserReturnsOnCall[len(fake.resourceUserArgsForCall)]
 	fake.resourceUserArgsForCall = append(fake.resourceUserArgsForCall, struct{}{})
 	fake.recordInvocation("ResourceUser", []interface{}{})
 	fake.resourceUserMutex.Unlock()
 	if fake.ResourceUserStub != nil {
 		return fake.ResourceUserStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.resourceUserReturns.result1
 }
@@ -72,8 +91,21 @@ func (fake *FakeResourceInstance) ResourceUserReturns(result1 dbng.ResourceUser)
 	}{result1}
 }
 
+func (fake *FakeResourceInstance) ResourceUserReturnsOnCall(i int, result1 dbng.ResourceUser) {
+	fake.ResourceUserStub = nil
+	if fake.resourceUserReturnsOnCall == nil {
+		fake.resourceUserReturnsOnCall = make(map[int]struct {
+			result1 dbng.ResourceUser
+		})
+	}
+	fake.resourceUserReturnsOnCall[i] = struct {
+		result1 dbng.ResourceUser
+	}{result1}
+}
+
 func (fake *FakeResourceInstance) FindInitializedOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, bool, error) {
 	fake.findInitializedOnMutex.Lock()
+	ret, specificReturn := fake.findInitializedOnReturnsOnCall[len(fake.findInitializedOnArgsForCall)]
 	fake.findInitializedOnArgsForCall = append(fake.findInitializedOnArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.Client
@@ -82,6 +114,9 @@ func (fake *FakeResourceInstance) FindInitializedOn(arg1 lager.Logger, arg2 work
 	fake.findInitializedOnMutex.Unlock()
 	if fake.FindInitializedOnStub != nil {
 		return fake.FindInitializedOnStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findInitializedOnReturns.result1, fake.findInitializedOnReturns.result2, fake.findInitializedOnReturns.result3
 }
@@ -107,8 +142,25 @@ func (fake *FakeResourceInstance) FindInitializedOnReturns(result1 worker.Volume
 	}{result1, result2, result3}
 }
 
+func (fake *FakeResourceInstance) FindInitializedOnReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.FindInitializedOnStub = nil
+	if fake.findInitializedOnReturnsOnCall == nil {
+		fake.findInitializedOnReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findInitializedOnReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeResourceInstance) CreateOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, error) {
 	fake.createOnMutex.Lock()
+	ret, specificReturn := fake.createOnReturnsOnCall[len(fake.createOnArgsForCall)]
 	fake.createOnArgsForCall = append(fake.createOnArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.Client
@@ -117,6 +169,9 @@ func (fake *FakeResourceInstance) CreateOn(arg1 lager.Logger, arg2 worker.Client
 	fake.createOnMutex.Unlock()
 	if fake.CreateOnStub != nil {
 		return fake.CreateOnStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createOnReturns.result1, fake.createOnReturns.result2
 }
@@ -141,13 +196,31 @@ func (fake *FakeResourceInstance) CreateOnReturns(result1 worker.Volume, result2
 	}{result1, result2}
 }
 
+func (fake *FakeResourceInstance) CreateOnReturnsOnCall(i int, result1 worker.Volume, result2 error) {
+	fake.CreateOnStub = nil
+	if fake.createOnReturnsOnCall == nil {
+		fake.createOnReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 error
+		})
+	}
+	fake.createOnReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResourceInstance) ResourceCacheIdentifier() worker.ResourceCacheIdentifier {
 	fake.resourceCacheIdentifierMutex.Lock()
+	ret, specificReturn := fake.resourceCacheIdentifierReturnsOnCall[len(fake.resourceCacheIdentifierArgsForCall)]
 	fake.resourceCacheIdentifierArgsForCall = append(fake.resourceCacheIdentifierArgsForCall, struct{}{})
 	fake.recordInvocation("ResourceCacheIdentifier", []interface{}{})
 	fake.resourceCacheIdentifierMutex.Unlock()
 	if fake.ResourceCacheIdentifierStub != nil {
 		return fake.ResourceCacheIdentifierStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.resourceCacheIdentifierReturns.result1
 }
@@ -161,6 +234,18 @@ func (fake *FakeResourceInstance) ResourceCacheIdentifierCallCount() int {
 func (fake *FakeResourceInstance) ResourceCacheIdentifierReturns(result1 worker.ResourceCacheIdentifier) {
 	fake.ResourceCacheIdentifierStub = nil
 	fake.resourceCacheIdentifierReturns = struct {
+		result1 worker.ResourceCacheIdentifier
+	}{result1}
+}
+
+func (fake *FakeResourceInstance) ResourceCacheIdentifierReturnsOnCall(i int, result1 worker.ResourceCacheIdentifier) {
+	fake.ResourceCacheIdentifierStub = nil
+	if fake.resourceCacheIdentifierReturnsOnCall == nil {
+		fake.resourceCacheIdentifierReturnsOnCall = make(map[int]struct {
+			result1 worker.ResourceCacheIdentifier
+		})
+	}
+	fake.resourceCacheIdentifierReturnsOnCall[i] = struct {
 		result1 worker.ResourceCacheIdentifier
 	}{result1}
 }

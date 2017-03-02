@@ -21,12 +21,17 @@ type FakeUpdater struct {
 		result1 bool
 		result2 error
 	}
+	updateMaxInFlightReachedReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeUpdater) UpdateMaxInFlightReached(logger lager.Logger, jobConfig atc.JobConfig, buildID int) (bool, error) {
 	fake.updateMaxInFlightReachedMutex.Lock()
+	ret, specificReturn := fake.updateMaxInFlightReachedReturnsOnCall[len(fake.updateMaxInFlightReachedArgsForCall)]
 	fake.updateMaxInFlightReachedArgsForCall = append(fake.updateMaxInFlightReachedArgsForCall, struct {
 		logger    lager.Logger
 		jobConfig atc.JobConfig
@@ -36,6 +41,9 @@ func (fake *FakeUpdater) UpdateMaxInFlightReached(logger lager.Logger, jobConfig
 	fake.updateMaxInFlightReachedMutex.Unlock()
 	if fake.UpdateMaxInFlightReachedStub != nil {
 		return fake.UpdateMaxInFlightReachedStub(logger, jobConfig, buildID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.updateMaxInFlightReachedReturns.result1, fake.updateMaxInFlightReachedReturns.result2
 }
@@ -55,6 +63,20 @@ func (fake *FakeUpdater) UpdateMaxInFlightReachedArgsForCall(i int) (lager.Logge
 func (fake *FakeUpdater) UpdateMaxInFlightReachedReturns(result1 bool, result2 error) {
 	fake.UpdateMaxInFlightReachedStub = nil
 	fake.updateMaxInFlightReachedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeUpdater) UpdateMaxInFlightReachedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.UpdateMaxInFlightReachedStub = nil
+	if fake.updateMaxInFlightReachedReturnsOnCall == nil {
+		fake.updateMaxInFlightReachedReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.updateMaxInFlightReachedReturnsOnCall[i] = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}

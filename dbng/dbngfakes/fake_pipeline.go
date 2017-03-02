@@ -18,12 +18,18 @@ type FakePipeline struct {
 	iDReturns     struct {
 		result1 int
 	}
+	iDReturnsOnCall map[int]struct {
+		result1 int
+	}
 	SaveJobStub        func(job atc.JobConfig) error
 	saveJobMutex       sync.RWMutex
 	saveJobArgsForCall []struct {
 		job atc.JobConfig
 	}
 	saveJobReturns struct {
+		result1 error
+	}
+	saveJobReturnsOnCall map[int]struct {
 		result1 error
 	}
 	CreateJobBuildStub        func(jobName string) (dbng.Build, error)
@@ -35,6 +41,10 @@ type FakePipeline struct {
 		result1 dbng.Build
 		result2 error
 	}
+	createJobBuildReturnsOnCall map[int]struct {
+		result1 dbng.Build
+		result2 error
+	}
 	CreateResourceStub        func(name string, config atc.ResourceConfig) (*dbng.Resource, error)
 	createResourceMutex       sync.RWMutex
 	createResourceArgsForCall []struct {
@@ -42,6 +52,10 @@ type FakePipeline struct {
 		config atc.ResourceConfig
 	}
 	createResourceReturns struct {
+		result1 *dbng.Resource
+		result2 error
+	}
+	createResourceReturnsOnCall map[int]struct {
 		result1 *dbng.Resource
 		result2 error
 	}
@@ -59,10 +73,18 @@ type FakePipeline struct {
 		result2 bool
 		result3 error
 	}
+	acquireResourceCheckingLockReturnsOnCall map[int]struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
 	destroyReturns     struct {
+		result1 error
+	}
+	destroyReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -71,11 +93,15 @@ type FakePipeline struct {
 
 func (fake *FakePipeline) ID() int {
 	fake.iDMutex.Lock()
+	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
 	if fake.IDStub != nil {
 		return fake.IDStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.iDReturns.result1
 }
@@ -93,8 +119,21 @@ func (fake *FakePipeline) IDReturns(result1 int) {
 	}{result1}
 }
 
+func (fake *FakePipeline) IDReturnsOnCall(i int, result1 int) {
+	fake.IDStub = nil
+	if fake.iDReturnsOnCall == nil {
+		fake.iDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.iDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakePipeline) SaveJob(job atc.JobConfig) error {
 	fake.saveJobMutex.Lock()
+	ret, specificReturn := fake.saveJobReturnsOnCall[len(fake.saveJobArgsForCall)]
 	fake.saveJobArgsForCall = append(fake.saveJobArgsForCall, struct {
 		job atc.JobConfig
 	}{job})
@@ -102,6 +141,9 @@ func (fake *FakePipeline) SaveJob(job atc.JobConfig) error {
 	fake.saveJobMutex.Unlock()
 	if fake.SaveJobStub != nil {
 		return fake.SaveJobStub(job)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.saveJobReturns.result1
 }
@@ -125,8 +167,21 @@ func (fake *FakePipeline) SaveJobReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakePipeline) SaveJobReturnsOnCall(i int, result1 error) {
+	fake.SaveJobStub = nil
+	if fake.saveJobReturnsOnCall == nil {
+		fake.saveJobReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveJobReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakePipeline) CreateJobBuild(jobName string) (dbng.Build, error) {
 	fake.createJobBuildMutex.Lock()
+	ret, specificReturn := fake.createJobBuildReturnsOnCall[len(fake.createJobBuildArgsForCall)]
 	fake.createJobBuildArgsForCall = append(fake.createJobBuildArgsForCall, struct {
 		jobName string
 	}{jobName})
@@ -134,6 +189,9 @@ func (fake *FakePipeline) CreateJobBuild(jobName string) (dbng.Build, error) {
 	fake.createJobBuildMutex.Unlock()
 	if fake.CreateJobBuildStub != nil {
 		return fake.CreateJobBuildStub(jobName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 }
@@ -158,8 +216,23 @@ func (fake *FakePipeline) CreateJobBuildReturns(result1 dbng.Build, result2 erro
 	}{result1, result2}
 }
 
+func (fake *FakePipeline) CreateJobBuildReturnsOnCall(i int, result1 dbng.Build, result2 error) {
+	fake.CreateJobBuildStub = nil
+	if fake.createJobBuildReturnsOnCall == nil {
+		fake.createJobBuildReturnsOnCall = make(map[int]struct {
+			result1 dbng.Build
+			result2 error
+		})
+	}
+	fake.createJobBuildReturnsOnCall[i] = struct {
+		result1 dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakePipeline) CreateResource(name string, config atc.ResourceConfig) (*dbng.Resource, error) {
 	fake.createResourceMutex.Lock()
+	ret, specificReturn := fake.createResourceReturnsOnCall[len(fake.createResourceArgsForCall)]
 	fake.createResourceArgsForCall = append(fake.createResourceArgsForCall, struct {
 		name   string
 		config atc.ResourceConfig
@@ -168,6 +241,9 @@ func (fake *FakePipeline) CreateResource(name string, config atc.ResourceConfig)
 	fake.createResourceMutex.Unlock()
 	if fake.CreateResourceStub != nil {
 		return fake.CreateResourceStub(name, config)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createResourceReturns.result1, fake.createResourceReturns.result2
 }
@@ -192,8 +268,23 @@ func (fake *FakePipeline) CreateResourceReturns(result1 *dbng.Resource, result2 
 	}{result1, result2}
 }
 
+func (fake *FakePipeline) CreateResourceReturnsOnCall(i int, result1 *dbng.Resource, result2 error) {
+	fake.CreateResourceStub = nil
+	if fake.createResourceReturnsOnCall == nil {
+		fake.createResourceReturnsOnCall = make(map[int]struct {
+			result1 *dbng.Resource
+			result2 error
+		})
+	}
+	fake.createResourceReturnsOnCall[i] = struct {
+		result1 *dbng.Resource
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakePipeline) AcquireResourceCheckingLock(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.ResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error) {
 	fake.acquireResourceCheckingLockMutex.Lock()
+	ret, specificReturn := fake.acquireResourceCheckingLockReturnsOnCall[len(fake.acquireResourceCheckingLockArgsForCall)]
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
 		logger        lager.Logger
 		resource      *dbng.Resource
@@ -205,6 +296,9 @@ func (fake *FakePipeline) AcquireResourceCheckingLock(logger lager.Logger, resou
 	fake.acquireResourceCheckingLockMutex.Unlock()
 	if fake.AcquireResourceCheckingLockStub != nil {
 		return fake.AcquireResourceCheckingLockStub(logger, resource, resourceTypes, length, immediate)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.acquireResourceCheckingLockReturns.result1, fake.acquireResourceCheckingLockReturns.result2, fake.acquireResourceCheckingLockReturns.result3
 }
@@ -230,13 +324,33 @@ func (fake *FakePipeline) AcquireResourceCheckingLockReturns(result1 lock.Lock, 
 	}{result1, result2, result3}
 }
 
+func (fake *FakePipeline) AcquireResourceCheckingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireResourceCheckingLockStub = nil
+	if fake.acquireResourceCheckingLockReturnsOnCall == nil {
+		fake.acquireResourceCheckingLockReturnsOnCall = make(map[int]struct {
+			result1 lock.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.acquireResourceCheckingLockReturnsOnCall[i] = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakePipeline) Destroy() error {
 	fake.destroyMutex.Lock()
+	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
 	fake.recordInvocation("Destroy", []interface{}{})
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
 		return fake.DestroyStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.destroyReturns.result1
 }
@@ -250,6 +364,18 @@ func (fake *FakePipeline) DestroyCallCount() int {
 func (fake *FakePipeline) DestroyReturns(result1 error) {
 	fake.DestroyStub = nil
 	fake.destroyReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) DestroyReturnsOnCall(i int, result1 error) {
+	fake.DestroyStub = nil
+	if fake.destroyReturnsOnCall == nil {
+		fake.destroyReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.destroyReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

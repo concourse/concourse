@@ -15,10 +15,16 @@ type FakeInputSource struct {
 	nameReturns     struct {
 		result1 worker.ArtifactName
 	}
+	nameReturnsOnCall map[int]struct {
+		result1 worker.ArtifactName
+	}
 	SourceStub        func() worker.ArtifactSource
 	sourceMutex       sync.RWMutex
 	sourceArgsForCall []struct{}
 	sourceReturns     struct {
+		result1 worker.ArtifactSource
+	}
+	sourceReturnsOnCall map[int]struct {
 		result1 worker.ArtifactSource
 	}
 	MountPathStub        func() string
@@ -27,17 +33,24 @@ type FakeInputSource struct {
 	mountPathReturns     struct {
 		result1 string
 	}
+	mountPathReturnsOnCall map[int]struct {
+		result1 string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeInputSource) Name() worker.ArtifactName {
 	fake.nameMutex.Lock()
+	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
 	if fake.NameStub != nil {
 		return fake.NameStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.nameReturns.result1
 }
@@ -55,13 +68,29 @@ func (fake *FakeInputSource) NameReturns(result1 worker.ArtifactName) {
 	}{result1}
 }
 
+func (fake *FakeInputSource) NameReturnsOnCall(i int, result1 worker.ArtifactName) {
+	fake.NameStub = nil
+	if fake.nameReturnsOnCall == nil {
+		fake.nameReturnsOnCall = make(map[int]struct {
+			result1 worker.ArtifactName
+		})
+	}
+	fake.nameReturnsOnCall[i] = struct {
+		result1 worker.ArtifactName
+	}{result1}
+}
+
 func (fake *FakeInputSource) Source() worker.ArtifactSource {
 	fake.sourceMutex.Lock()
+	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
 	fake.sourceArgsForCall = append(fake.sourceArgsForCall, struct{}{})
 	fake.recordInvocation("Source", []interface{}{})
 	fake.sourceMutex.Unlock()
 	if fake.SourceStub != nil {
 		return fake.SourceStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.sourceReturns.result1
 }
@@ -79,13 +108,29 @@ func (fake *FakeInputSource) SourceReturns(result1 worker.ArtifactSource) {
 	}{result1}
 }
 
+func (fake *FakeInputSource) SourceReturnsOnCall(i int, result1 worker.ArtifactSource) {
+	fake.SourceStub = nil
+	if fake.sourceReturnsOnCall == nil {
+		fake.sourceReturnsOnCall = make(map[int]struct {
+			result1 worker.ArtifactSource
+		})
+	}
+	fake.sourceReturnsOnCall[i] = struct {
+		result1 worker.ArtifactSource
+	}{result1}
+}
+
 func (fake *FakeInputSource) MountPath() string {
 	fake.mountPathMutex.Lock()
+	ret, specificReturn := fake.mountPathReturnsOnCall[len(fake.mountPathArgsForCall)]
 	fake.mountPathArgsForCall = append(fake.mountPathArgsForCall, struct{}{})
 	fake.recordInvocation("MountPath", []interface{}{})
 	fake.mountPathMutex.Unlock()
 	if fake.MountPathStub != nil {
 		return fake.MountPathStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.mountPathReturns.result1
 }
@@ -99,6 +144,18 @@ func (fake *FakeInputSource) MountPathCallCount() int {
 func (fake *FakeInputSource) MountPathReturns(result1 string) {
 	fake.MountPathStub = nil
 	fake.mountPathReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeInputSource) MountPathReturnsOnCall(i int, result1 string) {
+	fake.MountPathStub = nil
+	if fake.mountPathReturnsOnCall == nil {
+		fake.mountPathReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.mountPathReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
 }

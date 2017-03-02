@@ -21,12 +21,17 @@ type FakeSaveWorkerDB struct {
 		result1 dbng.Worker
 		result2 error
 	}
+	saveWorkerReturnsOnCall map[int]struct {
+		result1 dbng.Worker
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeSaveWorkerDB) SaveWorker(arg1 atc.Worker, arg2 time.Duration) (dbng.Worker, error) {
 	fake.saveWorkerMutex.Lock()
+	ret, specificReturn := fake.saveWorkerReturnsOnCall[len(fake.saveWorkerArgsForCall)]
 	fake.saveWorkerArgsForCall = append(fake.saveWorkerArgsForCall, struct {
 		arg1 atc.Worker
 		arg2 time.Duration
@@ -35,6 +40,9 @@ func (fake *FakeSaveWorkerDB) SaveWorker(arg1 atc.Worker, arg2 time.Duration) (d
 	fake.saveWorkerMutex.Unlock()
 	if fake.SaveWorkerStub != nil {
 		return fake.SaveWorkerStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 }
@@ -54,6 +62,20 @@ func (fake *FakeSaveWorkerDB) SaveWorkerArgsForCall(i int) (atc.Worker, time.Dur
 func (fake *FakeSaveWorkerDB) SaveWorkerReturns(result1 dbng.Worker, result2 error) {
 	fake.SaveWorkerStub = nil
 	fake.saveWorkerReturns = struct {
+		result1 dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeSaveWorkerDB) SaveWorkerReturnsOnCall(i int, result1 dbng.Worker, result2 error) {
+	fake.SaveWorkerStub = nil
+	if fake.saveWorkerReturnsOnCall == nil {
+		fake.saveWorkerReturnsOnCall = make(map[int]struct {
+			result1 dbng.Worker
+			result2 error
+		})
+	}
+	fake.saveWorkerReturnsOnCall[i] = struct {
 		result1 dbng.Worker
 		result2 error
 	}{result1, result2}

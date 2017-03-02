@@ -19,6 +19,9 @@ type FakePipeDB struct {
 	createPipeReturns struct {
 		result1 error
 	}
+	createPipeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	GetPipeStub        func(pipeGUID string) (db.Pipe, error)
 	getPipeMutex       sync.RWMutex
 	getPipeArgsForCall []struct {
@@ -28,12 +31,17 @@ type FakePipeDB struct {
 		result1 db.Pipe
 		result2 error
 	}
+	getPipeReturnsOnCall map[int]struct {
+		result1 db.Pipe
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakePipeDB) CreatePipe(pipeGUID string, url string, teamName string) error {
 	fake.createPipeMutex.Lock()
+	ret, specificReturn := fake.createPipeReturnsOnCall[len(fake.createPipeArgsForCall)]
 	fake.createPipeArgsForCall = append(fake.createPipeArgsForCall, struct {
 		pipeGUID string
 		url      string
@@ -43,6 +51,9 @@ func (fake *FakePipeDB) CreatePipe(pipeGUID string, url string, teamName string)
 	fake.createPipeMutex.Unlock()
 	if fake.CreatePipeStub != nil {
 		return fake.CreatePipeStub(pipeGUID, url, teamName)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.createPipeReturns.result1
 }
@@ -66,8 +77,21 @@ func (fake *FakePipeDB) CreatePipeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakePipeDB) CreatePipeReturnsOnCall(i int, result1 error) {
+	fake.CreatePipeStub = nil
+	if fake.createPipeReturnsOnCall == nil {
+		fake.createPipeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.createPipeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakePipeDB) GetPipe(pipeGUID string) (db.Pipe, error) {
 	fake.getPipeMutex.Lock()
+	ret, specificReturn := fake.getPipeReturnsOnCall[len(fake.getPipeArgsForCall)]
 	fake.getPipeArgsForCall = append(fake.getPipeArgsForCall, struct {
 		pipeGUID string
 	}{pipeGUID})
@@ -75,6 +99,9 @@ func (fake *FakePipeDB) GetPipe(pipeGUID string) (db.Pipe, error) {
 	fake.getPipeMutex.Unlock()
 	if fake.GetPipeStub != nil {
 		return fake.GetPipeStub(pipeGUID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.getPipeReturns.result1, fake.getPipeReturns.result2
 }
@@ -94,6 +121,20 @@ func (fake *FakePipeDB) GetPipeArgsForCall(i int) string {
 func (fake *FakePipeDB) GetPipeReturns(result1 db.Pipe, result2 error) {
 	fake.GetPipeStub = nil
 	fake.getPipeReturns = struct {
+		result1 db.Pipe
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeDB) GetPipeReturnsOnCall(i int, result1 db.Pipe, result2 error) {
+	fake.GetPipeStub = nil
+	if fake.getPipeReturnsOnCall == nil {
+		fake.getPipeReturnsOnCall = make(map[int]struct {
+			result1 db.Pipe
+			result2 error
+		})
+	}
+	fake.getPipeReturnsOnCall[i] = struct {
 		result1 db.Pipe
 		result2 error
 	}{result1, result2}

@@ -16,6 +16,10 @@ type FakeBuildReaperDB struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}
+	getAllPipelinesReturnsOnCall map[int]struct {
+		result1 []db.SavedPipeline
+		result2 error
+	}
 	DeleteBuildEventsByBuildIDsStub        func(buildIDs []int) error
 	deleteBuildEventsByBuildIDsMutex       sync.RWMutex
 	deleteBuildEventsByBuildIDsArgsForCall []struct {
@@ -24,17 +28,24 @@ type FakeBuildReaperDB struct {
 	deleteBuildEventsByBuildIDsReturns struct {
 		result1 error
 	}
+	deleteBuildEventsByBuildIDsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeBuildReaperDB) GetAllPipelines() ([]db.SavedPipeline, error) {
 	fake.getAllPipelinesMutex.Lock()
+	ret, specificReturn := fake.getAllPipelinesReturnsOnCall[len(fake.getAllPipelinesArgsForCall)]
 	fake.getAllPipelinesArgsForCall = append(fake.getAllPipelinesArgsForCall, struct{}{})
 	fake.recordInvocation("GetAllPipelines", []interface{}{})
 	fake.getAllPipelinesMutex.Unlock()
 	if fake.GetAllPipelinesStub != nil {
 		return fake.GetAllPipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
 }
@@ -53,6 +64,20 @@ func (fake *FakeBuildReaperDB) GetAllPipelinesReturns(result1 []db.SavedPipeline
 	}{result1, result2}
 }
 
+func (fake *FakeBuildReaperDB) GetAllPipelinesReturnsOnCall(i int, result1 []db.SavedPipeline, result2 error) {
+	fake.GetAllPipelinesStub = nil
+	if fake.getAllPipelinesReturnsOnCall == nil {
+		fake.getAllPipelinesReturnsOnCall = make(map[int]struct {
+			result1 []db.SavedPipeline
+			result2 error
+		})
+	}
+	fake.getAllPipelinesReturnsOnCall[i] = struct {
+		result1 []db.SavedPipeline
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuildReaperDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 	var buildIDsCopy []int
 	if buildIDs != nil {
@@ -60,6 +85,7 @@ func (fake *FakeBuildReaperDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error
 		copy(buildIDsCopy, buildIDs)
 	}
 	fake.deleteBuildEventsByBuildIDsMutex.Lock()
+	ret, specificReturn := fake.deleteBuildEventsByBuildIDsReturnsOnCall[len(fake.deleteBuildEventsByBuildIDsArgsForCall)]
 	fake.deleteBuildEventsByBuildIDsArgsForCall = append(fake.deleteBuildEventsByBuildIDsArgsForCall, struct {
 		buildIDs []int
 	}{buildIDsCopy})
@@ -67,6 +93,9 @@ func (fake *FakeBuildReaperDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error
 	fake.deleteBuildEventsByBuildIDsMutex.Unlock()
 	if fake.DeleteBuildEventsByBuildIDsStub != nil {
 		return fake.DeleteBuildEventsByBuildIDsStub(buildIDs)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.deleteBuildEventsByBuildIDsReturns.result1
 }
@@ -86,6 +115,18 @@ func (fake *FakeBuildReaperDB) DeleteBuildEventsByBuildIDsArgsForCall(i int) []i
 func (fake *FakeBuildReaperDB) DeleteBuildEventsByBuildIDsReturns(result1 error) {
 	fake.DeleteBuildEventsByBuildIDsStub = nil
 	fake.deleteBuildEventsByBuildIDsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildReaperDB) DeleteBuildEventsByBuildIDsReturnsOnCall(i int, result1 error) {
+	fake.DeleteBuildEventsByBuildIDsStub = nil
+	if fake.deleteBuildEventsByBuildIDsReturnsOnCall == nil {
+		fake.deleteBuildEventsByBuildIDsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteBuildEventsByBuildIDsReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

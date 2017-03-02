@@ -29,6 +29,11 @@ type FakeResourceFactory struct {
 		result2 []resource.InputSource
 		result3 error
 	}
+	newBuildResourceReturnsOnCall map[int]struct {
+		result1 resource.Resource
+		result2 []resource.InputSource
+		result3 error
+	}
 	NewCheckResourceStub        func(logger lager.Logger, resourceUser dbng.ResourceUser, id worker.Identifier, metadata worker.Metadata, resourceSpec worker.ContainerSpec, resourceTypes atc.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, resourceConfig atc.ResourceConfig) (resource.Resource, error)
 	newCheckResourceMutex       sync.RWMutex
 	newCheckResourceArgsForCall []struct {
@@ -45,6 +50,10 @@ type FakeResourceFactory struct {
 		result1 resource.Resource
 		result2 error
 	}
+	newCheckResourceReturnsOnCall map[int]struct {
+		result1 resource.Resource
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -56,6 +65,7 @@ func (fake *FakeResourceFactory) NewBuildResource(logger lager.Logger, id worker
 		copy(inputSourcesCopy, inputSources)
 	}
 	fake.newBuildResourceMutex.Lock()
+	ret, specificReturn := fake.newBuildResourceReturnsOnCall[len(fake.newBuildResourceArgsForCall)]
 	fake.newBuildResourceArgsForCall = append(fake.newBuildResourceArgsForCall, struct {
 		logger                lager.Logger
 		id                    worker.Identifier
@@ -70,6 +80,9 @@ func (fake *FakeResourceFactory) NewBuildResource(logger lager.Logger, id worker
 	fake.newBuildResourceMutex.Unlock()
 	if fake.NewBuildResourceStub != nil {
 		return fake.NewBuildResourceStub(logger, id, metadata, containerSpec, resourceTypes, imageFetchingDelegate, inputSources, outputPaths)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.newBuildResourceReturns.result1, fake.newBuildResourceReturns.result2, fake.newBuildResourceReturns.result3
 }
@@ -95,8 +108,25 @@ func (fake *FakeResourceFactory) NewBuildResourceReturns(result1 resource.Resour
 	}{result1, result2, result3}
 }
 
+func (fake *FakeResourceFactory) NewBuildResourceReturnsOnCall(i int, result1 resource.Resource, result2 []resource.InputSource, result3 error) {
+	fake.NewBuildResourceStub = nil
+	if fake.newBuildResourceReturnsOnCall == nil {
+		fake.newBuildResourceReturnsOnCall = make(map[int]struct {
+			result1 resource.Resource
+			result2 []resource.InputSource
+			result3 error
+		})
+	}
+	fake.newBuildResourceReturnsOnCall[i] = struct {
+		result1 resource.Resource
+		result2 []resource.InputSource
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, resourceUser dbng.ResourceUser, id worker.Identifier, metadata worker.Metadata, resourceSpec worker.ContainerSpec, resourceTypes atc.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, resourceConfig atc.ResourceConfig) (resource.Resource, error) {
 	fake.newCheckResourceMutex.Lock()
+	ret, specificReturn := fake.newCheckResourceReturnsOnCall[len(fake.newCheckResourceArgsForCall)]
 	fake.newCheckResourceArgsForCall = append(fake.newCheckResourceArgsForCall, struct {
 		logger                lager.Logger
 		resourceUser          dbng.ResourceUser
@@ -111,6 +141,9 @@ func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, resourceU
 	fake.newCheckResourceMutex.Unlock()
 	if fake.NewCheckResourceStub != nil {
 		return fake.NewCheckResourceStub(logger, resourceUser, id, metadata, resourceSpec, resourceTypes, imageFetchingDelegate, resourceConfig)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.newCheckResourceReturns.result1, fake.newCheckResourceReturns.result2
 }
@@ -130,6 +163,20 @@ func (fake *FakeResourceFactory) NewCheckResourceArgsForCall(i int) (lager.Logge
 func (fake *FakeResourceFactory) NewCheckResourceReturns(result1 resource.Resource, result2 error) {
 	fake.NewCheckResourceStub = nil
 	fake.newCheckResourceReturns = struct {
+		result1 resource.Resource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceFactory) NewCheckResourceReturnsOnCall(i int, result1 resource.Resource, result2 error) {
+	fake.NewCheckResourceStub = nil
+	if fake.newCheckResourceReturnsOnCall == nil {
+		fake.newCheckResourceReturnsOnCall = make(map[int]struct {
+			result1 resource.Resource
+			result2 error
+		})
+	}
+	fake.newCheckResourceReturnsOnCall[i] = struct {
 		result1 resource.Resource
 		result2 error
 	}{result1, result2}

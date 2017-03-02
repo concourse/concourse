@@ -21,6 +21,10 @@ type FakeVolumeClient struct {
 		result1 worker.Volume
 		result2 error
 	}
+	createVolumeForResourceCacheReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 error
+	}
 	FindOrCreateVolumeForContainerStub        func(lager.Logger, worker.VolumeSpec, dbng.CreatingContainer, int, string) (worker.Volume, error)
 	findOrCreateVolumeForContainerMutex       sync.RWMutex
 	findOrCreateVolumeForContainerArgsForCall []struct {
@@ -31,6 +35,10 @@ type FakeVolumeClient struct {
 		arg5 string
 	}
 	findOrCreateVolumeForContainerReturns struct {
+		result1 worker.Volume
+		result2 error
+	}
+	findOrCreateVolumeForContainerReturnsOnCall map[int]struct {
 		result1 worker.Volume
 		result2 error
 	}
@@ -46,6 +54,10 @@ type FakeVolumeClient struct {
 		result1 worker.Volume
 		result2 error
 	}
+	findOrCreateVolumeForBaseResourceTypeReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 error
+	}
 	FindInitializedVolumeForResourceCacheStub        func(lager.Logger, *dbng.UsedResourceCache) (worker.Volume, bool, error)
 	findInitializedVolumeForResourceCacheMutex       sync.RWMutex
 	findInitializedVolumeForResourceCacheArgsForCall []struct {
@@ -53,6 +65,11 @@ type FakeVolumeClient struct {
 		arg2 *dbng.UsedResourceCache
 	}
 	findInitializedVolumeForResourceCacheReturns struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
+	findInitializedVolumeForResourceCacheReturnsOnCall map[int]struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error
@@ -68,12 +85,18 @@ type FakeVolumeClient struct {
 		result2 bool
 		result3 error
 	}
+	lookupVolumeReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeVolumeClient) CreateVolumeForResourceCache(arg1 lager.Logger, arg2 worker.VolumeSpec, arg3 *dbng.UsedResourceCache) (worker.Volume, error) {
 	fake.createVolumeForResourceCacheMutex.Lock()
+	ret, specificReturn := fake.createVolumeForResourceCacheReturnsOnCall[len(fake.createVolumeForResourceCacheArgsForCall)]
 	fake.createVolumeForResourceCacheArgsForCall = append(fake.createVolumeForResourceCacheArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.VolumeSpec
@@ -83,6 +106,9 @@ func (fake *FakeVolumeClient) CreateVolumeForResourceCache(arg1 lager.Logger, ar
 	fake.createVolumeForResourceCacheMutex.Unlock()
 	if fake.CreateVolumeForResourceCacheStub != nil {
 		return fake.CreateVolumeForResourceCacheStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createVolumeForResourceCacheReturns.result1, fake.createVolumeForResourceCacheReturns.result2
 }
@@ -107,8 +133,23 @@ func (fake *FakeVolumeClient) CreateVolumeForResourceCacheReturns(result1 worker
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeClient) CreateVolumeForResourceCacheReturnsOnCall(i int, result1 worker.Volume, result2 error) {
+	fake.CreateVolumeForResourceCacheStub = nil
+	if fake.createVolumeForResourceCacheReturnsOnCall == nil {
+		fake.createVolumeForResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 error
+		})
+	}
+	fake.createVolumeForResourceCacheReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeClient) FindOrCreateVolumeForContainer(arg1 lager.Logger, arg2 worker.VolumeSpec, arg3 dbng.CreatingContainer, arg4 int, arg5 string) (worker.Volume, error) {
 	fake.findOrCreateVolumeForContainerMutex.Lock()
+	ret, specificReturn := fake.findOrCreateVolumeForContainerReturnsOnCall[len(fake.findOrCreateVolumeForContainerArgsForCall)]
 	fake.findOrCreateVolumeForContainerArgsForCall = append(fake.findOrCreateVolumeForContainerArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.VolumeSpec
@@ -120,6 +161,9 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForContainer(arg1 lager.Logger, 
 	fake.findOrCreateVolumeForContainerMutex.Unlock()
 	if fake.FindOrCreateVolumeForContainerStub != nil {
 		return fake.FindOrCreateVolumeForContainerStub(arg1, arg2, arg3, arg4, arg5)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.findOrCreateVolumeForContainerReturns.result1, fake.findOrCreateVolumeForContainerReturns.result2
 }
@@ -144,8 +188,23 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForContainerReturns(result1 work
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeClient) FindOrCreateVolumeForContainerReturnsOnCall(i int, result1 worker.Volume, result2 error) {
+	fake.FindOrCreateVolumeForContainerStub = nil
+	if fake.findOrCreateVolumeForContainerReturnsOnCall == nil {
+		fake.findOrCreateVolumeForContainerReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 error
+		})
+	}
+	fake.findOrCreateVolumeForContainerReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeClient) FindOrCreateVolumeForBaseResourceType(arg1 lager.Logger, arg2 worker.VolumeSpec, arg3 int, arg4 string) (worker.Volume, error) {
 	fake.findOrCreateVolumeForBaseResourceTypeMutex.Lock()
+	ret, specificReturn := fake.findOrCreateVolumeForBaseResourceTypeReturnsOnCall[len(fake.findOrCreateVolumeForBaseResourceTypeArgsForCall)]
 	fake.findOrCreateVolumeForBaseResourceTypeArgsForCall = append(fake.findOrCreateVolumeForBaseResourceTypeArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.VolumeSpec
@@ -156,6 +215,9 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForBaseResourceType(arg1 lager.L
 	fake.findOrCreateVolumeForBaseResourceTypeMutex.Unlock()
 	if fake.FindOrCreateVolumeForBaseResourceTypeStub != nil {
 		return fake.FindOrCreateVolumeForBaseResourceTypeStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.findOrCreateVolumeForBaseResourceTypeReturns.result1, fake.findOrCreateVolumeForBaseResourceTypeReturns.result2
 }
@@ -180,8 +242,23 @@ func (fake *FakeVolumeClient) FindOrCreateVolumeForBaseResourceTypeReturns(resul
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeClient) FindOrCreateVolumeForBaseResourceTypeReturnsOnCall(i int, result1 worker.Volume, result2 error) {
+	fake.FindOrCreateVolumeForBaseResourceTypeStub = nil
+	if fake.findOrCreateVolumeForBaseResourceTypeReturnsOnCall == nil {
+		fake.findOrCreateVolumeForBaseResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 error
+		})
+	}
+	fake.findOrCreateVolumeForBaseResourceTypeReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCache(arg1 lager.Logger, arg2 *dbng.UsedResourceCache) (worker.Volume, bool, error) {
 	fake.findInitializedVolumeForResourceCacheMutex.Lock()
+	ret, specificReturn := fake.findInitializedVolumeForResourceCacheReturnsOnCall[len(fake.findInitializedVolumeForResourceCacheArgsForCall)]
 	fake.findInitializedVolumeForResourceCacheArgsForCall = append(fake.findInitializedVolumeForResourceCacheArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 *dbng.UsedResourceCache
@@ -190,6 +267,9 @@ func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCache(arg1 lager.L
 	fake.findInitializedVolumeForResourceCacheMutex.Unlock()
 	if fake.FindInitializedVolumeForResourceCacheStub != nil {
 		return fake.FindInitializedVolumeForResourceCacheStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findInitializedVolumeForResourceCacheReturns.result1, fake.findInitializedVolumeForResourceCacheReturns.result2, fake.findInitializedVolumeForResourceCacheReturns.result3
 }
@@ -215,8 +295,25 @@ func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCacheReturns(resul
 	}{result1, result2, result3}
 }
 
+func (fake *FakeVolumeClient) FindInitializedVolumeForResourceCacheReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.FindInitializedVolumeForResourceCacheStub = nil
+	if fake.findInitializedVolumeForResourceCacheReturnsOnCall == nil {
+		fake.findInitializedVolumeForResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findInitializedVolumeForResourceCacheReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeVolumeClient) LookupVolume(arg1 lager.Logger, arg2 string) (worker.Volume, bool, error) {
 	fake.lookupVolumeMutex.Lock()
+	ret, specificReturn := fake.lookupVolumeReturnsOnCall[len(fake.lookupVolumeArgsForCall)]
 	fake.lookupVolumeArgsForCall = append(fake.lookupVolumeArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
@@ -225,6 +322,9 @@ func (fake *FakeVolumeClient) LookupVolume(arg1 lager.Logger, arg2 string) (work
 	fake.lookupVolumeMutex.Unlock()
 	if fake.LookupVolumeStub != nil {
 		return fake.LookupVolumeStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.lookupVolumeReturns.result1, fake.lookupVolumeReturns.result2, fake.lookupVolumeReturns.result3
 }
@@ -244,6 +344,22 @@ func (fake *FakeVolumeClient) LookupVolumeArgsForCall(i int) (lager.Logger, stri
 func (fake *FakeVolumeClient) LookupVolumeReturns(result1 worker.Volume, result2 bool, result3 error) {
 	fake.LookupVolumeStub = nil
 	fake.lookupVolumeReturns = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeVolumeClient) LookupVolumeReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.LookupVolumeStub = nil
+	if fake.lookupVolumeReturnsOnCall == nil {
+		fake.lookupVolumeReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.lookupVolumeReturnsOnCall[i] = struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error

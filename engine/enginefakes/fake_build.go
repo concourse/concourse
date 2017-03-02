@@ -16,6 +16,9 @@ type FakeBuild struct {
 	metadataReturns     struct {
 		result1 string
 	}
+	metadataReturnsOnCall map[int]struct {
+		result1 string
+	}
 	PublicPlanStub        func(lager.Logger) (atc.PublicBuildPlan, error)
 	publicPlanMutex       sync.RWMutex
 	publicPlanArgsForCall []struct {
@@ -25,12 +28,19 @@ type FakeBuild struct {
 		result1 atc.PublicBuildPlan
 		result2 error
 	}
+	publicPlanReturnsOnCall map[int]struct {
+		result1 atc.PublicBuildPlan
+		result2 error
+	}
 	AbortStub        func(lager.Logger) error
 	abortMutex       sync.RWMutex
 	abortArgsForCall []struct {
 		arg1 lager.Logger
 	}
 	abortReturns struct {
+		result1 error
+	}
+	abortReturnsOnCall map[int]struct {
 		result1 error
 	}
 	ResumeStub        func(lager.Logger)
@@ -44,11 +54,15 @@ type FakeBuild struct {
 
 func (fake *FakeBuild) Metadata() string {
 	fake.metadataMutex.Lock()
+	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
 	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct{}{})
 	fake.recordInvocation("Metadata", []interface{}{})
 	fake.metadataMutex.Unlock()
 	if fake.MetadataStub != nil {
 		return fake.MetadataStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.metadataReturns.result1
 }
@@ -66,8 +80,21 @@ func (fake *FakeBuild) MetadataReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) MetadataReturnsOnCall(i int, result1 string) {
+	fake.MetadataStub = nil
+	if fake.metadataReturnsOnCall == nil {
+		fake.metadataReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.metadataReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuild) PublicPlan(arg1 lager.Logger) (atc.PublicBuildPlan, error) {
 	fake.publicPlanMutex.Lock()
+	ret, specificReturn := fake.publicPlanReturnsOnCall[len(fake.publicPlanArgsForCall)]
 	fake.publicPlanArgsForCall = append(fake.publicPlanArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
@@ -75,6 +102,9 @@ func (fake *FakeBuild) PublicPlan(arg1 lager.Logger) (atc.PublicBuildPlan, error
 	fake.publicPlanMutex.Unlock()
 	if fake.PublicPlanStub != nil {
 		return fake.PublicPlanStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.publicPlanReturns.result1, fake.publicPlanReturns.result2
 }
@@ -99,8 +129,23 @@ func (fake *FakeBuild) PublicPlanReturns(result1 atc.PublicBuildPlan, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeBuild) PublicPlanReturnsOnCall(i int, result1 atc.PublicBuildPlan, result2 error) {
+	fake.PublicPlanStub = nil
+	if fake.publicPlanReturnsOnCall == nil {
+		fake.publicPlanReturnsOnCall = make(map[int]struct {
+			result1 atc.PublicBuildPlan
+			result2 error
+		})
+	}
+	fake.publicPlanReturnsOnCall[i] = struct {
+		result1 atc.PublicBuildPlan
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuild) Abort(arg1 lager.Logger) error {
 	fake.abortMutex.Lock()
+	ret, specificReturn := fake.abortReturnsOnCall[len(fake.abortArgsForCall)]
 	fake.abortArgsForCall = append(fake.abortArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
@@ -108,6 +153,9 @@ func (fake *FakeBuild) Abort(arg1 lager.Logger) error {
 	fake.abortMutex.Unlock()
 	if fake.AbortStub != nil {
 		return fake.AbortStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.abortReturns.result1
 }
@@ -127,6 +175,18 @@ func (fake *FakeBuild) AbortArgsForCall(i int) lager.Logger {
 func (fake *FakeBuild) AbortReturns(result1 error) {
 	fake.AbortStub = nil
 	fake.abortReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) AbortReturnsOnCall(i int, result1 error) {
+	fake.AbortStub = nil
+	if fake.abortReturnsOnCall == nil {
+		fake.abortReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.abortReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

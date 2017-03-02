@@ -15,10 +15,18 @@ type FakeWorkerLifecycle struct {
 		result1 []string
 		result2 error
 	}
+	stallUnresponsiveWorkersReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
 	LandFinishedLandingWorkersStub        func() ([]string, error)
 	landFinishedLandingWorkersMutex       sync.RWMutex
 	landFinishedLandingWorkersArgsForCall []struct{}
 	landFinishedLandingWorkersReturns     struct {
+		result1 []string
+		result2 error
+	}
+	landFinishedLandingWorkersReturnsOnCall map[int]struct {
 		result1 []string
 		result2 error
 	}
@@ -29,17 +37,25 @@ type FakeWorkerLifecycle struct {
 		result1 []string
 		result2 error
 	}
+	deleteFinishedRetiringWorkersReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkers() ([]string, error) {
 	fake.stallUnresponsiveWorkersMutex.Lock()
+	ret, specificReturn := fake.stallUnresponsiveWorkersReturnsOnCall[len(fake.stallUnresponsiveWorkersArgsForCall)]
 	fake.stallUnresponsiveWorkersArgsForCall = append(fake.stallUnresponsiveWorkersArgsForCall, struct{}{})
 	fake.recordInvocation("StallUnresponsiveWorkers", []interface{}{})
 	fake.stallUnresponsiveWorkersMutex.Unlock()
 	if fake.StallUnresponsiveWorkersStub != nil {
 		return fake.StallUnresponsiveWorkersStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.stallUnresponsiveWorkersReturns.result1, fake.stallUnresponsiveWorkersReturns.result2
 }
@@ -58,13 +74,31 @@ func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkersReturns(result1 []strin
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.StallUnresponsiveWorkersStub = nil
+	if fake.stallUnresponsiveWorkersReturnsOnCall == nil {
+		fake.stallUnresponsiveWorkersReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.stallUnresponsiveWorkersReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerLifecycle) LandFinishedLandingWorkers() ([]string, error) {
 	fake.landFinishedLandingWorkersMutex.Lock()
+	ret, specificReturn := fake.landFinishedLandingWorkersReturnsOnCall[len(fake.landFinishedLandingWorkersArgsForCall)]
 	fake.landFinishedLandingWorkersArgsForCall = append(fake.landFinishedLandingWorkersArgsForCall, struct{}{})
 	fake.recordInvocation("LandFinishedLandingWorkers", []interface{}{})
 	fake.landFinishedLandingWorkersMutex.Unlock()
 	if fake.LandFinishedLandingWorkersStub != nil {
 		return fake.LandFinishedLandingWorkersStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.landFinishedLandingWorkersReturns.result1, fake.landFinishedLandingWorkersReturns.result2
 }
@@ -83,13 +117,31 @@ func (fake *FakeWorkerLifecycle) LandFinishedLandingWorkersReturns(result1 []str
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerLifecycle) LandFinishedLandingWorkersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.LandFinishedLandingWorkersStub = nil
+	if fake.landFinishedLandingWorkersReturnsOnCall == nil {
+		fake.landFinishedLandingWorkersReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.landFinishedLandingWorkersReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkers() ([]string, error) {
 	fake.deleteFinishedRetiringWorkersMutex.Lock()
+	ret, specificReturn := fake.deleteFinishedRetiringWorkersReturnsOnCall[len(fake.deleteFinishedRetiringWorkersArgsForCall)]
 	fake.deleteFinishedRetiringWorkersArgsForCall = append(fake.deleteFinishedRetiringWorkersArgsForCall, struct{}{})
 	fake.recordInvocation("DeleteFinishedRetiringWorkers", []interface{}{})
 	fake.deleteFinishedRetiringWorkersMutex.Unlock()
 	if fake.DeleteFinishedRetiringWorkersStub != nil {
 		return fake.DeleteFinishedRetiringWorkersStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.deleteFinishedRetiringWorkersReturns.result1, fake.deleteFinishedRetiringWorkersReturns.result2
 }
@@ -103,6 +155,20 @@ func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkersCallCount() int {
 func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkersReturns(result1 []string, result2 error) {
 	fake.DeleteFinishedRetiringWorkersStub = nil
 	fake.deleteFinishedRetiringWorkersReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.DeleteFinishedRetiringWorkersStub = nil
+	if fake.deleteFinishedRetiringWorkersReturnsOnCall == nil {
+		fake.deleteFinishedRetiringWorkersReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.deleteFinishedRetiringWorkersReturnsOnCall[i] = struct {
 		result1 []string
 		result2 error
 	}{result1, result2}

@@ -24,10 +24,17 @@ type FakeResourceConfigFactory struct {
 		result1 *dbng.UsedResourceConfig
 		result2 error
 	}
+	findOrCreateResourceConfigReturnsOnCall map[int]struct {
+		result1 *dbng.UsedResourceConfig
+		result2 error
+	}
 	CleanConfigUsesForFinishedBuildsStub        func() error
 	cleanConfigUsesForFinishedBuildsMutex       sync.RWMutex
 	cleanConfigUsesForFinishedBuildsArgsForCall []struct{}
 	cleanConfigUsesForFinishedBuildsReturns     struct {
+		result1 error
+	}
+	cleanConfigUsesForFinishedBuildsReturnsOnCall map[int]struct {
 		result1 error
 	}
 	CleanConfigUsesForInactiveResourceTypesStub        func() error
@@ -36,10 +43,16 @@ type FakeResourceConfigFactory struct {
 	cleanConfigUsesForInactiveResourceTypesReturns     struct {
 		result1 error
 	}
+	cleanConfigUsesForInactiveResourceTypesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CleanConfigUsesForInactiveResourcesStub        func() error
 	cleanConfigUsesForInactiveResourcesMutex       sync.RWMutex
 	cleanConfigUsesForInactiveResourcesArgsForCall []struct{}
 	cleanConfigUsesForInactiveResourcesReturns     struct {
+		result1 error
+	}
+	cleanConfigUsesForInactiveResourcesReturnsOnCall map[int]struct {
 		result1 error
 	}
 	CleanUselessConfigsStub        func() error
@@ -48,12 +61,16 @@ type FakeResourceConfigFactory struct {
 	cleanUselessConfigsReturns     struct {
 		result1 error
 	}
+	cleanUselessConfigsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfig(logger lager.Logger, user dbng.ResourceUser, resourceType string, source atc.Source, pipelineID int, resourceTypes atc.ResourceTypes) (*dbng.UsedResourceConfig, error) {
 	fake.findOrCreateResourceConfigMutex.Lock()
+	ret, specificReturn := fake.findOrCreateResourceConfigReturnsOnCall[len(fake.findOrCreateResourceConfigArgsForCall)]
 	fake.findOrCreateResourceConfigArgsForCall = append(fake.findOrCreateResourceConfigArgsForCall, struct {
 		logger        lager.Logger
 		user          dbng.ResourceUser
@@ -66,6 +83,9 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfig(logger lager.L
 	fake.findOrCreateResourceConfigMutex.Unlock()
 	if fake.FindOrCreateResourceConfigStub != nil {
 		return fake.FindOrCreateResourceConfigStub(logger, user, resourceType, source, pipelineID, resourceTypes)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.findOrCreateResourceConfigReturns.result1, fake.findOrCreateResourceConfigReturns.result2
 }
@@ -90,13 +110,31 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigReturns(result1
 	}{result1, result2}
 }
 
+func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigReturnsOnCall(i int, result1 *dbng.UsedResourceConfig, result2 error) {
+	fake.FindOrCreateResourceConfigStub = nil
+	if fake.findOrCreateResourceConfigReturnsOnCall == nil {
+		fake.findOrCreateResourceConfigReturnsOnCall = make(map[int]struct {
+			result1 *dbng.UsedResourceConfig
+			result2 error
+		})
+	}
+	fake.findOrCreateResourceConfigReturnsOnCall[i] = struct {
+		result1 *dbng.UsedResourceConfig
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResourceConfigFactory) CleanConfigUsesForFinishedBuilds() error {
 	fake.cleanConfigUsesForFinishedBuildsMutex.Lock()
+	ret, specificReturn := fake.cleanConfigUsesForFinishedBuildsReturnsOnCall[len(fake.cleanConfigUsesForFinishedBuildsArgsForCall)]
 	fake.cleanConfigUsesForFinishedBuildsArgsForCall = append(fake.cleanConfigUsesForFinishedBuildsArgsForCall, struct{}{})
 	fake.recordInvocation("CleanConfigUsesForFinishedBuilds", []interface{}{})
 	fake.cleanConfigUsesForFinishedBuildsMutex.Unlock()
 	if fake.CleanConfigUsesForFinishedBuildsStub != nil {
 		return fake.CleanConfigUsesForFinishedBuildsStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.cleanConfigUsesForFinishedBuildsReturns.result1
 }
@@ -114,13 +152,29 @@ func (fake *FakeResourceConfigFactory) CleanConfigUsesForFinishedBuildsReturns(r
 	}{result1}
 }
 
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForFinishedBuildsReturnsOnCall(i int, result1 error) {
+	fake.CleanConfigUsesForFinishedBuildsStub = nil
+	if fake.cleanConfigUsesForFinishedBuildsReturnsOnCall == nil {
+		fake.cleanConfigUsesForFinishedBuildsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanConfigUsesForFinishedBuildsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourceTypes() error {
 	fake.cleanConfigUsesForInactiveResourceTypesMutex.Lock()
+	ret, specificReturn := fake.cleanConfigUsesForInactiveResourceTypesReturnsOnCall[len(fake.cleanConfigUsesForInactiveResourceTypesArgsForCall)]
 	fake.cleanConfigUsesForInactiveResourceTypesArgsForCall = append(fake.cleanConfigUsesForInactiveResourceTypesArgsForCall, struct{}{})
 	fake.recordInvocation("CleanConfigUsesForInactiveResourceTypes", []interface{}{})
 	fake.cleanConfigUsesForInactiveResourceTypesMutex.Unlock()
 	if fake.CleanConfigUsesForInactiveResourceTypesStub != nil {
 		return fake.CleanConfigUsesForInactiveResourceTypesStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.cleanConfigUsesForInactiveResourceTypesReturns.result1
 }
@@ -138,13 +192,29 @@ func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourceTypesRe
 	}{result1}
 }
 
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourceTypesReturnsOnCall(i int, result1 error) {
+	fake.CleanConfigUsesForInactiveResourceTypesStub = nil
+	if fake.cleanConfigUsesForInactiveResourceTypesReturnsOnCall == nil {
+		fake.cleanConfigUsesForInactiveResourceTypesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanConfigUsesForInactiveResourceTypesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResources() error {
 	fake.cleanConfigUsesForInactiveResourcesMutex.Lock()
+	ret, specificReturn := fake.cleanConfigUsesForInactiveResourcesReturnsOnCall[len(fake.cleanConfigUsesForInactiveResourcesArgsForCall)]
 	fake.cleanConfigUsesForInactiveResourcesArgsForCall = append(fake.cleanConfigUsesForInactiveResourcesArgsForCall, struct{}{})
 	fake.recordInvocation("CleanConfigUsesForInactiveResources", []interface{}{})
 	fake.cleanConfigUsesForInactiveResourcesMutex.Unlock()
 	if fake.CleanConfigUsesForInactiveResourcesStub != nil {
 		return fake.CleanConfigUsesForInactiveResourcesStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.cleanConfigUsesForInactiveResourcesReturns.result1
 }
@@ -162,13 +232,29 @@ func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourcesReturn
 	}{result1}
 }
 
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourcesReturnsOnCall(i int, result1 error) {
+	fake.CleanConfigUsesForInactiveResourcesStub = nil
+	if fake.cleanConfigUsesForInactiveResourcesReturnsOnCall == nil {
+		fake.cleanConfigUsesForInactiveResourcesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanConfigUsesForInactiveResourcesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceConfigFactory) CleanUselessConfigs() error {
 	fake.cleanUselessConfigsMutex.Lock()
+	ret, specificReturn := fake.cleanUselessConfigsReturnsOnCall[len(fake.cleanUselessConfigsArgsForCall)]
 	fake.cleanUselessConfigsArgsForCall = append(fake.cleanUselessConfigsArgsForCall, struct{}{})
 	fake.recordInvocation("CleanUselessConfigs", []interface{}{})
 	fake.cleanUselessConfigsMutex.Unlock()
 	if fake.CleanUselessConfigsStub != nil {
 		return fake.CleanUselessConfigsStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.cleanUselessConfigsReturns.result1
 }
@@ -182,6 +268,18 @@ func (fake *FakeResourceConfigFactory) CleanUselessConfigsCallCount() int {
 func (fake *FakeResourceConfigFactory) CleanUselessConfigsReturns(result1 error) {
 	fake.CleanUselessConfigsStub = nil
 	fake.cleanUselessConfigsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfigFactory) CleanUselessConfigsReturnsOnCall(i int, result1 error) {
+	fake.CleanUselessConfigsStub = nil
+	if fake.cleanUselessConfigsReturnsOnCall == nil {
+		fake.cleanUselessConfigsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanUselessConfigsReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

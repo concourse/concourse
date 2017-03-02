@@ -17,12 +17,17 @@ type FakeATCListener struct {
 		result1 chan bool
 		result2 error
 	}
+	listenReturnsOnCall map[int]struct {
+		result1 chan bool
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeATCListener) Listen(channel string) (chan bool, error) {
 	fake.listenMutex.Lock()
+	ret, specificReturn := fake.listenReturnsOnCall[len(fake.listenArgsForCall)]
 	fake.listenArgsForCall = append(fake.listenArgsForCall, struct {
 		channel string
 	}{channel})
@@ -30,6 +35,9 @@ func (fake *FakeATCListener) Listen(channel string) (chan bool, error) {
 	fake.listenMutex.Unlock()
 	if fake.ListenStub != nil {
 		return fake.ListenStub(channel)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.listenReturns.result1, fake.listenReturns.result2
 }
@@ -49,6 +57,20 @@ func (fake *FakeATCListener) ListenArgsForCall(i int) string {
 func (fake *FakeATCListener) ListenReturns(result1 chan bool, result2 error) {
 	fake.ListenStub = nil
 	fake.listenReturns = struct {
+		result1 chan bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeATCListener) ListenReturnsOnCall(i int, result1 chan bool, result2 error) {
+	fake.ListenStub = nil
+	if fake.listenReturnsOnCall == nil {
+		fake.listenReturnsOnCall = make(map[int]struct {
+			result1 chan bool
+			result2 error
+		})
+	}
+	fake.listenReturnsOnCall[i] = struct {
 		result1 chan bool
 		result2 error
 	}{result1, result2}

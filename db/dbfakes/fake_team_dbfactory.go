@@ -16,12 +16,16 @@ type FakeTeamDBFactory struct {
 	getTeamDBReturns struct {
 		result1 db.TeamDB
 	}
+	getTeamDBReturnsOnCall map[int]struct {
+		result1 db.TeamDB
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTeamDBFactory) GetTeamDB(arg1 string) db.TeamDB {
 	fake.getTeamDBMutex.Lock()
+	ret, specificReturn := fake.getTeamDBReturnsOnCall[len(fake.getTeamDBArgsForCall)]
 	fake.getTeamDBArgsForCall = append(fake.getTeamDBArgsForCall, struct {
 		arg1 string
 	}{arg1})
@@ -29,6 +33,9 @@ func (fake *FakeTeamDBFactory) GetTeamDB(arg1 string) db.TeamDB {
 	fake.getTeamDBMutex.Unlock()
 	if fake.GetTeamDBStub != nil {
 		return fake.GetTeamDBStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.getTeamDBReturns.result1
 }
@@ -48,6 +55,18 @@ func (fake *FakeTeamDBFactory) GetTeamDBArgsForCall(i int) string {
 func (fake *FakeTeamDBFactory) GetTeamDBReturns(result1 db.TeamDB) {
 	fake.GetTeamDBStub = nil
 	fake.getTeamDBReturns = struct {
+		result1 db.TeamDB
+	}{result1}
+}
+
+func (fake *FakeTeamDBFactory) GetTeamDBReturnsOnCall(i int, result1 db.TeamDB) {
+	fake.GetTeamDBStub = nil
+	if fake.getTeamDBReturnsOnCall == nil {
+		fake.getTeamDBReturnsOnCall = make(map[int]struct {
+			result1 db.TeamDB
+		})
+	}
+	fake.getTeamDBReturnsOnCall[i] = struct {
 		result1 db.TeamDB
 	}{result1}
 }

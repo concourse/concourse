@@ -12,26 +12,17 @@ import (
 )
 
 type FakeWorkerDB struct {
-	CreateContainerToBeRemovedStub        func(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
-	createContainerToBeRemovedMutex       sync.RWMutex
-	createContainerToBeRemovedArgsForCall []struct {
-		container     db.Container
-		maxLifetime   time.Duration
-		volumeHandles []string
-	}
-	createContainerToBeRemovedReturns struct {
-		result1 db.SavedContainer
-		result2 error
-	}
-	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub        func(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
+	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub        func(container db.Container, maxLifetime time.Duration) error
 	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex       sync.RWMutex
 	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall []struct {
 		container   db.Container
 		maxLifetime time.Duration
 	}
 	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns struct {
-		result1 db.SavedContainer
-		result2 error
+		result1 error
+	}
+	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall map[int]struct {
+		result1 error
 	}
 	GetContainerStub        func(string) (db.SavedContainer, bool, error)
 	getContainerMutex       sync.RWMutex
@@ -39,6 +30,11 @@ type FakeWorkerDB struct {
 		arg1 string
 	}
 	getContainerReturns struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}
+	getContainerReturnsOnCall map[int]struct {
 		result1 db.SavedContainer
 		result2 bool
 		result3 error
@@ -53,12 +49,20 @@ type FakeWorkerDB struct {
 		result2 bool
 		result3 error
 	}
+	findContainerByIdentifierReturnsOnCall map[int]struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}
 	ReapContainerStub        func(handle string) error
 	reapContainerMutex       sync.RWMutex
 	reapContainerArgsForCall []struct {
 		handle string
 	}
 	reapContainerReturns struct {
+		result1 error
+	}
+	reapContainerReturnsOnCall map[int]struct {
 		result1 error
 	}
 	GetPipelineByIDStub        func(pipelineID int) (db.SavedPipeline, error)
@@ -70,12 +74,19 @@ type FakeWorkerDB struct {
 		result1 db.SavedPipeline
 		result2 error
 	}
+	getPipelineByIDReturnsOnCall map[int]struct {
+		result1 db.SavedPipeline
+		result2 error
+	}
 	ReapVolumeStub        func(handle string) error
 	reapVolumeMutex       sync.RWMutex
 	reapVolumeArgsForCall []struct {
 		handle string
 	}
 	reapVolumeReturns struct {
+		result1 error
+	}
+	reapVolumeReturnsOnCall map[int]struct {
 		result1 error
 	}
 	AcquireVolumeCreatingLockStub        func(lager.Logger, int) (lock.Lock, bool, error)
@@ -85,6 +96,11 @@ type FakeWorkerDB struct {
 		arg2 int
 	}
 	acquireVolumeCreatingLockReturns struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
+	acquireVolumeCreatingLockReturnsOnCall map[int]struct {
 		result1 lock.Lock
 		result2 bool
 		result3 error
@@ -100,52 +116,18 @@ type FakeWorkerDB struct {
 		result2 bool
 		result3 error
 	}
+	acquireContainerCreatingLockReturnsOnCall map[int]struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeWorkerDB) CreateContainerToBeRemoved(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error) {
-	var volumeHandlesCopy []string
-	if volumeHandles != nil {
-		volumeHandlesCopy = make([]string, len(volumeHandles))
-		copy(volumeHandlesCopy, volumeHandles)
-	}
-	fake.createContainerToBeRemovedMutex.Lock()
-	fake.createContainerToBeRemovedArgsForCall = append(fake.createContainerToBeRemovedArgsForCall, struct {
-		container     db.Container
-		maxLifetime   time.Duration
-		volumeHandles []string
-	}{container, maxLifetime, volumeHandlesCopy})
-	fake.recordInvocation("CreateContainerToBeRemoved", []interface{}{container, maxLifetime, volumeHandlesCopy})
-	fake.createContainerToBeRemovedMutex.Unlock()
-	if fake.CreateContainerToBeRemovedStub != nil {
-		return fake.CreateContainerToBeRemovedStub(container, maxLifetime, volumeHandles)
-	}
-	return fake.createContainerToBeRemovedReturns.result1, fake.createContainerToBeRemovedReturns.result2
-}
-
-func (fake *FakeWorkerDB) CreateContainerToBeRemovedCallCount() int {
-	fake.createContainerToBeRemovedMutex.RLock()
-	defer fake.createContainerToBeRemovedMutex.RUnlock()
-	return len(fake.createContainerToBeRemovedArgsForCall)
-}
-
-func (fake *FakeWorkerDB) CreateContainerToBeRemovedArgsForCall(i int) (db.Container, time.Duration, []string) {
-	fake.createContainerToBeRemovedMutex.RLock()
-	defer fake.createContainerToBeRemovedMutex.RUnlock()
-	return fake.createContainerToBeRemovedArgsForCall[i].container, fake.createContainerToBeRemovedArgsForCall[i].maxLifetime, fake.createContainerToBeRemovedArgsForCall[i].volumeHandles
-}
-
-func (fake *FakeWorkerDB) CreateContainerToBeRemovedReturns(result1 db.SavedContainer, result2 error) {
-	fake.CreateContainerToBeRemovedStub = nil
-	fake.createContainerToBeRemovedReturns = struct {
-		result1 db.SavedContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error) {
+func (fake *FakeWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) error {
 	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.Lock()
+	ret, specificReturn := fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall[len(fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall)]
 	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall = append(fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall, struct {
 		container   db.Container
 		maxLifetime time.Duration
@@ -155,7 +137,10 @@ func (fake *FakeWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLate
 	if fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub != nil {
 		return fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub(container, maxLifetime)
 	}
-	return fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns.result1, fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns.result2
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns.result1
 }
 
 func (fake *FakeWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterCallCount() int {
@@ -170,16 +155,28 @@ func (fake *FakeWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLate
 	return fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall[i].container, fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall[i].maxLifetime
 }
 
-func (fake *FakeWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns(result1 db.SavedContainer, result2 error) {
+func (fake *FakeWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns(result1 error) {
 	fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub = nil
 	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns = struct {
-		result1 db.SavedContainer
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall(i int, result1 error) {
+	fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub = nil
+	if fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall == nil {
+		fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeWorkerDB) GetContainer(arg1 string) (db.SavedContainer, bool, error) {
 	fake.getContainerMutex.Lock()
+	ret, specificReturn := fake.getContainerReturnsOnCall[len(fake.getContainerArgsForCall)]
 	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
 		arg1 string
 	}{arg1})
@@ -187,6 +184,9 @@ func (fake *FakeWorkerDB) GetContainer(arg1 string) (db.SavedContainer, bool, er
 	fake.getContainerMutex.Unlock()
 	if fake.GetContainerStub != nil {
 		return fake.GetContainerStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 }
@@ -212,8 +212,25 @@ func (fake *FakeWorkerDB) GetContainerReturns(result1 db.SavedContainer, result2
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerDB) GetContainerReturnsOnCall(i int, result1 db.SavedContainer, result2 bool, result3 error) {
+	fake.GetContainerStub = nil
+	if fake.getContainerReturnsOnCall == nil {
+		fake.getContainerReturnsOnCall = make(map[int]struct {
+			result1 db.SavedContainer
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getContainerReturnsOnCall[i] = struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerDB) FindContainerByIdentifier(arg1 db.ContainerIdentifier) (db.SavedContainer, bool, error) {
 	fake.findContainerByIdentifierMutex.Lock()
+	ret, specificReturn := fake.findContainerByIdentifierReturnsOnCall[len(fake.findContainerByIdentifierArgsForCall)]
 	fake.findContainerByIdentifierArgsForCall = append(fake.findContainerByIdentifierArgsForCall, struct {
 		arg1 db.ContainerIdentifier
 	}{arg1})
@@ -221,6 +238,9 @@ func (fake *FakeWorkerDB) FindContainerByIdentifier(arg1 db.ContainerIdentifier)
 	fake.findContainerByIdentifierMutex.Unlock()
 	if fake.FindContainerByIdentifierStub != nil {
 		return fake.FindContainerByIdentifierStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findContainerByIdentifierReturns.result1, fake.findContainerByIdentifierReturns.result2, fake.findContainerByIdentifierReturns.result3
 }
@@ -246,8 +266,25 @@ func (fake *FakeWorkerDB) FindContainerByIdentifierReturns(result1 db.SavedConta
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerDB) FindContainerByIdentifierReturnsOnCall(i int, result1 db.SavedContainer, result2 bool, result3 error) {
+	fake.FindContainerByIdentifierStub = nil
+	if fake.findContainerByIdentifierReturnsOnCall == nil {
+		fake.findContainerByIdentifierReturnsOnCall = make(map[int]struct {
+			result1 db.SavedContainer
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findContainerByIdentifierReturnsOnCall[i] = struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerDB) ReapContainer(handle string) error {
 	fake.reapContainerMutex.Lock()
+	ret, specificReturn := fake.reapContainerReturnsOnCall[len(fake.reapContainerArgsForCall)]
 	fake.reapContainerArgsForCall = append(fake.reapContainerArgsForCall, struct {
 		handle string
 	}{handle})
@@ -255,6 +292,9 @@ func (fake *FakeWorkerDB) ReapContainer(handle string) error {
 	fake.reapContainerMutex.Unlock()
 	if fake.ReapContainerStub != nil {
 		return fake.ReapContainerStub(handle)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.reapContainerReturns.result1
 }
@@ -278,8 +318,21 @@ func (fake *FakeWorkerDB) ReapContainerReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeWorkerDB) ReapContainerReturnsOnCall(i int, result1 error) {
+	fake.ReapContainerStub = nil
+	if fake.reapContainerReturnsOnCall == nil {
+		fake.reapContainerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reapContainerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeWorkerDB) GetPipelineByID(pipelineID int) (db.SavedPipeline, error) {
 	fake.getPipelineByIDMutex.Lock()
+	ret, specificReturn := fake.getPipelineByIDReturnsOnCall[len(fake.getPipelineByIDArgsForCall)]
 	fake.getPipelineByIDArgsForCall = append(fake.getPipelineByIDArgsForCall, struct {
 		pipelineID int
 	}{pipelineID})
@@ -287,6 +340,9 @@ func (fake *FakeWorkerDB) GetPipelineByID(pipelineID int) (db.SavedPipeline, err
 	fake.getPipelineByIDMutex.Unlock()
 	if fake.GetPipelineByIDStub != nil {
 		return fake.GetPipelineByIDStub(pipelineID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.getPipelineByIDReturns.result1, fake.getPipelineByIDReturns.result2
 }
@@ -311,8 +367,23 @@ func (fake *FakeWorkerDB) GetPipelineByIDReturns(result1 db.SavedPipeline, resul
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerDB) GetPipelineByIDReturnsOnCall(i int, result1 db.SavedPipeline, result2 error) {
+	fake.GetPipelineByIDStub = nil
+	if fake.getPipelineByIDReturnsOnCall == nil {
+		fake.getPipelineByIDReturnsOnCall = make(map[int]struct {
+			result1 db.SavedPipeline
+			result2 error
+		})
+	}
+	fake.getPipelineByIDReturnsOnCall[i] = struct {
+		result1 db.SavedPipeline
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerDB) ReapVolume(handle string) error {
 	fake.reapVolumeMutex.Lock()
+	ret, specificReturn := fake.reapVolumeReturnsOnCall[len(fake.reapVolumeArgsForCall)]
 	fake.reapVolumeArgsForCall = append(fake.reapVolumeArgsForCall, struct {
 		handle string
 	}{handle})
@@ -320,6 +391,9 @@ func (fake *FakeWorkerDB) ReapVolume(handle string) error {
 	fake.reapVolumeMutex.Unlock()
 	if fake.ReapVolumeStub != nil {
 		return fake.ReapVolumeStub(handle)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.reapVolumeReturns.result1
 }
@@ -343,8 +417,21 @@ func (fake *FakeWorkerDB) ReapVolumeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeWorkerDB) ReapVolumeReturnsOnCall(i int, result1 error) {
+	fake.ReapVolumeStub = nil
+	if fake.reapVolumeReturnsOnCall == nil {
+		fake.reapVolumeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reapVolumeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int) (lock.Lock, bool, error) {
 	fake.acquireVolumeCreatingLockMutex.Lock()
+	ret, specificReturn := fake.acquireVolumeCreatingLockReturnsOnCall[len(fake.acquireVolumeCreatingLockArgsForCall)]
 	fake.acquireVolumeCreatingLockArgsForCall = append(fake.acquireVolumeCreatingLockArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 int
@@ -353,6 +440,9 @@ func (fake *FakeWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int)
 	fake.acquireVolumeCreatingLockMutex.Unlock()
 	if fake.AcquireVolumeCreatingLockStub != nil {
 		return fake.AcquireVolumeCreatingLockStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.acquireVolumeCreatingLockReturns.result1, fake.acquireVolumeCreatingLockReturns.result2, fake.acquireVolumeCreatingLockReturns.result3
 }
@@ -378,8 +468,25 @@ func (fake *FakeWorkerDB) AcquireVolumeCreatingLockReturns(result1 lock.Lock, re
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerDB) AcquireVolumeCreatingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireVolumeCreatingLockStub = nil
+	if fake.acquireVolumeCreatingLockReturnsOnCall == nil {
+		fake.acquireVolumeCreatingLockReturnsOnCall = make(map[int]struct {
+			result1 lock.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.acquireVolumeCreatingLockReturnsOnCall[i] = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerDB) AcquireContainerCreatingLock(arg1 lager.Logger, arg2 int) (lock.Lock, bool, error) {
 	fake.acquireContainerCreatingLockMutex.Lock()
+	ret, specificReturn := fake.acquireContainerCreatingLockReturnsOnCall[len(fake.acquireContainerCreatingLockArgsForCall)]
 	fake.acquireContainerCreatingLockArgsForCall = append(fake.acquireContainerCreatingLockArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 int
@@ -388,6 +495,9 @@ func (fake *FakeWorkerDB) AcquireContainerCreatingLock(arg1 lager.Logger, arg2 i
 	fake.acquireContainerCreatingLockMutex.Unlock()
 	if fake.AcquireContainerCreatingLockStub != nil {
 		return fake.AcquireContainerCreatingLockStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.acquireContainerCreatingLockReturns.result1, fake.acquireContainerCreatingLockReturns.result2, fake.acquireContainerCreatingLockReturns.result3
 }
@@ -413,11 +523,25 @@ func (fake *FakeWorkerDB) AcquireContainerCreatingLockReturns(result1 lock.Lock,
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerDB) AcquireContainerCreatingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireContainerCreatingLockStub = nil
+	if fake.acquireContainerCreatingLockReturnsOnCall == nil {
+		fake.acquireContainerCreatingLockReturnsOnCall = make(map[int]struct {
+			result1 lock.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.acquireContainerCreatingLockReturnsOnCall[i] = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createContainerToBeRemovedMutex.RLock()
-	defer fake.createContainerToBeRemovedMutex.RUnlock()
 	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RLock()
 	defer fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RUnlock()
 	fake.getContainerMutex.RLock()

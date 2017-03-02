@@ -15,17 +15,25 @@ type FakePipelinesDB struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}
+	getAllPublicPipelinesReturnsOnCall map[int]struct {
+		result1 []db.SavedPipeline
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakePipelinesDB) GetAllPublicPipelines() ([]db.SavedPipeline, error) {
 	fake.getAllPublicPipelinesMutex.Lock()
+	ret, specificReturn := fake.getAllPublicPipelinesReturnsOnCall[len(fake.getAllPublicPipelinesArgsForCall)]
 	fake.getAllPublicPipelinesArgsForCall = append(fake.getAllPublicPipelinesArgsForCall, struct{}{})
 	fake.recordInvocation("GetAllPublicPipelines", []interface{}{})
 	fake.getAllPublicPipelinesMutex.Unlock()
 	if fake.GetAllPublicPipelinesStub != nil {
 		return fake.GetAllPublicPipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.getAllPublicPipelinesReturns.result1, fake.getAllPublicPipelinesReturns.result2
 }
@@ -39,6 +47,20 @@ func (fake *FakePipelinesDB) GetAllPublicPipelinesCallCount() int {
 func (fake *FakePipelinesDB) GetAllPublicPipelinesReturns(result1 []db.SavedPipeline, result2 error) {
 	fake.GetAllPublicPipelinesStub = nil
 	fake.getAllPublicPipelinesReturns = struct {
+		result1 []db.SavedPipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelinesDB) GetAllPublicPipelinesReturnsOnCall(i int, result1 []db.SavedPipeline, result2 error) {
+	fake.GetAllPublicPipelinesStub = nil
+	if fake.getAllPublicPipelinesReturnsOnCall == nil {
+		fake.getAllPublicPipelinesReturnsOnCall = make(map[int]struct {
+			result1 []db.SavedPipeline
+			result2 error
+		})
+	}
+	fake.getAllPublicPipelinesReturnsOnCall[i] = struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}{result1, result2}

@@ -31,12 +31,17 @@ type FakeImageFactory struct {
 		result1 worker.Image
 		result2 error
 	}
+	getImageReturnsOnCall map[int]struct {
+		result1 worker.Image
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeImageFactory) GetImage(arg1 lager.Logger, arg2 worker.Worker, arg3 worker.VolumeClient, arg4 worker.ImageSpec, arg5 int, arg6 <-chan os.Signal, arg7 worker.ImageFetchingDelegate, arg8 dbng.ResourceUser, arg9 worker.Identifier, arg10 worker.Metadata, arg11 atc.ResourceTypes) (worker.Image, error) {
 	fake.getImageMutex.Lock()
+	ret, specificReturn := fake.getImageReturnsOnCall[len(fake.getImageArgsForCall)]
 	fake.getImageArgsForCall = append(fake.getImageArgsForCall, struct {
 		arg1  lager.Logger
 		arg2  worker.Worker
@@ -54,6 +59,9 @@ func (fake *FakeImageFactory) GetImage(arg1 lager.Logger, arg2 worker.Worker, ar
 	fake.getImageMutex.Unlock()
 	if fake.GetImageStub != nil {
 		return fake.GetImageStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.getImageReturns.result1, fake.getImageReturns.result2
 }
@@ -73,6 +81,20 @@ func (fake *FakeImageFactory) GetImageArgsForCall(i int) (lager.Logger, worker.W
 func (fake *FakeImageFactory) GetImageReturns(result1 worker.Image, result2 error) {
 	fake.GetImageStub = nil
 	fake.getImageReturns = struct {
+		result1 worker.Image
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeImageFactory) GetImageReturnsOnCall(i int, result1 worker.Image, result2 error) {
+	fake.GetImageStub = nil
+	if fake.getImageReturnsOnCall == nil {
+		fake.getImageReturnsOnCall = make(map[int]struct {
+			result1 worker.Image
+			result2 error
+		})
+	}
+	fake.getImageReturnsOnCall[i] = struct {
 		result1 worker.Image
 		result2 error
 	}{result1, result2}

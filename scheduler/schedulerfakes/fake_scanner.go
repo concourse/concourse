@@ -18,12 +18,16 @@ type FakeScanner struct {
 	scanReturns struct {
 		result1 error
 	}
+	scanReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeScanner) Scan(arg1 lager.Logger, arg2 string) error {
 	fake.scanMutex.Lock()
+	ret, specificReturn := fake.scanReturnsOnCall[len(fake.scanArgsForCall)]
 	fake.scanArgsForCall = append(fake.scanArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
@@ -32,6 +36,9 @@ func (fake *FakeScanner) Scan(arg1 lager.Logger, arg2 string) error {
 	fake.scanMutex.Unlock()
 	if fake.ScanStub != nil {
 		return fake.ScanStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.scanReturns.result1
 }
@@ -51,6 +58,18 @@ func (fake *FakeScanner) ScanArgsForCall(i int) (lager.Logger, string) {
 func (fake *FakeScanner) ScanReturns(result1 error) {
 	fake.ScanStub = nil
 	fake.scanReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeScanner) ScanReturnsOnCall(i int, result1 error) {
+	fake.ScanStub = nil
+	if fake.scanReturnsOnCall == nil {
+		fake.scanReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.scanReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

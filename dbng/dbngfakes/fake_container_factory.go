@@ -15,10 +15,17 @@ type FakeContainerFactory struct {
 		result1 []dbng.DestroyingContainer
 		result2 error
 	}
+	findContainersMarkedForDeletionReturnsOnCall map[int]struct {
+		result1 []dbng.DestroyingContainer
+		result2 error
+	}
 	MarkContainersForDeletionStub        func() error
 	markContainersForDeletionMutex       sync.RWMutex
 	markContainersForDeletionArgsForCall []struct{}
 	markContainersForDeletionReturns     struct {
+		result1 error
+	}
+	markContainersForDeletionReturnsOnCall map[int]struct {
 		result1 error
 	}
 	FindHijackedContainersForDeletionStub        func() ([]dbng.CreatedContainer, error)
@@ -28,17 +35,25 @@ type FakeContainerFactory struct {
 		result1 []dbng.CreatedContainer
 		result2 error
 	}
+	findHijackedContainersForDeletionReturnsOnCall map[int]struct {
+		result1 []dbng.CreatedContainer
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeContainerFactory) FindContainersMarkedForDeletion() ([]dbng.DestroyingContainer, error) {
 	fake.findContainersMarkedForDeletionMutex.Lock()
+	ret, specificReturn := fake.findContainersMarkedForDeletionReturnsOnCall[len(fake.findContainersMarkedForDeletionArgsForCall)]
 	fake.findContainersMarkedForDeletionArgsForCall = append(fake.findContainersMarkedForDeletionArgsForCall, struct{}{})
 	fake.recordInvocation("FindContainersMarkedForDeletion", []interface{}{})
 	fake.findContainersMarkedForDeletionMutex.Unlock()
 	if fake.FindContainersMarkedForDeletionStub != nil {
 		return fake.FindContainersMarkedForDeletionStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.findContainersMarkedForDeletionReturns.result1, fake.findContainersMarkedForDeletionReturns.result2
 }
@@ -57,13 +72,31 @@ func (fake *FakeContainerFactory) FindContainersMarkedForDeletionReturns(result1
 	}{result1, result2}
 }
 
+func (fake *FakeContainerFactory) FindContainersMarkedForDeletionReturnsOnCall(i int, result1 []dbng.DestroyingContainer, result2 error) {
+	fake.FindContainersMarkedForDeletionStub = nil
+	if fake.findContainersMarkedForDeletionReturnsOnCall == nil {
+		fake.findContainersMarkedForDeletionReturnsOnCall = make(map[int]struct {
+			result1 []dbng.DestroyingContainer
+			result2 error
+		})
+	}
+	fake.findContainersMarkedForDeletionReturnsOnCall[i] = struct {
+		result1 []dbng.DestroyingContainer
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeContainerFactory) MarkContainersForDeletion() error {
 	fake.markContainersForDeletionMutex.Lock()
+	ret, specificReturn := fake.markContainersForDeletionReturnsOnCall[len(fake.markContainersForDeletionArgsForCall)]
 	fake.markContainersForDeletionArgsForCall = append(fake.markContainersForDeletionArgsForCall, struct{}{})
 	fake.recordInvocation("MarkContainersForDeletion", []interface{}{})
 	fake.markContainersForDeletionMutex.Unlock()
 	if fake.MarkContainersForDeletionStub != nil {
 		return fake.MarkContainersForDeletionStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.markContainersForDeletionReturns.result1
 }
@@ -81,13 +114,29 @@ func (fake *FakeContainerFactory) MarkContainersForDeletionReturns(result1 error
 	}{result1}
 }
 
+func (fake *FakeContainerFactory) MarkContainersForDeletionReturnsOnCall(i int, result1 error) {
+	fake.MarkContainersForDeletionStub = nil
+	if fake.markContainersForDeletionReturnsOnCall == nil {
+		fake.markContainersForDeletionReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.markContainersForDeletionReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeContainerFactory) FindHijackedContainersForDeletion() ([]dbng.CreatedContainer, error) {
 	fake.findHijackedContainersForDeletionMutex.Lock()
+	ret, specificReturn := fake.findHijackedContainersForDeletionReturnsOnCall[len(fake.findHijackedContainersForDeletionArgsForCall)]
 	fake.findHijackedContainersForDeletionArgsForCall = append(fake.findHijackedContainersForDeletionArgsForCall, struct{}{})
 	fake.recordInvocation("FindHijackedContainersForDeletion", []interface{}{})
 	fake.findHijackedContainersForDeletionMutex.Unlock()
 	if fake.FindHijackedContainersForDeletionStub != nil {
 		return fake.FindHijackedContainersForDeletionStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.findHijackedContainersForDeletionReturns.result1, fake.findHijackedContainersForDeletionReturns.result2
 }
@@ -101,6 +150,20 @@ func (fake *FakeContainerFactory) FindHijackedContainersForDeletionCallCount() i
 func (fake *FakeContainerFactory) FindHijackedContainersForDeletionReturns(result1 []dbng.CreatedContainer, result2 error) {
 	fake.FindHijackedContainersForDeletionStub = nil
 	fake.findHijackedContainersForDeletionReturns = struct {
+		result1 []dbng.CreatedContainer
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerFactory) FindHijackedContainersForDeletionReturnsOnCall(i int, result1 []dbng.CreatedContainer, result2 error) {
+	fake.FindHijackedContainersForDeletionStub = nil
+	if fake.findHijackedContainersForDeletionReturnsOnCall == nil {
+		fake.findHijackedContainersForDeletionReturnsOnCall = make(map[int]struct {
+			result1 []dbng.CreatedContainer
+			result2 error
+		})
+	}
+	fake.findHijackedContainersForDeletionReturnsOnCall[i] = struct {
 		result1 []dbng.CreatedContainer
 		result2 error
 	}{result1, result2}

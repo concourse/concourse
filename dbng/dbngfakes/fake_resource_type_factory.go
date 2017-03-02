@@ -20,6 +20,11 @@ type FakeResourceTypeFactory struct {
 		result2 bool
 		result3 error
 	}
+	findResourceTypeReturnsOnCall map[int]struct {
+		result1 *dbng.UsedResourceType
+		result2 bool
+		result3 error
+	}
 	CreateResourceTypeStub        func(pipelineID int, resourceType atc.ResourceType, version atc.Version) (*dbng.UsedResourceType, error)
 	createResourceTypeMutex       sync.RWMutex
 	createResourceTypeArgsForCall []struct {
@@ -31,12 +36,17 @@ type FakeResourceTypeFactory struct {
 		result1 *dbng.UsedResourceType
 		result2 error
 	}
+	createResourceTypeReturnsOnCall map[int]struct {
+		result1 *dbng.UsedResourceType
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeResourceTypeFactory) FindResourceType(pipelineID int, resourceType atc.ResourceType) (*dbng.UsedResourceType, bool, error) {
 	fake.findResourceTypeMutex.Lock()
+	ret, specificReturn := fake.findResourceTypeReturnsOnCall[len(fake.findResourceTypeArgsForCall)]
 	fake.findResourceTypeArgsForCall = append(fake.findResourceTypeArgsForCall, struct {
 		pipelineID   int
 		resourceType atc.ResourceType
@@ -45,6 +55,9 @@ func (fake *FakeResourceTypeFactory) FindResourceType(pipelineID int, resourceTy
 	fake.findResourceTypeMutex.Unlock()
 	if fake.FindResourceTypeStub != nil {
 		return fake.FindResourceTypeStub(pipelineID, resourceType)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findResourceTypeReturns.result1, fake.findResourceTypeReturns.result2, fake.findResourceTypeReturns.result3
 }
@@ -70,8 +83,25 @@ func (fake *FakeResourceTypeFactory) FindResourceTypeReturns(result1 *dbng.UsedR
 	}{result1, result2, result3}
 }
 
+func (fake *FakeResourceTypeFactory) FindResourceTypeReturnsOnCall(i int, result1 *dbng.UsedResourceType, result2 bool, result3 error) {
+	fake.FindResourceTypeStub = nil
+	if fake.findResourceTypeReturnsOnCall == nil {
+		fake.findResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 *dbng.UsedResourceType
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findResourceTypeReturnsOnCall[i] = struct {
+		result1 *dbng.UsedResourceType
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeResourceTypeFactory) CreateResourceType(pipelineID int, resourceType atc.ResourceType, version atc.Version) (*dbng.UsedResourceType, error) {
 	fake.createResourceTypeMutex.Lock()
+	ret, specificReturn := fake.createResourceTypeReturnsOnCall[len(fake.createResourceTypeArgsForCall)]
 	fake.createResourceTypeArgsForCall = append(fake.createResourceTypeArgsForCall, struct {
 		pipelineID   int
 		resourceType atc.ResourceType
@@ -81,6 +111,9 @@ func (fake *FakeResourceTypeFactory) CreateResourceType(pipelineID int, resource
 	fake.createResourceTypeMutex.Unlock()
 	if fake.CreateResourceTypeStub != nil {
 		return fake.CreateResourceTypeStub(pipelineID, resourceType, version)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createResourceTypeReturns.result1, fake.createResourceTypeReturns.result2
 }
@@ -100,6 +133,20 @@ func (fake *FakeResourceTypeFactory) CreateResourceTypeArgsForCall(i int) (int, 
 func (fake *FakeResourceTypeFactory) CreateResourceTypeReturns(result1 *dbng.UsedResourceType, result2 error) {
 	fake.CreateResourceTypeStub = nil
 	fake.createResourceTypeReturns = struct {
+		result1 *dbng.UsedResourceType
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceTypeFactory) CreateResourceTypeReturnsOnCall(i int, result1 *dbng.UsedResourceType, result2 error) {
+	fake.CreateResourceTypeStub = nil
+	if fake.createResourceTypeReturnsOnCall == nil {
+		fake.createResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 *dbng.UsedResourceType
+			result2 error
+		})
+	}
+	fake.createResourceTypeReturnsOnCall[i] = struct {
 		result1 *dbng.UsedResourceType
 		result2 error
 	}{result1, result2}

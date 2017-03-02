@@ -23,6 +23,9 @@ type FakeBuildStarter struct {
 	tryStartPendingBuildsForJobReturns struct {
 		result1 error
 	}
+	tryStartPendingBuildsForJobReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -34,6 +37,7 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(logger lager.Logger, j
 		copy(nextPendingBuildsCopy, nextPendingBuilds)
 	}
 	fake.tryStartPendingBuildsForJobMutex.Lock()
+	ret, specificReturn := fake.tryStartPendingBuildsForJobReturnsOnCall[len(fake.tryStartPendingBuildsForJobArgsForCall)]
 	fake.tryStartPendingBuildsForJobArgsForCall = append(fake.tryStartPendingBuildsForJobArgsForCall, struct {
 		logger            lager.Logger
 		jobConfig         atc.JobConfig
@@ -45,6 +49,9 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(logger lager.Logger, j
 	fake.tryStartPendingBuildsForJobMutex.Unlock()
 	if fake.TryStartPendingBuildsForJobStub != nil {
 		return fake.TryStartPendingBuildsForJobStub(logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuilds)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.tryStartPendingBuildsForJobReturns.result1
 }
@@ -64,6 +71,18 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lag
 func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturns(result1 error) {
 	fake.TryStartPendingBuildsForJobStub = nil
 	fake.tryStartPendingBuildsForJobReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturnsOnCall(i int, result1 error) {
+	fake.TryStartPendingBuildsForJobStub = nil
+	if fake.tryStartPendingBuildsForJobReturnsOnCall == nil {
+		fake.tryStartPendingBuildsForJobReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.tryStartPendingBuildsForJobReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

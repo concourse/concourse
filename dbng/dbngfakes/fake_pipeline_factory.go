@@ -17,12 +17,16 @@ type FakePipelineFactory struct {
 	getPipelineByIDReturns struct {
 		result1 dbng.Pipeline
 	}
+	getPipelineByIDReturnsOnCall map[int]struct {
+		result1 dbng.Pipeline
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakePipelineFactory) GetPipelineByID(teamID int, pipelineID int) dbng.Pipeline {
 	fake.getPipelineByIDMutex.Lock()
+	ret, specificReturn := fake.getPipelineByIDReturnsOnCall[len(fake.getPipelineByIDArgsForCall)]
 	fake.getPipelineByIDArgsForCall = append(fake.getPipelineByIDArgsForCall, struct {
 		teamID     int
 		pipelineID int
@@ -31,6 +35,9 @@ func (fake *FakePipelineFactory) GetPipelineByID(teamID int, pipelineID int) dbn
 	fake.getPipelineByIDMutex.Unlock()
 	if fake.GetPipelineByIDStub != nil {
 		return fake.GetPipelineByIDStub(teamID, pipelineID)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.getPipelineByIDReturns.result1
 }
@@ -50,6 +57,18 @@ func (fake *FakePipelineFactory) GetPipelineByIDArgsForCall(i int) (int, int) {
 func (fake *FakePipelineFactory) GetPipelineByIDReturns(result1 dbng.Pipeline) {
 	fake.GetPipelineByIDStub = nil
 	fake.getPipelineByIDReturns = struct {
+		result1 dbng.Pipeline
+	}{result1}
+}
+
+func (fake *FakePipelineFactory) GetPipelineByIDReturnsOnCall(i int, result1 dbng.Pipeline) {
+	fake.GetPipelineByIDStub = nil
+	if fake.getPipelineByIDReturnsOnCall == nil {
+		fake.getPipelineByIDReturnsOnCall = make(map[int]struct {
+			result1 dbng.Pipeline
+		})
+	}
+	fake.getPipelineByIDReturnsOnCall[i] = struct {
 		result1 dbng.Pipeline
 	}{result1}
 }

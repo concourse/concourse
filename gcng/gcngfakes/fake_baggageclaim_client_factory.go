@@ -18,12 +18,16 @@ type FakeBaggageclaimClientFactory struct {
 	newClientReturns struct {
 		result1 bclient.Client
 	}
+	newClientReturnsOnCall map[int]struct {
+		result1 bclient.Client
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeBaggageclaimClientFactory) NewClient(apiURL string, workerName string) bclient.Client {
 	fake.newClientMutex.Lock()
+	ret, specificReturn := fake.newClientReturnsOnCall[len(fake.newClientArgsForCall)]
 	fake.newClientArgsForCall = append(fake.newClientArgsForCall, struct {
 		apiURL     string
 		workerName string
@@ -32,6 +36,9 @@ func (fake *FakeBaggageclaimClientFactory) NewClient(apiURL string, workerName s
 	fake.newClientMutex.Unlock()
 	if fake.NewClientStub != nil {
 		return fake.NewClientStub(apiURL, workerName)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.newClientReturns.result1
 }
@@ -51,6 +58,18 @@ func (fake *FakeBaggageclaimClientFactory) NewClientArgsForCall(i int) (string, 
 func (fake *FakeBaggageclaimClientFactory) NewClientReturns(result1 bclient.Client) {
 	fake.NewClientStub = nil
 	fake.newClientReturns = struct {
+		result1 bclient.Client
+	}{result1}
+}
+
+func (fake *FakeBaggageclaimClientFactory) NewClientReturnsOnCall(i int, result1 bclient.Client) {
+	fake.NewClientStub = nil
+	if fake.newClientReturnsOnCall == nil {
+		fake.newClientReturnsOnCall = make(map[int]struct {
+			result1 bclient.Client
+		})
+	}
+	fake.newClientReturnsOnCall[i] = struct {
 		result1 bclient.Client
 	}{result1}
 }

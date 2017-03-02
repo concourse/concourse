@@ -19,10 +19,16 @@ type FakeRadarDB struct {
 	getPipelineNameReturns     struct {
 		result1 string
 	}
+	getPipelineNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	GetPipelineIDStub        func() int
 	getPipelineIDMutex       sync.RWMutex
 	getPipelineIDArgsForCall []struct{}
 	getPipelineIDReturns     struct {
+		result1 int
+	}
+	getPipelineIDReturnsOnCall map[int]struct {
 		result1 int
 	}
 	ScopedNameStub        func(string) string
@@ -33,10 +39,16 @@ type FakeRadarDB struct {
 	scopedNameReturns struct {
 		result1 string
 	}
+	scopedNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	TeamIDStub        func() int
 	teamIDMutex       sync.RWMutex
 	teamIDArgsForCall []struct{}
 	teamIDReturns     struct {
+		result1 int
+	}
+	teamIDReturnsOnCall map[int]struct {
 		result1 int
 	}
 	ConfigStub        func() atc.Config
@@ -45,10 +57,17 @@ type FakeRadarDB struct {
 	configReturns     struct {
 		result1 atc.Config
 	}
+	configReturnsOnCall map[int]struct {
+		result1 atc.Config
+	}
 	IsPausedStub        func() (bool, error)
 	isPausedMutex       sync.RWMutex
 	isPausedArgsForCall []struct{}
 	isPausedReturns     struct {
+		result1 bool
+		result2 error
+	}
+	isPausedReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
 	}
@@ -59,12 +78,21 @@ type FakeRadarDB struct {
 		result1 bool
 		result2 error
 	}
+	reloadReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	GetLatestVersionedResourceStub        func(resourceName string) (db.SavedVersionedResource, bool, error)
 	getLatestVersionedResourceMutex       sync.RWMutex
 	getLatestVersionedResourceArgsForCall []struct {
 		resourceName string
 	}
 	getLatestVersionedResourceReturns struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}
+	getLatestVersionedResourceReturnsOnCall map[int]struct {
 		result1 db.SavedVersionedResource
 		result2 bool
 		result3 error
@@ -79,12 +107,22 @@ type FakeRadarDB struct {
 		result2 bool
 		result3 error
 	}
+	getResourceReturnsOnCall map[int]struct {
+		result1 db.SavedResource
+		result2 bool
+		result3 error
+	}
 	GetResourceTypeStub        func(resourceTypeName string) (db.SavedResourceType, bool, error)
 	getResourceTypeMutex       sync.RWMutex
 	getResourceTypeArgsForCall []struct {
 		resourceTypeName string
 	}
 	getResourceTypeReturns struct {
+		result1 db.SavedResourceType
+		result2 bool
+		result3 error
+	}
+	getResourceTypeReturnsOnCall map[int]struct {
 		result1 db.SavedResourceType
 		result2 bool
 		result3 error
@@ -97,12 +135,18 @@ type FakeRadarDB struct {
 	pauseResourceReturns struct {
 		result1 error
 	}
+	pauseResourceReturnsOnCall map[int]struct {
+		result1 error
+	}
 	UnpauseResourceStub        func(resourceName string) error
 	unpauseResourceMutex       sync.RWMutex
 	unpauseResourceArgsForCall []struct {
 		resourceName string
 	}
 	unpauseResourceReturns struct {
+		result1 error
+	}
+	unpauseResourceReturnsOnCall map[int]struct {
 		result1 error
 	}
 	SaveResourceVersionsStub        func(atc.ResourceConfig, []atc.Version) error
@@ -114,6 +158,9 @@ type FakeRadarDB struct {
 	saveResourceVersionsReturns struct {
 		result1 error
 	}
+	saveResourceVersionsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	SaveResourceTypeVersionStub        func(atc.ResourceType, atc.Version) error
 	saveResourceTypeVersionMutex       sync.RWMutex
 	saveResourceTypeVersionArgsForCall []struct {
@@ -123,6 +170,9 @@ type FakeRadarDB struct {
 	saveResourceTypeVersionReturns struct {
 		result1 error
 	}
+	saveResourceTypeVersionReturnsOnCall map[int]struct {
+		result1 error
+	}
 	SetResourceCheckErrorStub        func(resource db.SavedResource, err error) error
 	setResourceCheckErrorMutex       sync.RWMutex
 	setResourceCheckErrorArgsForCall []struct {
@@ -130,6 +180,9 @@ type FakeRadarDB struct {
 		err      error
 	}
 	setResourceCheckErrorReturns struct {
+		result1 error
+	}
+	setResourceCheckErrorReturnsOnCall map[int]struct {
 		result1 error
 	}
 	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (lock.Lock, bool, error)
@@ -145,17 +198,26 @@ type FakeRadarDB struct {
 		result2 bool
 		result3 error
 	}
+	acquireResourceTypeCheckingLockReturnsOnCall map[int]struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeRadarDB) GetPipelineName() string {
 	fake.getPipelineNameMutex.Lock()
+	ret, specificReturn := fake.getPipelineNameReturnsOnCall[len(fake.getPipelineNameArgsForCall)]
 	fake.getPipelineNameArgsForCall = append(fake.getPipelineNameArgsForCall, struct{}{})
 	fake.recordInvocation("GetPipelineName", []interface{}{})
 	fake.getPipelineNameMutex.Unlock()
 	if fake.GetPipelineNameStub != nil {
 		return fake.GetPipelineNameStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.getPipelineNameReturns.result1
 }
@@ -173,13 +235,29 @@ func (fake *FakeRadarDB) GetPipelineNameReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) GetPipelineNameReturnsOnCall(i int, result1 string) {
+	fake.GetPipelineNameStub = nil
+	if fake.getPipelineNameReturnsOnCall == nil {
+		fake.getPipelineNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.getPipelineNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeRadarDB) GetPipelineID() int {
 	fake.getPipelineIDMutex.Lock()
+	ret, specificReturn := fake.getPipelineIDReturnsOnCall[len(fake.getPipelineIDArgsForCall)]
 	fake.getPipelineIDArgsForCall = append(fake.getPipelineIDArgsForCall, struct{}{})
 	fake.recordInvocation("GetPipelineID", []interface{}{})
 	fake.getPipelineIDMutex.Unlock()
 	if fake.GetPipelineIDStub != nil {
 		return fake.GetPipelineIDStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.getPipelineIDReturns.result1
 }
@@ -197,8 +275,21 @@ func (fake *FakeRadarDB) GetPipelineIDReturns(result1 int) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) GetPipelineIDReturnsOnCall(i int, result1 int) {
+	fake.GetPipelineIDStub = nil
+	if fake.getPipelineIDReturnsOnCall == nil {
+		fake.getPipelineIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.getPipelineIDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakeRadarDB) ScopedName(arg1 string) string {
 	fake.scopedNameMutex.Lock()
+	ret, specificReturn := fake.scopedNameReturnsOnCall[len(fake.scopedNameArgsForCall)]
 	fake.scopedNameArgsForCall = append(fake.scopedNameArgsForCall, struct {
 		arg1 string
 	}{arg1})
@@ -206,6 +297,9 @@ func (fake *FakeRadarDB) ScopedName(arg1 string) string {
 	fake.scopedNameMutex.Unlock()
 	if fake.ScopedNameStub != nil {
 		return fake.ScopedNameStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.scopedNameReturns.result1
 }
@@ -229,13 +323,29 @@ func (fake *FakeRadarDB) ScopedNameReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) ScopedNameReturnsOnCall(i int, result1 string) {
+	fake.ScopedNameStub = nil
+	if fake.scopedNameReturnsOnCall == nil {
+		fake.scopedNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.scopedNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeRadarDB) TeamID() int {
 	fake.teamIDMutex.Lock()
+	ret, specificReturn := fake.teamIDReturnsOnCall[len(fake.teamIDArgsForCall)]
 	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct{}{})
 	fake.recordInvocation("TeamID", []interface{}{})
 	fake.teamIDMutex.Unlock()
 	if fake.TeamIDStub != nil {
 		return fake.TeamIDStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.teamIDReturns.result1
 }
@@ -253,13 +363,29 @@ func (fake *FakeRadarDB) TeamIDReturns(result1 int) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) TeamIDReturnsOnCall(i int, result1 int) {
+	fake.TeamIDStub = nil
+	if fake.teamIDReturnsOnCall == nil {
+		fake.teamIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.teamIDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakeRadarDB) Config() atc.Config {
 	fake.configMutex.Lock()
+	ret, specificReturn := fake.configReturnsOnCall[len(fake.configArgsForCall)]
 	fake.configArgsForCall = append(fake.configArgsForCall, struct{}{})
 	fake.recordInvocation("Config", []interface{}{})
 	fake.configMutex.Unlock()
 	if fake.ConfigStub != nil {
 		return fake.ConfigStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.configReturns.result1
 }
@@ -277,13 +403,29 @@ func (fake *FakeRadarDB) ConfigReturns(result1 atc.Config) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) ConfigReturnsOnCall(i int, result1 atc.Config) {
+	fake.ConfigStub = nil
+	if fake.configReturnsOnCall == nil {
+		fake.configReturnsOnCall = make(map[int]struct {
+			result1 atc.Config
+		})
+	}
+	fake.configReturnsOnCall[i] = struct {
+		result1 atc.Config
+	}{result1}
+}
+
 func (fake *FakeRadarDB) IsPaused() (bool, error) {
 	fake.isPausedMutex.Lock()
+	ret, specificReturn := fake.isPausedReturnsOnCall[len(fake.isPausedArgsForCall)]
 	fake.isPausedArgsForCall = append(fake.isPausedArgsForCall, struct{}{})
 	fake.recordInvocation("IsPaused", []interface{}{})
 	fake.isPausedMutex.Unlock()
 	if fake.IsPausedStub != nil {
 		return fake.IsPausedStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.isPausedReturns.result1, fake.isPausedReturns.result2
 }
@@ -302,13 +444,31 @@ func (fake *FakeRadarDB) IsPausedReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeRadarDB) IsPausedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.IsPausedStub = nil
+	if fake.isPausedReturnsOnCall == nil {
+		fake.isPausedReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.isPausedReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeRadarDB) Reload() (bool, error) {
 	fake.reloadMutex.Lock()
+	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
 	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
 	fake.recordInvocation("Reload", []interface{}{})
 	fake.reloadMutex.Unlock()
 	if fake.ReloadStub != nil {
 		return fake.ReloadStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.reloadReturns.result1, fake.reloadReturns.result2
 }
@@ -327,8 +487,23 @@ func (fake *FakeRadarDB) ReloadReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeRadarDB) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.ReloadStub = nil
+	if fake.reloadReturnsOnCall == nil {
+		fake.reloadReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.reloadReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeRadarDB) GetLatestVersionedResource(resourceName string) (db.SavedVersionedResource, bool, error) {
 	fake.getLatestVersionedResourceMutex.Lock()
+	ret, specificReturn := fake.getLatestVersionedResourceReturnsOnCall[len(fake.getLatestVersionedResourceArgsForCall)]
 	fake.getLatestVersionedResourceArgsForCall = append(fake.getLatestVersionedResourceArgsForCall, struct {
 		resourceName string
 	}{resourceName})
@@ -336,6 +511,9 @@ func (fake *FakeRadarDB) GetLatestVersionedResource(resourceName string) (db.Sav
 	fake.getLatestVersionedResourceMutex.Unlock()
 	if fake.GetLatestVersionedResourceStub != nil {
 		return fake.GetLatestVersionedResourceStub(resourceName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2, fake.getLatestVersionedResourceReturns.result3
 }
@@ -361,8 +539,25 @@ func (fake *FakeRadarDB) GetLatestVersionedResourceReturns(result1 db.SavedVersi
 	}{result1, result2, result3}
 }
 
+func (fake *FakeRadarDB) GetLatestVersionedResourceReturnsOnCall(i int, result1 db.SavedVersionedResource, result2 bool, result3 error) {
+	fake.GetLatestVersionedResourceStub = nil
+	if fake.getLatestVersionedResourceReturnsOnCall == nil {
+		fake.getLatestVersionedResourceReturnsOnCall = make(map[int]struct {
+			result1 db.SavedVersionedResource
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getLatestVersionedResourceReturnsOnCall[i] = struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeRadarDB) GetResource(resourceName string) (db.SavedResource, bool, error) {
 	fake.getResourceMutex.Lock()
+	ret, specificReturn := fake.getResourceReturnsOnCall[len(fake.getResourceArgsForCall)]
 	fake.getResourceArgsForCall = append(fake.getResourceArgsForCall, struct {
 		resourceName string
 	}{resourceName})
@@ -370,6 +565,9 @@ func (fake *FakeRadarDB) GetResource(resourceName string) (db.SavedResource, boo
 	fake.getResourceMutex.Unlock()
 	if fake.GetResourceStub != nil {
 		return fake.GetResourceStub(resourceName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getResourceReturns.result1, fake.getResourceReturns.result2, fake.getResourceReturns.result3
 }
@@ -395,8 +593,25 @@ func (fake *FakeRadarDB) GetResourceReturns(result1 db.SavedResource, result2 bo
 	}{result1, result2, result3}
 }
 
+func (fake *FakeRadarDB) GetResourceReturnsOnCall(i int, result1 db.SavedResource, result2 bool, result3 error) {
+	fake.GetResourceStub = nil
+	if fake.getResourceReturnsOnCall == nil {
+		fake.getResourceReturnsOnCall = make(map[int]struct {
+			result1 db.SavedResource
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getResourceReturnsOnCall[i] = struct {
+		result1 db.SavedResource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeRadarDB) GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error) {
 	fake.getResourceTypeMutex.Lock()
+	ret, specificReturn := fake.getResourceTypeReturnsOnCall[len(fake.getResourceTypeArgsForCall)]
 	fake.getResourceTypeArgsForCall = append(fake.getResourceTypeArgsForCall, struct {
 		resourceTypeName string
 	}{resourceTypeName})
@@ -404,6 +619,9 @@ func (fake *FakeRadarDB) GetResourceType(resourceTypeName string) (db.SavedResou
 	fake.getResourceTypeMutex.Unlock()
 	if fake.GetResourceTypeStub != nil {
 		return fake.GetResourceTypeStub(resourceTypeName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getResourceTypeReturns.result1, fake.getResourceTypeReturns.result2, fake.getResourceTypeReturns.result3
 }
@@ -429,8 +647,25 @@ func (fake *FakeRadarDB) GetResourceTypeReturns(result1 db.SavedResourceType, re
 	}{result1, result2, result3}
 }
 
+func (fake *FakeRadarDB) GetResourceTypeReturnsOnCall(i int, result1 db.SavedResourceType, result2 bool, result3 error) {
+	fake.GetResourceTypeStub = nil
+	if fake.getResourceTypeReturnsOnCall == nil {
+		fake.getResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 db.SavedResourceType
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getResourceTypeReturnsOnCall[i] = struct {
+		result1 db.SavedResourceType
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeRadarDB) PauseResource(resourceName string) error {
 	fake.pauseResourceMutex.Lock()
+	ret, specificReturn := fake.pauseResourceReturnsOnCall[len(fake.pauseResourceArgsForCall)]
 	fake.pauseResourceArgsForCall = append(fake.pauseResourceArgsForCall, struct {
 		resourceName string
 	}{resourceName})
@@ -438,6 +673,9 @@ func (fake *FakeRadarDB) PauseResource(resourceName string) error {
 	fake.pauseResourceMutex.Unlock()
 	if fake.PauseResourceStub != nil {
 		return fake.PauseResourceStub(resourceName)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.pauseResourceReturns.result1
 }
@@ -461,8 +699,21 @@ func (fake *FakeRadarDB) PauseResourceReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) PauseResourceReturnsOnCall(i int, result1 error) {
+	fake.PauseResourceStub = nil
+	if fake.pauseResourceReturnsOnCall == nil {
+		fake.pauseResourceReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.pauseResourceReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeRadarDB) UnpauseResource(resourceName string) error {
 	fake.unpauseResourceMutex.Lock()
+	ret, specificReturn := fake.unpauseResourceReturnsOnCall[len(fake.unpauseResourceArgsForCall)]
 	fake.unpauseResourceArgsForCall = append(fake.unpauseResourceArgsForCall, struct {
 		resourceName string
 	}{resourceName})
@@ -470,6 +721,9 @@ func (fake *FakeRadarDB) UnpauseResource(resourceName string) error {
 	fake.unpauseResourceMutex.Unlock()
 	if fake.UnpauseResourceStub != nil {
 		return fake.UnpauseResourceStub(resourceName)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.unpauseResourceReturns.result1
 }
@@ -493,6 +747,18 @@ func (fake *FakeRadarDB) UnpauseResourceReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) UnpauseResourceReturnsOnCall(i int, result1 error) {
+	fake.UnpauseResourceStub = nil
+	if fake.unpauseResourceReturnsOnCall == nil {
+		fake.unpauseResourceReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.unpauseResourceReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeRadarDB) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 []atc.Version) error {
 	var arg2Copy []atc.Version
 	if arg2 != nil {
@@ -500,6 +766,7 @@ func (fake *FakeRadarDB) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 []at
 		copy(arg2Copy, arg2)
 	}
 	fake.saveResourceVersionsMutex.Lock()
+	ret, specificReturn := fake.saveResourceVersionsReturnsOnCall[len(fake.saveResourceVersionsArgsForCall)]
 	fake.saveResourceVersionsArgsForCall = append(fake.saveResourceVersionsArgsForCall, struct {
 		arg1 atc.ResourceConfig
 		arg2 []atc.Version
@@ -508,6 +775,9 @@ func (fake *FakeRadarDB) SaveResourceVersions(arg1 atc.ResourceConfig, arg2 []at
 	fake.saveResourceVersionsMutex.Unlock()
 	if fake.SaveResourceVersionsStub != nil {
 		return fake.SaveResourceVersionsStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.saveResourceVersionsReturns.result1
 }
@@ -531,8 +801,21 @@ func (fake *FakeRadarDB) SaveResourceVersionsReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) SaveResourceVersionsReturnsOnCall(i int, result1 error) {
+	fake.SaveResourceVersionsStub = nil
+	if fake.saveResourceVersionsReturnsOnCall == nil {
+		fake.saveResourceVersionsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveResourceVersionsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeRadarDB) SaveResourceTypeVersion(arg1 atc.ResourceType, arg2 atc.Version) error {
 	fake.saveResourceTypeVersionMutex.Lock()
+	ret, specificReturn := fake.saveResourceTypeVersionReturnsOnCall[len(fake.saveResourceTypeVersionArgsForCall)]
 	fake.saveResourceTypeVersionArgsForCall = append(fake.saveResourceTypeVersionArgsForCall, struct {
 		arg1 atc.ResourceType
 		arg2 atc.Version
@@ -541,6 +824,9 @@ func (fake *FakeRadarDB) SaveResourceTypeVersion(arg1 atc.ResourceType, arg2 atc
 	fake.saveResourceTypeVersionMutex.Unlock()
 	if fake.SaveResourceTypeVersionStub != nil {
 		return fake.SaveResourceTypeVersionStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.saveResourceTypeVersionReturns.result1
 }
@@ -564,8 +850,21 @@ func (fake *FakeRadarDB) SaveResourceTypeVersionReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) SaveResourceTypeVersionReturnsOnCall(i int, result1 error) {
+	fake.SaveResourceTypeVersionStub = nil
+	if fake.saveResourceTypeVersionReturnsOnCall == nil {
+		fake.saveResourceTypeVersionReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveResourceTypeVersionReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeRadarDB) SetResourceCheckError(resource db.SavedResource, err error) error {
 	fake.setResourceCheckErrorMutex.Lock()
+	ret, specificReturn := fake.setResourceCheckErrorReturnsOnCall[len(fake.setResourceCheckErrorArgsForCall)]
 	fake.setResourceCheckErrorArgsForCall = append(fake.setResourceCheckErrorArgsForCall, struct {
 		resource db.SavedResource
 		err      error
@@ -574,6 +873,9 @@ func (fake *FakeRadarDB) SetResourceCheckError(resource db.SavedResource, err er
 	fake.setResourceCheckErrorMutex.Unlock()
 	if fake.SetResourceCheckErrorStub != nil {
 		return fake.SetResourceCheckErrorStub(resource, err)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.setResourceCheckErrorReturns.result1
 }
@@ -597,8 +899,21 @@ func (fake *FakeRadarDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeRadarDB) SetResourceCheckErrorReturnsOnCall(i int, result1 error) {
+	fake.SetResourceCheckErrorStub = nil
+	if fake.setResourceCheckErrorReturnsOnCall == nil {
+		fake.setResourceCheckErrorReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setResourceCheckErrorReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeRadarDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 	fake.acquireResourceTypeCheckingLockMutex.Lock()
+	ret, specificReturn := fake.acquireResourceTypeCheckingLockReturnsOnCall[len(fake.acquireResourceTypeCheckingLockArgsForCall)]
 	fake.acquireResourceTypeCheckingLockArgsForCall = append(fake.acquireResourceTypeCheckingLockArgsForCall, struct {
 		logger       lager.Logger
 		resourceType db.SavedResourceType
@@ -609,6 +924,9 @@ func (fake *FakeRadarDB) AcquireResourceTypeCheckingLock(logger lager.Logger, re
 	fake.acquireResourceTypeCheckingLockMutex.Unlock()
 	if fake.AcquireResourceTypeCheckingLockStub != nil {
 		return fake.AcquireResourceTypeCheckingLockStub(logger, resourceType, interval, immediate)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.acquireResourceTypeCheckingLockReturns.result1, fake.acquireResourceTypeCheckingLockReturns.result2, fake.acquireResourceTypeCheckingLockReturns.result3
 }
@@ -628,6 +946,22 @@ func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockArgsForCall(i int) (lage
 func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireResourceTypeCheckingLockStub = nil
 	fake.acquireResourceTypeCheckingLockReturns = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireResourceTypeCheckingLockStub = nil
+	if fake.acquireResourceTypeCheckingLockReturnsOnCall == nil {
+		fake.acquireResourceTypeCheckingLockReturnsOnCall = make(map[int]struct {
+			result1 lock.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.acquireResourceTypeCheckingLockReturnsOnCall[i] = struct {
 		result1 lock.Lock
 		result2 bool
 		result3 error

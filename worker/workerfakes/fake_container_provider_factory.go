@@ -16,12 +16,16 @@ type FakeContainerProviderFactory struct {
 	containerProviderForReturns struct {
 		result1 worker.ContainerProvider
 	}
+	containerProviderForReturnsOnCall map[int]struct {
+		result1 worker.ContainerProvider
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeContainerProviderFactory) ContainerProviderFor(arg1 worker.Worker) worker.ContainerProvider {
 	fake.containerProviderForMutex.Lock()
+	ret, specificReturn := fake.containerProviderForReturnsOnCall[len(fake.containerProviderForArgsForCall)]
 	fake.containerProviderForArgsForCall = append(fake.containerProviderForArgsForCall, struct {
 		arg1 worker.Worker
 	}{arg1})
@@ -29,6 +33,9 @@ func (fake *FakeContainerProviderFactory) ContainerProviderFor(arg1 worker.Worke
 	fake.containerProviderForMutex.Unlock()
 	if fake.ContainerProviderForStub != nil {
 		return fake.ContainerProviderForStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.containerProviderForReturns.result1
 }
@@ -48,6 +55,18 @@ func (fake *FakeContainerProviderFactory) ContainerProviderForArgsForCall(i int)
 func (fake *FakeContainerProviderFactory) ContainerProviderForReturns(result1 worker.ContainerProvider) {
 	fake.ContainerProviderForStub = nil
 	fake.containerProviderForReturns = struct {
+		result1 worker.ContainerProvider
+	}{result1}
+}
+
+func (fake *FakeContainerProviderFactory) ContainerProviderForReturnsOnCall(i int, result1 worker.ContainerProvider) {
+	fake.ContainerProviderForStub = nil
+	if fake.containerProviderForReturnsOnCall == nil {
+		fake.containerProviderForReturnsOnCall = make(map[int]struct {
+			result1 worker.ContainerProvider
+		})
+	}
+	fake.containerProviderForReturnsOnCall[i] = struct {
 		result1 worker.ContainerProvider
 	}{result1}
 }

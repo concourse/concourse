@@ -36,12 +36,19 @@ type FakeImageResourceFetcher struct {
 		result3 atc.Version
 		result4 error
 	}
+	fetchReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 io.ReadCloser
+		result3 atc.Version
+		result4 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeImageResourceFetcher) Fetch(logger lager.Logger, resourceUser dbng.ResourceUser, signals <-chan os.Signal, imageResourceType string, imageResourceSource atc.Source, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamID int, customTypes atc.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error) {
 	fake.fetchMutex.Lock()
+	ret, specificReturn := fake.fetchReturnsOnCall[len(fake.fetchArgsForCall)]
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
 		logger                lager.Logger
 		resourceUser          dbng.ResourceUser
@@ -61,6 +68,9 @@ func (fake *FakeImageResourceFetcher) Fetch(logger lager.Logger, resourceUser db
 	if fake.FetchStub != nil {
 		return fake.FetchStub(logger, resourceUser, signals, imageResourceType, imageResourceSource, id, metadata, tags, teamID, customTypes, imageFetchingDelegate, privileged)
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3, ret.result4
+	}
 	return fake.fetchReturns.result1, fake.fetchReturns.result2, fake.fetchReturns.result3, fake.fetchReturns.result4
 }
 
@@ -79,6 +89,24 @@ func (fake *FakeImageResourceFetcher) FetchArgsForCall(i int) (lager.Logger, dbn
 func (fake *FakeImageResourceFetcher) FetchReturns(result1 worker.Volume, result2 io.ReadCloser, result3 atc.Version, result4 error) {
 	fake.FetchStub = nil
 	fake.fetchReturns = struct {
+		result1 worker.Volume
+		result2 io.ReadCloser
+		result3 atc.Version
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeImageResourceFetcher) FetchReturnsOnCall(i int, result1 worker.Volume, result2 io.ReadCloser, result3 atc.Version, result4 error) {
+	fake.FetchStub = nil
+	if fake.fetchReturnsOnCall == nil {
+		fake.fetchReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 io.ReadCloser
+			result3 atc.Version
+			result4 error
+		})
+	}
+	fake.fetchReturnsOnCall[i] = struct {
 		result1 worker.Volume
 		result2 io.ReadCloser
 		result3 atc.Version

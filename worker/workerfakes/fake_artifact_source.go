@@ -17,12 +17,19 @@ type FakeArtifactSource struct {
 	streamToReturns struct {
 		result1 error
 	}
+	streamToReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StreamFileStub        func(path string) (io.ReadCloser, error)
 	streamFileMutex       sync.RWMutex
 	streamFileArgsForCall []struct {
 		path string
 	}
 	streamFileReturns struct {
+		result1 io.ReadCloser
+		result2 error
+	}
+	streamFileReturnsOnCall map[int]struct {
 		result1 io.ReadCloser
 		result2 error
 	}
@@ -36,12 +43,18 @@ type FakeArtifactSource struct {
 		result2 bool
 		result3 error
 	}
+	volumeOnReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeArtifactSource) StreamTo(arg1 worker.ArtifactDestination) error {
 	fake.streamToMutex.Lock()
+	ret, specificReturn := fake.streamToReturnsOnCall[len(fake.streamToArgsForCall)]
 	fake.streamToArgsForCall = append(fake.streamToArgsForCall, struct {
 		arg1 worker.ArtifactDestination
 	}{arg1})
@@ -49,6 +62,9 @@ func (fake *FakeArtifactSource) StreamTo(arg1 worker.ArtifactDestination) error 
 	fake.streamToMutex.Unlock()
 	if fake.StreamToStub != nil {
 		return fake.StreamToStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.streamToReturns.result1
 }
@@ -72,8 +88,21 @@ func (fake *FakeArtifactSource) StreamToReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeArtifactSource) StreamToReturnsOnCall(i int, result1 error) {
+	fake.StreamToStub = nil
+	if fake.streamToReturnsOnCall == nil {
+		fake.streamToReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.streamToReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeArtifactSource) StreamFile(path string) (io.ReadCloser, error) {
 	fake.streamFileMutex.Lock()
+	ret, specificReturn := fake.streamFileReturnsOnCall[len(fake.streamFileArgsForCall)]
 	fake.streamFileArgsForCall = append(fake.streamFileArgsForCall, struct {
 		path string
 	}{path})
@@ -81,6 +110,9 @@ func (fake *FakeArtifactSource) StreamFile(path string) (io.ReadCloser, error) {
 	fake.streamFileMutex.Unlock()
 	if fake.StreamFileStub != nil {
 		return fake.StreamFileStub(path)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.streamFileReturns.result1, fake.streamFileReturns.result2
 }
@@ -105,8 +137,23 @@ func (fake *FakeArtifactSource) StreamFileReturns(result1 io.ReadCloser, result2
 	}{result1, result2}
 }
 
+func (fake *FakeArtifactSource) StreamFileReturnsOnCall(i int, result1 io.ReadCloser, result2 error) {
+	fake.StreamFileStub = nil
+	if fake.streamFileReturnsOnCall == nil {
+		fake.streamFileReturnsOnCall = make(map[int]struct {
+			result1 io.ReadCloser
+			result2 error
+		})
+	}
+	fake.streamFileReturnsOnCall[i] = struct {
+		result1 io.ReadCloser
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeArtifactSource) VolumeOn(arg1 worker.Worker) (worker.Volume, bool, error) {
 	fake.volumeOnMutex.Lock()
+	ret, specificReturn := fake.volumeOnReturnsOnCall[len(fake.volumeOnArgsForCall)]
 	fake.volumeOnArgsForCall = append(fake.volumeOnArgsForCall, struct {
 		arg1 worker.Worker
 	}{arg1})
@@ -114,6 +161,9 @@ func (fake *FakeArtifactSource) VolumeOn(arg1 worker.Worker) (worker.Volume, boo
 	fake.volumeOnMutex.Unlock()
 	if fake.VolumeOnStub != nil {
 		return fake.VolumeOnStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.volumeOnReturns.result1, fake.volumeOnReturns.result2, fake.volumeOnReturns.result3
 }
@@ -133,6 +183,22 @@ func (fake *FakeArtifactSource) VolumeOnArgsForCall(i int) worker.Worker {
 func (fake *FakeArtifactSource) VolumeOnReturns(result1 worker.Volume, result2 bool, result3 error) {
 	fake.VolumeOnStub = nil
 	fake.volumeOnReturns = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeArtifactSource) VolumeOnReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.VolumeOnStub = nil
+	if fake.volumeOnReturnsOnCall == nil {
+		fake.volumeOnReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.volumeOnReturnsOnCall[i] = struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error

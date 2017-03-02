@@ -19,12 +19,16 @@ type FakeBuildStarterBuildsDB struct {
 	finishBuildReturns struct {
 		result1 error
 	}
+	finishBuildReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeBuildStarterBuildsDB) FinishBuild(buildID int, pipelineID int, status db.Status) error {
 	fake.finishBuildMutex.Lock()
+	ret, specificReturn := fake.finishBuildReturnsOnCall[len(fake.finishBuildArgsForCall)]
 	fake.finishBuildArgsForCall = append(fake.finishBuildArgsForCall, struct {
 		buildID    int
 		pipelineID int
@@ -34,6 +38,9 @@ func (fake *FakeBuildStarterBuildsDB) FinishBuild(buildID int, pipelineID int, s
 	fake.finishBuildMutex.Unlock()
 	if fake.FinishBuildStub != nil {
 		return fake.FinishBuildStub(buildID, pipelineID, status)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.finishBuildReturns.result1
 }
@@ -53,6 +60,18 @@ func (fake *FakeBuildStarterBuildsDB) FinishBuildArgsForCall(i int) (int, int, d
 func (fake *FakeBuildStarterBuildsDB) FinishBuildReturns(result1 error) {
 	fake.FinishBuildStub = nil
 	fake.finishBuildReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildStarterBuildsDB) FinishBuildReturnsOnCall(i int, result1 error) {
+	fake.FinishBuildStub = nil
+	if fake.finishBuildReturnsOnCall == nil {
+		fake.finishBuildReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.finishBuildReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
