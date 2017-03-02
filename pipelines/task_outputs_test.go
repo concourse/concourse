@@ -1,9 +1,7 @@
 package pipelines_test
 
 import (
-	"fmt"
 	"os/exec"
-	"regexp"
 	"time"
 
 	"github.com/concourse/testflight/helpers"
@@ -54,19 +52,8 @@ var _ = Describe("A job with a task that produces outputs", func() {
 				"--", "sh", "-c",
 				"echo ok",
 			)
-			hijackIn, err := hijack.StdinPipe()
-			Expect(err).NotTo(HaveOccurred())
 
 			hijackS := helpers.StartFly(hijack)
-
-			Eventually(hijackS).Should(gbytes.Say("type: task"))
-
-			re, err := regexp.Compile("([0-9]): .+ type: task")
-			Expect(err).NotTo(HaveOccurred())
-
-			taskNumber := re.FindStringSubmatch(string(hijackS.Out.Contents()))[1]
-			fmt.Fprintln(hijackIn, taskNumber)
-
 			Eventually(hijackS).Should(gexec.Exit(0))
 			Eventually(hijackS, 30*time.Second).Should(gbytes.Say("ok"))
 		})
