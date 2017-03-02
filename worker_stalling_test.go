@@ -121,7 +121,8 @@ var _ = Describe("[#129726011] Worker stalling", func() {
 
 					By("hijacking the build to tell it to finish")
 					Eventually(func() int {
-						session := flyHijackTask(
+						session := spawnFly(
+							"hijack",
 							"-b", buildID,
 							"-s", "one-off",
 							"touch", "/tmp/stop-waiting",

@@ -57,7 +57,8 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 		By("hijacking into the build container")
-		hijackSession := flyHijackTask(
+		hijackSession := spawnFly(
+			"hijack",
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "1",
 			"-s", "simple-task",
@@ -65,7 +66,8 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		)
 
 		By("finishing the build")
-		<-flyHijackTask(
+		<-spawnFly(
+			"hijack",
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "1",
 			"-s", "simple-task",
@@ -76,7 +78,8 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		By("triggering a new build")
 		buildSession = spawnFly("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
-		<-flyHijackTask(
+		<-spawnFly(
+			"hijack",
 			"-j", "hijacked-containers-test/simple-job",
 			"-b", "2",
 			"-s", "simple-task",
@@ -100,14 +103,16 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 		By("hijacking into the build container")
-		hijackSession := flyHijackTask(
+		hijackSession := spawnFly(
+			"hijack",
 			"-b", "1",
 			"--",
 			"while true; do sleep 1; done",
 		)
 
 		By("waiting for build to finish")
-		<-flyHijackTask(
+		<-spawnFly(
+			"hijack",
 			"-b", "1",
 			"touch", "/tmp/stop-waiting",
 		).Exited

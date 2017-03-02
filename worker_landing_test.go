@@ -78,7 +78,8 @@ var _ = Describe("[#129726011] Worker landing", func() {
 
 				It("finishes restarting once the build is done", func() {
 					By("hijacking the build to tell it to finish")
-					<-flyHijackTask(
+					<-spawnFly(
+						"hijack",
 						"-b", buildID,
 						"-s", "one-off",
 						"touch", "/tmp/stop-waiting",

@@ -25,7 +25,6 @@ import (
 	"github.com/concourse/go-concourse/concourse"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
 	"testing"
@@ -182,25 +181,6 @@ func deleteAllContainers() {
 			}
 		}
 	}
-}
-
-func flyHijackTask(argv ...string) *gexec.Session {
-	cmd := exec.Command(flyBin, append([]string{"-t", flyTarget, "hijack"}, argv...)...)
-	hijackIn, err := cmd.StdinPipe()
-	Expect(err).NotTo(HaveOccurred())
-
-	hijackS, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).ToNot(HaveOccurred())
-
-	Eventually(hijackS).Should(gbytes.Say("type: task"))
-
-	re, err := regexp.Compile("([0-9]): .+ type: task")
-	Expect(err).NotTo(HaveOccurred())
-
-	taskNumber := re.FindStringSubmatch(string(hijackS.Out.Contents()))[1]
-	fmt.Fprintln(hijackIn, taskNumber)
-
-	return hijackS
 }
 
 func spawnFly(argv ...string) *gexec.Session {

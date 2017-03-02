@@ -87,7 +87,8 @@ var _ = Describe("[#137641079] ATC Shutting down", func() {
 					It("continues tracking the build progress", func() {
 						By("hijacking the build to tell it to finish")
 						Eventually(func() int {
-							session := flyHijackTask(
+							session := spawnFly(
+								"hijack",
 								"-b", buildID,
 								"-s", "one-off",
 								"touch", "/tmp/stop-waiting",
