@@ -25,6 +25,7 @@ func TestGcng(t *testing.T) {
 }
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
 var (
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process

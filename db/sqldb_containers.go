@@ -38,23 +38,6 @@ func scanRows(rows *sql.Rows) ([]SavedContainer, error) {
 	return containers, nil
 }
 
-func (db *SQLDB) FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, error) {
-	rows, err := db.conn.Query(
-		`SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins + `
-		WHERE (b.status = 'failed' OR b.status = 'errored')
-		AND b.job_id is not null`)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return []SavedContainer{}, nil
-		}
-		return nil, err
-	}
-
-	return scanRows(rows)
-}
-
 func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {
 	conditions := []string{}
 	params := []interface{}{}
@@ -80,31 +63,9 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		}...)
 	}
 
-	switch {
-	case isValidCheckID(id):
-		checkSourceBlob, err := json.Marshal(id.CheckSource)
-		if err != nil {
-			return SavedContainer{}, false, err
-		}
-
-		if id.ResourceID > 0 {
-			addParam("resource_id", id.ResourceID)
-		}
-		addParam("check_type", id.CheckType)
-		addParam("check_source", checkSourceBlob)
-		addParam("stage", string(id.Stage))
-		conditions = append(conditions, "(best_if_used_by IS NULL OR best_if_used_by > NOW())")
-
-		extraJoins = "LEFT JOIN worker_base_resource_types wbrt ON c.worker_base_resource_type_id = wbrt.id"
-		subQ := `SELECT max(worker_base_resource_type_id) FROM containers WHERE ` + strings.Join(conditions, " AND ")
-		conditions = append(conditions, `c.worker_base_resource_type_id IN (`+subQ+`)`)
-	case isValidStepID(id):
-		addParam("build_id", id.BuildID)
-		addParam("plan_id", string(id.PlanID))
-		addParam("stage", string(id.Stage))
-	default:
-		return SavedContainer{}, false, ErrInvalidIdentifier
-	}
+	addParam("build_id", id.BuildID)
+	addParam("plan_id", string(id.PlanID))
+	addParam("stage", string(id.Stage))
 
 	selectQuery := `
 		SELECT ` + containerColumns + `
@@ -157,76 +118,25 @@ func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {
 	return container, true, nil
 }
 
-func (db *SQLDB) UpdateContainerTTLToBeRemoved(container Container, maxLifetime time.Duration) (SavedContainer, error) {
-	if !(isValidCheckID(container.ContainerIdentifier) || isValidStepID(container.ContainerIdentifier)) {
-		return SavedContainer{}, ErrInvalidIdentifier
-	}
-
+// this saves off metadata and other things not yet expressed by dbng (best_if_used_by)
+func (db *SQLDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container Container, maxLifetime time.Duration) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return SavedContainer{}, err
+		return err
 	}
 
 	defer tx.Rollback()
 
-	checkSource, err := json.Marshal(container.CheckSource)
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	envVariables, err := json.Marshal(container.EnvironmentVariables)
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	user := container.User
-
-	if container.PipelineName != "" && container.PipelineID == 0 {
-		// containers that belong to some pipeline must be identified by pipeline ID not name
-		return SavedContainer{}, errors.New("container metadata must include pipeline ID")
-	}
-	var pipelineID sql.NullInt64
-	if container.PipelineID != 0 {
-		pipelineID.Int64 = int64(container.PipelineID)
-		pipelineID.Valid = true
-	}
-
-	var resourceID sql.NullInt64
-	if container.ResourceID != 0 {
-		resourceID.Int64 = int64(container.ResourceID)
-		resourceID.Valid = true
-	}
-
-	var resourceTypeVersion string
-	if container.ResourceTypeVersion != nil {
-		resourceTypeVersionBytes, err := json.Marshal(container.ResourceTypeVersion)
-		if err != nil {
-			return SavedContainer{}, err
-		}
-		resourceTypeVersion = string(resourceTypeVersionBytes)
-	}
-
-	var buildID sql.NullInt64
-	if container.BuildID != 0 {
-		buildID.Int64 = int64(container.BuildID)
-		buildID.Valid = true
-	}
-
-	var attempts sql.NullString
-	if len(container.Attempts) > 0 {
-		attemptsBlob, err := json.Marshal(container.Attempts)
-		if err != nil {
-			return SavedContainer{}, err
-		}
-		attempts.Valid = true
-		attempts.String = string(attemptsBlob)
+	maxLifetimeValue := "NULL"
+	if maxLifetime > 0 {
+		maxLifetimeValue = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(maxLifetime.Seconds()))
 	}
 
 	var imageResourceSource sql.NullString
 	if container.ImageResourceSource != nil {
 		marshaled, err := json.Marshal(container.ImageResourceSource)
 		if err != nil {
-			return SavedContainer{}, err
+			return err
 		}
 
 		imageResourceSource.String = string(marshaled)
@@ -239,284 +149,47 @@ func (db *SQLDB) UpdateContainerTTLToBeRemoved(container Container, maxLifetime 
 		imageResourceType.Valid = true
 	}
 
-	maxLifetimeValue := "NULL"
-	if maxLifetime > 0 {
-		maxLifetimeValue = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(maxLifetime.Seconds()))
-	}
-	var id int
-	err = tx.QueryRow(`
-		UPDATE containers SET (resource_id, step_name, pipeline_id, build_id, type, worker_name,
-			best_if_used_by, check_type, check_source, plan_id, working_directory,
-			env_variables, attempts, stage, image_resource_type, image_resource_source,
-			process_user, resource_type_version, team_id)
-		= ($2, $3, $4, $5, $6, $7, `+maxLifetimeValue+`, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-		WHERE handle=$1
-		RETURNING id`,
-		container.Handle,
-		resourceID,
-		container.StepName,
-		pipelineID,
-		buildID,
-		container.Type.String(),
-		container.WorkerName,
-		container.CheckType,
-		checkSource,
-		string(container.PlanID),
-		container.WorkingDirectory,
-		envVariables,
-		attempts,
-		string(container.Stage),
-		imageResourceType,
-		imageResourceSource,
-		user,
-		resourceTypeVersion,
-		container.TeamID,
-	).Scan(&id)
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	newContainer, err := scanContainer(tx.QueryRow(`
-		SELECT `+containerColumns+`
-	  FROM containers c `+containerJoins+`
-		WHERE c.id = $1
-	`, id))
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	return newContainer, nil
-}
-
-func (db *SQLDB) CreateContainerToBeRemoved(container Container, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error) {
-	if !(isValidCheckID(container.ContainerIdentifier) || isValidStepID(container.ContainerIdentifier)) {
-		return SavedContainer{}, ErrInvalidIdentifier
-	}
-
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	defer tx.Rollback()
-
-	checkSource, err := json.Marshal(container.CheckSource)
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	envVariables, err := json.Marshal(container.EnvironmentVariables)
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	user := container.User
-
-	if container.PipelineName != "" && container.PipelineID == 0 {
-		// containers that belong to some pipeline must be identified by pipeline ID not name
-		return SavedContainer{}, errors.New("container metadata must include pipeline ID")
-	}
-	var pipelineID sql.NullInt64
-	if container.PipelineID != 0 {
-		pipelineID.Int64 = int64(container.PipelineID)
-		pipelineID.Valid = true
-	}
-
-	var resourceID sql.NullInt64
-	if container.ResourceID != 0 {
-		resourceID.Int64 = int64(container.ResourceID)
-		resourceID.Valid = true
-	}
-
-	var resourceTypeVersion string
-	if container.ResourceTypeVersion != nil {
-		resourceTypeVersionBytes, err := json.Marshal(container.ResourceTypeVersion)
-		if err != nil {
-			return SavedContainer{}, err
-		}
-		resourceTypeVersion = string(resourceTypeVersionBytes)
-	}
-
-	var buildID sql.NullInt64
-	if container.BuildID != 0 {
-		buildID.Int64 = int64(container.BuildID)
-		buildID.Valid = true
-	}
-
 	var attempts sql.NullString
 	if len(container.Attempts) > 0 {
 		attemptsBlob, err := json.Marshal(container.Attempts)
 		if err != nil {
-			return SavedContainer{}, err
+			return err
 		}
 		attempts.Valid = true
 		attempts.String = string(attemptsBlob)
 	}
 
-	var imageResourceSource sql.NullString
-	if container.ImageResourceSource != nil {
-		marshaled, err := json.Marshal(container.ImageResourceSource)
-		if err != nil {
-			return SavedContainer{}, err
-		}
-
-		imageResourceSource.String = string(marshaled)
-		imageResourceSource.Valid = true
-	}
-
-	var imageResourceType sql.NullString
-	if container.ImageResourceType != "" {
-		imageResourceType.String = container.ImageResourceType
-		imageResourceType.Valid = true
-	}
-
-	maxLifetimeValue := "NULL"
-	if maxLifetime > 0 {
-		maxLifetimeValue = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(maxLifetime.Seconds()))
-	}
-
 	var id int
 	err = tx.QueryRow(`
-		INSERT INTO containers (handle, state, resource_id, step_name, pipeline_id, build_id, type, worker_name,
-			best_if_used_by, check_type, check_source, plan_id, working_directory,
-			env_variables, attempts, stage, image_resource_type, image_resource_source,
-			process_user, resource_type_version, team_id)
-		VALUES ($1, 'created', $2, $3, $4, $5, $6, $7, `+maxLifetimeValue+`, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+		UPDATE containers SET (
+			best_if_used_by,
+			image_resource_type,
+			image_resource_source,
+			process_user,
+			attempts,
+			pipeline_id
+		) = (
+			`+maxLifetimeValue+`,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6
+		)
+		WHERE handle = $1
 		RETURNING id`,
 		container.Handle,
-		resourceID,
-		container.StepName,
-		pipelineID,
-		buildID,
-		container.Type.String(),
-		container.WorkerName,
-		container.CheckType,
-		checkSource,
-		string(container.PlanID),
-		container.WorkingDirectory,
-		envVariables,
-		attempts,
-		string(container.Stage),
 		imageResourceType,
 		imageResourceSource,
-		user,
-		resourceTypeVersion,
-		container.TeamID,
+		container.User,
+		attempts,
+		container.PipelineID,
 	).Scan(&id)
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	newContainer, err := scanContainer(tx.QueryRow(`
-		SELECT `+containerColumns+`
-	  FROM containers c `+containerJoins+`
-		WHERE c.id = $1
-	`, id))
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	for _, volumeHandle := range volumeHandles {
-		// transition to initialized
-		_, err = tx.Exec(`
-			UPDATE volumes
-			SET container_id = $1
-			WHERE handle = $2
-		`, id, volumeHandle)
-		if err != nil {
-			return SavedContainer{}, err
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return SavedContainer{}, err
-	}
-
-	return newContainer, nil
-}
-
-func (db *SQLDB) ReapContainer(handle string) error {
-	rows, err := db.conn.Exec(`
-		DELETE FROM containers WHERE handle = $1
-	`, handle)
-	if err != nil {
-		return err
-	}
-
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	// just to be explicit: reaping 0 containers is fine;
-	// it may have already expired
-	if affected == 0 {
-		return nil
-	}
-
-	return nil
-}
-
-func (db *SQLDB) DeleteContainer(handle string) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	_, err = tx.Exec(`
-		DELETE FROM containers WHERE handle = $1
-	`, handle)
 	if err != nil {
 		return err
 	}
 
 	return tx.Commit()
-}
-
-func isValidCheckID(id ContainerIdentifier) bool {
-	if !((id.ResourceID > 0 || id.ResourceTypeVersion != nil) &&
-		id.CheckType != "" &&
-		id.CheckSource != nil &&
-		id.BuildID == 0 &&
-		id.PlanID == "") {
-		return false
-	}
-
-	switch id.Stage {
-	case ContainerStageCheck, ContainerStageGet:
-		return id.ImageResourceType != "" && id.ImageResourceSource != nil
-	case ContainerStageRun:
-		return id.ImageResourceType == "" && id.ImageResourceSource == nil
-	default:
-		return false
-	}
-}
-
-func isValidStepID(id ContainerIdentifier) bool {
-	if !(id.ResourceID == 0 &&
-		id.CheckType == "" &&
-		id.CheckSource == nil &&
-		id.BuildID > 0 &&
-		id.PlanID != "") {
-		return false
-	}
-
-	switch id.Stage {
-	case ContainerStageCheck, ContainerStageGet:
-		return id.ImageResourceType != "" && id.ImageResourceSource != nil
-	case ContainerStageRun:
-		return id.ImageResourceType == "" && id.ImageResourceSource == nil
-	default:
-		return false
-	}
 }
 
 func scanContainer(row scannable) (SavedContainer, error) {
@@ -582,10 +255,6 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		container.TeamID = int(teamID.Int64)
 	}
 
-	if checkType.Valid {
-		container.CheckType = checkType.String
-	}
-
 	if user.Valid {
 		container.User = user.String
 	}
@@ -617,20 +286,6 @@ func scanContainer(row scannable) (SavedContainer, error) {
 	container.Type, err = ContainerTypeFromString(infoType)
 	if err != nil {
 		return SavedContainer{}, err
-	}
-
-	if checkSourceBlob != nil {
-		err = json.Unmarshal(checkSourceBlob, &container.CheckSource)
-		if err != nil {
-			return SavedContainer{}, err
-		}
-	}
-
-	if len(resourceTypeVersion) > 0 {
-		err = json.Unmarshal(resourceTypeVersion, &container.ResourceTypeVersion)
-		if err != nil {
-			return SavedContainer{}, err
-		}
 	}
 
 	err = json.Unmarshal(envVariablesBlob, &container.EnvironmentVariables)

@@ -152,7 +152,6 @@ func (f *fetcher) fetchWithLock(
 	}
 
 	lockLogger := logger.Session("lock-task", lager.Data{"lock-name": lockName})
-	lockLogger.Info("tick")
 
 	lock, acquired, err := f.db.GetTaskLock(lockLogger, lockName)
 

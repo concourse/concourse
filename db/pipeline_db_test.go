@@ -635,6 +635,7 @@ var _ = Describe("PipelineDB", func() {
 
 		It("can load up versioned resource information relevant to scheduling", func() {
 			job, found, err := pipelineDB.GetJob("some-job")
+			Expect(found).To(BeTrue())
 			Expect(err).NotTo(HaveOccurred())
 
 			otherJob, found, err := pipelineDB.GetJob("some-other-job")
@@ -996,6 +997,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				aJob, found, err := pipelineDB.GetJob("a-job")
+				Expect(found).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())
 
 				By("omitting it from the list of resource versions")
@@ -1329,6 +1331,7 @@ var _ = Describe("PipelineDB", func() {
 				disabledVR.Enabled = false
 
 				latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
+				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(latestVR.Resource).To(Equal(disabledVR.Resource))
 				Expect(latestVR.Type).To(Equal(disabledVR.Type))
@@ -1345,6 +1348,7 @@ var _ = Describe("PipelineDB", func() {
 				enabledVR.Enabled = true
 
 				latestVR, found, err = pipelineDB.GetLatestVersionedResource(resource.Name)
+				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(latestVR.Resource).To(Equal(enabledVR.Resource))
 				Expect(latestVR.Type).To(Equal(enabledVR.Type))
@@ -1492,6 +1496,7 @@ var _ = Describe("PipelineDB", func() {
 
 				It("will cache VersionsDB if no change has occured", func() {
 					_, err := pipelineDB.SaveOutput(build.ID(), savedVR.VersionedResource, true)
+					Expect(err).NotTo(HaveOccurred())
 
 					versionsDB, err := pipelineDB.LoadVersionsDB()
 					Expect(err).NotTo(HaveOccurred())
@@ -2373,6 +2378,7 @@ var _ = Describe("PipelineDB", func() {
 
 				updatedJob, found, err := pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(updatedJob.FirstLoggedBuildID).To(Equal(57))
 
 				By("not erroring when it's called with the same number")
@@ -2526,7 +2532,9 @@ var _ = Describe("PipelineDB", func() {
 						scheduled, err = pipelineDB.UpdateBuildToScheduled(finishedBuild.ID())
 						Expect(err).NotTo(HaveOccurred())
 						Expect(scheduled).To(BeTrue())
+
 						err = finishedBuild.Finish(s)
+						Expect(err).NotTo(HaveOccurred())
 					}
 
 					_, err = pipelineDB.CreateJobBuild("some-other-job")

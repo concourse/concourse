@@ -36,6 +36,7 @@ type ImageResourceFetcherFactory interface {
 type ImageResourceFetcher interface {
 	Fetch(
 		logger lager.Logger,
+		resourceUser dbng.ResourceUser,
 		signals <-chan os.Signal,
 		imageResourceType string,
 		imageResourceSource atc.Source,
@@ -83,6 +84,7 @@ type imageResourceFetcher struct {
 
 func (i *imageResourceFetcher) Fetch(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	signals <-chan os.Signal,
 	imageResourceType string,
 	imageResourceSource atc.Source,
@@ -94,48 +96,22 @@ func (i *imageResourceFetcher) Fetch(
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 	privileged bool,
 ) (worker.Volume, io.ReadCloser, atc.Version, error) {
-	version, err := i.getLatestVersion(logger, id, metadata, imageResourceType, imageResourceSource, tags, teamID, customTypes, imageFetchingDelegate)
+	version, err := i.getLatestVersion(logger, resourceUser, id, metadata, imageResourceType, imageResourceSource, tags, teamID, customTypes, imageFetchingDelegate)
 	if err != nil {
 		logger.Error("failed-to-get-latest-image-version", err)
 		return nil, nil, nil, err
 	}
 
-	var resourceInstance resource.ResourceInstance
-
-	if id.BuildID != 0 {
-		resourceInstance = resource.NewBuildResourceInstance(
-			resource.ResourceType(imageResourceType),
-			version,
-			imageResourceSource,
-			nil,
-			id.BuildID,
-			metadata.PipelineID,
-			customTypes,
-			i.dbResourceCacheFactory,
-		)
-	} else if id.ResourceID != 0 {
-		resourceInstance = resource.NewResourceResourceInstance(
-			resource.ResourceType(imageResourceType),
-			version,
-			imageResourceSource,
-			nil,
-			id.ResourceID,
-			metadata.PipelineID,
-			customTypes,
-			i.dbResourceCacheFactory,
-		)
-	} else {
-		resourceInstance = resource.NewResourceTypeResourceInstance(
-			resource.ResourceType(imageResourceType),
-			version,
-			imageResourceSource,
-			nil,
-			&dbng.UsedResourceType{ID: id.ResourceTypeID},
-			metadata.PipelineID,
-			customTypes,
-			i.dbResourceCacheFactory,
-		)
-	}
+	resourceInstance := resource.NewResourceInstance(
+		resource.ResourceType(imageResourceType),
+		version,
+		imageResourceSource,
+		nil,
+		resourceUser,
+		metadata.PipelineID,
+		customTypes,
+		i.dbResourceCacheFactory,
+	)
 
 	err = imageFetchingDelegate.ImageVersionDetermined(
 		resourceInstance.ResourceCacheIdentifier(),
@@ -212,6 +188,7 @@ func (i *imageResourceFetcher) Fetch(
 
 func (i *imageResourceFetcher) getLatestVersion(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	id worker.Identifier,
 	metadata worker.Metadata,
 	imageResourceType string,
@@ -239,14 +216,18 @@ func (i *imageResourceFetcher) getLatestVersion(
 		TeamID:    teamID,
 	}
 
-	checkingResource, _, err := i.resourceFactory.NewResource(
+	checkingResource, err := i.resourceFactory.NewCheckResource(
 		logger,
+		resourceUser,
 		id,
 		metadata,
 		resourceSpec,
 		customTypes,
 		imageFetchingDelegate,
-		nil,
+		atc.ResourceConfig{
+			Type:   imageResourceType,
+			Source: imageResourceSource,
+		},
 	)
 	if err != nil {
 		return nil, err

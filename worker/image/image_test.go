@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
@@ -70,6 +71,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
+				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
 				atc.ResourceTypes{},
@@ -140,6 +142,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
+				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
 				atc.ResourceTypes{},
@@ -222,6 +225,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
+				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
 				atc.ResourceTypes{},
@@ -290,6 +294,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
+				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
 				atc.ResourceTypes{},
@@ -360,6 +365,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
+				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
 				atc.ResourceTypes{},

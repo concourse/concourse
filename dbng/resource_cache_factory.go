@@ -12,30 +12,9 @@ var EmptyParamsHash = mapHash(atc.Params{})
 //go:generate counterfeiter . ResourceCacheFactory
 
 type ResourceCacheFactory interface {
-	FindOrCreateResourceCacheForBuild(
+	FindOrCreateResourceCache(
 		logger lager.Logger,
-		buildID int,
-		resourceTypeName string,
-		version atc.Version,
-		source atc.Source,
-		params atc.Params,
-		pipelineID int,
-		resourceTypes atc.ResourceTypes,
-	) (*UsedResourceCache, error)
-
-	FindOrCreateResourceCacheForResource(
-		logger lager.Logger,
-		resourceID int,
-		resourceTypeName string,
-		version atc.Version,
-		source atc.Source,
-		params atc.Params,
-		pipelineID int,
-		resourceTypes atc.ResourceTypes,
-	) (*UsedResourceCache, error)
-
-	FindOrCreateResourceCacheForResourceType(
-		logger lager.Logger,
+		resourceUser ResourceUser,
 		resourceTypeName string,
 		version atc.Version,
 		source atc.Source,
@@ -63,9 +42,9 @@ func NewResourceCacheFactory(conn Conn, lockFactory lock.LockFactory) ResourceCa
 	}
 }
 
-func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
+func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	logger lager.Logger,
-	buildID int,
+	resourceUser ResourceUser,
 	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
@@ -100,129 +79,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCacheForBuild(
 
 	err = safeFindOrCreate(f.conn, func(tx Tx) error {
 		var err error
-		usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, tx, f.lockFactory, buildID)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return usedResourceCache, nil
-}
-
-func (f *resourceCacheFactory) FindOrCreateResourceCacheForResource(
-	logger lager.Logger,
-	resourceID int,
-	resourceTypeName string,
-	version atc.Version,
-	source atc.Source,
-	params atc.Params,
-	pipelineID int,
-	resourceTypes atc.ResourceTypes,
-) (*UsedResourceCache, error) {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipelineID)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceCache := ResourceCache{
-		ResourceConfig: resourceConfig,
-		Version:        version,
-		Params:         params,
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	var usedResourceCache *UsedResourceCache
-
-	err = safeFindOrCreate(f.conn, func(tx Tx) error {
-		var err error
-		usedResourceCache, err = resourceCache.FindOrCreateForResource(logger, tx, f.lockFactory, resourceID)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return usedResourceCache, nil
-}
-
-func (f *resourceCacheFactory) FindOrCreateResourceCacheForResourceType(
-	logger lager.Logger,
-	resourceTypeName string,
-	version atc.Version,
-	source atc.Source,
-	params atc.Params,
-	pipelineID int,
-	resourceTypes atc.ResourceTypes,
-) (*UsedResourceCache, error) {
-	resourceType, found := resourceTypes.Lookup(resourceTypeName)
-	if !found {
-		return nil, ErrResourceTypeNotFound{resourceTypeName}
-	}
-
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	rt := ResourceType{
-		ResourceType: resourceType,
-		PipelineID:   pipelineID,
-	}
-
-	usedResourceType, found, err := rt.Find(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, ErrResourceTypeNotFound{resourceTypeName}
-	}
-
-	resourceConfig, err := constructResourceConfig(tx, resourceType.Name, source, resourceTypes, pipelineID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	resourceCache := ResourceCache{
-		ResourceConfig: resourceConfig,
-		Version:        version,
-		Params:         params,
-	}
-
-	var usedResourceCache *UsedResourceCache
-
-	err = safeFindOrCreate(f.conn, func(tx Tx) error {
-		var err error
-		usedResourceCache, err = resourceCache.FindOrCreateForResourceType(logger, tx, f.lockFactory, usedResourceType)
+		usedResourceCache, err = resourceUser.UseResourceCache(logger, tx, f.lockFactory, resourceCache)
 		if err != nil {
 			return err
 		}

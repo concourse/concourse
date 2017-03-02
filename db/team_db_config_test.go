@@ -709,6 +709,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 	It("can lookup configs by build id", func() {
 		savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated("my-pipeline", config, 0, db.PipelineUnpaused)
+		Expect(err).NotTo(HaveOccurred())
 
 		myPipelineDB := pipelineDBFactory.Build(savedPipeline)
 
@@ -716,6 +717,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		gottenConfig, _, err := build.GetConfig()
+		Expect(err).NotTo(HaveOccurred())
 		Expect(gottenConfig).To(Equal(config))
 	})
 
@@ -815,7 +817,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		Expect(returnedRawConfig).To(MatchJSON(rawConfigJSONBytes))
 		Expect(newConfigVersion).NotTo(Equal(configVersion))
 
-		otherReturnedConfig, otherReturnedRawConfig, newOtherConfigVersion, err := teamDB.GetConfig(otherPipelineName)
+		otherReturnedConfig, _, newOtherConfigVersion, err := teamDB.GetConfig(otherPipelineName)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(otherReturnedConfig).To(Equal(updatedConfig))
 		Expect(returnedRawConfig).To(MatchJSON(rawConfigJSONBytes))
@@ -858,9 +860,11 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 			By("getting the config for the correct team's pipeline")
 			actualConfig, _, teamPipelineVersion, err := teamDB.GetConfig("steve")
+			Expect(err).NotTo(HaveOccurred())
 			Expect(actualConfig).To(Equal(config))
 
 			actualOtherConfig, _, otherTeamPipelineVersion, err := otherTeamDB.GetConfig("steve")
+			Expect(err).NotTo(HaveOccurred())
 			Expect(actualOtherConfig).To(Equal(otherConfig))
 
 			By("updating the pipeline config for the correct team's pipeline")
@@ -871,9 +875,11 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			actualOtherConfig, _, teamPipelineVersion, err = teamDB.GetConfig("steve")
+			Expect(err).NotTo(HaveOccurred())
 			Expect(actualOtherConfig).To(Equal(otherConfig))
 
 			actualConfig, _, otherTeamPipelineVersion, err = otherTeamDB.GetConfig("steve")
+			Expect(err).NotTo(HaveOccurred())
 			Expect(actualConfig).To(Equal(config))
 
 			By("pausing the correct team's pipeline")

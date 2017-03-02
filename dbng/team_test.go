@@ -235,9 +235,9 @@ var _ = Describe("Team", func() {
 		var resourceConfig *dbng.UsedResourceConfig
 
 		BeforeEach(func() {
-			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfigForResource(
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
-				defaultResource.ID,
+				dbng.ForResource{defaultResource.ID},
 				"some-base-resource-type",
 				atc.Source{"some": "source"},
 				defaultPipeline.ID(),

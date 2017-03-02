@@ -28,6 +28,7 @@ type Client interface {
 
 	CreateResourceGetContainer(
 		logger lager.Logger,
+		resourceUser dbng.ResourceUser,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
 		id Identifier,
@@ -43,6 +44,7 @@ type Client interface {
 
 	FindOrCreateResourceCheckContainer(
 		logger lager.Logger,
+		resourceUser dbng.ResourceUser,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
 		id Identifier,
@@ -52,28 +54,6 @@ type Client interface {
 		resourceType string,
 		source atc.Source,
 	) (Container, error)
-
-	FindOrCreateResourceTypeCheckContainer(
-		logger lager.Logger,
-		cancel <-chan os.Signal,
-		delegate ImageFetchingDelegate,
-		id Identifier,
-		metadata Metadata,
-		spec ContainerSpec,
-		resourceTypes atc.ResourceTypes,
-		resourceType string,
-		source atc.Source,
-	) (Container, error)
-
-	FindOrCreateContainerForIdentifier(
-		logger lager.Logger,
-		id Identifier,
-		metadata Metadata,
-		containerSpec ContainerSpec,
-		resourceTypes atc.ResourceTypes,
-		imageFetchingDelegate ImageFetchingDelegate,
-		resourceSources map[string]ArtifactSource,
-	) (Container, []string, error)
 
 	CreateVolumeForResourceCache(
 		logger lager.Logger,
@@ -88,7 +68,6 @@ type Client interface {
 
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	FindContainerByHandle(lager.Logger, string, int) (Container, bool, error)
-	ValidateResourceCheckVersion(container db.SavedContainer) (bool, error)
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 

@@ -634,36 +634,6 @@ var _ = Describe("Pool", func() {
 					})
 				})
 
-				Context("when the container cannot be found on the worker", func() {
-					BeforeEach(func() {
-						fakeWorker.FindContainerByHandleReturns(nil, false, nil)
-					})
-
-					It("expires the container and returns false and no error", func() {
-						_, found, err := pool.FindContainerByHandle(logger, "some-handle", 42)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeFalse())
-
-						Expect(fakeProvider.ReapContainerCallCount()).To(Equal(1))
-
-						expiredHandle := fakeProvider.ReapContainerArgsForCall(0)
-						Expect(expiredHandle).To(Equal("some-handle"))
-					})
-
-					Context("when expiring the container fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeProvider.ReapContainerReturns(disaster)
-						})
-
-						It("returns the error", func() {
-							_, _, err := pool.FindContainerByHandle(logger, "some-handle", 42)
-							Expect(err).To(Equal(disaster))
-						})
-					})
-				})
-
 				Context("when the finding the container on the worker is successful", func() {
 					It("returns the container", func() {
 						var fakeContainer *workerfakes.FakeContainer
@@ -773,115 +743,47 @@ var _ = Describe("Pool", func() {
 					fakeProvider.GetWorkerReturns(fakeWorker, true, nil)
 				})
 
-				It("calls to validate check container resource version", func() {
+				It("calls to lookup the container on the worker", func() {
 					pool.FindContainerForIdentifier(logger, identifier)
 
-					Expect(fakeWorker.ValidateResourceCheckVersionCallCount()).To(Equal(1))
-					containerCheck := fakeWorker.ValidateResourceCheckVersionArgsForCall(0)
-					Expect(containerCheck).To(Equal(container))
+					Expect(fakeWorker.FindContainerByHandleCallCount()).To(Equal(1))
+
+					_, handleArg, _ := fakeWorker.FindContainerByHandleArgsForCall(0)
+					Expect(handleArg).To(Equal("some-container-handle"))
 				})
 
-				Context("when validating check container resource version returns an error", func() {
+				Context("when looking up the container contains an error", func() {
 					It("returns the error", func() {
-						fakeWorker.ValidateResourceCheckVersionReturns(false, errors.New("disaster"))
+						fakeWorker.FindContainerByHandleReturns(nil, false, errors.New("disaster"))
 
 						container, found, err := pool.FindContainerForIdentifier(logger, identifier)
 						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("disaster"))
 						Expect(container).To(BeNil())
 						Expect(found).To(BeFalse())
 					})
 				})
 
-				Context("when the check container is not valid", func() {
+				Context("when finding the container on the worker is successful", func() {
+					var (
+						fakeContainer  *workerfakes.FakeContainer
+						foundContainer Container
+						found          bool
+						err            error
+					)
+
 					BeforeEach(func() {
-						fakeWorker.ValidateResourceCheckVersionReturns(false, nil)
+						fakeContainer = new(workerfakes.FakeContainer)
+						fakeWorker.FindContainerByHandleReturns(fakeContainer, true, nil)
 					})
 
-					It("returns false", func() {
-						_, found, err := pool.FindContainerForIdentifier(logger, identifier)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeFalse())
-					})
-				})
-
-				Context("when check container is valid", func() {
-					BeforeEach(func() {
-						fakeWorker.ValidateResourceCheckVersionReturns(true, nil)
+					JustBeforeEach(func() {
+						foundContainer, found, err = pool.FindContainerForIdentifier(logger, identifier)
 					})
 
-					It("calls to lookup the container on the worker", func() {
-						pool.FindContainerForIdentifier(logger, identifier)
-
-						Expect(fakeWorker.FindContainerByHandleCallCount()).To(Equal(1))
-
-						_, handleArg, _ := fakeWorker.FindContainerByHandleArgsForCall(0)
-						Expect(handleArg).To(Equal("some-container-handle"))
-					})
-
-					Context("when looking up the container contains an error", func() {
-						It("returns the error", func() {
-							fakeWorker.FindContainerByHandleReturns(nil, false, errors.New("disaster"))
-
-							container, found, err := pool.FindContainerForIdentifier(logger, identifier)
-							Expect(err).To(HaveOccurred())
-							Expect(container).To(BeNil())
-							Expect(found).To(BeFalse())
-						})
-					})
-
-					Context("when the container cannot be found on the worker", func() {
-						BeforeEach(func() {
-							fakeWorker.FindContainerByHandleReturns(nil, false, nil)
-						})
-
-						It("expires the container and returns false and no error", func() {
-							_, found, err := pool.FindContainerForIdentifier(logger, identifier)
-							Expect(err).ToNot(HaveOccurred())
-							Expect(found).To(BeFalse())
-
-							Expect(fakeProvider.ReapContainerCallCount()).To(Equal(1))
-
-							expiredHandle := fakeProvider.ReapContainerArgsForCall(0)
-							Expect(expiredHandle).To(Equal("some-container-handle"))
-						})
-
-						Context("when expiring the container fails", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								fakeProvider.ReapContainerReturns(disaster)
-							})
-
-							It("returns the error", func() {
-								_, _, err := pool.FindContainerForIdentifier(logger, identifier)
-								Expect(err).To(Equal(disaster))
-							})
-						})
-					})
-
-					Context("when finding the container on the worker is successful", func() {
-						var (
-							fakeContainer  *workerfakes.FakeContainer
-							foundContainer Container
-							found          bool
-							err            error
-						)
-
-						BeforeEach(func() {
-							fakeContainer = new(workerfakes.FakeContainer)
-							fakeWorker.FindContainerByHandleReturns(fakeContainer, true, nil)
-						})
-
-						JustBeforeEach(func() {
-							foundContainer, found, err = pool.FindContainerForIdentifier(logger, identifier)
-						})
-
-						It("returns the container", func() {
-							Expect(err).NotTo(HaveOccurred())
-							Expect(found).To(BeTrue())
-							Expect(foundContainer).To(Equal(fakeContainer))
-						})
+					It("returns the container", func() {
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(foundContainer).To(Equal(fakeContainer))
 					})
 				})
 

@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -30,12 +31,12 @@ var _ = Describe("ResourceInstance", func() {
 		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		disaster = errors.New("disaster")
 
-		resourceInstance = NewBuildResourceInstance(
+		resourceInstance = NewResourceInstance(
 			"some-resource-type",
 			atc.Version{"some": "version"},
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
-			42,
+			dbng.ForBuild{42},
 			43,
 			atc.ResourceTypes{},
 			fakeResourceCacheFactory,
@@ -53,9 +54,14 @@ var _ = Describe("ResourceInstance", func() {
 			foundVolume, found, findErr = resourceInstance.FindInitializedOn(logger, fakeWorkerClient)
 		})
 
+		It("'find-or-create's the resource cache with the same user", func() {
+			_, user, _, _, _, _, _, _ := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
+			Expect(user).To(Equal(dbng.ForBuild{42}))
+		})
+
 		Context("when failing to find or create cache in database", func() {
 			BeforeEach(func() {
-				fakeResourceCacheFactory.FindOrCreateResourceCacheForBuildReturns(nil, disaster)
+				fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {

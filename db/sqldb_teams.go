@@ -184,6 +184,9 @@ func (db *SQLDB) DeleteTeamByName(teamName string) error {
 		FROM teams
 		WHERE LOWER(name) = LOWER($1)
 	`, teamName).Scan(&id)
+	if err != nil {
+		return err
+	}
 
 	if !id.Valid {
 		return errors.New("could-not-find-team-id")
@@ -192,6 +195,9 @@ func (db *SQLDB) DeleteTeamByName(teamName string) error {
 	tableDrop := fmt.Sprintf("DROP TABLE team_build_events_%d", id.Int64)
 
 	_, err = db.conn.Exec(tableDrop)
+	if err != nil {
+		return err
+	}
 
 	_, err = db.conn.Exec(`
     DELETE FROM teams

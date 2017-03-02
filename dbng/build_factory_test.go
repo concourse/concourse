@@ -20,7 +20,10 @@ var _ = Describe("BuildFactory", func() {
 
 					var i bool
 					b.Finish(status)
+
 					err = buildFactory.MarkNonInterceptibleBuilds()
+					Expect(err).NotTo(HaveOccurred())
+
 					i, err = b.Interceptible()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(i).To(matcher)
@@ -40,7 +43,6 @@ var _ = Describe("BuildFactory", func() {
 				i, err = b.Interceptible()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(i).To(BeTrue())
-
 			})
 		})
 

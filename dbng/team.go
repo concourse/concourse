@@ -245,8 +245,6 @@ func (t *team) FindBuildContainer(
 		sq.Eq{"worker_name": workerName},
 		sq.Eq{"build_id": buildID},
 		sq.Eq{"plan_id": string(planID)},
-		sq.Eq{"type": meta.Type},
-		sq.Eq{"step_name": meta.Name},
 	})
 }
 

@@ -90,9 +90,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 			Describe("for one-off builds", func() {
 				BeforeEach(func() {
-					_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						defaultBuild.ID(),
+						dbng.ForBuild{defaultBuild.ID()},
 						"some-type",
 						atc.Version{"some": "version"},
 						atc.Source{
@@ -231,9 +231,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						err = firstBuild.SaveImageResourceVersion(atc.PlanID("123"), imageVersion, "some-resource-hash")
 						Expect(err).NotTo(HaveOccurred())
 
-						_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							firstBuild.ID(),
+							dbng.ForBuild{firstBuild.ID()},
 							"some-base-type",
 							imageVersion,
 							atc.Source{
@@ -264,9 +264,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						finishBuild(secondBuild, "succeeded")
 
-						_, err = resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							secondBuild.ID(),
+							dbng.ForBuild{secondBuild.ID()},
 							"some-base-type",
 							imageVersion2,
 							atc.Source{
@@ -322,8 +322,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				}
 
 				BeforeEach(func() {
-					_, err = resourceCacheFactory.FindOrCreateResourceCacheForResourceType(
+					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
+						dbng.ForResourceType{resourceType1Used.ID},
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
@@ -378,9 +379,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				}
 
 				BeforeEach(func() {
-					_, err = resourceCacheFactory.FindOrCreateResourceCacheForResource(
+					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						usedResource.ID,
+						dbng.ForResource{usedResource.ID},
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{

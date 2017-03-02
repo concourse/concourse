@@ -11,10 +11,6 @@ type ContainerIdentifier struct {
 	ResourceID     int
 	ResourceTypeID int
 
-	ResourceTypeVersion atc.Version
-	CheckType           string
-	CheckSource         atc.Source
-
 	// if it's a step container
 	BuildID int
 	PlanID  atc.PlanID

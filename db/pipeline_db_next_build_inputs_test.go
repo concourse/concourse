@@ -193,6 +193,7 @@ var _ = Describe("next build inputs for job", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			actualBuildInputs3, err := pipelineDB.GetIndependentBuildInputs("some-job")
+			Expect(err).NotTo(HaveOccurred())
 			Expect(actualBuildInputs3).To(BeEmpty())
 		})
 	})

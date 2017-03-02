@@ -141,12 +141,11 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, id, metadata, resourceSpec, customTypes := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				_, user, id, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				Expect(user).To(Equal(dbng.ForResource{ResourceID: 39}))
 				Expect(id).To(Equal(worker.Identifier{
-					ResourceID:  39,
-					Stage:       db.ContainerStageRun,
-					CheckType:   "git",
-					CheckSource: atc.Source{"uri": "http://example.com"},
+					ResourceID: 39,
+					Stage:      db.ContainerStageRun,
 				}))
 				Expect(metadata).To(Equal(worker.Metadata{
 					Type:       db.ContainerTypeCheck,
@@ -173,6 +172,12 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_PIPELINE_NAME=some-pipeline",
 						"RESOURCE_NAME=some-resource",
 					},
+				}))
+				Expect(resourceConfig).To(Equal(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "git",
+					Source: atc.Source{"uri": "http://example.com"},
+					Tags:   atc.Tags{"some-tag"},
 				}))
 			})
 
@@ -460,12 +465,11 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, id, metadata, resourceSpec, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				_, user, id, metadata, resourceSpec, _, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				Expect(user).To(Equal(dbng.ForResource{ResourceID: 39}))
 				Expect(id).To(Equal(worker.Identifier{
-					ResourceID:  39,
-					Stage:       db.ContainerStageRun,
-					CheckType:   "git",
-					CheckSource: atc.Source{"uri": "http://example.com"},
+					ResourceID: 39,
+					Stage:      db.ContainerStageRun,
 				}))
 				Expect(metadata).To(Equal(worker.Metadata{
 					Type:       db.ContainerTypeCheck,
@@ -486,6 +490,12 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_PIPELINE_NAME=some-pipeline",
 						"RESOURCE_NAME=some-resource",
 					},
+				}))
+				Expect(resourceConfig).To(Equal(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "git",
+					Source: atc.Source{"uri": "http://example.com"},
+					Tags:   atc.Tags{"some-tag"},
 				}))
 			})
 

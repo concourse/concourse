@@ -21,7 +21,6 @@ type WorkerProvider interface {
 	GetWorker(string) (Worker, bool, error)
 	FindContainerForIdentifier(Identifier) (db.SavedContainer, bool, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
-	ReapContainer(string) error
 }
 
 var (
@@ -149,43 +148,9 @@ func (pool *pool) FindOrCreateBuildContainer(logger lager.Logger, signals <-chan
 	return worker.FindOrCreateBuildContainer(logger, signals, delegate, id, metadata, spec, resourceTypes, outputPaths)
 }
 
-func (pool *pool) FindOrCreateContainerForIdentifier(
-	logger lager.Logger,
-	id Identifier,
-	metadata Metadata,
-	containerSpec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-	imageFetchingDelegate ImageFetchingDelegate,
-	resourceSources map[string]ArtifactSource,
-) (Container, []string, error) {
-	worker, mounts, missingSourceNames, err := pool.findCompatibleWorker(
-		containerSpec,
-		resourceTypes,
-		resourceSources,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	containerSpec.Inputs = mounts
-
-	container, _, err := worker.FindOrCreateContainerForIdentifier(
-		logger,
-		id,
-		metadata,
-		containerSpec,
-		resourceTypes,
-		imageFetchingDelegate,
-		resourceSources,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return container, missingSourceNames, nil
-}
-
 func (pool *pool) CreateResourceGetContainer(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -213,6 +178,7 @@ func (pool *pool) CreateResourceGetContainer(
 
 	return worker.CreateResourceGetContainer(
 		logger,
+		resourceUser,
 		cancel,
 		delegate,
 		id,
@@ -229,6 +195,7 @@ func (pool *pool) CreateResourceGetContainer(
 
 func (pool *pool) FindOrCreateResourceCheckContainer(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -253,43 +220,7 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 
 	return worker.FindOrCreateResourceCheckContainer(
 		logger,
-		cancel,
-		delegate,
-		id,
-		metadata,
-		spec,
-		resourceTypes,
-		resourceType,
-		source,
-	)
-}
-
-func (pool *pool) FindOrCreateResourceTypeCheckContainer(
-	logger lager.Logger,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
-	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-	resourceType string,
-	source atc.Source,
-) (Container, error) {
-	container, found, err := pool.FindContainerForIdentifier(logger, id)
-	if err != nil {
-		return nil, err
-	}
-	if found {
-		return container, nil
-	}
-
-	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	return worker.FindOrCreateResourceTypeCheckContainer(
-		logger,
+		resourceUser,
 		cancel,
 		delegate,
 		id,
@@ -302,60 +233,45 @@ func (pool *pool) FindOrCreateResourceTypeCheckContainer(
 }
 
 func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
+	cLog := logger.Session("find-container-for-identifier", lager.Data{
+		"id": id,
+	})
+
 	containerInfo, found, err := pool.provider.FindContainerForIdentifier(id)
 	if err != nil {
+		cLog.Error("failed-to-find", err)
 		return nil, false, err
 	}
 
 	if !found {
+		cLog.Info("not-found")
 		return nil, found, nil
 	}
 
+	cLog = cLog.WithData(lager.Data{
+		"container": containerInfo.Handle,
+		"worker":    containerInfo.WorkerName,
+	})
+
 	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerName)
 	if err != nil {
-		return nil, found, err
-	}
-
-	if !found {
-		logger.Info("found-container-for-missing-worker", lager.Data{
-			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.WorkerName,
-		})
-
-		return nil, false, ErrMissingWorker
-	}
-
-	valid, err := worker.ValidateResourceCheckVersion(containerInfo)
-
-	if err != nil {
+		cLog.Error("failed-to-get-worker", err)
 		return nil, false, err
 	}
 
-	if !valid {
-		logger.Info("check-container-version-outdated", lager.Data{
-			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.WorkerName,
-		})
-
-		return nil, false, nil
+	if !found {
+		cLog.Info("worker-is-missing")
+		return nil, false, ErrMissingWorker
 	}
 
 	container, found, err := worker.FindContainerByHandle(logger, containerInfo.Handle, containerInfo.TeamID)
 	if err != nil {
+		cLog.Error("failed-to-find-container-by-handle", err)
 		return nil, false, err
 	}
 
 	if !found {
-		logger.Info("reaping-container-not-found-on-worker", lager.Data{
-			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.WorkerName,
-		})
-
-		err := pool.provider.ReapContainer(containerInfo.Handle)
-		if err != nil {
-			return nil, false, err
-		}
-
+		cLog.Info("missing-on-worker")
 		return nil, false, err
 	}
 
@@ -363,46 +279,44 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 }
 
 func (pool *pool) FindContainerByHandle(logger lager.Logger, handle string, teamID int) (Container, bool, error) {
-	logger.Info("looking-up-container", lager.Data{"handle": handle})
+	cLog := logger.Session("find-container-by-handle", lager.Data{
+		"container": handle,
+	})
 
 	containerInfo, found, err := pool.provider.GetContainer(handle)
 	if err != nil {
+		cLog.Error("failed-to-get-container", err)
 		return nil, false, err
 	}
+
 	if !found {
+		cLog.Info("container-not-found")
 		return nil, false, nil
 	}
 
+	cLog = cLog.WithData(lager.Data{
+		"worker": containerInfo.WorkerName,
+	})
+
 	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerName)
 	if err != nil {
+		cLog.Error("failed-to-get-worker", err)
 		return nil, false, err
 	}
 
 	if !found {
-		logger.Info("found-container-for-missing-worker", lager.Data{
-			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.WorkerName,
-		})
-
+		cLog.Info("worker-is-missing")
 		return nil, false, ErrMissingWorker
 	}
 
 	container, found, err := worker.FindContainerByHandle(logger, handle, teamID)
 	if err != nil {
+		cLog.Error("failed-to-find-container-by-handle", err)
 		return nil, false, err
 	}
 
 	if !found {
-		logger.Info("reaping-container-not-found-on-worker", lager.Data{
-			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.WorkerName,
-		})
-
-		err := pool.provider.ReapContainer(handle)
-		if err != nil {
-			return nil, false, err
-		}
-
+		cLog.Info("missing-on-worker")
 		return nil, false, nil
 	}
 

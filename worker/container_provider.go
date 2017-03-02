@@ -119,6 +119,7 @@ type ContainerProvider interface {
 
 	FindOrCreateResourceCheckContainer(
 		logger lager.Logger,
+		resourceUser dbng.ResourceUser,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
 		id Identifier,
@@ -129,20 +130,9 @@ type ContainerProvider interface {
 		source atc.Source,
 	) (Container, error)
 
-	FindOrCreateResourceTypeCheckContainer(
-		logger lager.Logger,
-		cancel <-chan os.Signal,
-		delegate ImageFetchingDelegate,
-		id Identifier,
-		metadata Metadata,
-		spec ContainerSpec,
-		resourceTypes atc.ResourceTypes,
-		resourceTypeName string,
-		source atc.Source,
-	) (Container, error)
-
 	CreateResourceGetContainer(
 		logger lager.Logger,
+		resourceUser dbng.ResourceUser,
 		cancel <-chan os.Signal,
 		delegate ImageFetchingDelegate,
 		id Identifier,
@@ -190,6 +180,7 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 ) (Container, error) {
 	return p.findOrCreateContainer(
 		logger,
+		dbng.ForBuild{BuildID: id.BuildID}, // XXX: nicer to inject this like the others
 		cancel,
 		delegate,
 		id,
@@ -224,6 +215,7 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 
 func (p *containerProvider) FindOrCreateResourceCheckContainer(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -233,9 +225,9 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
-	resourceConfig, err := p.dbResourceConfigFactory.FindOrCreateResourceConfigForResource(
+	resourceConfig, err := p.dbResourceConfigFactory.FindOrCreateResourceConfig(
 		logger,
-		id.ResourceID,
+		resourceUser,
 		resourceType,
 		source,
 		metadata.PipelineID,
@@ -248,6 +240,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 
 	return p.findOrCreateContainer(
 		logger,
+		resourceUser,
 		cancel,
 		delegate,
 		id,
@@ -282,54 +275,9 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 	)
 }
 
-func (p *containerProvider) FindOrCreateResourceTypeCheckContainer(
-	logger lager.Logger,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
-	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
-	resourceTypeName string,
-	source atc.Source,
-) (Container, error) {
-	resourceConfig, err := p.dbResourceConfigFactory.FindOrCreateResourceConfigForResourceType(
-		logger,
-		resourceTypeName,
-		source,
-		metadata.PipelineID,
-		resourceTypes,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return p.findOrCreateContainer(
-		logger,
-		cancel,
-		delegate,
-		id,
-		metadata,
-		spec,
-		resourceTypes,
-		map[string]string{},
-		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainer(
-				p.worker.Name(),
-				resourceConfig,
-			)
-		},
-		func() (dbng.CreatingContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceCheckContainer(
-				p.worker.Name(),
-				resourceConfig,
-			)
-		},
-	)
-}
-
 func (p *containerProvider) CreateResourceGetContainer(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -342,59 +290,24 @@ func (p *containerProvider) CreateResourceGetContainer(
 	source atc.Source,
 	params atc.Params,
 ) (Container, error) {
-	var resourceCache *dbng.UsedResourceCache
-
-	if id.BuildID != 0 {
-		var err error
-		resourceCache, err = p.dbResourceCacheFactory.FindOrCreateResourceCacheForBuild(
-			logger,
-			id.BuildID,
-			resourceTypeName,
-			version,
-			source,
-			params,
-			metadata.PipelineID,
-			resourceTypes,
-		)
-		if err != nil {
-			logger.Error("failed-to-get-resource-cache-for-build", err, lager.Data{"build-id": id.BuildID})
-			return nil, err
-		}
-	} else if id.ResourceID != 0 {
-		var err error
-		resourceCache, err = p.dbResourceCacheFactory.FindOrCreateResourceCacheForResource(
-			logger,
-			id.ResourceID,
-			resourceTypeName,
-			version,
-			source,
-			params,
-			metadata.PipelineID,
-			resourceTypes,
-		)
-		if err != nil {
-			logger.Error("failed-to-get-resource-cache-for-resource", err, lager.Data{"resource-id": id.ResourceID})
-			return nil, err
-		}
-	} else {
-		var err error
-		resourceCache, err = p.dbResourceCacheFactory.FindOrCreateResourceCacheForResourceType(
-			logger,
-			resourceTypeName,
-			version,
-			source,
-			params,
-			metadata.PipelineID,
-			resourceTypes,
-		)
-		if err != nil {
-			logger.Error("failed-to-get-resource-cache-for-resource-type", err, lager.Data{"resource-type": resourceTypeName})
-			return nil, err
-		}
+	resourceCache, err := p.dbResourceCacheFactory.FindOrCreateResourceCache(
+		logger,
+		resourceUser,
+		resourceTypeName,
+		version,
+		source,
+		params,
+		metadata.PipelineID,
+		resourceTypes,
+	)
+	if err != nil {
+		logger.Error("failed-to-get-resource-cache", err, lager.Data{"user": resourceUser})
+		return nil, err
 	}
 
 	return p.findOrCreateContainer(
 		logger,
+		resourceUser,
 		cancel,
 		delegate,
 		id,
@@ -467,6 +380,7 @@ func (p *containerProvider) FindContainerByHandle(
 
 func (p *containerProvider) findOrCreateContainer(
 	logger lager.Logger,
+	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -530,6 +444,7 @@ func (p *containerProvider) findOrCreateContainer(
 				spec.TeamID,
 				cancel,
 				delegate,
+				resourceUser,
 				id,
 				metadata,
 				resourceTypes,
@@ -557,6 +472,7 @@ func (p *containerProvider) findOrCreateContainer(
 				p.clock.Sleep(creatingContainerRetryDelay)
 				return p.findOrCreateContainer(
 					logger,
+					resourceUser,
 					cancel,
 					delegate,
 					id,
@@ -600,9 +516,7 @@ func (p *containerProvider) findOrCreateContainer(
 				metadata.User = spec.User
 			}
 
-			id.ResourceTypeVersion = fetchedImage.Version
-
-			_, err = p.db.UpdateContainerTTLToBeRemoved(
+			err = p.db.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(
 				db.Container{
 					ContainerIdentifier: db.ContainerIdentifier(id),
 					ContainerMetadata:   db.ContainerMetadata(metadata),

@@ -10,27 +10,10 @@ import (
 //go:generate counterfeiter . ResourceConfigFactory
 
 type ResourceConfigFactory interface {
-	FindOrCreateResourceConfigForBuild(
+	FindOrCreateResourceConfig(
 		logger lager.Logger,
-		buildID int,
+		user ResourceUser,
 		resourceType string,
-		source atc.Source,
-		pipelineID int,
-		resourceTypes atc.ResourceTypes,
-	) (*UsedResourceConfig, error)
-
-	FindOrCreateResourceConfigForResource(
-		logger lager.Logger,
-		resourceID int,
-		resourceType string,
-		source atc.Source,
-		pipelineID int,
-		resourceTypes atc.ResourceTypes,
-	) (*UsedResourceConfig, error)
-
-	FindOrCreateResourceConfigForResourceType(
-		logger lager.Logger,
-		resourceTypeName string,
 		source atc.Source,
 		pipelineID int,
 		resourceTypes atc.ResourceTypes,
@@ -54,9 +37,9 @@ func NewResourceConfigFactory(conn Conn, lockFactory lock.LockFactory) ResourceC
 	}
 }
 
-func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
+func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	logger lager.Logger,
-	buildID int,
+	user ResourceUser,
 	resourceType string,
 	source atc.Source,
 	pipelineID int,
@@ -84,89 +67,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfigForBuild(
 	err = safeFindOrCreate(f.conn, func(tx Tx) error {
 		var err error
 
-		usedResourceConfig, err = resourceConfig.FindOrCreateForBuild(logger, tx, f.lockFactory, buildID)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return usedResourceConfig, nil
-}
-
-func (f *resourceConfigFactory) FindOrCreateResourceConfigForResource(
-	logger lager.Logger,
-	resourceID int,
-	resourceType string,
-	source atc.Source,
-	pipelineID int,
-	resourceTypes atc.ResourceTypes,
-) (*UsedResourceConfig, error) {
-	return findOrCreateResourceConfigForResource(
-		f.conn,
-		f.lockFactory,
-		logger,
-		resourceID,
-		resourceType,
-		source,
-		pipelineID,
-		resourceTypes,
-	)
-}
-
-func (f *resourceConfigFactory) FindOrCreateResourceConfigForResourceType(
-	logger lager.Logger,
-	resourceTypeName string,
-	source atc.Source,
-	pipelineID int,
-	resourceTypes atc.ResourceTypes,
-) (*UsedResourceConfig, error) {
-	resourceType, found := resourceTypes.Lookup(resourceTypeName)
-	if !found {
-		return nil, ErrResourceTypeNotFound{resourceTypeName}
-	}
-
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes, pipelineID)
-	if err != nil {
-		return nil, err
-	}
-
-	rt := ResourceType{
-		ResourceType: resourceType,
-		PipelineID:   pipelineID,
-	}
-
-	usedResourceType, found, err := rt.Find(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, ErrResourceTypeNotFound{resourceTypeName}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	var usedResourceConfig *UsedResourceConfig
-
-	err = safeFindOrCreate(f.conn, func(tx Tx) error {
-		var err error
-		usedResourceConfig, err = resourceConfig.FindOrCreateForResourceType(logger, tx, f.lockFactory, usedResourceType)
+		usedResourceConfig, err = user.UseResourceConfig(logger, tx, f.lockFactory, resourceConfig)
 		if err != nil {
 			return err
 		}
@@ -206,6 +107,7 @@ func constructResourceConfig(
 		if err != nil {
 			return ResourceConfig{}, err
 		}
+
 		if !found {
 			return ResourceConfig{}, ErrResourceTypeNotFound{lastResourceType.Name}
 		}
@@ -359,50 +261,4 @@ func resourceTypesList(resourceTypeName string, allResourceTypes []atc.ResourceT
 	}
 
 	return resultResourceTypes
-}
-
-func findOrCreateResourceConfigForResource(
-	conn Conn,
-	lockFactory lock.LockFactory,
-	logger lager.Logger,
-	resourceID int,
-	resourceType string,
-	source atc.Source,
-	pipelineID int,
-	resourceTypes atc.ResourceTypes,
-) (*UsedResourceConfig, error) {
-	tx, err := conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipelineID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	var usedResourceConfig *UsedResourceConfig
-
-	err = safeFindOrCreate(conn, func(tx Tx) error {
-		var err error
-		usedResourceConfig, err = resourceConfig.FindOrCreateForResource(logger, tx, lockFactory, resourceID)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return usedResourceConfig, nil
 }

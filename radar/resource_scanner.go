@@ -207,16 +207,6 @@ func (scanner *resourceScanner) scan(
 
 	pipelineID := scanner.db.GetPipelineID()
 
-	var resourceTypeVersion atc.Version
-	savedResourceType, resourceTypeFound, err := scanner.db.GetResourceType(savedResource.Config.Type)
-	if err != nil {
-		logger.Error("failed-to-find-resource-type", err)
-		return err
-	}
-	if resourceTypeFound {
-		resourceTypeVersion = atc.Version(savedResourceType.Version)
-	}
-
 	found, err := scanner.db.Reload()
 	if err != nil {
 		logger.Error("failed-to-reload-scannerdb", err)
@@ -233,7 +223,7 @@ func (scanner *resourceScanner) scan(
 		ExternalURL:  scanner.externalURL,
 	}
 
-	resourceSpec := worker.ContainerSpec{
+	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResource.Config.Type,
 			Privileged:   true,
@@ -246,20 +236,22 @@ func (scanner *resourceScanner) scan(
 
 	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
+		dbng.ForResource{
+			ResourceID: savedResource.ID,
+		},
 		worker.Identifier{
-			ResourceTypeVersion: resourceTypeVersion,
-			ResourceID:          savedResource.ID,
-			Stage:               db.ContainerStageRun,
-			CheckType:           savedResource.Config.Type,
-			CheckSource:         savedResource.Config.Source,
+			ResourceID: savedResource.ID,
+			Stage:      db.ContainerStageRun,
 		},
 		worker.Metadata{
 			Type:       db.ContainerTypeCheck,
 			PipelineID: pipelineID,
 			TeamID:     scanner.db.TeamID(),
 		},
-		resourceSpec,
+		containerSpec,
 		scanner.db.Config().ResourceTypes,
+		worker.NoopImageFetchingDelegate{},
+		savedResource.Config,
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)

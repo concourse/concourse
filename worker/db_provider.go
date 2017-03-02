@@ -22,13 +22,10 @@ import (
 //go:generate counterfeiter . WorkerDB
 
 type WorkerDB interface {
-	CreateContainerToBeRemoved(container db.Container, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
-	UpdateContainerTTLToBeRemoved(container db.Container, maxLifetime time.Duration) (db.SavedContainer, error)
+	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) error
 	GetContainer(string) (db.SavedContainer, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
-	ReapContainer(handle string) error
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
-	ReapVolume(handle string) error
 	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 }
@@ -133,10 +130,6 @@ func (provider *dbProvider) FindContainerForIdentifier(id Identifier) (db.SavedC
 
 func (provider *dbProvider) GetContainer(handle string) (db.SavedContainer, bool, error) {
 	return provider.db.GetContainer(handle)
-}
-
-func (provider *dbProvider) ReapContainer(handle string) error {
-	return provider.db.ReapContainer(handle)
 }
 
 func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker dbng.Worker) Worker {

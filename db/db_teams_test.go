@@ -369,6 +369,7 @@ var _ = Describe("SQL DB Teams", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					err = build.SaveEvent(event.StartTask{})
+					Expect(err).NotTo(HaveOccurred())
 
 					err = database.DeleteTeamByName("team-name")
 					Expect(err).NotTo(HaveOccurred())

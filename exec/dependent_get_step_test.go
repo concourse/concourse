@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
@@ -198,12 +199,12 @@ var _ = Describe("DependentGet", func() {
 			}))
 			Expect(tags).To(ConsistOf("some", "tags"))
 			Expect(actualTeamID).To(Equal(teamID))
-			Expect(cacheID).To(Equal(resource.NewBuildResourceInstance(
+			Expect(cacheID).To(Equal(resource.NewResourceInstance(
 				"some-resource-type",
 				version,
 				resourceConfig.Source,
 				params,
-				1234,
+				dbng.ForBuild{1234},
 				4567,
 				resourceTypes,
 				fakeDBResourceCacheFactory,

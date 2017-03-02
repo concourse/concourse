@@ -7,12 +7,6 @@ import (
 	"github.com/concourse/baggageclaim"
 )
 
-//go:generate counterfeiter . VolumeFactoryDB
-
-type VolumeFactoryDB interface {
-	ReapVolume(handle string) error
-}
-
 //go:generate counterfeiter . Volume
 
 type Volume interface {

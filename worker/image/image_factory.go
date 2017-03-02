@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -31,6 +32,7 @@ func (f *imageFactory) GetImage(
 	teamID int,
 	cancel <-chan os.Signal,
 	delegate worker.ImageFetchingDelegate,
+	resourceUser dbng.ResourceUser,
 	id worker.Identifier,
 	metadata worker.Metadata,
 	resourceTypes atc.ResourceTypes,
@@ -73,6 +75,7 @@ func (f *imageFactory) GetImage(
 		imageResourceFetcher := f.imageResourceFetcherFactory.ImageResourceFetcherFor(worker)
 		imageParentVolume, imageMetadataReader, version, err := imageResourceFetcher.Fetch(
 			logger.Session("image"),
+			resourceUser,
 			cancel,
 			imageResource.Type,
 			imageResource.Source,

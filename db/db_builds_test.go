@@ -100,47 +100,6 @@ var _ = Describe("Builds", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("can find latest successful builds per job", func() {
-		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		savedBuild1, err := pipelineDB.CreateJobBuild("some-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		savedBuild2, err := pipelineDB.CreateJobBuild("some-other-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		savedBuild3, err := pipelineDB.CreateJobBuild("some-random-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		err = savedBuild0.Finish(db.StatusSucceeded)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = savedBuild1.Finish(db.StatusSucceeded)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = savedBuild2.Finish(db.StatusFailed)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = savedBuild3.Finish(db.StatusSucceeded)
-		Expect(err).NotTo(HaveOccurred())
-
-		someJob, found, err := pipelineDB.GetJob("some-job")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-
-		someRandomJob, found, err := pipelineDB.GetJob("some-random-job")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-
-		jobBuildMap, err := database.FindLatestSuccessfulBuildsPerJob()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(jobBuildMap).To(Equal(map[int]int{
-			someJob.ID:       savedBuild1.ID(),
-			someRandomJob.ID: savedBuild3.ID(),
-		}))
-	})
-
 	Describe("FindJobIDForBuild", func() {
 		var build db.Build
 		BeforeEach(func() {

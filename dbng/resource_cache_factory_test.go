@@ -82,9 +82,9 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 	Describe("FindOrCreateResourceCacheForBuild", func() {
 		It("creates resource cache in database", func() {
-			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				defaultBuild.ID(),
+				dbng.ForBuild{defaultBuild.ID()},
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -165,9 +165,9 @@ var _ = Describe("ResourceCacheFactory", func() {
 		})
 
 		It("returns an error if base resource type does not exist", func() {
-			_, err := resourceCacheFactory.FindOrCreateResourceCacheForBuild(
+			_, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				defaultBuild.ID(),
+				dbng.ForBuild{defaultBuild.ID()},
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -230,7 +230,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 						CreatedByBaseResourceType: &baseResourceType,
 					},
 				}
-				usedResourceCache, err = resourceCache.FindOrCreateForBuild(logger, setupTx, lockFactory, build.ID())
+				usedResourceCache, err = dbng.ForBuild{build.ID()}.UseResourceCache(logger, setupTx, lockFactory, resourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 			})

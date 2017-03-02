@@ -8,15 +8,17 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
 )
 
 type FakeImageResourceFetcher struct {
-	FetchStub        func(logger lager.Logger, signals <-chan os.Signal, imageResourceType string, imageResourceSource atc.Source, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamID int, customTypes atc.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error)
+	FetchStub        func(logger lager.Logger, resourceUser dbng.ResourceUser, signals <-chan os.Signal, imageResourceType string, imageResourceSource atc.Source, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamID int, customTypes atc.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
 		logger                lager.Logger
+		resourceUser          dbng.ResourceUser
 		signals               <-chan os.Signal
 		imageResourceType     string
 		imageResourceSource   atc.Source
@@ -38,10 +40,11 @@ type FakeImageResourceFetcher struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageResourceFetcher) Fetch(logger lager.Logger, signals <-chan os.Signal, imageResourceType string, imageResourceSource atc.Source, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamID int, customTypes atc.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error) {
+func (fake *FakeImageResourceFetcher) Fetch(logger lager.Logger, resourceUser dbng.ResourceUser, signals <-chan os.Signal, imageResourceType string, imageResourceSource atc.Source, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamID int, customTypes atc.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, privileged bool) (worker.Volume, io.ReadCloser, atc.Version, error) {
 	fake.fetchMutex.Lock()
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
 		logger                lager.Logger
+		resourceUser          dbng.ResourceUser
 		signals               <-chan os.Signal
 		imageResourceType     string
 		imageResourceSource   atc.Source
@@ -52,11 +55,11 @@ func (fake *FakeImageResourceFetcher) Fetch(logger lager.Logger, signals <-chan 
 		customTypes           atc.ResourceTypes
 		imageFetchingDelegate worker.ImageFetchingDelegate
 		privileged            bool
-	}{logger, signals, imageResourceType, imageResourceSource, id, metadata, tags, teamID, customTypes, imageFetchingDelegate, privileged})
-	fake.recordInvocation("Fetch", []interface{}{logger, signals, imageResourceType, imageResourceSource, id, metadata, tags, teamID, customTypes, imageFetchingDelegate, privileged})
+	}{logger, resourceUser, signals, imageResourceType, imageResourceSource, id, metadata, tags, teamID, customTypes, imageFetchingDelegate, privileged})
+	fake.recordInvocation("Fetch", []interface{}{logger, resourceUser, signals, imageResourceType, imageResourceSource, id, metadata, tags, teamID, customTypes, imageFetchingDelegate, privileged})
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
-		return fake.FetchStub(logger, signals, imageResourceType, imageResourceSource, id, metadata, tags, teamID, customTypes, imageFetchingDelegate, privileged)
+		return fake.FetchStub(logger, resourceUser, signals, imageResourceType, imageResourceSource, id, metadata, tags, teamID, customTypes, imageFetchingDelegate, privileged)
 	}
 	return fake.fetchReturns.result1, fake.fetchReturns.result2, fake.fetchReturns.result3, fake.fetchReturns.result4
 }
@@ -67,10 +70,10 @@ func (fake *FakeImageResourceFetcher) FetchCallCount() int {
 	return len(fake.fetchArgsForCall)
 }
 
-func (fake *FakeImageResourceFetcher) FetchArgsForCall(i int) (lager.Logger, <-chan os.Signal, string, atc.Source, worker.Identifier, worker.Metadata, atc.Tags, int, atc.ResourceTypes, worker.ImageFetchingDelegate, bool) {
+func (fake *FakeImageResourceFetcher) FetchArgsForCall(i int) (lager.Logger, dbng.ResourceUser, <-chan os.Signal, string, atc.Source, worker.Identifier, worker.Metadata, atc.Tags, int, atc.ResourceTypes, worker.ImageFetchingDelegate, bool) {
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
-	return fake.fetchArgsForCall[i].logger, fake.fetchArgsForCall[i].signals, fake.fetchArgsForCall[i].imageResourceType, fake.fetchArgsForCall[i].imageResourceSource, fake.fetchArgsForCall[i].id, fake.fetchArgsForCall[i].metadata, fake.fetchArgsForCall[i].tags, fake.fetchArgsForCall[i].teamID, fake.fetchArgsForCall[i].customTypes, fake.fetchArgsForCall[i].imageFetchingDelegate, fake.fetchArgsForCall[i].privileged
+	return fake.fetchArgsForCall[i].logger, fake.fetchArgsForCall[i].resourceUser, fake.fetchArgsForCall[i].signals, fake.fetchArgsForCall[i].imageResourceType, fake.fetchArgsForCall[i].imageResourceSource, fake.fetchArgsForCall[i].id, fake.fetchArgsForCall[i].metadata, fake.fetchArgsForCall[i].tags, fake.fetchArgsForCall[i].teamID, fake.fetchArgsForCall[i].customTypes, fake.fetchArgsForCall[i].imageFetchingDelegate, fake.fetchArgsForCall[i].privileged
 }
 
 func (fake *FakeImageResourceFetcher) FetchReturns(result1 worker.Volume, result2 io.ReadCloser, result3 atc.Version, result4 error) {

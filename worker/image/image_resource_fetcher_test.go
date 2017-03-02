@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/resource"
 	rfakes "github.com/concourse/atc/resource/resourcefakes"
@@ -110,6 +111,7 @@ var _ = Describe("Image", func() {
 	JustBeforeEach(func() {
 		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = imageResourceFetcher.Fetch(
 			logger,
+			dbng.ForBuild{BuildID: 42},
 			signals,
 			imageResource.Type,
 			imageResource.Source,
@@ -132,7 +134,7 @@ var _ = Describe("Image", func() {
 		BeforeEach(func() {
 			fakeCheckResource = new(rfakes.FakeResource)
 			fakeBuildResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeCheckResource, nil, nil)
+			fakeResourceFactory.NewCheckResourceReturns(fakeCheckResource, nil)
 		})
 
 		Context("when check returns a version", func() {
@@ -194,12 +196,13 @@ var _ = Describe("Image", func() {
 									PlanID:  "some-plan-id",
 									BuildID: 1,
 								}
-								fakeResourceFactory.NewResourceReturns(fakeBuildResource, nil, nil)
+								fakeResourceFactory.NewCheckResourceReturns(fakeBuildResource, nil)
 							})
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-								Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-								_, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
+								_, user, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
 								Expect(id).To(Equal(worker.Identifier{
 									BuildID:             identifier.BuildID,
 									PlanID:              "some-plan-id",
@@ -235,12 +238,13 @@ var _ = Describe("Image", func() {
 									PlanID:     "some-plan-id",
 									ResourceID: 1,
 								}
-								fakeResourceFactory.NewResourceReturns(fakeCheckResource, nil, nil)
+								fakeResourceFactory.NewCheckResourceReturns(fakeCheckResource, nil)
 							})
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-								Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-								_, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
+								_, user, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
 								Expect(id).To(Equal(worker.Identifier{
 									ResourceID:          identifier.ResourceID,
 									PlanID:              "some-plan-id",
@@ -292,8 +296,9 @@ var _ = Describe("Image", func() {
 						})
 
 						It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-							Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
-							_, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+							Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
+							_, user, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+							Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
 							Expect(id).To(Equal(worker.Identifier{
 								PlanID:              "some-plan-id",
 								BuildID:             42,
@@ -365,12 +370,12 @@ var _ = Describe("Image", func() {
 							}))
 							Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
 							Expect(actualTeamID).To(Equal(teamID))
-							Expect(resourceInstance).To(Equal(resource.NewBuildResourceInstance(
+							Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
 								"docker",
 								atc.Version{"v": "1"},
 								atc.Source{"some": "source"},
 								nil,
-								42,
+								dbng.ForBuild{BuildID: 42},
 								4567,
 								customTypes,
 								fakeResourceCacheFactory,
@@ -473,7 +478,7 @@ var _ = Describe("Image", func() {
 
 		BeforeEach(func() {
 			disaster = errors.New("wah")
-			fakeResourceFactory.NewResourceReturns(nil, nil, disaster)
+			fakeResourceFactory.NewCheckResourceReturns(nil, disaster)
 		})
 
 		It("returns the error", func() {
