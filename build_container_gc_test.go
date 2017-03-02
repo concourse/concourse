@@ -85,7 +85,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				fly("trigger-job", "-w", "-j", "build-container-gc/simple-job")
 
 				By("collecting the build containers")
-				rows, err := psql.Select("id, handle").From("containers").Where(sq.NotEq{"type": "check"}).RunWith(dbConn).Query()
+				rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).RunWith(dbConn).Query()
 				Expect(err).ToNot(HaveOccurred())
 
 				buildContainers := map[int]string{}
@@ -140,7 +140,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the build containers")
-				rows, err := psql.Select("id, handle").From("containers").Where(sq.NotEq{"type": "check"}).RunWith(dbConn).Query()
+				rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).RunWith(dbConn).Query()
 				Expect(err).ToNot(HaveOccurred())
 
 				buildContainers := map[int]string{}
@@ -193,7 +193,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the first build containers")
-				rows, err := psql.Select("id, handle").From("containers").Where(sq.NotEq{"type": "check"}).RunWith(dbConn).Query()
+				rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).RunWith(dbConn).Query()
 				Expect(err).ToNot(HaveOccurred())
 
 				firstBuildContainers := map[int]string{}
@@ -212,7 +212,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the second build containers")
-				rows, err = psql.Select("id, handle").From("containers").Where(sq.NotEq{"type": "check"}).Where(sq.NotEq{"id": firstContainerIDs}).RunWith(dbConn).Query()
+				rows, err = psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).Where(sq.NotEq{"id": firstContainerIDs}).RunWith(dbConn).Query()
 				Expect(err).ToNot(HaveOccurred())
 
 				secondBuildContainers := map[int]string{}
@@ -279,7 +279,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the first build containers")
-				rows, err := psql.Select("id, handle").From("containers").Where(sq.NotEq{"type": "check"}).RunWith(dbConn).Query()
+				rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).RunWith(dbConn).Query()
 				Expect(err).ToNot(HaveOccurred())
 
 				firstBuildContainers := map[int]string{}
@@ -300,7 +300,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				Eventually(runningBuildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 				By("collecting the second build containers")
-				rows, err = psql.Select("id, handle").From("containers").Where(sq.NotEq{"type": "check"}).Where(sq.NotEq{"id": firstContainerIDs}).RunWith(dbConn).Query()
+				rows, err = psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).Where(sq.NotEq{"id": firstContainerIDs}).RunWith(dbConn).Query()
 				Expect(err).ToNot(HaveOccurred())
 
 				secondBuildContainers := map[int]string{}
