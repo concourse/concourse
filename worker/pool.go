@@ -163,14 +163,6 @@ func (pool *pool) CreateResourceGetContainer(
 	source atc.Source,
 	params atc.Params,
 ) (Container, error) {
-	container, found, err := pool.FindContainerForIdentifier(logger, id)
-	if err != nil {
-		return nil, err
-	}
-	if found {
-		return container, nil
-	}
-
 	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
