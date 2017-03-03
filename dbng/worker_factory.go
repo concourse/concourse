@@ -51,17 +51,25 @@ var workersQuery = psql.Select(`
 	LeftJoin("teams t ON w.team_id = t.id")
 
 func (f *workerFactory) GetWorker(name string) (Worker, bool, error) {
-	tx, err := f.conn.Begin()
+	return getWorker(f.conn, workersQuery.Where(sq.Eq{"w.name": name}))
+}
+
+func (f *workerFactory) Workers() ([]Worker, error) {
+	return getWorkers(f.conn, workersQuery)
+}
+
+func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
+	tx, err := conn.Begin()
 	if err != nil {
 		return nil, false, err
 	}
 	defer tx.Rollback()
 
-	row := workersQuery.Where(sq.Eq{"w.name": name}).
+	row := query.
 		RunWith(tx).
 		QueryRow()
 
-	worker := &worker{conn: f.conn}
+	worker := &worker{conn: conn}
 	err = scanWorker(worker, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -76,10 +84,6 @@ func (f *workerFactory) GetWorker(name string) (Worker, bool, error) {
 	}
 
 	return worker, true, nil
-}
-
-func (f *workerFactory) Workers() ([]Worker, error) {
-	return getWorkers(f.conn, workersQuery)
 }
 
 func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {

@@ -287,7 +287,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindBuildContainerReturns(fakeCreatingContainer, nil, nil)
+				fakeDBTeam.FindBuildContainerOnWorkerReturns(fakeCreatingContainer, nil, nil)
 			})
 
 			ItHandlesContainerInCreatingState()
@@ -295,7 +295,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in created state", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindBuildContainerReturns(nil, fakeCreatedContainer, nil)
+				fakeDBTeam.FindBuildContainerOnWorkerReturns(nil, fakeCreatedContainer, nil)
 			})
 
 			ItHandlesContainerInCreatedState()
@@ -303,7 +303,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindBuildContainerReturns(nil, nil, nil)
+				fakeDBTeam.FindBuildContainerOnWorkerReturns(nil, nil, nil)
 			})
 
 			ItHandlesNonExistentContainer(func() int {
@@ -347,7 +347,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in creating state", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindResourceCheckContainerReturns(fakeCreatingContainer, nil, nil)
+				fakeDBTeam.FindResourceCheckContainerOnWorkerReturns(fakeCreatingContainer, nil, nil)
 			})
 
 			ItHandlesContainerInCreatingState()
@@ -355,7 +355,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container exists in database in created state", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindResourceCheckContainerReturns(nil, fakeCreatedContainer, nil)
+				fakeDBTeam.FindResourceCheckContainerOnWorkerReturns(nil, fakeCreatedContainer, nil)
 			})
 
 			ItHandlesContainerInCreatedState()
@@ -363,7 +363,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		Context("when container does not exist in database", func() {
 			BeforeEach(func() {
-				fakeDBTeam.FindResourceCheckContainerReturns(nil, nil, nil)
+				fakeDBTeam.FindResourceCheckContainerOnWorkerReturns(nil, nil, nil)
 			})
 
 			ItHandlesNonExistentContainer(func() int {

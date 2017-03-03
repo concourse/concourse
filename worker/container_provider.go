@@ -189,14 +189,10 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 		resourceTypes,
 		outputPaths,
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).FindBuildContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).FindBuildContainerOnWorker(
 				p.worker.Name(),
 				id.BuildID,
 				id.PlanID,
-				dbng.ContainerMetadata{
-					Name: metadata.StepName,
-					Type: string(metadata.Type),
-				},
 			)
 		},
 		func() (dbng.CreatingContainer, error) {
@@ -255,7 +251,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 				"garden-addr":        p.worker.Address(),
 				"resource-config-id": resourceConfig.ID,
 			})
-			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainerOnWorker(
 				p.worker.Name(),
 				resourceConfig,
 			)
