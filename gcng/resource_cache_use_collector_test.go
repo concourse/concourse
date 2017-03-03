@@ -1,8 +1,6 @@
 package gcng_test
 
 import (
-	"time"
-
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
@@ -15,10 +13,12 @@ import (
 
 var _ = Describe("ResourceCacheUseCollector", func() {
 	var collector gcng.Collector
+	var buildCollector gcng.Collector
 
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("resource-cache-use-collector")
 		collector = gcng.NewResourceCacheUseCollector(logger, resourceCacheFactory)
+		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
 
 	AfterEach(func() {
@@ -47,27 +47,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				return result
-			}
-
-			finishBuild := func(build dbng.Build, status string) {
-				tx, err := dbConn.Begin()
-				Expect(err).NotTo(HaveOccurred())
-				defer tx.Rollback()
-
-				var result time.Time
-				err = psql.Update("builds").
-					SetMap(map[string]interface{}{
-						"status":    status,
-						"end_time":  sq.Expr("NOW()"),
-						"completed": true,
-					}).Where(sq.Eq{
-					"id": build.ID(),
-				}).Suffix("RETURNING end_time").
-					RunWith(tx).
-					QueryRow().Scan(&result)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(tx.Commit()).NotTo(HaveOccurred())
 			}
 
 			BeforeEach(func() {
@@ -118,7 +97,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("once the build has completed successfully", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						finishBuild(defaultBuild, "succeeded")
+						Expect(defaultBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+						Expect(buildCollector.Run()).To(Succeed())
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
@@ -127,7 +107,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("once the build has been aborted", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						finishBuild(defaultBuild, "aborted")
+						Expect(defaultBuild.Finish(dbng.BuildStatusAborted)).To(Succeed())
+						Expect(buildCollector.Run()).To(Succeed())
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
@@ -137,7 +118,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					Context("when the build is a one-off", func() {
 						It("cleans up the uses", func() {
 							Expect(countResourceCacheUses()).NotTo(BeZero())
-							finishBuild(defaultBuild, "failed")
+							Expect(defaultBuild.Finish(dbng.BuildStatusFailed)).To(Succeed())
+							Expect(buildCollector.Run()).To(Succeed())
 							Expect(collector.Run()).To(Succeed())
 							Expect(countResourceCacheUses()).To(BeZero())
 						})
@@ -178,7 +160,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						Context("when it is the latest failed build", func() {
 							It("preserves the uses", func() {
 								Expect(countResourceCacheUses()).NotTo(BeZero())
-								finishBuild(defaultBuild, "failed")
+								Expect(defaultBuild.Finish(dbng.BuildStatusFailed)).To(Succeed())
+								Expect(buildCollector.Run()).To(Succeed())
 								Expect(collector.Run()).To(Succeed())
 								Expect(countResourceCacheUses()).NotTo(BeZero())
 							})
@@ -192,6 +175,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 							It("cleans up the uses", func() {
 								Expect(countResourceCacheUses()).NotTo(BeZero())
+								Expect(buildCollector.Run()).To(Succeed())
 								Expect(collector.Run()).To(Succeed())
 								Expect(countResourceCacheUses()).To(BeZero())
 							})
@@ -207,7 +191,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 					It("deletes the use for old build image resource", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						finishBuild(defaultBuild, "succeeded")
+						Expect(defaultBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+						Expect(buildCollector.Run()).To(Succeed())
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
 					})
@@ -245,7 +230,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						)
 						Expect(err).NotTo(HaveOccurred())
 
-						finishBuild(firstBuild, "succeeded")
+						Expect(firstBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+						Expect(buildCollector.Run()).To(Succeed())
 					})
 
 					It("keeps the use for latest build image resource", func() {
@@ -262,7 +248,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						err = secondBuild.SaveImageResourceVersion(atc.PlanID("123"), imageVersion2, "some-resource-hash")
 						Expect(err).NotTo(HaveOccurred())
 
-						finishBuild(secondBuild, "succeeded")
+						Expect(secondBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,

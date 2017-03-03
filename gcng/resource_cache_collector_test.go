@@ -12,9 +12,11 @@ import (
 
 var _ = Describe("ResourceCacheCollector", func() {
 	var collector gcng.Collector
+	var buildCollector gcng.Collector
 
 	BeforeEach(func() {
 		collector = gcng.NewResourceCacheCollector(logger, resourceCacheFactory)
+		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
 
 	AfterEach(func() {
@@ -73,6 +75,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 				JustBeforeEach(func() {
 					err := defaultBuild.Finish(dbng.BuildStatusSucceeded)
 					Expect(err).NotTo(HaveOccurred())
+					Expect(buildCollector.Run()).To(Succeed())
 
 					resourceCacheUseCollector = gcng.NewResourceCacheUseCollector(logger, resourceCacheFactory)
 					err = resourceCacheUseCollector.Run()
@@ -173,8 +176,10 @@ var _ = Describe("ResourceCacheCollector", func() {
 									)
 									Expect(err).NotTo(HaveOccurred())
 
-									err = newBuild.SaveStatus(dbng.BuildStatusSucceeded)
+									err = newBuild.Finish("succeeded")
 									Expect(err).NotTo(HaveOccurred())
+
+									Expect(buildCollector.Run()).To(Succeed())
 
 									tx, err := dbConn.Begin()
 									Expect(err).NotTo(HaveOccurred())
