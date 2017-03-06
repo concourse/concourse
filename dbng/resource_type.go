@@ -9,88 +9,155 @@ import (
 	"github.com/concourse/atc"
 )
 
-type ErrResourceTypeNotFound struct {
+type ResourceTypeNotFoundError struct {
 	resourceTypeName string
 }
 
-func (e ErrResourceTypeNotFound) Error() string {
-	return fmt.Sprintf("resource type not found %s", e.resourceTypeName)
+func (e ResourceTypeNotFoundError) Error() string {
+	return fmt.Sprintf("resource type not found: %s", e.resourceTypeName)
 }
 
-type ResourceType struct {
-	atc.ResourceType
+//go:generate counterfeiter . ResourceType
 
-	PipelineID int
+type ResourceType interface {
+	ID() int
+	Name() string
+	Type() string
+	Source() atc.Source
+
+	Version() atc.Version
+	SaveVersion(atc.Version) error
+
+	Reload() (bool, error)
 }
 
-type UsedResourceType struct {
-	ID      int
-	Version atc.Version
-}
+type ResourceTypes []ResourceType
 
-func (resourceType ResourceType) Find(tx Tx) (*UsedResourceType, bool, error) {
-	var id int
-	var version sql.NullString
-
-	err := psql.Select("id", "version").
-		From("resource_types").
-		Where(sq.Eq{
-			"pipeline_id": resourceType.PipelineID,
-			"name":        resourceType.Name,
-		}).
-		RunWith(tx).
-		QueryRow().
-		Scan(&id, &version)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
+func (types ResourceTypes) Without(name string) ResourceTypes {
+	newTypes := ResourceTypes{}
+	for _, t := range types {
+		if t.Name() != name {
+			newTypes = append(newTypes, t)
 		}
-
-		return nil, false, err
 	}
 
-	urt := &UsedResourceType{
-		ID: id,
+	return newTypes
+}
+
+func (types ResourceTypes) Lookup(name string) (ResourceType, bool) {
+	for _, t := range types {
+		if t.Name() == name {
+			return t, true
+		}
+	}
+
+	return nil, false
+}
+
+var resourceTypesQuery = psql.Select("id, name, type, config, version").
+	From("resource_types").
+	Where(sq.Eq{"active": true})
+
+type resourceType struct {
+	conn Conn
+
+	id      int
+	name    string
+	type_   string
+	source  atc.Source
+	version atc.Version
+}
+
+func (t *resourceType) ID() int            { return t.id }
+func (t *resourceType) Name() string       { return t.name }
+func (t *resourceType) Type() string       { return t.type_ }
+func (t *resourceType) Source() atc.Source { return t.source }
+
+func (t *resourceType) Version() atc.Version { return t.version }
+func (t *resourceType) SaveVersion(version atc.Version) error {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	versionJSON, err := json.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	result, err := psql.Update("resource_types").
+		Where(sq.Eq{"id": t.id}).
+		Set("version", versionJSON).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	num, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if num == 0 {
+		return ResourceTypeNotFoundError{t.name}
+	}
+
+	return tx.Commit()
+}
+
+func (t *resourceType) Reload() (bool, error) {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+
+	row := resourceTypesQuery.Where(sq.Eq{"id": t.id}).RunWith(tx).QueryRow()
+
+	err = scanResourceType(t, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func scanResourceType(t *resourceType, row scannable) error {
+	var (
+		configJSON []byte
+		version    sql.NullString
+	)
+
+	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &version)
+	if err != nil {
+		return err
 	}
 
 	if version.Valid {
-		err = json.Unmarshal([]byte(version.String), &urt.Version)
+		err := json.Unmarshal([]byte(version.String), &t.version)
 		if err != nil {
-			return nil, false, err
+			return err
 		}
 	}
 
-	return urt, true, nil
-}
-
-func (resourceType ResourceType) Create(tx Tx, version atc.Version) (*UsedResourceType, error) {
-	configPayload, err := json.Marshal(resourceType.ResourceType)
+	var config atc.ResourceType
+	err = json.Unmarshal(configJSON, &config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	versionString, err := json.Marshal(version)
-	if err != nil {
-		return nil, err
-	}
+	t.source = config.Source
 
-	columns := []string{"pipeline_id", "name", "type", "config", "version"}
-	values := []interface{}{resourceType.PipelineID, resourceType.Name, resourceType.Type, configPayload, versionString}
-
-	var id int
-	err = psql.Insert("resource_types").
-		Columns(columns...).
-		Values(values...).
-		Suffix("RETURNING id").
-		RunWith(tx).
-		QueryRow().
-		Scan(&id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &UsedResourceType{
-		ID:      id,
-		Version: version,
-	}, nil
+	return nil
 }

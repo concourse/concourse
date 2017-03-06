@@ -150,7 +150,7 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes dbng.ResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
@@ -175,7 +175,7 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes dbng.ResourceTypes,
 	outputPaths map[string]string,
 	resourceTypeName string,
 	version atc.Version,
@@ -208,7 +208,7 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes dbng.ResourceTypes,
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
@@ -272,7 +272,7 @@ func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
 }
 
-func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (Worker, error) {
+func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes dbng.ResourceTypes) (Worker, error) {
 	if spec.TeamID != worker.teamID && worker.teamID != 0 {
 		return nil, ErrTeamMismatch
 	}
@@ -306,22 +306,22 @@ func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes atc.Resour
 	return worker, nil
 }
 
-func determineUnderlyingTypeName(typeName string, resourceTypes atc.ResourceTypes) string {
-	resourceTypesMap := make(map[string]atc.ResourceType)
+func determineUnderlyingTypeName(typeName string, resourceTypes dbng.ResourceTypes) string {
+	resourceTypesMap := make(map[string]dbng.ResourceType)
 	for _, resourceType := range resourceTypes {
-		resourceTypesMap[resourceType.Name] = resourceType
+		resourceTypesMap[resourceType.Name()] = resourceType
 	}
 	underlyingTypeName := typeName
 	underlyingType, ok := resourceTypesMap[underlyingTypeName]
 	for ok {
-		underlyingTypeName = underlyingType.Type
+		underlyingTypeName = underlyingType.Type()
 		underlyingType, ok = resourceTypesMap[underlyingTypeName]
 		delete(resourceTypesMap, underlyingTypeName)
 	}
 	return underlyingTypeName
 }
 
-func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) ([]Worker, error) {
+func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes dbng.ResourceTypes) ([]Worker, error) {
 	return nil, ErrNotImplemented
 }
 

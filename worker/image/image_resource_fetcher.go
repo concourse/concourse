@@ -44,7 +44,7 @@ type ImageResourceFetcher interface {
 		metadata worker.Metadata,
 		tags atc.Tags,
 		teamID int,
-		customTypes atc.ResourceTypes,
+		customTypes dbng.ResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
 		privileged bool,
 	) (worker.Volume, io.ReadCloser, atc.Version, error)
@@ -92,7 +92,7 @@ func (i *imageResourceFetcher) Fetch(
 	metadata worker.Metadata,
 	tags atc.Tags,
 	teamID int,
-	customTypes atc.ResourceTypes,
+	customTypes dbng.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 	privileged bool,
 ) (worker.Volume, io.ReadCloser, atc.Version, error) {
@@ -106,9 +106,8 @@ func (i *imageResourceFetcher) Fetch(
 		resource.ResourceType(imageResourceType),
 		version,
 		imageResourceSource,
-		nil,
+		atc.Params{},
 		resourceUser,
-		metadata.PipelineID,
 		customTypes,
 		i.dbResourceCacheFactory,
 	)
@@ -195,7 +194,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 	imageResourceSource atc.Source,
 	tags atc.Tags,
 	teamID int,
-	customTypes atc.ResourceTypes,
+	customTypes dbng.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (atc.Version, error) {
 	id.Stage = db.ContainerStageCheck

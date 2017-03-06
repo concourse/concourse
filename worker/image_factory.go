@@ -24,7 +24,7 @@ type ImageFactory interface {
 		resourceUser dbng.ResourceUser,
 		id Identifier,
 		metadata Metadata,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes dbng.ResourceTypes,
 	) (Image, error)
 }
 

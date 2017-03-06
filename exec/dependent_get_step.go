@@ -74,7 +74,6 @@ func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) S
 			step.resourceConfig.Source,
 			step.params,
 			dbng.ForBuild{BuildID: step.session.ID.BuildID},
-			step.session.Metadata.PipelineID,
 			step.resourceTypes,
 			step.dbResourceCacheFactory,
 		),

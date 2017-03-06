@@ -6,12 +6,13 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeFetchSourceProviderFactory struct {
-	NewFetchSourceProviderStub        func(logger lager.Logger, session resource.Session, metadata resource.Metadata, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, resourceInstance resource.ResourceInstance, resourceOptions resource.ResourceOptions, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchSourceProvider
+	NewFetchSourceProviderStub        func(logger lager.Logger, session resource.Session, metadata resource.Metadata, tags atc.Tags, teamID int, resourceTypes dbng.ResourceTypes, resourceInstance resource.ResourceInstance, resourceOptions resource.ResourceOptions, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchSourceProvider
 	newFetchSourceProviderMutex       sync.RWMutex
 	newFetchSourceProviderArgsForCall []struct {
 		logger                lager.Logger
@@ -19,7 +20,7 @@ type FakeFetchSourceProviderFactory struct {
 		metadata              resource.Metadata
 		tags                  atc.Tags
 		teamID                int
-		resourceTypes         atc.ResourceTypes
+		resourceTypes         dbng.ResourceTypes
 		resourceInstance      resource.ResourceInstance
 		resourceOptions       resource.ResourceOptions
 		imageFetchingDelegate worker.ImageFetchingDelegate
@@ -31,7 +32,7 @@ type FakeFetchSourceProviderFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(logger lager.Logger, session resource.Session, metadata resource.Metadata, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, resourceInstance resource.ResourceInstance, resourceOptions resource.ResourceOptions, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchSourceProvider {
+func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(logger lager.Logger, session resource.Session, metadata resource.Metadata, tags atc.Tags, teamID int, resourceTypes dbng.ResourceTypes, resourceInstance resource.ResourceInstance, resourceOptions resource.ResourceOptions, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchSourceProvider {
 	fake.newFetchSourceProviderMutex.Lock()
 	fake.newFetchSourceProviderArgsForCall = append(fake.newFetchSourceProviderArgsForCall, struct {
 		logger                lager.Logger
@@ -39,7 +40,7 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(logger lager.
 		metadata              resource.Metadata
 		tags                  atc.Tags
 		teamID                int
-		resourceTypes         atc.ResourceTypes
+		resourceTypes         dbng.ResourceTypes
 		resourceInstance      resource.ResourceInstance
 		resourceOptions       resource.ResourceOptions
 		imageFetchingDelegate worker.ImageFetchingDelegate
@@ -58,7 +59,7 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderCallCount() in
 	return len(fake.newFetchSourceProviderArgsForCall)
 }
 
-func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderArgsForCall(i int) (lager.Logger, resource.Session, resource.Metadata, atc.Tags, int, atc.ResourceTypes, resource.ResourceInstance, resource.ResourceOptions, worker.ImageFetchingDelegate) {
+func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderArgsForCall(i int) (lager.Logger, resource.Session, resource.Metadata, atc.Tags, int, dbng.ResourceTypes, resource.ResourceInstance, resource.ResourceOptions, worker.ImageFetchingDelegate) {
 	fake.newFetchSourceProviderMutex.RLock()
 	defer fake.newFetchSourceProviderMutex.RUnlock()
 	return fake.newFetchSourceProviderArgsForCall[i].logger, fake.newFetchSourceProviderArgsForCall[i].session, fake.newFetchSourceProviderArgsForCall[i].metadata, fake.newFetchSourceProviderArgsForCall[i].tags, fake.newFetchSourceProviderArgsForCall[i].teamID, fake.newFetchSourceProviderArgsForCall[i].resourceTypes, fake.newFetchSourceProviderArgsForCall[i].resourceInstance, fake.newFetchSourceProviderArgsForCall[i].resourceOptions, fake.newFetchSourceProviderArgsForCall[i].imageFetchingDelegate

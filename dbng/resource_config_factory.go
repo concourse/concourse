@@ -15,8 +15,7 @@ type ResourceConfigFactory interface {
 		user ResourceUser,
 		resourceType string,
 		source atc.Source,
-		pipelineID int,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes ResourceTypes,
 	) (*UsedResourceConfig, error)
 
 	CleanConfigUsesForFinishedBuilds() error
@@ -42,8 +41,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	user ResourceUser,
 	resourceType string,
 	source atc.Source,
-	pipelineID int,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes ResourceTypes,
 ) (*UsedResourceConfig, error) {
 	tx, err := f.conn.Begin()
 	if err != nil {
@@ -52,7 +50,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 
 	defer tx.Rollback()
 
-	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes, pipelineID)
+	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -86,64 +84,32 @@ func constructResourceConfig(
 	tx Tx,
 	resourceType string,
 	source atc.Source,
-	resourceTypes []atc.ResourceType,
-	pipelineID int,
+	resourceTypes ResourceTypes,
 ) (ResourceConfig, error) {
 	resourceConfig := ResourceConfig{
 		Source: source,
 	}
 
-	resourceTypesList := resourceTypesList(resourceType, resourceTypes, []atc.ResourceType{})
-	if len(resourceTypesList) == 0 {
-		resourceConfig.CreatedByBaseResourceType = &BaseResourceType{
-			Name: resourceType,
-		}
-	} else {
-		lastResourceType := resourceTypesList[len(resourceTypesList)-1]
-		urt, found, err := ResourceType{
-			ResourceType: lastResourceType,
-			PipelineID:   pipelineID,
-		}.Find(tx)
+	customType, found := resourceTypes.Lookup(resourceType)
+	if found {
+		customTypeResourceConfig, err := constructResourceConfig(
+			tx,
+			customType.Type(),
+			customType.Source(),
+			resourceTypes.Without(customType.Name()),
+		)
 		if err != nil {
 			return ResourceConfig{}, err
 		}
 
-		if !found {
-			return ResourceConfig{}, ErrResourceTypeNotFound{lastResourceType.Name}
+		resourceConfig.CreatedByResourceCache = &ResourceCache{
+			ResourceConfig: customTypeResourceConfig,
+			Version:        customType.Version(),
 		}
-
-		parentResourceCache := &ResourceCache{
-			ResourceConfig: ResourceConfig{
-				CreatedByBaseResourceType: &BaseResourceType{
-					Name: lastResourceType.Type,
-				},
-				Source: lastResourceType.Source,
-			},
-			Version: urt.Version,
+	} else {
+		resourceConfig.CreatedByBaseResourceType = &BaseResourceType{
+			Name: resourceType,
 		}
-
-		for i := len(resourceTypesList) - 2; i >= 0; i-- {
-			urt, found, err := ResourceType{
-				ResourceType: resourceTypesList[i],
-				PipelineID:   pipelineID,
-			}.Find(tx)
-			if err != nil {
-				return ResourceConfig{}, err
-			}
-			if !found {
-				return ResourceConfig{}, ErrResourceTypeNotFound{resourceTypesList[i].Name}
-			}
-
-			parentResourceCache = &ResourceCache{
-				ResourceConfig: ResourceConfig{
-					CreatedByResourceCache: parentResourceCache,
-					Source:                 resourceTypesList[i].Source,
-				},
-				Version: urt.Version,
-			}
-		}
-
-		resourceConfig.CreatedByResourceCache = parentResourceCache
 	}
 
 	return resourceConfig, nil

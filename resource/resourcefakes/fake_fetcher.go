@@ -7,19 +7,20 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
 
 type FakeFetcher struct {
-	FetchStub        func(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, resourceInstance resource.ResourceInstance, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate, resourceOptions resource.ResourceOptions, signals <-chan os.Signal, ready chan<- struct{}) (resource.FetchSource, error)
+	FetchStub        func(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes dbng.ResourceTypes, resourceInstance resource.ResourceInstance, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate, resourceOptions resource.ResourceOptions, signals <-chan os.Signal, ready chan<- struct{}) (resource.FetchSource, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
 		logger                lager.Logger
 		session               resource.Session
 		tags                  atc.Tags
 		teamID                int
-		resourceTypes         atc.ResourceTypes
+		resourceTypes         dbng.ResourceTypes
 		resourceInstance      resource.ResourceInstance
 		metadata              resource.Metadata
 		imageFetchingDelegate worker.ImageFetchingDelegate
@@ -35,14 +36,14 @@ type FakeFetcher struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetcher) Fetch(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, resourceInstance resource.ResourceInstance, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate, resourceOptions resource.ResourceOptions, signals <-chan os.Signal, ready chan<- struct{}) (resource.FetchSource, error) {
+func (fake *FakeFetcher) Fetch(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes dbng.ResourceTypes, resourceInstance resource.ResourceInstance, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate, resourceOptions resource.ResourceOptions, signals <-chan os.Signal, ready chan<- struct{}) (resource.FetchSource, error) {
 	fake.fetchMutex.Lock()
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
 		logger                lager.Logger
 		session               resource.Session
 		tags                  atc.Tags
 		teamID                int
-		resourceTypes         atc.ResourceTypes
+		resourceTypes         dbng.ResourceTypes
 		resourceInstance      resource.ResourceInstance
 		metadata              resource.Metadata
 		imageFetchingDelegate worker.ImageFetchingDelegate
@@ -64,7 +65,7 @@ func (fake *FakeFetcher) FetchCallCount() int {
 	return len(fake.fetchArgsForCall)
 }
 
-func (fake *FakeFetcher) FetchArgsForCall(i int) (lager.Logger, resource.Session, atc.Tags, int, atc.ResourceTypes, resource.ResourceInstance, resource.Metadata, worker.ImageFetchingDelegate, resource.ResourceOptions, <-chan os.Signal, chan<- struct{}) {
+func (fake *FakeFetcher) FetchArgsForCall(i int) (lager.Logger, resource.Session, atc.Tags, int, dbng.ResourceTypes, resource.ResourceInstance, resource.Metadata, worker.ImageFetchingDelegate, resource.ResourceOptions, <-chan os.Signal, chan<- struct{}) {
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
 	return fake.fetchArgsForCall[i].logger, fake.fetchArgsForCall[i].session, fake.fetchArgsForCall[i].tags, fake.fetchArgsForCall[i].teamID, fake.fetchArgsForCall[i].resourceTypes, fake.fetchArgsForCall[i].resourceInstance, fake.fetchArgsForCall[i].metadata, fake.fetchArgsForCall[i].imageFetchingDelegate, fake.fetchArgsForCall[i].resourceOptions, fake.fetchArgsForCall[i].signals, fake.fetchArgsForCall[i].ready

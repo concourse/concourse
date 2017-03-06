@@ -40,9 +40,10 @@ type Worker interface {
 	Tags() []string
 	TeamID() int
 	TeamName() string
-	Reload() (bool, error)
 	StartTime() int64
 	ExpiresAt() time.Time
+
+	Reload() (bool, error)
 
 	Land() error
 	Retire() error
@@ -51,6 +52,8 @@ type Worker interface {
 }
 
 type worker struct {
+	conn Conn
+
 	name             string
 	state            WorkerState
 	gardenAddr       *string
@@ -66,7 +69,6 @@ type worker struct {
 	teamName         string
 	startTime        int64
 	expiresAt        time.Time
-	conn             Conn
 }
 
 func (worker *worker) Name() string                            { return worker.name }

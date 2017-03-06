@@ -14,8 +14,8 @@ import (
 	uuid "github.com/nu7hatch/gouuid"
 )
 
-var ErrConfigComparisonFailed = errors.New("comparison-with-existing-config-failed-during-save")
-var ErrTeamDisappeared = errors.New("team-disappeared")
+var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
+var ErrTeamDisappeared = errors.New("team disappeared")
 
 //go:generate counterfeiter . Team
 
@@ -434,12 +434,12 @@ func (t *team) SavePipeline(
 			`, payload, pausedState.Bool(), pipelineName, from, t.id))
 		}
 
-		if err != nil && err != sql.ErrNoRows {
-			return nil, false, err
-		}
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, false, ErrConfigComparisonFailed
+			}
 
-		if savedPipeline.ID() == 0 {
-			return nil, false, ErrConfigComparisonFailed
+			return nil, false, err
 		}
 
 		_, err = tx.Exec(`
@@ -833,8 +833,10 @@ func (t *team) scanPipeline(rows scannable) (*pipeline, error) {
 	}
 
 	return &pipeline{
-		id:     id,
-		teamID: teamID,
+		id:            id,
+		name:          name,
+		configVersion: ConfigVersion(version),
+		teamID:        teamID,
 
 		conn:        t.conn,
 		lockFactory: t.lockFactory,

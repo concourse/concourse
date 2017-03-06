@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
@@ -27,7 +28,7 @@ var _ = Describe("FetchSourceProvider", func() {
 		metadata         = EmptyMetadata{}
 		session          = Session{}
 		tags             atc.Tags
-		resourceTypes    atc.ResourceTypes
+		resourceTypes    dbng.ResourceTypes
 		teamID           = 3
 	)
 
@@ -37,10 +38,10 @@ var _ = Describe("FetchSourceProvider", func() {
 		logger = lagertest.NewTestLogger("test")
 		resourceInstance = new(resourcefakes.FakeResourceInstance)
 		tags = atc.Tags{"some", "tags"}
-		resourceTypes = atc.ResourceTypes{
-			{
+		resourceTypes = dbng.ResourceTypes{
+			fakeDBNGResourceType(atc.ResourceType{
 				Name: "some-resource-type",
-			},
+			}),
 		}
 		resourceOptions = new(resourcefakes.FakeResourceOptions)
 		resourceOptions.ResourceTypeReturns("some-resource-type")

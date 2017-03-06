@@ -12,11 +12,7 @@ import (
 //go:generate counterfeiter . RadarDB
 
 type RadarDB interface {
-	GetPipelineName() string
-	GetPipelineID() int
 	ScopedName(string) string
-	TeamID() int
-	Config() atc.Config
 
 	IsPaused() (bool, error)
 

@@ -39,7 +39,6 @@ type dbProvider struct {
 	retryBackOffFactory             retryhttp.BackOffFactory
 	imageFactory                    ImageFactory
 	dbResourceCacheFactory          dbng.ResourceCacheFactory
-	dbResourceTypeFactory           dbng.ResourceTypeFactory
 	dbResourceConfigFactory         dbng.ResourceConfigFactory
 	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
 	dbVolumeFactory                 dbng.VolumeFactory

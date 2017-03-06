@@ -67,6 +67,12 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		"resource": resourceName,
 	})
 
+	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resource-types", err)
+		return 0, err
+	}
+
 	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
 		logger,
 		&dbng.Resource{
@@ -75,7 +81,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 			Type:   savedResource.Config.Type,
 			Source: savedResource.Config.Source,
 		},
-		scanner.db.Config().ResourceTypes,
+		resourceTypes,
 		interval,
 		false,
 	)
@@ -101,7 +107,12 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 	}
 
 	err = swallowErrResourceScriptFailed(
-		scanner.scan(logger.Session("tick"), savedResource, atc.Version(vr.Version)),
+		scanner.scan(
+			logger.Session("tick"),
+			savedResource,
+			atc.Version(vr.Version),
+			resourceTypes,
+		),
 	)
 	if err != nil {
 		return interval, err
@@ -137,6 +148,12 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		return err
 	}
 
+	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resource-types", err)
+		return err
+	}
+
 	for {
 		lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
 			logger,
@@ -146,7 +163,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 				Type:   savedResource.Config.Type,
 				Source: savedResource.Config.Source,
 			},
-			scanner.db.Config().ResourceTypes,
+			resourceTypes,
 			interval,
 			true,
 		)
@@ -169,7 +186,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		break
 	}
 
-	return scanner.scan(logger, savedResource, fromVersion)
+	return scanner.scan(logger, savedResource, fromVersion, resourceTypes)
 }
 
 func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) error {
@@ -188,6 +205,7 @@ func (scanner *resourceScanner) scan(
 	logger lager.Logger,
 	savedResource db.SavedResource,
 	fromVersion atc.Version,
+	resourceTypes dbng.ResourceTypes,
 ) error {
 	pipelinePaused, err := scanner.db.IsPaused()
 	if err != nil {
@@ -204,8 +222,6 @@ func (scanner *resourceScanner) scan(
 		logger.Debug("resource-paused")
 		return nil
 	}
-
-	pipelineID := scanner.db.GetPipelineID()
 
 	found, err := scanner.db.Reload()
 	if err != nil {
@@ -230,7 +246,7 @@ func (scanner *resourceScanner) scan(
 		},
 		Ephemeral: true,
 		Tags:      savedResource.Config.Tags,
-		TeamID:    scanner.db.TeamID(),
+		TeamID:    scanner.dbPipeline.TeamID(),
 		Env:       metadata.Env(),
 	}
 
@@ -245,11 +261,11 @@ func (scanner *resourceScanner) scan(
 		},
 		worker.Metadata{
 			Type:       db.ContainerTypeCheck,
-			PipelineID: pipelineID,
-			TeamID:     scanner.db.TeamID(),
+			PipelineID: scanner.dbPipeline.ID(),
+			TeamID:     scanner.dbPipeline.TeamID(),
 		},
 		containerSpec,
-		scanner.db.Config().ResourceTypes,
+		resourceTypes,
 		worker.NoopImageFetchingDelegate{},
 		savedResource.Config,
 	)

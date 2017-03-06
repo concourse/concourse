@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -25,7 +26,7 @@ type Fetcher interface {
 		session Session,
 		tags atc.Tags,
 		teamID int,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes dbng.ResourceTypes,
 		resourceInstance ResourceInstance,
 		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -69,7 +70,7 @@ func (f *fetcher) Fetch(
 	session Session,
 	tags atc.Tags,
 	teamID int,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes dbng.ResourceTypes,
 	resourceInstance ResourceInstance,
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,

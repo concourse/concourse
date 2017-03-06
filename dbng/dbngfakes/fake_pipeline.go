@@ -18,6 +18,24 @@ type FakePipeline struct {
 	iDReturns     struct {
 		result1 int
 	}
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct{}
+	nameReturns     struct {
+		result1 string
+	}
+	TeamIDStub        func() int
+	teamIDMutex       sync.RWMutex
+	teamIDArgsForCall []struct{}
+	teamIDReturns     struct {
+		result1 int
+	}
+	ConfigVersionStub        func() dbng.ConfigVersion
+	configVersionMutex       sync.RWMutex
+	configVersionArgsForCall []struct{}
+	configVersionReturns     struct {
+		result1 dbng.ConfigVersion
+	}
 	SaveJobStub        func(job atc.JobConfig) error
 	saveJobMutex       sync.RWMutex
 	saveJobArgsForCall []struct {
@@ -45,12 +63,12 @@ type FakePipeline struct {
 		result1 *dbng.Resource
 		result2 error
 	}
-	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.ResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error)
+	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource *dbng.Resource, resourceTypes dbng.ResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error)
 	acquireResourceCheckingLockMutex       sync.RWMutex
 	acquireResourceCheckingLockArgsForCall []struct {
 		logger        lager.Logger
 		resource      *dbng.Resource
-		resourceTypes atc.ResourceTypes
+		resourceTypes dbng.ResourceTypes
 		length        time.Duration
 		immediate     bool
 	}
@@ -58,6 +76,13 @@ type FakePipeline struct {
 		result1 lock.Lock
 		result2 bool
 		result3 error
+	}
+	ResourceTypesStub        func() (dbng.ResourceTypes, error)
+	resourceTypesMutex       sync.RWMutex
+	resourceTypesArgsForCall []struct{}
+	resourceTypesReturns     struct {
+		result1 dbng.ResourceTypes
+		result2 error
 	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
@@ -90,6 +115,78 @@ func (fake *FakePipeline) IDReturns(result1 int) {
 	fake.IDStub = nil
 	fake.iDReturns = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakePipeline) Name() string {
+	fake.nameMutex.Lock()
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
+	fake.recordInvocation("Name", []interface{}{})
+	fake.nameMutex.Unlock()
+	if fake.NameStub != nil {
+		return fake.NameStub()
+	}
+	return fake.nameReturns.result1
+}
+
+func (fake *FakePipeline) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
+}
+
+func (fake *FakePipeline) NameReturns(result1 string) {
+	fake.NameStub = nil
+	fake.nameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakePipeline) TeamID() int {
+	fake.teamIDMutex.Lock()
+	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct{}{})
+	fake.recordInvocation("TeamID", []interface{}{})
+	fake.teamIDMutex.Unlock()
+	if fake.TeamIDStub != nil {
+		return fake.TeamIDStub()
+	}
+	return fake.teamIDReturns.result1
+}
+
+func (fake *FakePipeline) TeamIDCallCount() int {
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
+	return len(fake.teamIDArgsForCall)
+}
+
+func (fake *FakePipeline) TeamIDReturns(result1 int) {
+	fake.TeamIDStub = nil
+	fake.teamIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakePipeline) ConfigVersion() dbng.ConfigVersion {
+	fake.configVersionMutex.Lock()
+	fake.configVersionArgsForCall = append(fake.configVersionArgsForCall, struct{}{})
+	fake.recordInvocation("ConfigVersion", []interface{}{})
+	fake.configVersionMutex.Unlock()
+	if fake.ConfigVersionStub != nil {
+		return fake.ConfigVersionStub()
+	}
+	return fake.configVersionReturns.result1
+}
+
+func (fake *FakePipeline) ConfigVersionCallCount() int {
+	fake.configVersionMutex.RLock()
+	defer fake.configVersionMutex.RUnlock()
+	return len(fake.configVersionArgsForCall)
+}
+
+func (fake *FakePipeline) ConfigVersionReturns(result1 dbng.ConfigVersion) {
+	fake.ConfigVersionStub = nil
+	fake.configVersionReturns = struct {
+		result1 dbng.ConfigVersion
 	}{result1}
 }
 
@@ -192,12 +289,12 @@ func (fake *FakePipeline) CreateResourceReturns(result1 *dbng.Resource, result2 
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLock(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.ResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error) {
+func (fake *FakePipeline) AcquireResourceCheckingLock(logger lager.Logger, resource *dbng.Resource, resourceTypes dbng.ResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error) {
 	fake.acquireResourceCheckingLockMutex.Lock()
 	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
 		logger        lager.Logger
 		resource      *dbng.Resource
-		resourceTypes atc.ResourceTypes
+		resourceTypes dbng.ResourceTypes
 		length        time.Duration
 		immediate     bool
 	}{logger, resource, resourceTypes, length, immediate})
@@ -215,7 +312,7 @@ func (fake *FakePipeline) AcquireResourceCheckingLockCallCount() int {
 	return len(fake.acquireResourceCheckingLockArgsForCall)
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, *dbng.Resource, atc.ResourceTypes, time.Duration, bool) {
+func (fake *FakePipeline) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, *dbng.Resource, dbng.ResourceTypes, time.Duration, bool) {
 	fake.acquireResourceCheckingLockMutex.RLock()
 	defer fake.acquireResourceCheckingLockMutex.RUnlock()
 	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resource, fake.acquireResourceCheckingLockArgsForCall[i].resourceTypes, fake.acquireResourceCheckingLockArgsForCall[i].length, fake.acquireResourceCheckingLockArgsForCall[i].immediate
@@ -228,6 +325,31 @@ func (fake *FakePipeline) AcquireResourceCheckingLockReturns(result1 lock.Lock, 
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) ResourceTypes() (dbng.ResourceTypes, error) {
+	fake.resourceTypesMutex.Lock()
+	fake.resourceTypesArgsForCall = append(fake.resourceTypesArgsForCall, struct{}{})
+	fake.recordInvocation("ResourceTypes", []interface{}{})
+	fake.resourceTypesMutex.Unlock()
+	if fake.ResourceTypesStub != nil {
+		return fake.ResourceTypesStub()
+	}
+	return fake.resourceTypesReturns.result1, fake.resourceTypesReturns.result2
+}
+
+func (fake *FakePipeline) ResourceTypesCallCount() int {
+	fake.resourceTypesMutex.RLock()
+	defer fake.resourceTypesMutex.RUnlock()
+	return len(fake.resourceTypesArgsForCall)
+}
+
+func (fake *FakePipeline) ResourceTypesReturns(result1 dbng.ResourceTypes, result2 error) {
+	fake.ResourceTypesStub = nil
+	fake.resourceTypesReturns = struct {
+		result1 dbng.ResourceTypes
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePipeline) Destroy() error {
@@ -259,6 +381,12 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
+	fake.configVersionMutex.RLock()
+	defer fake.configVersionMutex.RUnlock()
 	fake.saveJobMutex.RLock()
 	defer fake.saveJobMutex.RUnlock()
 	fake.createJobBuildMutex.RLock()
@@ -267,6 +395,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.createResourceMutex.RUnlock()
 	fake.acquireResourceCheckingLockMutex.RLock()
 	defer fake.acquireResourceCheckingLockMutex.RUnlock()
+	fake.resourceTypesMutex.RLock()
+	defer fake.resourceTypesMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	return fake.invocations

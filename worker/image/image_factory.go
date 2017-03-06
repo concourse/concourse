@@ -35,7 +35,7 @@ func (f *imageFactory) GetImage(
 	resourceUser dbng.ResourceUser,
 	id worker.Identifier,
 	metadata worker.Metadata,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes dbng.ResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
 		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(worker)
@@ -63,10 +63,10 @@ func (f *imageFactory) GetImage(
 	// convert custom resource type from pipeline config into image_resource
 	imageResource := imageSpec.ImageResource
 	for _, resourceType := range resourceTypes {
-		if resourceType.Name == imageSpec.ResourceType {
+		if resourceType.Name() == imageSpec.ResourceType {
 			imageResource = &atc.ImageResource{
-				Source: resourceType.Source,
-				Type:   resourceType.Type,
+				Source: resourceType.Source(),
+				Type:   resourceType.Type(),
 			}
 		}
 	}

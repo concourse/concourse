@@ -125,20 +125,8 @@ var _ = Describe("ResourceCache", func() {
 	})
 
 	Describe("creating for a resource type", func() {
-		var resourceType *dbng.UsedResourceType
-
 		BeforeEach(func() {
-			rf := dbng.NewResourceTypeFactory(dbConn)
-			resourceType, err = rf.CreateResourceType(
-				defaultPipeline.ID(),
-				atc.ResourceType{
-					Name: "some-resource-type",
-					Type: "some-resource-type-type",
-				},
-				atc.Version{},
-			)
-			Expect(err).ToNot(HaveOccurred())
-
+			var err error
 			tx, err = dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -149,7 +137,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		It("can be created and used", func() {
-			urc, err := dbng.ForResourceType{resourceType.ID}.UseResourceCache(logger, tx, lockFactory, cache)
+			urc, err := dbng.ForResourceType{defaultResourceType.ID()}.UseResourceCache(logger, tx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID).ToNot(BeZero())
 
@@ -164,12 +152,12 @@ var _ = Describe("ResourceCache", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingResourceCache, err = dbng.ForResourceType{resourceType.ID}.UseResourceCache(logger, tx, lockFactory, cache)
+				existingResourceCache, err = dbng.ForResourceType{defaultResourceType.ID()}.UseResourceCache(logger, tx, lockFactory, cache)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns the same used resource cache", func() {
-				urc, err := dbng.ForResourceType{resourceType.ID}.UseResourceCache(logger, tx, lockFactory, cache)
+				urc, err := dbng.ForResourceType{defaultResourceType.ID()}.UseResourceCache(logger, tx, lockFactory, cache)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).To(Equal(existingResourceCache.ID))
 			})
@@ -180,7 +168,7 @@ var _ = Describe("ResourceCache", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingResourceCache, err = dbng.ForResourceType{resourceType.ID}.UseResourceCache(logger, tx, lockFactory, cache)
+				existingResourceCache, err = dbng.ForResourceType{defaultResourceType.ID()}.UseResourceCache(logger, tx, lockFactory, cache)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -189,7 +177,7 @@ var _ = Describe("ResourceCache", func() {
 					"foo": "bar",
 				}
 
-				urc, err := dbng.ForResourceType{resourceType.ID}.UseResourceCache(logger, tx, lockFactory, cache)
+				urc, err := dbng.ForResourceType{defaultResourceType.ID()}.UseResourceCache(logger, tx, lockFactory, cache)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).NotTo(Equal(existingResourceCache.ID))
 			})

@@ -126,8 +126,7 @@ var _ = Describe("ContainerFactory", func() {
 					dbng.ForResource{defaultResource.ID},
 					"some-base-resource-type",
 					atc.Source{"some": "source"},
-					defaultPipeline.ID(),
-					atc.ResourceTypes{},
+					dbng.ResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -300,8 +299,7 @@ var _ = Describe("ContainerFactory", func() {
 					atc.Version{"some": "version"},
 					atc.Source{"some": "source"},
 					atc.Params{},
-					defaultPipeline.ID(),
-					atc.ResourceTypes{},
+					dbng.ResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 

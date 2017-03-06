@@ -83,7 +83,7 @@ func (pool *pool) GetWorker(workerName string) (Worker, error) {
 	return worker, nil
 }
 
-func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) ([]Worker, error) {
+func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes dbng.ResourceTypes) ([]Worker, error) {
 	workers, err := pool.provider.RunningWorkers()
 	if err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes
 	}
 }
 
-func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (Worker, error) {
+func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes dbng.ResourceTypes) (Worker, error) {
 	compatibleWorkers, err := pool.AllSatisfying(spec, resourceTypes)
 	if err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (
 	return randomWorker, nil
 }
 
-func (pool *pool) FindOrCreateBuildContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes, outputPaths map[string]string) (Container, error) {
+func (pool *pool) FindOrCreateBuildContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes dbng.ResourceTypes, outputPaths map[string]string) (Container, error) {
 	container, found, err := pool.FindContainerForIdentifier(logger, id)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (pool *pool) CreateResourceGetContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes dbng.ResourceTypes,
 	outputPaths map[string]string,
 	resourceType string,
 	version atc.Version,
@@ -201,7 +201,7 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes dbng.ResourceTypes,
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
@@ -345,7 +345,7 @@ func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 
 func (pool *pool) findCompatibleWorker(
 	containerSpec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes dbng.ResourceTypes,
 	sources map[string]ArtifactSource,
 ) (Worker, []VolumeMount, []string, error) {
 	compatibleWorkers, err := pool.AllSatisfying(containerSpec.WorkerSpec(), resourceTypes)

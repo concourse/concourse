@@ -13,18 +13,6 @@ import (
 )
 
 type FakeRadarDB struct {
-	GetPipelineNameStub        func() string
-	getPipelineNameMutex       sync.RWMutex
-	getPipelineNameArgsForCall []struct{}
-	getPipelineNameReturns     struct {
-		result1 string
-	}
-	GetPipelineIDStub        func() int
-	getPipelineIDMutex       sync.RWMutex
-	getPipelineIDArgsForCall []struct{}
-	getPipelineIDReturns     struct {
-		result1 int
-	}
 	ScopedNameStub        func(string) string
 	scopedNameMutex       sync.RWMutex
 	scopedNameArgsForCall []struct {
@@ -32,18 +20,6 @@ type FakeRadarDB struct {
 	}
 	scopedNameReturns struct {
 		result1 string
-	}
-	TeamIDStub        func() int
-	teamIDMutex       sync.RWMutex
-	teamIDArgsForCall []struct{}
-	teamIDReturns     struct {
-		result1 int
-	}
-	ConfigStub        func() atc.Config
-	configMutex       sync.RWMutex
-	configArgsForCall []struct{}
-	configReturns     struct {
-		result1 atc.Config
 	}
 	IsPausedStub        func() (bool, error)
 	isPausedMutex       sync.RWMutex
@@ -149,54 +125,6 @@ type FakeRadarDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRadarDB) GetPipelineName() string {
-	fake.getPipelineNameMutex.Lock()
-	fake.getPipelineNameArgsForCall = append(fake.getPipelineNameArgsForCall, struct{}{})
-	fake.recordInvocation("GetPipelineName", []interface{}{})
-	fake.getPipelineNameMutex.Unlock()
-	if fake.GetPipelineNameStub != nil {
-		return fake.GetPipelineNameStub()
-	}
-	return fake.getPipelineNameReturns.result1
-}
-
-func (fake *FakeRadarDB) GetPipelineNameCallCount() int {
-	fake.getPipelineNameMutex.RLock()
-	defer fake.getPipelineNameMutex.RUnlock()
-	return len(fake.getPipelineNameArgsForCall)
-}
-
-func (fake *FakeRadarDB) GetPipelineNameReturns(result1 string) {
-	fake.GetPipelineNameStub = nil
-	fake.getPipelineNameReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeRadarDB) GetPipelineID() int {
-	fake.getPipelineIDMutex.Lock()
-	fake.getPipelineIDArgsForCall = append(fake.getPipelineIDArgsForCall, struct{}{})
-	fake.recordInvocation("GetPipelineID", []interface{}{})
-	fake.getPipelineIDMutex.Unlock()
-	if fake.GetPipelineIDStub != nil {
-		return fake.GetPipelineIDStub()
-	}
-	return fake.getPipelineIDReturns.result1
-}
-
-func (fake *FakeRadarDB) GetPipelineIDCallCount() int {
-	fake.getPipelineIDMutex.RLock()
-	defer fake.getPipelineIDMutex.RUnlock()
-	return len(fake.getPipelineIDArgsForCall)
-}
-
-func (fake *FakeRadarDB) GetPipelineIDReturns(result1 int) {
-	fake.GetPipelineIDStub = nil
-	fake.getPipelineIDReturns = struct {
-		result1 int
-	}{result1}
-}
-
 func (fake *FakeRadarDB) ScopedName(arg1 string) string {
 	fake.scopedNameMutex.Lock()
 	fake.scopedNameArgsForCall = append(fake.scopedNameArgsForCall, struct {
@@ -226,54 +154,6 @@ func (fake *FakeRadarDB) ScopedNameReturns(result1 string) {
 	fake.ScopedNameStub = nil
 	fake.scopedNameReturns = struct {
 		result1 string
-	}{result1}
-}
-
-func (fake *FakeRadarDB) TeamID() int {
-	fake.teamIDMutex.Lock()
-	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct{}{})
-	fake.recordInvocation("TeamID", []interface{}{})
-	fake.teamIDMutex.Unlock()
-	if fake.TeamIDStub != nil {
-		return fake.TeamIDStub()
-	}
-	return fake.teamIDReturns.result1
-}
-
-func (fake *FakeRadarDB) TeamIDCallCount() int {
-	fake.teamIDMutex.RLock()
-	defer fake.teamIDMutex.RUnlock()
-	return len(fake.teamIDArgsForCall)
-}
-
-func (fake *FakeRadarDB) TeamIDReturns(result1 int) {
-	fake.TeamIDStub = nil
-	fake.teamIDReturns = struct {
-		result1 int
-	}{result1}
-}
-
-func (fake *FakeRadarDB) Config() atc.Config {
-	fake.configMutex.Lock()
-	fake.configArgsForCall = append(fake.configArgsForCall, struct{}{})
-	fake.recordInvocation("Config", []interface{}{})
-	fake.configMutex.Unlock()
-	if fake.ConfigStub != nil {
-		return fake.ConfigStub()
-	}
-	return fake.configReturns.result1
-}
-
-func (fake *FakeRadarDB) ConfigCallCount() int {
-	fake.configMutex.RLock()
-	defer fake.configMutex.RUnlock()
-	return len(fake.configArgsForCall)
-}
-
-func (fake *FakeRadarDB) ConfigReturns(result1 atc.Config) {
-	fake.ConfigStub = nil
-	fake.configReturns = struct {
-		result1 atc.Config
 	}{result1}
 }
 
@@ -637,16 +517,8 @@ func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockReturns(result1 lock.Loc
 func (fake *FakeRadarDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getPipelineNameMutex.RLock()
-	defer fake.getPipelineNameMutex.RUnlock()
-	fake.getPipelineIDMutex.RLock()
-	defer fake.getPipelineIDMutex.RUnlock()
 	fake.scopedNameMutex.RLock()
 	defer fake.scopedNameMutex.RUnlock()
-	fake.teamIDMutex.RLock()
-	defer fake.teamIDMutex.RUnlock()
-	fake.configMutex.RLock()
-	defer fake.configMutex.RUnlock()
 	fake.isPausedMutex.RLock()
 	defer fake.isPausedMutex.RUnlock()
 	fake.reloadMutex.RLock()

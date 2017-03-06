@@ -22,13 +22,13 @@ var _ = Describe("PipelineLocks", func() {
 		Context("when there has been a check recently", func() {
 			Context("when acquiring immediately", func() {
 				It("gets the lock", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, false)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					lock.Release()
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, true)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -38,13 +38,13 @@ var _ = Describe("PipelineLocks", func() {
 
 			Context("when not acquiring immediately", func() {
 				It("does not get the lock", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, false)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					lock.Release()
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, false)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeFalse())
 				})
@@ -54,12 +54,12 @@ var _ = Describe("PipelineLocks", func() {
 		Context("when there has not been a check recently", func() {
 			Context("when acquiring immediately", func() {
 				It("gets and keeps the lock and stops others from periodically getting it", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, true)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					Consistently(func() bool {
-						_, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, false)
+						_, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, false)
 						Expect(err).NotTo(HaveOccurred())
 
 						return acquired
@@ -69,7 +69,7 @@ var _ = Describe("PipelineLocks", func() {
 
 					time.Sleep(time.Second)
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, true)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -77,12 +77,12 @@ var _ = Describe("PipelineLocks", func() {
 				})
 
 				It("gets and keeps the lock and stops others from immediately getting it", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, true)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					Consistently(func() bool {
-						_, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, true)
+						_, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, true)
 						Expect(err).NotTo(HaveOccurred())
 
 						return acquired
@@ -92,7 +92,7 @@ var _ = Describe("PipelineLocks", func() {
 
 					time.Sleep(time.Second)
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, true)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, true)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -102,12 +102,12 @@ var _ = Describe("PipelineLocks", func() {
 
 			Context("when not acquiring immediately", func() {
 				It("gets and keeps the lock and stops others from periodically getting it", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, false)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					Consistently(func() bool {
-						_, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, false)
+						_, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, false)
 						Expect(err).NotTo(HaveOccurred())
 
 						return acquired
@@ -117,7 +117,7 @@ var _ = Describe("PipelineLocks", func() {
 
 					time.Sleep(time.Second)
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, false)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
@@ -125,13 +125,13 @@ var _ = Describe("PipelineLocks", func() {
 				})
 
 				It("gets and keeps the lock and stops others from immediately getting it", func() {
-					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, false)
+					lock, acquired, err := defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, false)
 
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 
 					Consistently(func() bool {
-						_, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, true)
+						_, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, true)
 						Expect(err).NotTo(HaveOccurred())
 
 						return acquired
@@ -141,7 +141,7 @@ var _ = Describe("PipelineLocks", func() {
 
 					time.Sleep(time.Second)
 
-					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, atc.ResourceTypes{}, 1*time.Second, false)
+					lock, acquired, err = defaultPipeline.AcquireResourceCheckingLock(logger, someResource, dbng.ResourceTypes{}, 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
 

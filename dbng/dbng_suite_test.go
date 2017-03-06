@@ -40,7 +40,6 @@ var (
 	workerFactory                 dbng.WorkerFactory
 	workerLifecycle               dbng.WorkerLifecycle
 	resourceConfigFactory         dbng.ResourceConfigFactory
-	resourceTypeFactory           dbng.ResourceTypeFactory
 	resourceCacheFactory          dbng.ResourceCacheFactory
 	baseResourceTypeFactory       dbng.BaseResourceTypeFactory
 	workerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
@@ -89,7 +88,6 @@ var _ = BeforeEach(func() {
 	workerFactory = dbng.NewWorkerFactory(dbConn)
 	workerLifecycle = dbng.NewWorkerLifecycle(dbConn)
 	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn, lockFactory)
-	resourceTypeFactory = dbng.NewResourceTypeFactory(dbConn)
 	resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
 	workerBaseResourceTypeFactory = dbng.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -119,7 +117,26 @@ var _ = BeforeEach(func() {
 				Name: "some-job",
 			},
 		},
+		ResourceTypes: atc.ResourceTypes{
+			{
+				Name: "some-type",
+				Type: "some-base-resource-type",
+				Source: atc.Source{
+					"some-type": "source",
+				},
+			},
+		},
 	}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+	Expect(err).NotTo(HaveOccurred())
+
+	resourceTypes, err := defaultPipeline.ResourceTypes()
+	Expect(err).NotTo(HaveOccurred())
+
+	var found bool
+	defaultResourceType, found = resourceTypes.Lookup("some-type")
+	Expect(found).To(BeTrue())
+
+	err = defaultResourceType.SaveVersion(atc.Version{"some-type": "version"})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultBuild, err = defaultTeam.CreateOneOffBuild()
@@ -129,7 +146,7 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	logger = lagertest.NewTestLogger("test")
-	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource{defaultResource.ID}, "some-base-resource-type", atc.Source{}, defaultPipeline.ID(), atc.ResourceTypes{})
+	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource{defaultResource.ID}, "some-base-resource-type", atc.Source{}, dbng.ResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultCreatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), defaultResourceConfig)

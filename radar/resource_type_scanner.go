@@ -15,6 +15,7 @@ type resourceTypeScanner struct {
 	resourceFactory resource.ResourceFactory
 	defaultInterval time.Duration
 	db              RadarDB
+	dbPipeline      dbng.Pipeline
 	externalURL     string
 }
 
@@ -22,12 +23,14 @@ func NewResourceTypeScanner(
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
 	db RadarDB,
+	dbPipeline dbng.Pipeline,
 	externalURL string,
 ) Scanner {
 	return &resourceTypeScanner{
 		resourceFactory: resourceFactory,
 		defaultInterval: defaultInterval,
 		db:              db,
+		dbPipeline:      dbPipeline,
 		externalURL:     externalURL,
 	}
 }
@@ -90,7 +93,11 @@ func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourc
 }
 
 func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedResourceType db.SavedResourceType) error {
-	pipelineID := scanner.db.GetPipelineID()
+	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resource-types", err)
+		return err
+	}
 
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
@@ -99,7 +106,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedR
 		},
 		Ephemeral: true,
 		Tags:      []string{},
-		TeamID:    scanner.db.TeamID(),
+		TeamID:    scanner.dbPipeline.TeamID(),
 	}
 
 	res, err := scanner.resourceFactory.NewCheckResource(
@@ -114,10 +121,10 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedR
 		},
 		worker.Metadata{
 			Type:       db.ContainerTypeCheck,
-			PipelineID: pipelineID,
+			PipelineID: scanner.dbPipeline.ID(),
 		},
 		resourceSpec,
-		scanner.db.Config().ResourceTypes,
+		resourceTypes,
 		worker.NoopImageFetchingDelegate{},
 		atc.ResourceConfig{
 			Type:   savedResourceType.Config.Type, // XXX think deeply why this used to be .Name

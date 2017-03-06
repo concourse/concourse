@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -141,7 +142,7 @@ var _ = Describe("Worker", func() {
 				ContainerSpec{
 					ImageSpec: imageSpec,
 				},
-				atc.ResourceTypes{},
+				dbng.ResourceTypes{},
 				map[string]string{},
 			)
 		})
@@ -248,7 +249,7 @@ var _ = Describe("Worker", func() {
 			satisfyingWorker Worker
 			satisfyingErr    error
 
-			customTypes atc.ResourceTypes
+			customTypes dbng.ResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -257,32 +258,32 @@ var _ = Describe("Worker", func() {
 				TeamID: teamID,
 			}
 
-			customTypes = atc.ResourceTypes{
-				{
+			customTypes = dbng.ResourceTypes{
+				fakeDBNGResourceType(atc.ResourceType{
 					Name:   "custom-type-b",
 					Type:   "custom-type-a",
 					Source: atc.Source{"some": "source"},
-				},
-				{
+				}),
+				fakeDBNGResourceType(atc.ResourceType{
 					Name:   "custom-type-a",
 					Type:   "some-resource",
 					Source: atc.Source{"some": "source"},
-				},
-				{
+				}),
+				fakeDBNGResourceType(atc.ResourceType{
 					Name:   "custom-type-c",
 					Type:   "custom-type-b",
 					Source: atc.Source{"some": "source"},
-				},
-				{
+				}),
+				fakeDBNGResourceType(atc.ResourceType{
 					Name:   "custom-type-d",
 					Type:   "custom-type-b",
 					Source: atc.Source{"some": "source"},
-				},
-				{
+				}),
+				fakeDBNGResourceType(atc.ResourceType{
 					Name:   "unknown-custom-type",
 					Type:   "unknown-base-type",
 					Source: atc.Source{"some": "source"},
-				},
+				}),
 			}
 		})
 
@@ -429,11 +430,11 @@ var _ = Describe("Worker", func() {
 
 		Context("when the resource type is a custom type that overrides one supported by the worker", func() {
 			BeforeEach(func() {
-				customTypes = append(customTypes, atc.ResourceType{
+				customTypes = append(customTypes, fakeDBNGResourceType(atc.ResourceType{
 					Name:   "some-resource",
 					Type:   "some-resource",
 					Source: atc.Source{"some": "source"},
-				})
+				}))
 
 				spec.ResourceType = "some-resource"
 			})
@@ -449,19 +450,19 @@ var _ = Describe("Worker", func() {
 
 		Context("when the resource type is a custom type that results in a circular dependency", func() {
 			BeforeEach(func() {
-				customTypes = append(customTypes, atc.ResourceType{
+				customTypes = append(customTypes, fakeDBNGResourceType(atc.ResourceType{
 					Name:   "circle-a",
 					Type:   "circle-b",
 					Source: atc.Source{"some": "source"},
-				}, atc.ResourceType{
+				}), fakeDBNGResourceType(atc.ResourceType{
 					Name:   "circle-b",
 					Type:   "circle-c",
 					Source: atc.Source{"some": "source"},
-				}, atc.ResourceType{
+				}), fakeDBNGResourceType(atc.ResourceType{
 					Name:   "circle-c",
 					Type:   "circle-a",
 					Source: atc.Source{"some": "source"},
-				})
+				}))
 
 				spec.ResourceType = "circle-a"
 			})

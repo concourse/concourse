@@ -88,13 +88,6 @@ type FakeWorker struct {
 	teamNameReturns     struct {
 		result1 string
 	}
-	ReloadStub        func() (bool, error)
-	reloadMutex       sync.RWMutex
-	reloadArgsForCall []struct{}
-	reloadReturns     struct {
-		result1 bool
-		result2 error
-	}
 	StartTimeStub        func() int64
 	startTimeMutex       sync.RWMutex
 	startTimeArgsForCall []struct{}
@@ -106,6 +99,13 @@ type FakeWorker struct {
 	expiresAtArgsForCall []struct{}
 	expiresAtReturns     struct {
 		result1 time.Time
+	}
+	ReloadStub        func() (bool, error)
+	reloadMutex       sync.RWMutex
+	reloadArgsForCall []struct{}
+	reloadReturns     struct {
+		result1 bool
+		result2 error
 	}
 	LandStub        func() error
 	landMutex       sync.RWMutex
@@ -447,31 +447,6 @@ func (fake *FakeWorker) TeamNameReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeWorker) Reload() (bool, error) {
-	fake.reloadMutex.Lock()
-	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
-	fake.recordInvocation("Reload", []interface{}{})
-	fake.reloadMutex.Unlock()
-	if fake.ReloadStub != nil {
-		return fake.ReloadStub()
-	}
-	return fake.reloadReturns.result1, fake.reloadReturns.result2
-}
-
-func (fake *FakeWorker) ReloadCallCount() int {
-	fake.reloadMutex.RLock()
-	defer fake.reloadMutex.RUnlock()
-	return len(fake.reloadArgsForCall)
-}
-
-func (fake *FakeWorker) ReloadReturns(result1 bool, result2 error) {
-	fake.ReloadStub = nil
-	fake.reloadReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeWorker) StartTime() int64 {
 	fake.startTimeMutex.Lock()
 	fake.startTimeArgsForCall = append(fake.startTimeArgsForCall, struct{}{})
@@ -518,6 +493,31 @@ func (fake *FakeWorker) ExpiresAtReturns(result1 time.Time) {
 	fake.expiresAtReturns = struct {
 		result1 time.Time
 	}{result1}
+}
+
+func (fake *FakeWorker) Reload() (bool, error) {
+	fake.reloadMutex.Lock()
+	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
+	fake.recordInvocation("Reload", []interface{}{})
+	fake.reloadMutex.Unlock()
+	if fake.ReloadStub != nil {
+		return fake.ReloadStub()
+	}
+	return fake.reloadReturns.result1, fake.reloadReturns.result2
+}
+
+func (fake *FakeWorker) ReloadCallCount() int {
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
+	return len(fake.reloadArgsForCall)
+}
+
+func (fake *FakeWorker) ReloadReturns(result1 bool, result2 error) {
+	fake.ReloadStub = nil
+	fake.reloadReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeWorker) Land() error {
@@ -645,12 +645,12 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
-	fake.reloadMutex.RLock()
-	defer fake.reloadMutex.RUnlock()
 	fake.startTimeMutex.RLock()
 	defer fake.startTimeMutex.RUnlock()
 	fake.expiresAtMutex.RLock()
 	defer fake.expiresAtMutex.RUnlock()
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
 	fake.landMutex.RLock()
 	defer fake.landMutex.RUnlock()
 	fake.retireMutex.RLock()
