@@ -218,12 +218,13 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 	}
 
 	cacheIdsForVolumes, cacheIdsForVolumesArgs, err := sq.
-		Select("resource_cache_id").
+		Select("wrc.resource_cache_id").
 		Distinct().
-		From("volumes").
-		Where(sq.NotEq{"resource_cache_id": nil}).
-		Where(sq.NotEq{"state": string(VolumeStateCreated)}).
-		Where(sq.NotEq{"state": string(VolumeStateDestroying)}).
+		From("volumes v").
+		LeftJoin("worker_resource_caches wrc ON v.worker_resource_cache_id = wrc.id").
+		Where(sq.NotEq{"v.worker_resource_cache_id": nil}).
+		Where(sq.NotEq{"v.state": string(VolumeStateCreated)}).
+		Where(sq.NotEq{"v.state": string(VolumeStateDestroying)}).
 		ToSql()
 	if err != nil {
 		return err

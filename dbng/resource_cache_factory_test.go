@@ -219,15 +219,12 @@ var _ = Describe("ResourceCacheFactory", func() {
 				setupTx, err := dbConn.Begin()
 				Expect(err).ToNot(HaveOccurred())
 				defer setupTx.Rollback()
-				baseResourceType := dbng.BaseResourceType{
-					Name: "some-resource-type",
-				}
-				_, err = baseResourceType.FindOrCreate(setupTx)
-				Expect(err).NotTo(HaveOccurred())
 
 				resourceCache := dbng.ResourceCache{
 					ResourceConfig: dbng.ResourceConfig{
-						CreatedByBaseResourceType: &baseResourceType,
+						CreatedByBaseResourceType: &dbng.BaseResourceType{
+							Name: "some-base-resource-type",
+						},
 					},
 				}
 				usedResourceCache, err = dbng.ForBuild{build.ID()}.UseResourceCache(logger, setupTx, lockFactory, resourceCache)

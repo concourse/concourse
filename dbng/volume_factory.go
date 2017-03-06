@@ -46,6 +46,7 @@ func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error
 		LeftJoin("workers w ON v.worker_name = w.name").
 		LeftJoin("containers c ON v.container_id = c.id").
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
+		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(sq.Or{
 			sq.Eq{
 				"v.team_id": teamID,
@@ -82,6 +83,19 @@ func (factory *volumeFactory) GetTeamVolumes(teamID int) ([]CreatedVolume, error
 }
 
 func (factory *volumeFactory) CreateResourceCacheVolume(worker Worker, resourceCache *UsedResourceCache) (CreatingVolume, error) {
+	var workerResourcCache *UsedWorkerResourceCache
+	err := safeFindOrCreate(factory.conn, func(tx Tx) error {
+		var err error
+		workerResourcCache, err = WorkerResourceCache{
+			WorkerName:    worker.Name(),
+			ResourceCache: resourceCache,
+		}.FindOrCreate(tx)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	tx, err := factory.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -93,7 +107,7 @@ func (factory *volumeFactory) CreateResourceCacheVolume(worker Worker, resourceC
 		tx,
 		0,
 		worker,
-		map[string]interface{}{"resource_cache_id": resourceCache.ID},
+		map[string]interface{}{"worker_resource_cache_id": workerResourcCache.ID},
 		VolumeTypeResource,
 	)
 
@@ -162,6 +176,7 @@ func (factory *volumeFactory) FindVolumesForContainer(container CreatedContainer
 		LeftJoin("workers w ON v.worker_name = w.name").
 		LeftJoin("containers c ON v.container_id = c.id").
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
+		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(sq.Eq{
 			"v.state":        VolumeStateCreated,
 			"v.container_id": container.ID(),
@@ -205,15 +220,41 @@ func (factory *volumeFactory) FindBaseResourceTypeVolume(teamID int, uwbrt *Used
 }
 
 func (factory *volumeFactory) FindResourceCacheVolume(worker Worker, resourceCache *UsedResourceCache) (CreatingVolume, CreatedVolume, error) {
+	var workerResourcCache *UsedWorkerResourceCache
+	err := safeFindOrCreate(factory.conn, func(tx Tx) error {
+		var err error
+		workerResourcCache, err = WorkerResourceCache{
+			WorkerName:    worker.Name(),
+			ResourceCache: resourceCache,
+		}.FindOrCreate(tx)
+		return err
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return factory.findVolume(0, worker, map[string]interface{}{
-		"v.resource_cache_id": resourceCache.ID,
+		"v.worker_resource_cache_id": workerResourcCache.ID,
 	})
 }
 
 func (factory *volumeFactory) FindResourceCacheInitializedVolume(worker Worker, resourceCache *UsedResourceCache) (CreatedVolume, bool, error) {
+	var workerResourcCache *UsedWorkerResourceCache
+	err := safeFindOrCreate(factory.conn, func(tx Tx) error {
+		var err error
+		workerResourcCache, err = WorkerResourceCache{
+			WorkerName:    worker.Name(),
+			ResourceCache: resourceCache,
+		}.FindOrCreate(tx)
+		return err
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
 	_, createdVolume, err := factory.findVolume(0, worker, map[string]interface{}{
-		"v.resource_cache_id": resourceCache.ID,
-		"v.initialized":       true,
+		"v.worker_resource_cache_id": workerResourcCache.ID,
+		"v.initialized":              true,
 	})
 	if err != nil {
 		return nil, false, err
@@ -247,9 +288,10 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 		LeftJoin("workers w ON v.worker_name = w.name").
 		LeftJoin("containers c ON v.container_id = c.id").
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
+		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(sq.Eq{
 			"v.initialized":                  true,
-			"v.resource_cache_id":            nil,
+			"v.worker_resource_cache_id":     nil,
 			"v.worker_base_resource_type_id": nil,
 			"v.container_id":                 nil,
 		}).
@@ -296,15 +338,16 @@ func (factory *volumeFactory) GetDuplicateResourceCacheVolumes() ([]CreatingVolu
 		LeftJoin("workers w ON v.worker_name = w.name").
 		LeftJoin("containers c ON v.container_id = c.id").
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
-		LeftJoin("volumes dv ON v.resource_cache_id = dv.resource_cache_id AND v.worker_name = dv.worker_name").
+		LeftJoin("volumes dv ON v.worker_resource_cache_id = dv.worker_resource_cache_id").
+		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(sq.Eq{
 			"v.initialized":  false,
 			"dv.initialized": true,
 		}).
 		Where(sq.Or{
-			sq.Eq{"w.state": WorkerStateRunning},
-			sq.Eq{"w.state": WorkerStateLanding},
-			sq.Eq{"w.state": WorkerStateRetiring},
+			sq.Eq{"w.state": string(WorkerStateRunning)},
+			sq.Eq{"w.state": string(WorkerStateLanding)},
+			sq.Eq{"w.state": string(WorkerStateRetiring)},
 		}).
 		ToSql()
 	if err != nil {
@@ -437,6 +480,7 @@ func (factory *volumeFactory) findVolume(teamID int, worker Worker, columns map[
 		LeftJoin("workers w ON v.worker_name = w.name").
 		LeftJoin("containers c ON v.container_id = c.id").
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
+		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(whereClause).
 		RunWith(tx).
 		QueryRow()
@@ -466,10 +510,10 @@ var volumeColumns = []string{
 	"c.handle",
 	"pv.handle",
 	"v.team_id",
-	"v.resource_cache_id",
+	"wrc.resource_cache_id",
 	"v.worker_base_resource_type_id",
 	`case when v.container_id is not NULL then 'container'
-	  when v.resource_cache_id is not NULL then 'resource'
+	  when v.worker_resource_cache_id is not NULL then 'resource'
 		when v.worker_base_resource_type_id is not NULL then 'resource-type'
 		else 'unknown'
 	end`,

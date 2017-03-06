@@ -149,4 +149,5 @@ var Migrations = []migration.Migrator{
 	ChangeVolumeBaseResourceTypeToWorkerBaseResourceType,
 	RenameWorkerBaseResourceTypesId,
 	AddWorkerResourceCacheToContainers,
+	AddWorkerResourceCacheToVolumes,
 }

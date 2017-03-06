@@ -13,6 +13,7 @@ var _ = Describe("VolumeFactory", func() {
 	var (
 		team2             dbng.Team
 		usedResourceCache *dbng.UsedResourceCache
+		baseResourceType  dbng.BaseResourceType
 		build             dbng.Build
 	)
 
@@ -24,11 +25,9 @@ var _ = Describe("VolumeFactory", func() {
 		Expect(err).ToNot(HaveOccurred())
 		defer setupTx.Rollback()
 
-		baseResourceType := dbng.BaseResourceType{
+		baseResourceType = dbng.BaseResourceType{
 			Name: "some-base-resource-type",
 		}
-		_, err = baseResourceType.FindOrCreate(setupTx)
-		Expect(err).NotTo(HaveOccurred())
 
 		resourceCache := dbng.ResourceCache{
 			ResourceConfig: dbng.ResourceConfig{
@@ -308,12 +307,6 @@ var _ = Describe("VolumeFactory", func() {
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
 
-			baseResourceType := dbng.BaseResourceType{
-				Name: "some-base-type",
-			}
-			_, err = baseResourceType.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
-
 			cache := dbng.ResourceCache{
 				ResourceConfig: dbng.ResourceConfig{
 					CreatedByBaseResourceType: &baseResourceType,
@@ -379,12 +372,6 @@ var _ = Describe("VolumeFactory", func() {
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
-
-			baseResourceType := dbng.BaseResourceType{
-				Name: "some-base-type",
-			}
-			_, err = baseResourceType.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
 
 			cache := dbng.ResourceCache{
 				ResourceConfig: dbng.ResourceConfig{
@@ -453,7 +440,6 @@ var _ = Describe("VolumeFactory", func() {
 			usedResourceCache   *dbng.UsedResourceCache
 			uninitializedVolume dbng.CreatingVolume
 			resource            *dbng.Resource
-			baseResourceType    dbng.BaseResourceType
 		)
 
 		BeforeEach(func() {
@@ -462,12 +448,6 @@ var _ = Describe("VolumeFactory", func() {
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
-
-			baseResourceType = dbng.BaseResourceType{
-				Name: "some-base-type",
-			}
-			_, err = baseResourceType.FindOrCreate(setupTx)
-			Expect(err).NotTo(HaveOccurred())
 
 			cache := dbng.ResourceCache{
 				ResourceConfig: dbng.ResourceConfig{
@@ -593,6 +573,7 @@ var _ = Describe("VolumeFactory", func() {
 					anotherWorker, err := workerFactory.SaveWorker(atc.Worker{
 						GardenAddr:      "some-garden-addr",
 						BaggageclaimURL: "some-bc-url",
+						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
 					}, 5*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 					_, err = volumeFactory.CreateResourceCacheVolume(anotherWorker, usedResourceCache)

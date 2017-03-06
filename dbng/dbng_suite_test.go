@@ -45,18 +45,19 @@ var (
 	baseResourceTypeFactory       dbng.BaseResourceTypeFactory
 	workerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
 
-	defaultTeam              dbng.Team
-	defaultWorkerPayload     atc.Worker
-	defaultWorker            dbng.Worker
-	defaultResourceConfig    *dbng.UsedResourceConfig
-	defaultResourceType      dbng.ResourceType
-	defaultResource          *dbng.Resource
-	defaultPipeline          dbng.Pipeline
-	defaultBuild             dbng.Build
-	defaultCreatingContainer dbng.CreatingContainer
-	defaultCreatedContainer  dbng.CreatedContainer
-	logger                   *lagertest.TestLogger
-	lockFactory              lock.LockFactory
+	defaultWorkerResourceType atc.WorkerResourceType
+	defaultTeam               dbng.Team
+	defaultWorkerPayload      atc.Worker
+	defaultWorker             dbng.Worker
+	defaultResourceConfig     *dbng.UsedResourceConfig
+	defaultResourceType       dbng.ResourceType
+	defaultResource           *dbng.Resource
+	defaultPipeline           dbng.Pipeline
+	defaultBuild              dbng.Build
+	defaultCreatingContainer  dbng.CreatingContainer
+	defaultCreatedContainer   dbng.CreatedContainer
+	logger                    *lagertest.TestLogger
+	lockFactory               lock.LockFactory
 
 	psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 )
@@ -97,14 +98,14 @@ var _ = BeforeEach(func() {
 	defaultTeam, err = teamFactory.CreateTeam("default-team")
 	Expect(err).NotTo(HaveOccurred())
 
-	baseResourceType := atc.WorkerResourceType{
+	defaultWorkerResourceType = atc.WorkerResourceType{
 		Type:    "some-base-resource-type",
 		Image:   "/path/to/image",
 		Version: "some-brt-version",
 	}
 
 	defaultWorkerPayload = atc.Worker{
-		ResourceTypes:   []atc.WorkerResourceType{baseResourceType},
+		ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
 		Name:            "default-worker",
 		GardenAddr:      "1.2.3.4:7777",
 		BaggageclaimURL: "5.6.7.8:7878",
