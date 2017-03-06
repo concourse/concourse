@@ -52,7 +52,7 @@ func toVolumeResourceType(dbResourceType *dbng.VolumeResourceType) *atc.VolumeRe
 	return nil
 }
 
-func toVolumeBaseResourceType(dbResourceType *dbng.WorkerBaseResourceType) *atc.VolumeBaseResourceType {
+func toVolumeBaseResourceType(dbResourceType *dbng.UsedWorkerBaseResourceType) *atc.VolumeBaseResourceType {
 	if dbResourceType == nil {
 		return nil
 	}

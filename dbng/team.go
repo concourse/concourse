@@ -40,7 +40,6 @@ type Team interface {
 	FindResourceCheckContainer(workerName string, resourceConfig *UsedResourceConfig) (CreatingContainer, CreatedContainer, error)
 	CreateResourceCheckContainer(workerName string, resourceConfig *UsedResourceConfig) (CreatingContainer, error)
 
-	FindResourceGetContainer(workerName string, resourceConfig *UsedResourceCache, stepName string) (CreatingContainer, CreatedContainer, error)
 	CreateResourceGetContainer(workerName string, resourceConfig *UsedResourceCache, stepName string) (CreatingContainer, error)
 
 	FindBuildContainer(workerName string, buildID int, planID atc.PlanID, meta ContainerMetadata) (CreatingContainer, CreatedContainer, error)
@@ -163,23 +162,24 @@ func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResource
 	return &wbrtID, nil
 }
 
-func (t *team) FindResourceGetContainer(
-	workerName string,
-	resourceCache *UsedResourceCache,
-	stepName string,
-) (CreatingContainer, CreatedContainer, error) {
-	return t.findContainer(sq.And{
-		sq.Eq{"worker_name": workerName},
-		sq.Eq{"resource_cache_id": resourceCache.ID},
-		sq.Eq{"step_name": stepName},
-	})
-}
-
 func (t *team) CreateResourceGetContainer(
 	workerName string,
 	resourceCache *UsedResourceCache,
 	stepName string,
 ) (CreatingContainer, error) {
+	var workerResourcCache *UsedWorkerResourceCache
+	err := safeFindOrCreate(t.conn, func(tx Tx) error {
+		var err error
+		workerResourcCache, err = WorkerResourceCache{
+			WorkerName:    workerName,
+			ResourceCache: resourceCache,
+		}.FindOrCreate(tx)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	tx, err := t.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func (t *team) CreateResourceGetContainer(
 	err = psql.Insert("containers").
 		Columns(
 			"worker_name",
-			"resource_cache_id",
+			"worker_resource_cache_id",
 			"type",
 			"step_name",
 			"handle",
@@ -204,7 +204,7 @@ func (t *team) CreateResourceGetContainer(
 		).
 		Values(
 			workerName,
-			resourceCache.ID,
+			workerResourcCache.ID,
 			"get",
 			stepName,
 			handle.String(),

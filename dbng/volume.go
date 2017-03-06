@@ -128,7 +128,7 @@ type CreatedVolume interface {
 	ContainerHandle() string
 	ParentHandle() string
 	ResourceType() (*VolumeResourceType, error)
-	BaseResourceType() (*WorkerBaseResourceType, error)
+	BaseResourceType() (*UsedWorkerBaseResourceType, error)
 }
 
 type createdVolume struct {
@@ -147,7 +147,7 @@ type createdVolume struct {
 }
 
 type VolumeResourceType struct {
-	WorkerBaseResourceType *WorkerBaseResourceType
+	WorkerBaseResourceType *UsedWorkerBaseResourceType
 	ResourceType           *VolumeResourceType
 	Version                atc.Version
 }
@@ -174,7 +174,7 @@ func (volume *createdVolume) ResourceType() (*VolumeResourceType, error) {
 	return volume.findVolumeResourceTypeByCacheID(tx, volume.resourceCacheID)
 }
 
-func (volume *createdVolume) BaseResourceType() (*WorkerBaseResourceType, error) {
+func (volume *createdVolume) BaseResourceType() (*UsedWorkerBaseResourceType, error) {
 	if volume.workerBaseResourceTypeID == 0 {
 		return nil, nil
 	}
@@ -239,7 +239,7 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCach
 	return nil, ErrInvalidResourceCache
 }
 
-func (volume *createdVolume) findWorkerBaseResourceTypeByID(tx Tx, workerBaseResourceTypeID int) (*WorkerBaseResourceType, error) {
+func (volume *createdVolume) findWorkerBaseResourceTypeByID(tx Tx, workerBaseResourceTypeID int) (*UsedWorkerBaseResourceType, error) {
 	var name string
 	var version string
 
@@ -257,13 +257,15 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByID(tx Tx, workerBaseRes
 		return nil, err
 	}
 
-	return &WorkerBaseResourceType{
+	return &UsedWorkerBaseResourceType{
+		ID:      workerBaseResourceTypeID,
 		Name:    name,
 		Version: version,
+		Worker:  volume.worker,
 	}, nil
 }
 
-func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(tx Tx, baseResourceTypeID int) (*WorkerBaseResourceType, error) {
+func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(tx Tx, baseResourceTypeID int) (*UsedWorkerBaseResourceType, error) {
 	var id int
 	var name string
 	var version string
@@ -282,9 +284,11 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(tx T
 		return nil, err
 	}
 
-	return &WorkerBaseResourceType{
+	return &UsedWorkerBaseResourceType{
+		ID:      id,
 		Name:    name,
 		Version: version,
+		Worker:  volume.worker,
 	}, nil
 }
 

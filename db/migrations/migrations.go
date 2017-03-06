@@ -148,4 +148,5 @@ var Migrations = []migration.Migrator{
 	AlterExpiresToIncludeTimezoneInWorkers,
 	ChangeVolumeBaseResourceTypeToWorkerBaseResourceType,
 	RenameWorkerBaseResourceTypesId,
+	AddWorkerResourceCacheToContainers,
 }

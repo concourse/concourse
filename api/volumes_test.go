@@ -97,7 +97,7 @@ var _ = Describe("Volumes API", func() {
 							volume1.SizeInBytesReturns(1024)
 							volume1.ResourceTypeReturns(&dbng.VolumeResourceType{
 								ResourceType: &dbng.VolumeResourceType{
-									WorkerBaseResourceType: &dbng.WorkerBaseResourceType{
+									WorkerBaseResourceType: &dbng.UsedWorkerBaseResourceType{
 										Name:    "some-base-resource-type",
 										Version: "some-base-version",
 									},
@@ -110,7 +110,7 @@ var _ = Describe("Volumes API", func() {
 							volume2.WorkerReturns(fakeWorker)
 							volume2.SizeInBytesReturns(2048)
 							volume2.TypeReturns(dbng.VolumeTypeResourceType)
-							volume2.BaseResourceTypeReturns(&dbng.WorkerBaseResourceType{
+							volume2.BaseResourceTypeReturns(&dbng.UsedWorkerBaseResourceType{
 								Name:    "some-base-resource-type",
 								Version: "some-base-version",
 							}, nil)

@@ -27,15 +27,16 @@ func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContaine
 	query, args, err := psql.Select("c.id, c.handle, c.worker_name, c.hijacked, c.discontinued, c.state").
 		From("containers c").
 		LeftJoin("builds b ON b.id = c.build_id").
-		LeftJoin("volumes v ON (v.resource_cache_id = c.resource_cache_id AND v.worker_name = c.worker_name)").
-		LeftJoin("(select resource_cache_id, count(*) cnt from resource_cache_uses GROUP BY resource_cache_id) rcu ON rcu.resource_cache_id = c.resource_cache_id").
+		LeftJoin("worker_resource_caches wrc ON wrc.id = c.worker_resource_cache_id").
+		LeftJoin("volumes v ON (v.resource_cache_id = wrc.resource_cache_id AND v.worker_name = c.worker_name)").
+		LeftJoin("(select resource_cache_id, count(*) cnt from resource_cache_uses GROUP BY resource_cache_id) rcu ON rcu.resource_cache_id = wrc.resource_cache_id").
 		Where(sq.Or{
 			sq.Expr("(c.build_id IS NOT NULL AND b.interceptible = false)"),
 			sq.Expr("(c.type = ? AND c.best_if_used_by < NOW())", string(ContainerStageCheck)),
-			sq.Expr("(c.build_id IS NULL AND c.resource_config_id IS NULL AND c.resource_cache_id IS NULL)"),
+			sq.Expr("(c.build_id IS NULL AND c.resource_config_id IS NULL AND c.worker_resource_cache_id IS NULL)"),
 			sq.Expr("(c.resource_config_id IS NOT NULL AND c.worker_base_resource_type_id IS NULL)"),
-			sq.Expr("(c.resource_cache_id IS NOT NULL AND v.initialized = true)"),
-			sq.Expr("(c.resource_cache_id IS NOT NULL AND rcu.cnt IS NULL)"), // if there are no records, join will add NULL columns
+			sq.Expr("(c.worker_resource_cache_id IS NOT NULL AND v.initialized = true)"),
+			sq.Expr("(c.worker_resource_cache_id IS NOT NULL AND rcu.cnt IS NULL)"), // if there are no records, join will add NULL columns
 		}).
 		ToSql()
 	if err != nil {

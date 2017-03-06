@@ -27,7 +27,8 @@ type BaseResourceType struct {
 // that is in use, this guarantees that the BaseResourceType will not be
 // removed. That is to say that its "Use" is vicarious.
 type UsedBaseResourceType struct {
-	ID int // The ID of the BaseResourceType.
+	ID   int // The ID of the BaseResourceType.
+	Name string
 }
 
 // FindOrCreate looks for an existing BaseResourceType and creates it if it
@@ -66,7 +67,7 @@ func (brt BaseResourceType) Find(tx Tx) (*UsedBaseResourceType, bool, error) {
 		return nil, false, err
 	}
 
-	return &UsedBaseResourceType{ID: id}, true, nil
+	return &UsedBaseResourceType{ID: id, Name: brt.Name}, true, nil
 }
 
 func (brt BaseResourceType) create(tx Tx) (*UsedBaseResourceType, error) {
@@ -90,5 +91,5 @@ func (brt BaseResourceType) create(tx Tx) (*UsedBaseResourceType, error) {
 		return nil, err
 	}
 
-	return &UsedBaseResourceType{ID: id}, nil
+	return &UsedBaseResourceType{ID: id, Name: brt.Name}, nil
 }

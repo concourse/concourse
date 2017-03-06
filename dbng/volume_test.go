@@ -234,30 +234,22 @@ var _ = Describe("Volume", func() {
 
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResource)))
 
-			Expect(createdVolume.ResourceType()).To(Equal(&dbng.VolumeResourceType{
-				ResourceType: &dbng.VolumeResourceType{
-					WorkerBaseResourceType: &dbng.WorkerBaseResourceType{
-						Name:    "some-base-resource-type",
-						Version: "some-brt-version",
-					},
-					Version: atc.Version{"some-custom-type": "version"},
-				},
-				Version: atc.Version{"some": "version"},
-			}))
+			volumeResourceType, err := createdVolume.ResourceType()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(volumeResourceType.ResourceType.WorkerBaseResourceType.Name).To(Equal("some-base-resource-type"))
+			Expect(volumeResourceType.ResourceType.WorkerBaseResourceType.Version).To(Equal("some-brt-version"))
+			Expect(volumeResourceType.ResourceType.Version).To(Equal(atc.Version{"some-custom-type": "version"}))
+			Expect(volumeResourceType.Version).To(Equal(atc.Version{"some": "version"}))
 
 			_, createdVolume, err = volumeFactory.FindResourceCacheVolume(defaultWorker, resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResource)))
-			Expect(createdVolume.ResourceType()).To(Equal(&dbng.VolumeResourceType{
-				ResourceType: &dbng.VolumeResourceType{
-					WorkerBaseResourceType: &dbng.WorkerBaseResourceType{
-						Name:    "some-base-resource-type",
-						Version: "some-brt-version",
-					},
-					Version: atc.Version{"some-custom-type": "version"},
-				},
-				Version: atc.Version{"some": "version"},
-			}))
+			volumeResourceType, err = createdVolume.ResourceType()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(volumeResourceType.ResourceType.WorkerBaseResourceType.Name).To(Equal("some-base-resource-type"))
+			Expect(volumeResourceType.ResourceType.WorkerBaseResourceType.Version).To(Equal("some-brt-version"))
+			Expect(volumeResourceType.ResourceType.Version).To(Equal(atc.Version{"some-custom-type": "version"}))
+			Expect(volumeResourceType.Version).To(Equal(atc.Version{"some": "version"}))
 		})
 	})
 
@@ -272,18 +264,18 @@ var _ = Describe("Volume", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResourceType)))
-			Expect(createdVolume.BaseResourceType()).To(Equal(&dbng.WorkerBaseResourceType{
-				Name:    "some-base-resource-type",
-				Version: "some-brt-version",
-			}))
+			volumeBaseResourceType, err := createdVolume.BaseResourceType()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(volumeBaseResourceType.Name).To(Equal("some-base-resource-type"))
+			Expect(volumeBaseResourceType.Version).To(Equal("some-brt-version"))
 
 			_, createdVolume, err = volumeFactory.FindBaseResourceTypeVolume(defaultTeam.ID(), usedWorkerBaseResourceType)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdVolume.Type()).To(Equal(dbng.VolumeType(dbng.VolumeTypeResourceType)))
-			Expect(createdVolume.BaseResourceType()).To(Equal(&dbng.WorkerBaseResourceType{
-				Name:    "some-base-resource-type",
-				Version: "some-brt-version",
-			}))
+			volumeBaseResourceType, err = createdVolume.BaseResourceType()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(volumeBaseResourceType.Name).To(Equal("some-base-resource-type"))
+			Expect(volumeBaseResourceType.Version).To(Equal("some-brt-version"))
 		})
 	})
 

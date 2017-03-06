@@ -194,6 +194,14 @@ func (cache ResourceCache) version() string {
 	return string(j)
 }
 
+func (usedResourceCache *UsedResourceCache) BaseResourceType() *UsedBaseResourceType {
+	if usedResourceCache.ResourceConfig.CreatedByBaseResourceType != nil {
+		return usedResourceCache.ResourceConfig.CreatedByBaseResourceType
+	}
+
+	return usedResourceCache.ResourceConfig.CreatedByResourceCache.BaseResourceType()
+}
+
 func paramsHash(p atc.Params) string {
 	if p != nil {
 		return mapHash(p)
