@@ -18,12 +18,20 @@ type FakeClient struct {
 		result1 string
 		result2 error
 	}
+	currentUserReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	OrganizationsStub        func(*http.Client) ([]string, error)
 	organizationsMutex       sync.RWMutex
 	organizationsArgsForCall []struct {
 		arg1 *http.Client
 	}
 	organizationsReturns struct {
+		result1 []string
+		result2 error
+	}
+	organizationsReturnsOnCall map[int]struct {
 		result1 []string
 		result2 error
 	}
@@ -36,12 +44,17 @@ type FakeClient struct {
 		result1 github.OrganizationTeams
 		result2 error
 	}
+	teamsReturnsOnCall map[int]struct {
+		result1 github.OrganizationTeams
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeClient) CurrentUser(arg1 *http.Client) (string, error) {
 	fake.currentUserMutex.Lock()
+	ret, specificReturn := fake.currentUserReturnsOnCall[len(fake.currentUserArgsForCall)]
 	fake.currentUserArgsForCall = append(fake.currentUserArgsForCall, struct {
 		arg1 *http.Client
 	}{arg1})
@@ -49,6 +62,9 @@ func (fake *FakeClient) CurrentUser(arg1 *http.Client) (string, error) {
 	fake.currentUserMutex.Unlock()
 	if fake.CurrentUserStub != nil {
 		return fake.CurrentUserStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.currentUserReturns.result1, fake.currentUserReturns.result2
 }
@@ -73,8 +89,23 @@ func (fake *FakeClient) CurrentUserReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeClient) CurrentUserReturnsOnCall(i int, result1 string, result2 error) {
+	fake.CurrentUserStub = nil
+	if fake.currentUserReturnsOnCall == nil {
+		fake.currentUserReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.currentUserReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) Organizations(arg1 *http.Client) ([]string, error) {
 	fake.organizationsMutex.Lock()
+	ret, specificReturn := fake.organizationsReturnsOnCall[len(fake.organizationsArgsForCall)]
 	fake.organizationsArgsForCall = append(fake.organizationsArgsForCall, struct {
 		arg1 *http.Client
 	}{arg1})
@@ -82,6 +113,9 @@ func (fake *FakeClient) Organizations(arg1 *http.Client) ([]string, error) {
 	fake.organizationsMutex.Unlock()
 	if fake.OrganizationsStub != nil {
 		return fake.OrganizationsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.organizationsReturns.result1, fake.organizationsReturns.result2
 }
@@ -106,8 +140,23 @@ func (fake *FakeClient) OrganizationsReturns(result1 []string, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeClient) OrganizationsReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.OrganizationsStub = nil
+	if fake.organizationsReturnsOnCall == nil {
+		fake.organizationsReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.organizationsReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) Teams(arg1 *http.Client) (github.OrganizationTeams, error) {
 	fake.teamsMutex.Lock()
+	ret, specificReturn := fake.teamsReturnsOnCall[len(fake.teamsArgsForCall)]
 	fake.teamsArgsForCall = append(fake.teamsArgsForCall, struct {
 		arg1 *http.Client
 	}{arg1})
@@ -115,6 +164,9 @@ func (fake *FakeClient) Teams(arg1 *http.Client) (github.OrganizationTeams, erro
 	fake.teamsMutex.Unlock()
 	if fake.TeamsStub != nil {
 		return fake.TeamsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.teamsReturns.result1, fake.teamsReturns.result2
 }
@@ -134,6 +186,20 @@ func (fake *FakeClient) TeamsArgsForCall(i int) *http.Client {
 func (fake *FakeClient) TeamsReturns(result1 github.OrganizationTeams, result2 error) {
 	fake.TeamsStub = nil
 	fake.teamsReturns = struct {
+		result1 github.OrganizationTeams
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) TeamsReturnsOnCall(i int, result1 github.OrganizationTeams, result2 error) {
+	fake.TeamsStub = nil
+	if fake.teamsReturnsOnCall == nil {
+		fake.teamsReturnsOnCall = make(map[int]struct {
+			result1 github.OrganizationTeams
+			result2 error
+		})
+	}
+	fake.teamsReturnsOnCall[i] = struct {
 		result1 github.OrganizationTeams
 		result2 error
 	}{result1, result2}

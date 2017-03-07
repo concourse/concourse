@@ -19,12 +19,18 @@ type FakeBuildsDB struct {
 		result2 bool
 		result3 error
 	}
+	getBuildByIDReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeBuildsDB) GetBuildByID(buildID int) (db.Build, bool, error) {
 	fake.getBuildByIDMutex.Lock()
+	ret, specificReturn := fake.getBuildByIDReturnsOnCall[len(fake.getBuildByIDArgsForCall)]
 	fake.getBuildByIDArgsForCall = append(fake.getBuildByIDArgsForCall, struct {
 		buildID int
 	}{buildID})
@@ -32,6 +38,9 @@ func (fake *FakeBuildsDB) GetBuildByID(buildID int) (db.Build, bool, error) {
 	fake.getBuildByIDMutex.Unlock()
 	if fake.GetBuildByIDStub != nil {
 		return fake.GetBuildByIDStub(buildID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getBuildByIDReturns.result1, fake.getBuildByIDReturns.result2, fake.getBuildByIDReturns.result3
 }
@@ -51,6 +60,22 @@ func (fake *FakeBuildsDB) GetBuildByIDArgsForCall(i int) int {
 func (fake *FakeBuildsDB) GetBuildByIDReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.GetBuildByIDStub = nil
 	fake.getBuildByIDReturns = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildsDB) GetBuildByIDReturnsOnCall(i int, result1 db.Build, result2 bool, result3 error) {
+	fake.GetBuildByIDStub = nil
+	if fake.getBuildByIDReturnsOnCall == nil {
+		fake.getBuildByIDReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getBuildByIDReturnsOnCall[i] = struct {
 		result1 db.Build
 		result2 bool
 		result3 error
