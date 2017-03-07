@@ -19,6 +19,8 @@ import (
 type WorkerProvider interface {
 	RunningWorkers() ([]Worker, error)
 	GetWorker(string) (Worker, bool, error)
+
+	// XXX: these should really go away. it's a WorkerProvider, not a ContainerProvider.
 	FindContainerForIdentifier(Identifier) (db.SavedContainer, bool, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
 }

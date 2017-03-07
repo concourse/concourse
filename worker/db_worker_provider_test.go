@@ -12,7 +12,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
@@ -43,13 +42,11 @@ var _ = Describe("DBProvider", func() {
 		fakeImageFactory                    *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
 		fakeDBVolumeFactory                 *dbngfakes.FakeVolumeFactory
+		fakeDBWorkerFactory                 *dbngfakes.FakeWorkerFactory
 		fakeDBTeam                          *dbngfakes.FakeTeam
 		fakeDBWorkerBaseResourceTypeFactory *dbngfakes.FakeWorkerBaseResourceTypeFactory
 		fakeCreatingContainer               *dbngfakes.FakeCreatingContainer
 		fakeCreatedContainer                *dbngfakes.FakeCreatedContainer
-
-		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
-		fakeDBWorkerFactory   *dbngfakes.FakeWorkerFactory
 
 		workers    []Worker
 		workersErr error
@@ -116,7 +113,6 @@ var _ = Describe("DBProvider", func() {
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
 
-		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 		fakeBackOffFactory := new(retryhttpfakes.FakeBackOffFactory)
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
@@ -138,7 +134,6 @@ var _ = Describe("DBProvider", func() {
 			fakeDBWorkerBaseResourceTypeFactory,
 			fakeDBVolumeFactory,
 			fakeDBTeamFactory,
-			fakePipelineDBFactory,
 			fakeDBWorkerFactory,
 		)
 		baggageclaimURL = baggageclaimServer.URL()

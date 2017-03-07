@@ -32,7 +32,7 @@ type WorkerDB interface {
 
 var ErrDesiredWorkerNotRunning = errors.New("desired-garden-worker-is-not-known-to-be-running")
 
-type dbProvider struct {
+type dbWorkerProvider struct {
 	logger                          lager.Logger
 	db                              WorkerDB
 	dialer                          gconn.DialerFunc
@@ -43,7 +43,6 @@ type dbProvider struct {
 	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
 	dbVolumeFactory                 dbng.VolumeFactory
 	dbTeamFactory                   dbng.TeamFactory
-	pipelineDBFactory               db.PipelineDBFactory
 	dbWorkerFactory                 dbng.WorkerFactory
 }
 
@@ -58,10 +57,9 @@ func NewDBWorkerProvider(
 	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbTeamFactory dbng.TeamFactory,
-	pipelineDBFactory db.PipelineDBFactory,
 	workerFactory dbng.WorkerFactory,
 ) WorkerProvider {
-	return &dbProvider{
+	return &dbWorkerProvider{
 		logger:                          logger,
 		db:                              db,
 		dialer:                          dialer,
@@ -73,11 +71,10 @@ func NewDBWorkerProvider(
 		dbVolumeFactory:                 dbVolumeFactory,
 		dbTeamFactory:                   dbTeamFactory,
 		dbWorkerFactory:                 workerFactory,
-		pipelineDBFactory:               pipelineDBFactory,
 	}
 }
 
-func (provider *dbProvider) RunningWorkers() ([]Worker, error) {
+func (provider *dbWorkerProvider) RunningWorkers() ([]Worker, error) {
 	savedWorkers, err := provider.dbWorkerFactory.Workers()
 	if err != nil {
 		return nil, err
@@ -96,7 +93,7 @@ func (provider *dbProvider) RunningWorkers() ([]Worker, error) {
 	return workers, nil
 }
 
-func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
+func (provider *dbWorkerProvider) GetWorker(name string) (Worker, bool, error) {
 	savedWorker, found, err := provider.dbWorkerFactory.GetWorker(name)
 	if err != nil {
 		return nil, false, err
@@ -118,7 +115,7 @@ func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
 	return worker, found, nil
 }
 
-func (provider *dbProvider) FindContainerForIdentifier(id Identifier) (db.SavedContainer, bool, error) {
+func (provider *dbWorkerProvider) FindContainerForIdentifier(id Identifier) (db.SavedContainer, bool, error) {
 	container, found, err := provider.db.FindContainerByIdentifier(db.ContainerIdentifier(id))
 	if err != nil {
 		provider.logger.Error("failed-to-find-container-by-identifier", err, lager.Data{"id": id})
@@ -127,11 +124,11 @@ func (provider *dbProvider) FindContainerForIdentifier(id Identifier) (db.SavedC
 	return container, found, err
 }
 
-func (provider *dbProvider) GetContainer(handle string) (db.SavedContainer, bool, error) {
+func (provider *dbWorkerProvider) GetContainer(handle string) (db.SavedContainer, bool, error) {
 	return provider.db.GetContainer(handle)
 }
 
-func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker dbng.Worker) Worker {
+func (provider *dbWorkerProvider) newGardenWorker(tikTok clock.Clock, savedWorker dbng.Worker) Worker {
 	gcf := NewGardenConnectionFactory(
 		provider.dbWorkerFactory,
 		provider.logger.Session("garden-connection"),
@@ -181,7 +178,6 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker dbng
 	return NewGardenWorker(
 		containerProviderFactory,
 		volumeClient,
-		provider.pipelineDBFactory,
 		provider.db,
 		provider,
 		tikTok,

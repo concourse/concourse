@@ -10,7 +10,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -27,7 +26,6 @@ var _ = Describe("Worker", func() {
 		fakeGardenWorkerDB           *wfakes.FakeGardenWorkerDB
 		fakeWorkerProvider           *wfakes.FakeWorkerProvider
 		fakeClock                    *fakeclock.FakeClock
-		fakePipelineDBFactory        *dbfakes.FakePipelineDBFactory
 		fakeDBResourceCacheFactory   *dbngfakes.FakeResourceCacheFactory
 		fakeResourceConfigFactory    *dbngfakes.FakeResourceConfigFactory
 		fakeContainerProviderFactory *wfakes.FakeContainerProviderFactory
@@ -48,7 +46,6 @@ var _ = Describe("Worker", func() {
 		fakeVolumeClient = new(wfakes.FakeVolumeClient)
 		fakeImageFactory = new(wfakes.FakeImageFactory)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
-		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
@@ -78,7 +75,6 @@ var _ = Describe("Worker", func() {
 		gardenWorker = NewGardenWorker(
 			fakeContainerProviderFactory,
 			fakeVolumeClient,
-			fakePipelineDBFactory,
 			fakeGardenWorkerDB,
 			fakeWorkerProvider,
 			fakeClock,

@@ -175,7 +175,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		sqlDB,
 		resourceFetcherFactory,
 		resourceFactoryFactory,
-		pipelineDBFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
@@ -657,7 +656,6 @@ func (cmd *ATCCommand) constructWorkerPool(
 	sqlDB *db.SQLDB,
 	resourceFetcherFactory resource.FetcherFactory,
 	resourceFactoryFactory resource.ResourceFactoryFactory,
-	pipelineDBFactory db.PipelineDBFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory,
@@ -682,7 +680,6 @@ func (cmd *ATCCommand) constructWorkerPool(
 			dbWorkerBaseResourceTypeFactory,
 			dbVolumeFactory,
 			dbTeamFactory,
-			pipelineDBFactory,
 			dbWorkerFactory,
 		),
 	)

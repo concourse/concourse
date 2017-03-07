@@ -67,8 +67,7 @@ type GardenWorkerDB interface {
 type gardenWorker struct {
 	containerProviderFactory ContainerProviderFactory
 
-	volumeClient      VolumeClient
-	pipelineDBFactory db.PipelineDBFactory
+	volumeClient VolumeClient
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -88,7 +87,6 @@ type gardenWorker struct {
 func NewGardenWorker(
 	containerProviderFactory ContainerProviderFactory,
 	volumeClient VolumeClient,
-	pipelineDBFactory db.PipelineDBFactory,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
@@ -106,18 +104,17 @@ func NewGardenWorker(
 
 		volumeClient: volumeClient,
 
-		db:                db,
-		provider:          provider,
-		clock:             clock,
-		pipelineDBFactory: pipelineDBFactory,
-		activeContainers:  activeContainers,
-		resourceTypes:     resourceTypes,
-		platform:          platform,
-		tags:              tags,
-		teamID:            teamID,
-		name:              name,
-		addr:              addr,
-		startTime:         startTime,
+		db:               db,
+		provider:         provider,
+		clock:            clock,
+		activeContainers: activeContainers,
+		resourceTypes:    resourceTypes,
+		platform:         platform,
+		tags:             tags,
+		teamID:           teamID,
+		name:             name,
+		addr:             addr,
+		startTime:        startTime,
 	}
 }
 
