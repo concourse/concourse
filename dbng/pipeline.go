@@ -28,12 +28,13 @@ type Pipeline interface {
 	AcquireResourceCheckingLock(
 		logger lager.Logger,
 		resource *Resource,
-		resourceTypes ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		length time.Duration,
 		immediate bool,
 	) (lock.Lock, bool, error)
 
-	ResourceTypes() (ResourceTypes, error)
+	ResourceTypes() ([]ResourceType, error)
+	ResourceType(name string) (ResourceType, bool, error)
 
 	Destroy() error
 }
@@ -192,7 +193,7 @@ func (p *pipeline) SaveJob(job atc.JobConfig) error {
 	)
 }
 
-func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
+func (p *pipeline) ResourceTypes() ([]ResourceType, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -206,7 +207,7 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	}
 	defer rows.Close()
 
-	resourceTypes := ResourceTypes{}
+	resourceTypes := []ResourceType{}
 
 	for rows.Next() {
 		resourceType := &resourceType{conn: p.conn}
@@ -224,6 +225,37 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	}
 
 	return resourceTypes, nil
+}
+
+func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	row := resourceTypesQuery.Where(sq.Eq{
+		"pipeline_id": p.id,
+		"name":        name,
+	}).RunWith(tx).QueryRow()
+
+	resourceType := &resourceType{conn: p.conn}
+	err = scanResourceType(resourceType, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return resourceType, true, nil
 }
 
 func (p *pipeline) Destroy() error {

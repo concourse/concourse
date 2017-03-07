@@ -19,7 +19,7 @@ type ResourceCacheFactory interface {
 		version atc.Version,
 		source atc.Source,
 		params atc.Params,
-		resourceTypes ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 	) (*UsedResourceCache, error)
 
 	CleanUsesForFinishedBuilds() error
@@ -48,7 +48,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	version atc.Version,
 	source atc.Source,
 	params atc.Params,
-	resourceTypes ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (*UsedResourceCache, error) {
 	tx, err := f.conn.Begin()
 	if err != nil {

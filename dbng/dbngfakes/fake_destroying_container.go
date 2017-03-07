@@ -14,10 +14,16 @@ type FakeDestroyingContainer struct {
 	handleReturns     struct {
 		result1 string
 	}
+	handleReturnsOnCall map[int]struct {
+		result1 string
+	}
 	WorkerNameStub        func() string
 	workerNameMutex       sync.RWMutex
 	workerNameArgsForCall []struct{}
 	workerNameReturns     struct {
+		result1 string
+	}
+	workerNameReturnsOnCall map[int]struct {
 		result1 string
 	}
 	DestroyStub        func() (bool, error)
@@ -27,10 +33,17 @@ type FakeDestroyingContainer struct {
 		result1 bool
 		result2 error
 	}
+	destroyReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	IsDiscontinuedStub        func() bool
 	isDiscontinuedMutex       sync.RWMutex
 	isDiscontinuedArgsForCall []struct{}
 	isDiscontinuedReturns     struct {
+		result1 bool
+	}
+	isDiscontinuedReturnsOnCall map[int]struct {
 		result1 bool
 	}
 	invocations      map[string][][]interface{}
@@ -39,11 +52,15 @@ type FakeDestroyingContainer struct {
 
 func (fake *FakeDestroyingContainer) Handle() string {
 	fake.handleMutex.Lock()
+	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
 	fake.handleArgsForCall = append(fake.handleArgsForCall, struct{}{})
 	fake.recordInvocation("Handle", []interface{}{})
 	fake.handleMutex.Unlock()
 	if fake.HandleStub != nil {
 		return fake.HandleStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.handleReturns.result1
 }
@@ -61,13 +78,29 @@ func (fake *FakeDestroyingContainer) HandleReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeDestroyingContainer) HandleReturnsOnCall(i int, result1 string) {
+	fake.HandleStub = nil
+	if fake.handleReturnsOnCall == nil {
+		fake.handleReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.handleReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeDestroyingContainer) WorkerName() string {
 	fake.workerNameMutex.Lock()
+	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
 	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct{}{})
 	fake.recordInvocation("WorkerName", []interface{}{})
 	fake.workerNameMutex.Unlock()
 	if fake.WorkerNameStub != nil {
 		return fake.WorkerNameStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.workerNameReturns.result1
 }
@@ -85,13 +118,29 @@ func (fake *FakeDestroyingContainer) WorkerNameReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeDestroyingContainer) WorkerNameReturnsOnCall(i int, result1 string) {
+	fake.WorkerNameStub = nil
+	if fake.workerNameReturnsOnCall == nil {
+		fake.workerNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.workerNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeDestroyingContainer) Destroy() (bool, error) {
 	fake.destroyMutex.Lock()
+	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
 	fake.recordInvocation("Destroy", []interface{}{})
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
 		return fake.DestroyStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.destroyReturns.result1, fake.destroyReturns.result2
 }
@@ -110,13 +159,31 @@ func (fake *FakeDestroyingContainer) DestroyReturns(result1 bool, result2 error)
 	}{result1, result2}
 }
 
+func (fake *FakeDestroyingContainer) DestroyReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.DestroyStub = nil
+	if fake.destroyReturnsOnCall == nil {
+		fake.destroyReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.destroyReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeDestroyingContainer) IsDiscontinued() bool {
 	fake.isDiscontinuedMutex.Lock()
+	ret, specificReturn := fake.isDiscontinuedReturnsOnCall[len(fake.isDiscontinuedArgsForCall)]
 	fake.isDiscontinuedArgsForCall = append(fake.isDiscontinuedArgsForCall, struct{}{})
 	fake.recordInvocation("IsDiscontinued", []interface{}{})
 	fake.isDiscontinuedMutex.Unlock()
 	if fake.IsDiscontinuedStub != nil {
 		return fake.IsDiscontinuedStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.isDiscontinuedReturns.result1
 }
@@ -130,6 +197,18 @@ func (fake *FakeDestroyingContainer) IsDiscontinuedCallCount() int {
 func (fake *FakeDestroyingContainer) IsDiscontinuedReturns(result1 bool) {
 	fake.IsDiscontinuedStub = nil
 	fake.isDiscontinuedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeDestroyingContainer) IsDiscontinuedReturnsOnCall(i int, result1 bool) {
+	fake.IsDiscontinuedStub = nil
+	if fake.isDiscontinuedReturnsOnCall == nil {
+		fake.isDiscontinuedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isDiscontinuedReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
 }

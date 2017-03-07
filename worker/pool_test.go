@@ -6,7 +6,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/dbng"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 
@@ -80,7 +79,7 @@ var _ = Describe("Pool", func() {
 
 			satisfyingErr    error
 			satisfyingWorker Worker
-			resourceTypes    dbng.ResourceTypes
+			resourceTypes    atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -88,12 +87,15 @@ var _ = Describe("Pool", func() {
 				Platform: "some-platform",
 				Tags:     []string{"step", "tags"},
 			}
-			resourceTypes = dbng.ResourceTypes{
-				fakeDBNGResourceType(atc.ResourceType{
-					Name:   "some-resource-type",
-					Type:   "some-underlying-type",
-					Source: atc.Source{"some": "source"},
-				}),
+			resourceTypes = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-resource-type",
+						Type:   "some-underlying-type",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
 			}
 		})
 
@@ -197,7 +199,7 @@ var _ = Describe("Pool", func() {
 
 			satisfyingErr     error
 			satisfyingWorkers []Worker
-			resourceTypes     dbng.ResourceTypes
+			resourceTypes     atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -205,12 +207,15 @@ var _ = Describe("Pool", func() {
 				Platform: "some-platform",
 				Tags:     []string{"step", "tags"},
 			}
-			resourceTypes = dbng.ResourceTypes{
-				fakeDBNGResourceType(atc.ResourceType{
-					Name:   "some-resource-type",
-					Type:   "some-underlying-type",
-					Source: atc.Source{"some": "source"},
-				}),
+			resourceTypes = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-resource-type",
+						Type:   "some-underlying-type",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
 			}
 		})
 
@@ -370,7 +375,7 @@ var _ = Describe("Pool", func() {
 
 			createdContainer Container
 			createErr        error
-			resourceTypes    dbng.ResourceTypes
+			resourceTypes    atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -379,32 +384,47 @@ var _ = Describe("Pool", func() {
 				ResourceID: 1234,
 			}
 			spec = ContainerSpec{ImageSpec: ImageSpec{ResourceType: "some-type"}}
-			resourceTypes = dbng.ResourceTypes{
-				fakeDBNGResourceType(atc.ResourceType{
-					Name:   "custom-type-b",
-					Type:   "custom-type-a",
-					Source: atc.Source{"some": "source"},
-				}),
-				fakeDBNGResourceType(atc.ResourceType{
-					Name:   "custom-type-a",
-					Type:   "some-resource",
-					Source: atc.Source{"some": "source"},
-				}),
-				fakeDBNGResourceType(atc.ResourceType{
-					Name:   "custom-type-c",
-					Type:   "custom-type-b",
-					Source: atc.Source{"some": "source"},
-				}),
-				fakeDBNGResourceType(atc.ResourceType{
-					Name:   "custom-type-d",
-					Type:   "custom-type-b",
-					Source: atc.Source{"some": "source"},
-				}),
-				fakeDBNGResourceType(atc.ResourceType{
-					Name:   "unknown-custom-type",
-					Type:   "unknown-base-type",
-					Source: atc.Source{"some": "source"},
-				}),
+			resourceTypes = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-b",
+						Type:   "custom-type-a",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-a",
+						Type:   "some-resource",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-c",
+						Type:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-d",
+						Type:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "unknown-custom-type",
+						Type:   "unknown-base-type",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
 			}
 		})
 

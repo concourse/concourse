@@ -129,15 +129,17 @@ var _ = BeforeEach(func() {
 	}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 	Expect(err).NotTo(HaveOccurred())
 
-	resourceTypes, err := defaultPipeline.ResourceTypes()
-	Expect(err).NotTo(HaveOccurred())
-
 	var found bool
-	defaultResourceType, found = resourceTypes.Lookup("some-type")
+	defaultResourceType, found, err = defaultPipeline.ResourceType("some-type")
 	Expect(found).To(BeTrue())
+	Expect(err).NotTo(HaveOccurred())
 
 	err = defaultResourceType.SaveVersion(atc.Version{"some-type": "version"})
 	Expect(err).NotTo(HaveOccurred())
+
+	found, err = defaultResourceType.Reload()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
 
 	defaultBuild, err = defaultTeam.CreateOneOffBuild()
 	Expect(err).NotTo(HaveOccurred())
@@ -146,7 +148,7 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	logger = lagertest.NewTestLogger("test")
-	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource{defaultResource.ID}, "some-base-resource-type", atc.Source{}, dbng.ResourceTypes{})
+	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource{defaultResource.ID}, "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultCreatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), defaultResourceConfig)

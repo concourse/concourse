@@ -274,7 +274,7 @@ var _ = Describe("ContainerProvider", func() {
 					ImageSpec: ImageSpec{},
 					Inputs:    inputs,
 				},
-				dbng.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 				outputPaths,
 			)
 		})
@@ -327,7 +327,7 @@ var _ = Describe("ContainerProvider", func() {
 					ImageSpec: ImageSpec{},
 					Inputs:    inputs,
 				},
-				dbng.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 				"some-resource",
 				atc.Source{"some": "source"},
 			)
@@ -378,7 +378,7 @@ var _ = Describe("ContainerProvider", func() {
 					ImageSpec: ImageSpec{},
 					Inputs:    inputs,
 				},
-				dbng.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 				outputPaths,
 				"some-resource",
 				atc.Version{"some": "version"},

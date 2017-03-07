@@ -12,7 +12,7 @@ var _ = Describe("Factory Aggregate", func() {
 		buildFactory factory.BuildFactory
 
 		resources           atc.ResourceConfigs
-		resourceTypes       atc.ResourceTypes
+		resourceTypes       atc.VersionedResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
 	)
@@ -31,11 +31,14 @@ var _ = Describe("Factory Aggregate", func() {
 			},
 		}
 
-		resourceTypes = atc.ResourceTypes{
+		resourceTypes = atc.VersionedResourceTypes{
 			{
-				Name:   "some-custom-resource",
-				Type:   "docker-image",
-				Source: atc.Source{"some": "custom-source"},
+				ResourceType: atc.ResourceType{
+					Name:   "some-custom-resource",
+					Type:   "docker-image",
+					Source: atc.Source{"some": "custom-source"},
+				},
+				Version: atc.Version{"some": "version"},
 			},
 		}
 	})
@@ -60,14 +63,14 @@ var _ = Describe("Factory Aggregate", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:          "some thing",
-					PipelineID:    42,
-					ResourceTypes: resourceTypes,
+					Name:                   "some thing",
+					PipelineID:             42,
+					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:          "some other thing",
-					PipelineID:    42,
-					ResourceTypes: resourceTypes,
+					Name:                   "some other thing",
+					PipelineID:             42,
+					VersionedResourceTypes: resourceTypes,
 				}),
 			})
 			Expect(actual).To(Equal(expected))
@@ -101,20 +104,20 @@ var _ = Describe("Factory Aggregate", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:          "some thing",
-					PipelineID:    42,
-					ResourceTypes: resourceTypes,
+					Name:                   "some thing",
+					PipelineID:             42,
+					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:          "some nested thing",
-						PipelineID:    42,
-						ResourceTypes: resourceTypes,
+						Name:                   "some nested thing",
+						PipelineID:             42,
+						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:          "some nested other thing",
-						PipelineID:    42,
-						ResourceTypes: resourceTypes,
+						Name:                   "some nested other thing",
+						PipelineID:             42,
+						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 			})
@@ -143,14 +146,14 @@ var _ = Describe("Factory Aggregate", func() {
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:          "some thing",
-						PipelineID:    42,
-						ResourceTypes: resourceTypes,
+						Name:                   "some thing",
+						PipelineID:             42,
+						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:          "some success hook",
-						PipelineID:    42,
-						ResourceTypes: resourceTypes,
+						Name:                   "some success hook",
+						PipelineID:             42,
+						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 			})
@@ -179,15 +182,15 @@ var _ = Describe("Factory Aggregate", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:          "some thing",
-						PipelineID:    42,
-						ResourceTypes: resourceTypes,
+						Name:                   "some thing",
+						PipelineID:             42,
+						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:          "some success hook",
-					PipelineID:    42,
-					ResourceTypes: resourceTypes,
+					Name:                   "some success hook",
+					PipelineID:             42,
+					VersionedResourceTypes: resourceTypes,
 				}),
 			})
 			Expect(actual).To(Equal(expected))

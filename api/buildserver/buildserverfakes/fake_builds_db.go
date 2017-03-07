@@ -19,12 +19,18 @@ type FakeBuildsDB struct {
 		result2 db.Pagination
 		result3 error
 	}
+	getPublicBuildsReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeBuildsDB) GetPublicBuilds(page db.Page) ([]db.Build, db.Pagination, error) {
 	fake.getPublicBuildsMutex.Lock()
+	ret, specificReturn := fake.getPublicBuildsReturnsOnCall[len(fake.getPublicBuildsArgsForCall)]
 	fake.getPublicBuildsArgsForCall = append(fake.getPublicBuildsArgsForCall, struct {
 		page db.Page
 	}{page})
@@ -32,6 +38,9 @@ func (fake *FakeBuildsDB) GetPublicBuilds(page db.Page) ([]db.Build, db.Paginati
 	fake.getPublicBuildsMutex.Unlock()
 	if fake.GetPublicBuildsStub != nil {
 		return fake.GetPublicBuildsStub(page)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getPublicBuildsReturns.result1, fake.getPublicBuildsReturns.result2, fake.getPublicBuildsReturns.result3
 }
@@ -51,6 +60,22 @@ func (fake *FakeBuildsDB) GetPublicBuildsArgsForCall(i int) db.Page {
 func (fake *FakeBuildsDB) GetPublicBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
 	fake.GetPublicBuildsStub = nil
 	fake.getPublicBuildsReturns = struct {
+		result1 []db.Build
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildsDB) GetPublicBuildsReturnsOnCall(i int, result1 []db.Build, result2 db.Pagination, result3 error) {
+	fake.GetPublicBuildsStub = nil
+	if fake.getPublicBuildsReturnsOnCall == nil {
+		fake.getPublicBuildsReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 db.Pagination
+			result3 error
+		})
+	}
+	fake.getPublicBuildsReturnsOnCall[i] = struct {
 		result1 []db.Build
 		result2 db.Pagination
 		result3 error

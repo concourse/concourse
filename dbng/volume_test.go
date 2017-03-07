@@ -87,9 +87,6 @@ var _ = Describe("Volume", func() {
 		var createdVolume dbng.CreatedVolume
 
 		BeforeEach(func() {
-			types, err := defaultPipeline.ResourceTypes()
-			Expect(err).NotTo(HaveOccurred())
-
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
 				dbng.ForBuild{defaultBuild.ID()},
@@ -99,7 +96,16 @@ var _ = Describe("Volume", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				types,
+				atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:   "some-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some-type": "source"},
+						},
+						Version: atc.Version{"some-type": "version"},
+					},
+				},
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -181,9 +187,6 @@ var _ = Describe("Volume", func() {
 
 	Context("when volume type is VolumeTypeResource", func() {
 		It("returns volume type, resource type, resource version", func() {
-			types, err := defaultPipeline.ResourceTypes()
-			Expect(err).NotTo(HaveOccurred())
-
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
 				dbng.ForBuild{defaultBuild.ID()},
@@ -191,7 +194,16 @@ var _ = Describe("Volume", func() {
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{"some": "params"},
-				types,
+				atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:   "some-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some-type": "source"},
+						},
+						Version: atc.Version{"some-type": "version"},
+					},
+				},
 			)
 			Expect(err).NotTo(HaveOccurred())
 

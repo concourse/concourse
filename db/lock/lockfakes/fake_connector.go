@@ -15,17 +15,25 @@ type FakeConnector struct {
 		result1 lock.DelegateConn
 		result2 error
 	}
+	connectReturnsOnCall map[int]struct {
+		result1 lock.DelegateConn
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeConnector) Connect() (lock.DelegateConn, error) {
 	fake.connectMutex.Lock()
+	ret, specificReturn := fake.connectReturnsOnCall[len(fake.connectArgsForCall)]
 	fake.connectArgsForCall = append(fake.connectArgsForCall, struct{}{})
 	fake.recordInvocation("Connect", []interface{}{})
 	fake.connectMutex.Unlock()
 	if fake.ConnectStub != nil {
 		return fake.ConnectStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.connectReturns.result1, fake.connectReturns.result2
 }
@@ -39,6 +47,20 @@ func (fake *FakeConnector) ConnectCallCount() int {
 func (fake *FakeConnector) ConnectReturns(result1 lock.DelegateConn, result2 error) {
 	fake.ConnectStub = nil
 	fake.connectReturns = struct {
+		result1 lock.DelegateConn
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeConnector) ConnectReturnsOnCall(i int, result1 lock.DelegateConn, result2 error) {
+	fake.ConnectStub = nil
+	if fake.connectReturnsOnCall == nil {
+		fake.connectReturnsOnCall = make(map[int]struct {
+			result1 lock.DelegateConn
+			result2 error
+		})
+	}
+	fake.connectReturnsOnCall[i] = struct {
 		result1 lock.DelegateConn
 		result2 error
 	}{result1, result2}

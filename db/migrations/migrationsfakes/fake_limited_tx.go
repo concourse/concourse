@@ -19,12 +19,20 @@ type FakeLimitedTx struct {
 		result1 sql.Result
 		result2 error
 	}
+	execReturnsOnCall map[int]struct {
+		result1 sql.Result
+		result2 error
+	}
 	PrepareStub        func(query string) (*sql.Stmt, error)
 	prepareMutex       sync.RWMutex
 	prepareArgsForCall []struct {
 		query string
 	}
 	prepareReturns struct {
+		result1 *sql.Stmt
+		result2 error
+	}
+	prepareReturnsOnCall map[int]struct {
 		result1 *sql.Stmt
 		result2 error
 	}
@@ -38,6 +46,10 @@ type FakeLimitedTx struct {
 		result1 *sql.Rows
 		result2 error
 	}
+	queryReturnsOnCall map[int]struct {
+		result1 *sql.Rows
+		result2 error
+	}
 	QueryRowStub        func(query string, args ...interface{}) *sql.Row
 	queryRowMutex       sync.RWMutex
 	queryRowArgsForCall []struct {
@@ -45,6 +57,9 @@ type FakeLimitedTx struct {
 		args  []interface{}
 	}
 	queryRowReturns struct {
+		result1 *sql.Row
+	}
+	queryRowReturnsOnCall map[int]struct {
 		result1 *sql.Row
 	}
 	StmtStub        func(stmt *sql.Stmt) *sql.Stmt
@@ -55,12 +70,16 @@ type FakeLimitedTx struct {
 	stmtReturns struct {
 		result1 *sql.Stmt
 	}
+	stmtReturnsOnCall map[int]struct {
+		result1 *sql.Stmt
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeLimitedTx) Exec(query string, args ...interface{}) (sql.Result, error) {
 	fake.execMutex.Lock()
+	ret, specificReturn := fake.execReturnsOnCall[len(fake.execArgsForCall)]
 	fake.execArgsForCall = append(fake.execArgsForCall, struct {
 		query string
 		args  []interface{}
@@ -69,6 +88,9 @@ func (fake *FakeLimitedTx) Exec(query string, args ...interface{}) (sql.Result, 
 	fake.execMutex.Unlock()
 	if fake.ExecStub != nil {
 		return fake.ExecStub(query, args...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.execReturns.result1, fake.execReturns.result2
 }
@@ -93,8 +115,23 @@ func (fake *FakeLimitedTx) ExecReturns(result1 sql.Result, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeLimitedTx) ExecReturnsOnCall(i int, result1 sql.Result, result2 error) {
+	fake.ExecStub = nil
+	if fake.execReturnsOnCall == nil {
+		fake.execReturnsOnCall = make(map[int]struct {
+			result1 sql.Result
+			result2 error
+		})
+	}
+	fake.execReturnsOnCall[i] = struct {
+		result1 sql.Result
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeLimitedTx) Prepare(query string) (*sql.Stmt, error) {
 	fake.prepareMutex.Lock()
+	ret, specificReturn := fake.prepareReturnsOnCall[len(fake.prepareArgsForCall)]
 	fake.prepareArgsForCall = append(fake.prepareArgsForCall, struct {
 		query string
 	}{query})
@@ -102,6 +139,9 @@ func (fake *FakeLimitedTx) Prepare(query string) (*sql.Stmt, error) {
 	fake.prepareMutex.Unlock()
 	if fake.PrepareStub != nil {
 		return fake.PrepareStub(query)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.prepareReturns.result1, fake.prepareReturns.result2
 }
@@ -126,8 +166,23 @@ func (fake *FakeLimitedTx) PrepareReturns(result1 *sql.Stmt, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeLimitedTx) PrepareReturnsOnCall(i int, result1 *sql.Stmt, result2 error) {
+	fake.PrepareStub = nil
+	if fake.prepareReturnsOnCall == nil {
+		fake.prepareReturnsOnCall = make(map[int]struct {
+			result1 *sql.Stmt
+			result2 error
+		})
+	}
+	fake.prepareReturnsOnCall[i] = struct {
+		result1 *sql.Stmt
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeLimitedTx) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	fake.queryMutex.Lock()
+	ret, specificReturn := fake.queryReturnsOnCall[len(fake.queryArgsForCall)]
 	fake.queryArgsForCall = append(fake.queryArgsForCall, struct {
 		query string
 		args  []interface{}
@@ -136,6 +191,9 @@ func (fake *FakeLimitedTx) Query(query string, args ...interface{}) (*sql.Rows, 
 	fake.queryMutex.Unlock()
 	if fake.QueryStub != nil {
 		return fake.QueryStub(query, args...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.queryReturns.result1, fake.queryReturns.result2
 }
@@ -160,8 +218,23 @@ func (fake *FakeLimitedTx) QueryReturns(result1 *sql.Rows, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeLimitedTx) QueryReturnsOnCall(i int, result1 *sql.Rows, result2 error) {
+	fake.QueryStub = nil
+	if fake.queryReturnsOnCall == nil {
+		fake.queryReturnsOnCall = make(map[int]struct {
+			result1 *sql.Rows
+			result2 error
+		})
+	}
+	fake.queryReturnsOnCall[i] = struct {
+		result1 *sql.Rows
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeLimitedTx) QueryRow(query string, args ...interface{}) *sql.Row {
 	fake.queryRowMutex.Lock()
+	ret, specificReturn := fake.queryRowReturnsOnCall[len(fake.queryRowArgsForCall)]
 	fake.queryRowArgsForCall = append(fake.queryRowArgsForCall, struct {
 		query string
 		args  []interface{}
@@ -170,6 +243,9 @@ func (fake *FakeLimitedTx) QueryRow(query string, args ...interface{}) *sql.Row 
 	fake.queryRowMutex.Unlock()
 	if fake.QueryRowStub != nil {
 		return fake.QueryRowStub(query, args...)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.queryRowReturns.result1
 }
@@ -193,8 +269,21 @@ func (fake *FakeLimitedTx) QueryRowReturns(result1 *sql.Row) {
 	}{result1}
 }
 
+func (fake *FakeLimitedTx) QueryRowReturnsOnCall(i int, result1 *sql.Row) {
+	fake.QueryRowStub = nil
+	if fake.queryRowReturnsOnCall == nil {
+		fake.queryRowReturnsOnCall = make(map[int]struct {
+			result1 *sql.Row
+		})
+	}
+	fake.queryRowReturnsOnCall[i] = struct {
+		result1 *sql.Row
+	}{result1}
+}
+
 func (fake *FakeLimitedTx) Stmt(stmt *sql.Stmt) *sql.Stmt {
 	fake.stmtMutex.Lock()
+	ret, specificReturn := fake.stmtReturnsOnCall[len(fake.stmtArgsForCall)]
 	fake.stmtArgsForCall = append(fake.stmtArgsForCall, struct {
 		stmt *sql.Stmt
 	}{stmt})
@@ -202,6 +291,9 @@ func (fake *FakeLimitedTx) Stmt(stmt *sql.Stmt) *sql.Stmt {
 	fake.stmtMutex.Unlock()
 	if fake.StmtStub != nil {
 		return fake.StmtStub(stmt)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.stmtReturns.result1
 }
@@ -221,6 +313,18 @@ func (fake *FakeLimitedTx) StmtArgsForCall(i int) *sql.Stmt {
 func (fake *FakeLimitedTx) StmtReturns(result1 *sql.Stmt) {
 	fake.StmtStub = nil
 	fake.stmtReturns = struct {
+		result1 *sql.Stmt
+	}{result1}
+}
+
+func (fake *FakeLimitedTx) StmtReturnsOnCall(i int, result1 *sql.Stmt) {
+	fake.StmtStub = nil
+	if fake.stmtReturnsOnCall == nil {
+		fake.stmtReturnsOnCall = make(map[int]struct {
+			result1 *sql.Stmt
+		})
+	}
+	fake.stmtReturnsOnCall[i] = struct {
 		result1 *sql.Stmt
 	}{result1}
 }

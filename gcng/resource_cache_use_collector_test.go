@@ -29,8 +29,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 	Describe("Run", func() {
 		Describe("cache uses", func() {
 			var (
-				resourceType1     atc.ResourceType
-				resourceType1Used *dbng.UsedResourceType
+				pipelineWithTypes     dbng.Pipeline
+				versionedResourceType atc.VersionedResourceType
+				dbResourceType        dbng.ResourceType
 			)
 
 			countResourceCacheUses := func() int {
@@ -57,10 +58,10 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				var result time.Time
 				err = psql.Update("builds").
 					SetMap(map[string]interface{}{
-						"status":    status,
-						"end_time":  sq.Expr("NOW()"),
-						"completed": true,
-					}).Where(sq.Eq{
+					"status":    status,
+					"end_time":  sq.Expr("NOW()"),
+					"completed": true,
+				}).Where(sq.Eq{
 					"id": build.ID(),
 				}).Suffix("RETURNING end_time").
 					RunWith(tx).
@@ -71,21 +72,36 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 			}
 
 			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-				resourceType1 = atc.ResourceType{
-					Name: "some-type",
-					Type: "some-base-type",
-					Source: atc.Source{
-						"some-type": "source",
+				versionedResourceType = atc.VersionedResourceType{
+					ResourceType: atc.ResourceType{
+						Name: "some-type",
+						Type: "some-base-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
 					},
+					Version: atc.Version{"some-type": "version"},
 				}
-				resourceType1Used, err = dbng.ResourceType{
-					ResourceType: resourceType1,
-					PipelineID:   defaultPipeline.ID(),
-				}.Create(setupTx, atc.Version{"some-type": "version"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
+
+				var created bool
+				var err error
+				pipelineWithTypes, created, err = defaultTeam.SavePipeline(
+					"pipeline-with-types",
+					atc.Config{
+						ResourceTypes: atc.ResourceTypes{versionedResourceType.ResourceType},
+					},
+					0,
+					dbng.PipelineNoChange,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+
+				var found bool
+				dbResourceType, found, err = pipelineWithTypes.ResourceType("some-type")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(dbResourceType.SaveVersion(versionedResourceType.Version)).To(Succeed())
+				Expect(dbResourceType.Reload()).To(BeTrue())
 			})
 
 			Describe("for one-off builds", func() {
@@ -99,9 +115,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"some": "source",
 						},
 						atc.Params{"some": "params"},
-						defaultPipeline.ID(),
-						atc.ResourceTypes{
-							resourceType1,
+						atc.VersionedResourceTypes{
+							versionedResourceType,
 						},
 					)
 					Expect(err).NotTo(HaveOccurred())
@@ -152,7 +167,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							defer tx.Rollback()
 							err = psql.Insert("jobs").
 								Columns("name", "pipeline_id", "config").
-								Values("lousy-job", defaultPipeline.ID(), `{"some":"config"}`).
+								Values("lousy-job", pipelineWithTypes.ID(), `{"some":"config"}`).
 								Suffix("RETURNING id").
 								RunWith(tx).QueryRow().Scan(&jobId)
 							Expect(err).NotTo(HaveOccurred())
@@ -165,11 +180,11 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							defer tx.Rollback()
 							_, err = psql.Update("builds").
 								SetMap(map[string]interface{}{
-									"status":    "failed",
-									"end_time":  sq.Expr("NOW()"),
-									"completed": true,
-									"job_id":    jobId,
-								}).
+								"status":    "failed",
+								"end_time":  sq.Expr("NOW()"),
+								"completed": true,
+								"job_id":    jobId,
+							}).
 								RunWith(tx).Exec()
 							Expect(err).NotTo(HaveOccurred())
 							Expect(tx.Commit()).To(Succeed())
@@ -240,8 +255,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								"some": "source",
 							},
 							nil,
-							defaultPipeline.ID(),
-							atc.ResourceTypes{},
+							atc.VersionedResourceTypes{},
 						)
 						Expect(err).NotTo(HaveOccurred())
 
@@ -273,8 +287,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								"some": "source",
 							},
 							nil,
-							defaultPipeline.ID(),
-							atc.ResourceTypes{},
+							atc.VersionedResourceTypes{},
 						)
 						Expect(err).NotTo(HaveOccurred())
 
@@ -310,9 +323,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					var id int
 					err = psql.Update("resource_types").
 						Set("active", active).
-						Where(sq.Eq{
-							"id": resourceType1Used.ID,
-						}).Suffix("RETURNING id").
+						Where(sq.Eq{"id": dbResourceType.ID()}).
+						Suffix("RETURNING id").
 						RunWith(tx).
 						QueryRow().Scan(&id)
 					Expect(err).NotTo(HaveOccurred())
@@ -324,16 +336,15 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForResourceType{resourceType1Used.ID},
+						dbng.ForResourceType{dbResourceType.ID()},
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						defaultPipeline.ID(),
-						atc.ResourceTypes{
-							resourceType1,
+						atc.VersionedResourceTypes{
+							versionedResourceType,
 						},
 					)
 					Expect(err).NotTo(HaveOccurred())
@@ -368,8 +379,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					err = psql.Update("resources").
 						Set("active", active).
 						Where(sq.Eq{
-							"id": usedResource.ID,
-						}).Suffix("RETURNING id").
+						"id": usedResource.ID,
+					}).Suffix("RETURNING id").
 						RunWith(tx).
 						QueryRow().Scan(&id)
 					Expect(err).NotTo(HaveOccurred())
@@ -388,9 +399,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						defaultPipeline.ID(),
-						atc.ResourceTypes{
-							resourceType1,
+						atc.VersionedResourceTypes{
+							versionedResourceType,
 						},
 					)
 					Expect(err).NotTo(HaveOccurred())

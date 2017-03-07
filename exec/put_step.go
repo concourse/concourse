@@ -24,7 +24,7 @@ type PutStep struct {
 	teamID          int
 	delegate        PutDelegate
 	resourceFactory resource.ResourceFactory
-	resourceTypes   atc.ResourceTypes
+	resourceTypes   atc.VersionedResourceTypes
 
 	repository *worker.ArtifactRepository
 
@@ -45,7 +45,7 @@ func newPutStep(
 	teamID int,
 	delegate PutDelegate,
 	resourceFactory resource.ResourceFactory,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) PutStep {
 	return PutStep{
 		logger:          logger,

@@ -15,7 +15,7 @@ type ResourceConfigFactory interface {
 		user ResourceUser,
 		resourceType string,
 		source atc.Source,
-		resourceTypes ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 	) (*UsedResourceConfig, error)
 
 	CleanConfigUsesForFinishedBuilds() error
@@ -41,7 +41,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	user ResourceUser,
 	resourceType string,
 	source atc.Source,
-	resourceTypes ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (*UsedResourceConfig, error) {
 	tx, err := f.conn.Begin()
 	if err != nil {
@@ -84,7 +84,7 @@ func constructResourceConfig(
 	tx Tx,
 	resourceType string,
 	source atc.Source,
-	resourceTypes ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (ResourceConfig, error) {
 	resourceConfig := ResourceConfig{
 		Source: source,
@@ -94,9 +94,9 @@ func constructResourceConfig(
 	if found {
 		customTypeResourceConfig, err := constructResourceConfig(
 			tx,
-			customType.Type(),
-			customType.Source(),
-			resourceTypes.Without(customType.Name()),
+			customType.Type,
+			customType.Source,
+			resourceTypes.Without(customType.Name),
 		)
 		if err != nil {
 			return ResourceConfig{}, err
@@ -104,7 +104,7 @@ func constructResourceConfig(
 
 		resourceConfig.CreatedByResourceCache = &ResourceCache{
 			ResourceConfig: customTypeResourceConfig,
-			Version:        customType.Version(),
+			Version:        customType.Version,
 		}
 	} else {
 		resourceConfig.CreatedByBaseResourceType = &BaseResourceType{

@@ -99,6 +99,8 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedR
 		return err
 	}
 
+	versionedResourceTypes := deserializeVersionedResourceTypes(resourceTypes)
+
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: savedResourceType.Config.Type,
@@ -124,7 +126,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedR
 			PipelineID: scanner.dbPipeline.ID(),
 		},
 		resourceSpec,
-		resourceTypes,
+		versionedResourceTypes,
 		worker.NoopImageFetchingDelegate{},
 		atc.ResourceConfig{
 			Type:   savedResourceType.Config.Type, // XXX think deeply why this used to be .Name

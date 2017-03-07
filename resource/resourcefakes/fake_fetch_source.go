@@ -16,6 +16,10 @@ type FakeFetchSource struct {
 		result1 bool
 		result2 error
 	}
+	isInitializedReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	LockNameStub        func() (string, error)
 	lockNameMutex       sync.RWMutex
 	lockNameArgsForCall []struct{}
@@ -23,10 +27,17 @@ type FakeFetchSource struct {
 		result1 string
 		result2 error
 	}
+	lockNameReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	VersionedSourceStub        func() resource.VersionedSource
 	versionedSourceMutex       sync.RWMutex
 	versionedSourceArgsForCall []struct{}
 	versionedSourceReturns     struct {
+		result1 resource.VersionedSource
+	}
+	versionedSourceReturnsOnCall map[int]struct {
 		result1 resource.VersionedSource
 	}
 	InitializeStub        func(signals <-chan os.Signal, ready chan<- struct{}) error
@@ -38,17 +49,24 @@ type FakeFetchSource struct {
 	initializeReturns struct {
 		result1 error
 	}
+	initializeReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeFetchSource) IsInitialized() (bool, error) {
 	fake.isInitializedMutex.Lock()
+	ret, specificReturn := fake.isInitializedReturnsOnCall[len(fake.isInitializedArgsForCall)]
 	fake.isInitializedArgsForCall = append(fake.isInitializedArgsForCall, struct{}{})
 	fake.recordInvocation("IsInitialized", []interface{}{})
 	fake.isInitializedMutex.Unlock()
 	if fake.IsInitializedStub != nil {
 		return fake.IsInitializedStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 }
@@ -67,13 +85,31 @@ func (fake *FakeFetchSource) IsInitializedReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeFetchSource) IsInitializedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.IsInitializedStub = nil
+	if fake.isInitializedReturnsOnCall == nil {
+		fake.isInitializedReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.isInitializedReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeFetchSource) LockName() (string, error) {
 	fake.lockNameMutex.Lock()
+	ret, specificReturn := fake.lockNameReturnsOnCall[len(fake.lockNameArgsForCall)]
 	fake.lockNameArgsForCall = append(fake.lockNameArgsForCall, struct{}{})
 	fake.recordInvocation("LockName", []interface{}{})
 	fake.lockNameMutex.Unlock()
 	if fake.LockNameStub != nil {
 		return fake.LockNameStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.lockNameReturns.result1, fake.lockNameReturns.result2
 }
@@ -92,13 +128,31 @@ func (fake *FakeFetchSource) LockNameReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeFetchSource) LockNameReturnsOnCall(i int, result1 string, result2 error) {
+	fake.LockNameStub = nil
+	if fake.lockNameReturnsOnCall == nil {
+		fake.lockNameReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.lockNameReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeFetchSource) VersionedSource() resource.VersionedSource {
 	fake.versionedSourceMutex.Lock()
+	ret, specificReturn := fake.versionedSourceReturnsOnCall[len(fake.versionedSourceArgsForCall)]
 	fake.versionedSourceArgsForCall = append(fake.versionedSourceArgsForCall, struct{}{})
 	fake.recordInvocation("VersionedSource", []interface{}{})
 	fake.versionedSourceMutex.Unlock()
 	if fake.VersionedSourceStub != nil {
 		return fake.VersionedSourceStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.versionedSourceReturns.result1
 }
@@ -116,8 +170,21 @@ func (fake *FakeFetchSource) VersionedSourceReturns(result1 resource.VersionedSo
 	}{result1}
 }
 
+func (fake *FakeFetchSource) VersionedSourceReturnsOnCall(i int, result1 resource.VersionedSource) {
+	fake.VersionedSourceStub = nil
+	if fake.versionedSourceReturnsOnCall == nil {
+		fake.versionedSourceReturnsOnCall = make(map[int]struct {
+			result1 resource.VersionedSource
+		})
+	}
+	fake.versionedSourceReturnsOnCall[i] = struct {
+		result1 resource.VersionedSource
+	}{result1}
+}
+
 func (fake *FakeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- struct{}) error {
 	fake.initializeMutex.Lock()
+	ret, specificReturn := fake.initializeReturnsOnCall[len(fake.initializeArgsForCall)]
 	fake.initializeArgsForCall = append(fake.initializeArgsForCall, struct {
 		signals <-chan os.Signal
 		ready   chan<- struct{}
@@ -126,6 +193,9 @@ func (fake *FakeFetchSource) Initialize(signals <-chan os.Signal, ready chan<- s
 	fake.initializeMutex.Unlock()
 	if fake.InitializeStub != nil {
 		return fake.InitializeStub(signals, ready)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.initializeReturns.result1
 }
@@ -145,6 +215,18 @@ func (fake *FakeFetchSource) InitializeArgsForCall(i int) (<-chan os.Signal, cha
 func (fake *FakeFetchSource) InitializeReturns(result1 error) {
 	fake.InitializeStub = nil
 	fake.initializeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeFetchSource) InitializeReturnsOnCall(i int, result1 error) {
+	fake.InitializeStub = nil
+	if fake.initializeReturnsOnCall == nil {
+		fake.initializeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.initializeReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

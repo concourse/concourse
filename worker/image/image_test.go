@@ -74,7 +74,7 @@ var _ = Describe("Image", func() {
 				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
-				atc.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -145,7 +145,7 @@ var _ = Describe("Image", func() {
 				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
-				atc.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -228,7 +228,7 @@ var _ = Describe("Image", func() {
 				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
-				atc.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -297,7 +297,7 @@ var _ = Describe("Image", func() {
 				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
-				atc.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -368,7 +368,7 @@ var _ = Describe("Image", func() {
 				dbng.ForBuild{BuildID: 42},
 				worker.Identifier{},
 				worker.Metadata{},
-				atc.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})

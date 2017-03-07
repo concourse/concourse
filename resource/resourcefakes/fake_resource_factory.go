@@ -12,14 +12,14 @@ import (
 )
 
 type FakeResourceFactory struct {
-	NewBuildResourceStub        func(logger lager.Logger, id worker.Identifier, metadata worker.Metadata, containerSpec worker.ContainerSpec, resourceTypes dbng.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, inputSources []resource.InputSource, outputPaths map[string]string) (resource.Resource, []resource.InputSource, error)
+	NewBuildResourceStub        func(logger lager.Logger, id worker.Identifier, metadata worker.Metadata, containerSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, inputSources []resource.InputSource, outputPaths map[string]string) (resource.Resource, []resource.InputSource, error)
 	newBuildResourceMutex       sync.RWMutex
 	newBuildResourceArgsForCall []struct {
 		logger                lager.Logger
 		id                    worker.Identifier
 		metadata              worker.Metadata
 		containerSpec         worker.ContainerSpec
-		resourceTypes         dbng.ResourceTypes
+		resourceTypes         atc.VersionedResourceTypes
 		imageFetchingDelegate worker.ImageFetchingDelegate
 		inputSources          []resource.InputSource
 		outputPaths           map[string]string
@@ -29,7 +29,12 @@ type FakeResourceFactory struct {
 		result2 []resource.InputSource
 		result3 error
 	}
-	NewCheckResourceStub        func(logger lager.Logger, resourceUser dbng.ResourceUser, id worker.Identifier, metadata worker.Metadata, resourceSpec worker.ContainerSpec, resourceTypes dbng.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, resourceConfig atc.ResourceConfig) (resource.Resource, error)
+	newBuildResourceReturnsOnCall map[int]struct {
+		result1 resource.Resource
+		result2 []resource.InputSource
+		result3 error
+	}
+	NewCheckResourceStub        func(logger lager.Logger, resourceUser dbng.ResourceUser, id worker.Identifier, metadata worker.Metadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, resourceConfig atc.ResourceConfig) (resource.Resource, error)
 	newCheckResourceMutex       sync.RWMutex
 	newCheckResourceArgsForCall []struct {
 		logger                lager.Logger
@@ -37,7 +42,7 @@ type FakeResourceFactory struct {
 		id                    worker.Identifier
 		metadata              worker.Metadata
 		resourceSpec          worker.ContainerSpec
-		resourceTypes         dbng.ResourceTypes
+		resourceTypes         atc.VersionedResourceTypes
 		imageFetchingDelegate worker.ImageFetchingDelegate
 		resourceConfig        atc.ResourceConfig
 	}
@@ -45,23 +50,28 @@ type FakeResourceFactory struct {
 		result1 resource.Resource
 		result2 error
 	}
+	newCheckResourceReturnsOnCall map[int]struct {
+		result1 resource.Resource
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceFactory) NewBuildResource(logger lager.Logger, id worker.Identifier, metadata worker.Metadata, containerSpec worker.ContainerSpec, resourceTypes dbng.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, inputSources []resource.InputSource, outputPaths map[string]string) (resource.Resource, []resource.InputSource, error) {
+func (fake *FakeResourceFactory) NewBuildResource(logger lager.Logger, id worker.Identifier, metadata worker.Metadata, containerSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, inputSources []resource.InputSource, outputPaths map[string]string) (resource.Resource, []resource.InputSource, error) {
 	var inputSourcesCopy []resource.InputSource
 	if inputSources != nil {
 		inputSourcesCopy = make([]resource.InputSource, len(inputSources))
 		copy(inputSourcesCopy, inputSources)
 	}
 	fake.newBuildResourceMutex.Lock()
+	ret, specificReturn := fake.newBuildResourceReturnsOnCall[len(fake.newBuildResourceArgsForCall)]
 	fake.newBuildResourceArgsForCall = append(fake.newBuildResourceArgsForCall, struct {
 		logger                lager.Logger
 		id                    worker.Identifier
 		metadata              worker.Metadata
 		containerSpec         worker.ContainerSpec
-		resourceTypes         dbng.ResourceTypes
+		resourceTypes         atc.VersionedResourceTypes
 		imageFetchingDelegate worker.ImageFetchingDelegate
 		inputSources          []resource.InputSource
 		outputPaths           map[string]string
@@ -70,6 +80,9 @@ func (fake *FakeResourceFactory) NewBuildResource(logger lager.Logger, id worker
 	fake.newBuildResourceMutex.Unlock()
 	if fake.NewBuildResourceStub != nil {
 		return fake.NewBuildResourceStub(logger, id, metadata, containerSpec, resourceTypes, imageFetchingDelegate, inputSources, outputPaths)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.newBuildResourceReturns.result1, fake.newBuildResourceReturns.result2, fake.newBuildResourceReturns.result3
 }
@@ -80,7 +93,7 @@ func (fake *FakeResourceFactory) NewBuildResourceCallCount() int {
 	return len(fake.newBuildResourceArgsForCall)
 }
 
-func (fake *FakeResourceFactory) NewBuildResourceArgsForCall(i int) (lager.Logger, worker.Identifier, worker.Metadata, worker.ContainerSpec, dbng.ResourceTypes, worker.ImageFetchingDelegate, []resource.InputSource, map[string]string) {
+func (fake *FakeResourceFactory) NewBuildResourceArgsForCall(i int) (lager.Logger, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.VersionedResourceTypes, worker.ImageFetchingDelegate, []resource.InputSource, map[string]string) {
 	fake.newBuildResourceMutex.RLock()
 	defer fake.newBuildResourceMutex.RUnlock()
 	return fake.newBuildResourceArgsForCall[i].logger, fake.newBuildResourceArgsForCall[i].id, fake.newBuildResourceArgsForCall[i].metadata, fake.newBuildResourceArgsForCall[i].containerSpec, fake.newBuildResourceArgsForCall[i].resourceTypes, fake.newBuildResourceArgsForCall[i].imageFetchingDelegate, fake.newBuildResourceArgsForCall[i].inputSources, fake.newBuildResourceArgsForCall[i].outputPaths
@@ -95,15 +108,32 @@ func (fake *FakeResourceFactory) NewBuildResourceReturns(result1 resource.Resour
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, resourceUser dbng.ResourceUser, id worker.Identifier, metadata worker.Metadata, resourceSpec worker.ContainerSpec, resourceTypes dbng.ResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, resourceConfig atc.ResourceConfig) (resource.Resource, error) {
+func (fake *FakeResourceFactory) NewBuildResourceReturnsOnCall(i int, result1 resource.Resource, result2 []resource.InputSource, result3 error) {
+	fake.NewBuildResourceStub = nil
+	if fake.newBuildResourceReturnsOnCall == nil {
+		fake.newBuildResourceReturnsOnCall = make(map[int]struct {
+			result1 resource.Resource
+			result2 []resource.InputSource
+			result3 error
+		})
+	}
+	fake.newBuildResourceReturnsOnCall[i] = struct {
+		result1 resource.Resource
+		result2 []resource.InputSource
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, resourceUser dbng.ResourceUser, id worker.Identifier, metadata worker.Metadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, resourceConfig atc.ResourceConfig) (resource.Resource, error) {
 	fake.newCheckResourceMutex.Lock()
+	ret, specificReturn := fake.newCheckResourceReturnsOnCall[len(fake.newCheckResourceArgsForCall)]
 	fake.newCheckResourceArgsForCall = append(fake.newCheckResourceArgsForCall, struct {
 		logger                lager.Logger
 		resourceUser          dbng.ResourceUser
 		id                    worker.Identifier
 		metadata              worker.Metadata
 		resourceSpec          worker.ContainerSpec
-		resourceTypes         dbng.ResourceTypes
+		resourceTypes         atc.VersionedResourceTypes
 		imageFetchingDelegate worker.ImageFetchingDelegate
 		resourceConfig        atc.ResourceConfig
 	}{logger, resourceUser, id, metadata, resourceSpec, resourceTypes, imageFetchingDelegate, resourceConfig})
@@ -111,6 +141,9 @@ func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, resourceU
 	fake.newCheckResourceMutex.Unlock()
 	if fake.NewCheckResourceStub != nil {
 		return fake.NewCheckResourceStub(logger, resourceUser, id, metadata, resourceSpec, resourceTypes, imageFetchingDelegate, resourceConfig)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.newCheckResourceReturns.result1, fake.newCheckResourceReturns.result2
 }
@@ -121,7 +154,7 @@ func (fake *FakeResourceFactory) NewCheckResourceCallCount() int {
 	return len(fake.newCheckResourceArgsForCall)
 }
 
-func (fake *FakeResourceFactory) NewCheckResourceArgsForCall(i int) (lager.Logger, dbng.ResourceUser, worker.Identifier, worker.Metadata, worker.ContainerSpec, dbng.ResourceTypes, worker.ImageFetchingDelegate, atc.ResourceConfig) {
+func (fake *FakeResourceFactory) NewCheckResourceArgsForCall(i int) (lager.Logger, dbng.ResourceUser, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.VersionedResourceTypes, worker.ImageFetchingDelegate, atc.ResourceConfig) {
 	fake.newCheckResourceMutex.RLock()
 	defer fake.newCheckResourceMutex.RUnlock()
 	return fake.newCheckResourceArgsForCall[i].logger, fake.newCheckResourceArgsForCall[i].resourceUser, fake.newCheckResourceArgsForCall[i].id, fake.newCheckResourceArgsForCall[i].metadata, fake.newCheckResourceArgsForCall[i].resourceSpec, fake.newCheckResourceArgsForCall[i].resourceTypes, fake.newCheckResourceArgsForCall[i].imageFetchingDelegate, fake.newCheckResourceArgsForCall[i].resourceConfig
@@ -130,6 +163,20 @@ func (fake *FakeResourceFactory) NewCheckResourceArgsForCall(i int) (lager.Logge
 func (fake *FakeResourceFactory) NewCheckResourceReturns(result1 resource.Resource, result2 error) {
 	fake.NewCheckResourceStub = nil
 	fake.newCheckResourceReturns = struct {
+		result1 resource.Resource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceFactory) NewCheckResourceReturnsOnCall(i int, result1 resource.Resource, result2 error) {
+	fake.NewCheckResourceStub = nil
+	if fake.newCheckResourceReturnsOnCall == nil {
+		fake.newCheckResourceReturnsOnCall = make(map[int]struct {
+			result1 resource.Resource
+			result2 error
+		})
+	}
+	fake.newCheckResourceReturnsOnCall[i] = struct {
 		result1 resource.Resource
 		result2 error
 	}{result1, result2}

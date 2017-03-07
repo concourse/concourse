@@ -19,11 +19,11 @@ var _ = Describe("ResourceCacheFactory", func() {
 		usedBaseResourceType      *dbng.UsedBaseResourceType
 		usedImageBaseResourceType *dbng.UsedBaseResourceType
 
-		resourceType1                  dbng.ResourceType
-		resourceType2                  dbng.ResourceType
-		resourceType3                  dbng.ResourceType
-		resourceTypeUsingBogusBaseType dbng.ResourceType
-		resourceTypeOverridingBaseType dbng.ResourceType
+		resourceType1                  atc.VersionedResourceType
+		resourceType2                  atc.VersionedResourceType
+		resourceType3                  atc.VersionedResourceType
+		resourceTypeUsingBogusBaseType atc.VersionedResourceType
+		resourceTypeOverridingBaseType atc.VersionedResourceType
 
 		logger *lagertest.TestLogger
 	)
@@ -48,45 +48,70 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 		Expect(setupTx.Commit()).To(Succeed())
 
+		resourceType1 = atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name: "some-type",
+				Type: "some-type-type",
+				Source: atc.Source{
+					"some-type": "source",
+				},
+			},
+			Version: atc.Version{"some-type": "version"},
+		}
+
+		resourceType2 = atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name: "some-type-type",
+				Type: "some-base-type",
+				Source: atc.Source{
+					"some-type-type": "source",
+				},
+			},
+			Version: atc.Version{"some-type-type": "version"},
+		}
+
+		resourceType3 = atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name: "some-unused-type",
+				Type: "some-base-type",
+				Source: atc.Source{
+					"some-unused-type": "source",
+				},
+			},
+			Version: atc.Version{"some-unused-type": "version"},
+		}
+
+		resourceTypeUsingBogusBaseType = atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name: "some-type-using-bogus-base-type",
+				Type: "some-bogus-base-type",
+				Source: atc.Source{
+					"some-type-using-bogus-base-type": "source",
+				},
+			},
+			Version: atc.Version{"some-type-using-bogus-base-type": "version"},
+		}
+
+		resourceTypeOverridingBaseType = atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name: "some-image-type",
+				Type: "some-image-type",
+				Source: atc.Source{
+					"some-image-type": "source",
+				},
+			},
+			Version: atc.Version{"some-image-type": "version"},
+		}
+
 		pipelineWithTypes, _, err := defaultTeam.SavePipeline(
 			"pipeline-with-types",
 			atc.Config{
 				ResourceTypes: atc.ResourceTypes{
-					{
-						Name: "some-type",
-						Type: "some-type-type",
-						Source: atc.Source{
-							"some-type": "source",
-						},
-					},
-					{
-						Name: "some-type-type",
-						Type: "some-base-type",
-						Source: atc.Source{
-							"some-type-type": "source",
-						},
-					},
-					{
-						Name: "some-unused-type",
-						Type: "some-base-type",
-						Source: atc.Source{
-							"some-unused-type": "source",
-						},
-					},
-					{
-						Name: "some-type-using-bogus-base-type",
-						Type: "some-bogus-base-type",
-						Source: atc.Source{
-							"some-type-using-bogus-base-type": "source",
-						},
-					},
-					{
-						Name: "some-image-type",
-						Type: "some-image-type",
-						Source: atc.Source{
-							"some-image-type": "source",
-						},
-					},
+					resourceType1.ResourceType,
+					resourceType2.ResourceType,
+					resourceType3.ResourceType,
+					resourceTypeUsingBogusBaseType.ResourceType,
+					resourceTypeOverridingBaseType.ResourceType,
 				},
 			},
 			dbng.ConfigVersion(0),
@@ -94,39 +119,19 @@ var _ = Describe("ResourceCacheFactory", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		resourceTypes, err := pipelineWithTypes.ResourceTypes()
-		Expect(err).ToNot(HaveOccurred())
-
-		var found bool
-		resourceType1, found = resourceTypes.Lookup("some-type")
-		Expect(found).To(BeTrue())
-		err = resourceType1.SaveVersion(atc.Version{"some-type": "version"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resourceType1.Reload()).To(BeTrue())
-
-		resourceType2, found = resourceTypes.Lookup("some-type-type")
-		Expect(found).To(BeTrue())
-		err = resourceType2.SaveVersion(atc.Version{"some-type-type": "version"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resourceType2.Reload()).To(BeTrue())
-
-		resourceType3, found = resourceTypes.Lookup("some-unused-type")
-		Expect(found).To(BeTrue())
-		err = resourceType3.SaveVersion(atc.Version{"some-unused-type": "version"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resourceType3.Reload()).To(BeTrue())
-
-		resourceTypeUsingBogusBaseType, found = resourceTypes.Lookup("some-type-using-bogus-base-type")
-		Expect(found).To(BeTrue())
-		err = resourceTypeUsingBogusBaseType.SaveVersion(atc.Version{"some-type-using-bogus-base-type": "version"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resourceTypeUsingBogusBaseType.Reload()).To(BeTrue())
-
-		resourceTypeOverridingBaseType, found = resourceTypes.Lookup("some-image-type")
-		Expect(found).To(BeTrue())
-		err = resourceTypeOverridingBaseType.SaveVersion(atc.Version{"some-image-type": "version"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resourceTypeOverridingBaseType.Reload()).To(BeTrue())
+		for _, rt := range []atc.VersionedResourceType{
+			resourceType1,
+			resourceType2,
+			resourceType3,
+			resourceTypeUsingBogusBaseType,
+			resourceTypeOverridingBaseType,
+		} {
+			dbType, found, err := pipelineWithTypes.ResourceType("some-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			err = dbType.SaveVersion(rt.Version)
+			Expect(err).NotTo(HaveOccurred())
+		}
 
 		logger = lagertest.NewTestLogger("test")
 	})
@@ -136,7 +141,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Describe("FindOrCreateResourceCacheForBuild", func() {
+	Describe("FindOrCreateResourceCache", func() {
 		It("creates resource cache in database", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
@@ -147,7 +152,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				dbng.ResourceTypes{
+				atc.VersionedResourceTypes{
 					resourceType1,
 					resourceType2,
 					resourceType3,
@@ -229,7 +234,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				dbng.ResourceTypes{
+				atc.VersionedResourceTypes{
 					resourceType1,
 					resourceTypeUsingBogusBaseType,
 				},
@@ -248,7 +253,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				dbng.ResourceTypes{
+				atc.VersionedResourceTypes{
 					resourceTypeOverridingBaseType,
 				},
 			)

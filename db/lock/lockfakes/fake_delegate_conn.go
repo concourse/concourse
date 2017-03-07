@@ -19,6 +19,10 @@ type FakeDelegateConn struct {
 		result1 *pgx.Rows
 		result2 error
 	}
+	queryReturnsOnCall map[int]struct {
+		result1 *pgx.Rows
+		result2 error
+	}
 	QueryRowStub        func(sql string, args ...interface{}) *pgx.Row
 	queryRowMutex       sync.RWMutex
 	queryRowArgsForCall []struct {
@@ -26,6 +30,9 @@ type FakeDelegateConn struct {
 		args []interface{}
 	}
 	queryRowReturns struct {
+		result1 *pgx.Row
+	}
+	queryRowReturnsOnCall map[int]struct {
 		result1 *pgx.Row
 	}
 	ExecStub        func(sql string, arguments ...interface{}) (commandTag pgx.CommandTag, err error)
@@ -38,12 +45,17 @@ type FakeDelegateConn struct {
 		result1 pgx.CommandTag
 		result2 error
 	}
+	execReturnsOnCall map[int]struct {
+		result1 pgx.CommandTag
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeDelegateConn) Query(sql string, args ...interface{}) (*pgx.Rows, error) {
 	fake.queryMutex.Lock()
+	ret, specificReturn := fake.queryReturnsOnCall[len(fake.queryArgsForCall)]
 	fake.queryArgsForCall = append(fake.queryArgsForCall, struct {
 		sql  string
 		args []interface{}
@@ -52,6 +64,9 @@ func (fake *FakeDelegateConn) Query(sql string, args ...interface{}) (*pgx.Rows,
 	fake.queryMutex.Unlock()
 	if fake.QueryStub != nil {
 		return fake.QueryStub(sql, args...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.queryReturns.result1, fake.queryReturns.result2
 }
@@ -76,8 +91,23 @@ func (fake *FakeDelegateConn) QueryReturns(result1 *pgx.Rows, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeDelegateConn) QueryReturnsOnCall(i int, result1 *pgx.Rows, result2 error) {
+	fake.QueryStub = nil
+	if fake.queryReturnsOnCall == nil {
+		fake.queryReturnsOnCall = make(map[int]struct {
+			result1 *pgx.Rows
+			result2 error
+		})
+	}
+	fake.queryReturnsOnCall[i] = struct {
+		result1 *pgx.Rows
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeDelegateConn) QueryRow(sql string, args ...interface{}) *pgx.Row {
 	fake.queryRowMutex.Lock()
+	ret, specificReturn := fake.queryRowReturnsOnCall[len(fake.queryRowArgsForCall)]
 	fake.queryRowArgsForCall = append(fake.queryRowArgsForCall, struct {
 		sql  string
 		args []interface{}
@@ -86,6 +116,9 @@ func (fake *FakeDelegateConn) QueryRow(sql string, args ...interface{}) *pgx.Row
 	fake.queryRowMutex.Unlock()
 	if fake.QueryRowStub != nil {
 		return fake.QueryRowStub(sql, args...)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.queryRowReturns.result1
 }
@@ -109,8 +142,21 @@ func (fake *FakeDelegateConn) QueryRowReturns(result1 *pgx.Row) {
 	}{result1}
 }
 
+func (fake *FakeDelegateConn) QueryRowReturnsOnCall(i int, result1 *pgx.Row) {
+	fake.QueryRowStub = nil
+	if fake.queryRowReturnsOnCall == nil {
+		fake.queryRowReturnsOnCall = make(map[int]struct {
+			result1 *pgx.Row
+		})
+	}
+	fake.queryRowReturnsOnCall[i] = struct {
+		result1 *pgx.Row
+	}{result1}
+}
+
 func (fake *FakeDelegateConn) Exec(sql string, arguments ...interface{}) (commandTag pgx.CommandTag, err error) {
 	fake.execMutex.Lock()
+	ret, specificReturn := fake.execReturnsOnCall[len(fake.execArgsForCall)]
 	fake.execArgsForCall = append(fake.execArgsForCall, struct {
 		sql       string
 		arguments []interface{}
@@ -119,6 +165,9 @@ func (fake *FakeDelegateConn) Exec(sql string, arguments ...interface{}) (comman
 	fake.execMutex.Unlock()
 	if fake.ExecStub != nil {
 		return fake.ExecStub(sql, arguments...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.execReturns.result1, fake.execReturns.result2
 }
@@ -138,6 +187,20 @@ func (fake *FakeDelegateConn) ExecArgsForCall(i int) (string, []interface{}) {
 func (fake *FakeDelegateConn) ExecReturns(result1 pgx.CommandTag, result2 error) {
 	fake.ExecStub = nil
 	fake.execReturns = struct {
+		result1 pgx.CommandTag
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDelegateConn) ExecReturnsOnCall(i int, result1 pgx.CommandTag, result2 error) {
+	fake.ExecStub = nil
+	if fake.execReturnsOnCall == nil {
+		fake.execReturnsOnCall = make(map[int]struct {
+			result1 pgx.CommandTag
+			result2 error
+		})
+	}
+	fake.execReturnsOnCall[i] = struct {
 		result1 pgx.CommandTag
 		result2 error
 	}{result1, result2}

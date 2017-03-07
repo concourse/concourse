@@ -22,7 +22,7 @@ type Client interface {
 		Identifier,
 		Metadata,
 		ContainerSpec,
-		dbng.ResourceTypes,
+		atc.VersionedResourceTypes,
 		map[string]string,
 	) (Container, error)
 
@@ -34,7 +34,7 @@ type Client interface {
 		id Identifier,
 		metadata Metadata,
 		spec ContainerSpec,
-		resourceTypes dbng.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		outputPaths map[string]string,
 		resourceType string,
 		version atc.Version,
@@ -50,7 +50,7 @@ type Client interface {
 		id Identifier,
 		metadata Metadata,
 		spec ContainerSpec,
-		resourceTypes dbng.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		resourceType string,
 		source atc.Source,
 	) (Container, error)
@@ -71,8 +71,8 @@ type Client interface {
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 
-	Satisfying(WorkerSpec, dbng.ResourceTypes) (Worker, error)
-	AllSatisfying(WorkerSpec, dbng.ResourceTypes) ([]Worker, error)
+	Satisfying(WorkerSpec, atc.VersionedResourceTypes) (Worker, error)
+	AllSatisfying(WorkerSpec, atc.VersionedResourceTypes) ([]Worker, error)
 	RunningWorkers() ([]Worker, error)
 	GetWorker(workerName string) (Worker, error)
 }

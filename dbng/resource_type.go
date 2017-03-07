@@ -31,29 +31,6 @@ type ResourceType interface {
 	Reload() (bool, error)
 }
 
-type ResourceTypes []ResourceType
-
-func (types ResourceTypes) Without(name string) ResourceTypes {
-	newTypes := ResourceTypes{}
-	for _, t := range types {
-		if t.Name() != name {
-			newTypes = append(newTypes, t)
-		}
-	}
-
-	return newTypes
-}
-
-func (types ResourceTypes) Lookup(name string) (ResourceType, bool) {
-	for _, t := range types {
-		if t.Name() == name {
-			return t, true
-		}
-	}
-
-	return nil, false
-}
-
 var resourceTypesQuery = psql.Select("id, name, type, config, version").
 	From("resource_types").
 	Where(sq.Eq{"active": true})

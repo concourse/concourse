@@ -45,7 +45,7 @@ var _ = Describe("Image", func() {
 	var metadata worker.Metadata
 	var fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
 	var fakeWorker *wfakes.FakeWorker
-	var customTypes atc.ResourceTypes
+	var customTypes atc.VersionedResourceTypes
 	var privileged bool
 
 	var fetchedVolume worker.Volume
@@ -86,16 +86,22 @@ var _ = Describe("Image", func() {
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
 		fakeWorker = new(wfakes.FakeWorker)
 		teamID = 123
-		customTypes = atc.ResourceTypes{
+		customTypes = atc.VersionedResourceTypes{
 			{
-				Name:   "custom-type-a",
-				Type:   "base-type",
-				Source: atc.Source{"some": "source"},
+				ResourceType: atc.ResourceType{
+					Name:   "custom-type-a",
+					Type:   "base-type",
+					Source: atc.Source{"some": "source"},
+				},
+				Version: atc.Version{"some": "version"},
 			},
 			{
-				Name:   "custom-type-b",
-				Type:   "custom-type-a",
-				Source: atc.Source{"some": "source"},
+				ResourceType: atc.ResourceType{
+					Name:   "custom-type-b",
+					Type:   "custom-type-a",
+					Source: atc.Source{"some": "source"},
+				},
+				Version: atc.Version{"some": "version"},
 			},
 		}
 
@@ -374,9 +380,8 @@ var _ = Describe("Image", func() {
 								"docker",
 								atc.Version{"v": "1"},
 								atc.Source{"some": "source"},
-								nil,
+								atc.Params{},
 								dbng.ForBuild{BuildID: 42},
-								4567,
 								customTypes,
 								fakeResourceCacheFactory,
 							)))

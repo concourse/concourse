@@ -118,7 +118,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		plan.Task.Tags,
 		build.teamID,
 		configSource,
-		plan.Task.ResourceTypes,
+		plan.Task.VersionedResourceTypes,
 		plan.Task.InputMapping,
 		plan.Task.OutputMapping,
 		plan.Task.ImageArtifactName,
@@ -156,7 +156,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		build.teamID,
 		plan.Get.Params,
 		plan.Get.Version,
-		plan.Get.ResourceTypes,
+		plan.Get.VersionedResourceTypes,
 	)
 }
 
@@ -188,7 +188,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		plan.Put.Tags,
 		build.teamID,
 		plan.Put.Params,
-		plan.Put.ResourceTypes,
+		plan.Put.VersionedResourceTypes,
 	)
 }
 
@@ -222,7 +222,7 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 		getPlan.Tags,
 		build.teamID,
 		getPlan.Params,
-		getPlan.ResourceTypes,
+		getPlan.VersionedResourceTypes,
 	)
 }
 

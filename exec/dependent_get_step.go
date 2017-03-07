@@ -22,7 +22,7 @@ type DependentGetStep struct {
 	teamID                 int
 	delegate               ResourceDelegate
 	resourceFetcher        resource.Fetcher
-	resourceTypes          atc.ResourceTypes
+	resourceTypes          atc.VersionedResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
@@ -37,7 +37,7 @@ func newDependentGetStep(
 	teamID int,
 	delegate ResourceDelegate,
 	resourceFetcher resource.Fetcher,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) DependentGetStep {
 	return DependentGetStep{

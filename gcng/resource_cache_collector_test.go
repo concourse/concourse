@@ -50,8 +50,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						"some": "source",
 					},
 					nil,
-					defaultPipeline.ID(),
-					atc.ResourceTypes{},
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -168,8 +167,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 											"some": "source",
 										},
 										nil,
-										defaultPipeline.ID(),
-										atc.ResourceTypes{},
+										atc.VersionedResourceTypes{},
 									)
 									Expect(err).NotTo(HaveOccurred())
 

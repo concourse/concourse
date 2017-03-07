@@ -991,7 +991,8 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 					&scheduler.Runner{
 						Logger: logger.Session(pipelineDB.ScopedName("scheduler")),
 
-						DB: pipelineDB,
+						DB:       pipelineDB,
+						Pipeline: dbPipeline,
 
 						Scheduler: radarSchedulerFactory.BuildScheduler(pipelineDB, dbPipeline, cmd.ExternalURL.String()),
 

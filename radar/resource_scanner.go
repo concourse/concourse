@@ -73,6 +73,8 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return 0, err
 	}
 
+	versionedResourceTypes := deserializeVersionedResourceTypes(resourceTypes)
+
 	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
 		logger,
 		&dbng.Resource{
@@ -81,7 +83,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 			Type:   savedResource.Config.Type,
 			Source: savedResource.Config.Source,
 		},
-		resourceTypes,
+		versionedResourceTypes,
 		interval,
 		false,
 	)
@@ -111,7 +113,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 			logger.Session("tick"),
 			savedResource,
 			atc.Version(vr.Version),
-			resourceTypes,
+			versionedResourceTypes,
 		),
 	)
 	if err != nil {
@@ -154,6 +156,8 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		return err
 	}
 
+	versionedResourceTypes := deserializeVersionedResourceTypes(resourceTypes)
+
 	for {
 		lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
 			logger,
@@ -163,7 +167,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 				Type:   savedResource.Config.Type,
 				Source: savedResource.Config.Source,
 			},
-			resourceTypes,
+			versionedResourceTypes,
 			interval,
 			true,
 		)
@@ -186,7 +190,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		break
 	}
 
-	return scanner.scan(logger, savedResource, fromVersion, resourceTypes)
+	return scanner.scan(logger, savedResource, fromVersion, versionedResourceTypes)
 }
 
 func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) error {
@@ -205,7 +209,7 @@ func (scanner *resourceScanner) scan(
 	logger lager.Logger,
 	savedResource db.SavedResource,
 	fromVersion atc.Version,
-	resourceTypes dbng.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) error {
 	pipelinePaused, err := scanner.db.IsPaused()
 	if err != nil {
@@ -337,3 +341,20 @@ func (scanner *resourceScanner) checkInterval(resourceConfig atc.ResourceConfig)
 }
 
 var errPipelineRemoved = errors.New("pipeline removed")
+
+func deserializeVersionedResourceTypes(types []dbng.ResourceType) atc.VersionedResourceTypes {
+	var versionedResourceTypes atc.VersionedResourceTypes
+
+	for _, t := range types {
+		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name:   t.Name(),
+				Type:   t.Type(),
+				Source: t.Source(),
+			},
+			Version: t.Version(),
+		})
+	}
+
+	return versionedResourceTypes
+}

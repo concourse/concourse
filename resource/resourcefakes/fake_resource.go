@@ -26,6 +26,10 @@ type FakeResource struct {
 		result1 resource.VersionedSource
 		result2 error
 	}
+	getReturnsOnCall map[int]struct {
+		result1 resource.VersionedSource
+		result2 error
+	}
 	PutStub        func(resource.IOConfig, atc.Source, atc.Params, worker.ArtifactSource, <-chan os.Signal, chan<- struct{}) (resource.VersionedSource, error)
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
@@ -40,6 +44,10 @@ type FakeResource struct {
 		result1 resource.VersionedSource
 		result2 error
 	}
+	putReturnsOnCall map[int]struct {
+		result1 resource.VersionedSource
+		result2 error
+	}
 	CheckStub        func(atc.Source, atc.Version) ([]atc.Version, error)
 	checkMutex       sync.RWMutex
 	checkArgsForCall []struct {
@@ -50,10 +58,17 @@ type FakeResource struct {
 		result1 []atc.Version
 		result2 error
 	}
+	checkReturnsOnCall map[int]struct {
+		result1 []atc.Version
+		result2 error
+	}
 	ContainerStub        func() worker.Container
 	containerMutex       sync.RWMutex
 	containerArgsForCall []struct{}
 	containerReturns     struct {
+		result1 worker.Container
+	}
+	containerReturnsOnCall map[int]struct {
 		result1 worker.Container
 	}
 	invocations      map[string][][]interface{}
@@ -62,6 +77,7 @@ type FakeResource struct {
 
 func (fake *FakeResource) Get(arg1 worker.Volume, arg2 resource.IOConfig, arg3 atc.Source, arg4 atc.Params, arg5 atc.Version, arg6 <-chan os.Signal, arg7 chan<- struct{}) (resource.VersionedSource, error) {
 	fake.getMutex.Lock()
+	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 worker.Volume
 		arg2 resource.IOConfig
@@ -75,6 +91,9 @@ func (fake *FakeResource) Get(arg1 worker.Volume, arg2 resource.IOConfig, arg3 a
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
 		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.getReturns.result1, fake.getReturns.result2
 }
@@ -99,8 +118,23 @@ func (fake *FakeResource) GetReturns(result1 resource.VersionedSource, result2 e
 	}{result1, result2}
 }
 
+func (fake *FakeResource) GetReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
+	fake.GetStub = nil
+	if fake.getReturnsOnCall == nil {
+		fake.getReturnsOnCall = make(map[int]struct {
+			result1 resource.VersionedSource
+			result2 error
+		})
+	}
+	fake.getReturnsOnCall[i] = struct {
+		result1 resource.VersionedSource
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 worker.ArtifactSource, arg5 <-chan os.Signal, arg6 chan<- struct{}) (resource.VersionedSource, error) {
 	fake.putMutex.Lock()
+	ret, specificReturn := fake.putReturnsOnCall[len(fake.putArgsForCall)]
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
 		arg1 resource.IOConfig
 		arg2 atc.Source
@@ -113,6 +147,9 @@ func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
 		return fake.PutStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.putReturns.result1, fake.putReturns.result2
 }
@@ -137,8 +174,23 @@ func (fake *FakeResource) PutReturns(result1 resource.VersionedSource, result2 e
 	}{result1, result2}
 }
 
+func (fake *FakeResource) PutReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
+	fake.PutStub = nil
+	if fake.putReturnsOnCall == nil {
+		fake.putReturnsOnCall = make(map[int]struct {
+			result1 resource.VersionedSource
+			result2 error
+		})
+	}
+	fake.putReturnsOnCall[i] = struct {
+		result1 resource.VersionedSource
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResource) Check(arg1 atc.Source, arg2 atc.Version) ([]atc.Version, error) {
 	fake.checkMutex.Lock()
+	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
 		arg1 atc.Source
 		arg2 atc.Version
@@ -147,6 +199,9 @@ func (fake *FakeResource) Check(arg1 atc.Source, arg2 atc.Version) ([]atc.Versio
 	fake.checkMutex.Unlock()
 	if fake.CheckStub != nil {
 		return fake.CheckStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.checkReturns.result1, fake.checkReturns.result2
 }
@@ -171,13 +226,31 @@ func (fake *FakeResource) CheckReturns(result1 []atc.Version, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeResource) CheckReturnsOnCall(i int, result1 []atc.Version, result2 error) {
+	fake.CheckStub = nil
+	if fake.checkReturnsOnCall == nil {
+		fake.checkReturnsOnCall = make(map[int]struct {
+			result1 []atc.Version
+			result2 error
+		})
+	}
+	fake.checkReturnsOnCall[i] = struct {
+		result1 []atc.Version
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResource) Container() worker.Container {
 	fake.containerMutex.Lock()
+	ret, specificReturn := fake.containerReturnsOnCall[len(fake.containerArgsForCall)]
 	fake.containerArgsForCall = append(fake.containerArgsForCall, struct{}{})
 	fake.recordInvocation("Container", []interface{}{})
 	fake.containerMutex.Unlock()
 	if fake.ContainerStub != nil {
 		return fake.ContainerStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.containerReturns.result1
 }
@@ -191,6 +264,18 @@ func (fake *FakeResource) ContainerCallCount() int {
 func (fake *FakeResource) ContainerReturns(result1 worker.Container) {
 	fake.ContainerStub = nil
 	fake.containerReturns = struct {
+		result1 worker.Container
+	}{result1}
+}
+
+func (fake *FakeResource) ContainerReturnsOnCall(i int, result1 worker.Container) {
+	fake.ContainerStub = nil
+	if fake.containerReturnsOnCall == nil {
+		fake.containerReturnsOnCall = make(map[int]struct {
+			result1 worker.Container
+		})
+	}
+	fake.containerReturnsOnCall[i] = struct {
 		result1 worker.Container
 	}{result1}
 }

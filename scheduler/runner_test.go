@@ -14,15 +14,18 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Runner", func() {
 	var (
-		pipelineDB *dbfakes.FakePipelineDB
-		scheduler  *schedulerfakes.FakeBuildScheduler
-		noop       bool
+		pipelineDB   *dbfakes.FakePipelineDB
+		fakePipeline *dbngfakes.FakePipeline
+		scheduler    *schedulerfakes.FakeBuildScheduler
+		noop         bool
 
 		lock *lockfakes.FakeLock
 
@@ -31,11 +34,49 @@ var _ = Describe("Runner", func() {
 		someVersions *algorithm.VersionsDB
 
 		process ifrit.Process
+
+		versionedResourceTypes atc.VersionedResourceTypes
 	)
 
 	BeforeEach(func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		pipelineDB.GetPipelineNameReturns("some-pipeline")
+
+		fakePipeline = new(dbngfakes.FakePipeline)
+
+		versionedResourceTypes = atc.VersionedResourceTypes{
+			atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-1",
+					Type:   "some-base-type-1",
+					Source: atc.Source{"some": "source-1"},
+				},
+				Version: atc.Version{"some": "version-1"},
+			},
+			atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-2",
+					Type:   "some-base-type-2",
+					Source: atc.Source{"some": "source-2"},
+				},
+				Version: atc.Version{"some": "version-2"},
+			},
+			atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-3",
+					Type:   "some-base-type-3",
+					Source: atc.Source{"some": "source-3"},
+				},
+				Version: atc.Version{"some": "version-3"},
+			},
+		}
+
+		fakePipeline.ResourceTypesReturns([]dbng.ResourceType{
+			fakeDBNGResourceType(versionedResourceTypes[0]),
+			fakeDBNGResourceType(versionedResourceTypes[1]),
+			fakeDBNGResourceType(versionedResourceTypes[2]),
+		}, nil)
+
 		scheduler = new(schedulerfakes.FakeBuildScheduler)
 		noop = false
 
@@ -96,6 +137,7 @@ var _ = Describe("Runner", func() {
 		process = ginkgomon.Invoke(&Runner{
 			Logger:    lagertest.NewTestLogger("test"),
 			DB:        pipelineDB,
+			Pipeline:  fakePipeline,
 			Scheduler: scheduler,
 			Noop:      noop,
 			Interval:  100 * time.Millisecond,
@@ -147,7 +189,7 @@ var _ = Describe("Runner", func() {
 			{Name: "some-other-job"},
 		}))
 		Expect(resources).To(Equal(initialConfig.Resources))
-		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
+		Expect(resourceTypes).To(Equal(versionedResourceTypes))
 	})
 
 	Context("when in noop mode", func() {
@@ -194,3 +236,12 @@ var _ = Describe("Runner", func() {
 		})
 	})
 })
+
+func fakeDBNGResourceType(t atc.VersionedResourceType) *dbngfakes.FakeResourceType {
+	fake := new(dbngfakes.FakeResourceType)
+	fake.NameReturns(t.Name)
+	fake.TypeReturns(t.Type)
+	fake.SourceReturns(t.Source)
+	fake.VersionReturns(t.Version)
+	return fake
+}

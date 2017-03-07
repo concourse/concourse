@@ -37,8 +37,7 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
 			dbng.ForBuild{42},
-			43,
-			dbng.ResourceTypes{},
+			atc.VersionedResourceTypes{},
 			fakeResourceCacheFactory,
 		)
 	})

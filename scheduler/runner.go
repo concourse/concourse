@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/metric"
 )
 
@@ -20,14 +21,16 @@ type BuildScheduler interface {
 		versions *algorithm.VersionsDB,
 		jobConfigs atc.JobConfigs,
 		resourceConfigs atc.ResourceConfigs,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 	) (map[string]time.Duration, error)
+
 	TriggerImmediately(
 		logger lager.Logger,
 		jobConfig atc.JobConfig,
 		resourceConfigs atc.ResourceConfigs,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 	) (db.Build, Waiter, error)
+
 	SaveNextInputMapping(logger lager.Logger, job atc.JobConfig) error
 }
 
@@ -37,6 +40,8 @@ type Runner struct {
 	Logger lager.Logger
 
 	DB db.PipelineDB
+
+	Pipeline dbng.Pipeline
 
 	Scheduler BuildScheduler
 
@@ -126,7 +131,19 @@ func (runner *Runner) tick(logger lager.Logger) error {
 
 	sLog := logger.Session("scheduling")
 
-	schedulingTimes, err := runner.Scheduler.Schedule(sLog, versions, config.Jobs, config.Resources, config.ResourceTypes)
+	resourceTypes, err := runner.Pipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resource-types", err)
+		return err
+	}
+
+	schedulingTimes, err := runner.Scheduler.Schedule(
+		sLog,
+		versions,
+		config.Jobs,
+		config.Resources,
+		deserializeVersionedResourceTypes(resourceTypes),
+	)
 
 	for jobName, duration := range schedulingTimes {
 		metric.SchedulingJobDuration{
@@ -137,4 +154,21 @@ func (runner *Runner) tick(logger lager.Logger) error {
 	}
 
 	return err
+}
+
+func deserializeVersionedResourceTypes(types []dbng.ResourceType) atc.VersionedResourceTypes {
+	var versionedResourceTypes atc.VersionedResourceTypes
+
+	for _, t := range types {
+		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name:   t.Name(),
+				Type:   t.Type(),
+				Source: t.Source(),
+			},
+			Version: t.Version(),
+		})
+	}
+
+	return versionedResourceTypes
 }

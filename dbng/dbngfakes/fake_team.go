@@ -16,6 +16,9 @@ type FakeTeam struct {
 	iDReturns     struct {
 		result1 int
 	}
+	iDReturnsOnCall map[int]struct {
+		result1 int
+	}
 	SavePipelineStub        func(pipelineName string, config atc.Config, from dbng.ConfigVersion, pausedState dbng.PipelinePausedState) (dbng.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
 	savePipelineArgsForCall []struct {
@@ -25,6 +28,11 @@ type FakeTeam struct {
 		pausedState  dbng.PipelinePausedState
 	}
 	savePipelineReturns struct {
+		result1 dbng.Pipeline
+		result2 bool
+		result3 error
+	}
+	savePipelineReturnsOnCall map[int]struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
@@ -39,10 +47,19 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	findPipelineByNameReturnsOnCall map[int]struct {
+		result1 dbng.Pipeline
+		result2 bool
+		result3 error
+	}
 	CreateOneOffBuildStub        func() (dbng.Build, error)
 	createOneOffBuildMutex       sync.RWMutex
 	createOneOffBuildArgsForCall []struct{}
 	createOneOffBuildReturns     struct {
+		result1 dbng.Build
+		result2 error
+	}
+	createOneOffBuildReturnsOnCall map[int]struct {
 		result1 dbng.Build
 		result2 error
 	}
@@ -56,10 +73,18 @@ type FakeTeam struct {
 		result1 dbng.Worker
 		result2 error
 	}
+	saveWorkerReturnsOnCall map[int]struct {
+		result1 dbng.Worker
+		result2 error
+	}
 	WorkersStub        func() ([]dbng.Worker, error)
 	workersMutex       sync.RWMutex
 	workersArgsForCall []struct{}
 	workersReturns     struct {
+		result1 []dbng.Worker
+		result2 error
+	}
+	workersReturnsOnCall map[int]struct {
 		result1 []dbng.Worker
 		result2 error
 	}
@@ -73,12 +98,22 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	findContainerByHandleReturnsOnCall map[int]struct {
+		result1 dbng.CreatedContainer
+		result2 bool
+		result3 error
+	}
 	FindWorkerForResourceCheckContainerStub        func(resourceConfig *dbng.UsedResourceConfig) (dbng.Worker, bool, error)
 	findWorkerForResourceCheckContainerMutex       sync.RWMutex
 	findWorkerForResourceCheckContainerArgsForCall []struct {
 		resourceConfig *dbng.UsedResourceConfig
 	}
 	findWorkerForResourceCheckContainerReturns struct {
+		result1 dbng.Worker
+		result2 bool
+		result3 error
+	}
+	findWorkerForResourceCheckContainerReturnsOnCall map[int]struct {
 		result1 dbng.Worker
 		result2 bool
 		result3 error
@@ -94,6 +129,11 @@ type FakeTeam struct {
 		result2 dbng.CreatedContainer
 		result3 error
 	}
+	findResourceCheckContainerOnWorkerReturnsOnCall map[int]struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}
 	CreateResourceCheckContainerStub        func(workerName string, resourceConfig *dbng.UsedResourceConfig) (dbng.CreatingContainer, error)
 	createResourceCheckContainerMutex       sync.RWMutex
 	createResourceCheckContainerArgsForCall []struct {
@@ -101,6 +141,10 @@ type FakeTeam struct {
 		resourceConfig *dbng.UsedResourceConfig
 	}
 	createResourceCheckContainerReturns struct {
+		result1 dbng.CreatingContainer
+		result2 error
+	}
+	createResourceCheckContainerReturnsOnCall map[int]struct {
 		result1 dbng.CreatingContainer
 		result2 error
 	}
@@ -116,6 +160,11 @@ type FakeTeam struct {
 		result2 dbng.CreatedContainer
 		result3 error
 	}
+	findResourceGetContainerOnWorkerReturnsOnCall map[int]struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}
 	CreateResourceGetContainerStub        func(workerName string, resourceConfig *dbng.UsedResourceCache, stepName string) (dbng.CreatingContainer, error)
 	createResourceGetContainerMutex       sync.RWMutex
 	createResourceGetContainerArgsForCall []struct {
@@ -127,6 +176,10 @@ type FakeTeam struct {
 		result1 dbng.CreatingContainer
 		result2 error
 	}
+	createResourceGetContainerReturnsOnCall map[int]struct {
+		result1 dbng.CreatingContainer
+		result2 error
+	}
 	FindWorkerForBuildContainerStub        func(buildID int, planID atc.PlanID) (dbng.Worker, bool, error)
 	findWorkerForBuildContainerMutex       sync.RWMutex
 	findWorkerForBuildContainerArgsForCall []struct {
@@ -134,6 +187,11 @@ type FakeTeam struct {
 		planID  atc.PlanID
 	}
 	findWorkerForBuildContainerReturns struct {
+		result1 dbng.Worker
+		result2 bool
+		result3 error
+	}
+	findWorkerForBuildContainerReturnsOnCall map[int]struct {
 		result1 dbng.Worker
 		result2 bool
 		result3 error
@@ -150,6 +208,11 @@ type FakeTeam struct {
 		result2 dbng.CreatedContainer
 		result3 error
 	}
+	findBuildContainerOnWorkerReturnsOnCall map[int]struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}
 	CreateBuildContainerStub        func(workerName string, buildID int, planID atc.PlanID, meta dbng.ContainerMetadata) (dbng.CreatingContainer, error)
 	createBuildContainerMutex       sync.RWMutex
 	createBuildContainerArgsForCall []struct {
@@ -162,17 +225,25 @@ type FakeTeam struct {
 		result1 dbng.CreatingContainer
 		result2 error
 	}
+	createBuildContainerReturnsOnCall map[int]struct {
+		result1 dbng.CreatingContainer
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTeam) ID() int {
 	fake.iDMutex.Lock()
+	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
 	if fake.IDStub != nil {
 		return fake.IDStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.iDReturns.result1
 }
@@ -190,8 +261,21 @@ func (fake *FakeTeam) IDReturns(result1 int) {
 	}{result1}
 }
 
+func (fake *FakeTeam) IDReturnsOnCall(i int, result1 int) {
+	fake.IDStub = nil
+	if fake.iDReturnsOnCall == nil {
+		fake.iDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.iDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from dbng.ConfigVersion, pausedState dbng.PipelinePausedState) (dbng.Pipeline, bool, error) {
 	fake.savePipelineMutex.Lock()
+	ret, specificReturn := fake.savePipelineReturnsOnCall[len(fake.savePipelineArgsForCall)]
 	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
 		pipelineName string
 		config       atc.Config
@@ -202,6 +286,9 @@ func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from 
 	fake.savePipelineMutex.Unlock()
 	if fake.SavePipelineStub != nil {
 		return fake.SavePipelineStub(pipelineName, config, from, pausedState)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.savePipelineReturns.result1, fake.savePipelineReturns.result2, fake.savePipelineReturns.result3
 }
@@ -227,8 +314,25 @@ func (fake *FakeTeam) SavePipelineReturns(result1 dbng.Pipeline, result2 bool, r
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) SavePipelineReturnsOnCall(i int, result1 dbng.Pipeline, result2 bool, result3 error) {
+	fake.SavePipelineStub = nil
+	if fake.savePipelineReturnsOnCall == nil {
+		fake.savePipelineReturnsOnCall = make(map[int]struct {
+			result1 dbng.Pipeline
+			result2 bool
+			result3 error
+		})
+	}
+	fake.savePipelineReturnsOnCall[i] = struct {
+		result1 dbng.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) FindPipelineByName(pipelineName string) (dbng.Pipeline, bool, error) {
 	fake.findPipelineByNameMutex.Lock()
+	ret, specificReturn := fake.findPipelineByNameReturnsOnCall[len(fake.findPipelineByNameArgsForCall)]
 	fake.findPipelineByNameArgsForCall = append(fake.findPipelineByNameArgsForCall, struct {
 		pipelineName string
 	}{pipelineName})
@@ -236,6 +340,9 @@ func (fake *FakeTeam) FindPipelineByName(pipelineName string) (dbng.Pipeline, bo
 	fake.findPipelineByNameMutex.Unlock()
 	if fake.FindPipelineByNameStub != nil {
 		return fake.FindPipelineByNameStub(pipelineName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findPipelineByNameReturns.result1, fake.findPipelineByNameReturns.result2, fake.findPipelineByNameReturns.result3
 }
@@ -261,13 +368,33 @@ func (fake *FakeTeam) FindPipelineByNameReturns(result1 dbng.Pipeline, result2 b
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) FindPipelineByNameReturnsOnCall(i int, result1 dbng.Pipeline, result2 bool, result3 error) {
+	fake.FindPipelineByNameStub = nil
+	if fake.findPipelineByNameReturnsOnCall == nil {
+		fake.findPipelineByNameReturnsOnCall = make(map[int]struct {
+			result1 dbng.Pipeline
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findPipelineByNameReturnsOnCall[i] = struct {
+		result1 dbng.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) CreateOneOffBuild() (dbng.Build, error) {
 	fake.createOneOffBuildMutex.Lock()
+	ret, specificReturn := fake.createOneOffBuildReturnsOnCall[len(fake.createOneOffBuildArgsForCall)]
 	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct{}{})
 	fake.recordInvocation("CreateOneOffBuild", []interface{}{})
 	fake.createOneOffBuildMutex.Unlock()
 	if fake.CreateOneOffBuildStub != nil {
 		return fake.CreateOneOffBuildStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
 }
@@ -286,8 +413,23 @@ func (fake *FakeTeam) CreateOneOffBuildReturns(result1 dbng.Build, result2 error
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) CreateOneOffBuildReturnsOnCall(i int, result1 dbng.Build, result2 error) {
+	fake.CreateOneOffBuildStub = nil
+	if fake.createOneOffBuildReturnsOnCall == nil {
+		fake.createOneOffBuildReturnsOnCall = make(map[int]struct {
+			result1 dbng.Build
+			result2 error
+		})
+	}
+	fake.createOneOffBuildReturnsOnCall[i] = struct {
+		result1 dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (dbng.Worker, error) {
 	fake.saveWorkerMutex.Lock()
+	ret, specificReturn := fake.saveWorkerReturnsOnCall[len(fake.saveWorkerArgsForCall)]
 	fake.saveWorkerArgsForCall = append(fake.saveWorkerArgsForCall, struct {
 		atcWorker atc.Worker
 		ttl       time.Duration
@@ -296,6 +438,9 @@ func (fake *FakeTeam) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (dbng.
 	fake.saveWorkerMutex.Unlock()
 	if fake.SaveWorkerStub != nil {
 		return fake.SaveWorkerStub(atcWorker, ttl)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 }
@@ -320,13 +465,31 @@ func (fake *FakeTeam) SaveWorkerReturns(result1 dbng.Worker, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) SaveWorkerReturnsOnCall(i int, result1 dbng.Worker, result2 error) {
+	fake.SaveWorkerStub = nil
+	if fake.saveWorkerReturnsOnCall == nil {
+		fake.saveWorkerReturnsOnCall = make(map[int]struct {
+			result1 dbng.Worker
+			result2 error
+		})
+	}
+	fake.saveWorkerReturnsOnCall[i] = struct {
+		result1 dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) Workers() ([]dbng.Worker, error) {
 	fake.workersMutex.Lock()
+	ret, specificReturn := fake.workersReturnsOnCall[len(fake.workersArgsForCall)]
 	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
 	fake.recordInvocation("Workers", []interface{}{})
 	fake.workersMutex.Unlock()
 	if fake.WorkersStub != nil {
 		return fake.WorkersStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.workersReturns.result1, fake.workersReturns.result2
 }
@@ -345,8 +508,23 @@ func (fake *FakeTeam) WorkersReturns(result1 []dbng.Worker, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) WorkersReturnsOnCall(i int, result1 []dbng.Worker, result2 error) {
+	fake.WorkersStub = nil
+	if fake.workersReturnsOnCall == nil {
+		fake.workersReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Worker
+			result2 error
+		})
+	}
+	fake.workersReturnsOnCall[i] = struct {
+		result1 []dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) FindContainerByHandle(arg1 string) (dbng.CreatedContainer, bool, error) {
 	fake.findContainerByHandleMutex.Lock()
+	ret, specificReturn := fake.findContainerByHandleReturnsOnCall[len(fake.findContainerByHandleArgsForCall)]
 	fake.findContainerByHandleArgsForCall = append(fake.findContainerByHandleArgsForCall, struct {
 		arg1 string
 	}{arg1})
@@ -354,6 +532,9 @@ func (fake *FakeTeam) FindContainerByHandle(arg1 string) (dbng.CreatedContainer,
 	fake.findContainerByHandleMutex.Unlock()
 	if fake.FindContainerByHandleStub != nil {
 		return fake.FindContainerByHandleStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findContainerByHandleReturns.result1, fake.findContainerByHandleReturns.result2, fake.findContainerByHandleReturns.result3
 }
@@ -379,8 +560,25 @@ func (fake *FakeTeam) FindContainerByHandleReturns(result1 dbng.CreatedContainer
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) FindContainerByHandleReturnsOnCall(i int, result1 dbng.CreatedContainer, result2 bool, result3 error) {
+	fake.FindContainerByHandleStub = nil
+	if fake.findContainerByHandleReturnsOnCall == nil {
+		fake.findContainerByHandleReturnsOnCall = make(map[int]struct {
+			result1 dbng.CreatedContainer
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findContainerByHandleReturnsOnCall[i] = struct {
+		result1 dbng.CreatedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) FindWorkerForResourceCheckContainer(resourceConfig *dbng.UsedResourceConfig) (dbng.Worker, bool, error) {
 	fake.findWorkerForResourceCheckContainerMutex.Lock()
+	ret, specificReturn := fake.findWorkerForResourceCheckContainerReturnsOnCall[len(fake.findWorkerForResourceCheckContainerArgsForCall)]
 	fake.findWorkerForResourceCheckContainerArgsForCall = append(fake.findWorkerForResourceCheckContainerArgsForCall, struct {
 		resourceConfig *dbng.UsedResourceConfig
 	}{resourceConfig})
@@ -388,6 +586,9 @@ func (fake *FakeTeam) FindWorkerForResourceCheckContainer(resourceConfig *dbng.U
 	fake.findWorkerForResourceCheckContainerMutex.Unlock()
 	if fake.FindWorkerForResourceCheckContainerStub != nil {
 		return fake.FindWorkerForResourceCheckContainerStub(resourceConfig)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findWorkerForResourceCheckContainerReturns.result1, fake.findWorkerForResourceCheckContainerReturns.result2, fake.findWorkerForResourceCheckContainerReturns.result3
 }
@@ -413,8 +614,25 @@ func (fake *FakeTeam) FindWorkerForResourceCheckContainerReturns(result1 dbng.Wo
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) FindWorkerForResourceCheckContainerReturnsOnCall(i int, result1 dbng.Worker, result2 bool, result3 error) {
+	fake.FindWorkerForResourceCheckContainerStub = nil
+	if fake.findWorkerForResourceCheckContainerReturnsOnCall == nil {
+		fake.findWorkerForResourceCheckContainerReturnsOnCall = make(map[int]struct {
+			result1 dbng.Worker
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findWorkerForResourceCheckContainerReturnsOnCall[i] = struct {
+		result1 dbng.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) FindResourceCheckContainerOnWorker(workerName string, resourceConfig *dbng.UsedResourceConfig) (dbng.CreatingContainer, dbng.CreatedContainer, error) {
 	fake.findResourceCheckContainerOnWorkerMutex.Lock()
+	ret, specificReturn := fake.findResourceCheckContainerOnWorkerReturnsOnCall[len(fake.findResourceCheckContainerOnWorkerArgsForCall)]
 	fake.findResourceCheckContainerOnWorkerArgsForCall = append(fake.findResourceCheckContainerOnWorkerArgsForCall, struct {
 		workerName     string
 		resourceConfig *dbng.UsedResourceConfig
@@ -423,6 +641,9 @@ func (fake *FakeTeam) FindResourceCheckContainerOnWorker(workerName string, reso
 	fake.findResourceCheckContainerOnWorkerMutex.Unlock()
 	if fake.FindResourceCheckContainerOnWorkerStub != nil {
 		return fake.FindResourceCheckContainerOnWorkerStub(workerName, resourceConfig)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findResourceCheckContainerOnWorkerReturns.result1, fake.findResourceCheckContainerOnWorkerReturns.result2, fake.findResourceCheckContainerOnWorkerReturns.result3
 }
@@ -448,8 +669,25 @@ func (fake *FakeTeam) FindResourceCheckContainerOnWorkerReturns(result1 dbng.Cre
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) FindResourceCheckContainerOnWorkerReturnsOnCall(i int, result1 dbng.CreatingContainer, result2 dbng.CreatedContainer, result3 error) {
+	fake.FindResourceCheckContainerOnWorkerStub = nil
+	if fake.findResourceCheckContainerOnWorkerReturnsOnCall == nil {
+		fake.findResourceCheckContainerOnWorkerReturnsOnCall = make(map[int]struct {
+			result1 dbng.CreatingContainer
+			result2 dbng.CreatedContainer
+			result3 error
+		})
+	}
+	fake.findResourceCheckContainerOnWorkerReturnsOnCall[i] = struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) CreateResourceCheckContainer(workerName string, resourceConfig *dbng.UsedResourceConfig) (dbng.CreatingContainer, error) {
 	fake.createResourceCheckContainerMutex.Lock()
+	ret, specificReturn := fake.createResourceCheckContainerReturnsOnCall[len(fake.createResourceCheckContainerArgsForCall)]
 	fake.createResourceCheckContainerArgsForCall = append(fake.createResourceCheckContainerArgsForCall, struct {
 		workerName     string
 		resourceConfig *dbng.UsedResourceConfig
@@ -458,6 +696,9 @@ func (fake *FakeTeam) CreateResourceCheckContainer(workerName string, resourceCo
 	fake.createResourceCheckContainerMutex.Unlock()
 	if fake.CreateResourceCheckContainerStub != nil {
 		return fake.CreateResourceCheckContainerStub(workerName, resourceConfig)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createResourceCheckContainerReturns.result1, fake.createResourceCheckContainerReturns.result2
 }
@@ -482,8 +723,23 @@ func (fake *FakeTeam) CreateResourceCheckContainerReturns(result1 dbng.CreatingC
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) CreateResourceCheckContainerReturnsOnCall(i int, result1 dbng.CreatingContainer, result2 error) {
+	fake.CreateResourceCheckContainerStub = nil
+	if fake.createResourceCheckContainerReturnsOnCall == nil {
+		fake.createResourceCheckContainerReturnsOnCall = make(map[int]struct {
+			result1 dbng.CreatingContainer
+			result2 error
+		})
+	}
+	fake.createResourceCheckContainerReturnsOnCall[i] = struct {
+		result1 dbng.CreatingContainer
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) FindResourceGetContainerOnWorker(workerName string, resourceConfig *dbng.UsedResourceCache, stepName string) (dbng.CreatingContainer, dbng.CreatedContainer, error) {
 	fake.findResourceGetContainerOnWorkerMutex.Lock()
+	ret, specificReturn := fake.findResourceGetContainerOnWorkerReturnsOnCall[len(fake.findResourceGetContainerOnWorkerArgsForCall)]
 	fake.findResourceGetContainerOnWorkerArgsForCall = append(fake.findResourceGetContainerOnWorkerArgsForCall, struct {
 		workerName     string
 		resourceConfig *dbng.UsedResourceCache
@@ -493,6 +749,9 @@ func (fake *FakeTeam) FindResourceGetContainerOnWorker(workerName string, resour
 	fake.findResourceGetContainerOnWorkerMutex.Unlock()
 	if fake.FindResourceGetContainerOnWorkerStub != nil {
 		return fake.FindResourceGetContainerOnWorkerStub(workerName, resourceConfig, stepName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findResourceGetContainerOnWorkerReturns.result1, fake.findResourceGetContainerOnWorkerReturns.result2, fake.findResourceGetContainerOnWorkerReturns.result3
 }
@@ -518,8 +777,25 @@ func (fake *FakeTeam) FindResourceGetContainerOnWorkerReturns(result1 dbng.Creat
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) FindResourceGetContainerOnWorkerReturnsOnCall(i int, result1 dbng.CreatingContainer, result2 dbng.CreatedContainer, result3 error) {
+	fake.FindResourceGetContainerOnWorkerStub = nil
+	if fake.findResourceGetContainerOnWorkerReturnsOnCall == nil {
+		fake.findResourceGetContainerOnWorkerReturnsOnCall = make(map[int]struct {
+			result1 dbng.CreatingContainer
+			result2 dbng.CreatedContainer
+			result3 error
+		})
+	}
+	fake.findResourceGetContainerOnWorkerReturnsOnCall[i] = struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) CreateResourceGetContainer(workerName string, resourceConfig *dbng.UsedResourceCache, stepName string) (dbng.CreatingContainer, error) {
 	fake.createResourceGetContainerMutex.Lock()
+	ret, specificReturn := fake.createResourceGetContainerReturnsOnCall[len(fake.createResourceGetContainerArgsForCall)]
 	fake.createResourceGetContainerArgsForCall = append(fake.createResourceGetContainerArgsForCall, struct {
 		workerName     string
 		resourceConfig *dbng.UsedResourceCache
@@ -529,6 +805,9 @@ func (fake *FakeTeam) CreateResourceGetContainer(workerName string, resourceConf
 	fake.createResourceGetContainerMutex.Unlock()
 	if fake.CreateResourceGetContainerStub != nil {
 		return fake.CreateResourceGetContainerStub(workerName, resourceConfig, stepName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createResourceGetContainerReturns.result1, fake.createResourceGetContainerReturns.result2
 }
@@ -553,8 +832,23 @@ func (fake *FakeTeam) CreateResourceGetContainerReturns(result1 dbng.CreatingCon
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) CreateResourceGetContainerReturnsOnCall(i int, result1 dbng.CreatingContainer, result2 error) {
+	fake.CreateResourceGetContainerStub = nil
+	if fake.createResourceGetContainerReturnsOnCall == nil {
+		fake.createResourceGetContainerReturnsOnCall = make(map[int]struct {
+			result1 dbng.CreatingContainer
+			result2 error
+		})
+	}
+	fake.createResourceGetContainerReturnsOnCall[i] = struct {
+		result1 dbng.CreatingContainer
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) FindWorkerForBuildContainer(buildID int, planID atc.PlanID) (dbng.Worker, bool, error) {
 	fake.findWorkerForBuildContainerMutex.Lock()
+	ret, specificReturn := fake.findWorkerForBuildContainerReturnsOnCall[len(fake.findWorkerForBuildContainerArgsForCall)]
 	fake.findWorkerForBuildContainerArgsForCall = append(fake.findWorkerForBuildContainerArgsForCall, struct {
 		buildID int
 		planID  atc.PlanID
@@ -563,6 +857,9 @@ func (fake *FakeTeam) FindWorkerForBuildContainer(buildID int, planID atc.PlanID
 	fake.findWorkerForBuildContainerMutex.Unlock()
 	if fake.FindWorkerForBuildContainerStub != nil {
 		return fake.FindWorkerForBuildContainerStub(buildID, planID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findWorkerForBuildContainerReturns.result1, fake.findWorkerForBuildContainerReturns.result2, fake.findWorkerForBuildContainerReturns.result3
 }
@@ -588,8 +885,25 @@ func (fake *FakeTeam) FindWorkerForBuildContainerReturns(result1 dbng.Worker, re
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) FindWorkerForBuildContainerReturnsOnCall(i int, result1 dbng.Worker, result2 bool, result3 error) {
+	fake.FindWorkerForBuildContainerStub = nil
+	if fake.findWorkerForBuildContainerReturnsOnCall == nil {
+		fake.findWorkerForBuildContainerReturnsOnCall = make(map[int]struct {
+			result1 dbng.Worker
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findWorkerForBuildContainerReturnsOnCall[i] = struct {
+		result1 dbng.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) FindBuildContainerOnWorker(workerName string, buildID int, planID atc.PlanID) (dbng.CreatingContainer, dbng.CreatedContainer, error) {
 	fake.findBuildContainerOnWorkerMutex.Lock()
+	ret, specificReturn := fake.findBuildContainerOnWorkerReturnsOnCall[len(fake.findBuildContainerOnWorkerArgsForCall)]
 	fake.findBuildContainerOnWorkerArgsForCall = append(fake.findBuildContainerOnWorkerArgsForCall, struct {
 		workerName string
 		buildID    int
@@ -599,6 +913,9 @@ func (fake *FakeTeam) FindBuildContainerOnWorker(workerName string, buildID int,
 	fake.findBuildContainerOnWorkerMutex.Unlock()
 	if fake.FindBuildContainerOnWorkerStub != nil {
 		return fake.FindBuildContainerOnWorkerStub(workerName, buildID, planID)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findBuildContainerOnWorkerReturns.result1, fake.findBuildContainerOnWorkerReturns.result2, fake.findBuildContainerOnWorkerReturns.result3
 }
@@ -624,8 +941,25 @@ func (fake *FakeTeam) FindBuildContainerOnWorkerReturns(result1 dbng.CreatingCon
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) FindBuildContainerOnWorkerReturnsOnCall(i int, result1 dbng.CreatingContainer, result2 dbng.CreatedContainer, result3 error) {
+	fake.FindBuildContainerOnWorkerStub = nil
+	if fake.findBuildContainerOnWorkerReturnsOnCall == nil {
+		fake.findBuildContainerOnWorkerReturnsOnCall = make(map[int]struct {
+			result1 dbng.CreatingContainer
+			result2 dbng.CreatedContainer
+			result3 error
+		})
+	}
+	fake.findBuildContainerOnWorkerReturnsOnCall[i] = struct {
+		result1 dbng.CreatingContainer
+		result2 dbng.CreatedContainer
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) CreateBuildContainer(workerName string, buildID int, planID atc.PlanID, meta dbng.ContainerMetadata) (dbng.CreatingContainer, error) {
 	fake.createBuildContainerMutex.Lock()
+	ret, specificReturn := fake.createBuildContainerReturnsOnCall[len(fake.createBuildContainerArgsForCall)]
 	fake.createBuildContainerArgsForCall = append(fake.createBuildContainerArgsForCall, struct {
 		workerName string
 		buildID    int
@@ -636,6 +970,9 @@ func (fake *FakeTeam) CreateBuildContainer(workerName string, buildID int, planI
 	fake.createBuildContainerMutex.Unlock()
 	if fake.CreateBuildContainerStub != nil {
 		return fake.CreateBuildContainerStub(workerName, buildID, planID, meta)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createBuildContainerReturns.result1, fake.createBuildContainerReturns.result2
 }
@@ -655,6 +992,20 @@ func (fake *FakeTeam) CreateBuildContainerArgsForCall(i int) (string, int, atc.P
 func (fake *FakeTeam) CreateBuildContainerReturns(result1 dbng.CreatingContainer, result2 error) {
 	fake.CreateBuildContainerStub = nil
 	fake.createBuildContainerReturns = struct {
+		result1 dbng.CreatingContainer
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) CreateBuildContainerReturnsOnCall(i int, result1 dbng.CreatingContainer, result2 error) {
+	fake.CreateBuildContainerStub = nil
+	if fake.createBuildContainerReturnsOnCall == nil {
+		fake.createBuildContainerReturnsOnCall = make(map[int]struct {
+			result1 dbng.CreatingContainer
+			result2 error
+		})
+	}
+	fake.createBuildContainerReturnsOnCall[i] = struct {
 		result1 dbng.CreatingContainer
 		result2 error
 	}{result1, result2}

@@ -20,6 +20,11 @@ type FakeWorkerFactory struct {
 		result2 bool
 		result3 error
 	}
+	getWorkerReturnsOnCall map[int]struct {
+		result1 dbng.Worker
+		result2 bool
+		result3 error
+	}
 	SaveWorkerStub        func(atcWorker atc.Worker, ttl time.Duration) (dbng.Worker, error)
 	saveWorkerMutex       sync.RWMutex
 	saveWorkerArgsForCall []struct {
@@ -27,6 +32,10 @@ type FakeWorkerFactory struct {
 		ttl       time.Duration
 	}
 	saveWorkerReturns struct {
+		result1 dbng.Worker
+		result2 error
+	}
+	saveWorkerReturnsOnCall map[int]struct {
 		result1 dbng.Worker
 		result2 error
 	}
@@ -40,10 +49,18 @@ type FakeWorkerFactory struct {
 		result1 dbng.Worker
 		result2 error
 	}
+	heartbeatWorkerReturnsOnCall map[int]struct {
+		result1 dbng.Worker
+		result2 error
+	}
 	WorkersStub        func() ([]dbng.Worker, error)
 	workersMutex       sync.RWMutex
 	workersArgsForCall []struct{}
 	workersReturns     struct {
+		result1 []dbng.Worker
+		result2 error
+	}
+	workersReturnsOnCall map[int]struct {
 		result1 []dbng.Worker
 		result2 error
 	}
@@ -53,6 +70,7 @@ type FakeWorkerFactory struct {
 
 func (fake *FakeWorkerFactory) GetWorker(name string) (dbng.Worker, bool, error) {
 	fake.getWorkerMutex.Lock()
+	ret, specificReturn := fake.getWorkerReturnsOnCall[len(fake.getWorkerArgsForCall)]
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
 		name string
 	}{name})
@@ -60,6 +78,9 @@ func (fake *FakeWorkerFactory) GetWorker(name string) (dbng.Worker, bool, error)
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
 		return fake.GetWorkerStub(name)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 }
@@ -85,8 +106,25 @@ func (fake *FakeWorkerFactory) GetWorkerReturns(result1 dbng.Worker, result2 boo
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerFactory) GetWorkerReturnsOnCall(i int, result1 dbng.Worker, result2 bool, result3 error) {
+	fake.GetWorkerStub = nil
+	if fake.getWorkerReturnsOnCall == nil {
+		fake.getWorkerReturnsOnCall = make(map[int]struct {
+			result1 dbng.Worker
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getWorkerReturnsOnCall[i] = struct {
+		result1 dbng.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (dbng.Worker, error) {
 	fake.saveWorkerMutex.Lock()
+	ret, specificReturn := fake.saveWorkerReturnsOnCall[len(fake.saveWorkerArgsForCall)]
 	fake.saveWorkerArgsForCall = append(fake.saveWorkerArgsForCall, struct {
 		atcWorker atc.Worker
 		ttl       time.Duration
@@ -95,6 +133,9 @@ func (fake *FakeWorkerFactory) SaveWorker(atcWorker atc.Worker, ttl time.Duratio
 	fake.saveWorkerMutex.Unlock()
 	if fake.SaveWorkerStub != nil {
 		return fake.SaveWorkerStub(atcWorker, ttl)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 }
@@ -119,8 +160,23 @@ func (fake *FakeWorkerFactory) SaveWorkerReturns(result1 dbng.Worker, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerFactory) SaveWorkerReturnsOnCall(i int, result1 dbng.Worker, result2 error) {
+	fake.SaveWorkerStub = nil
+	if fake.saveWorkerReturnsOnCall == nil {
+		fake.saveWorkerReturnsOnCall = make(map[int]struct {
+			result1 dbng.Worker
+			result2 error
+		})
+	}
+	fake.saveWorkerReturnsOnCall[i] = struct {
+		result1 dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Duration) (dbng.Worker, error) {
 	fake.heartbeatWorkerMutex.Lock()
+	ret, specificReturn := fake.heartbeatWorkerReturnsOnCall[len(fake.heartbeatWorkerArgsForCall)]
 	fake.heartbeatWorkerArgsForCall = append(fake.heartbeatWorkerArgsForCall, struct {
 		worker atc.Worker
 		ttl    time.Duration
@@ -129,6 +185,9 @@ func (fake *FakeWorkerFactory) HeartbeatWorker(worker atc.Worker, ttl time.Durat
 	fake.heartbeatWorkerMutex.Unlock()
 	if fake.HeartbeatWorkerStub != nil {
 		return fake.HeartbeatWorkerStub(worker, ttl)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.heartbeatWorkerReturns.result1, fake.heartbeatWorkerReturns.result2
 }
@@ -153,13 +212,31 @@ func (fake *FakeWorkerFactory) HeartbeatWorkerReturns(result1 dbng.Worker, resul
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerFactory) HeartbeatWorkerReturnsOnCall(i int, result1 dbng.Worker, result2 error) {
+	fake.HeartbeatWorkerStub = nil
+	if fake.heartbeatWorkerReturnsOnCall == nil {
+		fake.heartbeatWorkerReturnsOnCall = make(map[int]struct {
+			result1 dbng.Worker
+			result2 error
+		})
+	}
+	fake.heartbeatWorkerReturnsOnCall[i] = struct {
+		result1 dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerFactory) Workers() ([]dbng.Worker, error) {
 	fake.workersMutex.Lock()
+	ret, specificReturn := fake.workersReturnsOnCall[len(fake.workersArgsForCall)]
 	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
 	fake.recordInvocation("Workers", []interface{}{})
 	fake.workersMutex.Unlock()
 	if fake.WorkersStub != nil {
 		return fake.WorkersStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.workersReturns.result1, fake.workersReturns.result2
 }
@@ -173,6 +250,20 @@ func (fake *FakeWorkerFactory) WorkersCallCount() int {
 func (fake *FakeWorkerFactory) WorkersReturns(result1 []dbng.Worker, result2 error) {
 	fake.WorkersStub = nil
 	fake.workersReturns = struct {
+		result1 []dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorkerFactory) WorkersReturnsOnCall(i int, result1 []dbng.Worker, result2 error) {
+	fake.WorkersStub = nil
+	if fake.workersReturnsOnCall == nil {
+		fake.workersReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Worker
+			result2 error
+		})
+	}
+	fake.workersReturnsOnCall[i] = struct {
 		result1 []dbng.Worker
 		result2 error
 	}{result1, result2}

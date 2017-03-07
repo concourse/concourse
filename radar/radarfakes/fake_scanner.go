@@ -21,6 +21,10 @@ type FakeScanner struct {
 		result1 time.Duration
 		result2 error
 	}
+	runReturnsOnCall map[int]struct {
+		result1 time.Duration
+		result2 error
+	}
 	ScanStub        func(lager.Logger, string) error
 	scanMutex       sync.RWMutex
 	scanArgsForCall []struct {
@@ -28,6 +32,9 @@ type FakeScanner struct {
 		arg2 string
 	}
 	scanReturns struct {
+		result1 error
+	}
+	scanReturnsOnCall map[int]struct {
 		result1 error
 	}
 	ScanFromVersionStub        func(lager.Logger, string, atc.Version) error
@@ -40,12 +47,16 @@ type FakeScanner struct {
 	scanFromVersionReturns struct {
 		result1 error
 	}
+	scanFromVersionReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeScanner) Run(arg1 lager.Logger, arg2 string) (time.Duration, error) {
 	fake.runMutex.Lock()
+	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
@@ -54,6 +65,9 @@ func (fake *FakeScanner) Run(arg1 lager.Logger, arg2 string) (time.Duration, err
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
 		return fake.RunStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.runReturns.result1, fake.runReturns.result2
 }
@@ -78,8 +92,23 @@ func (fake *FakeScanner) RunReturns(result1 time.Duration, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeScanner) RunReturnsOnCall(i int, result1 time.Duration, result2 error) {
+	fake.RunStub = nil
+	if fake.runReturnsOnCall == nil {
+		fake.runReturnsOnCall = make(map[int]struct {
+			result1 time.Duration
+			result2 error
+		})
+	}
+	fake.runReturnsOnCall[i] = struct {
+		result1 time.Duration
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeScanner) Scan(arg1 lager.Logger, arg2 string) error {
 	fake.scanMutex.Lock()
+	ret, specificReturn := fake.scanReturnsOnCall[len(fake.scanArgsForCall)]
 	fake.scanArgsForCall = append(fake.scanArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
@@ -88,6 +117,9 @@ func (fake *FakeScanner) Scan(arg1 lager.Logger, arg2 string) error {
 	fake.scanMutex.Unlock()
 	if fake.ScanStub != nil {
 		return fake.ScanStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.scanReturns.result1
 }
@@ -111,8 +143,21 @@ func (fake *FakeScanner) ScanReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeScanner) ScanReturnsOnCall(i int, result1 error) {
+	fake.ScanStub = nil
+	if fake.scanReturnsOnCall == nil {
+		fake.scanReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.scanReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeScanner) ScanFromVersion(arg1 lager.Logger, arg2 string, arg3 atc.Version) error {
 	fake.scanFromVersionMutex.Lock()
+	ret, specificReturn := fake.scanFromVersionReturnsOnCall[len(fake.scanFromVersionArgsForCall)]
 	fake.scanFromVersionArgsForCall = append(fake.scanFromVersionArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
@@ -122,6 +167,9 @@ func (fake *FakeScanner) ScanFromVersion(arg1 lager.Logger, arg2 string, arg3 at
 	fake.scanFromVersionMutex.Unlock()
 	if fake.ScanFromVersionStub != nil {
 		return fake.ScanFromVersionStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.scanFromVersionReturns.result1
 }
@@ -141,6 +189,18 @@ func (fake *FakeScanner) ScanFromVersionArgsForCall(i int) (lager.Logger, string
 func (fake *FakeScanner) ScanFromVersionReturns(result1 error) {
 	fake.ScanFromVersionStub = nil
 	fake.scanFromVersionReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeScanner) ScanFromVersionReturnsOnCall(i int, result1 error) {
+	fake.ScanFromVersionStub = nil
+	if fake.scanFromVersionReturnsOnCall == nil {
+		fake.scanFromVersionReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.scanFromVersionReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

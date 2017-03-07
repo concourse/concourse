@@ -236,7 +236,7 @@ var _ = Describe("Team", func() {
 				dbng.ForResource{defaultResource.ID},
 				"some-base-resource-type",
 				atc.Source{"some": "source"},
-				dbng.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -330,7 +330,7 @@ var _ = Describe("Team", func() {
 				dbng.ForResource{defaultResource.ID},
 				"some-base-resource-type",
 				atc.Source{"some": "source"},
-				dbng.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -429,7 +429,7 @@ var _ = Describe("Team", func() {
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{"some": "params"},
-				dbng.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})

@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("Factory Try Step", func() {
 	var (
-		resourceTypes atc.ResourceTypes
+		resourceTypes atc.VersionedResourceTypes
 
 		buildFactory        factory.BuildFactory
 		actualPlanFactory   atc.PlanFactory
@@ -23,11 +23,14 @@ var _ = Describe("Factory Try Step", func() {
 		expectedPlanFactory = atc.NewPlanFactory(123)
 		buildFactory = factory.NewBuildFactory(42, actualPlanFactory)
 
-		resourceTypes = atc.ResourceTypes{
+		resourceTypes = atc.VersionedResourceTypes{
 			{
-				Name:   "some-custom-resource",
-				Type:   "docker-image",
-				Source: atc.Source{"some": "custom-source"},
+				ResourceType: atc.ResourceType{
+					Name:   "some-custom-resource",
+					Type:   "docker-image",
+					Source: atc.Source{"some": "custom-source"},
+				},
+				Version: atc.Version{"some": "version"},
 			},
 		}
 	})
@@ -51,15 +54,15 @@ var _ = Describe("Factory Try Step", func() {
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 				expectedPlanFactory.NewPlan(atc.TryPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:          "first task",
-						PipelineID:    42,
-						ResourceTypes: resourceTypes,
+						Name:                   "first task",
+						PipelineID:             42,
+						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:          "second task",
-					PipelineID:    42,
-					ResourceTypes: resourceTypes,
+					Name:                   "second task",
+					PipelineID:             42,
+					VersionedResourceTypes: resourceTypes,
 				}),
 			})
 

@@ -28,7 +28,7 @@ type resourceInstance struct {
 	source                 atc.Source
 	params                 atc.Params
 	resourceUser           dbng.ResourceUser
-	resourceTypes          dbng.ResourceTypes
+	resourceTypes          atc.VersionedResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
@@ -38,7 +38,7 @@ func NewResourceInstance(
 	source atc.Source,
 	params atc.Params,
 	resourceUser dbng.ResourceUser,
-	resourceTypes dbng.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) ResourceInstance {
 	return &resourceInstance{

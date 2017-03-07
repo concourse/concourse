@@ -65,7 +65,7 @@ var _ = Describe("GardenFactory", func() {
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 			tags           []string
-			resourceTypes  atc.ResourceTypes
+			resourceTypes  atc.VersionedResourceTypes
 
 			inStep *execfakes.FakeStep
 			repo   *worker.ArtifactRepository
@@ -91,11 +91,14 @@ var _ = Describe("GardenFactory", func() {
 			inStep = new(execfakes.FakeStep)
 			repo = worker.NewArtifactRepository()
 
-			resourceTypes = atc.ResourceTypes{
+			resourceTypes = atc.VersionedResourceTypes{
 				{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "source"},
+					ResourceType: atc.ResourceType{
+						Name:   "custom-resource",
+						Type:   "custom-type",
+						Source: atc.Source{"some-custom": "source"},
+					},
+					Version: atc.Version{"some-custom": "version"},
 				},
 			}
 		})
@@ -179,13 +182,7 @@ var _ = Describe("GardenFactory", func() {
 						TeamID:    123,
 						Env:       []string{"a=1", "b=2"},
 					}))
-					Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
-						{
-							Name:   "custom-resource",
-							Type:   "custom-type",
-							Source: atc.Source{"some-custom": "source"},
-						},
-					}))
+					Expect(actualResourceTypes).To(Equal(resourceTypes))
 					Expect(delegate).To(Equal(putDelegate))
 
 					Expect([]string{

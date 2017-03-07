@@ -17,12 +17,16 @@ type FakeImageResourceFetcherFactory struct {
 	imageResourceFetcherForReturns struct {
 		result1 image.ImageResourceFetcher
 	}
+	imageResourceFetcherForReturnsOnCall map[int]struct {
+		result1 image.ImageResourceFetcher
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherFor(arg1 worker.Worker) image.ImageResourceFetcher {
 	fake.imageResourceFetcherForMutex.Lock()
+	ret, specificReturn := fake.imageResourceFetcherForReturnsOnCall[len(fake.imageResourceFetcherForArgsForCall)]
 	fake.imageResourceFetcherForArgsForCall = append(fake.imageResourceFetcherForArgsForCall, struct {
 		arg1 worker.Worker
 	}{arg1})
@@ -30,6 +34,9 @@ func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherFor(arg1 worker
 	fake.imageResourceFetcherForMutex.Unlock()
 	if fake.ImageResourceFetcherForStub != nil {
 		return fake.ImageResourceFetcherForStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.imageResourceFetcherForReturns.result1
 }
@@ -49,6 +56,18 @@ func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherForArgsForCall(
 func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherForReturns(result1 image.ImageResourceFetcher) {
 	fake.ImageResourceFetcherForStub = nil
 	fake.imageResourceFetcherForReturns = struct {
+		result1 image.ImageResourceFetcher
+	}{result1}
+}
+
+func (fake *FakeImageResourceFetcherFactory) ImageResourceFetcherForReturnsOnCall(i int, result1 image.ImageResourceFetcher) {
+	fake.ImageResourceFetcherForStub = nil
+	if fake.imageResourceFetcherForReturnsOnCall == nil {
+		fake.imageResourceFetcherForReturnsOnCall = make(map[int]struct {
+			result1 image.ImageResourceFetcher
+		})
+	}
+	fake.imageResourceFetcherForReturnsOnCall[i] = struct {
 		result1 image.ImageResourceFetcher
 	}{result1}
 }

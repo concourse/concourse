@@ -14,7 +14,7 @@ var _ = Describe("Factory Task", func() {
 			buildFactory factory.BuildFactory
 
 			resources           atc.ResourceConfigs
-			resourceTypes       atc.ResourceTypes
+			resourceTypes       atc.VersionedResourceTypes
 			input               atc.JobConfig
 			actualPlanFactory   atc.PlanFactory
 			expectedPlanFactory atc.PlanFactory
@@ -34,11 +34,14 @@ var _ = Describe("Factory Task", func() {
 				},
 			}
 
-			resourceTypes = atc.ResourceTypes{
+			resourceTypes = atc.VersionedResourceTypes{
 				{
-					Name:   "some-custom-resource",
-					Type:   "docker-image",
-					Source: atc.Source{"some": "custom-source"},
+					ResourceType: atc.ResourceType{
+						Name:   "some-custom-resource",
+						Type:   "docker-image",
+						Source: atc.Source{"some": "custom-source"},
+					},
+					Version: atc.Version{"some": "version"},
 				},
 			}
 		})
@@ -65,10 +68,10 @@ var _ = Describe("Factory Task", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:          "some-task",
-					PipelineID:    42,
-					ResourceTypes: resourceTypes,
-					Params:        params,
+					Name:                   "some-task",
+					PipelineID:             42,
+					VersionedResourceTypes: resourceTypes,
+					Params:                 params,
 				})
 				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
@@ -105,9 +108,9 @@ var _ = Describe("Factory Task", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:          "some-task",
-					PipelineID:    42,
-					ResourceTypes: resourceTypes,
+					Name:                   "some-task",
+					PipelineID:             42,
+					VersionedResourceTypes: resourceTypes,
 					InputMapping: map[string]string{
 						"bosh-release": "concourse-release",
 					},
@@ -159,9 +162,9 @@ var _ = Describe("Factory Task", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:          "some-task",
-					PipelineID:    42,
-					ResourceTypes: resourceTypes,
+					Name:                   "some-task",
+					PipelineID:             42,
+					VersionedResourceTypes: resourceTypes,
 					OutputMapping: map[string]string{
 						"bosh-release": "concourse-release",
 					},

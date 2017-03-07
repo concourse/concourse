@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/atc/dbng"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -59,7 +58,7 @@ var _ = Describe("Fetcher", func() {
 			Session{},
 			atc.Tags{},
 			teamID,
-			dbng.ResourceTypes{},
+			atc.VersionedResourceTypes{},
 			new(resourcefakes.FakeResourceInstance),
 			EmptyMetadata{},
 			new(workerfakes.FakeImageFetchingDelegate),

@@ -24,8 +24,10 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceFactory *rfakes.FakeResourceFactory
 		fakeRadarDB         *radarfakes.FakeRadarDB
 		fakeDBPipeline      *dbngfakes.FakePipeline
-		fakeResourceType    *dbngfakes.FakeResourceType
 		interval            time.Duration
+
+		fakeResourceType      *dbngfakes.FakeResourceType
+		versionedResourceType atc.VersionedResourceType
 
 		scanner Scanner
 
@@ -39,6 +41,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		interval = 1 * time.Minute
+
+		fakeDBPipeline = new(dbngfakes.FakePipeline)
 
 		scanner = NewResourceTypeScanner(
 			fakeResourceFactory,
@@ -69,7 +73,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		fakeRadarDB.GetResourceTypeReturns(savedResourceType, true, nil)
 
-		fakeDBPipeline = new(dbngfakes.FakePipeline)
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.TeamIDReturns(teamID)
 
@@ -79,7 +82,16 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceType.TypeReturns("docker-image")
 		fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
 		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
-		fakeDBPipeline.ResourceTypesReturns(dbng.ResourceTypes{fakeResourceType}, nil)
+		fakeDBPipeline.ResourceTypesReturns([]dbng.ResourceType{fakeResourceType}, nil)
+
+		versionedResourceType = atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name:   "some-custom-resource",
+				Type:   "docker-image",
+				Source: atc.Source{"custom": "source"},
+			},
+			Version: atc.Version{"custom": "version"},
+		}
 	})
 
 	Describe("Run", func() {
@@ -138,7 +150,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					WorkingDirectory:     "",
 					EnvironmentVariables: nil,
 				}))
-				Expect(customTypes).To(Equal(dbng.ResourceTypes{fakeResourceType}))
+				Expect(customTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "docker-image",

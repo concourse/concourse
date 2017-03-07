@@ -4,13 +4,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
 )
 
 func (p *pipeline) AcquireResourceCheckingLock(
 	logger lager.Logger,
 	resource *Resource,
-	resourceTypes ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	interval time.Duration,
 	immediate bool,
 ) (lock.Lock, bool, error) {

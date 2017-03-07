@@ -13,7 +13,7 @@ var _ = Describe("Factory Get", func() {
 		buildFactory factory.BuildFactory
 
 		resources           atc.ResourceConfigs
-		resourceTypes       atc.ResourceTypes
+		resourceTypes       atc.VersionedResourceTypes
 		input               atc.JobConfig
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
@@ -32,11 +32,14 @@ var _ = Describe("Factory Get", func() {
 			},
 		}
 
-		resourceTypes = atc.ResourceTypes{
+		resourceTypes = atc.VersionedResourceTypes{
 			{
-				Name:   "some-custom-resource",
-				Type:   "docker-image",
-				Source: atc.Source{"some": "custom-source"},
+				ResourceType: atc.ResourceType{
+					Name:   "some-custom-resource",
+					Type:   "docker-image",
+					Source: atc.Source{"some": "custom-source"},
+				},
+				Version: atc.Version{"some": "version"},
 			},
 		}
 	})
@@ -65,7 +68,7 @@ var _ = Describe("Factory Get", func() {
 				Source: atc.Source{
 					"uri": "git://some-resource",
 				},
-				ResourceTypes: resourceTypes,
+				VersionedResourceTypes: resourceTypes,
 			})
 			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})

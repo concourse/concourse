@@ -18,7 +18,7 @@ type BuildStarter interface {
 		logger lager.Logger,
 		jobConfig atc.JobConfig,
 		resourceConfigs atc.ResourceConfigs,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		nextPendingBuilds []db.Build,
 	) error
 }
@@ -43,7 +43,7 @@ type BuildStarterBuildsDB interface {
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes, []db.BuildInput) (atc.Plan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 func NewBuildStarter(
@@ -77,7 +77,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	logger lager.Logger,
 	jobConfig atc.JobConfig,
 	resourceConfigs atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	nextPendingBuildsForJob []db.Build,
 ) error {
 	for _, nextPendingBuild := range nextPendingBuildsForJob {
@@ -99,7 +99,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	nextPendingBuild db.Build,
 	jobConfig atc.JobConfig,
 	resourceConfigs atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (bool, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
 		"build-id":   nextPendingBuild.ID(),

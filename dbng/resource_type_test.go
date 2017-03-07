@@ -36,7 +36,7 @@ var _ = Describe("ResourceType", func() {
 	})
 
 	Describe("(Pipeline).ResourceTypes", func() {
-		var resourceTypes dbng.ResourceTypes
+		var resourceTypes []dbng.ResourceType
 
 		JustBeforeEach(func() {
 			var err error
@@ -47,21 +47,26 @@ var _ = Describe("ResourceType", func() {
 		It("returns the resource types", func() {
 			Expect(resourceTypes).To(HaveLen(2))
 
-			someType, found := resourceTypes.Lookup("some-type")
-			Expect(found).To(BeTrue())
-			Expect(someType.Name()).To(Equal("some-type"))
-			Expect(someType.Type()).To(Equal("docker-image"))
-			Expect(someType.Source()).To(Equal(atc.Source{"some": "repository"}))
-			Expect(someType.Version()).To(BeNil())
+			ids := map[int]struct{}{}
 
-			someOtherType, found := resourceTypes.Lookup("some-other-type")
-			Expect(found).To(BeTrue())
-			Expect(someOtherType.Name()).To(Equal("some-other-type"))
-			Expect(someOtherType.Type()).To(Equal("docker-image-ng"))
-			Expect(someOtherType.Source()).To(Equal(atc.Source{"some": "other-repository"}))
-			Expect(someOtherType.Version()).To(BeNil())
+			for _, t := range resourceTypes {
+				ids[t.ID()] = struct{}{}
 
-			Expect(someOtherType.ID()).ToNot(Equal(someType.ID()))
+				switch t.Name() {
+				case "some-type":
+					Expect(t.Name()).To(Equal("some-type"))
+					Expect(t.Type()).To(Equal("docker-image"))
+					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
+					Expect(t.Version()).To(BeNil())
+				case "some-other-type":
+					Expect(t.Name()).To(Equal("some-other-type"))
+					Expect(t.Type()).To(Equal("docker-image-ng"))
+					Expect(t.Source()).To(Equal(atc.Source{"some": "other-repository"}))
+					Expect(t.Version()).To(BeNil())
+				}
+			}
+
+			Expect(ids).To(HaveLen(2))
 		})
 
 		Context("when a resource type becomes inactive", func() {
@@ -87,9 +92,7 @@ var _ = Describe("ResourceType", func() {
 
 			It("does not return inactive resource types", func() {
 				Expect(resourceTypes).To(HaveLen(1))
-
-				_, found := resourceTypes.Lookup("some-type")
-				Expect(found).To(BeTrue())
+				Expect(resourceTypes[0].Name()).To(Equal("some-type"))
 			})
 		})
 	})

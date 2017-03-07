@@ -25,10 +25,19 @@ type FakeSchedulerDB struct {
 		result2 bool
 		result3 error
 	}
+	acquireSchedulingLockReturnsOnCall map[int]struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
 	LoadVersionsDBStub        func() (*algorithm.VersionsDB, error)
 	loadVersionsDBMutex       sync.RWMutex
 	loadVersionsDBArgsForCall []struct{}
 	loadVersionsDBReturns     struct {
+		result1 *algorithm.VersionsDB
+		result2 error
+	}
+	loadVersionsDBReturnsOnCall map[int]struct {
 		result1 *algorithm.VersionsDB
 		result2 error
 	}
@@ -38,6 +47,9 @@ type FakeSchedulerDB struct {
 	getPipelineNameReturns     struct {
 		result1 string
 	}
+	getPipelineNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	ReloadStub        func() (bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct{}
@@ -45,10 +57,17 @@ type FakeSchedulerDB struct {
 		result1 bool
 		result2 error
 	}
+	reloadReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	ConfigStub        func() atc.Config
 	configMutex       sync.RWMutex
 	configArgsForCall []struct{}
 	configReturns     struct {
+		result1 atc.Config
+	}
+	configReturnsOnCall map[int]struct {
 		result1 atc.Config
 	}
 	CreateJobBuildStub        func(job string) (db.Build, error)
@@ -60,6 +79,10 @@ type FakeSchedulerDB struct {
 		result1 db.Build
 		result2 error
 	}
+	createJobBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 error
+	}
 	EnsurePendingBuildExistsStub        func(jobName string) error
 	ensurePendingBuildExistsMutex       sync.RWMutex
 	ensurePendingBuildExistsArgsForCall []struct {
@@ -68,10 +91,17 @@ type FakeSchedulerDB struct {
 	ensurePendingBuildExistsReturns struct {
 		result1 error
 	}
+	ensurePendingBuildExistsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	GetAllPendingBuildsStub        func() (map[string][]db.Build, error)
 	getAllPendingBuildsMutex       sync.RWMutex
 	getAllPendingBuildsArgsForCall []struct{}
 	getAllPendingBuildsReturns     struct {
+		result1 map[string][]db.Build
+		result2 error
+	}
+	getAllPendingBuildsReturnsOnCall map[int]struct {
 		result1 map[string][]db.Build
 		result2 error
 	}
@@ -84,12 +114,17 @@ type FakeSchedulerDB struct {
 		result1 []db.Build
 		result2 error
 	}
+	getPendingBuildsForJobReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeSchedulerDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
 	fake.acquireSchedulingLockMutex.Lock()
+	ret, specificReturn := fake.acquireSchedulingLockReturnsOnCall[len(fake.acquireSchedulingLockArgsForCall)]
 	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 time.Duration
@@ -98,6 +133,9 @@ func (fake *FakeSchedulerDB) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.
 	fake.acquireSchedulingLockMutex.Unlock()
 	if fake.AcquireSchedulingLockStub != nil {
 		return fake.AcquireSchedulingLockStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.acquireSchedulingLockReturns.result1, fake.acquireSchedulingLockReturns.result2, fake.acquireSchedulingLockReturns.result3
 }
@@ -123,13 +161,33 @@ func (fake *FakeSchedulerDB) AcquireSchedulingLockReturns(result1 lock.Lock, res
 	}{result1, result2, result3}
 }
 
+func (fake *FakeSchedulerDB) AcquireSchedulingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireSchedulingLockStub = nil
+	if fake.acquireSchedulingLockReturnsOnCall == nil {
+		fake.acquireSchedulingLockReturnsOnCall = make(map[int]struct {
+			result1 lock.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.acquireSchedulingLockReturnsOnCall[i] = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeSchedulerDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	fake.loadVersionsDBMutex.Lock()
+	ret, specificReturn := fake.loadVersionsDBReturnsOnCall[len(fake.loadVersionsDBArgsForCall)]
 	fake.loadVersionsDBArgsForCall = append(fake.loadVersionsDBArgsForCall, struct{}{})
 	fake.recordInvocation("LoadVersionsDB", []interface{}{})
 	fake.loadVersionsDBMutex.Unlock()
 	if fake.LoadVersionsDBStub != nil {
 		return fake.LoadVersionsDBStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
 }
@@ -148,13 +206,31 @@ func (fake *FakeSchedulerDB) LoadVersionsDBReturns(result1 *algorithm.VersionsDB
 	}{result1, result2}
 }
 
+func (fake *FakeSchedulerDB) LoadVersionsDBReturnsOnCall(i int, result1 *algorithm.VersionsDB, result2 error) {
+	fake.LoadVersionsDBStub = nil
+	if fake.loadVersionsDBReturnsOnCall == nil {
+		fake.loadVersionsDBReturnsOnCall = make(map[int]struct {
+			result1 *algorithm.VersionsDB
+			result2 error
+		})
+	}
+	fake.loadVersionsDBReturnsOnCall[i] = struct {
+		result1 *algorithm.VersionsDB
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeSchedulerDB) GetPipelineName() string {
 	fake.getPipelineNameMutex.Lock()
+	ret, specificReturn := fake.getPipelineNameReturnsOnCall[len(fake.getPipelineNameArgsForCall)]
 	fake.getPipelineNameArgsForCall = append(fake.getPipelineNameArgsForCall, struct{}{})
 	fake.recordInvocation("GetPipelineName", []interface{}{})
 	fake.getPipelineNameMutex.Unlock()
 	if fake.GetPipelineNameStub != nil {
 		return fake.GetPipelineNameStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.getPipelineNameReturns.result1
 }
@@ -172,13 +248,29 @@ func (fake *FakeSchedulerDB) GetPipelineNameReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeSchedulerDB) GetPipelineNameReturnsOnCall(i int, result1 string) {
+	fake.GetPipelineNameStub = nil
+	if fake.getPipelineNameReturnsOnCall == nil {
+		fake.getPipelineNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.getPipelineNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeSchedulerDB) Reload() (bool, error) {
 	fake.reloadMutex.Lock()
+	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
 	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
 	fake.recordInvocation("Reload", []interface{}{})
 	fake.reloadMutex.Unlock()
 	if fake.ReloadStub != nil {
 		return fake.ReloadStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.reloadReturns.result1, fake.reloadReturns.result2
 }
@@ -197,13 +289,31 @@ func (fake *FakeSchedulerDB) ReloadReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeSchedulerDB) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.ReloadStub = nil
+	if fake.reloadReturnsOnCall == nil {
+		fake.reloadReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.reloadReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeSchedulerDB) Config() atc.Config {
 	fake.configMutex.Lock()
+	ret, specificReturn := fake.configReturnsOnCall[len(fake.configArgsForCall)]
 	fake.configArgsForCall = append(fake.configArgsForCall, struct{}{})
 	fake.recordInvocation("Config", []interface{}{})
 	fake.configMutex.Unlock()
 	if fake.ConfigStub != nil {
 		return fake.ConfigStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.configReturns.result1
 }
@@ -221,8 +331,21 @@ func (fake *FakeSchedulerDB) ConfigReturns(result1 atc.Config) {
 	}{result1}
 }
 
+func (fake *FakeSchedulerDB) ConfigReturnsOnCall(i int, result1 atc.Config) {
+	fake.ConfigStub = nil
+	if fake.configReturnsOnCall == nil {
+		fake.configReturnsOnCall = make(map[int]struct {
+			result1 atc.Config
+		})
+	}
+	fake.configReturnsOnCall[i] = struct {
+		result1 atc.Config
+	}{result1}
+}
+
 func (fake *FakeSchedulerDB) CreateJobBuild(job string) (db.Build, error) {
 	fake.createJobBuildMutex.Lock()
+	ret, specificReturn := fake.createJobBuildReturnsOnCall[len(fake.createJobBuildArgsForCall)]
 	fake.createJobBuildArgsForCall = append(fake.createJobBuildArgsForCall, struct {
 		job string
 	}{job})
@@ -230,6 +353,9 @@ func (fake *FakeSchedulerDB) CreateJobBuild(job string) (db.Build, error) {
 	fake.createJobBuildMutex.Unlock()
 	if fake.CreateJobBuildStub != nil {
 		return fake.CreateJobBuildStub(job)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 }
@@ -254,8 +380,23 @@ func (fake *FakeSchedulerDB) CreateJobBuildReturns(result1 db.Build, result2 err
 	}{result1, result2}
 }
 
+func (fake *FakeSchedulerDB) CreateJobBuildReturnsOnCall(i int, result1 db.Build, result2 error) {
+	fake.CreateJobBuildStub = nil
+	if fake.createJobBuildReturnsOnCall == nil {
+		fake.createJobBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 error
+		})
+	}
+	fake.createJobBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeSchedulerDB) EnsurePendingBuildExists(jobName string) error {
 	fake.ensurePendingBuildExistsMutex.Lock()
+	ret, specificReturn := fake.ensurePendingBuildExistsReturnsOnCall[len(fake.ensurePendingBuildExistsArgsForCall)]
 	fake.ensurePendingBuildExistsArgsForCall = append(fake.ensurePendingBuildExistsArgsForCall, struct {
 		jobName string
 	}{jobName})
@@ -263,6 +404,9 @@ func (fake *FakeSchedulerDB) EnsurePendingBuildExists(jobName string) error {
 	fake.ensurePendingBuildExistsMutex.Unlock()
 	if fake.EnsurePendingBuildExistsStub != nil {
 		return fake.EnsurePendingBuildExistsStub(jobName)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.ensurePendingBuildExistsReturns.result1
 }
@@ -286,13 +430,29 @@ func (fake *FakeSchedulerDB) EnsurePendingBuildExistsReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeSchedulerDB) EnsurePendingBuildExistsReturnsOnCall(i int, result1 error) {
+	fake.EnsurePendingBuildExistsStub = nil
+	if fake.ensurePendingBuildExistsReturnsOnCall == nil {
+		fake.ensurePendingBuildExistsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.ensurePendingBuildExistsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeSchedulerDB) GetAllPendingBuilds() (map[string][]db.Build, error) {
 	fake.getAllPendingBuildsMutex.Lock()
+	ret, specificReturn := fake.getAllPendingBuildsReturnsOnCall[len(fake.getAllPendingBuildsArgsForCall)]
 	fake.getAllPendingBuildsArgsForCall = append(fake.getAllPendingBuildsArgsForCall, struct{}{})
 	fake.recordInvocation("GetAllPendingBuilds", []interface{}{})
 	fake.getAllPendingBuildsMutex.Unlock()
 	if fake.GetAllPendingBuildsStub != nil {
 		return fake.GetAllPendingBuildsStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.getAllPendingBuildsReturns.result1, fake.getAllPendingBuildsReturns.result2
 }
@@ -311,8 +471,23 @@ func (fake *FakeSchedulerDB) GetAllPendingBuildsReturns(result1 map[string][]db.
 	}{result1, result2}
 }
 
+func (fake *FakeSchedulerDB) GetAllPendingBuildsReturnsOnCall(i int, result1 map[string][]db.Build, result2 error) {
+	fake.GetAllPendingBuildsStub = nil
+	if fake.getAllPendingBuildsReturnsOnCall == nil {
+		fake.getAllPendingBuildsReturnsOnCall = make(map[int]struct {
+			result1 map[string][]db.Build
+			result2 error
+		})
+	}
+	fake.getAllPendingBuildsReturnsOnCall[i] = struct {
+		result1 map[string][]db.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeSchedulerDB) GetPendingBuildsForJob(jobName string) ([]db.Build, error) {
 	fake.getPendingBuildsForJobMutex.Lock()
+	ret, specificReturn := fake.getPendingBuildsForJobReturnsOnCall[len(fake.getPendingBuildsForJobArgsForCall)]
 	fake.getPendingBuildsForJobArgsForCall = append(fake.getPendingBuildsForJobArgsForCall, struct {
 		jobName string
 	}{jobName})
@@ -320,6 +495,9 @@ func (fake *FakeSchedulerDB) GetPendingBuildsForJob(jobName string) ([]db.Build,
 	fake.getPendingBuildsForJobMutex.Unlock()
 	if fake.GetPendingBuildsForJobStub != nil {
 		return fake.GetPendingBuildsForJobStub(jobName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.getPendingBuildsForJobReturns.result1, fake.getPendingBuildsForJobReturns.result2
 }
@@ -339,6 +517,20 @@ func (fake *FakeSchedulerDB) GetPendingBuildsForJobArgsForCall(i int) string {
 func (fake *FakeSchedulerDB) GetPendingBuildsForJobReturns(result1 []db.Build, result2 error) {
 	fake.GetPendingBuildsForJobStub = nil
 	fake.getPendingBuildsForJobReturns = struct {
+		result1 []db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeSchedulerDB) GetPendingBuildsForJobReturnsOnCall(i int, result1 []db.Build, result2 error) {
+	fake.GetPendingBuildsForJobStub = nil
+	if fake.getPendingBuildsForJobReturnsOnCall == nil {
+		fake.getPendingBuildsForJobReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 error
+		})
+	}
+	fake.getPendingBuildsForJobReturnsOnCall[i] = struct {
 		result1 []db.Build
 		result2 error
 	}{result1, result2}

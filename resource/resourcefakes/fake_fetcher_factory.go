@@ -17,12 +17,16 @@ type FakeFetcherFactory struct {
 	fetcherForReturns struct {
 		result1 resource.Fetcher
 	}
+	fetcherForReturnsOnCall map[int]struct {
+		result1 resource.Fetcher
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeFetcherFactory) FetcherFor(workerClient worker.Client) resource.Fetcher {
 	fake.fetcherForMutex.Lock()
+	ret, specificReturn := fake.fetcherForReturnsOnCall[len(fake.fetcherForArgsForCall)]
 	fake.fetcherForArgsForCall = append(fake.fetcherForArgsForCall, struct {
 		workerClient worker.Client
 	}{workerClient})
@@ -30,6 +34,9 @@ func (fake *FakeFetcherFactory) FetcherFor(workerClient worker.Client) resource.
 	fake.fetcherForMutex.Unlock()
 	if fake.FetcherForStub != nil {
 		return fake.FetcherForStub(workerClient)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.fetcherForReturns.result1
 }
@@ -49,6 +56,18 @@ func (fake *FakeFetcherFactory) FetcherForArgsForCall(i int) worker.Client {
 func (fake *FakeFetcherFactory) FetcherForReturns(result1 resource.Fetcher) {
 	fake.FetcherForStub = nil
 	fake.fetcherForReturns = struct {
+		result1 resource.Fetcher
+	}{result1}
+}
+
+func (fake *FakeFetcherFactory) FetcherForReturnsOnCall(i int, result1 resource.Fetcher) {
+	fake.FetcherForStub = nil
+	if fake.fetcherForReturnsOnCall == nil {
+		fake.fetcherForReturnsOnCall = make(map[int]struct {
+			result1 resource.Fetcher
+		})
+	}
+	fake.fetcherForReturnsOnCall[i] = struct {
 		result1 resource.Fetcher
 	}{result1}
 }

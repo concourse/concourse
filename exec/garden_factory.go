@@ -46,7 +46,7 @@ func (factory *gardenFactory) DependentGet(
 	tags atc.Tags,
 	teamID int,
 	params atc.Params,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) StepFactory {
 	return newDependentGetStep(
 		logger,
@@ -80,7 +80,7 @@ func (factory *gardenFactory) Get(
 	teamID int,
 	params atc.Params,
 	version atc.Version,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 	return newGetStep(
@@ -122,7 +122,7 @@ func (factory *gardenFactory) Put(
 	tags atc.Tags,
 	teamID int,
 	params atc.Params,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 	return newPutStep(
@@ -153,7 +153,7 @@ func (factory *gardenFactory) Task(
 	tags atc.Tags,
 	teamID int,
 	configSource TaskConfigSource,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
 	imageArtifactName string,

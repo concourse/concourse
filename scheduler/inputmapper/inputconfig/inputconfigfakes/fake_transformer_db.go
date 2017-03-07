@@ -21,12 +21,18 @@ type FakeTransformerDB struct {
 		result2 bool
 		result3 error
 	}
+	getVersionedResourceByVersionReturnsOnCall map[int]struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTransformerDB) GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (db.SavedVersionedResource, bool, error) {
 	fake.getVersionedResourceByVersionMutex.Lock()
+	ret, specificReturn := fake.getVersionedResourceByVersionReturnsOnCall[len(fake.getVersionedResourceByVersionArgsForCall)]
 	fake.getVersionedResourceByVersionArgsForCall = append(fake.getVersionedResourceByVersionArgsForCall, struct {
 		atcVersion   atc.Version
 		resourceName string
@@ -35,6 +41,9 @@ func (fake *FakeTransformerDB) GetVersionedResourceByVersion(atcVersion atc.Vers
 	fake.getVersionedResourceByVersionMutex.Unlock()
 	if fake.GetVersionedResourceByVersionStub != nil {
 		return fake.GetVersionedResourceByVersionStub(atcVersion, resourceName)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getVersionedResourceByVersionReturns.result1, fake.getVersionedResourceByVersionReturns.result2, fake.getVersionedResourceByVersionReturns.result3
 }
@@ -54,6 +63,22 @@ func (fake *FakeTransformerDB) GetVersionedResourceByVersionArgsForCall(i int) (
 func (fake *FakeTransformerDB) GetVersionedResourceByVersionReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {
 	fake.GetVersionedResourceByVersionStub = nil
 	fake.getVersionedResourceByVersionReturns = struct {
+		result1 db.SavedVersionedResource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTransformerDB) GetVersionedResourceByVersionReturnsOnCall(i int, result1 db.SavedVersionedResource, result2 bool, result3 error) {
+	fake.GetVersionedResourceByVersionStub = nil
+	if fake.getVersionedResourceByVersionReturnsOnCall == nil {
+		fake.getVersionedResourceByVersionReturnsOnCall = make(map[int]struct {
+			result1 db.SavedVersionedResource
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getVersionedResourceByVersionReturnsOnCall[i] = struct {
 		result1 db.SavedVersionedResource
 		result2 bool
 		result3 error

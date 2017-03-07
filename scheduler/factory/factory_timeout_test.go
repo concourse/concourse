@@ -10,7 +10,7 @@ import (
 
 var _ = Describe("Factory Timeout Step", func() {
 	var (
-		resourceTypes atc.ResourceTypes
+		resourceTypes atc.VersionedResourceTypes
 
 		buildFactory        factory.BuildFactory
 		actualPlanFactory   atc.PlanFactory
@@ -22,11 +22,14 @@ var _ = Describe("Factory Timeout Step", func() {
 		expectedPlanFactory = atc.NewPlanFactory(321)
 		buildFactory = factory.NewBuildFactory(42, actualPlanFactory)
 
-		resourceTypes = atc.ResourceTypes{
+		resourceTypes = atc.VersionedResourceTypes{
 			{
-				Name:   "some-custom-resource",
-				Type:   "docker-image",
-				Source: atc.Source{"some": "custom-source"},
+				ResourceType: atc.ResourceType{
+					Name:   "some-custom-resource",
+					Type:   "docker-image",
+					Source: atc.Source{"some": "custom-source"},
+				},
+				Version: atc.Version{"some": "version"},
 			},
 		}
 	})
@@ -46,9 +49,9 @@ var _ = Describe("Factory Timeout Step", func() {
 			expected := expectedPlanFactory.NewPlan(atc.TimeoutPlan{
 				Duration: "10s",
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:          "first task",
-					PipelineID:    42,
-					ResourceTypes: resourceTypes,
+					Name:                   "first task",
+					PipelineID:             42,
+					VersionedResourceTypes: resourceTypes,
 				}),
 			})
 

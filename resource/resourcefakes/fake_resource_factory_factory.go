@@ -17,12 +17,16 @@ type FakeResourceFactoryFactory struct {
 	factoryForReturns struct {
 		result1 resource.ResourceFactory
 	}
+	factoryForReturnsOnCall map[int]struct {
+		result1 resource.ResourceFactory
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeResourceFactoryFactory) FactoryFor(workerClient worker.Client) resource.ResourceFactory {
 	fake.factoryForMutex.Lock()
+	ret, specificReturn := fake.factoryForReturnsOnCall[len(fake.factoryForArgsForCall)]
 	fake.factoryForArgsForCall = append(fake.factoryForArgsForCall, struct {
 		workerClient worker.Client
 	}{workerClient})
@@ -30,6 +34,9 @@ func (fake *FakeResourceFactoryFactory) FactoryFor(workerClient worker.Client) r
 	fake.factoryForMutex.Unlock()
 	if fake.FactoryForStub != nil {
 		return fake.FactoryForStub(workerClient)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.factoryForReturns.result1
 }
@@ -49,6 +56,18 @@ func (fake *FakeResourceFactoryFactory) FactoryForArgsForCall(i int) worker.Clie
 func (fake *FakeResourceFactoryFactory) FactoryForReturns(result1 resource.ResourceFactory) {
 	fake.FactoryForStub = nil
 	fake.factoryForReturns = struct {
+		result1 resource.ResourceFactory
+	}{result1}
+}
+
+func (fake *FakeResourceFactoryFactory) FactoryForReturnsOnCall(i int, result1 resource.ResourceFactory) {
+	fake.FactoryForStub = nil
+	if fake.factoryForReturnsOnCall == nil {
+		fake.factoryForReturnsOnCall = make(map[int]struct {
+			result1 resource.ResourceFactory
+		})
+	}
+	fake.factoryForReturnsOnCall[i] = struct {
 		result1 resource.ResourceFactory
 	}{result1}
 }

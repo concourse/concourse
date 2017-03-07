@@ -113,7 +113,7 @@ type ContainerProvider interface {
 		id Identifier,
 		metadata Metadata,
 		spec ContainerSpec,
-		resourceTypes dbng.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		outputPaths map[string]string,
 	) (Container, error)
 
@@ -125,7 +125,7 @@ type ContainerProvider interface {
 		id Identifier,
 		metadata Metadata,
 		spec ContainerSpec,
-		resourceTypes dbng.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		resourceType string,
 		source atc.Source,
 	) (Container, error)
@@ -138,7 +138,7 @@ type ContainerProvider interface {
 		id Identifier,
 		metadata Metadata,
 		spec ContainerSpec,
-		resourceTypes dbng.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		outputPaths map[string]string,
 		resourceTypeName string,
 		version atc.Version,
@@ -175,7 +175,7 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes dbng.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
 	return p.findOrCreateContainer(
@@ -217,7 +217,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes dbng.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
@@ -278,7 +278,7 @@ func (p *containerProvider) CreateResourceGetContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes dbng.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	outputPaths map[string]string,
 	resourceTypeName string,
 	version atc.Version,
@@ -380,7 +380,7 @@ func (p *containerProvider) findOrCreateContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes dbng.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	outputPaths map[string]string,
 	findContainerFunc func() (dbng.CreatingContainer, dbng.CreatedContainer, error),
 	createContainerFunc func() (dbng.CreatingContainer, error),

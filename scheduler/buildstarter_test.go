@@ -55,9 +55,19 @@ var _ = Describe("I'm a BuildStarter", func() {
 		var tryStartErr error
 		var createdBuild *dbfakes.FakeBuild
 		var jobConfig atc.JobConfig
+		var versionedResourceTypes atc.VersionedResourceTypes
+
+		BeforeEach(func() {
+			versionedResourceTypes = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{Name: "some-resource-type"},
+					Version:      atc.Version{"some": "version"},
+				},
+			}
+		})
 
 		Context("when manually triggered", func() {
-			JustBeforeEach(func() {
+			BeforeEach(func() {
 				jobConfig = atc.JobConfig{Name: "some-job", Plan: atc.PlanSequence{{Get: "input-1"}, {Get: "input-2"}}}
 
 				createdBuild = new(dbfakes.FakeBuild)
@@ -65,12 +75,14 @@ var _ = Describe("I'm a BuildStarter", func() {
 				createdBuild.IsManuallyTriggeredReturns(true)
 
 				pendingBuilds = []db.Build{createdBuild}
+			})
 
+			JustBeforeEach(func() {
 				tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 					lagertest.NewTestLogger("test"),
 					jobConfig,
 					atc.ResourceConfigs{{Name: "some-resource"}},
-					atc.ResourceTypes{{Name: "some-resource-type"}},
+					versionedResourceTypes,
 					pendingBuilds,
 				)
 			})
@@ -225,7 +237,12 @@ var _ = Describe("I'm a BuildStarter", func() {
 					lagertest.NewTestLogger("test"),
 					atc.JobConfig{Name: "some-job"},
 					atc.ResourceConfigs{{Name: "some-resource"}},
-					atc.ResourceTypes{{Name: "some-resource-type"}},
+					atc.VersionedResourceTypes{
+						{
+							ResourceType: atc.ResourceType{Name: "some-resource-type"},
+							Version:      atc.Version{"some": "version"},
+						},
+					},
 					pendingBuilds,
 				)
 			})
@@ -357,7 +374,7 @@ var _ = Describe("I'm a BuildStarter", func() {
 									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
 									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
-									Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
+									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 								})
 
@@ -399,19 +416,19 @@ var _ = Describe("I'm a BuildStarter", func() {
 									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
 									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
-									Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
+									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
 									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
 									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
-									Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
+									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
 									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(2)
 									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
-									Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
+									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 								})
 
