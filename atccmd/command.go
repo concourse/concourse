@@ -317,7 +317,16 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	members := []grouper.Member{
-		{"drainer", drainer{logger.Session("drain"), drain, bus}},
+		{"drainer", drainer{
+			logger: logger.Session("drain"),
+			drain:  drain,
+			tracker: builds.NewTracker(
+				logger.Session("build-tracker"),
+				sqlDB,
+				engine,
+			),
+			bus: bus,
+		}},
 
 		{"debug", http_server.New(
 			cmd.debugBindAddr(),
@@ -346,6 +355,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Interval:  10 * time.Second,
 			Clock:     clock.NewClock(),
 			DrainCh:   drain,
+			Logger:    logger.Session("tracker-runner"),
 		}},
 
 		{"collector", lockrunner.NewRunner(

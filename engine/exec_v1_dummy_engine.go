@@ -28,6 +28,9 @@ func (execV1DummyEngine) LookupBuild(logger lager.Logger, build db.Build) (Build
 	return execV1DummyBuild{}, nil
 }
 
+func (execV1DummyEngine) ReleaseAll(lager.Logger) {
+}
+
 type execV1DummyBuild struct {
 }
 

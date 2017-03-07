@@ -13,6 +13,7 @@ type Engine interface {
 
 	CreateBuild(lager.Logger, db.Build, atc.Plan) (Build, error)
 	LookupBuild(lager.Logger, db.Build) (Build, error)
+	ReleaseAll(lager.Logger)
 }
 
 //go:generate counterfeiter . Build

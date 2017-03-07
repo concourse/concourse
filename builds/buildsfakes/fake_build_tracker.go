@@ -8,11 +8,14 @@ import (
 )
 
 type FakeBuildTracker struct {
-	TrackStub        func()
-	trackMutex       sync.RWMutex
-	trackArgsForCall []struct{}
-	invocations      map[string][][]interface{}
-	invocationsMutex sync.RWMutex
+	TrackStub          func()
+	trackMutex         sync.RWMutex
+	trackArgsForCall   []struct{}
+	ReleaseStub        func()
+	releaseMutex       sync.RWMutex
+	releaseArgsForCall []struct{}
+	invocations        map[string][][]interface{}
+	invocationsMutex   sync.RWMutex
 }
 
 func (fake *FakeBuildTracker) Track() {
@@ -31,11 +34,29 @@ func (fake *FakeBuildTracker) TrackCallCount() int {
 	return len(fake.trackArgsForCall)
 }
 
+func (fake *FakeBuildTracker) Release() {
+	fake.releaseMutex.Lock()
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
+	fake.recordInvocation("Release", []interface{}{})
+	fake.releaseMutex.Unlock()
+	if fake.ReleaseStub != nil {
+		fake.ReleaseStub()
+	}
+}
+
+func (fake *FakeBuildTracker) ReleaseCallCount() int {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return len(fake.releaseArgsForCall)
+}
+
 func (fake *FakeBuildTracker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.trackMutex.RLock()
 	defer fake.trackMutex.RUnlock()
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
 	return fake.invocations
 }
 
