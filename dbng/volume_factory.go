@@ -296,9 +296,9 @@ func (factory *volumeFactory) GetOrphanedVolumes() ([]CreatedVolume, []Destroyin
 			"v.container_id":                 nil,
 		}).
 		Where(sq.Or{
-			sq.Eq{"w.state": WorkerStateRunning},
-			sq.Eq{"w.state": WorkerStateLanding},
-			sq.Eq{"w.state": WorkerStateRetiring},
+			sq.Eq{"w.state": string(WorkerStateRunning)},
+			sq.Eq{"w.state": string(WorkerStateLanding)},
+			sq.Eq{"w.state": string(WorkerStateRetiring)},
 		}).
 		ToSql()
 	if err != nil {
