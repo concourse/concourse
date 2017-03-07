@@ -20,8 +20,7 @@ var _ = Describe("WorkerResourceCache", func() {
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{},
-				defaultPipeline.ID(),
-				atc.ResourceTypes{},
+				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 
