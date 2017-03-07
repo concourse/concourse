@@ -14,8 +14,8 @@ import (
 	uuid "github.com/nu7hatch/gouuid"
 )
 
-var ErrConfigComparisonFailed = errors.New("comparison-with-existing-config-failed-during-save")
-var ErrTeamDisappeared = errors.New("team-disappeared")
+var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
+var ErrTeamDisappeared = errors.New("team disappeared")
 
 //go:generate counterfeiter . Team
 
@@ -37,12 +37,14 @@ type Team interface {
 
 	FindContainerByHandle(string) (CreatedContainer, bool, error)
 
-	FindResourceCheckContainer(workerName string, resourceConfig *UsedResourceConfig) (CreatingContainer, CreatedContainer, error)
+	FindWorkerForResourceCheckContainer(resourceConfig *UsedResourceConfig) (Worker, bool, error)
+	FindResourceCheckContainerOnWorker(workerName string, resourceConfig *UsedResourceConfig) (CreatingContainer, CreatedContainer, error)
 	CreateResourceCheckContainer(workerName string, resourceConfig *UsedResourceConfig) (CreatingContainer, error)
 
 	CreateResourceGetContainer(workerName string, resourceConfig *UsedResourceCache, stepName string) (CreatingContainer, error)
 
-	FindBuildContainer(workerName string, buildID int, planID atc.PlanID, meta ContainerMetadata) (CreatingContainer, CreatedContainer, error)
+	FindWorkerForBuildContainer(buildID int, planID atc.PlanID) (Worker, bool, error)
+	FindBuildContainerOnWorker(workerName string, buildID int, planID atc.PlanID) (CreatingContainer, CreatedContainer, error)
 	CreateBuildContainer(workerName string, buildID int, planID atc.PlanID, meta ContainerMetadata) (CreatingContainer, error)
 }
 
@@ -61,7 +63,20 @@ func (t *team) Workers() ([]Worker, error) {
 	}))
 }
 
-func (t *team) FindResourceCheckContainer(
+func (t *team) FindWorkerForResourceCheckContainer(
+	resourceConfig *UsedResourceConfig,
+) (Worker, bool, error) {
+	return getWorker(t.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
+		sq.Eq{"c.resource_config_id": resourceConfig.ID},
+		sq.Or{
+			sq.Eq{"c.best_if_used_by": nil},
+			sq.Expr("c.best_if_used_by > NOW()"),
+		},
+		sq.Eq{"c.team_id": t.id},
+	}))
+}
+
+func (t *team) FindResourceCheckContainerOnWorker(
 	workerName string,
 	resourceConfig *UsedResourceConfig,
 ) (CreatingContainer, CreatedContainer, error) {
@@ -139,29 +154,6 @@ func (t *team) CreateResourceCheckContainer(
 	}, nil
 }
 
-func (t *team) findBaseResourceTypeID(resourceConfig *UsedResourceConfig) *UsedBaseResourceType {
-	if resourceConfig.CreatedByBaseResourceType != nil {
-		return resourceConfig.CreatedByBaseResourceType
-	} else {
-		return t.findBaseResourceTypeID(resourceConfig.CreatedByResourceCache.ResourceConfig)
-	}
-}
-
-func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResourceType, workerName string, tx Tx) (*int, error) {
-	var wbrtID int
-
-	err := psql.Select("id").From("worker_base_resource_types").Where(sq.Eq{
-		"worker_name":           workerName,
-		"base_resource_type_id": usedBaseResourceType.ID,
-	}).RunWith(tx).QueryRow().Scan(&wbrtID)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &wbrtID, nil
-}
-
 func (t *team) CreateResourceGetContainer(
 	workerName string,
 	resourceCache *UsedResourceCache,
@@ -235,11 +227,21 @@ func (t *team) CreateResourceGetContainer(
 	}, nil
 }
 
-func (t *team) FindBuildContainer(
+func (t *team) FindWorkerForBuildContainer(
+	buildID int,
+	planID atc.PlanID,
+) (Worker, bool, error) {
+	return getWorker(t.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
+		sq.Eq{"c.build_id": buildID},
+		sq.Eq{"c.plan_id": string(planID)},
+		sq.Eq{"c.team_id": t.id},
+	}))
+}
+
+func (t *team) FindBuildContainerOnWorker(
 	workerName string,
 	buildID int,
 	planID atc.PlanID,
-	meta ContainerMetadata,
 ) (CreatingContainer, CreatedContainer, error) {
 	return t.findContainer(sq.And{
 		sq.Eq{"worker_name": workerName},
@@ -432,12 +434,12 @@ func (t *team) SavePipeline(
 			`, payload, pausedState.Bool(), pipelineName, from, t.id))
 		}
 
-		if err != nil && err != sql.ErrNoRows {
-			return nil, false, err
-		}
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, false, ErrConfigComparisonFailed
+			}
 
-		if savedPipeline.ID() == 0 {
-			return nil, false, ErrConfigComparisonFailed
+			return nil, false, err
 		}
 
 		_, err = tx.Exec(`
@@ -831,10 +833,35 @@ func (t *team) scanPipeline(rows scannable) (*pipeline, error) {
 	}
 
 	return &pipeline{
-		id:     id,
-		teamID: teamID,
+		id:            id,
+		name:          name,
+		configVersion: ConfigVersion(version),
+		teamID:        teamID,
 
 		conn:        t.conn,
 		lockFactory: t.lockFactory,
 	}, nil
+}
+
+func (t *team) findBaseResourceTypeID(resourceConfig *UsedResourceConfig) *UsedBaseResourceType {
+	if resourceConfig.CreatedByBaseResourceType != nil {
+		return resourceConfig.CreatedByBaseResourceType
+	} else {
+		return t.findBaseResourceTypeID(resourceConfig.CreatedByResourceCache.ResourceConfig)
+	}
+}
+
+func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResourceType, workerName string, tx Tx) (*int, error) {
+	var wbrtID int
+
+	err := psql.Select("id").From("worker_base_resource_types").Where(sq.Eq{
+		"worker_name":           workerName,
+		"base_resource_type_id": usedBaseResourceType.ID,
+	}).RunWith(tx).QueryRow().Scan(&wbrtID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &wbrtID, nil
 }

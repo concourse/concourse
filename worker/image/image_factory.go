@@ -35,7 +35,7 @@ func (f *imageFactory) GetImage(
 	resourceUser dbng.ResourceUser,
 	id worker.Identifier,
 	metadata worker.Metadata,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
 		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(worker)

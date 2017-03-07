@@ -56,7 +56,7 @@ type TaskStep struct {
 	workerPool        worker.Client
 	resourceFactory   resource.ResourceFactory
 	artifactsRoot     string
-	resourceTypes     atc.ResourceTypes
+	resourceTypes     atc.VersionedResourceTypes
 	inputMapping      map[string]string
 	outputMapping     map[string]string
 	imageArtifactName string
@@ -80,7 +80,7 @@ func newTaskStep(
 	workerPool worker.Client,
 	resourceFactory resource.ResourceFactory,
 	artifactsRoot string,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
 	imageArtifactName string,

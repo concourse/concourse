@@ -17,7 +17,7 @@ type FetchSourceProviderFactory interface {
 		metadata Metadata,
 		tags atc.Tags,
 		teamID int,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		resourceInstance ResourceInstance,
 		resourceOptions ResourceOptions,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -55,7 +55,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 	metadata Metadata,
 	tags atc.Tags,
 	teamID int,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	resourceInstance ResourceInstance,
 	resourceOptions ResourceOptions,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -80,7 +80,7 @@ type fetchSourceProvider struct {
 	metadata              Metadata
 	tags                  atc.Tags
 	teamID                int
-	resourceTypes         atc.ResourceTypes
+	resourceTypes         atc.VersionedResourceTypes
 	resourceInstance      ResourceInstance
 	resourceOptions       ResourceOptions
 	workerClient          worker.Client

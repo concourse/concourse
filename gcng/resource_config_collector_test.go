@@ -49,8 +49,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 					atc.Source{
 						"some": "source",
 					},
-					defaultPipeline.ID(),
-					atc.ResourceTypes{},
+					atc.VersionedResourceTypes{},
 				)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -84,8 +83,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 							"some": "source",
 						},
 						nil,
-						defaultPipeline.ID(),
-						atc.ResourceTypes{},
+						atc.VersionedResourceTypes{},
 					)
 					Expect(err).NotTo(HaveOccurred())
 

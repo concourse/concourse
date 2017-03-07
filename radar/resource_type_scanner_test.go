@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/worker"
@@ -22,7 +23,11 @@ var _ = Describe("ResourceTypeScanner", func() {
 	var (
 		fakeResourceFactory *rfakes.FakeResourceFactory
 		fakeRadarDB         *radarfakes.FakeRadarDB
+		fakeDBPipeline      *dbngfakes.FakePipeline
 		interval            time.Duration
+
+		fakeResourceType      *dbngfakes.FakeResourceType
+		versionedResourceType atc.VersionedResourceType
 
 		scanner Scanner
 
@@ -37,11 +42,13 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		interval = 1 * time.Minute
 
-		fakeRadarDB.GetPipelineIDReturns(42)
+		fakeDBPipeline = new(dbngfakes.FakePipeline)
+
 		scanner = NewResourceTypeScanner(
 			fakeResourceFactory,
 			interval,
 			fakeRadarDB,
+			fakeDBPipeline,
 			"https://www.example.com",
 		)
 
@@ -50,15 +57,6 @@ var _ = Describe("ResourceTypeScanner", func() {
 		}
 
 		fakeRadarDB.ReloadReturns(true, nil)
-		fakeRadarDB.ConfigReturns(atc.Config{
-			ResourceTypes: atc.ResourceTypes{
-				{
-					Name:   "some-resource-type",
-					Type:   "docker-image",
-					Source: atc.Source{"custom": "source"},
-				},
-			},
-		})
 
 		savedResourceType = db.SavedResourceType{
 			ID:   39,
@@ -70,11 +68,30 @@ var _ = Describe("ResourceTypeScanner", func() {
 				Source: atc.Source{"custom": "source"},
 			},
 		}
-		fakeRadarDB.TeamIDReturns(teamID)
 
 		fakeLock = &lockfakes.FakeLock{}
 
 		fakeRadarDB.GetResourceTypeReturns(savedResourceType, true, nil)
+
+		fakeDBPipeline.IDReturns(42)
+		fakeDBPipeline.TeamIDReturns(teamID)
+
+		fakeResourceType = new(dbngfakes.FakeResourceType)
+		fakeResourceType.IDReturns(1)
+		fakeResourceType.NameReturns("some-custom-resource")
+		fakeResourceType.TypeReturns("docker-image")
+		fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
+		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
+		fakeDBPipeline.ResourceTypesReturns([]dbng.ResourceType{fakeResourceType}, nil)
+
+		versionedResourceType = atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name:   "some-custom-resource",
+				Type:   "docker-image",
+				Source: atc.Source{"custom": "source"},
+			},
+			Version: atc.Version{"custom": "version"},
+		}
 	})
 
 	Describe("Run", func() {
@@ -133,13 +150,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					WorkingDirectory:     "",
 					EnvironmentVariables: nil,
 				}))
-				Expect(customTypes).To(Equal(atc.ResourceTypes{
-					atc.ResourceType{
-						Name:   "some-resource-type",
-						Type:   "docker-image",
-						Source: atc.Source{"custom": "source"},
-					},
-				}))
+				Expect(customTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "docker-image",

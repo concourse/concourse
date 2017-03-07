@@ -28,8 +28,7 @@ type resourceInstance struct {
 	source                 atc.Source
 	params                 atc.Params
 	resourceUser           dbng.ResourceUser
-	pipelineID             int
-	resourceTypes          atc.ResourceTypes
+	resourceTypes          atc.VersionedResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
@@ -39,8 +38,7 @@ func NewResourceInstance(
 	source atc.Source,
 	params atc.Params,
 	resourceUser dbng.ResourceUser,
-	pipelineID int,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) ResourceInstance {
 	return &resourceInstance{
@@ -49,7 +47,6 @@ func NewResourceInstance(
 		source:                 source,
 		params:                 params,
 		resourceUser:           resourceUser,
-		pipelineID:             pipelineID,
 		resourceTypes:          resourceTypes,
 		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
@@ -67,7 +64,6 @@ func (instance resourceInstance) CreateOn(logger lager.Logger, workerClient work
 		instance.version,
 		instance.source,
 		instance.params,
-		instance.pipelineID,
 		instance.resourceTypes,
 	)
 	if err != nil {
@@ -96,7 +92,6 @@ func (instance resourceInstance) FindInitializedOn(logger lager.Logger, workerCl
 		instance.version,
 		instance.source,
 		instance.params,
-		instance.pipelineID,
 		instance.resourceTypes,
 	)
 	if err != nil {

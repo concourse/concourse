@@ -14,18 +14,58 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
 )
 
 var _ = Describe("Jobs API", func() {
 	var pipelineDB *dbfakes.FakePipelineDB
+	var fakePipeline *dbngfakes.FakePipeline
 	var expectedSavedPipeline db.SavedPipeline
+	var versionedResourceTypes atc.VersionedResourceTypes
 
 	BeforeEach(func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		pipelineDBFactory.BuildReturns(pipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
 		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, true, nil)
+
+		fakePipeline = new(dbngfakes.FakePipeline)
+		dbPipelineFactory.GetPipelineByIDReturns(fakePipeline)
+
+		versionedResourceTypes = atc.VersionedResourceTypes{
+			atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-1",
+					Type:   "some-base-type-1",
+					Source: atc.Source{"some": "source-1"},
+				},
+				Version: atc.Version{"some": "version-1"},
+			},
+			atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-2",
+					Type:   "some-base-type-2",
+					Source: atc.Source{"some": "source-2"},
+				},
+				Version: atc.Version{"some": "version-2"},
+			},
+			atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-3",
+					Type:   "some-base-type-3",
+					Source: atc.Source{"some": "source-3"},
+				},
+				Version: atc.Version{"some": "version-3"},
+			},
+		}
+
+		fakePipeline.ResourceTypesReturns([]dbng.ResourceType{
+			fakeDBNGResourceType(versionedResourceTypes[0]),
+			fakeDBNGResourceType(versionedResourceTypes[1]),
+			fakeDBNGResourceType(versionedResourceTypes[2]),
+		}, nil)
 	})
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name", func() {
@@ -1187,9 +1227,6 @@ var _ = Describe("Jobs API", func() {
 							{Name: "resource-1", Type: "some-type"},
 							{Name: "resource-2", Type: "some-other-type"},
 						},
-						ResourceTypes: atc.ResourceTypes{
-							{Name: "custom-resource", Type: "custom-type"},
-						},
 					})
 				})
 
@@ -1223,9 +1260,7 @@ var _ = Describe("Jobs API", func() {
 							{Name: "resource-1", Type: "some-type"},
 							{Name: "resource-2", Type: "some-other-type"},
 						}))
-						Expect(resourceTypes).To(Equal(atc.ResourceTypes{
-							{Name: "custom-resource", Type: "custom-type"},
-						}))
+						Expect(resourceTypes).To(Equal(versionedResourceTypes))
 					})
 
 					It("returns 200 OK", func() {
@@ -1708,3 +1743,12 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 })
+
+func fakeDBNGResourceType(t atc.VersionedResourceType) *dbngfakes.FakeResourceType {
+	fake := new(dbngfakes.FakeResourceType)
+	fake.NameReturns(t.Name)
+	fake.TypeReturns(t.Type)
+	fake.SourceReturns(t.Source)
+	fake.VersionReturns(t.Version)
+	return fake
+}

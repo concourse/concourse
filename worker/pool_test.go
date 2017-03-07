@@ -79,7 +79,7 @@ var _ = Describe("Pool", func() {
 
 			satisfyingErr    error
 			satisfyingWorker Worker
-			resourceTypes    atc.ResourceTypes
+			resourceTypes    atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -87,11 +87,14 @@ var _ = Describe("Pool", func() {
 				Platform: "some-platform",
 				Tags:     []string{"step", "tags"},
 			}
-			resourceTypes = atc.ResourceTypes{
+			resourceTypes = atc.VersionedResourceTypes{
 				{
-					Name:   "some-resource-type",
-					Type:   "some-underlying-type",
-					Source: atc.Source{"some": "source"},
+					ResourceType: atc.ResourceType{
+						Name:   "some-resource-type",
+						Type:   "some-underlying-type",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
 				},
 			}
 		})
@@ -196,7 +199,7 @@ var _ = Describe("Pool", func() {
 
 			satisfyingErr     error
 			satisfyingWorkers []Worker
-			resourceTypes     atc.ResourceTypes
+			resourceTypes     atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -204,11 +207,14 @@ var _ = Describe("Pool", func() {
 				Platform: "some-platform",
 				Tags:     []string{"step", "tags"},
 			}
-			resourceTypes = atc.ResourceTypes{
+			resourceTypes = atc.VersionedResourceTypes{
 				{
-					Name:   "some-resource-type",
-					Type:   "some-underlying-type",
-					Source: atc.Source{"some": "source"},
+					ResourceType: atc.ResourceType{
+						Name:   "some-resource-type",
+						Type:   "some-underlying-type",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
 				},
 			}
 		})
@@ -369,7 +375,7 @@ var _ = Describe("Pool", func() {
 
 			createdContainer Container
 			createErr        error
-			resourceTypes    atc.ResourceTypes
+			resourceTypes    atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -378,31 +384,46 @@ var _ = Describe("Pool", func() {
 				ResourceID: 1234,
 			}
 			spec = ContainerSpec{ImageSpec: ImageSpec{ResourceType: "some-type"}}
-			resourceTypes = atc.ResourceTypes{
+			resourceTypes = atc.VersionedResourceTypes{
 				{
-					Name:   "custom-type-b",
-					Type:   "custom-type-a",
-					Source: atc.Source{"some": "source"},
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-b",
+						Type:   "custom-type-a",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
 				},
 				{
-					Name:   "custom-type-a",
-					Type:   "some-resource",
-					Source: atc.Source{"some": "source"},
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-a",
+						Type:   "some-resource",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
 				},
 				{
-					Name:   "custom-type-c",
-					Type:   "custom-type-b",
-					Source: atc.Source{"some": "source"},
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-c",
+						Type:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
 				},
 				{
-					Name:   "custom-type-d",
-					Type:   "custom-type-b",
-					Source: atc.Source{"some": "source"},
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-d",
+						Type:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
 				},
 				{
-					Name:   "unknown-custom-type",
-					Type:   "unknown-base-type",
-					Source: atc.Source{"some": "source"},
+					ResourceType: atc.ResourceType{
+						Name:   "unknown-custom-type",
+						Type:   "unknown-base-type",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
 				},
 			}
 		})

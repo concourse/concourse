@@ -27,7 +27,7 @@ var _ = Describe("FetchSourceProvider", func() {
 		metadata         = EmptyMetadata{}
 		session          = Session{}
 		tags             atc.Tags
-		resourceTypes    atc.ResourceTypes
+		resourceTypes    atc.VersionedResourceTypes
 		teamID           = 3
 	)
 
@@ -37,9 +37,14 @@ var _ = Describe("FetchSourceProvider", func() {
 		logger = lagertest.NewTestLogger("test")
 		resourceInstance = new(resourcefakes.FakeResourceInstance)
 		tags = atc.Tags{"some", "tags"}
-		resourceTypes = atc.ResourceTypes{
+		resourceTypes = atc.VersionedResourceTypes{
 			{
-				Name: "some-resource-type",
+				ResourceType: atc.ResourceType{
+					Name:   "some-resource-type",
+					Type:   "docker-image",
+					Source: atc.Source{"some": "repository"},
+				},
+				Version: atc.Version{"some": "version"},
 			},
 		}
 		resourceOptions = new(resourcefakes.FakeResourceOptions)

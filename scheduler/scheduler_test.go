@@ -45,12 +45,13 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("Schedule", func() {
 		var (
-			versionsDB            *algorithm.VersionsDB
-			jobConfigs            atc.JobConfigs
-			nextPendingBuilds     []db.Build
-			nextPendingBuildsJob1 []db.Build
-			nextPendingBuildsJob2 []db.Build
-			scheduleErr           error
+			versionsDB             *algorithm.VersionsDB
+			jobConfigs             atc.JobConfigs
+			nextPendingBuilds      []db.Build
+			nextPendingBuildsJob1  []db.Build
+			nextPendingBuildsJob2  []db.Build
+			scheduleErr            error
+			versionedResourceTypes atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -62,6 +63,13 @@ var _ = Describe("Scheduler", func() {
 				"some-job-1": nextPendingBuildsJob1,
 				"some-job-2": nextPendingBuildsJob2,
 			}, nil)
+
+			versionedResourceTypes = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{Name: "some-resource-type"},
+					Version:      atc.Version{"some": "version"},
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
@@ -73,7 +81,7 @@ var _ = Describe("Scheduler", func() {
 				versionsDB,
 				jobConfigs,
 				atc.ResourceConfigs{{Name: "some-resource"}},
-				atc.ResourceTypes{{Name: "some-resource-type"}},
+				versionedResourceTypes,
 			)
 			if waiter != nil {
 				waiter.Wait()
@@ -128,7 +136,7 @@ var _ = Describe("Scheduler", func() {
 						_, actualJob, actualResources, actualResourceTypes, actualPendingBuilds := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
 						Expect(actualJob).To(Equal(jobConfigs[0]))
 						Expect(actualResources).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
-						Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{{Name: "some-resource-type"}}))
+						Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 						Expect(actualPendingBuilds).To(Equal(nextPendingBuildsJob1))
 					})
 				})
@@ -250,7 +258,13 @@ var _ = Describe("Scheduler", func() {
 				lagertest.NewTestLogger("test"),
 				jobConfig,
 				atc.ResourceConfigs{{Name: "some-resource"}},
-				atc.ResourceTypes{{Name: "some-resource-type"}})
+				atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{Name: "some-resource-type"},
+						Version:      atc.Version{"some": "version"},
+					},
+				},
+			)
 			if waiter != nil {
 				waiter.Wait()
 			}

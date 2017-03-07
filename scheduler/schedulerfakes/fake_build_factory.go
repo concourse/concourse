@@ -10,12 +10,12 @@ import (
 )
 
 type FakeBuildFactory struct {
-	CreateStub        func(atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes, []db.BuildInput) (atc.Plan, error)
+	CreateStub        func(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 atc.JobConfig
 		arg2 atc.ResourceConfigs
-		arg3 atc.ResourceTypes
+		arg3 atc.VersionedResourceTypes
 		arg4 []db.BuildInput
 	}
 	createReturns struct {
@@ -26,7 +26,7 @@ type FakeBuildFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfigs, arg3 atc.ResourceTypes, arg4 []db.BuildInput) (atc.Plan, error) {
+func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfigs, arg3 atc.VersionedResourceTypes, arg4 []db.BuildInput) (atc.Plan, error) {
 	var arg4Copy []db.BuildInput
 	if arg4 != nil {
 		arg4Copy = make([]db.BuildInput, len(arg4))
@@ -36,7 +36,7 @@ func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfig
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 atc.JobConfig
 		arg2 atc.ResourceConfigs
-		arg3 atc.ResourceTypes
+		arg3 atc.VersionedResourceTypes
 		arg4 []db.BuildInput
 	}{arg1, arg2, arg3, arg4Copy})
 	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3, arg4Copy})
@@ -53,7 +53,7 @@ func (fake *FakeBuildFactory) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes, []db.BuildInput) {
+func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	return fake.createArgsForCall[i].arg1, fake.createArgsForCall[i].arg2, fake.createArgsForCall[i].arg3, fake.createArgsForCall[i].arg4

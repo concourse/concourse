@@ -11,13 +11,13 @@ import (
 )
 
 type FakeBuildStarter struct {
-	TryStartPendingBuildsForJobStub        func(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes, nextPendingBuilds []db.Build) error
+	TryStartPendingBuildsForJobStub        func(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes, nextPendingBuilds []db.Build) error
 	tryStartPendingBuildsForJobMutex       sync.RWMutex
 	tryStartPendingBuildsForJobArgsForCall []struct {
 		logger            lager.Logger
 		jobConfig         atc.JobConfig
 		resourceConfigs   atc.ResourceConfigs
-		resourceTypes     atc.ResourceTypes
+		resourceTypes     atc.VersionedResourceTypes
 		nextPendingBuilds []db.Build
 	}
 	tryStartPendingBuildsForJobReturns struct {
@@ -27,7 +27,7 @@ type FakeBuildStarter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes, nextPendingBuilds []db.Build) error {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes, nextPendingBuilds []db.Build) error {
 	var nextPendingBuildsCopy []db.Build
 	if nextPendingBuilds != nil {
 		nextPendingBuildsCopy = make([]db.Build, len(nextPendingBuilds))
@@ -38,7 +38,7 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(logger lager.Logger, j
 		logger            lager.Logger
 		jobConfig         atc.JobConfig
 		resourceConfigs   atc.ResourceConfigs
-		resourceTypes     atc.ResourceTypes
+		resourceTypes     atc.VersionedResourceTypes
 		nextPendingBuilds []db.Build
 	}{logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuildsCopy})
 	fake.recordInvocation("TryStartPendingBuildsForJob", []interface{}{logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuildsCopy})
@@ -55,7 +55,7 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCallCount() int {
 	return len(fake.tryStartPendingBuildsForJobArgsForCall)
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes, []db.Build) {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.Build) {
 	fake.tryStartPendingBuildsForJobMutex.RLock()
 	defer fake.tryStartPendingBuildsForJobMutex.RUnlock()
 	return fake.tryStartPendingBuildsForJobArgsForCall[i].logger, fake.tryStartPendingBuildsForJobArgsForCall[i].jobConfig, fake.tryStartPendingBuildsForJobArgsForCall[i].resourceConfigs, fake.tryStartPendingBuildsForJobArgsForCall[i].resourceTypes, fake.tryStartPendingBuildsForJobArgsForCall[i].nextPendingBuilds

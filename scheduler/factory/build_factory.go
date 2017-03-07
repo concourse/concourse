@@ -12,7 +12,7 @@ var ErrResourceNotFound = errors.New("resource not found")
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes, []db.BuildInput) (atc.Plan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type buildFactory struct {
@@ -30,7 +30,7 @@ func NewBuildFactory(pipelineID int, planFactory atc.PlanFactory) BuildFactory {
 func (factory *buildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	plan, err := factory.constructPlanFromJob(job, resources, resourceTypes, inputs)
@@ -50,7 +50,7 @@ func (factory *buildFactory) Create(
 func (factory *buildFactory) constructPlanFromJob(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	planSequence := job.Plan
@@ -70,7 +70,7 @@ func (factory *buildFactory) constructPlanFromJob(
 func (factory *buildFactory) do(
 	planSequence atc.PlanSequence,
 	resources atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	do := atc.DoPlan{}
@@ -96,7 +96,7 @@ func (factory *buildFactory) do(
 func (factory *buildFactory) constructPlanFromConfig(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	var plan atc.Plan
@@ -134,7 +134,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 func (factory *buildFactory) constructUnhookedPlan(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	var plan atc.Plan
@@ -166,25 +166,27 @@ func (factory *buildFactory) constructUnhookedPlan(
 		}
 
 		putPlan := atc.PutPlan{
-			Type:          resource.Type,
-			Name:          logicalName,
-			PipelineID:    factory.PipelineID,
-			Resource:      resourceName,
-			Source:        resource.Source,
-			Params:        planConfig.Params,
-			Tags:          planConfig.Tags,
-			ResourceTypes: resourceTypes,
+			Type:       resource.Type,
+			Name:       logicalName,
+			PipelineID: factory.PipelineID,
+			Resource:   resourceName,
+			Source:     resource.Source,
+			Params:     planConfig.Params,
+			Tags:       planConfig.Tags,
+
+			VersionedResourceTypes: resourceTypes,
 		}
 
 		dependentGetPlan := atc.DependentGetPlan{
-			Type:          resource.Type,
-			Name:          logicalName,
-			PipelineID:    factory.PipelineID,
-			Resource:      resourceName,
-			Params:        planConfig.GetParams,
-			Tags:          planConfig.Tags,
-			Source:        resource.Source,
-			ResourceTypes: resourceTypes,
+			Type:       resource.Type,
+			Name:       logicalName,
+			PipelineID: factory.PipelineID,
+			Resource:   resourceName,
+			Params:     planConfig.GetParams,
+			Tags:       planConfig.Tags,
+			Source:     resource.Source,
+
+			VersionedResourceTypes: resourceTypes,
 		}
 
 		plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
@@ -213,15 +215,16 @@ func (factory *buildFactory) constructUnhookedPlan(
 		}
 
 		plan = factory.planFactory.NewPlan(atc.GetPlan{
-			Type:          resource.Type,
-			Name:          name,
-			PipelineID:    factory.PipelineID,
-			Resource:      resourceName,
-			Source:        resource.Source,
-			Params:        planConfig.Params,
-			Version:       atc.Version(version),
-			Tags:          planConfig.Tags,
-			ResourceTypes: resourceTypes,
+			Type:       resource.Type,
+			Name:       name,
+			PipelineID: factory.PipelineID,
+			Resource:   resourceName,
+			Source:     resource.Source,
+			Params:     planConfig.Params,
+			Version:    atc.Version(version),
+			Tags:       planConfig.Tags,
+
+			VersionedResourceTypes: resourceTypes,
 		})
 
 	case planConfig.Task != "":
@@ -232,11 +235,12 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Config:            planConfig.TaskConfig,
 			ConfigPath:        planConfig.TaskConfigPath,
 			Tags:              planConfig.Tags,
-			ResourceTypes:     resourceTypes,
 			Params:            planConfig.Params,
 			InputMapping:      planConfig.InputMapping,
 			OutputMapping:     planConfig.OutputMapping,
 			ImageArtifactName: planConfig.ImageArtifactName,
+
+			VersionedResourceTypes: resourceTypes,
 		})
 	case planConfig.Try != nil:
 		nextStep, err := factory.constructPlanFromConfig(
@@ -287,7 +291,7 @@ type constructionParams struct {
 	plan          atc.Plan
 	hooks         atc.Hooks
 	resources     atc.ResourceConfigs
-	resourceTypes atc.ResourceTypes
+	resourceTypes atc.VersionedResourceTypes
 	inputs        []db.BuildInput
 }
 

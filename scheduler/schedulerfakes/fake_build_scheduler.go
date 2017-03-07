@@ -13,26 +13,26 @@ import (
 )
 
 type FakeBuildScheduler struct {
-	ScheduleStub        func(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (map[string]time.Duration, error)
+	ScheduleStub        func(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes) (map[string]time.Duration, error)
 	scheduleMutex       sync.RWMutex
 	scheduleArgsForCall []struct {
 		logger          lager.Logger
 		versions        *algorithm.VersionsDB
 		jobConfigs      atc.JobConfigs
 		resourceConfigs atc.ResourceConfigs
-		resourceTypes   atc.ResourceTypes
+		resourceTypes   atc.VersionedResourceTypes
 	}
 	scheduleReturns struct {
 		result1 map[string]time.Duration
 		result2 error
 	}
-	TriggerImmediatelyStub        func(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (db.Build, scheduler.Waiter, error)
+	TriggerImmediatelyStub        func(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes) (db.Build, scheduler.Waiter, error)
 	triggerImmediatelyMutex       sync.RWMutex
 	triggerImmediatelyArgsForCall []struct {
 		logger          lager.Logger
 		jobConfig       atc.JobConfig
 		resourceConfigs atc.ResourceConfigs
-		resourceTypes   atc.ResourceTypes
+		resourceTypes   atc.VersionedResourceTypes
 	}
 	triggerImmediatelyReturns struct {
 		result1 db.Build
@@ -52,14 +52,14 @@ type FakeBuildScheduler struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildScheduler) Schedule(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (map[string]time.Duration, error) {
+func (fake *FakeBuildScheduler) Schedule(logger lager.Logger, versions *algorithm.VersionsDB, jobConfigs atc.JobConfigs, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes) (map[string]time.Duration, error) {
 	fake.scheduleMutex.Lock()
 	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
 		logger          lager.Logger
 		versions        *algorithm.VersionsDB
 		jobConfigs      atc.JobConfigs
 		resourceConfigs atc.ResourceConfigs
-		resourceTypes   atc.ResourceTypes
+		resourceTypes   atc.VersionedResourceTypes
 	}{logger, versions, jobConfigs, resourceConfigs, resourceTypes})
 	fake.recordInvocation("Schedule", []interface{}{logger, versions, jobConfigs, resourceConfigs, resourceTypes})
 	fake.scheduleMutex.Unlock()
@@ -75,7 +75,7 @@ func (fake *FakeBuildScheduler) ScheduleCallCount() int {
 	return len(fake.scheduleArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfigs, atc.ResourceConfigs, atc.ResourceTypes) {
+func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfigs, atc.ResourceConfigs, atc.VersionedResourceTypes) {
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
 	return fake.scheduleArgsForCall[i].logger, fake.scheduleArgsForCall[i].versions, fake.scheduleArgsForCall[i].jobConfigs, fake.scheduleArgsForCall[i].resourceConfigs, fake.scheduleArgsForCall[i].resourceTypes
@@ -89,13 +89,13 @@ func (fake *FakeBuildScheduler) ScheduleReturns(result1 map[string]time.Duration
 	}{result1, result2}
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediately(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (db.Build, scheduler.Waiter, error) {
+func (fake *FakeBuildScheduler) TriggerImmediately(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes) (db.Build, scheduler.Waiter, error) {
 	fake.triggerImmediatelyMutex.Lock()
 	fake.triggerImmediatelyArgsForCall = append(fake.triggerImmediatelyArgsForCall, struct {
 		logger          lager.Logger
 		jobConfig       atc.JobConfig
 		resourceConfigs atc.ResourceConfigs
-		resourceTypes   atc.ResourceTypes
+		resourceTypes   atc.VersionedResourceTypes
 	}{logger, jobConfig, resourceConfigs, resourceTypes})
 	fake.recordInvocation("TriggerImmediately", []interface{}{logger, jobConfig, resourceConfigs, resourceTypes})
 	fake.triggerImmediatelyMutex.Unlock()
@@ -111,7 +111,7 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyCallCount() int {
 	return len(fake.triggerImmediatelyArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) {
+func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes) {
 	fake.triggerImmediatelyMutex.RLock()
 	defer fake.triggerImmediatelyMutex.RUnlock()
 	return fake.triggerImmediatelyArgsForCall[i].logger, fake.triggerImmediatelyArgsForCall[i].jobConfig, fake.triggerImmediatelyArgsForCall[i].resourceConfigs, fake.triggerImmediatelyArgsForCall[i].resourceTypes

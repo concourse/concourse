@@ -87,22 +87,6 @@ var _ = Describe("Volume", func() {
 		var createdVolume dbng.CreatedVolume
 
 		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-			resourceType := atc.ResourceType{
-				Name: "some-type",
-				Type: "some-base-resource-type",
-				Source: atc.Source{
-					"some-type": "source",
-				},
-			}
-			_, err = dbng.ResourceType{
-				ResourceType: resourceType,
-				PipelineID:   defaultPipeline.ID(),
-			}.Create(setupTx, atc.Version{"some-type": "version"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
 				dbng.ForBuild{defaultBuild.ID()},
@@ -112,9 +96,15 @@ var _ = Describe("Volume", func() {
 					"some": "source",
 				},
 				atc.Params{"some": "params"},
-				defaultPipeline.ID(),
-				atc.ResourceTypes{
-					resourceType,
+				atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:   "some-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some-type": "source"},
+						},
+						Version: atc.Version{"some-type": "version"},
+					},
 				},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -197,32 +187,22 @@ var _ = Describe("Volume", func() {
 
 	Context("when volume type is VolumeTypeResource", func() {
 		It("returns volume type, resource type, resource version", func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-			customResourceType := atc.ResourceType{
-				Name: "some-custom-type",
-				Type: "some-base-resource-type",
-				Source: atc.Source{
-					"some-custom-type": "source",
-				},
-			}
-			_, err = dbng.ResourceType{
-				ResourceType: customResourceType,
-				PipelineID:   defaultPipeline.ID(),
-			}.Create(setupTx, atc.Version{"some-custom-type": "version"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
 				dbng.ForBuild{defaultBuild.ID()},
-				"some-custom-type",
+				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{"some": "params"},
-				defaultPipeline.ID(),
-				atc.ResourceTypes{
-					customResourceType,
+				atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:   "some-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some-type": "source"},
+						},
+						Version: atc.Version{"some-custom-type": "version"},
+					},
 				},
 			)
 			Expect(err).NotTo(HaveOccurred())

@@ -21,6 +21,7 @@ func NewPipelineFactory(conn Conn, lockFactory lock.LockFactory) PipelineFactory
 }
 
 func (f *pipelineFactory) GetPipelineByID(teamID int, pipelineID int) Pipeline {
+	// XXX: construct a real one using the regular pipeline constructors; don't just set teamID etc inline
 	return &pipeline{
 		id:          pipelineID,
 		teamID:      teamID,

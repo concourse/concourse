@@ -51,6 +51,7 @@ var (
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	dbTeamFactory                 *dbngfakes.FakeTeamFactory
+	dbPipelineFactory             *dbngfakes.FakePipelineFactory
 	dbWorkerFactory               *dbngfakes.FakeWorkerFactory
 	dbWorkerLifecycle             *dbngfakes.FakeWorkerLifecycle
 	teamDB                        *dbfakes.FakeTeamDB
@@ -98,7 +99,7 @@ var _ = BeforeEach(func() {
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
 	dbTeamFactory = new(dbngfakes.FakeTeamFactory)
-	dbPipelineFactory := new(dbngfakes.FakePipelineFactory)
+	dbPipelineFactory = new(dbngfakes.FakePipelineFactory)
 	dbTeam = new(dbngfakes.FakeTeam)
 	dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 

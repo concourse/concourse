@@ -30,7 +30,7 @@ type GetStep struct {
 	teamID           int
 	delegate         GetDelegate
 	resourceFetcher  resource.Fetcher
-	resourceTypes    atc.ResourceTypes
+	resourceTypes    atc.VersionedResourceTypes
 
 	repository *worker.ArtifactRepository
 
@@ -52,7 +52,7 @@ func newGetStep(
 	teamID int,
 	delegate GetDelegate,
 	resourceFetcher resource.Fetcher,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) GetStep {
 	return GetStep{
 		logger:           logger,

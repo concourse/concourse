@@ -31,8 +31,9 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 	Describe("Run", func() {
 		Describe("config uses", func() {
 			var (
-				resourceType1     atc.ResourceType
-				resourceType1Used *dbng.UsedResourceType
+				pipelineWithTypes     dbng.Pipeline
+				versionedResourceType atc.VersionedResourceType
+				dbResourceType        dbng.ResourceType
 			)
 
 			countResourceConfigUses := func() int {
@@ -52,21 +53,36 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 			}
 
 			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-				resourceType1 = atc.ResourceType{
-					Name: "some-type",
-					Type: "some-base-type",
-					Source: atc.Source{
-						"some-type": "source",
+				versionedResourceType = atc.VersionedResourceType{
+					ResourceType: atc.ResourceType{
+						Name: "some-type",
+						Type: "some-base-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
 					},
+					Version: atc.Version{"some-type": "version"},
 				}
-				resourceType1Used, err = dbng.ResourceType{
-					ResourceType: resourceType1,
-					PipelineID:   defaultPipeline.ID(),
-				}.Create(setupTx, atc.Version{"some-type": "version"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
+
+				var created bool
+				var err error
+				pipelineWithTypes, created, err = defaultTeam.SavePipeline(
+					"pipeline-with-types",
+					atc.Config{
+						ResourceTypes: atc.ResourceTypes{versionedResourceType.ResourceType},
+					},
+					0,
+					dbng.PipelineNoChange,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+
+				var found bool
+				dbResourceType, found, err = pipelineWithTypes.ResourceType("some-type")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(dbResourceType.SaveVersion(versionedResourceType.Version)).To(Succeed())
+				Expect(dbResourceType.Reload()).To(BeTrue())
 			})
 
 			Describe("for builds", func() {
@@ -78,10 +94,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						atc.Source{
 							"some": "source",
 						},
-						defaultPipeline.ID(),
-						atc.ResourceTypes{
-							resourceType1,
-						},
+						atc.VersionedResourceTypes{versionedResourceType},
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -216,9 +229,8 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 					var id int
 					err = psql.Update("resource_types").
 						Set("active", active).
-						Where(sq.Eq{
-							"id": resourceType1Used.ID,
-						}).Suffix("RETURNING id").
+						Where(sq.Eq{"id": dbResourceType.ID()}).
+						Suffix("RETURNING id").
 						RunWith(tx).
 						QueryRow().Scan(&id)
 					Expect(err).NotTo(HaveOccurred())
@@ -230,15 +242,12 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceConfigFactory.FindOrCreateResourceConfig(
 						logger,
-						dbng.ForResourceType{resourceType1Used.ID},
+						dbng.ForResourceType{dbResourceType.ID()},
 						"some-type",
 						atc.Source{
 							"cache": "source",
 						},
-						defaultPipeline.ID(),
-						atc.ResourceTypes{
-							resourceType1,
-						},
+						atc.VersionedResourceTypes{versionedResourceType},
 					)
 					Expect(err).NotTo(HaveOccurred())
 					setActiveResourceType(true)
@@ -292,10 +301,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							"cache": "source",
 						},
 						atc.Params{"some": "params"},
-						defaultPipeline.ID(),
-						atc.ResourceTypes{
-							resourceType1,
-						},
+						atc.VersionedResourceTypes{versionedResourceType},
 					)
 					Expect(err).NotTo(HaveOccurred())
 					setActiveResource(true)

@@ -113,7 +113,7 @@ type ContainerProvider interface {
 		id Identifier,
 		metadata Metadata,
 		spec ContainerSpec,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		outputPaths map[string]string,
 	) (Container, error)
 
@@ -125,7 +125,7 @@ type ContainerProvider interface {
 		id Identifier,
 		metadata Metadata,
 		spec ContainerSpec,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		resourceType string,
 		source atc.Source,
 	) (Container, error)
@@ -138,7 +138,7 @@ type ContainerProvider interface {
 		id Identifier,
 		metadata Metadata,
 		spec ContainerSpec,
-		resourceTypes atc.ResourceTypes,
+		resourceTypes atc.VersionedResourceTypes,
 		outputPaths map[string]string,
 		resourceTypeName string,
 		version atc.Version,
@@ -175,7 +175,7 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
 	return p.findOrCreateContainer(
@@ -189,14 +189,10 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 		resourceTypes,
 		outputPaths,
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
-			return p.dbTeamFactory.GetByID(spec.TeamID).FindBuildContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).FindBuildContainerOnWorker(
 				p.worker.Name(),
 				id.BuildID,
 				id.PlanID,
-				dbng.ContainerMetadata{
-					Name: metadata.StepName,
-					Type: string(metadata.Type),
-				},
 			)
 		},
 		func() (dbng.CreatingContainer, error) {
@@ -221,7 +217,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
@@ -230,7 +226,6 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 		resourceUser,
 		resourceType,
 		source,
-		metadata.PipelineID,
 		resourceTypes,
 	)
 	if err != nil {
@@ -255,7 +250,7 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 				"garden-addr":        p.worker.Address(),
 				"resource-config-id": resourceConfig.ID,
 			})
-			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainer(
+			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainerOnWorker(
 				p.worker.Name(),
 				resourceConfig,
 			)
@@ -283,7 +278,7 @@ func (p *containerProvider) CreateResourceGetContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	outputPaths map[string]string,
 	resourceTypeName string,
 	version atc.Version,
@@ -297,7 +292,6 @@ func (p *containerProvider) CreateResourceGetContainer(
 		version,
 		source,
 		params,
-		metadata.PipelineID,
 		resourceTypes,
 	)
 	if err != nil {
@@ -386,7 +380,7 @@ func (p *containerProvider) findOrCreateContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	outputPaths map[string]string,
 	findContainerFunc func() (dbng.CreatingContainer, dbng.CreatedContainer, error),
 	createContainerFunc func() (dbng.CreatingContainer, error),

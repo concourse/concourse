@@ -33,6 +33,9 @@ var _ = Describe("ResourceScanner", func() {
 		fakeClock           *fakeclock.FakeClock
 		interval            time.Duration
 
+		fakeResourceType      *dbngfakes.FakeResourceType
+		versionedResourceType atc.VersionedResourceType
+
 		scanner Scanner
 
 		resourceConfig atc.ResourceConfig
@@ -47,10 +50,11 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		fakeDBPipeline = new(dbngfakes.FakePipeline)
+		fakeDBPipeline.IDReturns(42)
+		fakeDBPipeline.TeamIDReturns(teamID)
 		fakeClock = fakeclock.NewFakeClock(epoch)
 		interval = 1 * time.Minute
 
-		fakeRadarDB.GetPipelineIDReturns(42)
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakeResourceFactory,
@@ -70,20 +74,24 @@ var _ = Describe("ResourceScanner", func() {
 		fakeRadarDB.ScopedNameStub = func(thing string) string {
 			return "pipeline:" + thing
 		}
-		fakeRadarDB.TeamIDReturns(teamID)
 		fakeRadarDB.ReloadReturns(true, nil)
-		fakeRadarDB.ConfigReturns(atc.Config{
-			Resources: atc.ResourceConfigs{
-				resourceConfig,
+
+		fakeResourceType = new(dbngfakes.FakeResourceType)
+		fakeResourceType.IDReturns(1)
+		fakeResourceType.NameReturns("some-custom-resource")
+		fakeResourceType.TypeReturns("docker-image")
+		fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
+		fakeResourceType.VersionReturns(atc.Version{"custom": "version"})
+		fakeDBPipeline.ResourceTypesReturns([]dbng.ResourceType{fakeResourceType}, nil)
+
+		versionedResourceType = atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name:   "some-custom-resource",
+				Type:   "docker-image",
+				Source: atc.Source{"custom": "source"},
 			},
-			ResourceTypes: atc.ResourceTypes{
-				{
-					Name:   "some-custom-resource",
-					Type:   "docker-image",
-					Source: atc.Source{"custom": "source"},
-				},
-			},
-		})
+			Version: atc.Version{"custom": "version"},
+		}
 
 		savedResource = db.SavedResource{
 			ID: 39,
@@ -152,13 +160,7 @@ var _ = Describe("ResourceScanner", func() {
 					PipelineID: 42,
 					TeamID:     teamID,
 				}))
-				Expect(customTypes).To(Equal(atc.ResourceTypes{
-					{
-						Name:   "some-custom-resource",
-						Type:   "docker-image",
-						Source: atc.Source{"custom": "source"},
-					},
-				}))
+				Expect(customTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 					ImageSpec: worker.ImageSpec{
 						ResourceType: "git",
@@ -192,13 +194,7 @@ var _ = Describe("ResourceScanner", func() {
 
 					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
-					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
-						{
-							Name:   "some-custom-resource",
-							Type:   "docker-image",
-							Source: atc.Source{"custom": "source"},
-						},
-					}))
+					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeFalse())
 
@@ -234,13 +230,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 				Expect(resource.Name).To(Equal("some-resource"))
-				Expect(resourceTypes).To(Equal(atc.ResourceTypes{
-					{
-						Name:   "some-custom-resource",
-						Type:   "docker-image",
-						Source: atc.Source{"custom": "source"},
-					},
-				}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())
 
@@ -504,13 +494,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 				Expect(resource.Name).To(Equal("some-resource"))
-				Expect(resourceTypes).To(Equal(atc.ResourceTypes{
-					{
-						Name:   "some-custom-resource",
-						Type:   "docker-image",
-						Source: atc.Source{"custom": "source"},
-					},
-				}))
+				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeTrue())
 
@@ -528,13 +512,7 @@ var _ = Describe("ResourceScanner", func() {
 
 					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
-					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
-						{
-							Name:   "some-custom-resource",
-							Type:   "docker-image",
-							Source: atc.Source{"custom": "source"},
-						},
-					}))
+					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeTrue())
 
@@ -567,7 +545,7 @@ var _ = Describe("ResourceScanner", func() {
 					results <- true
 					close(results)
 
-					fakeDBPipeline.AcquireResourceCheckingLockStub = func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.ResourceTypes, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+					fakeDBPipeline.AcquireResourceCheckingLockStub = func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.VersionedResourceTypes, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {
@@ -583,37 +561,19 @@ var _ = Describe("ResourceScanner", func() {
 
 					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
-					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
-						{
-							Name:   "some-custom-resource",
-							Type:   "docker-image",
-							Source: atc.Source{"custom": "source"},
-						},
-					}))
+					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
 					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(1)
 					Expect(resource.Name).To(Equal("some-resource"))
-					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
-						{
-							Name:   "some-custom-resource",
-							Type:   "docker-image",
-							Source: atc.Source{"custom": "source"},
-						},
-					}))
+					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
 					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(2)
 					Expect(resource.Name).To(Equal("some-resource"))
-					Expect(resourceTypes).To(Equal(atc.ResourceTypes{
-						{
-							Name:   "some-custom-resource",
-							Type:   "docker-image",
-							Source: atc.Source{"custom": "source"},
-						},
-					}))
+					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 

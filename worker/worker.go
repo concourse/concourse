@@ -150,7 +150,7 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	outputPaths map[string]string,
 ) (Container, error) {
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
@@ -175,7 +175,7 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	outputPaths map[string]string,
 	resourceTypeName string,
 	version atc.Version,
@@ -208,7 +208,7 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
@@ -272,7 +272,7 @@ func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
 }
 
-func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (Worker, error) {
+func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) (Worker, error) {
 	if spec.TeamID != worker.teamID && worker.teamID != 0 {
 		return nil, ErrTeamMismatch
 	}
@@ -306,8 +306,8 @@ func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes atc.Resour
 	return worker, nil
 }
 
-func determineUnderlyingTypeName(typeName string, resourceTypes atc.ResourceTypes) string {
-	resourceTypesMap := make(map[string]atc.ResourceType)
+func determineUnderlyingTypeName(typeName string, resourceTypes atc.VersionedResourceTypes) string {
+	resourceTypesMap := make(map[string]atc.VersionedResourceType)
 	for _, resourceType := range resourceTypes {
 		resourceTypesMap[resourceType.Name] = resourceType
 	}
@@ -321,7 +321,7 @@ func determineUnderlyingTypeName(typeName string, resourceTypes atc.ResourceType
 	return underlyingTypeName
 }
 
-func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) ([]Worker, error) {
+func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) ([]Worker, error) {
 	return nil, ErrNotImplemented
 }
 

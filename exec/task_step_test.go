@@ -66,7 +66,7 @@ var _ = Describe("GardenFactory", func() {
 			tags          []string
 			teamID        int
 			configSource  *execfakes.FakeTaskConfigSource
-			resourceTypes atc.ResourceTypes
+			resourceTypes atc.VersionedResourceTypes
 			inputMapping  map[string]string
 			outputMapping map[string]string
 
@@ -90,11 +90,14 @@ var _ = Describe("GardenFactory", func() {
 			inStep = new(execfakes.FakeStep)
 			repo = worker.NewArtifactRepository()
 
-			resourceTypes = atc.ResourceTypes{
+			resourceTypes = atc.VersionedResourceTypes{
 				{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "source"},
+					ResourceType: atc.ResourceType{
+						Name:   "custom-resource",
+						Type:   "custom-type",
+						Source: atc.Source{"some-custom": "source"},
+					},
+					Version: atc.Version{"some-custom": "version"},
 				},
 			}
 
@@ -239,13 +242,7 @@ var _ = Describe("GardenFactory", func() {
 							Privileged: false,
 						}))
 
-						Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
-							{
-								Name:   "custom-resource",
-								Type:   "custom-type",
-								Source: atc.Source{"some-custom": "source"},
-							},
-						}))
+						Expect(actualResourceTypes).To(Equal(resourceTypes))
 					})
 
 					It("ensures artifacts root exists by streaming in an empty payload", func() {

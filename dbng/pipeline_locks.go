@@ -11,7 +11,7 @@ import (
 func (p *pipeline) AcquireResourceCheckingLock(
 	logger lager.Logger,
 	resource *Resource,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	interval time.Duration,
 	immediate bool,
 ) (lock.Lock, bool, error) {
@@ -20,7 +20,7 @@ func (p *pipeline) AcquireResourceCheckingLock(
 		return nil, false, err
 	}
 
-	resourceConfig, err := constructResourceConfig(tx, resource.Type, resource.Source, resourceTypes, p.id)
+	resourceConfig, err := constructResourceConfig(tx, resource.Type, resource.Source, resourceTypes)
 	if err != nil {
 		return nil, false, err
 	}

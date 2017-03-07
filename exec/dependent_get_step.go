@@ -22,7 +22,7 @@ type DependentGetStep struct {
 	teamID                 int
 	delegate               ResourceDelegate
 	resourceFetcher        resource.Fetcher
-	resourceTypes          atc.ResourceTypes
+	resourceTypes          atc.VersionedResourceTypes
 	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
@@ -37,7 +37,7 @@ func newDependentGetStep(
 	teamID int,
 	delegate ResourceDelegate,
 	resourceFetcher resource.Fetcher,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) DependentGetStep {
 	return DependentGetStep{
@@ -74,7 +74,6 @@ func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) S
 			step.resourceConfig.Source,
 			step.params,
 			dbng.ForBuild{BuildID: step.session.ID.BuildID},
-			step.session.Metadata.PipelineID,
 			step.resourceTypes,
 			step.dbResourceCacheFactory,
 		),

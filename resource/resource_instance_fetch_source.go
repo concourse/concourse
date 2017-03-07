@@ -14,7 +14,7 @@ type resourceInstanceFetchSource struct {
 	versionedSource       VersionedSource
 	worker                worker.Worker
 	resourceOptions       ResourceOptions
-	resourceTypes         atc.ResourceTypes
+	resourceTypes         atc.VersionedResourceTypes
 	tags                  atc.Tags
 	teamID                int
 	session               Session
@@ -27,7 +27,7 @@ func NewResourceInstanceFetchSource(
 	resourceInstance ResourceInstance,
 	worker worker.Worker,
 	resourceOptions ResourceOptions,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 	tags atc.Tags,
 	teamID int,
 	session Session,

@@ -39,7 +39,7 @@ var _ = Describe("DependentGet", func() {
 		params                     atc.Params
 		version                    atc.Version
 		tags                       []string
-		resourceTypes              atc.ResourceTypes
+		resourceTypes              atc.VersionedResourceTypes
 
 		inStep *execfakes.FakeStep
 		repo   *worker.ArtifactRepository
@@ -97,11 +97,14 @@ var _ = Describe("DependentGet", func() {
 
 		tags = []string{"some", "tags"}
 
-		resourceTypes = atc.ResourceTypes{
+		resourceTypes = atc.VersionedResourceTypes{
 			{
-				Name:   "custom-resource",
-				Type:   "custom-type",
-				Source: atc.Source{"some-custom": "source"},
+				ResourceType: atc.ResourceType{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "source"},
+				},
+				Version: atc.Version{"some-custom": "version"},
 			},
 		}
 
@@ -157,7 +160,7 @@ var _ = Describe("DependentGet", func() {
 				resource.Session,
 				atc.Tags,
 				int,
-				atc.ResourceTypes,
+				atc.VersionedResourceTypes,
 				resource.ResourceInstance,
 				resource.Metadata,
 				worker.ImageFetchingDelegate,
@@ -205,18 +208,10 @@ var _ = Describe("DependentGet", func() {
 				resourceConfig.Source,
 				params,
 				dbng.ForBuild{1234},
-				4567,
 				resourceTypes,
 				fakeDBResourceCacheFactory,
 			)))
-			Expect(actualResourceTypes).To(Equal(
-				atc.ResourceTypes{
-					{
-						Name:   "custom-resource",
-						Type:   "custom-type",
-						Source: atc.Source{"some-custom": "source"},
-					},
-				}))
+			Expect(actualResourceTypes).To(Equal(resourceTypes))
 			Expect(delegate).To(Equal(getDelegate))
 			Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("some-resource-type")))
 			expectedLockName := fmt.Sprintf("%x",

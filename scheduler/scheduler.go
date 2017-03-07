@@ -45,7 +45,7 @@ func (s *Scheduler) Schedule(
 	versions *algorithm.VersionsDB,
 	jobConfigs atc.JobConfigs,
 	resourceConfigs atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (map[string]time.Duration, error) {
 	jobSchedulingTime := map[string]time.Duration{}
 
@@ -119,7 +119,7 @@ func (s *Scheduler) TriggerImmediately(
 	logger lager.Logger,
 	jobConfig atc.JobConfig,
 	resourceConfigs atc.ResourceConfigs,
-	resourceTypes atc.ResourceTypes,
+	resourceTypes atc.VersionedResourceTypes,
 ) (db.Build, Waiter, error) {
 	logger = logger.Session("trigger-immediately", lager.Data{"job_name": jobConfig.Name})
 
