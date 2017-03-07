@@ -146,9 +146,10 @@ var _ = Describe(":life volume gc", func() {
 			By("getting volume for resource cache")
 			var volumeID int
 			var volumeHandle string
-			err = psql.Select("id, handle").
-				From("volumes").
-				Where(sq.Eq{"resource_cache_id": resourceCacheID}).
+			err = psql.Select("v.id, v.handle").
+				From("volumes v").
+				LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
+				Where(sq.Eq{"wrc.resource_cache_id": resourceCacheID}).
 				RunWith(dbConn).
 				QueryRow().
 				Scan(&volumeID, &volumeHandle)
