@@ -2,12 +2,12 @@ package transport
 
 import "github.com/concourse/retryhttp"
 
-type StalledWorkerRetryer struct {
+type UnreachableWorkerRetryer struct {
 	DelegateRetryer retryhttp.Retryer
 }
 
-func (r *StalledWorkerRetryer) IsRetryable(err error) bool {
-	if _, ok := err.(ErrWorkerStalled); ok {
+func (r *UnreachableWorkerRetryer) IsRetryable(err error) bool {
+	if _, ok := err.(WorkerUnreachableError); ok {
 		return true
 	}
 

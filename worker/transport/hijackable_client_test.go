@@ -91,7 +91,7 @@ var _ = Describe("HijackableClient #Do", func() {
 
 		It("throws an error", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(transport.ErrMissingWorker{WorkerName: "some-worker"}))
+			Expect(err).To(Equal(transport.WorkerMissingError{WorkerName: "some-worker"}))
 		})
 	})
 
@@ -104,7 +104,10 @@ var _ = Describe("HijackableClient #Do", func() {
 
 		It("throws a descriptive error", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(transport.ErrWorkerStalled{WorkerName: "some-worker"}))
+			Expect(err).To(Equal(transport.WorkerUnreachableError{
+				WorkerName:  "some-worker",
+				WorkerState: "stalled",
+			}))
 		})
 	})
 

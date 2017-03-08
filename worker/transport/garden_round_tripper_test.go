@@ -147,7 +147,7 @@ var _ = Describe("GardenRoundTripper #RoundTrip", func() {
 			It("throws an error", func() {
 				_, err := roundTripper.RoundTrip(&request)
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(transport.ErrMissingWorker{WorkerName: "some-worker"}))
+				Expect(err).To(Equal(transport.WorkerMissingError{WorkerName: "some-worker"}))
 			})
 		})
 	})

@@ -1,10 +1,6 @@
 package transport
 
-import (
-	"net/http"
-
-	"github.com/concourse/atc/dbng"
-)
+import "net/http"
 
 type gardenRoundTripper struct {
 	db                TransportDB
@@ -30,15 +26,14 @@ func (c *gardenRoundTripper) RoundTrip(request *http.Request) (*http.Response, e
 		}
 
 		if !found {
-			return nil, ErrMissingWorker{WorkerName: c.workerName}
-		}
-
-		if savedWorker.State() == dbng.WorkerStateStalled {
-			return nil, ErrWorkerStalled{WorkerName: c.workerName}
+			return nil, WorkerMissingError{WorkerName: c.workerName}
 		}
 
 		if savedWorker.GardenAddr() == nil {
-			return nil, ErrWorkerAddrIsMissing{WorkerName: savedWorker.Name()}
+			return nil, WorkerUnreachableError{
+				WorkerName:  c.workerName,
+				WorkerState: string(savedWorker.State()),
+			}
 		}
 
 		c.cachedHost = savedWorker.GardenAddr()

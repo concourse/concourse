@@ -3,7 +3,6 @@ package transport
 import (
 	"net/http"
 
-	"github.com/concourse/atc/dbng"
 	"github.com/concourse/retryhttp"
 )
 
@@ -11,7 +10,7 @@ type hijackableClient struct {
 	db                    TransportDB
 	workerName            string
 	innerHijackableClient retryhttp.HijackableClient
-	cachedHost            string
+	cachedHost            *string
 }
 
 func NewHijackableClient(workerName string, db TransportDB, innerHijackableClient retryhttp.HijackableClient) retryhttp.HijackableClient {
@@ -19,37 +18,40 @@ func NewHijackableClient(workerName string, db TransportDB, innerHijackableClien
 		innerHijackableClient: innerHijackableClient,
 		workerName:            workerName,
 		db:                    db,
-		cachedHost:            "",
+		cachedHost:            nil,
 	}
 }
 
 func (c *hijackableClient) Do(request *http.Request) (*http.Response, retryhttp.HijackCloser, error) {
-	if c.cachedHost == "" {
+	if c.cachedHost == nil {
 		savedWorker, found, err := c.db.GetWorker(c.workerName)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		if !found {
-			return nil, nil, ErrMissingWorker{WorkerName: c.workerName}
+			return nil, nil, WorkerMissingError{WorkerName: c.workerName}
 		}
 
-		if savedWorker.State() == dbng.WorkerStateStalled {
-			return nil, nil, ErrWorkerStalled{WorkerName: c.workerName}
+		if savedWorker.GardenAddr() == nil {
+			return nil, nil, WorkerUnreachableError{
+				WorkerName:  c.workerName,
+				WorkerState: string(savedWorker.State()),
+			}
 		}
 
-		c.cachedHost = *savedWorker.GardenAddr()
+		c.cachedHost = savedWorker.GardenAddr()
 	}
 
 	updatedURL := *request.URL
-	updatedURL.Host = c.cachedHost
+	updatedURL.Host = *c.cachedHost
 
 	updatedRequest := *request
 	updatedRequest.URL = &updatedURL
 
 	response, hijackCloser, err := c.innerHijackableClient.Do(&updatedRequest)
 	if err != nil {
-		c.cachedHost = ""
+		c.cachedHost = nil
 	}
 	return response, hijackCloser, err
 }

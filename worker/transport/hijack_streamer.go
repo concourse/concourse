@@ -17,36 +17,21 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type ErrMissingWorker struct {
+type WorkerMissingError struct {
 	WorkerName string
 }
 
-func (e ErrMissingWorker) Error() string {
-	return fmt.Sprintf("worker %s not found in database while retrying http request", e.WorkerName)
+func (e WorkerMissingError) Error() string {
+	return fmt.Sprintf("worker %s disappeared while trying to reach it", e.WorkerName)
 }
 
-type ErrWorkerStalled struct {
-	WorkerName string
+type WorkerUnreachableError struct {
+	WorkerName  string
+	WorkerState string
 }
 
-func (e ErrWorkerStalled) Error() string {
-	return fmt.Sprintf("worker %s has not checked in recently", e.WorkerName)
-}
-
-type ErrWorkerAddrIsMissing struct {
-	WorkerName string
-}
-
-func (e ErrWorkerAddrIsMissing) Error() string {
-	return fmt.Sprintf("worker %s address is missing", e.WorkerName)
-}
-
-type ErrWorkerBaggageclaimURLIsMissing struct {
-	WorkerName string
-}
-
-func (e ErrWorkerBaggageclaimURLIsMissing) Error() string {
-	return fmt.Sprintf("worker %s baggageclaim URL is missing", e.WorkerName)
+func (e WorkerUnreachableError) Error() string {
+	return fmt.Sprintf("worker %s is unreachable (state is '%s')", e.WorkerName)
 }
 
 //go:generate counterfeiter . TransportDB

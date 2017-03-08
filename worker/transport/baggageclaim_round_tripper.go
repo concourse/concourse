@@ -3,8 +3,6 @@ package transport
 import (
 	"net/http"
 	"net/url"
-
-	"github.com/concourse/atc/dbng"
 )
 
 type baggageclaimRoundTripper struct {
@@ -31,15 +29,14 @@ func (c *baggageclaimRoundTripper) RoundTrip(request *http.Request) (*http.Respo
 		}
 
 		if !found {
-			return nil, ErrMissingWorker{WorkerName: c.workerName}
-		}
-
-		if savedWorker.State() == dbng.WorkerStateStalled {
-			return nil, ErrWorkerStalled{WorkerName: c.workerName}
+			return nil, WorkerMissingError{WorkerName: c.workerName}
 		}
 
 		if savedWorker.BaggageclaimURL() == nil {
-			return nil, ErrWorkerBaggageclaimURLIsMissing{WorkerName: savedWorker.Name()}
+			return nil, WorkerUnreachableError{
+				WorkerName:  c.workerName,
+				WorkerState: string(savedWorker.State()),
+			}
 		}
 
 		c.cachedBaggageclaimURL = savedWorker.BaggageclaimURL()

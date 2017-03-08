@@ -41,7 +41,7 @@ func NewGardenConnectionFactory(
 }
 
 func (gcf *gardenConnectionFactory) BuildConnection() gconn.Connection {
-	retryer := &transport.StalledWorkerRetryer{
+	retryer := &transport.UnreachableWorkerRetryer{
 		DelegateRetryer: &retryhttp.DefaultRetryer{},
 	}
 
