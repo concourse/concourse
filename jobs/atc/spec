@@ -242,6 +242,12 @@ properties:
       collect containers, volumes, and other internal data.
     default: 30s
 
+  build_tracker_interval:
+    description: |
+      The interval, in Go duration format (1m = 1 minute), on which to run
+      build tracking to keep track of build status.
+    default: 10s
+
   resource_cache_cleanup_interval:
     description: |
       The interval, in Go duration format (1m = 1 minute), on which to check
