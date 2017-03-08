@@ -1,0 +1,26 @@
+---
+resources:
+- name: special-time
+  type: special-time
+  tags: [special]
+  source: {interval: 1h}
+
+jobs:
+- name: transfer-time
+  plan:
+  - get: special-time
+    tags: [special]
+  - task: use-special-time
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+
+      inputs:
+      - name: special-time
+
+      run:
+        path: find
+        args: [.]
