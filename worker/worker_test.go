@@ -672,7 +672,7 @@ var _ = Describe("Worker", func() {
 
 				It("returns ErrMalformedMetadata", func() {
 					Expect(createErr).To(BeAssignableToTypeOf(MalformedMetadataError{}))
-					Expect(createErr.Error()).To(Equal(fmt.Sprintf("malformed image metadata: json: cannot unmarshal number into Go value of type []string")))
+					Expect(createErr.Error()).To(ContainSubstring("malformed image metadata:"))
 				})
 			})
 		})
@@ -824,7 +824,7 @@ var _ = Describe("Worker", func() {
 
 				It("returns ErrMalformedMetadata", func() {
 					Expect(createErr).To(BeAssignableToTypeOf(MalformedMetadataError{}))
-					Expect(createErr.Error()).To(Equal(fmt.Sprintf("malformed image metadata: json: cannot unmarshal number into Go value of type []string")))
+					Expect(createErr.Error()).To(ContainSubstring("malformed image metadata:"))
 				})
 			})
 
@@ -1112,7 +1112,7 @@ var _ = Describe("Worker", func() {
 
 				It("returns ErrMalformedMetadata", func() {
 					Expect(createErr).To(BeAssignableToTypeOf(MalformedMetadataError{}))
-					Expect(createErr.Error()).To(Equal(fmt.Sprintf("malformed image metadata: json: cannot unmarshal number into Go value of type []string")))
+					Expect(createErr.Error()).To(ContainSubstring("malformed image metadata:"))
 				})
 			})
 		})
