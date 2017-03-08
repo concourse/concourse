@@ -14,6 +14,7 @@ import (
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/retryhttp"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
@@ -122,6 +123,33 @@ func (provider *dbWorkerProvider) FindContainerForIdentifier(id Identifier) (db.
 	}
 
 	return container, found, err
+}
+
+func (provider *dbWorkerProvider) FindWorkerForResourceCheckContainer(
+	logger lager.Logger,
+	teamID int,
+	resourceUser dbng.ResourceUser,
+	resourceType string,
+	resourceSource atc.Source,
+	resourceTypes atc.VersionedResourceTypes,
+) (Worker, bool, error) {
+	team := provider.dbTeamFactory.GetByID(teamID)
+
+	config, err := provider.dbResourceConfigFactory.FindOrCreateResourceConfig(logger, resourceUser, resourceType, resourceSource, resourceTypes)
+	if err != nil {
+		return nil, false, err
+	}
+
+	dbWorker, found, err := team.FindWorkerForResourceCheckContainer(config)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return provider.newGardenWorker(clock.NewClock(), dbWorker), true, nil
 }
 
 func (provider *dbWorkerProvider) GetContainer(handle string) (db.SavedContainer, bool, error) {

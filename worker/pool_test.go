@@ -2,10 +2,12 @@ package worker_test
 
 import (
 	"errors"
+	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 
@@ -366,7 +368,7 @@ var _ = Describe("Pool", func() {
 		})
 	})
 
-	Describe("CreateContainer", func() {
+	Describe("FindOrCreateBuildContainer", func() {
 		var (
 			fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
@@ -503,6 +505,250 @@ var _ = Describe("Pool", func() {
 				BeforeEach(func() {
 					workerA.FindOrCreateBuildContainerReturns(nil, disaster)
 					workerB.FindOrCreateBuildContainerReturns(nil, disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(createErr).To(Equal(disaster))
+				})
+			})
+
+			Context("when no workers satisfy the spec", func() {
+				BeforeEach(func() {
+					workerA.SatisfyingReturns(nil, errors.New("nope"))
+					workerB.SatisfyingReturns(nil, errors.New("nope"))
+					workerC.SatisfyingReturns(nil, errors.New("nope"))
+				})
+
+				It("returns a NoCompatibleWorkersError", func() {
+					Expect(createErr).To(Equal(NoCompatibleWorkersError{
+						Spec:    spec.WorkerSpec(),
+						Workers: []Worker{workerA, workerB, workerC},
+					}))
+
+				})
+			})
+		})
+
+		Context("with no workers", func() {
+			BeforeEach(func() {
+				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
+			})
+
+			It("returns ErrNoWorkers", func() {
+				Expect(createErr).To(Equal(ErrNoWorkers))
+			})
+		})
+
+		Context("when getting the workers fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeProvider.RunningWorkersReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(createErr).To(Equal(disaster))
+			})
+		})
+	})
+
+	Describe("FindOrCreateResourceCheckContainer", func() {
+		var (
+			fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
+
+			id   Identifier
+			spec ContainerSpec
+
+			fakeContainer *workerfakes.FakeContainer
+
+			createdContainer Container
+			createErr        error
+			resourceTypes    atc.VersionedResourceTypes
+		)
+
+		BeforeEach(func() {
+			fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
+
+			id = Identifier{
+				ResourceID: 1234,
+			}
+
+			spec = ContainerSpec{
+				ImageSpec: ImageSpec{ResourceType: "some-type"},
+				TeamID:    4567,
+			}
+
+			resourceTypes = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-b",
+						Type:   "custom-type-a",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-a",
+						Type:   "some-resource",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-c",
+						Type:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-type-d",
+						Type:   "custom-type-b",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "unknown-custom-type",
+						Type:   "unknown-base-type",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+			}
+
+			fakeContainer = new(workerfakes.FakeContainer)
+		})
+
+		JustBeforeEach(func() {
+			createdContainer, createErr = pool.FindOrCreateResourceCheckContainer(
+				logger,
+				dbng.ForBuild{42},
+				make(chan os.Signal),
+				fakeImageFetchingDelegate,
+				id,
+				Metadata{},
+				spec,
+				resourceTypes,
+				"some-type",
+				atc.Source{"some": "source"},
+			)
+		})
+
+		Context("when a worker is found with the container", func() {
+			var fakeWorker *workerfakes.FakeWorker
+
+			BeforeEach(func() {
+				fakeWorker = new(workerfakes.FakeWorker)
+				fakeProvider.FindWorkerForResourceCheckContainerReturns(fakeWorker, true, nil)
+				fakeWorker.FindOrCreateResourceCheckContainerReturns(fakeContainer, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(createErr).NotTo(HaveOccurred())
+			})
+
+			It("returns the created container", func() {
+				Expect(createdContainer).To(Equal(fakeContainer))
+			})
+
+			It("'find-or-create's on the particular worker", func() {
+				_, actualTeamID, actualResourceUser, actualResourceType, actualResourceSource, actualResourceTypes := fakeProvider.FindWorkerForResourceCheckContainerArgsForCall(0)
+				Expect(actualTeamID).To(Equal(4567))
+				Expect(actualResourceUser).To(Equal(dbng.ForBuild{42}))
+				Expect(actualResourceType).To(Equal("some-type"))
+				Expect(actualResourceSource).To(Equal(atc.Source{"some": "source"}))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
+
+				Expect(fakeWorker.FindOrCreateResourceCheckContainerCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when a worker is not found, and multiple are present", func() {
+			var (
+				workerA *workerfakes.FakeWorker
+				workerB *workerfakes.FakeWorker
+				workerC *workerfakes.FakeWorker
+			)
+
+			BeforeEach(func() {
+				fakeProvider.FindWorkerForResourceCheckContainerReturns(nil, false, nil)
+
+				workerA = new(workerfakes.FakeWorker)
+				workerB = new(workerfakes.FakeWorker)
+				workerC = new(workerfakes.FakeWorker)
+
+				workerA.ActiveContainersReturns(3)
+				workerB.ActiveContainersReturns(2)
+
+				workerA.SatisfyingReturns(workerA, nil)
+				workerB.SatisfyingReturns(workerB, nil)
+				workerC.SatisfyingReturns(nil, errors.New("nope"))
+
+				workerA.FindOrCreateResourceCheckContainerReturns(fakeContainer, nil)
+				workerB.FindOrCreateResourceCheckContainerReturns(fakeContainer, nil)
+				workerC.FindOrCreateResourceCheckContainerReturns(fakeContainer, nil)
+
+				fakeProvider.RunningWorkersReturns([]Worker{workerA, workerB, workerC}, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(createErr).NotTo(HaveOccurred())
+			})
+
+			It("returns the created container", func() {
+				Expect(createdContainer).To(Equal(fakeContainer))
+			})
+
+			It("checks that the workers satisfy the given spec", func() {
+				Expect(workerA.SatisfyingCallCount()).To(Equal(1))
+				actualSpec, actualResourceTypes := workerA.SatisfyingArgsForCall(0)
+				Expect(actualSpec).To(Equal(spec.WorkerSpec()))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
+
+				Expect(workerB.SatisfyingCallCount()).To(Equal(1))
+				actualSpec, actualResourceTypes = workerB.SatisfyingArgsForCall(0)
+				Expect(actualSpec).To(Equal(spec.WorkerSpec()))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
+
+				Expect(workerC.SatisfyingCallCount()).To(Equal(1))
+				actualSpec, actualResourceTypes = workerC.SatisfyingArgsForCall(0)
+				Expect(actualSpec).To(Equal(spec.WorkerSpec()))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
+			})
+
+			It("creates using a random worker", func() {
+				for i := 1; i < 100; i++ { // account for initial create in JustBefore
+					createdContainer, createErr := pool.FindOrCreateResourceCheckContainer(
+						logger,
+						dbng.ForBuild{42},
+						make(chan os.Signal),
+						fakeImageFetchingDelegate,
+						id,
+						Metadata{},
+						spec,
+						resourceTypes,
+						"some-type",
+						atc.Source{"some": "source"},
+					)
+					Expect(createErr).NotTo(HaveOccurred())
+					Expect(createdContainer).To(Equal(fakeContainer))
+				}
+
+				Expect(workerA.FindOrCreateResourceCheckContainerCallCount()).To(BeNumerically("~", workerB.FindOrCreateResourceCheckContainerCallCount(), 50))
+				Expect(workerC.FindOrCreateResourceCheckContainerCallCount()).To(BeZero())
+			})
+
+			Context("when creating the container fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					workerA.FindOrCreateResourceCheckContainerReturns(nil, disaster)
+					workerB.FindOrCreateResourceCheckContainerReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {

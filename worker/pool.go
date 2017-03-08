@@ -20,6 +20,15 @@ type WorkerProvider interface {
 	RunningWorkers() ([]Worker, error)
 	GetWorker(string) (Worker, bool, error)
 
+	FindWorkerForResourceCheckContainer(
+		logger lager.Logger,
+		teamID int,
+		resourceUser dbng.ResourceUser,
+		resourceType string,
+		resourceSource atc.Source,
+		types atc.VersionedResourceTypes,
+	) (Worker, bool, error)
+
 	// XXX: these should really go away. it's a WorkerProvider, not a ContainerProvider.
 	FindContainerForIdentifier(Identifier) (db.SavedContainer, bool, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
@@ -133,7 +142,16 @@ func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.VersionedResourc
 	return randomWorker, nil
 }
 
-func (pool *pool) FindOrCreateBuildContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.VersionedResourceTypes, outputPaths map[string]string) (Container, error) {
+func (pool *pool) FindOrCreateBuildContainer(
+	logger lager.Logger,
+	signals <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+	resourceTypes atc.VersionedResourceTypes,
+	outputPaths map[string]string,
+) (Container, error) {
 	container, found, err := pool.FindContainerForIdentifier(logger, id)
 	if err != nil {
 		return nil, err
@@ -199,17 +217,23 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 	resourceType string,
 	source atc.Source,
 ) (Container, error) {
-	container, found, err := pool.FindContainerForIdentifier(logger, id)
+	worker, found, err := pool.provider.FindWorkerForResourceCheckContainer(
+		logger.Session("find-worker"),
+		spec.TeamID, // XXX: better place for this?
+		resourceUser,
+		resourceType,
+		source,
+		resourceTypes,
+	)
 	if err != nil {
 		return nil, err
-	}
-	if found {
-		return container, nil
 	}
 
-	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
-	if err != nil {
-		return nil, err
+	if !found {
+		worker, err = pool.Satisfying(spec.WorkerSpec(), resourceTypes)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return worker.FindOrCreateResourceCheckContainer(

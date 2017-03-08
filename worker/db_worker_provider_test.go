@@ -43,10 +43,14 @@ var _ = Describe("DBProvider", func() {
 		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
 		fakeDBVolumeFactory                 *dbngfakes.FakeVolumeFactory
 		fakeDBWorkerFactory                 *dbngfakes.FakeWorkerFactory
-		fakeDBTeam                          *dbngfakes.FakeTeam
+		fakeDBTeamFactory                   *dbngfakes.FakeTeamFactory
 		fakeDBWorkerBaseResourceTypeFactory *dbngfakes.FakeWorkerBaseResourceTypeFactory
+		fakeDBResourceCacheFactory          *dbngfakes.FakeResourceCacheFactory
+		fakeDBResourceConfigFactory         *dbngfakes.FakeResourceConfigFactory
 		fakeCreatingContainer               *dbngfakes.FakeCreatingContainer
 		fakeCreatedContainer                *dbngfakes.FakeCreatedContainer
+
+		fakeDBTeam *dbngfakes.FakeTeam
 
 		workers    []Worker
 		workersErr error
@@ -108,7 +112,7 @@ var _ = Describe("DBProvider", func() {
 		fakeImage.FetchForContainerReturns(FetchedImage{}, nil)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
-		fakeDBTeamFactory := new(dbngfakes.FakeTeamFactory)
+		fakeDBTeamFactory = new(dbngfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbngfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
@@ -116,7 +120,8 @@ var _ = Describe("DBProvider", func() {
 		fakeBackOffFactory := new(retryhttpfakes.FakeBackOffFactory)
 		fakeBackOff := new(retryhttpfakes.FakeBackOff)
 		fakeBackOffFactory.NewBackOffReturns(fakeBackOff)
-		fakeDBResourceCacheFactory := new(dbngfakes.FakeResourceCacheFactory)
+		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeDBResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
 		fakeDBWorkerBaseResourceTypeFactory = new(dbngfakes.FakeWorkerBaseResourceTypeFactory)
 		fakeLock := new(lockfakes.FakeLock)
 		fakeDB.AcquireContainerCreatingLockReturns(fakeLock, true, nil)
@@ -130,7 +135,7 @@ var _ = Describe("DBProvider", func() {
 			fakeBackOffFactory,
 			fakeImageFactory,
 			fakeDBResourceCacheFactory,
-			nil,
+			fakeDBResourceConfigFactory,
 			fakeDBWorkerBaseResourceTypeFactory,
 			fakeDBVolumeFactory,
 			fakeDBTeamFactory,
@@ -404,6 +409,7 @@ var _ = Describe("DBProvider", func() {
 					Expect(workersErr).To(HaveOccurred())
 					Expect(workersErr).To(Equal(ErrDesiredWorkerNotRunning))
 				}
+
 				Expect(found).To(Equal(expectedExistence))
 				if expectedExistence {
 					Expect(worker.Name()).To(Equal("some-worker"))
@@ -431,6 +437,117 @@ var _ = Describe("DBProvider", func() {
 				BuildID: 1234,
 				PlanID:  atc.PlanID("planid"),
 			}))
+		})
+	})
+
+	Describe("FindWorkerForResourceCheckContainer", func() {
+		var (
+			foundWorker Worker
+			found       bool
+			findErr     error
+		)
+
+		JustBeforeEach(func() {
+			foundWorker, found, findErr = provider.FindWorkerForResourceCheckContainer(
+				logger,
+				345278,
+				dbng.ForResource{ResourceID: 1235},
+				"some-resource-type",
+				atc.Source{"some": "source"},
+				atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Type:   "some-custom-type",
+							Source: atc.Source{"some": "custom-source"},
+						},
+						Version: atc.Version{"some": "custom-version"},
+					},
+				},
+			)
+		})
+
+		Context("when creating the resource config succeeds", func() {
+			var usedResourceConfig *dbng.UsedResourceConfig
+
+			BeforeEach(func() {
+				usedResourceConfig = &dbng.UsedResourceConfig{ID: 1}
+
+				fakeDBResourceConfigFactory.FindOrCreateResourceConfigReturns(usedResourceConfig, nil)
+			})
+
+			Context("when the worker is found", func() {
+				var fakeExistingWorker *dbngfakes.FakeWorker
+
+				BeforeEach(func() {
+					addr := "1.2.3.4:7777"
+
+					fakeExistingWorker = new(dbngfakes.FakeWorker)
+					fakeExistingWorker.NameReturns("some-worker")
+					fakeExistingWorker.GardenAddrReturns(&addr)
+
+					fakeDBTeam.FindWorkerForResourceCheckContainerReturns(fakeExistingWorker, true, nil)
+				})
+
+				It("returns true", func() {
+					Expect(found).To(BeTrue())
+					Expect(findErr).ToNot(HaveOccurred())
+				})
+
+				It("returns the worker", func() {
+					Expect(foundWorker).ToNot(BeNil())
+					Expect(foundWorker.Name()).To(Equal("some-worker"))
+				})
+
+				It("found the worker for the right resource config", func() {
+					actualConfig := fakeDBTeam.FindWorkerForResourceCheckContainerArgsForCall(0)
+					Expect(actualConfig).To(Equal(usedResourceConfig))
+				})
+
+				It("found the right team", func() {
+					actualTeam := fakeDBTeamFactory.GetByIDArgsForCall(0)
+					Expect(actualTeam).To(Equal(345278))
+				})
+			})
+
+			Context("when the worker is not found", func() {
+				BeforeEach(func() {
+					fakeDBTeam.FindWorkerForResourceCheckContainerReturns(nil, false, nil)
+				})
+
+				It("returns false", func() {
+					Expect(foundWorker).To(BeNil())
+					Expect(found).To(BeFalse())
+					Expect(findErr).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when finding the worker fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeDBTeam.FindWorkerForResourceCheckContainerReturns(nil, false, disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(foundWorker).To(BeNil())
+					Expect(found).To(BeFalse())
+					Expect(findErr).To(Equal(disaster))
+				})
+			})
+		})
+
+		Context("when creating the resource config succeeds", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeDBResourceConfigFactory.FindOrCreateResourceConfigReturns(nil, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(foundWorker).To(BeNil())
+				Expect(found).To(BeFalse())
+				Expect(findErr).To(Equal(disaster))
+			})
 		})
 	})
 })

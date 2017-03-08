@@ -4,7 +4,10 @@ package workerfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -22,6 +25,21 @@ type FakeWorkerProvider struct {
 		arg1 string
 	}
 	getWorkerReturns struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}
+	FindWorkerForResourceCheckContainerStub        func(logger lager.Logger, teamID int, resourceUser dbng.ResourceUser, resourceType string, resourceSource atc.Source, types atc.VersionedResourceTypes) (worker.Worker, bool, error)
+	findWorkerForResourceCheckContainerMutex       sync.RWMutex
+	findWorkerForResourceCheckContainerArgsForCall []struct {
+		logger         lager.Logger
+		teamID         int
+		resourceUser   dbng.ResourceUser
+		resourceType   string
+		resourceSource atc.Source
+		types          atc.VersionedResourceTypes
+	}
+	findWorkerForResourceCheckContainerReturns struct {
 		result1 worker.Worker
 		result2 bool
 		result3 error
@@ -109,6 +127,45 @@ func (fake *FakeWorkerProvider) GetWorkerReturns(result1 worker.Worker, result2 
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainer(logger lager.Logger, teamID int, resourceUser dbng.ResourceUser, resourceType string, resourceSource atc.Source, types atc.VersionedResourceTypes) (worker.Worker, bool, error) {
+	fake.findWorkerForResourceCheckContainerMutex.Lock()
+	fake.findWorkerForResourceCheckContainerArgsForCall = append(fake.findWorkerForResourceCheckContainerArgsForCall, struct {
+		logger         lager.Logger
+		teamID         int
+		resourceUser   dbng.ResourceUser
+		resourceType   string
+		resourceSource atc.Source
+		types          atc.VersionedResourceTypes
+	}{logger, teamID, resourceUser, resourceType, resourceSource, types})
+	fake.recordInvocation("FindWorkerForResourceCheckContainer", []interface{}{logger, teamID, resourceUser, resourceType, resourceSource, types})
+	fake.findWorkerForResourceCheckContainerMutex.Unlock()
+	if fake.FindWorkerForResourceCheckContainerStub != nil {
+		return fake.FindWorkerForResourceCheckContainerStub(logger, teamID, resourceUser, resourceType, resourceSource, types)
+	}
+	return fake.findWorkerForResourceCheckContainerReturns.result1, fake.findWorkerForResourceCheckContainerReturns.result2, fake.findWorkerForResourceCheckContainerReturns.result3
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerCallCount() int {
+	fake.findWorkerForResourceCheckContainerMutex.RLock()
+	defer fake.findWorkerForResourceCheckContainerMutex.RUnlock()
+	return len(fake.findWorkerForResourceCheckContainerArgsForCall)
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerArgsForCall(i int) (lager.Logger, int, dbng.ResourceUser, string, atc.Source, atc.VersionedResourceTypes) {
+	fake.findWorkerForResourceCheckContainerMutex.RLock()
+	defer fake.findWorkerForResourceCheckContainerMutex.RUnlock()
+	return fake.findWorkerForResourceCheckContainerArgsForCall[i].logger, fake.findWorkerForResourceCheckContainerArgsForCall[i].teamID, fake.findWorkerForResourceCheckContainerArgsForCall[i].resourceUser, fake.findWorkerForResourceCheckContainerArgsForCall[i].resourceType, fake.findWorkerForResourceCheckContainerArgsForCall[i].resourceSource, fake.findWorkerForResourceCheckContainerArgsForCall[i].types
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForResourceCheckContainerReturns(result1 worker.Worker, result2 bool, result3 error) {
+	fake.FindWorkerForResourceCheckContainerStub = nil
+	fake.findWorkerForResourceCheckContainerReturns = struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerProvider) FindContainerForIdentifier(arg1 worker.Identifier) (db.SavedContainer, bool, error) {
 	fake.findContainerForIdentifierMutex.Lock()
 	fake.findContainerForIdentifierArgsForCall = append(fake.findContainerForIdentifierArgsForCall, struct {
@@ -184,6 +241,8 @@ func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	defer fake.runningWorkersMutex.RUnlock()
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
+	fake.findWorkerForResourceCheckContainerMutex.RLock()
+	defer fake.findWorkerForResourceCheckContainerMutex.RUnlock()
 	fake.findContainerForIdentifierMutex.RLock()
 	defer fake.findContainerForIdentifierMutex.RUnlock()
 	fake.getContainerMutex.RLock()
