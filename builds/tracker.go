@@ -33,32 +33,42 @@ type Tracker struct {
 }
 
 func (bt *Tracker) Track() {
-	bt.logger.Debug("start")
-	defer bt.logger.Debug("done")
+	tLog := bt.logger.Session("track")
+
+	tLog.Debug("start")
+	defer tLog.Debug("done")
 	builds, err := bt.trackerDB.GetAllStartedBuilds()
 	if err != nil {
-		bt.logger.Error("failed-to-lookup-started-builds", err)
+		tLog.Error("failed-to-lookup-started-builds", err)
 	}
 
 	for _, build := range builds {
-		tLog := bt.logger.Session("track", lager.Data{
+		btLog := tLog.WithData(lager.Data{
 			"build":    build.ID(),
 			"pipeline": build.PipelineName(),
 			"job":      build.JobName(),
 		})
 
-		engineBuild, err := bt.engine.LookupBuild(tLog, build)
+		engineBuild, err := bt.engine.LookupBuild(btLog, build)
 		if err != nil {
-			tLog.Error("failed-to-lookup-build", err)
+			btLog.Error("failed-to-lookup-build", err)
 
 			err := build.MarkAsFailed(err)
 			if err != nil {
-				tLog.Error("failed-to-mark-build-as-errored", err)
+				btLog.Error("failed-to-mark-build-as-errored", err)
 			}
 
 			continue
 		}
 
-		go engineBuild.Resume(tLog)
+		go engineBuild.Resume(btLog)
 	}
+}
+
+func (bt *Tracker) Release() {
+	rLog := bt.logger.Session("release")
+	rLog.Debug("start")
+	defer rLog.Debug("done")
+
+	bt.engine.ReleaseAll(rLog)
 }

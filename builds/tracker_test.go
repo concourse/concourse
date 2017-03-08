@@ -95,4 +95,11 @@ var _ = Describe("Tracker", func() {
 		})
 	})
 
+	Describe("Release", func() {
+		It("releases all builds tracked by engine", func() {
+			tracker.Release()
+
+			Expect(fakeEngine.ReleaseAllCallCount()).To(Equal(1))
+		})
+	})
 })

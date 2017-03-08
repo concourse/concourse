@@ -609,43 +609,27 @@ var _ = Describe("Locks", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when something has been tracking it recently", func() {
-			It("does not get the lock", func() {
-				lock, acquired, err := build.AcquireTrackingLock(logger, 1*time.Second)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
+		It("gets and keeps the lock and stops others from getting it", func() {
+			lock, acquired, err := build.AcquireTrackingLock(logger, 1*time.Second)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(acquired).To(BeTrue())
 
-				lock.Release()
-
+			Consistently(func() bool {
 				_, acquired, err = build.AcquireTrackingLock(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeFalse())
-			})
-		})
 
-		Context("when there has not been any tracking recently", func() {
-			It("gets and keeps the lock and stops others from getting it", func() {
-				lock, acquired, err := build.AcquireTrackingLock(logger, 1*time.Second)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
+				return acquired
+			}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
 
-				Consistently(func() bool {
-					_, acquired, err = build.AcquireTrackingLock(logger, 1*time.Second)
-					Expect(err).NotTo(HaveOccurred())
+			lock.Release()
 
-					return acquired
-				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
+			time.Sleep(time.Second)
 
-				lock.Release()
+			newLock, acquired, err := build.AcquireTrackingLock(logger, 1*time.Second)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(acquired).To(BeTrue())
 
-				time.Sleep(time.Second)
-
-				newLock, acquired, err := build.AcquireTrackingLock(logger, 1*time.Second)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-
-				newLock.Release()
-			})
+			newLock.Release()
 		})
 	})
 

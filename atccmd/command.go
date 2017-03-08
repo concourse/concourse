@@ -114,6 +114,8 @@ type ATCCommand struct {
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 
 	GCInterval time.Duration `long:"gc-interval" default:"30s" description:"Interval on which to perform garbage collection."`
+
+	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -316,7 +318,16 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	members := []grouper.Member{
-		{"drainer", drainer{logger.Session("drain"), drain, bus}},
+		{"drainer", drainer{
+			logger: logger.Session("drain"),
+			drain:  drain,
+			tracker: builds.NewTracker(
+				logger.Session("build-tracker"),
+				sqlDB,
+				engine,
+			),
+			bus: bus,
+		}},
 
 		{"debug", http_server.New(
 			cmd.debugBindAddr(),
@@ -342,9 +353,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				engine,
 			),
 			ListenBus: bus,
-			Interval:  10 * time.Second,
+			Interval:  cmd.BuildTrackerInterval,
 			Clock:     clock.NewClock(),
 			DrainCh:   drain,
+			Logger:    logger.Session("tracker-runner"),
 		}},
 
 		{"collector", lockrunner.NewRunner(

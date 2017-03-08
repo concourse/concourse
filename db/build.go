@@ -841,27 +841,6 @@ func (b *build) GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, e
 }
 
 func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
-	tx, err := b.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
-	updated, err := checkIfRowsUpdated(tx, `
-		UPDATE builds
-		SET last_tracked = now()
-		WHERE id = $1
-			AND now() - last_tracked > ($2 || ' SECONDS')::INTERVAL
-	`, b.id, interval.Seconds())
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !updated {
-		return nil, false, nil
-	}
-
 	lock := b.lockFactory.NewLock(
 		logger.Session("lock", lager.Data{
 			"build_id": b.id,
@@ -876,12 +855,6 @@ func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration)
 
 	if !acquired {
 		return nil, false, nil
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		lock.Release()
-		return nil, false, err
 	}
 
 	return lock, true, nil

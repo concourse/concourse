@@ -5,12 +5,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . BuildTracker
 
 type BuildTracker interface {
 	Track()
+	Release()
 }
 
 //go:generate counterfeiter . ATCListener
@@ -25,6 +27,7 @@ type TrackerRunner struct {
 	Interval  time.Duration
 	Clock     clock.Clock
 	DrainCh   <-chan struct{}
+	Logger    lager.Logger
 }
 
 func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -44,6 +47,7 @@ func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{})
 		case <-runner.DrainCh:
 			return nil
 		case <-notify:
+			runner.Logger.Info("received-atc-shutdown-message")
 			runner.Tracker.Track()
 		case <-ticker.C():
 			runner.Tracker.Track()

@@ -142,7 +142,7 @@ func (l *lock) Acquire() (bool, error) {
 
 	if !acquired {
 		logger.Debug("not-acquired-already-held-in-db")
-		return false, err
+		return false, nil
 	}
 
 	l.locks.Register(l.id)

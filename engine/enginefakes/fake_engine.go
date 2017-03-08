@@ -38,6 +38,11 @@ type FakeEngine struct {
 		result1 engine.Build
 		result2 error
 	}
+	ReleaseAllStub        func(lager.Logger)
+	releaseAllMutex       sync.RWMutex
+	releaseAllArgsForCall []struct {
+		arg1 lager.Logger
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -135,6 +140,30 @@ func (fake *FakeEngine) LookupBuildReturns(result1 engine.Build, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeEngine) ReleaseAll(arg1 lager.Logger) {
+	fake.releaseAllMutex.Lock()
+	fake.releaseAllArgsForCall = append(fake.releaseAllArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("ReleaseAll", []interface{}{arg1})
+	fake.releaseAllMutex.Unlock()
+	if fake.ReleaseAllStub != nil {
+		fake.ReleaseAllStub(arg1)
+	}
+}
+
+func (fake *FakeEngine) ReleaseAllCallCount() int {
+	fake.releaseAllMutex.RLock()
+	defer fake.releaseAllMutex.RUnlock()
+	return len(fake.releaseAllArgsForCall)
+}
+
+func (fake *FakeEngine) ReleaseAllArgsForCall(i int) lager.Logger {
+	fake.releaseAllMutex.RLock()
+	defer fake.releaseAllMutex.RUnlock()
+	return fake.releaseAllArgsForCall[i].arg1
+}
+
 func (fake *FakeEngine) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -144,6 +173,8 @@ func (fake *FakeEngine) Invocations() map[string][][]interface{} {
 	defer fake.createBuildMutex.RUnlock()
 	fake.lookupBuildMutex.RLock()
 	defer fake.lookupBuildMutex.RUnlock()
+	fake.releaseAllMutex.RLock()
+	defer fake.releaseAllMutex.RUnlock()
 	return fake.invocations
 }
 

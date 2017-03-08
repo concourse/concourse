@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -24,6 +25,8 @@ var _ = Describe("TrackerRunner", func() {
 	var process ifrit.Process
 	var interval = 10 * time.Second
 
+	var logger *lagertest.TestLogger
+
 	BeforeEach(func() {
 		fakeTracker = new(buildsfakes.FakeBuildTracker)
 		fakeListener = new(buildsfakes.FakeATCListener)
@@ -33,6 +36,8 @@ var _ = Describe("TrackerRunner", func() {
 		fakeTracker.TrackStub = func() {
 			t <- struct{}{}
 		}
+
+		logger = lagertest.NewTestLogger("test")
 
 		n := make(chan bool)
 		notify = n
@@ -46,6 +51,7 @@ var _ = Describe("TrackerRunner", func() {
 			ListenBus: fakeListener,
 			Interval:  interval,
 			Clock:     fakeClock,
+			Logger:    logger,
 		}
 	})
 

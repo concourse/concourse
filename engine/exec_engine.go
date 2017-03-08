@@ -26,6 +26,7 @@ type execEngine struct {
 	delegateFactory BuildDelegateFactory
 	teamDBFactory   db.TeamDBFactory
 	externalURL     string
+	releaseCh       chan struct{}
 }
 
 func NewExecEngine(
@@ -39,6 +40,7 @@ func NewExecEngine(
 		delegateFactory: delegateFactory,
 		teamDBFactory:   teamDBFactory,
 		externalURL:     externalURL,
+		releaseCh:       make(chan struct{}),
 	}
 }
 
@@ -59,7 +61,8 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan 
 			Plan: plan,
 		},
 
-		signals: make(chan os.Signal, 1),
+		releaseCh: engine.releaseCh,
+		signals:   make(chan os.Signal, 1),
 	}, nil
 }
 
@@ -86,8 +89,14 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 		delegate: engine.delegateFactory.Delegate(build),
 		metadata: metadata,
 
-		signals: make(chan os.Signal, 1),
+		releaseCh: engine.releaseCh,
+		signals:   make(chan os.Signal, 1),
 	}, nil
+}
+
+func (engine *execEngine) ReleaseAll(logger lager.Logger) {
+	logger.Info("calling-release-in-exec-engine")
+	close(engine.releaseCh)
 }
 
 func (engine *execEngine) convertPipelineNameToID(teamName string) func(plan *atc.Plan) error {
@@ -159,7 +168,8 @@ type execBuild struct {
 	factory  exec.Factory
 	delegate BuildDelegate
 
-	signals chan os.Signal
+	signals   chan os.Signal
+	releaseCh chan struct{}
 
 	metadata execMetadata
 }
@@ -198,6 +208,9 @@ func (build *execBuild) Resume(logger lager.Logger) {
 
 	for {
 		select {
+		case <-build.releaseCh:
+			logger.Info("releasing")
+			return
 		case err := <-exited:
 			if aborted {
 				succeeded = false

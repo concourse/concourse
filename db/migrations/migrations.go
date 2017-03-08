@@ -150,4 +150,5 @@ var Migrations = []migration.Migrator{
 	RenameWorkerBaseResourceTypesId,
 	AddWorkerResourceCacheToContainers,
 	AddWorkerResourceCacheToVolumes,
+	RemoveLastTrackedFromBuilds,
 }

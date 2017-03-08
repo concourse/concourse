@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -15,7 +16,9 @@ const trackLockDuration = time.Minute
 
 func NewDBEngine(engines Engines) Engine {
 	return &dbEngine{
-		engines: engines,
+		engines:   engines,
+		releaseCh: make(chan struct{}),
+		waitGroup: new(sync.WaitGroup),
 	}
 }
 
@@ -28,7 +31,9 @@ func (err UnknownEngineError) Error() string {
 }
 
 type dbEngine struct {
-	engines Engines
+	engines   Engines
+	releaseCh chan struct{}
+	waitGroup *sync.WaitGroup
 }
 
 func (*dbEngine) Name() string {
@@ -53,21 +58,43 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 	}
 
 	return &dbBuild{
-		engines: engine.engines,
-		build:   build,
+		engines:   engine.engines,
+		releaseCh: engine.releaseCh,
+		waitGroup: engine.waitGroup,
+		build:     build,
 	}, nil
 }
 
 func (engine *dbEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	return &dbBuild{
-		engines: engine.engines,
-		build:   build,
+		engines:   engine.engines,
+		releaseCh: engine.releaseCh,
+		waitGroup: engine.waitGroup,
+		build:     build,
 	}, nil
 }
 
+func (engine *dbEngine) ReleaseAll(logger lager.Logger) {
+	logger.Info("calling-release-on-builds")
+
+	close(engine.releaseCh)
+
+	logger.Info("waiting-on-builds")
+
+	for _, e := range engine.engines {
+		e.ReleaseAll(logger)
+	}
+
+	engine.waitGroup.Wait()
+
+	logger.Info("finished-waiting-on-builds")
+}
+
 type dbBuild struct {
-	engines Engines
-	build   db.Build
+	engines   Engines
+	releaseCh chan struct{}
+	build     db.Build
+	waitGroup *sync.WaitGroup
 }
 
 func (build *dbBuild) Metadata() string {
@@ -160,6 +187,9 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
+	build.waitGroup.Add(1)
+	defer build.waitGroup.Done()
+
 	lock, acquired, err := build.build.AcquireTrackingLock(logger, trackLockDuration)
 	if err != nil {
 		logger.Error("failed-to-get-lock", err)
@@ -233,6 +263,8 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 			if err != nil {
 				logger.Error("failed-to-abort", err)
 			}
+		case <-build.releaseCh:
+			logger.Info("releasing")
 		case <-done:
 		}
 	}()
@@ -262,14 +294,16 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	metric.BuildFinished{
-		PipelineName:  build.build.PipelineName(),
-		JobName:       build.build.JobName(),
-		BuildName:     build.build.Name(),
-		BuildID:       build.build.ID(),
-		BuildStatus:   build.build.Status(),
-		BuildDuration: build.build.EndTime().Sub(build.build.StartTime()),
-	}.Emit(logger)
+	if !build.build.IsRunning() {
+		metric.BuildFinished{
+			PipelineName:  build.build.PipelineName(),
+			JobName:       build.build.JobName(),
+			BuildName:     build.build.Name(),
+			BuildID:       build.build.ID(),
+			BuildStatus:   build.build.Status(),
+			BuildDuration: build.build.EndTime().Sub(build.build.StartTime()),
+		}.Emit(logger)
+	}
 }
 
 func (build *dbBuild) finishWithError(logger lager.Logger) {
