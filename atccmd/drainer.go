@@ -26,7 +26,7 @@ func (d drainer) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	d.logger.Info("released-tracker")
 
 	close(d.drain)
-	d.logger.Info("sending-atc-shudown-message")
+	d.logger.Info("sending-atc-shutdown-message")
 	d.bus.Notify("atc_shutdown")
 
 	return nil
