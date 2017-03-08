@@ -17,7 +17,7 @@ type UsedWorkerResourceCache struct {
 	ID int
 }
 
-var ErrWorkerBaseResourceTypeDisappeared = errors.New("Worker base resource type disappeared.")
+var ErrWorkerBaseResourceTypeDisappeared = errors.New("worker base resource type disappeared")
 
 func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerResourceCache, error) {
 	baseResourceType := workerResourceCache.ResourceCache.BaseResourceType()
@@ -72,6 +72,34 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 	return &UsedWorkerResourceCache{
 		ID: id,
 	}, nil
+}
+
+func (workerResourceCache WorkerResourceCache) Find(tx Tx) (*UsedWorkerResourceCache, bool, error) {
+	baseResourceType := workerResourceCache.ResourceCache.BaseResourceType()
+	usedWorkerBaseResourceType, found, err := WorkerBaseResourceType{
+		Name:       baseResourceType.Name,
+		WorkerName: workerResourceCache.WorkerName,
+	}.Find(tx)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	id, found, err := workerResourceCache.find(tx, usedWorkerBaseResourceType)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if found {
+		return &UsedWorkerResourceCache{
+			ID: id,
+		}, true, nil
+	}
+
+	return nil, false, nil
 }
 
 func (workerResourceCache WorkerResourceCache) find(tx Tx, usedWorkerBaseResourceType *UsedWorkerBaseResourceType) (int, bool, error) {

@@ -220,40 +220,62 @@ func (factory *volumeFactory) FindBaseResourceTypeVolume(teamID int, uwbrt *Used
 }
 
 func (factory *volumeFactory) FindResourceCacheVolume(worker Worker, resourceCache *UsedResourceCache) (CreatingVolume, CreatedVolume, error) {
-	var workerResourcCache *UsedWorkerResourceCache
-	err := safeFindOrCreate(factory.conn, func(tx Tx) error {
-		var err error
-		workerResourcCache, err = WorkerResourceCache{
-			WorkerName:    worker.Name(),
-			ResourceCache: resourceCache,
-		}.FindOrCreate(tx)
-		return err
-	})
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer tx.Rollback()
+
+	workerResourceCache, found, err := WorkerResourceCache{
+		WorkerName:    worker.Name(),
+		ResourceCache: resourceCache,
+	}.Find(tx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !found {
+		return nil, nil, nil
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	return factory.findVolume(0, worker, map[string]interface{}{
-		"v.worker_resource_cache_id": workerResourcCache.ID,
+		"v.worker_resource_cache_id": workerResourceCache.ID,
 	})
 }
 
 func (factory *volumeFactory) FindResourceCacheInitializedVolume(worker Worker, resourceCache *UsedResourceCache) (CreatedVolume, bool, error) {
-	var workerResourcCache *UsedWorkerResourceCache
-	err := safeFindOrCreate(factory.conn, func(tx Tx) error {
-		var err error
-		workerResourcCache, err = WorkerResourceCache{
-			WorkerName:    worker.Name(),
-			ResourceCache: resourceCache,
-		}.FindOrCreate(tx)
-		return err
-	})
+	tx, err := factory.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	workerResourceCache, found, err := WorkerResourceCache{
+		WorkerName:    worker.Name(),
+		ResourceCache: resourceCache,
+	}.Find(tx)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, false, err
 	}
 
 	_, createdVolume, err := factory.findVolume(0, worker, map[string]interface{}{
-		"v.worker_resource_cache_id": workerResourcCache.ID,
+		"v.worker_resource_cache_id": workerResourceCache.ID,
 		"v.initialized":              true,
 	})
 	if err != nil {
