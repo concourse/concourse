@@ -109,25 +109,11 @@ var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 			})
 		})
 
-		Context("when the worker in the DB is stalled", func() {
-			BeforeEach(func() {
-				stalledWorker := new(dbngfakes.FakeWorker)
-				stalledWorker.StateReturns(dbng.WorkerStateStalled)
-				fakeDB.GetWorkerReturns(stalledWorker, true, nil)
-			})
-
-			It("throws a descriptive error", func() {
-				_, err := roundTripper.RoundTrip(&request)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(MatchRegexp("worker .* has not checked in recently$"))
-			})
-		})
-
-		Context("when the worker in the DB is not stalled and baggageclaim URL is empty", func() {
+		Context("when the worker is in the DB and the baggageclaim URL is empty", func() {
 			BeforeEach(func() {
 
 				runningWorker := new(dbngfakes.FakeWorker)
-				runningWorker.StateReturns(dbng.WorkerStateRunning)
+				runningWorker.StateReturns(dbng.WorkerStateStalled)
 				runningWorker.BaggageclaimURLReturns(nil)
 
 				fakeDB.GetWorkerReturns(runningWorker, true, nil)
@@ -135,8 +121,7 @@ var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 
 			It("throws a descriptive error", func() {
 				_, err := roundTripper.RoundTrip(&request)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(MatchRegexp("worker .* baggageclaim URL is missing$"))
+				Expect(err).To(MatchError("worker 'some-worker' is unreachable (state is 'stalled')"))
 			})
 		})
 

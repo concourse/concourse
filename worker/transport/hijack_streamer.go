@@ -17,23 +17,6 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type WorkerMissingError struct {
-	WorkerName string
-}
-
-func (e WorkerMissingError) Error() string {
-	return fmt.Sprintf("worker %s disappeared while trying to reach it", e.WorkerName)
-}
-
-type WorkerUnreachableError struct {
-	WorkerName  string
-	WorkerState string
-}
-
-func (e WorkerUnreachableError) Error() string {
-	return fmt.Sprintf("worker %s is unreachable (state is '%s')", e.WorkerName)
-}
-
 //go:generate counterfeiter . TransportDB
 type TransportDB interface {
 	GetWorker(name string) (dbng.Worker, bool, error)
