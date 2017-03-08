@@ -215,7 +215,6 @@ func (provider *dbWorkerProvider) newGardenWorker(tikTok clock.Clock, savedWorke
 		savedWorker.Tags(),
 		savedWorker.TeamID(),
 		savedWorker.Name(),
-		*savedWorker.GardenAddr(),
 		savedWorker.StartTime(),
 	)
 }

@@ -47,7 +47,6 @@ type Worker interface {
 
 	Description() string
 	Name() string
-	Address() *string
 	ResourceTypes() []atc.WorkerResourceType
 	Tags() atc.Tags
 	Uptime() time.Duration
@@ -80,7 +79,6 @@ type gardenWorker struct {
 	tags             atc.Tags
 	teamID           int
 	name             string
-	addr             string
 	startTime        int64
 }
 
@@ -96,7 +94,6 @@ func NewGardenWorker(
 	tags atc.Tags,
 	teamID int,
 	name string,
-	addr string,
 	startTime int64,
 ) Worker {
 	return &gardenWorker{
@@ -113,7 +110,6 @@ func NewGardenWorker(
 		tags:             tags,
 		teamID:           teamID,
 		name:             name,
-		addr:             addr,
 		startTime:        startTime,
 	}
 }
@@ -344,10 +340,6 @@ func (worker *gardenWorker) Description() string {
 
 func (worker *gardenWorker) Name() string {
 	return worker.name
-}
-
-func (worker *gardenWorker) Address() *string {
-	return &worker.addr
 }
 
 func (worker *gardenWorker) ResourceTypes() []atc.WorkerResourceType {

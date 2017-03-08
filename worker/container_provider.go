@@ -247,7 +247,6 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 			logger.Debug("looking-for-container-in-db", lager.Data{
 				"team-id":            spec.TeamID,
 				"worker-name":        p.worker.Name(),
-				"garden-addr":        p.worker.Address(),
 				"resource-config-id": resourceConfig.ID,
 			})
 			return p.dbTeamFactory.GetByID(spec.TeamID).FindResourceCheckContainerOnWorker(
@@ -259,7 +258,6 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 			logger.Debug("creating-container-in-db", lager.Data{
 				"team-id":            spec.TeamID,
 				"worker-name":        p.worker.Name(),
-				"garden-addr":        p.worker.Address(),
 				"resource-config-id": resourceConfig.ID,
 			})
 			return p.dbTeamFactory.GetByID(spec.TeamID).CreateResourceCheckContainer(

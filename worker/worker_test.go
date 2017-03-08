@@ -71,7 +71,6 @@ var _ = Describe("Worker", func() {
 	})
 
 	JustBeforeEach(func() {
-
 		gardenWorker = NewGardenWorker(
 			fakeContainerProviderFactory,
 			fakeVolumeClient,
@@ -84,7 +83,6 @@ var _ = Describe("Worker", func() {
 			tags,
 			teamID,
 			workerName,
-			"1.2.3.4",
 			workerStartTime,
 		)
 
