@@ -25,7 +25,7 @@
 [submodule "src/github.com/concourse/testflight"]
 	path = src/github.com/concourse/testflight
 	url = https://github.com/concourse/testflight
-	branch = master
+	branch = releases/2.7
 [submodule "src/github.com/vito/go-sse"]
 	path = src/github.com/vito/go-sse
 	url = https://github.com/vito/go-sse
