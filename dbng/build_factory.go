@@ -17,13 +17,6 @@ func NewBuildFactory(conn Conn) BuildFactory {
 }
 
 func (f *buildFactory) MarkNonInterceptibleBuilds() error {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
 	latestBuildsPrefix := `WITH
 		latest_builds AS (
 			SELECT COALESCE(MAX(b.id)) AS build_id
@@ -33,7 +26,7 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 			GROUP BY j.id
 		)`
 
-	_, err = psql.Update("builds").
+	_, err := psql.Update("builds").
 		Prefix(latestBuildsPrefix).
 		Set("interceptible", false).
 		Where(sq.Or{
@@ -47,14 +40,8 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 		Where(sq.Eq{
 			"completed": true,
 		}).
-		RunWith(tx).
+		RunWith(f.conn).
 		Exec()
-
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return err
 	}

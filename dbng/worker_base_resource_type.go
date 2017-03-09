@@ -19,7 +19,7 @@ type UsedWorkerBaseResourceType struct {
 	Worker Worker
 }
 
-func (workerBaseResourceType WorkerBaseResourceType) Find(tx Tx) (*UsedWorkerBaseResourceType, bool, error) {
+func (workerBaseResourceType WorkerBaseResourceType) Find(runner sq.Runner) (*UsedWorkerBaseResourceType, bool, error) {
 	var id int
 	var version string
 	var sqWorkerAddress sql.NullString
@@ -32,7 +32,7 @@ func (workerBaseResourceType WorkerBaseResourceType) Find(tx Tx) (*UsedWorkerBas
 			"brt.name":         workerBaseResourceType.Name,
 			"wbrt.worker_name": workerBaseResourceType.WorkerName,
 		}).
-		RunWith(tx).
+		RunWith(runner).
 		QueryRow().
 		Scan(&id, &version, &sqWorkerAddress, &sqWorkerBaggageclaimURL)
 	if err != nil {

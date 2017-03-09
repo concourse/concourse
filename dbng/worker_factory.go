@@ -59,18 +59,12 @@ func (f *workerFactory) Workers() ([]Worker, error) {
 }
 
 func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
-	tx, err := conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-	defer tx.Rollback()
-
 	row := query.
-		RunWith(tx).
+		RunWith(conn).
 		QueryRow()
 
 	worker := &worker{conn: conn}
-	err = scanWorker(worker, row)
+	err := scanWorker(worker, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -78,22 +72,11 @@ func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
 		return nil, false, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, false, err
-	}
-
 	return worker, true, nil
 }
 
 func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
-	tx, err := conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
-	rows, err := query.RunWith(tx).Query()
+	rows, err := query.RunWith(conn).Query()
 	if err != nil {
 		return nil, err
 	}
@@ -109,11 +92,6 @@ func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
 		}
 
 		workers = append(workers, worker)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
 	}
 
 	return workers, nil
@@ -332,16 +310,16 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 
 	var oldTeamID sql.NullInt64
 
-	err = psql.Select("team_id").From("workers").Where(sq.Eq{
-		"name": atcWorker.Name,
-	}).RunWith(tx).QueryRow().Scan(&oldTeamID)
-
 	var workerState WorkerState
 	if atcWorker.State != "" {
 		workerState = WorkerState(atcWorker.State)
 	} else {
 		workerState = WorkerStateRunning
 	}
+
+	err = psql.Select("team_id").From("workers").Where(sq.Eq{
+		"name": atcWorker.Name,
+	}).RunWith(tx).QueryRow().Scan(&oldTeamID)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

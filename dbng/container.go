@@ -44,13 +44,6 @@ func (container *creatingContainer) ID() int        { return container.id }
 func (container *creatingContainer) Handle() string { return container.handle }
 
 func (container *creatingContainer) Created() (CreatedContainer, error) {
-	tx, err := container.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	rows, err := psql.Update("containers").
 		Set("state", ContainerStateCreated).
 		Where(sq.And{
@@ -60,13 +53,8 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 				sq.Eq{"state": string(ContainerStateCreated)},
 			},
 		}).
-		RunWith(tx).
+		RunWith(container.conn).
 		Exec()
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -115,16 +103,9 @@ func (container *createdContainer) WorkerName() string { return container.worker
 func (container *createdContainer) IsHijacked() bool   { return container.hijacked }
 
 func (container *createdContainer) Destroying() (DestroyingContainer, error) {
-	tx, err := container.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	var isDiscontinued bool
 
-	err = psql.Update("containers").
+	err := psql.Update("containers").
 		Set("state", ContainerStateDestroying).
 		Where(sq.And{
 			sq.Eq{"id": container.id},
@@ -134,7 +115,7 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 			},
 		}).
 		Suffix("RETURNING discontinued").
-		RunWith(tx).
+		RunWith(container.conn).
 		QueryRow().
 		Scan(&isDiscontinued)
 	if err != nil {
@@ -142,11 +123,6 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 			return nil, ErrContainerDisappeared
 		}
 
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return nil, err
 	}
 
@@ -160,13 +136,6 @@ func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 }
 
 func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
-	tx, err := container.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	rows, err := psql.Update("containers").
 		Set("state", ContainerStateDestroying).
 		Set("discontinued", true).
@@ -177,13 +146,8 @@ func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
 				sq.Eq{"state": string(ContainerStateCreated)},
 			},
 		}).
-		RunWith(tx).
+		RunWith(container.conn).
 		Exec()
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -211,26 +175,14 @@ func (container *createdContainer) MarkAsHijacked() error {
 		return nil
 	}
 
-	tx, err := container.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
 	rows, err := psql.Update("containers").
 		Set("hijacked", true).
 		Where(sq.Eq{
 			"id":    container.id,
 			"state": ContainerStateCreated,
 		}).
-		RunWith(tx).
+		RunWith(container.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -269,25 +221,13 @@ func (container *destroyingContainer) WorkerName() string   { return container.w
 func (container *destroyingContainer) IsDiscontinued() bool { return container.isDiscontinued }
 
 func (container *destroyingContainer) Destroy() (bool, error) {
-	tx, err := container.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
 	rows, err := psql.Delete("containers").
 		Where(sq.Eq{
 			"id":    container.id,
 			"state": ContainerStateDestroying,
 		}).
-		RunWith(tx).
+		RunWith(container.conn).
 		Exec()
-	if err != nil {
-		return false, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}

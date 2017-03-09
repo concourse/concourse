@@ -290,16 +290,11 @@ var _ = Describe("Team", func() {
 
 			Context("when container is expired", func() {
 				BeforeEach(func() {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-
-					_, err = psql.Update("containers").
+					_, err := psql.Update("containers").
 						Set("best_if_used_by", sq.Expr("NOW() - '1 second'::INTERVAL")).
 						Where(sq.Eq{"id": originalCreatedContainer.ID()}).
-						RunWith(tx).Exec()
+						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
-
-					Expect(tx.Commit()).To(Succeed())
 				})
 
 				It("does not find it", func() {
@@ -382,16 +377,11 @@ var _ = Describe("Team", func() {
 
 			Context("when container is expired", func() {
 				BeforeEach(func() {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-
-					_, err = psql.Update("containers").
+					_, err := psql.Update("containers").
 						Set("best_if_used_by", sq.Expr("NOW() - '1 second'::INTERVAL")).
 						Where(sq.Eq{"id": originalCreatedContainer.ID()}).
-						RunWith(tx).Exec()
+						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
-
-					Expect(tx.Commit()).To(Succeed())
 				})
 
 				It("does not find it", func() {

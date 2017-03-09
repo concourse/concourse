@@ -64,15 +64,11 @@ var _ = Describe("WorkerFactory", func() {
 				_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 
-				tx, err := dbConn.Begin()
-				Expect(err).NotTo(HaveOccurred())
-				defer tx.Rollback()
-
 				var count int
 				err = psql.Select("count(*)").
 					From("worker_base_resource_types").
 					Where(sq.Eq{"worker_name": "some-name"}).
-					RunWith(tx).
+					RunWith(dbConn).
 					QueryRow().Scan(&count)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(count).To(Equal(1))
@@ -111,15 +107,11 @@ var _ = Describe("WorkerFactory", func() {
 				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 
-				tx, err := dbConn.Begin()
-				Expect(err).NotTo(HaveOccurred())
-				defer tx.Rollback()
-
 				var count int
 				err = psql.Select("count(*)").
 					From("worker_base_resource_types").
 					Where(sq.Eq{"worker_name": "some-name"}).
-					RunWith(tx).
+					RunWith(dbConn).
 					QueryRow().Scan(&count)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(count).To(Equal(2))

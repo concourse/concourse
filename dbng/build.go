@@ -50,17 +50,12 @@ func (b *build) ID() int { return b.id }
 func (b *build) Interceptible() (bool, error) {
 	var interceptible bool
 
-	tx, err := b.conn.Begin()
-	if err != nil {
-		return true, err
-	}
-	defer tx.Commit()
-
-	err = psql.Select("interceptible").
+	err := psql.Select("interceptible").
 		From("builds").
 		Where(sq.Eq{
 			"id": b.id,
-		}).RunWith(tx).
+		}).
+		RunWith(b.conn).
 		QueryRow().Scan(&interceptible)
 
 	if err != nil {
@@ -71,18 +66,12 @@ func (b *build) Interceptible() (bool, error) {
 }
 
 func (b *build) SetInterceptible(i bool) error {
-	tx, err := b.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Commit()
-
 	rows, err := psql.Update("builds").
 		Set("interceptible", i).
 		Where(sq.Eq{
 			"id": b.id,
 		}).
-		RunWith(tx).
+		RunWith(b.conn).
 		Exec()
 	if err != nil {
 		return err
@@ -95,11 +84,6 @@ func (b *build) SetInterceptible(i bool) error {
 
 	if affected == 0 {
 		return ErrBuildDisappeared
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -107,19 +91,12 @@ func (b *build) SetInterceptible(i bool) error {
 }
 
 func (b *build) SaveStatus(s BuildStatus) error {
-	tx, err := b.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
 	rows, err := psql.Update("builds").
 		Set("status", string(s)).
 		Where(sq.Eq{
 			"id": b.id,
 		}).
-		RunWith(tx).
+		RunWith(b.conn).
 		Exec()
 	if err != nil {
 		return err
@@ -134,22 +111,18 @@ func (b *build) SaveStatus(s BuildStatus) error {
 		return ErrBuildDisappeared
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (b *build) Finish(s BuildStatus) error {
-	var endTime time.Time
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
 	}
 
 	defer tx.Rollback()
+
+	var endTime time.Time
 
 	err = tx.QueryRow(`
 		UPDATE builds
@@ -185,18 +158,11 @@ func (b *build) Finish(s BuildStatus) error {
 }
 
 func (b *build) Delete() (bool, error) {
-	tx, err := b.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
 	rows, err := psql.Delete("builds").
 		Where(sq.Eq{
 			"id": b.id,
 		}).
-		RunWith(tx).
+		RunWith(b.conn).
 		Exec()
 	if err != nil {
 		return false, err
@@ -209,11 +175,6 @@ func (b *build) Delete() (bool, error) {
 
 	if affected == 0 {
 		return false, ErrBuildDisappeared
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return false, err
 	}
 
 	return true, nil

@@ -73,16 +73,9 @@ func (volume *creatingVolume) ID() int { return volume.id }
 func (volume *creatingVolume) Handle() string { return volume.handle }
 
 func (volume *creatingVolume) Created() (CreatedVolume, error) {
-	tx, err := volume.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	err = stateTransition(
+	err := volumeStateTransition(
 		volume.id,
-		tx,
+		volume.conn,
 		VolumeStateCreating,
 		VolumeStateCreated,
 	)
@@ -90,11 +83,6 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 		if err == ErrVolumeStateTransitionFailed {
 			return nil, ErrVolumeMarkCreatedFailed{Handle: volume.handle}
 		}
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return nil, err
 	}
 
@@ -165,13 +153,7 @@ func (volume *createdVolume) ResourceType() (*VolumeResourceType, error) {
 		return nil, nil
 	}
 
-	tx, err := volume.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
-	return volume.findVolumeResourceTypeByCacheID(tx, volume.resourceCacheID)
+	return volume.findVolumeResourceTypeByCacheID(volume.resourceCacheID)
 }
 
 func (volume *createdVolume) BaseResourceType() (*UsedWorkerBaseResourceType, error) {
@@ -179,16 +161,10 @@ func (volume *createdVolume) BaseResourceType() (*UsedWorkerBaseResourceType, er
 		return nil, nil
 	}
 
-	tx, err := volume.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
-	return volume.findWorkerBaseResourceTypeByID(tx, volume.workerBaseResourceTypeID)
+	return volume.findWorkerBaseResourceTypeByID(volume.workerBaseResourceTypeID)
 }
 
-func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCacheID int) (*VolumeResourceType, error) {
+func (volume *createdVolume) findVolumeResourceTypeByCacheID(resourceCacheID int) (*VolumeResourceType, error) {
 	var versionString []byte
 	var sqBaseResourceTypeID sql.NullInt64
 	var sqResourceCacheID sql.NullInt64
@@ -199,7 +175,7 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCach
 		Where(sq.Eq{
 			"rc.id": resourceCacheID,
 		}).
-		RunWith(tx).
+		RunWith(volume.conn).
 		QueryRow().
 		Scan(&versionString, &sqBaseResourceTypeID, &sqResourceCacheID)
 	if err != nil {
@@ -213,7 +189,7 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCach
 	}
 
 	if sqBaseResourceTypeID.Valid {
-		workerBaseResourceType, err := volume.findWorkerBaseResourceTypeByBaseResourceTypeID(tx, int(sqBaseResourceTypeID.Int64))
+		workerBaseResourceType, err := volume.findWorkerBaseResourceTypeByBaseResourceTypeID(int(sqBaseResourceTypeID.Int64))
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +201,7 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCach
 	}
 
 	if sqResourceCacheID.Valid {
-		resourceType, err := volume.findVolumeResourceTypeByCacheID(tx, int(sqResourceCacheID.Int64))
+		resourceType, err := volume.findVolumeResourceTypeByCacheID(int(sqResourceCacheID.Int64))
 		if err != nil {
 			return nil, err
 		}
@@ -239,7 +215,7 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(tx Tx, resourceCach
 	return nil, ErrInvalidResourceCache
 }
 
-func (volume *createdVolume) findWorkerBaseResourceTypeByID(tx Tx, workerBaseResourceTypeID int) (*UsedWorkerBaseResourceType, error) {
+func (volume *createdVolume) findWorkerBaseResourceTypeByID(workerBaseResourceTypeID int) (*UsedWorkerBaseResourceType, error) {
 	var name string
 	var version string
 
@@ -250,7 +226,7 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByID(tx Tx, workerBaseRes
 			"wbrt.id":          workerBaseResourceTypeID,
 			"wbrt.worker_name": volume.worker.Name(),
 		}).
-		RunWith(tx).
+		RunWith(volume.conn).
 		QueryRow().
 		Scan(&name, &version)
 	if err != nil {
@@ -265,7 +241,7 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByID(tx Tx, workerBaseRes
 	}, nil
 }
 
-func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(tx Tx, baseResourceTypeID int) (*UsedWorkerBaseResourceType, error) {
+func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(baseResourceTypeID int) (*UsedWorkerBaseResourceType, error) {
 	var id int
 	var name string
 	var version string
@@ -277,7 +253,7 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(tx T
 			"brt.id":           baseResourceTypeID,
 			"wbrt.worker_name": volume.worker.Name(),
 		}).
-		RunWith(tx).
+		RunWith(volume.conn).
 		QueryRow().
 		Scan(&id, &name, &version)
 	if err != nil {
@@ -293,18 +269,12 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID(tx T
 }
 
 func (volume *createdVolume) Initialize() error {
-	tx, err := volume.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	rows, err := psql.Update("volumes").
 		Set("initialized", sq.Expr("true")).
 		Where(sq.Eq{
 			"id": volume.id,
 		}).
-		RunWith(tx).
+		RunWith(volume.conn).
 		Exec()
 	if err != nil {
 		return err
@@ -318,29 +288,17 @@ func (volume *createdVolume) Initialize() error {
 		return ErrVolumeMissing
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (volume *createdVolume) IsInitialized() (bool, error) {
-	tx, err := volume.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
 	var isInitialized bool
-	err = psql.Select("initialized").
+	err := psql.Select("initialized").
 		From("volumes").
 		Where(sq.Eq{
 			"id": volume.id,
 		}).
-		RunWith(tx).
+		RunWith(volume.conn).
 		QueryRow().Scan(&isInitialized)
 	if err != nil {
 		return false, err
@@ -429,16 +387,9 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 }
 
 func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
-	tx, err := volume.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	err = stateTransition(
+	err := volumeStateTransition(
 		volume.id,
-		tx,
+		volume.conn,
 		VolumeStateCreated,
 		VolumeStateDestroying,
 	)
@@ -453,11 +404,6 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 			return nil, ErrVolumeCannotBeDestroyedWithChildrenPresent
 		}
 
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return nil, err
 	}
 
@@ -486,25 +432,13 @@ func (volume *destroyingVolume) Handle() string { return volume.handle }
 func (volume *destroyingVolume) Worker() Worker { return volume.worker }
 
 func (volume *destroyingVolume) Destroy() (bool, error) {
-	tx, err := volume.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
 	rows, err := psql.Delete("volumes").
 		Where(sq.Eq{
 			"id":    volume.id,
 			"state": VolumeStateDestroying,
 		}).
-		RunWith(tx).
+		RunWith(volume.conn).
 		Exec()
-	if err != nil {
-		return false, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}
@@ -521,7 +455,7 @@ func (volume *destroyingVolume) Destroy() (bool, error) {
 	return true, nil
 }
 
-func stateTransition(volumeID int, tx Tx, from, to VolumeState) error {
+func volumeStateTransition(volumeID int, conn Conn, from, to VolumeState) error {
 	rows, err := psql.Update("volumes").
 		Set("state", string(to)).
 		Where(sq.And{
@@ -531,7 +465,7 @@ func stateTransition(volumeID int, tx Tx, from, to VolumeState) error {
 				sq.Eq{"state": string(to)},
 			},
 		}).
-		RunWith(tx).
+		RunWith(conn).
 		Exec()
 	if err != nil {
 		return err

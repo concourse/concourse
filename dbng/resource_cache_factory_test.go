@@ -161,15 +161,11 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(usedResourceCache.Version).To(Equal(atc.Version{"some": "version"}))
 
-			tx, err := dbConn.Begin()
-			Expect(err).NotTo(HaveOccurred())
-			defer tx.Rollback()
-
 			rows, err := psql.Select("a.version, a.params_hash, o.source_hash, b.name").
 				From("resource_caches a").
 				LeftJoin("resource_configs o ON a.resource_config_id = o.id").
 				LeftJoin("base_resource_types b ON o.base_resource_type_id = b.id").
-				RunWith(tx).
+				RunWith(dbConn).
 				Query()
 			Expect(err).NotTo(HaveOccurred())
 			resourceCaches := []resourceCache{}
@@ -267,14 +263,10 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 	Describe("CleanUpInvalidCaches", func() {
 		countResourceCaches := func() int {
-			tx, err := dbConn.Begin()
-			Expect(err).NotTo(HaveOccurred())
-			defer tx.Rollback()
-
 			var result int
 			err = psql.Select("count(*)").
 				From("resource_caches").
-				RunWith(tx).
+				RunWith(dbConn).
 				QueryRow().
 				Scan(&result)
 			Expect(err).NotTo(HaveOccurred())

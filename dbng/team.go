@@ -108,6 +108,9 @@ func (t *team) CreateResourceCheckContainer(
 
 	brtID := t.findBaseResourceTypeID(resourceConfig)
 	wbrtID, err := t.findWorkerBaseResourceType(brtID, workerName, tx)
+	if err != nil {
+		return nil, err
+	}
 
 	var containerID int
 	err = psql.Insert("containers").
@@ -172,13 +175,6 @@ func (t *team) CreateResourceGetContainer(
 		return nil, err
 	}
 
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	handle, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -203,7 +199,7 @@ func (t *team) CreateResourceGetContainer(
 			t.id,
 		).
 		Suffix("RETURNING id").
-		RunWith(tx).
+		RunWith(t.conn).
 		QueryRow().
 		Scan(&containerID)
 	if err != nil {
@@ -211,11 +207,6 @@ func (t *team) CreateResourceGetContainer(
 			return nil, ErrResourceCacheDisappeared
 		}
 
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return nil, err
 	}
 
@@ -256,13 +247,6 @@ func (t *team) CreateBuildContainer(
 	planID atc.PlanID,
 	meta ContainerMetadata,
 ) (CreatingContainer, error) {
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	handle, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -289,18 +273,13 @@ func (t *team) CreateBuildContainer(
 			t.id,
 		).
 		Suffix("RETURNING id").
-		RunWith(tx).
+		RunWith(t.conn).
 		QueryRow().
 		Scan(&containerID)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 			return nil, ErrBuildDisappeared
 		}
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return nil, err
 	}
 
@@ -366,19 +345,19 @@ func (t *team) SavePipeline(
 		}
 
 		savedPipeline, err = t.scanPipeline(tx.QueryRow(`
-		INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
-		VALUES (
-			$1,
-			$2,
-			nextval('config_version_seq'),
-			(SELECT COUNT(1) + 1 FROM pipelines),
-			$3,
-			$4
-		)
-		RETURNING `+unqualifiedPipelineColumns+`,
-		(
-			SELECT t.name as team_name FROM teams t WHERE t.id = $4
-		)
+			INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
+			VALUES (
+				$1,
+				$2,
+				nextval('config_version_seq'),
+				(SELECT COUNT(1) + 1 FROM pipelines),
+				$3,
+				$4
+			)
+			RETURNING `+unqualifiedPipelineColumns+`,
+			(
+				SELECT t.name as team_name FROM teams t WHERE t.id = $4
+			)
 		`, pipelineName, payload, pausedState.Bool(), t.id))
 		if err != nil {
 			return nil, false, err
@@ -387,22 +366,22 @@ func (t *team) SavePipeline(
 		created = true
 
 		_, err = tx.Exec(fmt.Sprintf(`
-		CREATE TABLE pipeline_build_events_%[1]d ()
-		INHERITS (build_events);
+			CREATE TABLE pipeline_build_events_%[1]d ()
+			INHERITS (build_events)
 		`, savedPipeline.ID()))
 		if err != nil {
 			return nil, false, err
 		}
 
 		_, err = tx.Exec(fmt.Sprintf(`
-		CREATE INDEX pipeline_build_events_%[1]d_build_id ON pipeline_build_events_%[1]d (build_id);
+			CREATE INDEX pipeline_build_events_%[1]d_build_id ON pipeline_build_events_%[1]d (build_id)
 		`, savedPipeline.ID()))
 		if err != nil {
 			return nil, false, err
 		}
 
 		_, err = tx.Exec(fmt.Sprintf(`
-		CREATE UNIQUE INDEX pipeline_build_events_%[1]d_build_id_event_id ON pipeline_build_events_%[1]d (build_id, event_id);
+			CREATE UNIQUE INDEX pipeline_build_events_%[1]d_build_id_event_id ON pipeline_build_events_%[1]d (build_id, event_id)
 		`, savedPipeline.ID()))
 		if err != nil {
 			return nil, false, err
@@ -410,27 +389,27 @@ func (t *team) SavePipeline(
 	} else {
 		if pausedState == PipelineNoChange {
 			savedPipeline, err = t.scanPipeline(tx.QueryRow(`
-			UPDATE pipelines
-			SET config = $1, version = nextval('config_version_seq')
-			WHERE name = $2
-			AND version = $3
-			AND team_id = $4
-			RETURNING `+unqualifiedPipelineColumns+`,
-			(
-				SELECT t.name as team_name FROM teams t WHERE t.id = $4
-			)
+				UPDATE pipelines
+				SET config = $1, version = nextval('config_version_seq')
+				WHERE name = $2
+				AND version = $3
+				AND team_id = $4
+				RETURNING `+unqualifiedPipelineColumns+`,
+				(
+					SELECT t.name as team_name FROM teams t WHERE t.id = $4
+				)
 			`, payload, pipelineName, from, t.id))
 		} else {
 			savedPipeline, err = t.scanPipeline(tx.QueryRow(`
-			UPDATE pipelines
-			SET config = $1, version = nextval('config_version_seq'), paused = $2
-			WHERE name = $3
-			AND version = $4
-			AND team_id = $5
-			RETURNING `+unqualifiedPipelineColumns+`,
-			(
-				SELECT t.name as team_name FROM teams t WHERE t.id = $4
-			)
+				UPDATE pipelines
+				SET config = $1, version = nextval('config_version_seq'), paused = $2
+				WHERE name = $3
+				AND version = $4
+				AND team_id = $5
+				RETURNING `+unqualifiedPipelineColumns+`,
+				(
+					SELECT t.name as team_name FROM teams t WHERE t.id = $4
+				)
 			`, payload, pausedState.Bool(), pipelineName, from, t.id))
 		}
 
@@ -519,20 +498,13 @@ func (t *team) SavePipeline(
 }
 
 func (t *team) FindPipelineByName(pipelineName string) (Pipeline, bool, error) {
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
 	var pipelineID int
-	err = psql.Select("p.id").
+	err := psql.Select("p.id").
 		From("pipelines p").
 		Join("teams t ON t.id = p.team_id").
 		Where(sq.Eq{"p.name": pipelineName}).
 		Where(sq.Eq{"team_id": t.id}).
-		RunWith(tx).
+		RunWith(t.conn).
 		QueryRow().
 		Scan(&pipelineID)
 	if err != nil {
@@ -608,23 +580,7 @@ func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, erro
 		return nil, err
 	}
 
-	return &worker{
-		name:             savedWorker.Name(),
-		state:            WorkerState(savedWorker.State()),
-		gardenAddr:       savedWorker.GardenAddr(),
-		baggageclaimURL:  &atcWorker.BaggageclaimURL,
-		httpProxyURL:     atcWorker.HTTPProxyURL,
-		httpsProxyURL:    atcWorker.HTTPSProxyURL,
-		noProxy:          atcWorker.NoProxy,
-		activeContainers: atcWorker.ActiveContainers,
-		resourceTypes:    atcWorker.ResourceTypes,
-		platform:         atcWorker.Platform,
-		tags:             atcWorker.Tags,
-		teamName:         atcWorker.Team,
-		teamID:           t.id,
-		startTime:        atcWorker.StartTime,
-		conn:             t.conn,
-	}, nil
+	return savedWorker, nil
 }
 
 func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
@@ -759,34 +715,22 @@ func swallowUniqueViolation(err error) error {
 }
 
 func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, CreatedContainer, error) {
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	defer tx.Rollback()
-
 	var containerID int
 	var workerName string
 	var state string
 	var hijacked bool
 	var handle string
-	err = psql.Select("id, worker_name, state, hijacked, handle").
+	err := psql.Select("id, worker_name, state, hijacked, handle").
 		From("containers").
 		Where(whereClause).
 		Where(sq.Eq{"team_id": t.id}).
-		RunWith(tx).
+		RunWith(t.conn).
 		QueryRow().
 		Scan(&containerID, &workerName, &state, &hijacked, &handle)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil, nil
 		}
-		return nil, nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return nil, nil, err
 	}
 

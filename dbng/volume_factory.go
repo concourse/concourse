@@ -96,15 +96,7 @@ func (factory *volumeFactory) CreateResourceCacheVolume(worker Worker, resourceC
 		return nil, err
 	}
 
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	volume, err := factory.createVolume(
-		tx,
 		0,
 		worker,
 		map[string]interface{}{"worker_resource_cache_id": workerResourcCache.ID},
@@ -116,15 +108,7 @@ func (factory *volumeFactory) CreateResourceCacheVolume(worker Worker, resourceC
 }
 
 func (factory *volumeFactory) CreateBaseResourceTypeVolume(teamID int, uwbrt *UsedWorkerBaseResourceType) (CreatingVolume, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	volume, err := factory.createVolume(
-		tx,
 		teamID,
 		uwbrt.Worker,
 		map[string]interface{}{
@@ -142,15 +126,7 @@ func (factory *volumeFactory) CreateBaseResourceTypeVolume(teamID int, uwbrt *Us
 }
 
 func (factory *volumeFactory) CreateContainerVolume(teamID int, worker Worker, container CreatingContainer, mountPath string) (CreatingVolume, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	volume, err := factory.createVolume(
-		tx,
 		teamID,
 		worker,
 		map[string]interface{}{
@@ -220,17 +196,10 @@ func (factory *volumeFactory) FindBaseResourceTypeVolume(teamID int, uwbrt *Used
 }
 
 func (factory *volumeFactory) FindResourceCacheVolume(worker Worker, resourceCache *UsedResourceCache) (CreatingVolume, CreatedVolume, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	defer tx.Rollback()
-
 	workerResourceCache, found, err := WorkerResourceCache{
 		WorkerName:    worker.Name(),
 		ResourceCache: resourceCache,
-	}.Find(tx)
+	}.Find(factory.conn)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -239,39 +208,22 @@ func (factory *volumeFactory) FindResourceCacheVolume(worker Worker, resourceCac
 		return nil, nil, nil
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	return factory.findVolume(0, worker, map[string]interface{}{
 		"v.worker_resource_cache_id": workerResourceCache.ID,
 	})
 }
 
 func (factory *volumeFactory) FindResourceCacheInitializedVolume(worker Worker, resourceCache *UsedResourceCache) (CreatedVolume, bool, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
 	workerResourceCache, found, err := WorkerResourceCache{
 		WorkerName:    worker.Name(),
 		ResourceCache: resourceCache,
-	}.Find(tx)
+	}.Find(factory.conn)
 	if err != nil {
 		return nil, false, err
 	}
 
 	if !found {
 		return nil, false, nil
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, false, err
 	}
 
 	_, createdVolume, err := factory.findVolume(0, worker, map[string]interface{}{
@@ -425,7 +377,6 @@ var ErrWorkerResourceTypeNotFound = errors.New("worker resource type no longer e
 //   * if fails (fkey violation; worker type gone), fail for same reason as 2.
 // 4. commit tx
 func (factory *volumeFactory) createVolume(
-	tx Tx,
 	teamID int,
 	worker Worker,
 	columns map[string]interface{},
@@ -453,14 +404,9 @@ func (factory *volumeFactory) createVolume(
 		Columns(columnNames...). // hey, replace this with SetMap plz
 		Values(columnValues...).
 		Suffix("RETURNING id").
-		RunWith(tx).
+		RunWith(factory.conn).
 		QueryRow().
 		Scan(&volumeID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -478,13 +424,6 @@ func (factory *volumeFactory) createVolume(
 }
 
 func (factory *volumeFactory) findVolume(teamID int, worker Worker, columns map[string]interface{}) (CreatingVolume, CreatedVolume, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	defer tx.Rollback()
-
 	whereClause := sq.Eq{}
 	if teamID != 0 {
 		whereClause["v.team_id"] = teamID
@@ -504,17 +443,13 @@ func (factory *volumeFactory) findVolume(teamID int, worker Worker, columns map[
 		LeftJoin("volumes pv ON v.parent_id = pv.id").
 		LeftJoin("worker_resource_caches wrc ON wrc.id = v.worker_resource_cache_id").
 		Where(whereClause).
-		RunWith(tx).
+		RunWith(factory.conn).
 		QueryRow()
 	creatingVolume, createdVolume, _, err := scanVolume(row, factory.conn)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil, nil
 		}
-		return nil, nil, err
-	}
-	err = tx.Commit()
-	if err != nil {
 		return nil, nil, err
 	}
 

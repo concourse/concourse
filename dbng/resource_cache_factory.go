@@ -93,12 +93,6 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 }
 
 func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	latestImageResourceBuildByJobQ, _, err := sq.
 		Select("MAX(b.id) AS max_build_id").
 		From("image_resource_versions irv").
@@ -128,13 +122,8 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 			sq.Expr("b.interceptible = false"),
 		}).
 		Where("rcu.resource_cache_id NOT IN ("+imageResourceCacheIds+")", imageResourceCacheArgs...).
-		RunWith(tx).
+		RunWith(f.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -143,26 +132,15 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 }
 
 func (f *resourceCacheFactory) CleanUsesForInactiveResourceTypes() error {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	_, err = psql.Delete("resource_cache_uses rcu USING resource_types t").
+	_, err := psql.Delete("resource_cache_uses rcu USING resource_types t").
 		Where(sq.And{
 			sq.Expr("rcu.resource_type_id = t.id"),
 			sq.Eq{
 				"t.active": false,
 			},
 		}).
-		RunWith(tx).
+		RunWith(f.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -171,26 +149,15 @@ func (f *resourceCacheFactory) CleanUsesForInactiveResourceTypes() error {
 }
 
 func (f *resourceCacheFactory) CleanUsesForInactiveResources() error {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	_, err = psql.Delete("resource_cache_uses rcu USING resources r").
+	_, err := psql.Delete("resource_cache_uses rcu USING resources r").
 		Where(sq.And{
 			sq.Expr("rcu.resource_id = r.id"),
 			sq.Eq{
 				"r.active": false,
 			},
 		}).
-		RunWith(tx).
+		RunWith(f.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -199,12 +166,6 @@ func (f *resourceCacheFactory) CleanUsesForInactiveResources() error {
 }
 
 func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	stillInUseCacheIds, _, err := sq.
 		Select("rc.id").
 		Distinct().
@@ -247,12 +208,8 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		Where("id NOT IN ("+stillInUseCacheIds+")").
 		Where("id NOT IN ("+cacheIdsForVolumes+")", cacheIdsForVolumesArgs...).
 		PlaceholderFormat(sq.Dollar).
-		RunWith(tx).Exec()
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
+		RunWith(f.conn).
+		Exec()
 	if err != nil {
 		return err
 	}

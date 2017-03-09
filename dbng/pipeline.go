@@ -127,13 +127,6 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 }
 
 func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (*Resource, error) {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	configPayload, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
@@ -144,14 +137,9 @@ func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (*Reso
 		Columns("pipeline_id", "name", "config", "source_hash").
 		Values(p.id, name, configPayload, mapHash(config.Source)).
 		Suffix("RETURNING id").
-		RunWith(tx).
+		RunWith(p.conn).
 		QueryRow().
 		Scan(&resourceID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -194,14 +182,7 @@ func (p *pipeline) SaveJob(job atc.JobConfig) error {
 }
 
 func (p *pipeline) ResourceTypes() ([]ResourceType, error) {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	rows, err := resourceTypesQuery.Where(sq.Eq{"pipeline_id": p.id}).RunWith(tx).Query()
+	rows, err := resourceTypesQuery.Where(sq.Eq{"pipeline_id": p.id}).RunWith(p.conn).Query()
 	if err != nil {
 		return nil, err
 	}
@@ -219,39 +200,22 @@ func (p *pipeline) ResourceTypes() ([]ResourceType, error) {
 		resourceTypes = append(resourceTypes, resourceType)
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
 	return resourceTypes, nil
 }
 
 func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
 	row := resourceTypesQuery.Where(sq.Eq{
 		"pipeline_id": p.id,
 		"name":        name,
-	}).RunWith(tx).QueryRow()
+	}).RunWith(p.conn).QueryRow()
 
 	resourceType := &resourceType{conn: p.conn}
-	err = scanResourceType(resourceType, row)
+	err := scanResourceType(resourceType, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
 		}
 
-		return nil, false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return nil, false, err
 	}
 

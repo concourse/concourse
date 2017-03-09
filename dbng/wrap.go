@@ -3,9 +3,9 @@ package dbng
 import (
 	"database/sql"
 	"database/sql/driver"
-)
 
-//go:generate counterfeiter . Conn
+	"github.com/Masterminds/squirrel"
+)
 
 type Conn interface {
 	Begin() (Tx, error)
@@ -15,20 +15,18 @@ type Conn interface {
 	Ping() error
 	Prepare(query string) (*sql.Stmt, error)
 	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
+	QueryRow(query string, args ...interface{}) squirrel.RowScanner
 	SetMaxIdleConns(n int)
 	SetMaxOpenConns(n int)
 	Stats() sql.DBStats
 }
-
-//go:generate counterfeiter . Tx
 
 type Tx interface {
 	Commit() error
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Prepare(query string) (*sql.Stmt, error)
 	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
+	QueryRow(query string, args ...interface{}) squirrel.RowScanner
 	Rollback() error
 	Stmt(stmt *sql.Stmt) *sql.Stmt
 }
@@ -46,5 +44,24 @@ type wrappedDB struct {
 }
 
 func (wrapped *wrappedDB) Begin() (Tx, error) {
-	return wrapped.DB.Begin()
+	tx, err := wrapped.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	return &wrappedTx{tx}, nil
+}
+
+// to conform to squirrel.Runner interface
+func (wrapped *wrappedDB) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+	return wrapped.DB.QueryRow(query, args...)
+}
+
+type wrappedTx struct {
+	*sql.Tx
+}
+
+// to conform to squirrel.Runner interface
+func (wrapped *wrappedTx) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+	return wrapped.Tx.QueryRow(query, args...)
 }

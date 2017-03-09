@@ -90,18 +90,11 @@ func (worker *worker) StartTime() int64     { return worker.startTime }
 func (worker *worker) ExpiresAt() time.Time { return worker.expiresAt }
 
 func (worker *worker) Reload() (bool, error) {
-	tx, err := worker.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-	defer tx.Rollback()
-
 	row := workersQuery.Where(sq.Eq{"w.name": worker.name}).
-		RunWith(tx).
+		RunWith(worker.conn).
 		QueryRow()
 
-	err = scanWorker(worker, row)
-
+	err := scanWorker(worker, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
@@ -109,21 +102,10 @@ func (worker *worker) Reload() (bool, error) {
 		return false, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return false, err
-	}
-
 	return true, nil
 }
 
 func (worker *worker) Land() error {
-	tx, err := worker.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	cSql, _, err := sq.Case("state").
 		When("'landed'::worker_state", "'landed'::worker_state").
 		Else("'landing'::worker_state").
@@ -135,7 +117,7 @@ func (worker *worker) Land() error {
 	result, err := psql.Update("workers").
 		Set("state", sq.Expr("("+cSql+")")).
 		Where(sq.Eq{"name": worker.name}).
-		RunWith(tx).
+		RunWith(worker.conn).
 		Exec()
 
 	if err != nil {
@@ -151,33 +133,17 @@ func (worker *worker) Land() error {
 		return ErrWorkerNotPresent
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (worker *worker) Retire() error {
-	tx, err := worker.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	result, err := psql.Update("workers").
 		SetMap(map[string]interface{}{
 			"state": string(WorkerStateRetiring),
 		}).
 		Where(sq.Eq{"name": worker.name}).
-		RunWith(tx).
+		RunWith(worker.conn).
 		Exec()
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -195,12 +161,6 @@ func (worker *worker) Retire() error {
 }
 
 func (worker *worker) Prune() error {
-	tx, err := worker.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	rows, err := sq.Delete("workers").
 		Where(sq.Eq{
 			"name": worker.name,
@@ -209,7 +169,7 @@ func (worker *worker) Prune() error {
 			"state": string(WorkerStateRunning),
 		}).
 		PlaceholderFormat(sq.Dollar).
-		RunWith(tx).
+		RunWith(worker.conn).
 		Exec()
 
 	if err != nil {
@@ -225,7 +185,7 @@ func (worker *worker) Prune() error {
 		//check whether the worker exists in the database at all
 		var one int
 		err := psql.Select("1").From("workers").Where(sq.Eq{"name": worker.name}).
-			RunWith(tx).
+			RunWith(worker.conn).
 			QueryRow().
 			Scan(&one)
 		if err != nil {
@@ -238,34 +198,18 @@ func (worker *worker) Prune() error {
 		return ErrCannotPruneRunningWorker
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (worker *worker) Delete() error {
-	tx, err := worker.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	_, err = sq.Delete("workers").
+	_, err := sq.Delete("workers").
 		Where(sq.Eq{
 			"name": worker.name,
 		}).
 		PlaceholderFormat(sq.Dollar).
-		RunWith(tx).
+		RunWith(worker.conn).
 		Exec()
 
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return err
 	}

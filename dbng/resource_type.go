@@ -52,13 +52,6 @@ func (t *resourceType) Source() atc.Source { return t.source }
 
 func (t *resourceType) Version() atc.Version { return t.version }
 func (t *resourceType) SaveVersion(version atc.Version) error {
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
 	versionJSON, err := json.Marshal(version)
 	if err != nil {
 		return err
@@ -67,7 +60,7 @@ func (t *resourceType) SaveVersion(version atc.Version) error {
 	result, err := psql.Update("resource_types").
 		Where(sq.Eq{"id": t.id}).
 		Set("version", versionJSON).
-		RunWith(tx).
+		RunWith(t.conn).
 		Exec()
 	if err != nil {
 		return err
@@ -82,28 +75,17 @@ func (t *resourceType) SaveVersion(version atc.Version) error {
 		return ResourceTypeNotFoundError{t.name}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (t *resourceType) Reload() (bool, error) {
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-	defer tx.Rollback()
+	row := resourceTypesQuery.Where(sq.Eq{"id": t.id}).RunWith(t.conn).QueryRow()
 
-	row := resourceTypesQuery.Where(sq.Eq{"id": t.id}).RunWith(tx).QueryRow()
-
-	err = scanResourceType(t, row)
+	err := scanResourceType(t, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
-		return false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return false, err
 	}
 

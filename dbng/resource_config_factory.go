@@ -116,78 +116,54 @@ func constructResourceConfig(
 }
 
 func (f *resourceConfigFactory) CleanConfigUsesForFinishedBuilds() error {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	_, err = psql.Delete("resource_config_uses rcu USING builds b").
+	_, err := psql.Delete("resource_config_uses rcu USING builds b").
 		Where(sq.Expr("rcu.build_id = b.id")).
 		Where(sq.Expr("NOT b.interceptible")).
-		RunWith(tx).
+		RunWith(f.conn).
 		Exec()
 
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (f *resourceConfigFactory) CleanConfigUsesForInactiveResourceTypes() error {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	_, err = psql.Delete("resource_config_uses rcu USING resource_types t").
+	_, err := psql.Delete("resource_config_uses rcu USING resource_types t").
 		Where(sq.And{
 			sq.Expr("rcu.resource_type_id = t.id"),
 			sq.Eq{
 				"t.active": false,
 			},
 		}).
-		RunWith(tx).
+		RunWith(f.conn).
 		Exec()
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (f *resourceConfigFactory) CleanConfigUsesForInactiveResources() error {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	_, err = psql.Delete("resource_config_uses rcu USING resources r").
+	_, err := psql.Delete("resource_config_uses rcu USING resources r").
 		Where(sq.And{
 			sq.Expr("rcu.resource_id = r.id"),
 			sq.Eq{
 				"r.active": false,
 			},
 		}).
-		RunWith(tx).
+		RunWith(f.conn).
 		Exec()
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (f *resourceConfigFactory) CleanUselessConfigs() error {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	stillInUseConfigIds, _, err := sq.
 		Select("resource_config_id").
 		Distinct().
@@ -210,12 +186,12 @@ func (f *resourceConfigFactory) CleanUselessConfigs() error {
 		Where("id NOT IN (" + stillInUseConfigIds + ")").
 		Where("id NOT IN (" + usedByResourceCachesIds + ")").
 		PlaceholderFormat(sq.Dollar).
-		RunWith(tx).Exec()
+		RunWith(f.conn).Exec()
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func resourceTypesList(resourceTypeName string, allResourceTypes []atc.ResourceType, resultResourceTypes []atc.ResourceType) []atc.ResourceType {

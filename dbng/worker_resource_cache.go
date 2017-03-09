@@ -74,12 +74,12 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx) (*UsedWorkerR
 	}, nil
 }
 
-func (workerResourceCache WorkerResourceCache) Find(tx Tx) (*UsedWorkerResourceCache, bool, error) {
+func (workerResourceCache WorkerResourceCache) Find(runner sq.Runner) (*UsedWorkerResourceCache, bool, error) {
 	baseResourceType := workerResourceCache.ResourceCache.BaseResourceType()
 	usedWorkerBaseResourceType, found, err := WorkerBaseResourceType{
 		Name:       baseResourceType.Name,
 		WorkerName: workerResourceCache.WorkerName,
-	}.Find(tx)
+	}.Find(runner)
 	if err != nil {
 		return nil, false, err
 	}
@@ -88,7 +88,7 @@ func (workerResourceCache WorkerResourceCache) Find(tx Tx) (*UsedWorkerResourceC
 		return nil, false, nil
 	}
 
-	id, found, err := workerResourceCache.find(tx, usedWorkerBaseResourceType)
+	id, found, err := workerResourceCache.find(runner, usedWorkerBaseResourceType)
 	if err != nil {
 		return nil, false, err
 	}
@@ -102,7 +102,7 @@ func (workerResourceCache WorkerResourceCache) Find(tx Tx) (*UsedWorkerResourceC
 	return nil, false, nil
 }
 
-func (workerResourceCache WorkerResourceCache) find(tx Tx, usedWorkerBaseResourceType *UsedWorkerBaseResourceType) (int, bool, error) {
+func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, usedWorkerBaseResourceType *UsedWorkerBaseResourceType) (int, bool, error) {
 	var id int
 
 	err := psql.Select("id").
@@ -111,7 +111,7 @@ func (workerResourceCache WorkerResourceCache) find(tx Tx, usedWorkerBaseResourc
 			"resource_cache_id":            workerResourceCache.ResourceCache.ID,
 			"worker_base_resource_type_id": usedWorkerBaseResourceType.ID,
 		}).
-		RunWith(tx).
+		RunWith(runner).
 		QueryRow().
 		Scan(&id)
 	if err != nil {

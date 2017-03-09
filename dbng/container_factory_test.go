@@ -136,16 +136,11 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when check container best if use by date is expired", func() {
 				BeforeEach(func() {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-
 					_, err = psql.Update("containers").
 						Set("best_if_used_by", sq.Expr("NOW() - '1 second'::INTERVAL")).
 						Where(sq.Eq{"id": creatingContainer.ID()}).
-						RunWith(tx).Exec()
+						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
-
-					Expect(tx.Commit()).To(Succeed())
 				})
 
 				Context("when container is creating", func() {
@@ -199,16 +194,11 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when check container best if use by date did not expire", func() {
 				BeforeEach(func() {
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-
 					_, err = psql.Update("containers").
 						Set("best_if_used_by", sq.Expr("NOW() + '1 hour'::INTERVAL")).
 						Where(sq.Eq{"id": creatingContainer.ID()}).
-						RunWith(tx).Exec()
+						RunWith(dbConn).Exec()
 					Expect(err).NotTo(HaveOccurred())
-
-					Expect(tx.Commit()).To(Succeed())
 				})
 
 				It("does not find the container for deletion", func() {

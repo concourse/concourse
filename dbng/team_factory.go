@@ -77,29 +77,17 @@ func (factory *teamFactory) GetByID(teamID int) Team {
 }
 
 func (factory *teamFactory) FindTeam(name string) (Team, bool, error) {
-	tx, err := factory.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
 	var teamID int
-	err = psql.Select("id").
+	err := psql.Select("id").
 		From("teams").
 		Where(sq.Eq{"name": name}).
-		RunWith(tx).
+		RunWith(factory.conn).
 		QueryRow().
 		Scan(&teamID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
 		}
-		return nil, false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return nil, false, err
 	}
 
