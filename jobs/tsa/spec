@@ -77,6 +77,11 @@ properties:
       authorized worker keys.
     default: true
 
+  log_level:
+    description: |
+      The log level for the TSA.
+    default: info
+
   yeller.api_key:
     description: |
       If configured, errors emitted to the logs will also be emitted to Yeller.

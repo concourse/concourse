@@ -98,6 +98,7 @@ EOF
        <% end %> \
       --session-signing-key $SIGNING_KEY \
       --heartbeat-interval <%= p("heartbeat_interval") %> \
+      --log-level <%= p("log_level") %> \
       --yeller-api-key <%= esc(p("yeller.api_key")) %> \
       --yeller-environment <%= esc(p("yeller.environment_name")) %> \
       1>>$LOG_DIR/tsa.stdout.log \

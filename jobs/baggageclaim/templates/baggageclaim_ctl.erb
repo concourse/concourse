@@ -70,6 +70,7 @@ case $1 in
       --driver btrfs \
       --bind-ip <%= p("bind_ip") %> \
       --bind-port <%= p("bind_port") %> \
+      --log-level <%= p("log_level") %> \
       --yeller-api-key <%= esc(p("yeller.api_key")) %> \
       --yeller-environment <%= esc(p("yeller.environment_name")) %> \
       --btrfs-bin /var/vcap/packages/btrfs_tools/sbin/btrfs \

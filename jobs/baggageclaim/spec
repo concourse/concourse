@@ -27,6 +27,11 @@ properties:
       Port on which Baggageclaim should listen for HTTP traffic.
     default: 7788
 
+  log_level:
+    description: |
+      The log level for Baggageclaim.
+    default: info
+
   yeller.api_key:
     description: |
       If configured, errors emitted to the logs will also be emitted to Yeller.
