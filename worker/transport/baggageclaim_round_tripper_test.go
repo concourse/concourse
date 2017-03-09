@@ -31,7 +31,7 @@ var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 		fakeRoundTripper = new(retryhttpfakes.FakeRoundTripper)
 		workerBaggageClaimURL := "http://1.2.3.4:7878"
 		roundTripper = transport.NewBaggageclaimRoundTripper("some-worker", &workerBaggageClaimURL, fakeDB, fakeRoundTripper)
-		requestUrl, err := url.Parse("http://1.2.3.4/something")
+		requestUrl, err := url.Parse("/something")
 		Expect(err).NotTo(HaveOccurred())
 
 		request = http.Request{
@@ -50,9 +50,10 @@ var _ = Describe("BaggageclaimRoundTripper #RoundTrip", func() {
 		Expect(response).To(Equal(&http.Response{StatusCode: http.StatusTeapot}))
 	})
 
-	It("sends the request with worker's garden address", func() {
+	It("sends the request with worker's baggageclaim url", func() {
 		Expect(fakeRoundTripper.RoundTripCallCount()).To(Equal(1))
 		actualRequest := fakeRoundTripper.RoundTripArgsForCall(0)
+		Expect(actualRequest.URL.Scheme).To(Equal("http"))
 		Expect(actualRequest.URL.Host).To(Equal("1.2.3.4:7878"))
 		Expect(actualRequest.URL.Path).To(Equal("/something"))
 	})

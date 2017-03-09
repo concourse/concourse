@@ -48,6 +48,7 @@ func (c *baggageclaimRoundTripper) RoundTrip(request *http.Request) (*http.Respo
 	}
 
 	updatedURL := *request.URL
+	updatedURL.Scheme = baggageclaimURL.Scheme
 	updatedURL.Host = baggageclaimURL.Host
 
 	updatedRequest := *request
