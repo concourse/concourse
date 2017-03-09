@@ -10,7 +10,6 @@ import (
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/worker/transport"
-	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/retryhttp"
 
@@ -167,16 +166,12 @@ func (provider *dbWorkerProvider) newGardenWorker(tikTok clock.Clock, savedWorke
 
 	connection := NewRetryableConnection(gcf.BuildConnection())
 
-	var bClient baggageclaim.Client
-	if savedWorker.BaggageclaimURL() != nil {
-		roundTripper := transport.NewBaggageclaimRoundTripper(
-			savedWorker.Name(),
-			savedWorker.BaggageclaimURL(),
-			provider.dbWorkerFactory,
-			&http.Transport{DisableKeepAlives: true},
-		)
-		bClient = bclient.New(*savedWorker.BaggageclaimURL(), roundTripper)
-	}
+	bClient := bclient.New("", transport.NewBaggageclaimRoundTripper(
+		savedWorker.Name(),
+		savedWorker.BaggageclaimURL(),
+		provider.dbWorkerFactory,
+		&http.Transport{DisableKeepAlives: true},
+	))
 
 	volumeClient := NewVolumeClient(
 		bClient,
