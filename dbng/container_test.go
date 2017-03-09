@@ -50,7 +50,7 @@ var _ = Describe("Container", func() {
 			volumes, err := volumeFactory.FindVolumesForContainer(createdContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(volumes).To(HaveLen(2))
-			Expect([]string{volumes[0].Handle(), volumes[1].Handle()}).To(Equal(expectedHandles))
+			Expect([]string{volumes[0].Handle(), volumes[1].Handle()}).To(ConsistOf(expectedHandles))
 			Expect([]string{volumes[0].Path(), volumes[1].Path()}).To(ConsistOf("some-path-1", "some-path-2"))
 		})
 	})

@@ -151,4 +151,6 @@ var Migrations = []migration.Migrator{
 	AddWorkerResourceCacheToContainers,
 	AddWorkerResourceCacheToVolumes,
 	RemoveLastTrackedFromBuilds,
+	AddIndexesToABunchMoreStuff,
+	RemoveDuplicateIndices,
 }
