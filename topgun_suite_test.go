@@ -133,7 +133,9 @@ func Deploy(manifest string, operations ...string) {
 			"-v", "atc-external-url-2=" + atcExternalURL2,
 			"-v", "concourse-release-version=" + concourseReleaseVersion,
 			"-v", "garden-runc-release-version=" + gardenRuncReleaseVersion,
-			"-v", "stemcell-version=" + stemcellVersion,
+
+			// 3363.10 becomes 3363.1 as it's floating point; quotes prevent that
+			"-v", "stemcell-version='" + stemcellVersion + "'",
 		}, opFlags...)...,
 	)
 
