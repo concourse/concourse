@@ -1,7 +1,5 @@
 ---
-name: concourse-testflight
-
-director_uuid: ~
+name: ((deployment_name))
 
 releases:
   - name: concourse
@@ -14,7 +12,7 @@ instance_groups:
     instances: 1
     networks:
       - name: testflight
-        static_ips: [&web-ip 10.244.15.2]
+        static_ips: [&web-ip ((web_ip))]
     persistent_disk: 10240
     vm_type: testflight
     stemcell: trusty
@@ -25,7 +23,7 @@ instance_groups:
           no_really_i_dont_want_any_auth: true
           log_level: debug
           default_check_interval: 5s
-          external_url: http://10.244.15.2:8080
+          external_url: http://((web_ip)):8080
           postgresql_database: atc
 
       - release: concourse
