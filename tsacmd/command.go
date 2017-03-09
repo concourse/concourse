@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager"
+
 	"golang.org/x/crypto/ssh"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/tsa"
 	"github.com/dgrijalva/jwt-go"
@@ -23,6 +23,8 @@ import (
 )
 
 type TSACommand struct {
+	Logger LagerFlag
+
 	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
 	BindPort uint16 `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
 
@@ -58,13 +60,7 @@ func (cmd *TSACommand) Execute(args []string) error {
 }
 
 func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
-	logger := lager.NewLogger("tsa")
-	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
-
-	if cmd.Metrics.YellerAPIKey != "" {
-		yellerSink := zest.NewYellerSink(cmd.Metrics.YellerAPIKey, cmd.Metrics.YellerEnvironment)
-		logger.RegisterSink(yellerSink)
-	}
+	logger, _ := cmd.constructLogger()
 
 	atcEndpoint := rata.NewRequestGenerator(cmd.ATCURL.String(), atc.Routes)
 
@@ -107,6 +103,17 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	return serverRunner{logger, server, listenAddr}, nil
+}
+
+func (cmd *TSACommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
+	logger, reconfigurableSink := cmd.Logger.Logger("tsa")
+
+	if cmd.Metrics.YellerAPIKey != "" {
+		yellerSink := zest.NewYellerSink(cmd.Metrics.YellerAPIKey, cmd.Metrics.YellerEnvironment)
+		logger.RegisterSink(yellerSink)
+	}
+
+	return logger, reconfigurableSink
 }
 
 func (cmd *TSACommand) loadAuthorizedKeys() ([]ssh.PublicKey, error) {
