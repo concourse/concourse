@@ -16,12 +16,16 @@ type FakePipelineDBFactory struct {
 	buildReturns struct {
 		result1 db.PipelineDB
 	}
+	buildReturnsOnCall map[int]struct {
+		result1 db.PipelineDB
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakePipelineDBFactory) Build(pipeline db.SavedPipeline) db.PipelineDB {
 	fake.buildMutex.Lock()
+	ret, specificReturn := fake.buildReturnsOnCall[len(fake.buildArgsForCall)]
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
 		pipeline db.SavedPipeline
 	}{pipeline})
@@ -29,6 +33,9 @@ func (fake *FakePipelineDBFactory) Build(pipeline db.SavedPipeline) db.PipelineD
 	fake.buildMutex.Unlock()
 	if fake.BuildStub != nil {
 		return fake.BuildStub(pipeline)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.buildReturns.result1
 }
@@ -48,6 +55,18 @@ func (fake *FakePipelineDBFactory) BuildArgsForCall(i int) db.SavedPipeline {
 func (fake *FakePipelineDBFactory) BuildReturns(result1 db.PipelineDB) {
 	fake.BuildStub = nil
 	fake.buildReturns = struct {
+		result1 db.PipelineDB
+	}{result1}
+}
+
+func (fake *FakePipelineDBFactory) BuildReturnsOnCall(i int, result1 db.PipelineDB) {
+	fake.BuildStub = nil
+	if fake.buildReturnsOnCall == nil {
+		fake.buildReturnsOnCall = make(map[int]struct {
+			result1 db.PipelineDB
+		})
+	}
+	fake.buildReturnsOnCall[i] = struct {
 		result1 db.PipelineDB
 	}{result1}
 }

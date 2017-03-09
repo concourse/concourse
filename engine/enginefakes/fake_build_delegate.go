@@ -22,6 +22,9 @@ type FakeBuildDelegate struct {
 	inputDelegateReturns struct {
 		result1 exec.GetDelegate
 	}
+	inputDelegateReturnsOnCall map[int]struct {
+		result1 exec.GetDelegate
+	}
 	ExecutionDelegateStub        func(lager.Logger, atc.TaskPlan, event.OriginID) exec.TaskDelegate
 	executionDelegateMutex       sync.RWMutex
 	executionDelegateArgsForCall []struct {
@@ -32,6 +35,9 @@ type FakeBuildDelegate struct {
 	executionDelegateReturns struct {
 		result1 exec.TaskDelegate
 	}
+	executionDelegateReturnsOnCall map[int]struct {
+		result1 exec.TaskDelegate
+	}
 	OutputDelegateStub        func(lager.Logger, atc.PutPlan, event.OriginID) exec.PutDelegate
 	outputDelegateMutex       sync.RWMutex
 	outputDelegateArgsForCall []struct {
@@ -40,6 +46,9 @@ type FakeBuildDelegate struct {
 		arg3 event.OriginID
 	}
 	outputDelegateReturns struct {
+		result1 exec.PutDelegate
+	}
+	outputDelegateReturnsOnCall map[int]struct {
 		result1 exec.PutDelegate
 	}
 	FinishStub        func(lager.Logger, error, exec.Success, bool)
@@ -56,6 +65,7 @@ type FakeBuildDelegate struct {
 
 func (fake *FakeBuildDelegate) InputDelegate(arg1 lager.Logger, arg2 atc.GetPlan, arg3 event.OriginID) exec.GetDelegate {
 	fake.inputDelegateMutex.Lock()
+	ret, specificReturn := fake.inputDelegateReturnsOnCall[len(fake.inputDelegateArgsForCall)]
 	fake.inputDelegateArgsForCall = append(fake.inputDelegateArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.GetPlan
@@ -65,6 +75,9 @@ func (fake *FakeBuildDelegate) InputDelegate(arg1 lager.Logger, arg2 atc.GetPlan
 	fake.inputDelegateMutex.Unlock()
 	if fake.InputDelegateStub != nil {
 		return fake.InputDelegateStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.inputDelegateReturns.result1
 }
@@ -88,8 +101,21 @@ func (fake *FakeBuildDelegate) InputDelegateReturns(result1 exec.GetDelegate) {
 	}{result1}
 }
 
+func (fake *FakeBuildDelegate) InputDelegateReturnsOnCall(i int, result1 exec.GetDelegate) {
+	fake.InputDelegateStub = nil
+	if fake.inputDelegateReturnsOnCall == nil {
+		fake.inputDelegateReturnsOnCall = make(map[int]struct {
+			result1 exec.GetDelegate
+		})
+	}
+	fake.inputDelegateReturnsOnCall[i] = struct {
+		result1 exec.GetDelegate
+	}{result1}
+}
+
 func (fake *FakeBuildDelegate) ExecutionDelegate(arg1 lager.Logger, arg2 atc.TaskPlan, arg3 event.OriginID) exec.TaskDelegate {
 	fake.executionDelegateMutex.Lock()
+	ret, specificReturn := fake.executionDelegateReturnsOnCall[len(fake.executionDelegateArgsForCall)]
 	fake.executionDelegateArgsForCall = append(fake.executionDelegateArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.TaskPlan
@@ -99,6 +125,9 @@ func (fake *FakeBuildDelegate) ExecutionDelegate(arg1 lager.Logger, arg2 atc.Tas
 	fake.executionDelegateMutex.Unlock()
 	if fake.ExecutionDelegateStub != nil {
 		return fake.ExecutionDelegateStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.executionDelegateReturns.result1
 }
@@ -122,8 +151,21 @@ func (fake *FakeBuildDelegate) ExecutionDelegateReturns(result1 exec.TaskDelegat
 	}{result1}
 }
 
+func (fake *FakeBuildDelegate) ExecutionDelegateReturnsOnCall(i int, result1 exec.TaskDelegate) {
+	fake.ExecutionDelegateStub = nil
+	if fake.executionDelegateReturnsOnCall == nil {
+		fake.executionDelegateReturnsOnCall = make(map[int]struct {
+			result1 exec.TaskDelegate
+		})
+	}
+	fake.executionDelegateReturnsOnCall[i] = struct {
+		result1 exec.TaskDelegate
+	}{result1}
+}
+
 func (fake *FakeBuildDelegate) OutputDelegate(arg1 lager.Logger, arg2 atc.PutPlan, arg3 event.OriginID) exec.PutDelegate {
 	fake.outputDelegateMutex.Lock()
+	ret, specificReturn := fake.outputDelegateReturnsOnCall[len(fake.outputDelegateArgsForCall)]
 	fake.outputDelegateArgsForCall = append(fake.outputDelegateArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
@@ -133,6 +175,9 @@ func (fake *FakeBuildDelegate) OutputDelegate(arg1 lager.Logger, arg2 atc.PutPla
 	fake.outputDelegateMutex.Unlock()
 	if fake.OutputDelegateStub != nil {
 		return fake.OutputDelegateStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.outputDelegateReturns.result1
 }
@@ -152,6 +197,18 @@ func (fake *FakeBuildDelegate) OutputDelegateArgsForCall(i int) (lager.Logger, a
 func (fake *FakeBuildDelegate) OutputDelegateReturns(result1 exec.PutDelegate) {
 	fake.OutputDelegateStub = nil
 	fake.outputDelegateReturns = struct {
+		result1 exec.PutDelegate
+	}{result1}
+}
+
+func (fake *FakeBuildDelegate) OutputDelegateReturnsOnCall(i int, result1 exec.PutDelegate) {
+	fake.OutputDelegateStub = nil
+	if fake.outputDelegateReturnsOnCall == nil {
+		fake.outputDelegateReturnsOnCall = make(map[int]struct {
+			result1 exec.PutDelegate
+		})
+	}
+	fake.outputDelegateReturnsOnCall[i] = struct {
 		result1 exec.PutDelegate
 	}{result1}
 }

@@ -19,12 +19,18 @@ type FakeWorkerBaseResourceTypeFactory struct {
 		result2 bool
 		result3 error
 	}
+	findReturnsOnCall map[int]struct {
+		result1 *dbng.UsedWorkerBaseResourceType
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeWorkerBaseResourceTypeFactory) Find(name string, worker dbng.Worker) (*dbng.UsedWorkerBaseResourceType, bool, error) {
 	fake.findMutex.Lock()
+	ret, specificReturn := fake.findReturnsOnCall[len(fake.findArgsForCall)]
 	fake.findArgsForCall = append(fake.findArgsForCall, struct {
 		name   string
 		worker dbng.Worker
@@ -33,6 +39,9 @@ func (fake *FakeWorkerBaseResourceTypeFactory) Find(name string, worker dbng.Wor
 	fake.findMutex.Unlock()
 	if fake.FindStub != nil {
 		return fake.FindStub(name, worker)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.findReturns.result1, fake.findReturns.result2, fake.findReturns.result3
 }
@@ -52,6 +61,22 @@ func (fake *FakeWorkerBaseResourceTypeFactory) FindArgsForCall(i int) (string, d
 func (fake *FakeWorkerBaseResourceTypeFactory) FindReturns(result1 *dbng.UsedWorkerBaseResourceType, result2 bool, result3 error) {
 	fake.FindStub = nil
 	fake.findReturns = struct {
+		result1 *dbng.UsedWorkerBaseResourceType
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorkerBaseResourceTypeFactory) FindReturnsOnCall(i int, result1 *dbng.UsedWorkerBaseResourceType, result2 bool, result3 error) {
+	fake.FindStub = nil
+	if fake.findReturnsOnCall == nil {
+		fake.findReturnsOnCall = make(map[int]struct {
+			result1 *dbng.UsedWorkerBaseResourceType
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findReturnsOnCall[i] = struct {
 		result1 *dbng.UsedWorkerBaseResourceType
 		result2 bool
 		result3 error

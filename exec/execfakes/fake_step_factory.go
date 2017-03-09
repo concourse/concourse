@@ -18,12 +18,16 @@ type FakeStepFactory struct {
 	usingReturns struct {
 		result1 exec.Step
 	}
+	usingReturnsOnCall map[int]struct {
+		result1 exec.Step
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeStepFactory) Using(arg1 exec.Step, arg2 *worker.ArtifactRepository) exec.Step {
 	fake.usingMutex.Lock()
+	ret, specificReturn := fake.usingReturnsOnCall[len(fake.usingArgsForCall)]
 	fake.usingArgsForCall = append(fake.usingArgsForCall, struct {
 		arg1 exec.Step
 		arg2 *worker.ArtifactRepository
@@ -32,6 +36,9 @@ func (fake *FakeStepFactory) Using(arg1 exec.Step, arg2 *worker.ArtifactReposito
 	fake.usingMutex.Unlock()
 	if fake.UsingStub != nil {
 		return fake.UsingStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.usingReturns.result1
 }
@@ -51,6 +58,18 @@ func (fake *FakeStepFactory) UsingArgsForCall(i int) (exec.Step, *worker.Artifac
 func (fake *FakeStepFactory) UsingReturns(result1 exec.Step) {
 	fake.UsingStub = nil
 	fake.usingReturns = struct {
+		result1 exec.Step
+	}{result1}
+}
+
+func (fake *FakeStepFactory) UsingReturnsOnCall(i int, result1 exec.Step) {
+	fake.UsingStub = nil
+	if fake.usingReturnsOnCall == nil {
+		fake.usingReturnsOnCall = make(map[int]struct {
+			result1 exec.Step
+		})
+	}
+	fake.usingReturnsOnCall[i] = struct {
 		result1 exec.Step
 	}{result1}
 }

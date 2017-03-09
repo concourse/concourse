@@ -25,10 +25,17 @@ type FakeResourceCacheFactory struct {
 		result1 *dbng.UsedResourceCache
 		result2 error
 	}
+	findOrCreateResourceCacheReturnsOnCall map[int]struct {
+		result1 *dbng.UsedResourceCache
+		result2 error
+	}
 	CleanUsesForFinishedBuildsStub        func() error
 	cleanUsesForFinishedBuildsMutex       sync.RWMutex
 	cleanUsesForFinishedBuildsArgsForCall []struct{}
 	cleanUsesForFinishedBuildsReturns     struct {
+		result1 error
+	}
+	cleanUsesForFinishedBuildsReturnsOnCall map[int]struct {
 		result1 error
 	}
 	CleanUsesForInactiveResourceTypesStub        func() error
@@ -37,10 +44,16 @@ type FakeResourceCacheFactory struct {
 	cleanUsesForInactiveResourceTypesReturns     struct {
 		result1 error
 	}
+	cleanUsesForInactiveResourceTypesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CleanUsesForInactiveResourcesStub        func() error
 	cleanUsesForInactiveResourcesMutex       sync.RWMutex
 	cleanUsesForInactiveResourcesArgsForCall []struct{}
 	cleanUsesForInactiveResourcesReturns     struct {
+		result1 error
+	}
+	cleanUsesForInactiveResourcesReturnsOnCall map[int]struct {
 		result1 error
 	}
 	CleanUpInvalidCachesStub        func() error
@@ -49,12 +62,16 @@ type FakeResourceCacheFactory struct {
 	cleanUpInvalidCachesReturns     struct {
 		result1 error
 	}
+	cleanUpInvalidCachesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(logger lager.Logger, resourceUser dbng.ResourceUser, resourceTypeName string, version atc.Version, source atc.Source, params atc.Params, resourceTypes atc.VersionedResourceTypes) (*dbng.UsedResourceCache, error) {
 	fake.findOrCreateResourceCacheMutex.Lock()
+	ret, specificReturn := fake.findOrCreateResourceCacheReturnsOnCall[len(fake.findOrCreateResourceCacheArgsForCall)]
 	fake.findOrCreateResourceCacheArgsForCall = append(fake.findOrCreateResourceCacheArgsForCall, struct {
 		logger           lager.Logger
 		resourceUser     dbng.ResourceUser
@@ -68,6 +85,9 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(logger lager.Log
 	fake.findOrCreateResourceCacheMutex.Unlock()
 	if fake.FindOrCreateResourceCacheStub != nil {
 		return fake.FindOrCreateResourceCacheStub(logger, resourceUser, resourceTypeName, version, source, params, resourceTypes)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.findOrCreateResourceCacheReturns.result1, fake.findOrCreateResourceCacheReturns.result2
 }
@@ -92,13 +112,31 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheReturns(result1 *
 	}{result1, result2}
 }
 
+func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheReturnsOnCall(i int, result1 *dbng.UsedResourceCache, result2 error) {
+	fake.FindOrCreateResourceCacheStub = nil
+	if fake.findOrCreateResourceCacheReturnsOnCall == nil {
+		fake.findOrCreateResourceCacheReturnsOnCall = make(map[int]struct {
+			result1 *dbng.UsedResourceCache
+			result2 error
+		})
+	}
+	fake.findOrCreateResourceCacheReturnsOnCall[i] = struct {
+		result1 *dbng.UsedResourceCache
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuilds() error {
 	fake.cleanUsesForFinishedBuildsMutex.Lock()
+	ret, specificReturn := fake.cleanUsesForFinishedBuildsReturnsOnCall[len(fake.cleanUsesForFinishedBuildsArgsForCall)]
 	fake.cleanUsesForFinishedBuildsArgsForCall = append(fake.cleanUsesForFinishedBuildsArgsForCall, struct{}{})
 	fake.recordInvocation("CleanUsesForFinishedBuilds", []interface{}{})
 	fake.cleanUsesForFinishedBuildsMutex.Unlock()
 	if fake.CleanUsesForFinishedBuildsStub != nil {
 		return fake.CleanUsesForFinishedBuildsStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.cleanUsesForFinishedBuildsReturns.result1
 }
@@ -116,13 +154,29 @@ func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuildsReturns(result1 
 	}{result1}
 }
 
+func (fake *FakeResourceCacheFactory) CleanUsesForFinishedBuildsReturnsOnCall(i int, result1 error) {
+	fake.CleanUsesForFinishedBuildsStub = nil
+	if fake.cleanUsesForFinishedBuildsReturnsOnCall == nil {
+		fake.cleanUsesForFinishedBuildsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanUsesForFinishedBuildsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourceTypes() error {
 	fake.cleanUsesForInactiveResourceTypesMutex.Lock()
+	ret, specificReturn := fake.cleanUsesForInactiveResourceTypesReturnsOnCall[len(fake.cleanUsesForInactiveResourceTypesArgsForCall)]
 	fake.cleanUsesForInactiveResourceTypesArgsForCall = append(fake.cleanUsesForInactiveResourceTypesArgsForCall, struct{}{})
 	fake.recordInvocation("CleanUsesForInactiveResourceTypes", []interface{}{})
 	fake.cleanUsesForInactiveResourceTypesMutex.Unlock()
 	if fake.CleanUsesForInactiveResourceTypesStub != nil {
 		return fake.CleanUsesForInactiveResourceTypesStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.cleanUsesForInactiveResourceTypesReturns.result1
 }
@@ -140,13 +194,29 @@ func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourceTypesReturns(r
 	}{result1}
 }
 
+func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourceTypesReturnsOnCall(i int, result1 error) {
+	fake.CleanUsesForInactiveResourceTypesStub = nil
+	if fake.cleanUsesForInactiveResourceTypesReturnsOnCall == nil {
+		fake.cleanUsesForInactiveResourceTypesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanUsesForInactiveResourceTypesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResources() error {
 	fake.cleanUsesForInactiveResourcesMutex.Lock()
+	ret, specificReturn := fake.cleanUsesForInactiveResourcesReturnsOnCall[len(fake.cleanUsesForInactiveResourcesArgsForCall)]
 	fake.cleanUsesForInactiveResourcesArgsForCall = append(fake.cleanUsesForInactiveResourcesArgsForCall, struct{}{})
 	fake.recordInvocation("CleanUsesForInactiveResources", []interface{}{})
 	fake.cleanUsesForInactiveResourcesMutex.Unlock()
 	if fake.CleanUsesForInactiveResourcesStub != nil {
 		return fake.CleanUsesForInactiveResourcesStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.cleanUsesForInactiveResourcesReturns.result1
 }
@@ -164,13 +234,29 @@ func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourcesReturns(resul
 	}{result1}
 }
 
+func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourcesReturnsOnCall(i int, result1 error) {
+	fake.CleanUsesForInactiveResourcesStub = nil
+	if fake.cleanUsesForInactiveResourcesReturnsOnCall == nil {
+		fake.cleanUsesForInactiveResourcesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanUsesForInactiveResourcesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceCacheFactory) CleanUpInvalidCaches() error {
 	fake.cleanUpInvalidCachesMutex.Lock()
+	ret, specificReturn := fake.cleanUpInvalidCachesReturnsOnCall[len(fake.cleanUpInvalidCachesArgsForCall)]
 	fake.cleanUpInvalidCachesArgsForCall = append(fake.cleanUpInvalidCachesArgsForCall, struct{}{})
 	fake.recordInvocation("CleanUpInvalidCaches", []interface{}{})
 	fake.cleanUpInvalidCachesMutex.Unlock()
 	if fake.CleanUpInvalidCachesStub != nil {
 		return fake.CleanUpInvalidCachesStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.cleanUpInvalidCachesReturns.result1
 }
@@ -184,6 +270,18 @@ func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesCallCount() int {
 func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesReturns(result1 error) {
 	fake.CleanUpInvalidCachesStub = nil
 	fake.cleanUpInvalidCachesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceCacheFactory) CleanUpInvalidCachesReturnsOnCall(i int, result1 error) {
+	fake.CleanUpInvalidCachesStub = nil
+	if fake.cleanUpInvalidCachesReturnsOnCall == nil {
+		fake.cleanUpInvalidCachesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanUpInvalidCachesReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

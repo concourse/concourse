@@ -19,12 +19,18 @@ type FakeTransportDB struct {
 		result2 bool
 		result3 error
 	}
+	getWorkerReturnsOnCall map[int]struct {
+		result1 dbng.Worker
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTransportDB) GetWorker(name string) (dbng.Worker, bool, error) {
 	fake.getWorkerMutex.Lock()
+	ret, specificReturn := fake.getWorkerReturnsOnCall[len(fake.getWorkerArgsForCall)]
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
 		name string
 	}{name})
@@ -32,6 +38,9 @@ func (fake *FakeTransportDB) GetWorker(name string) (dbng.Worker, bool, error) {
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
 		return fake.GetWorkerStub(name)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
 	}
 	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 }
@@ -51,6 +60,22 @@ func (fake *FakeTransportDB) GetWorkerArgsForCall(i int) string {
 func (fake *FakeTransportDB) GetWorkerReturns(result1 dbng.Worker, result2 bool, result3 error) {
 	fake.GetWorkerStub = nil
 	fake.getWorkerReturns = struct {
+		result1 dbng.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTransportDB) GetWorkerReturnsOnCall(i int, result1 dbng.Worker, result2 bool, result3 error) {
+	fake.GetWorkerStub = nil
+	if fake.getWorkerReturnsOnCall == nil {
+		fake.getWorkerReturnsOnCall = make(map[int]struct {
+			result1 dbng.Worker
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getWorkerReturnsOnCall[i] = struct {
 		result1 dbng.Worker
 		result2 bool
 		result3 error

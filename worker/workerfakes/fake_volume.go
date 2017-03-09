@@ -17,10 +17,16 @@ type FakeVolume struct {
 	handleReturns     struct {
 		result1 string
 	}
+	handleReturnsOnCall map[int]struct {
+		result1 string
+	}
 	PathStub        func() string
 	pathMutex       sync.RWMutex
 	pathArgsForCall []struct{}
 	pathReturns     struct {
+		result1 string
+	}
+	pathReturnsOnCall map[int]struct {
 		result1 string
 	}
 	SetPropertyStub        func(key string, value string) error
@@ -32,10 +38,17 @@ type FakeVolume struct {
 	setPropertyReturns struct {
 		result1 error
 	}
+	setPropertyReturnsOnCall map[int]struct {
+		result1 error
+	}
 	PropertiesStub        func() (baggageclaim.VolumeProperties, error)
 	propertiesMutex       sync.RWMutex
 	propertiesArgsForCall []struct{}
 	propertiesReturns     struct {
+		result1 baggageclaim.VolumeProperties
+		result2 error
+	}
+	propertiesReturnsOnCall map[int]struct {
 		result1 baggageclaim.VolumeProperties
 		result2 error
 	}
@@ -48,6 +61,9 @@ type FakeVolume struct {
 	streamInReturns struct {
 		result1 error
 	}
+	streamInReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StreamOutStub        func(path string) (io.ReadCloser, error)
 	streamOutMutex       sync.RWMutex
 	streamOutArgsForCall []struct {
@@ -57,10 +73,17 @@ type FakeVolume struct {
 		result1 io.ReadCloser
 		result2 error
 	}
+	streamOutReturnsOnCall map[int]struct {
+		result1 io.ReadCloser
+		result2 error
+	}
 	COWStrategyStub        func() baggageclaim.COWStrategy
 	cOWStrategyMutex       sync.RWMutex
 	cOWStrategyArgsForCall []struct{}
 	cOWStrategyReturns     struct {
+		result1 baggageclaim.COWStrategy
+	}
+	cOWStrategyReturnsOnCall map[int]struct {
 		result1 baggageclaim.COWStrategy
 	}
 	IsInitializedStub        func() (bool, error)
@@ -70,10 +93,17 @@ type FakeVolume struct {
 		result1 bool
 		result2 error
 	}
+	isInitializedReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	InitializeStub        func() error
 	initializeMutex       sync.RWMutex
 	initializeArgsForCall []struct{}
 	initializeReturns     struct {
+		result1 error
+	}
+	initializeReturnsOnCall map[int]struct {
 		result1 error
 	}
 	CreateChildForContainerStub        func(dbng.CreatingContainer, string) (dbng.CreatingVolume, error)
@@ -86,10 +116,17 @@ type FakeVolume struct {
 		result1 dbng.CreatingVolume
 		result2 error
 	}
+	createChildForContainerReturnsOnCall map[int]struct {
+		result1 dbng.CreatingVolume
+		result2 error
+	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
 	destroyReturns     struct {
+		result1 error
+	}
+	destroyReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -98,11 +135,15 @@ type FakeVolume struct {
 
 func (fake *FakeVolume) Handle() string {
 	fake.handleMutex.Lock()
+	ret, specificReturn := fake.handleReturnsOnCall[len(fake.handleArgsForCall)]
 	fake.handleArgsForCall = append(fake.handleArgsForCall, struct{}{})
 	fake.recordInvocation("Handle", []interface{}{})
 	fake.handleMutex.Unlock()
 	if fake.HandleStub != nil {
 		return fake.HandleStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.handleReturns.result1
 }
@@ -120,13 +161,29 @@ func (fake *FakeVolume) HandleReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeVolume) HandleReturnsOnCall(i int, result1 string) {
+	fake.HandleStub = nil
+	if fake.handleReturnsOnCall == nil {
+		fake.handleReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.handleReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeVolume) Path() string {
 	fake.pathMutex.Lock()
+	ret, specificReturn := fake.pathReturnsOnCall[len(fake.pathArgsForCall)]
 	fake.pathArgsForCall = append(fake.pathArgsForCall, struct{}{})
 	fake.recordInvocation("Path", []interface{}{})
 	fake.pathMutex.Unlock()
 	if fake.PathStub != nil {
 		return fake.PathStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.pathReturns.result1
 }
@@ -144,8 +201,21 @@ func (fake *FakeVolume) PathReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeVolume) PathReturnsOnCall(i int, result1 string) {
+	fake.PathStub = nil
+	if fake.pathReturnsOnCall == nil {
+		fake.pathReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.pathReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeVolume) SetProperty(key string, value string) error {
 	fake.setPropertyMutex.Lock()
+	ret, specificReturn := fake.setPropertyReturnsOnCall[len(fake.setPropertyArgsForCall)]
 	fake.setPropertyArgsForCall = append(fake.setPropertyArgsForCall, struct {
 		key   string
 		value string
@@ -154,6 +224,9 @@ func (fake *FakeVolume) SetProperty(key string, value string) error {
 	fake.setPropertyMutex.Unlock()
 	if fake.SetPropertyStub != nil {
 		return fake.SetPropertyStub(key, value)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.setPropertyReturns.result1
 }
@@ -177,13 +250,29 @@ func (fake *FakeVolume) SetPropertyReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeVolume) SetPropertyReturnsOnCall(i int, result1 error) {
+	fake.SetPropertyStub = nil
+	if fake.setPropertyReturnsOnCall == nil {
+		fake.setPropertyReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setPropertyReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeVolume) Properties() (baggageclaim.VolumeProperties, error) {
 	fake.propertiesMutex.Lock()
+	ret, specificReturn := fake.propertiesReturnsOnCall[len(fake.propertiesArgsForCall)]
 	fake.propertiesArgsForCall = append(fake.propertiesArgsForCall, struct{}{})
 	fake.recordInvocation("Properties", []interface{}{})
 	fake.propertiesMutex.Unlock()
 	if fake.PropertiesStub != nil {
 		return fake.PropertiesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.propertiesReturns.result1, fake.propertiesReturns.result2
 }
@@ -202,8 +291,23 @@ func (fake *FakeVolume) PropertiesReturns(result1 baggageclaim.VolumeProperties,
 	}{result1, result2}
 }
 
+func (fake *FakeVolume) PropertiesReturnsOnCall(i int, result1 baggageclaim.VolumeProperties, result2 error) {
+	fake.PropertiesStub = nil
+	if fake.propertiesReturnsOnCall == nil {
+		fake.propertiesReturnsOnCall = make(map[int]struct {
+			result1 baggageclaim.VolumeProperties
+			result2 error
+		})
+	}
+	fake.propertiesReturnsOnCall[i] = struct {
+		result1 baggageclaim.VolumeProperties
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolume) StreamIn(path string, tarStream io.Reader) error {
 	fake.streamInMutex.Lock()
+	ret, specificReturn := fake.streamInReturnsOnCall[len(fake.streamInArgsForCall)]
 	fake.streamInArgsForCall = append(fake.streamInArgsForCall, struct {
 		path      string
 		tarStream io.Reader
@@ -212,6 +316,9 @@ func (fake *FakeVolume) StreamIn(path string, tarStream io.Reader) error {
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
 		return fake.StreamInStub(path, tarStream)
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.streamInReturns.result1
 }
@@ -235,8 +342,21 @@ func (fake *FakeVolume) StreamInReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeVolume) StreamInReturnsOnCall(i int, result1 error) {
+	fake.StreamInStub = nil
+	if fake.streamInReturnsOnCall == nil {
+		fake.streamInReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.streamInReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeVolume) StreamOut(path string) (io.ReadCloser, error) {
 	fake.streamOutMutex.Lock()
+	ret, specificReturn := fake.streamOutReturnsOnCall[len(fake.streamOutArgsForCall)]
 	fake.streamOutArgsForCall = append(fake.streamOutArgsForCall, struct {
 		path string
 	}{path})
@@ -244,6 +364,9 @@ func (fake *FakeVolume) StreamOut(path string) (io.ReadCloser, error) {
 	fake.streamOutMutex.Unlock()
 	if fake.StreamOutStub != nil {
 		return fake.StreamOutStub(path)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.streamOutReturns.result1, fake.streamOutReturns.result2
 }
@@ -268,13 +391,31 @@ func (fake *FakeVolume) StreamOutReturns(result1 io.ReadCloser, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeVolume) StreamOutReturnsOnCall(i int, result1 io.ReadCloser, result2 error) {
+	fake.StreamOutStub = nil
+	if fake.streamOutReturnsOnCall == nil {
+		fake.streamOutReturnsOnCall = make(map[int]struct {
+			result1 io.ReadCloser
+			result2 error
+		})
+	}
+	fake.streamOutReturnsOnCall[i] = struct {
+		result1 io.ReadCloser
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolume) COWStrategy() baggageclaim.COWStrategy {
 	fake.cOWStrategyMutex.Lock()
+	ret, specificReturn := fake.cOWStrategyReturnsOnCall[len(fake.cOWStrategyArgsForCall)]
 	fake.cOWStrategyArgsForCall = append(fake.cOWStrategyArgsForCall, struct{}{})
 	fake.recordInvocation("COWStrategy", []interface{}{})
 	fake.cOWStrategyMutex.Unlock()
 	if fake.COWStrategyStub != nil {
 		return fake.COWStrategyStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.cOWStrategyReturns.result1
 }
@@ -292,13 +433,29 @@ func (fake *FakeVolume) COWStrategyReturns(result1 baggageclaim.COWStrategy) {
 	}{result1}
 }
 
+func (fake *FakeVolume) COWStrategyReturnsOnCall(i int, result1 baggageclaim.COWStrategy) {
+	fake.COWStrategyStub = nil
+	if fake.cOWStrategyReturnsOnCall == nil {
+		fake.cOWStrategyReturnsOnCall = make(map[int]struct {
+			result1 baggageclaim.COWStrategy
+		})
+	}
+	fake.cOWStrategyReturnsOnCall[i] = struct {
+		result1 baggageclaim.COWStrategy
+	}{result1}
+}
+
 func (fake *FakeVolume) IsInitialized() (bool, error) {
 	fake.isInitializedMutex.Lock()
+	ret, specificReturn := fake.isInitializedReturnsOnCall[len(fake.isInitializedArgsForCall)]
 	fake.isInitializedArgsForCall = append(fake.isInitializedArgsForCall, struct{}{})
 	fake.recordInvocation("IsInitialized", []interface{}{})
 	fake.isInitializedMutex.Unlock()
 	if fake.IsInitializedStub != nil {
 		return fake.IsInitializedStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.isInitializedReturns.result1, fake.isInitializedReturns.result2
 }
@@ -317,13 +474,31 @@ func (fake *FakeVolume) IsInitializedReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeVolume) IsInitializedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.IsInitializedStub = nil
+	if fake.isInitializedReturnsOnCall == nil {
+		fake.isInitializedReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.isInitializedReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolume) Initialize() error {
 	fake.initializeMutex.Lock()
+	ret, specificReturn := fake.initializeReturnsOnCall[len(fake.initializeArgsForCall)]
 	fake.initializeArgsForCall = append(fake.initializeArgsForCall, struct{}{})
 	fake.recordInvocation("Initialize", []interface{}{})
 	fake.initializeMutex.Unlock()
 	if fake.InitializeStub != nil {
 		return fake.InitializeStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.initializeReturns.result1
 }
@@ -341,8 +516,21 @@ func (fake *FakeVolume) InitializeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeVolume) InitializeReturnsOnCall(i int, result1 error) {
+	fake.InitializeStub = nil
+	if fake.initializeReturnsOnCall == nil {
+		fake.initializeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.initializeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeVolume) CreateChildForContainer(arg1 dbng.CreatingContainer, arg2 string) (dbng.CreatingVolume, error) {
 	fake.createChildForContainerMutex.Lock()
+	ret, specificReturn := fake.createChildForContainerReturnsOnCall[len(fake.createChildForContainerArgsForCall)]
 	fake.createChildForContainerArgsForCall = append(fake.createChildForContainerArgsForCall, struct {
 		arg1 dbng.CreatingContainer
 		arg2 string
@@ -351,6 +539,9 @@ func (fake *FakeVolume) CreateChildForContainer(arg1 dbng.CreatingContainer, arg
 	fake.createChildForContainerMutex.Unlock()
 	if fake.CreateChildForContainerStub != nil {
 		return fake.CreateChildForContainerStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.createChildForContainerReturns.result1, fake.createChildForContainerReturns.result2
 }
@@ -375,13 +566,31 @@ func (fake *FakeVolume) CreateChildForContainerReturns(result1 dbng.CreatingVolu
 	}{result1, result2}
 }
 
+func (fake *FakeVolume) CreateChildForContainerReturnsOnCall(i int, result1 dbng.CreatingVolume, result2 error) {
+	fake.CreateChildForContainerStub = nil
+	if fake.createChildForContainerReturnsOnCall == nil {
+		fake.createChildForContainerReturnsOnCall = make(map[int]struct {
+			result1 dbng.CreatingVolume
+			result2 error
+		})
+	}
+	fake.createChildForContainerReturnsOnCall[i] = struct {
+		result1 dbng.CreatingVolume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolume) Destroy() error {
 	fake.destroyMutex.Lock()
+	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct{}{})
 	fake.recordInvocation("Destroy", []interface{}{})
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
 		return fake.DestroyStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.destroyReturns.result1
 }
@@ -395,6 +604,18 @@ func (fake *FakeVolume) DestroyCallCount() int {
 func (fake *FakeVolume) DestroyReturns(result1 error) {
 	fake.DestroyStub = nil
 	fake.destroyReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolume) DestroyReturnsOnCall(i int, result1 error) {
+	fake.DestroyStub = nil
+	if fake.destroyReturnsOnCall == nil {
+		fake.destroyReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.destroyReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

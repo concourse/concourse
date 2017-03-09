@@ -14,17 +14,24 @@ type FakeCollector struct {
 	runReturns     struct {
 		result1 error
 	}
+	runReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeCollector) Run() error {
 	fake.runMutex.Lock()
+	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
 	fake.runArgsForCall = append(fake.runArgsForCall, struct{}{})
 	fake.recordInvocation("Run", []interface{}{})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
 		return fake.RunStub()
+	}
+	if specificReturn {
+		return ret.result1
 	}
 	return fake.runReturns.result1
 }
@@ -38,6 +45,18 @@ func (fake *FakeCollector) RunCallCount() int {
 func (fake *FakeCollector) RunReturns(result1 error) {
 	fake.RunStub = nil
 	fake.runReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCollector) RunReturnsOnCall(i int, result1 error) {
+	fake.RunStub = nil
+	if fake.runReturnsOnCall == nil {
+		fake.runReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.runReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

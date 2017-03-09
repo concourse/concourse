@@ -20,12 +20,17 @@ type FakeImage struct {
 		result1 worker.FetchedImage
 		result2 error
 	}
+	fetchForContainerReturnsOnCall map[int]struct {
+		result1 worker.FetchedImage
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeImage) FetchForContainer(logger lager.Logger, container dbng.CreatingContainer) (worker.FetchedImage, error) {
 	fake.fetchForContainerMutex.Lock()
+	ret, specificReturn := fake.fetchForContainerReturnsOnCall[len(fake.fetchForContainerArgsForCall)]
 	fake.fetchForContainerArgsForCall = append(fake.fetchForContainerArgsForCall, struct {
 		logger    lager.Logger
 		container dbng.CreatingContainer
@@ -34,6 +39,9 @@ func (fake *FakeImage) FetchForContainer(logger lager.Logger, container dbng.Cre
 	fake.fetchForContainerMutex.Unlock()
 	if fake.FetchForContainerStub != nil {
 		return fake.FetchForContainerStub(logger, container)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
 	}
 	return fake.fetchForContainerReturns.result1, fake.fetchForContainerReturns.result2
 }
@@ -53,6 +61,20 @@ func (fake *FakeImage) FetchForContainerArgsForCall(i int) (lager.Logger, dbng.C
 func (fake *FakeImage) FetchForContainerReturns(result1 worker.FetchedImage, result2 error) {
 	fake.FetchForContainerStub = nil
 	fake.fetchForContainerReturns = struct {
+		result1 worker.FetchedImage
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeImage) FetchForContainerReturnsOnCall(i int, result1 worker.FetchedImage, result2 error) {
+	fake.FetchForContainerStub = nil
+	if fake.fetchForContainerReturnsOnCall == nil {
+		fake.fetchForContainerReturnsOnCall = make(map[int]struct {
+			result1 worker.FetchedImage
+			result2 error
+		})
+	}
+	fake.fetchForContainerReturnsOnCall[i] = struct {
 		result1 worker.FetchedImage
 		result2 error
 	}{result1, result2}
