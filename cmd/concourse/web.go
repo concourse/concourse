@@ -4,10 +4,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/concourse/atc/atccmd"
 	"github.com/concourse/tsa/tsacmd"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
@@ -18,19 +18,21 @@ import (
 type WebCommand struct {
 	atccmd.ATCCommand
 
-	TSA struct {
-		BindIP   tsacmd.IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
-		BindPort uint16        `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
-
-		HostKeyPath            tsacmd.FileFlag        `long:"host-key"             required:"true" description:"Key to use for the TSA's ssh server."`
-		AuthorizedKeysPath     tsacmd.FileFlag        `long:"authorized-keys"      required:"true" description:"Path to a file containing public keys to authorize for SSH access."`
-		TeamAuthorizedKeysPath []tsacmd.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
-
-		HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
-	} `group:"TSA Configuration" namespace:"tsa"`
+	tsacmd.TSACommand `group:"TSA Configuration" namespace:"tsa"`
 }
 
 const cliArtifactsBindata = "cli-artifacts"
+
+func (cmd WebCommand) lessenRequirements(command *flags.Command) {
+	// defaults to address from external URL
+	command.FindOptionByLongName("tsa-peer-ip").Required = false
+
+	// defaults to atc external URL
+	command.FindOptionByLongName("tsa-atc-url").Required = false
+
+	// defaults to atc session signing key
+	command.FindOptionByLongName("tsa-session-signing-key").Required = false
+}
 
 func (cmd *WebCommand) Execute(args []string) error {
 	err := bindata.RestoreAssets(os.TempDir(), cliArtifactsBindata)
@@ -40,25 +42,14 @@ func (cmd *WebCommand) Execute(args []string) error {
 
 	cmd.ATCCommand.CLIArtifactsDir = atccmd.DirFlag(filepath.Join(os.TempDir(), cliArtifactsBindata))
 
-	tsa := &tsacmd.TSACommand{
-		BindIP:   cmd.TSA.BindIP,
-		BindPort: cmd.TSA.BindPort,
-
-		HostKeyPath:            cmd.TSA.HostKeyPath,
-		AuthorizedKeysPath:     cmd.TSA.AuthorizedKeysPath,
-		TeamAuthorizedKeysPath: cmd.TSA.TeamAuthorizedKeysPath,
-
-		HeartbeatInterval: cmd.TSA.HeartbeatInterval,
-	}
-
-	cmd.populateTSAFlagsFromATCFlags(tsa)
+	cmd.populateTSAFlagsFromATCFlags()
 
 	atcRunner, err := cmd.ATCCommand.Runner(args)
 	if err != nil {
 		return err
 	}
 
-	tsaRunner, err := tsa.Runner(args)
+	tsaRunner, err := cmd.TSACommand.Runner(args)
 	if err != nil {
 		return err
 	}
@@ -71,24 +62,24 @@ func (cmd *WebCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(runner).Wait()
 }
 
-func (cmd *WebCommand) populateTSAFlagsFromATCFlags(tsa *tsacmd.TSACommand) error {
+func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	// TODO: flag types package plz
-	err := tsa.ATCURL.UnmarshalFlag(cmd.ATCCommand.PeerURL.String())
+	err := cmd.TSACommand.ATCURL.UnmarshalFlag(cmd.ATCCommand.PeerURL.String())
 	if err != nil {
 		return err
 	}
 
-	tsa.SessionSigningKeyPath = tsacmd.FileFlag(cmd.ATCCommand.SessionSigningKey)
+	cmd.TSACommand.SessionSigningKeyPath = tsacmd.FileFlag(cmd.ATCCommand.SessionSigningKey)
 
 	host, _, err := net.SplitHostPort(cmd.ATCCommand.PeerURL.URL().Host)
 	if err != nil {
 		return err
 	}
 
-	tsa.PeerIP = host
+	cmd.TSACommand.PeerIP = host
 
-	tsa.Metrics.YellerAPIKey = cmd.ATCCommand.Metrics.YellerAPIKey
-	tsa.Metrics.YellerEnvironment = cmd.ATCCommand.Metrics.YellerEnvironment
+	cmd.TSACommand.Metrics.YellerAPIKey = cmd.ATCCommand.Metrics.YellerAPIKey
+	cmd.TSACommand.Metrics.YellerEnvironment = cmd.ATCCommand.Metrics.YellerEnvironment
 
 	return nil
 }

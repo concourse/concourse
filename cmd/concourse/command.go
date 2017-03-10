@@ -14,4 +14,5 @@ type ConcourseCommand struct {
 
 func (cmd ConcourseCommand) lessenRequirements(parser *flags.Parser) {
 	cmd.Worker.lessenRequirements(parser.Find("worker"))
+	cmd.Web.lessenRequirements(parser.Find("web"))
 }
