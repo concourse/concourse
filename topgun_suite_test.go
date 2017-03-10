@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -93,7 +94,12 @@ var _ = BeforeEach(func() {
 		stemcellVersion = "latest"
 	}
 
-	deploymentName = fmt.Sprintf("concourse-topgun-%d", GinkgoParallelNode())
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1)
+
+	randomizer := r1.Intn(100000)
+
+	deploymentName = fmt.Sprintf("concourse-topgun-%d-%d", GinkgoParallelNode(), randomizer)
 	flyTarget = deploymentName
 
 	bosh("delete-deployment")
