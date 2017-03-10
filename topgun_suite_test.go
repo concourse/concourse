@@ -28,6 +28,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
+	"strconv"
 	"testing"
 )
 
@@ -79,6 +80,15 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("test")
 
+	n, found := os.LookupEnv("TOPGUN_NETWORK_OFFSET")
+	var networkOffset int
+	var err error
+
+	if found {
+		networkOffset, err = strconv.Atoi(n)
+	}
+	Expect(err).NotTo(HaveOccurred())
+
 	concourseReleaseVersion = os.Getenv("CONCOURSE_RELEASE_VERSION")
 	if concourseReleaseVersion == "" {
 		concourseReleaseVersion = "latest"
@@ -94,14 +104,16 @@ var _ = BeforeEach(func() {
 		stemcellVersion = "latest"
 	}
 
-	deploymentName = fmt.Sprintf("concourse-topgun-%d", GinkgoParallelNode())
+	deploymentNumber := GinkgoParallelNode() + (networkOffset * 4)
+
+	deploymentName = fmt.Sprintf("concourse-topgun-%d", deploymentNumber)
 	flyTarget = deploymentName
 
 	bosh("delete-deployment")
 
-	atcIP = fmt.Sprintf("10.234.%d.2", GinkgoParallelNode())
-	atcIP2 = fmt.Sprintf("10.234.%d.3", GinkgoParallelNode())
-	dbIP = fmt.Sprintf("10.234.%d.4", GinkgoParallelNode())
+	atcIP = fmt.Sprintf("10.234.%d.2", deploymentNumber)
+	atcIP2 = fmt.Sprintf("10.234.%d.3", deploymentNumber)
+	dbIP = fmt.Sprintf("10.234.%d.4", deploymentNumber)
 
 	atcExternalURL = fmt.Sprintf("http://%s:8080", atcIP)
 	atcExternalURL2 = fmt.Sprintf("http://%s:8080", atcIP2)
