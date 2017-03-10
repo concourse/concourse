@@ -250,7 +250,7 @@
 [submodule "src/github.com/concourse/topgun"]
 	path = src/github.com/concourse/topgun
 	url = https://github.com/concourse/topgun
-	branch = master
+	branch = releases/2.7
 [submodule "src/github.com/concourse/groundcrew"]
 	path = src/github.com/concourse/groundcrew
 	url = https://github.com/concourse/groundcrew
