@@ -44,3 +44,36 @@ properties:
     description: |
       Maximum number of open database connections to support.
     default: 500
+
+  shared_buffers:
+    description: |
+      The amount of memory the database server uses for shared memory buffers.
+      Larger settings for shared_buffers usually require a corresponding
+      increase in checkpoint_segments, in order to spread out the process of
+      writing large quantities of new or changed data over a longer period of
+      time.
+    defualt: 1GB
+
+  checkpoint_segments:
+    description: |
+      Maximum number of log file segments between automatic WAL
+      checkpoints. Increasing this parameter can increase the amount of time
+      needed for crash recovery.
+    default: 10
+
+  log_min_messages:
+    description: |
+      Controls which message levels are written to the server log.
+      Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, INFO, NOTICE,
+      WARNING, ERROR, LOG, FATAL, and PANIC. Each level includes all the levels
+      that follow it. The later the level, the fewer messages are sent to the
+      log.
+    default: LOG
+
+  log_min_duration_statement:
+    description: |
+      Causes the duration of each completed statement to be logged if the
+      statement ran for at least the specified number of milliseconds.
+      Setting this to zero prints all statement durations. Minus-one
+      (the default) disables logging statement durations.
+    default: -1

@@ -72,6 +72,10 @@ case "$1" in
 
       su - vcap -c "$PACKAGE_DIR/bin/createdb \"<%= db["name"] %>\" -p $PORT" ||
         echo "Database already exists?"
+
+      echo "Enabling pg_stat_statements extension for <%= db["name"] %>..."
+      $PACKAGE_DIR/bin/psql -U vcap -p $PORT -d '<%= db["name"] %>' \
+        -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements"
     <% end %>
 
     ;;
