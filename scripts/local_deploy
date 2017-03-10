@@ -13,5 +13,7 @@ else
     deploy manifests/deployment.yml \
     -vweb_ip=10.244.15.2 \
     -vdeployment_name="${deployment_name}" \
+    -vconcourse_version=latest \
+    -vgarden_runc_version=latest \
     "$@"
 fi
