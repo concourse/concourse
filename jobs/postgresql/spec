@@ -52,7 +52,7 @@ properties:
       increase in checkpoint_segments, in order to spread out the process of
       writing large quantities of new or changed data over a longer period of
       time.
-    defualt: 1GB
+    default: 1GB
 
   checkpoint_segments:
     description: |
