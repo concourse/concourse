@@ -43,8 +43,10 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
 		fakeDBResourceCacheFactory  *dbngfakes.FakeResourceCacheFactory
 		fakeDBResourceConfigFactory *dbngfakes.FakeResourceConfigFactory
+		fakeDBTeamFactory           *dbngfakes.FakeTeamFactory
 		fakeLockDB                  *workerfakes.FakeLockDB
 		fakeWorker                  *workerfakes.FakeWorker
+		fakeClock                   *fakeclock.FakeClock
 
 		containerProvider        ContainerProvider
 		containerProviderFactory ContainerProviderFactory
@@ -68,6 +70,9 @@ var _ = Describe("ContainerProvider", func() {
 		findOrCreateContainer Container
 
 		stubbedVolumes map[string]*workerfakes.FakeVolume
+
+		certificatesPath           string
+		symlinkedCertificatesPaths []string
 	)
 
 	disasterErr := errors.New("disaster")
@@ -90,33 +95,18 @@ var _ = Describe("ContainerProvider", func() {
 		fakeLockDB = new(workerfakes.FakeLockDB)
 		fakeWorker = new(workerfakes.FakeWorker)
 
-		fakeDBTeamFactory := new(dbngfakes.FakeTeamFactory)
+		fakeDBTeamFactory = new(dbngfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbngfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
 		fakeDBVolumeFactory = new(dbngfakes.FakeVolumeFactory)
-		fakeClock := fakeclock.NewFakeClock(time.Unix(0, 123))
+		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		fakeDBResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
 		fakeGardenContainer = new(gardenfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 
-		containerProviderFactory = NewContainerProviderFactory(
-			fakeGardenClient,
-			fakeBaggageclaimClient,
-			fakeVolumeClient,
-			fakeImageFactory,
-			fakeDBVolumeFactory,
-			fakeDBResourceCacheFactory,
-			fakeDBResourceConfigFactory,
-			fakeDBTeamFactory,
-			fakeLockDB,
-			"http://proxy.com",
-			"https://proxy.com",
-			"http://noproxy.com",
-			fakeClock,
-		)
-
-		containerProvider = containerProviderFactory.ContainerProviderFor(fakeWorker)
+		certificatesPath = "some-cert-path"
+		symlinkedCertificatesPaths = []string{"some-cert-symlinked-path-1", "some-cert-symlinked-path-2"}
 
 		fakeLocalInput = new(workerfakes.FakeInputSource)
 		fakeLocalInput.NameReturns("local-input")
@@ -183,6 +173,7 @@ var _ = Describe("ContainerProvider", func() {
 		resourceUser = dbng.ForBuild(42)
 
 		containerMetadata = dbng.ContainerMetadata{
+			Type:     dbng.ContainerTypeTask,
 			StepName: "some-step",
 		}
 
@@ -226,6 +217,28 @@ var _ = Describe("ContainerProvider", func() {
 				Version: atc.Version{"some": "version"},
 			},
 		}
+	})
+
+	JustBeforeEach(func() {
+		containerProviderFactory = NewContainerProviderFactory(
+			fakeGardenClient,
+			fakeBaggageclaimClient,
+			fakeVolumeClient,
+			fakeImageFactory,
+			fakeDBVolumeFactory,
+			fakeDBResourceCacheFactory,
+			fakeDBResourceConfigFactory,
+			fakeDBTeamFactory,
+			fakeLockDB,
+			"http://proxy.com",
+			"https://proxy.com",
+			"http://noproxy.com",
+			certificatesPath,
+			symlinkedCertificatesPaths,
+			fakeClock,
+		)
+
+		containerProvider = containerProviderFactory.ContainerProviderFor(fakeWorker)
 	})
 
 	ItHandlesContainerInCreatingState := func() {
@@ -329,6 +342,34 @@ var _ = Describe("ContainerProvider", func() {
 	}
 
 	ItHandlesNonExistentContainer := func(createDatabaseCallCountFunc func() int) {
+		var expectedBindMounts = []garden.BindMount{
+			{
+				SrcPath: "/fake/work-dir/volume",
+				DstPath: "/some/work-dir",
+				Mode:    garden.BindMountModeRW,
+			},
+			{
+				SrcPath: "/fake/local/cow/volume",
+				DstPath: "/some/work-dir/local-input",
+				Mode:    garden.BindMountModeRW,
+			},
+			{
+				SrcPath: "/fake/remote/input/container/volume",
+				DstPath: "/some/work-dir/remote-input",
+				Mode:    garden.BindMountModeRW,
+			},
+			{
+				SrcPath: "/fake/output/volume",
+				DstPath: "/some/work-dir/output",
+				Mode:    garden.BindMountModeRW,
+			},
+			{
+				SrcPath: "/fake/resource/cache/volume",
+				DstPath: "/some/resource/cache",
+				Mode:    garden.BindMountModeRW,
+			},
+		}
+
 		It("gets image", func() {
 			Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
 			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualCancel, actualDelegate, actualResourceUser, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
@@ -364,33 +405,7 @@ var _ = Describe("ContainerProvider", func() {
 				Handle:     "some-handle",
 				Privileged: true,
 				Properties: garden.Properties{"user": "some-user"},
-				BindMounts: []garden.BindMount{
-					{
-						SrcPath: "/fake/work-dir/volume",
-						DstPath: "/some/work-dir",
-						Mode:    garden.BindMountModeRW,
-					},
-					{
-						SrcPath: "/fake/local/cow/volume",
-						DstPath: "/some/work-dir/local-input",
-						Mode:    garden.BindMountModeRW,
-					},
-					{
-						SrcPath: "/fake/remote/input/container/volume",
-						DstPath: "/some/work-dir/remote-input",
-						Mode:    garden.BindMountModeRW,
-					},
-					{
-						SrcPath: "/fake/output/volume",
-						DstPath: "/some/work-dir/output",
-						Mode:    garden.BindMountModeRW,
-					},
-					{
-						SrcPath: "/fake/resource/cache/volume",
-						DstPath: "/some/resource/cache",
-						Mode:    garden.BindMountModeRW,
-					},
-				},
+				BindMounts: expectedBindMounts,
 				Env: []string{
 					"SOME=ENV",
 					"http_proxy=http://proxy.com",
@@ -398,6 +413,38 @@ var _ = Describe("ContainerProvider", func() {
 					"no_proxy=http://noproxy.com",
 				},
 			}))
+		})
+
+		Context("when container is for resource", func() {
+			BeforeEach(func() {
+				containerMetadata = dbng.ContainerMetadata{
+					Type: dbng.ContainerTypeGet,
+				}
+			})
+
+			It("creates bind mount for certificates", func() {
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+				actualSpec := fakeGardenClient.CreateArgsForCall(0)
+				Expect(actualSpec.BindMounts).To(ConsistOf(append(
+					expectedBindMounts,
+					garden.BindMount{SrcPath: "some-cert-path", DstPath: "/etc/ssl/certs", Mode: garden.BindMountModeRO},
+					garden.BindMount{SrcPath: "some-cert-symlinked-path-1", DstPath: "some-cert-symlinked-path-1", Mode: garden.BindMountModeRO},
+					garden.BindMount{SrcPath: "some-cert-symlinked-path-2", DstPath: "some-cert-symlinked-path-2", Mode: garden.BindMountModeRO},
+				)))
+			})
+
+			Context("when certificate path is empty", func() {
+				BeforeEach(func() {
+					certificatesPath = ""
+					symlinkedCertificatesPaths = nil
+				})
+
+				It("does not create bind mounts for certificates", func() {
+					actualSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualSpec.BindMounts).To(Equal(expectedBindMounts))
+				})
+			})
 		})
 
 		It("streams remote inputs into newly created container volumes", func() {
