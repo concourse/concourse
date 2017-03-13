@@ -1,0 +1,575 @@
+groups:
+- name: develop
+  jobs:
+  - atc
+  - blackbox
+  - fly
+  - go-concourse
+  - baggageclaim
+  - tsa
+  - rc
+  - build-fly
+  - bin-rc
+  - bosh-rc
+  - bin-testflight
+  - bosh-testflight
+  - bin-smoke
+  - topgun
+  - bin-docker
+
+- name: dependencies
+  jobs:
+  - bump-golang
+  - bump-btrfs
+
+jobs:
+- name: fly
+  public: true
+  plan:
+  - get: concourse
+    trigger: true
+  - aggregate:
+    - task: linux
+      file: concourse/ci/fly-linux.yml
+    - task: darwin
+      file: concourse/ci/fly-darwin.yml
+    - task: windows
+      file: concourse/ci/fly-windows.yml
+      timeout: 15m
+      attempts: 2
+
+- name: go-concourse
+  public: true
+  plan:
+  - get: concourse
+    trigger: true
+  - task: go-unit
+    file: concourse/ci/go-concourse.yml
+
+- name: atc
+  public: true
+  serial: true
+  plan:
+  - get: concourse
+    trigger: true
+  - task: go-unit
+    file: concourse/ci/atc-go.yml
+    privileged: true
+
+- name: baggageclaim
+  public: true
+  serial: true
+  plan:
+  - get: concourse
+    trigger: true
+  - task: build
+    privileged: true
+    file: concourse/ci/baggageclaim.yml
+
+- name: blackbox
+  public: true
+  plan:
+  - get: concourse
+    trigger: true
+  - task: build
+    file: concourse/ci/blackbox.yml
+
+- name: tsa
+  public: true
+  plan:
+  - get: concourse
+    trigger: true
+  - task: build
+    file: concourse/ci/tsa.yml
+
+- name: rc
+  public: true
+  serial_groups: [version]
+  plan:
+  - get: concourse
+    trigger: true
+    passed: [atc, fly, go-concourse, blackbox, tsa, baggageclaim]
+  - get: garden-runc
+    version:
+      version: 1.1.1
+  - get: version
+    params: {pre: rc}
+  - put: version
+    params: {file: version/version}
+
+- name: build-fly
+  public: true
+  plan:
+  - get: concourse
+    trigger: true
+    passed: [rc]
+  - get: version
+    trigger: true
+    passed: [rc]
+  - get: final-version
+    resource: version
+    passed: [rc]
+    params: {bump: final}
+    trigger: true
+  - get: garden-runc
+    trigger: true
+    passed: [rc]
+  - aggregate:
+    - task: build-linux
+      file: concourse/ci/fly-build-linux.yml
+    - task: build-darwin
+      file: concourse/ci/fly-build-darwin.yml
+    - task: build-windows
+      file: concourse/ci/fly-build-windows.yml
+      timeout: 15m
+      attempts: 2
+  - task: build-release
+    file: concourse/src/github.com/concourse/fly/ci/build-release.yml
+  - put: fly-rc
+    params:
+      name: release/name
+      tag: release/tag
+      body: release/body
+      globs: [release/artifacts/*]
+
+- name: bosh-rc
+  public: true
+  plan:
+  - get: concourse
+    passed: [build-fly]
+    trigger: true
+  - get: garden-runc
+    passed: [build-fly]
+    trigger: true
+  - get: version
+    passed: [build-fly]
+    trigger: true
+  - get: final-version
+    resource: version
+    passed: [build-fly]
+    params: {bump: final}
+    trigger: true
+  - get: fly-rc
+    trigger: true
+    passed: [build-fly]
+    params:
+      globs: [fly_*]
+  - task: create-bosh-rc
+    file: concourse/ci/create-bosh-rc.yml
+  - put: bosh-rc
+    params: {file: bosh-rc/concourse-*.tgz}
+
+- name: bin-rc
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [build-fly]
+      trigger: true
+    - get: version
+      passed: [build-fly]
+      trigger: true
+    - get: final-version
+      resource: version
+      passed: [build-fly]
+      params: {bump: final}
+      trigger: true
+    - get: garden-runc
+      passed: [build-fly]
+      trigger: true
+    - get: bin
+      trigger: true
+    - get: houdini
+      trigger: true
+    - get: garden-runc-src
+      version:
+        ref: 41e84e3b7f3ca363a61aadc70e729235143ccd2d
+    - get: fly-rc
+      trigger: true
+      passed: [build-fly]
+      params:
+        globs: [fly_*]
+  - task: checkout-release-tag
+    file: concourse/ci/checkout-garden-runc.yml
+  - aggregate:
+    - task: build-linux
+      file: bin/ci/build-linux.yml
+      output_mapping: {binary: linux-binary}
+    - task: build-darwin
+      file: bin/ci/build-darwin.yml
+      output_mapping: {binary: darwin-binary}
+    - task: build-windows
+      file: bin/ci/build-windows.yml
+      output_mapping: {binary: windows-binary}
+  - task: build-release
+    file: bin/ci/build-release.yml
+  - put: bin-rc
+    params:
+      name: release/name
+      tag: release/tag
+      body: release/body
+      globs: [release/artifacts/*]
+
+- name: bosh-testflight
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bosh-rc]
+      trigger: true
+    - get: bosh-rc
+      passed: [bosh-rc]
+      trigger: true
+    - get: version
+      passed: [bosh-rc]
+      trigger: true
+    - get: garden-runc
+      passed: [bosh-rc]
+      trigger: true
+    - get: fly-rc
+      passed: [bosh-rc]
+    - get: gcp-stemcell
+    - get: deployments
+  - task: deploy-testflight
+    params:
+      BOSH_CLIENT: {{bosh-client-id}}
+      BOSH_CLIENT_SECRET: {{bosh-client-secret}}
+      DEPLOYMENT_NAME: concourse-2.7-testflight
+      WEB_IP: 10.244.17.2
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: concourse/bosh-cli
+
+      inputs:
+      - name: concourse
+      - name: gcp-stemcell
+      - name: garden-runc
+      - name: bosh-rc
+
+      params:
+        BOSH_CLIENT:
+        BOSH_CLIENT_SECRET:
+        DEPLOYMENT_NAME:
+        WEB_IP:
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -e
+
+          concourse_version=$(cat bosh-rc/version)
+          garden_runc_version=$(cat garden-runc/version)
+
+          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" -d "${DEPLOYMENT_NAME}" delete-deployment --force
+          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" upload-release garden-runc/*.tgz
+          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" upload-release bosh-rc/*.tgz
+          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" upload-stemcell gcp-stemcell/*.tgz
+          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" -d "${DEPLOYMENT_NAME}" deploy concourse/src/github.com/concourse/testflight/scripts/manifests/deployment.yml -vdeployment_name="${DEPLOYMENT_NAME}" -vweb_ip="${WEB_IP}" -vconcourse_version="${concourse_version}" -vgarden_runc_version="${garden_runc_version}"
+  - task: testflight
+    file: concourse/ci/testflight.yml
+    params:
+      ATC_URL: "http://10.244.17.2:8080"
+    timeout: 1h
+
+- name: bin-testflight
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: bin
+      passed: [bin-rc]
+      trigger: true
+    - get: concourse
+      passed: [bin-rc]
+      trigger: true
+    - get: linux-binary
+      resource: bin-rc
+      passed: [bin-rc]
+      trigger: true
+    - get: version
+      passed: [bin-rc]
+      trigger: true
+    - get: fly-rc
+      passed: [bin-rc]
+  - task: no-auth
+    file: bin/ci/testflight.yml
+    privileged: true
+    timeout: 1h
+
+- name: topgun
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bosh-rc]
+      trigger: true
+    - get: bosh-rc
+      passed: [bosh-rc]
+      trigger: true
+    - get: garden-runc
+      passed: [bosh-rc]
+      trigger: true
+    - get: gcp-stemcell
+    - get: bosh-cli
+  - task: topgun
+    file: concourse/ci/topgun.yml
+    input_mapping:
+      concourse-release: bosh-rc
+      garden-runc-release: garden-runc
+      stemcell: gcp-stemcell
+    params:
+      BOSH_ENVIRONMENT: bosh.concourse.ci
+      BOSH_CLIENT: {{bosh-client-id}}
+      BOSH_CLIENT_SECRET: {{bosh-client-secret}}
+      BOSH_KEY: {{topgun-bosh-key}}
+      SKIP: ":life"
+      TOPGUN_NETWORK_OFFSET: 1
+
+- name: bin-smoke
+  serial: true
+  plan:
+  - aggregate:
+    - get: bin
+      passed: [bin-testflight]
+      trigger: true
+    - get: bin-rc
+      passed: [bin-testflight]
+      params: {globs: [concourse_linux_amd64]}
+      trigger: true
+    - get: concourse
+      params: {submodules: none}
+      passed: [bin-testflight]
+      trigger: true
+    - get: version
+      passed: [bin-testflight]
+      trigger: true
+    - get: fly-rc
+      passed: [bin-testflight]
+  - task: setup-tugboat
+    file: bin/ci/smoke-tests/setup-tugboat.yml
+    params:
+      OS: ubuntu
+      USER_NAME: root
+      ACCESS_TOKEN: {{digitalocean-access-token}}
+      SSH_USER: {{digitalocean-ssh-user}}
+      SSH_KEY: {{digitalocean-ssh-key}}
+      IMAGE: ubuntu-16-04-x64
+  - task: create-droplet
+    file: bin/ci/smoke-tests/create-droplet.yml
+    params: {OS: ubuntu, USER_NAME: root}
+  - ensure:
+      task: teardown
+      file: bin/ci/smoke-tests/teardown-droplet.yml
+      params: {OS: ubuntu}
+    do:
+    - task: install-postgres
+      file: bin/ci/smoke-tests/install-postgres-xenial.yml
+      params: {USER_NAME: root}
+
+    - task: test-bin
+      file: bin/ci/smoke-tests/smoke-test.yml
+      params: {USER_NAME: root}
+
+- name: bin-docker
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: concourse-docker
+      trigger: true
+    - get: dumb-init
+      trigger: true
+    - get: bin-rc
+      passed: [bin-testflight]
+      params: {globs: [concourse_linux_amd64]}
+      trigger: true
+    - get: version
+      passed: [bin-testflight]
+      trigger: true
+    - get: ubuntu-image
+      params: {save: true}
+      trigger: true
+    - get: fly-rc
+      passed: [bin-testflight]
+  - task: build-root
+    file: concourse-docker/ci/build-root.yml
+  - put: concourse-image-rc
+    params:
+      build: concourse-image-build-root
+      load_base: ubuntu-image
+      tag: version/version
+
+- name: bump-golang
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: golang-linux
+#      trigger: true
+    - get: concourse
+  - task: bump-blob
+    input_mapping:
+      blob-dir: golang-linux
+    file: concourse/ci/bump-blob.yml
+    params:
+      BLOB_NAME: golang-linux-amd64
+      BLOB_VERSION_FILE: version
+      BLOB_DESTINATION: golang
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
+  - put: concourse
+    params: {repository: bumped-concourse, rebase: true}
+
+- name: bump-btrfs
+  serial: true
+  public: true
+  plan:
+  - get: concourse
+  - task: build
+    file: concourse/ci/build-btrfs-tools.yml
+  - task: bump-blob
+    input_mapping:
+      blob-dir: btrfs-tools
+    file: concourse/ci/bump-blob.yml
+    params:
+      BLOB_NAME: btrfs-tools
+      BLOB_VERSION: 4.4
+      BLOB_DESTINATION: btrfs
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
+  - put: concourse
+    params: {repository: bumped-concourse, rebase: true}
+
+resources:
+- name: version
+  type: semver
+  source:
+    bucket: concourse-releases-test
+    key: 2.7-version
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
+- name: bosh-rc
+  type: s3
+  source:
+    bucket: concourse-release-candidates-test
+    regexp: concourse-(.*).tgz
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
+#- name: tf-deployment
+#  type: bosh-deployment
+#  source:
+#    target: https://bosh.concourse.ci #{{bosh-target}}
+#    deployment: &deployment-name concourse-2.7-testflight
+#    client: {{bosh-client-id}}
+#    client_secret: {{bosh-client-secret}}
+
+- name: garden-runc
+  type: bosh-io-release
+  source:
+    repository: cloudfoundry/garden-runc-release
+
+- name: fly-rc
+  type: github-release
+  source:
+    access_token: {{concourse-github-release-access-token}}
+    user: concourse
+    repository: fly
+    release: false
+    pre_release: true
+
+- name: gcp-stemcell
+  type: bosh-io-stemcell
+  source:
+    name: bosh-google-kvm-ubuntu-trusty-go_agent
+
+- name: concourse
+  type: git
+  source:
+    uri: git@github.com:concourse/concourse.git
+    branch: releases/2.7
+    private_key: {{concourse-repo-private-key}}
+
+- name: deployments
+  type: git
+  source:
+    uri: git@github.com:concourse/deployments.git
+    branch: master
+    private_key: {{deployments-repo-private-key}}
+
+- name: houdini
+  type: git
+  source:
+    uri: https://github.com/vito/houdini.git
+    branch: master
+
+- name: bin
+  type: git
+  source:
+    uri: https://github.com/concourse/bin
+    branch: releases/2.7
+
+- name: garden-runc-src
+  type: git
+  source:
+    uri: https://github.com/cloudfoundry/garden-runc-release
+    branch: master
+
+- name: bin-rc
+  type: github-release
+  source:
+    user: concourse
+    repository: bin
+    access_token: {{bin-release-token}}
+
+- name: concourse-docker
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse-docker
+
+- name: dumb-init
+  type: github-release
+  source:
+    user: Yelp
+    repository: dumb-init
+    access_token: {{bin-release-token}} # just so we don't get rate limited
+
+- name: ubuntu-image
+  type: docker-image
+  source:
+    repository: ubuntu
+    tag: '16.04'
+
+- name: concourse-image-rc
+  type: docker-image
+  source:
+    repository: concourse/concourse-rc
+    username: {{docker-username}}
+    password: {{docker-password}}
+
+- name: bosh-cli
+  type: s3
+  source:
+    bucket: bosh-cli-artifacts
+    regexp: bosh-cli-([^-]+)-linux-amd64
+
+
+- name: golang-linux
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(1\.\d+(\.\d+)?)\.linux-amd64\.tar.gz'
+
+#resource_types:
+#- name: bosh-deployment
+#  type: docker-image
+#  source:
+#    repository: cloudfoundry/bosh-deployment-resource
