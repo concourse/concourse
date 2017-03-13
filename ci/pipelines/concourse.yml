@@ -37,6 +37,11 @@ groups:
   jobs:
   - install-go-windows
 
+- name: dependencies
+  jobs:
+  - bump-btrfs
+  - bump-golang
+
 jobs:
 - name: fly
   public: true
@@ -708,6 +713,45 @@ jobs:
   - task: install
     file: concourse/ci/install-go-windows.yml
 
+- name: bump-btrfs
+  serial: true
+  public: true
+  plan:
+  - get: concourse
+  - task: build
+    file: concourse/ci/build-btrfs-tools.yml
+  - task: bump-blob
+    input_mapping:
+      blob-dir: btrfs-tools
+    file: concourse/ci/bump-blob.yml
+    params:
+      BLOB_NAME: btrfs-tools
+      BLOB_VERSION: 4.4
+      BLOB_DESTINATION: btrfs
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
+  - put: concourse
+    params: {repository: bumped-concourse, rebase: true}
+
+- name: bump-golang
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: golang-linux
+      trigger: true
+    - get: concourse
+  - task: bump-blob
+    input_mapping:
+      blob-dir: golang-linux
+    file: concourse/ci/bump-blob.yml
+    params:
+      BLOB_NAME: golang-linux-amd64
+      BLOB_VERSION_FILE: version
+      BLOB_DESTINATION: golang
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
+  - put: concourse
+    params: {repository: bumped-concourse, rebase: true}
+
 resources:
 - name: version
   type: semver
@@ -935,3 +979,10 @@ resources:
   source:
     bucket: bosh-cli-artifacts
     regexp: bosh-cli-([^-]+)-linux-amd64
+
+- name: golang-linux
+  type: s3
+  source:
+    endpoint: storage.googleapis.com
+    bucket: golang
+    regexp: 'go(1\.\d+(\.\d+)?)\.linux-amd64\.tar.gz'
