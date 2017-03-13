@@ -536,7 +536,7 @@ var _ = Describe("DBProvider", func() {
 			})
 		})
 
-		Context("when creating the resource config succeeds", func() {
+		Context("when creating the resource config fails", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
