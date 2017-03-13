@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("[#137641079] ATC Shutting down", func() {
+var _ = XDescribe("[#137641079] ATC Shutting down", func() {
 	var dbConn *sql.DB
 
 	BeforeEach(func() {
