@@ -1012,7 +1012,7 @@ var _ = Describe("Builds API", func() {
 		})
 	})
 
-	Describe("POST /api/v1/builds/:build_id/abort", func() {
+	Describe("PUT /api/v1/builds/:build_id/abort", func() {
 		var (
 			abortTarget *ghttp.Server
 
@@ -1023,14 +1023,14 @@ var _ = Describe("Builds API", func() {
 			abortTarget = ghttp.NewServer()
 
 			abortTarget.AppendHandlers(
-				ghttp.VerifyRequest("POST", "/builds/some-guid/abort"),
+				ghttp.VerifyRequest("PUT", "/builds/some-guid/abort"),
 			)
 		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			req, err := http.NewRequest("POST", server.URL+"/api/v1/builds/128/abort", nil)
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/builds/128/abort", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
