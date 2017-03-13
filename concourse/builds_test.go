@@ -413,7 +413,7 @@ var _ = Describe("ATC Handler Builds", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("PUT", expectedURL),
 					ghttp.RespondWith(http.StatusNoContent, ""),
 				),
 			)
