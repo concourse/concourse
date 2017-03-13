@@ -34,7 +34,7 @@ var _ = Describe("AbortBuild", func() {
 				ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild),
 			),
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", expectedAbortURL),
+				ghttp.VerifyRequest("PUT", expectedAbortURL),
 				ghttp.RespondWith(http.StatusNoContent, ""),
 			),
 		)
