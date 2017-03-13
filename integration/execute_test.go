@@ -483,7 +483,7 @@ run:
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/api/v1/builds/128/abort"),
+					ghttp.VerifyRequest("PUT", "/api/v1/builds/128/abort"),
 					func(w http.ResponseWriter, r *http.Request) {
 						close(aborted)
 					},
