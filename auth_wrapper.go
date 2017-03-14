@@ -16,18 +16,36 @@ const (
 	AuthTypeOAuth AuthType = "oauth"
 )
 
+type authWrapper struct {
+	auths []AuthProvider
+	teamDB db.TeamDB
+}
+
+func NewAuthWrapper(
+	authProviders []AuthProvider,
+	teamDB db.TeamDB
+) AuthWrapper (
+	return &authWrapper{
+		auths: AuthProviders,
+		teamDB: teamDB,
+	}
+)
+
 type AuthWrapper interface {
-	CheckAuth() bool
-	UpdateAuth(AuthProvider) (db.SavedTeam, error)
-	GetAuthProviders() ([]AuthProvider, error)
+	Wrap()
 }
 
-func (a AuthWrapper) CheckAuth() bool {
-
-}
-
-func (a AuthWrapper) listAuthProviders() []AuthProvider {
-
+func (a authWrapper) Wrap() {
+	team, found, err := teamDB.GetTeam()
+	if err != nil || !found {
+		return false
+	}
+	for auth := range a.Auths {
+		switch auth{
+		case BasicAuth:
+			NewBasicAuthValidator(team).IsAuthenticated(r)
+		}
+		}
 }
 
 type BasicAuth struct {
