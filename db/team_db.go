@@ -24,7 +24,7 @@ type TeamDB interface {
 	OrderPipelines([]string) error
 
 	GetTeam() (SavedTeam, bool, error)
-	UpdateAuth(auth auth.AuthWrapper) (SavedTeam, error)
+	UpdateAuth(authWrapper auth.AuthWrapper) (SavedTeam, error)
 
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfigToBeDeprecated(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
@@ -597,8 +597,29 @@ func (db *teamDB) queryTeam(query string, params []interface{}) (SavedTeam, erro
 func (db *teamDB) UpdateAuth(authWrapper auth.AuthWrapper) (SavedTeam, error) {
 	for _, authProvider := range authWrapper.GetAuthProviders() {
 		switch authProvider {
-		case auth.AuthProvider.BasicAuth:
-
+			case auth.AuthProvider.BasicAuth:
+				encryptedBasicAuth, err := authProvider.EncryptedJSON()
+				if err != nil {
+					return SavedTeam{}, err
+				}
+			case auth.AuthProvider.GitHubAuth:
+				jsonEncodedGitHubAuth, err := json.Marshal(authProvider)
+				if err != nil {
+					return SavedTeam{}, err
+				}
+			case auth.AuthProvider.UAAAuth:
+				jsonEncodedUAAAuth, err := json.Marshal(authProvider)
+				if err != nil {
+					return SavedTeam{}, err
+				}
+			case auth.AuthProvider.GenericOAuth:
+				jsonEncodedGenericOAuth, err := json.Marshal(authProvider)
+				if err != nil {
+					return SavedTeam{}, err
+				}
+			default:
+				panic("unknown team auth provider")
+			}
 		}
 	}
 
