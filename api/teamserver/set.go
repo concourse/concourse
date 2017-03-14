@@ -82,25 +82,30 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
-	_, err := teamDB.UpdateBasicAuth(team.BasicAuth)
-	if err != nil {
-		return err
-	}
 
-	_, err = teamDB.UpdateGitHubAuth(team.GitHubAuth)
+	_, err := teamDB.UpdateAuth(team)
 	if err != nil {
 		return err
 	}
-
-	_, err = teamDB.UpdateUAAAuth(team.UAAAuth)
-	if err != nil {
-		return err
-	}
-
-	_, err = teamDB.UpdateGenericOAuth(team.GenericOAuth)
-	if err != nil {
-		return err
-	}
+	// _, err := teamDB.UpdateBasicAuth(team.BasicAuth)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// _, err = teamDB.UpdateGitHubAuth(team.GitHubAuth)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// _, err = teamDB.UpdateUAAAuth(team.UAAAuth)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// _, err = teamDB.UpdateGenericOAuth(team.GenericOAuth)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

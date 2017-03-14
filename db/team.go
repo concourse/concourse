@@ -3,6 +3,8 @@ package db
 import (
 	"encoding/json"
 
+	"github.com/concourse/atc/auth"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -10,19 +12,18 @@ type Team struct {
 	Name  string
 	Admin bool
 
-	BasicAuth    *BasicAuth    `json:"basic_auth"`
-	GitHubAuth   *GitHubAuth   `json:"github_auth"`
-	UAAAuth      *UAAAuth      `json:"uaa_auth"`
-	GenericOAuth *GenericOAuth `json:"genericoauth_auth"`
+	AuthWrapper auth.AuthWrapper
+
+	// BasicAuth    *BasicAuth    `json:"basic_auth"`
+	// GitHubAuth   *GitHubAuth   `json:"github_auth"`
+	// UAAAuth      *UAAAuth      `json:"uaa_auth"`
+	// GenericOAuth *GenericOAuth `json:"genericoauth_auth"`
 }
 
 func (t Team) IsAuthConfigured() bool {
-	return t.BasicAuth != nil || t.GitHubAuth != nil || t.UAAAuth != nil
-}
-
-type BasicAuth struct {
-	BasicAuthUsername string `json:"basic_auth_username"`
-	BasicAuthPassword string `json:"basic_auth_password"`
+	//loop through all methods and dont panic
+	// return t.BasicAuth != nil || t.GitHubAuth != nil || t.UAAAuth != nil
+	return t.AuthWrapper.CheckAuth()
 }
 
 func (auth *BasicAuth) EncryptedJSON() (string, error) {
@@ -42,17 +43,6 @@ func (auth *BasicAuth) EncryptedJSON() (string, error) {
 	return string(json), err
 }
 
-type GitHubAuth struct {
-	ClientID      string       `json:"client_id"`
-	ClientSecret  string       `json:"client_secret"`
-	Organizations []string     `json:"organizations"`
-	Teams         []GitHubTeam `json:"teams"`
-	Users         []string     `json:"users"`
-	AuthURL       string       `json:"auth_url"`
-	TokenURL      string       `json:"token_url"`
-	APIURL        string       `json:"api_url"`
-}
-
 type GitHubTeam struct {
 	OrganizationName string `json:"organization_name"`
 	TeamName         string `json:"team_name"`
@@ -61,24 +51,4 @@ type GitHubTeam struct {
 type SavedTeam struct {
 	ID int
 	Team
-}
-
-type UAAAuth struct {
-	ClientID     string   `json:"client_id"`
-	ClientSecret string   `json:"client_secret"`
-	AuthURL      string   `json:"auth_url"`
-	TokenURL     string   `json:"token_url"`
-	CFSpaces     []string `json:"cf_spaces"`
-	CFURL        string   `json:"cf_url"`
-	CFCACert     string   `json:"cf_ca_cert"`
-}
-
-type GenericOAuth struct {
-	AuthURL       string            `json:"auth_url"`
-	AuthURLParams map[string]string `json:"auth_url_params"`
-	TokenURL      string            `json:"token_url"`
-	ClientID      string            `json:"client_id"`
-	ClientSecret  string            `json:"client_secret"`
-	DisplayName   string            `json:"display_name"`
-	Scope         string            `json:"scope"`
 }
