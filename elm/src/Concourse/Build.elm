@@ -24,7 +24,7 @@ abort : Concourse.BuildId -> Task Http.Error ()
 abort buildId =
     Http.toTask <|
         Http.request
-            { method = "POST"
+            { method = "PUT"
             , url = "/api/v1/builds/" ++ toString buildId ++ "/abort"
             , headers = []
             , body = Http.emptyBody
