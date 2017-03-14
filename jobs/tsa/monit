@@ -3,3 +3,4 @@ check process tsa
   start program "/var/vcap/jobs/tsa/bin/tsa_ctl start"
   stop program "/var/vcap/jobs/tsa/bin/tsa_ctl stop"
   group vcap
+  if memory > 80% for 6 cycles then restart
