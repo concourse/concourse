@@ -22,7 +22,7 @@ abort buildId =
   let
     post =
       Http.send Http.defaultSettings
-        { verb = "POST"
+        { verb = "PUT"
         , headers = []
         , url = "/api/v1/builds/" ++ toString buildId ++ "/abort"
         , body = Http.empty
