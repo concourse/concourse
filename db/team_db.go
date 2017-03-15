@@ -9,7 +9,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
 )
 
 //go:generate counterfeiter . TeamDB
@@ -24,7 +23,8 @@ type TeamDB interface {
 	OrderPipelines([]string) error
 
 	GetTeam() (SavedTeam, bool, error)
-	UpdateAuth(authWrapper auth.AuthWrapper) (SavedTeam, error)
+	//UpdateAuth(authWrapper auth.AuthWrapper) (SavedTeam, error)
+
 
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfigToBeDeprecated(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
@@ -594,46 +594,46 @@ func (db *teamDB) queryTeam(query string, params []interface{}) (SavedTeam, erro
 	return savedTeam, nil
 }
 
-func (db *teamDB) UpdateAuth(authWrapper auth.AuthWrapper) (SavedTeam, error) {
-	for _, authProvider := range authWrapper.GetAuthProviders() {
-		switch authProvider {
-			case auth.AuthProvider.BasicAuth:
-				encryptedBasicAuth, err := authProvider.EncryptedJSON()
-				if err != nil {
-					return SavedTeam{}, err
-				}
-			case auth.AuthProvider.GitHubAuth:
-				jsonEncodedGitHubAuth, err := json.Marshal(authProvider)
-				if err != nil {
-					return SavedTeam{}, err
-				}
-			case auth.AuthProvider.UAAAuth:
-				jsonEncodedUAAAuth, err := json.Marshal(authProvider)
-				if err != nil {
-					return SavedTeam{}, err
-				}
-			case auth.AuthProvider.GenericOAuth:
-				jsonEncodedGenericOAuth, err := json.Marshal(authProvider)
-				if err != nil {
-					return SavedTeam{}, err
-				}
-			default:
-				panic("unknown team auth provider")
-			}
-		}
-	}
-
-	query := `
-	UPDATE teams
-	SET basic_auth = $1, github_auth = $2,  uaa_auth = $3, genericoauth_auth = $4
-	WHERE LOWER(name) = LOWER($5)
-	RETURNING id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth
-	`
-
-	params := []interface{}{encryptedBasicAuth, jsonEncodedGitHubAuth, jsonEncodedUAAAuth, jsonEncodedGenericOAuth, db.teamName}
-
-	return db.queryTeam(query, params)
-}
+//func (db *teamDB) UpdateAuth(authWrapper auth.AuthWrapper) (SavedTeam, error) {
+//	for _, authProvider := range authWrapper.GetAuthProviders() {
+//		switch authProvider {
+//			case auth.AuthProvider.BasicAuth:
+//				encryptedBasicAuth, err := authProvider.EncryptedJSON()
+//				if err != nil {
+//					return SavedTeam{}, err
+//				}
+//			case auth.AuthProvider.GitHubAuth:
+//				jsonEncodedGitHubAuth, err := json.Marshal(authProvider)
+//				if err != nil {
+//					return SavedTeam{}, err
+//				}
+//			case auth.AuthProvider.UAAAuth:
+//				jsonEncodedUAAAuth, err := json.Marshal(authProvider)
+//				if err != nil {
+//					return SavedTeam{}, err
+//				}
+//			case auth.AuthProvider.GenericOAuth:
+//				jsonEncodedGenericOAuth, err := json.Marshal(authProvider)
+//				if err != nil {
+//					return SavedTeam{}, err
+//				}
+//			default:
+//				panic("unknown team auth provider")
+//			}
+//		}
+//	}
+//
+//	query := `
+//	UPDATE teams
+//	SET basic_auth = $1, github_auth = $2,  uaa_auth = $3, genericoauth_auth = $4
+//	WHERE LOWER(name) = LOWER($5)
+//	RETURNING id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth
+//	`
+//
+//	params := []interface{}{encryptedBasicAuth, jsonEncodedGitHubAuth, jsonEncodedUAAAuth, jsonEncodedGenericOAuth, db.teamName}
+//
+//	return db.queryTeam(query, params)
+//}
 
 func (db *teamDB) updateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error) {
 	encryptedBasicAuth, err := basicAuth.EncryptedJSON()

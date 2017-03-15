@@ -18,6 +18,7 @@ func NewBasicAuthValidator(team db.SavedTeam) Validator {
 	}
 }
 
+
 func (v basicAuthValidator) IsAuthenticated(r *http.Request) bool {
 	auth := r.Header.Get("Authorization")
 	username, password, err := extractUsernameAndPassword(auth)

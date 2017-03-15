@@ -29,13 +29,27 @@ func (v teamAuthValidator) IsAuthenticated(r *http.Request) bool {
 		return false
 	}
 
-	if !team.IsAuthConfigured() {
-		return true
-	}
+	return getAuthWrapper(team).IsAuthenticated(r)
 
-	if team.BasicAuth != nil && NewBasicAuthValidator(team).IsAuthenticated(r) {
-		return true
-	}
+	//if !team.IsAuthConfigured() {
+	//	return true
+	//}
+	//
+	//if team.BasicAuth != nil && NewBasicAuthValidator(team).IsAuthenticated(r) {
+	//	return true
+	//}
+	//
+	//return v.jwtValidator.IsAuthenticated(r)
+}
 
-	return v.jwtValidator.IsAuthenticated(r)
+func getAuthWrapper(t db.SavedTeam) AuthWrapper {
+	return t.AuthWrapper
+}
+
+func (a db.AuthWrapper) IsAuthenticated(r http.Request) {
+	for _, auth := range a.AuthProviders {
+		if auth.IsAuthenticated(r) {
+			return True
+		}
+	}
 }
