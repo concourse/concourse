@@ -234,7 +234,7 @@ var _ = Describe("DBProvider", func() {
 
 					By("connecting to the worker")
 					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
+					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -295,7 +295,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.CreateReturns(fakeContainer, nil)
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil, nil)
+					container, err := workers[0].FindOrCreateBuildContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeDB.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterCallCount()).To(Equal(1))

@@ -86,7 +86,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	runSession := step.session
 	runSession.ID.Stage = db.ContainerStageRun
 
-	resourceSpec := worker.ContainerSpec{
+	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.resourceConfig.Type,
 			Privileged:   true,
@@ -97,46 +97,26 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		Env:       step.stepMetadata.Env(),
 	}
 
-	inputSources := []resource.InputSource{}
 	for name, source := range step.repository.AsMap() {
-		inputSources = append(inputSources, &putInputSource{
+		containerSpec.Inputs = append(containerSpec.Inputs, &putInputSource{
 			name:   name,
 			source: resourceSource{source},
 		})
 	}
 
-	putResource, missingSources, err := step.resourceFactory.NewBuildResource(
+	putResource, err := step.resourceFactory.NewPutResource(
 		step.logger,
 		runSession.ID,
 		runSession.Metadata,
-		resourceSpec,
+		containerSpec,
 		step.resourceTypes,
 		step.delegate,
-		inputSources,
-		map[string]string{},
 	)
 	if err != nil {
 		return err
 	}
 
-	missingSourceNames := []worker.ArtifactName{}
-	for _, missingSource := range missingSources {
-		missingSourceNames = append(missingSourceNames, worker.ArtifactName(missingSource.Name()))
-	}
-
 	step.resource = putResource
-
-	scopedRepo, err := step.repository.ScopedTo(missingSourceNames...)
-	if err != nil {
-		return err
-	}
-
-	var artifactSource worker.ArtifactSource
-	if len(inputSources) == 0 {
-		artifactSource = emptySource{}
-	} else {
-		artifactSource = resourceSource{scopedRepo}
-	}
 
 	step.versionedSource, err = step.resource.Put(
 		resource.IOConfig{
@@ -145,7 +125,6 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		},
 		step.resourceConfig.Source,
 		step.params,
-		artifactSource,
 		signals,
 		ready,
 	)
@@ -229,4 +208,7 @@ type putInputSource struct {
 
 func (s *putInputSource) Name() worker.ArtifactName     { return s.name }
 func (s *putInputSource) Source() worker.ArtifactSource { return s.source }
-func (s *putInputSource) MountPath() string             { return resource.ResourcesDir("put/" + string(s.name)) }
+
+func (s *putInputSource) DestinationPath() string {
+	return resource.ResourcesDir("put/" + string(s.name))
+}

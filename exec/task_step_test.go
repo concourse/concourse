@@ -2,7 +2,6 @@ package exec_test
 
 import (
 	"archive/tar"
-	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -19,7 +18,6 @@ import (
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/execfakes"
-	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -33,8 +31,6 @@ var _ = Describe("GardenFactory", func() {
 	var (
 		fakeWorkerClient           *workerfakes.FakeClient
 		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
-		fakeResource               *resourcefakes.FakeResource
-		fakeResourceFactory        *resourcefakes.FakeResourceFactory
 
 		factory Factory
 
@@ -50,7 +46,7 @@ var _ = Describe("GardenFactory", func() {
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
-		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
+		fakeResourceFactory := new(resourcefakes.FakeResourceFactory)
 		fakeResourceFetcher := new(resourcefakes.FakeFetcher)
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		factory = NewGardenFactory(fakeWorkerClient, fakeResourceFetcher, fakeResourceFactory, fakeDBResourceCacheFactory)
@@ -172,10 +168,8 @@ var _ = Describe("GardenFactory", func() {
 					)
 
 					BeforeEach(func() {
-						fakeResource = new(resourcefakes.FakeResource)
 						fakeContainer = new(workerfakes.FakeContainer)
-						fakeResource.ContainerReturns(fakeContainer)
-						fakeResourceFactory.NewBuildResourceReturns(fakeResource, []resource.InputSource{}, nil)
+						fakeWorkerClient.FindOrCreateBuildContainerReturns(fakeContainer, nil)
 						fakeContainer.HandleReturns("some-handle")
 
 						fakeProcess = new(gardenfakes.FakeProcess)
@@ -189,7 +183,7 @@ var _ = Describe("GardenFactory", func() {
 						BeforeEach(func() {
 							taskDelegate.InitializingStub = func(atc.TaskConfig) {
 								defer GinkgoRecover()
-								Expect(fakeResourceFactory.NewBuildResourceCallCount()).To(BeZero())
+								Expect(fakeWorkerClient.FindOrCreateBuildContainerCallCount()).To(BeZero())
 							}
 						})
 
@@ -214,8 +208,9 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					It("creates a container with the config's image and the session ID as the handle", func() {
-						Expect(fakeResourceFactory.NewBuildResourceCallCount()).To(Equal(1))
-						_, createdIdentifier, createdMetadata, spec, actualResourceTypes, delegate, _, _ := fakeResourceFactory.NewBuildResourceArgsForCall(0)
+						Expect(fakeWorkerClient.FindOrCreateBuildContainerCallCount()).To(Equal(1))
+						_, cancel, delegate, createdIdentifier, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
+						Expect(cancel).ToNot(BeNil())
 						Expect(createdIdentifier).To(Equal(worker.Identifier{
 							BuildID: 1234,
 							PlanID:  atc.PlanID("some-plan-id"),
@@ -232,30 +227,29 @@ var _ = Describe("GardenFactory", func() {
 
 						Expect(delegate).To(Equal(taskDelegate))
 
-						Expect(spec.Platform).To(Equal("some-platform"))
-						Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
-							ImageURL: "some-image",
-							ImageResource: &atc.ImageResource{
-								Type:   "docker",
-								Source: atc.Source{"some": "source"},
+						Expect(spec).To(Equal(worker.ContainerSpec{
+							Platform: "some-platform",
+							Tags:     []string{"step", "tags"},
+							TeamID:   123,
+							ImageSpec: worker.ImageSpec{
+								ImageURL: "some-image",
+								ImageResource: &atc.ImageResource{
+									Type:   "docker",
+									Source: atc.Source{"some": "source"},
+								},
+								Privileged: false,
 							},
-							Privileged: false,
+							Dir:     "/tmp/build/a1f5c0c1",
+							Inputs:  []worker.InputSource{},
+							Outputs: worker.OutputPaths{},
 						}))
 
 						Expect(actualResourceTypes).To(Equal(resourceTypes))
 					})
 
-					It("ensures artifacts root exists by streaming in an empty payload", func() {
-						Expect(fakeContainer.StreamInCallCount()).To(Equal(1))
-
-						spec := fakeContainer.StreamInArgsForCall(0)
-						Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1"))
-						Expect(spec.User).To(Equal("")) // use default
-
-						tarReader := tar.NewReader(spec.TarStream)
-
-						_, err := tarReader.Next()
-						Expect(err).To(Equal(io.EOF))
+					It("configures the working directory", func() {
+						_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
+						Expect(spec.Dir).To(Equal("/tmp/build/a1f5c0c1"))
 					})
 
 					It("runs a process with the config's path and args, in the specified (default) build directory", func() {
@@ -296,8 +290,8 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("creates the container privileged", func() {
-							Expect(fakeResourceFactory.NewBuildResourceCallCount()).To(Equal(1))
-							_, createdIdentifier, createdMetadata, spec, _, _, _, _ := fakeResourceFactory.NewBuildResourceArgsForCall(0)
+							Expect(fakeWorkerClient.FindOrCreateBuildContainerCallCount()).To(Equal(1))
+							_, _, _, createdIdentifier, createdMetadata, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
 							Expect(createdIdentifier).To(Equal(worker.Identifier{
 								BuildID: 1234,
 								PlanID:  atc.PlanID("some-plan-id"),
@@ -345,16 +339,7 @@ var _ = Describe("GardenFactory", func() {
 						BeforeEach(func() {
 							inputSource = new(workerfakes.FakeArtifactSource)
 							otherInputSource = new(workerfakes.FakeArtifactSource)
-							fakeMissingInputSource1 := new(resourcefakes.FakeInputSource)
-							fakeMissingInputSource1.NameReturns("some-input")
-							fakeMissingInputSource1.SourceReturns(inputSource)
-							fakeMissingInputSource1.MountPathReturns("some-input-mount-path")
-							fakeMissingInputSource2 := new(resourcefakes.FakeInputSource)
-							fakeMissingInputSource2.NameReturns("some-other-input")
-							fakeMissingInputSource2.SourceReturns(otherInputSource)
-							fakeMissingInputSource2.MountPathReturns("some-other-input-mount-path")
 
-							fakeResourceFactory.NewBuildResourceReturns(fakeResource, []resource.InputSource{fakeMissingInputSource1, fakeMissingInputSource2}, nil)
 							configSource.FetchConfigReturns(atc.TaskConfig{
 								Platform: "some-platform",
 								Image:    "some-image",
@@ -370,81 +355,27 @@ var _ = Describe("GardenFactory", func() {
 							}, nil)
 						})
 
-						Context("when all inputs are present in the in source repository", func() {
+						Context("when all inputs are present", func() {
 							BeforeEach(func() {
 								repo.RegisterSource("some-input", inputSource)
 								repo.RegisterSource("some-other-input", otherInputSource)
 							})
 
-							It("streams each of them to their configured destinations", func() {
-								streamIn := new(bytes.Buffer)
-
-								Expect(inputSource.StreamToCallCount()).To(Equal(1))
-
-								destination := inputSource.StreamToArgsForCall(0)
-
-								initial := fakeContainer.StreamInCallCount()
-
-								err := destination.StreamIn("foo", streamIn)
-								Expect(err).NotTo(HaveOccurred())
-
-								Expect(fakeContainer.StreamInCallCount()).To(Equal(initial + 1))
-
-								spec := fakeContainer.StreamInArgsForCall(initial)
-								Expect(spec.Path).To(Equal("some-input-mount-path/foo"))
-								Expect(spec.User).To(Equal("")) // use default
-								Expect(spec.TarStream).To(Equal(streamIn))
-
-								Expect(otherInputSource.StreamToCallCount()).To(Equal(1))
-
-								destination = otherInputSource.StreamToArgsForCall(0)
-
-								initial = fakeContainer.StreamInCallCount()
-
-								err = destination.StreamIn("foo", streamIn)
-								Expect(err).NotTo(HaveOccurred())
-
-								Expect(fakeContainer.StreamInCallCount()).To(Equal(initial + 1))
-								spec = fakeContainer.StreamInArgsForCall(initial)
-								Expect(spec.Path).To(Equal("some-other-input-mount-path/foo"))
-								Expect(spec.User).To(Equal("")) // use default
-								Expect(spec.TarStream).To(Equal(streamIn))
-
-								Eventually(process.Wait()).Should(Receive(BeNil()))
-							})
-
-							Context("when there are no missing inputs", func() {
-								BeforeEach(func() {
-									fakeResourceFactory.NewBuildResourceReturns(fakeResource, []resource.InputSource{}, nil)
-								})
-
-								It("does not stream inputs that had volumes", func() {
-									Expect(inputSource.StreamToCallCount()).To(Equal(0))
-									Expect(otherInputSource.StreamToCallCount()).To(Equal(0))
-								})
-							})
-
-							Context("when streaming the bits in to the container fails", func() {
-								disaster := errors.New("nope")
-
-								BeforeEach(func() {
-									inputSource.StreamToReturns(disaster)
-								})
-
-								It("exits with the error", func() {
-									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-								})
-
-								It("does not run anything", func() {
-									Eventually(process.Wait()).Should(Receive())
-									Expect(fakeContainer.RunCallCount()).To(Equal(0))
-								})
-
-								It("invokes the delegate's Failed callback", func() {
-									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-									Expect(taskDelegate.FailedCallCount()).To(Equal(1))
-									Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
-								})
+							It("creates the container with the inputs configured correctly", func() {
+								_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
+								Expect(spec.Inputs).To(HaveLen(2))
+								for _, input := range spec.Inputs {
+									switch input.Name() {
+									case "some-input":
+										Expect(input.DestinationPath()).To(Equal("/tmp/build/a1f5c0c1/some-input-configured-path"))
+										Expect(input.Source()).To(Equal(inputSource))
+									case "some-other-input":
+										Expect(input.DestinationPath()).To(Equal("/tmp/build/a1f5c0c1/some-other-input"))
+										Expect(input.Source()).To(Equal(otherInputSource))
+									default:
+										panic("unknown input: " + input.Name())
+									}
+								}
 							})
 						})
 
@@ -487,12 +418,6 @@ var _ = Describe("GardenFactory", func() {
 									{Name: "remapped-input"},
 								},
 							}, nil)
-
-							fakeMissingInputSource := new(resourcefakes.FakeInputSource)
-							fakeMissingInputSource.NameReturns("remapped-input-src")
-							fakeMissingInputSource.SourceReturns(remappedInputSource)
-							fakeMissingInputSource.MountPathReturns("remapped-input-path")
-							fakeResourceFactory.NewBuildResourceReturns(fakeResource, []resource.InputSource{fakeMissingInputSource}, nil)
 						})
 
 						Context("when all inputs are present in the in source repository", func() {
@@ -501,24 +426,11 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("uses remapped input", func() {
-								streamIn := new(bytes.Buffer)
-
-								Expect(remappedInputSource.StreamToCallCount()).To(Equal(1))
-
-								destination := remappedInputSource.StreamToArgsForCall(0)
-
-								initial := fakeContainer.StreamInCallCount()
-
-								err := destination.StreamIn("foo", streamIn)
-								Expect(err).NotTo(HaveOccurred())
-
-								Expect(fakeContainer.StreamInCallCount()).To(Equal(initial + 1))
-
-								spec := fakeContainer.StreamInArgsForCall(initial)
-								Expect(spec.Path).To(Equal("remapped-input-path/foo"))
-								Expect(spec.User).To(Equal("")) // use default
-								Expect(spec.TarStream).To(Equal(streamIn))
-
+								_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
+								Expect(spec.Inputs).To(HaveLen(1))
+								Expect(spec.Inputs[0].Name()).To(Equal(worker.ArtifactName("remapped-input-src")))
+								Expect(spec.Inputs[0].Source()).To(Equal(remappedInputSource))
+								Expect(spec.Inputs[0].DestinationPath()).To(Equal("/tmp/build/a1f5c0c1/remapped-input"))
 								Eventually(process.Wait()).Should(Receive(BeNil()))
 							})
 						})
@@ -561,35 +473,13 @@ var _ = Describe("GardenFactory", func() {
 							}, nil)
 						})
 
-						It("ensures the output directories exist by streaming in an empty payload", func() {
-							Expect(fakeContainer.StreamInCallCount()).To(Equal(4))
-
-							spec := fakeContainer.StreamInArgsForCall(1)
-							Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path/"))
-							Expect(spec.User).To(Equal("")) // use default
-
-							tarReader := tar.NewReader(spec.TarStream)
-
-							_, err := tarReader.Next()
-							Expect(err).To(Equal(io.EOF))
-
-							spec = fakeContainer.StreamInArgsForCall(2)
-							Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-other-output/"))
-							Expect(spec.User).To(Equal("")) // use default
-
-							tarReader = tar.NewReader(spec.TarStream)
-
-							_, err = tarReader.Next()
-							Expect(err).To(Equal(io.EOF))
-
-							spec = fakeContainer.StreamInArgsForCall(3)
-							Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/"))
-							Expect(spec.User).To(Equal("")) // use default
-
-							tarReader = tar.NewReader(spec.TarStream)
-
-							_, err = tarReader.Next()
-							Expect(err).To(Equal(io.EOF))
+						It("configures them appropriately in the container spec", func() {
+							_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
+							Expect(spec.Outputs).To(Equal(worker.OutputPaths{
+								"some-output":                "/tmp/build/a1f5c0c1/some-output-configured-path/",
+								"some-other-output":          "/tmp/build/a1f5c0c1/some-other-output/",
+								"some-trailing-slash-output": "/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/",
+							}))
 						})
 
 						Context("when the process exits 0", func() {
@@ -685,8 +575,8 @@ var _ = Describe("GardenFactory", func() {
 											})
 
 											It("passes existing output volumes to the resource", func() {
-												_, _, _, _, _, _, _, outputPaths := fakeResourceFactory.NewBuildResourceArgsForCall(0)
-												Expect(outputPaths).To(Equal(map[string]string{
+												_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
+												Expect(spec.Outputs).To(Equal(worker.OutputPaths{
 													"some-output":                "/tmp/build/a1f5c0c1/some-output-configured-path/",
 													"some-other-output":          "/tmp/build/a1f5c0c1/some-other-output/",
 													"some-trailing-slash-output": "/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/",
@@ -989,21 +879,6 @@ var _ = Describe("GardenFactory", func() {
 							Eventually(process.Wait()).Should(Receive(BeNil()))
 						})
 
-						Context("when volume manager does not exist", func() {
-							It("ensures the output directories exist with the generic name", func() {
-								Expect(fakeContainer.StreamInCallCount()).To(Equal(2))
-
-								spec := fakeContainer.StreamInArgsForCall(1)
-								Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/generic-remapped-output/"))
-								Expect(spec.User).To(Equal("")) // use default
-
-								tarReader := tar.NewReader(spec.TarStream)
-
-								_, err := tarReader.Next()
-								Expect(err).To(Equal(io.EOF))
-							})
-						})
-
 						It("registers the outputs as sources with specific name", func() {
 							artifactSource, found := repo.SourceFor("specific-remapped-output")
 							Expect(found).To(BeTrue())
@@ -1048,7 +923,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("creates the container with the image artifact source", func() {
-								_, _, _, spec, _, _, _, _ := fakeResourceFactory.NewBuildResourceArgsForCall(0)
+								_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
 								Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 									ImageArtifactSource: imageArtifactSource,
 									ImageArtifactName:   worker.ArtifactName(imageArtifactName),
@@ -1083,7 +958,7 @@ var _ = Describe("GardenFactory", func() {
 										})
 
 										It("still creates the container with the volume and a metadata stream", func() {
-											_, _, _, spec, _, _, _, _ := fakeResourceFactory.NewBuildResourceArgsForCall(0)
+											_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
 											Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageArtifactSource: imageArtifactSource,
 												ImageArtifactName:   worker.ArtifactName(imageArtifactName),
@@ -1110,7 +985,7 @@ var _ = Describe("GardenFactory", func() {
 										})
 
 										It("still creates the container with the volume and a metadata stream", func() {
-											_, _, _, spec, _, _, _, _ := fakeResourceFactory.NewBuildResourceArgsForCall(0)
+											_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
 											Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageArtifactSource: imageArtifactSource,
 												ImageArtifactName:   worker.ArtifactName(imageArtifactName),
@@ -1138,7 +1013,7 @@ var _ = Describe("GardenFactory", func() {
 										})
 
 										It("still creates the container with the volume and a metadata stream", func() {
-											_, _, _, spec, _, _, _, _ := fakeResourceFactory.NewBuildResourceArgsForCall(0)
+											_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
 											Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
 												ImageArtifactSource: imageArtifactSource,
 												ImageArtifactName:   worker.ArtifactName(imageArtifactName),
@@ -1175,7 +1050,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("adds the user to the container spec", func() {
-							_, _, _, spec, _, _, _, _ := fakeResourceFactory.NewBuildResourceArgsForCall(0)
+							_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
 							Expect(spec.User).To(Equal("some-user"))
 						})
 
@@ -1464,7 +1339,7 @@ var _ = Describe("GardenFactory", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						fakeResourceFactory.NewBuildResourceReturns(nil, nil, disaster)
+						fakeWorkerClient.FindOrCreateBuildContainerReturns(nil, disaster)
 					})
 
 					It("exits with the error", func() {

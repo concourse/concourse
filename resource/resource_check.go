@@ -19,8 +19,6 @@ func (resource *resource) Check(source atc.Source, fromVersion atc.Version) ([]a
 		checkRequest{source, fromVersion},
 		&versions,
 		nil,
-		nil,
-		nil,
 		false,
 	))
 

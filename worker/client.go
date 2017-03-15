@@ -23,7 +23,6 @@ type Client interface {
 		Metadata,
 		ContainerSpec,
 		atc.VersionedResourceTypes,
-		map[string]string,
 	) (Container, error)
 
 	CreateResourceGetContainer(
@@ -35,7 +34,6 @@ type Client interface {
 		metadata Metadata,
 		spec ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
-		outputPaths map[string]string,
 		resourceType string,
 		version atc.Version,
 		source atc.Source,
@@ -75,6 +73,14 @@ type Client interface {
 	AllSatisfying(WorkerSpec, atc.VersionedResourceTypes) ([]Worker, error)
 	RunningWorkers() ([]Worker, error)
 	GetWorker(workerName string) (Worker, error)
+}
+
+//go:generate counterfeiter . InputSource
+
+type InputSource interface {
+	Name() ArtifactName
+	Source() ArtifactSource
+	DestinationPath() string
 }
 
 type VolumeSpec struct {

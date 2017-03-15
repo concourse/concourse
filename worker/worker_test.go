@@ -136,7 +136,6 @@ var _ = Describe("Worker", func() {
 					ImageSpec: imageSpec,
 				},
 				atc.VersionedResourceTypes{},
-				map[string]string{},
 			)
 		})
 

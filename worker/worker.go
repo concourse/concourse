@@ -144,7 +144,6 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 	metadata Metadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
-	outputPaths map[string]string,
 ) (Container, error) {
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
 
@@ -156,7 +155,6 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 		metadata,
 		spec,
 		resourceTypes,
-		outputPaths,
 	)
 }
 
@@ -169,7 +167,6 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	metadata Metadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
-	outputPaths map[string]string,
 	resourceTypeName string,
 	version atc.Version,
 	source atc.Source,
@@ -185,7 +182,6 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 		metadata,
 		spec,
 		resourceTypes,
-		outputPaths,
 		resourceTypeName,
 		version,
 		source,

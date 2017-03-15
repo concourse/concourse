@@ -1,10 +1,7 @@
 package exec_test
 
 import (
-	"archive/tar"
-	"bytes"
 	"errors"
-	"io"
 	"os"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -145,11 +142,7 @@ var _ = Describe("GardenFactory", func() {
 
 				BeforeEach(func() {
 					fakeResource = new(resourcefakes.FakeResource)
-					fakeMissingInputSource1 := new(resourcefakes.FakeInputSource)
-					fakeMissingInputSource1.NameReturns("some-source")
-					fakeMissingInputSource2 := new(resourcefakes.FakeInputSource)
-					fakeMissingInputSource2.NameReturns("some-other-source")
-					fakeResourceFactory.NewBuildResourceReturns(fakeResource, []resource.InputSource{fakeMissingInputSource1, fakeMissingInputSource2}, nil)
+					fakeResourceFactory.NewPutResourceReturns(fakeResource, nil)
 
 					fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 					fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -159,9 +152,9 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				It("initializes the resource with the correct type, session, and sources", func() {
-					Expect(fakeResourceFactory.NewBuildResourceCallCount()).To(Equal(1))
+					Expect(fakeResourceFactory.NewPutResourceCallCount()).To(Equal(1))
 
-					_, sid, sm, resourceSpec, actualResourceTypes, delegate, sources, _ := fakeResourceFactory.NewBuildResourceArgsForCall(0)
+					_, sid, sm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewPutResourceArgsForCall(0)
 					Expect(sm).To(Equal(worker.Metadata{
 						PipelineName:     "some-pipeline",
 						Type:             db.ContainerTypePut,
@@ -172,75 +165,40 @@ var _ = Describe("GardenFactory", func() {
 						ResourceID: 1234,
 						Stage:      db.ContainerStageRun,
 					}))
-					Expect(resourceSpec).To(Equal(worker.ContainerSpec{
-						ImageSpec: worker.ImageSpec{
-							ResourceType: "some-resource-type",
-							Privileged:   true,
-						},
-						Ephemeral: true,
-						Tags:      []string{"some", "tags"},
-						TeamID:    123,
-						Env:       []string{"a=1", "b=2"},
+					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+						ResourceType: "some-resource-type",
+						Privileged:   true,
 					}))
-					Expect(actualResourceTypes).To(Equal(resourceTypes))
-					Expect(delegate).To(Equal(putDelegate))
-
-					Expect([]string{
-						string(sources[0].Name()),
-						string(sources[1].Name()),
-						string(sources[2].Name()),
-					}).To(ConsistOf([]string{
+					Expect(containerSpec.Ephemeral).To(Equal(true))
+					Expect(containerSpec.Tags).To(Equal([]string{"some", "tags"}))
+					Expect(containerSpec.TeamID).To(Equal(123))
+					Expect(containerSpec.Env).To(Equal([]string{"a=1", "b=2"}))
+					Expect(containerSpec.Inputs).To(HaveLen(3))
+					Expect([]worker.ArtifactName{
+						containerSpec.Inputs[0].Name(),
+						containerSpec.Inputs[1].Name(),
+						containerSpec.Inputs[2].Name(),
+					}).To(ConsistOf([]worker.ArtifactName{
 						"some-source",
 						"some-other-source",
 						"some-mounted-source",
 					}))
+					Expect(actualResourceTypes).To(Equal(resourceTypes))
+					Expect(delegate).To(Equal(putDelegate))
 				})
 
-				It("puts the resource with the correct source and params, and the full repository as the artifact source", func() {
+				It("puts the resource with the correct source and params", func() {
 					Expect(fakeResource.PutCallCount()).To(Equal(1))
 
-					_, putSource, putParams, putArtifactSource, _, _ := fakeResource.PutArgsForCall(0)
+					_, putSource, putParams, _, _ := fakeResource.PutArgsForCall(0)
 					Expect(putSource).To(Equal(resourceConfig.Source))
 					Expect(putParams).To(Equal(params))
-
-					dest := new(workerfakes.FakeArtifactDestination)
-
-					err := putArtifactSource.StreamTo(dest)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakeSource.StreamToCallCount()).To(Equal(1))
-
-					sourceDest := fakeSource.StreamToArgsForCall(0)
-					someStream := new(bytes.Buffer)
-
-					err = sourceDest.StreamIn("foo", someStream)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(dest.StreamInCallCount()).To(Equal(1))
-					destPath, stream := dest.StreamInArgsForCall(0)
-					Expect(destPath).To(Equal("some-source/foo"))
-					Expect(stream).To(Equal(someStream))
-
-					Expect(fakeOtherSource.StreamToCallCount()).To(Equal(1))
-
-					otherSourceDest := fakeOtherSource.StreamToArgsForCall(0)
-					someOtherStream := new(bytes.Buffer)
-
-					err = otherSourceDest.StreamIn("foo", someOtherStream)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(dest.StreamInCallCount()).To(Equal(2))
-					otherDestPath, otherStream := dest.StreamInArgsForCall(1)
-					Expect(otherDestPath).To(Equal("some-other-source/foo"))
-					Expect(otherStream).To(Equal(someOtherStream))
-
-					Expect(fakeMountedSource.StreamToCallCount()).To(Equal(0))
 				})
 
 				It("puts the resource with the io config forwarded", func() {
 					Expect(fakeResource.PutCallCount()).To(Equal(1))
 
-					ioConfig, _, _, _, _, _ := fakeResource.PutArgsForCall(0)
+					ioConfig, _, _, _, _ := fakeResource.PutArgsForCall(0)
 					Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
 					Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 				})
@@ -286,7 +244,6 @@ var _ = Describe("GardenFactory", func() {
 							ioConfig resource.IOConfig,
 							source atc.Source,
 							params atc.Params,
-							artifactSource worker.ArtifactSource,
 							signals <-chan os.Signal,
 							ready chan<- struct{},
 						) (resource.VersionedSource, error) {
@@ -383,7 +340,7 @@ var _ = Describe("GardenFactory", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeResourceFactory.NewBuildResourceReturns(nil, nil, disaster)
+					fakeResourceFactory.NewPutResourceReturns(nil, disaster)
 				})
 
 				It("exits with the failure", func() {
@@ -398,37 +355,6 @@ var _ = Describe("GardenFactory", func() {
 					Expect(putDelegate.FailedCallCount()).To(Equal(1))
 					Expect(putDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 				})
-			})
-		})
-
-		Context("when there are no sources in repo", func() {
-			var (
-				fakeResource        *resourcefakes.FakeResource
-				fakeVersionedSource *resourcefakes.FakeVersionedSource
-			)
-
-			BeforeEach(func() {
-				fakeResource = new(resourcefakes.FakeResource)
-				fakeResourceFactory.NewBuildResourceReturns(fakeResource, []resource.InputSource{}, nil)
-
-				fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
-				fakeResource.PutReturns(fakeVersionedSource, nil)
-			})
-
-			It("streams in empty source", func() {
-				_, _, _, resourceSource, _, _ := fakeResource.PutArgsForCall(0)
-				fakeDestination := new(workerfakes.FakeArtifactDestination)
-				resourceSource.StreamTo(fakeDestination)
-
-				Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-
-				path, reader := fakeDestination.StreamInArgsForCall(0)
-				Expect(path).To(Equal("."))
-
-				tarReader := tar.NewReader(reader)
-
-				_, err := tarReader.Next()
-				Expect(err).To(Equal(io.EOF))
 			})
 		})
 	})

@@ -139,11 +139,10 @@ func (s *resourceInstanceFetchSource) createContainerForVolume(volume worker.Vol
 		Tags:      s.tags,
 		TeamID:    s.teamID,
 		Env:       s.metadata.Env(),
-		Mounts: []worker.VolumeMount{
-			{
-				Volume:    volume,
-				MountPath: ResourcesDir("get"),
-			},
+
+		ResourceCache: &worker.VolumeMount{
+			Volume:    volume,
+			MountPath: ResourcesDir("get"),
 		},
 	}
 
@@ -156,7 +155,6 @@ func (s *resourceInstanceFetchSource) createContainerForVolume(volume worker.Vol
 		s.session.Metadata,
 		containerSpec,
 		s.resourceTypes,
-		map[string]string{},
 		string(s.resourceOptions.ResourceType()),
 		s.resourceOptions.Version(),
 		s.resourceOptions.Source(),

@@ -16,14 +16,12 @@ import (
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/resource"
-	"github.com/concourse/atc/worker/workerfakes"
 )
 
 var _ = Describe("Resource Put", func() {
 	var (
-		source             atc.Source
-		params             atc.Params
-		fakeArtifactSource *workerfakes.FakeArtifactSource
+		source atc.Source
+		params atc.Params
 
 		outScriptStdout     string
 		outScriptStderr     string
@@ -46,7 +44,6 @@ var _ = Describe("Resource Put", func() {
 	BeforeEach(func() {
 		source = atc.Source{"some": "source"}
 		params = atc.Params{"some": "params"}
-		fakeArtifactSource = new(workerfakes.FakeArtifactSource)
 
 		outScriptStdout = "{}"
 		outScriptStderr = ""
@@ -101,7 +98,7 @@ var _ = Describe("Resource Put", func() {
 				return outScriptProcess, nil
 			}
 
-			versionedSource, putErr = resource.Put(ioConfig, source, params, fakeArtifactSource, signalsCh, readyCh)
+			versionedSource, putErr = resource.Put(ioConfig, source, params, signalsCh, readyCh)
 		})
 
 		itCanStreamOut := func() {
@@ -210,10 +207,6 @@ var _ = Describe("Resource Put", func() {
 
 			It("does not run an additional process", func() {
 				Expect(fakeContainer.RunCallCount()).To(BeZero())
-			})
-
-			It("does not stream the artifact source to the versioned source", func() {
-				Expect(fakeArtifactSource.StreamToCallCount()).To(Equal(0))
 			})
 
 			Context("when /opt/resource/out prints the version and metadata", func() {
@@ -326,13 +319,6 @@ var _ = Describe("Resource Put", func() {
 				"source": {"some":"source"}
 			}`))
 
-			})
-
-			It("streams the artifact source to the versioned source", func() {
-				Expect(fakeArtifactSource.StreamToCallCount()).To(Equal(1))
-
-				dest := fakeArtifactSource.StreamToArgsForCall(0)
-				Expect(dest).To(Equal(versionedSource))
 			})
 
 			It("saves the process ID as a property", func() {
@@ -469,7 +455,7 @@ var _ = Describe("Resource Put", func() {
 			}
 
 			go func() {
-				versionedSource, putErr = resource.Put(ioConfig, source, params, fakeArtifactSource, signalsCh, readyCh)
+				versionedSource, putErr = resource.Put(ioConfig, source, params, signalsCh, readyCh)
 				close(done)
 			}()
 		})

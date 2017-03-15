@@ -150,9 +150,48 @@ func (pool *pool) FindOrCreateBuildContainer(
 	metadata Metadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
-	outputPaths map[string]string,
 ) (Container, error) {
-	return nil, errors.New("not implemented")
+	compatibleWorkers, err := pool.AllSatisfying(spec.WorkerSpec(), resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	workersByCount := map[int][]Worker{}
+	var highestCount int
+	for _, w := range compatibleWorkers {
+		candidateInputCount := 0
+
+		for _, inputSource := range spec.Inputs {
+			_, found, err := inputSource.Source().VolumeOn(w)
+			if err != nil {
+				return nil, err
+			}
+
+			if found {
+				candidateInputCount++
+			}
+		}
+
+		workersByCount[candidateInputCount] = append(workersByCount[candidateInputCount], w)
+
+		if candidateInputCount >= highestCount {
+			highestCount = candidateInputCount
+		}
+	}
+
+	workers := workersByCount[highestCount]
+
+	chosenWorker := workers[rand.Intn(len(workers))]
+
+	return chosenWorker.FindOrCreateBuildContainer(
+		logger,
+		nil,
+		delegate,
+		id,
+		metadata,
+		spec,
+		resourceTypes,
+	)
 }
 
 func (pool *pool) CreateResourceGetContainer(
@@ -164,7 +203,6 @@ func (pool *pool) CreateResourceGetContainer(
 	metadata Metadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
-	outputPaths map[string]string,
 	resourceType string,
 	version atc.Version,
 	source atc.Source,
@@ -184,7 +222,6 @@ func (pool *pool) CreateResourceGetContainer(
 		metadata,
 		spec,
 		resourceTypes,
-		outputPaths,
 		resourceType,
 		version,
 		source,

@@ -22,17 +22,26 @@ type ContainerSpec struct {
 	Ephemeral bool
 	Env       []string
 
-	// Not Copy-on-Write. Used for a single mount in Get containers.
-	Inputs []VolumeMount
+	// Working directory for processes run in the container.
+	Dir string
 
-	// Outputs []VolumeMount
+	// Inputs to provide to the container. Inputs with a volume local to the
+	// selected worker will be made available via a COW volume; others will be
+	// streamed.
+	Inputs []InputSource
 
-	// volumes that need to be mounted to container
-	Mounts []VolumeMount
+	// Outputs for which volumes should be created and mounted into the container.
+	Outputs OutputPaths
+
+	// A pre-created resource cache volume to be mounted into the container.
+	ResourceCache *VolumeMount
 
 	// Optional user to run processes as. Overwrites the one specified in the docker image.
 	User string
 }
+
+// OutputPaths is a mapping from output name to its path in the container.
+type OutputPaths map[string]string
 
 type ImageSpec struct {
 	ResourceType        string

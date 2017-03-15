@@ -30,8 +30,6 @@ func (resource *resource) Get(
 		getRequest{source, params, version},
 		&vr,
 		ioConfig.Stderr,
-		nil,
-		nil,
 		true,
 	)
 

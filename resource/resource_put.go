@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/worker"
 )
 
 type putRequest struct {
@@ -16,7 +15,6 @@ func (resource *resource) Put(
 	ioConfig IOConfig,
 	source atc.Source,
 	params atc.Params,
-	artifactSource worker.ArtifactSource,
 	signals <-chan os.Signal,
 	ready chan<- struct{},
 ) (VersionedSource, error) {
@@ -36,8 +34,6 @@ func (resource *resource) Put(
 		},
 		&vs.versionResult,
 		ioConfig.Stderr,
-		artifactSource,
-		vs,
 		true,
 	)
 
