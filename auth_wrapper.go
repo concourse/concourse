@@ -1,19 +1,21 @@
 package auth
 
-import "github.com/concourse/atc/db"
+import (
+	"github.com/concourse/atc/db"
+)
 
 type AuthType string
+type AuthProvider string
 
-type AuthProvider struct {
-	BasicAuth    *BasicAuth
-	GitHubAuth   *GitHubAuth
-	UAAAuth      *UAAAuth
-	GenericOAuth *GenericOAuth
-}
 
 const (
-	AuthTypeBasic AuthType = "basic"
+	AuthTypeBasic AuthType = "basicAuth"
 	AuthTypeOAuth AuthType = "oauth"
+
+	AuthProviderGithub AuthProvider = "githubAuthProvider"
+	AuthProviderUAAAuth AuthProvider = "uaaAuthProvider"
+	AuthProviderBasic AuthProvider = "basicAuthProvider"
+	AuthTypeOAuth AuthProvider = "oauthProvider"
 )
 
 type authWrapper struct {
@@ -23,30 +25,19 @@ type authWrapper struct {
 
 func NewAuthWrapper(
 	authProviders []AuthProvider,
-	teamDB db.TeamDB
-) AuthWrapper (
+	teamDB db.TeamDB,
+) AuthWrapper {
 	return &authWrapper{
-		auths: AuthProviders,
+		auths:  authProviders,
 		teamDB: teamDB,
 	}
-)
+}
+
 
 type AuthWrapper interface {
-	Wrap()
 }
 
-func (a authWrapper) Wrap() {
-	team, found, err := teamDB.GetTeam()
-	if err != nil || !found {
-		return false
-	}
-	for auth := range a.Auths {
-		switch auth{
-		case BasicAuth:
-			NewBasicAuthValidator(team).IsAuthenticated(r)
-		}
-		}
-}
+
 
 type BasicAuth struct {
 	BasicAuthUsername string `json:"basic_auth_username"`
