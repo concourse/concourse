@@ -89,6 +89,8 @@ before using it!
   }{
     \hyperlink{https://github.com/pivotal-cf/email-resource}{Email}
   }{
+    \hyperlink{https://github.com/santoshjpawar/concourse-email-notification}{Formatted Email}
+  }{
     \hyperlink{https://github.com/mdomke/concourse-email-resource}{Email with integrated MTA}
   }{
     \hyperlink{https://github.com/jamiemonserrate/bintray-resource}{Bintray}
