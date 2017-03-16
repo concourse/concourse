@@ -34,22 +34,27 @@
       })
 
       var teamNameRegExp =  /\/teams\/([^/]+)\/.*/;
+      var redirectURLRegExp = /^(?:\/[a-zA-Z0-9\-]*)+\/?$/;
 
       app.ports.requestLoginRedirect.subscribe(function (message) {
         setTimeout(function(){
           var path = document.location.pathname;
-          var redirect = encodeURIComponent(path + document.location.search)
-          var matches = path.match(teamNameRegExp);
-          var loginUrl;
-          if(matches) {
-            var teamName = matches[1];
-            loginUrl = "/teams/" + teamName + "/login?redirect="+ redirect;
-          } else {
-            loginUrl = "/login?redirect="+ redirect;
+          var query = document.location.search;
+
+          if(path.match(redirectURLRegExp)){
+              var redirect = encodeURIComponent(path + query );
+              var matches = path.match(teamNameRegExp);
+              var loginUrl;
+              if(matches) {
+                  var teamName = matches[1];
+                  loginUrl = "/teams/" + teamName + "/login?redirect="+ redirect;
+              } else {
+                  loginUrl = "/login?redirect="+ redirect;
+              }
+              app.ports.newUrl.send(loginUrl);
           }
-          app.ports.newUrl.send(loginUrl);
         }, 0)
-      })
+      });
 
       app.ports.setTitle.subscribe(function(title) {
         setTimeout(function(){
