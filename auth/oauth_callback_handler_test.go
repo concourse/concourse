@@ -348,6 +348,32 @@ var _ = Describe("OAuthCallbackHandler", func() {
 			})
 
 			Context("when a redirect URI is in the state", func() {
+				FContext("when the redirect URI is external", func(){
+					BeforeEach(func() {
+						state, err := json.Marshal(auth.OAuthState{
+							Redirect: "http://google.com",
+						})
+						Expect(err).ToNot(HaveOccurred())
+
+						encodedState := base64.RawURLEncoding.EncodeToString(state)
+
+						request.AddCookie(&http.Cookie{
+							Name:    auth.OAuthStateCookie,
+							Value:   encodedState,
+							Path:    "/",
+							Expires: time.Now().Add(time.Hour),
+						})
+
+						request.URL.RawQuery = url.Values{
+							"code":  {"some-code"},
+							"state": {encodedState},
+						}.Encode()
+					})
+					It("does not redirect", func(){
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
 				BeforeEach(func() {
 					state, err := json.Marshal(auth.OAuthState{
 						Redirect: "/",
@@ -367,11 +393,13 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						"code":  {"some-code"},
 						"state": {encodedState},
 					}.Encode()
+
 				})
 
 				Context("when exchanging the token succeeds", func() {
 					var token *oauth2.Token
 					var httpClient *http.Client
+
 
 					BeforeEach(func() {
 						token = &oauth2.Token{AccessToken: "some-access-token"}
@@ -396,6 +424,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("main page\n")))
 						})
+
+
 					})
 
 					Context("when the token is not verified", func() {

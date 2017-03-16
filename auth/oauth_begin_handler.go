@@ -108,5 +108,7 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		Expires: time.Now().Add(handler.expire),
 	})
 
+	handler.logger.Debug("oauth begin handler authCodeURL============", lager.Data{"authCodeURL": authCodeURL})
+
 	http.Redirect(w, r, authCodeURL, http.StatusTemporaryRedirect)
 }
