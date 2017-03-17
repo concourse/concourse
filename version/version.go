@@ -1,37 +1,48 @@
 package version
 
 import (
-	"strconv"
-	"strings"
+	"fmt"
+
+	semver "github.com/cppforlife/go-semi-semantic/version"
 )
 
 // overridden via linker flags
 var Version = "0.0.0-dev"
 
 func GetSemver(versionStr string) (major int, minor int, patch int, err error) {
-	parts := strings.SplitN(versionStr, ".", 3)
+	version, err := semver.NewVersionFromString(versionStr)
+	if err != nil {
+		return
+	}
 
-	if len(parts) == 3 {
-		patch, err = strconv.Atoi(parts[2])
-		if err != nil {
-			return major, minor, patch, err
-		}
+	if len(version.Release.Components) == 3 {
+		major = version.Release.Components[0].(semver.VerSegCompInt).I
+		minor = version.Release.Components[1].(semver.VerSegCompInt).I
+		patch = version.Release.Components[2].(semver.VerSegCompInt).I
+	} else {
+		err = fmt.Errorf("Wrong number of components")
+		return
 	}
-	if len(parts) >= 2 {
-		minor, err = strconv.Atoi(parts[1])
-		if err != nil {
-			return major, minor, patch, err
-		}
-	}
-	if len(parts) >= 1 {
-		major, err = strconv.Atoi(parts[0])
-		if err != nil {
-			return major, minor, patch, err
-		}
-	}
+
 	return major, minor, patch, nil
 }
 
 func IsDev(versionStr string) bool {
-	return strings.HasSuffix(versionStr, "-dev")
+	version, err := semver.NewVersionFromString(versionStr)
+	if err != nil {
+		return false
+	}
+
+	for _, item := range version.PreRelease.Components {
+		if item.AsString() == "dev" {
+			return true
+		}
+	}
+
+	for _, item := range version.PostRelease.Components {
+		if item.AsString() == "dev" {
+			return true
+		}
+	}
+	return false
 }
