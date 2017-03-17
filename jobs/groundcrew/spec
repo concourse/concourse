@@ -136,6 +136,12 @@ properties:
       A list domains and IPs with optional port for which the proxy should be bypassed, e.g. [localhost, 127.0.0.1, example.com, domain.com:8080]
     default: []
 
+  certificates_path:
+    description: |
+      Path to certificates on the worker VM. It will be bind-mounted into
+      containers created on the worker.
+    default: "/etc/ssl/certs"
+
   additional_resource_types:
     description: |
       Additional resource types supported by the workers in `[{type: string, image: string}]` format.
