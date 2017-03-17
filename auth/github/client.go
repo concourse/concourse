@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -32,7 +33,7 @@ func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
 		return "", err
 	}
 
-	currentUser, _, err := client.Users.Get("")
+	currentUser, _, err := client.Users.Get(context.TODO(), "")
 	if err != nil {
 		return "", err
 	}
@@ -50,7 +51,7 @@ func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
 	organizationTeams := OrganizationTeams{}
 
 	for nextPage != 0 {
-		teams, resp, err := client.Organizations.ListUserTeams(&gogithub.ListOptions{Page: nextPage})
+		teams, resp, err := client.Organizations.ListUserTeams(context.TODO(), &gogithub.ListOptions{Page: nextPage})
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +84,7 @@ func (c *client) Organizations(httpClient *http.Client) ([]string, error) {
 	organizations := []string{}
 
 	for nextPage != 0 {
-		orgs, resp, err := client.Organizations.List("", &gogithub.ListOptions{Page: nextPage})
+		orgs, resp, err := client.Organizations.List(context.TODO(), "", &gogithub.ListOptions{Page: nextPage})
 
 		if err != nil {
 			return nil, err

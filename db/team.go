@@ -3,7 +3,6 @@ package db
 import (
 	"encoding/json"
 
-
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -11,14 +10,17 @@ type Team struct {
 	Name  string
 	Admin bool
 
-	AuthWrapper AuthWrapper
+	// AuthWrapper AuthWrapper
 
-	 BasicAuth    *BasicAuth    `json:"basic_auth"`
-	 GitHubAuth   *GitHubAuth   `json:"github_auth"`
-	 UAAAuth      *UAAAuth      `json:"uaa_auth"`
-	 GenericOAuth *GenericOAuth `json:"genericoauth_auth"`
+	BasicAuth    *BasicAuth    `json:"basic_auth"`
+	GitHubAuth   *GitHubAuth   `json:"github_auth"`
+	UAAAuth      *UAAAuth      `json:"uaa_auth"`
+	GenericOAuth *GenericOAuth `json:"genericoauth_auth"`
 }
 
+func (t Team) IsAuthConfigured() bool {
+	return t.BasicAuth != nil || t.GitHubAuth != nil || t.UAAAuth != nil
+}
 
 func (auth *BasicAuth) EncryptedJSON() (string, error) {
 	var result *BasicAuth
@@ -53,14 +55,14 @@ type BasicAuth struct {
 }
 
 type GitHubAuth struct {
-	ClientID      string          `json:"client_id"`
-	ClientSecret  string          `json:"client_secret"`
-	Organizations []string        `json:"organizations"`
+	ClientID      string       `json:"client_id"`
+	ClientSecret  string       `json:"client_secret"`
+	Organizations []string     `json:"organizations"`
 	Teams         []GitHubTeam `json:"teams"`
-	Users         []string        `json:"users"`
-	AuthURL       string          `json:"auth_url"`
-	TokenURL      string          `json:"token_url"`
-	APIURL        string          `json:"api_url"`
+	Users         []string     `json:"users"`
+	AuthURL       string       `json:"auth_url"`
+	TokenURL      string       `json:"token_url"`
+	APIURL        string       `json:"api_url"`
 }
 
 type UAAAuth struct {
@@ -83,32 +85,31 @@ type GenericOAuth struct {
 	Scope         string            `json:"scope"`
 }
 
-type AuthType string
-type AuthProvider string
-
-const (
-	AuthTypeBasic AuthType = "basicAuth"
-	AuthTypeOAuth AuthType = "oauth"
-
-	AuthProviderGithub AuthProvider = "githubAuthProvider"
-	AuthProviderUAAAuth AuthProvider = "uaaAuthProvider"
-	AuthProviderBasic AuthProvider = "basicAuthProvider"
-	AuthTypeOAuth AuthProvider = "oauthProvider"
-)
-
-type AuthWrapper struct {
-	auths []AuthProvider
-}
-
-func NewAuthWrapper(
-	authProviders []AuthProvider,
-) AuthWrapper {
-	return AuthWrapper{
-		auths:  authProviders,
-	}
-}
-
-func (t SavedTeam) GetAuthWrapper () AuthWrapper {
-	return t.AuthWrapper
-}
-
+// type AuthType string
+// type AuthProvider string
+//
+// const (
+// 	AuthTypeBasic AuthType = "basicAuth"
+// 	AuthTypeOAuth AuthType = "oauth"
+//
+// 	AuthProviderGithub  AuthProvider = "githubAuthProvider"
+// 	AuthProviderUAAAuth AuthProvider = "uaaAuthProvider"
+// 	AuthProviderBasic   AuthProvider = "basicAuthProvider"
+// 	AuthTypeOAuth       AuthProvider = "oauthProvider"
+// )
+//
+// type AuthWrapper struct {
+// 	auths []AuthProvider
+// }
+//
+// func NewAuthWrapper(
+// 	authProviders []AuthProvider,
+// ) AuthWrapper {
+// 	return AuthWrapper{
+// 		auths: authProviders,
+// 	}
+// }
+//
+// func (t SavedTeam) GetAuthWrapper() AuthWrapper {
+// 	return t.AuthWrapper
+// }
