@@ -2,7 +2,6 @@ package exec
 
 import (
 	"archive/tar"
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -362,20 +361,13 @@ func (step *TaskStep) registerSource(config atc.TaskConfig, container worker.Con
 			outputName = destinationName
 		}
 
-		if len(volumeMounts) > 0 {
-			outputPath := artifactsPath(output, step.artifactsRoot)
+		outputPath := artifactsPath(output, step.artifactsRoot)
 
-			for _, mount := range volumeMounts {
-				if mount.MountPath == outputPath {
-
-					source := newContainerSource(step.artifactsRoot, container, output, step.logger, mount.Volume.Handle())
-					step.repo.RegisterSource(worker.ArtifactName(outputName), source)
-				}
+		for _, mount := range volumeMounts {
+			if mount.MountPath == outputPath {
+				source := newVolumeSource(step.logger, mount.Volume)
+				step.repo.RegisterSource(worker.ArtifactName(outputName), source)
 			}
-		} else {
-			step.logger.Debug("container-has-volume-mounts-NONE")
-			source := newContainerSource(step.artifactsRoot, container, output, step.logger, "")
-			step.repo.RegisterSource(worker.ArtifactName(outputName), source)
 		}
 	}
 }
@@ -410,34 +402,23 @@ func (TaskStep) envForParams(params map[string]string) []string {
 	return env
 }
 
-type containerSource struct {
-	container     garden.Container
-	outputConfig  atc.TaskOutputConfig
-	artifactsRoot string
-	volumeHandle  string
-	logger        lager.Logger
+type volumeSource struct {
+	logger lager.Logger
+	volume worker.Volume
 }
 
-func newContainerSource(
-	artifactsRoot string,
-	container garden.Container,
-	outputConfig atc.TaskOutputConfig,
+func newVolumeSource(
 	logger lager.Logger,
-	volumeHandle string,
-) *containerSource {
-	return &containerSource{
-		container:     container,
-		outputConfig:  outputConfig,
-		artifactsRoot: artifactsRoot,
-		volumeHandle:  volumeHandle,
-		logger:        logger,
+	volume worker.Volume,
+) *volumeSource {
+	return &volumeSource{
+		logger: logger,
+		volume: volume,
 	}
 }
 
-func (src *containerSource) StreamTo(destination worker.ArtifactDestination) error {
-	out, err := src.container.StreamOut(garden.StreamOutSpec{
-		Path: artifactsPath(src.outputConfig, src.artifactsRoot),
-	})
+func (src *volumeSource) StreamTo(destination worker.ArtifactDestination) error {
+	out, err := src.volume.StreamOut(".")
 	if err != nil {
 		return err
 	}
@@ -447,10 +428,8 @@ func (src *containerSource) StreamTo(destination worker.ArtifactDestination) err
 	return destination.StreamIn(".", out)
 }
 
-func (src *containerSource) StreamFile(filename string) (io.ReadCloser, error) {
-	out, err := src.container.StreamOut(garden.StreamOutSpec{
-		Path: path.Join(artifactsPath(src.outputConfig, src.artifactsRoot), filename),
-	})
+func (src *volumeSource) StreamFile(filename string) (io.ReadCloser, error) {
+	out, err := src.volume.StreamOut(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -468,40 +447,8 @@ func (src *containerSource) StreamFile(filename string) (io.ReadCloser, error) {
 	}, nil
 }
 
-func (src *containerSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
-	return w.LookupVolume(src.logger, src.volumeHandle)
-}
-
-func artifactsPath(outputConfig atc.TaskOutputConfig, artifactsRoot string) string {
-	outputSrc := outputConfig.Path
-	if len(outputSrc) == 0 {
-		outputSrc = outputConfig.Name
-	}
-
-	return path.Join(artifactsRoot, outputSrc) + "/"
-}
-
-func (src *containerSource) initialize() error {
-	return createContainerDir(src.container, artifactsPath(src.outputConfig, src.artifactsRoot))
-}
-
-func createContainerDir(container garden.Container, dir string) error {
-	emptyTar := new(bytes.Buffer)
-
-	err := tar.NewWriter(emptyTar).Close()
-	if err != nil {
-		return err
-	}
-
-	err = container.StreamIn(garden.StreamInSpec{
-		Path:      dir,
-		TarStream: emptyTar,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (src *volumeSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
+	return w.LookupVolume(src.logger, src.volume.Handle())
 }
 
 type taskInputSource struct {
@@ -521,4 +468,13 @@ func (s *taskInputSource) DestinationPath() string {
 	}
 
 	return filepath.Join(s.artifactsRoot, subdir)
+}
+
+func artifactsPath(outputConfig atc.TaskOutputConfig, artifactsRoot string) string {
+	outputSrc := outputConfig.Path
+	if len(outputSrc) == 0 {
+		outputSrc = outputConfig.Name
+	}
+
+	return path.Join(artifactsRoot, outputSrc) + "/"
 }
