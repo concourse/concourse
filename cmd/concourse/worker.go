@@ -26,7 +26,7 @@ type WorkerCommand struct {
 	HTTPSProxy URLFlag  `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
 	NoProxy    []string `long:"no-proxy"    env:"no_proxy"    env-delim:","   description:"Blacklist of addresses to skip the proxy when reaching."`
 
-	WorkDir string `long:"work-dir" required:"true" description:"Directory in which to place container data."`
+	WorkDir DirFlag `long:"work-dir" required:"true" description:"Directory in which to place container data."`
 
 	BindIP   IPFlag `long:"bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the Garden server."`
 	BindPort uint16 `long:"bind-port" default:"7777"      description:"Port on which to listen for the Garden server."`

@@ -56,7 +56,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	depotDir := filepath.Join(cmd.WorkDir, "depot")
+	depotDir := filepath.Join(cmd.WorkDir.Path(), "depot")
 
 	// must be readable by other users so unprivileged containers can run their
 	// own `initc' process
@@ -109,7 +109,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 }
 
 func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, error) {
-	assetsDir := filepath.Join(cmd.WorkDir, Version)
+	assetsDir := filepath.Join(cmd.WorkDir.Path(), Version)
 
 	restoredDir := filepath.Join(assetsDir, "linux")
 
@@ -147,8 +147,8 @@ func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, e
 }
 
 func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
-	volumesImage := filepath.Join(cmd.WorkDir, "volumes.img")
-	volumesDir := filepath.Join(cmd.WorkDir, "volumes")
+	volumesImage := filepath.Join(cmd.WorkDir.Path(), "volumes.img")
+	volumesDir := filepath.Join(cmd.WorkDir.Path(), "volumes")
 
 	assetsDir, err := cmd.restoreVersionedAssets(logger.Session("unpack-assets"))
 	if err != nil {
