@@ -232,50 +232,27 @@ jobs:
       passed: [bosh-rc]
     - get: gcp-stemcell
     - get: deployments
-  - task: deploy-testflight
+  - task: create-versions-vars-file
+    file: concourse/ci/create-versions-vars-file.yml
+  - put: tf-deployment
     params:
-      BOSH_CLIENT: {{bosh-client-id}}
-      BOSH_CLIENT_SECRET: {{bosh-client-secret}}
-      DEPLOYMENT_NAME: concourse-2.7-testflight
-      WEB_IP: 10.244.17.2
-    config:
-      platform: linux
-      image_resource:
-        type: docker-image
-        source:
-          repository: concourse/bosh-cli
+      manifest: concourse/src/github.com/concourse/testflight/scripts/manifests/deployment.yml
+      stemcells: [gcp-stemcell/*.tgz]
+      releases:
+        - garden-runc/*.tgz
+        - bosh-rc/concourse-*.tgz
+      vars:
+        deployment_name: concourse-2.7-testflight
+        web_ip: 10.244.17.2
+        tls_cert: {{testflight-tls-cert-2.7}}
+        tls_key: {{testflight-tls-key-2.7}}
+      vars_files: [versions-vars-file/vars.yml]
 
-      inputs:
-      - name: concourse
-      - name: gcp-stemcell
-      - name: garden-runc
-      - name: bosh-rc
-
-      params:
-        BOSH_CLIENT:
-        BOSH_CLIENT_SECRET:
-        DEPLOYMENT_NAME:
-        WEB_IP:
-
-      run:
-        path: bash
-        args:
-        - -c
-        - |
-          set -e
-
-          concourse_version=$(cat bosh-rc/version)
-          garden_runc_version=$(cat garden-runc/version)
-
-          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" -d "${DEPLOYMENT_NAME}" delete-deployment --force
-          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" upload-release garden-runc/*.tgz
-          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" upload-release bosh-rc/*.tgz
-          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" upload-stemcell gcp-stemcell/*.tgz
-          bosh -n -e https://bosh.concourse.ci --client="${BOSH_CLIENT}" --client-secret="${BOSH_CLIENT_SECRET}" -d "${DEPLOYMENT_NAME}" deploy concourse/src/github.com/concourse/testflight/scripts/manifests/deployment.yml -vdeployment_name="${DEPLOYMENT_NAME}" -vweb_ip="${WEB_IP}" -vconcourse_version="${concourse_version}" -vgarden_runc_version="${garden_runc_version}"
   - task: testflight
     file: concourse/ci/testflight.yml
     params:
-      ATC_URL: "http://10.244.17.2:8080"
+      ATC_URL: "https://10.244.17.2:4443"
+      FLY_CA_CERT: {{testflight-tls-cert-2.7}}
     timeout: 1h
 
 - name: bin-testflight
@@ -463,13 +440,14 @@ resources:
     access_key_id: {{pipeline-bucket-access-key}}
     secret_access_key: {{pipeline-bucket-secret-key}}
 
-#- name: tf-deployment
-#  type: bosh-deployment
-#  source:
-#    target: https://bosh.concourse.ci #{{bosh-target}}
-#    deployment: &deployment-name concourse-2.7-testflight
-#    client: {{bosh-client-id}}
-#    client_secret: {{bosh-client-secret}}
+- name: tf-deployment
+  type: bosh-deployment
+  source:
+    target: https://bosh.concourse.ci #{{bosh-target}}
+    deployment: &deployment-name concourse-2.7-testflight
+    client: {{bosh-client-id}}
+    client_secret: {{bosh-client-secret}}
+
 
 - name: garden-runc
   type: bosh-io-release
@@ -568,8 +546,8 @@ resources:
     bucket: golang
     regexp: 'go(1\.\d+(\.\d+)?)\.linux-amd64\.tar.gz'
 
-#resource_types:
-#- name: bosh-deployment
-#  type: docker-image
-#  source:
-#    repository: cloudfoundry/bosh-deployment-resource
+resource_types:
+- name: bosh-deployment
+  type: docker-image
+  source:
+    repository: cloudfoundry/bosh-deployment-resource

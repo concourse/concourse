@@ -1,0 +1,16 @@
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/buildroot
+    tag: base
+
+inputs:
+- name: version
+- name: garden-runc
+
+outputs:
+- name: versions-vars-file
+
+run: concourse/ci/scrips/create-versions-vars-file.sh
