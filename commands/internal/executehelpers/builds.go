@@ -36,6 +36,10 @@ func CreateBuild(
 				"uri": input.Pipe.ReadURL,
 			}
 
+			if target.CACert() != "" {
+				source["ca_cert"] = target.CACert()
+			}
+
 			if auth, ok := target.TokenAuthorization(); ok {
 				source["authorization"] = auth
 			}
@@ -77,6 +81,10 @@ func CreateBuild(
 
 		params := atc.Params{
 			"directory": output.Name,
+		}
+
+		if target.CACert() != "" {
+			source["ca_cert"] = target.CACert()
 		}
 
 		if auth, ok := target.TokenAuthorization(); ok {
