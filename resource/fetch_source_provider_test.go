@@ -65,91 +65,59 @@ var _ = Describe("FetchSourceProvider", func() {
 	})
 
 	Describe("Get", func() {
-		Context("when container for session exists", func() {
-			var fakeContainer *workerfakes.FakeContainer
-			var fakeVolume *workerfakes.FakeVolume
+		It("tries to find satisfying worker", func() {
+			_, err := fetchSourceProvider.Get()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
+			resourceSpec, actualResourceTypes := fakeWorkerClient.SatisfyingArgsForCall(0)
+			Expect(resourceSpec).To(Equal(worker.WorkerSpec{
+				ResourceType: "some-resource-type",
+				Tags:         tags,
+				TeamID:       teamID,
+			}))
+			Expect(actualResourceTypes).To(Equal(resourceTypes))
+		})
+
+		Context("when worker is found for resource types", func() {
+			var fakeWorker *workerfakes.FakeWorker
 
 			BeforeEach(func() {
-				fakeContainer = new(workerfakes.FakeContainer)
-				fakeVolume = new(workerfakes.FakeVolume)
-				fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-					worker.VolumeMount{
-						Volume:    fakeVolume,
-						MountPath: "/tmp/build/get",
-					},
-				})
-
-				fakeWorkerClient.FindContainerForIdentifierReturns(fakeContainer, true, nil)
+				fakeWorker = new(workerfakes.FakeWorker)
+				fakeWorkerClient.SatisfyingReturns(fakeWorker, nil)
 			})
 
-			It("returns container based source", func() {
+			It("returns resource instance source", func() {
 				source, err := fetchSourceProvider.Get()
 				Expect(err).NotTo(HaveOccurred())
 
-				expectedSource := NewContainerFetchSource(logger, fakeContainer, fakeVolume, resourceOptions)
+				expectedSource := NewResourceInstanceFetchSource(
+					logger,
+					resourceInstance,
+					fakeWorker,
+					resourceOptions,
+					resourceTypes,
+					tags,
+					teamID,
+					session,
+					metadata,
+					fakeImageFetchingDelegate,
+				)
 				Expect(source).To(Equal(expectedSource))
 			})
 		})
 
-		Context("when container for session does not exist", func() {
+		Context("when worker is not found for resource types", func() {
+			var workerNotFoundErr error
+
 			BeforeEach(func() {
-				fakeWorkerClient.FindContainerForIdentifierReturns(nil, false, nil)
+				workerNotFoundErr = errors.New("not-found")
+				fakeWorkerClient.SatisfyingReturns(nil, workerNotFoundErr)
 			})
 
-			It("tries to find satisfying worker", func() {
+			It("returns an error", func() {
 				_, err := fetchSourceProvider.Get()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
-				resourceSpec, actualResourceTypes := fakeWorkerClient.SatisfyingArgsForCall(0)
-				Expect(resourceSpec).To(Equal(worker.WorkerSpec{
-					ResourceType: "some-resource-type",
-					Tags:         tags,
-					TeamID:       teamID,
-				}))
-				Expect(actualResourceTypes).To(Equal(resourceTypes))
-			})
-
-			Context("when worker is found for resource types", func() {
-				var fakeWorker *workerfakes.FakeWorker
-
-				BeforeEach(func() {
-					fakeWorker = new(workerfakes.FakeWorker)
-					fakeWorkerClient.SatisfyingReturns(fakeWorker, nil)
-				})
-
-				It("returns resource instance source", func() {
-					source, err := fetchSourceProvider.Get()
-					Expect(err).NotTo(HaveOccurred())
-
-					expectedSource := NewResourceInstanceFetchSource(
-						logger,
-						resourceInstance,
-						fakeWorker,
-						resourceOptions,
-						resourceTypes,
-						tags,
-						teamID,
-						session,
-						metadata,
-						fakeImageFetchingDelegate,
-					)
-					Expect(source).To(Equal(expectedSource))
-				})
-			})
-
-			Context("when worker is not found for resource types", func() {
-				var workerNotFoundErr error
-
-				BeforeEach(func() {
-					workerNotFoundErr = errors.New("not-found")
-					fakeWorkerClient.SatisfyingReturns(nil, workerNotFoundErr)
-				})
-
-				It("returns an error", func() {
-					_, err := fetchSourceProvider.Get()
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(workerNotFoundErr))
-				})
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(workerNotFoundErr))
 			})
 		})
 	})

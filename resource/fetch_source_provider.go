@@ -88,25 +88,6 @@ type fetchSourceProvider struct {
 }
 
 func (f *fetchSourceProvider) Get() (FetchSource, error) {
-	// We could first find any volume satisfying the Resource and then create
-	// a container for it to run the Get
-	//
-	// We instead prioritize finding a container that was used to run Get
-	// because containers a) are more expensive, and b) maybe represent that
-	// the process of Resource.Get got further than just having a volume?
-	container, found, err := f.workerClient.FindContainerForIdentifier(f.logger, f.session.ID)
-	if err != nil {
-		f.logger.Error("failed-to-look-for-existing-container", err)
-		return nil, err
-	}
-
-	if found {
-		cacheVolume, cacheVolumeFound := findCacheVolumeForContainer(container)
-		if cacheVolumeFound {
-			return NewContainerFetchSource(f.logger, container, cacheVolume, f.resourceOptions), nil
-		}
-	}
-
 	resourceSpec := worker.WorkerSpec{
 		ResourceType: string(f.resourceOptions.ResourceType()),
 		Tags:         f.tags,
