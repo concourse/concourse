@@ -36,8 +36,7 @@ type WorkerProvider interface {
 		planID atc.PlanID,
 	) (Worker, bool, error)
 
-	// XXX: these should really go away. it's a WorkerProvider, not a ContainerProvider.
-	FindContainerForIdentifier(Identifier) (db.SavedContainer, bool, error)
+	// XXX: this should really go away. it's a WorkerProvider, not a ContainerProvider.
 	GetContainer(string) (db.SavedContainer, bool, error)
 }
 
@@ -291,52 +290,6 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 		resourceType,
 		source,
 	)
-}
-
-func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
-	cLog := logger.Session("find-container-for-identifier", lager.Data{
-		"id": id,
-	})
-
-	containerInfo, found, err := pool.provider.FindContainerForIdentifier(id)
-	if err != nil {
-		cLog.Error("failed-to-find", err)
-		return nil, false, err
-	}
-
-	if !found {
-		cLog.Info("not-found")
-		return nil, found, nil
-	}
-
-	cLog = cLog.WithData(lager.Data{
-		"container": containerInfo.Handle,
-		"worker":    containerInfo.WorkerName,
-	})
-
-	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerName)
-	if err != nil {
-		cLog.Error("failed-to-get-worker", err)
-		return nil, false, err
-	}
-
-	if !found {
-		cLog.Info("worker-is-missing")
-		return nil, false, ErrMissingWorker
-	}
-
-	container, found, err := worker.FindContainerByHandle(logger, containerInfo.Handle, containerInfo.TeamID)
-	if err != nil {
-		cLog.Error("failed-to-find-container-by-handle", err)
-		return nil, false, err
-	}
-
-	if !found {
-		cLog.Info("missing-on-worker")
-		return nil, false, err
-	}
-
-	return container, true, nil
 }
 
 func (pool *pool) FindContainerByHandle(logger lager.Logger, handle string, teamID int) (Container, bool, error) {

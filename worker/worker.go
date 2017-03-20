@@ -217,41 +217,6 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	)
 }
 
-func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
-	cLog := logger.Session("find-container-for-identifier", lager.Data{
-		"id": id,
-	})
-
-	containerInfo, found, err := worker.provider.FindContainerForIdentifier(id)
-	if err != nil {
-		cLog.Error("failed-to-find-container-for-identifier", err)
-		return nil, false, err
-	}
-
-	if !found {
-		cLog.Info("not-found")
-		return nil, false, nil
-	}
-
-	cLog = cLog.WithData(lager.Data{
-		"container": containerInfo.Handle,
-		"worker":    containerInfo.WorkerName,
-	})
-
-	container, found, err := worker.FindContainerByHandle(logger, containerInfo.Handle, containerInfo.TeamID)
-	if err != nil {
-		cLog.Error("failed-to-find-container-by-handle", err)
-		return nil, false, err
-	}
-
-	if !found {
-		cLog.Info("missing-on-worker")
-		return nil, false, nil
-	}
-
-	return container, found, nil
-}
-
 func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, handle string, teamID int) (Container, bool, error) {
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
 	return containerProvider.FindContainerByHandle(logger, handle, teamID)

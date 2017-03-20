@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 
-	"code.cloudfoundry.org/garden"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -313,44 +312,6 @@ var _ = Describe("DBProvider", func() {
 					Expect(fakeGardenBackend.DestroyArgsForCall(0)).To(Equal("created-handle"))
 				})
 			})
-
-			Describe("a looked-up container", func() {
-				BeforeEach(func() {
-					fakeDBWorkerFactory.GetWorkerReturns(fakeWorker1, true, nil)
-					fakeDBTeam.FindContainerByHandleReturns(fakeCreatedContainer, true, nil)
-				})
-
-				It("calls through to garden", func() {
-					fakeContainer := new(gfakes.FakeContainer)
-					fakeContainer.HandleReturns("some-handle")
-
-					fakeGardenBackend.ContainersReturns([]garden.Container{fakeContainer}, nil)
-					fakeGardenBackend.LookupReturns(fakeContainer, nil)
-
-					returnContainer := db.SavedContainer{
-						Container: db.Container{
-							ContainerMetadata: db.ContainerMetadata{
-								Handle: "some-handle",
-							},
-						},
-					}
-					fakeDB.FindContainerByIdentifierReturns(returnContainer, true, nil)
-
-					container, found, err := workers[0].FindContainerForIdentifier(logger, Identifier{
-						ResourceID: 1234,
-					})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					Expect(container.Handle()).To(Equal("some-handle"))
-
-					err = container.Destroy()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakeGardenBackend.DestroyCallCount()).To(Equal(1))
-					Expect(fakeGardenBackend.DestroyArgsForCall(0)).To(Equal("some-handle"))
-				})
-			})
 		})
 
 		Context("when the database fails to return workers", func() {
@@ -422,22 +383,6 @@ var _ = Describe("DBProvider", func() {
 			Entry("stalled", dbng.WorkerStateStalled, false),
 			Entry("retiring", dbng.WorkerStateRetiring, true),
 		)
-	})
-
-	Context("when we call to get a container info by identifier", func() {
-		It("calls through to the db object", func() {
-			provider.FindContainerForIdentifier(Identifier{
-				BuildID: 1234,
-				PlanID:  atc.PlanID("planid"),
-			})
-
-			Expect(fakeDB.FindContainerByIdentifierCallCount()).To(Equal(1))
-
-			Expect(fakeDB.FindContainerByIdentifierArgsForCall(0)).To(Equal(db.ContainerIdentifier{
-				BuildID: 1234,
-				PlanID:  atc.PlanID("planid"),
-			}))
-		})
 	})
 
 	Describe("FindWorkerForBuildContainer", func() {

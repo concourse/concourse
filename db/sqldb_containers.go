@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/concourse/atc"
@@ -36,68 +35,6 @@ func scanRows(rows *sql.Rows) ([]SavedContainer, error) {
 	}
 
 	return containers, nil
-}
-
-func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {
-	conditions := []string{}
-	params := []interface{}{}
-	extraJoins := ""
-
-	addParam := func(column string, param interface{}) {
-		conditions = append(conditions, fmt.Sprintf("%s = $%d", column, len(params)+1))
-		params = append(params, param)
-	}
-
-	if id.ImageResourceSource != nil && id.ImageResourceType != "" {
-		marshaled, err := json.Marshal(id.ImageResourceSource)
-		if err != nil {
-			return SavedContainer{}, false, err
-		}
-
-		addParam("image_resource_source", string(marshaled))
-		addParam("image_resource_type", id.ImageResourceType)
-	} else {
-		conditions = append(conditions, []string{
-			"image_resource_source IS NULL",
-			"image_resource_type IS NULL",
-		}...)
-	}
-
-	addParam("build_id", id.BuildID)
-	addParam("plan_id", string(id.PlanID))
-	addParam("stage", string(id.Stage))
-
-	selectQuery := `
-		SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins + `
-		` + extraJoins + `
-		WHERE c.state = 'created'
-		AND ` + strings.Join(conditions, " AND ")
-
-	rows, err := db.conn.Query(selectQuery, params...)
-	if err != nil {
-		return SavedContainer{}, false, err
-	}
-
-	var containers []SavedContainer
-	for rows.Next() {
-		container, err := scanContainer(rows)
-		if err != nil {
-			return SavedContainer{}, false, nil
-		}
-		containers = append(containers, container)
-	}
-
-	switch len(containers) {
-	case 0:
-		return SavedContainer{}, false, nil
-
-	case 1:
-		return containers[0], true, nil
-
-	default:
-		return SavedContainer{}, false, ErrMultipleContainersFound
-	}
 }
 
 func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {

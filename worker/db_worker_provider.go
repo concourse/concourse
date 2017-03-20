@@ -24,7 +24,6 @@ import (
 type WorkerDB interface {
 	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) error
 	GetContainer(string) (db.SavedContainer, bool, error)
-	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
@@ -113,15 +112,6 @@ func (provider *dbWorkerProvider) GetWorker(name string) (Worker, bool, error) {
 	worker := provider.newGardenWorker(tikTok, savedWorker)
 
 	return worker, found, nil
-}
-
-func (provider *dbWorkerProvider) FindContainerForIdentifier(id Identifier) (db.SavedContainer, bool, error) {
-	container, found, err := provider.db.FindContainerByIdentifier(db.ContainerIdentifier(id))
-	if err != nil {
-		provider.logger.Error("failed-to-find-container-by-identifier", err, lager.Data{"id": id})
-	}
-
-	return container, found, err
 }
 
 func (provider *dbWorkerProvider) FindWorkerForBuildContainer(

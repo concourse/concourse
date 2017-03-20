@@ -87,7 +87,6 @@ type DB interface {
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
 	GetContainer(string) (SavedContainer, bool, error)
-	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
 }
 
 //go:generate counterfeiter . Notifier

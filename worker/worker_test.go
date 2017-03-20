@@ -1,15 +1,12 @@
 package worker_test
 
 import (
-	"errors"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
-	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -141,96 +138,6 @@ var _ = Describe("Worker", func() {
 
 		It("delegates container creation to the container provider", func() {
 			Expect(fakeContainerProvider.FindOrCreateBuildContainerCallCount()).To(Equal(1))
-		})
-	})
-
-	Describe("FindContainerForIdentifier", func() {
-		var (
-			id Identifier
-
-			foundContainer Container
-			found          bool
-			lookupErr      error
-		)
-
-		BeforeEach(func() {
-			id = Identifier{
-				ResourceID: 1234,
-			}
-		})
-
-		JustBeforeEach(func() {
-			foundContainer, found, lookupErr = gardenWorker.FindContainerForIdentifier(logger, id)
-		})
-
-		Context("when the container can be found", func() {
-			var (
-				fakeContainer       *gfakes.FakeContainer
-				fakeSavedContainer  db.SavedContainer
-				fakeWorkerContainer *wfakes.FakeContainer
-			)
-
-			BeforeEach(func() {
-				fakeContainer = new(gfakes.FakeContainer)
-				fakeContainer.HandleReturns("provider-handle")
-
-				fakeWorkerContainer = new(wfakes.FakeContainer)
-				fakeWorkerContainer.HandleReturns("provider-handle")
-
-				fakeSavedContainer = db.SavedContainer{
-					Container: db.Container{
-						ContainerIdentifier: db.ContainerIdentifier{
-							ResourceID: 1234,
-						},
-						ContainerMetadata: db.ContainerMetadata{
-							Handle:     "provider-handle",
-							WorkerName: "some-worker",
-						},
-					},
-				}
-
-				fakeWorkerProvider.FindContainerForIdentifierReturns(fakeSavedContainer, true, nil)
-
-				fakeContainerProvider.FindContainerByHandleReturns(fakeWorkerContainer, true, nil)
-
-				fakeDBTeam := new(dbngfakes.FakeTeam)
-				fakeDBTeam.FindContainerByHandleReturns(new(dbngfakes.FakeCreatedContainer), true, nil)
-				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
-			})
-
-			It("succeeds", func() {
-				Expect(lookupErr).NotTo(HaveOccurred())
-			})
-
-			It("looks for containers with matching properties via the container provider", func() {
-				Expect(fakeWorkerProvider.FindContainerForIdentifierCallCount()).To(Equal(1))
-				Expect(fakeWorkerProvider.FindContainerForIdentifierArgsForCall(0)).To(Equal(id))
-
-				Expect(fakeContainerProvider.FindContainerByHandleCallCount()).To(Equal(1))
-				_, lookupHandle, _ := fakeContainerProvider.FindContainerByHandleArgsForCall(0)
-				Expect(lookupHandle).To(Equal("provider-handle"))
-			})
-		})
-
-		Context("when looking up the container fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				containerToReturn := db.SavedContainer{
-					Container: db.Container{
-						ContainerMetadata: db.ContainerMetadata{
-							Handle: "handle",
-						},
-					},
-				}
-
-				fakeWorkerProvider.FindContainerForIdentifierReturns(containerToReturn, true, nil)
-				fakeContainerProvider.FindContainerByHandleReturns(nil, false, disaster)
-			})
-
-			It("returns the error", func() {
-				Expect(lookupErr).To(Equal(disaster))
-			})
 		})
 	})
 
