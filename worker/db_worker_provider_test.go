@@ -440,6 +440,84 @@ var _ = Describe("DBProvider", func() {
 		})
 	})
 
+	Describe("FindWorkerForBuildContainer", func() {
+		var (
+			foundWorker Worker
+			found       bool
+			findErr     error
+		)
+
+		JustBeforeEach(func() {
+			foundWorker, found, findErr = provider.FindWorkerForBuildContainer(
+				logger,
+				345278,
+				42,
+				atc.PlanID("some-plan-id"),
+			)
+		})
+
+		Context("when the worker is found", func() {
+			var fakeExistingWorker *dbngfakes.FakeWorker
+
+			BeforeEach(func() {
+				addr := "1.2.3.4:7777"
+
+				fakeExistingWorker = new(dbngfakes.FakeWorker)
+				fakeExistingWorker.NameReturns("some-worker")
+				fakeExistingWorker.GardenAddrReturns(&addr)
+
+				fakeDBTeam.FindWorkerForBuildContainerReturns(fakeExistingWorker, true, nil)
+			})
+
+			It("returns true", func() {
+				Expect(found).To(BeTrue())
+				Expect(findErr).ToNot(HaveOccurred())
+			})
+
+			It("returns the worker", func() {
+				Expect(foundWorker).ToNot(BeNil())
+				Expect(foundWorker.Name()).To(Equal("some-worker"))
+			})
+
+			It("found the worker for the right resource config", func() {
+				actualBuildID, actualPlanID := fakeDBTeam.FindWorkerForBuildContainerArgsForCall(0)
+				Expect(actualBuildID).To(Equal(42))
+				Expect(actualPlanID).To(Equal(atc.PlanID("some-plan-id")))
+			})
+
+			It("found the right team", func() {
+				actualTeam := fakeDBTeamFactory.GetByIDArgsForCall(0)
+				Expect(actualTeam).To(Equal(345278))
+			})
+		})
+
+		Context("when the worker is not found", func() {
+			BeforeEach(func() {
+				fakeDBTeam.FindWorkerForBuildContainerReturns(nil, false, nil)
+			})
+
+			It("returns false", func() {
+				Expect(foundWorker).To(BeNil())
+				Expect(found).To(BeFalse())
+				Expect(findErr).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("when finding the worker fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeDBTeam.FindWorkerForBuildContainerReturns(nil, false, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(foundWorker).To(BeNil())
+				Expect(found).To(BeFalse())
+				Expect(findErr).To(Equal(disaster))
+			})
+		})
+	})
+
 	Describe("FindWorkerForResourceCheckContainer", func() {
 		var (
 			foundWorker Worker

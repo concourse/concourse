@@ -394,7 +394,8 @@ var _ = Describe("Pool", func() {
 			fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 			id = Identifier{
-				ResourceID: 1234,
+				BuildID: 42,
+				PlanID:  "some-plan-id",
 			}
 
 			fakeInput1 := new(workerfakes.FakeInputSource)
@@ -423,7 +424,8 @@ var _ = Describe("Pool", func() {
 
 			spec = ContainerSpec{
 				ImageSpec: ImageSpec{ResourceType: "some-type"},
-				TeamID:    4567,
+
+				TeamID: 4567,
 
 				Inputs: []InputSource{
 					fakeInput1,
@@ -480,113 +482,146 @@ var _ = Describe("Pool", func() {
 			)
 		})
 
-		Context("with no workers available", func() {
+		Context("when a worker is found with the container", func() {
+			var fakeWorker *workerfakes.FakeWorker
+
 			BeforeEach(func() {
-				fakeProvider.RunningWorkersReturns([]Worker{}, nil)
+				fakeWorker = new(workerfakes.FakeWorker)
+				fakeProvider.FindWorkerForBuildContainerReturns(fakeWorker, true, nil)
+				fakeWorker.FindOrCreateBuildContainerReturns(fakeContainer, nil)
 			})
 
-			It("returns ErrNoWorkers", func() {
-				Expect(createErr).To(Equal(ErrNoWorkers))
-			})
-		})
-
-		Context("with no compatible workers available", func() {
-			BeforeEach(func() {
-				fakeProvider.RunningWorkersReturns([]Worker{incompatibleWorker}, nil)
+			It("succeeds", func() {
+				Expect(createErr).NotTo(HaveOccurred())
 			})
 
-			It("returns NoCompatibleWorkersError", func() {
-				Expect(createErr).To(Equal(NoCompatibleWorkersError{
-					Spec:    spec.WorkerSpec(),
-					Workers: []Worker{incompatibleWorker},
-				}))
-			})
-		})
-
-		Context("with compatible workers available, with one having the most local caches", func() {
-			BeforeEach(func() {
-				fakeProvider.RunningWorkersReturns([]Worker{
-					incompatibleWorker,
-					compatibleWorkerOneCache1,
-					compatibleWorkerTwoCaches,
-					compatibleWorkerNoCaches1,
-					compatibleWorkerNoCaches2,
-				}, nil)
-			})
-
-			It("creates it on the worker with the most caches", func() {
-				Expect(createErr).ToNot(HaveOccurred())
-				Expect(compatibleWorkerTwoCaches.FindOrCreateBuildContainerCallCount()).To(Equal(1))
+			It("returns the created container", func() {
 				Expect(createdContainer).To(Equal(fakeContainer))
 			})
-		})
 
-		Context("with compatible workers available, with multiple with the same amount of local caches", func() {
-			BeforeEach(func() {
-				fakeProvider.RunningWorkersReturns([]Worker{
-					incompatibleWorker,
-					compatibleWorkerOneCache1,
-					compatibleWorkerOneCache2,
-					compatibleWorkerNoCaches1,
-					compatibleWorkerNoCaches2,
-				}, nil)
-			})
+			It("'find-or-create's on the particular worker", func() {
+				Expect(fakeWorker.FindOrCreateBuildContainerCallCount()).To(Equal(1))
 
-			It("creates it on a random one of the two", func() {
-				Expect(createErr).ToNot(HaveOccurred())
-				Expect(createdContainer).To(Equal(fakeContainer))
-
-				for i := 0; i < 100; i++ {
-					container, err := pool.FindOrCreateBuildContainer(
-						logger,
-						signals,
-						fakeImageFetchingDelegate,
-						id,
-						metadata,
-						spec,
-						resourceTypes,
-					)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(container).To(Equal(fakeContainer))
-				}
-
-				Expect(compatibleWorkerOneCache1.FindOrCreateBuildContainerCallCount()).ToNot(BeZero())
-				Expect(compatibleWorkerOneCache2.FindOrCreateBuildContainerCallCount()).ToNot(BeZero())
-				Expect(compatibleWorkerNoCaches1.FindOrCreateBuildContainerCallCount()).To(BeZero())
-				Expect(compatibleWorkerNoCaches2.FindOrCreateBuildContainerCallCount()).To(BeZero())
+				_, actualTeamID, actualBuildID, actualPlanID := fakeProvider.FindWorkerForBuildContainerArgsForCall(0)
+				Expect(actualTeamID).To(Equal(4567))
+				Expect(actualBuildID).To(Equal(42))
+				Expect(actualPlanID).To(Equal(atc.PlanID("some-plan-id")))
 			})
 		})
 
-		Context("with compatible workers available, with none having any local caches", func() {
+		Context("when no worker is found with the container", func() {
 			BeforeEach(func() {
-				fakeProvider.RunningWorkersReturns([]Worker{
-					incompatibleWorker,
-					compatibleWorkerNoCaches1,
-					compatibleWorkerNoCaches2,
-				}, nil)
+				fakeProvider.FindWorkerForBuildContainerReturns(nil, false, nil)
 			})
 
-			It("creates it on a random one of them", func() {
-				Expect(createErr).ToNot(HaveOccurred())
-				Expect(createdContainer).To(Equal(fakeContainer))
+			Context("with no workers available", func() {
+				BeforeEach(func() {
+					fakeProvider.RunningWorkersReturns([]Worker{}, nil)
+				})
 
-				for i := 0; i < 100; i++ {
-					container, err := pool.FindOrCreateBuildContainer(
-						logger,
-						signals,
-						fakeImageFetchingDelegate,
-						id,
-						metadata,
-						spec,
-						resourceTypes,
-					)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(container).To(Equal(fakeContainer))
-				}
+				It("returns ErrNoWorkers", func() {
+					Expect(createErr).To(Equal(ErrNoWorkers))
+				})
+			})
 
-				Expect(incompatibleWorker.FindOrCreateBuildContainerCallCount()).To(BeZero())
-				Expect(compatibleWorkerNoCaches1.FindOrCreateBuildContainerCallCount()).ToNot(BeZero())
-				Expect(compatibleWorkerNoCaches2.FindOrCreateBuildContainerCallCount()).ToNot(BeZero())
+			Context("with no compatible workers available", func() {
+				BeforeEach(func() {
+					fakeProvider.RunningWorkersReturns([]Worker{incompatibleWorker}, nil)
+				})
+
+				It("returns NoCompatibleWorkersError", func() {
+					Expect(createErr).To(Equal(NoCompatibleWorkersError{
+						Spec:    spec.WorkerSpec(),
+						Workers: []Worker{incompatibleWorker},
+					}))
+				})
+			})
+
+			Context("with compatible workers available, with one having the most local caches", func() {
+				BeforeEach(func() {
+					fakeProvider.RunningWorkersReturns([]Worker{
+						incompatibleWorker,
+						compatibleWorkerOneCache1,
+						compatibleWorkerTwoCaches,
+						compatibleWorkerNoCaches1,
+						compatibleWorkerNoCaches2,
+					}, nil)
+				})
+
+				It("creates it on the worker with the most caches", func() {
+					Expect(createErr).ToNot(HaveOccurred())
+					Expect(compatibleWorkerTwoCaches.FindOrCreateBuildContainerCallCount()).To(Equal(1))
+					Expect(createdContainer).To(Equal(fakeContainer))
+				})
+			})
+
+			Context("with compatible workers available, with multiple with the same amount of local caches", func() {
+				BeforeEach(func() {
+					fakeProvider.RunningWorkersReturns([]Worker{
+						incompatibleWorker,
+						compatibleWorkerOneCache1,
+						compatibleWorkerOneCache2,
+						compatibleWorkerNoCaches1,
+						compatibleWorkerNoCaches2,
+					}, nil)
+				})
+
+				It("creates it on a random one of the two", func() {
+					Expect(createErr).ToNot(HaveOccurred())
+					Expect(createdContainer).To(Equal(fakeContainer))
+
+					for i := 0; i < 100; i++ {
+						container, err := pool.FindOrCreateBuildContainer(
+							logger,
+							signals,
+							fakeImageFetchingDelegate,
+							id,
+							metadata,
+							spec,
+							resourceTypes,
+						)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(container).To(Equal(fakeContainer))
+					}
+
+					Expect(compatibleWorkerOneCache1.FindOrCreateBuildContainerCallCount()).ToNot(BeZero())
+					Expect(compatibleWorkerOneCache2.FindOrCreateBuildContainerCallCount()).ToNot(BeZero())
+					Expect(compatibleWorkerNoCaches1.FindOrCreateBuildContainerCallCount()).To(BeZero())
+					Expect(compatibleWorkerNoCaches2.FindOrCreateBuildContainerCallCount()).To(BeZero())
+				})
+			})
+
+			Context("with compatible workers available, with none having any local caches", func() {
+				BeforeEach(func() {
+					fakeProvider.RunningWorkersReturns([]Worker{
+						incompatibleWorker,
+						compatibleWorkerNoCaches1,
+						compatibleWorkerNoCaches2,
+					}, nil)
+				})
+
+				It("creates it on a random one of them", func() {
+					Expect(createErr).ToNot(HaveOccurred())
+					Expect(createdContainer).To(Equal(fakeContainer))
+
+					for i := 0; i < 100; i++ {
+						container, err := pool.FindOrCreateBuildContainer(
+							logger,
+							signals,
+							fakeImageFetchingDelegate,
+							id,
+							metadata,
+							spec,
+							resourceTypes,
+						)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(container).To(Equal(fakeContainer))
+					}
+
+					Expect(incompatibleWorker.FindOrCreateBuildContainerCallCount()).To(BeZero())
+					Expect(compatibleWorkerNoCaches1.FindOrCreateBuildContainerCallCount()).ToNot(BeZero())
+					Expect(compatibleWorkerNoCaches2.FindOrCreateBuildContainerCallCount()).ToNot(BeZero())
+				})
 			})
 		})
 	})
@@ -694,14 +729,14 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("'find-or-create's on the particular worker", func() {
+				Expect(fakeWorker.FindOrCreateResourceCheckContainerCallCount()).To(Equal(1))
+
 				_, actualTeamID, actualResourceUser, actualResourceType, actualResourceSource, actualResourceTypes := fakeProvider.FindWorkerForResourceCheckContainerArgsForCall(0)
 				Expect(actualTeamID).To(Equal(4567))
 				Expect(actualResourceUser).To(Equal(dbng.ForBuild{42}))
 				Expect(actualResourceType).To(Equal("some-type"))
 				Expect(actualResourceSource).To(Equal(atc.Source{"some": "source"}))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
-
-				Expect(fakeWorker.FindOrCreateResourceCheckContainerCallCount()).To(Equal(1))
 			})
 		})
 

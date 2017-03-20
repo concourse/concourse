@@ -29,6 +29,13 @@ type WorkerProvider interface {
 		types atc.VersionedResourceTypes,
 	) (Worker, bool, error)
 
+	FindWorkerForBuildContainer(
+		logger lager.Logger,
+		teamID int,
+		buildID int,
+		planID atc.PlanID,
+	) (Worker, bool, error)
+
 	// XXX: these should really go away. it's a WorkerProvider, not a ContainerProvider.
 	FindContainerForIdentifier(Identifier) (db.SavedContainer, bool, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
@@ -151,39 +158,51 @@ func (pool *pool) FindOrCreateBuildContainer(
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
-	compatibleWorkers, err := pool.AllSatisfying(spec.WorkerSpec(), resourceTypes)
+	worker, found, err := pool.provider.FindWorkerForBuildContainer(
+		logger.Session("find-worker"),
+		spec.TeamID, // XXX: better place for this?
+		id.BuildID,  // XXX: better place for this?
+		id.PlanID,   // XXX: better place for this?
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	workersByCount := map[int][]Worker{}
-	var highestCount int
-	for _, w := range compatibleWorkers {
-		candidateInputCount := 0
+	if !found {
+		compatibleWorkers, err := pool.AllSatisfying(spec.WorkerSpec(), resourceTypes)
+		if err != nil {
+			return nil, err
+		}
 
-		for _, inputSource := range spec.Inputs {
-			_, found, err := inputSource.Source().VolumeOn(w)
-			if err != nil {
-				return nil, err
+		workersByCount := map[int][]Worker{}
+		var highestCount int
+		for _, w := range compatibleWorkers {
+			candidateInputCount := 0
+
+			for _, inputSource := range spec.Inputs {
+				_, found, err := inputSource.Source().VolumeOn(w)
+				if err != nil {
+					return nil, err
+				}
+
+				if found {
+					candidateInputCount++
+				}
 			}
 
-			if found {
-				candidateInputCount++
+			workersByCount[candidateInputCount] = append(workersByCount[candidateInputCount], w)
+
+			if candidateInputCount >= highestCount {
+				highestCount = candidateInputCount
 			}
 		}
 
-		workersByCount[candidateInputCount] = append(workersByCount[candidateInputCount], w)
+		workers := workersByCount[highestCount]
 
-		if candidateInputCount >= highestCount {
-			highestCount = candidateInputCount
-		}
+		worker = workers[rand.Intn(len(workers))]
 	}
 
-	workers := workersByCount[highestCount]
-
-	chosenWorker := workers[rand.Intn(len(workers))]
-
-	return chosenWorker.FindOrCreateBuildContainer(
+	return worker.FindOrCreateBuildContainer(
 		logger,
 		nil,
 		delegate,

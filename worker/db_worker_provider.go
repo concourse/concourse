@@ -124,6 +124,26 @@ func (provider *dbWorkerProvider) FindContainerForIdentifier(id Identifier) (db.
 	return container, found, err
 }
 
+func (provider *dbWorkerProvider) FindWorkerForBuildContainer(
+	logger lager.Logger,
+	teamID int,
+	buildID int,
+	planID atc.PlanID,
+) (Worker, bool, error) {
+	team := provider.dbTeamFactory.GetByID(teamID)
+
+	dbWorker, found, err := team.FindWorkerForBuildContainer(buildID, planID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return provider.newGardenWorker(clock.NewClock(), dbWorker), true, nil
+}
+
 func (provider *dbWorkerProvider) FindWorkerForResourceCheckContainer(
 	logger lager.Logger,
 	teamID int,
