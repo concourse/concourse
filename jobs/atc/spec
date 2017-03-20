@@ -81,6 +81,13 @@ properties:
       Allow self-signed certificates.
     default: false
 
+  x_frame_options:
+    description: |
+        The value to set for X-Frame-Options.
+
+        If omitted, the header is not set.
+    default: ""
+
   log_level:
     description: |
       The log level for the ATC. When set to debug, you'll see a lot more
