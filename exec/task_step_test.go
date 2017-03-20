@@ -135,125 +135,268 @@ var _ = Describe("GardenFactory", func() {
 			process = ifrit.Invoke(step)
 		})
 
-		Context("when the container does not yet exist", func() {
+		Context("when getting the config works", func() {
+			var fetchedConfig atc.TaskConfig
+
 			BeforeEach(func() {
-				fakeWorkerClient.FindContainerForIdentifierReturns(nil, false, errors.New("nope"))
+				fetchedConfig = atc.TaskConfig{
+					Platform: "some-platform",
+					Image:    "some-image",
+					ImageResource: &atc.ImageResource{
+						Type:   "docker",
+						Source: atc.Source{"some": "source"},
+					},
+					Params: map[string]string{"SOME": "params"},
+					Run: atc.TaskRunConfig{
+						Path: "ls",
+						Args: []string{"some", "args"},
+					},
+				}
+
+				configSource.FetchConfigReturns(fetchedConfig, nil)
 			})
 
-			Context("when getting the config works", func() {
-				var fetchedConfig atc.TaskConfig
+			Context("when the task's container is either found or created", func() {
+				var (
+					fakeContainer *workerfakes.FakeContainer
+				)
 
 				BeforeEach(func() {
-					fetchedConfig = atc.TaskConfig{
-						Platform: "some-platform",
-						Image:    "some-image",
-						ImageResource: &atc.ImageResource{
-							Type:   "docker",
-							Source: atc.Source{"some": "source"},
-						},
-						Params: map[string]string{"SOME": "params"},
-						Run: atc.TaskRunConfig{
-							Path: "ls",
-							Args: []string{"some", "args"},
-						},
-					}
-
-					configSource.FetchConfigReturns(fetchedConfig, nil)
+					fakeContainer = new(workerfakes.FakeContainer)
+					fakeContainer.HandleReturns("some-handle")
+					fakeWorkerClient.FindOrCreateBuildContainerReturns(fakeContainer, nil)
 				})
 
-				Context("when creating the task's container works", func() {
-					var (
-						fakeContainer *workerfakes.FakeContainer
-						fakeProcess   *gardenfakes.FakeProcess
-					)
+				It("gets the config from the input artifact source", func() {
+					Expect(configSource.FetchConfigCallCount()).To(Equal(1))
+					Expect(configSource.FetchConfigArgsForCall(0)).To(Equal(repo))
+				})
+
+				It("finds or creates a container", func() {
+					Expect(fakeWorkerClient.FindOrCreateBuildContainerCallCount()).To(Equal(1))
+					_, cancel, delegate, createdIdentifier, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
+					Expect(cancel).ToNot(BeNil())
+					Expect(createdIdentifier).To(Equal(worker.Identifier{
+						BuildID: 1234,
+						PlanID:  atc.PlanID("some-plan-id"),
+						Stage:   db.ContainerStageRun,
+					}))
+					Expect(createdMetadata).To(Equal(worker.Metadata{
+						PipelineName:         "some-pipeline",
+						Type:                 db.ContainerTypeTask,
+						StepName:             "some-step",
+						WorkingDirectory:     "/tmp/build/a1f5c0c1",
+						EnvironmentVariables: []string{"SOME=params"},
+						JobName:              "some-job",
+					}))
+
+					Expect(delegate).To(Equal(taskDelegate))
+
+					Expect(spec).To(Equal(worker.ContainerSpec{
+						Platform: "some-platform",
+						Tags:     []string{"step", "tags"},
+						TeamID:   123,
+						ImageSpec: worker.ImageSpec{
+							ImageURL: "some-image",
+							ImageResource: &atc.ImageResource{
+								Type:   "docker",
+								Source: atc.Source{"some": "source"},
+							},
+							Privileged: false,
+						},
+						Dir:     "/tmp/build/a1f5c0c1",
+						Inputs:  []worker.InputSource{},
+						Outputs: worker.OutputPaths{},
+					}))
+
+					Expect(actualResourceTypes).To(Equal(resourceTypes))
+				})
+
+				Describe("before having created the container", func() {
+					BeforeEach(func() {
+						taskDelegate.InitializingStub = func(atc.TaskConfig) {
+							defer GinkgoRecover()
+							Expect(fakeWorkerClient.FindOrCreateBuildContainerCallCount()).To(BeZero())
+						}
+					})
+
+					It("invoked the delegate's Initializing callback", func() {
+						Expect(taskDelegate.InitializingCallCount()).To(Equal(1))
+						Expect(taskDelegate.InitializingArgsForCall(0)).To(Equal(fetchedConfig))
+					})
+				})
+
+				Context("when an exit status is already saved off", func() {
+					BeforeEach(func() {
+						fakeContainer.PropertyStub = func(name string) (string, error) {
+							defer GinkgoRecover()
+
+							switch name {
+							case "concourse:exit-status":
+								return "123", nil
+							default:
+								return "", errors.New("unstubbed property: " + name)
+							}
+						}
+					})
+
+					It("exits with success", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+					})
+
+					It("does not attach to any process", func() {
+						Expect(fakeContainer.AttachCallCount()).To(BeZero())
+					})
+
+					It("is not successful as the exit status is nonzero", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+
+						var success Success
+						Expect(step.Result(&success)).To(BeTrue())
+						Expect(bool(success)).To(BeFalse())
+					})
+
+					It("reports its exit status", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+
+						var status ExitStatus
+						Expect(step.Result(&status)).To(BeTrue())
+						Expect(status).To(Equal(ExitStatus(123)))
+					})
+
+					It("does not invoke the delegate's Started callback", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(taskDelegate.StartedCallCount()).To(BeZero())
+					})
+
+					It("does not invoke the delegate's Finished callback", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(taskDelegate.FinishedCallCount()).To(BeZero())
+					})
+
+					Context("when outputs are configured and present on the container", func() {
+						var (
+							fakeMountPath1 string = "/tmp/build/a1f5c0c1/some-output-configured-path/"
+							fakeMountPath2 string = "/tmp/build/a1f5c0c1/some-other-output/"
+							fakeMountPath3 string = "/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/"
+
+							fakeNewlyCreatedVolume1 *workerfakes.FakeVolume
+							fakeNewlyCreatedVolume2 *workerfakes.FakeVolume
+							fakeNewlyCreatedVolume3 *workerfakes.FakeVolume
+
+							fakeVolume1 *workerfakes.FakeVolume
+							fakeVolume2 *workerfakes.FakeVolume
+							fakeVolume3 *workerfakes.FakeVolume
+						)
+
+						BeforeEach(func() {
+							configSource.FetchConfigReturns(atc.TaskConfig{
+								Platform: "some-platform",
+								Image:    "some-image",
+								Params:   map[string]string{"SOME": "params"},
+								Run: atc.TaskRunConfig{
+									Path: "ls",
+									Args: []string{"some", "args"},
+								},
+								Outputs: []atc.TaskOutputConfig{
+									{Name: "some-output", Path: "some-output-configured-path"},
+									{Name: "some-other-output"},
+									{Name: "some-trailing-slash-output", Path: "some-output-configured-path-with-trailing-slash/"},
+								},
+							}, nil)
+
+							fakeNewlyCreatedVolume1 = new(workerfakes.FakeVolume)
+							fakeNewlyCreatedVolume1.HandleReturns("some-handle-1")
+							fakeNewlyCreatedVolume2 = new(workerfakes.FakeVolume)
+							fakeNewlyCreatedVolume2.HandleReturns("some-handle-2")
+							fakeNewlyCreatedVolume3 = new(workerfakes.FakeVolume)
+							fakeNewlyCreatedVolume3.HandleReturns("some-handle-3")
+
+							fakeVolume1 = new(workerfakes.FakeVolume)
+							fakeVolume1.HandleReturns("some-handle-1")
+							fakeVolume2 = new(workerfakes.FakeVolume)
+							fakeVolume2.HandleReturns("some-handle-2")
+							fakeVolume3 = new(workerfakes.FakeVolume)
+							fakeVolume3.HandleReturns("some-handle-3")
+
+							fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+								worker.VolumeMount{
+									Volume:    fakeVolume1,
+									MountPath: fakeMountPath1,
+								},
+								worker.VolumeMount{
+									Volume:    fakeVolume2,
+									MountPath: fakeMountPath2,
+								},
+								worker.VolumeMount{
+									Volume:    fakeVolume3,
+									MountPath: fakeMountPath3,
+								},
+							})
+						})
+
+						It("re-registers the outputs as sources", func() {
+							artifactSource1, found := repo.SourceFor("some-output")
+							Expect(found).To(BeTrue())
+
+							artifactSource2, found := repo.SourceFor("some-other-output")
+							Expect(found).To(BeTrue())
+
+							artifactSource3, found := repo.SourceFor("some-trailing-slash-output")
+							Expect(found).To(BeTrue())
+
+							sourceMap := repo.AsMap()
+							Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
+						})
+					})
+				})
+
+				Context("when a process is still running", func() {
+					var fakeProcess *gardenfakes.FakeProcess
 
 					BeforeEach(func() {
-						fakeContainer = new(workerfakes.FakeContainer)
-						fakeWorkerClient.FindOrCreateBuildContainerReturns(fakeContainer, nil)
-						fakeContainer.HandleReturns("some-handle")
+						fakeContainer.PropertyReturns("", errors.New("no exit status property"))
 
 						fakeProcess = new(gardenfakes.FakeProcess)
-						fakeProcess.IDReturns("process-id")
+						fakeContainer.AttachReturns(fakeProcess, nil)
+					})
+
+					It("attaches to the correct process", func() {
+						Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+
+						pid, _ := fakeContainer.AttachArgsForCall(0)
+						Expect(pid).To(Equal("task"))
+					})
+
+					It("directs the process's stdout/stderr to the io config", func() {
+						Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+
+						_, pio := fakeContainer.AttachArgsForCall(0)
+						Expect(pio.Stdout).To(Equal(stdoutBuf))
+						Expect(pio.Stderr).To(Equal(stderrBuf))
+					})
+
+					It("does not invoke the delegate's Started callback", func() {
+						Expect(taskDelegate.StartedCallCount()).To(BeZero())
+					})
+				})
+
+				Context("when the process is not already running or exited", func() {
+					var fakeProcess *gardenfakes.FakeProcess
+
+					BeforeEach(func() {
+						fakeContainer.PropertyReturns("", errors.New("no exit status property"))
+						fakeContainer.AttachReturns(nil, errors.New("no garden error type for this :("))
+
+						fakeProcess = new(gardenfakes.FakeProcess)
 						fakeContainer.RunReturns(fakeProcess, nil)
-					})
-
-					Describe("before having created the container", func() {
-						BeforeEach(func() {
-							taskDelegate.InitializingStub = func(atc.TaskConfig) {
-								defer GinkgoRecover()
-								Expect(fakeWorkerClient.FindOrCreateBuildContainerCallCount()).To(BeZero())
-							}
-						})
-
-						It("invokes the delegate's Initializing callback", func() {
-							Expect(taskDelegate.InitializingCallCount()).To(Equal(1))
-							Expect(taskDelegate.InitializingArgsForCall(0)).To(Equal(fetchedConfig))
-						})
-					})
-
-					It("looked up the container via the session ID across the entire pool", func() {
-						_, findID := fakeWorkerClient.FindContainerForIdentifierArgsForCall(0)
-						Expect(findID).To(Equal(worker.Identifier{
-							BuildID: 1234,
-							PlanID:  atc.PlanID("some-plan-id"),
-							Stage:   db.ContainerStageRun,
-						}))
-					})
-
-					It("gets the config from the input artifact source", func() {
-						Expect(configSource.FetchConfigCallCount()).To(Equal(1))
-						Expect(configSource.FetchConfigArgsForCall(0)).To(Equal(repo))
-					})
-
-					It("creates a container with the config's image and the session ID as the handle", func() {
-						Expect(fakeWorkerClient.FindOrCreateBuildContainerCallCount()).To(Equal(1))
-						_, cancel, delegate, createdIdentifier, createdMetadata, spec, actualResourceTypes := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
-						Expect(cancel).ToNot(BeNil())
-						Expect(createdIdentifier).To(Equal(worker.Identifier{
-							BuildID: 1234,
-							PlanID:  atc.PlanID("some-plan-id"),
-							Stage:   db.ContainerStageRun,
-						}))
-						Expect(createdMetadata).To(Equal(worker.Metadata{
-							PipelineName:         "some-pipeline",
-							Type:                 db.ContainerTypeTask,
-							StepName:             "some-step",
-							WorkingDirectory:     "/tmp/build/a1f5c0c1",
-							EnvironmentVariables: []string{"SOME=params"},
-							JobName:              "some-job",
-						}))
-
-						Expect(delegate).To(Equal(taskDelegate))
-
-						Expect(spec).To(Equal(worker.ContainerSpec{
-							Platform: "some-platform",
-							Tags:     []string{"step", "tags"},
-							TeamID:   123,
-							ImageSpec: worker.ImageSpec{
-								ImageURL: "some-image",
-								ImageResource: &atc.ImageResource{
-									Type:   "docker",
-									Source: atc.Source{"some": "source"},
-								},
-								Privileged: false,
-							},
-							Dir:     "/tmp/build/a1f5c0c1",
-							Inputs:  []worker.InputSource{},
-							Outputs: worker.OutputPaths{},
-						}))
-
-						Expect(actualResourceTypes).To(Equal(resourceTypes))
-					})
-
-					It("configures the working directory", func() {
-						_, _, _, _, _, spec, _ := fakeWorkerClient.FindOrCreateBuildContainerArgsForCall(0)
-						Expect(spec.Dir).To(Equal("/tmp/build/a1f5c0c1"))
 					})
 
 					It("runs a process with the config's path and args, in the specified (default) build directory", func() {
 						Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 						spec, _ := fakeContainer.RunArgsForCall(0)
+						Expect(spec.ID).To(Equal("task"))
 						Expect(spec.Path).To(Equal("ls"))
 						Expect(spec.Args).To(Equal([]string{"some", "args"}))
 						Expect(spec.Env).To(Equal([]string{"SOME=params"}))
@@ -268,14 +411,6 @@ var _ = Describe("GardenFactory", func() {
 						_, io := fakeContainer.RunArgsForCall(0)
 						Expect(io.Stdout).To(Equal(stdoutBuf))
 						Expect(io.Stderr).To(Equal(stderrBuf))
-					})
-
-					It("saves the process ID as a property", func() {
-						Expect(fakeContainer.SetPropertyCallCount()).NotTo(Equal(0))
-
-						name, value := fakeContainer.SetPropertyArgsForCall(0)
-						Expect(name).To(Equal("concourse:task-process"))
-						Expect(value).To(Equal("process-id"))
 					})
 
 					It("invokes the delegate's Started callback", func() {
@@ -320,13 +455,13 @@ var _ = Describe("GardenFactory", func() {
 
 							spec, _ := fakeContainer.RunArgsForCall(0)
 							Expect(spec).To(Equal(garden.ProcessSpec{
+								ID:   "task",
 								Path: "ls",
 								Args: []string{"some", "args"},
 								Env:  []string{"SOME=params"},
 								Dir:  "/tmp/build/a1f5c0c1",
 								TTY:  &garden.TTYSpec{},
 							}))
-
 						})
 					})
 
@@ -1026,9 +1161,9 @@ var _ = Describe("GardenFactory", func() {
 						It("saves the exit status property", func() {
 							<-process.Wait()
 
-							Expect(fakeContainer.SetPropertyCallCount()).To(Equal(2))
+							Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
 
-							name, value := fakeContainer.SetPropertyArgsForCall(1)
+							name, value := fakeContainer.SetPropertyArgsForCall(0)
 							Expect(name).To(Equal("concourse:exit-status"))
 							Expect(value).To(Equal("0"))
 						})
@@ -1113,9 +1248,9 @@ var _ = Describe("GardenFactory", func() {
 						It("saves the exit status property", func() {
 							Eventually(process.Wait()).Should(Receive(BeNil()))
 
-							Expect(fakeContainer.SetPropertyCallCount()).To(Equal(2))
+							Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
 
-							name, value := fakeContainer.SetPropertyArgsForCall(1)
+							name, value := fakeContainer.SetPropertyArgsForCall(0)
 							Expect(name).To(Equal("concourse:exit-status"))
 							Expect(value).To(Equal("1"))
 						})
@@ -1204,24 +1339,6 @@ var _ = Describe("GardenFactory", func() {
 						})
 					})
 
-					Context("when setting the process property fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeContainer.SetPropertyReturns(disaster)
-						})
-
-						It("exits with the error", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-						})
-
-						It("invokes the delegate's Failed callback", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-							Expect(taskDelegate.FailedCallCount()).To(Equal(1))
-							Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
-						})
-					})
-
 					Context("when the process is interrupted", func() {
 						var stopped chan struct{}
 						BeforeEach(func() {
@@ -1292,34 +1409,16 @@ var _ = Describe("GardenFactory", func() {
 						})
 					})
 				})
-
-				Context("when creating the container fails", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeWorkerClient.FindOrCreateBuildContainerReturns(nil, disaster)
-					})
-
-					It("exits with the error", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					})
-
-					It("invokes the delegate's Failed callback", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-						Expect(taskDelegate.FailedCallCount()).To(Equal(1))
-						Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
-					})
-				})
 			})
 
-			Context("when getting the config fails", func() {
+			Context("when creating the container fails", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					configSource.FetchConfigReturns(atc.TaskConfig{}, disaster)
+					fakeWorkerClient.FindOrCreateBuildContainerReturns(nil, disaster)
 				})
 
-				It("exits with the failure", func() {
+				It("exits with the error", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 				})
 
@@ -1331,220 +1430,21 @@ var _ = Describe("GardenFactory", func() {
 			})
 		})
 
-		Context("when the container already exists", func() {
-			var fakeContainer *workerfakes.FakeContainer
+		Context("when getting the config fails", func() {
+			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeContainer = new(workerfakes.FakeContainer)
-				fakeWorkerClient.FindContainerForIdentifierReturns(fakeContainer, true, nil)
+				configSource.FetchConfigReturns(atc.TaskConfig{}, disaster)
 			})
 
-			Context("when the configuration specifies paths for outputs", func() {
-				BeforeEach(func() {
-					configSource.FetchConfigReturns(atc.TaskConfig{
-						Platform: "some-platform",
-						Image:    "some-image",
-						Params:   map[string]string{"SOME": "params"},
-						Run: atc.TaskRunConfig{
-							Path: "ls",
-							Args: []string{"some", "args"},
-						},
-						Outputs: []atc.TaskOutputConfig{
-							{Name: "some-output", Path: "some-output-configured-path"},
-							{Name: "some-other-output"},
-							{Name: "some-trailing-slash-output", Path: "some-output-configured-path-with-trailing-slash/"},
-						},
-					}, nil)
-				})
+			It("exits with the failure", func() {
+				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+			})
 
-				Context("when an exit status is already saved off", func() {
-					BeforeEach(func() {
-						fakeContainer.PropertyStub = func(name string) (string, error) {
-							defer GinkgoRecover()
-
-							switch name {
-							case "concourse:exit-status":
-								return "123", nil
-							default:
-								return "", errors.New("unstubbed property: " + name)
-							}
-						}
-					})
-
-					It("exits with success", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-					})
-
-					It("does not attach to any process", func() {
-						Expect(fakeContainer.AttachCallCount()).To(BeZero())
-					})
-
-					It("is not successful", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						var success Success
-						Expect(step.Result(&success)).To(BeTrue())
-						Expect(bool(success)).To(BeFalse())
-					})
-
-					It("reports its exit status", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-
-						var status ExitStatus
-						Expect(step.Result(&status)).To(BeTrue())
-						Expect(status).To(Equal(ExitStatus(123)))
-					})
-
-					It("does not invoke the delegate's Started callback", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-						Expect(taskDelegate.StartedCallCount()).To(BeZero())
-					})
-
-					It("does not invoke the delegate's Finished callback", func() {
-						Eventually(process.Wait()).Should(Receive(BeNil()))
-						Expect(taskDelegate.FinishedCallCount()).To(BeZero())
-					})
-
-					Context("when volume mounts are present on the container", func() {
-						var (
-							fakeMountPath1 string = "/tmp/build/a1f5c0c1/some-output-configured-path/"
-							fakeMountPath2 string = "/tmp/build/a1f5c0c1/some-other-output/"
-							fakeMountPath3 string = "/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/"
-
-							fakeNewlyCreatedVolume1 *workerfakes.FakeVolume
-							fakeNewlyCreatedVolume2 *workerfakes.FakeVolume
-							fakeNewlyCreatedVolume3 *workerfakes.FakeVolume
-
-							fakeVolume1 *workerfakes.FakeVolume
-							fakeVolume2 *workerfakes.FakeVolume
-							fakeVolume3 *workerfakes.FakeVolume
-						)
-
-						BeforeEach(func() {
-							fakeNewlyCreatedVolume1 = new(workerfakes.FakeVolume)
-							fakeNewlyCreatedVolume1.HandleReturns("some-handle-1")
-							fakeNewlyCreatedVolume2 = new(workerfakes.FakeVolume)
-							fakeNewlyCreatedVolume2.HandleReturns("some-handle-2")
-							fakeNewlyCreatedVolume3 = new(workerfakes.FakeVolume)
-							fakeNewlyCreatedVolume3.HandleReturns("some-handle-3")
-
-							fakeVolume1 = new(workerfakes.FakeVolume)
-							fakeVolume1.HandleReturns("some-handle-1")
-							fakeVolume2 = new(workerfakes.FakeVolume)
-							fakeVolume2.HandleReturns("some-handle-2")
-							fakeVolume3 = new(workerfakes.FakeVolume)
-							fakeVolume3.HandleReturns("some-handle-3")
-
-							fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-								worker.VolumeMount{
-									Volume:    fakeVolume1,
-									MountPath: fakeMountPath1,
-								},
-								worker.VolumeMount{
-									Volume:    fakeVolume2,
-									MountPath: fakeMountPath2,
-								},
-								worker.VolumeMount{
-									Volume:    fakeVolume3,
-									MountPath: fakeMountPath3,
-								},
-							})
-						})
-
-						It("re-registers the outputs as sources", func() {
-							artifactSource1, found := repo.SourceFor("some-output")
-							Expect(found).To(BeTrue())
-
-							artifactSource2, found := repo.SourceFor("some-other-output")
-							Expect(found).To(BeTrue())
-
-							artifactSource3, found := repo.SourceFor("some-trailing-slash-output")
-							Expect(found).To(BeTrue())
-
-							sourceMap := repo.AsMap()
-							Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
-						})
-					})
-				})
-
-				Context("when the process id can be found", func() {
-					BeforeEach(func() {
-						fakeContainer.PropertyStub = func(name string) (string, error) {
-							defer GinkgoRecover()
-
-							switch name {
-							case "concourse:task-process":
-								return "process-id", nil
-							default:
-								return "", errors.New("unstubbed property: " + name)
-							}
-						}
-					})
-
-					Context("when attaching to the process succeeds", func() {
-						var fakeProcess *gardenfakes.FakeProcess
-
-						BeforeEach(func() {
-							fakeProcess = new(gardenfakes.FakeProcess)
-							fakeContainer.AttachReturns(fakeProcess, nil)
-						})
-
-						It("attaches to the correct process", func() {
-							Expect(fakeContainer.AttachCallCount()).To(Equal(1))
-
-							pid, _ := fakeContainer.AttachArgsForCall(0)
-							Expect(pid).To(Equal("process-id"))
-						})
-
-						It("directs the process's stdout/stderr to the io config", func() {
-							Expect(fakeContainer.AttachCallCount()).To(Equal(1))
-
-							_, pio := fakeContainer.AttachArgsForCall(0)
-							Expect(pio.Stdout).To(Equal(stdoutBuf))
-							Expect(pio.Stderr).To(Equal(stderrBuf))
-						})
-
-						It("does not invoke the delegate's Started callback", func() {
-							Expect(taskDelegate.StartedCallCount()).To(BeZero())
-						})
-					})
-
-					Context("when attaching to the process fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeContainer.AttachReturns(nil, disaster)
-						})
-
-						It("exits with the error", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-						})
-
-						It("invokes the delegate's Failed callback", func() {
-							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-							Expect(taskDelegate.FailedCallCount()).To(Equal(1))
-							Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
-						})
-					})
-				})
-
-				Context("when the process id cannot be found", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeContainer.PropertyReturns("", disaster)
-					})
-
-					It("exits with the error", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					})
-
-					It("invokes the delegate's Failed callback", func() {
-						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-						Eventually(taskDelegate.FailedCallCount()).Should(Equal(1))
-						Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
-					})
-				})
+			It("invokes the delegate's Failed callback", func() {
+				Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+				Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+				Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 			})
 		})
 	})

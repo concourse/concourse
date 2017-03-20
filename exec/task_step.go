@@ -17,7 +17,7 @@ import (
 	"github.com/concourse/atc/worker"
 )
 
-const taskProcessPropertyName = "concourse:task-process"
+const taskProcessID = "task"
 const taskExitStatusPropertyName = "concourse:exit-status"
 
 // MissingInputsError is returned when any of the task's required inputs are
@@ -129,9 +129,6 @@ func (step TaskStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 // task's entire working directory is registered as an ArtifactSource under the
 // name of the task.
 func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	var err error
-	var found bool
-
 	processIO := garden.ProcessIO{
 		Stdout: step.delegate.Stdout(),
 		Stderr: step.delegate.Stderr(),
@@ -149,58 +146,51 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	step.metadata.EnvironmentVariables = step.envForParams(config.Params)
 
+	containerSpec, err := step.containerSpec(config)
+	if err != nil {
+		return err
+	}
+
 	runContainerID := step.containerID
 	runContainerID.Stage = db.ContainerStageRun
 
-	container, found, err := step.workerPool.FindContainerForIdentifier(
-		step.logger.Session("found-container"),
+	step.delegate.Initializing(config)
+
+	container, err := step.workerPool.FindOrCreateBuildContainer(
+		step.logger,
+		signals,
+		step.delegate,
 		runContainerID,
+		step.metadata,
+		containerSpec,
+		step.resourceTypes,
 	)
+	if err != nil {
+		return err
+	}
 
-	if err == nil && found {
-		exitStatusProp, err := container.Property(taskExitStatusPropertyName)
-		if err == nil {
-			step.logger.Info("already-exited", lager.Data{"status": exitStatusProp})
+	exitStatusProp, err := container.Property(taskExitStatusPropertyName)
+	if err == nil {
+		step.logger.Info("already-exited", lager.Data{"status": exitStatusProp})
 
-			// process already completed; recover result
-
-			_, err = fmt.Sscanf(exitStatusProp, "%d", &step.exitStatus)
-			if err != nil {
-				return err
-			}
-
-			step.registerSource(config, container)
-			return nil
-		}
-
-		processID, err := container.Property(taskProcessPropertyName)
-		if err != nil {
-			// rogue container? perhaps did not shut down cleanly.
-			return err
-		}
-
-		step.logger.Info("already-running", lager.Data{"process-id": processID})
-
-		// process still running; re-attach
-		step.process, err = container.Attach(processID, processIO)
+		_, err = fmt.Sscanf(exitStatusProp, "%d", &step.exitStatus)
 		if err != nil {
 			return err
 		}
 
-		step.logger.Info("attached")
+		step.registerSource(config, container)
+		return nil
+	}
+
+	step.process, err = container.Attach(taskProcessID, processIO)
+	if err == nil {
+		step.logger.Info("already-running")
 	} else {
-		// container does not exist; new session
-
-		step.delegate.Initializing(config)
-
-		container, err = step.createContainer(config, signals)
-		if err != nil {
-			return err
-		}
-
-		step.delegate.Started()
+		step.logger.Info("spawning")
 
 		step.process, err = container.Run(garden.ProcessSpec{
+			ID: taskProcessID,
+
 			Path: config.Run.Path,
 			Args: config.Run.Args,
 			Env:  step.envForParams(config.Params),
@@ -208,15 +198,14 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			Dir: path.Join(step.artifactsRoot, config.Run.Dir),
 			TTY: &garden.TTYSpec{},
 		}, processIO)
-		if err != nil {
-			return err
-		}
 
-		err = container.SetProperty(taskProcessPropertyName, step.process.ID())
-		if err != nil {
-			return err
-		}
+		step.delegate.Started()
 	}
+	if err != nil {
+		return err
+	}
+
+	step.logger.Info("attached")
 
 	close(ready)
 
@@ -262,14 +251,14 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	}
 }
 
-func (step *TaskStep) createContainer(config atc.TaskConfig, signals <-chan os.Signal) (worker.Container, error) {
+func (step *TaskStep) containerSpec(config atc.TaskConfig) (worker.ContainerSpec, error) {
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(step.privileged),
 	}
 	if step.imageArtifactName != "" {
 		source, found := step.repo.SourceFor(worker.ArtifactName(step.imageArtifactName))
 		if !found {
-			return nil, MissingTaskImageSourceError{step.imageArtifactName}
+			return worker.ContainerSpec{}, MissingTaskImageSourceError{step.imageArtifactName}
 		}
 
 		imageSpec.ImageArtifactSource = source
@@ -278,9 +267,6 @@ func (step *TaskStep) createContainer(config atc.TaskConfig, signals <-chan os.S
 		imageSpec.ImageURL = config.Image
 		imageSpec.ImageResource = config.ImageResource
 	}
-
-	runContainerID := step.containerID
-	runContainerID.Stage = db.ContainerStageRun
 
 	containerSpec := worker.ContainerSpec{
 		Platform:  config.Platform,
@@ -316,7 +302,7 @@ func (step *TaskStep) createContainer(config atc.TaskConfig, signals <-chan os.S
 	}
 
 	if len(missingInputs) > 0 {
-		return nil, MissingInputsError{missingInputs}
+		return worker.ContainerSpec{}, MissingInputsError{missingInputs}
 	}
 
 	for _, output := range config.Outputs {
@@ -324,20 +310,7 @@ func (step *TaskStep) createContainer(config atc.TaskConfig, signals <-chan os.S
 		containerSpec.Outputs[output.Name] = path
 	}
 
-	container, err := step.workerPool.FindOrCreateBuildContainer(
-		step.logger,
-		signals,
-		step.delegate,
-		runContainerID,
-		step.metadata,
-		containerSpec,
-		step.resourceTypes,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
+	return containerSpec, nil
 }
 
 func (step *TaskStep) registerSource(config atc.TaskConfig, container worker.Container) {
