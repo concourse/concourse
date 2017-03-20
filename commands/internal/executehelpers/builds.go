@@ -40,6 +40,11 @@ func CreateBuild(
 				source["ca_cert"] = target.CACert()
 			}
 
+			tlsconfig := target.TLSConfig()
+			if tlsconfig != nil && tlsconfig.InsecureSkipVerify {
+				source["skip_ssl_validation"] = true
+			}
+
 			if auth, ok := target.TokenAuthorization(); ok {
 				source["authorization"] = auth
 			}
@@ -85,6 +90,11 @@ func CreateBuild(
 
 		if target.CACert() != "" {
 			source["ca_cert"] = target.CACert()
+		}
+
+		tlsconfig := target.TLSConfig()
+		if tlsconfig != nil && tlsconfig.InsecureSkipVerify {
+			source["skip_ssl_validation"] = true
 		}
 
 		if auth, ok := target.TokenAuthorization(); ok {

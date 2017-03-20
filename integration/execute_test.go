@@ -570,8 +570,9 @@ run:
 			Expect(err).ToNot(HaveOccurred())
 
 			(*(*expectedPlan.Do)[0].Aggregate)[0].Get.Source = atc.Source{
-				"uri":           atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-				"authorization": tokenString(),
+				"uri":                 atcServer.URL() + "/api/v1/pipes/some-pipe-id",
+				"authorization":       tokenString(),
+				"skip_ssl_validation": true,
 			}
 		})
 
