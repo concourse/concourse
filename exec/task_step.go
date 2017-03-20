@@ -193,16 +193,6 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 		step.delegate.Initializing(config)
 
-		workerSpec := worker.WorkerSpec{
-			Platform: config.Platform,
-			Tags:     step.tags,
-			TeamID:   step.teamID,
-		}
-
-		if config.ImageResource != nil {
-			workerSpec.ResourceType = config.ImageResource.Type
-		}
-
 		container, err = step.createContainer(config, signals)
 		if err != nil {
 			return err
