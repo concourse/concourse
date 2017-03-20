@@ -1,10 +1,10 @@
 package helpers
 
-import "net/http"
-
 func ErrorPolling(url string) func() error {
+	client := httpClient()
+
 	return func() error {
-		resp, err := http.Get(url)
+		resp, err := client.Get(url)
 		if err == nil {
 			resp.Body.Close()
 		}

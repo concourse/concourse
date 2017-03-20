@@ -15,5 +15,6 @@ else
     -vdeployment_name="${deployment_name}" \
     -vconcourse_version=latest \
     -vgarden_runc_version=latest \
+    --vars-file=local_deploy_vars \
     "$@"
 fi
