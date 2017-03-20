@@ -111,6 +111,10 @@ type ATCCommand struct {
 		RiemannServicePrefix string `long:"riemann-service-prefix" default:"" description:"An optional prefix for emitted Riemann services"`
 	} `group:"Metrics & Diagnostics"`
 
+	Server struct {
+		XFrameOptions string `long:"x-frame-options" description:"The value to set for X-Frame-Options. If omitted, the header is not set."`
+	} `group:"Web Server"`
+
 	LogDBQueries bool `long:"log-db-queries" description:"Log database queries."`
 
 	GCInterval time.Duration `long:"gc-interval" default:"30s" description:"Interval on which to perform garbage collection."`
@@ -851,10 +855,15 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webMux.Handle("/robots.txt", robotstxt.Handler{})
 	webMux.Handle("/", webHandler)
 
-	// proxy Authorization header to/from auth cookie,
-	// to support auth from JS (EventSource) and custom JWT auth
-	httpHandler := auth.CookieSetHandler{
-		Handler: webMux,
+
+	httpHandler := wrappa.SecurityHandler{
+		XFrameOptions: cmd.Server.XFrameOptions,
+
+		// proxy Authorization header to/from auth cookie,
+		// to support auth from JS (EventSource) and custom JWT auth
+		Handler: auth.CookieSetHandler{
+			Handler: webMux,
+		},
 	}
 
 	return httpHandler

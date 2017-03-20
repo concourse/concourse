@@ -43,8 +43,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.Session("index")
 
 	err := h.template.Execute(w, templateData{})
+
 	if err != nil {
 		log.Fatal("failed-to-build-template", err, lager.Data{})
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+
 }
