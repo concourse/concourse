@@ -369,6 +369,8 @@ jobs:
       trigger: true
     - get: archive-resource
       trigger: true
+  - task: unit
+    file: archive-resource/unit.yml
   - task: build
     file: archive-resource/build.yml
   - put: archive-resource-image
