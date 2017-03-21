@@ -14,4 +14,4 @@ outputs:
 - name: versions-vars-file
 
 run:
-  path: concourse/ci/scrips/create-versions-vars-file.sh
+  path: concourse/ci/scripts/create-versions-vars-file.sh
