@@ -32,7 +32,7 @@ func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContaine
 		LeftJoin("(select resource_cache_id, count(*) cnt from resource_cache_uses GROUP BY resource_cache_id) rcu ON rcu.resource_cache_id = wrc.resource_cache_id").
 		Where(sq.Or{
 			sq.Expr("(c.build_id IS NOT NULL AND b.interceptible = false)"),
-			sq.Expr("(c.type = ? AND c.best_if_used_by < NOW())", string(ContainerStageCheck)),
+			sq.Expr("(c.best_if_used_by < NOW())"),
 			sq.Expr("(c.build_id IS NULL AND c.resource_config_id IS NULL AND c.worker_resource_cache_id IS NULL)"),
 			sq.Expr("(c.resource_config_id IS NOT NULL AND c.worker_base_resource_type_id IS NULL)"),
 			sq.Expr("(c.worker_resource_cache_id IS NOT NULL AND v.initialized = true)"),

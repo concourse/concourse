@@ -17,14 +17,6 @@ const (
 	ContainerStateDestroying = "destroying"
 )
 
-type ContainerStage string
-
-const (
-	ContainerStageCheck = "check"
-	ContainerStageGet   = "get"
-	ContainerStageRun   = "run"
-)
-
 //go:generate counterfeiter . CreatingContainer
 
 type CreatingContainer interface {
