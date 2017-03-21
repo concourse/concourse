@@ -259,3 +259,7 @@
 	path = src/github.com/The-Cloud-Source/goryman
 	url = https://github.com/The-Cloud-Source/goryman
 	branch = master
+[submodule "src/github.com/cppforlife/go-semi-semantic"]
+	path = src/github.com/cppforlife/go-semi-semantic
+	url = https://github.com/cppforlife/go-semi-semantic
+	branch = master

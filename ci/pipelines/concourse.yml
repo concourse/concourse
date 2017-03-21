@@ -302,6 +302,13 @@ jobs:
       passed: [bosh-rc]
     - get: gcp-stemcell
     - get: deployments
+  - task: create-versions-vars-file
+    file: concourse/ci/create-versions-vars-file.yml
+    params:
+      deployment_name: concourse-testflight
+      web_ip: 10.244.15.2
+      tls_cert: {{testflight-tls-cert}}
+      tls_key: {{testflight-tls-key}}
   - put: tf-deployment
     params:
       manifest: concourse/src/github.com/concourse/testflight/scripts/manifests/deployment.yml
@@ -309,10 +316,12 @@ jobs:
       releases:
         - garden-runc/*.tgz
         - bosh-rc/concourse-*.tgz
+      vars_files: [versions-vars-file/vars.yml]
   - task: testflight
     file: concourse/ci/testflight.yml
     params:
       ATC_URL: "http://10.244.15.2:8080"
+      FLY_CA_CERT: {{testflight-tls-cert}}
     timeout: 1h
 
 - name: bin-testflight
@@ -986,3 +995,9 @@ resources:
     endpoint: storage.googleapis.com
     bucket: golang
     regexp: 'go(1\.\d+(\.\d+)?)\.linux-amd64\.tar.gz'
+
+resource_types:
+- name: bosh-deployment
+  type: docker-image
+  source:
+    repository: cloudfoundry/bosh-deployment-resource

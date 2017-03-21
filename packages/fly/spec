@@ -32,6 +32,7 @@ files:
   - github.com/concourse/go-concourse/concourse/*.go # gosub
   - github.com/concourse/go-concourse/concourse/eventstream/*.go # gosub
   - github.com/concourse/go-concourse/concourse/internal/*.go # gosub
+  - github.com/cppforlife/go-semi-semantic/version/*.go # gosub
   - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/fatih/color/*.go # gosub
   - github.com/gorilla/websocket/*.go # gosub
