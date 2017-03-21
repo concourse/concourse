@@ -27,29 +27,31 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		logger                 *lagertest.TestLogger
-		fakeGardenClient       *gfakes.FakeClient
-		fakeBaggageclaimClient *bfakes.FakeClient
-		fakeVolumeClient       *wfakes.FakeVolumeClient
-		fakeVolumeFactory      *wfakes.FakeVolumeFactory
-		fakeImageFactory       *wfakes.FakeImageFactory
-		fakeImage              *wfakes.FakeImage
-		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
-		fakeWorkerProvider     *wfakes.FakeWorkerProvider
-		fakeClock              *fakeclock.FakeClock
-		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
-		activeContainers       int
-		resourceTypes          []atc.WorkerResourceType
-		platform               string
-		tags                   atc.Tags
-		teamID                 int
-		workerName             string
-		workerStartTime        int64
-		httpProxyURL           string
-		httpsProxyURL          string
-		noProxy                string
-		origUptime             time.Duration
-		workerUptime           uint64
+		logger                    *lagertest.TestLogger
+		fakeGardenClient          *gfakes.FakeClient
+		fakeBaggageclaimClient    *bfakes.FakeClient
+		fakeVolumeClient          *wfakes.FakeVolumeClient
+		fakeVolumeFactory         *wfakes.FakeVolumeFactory
+		fakeImageFactory          *wfakes.FakeImageFactory
+		fakeImage                 *wfakes.FakeImage
+		fakeGardenWorkerDB        *wfakes.FakeGardenWorkerDB
+		fakeWorkerProvider        *wfakes.FakeWorkerProvider
+		fakeClock                 *fakeclock.FakeClock
+		fakePipelineDBFactory     *dbfakes.FakePipelineDBFactory
+		activeContainers          int
+		resourceTypes             []atc.WorkerResourceType
+		platform                  string
+		tags                      atc.Tags
+		teamID                    int
+		workerName                string
+		workerStartTime           int64
+		httpProxyURL              string
+		httpsProxyURL             string
+		noProxy                   string
+		origUptime                time.Duration
+		workerUptime              uint64
+		certificatePath           string
+		symlinkedCertificatePaths []string
 
 		gardenWorker Worker
 	)
@@ -81,6 +83,8 @@ var _ = Describe("Worker", func() {
 		workerName = "some-worker"
 		workerStartTime = fakeClock.Now().Unix()
 		workerUptime = 0
+		certificatePath = "some-cert-path"
+		symlinkedCertificatePaths = []string{"some-cert-symlinked-path-1", "some-cert-symlinked-path-2"}
 	})
 
 	JustBeforeEach(func() {
@@ -104,8 +108,8 @@ var _ = Describe("Worker", func() {
 			httpProxyURL,
 			httpsProxyURL,
 			noProxy,
-			"some-cert-path",
-			[]string{"some-cert-symlinked-path-1", "some-cert-symlinked-path-2"},
+			certificatePath,
+			symlinkedCertificatePaths,
 		)
 
 		origUptime = gardenWorker.Uptime()
@@ -218,6 +222,18 @@ var _ = Describe("Worker", func() {
 					{SrcPath: "some-cert-symlinked-path-1", DstPath: "some-cert-symlinked-path-1", Mode: garden.BindMountModeRO},
 					{SrcPath: "some-cert-symlinked-path-2", DstPath: "some-cert-symlinked-path-2", Mode: garden.BindMountModeRO},
 				}))
+			})
+
+			Context("when certificate path is empty", func() {
+				BeforeEach(func() {
+					certificatePath = ""
+					symlinkedCertificatePaths = nil
+				})
+
+				It("does not create bind mounts for certificates", func() {
+					containerSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(containerSpec.BindMounts).To(Equal([]garden.BindMount{}))
+				})
 			})
 		})
 

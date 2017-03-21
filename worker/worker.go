@@ -409,14 +409,16 @@ func (worker *gardenWorker) CreateContainer(
 	bindMounts := []garden.BindMount{}
 
 	if metadata.IsForResource() {
-		bindMounts = append(bindMounts,
-			garden.BindMount{SrcPath: worker.certificatesPath, DstPath: "/etc/ssl/certs", Mode: garden.BindMountModeRO},
-		)
-		if worker.certificatesSymmlinkedPaths != nil {
-			for _, certSymlinkedPath := range worker.certificatesSymmlinkedPaths {
-				bindMounts = append(bindMounts,
-					garden.BindMount{SrcPath: certSymlinkedPath, DstPath: certSymlinkedPath, Mode: garden.BindMountModeRO},
-				)
+		if worker.certificatesPath != "" {
+			bindMounts = append(bindMounts,
+				garden.BindMount{SrcPath: worker.certificatesPath, DstPath: "/etc/ssl/certs", Mode: garden.BindMountModeRO},
+			)
+			if worker.certificatesSymmlinkedPaths != nil {
+				for _, certSymlinkedPath := range worker.certificatesSymmlinkedPaths {
+					bindMounts = append(bindMounts,
+						garden.BindMount{SrcPath: certSymlinkedPath, DstPath: certSymlinkedPath, Mode: garden.BindMountModeRO},
+					)
+				}
 			}
 		}
 	}
