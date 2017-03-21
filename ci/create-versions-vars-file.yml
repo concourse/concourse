@@ -11,6 +11,12 @@ inputs:
 - name: version
 - name: garden-runc
 
+params:
+  deployment_name:
+  web_ip:
+  tls_cert:
+  tls_key:
+
 outputs:
 - name: versions-vars-file
 
