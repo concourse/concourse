@@ -19,13 +19,12 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/tsa"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/rata"
 	"golang.org/x/crypto/ssh"
 )
 
 type registrarSSHServer struct {
 	logger            lager.Logger
-	atcEndpoint       *rata.RequestGenerator
+	atcEndpointPicker tsa.EndpointPicker
 	tokenGenerator    tsa.TokenGenerator
 	heartbeatInterval time.Duration
 	cprInterval       time.Duration
@@ -346,7 +345,7 @@ func (server *registrarSSHServer) landWorker(
 	}
 
 	return (&tsa.Lander{
-		ATCEndpoint:    server.atcEndpoint,
+		ATCEndpoint:    server.atcEndpointPicker.Pick(),
 		TokenGenerator: server.tokenGenerator,
 	}).Land(logger, worker)
 }
@@ -368,7 +367,7 @@ func (server *registrarSSHServer) retireWorker(
 	}
 
 	return (&tsa.Retirer{
-		ATCEndpoint:    server.atcEndpoint,
+		ATCEndpoint:    server.atcEndpointPicker.Pick(),
 		TokenGenerator: server.tokenGenerator,
 	}).Retire(logger, worker)
 }
@@ -390,7 +389,7 @@ func (server *registrarSSHServer) deleteWorker(
 	}
 
 	return (&tsa.Deleter{
-		ATCEndpoint:    server.atcEndpoint,
+		ATCEndpoint:    server.atcEndpointPicker.Pick(),
 		TokenGenerator: server.tokenGenerator,
 	}).Delete(logger, worker)
 }
@@ -449,7 +448,7 @@ func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker at
 		server.heartbeatInterval,
 		server.cprInterval,
 		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.GardenAddr), logger.Session("garden-connection"))),
-		server.atcEndpoint,
+		server.atcEndpointPicker,
 		server.tokenGenerator,
 		worker,
 		channel,

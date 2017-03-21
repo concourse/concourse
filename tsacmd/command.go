@@ -13,29 +13,28 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/tsa"
+	"github.com/concourse/tsa/tsaflags"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/sigmon"
-	"github.com/tedsuo/rata"
 	"github.com/xoebus/zest"
 )
 
 type TSACommand struct {
-	Logger LagerFlag
+	Logger tsaflags.LagerFlag
 
-	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
-	BindPort uint16 `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
+	BindIP   tsaflags.IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
+	BindPort uint16          `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
 
 	PeerIP string `long:"peer-ip" required:"true" description:"IP address of this TSA, reachable by the ATCs. Used for forwarded worker addresses."`
 
-	HostKeyPath            FileFlag        `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
-	AuthorizedKeysPath     FileFlag        `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
-	TeamAuthorizedKeysPath []InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	HostKeyPath            tsaflags.FileFlag        `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
+	AuthorizedKeysPath     tsaflags.FileFlag        `long:"authorized-keys" required:"true" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	TeamAuthorizedKeysPath []tsaflags.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 
-	ATCURL                URLFlag  `long:"atc-url" required:"true" description:"ATC API endpoint to which workers will be registered."`
-	SessionSigningKeyPath FileFlag `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
+	ATCURLs               []tsaflags.URLFlag `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
+	SessionSigningKeyPath tsaflags.FileFlag  `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
 
 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
 
@@ -62,7 +61,7 @@ func (cmd *TSACommand) Execute(args []string) error {
 func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	logger, _ := cmd.constructLogger()
 
-	atcEndpoint := rata.NewRequestGenerator(cmd.ATCURL.String(), atc.Routes)
+	atcEndpointPicker := tsa.NewRandomATCEndpointPicker(cmd.ATCURLs)
 
 	authorizedKeys, err := cmd.loadAuthorizedKeys()
 	if err != nil {
@@ -94,7 +93,7 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		logger:            logger,
 		heartbeatInterval: cmd.HeartbeatInterval,
 		cprInterval:       1 * time.Second,
-		atcEndpoint:       atcEndpoint,
+		atcEndpointPicker: atcEndpointPicker,
 		tokenGenerator:    tokenGenerator,
 		forwardHost:       cmd.PeerIP,
 		config:            config,

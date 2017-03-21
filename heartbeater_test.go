@@ -40,7 +40,9 @@ var _ = Describe("Heartbeater", func() {
 		expectedWorker     atc.Worker
 		fakeTokenGenerator *tsafakes.FakeTokenGenerator
 		fakeGardenClient   *gfakes.FakeClient
-		fakeATC            *ghttp.Server
+		fakeATC1           *ghttp.Server
+		fakeATC2           *ghttp.Server
+		atcEndpointPicker  *tsafakes.FakeEndpointPicker
 
 		heartbeater ifrit.Process
 
@@ -85,7 +87,8 @@ var _ = Describe("Heartbeater", func() {
 			Tags:             []string{"some", "tags"},
 		}
 
-		fakeATC = ghttp.NewServer()
+		fakeATC1 = ghttp.NewServer()
+		fakeATC2 = ghttp.NewServer()
 
 		registerRoute, found := atc.Routes.FindRouteByName(atc.RegisterWorker)
 		Expect(found).To(BeTrue())
@@ -136,10 +139,21 @@ var _ = Describe("Heartbeater", func() {
 		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
 		fakeTokenGenerator.GenerateTeamTokenReturns("yo", nil)
 		clientWriter = gbytes.NewBuffer()
+
+		pickCallCount := 0
+		atcEndpointPicker = new(tsafakes.FakeEndpointPicker)
+		atcEndpointPicker.PickStub = func() *rata.RequestGenerator {
+			pickCallCount++
+
+			if pickCallCount%2 == 0 {
+				return rata.NewRequestGenerator(fakeATC2.URL(), atc.Routes)
+			}
+
+			return rata.NewRequestGenerator(fakeATC1.URL(), atc.Routes)
+		}
 	})
 
 	JustBeforeEach(func() {
-		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
 		heartbeater = ifrit.Invoke(
 			NewHeartbeater(
 				logger,
@@ -147,7 +161,7 @@ var _ = Describe("Heartbeater", func() {
 				interval,
 				cprInterval,
 				fakeGardenClient,
-				atcEndpoint,
+				atcEndpointPicker,
 				fakeTokenGenerator,
 				worker,
 				clientWriter,
@@ -198,7 +212,8 @@ var _ = Describe("Heartbeater", func() {
 
 		Context("when the ATC responds to registration requests", func() {
 			BeforeEach(func() {
-				fakeATC.AppendHandlers(verifyRegister, verifyHeartbeat)
+				fakeATC1.AppendHandlers(verifyRegister)
+				fakeATC2.AppendHandlers(verifyHeartbeat)
 			})
 
 			It("immediately registers", func() {
@@ -219,7 +234,8 @@ var _ = Describe("Heartbeater", func() {
 				heartbeated := make(chan registration, 100)
 				heartbeats = heartbeated
 
-				fakeATC.AppendHandlers(verifyRegister, ghttp.CombineHandlers(
+				fakeATC1.AppendHandlers(verifyRegister)
+				fakeATC2.AppendHandlers(ghttp.CombineHandlers(
 					ghttp.VerifyRequest("PUT", "/api/v1/workers/some-name/heartbeat"),
 					func(w http.ResponseWriter, r *http.Request) {
 						var worker atc.Worker
@@ -253,13 +269,15 @@ var _ = Describe("Heartbeater", func() {
 
 		Context("when the ATC doesn't respond to the first heartbeat", func() {
 			BeforeEach(func() {
-				fakeATC.AppendHandlers(
+				fakeATC1.AppendHandlers(
 					verifyRegister,
+					verifyHeartbeat,
+				)
+				fakeATC2.AppendHandlers(
 					ghttp.CombineHandlers(
 						verifyHeartbeat,
-						func(w http.ResponseWriter, r *http.Request) { fakeATC.CloseClientConnections() },
+						func(w http.ResponseWriter, r *http.Request) { fakeATC2.CloseClientConnections() },
 					),
-					verifyHeartbeat,
 					verifyHeartbeat,
 				)
 			})

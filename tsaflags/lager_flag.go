@@ -1,4 +1,4 @@
-package tsacmd
+package tsaflags
 
 import (
 	"fmt"

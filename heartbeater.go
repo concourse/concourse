@@ -18,6 +18,11 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+//go:generate counterfeiter . EndpointPicker
+type EndpointPicker interface {
+	Pick() *rata.RequestGenerator
+}
+
 type heartbeater struct {
 	logger lager.Logger
 
@@ -25,9 +30,9 @@ type heartbeater struct {
 	interval    time.Duration
 	cprInterval time.Duration
 
-	gardenClient   garden.Client
-	atcEndpoint    *rata.RequestGenerator
-	tokenGenerator TokenGenerator
+	gardenClient      garden.Client
+	atcEndpointPicker EndpointPicker
+	tokenGenerator    TokenGenerator
 
 	registration atc.Worker
 	clientWriter io.Writer
@@ -39,7 +44,7 @@ func NewHeartbeater(
 	interval time.Duration,
 	cprInterval time.Duration,
 	gardenClient garden.Client,
-	atcEndpoint *rata.RequestGenerator,
+	atcEndpointPicker EndpointPicker,
 	tokenGenerator TokenGenerator,
 	worker atc.Worker,
 	clientWriter io.Writer,
@@ -51,9 +56,9 @@ func NewHeartbeater(
 		interval:    interval,
 		cprInterval: cprInterval,
 
-		gardenClient:   gardenClient,
-		atcEndpoint:    atcEndpoint,
-		tokenGenerator: tokenGenerator,
+		gardenClient:      gardenClient,
+		atcEndpointPicker: atcEndpointPicker,
+		tokenGenerator:    tokenGenerator,
 
 		registration: worker,
 		clientWriter: clientWriter,
@@ -127,7 +132,7 @@ func (heartbeater *heartbeater) register(logger lager.Logger) bool {
 		return false
 	}
 
-	request, err := heartbeater.atcEndpoint.CreateRequest(atc.RegisterWorker, nil, bytes.NewBuffer(payload))
+	request, err := heartbeater.atcEndpointPicker.Pick().CreateRequest(atc.RegisterWorker, nil, bytes.NewBuffer(payload))
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
 		return false
@@ -205,7 +210,7 @@ func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 		return HeartbeatStatusUnhealthy
 	}
 
-	request, err := heartbeater.atcEndpoint.CreateRequest(atc.HeartbeatWorker, rata.Params{
+	request, err := heartbeater.atcEndpointPicker.Pick().CreateRequest(atc.HeartbeatWorker, rata.Params{
 		"worker_name": heartbeater.registration.Name,
 	}, bytes.NewBuffer(payload))
 	if err != nil {
