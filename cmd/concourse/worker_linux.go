@@ -16,7 +16,8 @@ import (
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/baggageclaim/fs"
 	"github.com/concourse/bin/bindata"
-	"github.com/jessevdk/go-flags"
+	"github.com/concourse/groundcrew"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -77,10 +78,24 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		Tags:     cmd.Tags,
 		Team:     cmd.TeamName,
 
-		HTTPProxyURL:  cmd.HTTPProxy.String(),
-		HTTPSProxyURL: cmd.HTTPSProxy.String(),
-		NoProxy:       strings.Join(cmd.NoProxy, ","),
-		StartTime:     time.Now().Unix(),
+		HTTPProxyURL:     cmd.HTTPProxy.String(),
+		HTTPSProxyURL:    cmd.HTTPSProxy.String(),
+		NoProxy:          strings.Join(cmd.NoProxy, ","),
+		StartTime:        time.Now().Unix(),
+		CertificatesPath: cmd.CertificatesPath,
+	}
+
+	if cmd.CertificatesPath != "" {
+		symlinkFinder := &groundcrew.SymlinkFinder{}
+		symlinkedDirs, err := symlinkFinder.Find(logger.Session("symlink-finder"), cmd.CertificatesPath)
+		if err != nil {
+			logger.Error("failed-to-find-symlinked-directories", err)
+			return atc.Worker{}, nil, err
+		}
+
+		logger.Debug("found-symlinked-dirs", lager.Data{"dirs": symlinkedDirs})
+
+		worker.CertificatesSymlinkedPaths = symlinkedDirs
 	}
 
 	worker.ResourceTypes, err = cmd.extractResources(
