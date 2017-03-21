@@ -244,15 +244,15 @@ jobs:
       vars:
         deployment_name: concourse-2.7-testflight
         web_ip: 10.244.17.2
-        tls_cert: {{testflight-tls-cert-2.7}}
-        tls_key: {{testflight-tls-key-2.7}}
+        tls_cert: {{testflight-tls-cert-2-7}}
+        tls_key: {{testflight-tls-key-2-7}}
       vars_files: [versions-vars-file/vars.yml]
 
   - task: testflight
     file: concourse/ci/testflight.yml
     params:
       ATC_URL: "https://10.244.17.2:4443"
-      FLY_CA_CERT: {{testflight-tls-cert-2.7}}
+      FLY_CA_CERT: {{testflight-tls-cert-2-7}}
     timeout: 1h
 
 - name: bin-testflight
