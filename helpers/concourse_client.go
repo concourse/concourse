@@ -19,7 +19,7 @@ func ConcourseClient(atcURL string) concourse.Client {
 }
 
 func GetATCToken(atcURL string) (*atc.AuthToken, error) {
-	response, err := http.Get(atcURL + "/api/v1/teams/main/auth/token")
+	response, err := httpClient().Get(atcURL + "/api/v1/teams/main/auth/token")
 	if err != nil {
 		return nil, err
 	}

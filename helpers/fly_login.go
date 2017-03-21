@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"time"
 
@@ -17,8 +19,24 @@ func FlyLogin(atcURL, concourseAlias, flyBinaryPath string) error {
 }
 
 func flyLogin(flyBinaryPath string, loginArgs []string) error {
-	args := append([]string{"login"}, loginArgs...)
-	loginCmd := exec.Command(flyBinaryPath, args...)
+	args := []string{"login"}
+	caCertContents, certProvided := os.LookupEnv("FLY_CA_CERT")
+	if certProvided {
+		pathToCaCert, err := ioutil.TempFile("", "testflight-ca-cert")
+		if err != nil {
+			return err
+		}
+
+		defer os.Remove(pathToCaCert.Name())
+
+		_, err = pathToCaCert.WriteString(caCertContents)
+		if err != nil {
+			return err
+		}
+
+		args = append(args, "--ca-cert", pathToCaCert.Name())
+	}
+	loginCmd := exec.Command(flyBinaryPath, append(args, loginArgs...)...)
 
 	loginProcess, err := gexec.Start(loginCmd, GinkgoWriter, GinkgoWriter)
 	if err != nil {

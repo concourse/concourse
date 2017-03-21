@@ -2,11 +2,19 @@
 
 cd $(dirname $0)
 
+deployment_name=concourse-testflight
+
 if bosh -v | grep -q BOSH; then
-  director_uuid=$(bosh status --uuid)
-  bosh update cloud-config manifests/cloud_config.yml
-  bosh -d <(cat manifests/deployment.yml | sed "s/director_uuid: ~/director_uuid: $director_uuid/g") -n deploy "$@"
+  echo "Please use the new golang bosh cli"
+  exit 1
 else
   bosh -n update-cloud-config manifests/cloud_config.yml "$@"
-  bosh -n -d concourse-testflight deploy manifests/deployment.yml "$@"
+  bosh -n -d "${deployment_name}" \
+    deploy manifests/deployment.yml \
+    -vweb_ip=10.244.15.2 \
+    -vdeployment_name="${deployment_name}" \
+    -vconcourse_version=latest \
+    -vgarden_runc_version=latest \
+    --vars-file=local_deploy_vars \
+    "$@"
 fi
