@@ -1,0 +1,131 @@
+---
+name: ((deployment-name))
+
+releases:
+- name: concourse
+  version: ((concourse-release-version))
+- name: garden-runc
+  version: ((garden-runc-release-version))
+
+instance_groups:
+- name: web
+  instances: 1
+  networks:
+  - name: topgun
+    static_ips: [((atc-ip))]
+  persistent_disk: 10240
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
+  - release: concourse
+    name: atc
+    properties:
+      no_really_i_dont_want_any_auth: true
+      log_level: debug
+      external_url: ((atc-external-url-tls))
+      postgresql_database: atc
+      tls_cert: |
+        -----BEGIN CERTIFICATE-----
+        MIIDTTCCAjWgAwIBAgIQTVQeQpeq5wUBE1vDqLyiGzANBgkqhkiG9w0BAQsFADAS
+        MRAwDgYDVQQKEwdBY21lIENvMB4XDTE3MDMxNDE3MzUwNloXDTI3MDMxMjE3MzUw
+        NlowEjEQMA4GA1UEChMHQWNtZSBDbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCC
+        AQoCggEBALX5MZm9UPvNsbqVdtkO82fe55vU6gAThIKFluGOkJ/rGAYWQewVKheO
+        0k+tERqq4KaOQUr7gf5vrfw+/tOAzwuSG19W+tPO9cWtOix1IG8wyoD6WrksZ02i
+        O8+B7buiGEW6gM8Nc8a/+nVXDxCNepI/iI/k0/7dj3f89yIldqi8J7zILuDQ1A81
+        v+S57K1Z5asdWNVZY8oVca8bQJhITP+x8tYTCYHiTTsvWXd/favgbSQc4IyyjDLu
+        lBJSvZmzup38wA9gBArsG7gfbFLLVvYL4i12M3duY1475MRDAsfqx7COk8GbQIhO
+        wtA9rInjNYLyD1oHDfo3FvLoYGt9OYECAwEAAaOBnjCBmzAOBgNVHQ8BAf8EBAMC
+        AqQwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB/zBjBgNVHREE
+        XDBahwQK6gEChwQK6gIChwQK6gMChwQK6gQChwQK6gUChwQK6gYChwQK6gcChwQK
+        6ggChwQK6gkChwQK6goChwQK6gsChwQK6gwChwQK6g0ChwQK6g4ChwQK6g8CMA0G
+        CSqGSIb3DQEBCwUAA4IBAQCoxA8niTHf6gKdakfUe/jHza5Y//3AyapGTMctnsP7
+        S3PD6tOSPFdAASAscx1bvDz2VwO8D2+8+kXbnevsm7rgqxx3N+IJOJVH12fgzxIs
+        H1hMSeYDRJMKZtZ7Lmwf0NSCEt4JZhMm9zjE2pIZXQsS6zisallnCjcMvAHubLWD
+        TuAuX7cToprK9vwBTyGbmYammSbtJsIJZh6bLR6nWH80ljVXRHpNGdXoDLT41BRf
+        B7M83yMCt5iF4sycrwhDqZNL1WF0VdppILVJ3qKJPfTX0TbYQp73ORJ/gNghACpO
+        NPjZA9Dm+gg2mBBYAc8FqMm2zSXUkK5l37kuQcBaxwdr
+        -----END CERTIFICATE-----
+      tls_key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        MIIEowIBAAKCAQEAtfkxmb1Q+82xupV22Q7zZ97nm9TqABOEgoWW4Y6Qn+sYBhZB
+        7BUqF47ST60RGqrgpo5BSvuB/m+t/D7+04DPC5IbX1b60871xa06LHUgbzDKgPpa
+        uSxnTaI7z4Htu6IYRbqAzw1zxr/6dVcPEI16kj+Ij+TT/t2Pd/z3IiV2qLwnvMgu
+        4NDUDzW/5LnsrVnlqx1Y1VljyhVxrxtAmEhM/7Hy1hMJgeJNOy9Zd399q+BtJBzg
+        jLKMMu6UElK9mbO6nfzAD2AECuwbuB9sUstW9gviLXYzd25jXjvkxEMCx+rHsI6T
+        wZtAiE7C0D2sieM1gvIPWgcN+jcW8uhga305gQIDAQABAoIBACsmL7C4x18t4xrP
+        HiNR/D2BCYJV9jaWajFY4/IQEBMbd9LZrEACtLxpTU0/SHL+Wc6kpK7W/HgMm0DY
+        3yvfuziPKJZu1YMr6/M3pDeufkZfV2VF+AU4ljY+ZdhKgsifIwpFsw1lrzJNi2IP
+        hq7yHUJYdlVIeUxR1RcqkJ80KvLPZFx1OnkIt39PMyUo5uYKwZQY4U67lrYWsRHl
+        ONGE3RIKjpyKdnXRIpmjBEKht7IpAXIIqZxjSUeJ+170Jg7Lp8uC8iLBWSSR5gKm
+        FLTQZrDhJXc0sVRL4BSVn5b9bzWs8eeGoc4nnUvJAjt2ONboo763T1TlW6iQxhAz
+        rX7L/RECgYEAz3eWeWvmsfelAYdVq/69YuKs7505tIJWSrM3Cw5/kJPThdF1EJqZ
+        T88wFgLPTRCI2z7WS/4Gvao3rO5hwemtBsj+NhTkuiibxfDaY5Rvtma/wx8pMK9o
+        irsN0nUgPUWxXqBJcwrviwf+v4qQa6CplidX5mMoDalG9gQAc00kB5sCgYEA4Iri
+        Y7XVf9wErWyL65BWq0LUnQTG94nykFbreozrWpYMJVb3q81lL5Z48Hev0nIUoKv6
+        iz+2+zrW4THJfuaf3UsZETtUi1n+c56cfJqw1j4eOFqBUn9SRxGoK8zYeONZo8SM
+        Z1bnFsV2ubnoOWFkaQFogfv/35nPZtTId3THCxMCgYAPS+HsUehQdtHTqwbGB6Iv
+        CEd34z+9714tY8lLJ2aAYmXWF/tpnfxvxfblqI9gPzfX8moacEBO+53fQjQy9+ep
+        +GfF1QSINTZHAdsYPHmAGVNKL6H51PUARYpfWgNmgRzyvR6tPMEsnwpJVQ4Q4Wef
+        iocQlX7+gtyYhvMBjU56wQKBgEhLz1qFWEmDoKnp8h8VaSJZMTWhLSLUcpoQsl7R
+        8pFHEIARQUs6paKt0yCxmJWsj4Gv/cpJ6HN5XWhCbHsEbGKG5HpM3QrFHg1B+2aP
+        M/K3K2m/kjXqsqYZREld+jDqGpmFFiPLsjn9uB1Sgze+aOL6Rhjb92WaE1IrnqP/
+        oHqrAoGBAMa+CtmLt75d0AUD2DCExuv8uCI9E7ZyHktno+rmGy//1Q+YHmh7iPyK
+        CY8BU7Hm/UiNtSi4sma8NoJtjOf6nbu5VxO3n3IuPLVhu5QPT3GyAfqiHLpa362t
+        XWrHQuDinAgyOetOml+C6gbykpyplqjXov24O64FXrd6G6CNIQzo
+        -----END RSA PRIVATE KEY-----
+
+  - release: concourse
+    name: tsa
+    properties: {}
+
+  - release: concourse
+    name: postgresql
+    properties:
+      databases:
+      - name: atc
+        role: atc
+        password: dummy-password
+
+- name: worker
+  instances: 1
+  networks:
+  - name: topgun
+  vm_type: topgun
+  stemcell: trusty
+  jobs:
+  - release: concourse
+    name: groundcrew
+    properties:
+      # prevent tests from hanging forever
+      drain_timeout: 10m
+
+      garden:
+        forward_address: 127.0.0.1:7777
+
+      baggageclaim:
+        forward_address: 127.0.0.1:7788
+
+  - release: concourse
+    name: baggageclaim
+    properties: {}
+
+  - release: garden-runc
+    name: garden
+    properties:
+      garden:
+        listen_network: tcp
+        listen_address: 0.0.0.0:7777
+        allow_host_access: true
+        network_mtu: 1460
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: ((stemcell-version))
+
+update:
+  canaries: 1
+  max_in_flight: 3
+  serial: false
+  canary_watch_time: 1000-300000
+  update_watch_time: 1000-300000

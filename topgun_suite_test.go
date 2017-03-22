@@ -36,6 +36,7 @@ var (
 	dbIP                      string
 	atcIP, atcExternalURL     string
 	atcIP2, atcExternalURL2   string
+	atcExternalURLTLS         string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion string
 	stemcellVersion                                   string
@@ -116,6 +117,7 @@ var _ = BeforeEach(func() {
 
 	atcExternalURL = fmt.Sprintf("http://%s:8080", atcIP)
 	atcExternalURL2 = fmt.Sprintf("http://%s:8080", atcIP2)
+	atcExternalURLTLS = fmt.Sprintf("https://%s:4443", atcIP)
 })
 
 var _ = AfterEach(func() {
@@ -143,6 +145,7 @@ func Deploy(manifest string, operations ...string) {
 			"-v", "db-ip=" + dbIP,
 			"-v", "atc-external-url=" + atcExternalURL,
 			"-v", "atc-external-url-2=" + atcExternalURL2,
+			"-v", "atc-external-url-tls=" + atcExternalURLTLS,
 			"-v", "concourse-release-version=" + concourseReleaseVersion,
 			"-v", "garden-runc-release-version=" + gardenRuncReleaseVersion,
 
