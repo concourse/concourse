@@ -855,7 +855,6 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webMux.Handle("/robots.txt", robotstxt.Handler{})
 	webMux.Handle("/", webHandler)
 
-
 	httpHandler := wrappa.SecurityHandler{
 		XFrameOptions: cmd.Server.XFrameOptions,
 
