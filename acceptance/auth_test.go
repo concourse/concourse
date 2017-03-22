@@ -185,6 +185,7 @@ var _ = Describe("Auth", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(page.Navigate(atcCommand.URL("/teams/main/login"))).To(Succeed())
+
 			Eventually(page.FindByLink("login with Example")).Should(BeFound())
 		})
 

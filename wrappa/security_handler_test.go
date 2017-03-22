@@ -6,15 +6,15 @@ import (
 
 	"github.com/concourse/atc/wrappa"
 
+	"github.com/concourse/atc/wrappa/wrappafakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/concourse/atc/wrappa/wrappafakes"
 )
 
 var _ = Describe("SecurityHandler", func() {
 	var (
-		request  *http.Request
-		rw *httptest.ResponseRecorder
+		request *http.Request
+		rw      *httptest.ResponseRecorder
 
 		fakeHandler *wrappafakes.FakeHandler
 
@@ -52,7 +52,7 @@ var _ = Describe("SecurityHandler", func() {
 		BeforeEach(func() {
 			securityHandler = wrappa.SecurityHandler{
 				XFrameOptions: "some-x-frame-options",
-				Handler: fakeHandler,
+				Handler:       fakeHandler,
 			}
 		})
 		It("sets the X-Frame-Options to whatever it was configured with", func() {
