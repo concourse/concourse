@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/atc/atccmd"
 	"github.com/concourse/tsa/tsacmd"
+	"github.com/concourse/tsa/tsaflags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
@@ -19,12 +20,12 @@ type WebCommand struct {
 	atccmd.ATCCommand
 
 	TSA struct {
-		BindIP   tsacmd.IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
+		BindIP   tsaflags.IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
 		BindPort uint16        `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
 
-		HostKeyPath            tsacmd.FileFlag        `long:"host-key"             required:"true" description:"Key to use for the TSA's ssh server."`
-		AuthorizedKeysPath     tsacmd.FileFlag        `long:"authorized-keys"      required:"true" description:"Path to a file containing public keys to authorize for SSH access."`
-		TeamAuthorizedKeysPath []tsacmd.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+		HostKeyPath            tsaflags.FileFlag        `long:"host-key"             required:"true" description:"Key to use for the TSA's ssh server."`
+		AuthorizedKeysPath     tsaflags.FileFlag        `long:"authorized-keys"      required:"true" description:"Path to a file containing public keys to authorize for SSH access."`
+		TeamAuthorizedKeysPath []tsaflags.InputPairFlag `long:"team-authorized-keys" value-name:"NAME=PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
 
 		HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
 	} `group:"TSA Configuration" namespace:"tsa"`
@@ -73,12 +74,16 @@ func (cmd *WebCommand) Execute(args []string) error {
 
 func (cmd *WebCommand) populateTSAFlagsFromATCFlags(tsa *tsacmd.TSACommand) error {
 	// TODO: flag types package plz
-	err := tsa.ATCURL.UnmarshalFlag(cmd.ATCCommand.PeerURL.String())
+
+	var f tsaflags.URLFlag
+	err := f.UnmarshalFlag(cmd.ATCCommand.PeerURL.String())
 	if err != nil {
 		return err
 	}
 
-	tsa.SessionSigningKeyPath = tsacmd.FileFlag(cmd.ATCCommand.SessionSigningKey)
+	tsa.ATCURLs = append(tsa.ATCURLs, f)
+
+	tsa.SessionSigningKeyPath = tsaflags.FileFlag(cmd.ATCCommand.SessionSigningKey)
 
 	host, _, err := net.SplitHostPort(cmd.ATCCommand.PeerURL.URL().Host)
 	if err != nil {
