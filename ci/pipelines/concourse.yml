@@ -376,6 +376,7 @@ jobs:
       BOSH_CLIENT: {{bosh-client-id}}
       BOSH_CLIENT_SECRET: {{bosh-client-secret}}
       BOSH_KEY: {{topgun-bosh-key}}
+      TOPGUN_NETWORK_OFFSET: 0
 
 - name: bosh-deploy
   serial: true

@@ -16,13 +16,14 @@ set -e
     peer_ip = spec.address
   end
 
-  atc_url = nil
+  atc_urls = []
   if_link("atc") do |atc|
     atc.instances.each do |instance|
-      atc_url = "http://#{instance.address}:#{atc.p("bind_port")}"
+      atc_urls << "http://#{instance.address}:#{atc.p("bind_port")}"
     end
   end
-  atc_url ||= "#{p("atc.url")}"
+
+  atc_urls = p("atc.urls") if atc_urls.empty?
 
   teamAuthorizedKeys = Hash.new
   p("team_authorized_keys").each do |a|
@@ -84,7 +85,9 @@ EOF
 
     # TODO: TSA should support multiple ATCs
     exec chpst -u vcap:vcap /var/vcap/packages/tsa/bin/tsa \
+      <% atc_urls.each do |atc_url| %> \
       --atc-url <%= atc_url %> \
+      <% end %> \
       --peer-ip <%= peer_ip %> \
       --bind-port <%= p("bind_port") %> \
       <% if p("host_key") != "" %> \

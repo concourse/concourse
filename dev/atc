@@ -14,16 +14,22 @@ go install github.com/concourse/atc/cmd/atc
 
 pg_port=${POSTGRES_PORT:-6543}
 external_ip="$($ROOT/dev/util/external-ip)"
+echo $external_ip
 
 until createdb -U postgres -p ${pg_port} atc 2>&1 | grep 'already exists' >/dev/null; do
   echo creating database...
   sleep 1
 done
 
-exec atc \
+atc \
+  --github-auth-client-id b0f64088163efa671b1a \
+  --github-auth-client-secret 90a1540774e35f7ebe7929c91cb06275d8aff28c \
+  --github-auth-user joshzarrabi \
+  --tls-cert /tmp/atc_certs/server.crt \
+  --tls-key /tmp/atc_certs/server.key \
+  --tls-bind-port 8443 \
   --log-level debug \
-  --no-really-i-dont-want-any-auth \
-  --external-url "http://${external_ip}:8080" \
+  --external-url "https://127.0.0.1:8443" \
   --session-signing-key $KEYSDIR/web/session_signing_key \
   --postgres-data-source "user=postgres dbname=atc port=${pg_port} sslmode=disable" \
   "$@"
