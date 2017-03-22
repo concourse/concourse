@@ -32,12 +32,14 @@ type Worker struct {
 	HTTPSProxyURL   string
 	NoProxy         string
 
-	ActiveContainers int
-	ResourceTypes    []atc.WorkerResourceType
-	Platform         string
-	Tags             []string
-	TeamID           int
-	StartTime        int64
+	ActiveContainers           int
+	CertificatesPath           string
+	CertificatesSymlinkedPaths []string
+	ResourceTypes              []atc.WorkerResourceType
+	Platform                   string
+	Tags                       []string
+	TeamID                     int
+	StartTime                  int64
 
 	TeamName  string
 	ExpiresIn time.Duration

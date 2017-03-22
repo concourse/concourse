@@ -169,4 +169,11 @@ type VolumeProperties map[string]string
 type VolumeIdentifier db.VolumeIdentifier
 
 type Identifier db.ContainerIdentifier
+
 type Metadata db.ContainerMetadata
+
+func (m Metadata) IsForResource() bool {
+	return m.Type == db.ContainerTypeCheck ||
+		m.Type == db.ContainerTypeGet ||
+		m.Type == db.ContainerTypePut
+}
