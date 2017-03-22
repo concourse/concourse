@@ -10,7 +10,7 @@ import (
 )
 
 func (cmd *WorkerCommand) naiveBaggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
-	volumesDir := filepath.Join(cmd.WorkDir, "volumes")
+	volumesDir := filepath.Join(cmd.WorkDir.Path(), "volumes")
 
 	err := os.MkdirAll(volumesDir, 0755)
 	if err != nil {

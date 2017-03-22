@@ -17,7 +17,7 @@ import (
 )
 
 func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (atc.Worker, ifrit.Runner, error) {
-	depotDir := filepath.Join(cmd.WorkDir, "containers")
+	depotDir := filepath.Join(cmd.WorkDir.Path(), "containers")
 
 	err := os.MkdirAll(depotDir, 0755)
 	if err != nil {

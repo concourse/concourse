@@ -23,11 +23,19 @@ import (
 
 const btrfsFSType = 0x9123683e
 
-type GardenBackend guardiancmd.GuardianCommand
+type GardenBackend guardiancmd.ServerCommand
 
 func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
+	command.FindOptionByLongName("garden-bind-port").Default = []string{"7777"}
+
+	// configured as work-dir/depot
 	command.FindOptionByLongName("garden-depot").Required = false
+
+	// un-configure graph (default /var/gdn/graph)
 	command.FindOptionByLongName("garden-graph").Required = false
+	command.FindOptionByLongName("garden-graph").Default = []string{}
+
+	// these are provided as assets embedded in the 'concourse' binary
 	command.FindOptionByLongName("garden-runc-bin").Required = false
 	command.FindOptionByLongName("garden-dadoo-bin").Required = false
 	command.FindOptionByLongName("garden-init-bin").Required = false
@@ -49,7 +57,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	depotDir := filepath.Join(cmd.WorkDir, "depot")
+	depotDir := filepath.Join(cmd.WorkDir.Path(), "depot")
 
 	// must be readable by other users so unprivileged containers can run their
 	// own `initc' process
@@ -60,7 +68,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 
 	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP)
 
-	cmd.Garden.Containers.Dir = guardiancmd.DirFlag(depotDir)
+	cmd.Garden.Containers.Dir = depotDir
 
 	cmd.Garden.Bin.Runc = filepath.Join(assetsDir, "bin", "runc")
 	cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "dadoo"))
@@ -111,12 +119,12 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	runner := guardiancmd.GuardianCommand(cmd.Garden)
+	runner := guardiancmd.ServerCommand(cmd.Garden)
 	return worker, &runner, nil
 }
 
 func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, error) {
-	assetsDir := filepath.Join(cmd.WorkDir, Version)
+	assetsDir := filepath.Join(cmd.WorkDir.Path(), Version)
 
 	restoredDir := filepath.Join(assetsDir, "linux")
 
@@ -154,8 +162,8 @@ func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, e
 }
 
 func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
-	volumesImage := filepath.Join(cmd.WorkDir, "volumes.img")
-	volumesDir := filepath.Join(cmd.WorkDir, "volumes")
+	volumesImage := filepath.Join(cmd.WorkDir.Path(), "volumes.img")
+	volumesDir := filepath.Join(cmd.WorkDir.Path(), "volumes")
 
 	assetsDir, err := cmd.restoreVersionedAssets(logger.Session("unpack-assets"))
 	if err != nil {
