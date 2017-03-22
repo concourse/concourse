@@ -320,7 +320,7 @@ jobs:
   - task: testflight
     file: concourse/ci/testflight.yml
     params:
-      ATC_URL: "http://10.244.15.2:8080"
+      ATC_URL: "https://10.244.15.2:4443"
       FLY_CA_CERT: {{testflight-tls-cert}}
     timeout: 1h
 
@@ -808,7 +808,7 @@ resources:
   source:
     target: {{bosh-target}}
     deployment: concourse-testflight
-    client_id: {{bosh-client-id}}
+    client: {{bosh-client-id}}
     client_secret: {{bosh-client-secret}}
 
 - name: cessna-bosh-deployment
@@ -816,7 +816,7 @@ resources:
   source:
     target: {{bosh-target}}
     deployment: concourse-cessna
-    client_id: {{bosh-client-id}}
+    client: {{bosh-client-id}}
     client_secret: {{bosh-client-secret}}
 
 - name: virtualbox-box-cloud
