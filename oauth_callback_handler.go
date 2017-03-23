@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+	"regexp"
 )
 
 type OAuthCallbackHandler struct {
@@ -183,6 +184,15 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		Path:   "/",
 		MaxAge: -1,
 	})
+
+	const redirectRegExp = `^(?:\/[a-zA-Z0-9\-]*)+\/?$`
+	regMatch, _ := regexp.Compile(redirectRegExp)
+
+	if oauthState.Redirect != "" && !regMatch.MatchString(oauthState.Redirect) {
+		hLog.Info("invalid-redirect")
+		http.Error(w, "invalid redirect", http.StatusBadRequest)
+		return
+	}
 
 	if oauthState.Redirect != "" {
 		http.Redirect(w, r, oauthState.Redirect, http.StatusTemporaryRedirect)
