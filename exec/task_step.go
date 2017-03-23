@@ -188,6 +188,8 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	} else {
 		step.logger.Info("spawning")
 
+		step.delegate.Started()
+
 		step.process, err = container.Run(garden.ProcessSpec{
 			ID: taskProcessID,
 
@@ -198,8 +200,6 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			Dir: path.Join(step.artifactsRoot, config.Run.Dir),
 			TTY: &garden.TTYSpec{},
 		}, processIO)
-
-		step.delegate.Started()
 	}
 	if err != nil {
 		return err
