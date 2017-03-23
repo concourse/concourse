@@ -47,25 +47,7 @@ func (f *workerFactory) GetWorker(name string) (*Worker, bool, error) {
 
 	defer tx.Rollback()
 
-	row := psql.Select(`
-		w.name,
-		w.addr,
-		w.state,
-		w.baggageclaim_url,
-		w.http_proxy_url,
-		w.https_proxy_url,
-		w.no_proxy,
-		w.active_containers,
-		w.resource_types,
-		w.platform,
-		w.tags,
-		w.team_id,
-		w.start_time,
-		t.name,
-		EXTRACT(epoch FROM w.expires - NOW())
-	`).
-		From("workers w").
-		LeftJoin("teams t ON w.team_id = t.id").
+	row := workersQuery.
 		Where(sq.Eq{"w.name": name}).
 		RunWith(tx).
 		QueryRow()
@@ -94,6 +76,8 @@ var workersQuery = psql.Select(`
 		w.http_proxy_url,
 		w.https_proxy_url,
 		w.no_proxy,
+		w.certificates_path,
+		w.certificates_symlinked_paths,
 		w.active_containers,
 		w.resource_types,
 		w.platform,
@@ -151,13 +135,15 @@ func (f *workerFactory) getWorkers(teamName *string) ([]*Worker, error) {
 
 func scanWorker(row scannable) (*Worker, error) {
 	var (
-		name          string
-		addStr        sql.NullString
-		state         string
-		bcURLStr      sql.NullString
-		httpProxyURL  sql.NullString
-		httpsProxyURL sql.NullString
-		noProxy       sql.NullString
+		name               string
+		addStr             sql.NullString
+		state              string
+		bcURLStr           sql.NullString
+		httpProxyURL       sql.NullString
+		httpsProxyURL      sql.NullString
+		noProxy            sql.NullString
+		certPath           sql.NullString
+		certSymlinkedPaths []byte
 
 		activeContainers int
 		resourceTypes    []byte
@@ -178,6 +164,8 @@ func scanWorker(row scannable) (*Worker, error) {
 		&httpProxyURL,
 		&httpsProxyURL,
 		&noProxy,
+		&certPath,
+		&certSymlinkedPaths,
 		&activeContainers,
 		&resourceTypes,
 		&platform,
@@ -227,6 +215,10 @@ func scanWorker(row scannable) (*Worker, error) {
 		worker.NoProxy = noProxy.String
 	}
 
+	if certPath.Valid {
+		worker.CertificatesPath = certPath.String
+	}
+
 	if teamName.Valid {
 		worker.TeamName = teamName.String
 	}
@@ -237,6 +229,11 @@ func scanWorker(row scannable) (*Worker, error) {
 
 	if platform.Valid {
 		worker.Platform = platform.String
+	}
+
+	err = json.Unmarshal(certSymlinkedPaths, &worker.CertificatesSymlinkedPaths)
+	if err != nil {
+		return nil, err
 	}
 
 	err = json.Unmarshal(resourceTypes, &worker.ResourceTypes)
@@ -784,6 +781,11 @@ func saveWorker(tx Tx, worker atc.Worker, team *team, ttl time.Duration) (*Worke
 		return nil, err
 	}
 
+	certificatesSymlinkedPaths, err := json.Marshal(worker.CertificatesSymlinkedPaths)
+	if err != nil {
+		return nil, err
+	}
+
 	expires := "NULL"
 	if ttl != 0 {
 		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
@@ -821,6 +823,8 @@ func saveWorker(tx Tx, worker atc.Worker, team *team, ttl time.Duration) (*Worke
 					"http_proxy_url",
 					"https_proxy_url",
 					"no_proxy",
+					"certificates_path",
+					"certificates_symlinked_paths",
 					"name",
 					"start_time",
 					"team_id",
@@ -837,6 +841,8 @@ func saveWorker(tx Tx, worker atc.Worker, team *team, ttl time.Duration) (*Worke
 					worker.HTTPProxyURL,
 					worker.HTTPSProxyURL,
 					worker.NoProxy,
+					worker.CertificatesPath,
+					certificatesSymlinkedPaths,
 					worker.Name,
 					worker.StartTime,
 					teamID,
@@ -871,6 +877,8 @@ func saveWorker(tx Tx, worker atc.Worker, team *team, ttl time.Duration) (*Worke
 			Set("name", worker.Name).
 			Set("start_time", worker.StartTime).
 			Set("state", string(workerState)).
+			Set("certificates_path", worker.CertificatesPath).
+			Set("certificates_symlinked_paths", certificatesSymlinkedPaths).
 			Where(sq.Eq{
 				"name": worker.Name,
 			}).

@@ -27,29 +27,31 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		logger                 *lagertest.TestLogger
-		fakeGardenClient       *gfakes.FakeClient
-		fakeBaggageclaimClient *bfakes.FakeClient
-		fakeVolumeClient       *wfakes.FakeVolumeClient
-		fakeVolumeFactory      *wfakes.FakeVolumeFactory
-		fakeImageFactory       *wfakes.FakeImageFactory
-		fakeImage              *wfakes.FakeImage
-		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
-		fakeWorkerProvider     *wfakes.FakeWorkerProvider
-		fakeClock              *fakeclock.FakeClock
-		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
-		activeContainers       int
-		resourceTypes          []atc.WorkerResourceType
-		platform               string
-		tags                   atc.Tags
-		teamID                 int
-		workerName             string
-		workerStartTime        int64
-		httpProxyURL           string
-		httpsProxyURL          string
-		noProxy                string
-		origUptime             time.Duration
-		workerUptime           uint64
+		logger                    *lagertest.TestLogger
+		fakeGardenClient          *gfakes.FakeClient
+		fakeBaggageclaimClient    *bfakes.FakeClient
+		fakeVolumeClient          *wfakes.FakeVolumeClient
+		fakeVolumeFactory         *wfakes.FakeVolumeFactory
+		fakeImageFactory          *wfakes.FakeImageFactory
+		fakeImage                 *wfakes.FakeImage
+		fakeGardenWorkerDB        *wfakes.FakeGardenWorkerDB
+		fakeWorkerProvider        *wfakes.FakeWorkerProvider
+		fakeClock                 *fakeclock.FakeClock
+		fakePipelineDBFactory     *dbfakes.FakePipelineDBFactory
+		activeContainers          int
+		resourceTypes             []atc.WorkerResourceType
+		platform                  string
+		tags                      atc.Tags
+		teamID                    int
+		workerName                string
+		workerStartTime           int64
+		httpProxyURL              string
+		httpsProxyURL             string
+		noProxy                   string
+		origUptime                time.Duration
+		workerUptime              uint64
+		certificatePath           string
+		symlinkedCertificatePaths []string
 
 		gardenWorker Worker
 	)
@@ -81,6 +83,8 @@ var _ = Describe("Worker", func() {
 		workerName = "some-worker"
 		workerStartTime = fakeClock.Now().Unix()
 		workerUptime = 0
+		certificatePath = "some-cert-path"
+		symlinkedCertificatePaths = []string{"some-cert-symlinked-path-1", "some-cert-symlinked-path-2"}
 	})
 
 	JustBeforeEach(func() {
@@ -104,6 +108,8 @@ var _ = Describe("Worker", func() {
 			httpProxyURL,
 			httpsProxyURL,
 			noProxy,
+			certificatePath,
+			symlinkedCertificatePaths,
 		)
 
 		origUptime = gardenWorker.Uptime()
@@ -136,6 +142,7 @@ var _ = Describe("Worker", func() {
 
 			containerMetadata = Metadata{
 				BuildName: "lol",
+				Type:      db.ContainerTypeTask,
 				TeamID:    teamID,
 			}
 
@@ -196,6 +203,38 @@ var _ = Describe("Worker", func() {
 			Expect(actualGardenSpec.Properties["user"]).To(Equal(""))
 			Expect(actualGardenSpec.Privileged).To(BeTrue())
 			Expect(actualGardenSpec.RootFSPath).To(Equal("some-image"))
+			Expect(actualGardenSpec.BindMounts).To(Equal([]garden.BindMount{}))
+		})
+
+		Context("when container is for resource", func() {
+			BeforeEach(func() {
+				containerMetadata = Metadata{
+					BuildName: "lol",
+					Type:      db.ContainerTypeGet,
+					TeamID:    teamID,
+				}
+			})
+
+			It("creates bind mount for certificates", func() {
+				containerSpec := fakeGardenClient.CreateArgsForCall(0)
+				Expect(containerSpec.BindMounts).To(Equal([]garden.BindMount{
+					{SrcPath: "some-cert-path", DstPath: "/etc/ssl/certs", Mode: garden.BindMountModeRO},
+					{SrcPath: "some-cert-symlinked-path-1", DstPath: "some-cert-symlinked-path-1", Mode: garden.BindMountModeRO},
+					{SrcPath: "some-cert-symlinked-path-2", DstPath: "some-cert-symlinked-path-2", Mode: garden.BindMountModeRO},
+				}))
+			})
+
+			Context("when certificate path is empty", func() {
+				BeforeEach(func() {
+					certificatePath = ""
+					symlinkedCertificatePaths = nil
+				})
+
+				It("does not create bind mounts for certificates", func() {
+					containerSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(containerSpec.BindMounts).To(Equal([]garden.BindMount{}))
+				})
+			})
 		})
 
 		It("tries to create the container in the db", func() {
@@ -211,6 +250,7 @@ var _ = Describe("Worker", func() {
 					Handle:     "some-container-handle",
 					WorkerName: "some-worker",
 					TeamID:     teamID,
+					Type:       db.ContainerTypeTask,
 				}),
 			}))
 
@@ -530,6 +570,48 @@ var _ = Describe("Worker", func() {
 						Mode:    garden.BindMountModeRW,
 					},
 				}))
+			})
+
+			Context("when container is for resource", func() {
+				BeforeEach(func() {
+					containerMetadata = Metadata{
+						BuildName: "lol",
+						Type:      db.ContainerTypeGet,
+						TeamID:    teamID,
+					}
+				})
+
+				It("creates bind mount for certificates", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.BindMounts).To(ConsistOf([]garden.BindMount{
+						{
+							SrcPath: "some-cert-path",
+							DstPath: "/etc/ssl/certs",
+							Mode:    garden.BindMountModeRO,
+						},
+						{
+							SrcPath: "some-cert-symlinked-path-1",
+							DstPath: "some-cert-symlinked-path-1",
+							Mode:    garden.BindMountModeRO,
+						},
+						{
+							SrcPath: "some-cert-symlinked-path-2",
+							DstPath: "some-cert-symlinked-path-2",
+							Mode:    garden.BindMountModeRO,
+						},
+						{
+							SrcPath: "vol-1-path",
+							DstPath: "vol-1-mount-path",
+							Mode:    garden.BindMountModeRW,
+						},
+						{
+							SrcPath: "vol-2-path",
+							DstPath: "vol-2-mount-path",
+							Mode:    garden.BindMountModeRW,
+						},
+					}))
+				})
 			})
 
 			It("adds each output volume to the garden spec properties", func() {
@@ -1341,6 +1423,8 @@ var _ = Describe("Worker", func() {
 								httpProxyURL,
 								httpsProxyURL,
 								noProxy,
+								"some-certificates-path",
+								nil,
 							)
 							foundContainer, found, findErr = gardenWorker.LookupContainer(logger, handle)
 						})
@@ -1405,6 +1489,8 @@ var _ = Describe("Worker", func() {
 								httpProxyURL,
 								httpsProxyURL,
 								noProxy,
+								"some-certificates-path",
+								nil,
 							)
 							foundContainer, found, findErr = gardenWorker.LookupContainer(logger, handle)
 						})

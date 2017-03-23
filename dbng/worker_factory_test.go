@@ -21,12 +21,14 @@ var _ = Describe("WorkerFactory", func() {
 
 	BeforeEach(func() {
 		atcWorker = atc.Worker{
-			GardenAddr:       "some-garden-addr",
-			BaggageclaimURL:  "some-bc-url",
-			HTTPProxyURL:     "some-http-proxy-url",
-			HTTPSProxyURL:    "some-https-proxy-url",
-			NoProxy:          "some-no-proxy",
-			ActiveContainers: 140,
+			GardenAddr:                 "some-garden-addr",
+			BaggageclaimURL:            "some-bc-url",
+			HTTPProxyURL:               "some-http-proxy-url",
+			HTTPSProxyURL:              "some-https-proxy-url",
+			NoProxy:                    "some-no-proxy",
+			CertificatesPath:           "some-certificate-path",
+			CertificatesSymlinkedPaths: []string{"some-certificate-symlinked-path-1", "some-certificate-symlinked-path-2"},
+			ActiveContainers:           140,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:    "some-resource-type",
@@ -100,6 +102,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.HTTPProxyURL).To(Equal("some-http-proxy-url"))
 				Expect(foundWorker.HTTPSProxyURL).To(Equal("some-https-proxy-url"))
 				Expect(foundWorker.NoProxy).To(Equal("some-no-proxy"))
+				Expect(foundWorker.CertificatesPath).To(Equal("some-certificate-path"))
 				Expect(foundWorker.ActiveContainers).To(Equal(140))
 				Expect(foundWorker.ResourceTypes).To(Equal([]atc.WorkerResourceType{
 					{
@@ -157,14 +160,16 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(len(workers)).To(Equal(2))
 				Expect(workers).To(ConsistOf(
 					&dbng.Worker{
-						GardenAddr:       &addr,
-						Name:             "some-name",
-						State:            "running",
-						BaggageclaimURL:  &bcURL,
-						HTTPProxyURL:     "some-http-proxy-url",
-						HTTPSProxyURL:    "some-https-proxy-url",
-						NoProxy:          "some-no-proxy",
-						ActiveContainers: 140,
+						GardenAddr:                 &addr,
+						Name:                       "some-name",
+						State:                      "running",
+						BaggageclaimURL:            &bcURL,
+						HTTPProxyURL:               "some-http-proxy-url",
+						HTTPSProxyURL:              "some-https-proxy-url",
+						NoProxy:                    "some-no-proxy",
+						CertificatesPath:           "some-certificate-path",
+						CertificatesSymlinkedPaths: []string{"some-certificate-symlinked-path-1", "some-certificate-symlinked-path-2"},
+						ActiveContainers:           140,
 						ResourceTypes: []atc.WorkerResourceType{
 							{
 								Type:    "some-resource-type",
@@ -182,14 +187,16 @@ var _ = Describe("WorkerFactory", func() {
 						StartTime: 55,
 					},
 					&dbng.Worker{
-						GardenAddr:       &otherAddr,
-						Name:             "some-new-worker",
-						State:            "running",
-						BaggageclaimURL:  &otherBcURL,
-						HTTPProxyURL:     "some-http-proxy-url",
-						HTTPSProxyURL:    "some-https-proxy-url",
-						NoProxy:          "some-no-proxy",
-						ActiveContainers: 140,
+						GardenAddr:                 &otherAddr,
+						Name:                       "some-new-worker",
+						State:                      "running",
+						BaggageclaimURL:            &otherBcURL,
+						HTTPProxyURL:               "some-http-proxy-url",
+						HTTPSProxyURL:              "some-https-proxy-url",
+						NoProxy:                    "some-no-proxy",
+						CertificatesPath:           "some-certificate-path",
+						CertificatesSymlinkedPaths: []string{"some-certificate-symlinked-path-1", "some-certificate-symlinked-path-2"},
+						ActiveContainers:           140,
 						ResourceTypes: []atc.WorkerResourceType{
 							{
 								Type:    "some-resource-type",

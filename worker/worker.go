@@ -85,16 +85,18 @@ type gardenWorker struct {
 
 	clock clock.Clock
 
-	activeContainers int
-	resourceTypes    []atc.WorkerResourceType
-	platform         string
-	tags             atc.Tags
-	teamID           int
-	name             string
-	startTime        int64
-	httpProxyURL     string
-	httpsProxyURL    string
-	noProxy          string
+	activeContainers            int
+	resourceTypes               []atc.WorkerResourceType
+	platform                    string
+	tags                        atc.Tags
+	teamID                      int
+	name                        string
+	startTime                   int64
+	httpProxyURL                string
+	httpsProxyURL               string
+	noProxy                     string
+	certificatesPath            string
+	certificatesSymmlinkedPaths []string
 }
 
 func NewGardenWorker(
@@ -117,27 +119,31 @@ func NewGardenWorker(
 	httpProxyURL string,
 	httpsProxyURL string,
 	noProxy string,
+	certificatesPath string,
+	certificatesSymmlinkedPaths []string,
 ) Worker {
 	return &gardenWorker{
-		gardenClient:       gardenClient,
-		baggageclaimClient: baggageclaimClient,
-		volumeClient:       volumeClient,
-		volumeFactory:      volumeFactory,
-		imageFactory:       imageFactory,
-		db:                 db,
-		provider:           provider,
-		clock:              clock,
-		pipelineDBFactory:  pipelineDBFactory,
-		activeContainers:   activeContainers,
-		resourceTypes:      resourceTypes,
-		platform:           platform,
-		tags:               tags,
-		teamID:             teamID,
-		name:               name,
-		startTime:          startTime,
-		httpProxyURL:       httpProxyURL,
-		httpsProxyURL:      httpsProxyURL,
-		noProxy:            noProxy,
+		gardenClient:                gardenClient,
+		baggageclaimClient:          baggageclaimClient,
+		volumeClient:                volumeClient,
+		volumeFactory:               volumeFactory,
+		imageFactory:                imageFactory,
+		db:                          db,
+		provider:                    provider,
+		clock:                       clock,
+		pipelineDBFactory:           pipelineDBFactory,
+		activeContainers:            activeContainers,
+		resourceTypes:               resourceTypes,
+		platform:                    platform,
+		tags:                        tags,
+		teamID:                      teamID,
+		name:                        name,
+		startTime:                   startTime,
+		httpProxyURL:                httpProxyURL,
+		httpsProxyURL:               httpsProxyURL,
+		noProxy:                     noProxy,
+		certificatesPath:            certificatesPath,
+		certificatesSymmlinkedPaths: certificatesSymmlinkedPaths,
 	}
 }
 
@@ -401,6 +407,22 @@ func (worker *gardenWorker) CreateContainer(
 	}
 
 	bindMounts := []garden.BindMount{}
+
+	if metadata.IsForResource() {
+		if worker.certificatesPath != "" {
+			bindMounts = append(bindMounts,
+				garden.BindMount{SrcPath: worker.certificatesPath, DstPath: "/etc/ssl/certs", Mode: garden.BindMountModeRO},
+			)
+			if worker.certificatesSymmlinkedPaths != nil {
+				for _, certSymlinkedPath := range worker.certificatesSymmlinkedPaths {
+					bindMounts = append(bindMounts,
+						garden.BindMount{SrcPath: certSymlinkedPath, DstPath: certSymlinkedPath, Mode: garden.BindMountModeRO},
+					)
+				}
+			}
+		}
+	}
+
 	volumeHandles := []string{}
 	volumeHandleMounts := map[string]string{}
 	for _, mount := range volumeMounts {
