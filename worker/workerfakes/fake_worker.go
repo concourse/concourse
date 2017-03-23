@@ -109,22 +109,6 @@ type FakeWorker struct {
 		result2 bool
 		result3 error
 	}
-	FindContainerForIdentifierStub        func(lager.Logger, worker.Identifier) (worker.Container, bool, error)
-	findContainerForIdentifierMutex       sync.RWMutex
-	findContainerForIdentifierArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 worker.Identifier
-	}
-	findContainerForIdentifierReturns struct {
-		result1 worker.Container
-		result2 bool
-		result3 error
-	}
-	findContainerForIdentifierReturnsOnCall map[int]struct {
-		result1 worker.Container
-		result2 bool
-		result3 error
-	}
 	FindContainerByHandleStub        func(lager.Logger, string, int) (worker.Container, bool, error)
 	findContainerByHandleMutex       sync.RWMutex
 	findContainerByHandleArgsForCall []struct {
@@ -572,61 +556,6 @@ func (fake *FakeWorker) FindInitializedVolumeForResourceCacheReturnsOnCall(i int
 	}
 	fake.findInitializedVolumeForResourceCacheReturnsOnCall[i] = struct {
 		result1 worker.Volume
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeWorker) FindContainerForIdentifier(arg1 lager.Logger, arg2 worker.Identifier) (worker.Container, bool, error) {
-	fake.findContainerForIdentifierMutex.Lock()
-	ret, specificReturn := fake.findContainerForIdentifierReturnsOnCall[len(fake.findContainerForIdentifierArgsForCall)]
-	fake.findContainerForIdentifierArgsForCall = append(fake.findContainerForIdentifierArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 worker.Identifier
-	}{arg1, arg2})
-	fake.recordInvocation("FindContainerForIdentifier", []interface{}{arg1, arg2})
-	fake.findContainerForIdentifierMutex.Unlock()
-	if fake.FindContainerForIdentifierStub != nil {
-		return fake.FindContainerForIdentifierStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.findContainerForIdentifierReturns.result1, fake.findContainerForIdentifierReturns.result2, fake.findContainerForIdentifierReturns.result3
-}
-
-func (fake *FakeWorker) FindContainerForIdentifierCallCount() int {
-	fake.findContainerForIdentifierMutex.RLock()
-	defer fake.findContainerForIdentifierMutex.RUnlock()
-	return len(fake.findContainerForIdentifierArgsForCall)
-}
-
-func (fake *FakeWorker) FindContainerForIdentifierArgsForCall(i int) (lager.Logger, worker.Identifier) {
-	fake.findContainerForIdentifierMutex.RLock()
-	defer fake.findContainerForIdentifierMutex.RUnlock()
-	return fake.findContainerForIdentifierArgsForCall[i].arg1, fake.findContainerForIdentifierArgsForCall[i].arg2
-}
-
-func (fake *FakeWorker) FindContainerForIdentifierReturns(result1 worker.Container, result2 bool, result3 error) {
-	fake.FindContainerForIdentifierStub = nil
-	fake.findContainerForIdentifierReturns = struct {
-		result1 worker.Container
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeWorker) FindContainerForIdentifierReturnsOnCall(i int, result1 worker.Container, result2 bool, result3 error) {
-	fake.FindContainerForIdentifierStub = nil
-	if fake.findContainerForIdentifierReturnsOnCall == nil {
-		fake.findContainerForIdentifierReturnsOnCall = make(map[int]struct {
-			result1 worker.Container
-			result2 bool
-			result3 error
-		})
-	}
-	fake.findContainerForIdentifierReturnsOnCall[i] = struct {
-		result1 worker.Container
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -1285,8 +1214,6 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.createVolumeForResourceCacheMutex.RUnlock()
 	fake.findInitializedVolumeForResourceCacheMutex.RLock()
 	defer fake.findInitializedVolumeForResourceCacheMutex.RUnlock()
-	fake.findContainerForIdentifierMutex.RLock()
-	defer fake.findContainerForIdentifierMutex.RUnlock()
 	fake.findContainerByHandleMutex.RLock()
 	defer fake.findContainerByHandleMutex.RUnlock()
 	fake.findResourceTypeByPathMutex.RLock()

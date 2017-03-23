@@ -39,21 +39,6 @@ type FakeWorkerDB struct {
 		result2 bool
 		result3 error
 	}
-	FindContainerByIdentifierStub        func(db.ContainerIdentifier) (db.SavedContainer, bool, error)
-	findContainerByIdentifierMutex       sync.RWMutex
-	findContainerByIdentifierArgsForCall []struct {
-		arg1 db.ContainerIdentifier
-	}
-	findContainerByIdentifierReturns struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}
-	findContainerByIdentifierReturnsOnCall map[int]struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}
 	GetPipelineByIDStub        func(pipelineID int) (db.SavedPipeline, error)
 	getPipelineByIDMutex       sync.RWMutex
 	getPipelineByIDArgsForCall []struct {
@@ -200,60 +185,6 @@ func (fake *FakeWorkerDB) GetContainerReturnsOnCall(i int, result1 db.SavedConta
 		})
 	}
 	fake.getContainerReturnsOnCall[i] = struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeWorkerDB) FindContainerByIdentifier(arg1 db.ContainerIdentifier) (db.SavedContainer, bool, error) {
-	fake.findContainerByIdentifierMutex.Lock()
-	ret, specificReturn := fake.findContainerByIdentifierReturnsOnCall[len(fake.findContainerByIdentifierArgsForCall)]
-	fake.findContainerByIdentifierArgsForCall = append(fake.findContainerByIdentifierArgsForCall, struct {
-		arg1 db.ContainerIdentifier
-	}{arg1})
-	fake.recordInvocation("FindContainerByIdentifier", []interface{}{arg1})
-	fake.findContainerByIdentifierMutex.Unlock()
-	if fake.FindContainerByIdentifierStub != nil {
-		return fake.FindContainerByIdentifierStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.findContainerByIdentifierReturns.result1, fake.findContainerByIdentifierReturns.result2, fake.findContainerByIdentifierReturns.result3
-}
-
-func (fake *FakeWorkerDB) FindContainerByIdentifierCallCount() int {
-	fake.findContainerByIdentifierMutex.RLock()
-	defer fake.findContainerByIdentifierMutex.RUnlock()
-	return len(fake.findContainerByIdentifierArgsForCall)
-}
-
-func (fake *FakeWorkerDB) FindContainerByIdentifierArgsForCall(i int) db.ContainerIdentifier {
-	fake.findContainerByIdentifierMutex.RLock()
-	defer fake.findContainerByIdentifierMutex.RUnlock()
-	return fake.findContainerByIdentifierArgsForCall[i].arg1
-}
-
-func (fake *FakeWorkerDB) FindContainerByIdentifierReturns(result1 db.SavedContainer, result2 bool, result3 error) {
-	fake.FindContainerByIdentifierStub = nil
-	fake.findContainerByIdentifierReturns = struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeWorkerDB) FindContainerByIdentifierReturnsOnCall(i int, result1 db.SavedContainer, result2 bool, result3 error) {
-	fake.FindContainerByIdentifierStub = nil
-	if fake.findContainerByIdentifierReturnsOnCall == nil {
-		fake.findContainerByIdentifierReturnsOnCall = make(map[int]struct {
-			result1 db.SavedContainer
-			result2 bool
-			result3 error
-		})
-	}
-	fake.findContainerByIdentifierReturnsOnCall[i] = struct {
 		result1 db.SavedContainer
 		result2 bool
 		result3 error
@@ -428,8 +359,6 @@ func (fake *FakeWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RUnlock()
 	fake.getContainerMutex.RLock()
 	defer fake.getContainerMutex.RUnlock()
-	fake.findContainerByIdentifierMutex.RLock()
-	defer fake.findContainerByIdentifierMutex.RUnlock()
 	fake.getPipelineByIDMutex.RLock()
 	defer fake.getPipelineByIDMutex.RUnlock()
 	fake.acquireVolumeCreatingLockMutex.RLock()
