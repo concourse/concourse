@@ -800,7 +800,7 @@ resources:
   source:
     target: {{bosh-target}}
     deployment: {{bosh-deployment}}
-    client_id: {{bosh-client-id}}
+    client: {{bosh-client-id}}
     client_secret: {{bosh-client-secret}}
 
 - name: tf-deployment
