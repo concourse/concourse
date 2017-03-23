@@ -59,7 +59,6 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-
 	if cookieState.Value != paramState {
 		hLog.Info("state-cookie-mismatch", lager.Data{
 			"param-state":  paramState,
@@ -189,7 +188,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	const redirectRegExp = `^(?:\/[a-zA-Z0-9\-]*)+\/?$`
 	regMatch, _ := regexp.Compile(redirectRegExp)
 
-	if !regMatch.MatchString(oauthState.Redirect) {
+	if oauthState.Redirect != "" && !regMatch.MatchString(oauthState.Redirect) {
 		hLog.Info("invalid-redirect")
 		http.Error(w, "invalid redirect", http.StatusBadRequest)
 		return
