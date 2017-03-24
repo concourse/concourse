@@ -170,6 +170,8 @@ var _ = Describe("Heartbeater", func() {
 	})
 
 	AfterEach(func() {
+		fakeATC2.Close()
+		fakeATC1.Close()
 		ginkgomon.Interrupt(heartbeater)
 	})
 
