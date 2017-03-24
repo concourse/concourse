@@ -78,7 +78,10 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, fmt.Errorf("failed to load session signing key: %s", err)
 	}
 
-	sessionAuthTeam := make(sessionTeam)
+	sessionAuthTeam := &sessionTeam{
+		sessionTeams: make(map[string]string),
+		lock:         &sync.RWMutex{},
+	}
 
 	config, err := cmd.configureSSHServer(sessionAuthTeam, authorizedKeys, teamAuthorizedKeys)
 	if err != nil {
@@ -180,9 +183,7 @@ func (cmd *TSACommand) loadSessionSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *TSACommand) configureSSHServer(sessionAuthTeam sessionTeam, authorizedKeys []ssh.PublicKey, teamAuthorizedKeys []TeamAuthKeys) (*ssh.ServerConfig, error) {
-	var lock = &sync.Mutex{}
-
+func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authorizedKeys []ssh.PublicKey, teamAuthorizedKeys []TeamAuthKeys) (*ssh.ServerConfig, error) {
 	certChecker := &ssh.CertChecker{
 		IsAuthority: func(key ssh.PublicKey) bool {
 			return false
@@ -198,9 +199,7 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam sessionTeam, authorize
 			for _, teamKeys := range teamAuthorizedKeys {
 				for _, k := range teamKeys.AuthKeys {
 					if bytes.Equal(k.Marshal(), key.Marshal()) {
-						lock.Lock()
-						sessionAuthTeam[string(conn.SessionID())] = teamKeys.Team
-						lock.Unlock()
+						sessionAuthTeam.AuthorizeTeam(string(conn.SessionID()), teamKeys.Team)
 						return nil, nil
 					}
 				}

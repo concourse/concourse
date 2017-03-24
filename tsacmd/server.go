@@ -31,10 +31,36 @@ type registrarSSHServer struct {
 	forwardHost       string
 	config            *ssh.ServerConfig
 	httpClient        *http.Client
-	sessionTeam       sessionTeam
+	sessionTeam       *sessionTeam
 }
 
-type sessionTeam map[string]string
+type sessionTeam struct {
+	sessionTeams map[string]string
+	lock         *sync.RWMutex
+}
+
+func (s *sessionTeam) AuthorizeTeam(sessionID, team string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.sessionTeams[sessionID] = team
+}
+
+func (s *sessionTeam) IsNotAuthorized(sessionID, team string) bool {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	t, found := s.sessionTeams[sessionID]
+
+	return found && t != team
+}
+
+func (s *sessionTeam) AuthorizedTeamFor(sessionID string) string {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return s.sessionTeams[sessionID]
+}
 
 type forwardedTCPIP struct {
 	bindAddr  string
@@ -399,10 +425,9 @@ func (server *registrarSSHServer) validateWorkerTeam(
 	sessionID string,
 	worker atc.Worker,
 ) error {
-	authorizedTeam, found := server.sessionTeam[sessionID]
-	if found && worker.Team != authorizedTeam {
+	if server.sessionTeam.IsNotAuthorized(sessionID, worker.Team) {
 		logger.Info("worker-not-allowed", lager.Data{
-			"authorized-team": authorizedTeam,
+			"authorized-team": server.sessionTeam.AuthorizedTeamFor(sessionID),
 			"request-team":    worker.Team,
 		})
 		return errors.New("worker-not-allowed-to-team")
