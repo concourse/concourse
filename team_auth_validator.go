@@ -29,7 +29,7 @@ func (v teamAuthValidator) IsAuthenticated(r *http.Request) bool {
 		return false
 	}
 
-	// return getAuthWrapper(team).IsAuthenticated(r)
+	//return getAuthWrapper(team).IsAuthenticated(r)
 
 	if !team.IsAuthConfigured() {
 		return true

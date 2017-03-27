@@ -14,13 +14,15 @@ import (
 
 var _ = Describe("Provider", func() {
 	var (
-		dbUAAAuth   *db.UAAAuth
+		team        db.SavedTeam
 		redirectURI string
 		uaaProvider provider.Provider
+		found       bool
 	)
 
 	JustBeforeEach(func() {
-		uaaProvider = uaa.NewProvider(dbUAAAuth, redirectURI)
+		uaaProvider, found = uaa.NewUAAProvider(team, redirectURI)
+		Expect(found).To(BeTrue())
 	})
 
 	Describe("PreTokenClient", func() {
@@ -45,8 +47,13 @@ HCu8gfq+3WRUgddCQnYJUXtig2yAqmHf/WGR9yYYnfMUDKa85i0inolq1EnLvgVV
 K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
 -----END CERTIFICATE-----
 	`
-				dbUAAAuth = &db.UAAAuth{
-					CFCACert: sslCert,
+				team = db.SavedTeam{
+					Team: db.Team{
+						Name: "some-team",
+						UAAAuth: &db.UAAAuth{
+							CFCACert: sslCert,
+						},
+					},
 				}
 
 				redirectURI = "some-redirect-url"
@@ -82,7 +89,12 @@ K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
 
 		Context("when no ssl cert is configured", func() {
 			BeforeEach(func() {
-				dbUAAAuth = &db.UAAAuth{}
+				team = db.SavedTeam{
+					Team: db.Team{
+						Name:    "some-team",
+						UAAAuth: &db.UAAAuth{},
+					},
+				}
 				redirectURI = "some-redirect-url"
 			})
 
@@ -112,7 +124,14 @@ K4iijxtW0XYe5R1Od6lWOEKZ6un9Ag==
 
 		Context("when an invalid ssl cert is configured", func() {
 			BeforeEach(func() {
-				dbUAAAuth = &db.UAAAuth{CFCACert: "some-invalid-cert"}
+				team = db.SavedTeam{
+					Team: db.Team{
+						Name: "some-team",
+						UAAAuth: &db.UAAAuth{
+							CFCACert: "some-invalid-cert",
+						},
+					},
+				}
 				redirectURI = "some-redirect-url"
 			})
 

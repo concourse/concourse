@@ -19,6 +19,11 @@ type FakeUserContextReader struct {
 		result2 bool
 		result3 bool
 	}
+	getTeamReturnsOnCall map[int]struct {
+		result1 string
+		result2 bool
+		result3 bool
+	}
 	GetSystemStub        func(r *http.Request) (bool, bool)
 	getSystemMutex       sync.RWMutex
 	getSystemArgsForCall []struct {
@@ -28,12 +33,17 @@ type FakeUserContextReader struct {
 		result1 bool
 		result2 bool
 	}
+	getSystemReturnsOnCall map[int]struct {
+		result1 bool
+		result2 bool
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeUserContextReader) GetTeam(r *http.Request) (string, bool, bool) {
 	fake.getTeamMutex.Lock()
+	ret, specificReturn := fake.getTeamReturnsOnCall[len(fake.getTeamArgsForCall)]
 	fake.getTeamArgsForCall = append(fake.getTeamArgsForCall, struct {
 		r *http.Request
 	}{r})
@@ -41,9 +51,11 @@ func (fake *FakeUserContextReader) GetTeam(r *http.Request) (string, bool, bool)
 	fake.getTeamMutex.Unlock()
 	if fake.GetTeamStub != nil {
 		return fake.GetTeamStub(r)
-	} else {
-		return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 }
 
 func (fake *FakeUserContextReader) GetTeamCallCount() int {
@@ -67,8 +79,25 @@ func (fake *FakeUserContextReader) GetTeamReturns(result1 string, result2 bool, 
 	}{result1, result2, result3}
 }
 
+func (fake *FakeUserContextReader) GetTeamReturnsOnCall(i int, result1 string, result2 bool, result3 bool) {
+	fake.GetTeamStub = nil
+	if fake.getTeamReturnsOnCall == nil {
+		fake.getTeamReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 bool
+			result3 bool
+		})
+	}
+	fake.getTeamReturnsOnCall[i] = struct {
+		result1 string
+		result2 bool
+		result3 bool
+	}{result1, result2, result3}
+}
+
 func (fake *FakeUserContextReader) GetSystem(r *http.Request) (bool, bool) {
 	fake.getSystemMutex.Lock()
+	ret, specificReturn := fake.getSystemReturnsOnCall[len(fake.getSystemArgsForCall)]
 	fake.getSystemArgsForCall = append(fake.getSystemArgsForCall, struct {
 		r *http.Request
 	}{r})
@@ -76,9 +105,11 @@ func (fake *FakeUserContextReader) GetSystem(r *http.Request) (bool, bool) {
 	fake.getSystemMutex.Unlock()
 	if fake.GetSystemStub != nil {
 		return fake.GetSystemStub(r)
-	} else {
-		return fake.getSystemReturns.result1, fake.getSystemReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getSystemReturns.result1, fake.getSystemReturns.result2
 }
 
 func (fake *FakeUserContextReader) GetSystemCallCount() int {
@@ -96,6 +127,20 @@ func (fake *FakeUserContextReader) GetSystemArgsForCall(i int) *http.Request {
 func (fake *FakeUserContextReader) GetSystemReturns(result1 bool, result2 bool) {
 	fake.GetSystemStub = nil
 	fake.getSystemReturns = struct {
+		result1 bool
+		result2 bool
+	}{result1, result2}
+}
+
+func (fake *FakeUserContextReader) GetSystemReturnsOnCall(i int, result1 bool, result2 bool) {
+	fake.GetSystemStub = nil
+	if fake.getSystemReturnsOnCall == nil {
+		fake.getSystemReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 bool
+		})
+	}
+	fake.getSystemReturnsOnCall[i] = struct {
 		result1 bool
 		result2 bool
 	}{result1, result2}

@@ -6,7 +6,8 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/atc/auth/verifier"
-
+	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/db"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
@@ -25,6 +26,46 @@ type ConfigOverride struct {
 
 type NoopVerifier struct{}
 
+func init() {
+	provider.Register("oauth", NewGenericProvider)
+}
+
+func NewGenericProvider(
+	team db.SavedTeam,
+	redirectURL string,
+) (provider.Provider, bool) {
+
+	if team.GenericOAuth == nil {
+		return nil, false
+	}
+
+	endpoint := oauth2.Endpoint{}
+	if team.GenericOAuth.AuthURL != "" && team.GenericOAuth.TokenURL != "" {
+		endpoint.AuthURL = team.GenericOAuth.AuthURL
+		endpoint.TokenURL = team.GenericOAuth.TokenURL
+	}
+
+	var oauthVerifier verifier.Verifier
+	if team.GenericOAuth.Scope != "" {
+		oauthVerifier = NewScopeVerifier(team.GenericOAuth.Scope)
+	} else {
+		oauthVerifier = NoopVerifier{}
+	}
+
+	return Provider{
+		Verifier: oauthVerifier,
+		Config: ConfigOverride{
+			Config: oauth2.Config{
+				ClientID:     team.GenericOAuth.ClientID,
+				ClientSecret: team.GenericOAuth.ClientSecret,
+				Endpoint:     endpoint,
+				RedirectURL:  redirectURL,
+			},
+			AuthURLParams: team.GenericOAuth.AuthURLParams,
+		},
+	}, true
+}
+
 func (v NoopVerifier) Verify(logger lager.Logger, client *http.Client) (bool, error) {
 	return true, nil
 }
@@ -32,6 +73,7 @@ func (v NoopVerifier) Verify(logger lager.Logger, client *http.Client) (bool, er
 func (provider Provider) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
 	for key, value := range provider.Config.AuthURLParams {
 		opts = append(opts, oauth2.SetAuthURLParam(key, value))
+
 	}
 	return provider.Config.AuthCodeURL(state, opts...)
 }

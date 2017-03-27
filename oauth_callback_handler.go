@@ -47,7 +47,6 @@ func NewOAuthCallbackHandler(
 func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hLog := handler.logger.Session("callback")
 	providerName := r.FormValue(":provider")
-
 	paramState := r.FormValue("state")
 
 	cookieState, err := r.Cookie(OAuthStateCookie)
@@ -91,6 +90,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	teamName := oauthState.TeamName
 	teamDB := handler.teamDBFactory.GetTeamDB(teamName)
 	team, found, err := teamDB.GetTeam()
+
 	if err != nil {
 		hLog.Error("failed-to-get-team", err)
 		http.Error(w, "failed to get team", http.StatusInternalServerError)

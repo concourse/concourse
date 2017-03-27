@@ -19,6 +19,10 @@ type FakeProvider struct {
 		result1 *http.Client
 		result2 error
 	}
+	preTokenClientReturnsOnCall map[int]struct {
+		result1 *http.Client
+		result2 error
+	}
 	AuthCodeURLStub        func(string, ...oauth2.AuthCodeOption) string
 	authCodeURLMutex       sync.RWMutex
 	authCodeURLArgsForCall []struct {
@@ -26,6 +30,9 @@ type FakeProvider struct {
 		arg2 []oauth2.AuthCodeOption
 	}
 	authCodeURLReturns struct {
+		result1 string
+	}
+	authCodeURLReturnsOnCall map[int]struct {
 		result1 string
 	}
 	ExchangeStub        func(context.Context, string) (*oauth2.Token, error)
@@ -38,6 +45,10 @@ type FakeProvider struct {
 		result1 *oauth2.Token
 		result2 error
 	}
+	exchangeReturnsOnCall map[int]struct {
+		result1 *oauth2.Token
+		result2 error
+	}
 	ClientStub        func(context.Context, *oauth2.Token) *http.Client
 	clientMutex       sync.RWMutex
 	clientArgsForCall []struct {
@@ -45,6 +56,9 @@ type FakeProvider struct {
 		arg2 *oauth2.Token
 	}
 	clientReturns struct {
+		result1 *http.Client
+	}
+	clientReturnsOnCall map[int]struct {
 		result1 *http.Client
 	}
 	VerifyStub        func(lager.Logger, *http.Client) (bool, error)
@@ -57,20 +71,27 @@ type FakeProvider struct {
 		result1 bool
 		result2 error
 	}
+	verifyReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeProvider) PreTokenClient() (*http.Client, error) {
 	fake.preTokenClientMutex.Lock()
+	ret, specificReturn := fake.preTokenClientReturnsOnCall[len(fake.preTokenClientArgsForCall)]
 	fake.preTokenClientArgsForCall = append(fake.preTokenClientArgsForCall, struct{}{})
 	fake.recordInvocation("PreTokenClient", []interface{}{})
 	fake.preTokenClientMutex.Unlock()
 	if fake.PreTokenClientStub != nil {
 		return fake.PreTokenClientStub()
-	} else {
-		return fake.preTokenClientReturns.result1, fake.preTokenClientReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.preTokenClientReturns.result1, fake.preTokenClientReturns.result2
 }
 
 func (fake *FakeProvider) PreTokenClientCallCount() int {
@@ -87,8 +108,23 @@ func (fake *FakeProvider) PreTokenClientReturns(result1 *http.Client, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeProvider) PreTokenClientReturnsOnCall(i int, result1 *http.Client, result2 error) {
+	fake.PreTokenClientStub = nil
+	if fake.preTokenClientReturnsOnCall == nil {
+		fake.preTokenClientReturnsOnCall = make(map[int]struct {
+			result1 *http.Client
+			result2 error
+		})
+	}
+	fake.preTokenClientReturnsOnCall[i] = struct {
+		result1 *http.Client
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeProvider) AuthCodeURL(arg1 string, arg2 ...oauth2.AuthCodeOption) string {
 	fake.authCodeURLMutex.Lock()
+	ret, specificReturn := fake.authCodeURLReturnsOnCall[len(fake.authCodeURLArgsForCall)]
 	fake.authCodeURLArgsForCall = append(fake.authCodeURLArgsForCall, struct {
 		arg1 string
 		arg2 []oauth2.AuthCodeOption
@@ -97,9 +133,11 @@ func (fake *FakeProvider) AuthCodeURL(arg1 string, arg2 ...oauth2.AuthCodeOption
 	fake.authCodeURLMutex.Unlock()
 	if fake.AuthCodeURLStub != nil {
 		return fake.AuthCodeURLStub(arg1, arg2...)
-	} else {
-		return fake.authCodeURLReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.authCodeURLReturns.result1
 }
 
 func (fake *FakeProvider) AuthCodeURLCallCount() int {
@@ -121,8 +159,21 @@ func (fake *FakeProvider) AuthCodeURLReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeProvider) AuthCodeURLReturnsOnCall(i int, result1 string) {
+	fake.AuthCodeURLStub = nil
+	if fake.authCodeURLReturnsOnCall == nil {
+		fake.authCodeURLReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.authCodeURLReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeProvider) Exchange(arg1 context.Context, arg2 string) (*oauth2.Token, error) {
 	fake.exchangeMutex.Lock()
+	ret, specificReturn := fake.exchangeReturnsOnCall[len(fake.exchangeArgsForCall)]
 	fake.exchangeArgsForCall = append(fake.exchangeArgsForCall, struct {
 		arg1 context.Context
 		arg2 string
@@ -131,9 +182,11 @@ func (fake *FakeProvider) Exchange(arg1 context.Context, arg2 string) (*oauth2.T
 	fake.exchangeMutex.Unlock()
 	if fake.ExchangeStub != nil {
 		return fake.ExchangeStub(arg1, arg2)
-	} else {
-		return fake.exchangeReturns.result1, fake.exchangeReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.exchangeReturns.result1, fake.exchangeReturns.result2
 }
 
 func (fake *FakeProvider) ExchangeCallCount() int {
@@ -156,8 +209,23 @@ func (fake *FakeProvider) ExchangeReturns(result1 *oauth2.Token, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeProvider) ExchangeReturnsOnCall(i int, result1 *oauth2.Token, result2 error) {
+	fake.ExchangeStub = nil
+	if fake.exchangeReturnsOnCall == nil {
+		fake.exchangeReturnsOnCall = make(map[int]struct {
+			result1 *oauth2.Token
+			result2 error
+		})
+	}
+	fake.exchangeReturnsOnCall[i] = struct {
+		result1 *oauth2.Token
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeProvider) Client(arg1 context.Context, arg2 *oauth2.Token) *http.Client {
 	fake.clientMutex.Lock()
+	ret, specificReturn := fake.clientReturnsOnCall[len(fake.clientArgsForCall)]
 	fake.clientArgsForCall = append(fake.clientArgsForCall, struct {
 		arg1 context.Context
 		arg2 *oauth2.Token
@@ -166,9 +234,11 @@ func (fake *FakeProvider) Client(arg1 context.Context, arg2 *oauth2.Token) *http
 	fake.clientMutex.Unlock()
 	if fake.ClientStub != nil {
 		return fake.ClientStub(arg1, arg2)
-	} else {
-		return fake.clientReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.clientReturns.result1
 }
 
 func (fake *FakeProvider) ClientCallCount() int {
@@ -190,8 +260,21 @@ func (fake *FakeProvider) ClientReturns(result1 *http.Client) {
 	}{result1}
 }
 
+func (fake *FakeProvider) ClientReturnsOnCall(i int, result1 *http.Client) {
+	fake.ClientStub = nil
+	if fake.clientReturnsOnCall == nil {
+		fake.clientReturnsOnCall = make(map[int]struct {
+			result1 *http.Client
+		})
+	}
+	fake.clientReturnsOnCall[i] = struct {
+		result1 *http.Client
+	}{result1}
+}
+
 func (fake *FakeProvider) Verify(arg1 lager.Logger, arg2 *http.Client) (bool, error) {
 	fake.verifyMutex.Lock()
+	ret, specificReturn := fake.verifyReturnsOnCall[len(fake.verifyArgsForCall)]
 	fake.verifyArgsForCall = append(fake.verifyArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 *http.Client
@@ -200,9 +283,11 @@ func (fake *FakeProvider) Verify(arg1 lager.Logger, arg2 *http.Client) (bool, er
 	fake.verifyMutex.Unlock()
 	if fake.VerifyStub != nil {
 		return fake.VerifyStub(arg1, arg2)
-	} else {
-		return fake.verifyReturns.result1, fake.verifyReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.verifyReturns.result1, fake.verifyReturns.result2
 }
 
 func (fake *FakeProvider) VerifyCallCount() int {
@@ -220,6 +305,20 @@ func (fake *FakeProvider) VerifyArgsForCall(i int) (lager.Logger, *http.Client) 
 func (fake *FakeProvider) VerifyReturns(result1 bool, result2 error) {
 	fake.VerifyStub = nil
 	fake.verifyReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeProvider) VerifyReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.VerifyStub = nil
+	if fake.verifyReturnsOnCall == nil {
+		fake.verifyReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.verifyReturnsOnCall[i] = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}

@@ -6,7 +6,9 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/atc/db"
 	"golang.org/x/oauth2"
 )
 
@@ -19,6 +21,41 @@ type UAAProvider struct {
 	*oauth2.Config
 	verifier.Verifier
 	CFCACert string
+}
+
+func init() {
+	provider.Register("uaa", NewUAAProvider)
+}
+
+func NewUAAProvider(
+	team db.SavedTeam,
+	redirectURL string,
+) (provider.Provider, bool) {
+
+	if team.UAAAuth == nil {
+		return nil, false
+	}
+
+	endpoint := oauth2.Endpoint{}
+	if team.UAAAuth.AuthURL != "" && team.UAAAuth.TokenURL != "" {
+		endpoint.AuthURL = team.UAAAuth.AuthURL
+		endpoint.TokenURL = team.UAAAuth.TokenURL
+	}
+
+	return UAAProvider{
+		Verifier: NewSpaceVerifier(
+			team.UAAAuth.CFSpaces,
+			team.UAAAuth.CFURL,
+		),
+		Config: &oauth2.Config{
+			ClientID:     team.UAAAuth.ClientID,
+			ClientSecret: team.UAAAuth.ClientSecret,
+			Endpoint:     endpoint,
+			Scopes:       Scopes,
+			RedirectURL:  redirectURL,
+		},
+		CFCACert: team.UAAAuth.CFCACert,
+	}, true
 }
 
 func (p UAAProvider) PreTokenClient() (*http.Client, error) {
