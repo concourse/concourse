@@ -1,11 +1,10 @@
-package provider_test
+package auth_test
 
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/genericoauth"
 	"github.com/concourse/atc/auth/github"
-	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
 
@@ -14,10 +13,10 @@ import (
 )
 
 var _ = Describe("OAuthFactory", func() {
-	var oauthFactory provider.OAuthFactory
+	var oauthFactory auth.OAuthFactory
 
 	BeforeEach(func() {
-		oauthFactory = provider.NewOAuthFactory(
+		oauthFactory = auth.NewOAuthFactory(
 			lagertest.NewTestLogger("test"),
 			"http://foo.bar",
 			auth.OAuthRoutes,
