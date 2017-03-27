@@ -10,8 +10,6 @@ type Team struct {
 	Name  string
 	Admin bool
 
-	// AuthWrapper AuthWrapper
-
 	BasicAuth    *BasicAuth    `json:"basic_auth"`
 	GitHubAuth   *GitHubAuth   `json:"github_auth"`
 	UAAAuth      *UAAAuth      `json:"uaa_auth"`
@@ -19,7 +17,7 @@ type Team struct {
 }
 
 func (t Team) IsAuthConfigured() bool {
-	return t.BasicAuth != nil || t.GitHubAuth != nil || t.UAAAuth != nil
+	return t.BasicAuth != nil || t.GitHubAuth != nil || t.UAAAuth != nil || t.GenericOAuth != nil
 }
 
 func (auth *BasicAuth) EncryptedJSON() (string, error) {
@@ -84,32 +82,3 @@ type GenericOAuth struct {
 	DisplayName   string            `json:"display_name"`
 	Scope         string            `json:"scope"`
 }
-
-// type AuthType string
-// type AuthProvider string
-//
-// const (
-// 	AuthTypeBasic AuthType = "basicAuth"
-// 	AuthTypeOAuth AuthType = "oauth"
-//
-// 	AuthProviderGithub  AuthProvider = "githubAuthProvider"
-// 	AuthProviderUAAAuth AuthProvider = "uaaAuthProvider"
-// 	AuthProviderBasic   AuthProvider = "basicAuthProvider"
-// 	AuthTypeOAuth       AuthProvider = "oauthProvider"
-// )
-//
-// type AuthWrapper struct {
-// 	auths []AuthProvider
-// }
-//
-// func NewAuthWrapper(
-// 	authProviders []AuthProvider,
-// ) AuthWrapper {
-// 	return AuthWrapper{
-// 		auths: authProviders,
-// 	}
-// }
-//
-// func (t SavedTeam) GetAuthWrapper() AuthWrapper {
-// 	return t.AuthWrapper
-// }

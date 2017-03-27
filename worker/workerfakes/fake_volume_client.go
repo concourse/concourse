@@ -20,6 +20,11 @@ type FakeVolumeClient struct {
 		result2 bool
 		result3 error
 	}
+	findVolumeReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
 	CreateVolumeStub        func(logger lager.Logger, vs worker.VolumeSpec, teamID int) (worker.Volume, error)
 	createVolumeMutex       sync.RWMutex
 	createVolumeArgsForCall []struct {
@@ -31,6 +36,10 @@ type FakeVolumeClient struct {
 		result1 worker.Volume
 		result2 error
 	}
+	createVolumeReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 error
+	}
 	ListVolumesStub        func(lager.Logger, worker.VolumeProperties) ([]worker.Volume, error)
 	listVolumesMutex       sync.RWMutex
 	listVolumesArgsForCall []struct {
@@ -38,6 +47,10 @@ type FakeVolumeClient struct {
 		arg2 worker.VolumeProperties
 	}
 	listVolumesReturns struct {
+		result1 []worker.Volume
+		result2 error
+	}
+	listVolumesReturnsOnCall map[int]struct {
 		result1 []worker.Volume
 		result2 error
 	}
@@ -52,12 +65,18 @@ type FakeVolumeClient struct {
 		result2 bool
 		result3 error
 	}
+	lookupVolumeReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeVolumeClient) FindVolume(arg1 lager.Logger, arg2 worker.VolumeSpec) (worker.Volume, bool, error) {
 	fake.findVolumeMutex.Lock()
+	ret, specificReturn := fake.findVolumeReturnsOnCall[len(fake.findVolumeArgsForCall)]
 	fake.findVolumeArgsForCall = append(fake.findVolumeArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.VolumeSpec
@@ -66,9 +85,11 @@ func (fake *FakeVolumeClient) FindVolume(arg1 lager.Logger, arg2 worker.VolumeSp
 	fake.findVolumeMutex.Unlock()
 	if fake.FindVolumeStub != nil {
 		return fake.FindVolumeStub(arg1, arg2)
-	} else {
-		return fake.findVolumeReturns.result1, fake.findVolumeReturns.result2, fake.findVolumeReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.findVolumeReturns.result1, fake.findVolumeReturns.result2, fake.findVolumeReturns.result3
 }
 
 func (fake *FakeVolumeClient) FindVolumeCallCount() int {
@@ -92,8 +113,25 @@ func (fake *FakeVolumeClient) FindVolumeReturns(result1 worker.Volume, result2 b
 	}{result1, result2, result3}
 }
 
+func (fake *FakeVolumeClient) FindVolumeReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.FindVolumeStub = nil
+	if fake.findVolumeReturnsOnCall == nil {
+		fake.findVolumeReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findVolumeReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeVolumeClient) CreateVolume(logger lager.Logger, vs worker.VolumeSpec, teamID int) (worker.Volume, error) {
 	fake.createVolumeMutex.Lock()
+	ret, specificReturn := fake.createVolumeReturnsOnCall[len(fake.createVolumeArgsForCall)]
 	fake.createVolumeArgsForCall = append(fake.createVolumeArgsForCall, struct {
 		logger lager.Logger
 		vs     worker.VolumeSpec
@@ -103,9 +141,11 @@ func (fake *FakeVolumeClient) CreateVolume(logger lager.Logger, vs worker.Volume
 	fake.createVolumeMutex.Unlock()
 	if fake.CreateVolumeStub != nil {
 		return fake.CreateVolumeStub(logger, vs, teamID)
-	} else {
-		return fake.createVolumeReturns.result1, fake.createVolumeReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createVolumeReturns.result1, fake.createVolumeReturns.result2
 }
 
 func (fake *FakeVolumeClient) CreateVolumeCallCount() int {
@@ -128,8 +168,23 @@ func (fake *FakeVolumeClient) CreateVolumeReturns(result1 worker.Volume, result2
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeClient) CreateVolumeReturnsOnCall(i int, result1 worker.Volume, result2 error) {
+	fake.CreateVolumeStub = nil
+	if fake.createVolumeReturnsOnCall == nil {
+		fake.createVolumeReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 error
+		})
+	}
+	fake.createVolumeReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeClient) ListVolumes(arg1 lager.Logger, arg2 worker.VolumeProperties) ([]worker.Volume, error) {
 	fake.listVolumesMutex.Lock()
+	ret, specificReturn := fake.listVolumesReturnsOnCall[len(fake.listVolumesArgsForCall)]
 	fake.listVolumesArgsForCall = append(fake.listVolumesArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.VolumeProperties
@@ -138,9 +193,11 @@ func (fake *FakeVolumeClient) ListVolumes(arg1 lager.Logger, arg2 worker.VolumeP
 	fake.listVolumesMutex.Unlock()
 	if fake.ListVolumesStub != nil {
 		return fake.ListVolumesStub(arg1, arg2)
-	} else {
-		return fake.listVolumesReturns.result1, fake.listVolumesReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.listVolumesReturns.result1, fake.listVolumesReturns.result2
 }
 
 func (fake *FakeVolumeClient) ListVolumesCallCount() int {
@@ -163,8 +220,23 @@ func (fake *FakeVolumeClient) ListVolumesReturns(result1 []worker.Volume, result
 	}{result1, result2}
 }
 
+func (fake *FakeVolumeClient) ListVolumesReturnsOnCall(i int, result1 []worker.Volume, result2 error) {
+	fake.ListVolumesStub = nil
+	if fake.listVolumesReturnsOnCall == nil {
+		fake.listVolumesReturnsOnCall = make(map[int]struct {
+			result1 []worker.Volume
+			result2 error
+		})
+	}
+	fake.listVolumesReturnsOnCall[i] = struct {
+		result1 []worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolumeClient) LookupVolume(arg1 lager.Logger, arg2 string) (worker.Volume, bool, error) {
 	fake.lookupVolumeMutex.Lock()
+	ret, specificReturn := fake.lookupVolumeReturnsOnCall[len(fake.lookupVolumeArgsForCall)]
 	fake.lookupVolumeArgsForCall = append(fake.lookupVolumeArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 string
@@ -173,9 +245,11 @@ func (fake *FakeVolumeClient) LookupVolume(arg1 lager.Logger, arg2 string) (work
 	fake.lookupVolumeMutex.Unlock()
 	if fake.LookupVolumeStub != nil {
 		return fake.LookupVolumeStub(arg1, arg2)
-	} else {
-		return fake.lookupVolumeReturns.result1, fake.lookupVolumeReturns.result2, fake.lookupVolumeReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.lookupVolumeReturns.result1, fake.lookupVolumeReturns.result2, fake.lookupVolumeReturns.result3
 }
 
 func (fake *FakeVolumeClient) LookupVolumeCallCount() int {
@@ -193,6 +267,22 @@ func (fake *FakeVolumeClient) LookupVolumeArgsForCall(i int) (lager.Logger, stri
 func (fake *FakeVolumeClient) LookupVolumeReturns(result1 worker.Volume, result2 bool, result3 error) {
 	fake.LookupVolumeStub = nil
 	fake.lookupVolumeReturns = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeVolumeClient) LookupVolumeReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.LookupVolumeStub = nil
+	if fake.lookupVolumeReturnsOnCall == nil {
+		fake.lookupVolumeReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.lookupVolumeReturnsOnCall[i] = struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error

@@ -15,10 +15,16 @@ type FakeResourceOptions struct {
 	iOConfigReturns     struct {
 		result1 resource.IOConfig
 	}
+	iOConfigReturnsOnCall map[int]struct {
+		result1 resource.IOConfig
+	}
 	SourceStub        func() atc.Source
 	sourceMutex       sync.RWMutex
 	sourceArgsForCall []struct{}
 	sourceReturns     struct {
+		result1 atc.Source
+	}
+	sourceReturnsOnCall map[int]struct {
 		result1 atc.Source
 	}
 	ParamsStub        func() atc.Params
@@ -27,16 +33,25 @@ type FakeResourceOptions struct {
 	paramsReturns     struct {
 		result1 atc.Params
 	}
+	paramsReturnsOnCall map[int]struct {
+		result1 atc.Params
+	}
 	VersionStub        func() atc.Version
 	versionMutex       sync.RWMutex
 	versionArgsForCall []struct{}
 	versionReturns     struct {
 		result1 atc.Version
 	}
+	versionReturnsOnCall map[int]struct {
+		result1 atc.Version
+	}
 	ResourceTypeStub        func() resource.ResourceType
 	resourceTypeMutex       sync.RWMutex
 	resourceTypeArgsForCall []struct{}
 	resourceTypeReturns     struct {
+		result1 resource.ResourceType
+	}
+	resourceTypeReturnsOnCall map[int]struct {
 		result1 resource.ResourceType
 	}
 	LockNameStub        func(workerName string) (string, error)
@@ -48,20 +63,27 @@ type FakeResourceOptions struct {
 		result1 string
 		result2 error
 	}
+	lockNameReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeResourceOptions) IOConfig() resource.IOConfig {
 	fake.iOConfigMutex.Lock()
+	ret, specificReturn := fake.iOConfigReturnsOnCall[len(fake.iOConfigArgsForCall)]
 	fake.iOConfigArgsForCall = append(fake.iOConfigArgsForCall, struct{}{})
 	fake.recordInvocation("IOConfig", []interface{}{})
 	fake.iOConfigMutex.Unlock()
 	if fake.IOConfigStub != nil {
 		return fake.IOConfigStub()
-	} else {
-		return fake.iOConfigReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.iOConfigReturns.result1
 }
 
 func (fake *FakeResourceOptions) IOConfigCallCount() int {
@@ -77,16 +99,31 @@ func (fake *FakeResourceOptions) IOConfigReturns(result1 resource.IOConfig) {
 	}{result1}
 }
 
+func (fake *FakeResourceOptions) IOConfigReturnsOnCall(i int, result1 resource.IOConfig) {
+	fake.IOConfigStub = nil
+	if fake.iOConfigReturnsOnCall == nil {
+		fake.iOConfigReturnsOnCall = make(map[int]struct {
+			result1 resource.IOConfig
+		})
+	}
+	fake.iOConfigReturnsOnCall[i] = struct {
+		result1 resource.IOConfig
+	}{result1}
+}
+
 func (fake *FakeResourceOptions) Source() atc.Source {
 	fake.sourceMutex.Lock()
+	ret, specificReturn := fake.sourceReturnsOnCall[len(fake.sourceArgsForCall)]
 	fake.sourceArgsForCall = append(fake.sourceArgsForCall, struct{}{})
 	fake.recordInvocation("Source", []interface{}{})
 	fake.sourceMutex.Unlock()
 	if fake.SourceStub != nil {
 		return fake.SourceStub()
-	} else {
-		return fake.sourceReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.sourceReturns.result1
 }
 
 func (fake *FakeResourceOptions) SourceCallCount() int {
@@ -102,16 +139,31 @@ func (fake *FakeResourceOptions) SourceReturns(result1 atc.Source) {
 	}{result1}
 }
 
+func (fake *FakeResourceOptions) SourceReturnsOnCall(i int, result1 atc.Source) {
+	fake.SourceStub = nil
+	if fake.sourceReturnsOnCall == nil {
+		fake.sourceReturnsOnCall = make(map[int]struct {
+			result1 atc.Source
+		})
+	}
+	fake.sourceReturnsOnCall[i] = struct {
+		result1 atc.Source
+	}{result1}
+}
+
 func (fake *FakeResourceOptions) Params() atc.Params {
 	fake.paramsMutex.Lock()
+	ret, specificReturn := fake.paramsReturnsOnCall[len(fake.paramsArgsForCall)]
 	fake.paramsArgsForCall = append(fake.paramsArgsForCall, struct{}{})
 	fake.recordInvocation("Params", []interface{}{})
 	fake.paramsMutex.Unlock()
 	if fake.ParamsStub != nil {
 		return fake.ParamsStub()
-	} else {
-		return fake.paramsReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.paramsReturns.result1
 }
 
 func (fake *FakeResourceOptions) ParamsCallCount() int {
@@ -127,16 +179,31 @@ func (fake *FakeResourceOptions) ParamsReturns(result1 atc.Params) {
 	}{result1}
 }
 
+func (fake *FakeResourceOptions) ParamsReturnsOnCall(i int, result1 atc.Params) {
+	fake.ParamsStub = nil
+	if fake.paramsReturnsOnCall == nil {
+		fake.paramsReturnsOnCall = make(map[int]struct {
+			result1 atc.Params
+		})
+	}
+	fake.paramsReturnsOnCall[i] = struct {
+		result1 atc.Params
+	}{result1}
+}
+
 func (fake *FakeResourceOptions) Version() atc.Version {
 	fake.versionMutex.Lock()
+	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
 	fake.versionArgsForCall = append(fake.versionArgsForCall, struct{}{})
 	fake.recordInvocation("Version", []interface{}{})
 	fake.versionMutex.Unlock()
 	if fake.VersionStub != nil {
 		return fake.VersionStub()
-	} else {
-		return fake.versionReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.versionReturns.result1
 }
 
 func (fake *FakeResourceOptions) VersionCallCount() int {
@@ -152,16 +219,31 @@ func (fake *FakeResourceOptions) VersionReturns(result1 atc.Version) {
 	}{result1}
 }
 
+func (fake *FakeResourceOptions) VersionReturnsOnCall(i int, result1 atc.Version) {
+	fake.VersionStub = nil
+	if fake.versionReturnsOnCall == nil {
+		fake.versionReturnsOnCall = make(map[int]struct {
+			result1 atc.Version
+		})
+	}
+	fake.versionReturnsOnCall[i] = struct {
+		result1 atc.Version
+	}{result1}
+}
+
 func (fake *FakeResourceOptions) ResourceType() resource.ResourceType {
 	fake.resourceTypeMutex.Lock()
+	ret, specificReturn := fake.resourceTypeReturnsOnCall[len(fake.resourceTypeArgsForCall)]
 	fake.resourceTypeArgsForCall = append(fake.resourceTypeArgsForCall, struct{}{})
 	fake.recordInvocation("ResourceType", []interface{}{})
 	fake.resourceTypeMutex.Unlock()
 	if fake.ResourceTypeStub != nil {
 		return fake.ResourceTypeStub()
-	} else {
-		return fake.resourceTypeReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.resourceTypeReturns.result1
 }
 
 func (fake *FakeResourceOptions) ResourceTypeCallCount() int {
@@ -177,8 +259,21 @@ func (fake *FakeResourceOptions) ResourceTypeReturns(result1 resource.ResourceTy
 	}{result1}
 }
 
+func (fake *FakeResourceOptions) ResourceTypeReturnsOnCall(i int, result1 resource.ResourceType) {
+	fake.ResourceTypeStub = nil
+	if fake.resourceTypeReturnsOnCall == nil {
+		fake.resourceTypeReturnsOnCall = make(map[int]struct {
+			result1 resource.ResourceType
+		})
+	}
+	fake.resourceTypeReturnsOnCall[i] = struct {
+		result1 resource.ResourceType
+	}{result1}
+}
+
 func (fake *FakeResourceOptions) LockName(workerName string) (string, error) {
 	fake.lockNameMutex.Lock()
+	ret, specificReturn := fake.lockNameReturnsOnCall[len(fake.lockNameArgsForCall)]
 	fake.lockNameArgsForCall = append(fake.lockNameArgsForCall, struct {
 		workerName string
 	}{workerName})
@@ -186,9 +281,11 @@ func (fake *FakeResourceOptions) LockName(workerName string) (string, error) {
 	fake.lockNameMutex.Unlock()
 	if fake.LockNameStub != nil {
 		return fake.LockNameStub(workerName)
-	} else {
-		return fake.lockNameReturns.result1, fake.lockNameReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.lockNameReturns.result1, fake.lockNameReturns.result2
 }
 
 func (fake *FakeResourceOptions) LockNameCallCount() int {
@@ -206,6 +303,20 @@ func (fake *FakeResourceOptions) LockNameArgsForCall(i int) string {
 func (fake *FakeResourceOptions) LockNameReturns(result1 string, result2 error) {
 	fake.LockNameStub = nil
 	fake.lockNameReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceOptions) LockNameReturnsOnCall(i int, result1 string, result2 error) {
+	fake.LockNameStub = nil
+	if fake.lockNameReturnsOnCall == nil {
+		fake.lockNameReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.lockNameReturnsOnCall[i] = struct {
 		result1 string
 		result2 error
 	}{result1, result2}

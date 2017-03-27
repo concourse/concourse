@@ -20,6 +20,11 @@ type FakeContainerKeepAliverDB struct {
 		result2 bool
 		result3 error
 	}
+	findJobIDForBuildReturnsOnCall map[int]struct {
+		result1 int
+		result2 bool
+		result3 error
+	}
 	FindLatestSuccessfulBuildsPerJobStub        func() (map[int]int, error)
 	findLatestSuccessfulBuildsPerJobMutex       sync.RWMutex
 	findLatestSuccessfulBuildsPerJobArgsForCall []struct{}
@@ -27,10 +32,18 @@ type FakeContainerKeepAliverDB struct {
 		result1 map[int]int
 		result2 error
 	}
+	findLatestSuccessfulBuildsPerJobReturnsOnCall map[int]struct {
+		result1 map[int]int
+		result2 error
+	}
 	FindJobContainersFromUnsuccessfulBuildsStub        func() ([]db.SavedContainer, error)
 	findJobContainersFromUnsuccessfulBuildsMutex       sync.RWMutex
 	findJobContainersFromUnsuccessfulBuildsArgsForCall []struct{}
 	findJobContainersFromUnsuccessfulBuildsReturns     struct {
+		result1 []db.SavedContainer
+		result2 error
+	}
+	findJobContainersFromUnsuccessfulBuildsReturnsOnCall map[int]struct {
 		result1 []db.SavedContainer
 		result2 error
 	}
@@ -43,10 +56,17 @@ type FakeContainerKeepAliverDB struct {
 	updateExpiresAtOnContainerReturns struct {
 		result1 error
 	}
+	updateExpiresAtOnContainerReturnsOnCall map[int]struct {
+		result1 error
+	}
 	GetAllPipelinesStub        func() ([]db.SavedPipeline, error)
 	getAllPipelinesMutex       sync.RWMutex
 	getAllPipelinesArgsForCall []struct{}
 	getAllPipelinesReturns     struct {
+		result1 []db.SavedPipeline
+		result2 error
+	}
+	getAllPipelinesReturnsOnCall map[int]struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}
@@ -56,6 +76,7 @@ type FakeContainerKeepAliverDB struct {
 
 func (fake *FakeContainerKeepAliverDB) FindJobIDForBuild(buildID int) (int, bool, error) {
 	fake.findJobIDForBuildMutex.Lock()
+	ret, specificReturn := fake.findJobIDForBuildReturnsOnCall[len(fake.findJobIDForBuildArgsForCall)]
 	fake.findJobIDForBuildArgsForCall = append(fake.findJobIDForBuildArgsForCall, struct {
 		buildID int
 	}{buildID})
@@ -63,9 +84,11 @@ func (fake *FakeContainerKeepAliverDB) FindJobIDForBuild(buildID int) (int, bool
 	fake.findJobIDForBuildMutex.Unlock()
 	if fake.FindJobIDForBuildStub != nil {
 		return fake.FindJobIDForBuildStub(buildID)
-	} else {
-		return fake.findJobIDForBuildReturns.result1, fake.findJobIDForBuildReturns.result2, fake.findJobIDForBuildReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.findJobIDForBuildReturns.result1, fake.findJobIDForBuildReturns.result2, fake.findJobIDForBuildReturns.result3
 }
 
 func (fake *FakeContainerKeepAliverDB) FindJobIDForBuildCallCount() int {
@@ -89,16 +112,35 @@ func (fake *FakeContainerKeepAliverDB) FindJobIDForBuildReturns(result1 int, res
 	}{result1, result2, result3}
 }
 
+func (fake *FakeContainerKeepAliverDB) FindJobIDForBuildReturnsOnCall(i int, result1 int, result2 bool, result3 error) {
+	fake.FindJobIDForBuildStub = nil
+	if fake.findJobIDForBuildReturnsOnCall == nil {
+		fake.findJobIDForBuildReturnsOnCall = make(map[int]struct {
+			result1 int
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findJobIDForBuildReturnsOnCall[i] = struct {
+		result1 int
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeContainerKeepAliverDB) FindLatestSuccessfulBuildsPerJob() (map[int]int, error) {
 	fake.findLatestSuccessfulBuildsPerJobMutex.Lock()
+	ret, specificReturn := fake.findLatestSuccessfulBuildsPerJobReturnsOnCall[len(fake.findLatestSuccessfulBuildsPerJobArgsForCall)]
 	fake.findLatestSuccessfulBuildsPerJobArgsForCall = append(fake.findLatestSuccessfulBuildsPerJobArgsForCall, struct{}{})
 	fake.recordInvocation("FindLatestSuccessfulBuildsPerJob", []interface{}{})
 	fake.findLatestSuccessfulBuildsPerJobMutex.Unlock()
 	if fake.FindLatestSuccessfulBuildsPerJobStub != nil {
 		return fake.FindLatestSuccessfulBuildsPerJobStub()
-	} else {
-		return fake.findLatestSuccessfulBuildsPerJobReturns.result1, fake.findLatestSuccessfulBuildsPerJobReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.findLatestSuccessfulBuildsPerJobReturns.result1, fake.findLatestSuccessfulBuildsPerJobReturns.result2
 }
 
 func (fake *FakeContainerKeepAliverDB) FindLatestSuccessfulBuildsPerJobCallCount() int {
@@ -115,16 +157,33 @@ func (fake *FakeContainerKeepAliverDB) FindLatestSuccessfulBuildsPerJobReturns(r
 	}{result1, result2}
 }
 
+func (fake *FakeContainerKeepAliverDB) FindLatestSuccessfulBuildsPerJobReturnsOnCall(i int, result1 map[int]int, result2 error) {
+	fake.FindLatestSuccessfulBuildsPerJobStub = nil
+	if fake.findLatestSuccessfulBuildsPerJobReturnsOnCall == nil {
+		fake.findLatestSuccessfulBuildsPerJobReturnsOnCall = make(map[int]struct {
+			result1 map[int]int
+			result2 error
+		})
+	}
+	fake.findLatestSuccessfulBuildsPerJobReturnsOnCall[i] = struct {
+		result1 map[int]int
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeContainerKeepAliverDB) FindJobContainersFromUnsuccessfulBuilds() ([]db.SavedContainer, error) {
 	fake.findJobContainersFromUnsuccessfulBuildsMutex.Lock()
+	ret, specificReturn := fake.findJobContainersFromUnsuccessfulBuildsReturnsOnCall[len(fake.findJobContainersFromUnsuccessfulBuildsArgsForCall)]
 	fake.findJobContainersFromUnsuccessfulBuildsArgsForCall = append(fake.findJobContainersFromUnsuccessfulBuildsArgsForCall, struct{}{})
 	fake.recordInvocation("FindJobContainersFromUnsuccessfulBuilds", []interface{}{})
 	fake.findJobContainersFromUnsuccessfulBuildsMutex.Unlock()
 	if fake.FindJobContainersFromUnsuccessfulBuildsStub != nil {
 		return fake.FindJobContainersFromUnsuccessfulBuildsStub()
-	} else {
-		return fake.findJobContainersFromUnsuccessfulBuildsReturns.result1, fake.findJobContainersFromUnsuccessfulBuildsReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.findJobContainersFromUnsuccessfulBuildsReturns.result1, fake.findJobContainersFromUnsuccessfulBuildsReturns.result2
 }
 
 func (fake *FakeContainerKeepAliverDB) FindJobContainersFromUnsuccessfulBuildsCallCount() int {
@@ -141,8 +200,23 @@ func (fake *FakeContainerKeepAliverDB) FindJobContainersFromUnsuccessfulBuildsRe
 	}{result1, result2}
 }
 
+func (fake *FakeContainerKeepAliverDB) FindJobContainersFromUnsuccessfulBuildsReturnsOnCall(i int, result1 []db.SavedContainer, result2 error) {
+	fake.FindJobContainersFromUnsuccessfulBuildsStub = nil
+	if fake.findJobContainersFromUnsuccessfulBuildsReturnsOnCall == nil {
+		fake.findJobContainersFromUnsuccessfulBuildsReturnsOnCall = make(map[int]struct {
+			result1 []db.SavedContainer
+			result2 error
+		})
+	}
+	fake.findJobContainersFromUnsuccessfulBuildsReturnsOnCall[i] = struct {
+		result1 []db.SavedContainer
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeContainerKeepAliverDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error {
 	fake.updateExpiresAtOnContainerMutex.Lock()
+	ret, specificReturn := fake.updateExpiresAtOnContainerReturnsOnCall[len(fake.updateExpiresAtOnContainerArgsForCall)]
 	fake.updateExpiresAtOnContainerArgsForCall = append(fake.updateExpiresAtOnContainerArgsForCall, struct {
 		handle string
 		ttl    time.Duration
@@ -151,9 +225,11 @@ func (fake *FakeContainerKeepAliverDB) UpdateExpiresAtOnContainer(handle string,
 	fake.updateExpiresAtOnContainerMutex.Unlock()
 	if fake.UpdateExpiresAtOnContainerStub != nil {
 		return fake.UpdateExpiresAtOnContainerStub(handle, ttl)
-	} else {
-		return fake.updateExpiresAtOnContainerReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.updateExpiresAtOnContainerReturns.result1
 }
 
 func (fake *FakeContainerKeepAliverDB) UpdateExpiresAtOnContainerCallCount() int {
@@ -175,16 +251,31 @@ func (fake *FakeContainerKeepAliverDB) UpdateExpiresAtOnContainerReturns(result1
 	}{result1}
 }
 
+func (fake *FakeContainerKeepAliverDB) UpdateExpiresAtOnContainerReturnsOnCall(i int, result1 error) {
+	fake.UpdateExpiresAtOnContainerStub = nil
+	if fake.updateExpiresAtOnContainerReturnsOnCall == nil {
+		fake.updateExpiresAtOnContainerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateExpiresAtOnContainerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeContainerKeepAliverDB) GetAllPipelines() ([]db.SavedPipeline, error) {
 	fake.getAllPipelinesMutex.Lock()
+	ret, specificReturn := fake.getAllPipelinesReturnsOnCall[len(fake.getAllPipelinesArgsForCall)]
 	fake.getAllPipelinesArgsForCall = append(fake.getAllPipelinesArgsForCall, struct{}{})
 	fake.recordInvocation("GetAllPipelines", []interface{}{})
 	fake.getAllPipelinesMutex.Unlock()
 	if fake.GetAllPipelinesStub != nil {
 		return fake.GetAllPipelinesStub()
-	} else {
-		return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
 }
 
 func (fake *FakeContainerKeepAliverDB) GetAllPipelinesCallCount() int {
@@ -196,6 +287,20 @@ func (fake *FakeContainerKeepAliverDB) GetAllPipelinesCallCount() int {
 func (fake *FakeContainerKeepAliverDB) GetAllPipelinesReturns(result1 []db.SavedPipeline, result2 error) {
 	fake.GetAllPipelinesStub = nil
 	fake.getAllPipelinesReturns = struct {
+		result1 []db.SavedPipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerKeepAliverDB) GetAllPipelinesReturnsOnCall(i int, result1 []db.SavedPipeline, result2 error) {
+	fake.GetAllPipelinesStub = nil
+	if fake.getAllPipelinesReturnsOnCall == nil {
+		fake.getAllPipelinesReturnsOnCall = make(map[int]struct {
+			result1 []db.SavedPipeline
+			result2 error
+		})
+	}
+	fake.getAllPipelinesReturnsOnCall[i] = struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}{result1, result2}

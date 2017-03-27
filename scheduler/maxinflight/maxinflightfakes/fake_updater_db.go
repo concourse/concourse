@@ -19,6 +19,10 @@ type FakeUpdaterDB struct {
 		result1 []db.Build
 		result2 error
 	}
+	getRunningBuildsBySerialGroupReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 error
+	}
 	GetNextPendingBuildBySerialGroupStub        func(jobName string, serialGroups []string) (db.Build, bool, error)
 	getNextPendingBuildBySerialGroupMutex       sync.RWMutex
 	getNextPendingBuildBySerialGroupArgsForCall []struct {
@@ -26,6 +30,11 @@ type FakeUpdaterDB struct {
 		serialGroups []string
 	}
 	getNextPendingBuildBySerialGroupReturns struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}
+	getNextPendingBuildBySerialGroupReturnsOnCall map[int]struct {
 		result1 db.Build
 		result2 bool
 		result3 error
@@ -39,6 +48,9 @@ type FakeUpdaterDB struct {
 	setMaxInFlightReachedReturns struct {
 		result1 error
 	}
+	setMaxInFlightReachedReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -50,6 +62,7 @@ func (fake *FakeUpdaterDB) GetRunningBuildsBySerialGroup(jobName string, serialG
 		copy(serialGroupsCopy, serialGroups)
 	}
 	fake.getRunningBuildsBySerialGroupMutex.Lock()
+	ret, specificReturn := fake.getRunningBuildsBySerialGroupReturnsOnCall[len(fake.getRunningBuildsBySerialGroupArgsForCall)]
 	fake.getRunningBuildsBySerialGroupArgsForCall = append(fake.getRunningBuildsBySerialGroupArgsForCall, struct {
 		jobName      string
 		serialGroups []string
@@ -58,9 +71,11 @@ func (fake *FakeUpdaterDB) GetRunningBuildsBySerialGroup(jobName string, serialG
 	fake.getRunningBuildsBySerialGroupMutex.Unlock()
 	if fake.GetRunningBuildsBySerialGroupStub != nil {
 		return fake.GetRunningBuildsBySerialGroupStub(jobName, serialGroups)
-	} else {
-		return fake.getRunningBuildsBySerialGroupReturns.result1, fake.getRunningBuildsBySerialGroupReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getRunningBuildsBySerialGroupReturns.result1, fake.getRunningBuildsBySerialGroupReturns.result2
 }
 
 func (fake *FakeUpdaterDB) GetRunningBuildsBySerialGroupCallCount() int {
@@ -83,6 +98,20 @@ func (fake *FakeUpdaterDB) GetRunningBuildsBySerialGroupReturns(result1 []db.Bui
 	}{result1, result2}
 }
 
+func (fake *FakeUpdaterDB) GetRunningBuildsBySerialGroupReturnsOnCall(i int, result1 []db.Build, result2 error) {
+	fake.GetRunningBuildsBySerialGroupStub = nil
+	if fake.getRunningBuildsBySerialGroupReturnsOnCall == nil {
+		fake.getRunningBuildsBySerialGroupReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 error
+		})
+	}
+	fake.getRunningBuildsBySerialGroupReturnsOnCall[i] = struct {
+		result1 []db.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeUpdaterDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.Build, bool, error) {
 	var serialGroupsCopy []string
 	if serialGroups != nil {
@@ -90,6 +119,7 @@ func (fake *FakeUpdaterDB) GetNextPendingBuildBySerialGroup(jobName string, seri
 		copy(serialGroupsCopy, serialGroups)
 	}
 	fake.getNextPendingBuildBySerialGroupMutex.Lock()
+	ret, specificReturn := fake.getNextPendingBuildBySerialGroupReturnsOnCall[len(fake.getNextPendingBuildBySerialGroupArgsForCall)]
 	fake.getNextPendingBuildBySerialGroupArgsForCall = append(fake.getNextPendingBuildBySerialGroupArgsForCall, struct {
 		jobName      string
 		serialGroups []string
@@ -98,9 +128,11 @@ func (fake *FakeUpdaterDB) GetNextPendingBuildBySerialGroup(jobName string, seri
 	fake.getNextPendingBuildBySerialGroupMutex.Unlock()
 	if fake.GetNextPendingBuildBySerialGroupStub != nil {
 		return fake.GetNextPendingBuildBySerialGroupStub(jobName, serialGroups)
-	} else {
-		return fake.getNextPendingBuildBySerialGroupReturns.result1, fake.getNextPendingBuildBySerialGroupReturns.result2, fake.getNextPendingBuildBySerialGroupReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.getNextPendingBuildBySerialGroupReturns.result1, fake.getNextPendingBuildBySerialGroupReturns.result2, fake.getNextPendingBuildBySerialGroupReturns.result3
 }
 
 func (fake *FakeUpdaterDB) GetNextPendingBuildBySerialGroupCallCount() int {
@@ -124,8 +156,25 @@ func (fake *FakeUpdaterDB) GetNextPendingBuildBySerialGroupReturns(result1 db.Bu
 	}{result1, result2, result3}
 }
 
+func (fake *FakeUpdaterDB) GetNextPendingBuildBySerialGroupReturnsOnCall(i int, result1 db.Build, result2 bool, result3 error) {
+	fake.GetNextPendingBuildBySerialGroupStub = nil
+	if fake.getNextPendingBuildBySerialGroupReturnsOnCall == nil {
+		fake.getNextPendingBuildBySerialGroupReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getNextPendingBuildBySerialGroupReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeUpdaterDB) SetMaxInFlightReached(jobName string, reached bool) error {
 	fake.setMaxInFlightReachedMutex.Lock()
+	ret, specificReturn := fake.setMaxInFlightReachedReturnsOnCall[len(fake.setMaxInFlightReachedArgsForCall)]
 	fake.setMaxInFlightReachedArgsForCall = append(fake.setMaxInFlightReachedArgsForCall, struct {
 		jobName string
 		reached bool
@@ -134,9 +183,11 @@ func (fake *FakeUpdaterDB) SetMaxInFlightReached(jobName string, reached bool) e
 	fake.setMaxInFlightReachedMutex.Unlock()
 	if fake.SetMaxInFlightReachedStub != nil {
 		return fake.SetMaxInFlightReachedStub(jobName, reached)
-	} else {
-		return fake.setMaxInFlightReachedReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.setMaxInFlightReachedReturns.result1
 }
 
 func (fake *FakeUpdaterDB) SetMaxInFlightReachedCallCount() int {
@@ -154,6 +205,18 @@ func (fake *FakeUpdaterDB) SetMaxInFlightReachedArgsForCall(i int) (string, bool
 func (fake *FakeUpdaterDB) SetMaxInFlightReachedReturns(result1 error) {
 	fake.SetMaxInFlightReachedStub = nil
 	fake.setMaxInFlightReachedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeUpdaterDB) SetMaxInFlightReachedReturnsOnCall(i int, result1 error) {
+	fake.SetMaxInFlightReachedStub = nil
+	if fake.setMaxInFlightReachedReturnsOnCall == nil {
+		fake.setMaxInFlightReachedReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setMaxInFlightReachedReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

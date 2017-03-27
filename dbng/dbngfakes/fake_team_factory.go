@@ -17,6 +17,10 @@ type FakeTeamFactory struct {
 		result1 dbng.Team
 		result2 error
 	}
+	createTeamReturnsOnCall map[int]struct {
+		result1 dbng.Team
+		result2 error
+	}
 	FindTeamStub        func(name string) (dbng.Team, bool, error)
 	findTeamMutex       sync.RWMutex
 	findTeamArgsForCall []struct {
@@ -27,12 +31,18 @@ type FakeTeamFactory struct {
 		result2 bool
 		result3 error
 	}
+	findTeamReturnsOnCall map[int]struct {
+		result1 dbng.Team
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTeamFactory) CreateTeam(name string) (dbng.Team, error) {
 	fake.createTeamMutex.Lock()
+	ret, specificReturn := fake.createTeamReturnsOnCall[len(fake.createTeamArgsForCall)]
 	fake.createTeamArgsForCall = append(fake.createTeamArgsForCall, struct {
 		name string
 	}{name})
@@ -40,9 +50,11 @@ func (fake *FakeTeamFactory) CreateTeam(name string) (dbng.Team, error) {
 	fake.createTeamMutex.Unlock()
 	if fake.CreateTeamStub != nil {
 		return fake.CreateTeamStub(name)
-	} else {
-		return fake.createTeamReturns.result1, fake.createTeamReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createTeamReturns.result1, fake.createTeamReturns.result2
 }
 
 func (fake *FakeTeamFactory) CreateTeamCallCount() int {
@@ -65,8 +77,23 @@ func (fake *FakeTeamFactory) CreateTeamReturns(result1 dbng.Team, result2 error)
 	}{result1, result2}
 }
 
+func (fake *FakeTeamFactory) CreateTeamReturnsOnCall(i int, result1 dbng.Team, result2 error) {
+	fake.CreateTeamStub = nil
+	if fake.createTeamReturnsOnCall == nil {
+		fake.createTeamReturnsOnCall = make(map[int]struct {
+			result1 dbng.Team
+			result2 error
+		})
+	}
+	fake.createTeamReturnsOnCall[i] = struct {
+		result1 dbng.Team
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeamFactory) FindTeam(name string) (dbng.Team, bool, error) {
 	fake.findTeamMutex.Lock()
+	ret, specificReturn := fake.findTeamReturnsOnCall[len(fake.findTeamArgsForCall)]
 	fake.findTeamArgsForCall = append(fake.findTeamArgsForCall, struct {
 		name string
 	}{name})
@@ -74,9 +101,11 @@ func (fake *FakeTeamFactory) FindTeam(name string) (dbng.Team, bool, error) {
 	fake.findTeamMutex.Unlock()
 	if fake.FindTeamStub != nil {
 		return fake.FindTeamStub(name)
-	} else {
-		return fake.findTeamReturns.result1, fake.findTeamReturns.result2, fake.findTeamReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.findTeamReturns.result1, fake.findTeamReturns.result2, fake.findTeamReturns.result3
 }
 
 func (fake *FakeTeamFactory) FindTeamCallCount() int {
@@ -94,6 +123,22 @@ func (fake *FakeTeamFactory) FindTeamArgsForCall(i int) string {
 func (fake *FakeTeamFactory) FindTeamReturns(result1 dbng.Team, result2 bool, result3 error) {
 	fake.FindTeamStub = nil
 	fake.findTeamReturns = struct {
+		result1 dbng.Team
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeamFactory) FindTeamReturnsOnCall(i int, result1 dbng.Team, result2 bool, result3 error) {
+	fake.FindTeamStub = nil
+	if fake.findTeamReturnsOnCall == nil {
+		fake.findTeamReturnsOnCall = make(map[int]struct {
+			result1 dbng.Team
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findTeamReturnsOnCall[i] = struct {
 		result1 dbng.Team
 		result2 bool
 		result3 error

@@ -17,6 +17,9 @@ type FakeEngine struct {
 	nameReturns     struct {
 		result1 string
 	}
+	nameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	CreateBuildStub        func(lager.Logger, db.Build, atc.Plan) (engine.Build, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
@@ -25,6 +28,10 @@ type FakeEngine struct {
 		arg3 atc.Plan
 	}
 	createBuildReturns struct {
+		result1 engine.Build
+		result2 error
+	}
+	createBuildReturnsOnCall map[int]struct {
 		result1 engine.Build
 		result2 error
 	}
@@ -38,20 +45,27 @@ type FakeEngine struct {
 		result1 engine.Build
 		result2 error
 	}
+	lookupBuildReturnsOnCall map[int]struct {
+		result1 engine.Build
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeEngine) Name() string {
 	fake.nameMutex.Lock()
+	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
 	if fake.NameStub != nil {
 		return fake.NameStub()
-	} else {
-		return fake.nameReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.nameReturns.result1
 }
 
 func (fake *FakeEngine) NameCallCount() int {
@@ -67,8 +81,21 @@ func (fake *FakeEngine) NameReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeEngine) NameReturnsOnCall(i int, result1 string) {
+	fake.NameStub = nil
+	if fake.nameReturnsOnCall == nil {
+		fake.nameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.nameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeEngine) CreateBuild(arg1 lager.Logger, arg2 db.Build, arg3 atc.Plan) (engine.Build, error) {
 	fake.createBuildMutex.Lock()
+	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 db.Build
@@ -78,9 +105,11 @@ func (fake *FakeEngine) CreateBuild(arg1 lager.Logger, arg2 db.Build, arg3 atc.P
 	fake.createBuildMutex.Unlock()
 	if fake.CreateBuildStub != nil {
 		return fake.CreateBuildStub(arg1, arg2, arg3)
-	} else {
-		return fake.createBuildReturns.result1, fake.createBuildReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createBuildReturns.result1, fake.createBuildReturns.result2
 }
 
 func (fake *FakeEngine) CreateBuildCallCount() int {
@@ -103,8 +132,23 @@ func (fake *FakeEngine) CreateBuildReturns(result1 engine.Build, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeEngine) CreateBuildReturnsOnCall(i int, result1 engine.Build, result2 error) {
+	fake.CreateBuildStub = nil
+	if fake.createBuildReturnsOnCall == nil {
+		fake.createBuildReturnsOnCall = make(map[int]struct {
+			result1 engine.Build
+			result2 error
+		})
+	}
+	fake.createBuildReturnsOnCall[i] = struct {
+		result1 engine.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.Build) (engine.Build, error) {
 	fake.lookupBuildMutex.Lock()
+	ret, specificReturn := fake.lookupBuildReturnsOnCall[len(fake.lookupBuildArgsForCall)]
 	fake.lookupBuildArgsForCall = append(fake.lookupBuildArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 db.Build
@@ -113,9 +157,11 @@ func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.Build) (engine.Bu
 	fake.lookupBuildMutex.Unlock()
 	if fake.LookupBuildStub != nil {
 		return fake.LookupBuildStub(arg1, arg2)
-	} else {
-		return fake.lookupBuildReturns.result1, fake.lookupBuildReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.lookupBuildReturns.result1, fake.lookupBuildReturns.result2
 }
 
 func (fake *FakeEngine) LookupBuildCallCount() int {
@@ -133,6 +179,20 @@ func (fake *FakeEngine) LookupBuildArgsForCall(i int) (lager.Logger, db.Build) {
 func (fake *FakeEngine) LookupBuildReturns(result1 engine.Build, result2 error) {
 	fake.LookupBuildStub = nil
 	fake.lookupBuildReturns = struct {
+		result1 engine.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeEngine) LookupBuildReturnsOnCall(i int, result1 engine.Build, result2 error) {
+	fake.LookupBuildStub = nil
+	if fake.lookupBuildReturnsOnCall == nil {
+		fake.lookupBuildReturnsOnCall = make(map[int]struct {
+			result1 engine.Build
+			result2 error
+		})
+	}
+	fake.lookupBuildReturnsOnCall[i] = struct {
 		result1 engine.Build
 		result2 error
 	}{result1, result2}

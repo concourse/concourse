@@ -17,6 +17,10 @@ type FakeLockDB struct {
 		result1 bool
 		result2 error
 	}
+	acquireReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	ReleaseStub        func(id db.LockID) error
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct {
@@ -25,12 +29,16 @@ type FakeLockDB struct {
 	releaseReturns struct {
 		result1 error
 	}
+	releaseReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeLockDB) Acquire(id db.LockID) (bool, error) {
 	fake.acquireMutex.Lock()
+	ret, specificReturn := fake.acquireReturnsOnCall[len(fake.acquireArgsForCall)]
 	fake.acquireArgsForCall = append(fake.acquireArgsForCall, struct {
 		id db.LockID
 	}{id})
@@ -38,9 +46,11 @@ func (fake *FakeLockDB) Acquire(id db.LockID) (bool, error) {
 	fake.acquireMutex.Unlock()
 	if fake.AcquireStub != nil {
 		return fake.AcquireStub(id)
-	} else {
-		return fake.acquireReturns.result1, fake.acquireReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.acquireReturns.result1, fake.acquireReturns.result2
 }
 
 func (fake *FakeLockDB) AcquireCallCount() int {
@@ -63,8 +73,23 @@ func (fake *FakeLockDB) AcquireReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeLockDB) AcquireReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.AcquireStub = nil
+	if fake.acquireReturnsOnCall == nil {
+		fake.acquireReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.acquireReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeLockDB) Release(id db.LockID) error {
 	fake.releaseMutex.Lock()
+	ret, specificReturn := fake.releaseReturnsOnCall[len(fake.releaseArgsForCall)]
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
 		id db.LockID
 	}{id})
@@ -72,9 +97,11 @@ func (fake *FakeLockDB) Release(id db.LockID) error {
 	fake.releaseMutex.Unlock()
 	if fake.ReleaseStub != nil {
 		return fake.ReleaseStub(id)
-	} else {
-		return fake.releaseReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.releaseReturns.result1
 }
 
 func (fake *FakeLockDB) ReleaseCallCount() int {
@@ -92,6 +119,18 @@ func (fake *FakeLockDB) ReleaseArgsForCall(i int) db.LockID {
 func (fake *FakeLockDB) ReleaseReturns(result1 error) {
 	fake.ReleaseStub = nil
 	fake.releaseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeLockDB) ReleaseReturnsOnCall(i int, result1 error) {
+	fake.ReleaseStub = nil
+	if fake.releaseReturnsOnCall == nil {
+		fake.releaseReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.releaseReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

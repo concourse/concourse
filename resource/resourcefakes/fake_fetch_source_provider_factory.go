@@ -25,12 +25,16 @@ type FakeFetchSourceProviderFactory struct {
 	newFetchSourceProviderReturns struct {
 		result1 resource.FetchSourceProvider
 	}
+	newFetchSourceProviderReturnsOnCall map[int]struct {
+		result1 resource.FetchSourceProvider
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, cacheIdentifier resource.CacheIdentifier, resourceOptions resource.ResourceOptions, containerCreator resource.FetchContainerCreator) resource.FetchSourceProvider {
 	fake.newFetchSourceProviderMutex.Lock()
+	ret, specificReturn := fake.newFetchSourceProviderReturnsOnCall[len(fake.newFetchSourceProviderArgsForCall)]
 	fake.newFetchSourceProviderArgsForCall = append(fake.newFetchSourceProviderArgsForCall, struct {
 		logger           lager.Logger
 		session          resource.Session
@@ -45,9 +49,11 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProvider(logger lager.
 	fake.newFetchSourceProviderMutex.Unlock()
 	if fake.NewFetchSourceProviderStub != nil {
 		return fake.NewFetchSourceProviderStub(logger, session, tags, teamID, resourceTypes, cacheIdentifier, resourceOptions, containerCreator)
-	} else {
-		return fake.newFetchSourceProviderReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.newFetchSourceProviderReturns.result1
 }
 
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderCallCount() int {
@@ -65,6 +71,18 @@ func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderArgsForCall(i 
 func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderReturns(result1 resource.FetchSourceProvider) {
 	fake.NewFetchSourceProviderStub = nil
 	fake.newFetchSourceProviderReturns = struct {
+		result1 resource.FetchSourceProvider
+	}{result1}
+}
+
+func (fake *FakeFetchSourceProviderFactory) NewFetchSourceProviderReturnsOnCall(i int, result1 resource.FetchSourceProvider) {
+	fake.NewFetchSourceProviderStub = nil
+	if fake.newFetchSourceProviderReturnsOnCall == nil {
+		fake.newFetchSourceProviderReturnsOnCall = make(map[int]struct {
+			result1 resource.FetchSourceProvider
+		})
+	}
+	fake.newFetchSourceProviderReturnsOnCall[i] = struct {
 		result1 resource.FetchSourceProvider
 	}{result1}
 }

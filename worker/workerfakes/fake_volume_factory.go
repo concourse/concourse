@@ -21,12 +21,18 @@ type FakeVolumeFactory struct {
 		result2 bool
 		result3 error
 	}
+	buildReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeVolumeFactory) Build(arg1 lager.Logger, arg2 baggageclaim.Volume) (worker.Volume, bool, error) {
 	fake.buildMutex.Lock()
+	ret, specificReturn := fake.buildReturnsOnCall[len(fake.buildArgsForCall)]
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 baggageclaim.Volume
@@ -35,9 +41,11 @@ func (fake *FakeVolumeFactory) Build(arg1 lager.Logger, arg2 baggageclaim.Volume
 	fake.buildMutex.Unlock()
 	if fake.BuildStub != nil {
 		return fake.BuildStub(arg1, arg2)
-	} else {
-		return fake.buildReturns.result1, fake.buildReturns.result2, fake.buildReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.buildReturns.result1, fake.buildReturns.result2, fake.buildReturns.result3
 }
 
 func (fake *FakeVolumeFactory) BuildCallCount() int {
@@ -55,6 +63,22 @@ func (fake *FakeVolumeFactory) BuildArgsForCall(i int) (lager.Logger, baggagecla
 func (fake *FakeVolumeFactory) BuildReturns(result1 worker.Volume, result2 bool, result3 error) {
 	fake.BuildStub = nil
 	fake.buildReturns = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeVolumeFactory) BuildReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.BuildStub = nil
+	if fake.buildReturnsOnCall == nil {
+		fake.buildReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.buildReturnsOnCall[i] = struct {
 		result1 worker.Volume
 		result2 bool
 		result3 error

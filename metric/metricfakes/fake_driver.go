@@ -18,12 +18,17 @@ type FakeDriver struct {
 		result1 driver.Conn
 		result2 error
 	}
+	openReturnsOnCall map[int]struct {
+		result1 driver.Conn
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeDriver) Open(name string) (driver.Conn, error) {
 	fake.openMutex.Lock()
+	ret, specificReturn := fake.openReturnsOnCall[len(fake.openArgsForCall)]
 	fake.openArgsForCall = append(fake.openArgsForCall, struct {
 		name string
 	}{name})
@@ -31,9 +36,11 @@ func (fake *FakeDriver) Open(name string) (driver.Conn, error) {
 	fake.openMutex.Unlock()
 	if fake.OpenStub != nil {
 		return fake.OpenStub(name)
-	} else {
-		return fake.openReturns.result1, fake.openReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.openReturns.result1, fake.openReturns.result2
 }
 
 func (fake *FakeDriver) OpenCallCount() int {
@@ -51,6 +58,20 @@ func (fake *FakeDriver) OpenArgsForCall(i int) string {
 func (fake *FakeDriver) OpenReturns(result1 driver.Conn, result2 error) {
 	fake.OpenStub = nil
 	fake.openReturns = struct {
+		result1 driver.Conn
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDriver) OpenReturnsOnCall(i int, result1 driver.Conn, result2 error) {
+	fake.OpenStub = nil
+	if fake.openReturnsOnCall == nil {
+		fake.openReturnsOnCall = make(map[int]struct {
+			result1 driver.Conn
+			result2 error
+		})
+	}
+	fake.openReturnsOnCall[i] = struct {
 		result1 driver.Conn
 		result2 error
 	}{result1, result2}

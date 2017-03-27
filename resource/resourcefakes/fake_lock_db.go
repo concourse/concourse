@@ -21,12 +21,18 @@ type FakeLockDB struct {
 		result2 bool
 		result3 error
 	}
+	getTaskLockReturnsOnCall map[int]struct {
+		result1 db.Lock
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeLockDB) GetTaskLock(logger lager.Logger, lockName string) (db.Lock, bool, error) {
 	fake.getTaskLockMutex.Lock()
+	ret, specificReturn := fake.getTaskLockReturnsOnCall[len(fake.getTaskLockArgsForCall)]
 	fake.getTaskLockArgsForCall = append(fake.getTaskLockArgsForCall, struct {
 		logger   lager.Logger
 		lockName string
@@ -35,9 +41,11 @@ func (fake *FakeLockDB) GetTaskLock(logger lager.Logger, lockName string) (db.Lo
 	fake.getTaskLockMutex.Unlock()
 	if fake.GetTaskLockStub != nil {
 		return fake.GetTaskLockStub(logger, lockName)
-	} else {
-		return fake.getTaskLockReturns.result1, fake.getTaskLockReturns.result2, fake.getTaskLockReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.getTaskLockReturns.result1, fake.getTaskLockReturns.result2, fake.getTaskLockReturns.result3
 }
 
 func (fake *FakeLockDB) GetTaskLockCallCount() int {
@@ -55,6 +63,22 @@ func (fake *FakeLockDB) GetTaskLockArgsForCall(i int) (lager.Logger, string) {
 func (fake *FakeLockDB) GetTaskLockReturns(result1 db.Lock, result2 bool, result3 error) {
 	fake.GetTaskLockStub = nil
 	fake.getTaskLockReturns = struct {
+		result1 db.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeLockDB) GetTaskLockReturnsOnCall(i int, result1 db.Lock, result2 bool, result3 error) {
+	fake.GetTaskLockStub = nil
+	if fake.getTaskLockReturnsOnCall == nil {
+		fake.getTaskLockReturnsOnCall = make(map[int]struct {
+			result1 db.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getTaskLockReturnsOnCall[i] = struct {
 		result1 db.Lock
 		result2 bool
 		result3 error

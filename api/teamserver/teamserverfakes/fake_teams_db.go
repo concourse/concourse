@@ -16,12 +16,20 @@ type FakeTeamsDB struct {
 		result1 []db.SavedTeam
 		result2 error
 	}
+	getTeamsReturnsOnCall map[int]struct {
+		result1 []db.SavedTeam
+		result2 error
+	}
 	CreateTeamStub        func(data db.Team) (db.SavedTeam, error)
 	createTeamMutex       sync.RWMutex
 	createTeamArgsForCall []struct {
 		data db.Team
 	}
 	createTeamReturns struct {
+		result1 db.SavedTeam
+		result2 error
+	}
+	createTeamReturnsOnCall map[int]struct {
 		result1 db.SavedTeam
 		result2 error
 	}
@@ -33,20 +41,26 @@ type FakeTeamsDB struct {
 	deleteTeamByNameReturns struct {
 		result1 error
 	}
+	deleteTeamByNameReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTeamsDB) GetTeams() ([]db.SavedTeam, error) {
 	fake.getTeamsMutex.Lock()
+	ret, specificReturn := fake.getTeamsReturnsOnCall[len(fake.getTeamsArgsForCall)]
 	fake.getTeamsArgsForCall = append(fake.getTeamsArgsForCall, struct{}{})
 	fake.recordInvocation("GetTeams", []interface{}{})
 	fake.getTeamsMutex.Unlock()
 	if fake.GetTeamsStub != nil {
 		return fake.GetTeamsStub()
-	} else {
-		return fake.getTeamsReturns.result1, fake.getTeamsReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getTeamsReturns.result1, fake.getTeamsReturns.result2
 }
 
 func (fake *FakeTeamsDB) GetTeamsCallCount() int {
@@ -63,8 +77,23 @@ func (fake *FakeTeamsDB) GetTeamsReturns(result1 []db.SavedTeam, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeTeamsDB) GetTeamsReturnsOnCall(i int, result1 []db.SavedTeam, result2 error) {
+	fake.GetTeamsStub = nil
+	if fake.getTeamsReturnsOnCall == nil {
+		fake.getTeamsReturnsOnCall = make(map[int]struct {
+			result1 []db.SavedTeam
+			result2 error
+		})
+	}
+	fake.getTeamsReturnsOnCall[i] = struct {
+		result1 []db.SavedTeam
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeamsDB) CreateTeam(data db.Team) (db.SavedTeam, error) {
 	fake.createTeamMutex.Lock()
+	ret, specificReturn := fake.createTeamReturnsOnCall[len(fake.createTeamArgsForCall)]
 	fake.createTeamArgsForCall = append(fake.createTeamArgsForCall, struct {
 		data db.Team
 	}{data})
@@ -72,9 +101,11 @@ func (fake *FakeTeamsDB) CreateTeam(data db.Team) (db.SavedTeam, error) {
 	fake.createTeamMutex.Unlock()
 	if fake.CreateTeamStub != nil {
 		return fake.CreateTeamStub(data)
-	} else {
-		return fake.createTeamReturns.result1, fake.createTeamReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createTeamReturns.result1, fake.createTeamReturns.result2
 }
 
 func (fake *FakeTeamsDB) CreateTeamCallCount() int {
@@ -97,8 +128,23 @@ func (fake *FakeTeamsDB) CreateTeamReturns(result1 db.SavedTeam, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeTeamsDB) CreateTeamReturnsOnCall(i int, result1 db.SavedTeam, result2 error) {
+	fake.CreateTeamStub = nil
+	if fake.createTeamReturnsOnCall == nil {
+		fake.createTeamReturnsOnCall = make(map[int]struct {
+			result1 db.SavedTeam
+			result2 error
+		})
+	}
+	fake.createTeamReturnsOnCall[i] = struct {
+		result1 db.SavedTeam
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeamsDB) DeleteTeamByName(teamName string) error {
 	fake.deleteTeamByNameMutex.Lock()
+	ret, specificReturn := fake.deleteTeamByNameReturnsOnCall[len(fake.deleteTeamByNameArgsForCall)]
 	fake.deleteTeamByNameArgsForCall = append(fake.deleteTeamByNameArgsForCall, struct {
 		teamName string
 	}{teamName})
@@ -106,9 +152,11 @@ func (fake *FakeTeamsDB) DeleteTeamByName(teamName string) error {
 	fake.deleteTeamByNameMutex.Unlock()
 	if fake.DeleteTeamByNameStub != nil {
 		return fake.DeleteTeamByNameStub(teamName)
-	} else {
-		return fake.deleteTeamByNameReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deleteTeamByNameReturns.result1
 }
 
 func (fake *FakeTeamsDB) DeleteTeamByNameCallCount() int {
@@ -126,6 +174,18 @@ func (fake *FakeTeamsDB) DeleteTeamByNameArgsForCall(i int) string {
 func (fake *FakeTeamsDB) DeleteTeamByNameReturns(result1 error) {
 	fake.DeleteTeamByNameStub = nil
 	fake.deleteTeamByNameReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeamsDB) DeleteTeamByNameReturnsOnCall(i int, result1 error) {
+	fake.DeleteTeamByNameStub = nil
+	if fake.deleteTeamByNameReturnsOnCall == nil {
+		fake.deleteTeamByNameReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteTeamByNameReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

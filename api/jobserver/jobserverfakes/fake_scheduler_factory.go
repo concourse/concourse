@@ -19,12 +19,16 @@ type FakeSchedulerFactory struct {
 	buildSchedulerReturns struct {
 		result1 scheduler.BuildScheduler
 	}
+	buildSchedulerReturnsOnCall map[int]struct {
+		result1 scheduler.BuildScheduler
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.PipelineDB, arg2 string) scheduler.BuildScheduler {
 	fake.buildSchedulerMutex.Lock()
+	ret, specificReturn := fake.buildSchedulerReturnsOnCall[len(fake.buildSchedulerArgsForCall)]
 	fake.buildSchedulerArgsForCall = append(fake.buildSchedulerArgsForCall, struct {
 		arg1 db.PipelineDB
 		arg2 string
@@ -33,9 +37,11 @@ func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.PipelineDB, arg2 string
 	fake.buildSchedulerMutex.Unlock()
 	if fake.BuildSchedulerStub != nil {
 		return fake.BuildSchedulerStub(arg1, arg2)
-	} else {
-		return fake.buildSchedulerReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.buildSchedulerReturns.result1
 }
 
 func (fake *FakeSchedulerFactory) BuildSchedulerCallCount() int {
@@ -53,6 +59,18 @@ func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.PipelineD
 func (fake *FakeSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {
 	fake.BuildSchedulerStub = nil
 	fake.buildSchedulerReturns = struct {
+		result1 scheduler.BuildScheduler
+	}{result1}
+}
+
+func (fake *FakeSchedulerFactory) BuildSchedulerReturnsOnCall(i int, result1 scheduler.BuildScheduler) {
+	fake.BuildSchedulerStub = nil
+	if fake.buildSchedulerReturnsOnCall == nil {
+		fake.buildSchedulerReturnsOnCall = make(map[int]struct {
+			result1 scheduler.BuildScheduler
+		})
+	}
+	fake.buildSchedulerReturnsOnCall[i] = struct {
 		result1 scheduler.BuildScheduler
 	}{result1}
 }

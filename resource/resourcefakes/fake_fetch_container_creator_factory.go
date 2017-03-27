@@ -25,12 +25,16 @@ type FakeFetchContainerCreatorFactory struct {
 	newFetchContainerCreatorReturns struct {
 		result1 resource.FetchContainerCreator
 	}
+	newFetchContainerCreatorReturnsOnCall map[int]struct {
+		result1 resource.FetchContainerCreator
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreator(logger lager.Logger, resourceTypes atc.ResourceTypes, tags atc.Tags, teamID int, session resource.Session, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate) resource.FetchContainerCreator {
 	fake.newFetchContainerCreatorMutex.Lock()
+	ret, specificReturn := fake.newFetchContainerCreatorReturnsOnCall[len(fake.newFetchContainerCreatorArgsForCall)]
 	fake.newFetchContainerCreatorArgsForCall = append(fake.newFetchContainerCreatorArgsForCall, struct {
 		logger                lager.Logger
 		resourceTypes         atc.ResourceTypes
@@ -44,9 +48,11 @@ func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreator(logger la
 	fake.newFetchContainerCreatorMutex.Unlock()
 	if fake.NewFetchContainerCreatorStub != nil {
 		return fake.NewFetchContainerCreatorStub(logger, resourceTypes, tags, teamID, session, metadata, imageFetchingDelegate)
-	} else {
-		return fake.newFetchContainerCreatorReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.newFetchContainerCreatorReturns.result1
 }
 
 func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreatorCallCount() int {
@@ -64,6 +70,18 @@ func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreatorArgsForCal
 func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreatorReturns(result1 resource.FetchContainerCreator) {
 	fake.NewFetchContainerCreatorStub = nil
 	fake.newFetchContainerCreatorReturns = struct {
+		result1 resource.FetchContainerCreator
+	}{result1}
+}
+
+func (fake *FakeFetchContainerCreatorFactory) NewFetchContainerCreatorReturnsOnCall(i int, result1 resource.FetchContainerCreator) {
+	fake.NewFetchContainerCreatorStub = nil
+	if fake.newFetchContainerCreatorReturnsOnCall == nil {
+		fake.newFetchContainerCreatorReturnsOnCall = make(map[int]struct {
+			result1 resource.FetchContainerCreator
+		})
+	}
+	fake.newFetchContainerCreatorReturnsOnCall[i] = struct {
 		result1 resource.FetchContainerCreator
 	}{result1}
 }

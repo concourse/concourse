@@ -17,18 +17,25 @@ import (
 
 var _ = Describe("Generic OAuth Provider", func() {
 	var (
-		dbGenericOAuth *db.GenericOAuth
-		redirectURI    string
-		goaProvider    provider.Provider
-		state          string
+		team        db.SavedTeam
+		redirectURI string
+		goaProvider provider.Provider
+		state       string
+		found       bool
 	)
 
 	JustBeforeEach(func() {
-		goaProvider = genericoauth.NewProvider(dbGenericOAuth, redirectURI)
+		goaProvider, found = genericoauth.NewGenericProvider(team, redirectURI)
+		Expect(found).To(BeTrue())
 	})
 
 	BeforeEach(func() {
-		dbGenericOAuth = &db.GenericOAuth{}
+		team = db.SavedTeam{
+			Team: db.Team{
+				Name:         "some-team",
+				GenericOAuth: &db.GenericOAuth{},
+			},
+		}
 		redirectURI = "redirect-uri"
 		state = "some-random-guid"
 	})
@@ -62,8 +69,13 @@ var _ = Describe("Generic OAuth Provider", func() {
 	Context("Auth URL params are configured", func() {
 		BeforeEach(func() {
 			redirectURI = "redirect-uri"
-			dbGenericOAuth = &db.GenericOAuth{
-				AuthURLParams: map[string]string{"param1": "value1", "param2": "value2"},
+			team = db.SavedTeam{
+				Team: db.Team{
+					Name: "some-team",
+					GenericOAuth: &db.GenericOAuth{
+						AuthURLParams: map[string]string{"param1": "value1", "param2": "value2"},
+					},
+				},
 			}
 		})
 

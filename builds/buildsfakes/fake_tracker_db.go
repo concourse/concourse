@@ -16,20 +16,27 @@ type FakeTrackerDB struct {
 		result1 []db.Build
 		result2 error
 	}
+	getAllStartedBuildsReturnsOnCall map[int]struct {
+		result1 []db.Build
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTrackerDB) GetAllStartedBuilds() ([]db.Build, error) {
 	fake.getAllStartedBuildsMutex.Lock()
+	ret, specificReturn := fake.getAllStartedBuildsReturnsOnCall[len(fake.getAllStartedBuildsArgsForCall)]
 	fake.getAllStartedBuildsArgsForCall = append(fake.getAllStartedBuildsArgsForCall, struct{}{})
 	fake.recordInvocation("GetAllStartedBuilds", []interface{}{})
 	fake.getAllStartedBuildsMutex.Unlock()
 	if fake.GetAllStartedBuildsStub != nil {
 		return fake.GetAllStartedBuildsStub()
-	} else {
-		return fake.getAllStartedBuildsReturns.result1, fake.getAllStartedBuildsReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getAllStartedBuildsReturns.result1, fake.getAllStartedBuildsReturns.result2
 }
 
 func (fake *FakeTrackerDB) GetAllStartedBuildsCallCount() int {
@@ -41,6 +48,20 @@ func (fake *FakeTrackerDB) GetAllStartedBuildsCallCount() int {
 func (fake *FakeTrackerDB) GetAllStartedBuildsReturns(result1 []db.Build, result2 error) {
 	fake.GetAllStartedBuildsStub = nil
 	fake.getAllStartedBuildsReturns = struct {
+		result1 []db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTrackerDB) GetAllStartedBuildsReturnsOnCall(i int, result1 []db.Build, result2 error) {
+	fake.GetAllStartedBuildsStub = nil
+	if fake.getAllStartedBuildsReturnsOnCall == nil {
+		fake.getAllStartedBuildsReturnsOnCall = make(map[int]struct {
+			result1 []db.Build
+			result2 error
+		})
+	}
+	fake.getAllStartedBuildsReturnsOnCall[i] = struct {
 		result1 []db.Build
 		result2 error
 	}{result1, result2}

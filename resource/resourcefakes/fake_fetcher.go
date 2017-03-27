@@ -31,12 +31,17 @@ type FakeFetcher struct {
 		result1 resource.FetchSource
 		result2 error
 	}
+	fetchReturnsOnCall map[int]struct {
+		result1 resource.FetchSource
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeFetcher) Fetch(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, cacheIdentifier resource.CacheIdentifier, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate, resourceOptions resource.ResourceOptions, signals <-chan os.Signal, ready chan<- struct{}) (resource.FetchSource, error) {
 	fake.fetchMutex.Lock()
+	ret, specificReturn := fake.fetchReturnsOnCall[len(fake.fetchArgsForCall)]
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
 		logger                lager.Logger
 		session               resource.Session
@@ -54,9 +59,11 @@ func (fake *FakeFetcher) Fetch(logger lager.Logger, session resource.Session, ta
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
 		return fake.FetchStub(logger, session, tags, teamID, resourceTypes, cacheIdentifier, metadata, imageFetchingDelegate, resourceOptions, signals, ready)
-	} else {
-		return fake.fetchReturns.result1, fake.fetchReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.fetchReturns.result1, fake.fetchReturns.result2
 }
 
 func (fake *FakeFetcher) FetchCallCount() int {
@@ -74,6 +81,20 @@ func (fake *FakeFetcher) FetchArgsForCall(i int) (lager.Logger, resource.Session
 func (fake *FakeFetcher) FetchReturns(result1 resource.FetchSource, result2 error) {
 	fake.FetchStub = nil
 	fake.fetchReturns = struct {
+		result1 resource.FetchSource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeFetcher) FetchReturnsOnCall(i int, result1 resource.FetchSource, result2 error) {
+	fake.FetchStub = nil
+	if fake.fetchReturnsOnCall == nil {
+		fake.fetchReturnsOnCall = make(map[int]struct {
+			result1 resource.FetchSource
+			result2 error
+		})
+	}
+	fake.fetchReturnsOnCall[i] = struct {
 		result1 resource.FetchSource
 		result2 error
 	}{result1, result2}

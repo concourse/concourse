@@ -14,10 +14,16 @@ type FakeReaperDB struct {
 	reapExpiredContainersReturns     struct {
 		result1 error
 	}
+	reapExpiredContainersReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ReapExpiredVolumesStub        func() error
 	reapExpiredVolumesMutex       sync.RWMutex
 	reapExpiredVolumesArgsForCall []struct{}
 	reapExpiredVolumesReturns     struct {
+		result1 error
+	}
+	reapExpiredVolumesReturnsOnCall map[int]struct {
 		result1 error
 	}
 	ReapExpiredWorkersStub        func() error
@@ -26,20 +32,26 @@ type FakeReaperDB struct {
 	reapExpiredWorkersReturns     struct {
 		result1 error
 	}
+	reapExpiredWorkersReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeReaperDB) ReapExpiredContainers() error {
 	fake.reapExpiredContainersMutex.Lock()
+	ret, specificReturn := fake.reapExpiredContainersReturnsOnCall[len(fake.reapExpiredContainersArgsForCall)]
 	fake.reapExpiredContainersArgsForCall = append(fake.reapExpiredContainersArgsForCall, struct{}{})
 	fake.recordInvocation("ReapExpiredContainers", []interface{}{})
 	fake.reapExpiredContainersMutex.Unlock()
 	if fake.ReapExpiredContainersStub != nil {
 		return fake.ReapExpiredContainersStub()
-	} else {
-		return fake.reapExpiredContainersReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.reapExpiredContainersReturns.result1
 }
 
 func (fake *FakeReaperDB) ReapExpiredContainersCallCount() int {
@@ -55,16 +67,31 @@ func (fake *FakeReaperDB) ReapExpiredContainersReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeReaperDB) ReapExpiredContainersReturnsOnCall(i int, result1 error) {
+	fake.ReapExpiredContainersStub = nil
+	if fake.reapExpiredContainersReturnsOnCall == nil {
+		fake.reapExpiredContainersReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reapExpiredContainersReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeReaperDB) ReapExpiredVolumes() error {
 	fake.reapExpiredVolumesMutex.Lock()
+	ret, specificReturn := fake.reapExpiredVolumesReturnsOnCall[len(fake.reapExpiredVolumesArgsForCall)]
 	fake.reapExpiredVolumesArgsForCall = append(fake.reapExpiredVolumesArgsForCall, struct{}{})
 	fake.recordInvocation("ReapExpiredVolumes", []interface{}{})
 	fake.reapExpiredVolumesMutex.Unlock()
 	if fake.ReapExpiredVolumesStub != nil {
 		return fake.ReapExpiredVolumesStub()
-	} else {
-		return fake.reapExpiredVolumesReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.reapExpiredVolumesReturns.result1
 }
 
 func (fake *FakeReaperDB) ReapExpiredVolumesCallCount() int {
@@ -80,16 +107,31 @@ func (fake *FakeReaperDB) ReapExpiredVolumesReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeReaperDB) ReapExpiredVolumesReturnsOnCall(i int, result1 error) {
+	fake.ReapExpiredVolumesStub = nil
+	if fake.reapExpiredVolumesReturnsOnCall == nil {
+		fake.reapExpiredVolumesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reapExpiredVolumesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeReaperDB) ReapExpiredWorkers() error {
 	fake.reapExpiredWorkersMutex.Lock()
+	ret, specificReturn := fake.reapExpiredWorkersReturnsOnCall[len(fake.reapExpiredWorkersArgsForCall)]
 	fake.reapExpiredWorkersArgsForCall = append(fake.reapExpiredWorkersArgsForCall, struct{}{})
 	fake.recordInvocation("ReapExpiredWorkers", []interface{}{})
 	fake.reapExpiredWorkersMutex.Unlock()
 	if fake.ReapExpiredWorkersStub != nil {
 		return fake.ReapExpiredWorkersStub()
-	} else {
-		return fake.reapExpiredWorkersReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.reapExpiredWorkersReturns.result1
 }
 
 func (fake *FakeReaperDB) ReapExpiredWorkersCallCount() int {
@@ -101,6 +143,18 @@ func (fake *FakeReaperDB) ReapExpiredWorkersCallCount() int {
 func (fake *FakeReaperDB) ReapExpiredWorkersReturns(result1 error) {
 	fake.ReapExpiredWorkersStub = nil
 	fake.reapExpiredWorkersReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeReaperDB) ReapExpiredWorkersReturnsOnCall(i int, result1 error) {
+	fake.ReapExpiredWorkersStub = nil
+	if fake.reapExpiredWorkersReturnsOnCall == nil {
+		fake.reapExpiredWorkersReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reapExpiredWorkersReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

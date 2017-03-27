@@ -17,6 +17,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	hLog.Debug("setting team")
 
 	authTeam, authTeamFound := auth.GetTeam(r)
+
 	if !authTeamFound {
 		hLog.Error("failed-to-get-team-from-auth", errors.New("failed-to-get-team-from-auth"))
 		w.WriteHeader(http.StatusInternalServerError)

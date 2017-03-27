@@ -20,12 +20,17 @@ type FakeFetchContainerCreator struct {
 		result1 worker.Container
 		result2 error
 	}
+	createWithVolumeReturnsOnCall map[int]struct {
+		result1 worker.Container
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeFetchContainerCreator) CreateWithVolume(arg1 string, arg2 worker.Volume, arg3 worker.Worker) (worker.Container, error) {
 	fake.createWithVolumeMutex.Lock()
+	ret, specificReturn := fake.createWithVolumeReturnsOnCall[len(fake.createWithVolumeArgsForCall)]
 	fake.createWithVolumeArgsForCall = append(fake.createWithVolumeArgsForCall, struct {
 		arg1 string
 		arg2 worker.Volume
@@ -35,9 +40,11 @@ func (fake *FakeFetchContainerCreator) CreateWithVolume(arg1 string, arg2 worker
 	fake.createWithVolumeMutex.Unlock()
 	if fake.CreateWithVolumeStub != nil {
 		return fake.CreateWithVolumeStub(arg1, arg2, arg3)
-	} else {
-		return fake.createWithVolumeReturns.result1, fake.createWithVolumeReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createWithVolumeReturns.result1, fake.createWithVolumeReturns.result2
 }
 
 func (fake *FakeFetchContainerCreator) CreateWithVolumeCallCount() int {
@@ -55,6 +62,20 @@ func (fake *FakeFetchContainerCreator) CreateWithVolumeArgsForCall(i int) (strin
 func (fake *FakeFetchContainerCreator) CreateWithVolumeReturns(result1 worker.Container, result2 error) {
 	fake.CreateWithVolumeStub = nil
 	fake.createWithVolumeReturns = struct {
+		result1 worker.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeFetchContainerCreator) CreateWithVolumeReturnsOnCall(i int, result1 worker.Container, result2 error) {
+	fake.CreateWithVolumeStub = nil
+	if fake.createWithVolumeReturnsOnCall == nil {
+		fake.createWithVolumeReturnsOnCall = make(map[int]struct {
+			result1 worker.Container
+			result2 error
+		})
+	}
+	fake.createWithVolumeReturnsOnCall[i] = struct {
 		result1 worker.Container
 		result2 error
 	}{result1, result2}

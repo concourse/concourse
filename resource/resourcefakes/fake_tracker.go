@@ -27,6 +27,10 @@ type FakeTracker struct {
 		result1 resource.Resource
 		result2 error
 	}
+	initReturnsOnCall map[int]struct {
+		result1 resource.Resource
+		result2 error
+	}
 	InitWithSourcesStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, int, map[string]resource.ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, []string, error)
 	initWithSourcesMutex       sync.RWMutex
 	initWithSourcesArgsForCall []struct {
@@ -45,12 +49,18 @@ type FakeTracker struct {
 		result2 []string
 		result3 error
 	}
+	initWithSourcesReturnsOnCall map[int]struct {
+		result1 resource.Resource
+		result2 []string
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTracker) Init(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 int, arg7 atc.ResourceTypes, arg8 worker.ImageFetchingDelegate) (resource.Resource, error) {
 	fake.initMutex.Lock()
+	ret, specificReturn := fake.initReturnsOnCall[len(fake.initArgsForCall)]
 	fake.initArgsForCall = append(fake.initArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 resource.Metadata
@@ -65,9 +75,11 @@ func (fake *FakeTracker) Init(arg1 lager.Logger, arg2 resource.Metadata, arg3 re
 	fake.initMutex.Unlock()
 	if fake.InitStub != nil {
 		return fake.InitStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
-	} else {
-		return fake.initReturns.result1, fake.initReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.initReturns.result1, fake.initReturns.result2
 }
 
 func (fake *FakeTracker) InitCallCount() int {
@@ -90,8 +102,23 @@ func (fake *FakeTracker) InitReturns(result1 resource.Resource, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeTracker) InitReturnsOnCall(i int, result1 resource.Resource, result2 error) {
+	fake.InitStub = nil
+	if fake.initReturnsOnCall == nil {
+		fake.initReturnsOnCall = make(map[int]struct {
+			result1 resource.Resource
+			result2 error
+		})
+	}
+	fake.initReturnsOnCall[i] = struct {
+		result1 resource.Resource
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTracker) InitWithSources(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 int, arg7 map[string]resource.ArtifactSource, arg8 atc.ResourceTypes, arg9 worker.ImageFetchingDelegate) (resource.Resource, []string, error) {
 	fake.initWithSourcesMutex.Lock()
+	ret, specificReturn := fake.initWithSourcesReturnsOnCall[len(fake.initWithSourcesArgsForCall)]
 	fake.initWithSourcesArgsForCall = append(fake.initWithSourcesArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 resource.Metadata
@@ -107,9 +134,11 @@ func (fake *FakeTracker) InitWithSources(arg1 lager.Logger, arg2 resource.Metada
 	fake.initWithSourcesMutex.Unlock()
 	if fake.InitWithSourcesStub != nil {
 		return fake.InitWithSourcesStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
-	} else {
-		return fake.initWithSourcesReturns.result1, fake.initWithSourcesReturns.result2, fake.initWithSourcesReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.initWithSourcesReturns.result1, fake.initWithSourcesReturns.result2, fake.initWithSourcesReturns.result3
 }
 
 func (fake *FakeTracker) InitWithSourcesCallCount() int {
@@ -127,6 +156,22 @@ func (fake *FakeTracker) InitWithSourcesArgsForCall(i int) (lager.Logger, resour
 func (fake *FakeTracker) InitWithSourcesReturns(result1 resource.Resource, result2 []string, result3 error) {
 	fake.InitWithSourcesStub = nil
 	fake.initWithSourcesReturns = struct {
+		result1 resource.Resource
+		result2 []string
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTracker) InitWithSourcesReturnsOnCall(i int, result1 resource.Resource, result2 []string, result3 error) {
+	fake.InitWithSourcesStub = nil
+	if fake.initWithSourcesReturnsOnCall == nil {
+		fake.initWithSourcesReturnsOnCall = make(map[int]struct {
+			result1 resource.Resource
+			result2 []string
+			result3 error
+		})
+	}
+	fake.initWithSourcesReturnsOnCall[i] = struct {
 		result1 resource.Resource
 		result2 []string
 		result3 error

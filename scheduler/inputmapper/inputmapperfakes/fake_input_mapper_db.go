@@ -18,6 +18,9 @@ type FakeInputMapperDB struct {
 	saveIndependentInputMappingReturns struct {
 		result1 error
 	}
+	saveIndependentInputMappingReturnsOnCall map[int]struct {
+		result1 error
+	}
 	SaveNextInputMappingStub        func(inputVersions algorithm.InputMapping, jobName string) error
 	saveNextInputMappingMutex       sync.RWMutex
 	saveNextInputMappingArgsForCall []struct {
@@ -25,6 +28,9 @@ type FakeInputMapperDB struct {
 		jobName       string
 	}
 	saveNextInputMappingReturns struct {
+		result1 error
+	}
+	saveNextInputMappingReturnsOnCall map[int]struct {
 		result1 error
 	}
 	DeleteNextInputMappingStub        func(jobName string) error
@@ -35,12 +41,16 @@ type FakeInputMapperDB struct {
 	deleteNextInputMappingReturns struct {
 		result1 error
 	}
+	deleteNextInputMappingReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeInputMapperDB) SaveIndependentInputMapping(inputVersions algorithm.InputMapping, jobName string) error {
 	fake.saveIndependentInputMappingMutex.Lock()
+	ret, specificReturn := fake.saveIndependentInputMappingReturnsOnCall[len(fake.saveIndependentInputMappingArgsForCall)]
 	fake.saveIndependentInputMappingArgsForCall = append(fake.saveIndependentInputMappingArgsForCall, struct {
 		inputVersions algorithm.InputMapping
 		jobName       string
@@ -49,9 +59,11 @@ func (fake *FakeInputMapperDB) SaveIndependentInputMapping(inputVersions algorit
 	fake.saveIndependentInputMappingMutex.Unlock()
 	if fake.SaveIndependentInputMappingStub != nil {
 		return fake.SaveIndependentInputMappingStub(inputVersions, jobName)
-	} else {
-		return fake.saveIndependentInputMappingReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.saveIndependentInputMappingReturns.result1
 }
 
 func (fake *FakeInputMapperDB) SaveIndependentInputMappingCallCount() int {
@@ -73,8 +85,21 @@ func (fake *FakeInputMapperDB) SaveIndependentInputMappingReturns(result1 error)
 	}{result1}
 }
 
+func (fake *FakeInputMapperDB) SaveIndependentInputMappingReturnsOnCall(i int, result1 error) {
+	fake.SaveIndependentInputMappingStub = nil
+	if fake.saveIndependentInputMappingReturnsOnCall == nil {
+		fake.saveIndependentInputMappingReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveIndependentInputMappingReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeInputMapperDB) SaveNextInputMapping(inputVersions algorithm.InputMapping, jobName string) error {
 	fake.saveNextInputMappingMutex.Lock()
+	ret, specificReturn := fake.saveNextInputMappingReturnsOnCall[len(fake.saveNextInputMappingArgsForCall)]
 	fake.saveNextInputMappingArgsForCall = append(fake.saveNextInputMappingArgsForCall, struct {
 		inputVersions algorithm.InputMapping
 		jobName       string
@@ -83,9 +108,11 @@ func (fake *FakeInputMapperDB) SaveNextInputMapping(inputVersions algorithm.Inpu
 	fake.saveNextInputMappingMutex.Unlock()
 	if fake.SaveNextInputMappingStub != nil {
 		return fake.SaveNextInputMappingStub(inputVersions, jobName)
-	} else {
-		return fake.saveNextInputMappingReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.saveNextInputMappingReturns.result1
 }
 
 func (fake *FakeInputMapperDB) SaveNextInputMappingCallCount() int {
@@ -107,8 +134,21 @@ func (fake *FakeInputMapperDB) SaveNextInputMappingReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeInputMapperDB) SaveNextInputMappingReturnsOnCall(i int, result1 error) {
+	fake.SaveNextInputMappingStub = nil
+	if fake.saveNextInputMappingReturnsOnCall == nil {
+		fake.saveNextInputMappingReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveNextInputMappingReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeInputMapperDB) DeleteNextInputMapping(jobName string) error {
 	fake.deleteNextInputMappingMutex.Lock()
+	ret, specificReturn := fake.deleteNextInputMappingReturnsOnCall[len(fake.deleteNextInputMappingArgsForCall)]
 	fake.deleteNextInputMappingArgsForCall = append(fake.deleteNextInputMappingArgsForCall, struct {
 		jobName string
 	}{jobName})
@@ -116,9 +156,11 @@ func (fake *FakeInputMapperDB) DeleteNextInputMapping(jobName string) error {
 	fake.deleteNextInputMappingMutex.Unlock()
 	if fake.DeleteNextInputMappingStub != nil {
 		return fake.DeleteNextInputMappingStub(jobName)
-	} else {
-		return fake.deleteNextInputMappingReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deleteNextInputMappingReturns.result1
 }
 
 func (fake *FakeInputMapperDB) DeleteNextInputMappingCallCount() int {
@@ -136,6 +178,18 @@ func (fake *FakeInputMapperDB) DeleteNextInputMappingArgsForCall(i int) string {
 func (fake *FakeInputMapperDB) DeleteNextInputMappingReturns(result1 error) {
 	fake.DeleteNextInputMappingStub = nil
 	fake.deleteNextInputMappingReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeInputMapperDB) DeleteNextInputMappingReturnsOnCall(i int, result1 error) {
+	fake.DeleteNextInputMappingStub = nil
+	if fake.deleteNextInputMappingReturnsOnCall == nil {
+		fake.deleteNextInputMappingReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteNextInputMappingReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

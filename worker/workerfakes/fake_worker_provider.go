@@ -16,12 +16,21 @@ type FakeWorkerProvider struct {
 		result1 []worker.Worker
 		result2 error
 	}
+	runningWorkersReturnsOnCall map[int]struct {
+		result1 []worker.Worker
+		result2 error
+	}
 	GetWorkerStub        func(string) (worker.Worker, bool, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
 		arg1 string
 	}
 	getWorkerReturns struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}
+	getWorkerReturnsOnCall map[int]struct {
 		result1 worker.Worker
 		result2 bool
 		result3 error
@@ -36,12 +45,22 @@ type FakeWorkerProvider struct {
 		result2 bool
 		result3 error
 	}
+	findContainerForIdentifierReturnsOnCall map[int]struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}
 	GetContainerStub        func(string) (db.SavedContainer, bool, error)
 	getContainerMutex       sync.RWMutex
 	getContainerArgsForCall []struct {
 		arg1 string
 	}
 	getContainerReturns struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}
+	getContainerReturnsOnCall map[int]struct {
 		result1 db.SavedContainer
 		result2 bool
 		result3 error
@@ -54,20 +73,26 @@ type FakeWorkerProvider struct {
 	reapContainerReturns struct {
 		result1 error
 	}
+	reapContainerReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeWorkerProvider) RunningWorkers() ([]worker.Worker, error) {
 	fake.runningWorkersMutex.Lock()
+	ret, specificReturn := fake.runningWorkersReturnsOnCall[len(fake.runningWorkersArgsForCall)]
 	fake.runningWorkersArgsForCall = append(fake.runningWorkersArgsForCall, struct{}{})
 	fake.recordInvocation("RunningWorkers", []interface{}{})
 	fake.runningWorkersMutex.Unlock()
 	if fake.RunningWorkersStub != nil {
 		return fake.RunningWorkersStub()
-	} else {
-		return fake.runningWorkersReturns.result1, fake.runningWorkersReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.runningWorkersReturns.result1, fake.runningWorkersReturns.result2
 }
 
 func (fake *FakeWorkerProvider) RunningWorkersCallCount() int {
@@ -84,8 +109,23 @@ func (fake *FakeWorkerProvider) RunningWorkersReturns(result1 []worker.Worker, r
 	}{result1, result2}
 }
 
+func (fake *FakeWorkerProvider) RunningWorkersReturnsOnCall(i int, result1 []worker.Worker, result2 error) {
+	fake.RunningWorkersStub = nil
+	if fake.runningWorkersReturnsOnCall == nil {
+		fake.runningWorkersReturnsOnCall = make(map[int]struct {
+			result1 []worker.Worker
+			result2 error
+		})
+	}
+	fake.runningWorkersReturnsOnCall[i] = struct {
+		result1 []worker.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeWorkerProvider) GetWorker(arg1 string) (worker.Worker, bool, error) {
 	fake.getWorkerMutex.Lock()
+	ret, specificReturn := fake.getWorkerReturnsOnCall[len(fake.getWorkerArgsForCall)]
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
 		arg1 string
 	}{arg1})
@@ -93,9 +133,11 @@ func (fake *FakeWorkerProvider) GetWorker(arg1 string) (worker.Worker, bool, err
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
 		return fake.GetWorkerStub(arg1)
-	} else {
-		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2, fake.getWorkerReturns.result3
 }
 
 func (fake *FakeWorkerProvider) GetWorkerCallCount() int {
@@ -119,8 +161,25 @@ func (fake *FakeWorkerProvider) GetWorkerReturns(result1 worker.Worker, result2 
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerProvider) GetWorkerReturnsOnCall(i int, result1 worker.Worker, result2 bool, result3 error) {
+	fake.GetWorkerStub = nil
+	if fake.getWorkerReturnsOnCall == nil {
+		fake.getWorkerReturnsOnCall = make(map[int]struct {
+			result1 worker.Worker
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getWorkerReturnsOnCall[i] = struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerProvider) FindContainerForIdentifier(arg1 worker.Identifier) (db.SavedContainer, bool, error) {
 	fake.findContainerForIdentifierMutex.Lock()
+	ret, specificReturn := fake.findContainerForIdentifierReturnsOnCall[len(fake.findContainerForIdentifierArgsForCall)]
 	fake.findContainerForIdentifierArgsForCall = append(fake.findContainerForIdentifierArgsForCall, struct {
 		arg1 worker.Identifier
 	}{arg1})
@@ -128,9 +187,11 @@ func (fake *FakeWorkerProvider) FindContainerForIdentifier(arg1 worker.Identifie
 	fake.findContainerForIdentifierMutex.Unlock()
 	if fake.FindContainerForIdentifierStub != nil {
 		return fake.FindContainerForIdentifierStub(arg1)
-	} else {
-		return fake.findContainerForIdentifierReturns.result1, fake.findContainerForIdentifierReturns.result2, fake.findContainerForIdentifierReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.findContainerForIdentifierReturns.result1, fake.findContainerForIdentifierReturns.result2, fake.findContainerForIdentifierReturns.result3
 }
 
 func (fake *FakeWorkerProvider) FindContainerForIdentifierCallCount() int {
@@ -154,8 +215,25 @@ func (fake *FakeWorkerProvider) FindContainerForIdentifierReturns(result1 db.Sav
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerProvider) FindContainerForIdentifierReturnsOnCall(i int, result1 db.SavedContainer, result2 bool, result3 error) {
+	fake.FindContainerForIdentifierStub = nil
+	if fake.findContainerForIdentifierReturnsOnCall == nil {
+		fake.findContainerForIdentifierReturnsOnCall = make(map[int]struct {
+			result1 db.SavedContainer
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findContainerForIdentifierReturnsOnCall[i] = struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerProvider) GetContainer(arg1 string) (db.SavedContainer, bool, error) {
 	fake.getContainerMutex.Lock()
+	ret, specificReturn := fake.getContainerReturnsOnCall[len(fake.getContainerArgsForCall)]
 	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
 		arg1 string
 	}{arg1})
@@ -163,9 +241,11 @@ func (fake *FakeWorkerProvider) GetContainer(arg1 string) (db.SavedContainer, bo
 	fake.getContainerMutex.Unlock()
 	if fake.GetContainerStub != nil {
 		return fake.GetContainerStub(arg1)
-	} else {
-		return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 }
 
 func (fake *FakeWorkerProvider) GetContainerCallCount() int {
@@ -189,8 +269,25 @@ func (fake *FakeWorkerProvider) GetContainerReturns(result1 db.SavedContainer, r
 	}{result1, result2, result3}
 }
 
+func (fake *FakeWorkerProvider) GetContainerReturnsOnCall(i int, result1 db.SavedContainer, result2 bool, result3 error) {
+	fake.GetContainerStub = nil
+	if fake.getContainerReturnsOnCall == nil {
+		fake.getContainerReturnsOnCall = make(map[int]struct {
+			result1 db.SavedContainer
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getContainerReturnsOnCall[i] = struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeWorkerProvider) ReapContainer(arg1 string) error {
 	fake.reapContainerMutex.Lock()
+	ret, specificReturn := fake.reapContainerReturnsOnCall[len(fake.reapContainerArgsForCall)]
 	fake.reapContainerArgsForCall = append(fake.reapContainerArgsForCall, struct {
 		arg1 string
 	}{arg1})
@@ -198,9 +295,11 @@ func (fake *FakeWorkerProvider) ReapContainer(arg1 string) error {
 	fake.reapContainerMutex.Unlock()
 	if fake.ReapContainerStub != nil {
 		return fake.ReapContainerStub(arg1)
-	} else {
-		return fake.reapContainerReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.reapContainerReturns.result1
 }
 
 func (fake *FakeWorkerProvider) ReapContainerCallCount() int {
@@ -218,6 +317,18 @@ func (fake *FakeWorkerProvider) ReapContainerArgsForCall(i int) string {
 func (fake *FakeWorkerProvider) ReapContainerReturns(result1 error) {
 	fake.ReapContainerStub = nil
 	fake.reapContainerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorkerProvider) ReapContainerReturnsOnCall(i int, result1 error) {
+	fake.ReapContainerStub = nil
+	if fake.reapContainerReturnsOnCall == nil {
+		fake.reapContainerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reapContainerReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

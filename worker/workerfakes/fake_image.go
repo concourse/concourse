@@ -19,20 +19,29 @@ type FakeImage struct {
 		result3 atc.Version
 		result4 error
 	}
+	fetchReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 io.ReadCloser
+		result3 atc.Version
+		result4 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeImage) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 	fake.fetchMutex.Lock()
+	ret, specificReturn := fake.fetchReturnsOnCall[len(fake.fetchArgsForCall)]
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct{}{})
 	fake.recordInvocation("Fetch", []interface{}{})
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
 		return fake.FetchStub()
-	} else {
-		return fake.fetchReturns.result1, fake.fetchReturns.result2, fake.fetchReturns.result3, fake.fetchReturns.result4
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3, ret.result4
+	}
+	return fake.fetchReturns.result1, fake.fetchReturns.result2, fake.fetchReturns.result3, fake.fetchReturns.result4
 }
 
 func (fake *FakeImage) FetchCallCount() int {
@@ -44,6 +53,24 @@ func (fake *FakeImage) FetchCallCount() int {
 func (fake *FakeImage) FetchReturns(result1 worker.Volume, result2 io.ReadCloser, result3 atc.Version, result4 error) {
 	fake.FetchStub = nil
 	fake.fetchReturns = struct {
+		result1 worker.Volume
+		result2 io.ReadCloser
+		result3 atc.Version
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeImage) FetchReturnsOnCall(i int, result1 worker.Volume, result2 io.ReadCloser, result3 atc.Version, result4 error) {
+	fake.FetchStub = nil
+	if fake.fetchReturnsOnCall == nil {
+		fake.fetchReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 io.ReadCloser
+			result3 atc.Version
+			result4 error
+		})
+	}
+	fake.fetchReturnsOnCall[i] = struct {
 		result1 worker.Volume
 		result2 io.ReadCloser
 		result3 atc.Version

@@ -18,12 +18,16 @@ type FakeLockFactory struct {
 	newLockReturns struct {
 		result1 db.Lock
 	}
+	newLockReturnsOnCall map[int]struct {
+		result1 db.Lock
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeLockFactory) NewLock(logger lager.Logger, ids db.LockID) db.Lock {
 	fake.newLockMutex.Lock()
+	ret, specificReturn := fake.newLockReturnsOnCall[len(fake.newLockArgsForCall)]
 	fake.newLockArgsForCall = append(fake.newLockArgsForCall, struct {
 		logger lager.Logger
 		ids    db.LockID
@@ -32,9 +36,11 @@ func (fake *FakeLockFactory) NewLock(logger lager.Logger, ids db.LockID) db.Lock
 	fake.newLockMutex.Unlock()
 	if fake.NewLockStub != nil {
 		return fake.NewLockStub(logger, ids)
-	} else {
-		return fake.newLockReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.newLockReturns.result1
 }
 
 func (fake *FakeLockFactory) NewLockCallCount() int {
@@ -52,6 +58,18 @@ func (fake *FakeLockFactory) NewLockArgsForCall(i int) (lager.Logger, db.LockID)
 func (fake *FakeLockFactory) NewLockReturns(result1 db.Lock) {
 	fake.NewLockStub = nil
 	fake.newLockReturns = struct {
+		result1 db.Lock
+	}{result1}
+}
+
+func (fake *FakeLockFactory) NewLockReturnsOnCall(i int, result1 db.Lock) {
+	fake.NewLockStub = nil
+	if fake.newLockReturnsOnCall == nil {
+		fake.newLockReturnsOnCall = make(map[int]struct {
+			result1 db.Lock
+		})
+	}
+	fake.newLockReturnsOnCall[i] = struct {
 		result1 db.Lock
 	}{result1}
 }

@@ -15,20 +15,27 @@ type FakeFetchSourceProvider struct {
 		result1 resource.FetchSource
 		result2 error
 	}
+	getReturnsOnCall map[int]struct {
+		result1 resource.FetchSource
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeFetchSourceProvider) Get() (resource.FetchSource, error) {
 	fake.getMutex.Lock()
+	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct{}{})
 	fake.recordInvocation("Get", []interface{}{})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
 		return fake.GetStub()
-	} else {
-		return fake.getReturns.result1, fake.getReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getReturns.result1, fake.getReturns.result2
 }
 
 func (fake *FakeFetchSourceProvider) GetCallCount() int {
@@ -40,6 +47,20 @@ func (fake *FakeFetchSourceProvider) GetCallCount() int {
 func (fake *FakeFetchSourceProvider) GetReturns(result1 resource.FetchSource, result2 error) {
 	fake.GetStub = nil
 	fake.getReturns = struct {
+		result1 resource.FetchSource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeFetchSourceProvider) GetReturnsOnCall(i int, result1 resource.FetchSource, result2 error) {
+	fake.GetStub = nil
+	if fake.getReturnsOnCall == nil {
+		fake.getReturnsOnCall = make(map[int]struct {
+			result1 resource.FetchSource
+			result2 error
+		})
+	}
+	fake.getReturnsOnCall[i] = struct {
 		result1 resource.FetchSource
 		result2 error
 	}{result1, result2}

@@ -18,10 +18,17 @@ type FakeTaskConfigSource struct {
 		result1 atc.TaskConfig
 		result2 error
 	}
+	fetchConfigReturnsOnCall map[int]struct {
+		result1 atc.TaskConfig
+		result2 error
+	}
 	WarningsStub        func() []string
 	warningsMutex       sync.RWMutex
 	warningsArgsForCall []struct{}
 	warningsReturns     struct {
+		result1 []string
+	}
+	warningsReturnsOnCall map[int]struct {
 		result1 []string
 	}
 	invocations      map[string][][]interface{}
@@ -30,6 +37,7 @@ type FakeTaskConfigSource struct {
 
 func (fake *FakeTaskConfigSource) FetchConfig(arg1 *exec.SourceRepository) (atc.TaskConfig, error) {
 	fake.fetchConfigMutex.Lock()
+	ret, specificReturn := fake.fetchConfigReturnsOnCall[len(fake.fetchConfigArgsForCall)]
 	fake.fetchConfigArgsForCall = append(fake.fetchConfigArgsForCall, struct {
 		arg1 *exec.SourceRepository
 	}{arg1})
@@ -37,9 +45,11 @@ func (fake *FakeTaskConfigSource) FetchConfig(arg1 *exec.SourceRepository) (atc.
 	fake.fetchConfigMutex.Unlock()
 	if fake.FetchConfigStub != nil {
 		return fake.FetchConfigStub(arg1)
-	} else {
-		return fake.fetchConfigReturns.result1, fake.fetchConfigReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.fetchConfigReturns.result1, fake.fetchConfigReturns.result2
 }
 
 func (fake *FakeTaskConfigSource) FetchConfigCallCount() int {
@@ -62,16 +72,33 @@ func (fake *FakeTaskConfigSource) FetchConfigReturns(result1 atc.TaskConfig, res
 	}{result1, result2}
 }
 
+func (fake *FakeTaskConfigSource) FetchConfigReturnsOnCall(i int, result1 atc.TaskConfig, result2 error) {
+	fake.FetchConfigStub = nil
+	if fake.fetchConfigReturnsOnCall == nil {
+		fake.fetchConfigReturnsOnCall = make(map[int]struct {
+			result1 atc.TaskConfig
+			result2 error
+		})
+	}
+	fake.fetchConfigReturnsOnCall[i] = struct {
+		result1 atc.TaskConfig
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTaskConfigSource) Warnings() []string {
 	fake.warningsMutex.Lock()
+	ret, specificReturn := fake.warningsReturnsOnCall[len(fake.warningsArgsForCall)]
 	fake.warningsArgsForCall = append(fake.warningsArgsForCall, struct{}{})
 	fake.recordInvocation("Warnings", []interface{}{})
 	fake.warningsMutex.Unlock()
 	if fake.WarningsStub != nil {
 		return fake.WarningsStub()
-	} else {
-		return fake.warningsReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.warningsReturns.result1
 }
 
 func (fake *FakeTaskConfigSource) WarningsCallCount() int {
@@ -83,6 +110,18 @@ func (fake *FakeTaskConfigSource) WarningsCallCount() int {
 func (fake *FakeTaskConfigSource) WarningsReturns(result1 []string) {
 	fake.WarningsStub = nil
 	fake.warningsReturns = struct {
+		result1 []string
+	}{result1}
+}
+
+func (fake *FakeTaskConfigSource) WarningsReturnsOnCall(i int, result1 []string) {
+	fake.WarningsStub = nil
+	if fake.warningsReturnsOnCall == nil {
+		fake.warningsReturnsOnCall = make(map[int]struct {
+			result1 []string
+		})
+	}
+	fake.warningsReturnsOnCall[i] = struct {
 		result1 []string
 	}{result1}
 }

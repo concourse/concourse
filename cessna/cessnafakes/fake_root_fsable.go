@@ -19,12 +19,17 @@ type FakeRootFSable struct {
 		result1 string
 		result2 error
 	}
+	rootFSPathForReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeRootFSable) RootFSPathFor(logger lager.Logger, worker cessna.Worker) (string, error) {
 	fake.rootFSPathForMutex.Lock()
+	ret, specificReturn := fake.rootFSPathForReturnsOnCall[len(fake.rootFSPathForArgsForCall)]
 	fake.rootFSPathForArgsForCall = append(fake.rootFSPathForArgsForCall, struct {
 		logger lager.Logger
 		worker cessna.Worker
@@ -33,9 +38,11 @@ func (fake *FakeRootFSable) RootFSPathFor(logger lager.Logger, worker cessna.Wor
 	fake.rootFSPathForMutex.Unlock()
 	if fake.RootFSPathForStub != nil {
 		return fake.RootFSPathForStub(logger, worker)
-	} else {
-		return fake.rootFSPathForReturns.result1, fake.rootFSPathForReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.rootFSPathForReturns.result1, fake.rootFSPathForReturns.result2
 }
 
 func (fake *FakeRootFSable) RootFSPathForCallCount() int {
@@ -53,6 +60,20 @@ func (fake *FakeRootFSable) RootFSPathForArgsForCall(i int) (lager.Logger, cessn
 func (fake *FakeRootFSable) RootFSPathForReturns(result1 string, result2 error) {
 	fake.RootFSPathForStub = nil
 	fake.rootFSPathForReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeRootFSable) RootFSPathForReturnsOnCall(i int, result1 string, result2 error) {
+	fake.RootFSPathForStub = nil
+	if fake.rootFSPathForReturnsOnCall == nil {
+		fake.rootFSPathForReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.rootFSPathForReturnsOnCall[i] = struct {
 		result1 string
 		result2 error
 	}{result1, result2}

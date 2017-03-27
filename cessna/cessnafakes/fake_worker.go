@@ -16,10 +16,16 @@ type FakeWorker struct {
 	gardenClientReturns     struct {
 		result1 garden.Client
 	}
+	gardenClientReturnsOnCall map[int]struct {
+		result1 garden.Client
+	}
 	BaggageClaimClientStub        func() baggageclaim.Client
 	baggageClaimClientMutex       sync.RWMutex
 	baggageClaimClientArgsForCall []struct{}
 	baggageClaimClientReturns     struct {
+		result1 baggageclaim.Client
+	}
+	baggageClaimClientReturnsOnCall map[int]struct {
 		result1 baggageclaim.Client
 	}
 	invocations      map[string][][]interface{}
@@ -28,14 +34,17 @@ type FakeWorker struct {
 
 func (fake *FakeWorker) GardenClient() garden.Client {
 	fake.gardenClientMutex.Lock()
+	ret, specificReturn := fake.gardenClientReturnsOnCall[len(fake.gardenClientArgsForCall)]
 	fake.gardenClientArgsForCall = append(fake.gardenClientArgsForCall, struct{}{})
 	fake.recordInvocation("GardenClient", []interface{}{})
 	fake.gardenClientMutex.Unlock()
 	if fake.GardenClientStub != nil {
 		return fake.GardenClientStub()
-	} else {
-		return fake.gardenClientReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.gardenClientReturns.result1
 }
 
 func (fake *FakeWorker) GardenClientCallCount() int {
@@ -51,16 +60,31 @@ func (fake *FakeWorker) GardenClientReturns(result1 garden.Client) {
 	}{result1}
 }
 
+func (fake *FakeWorker) GardenClientReturnsOnCall(i int, result1 garden.Client) {
+	fake.GardenClientStub = nil
+	if fake.gardenClientReturnsOnCall == nil {
+		fake.gardenClientReturnsOnCall = make(map[int]struct {
+			result1 garden.Client
+		})
+	}
+	fake.gardenClientReturnsOnCall[i] = struct {
+		result1 garden.Client
+	}{result1}
+}
+
 func (fake *FakeWorker) BaggageClaimClient() baggageclaim.Client {
 	fake.baggageClaimClientMutex.Lock()
+	ret, specificReturn := fake.baggageClaimClientReturnsOnCall[len(fake.baggageClaimClientArgsForCall)]
 	fake.baggageClaimClientArgsForCall = append(fake.baggageClaimClientArgsForCall, struct{}{})
 	fake.recordInvocation("BaggageClaimClient", []interface{}{})
 	fake.baggageClaimClientMutex.Unlock()
 	if fake.BaggageClaimClientStub != nil {
 		return fake.BaggageClaimClientStub()
-	} else {
-		return fake.baggageClaimClientReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.baggageClaimClientReturns.result1
 }
 
 func (fake *FakeWorker) BaggageClaimClientCallCount() int {
@@ -72,6 +96,18 @@ func (fake *FakeWorker) BaggageClaimClientCallCount() int {
 func (fake *FakeWorker) BaggageClaimClientReturns(result1 baggageclaim.Client) {
 	fake.BaggageClaimClientStub = nil
 	fake.baggageClaimClientReturns = struct {
+		result1 baggageclaim.Client
+	}{result1}
+}
+
+func (fake *FakeWorker) BaggageClaimClientReturnsOnCall(i int, result1 baggageclaim.Client) {
+	fake.BaggageClaimClientStub = nil
+	if fake.baggageClaimClientReturnsOnCall == nil {
+		fake.baggageClaimClientReturnsOnCall = make(map[int]struct {
+			result1 baggageclaim.Client
+		})
+	}
+	fake.baggageClaimClientReturnsOnCall[i] = struct {
 		result1 baggageclaim.Client
 	}{result1}
 }

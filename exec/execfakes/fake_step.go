@@ -18,6 +18,9 @@ type FakeStep struct {
 	runReturns struct {
 		result1 error
 	}
+	runReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ReleaseStub        func()
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct{}
@@ -29,12 +32,16 @@ type FakeStep struct {
 	resultReturns struct {
 		result1 bool
 	}
+	resultReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	fake.runMutex.Lock()
+	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
 		signals <-chan os.Signal
 		ready   chan<- struct{}
@@ -43,9 +50,11 @@ func (fake *FakeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
 		return fake.RunStub(signals, ready)
-	} else {
-		return fake.runReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.runReturns.result1
 }
 
 func (fake *FakeStep) RunCallCount() int {
@@ -63,6 +72,18 @@ func (fake *FakeStep) RunArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) 
 func (fake *FakeStep) RunReturns(result1 error) {
 	fake.RunStub = nil
 	fake.runReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStep) RunReturnsOnCall(i int, result1 error) {
+	fake.RunStub = nil
+	if fake.runReturnsOnCall == nil {
+		fake.runReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.runReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -85,6 +106,7 @@ func (fake *FakeStep) ReleaseCallCount() int {
 
 func (fake *FakeStep) Result(arg1 interface{}) bool {
 	fake.resultMutex.Lock()
+	ret, specificReturn := fake.resultReturnsOnCall[len(fake.resultArgsForCall)]
 	fake.resultArgsForCall = append(fake.resultArgsForCall, struct {
 		arg1 interface{}
 	}{arg1})
@@ -92,9 +114,11 @@ func (fake *FakeStep) Result(arg1 interface{}) bool {
 	fake.resultMutex.Unlock()
 	if fake.ResultStub != nil {
 		return fake.ResultStub(arg1)
-	} else {
-		return fake.resultReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.resultReturns.result1
 }
 
 func (fake *FakeStep) ResultCallCount() int {
@@ -112,6 +136,18 @@ func (fake *FakeStep) ResultArgsForCall(i int) interface{} {
 func (fake *FakeStep) ResultReturns(result1 bool) {
 	fake.ResultStub = nil
 	fake.resultReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeStep) ResultReturnsOnCall(i int, result1 bool) {
+	fake.ResultStub = nil
+	if fake.resultReturnsOnCall == nil {
+		fake.resultReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.resultReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
 }

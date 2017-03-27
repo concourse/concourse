@@ -17,6 +17,9 @@ type FakePipeline struct {
 	saveJobReturns struct {
 		result1 error
 	}
+	saveJobReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CreateJobBuildStub        func(jobName string) (*dbng.Build, error)
 	createJobBuildMutex       sync.RWMutex
 	createJobBuildArgsForCall []struct {
@@ -26,12 +29,17 @@ type FakePipeline struct {
 		result1 *dbng.Build
 		result2 error
 	}
+	createJobBuildReturnsOnCall map[int]struct {
+		result1 *dbng.Build
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakePipeline) SaveJob(job atc.JobConfig) error {
 	fake.saveJobMutex.Lock()
+	ret, specificReturn := fake.saveJobReturnsOnCall[len(fake.saveJobArgsForCall)]
 	fake.saveJobArgsForCall = append(fake.saveJobArgsForCall, struct {
 		job atc.JobConfig
 	}{job})
@@ -39,9 +47,11 @@ func (fake *FakePipeline) SaveJob(job atc.JobConfig) error {
 	fake.saveJobMutex.Unlock()
 	if fake.SaveJobStub != nil {
 		return fake.SaveJobStub(job)
-	} else {
-		return fake.saveJobReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.saveJobReturns.result1
 }
 
 func (fake *FakePipeline) SaveJobCallCount() int {
@@ -63,8 +73,21 @@ func (fake *FakePipeline) SaveJobReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakePipeline) SaveJobReturnsOnCall(i int, result1 error) {
+	fake.SaveJobStub = nil
+	if fake.saveJobReturnsOnCall == nil {
+		fake.saveJobReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveJobReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakePipeline) CreateJobBuild(jobName string) (*dbng.Build, error) {
 	fake.createJobBuildMutex.Lock()
+	ret, specificReturn := fake.createJobBuildReturnsOnCall[len(fake.createJobBuildArgsForCall)]
 	fake.createJobBuildArgsForCall = append(fake.createJobBuildArgsForCall, struct {
 		jobName string
 	}{jobName})
@@ -72,9 +95,11 @@ func (fake *FakePipeline) CreateJobBuild(jobName string) (*dbng.Build, error) {
 	fake.createJobBuildMutex.Unlock()
 	if fake.CreateJobBuildStub != nil {
 		return fake.CreateJobBuildStub(jobName)
-	} else {
-		return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
 }
 
 func (fake *FakePipeline) CreateJobBuildCallCount() int {
@@ -92,6 +117,20 @@ func (fake *FakePipeline) CreateJobBuildArgsForCall(i int) string {
 func (fake *FakePipeline) CreateJobBuildReturns(result1 *dbng.Build, result2 error) {
 	fake.CreateJobBuildStub = nil
 	fake.createJobBuildReturns = struct {
+		result1 *dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) CreateJobBuildReturnsOnCall(i int, result1 *dbng.Build, result2 error) {
+	fake.CreateJobBuildStub = nil
+	if fake.createJobBuildReturnsOnCall == nil {
+		fake.createJobBuildReturnsOnCall = make(map[int]struct {
+			result1 *dbng.Build
+			result2 error
+		})
+	}
+	fake.createJobBuildReturnsOnCall[i] = struct {
 		result1 *dbng.Build
 		result2 error
 	}{result1, result2}

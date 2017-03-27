@@ -23,10 +23,19 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	savePipelineReturnsOnCall map[int]struct {
+		result1 dbng.Pipeline
+		result2 bool
+		result3 error
+	}
 	CreateOneOffBuildStub        func() (*dbng.Build, error)
 	createOneOffBuildMutex       sync.RWMutex
 	createOneOffBuildArgsForCall []struct{}
 	createOneOffBuildReturns     struct {
+		result1 *dbng.Build
+		result2 error
+	}
+	createOneOffBuildReturnsOnCall map[int]struct {
 		result1 *dbng.Build
 		result2 error
 	}
@@ -40,12 +49,17 @@ type FakeTeam struct {
 		result1 *dbng.Worker
 		result2 error
 	}
+	saveWorkerReturnsOnCall map[int]struct {
+		result1 *dbng.Worker
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from dbng.ConfigVersion, pausedState dbng.PipelinePausedState) (dbng.Pipeline, bool, error) {
 	fake.savePipelineMutex.Lock()
+	ret, specificReturn := fake.savePipelineReturnsOnCall[len(fake.savePipelineArgsForCall)]
 	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
 		pipelineName string
 		config       atc.Config
@@ -56,9 +70,11 @@ func (fake *FakeTeam) SavePipeline(pipelineName string, config atc.Config, from 
 	fake.savePipelineMutex.Unlock()
 	if fake.SavePipelineStub != nil {
 		return fake.SavePipelineStub(pipelineName, config, from, pausedState)
-	} else {
-		return fake.savePipelineReturns.result1, fake.savePipelineReturns.result2, fake.savePipelineReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.savePipelineReturns.result1, fake.savePipelineReturns.result2, fake.savePipelineReturns.result3
 }
 
 func (fake *FakeTeam) SavePipelineCallCount() int {
@@ -82,16 +98,35 @@ func (fake *FakeTeam) SavePipelineReturns(result1 dbng.Pipeline, result2 bool, r
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeam) SavePipelineReturnsOnCall(i int, result1 dbng.Pipeline, result2 bool, result3 error) {
+	fake.SavePipelineStub = nil
+	if fake.savePipelineReturnsOnCall == nil {
+		fake.savePipelineReturnsOnCall = make(map[int]struct {
+			result1 dbng.Pipeline
+			result2 bool
+			result3 error
+		})
+	}
+	fake.savePipelineReturnsOnCall[i] = struct {
+		result1 dbng.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeam) CreateOneOffBuild() (*dbng.Build, error) {
 	fake.createOneOffBuildMutex.Lock()
+	ret, specificReturn := fake.createOneOffBuildReturnsOnCall[len(fake.createOneOffBuildArgsForCall)]
 	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct{}{})
 	fake.recordInvocation("CreateOneOffBuild", []interface{}{})
 	fake.createOneOffBuildMutex.Unlock()
 	if fake.CreateOneOffBuildStub != nil {
 		return fake.CreateOneOffBuildStub()
-	} else {
-		return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
 }
 
 func (fake *FakeTeam) CreateOneOffBuildCallCount() int {
@@ -108,8 +143,23 @@ func (fake *FakeTeam) CreateOneOffBuildReturns(result1 *dbng.Build, result2 erro
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) CreateOneOffBuildReturnsOnCall(i int, result1 *dbng.Build, result2 error) {
+	fake.CreateOneOffBuildStub = nil
+	if fake.createOneOffBuildReturnsOnCall == nil {
+		fake.createOneOffBuildReturnsOnCall = make(map[int]struct {
+			result1 *dbng.Build
+			result2 error
+		})
+	}
+	fake.createOneOffBuildReturnsOnCall[i] = struct {
+		result1 *dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) SaveWorker(worker atc.Worker, ttl time.Duration) (*dbng.Worker, error) {
 	fake.saveWorkerMutex.Lock()
+	ret, specificReturn := fake.saveWorkerReturnsOnCall[len(fake.saveWorkerArgsForCall)]
 	fake.saveWorkerArgsForCall = append(fake.saveWorkerArgsForCall, struct {
 		worker atc.Worker
 		ttl    time.Duration
@@ -118,9 +168,11 @@ func (fake *FakeTeam) SaveWorker(worker atc.Worker, ttl time.Duration) (*dbng.Wo
 	fake.saveWorkerMutex.Unlock()
 	if fake.SaveWorkerStub != nil {
 		return fake.SaveWorkerStub(worker, ttl)
-	} else {
-		return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 }
 
 func (fake *FakeTeam) SaveWorkerCallCount() int {
@@ -138,6 +190,20 @@ func (fake *FakeTeam) SaveWorkerArgsForCall(i int) (atc.Worker, time.Duration) {
 func (fake *FakeTeam) SaveWorkerReturns(result1 *dbng.Worker, result2 error) {
 	fake.SaveWorkerStub = nil
 	fake.saveWorkerReturns = struct {
+		result1 *dbng.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) SaveWorkerReturnsOnCall(i int, result1 *dbng.Worker, result2 error) {
+	fake.SaveWorkerStub = nil
+	if fake.saveWorkerReturnsOnCall == nil {
+		fake.saveWorkerReturnsOnCall = make(map[int]struct {
+			result1 *dbng.Worker
+			result2 error
+		})
+	}
+	fake.saveWorkerReturnsOnCall[i] = struct {
 		result1 *dbng.Worker
 		result2 error
 	}{result1, result2}

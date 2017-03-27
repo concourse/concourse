@@ -22,12 +22,17 @@ type FakeRequestGenerator struct {
 		result1 *http.Request
 		result2 error
 	}
+	createRequestReturnsOnCall map[int]struct {
+		result1 *http.Request
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeRequestGenerator) CreateRequest(name string, params rata.Params, body io.Reader) (*http.Request, error) {
 	fake.createRequestMutex.Lock()
+	ret, specificReturn := fake.createRequestReturnsOnCall[len(fake.createRequestArgsForCall)]
 	fake.createRequestArgsForCall = append(fake.createRequestArgsForCall, struct {
 		name   string
 		params rata.Params
@@ -37,9 +42,11 @@ func (fake *FakeRequestGenerator) CreateRequest(name string, params rata.Params,
 	fake.createRequestMutex.Unlock()
 	if fake.CreateRequestStub != nil {
 		return fake.CreateRequestStub(name, params, body)
-	} else {
-		return fake.createRequestReturns.result1, fake.createRequestReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createRequestReturns.result1, fake.createRequestReturns.result2
 }
 
 func (fake *FakeRequestGenerator) CreateRequestCallCount() int {
@@ -57,6 +64,20 @@ func (fake *FakeRequestGenerator) CreateRequestArgsForCall(i int) (string, rata.
 func (fake *FakeRequestGenerator) CreateRequestReturns(result1 *http.Request, result2 error) {
 	fake.CreateRequestStub = nil
 	fake.createRequestReturns = struct {
+		result1 *http.Request
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeRequestGenerator) CreateRequestReturnsOnCall(i int, result1 *http.Request, result2 error) {
+	fake.CreateRequestStub = nil
+	if fake.createRequestReturnsOnCall == nil {
+		fake.createRequestReturnsOnCall = make(map[int]struct {
+			result1 *http.Request
+			result2 error
+		})
+	}
+	fake.createRequestReturnsOnCall[i] = struct {
 		result1 *http.Request
 		result2 error
 	}{result1, result2}

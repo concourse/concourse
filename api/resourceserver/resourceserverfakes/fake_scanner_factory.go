@@ -17,12 +17,16 @@ type FakeScannerFactory struct {
 	newResourceScannerReturns struct {
 		result1 radar.Scanner
 	}
+	newResourceScannerReturnsOnCall map[int]struct {
+		result1 radar.Scanner
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeScannerFactory) NewResourceScanner(db radar.RadarDB) radar.Scanner {
 	fake.newResourceScannerMutex.Lock()
+	ret, specificReturn := fake.newResourceScannerReturnsOnCall[len(fake.newResourceScannerArgsForCall)]
 	fake.newResourceScannerArgsForCall = append(fake.newResourceScannerArgsForCall, struct {
 		db radar.RadarDB
 	}{db})
@@ -30,9 +34,11 @@ func (fake *FakeScannerFactory) NewResourceScanner(db radar.RadarDB) radar.Scann
 	fake.newResourceScannerMutex.Unlock()
 	if fake.NewResourceScannerStub != nil {
 		return fake.NewResourceScannerStub(db)
-	} else {
-		return fake.newResourceScannerReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.newResourceScannerReturns.result1
 }
 
 func (fake *FakeScannerFactory) NewResourceScannerCallCount() int {
@@ -50,6 +56,18 @@ func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) radar.Radar
 func (fake *FakeScannerFactory) NewResourceScannerReturns(result1 radar.Scanner) {
 	fake.NewResourceScannerStub = nil
 	fake.newResourceScannerReturns = struct {
+		result1 radar.Scanner
+	}{result1}
+}
+
+func (fake *FakeScannerFactory) NewResourceScannerReturnsOnCall(i int, result1 radar.Scanner) {
+	fake.NewResourceScannerStub = nil
+	if fake.newResourceScannerReturnsOnCall == nil {
+		fake.newResourceScannerReturnsOnCall = make(map[int]struct {
+			result1 radar.Scanner
+		})
+	}
+	fake.newResourceScannerReturnsOnCall[i] = struct {
 		result1 radar.Scanner
 	}{result1}
 }

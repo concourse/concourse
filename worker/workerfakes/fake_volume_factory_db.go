@@ -19,12 +19,20 @@ type FakeVolumeFactoryDB struct {
 		result2 bool
 		result3 error
 	}
+	getVolumeTTLReturnsOnCall map[int]struct {
+		result1 time.Duration
+		result2 bool
+		result3 error
+	}
 	ReapVolumeStub        func(handle string) error
 	reapVolumeMutex       sync.RWMutex
 	reapVolumeArgsForCall []struct {
 		handle string
 	}
 	reapVolumeReturns struct {
+		result1 error
+	}
+	reapVolumeReturnsOnCall map[int]struct {
 		result1 error
 	}
 	SetVolumeTTLAndSizeInBytesStub        func(handle string, ttl time.Duration, sizeInBytes int64) error
@@ -37,6 +45,9 @@ type FakeVolumeFactoryDB struct {
 	setVolumeTTLAndSizeInBytesReturns struct {
 		result1 error
 	}
+	setVolumeTTLAndSizeInBytesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	SetVolumeTTLStub        func(handle string, ttl time.Duration) error
 	setVolumeTTLMutex       sync.RWMutex
 	setVolumeTTLArgsForCall []struct {
@@ -46,12 +57,16 @@ type FakeVolumeFactoryDB struct {
 	setVolumeTTLReturns struct {
 		result1 error
 	}
+	setVolumeTTLReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeVolumeFactoryDB) GetVolumeTTL(volumeHandle string) (time.Duration, bool, error) {
 	fake.getVolumeTTLMutex.Lock()
+	ret, specificReturn := fake.getVolumeTTLReturnsOnCall[len(fake.getVolumeTTLArgsForCall)]
 	fake.getVolumeTTLArgsForCall = append(fake.getVolumeTTLArgsForCall, struct {
 		volumeHandle string
 	}{volumeHandle})
@@ -59,9 +74,11 @@ func (fake *FakeVolumeFactoryDB) GetVolumeTTL(volumeHandle string) (time.Duratio
 	fake.getVolumeTTLMutex.Unlock()
 	if fake.GetVolumeTTLStub != nil {
 		return fake.GetVolumeTTLStub(volumeHandle)
-	} else {
-		return fake.getVolumeTTLReturns.result1, fake.getVolumeTTLReturns.result2, fake.getVolumeTTLReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.getVolumeTTLReturns.result1, fake.getVolumeTTLReturns.result2, fake.getVolumeTTLReturns.result3
 }
 
 func (fake *FakeVolumeFactoryDB) GetVolumeTTLCallCount() int {
@@ -85,8 +102,25 @@ func (fake *FakeVolumeFactoryDB) GetVolumeTTLReturns(result1 time.Duration, resu
 	}{result1, result2, result3}
 }
 
+func (fake *FakeVolumeFactoryDB) GetVolumeTTLReturnsOnCall(i int, result1 time.Duration, result2 bool, result3 error) {
+	fake.GetVolumeTTLStub = nil
+	if fake.getVolumeTTLReturnsOnCall == nil {
+		fake.getVolumeTTLReturnsOnCall = make(map[int]struct {
+			result1 time.Duration
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getVolumeTTLReturnsOnCall[i] = struct {
+		result1 time.Duration
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeVolumeFactoryDB) ReapVolume(handle string) error {
 	fake.reapVolumeMutex.Lock()
+	ret, specificReturn := fake.reapVolumeReturnsOnCall[len(fake.reapVolumeArgsForCall)]
 	fake.reapVolumeArgsForCall = append(fake.reapVolumeArgsForCall, struct {
 		handle string
 	}{handle})
@@ -94,9 +128,11 @@ func (fake *FakeVolumeFactoryDB) ReapVolume(handle string) error {
 	fake.reapVolumeMutex.Unlock()
 	if fake.ReapVolumeStub != nil {
 		return fake.ReapVolumeStub(handle)
-	} else {
-		return fake.reapVolumeReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.reapVolumeReturns.result1
 }
 
 func (fake *FakeVolumeFactoryDB) ReapVolumeCallCount() int {
@@ -118,8 +154,21 @@ func (fake *FakeVolumeFactoryDB) ReapVolumeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeVolumeFactoryDB) ReapVolumeReturnsOnCall(i int, result1 error) {
+	fake.ReapVolumeStub = nil
+	if fake.reapVolumeReturnsOnCall == nil {
+		fake.reapVolumeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.reapVolumeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeVolumeFactoryDB) SetVolumeTTLAndSizeInBytes(handle string, ttl time.Duration, sizeInBytes int64) error {
 	fake.setVolumeTTLAndSizeInBytesMutex.Lock()
+	ret, specificReturn := fake.setVolumeTTLAndSizeInBytesReturnsOnCall[len(fake.setVolumeTTLAndSizeInBytesArgsForCall)]
 	fake.setVolumeTTLAndSizeInBytesArgsForCall = append(fake.setVolumeTTLAndSizeInBytesArgsForCall, struct {
 		handle      string
 		ttl         time.Duration
@@ -129,9 +178,11 @@ func (fake *FakeVolumeFactoryDB) SetVolumeTTLAndSizeInBytes(handle string, ttl t
 	fake.setVolumeTTLAndSizeInBytesMutex.Unlock()
 	if fake.SetVolumeTTLAndSizeInBytesStub != nil {
 		return fake.SetVolumeTTLAndSizeInBytesStub(handle, ttl, sizeInBytes)
-	} else {
-		return fake.setVolumeTTLAndSizeInBytesReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.setVolumeTTLAndSizeInBytesReturns.result1
 }
 
 func (fake *FakeVolumeFactoryDB) SetVolumeTTLAndSizeInBytesCallCount() int {
@@ -153,8 +204,21 @@ func (fake *FakeVolumeFactoryDB) SetVolumeTTLAndSizeInBytesReturns(result1 error
 	}{result1}
 }
 
+func (fake *FakeVolumeFactoryDB) SetVolumeTTLAndSizeInBytesReturnsOnCall(i int, result1 error) {
+	fake.SetVolumeTTLAndSizeInBytesStub = nil
+	if fake.setVolumeTTLAndSizeInBytesReturnsOnCall == nil {
+		fake.setVolumeTTLAndSizeInBytesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setVolumeTTLAndSizeInBytesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeVolumeFactoryDB) SetVolumeTTL(handle string, ttl time.Duration) error {
 	fake.setVolumeTTLMutex.Lock()
+	ret, specificReturn := fake.setVolumeTTLReturnsOnCall[len(fake.setVolumeTTLArgsForCall)]
 	fake.setVolumeTTLArgsForCall = append(fake.setVolumeTTLArgsForCall, struct {
 		handle string
 		ttl    time.Duration
@@ -163,9 +227,11 @@ func (fake *FakeVolumeFactoryDB) SetVolumeTTL(handle string, ttl time.Duration) 
 	fake.setVolumeTTLMutex.Unlock()
 	if fake.SetVolumeTTLStub != nil {
 		return fake.SetVolumeTTLStub(handle, ttl)
-	} else {
-		return fake.setVolumeTTLReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.setVolumeTTLReturns.result1
 }
 
 func (fake *FakeVolumeFactoryDB) SetVolumeTTLCallCount() int {
@@ -183,6 +249,18 @@ func (fake *FakeVolumeFactoryDB) SetVolumeTTLArgsForCall(i int) (string, time.Du
 func (fake *FakeVolumeFactoryDB) SetVolumeTTLReturns(result1 error) {
 	fake.SetVolumeTTLStub = nil
 	fake.setVolumeTTLReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolumeFactoryDB) SetVolumeTTLReturnsOnCall(i int, result1 error) {
+	fake.SetVolumeTTLStub = nil
+	if fake.setVolumeTTLReturnsOnCall == nil {
+		fake.setVolumeTTLReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setVolumeTTLReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

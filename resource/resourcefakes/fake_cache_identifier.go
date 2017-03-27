@@ -21,6 +21,11 @@ type FakeCacheIdentifier struct {
 		result2 bool
 		result3 error
 	}
+	findOnReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
 	CreateOnStub        func(lager.Logger, worker.Client) (worker.Volume, error)
 	createOnMutex       sync.RWMutex
 	createOnArgsForCall []struct {
@@ -31,10 +36,17 @@ type FakeCacheIdentifier struct {
 		result1 worker.Volume
 		result2 error
 	}
+	createOnReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 error
+	}
 	VolumeIdentifierStub        func() worker.VolumeIdentifier
 	volumeIdentifierMutex       sync.RWMutex
 	volumeIdentifierArgsForCall []struct{}
 	volumeIdentifierReturns     struct {
+		result1 worker.VolumeIdentifier
+	}
+	volumeIdentifierReturnsOnCall map[int]struct {
 		result1 worker.VolumeIdentifier
 	}
 	invocations      map[string][][]interface{}
@@ -43,6 +55,7 @@ type FakeCacheIdentifier struct {
 
 func (fake *FakeCacheIdentifier) FindOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, bool, error) {
 	fake.findOnMutex.Lock()
+	ret, specificReturn := fake.findOnReturnsOnCall[len(fake.findOnArgsForCall)]
 	fake.findOnArgsForCall = append(fake.findOnArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.Client
@@ -51,9 +64,11 @@ func (fake *FakeCacheIdentifier) FindOn(arg1 lager.Logger, arg2 worker.Client) (
 	fake.findOnMutex.Unlock()
 	if fake.FindOnStub != nil {
 		return fake.FindOnStub(arg1, arg2)
-	} else {
-		return fake.findOnReturns.result1, fake.findOnReturns.result2, fake.findOnReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.findOnReturns.result1, fake.findOnReturns.result2, fake.findOnReturns.result3
 }
 
 func (fake *FakeCacheIdentifier) FindOnCallCount() int {
@@ -77,8 +92,25 @@ func (fake *FakeCacheIdentifier) FindOnReturns(result1 worker.Volume, result2 bo
 	}{result1, result2, result3}
 }
 
+func (fake *FakeCacheIdentifier) FindOnReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.FindOnStub = nil
+	if fake.findOnReturnsOnCall == nil {
+		fake.findOnReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findOnReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeCacheIdentifier) CreateOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, error) {
 	fake.createOnMutex.Lock()
+	ret, specificReturn := fake.createOnReturnsOnCall[len(fake.createOnArgsForCall)]
 	fake.createOnArgsForCall = append(fake.createOnArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.Client
@@ -87,9 +119,11 @@ func (fake *FakeCacheIdentifier) CreateOn(arg1 lager.Logger, arg2 worker.Client)
 	fake.createOnMutex.Unlock()
 	if fake.CreateOnStub != nil {
 		return fake.CreateOnStub(arg1, arg2)
-	} else {
-		return fake.createOnReturns.result1, fake.createOnReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.createOnReturns.result1, fake.createOnReturns.result2
 }
 
 func (fake *FakeCacheIdentifier) CreateOnCallCount() int {
@@ -112,16 +146,33 @@ func (fake *FakeCacheIdentifier) CreateOnReturns(result1 worker.Volume, result2 
 	}{result1, result2}
 }
 
+func (fake *FakeCacheIdentifier) CreateOnReturnsOnCall(i int, result1 worker.Volume, result2 error) {
+	fake.CreateOnStub = nil
+	if fake.createOnReturnsOnCall == nil {
+		fake.createOnReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 error
+		})
+	}
+	fake.createOnReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCacheIdentifier) VolumeIdentifier() worker.VolumeIdentifier {
 	fake.volumeIdentifierMutex.Lock()
+	ret, specificReturn := fake.volumeIdentifierReturnsOnCall[len(fake.volumeIdentifierArgsForCall)]
 	fake.volumeIdentifierArgsForCall = append(fake.volumeIdentifierArgsForCall, struct{}{})
 	fake.recordInvocation("VolumeIdentifier", []interface{}{})
 	fake.volumeIdentifierMutex.Unlock()
 	if fake.VolumeIdentifierStub != nil {
 		return fake.VolumeIdentifierStub()
-	} else {
-		return fake.volumeIdentifierReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.volumeIdentifierReturns.result1
 }
 
 func (fake *FakeCacheIdentifier) VolumeIdentifierCallCount() int {
@@ -133,6 +184,18 @@ func (fake *FakeCacheIdentifier) VolumeIdentifierCallCount() int {
 func (fake *FakeCacheIdentifier) VolumeIdentifierReturns(result1 worker.VolumeIdentifier) {
 	fake.VolumeIdentifierStub = nil
 	fake.volumeIdentifierReturns = struct {
+		result1 worker.VolumeIdentifier
+	}{result1}
+}
+
+func (fake *FakeCacheIdentifier) VolumeIdentifierReturnsOnCall(i int, result1 worker.VolumeIdentifier) {
+	fake.VolumeIdentifierStub = nil
+	if fake.volumeIdentifierReturnsOnCall == nil {
+		fake.volumeIdentifierReturnsOnCall = make(map[int]struct {
+			result1 worker.VolumeIdentifier
+		})
+	}
+	fake.volumeIdentifierReturnsOnCall[i] = struct {
 		result1 worker.VolumeIdentifier
 	}{result1}
 }

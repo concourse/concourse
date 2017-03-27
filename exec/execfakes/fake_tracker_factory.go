@@ -18,12 +18,16 @@ type FakeTrackerFactory struct {
 	trackerForReturns struct {
 		result1 resource.Tracker
 	}
+	trackerForReturnsOnCall map[int]struct {
+		result1 resource.Tracker
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeTrackerFactory) TrackerFor(client worker.Client) resource.Tracker {
 	fake.trackerForMutex.Lock()
+	ret, specificReturn := fake.trackerForReturnsOnCall[len(fake.trackerForArgsForCall)]
 	fake.trackerForArgsForCall = append(fake.trackerForArgsForCall, struct {
 		client worker.Client
 	}{client})
@@ -31,9 +35,11 @@ func (fake *FakeTrackerFactory) TrackerFor(client worker.Client) resource.Tracke
 	fake.trackerForMutex.Unlock()
 	if fake.TrackerForStub != nil {
 		return fake.TrackerForStub(client)
-	} else {
-		return fake.trackerForReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.trackerForReturns.result1
 }
 
 func (fake *FakeTrackerFactory) TrackerForCallCount() int {
@@ -51,6 +57,18 @@ func (fake *FakeTrackerFactory) TrackerForArgsForCall(i int) worker.Client {
 func (fake *FakeTrackerFactory) TrackerForReturns(result1 resource.Tracker) {
 	fake.TrackerForStub = nil
 	fake.trackerForReturns = struct {
+		result1 resource.Tracker
+	}{result1}
+}
+
+func (fake *FakeTrackerFactory) TrackerForReturnsOnCall(i int, result1 resource.Tracker) {
+	fake.TrackerForStub = nil
+	if fake.trackerForReturnsOnCall == nil {
+		fake.trackerForReturnsOnCall = make(map[int]struct {
+			result1 resource.Tracker
+		})
+	}
+	fake.trackerForReturnsOnCall[i] = struct {
 		result1 resource.Tracker
 	}{result1}
 }

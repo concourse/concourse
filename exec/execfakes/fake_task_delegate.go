@@ -37,16 +37,25 @@ type FakeTaskDelegate struct {
 	imageVersionDeterminedReturns struct {
 		result1 error
 	}
+	imageVersionDeterminedReturnsOnCall map[int]struct {
+		result1 error
+	}
 	StdoutStub        func() io.Writer
 	stdoutMutex       sync.RWMutex
 	stdoutArgsForCall []struct{}
 	stdoutReturns     struct {
 		result1 io.Writer
 	}
+	stdoutReturnsOnCall map[int]struct {
+		result1 io.Writer
+	}
 	StderrStub        func() io.Writer
 	stderrMutex       sync.RWMutex
 	stderrArgsForCall []struct{}
 	stderrReturns     struct {
+		result1 io.Writer
+	}
+	stderrReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
 	invocations      map[string][][]interface{}
@@ -143,6 +152,7 @@ func (fake *FakeTaskDelegate) FailedArgsForCall(i int) error {
 
 func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 worker.VolumeIdentifier) error {
 	fake.imageVersionDeterminedMutex.Lock()
+	ret, specificReturn := fake.imageVersionDeterminedReturnsOnCall[len(fake.imageVersionDeterminedArgsForCall)]
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
 		arg1 worker.VolumeIdentifier
 	}{arg1})
@@ -150,9 +160,11 @@ func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 worker.VolumeIdentifie
 	fake.imageVersionDeterminedMutex.Unlock()
 	if fake.ImageVersionDeterminedStub != nil {
 		return fake.ImageVersionDeterminedStub(arg1)
-	} else {
-		return fake.imageVersionDeterminedReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.imageVersionDeterminedReturns.result1
 }
 
 func (fake *FakeTaskDelegate) ImageVersionDeterminedCallCount() int {
@@ -174,16 +186,31 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeTaskDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
+	fake.ImageVersionDeterminedStub = nil
+	if fake.imageVersionDeterminedReturnsOnCall == nil {
+		fake.imageVersionDeterminedReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.imageVersionDeterminedReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeTaskDelegate) Stdout() io.Writer {
 	fake.stdoutMutex.Lock()
+	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
 	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct{}{})
 	fake.recordInvocation("Stdout", []interface{}{})
 	fake.stdoutMutex.Unlock()
 	if fake.StdoutStub != nil {
 		return fake.StdoutStub()
-	} else {
-		return fake.stdoutReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.stdoutReturns.result1
 }
 
 func (fake *FakeTaskDelegate) StdoutCallCount() int {
@@ -199,16 +226,31 @@ func (fake *FakeTaskDelegate) StdoutReturns(result1 io.Writer) {
 	}{result1}
 }
 
+func (fake *FakeTaskDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
+	fake.StdoutStub = nil
+	if fake.stdoutReturnsOnCall == nil {
+		fake.stdoutReturnsOnCall = make(map[int]struct {
+			result1 io.Writer
+		})
+	}
+	fake.stdoutReturnsOnCall[i] = struct {
+		result1 io.Writer
+	}{result1}
+}
+
 func (fake *FakeTaskDelegate) Stderr() io.Writer {
 	fake.stderrMutex.Lock()
+	ret, specificReturn := fake.stderrReturnsOnCall[len(fake.stderrArgsForCall)]
 	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct{}{})
 	fake.recordInvocation("Stderr", []interface{}{})
 	fake.stderrMutex.Unlock()
 	if fake.StderrStub != nil {
 		return fake.StderrStub()
-	} else {
-		return fake.stderrReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.stderrReturns.result1
 }
 
 func (fake *FakeTaskDelegate) StderrCallCount() int {
@@ -220,6 +262,18 @@ func (fake *FakeTaskDelegate) StderrCallCount() int {
 func (fake *FakeTaskDelegate) StderrReturns(result1 io.Writer) {
 	fake.StderrStub = nil
 	fake.stderrReturns = struct {
+		result1 io.Writer
+	}{result1}
+}
+
+func (fake *FakeTaskDelegate) StderrReturnsOnCall(i int, result1 io.Writer) {
+	fake.StderrStub = nil
+	if fake.stderrReturnsOnCall == nil {
+		fake.stderrReturnsOnCall = make(map[int]struct {
+			result1 io.Writer
+		})
+	}
+	fake.stderrReturnsOnCall[i] = struct {
 		result1 io.Writer
 	}{result1}
 }

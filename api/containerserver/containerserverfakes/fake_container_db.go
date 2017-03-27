@@ -19,12 +19,18 @@ type FakeContainerDB struct {
 		result2 bool
 		result3 error
 	}
+	getContainerReturnsOnCall map[int]struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeContainerDB) GetContainer(handle string) (db.SavedContainer, bool, error) {
 	fake.getContainerMutex.Lock()
+	ret, specificReturn := fake.getContainerReturnsOnCall[len(fake.getContainerArgsForCall)]
 	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
 		handle string
 	}{handle})
@@ -32,9 +38,11 @@ func (fake *FakeContainerDB) GetContainer(handle string) (db.SavedContainer, boo
 	fake.getContainerMutex.Unlock()
 	if fake.GetContainerStub != nil {
 		return fake.GetContainerStub(handle)
-	} else {
-		return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
 }
 
 func (fake *FakeContainerDB) GetContainerCallCount() int {
@@ -52,6 +60,22 @@ func (fake *FakeContainerDB) GetContainerArgsForCall(i int) string {
 func (fake *FakeContainerDB) GetContainerReturns(result1 db.SavedContainer, result2 bool, result3 error) {
 	fake.GetContainerStub = nil
 	fake.getContainerReturns = struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeContainerDB) GetContainerReturnsOnCall(i int, result1 db.SavedContainer, result2 bool, result3 error) {
+	fake.GetContainerStub = nil
+	if fake.getContainerReturnsOnCall == nil {
+		fake.getContainerReturnsOnCall = make(map[int]struct {
+			result1 db.SavedContainer
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getContainerReturnsOnCall[i] = struct {
 		result1 db.SavedContainer
 		result2 bool
 		result3 error

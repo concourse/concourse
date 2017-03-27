@@ -17,12 +17,16 @@ type FakeBuildDelegateFactory struct {
 	delegateReturns struct {
 		result1 engine.BuildDelegate
 	}
+	delegateReturnsOnCall map[int]struct {
+		result1 engine.BuildDelegate
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeBuildDelegateFactory) Delegate(arg1 db.Build) engine.BuildDelegate {
 	fake.delegateMutex.Lock()
+	ret, specificReturn := fake.delegateReturnsOnCall[len(fake.delegateArgsForCall)]
 	fake.delegateArgsForCall = append(fake.delegateArgsForCall, struct {
 		arg1 db.Build
 	}{arg1})
@@ -30,9 +34,11 @@ func (fake *FakeBuildDelegateFactory) Delegate(arg1 db.Build) engine.BuildDelega
 	fake.delegateMutex.Unlock()
 	if fake.DelegateStub != nil {
 		return fake.DelegateStub(arg1)
-	} else {
-		return fake.delegateReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.delegateReturns.result1
 }
 
 func (fake *FakeBuildDelegateFactory) DelegateCallCount() int {
@@ -50,6 +56,18 @@ func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) db.Build {
 func (fake *FakeBuildDelegateFactory) DelegateReturns(result1 engine.BuildDelegate) {
 	fake.DelegateStub = nil
 	fake.delegateReturns = struct {
+		result1 engine.BuildDelegate
+	}{result1}
+}
+
+func (fake *FakeBuildDelegateFactory) DelegateReturnsOnCall(i int, result1 engine.BuildDelegate) {
+	fake.DelegateStub = nil
+	if fake.delegateReturnsOnCall == nil {
+		fake.delegateReturnsOnCall = make(map[int]struct {
+			result1 engine.BuildDelegate
+		})
+	}
+	fake.delegateReturnsOnCall[i] = struct {
 		result1 engine.BuildDelegate
 	}{result1}
 }

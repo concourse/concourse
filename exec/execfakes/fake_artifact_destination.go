@@ -18,12 +18,16 @@ type FakeArtifactDestination struct {
 	streamInReturns struct {
 		result1 error
 	}
+	streamInReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeArtifactDestination) StreamIn(arg1 string, arg2 io.Reader) error {
 	fake.streamInMutex.Lock()
+	ret, specificReturn := fake.streamInReturnsOnCall[len(fake.streamInArgsForCall)]
 	fake.streamInArgsForCall = append(fake.streamInArgsForCall, struct {
 		arg1 string
 		arg2 io.Reader
@@ -32,9 +36,11 @@ func (fake *FakeArtifactDestination) StreamIn(arg1 string, arg2 io.Reader) error
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
 		return fake.StreamInStub(arg1, arg2)
-	} else {
-		return fake.streamInReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.streamInReturns.result1
 }
 
 func (fake *FakeArtifactDestination) StreamInCallCount() int {
@@ -52,6 +58,18 @@ func (fake *FakeArtifactDestination) StreamInArgsForCall(i int) (string, io.Read
 func (fake *FakeArtifactDestination) StreamInReturns(result1 error) {
 	fake.StreamInStub = nil
 	fake.streamInReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeArtifactDestination) StreamInReturnsOnCall(i int, result1 error) {
+	fake.StreamInStub = nil
+	if fake.streamInReturnsOnCall == nil {
+		fake.streamInReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.streamInReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

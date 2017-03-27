@@ -29,12 +29,16 @@ type FakeImageFactory struct {
 	newImageReturns struct {
 		result1 worker.Image
 	}
+	newImageReturnsOnCall map[int]struct {
+		result1 worker.Image
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeImageFactory) NewImage(logger lager.Logger, cancel <-chan os.Signal, imageResource atc.ImageResource, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, workerClient worker.Client, delegate worker.ImageFetchingDelegate, privileged bool) worker.Image {
 	fake.newImageMutex.Lock()
+	ret, specificReturn := fake.newImageReturnsOnCall[len(fake.newImageArgsForCall)]
 	fake.newImageArgsForCall = append(fake.newImageArgsForCall, struct {
 		logger        lager.Logger
 		cancel        <-chan os.Signal
@@ -52,9 +56,11 @@ func (fake *FakeImageFactory) NewImage(logger lager.Logger, cancel <-chan os.Sig
 	fake.newImageMutex.Unlock()
 	if fake.NewImageStub != nil {
 		return fake.NewImageStub(logger, cancel, imageResource, id, metadata, tags, teamID, resourceTypes, workerClient, delegate, privileged)
-	} else {
-		return fake.newImageReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.newImageReturns.result1
 }
 
 func (fake *FakeImageFactory) NewImageCallCount() int {
@@ -72,6 +78,18 @@ func (fake *FakeImageFactory) NewImageArgsForCall(i int) (lager.Logger, <-chan o
 func (fake *FakeImageFactory) NewImageReturns(result1 worker.Image) {
 	fake.NewImageStub = nil
 	fake.newImageReturns = struct {
+		result1 worker.Image
+	}{result1}
+}
+
+func (fake *FakeImageFactory) NewImageReturnsOnCall(i int, result1 worker.Image) {
+	fake.NewImageStub = nil
+	if fake.newImageReturnsOnCall == nil {
+		fake.newImageReturnsOnCall = make(map[int]struct {
+			result1 worker.Image
+		})
+	}
+	fake.newImageReturnsOnCall[i] = struct {
 		result1 worker.Image
 	}{result1}
 }
