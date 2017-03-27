@@ -61,4 +61,4 @@ permit_device_control
 containers_gone_wild
 trap salt_earth EXIT
 
-ginkgo -r -race -nodes 4 --randomizeAllSpecs --keepGoing "$@"
+ginkgo -r -race -nodes 4 --failOnPending --randomizeAllSpecs --keepGoing -skip=":skip" "$@"
