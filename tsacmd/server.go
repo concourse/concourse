@@ -574,6 +574,8 @@ func (server *registrarSSHServer) forwardTCPIP(
 	forwardPort uint32,
 ) ifrit.Process {
 	return ifrit.Background(ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		cancel := make(chan struct{})
+
 		interrupted := false
 		go func() {
 			<-signals
@@ -585,122 +587,114 @@ func (server *registrarSSHServer) forwardTCPIP(
 
 		close(ready)
 
-		var forwardedConns []ifrit.Process
+		wg := &sync.WaitGroup{}
 
 		for {
 			localConn, err := listener.Accept()
 			if err != nil {
 				if interrupted {
 					logger.Info("interrupted")
+					close(cancel)
 				} else {
 					logger.Error("failed-to-accept", err)
 				}
 
 				break
 			}
+			wg.Add(1)
 
-			process := ifrit.Background(forwardLocalConn(logger.Session("forward-conn"), localConn, conn, forwardIP, forwardPort))
-
-			forwardedConns = append(forwardedConns, process)
+			go func() {
+				defer wg.Done()
+				forwardLocalConn(logger.Session("forward-conn"), cancel, localConn, conn, forwardIP, forwardPort)
+			}()
 		}
 
-		for _, conn := range forwardedConns {
-			conn.Signal(os.Interrupt)
-		}
-
-		for _, conn := range forwardedConns {
-			<-conn.Wait()
-		}
-
+		wg.Wait()
 		return nil
 	}))
 }
 
-func forwardLocalConn(logger lager.Logger, localConn net.Conn, conn *ssh.ServerConn, forwardIP string, forwardPort uint32) ifrit.RunFunc {
-	return func(signals <-chan os.Signal, ready chan<- struct{}) error {
-		defer localConn.Close()
+func forwardLocalConn(logger lager.Logger, cancel <-chan struct{}, localConn net.Conn, conn *ssh.ServerConn, forwardIP string, forwardPort uint32) {
+	defer localConn.Close()
 
-		close(ready)
+	var req forwardTCPIPChannelRequest
+	req.ForwardIP = forwardIP
+	req.ForwardPort = forwardPort
 
-		var req forwardTCPIPChannelRequest
-		req.ForwardIP = forwardIP
-		req.ForwardPort = forwardPort
+	host, port, err := net.SplitHostPort(localConn.RemoteAddr().String())
+	if err != nil {
+		logger.Error("failed-to-split-host-port", err)
+		return
+	}
 
-		host, port, err := net.SplitHostPort(localConn.RemoteAddr().String())
-		if err != nil {
-			logger.Error("failed-to-split-host-port", err)
-			return err
+	req.OriginIP = host
+	_, err = fmt.Sscanf(port, "%d", &req.OriginPort)
+	if err != nil {
+		logger.Error("failed-to-parse-port", err)
+		return
+	}
+
+	channel, reqs, err := conn.OpenChannel("forwarded-tcpip", ssh.Marshal(req))
+	if err != nil {
+		logger.Error("failed-to-open-channel", err)
+		return
+	}
+
+	defer func() {
+		logger.Debug("closing-forwarded-tcpip")
+		channel.Close()
+	}()
+
+	go func() {
+		for r := range reqs {
+			logger.Info("ignoring-request", lager.Data{
+				"type": r.Type,
+			})
+
+			r.Reply(false, nil)
 		}
+	}()
 
-		req.OriginIP = host
-		_, err = fmt.Sscanf(port, "%d", &req.OriginPort)
-		if err != nil {
-			logger.Error("failed-to-parse-port", err)
-			return err
-		}
+	wait := make(chan struct{}, 2)
 
-		channel, reqs, err := conn.OpenChannel("forwarded-tcpip", ssh.Marshal(req))
-		if err != nil {
-			logger.Error("failed-to-open-channel", err)
-			return err
-		}
-
+	pipe := func(to io.WriteCloser, from io.ReadCloser) {
+		// if either end breaks, close both ends to ensure they're both unblocked,
+		// otherwise io.Copy can block forever if e.g. reading after write end has
+		// gone away
+		defer to.Close()
+		defer from.Close()
 		defer func() {
-			logger.Debug("closing-forwarded-tcpip")
-			channel.Close()
+			wait <- struct{}{}
 		}()
 
-		go func() {
-			for r := range reqs {
-				logger.Info("ignoring-request", lager.Data{
-					"type": r.Type,
-				})
+		io.Copy(to, from)
+	}
 
-				r.Reply(false, nil)
-			}
-		}()
+	go pipe(localConn, channel)
+	go pipe(channel, localConn)
 
-		wait := make(chan struct{}, 2)
+	logger.Debug("waiting-for-tcpip-io")
 
-		pipe := func(to io.WriteCloser, from io.ReadCloser) {
-			// if either end breaks, close both ends to ensure they're both unblocked,
-			// otherwise io.Copy can block forever if e.g. reading after write end has
-			// gone away
-			defer to.Close()
-			defer from.Close()
-			defer func() {
-				wait <- struct{}{}
-			}()
-
-			io.Copy(to, from)
-		}
-
-		go pipe(localConn, channel)
-		go pipe(channel, localConn)
-
-		logger.Debug("waiting-for-tcpip-io")
-
-		done := 0
-	dance:
-		for {
-			select {
-			case <-wait:
-				done++
-				if done == 2 {
-					break dance
-				}
-
-				logger.Debug("io-complete")
-			case <-signals:
-				logger.Info("interrupted")
+	done := 0
+dance:
+	for {
+		select {
+		case <-wait:
+			done++
+			if done == 2 {
 				break dance
 			}
+
+			logger.Debug("io-complete")
+		case <-cancel:
+			logger.Info("interrupted")
+			break dance
 		}
-
-		logger.Debug("done-waiting")
-
-		return nil
 	}
+
+	logger.Debug("done-waiting")
+
+	return
 }
 
 func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
