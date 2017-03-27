@@ -53,6 +53,7 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	teamDB := handler.teamDBFactory.GetTeamDB(teamName)
 	team, found, err := teamDB.GetTeam()
+
 	if err != nil {
 		hLog.Error("failed-to-get-team", err, lager.Data{
 			"teamName": teamName,
@@ -109,12 +110,12 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	authCodeURL := provider.AuthCodeURL(encodedState)
 
+
 	http.SetCookie(w, &http.Cookie{
 		Name:    OAuthStateCookie,
 		Value:   encodedState,
 		Path:    "/",
 		Expires: time.Now().Add(handler.expire),
 	})
-
 	http.Redirect(w, r, authCodeURL, http.StatusTemporaryRedirect)
 }

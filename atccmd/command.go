@@ -20,7 +20,6 @@ import (
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
@@ -52,6 +51,10 @@ import (
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/xoebus/zest"
+
+	_ "github.com/concourse/atc/auth/genericoauth"
+	_ "github.com/concourse/atc/auth/github"
+	_ "github.com/concourse/atc/auth/uaa"
 )
 
 type ATCCommand struct {
@@ -221,7 +224,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	providerFactory := provider.NewOAuthFactory(
+	providerFactory := auth.NewOAuthFactory(
 		logger.Session("oauth-provider-factory"),
 		cmd.oauthBaseURL(),
 		auth.OAuthRoutes,
@@ -878,7 +881,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	dbWorkerFactory dbng.WorkerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbContainerFactory dbng.ContainerFactory,
-	providerFactory provider.OAuthFactory,
+	providerFactory auth.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
 	engine engine.Engine,

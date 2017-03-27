@@ -3,13 +3,12 @@ package github
 import (
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
-
-	"github.com/concourse/atc/auth/verifier"
-	"github.com/concourse/atc/db"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
+
+	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/verifier"
+	"github.com/concourse/atc/db"
 )
 
 const ProviderName = "github"
@@ -17,62 +16,49 @@ const DisplayName = "GitHub"
 
 var Scopes = []string{"read:org"}
 
-type Provider interface {
-	PreTokenClient() (*http.Client, error)
-
-	OAuthClient
-	Verifier
+type GitHubProvider struct {
+	*oauth2.Config
+	verifier.Verifier
 }
 
-type OAuthClient interface {
-	AuthCodeURL(string, ...oauth2.AuthCodeOption) string
-	Exchange(context.Context, string) (*oauth2.Token, error)
-	Client(context.Context, *oauth2.Token) *http.Client
+func init() {
+	provider.Register(ProviderName, NewGitHubProvider)
 }
 
-type Verifier interface {
-	Verify(lager.Logger, *http.Client) (bool, error)
-}
-
-func NewProvider(
-	gitHubAuth *db.GitHubAuth,
+func NewGitHubProvider(
+	team db.SavedTeam,
 	redirectURL string,
-) Provider {
-	client := NewClient(gitHubAuth.APIURL)
+) (provider.Provider, bool) {
 
-	endpoint := github.Endpoint
-	if gitHubAuth.AuthURL != "" && gitHubAuth.TokenURL != "" {
-		endpoint.AuthURL = gitHubAuth.AuthURL
-		endpoint.TokenURL = gitHubAuth.TokenURL
+	if team.GitHubAuth == nil {
+		return nil, false
 	}
 
-	return gitHubProvider{
+	client := NewClient(team.GitHubAuth.APIURL)
+
+	endpoint := github.Endpoint
+	if team.GitHubAuth.AuthURL != "" && team.GitHubAuth.TokenURL != "" {
+		endpoint.AuthURL = team.GitHubAuth.AuthURL
+		endpoint.TokenURL = team.GitHubAuth.TokenURL
+	}
+
+	return GitHubProvider{
 		Verifier: verifier.NewVerifierBasket(
-			NewTeamVerifier(dbTeamsToGitHubTeams(gitHubAuth.Teams), client),
-			NewOrganizationVerifier(gitHubAuth.Organizations, client),
-			NewUserVerifier(gitHubAuth.Users, client),
+			NewTeamVerifier(DBTeamsToGitHubTeams(team.GitHubAuth.Teams), client),
+			NewOrganizationVerifier(team.GitHubAuth.Organizations, client),
+			NewUserVerifier(team.GitHubAuth.Users, client),
 		),
 		Config: &oauth2.Config{
-			ClientID:     gitHubAuth.ClientID,
-			ClientSecret: gitHubAuth.ClientSecret,
+			ClientID:     team.GitHubAuth.ClientID,
+			ClientSecret: team.GitHubAuth.ClientSecret,
 			Endpoint:     endpoint,
 			Scopes:       Scopes,
 			RedirectURL:  redirectURL,
 		},
-	}
+	}, true
 }
 
-type gitHubProvider struct {
-	*oauth2.Config
-	// oauth2.Config implements the required Provider methods:
-	// AuthCodeURL(string, ...oauth2.AuthCodeOption) string
-	// Exchange(context.Context, string) (*oauth2.Token, error)
-	// Client(context.Context, *oauth2.Token) *http.Client
-
-	verifier.Verifier
-}
-
-func dbTeamsToGitHubTeams(dbteams []db.GitHubTeam) []Team {
+func DBTeamsToGitHubTeams(dbteams []db.GitHubTeam) []Team {
 	teams := []Team{}
 	for _, team := range dbteams {
 		teams = append(teams, Team{
@@ -83,7 +69,7 @@ func dbTeamsToGitHubTeams(dbteams []db.GitHubTeam) []Team {
 	return teams
 }
 
-func (gitHubProvider) PreTokenClient() (*http.Client, error) {
+func (GitHubProvider) PreTokenClient() (*http.Client, error) {
 	return &http.Client{
 		Transport: &http.Transport{
 			DisableKeepAlives: true,

@@ -17,6 +17,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	hLog.Debug("setting team")
 
 	authTeam, authTeamFound := auth.GetTeam(r)
+
 	if !authTeamFound {
 		hLog.Error("failed-to-get-team-from-auth", errors.New("failed-to-get-team-from-auth"))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -82,6 +83,11 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
+
+	// _, err := teamDB.UpdateAuth(team)
+	// if err != nil {
+	// 	return err
+	// }
 	_, err := teamDB.UpdateBasicAuth(team.BasicAuth)
 	if err != nil {
 		return err

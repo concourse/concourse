@@ -17,12 +17,7 @@ type Team struct {
 }
 
 func (t Team) IsAuthConfigured() bool {
-	return t.BasicAuth != nil || t.GitHubAuth != nil || t.UAAAuth != nil
-}
-
-type BasicAuth struct {
-	BasicAuthUsername string `json:"basic_auth_username"`
-	BasicAuthPassword string `json:"basic_auth_password"`
+	return t.BasicAuth != nil || t.GitHubAuth != nil || t.UAAAuth != nil || t.GenericOAuth != nil
 }
 
 func (auth *BasicAuth) EncryptedJSON() (string, error) {
@@ -42,6 +37,21 @@ func (auth *BasicAuth) EncryptedJSON() (string, error) {
 	return string(json), err
 }
 
+type GitHubTeam struct {
+	OrganizationName string `json:"organization_name"`
+	TeamName         string `json:"team_name"`
+}
+
+type SavedTeam struct {
+	ID int
+	Team
+}
+
+type BasicAuth struct {
+	BasicAuthUsername string `json:"basic_auth_username"`
+	BasicAuthPassword string `json:"basic_auth_password"`
+}
+
 type GitHubAuth struct {
 	ClientID      string       `json:"client_id"`
 	ClientSecret  string       `json:"client_secret"`
@@ -51,16 +61,6 @@ type GitHubAuth struct {
 	AuthURL       string       `json:"auth_url"`
 	TokenURL      string       `json:"token_url"`
 	APIURL        string       `json:"api_url"`
-}
-
-type GitHubTeam struct {
-	OrganizationName string `json:"organization_name"`
-	TeamName         string `json:"team_name"`
-}
-
-type SavedTeam struct {
-	ID int
-	Team
 }
 
 type UAAAuth struct {

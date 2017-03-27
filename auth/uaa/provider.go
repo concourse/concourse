@@ -6,10 +6,9 @@ import (
 	"errors"
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/concourse/atc/db"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
@@ -18,61 +17,48 @@ const DisplayName = "UAA"
 
 var Scopes = []string{"cloud_controller.read"}
 
-type Provider interface {
-	PreTokenClient() (*http.Client, error)
-
-	OAuthClient
-	Verifier
-}
-
-type OAuthClient interface {
-	AuthCodeURL(string, ...oauth2.AuthCodeOption) string
-	Exchange(context.Context, string) (*oauth2.Token, error)
-	Client(context.Context, *oauth2.Token) *http.Client
-}
-
-type Verifier interface {
-	Verify(lager.Logger, *http.Client) (bool, error)
-}
-
-func NewProvider(
-	uaaAuth *db.UAAAuth,
-	redirectURL string,
-) Provider {
-	endpoint := oauth2.Endpoint{}
-	if uaaAuth.AuthURL != "" && uaaAuth.TokenURL != "" {
-		endpoint.AuthURL = uaaAuth.AuthURL
-		endpoint.TokenURL = uaaAuth.TokenURL
-	}
-
-	return uaaProvider{
-		Verifier: SpaceVerifier{
-			spaceGUIDs: uaaAuth.CFSpaces,
-			cfAPIURL:   uaaAuth.CFURL,
-		},
-		Config: &oauth2.Config{
-			ClientID:     uaaAuth.ClientID,
-			ClientSecret: uaaAuth.ClientSecret,
-			Endpoint:     endpoint,
-			Scopes:       Scopes,
-			RedirectURL:  redirectURL,
-		},
-		CFCACert: uaaAuth.CFCACert,
-	}
-}
-
-type uaaProvider struct {
+type UAAProvider struct {
 	*oauth2.Config
-	// oauth2.Config implements the required Provider methods:
-	// AuthCodeURL(string, ...oauth2.AuthCodeOption) string
-	// Exchange(context.Context, string) (*oauth2.Token, error)
-	// Client(context.Context, *oauth2.Token) *http.Client
-
 	verifier.Verifier
 	CFCACert string
 }
 
-func (p uaaProvider) PreTokenClient() (*http.Client, error) {
+func init() {
+	provider.Register("uaa", NewUAAProvider)
+}
+
+func NewUAAProvider(
+	team db.SavedTeam,
+	redirectURL string,
+) (provider.Provider, bool) {
+
+	if team.UAAAuth == nil {
+		return nil, false
+	}
+
+	endpoint := oauth2.Endpoint{}
+	if team.UAAAuth.AuthURL != "" && team.UAAAuth.TokenURL != "" {
+		endpoint.AuthURL = team.UAAAuth.AuthURL
+		endpoint.TokenURL = team.UAAAuth.TokenURL
+	}
+
+	return UAAProvider{
+		Verifier: NewSpaceVerifier(
+			team.UAAAuth.CFSpaces,
+			team.UAAAuth.CFURL,
+		),
+		Config: &oauth2.Config{
+			ClientID:     team.UAAAuth.ClientID,
+			ClientSecret: team.UAAAuth.ClientSecret,
+			Endpoint:     endpoint,
+			Scopes:       Scopes,
+			RedirectURL:  redirectURL,
+		},
+		CFCACert: team.UAAAuth.CFCACert,
+	}, true
+}
+
+func (p UAAProvider) PreTokenClient() (*http.Client, error) {
 	transport := &http.Transport{
 		DisableKeepAlives: true,
 	}

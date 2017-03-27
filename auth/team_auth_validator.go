@@ -29,6 +29,8 @@ func (v teamAuthValidator) IsAuthenticated(r *http.Request) bool {
 		return false
 	}
 
+	//return getAuthWrapper(team).IsAuthenticated(r)
+
 	if !team.IsAuthConfigured() {
 		return true
 	}
@@ -39,3 +41,15 @@ func (v teamAuthValidator) IsAuthenticated(r *http.Request) bool {
 
 	return v.jwtValidator.IsAuthenticated(r)
 }
+
+// func getAuthWrapper(t db.SavedTeam) AuthWrapper {
+// 	return t.AuthWrapper
+// }
+//
+// func (a db.AuthWrapper) IsAuthenticated(r http.Request) {
+// 	for _, auth := range a.AuthProviders {
+// 		if auth.IsAuthenticated(r) {
+// 			return True
+// 		}
+// 	}
+// }

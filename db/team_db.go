@@ -565,6 +565,7 @@ func (db *teamDB) queryTeam(query string, params []interface{}) (SavedTeam, erro
 
 	if basicAuth.Valid {
 		err = json.Unmarshal([]byte(basicAuth.String), &savedTeam.BasicAuth)
+
 		if err != nil {
 			return savedTeam, err
 		}

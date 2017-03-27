@@ -70,6 +70,7 @@ func (s *Server) authMethods(team db.SavedTeam) ([]atc.AuthMethod, error) {
 			auth.OAuthBegin,
 			rata.Params{"provider": github.ProviderName},
 		)
+
 		if err != nil {
 			return nil, err
 		}
