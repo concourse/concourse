@@ -9,6 +9,8 @@ import (
 
 	"github.com/concourse/atc/db"
 
+	"strconv"
+
 	"code.cloudfoundry.org/lager"
 )
 
@@ -84,6 +86,12 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		})
 
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	_, err = strconv.Atoi(r.FormValue("fly_local_port"))
+	if r.FormValue("fly_local_port") != "" && err != nil {
+		handler.logger.Error("failed-to-convert-port-to-integer", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
