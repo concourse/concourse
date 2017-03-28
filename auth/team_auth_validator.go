@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 
+	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/db"
 )
 
@@ -29,9 +30,7 @@ func (v teamAuthValidator) IsAuthenticated(r *http.Request) bool {
 		return false
 	}
 
-	//return getAuthWrapper(team).IsAuthenticated(r)
-
-	if !team.IsAuthConfigured() {
+	if !isAuthConfigured(team.Team) {
 		return true
 	}
 
@@ -40,16 +39,17 @@ func (v teamAuthValidator) IsAuthenticated(r *http.Request) bool {
 	}
 
 	return v.jwtValidator.IsAuthenticated(r)
+
 }
 
-// func getAuthWrapper(t db.SavedTeam) AuthWrapper {
-// 	return t.AuthWrapper
-// }
-//
-// func (a db.AuthWrapper) IsAuthenticated(r http.Request) {
-// 	for _, auth := range a.AuthProviders {
-// 		if auth.IsAuthenticated(r) {
-// 			return True
-// 		}
-// 	}
-// }
+func isAuthConfigured(t db.Team) bool {
+	if t.BasicAuth != nil {
+		return true
+	}
+	for _, p := range provider.GetProviders() {
+		if p.ProviderConfigured(t) {
+			return true
+		}
+	}
+	return false
+}

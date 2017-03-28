@@ -24,10 +24,16 @@ type UAAProvider struct {
 }
 
 func init() {
-	provider.Register("uaa", NewUAAProvider)
+	provider.Register(ProviderName, UAATeamProvider{})
 }
 
-func NewUAAProvider(
+type UAATeamProvider struct{}
+
+func (UAATeamProvider) ProviderConfigured(team db.Team) bool {
+	return team.UAAAuth != nil
+}
+
+func (UAATeamProvider) ProviderConstructor(
 	team db.SavedTeam,
 	redirectURL string,
 ) (provider.Provider, bool) {
