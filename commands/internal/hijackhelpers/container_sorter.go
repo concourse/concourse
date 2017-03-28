@@ -30,7 +30,7 @@ func (sorter ContainerSorter) Less(i, j int) bool {
 		return true
 	case strings.Compare(sorter[i].StepName, sorter[j].StepName) == 1:
 		return false
-	case strings.Compare(sorter[i].StepType, sorter[j].StepType) == -1:
+	case strings.Compare(sorter[i].Type, sorter[j].Type) == -1:
 		return true
 	default:
 		return false

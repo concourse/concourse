@@ -18,7 +18,6 @@ import (
 var _ = Describe("Hijacking", func() {
 	var hijacked <-chan struct{}
 	var workingDirectory string
-	var envVariables []string
 	var user string
 	var path string
 	var args []string
@@ -26,7 +25,6 @@ var _ = Describe("Hijacking", func() {
 	BeforeEach(func() {
 		hijacked = nil
 		workingDirectory = ""
-		envVariables = nil
 		user = "root"
 		path = "bash"
 		args = nil
@@ -53,9 +51,6 @@ var _ = Describe("Hijacking", func() {
 
 				Expect(processSpec.User).To(Equal(user))
 				Expect(processSpec.Dir).To(Equal(workingDirectory))
-				for _, envVariable := range envVariables {
-					Expect(processSpec.Env).To(ContainElement(envVariable))
-				}
 				Expect(processSpec.Path).To(Equal(path))
 				Expect(processSpec.Args).To(Equal(args))
 
@@ -153,9 +148,9 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", User: user},
+						{ID: "container-id-1", BuildID: 3, Type: "task", StepName: "some-step", User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -185,9 +180,9 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", WorkingDirectory: workingDirectory, User: user},
+						{ID: "container-id-1", BuildID: 3, Type: "task", StepName: "some-step", WorkingDirectory: workingDirectory, User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -195,34 +190,6 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("hijacks the most recent one-off build in the specified working directory", func() {
-			hijack("-s", "some-step")
-		})
-	})
-
-	Context("when the container specifies environment variables", func() {
-		BeforeEach(func() {
-			didHijack := make(chan struct{})
-			hijacked = didHijack
-			envVariables = []string{"VAR1=val1", "VAR2=val2"}
-
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/builds"),
-					ghttp.RespondWithJSONEncoded(200, []atc.Build{
-						{ID: 3, Name: "3", Status: "started"},
-					}),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
-					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", EnvironmentVariables: envVariables, User: user},
-					}),
-				),
-				hijackHandler("container-id-1", didHijack, nil),
-			)
-		})
-
-		It("hijacks the most recent one-off build and sets the specified environment variables", func() {
 			hijack("-s", "some-step")
 		})
 	})
@@ -241,9 +208,9 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", User: "amelia"},
+						{ID: "container-id-1", BuildID: 3, Type: "task", StepName: "some-step", User: "amelia"},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -268,7 +235,7 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=1&step_name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=1&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -292,7 +259,7 @@ var _ = Describe("Hijacking", func() {
 			hijacked = didHijack
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=0"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build_id=0"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{}),
 				),
 			)
@@ -333,9 +300,9 @@ var _ = Describe("Hijacking", func() {
 							JobName:      "some-job",
 							BuildName:    "2",
 							BuildID:      12,
-							StepType:     "get",
+							Type:         "get",
 							StepName:     "some-input",
-							Attempts:     []int{1, 1, 1},
+							Attempt:      "1,1,1",
 							User:         user,
 						},
 						{
@@ -345,9 +312,9 @@ var _ = Describe("Hijacking", func() {
 							JobName:      "some-job",
 							BuildName:    "2",
 							BuildID:      13,
-							StepType:     "put",
+							Type:         "put",
 							StepName:     "some-output",
-							Attempts:     []int{1, 1, 2},
+							Attempt:      "1,1,2",
 							User:         user,
 						},
 						{
@@ -358,7 +325,8 @@ var _ = Describe("Hijacking", func() {
 							BuildName:    "2",
 							BuildID:      13,
 							StepName:     "some-output",
-							Attempts:     []int{1},
+							Type:         "task",
+							Attempt:      "1",
 							User:         user,
 						},
 						{
@@ -367,6 +335,7 @@ var _ = Describe("Hijacking", func() {
 							PipelineName: "pipeline-name-2",
 							ResourceName: "banana",
 							User:         user,
+							Type:         "check",
 						},
 					}),
 				),
@@ -419,7 +388,7 @@ var _ = Describe("Hijacking", func() {
 			resourceName       string
 			jobName            string
 			buildName          string
-			attempt            []int
+			attempt            string
 		)
 
 		BeforeEach(func() {
@@ -433,7 +402,7 @@ var _ = Describe("Hijacking", func() {
 			resourceName = ""
 			containerArguments = ""
 			hijackHandlerError = nil
-			attempt = []int{}
+			attempt = ""
 		})
 
 		JustBeforeEach(func() {
@@ -444,7 +413,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", containerArguments),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, StepType: stepType, StepName: stepName, ResourceName: resourceName, Attempts: attempt, User: user},
+						{ID: "container-id-1", WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, Type: stepType, StepName: stepName, ResourceName: resourceName, Attempt: attempt, User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, hijackHandlerError),
@@ -469,7 +438,7 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a specific build id", func() {
 			BeforeEach(func() {
-				containerArguments = "build-id=2&step_name=some-step"
+				containerArguments = "build_id=2&step_name=some-step"
 				stepType = "task"
 				stepName = "some-step"
 				buildID = 2
@@ -507,17 +476,17 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a specific attempt number", func() {
 			BeforeEach(func() {
-				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&attempt=[2,4]"
+				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&attempt=2.4"
 				jobName = "some-job"
 				buildName = "3"
 				buildID = 13
 				stepType = "task"
 				stepName = "some-step"
-				attempt = []int{2, 4}
+				attempt = "2.4"
 			})
 
 			It("hijacks the job's next build", func() {
-				hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempt", "2", "--attempt", "4")
+				hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempt", "2.4")
 			})
 		})
 
@@ -526,7 +495,7 @@ var _ = Describe("Hijacking", func() {
 				path = "sh"
 				args = []string{"echo hello"}
 
-				containerArguments = "build-id=2&step_name=some-step"
+				containerArguments = "build_id=2&step_name=some-step"
 				stepType = "task"
 				stepName = "some-step"
 				buildID = 2

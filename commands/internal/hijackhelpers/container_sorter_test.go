@@ -21,43 +21,43 @@ var _ = Describe("ContainerSorter", func() {
 				ID:       "8",
 				BuildID:  2,
 				StepName: "first",
-				StepType: "task",
+				Type:     "task",
 			},
 			{
 				ID:       "3",
 				BuildID:  1,
 				StepName: "first",
-				StepType: "check",
+				Type:     "check",
 			},
 			{
 				ID:       "6",
 				BuildID:  1,
 				StepName: "second",
-				StepType: "get",
+				Type:     "get",
 			},
 			{
 				ID:       "4",
 				BuildID:  1,
 				StepName: "first",
-				StepType: "get",
+				Type:     "get",
 			},
 			{
 				ID:       "7",
 				BuildID:  2,
 				StepName: "first",
-				StepType: "put",
+				Type:     "put",
 			},
 			{
 				ID:       "5",
 				BuildID:  1,
 				StepName: "second",
-				StepType: "check",
+				Type:     "check",
 			},
 			{
 				ID:       "9",
 				BuildID:  3,
 				StepName: "first",
-				StepType: "check",
+				Type:     "check",
 			},
 			{
 				ID:           "2",
@@ -128,19 +128,19 @@ var _ = Describe("ContainerSorter", func() {
 					})
 
 					Context("when SetName of i is equal to j", func() {
-						Context("when StepType of i is less than j", func() {
+						Context("when Type of i is less than j", func() {
 							It("returns true", func() {
 								Expect(sorter.Less(1, 3)).To(BeTrue())
 							})
 						})
 
-						Context("when StepType of i is greater than j", func() {
+						Context("when Type of i is greater than j", func() {
 							It("returns false", func() {
 								Expect(sorter.Less(3, 1)).To(BeFalse())
 							})
 						})
 
-						Context("when StepType of i is equal to j", func() {
+						Context("when Type of i is equal to j", func() {
 							It("returns false", func() {
 								Expect(sorter.Less(1, 1)).To(BeFalse())
 							})

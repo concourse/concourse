@@ -50,9 +50,9 @@ func (command *ContainersCommand) Execute([]string) error {
 			stringOrDefault(c.JobName),
 			stringOrDefault(c.BuildName),
 			buildIDOrNone(c.BuildID),
-			stringOrDefault(c.StepType, "check"),
+			{Contents: c.Type},
 			stringOrDefault(c.StepName + c.ResourceName),
-			stringOrDefault(SliceItoa(c.Attempts), "n/a"),
+			stringOrDefault(c.Attempt, "n/a"),
 		}
 
 		table.Data = append(table.Data, row)

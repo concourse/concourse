@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -26,7 +25,7 @@ type HijackCommand struct {
 	Check          flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
 	Build          string                   `short:"b" long:"build"                             description:"Build number within the job, or global build ID"`
 	StepName       string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
-	Attempt        []int                    `short:"a" long:"attempt" description:"Attempt number of step to hijack. Can be specified multiple times for nested retries"`
+	Attempt        string                   `short:"a" long:"attempt" value-name:"N[,N,...]"    description:"Attempt number of step to hijack."`
 	PositionalArgs struct {
 		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: bash)"`
 	} `positional-args:"yes"`
@@ -64,20 +63,18 @@ func (command *HijackCommand) Execute([]string) error {
 				}
 			}
 
-			if container.StepType != "" {
+			if container.StepName != "" {
 				infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
-				infos = append(infos, fmt.Sprintf("type: %s", container.StepType))
-			} else if container.ResourceName != "" {
-				infos = append(infos, fmt.Sprintf("resource: %s", container.ResourceName))
-				infos = append(infos, "type: check")
-			} else {
-				infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
-				infos = append(infos, "type: check")
 			}
 
-			if len(container.Attempts) != 0 {
-				attempt := SliceItoa(container.Attempts)
-				infos = append(infos, fmt.Sprintf("attempt: %s", attempt))
+			if container.ResourceName != "" {
+				infos = append(infos, fmt.Sprintf("resource: %s", container.ResourceName))
+			}
+
+			infos = append(infos, fmt.Sprintf("type: %s", container.Type))
+
+			if container.Attempt != "" {
+				infos = append(infos, fmt.Sprintf("attempt: %s", container.Attempt))
 			}
 
 			choices = append(choices, interact.Choice{
@@ -113,14 +110,12 @@ func (command *HijackCommand) Execute([]string) error {
 		}
 	}
 
-	envVariables := append(chosenContainer.EnvironmentVariables, "TERM="+os.Getenv("TERM"))
-
 	path, args := remoteCommand(command.PositionalArgs.Command)
 
 	spec := atc.HijackProcessSpec{
 		Path: path,
 		Args: args,
-		Env:  envVariables,
+		Env:  []string{"TERM=" + os.Getenv("TERM")},
 		User: chosenContainer.User,
 		Dir:  chosenContainer.WorkingDirectory,
 
@@ -236,24 +231,20 @@ func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (ma
 			reqValues["build_name"] = fingerprint.buildNameOrID
 		}
 	} else if fingerprint.buildNameOrID != "" {
-		reqValues["build-id"] = fingerprint.buildNameOrID
+		reqValues["build_id"] = fingerprint.buildNameOrID
 	} else {
 		build, err := GetBuild(locator.client, nil, "", "", "")
 		if err != nil {
 			return reqValues, err
 		}
-		reqValues["build-id"] = strconv.Itoa(build.ID)
+		reqValues["build_id"] = strconv.Itoa(build.ID)
 	}
 	if fingerprint.stepName != "" {
 		reqValues["step_name"] = fingerprint.stepName
 	}
 
-	if len(fingerprint.attempt) > 0 {
-		attemptBlob, err := json.Marshal(fingerprint.attempt)
-		if err != nil {
-			return nil, err
-		}
-		reqValues["attempt"] = string(attemptBlob)
+	if fingerprint.attempt != "" {
+		reqValues["attempt"] = fingerprint.attempt
 	}
 
 	return reqValues, nil
@@ -283,7 +274,7 @@ type containerFingerprint struct {
 	stepName string
 
 	checkName string
-	attempt   []int
+	attempt   string
 }
 
 func locateContainer(client concourse.Client, fingerprint containerFingerprint) (map[string]string, error) {
