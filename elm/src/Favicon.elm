@@ -1,6 +1,7 @@
-module Favicon exposing
-  ( set
-  )
+module Favicon
+    exposing
+        ( set
+        )
 
 import Task exposing (Task)
 import Native.Favicon
@@ -8,4 +9,4 @@ import Native.Favicon
 
 set : String -> Task x ()
 set =
-  Native.Favicon.set
+    Native.Favicon.set

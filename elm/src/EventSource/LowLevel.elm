@@ -13,28 +13,33 @@ endpoints and subscribing to events.
 import Task exposing (Task)
 import Native.EventSource
 
+
 {-| An opaque type representing the EventSource.
 -}
-type EventSource = EventSource
+type EventSource
+    = EventSource
+
 
 {-| Represent events that have appeared from the EventSource.
 -}
 type alias Event =
-  { lastEventId : Maybe String
-  , name : Maybe String
-  , data : String
-  }
+    { lastEventId : Maybe String
+    , name : Maybe String
+    , data : String
+    }
+
 
 {-| Configure the EventSource with callbacks.
   * `onOpen` corresponds to the EventSource `onopen` callback.
   * `onError` corresponds to the EventSource `onerror` callback.
 -}
 type alias Settings =
-  { events : List String
-  , onEvent : Event -> Task Never ()
-  , onOpen : EventSource -> Task Never ()
-  , onError : () -> Task Never ()
-  }
+    { events : List String
+    , onEvent : Event -> Task Never ()
+    , onOpen : EventSource -> Task Never ()
+    , onError : () -> Task Never ()
+    }
+
 
 {-| Connect to an EventSource endpoint. The `Settings` argument allows you to
 listen for the connection opening and erroring.
@@ -43,10 +48,11 @@ should be registered with `on`.
 -}
 open : String -> Settings -> Task.Task x EventSource
 open =
-  Native.EventSource.open
+    Native.EventSource.open
+
 
 {-| Close the event source.
 -}
 close : EventSource -> Task.Task x ()
 close =
-  Native.EventSource.close
+    Native.EventSource.close
