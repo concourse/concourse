@@ -18,7 +18,7 @@ type gardenWorkerContainer struct {
 	dbVolumes   []dbng.CreatedVolume
 
 	gardenClient garden.Client
-	db           GardenWorkerDB
+	lockDB       LockDB
 
 	volumeMounts []VolumeMount
 
@@ -36,7 +36,7 @@ func newGardenWorkerContainer(
 	dbContainerVolumes []dbng.CreatedVolume,
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
-	db GardenWorkerDB,
+	lockDB LockDB,
 	workerName string,
 ) (Container, error) {
 	logger = logger.WithData(lager.Data{"container": container.Handle()})
@@ -47,7 +47,7 @@ func newGardenWorkerContainer(
 		dbVolumes:   dbContainerVolumes,
 
 		gardenClient: gardenClient,
-		db:           db,
+		lockDB:       lockDB,
 
 		workerName: workerName,
 	}

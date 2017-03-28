@@ -46,7 +46,7 @@ var ErrBaseResourceTypeNotFound = errors.New("base-resource-type-not-found")
 
 type volumeClient struct {
 	baggageclaimClient              baggageclaim.Client
-	db                              GardenWorkerDB
+	lockDB                          LockDB
 	dbVolumeFactory                 dbng.VolumeFactory
 	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory
 	clock                           clock.Clock
@@ -55,7 +55,7 @@ type volumeClient struct {
 
 func NewVolumeClient(
 	baggageclaimClient baggageclaim.Client,
-	db GardenWorkerDB,
+	lockDB LockDB,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbWorkerBaseResourceTypeFactory dbng.WorkerBaseResourceTypeFactory,
 	clock clock.Clock,
@@ -63,7 +63,7 @@ func NewVolumeClient(
 ) VolumeClient {
 	return &volumeClient{
 		baggageclaimClient:              baggageclaimClient,
-		db:                              db,
+		lockDB:                          lockDB,
 		dbVolumeFactory:                 dbVolumeFactory,
 		dbWorkerBaseResourceTypeFactory: dbWorkerBaseResourceTypeFactory,
 		clock:    clock,
@@ -258,7 +258,7 @@ func (c *volumeClient) findOrCreateVolume(
 			}
 		}
 
-		lock, acquired, err := c.db.AcquireVolumeCreatingLock(logger, creatingVolume.ID())
+		lock, acquired, err := c.lockDB.AcquireVolumeCreatingLock(logger, creatingVolume.ID())
 		if err != nil {
 			logger.Error("failed-to-acquire-volume-creating-lock", err)
 			return nil, err

@@ -31,7 +31,7 @@ type containerProviderFactory struct {
 	dbResourceConfigFactory dbng.ResourceConfigFactory
 	dbTeamFactory           dbng.TeamFactory
 
-	db GardenWorkerDB
+	lockDB LockDB
 
 	httpProxyURL  string
 	httpsProxyURL string
@@ -49,7 +49,7 @@ func NewContainerProviderFactory(
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
 	dbResourceConfigFactory dbng.ResourceConfigFactory,
 	dbTeamFactory dbng.TeamFactory,
-	db GardenWorkerDB,
+	lockDB LockDB,
 	httpProxyURL string,
 	httpsProxyURL string,
 	noProxy string,
@@ -64,7 +64,7 @@ func NewContainerProviderFactory(
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
 		dbTeamFactory:           dbTeamFactory,
-		db:                      db,
+		lockDB:                  lockDB,
 		httpProxyURL:            httpProxyURL,
 		httpsProxyURL:           httpsProxyURL,
 		noProxy:                 noProxy,
@@ -82,7 +82,7 @@ func (f *containerProviderFactory) ContainerProviderFor(worker Worker) Container
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
 		dbTeamFactory:           f.dbTeamFactory,
-		db:                      f.db,
+		lockDB:                  f.lockDB,
 		httpProxyURL:            f.httpProxyURL,
 		httpsProxyURL:           f.httpsProxyURL,
 		noProxy:                 f.noProxy,
@@ -148,7 +148,7 @@ type containerProvider struct {
 	dbResourceConfigFactory dbng.ResourceConfigFactory
 	dbTeamFactory           dbng.TeamFactory
 
-	db       GardenWorkerDB
+	lockDB   LockDB
 	provider WorkerProvider
 
 	worker        Worker
@@ -338,7 +338,7 @@ func (p *containerProvider) FindCreatedContainerByHandle(
 		createdVolumes,
 		p.gardenClient,
 		p.baggageclaimClient,
-		p.db,
+		p.lockDB,
 		p.worker.Name(),
 	)
 
@@ -421,7 +421,7 @@ func (p *containerProvider) findOrCreateContainer(
 			}
 		}
 
-		lock, acquired, err := p.db.AcquireContainerCreatingLock(logger, creatingContainer.ID())
+		lock, acquired, err := p.lockDB.AcquireContainerCreatingLock(logger, creatingContainer.ID())
 		if err != nil {
 			logger.Error("failed-to-acquire-volume-creating-lock", err)
 			return nil, err
@@ -500,7 +500,7 @@ func (p *containerProvider) constructGardenWorkerContainer(
 		createdVolumes,
 		p.gardenClient,
 		p.baggageclaimClient,
-		p.db,
+		p.lockDB,
 		p.worker.Name(),
 	)
 }

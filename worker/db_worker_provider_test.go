@@ -26,7 +26,7 @@ import (
 
 var _ = Describe("DBProvider", func() {
 	var (
-		fakeDB *workerfakes.FakeWorkerDB
+		fakeLockDB *workerfakes.FakeLockDB
 
 		logger *lagertest.TestLogger
 
@@ -120,14 +120,14 @@ var _ = Describe("DBProvider", func() {
 		fakeDBWorkerBaseResourceTypeFactory = new(dbngfakes.FakeWorkerBaseResourceTypeFactory)
 		fakeLock := new(lockfakes.FakeLock)
 
-		fakeDB = new(workerfakes.FakeWorkerDB)
-		fakeDB.AcquireContainerCreatingLockReturns(fakeLock, true, nil)
+		fakeLockDB = new(workerfakes.FakeLockDB)
+		fakeLockDB.AcquireContainerCreatingLockReturns(fakeLock, true, nil)
 
 		fakeDBWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 
 		provider = NewDBWorkerProvider(
 			logger,
-			fakeDB,
+			fakeLockDB,
 			nil,
 			fakeBackOffFactory,
 			fakeImageFactory,

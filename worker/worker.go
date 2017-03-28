@@ -11,8 +11,6 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 )
 
@@ -53,20 +51,12 @@ type Worker interface {
 	IsOwnedByTeam() bool
 }
 
-//go:generate counterfeiter . GardenWorkerDB
-
-type GardenWorkerDB interface {
-	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
-	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
-	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
-}
-
 type gardenWorker struct {
 	containerProviderFactory ContainerProviderFactory
 
 	volumeClient VolumeClient
 
-	db       GardenWorkerDB
+	lockDB   LockDB
 	provider WorkerProvider
 
 	clock clock.Clock
@@ -83,7 +73,7 @@ type gardenWorker struct {
 func NewGardenWorker(
 	containerProviderFactory ContainerProviderFactory,
 	volumeClient VolumeClient,
-	db GardenWorkerDB,
+	lockDB LockDB,
 	provider WorkerProvider,
 	clock clock.Clock,
 	activeContainers int,
@@ -99,7 +89,7 @@ func NewGardenWorker(
 
 		volumeClient: volumeClient,
 
-		db:               db,
+		lockDB:           lockDB,
 		provider:         provider,
 		clock:            clock,
 		activeContainers: activeContainers,

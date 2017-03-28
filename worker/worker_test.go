@@ -21,7 +21,7 @@ var _ = Describe("Worker", func() {
 		logger                       *lagertest.TestLogger
 		fakeVolumeClient             *wfakes.FakeVolumeClient
 		fakeImageFactory             *wfakes.FakeImageFactory
-		fakeGardenWorkerDB           *wfakes.FakeGardenWorkerDB
+		fakeLockDB           *wfakes.FakeLockDB
 		fakeWorkerProvider           *wfakes.FakeWorkerProvider
 		fakeClock                    *fakeclock.FakeClock
 		fakeDBResourceCacheFactory   *dbngfakes.FakeResourceCacheFactory
@@ -43,7 +43,7 @@ var _ = Describe("Worker", func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeVolumeClient = new(wfakes.FakeVolumeClient)
 		fakeImageFactory = new(wfakes.FakeImageFactory)
-		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
+		fakeLockDB = new(wfakes.FakeLockDB)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
@@ -72,7 +72,7 @@ var _ = Describe("Worker", func() {
 		gardenWorker = NewGardenWorker(
 			fakeContainerProviderFactory,
 			fakeVolumeClient,
-			fakeGardenWorkerDB,
+			fakeLockDB,
 			fakeWorkerProvider,
 			fakeClock,
 			activeContainers,

@@ -5,25 +5,11 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/worker"
 )
 
-type FakeGardenWorkerDB struct {
-	GetPipelineByIDStub        func(pipelineID int) (db.SavedPipeline, error)
-	getPipelineByIDMutex       sync.RWMutex
-	getPipelineByIDArgsForCall []struct {
-		pipelineID int
-	}
-	getPipelineByIDReturns struct {
-		result1 db.SavedPipeline
-		result2 error
-	}
-	getPipelineByIDReturnsOnCall map[int]struct {
-		result1 db.SavedPipeline
-		result2 error
-	}
+type FakeLockDB struct {
 	AcquireVolumeCreatingLockStub        func(lager.Logger, int) (lock.Lock, bool, error)
 	acquireVolumeCreatingLockMutex       sync.RWMutex
 	acquireVolumeCreatingLockArgsForCall []struct {
@@ -60,58 +46,7 @@ type FakeGardenWorkerDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeGardenWorkerDB) GetPipelineByID(pipelineID int) (db.SavedPipeline, error) {
-	fake.getPipelineByIDMutex.Lock()
-	ret, specificReturn := fake.getPipelineByIDReturnsOnCall[len(fake.getPipelineByIDArgsForCall)]
-	fake.getPipelineByIDArgsForCall = append(fake.getPipelineByIDArgsForCall, struct {
-		pipelineID int
-	}{pipelineID})
-	fake.recordInvocation("GetPipelineByID", []interface{}{pipelineID})
-	fake.getPipelineByIDMutex.Unlock()
-	if fake.GetPipelineByIDStub != nil {
-		return fake.GetPipelineByIDStub(pipelineID)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.getPipelineByIDReturns.result1, fake.getPipelineByIDReturns.result2
-}
-
-func (fake *FakeGardenWorkerDB) GetPipelineByIDCallCount() int {
-	fake.getPipelineByIDMutex.RLock()
-	defer fake.getPipelineByIDMutex.RUnlock()
-	return len(fake.getPipelineByIDArgsForCall)
-}
-
-func (fake *FakeGardenWorkerDB) GetPipelineByIDArgsForCall(i int) int {
-	fake.getPipelineByIDMutex.RLock()
-	defer fake.getPipelineByIDMutex.RUnlock()
-	return fake.getPipelineByIDArgsForCall[i].pipelineID
-}
-
-func (fake *FakeGardenWorkerDB) GetPipelineByIDReturns(result1 db.SavedPipeline, result2 error) {
-	fake.GetPipelineByIDStub = nil
-	fake.getPipelineByIDReturns = struct {
-		result1 db.SavedPipeline
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeGardenWorkerDB) GetPipelineByIDReturnsOnCall(i int, result1 db.SavedPipeline, result2 error) {
-	fake.GetPipelineByIDStub = nil
-	if fake.getPipelineByIDReturnsOnCall == nil {
-		fake.getPipelineByIDReturnsOnCall = make(map[int]struct {
-			result1 db.SavedPipeline
-			result2 error
-		})
-	}
-	fake.getPipelineByIDReturnsOnCall[i] = struct {
-		result1 db.SavedPipeline
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int) (lock.Lock, bool, error) {
+func (fake *FakeLockDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg2 int) (lock.Lock, bool, error) {
 	fake.acquireVolumeCreatingLockMutex.Lock()
 	ret, specificReturn := fake.acquireVolumeCreatingLockReturnsOnCall[len(fake.acquireVolumeCreatingLockArgsForCall)]
 	fake.acquireVolumeCreatingLockArgsForCall = append(fake.acquireVolumeCreatingLockArgsForCall, struct {
@@ -129,19 +64,19 @@ func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLock(arg1 lager.Logger, arg
 	return fake.acquireVolumeCreatingLockReturns.result1, fake.acquireVolumeCreatingLockReturns.result2, fake.acquireVolumeCreatingLockReturns.result3
 }
 
-func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLockCallCount() int {
+func (fake *FakeLockDB) AcquireVolumeCreatingLockCallCount() int {
 	fake.acquireVolumeCreatingLockMutex.RLock()
 	defer fake.acquireVolumeCreatingLockMutex.RUnlock()
 	return len(fake.acquireVolumeCreatingLockArgsForCall)
 }
 
-func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLockArgsForCall(i int) (lager.Logger, int) {
+func (fake *FakeLockDB) AcquireVolumeCreatingLockArgsForCall(i int) (lager.Logger, int) {
 	fake.acquireVolumeCreatingLockMutex.RLock()
 	defer fake.acquireVolumeCreatingLockMutex.RUnlock()
 	return fake.acquireVolumeCreatingLockArgsForCall[i].arg1, fake.acquireVolumeCreatingLockArgsForCall[i].arg2
 }
 
-func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
+func (fake *FakeLockDB) AcquireVolumeCreatingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireVolumeCreatingLockStub = nil
 	fake.acquireVolumeCreatingLockReturns = struct {
 		result1 lock.Lock
@@ -150,7 +85,7 @@ func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLockReturns(result1 lock.Lo
 	}{result1, result2, result3}
 }
 
-func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+func (fake *FakeLockDB) AcquireVolumeCreatingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireVolumeCreatingLockStub = nil
 	if fake.acquireVolumeCreatingLockReturnsOnCall == nil {
 		fake.acquireVolumeCreatingLockReturnsOnCall = make(map[int]struct {
@@ -166,7 +101,7 @@ func (fake *FakeGardenWorkerDB) AcquireVolumeCreatingLockReturnsOnCall(i int, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLock(arg1 lager.Logger, arg2 int) (lock.Lock, bool, error) {
+func (fake *FakeLockDB) AcquireContainerCreatingLock(arg1 lager.Logger, arg2 int) (lock.Lock, bool, error) {
 	fake.acquireContainerCreatingLockMutex.Lock()
 	ret, specificReturn := fake.acquireContainerCreatingLockReturnsOnCall[len(fake.acquireContainerCreatingLockArgsForCall)]
 	fake.acquireContainerCreatingLockArgsForCall = append(fake.acquireContainerCreatingLockArgsForCall, struct {
@@ -184,19 +119,19 @@ func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLock(arg1 lager.Logger, 
 	return fake.acquireContainerCreatingLockReturns.result1, fake.acquireContainerCreatingLockReturns.result2, fake.acquireContainerCreatingLockReturns.result3
 }
 
-func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLockCallCount() int {
+func (fake *FakeLockDB) AcquireContainerCreatingLockCallCount() int {
 	fake.acquireContainerCreatingLockMutex.RLock()
 	defer fake.acquireContainerCreatingLockMutex.RUnlock()
 	return len(fake.acquireContainerCreatingLockArgsForCall)
 }
 
-func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLockArgsForCall(i int) (lager.Logger, int) {
+func (fake *FakeLockDB) AcquireContainerCreatingLockArgsForCall(i int) (lager.Logger, int) {
 	fake.acquireContainerCreatingLockMutex.RLock()
 	defer fake.acquireContainerCreatingLockMutex.RUnlock()
 	return fake.acquireContainerCreatingLockArgsForCall[i].arg1, fake.acquireContainerCreatingLockArgsForCall[i].arg2
 }
 
-func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
+func (fake *FakeLockDB) AcquireContainerCreatingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireContainerCreatingLockStub = nil
 	fake.acquireContainerCreatingLockReturns = struct {
 		result1 lock.Lock
@@ -205,7 +140,7 @@ func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLockReturns(result1 lock
 	}{result1, result2, result3}
 }
 
-func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+func (fake *FakeLockDB) AcquireContainerCreatingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
 	fake.AcquireContainerCreatingLockStub = nil
 	if fake.acquireContainerCreatingLockReturnsOnCall == nil {
 		fake.acquireContainerCreatingLockReturnsOnCall = make(map[int]struct {
@@ -221,11 +156,9 @@ func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLockReturnsOnCall(i int,
 	}{result1, result2, result3}
 }
 
-func (fake *FakeGardenWorkerDB) Invocations() map[string][][]interface{} {
+func (fake *FakeLockDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getPipelineByIDMutex.RLock()
-	defer fake.getPipelineByIDMutex.RUnlock()
 	fake.acquireVolumeCreatingLockMutex.RLock()
 	defer fake.acquireVolumeCreatingLockMutex.RUnlock()
 	fake.acquireContainerCreatingLockMutex.RLock()
@@ -233,7 +166,7 @@ func (fake *FakeGardenWorkerDB) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeGardenWorkerDB) recordInvocation(key string, args []interface{}) {
+func (fake *FakeLockDB) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -245,4 +178,4 @@ func (fake *FakeGardenWorkerDB) recordInvocation(key string, args []interface{})
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ worker.GardenWorkerDB = new(FakeGardenWorkerDB)
+var _ worker.LockDB = new(FakeLockDB)

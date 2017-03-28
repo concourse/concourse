@@ -13,15 +13,13 @@ import (
 	"github.com/concourse/retryhttp"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 )
 
-//go:generate counterfeiter . WorkerDB
+//go:generate counterfeiter . LockDB
 
-type WorkerDB interface {
-	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
+type LockDB interface {
 	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 }
@@ -30,7 +28,7 @@ var ErrDesiredWorkerNotRunning = errors.New("desired-garden-worker-is-not-known-
 
 type dbWorkerProvider struct {
 	logger                          lager.Logger
-	db                              WorkerDB
+	lockDB                          LockDB
 	dialer                          gconn.DialerFunc
 	retryBackOffFactory             retryhttp.BackOffFactory
 	imageFactory                    ImageFactory
@@ -44,7 +42,7 @@ type dbWorkerProvider struct {
 
 func NewDBWorkerProvider(
 	logger lager.Logger,
-	db WorkerDB,
+	lockDB LockDB,
 	dialer gconn.DialerFunc,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
@@ -57,7 +55,7 @@ func NewDBWorkerProvider(
 ) WorkerProvider {
 	return &dbWorkerProvider{
 		logger:                          logger,
-		db:                              db,
+		lockDB:                          lockDB,
 		dialer:                          dialer,
 		retryBackOffFactory:             retryBackOffFactory,
 		imageFactory:                    imageFactory,
@@ -197,7 +195,7 @@ func (provider *dbWorkerProvider) newGardenWorker(tikTok clock.Clock, savedWorke
 
 	volumeClient := NewVolumeClient(
 		bClient,
-		provider.db,
+		provider.lockDB,
 		provider.dbVolumeFactory,
 		provider.dbWorkerBaseResourceTypeFactory,
 		clock.NewClock(),
@@ -213,7 +211,7 @@ func (provider *dbWorkerProvider) newGardenWorker(tikTok clock.Clock, savedWorke
 		provider.dbResourceCacheFactory,
 		provider.dbResourceConfigFactory,
 		provider.dbTeamFactory,
-		provider.db,
+		provider.lockDB,
 		savedWorker.HTTPProxyURL(),
 		savedWorker.HTTPSProxyURL(),
 		savedWorker.NoProxy(),
@@ -223,7 +221,7 @@ func (provider *dbWorkerProvider) newGardenWorker(tikTok clock.Clock, savedWorke
 	return NewGardenWorker(
 		containerProviderFactory,
 		volumeClient,
-		provider.db,
+		provider.lockDB,
 		provider,
 		tikTok,
 		savedWorker.ActiveContainers(),
