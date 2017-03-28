@@ -565,8 +565,10 @@ func (t *team) FindPipelineByName(pipelineName string) (Pipeline, bool, error) {
 		t.lockFactory,
 		psql.Select(unqualifiedPipelineColumns).
 			From("pipelines").
-			Where(sq.Eq{"p.name": pipelineName}).
-			Where(sq.Eq{"team_id": t.id}).
+			Where(sq.Eq{
+				"team_id": t.id,
+				"name":    pipelineName,
+			}).
 			RunWith(t.conn).
 			QueryRow(),
 	)
