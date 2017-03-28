@@ -21,16 +21,18 @@ type FakeLockDB struct {
 		result1 bool
 		result2 error
 	}
-	ReleaseStub        func(id lock.LockID) error
+	ReleaseStub        func(id lock.LockID) (bool, error)
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct {
 		id lock.LockID
 	}
 	releaseReturns struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 	releaseReturnsOnCall map[int]struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -87,7 +89,7 @@ func (fake *FakeLockDB) AcquireReturnsOnCall(i int, result1 bool, result2 error)
 	}{result1, result2}
 }
 
-func (fake *FakeLockDB) Release(id lock.LockID) error {
+func (fake *FakeLockDB) Release(id lock.LockID) (bool, error) {
 	fake.releaseMutex.Lock()
 	ret, specificReturn := fake.releaseReturnsOnCall[len(fake.releaseArgsForCall)]
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
@@ -99,9 +101,9 @@ func (fake *FakeLockDB) Release(id lock.LockID) error {
 		return fake.ReleaseStub(id)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fake.releaseReturns.result1
+	return fake.releaseReturns.result1, fake.releaseReturns.result2
 }
 
 func (fake *FakeLockDB) ReleaseCallCount() int {
@@ -116,23 +118,26 @@ func (fake *FakeLockDB) ReleaseArgsForCall(i int) lock.LockID {
 	return fake.releaseArgsForCall[i].id
 }
 
-func (fake *FakeLockDB) ReleaseReturns(result1 error) {
+func (fake *FakeLockDB) ReleaseReturns(result1 bool, result2 error) {
 	fake.ReleaseStub = nil
 	fake.releaseReturns = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeLockDB) ReleaseReturnsOnCall(i int, result1 error) {
+func (fake *FakeLockDB) ReleaseReturnsOnCall(i int, result1 bool, result2 error) {
 	fake.ReleaseStub = nil
 	if fake.releaseReturnsOnCall == nil {
 		fake.releaseReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 bool
+			result2 error
 		})
 	}
 	fake.releaseReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeLockDB) Invocations() map[string][][]interface{} {

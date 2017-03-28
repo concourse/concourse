@@ -153,18 +153,6 @@ var _ = Describe("Locks", func() {
 			Expect(acquired).To(BeFalse())
 		})
 
-		It("Release is idempotent", func() {
-			acquired, err := dbLock.Acquire()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(acquired).To(BeTrue())
-
-			err = dbLock.Release()
-			Expect(err).NotTo(HaveOccurred())
-
-			err = dbLock.Release()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		Context("when another connection is holding the lock", func() {
 			var lockFactory2 lock.LockFactory
 
@@ -300,7 +288,7 @@ var _ = Describe("Locks", func() {
 					Expect(fakeConnector.ConnectCallCount()).To(Equal(1))
 				})
 
-				It("recreates connection on Release", func() {
+				It("recreates connection but returns ErrLostLock on release", func() {
 					acquired, err := dbLock.Acquire()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(acquired).To(BeTrue())
@@ -308,8 +296,15 @@ var _ = Describe("Locks", func() {
 					err = pgxConn.Close()
 					Expect(err).NotTo(HaveOccurred())
 
+					Eventually(func() int {
+						var count int
+						err := pgxConn1.QueryRow(`SELECT count(*) FROM pg_locks WHERE objid = 42`).Scan(&count)
+						Expect(err).ToNot(HaveOccurred())
+						return count
+					}).Should(BeZero())
+
 					err = dbLock.Release()
-					Expect(err).NotTo(HaveOccurred())
+					Expect(err).To(Equal(lock.ErrLostLock))
 
 					acquired, err = dbLock.Acquire()
 					Expect(err).NotTo(HaveOccurred())

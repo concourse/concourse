@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"errors"
 	"fmt"
 	"hash/crc32"
 	"strconv"
@@ -20,6 +21,8 @@ const (
 	LockTypeVolumeCreating
 	LockTypeContainerCreating
 )
+
+var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
 
 func NewBuildTrackingLockID(buildID int) LockID {
 	return LockID{LockTypeBuildTracking, buildID}
@@ -111,7 +114,7 @@ type Lock interface {
 
 type LockDB interface {
 	Acquire(id LockID) (bool, error)
-	Release(id LockID) error
+	Release(id LockID) (bool, error)
 }
 
 type lock struct {
@@ -155,12 +158,17 @@ func (l *lock) Acquire() (bool, error) {
 func (l *lock) Release() error {
 	logger := l.logger.Session("release", lager.Data{"id": l.id})
 
-	err := l.db.Release(l.id)
+	released, err := l.db.Release(l.id)
 	if err != nil {
 		logger.Error("failed-to-release-in-db-but-continuing-anyway", err)
 	}
 
 	l.locks.Unregister(l.id)
+
+	if !released {
+		logger.Error("failed-to-release", ErrLostLock)
+		return ErrLostLock
+	}
 
 	logger.Debug("released")
 
@@ -185,12 +193,17 @@ func (db *lockDB) Acquire(id LockID) (bool, error) {
 	return acquired, nil
 }
 
-func (db *lockDB) Release(id LockID) error {
+func (db *lockDB) Release(id LockID) (bool, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
-	_, err := db.conn.Exec(`SELECT pg_advisory_unlock(`+id.toDBParams()+`)`, id.toDBArgs()...)
-	return err
+	var released bool
+	err := db.conn.QueryRow(`SELECT pg_advisory_unlock(`+id.toDBParams()+`)`, id.toDBArgs()...).Scan(&released)
+	if err != nil {
+		return false, err
+	}
+
+	return released, nil
 }
 
 type lockRepo struct {
