@@ -45,3 +45,18 @@ func (jr JWTReader) GetSystem(r *http.Request) (bool, bool) {
 
 	return isSystemInterface.(bool), true
 }
+
+func (jr JWTReader) GetCSRFToken(r *http.Request) (string, bool) {
+	token, err := getJWT(r, jr.PublicKey)
+	if err != nil {
+		return "", false
+	}
+
+	claims := token.Claims.(jwt.MapClaims)
+	csrfToken, ok := claims[csrfTokenClaimKey]
+	if !ok {
+		return "", false
+	}
+
+	return csrfToken.(string), true
+}

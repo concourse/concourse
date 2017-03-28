@@ -37,6 +37,19 @@ type FakeUserContextReader struct {
 		result1 bool
 		result2 bool
 	}
+	GetCSRFTokenStub        func(r *http.Request) (string, bool)
+	getCSRFTokenMutex       sync.RWMutex
+	getCSRFTokenArgsForCall []struct {
+		r *http.Request
+	}
+	getCSRFTokenReturns struct {
+		result1 string
+		result2 bool
+	}
+	getCSRFTokenReturnsOnCall map[int]struct {
+		result1 string
+		result2 bool
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -146,6 +159,57 @@ func (fake *FakeUserContextReader) GetSystemReturnsOnCall(i int, result1 bool, r
 	}{result1, result2}
 }
 
+func (fake *FakeUserContextReader) GetCSRFToken(r *http.Request) (string, bool) {
+	fake.getCSRFTokenMutex.Lock()
+	ret, specificReturn := fake.getCSRFTokenReturnsOnCall[len(fake.getCSRFTokenArgsForCall)]
+	fake.getCSRFTokenArgsForCall = append(fake.getCSRFTokenArgsForCall, struct {
+		r *http.Request
+	}{r})
+	fake.recordInvocation("GetCSRFToken", []interface{}{r})
+	fake.getCSRFTokenMutex.Unlock()
+	if fake.GetCSRFTokenStub != nil {
+		return fake.GetCSRFTokenStub(r)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getCSRFTokenReturns.result1, fake.getCSRFTokenReturns.result2
+}
+
+func (fake *FakeUserContextReader) GetCSRFTokenCallCount() int {
+	fake.getCSRFTokenMutex.RLock()
+	defer fake.getCSRFTokenMutex.RUnlock()
+	return len(fake.getCSRFTokenArgsForCall)
+}
+
+func (fake *FakeUserContextReader) GetCSRFTokenArgsForCall(i int) *http.Request {
+	fake.getCSRFTokenMutex.RLock()
+	defer fake.getCSRFTokenMutex.RUnlock()
+	return fake.getCSRFTokenArgsForCall[i].r
+}
+
+func (fake *FakeUserContextReader) GetCSRFTokenReturns(result1 string, result2 bool) {
+	fake.GetCSRFTokenStub = nil
+	fake.getCSRFTokenReturns = struct {
+		result1 string
+		result2 bool
+	}{result1, result2}
+}
+
+func (fake *FakeUserContextReader) GetCSRFTokenReturnsOnCall(i int, result1 string, result2 bool) {
+	fake.GetCSRFTokenStub = nil
+	if fake.getCSRFTokenReturnsOnCall == nil {
+		fake.getCSRFTokenReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 bool
+		})
+	}
+	fake.getCSRFTokenReturnsOnCall[i] = struct {
+		result1 string
+		result2 bool
+	}{result1, result2}
+}
+
 func (fake *FakeUserContextReader) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -153,6 +217,8 @@ func (fake *FakeUserContextReader) Invocations() map[string][][]interface{} {
 	defer fake.getTeamMutex.RUnlock()
 	fake.getSystemMutex.RLock()
 	defer fake.getSystemMutex.RUnlock()
+	fake.getCSRFTokenMutex.RLock()
+	defer fake.getCSRFTokenMutex.RUnlock()
 	return fake.invocations
 }
 

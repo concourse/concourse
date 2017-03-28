@@ -56,16 +56,26 @@ var _ = Describe("CookieSetHandler", func() {
 			Expect(givenRequest.Header.Get("Authorization")).To(BeEmpty())
 		})
 
+		It("does not set CSRF required context in request", func() {
+			csrfRequiredContext := givenRequest.Context().Value(auth.CSRFRequiredKey)
+			Expect(csrfRequiredContext).To(BeNil())
+		})
+
 		Context("with the ATC-Authorization cookie", func() {
 			BeforeEach(func() {
 				request.AddCookie(&http.Cookie{
-					Name:  auth.CookieName,
+					Name:  auth.AuthCookieName,
 					Value: "username:password",
 				})
 			})
 
 			It("sets the Authorization header with the value from the cookie", func() {
 				Expect(givenRequest.Header.Get("Authorization")).To(Equal("username:password"))
+			})
+
+			It("sets CSRF required context in request", func() {
+				csrfRequiredContext := givenRequest.Context().Value(auth.CSRFRequiredKey).(bool)
+				Expect(csrfRequiredContext).To(BeTrue())
 			})
 
 			Context("and the request also has an Authorization header", func() {
