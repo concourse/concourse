@@ -49,8 +49,10 @@ func ContainerTypeFromString(containerType string) (ContainerType, error) {
 }
 
 func (metadata ContainerMetadata) SQLMap() map[string]interface{} {
-	m := map[string]interface{}{
-		"meta_type": string(metadata.Type),
+	m := map[string]interface{}{}
+
+	if metadata.Type != "" {
+		m["meta_type"] = string(metadata.Type)
 	}
 
 	if metadata.StepName != "" {

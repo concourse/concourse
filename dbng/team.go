@@ -326,9 +326,11 @@ func (t *team) FindContainerByHandle(
 }
 
 func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container, error) {
+	eq := sq.Eq(metadata.SQLMap())
+	eq["team_id"] = t.id
+
 	rows, err := selectContainers().
-		Where(sq.Eq(metadata.SQLMap())).
-		Where(sq.Eq{"team_id": t.id}).
+		Where(eq).
 		RunWith(t.conn).
 		Query()
 	if err != nil {

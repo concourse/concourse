@@ -317,6 +317,23 @@ var _ = Describe("Team", func() {
 			Expect(notFound).ToNot(BeZero())
 		})
 
+		It("finds all containers for the team when given empty metadata", func() {
+			containers, err := defaultTeam.FindContainersByMetadata(dbng.ContainerMetadata{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(containers).ToNot(BeEmpty())
+
+			foundHandles := []string{}
+			for _, c := range containers {
+				foundHandles = append(foundHandles, c.Handle())
+			}
+
+			for _, cs := range metaContainers {
+				for _, c := range cs {
+					Expect(foundHandles).To(ContainElement(c.Handle()))
+				}
+			}
+		})
+
 		It("does not find containers for other teams", func() {
 			for _, meta := range sampleMetadata {
 				containers, err := otherTeam.FindContainersByMetadata(meta)
