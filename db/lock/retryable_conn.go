@@ -35,7 +35,20 @@ func (c PgxConnector) Connect() (DelegateConn, error) {
 }
 
 func (c *RetryableConn) Exec(sql string, arguments ...interface{}) (pgx.CommandTag, error) {
-	return c.Conn.Exec(sql, arguments...)
+	tag, queryErr := c.Conn.Exec(sql, arguments...)
+	if queryErr != nil {
+		var connError *net.OpError
+
+		for queryErr != nil && reflect.TypeOf(queryErr) == reflect.TypeOf(connError) {
+			err := c.reconnect()
+			if err != nil {
+				continue
+			}
+			tag, queryErr = c.Conn.Exec(sql, arguments...)
+		}
+	}
+
+	return tag, queryErr
 }
 
 func (c *RetryableConn) QueryRow(sql string, args ...interface{}) *pgx.Row {
