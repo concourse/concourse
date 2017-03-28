@@ -63,7 +63,7 @@ var (
 		Type: dbng.ContainerTypeTask,
 
 		StepName: "some-step-name",
-		Attempt:  "1,2,3",
+		Attempt:  "1.2.3",
 
 		PipelineID:     123,
 		JobID:          456,

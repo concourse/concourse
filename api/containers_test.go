@@ -33,7 +33,7 @@ var _ = Describe("Containers API", func() {
 		resourceID       = 4444
 		resourceTypeID   = 5555
 		workingDirectory = "/tmp/build/my-favorite-guid"
-		attempt          = "1,5"
+		attempt          = "1.5"
 		user             = "snoopy"
 
 		req *http.Request
@@ -69,7 +69,7 @@ var _ = Describe("Containers API", func() {
 			Type: stepType,
 
 			StepName: stepName + "-other",
-			Attempt:  attempt + ",1",
+			Attempt:  attempt + ".1",
 
 			PipelineID:     pipelineID + 1,
 			JobID:          jobID + 1,
@@ -144,7 +144,7 @@ var _ = Describe("Containers API", func() {
 									"worker_name": "some-worker-name",
 									"type": "task",
 									"step_name": "some-step",
-									"attempt": "1,5",
+									"attempt": "1.5",
 									"pipeline_id": 1111,
 									"job_id": 2222,
 									"build_id": 3333,
@@ -158,7 +158,7 @@ var _ = Describe("Containers API", func() {
 									"worker_name": "some-other-worker-name",
 									"type": "task",
 									"step_name": "some-step-other",
-									"attempt": "1,5,1",
+									"attempt": "1.5.1",
 									"pipeline_id": 1112,
 									"job_id": 2223,
 									"build_id": 3334,
@@ -457,7 +457,7 @@ var _ = Describe("Containers API", func() {
 							"worker_name": "some-worker-name",
 							"type": "task",
 							"step_name": "some-step",
-							"attempt": "1,5",
+							"attempt": "1.5",
 							"pipeline_id": 1111,
 							"job_id": 2222,
 							"build_id": 3333,

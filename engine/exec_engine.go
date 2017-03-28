@@ -327,6 +327,6 @@ func (build *execBuild) workerMetadata(
 		BuildName:    build.buildName,
 
 		StepName: stepName,
-		Attempt:  strings.Join(attemptStrs, ","),
+		Attempt:  strings.Join(attemptStrs, "."),
 	}
 }

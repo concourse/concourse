@@ -455,7 +455,7 @@ var _ = Describe("ExecEngine", func() {
 					JobName:      "some-job",
 					BuildID:      expectedBuildID,
 					BuildName:    "42",
-					Attempt:      "2,1",
+					Attempt:      "2.1",
 				}))
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
@@ -477,7 +477,7 @@ var _ = Describe("ExecEngine", func() {
 					JobName:      "some-job",
 					BuildID:      expectedBuildID,
 					BuildName:    "42",
-					Attempt:      "2,2",
+					Attempt:      "2.2",
 				}))
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
