@@ -208,6 +208,7 @@ var _ = Describe("Jobs API", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{
+							"id": 1,
 							"name": "some-job",
 							"paused": true,
 							"first_logged_build_id": 99,
@@ -719,7 +720,7 @@ var _ = Describe("Jobs API", func() {
 				}
 
 				job3 := db.SavedJob{
-					ID:           2,
+					ID:           3,
 					Paused:       true,
 					PipelineName: "another-pipeline",
 					Job: db.Job{
@@ -822,6 +823,7 @@ var _ = Describe("Jobs API", func() {
 
 					Expect(body).To(MatchJSON(`[
 							{
+								"id": 1,
 								"name": "job-1",
 								"paused": true,
 								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1",
@@ -852,6 +854,7 @@ var _ = Describe("Jobs API", func() {
 								"groups": ["group-1", "group-2"]
 							},
 							{
+								"id": 2,
 								"name": "job-2",
 								"paused": true,
 								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2",
@@ -873,6 +876,7 @@ var _ = Describe("Jobs API", func() {
 								"groups": ["group-2"]
 							},
 							{
+								"id": 3,
 								"name": "job-3",
 								"paused": true,
 								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-3",
@@ -897,6 +901,7 @@ var _ = Describe("Jobs API", func() {
 
 						Expect(body).To(MatchJSON(`[
 							{
+								"id": 1,
 								"name": "job-1",
 								"paused": true,
 								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1",
@@ -928,6 +933,7 @@ var _ = Describe("Jobs API", func() {
 								"groups": ["group-1", "group-2"]
 							},
 							{
+								"id": 2,
 								"name": "job-2",
 								"paused": true,
 								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2",
@@ -949,6 +955,7 @@ var _ = Describe("Jobs API", func() {
 								"groups": ["group-2"]
 							},
 							{
+								"id": 3,
 								"name": "job-3",
 								"paused": true,
 								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-3",

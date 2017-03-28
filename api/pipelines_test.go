@@ -28,26 +28,8 @@ var _ = Describe("Pipelines API", func() {
 		expectedSavedPipeline = db.SavedPipeline{}
 		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, true, nil)
 
-		privatePipeline := db.SavedPipeline{
-			ID:       1,
-			Paused:   false,
-			Public:   false,
-			TeamName: "main",
-			Pipeline: db.Pipeline{
-				Name: "private-pipeline",
-				Config: atc.Config{
-					Groups: atc.GroupConfigs{
-						{
-							Name:      "group1",
-							Jobs:      []string{"job1", "job2"},
-							Resources: []string{"resource1", "resource2"},
-						},
-					},
-				},
-			},
-		}
 		publicPipeline := db.SavedPipeline{
-			ID:       2,
+			ID:       1,
 			Paused:   true,
 			Public:   true,
 			TeamName: "main",
@@ -65,12 +47,30 @@ var _ = Describe("Pipelines API", func() {
 			},
 		}
 		anotherPublicPipeline := db.SavedPipeline{
-			ID:       3,
+			ID:       2,
 			Paused:   true,
 			Public:   true,
 			TeamName: "another",
 			Pipeline: db.Pipeline{
 				Name: "another-pipeline",
+			},
+		}
+		privatePipeline := db.SavedPipeline{
+			ID:       3,
+			Paused:   false,
+			Public:   false,
+			TeamName: "main",
+			Pipeline: db.Pipeline{
+				Name: "private-pipeline",
+				Config: atc.Config{
+					Groups: atc.GroupConfigs{
+						{
+							Name:      "group1",
+							Jobs:      []string{"job1", "job2"},
+							Resources: []string{"resource1", "resource2"},
+						},
+					},
+				},
 			},
 		}
 
@@ -133,6 +133,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(body).To(MatchJSON(`[
 				{
+					"id": 1,
 					"name": "public-pipeline",
 					"url": "/teams/main/pipelines/public-pipeline",
 					"paused": true,
@@ -147,6 +148,7 @@ var _ = Describe("Pipelines API", func() {
 					]
 				},
 				{
+					"id": 2,
 					"name": "another-pipeline",
 					"url": "/teams/another/pipelines/another-pipeline",
 					"paused": true,
@@ -168,6 +170,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(body).To(MatchJSON(`[
 				{
+					"id": 3,
 					"name": "private-pipeline",
 					"url": "/teams/main/pipelines/private-pipeline",
 					"paused": false,
@@ -182,6 +185,7 @@ var _ = Describe("Pipelines API", func() {
 					]
 				},
 				{
+					"id": 1,
 					"name": "public-pipeline",
 					"url": "/teams/main/pipelines/public-pipeline",
 					"paused": true,
@@ -196,6 +200,7 @@ var _ = Describe("Pipelines API", func() {
 					]
 				},
 				{
+					"id": 2,
 					"name": "another-pipeline",
 					"url": "/teams/another/pipelines/another-pipeline",
 					"paused": true,
@@ -254,6 +259,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(body).To(MatchJSON(`[
 					{
+						"id": 3,
 						"name": "private-pipeline",
 						"url": "/teams/main/pipelines/private-pipeline",
 						"paused": false,
@@ -268,6 +274,7 @@ var _ = Describe("Pipelines API", func() {
 						]
 					},
 					{
+						"id": 1,
 						"name": "public-pipeline",
 						"url": "/teams/main/pipelines/public-pipeline",
 						"paused": true,
@@ -306,6 +313,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(body).To(MatchJSON(`[
 					{
+						"id": 1,
 						"name": "public-pipeline",
 						"url": "/teams/main/pipelines/public-pipeline",
 						"paused": true,
@@ -334,6 +342,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(body).To(MatchJSON(`[
 					{
+						"id": 1,
 						"name": "public-pipeline",
 						"url": "/teams/main/pipelines/public-pipeline",
 						"paused": true,
@@ -357,7 +366,7 @@ var _ = Describe("Pipelines API", func() {
 
 		BeforeEach(func() {
 			savedPipeline = db.SavedPipeline{
-				ID:       1,
+				ID:       4,
 				Paused:   false,
 				Public:   true,
 				TeamName: "a-team",
@@ -423,6 +432,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(body).To(MatchJSON(`
 					{
+						"id": 4,
 						"name": "some-specific-pipeline",
 						"url": "/teams/a-team/pipelines/some-specific-pipeline",
 						"paused": false,

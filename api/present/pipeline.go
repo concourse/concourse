@@ -18,6 +18,7 @@ func Pipeline(savedPipeline db.SavedPipeline) atc.Pipeline {
 	}
 
 	return atc.Pipeline{
+		ID:       savedPipeline.ID,
 		Name:     savedPipeline.Name,
 		TeamName: savedPipeline.TeamName,
 		URL:      pathForRoute,

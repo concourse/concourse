@@ -70,6 +70,8 @@ func Job(
 	}
 
 	return atc.Job{
+		ID: job.ID,
+
 		Name:                 job.Name,
 		URL:                  req.URL.String(),
 		DisableManualTrigger: job.Config.DisableManualTrigger,
