@@ -139,7 +139,7 @@ var _ = Describe("ATC Connection", func() {
 					ID:           "second-container",
 					PipelineName: "my-special-pipeline",
 					JobName:      "my-special-job",
-					StepType:     "task",
+					Type:         "task",
 					StepName:     "alice",
 					BuildID:      1,
 					WorkerName:   "def",

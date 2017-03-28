@@ -60,10 +60,9 @@ var _ = Describe("ATC Handler Containers", func() {
 
 				expectedContainers = []atc.Container{
 					{
-						ID:                   "myid-1",
-						PipelineName:         "mypipeline-1",
-						WorkingDirectory:     "/tmp/build/some-guid",
-						EnvironmentVariables: []string{"VAR1=val1"},
+						ID:               "myid-1",
+						PipelineName:     "mypipeline-1",
+						WorkingDirectory: "/tmp/build/some-guid",
 					},
 				}
 
