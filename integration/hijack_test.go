@@ -302,7 +302,7 @@ var _ = Describe("Hijacking", func() {
 							BuildID:      12,
 							Type:         "get",
 							StepName:     "some-input",
-							Attempt:      "1,1,1",
+							Attempt:      "1.1.1",
 							User:         user,
 						},
 						{
@@ -314,7 +314,7 @@ var _ = Describe("Hijacking", func() {
 							BuildID:      13,
 							Type:         "put",
 							StepName:     "some-output",
-							Attempt:      "1,1,2",
+							Attempt:      "1.1.2",
 							User:         user,
 						},
 						{
@@ -354,11 +354,11 @@ var _ = Describe("Hijacking", func() {
 
 			Eventually(sess.Out).Should(gbytes.Say("1. resource: banana, type: check"))
 			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-input, type: get, attempt: 1.1.1"))
-			Eventually(sess.Out).Should(gbytes.Say("3. build #2, step: some-output, type: check, attempt: 1"))
-			Eventually(sess.Out).Should(gbytes.Say("4. build #2, step: some-output, type: put, attempt: 1.1.2"))
+			Eventually(sess.Out).Should(gbytes.Say("3. build #2, step: some-output, type: put, attempt: 1.1.2"))
+			Eventually(sess.Out).Should(gbytes.Say("4. build #2, step: some-output, type: task, attempt: 1"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
-			_, err = fmt.Fprintf(stdin, "4\n")
+			_, err = fmt.Fprintf(stdin, "3\n")
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(hijacked).Should(BeClosed())
