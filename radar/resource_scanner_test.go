@@ -149,16 +149,12 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, user, id, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				_, user, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResource{ResourceID: 39}))
-				Expect(id).To(Equal(worker.Identifier{
-					ResourceID: 39,
-					Stage:      db.ContainerStageRun,
-				}))
-				Expect(metadata).To(Equal(worker.Metadata{
-					Type:       db.ContainerTypeCheck,
+				Expect(metadata).To(Equal(dbng.ContainerMetadata{
+					Type:       dbng.ContainerTypeCheck,
 					PipelineID: 42,
-					TeamID:     teamID,
+					ResourceID: 39,
 				}))
 				Expect(customTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
@@ -455,16 +451,12 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, user, id, metadata, resourceSpec, _, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				_, user, metadata, resourceSpec, _, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResource{ResourceID: 39}))
-				Expect(id).To(Equal(worker.Identifier{
-					ResourceID: 39,
-					Stage:      db.ContainerStageRun,
-				}))
-				Expect(metadata).To(Equal(worker.Metadata{
-					Type:       db.ContainerTypeCheck,
+				Expect(metadata).To(Equal(dbng.ContainerMetadata{
+					Type:       dbng.ContainerTypeCheck,
 					PipelineID: 42,
-					TeamID:     teamID,
+					ResourceID: 39,
 				}))
 
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{

@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -16,14 +17,15 @@ type Factory interface {
 	// Get constructs a GetStep factory.
 	Get(
 		lager.Logger,
+		int, // teamID
+		int, // buildID
+		atc.PlanID,
 		StepMetadata,
 		worker.ArtifactName,
-		worker.Identifier,
-		worker.Metadata,
+		dbng.ContainerMetadata,
 		GetDelegate,
 		atc.ResourceConfig,
 		atc.Tags,
-		int,
 		atc.Params,
 		atc.Version,
 		atc.VersionedResourceTypes,
@@ -32,13 +34,14 @@ type Factory interface {
 	// Put constructs a PutStep factory.
 	Put(
 		lager.Logger,
+		int, // teamID
+		int, // buildID
+		atc.PlanID,
 		StepMetadata,
-		worker.Identifier,
-		worker.Metadata,
+		dbng.ContainerMetadata,
 		PutDelegate,
 		atc.ResourceConfig,
 		atc.Tags,
-		int,
 		atc.Params,
 		atc.VersionedResourceTypes,
 	) StepFactory
@@ -47,14 +50,15 @@ type Factory interface {
 	// the previous step.
 	DependentGet(
 		lager.Logger,
+		int, // teamID
+		int, // buildID
+		atc.PlanID,
 		StepMetadata,
 		worker.ArtifactName,
-		worker.Identifier,
-		worker.Metadata,
+		dbng.ContainerMetadata,
 		GetDelegate,
 		atc.ResourceConfig,
 		atc.Tags,
-		int,
 		atc.Params,
 		atc.VersionedResourceTypes,
 	) StepFactory
@@ -62,13 +66,14 @@ type Factory interface {
 	// Task constructs a TaskStep factory.
 	Task(
 		lager.Logger,
+		int, // teamID
+		int, // buildID
+		atc.PlanID,
 		worker.ArtifactName,
-		worker.Identifier,
-		worker.Metadata,
+		dbng.ContainerMetadata,
 		TaskDelegate,
 		Privileged,
 		atc.Tags,
-		int,
 		TaskConfigSource,
 		atc.VersionedResourceTypes,
 		map[string]string,

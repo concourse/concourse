@@ -75,14 +75,14 @@ var _ = Describe("VolumeCollector", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			creatingContainer1, err = team.CreateBuildContainer(worker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
-				Type: "task",
-				Name: "some-task",
+				Type:     "task",
+				StepName: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 
 			creatingContainer2, err = team.CreateBuildContainer(worker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
-				Type: "task",
-				Name: "some-task",
+				Type:     "task",
+				StepName: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 

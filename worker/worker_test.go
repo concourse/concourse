@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
@@ -86,7 +87,7 @@ var _ = Describe("Worker", func() {
 		fakeClock.IncrementBySeconds(workerUptime)
 	})
 
-	Describe("FindContainerByHandle", func() {
+	Describe("FindCreatedContainerByHandle", func() {
 		var (
 			handle            string
 			foundContainer    Container
@@ -98,17 +99,17 @@ var _ = Describe("Worker", func() {
 		BeforeEach(func() {
 			handle = "we98lsv"
 			existingContainer = new(wfakes.FakeContainer)
-			fakeContainerProvider.FindContainerByHandleReturns(existingContainer, true, nil)
+			fakeContainerProvider.FindCreatedContainerByHandleReturns(existingContainer, true, nil)
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, found, checkErr = gardenWorker.FindContainerByHandle(logger, handle, 42)
+			foundContainer, found, checkErr = gardenWorker.FindContainerByHandle(logger, 42, handle)
 		})
 
 		It("calls the container provider", func() {
 			Expect(fakeContainerProviderFactory.ContainerProviderForCallCount()).To(Equal(1))
 
-			Expect(fakeContainerProvider.FindContainerByHandleCallCount()).To(Equal(1))
+			Expect(fakeContainerProvider.FindCreatedContainerByHandleCallCount()).To(Equal(1))
 
 			Expect(foundContainer).To(Equal(existingContainer))
 			Expect(checkErr).ToNot(HaveOccurred())
@@ -127,8 +128,9 @@ var _ = Describe("Worker", func() {
 				logger,
 				nil,
 				nil,
-				Identifier{},
-				Metadata{},
+				42,
+				atc.PlanID("some-plan-id"),
+				dbng.ContainerMetadata{},
 				ContainerSpec{
 					ImageSpec: imageSpec,
 				},

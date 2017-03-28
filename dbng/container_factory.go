@@ -18,14 +18,8 @@ func NewContainerFactory(conn Conn) ContainerFactory {
 	}
 }
 
-type ContainerMetadata struct {
-	Type string
-	Name string
-}
-
 func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContainer, []CreatedContainer, []DestroyingContainer, error) {
-	query, args, err := psql.Select("c.id, c.handle, c.worker_name, c.hijacked, c.discontinued, c.state").
-		From("containers c").
+	query, args, err := selectContainers("c").
 		LeftJoin("builds b ON b.id = c.build_id").
 		LeftJoin("volumes v ON v.worker_resource_cache_id = c.worker_resource_cache_id").
 		LeftJoin("worker_resource_caches wrc ON wrc.id = c.worker_resource_cache_id").
@@ -80,6 +74,24 @@ func (factory *containerFactory) FindContainersForDeletion() ([]CreatingContaine
 	return creatingContainers, createdContainers, destroyingContainers, nil
 }
 
+func selectContainers(asOptional ...string) sq.SelectBuilder {
+	columns := []string{"id", "handle", "worker_name", "hijacked", "discontinued", "state"}
+	columns = append(columns, containerMetadataColumns...)
+
+	table := "containers"
+	if len(asOptional) > 0 {
+		as := asOptional[0]
+
+		for i, c := range columns {
+			columns[i] = as + "." + c
+		}
+
+		table += " " + as
+	}
+
+	return psql.Select(columns...).From(table)
+}
+
 func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedContainer, DestroyingContainer, error) {
 	var (
 		id             int
@@ -88,36 +100,45 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 		isDiscontinued bool
 		isHijacked     bool
 		state          string
+
+		metadata ContainerMetadata
 	)
-	err := row.Scan(&id, &handle, &workerName, &isHijacked, &isDiscontinued, &state)
+
+	columns := []interface{}{&id, &handle, &workerName, &isHijacked, &isDiscontinued, &state}
+	columns = append(columns, metadata.ScanTargets()...)
+
+	err := row.Scan(columns...)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	switch state {
 	case ContainerStateCreating:
-		return &creatingContainer{
-			id:         id,
-			handle:     handle,
-			workerName: workerName,
-			conn:       conn,
-		}, nil, nil, nil
+		return newCreatingContainer(
+			id,
+			handle,
+			workerName,
+			metadata,
+			conn,
+		), nil, nil, nil
 	case ContainerStateCreated:
-		return nil, &createdContainer{
-			id:         id,
-			handle:     handle,
-			workerName: workerName,
-			hijacked:   isHijacked,
-			conn:       conn,
-		}, nil, nil
+		return nil, newCreatedContainer(
+			id,
+			handle,
+			workerName,
+			metadata,
+			isHijacked,
+			conn,
+		), nil, nil
 	case ContainerStateDestroying:
-		return nil, nil, &destroyingContainer{
-			id:             id,
-			handle:         handle,
-			workerName:     workerName,
-			isDiscontinued: isDiscontinued,
-			conn:           conn,
-		}, nil
+		return nil, nil, newDestroyingContainer(
+			id,
+			handle,
+			workerName,
+			metadata,
+			isDiscontinued,
+			conn,
+		), nil
 	}
 
 	return nil, nil, nil, nil

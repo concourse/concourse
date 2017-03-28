@@ -30,6 +30,15 @@ type FakeBuild struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	JobIDStub        func() int
+	jobIDMutex       sync.RWMutex
+	jobIDArgsForCall []struct{}
+	jobIDReturns     struct {
+		result1 int
+	}
+	jobIDReturnsOnCall map[int]struct {
+		result1 int
+	}
 	JobNameStub        func() string
 	jobNameMutex       sync.RWMutex
 	jobNameArgsForCall []struct{}
@@ -38,6 +47,15 @@ type FakeBuild struct {
 	}
 	jobNameReturnsOnCall map[int]struct {
 		result1 string
+	}
+	PipelineIDStub        func() int
+	pipelineIDMutex       sync.RWMutex
+	pipelineIDArgsForCall []struct{}
+	pipelineIDReturns     struct {
+		result1 int
+	}
+	pipelineIDReturnsOnCall map[int]struct {
+		result1 int
 	}
 	PipelineNameStub        func() string
 	pipelineNameMutex       sync.RWMutex
@@ -48,15 +66,6 @@ type FakeBuild struct {
 	pipelineNameReturnsOnCall map[int]struct {
 		result1 string
 	}
-	TeamNameStub        func() string
-	teamNameMutex       sync.RWMutex
-	teamNameArgsForCall []struct{}
-	teamNameReturns     struct {
-		result1 string
-	}
-	teamNameReturnsOnCall map[int]struct {
-		result1 string
-	}
 	TeamIDStub        func() int
 	teamIDMutex       sync.RWMutex
 	teamIDArgsForCall []struct{}
@@ -65,6 +74,15 @@ type FakeBuild struct {
 	}
 	teamIDReturnsOnCall map[int]struct {
 		result1 int
+	}
+	TeamNameStub        func() string
+	teamNameMutex       sync.RWMutex
+	teamNameArgsForCall []struct{}
+	teamNameReturns     struct {
+		result1 string
+	}
+	teamNameReturnsOnCall map[int]struct {
+		result1 string
 	}
 	EngineStub        func() string
 	engineMutex       sync.RWMutex
@@ -469,6 +487,46 @@ func (fake *FakeBuild) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) JobID() int {
+	fake.jobIDMutex.Lock()
+	ret, specificReturn := fake.jobIDReturnsOnCall[len(fake.jobIDArgsForCall)]
+	fake.jobIDArgsForCall = append(fake.jobIDArgsForCall, struct{}{})
+	fake.recordInvocation("JobID", []interface{}{})
+	fake.jobIDMutex.Unlock()
+	if fake.JobIDStub != nil {
+		return fake.JobIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.jobIDReturns.result1
+}
+
+func (fake *FakeBuild) JobIDCallCount() int {
+	fake.jobIDMutex.RLock()
+	defer fake.jobIDMutex.RUnlock()
+	return len(fake.jobIDArgsForCall)
+}
+
+func (fake *FakeBuild) JobIDReturns(result1 int) {
+	fake.JobIDStub = nil
+	fake.jobIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) JobIDReturnsOnCall(i int, result1 int) {
+	fake.JobIDStub = nil
+	if fake.jobIDReturnsOnCall == nil {
+		fake.jobIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.jobIDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakeBuild) JobName() string {
 	fake.jobNameMutex.Lock()
 	ret, specificReturn := fake.jobNameReturnsOnCall[len(fake.jobNameArgsForCall)]
@@ -506,6 +564,46 @@ func (fake *FakeBuild) JobNameReturnsOnCall(i int, result1 string) {
 	}
 	fake.jobNameReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) PipelineID() int {
+	fake.pipelineIDMutex.Lock()
+	ret, specificReturn := fake.pipelineIDReturnsOnCall[len(fake.pipelineIDArgsForCall)]
+	fake.pipelineIDArgsForCall = append(fake.pipelineIDArgsForCall, struct{}{})
+	fake.recordInvocation("PipelineID", []interface{}{})
+	fake.pipelineIDMutex.Unlock()
+	if fake.PipelineIDStub != nil {
+		return fake.PipelineIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.pipelineIDReturns.result1
+}
+
+func (fake *FakeBuild) PipelineIDCallCount() int {
+	fake.pipelineIDMutex.RLock()
+	defer fake.pipelineIDMutex.RUnlock()
+	return len(fake.pipelineIDArgsForCall)
+}
+
+func (fake *FakeBuild) PipelineIDReturns(result1 int) {
+	fake.PipelineIDStub = nil
+	fake.pipelineIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) PipelineIDReturnsOnCall(i int, result1 int) {
+	fake.PipelineIDStub = nil
+	if fake.pipelineIDReturnsOnCall == nil {
+		fake.pipelineIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.pipelineIDReturnsOnCall[i] = struct {
+		result1 int
 	}{result1}
 }
 
@@ -549,46 +647,6 @@ func (fake *FakeBuild) PipelineNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeBuild) TeamName() string {
-	fake.teamNameMutex.Lock()
-	ret, specificReturn := fake.teamNameReturnsOnCall[len(fake.teamNameArgsForCall)]
-	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct{}{})
-	fake.recordInvocation("TeamName", []interface{}{})
-	fake.teamNameMutex.Unlock()
-	if fake.TeamNameStub != nil {
-		return fake.TeamNameStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.teamNameReturns.result1
-}
-
-func (fake *FakeBuild) TeamNameCallCount() int {
-	fake.teamNameMutex.RLock()
-	defer fake.teamNameMutex.RUnlock()
-	return len(fake.teamNameArgsForCall)
-}
-
-func (fake *FakeBuild) TeamNameReturns(result1 string) {
-	fake.TeamNameStub = nil
-	fake.teamNameReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeBuild) TeamNameReturnsOnCall(i int, result1 string) {
-	fake.TeamNameStub = nil
-	if fake.teamNameReturnsOnCall == nil {
-		fake.teamNameReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.teamNameReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
 func (fake *FakeBuild) TeamID() int {
 	fake.teamIDMutex.Lock()
 	ret, specificReturn := fake.teamIDReturnsOnCall[len(fake.teamIDArgsForCall)]
@@ -626,6 +684,46 @@ func (fake *FakeBuild) TeamIDReturnsOnCall(i int, result1 int) {
 	}
 	fake.teamIDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) TeamName() string {
+	fake.teamNameMutex.Lock()
+	ret, specificReturn := fake.teamNameReturnsOnCall[len(fake.teamNameArgsForCall)]
+	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct{}{})
+	fake.recordInvocation("TeamName", []interface{}{})
+	fake.teamNameMutex.Unlock()
+	if fake.TeamNameStub != nil {
+		return fake.TeamNameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.teamNameReturns.result1
+}
+
+func (fake *FakeBuild) TeamNameCallCount() int {
+	fake.teamNameMutex.RLock()
+	defer fake.teamNameMutex.RUnlock()
+	return len(fake.teamNameArgsForCall)
+}
+
+func (fake *FakeBuild) TeamNameReturns(result1 string) {
+	fake.TeamNameStub = nil
+	fake.teamNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) TeamNameReturnsOnCall(i int, result1 string) {
+	fake.TeamNameStub = nil
+	if fake.teamNameReturnsOnCall == nil {
+		fake.teamNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.teamNameReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 
@@ -1931,14 +2029,18 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.iDMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
+	fake.jobIDMutex.RLock()
+	defer fake.jobIDMutex.RUnlock()
 	fake.jobNameMutex.RLock()
 	defer fake.jobNameMutex.RUnlock()
+	fake.pipelineIDMutex.RLock()
+	defer fake.pipelineIDMutex.RUnlock()
 	fake.pipelineNameMutex.RLock()
 	defer fake.pipelineNameMutex.RUnlock()
-	fake.teamNameMutex.RLock()
-	defer fake.teamNameMutex.RUnlock()
 	fake.teamIDMutex.RLock()
 	defer fake.teamIDMutex.RUnlock()
+	fake.teamNameMutex.RLock()
+	defer fake.teamNameMutex.RUnlock()
 	fake.engineMutex.RLock()
 	defer fake.engineMutex.RUnlock()
 	fake.engineMetadataMutex.RLock()

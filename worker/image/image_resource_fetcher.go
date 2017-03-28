@@ -11,7 +11,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -40,8 +39,7 @@ type ImageResourceFetcher interface {
 		signals <-chan os.Signal,
 		imageResourceType string,
 		imageResourceSource atc.Source,
-		id worker.Identifier,
-		metadata worker.Metadata,
+		metadata dbng.ContainerMetadata,
 		tags atc.Tags,
 		teamID int,
 		customTypes atc.VersionedResourceTypes,
@@ -88,15 +86,14 @@ func (i *imageResourceFetcher) Fetch(
 	signals <-chan os.Signal,
 	imageResourceType string,
 	imageResourceSource atc.Source,
-	id worker.Identifier,
-	metadata worker.Metadata,
+	metadata dbng.ContainerMetadata,
 	tags atc.Tags,
 	teamID int,
 	customTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 	privileged bool,
 ) (worker.Volume, io.ReadCloser, atc.Version, error) {
-	version, err := i.getLatestVersion(logger, resourceUser, id, metadata, imageResourceType, imageResourceSource, tags, teamID, customTypes, imageFetchingDelegate)
+	version, err := i.getLatestVersion(logger, resourceUser, metadata, imageResourceType, imageResourceSource, tags, teamID, customTypes, imageFetchingDelegate)
 	if err != nil {
 		logger.Error("failed-to-get-latest-image-version", err)
 		return nil, nil, nil, err
@@ -120,16 +117,13 @@ func (i *imageResourceFetcher) Fetch(
 	}
 
 	getSess := resource.Session{
-		ID:       id,
-		Metadata: metadata,
+		Metadata: dbng.ContainerMetadata{
+			Type:       dbng.ContainerTypeGet,
+			PipelineID: metadata.PipelineID,
+			JobID:      metadata.JobID,
+			BuildID:    metadata.BuildID,
+		},
 	}
-
-	getSess.ID.Stage = db.ContainerStageGet
-	getSess.ID.ImageResourceType = imageResourceType
-	getSess.ID.ImageResourceSource = imageResourceSource
-	getSess.Metadata.Type = db.ContainerTypeGet
-	getSess.Metadata.WorkingDirectory = ""
-	getSess.Metadata.EnvironmentVariables = nil
 
 	resourceType := resource.ResourceType(imageResourceType)
 
@@ -188,8 +182,7 @@ func (i *imageResourceFetcher) Fetch(
 func (i *imageResourceFetcher) getLatestVersion(
 	logger lager.Logger,
 	resourceUser dbng.ResourceUser,
-	id worker.Identifier,
-	metadata worker.Metadata,
+	metadata dbng.ContainerMetadata,
 	imageResourceType string,
 	imageResourceSource atc.Source,
 	tags atc.Tags,
@@ -197,14 +190,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 	customTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (atc.Version, error) {
-	id.Stage = db.ContainerStageCheck
-	id.ImageResourceType = imageResourceType
-	id.ImageResourceSource = imageResourceSource
-
-	metadata.Type = db.ContainerTypeCheck
-	metadata.WorkingDirectory = ""
-	metadata.EnvironmentVariables = nil
-
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: imageResourceType,
@@ -218,8 +203,12 @@ func (i *imageResourceFetcher) getLatestVersion(
 	checkingResource, err := i.resourceFactory.NewCheckResource(
 		logger,
 		resourceUser,
-		id,
-		metadata,
+		dbng.ContainerMetadata{
+			Type:       dbng.ContainerTypeCheck,
+			PipelineID: metadata.PipelineID,
+			JobID:      metadata.JobID,
+			BuildID:    metadata.BuildID,
+		},
 		resourceSpec,
 		customTypes,
 		imageFetchingDelegate,

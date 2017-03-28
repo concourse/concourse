@@ -12,7 +12,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/exec"
@@ -52,15 +51,10 @@ var _ = Describe("DependentGet", func() {
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
-		identifier = worker.Identifier{
-			BuildID: 1234,
-			PlanID:  atc.PlanID("some-plan-id"),
-		}
-		workerMetadata = worker.Metadata{
-			PipelineID:   4567,
-			PipelineName: "some-pipeline",
-			Type:         db.ContainerTypeGet,
-			StepName:     "some-step",
+		workerMetadata = dbng.ContainerMetadata{
+			PipelineID: 4567,
+			Type:       dbng.ContainerTypeGet,
+			StepName:   "some-step",
 		}
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
@@ -132,14 +126,15 @@ var _ = Describe("DependentGet", func() {
 	JustBeforeEach(func() {
 		step = factory.DependentGet(
 			lagertest.NewTestLogger("test"),
+			teamID,
+			1234,
+			atc.PlanID("some-plan-id"),
 			stepMetadata,
 			sourceName,
-			identifier,
 			workerMetadata,
 			getDelegate,
 			resourceConfig,
 			tags,
-			teamID,
 			params,
 			resourceTypes,
 		).Using(inStep, repo)
@@ -192,11 +187,6 @@ var _ = Describe("DependentGet", func() {
 			_, sid, tags, actualTeamID, actualResourceTypes, cacheID, sm, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 			Expect(sm).To(Equal(stepMetadata))
 			Expect(sid).To(Equal(resource.Session{
-				ID: worker.Identifier{
-					BuildID: 1234,
-					PlanID:  atc.PlanID("some-plan-id"),
-					Stage:   db.ContainerStageRun,
-				},
 				Metadata:  workerMetadata,
 				Ephemeral: false,
 			}))

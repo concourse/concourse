@@ -67,6 +67,7 @@ func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {
 
 	if jobID.Valid {
 		build.jobName = jobName.String
+		build.jobID = int(jobID.Int64)
 		build.pipelineName = pipelineName.String
 		build.pipelineID = int(pipelineID.Int64)
 	}

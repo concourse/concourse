@@ -185,6 +185,147 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("FindContainersByMetadata", func() {
+		var sampleMetadata []dbng.ContainerMetadata
+		var metaContainers map[dbng.ContainerMetadata][]dbng.Container
+
+		BeforeEach(func() {
+			baseMetadata := fullMetadata
+
+			diffType := fullMetadata
+			diffType.Type = dbng.ContainerTypeCheck
+
+			diffStepName := fullMetadata
+			diffStepName.StepName = fullMetadata.StepName + "-other"
+
+			diffAttempt := fullMetadata
+			diffAttempt.Attempt = fullMetadata.Attempt + ",2"
+
+			diffPipelineID := fullMetadata
+			diffPipelineID.PipelineID = fullMetadata.PipelineID + 1
+
+			diffJobID := fullMetadata
+			diffJobID.JobID = fullMetadata.JobID + 1
+
+			diffBuildID := fullMetadata
+			diffBuildID.BuildID = fullMetadata.BuildID + 1
+
+			diffResourceID := fullMetadata
+			diffResourceID.ResourceID = fullMetadata.ResourceID + 1
+
+			diffResourceTypeID := fullMetadata
+			diffResourceTypeID.ResourceTypeID = fullMetadata.ResourceTypeID + 1
+
+			diffWorkingDirectory := fullMetadata
+			diffWorkingDirectory.WorkingDirectory = fullMetadata.WorkingDirectory + "/other"
+
+			diffUser := fullMetadata
+			diffUser.User = fullMetadata.User + "-other"
+
+			sampleMetadata = []dbng.ContainerMetadata{
+				baseMetadata,
+				diffType,
+				diffStepName,
+				diffAttempt,
+				diffPipelineID,
+				diffJobID,
+				diffBuildID,
+				diffResourceID,
+				diffResourceTypeID,
+				diffWorkingDirectory,
+				diffUser,
+			}
+
+			build, err := defaultPipeline.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			metaContainers = make(map[dbng.ContainerMetadata][]dbng.Container)
+			for _, meta := range sampleMetadata {
+				firstContainerCreating, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), meta)
+				Expect(err).NotTo(HaveOccurred())
+
+				metaContainers[meta] = append(metaContainers[meta], firstContainerCreating)
+
+				secondContainerCreating, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), meta)
+				Expect(err).NotTo(HaveOccurred())
+
+				secondContainerCreated, err := secondContainerCreating.Created()
+				Expect(err).NotTo(HaveOccurred())
+
+				metaContainers[meta] = append(metaContainers[meta], secondContainerCreated)
+
+				thirdContainerCreating, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), meta)
+				Expect(err).NotTo(HaveOccurred())
+
+				thirdContainerCreated, err := thirdContainerCreating.Created()
+				Expect(err).NotTo(HaveOccurred())
+
+				// third container is not appended; we don't want Destroying containers
+				_, err = thirdContainerCreated.Destroying()
+				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+
+		It("finds creating and created containers for the team, matching the metadata in full", func() {
+			for _, meta := range sampleMetadata {
+				expectedHandles := []string{}
+				for _, c := range metaContainers[meta] {
+					expectedHandles = append(expectedHandles, c.Handle())
+				}
+
+				containers, err := defaultTeam.FindContainersByMetadata(meta)
+				Expect(err).ToNot(HaveOccurred())
+
+				foundHandles := []string{}
+				for _, c := range containers {
+					foundHandles = append(foundHandles, c.Handle())
+				}
+
+				// should always find a Creating container and a Created container
+				Expect(foundHandles).To(HaveLen(2))
+				Expect(foundHandles).To(ConsistOf(expectedHandles))
+			}
+		})
+
+		It("finds containers for the team, matching partial metadata", func() {
+			containers, err := defaultTeam.FindContainersByMetadata(dbng.ContainerMetadata{
+				Type: dbng.ContainerTypeTask,
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(containers).ToNot(BeEmpty())
+
+			foundHandles := []string{}
+			for _, c := range containers {
+				foundHandles = append(foundHandles, c.Handle())
+			}
+
+			var notFound int
+			for meta, cs := range metaContainers {
+				if meta.Type == dbng.ContainerTypeTask {
+					for _, c := range cs {
+						Expect(foundHandles).To(ContainElement(c.Handle()))
+					}
+				} else {
+					for _, c := range cs {
+						Expect(foundHandles).ToNot(ContainElement(c.Handle()))
+						notFound++
+					}
+				}
+			}
+
+			// just to assert test setup is valid
+			Expect(notFound).ToNot(BeZero())
+		})
+
+		It("does not find containers for other teams", func() {
+			for _, meta := range sampleMetadata {
+				containers, err := otherTeam.FindContainersByMetadata(meta)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(containers).To(BeEmpty())
+			}
+		})
+	})
+
 	Describe("FindContainerByHandle", func() {
 		var createdContainer dbng.CreatedContainer
 
@@ -192,7 +333,7 @@ var _ = Describe("Team", func() {
 			build, err := defaultPipeline.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", Name: "some-task"})
+			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), atc.PlanID("some-job"), dbng.ContainerMetadata{Type: "task", StepName: "some-task"})
 			Expect(err).NotTo(HaveOccurred())
 
 			createdContainer, err = creatingContainer.Created()
@@ -243,7 +384,7 @@ var _ = Describe("Team", func() {
 
 		Context("when there is a creating container", func() {
 			BeforeEach(func() {
-				_, err := defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), resourceConfig)
+				_, err := defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), resourceConfig, dbng.ContainerMetadata{Type: "check"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -267,7 +408,7 @@ var _ = Describe("Team", func() {
 			var originalCreatedContainer dbng.CreatedContainer
 
 			BeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), resourceConfig)
+				creatingContainer, err := defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), resourceConfig, dbng.ContainerMetadata{Type: "check"})
 				Expect(err).NotTo(HaveOccurred())
 				originalCreatedContainer, err = creatingContainer.Created()
 				Expect(err).NotTo(HaveOccurred())
@@ -332,7 +473,7 @@ var _ = Describe("Team", func() {
 
 		Context("when there is a creating container", func() {
 			BeforeEach(func() {
-				_, err := defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), resourceConfig)
+				_, err := defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), resourceConfig, dbng.ContainerMetadata{Type: "check"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -355,7 +496,7 @@ var _ = Describe("Team", func() {
 			var originalCreatedContainer dbng.CreatedContainer
 
 			BeforeEach(func() {
-				creatingContainer, err := defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), resourceConfig)
+				creatingContainer, err := defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), resourceConfig, dbng.ContainerMetadata{Type: "check"})
 				Expect(err).NotTo(HaveOccurred())
 				originalCreatedContainer, err = creatingContainer.Created()
 				Expect(err).NotTo(HaveOccurred())
@@ -403,13 +544,85 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("FindWorkerForContainer", func() {
+		var containerMetadata dbng.ContainerMetadata
+
+		BeforeEach(func() {
+			containerMetadata = dbng.ContainerMetadata{
+				Type:     "task",
+				StepName: "some-task",
+			}
+		})
+
+		Context("when there is a creating container", func() {
+			var container dbng.CreatingContainer
+
+			BeforeEach(func() {
+				var err error
+				container, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", containerMetadata)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns it", func() {
+				worker, found, err := defaultTeam.FindWorkerForContainer(container.Handle())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(worker).NotTo(BeNil())
+				Expect(worker.Name()).To(Equal(defaultWorker.Name()))
+			})
+
+			It("does not find container for another team", func() {
+				worker, found, err := otherTeam.FindWorkerForContainer(container.Handle())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(worker).To(BeNil())
+			})
+		})
+
+		Context("when there is a created container", func() {
+			var container dbng.CreatedContainer
+
+			BeforeEach(func() {
+				creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", containerMetadata)
+				Expect(err).NotTo(HaveOccurred())
+
+				container, err = creatingContainer.Created()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns it", func() {
+				worker, found, err := defaultTeam.FindWorkerForContainer(container.Handle())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(worker).NotTo(BeNil())
+				Expect(worker.Name()).To(Equal(defaultWorker.Name()))
+			})
+
+			It("does not find container for another team", func() {
+				worker, found, err := otherTeam.FindWorkerForContainer(container.Handle())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(worker).To(BeNil())
+			})
+		})
+
+		Context("when there is no container", func() {
+			It("returns nil", func() {
+				worker, found, err := defaultTeam.FindWorkerForContainer("bogus-handle")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(worker).To(BeNil())
+			})
+		})
+	})
+
 	Describe("FindWorkerForBuildContainer", func() {
 		var containerMetadata dbng.ContainerMetadata
 
 		BeforeEach(func() {
 			containerMetadata = dbng.ContainerMetadata{
-				Type: "task",
-				Name: "some-task",
+				Type:     "task",
+				StepName: "some-task",
 			}
 		})
 
@@ -474,8 +687,8 @@ var _ = Describe("Team", func() {
 
 		BeforeEach(func() {
 			containerMetadata = dbng.ContainerMetadata{
-				Type: "task",
-				Name: "some-task",
+				Type:     "task",
+				StepName: "some-task",
 			}
 		})
 

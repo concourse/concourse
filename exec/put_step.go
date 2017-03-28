@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -22,6 +21,8 @@ type PutStep struct {
 	session         resource.Session
 	tags            atc.Tags
 	teamID          int
+	buildID         int
+	planID          atc.PlanID
 	delegate        PutDelegate
 	resourceFactory resource.ResourceFactory
 	resourceTypes   atc.VersionedResourceTypes
@@ -43,6 +44,8 @@ func newPutStep(
 	session resource.Session,
 	tags atc.Tags,
 	teamID int,
+	buildID int,
+	planID atc.PlanID,
 	delegate PutDelegate,
 	resourceFactory resource.ResourceFactory,
 	resourceTypes atc.VersionedResourceTypes,
@@ -55,6 +58,8 @@ func newPutStep(
 		session:         session,
 		tags:            tags,
 		teamID:          teamID,
+		buildID:         buildID,
+		planID:          planID,
 		delegate:        delegate,
 		resourceFactory: resourceFactory,
 		resourceTypes:   resourceTypes,
@@ -83,9 +88,6 @@ func (step PutStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	step.delegate.Initializing()
 
-	runSession := step.session
-	runSession.ID.Stage = db.ContainerStageRun
-
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.resourceConfig.Type,
@@ -106,8 +108,9 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	putResource, err := step.resourceFactory.NewPutResource(
 		step.logger,
-		runSession.ID,
-		runSession.Metadata,
+		step.buildID,
+		step.planID,
+		step.session.Metadata,
 		containerSpec,
 		step.resourceTypes,
 		step.delegate,

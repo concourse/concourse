@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
@@ -97,26 +98,24 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 
 	configSource = exec.ValidatingConfigSource{configSource}
 
-	workerID, workerMetadata := build.stepIdentifier(
-		logger.Session("taskIdentifier"),
+	workerMetadata := build.workerMetadata(
+		dbng.ContainerTypeTask,
 		plan.Task.Name,
-		plan.ID,
-		plan.Task.PipelineID,
 		plan.Attempts,
-		"task",
 	)
 
 	clock := clock.NewClock()
 
 	return build.factory.Task(
 		logger,
+		build.teamID,
+		build.buildID,
+		plan.ID,
 		worker.ArtifactName(plan.Task.Name),
-		workerID,
 		workerMetadata,
 		build.delegate.ExecutionDelegate(logger, *plan.Task, event.OriginID(plan.ID)),
 		exec.Privileged(plan.Task.Privileged),
 		plan.Task.Tags,
-		build.teamID,
 		configSource,
 		plan.Task.VersionedResourceTypes,
 		plan.Task.InputMapping,
@@ -131,20 +130,19 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Get.Name,
 	})
 
-	workerID, workerMetadata := build.stepIdentifier(
-		logger.Session("stepIdentifier"),
+	workerMetadata := build.workerMetadata(
+		dbng.ContainerTypeGet,
 		plan.Get.Name,
-		plan.ID,
-		plan.Get.PipelineID,
 		plan.Attempts,
-		"get",
 	)
 
 	return build.factory.Get(
 		logger,
+		build.teamID,
+		build.buildID,
+		plan.ID,
 		build.stepMetadata,
 		worker.ArtifactName(plan.Get.Name),
-		workerID,
 		workerMetadata,
 		build.delegate.InputDelegate(logger, *plan.Get, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
@@ -153,7 +151,6 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 			Source: plan.Get.Source,
 		},
 		plan.Get.Tags,
-		build.teamID,
 		plan.Get.Params,
 		plan.Get.Version,
 		plan.Get.VersionedResourceTypes,
@@ -165,19 +162,18 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Put.Name,
 	})
 
-	workerID, workerMetadata := build.stepIdentifier(
-		logger.Session("stepIdentifier"),
+	workerMetadata := build.workerMetadata(
+		dbng.ContainerTypePut,
 		plan.Put.Name,
-		plan.ID,
-		plan.Put.PipelineID,
 		plan.Attempts,
-		"put",
 	)
 
 	return build.factory.Put(
 		logger,
+		build.teamID,
+		build.buildID,
+		plan.ID,
 		build.stepMetadata,
-		workerID,
 		workerMetadata,
 		build.delegate.OutputDelegate(logger, *plan.Put, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
@@ -186,7 +182,6 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 			Source: plan.Put.Source,
 		},
 		plan.Put.Tags,
-		build.teamID,
 		plan.Put.Params,
 		plan.Put.VersionedResourceTypes,
 	)
@@ -198,20 +193,20 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 	})
 
 	getPlan := plan.DependentGet.GetPlan()
-	workerID, workerMetadata := build.stepIdentifier(
-		logger.Session("stepIdentifier"),
+
+	workerMetadata := build.workerMetadata(
+		dbng.ContainerTypeGet,
 		getPlan.Name,
-		plan.ID,
-		plan.DependentGet.PipelineID,
 		plan.Attempts,
-		"get",
 	)
 
 	return build.factory.DependentGet(
 		logger,
+		build.teamID,
+		build.buildID,
+		plan.ID,
 		build.stepMetadata,
 		worker.ArtifactName(getPlan.Name),
-		workerID,
 		workerMetadata,
 		build.delegate.InputDelegate(logger, getPlan, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
@@ -220,7 +215,6 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 			Source: getPlan.Source,
 		},
 		getPlan.Tags,
-		build.teamID,
 		getPlan.Params,
 		getPlan.VersionedResourceTypes,
 	)

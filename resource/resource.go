@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -21,8 +22,7 @@ type Resource interface {
 type ResourceType string
 
 type Session struct {
-	ID        worker.Identifier
-	Metadata  worker.Metadata
+	Metadata  dbng.ContainerMetadata
 	Ephemeral bool
 }
 

@@ -12,7 +12,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/exec"
@@ -56,15 +55,10 @@ var _ = Describe("Get", func() {
 		step    Step
 		process ifrit.Process
 
-		identifier = worker.Identifier{
-			ResourceID: 1234,
-			BuildID:    42,
-		}
-		workerMetadata = worker.Metadata{
-			PipelineID:   4567,
-			PipelineName: "some-pipeline",
-			Type:         db.ContainerTypeGet,
-			StepName:     "some-step",
+		workerMetadata = dbng.ContainerMetadata{
+			PipelineID: 4567,
+			Type:       dbng.ContainerTypeGet,
+			StepName:   "some-step",
 		}
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
@@ -127,14 +121,15 @@ var _ = Describe("Get", func() {
 	JustBeforeEach(func() {
 		step = factory.Get(
 			lagertest.NewTestLogger("test"),
+			teamID,
+			42,
+			atc.PlanID("some-plan-id"),
 			stepMetadata,
 			sourceName,
-			identifier,
 			workerMetadata,
 			getDelegate,
 			resourceConfig,
 			tags,
-			teamID,
 			params,
 			version,
 			resourceTypes,
@@ -179,15 +174,9 @@ var _ = Describe("Get", func() {
 		_, sid, tags, actualTeamID, actualResourceTypes, resourceInstance, sm, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 		Expect(sm).To(Equal(stepMetadata))
 		Expect(sid).To(Equal(resource.Session{
-			ID: worker.Identifier{
-				ResourceID: 1234,
-				BuildID:    42,
-				Stage:      db.ContainerStageRun,
-			},
-			Metadata: worker.Metadata{
+			Metadata: dbng.ContainerMetadata{
 				PipelineID:       4567,
-				PipelineName:     "some-pipeline",
-				Type:             db.ContainerTypeGet,
+				Type:             dbng.ContainerTypeGet,
 				StepName:         "some-step",
 				WorkingDirectory: "/tmp/build/get",
 			},

@@ -13,7 +13,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -44,10 +44,11 @@ make sure there's a corresponding 'get' step, or a task that produces it as an o
 // worker.ArtifactRepository and outputs will be added to the worker.ArtifactRepository.
 type TaskStep struct {
 	logger            lager.Logger
-	containerID       worker.Identifier
-	metadata          worker.Metadata
+	metadata          dbng.ContainerMetadata
 	tags              atc.Tags
 	teamID            int
+	buildID           int
+	planID            atc.PlanID
 	delegate          TaskDelegate
 	privileged        Privileged
 	configSource      TaskConfigSource
@@ -67,10 +68,11 @@ type TaskStep struct {
 
 func newTaskStep(
 	logger lager.Logger,
-	containerID worker.Identifier,
-	metadata worker.Metadata,
+	metadata dbng.ContainerMetadata,
 	tags atc.Tags,
 	teamID int,
+	buildID int,
+	planID atc.PlanID,
 	delegate TaskDelegate,
 	privileged Privileged,
 	configSource TaskConfigSource,
@@ -84,10 +86,11 @@ func newTaskStep(
 ) TaskStep {
 	return TaskStep{
 		logger:            logger,
-		containerID:       containerID,
 		metadata:          metadata,
 		tags:              tags,
 		teamID:            teamID,
+		buildID:           buildID,
+		planID:            planID,
 		delegate:          delegate,
 		privileged:        privileged,
 		configSource:      configSource,
@@ -144,15 +147,10 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return err
 	}
 
-	step.metadata.EnvironmentVariables = step.envForParams(config.Params)
-
 	containerSpec, err := step.containerSpec(config)
 	if err != nil {
 		return err
 	}
-
-	runContainerID := step.containerID
-	runContainerID.Stage = db.ContainerStageRun
 
 	step.delegate.Initializing(config)
 
@@ -160,7 +158,8 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		step.logger,
 		signals,
 		step.delegate,
-		runContainerID,
+		step.buildID,
+		step.planID,
 		step.metadata,
 		containerSpec,
 		step.resourceTypes,

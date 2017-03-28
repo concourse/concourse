@@ -153,4 +153,5 @@ var Migrations = []migration.Migrator{
 	RemoveLastTrackedFromBuilds,
 	AddIndexesToABunchMoreStuff,
 	RemoveDuplicateIndices,
+	CleanUpContainerColumns,
 }

@@ -18,7 +18,7 @@ func (s *Server) GetContainer(teamDB db.TeamDB, team dbng.Team) http.Handler {
 			"handle": handle,
 		})
 
-		container, found, err := teamDB.GetContainer(handle)
+		container, found, err := team.FindContainerByHandle(handle)
 		if err != nil {
 			hLog.Error("failed-to-lookup-container", err)
 			w.WriteHeader(http.StatusInternalServerError)

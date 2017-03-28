@@ -10,7 +10,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 )
@@ -108,9 +107,6 @@ func (step GetStep) Using(prev Step, repo *worker.ArtifactRepository) Step {
 func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	step.delegate.Initializing()
 
-	runSession := step.session
-	runSession.ID.Stage = db.ContainerStageRun
-
 	resourceDefinition := &getStepResource{
 		source:       step.resourceConfig.Source,
 		resourceType: resource.ResourceType(step.resourceConfig.Type),
@@ -122,7 +118,7 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	var err error
 	step.fetchSource, err = step.resourceFetcher.Fetch(
 		step.logger,
-		runSession,
+		step.session,
 		step.tags,
 		step.teamID,
 		step.resourceTypes,

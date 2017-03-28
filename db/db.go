@@ -85,8 +85,6 @@ type DB interface {
 	GetTaskLock(logger lager.Logger, taskName string) (lock.Lock, bool, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
-
-	GetContainer(string) (SavedContainer, bool, error)
 }
 
 //go:generate counterfeiter . Notifier

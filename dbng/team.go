@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -35,14 +36,18 @@ type Team interface {
 	SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error)
 	Workers() ([]Worker, error)
 
-	FindContainerByHandle(string) (CreatedContainer, bool, error)
+	FindContainerByHandle(string) (Container, bool, error)
+	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
+
+	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 
 	FindWorkerForResourceCheckContainer(resourceConfig *UsedResourceConfig) (Worker, bool, error)
 	FindResourceCheckContainerOnWorker(workerName string, resourceConfig *UsedResourceConfig) (CreatingContainer, CreatedContainer, error)
-	CreateResourceCheckContainer(workerName string, resourceConfig *UsedResourceConfig) (CreatingContainer, error)
+	CreateResourceCheckContainer(workerName string, resourceConfig *UsedResourceConfig, meta ContainerMetadata) (CreatingContainer, error)
 
-	CreateResourceGetContainer(workerName string, resourceConfig *UsedResourceCache, stepName string) (CreatingContainer, error)
+	CreateResourceGetContainer(workerName string, resourceConfig *UsedResourceCache, meta ContainerMetadata) (CreatingContainer, error)
 
+	FindWorkerForContainer(handle string) (Worker, bool, error)
 	FindWorkerForBuildContainer(buildID int, planID atc.PlanID) (Worker, bool, error)
 	FindBuildContainerOnWorker(workerName string, buildID int, planID atc.PlanID) (CreatingContainer, CreatedContainer, error)
 	CreateBuildContainer(workerName string, buildID int, planID atc.PlanID, meta ContainerMetadata) (CreatingContainer, error)
@@ -93,6 +98,7 @@ func (t *team) FindResourceCheckContainerOnWorker(
 func (t *team) CreateResourceCheckContainer(
 	workerName string,
 	resourceConfig *UsedResourceConfig,
+	meta ContainerMetadata,
 ) (CreatingContainer, error) {
 	tx, err := t.conn.Begin()
 	if err != nil {
@@ -113,29 +119,36 @@ func (t *team) CreateResourceCheckContainer(
 	}
 
 	var containerID int
-	err = psql.Insert("containers").
-		Columns(
-			"worker_name",
-			"resource_config_id",
-			"type",
-			"step_name",
-			"handle",
-			"team_id",
-			"worker_base_resource_type_id",
-		).
-		Values(
-			workerName,
-			resourceConfig.ID,
-			"check",
-			"",
-			handle.String(),
-			t.id,
-			*wbrtID,
-		).
-		Suffix("RETURNING id").
+	cols := []interface{}{&containerID}
+
+	metadata := &ContainerMetadata{}
+	cols = append(cols, metadata.ScanTargets()...)
+
+	var biub time.Time
+	err = psql.Select("NOW() + LEAST(GREATEST('5 minutes'::interval, NOW() - to_timestamp(w.start_time)), '1 hour'::interval)").
+		From("workers w").
+		Where(sq.Eq{"w.name": workerName}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&containerID)
+		Scan(&biub)
+	if err != nil {
+		return nil, err
+	}
+
+	insMap := meta.SQLMap()
+	insMap["worker_name"] = workerName
+	insMap["handle"] = handle.String()
+	insMap["team_id"] = t.id
+	insMap["resource_config_id"] = resourceConfig.ID
+	insMap["worker_base_resource_type_id"] = wbrtID
+	insMap["best_if_used_by"] = biub
+
+	err = psql.Insert("containers").
+		SetMap(insMap).
+		Suffix("RETURNING id, " + strings.Join(containerMetadataColumns, ", ")).
+		RunWith(tx).
+		QueryRow().
+		Scan(cols...)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 			return nil, ErrResourceConfigDisappeared
@@ -149,18 +162,19 @@ func (t *team) CreateResourceCheckContainer(
 		return nil, err
 	}
 
-	return &creatingContainer{
-		id:         containerID,
-		handle:     handle.String(),
-		workerName: workerName,
-		conn:       t.conn,
-	}, nil
+	return newCreatingContainer(
+		containerID,
+		handle.String(),
+		workerName,
+		*metadata,
+		t.conn,
+	), nil
 }
 
 func (t *team) CreateResourceGetContainer(
 	workerName string,
 	resourceCache *UsedResourceCache,
-	stepName string,
+	meta ContainerMetadata,
 ) (CreatingContainer, error) {
 	var workerResourcCache *UsedWorkerResourceCache
 	err := safeFindOrCreate(t.conn, func(tx Tx) error {
@@ -181,27 +195,23 @@ func (t *team) CreateResourceGetContainer(
 	}
 
 	var containerID int
+	cols := []interface{}{&containerID}
+
+	metadata := &ContainerMetadata{}
+	cols = append(cols, metadata.ScanTargets()...)
+
+	insMap := meta.SQLMap()
+	insMap["worker_name"] = workerName
+	insMap["handle"] = handle.String()
+	insMap["team_id"] = t.id
+	insMap["worker_resource_cache_id"] = workerResourcCache.ID
+
 	err = psql.Insert("containers").
-		Columns(
-			"worker_name",
-			"worker_resource_cache_id",
-			"type",
-			"step_name",
-			"handle",
-			"team_id",
-		).
-		Values(
-			workerName,
-			workerResourcCache.ID,
-			"get",
-			stepName,
-			handle.String(),
-			t.id,
-		).
-		Suffix("RETURNING id").
+		SetMap(insMap).
+		Suffix("RETURNING id, " + strings.Join(containerMetadataColumns, ", ")).
 		RunWith(t.conn).
 		QueryRow().
-		Scan(&containerID)
+		Scan(cols...)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 			return nil, ErrResourceCacheDisappeared
@@ -210,12 +220,20 @@ func (t *team) CreateResourceGetContainer(
 		return nil, err
 	}
 
-	return &creatingContainer{
-		id:         containerID,
-		handle:     handle.String(),
-		workerName: workerName,
-		conn:       t.conn,
-	}, nil
+	return newCreatingContainer(
+		containerID,
+		handle.String(),
+		workerName,
+		*metadata,
+		t.conn,
+	), nil
+}
+
+func (t *team) FindWorkerForContainer(handle string) (Worker, bool, error) {
+	return getWorker(t.conn, workersQuery.Join("containers c ON c.worker_name = w.name").Where(sq.And{
+		sq.Eq{"c.handle": handle},
+		sq.Eq{"c.team_id": t.id},
+	}))
 }
 
 func (t *team) FindWorkerForBuildContainer(
@@ -253,45 +271,96 @@ func (t *team) CreateBuildContainer(
 	}
 
 	var containerID int
+	cols := []interface{}{&containerID}
+
+	metadata := &ContainerMetadata{}
+	cols = append(cols, metadata.ScanTargets()...)
+
+	insMap := meta.SQLMap()
+	insMap["worker_name"] = workerName
+	insMap["handle"] = handle.String()
+	insMap["team_id"] = t.id
+	insMap["build_id"] = buildID
+	insMap["plan_id"] = string(planID)
+
 	err = psql.Insert("containers").
-		Columns(
-			"worker_name",
-			"build_id",
-			"plan_id",
-			"type",
-			"step_name",
-			"handle",
-			"team_id",
-		).
-		Values(
-			workerName,
-			buildID,
-			string(planID),
-			meta.Type,
-			meta.Name,
-			handle.String(),
-			t.id,
-		).
-		Suffix("RETURNING id").
+		SetMap(insMap).
+		Suffix("RETURNING id, " + strings.Join(containerMetadataColumns, ", ")).
 		RunWith(t.conn).
 		QueryRow().
-		Scan(&containerID)
+		Scan(cols...)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
 			return nil, ErrBuildDisappeared
 		}
+
 		return nil, err
 	}
 
-	return &creatingContainer{
-		id:         containerID,
-		handle:     handle.String(),
-		workerName: workerName,
-		conn:       t.conn,
-	}, nil
+	return newCreatingContainer(
+		containerID,
+		handle.String(),
+		workerName,
+		*metadata,
+		t.conn,
+	), nil
 }
 
 func (t *team) FindContainerByHandle(
+	handle string,
+) (Container, bool, error) {
+	creatingContainer, createdContainer, err := t.findContainer(sq.Eq{"handle": handle})
+	if err != nil {
+		return nil, false, err
+	}
+
+	if creatingContainer != nil {
+		return creatingContainer, true, nil
+	}
+
+	if createdContainer != nil {
+		return createdContainer, true, nil
+	}
+
+	return nil, false, nil
+}
+
+func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container, error) {
+	rows, err := selectContainers().
+		Where(sq.Eq(metadata.SQLMap())).
+		Where(sq.Eq{"team_id": t.id}).
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var containers []Container
+	for rows.Next() {
+		creating, created, destroying, err := scanContainer(rows, t.conn)
+		if err != nil {
+			return nil, err
+		}
+
+		if creating != nil {
+			containers = append(containers, creating)
+		}
+
+		if created != nil {
+			containers = append(containers, created)
+		}
+
+		if destroying != nil {
+			continue
+		}
+	}
+
+	return containers, nil
+}
+
+func (t *team) FindCreatedContainerByHandle(
 	handle string,
 ) (CreatedContainer, bool, error) {
 	_, createdContainer, err := t.findContainer(sq.Eq{"handle": handle})
@@ -715,18 +784,14 @@ func swallowUniqueViolation(err error) error {
 }
 
 func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, CreatedContainer, error) {
-	var containerID int
-	var workerName string
-	var state string
-	var hijacked bool
-	var handle string
-	err := psql.Select("id, worker_name, state, hijacked, handle").
-		From("containers").
-		Where(whereClause).
-		Where(sq.Eq{"team_id": t.id}).
-		RunWith(t.conn).
-		QueryRow().
-		Scan(&containerID, &workerName, &state, &hijacked, &handle)
+	creating, created, destroying, err := scanContainer(
+		selectContainers().
+			Where(whereClause).
+			Where(sq.Eq{"team_id": t.id}).
+			RunWith(t.conn).
+			QueryRow(),
+		t.conn,
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil, nil
@@ -734,25 +799,11 @@ func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, Created
 		return nil, nil, err
 	}
 
-	switch state {
-	case ContainerStateCreated:
-		return nil, &createdContainer{
-			id:         containerID,
-			handle:     handle,
-			workerName: workerName,
-			hijacked:   hijacked,
-			conn:       t.conn,
-		}, nil
-	case ContainerStateCreating:
-		return &creatingContainer{
-			id:         containerID,
-			handle:     handle,
-			workerName: workerName,
-			conn:       t.conn,
-		}, nil, nil
+	if destroying != nil {
+		return nil, nil, nil
 	}
 
-	return nil, nil, nil
+	return creating, created, nil
 }
 
 func (t *team) scanPipeline(rows scannable) (*pipeline, error) {
@@ -795,17 +846,15 @@ func (t *team) findBaseResourceTypeID(resourceConfig *UsedResourceConfig) *UsedB
 	}
 }
 
-func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResourceType, workerName string, tx Tx) (*int, error) {
+func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResourceType, workerName string, tx Tx) (int, error) {
 	var wbrtID int
-
 	err := psql.Select("id").From("worker_base_resource_types").Where(sq.Eq{
 		"worker_name":           workerName,
 		"base_resource_type_id": usedBaseResourceType.ID,
 	}).RunWith(tx).QueryRow().Scan(&wbrtID)
-
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return &wbrtID, nil
+	return wbrtID, nil
 }

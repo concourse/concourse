@@ -137,18 +137,12 @@ var _ = Describe("ResourceTypeScanner", func() {
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResource.CheckCallCount()).To(Equal(1))
 				Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-				_, user, id, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				_, user, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResourceType{ResourceTypeID: 39}))
-				Expect(id).To(Equal(worker.Identifier{
-					Stage:               db.ContainerStageCheck,
-					ImageResourceType:   "docker-image",
-					ImageResourceSource: atc.Source{"custom": "source"},
-				}))
-				Expect(metadata).To(Equal(worker.Metadata{
-					Type:                 db.ContainerTypeCheck,
-					PipelineID:           42,
-					WorkingDirectory:     "",
-					EnvironmentVariables: nil,
+				Expect(metadata).To(Equal(dbng.ContainerMetadata{
+					Type:           dbng.ContainerTypeCheck,
+					PipelineID:     42,
+					ResourceTypeID: 39,
 				}))
 				Expect(customTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
@@ -161,7 +155,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					TeamID:    123,
 				}))
 				Expect(resourceConfig).To(Equal(atc.ResourceConfig{
-					Type:   "docker-image", /// XXX: this used to be 'some-resource-type'. why? misuse of CheckType field?
+					Type:   "docker-image",
 					Source: atc.Source{"custom": "source"},
 				}))
 			})

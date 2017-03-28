@@ -10,7 +10,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
@@ -19,6 +18,12 @@ import (
 type WorkerProvider interface {
 	RunningWorkers() ([]Worker, error)
 	GetWorker(string) (Worker, bool, error)
+
+	FindWorkerForContainer(
+		logger lager.Logger,
+		teamID int,
+		handle string,
+	) (Worker, bool, error)
 
 	FindWorkerForResourceCheckContainer(
 		logger lager.Logger,
@@ -35,9 +40,6 @@ type WorkerProvider interface {
 		buildID int,
 		planID atc.PlanID,
 	) (Worker, bool, error)
-
-	// XXX: this should really go away. it's a WorkerProvider, not a ContainerProvider.
-	GetContainer(string) (db.SavedContainer, bool, error)
 }
 
 var (
@@ -152,16 +154,17 @@ func (pool *pool) FindOrCreateBuildContainer(
 	logger lager.Logger,
 	signals <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
+	buildID int,
+	planID atc.PlanID,
+	metadata dbng.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
 	worker, found, err := pool.provider.FindWorkerForBuildContainer(
 		logger.Session("find-worker"),
 		spec.TeamID, // XXX: better place for this?
-		id.BuildID,  // XXX: better place for this?
-		id.PlanID,   // XXX: better place for this?
+		buildID,
+		planID,
 	)
 	if err != nil {
 		return nil, err
@@ -205,7 +208,8 @@ func (pool *pool) FindOrCreateBuildContainer(
 		logger,
 		nil,
 		delegate,
-		id,
+		buildID,
+		planID,
 		metadata,
 		spec,
 		resourceTypes,
@@ -217,8 +221,7 @@ func (pool *pool) CreateResourceGetContainer(
 	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
+	metadata dbng.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,
@@ -236,7 +239,6 @@ func (pool *pool) CreateResourceGetContainer(
 		resourceUser,
 		cancel,
 		delegate,
-		id,
 		metadata,
 		spec,
 		resourceTypes,
@@ -252,8 +254,7 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
+	metadata dbng.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,
@@ -283,7 +284,6 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 		resourceUser,
 		cancel,
 		delegate,
-		id,
 		metadata,
 		spec,
 		resourceTypes,
@@ -292,53 +292,21 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 	)
 }
 
-func (pool *pool) FindContainerByHandle(logger lager.Logger, handle string, teamID int) (Container, bool, error) {
-	cLog := logger.Session("find-container-by-handle", lager.Data{
-		"container": handle,
-	})
-
-	containerInfo, found, err := pool.provider.GetContainer(handle)
+func (pool *pool) FindContainerByHandle(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
+	worker, found, err := pool.provider.FindWorkerForContainer(
+		logger.Session("find-worker"),
+		teamID,
+		handle,
+	)
 	if err != nil {
-		cLog.Error("failed-to-get-container", err)
 		return nil, false, err
 	}
 
 	if !found {
-		cLog.Info("container-not-found")
 		return nil, false, nil
 	}
 
-	cLog = cLog.WithData(lager.Data{
-		"worker": containerInfo.WorkerName,
-	})
-
-	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerName)
-	if err != nil {
-		cLog.Error("failed-to-get-worker", err)
-		return nil, false, err
-	}
-
-	if !found {
-		cLog.Info("worker-is-missing")
-		return nil, false, ErrMissingWorker
-	}
-
-	container, found, err := worker.FindContainerByHandle(logger, handle, teamID)
-	if err != nil {
-		cLog.Error("failed-to-find-container-by-handle", err)
-		return nil, false, err
-	}
-
-	if !found {
-		cLog.Info("missing-on-worker")
-		return nil, false, nil
-	}
-
-	return container, true, nil
-}
-
-func (*pool) ValidateResourceCheckVersion(container db.SavedContainer) (bool, error) {
-	return false, errors.New("ValidateResourceCheckVersion not implemented for pool")
+	return worker.FindContainerByHandle(logger, teamID, handle)
 }
 
 func (*pool) FindResourceTypeByPath(string) (atc.WorkerResourceType, bool) {

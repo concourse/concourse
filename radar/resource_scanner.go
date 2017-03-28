@@ -259,14 +259,10 @@ func (scanner *resourceScanner) scan(
 		dbng.ForResource{
 			ResourceID: savedResource.ID,
 		},
-		worker.Identifier{
-			ResourceID: savedResource.ID,
-			Stage:      db.ContainerStageRun,
-		},
-		worker.Metadata{
-			Type:       db.ContainerTypeCheck,
+		dbng.ContainerMetadata{
+			Type:       dbng.ContainerTypeCheck,
 			PipelineID: scanner.dbPipeline.ID(),
-			TeamID:     scanner.dbPipeline.TeamID(),
+			ResourceID: savedResource.ID,
 		},
 		containerSpec,
 		resourceTypes,

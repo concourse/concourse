@@ -43,18 +43,47 @@ func ContainerTypeFromString(containerType string) (ContainerType, error) {
 }
 
 func (metadata ContainerMetadata) SQLMap() map[string]interface{} {
-	return map[string]interface{}{
-		"meta_type":              string(metadata.Type),
-		"meta_step_name":         metadata.StepName,
-		"meta_attempt":           metadata.Attempt,
-		"meta_pipeline_id":       metadata.PipelineID,
-		"meta_job_id":            metadata.JobID,
-		"meta_build_id":          metadata.BuildID,
-		"meta_resource_id":       metadata.ResourceID,
-		"meta_resource_type_id":  metadata.ResourceTypeID,
-		"meta_working_directory": metadata.WorkingDirectory,
-		"meta_process_user":      metadata.User,
+	m := map[string]interface{}{
+		"meta_type": string(metadata.Type),
 	}
+
+	if metadata.StepName != "" {
+		m["meta_step_name"] = metadata.StepName
+	}
+
+	if metadata.Attempt != "" {
+		m["meta_attempt"] = metadata.Attempt
+	}
+
+	if metadata.PipelineID != 0 {
+		m["meta_pipeline_id"] = metadata.PipelineID
+	}
+
+	if metadata.JobID != 0 {
+		m["meta_job_id"] = metadata.JobID
+	}
+
+	if metadata.BuildID != 0 {
+		m["meta_build_id"] = metadata.BuildID
+	}
+
+	if metadata.ResourceID != 0 {
+		m["meta_resource_id"] = metadata.ResourceID
+	}
+
+	if metadata.ResourceTypeID != 0 {
+		m["meta_resource_type_id"] = metadata.ResourceTypeID
+	}
+
+	if metadata.WorkingDirectory != "" {
+		m["meta_working_directory"] = metadata.WorkingDirectory
+	}
+
+	if metadata.User != "" {
+		m["meta_process_user"] = metadata.User
+	}
+
+	return m
 }
 
 var containerMetadataColumns = []string{

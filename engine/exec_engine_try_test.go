@@ -3,7 +3,7 @@ package engine_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/worker"
@@ -22,9 +22,13 @@ var _ = Describe("Exec Engine with Try", func() {
 
 		execEngine engine.Engine
 
-		build            *dbfakes.FakeBuild
-		expectedMetadata engine.StepMetadata
-		logger           *lagertest.TestLogger
+		build              *dbfakes.FakeBuild
+		expectedTeamID     = 1111
+		expectedPipelineID = 2222
+		expectedJobID      = 3333
+		expectedBuildID    = 4444
+		expectedMetadata   engine.StepMetadata
+		logger             *lagertest.TestLogger
 
 		fakeDelegate *enginefakes.FakeBuildDelegate
 	)
@@ -47,18 +51,21 @@ var _ = Describe("Exec Engine with Try", func() {
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 		build = new(dbfakes.FakeBuild)
-		build.IDReturns(84)
+		build.IDReturns(expectedBuildID)
 		build.NameReturns("42")
 		build.JobNameReturns("some-job")
+		build.JobIDReturns(expectedJobID)
 		build.PipelineNameReturns("some-pipeline")
-		build.TeamNameReturns("main")
+		build.PipelineIDReturns(expectedPipelineID)
+		build.TeamNameReturns("some-team")
+		build.TeamIDReturns(expectedTeamID)
 
 		expectedMetadata = engine.StepMetadata{
-			BuildID:      84,
+			BuildID:      expectedBuildID,
 			BuildName:    "42",
 			JobName:      "some-job",
 			PipelineName: "some-pipeline",
-			TeamName:     "main",
+			TeamName:     "some-team",
 			ExternalURL:  "http://example.com",
 		}
 	})
@@ -108,7 +115,7 @@ var _ = Describe("Exec Engine with Try", func() {
 
 				inputPlan = planFactory.NewPlan(atc.GetPlan{
 					Name:       "some-input",
-					PipelineID: 42,
+					PipelineID: expectedPipelineID,
 				})
 
 				plan := planFactory.NewPlan(atc.TryPlan{
@@ -122,20 +129,20 @@ var _ = Describe("Exec Engine with Try", func() {
 
 			It("constructs the step correctly", func() {
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, metadata, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
+				Expect(teamID).To(Equal(expectedTeamID))
+				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(planID).To(Equal(inputPlan.ID))
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
-				Expect(workerMetadata).To(Equal(worker.Metadata{
-					Type:       db.ContainerTypeGet,
+				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+					Type:       dbng.ContainerTypeGet,
 					StepName:   "some-input",
-					PipelineID: 42,
+					PipelineID: expectedPipelineID,
+					JobID:      expectedJobID,
+					BuildID:    expectedBuildID,
 				}))
-				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 84,
-					PlanID:  inputPlan.ID,
-				}))
-
 				Expect(delegate).To(Equal(fakeInputDelegate))
 				_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
 				Expect(location).NotTo(BeNil())

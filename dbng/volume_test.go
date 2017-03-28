@@ -266,8 +266,8 @@ var _ = Describe("Volume", func() {
 		BeforeEach(func() {
 			var err error
 			creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", dbng.ContainerMetadata{
-				Type: "task",
-				Name: "some-task",
+				Type:     "task",
+				StepName: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 

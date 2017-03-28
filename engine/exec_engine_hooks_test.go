@@ -3,8 +3,8 @@ package engine_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
@@ -22,9 +22,13 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 		execEngine engine.Engine
 
-		build            *dbfakes.FakeBuild
-		expectedMetadata engine.StepMetadata
-		logger           *lagertest.TestLogger
+		build              *dbfakes.FakeBuild
+		expectedTeamID     = 1111
+		expectedPipelineID = 2222
+		expectedJobID      = 3333
+		expectedBuildID    = 4444
+		expectedMetadata   engine.StepMetadata
+		logger             *lagertest.TestLogger
 
 		fakeDelegate *enginefakes.FakeBuildDelegate
 	)
@@ -47,14 +51,17 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 		build = new(dbfakes.FakeBuild)
-		build.IDReturns(84)
+		build.IDReturns(expectedBuildID)
 		build.NameReturns("42")
 		build.JobNameReturns("some-job")
+		build.JobIDReturns(expectedJobID)
 		build.PipelineNameReturns("some-pipeline")
+		build.PipelineIDReturns(expectedPipelineID)
 		build.TeamNameReturns("some-team")
+		build.TeamIDReturns(expectedTeamID)
 
 		expectedMetadata = engine.StepMetadata{
-			BuildID:      84,
+			BuildID:      expectedBuildID,
 			BuildName:    "42",
 			JobName:      "some-job",
 			PipelineName: "some-pipeline",
@@ -185,18 +192,19 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the step correctly", func() {
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, _, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(inputPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineID: 57,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 						StepName:   "some-input",
-						Type:       db.ContainerTypeGet,
-					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						PlanID:  inputPlan.ID,
+						Type:       dbng.ContainerTypeGet,
 					}))
 
 					Expect(delegate).To(Equal(fakeInputDelegate))
@@ -206,17 +214,18 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the completion hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(2)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(completionTaskPlan.ID))
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-completion-task")))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineID: 57,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 						StepName:   "some-completion-task",
-						Type:       db.ContainerTypeTask,
-					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						PlanID:  completionTaskPlan.ID,
+						Type:       dbng.ContainerTypeTask,
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -227,17 +236,18 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the failure hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(failureTaskPlan.ID))
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-failure-task")))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineID: 57,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 						StepName:   "some-failure-task",
-						Type:       db.ContainerTypeTask,
-					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						PlanID:  failureTaskPlan.ID,
+						Type:       dbng.ContainerTypeTask,
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -248,17 +258,18 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the success hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(successTaskPlan.ID))
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-success-task")))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineID: 57,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 						StepName:   "some-success-task",
-						Type:       db.ContainerTypeTask,
-					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						PlanID:  successTaskPlan.ID,
+						Type:       dbng.ContainerTypeTask,
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -269,17 +280,18 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the next step correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(3)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(nextTaskPlan.ID))
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-next-task")))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineID: 57,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 						StepName:   "some-next-task",
-						Type:       db.ContainerTypeTask,
-					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 84,
-						PlanID:  nextTaskPlan.ID,
+						Type:       dbng.ContainerTypeTask,
 					}))
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))

@@ -30,8 +30,9 @@ func (f *resourceFactoryFactory) FactoryFor(workerClient worker.Client) Resource
 type ResourceFactory interface {
 	NewPutResource(
 		logger lager.Logger,
-		id worker.Identifier,
-		metadata worker.Metadata,
+		buildID int,
+		planID atc.PlanID,
+		metadata dbng.ContainerMetadata,
 		containerSpec worker.ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -40,8 +41,7 @@ type ResourceFactory interface {
 	NewCheckResource(
 		logger lager.Logger,
 		resourceUser dbng.ResourceUser,
-		id worker.Identifier,
-		metadata worker.Metadata,
+		metadata dbng.ContainerMetadata,
 		resourceSpec worker.ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -55,17 +55,19 @@ type resourceFactory struct {
 
 func (f *resourceFactory) NewPutResource(
 	logger lager.Logger,
-	id worker.Identifier,
-	metadata worker.Metadata,
+	buildID int,
+	planID atc.PlanID,
+	metadata dbng.ContainerMetadata,
 	containerSpec worker.ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, error) {
 	container, err := f.workerClient.FindOrCreateBuildContainer(
 		logger,
-		nil,
+		nil, // XXX
 		imageFetchingDelegate,
-		id,
+		buildID,
+		planID,
 		metadata,
 		containerSpec,
 		resourceTypes,
@@ -80,8 +82,7 @@ func (f *resourceFactory) NewPutResource(
 func (f *resourceFactory) NewCheckResource(
 	logger lager.Logger,
 	resourceUser dbng.ResourceUser,
-	id worker.Identifier,
-	metadata worker.Metadata,
+	metadata dbng.ContainerMetadata,
 	resourceSpec worker.ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -92,7 +93,6 @@ func (f *resourceFactory) NewCheckResource(
 		resourceUser,
 		nil,
 		imageFetchingDelegate,
-		id,
 		metadata,
 		resourceSpec,
 		resourceTypes,

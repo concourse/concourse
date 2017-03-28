@@ -56,8 +56,6 @@ type Worker interface {
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) error
-	GetContainer(handle string) (db.SavedContainer, bool, error)
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
@@ -140,8 +138,9 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
+	buildID int,
+	planID atc.PlanID,
+	metadata dbng.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 ) (Container, error) {
@@ -151,7 +150,8 @@ func (worker *gardenWorker) FindOrCreateBuildContainer(
 		logger,
 		cancel,
 		delegate,
-		id,
+		buildID,
+		planID,
 		metadata,
 		spec,
 		resourceTypes,
@@ -163,8 +163,7 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
+	metadata dbng.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceTypeName string,
@@ -178,7 +177,6 @@ func (worker *gardenWorker) CreateResourceGetContainer(
 		resourceUser,
 		cancel,
 		delegate,
-		id,
 		metadata,
 		spec,
 		resourceTypes,
@@ -194,8 +192,7 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
+	metadata dbng.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	resourceType string,
@@ -208,7 +205,6 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 		resourceUser,
 		cancel,
 		delegate,
-		id,
 		metadata,
 		spec,
 		resourceTypes,
@@ -217,9 +213,9 @@ func (worker *gardenWorker) FindOrCreateResourceCheckContainer(
 	)
 }
 
-func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, handle string, teamID int) (Container, bool, error) {
+func (worker *gardenWorker) FindContainerByHandle(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
 	containerProvider := worker.containerProviderFactory.ContainerProviderFor(worker)
-	return containerProvider.FindContainerByHandle(logger, handle, teamID)
+	return containerProvider.FindCreatedContainerByHandle(logger, handle, teamID)
 }
 
 func (worker *gardenWorker) ActiveContainers() int {

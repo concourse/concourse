@@ -53,8 +53,8 @@ var _ = Describe("VolumeFactory", func() {
 
 		JustBeforeEach(func() {
 			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
-				Type: "task",
-				Name: "some-task",
+				Type:     "task",
+				StepName: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -138,8 +138,8 @@ var _ = Describe("VolumeFactory", func() {
 
 		BeforeEach(func() {
 			creatingContainer, err := defaultTeam.CreateBuildContainer(defaultWorker.Name(), build.ID(), "some-plan", dbng.ContainerMetadata{
-				Type: "task",
-				Name: "some-task",
+				Type:     "task",
+				StepName: "some-task",
 			})
 			Expect(err).ToNot(HaveOccurred())
 

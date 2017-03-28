@@ -3,7 +3,6 @@ package workerfakes
 
 import (
 	"sync"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db"
@@ -12,33 +11,6 @@ import (
 )
 
 type FakeGardenWorkerDB struct {
-	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub        func(container db.Container, maxLifetime time.Duration) error
-	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex       sync.RWMutex
-	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall []struct {
-		container   db.Container
-		maxLifetime time.Duration
-	}
-	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns struct {
-		result1 error
-	}
-	putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall map[int]struct {
-		result1 error
-	}
-	GetContainerStub        func(handle string) (db.SavedContainer, bool, error)
-	getContainerMutex       sync.RWMutex
-	getContainerArgsForCall []struct {
-		handle string
-	}
-	getContainerReturns struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}
-	getContainerReturnsOnCall map[int]struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}
 	GetPipelineByIDStub        func(pipelineID int) (db.SavedPipeline, error)
 	getPipelineByIDMutex       sync.RWMutex
 	getPipelineByIDArgsForCall []struct {
@@ -86,109 +58,6 @@ type FakeGardenWorkerDB struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeGardenWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) error {
-	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.Lock()
-	ret, specificReturn := fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall[len(fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall)]
-	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall = append(fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall, struct {
-		container   db.Container
-		maxLifetime time.Duration
-	}{container, maxLifetime})
-	fake.recordInvocation("PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater", []interface{}{container, maxLifetime})
-	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.Unlock()
-	if fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub != nil {
-		return fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub(container, maxLifetime)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns.result1
-}
-
-func (fake *FakeGardenWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterCallCount() int {
-	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RLock()
-	defer fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RUnlock()
-	return len(fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall)
-}
-
-func (fake *FakeGardenWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall(i int) (db.Container, time.Duration) {
-	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RLock()
-	defer fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RUnlock()
-	return fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall[i].container, fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterArgsForCall[i].maxLifetime
-}
-
-func (fake *FakeGardenWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns(result1 error) {
-	fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub = nil
-	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeGardenWorkerDB) PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall(i int, result1 error) {
-	fake.PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterStub = nil
-	if fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall == nil {
-		fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeGardenWorkerDB) GetContainer(handle string) (db.SavedContainer, bool, error) {
-	fake.getContainerMutex.Lock()
-	ret, specificReturn := fake.getContainerReturnsOnCall[len(fake.getContainerArgsForCall)]
-	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
-		handle string
-	}{handle})
-	fake.recordInvocation("GetContainer", []interface{}{handle})
-	fake.getContainerMutex.Unlock()
-	if fake.GetContainerStub != nil {
-		return fake.GetContainerStub(handle)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
-}
-
-func (fake *FakeGardenWorkerDB) GetContainerCallCount() int {
-	fake.getContainerMutex.RLock()
-	defer fake.getContainerMutex.RUnlock()
-	return len(fake.getContainerArgsForCall)
-}
-
-func (fake *FakeGardenWorkerDB) GetContainerArgsForCall(i int) string {
-	fake.getContainerMutex.RLock()
-	defer fake.getContainerMutex.RUnlock()
-	return fake.getContainerArgsForCall[i].handle
-}
-
-func (fake *FakeGardenWorkerDB) GetContainerReturns(result1 db.SavedContainer, result2 bool, result3 error) {
-	fake.GetContainerStub = nil
-	fake.getContainerReturns = struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeGardenWorkerDB) GetContainerReturnsOnCall(i int, result1 db.SavedContainer, result2 bool, result3 error) {
-	fake.GetContainerStub = nil
-	if fake.getContainerReturnsOnCall == nil {
-		fake.getContainerReturnsOnCall = make(map[int]struct {
-			result1 db.SavedContainer
-			result2 bool
-			result3 error
-		})
-	}
-	fake.getContainerReturnsOnCall[i] = struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakeGardenWorkerDB) GetPipelineByID(pipelineID int) (db.SavedPipeline, error) {
@@ -355,10 +224,6 @@ func (fake *FakeGardenWorkerDB) AcquireContainerCreatingLockReturnsOnCall(i int,
 func (fake *FakeGardenWorkerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RLock()
-	defer fake.putTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLaterMutex.RUnlock()
-	fake.getContainerMutex.RLock()
-	defer fake.getContainerMutex.RUnlock()
 	fake.getPipelineByIDMutex.RLock()
 	defer fake.getPipelineByIDMutex.RUnlock()
 	fake.acquireVolumeCreatingLockMutex.RLock()

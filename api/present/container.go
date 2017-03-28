@@ -2,27 +2,28 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func Container(container db.SavedContainer) atc.Container {
-	var stepType string
-	if container.Type != db.ContainerTypeCheck {
-		stepType = container.Type.String()
-	}
+func Container(container dbng.Container) atc.Container {
+	meta := container.Metadata()
+
 	return atc.Container{
-		ID:                   container.Handle,
-		WorkerName:           container.WorkerName,
-		PipelineName:         container.PipelineName,
-		JobName:              container.JobName,
-		BuildName:            container.BuildName,
-		BuildID:              container.BuildID,
-		StepType:             stepType,
-		StepName:             container.StepName,
-		ResourceName:         container.ResourceName,
-		WorkingDirectory:     container.WorkingDirectory,
-		EnvironmentVariables: container.EnvironmentVariables,
-		Attempts:             container.Attempts,
-		User:                 container.User,
+		ID:         container.Handle(),
+		WorkerName: container.WorkerName(),
+
+		Type: string(meta.Type),
+
+		PipelineID:     meta.PipelineID,
+		JobID:          meta.JobID,
+		BuildID:        meta.BuildID,
+		ResourceID:     meta.ResourceID,
+		ResourceTypeID: meta.ResourceTypeID,
+
+		StepName: meta.StepName,
+		Attempt:  meta.Attempt,
+
+		WorkingDirectory: meta.WorkingDirectory,
+		User:             meta.User,
 	}
 }

@@ -20,6 +20,7 @@ type DependentGetStep struct {
 	session                resource.Session
 	tags                   atc.Tags
 	teamID                 int
+	buildID                int
 	delegate               ResourceDelegate
 	resourceFetcher        resource.Fetcher
 	resourceTypes          atc.VersionedResourceTypes
@@ -35,6 +36,7 @@ func newDependentGetStep(
 	session resource.Session,
 	tags atc.Tags,
 	teamID int,
+	buildID int,
 	delegate ResourceDelegate,
 	resourceFetcher resource.Fetcher,
 	resourceTypes atc.VersionedResourceTypes,
@@ -49,6 +51,7 @@ func newDependentGetStep(
 		session:                session,
 		tags:                   tags,
 		teamID:                 teamID,
+		buildID:                buildID,
 		delegate:               delegate,
 		resourceFetcher:        resourceFetcher,
 		resourceTypes:          resourceTypes,
@@ -73,7 +76,7 @@ func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) S
 			info.Version,
 			step.resourceConfig.Source,
 			step.params,
-			dbng.ForBuild{BuildID: step.session.ID.BuildID},
+			dbng.ForBuild{BuildID: step.buildID},
 			step.resourceTypes,
 			step.dbResourceCacheFactory,
 		),

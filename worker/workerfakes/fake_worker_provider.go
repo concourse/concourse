@@ -6,7 +6,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
@@ -34,6 +33,23 @@ type FakeWorkerProvider struct {
 		result3 error
 	}
 	getWorkerReturnsOnCall map[int]struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}
+	FindWorkerForContainerStub        func(logger lager.Logger, teamID int, handle string) (worker.Worker, bool, error)
+	findWorkerForContainerMutex       sync.RWMutex
+	findWorkerForContainerArgsForCall []struct {
+		logger lager.Logger
+		teamID int
+		handle string
+	}
+	findWorkerForContainerReturns struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}
+	findWorkerForContainerReturnsOnCall map[int]struct {
 		result1 worker.Worker
 		result2 bool
 		result3 error
@@ -73,21 +89,6 @@ type FakeWorkerProvider struct {
 	}
 	findWorkerForBuildContainerReturnsOnCall map[int]struct {
 		result1 worker.Worker
-		result2 bool
-		result3 error
-	}
-	GetContainerStub        func(string) (db.SavedContainer, bool, error)
-	getContainerMutex       sync.RWMutex
-	getContainerArgsForCall []struct {
-		arg1 string
-	}
-	getContainerReturns struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}
-	getContainerReturnsOnCall map[int]struct {
-		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}
@@ -186,6 +187,62 @@ func (fake *FakeWorkerProvider) GetWorkerReturnsOnCall(i int, result1 worker.Wor
 		})
 	}
 	fake.getWorkerReturnsOnCall[i] = struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForContainer(logger lager.Logger, teamID int, handle string) (worker.Worker, bool, error) {
+	fake.findWorkerForContainerMutex.Lock()
+	ret, specificReturn := fake.findWorkerForContainerReturnsOnCall[len(fake.findWorkerForContainerArgsForCall)]
+	fake.findWorkerForContainerArgsForCall = append(fake.findWorkerForContainerArgsForCall, struct {
+		logger lager.Logger
+		teamID int
+		handle string
+	}{logger, teamID, handle})
+	fake.recordInvocation("FindWorkerForContainer", []interface{}{logger, teamID, handle})
+	fake.findWorkerForContainerMutex.Unlock()
+	if fake.FindWorkerForContainerStub != nil {
+		return fake.FindWorkerForContainerStub(logger, teamID, handle)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.findWorkerForContainerReturns.result1, fake.findWorkerForContainerReturns.result2, fake.findWorkerForContainerReturns.result3
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForContainerCallCount() int {
+	fake.findWorkerForContainerMutex.RLock()
+	defer fake.findWorkerForContainerMutex.RUnlock()
+	return len(fake.findWorkerForContainerArgsForCall)
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForContainerArgsForCall(i int) (lager.Logger, int, string) {
+	fake.findWorkerForContainerMutex.RLock()
+	defer fake.findWorkerForContainerMutex.RUnlock()
+	return fake.findWorkerForContainerArgsForCall[i].logger, fake.findWorkerForContainerArgsForCall[i].teamID, fake.findWorkerForContainerArgsForCall[i].handle
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForContainerReturns(result1 worker.Worker, result2 bool, result3 error) {
+	fake.FindWorkerForContainerStub = nil
+	fake.findWorkerForContainerReturns = struct {
+		result1 worker.Worker
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorkerProvider) FindWorkerForContainerReturnsOnCall(i int, result1 worker.Worker, result2 bool, result3 error) {
+	fake.FindWorkerForContainerStub = nil
+	if fake.findWorkerForContainerReturnsOnCall == nil {
+		fake.findWorkerForContainerReturnsOnCall = make(map[int]struct {
+			result1 worker.Worker
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findWorkerForContainerReturnsOnCall[i] = struct {
 		result1 worker.Worker
 		result2 bool
 		result3 error
@@ -308,60 +365,6 @@ func (fake *FakeWorkerProvider) FindWorkerForBuildContainerReturnsOnCall(i int, 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerProvider) GetContainer(arg1 string) (db.SavedContainer, bool, error) {
-	fake.getContainerMutex.Lock()
-	ret, specificReturn := fake.getContainerReturnsOnCall[len(fake.getContainerArgsForCall)]
-	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("GetContainer", []interface{}{arg1})
-	fake.getContainerMutex.Unlock()
-	if fake.GetContainerStub != nil {
-		return fake.GetContainerStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
-}
-
-func (fake *FakeWorkerProvider) GetContainerCallCount() int {
-	fake.getContainerMutex.RLock()
-	defer fake.getContainerMutex.RUnlock()
-	return len(fake.getContainerArgsForCall)
-}
-
-func (fake *FakeWorkerProvider) GetContainerArgsForCall(i int) string {
-	fake.getContainerMutex.RLock()
-	defer fake.getContainerMutex.RUnlock()
-	return fake.getContainerArgsForCall[i].arg1
-}
-
-func (fake *FakeWorkerProvider) GetContainerReturns(result1 db.SavedContainer, result2 bool, result3 error) {
-	fake.GetContainerStub = nil
-	fake.getContainerReturns = struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeWorkerProvider) GetContainerReturnsOnCall(i int, result1 db.SavedContainer, result2 bool, result3 error) {
-	fake.GetContainerStub = nil
-	if fake.getContainerReturnsOnCall == nil {
-		fake.getContainerReturnsOnCall = make(map[int]struct {
-			result1 db.SavedContainer
-			result2 bool
-			result3 error
-		})
-	}
-	fake.getContainerReturnsOnCall[i] = struct {
-		result1 db.SavedContainer
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -369,12 +372,12 @@ func (fake *FakeWorkerProvider) Invocations() map[string][][]interface{} {
 	defer fake.runningWorkersMutex.RUnlock()
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
+	fake.findWorkerForContainerMutex.RLock()
+	defer fake.findWorkerForContainerMutex.RUnlock()
 	fake.findWorkerForResourceCheckContainerMutex.RLock()
 	defer fake.findWorkerForResourceCheckContainerMutex.RUnlock()
 	fake.findWorkerForBuildContainerMutex.RLock()
 	defer fake.findWorkerForBuildContainerMutex.RUnlock()
-	fake.getContainerMutex.RLock()
-	defer fake.getContainerMutex.RUnlock()
 	return fake.invocations
 }
 

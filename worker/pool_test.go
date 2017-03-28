@@ -6,7 +6,6 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -368,12 +367,65 @@ var _ = Describe("Pool", func() {
 		})
 	})
 
+	Describe("FindContainerByHandle", func() {
+		var (
+			foundContainer Container
+			found          bool
+			findErr        error
+		)
+
+		JustBeforeEach(func() {
+			foundContainer, found, findErr = pool.FindContainerByHandle(
+				logger,
+				4567,
+				"some-handle",
+			)
+		})
+
+		Context("when a worker is found with the container", func() {
+			var fakeWorker *workerfakes.FakeWorker
+			var fakeContainer *workerfakes.FakeContainer
+
+			BeforeEach(func() {
+				fakeWorker = new(workerfakes.FakeWorker)
+				fakeProvider.FindWorkerForContainerReturns(fakeWorker, true, nil)
+
+				fakeContainer = new(workerfakes.FakeContainer)
+				fakeWorker.FindContainerByHandleReturns(fakeContainer, true, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(findErr).NotTo(HaveOccurred())
+			})
+
+			It("returns the created container", func() {
+				Expect(foundContainer).To(Equal(fakeContainer))
+			})
+
+			It("finds on the particular worker", func() {
+				Expect(fakeWorker.FindContainerByHandleCallCount()).To(Equal(1))
+
+				_, actualTeamID, actualHandle := fakeProvider.FindWorkerForContainerArgsForCall(0)
+				Expect(actualTeamID).To(Equal(4567))
+				Expect(actualHandle).To(Equal("some-handle"))
+			})
+		})
+
+		Context("when no worker is found with the container", func() {
+			BeforeEach(func() {
+				fakeProvider.FindWorkerForContainerReturns(nil, false, nil)
+			})
+
+			It("returns no container, false, and no error", func() {
+			})
+		})
+	})
+
 	Describe("FindOrCreateBuildContainer", func() {
 		var (
 			signals                   <-chan os.Signal
 			fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
-			id                        Identifier
-			metadata                  Metadata
+			metadata                  dbng.ContainerMetadata
 			spec                      ContainerSpec
 			resourceTypes             atc.VersionedResourceTypes
 
@@ -392,11 +444,6 @@ var _ = Describe("Pool", func() {
 
 		BeforeEach(func() {
 			fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
-
-			id = Identifier{
-				BuildID: 42,
-				PlanID:  "some-plan-id",
-			}
 
 			fakeInput1 := new(workerfakes.FakeInputSource)
 			fakeInput1AS := new(workerfakes.FakeArtifactSource)
@@ -475,7 +522,8 @@ var _ = Describe("Pool", func() {
 				logger,
 				signals,
 				fakeImageFetchingDelegate,
-				id,
+				42,
+				atc.PlanID("some-plan-id"),
 				metadata,
 				spec,
 				resourceTypes,
@@ -575,7 +623,8 @@ var _ = Describe("Pool", func() {
 							logger,
 							signals,
 							fakeImageFetchingDelegate,
-							id,
+							42,
+							atc.PlanID("some-plan-id"),
 							metadata,
 							spec,
 							resourceTypes,
@@ -609,7 +658,8 @@ var _ = Describe("Pool", func() {
 							logger,
 							signals,
 							fakeImageFetchingDelegate,
-							id,
+							42,
+							atc.PlanID("some-plan-id"),
 							metadata,
 							spec,
 							resourceTypes,
@@ -630,7 +680,6 @@ var _ = Describe("Pool", func() {
 		var (
 			fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
-			id   Identifier
 			spec ContainerSpec
 
 			fakeContainer *workerfakes.FakeContainer
@@ -642,10 +691,6 @@ var _ = Describe("Pool", func() {
 
 		BeforeEach(func() {
 			fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
-
-			id = Identifier{
-				ResourceID: 1234,
-			}
 
 			spec = ContainerSpec{
 				ImageSpec: ImageSpec{ResourceType: "some-type"},
@@ -702,8 +747,7 @@ var _ = Describe("Pool", func() {
 				dbng.ForBuild{42},
 				make(chan os.Signal),
 				fakeImageFetchingDelegate,
-				id,
-				Metadata{},
+				dbng.ContainerMetadata{},
 				spec,
 				resourceTypes,
 				"some-type",
@@ -800,8 +844,7 @@ var _ = Describe("Pool", func() {
 						dbng.ForBuild{42},
 						make(chan os.Signal),
 						fakeImageFetchingDelegate,
-						id,
-						Metadata{},
+						dbng.ContainerMetadata{},
 						spec,
 						resourceTypes,
 						"some-type",
@@ -864,128 +907,6 @@ var _ = Describe("Pool", func() {
 
 			It("returns the error", func() {
 				Expect(createErr).To(Equal(disaster))
-			})
-		})
-	})
-
-	Describe("FindContainerByHandle", func() {
-		Context("when looking up the container info contains an error", func() {
-			BeforeEach(func() {
-				fakeProvider.GetContainerReturns(db.SavedContainer{}, false, errors.New("disaster"))
-			})
-
-			It("returns the error", func() {
-				container, found, err := pool.FindContainerByHandle(logger, "some-handle", 42)
-				Expect(err).To(HaveOccurred())
-				Expect(container).To(BeNil())
-				Expect(found).To(BeFalse())
-			})
-		})
-
-		Context("when looking up the container info does not find the container info", func() {
-			BeforeEach(func() {
-				fakeProvider.GetContainerReturns(db.SavedContainer{}, false, nil)
-			})
-
-			It("returns that it was not found", func() {
-				container, found, err := pool.FindContainerByHandle(logger, "some-handle", 42)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(container).To(BeNil())
-				Expect(found).To(BeFalse())
-			})
-		})
-
-		Context("when looking up the container info is successful", func() {
-			var container db.SavedContainer
-			BeforeEach(func() {
-				container = db.SavedContainer{
-					Container: db.Container{
-						ContainerMetadata: db.ContainerMetadata{
-							WorkerName: "some-worker",
-							Handle:     "some-container-handle",
-						},
-					},
-				}
-
-				fakeProvider.GetContainerReturns(container, true, nil)
-			})
-
-			It("calls to lookup the worker by name", func() {
-				pool.FindContainerByHandle(logger, "some-container-handle", 42)
-
-				Expect(fakeProvider.GetWorkerCallCount()).To(Equal(1))
-
-				workerName := fakeProvider.GetWorkerArgsForCall(0)
-				Expect(workerName).To(Equal("some-worker"))
-			})
-
-			Context("when looking up the worker returns an error", func() {
-				BeforeEach(func() {
-					fakeProvider.GetWorkerReturns(nil, false, errors.New("disaster"))
-				})
-
-				It("returns the error", func() {
-					container, found, err := pool.FindContainerByHandle(logger, "some-handle", 42)
-					Expect(err).To(HaveOccurred())
-					Expect(container).To(BeNil())
-					Expect(found).To(BeFalse())
-				})
-			})
-
-			Context("when we cannot find the worker from the container info", func() {
-				BeforeEach(func() {
-					fakeProvider.GetWorkerReturns(nil, false, nil)
-				})
-
-				It("returns ErrMissingWorker", func() {
-					container, found, err := pool.FindContainerByHandle(logger, "some-handle", 42)
-					Expect(err).To(Equal(ErrMissingWorker))
-					Expect(container).To(BeNil())
-					Expect(found).To(BeFalse())
-				})
-			})
-
-			Context("when looking up the worker is successful", func() {
-				var fakeWorker *workerfakes.FakeWorker
-
-				BeforeEach(func() {
-					fakeWorker = new(workerfakes.FakeWorker)
-					fakeProvider.GetWorkerReturns(fakeWorker, true, nil)
-				})
-
-				It("calls to lookup the container on the worker", func() {
-					pool.FindContainerByHandle(logger, "some-handle", 42)
-
-					Expect(fakeWorker.FindContainerByHandleCallCount()).To(Equal(1))
-
-					_, handleArg, _ := fakeWorker.FindContainerByHandleArgsForCall(0)
-					Expect(handleArg).To(Equal("some-handle"))
-				})
-
-				Context("when looking up the container contains an error", func() {
-					It("returns the error", func() {
-						fakeWorker.FindContainerByHandleReturns(nil, false, errors.New("disaster"))
-
-						container, found, err := pool.FindContainerByHandle(logger, "some-handle", 42)
-						Expect(err).To(HaveOccurred())
-						Expect(container).To(BeNil())
-						Expect(found).To(BeFalse())
-					})
-				})
-
-				Context("when the finding the container on the worker is successful", func() {
-					It("returns the container", func() {
-						var fakeContainer *workerfakes.FakeContainer
-						fakeContainer = new(workerfakes.FakeContainer)
-
-						fakeWorker.FindContainerByHandleReturns(fakeContainer, true, nil)
-
-						foundContainer, found, err := pool.FindContainerByHandle(logger, "some-handle", 42)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-						Expect(foundContainer).To(Equal(fakeContainer))
-					})
-				})
 			})
 		})
 	})

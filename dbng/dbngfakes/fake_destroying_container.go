@@ -8,6 +8,15 @@ import (
 )
 
 type FakeDestroyingContainer struct {
+	IDStub        func() int
+	iDMutex       sync.RWMutex
+	iDArgsForCall []struct{}
+	iDReturns     struct {
+		result1 int
+	}
+	iDReturnsOnCall map[int]struct {
+		result1 int
+	}
 	HandleStub        func() string
 	handleMutex       sync.RWMutex
 	handleArgsForCall []struct{}
@@ -25,6 +34,15 @@ type FakeDestroyingContainer struct {
 	}
 	workerNameReturnsOnCall map[int]struct {
 		result1 string
+	}
+	MetadataStub        func() dbng.ContainerMetadata
+	metadataMutex       sync.RWMutex
+	metadataArgsForCall []struct{}
+	metadataReturns     struct {
+		result1 dbng.ContainerMetadata
+	}
+	metadataReturnsOnCall map[int]struct {
+		result1 dbng.ContainerMetadata
 	}
 	DestroyStub        func() (bool, error)
 	destroyMutex       sync.RWMutex
@@ -48,6 +66,46 @@ type FakeDestroyingContainer struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeDestroyingContainer) ID() int {
+	fake.iDMutex.Lock()
+	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
+	fake.recordInvocation("ID", []interface{}{})
+	fake.iDMutex.Unlock()
+	if fake.IDStub != nil {
+		return fake.IDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.iDReturns.result1
+}
+
+func (fake *FakeDestroyingContainer) IDCallCount() int {
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	return len(fake.iDArgsForCall)
+}
+
+func (fake *FakeDestroyingContainer) IDReturns(result1 int) {
+	fake.IDStub = nil
+	fake.iDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeDestroyingContainer) IDReturnsOnCall(i int, result1 int) {
+	fake.IDStub = nil
+	if fake.iDReturnsOnCall == nil {
+		fake.iDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.iDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
 }
 
 func (fake *FakeDestroyingContainer) Handle() string {
@@ -127,6 +185,46 @@ func (fake *FakeDestroyingContainer) WorkerNameReturnsOnCall(i int, result1 stri
 	}
 	fake.workerNameReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeDestroyingContainer) Metadata() dbng.ContainerMetadata {
+	fake.metadataMutex.Lock()
+	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
+	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct{}{})
+	fake.recordInvocation("Metadata", []interface{}{})
+	fake.metadataMutex.Unlock()
+	if fake.MetadataStub != nil {
+		return fake.MetadataStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.metadataReturns.result1
+}
+
+func (fake *FakeDestroyingContainer) MetadataCallCount() int {
+	fake.metadataMutex.RLock()
+	defer fake.metadataMutex.RUnlock()
+	return len(fake.metadataArgsForCall)
+}
+
+func (fake *FakeDestroyingContainer) MetadataReturns(result1 dbng.ContainerMetadata) {
+	fake.MetadataStub = nil
+	fake.metadataReturns = struct {
+		result1 dbng.ContainerMetadata
+	}{result1}
+}
+
+func (fake *FakeDestroyingContainer) MetadataReturnsOnCall(i int, result1 dbng.ContainerMetadata) {
+	fake.MetadataStub = nil
+	if fake.metadataReturnsOnCall == nil {
+		fake.metadataReturnsOnCall = make(map[int]struct {
+			result1 dbng.ContainerMetadata
+		})
+	}
+	fake.metadataReturnsOnCall[i] = struct {
+		result1 dbng.ContainerMetadata
 	}{result1}
 }
 
@@ -216,10 +314,14 @@ func (fake *FakeDestroyingContainer) IsDiscontinuedReturnsOnCall(i int, result1 
 func (fake *FakeDestroyingContainer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
+	fake.metadataMutex.RLock()
+	defer fake.metadataMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	fake.isDiscontinuedMutex.RLock()

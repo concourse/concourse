@@ -116,20 +116,16 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedR
 		dbng.ForResourceType{
 			ResourceTypeID: savedResourceType.ID,
 		},
-		worker.Identifier{
-			Stage:               db.ContainerStageCheck,
-			ImageResourceType:   savedResourceType.Config.Type,
-			ImageResourceSource: savedResourceType.Config.Source,
-		},
-		worker.Metadata{
-			Type:       db.ContainerTypeCheck,
-			PipelineID: scanner.dbPipeline.ID(),
+		dbng.ContainerMetadata{
+			Type:           dbng.ContainerTypeCheck,
+			PipelineID:     scanner.dbPipeline.ID(),
+			ResourceTypeID: savedResourceType.ID,
 		},
 		resourceSpec,
 		versionedResourceTypes,
 		worker.NoopImageFetchingDelegate{},
 		atc.ResourceConfig{
-			Type:   savedResourceType.Config.Type, // XXX think deeply why this used to be .Name
+			Type:   savedResourceType.Config.Type,
 			Source: savedResourceType.Config.Source,
 		},
 	)

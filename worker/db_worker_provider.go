@@ -3,7 +3,6 @@ package worker
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"code.cloudfoundry.org/clock"
 	gclient "code.cloudfoundry.org/garden/client"
@@ -22,8 +21,6 @@ import (
 //go:generate counterfeiter . WorkerDB
 
 type WorkerDB interface {
-	PutTheRestOfThisCrapInTheDatabaseButPleaseRemoveMeLater(container db.Container, maxLifetime time.Duration) error
-	GetContainer(string) (db.SavedContainer, bool, error)
 	GetPipelineByID(pipelineID int) (db.SavedPipeline, error)
 	AcquireVolumeCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
 	AcquireContainerCreatingLock(lager.Logger, int) (lock.Lock, bool, error)
@@ -114,6 +111,25 @@ func (provider *dbWorkerProvider) GetWorker(name string) (Worker, bool, error) {
 	return worker, found, nil
 }
 
+func (provider *dbWorkerProvider) FindWorkerForContainer(
+	logger lager.Logger,
+	teamID int,
+	handle string,
+) (Worker, bool, error) {
+	team := provider.dbTeamFactory.GetByID(teamID)
+
+	dbWorker, found, err := team.FindWorkerForContainer(handle)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return provider.newGardenWorker(clock.NewClock(), dbWorker), true, nil
+}
+
 func (provider *dbWorkerProvider) FindWorkerForBuildContainer(
 	logger lager.Logger,
 	teamID int,
@@ -159,10 +175,6 @@ func (provider *dbWorkerProvider) FindWorkerForResourceCheckContainer(
 	}
 
 	return provider.newGardenWorker(clock.NewClock(), dbWorker), true, nil
-}
-
-func (provider *dbWorkerProvider) GetContainer(handle string) (db.SavedContainer, bool, error) {
-	return provider.db.GetContainer(handle)
 }
 
 func (provider *dbWorkerProvider) newGardenWorker(tikTok clock.Clock, savedWorker dbng.Worker) Worker {

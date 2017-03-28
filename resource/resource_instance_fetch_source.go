@@ -151,7 +151,6 @@ func (s *resourceInstanceFetchSource) createContainerForVolume(volume worker.Vol
 		s.resourceInstance.ResourceUser(),
 		nil,
 		s.imageFetchingDelegate,
-		s.session.ID,
 		s.session.Metadata,
 		containerSpec,
 		s.resourceTypes,

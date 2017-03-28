@@ -20,7 +20,7 @@ func (s *Server) ListContainers(teamDB db.TeamDB, team dbng.Team) http.Handler {
 			"params": params,
 		})
 
-		containerDescriptor, err := s.parseRequest(r)
+		containerMetadata, err := s.parseRequest(r)
 		if err != nil {
 			hLog.Error("failed-to-parse-request", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -31,7 +31,7 @@ func (s *Server) ListContainers(teamDB db.TeamDB, team dbng.Team) http.Handler {
 
 		hLog.Debug("listing-containers")
 
-		containers, err := teamDB.FindContainersByDescriptors(containerDescriptor)
+		containers, err := team.FindContainersByMetadata(containerMetadata)
 		if err != nil {
 			hLog.Error("failed-to-find-containers", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -50,48 +50,66 @@ func (s *Server) ListContainers(teamDB db.TeamDB, team dbng.Team) http.Handler {
 	})
 }
 
-func (s *Server) parseRequest(r *http.Request) (db.Container, error) {
-	var containerType db.ContainerType
-	var attempts []int
-	var buildID int
+func (s *Server) parseRequest(r *http.Request) (dbng.ContainerMetadata, error) {
 	var err error
+
+	var containerType dbng.ContainerType
 	if r.URL.Query().Get("type") != "" {
-		containerType, err = db.ContainerTypeFromString(r.URL.Query().Get("type"))
+		containerType, err = dbng.ContainerTypeFromString(r.URL.Query().Get("type"))
 		if err != nil {
-			return db.Container{}, err
+			return dbng.ContainerMetadata{}, err
 		}
 	}
 
-	if r.URL.Query().Get("attempt") != "" {
-		err = json.Unmarshal([]byte(r.URL.Query().Get("attempt")), &attempts)
-		if err != nil {
-			return db.Container{}, err
-		}
+	pipelineID, err := s.parseIntParam(r, "pipeline_id")
+	if err != nil {
+		return dbng.ContainerMetadata{}, err
 	}
 
-	buildIDParam := r.URL.Query().Get("build-id")
-	if len(buildIDParam) != 0 {
+	jobID, err := s.parseIntParam(r, "job_id")
+	if err != nil {
+		return dbng.ContainerMetadata{}, err
+	}
+
+	buildID, err := s.parseIntParam(r, "build_id")
+	if err != nil {
+		return dbng.ContainerMetadata{}, err
+	}
+
+	resourceID, err := s.parseIntParam(r, "resource_id")
+	if err != nil {
+		return dbng.ContainerMetadata{}, err
+	}
+
+	resourceTypeID, err := s.parseIntParam(r, "resource_type_id")
+	if err != nil {
+		return dbng.ContainerMetadata{}, err
+	}
+
+	return dbng.ContainerMetadata{
+		Type: containerType,
+
+		StepName: r.URL.Query().Get("step_name"),
+		Attempt:  r.URL.Query().Get("attempt"),
+
+		PipelineID:     pipelineID,
+		JobID:          jobID,
+		BuildID:        buildID,
+		ResourceID:     resourceID,
+		ResourceTypeID: resourceTypeID,
+	}, nil
+}
+
+func (s *Server) parseIntParam(r *http.Request, name string) (int, error) {
+	var val int
+	param := r.URL.Query().Get(name)
+	if len(param) != 0 {
 		var err error
-		buildID, err = strconv.Atoi(buildIDParam)
+		val, err = strconv.Atoi(param)
 		if err != nil {
-			return db.Container{}, fmt.Errorf("malformed build ID: %s", err)
+			return 0, fmt.Errorf("non-numeric '%s' param (%s): %s", name, param, err)
 		}
 	}
 
-	container := db.Container{
-		ContainerIdentifier: db.ContainerIdentifier{
-			BuildID: buildID,
-		},
-		ContainerMetadata: db.ContainerMetadata{
-			PipelineName: r.URL.Query().Get("pipeline_name"),
-			JobName:      r.URL.Query().Get("job_name"),
-			Type:         containerType,
-			ResourceName: r.URL.Query().Get("resource_name"),
-			StepName:     r.URL.Query().Get("step_name"),
-			BuildName:    r.URL.Query().Get("build_name"),
-			Attempts:     attempts,
-		},
-	}
-
-	return container, nil
+	return val, nil
 }

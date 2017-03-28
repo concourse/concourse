@@ -34,9 +34,6 @@ type TeamDB interface {
 
 	CreateOneOffBuild() (Build, error)
 	GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, error)
-
-	GetContainer(handle string) (SavedContainer, bool, error)
-	FindContainersByDescriptors(id Container) ([]SavedContainer, error)
 }
 
 type teamDB struct {

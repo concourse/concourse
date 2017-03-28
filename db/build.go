@@ -32,10 +32,12 @@ const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.ma
 type Build interface {
 	ID() int
 	Name() string
+	JobID() int
 	JobName() string
+	PipelineID() int
 	PipelineName() string
-	TeamName() string
 	TeamID() int
+	TeamName() string
 	Engine() string
 	EngineMetadata() string
 	Status() Status
@@ -84,11 +86,13 @@ type build struct {
 	status    Status
 	scheduled bool
 
-	jobName      string
-	pipelineName string
+	teamID   int
+	teamName string
+
 	pipelineID   int
-	teamName     string
-	teamID       int
+	pipelineName string
+	jobID        int
+	jobName      string
 
 	isManuallyTriggered bool
 
@@ -113,20 +117,28 @@ func (b *build) Name() string {
 	return b.name
 }
 
+func (b *build) JobID() int {
+	return b.jobID
+}
+
 func (b *build) JobName() string {
 	return b.jobName
+}
+
+func (b *build) PipelineID() int {
+	return b.pipelineID
 }
 
 func (b *build) PipelineName() string {
 	return b.pipelineName
 }
 
-func (b *build) TeamName() string {
-	return b.teamName
-}
-
 func (b *build) TeamID() int {
 	return b.teamID
+}
+
+func (b *build) TeamName() string {
+	return b.teamName
 }
 
 func (b *build) IsManuallyTriggered() bool {
@@ -158,7 +170,7 @@ func (b *build) Status() Status {
 }
 
 func (b *build) IsOneOff() bool {
-	return b.jobName == ""
+	return b.jobID == 0
 }
 
 func (b *build) IsScheduled() bool {
@@ -204,6 +216,7 @@ func (b *build) Reload() (bool, error) {
 	b.teamName = newBuild.TeamName()
 	b.teamID = newBuild.TeamID()
 	b.jobName = newBuild.JobName()
+	b.jobID = newBuild.JobID()
 	b.pipelineName = newBuild.PipelineName()
 
 	return found, err

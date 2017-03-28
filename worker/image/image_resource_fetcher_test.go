@@ -12,7 +12,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/resource"
@@ -41,8 +40,7 @@ var _ = Describe("Image", func() {
 	var logger lager.Logger
 	var imageResource atc.ImageResource
 	var signals chan os.Signal
-	var identifier worker.Identifier
-	var metadata worker.Metadata
+	var metadata dbng.ContainerMetadata
 	var fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
 	var fakeWorker *wfakes.FakeWorker
 	var customTypes atc.VersionedResourceTypes
@@ -70,17 +68,13 @@ var _ = Describe("Image", func() {
 			Source: atc.Source{"some": "source"},
 		}
 		signals = make(chan os.Signal)
-		identifier = worker.Identifier{
-			PlanID:  "some-plan-id",
-			BuildID: 42,
-		}
-		metadata = worker.Metadata{
-			PipelineID:           4567,
-			PipelineName:         "some-pipeline",
-			Type:                 db.ContainerTypeCheck,
-			StepName:             "some-step",
-			WorkingDirectory:     "some-working-dir",
-			EnvironmentVariables: []string{"some", "env", "var"},
+		metadata = dbng.ContainerMetadata{
+			PipelineID:       4567,
+			JobID:            1234,
+			BuildID:          9876,
+			Type:             dbng.ContainerTypeCheck,
+			StepName:         "some-step",
+			WorkingDirectory: "some-working-dir",
 		}
 		fakeImageFetchingDelegate = new(wfakes.FakeImageFetchingDelegate)
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
@@ -121,7 +115,6 @@ var _ = Describe("Image", func() {
 			signals,
 			imageResource.Type,
 			imageResource.Source,
-			identifier,
 			metadata,
 			atc.Tags{"worker", "tags"},
 			teamID,
@@ -198,31 +191,18 @@ var _ = Describe("Image", func() {
 
 						Context("calling NewBuildResource", func() {
 							BeforeEach(func() {
-								identifier = worker.Identifier{
-									PlanID:  "some-plan-id",
-									BuildID: 1,
-								}
 								fakeResourceFactory.NewCheckResourceReturns(fakeBuildResource, nil)
 							})
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-								_, user, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								_, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
-								Expect(id).To(Equal(worker.Identifier{
-									BuildID:             identifier.BuildID,
-									PlanID:              "some-plan-id",
-									ImageResourceType:   "docker",
-									ImageResourceSource: atc.Source{"some": "source"},
-									Stage:               db.ContainerStageCheck,
-								}))
-								Expect(metadata).To(Equal(worker.Metadata{
-									PipelineID:           4567,
-									PipelineName:         "some-pipeline",
-									Type:                 db.ContainerTypeCheck,
-									StepName:             "some-step",
-									WorkingDirectory:     "",  // figure this out once we actually support hijacking these
-									EnvironmentVariables: nil, // figure this out once we actually support hijacking these
+								Expect(metadata).To(Equal(dbng.ContainerMetadata{
+									Type:       dbng.ContainerTypeCheck,
+									PipelineID: 4567,
+									JobID:      1234,
+									BuildID:    9876,
 								}))
 								Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 									ImageSpec: worker.ImageSpec{
@@ -240,31 +220,18 @@ var _ = Describe("Image", func() {
 
 						Context("calling NewCheckResource", func() {
 							BeforeEach(func() {
-								identifier = worker.Identifier{
-									PlanID:     "some-plan-id",
-									ResourceID: 1,
-								}
 								fakeResourceFactory.NewCheckResourceReturns(fakeCheckResource, nil)
 							})
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-								_, user, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								_, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
-								Expect(id).To(Equal(worker.Identifier{
-									ResourceID:          identifier.ResourceID,
-									PlanID:              "some-plan-id",
-									ImageResourceType:   "docker",
-									ImageResourceSource: atc.Source{"some": "source"},
-									Stage:               db.ContainerStageCheck,
-								}))
-								Expect(metadata).To(Equal(worker.Metadata{
-									PipelineID:           4567,
-									PipelineName:         "some-pipeline",
-									Type:                 db.ContainerTypeCheck,
-									StepName:             "some-step",
-									WorkingDirectory:     "",  // figure this out once we actually support hijacking these
-									EnvironmentVariables: nil, // figure this out once we actually support hijacking these
+								Expect(metadata).To(Equal(dbng.ContainerMetadata{
+									Type:       dbng.ContainerTypeCheck,
+									PipelineID: 4567,
+									JobID:      1234,
+									BuildID:    9876,
 								}))
 								Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 									ImageSpec: worker.ImageSpec{
@@ -303,22 +270,13 @@ var _ = Describe("Image", func() {
 
 						It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 							Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-							_, user, id, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+							_, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 							Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
-							Expect(id).To(Equal(worker.Identifier{
-								PlanID:              "some-plan-id",
-								BuildID:             42,
-								ImageResourceType:   "docker",
-								ImageResourceSource: atc.Source{"some": "source"},
-								Stage:               db.ContainerStageCheck,
-							}))
-							Expect(metadata).To(Equal(worker.Metadata{
-								PipelineID:           4567,
-								PipelineName:         "some-pipeline",
-								Type:                 db.ContainerTypeCheck,
-								StepName:             "some-step",
-								WorkingDirectory:     "",  // figure this out once we actually support hijacking these
-								EnvironmentVariables: nil, // figure this out once we actually support hijacking these
+							Expect(metadata).To(Equal(dbng.ContainerMetadata{
+								Type:       dbng.ContainerTypeCheck,
+								PipelineID: 4567,
+								JobID:      1234,
+								BuildID:    9876,
 							}))
 							Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 								ImageSpec: worker.ImageSpec{
@@ -349,29 +307,16 @@ var _ = Describe("Image", func() {
 							Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(expectedIdentifier))
 						})
 
-						// TODO It doesn't seem that all cases were being tested because they besically do the same
-						// They all create a resource and that resource calls the Check() function.
-						// Do we want to test the same things
-
 						It("fetches resource with correct session", func() {
 							Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
 							_, session, tags, actualTeamID, actualCustomTypes, resourceInstance, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 							Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 							Expect(session).To(Equal(resource.Session{
-								ID: worker.Identifier{
-									BuildID:             42,
-									PlanID:              "some-plan-id",
-									ImageResourceType:   "docker",
-									ImageResourceSource: atc.Source{"some": "source"},
-									Stage:               db.ContainerStageGet,
-								},
-								Metadata: worker.Metadata{
-									PipelineID:           4567,
-									PipelineName:         "some-pipeline",
-									Type:                 db.ContainerTypeGet,
-									StepName:             "some-step",
-									WorkingDirectory:     "",  // figure this out once we actually support hijacking these
-									EnvironmentVariables: nil, // figure this out once we actually support hijacking these
+								Metadata: dbng.ContainerMetadata{
+									Type:       dbng.ContainerTypeGet,
+									PipelineID: 4567,
+									JobID:      1234,
+									BuildID:    9876,
 								},
 							}))
 							Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))

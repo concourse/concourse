@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/event"
@@ -29,7 +30,11 @@ var _ = Describe("ExecEngine", func() {
 		logger              *lagertest.TestLogger
 
 		execEngine engine.Engine
-		teamID     = 17
+
+		expectedTeamID     = 1111
+		expectedPipelineID = 2222
+		expectedJobID      = 3333
+		expectedBuildID    = 4444
 	)
 
 	BeforeEach(func() {
@@ -81,16 +86,18 @@ var _ = Describe("ExecEngine", func() {
 			planFactory = atc.NewPlanFactory(123)
 
 			dbBuild = new(dbfakes.FakeBuild)
-			dbBuild.IDReturns(42)
-			dbBuild.NameReturns("21")
+			dbBuild.IDReturns(expectedBuildID)
+			dbBuild.NameReturns("42")
 			dbBuild.JobNameReturns("some-job")
+			dbBuild.JobIDReturns(expectedJobID)
 			dbBuild.PipelineNameReturns("some-pipeline")
+			dbBuild.PipelineIDReturns(expectedPipelineID)
 			dbBuild.TeamNameReturns("some-team")
-			dbBuild.TeamIDReturns(teamID)
+			dbBuild.TeamIDReturns(expectedTeamID)
 
 			expectedMetadata = engine.StepMetadata{
-				BuildID:      42,
-				BuildName:    "21",
+				BuildID:      expectedBuildID,
+				BuildName:    "42",
 				JobName:      "some-job",
 				PipelineName: "some-pipeline",
 				TeamName:     "some-team",
@@ -149,7 +156,7 @@ var _ = Describe("ExecEngine", func() {
 					Type:       "put",
 					Source:     atc.Source{"some": "source"},
 					Params:     atc.Params{"some": "params"},
-					PipelineID: 57,
+					PipelineID: expectedPipelineID,
 				})
 				dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
 					Name:       "some-get",
@@ -157,7 +164,7 @@ var _ = Describe("ExecEngine", func() {
 					Type:       "get",
 					Source:     atc.Source{"some": "source"},
 					Params:     atc.Params{"another": "params"},
-					PipelineID: 57,
+					PipelineID: expectedPipelineID,
 				})
 
 				otherPutPlan = planFactory.NewPlan(atc.PutPlan{
@@ -166,7 +173,7 @@ var _ = Describe("ExecEngine", func() {
 					Type:       "put",
 					Source:     atc.Source{"some": "source-2"},
 					Params:     atc.Params{"some": "params-2"},
-					PipelineID: 57,
+					PipelineID: expectedPipelineID,
 				})
 				otherDependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
 					Name:       "some-get-2",
@@ -174,7 +181,7 @@ var _ = Describe("ExecEngine", func() {
 					Type:       "get",
 					Source:     atc.Source{"some": "source-2"},
 					Params:     atc.Params{"another": "params-2"},
-					PipelineID: 57,
+					PipelineID: expectedPipelineID,
 				})
 
 				outputPlan = planFactory.NewPlan(atc.AggregatePlan{
@@ -198,46 +205,40 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
-					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _ := fakeFactory.PutArgsForCall(0)
+					logger, teamID, buildID, planID, metadata, workerMetadata, delegate, resourceConfig, tags, params, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(putPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						ResourceName: "",
-						Type:         db.ContainerTypePut,
-						StepName:     "some-put",
-						PipelineID:   57,
-						TeamID:       teamID,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						Type:       dbng.ContainerTypePut,
+						StepName:   "some-put",
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 42,
-						PlanID:  putPlan.ID,
-					}))
-
 					Expect(tags).To(BeEmpty())
-					Expect(actualTeamID).To(Equal(teamID))
 					Expect(delegate).To(Equal(fakeOutputDelegate))
 					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
 					Expect(resourceConfig.Type).To(Equal("put"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"some": "params"}))
 
-					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _ = fakeFactory.PutArgsForCall(1)
+					logger, teamID, buildID, planID, metadata, workerMetadata, delegate, resourceConfig, tags, params, _ = fakeFactory.PutArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(otherPutPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						ResourceName: "",
-						Type:         db.ContainerTypePut,
-						StepName:     "some-put-2",
-						PipelineID:   57,
-						TeamID:       teamID,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						Type:       dbng.ContainerTypePut,
+						StepName:   "some-put-2",
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 42,
-						PlanID:  otherPutPlan.ID,
-					}))
-
 					Expect(tags).To(BeEmpty())
-					Expect(actualTeamID).To(Equal(teamID))
 					Expect(delegate).To(Equal(fakeOutputDelegate))
 					Expect(resourceConfig.Name).To(Equal("some-output-resource-2"))
 					Expect(resourceConfig.Type).To(Equal("put"))
@@ -253,25 +254,23 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.DependentGetCallCount()).To(Equal(2))
 
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _ := fakeFactory.DependentGetArgsForCall(0)
+					logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, resourceConfig, tags, params, _ := fakeFactory.DependentGetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(dependentGetPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						ResourceName: "",
-						Type:         db.ContainerTypeGet,
-						StepName:     "some-get",
-						PipelineID:   57,
-						TeamID:       teamID,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						Type:       dbng.ContainerTypeGet,
+						StepName:   "some-get",
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 42,
-						PlanID:  dependentGetPlan.ID,
-					}))
-
 					Expect(tags).To(BeEmpty())
-					Expect(actualTeamID).To(Equal(teamID))
 					Expect(delegate).To(Equal(fakeInputDelegate))
-					_, plan, planID := fakeDelegate.InputDelegateArgsForCall(0)
+
+					_, plan, originID := fakeDelegate.InputDelegateArgsForCall(0)
 					Expect(plan).To(Equal((*outputPlan.Aggregate)[0].OnSuccess.Next.DependentGet.GetPlan()))
 					Expect(planID).NotTo(BeNil())
 
@@ -281,27 +280,25 @@ var _ = Describe("ExecEngine", func() {
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"another": "params"}))
 
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _ = fakeFactory.DependentGetArgsForCall(1)
+					logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, resourceConfig, tags, params, _ = fakeFactory.DependentGetArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(otherDependentGetPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						ResourceName: "",
-						Type:         db.ContainerTypeGet,
-						StepName:     "some-get-2",
-						PipelineID:   57,
-						TeamID:       teamID,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						Type:       dbng.ContainerTypeGet,
+						StepName:   "some-get-2",
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 42,
-						PlanID:  otherDependentGetPlan.ID,
-					}))
-					Expect(actualTeamID).To(Equal(teamID))
-
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeInputDelegate))
-					_, plan, planID = fakeDelegate.InputDelegateArgsForCall(1)
+
+					_, plan, originID = fakeDelegate.InputDelegateArgsForCall(1)
 					Expect(plan).To(Equal((*outputPlan.Aggregate)[1].OnSuccess.Next.DependentGet.GetPlan()))
-					Expect(planID).NotTo(BeNil())
+					Expect(originID).NotTo(BeNil())
 
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-get-2")))
 					Expect(resourceConfig.Name).To(Equal("some-input-resource-2"))
@@ -330,14 +327,14 @@ var _ = Describe("ExecEngine", func() {
 					Type:       "get",
 					Source:     atc.Source{"some": "source"},
 					Params:     atc.Params{"some": "params"},
-					PipelineID: 57,
+					PipelineID: expectedPipelineID,
 				})
 
 				taskPlan = planFactory.NewPlan(atc.TaskPlan{
 					Name:       "some-task",
 					Privileged: false,
 					Tags:       atc.Tags{"some", "task", "tags"},
-					PipelineID: 57,
+					PipelineID: expectedPipelineID,
 					ConfigPath: "some-config-path",
 				})
 
@@ -373,26 +370,22 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs the first get correctly", func() {
-				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, resourceConfig, tags, params, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
+				Expect(teamID).To(Equal(expectedTeamID))
+				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(planID).To(Equal(getPlan.ID))
 				Expect(metadata).To(Equal(expectedMetadata))
-				Expect(workerMetadata).To(Equal(worker.Metadata{
-					ResourceName: "",
-					Type:         db.ContainerTypeGet,
-					StepName:     "some-get",
-					PipelineID:   57,
-					Attempts:     []int{1},
-					TeamID:       teamID,
+				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+					Type:       dbng.ContainerTypeGet,
+					StepName:   "some-get",
+					PipelineID: expectedPipelineID,
+					JobID:      expectedJobID,
+					BuildID:    expectedBuildID,
+					Attempt:    "1",
 				}))
-				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 42,
-					PlanID:  getPlan.ID,
-				}))
-
 				Expect(tags).To(BeEmpty())
-				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeInputDelegate))
-
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
 				Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 				Expect(resourceConfig.Type).To(Equal("get"))
@@ -401,26 +394,22 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs the second get correctly", func() {
-				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _ := fakeFactory.GetArgsForCall(1)
+				logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, resourceConfig, tags, params, _, _ := fakeFactory.GetArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
+				Expect(teamID).To(Equal(expectedTeamID))
+				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(planID).To(Equal(getPlan.ID))
 				Expect(metadata).To(Equal(expectedMetadata))
-				Expect(workerMetadata).To(Equal(worker.Metadata{
-					ResourceName: "",
-					Type:         db.ContainerTypeGet,
-					StepName:     "some-get",
-					PipelineID:   57,
-					Attempts:     []int{3},
-					TeamID:       teamID,
+				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+					Type:       dbng.ContainerTypeGet,
+					StepName:   "some-get",
+					PipelineID: expectedPipelineID,
+					JobID:      expectedJobID,
+					BuildID:    expectedBuildID,
+					Attempt:    "3",
 				}))
-				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 42,
-					PlanID:  getPlan.ID,
-				}))
-
 				Expect(tags).To(BeEmpty())
-				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeInputDelegate))
-
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
 				Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 				Expect(resourceConfig.Type).To(Equal("get"))
@@ -433,45 +422,39 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, actualTeamID, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, privileged, tags, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
+				Expect(teamID).To(Equal(expectedTeamID))
+				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(planID).To(Equal(taskPlan.ID))
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
-				Expect(workerMetadata).To(Equal(worker.Metadata{
-					ResourceName: "",
-					Type:         db.ContainerTypeTask,
-					StepName:     "some-task",
-					PipelineID:   57,
-					Attempts:     []int{2, 1},
-					TeamID:       teamID,
+				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+					Type:       dbng.ContainerTypeTask,
+					StepName:   "some-task",
+					PipelineID: expectedPipelineID,
+					JobID:      expectedJobID,
+					BuildID:    expectedBuildID,
+					Attempt:    "2,1",
 				}))
-				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 42,
-					PlanID:  taskPlan.ID,
-				}))
-
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
 				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
-				Expect(actualTeamID).To(Equal(teamID))
 				Expect(configSource).To(Equal(exec.ValidatingConfigSource{exec.FileConfigSource{"some-config-path"}}))
 
-				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, actualTeamID, configSource, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, privileged, tags, configSource, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
+				Expect(teamID).To(Equal(expectedTeamID))
+				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(planID).To(Equal(taskPlan.ID))
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
-				Expect(workerMetadata).To(Equal(worker.Metadata{
-					ResourceName: "",
-					Type:         db.ContainerTypeTask,
-					StepName:     "some-task",
-					PipelineID:   57,
-					Attempts:     []int{2, 2},
-					TeamID:       teamID,
+				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+					Type:       dbng.ContainerTypeTask,
+					StepName:   "some-task",
+					PipelineID: expectedPipelineID,
+					JobID:      expectedJobID,
+					BuildID:    expectedBuildID,
+					Attempt:    "2,2",
 				}))
-				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 42,
-					PlanID:  taskPlan.ID,
-				}))
-
-				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
 				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
@@ -523,14 +506,14 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				_, _, _, workerMetadata, _, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
-				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
-				_, _, _, workerMetadata, _, _, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
-				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
-				_, _, _, workerMetadata, _, _, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(2)
-				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
-				_, _, _, workerMetadata, _, _, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(3)
-				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
+				_, _, _, _, _, workerMetadata, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				Expect(workerMetadata.Attempt).To(Equal("1"))
+				_, _, _, _, _, workerMetadata, _, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				Expect(workerMetadata.Attempt).To(Equal("1"))
+				_, _, _, _, _, workerMetadata, _, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(2)
+				Expect(workerMetadata.Attempt).To(Equal("1"))
+				_, _, _, _, _, workerMetadata, _, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(3)
+				Expect(workerMetadata.Attempt).To(Equal("1"))
 			})
 		})
 
@@ -546,7 +529,7 @@ var _ = Describe("ExecEngine", func() {
 						Version:    atc.Version{"some": "version"},
 						Source:     atc.Source{"some": "source"},
 						Params:     atc.Params{"some": "params"},
-						PipelineID: 57,
+						PipelineID: expectedPipelineID,
 					}
 
 					plan = planFactory.NewPlan(getPlan)
@@ -560,34 +543,29 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, version, _ := fakeFactory.GetArgsForCall(0)
+					logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, resourceConfig, tags, params, version, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(plan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						ResourceName: "",
-						Type:         db.ContainerTypeGet,
-						StepName:     "some-input",
-						PipelineID:   57,
-						TeamID:       teamID,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						Type:       dbng.ContainerTypeGet,
+						StepName:   "some-input",
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 					}))
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 42,
-						PlanID:  plan.ID,
-					}))
-
 					Expect(tags).To(ConsistOf("some", "get", "tags"))
-					Expect(actualTeamID).To(Equal(teamID))
 					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"some": "params"}))
 					Expect(version).To(Equal(atc.Version{"some": "version"}))
-
 					Expect(delegate).To(Equal(fakeInputDelegate))
-
-					_, _, planID := fakeDelegate.InputDelegateArgsForCall(0)
-					Expect(planID).To(Equal(event.OriginID(plan.ID)))
+					_, _, originID := fakeDelegate.InputDelegateArgsForCall(0)
+					Expect(originID).To(Equal(event.OriginID(plan.ID)))
 				})
 			})
 
@@ -605,7 +583,7 @@ var _ = Describe("ExecEngine", func() {
 					taskPlan = atc.TaskPlan{
 						Name:          "some-task",
 						ConfigPath:    "some-input/build.yml",
-						PipelineID:    57,
+						PipelineID:    expectedPipelineID,
 						InputMapping:  inputMapping,
 						OutputMapping: outputMapping,
 					}
@@ -628,31 +606,25 @@ var _ = Describe("ExecEngine", func() {
 						build.Resume(logger)
 						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-						logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, actualTeamID, configSource, _, actualInputMapping, actualOutputMapping, _, _ := fakeFactory.TaskArgsForCall(0)
+						logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, privileged, tags, configSource, _, actualInputMapping, actualOutputMapping, _, _ := fakeFactory.TaskArgsForCall(0)
 						Expect(logger).NotTo(BeNil())
+						Expect(teamID).To(Equal(expectedTeamID))
+						Expect(buildID).To(Equal(expectedBuildID))
+						Expect(planID).To(Equal(plan.ID))
 						Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
-						Expect(workerMetadata).To(Equal(worker.Metadata{
-							ResourceName: "",
-							Type:         db.ContainerTypeTask,
-							StepName:     "some-task",
-							PipelineID:   57,
-							TeamID:       teamID,
+						Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+							Type:       dbng.ContainerTypeTask,
+							StepName:   "some-task",
+							PipelineID: expectedPipelineID,
+							JobID:      expectedJobID,
+							BuildID:    expectedBuildID,
 						}))
-						Expect(workerID).To(Equal(worker.Identifier{
-							BuildID: 42,
-							PlanID:  plan.ID,
-						}))
-
 						Expect(privileged).To(Equal(exec.Privileged(false)))
 						Expect(tags).To(BeEmpty())
-						Expect(actualTeamID).To(Equal(teamID))
 						Expect(configSource).NotTo(BeNil())
-
 						Expect(delegate).To(Equal(fakeExecutionDelegate))
-
-						_, _, planID := fakeDelegate.ExecutionDelegateArgsForCall(0)
-						Expect(planID).To(Equal(event.OriginID(plan.ID)))
-
+						_, _, originID := fakeDelegate.ExecutionDelegateArgsForCall(0)
+						Expect(originID).To(Equal(event.OriginID(plan.ID)))
 						Expect(actualInputMapping).To(Equal(inputMapping))
 						Expect(actualOutputMapping).To(Equal(outputMapping))
 					})
@@ -670,7 +642,7 @@ var _ = Describe("ExecEngine", func() {
 							build.Resume(logger)
 							Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-							_, _, _, _, _, _, _, _, _, _, _, _, actualImageArtifactName, _ := fakeFactory.TaskArgsForCall(0)
+							_, _, _, _, _, _, _, _, _, _, _, _, _, actualImageArtifactName, _ := fakeFactory.TaskArgsForCall(0)
 							Expect(actualImageArtifactName).To(Equal("some-image-artifact-name"))
 						})
 					})
@@ -690,7 +662,7 @@ var _ = Describe("ExecEngine", func() {
 							build.Resume(logger)
 							Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-							_, _, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+							_, _, _, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 							vcs, ok := configSource.(exec.ValidatingConfigSource)
 							Expect(ok).To(BeTrue())
 							_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
@@ -715,7 +687,7 @@ var _ = Describe("ExecEngine", func() {
 							build.Resume(logger)
 							Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-							_, _, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+							_, _, _, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 							vcs, ok := configSource.(exec.ValidatingConfigSource)
 							Expect(ok).To(BeTrue())
 							_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
@@ -740,7 +712,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:       "put",
 						Source:     atc.Source{"some": "source"},
 						Params:     atc.Params{"some": "params"},
-						PipelineID: 57,
+						PipelineID: expectedPipelineID,
 					})
 					dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
 						Name:       "some-get",
@@ -749,7 +721,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:       "get",
 						Source:     atc.Source{"some": "source"},
 						Params:     atc.Params{"another": "params"},
-						PipelineID: 57,
+						PipelineID: expectedPipelineID,
 					})
 
 					plan = planFactory.NewPlan(atc.OnSuccessPlan{
@@ -766,32 +738,27 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(1))
 
-					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _ := fakeFactory.PutArgsForCall(0)
+					logger, teamID, buildID, planID, metadata, workerMetadata, delegate, resourceConfig, tags, params, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(putPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						ResourceName: "",
-						Type:         db.ContainerTypePut,
-						StepName:     "some-put",
-						PipelineID:   57,
-						TeamID:       teamID,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						Type:       dbng.ContainerTypePut,
+						StepName:   "some-put",
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 42,
-						PlanID:  putPlan.ID,
-					}))
-
 					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
 					Expect(resourceConfig.Type).To(Equal("put"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))
-					Expect(actualTeamID).To(Equal(teamID))
 					Expect(params).To(Equal(atc.Params{"some": "params"}))
-
 					Expect(delegate).To(Equal(fakeOutputDelegate))
-
-					_, _, planID := fakeDelegate.OutputDelegateArgsForCall(0)
-					Expect(planID).To(Equal(event.OriginID(putPlan.ID)))
+					_, _, originID := fakeDelegate.OutputDelegateArgsForCall(0)
+					Expect(originID).To(Equal(event.OriginID(putPlan.ID)))
 				})
 
 				It("constructs the dependent get correctly", func() {
@@ -802,33 +769,28 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.DependentGetCallCount()).To(Equal(1))
 
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _ := fakeFactory.DependentGetArgsForCall(0)
+					logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, resourceConfig, tags, params, _ := fakeFactory.DependentGetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(dependentGetPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						ResourceName: "",
-						Type:         db.ContainerTypeGet,
-						StepName:     "some-get",
-						PipelineID:   57,
-						TeamID:       teamID,
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						Type:       dbng.ContainerTypeGet,
+						StepName:   "some-get",
+						PipelineID: expectedPipelineID,
+						JobID:      expectedJobID,
+						BuildID:    expectedBuildID,
 					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 42,
-						PlanID:  dependentGetPlan.ID,
-					}))
-
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))
-					Expect(actualTeamID).To(Equal(teamID))
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
 					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"another": "params"}))
-
 					Expect(delegate).To(Equal(fakeInputDelegate))
-
-					_, _, planID := fakeDelegate.InputDelegateArgsForCall(0)
-					Expect(planID).To(Equal(event.OriginID(dependentGetPlan.ID)))
+					_, _, originID := fakeDelegate.InputDelegateArgsForCall(0)
+					Expect(originID).To(Equal(event.OriginID(dependentGetPlan.ID)))
 				})
 			})
 		})
@@ -893,14 +855,17 @@ var _ = Describe("ExecEngine", func() {
 
 	Describe("LookupBuild", func() {
 		var dbBuild *dbfakes.FakeBuild
+
 		BeforeEach(func() {
 			dbBuild = new(dbfakes.FakeBuild)
-			dbBuild.IDReturns(42)
-			dbBuild.NameReturns("21")
+			dbBuild.IDReturns(expectedBuildID)
+			dbBuild.NameReturns("42")
 			dbBuild.JobNameReturns("some-job")
+			dbBuild.JobIDReturns(expectedJobID)
 			dbBuild.PipelineNameReturns("some-pipeline")
+			dbBuild.PipelineIDReturns(expectedPipelineID)
 			dbBuild.TeamNameReturns("some-team")
-			dbBuild.TeamIDReturns(teamID)
+			dbBuild.TeamIDReturns(expectedTeamID)
 		})
 
 		Context("when the build has a get step", func() {
@@ -917,7 +882,7 @@ var _ = Describe("ExecEngine", func() {
 									"type": "get",
 									"source": {"some": "source"},
 									"params": {"some": "params"},
-									"pipeline_id": 57
+									"pipeline_id": 2222
 								}
 							}
 						}`,
@@ -941,33 +906,29 @@ var _ = Describe("ExecEngine", func() {
 
 				foundBuild.Resume(logger)
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, teamID, buildID, planID, metadata, sourceName, workerMetadata, delegate, resourceConfig, tags, params, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
+				Expect(teamID).To(Equal(expectedTeamID))
+				Expect(buildID).To(Equal(expectedBuildID))
+				Expect(planID).To(Equal(atc.PlanID("47")))
 				Expect(metadata).To(Equal(engine.StepMetadata{
-					BuildID:      42,
-					BuildName:    "21",
+					BuildID:      expectedBuildID,
+					BuildName:    "42",
 					JobName:      "some-job",
 					PipelineName: "some-pipeline",
 					TeamName:     "some-team",
 					ExternalURL:  "http://example.com",
 				}))
-				Expect(workerMetadata).To(Equal(worker.Metadata{
-					ResourceName: "",
-					Type:         db.ContainerTypeGet,
-					StepName:     "some-get",
-					PipelineID:   57,
-					Attempts:     []int{1},
-					TeamID:       teamID,
+				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+					Type:       dbng.ContainerTypeGet,
+					StepName:   "some-get",
+					PipelineID: expectedPipelineID,
+					JobID:      expectedJobID,
+					BuildID:    expectedBuildID,
+					Attempt:    "1",
 				}))
-				Expect(workerID).To(Equal(worker.Identifier{
-					BuildID: 42,
-					PlanID:  "47",
-				}))
-
 				Expect(tags).To(BeEmpty())
-				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeInputDelegate))
-
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
 				Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 				Expect(resourceConfig.Type).To(Equal("get"))

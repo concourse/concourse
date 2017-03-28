@@ -54,7 +54,6 @@ func NewHandler(
 
 	teamsDB teamserver.TeamsDB,
 	buildsDB buildserver.BuildsDB,
-	containerDB containerserver.ContainerDB,
 	pipeDB pipes.PipeDB,
 	pipelinesDB db.PipelinesDB,
 
@@ -120,7 +119,7 @@ func NewHandler(
 
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 
-	containerServer := containerserver.NewServer(logger, workerClient, containerDB, teamDBFactory)
+	containerServer := containerserver.NewServer(logger, workerClient, teamDBFactory)
 
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 
