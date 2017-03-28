@@ -22,14 +22,9 @@ until createdb -U postgres -p ${pg_port} atc 2>&1 | grep 'already exists' >/dev/
 done
 
 atc \
-  --github-auth-client-id b0f64088163efa671b1a \
-  --github-auth-client-secret 90a1540774e35f7ebe7929c91cb06275d8aff28c \
-  --github-auth-user joshzarrabi \
-  --tls-cert /tmp/atc_certs/server.crt \
-  --tls-key /tmp/atc_certs/server.key \
-  --tls-bind-port 8443 \
+  --no-really-i-dont-want-any-auth \
   --log-level debug \
-  --external-url "https://127.0.0.1:8443" \
+  --external-url "http://127.0.0.1:8080" \
   --session-signing-key $KEYSDIR/web/session_signing_key \
   --postgres-data-source "user=postgres dbname=atc port=${pg_port} sslmode=disable" \
   "$@"
