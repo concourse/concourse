@@ -24,7 +24,12 @@ var _ = Describe("Handler", func() {
 		teamDBFactory *dbfakes.FakeTeamDBFactory
 		teamDB        *dbfakes.FakeTeamDB
 		pipelineDB    *dbfakes.FakePipelineDB
-		handler       http.Handler
+
+		dbTeamFactory *dbngfakes.FakeTeamFactory
+		fakeTeam      *dbngfakes.FakeTeam
+		fakePipeline  *dbngfakes.FakePipeline
+
+		handler http.Handler
 	)
 
 	BeforeEach(func() {
@@ -38,9 +43,15 @@ var _ = Describe("Handler", func() {
 		pipelineDBFactory := new(dbfakes.FakePipelineDBFactory)
 		pipelineDBFactory.BuildReturns(pipelineDB)
 
-		dbPipelineFactory := new(dbngfakes.FakePipelineFactory)
+		dbTeamFactory = new(dbngfakes.FakeTeamFactory)
 
-		handlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory, dbPipelineFactory)
+		fakeTeam = new(dbngfakes.FakeTeam)
+		dbTeamFactory.GetByIDReturns(fakeTeam)
+
+		fakePipeline = new(dbngfakes.FakePipeline)
+		fakeTeam.FindPipelineByNameReturns(fakePipeline, true, nil)
+
+		handlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory, dbTeamFactory)
 		handler = handlerFactory.HandlerFor(delegate.GetHandler)
 	})
 

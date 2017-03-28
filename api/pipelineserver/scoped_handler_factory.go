@@ -11,29 +11,29 @@ import (
 type ScopedHandlerFactory struct {
 	pipelineDBFactory db.PipelineDBFactory
 	teamDBFactory     db.TeamDBFactory
-	pipelineFactory   dbng.PipelineFactory
+	teamDBNGFactory   dbng.TeamFactory
 }
 
 func NewScopedHandlerFactory(
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
-	pipelineFactory dbng.PipelineFactory,
+	teamDBNGFactory dbng.TeamFactory,
 ) *ScopedHandlerFactory {
 	return &ScopedHandlerFactory{
 		pipelineDBFactory: pipelineDBFactory,
 		teamDBFactory:     teamDBFactory,
-		pipelineFactory:   pipelineFactory,
+		teamDBNGFactory:   teamDBNGFactory,
 	}
 }
 
 func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB, dbng.Pipeline) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		teamName := r.FormValue(":team_name")
+		pipelineName := r.FormValue(":pipeline_name")
+
 		pipelineDB, ok := r.Context().Value(auth.PipelineDBKey).(db.PipelineDB)
 		if !ok {
-			pipelineName := r.FormValue(":pipeline_name")
-			requestTeamName := r.FormValue(":team_name")
-
-			teamDB := pdbh.teamDBFactory.GetTeamDB(requestTeamName)
+			teamDB := pdbh.teamDBFactory.GetTeamDB(teamName)
 			savedPipeline, found, err := teamDB.GetPipelineByName(pipelineName)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -48,7 +48,18 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipel
 			pipelineDB = pdbh.pipelineDBFactory.Build(savedPipeline)
 		}
 
-		dbPipeline := pdbh.pipelineFactory.GetPipelineByID(pipelineDB.TeamID(), pipelineDB.Pipeline().ID)
+		dbngTeam := pdbh.teamDBNGFactory.GetByID(pipelineDB.TeamID())
+
+		dbPipeline, found, err := dbngTeam.FindPipelineByName(pipelineName)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
 		pipelineScopedHandler(pipelineDB, dbPipeline).ServeHTTP(w, r)
 	}

@@ -415,7 +415,7 @@ func (t *team) SavePipeline(
 			pausedState = PipelinePaused
 		}
 
-		savedPipeline, err = t.scanPipeline(tx.QueryRow(`
+		savedPipeline, err = scanPipeline(t.conn, t.lockFactory, tx.QueryRow(`
 			INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
 			VALUES (
 				$1,
@@ -425,10 +425,7 @@ func (t *team) SavePipeline(
 				$3,
 				$4
 			)
-			RETURNING `+unqualifiedPipelineColumns+`,
-			(
-				SELECT t.name as team_name FROM teams t WHERE t.id = $4
-			)
+			RETURNING `+unqualifiedPipelineColumns+`
 		`, pipelineName, payload, pausedState.Bool(), t.id))
 		if err != nil {
 			return nil, false, err
@@ -459,28 +456,22 @@ func (t *team) SavePipeline(
 		}
 	} else {
 		if pausedState == PipelineNoChange {
-			savedPipeline, err = t.scanPipeline(tx.QueryRow(`
+			savedPipeline, err = scanPipeline(t.conn, t.lockFactory, tx.QueryRow(`
 				UPDATE pipelines
 				SET config = $1, version = nextval('config_version_seq')
 				WHERE name = $2
 				AND version = $3
 				AND team_id = $4
-				RETURNING `+unqualifiedPipelineColumns+`,
-				(
-					SELECT t.name as team_name FROM teams t WHERE t.id = $4
-				)
+				RETURNING `+unqualifiedPipelineColumns+`
 			`, payload, pipelineName, from, t.id))
 		} else {
-			savedPipeline, err = t.scanPipeline(tx.QueryRow(`
+			savedPipeline, err = scanPipeline(t.conn, t.lockFactory, tx.QueryRow(`
 				UPDATE pipelines
 				SET config = $1, version = nextval('config_version_seq'), paused = $2
 				WHERE name = $3
 				AND version = $4
 				AND team_id = $5
-				RETURNING `+unqualifiedPipelineColumns+`,
-				(
-					SELECT t.name as team_name FROM teams t WHERE t.id = $4
-				)
+				RETURNING `+unqualifiedPipelineColumns+`
 			`, payload, pausedState.Bool(), pipelineName, from, t.id))
 		}
 
@@ -569,15 +560,16 @@ func (t *team) SavePipeline(
 }
 
 func (t *team) FindPipelineByName(pipelineName string) (Pipeline, bool, error) {
-	var pipelineID int
-	err := psql.Select("p.id").
-		From("pipelines p").
-		Join("teams t ON t.id = p.team_id").
-		Where(sq.Eq{"p.name": pipelineName}).
-		Where(sq.Eq{"team_id": t.id}).
-		RunWith(t.conn).
-		QueryRow().
-		Scan(&pipelineID)
+	pipeline, err := scanPipeline(
+		t.conn,
+		t.lockFactory,
+		psql.Select(unqualifiedPipelineColumns).
+			From("pipelines").
+			Where(sq.Eq{"p.name": pipelineName}).
+			Where(sq.Eq{"team_id": t.id}).
+			RunWith(t.conn).
+			QueryRow(),
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -585,12 +577,7 @@ func (t *team) FindPipelineByName(pipelineName string) (Pipeline, bool, error) {
 		return nil, false, err
 	}
 
-	return &pipeline{
-		id:          pipelineID,
-		teamID:      t.id,
-		conn:        t.conn,
-		lockFactory: t.lockFactory,
-	}, true, nil
+	return pipeline, true, nil
 }
 
 func (t *team) CreateOneOffBuild() (Build, error) {
@@ -808,35 +795,26 @@ func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, Created
 	return creating, created, nil
 }
 
-func (t *team) scanPipeline(rows scannable) (*pipeline, error) {
+func scanPipeline(conn Conn, lockFactory lock.LockFactory, rows scannable) (*pipeline, error) {
 	var id int
 	var name string
-	var configBlob []byte
-	var version int
-	var paused bool
-	var public bool
 	var teamID int
-	var teamName string
+	var configVersion int
 
-	err := rows.Scan(&id, &name, &configBlob, &version, &paused, &teamID, &public, &teamName)
-	if err != nil {
-		return nil, err
-	}
-
-	var config atc.Config
-	err = json.Unmarshal(configBlob, &config)
+	err := rows.Scan(&id, &name, &configVersion, &teamID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pipeline{
-		id:            id,
-		name:          name,
-		configVersion: ConfigVersion(version),
-		teamID:        teamID,
+		id:     id,
+		name:   name,
+		teamID: teamID,
 
-		conn:        t.conn,
-		lockFactory: t.lockFactory,
+		configVersion: ConfigVersion(configVersion),
+
+		conn:        conn,
+		lockFactory: lockFactory,
 	}, nil
 }
 

@@ -54,7 +54,7 @@ type ConfigVersion int
 
 type PipelinePausedState string
 
-const unqualifiedPipelineColumns = "id, name, config, version, paused, team_id, public"
+const unqualifiedPipelineColumns = "id, name, version, team_id"
 
 const (
 	PipelinePaused   PipelinePausedState = "paused"
