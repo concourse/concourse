@@ -51,6 +51,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		fakeDBPipeline = new(dbngfakes.FakePipeline)
 		fakeDBPipeline.IDReturns(42)
+		fakeDBPipeline.NameReturns("some-pipeline")
 		fakeDBPipeline.TeamIDReturns(teamID)
 		fakeClock = fakeclock.NewFakeClock(epoch)
 		interval = 1 * time.Minute
@@ -152,9 +153,11 @@ var _ = Describe("ResourceScanner", func() {
 				_, user, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResource{ResourceID: 39}))
 				Expect(metadata).To(Equal(dbng.ContainerMetadata{
-					Type:       dbng.ContainerTypeCheck,
-					PipelineID: 42,
-					ResourceID: 39,
+					Type:         dbng.ContainerTypeCheck,
+					PipelineID:   42,
+					PipelineName: "some-pipeline",
+					ResourceID:   39,
+					ResourceName: "some-resource",
 				}))
 				Expect(customTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{
@@ -454,9 +457,11 @@ var _ = Describe("ResourceScanner", func() {
 				_, user, metadata, resourceSpec, _, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResource{ResourceID: 39}))
 				Expect(metadata).To(Equal(dbng.ContainerMetadata{
-					Type:       dbng.ContainerTypeCheck,
-					PipelineID: 42,
-					ResourceID: 39,
+					Type:         dbng.ContainerTypeCheck,
+					PipelineID:   42,
+					PipelineName: "some-pipeline",
+					ResourceID:   39,
+					ResourceName: "some-resource",
 				}))
 
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{

@@ -20,6 +20,12 @@ func Container(container dbng.Container) atc.Container {
 		ResourceID:     meta.ResourceID,
 		ResourceTypeID: meta.ResourceTypeID,
 
+		PipelineName:     meta.PipelineName,
+		JobName:          meta.JobName,
+		BuildName:        meta.BuildName,
+		ResourceName:     meta.ResourceName,
+		ResourceTypeName: meta.ResourceTypeName,
+
 		StepName: meta.StepName,
 		Attempt:  meta.Attempt,
 

@@ -212,11 +212,14 @@ var _ = Describe("ExecEngine", func() {
 					Expect(planID).To(Equal(putPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-						Type:       dbng.ContainerTypePut,
-						StepName:   "some-put",
-						PipelineID: expectedPipelineID,
-						JobID:      expectedJobID,
-						BuildID:    expectedBuildID,
+						Type:         dbng.ContainerTypePut,
+						StepName:     "some-put",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
 					}))
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeOutputDelegate))
@@ -232,11 +235,14 @@ var _ = Describe("ExecEngine", func() {
 					Expect(planID).To(Equal(otherPutPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-						Type:       dbng.ContainerTypePut,
-						StepName:   "some-put-2",
-						PipelineID: expectedPipelineID,
-						JobID:      expectedJobID,
-						BuildID:    expectedBuildID,
+						Type:         dbng.ContainerTypePut,
+						StepName:     "some-put-2",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
 					}))
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeOutputDelegate))
@@ -261,11 +267,14 @@ var _ = Describe("ExecEngine", func() {
 					Expect(planID).To(Equal(dependentGetPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-						Type:       dbng.ContainerTypeGet,
-						StepName:   "some-get",
-						PipelineID: expectedPipelineID,
-						JobID:      expectedJobID,
-						BuildID:    expectedBuildID,
+						Type:         dbng.ContainerTypeGet,
+						StepName:     "some-get",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
 					}))
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeInputDelegate))
@@ -287,11 +296,14 @@ var _ = Describe("ExecEngine", func() {
 					Expect(planID).To(Equal(otherDependentGetPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-						Type:       dbng.ContainerTypeGet,
-						StepName:   "some-get-2",
-						PipelineID: expectedPipelineID,
-						JobID:      expectedJobID,
-						BuildID:    expectedBuildID,
+						Type:         dbng.ContainerTypeGet,
+						StepName:     "some-get-2",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
 					}))
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeInputDelegate))
@@ -377,12 +389,15 @@ var _ = Describe("ExecEngine", func() {
 				Expect(planID).To(Equal(getPlan.ID))
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-					Type:       dbng.ContainerTypeGet,
-					StepName:   "some-get",
-					PipelineID: expectedPipelineID,
-					JobID:      expectedJobID,
-					BuildID:    expectedBuildID,
-					Attempt:    "1",
+					Type:         dbng.ContainerTypeGet,
+					StepName:     "some-get",
+					PipelineID:   expectedPipelineID,
+					PipelineName: "some-pipeline",
+					JobID:        expectedJobID,
+					JobName:      "some-job",
+					BuildID:      expectedBuildID,
+					BuildName:    "42",
+					Attempt:      "1",
 				}))
 				Expect(tags).To(BeEmpty())
 				Expect(delegate).To(Equal(fakeInputDelegate))
@@ -401,12 +416,15 @@ var _ = Describe("ExecEngine", func() {
 				Expect(planID).To(Equal(getPlan.ID))
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-					Type:       dbng.ContainerTypeGet,
-					StepName:   "some-get",
-					PipelineID: expectedPipelineID,
-					JobID:      expectedJobID,
-					BuildID:    expectedBuildID,
-					Attempt:    "3",
+					Type:         dbng.ContainerTypeGet,
+					StepName:     "some-get",
+					PipelineID:   expectedPipelineID,
+					PipelineName: "some-pipeline",
+					JobID:        expectedJobID,
+					JobName:      "some-job",
+					BuildID:      expectedBuildID,
+					BuildName:    "42",
+					Attempt:      "3",
 				}))
 				Expect(tags).To(BeEmpty())
 				Expect(delegate).To(Equal(fakeInputDelegate))
@@ -429,12 +447,15 @@ var _ = Describe("ExecEngine", func() {
 				Expect(planID).To(Equal(taskPlan.ID))
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
 				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-					Type:       dbng.ContainerTypeTask,
-					StepName:   "some-task",
-					PipelineID: expectedPipelineID,
-					JobID:      expectedJobID,
-					BuildID:    expectedBuildID,
-					Attempt:    "2,1",
+					Type:         dbng.ContainerTypeTask,
+					StepName:     "some-task",
+					PipelineID:   expectedPipelineID,
+					PipelineName: "some-pipeline",
+					JobID:        expectedJobID,
+					JobName:      "some-job",
+					BuildID:      expectedBuildID,
+					BuildName:    "42",
+					Attempt:      "2,1",
 				}))
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
@@ -448,12 +469,15 @@ var _ = Describe("ExecEngine", func() {
 				Expect(planID).To(Equal(taskPlan.ID))
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
 				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-					Type:       dbng.ContainerTypeTask,
-					StepName:   "some-task",
-					PipelineID: expectedPipelineID,
-					JobID:      expectedJobID,
-					BuildID:    expectedBuildID,
-					Attempt:    "2,2",
+					Type:         dbng.ContainerTypeTask,
+					StepName:     "some-task",
+					PipelineID:   expectedPipelineID,
+					PipelineName: "some-pipeline",
+					JobID:        expectedJobID,
+					JobName:      "some-job",
+					BuildID:      expectedBuildID,
+					BuildName:    "42",
+					Attempt:      "2,2",
 				}))
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
@@ -550,11 +574,14 @@ var _ = Describe("ExecEngine", func() {
 					Expect(planID).To(Equal(plan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-						Type:       dbng.ContainerTypeGet,
-						StepName:   "some-input",
-						PipelineID: expectedPipelineID,
-						JobID:      expectedJobID,
-						BuildID:    expectedBuildID,
+						Type:         dbng.ContainerTypeGet,
+						StepName:     "some-input",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
 					}))
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
 					Expect(tags).To(ConsistOf("some", "get", "tags"))
@@ -613,11 +640,14 @@ var _ = Describe("ExecEngine", func() {
 						Expect(planID).To(Equal(plan.ID))
 						Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
 						Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-							Type:       dbng.ContainerTypeTask,
-							StepName:   "some-task",
-							PipelineID: expectedPipelineID,
-							JobID:      expectedJobID,
-							BuildID:    expectedBuildID,
+							Type:         dbng.ContainerTypeTask,
+							StepName:     "some-task",
+							PipelineID:   expectedPipelineID,
+							PipelineName: "some-pipeline",
+							JobID:        expectedJobID,
+							JobName:      "some-job",
+							BuildID:      expectedBuildID,
+							BuildName:    "42",
 						}))
 						Expect(privileged).To(Equal(exec.Privileged(false)))
 						Expect(tags).To(BeEmpty())
@@ -745,11 +775,14 @@ var _ = Describe("ExecEngine", func() {
 					Expect(planID).To(Equal(putPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-						Type:       dbng.ContainerTypePut,
-						StepName:   "some-put",
-						PipelineID: expectedPipelineID,
-						JobID:      expectedJobID,
-						BuildID:    expectedBuildID,
+						Type:         dbng.ContainerTypePut,
+						StepName:     "some-put",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
 					}))
 					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
 					Expect(resourceConfig.Type).To(Equal("put"))
@@ -776,11 +809,14 @@ var _ = Describe("ExecEngine", func() {
 					Expect(planID).To(Equal(dependentGetPlan.ID))
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-						Type:       dbng.ContainerTypeGet,
-						StepName:   "some-get",
-						PipelineID: expectedPipelineID,
-						JobID:      expectedJobID,
-						BuildID:    expectedBuildID,
+						Type:         dbng.ContainerTypeGet,
+						StepName:     "some-get",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
 					}))
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))
 					Expect(sourceName).To(Equal(worker.ArtifactName("some-get")))
@@ -920,12 +956,15 @@ var _ = Describe("ExecEngine", func() {
 					ExternalURL:  "http://example.com",
 				}))
 				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-					Type:       dbng.ContainerTypeGet,
-					StepName:   "some-get",
-					PipelineID: expectedPipelineID,
-					JobID:      expectedJobID,
-					BuildID:    expectedBuildID,
-					Attempt:    "1",
+					Type:         dbng.ContainerTypeGet,
+					StepName:     "some-get",
+					PipelineID:   expectedPipelineID,
+					PipelineName: "some-pipeline",
+					JobID:        expectedJobID,
+					JobName:      "some-job",
+					BuildID:      expectedBuildID,
+					BuildName:    "42",
+					Attempt:      "1",
 				}))
 				Expect(tags).To(BeEmpty())
 				Expect(delegate).To(Equal(fakeInputDelegate))

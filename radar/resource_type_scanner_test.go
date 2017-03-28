@@ -74,6 +74,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeRadarDB.GetResourceTypeReturns(savedResourceType, true, nil)
 
 		fakeDBPipeline.IDReturns(42)
+		fakeDBPipeline.NameReturns("some-pipeline")
 		fakeDBPipeline.TeamIDReturns(teamID)
 
 		fakeResourceType = new(dbngfakes.FakeResourceType)
@@ -140,9 +141,11 @@ var _ = Describe("ResourceTypeScanner", func() {
 				_, user, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResourceType{ResourceTypeID: 39}))
 				Expect(metadata).To(Equal(dbng.ContainerMetadata{
-					Type:           dbng.ContainerTypeCheck,
-					PipelineID:     42,
-					ResourceTypeID: 39,
+					Type:             dbng.ContainerTypeCheck,
+					PipelineID:       42,
+					PipelineName:     "some-pipeline",
+					ResourceTypeID:   39,
+					ResourceTypeName: "some-resource-type",
 				}))
 				Expect(customTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(resourceSpec).To(Equal(worker.ContainerSpec{

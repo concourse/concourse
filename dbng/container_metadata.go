@@ -8,14 +8,20 @@ type ContainerMetadata struct {
 	StepName string
 	Attempt  string
 
+	WorkingDirectory string
+	User             string
+
 	PipelineID     int
 	JobID          int
 	BuildID        int
 	ResourceID     int
 	ResourceTypeID int
 
-	WorkingDirectory string
-	User             string
+	PipelineName     string
+	JobName          string
+	BuildName        string
+	ResourceName     string
+	ResourceTypeName string
 }
 
 type ContainerType string
@@ -55,6 +61,14 @@ func (metadata ContainerMetadata) SQLMap() map[string]interface{} {
 		m["meta_attempt"] = metadata.Attempt
 	}
 
+	if metadata.WorkingDirectory != "" {
+		m["meta_working_directory"] = metadata.WorkingDirectory
+	}
+
+	if metadata.User != "" {
+		m["meta_process_user"] = metadata.User
+	}
+
 	if metadata.PipelineID != 0 {
 		m["meta_pipeline_id"] = metadata.PipelineID
 	}
@@ -75,12 +89,24 @@ func (metadata ContainerMetadata) SQLMap() map[string]interface{} {
 		m["meta_resource_type_id"] = metadata.ResourceTypeID
 	}
 
-	if metadata.WorkingDirectory != "" {
-		m["meta_working_directory"] = metadata.WorkingDirectory
+	if metadata.PipelineName != "" {
+		m["meta_pipeline_name"] = metadata.PipelineName
 	}
 
-	if metadata.User != "" {
-		m["meta_process_user"] = metadata.User
+	if metadata.JobName != "" {
+		m["meta_job_name"] = metadata.JobName
+	}
+
+	if metadata.BuildName != "" {
+		m["meta_build_name"] = metadata.BuildName
+	}
+
+	if metadata.ResourceName != "" {
+		m["meta_resource_name"] = metadata.ResourceName
+	}
+
+	if metadata.ResourceTypeName != "" {
+		m["meta_resource_type_name"] = metadata.ResourceTypeName
 	}
 
 	return m
@@ -90,13 +116,18 @@ var containerMetadataColumns = []string{
 	"meta_type",
 	"meta_step_name",
 	"meta_attempt",
+	"meta_working_directory",
+	"meta_process_user",
 	"meta_pipeline_id",
 	"meta_job_id",
 	"meta_build_id",
 	"meta_resource_id",
 	"meta_resource_type_id",
-	"meta_working_directory",
-	"meta_process_user",
+	"meta_pipeline_name",
+	"meta_job_name",
+	"meta_build_name",
+	"meta_resource_name",
+	"meta_resource_type_name",
 }
 
 func (metadata *ContainerMetadata) ScanTargets() []interface{} {
@@ -104,12 +135,17 @@ func (metadata *ContainerMetadata) ScanTargets() []interface{} {
 		&metadata.Type,
 		&metadata.StepName,
 		&metadata.Attempt,
+		&metadata.WorkingDirectory,
+		&metadata.User,
 		&metadata.PipelineID,
 		&metadata.JobID,
 		&metadata.BuildID,
 		&metadata.ResourceID,
 		&metadata.ResourceTypeID,
-		&metadata.WorkingDirectory,
-		&metadata.User,
+		&metadata.PipelineName,
+		&metadata.JobName,
+		&metadata.BuildName,
+		&metadata.ResourceName,
+		&metadata.ResourceTypeName,
 	}
 }

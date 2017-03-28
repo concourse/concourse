@@ -71,6 +71,12 @@ var (
 		ResourceID:     101,
 		ResourceTypeID: 112,
 
+		PipelineName:     "some-pipeline",
+		JobName:          "some-job",
+		BuildName:        "some-build",
+		ResourceName:     "some-resource",
+		ResourceTypeName: "some-resource-type",
+
 		WorkingDirectory: "/some/work/dir",
 		User:             "some-user",
 	}

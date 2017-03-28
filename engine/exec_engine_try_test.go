@@ -137,11 +137,14 @@ var _ = Describe("Exec Engine with Try", func() {
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(worker.ArtifactName("some-input")))
 				Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-					Type:       dbng.ContainerTypeGet,
-					StepName:   "some-input",
-					PipelineID: expectedPipelineID,
-					JobID:      expectedJobID,
-					BuildID:    expectedBuildID,
+					Type:         dbng.ContainerTypeGet,
+					StepName:     "some-input",
+					PipelineID:   expectedPipelineID,
+					PipelineName: "some-pipeline",
+					JobID:        expectedJobID,
+					JobName:      "some-job",
+					BuildID:      expectedBuildID,
+					BuildName:    "42",
 				}))
 				Expect(delegate).To(Equal(fakeInputDelegate))
 				_, _, location := fakeDelegate.InputDelegateArgsForCall(0)

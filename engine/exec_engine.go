@@ -53,11 +53,14 @@ func (engine *execEngine) Name() string {
 
 func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	return &execBuild{
-		teamName:   build.TeamName(),
-		teamID:     build.TeamID(),
-		pipelineID: build.PipelineID(),
-		jobID:      build.JobID(),
-		buildID:    build.ID(),
+		teamName:     build.TeamName(),
+		teamID:       build.TeamID(),
+		pipelineID:   build.PipelineID(),
+		pipelineName: build.PipelineName(),
+		jobID:        build.JobID(),
+		jobName:      build.JobName(),
+		buildID:      build.ID(),
+		buildName:    build.Name(),
 
 		stepMetadata: buildMetadata(build, engine.externalURL),
 
@@ -86,11 +89,14 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 	}
 
 	return &execBuild{
-		teamName:   build.TeamName(),
-		teamID:     build.TeamID(),
-		pipelineID: build.PipelineID(),
-		jobID:      build.JobID(),
-		buildID:    build.ID(),
+		teamName:     build.TeamName(),
+		teamID:       build.TeamID(),
+		pipelineID:   build.PipelineID(),
+		pipelineName: build.PipelineName(),
+		jobID:        build.JobID(),
+		jobName:      build.JobName(),
+		buildID:      build.ID(),
+		buildName:    build.Name(),
 
 		stepMetadata: buildMetadata(build, engine.externalURL),
 
@@ -169,14 +175,16 @@ func buildMetadata(build db.Build, externalURL string) StepMetadata {
 }
 
 type execBuild struct {
+	teamID       int
+	teamName     string
+	pipelineID   int
+	pipelineName string
+	jobID        int
+	jobName      string
 	buildID      int
+	buildName    string
+
 	stepMetadata StepMetadata
-
-	teamName string
-
-	teamID     int
-	pipelineID int
-	jobID      int
 
 	factory  exec.Factory
 	delegate BuildDelegate
@@ -313,6 +321,10 @@ func (build *execBuild) workerMetadata(
 		PipelineID: build.pipelineID,
 		JobID:      build.jobID,
 		BuildID:    build.buildID,
+
+		PipelineName: build.pipelineName,
+		JobName:      build.jobName,
+		BuildName:    build.buildName,
 
 		StepName: stepName,
 		Attempt:  strings.Join(attemptStrs, ","),

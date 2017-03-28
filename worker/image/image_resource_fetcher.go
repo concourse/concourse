@@ -118,10 +118,13 @@ func (i *imageResourceFetcher) Fetch(
 
 	getSess := resource.Session{
 		Metadata: dbng.ContainerMetadata{
-			Type:       dbng.ContainerTypeGet,
-			PipelineID: metadata.PipelineID,
-			JobID:      metadata.JobID,
-			BuildID:    metadata.BuildID,
+			Type:         dbng.ContainerTypeGet,
+			PipelineID:   metadata.PipelineID,
+			JobID:        metadata.JobID,
+			BuildID:      metadata.BuildID,
+			PipelineName: metadata.PipelineName,
+			JobName:      metadata.JobName,
+			BuildName:    metadata.BuildName,
 		},
 	}
 
@@ -204,10 +207,13 @@ func (i *imageResourceFetcher) getLatestVersion(
 		logger,
 		resourceUser,
 		dbng.ContainerMetadata{
-			Type:       dbng.ContainerTypeCheck,
-			PipelineID: metadata.PipelineID,
-			JobID:      metadata.JobID,
-			BuildID:    metadata.BuildID,
+			Type:         dbng.ContainerTypeCheck,
+			PipelineID:   metadata.PipelineID,
+			JobID:        metadata.JobID,
+			BuildID:      metadata.BuildID,
+			PipelineName: metadata.PipelineName,
+			JobName:      metadata.JobName,
+			BuildName:    metadata.BuildName,
 		},
 		resourceSpec,
 		customTypes,

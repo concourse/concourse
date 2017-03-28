@@ -86,17 +86,25 @@ func (s *Server) parseRequest(r *http.Request) (dbng.ContainerMetadata, error) {
 		return dbng.ContainerMetadata{}, err
 	}
 
+	query := r.URL.Query()
+
 	return dbng.ContainerMetadata{
 		Type: containerType,
 
-		StepName: r.URL.Query().Get("step_name"),
-		Attempt:  r.URL.Query().Get("attempt"),
+		StepName: query.Get("step_name"),
+		Attempt:  query.Get("attempt"),
 
 		PipelineID:     pipelineID,
 		JobID:          jobID,
 		BuildID:        buildID,
 		ResourceID:     resourceID,
 		ResourceTypeID: resourceTypeID,
+
+		PipelineName:     query.Get("pipeline_name"),
+		JobName:          query.Get("job_name"),
+		BuildName:        query.Get("build_name"),
+		ResourceName:     query.Get("resource_name"),
+		ResourceTypeName: query.Get("resource_type_name"),
 	}, nil
 }
 
