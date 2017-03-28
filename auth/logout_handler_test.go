@@ -68,7 +68,7 @@ var _ = Describe("LogOutHandler", func() {
 			Expect(len(cookies)).To(Equal(1))
 
 			deletedCookie := cookies[0]
-			Expect(deletedCookie.Name).To(Equal(auth.CookieName))
+			Expect(deletedCookie.Name).To(Equal(auth.AuthCookieName))
 			Expect(deletedCookie.MaxAge).To(Equal(-1))
 		})
 	})

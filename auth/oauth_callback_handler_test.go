@@ -249,16 +249,19 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						})
 
 						Describe("the ATC-Authorization cookie", func() {
-
 							var cookie *http.Cookie
 
 							JustBeforeEach(func() {
 								cookies := client.Jar.Cookies(request.URL)
-								cookie = cookies[0]
+								for _, c := range cookies {
+									if c.Name == auth.AuthCookieName {
+										cookie = c
+									}
+								}
 							})
 
 							It("set to a signed token that expires in 1 day", func() {
-								Expect(cookie.Name).To(Equal(auth.CookieName))
+								Expect(cookie).NotTo(BeNil())
 								Expect(cookie.Expires).To(BeTemporally("~", time.Now().Add(24*time.Hour), 5*time.Second))
 
 								Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
@@ -281,21 +284,66 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							})
 						})
 
+						Describe("the CSRF cookie", func() {
+							var csrfCookie *http.Cookie
+							var authCookie *http.Cookie
+
+							JustBeforeEach(func() {
+								cookies := client.Jar.Cookies(request.URL)
+								for _, c := range cookies {
+									if c.Name == auth.CSRFCookieName {
+										csrfCookie = c
+									}
+									if c.Name == auth.AuthCookieName {
+										authCookie = c
+									}
+								}
+							})
+
+							It("sets CSRF token that matches Authorization token", func() {
+								Expect(authCookie).NotTo(BeNil())
+								authToken, err := jwt.Parse(strings.Replace(authCookie.Value, "Bearer ", "", -1), keyFunc)
+								Expect(err).ToNot(HaveOccurred())
+
+								claims := authToken.Claims.(jwt.MapClaims)
+								Expect(claims["csrf"]).NotTo(BeEmpty())
+
+								Expect(csrfCookie).NotTo(BeNil())
+								Expect(csrfCookie.Value).To(Equal(claims["csrf"]))
+							})
+						})
+
 						It("does not redirect", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
 						It("responds with the success page and deletes oauth state cookie", func() {
 							cookies := client.Jar.Cookies(request.URL)
-							Expect(cookies).To(HaveLen(2))
+							Expect(cookies).To(HaveLen(3))
 
-							cookie := cookies[0]
-							Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
+							var authCookie *http.Cookie
+							var csrfCookie *http.Cookie
+							var oauthStateCookie *http.Cookie
+
+							for _, c := range cookies {
+								if c.Name == auth.AuthCookieName {
+									authCookie = c
+								}
+								if c.Name == auth.CSRFCookieName {
+									csrfCookie = c
+								}
+								if c.Name == auth.OAuthStateCookie {
+									oauthStateCookie = c
+								}
+							}
+							Expect(authCookie).NotTo(BeNil())
+							Expect(authCookie.Value).To(MatchRegexp(`^Bearer .*`))
 							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("fly success page\n")))
 
-							deletedCookie := cookies[1]
-							Expect(deletedCookie.Name).To(Equal(auth.OAuthStateCookie))
-							Expect(deletedCookie.MaxAge).To(Equal(-1))
+							Expect(csrfCookie).NotTo(BeNil())
+
+							Expect(oauthStateCookie).NotTo(BeNil())
+							Expect(oauthStateCookie.MaxAge).To(Equal(-1))
 						})
 					})
 

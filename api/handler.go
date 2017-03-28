@@ -40,7 +40,8 @@ func NewHandler(
 
 	wrapper wrappa.Wrappa,
 
-	tokenGenerator auth.TokenGenerator,
+	authTokenGenerator auth.AuthTokenGenerator,
+	csrfTokenGenerator auth.CSRFTokenGenerator,
 	providerFactory auth.ProviderFactory,
 	oAuthBaseURL string,
 
@@ -86,7 +87,8 @@ func NewHandler(
 		logger,
 		externalURL,
 		oAuthBaseURL,
-		tokenGenerator,
+		authTokenGenerator,
+		csrfTokenGenerator,
 		providerFactory,
 		teamDBFactory,
 		expire,

@@ -261,6 +261,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	var httpHandler, httpsHandler http.Handler
 	if cmd.TLSBindPort != 0 {
 		httpHandler = cmd.constructHTTPHandler(
+			logger,
 			tlsRedirectHandler{
 				externalHost: cmd.ExternalURL.URL().Host,
 				baseHandler:  webHandler,
@@ -286,6 +287,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		)
 
 		httpsHandler = cmd.constructHTTPHandler(
+			logger,
 			webHandler,
 			publicHandler,
 			apiHandler,
@@ -293,6 +295,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		)
 	} else {
 		httpHandler = cmd.constructHTTPHandler(
+			logger,
 			webHandler,
 			publicHandler,
 			apiHandler,
@@ -803,6 +806,7 @@ func (cmd *ATCCommand) constructEngine(
 }
 
 func (cmd *ATCCommand) constructHTTPHandler(
+	logger lager.Logger,
 	webHandler http.Handler,
 	publicHandler http.Handler,
 	apiHandler http.Handler,
@@ -815,13 +819,17 @@ func (cmd *ATCCommand) constructHTTPHandler(
 	webMux.Handle("/robots.txt", robotstxt.Handler{})
 	webMux.Handle("/", webHandler)
 
-	httpHandler := wrappa.SecurityHandler{
-		XFrameOptions: cmd.Server.XFrameOptions,
+	httpHandler := wrappa.LoggerHandler{
+		Logger: logger,
 
-		// proxy Authorization header to/from auth cookie,
-		// to support auth from JS (EventSource) and custom JWT auth
-		Handler: auth.CookieSetHandler{
-			Handler: webMux,
+		Handler: wrappa.SecurityHandler{
+			XFrameOptions: cmd.Server.XFrameOptions,
+
+			// proxy Authorization header to/from auth cookie,
+			// to support auth from JS (EventSource) and custom JWT auth
+			Handler: auth.CookieSetHandler{
+				Handler: webMux,
+			},
 		},
 	}
 
@@ -880,7 +888,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.ExternalURL.String(),
 		apiWrapper,
 
-		auth.NewTokenGenerator(signingKey),
+		auth.NewAuthTokenGenerator(signingKey),
+		auth.NewCSRFTokenGenerator(),
 		providerFactory,
 		cmd.oauthBaseURL(),
 

@@ -52,7 +52,8 @@ var _ = Describe("Auth API", func() {
 
 				Context("when generating the token succeeds", func() {
 					BeforeEach(func() {
-						fakeTokenGenerator.GenerateTokenReturns("some type", "some value", nil)
+						fakeAuthTokenGenerator.GenerateTokenReturns("some type", "some value", nil)
+						fakeCSRFTokenGenerator.GenerateTokenReturns("some-csrf-token", nil)
 					})
 
 					It("returns 200 OK", func() {
@@ -69,16 +70,17 @@ var _ = Describe("Auth API", func() {
 
 						Expect(body).To(MatchJSON(`{"type":"some type","value":"some value"}`))
 
-						expiration, teamName, isAdmin := fakeTokenGenerator.GenerateTokenArgsForCall(0)
+						expiration, teamName, isAdmin, csrfToken := fakeAuthTokenGenerator.GenerateTokenArgsForCall(0)
 						Expect(expiration).To(BeTemporally("~", time.Now().Add(24*time.Hour), time.Minute))
 						Expect(teamName).To(Equal(savedTeam.Name))
 						Expect(isAdmin).To(Equal(savedTeam.Admin))
+						Expect(csrfToken).To(Equal("some-csrf-token"))
 					})
 				})
 
 				Context("when generating the token fails", func() {
 					BeforeEach(func() {
-						fakeTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
+						fakeAuthTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
 					})
 
 					It("returns Internal Server Error", func() {
@@ -88,7 +90,7 @@ var _ = Describe("Auth API", func() {
 
 				Context("when the team can't be found", func() {
 					BeforeEach(func() {
-						fakeTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
+						fakeAuthTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
 						teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 					})
 
@@ -109,7 +111,7 @@ var _ = Describe("Auth API", func() {
 			})
 
 			It("does not generate a token", func() {
-				Expect(fakeTokenGenerator.GenerateTokenCallCount()).To(Equal(0))
+				Expect(fakeAuthTokenGenerator.GenerateTokenCallCount()).To(Equal(0))
 			})
 		})
 	})

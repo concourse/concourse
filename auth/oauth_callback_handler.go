@@ -19,12 +19,13 @@ import (
 )
 
 type OAuthCallbackHandler struct {
-	logger          lager.Logger
-	providerFactory ProviderFactory
-	privateKey      *rsa.PrivateKey
-	tokenGenerator  TokenGenerator
-	teamDBFactory   db.TeamDBFactory
-	expire          time.Duration
+	logger             lager.Logger
+	providerFactory    ProviderFactory
+	privateKey         *rsa.PrivateKey
+	authTokenGenerator AuthTokenGenerator
+	csrfTokenGenerator CSRFTokenGenerator
+	teamDBFactory      db.TeamDBFactory
+	expire             time.Duration
 }
 
 func NewOAuthCallbackHandler(
@@ -35,12 +36,13 @@ func NewOAuthCallbackHandler(
 	expire time.Duration,
 ) http.Handler {
 	return &OAuthCallbackHandler{
-		logger:          logger,
-		providerFactory: providerFactory,
-		privateKey:      privateKey,
-		tokenGenerator:  NewTokenGenerator(privateKey),
-		teamDBFactory:   teamDBFactory,
-		expire:          expire,
+		logger:             logger,
+		providerFactory:    providerFactory,
+		privateKey:         privateKey,
+		authTokenGenerator: NewAuthTokenGenerator(privateKey),
+		csrfTokenGenerator: NewCSRFTokenGenerator(),
+		teamDBFactory:      teamDBFactory,
+		expire:             expire,
 	}
 }
 
@@ -162,17 +164,31 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	exp := time.Now().Add(handler.expire)
 
-	tokenType, signedToken, err := handler.tokenGenerator.GenerateToken(exp, team.Name, team.Admin)
+	csrfToken, err := handler.csrfTokenGenerator.GenerateToken()
 	if err != nil {
-		hLog.Error("failed-to-sign-token", err)
-		http.Error(w, "failed to sign token", http.StatusInternalServerError)
+		hLog.Error("generate-csrf-token", err)
+		http.Error(w, "failed to generate csrf token", http.StatusInternalServerError)
 		return
 	}
+
+	tokenType, signedToken, err := handler.authTokenGenerator.GenerateToken(exp, team.Name, team.Admin, csrfToken)
+	if err != nil {
+		hLog.Error("failed-to-sign-token", err)
+		http.Error(w, "failed to generate auth token", http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    CSRFCookieName,
+		Value:   csrfToken,
+		Path:    "/",
+		Expires: exp,
+	})
 
 	tokenStr := string(tokenType) + " " + string(signedToken)
 
 	http.SetCookie(w, &http.Cookie{
-		Name:    CookieName,
+		Name:    AuthCookieName,
 		Value:   tokenStr,
 		Path:    "/",
 		Expires: exp,
