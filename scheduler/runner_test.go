@@ -202,7 +202,7 @@ var _ = Describe("Runner", func() {
 		})
 	})
 
-	ReloadConfigStubWith := func(found bool, err error) func() (bool, error) {
+	eventualReloadConfigStubWith := func(found bool, err error) func() (bool, error) {
 		calls := 0
 
 		return func() (bool, error) {
@@ -212,13 +212,13 @@ var _ = Describe("Runner", func() {
 
 			calls++
 
-			return found, err
+			return true, nil
 		}
 	}
 
 	Context("when the pipeline is destroyed", func() {
 		BeforeEach(func() {
-			pipelineDB.ReloadStub = ReloadConfigStubWith(false, nil)
+			pipelineDB.ReloadStub = eventualReloadConfigStubWith(false, nil)
 		})
 
 		It("exits", func() {
@@ -228,7 +228,7 @@ var _ = Describe("Runner", func() {
 
 	Context("when getting the config fails for some other reason", func() {
 		BeforeEach(func() {
-			pipelineDB.ReloadStub = ReloadConfigStubWith(false, errors.New("idk lol"))
+			pipelineDB.ReloadStub = eventualReloadConfigStubWith(false, errors.New("idk lol"))
 		})
 
 		It("keeps on truckin'", func() {
