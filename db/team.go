@@ -16,10 +16,6 @@ type Team struct {
 	GenericOAuth *GenericOAuth `json:"genericoauth_auth"`
 }
 
-func (t Team) IsAuthConfigured() bool {
-	return t.BasicAuth != nil || t.GitHubAuth != nil || t.UAAAuth != nil || t.GenericOAuth != nil
-}
-
 func (auth *BasicAuth) EncryptedJSON() (string, error) {
 	var result *BasicAuth
 	if auth != nil && auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {

@@ -5,8 +5,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/atc/auth/verifier"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/verifier"
 	"github.com/concourse/atc/db"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -27,10 +27,16 @@ type ConfigOverride struct {
 type NoopVerifier struct{}
 
 func init() {
-	provider.Register("oauth", NewGenericProvider)
+	provider.Register(ProviderName, GenericTeamProvider{})
 }
 
-func NewGenericProvider(
+type GenericTeamProvider struct{}
+
+func (GenericTeamProvider) ProviderConfigured(team db.Team) bool {
+	return team.GenericOAuth != nil
+}
+
+func (GenericTeamProvider) ProviderConstructor(
 	team db.SavedTeam,
 	redirectURL string,
 ) (provider.Provider, bool) {

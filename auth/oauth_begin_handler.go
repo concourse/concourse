@@ -110,7 +110,6 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	authCodeURL := provider.AuthCodeURL(encodedState)
 
-
 	http.SetCookie(w, &http.Cookie{
 		Name:    OAuthStateCookie,
 		Value:   encodedState,

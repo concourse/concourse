@@ -34,15 +34,19 @@ type Verifier interface {
 	Verify(lager.Logger, *http.Client) (bool, error)
 }
 
-type ProviderConstructor func(db.SavedTeam, string) (Provider, bool)
-
-var providers map[string]ProviderConstructor
-
-func init() {
-	providers = make(map[string]ProviderConstructor)
+// If you can think of a better name, please change it
+type TeamProvider interface {
+	ProviderConstructor(db.SavedTeam, string) (Provider, bool)
+	ProviderConfigured(db.Team) bool
 }
 
-func Register(providerName string, providerConstructor ProviderConstructor) error {
+var providers map[string]TeamProvider
+
+func init() {
+	providers = make(map[string]TeamProvider)
+}
+
+func Register(providerName string, providerConstructor TeamProvider) error {
 	if _, exists := providers[providerName]; exists {
 		return fmt.Errorf("Provider already registered %s", providerName)
 	}
@@ -56,15 +60,19 @@ func NewProvider(
 	providerName string,
 	redirectURL string,
 ) (Provider, bool) {
-	provider, found := providers[providerName]
+	teamProvider, found := providers[providerName]
 	if !found {
 		return nil, false
 	}
 
-	newProvider, ok := provider(team, redirectURL)
+	newProvider, ok := teamProvider.ProviderConstructor(team, redirectURL)
 	if !ok {
 		return nil, false
 	}
 
 	return newProvider, ok
+}
+
+func GetProviders() map[string]TeamProvider {
+	return providers
 }

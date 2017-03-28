@@ -17,15 +17,17 @@ import (
 
 var _ = Describe("Generic OAuth Provider", func() {
 	var (
-		team        db.SavedTeam
-		redirectURI string
-		goaProvider provider.Provider
-		state       string
-		found       bool
+		team                db.SavedTeam
+		redirectURI         string
+		goaProvider         provider.Provider
+		state               string
+		found               bool
+		genericTeamProvider genericoauth.GenericTeamProvider
 	)
 
 	JustBeforeEach(func() {
-		goaProvider, found = genericoauth.NewGenericProvider(team, redirectURI)
+		genericTeamProvider = genericoauth.GenericTeamProvider{}
+		goaProvider, found = genericTeamProvider.ProviderConstructor(team, redirectURI)
 		Expect(found).To(BeTrue())
 	})
 
