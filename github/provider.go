@@ -22,10 +22,16 @@ type GitHubProvider struct {
 }
 
 func init() {
-	provider.Register(ProviderName, NewGitHubProvider)
+	provider.Register(ProviderName, GithubTeamProvider{})
 }
 
-func NewGitHubProvider(
+type GithubTeamProvider struct{}
+
+func (GithubTeamProvider) ProviderConfigured(team db.Team) bool {
+	return team.GitHubAuth != nil
+}
+
+func (GithubTeamProvider) ProviderConstructor(
 	team db.SavedTeam,
 	redirectURL string,
 ) (provider.Provider, bool) {

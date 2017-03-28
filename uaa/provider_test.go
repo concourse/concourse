@@ -14,14 +14,16 @@ import (
 
 var _ = Describe("Provider", func() {
 	var (
-		team        db.SavedTeam
-		redirectURI string
-		uaaProvider provider.Provider
-		found       bool
+		team            db.SavedTeam
+		redirectURI     string
+		uaaProvider     provider.Provider
+		found           bool
+		uaaTeamProvider uaa.UAATeamProvider
 	)
 
 	JustBeforeEach(func() {
-		uaaProvider, found = uaa.NewUAAProvider(team, redirectURI)
+		uaaTeamProvider = uaa.UAATeamProvider{}
+		uaaProvider, found = uaaTeamProvider.ProviderConstructor(team, redirectURI)
 		Expect(found).To(BeTrue())
 	})
 
