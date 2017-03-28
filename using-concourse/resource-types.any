@@ -176,6 +176,8 @@ before using it!
     \hyperlink{https://github.com/pivotalservices/concourse-curl-resource}{cURL File Resource}
   }{
     \hyperlink{https://github.com/mevansam/cf-event-resource-type}{Cloud Foundry Events}
+  }{
+    \hyperlink{https://github.com/mastertinner/apache-directory-index-resource}{Apache Directory Index}
   }
 
   \section{Adding to this list}{
