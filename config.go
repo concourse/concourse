@@ -279,12 +279,14 @@ func (c *VersionConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	case string:
 		c.Every = actual == "every"
 		c.Latest = actual == "latest"
-	case map[string]interface{}:
+	case map[interface{}]interface{}:
 		version := Version{}
 
 		for k, v := range actual {
-			if s, ok := v.(string); ok {
-				version[k] = strings.TrimSpace(s)
+			if ks, ok := k.(string); ok {
+				if vs, ok := v.(string); ok {
+					version[ks] = strings.TrimSpace(vs)
+				}
 			}
 		}
 
