@@ -8,6 +8,28 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
+	if pipelineName == "" {
+		return []atc.Job{}, NameRequiredError("pipeline")
+	}
+
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name": team.name,
+	}
+
+	var jobs []atc.Job
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.ListJobs,
+		Params:      params,
+	}, &internal.Response{
+		Result: &jobs,
+	})
+
+	return jobs, err
+}
+
+
 func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	if pipelineName == "" {
 		return atc.Job{}, false, NameRequiredError("pipeline")
