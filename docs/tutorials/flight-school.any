@@ -91,7 +91,7 @@ the \reference{installing}{installation guide} before coming back here.
   error: invalid argument for flag '-c, --config' (expected flaghelpers.PathFlag): path 'build.yml' does not exist
   }
 
-  Alright, so we need a file called \code{build.yml}.
+  Alright, so we need a file called \code{build.yml}. Let's create it under the \code{flight-school} directory.
 
   \codeblock{bash}{
   $ touch build.yml
