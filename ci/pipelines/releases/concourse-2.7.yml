@@ -17,10 +17,19 @@ groups:
   - topgun
   - bin-docker
 
+- name: publish
+  jobs:
+  - virtualbox-box
+  - virtualbox-testflight
+  - shipit
+  - release-virtualbox-box
+  - github-release
+
 - name: dependencies
   jobs:
   - bump-golang
   - bump-btrfs
+
 
 jobs:
 - name: fly
@@ -383,6 +392,200 @@ jobs:
       load_base: ubuntu-image
       tag: version/version
 
+- name: virtualbox-box
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: binaries
+      resource: bin-rc
+      passed: [bin-testflight]
+    - get: concourse
+      params: {submodules: none}
+      passed: [bin-testflight]
+    - get: final-version
+      resource: version
+      passed: [bin-testflight]
+      params: {bump: final}
+    - get: version
+      passed: [bin-testflight]
+    - get: concourse-lite
+    - get: concourse-buildbox-ci-image
+  - task: build-box
+    privileged: true
+    file: concourse-lite/ci/build-boxes.yml
+    image: concourse-buildbox-ci-image
+    tags: [hetzner]
+  - put: virtualbox-box
+    params: {file: built-box/*.box}
+
+- name: virtualbox-testflight
+  public: true
+  serial: true
+  plan:
+  - put: hetzner
+    params: {acquire: true}
+  - do:
+    - aggregate:
+      - get: virtualbox-box
+        passed: [virtualbox-box]
+        trigger: true
+      - get: bin-rc
+        passed: [virtualbox-box]
+      - get: concourse
+        passed: [virtualbox-box]
+      - get: concourse-lite
+        passed: [virtualbox-box]
+      - get: version
+        passed: [virtualbox-box]
+      - get: concourse-buildbox-testflight-ci-image
+    - task: testflight
+      privileged: true
+      file: concourse-lite/ci/testflight.yml
+      image: concourse-buildbox-testflight-ci-image
+      tags: [hetzner]
+    ensure:
+      put: hetzner
+      params: {release: hetzner}
+
+- name: shipit
+  serial_groups: [version]
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [bosh-testflight, bin-smoke, virtualbox-testflight]
+    - get: version
+      passed: [bosh-testflight, bin-smoke, virtualbox-testflight]
+      params: {bump: final}
+    - get: garden-runc-release
+      passed: [bosh-testflight]
+      resource: garden-runc
+    - get: bosh-rc
+      passed: [bosh-testflight]
+    - get: bin-rc
+      passed: [bin-smoke, bin-docker, virtualbox-testflight]
+    - get: fly-rc
+      passed: [bin-smoke, bin-docker, bosh-testflight]
+    - get: concourse-image-rc
+      passed: [bin-docker]
+    - get: virtualbox-box
+      passed: [virtualbox-testflight]
+  - task: finalize-release
+    file: concourse/ci/finalize-release.yml
+    params: {BOSH_PRIVATE_CONFIG: {{bosh-private-config}}}
+  - aggregate:
+    - put: version
+      params: {file: version/version}
+    - put: concourse-master
+      params:
+        repository: final-release-repo
+        tag: version/version
+        tag_prefix: v
+    - put: final-release
+      params: {file: final-release-tarball/concourse-*.tgz}
+
+- name: release-virtualbox-box
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: virtualbox-box
+      passed: [shipit]
+      trigger: true
+    - get: version
+      passed: [shipit]
+    - get: concourse
+      passed: [shipit]
+  - task: build-release-notes
+    file: concourse/ci/build-release-notes.yml
+  - put: virtualbox-box-cloud
+    params:
+      description: release-notes/notes.md
+      release: true
+      url: virtualbox-box/url
+      version: virtualbox-box/version
+
+- name: github-release
+  plan:
+  - aggregate:
+    - get: final-release
+      passed: [shipit]
+      trigger: true
+    - get: garden-runc
+      passed: [shipit]
+      trigger: true
+    - get: fly-rc
+      passed: [shipit]
+      trigger: true
+    - get: bin-rc
+      passed: [shipit]
+      trigger: true
+    - get: concourse
+      params: {submodules: none}
+      passed: [shipit]
+      trigger: true
+    - get: concourse-master
+      params: {submodules: none}
+      passed: [shipit]
+      trigger: true
+    - get: version
+      passed: [shipit]
+      trigger: true
+  - aggregate:
+    - task: build-release-notes
+      file: concourse/ci/build-release-notes.yml
+    - task: rename-release
+      file: concourse/ci/rename-release.yml
+    - task: generate-commitish
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source: {repository: concourse/git-resource}
+
+        inputs:
+        - name: concourse-master
+
+        outputs:
+        - name: generated-commitish
+
+        run:
+          path: sh
+          args:
+          - -c
+          - |
+            git -C concourse-master rev-parse HEAD > generated-commitish/commitish
+  - put: github-release
+    params:
+      name: release-notes/release-name
+      tag: release-notes/release-name
+      body: release-notes/notes.md
+      commitish: generated-commitish/commitish
+      globs:
+      - final-release/*.tgz
+      - renamed-release/garden-runc-*.tgz
+      - bin-rc/concourse_*
+      - fly-rc/fly_*
+
+- name: promote-docker
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: concourse-image-rc
+      passed: [shipit]
+      params: {save: true}
+      trigger: true
+    - get: version
+      passed: [shipit]
+      trigger: true
+  - put: concourse-image-final
+    params:
+      load: concourse-image-rc
+      tag: version/version
+      tag_as_latest: true
+
 - name: bump-golang
   serial: true
   public: true
@@ -537,6 +740,52 @@ resources:
     bucket: bosh-cli-artifacts
     regexp: bosh-cli-([^-]+)-linux-amd64
 
+- name: concourse-lite
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse-lite.git
+    branch: master
+
+- name: concourse-buildbox-ci-image
+  type: docker-image
+  source:
+    repository: concourse/buildbox-ci
+
+- name: virtualbox-box
+  type: s3
+  source:
+    bucket: concourse-boxes
+    regexp: concourse-virtualbox-ubuntu-trusty-(.*).box
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
+- name: hetzner
+  type: pool
+  source:
+    uri: git@github.com:concourse/locks.git
+    branch: master
+    pool: hetzner
+    private_key: {{locks-repo-private-key}}
+
+- name: concourse-buildbox-testflight-ci-image
+  type: docker-image
+  source:
+    repository: concourse/buildbox-testflight-ci
+
+- name: concourse-master
+  type: git
+  source:
+    uri: git@github.com:concourse/concourse.git
+    branch: master
+    private_key: {{concourse-repo-private-key}}
+
+- name: virtualbox-box-cloud
+  type: vagrant-cloud
+  source:
+    username: concourse
+    box: lite
+    provider: virtualbox
+    access_token: {{atlas-access-token}}
 
 - name: golang-linux
   type: s3
@@ -544,6 +793,28 @@ resources:
     endpoint: storage.googleapis.com
     bucket: golang
     regexp: 'go(1\.\d+(\.\d+)?)\.linux-amd64\.tar.gz'
+
+- name: final-release
+  type: s3
+  source:
+    bucket: concourse-releases
+    regexp: concourse-(.*).tgz
+    access_key_id: {{pipeline-bucket-access-key}}
+    secret_access_key: {{pipeline-bucket-secret-key}}
+
+- name: github-release
+  type: github-release
+  source:
+    access_token: {{concourse-github-release-access-token}}
+    repository: concourse
+    user: concourse
+
+- name: concourse-image-final
+  type: docker-image
+  source:
+    repository: concourse/concourse
+    username: {{docker-username}}
+    password: {{docker-password}}
 
 resource_types:
 - name: bosh-deployment
