@@ -204,6 +204,7 @@ func ms(duration time.Duration) float64 {
 type HTTPResponseTime struct {
 	Route    string
 	Path     string
+	Method   string
 	Duration time.Duration
 }
 
@@ -229,8 +230,9 @@ func (event HTTPResponseTime) Emit(logger lager.Logger) {
 			Metric:  ms(event.Duration),
 			State:   state,
 			Attributes: map[string]string{
-				"route": event.Route,
-				"path":  event.Path,
+				"route":  event.Route,
+				"path":   event.Path,
+				"method": event.Method,
 			},
 		},
 	)
