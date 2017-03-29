@@ -21,7 +21,6 @@ import (
 
 var _ = Describe("Jobs API", func() {
 	var pipelineDB *dbfakes.FakePipelineDB
-	var fakePipeline *dbngfakes.FakePipeline
 	var expectedSavedPipeline db.SavedPipeline
 	var versionedResourceTypes atc.VersionedResourceTypes
 
@@ -30,9 +29,6 @@ var _ = Describe("Jobs API", func() {
 		pipelineDBFactory.BuildReturns(pipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
 		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, true, nil)
-
-		fakePipeline = new(dbngfakes.FakePipeline)
-		dbPipelineFactory.GetPipelineByIDReturns(fakePipeline)
 
 		versionedResourceTypes = atc.VersionedResourceTypes{
 			atc.VersionedResourceType{
