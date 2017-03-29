@@ -6,7 +6,7 @@ cd $(dirname $0)/..
 
 pushd ~/workspace
   pushd bosh-lite
-    if [ "$(bosh -e lite deployments | wc -l)" != "0" ]; then
+    if [ $(bosh -e lite deployments | wc -l) != "0" ]; then
       vagrant destroy -f
     fi
 
