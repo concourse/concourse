@@ -171,6 +171,8 @@ before using it!
   }{
     \hyperlink{https://github.com/patrickcrocker/maven-resource}{Maven Resource}
   }{
+    \hyperlink{https://github.com/rsamban/pivnet-resource}{Pivnet Resource (rsamban)}
+  }{
     \hyperlink{https://github.com/pivotalservices/concourse-curl-resource}{cURL File Resource}
   }{
     \hyperlink{https://github.com/mevansam/cf-event-resource-type}{Cloud Foundry Events}
