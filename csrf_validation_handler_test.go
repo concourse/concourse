@@ -55,7 +55,7 @@ var _ = Describe("CsrfValidationHandler", func() {
 		server = httptest.NewServer(csrfRequiredWrapHandler)
 
 		var err error
-		request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
+		request, err = http.NewRequest("POST", server.URL, bytes.NewBufferString("hello"))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -84,6 +84,22 @@ var _ = Describe("CsrfValidationHandler", func() {
 	Context("when request requires CSRF validation", func() {
 		BeforeEach(func() {
 			isCSRFRequired = true
+		})
+
+		Context("when GET request", func() {
+			BeforeEach(func() {
+				var err error
+				request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("calls delegate handler", func() {
+				Expect(delegateHandlerCalled).To(BeTrue())
+			})
 		})
 
 		Context("when CSRF token is not provided", func() {
