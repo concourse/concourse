@@ -21,6 +21,7 @@ import (
 
 	"testing"
 	"time"
+	"github.com/nu7hatch/gouuid"
 )
 
 var (
@@ -54,13 +55,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred())
 
 	team = client.Team("main")
-	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
 	logger = lagertest.NewTestLogger("pipelines-test")
 })
 
 var _ = SynchronizedAfterSuite(func() {
 }, func() {
 	os.RemoveAll(tmpHome)
+})
+
+var _ = BeforeEach(func() {
+	guid, err := uuid.NewV4()
+	Expect(err).ToNot(HaveOccurred())
+
+	pipelineName = fmt.Sprintf("test-pipeline-%d-%s", GinkgoParallelNode(), guid)
 })
 
 var _ = AfterEach(func() {
@@ -95,7 +102,12 @@ func destroyPipeline(name string) {
 	Expect(destroy).To(gexec.Exit(0))
 }
 
-func renamePipeline(newName string) {
+func renamePipeline() {
+	guid, err := uuid.NewV4()
+	Expect(err).ToNot(HaveOccurred())
+
+	newName := fmt.Sprintf("test-pipeline-%d-renamed-%s", GinkgoParallelNode(), guid)
+
 	renameCmd := exec.Command(
 		flyBin,
 		"-t", targetedConcourse,
