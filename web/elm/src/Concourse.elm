@@ -4,6 +4,8 @@ module Concourse
         , decodeAuthMethod
         , AuthToken
         , decodeAuthToken
+        , CSRFToken
+        , csrfTokenHeaderName
         , Build
         , BuildId
         , JobBuildIdentifier
@@ -128,6 +130,19 @@ authTokenFromTuple ( t, token ) =
 
         _ ->
             Err "unknown token type"
+
+
+
+-- CSRF token
+
+
+type alias CSRFToken =
+    String
+
+
+csrfTokenHeaderName : String
+csrfTokenHeaderName =
+    "X-CSRF-Token"
 
 
 

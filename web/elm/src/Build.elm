@@ -77,6 +77,7 @@ type alias Model =
     , browsingIndex : Int
     , autoScroll : Bool
     , ports : Ports
+    , csrfToken : String
     }
 
 
@@ -106,8 +107,13 @@ type Msg
     | NavTo String
 
 
-init : Ports -> Page -> ( Model, Cmd Msg )
-init ports page =
+type alias Flags =
+    { csrfToken : String
+    }
+
+
+init : Ports -> Flags -> Page -> ( Model, Cmd Msg )
+init ports flags page =
     let
         ( model, cmd ) =
             changeToBuild
@@ -119,6 +125,7 @@ init ports page =
                 , browsingIndex = 0
                 , autoScroll = True
                 , ports = ports
+                , csrfToken = flags.csrfToken
                 }
     in
         ( model, Cmd.batch [ cmd, getCurrentTime ] )
@@ -190,7 +197,7 @@ update action model =
                     ( model, Cmd.none )
 
                 Just someJob ->
-                    ( model, triggerBuild someJob )
+                    ( model, triggerBuild someJob model.csrfToken )
 
         BuildTriggered (Ok build) ->
             update
@@ -225,7 +232,7 @@ update action model =
                     ( model, Cmd.none )
 
         AbortBuild buildId ->
-            ( model, abortBuild buildId )
+            ( model, abortBuild buildId model.csrfToken )
 
         BuildAborted (Ok ()) ->
             ( model, Cmd.none )
@@ -440,10 +447,10 @@ handleBuildPrepFetched browsingIndex buildPrep model =
         ( model, Cmd.none )
 
 
-abortBuild : Int -> Cmd Msg
-abortBuild buildId =
+abortBuild : Int -> Concourse.CSRFToken -> Cmd Msg
+abortBuild buildId csrfToken =
     Task.attempt BuildAborted <|
-        Concourse.Build.abort buildId
+        Concourse.Build.abort buildId csrfToken
 
 
 view : Model -> Html Msg
@@ -728,10 +735,10 @@ durationTitle date content =
     Html.div [ title (Date.Format.format "%b" date) ] content
 
 
-triggerBuild : Concourse.JobIdentifier -> Cmd Msg
-triggerBuild buildJob =
+triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Msg
+triggerBuild buildJob csrfToken =
     Task.attempt BuildTriggered <|
-        Concourse.Job.triggerBuild buildJob
+        Concourse.Job.triggerBuild buildJob csrfToken
 
 
 fetchBuild : Time -> Int -> Int -> Cmd Msg

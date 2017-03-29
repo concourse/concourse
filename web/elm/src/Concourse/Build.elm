@@ -20,13 +20,13 @@ fetchJobBuild jbi =
         Http.toTask <| Http.get url Concourse.decodeBuild
 
 
-abort : Concourse.BuildId -> Task Http.Error ()
-abort buildId =
+abort : Concourse.BuildId -> Concourse.CSRFToken -> Task Http.Error ()
+abort buildId csrfToken =
     Http.toTask <|
         Http.request
             { method = "PUT"
             , url = "/api/v1/builds/" ++ toString buildId ++ "/abort"
-            , headers = []
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , body = Http.emptyBody
             , expect = Http.expectStringResponse (always (Ok ()))
             , timeout = Nothing
