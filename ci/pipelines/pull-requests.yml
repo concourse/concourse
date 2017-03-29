@@ -34,6 +34,8 @@ jobs:
   - get: fly
     trigger: true
     version: every
+    params:
+      fetch_merge: true
   - put: fly
     params: {path: fly, status: pending}
   - task: unit
@@ -52,6 +54,8 @@ jobs:
   - get: atc
     trigger: true
     version: every
+    params:
+      fetch_merge: true
   - put: atc
     params: {path: atc, status: pending}
   - task: unit
@@ -70,6 +74,8 @@ jobs:
   - get: go-concourse
     trigger: true
     version: every
+    params:
+      fetch_merge: true
   - put: go-concourse
     params: {path: go-concourse, status: pending}
   - task: unit
