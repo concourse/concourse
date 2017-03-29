@@ -4,10 +4,14 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/concourse/atc/auth"
+
 	"code.cloudfoundry.org/lager"
 )
 
-type templateData struct{}
+type templateData struct {
+	CSRFToken string
+}
 
 type handler struct {
 	logger   lager.Logger
@@ -42,7 +46,15 @@ func NewHandler(logger lager.Logger) (http.Handler, error) {
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.Session("index")
 
-	err := h.template.Execute(w, templateData{})
+	csrfToken := ""
+	cookie, err := r.Cookie(auth.CSRFCookieName)
+	if err == nil {
+		csrfToken = cookie.Value
+	}
+
+	err = h.template.Execute(w, templateData{
+		CSRFToken: csrfToken,
+	})
 
 	if err != nil {
 		log.Fatal("failed-to-build-template", err, lager.Data{})

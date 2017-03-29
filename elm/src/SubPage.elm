@@ -61,14 +61,16 @@ queryGroupsForRoute route =
     QueryString.all "groups" route.queries
 
 
-init : String -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
-init turbulencePath route =
+init : String -> String -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
+init turbulencePath csrfToken route =
     case route.logical of
         Routes.Build teamName pipelineName jobName buildName ->
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
-                    << Build.init { title = setTitle }
+                    << Build.init
+                        { title = setTitle }
+                        { csrfToken = csrfToken }
                 <|
                     Build.JobBuildPage
                         { teamName = teamName
@@ -81,7 +83,9 @@ init turbulencePath route =
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
-                    << Build.init { title = setTitle }
+                    << Build.init
+                        { title = setTitle }
+                        { csrfToken = csrfToken }
                 <|
                     Build.BuildPage <|
                         Result.withDefault 0 (String.toInt buildId)
@@ -94,6 +98,7 @@ init turbulencePath route =
                     , teamName = teamName
                     , pipelineName = pipelineName
                     , paging = route.page
+                    , csrfToken = csrfToken
                     }
 
         Routes.Job teamName pipelineName jobName ->
@@ -104,6 +109,7 @@ init turbulencePath route =
                     , teamName = teamName
                     , pipelineName = pipelineName
                     , paging = route.page
+                    , csrfToken = csrfToken
                     }
 
         Routes.SelectTeam ->
@@ -204,6 +210,7 @@ urlUpdate route model =
                     , pipelineName = pipelineName
                     , resourceName = resourceName
                     , paging = route.page
+                    , csrfToken = mdl.csrfToken
                     }
                     mdl
 
@@ -214,6 +221,7 @@ urlUpdate route model =
                     , pipelineName = pipelineName
                     , jobName = jobName
                     , paging = route.page
+                    , csrfToken = mdl.csrfToken
                     }
                     mdl
 

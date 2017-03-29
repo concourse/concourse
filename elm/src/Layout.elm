@@ -17,6 +17,7 @@ port newUrl : (String -> msg) -> Sub msg
 
 type alias Flags =
     { turbulenceImgSrc : String
+    , csrfToken : String
     }
 
 
@@ -36,6 +37,7 @@ type alias Model =
     , sideModel : SideBar.Model
     , sidebarVisible : Bool
     , turbulenceImgSrc : String
+    , csrfToken : String
     , route : Routes.ConcourseRoute
     }
 
@@ -56,13 +58,13 @@ init flags location =
             Routes.parsePath location
 
         ( subModel, subCmd ) =
-            SubPage.init flags.turbulenceImgSrc route
+            SubPage.init flags.turbulenceImgSrc flags.csrfToken route
 
         ( topModel, topCmd ) =
             TopBar.init route
 
         ( sideModel, sideCmd ) =
-            SideBar.init
+            SideBar.init { csrfToken = flags.csrfToken }
 
         navIndex =
             1
@@ -73,6 +75,7 @@ init flags location =
           , sideModel = sideModel
           , sidebarVisible = False
           , turbulenceImgSrc = flags.turbulenceImgSrc
+          , csrfToken = flags.csrfToken
           , route = route
           }
         , Cmd.batch
@@ -97,7 +100,7 @@ update msg model =
         RouteChanged route ->
             urlUpdate route model
 
-        TopMsg _ (TopBar.ToggleSidebar) ->
+        TopMsg _ TopBar.ToggleSidebar ->
             ( { model
                 | sidebarVisible = not model.sidebarVisible
               }
@@ -213,7 +216,7 @@ urlUpdate route model =
             else if routeMatchesModel route model then
                 SubPage.urlUpdate route model.subModel
             else
-                SubPage.init model.turbulenceImgSrc route
+                SubPage.init model.turbulenceImgSrc model.csrfToken route
 
         ( newTopModel, tCmd ) =
             if route == model.route then
