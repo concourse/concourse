@@ -24,6 +24,7 @@ var _ = Describe("Auth Session", func() {
 	var atcCommand *ATCCommand
 	var dbListener *pq.Listener
 	var page *agouti.Page
+	var pipelineDB db.PipelineDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -54,12 +55,19 @@ var _ = Describe("Auth Session", func() {
 		_, _, err = defaultTeam.SavePipeline("main", atc.Config{
 			Jobs: atc.JobConfigs{
 				{
-					Name: "job-1",
+					Name: "job-name",
 				},
 			},
 		}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
+		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+		savedPipeline, found, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
 	AfterEach(func() {
@@ -87,15 +95,21 @@ var _ = Describe("Auth Session", func() {
 			login()
 			err := page.DeleteCookie("CSRF")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main"))).To(Succeed())
 
-			Eventually(page.Find("body")).Should(BeFound())
-			Expect(page.Find("body")).To(HaveText("bad request"))
+			Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main/jobs/job-name"))).To(Succeed())
+			Eventually(page.Find(".build-action")).Should(BeFound())
+			Expect(page.Find(".build-action").Click()).To(Succeed())
+
+			// API request will return bad request
+			// no changes in UI, no builds will be scheduled
+			builds, err := pipelineDB.GetAllJobBuilds("job-name")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builds).To(HaveLen(0))
 		})
 	})
 
 	Context("when request contains invalid CSRF token", func() {
-		It("returns 400 Bad Request", func() {
+		It("returns 401 Not Authorized and redirects to login page", func() {
 			login()
 
 			// Golang *Cookie notes that path and domain are optional
@@ -107,15 +121,16 @@ var _ = Describe("Auth Session", func() {
 				Path:   "/",
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main"))).To(Succeed())
+			Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main/jobs/job-name"))).To(Succeed())
+			Eventually(page.Find(".build-action")).Should(BeFound())
+			Expect(page.Find(".build-action").Click()).To(Succeed())
 
-			Eventually(page.Find("body")).Should(BeFound())
-			Expect(page.Find("body")).To(HaveText("bad request"))
+			Eventually(page.FindByButton("login")).Should(BeFound())
 		})
 	})
 
 	Context("when CSRF token and session token are not associated", func() {
-		It("returns 401 Not Authorized", func() {
+		It("returns 401 Not Authorized and redirects to login page", func() {
 			login()
 			cookies, err := page.GetCookies()
 			Expect(err).NotTo(HaveOccurred())
@@ -127,22 +142,25 @@ var _ = Describe("Auth Session", func() {
 			}
 			Expect(firstCSRFToken).NotTo(BeNil())
 
-			Login(page, homepage())
+			login()
 
 			err = page.SetCookie(firstCSRFToken)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main"))).To(Succeed())
+			Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main/jobs/job-name"))).To(Succeed())
+			Eventually(page.Find(".build-action")).Should(BeFound())
+			Expect(page.Find(".build-action").Click()).To(Succeed())
 
-			Eventually(page.Find("body")).Should(BeFound())
-			Expect(page.Find("body")).To(HaveText("not authorized"))
+			Eventually(page.FindByButton("login")).Should(BeFound())
 		})
 	})
 
 	Context("when request contains valid CSRF with associated session token", func() {
 		It("returns 200 OK", func() {
 			login()
-			Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main"))).To(Succeed())
-			Eventually(page.FindByLink("job-1")).Should(BeFound())
+			Expect(page.Navigate(atcCommand.URL("/teams/main/pipelines/main/jobs/job-name"))).To(Succeed())
+			Eventually(page.Find(".build-action")).Should(BeFound())
+			Expect(page.Find(".build-action").Click()).To(Succeed())
+			Eventually(page.All("#builds li").Count).Should(Equal(1))
 		})
 	})
 
