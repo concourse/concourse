@@ -242,6 +242,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		teamDBFactory,
 		signingKey,
 		cmd.AuthDuration,
+		cmd.isTLSEnabled(),
 	)
 	if err != nil {
 		return nil, err
@@ -259,7 +260,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	var httpHandler, httpsHandler http.Handler
-	if cmd.TLSBindPort != 0 {
+	if cmd.isTLSEnabled() {
 		httpHandler = cmd.constructHTTPHandler(
 			logger,
 			tlsRedirectHandler{
@@ -435,7 +436,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			"debug": cmd.debugBindAddr(),
 		}
 
-		if cmd.TLSBindPort != 0 {
+		if cmd.isTLSEnabled() {
 			logData["https"] = cmd.tlsBindAddr()
 		}
 
@@ -558,7 +559,7 @@ func (cmd *ATCCommand) tlsBindAddr() string {
 }
 
 func (cmd *ATCCommand) internalURL() string {
-	if cmd.TLSBindPort != 0 {
+	if cmd.isTLSEnabled() {
 		if strings.Contains(cmd.ExternalURL.String(), ":") {
 			return cmd.ExternalURL.String()
 		} else {
@@ -919,6 +920,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		cmd.AuthDuration,
 
+		cmd.isTLSEnabled(),
+
 		cmd.CLIArtifactsDir.Path(),
 		Version,
 	)
@@ -1011,4 +1014,8 @@ func (cmd *ATCCommand) appendStaticWorker(
 			),
 		},
 	)
+}
+
+func (cmd *ATCCommand) isTLSEnabled() bool {
+	return cmd.TLSBindPort != 0
 }

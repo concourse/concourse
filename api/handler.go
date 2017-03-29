@@ -71,6 +71,8 @@ func NewHandler(
 
 	expire time.Duration,
 
+	isTLSEnabled bool,
+
 	cliDownloadsDir string,
 	version string,
 ) (http.Handler, error) {
@@ -92,6 +94,7 @@ func NewHandler(
 		providerFactory,
 		teamDBFactory,
 		expire,
+		isTLSEnabled,
 	)
 
 	buildServer := buildserver.NewServer(

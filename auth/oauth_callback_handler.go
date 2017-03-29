@@ -13,9 +13,10 @@ import (
 
 	"net/url"
 
+	"regexp"
+
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"regexp"
 )
 
 type OAuthCallbackHandler struct {
@@ -26,6 +27,7 @@ type OAuthCallbackHandler struct {
 	csrfTokenGenerator CSRFTokenGenerator
 	teamDBFactory      db.TeamDBFactory
 	expire             time.Duration
+	isTLSEnabled       bool
 }
 
 func NewOAuthCallbackHandler(
@@ -34,6 +36,7 @@ func NewOAuthCallbackHandler(
 	privateKey *rsa.PrivateKey,
 	teamDBFactory db.TeamDBFactory,
 	expire time.Duration,
+	isTLSEnabled bool,
 ) http.Handler {
 	return &OAuthCallbackHandler{
 		logger:             logger,
@@ -43,6 +46,7 @@ func NewOAuthCallbackHandler(
 		csrfTokenGenerator: NewCSRFTokenGenerator(),
 		teamDBFactory:      teamDBFactory,
 		expire:             expire,
+		isTLSEnabled:       isTLSEnabled,
 	}
 }
 
@@ -187,12 +191,19 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	tokenStr := string(tokenType) + " " + string(signedToken)
 
-	http.SetCookie(w, &http.Cookie{
-		Name:    AuthCookieName,
-		Value:   tokenStr,
-		Path:    "/",
-		Expires: exp,
-	})
+	authCookie := &http.Cookie{
+		Name:     AuthCookieName,
+		Value:    tokenStr,
+		Path:     "/",
+		Expires:  exp,
+		HttpOnly: true,
+	}
+	if handler.isTLSEnabled {
+		authCookie.Secure = true
+	}
+	// TODO: Add SameSite once Golang supports it
+	// https://github.com/golang/go/issues/15867
+	http.SetCookie(w, authCookie)
 
 	// Deletes the oauth state cookie to avoid CSRF attacks
 	http.SetCookie(w, &http.Cookie{

@@ -51,20 +51,34 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 
 	expiry := time.Now().Add(s.expire)
 
-	http.SetCookie(w, &http.Cookie{
+	csrfCookie := &http.Cookie{
 		Name:    auth.CSRFCookieName,
 		Value:   csrfToken,
 		Path:    "/",
 		Expires: expiry,
-	})
+	}
+	if s.isTLSEnabled {
+		csrfCookie.Secure = true
+	}
+	// TODO: Add SameSite once Golang supports it
+	// https://github.com/golang/go/issues/15867
+	http.SetCookie(w, csrfCookie)
 
-	http.SetCookie(w, &http.Cookie{
-		Name:    auth.AuthCookieName,
-		Value:   fmt.Sprintf("%s %s", token.Type, token.Value),
-		Path:    "/",
-		Expires: expiry,
-	})
+	authCookie := &http.Cookie{
+		Name:     auth.AuthCookieName,
+		Value:    fmt.Sprintf("%s %s", token.Type, token.Value),
+		Path:     "/",
+		Expires:  expiry,
+		HttpOnly: true,
+	}
+	if s.isTLSEnabled {
+		authCookie.Secure = true
+	}
+	// TODO: Add SameSite once Golang supports it
+	// https://github.com/golang/go/issues/15867
+	http.SetCookie(w, authCookie)
 
+	w.Header().Set(auth.CSRFHeaderName, csrfToken)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(token)
 }

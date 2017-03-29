@@ -109,6 +109,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 			fakeTeamDBFactory,
 			signingKey,
 			expire,
+			false,
 		)
 		Expect(err).ToNot(HaveOccurred())
 

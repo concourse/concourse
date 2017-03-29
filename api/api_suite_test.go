@@ -64,6 +64,7 @@ var (
 	peerAddr               string
 	drain                  chan struct{}
 	expire                 time.Duration
+	isTLSEnabled           bool
 	cliDownloadsDir        string
 	logger                 *lagertest.TestLogger
 
@@ -141,6 +142,8 @@ var _ = BeforeEach(func() {
 
 	expire = 24 * time.Hour
 
+	isTLSEnabled = false
+
 	build = new(dbfakes.FakeBuild)
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(pipelineDBFactory, teamDBFactory)
@@ -197,6 +200,8 @@ var _ = BeforeEach(func() {
 		sink,
 
 		expire,
+
+		isTLSEnabled,
 
 		cliDownloadsDir,
 		"1.2.3",

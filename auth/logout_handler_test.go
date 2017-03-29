@@ -42,6 +42,7 @@ var _ = Describe("LogOutHandler", func() {
 				fakeTeamDBFactory,
 				signingKey,
 				expire,
+				false,
 			)
 			Expect(err).ToNot(HaveOccurred())
 

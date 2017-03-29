@@ -17,6 +17,7 @@ type Server struct {
 	providerFactory    auth.ProviderFactory
 	teamDBFactory      db.TeamDBFactory
 	expire             time.Duration
+	isTLSEnabled       bool
 }
 
 func NewServer(
@@ -28,6 +29,7 @@ func NewServer(
 	providerFactory auth.ProviderFactory,
 	teamDBFactory db.TeamDBFactory,
 	expire time.Duration,
+	isTLSEnabled bool,
 ) *Server {
 	return &Server{
 		logger:             logger,
@@ -38,5 +40,6 @@ func NewServer(
 		providerFactory:    providerFactory,
 		teamDBFactory:      teamDBFactory,
 		expire:             expire,
+		isTLSEnabled:       isTLSEnabled,
 	}
 }
