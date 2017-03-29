@@ -89,6 +89,8 @@ before using it!
   }{
     \hyperlink{https://github.com/pivotal-cf/email-resource}{Email}
   }{
+    \hyperlink{https://github.com/santoshjpawar/concourse-email-notification}{Formatted Email}
+  }{
     \hyperlink{https://github.com/mdomke/concourse-email-resource}{Email with integrated MTA}
   }{
     \hyperlink{https://github.com/jamiemonserrate/bintray-resource}{Bintray}
@@ -169,7 +171,11 @@ before using it!
   }{
     \hyperlink{https://github.com/patrickcrocker/maven-resource}{Maven Resource}
   }{
-    \hyperlink{https://github.com/rsamban/pivnet-resource}{Pivnet Resource}
+    \hyperlink{https://github.com/rsamban/pivnet-resource}{Pivnet Resource (rsamban)}
+  }{
+    \hyperlink{https://github.com/pivotalservices/concourse-curl-resource}{cURL File Resource}
+  }{
+    \hyperlink{https://github.com/mevansam/cf-event-resource-type}{Cloud Foundry Events}
   }
 
   \section{Adding to this list}{
