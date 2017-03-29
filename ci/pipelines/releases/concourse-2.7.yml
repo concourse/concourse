@@ -627,15 +627,16 @@ resources:
 - name: version
   type: semver
   source:
-    bucket: concourse-releases-test
+    bucket: concourse-releases
     key: 2.7-version
     access_key_id: {{pipeline-bucket-access-key}}
     secret_access_key: {{pipeline-bucket-secret-key}}
+    initial_version: 2.7.1-rc.35
 
 - name: bosh-rc
   type: s3
   source:
-    bucket: concourse-release-candidates-test
+    bucket: concourse-release-candidates
     regexp: concourse-(.*).tgz
     access_key_id: {{pipeline-bucket-access-key}}
     secret_access_key: {{pipeline-bucket-secret-key}}
