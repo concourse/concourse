@@ -30,20 +30,34 @@ lpass sync
 
 pipelines_path=$(cd $(dirname $0)/../ci/pipelines && pwd)
 
-configure_pipeline main \
-  $pipelines_path/concourse.yml
+pipeline=${1}
 
-configure_pipeline resources \
-  $pipelines_path/resources.yml
+if [ "$#" -gt 0 ]; then
+  for pipeline in $*; do
+    file=$pipelines_path/${pipeline}.yml
+    if [ "$pipeline" = "main" ]; then
+      file=$pipelines_path/concourse.yml
+    fi
 
-configure_pipeline images \
-  $pipelines_path/images.yml
+    configure_pipeline $pipeline \
+      $file
+  done
+else
+  configure_pipeline main \
+    $pipelines_path/concourse.yml
 
-configure_pipeline tracksuit \
-  $pipelines_path/tracksuit.yml
+  configure_pipeline resources \
+    $pipelines_path/resources.yml
 
-configure_pipeline hangar \
-  $pipelines_path/hangar.yml
+  configure_pipeline images \
+    $pipelines_path/images.yml
 
-configure_pipeline prs \
-  $pipelines_path/pull-requests.yml
+   configure_pipeline tracksuit \
+     $pipelines_path/tracksuit.yml
+
+  configure_pipeline hangar \
+    $pipelines_path/hangar.yml
+
+  configure_pipeline prs \
+    $pipelines_path/pull-requests.yml
+fi
