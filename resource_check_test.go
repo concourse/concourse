@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("Resource checking", func() {
+var _ = Describe("Resource checking", func() {
 	BeforeEach(func() {
 		Deploy("deployments/two-workers-one-tagged.yml")
 	})
