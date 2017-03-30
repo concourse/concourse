@@ -405,7 +405,6 @@ func (p *containerProvider) findOrCreateContainer(
 			cancel,
 			delegate,
 			resourceUser,
-			metadata,
 			resourceTypes,
 		)
 		if err != nil {

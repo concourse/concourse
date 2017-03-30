@@ -39,7 +39,6 @@ type ImageResourceFetcher interface {
 		signals <-chan os.Signal,
 		imageResourceType string,
 		imageResourceSource atc.Source,
-		metadata dbng.ContainerMetadata,
 		tags atc.Tags,
 		teamID int,
 		customTypes atc.VersionedResourceTypes,
@@ -86,14 +85,13 @@ func (i *imageResourceFetcher) Fetch(
 	signals <-chan os.Signal,
 	imageResourceType string,
 	imageResourceSource atc.Source,
-	metadata dbng.ContainerMetadata,
 	tags atc.Tags,
 	teamID int,
 	customTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 	privileged bool,
 ) (worker.Volume, io.ReadCloser, atc.Version, error) {
-	version, err := i.getLatestVersion(logger, resourceUser, metadata, imageResourceType, imageResourceSource, tags, teamID, customTypes, imageFetchingDelegate)
+	version, err := i.getLatestVersion(logger, resourceUser, imageResourceType, imageResourceSource, tags, teamID, customTypes, imageFetchingDelegate)
 	if err != nil {
 		logger.Error("failed-to-get-latest-image-version", err)
 		return nil, nil, nil, err
@@ -118,13 +116,7 @@ func (i *imageResourceFetcher) Fetch(
 
 	getSess := resource.Session{
 		Metadata: dbng.ContainerMetadata{
-			Type:         dbng.ContainerTypeGet,
-			PipelineID:   metadata.PipelineID,
-			JobID:        metadata.JobID,
-			BuildID:      metadata.BuildID,
-			PipelineName: metadata.PipelineName,
-			JobName:      metadata.JobName,
-			BuildName:    metadata.BuildName,
+			Type: dbng.ContainerTypeGet,
 		},
 	}
 
@@ -185,7 +177,6 @@ func (i *imageResourceFetcher) Fetch(
 func (i *imageResourceFetcher) getLatestVersion(
 	logger lager.Logger,
 	resourceUser dbng.ResourceUser,
-	metadata dbng.ContainerMetadata,
 	imageResourceType string,
 	imageResourceSource atc.Source,
 	tags atc.Tags,
@@ -207,13 +198,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 		logger,
 		resourceUser,
 		dbng.ContainerMetadata{
-			Type:         dbng.ContainerTypeCheck,
-			PipelineID:   metadata.PipelineID,
-			JobID:        metadata.JobID,
-			BuildID:      metadata.BuildID,
-			PipelineName: metadata.PipelineName,
-			JobName:      metadata.JobName,
-			BuildName:    metadata.BuildName,
+			Type: dbng.ContainerTypeCheck,
 		},
 		resourceSpec,
 		customTypes,

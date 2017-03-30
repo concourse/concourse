@@ -40,7 +40,6 @@ var _ = Describe("Image", func() {
 	var logger lager.Logger
 	var imageResource atc.ImageResource
 	var signals chan os.Signal
-	var metadata dbng.ContainerMetadata
 	var fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
 	var fakeWorker *wfakes.FakeWorker
 	var customTypes atc.VersionedResourceTypes
@@ -68,14 +67,6 @@ var _ = Describe("Image", func() {
 			Source: atc.Source{"some": "source"},
 		}
 		signals = make(chan os.Signal)
-		metadata = dbng.ContainerMetadata{
-			PipelineID:       4567,
-			JobID:            1234,
-			BuildID:          9876,
-			Type:             dbng.ContainerTypeCheck,
-			StepName:         "some-step",
-			WorkingDirectory: "some-working-dir",
-		}
 		fakeImageFetchingDelegate = new(wfakes.FakeImageFetchingDelegate)
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
 		fakeWorker = new(wfakes.FakeWorker)
@@ -115,7 +106,6 @@ var _ = Describe("Image", func() {
 			signals,
 			imageResource.Type,
 			imageResource.Source,
-			metadata,
 			atc.Tags{"worker", "tags"},
 			teamID,
 			customTypes,
@@ -199,10 +189,7 @@ var _ = Describe("Image", func() {
 								_, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
 								Expect(metadata).To(Equal(dbng.ContainerMetadata{
-									Type:       dbng.ContainerTypeCheck,
-									PipelineID: 4567,
-									JobID:      1234,
-									BuildID:    9876,
+									Type: dbng.ContainerTypeCheck,
 								}))
 								Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 									ImageSpec: worker.ImageSpec{
@@ -228,10 +215,7 @@ var _ = Describe("Image", func() {
 								_, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
 								Expect(metadata).To(Equal(dbng.ContainerMetadata{
-									Type:       dbng.ContainerTypeCheck,
-									PipelineID: 4567,
-									JobID:      1234,
-									BuildID:    9876,
+									Type: dbng.ContainerTypeCheck,
 								}))
 								Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 									ImageSpec: worker.ImageSpec{
@@ -273,10 +257,7 @@ var _ = Describe("Image", func() {
 							_, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 							Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
 							Expect(metadata).To(Equal(dbng.ContainerMetadata{
-								Type:       dbng.ContainerTypeCheck,
-								PipelineID: 4567,
-								JobID:      1234,
-								BuildID:    9876,
+								Type: dbng.ContainerTypeCheck,
 							}))
 							Expect(resourceSpec).To(Equal(worker.ContainerSpec{
 								ImageSpec: worker.ImageSpec{
@@ -313,10 +294,7 @@ var _ = Describe("Image", func() {
 							Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 							Expect(session).To(Equal(resource.Session{
 								Metadata: dbng.ContainerMetadata{
-									Type:       dbng.ContainerTypeGet,
-									PipelineID: 4567,
-									JobID:      1234,
-									BuildID:    9876,
+									Type: dbng.ContainerTypeGet,
 								},
 							}))
 							Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))

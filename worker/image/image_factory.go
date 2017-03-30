@@ -33,7 +33,6 @@ func (f *imageFactory) GetImage(
 	cancel <-chan os.Signal,
 	delegate worker.ImageFetchingDelegate,
 	resourceUser dbng.ResourceUser,
-	metadata dbng.ContainerMetadata,
 	resourceTypes atc.VersionedResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
@@ -78,7 +77,6 @@ func (f *imageFactory) GetImage(
 			cancel,
 			imageResource.Type,
 			imageResource.Source,
-			metadata,
 			worker.Tags(),
 			teamID,
 			resourceTypes,

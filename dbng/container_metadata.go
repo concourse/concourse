@@ -11,17 +11,13 @@ type ContainerMetadata struct {
 	WorkingDirectory string
 	User             string
 
-	PipelineID     int
-	JobID          int
-	BuildID        int
-	ResourceID     int
-	ResourceTypeID int
+	PipelineID int
+	JobID      int
+	BuildID    int
 
-	PipelineName     string
-	JobName          string
-	BuildName        string
-	ResourceName     string
-	ResourceTypeName string
+	PipelineName string
+	JobName      string
+	BuildName    string
 }
 
 type ContainerType string
@@ -83,14 +79,6 @@ func (metadata ContainerMetadata) SQLMap() map[string]interface{} {
 		m["meta_build_id"] = metadata.BuildID
 	}
 
-	if metadata.ResourceID != 0 {
-		m["meta_resource_id"] = metadata.ResourceID
-	}
-
-	if metadata.ResourceTypeID != 0 {
-		m["meta_resource_type_id"] = metadata.ResourceTypeID
-	}
-
 	if metadata.PipelineName != "" {
 		m["meta_pipeline_name"] = metadata.PipelineName
 	}
@@ -101,14 +89,6 @@ func (metadata ContainerMetadata) SQLMap() map[string]interface{} {
 
 	if metadata.BuildName != "" {
 		m["meta_build_name"] = metadata.BuildName
-	}
-
-	if metadata.ResourceName != "" {
-		m["meta_resource_name"] = metadata.ResourceName
-	}
-
-	if metadata.ResourceTypeName != "" {
-		m["meta_resource_type_name"] = metadata.ResourceTypeName
 	}
 
 	return m
@@ -142,12 +122,8 @@ func (metadata *ContainerMetadata) ScanTargets() []interface{} {
 		&metadata.PipelineID,
 		&metadata.JobID,
 		&metadata.BuildID,
-		&metadata.ResourceID,
-		&metadata.ResourceTypeID,
 		&metadata.PipelineName,
 		&metadata.JobName,
 		&metadata.BuildName,
-		&metadata.ResourceName,
-		&metadata.ResourceTypeName,
 	}
 }

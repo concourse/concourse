@@ -117,11 +117,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedR
 			ResourceTypeID: savedResourceType.ID,
 		},
 		dbng.ContainerMetadata{
-			Type:             dbng.ContainerTypeCheck,
-			PipelineID:       scanner.dbPipeline.ID(),
-			PipelineName:     scanner.dbPipeline.Name(),
-			ResourceTypeID:   savedResourceType.ID,
-			ResourceTypeName: savedResourceType.Name,
+			Type: dbng.ContainerTypeCheck,
 		},
 		resourceSpec,
 		versionedResourceTypes,

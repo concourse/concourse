@@ -21,7 +21,7 @@ var _ = Describe("Worker", func() {
 		logger                       *lagertest.TestLogger
 		fakeVolumeClient             *wfakes.FakeVolumeClient
 		fakeImageFactory             *wfakes.FakeImageFactory
-		fakeLockDB           *wfakes.FakeLockDB
+		fakeLockDB                   *wfakes.FakeLockDB
 		fakeWorkerProvider           *wfakes.FakeWorkerProvider
 		fakeClock                    *fakeclock.FakeClock
 		fakeDBResourceCacheFactory   *dbngfakes.FakeResourceCacheFactory

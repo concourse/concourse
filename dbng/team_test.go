@@ -210,12 +210,6 @@ var _ = Describe("Team", func() {
 			diffBuildID := fullMetadata
 			diffBuildID.BuildID = fullMetadata.BuildID + 1
 
-			diffResourceID := fullMetadata
-			diffResourceID.ResourceID = fullMetadata.ResourceID + 1
-
-			diffResourceTypeID := fullMetadata
-			diffResourceTypeID.ResourceTypeID = fullMetadata.ResourceTypeID + 1
-
 			diffWorkingDirectory := fullMetadata
 			diffWorkingDirectory.WorkingDirectory = fullMetadata.WorkingDirectory + "/other"
 
@@ -230,8 +224,6 @@ var _ = Describe("Team", func() {
 				diffPipelineID,
 				diffJobID,
 				diffBuildID,
-				diffResourceID,
-				diffResourceTypeID,
 				diffWorkingDirectory,
 				diffUser,
 			}

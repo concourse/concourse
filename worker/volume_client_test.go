@@ -26,7 +26,7 @@ var _ = Describe("VolumeClient", func() {
 		testLogger *lagertest.TestLogger
 
 		fakeBaggageclaimClient            *baggageclaimfakes.FakeClient
-		fakeLockDB                *workerfakes.FakeLockDB
+		fakeLockDB                        *workerfakes.FakeLockDB
 		fakeDBVolumeFactory               *dbngfakes.FakeVolumeFactory
 		fakeWorkerBaseResourceTypeFactory *dbngfakes.FakeWorkerBaseResourceTypeFactory
 		fakeClock                         *fakeclock.FakeClock

@@ -22,7 +22,6 @@ type ImageFactory interface {
 		signals <-chan os.Signal,
 		delegate ImageFetchingDelegate,
 		resourceUser dbng.ResourceUser,
-		metadata dbng.ContainerMetadata,
 		resourceTypes atc.VersionedResourceTypes,
 	) (Image, error)
 }

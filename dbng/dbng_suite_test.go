@@ -65,17 +65,13 @@ var (
 		StepName: "some-step-name",
 		Attempt:  "1.2.3",
 
-		PipelineID:     123,
-		JobID:          456,
-		BuildID:        789,
-		ResourceID:     101,
-		ResourceTypeID: 112,
+		PipelineID: 123,
+		JobID:      456,
+		BuildID:    789,
 
-		PipelineName:     "some-pipeline",
-		JobName:          "some-job",
-		BuildName:        "some-build",
-		ResourceName:     "some-resource",
-		ResourceTypeName: "some-resource-type",
+		PipelineName: "some-pipeline",
+		JobName:      "some-job",
+		BuildName:    "some-build",
 
 		WorkingDirectory: "/some/work/dir",
 		User:             "some-user",

@@ -43,7 +43,7 @@ var _ = Describe("ContainerProvider", func() {
 		fakeDBVolumeFactory         *dbngfakes.FakeVolumeFactory
 		fakeDBResourceCacheFactory  *dbngfakes.FakeResourceCacheFactory
 		fakeDBResourceConfigFactory *dbngfakes.FakeResourceConfigFactory
-		fakeLockDB          *workerfakes.FakeLockDB
+		fakeLockDB                  *workerfakes.FakeLockDB
 		fakeWorker                  *workerfakes.FakeWorker
 
 		containerProvider        ContainerProvider
@@ -317,7 +317,7 @@ var _ = Describe("ContainerProvider", func() {
 	ItHandlesNonExistentContainer := func(createDatabaseCallCountFunc func() int) {
 		It("gets image", func() {
 			Expect(fakeImageFactory.GetImageCallCount()).To(Equal(1))
-			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualCancel, actualDelegate, actualResourceUser, actualContainerMetadata, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
+			_, actualWorker, actualVolumeClient, actualImageSpec, actualTeamID, actualCancel, actualDelegate, actualResourceUser, actualResourceTypes := fakeImageFactory.GetImageArgsForCall(0)
 			Expect(actualWorker).To(Equal(fakeWorker))
 			Expect(actualVolumeClient).To(Equal(fakeVolumeClient))
 			Expect(actualImageSpec).To(Equal(containerSpec.ImageSpec))
@@ -327,7 +327,6 @@ var _ = Describe("ContainerProvider", func() {
 			Expect(actualCancel).To(Equal(cancel))
 			Expect(actualDelegate).To(Equal(fakeImageFetchingDelegate))
 			Expect(actualResourceUser).To(Equal(resourceUser))
-			Expect(actualContainerMetadata).To(Equal(containerMetadata))
 			Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 			Expect(fakeImage.FetchForContainerCallCount()).To(Equal(1))
