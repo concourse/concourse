@@ -107,16 +107,21 @@ update msg model =
             , Cmd.none
             )
 
-        SubMsg navIndex (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
+        SubMsg navIndex (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) ->
             let
-                ( subModel, subCmd ) =
-                    SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel
+                (subModel, subCmd) =
+                  SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) model.subModel
+                (sideModel, sideCmd) =
+                  SideBar.update (SideBar.NewCSRFToken val.csrfToken) model.sideModel
             in
                 ( { model
                     | subModel = subModel
+                    , sideModel = sideModel
+                    , csrfToken = val.csrfToken
                   }
                 , Cmd.batch
-                    [ Cmd.map (TopMsg anyNavIndex) TopBar.fetchUser
+                    [ Cmd.map (SideMsg anyNavIndex) sideCmd
+                    , Cmd.map (TopMsg anyNavIndex) TopBar.fetchUser
                     , Cmd.map (SideMsg anyNavIndex) SideBar.fetchPipelines
                     , Cmd.map (SubMsg navIndex) subCmd
                     ]

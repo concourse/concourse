@@ -3,12 +3,11 @@ module Concourse.Login exposing (..)
 import Base64
 import Http
 import Json.Decode
-import Dict
 import Task exposing (Task)
 import Concourse
 
 
-noAuth : String -> Task Http.Error Concourse.AuthToken
+noAuth : String -> Task Http.Error Concourse.AuthSession
 noAuth teamName =
     Http.toTask <|
         Http.request
@@ -27,13 +26,13 @@ parseResponse response =
     let
         authToken =
             Json.Decode.decodeString Concourse.decodeAuthToken response.body
+        csrfToken =
+          Concourse.retrieveCSRFToken response.headers
     in
-        -- TODO: header can be any case
-        flip always (Debug.log ("header") (Dict.get "X-Csrf-Token" response.headers)) <|
-            authToken
+      Result.map2 (\a b -> { authToken = a, csrfToken = b }) authToken csrfToken
 
 
-basicAuth : String -> String -> String -> Task Http.Error Concourse.AuthToken
+basicAuth : String -> String -> String -> Task Http.Error Concourse.AuthSession
 basicAuth teamName username password =
     Http.toTask <|
         Http.request
@@ -41,7 +40,7 @@ basicAuth teamName username password =
             , url = "/api/v1/teams/" ++ teamName ++ "/auth/token"
             , headers = [ encodedAuthHeader username password ]
             , body = Http.emptyBody
-            , expect = Http.expectJson Concourse.decodeAuthToken
+            , expect =  Http.expectStringResponse parseResponse
             , timeout = Nothing
             , withCredentials = False
             }
