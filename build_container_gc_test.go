@@ -25,6 +25,19 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 		Deploy("deployments/single-vm.yml")
 	})
 
+	getContainers := func(condition, value string) []string {
+		containers := flyTable("containers")
+
+		var handles []string
+		for _, c := range containers {
+			if c[condition] == value {
+				handles = append(handles, c["handle"])
+			}
+		}
+
+		return handles
+	}
+
 	Describe("A container that belonged to a build that succeeded", func() {
 		Context("one-off builds", func() {
 			It("is removed from the database and worker [#129725995]", func() {
@@ -32,25 +45,12 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				fly("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
 
 				By("collecting the build containers")
-				rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"build_id": 1}).RunWith(dbConn).Query()
-				Expect(err).ToNot(HaveOccurred())
+				buildContainerHandles := getContainers("build id", "1")
 
-				buildContainers := map[int]string{}
-				containerIDs := []int{}
-				for rows.Next() {
-					var id int
-					var handle string
-					err := rows.Scan(&id, &handle)
-					Expect(err).ToNot(HaveOccurred())
-
-					buildContainers[id] = handle
-					containerIDs = append(containerIDs, id)
-				}
-
-				By(fmt.Sprintf("eventually expiring the build containers: %v", containerIDs))
+				By(fmt.Sprintf("eventually expiring the build containers: %v", buildContainerHandles))
 				Eventually(func() int {
 					var containerNum int
-					err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": containerIDs}).RunWith(dbConn).QueryRow().Scan(&containerNum)
+					err := psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"handle": buildContainerHandles}).RunWith(dbConn).QueryRow().Scan(&containerNum)
 					Expect(err).ToNot(HaveOccurred())
 
 					return containerNum
@@ -67,7 +67,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 					existingHandles = append(existingHandles, c.Handle())
 				}
 
-				for _, handle := range buildContainers {
+				for _, handle := range buildContainerHandles {
 					Expect(existingHandles).ToNot(ContainElement(handle))
 				}
 			})
@@ -85,25 +85,12 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				fly("trigger-job", "-w", "-j", "build-container-gc/simple-job")
 
 				By("collecting the build containers")
-				rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).RunWith(dbConn).Query()
-				Expect(err).ToNot(HaveOccurred())
+				buildContainerHandles := getContainers("type", "task")
 
-				buildContainers := map[int]string{}
-				containerIDs := []int{}
-				for rows.Next() {
-					var id int
-					var handle string
-					err := rows.Scan(&id, &handle)
-					Expect(err).ToNot(HaveOccurred())
-
-					buildContainers[id] = handle
-					containerIDs = append(containerIDs, id)
-				}
-
-				By(fmt.Sprintf("eventually expiring the build containers: %v", containerIDs))
+				By(fmt.Sprintf("eventually expiring the build containers: %v", buildContainerHandles))
 				Eventually(func() int {
 					var containerNum int
-					err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": containerIDs}).RunWith(dbConn).QueryRow().Scan(&containerNum)
+					err := psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"handle": buildContainerHandles}).RunWith(dbConn).QueryRow().Scan(&containerNum)
 					Expect(err).ToNot(HaveOccurred())
 
 					return containerNum
@@ -120,7 +107,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 					existingHandles = append(existingHandles, c.Handle())
 				}
 
-				for _, handle := range buildContainers {
+				for _, handle := range buildContainerHandles {
 					Expect(existingHandles).ToNot(ContainElement(handle))
 				}
 			})
@@ -140,29 +127,16 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the build containers")
-				rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).RunWith(dbConn).Query()
-				Expect(err).ToNot(HaveOccurred())
+				buildContainerHandles := getContainers("type", "task")
 
-				buildContainers := map[int]string{}
-				containerIDs := []int{}
-				for rows.Next() {
-					var id int
-					var handle string
-					err := rows.Scan(&id, &handle)
-					Expect(err).ToNot(HaveOccurred())
-
-					buildContainers[id] = handle
-					containerIDs = append(containerIDs, id)
-				}
-
-				By(fmt.Sprintf("not expiring the build containers: %v", containerIDs))
+				By(fmt.Sprintf("not expiring the build containers: %v", buildContainerHandles))
 				Consistently(func() int {
 					var containerNum int
-					err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": containerIDs}).RunWith(dbConn).QueryRow().Scan(&containerNum)
+					err := psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"handle": buildContainerHandles}).RunWith(dbConn).QueryRow().Scan(&containerNum)
 					Expect(err).ToNot(HaveOccurred())
 
 					return containerNum
-				}, 2*time.Minute, time.Second).Should(Equal(len(containerIDs)))
+				}, 2*time.Minute, time.Second).Should(Equal(len(buildContainerHandles)))
 
 				By("not removing the containers from the worker")
 				gClient := gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
@@ -175,7 +149,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 					existingHandles = append(existingHandles, c.Handle())
 				}
 
-				for _, handle := range buildContainers {
+				for _, handle := range buildContainerHandles {
 					Expect(existingHandles).To(ContainElement(handle))
 				}
 			})
@@ -193,44 +167,33 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the first build containers")
-				rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).RunWith(dbConn).Query()
-				Expect(err).ToNot(HaveOccurred())
-
-				firstBuildContainers := map[int]string{}
-				firstContainerIDs := []int{}
-				for rows.Next() {
-					var id int
-					var handle string
-					err := rows.Scan(&id, &handle)
-					Expect(err).ToNot(HaveOccurred())
-
-					firstBuildContainers[id] = handle
-					firstContainerIDs = append(firstContainerIDs, id)
-				}
+				firstBuildContainerHandles := getContainers("type", "task")
 
 				By("triggering second job")
 				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the second build containers")
-				rows, err = psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).Where(sq.NotEq{"id": firstContainerIDs}).RunWith(dbConn).Query()
-				Expect(err).ToNot(HaveOccurred())
+				allBuildContainerHandles := getContainers("type", "task")
 
-				secondBuildContainers := map[int]string{}
-				secondBuildContainerIDs := []int{}
-				for rows.Next() {
-					var id int
-					var handle string
-					err := rows.Scan(&id, &handle)
-					Expect(err).ToNot(HaveOccurred())
+				var secondBuildContainerHandles []string
+				for _, handle := range allBuildContainerHandles {
+					alreadyExisted := false
+					for _, preHandle := range firstBuildContainerHandles {
+						if preHandle == handle {
+							alreadyExisted = true
+							break
+						}
+					}
 
-					secondBuildContainers[id] = handle
-					secondBuildContainerIDs = append(secondBuildContainerIDs, id)
+					if !alreadyExisted {
+						secondBuildContainerHandles = append(secondBuildContainerHandles, handle)
+					}
 				}
 
-				By(fmt.Sprintf("eventually expiring the first build containers: %v", firstContainerIDs))
+				By(fmt.Sprintf("eventually expiring the first build containers: %v", firstBuildContainerHandles))
 				Eventually(func() int {
 					var containerNum int
-					err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": firstContainerIDs}).RunWith(dbConn).QueryRow().Scan(&containerNum)
+					err := psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"handle": firstBuildContainerHandles}).RunWith(dbConn).QueryRow().Scan(&containerNum)
 					Expect(err).ToNot(HaveOccurred())
 
 					return containerNum
@@ -247,21 +210,21 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 					existingHandles = append(existingHandles, c.Handle())
 				}
 
-				for _, handle := range firstBuildContainers {
+				for _, handle := range firstBuildContainerHandles {
 					Expect(existingHandles).NotTo(ContainElement(handle))
 				}
 
-				By(fmt.Sprintf("not expiring the second build containers: %v", secondBuildContainerIDs))
+				By(fmt.Sprintf("not expiring the second build containers: %v", secondBuildContainerHandles))
 				Consistently(func() int {
 					var containerNum int
-					err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": secondBuildContainerIDs}).RunWith(dbConn).QueryRow().Scan(&containerNum)
+					err := psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"handle": secondBuildContainerHandles}).RunWith(dbConn).QueryRow().Scan(&containerNum)
 					Expect(err).ToNot(HaveOccurred())
 
 					return containerNum
-				}, 2*time.Minute, time.Second).Should(Equal(len(secondBuildContainerIDs)))
+				}, 2*time.Minute, time.Second).Should(Equal(len(secondBuildContainerHandles)))
 
 				By("not removing the containers from the worker")
-				for _, handle := range secondBuildContainers {
+				for _, handle := range secondBuildContainerHandles {
 					Expect(existingHandles).To(ContainElement(handle))
 				}
 			})
@@ -279,20 +242,7 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				<-spawnFly("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
 
 				By("collecting the first build containers")
-				rows, err := psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).RunWith(dbConn).Query()
-				Expect(err).ToNot(HaveOccurred())
-
-				firstBuildContainers := map[int]string{}
-				firstContainerIDs := []int{}
-				for rows.Next() {
-					var id int
-					var handle string
-					err := rows.Scan(&id, &handle)
-					Expect(err).ToNot(HaveOccurred())
-
-					firstBuildContainers[id] = handle
-					firstContainerIDs = append(firstContainerIDs, id)
-				}
+				firstBuildContainerHandles := getContainers("type", "task")
 
 				By("triggering second long running job")
 				fly("set-pipeline", "-n", "-c", "pipelines/get-task-put-waiting.yml", "-p", "build-container-gc")
@@ -300,29 +250,31 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 				Eventually(runningBuildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 				By("collecting the second build containers")
-				rows, err = psql.Select("id, handle").From("containers").Where(sq.Eq{"type": "task"}).Where(sq.NotEq{"id": firstContainerIDs}).RunWith(dbConn).Query()
-				Expect(err).ToNot(HaveOccurred())
+				allBuildContainerHandles := getContainers("type", "task")
 
-				secondBuildContainers := map[int]string{}
-				secondBuildContainerIDs := []int{}
-				for rows.Next() {
-					var id int
-					var handle string
-					err := rows.Scan(&id, &handle)
-					Expect(err).ToNot(HaveOccurred())
+				var secondBuildContainerHandles []string
+				for _, handle := range allBuildContainerHandles {
+					alreadyExisted := false
+					for _, preHandle := range firstBuildContainerHandles {
+						if preHandle == handle {
+							alreadyExisted = true
+							break
+						}
+					}
 
-					secondBuildContainers[id] = handle
-					secondBuildContainerIDs = append(secondBuildContainerIDs, id)
+					if !alreadyExisted {
+						secondBuildContainerHandles = append(secondBuildContainerHandles, handle)
+					}
 				}
 
-				By(fmt.Sprintf("not expiring the first build containers: %v", firstContainerIDs))
+				By(fmt.Sprintf("not expiring the first build containers: %v", firstBuildContainerHandles))
 				Consistently(func() int {
 					var containerNum int
-					err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": firstContainerIDs}).RunWith(dbConn).QueryRow().Scan(&containerNum)
+					err := psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"handle": firstBuildContainerHandles}).RunWith(dbConn).QueryRow().Scan(&containerNum)
 					Expect(err).ToNot(HaveOccurred())
 
 					return containerNum
-				}, 2*time.Minute, time.Second).Should(Equal(len(firstContainerIDs)))
+				}, 2*time.Minute, time.Second).Should(Equal(len(firstBuildContainerHandles)))
 
 				By("not removing the first build containers from the worker")
 				gClient := gclient.New(gconn.New("tcp", fmt.Sprintf("%s:7777", atcIP)))
@@ -335,21 +287,21 @@ var _ = Describe(":life Garbage collecting build containers", func() {
 					existingHandles = append(existingHandles, c.Handle())
 				}
 
-				for _, handle := range firstBuildContainers {
+				for _, handle := range firstBuildContainerHandles {
 					Expect(existingHandles).To(ContainElement(handle))
 				}
 
-				By(fmt.Sprintf("not expiring the second build containers: %v", secondBuildContainerIDs))
+				By(fmt.Sprintf("not expiring the second build containers: %v", secondBuildContainerHandles))
 				Consistently(func() int {
 					var containerNum int
-					err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"id": secondBuildContainerIDs}).RunWith(dbConn).QueryRow().Scan(&containerNum)
+					err = psql.Select("COUNT(id)").From("containers").Where(sq.Eq{"handle": secondBuildContainerHandles}).RunWith(dbConn).QueryRow().Scan(&containerNum)
 					Expect(err).ToNot(HaveOccurred())
 
 					return containerNum
-				}, 2*time.Minute, time.Second).Should(Equal(len(secondBuildContainerIDs)))
+				}, 2*time.Minute, time.Second).Should(Equal(len(secondBuildContainerHandles)))
 
 				By("not removing the second build containers from the worker")
-				for _, handle := range secondBuildContainers {
+				for _, handle := range secondBuildContainerHandles {
 					Expect(existingHandles).To(ContainElement(handle))
 				}
 
