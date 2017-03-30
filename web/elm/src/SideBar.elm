@@ -1,4 +1,4 @@
-module SideBar exposing (Model, Msg, init, update, view, subscriptions, fetchPipelines)
+module SideBar exposing (Model, Msg(..), init, update, view, subscriptions, fetchPipelines)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, disabled, attribute, style)
@@ -66,6 +66,7 @@ type Msg
     | Unhover String (ListHover String)
     | PipelinesReordered String (Result Http.Error ())
     | NavToPipeline String
+    | NewCSRFToken String
 
 
 type alias Flags =
@@ -96,6 +97,12 @@ update action model =
     case action of
         Noop ->
             ( model, Cmd.none )
+
+        NewCSRFToken csrfToken  ->
+            ( { model
+                | csrfToken = csrfToken
+              }
+            , Cmd.none )
 
         PausePipeline teamName pipelineName ->
             ( mapModelPipelines updatePausedChanging teamName pipelineName model
