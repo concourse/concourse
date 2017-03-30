@@ -317,6 +317,7 @@ jobs:
         - garden-runc/*.tgz
         - bosh-rc/concourse-*.tgz
       vars_files: [versions-vars-file/vars.yml]
+      ops_files: [deployments/testflight/metrics-logs-ops.yml]
   - task: testflight
     file: concourse/ci/testflight.yml
     params:
