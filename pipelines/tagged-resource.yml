@@ -1,0 +1,12 @@
+---
+resources:
+- name: some-resource
+  type: time
+  tags: ["tagged"]
+  source:
+    interval: 30s
+
+jobs:
+- name: use-it
+  plan:
+  - get: some-resource
