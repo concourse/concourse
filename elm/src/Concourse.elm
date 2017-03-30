@@ -6,6 +6,7 @@ module Concourse
         , decodeAuthToken
         , CSRFToken
         , csrfTokenHeaderName
+        , AuthSession
         , Build
         , BuildId
         , JobBuildIdentifier
@@ -143,6 +144,12 @@ type alias CSRFToken =
 csrfTokenHeaderName : String
 csrfTokenHeaderName =
     "X-CSRF-Token"
+
+
+type alias AuthSession =
+    { authToken : AuthToken
+    , csrfToken : CSRFToken
+    }
 
 
 
