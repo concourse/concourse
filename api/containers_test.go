@@ -30,8 +30,6 @@ var _ = Describe("Containers API", func() {
 		pipelineID       = 1111
 		jobID            = 2222
 		buildID          = 3333
-		resourceID       = 4444
-		resourceTypeID   = 5555
 		workingDirectory = "/tmp/build/my-favorite-guid"
 		attempt          = "1.5"
 		user             = "snoopy"
@@ -52,11 +50,9 @@ var _ = Describe("Containers API", func() {
 			StepName: stepName,
 			Attempt:  attempt,
 
-			PipelineID:     pipelineID,
-			JobID:          jobID,
-			BuildID:        buildID,
-			ResourceID:     resourceID,
-			ResourceTypeID: resourceTypeID,
+			PipelineID: pipelineID,
+			JobID:      jobID,
+			BuildID:    buildID,
 
 			WorkingDirectory: workingDirectory,
 			User:             user,
@@ -71,11 +67,9 @@ var _ = Describe("Containers API", func() {
 			StepName: stepName + "-other",
 			Attempt:  attempt + ".1",
 
-			PipelineID:     pipelineID + 1,
-			JobID:          jobID + 1,
-			BuildID:        buildID + 1,
-			ResourceID:     resourceID + 1,
-			ResourceTypeID: resourceTypeID + 1,
+			PipelineID: pipelineID + 1,
+			JobID:      jobID + 1,
+			BuildID:    buildID + 1,
 
 			WorkingDirectory: workingDirectory + "/other",
 			User:             user + "-other",
@@ -148,8 +142,6 @@ var _ = Describe("Containers API", func() {
 									"pipeline_id": 1111,
 									"job_id": 2222,
 									"build_id": 3333,
-									"resource_id": 4444,
-									"resource_type_id": 5555,
 									"working_directory": "/tmp/build/my-favorite-guid",
 									"user": "snoopy"
 								},
@@ -162,8 +154,6 @@ var _ = Describe("Containers API", func() {
 									"pipeline_id": 1112,
 									"job_id": 2223,
 									"build_id": 3334,
-									"resource_id": 4445,
-									"resource_type_id": 5556,
 									"working_directory": "/tmp/build/my-favorite-guid/other",
 									"user": "snoopy-other"
 								}
@@ -270,24 +260,6 @@ var _ = Describe("Containers API", func() {
 					meta := dbTeam.FindContainersByMetadataArgsForCall(0)
 					Expect(meta).To(Equal(dbng.ContainerMetadata{
 						Type: stepType,
-					}))
-				})
-			})
-
-			Describe("querying with resource id", func() {
-				BeforeEach(func() {
-					req.URL.RawQuery = url.Values{
-						"resource_id": []string{strconv.Itoa(resourceID)},
-					}.Encode()
-				})
-
-				It("queries with it in the metadata", func() {
-					_, err := client.Do(req)
-					Expect(err).NotTo(HaveOccurred())
-
-					meta := dbTeam.FindContainersByMetadataArgsForCall(0)
-					Expect(meta).To(Equal(dbng.ContainerMetadata{
-						ResourceID: resourceID,
 					}))
 				})
 			})
@@ -461,8 +433,6 @@ var _ = Describe("Containers API", func() {
 							"pipeline_id": 1111,
 							"job_id": 2222,
 							"build_id": 3333,
-							"resource_id": 4444,
-							"resource_type_id": 5555,
 							"working_directory": "/tmp/build/my-favorite-guid",
 							"user": "snoopy"
 						}

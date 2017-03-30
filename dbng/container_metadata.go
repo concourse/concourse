@@ -103,13 +103,9 @@ var containerMetadataColumns = []string{
 	"meta_pipeline_id",
 	"meta_job_id",
 	"meta_build_id",
-	"meta_resource_id",
-	"meta_resource_type_id",
 	"meta_pipeline_name",
 	"meta_job_name",
 	"meta_build_name",
-	"meta_resource_name",
-	"meta_resource_type_name",
 }
 
 func (metadata *ContainerMetadata) ScanTargets() []interface{} {
