@@ -9,11 +9,12 @@ jobs:
   - task: tracksuit
     file: tracksuit/run.yml
     params:
-      GITHUB_TOKEN: {{tracksuit-github-token}}
-      TRACKER_TOKEN: {{tracksuit-tracker-token}}
-      PROJECT_ID: "1059262"
-      ORGANIZATION: concourse
-      GC_LABELS: "true"
+      TRACKSUIT_GITHUB_TOKEN: {{tracksuit-github-token}}
+      TRACKSUIT_GITHUB_ORGANIZATION_NAME: concourse
+      TRACKSUIT_TRACKER_TOKEN: {{tracksuit-tracker-token}}
+      TRACKSUIT_TRACKER_PROJECT_ID: "1059262"
+      TRACKSUIT_GC_LABELS: "true"
+      TRACKSUIT_LABEL: 'anti/knobs:#FF0000,anti/worker-state:#FF0000,anti/duplicate-effort:#FF0000,anti/quick-fix:#FF0000,anti/contributor-burden:#FF0000,docs:#844606,efficiency:#8FC326,operability:#FDB500,resiliency:#201940,deployable:#D42E00,troubleshooting:#59B0CE,security:#1E1E1E,ux:#CF0066,windows:#089EEF,ios:#DB4CC4,macos:#11356E'
 
 resources:
 - name: tracksuit
