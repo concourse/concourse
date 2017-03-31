@@ -4,8 +4,6 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/concourse/atc/auth"
-
 	"code.cloudfoundry.org/lager"
 )
 
@@ -46,13 +44,10 @@ func NewHandler(logger lager.Logger) (http.Handler, error) {
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.Session("index")
 
-	csrfToken := ""
-	cookie, err := r.Cookie(auth.CSRFCookieName)
-	if err == nil {
-		csrfToken = cookie.Value
-	}
-
-	err = h.template.Execute(w, templateData{
+	// csrfToken passed after logging in. Its validity is verified on server
+	// based on auth token in Cookie.
+	csrfToken := r.FormValue("csrf_token")
+	err := h.template.Execute(w, templateData{
 		CSRFToken: csrfToken,
 	})
 

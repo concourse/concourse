@@ -6,7 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-const CSRFHeaderName = "X-CSRF-Token"
+const CSRFHeaderName = "X-Csrf-Token"
 
 func CSRFValidationHandler(
 	handler http.Handler,

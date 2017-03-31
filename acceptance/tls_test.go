@@ -191,17 +191,11 @@ var _ = Describe("TLS", func() {
 			cookies, err := page.GetCookies()
 			Expect(err).NotTo(HaveOccurred())
 			var authCookie *http.Cookie
-			var csrfCookie *http.Cookie
 			for _, cookie := range cookies {
-				switch cookie.Name {
-				case auth.CSRFCookieName:
-					csrfCookie = cookie
-				case auth.AuthCookieName:
+				if cookie.Name == auth.AuthCookieName {
 					authCookie = cookie
 				}
 			}
-			Expect(csrfCookie).NotTo(BeNil())
-			Expect(csrfCookie.Secure).To(BeTrue())
 			Expect(authCookie).NotTo(BeNil())
 			Expect(authCookie.HttpOnly).To(BeTrue())
 			Expect(authCookie.Secure).To(BeTrue())

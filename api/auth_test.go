@@ -29,6 +29,8 @@ var _ = Describe("Auth API", func() {
 
 			teamDB.GetTeamReturns(savedTeam, true, nil)
 
+			fakeCSRFTokenGenerator.GenerateTokenReturns("some-csrf-token", nil)
+
 			var err error
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/token", nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -62,6 +64,10 @@ var _ = Describe("Auth API", func() {
 
 					It("returns application/json", func() {
 						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					})
+
+					It("returns CSRF token", func() {
+						Expect(response.Header.Get("X-Csrf-Token")).To(Equal("some-csrf-token"))
 					})
 
 					It("returns a token valid for 1 day", func() {

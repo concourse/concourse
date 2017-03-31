@@ -6,7 +6,6 @@ import (
 )
 
 const AuthCookieName = "ATC-Authorization"
-const CSRFCookieName = "CSRF"
 const CSRFRequiredKey = "CSRFRequired"
 
 type CookieSetHandler struct {

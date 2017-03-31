@@ -69,16 +69,12 @@ type Msg
     | NewCSRFToken String
 
 
-type alias Flags =
-    { csrfToken : String
-    }
 
-
-init : Flags -> ( Model, Cmd Msg )
-init flags =
+init : ( Model, Cmd Msg )
+init =
     ( { teams = Nothing
       , dragInfo = Nothing
-      , csrfToken = flags.csrfToken
+      , csrfToken = ""
       }
     , fetchPipelines
     )
