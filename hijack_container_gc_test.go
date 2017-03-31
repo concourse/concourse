@@ -15,8 +15,6 @@ import (
 var _ = Describe(":life [#129726125] Hijacked containers", func() {
 	var (
 		gClient gclient.Client
-
-		containerHandle string
 	)
 
 	BeforeEach(func() {
@@ -29,6 +27,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		return func() (h hijackedContainerResult) {
 			containers := flyTable("containers")
 
+			var containerHandle string
 			for _, c := range containers {
 				if c[condition] == value {
 					containerHandle = c["handle"]
