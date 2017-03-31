@@ -61,8 +61,8 @@ queryGroupsForRoute route =
     QueryString.all "groups" route.queries
 
 
-init : String -> String -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
-init turbulencePath csrfToken route =
+init : String -> Routes.ConcourseRoute -> ( Model, Cmd Msg )
+init turbulencePath route =
     case route.logical of
         Routes.Build teamName pipelineName jobName buildName ->
             superDupleWrap ( BuildModel, BuildMsg ) <|
@@ -70,7 +70,7 @@ init turbulencePath csrfToken route =
                     Build.getScrollBehavior
                     << Build.init
                         { title = setTitle }
-                        { csrfToken = csrfToken }
+                        { csrfToken = "" }
                 <|
                     Build.JobBuildPage
                         { teamName = teamName
@@ -85,7 +85,7 @@ init turbulencePath csrfToken route =
                     Build.getScrollBehavior
                     << Build.init
                         { title = setTitle }
-                        { csrfToken = csrfToken }
+                        { csrfToken = "" }
                 <|
                     Build.BuildPage <|
                         Result.withDefault 0 (String.toInt buildId)
@@ -98,7 +98,7 @@ init turbulencePath csrfToken route =
                     , teamName = teamName
                     , pipelineName = pipelineName
                     , paging = route.page
-                    , csrfToken = csrfToken
+                    , csrfToken = ""
                     }
 
         Routes.Job teamName pipelineName jobName ->
@@ -109,7 +109,7 @@ init turbulencePath csrfToken route =
                     , teamName = teamName
                     , pipelineName = pipelineName
                     , paging = route.page
-                    , csrfToken = csrfToken
+                    , csrfToken = ""
                     }
 
         Routes.SelectTeam ->
@@ -145,17 +145,21 @@ init turbulencePath csrfToken route =
             )
 
 
-update : String -> Msg -> Model -> ( Model, Cmd Msg )
-update turbulence msg mdl =
+update : String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
+update turbulence csrfToken msg mdl =
     case ( msg, mdl ) of
         ( NoPipelineMsg msg, model ) ->
             ( model, fetchPipelines )
 
         ( BuildMsg message, BuildModel scrollModel ) ->
-            superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update message scrollModel
+            let
+              subModel = scrollModel.subModel
+              model = { scrollModel | subModel = {subModel | csrfToken = csrfToken}}
+            in
+              superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update message model
 
         ( JobMsg message, JobModel model ) ->
-            superDupleWrap ( JobModel, JobMsg ) <| Job.update message model
+            superDupleWrap ( JobModel, JobMsg ) <| Job.update message { model | csrfToken = csrfToken }
 
         ( LoginMsg message, LoginModel model ) ->
             superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
@@ -164,7 +168,7 @@ update turbulence msg mdl =
             superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.update message model
 
         ( ResourceMsg message, ResourceModel model ) ->
-            superDupleWrap ( ResourceModel, ResourceMsg ) <| Resource.update message model
+            superDupleWrap ( ResourceModel, ResourceMsg ) <| Resource.update message { model | csrfToken = csrfToken }
 
         ( SelectTeamMsg message, SelectTeamModel model ) ->
             superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <| TeamSelection.update message model
