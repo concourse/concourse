@@ -355,7 +355,7 @@ func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container
 		}
 
 		if destroying != nil {
-			continue
+			containers = append(containers, destroying)
 		}
 	}
 

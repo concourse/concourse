@@ -253,12 +253,14 @@ var _ = Describe("Team", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				// third container is not appended; we don't want Destroying containers
-				_, err = thirdContainerCreated.Destroying()
+				thirdContainerDestroying, err := thirdContainerCreated.Destroying()
 				Expect(err).NotTo(HaveOccurred())
+
+				metaContainers[meta] = append(metaContainers[meta], thirdContainerDestroying)
 			}
 		})
 
-		It("finds creating and created containers for the team, matching the metadata in full", func() {
+		It("finds creating, created, and destroying containers for the team, matching the metadata in full", func() {
 			for _, meta := range sampleMetadata {
 				expectedHandles := []string{}
 				for _, c := range metaContainers[meta] {
@@ -274,7 +276,7 @@ var _ = Describe("Team", func() {
 				}
 
 				// should always find a Creating container and a Created container
-				Expect(foundHandles).To(HaveLen(2))
+				Expect(foundHandles).To(HaveLen(3))
 				Expect(foundHandles).To(ConsistOf(expectedHandles))
 			}
 		})
