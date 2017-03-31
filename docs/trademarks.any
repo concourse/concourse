@@ -207,5 +207,6 @@
   "Concourse is a trademark of Concourse in the U.S. and other countries."
 }{
   \bold{MORE QUESTIONS?} If you have questions about this policy, please
-  contact us at .
+  contact us at
+  \hyperlink{mailto:trademarks@concourse.ci}{trademarks@concourse.ci}.
 }
