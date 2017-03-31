@@ -406,3 +406,16 @@ func workersWithContainers() []string {
 
 	return workerNames
 }
+
+func containersBy(condition, value string) []string {
+	containers := flyTable("containers")
+
+	var handles []string
+	for _, c := range containers {
+		if c[condition] == value {
+			handles = append(handles, c["handle"])
+		}
+	}
+
+	return handles
+}

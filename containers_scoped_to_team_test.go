@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe(":life [#136140165] Container scope", func() {
@@ -28,11 +27,9 @@ var _ = Describe(":life [#136140165] Container scope", func() {
 			Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
 
 			By("demonstrating we can hijack into all of the containers")
-			var (
-				hijackSession *gexec.Session
-			)
-			for i := 1; i <= 4; i++ {
-				hijackSession = spawnFlyInteractive(
+			buildContainers := containersBy("build #", "1")
+			for i := 1; i <= len(buildContainers); i++ {
+				hijackSession := spawnFlyInteractive(
 					bytes.NewBufferString(strconv.Itoa(i)+"\n"),
 					"hijack",
 					"-b", "1",
@@ -46,7 +43,10 @@ var _ = Describe(":life [#136140165] Container scope", func() {
 			By("creating a separate team")
 			setTeamSession := spawnFlyInteractive(
 				bytes.NewBufferString("y\n"),
-				"set-team", "--team-name", "no-access", "--no-really-i-dont-want-any-auth")
+				"set-team",
+				"--team-name", "no-access",
+				"--no-really-i-dont-want-any-auth",
+			)
 
 			<-setTeamSession.Exited
 			Expect(setTeamSession.ExitCode()).To(Equal(0))
@@ -64,9 +64,10 @@ var _ = Describe(":life [#136140165] Container scope", func() {
 			fly("login", "-n", "main")
 
 			By("stopping the build")
-			hijackSession = spawnFly(
+			hijackSession := spawnFly(
 				"hijack",
 				"-b", "1",
+				"-s", "simple-task",
 				"touch", "/tmp/stop-waiting",
 			)
 
