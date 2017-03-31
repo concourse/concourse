@@ -49,6 +49,7 @@ type Msg
     | LoginMsg Login.Msg
     | PipelineMsg Pipeline.Msg
     | SelectTeamMsg TeamSelection.Msg
+    | NewCSRFToken String
 
 
 superDupleWrap : ( a -> b, c -> d ) -> ( a, Cmd c ) -> ( b, Cmd d )
@@ -151,12 +152,29 @@ update turbulence csrfToken msg mdl =
         ( NoPipelineMsg msg, model ) ->
             ( model, fetchPipelines )
 
+        ( NewCSRFToken c, BuildModel scrollModel ) ->
+            let
+                buildModel =
+                    scrollModel.subModel
+
+                ( newBuildModel, buildCmd ) =
+                    Build.update (Build.NewCSRFToken c) buildModel
+            in
+                ( BuildModel { scrollModel | subModel = newBuildModel }, buildCmd |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg)) )
+
+        -- superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update <| (Build.NewCSRFToken c) scrollModel
         ( BuildMsg message, BuildModel scrollModel ) ->
             let
-              subModel = scrollModel.subModel
-              model = { scrollModel | subModel = {subModel | csrfToken = csrfToken}}
+                subModel =
+                    scrollModel.subModel
+
+                model =
+                    { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
             in
-              superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update message model
+                superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update message model
+
+        ( NewCSRFToken c, JobModel model ) ->
+            ( JobModel { model | csrfToken = c }, Cmd.none )
 
         ( JobMsg message, JobModel model ) ->
             superDupleWrap ( JobModel, JobMsg ) <| Job.update message { model | csrfToken = csrfToken }
@@ -166,6 +184,9 @@ update turbulence csrfToken msg mdl =
 
         ( PipelineMsg message, PipelineModel model ) ->
             superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.update message model
+
+        ( NewCSRFToken c, ResourceModel model ) ->
+            ( ResourceModel { model | csrfToken = c }, Cmd.none )
 
         ( ResourceMsg message, ResourceModel model ) ->
             superDupleWrap ( ResourceModel, ResourceMsg ) <| Resource.update message { model | csrfToken = csrfToken }

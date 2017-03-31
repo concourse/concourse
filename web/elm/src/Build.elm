@@ -105,6 +105,7 @@ type Msg
     | RevealCurrentBuildInHistory
     | WindowScrolled Scroll.FromBottom
     | NavTo String
+    | NewCSRFToken String
 
 
 type alias Flags =
@@ -316,6 +317,9 @@ update action model =
 
         NavTo url ->
             ( model, Navigation.newUrl url )
+
+        NewCSRFToken token ->
+            ( { model | csrfToken = token }, Cmd.none )
 
 
 handleBuildFetched : Int -> Concourse.Build -> Model -> ( Model, Cmd Msg )

@@ -69,12 +69,15 @@ type Msg
     | NewCSRFToken String
 
 
+type alias Flags =
+    { csrfToken : String }
 
-init : ( Model, Cmd Msg )
-init =
+
+init : Flags -> ( Model, Cmd Msg )
+init flags =
     ( { teams = Nothing
       , dragInfo = Nothing
-      , csrfToken = ""
+      , csrfToken = flags.csrfToken
       }
     , fetchPipelines
     )
@@ -94,11 +97,12 @@ update action model =
         Noop ->
             ( model, Cmd.none )
 
-        NewCSRFToken csrfToken  ->
+        NewCSRFToken csrfToken ->
             ( { model
                 | csrfToken = csrfToken
               }
-            , Cmd.none )
+            , Cmd.none
+            )
 
         PausePipeline teamName pipelineName ->
             ( mapModelPipelines updatePausedChanging teamName pipelineName model

@@ -61,7 +61,7 @@ type Msg
     | ModifyUrl String
     | SaveToken String
     | LoadToken
-    | TokenReceived String
+    | TokenReceived (Maybe String)
 
 
 init : Flags -> Navigation.Location -> ( Model, Cmd Msg )
@@ -77,7 +77,7 @@ init flags location =
             TopBar.init route
 
         ( sideModel, sideCmd ) =
-            SideBar.init
+            SideBar.init { csrfToken = flags.csrfToken }
 
         navIndex =
             1
@@ -93,17 +93,19 @@ init flags location =
             , csrfToken = flags.csrfToken
             }
 
-        ( _, handleTokenCmd ) =
+        handleTokenCmd =
+            -- We've refreshed on the page and we're not
+            -- getting it from query params
             if flags.csrfToken == "" then
-                update (LoadToken) model
+                loadToken ()
             else
-                update (SaveToken flags.csrfToken) model
+                saveToken flags.csrfToken
 
-        ( _, stripCSRFTokenParamCmd ) =
+        stripCSRFTokenParamCmd =
             if flags.csrfToken == "" then
-                ( model, Cmd.none )
+                Cmd.none
             else
-                update (ModifyUrl location.pathname) model
+                Navigation.modifyUrl (Routes.customToString route)
     in
         ( model
         , Cmd.batch
@@ -146,12 +148,27 @@ update msg model =
         LoadToken ->
             ( model, loadToken () )
 
-        TokenReceived tokenValue ->
-            ( { model
-                | csrfToken = tokenValue
-              }
-            , Cmd.none
-            )
+        TokenReceived Nothing ->
+            ( model, Cmd.none )
+
+        TokenReceived (Just tokenValue) ->
+            let
+                ( newSubModel, subCmd ) =
+                    SubPage.update model.turbulenceImgSrc tokenValue (SubPage.NewCSRFToken tokenValue) model.subModel
+
+                ( newSideModel, sideCmd ) =
+                    SideBar.update (SideBar.NewCSRFToken tokenValue) model.sideModel
+            in
+                ( { model
+                    | csrfToken = tokenValue
+                    , subModel = newSubModel
+                    , sideModel = newSideModel
+                  }
+                , Cmd.batch
+                    [ Cmd.map (SubMsg anyNavIndex) subCmd
+                    , Cmd.map (SideMsg anyNavIndex) sideCmd
+                    ]
+                )
 
         SubMsg navIndex (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) ->
             let
@@ -333,6 +350,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ newUrl NewUrl
+        , tokenReceived TokenReceived
         , Sub.map (TopMsg model.navIndex) <| TopBar.subscriptions model.topModel
         , Sub.map (SideMsg model.navIndex) <| SideBar.subscriptions model.sideModel
         , Sub.map (SubMsg model.navIndex) <| SubPage.subscriptions model.subModel
