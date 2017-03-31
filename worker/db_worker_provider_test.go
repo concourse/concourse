@@ -128,7 +128,6 @@ var _ = Describe("DBProvider", func() {
 		provider = NewDBWorkerProvider(
 			logger,
 			fakeLockDB,
-			nil,
 			fakeBackOffFactory,
 			fakeImageFactory,
 			fakeDBResourceCacheFactory,

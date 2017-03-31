@@ -6,7 +6,6 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/worker/transport"
 	bclient "github.com/concourse/baggageclaim/client"
@@ -29,7 +28,6 @@ var ErrDesiredWorkerNotRunning = errors.New("desired-garden-worker-is-not-known-
 type dbWorkerProvider struct {
 	logger                          lager.Logger
 	lockDB                          LockDB
-	dialer                          gconn.DialerFunc
 	retryBackOffFactory             retryhttp.BackOffFactory
 	imageFactory                    ImageFactory
 	dbResourceCacheFactory          dbng.ResourceCacheFactory
@@ -43,7 +41,6 @@ type dbWorkerProvider struct {
 func NewDBWorkerProvider(
 	logger lager.Logger,
 	lockDB LockDB,
-	dialer gconn.DialerFunc,
 	retryBackOffFactory retryhttp.BackOffFactory,
 	imageFactory ImageFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
@@ -56,7 +53,6 @@ func NewDBWorkerProvider(
 	return &dbWorkerProvider{
 		logger:                          logger,
 		lockDB:                          lockDB,
-		dialer:                          dialer,
 		retryBackOffFactory:             retryBackOffFactory,
 		imageFactory:                    imageFactory,
 		dbResourceCacheFactory:          dbResourceCacheFactory,

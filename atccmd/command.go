@@ -691,7 +691,6 @@ func (cmd *ATCCommand) constructWorkerPool(
 		worker.NewDBWorkerProvider(
 			logger,
 			sqlDB,
-			keepaliveDialer,
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 			image.NewImageFactory(imageResourceFetcherFactory),
 			dbResourceCacheFactory,
