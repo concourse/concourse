@@ -66,8 +66,9 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		expire time.Duration
 
-		server *httptest.Server
-		client *http.Client
+		server          *httptest.Server
+		client          *http.Client
+		redirectRequest *http.Request
 
 		team db.SavedTeam
 	)
@@ -116,6 +117,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		mux := http.NewServeMux()
 		mux.Handle("/auth/", handler)
 		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			redirectRequest = r
 			fmt.Fprintln(w, "main page")
 		}))
 		mux.Handle("/public/fly_success", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -285,53 +287,20 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							})
 						})
 
-						Describe("the CSRF cookie", func() {
-							var csrfCookie *http.Cookie
-							var authCookie *http.Cookie
-
-							JustBeforeEach(func() {
-								cookies := client.Jar.Cookies(request.URL)
-								for _, c := range cookies {
-									if c.Name == auth.CSRFCookieName {
-										csrfCookie = c
-									}
-									if c.Name == auth.AuthCookieName {
-										authCookie = c
-									}
-								}
-							})
-
-							It("sets CSRF token that matches Authorization token", func() {
-								Expect(authCookie).NotTo(BeNil())
-								authToken, err := jwt.Parse(strings.Replace(authCookie.Value, "Bearer ", "", -1), keyFunc)
-								Expect(err).ToNot(HaveOccurred())
-
-								claims := authToken.Claims.(jwt.MapClaims)
-								Expect(claims["csrf"]).NotTo(BeEmpty())
-
-								Expect(csrfCookie).NotTo(BeNil())
-								Expect(csrfCookie.Value).To(Equal(claims["csrf"]))
-							})
-						})
-
 						It("does not redirect", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
 						It("responds with the success page and deletes oauth state cookie", func() {
 							cookies := client.Jar.Cookies(request.URL)
-							Expect(cookies).To(HaveLen(3))
+							Expect(cookies).To(HaveLen(2))
 
 							var authCookie *http.Cookie
-							var csrfCookie *http.Cookie
 							var oauthStateCookie *http.Cookie
 
 							for _, c := range cookies {
 								if c.Name == auth.AuthCookieName {
 									authCookie = c
-								}
-								if c.Name == auth.CSRFCookieName {
-									csrfCookie = c
 								}
 								if c.Name == auth.OAuthStateCookie {
 									oauthStateCookie = c
@@ -340,8 +309,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							Expect(authCookie).NotTo(BeNil())
 							Expect(authCookie.Value).To(MatchRegexp(`^Bearer .*`))
 							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("fly success page\n")))
-
-							Expect(csrfCookie).NotTo(BeNil())
 
 							Expect(oauthStateCookie).NotTo(BeNil())
 							Expect(oauthStateCookie.MaxAge).To(Equal(-1))
@@ -477,6 +444,9 @@ var _ = Describe("OAuthCallbackHandler", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("main page\n")))
 							})
 
+							It("appends csrf token to redirect request", func() {
+								Expect(redirectRequest.URL.RawQuery).To(MatchRegexp("csrf_token=[a-f0-9]{64}"))
+							})
 						})
 
 						Context("when the token is not verified", func() {
