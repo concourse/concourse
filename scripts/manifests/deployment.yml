@@ -8,92 +8,55 @@ releases:
     version: ((garden_runc_version))
 
 instance_groups:
-  - name: concourse
-    instances: 1
-    networks:
-      - name: testflight
-        static_ips: [&web-ip ((web_ip))]
-    persistent_disk: 10240
-    vm_type: testflight
-    stemcell: trusty
-    jobs:
-      - release: concourse
-        name: atc
-        properties:
-          tls_bind_port: 4443
-          log_level: debug
-          default_check_interval: 5s
-          external_url: https://((web_ip)):4443
-          postgresql_database: atc
+- name: concourse
+  instances: 1
+  networks:
+    - name: testflight
+      static_ips: [&web-ip ((web_ip))]
+  persistent_disk: 10240
+  vm_type: testflight
+  stemcell: trusty
+  jobs:
+    - release: concourse
+      name: atc
+      properties:
+        tls_bind_port: 4443
+        log_level: debug
+        default_check_interval: 5s
+        external_url: https://((web_ip)):4443
+        postgresql_database: atc
 
-          tls_cert: ((tls_cert))
-          tls_key: ((tls_key))
-          no_really_i_dont_want_any_auth: true
+        tls_cert: ((tls_cert))
+        tls_key: ((tls_key))
+        no_really_i_dont_want_any_auth: true
 
-      - release: concourse
-        name: tsa
-        properties: {}
+    - release: concourse
+      name: tsa
+      properties: {}
 
-      - release: concourse
-        name: postgresql
-        properties:
-          databases:
-          - name: atc
-            role: atc
-            password: dummy-password
+    - release: concourse
+      name: postgresql
+      properties:
+        databases:
+        - name: atc
+          role: atc
+          password: dummy-password
 
-  - name: default_worker
-    instances: 1
-    networks: [name: testflight]
-    vm_type: testflight
-    stemcell: trusty
-    jobs:
-      - release: concourse
-        name: groundcrew
-        consumes:
-          baggageclaim: {from: default_worker_baggageclaim}
-        properties: {}
+    - release: concourse
+      name: groundcrew
+      properties: {}
 
-      - release: concourse
-        name: baggageclaim
-        provides:
-          baggageclaim: {as: default_worker_baggageclaim}
-        properties: {}
+    - release: concourse
+      name: baggageclaim
+      properties: {}
 
-      - release: garden-runc
-        name: garden
-        properties:
-          garden:
-            listen_network: tcp
-            listen_address: 0.0.0.0:7777
-            allow_host_access: true
-
-  - name: tagged_worker
-    instances: 2
-    networks: [name: testflight]
-    vm_type: testflight
-    stemcell: trusty
-    jobs:
-      - release: concourse
-        name: groundcrew
-        consumes:
-          baggageclaim: {from: tagged_worker_baggageclaim}
-        properties:
-          tags: ["tagged"]
-
-      - release: concourse
-        name: baggageclaim
-        provides:
-          baggageclaim: {as: tagged_worker_baggageclaim}
-        properties: {}
-
-      - release: garden-runc
-        name: garden
-        properties:
-          garden:
-            listen_network: tcp
-            listen_address: 0.0.0.0:7777
-            allow_host_access: true
+    - release: garden-runc
+      name: garden
+      properties:
+        garden:
+          listen_network: tcp
+          listen_address: 0.0.0.0:7777
+          allow_host_access: true
 
 stemcells:
   - alias: trusty
