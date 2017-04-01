@@ -286,6 +286,8 @@ jobs:
   serial: true
   plan:
   - aggregate:
+    - get: 30m
+      trigger: true
     - get: concourse
       passed: [bosh-rc]
       trigger: true
@@ -997,6 +999,10 @@ resources:
     endpoint: storage.googleapis.com
     bucket: golang
     regexp: 'go(1\.\d+(\.\d+)?)\.linux-amd64\.tar.gz'
+
+- name: 30m
+  type: time
+  source: {interval: 30m}
 
 resource_types:
 - name: bosh-deployment
