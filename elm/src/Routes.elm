@@ -1,4 +1,4 @@
-module Routes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString)
+module Routes exposing (ConcourseRoute, Route(..), parsePath, navigateTo, toString, customToString)
 
 import Navigation exposing (Location)
 import Route exposing (..)
@@ -117,9 +117,14 @@ toString route =
 parsePath : Location -> ConcourseRoute
 parsePath location =
     { logical = match <| location.pathname
-    , queries = QueryString.parse location.search
+    , queries = QueryString.parse location.search |> QueryString.remove "csrf_token"
     , page = createPageFromSearch location.search
     }
+
+
+customToString : ConcourseRoute -> String
+customToString route =
+    toString route.logical ++ QueryString.render route.queries
 
 
 createPageFromSearch : String -> Maybe Pagination.Page

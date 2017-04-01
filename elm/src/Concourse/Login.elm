@@ -2,16 +2,37 @@ module Concourse.Login exposing (..)
 
 import Base64
 import Http
+import Json.Decode
 import Task exposing (Task)
 import Concourse
 
 
-noAuth : String -> Task Http.Error Concourse.AuthToken
+noAuth : String -> Task Http.Error Concourse.AuthSession
 noAuth teamName =
-    Http.toTask <| Http.get ("/api/v1/teams/" ++ teamName ++ "/auth/token") Concourse.decodeAuthToken
+    Http.toTask <|
+        Http.request
+            { method = "GET"
+            , url = "/api/v1/teams/" ++ teamName ++ "/auth/token"
+            , headers = []
+            , body = Http.emptyBody
+            , expect = Http.expectStringResponse parseResponse
+            , timeout = Nothing
+            , withCredentials = False
+            }
 
 
-basicAuth : String -> String -> String -> Task Http.Error Concourse.AuthToken
+parseResponse : Http.Response String -> Result String Concourse.AuthSession
+parseResponse response =
+    let
+        authToken =
+            Json.Decode.decodeString Concourse.decodeAuthToken response.body
+        csrfToken =
+          Concourse.retrieveCSRFToken response.headers
+    in
+      Result.map2 (\a b -> { authToken = a, csrfToken = b }) authToken csrfToken
+
+
+basicAuth : String -> String -> String -> Task Http.Error Concourse.AuthSession
 basicAuth teamName username password =
     Http.toTask <|
         Http.request
@@ -19,7 +40,7 @@ basicAuth teamName username password =
             , url = "/api/v1/teams/" ++ teamName ++ "/auth/token"
             , headers = [ encodedAuthHeader username password ]
             , body = Http.emptyBody
-            , expect = Http.expectJson Concourse.decodeAuthToken
+            , expect =  Http.expectStringResponse parseResponse
             , timeout = Nothing
             , withCredentials = False
             }

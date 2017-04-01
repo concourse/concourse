@@ -17,6 +17,7 @@ port newUrl : (String -> msg) -> Sub msg
 
 type alias Flags =
     { turbulenceImgSrc : String
+    , csrfToken : String
     }
 
 
@@ -29,6 +30,15 @@ anyNavIndex =
     -1
 
 
+port saveToken : String -> Cmd msg
+
+
+port tokenReceived : (Maybe String -> msg) -> Sub msg
+
+
+port loadToken : () -> Cmd msg
+
+
 type alias Model =
     { navIndex : NavIndex
     , subModel : SubPage.Model
@@ -36,6 +46,7 @@ type alias Model =
     , sideModel : SideBar.Model
     , sidebarVisible : Bool
     , turbulenceImgSrc : String
+    , csrfToken : String
     , route : Routes.ConcourseRoute
     }
 
@@ -47,6 +58,10 @@ type Msg
     | TopMsg NavIndex TopBar.Msg
     | SideMsg NavIndex SideBar.Msg
     | NewUrl String
+    | ModifyUrl String
+    | SaveToken String
+    | LoadToken
+    | TokenReceived (Maybe String)
 
 
 init : Flags -> Navigation.Location -> ( Model, Cmd Msg )
@@ -62,21 +77,41 @@ init flags location =
             TopBar.init route
 
         ( sideModel, sideCmd ) =
-            SideBar.init
+            SideBar.init { csrfToken = flags.csrfToken }
 
         navIndex =
             1
+
+        model =
+            { navIndex = navIndex
+            , subModel = subModel
+            , topModel = topModel
+            , sideModel = sideModel
+            , sidebarVisible = False
+            , turbulenceImgSrc = flags.turbulenceImgSrc
+            , route = route
+            , csrfToken = flags.csrfToken
+            }
+
+        handleTokenCmd =
+            -- We've refreshed on the page and we're not
+            -- getting it from query params
+            if flags.csrfToken == "" then
+                loadToken ()
+            else
+                saveToken flags.csrfToken
+
+        stripCSRFTokenParamCmd =
+            if flags.csrfToken == "" then
+                Cmd.none
+            else
+                Navigation.modifyUrl (Routes.customToString route)
     in
-        ( { navIndex = navIndex
-          , subModel = subModel
-          , topModel = topModel
-          , sideModel = sideModel
-          , sidebarVisible = False
-          , turbulenceImgSrc = flags.turbulenceImgSrc
-          , route = route
-          }
+        ( model
         , Cmd.batch
-            [ Cmd.map (SubMsg navIndex) subCmd
+            [ handleTokenCmd
+            , stripCSRFTokenParamCmd
+            , Cmd.map (SubMsg navIndex) subCmd
             , Cmd.map (TopMsg navIndex) topCmd
             , Cmd.map (SideMsg navIndex) sideCmd
             ]
@@ -94,26 +129,67 @@ update msg model =
         NewUrl url ->
             ( model, Navigation.newUrl url )
 
+        ModifyUrl url ->
+            ( model, Navigation.modifyUrl url )
+
         RouteChanged route ->
             urlUpdate route model
 
-        TopMsg _ (TopBar.ToggleSidebar) ->
+        TopMsg _ TopBar.ToggleSidebar ->
             ( { model
                 | sidebarVisible = not model.sidebarVisible
               }
             , Cmd.none
             )
 
-        SubMsg navIndex (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) ->
+        SaveToken tokenValue ->
+            ( model, saveToken (tokenValue) )
+
+        LoadToken ->
+            ( model, loadToken () )
+
+        TokenReceived Nothing ->
+            ( model, Cmd.none )
+
+        TokenReceived (Just tokenValue) ->
             let
+                ( newSubModel, subCmd ) =
+                    SubPage.update model.turbulenceImgSrc tokenValue (SubPage.NewCSRFToken tokenValue) model.subModel
+
+                ( newSideModel, sideCmd ) =
+                    SideBar.update (SideBar.NewCSRFToken tokenValue) model.sideModel
+            in
+                ( { model
+                    | csrfToken = tokenValue
+                    , subModel = newSubModel
+                    , sideModel = newSideModel
+                  }
+                , Cmd.batch
+                    [ Cmd.map (SubMsg anyNavIndex) subCmd
+                    , Cmd.map (SideMsg anyNavIndex) sideCmd
+                    ]
+                )
+
+        SubMsg navIndex (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) ->
+            let
+                ( layoutModel, layoutCmd ) =
+                    update (SaveToken val.csrfToken) model
+
                 ( subModel, subCmd ) =
-                    SubPage.update model.turbulenceImgSrc (SubPage.LoginMsg (Login.LoginTokenReceived (Ok val))) model.subModel
+                    SubPage.update model.turbulenceImgSrc val.csrfToken (SubPage.LoginMsg (Login.AuthSessionReceived (Ok val))) model.subModel
+
+                ( sideModel, sideCmd ) =
+                    SideBar.update (SideBar.NewCSRFToken val.csrfToken) model.sideModel
             in
                 ( { model
                     | subModel = subModel
+                    , sideModel = sideModel
+                    , csrfToken = val.csrfToken
                   }
                 , Cmd.batch
-                    [ Cmd.map (TopMsg anyNavIndex) TopBar.fetchUser
+                    [ layoutCmd
+                    , Cmd.map (SideMsg anyNavIndex) sideCmd
+                    , Cmd.map (TopMsg anyNavIndex) TopBar.fetchUser
                     , Cmd.map (SideMsg anyNavIndex) SideBar.fetchPipelines
                     , Cmd.map (SubMsg navIndex) subCmd
                     ]
@@ -127,6 +203,7 @@ update msg model =
                 ( subModel, subCmd ) =
                     SubPage.update
                         model.turbulenceImgSrc
+                        model.csrfToken
                         (SubPage.DefaultPipelineFetched pipeline)
                         model.subModel
             in
@@ -160,7 +237,7 @@ update msg model =
             if (validNavIndex model.navIndex navIndex) then
                 let
                     ( subModel, subCmd ) =
-                        SubPage.update model.turbulenceImgSrc m model.subModel
+                        SubPage.update model.turbulenceImgSrc model.csrfToken m model.subModel
                 in
                     ( { model | subModel = subModel }, Cmd.map (SubMsg navIndex) subCmd )
             else
@@ -273,6 +350,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ newUrl NewUrl
+        , tokenReceived TokenReceived
         , Sub.map (TopMsg model.navIndex) <| TopBar.subscriptions model.topModel
         , Sub.map (SideMsg model.navIndex) <| SideBar.subscriptions model.sideModel
         , Sub.map (SubMsg model.navIndex) <| SubPage.subscriptions model.subModel

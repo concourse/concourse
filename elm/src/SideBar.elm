@@ -1,4 +1,4 @@
-module SideBar exposing (Model, Msg, init, update, view, subscriptions, fetchPipelines)
+module SideBar exposing (Model, Msg(..), init, update, view, subscriptions, fetchPipelines)
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, disabled, attribute, style)
@@ -17,6 +17,7 @@ import StrictEvents exposing (onLeftClick, onLeftMouseDownCapturing)
 type alias Model =
     { teams : Maybe (List ( String, List UIPipeline ))
     , dragInfo : Maybe DragInfo
+    , csrfToken : String
     }
 
 
@@ -65,12 +66,18 @@ type Msg
     | Unhover String (ListHover String)
     | PipelinesReordered String (Result Http.Error ())
     | NavToPipeline String
+    | NewCSRFToken String
 
 
-init : ( Model, Cmd Msg )
-init =
+type alias Flags =
+    { csrfToken : String }
+
+
+init : Flags -> ( Model, Cmd Msg )
+init flags =
     ( { teams = Nothing
       , dragInfo = Nothing
+      , csrfToken = flags.csrfToken
       }
     , fetchPipelines
     )
@@ -90,14 +97,21 @@ update action model =
         Noop ->
             ( model, Cmd.none )
 
+        NewCSRFToken csrfToken ->
+            ( { model
+                | csrfToken = csrfToken
+              }
+            , Cmd.none
+            )
+
         PausePipeline teamName pipelineName ->
             ( mapModelPipelines updatePausedChanging teamName pipelineName model
-            , pausePipeline teamName pipelineName
+            , pausePipeline teamName pipelineName model.csrfToken
             )
 
         UnpausePipeline teamName pipelineName ->
             ( mapModelPipelines updatePausedChanging teamName pipelineName model
-            , unpausePipeline teamName pipelineName
+            , unpausePipeline teamName pipelineName model.csrfToken
             )
 
         PipelinesFetched (Ok pipelines) ->
@@ -204,8 +218,10 @@ update action model =
                                                             updatedPipelines
                                                             model.teams
                                                   }
-                                                , orderPipelines dragInfo.teamName <|
-                                                    List.map (.pipeline >> .name) updatedPipelines
+                                                , orderPipelines
+                                                    dragInfo.teamName
+                                                    (List.map (.pipeline >> .name) updatedPipelines)
+                                                    model.csrfToken
                                                 )
 
                                         ( _, Nothing ) ->
@@ -664,22 +680,22 @@ fetchPipelines =
     Task.attempt PipelinesFetched Concourse.Pipeline.fetchPipelines
 
 
-unpausePipeline : String -> String -> Cmd Msg
-unpausePipeline teamName pipelineName =
+unpausePipeline : String -> String -> Concourse.CSRFToken -> Cmd Msg
+unpausePipeline teamName pipelineName csrfToken =
     Task.attempt (PipelineUnpaused teamName pipelineName) <|
-        Concourse.Pipeline.unpause teamName pipelineName
+        Concourse.Pipeline.unpause teamName pipelineName csrfToken
 
 
-pausePipeline : String -> String -> Cmd Msg
-pausePipeline teamName pipelineName =
+pausePipeline : String -> String -> Concourse.CSRFToken -> Cmd Msg
+pausePipeline teamName pipelineName csrfToken =
     Task.attempt (PipelinePaused teamName pipelineName) <|
-        Concourse.Pipeline.pause teamName pipelineName
+        Concourse.Pipeline.pause teamName pipelineName csrfToken
 
 
-orderPipelines : String -> List String -> Cmd Msg
-orderPipelines teamName pipelineNames =
+orderPipelines : String -> List String -> Concourse.CSRFToken -> Cmd Msg
+orderPipelines teamName pipelineNames csrfToken =
     Task.attempt (PipelinesReordered teamName) <|
-        Concourse.Pipeline.order teamName pipelineNames
+        Concourse.Pipeline.order teamName pipelineNames csrfToken
 
 
 groupPipelinesByTeam : List Concourse.Pipeline -> List ( String, List UIPipeline )

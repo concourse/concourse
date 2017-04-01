@@ -39,18 +39,18 @@ fetchResourcesRaw pi =
             ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/resources")
 
 
-pause : Concourse.ResourceIdentifier -> Task Http.Error ()
+pause : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
 pause =
     pauseUnpause True
 
 
-unpause : Concourse.ResourceIdentifier -> Task Http.Error ()
+unpause : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
 unpause =
     pauseUnpause False
 
 
-pauseUnpause : Bool -> Concourse.ResourceIdentifier -> Task Http.Error ()
-pauseUnpause pause rid =
+pauseUnpause : Bool -> Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
+pauseUnpause pause rid csrfToken =
     let
         action =
             if pause then
@@ -62,7 +62,7 @@ pauseUnpause pause rid =
             Http.request
                 { method = "PUT"
                 , url = "/api/v1/teams/" ++ rid.teamName ++ "/pipelines/" ++ rid.pipelineName ++ "/resources/" ++ rid.resourceName ++ "/" ++ action
-                , headers = []
+                , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
                 , body = Http.emptyBody
                 , expect = Http.expectStringResponse (\_ -> Ok ())
                 , timeout = Nothing
@@ -79,18 +79,18 @@ fetchVersionedResources rid page =
         Concourse.Pagination.fetch Concourse.decodeVersionedResource url page
 
 
-enableVersionedResource : Concourse.VersionedResourceIdentifier -> Task Http.Error ()
+enableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
 enableVersionedResource =
     enableDisableVersionedResource True
 
 
-disableVersionedResource : Concourse.VersionedResourceIdentifier -> Task Http.Error ()
+disableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
 disableVersionedResource =
     enableDisableVersionedResource False
 
 
-enableDisableVersionedResource : Bool -> Concourse.VersionedResourceIdentifier -> Task Http.Error ()
-enableDisableVersionedResource enable vrid =
+enableDisableVersionedResource : Bool -> Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
+enableDisableVersionedResource enable vrid csrfToken =
     let
         action =
             if enable then
@@ -102,7 +102,7 @@ enableDisableVersionedResource enable vrid =
             Http.request
                 { method = "PUT"
                 , url = "/api/v1/teams/" ++ vrid.teamName ++ "/pipelines/" ++ vrid.pipelineName ++ "/resources/" ++ vrid.resourceName ++ "/versions/" ++ (toString vrid.versionID) ++ "/" ++ action
-                , headers = []
+                , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
                 , body = Http.emptyBody
                 , expect = Http.expectStringResponse (\_ -> Ok ())
                 , timeout = Nothing

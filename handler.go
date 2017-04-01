@@ -7,7 +7,9 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-type templateData struct{}
+type templateData struct {
+	CSRFToken string
+}
 
 type handler struct {
 	logger   lager.Logger
@@ -42,7 +44,12 @@ func NewHandler(logger lager.Logger) (http.Handler, error) {
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.Session("index")
 
-	err := h.template.Execute(w, templateData{})
+	// csrfToken passed after logging in. Its validity is verified on server
+	// based on auth token in Cookie.
+	csrfToken := r.FormValue("csrf_token")
+	err := h.template.Execute(w, templateData{
+		CSRFToken: csrfToken,
+	})
 
 	if err != nil {
 		log.Fatal("failed-to-build-template", err, lager.Data{})
