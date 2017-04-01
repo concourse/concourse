@@ -1,4 +1,4 @@
-package pipelines_test
+package topgun_test
 
 import (
 	. "github.com/onsi/ginkgo"
