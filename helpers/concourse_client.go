@@ -9,33 +9,36 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/go-concourse/concourse"
 )
 
 func ConcourseClient(atcURL string) concourse.Client {
-	token, _ := GetATCToken(atcURL)
-	httpClient := oauthClient(token)
+	authToken, _, _ := GetATCToken(atcURL)
+	httpClient := oauthClient(authToken)
 	return concourse.NewClient(atcURL, httpClient)
 }
 
-func GetATCToken(atcURL string) (*atc.AuthToken, error) {
+func GetATCToken(atcURL string) (*atc.AuthToken, string, error) {
 	response, err := httpClient().Get(atcURL + "/api/v1/teams/main/auth/token")
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	var token *atc.AuthToken
+	var authToken *atc.AuthToken
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	err = json.Unmarshal(body, &token)
+	err = json.Unmarshal(body, &authToken)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return token, nil
+	csrfToken := response.Header.Get(auth.CSRFHeaderName)
+
+	return authToken, csrfToken, nil
 }
 
 func oauthClient(atcToken *atc.AuthToken) *http.Client {

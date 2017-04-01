@@ -64,7 +64,7 @@ var _ = BeforeEach(func() {
 	page, err = agoutiDriver.NewPage()
 	Expect(err).NotTo(HaveOccurred())
 
-	helpers.WebLogin(page, atcURL)
+	Expect(helpers.WebLogin(page, atcURL)).To(Succeed())
 	logger = lagertest.NewTestLogger("web-test")
 })
 
