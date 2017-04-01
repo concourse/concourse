@@ -8,13 +8,14 @@ import (
 	"github.com/concourse/atc/auth"
 )
 
-type FakeTokenGenerator struct {
-	GenerateTokenStub        func(expiration time.Time, teamName string, isAdmin bool) (auth.TokenType, auth.TokenValue, error)
+type FakeAuthTokenGenerator struct {
+	GenerateTokenStub        func(expiration time.Time, teamName string, isAdmin bool, csrfToken string) (auth.TokenType, auth.TokenValue, error)
 	generateTokenMutex       sync.RWMutex
 	generateTokenArgsForCall []struct {
 		expiration time.Time
 		teamName   string
 		isAdmin    bool
+		csrfToken  string
 	}
 	generateTokenReturns struct {
 		result1 auth.TokenType
@@ -30,18 +31,19 @@ type FakeTokenGenerator struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTokenGenerator) GenerateToken(expiration time.Time, teamName string, isAdmin bool) (auth.TokenType, auth.TokenValue, error) {
+func (fake *FakeAuthTokenGenerator) GenerateToken(expiration time.Time, teamName string, isAdmin bool, csrfToken string) (auth.TokenType, auth.TokenValue, error) {
 	fake.generateTokenMutex.Lock()
 	ret, specificReturn := fake.generateTokenReturnsOnCall[len(fake.generateTokenArgsForCall)]
 	fake.generateTokenArgsForCall = append(fake.generateTokenArgsForCall, struct {
 		expiration time.Time
 		teamName   string
 		isAdmin    bool
-	}{expiration, teamName, isAdmin})
-	fake.recordInvocation("GenerateToken", []interface{}{expiration, teamName, isAdmin})
+		csrfToken  string
+	}{expiration, teamName, isAdmin, csrfToken})
+	fake.recordInvocation("GenerateToken", []interface{}{expiration, teamName, isAdmin, csrfToken})
 	fake.generateTokenMutex.Unlock()
 	if fake.GenerateTokenStub != nil {
-		return fake.GenerateTokenStub(expiration, teamName, isAdmin)
+		return fake.GenerateTokenStub(expiration, teamName, isAdmin, csrfToken)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -49,19 +51,19 @@ func (fake *FakeTokenGenerator) GenerateToken(expiration time.Time, teamName str
 	return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2, fake.generateTokenReturns.result3
 }
 
-func (fake *FakeTokenGenerator) GenerateTokenCallCount() int {
+func (fake *FakeAuthTokenGenerator) GenerateTokenCallCount() int {
 	fake.generateTokenMutex.RLock()
 	defer fake.generateTokenMutex.RUnlock()
 	return len(fake.generateTokenArgsForCall)
 }
 
-func (fake *FakeTokenGenerator) GenerateTokenArgsForCall(i int) (time.Time, string, bool) {
+func (fake *FakeAuthTokenGenerator) GenerateTokenArgsForCall(i int) (time.Time, string, bool, string) {
 	fake.generateTokenMutex.RLock()
 	defer fake.generateTokenMutex.RUnlock()
-	return fake.generateTokenArgsForCall[i].expiration, fake.generateTokenArgsForCall[i].teamName, fake.generateTokenArgsForCall[i].isAdmin
+	return fake.generateTokenArgsForCall[i].expiration, fake.generateTokenArgsForCall[i].teamName, fake.generateTokenArgsForCall[i].isAdmin, fake.generateTokenArgsForCall[i].csrfToken
 }
 
-func (fake *FakeTokenGenerator) GenerateTokenReturns(result1 auth.TokenType, result2 auth.TokenValue, result3 error) {
+func (fake *FakeAuthTokenGenerator) GenerateTokenReturns(result1 auth.TokenType, result2 auth.TokenValue, result3 error) {
 	fake.GenerateTokenStub = nil
 	fake.generateTokenReturns = struct {
 		result1 auth.TokenType
@@ -70,7 +72,7 @@ func (fake *FakeTokenGenerator) GenerateTokenReturns(result1 auth.TokenType, res
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTokenGenerator) GenerateTokenReturnsOnCall(i int, result1 auth.TokenType, result2 auth.TokenValue, result3 error) {
+func (fake *FakeAuthTokenGenerator) GenerateTokenReturnsOnCall(i int, result1 auth.TokenType, result2 auth.TokenValue, result3 error) {
 	fake.GenerateTokenStub = nil
 	if fake.generateTokenReturnsOnCall == nil {
 		fake.generateTokenReturnsOnCall = make(map[int]struct {
@@ -86,7 +88,7 @@ func (fake *FakeTokenGenerator) GenerateTokenReturnsOnCall(i int, result1 auth.T
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTokenGenerator) Invocations() map[string][][]interface{} {
+func (fake *FakeAuthTokenGenerator) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.generateTokenMutex.RLock()
@@ -94,7 +96,7 @@ func (fake *FakeTokenGenerator) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeTokenGenerator) recordInvocation(key string, args []interface{}) {
+func (fake *FakeAuthTokenGenerator) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -106,4 +108,4 @@ func (fake *FakeTokenGenerator) recordInvocation(key string, args []interface{})
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ auth.TokenGenerator = new(FakeTokenGenerator)
+var _ auth.AuthTokenGenerator = new(FakeAuthTokenGenerator)

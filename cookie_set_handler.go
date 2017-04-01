@@ -1,20 +1,26 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 )
 
-const CookieName = "ATC-Authorization"
+const AuthCookieName = "ATC-Authorization"
+const CSRFRequiredKey = "CSRFRequired"
 
 type CookieSetHandler struct {
 	Handler http.Handler
 }
 
 func (handler CookieSetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(CookieName)
-	if err == nil && r.Header.Get("Authorization") == "" {
-		r.Header.Set("Authorization", cookie.Value)
+	cookie, err := r.Cookie(AuthCookieName)
+	if err == nil {
+		ctx := context.WithValue(r.Context(), CSRFRequiredKey, true)
+		r = r.WithContext(ctx)
 
+		if r.Header.Get("Authorization") == "" {
+			r.Header.Set("Authorization", cookie.Value)
+		}
 	}
 
 	handler.Handler.ServeHTTP(w, r)

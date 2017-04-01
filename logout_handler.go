@@ -18,7 +18,7 @@ func (handler *LogOutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	handler.logger.Session("logout")
 
 	http.SetCookie(w, &http.Cookie{
-		Name:   CookieName,
+		Name:   AuthCookieName,
 		Path:   "/",
 		MaxAge: -1,
 	})
