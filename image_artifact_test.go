@@ -23,7 +23,7 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 		})
 
 		JustBeforeEach(func() {
-			jobSession = spawnFly("trigger-job", "-w", "-j", jobName)
+			jobSession = spawnFly("trigger-job", "-w", "-j", "image-artifact/"+jobName)
 			<-jobSession.Exited
 		})
 
