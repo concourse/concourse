@@ -16,6 +16,7 @@ import NoPipeline
 import Routes
 import QueryString
 import Pipeline
+import BetaPipeline
 import TeamSelection
 
 
@@ -36,6 +37,7 @@ type Model
     | ResourceModel Resource.Model
     | LoginModel Login.Model
     | PipelineModel Pipeline.Model
+    | BetaPipelineModel BetaPipeline.Model
     | SelectTeamModel TeamSelection.Model
 
 
@@ -48,6 +50,7 @@ type Msg
     | ResourceMsg Resource.Msg
     | LoginMsg Login.Msg
     | PipelineMsg Pipeline.Msg
+    | BetaPipelineMsg BetaPipeline.Msg
     | SelectTeamMsg TeamSelection.Msg
     | NewCSRFToken String
 
@@ -137,6 +140,17 @@ init turbulencePath route =
                     , route = route
                     }
 
+        Routes.BetaPipeline teamName pipelineName ->
+            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <|
+                BetaPipeline.init
+                    { title = setTitle
+                    }
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , turbulenceImgSrc = turbulencePath
+                    , route = route
+                    }
+
         Routes.Home ->
             ( WaitingModel route
             , Cmd.batch
@@ -185,6 +199,9 @@ update turbulence csrfToken msg mdl =
         ( PipelineMsg message, PipelineModel model ) ->
             superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.update message model
 
+        ( BetaPipelineMsg message, BetaPipelineModel model ) ->
+            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <| BetaPipeline.update message model
+
         ( NewCSRFToken c, ResourceModel model ) ->
             ( ResourceModel { model | csrfToken = c }, Cmd.none )
 
@@ -221,6 +238,16 @@ urlUpdate route model =
         ( Routes.Pipeline team pipeline, PipelineModel mdl ) ->
             superDupleWrap ( PipelineModel, PipelineMsg ) <|
                 Pipeline.changeToPipelineAndGroups
+                    { teamName = team
+                    , pipelineName = pipeline
+                    , turbulenceImgSrc = mdl.turbulenceImgSrc
+                    , route = route
+                    }
+                    mdl
+
+        ( Routes.BetaPipeline team pipeline, BetaPipelineModel mdl ) ->
+            superDupleWrap ( BetaPipelineModel, BetaPipelineMsg ) <|
+                BetaPipeline.changeToPipelineAndGroups
                     { teamName = team
                     , pipelineName = pipeline
                     , turbulenceImgSrc = mdl.turbulenceImgSrc
@@ -286,6 +313,9 @@ view mdl =
         PipelineModel model ->
             Html.map PipelineMsg <| Pipeline.view model
 
+        BetaPipelineModel model ->
+            Html.map BetaPipelineMsg <| BetaPipeline.view model
+
         ResourceModel model ->
             Html.map ResourceMsg <| Resource.view model
 
@@ -316,6 +346,9 @@ subscriptions mdl =
 
         PipelineModel model ->
             Sub.map PipelineMsg <| Pipeline.subscriptions model
+
+        BetaPipelineModel model ->
+            Sub.map BetaPipelineMsg <| BetaPipeline.subscriptions model
 
         ResourceModel model ->
             Sub.map ResourceMsg <| Resource.subscriptions model

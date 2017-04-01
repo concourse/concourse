@@ -203,6 +203,9 @@ extractPidFromRoute route =
         Routes.Pipeline teamName pipelineName ->
             Just { teamName = teamName, pipelineName = pipelineName }
 
+        Routes.BetaPipeline teamName pipelineName ->
+            Just { teamName = teamName, pipelineName = pipelineName }
+
         Routes.SelectTeam ->
             Nothing
 
