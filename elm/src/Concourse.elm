@@ -147,8 +147,13 @@ csrfTokenHeaderName =
 
 retrieveCSRFToken : ( Dict String String ) -> Result String CSRFToken
 retrieveCSRFToken headers =
-  Dict.get csrfTokenHeaderName headers |> Result.fromMaybe "error CSRFToken not found"
+  Dict.get (String.toLower csrfTokenHeaderName) (keysToLower headers) |> Result.fromMaybe "error CSRFToken not found"
 
+keysToLower : Dict String a -> Dict String a
+keysToLower = Dict.fromList << List.map fstToLower << Dict.toList
+
+fstToLower : (String, a) -> (String, a)
+fstToLower (x, y) = (String.toLower x, y)
 
 type alias AuthSession =
     { authToken : AuthToken
