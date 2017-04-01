@@ -18,7 +18,8 @@
     <script type="text/javascript">
       var node = document.getElementById("elm-app-embed");
       var app = Elm.Main.embed(node, {
-        turbulenceImgSrc: {{asset "images/buckleup.svg"}}
+        turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+        csrfToken: {{ .CSRFToken }}
       });
 
       app.ports.renderPipeline.subscribe(function (values) {
@@ -60,6 +61,14 @@
         setTimeout(function(){
           document.title = title + "Concourse";
         }, 0)
+      });
+
+      var storageKey = "csrf_token";
+      app.ports.saveToken.subscribe(function(value) {
+        localStorage.setItem(storageKey, value);
+      });
+      app.ports.loadToken.subscribe(function() {
+          app.ports.tokenReceived.send(localStorage.getItem(storageKey));
       });
     </script>
   </body>

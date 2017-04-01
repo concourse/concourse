@@ -38,7 +38,8 @@ var (
 
 	authValidator                 *authfakes.FakeValidator
 	userContextReader             *authfakes.FakeUserContextReader
-	fakeTokenGenerator            *authfakes.FakeTokenGenerator
+	fakeAuthTokenGenerator        *authfakes.FakeAuthTokenGenerator
+	fakeCSRFTokenGenerator        *authfakes.FakeCSRFTokenGenerator
 	providerFactory               *authfakes.FakeProviderFactory
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
@@ -65,6 +66,7 @@ var (
 	peerAddr                      string
 	drain                         chan struct{}
 	expire                        time.Duration
+	isTLSEnabled                  bool
 	cliDownloadsDir               string
 	logger                        *lagertest.TestLogger
 
@@ -120,7 +122,8 @@ var _ = BeforeEach(func() {
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
-	fakeTokenGenerator = new(authfakes.FakeTokenGenerator)
+	fakeAuthTokenGenerator = new(authfakes.FakeAuthTokenGenerator)
+	fakeCSRFTokenGenerator = new(authfakes.FakeCSRFTokenGenerator)
 	providerFactory = new(authfakes.FakeProviderFactory)
 
 	peerAddr = "127.0.0.1:1234"
@@ -149,6 +152,8 @@ var _ = BeforeEach(func() {
 
 	expire = 24 * time.Hour
 
+	isTLSEnabled = false
+
 	build = new(dbfakes.FakeBuild)
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(pipelineDBFactory, teamDBFactory)
@@ -174,7 +179,8 @@ var _ = BeforeEach(func() {
 			checkWorkerTeamAccessHandlerFactory,
 		),
 
-		fakeTokenGenerator,
+		fakeAuthTokenGenerator,
+		fakeCSRFTokenGenerator,
 		providerFactory,
 		oAuthBaseURL,
 
@@ -205,10 +211,17 @@ var _ = BeforeEach(func() {
 
 		expire,
 
+		isTLSEnabled,
+
 		cliDownloadsDir,
 		"1.2.3",
 	)
 	Expect(err).NotTo(HaveOccurred())
+
+	handler = wrappa.LoggerHandler{
+		Logger:  logger,
+		Handler: handler,
+	}
 
 	server = httptest.NewServer(handler)
 

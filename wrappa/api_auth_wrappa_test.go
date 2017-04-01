@@ -19,6 +19,7 @@ var _ = Describe("APIAuthWrappa", func() {
 	var (
 		fakeAuthValidator                       auth.Validator
 		fakeGetTokenValidator                   auth.Validator
+		rejector                                auth.Rejector
 		fakeUserContextReader                   *authfakes.FakeUserContextReader
 		fakeCheckPipelineAccessHandlerFactory   auth.CheckPipelineAccessHandlerFactory
 		fakeCheckBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
@@ -37,6 +38,7 @@ var _ = Describe("APIAuthWrappa", func() {
 			pipelineDBFactory,
 			teamDBFactory,
 		)
+		rejector = auth.UnauthorizedRejector{}
 
 		buildsDB := new(authfakes.FakeBuildsDB)
 		fakeCheckBuildReadAccessHandlerFactory = auth.NewCheckBuildReadAccessHandlerFactory(buildsDB)
@@ -45,108 +47,148 @@ var _ = Describe("APIAuthWrappa", func() {
 	})
 
 	unauthenticated := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			handler,
-			fakeAuthValidator,
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				handler,
+				fakeAuthValidator,
+				fakeUserContextReader,
+			),
+			rejector,
 			fakeUserContextReader,
 		)
 	}
 
 	authenticated := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			auth.CheckAuthenticationHandler(
-				handler,
-				auth.UnauthorizedRejector{},
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				auth.CheckAuthenticationHandler(
+					handler,
+					rejector,
+				),
+				fakeAuthValidator,
+				fakeUserContextReader,
 			),
-			fakeAuthValidator,
+			rejector,
 			fakeUserContextReader,
 		)
 	}
 
 	authenticatedAndAdmin := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			auth.CheckAdminHandler(
-				handler,
-				auth.UnauthorizedRejector{},
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				auth.CheckAdminHandler(
+					handler,
+					rejector,
+				),
+				fakeAuthValidator,
+				fakeUserContextReader,
 			),
-			fakeAuthValidator,
+			rejector,
 			fakeUserContextReader,
 		)
 	}
 
 	authenticatedWithGetTokenValidator := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			auth.CheckAuthenticationHandler(
-				handler,
-				auth.UnauthorizedRejector{},
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				auth.CheckAuthenticationHandler(
+					handler,
+					rejector,
+				),
+				fakeGetTokenValidator,
+				fakeUserContextReader,
 			),
-			fakeGetTokenValidator,
+			rejector,
 			fakeUserContextReader,
 		)
 	}
 
 	authorized := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			auth.CheckAuthorizationHandler(
-				handler,
-				auth.UnauthorizedRejector{},
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				auth.CheckAuthorizationHandler(
+					handler,
+					rejector,
+				),
+				fakeAuthValidator,
+				fakeUserContextReader,
 			),
-			fakeAuthValidator,
+			rejector,
 			fakeUserContextReader,
 		)
 	}
 
 	openForPublicPipelineOrAuthorized := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			fakeCheckPipelineAccessHandlerFactory.HandlerFor(
-				handler,
-				auth.UnauthorizedRejector{},
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				fakeCheckPipelineAccessHandlerFactory.HandlerFor(
+					handler,
+					rejector,
+				),
+				fakeAuthValidator,
+				fakeUserContextReader,
 			),
-			fakeAuthValidator,
+			rejector,
 			fakeUserContextReader,
 		)
 	}
 
 	doesNotCheckIfPrivateJob := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			fakeCheckBuildReadAccessHandlerFactory.AnyJobHandler(
-				handler,
-				auth.UnauthorizedRejector{},
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				fakeCheckBuildReadAccessHandlerFactory.AnyJobHandler(
+					handler,
+					rejector,
+				),
+				fakeAuthValidator,
+				fakeUserContextReader,
 			),
-			fakeAuthValidator,
+			rejector,
 			fakeUserContextReader,
 		)
 	}
 
 	checksIfPrivateJob := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			fakeCheckBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(
-				handler,
-				auth.UnauthorizedRejector{},
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				fakeCheckBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(
+					handler,
+					rejector,
+				),
+				fakeAuthValidator,
+				fakeUserContextReader,
 			),
-			fakeAuthValidator,
+			rejector,
 			fakeUserContextReader,
 		)
 	}
 
 	checkWritePermissionForBuild := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			fakeCheckBuildWriteAccessHandlerFactory.HandlerFor(
-				handler,
-				auth.UnauthorizedRejector{},
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				fakeCheckBuildWriteAccessHandlerFactory.HandlerFor(
+					handler,
+					rejector,
+				),
+				fakeAuthValidator,
+				fakeUserContextReader,
 			),
-			fakeAuthValidator,
+			rejector,
 			fakeUserContextReader,
 		)
 	}
 
 	checkTeamAccessForWorker := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			fakeCheckWorkerTeamAccessHandlerFactory.HandlerFor(
-				handler,
-				auth.UnauthorizedRejector{},
+		return auth.CSRFValidationHandler(
+			auth.WrapHandler(
+				fakeCheckWorkerTeamAccessHandlerFactory.HandlerFor(
+					handler,
+					rejector,
+				),
+				fakeAuthValidator,
+				fakeUserContextReader,
 			),
-			fakeAuthValidator,
+			rejector,
 			fakeUserContextReader,
 		)
 	}

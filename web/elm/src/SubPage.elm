@@ -49,6 +49,7 @@ type Msg
     | LoginMsg Login.Msg
     | PipelineMsg Pipeline.Msg
     | SelectTeamMsg TeamSelection.Msg
+    | NewCSRFToken String
 
 
 superDupleWrap : ( a -> b, c -> d ) -> ( a, Cmd c ) -> ( b, Cmd d )
@@ -68,7 +69,9 @@ init turbulencePath route =
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
-                    << Build.init { title = setTitle }
+                    << Build.init
+                        { title = setTitle }
+                        { csrfToken = "" }
                 <|
                     Build.JobBuildPage
                         { teamName = teamName
@@ -81,7 +84,9 @@ init turbulencePath route =
             superDupleWrap ( BuildModel, BuildMsg ) <|
                 Autoscroll.init
                     Build.getScrollBehavior
-                    << Build.init { title = setTitle }
+                    << Build.init
+                        { title = setTitle }
+                        { csrfToken = "" }
                 <|
                     Build.BuildPage <|
                         Result.withDefault 0 (String.toInt buildId)
@@ -94,6 +99,7 @@ init turbulencePath route =
                     , teamName = teamName
                     , pipelineName = pipelineName
                     , paging = route.page
+                    , csrfToken = ""
                     }
 
         Routes.Job teamName pipelineName jobName ->
@@ -104,6 +110,7 @@ init turbulencePath route =
                     , teamName = teamName
                     , pipelineName = pipelineName
                     , paging = route.page
+                    , csrfToken = ""
                     }
 
         Routes.SelectTeam ->
@@ -139,17 +146,38 @@ init turbulencePath route =
             )
 
 
-update : String -> Msg -> Model -> ( Model, Cmd Msg )
-update turbulence msg mdl =
+update : String -> Concourse.CSRFToken -> Msg -> Model -> ( Model, Cmd Msg )
+update turbulence csrfToken msg mdl =
     case ( msg, mdl ) of
         ( NoPipelineMsg msg, model ) ->
             ( model, fetchPipelines )
 
+        ( NewCSRFToken c, BuildModel scrollModel ) ->
+            let
+                buildModel =
+                    scrollModel.subModel
+
+                ( newBuildModel, buildCmd ) =
+                    Build.update (Build.NewCSRFToken c) buildModel
+            in
+                ( BuildModel { scrollModel | subModel = newBuildModel }, buildCmd |> Cmd.map (\buildMsg -> BuildMsg (Autoscroll.SubMsg buildMsg)) )
+
+        -- superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update <| (Build.NewCSRFToken c) scrollModel
         ( BuildMsg message, BuildModel scrollModel ) ->
-            superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update message scrollModel
+            let
+                subModel =
+                    scrollModel.subModel
+
+                model =
+                    { scrollModel | subModel = { subModel | csrfToken = csrfToken } }
+            in
+                superDupleWrap ( BuildModel, BuildMsg ) <| Autoscroll.update Build.update message model
+
+        ( NewCSRFToken c, JobModel model ) ->
+            ( JobModel { model | csrfToken = c }, Cmd.none )
 
         ( JobMsg message, JobModel model ) ->
-            superDupleWrap ( JobModel, JobMsg ) <| Job.update message model
+            superDupleWrap ( JobModel, JobMsg ) <| Job.update message { model | csrfToken = csrfToken }
 
         ( LoginMsg message, LoginModel model ) ->
             superDupleWrap ( LoginModel, LoginMsg ) <| Login.update message model
@@ -157,8 +185,11 @@ update turbulence msg mdl =
         ( PipelineMsg message, PipelineModel model ) ->
             superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.update message model
 
+        ( NewCSRFToken c, ResourceModel model ) ->
+            ( ResourceModel { model | csrfToken = c }, Cmd.none )
+
         ( ResourceMsg message, ResourceModel model ) ->
-            superDupleWrap ( ResourceModel, ResourceMsg ) <| Resource.update message model
+            superDupleWrap ( ResourceModel, ResourceMsg ) <| Resource.update message { model | csrfToken = csrfToken }
 
         ( SelectTeamMsg message, SelectTeamModel model ) ->
             superDupleWrap ( SelectTeamModel, SelectTeamMsg ) <| TeamSelection.update message model
@@ -204,6 +235,7 @@ urlUpdate route model =
                     , pipelineName = pipelineName
                     , resourceName = resourceName
                     , paging = route.page
+                    , csrfToken = mdl.csrfToken
                     }
                     mdl
 
@@ -214,6 +246,7 @@ urlUpdate route model =
                     , pipelineName = pipelineName
                     , jobName = jobName
                     , paging = route.page
+                    , csrfToken = mdl.csrfToken
                     }
                     mdl
 

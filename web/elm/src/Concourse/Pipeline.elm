@@ -7,13 +7,13 @@ import Task exposing (Task)
 import Concourse
 
 
-order : String -> List String -> Task Http.Error ()
-order teamName pipelineNames =
+order : String -> List String -> Concourse.CSRFToken -> Task Http.Error ()
+order teamName pipelineNames csrfToken =
     Http.toTask <|
         Http.request
             { method = "PUT"
             , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/ordering"
-            , headers = []
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , expect = Http.expectStringResponse (always (Ok ()))
             , body = Http.jsonBody (Json.Encode.list (List.map Json.Encode.string pipelineNames))
             , timeout = Nothing
@@ -37,23 +37,23 @@ fetchPipelines =
             (Json.Decode.list Concourse.decodePipeline)
 
 
-pause : String -> String -> Task Http.Error ()
+pause : String -> String -> Concourse.CSRFToken -> Task Http.Error ()
 pause =
     putAction "pause"
 
 
-unpause : String -> String -> Task Http.Error ()
+unpause : String -> String -> Concourse.CSRFToken -> Task Http.Error ()
 unpause =
     putAction "unpause"
 
 
-putAction : String -> String -> String -> Task Http.Error ()
-putAction action teamName pipelineName =
+putAction : String -> String -> String -> Concourse.CSRFToken -> Task Http.Error ()
+putAction action teamName pipelineName csrfToken =
     Http.toTask <|
         Http.request
             { method = "PUT"
             , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/" ++ action
-            , headers = []
+            , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
             , expect = Http.expectStringResponse (always (Ok ()))
             , body = Http.emptyBody
             , timeout = Nothing

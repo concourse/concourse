@@ -64,6 +64,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 			fakeTeamDBFactory,
 			signingKey,
 			expire,
+			false,
 		)
 		Expect(err).ToNot(HaveOccurred())
 

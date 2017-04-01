@@ -4,6 +4,7 @@
 module Concourse.Job exposing (..)
 
 import Http
+import HttpBuilder
 import Task exposing (Task)
 import Json.Decode
 import Concourse
@@ -33,27 +34,26 @@ fetchJobsRaw pi =
             ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs")
 
 
-triggerBuild : Concourse.JobIdentifier -> Task Http.Error Concourse.Build
-triggerBuild job =
-    let
-        url =
-            "/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds"
-    in
-        Http.toTask <| Http.post url Http.emptyBody Concourse.decodeBuild
+triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error Concourse.Build
+triggerBuild job csrfToken =
+    HttpBuilder.post ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds")
+        |> HttpBuilder.withHeader Concourse.csrfTokenHeaderName csrfToken
+        |> HttpBuilder.withExpect (Http.expectJson (Concourse.decodeBuild))
+        |> HttpBuilder.toTask
 
 
-pause : Concourse.JobIdentifier -> Task Http.Error ()
+pause : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
 pause =
     pauseUnpause True
 
 
-unpause : Concourse.JobIdentifier -> Task Http.Error ()
+unpause : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
 unpause =
     pauseUnpause False
 
 
-pauseUnpause : Bool -> Concourse.JobIdentifier -> Task Http.Error ()
-pauseUnpause pause { teamName, pipelineName, jobName } =
+pauseUnpause : Bool -> Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error ()
+pauseUnpause pause { teamName, pipelineName, jobName } csrfToken =
     let
         action =
             if pause then
@@ -65,7 +65,7 @@ pauseUnpause pause { teamName, pipelineName, jobName } =
             Http.request
                 { method = "PUT"
                 , url = "/api/v1/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName ++ "/" ++ action
-                , headers = []
+                , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
                 , body = Http.emptyBody
                 , expect = Http.expectStringResponse (\_ -> Ok ())
                 , timeout = Nothing

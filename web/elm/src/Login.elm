@@ -40,7 +40,7 @@ type Msg
     | BasicAuthUsernameChanged String
     | BasicAuthPasswordChanged String
     | BasicAuthSubmit
-    | LoginTokenReceived (Result Http.Error Concourse.AuthToken)
+    | AuthSessionReceived (Result Http.Error Concourse.AuthSession)
     | GoBack
 
 
@@ -91,12 +91,12 @@ update action model =
         NoAuthSubmit ->
             ( model, noAuthSubmit model.teamName )
 
-        LoginTokenReceived (Ok _) ->
+        AuthSessionReceived (Ok authsession) ->
             ( model
             , Navigation.newUrl (redirectUrl model.redirect)
             )
 
-        LoginTokenReceived (Err err) ->
+        AuthSessionReceived (Err err) ->
             flip always (Debug.log ("login failed") (err)) <|
                 ( model, Cmd.none )
 
@@ -344,11 +344,11 @@ subscriptions model =
 
 noAuthSubmit : String -> Cmd Msg
 noAuthSubmit teamName =
-    Task.attempt LoginTokenReceived <|
+    Task.attempt AuthSessionReceived <|
         Concourse.Login.noAuth teamName
 
 
 basicAuthSubmit : String -> BasicAuthFields -> Cmd Msg
 basicAuthSubmit teamName fields =
-    Task.attempt LoginTokenReceived <|
+    Task.attempt AuthSessionReceived <|
         Concourse.Login.basicAuth teamName fields.username fields.password

@@ -32,6 +32,7 @@ type alias Model =
     , versionedResources : Paginated Concourse.VersionedResource
     , currentPage : Maybe Page
     , versionedUIStates : Dict.Dict Int VersionUIState
+    , csrfToken : String
     }
 
 
@@ -70,6 +71,7 @@ type alias Flags =
     , pipelineName : String
     , resourceName : String
     , paging : Maybe Concourse.Pagination.Page
+    , csrfToken : String
     }
 
 
@@ -95,6 +97,7 @@ init ports flags =
                     }
                 , versionedUIStates = Dict.empty
                 , ports = ports
+                , csrfToken = flags.csrfToken
                 }
     in
         ( model
@@ -158,9 +161,9 @@ update action model =
                         , resource = Just { r | paused = not r.paused }
                       }
                     , if r.paused then
-                        unpauseResource model.resourceIdentifier
+                        unpauseResource model.resourceIdentifier model.csrfToken
                       else
-                        pauseResource model.resourceIdentifier
+                        pauseResource model.resourceIdentifier model.csrfToken
                     )
 
         PausedToggled (Ok ()) ->
@@ -251,9 +254,9 @@ update action model =
                 , case versionedResource of
                     Just vr ->
                         if vr.enabled then
-                            disableVersionedResource versionedResourceIdentifier
+                            disableVersionedResource versionedResourceIdentifier model.csrfToken
                         else
-                            enableVersionedResource versionedResourceIdentifier
+                            enableVersionedResource versionedResourceIdentifier model.csrfToken
 
                     Nothing ->
                         Cmd.none
@@ -791,16 +794,16 @@ fetchResource resourceIdentifier =
         Concourse.Resource.fetchResource resourceIdentifier
 
 
-pauseResource : Concourse.ResourceIdentifier -> Cmd Msg
-pauseResource resourceIdentifier =
+pauseResource : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Cmd Msg
+pauseResource resourceIdentifier csrfToken =
     Task.attempt PausedToggled <|
-        Concourse.Resource.pause resourceIdentifier
+        Concourse.Resource.pause resourceIdentifier csrfToken
 
 
-unpauseResource : Concourse.ResourceIdentifier -> Cmd Msg
-unpauseResource resourceIdentifier =
+unpauseResource : Concourse.ResourceIdentifier -> Concourse.CSRFToken -> Cmd Msg
+unpauseResource resourceIdentifier csrfToken =
     Task.attempt PausedToggled <|
-        Concourse.Resource.unpause resourceIdentifier
+        Concourse.Resource.unpause resourceIdentifier csrfToken
 
 
 fetchVersionedResources : Concourse.ResourceIdentifier -> Maybe Page -> Cmd Msg
@@ -809,16 +812,16 @@ fetchVersionedResources resourceIdentifier page =
         Concourse.Resource.fetchVersionedResources resourceIdentifier page
 
 
-enableVersionedResource : Concourse.VersionedResourceIdentifier -> Cmd Msg
-enableVersionedResource versionedResourceIdentifier =
+enableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Cmd Msg
+enableVersionedResource versionedResourceIdentifier csrfToken =
     Task.attempt (VersionedResourceToggled versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.enableVersionedResource versionedResourceIdentifier
+        Concourse.Resource.enableVersionedResource versionedResourceIdentifier csrfToken
 
 
-disableVersionedResource : Concourse.VersionedResourceIdentifier -> Cmd Msg
-disableVersionedResource versionedResourceIdentifier =
+disableVersionedResource : Concourse.VersionedResourceIdentifier -> Concourse.CSRFToken -> Cmd Msg
+disableVersionedResource versionedResourceIdentifier csrfToken =
     Task.attempt (VersionedResourceToggled versionedResourceIdentifier.versionID) <|
-        Concourse.Resource.disableVersionedResource versionedResourceIdentifier
+        Concourse.Resource.disableVersionedResource versionedResourceIdentifier csrfToken
 
 
 fetchInputTo : Concourse.VersionedResourceIdentifier -> Cmd Msg

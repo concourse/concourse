@@ -134,3 +134,10 @@ func FillLoginFormAndSubmit(page *agouti.Page) {
 	Expect(page.FindByName("password").Fill("password")).To(Succeed())
 	Expect(page.FindByButton("login").Click()).To(Succeed())
 }
+
+func LoginWithNoAuth(page *agouti.Page, baseUrl string) {
+	Expect(page.Navigate(baseUrl + "/teams/main/login")).To(Succeed())
+	Eventually(page.FindByButton("login")).Should(BeFound())
+	Expect(page.FindByButton("login").Click()).To(Succeed())
+	Eventually(page.Find("body")).Should(BeFound())
+}

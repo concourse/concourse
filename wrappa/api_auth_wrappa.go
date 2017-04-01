@@ -145,7 +145,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		} else {
 			newHandler = auth.WrapHandler(newHandler, wrappa.authValidator, wrappa.userContextReader)
 		}
-		wrapped[name] = newHandler
+		wrapped[name] = auth.CSRFValidationHandler(newHandler, rejector, wrappa.userContextReader)
 	}
 
 	return wrapped

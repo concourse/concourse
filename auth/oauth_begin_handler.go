@@ -28,6 +28,7 @@ type OAuthBeginHandler struct {
 	privateKey      *rsa.PrivateKey
 	teamDBFactory   db.TeamDBFactory
 	expire          time.Duration
+	isTLSEnabled    bool
 }
 
 func NewOAuthBeginHandler(
@@ -36,6 +37,7 @@ func NewOAuthBeginHandler(
 	privateKey *rsa.PrivateKey,
 	teamDBFactory db.TeamDBFactory,
 	expire time.Duration,
+	isTLSEnabled bool,
 ) http.Handler {
 	return &OAuthBeginHandler{
 		logger:          logger,
@@ -43,6 +45,7 @@ func NewOAuthBeginHandler(
 		privateKey:      privateKey,
 		teamDBFactory:   teamDBFactory,
 		expire:          expire,
+		isTLSEnabled:    isTLSEnabled,
 	}
 }
 
@@ -110,11 +113,18 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 	authCodeURL := provider.AuthCodeURL(encodedState)
 
-	http.SetCookie(w, &http.Cookie{
-		Name:    OAuthStateCookie,
-		Value:   encodedState,
-		Path:    "/",
-		Expires: time.Now().Add(handler.expire),
-	})
+	authCookie := &http.Cookie{
+		Name:     OAuthStateCookie,
+		Value:    encodedState,
+		Path:     "/",
+		Expires:  time.Now().Add(handler.expire),
+		HttpOnly: true,
+	}
+	if handler.isTLSEnabled {
+		authCookie.Secure = true
+	}
+	// TODO: Add SameSite once Golang supports it
+	// https://github.com/golang/go/issues/15867
+	http.SetCookie(w, authCookie)
 	http.Redirect(w, r, authCodeURL, http.StatusTemporaryRedirect)
 }

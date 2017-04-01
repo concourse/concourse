@@ -33,6 +33,7 @@ type alias Model =
     , buildsWithResources : Paginated BuildWithResources
     , currentPage : Maybe Page
     , now : Time
+    , csrfToken : String
     }
 
 
@@ -66,6 +67,7 @@ type alias Flags =
     , teamName : String
     , pipelineName : String
     , paging : Maybe Page
+    , csrfToken : String
     }
 
 
@@ -89,6 +91,7 @@ init ports flags =
                         }
                     }
                 , now = 0
+                , csrfToken = flags.csrfToken
                 , currentPage = flags.paging
                 , ports = ports
                 }
@@ -125,7 +128,7 @@ update action model =
             ( model, Cmd.none )
 
         TriggerBuild ->
-            ( model, triggerBuild model.jobIdentifier )
+            ( model, triggerBuild model.jobIdentifier model.csrfToken )
 
         BuildTriggered (Ok build) ->
             ( model
@@ -235,9 +238,9 @@ update action model =
                         , job = Just { j | paused = not j.paused }
                       }
                     , if j.paused then
-                        unpauseJob model.jobIdentifier
+                        unpauseJob model.jobIdentifier model.csrfToken
                       else
-                        pauseJob model.jobIdentifier
+                        pauseJob model.jobIdentifier model.csrfToken
                     )
 
         PausedToggled (Ok ()) ->
@@ -621,10 +624,10 @@ viewVersion version =
         version
 
 
-triggerBuild : Concourse.JobIdentifier -> Cmd Msg
-triggerBuild job =
+triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Msg
+triggerBuild job csrfToken =
     Task.attempt BuildTriggered <|
-        Concourse.Job.triggerBuild job
+        Concourse.Job.triggerBuild job csrfToken
 
 
 fetchJobBuilds : Concourse.JobIdentifier -> Maybe Concourse.Pagination.Page -> Cmd Msg
@@ -661,16 +664,16 @@ paginationParam page =
             "to=" ++ toString i
 
 
-pauseJob : Concourse.JobIdentifier -> Cmd Msg
-pauseJob jobIdentifier =
+pauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Msg
+pauseJob jobIdentifier csrfToken =
     Task.attempt PausedToggled <|
-        Concourse.Job.pause jobIdentifier
+        Concourse.Job.pause jobIdentifier csrfToken
 
 
-unpauseJob : Concourse.JobIdentifier -> Cmd Msg
-unpauseJob jobIdentifier =
+unpauseJob : Concourse.JobIdentifier -> Concourse.CSRFToken -> Cmd Msg
+unpauseJob jobIdentifier csrfToken =
     Task.attempt PausedToggled <|
-        Concourse.Job.unpause jobIdentifier
+        Concourse.Job.unpause jobIdentifier csrfToken
 
 
 getCurrentTime : Cmd Msg

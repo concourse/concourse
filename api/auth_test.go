@@ -29,6 +29,8 @@ var _ = Describe("Auth API", func() {
 
 			teamDB.GetTeamReturns(savedTeam, true, nil)
 
+			fakeCSRFTokenGenerator.GenerateTokenReturns("some-csrf-token", nil)
+
 			var err error
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/token", nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -52,7 +54,8 @@ var _ = Describe("Auth API", func() {
 
 				Context("when generating the token succeeds", func() {
 					BeforeEach(func() {
-						fakeTokenGenerator.GenerateTokenReturns("some type", "some value", nil)
+						fakeAuthTokenGenerator.GenerateTokenReturns("some type", "some value", nil)
+						fakeCSRFTokenGenerator.GenerateTokenReturns("some-csrf-token", nil)
 					})
 
 					It("returns 200 OK", func() {
@@ -63,22 +66,27 @@ var _ = Describe("Auth API", func() {
 						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 					})
 
+					It("returns CSRF token", func() {
+						Expect(response.Header.Get("X-Csrf-Token")).To(Equal("some-csrf-token"))
+					})
+
 					It("returns a token valid for 1 day", func() {
 						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{"type":"some type","value":"some value"}`))
 
-						expiration, teamName, isAdmin := fakeTokenGenerator.GenerateTokenArgsForCall(0)
+						expiration, teamName, isAdmin, csrfToken := fakeAuthTokenGenerator.GenerateTokenArgsForCall(0)
 						Expect(expiration).To(BeTemporally("~", time.Now().Add(24*time.Hour), time.Minute))
 						Expect(teamName).To(Equal(savedTeam.Name))
 						Expect(isAdmin).To(Equal(savedTeam.Admin))
+						Expect(csrfToken).To(Equal("some-csrf-token"))
 					})
 				})
 
 				Context("when generating the token fails", func() {
 					BeforeEach(func() {
-						fakeTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
+						fakeAuthTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
 					})
 
 					It("returns Internal Server Error", func() {
@@ -88,7 +96,7 @@ var _ = Describe("Auth API", func() {
 
 				Context("when the team can't be found", func() {
 					BeforeEach(func() {
-						fakeTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
+						fakeAuthTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
 						teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 					})
 
@@ -109,7 +117,7 @@ var _ = Describe("Auth API", func() {
 			})
 
 			It("does not generate a token", func() {
-				Expect(fakeTokenGenerator.GenerateTokenCallCount()).To(Equal(0))
+				Expect(fakeAuthTokenGenerator.GenerateTokenCallCount()).To(Equal(0))
 			})
 		})
 	})

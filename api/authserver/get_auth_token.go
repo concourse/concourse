@@ -8,9 +8,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 )
-
-const CookieName = "ATC-Authorization"
 
 func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-auth-token")
@@ -33,9 +32,16 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenType, tokenValue, err := s.tokenGenerator.GenerateToken(time.Now().Add(s.expire), team.Name, team.Admin)
+	csrfToken, err := s.csrfTokenGenerator.GenerateToken()
 	if err != nil {
-		logger.Error("generate-token", err)
+		logger.Error("generate-csrf-token", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	tokenType, tokenValue, err := s.authTokenGenerator.GenerateToken(time.Now().Add(s.expire), team.Name, team.Admin, csrfToken)
+	if err != nil {
+		logger.Error("generate-auth-token", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -43,13 +49,23 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 	token.Type = string(tokenType)
 	token.Value = string(tokenValue)
 
-	http.SetCookie(w, &http.Cookie{
-		Name:    CookieName,
-		Value:   fmt.Sprintf("%s %s", token.Type, token.Value),
-		Path:    "/",
-		Expires: time.Now().Add(s.expire),
-	})
+	expiry := time.Now().Add(s.expire)
 
+	authCookie := &http.Cookie{
+		Name:     auth.AuthCookieName,
+		Value:    fmt.Sprintf("%s %s", token.Type, token.Value),
+		Path:     "/",
+		Expires:  expiry,
+		HttpOnly: true,
+	}
+	if s.isTLSEnabled {
+		authCookie.Secure = true
+	}
+	// TODO: Add SameSite once Golang supports it
+	// https://github.com/golang/go/issues/15867
+	http.SetCookie(w, authCookie)
+
+	w.Header().Set(auth.CSRFHeaderName, csrfToken)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(token)
 }

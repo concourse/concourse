@@ -9,31 +9,37 @@ import (
 )
 
 type Server struct {
-	logger          lager.Logger
-	externalURL     string
-	oAuthBaseURL    string
-	tokenGenerator  auth.TokenGenerator
-	providerFactory auth.ProviderFactory
-	teamDBFactory   db.TeamDBFactory
-	expire          time.Duration
+	logger             lager.Logger
+	externalURL        string
+	oAuthBaseURL       string
+	authTokenGenerator auth.AuthTokenGenerator
+	csrfTokenGenerator auth.CSRFTokenGenerator
+	providerFactory    auth.ProviderFactory
+	teamDBFactory      db.TeamDBFactory
+	expire             time.Duration
+	isTLSEnabled       bool
 }
 
 func NewServer(
 	logger lager.Logger,
 	externalURL string,
 	oAuthBaseURL string,
-	tokenGenerator auth.TokenGenerator,
+	authTokenGenerator auth.AuthTokenGenerator,
+	csrfTokenGenerator auth.CSRFTokenGenerator,
 	providerFactory auth.ProviderFactory,
 	teamDBFactory db.TeamDBFactory,
 	expire time.Duration,
+	isTLSEnabled bool,
 ) *Server {
 	return &Server{
-		logger:          logger,
-		externalURL:     externalURL,
-		oAuthBaseURL:    oAuthBaseURL,
-		tokenGenerator:  tokenGenerator,
-		providerFactory: providerFactory,
-		teamDBFactory:   teamDBFactory,
-		expire:          expire,
+		logger:             logger,
+		externalURL:        externalURL,
+		oAuthBaseURL:       oAuthBaseURL,
+		authTokenGenerator: authTokenGenerator,
+		csrfTokenGenerator: csrfTokenGenerator,
+		providerFactory:    providerFactory,
+		teamDBFactory:      teamDBFactory,
+		expire:             expire,
+		isTLSEnabled:       isTLSEnabled,
 	}
 }

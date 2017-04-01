@@ -4,6 +4,10 @@ module Concourse
         , decodeAuthMethod
         , AuthToken
         , decodeAuthToken
+        , CSRFToken
+        , retrieveCSRFToken
+        , csrfTokenHeaderName
+        , AuthSession
         , Build
         , BuildId
         , JobBuildIdentifier
@@ -128,6 +132,33 @@ authTokenFromTuple ( t, token ) =
 
         _ ->
             Err "unknown token type"
+
+
+-- CSRF token
+
+type alias CSRFToken =
+    String
+
+
+csrfTokenHeaderName : String
+csrfTokenHeaderName =
+    "X-Csrf-Token"
+
+
+retrieveCSRFToken : ( Dict String String ) -> Result String CSRFToken
+retrieveCSRFToken headers =
+  Dict.get (String.toLower csrfTokenHeaderName) (keysToLower headers) |> Result.fromMaybe "error CSRFToken not found"
+
+keysToLower : Dict String a -> Dict String a
+keysToLower = Dict.fromList << List.map fstToLower << Dict.toList
+
+fstToLower : (String, a) -> (String, a)
+fstToLower (x, y) = (String.toLower x, y)
+
+type alias AuthSession =
+    { authToken : AuthToken
+    , csrfToken : CSRFToken
+    }
 
 
 
