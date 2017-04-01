@@ -1,4 +1,4 @@
-module BetaPipeline exposing (Flags, init, update, view, subscriptions)
+module BetaPipeline exposing (Flags, Model, Msg, init, changeToPipelineAndGroups, update, view, subscriptions)
 
 import Dict exposing (Dict)
 import Graph exposing (Graph)
@@ -11,14 +11,17 @@ import Concourse
 import Concourse.Job
 import Concourse.BuildStatus
 import Grid exposing (Grid)
+import Routes
+import QueryString
 
 
 type alias Model =
     { ports : Ports
     , pipelineLocator : Concourse.PipelineIdentifier
-    , groups : Set String
     , jobs : List Concourse.Job
     , error : Maybe String
+    , selectedGroups : List String
+    , turbulenceImgSrc : String
     }
 
 
@@ -40,21 +43,21 @@ type Node
 
 
 type alias Ports =
-    { setGroups : (List String -> Msg) -> Sub Msg
+    { title : String -> Cmd Msg
     }
 
 
 type alias Flags =
     { teamName : String
     , pipelineName : String
-    , groups : List String
+    , turbulenceImgSrc : String
+    , route : Routes.ConcourseRoute
     }
 
 
 type Msg
     = Noop
     | JobsFetched (Result Http.Error (List Concourse.Job))
-    | SetGroups (List String)
 
 
 init : Ports -> Flags -> ( Model, Cmd Msg )
@@ -66,12 +69,27 @@ init ports flags =
                 { teamName = flags.teamName
                 , pipelineName = flags.pipelineName
                 }
-            , groups = Set.fromList flags.groups
             , jobs = []
             , error = Nothing
+            , selectedGroups = queryGroupsForRoute flags.route
+            , turbulenceImgSrc = flags.turbulenceImgSrc
             }
     in
         ( model, fetchJobs model.pipelineLocator )
+
+
+changeToPipelineAndGroups : Flags -> Model -> ( Model, Cmd Msg )
+changeToPipelineAndGroups flags model =
+    let
+        pid =
+            { teamName = flags.teamName
+            , pipelineName = flags.pipelineName
+            }
+    in
+        if model.pipelineLocator == pid then
+            ({ model | selectedGroups = queryGroupsForRoute flags.route }, Cmd.none)
+        else
+            init model.ports flags
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -86,13 +104,10 @@ update msg model =
         JobsFetched (Err msg) ->
             ( { model | error = Just (toString msg) }, Cmd.none )
 
-        SetGroups groups ->
-            ( { model | groups = Set.fromList groups }, Cmd.none )
-
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    model.ports.setGroups SetGroups
+  Sub.none
 
 
 view : Model -> Html Msg
@@ -104,10 +119,10 @@ view model =
         Nothing ->
             let
                 filtered =
-                    if Set.isEmpty model.groups then
+                    if List.isEmpty model.selectedGroups then
                         model.jobs
                     else
-                        List.filter (List.any (flip Set.member model.groups) << .groups) model.jobs
+                        List.filter (List.any (flip List.member model.selectedGroups) << .groups) model.jobs
 
                 graph =
                     initGraph filtered
@@ -264,9 +279,8 @@ viewOutputNode resourceName =
 
 fetchJobs : Concourse.PipelineIdentifier -> Cmd Msg
 fetchJobs pid =
+  Task.attempt JobsFetched <|
     Concourse.Job.fetchJobs pid
-        |> Task.perform Err Ok
-        |> Cmd.map JobsFetched
 
 
 type alias ByName a =
@@ -355,3 +369,8 @@ jobId nodes job =
 
         [] ->
             Debug.crash "impossible: job index not found"
+
+queryGroupsForRoute : Routes.ConcourseRoute -> List String
+queryGroupsForRoute route =
+    QueryString.all "groups" route.queries
+
