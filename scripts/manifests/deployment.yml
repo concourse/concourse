@@ -22,7 +22,6 @@ instance_groups:
       properties:
         tls_bind_port: 4443
         log_level: debug
-        default_check_interval: 5s
         external_url: https://((web_ip)):4443
         postgresql_database: atc
 
