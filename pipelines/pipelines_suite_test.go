@@ -57,6 +57,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	team = client.Team("main")
 	logger = lagertest.NewTestLogger("pipelines-test")
+
+	pipelines, err := team.ListPipelines()
+	Expect(err).ToNot(HaveOccurred())
+
+	for _, pipeline := range pipelines {
+		if strings.HasPrefix(pipeline.Name, "test-pipeline-") {
+			err := team.DeletePipeline(pipeline.Name)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
 })
 
 var _ = SynchronizedAfterSuite(func() {
