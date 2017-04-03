@@ -2,36 +2,11 @@
 
 set -e
 
-if [ -z $ATC_URL ]; then
-  export ATC_URL='https://10.244.15.2:4443'
-fi
-
-if [ -z $FLY_CA_CERT ]; then
-  export FLY_CA_CERT="-----BEGIN CERTIFICATE-----
-MIIC9zCCAd+gAwIBAgIQdJivx6J1FQkiuZf2p6GonzANBgkqhkiG9w0BAQsFADAS
-MRAwDgYDVQQKEwdQaXZvdGFsMB4XDTE3MDMxNzIwNTYwMFoXDTI3MDMxNTIwNTYw
-MFowEjEQMA4GA1UEChMHUGl2b3RhbDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCC
-AQoCggEBANvLDQ85BloawiYMXOXn6TYPmWQAI5YeYB4w2Incwah9z/haYjPjha+D
-yNa87rLr4nnYjnfL39u4AhBLOzaVNUBOiyh6YirDBatb3awY6pmLMiV3fn7+foUM
-VKw0A2KgKLzHWdPpkHLZxf3gQ5JymKSNv6Xskh5MoNVTqgxQ367SJELScbU6skw2
-pTVzUNGM99Df2+uEFpHr02ycpOTrN6nqhWsoX5fsho5Qt9Z1oCrTVhojLg8HqwsF
-9cpnyc6N6yM7DoNB+xRd8wT9YiZ1+zeZCmmv3KmhG83DwUlRY6NKyJg5d4Sd3RE3
-D/KrDVM4nce2J3zg9xYkWOwyvlQjJ9MCAwEAAaNJMEcwDgYDVR0PAQH/BAQDAgKk
-MBMGA1UdJQQMMAoGCCsGAQUFBwMBMA8GA1UdEwEB/wQFMAMBAf8wDwYDVR0RBAgw
-BocECvQPAjANBgkqhkiG9w0BAQsFAAOCAQEAAYCe9IaBYb7IQCm4+JgeRCytQEaW
-0eXDxZUmir1NJ3MkyU5RLQTvsG4cQXxSmVtf3B+ouEGTnrZy55flzsDfEDE0LVDJ
-+tpB+56VMEIR1Jr8cmzKZOIl2sephHnCfgOhba6Gzys+yAXEvZdhJXl7WwAogZyV
-1lDOm6Kg6Mu3fqVOYu6YAiQ05jGyHMwnnIrB4HG12oyOrQODqMv3Fgjf6nn4vykc
-BiN8CVgEIZ1epJSk8ciM3FkMPdzDc7XYboF7sTtyLPXekaBQIYNrdr+14zpPyVxP
-SRNSop/bn97mEYo/cOvQae6r2HA+dQOaN7LBwTtsDufKpBlsWtP+h7rLAw==
------END CERTIFICATE-----"
-fi
+testflight_dir=$(cd $(dirname $0)/.. && pwd)
 
 not_installed() {
   ! command -v $1 > /dev/null 2>&1
 }
-
-testflight_dir=$(cd $(dirname $0)/.. && pwd)
 
 if not_installed ginkgo; then
   echo "# ginkgo is not installed! run the following command:"
@@ -40,4 +15,12 @@ if not_installed ginkgo; then
 fi
 
 cd $testflight_dir
+if [ -z $ATC_URL ]; then
+  export ATC_URL='https://10.244.15.2:4443'
+fi
+
+if [ -z $FLY_CA_CERT ]; then
+  export FLY_CA_CERT="$(cat $testflight_dir/scripts/certs/cert.pem)"
+fi
+
 ginkgo -r -p -nodes=3 "$@"

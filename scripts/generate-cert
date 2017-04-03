@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e -u -x
+
+cd $(dirname $0)
+
+mkdir -p certs
+rm -f certs/*.pem
+
+openssl req \
+  -config openssl.cfg \
+  -x509 \
+  -newkey rsa:2048 \
+  -keyout certs/key.pem \
+  -out certs/cert.pem \
+  -days 3650 \
+  -nodes
+
+jq -n '{"tls_cert":$tls_cert,"tls_key":$tls_key}' \
+  --arg tls_cert "$(cat certs/cert.pem)" \
+  --arg tls_key "$(cat certs/key.pem)" \
+  > local_deploy_vars
