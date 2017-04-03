@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc/gcng/gcngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"code.cloudfoundry.org/lager"
 )
 
 var _ = Describe("ContainerCollector", func() {
@@ -52,7 +53,7 @@ var _ = Describe("ContainerCollector", func() {
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		gardenClientFactoryCallCount = 0
 		gardenClientFactoryArgs = nil
-		fakeGardenClientFactory = func(worker dbng.Worker) (garden.Client, error) {
+		fakeGardenClientFactory = func(worker dbng.Worker, logger lager.Logger) (garden.Client, error) {
 			gardenClientFactoryCallCount++
 			gardenClientFactoryArgs = append(gardenClientFactoryArgs, worker)
 
@@ -315,7 +316,7 @@ var _ = Describe("ContainerCollector", func() {
 
 		Context("when getting a garden client for a worker errors", func() {
 			BeforeEach(func() {
-				fakeGardenClientFactory = func(worker dbng.Worker) (garden.Client, error) {
+				fakeGardenClientFactory = func(worker dbng.Worker, logger lager.Logger) (garden.Client, error) {
 					gardenClientFactoryCallCount++
 					gardenClientFactoryArgs = append(gardenClientFactoryArgs, worker)
 

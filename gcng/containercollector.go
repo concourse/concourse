@@ -40,15 +40,15 @@ func NewContainerCollector(
 	}
 }
 
-type GardenClientFactory func(dbng.Worker) (garden.Client, error)
+type GardenClientFactory func(dbng.Worker, lager.Logger) (garden.Client, error)
 
 func NewGardenClientFactory() GardenClientFactory {
-	return func(w dbng.Worker) (garden.Client, error) {
+	return func(w dbng.Worker, logger lager.Logger) (garden.Client, error) {
 		if w.GardenAddr() == nil {
 			return nil, errors.New("worker does not have a garden address")
 		}
 
-		gconn := connection.New("tcp", *w.GardenAddr())
+		gconn := connection.NewWithDialerAndLogger(keepaliveDialer, logger)
 		return client.New(gconn), nil
 	}
 }
@@ -168,7 +168,7 @@ func (c *containerCollector) markHijackedContainerAsDestroying(
 		return nil
 	}
 
-	gclient, err := c.gardenClientFactory(w)
+	gclient, err := c.gardenClientFactory(w, logger)
 	if err != nil {
 		logger.Error("failed-to-get-garden-client-for-worker", err)
 		return nil
@@ -219,7 +219,7 @@ func (c *containerCollector) tryToDestroyContainer(logger lager.Logger, containe
 		return
 	}
 
-	gclient, err := c.gardenClientFactory(w)
+	gclient, err := c.gardenClientFactory(w, logger)
 	if err != nil {
 		logger.Error("failed-to-get-garden-client-for-worker", err)
 		return

@@ -33,13 +33,13 @@ func NewBaggageclaimClientFactory(dbWorkerFactory dbng.WorkerFactory) Baggagecla
 }
 
 func (f *baggageclaimClientFactory) NewClient(apiURL string, workerName string) bclient.Client {
-	rountTripper := transport.NewBaggageclaimRoundTripper(
+	roundTripper := transport.NewBaggageclaimRoundTripper(
 		workerName,
 		&apiURL,
 		f.dbWorkerFactory,
 		&http.Transport{DisableKeepAlives: true},
 	)
-	return bclient.New(apiURL, rountTripper)
+	return bclient.New(apiURL, roundTripper)
 }
 
 func NewVolumeCollector(
