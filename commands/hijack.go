@@ -3,7 +3,9 @@ package commands
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,6 +25,7 @@ import (
 type HijackCommand struct {
 	Job            flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Name of a job to hijack"`
 	Check          flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
+	Url            string                   `short:"u" long:"url"                               description:"URL for the build, job, or check container to hijack"`
 	Build          string                   `short:"b" long:"build"                             description:"Build number within the job, or global build ID"`
 	StepName       string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
 	Attempt        string                   `short:"a" long:"attempt" value-name:"N[,N,...]"    description:"Attempt number of step to hijack."`
@@ -42,7 +45,11 @@ func (command *HijackCommand) Execute([]string) error {
 		return err
 	}
 
-	containers, err := command.getContainerIDs(target.Client())
+	fingerprint, err := command.getContainerFingerprint(target.Client())
+	if err != nil {
+		return err
+	}
+	containers, err := command.getContainerIDs(target.Client(), fingerprint)
 	if err != nil {
 		return err
 	}
@@ -159,7 +166,7 @@ func (command *HijackCommand) Execute([]string) error {
 	return nil
 }
 
-func (command *HijackCommand) getContainerIDs(client concourse.Client) ([]atc.Container, error) {
+func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (*containerFingerprint, error) {
 	var pipelineName string
 	if command.Job.PipelineName != "" {
 		pipelineName = command.Job.PipelineName
@@ -167,11 +174,31 @@ func (command *HijackCommand) getContainerIDs(client concourse.Client) ([]atc.Co
 		pipelineName = command.Check.PipelineName
 	}
 
+	concourseUrl := command.Url
 	buildNameOrID := command.Build
 	stepName := command.StepName
 	jobName := command.Job.JobName
 	check := command.Check.ResourceName
 	attempt := command.Attempt
+
+	if concourseUrl != "" {
+		u, err := url.Parse(concourseUrl)
+		if err != nil {
+			return nil, err
+		}
+		re := regexp.MustCompile("/pipelines/(?P<pipeline>[^/]*)/jobs/(?P<job>[^/]*)/builds/(?P<build>[^/]*)")
+		match := re.FindStringSubmatch(u.Path)
+		for i, name := range re.SubexpNames() {
+			switch name {
+			case "pipeline":
+				pipelineName = match[i]
+			case "job":
+				jobName = match[i]
+			case "build":
+				buildNameOrID = match[i]
+			}
+		}
+	}
 
 	fingerprint := containerFingerprint{
 		pipelineName:  pipelineName,
@@ -182,6 +209,10 @@ func (command *HijackCommand) getContainerIDs(client concourse.Client) ([]atc.Co
 		attempt:       attempt,
 	}
 
+	return &fingerprint, nil
+}
+
+func (command *HijackCommand) getContainerIDs(client concourse.Client, fingerprint *containerFingerprint) ([]atc.Container, error) {
 	reqValues, err := locateContainer(client, fingerprint)
 	if err != nil {
 		return nil, err
@@ -214,14 +245,14 @@ func remoteCommand(argv []string) (string, []string) {
 }
 
 type containerLocator interface {
-	locate(containerFingerprint) (map[string]string, error)
+	locate(*containerFingerprint) (map[string]string, error)
 }
 
 type stepContainerLocator struct {
 	client concourse.Client
 }
 
-func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (map[string]string, error) {
+func (locator stepContainerLocator) locate(fingerprint *containerFingerprint) (map[string]string, error) {
 	reqValues := map[string]string{}
 
 	if fingerprint.jobName != "" {
@@ -252,7 +283,7 @@ func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (ma
 
 type checkContainerLocator struct{}
 
-func (locator checkContainerLocator) locate(fingerprint containerFingerprint) (map[string]string, error) {
+func (locator checkContainerLocator) locate(fingerprint *containerFingerprint) (map[string]string, error) {
 	reqValues := map[string]string{}
 
 	reqValues["type"] = "check"
@@ -277,7 +308,7 @@ type containerFingerprint struct {
 	attempt   string
 }
 
-func locateContainer(client concourse.Client, fingerprint containerFingerprint) (map[string]string, error) {
+func locateContainer(client concourse.Client, fingerprint *containerFingerprint) (map[string]string, error) {
 	var locator containerLocator
 
 	if fingerprint.checkName == "" {

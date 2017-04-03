@@ -471,6 +471,10 @@ var _ = Describe("Hijacking", func() {
 				It("hijacks the given build", func() {
 					hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step")
 				})
+
+				It("hijacks the given build by URL", func() {
+					hijack("--url", "http://example.com/teams/mighty-ducks/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step")
+				})
 			})
 		})
 
