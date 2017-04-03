@@ -12,6 +12,8 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/testflight/gitserver"
+	"github.com/concourse/testflight/guidserver"
 	"github.com/concourse/testflight/helpers"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
@@ -46,6 +48,23 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse)
 	Expect(err).NotTo(HaveOccurred())
 
+	client := helpers.ConcourseClient(atcURL)
+
+	gitserver.Cleanup(client)
+	guidserver.Cleanup(client)
+
+	team = client.Team("main")
+
+	pipelines, err := team.ListPipelines()
+	Expect(err).ToNot(HaveOccurred())
+
+	for _, pipeline := range pipelines {
+		if strings.HasPrefix(pipeline.Name, "test-pipeline-") {
+			_, err := team.DeletePipeline(pipeline.Name)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
+
 	return data
 }, func(data []byte) {
 	var err error
@@ -57,16 +76,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	team = client.Team("main")
 	logger = lagertest.NewTestLogger("pipelines-test")
-
-	pipelines, err := team.ListPipelines()
-	Expect(err).ToNot(HaveOccurred())
-
-	for _, pipeline := range pipelines {
-		if strings.HasPrefix(pipeline.Name, "test-pipeline-") {
-			err := team.DeletePipeline(pipeline.Name)
-			Expect(err).ToNot(HaveOccurred())
-		}
-	}
 })
 
 var _ = SynchronizedAfterSuite(func() {

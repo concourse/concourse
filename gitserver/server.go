@@ -45,12 +45,18 @@ func Start(client concourse.Client) *Server {
 			Strategy: baggageclaim.ImportStrategy{
 				Path: gitServerRootfs,
 			},
+			Properties: baggageclaim.VolumeProperties{
+				"testflight": "yep",
+			},
 		})
 	Expect(err).NotTo(HaveOccurred())
 
 	container, err := gardenClient.Create(garden.ContainerSpec{
 		RootFSPath: (&url.URL{Scheme: "raw", Path: rootfsVol.Path()}).String(),
 		GraceTime:  time.Hour,
+		Properties: garden.Properties{
+			"testflight": "yep",
+		},
 	})
 	Expect(err).NotTo(HaveOccurred())
 
@@ -409,4 +415,26 @@ func (server *Server) RevParse(ref string) string {
 
 func (server *Server) CommittedGuids() []string {
 	return server.committedGuids
+}
+
+func Cleanup(client concourse.Client) {
+	logger := lagertest.NewTestLogger("guid-server-cleanup")
+
+	_, gardenClient, baggageclaimClient := helpers.WorkerWithResourceType(logger, client, "git")
+
+	containers, err := gardenClient.Containers(garden.Properties{"testflight": "yep"})
+	Expect(err).ToNot(HaveOccurred())
+
+	for _, container := range containers {
+		err := gardenClient.Destroy(container.Handle())
+		Expect(err).ToNot(HaveOccurred())
+	}
+
+	volumes, err := baggageclaimClient.ListVolumes(logger, baggageclaim.VolumeProperties{"testflight": "yep"})
+	Expect(err).ToNot(HaveOccurred())
+
+	for _, volume := range volumes {
+		err := volume.Destroy()
+		Expect(err).ToNot(HaveOccurred())
+	}
 }
