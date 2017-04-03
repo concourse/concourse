@@ -31,7 +31,7 @@ instance_groups:
 
     - release: concourse
       name: tsa
-      properties: {}
+      properties: {log_level: debug}
 
     - release: concourse
       name: postgresql
@@ -47,7 +47,7 @@ instance_groups:
 
     - release: concourse
       name: baggageclaim
-      properties: {}
+      properties: {log_level: debug}
 
     - release: garden-runc
       name: garden
