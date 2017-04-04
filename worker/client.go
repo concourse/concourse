@@ -82,7 +82,7 @@ type InputSource interface {
 }
 
 type VolumeSpec struct {
-	Strategy   Strategy
+	Strategy   baggageclaim.Strategy
 	Properties VolumeProperties
 	Privileged bool
 	TTL        time.Duration
@@ -90,47 +90,10 @@ type VolumeSpec struct {
 
 func (spec VolumeSpec) baggageclaimVolumeSpec() baggageclaim.VolumeSpec {
 	return baggageclaim.VolumeSpec{
-		Strategy:   spec.Strategy.baggageclaimStrategy(),
+		Strategy:   spec.Strategy,
 		Privileged: spec.Privileged,
 		Properties: baggageclaim.VolumeProperties(spec.Properties),
 	}
-}
-
-type Strategy interface {
-	baggageclaimStrategy() baggageclaim.Strategy
-}
-
-type ResourceCacheStrategy struct {
-	ResourceHash    string
-	ResourceVersion atc.Version
-}
-
-func (ResourceCacheStrategy) baggageclaimStrategy() baggageclaim.Strategy {
-	return baggageclaim.EmptyStrategy{}
-}
-
-type OutputStrategy struct {
-	Name string
-}
-
-func (OutputStrategy) baggageclaimStrategy() baggageclaim.Strategy {
-	return baggageclaim.EmptyStrategy{}
-}
-
-type ImageArtifactReplicationStrategy struct {
-	Name string
-}
-
-func (ImageArtifactReplicationStrategy) baggageclaimStrategy() baggageclaim.Strategy {
-	return baggageclaim.EmptyStrategy{}
-}
-
-type ContainerRootFSStrategy struct {
-	Parent Volume
-}
-
-func (strategy ContainerRootFSStrategy) baggageclaimStrategy() baggageclaim.Strategy {
-	return strategy.Parent.COWStrategy()
 }
 
 type HostRootFSStrategy struct {

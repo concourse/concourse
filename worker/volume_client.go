@@ -27,6 +27,14 @@ type VolumeClient interface {
 		int,
 		string,
 	) (Volume, error)
+	FindOrCreateCOWVolumeForContainer(
+		lager.Logger,
+		VolumeSpec,
+		dbng.CreatingContainer,
+		Volume,
+		int,
+		string,
+	) (Volume, error)
 	FindOrCreateVolumeForBaseResourceType(
 		lager.Logger,
 		VolumeSpec,
@@ -79,25 +87,33 @@ func (c *volumeClient) FindOrCreateVolumeForContainer(
 	mountPath string,
 ) (Volume, error) {
 	return c.findOrCreateVolume(
-		logger,
+		logger.Session("find-or-create-volume-for-container"),
 		volumeSpec,
 		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
 			return c.dbVolumeFactory.FindContainerVolume(teamID, c.dbWorker, container, mountPath)
 		},
 		func() (dbng.CreatingVolume, error) {
-			var v dbng.CreatingVolume
-			var err error
-			if cowStrategy, ok := volumeSpec.Strategy.(ContainerRootFSStrategy); ok {
-				v, err = cowStrategy.Parent.CreateChildForContainer(container, mountPath)
-			} else {
-				v, err = c.dbVolumeFactory.CreateContainerVolume(teamID, c.dbWorker, container, mountPath)
-			}
-			if err != nil {
-				return nil, err
-			}
+			return c.dbVolumeFactory.CreateContainerVolume(teamID, c.dbWorker, container, mountPath)
+		},
+	)
+}
 
-			logger.Debug("created-volume-for-container", lager.Data{"handle": v.Handle()})
-			return v, nil
+func (c *volumeClient) FindOrCreateCOWVolumeForContainer(
+	logger lager.Logger,
+	volumeSpec VolumeSpec,
+	container dbng.CreatingContainer,
+	parent Volume,
+	teamID int,
+	mountPath string,
+) (Volume, error) {
+	return c.findOrCreateVolume(
+		logger.Session("find-or-create-cow-volume-for-container"),
+		volumeSpec,
+		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
+			return c.dbVolumeFactory.FindContainerVolume(teamID, c.dbWorker, container, mountPath)
+		},
+		func() (dbng.CreatingVolume, error) {
+			return parent.CreateChildForContainer(container, mountPath)
 		},
 	)
 }
@@ -118,19 +134,13 @@ func (c *volumeClient) FindOrCreateVolumeForBaseResourceType(
 	}
 
 	return c.findOrCreateVolume(
-		logger,
+		logger.Session("find-or-create-volume-for-base-resource-type"),
 		volumeSpec,
 		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
 			return c.dbVolumeFactory.FindBaseResourceTypeVolume(teamID, workerBaseResourceType)
 		},
 		func() (dbng.CreatingVolume, error) {
-			v, err := c.dbVolumeFactory.CreateBaseResourceTypeVolume(teamID, workerBaseResourceType)
-			if err != nil {
-				return nil, err
-			}
-
-			logger.Debug("created-volume-for-base-resource-type", lager.Data{"handle": v.Handle()})
-			return v, nil
+			return c.dbVolumeFactory.CreateBaseResourceTypeVolume(teamID, workerBaseResourceType)
 		},
 	)
 }
@@ -141,19 +151,13 @@ func (c *volumeClient) CreateVolumeForResourceCache(
 	usedResourceCache *dbng.UsedResourceCache,
 ) (Volume, error) {
 	return c.findOrCreateVolume(
-		logger,
+		logger.Session("find-or-create-volume-for-resource-cache"),
 		volumeSpec,
 		func() (dbng.CreatingVolume, dbng.CreatedVolume, error) {
 			return nil, nil, nil
 		},
 		func() (dbng.CreatingVolume, error) {
-			v, err := c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker, usedResourceCache)
-			if err != nil {
-				return nil, err
-			}
-
-			logger.Debug("created-volume-for-resource-cache", lager.Data{"handle": v.Handle()})
-			return v, nil
+			return c.dbVolumeFactory.CreateResourceCacheVolume(c.dbWorker, usedResourceCache)
 		},
 	)
 }
@@ -225,6 +229,8 @@ func (c *volumeClient) findOrCreateVolume(
 	}
 
 	if createdVolume != nil {
+		logger = logger.WithData(lager.Data{"volume": createdVolume.Handle()})
+
 		bcVolume, bcVolumeFound, err = c.baggageclaimClient.LookupVolume(
 			logger.Session("lookup-volume"),
 			createdVolume.Handle(),
@@ -235,61 +241,74 @@ func (c *volumeClient) findOrCreateVolume(
 		}
 
 		if !bcVolumeFound {
-			logger.Error("failed-to-lookup-volume-in-baggageclaim", ErrCreatedVolumeNotFound, lager.Data{"handle": createdVolume.Handle()})
+			logger.Info("created-volume-not-found")
 			return nil, ErrCreatedVolumeNotFound
 		}
 
-		return NewVolume(bcVolume, createdVolume), nil
-	} else {
-		if creatingVolume != nil {
-			bcVolume, bcVolumeFound, err = c.baggageclaimClient.LookupVolume(
-				logger.Session("create-volume"),
-				creatingVolume.Handle(),
-			)
-			if err != nil {
-				logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
-				return nil, err
-			}
-		} else {
-			creatingVolume, err = createVolumeFunc()
-			if err != nil {
-				logger.Error("failed-to-create-volume-in-db", err)
-				return nil, err
-			}
-		}
+		logger.Debug("found-created-volume")
 
-		lock, acquired, err := c.lockDB.AcquireVolumeCreatingLock(logger, creatingVolume.ID())
+		return NewVolume(bcVolume, createdVolume), nil
+	}
+
+	if creatingVolume != nil {
+		logger = logger.WithData(lager.Data{"volume": creatingVolume.Handle()})
+
+		bcVolume, bcVolumeFound, err = c.baggageclaimClient.LookupVolume(
+			logger.Session("create-volume"),
+			creatingVolume.Handle(),
+		)
 		if err != nil {
-			logger.Error("failed-to-acquire-volume-creating-lock", err)
+			logger.Error("failed-to-lookup-volume-in-baggageclaim", err)
 			return nil, err
 		}
 
-		if !acquired {
-			c.clock.Sleep(creatingVolumeRetryDelay)
-			return c.findOrCreateVolume(logger, volumeSpec, findVolumeFunc, createVolumeFunc)
-		}
-
-		defer lock.Release()
-
-		if !bcVolumeFound {
-			logger.Debug("creating-volume-in-baggageclaim", lager.Data{"handle": creatingVolume.Handle()})
-			bcVolume, err = c.baggageclaimClient.CreateVolume(
-				logger.Session("create-volume"),
-				creatingVolume.Handle(),
-				volumeSpec.baggageclaimVolumeSpec(),
-			)
-			if err != nil {
-				logger.Error("failed-to-create-volume-in-baggageclaim", err)
-				return nil, err
-			}
-		}
-
-		createdVolume, err = creatingVolume.Created()
+		logger.Debug("found-creating-volume", lager.Data{"real-volume-found": bcVolumeFound})
+	} else {
+		creatingVolume, err = createVolumeFunc()
 		if err != nil {
-			logger.Error("failed-to-initialize-volume", err)
+			logger.Error("failed-to-create-volume-in-db", err)
+			return nil, err
+		}
+
+		logger = logger.WithData(lager.Data{"volume": creatingVolume.Handle()})
+
+		logger.Debug("created-creating-volume")
+	}
+
+	lock, acquired, err := c.lockDB.AcquireVolumeCreatingLock(logger, creatingVolume.ID())
+	if err != nil {
+		logger.Error("failed-to-acquire-volume-creating-lock", err)
+		return nil, err
+	}
+
+	if !acquired {
+		c.clock.Sleep(creatingVolumeRetryDelay)
+		return c.findOrCreateVolume(logger, volumeSpec, findVolumeFunc, createVolumeFunc)
+	}
+
+	defer lock.Release()
+
+	if !bcVolumeFound {
+		logger.Debug("creating-real-volume")
+
+		bcVolume, err = c.baggageclaimClient.CreateVolume(
+			logger.Session("create-volume"),
+			creatingVolume.Handle(),
+			volumeSpec.baggageclaimVolumeSpec(),
+		)
+		if err != nil {
+			logger.Error("failed-to-create-volume-in-baggageclaim", err)
 			return nil, err
 		}
 	}
+
+	createdVolume, err = creatingVolume.Created()
+	if err != nil {
+		logger.Error("failed-to-initialize-volume", err)
+		return nil, err
+	}
+
+	logger.Debug("created")
 
 	return NewVolume(bcVolume, createdVolume), nil
 }

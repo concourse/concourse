@@ -12,6 +12,8 @@ import (
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/worker/image/imagefakes"
 	"github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/baggageclaim"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -45,9 +47,15 @@ var _ = Describe("Image", func() {
 
 	Describe("imageProvidedByPreviousStepOnSameWorker", func() {
 		var fakeArtifactVolume *workerfakes.FakeVolume
+		var cowStrategy baggageclaim.COWStrategy
 
 		BeforeEach(func() {
 			fakeArtifactVolume = new(workerfakes.FakeVolume)
+			cowStrategy = baggageclaim.COWStrategy{
+				Parent: new(baggageclaimfakes.FakeVolume),
+			}
+			fakeArtifactVolume.COWStrategyReturns(cowStrategy)
+
 			fakeImageArtifactSource := new(workerfakes.FakeArtifactSource)
 			fakeImageArtifactSource.VolumeOnReturns(fakeArtifactVolume, true, nil)
 			metadataReader := ioutil.NopCloser(strings.NewReader(
@@ -55,9 +63,9 @@ var _ = Describe("Image", func() {
 			))
 			fakeImageArtifactSource.StreamFileReturns(metadataReader, nil)
 
-			fakeImageVolume := new(workerfakes.FakeVolume)
-			fakeImageVolume.PathReturns("some-path")
-			fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeImageVolume, nil)
+			fakeContainerRootfsVolume := new(workerfakes.FakeVolume)
+			fakeContainerRootfsVolume.PathReturns("some-path")
+			fakeVolumeClient.FindOrCreateCOWVolumeForContainerReturns(fakeContainerRootfsVolume, nil)
 
 			var err error
 			img, err = imageFactory.GetImage(
@@ -77,18 +85,17 @@ var _ = Describe("Image", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("finds or creates volume with ContainerRootFSStrategy", func() {
+		It("finds or creates cow volume", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-			_, volumeSpec, container, teamID, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+			Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
+			_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
-				Strategy: worker.ContainerRootFSStrategy{
-					Parent: fakeArtifactVolume,
-				},
+				Strategy:   cowStrategy,
 				Privileged: true,
 			}))
 			Expect(container).To(Equal(fakeContainer))
+			Expect(volume).To(Equal(fakeArtifactVolume))
 			Expect(teamID).To(Equal(42))
 			Expect(path).To(Equal("/"))
 		})
@@ -109,9 +116,9 @@ var _ = Describe("Image", func() {
 
 	Describe("imageProvidedByPreviousStepOnDifferentWorker", func() {
 		var (
-			fakeArtifactVolume      *workerfakes.FakeVolume
-			fakeImageArtifactSource *workerfakes.FakeArtifactSource
-			fakeImageVolume         *workerfakes.FakeVolume
+			fakeArtifactVolume        *workerfakes.FakeVolume
+			fakeImageArtifactSource   *workerfakes.FakeArtifactSource
+			fakeContainerRootfsVolume *workerfakes.FakeVolume
 		)
 
 		BeforeEach(func() {
@@ -123,9 +130,9 @@ var _ = Describe("Image", func() {
 			))
 			fakeImageArtifactSource.StreamFileReturns(metadataReader, nil)
 
-			fakeImageVolume = new(workerfakes.FakeVolume)
-			fakeImageVolume.PathReturns("some-path")
-			fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeImageVolume, nil)
+			fakeContainerRootfsVolume = new(workerfakes.FakeVolume)
+			fakeContainerRootfsVolume.PathReturns("some-path")
+			fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeContainerRootfsVolume, nil)
 
 			var err error
 			img, err = imageFactory.GetImage(
@@ -146,15 +153,13 @@ var _ = Describe("Image", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("finds or creates volume with ImageArtifactReplicationStrategy", func() {
+		It("finds or creates volume", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
 			_, volumeSpec, container, teamID, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
-				Strategy: worker.ImageArtifactReplicationStrategy{
-					Name: "some-image-artifact-name",
-				},
+				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: true,
 			}))
 			Expect(container).To(Equal(fakeContainer))
@@ -170,7 +175,7 @@ var _ = Describe("Image", func() {
 
 			artifactDestination := fakeImageArtifactSource.StreamToArgsForCall(0)
 			artifactDestination.StreamIn("fake-path", strings.NewReader("fake-tar-stream"))
-			Expect(fakeImageVolume.StreamInCallCount()).To(Equal(1))
+			Expect(fakeContainerRootfsVolume.StreamInCallCount()).To(Equal(1))
 		})
 
 		It("returns fetched image", func() {
@@ -189,6 +194,8 @@ var _ = Describe("Image", func() {
 
 	Describe("imageFromResource", func() {
 		var fakeResourceImageVolume *workerfakes.FakeVolume
+		var cowStrategy baggageclaim.COWStrategy
+		var fakeContainerRootfsVolume *workerfakes.FakeVolume
 
 		BeforeEach(func() {
 			metadataReader := ioutil.NopCloser(strings.NewReader(
@@ -196,8 +203,14 @@ var _ = Describe("Image", func() {
 			))
 
 			fakeResourceImageVolume = new(workerfakes.FakeVolume)
-			fakeResourceImageVolume.PathReturns("some-path")
-			fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeResourceImageVolume, nil)
+			cowStrategy = baggageclaim.COWStrategy{
+				Parent: new(baggageclaimfakes.FakeVolume),
+			}
+			fakeResourceImageVolume.COWStrategyReturns(cowStrategy)
+
+			fakeContainerRootfsVolume = new(workerfakes.FakeVolume)
+			fakeContainerRootfsVolume.PathReturns("some-path")
+			fakeVolumeClient.FindOrCreateCOWVolumeForContainerReturns(fakeContainerRootfsVolume, nil)
 
 			fakeImageResourceFetcher.FetchReturns(
 				fakeResourceImageVolume,
@@ -227,18 +240,17 @@ var _ = Describe("Image", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("finds or creates volume with ContainerRootFSStrategy", func() {
+		It("finds or creates cow volume", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-			_, volumeSpec, container, teamID, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+			Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
+			_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
-				Strategy: worker.ContainerRootFSStrategy{
-					Parent: fakeResourceImageVolume,
-				},
+				Strategy:   cowStrategy,
 				Privileged: true,
 			}))
 			Expect(container).To(Equal(fakeContainer))
+			Expect(volume).To(Equal(fakeResourceImageVolume))
 			Expect(teamID).To(Equal(42))
 			Expect(path).To(Equal("/"))
 		})
@@ -259,12 +271,21 @@ var _ = Describe("Image", func() {
 	})
 
 	Describe("imageFromBaseResourceType", func() {
-		var fakeResourceImageVolume *workerfakes.FakeVolume
+		var cowStrategy baggageclaim.COWStrategy
+		var fakeContainerRootfsVolume *workerfakes.FakeVolume
+		var fakeImportVolume *workerfakes.FakeVolume
 
 		BeforeEach(func() {
-			fakeResourceImageVolume = new(workerfakes.FakeVolume)
-			fakeResourceImageVolume.PathReturns("some-path")
-			fakeVolumeClient.FindOrCreateVolumeForContainerReturns(fakeResourceImageVolume, nil)
+			fakeContainerRootfsVolume = new(workerfakes.FakeVolume)
+			fakeContainerRootfsVolume.PathReturns("some-path")
+			fakeVolumeClient.FindOrCreateCOWVolumeForContainerReturns(fakeContainerRootfsVolume, nil)
+
+			fakeImportVolume = new(workerfakes.FakeVolume)
+			cowStrategy = baggageclaim.COWStrategy{
+				Parent: new(baggageclaimfakes.FakeVolume),
+			}
+			fakeImportVolume.COWStrategyReturns(cowStrategy)
+			fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeReturns(fakeImportVolume, nil)
 
 			fakeWorker.ResourceTypesReturns([]atc.WorkerResourceType{
 				{
@@ -294,41 +315,33 @@ var _ = Describe("Image", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("finds or creates import volume with HostRootFSStrategy", func() {
+		It("finds or creates import volume", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeCallCount()).To(Equal(1))
 			_, volumeSpec, teamID, resourceTypeName := fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeArgsForCall(0)
-			expectedVersion := "some-base-version"
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
-				Strategy: worker.HostRootFSStrategy{
-					Path:       "some-base-image-path",
-					Version:    &expectedVersion,
-					WorkerName: "some-worker-name",
+				Strategy: baggageclaim.ImportStrategy{
+					Path: "some-base-image-path",
 				},
 				Privileged: true,
-				Properties: worker.VolumeProperties{},
 			}))
 			Expect(teamID).To(Equal(42))
 			Expect(resourceTypeName).To(Equal("some-base-resource-type"))
 		})
 
-		It("finds or creates cow volume with ContainerRootFSStrategy", func() {
-			fakeImportVolume := new(workerfakes.FakeVolume)
-			fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeReturns(fakeImportVolume, nil)
+		It("finds or creates cow volume", func() {
 			_, err := img.FetchForContainer(logger, fakeContainer)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeVolumeClient.FindOrCreateVolumeForContainerCallCount()).To(Equal(1))
-			_, volumeSpec, container, teamID, path := fakeVolumeClient.FindOrCreateVolumeForContainerArgsForCall(0)
+			Expect(fakeVolumeClient.FindOrCreateCOWVolumeForContainerCallCount()).To(Equal(1))
+			_, volumeSpec, container, volume, teamID, path := fakeVolumeClient.FindOrCreateCOWVolumeForContainerArgsForCall(0)
 			Expect(volumeSpec).To(Equal(worker.VolumeSpec{
-				Strategy: worker.ContainerRootFSStrategy{
-					Parent: fakeImportVolume,
-				},
+				Strategy:   cowStrategy,
 				Privileged: true,
-				Properties: worker.VolumeProperties{},
 			}))
 			Expect(teamID).To(Equal(42))
 			Expect(container).To(Equal(fakeContainer))
+			Expect(volume).To(Equal(fakeImportVolume))
 			Expect(path).To(Equal("/"))
 		})
 

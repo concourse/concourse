@@ -518,7 +518,7 @@ func (p *containerProvider) createGardenContainer(
 		workdirVolume, volumeErr := p.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
 			VolumeSpec{
-				Strategy:   OutputStrategy{Name: "work-dir"}, // XXX: this is silly
+				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: bool(spec.ImageSpec.Privileged),
 			},
 			creatingContainer,
@@ -544,15 +544,14 @@ func (p *containerProvider) createGardenContainer(
 		}
 
 		if found {
-			inputVolume, err = p.volumeClient.FindOrCreateVolumeForContainer(
+			inputVolume, err = p.volumeClient.FindOrCreateCOWVolumeForContainer(
 				logger,
 				VolumeSpec{
-					Strategy: ContainerRootFSStrategy{
-						Parent: localVolume,
-					},
+					Strategy:   localVolume.COWStrategy(),
 					Privileged: spec.ImageSpec.Privileged,
 				},
 				creatingContainer,
+				localVolume,
 				spec.TeamID,
 				inputSource.DestinationPath(),
 			)
@@ -563,7 +562,7 @@ func (p *containerProvider) createGardenContainer(
 			inputVolume, err = p.volumeClient.FindOrCreateVolumeForContainer(
 				logger,
 				VolumeSpec{
-					Strategy:   OutputStrategy{Name: string(inputSource.Name())}, // XXX: this is silly
+					Strategy:   baggageclaim.EmptyStrategy{},
 					Privileged: spec.ImageSpec.Privileged,
 				},
 				creatingContainer,
@@ -586,11 +585,11 @@ func (p *containerProvider) createGardenContainer(
 		})
 	}
 
-	for name, outputPath := range spec.Outputs {
+	for _, outputPath := range spec.Outputs {
 		outVolume, volumeErr := p.volumeClient.FindOrCreateVolumeForContainer(
 			logger,
 			VolumeSpec{
-				Strategy:   OutputStrategy{Name: name},
+				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: bool(spec.ImageSpec.Privileged),
 			},
 			creatingContainer,

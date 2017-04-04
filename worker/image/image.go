@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 )
 
 const RawRootFSScheme = "raw"
@@ -24,15 +25,14 @@ func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
 	logger lager.Logger,
 	container dbng.CreatingContainer,
 ) (worker.FetchedImage, error) {
-	imageVolume, err := i.volumeClient.FindOrCreateVolumeForContainer(
+	imageVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
 		logger,
 		worker.VolumeSpec{
-			Strategy: worker.ContainerRootFSStrategy{
-				Parent: i.artifactVolume,
-			},
+			Strategy:   i.artifactVolume.COWStrategy(),
 			Privileged: i.imageSpec.Privileged,
 		},
 		container,
+		i.artifactVolume,
 		i.teamID,
 		"/",
 	)
@@ -76,9 +76,7 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 	imageVolume, err := i.volumeClient.FindOrCreateVolumeForContainer(
 		logger,
 		worker.VolumeSpec{
-			Strategy: worker.ImageArtifactReplicationStrategy{
-				Name: string(i.imageSpec.ImageArtifactName),
-			},
+			Strategy:   baggageclaim.EmptyStrategy{},
 			Privileged: i.imageSpec.Privileged,
 		},
 		container,
@@ -135,15 +133,14 @@ func (i *imageFromResource) FetchForContainer(
 	logger lager.Logger,
 	container dbng.CreatingContainer,
 ) (worker.FetchedImage, error) {
-	imageVolume, err := i.volumeClient.FindOrCreateVolumeForContainer(
+	imageVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
 		logger.Session("create-cow-volume"),
 		worker.VolumeSpec{
-			Strategy: worker.ContainerRootFSStrategy{
-				Parent: i.imageParentVolume,
-			},
+			Strategy:   i.imageParentVolume.COWStrategy(),
 			Privileged: i.imageSpec.Privileged,
 		},
 		container,
+		i.imageParentVolume,
 		i.teamID,
 		"/",
 	)
@@ -182,19 +179,12 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 ) (worker.FetchedImage, error) {
 	for _, t := range i.worker.ResourceTypes() {
 		if t.Type == i.resourceTypeName {
-			importVolumeSpec := worker.VolumeSpec{
-				Strategy: worker.HostRootFSStrategy{
-					Path:       t.Image,
-					Version:    &t.Version,
-					WorkerName: i.worker.Name(),
-				},
-				Privileged: true,
-				Properties: worker.VolumeProperties{},
-			}
-
 			importVolume, err := i.volumeClient.FindOrCreateVolumeForBaseResourceType(
 				logger,
-				importVolumeSpec,
+				worker.VolumeSpec{
+					Strategy:   baggageclaim.ImportStrategy{Path: t.Image},
+					Privileged: true,
+				},
 				i.teamID,
 				i.resourceTypeName,
 			)
@@ -202,16 +192,14 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 				return worker.FetchedImage{}, err
 			}
 
-			cowVolume, err := i.volumeClient.FindOrCreateVolumeForContainer(
+			cowVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
 				logger,
 				worker.VolumeSpec{
-					Strategy: worker.ContainerRootFSStrategy{
-						Parent: importVolume,
-					},
+					Strategy:   importVolume.COWStrategy(),
 					Privileged: true,
-					Properties: worker.VolumeProperties{},
 				},
 				container,
+				importVolume,
 				i.teamID,
 				"/",
 			)

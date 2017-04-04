@@ -11,6 +11,7 @@ import (
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/baggageclaim"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -135,10 +136,7 @@ var _ = Describe("ResourceInstance", func() {
 			It("created with the right properties", func() {
 				_, spec, _ := fakeWorkerClient.CreateVolumeForResourceCacheArgsForCall(0)
 				Expect(spec).To(Equal(worker.VolumeSpec{
-					Strategy: worker.ResourceCacheStrategy{
-						ResourceHash:    `some-resource-type{"some":"source"}`,
-						ResourceVersion: atc.Version{"some": "version"},
-					},
+					Strategy: baggageclaim.EmptyStrategy{},
 					Properties: worker.VolumeProperties{
 						"resource-type":    "some-resource-type",
 						"resource-version": `{"some":"version"}`,

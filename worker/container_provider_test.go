@@ -124,6 +124,9 @@ var _ = Describe("ContainerProvider", func() {
 		fakeLocalInputAS := new(workerfakes.FakeArtifactSource)
 		fakeLocalVolume := new(workerfakes.FakeVolume)
 		fakeLocalVolume.PathReturns("/fake/local/volume")
+		fakeLocalVolume.COWStrategyReturns(baggageclaim.COWStrategy{
+			Parent: new(baggageclaimfakes.FakeVolume),
+		})
 		fakeLocalInputAS.VolumeOnReturns(fakeLocalVolume, true, nil)
 		fakeLocalInput.SourceReturns(fakeLocalInputAS)
 
@@ -154,6 +157,17 @@ var _ = Describe("ContainerProvider", func() {
 			"/some/work-dir/local-input":  fakeLocalCOWVolume,
 			"/some/work-dir/remote-input": fakeRemoteInputContainerVolume,
 			"/some/work-dir/output":       fakeOutputVolume,
+		}
+
+		fakeVolumeClient.FindOrCreateCOWVolumeForContainerStub = func(logger lager.Logger, volumeSpec VolumeSpec, creatingContainer dbng.CreatingContainer, volume Volume, teamID int, mountPath string) (Volume, error) {
+			Expect(volume).To(Equal(fakeLocalVolume))
+
+			volume, found := stubbedVolumes[mountPath]
+			if !found {
+				panic("unknown container volume: " + mountPath)
+			}
+
+			return volume, nil
 		}
 
 		fakeVolumeClient.FindOrCreateVolumeForContainerStub = func(logger lager.Logger, volumeSpec VolumeSpec, creatingContainer dbng.CreatingContainer, teamID int, mountPath string) (Volume, error) {

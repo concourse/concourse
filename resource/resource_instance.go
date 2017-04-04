@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/baggageclaim"
 )
 
 //go:generate counterfeiter . ResourceInstance
@@ -73,10 +74,7 @@ func (instance resourceInstance) CreateOn(logger lager.Logger, workerClient work
 	return workerClient.CreateVolumeForResourceCache(
 		logger,
 		worker.VolumeSpec{
-			Strategy: worker.ResourceCacheStrategy{
-				ResourceHash:    GenerateResourceHash(instance.source, string(instance.resourceTypeName)),
-				ResourceVersion: instance.version,
-			},
+			Strategy:   baggageclaim.EmptyStrategy{},
 			Properties: instance.volumeProperties(),
 			Privileged: true,
 		},
