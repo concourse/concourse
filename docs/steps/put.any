@@ -45,8 +45,8 @@ your \code{put} step as such:
 \codeblock{yaml}{
 plan:
 - put: docker-build
-  params: {build: git-resource}
-  get_params: {skip_download: true}
+  params: \{build: git-resource\}
+  get_params: \{skip_download: true\}
 }
 
 \define-attribute{put: string}{
