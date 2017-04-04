@@ -474,11 +474,9 @@ jobs:
   - aggregate:
     - put: version
       params: {file: version/version}
-    - put: concourse-master
+    - put: concourse
       params:
         repository: final-release-repo
-        tag: version/version
-        tag_prefix: v
     - put: final-release
       params: {file: final-release-tarball/concourse-*.tgz}
 
@@ -522,10 +520,6 @@ jobs:
       params: {submodules: none}
       passed: [shipit]
       trigger: true
-    - get: concourse-master
-      params: {submodules: none}
-      passed: [shipit]
-      trigger: true
     - get: version
       passed: [shipit]
       trigger: true
@@ -543,7 +537,7 @@ jobs:
           source: {repository: concourse/git-resource}
 
         inputs:
-        - name: concourse-master
+        - name: concourse
 
         outputs:
         - name: generated-commitish
@@ -553,7 +547,7 @@ jobs:
           args:
           - -c
           - |
-            git -C concourse-master rev-parse HEAD > generated-commitish/commitish
+            git -C concourse rev-parse HEAD > generated-commitish/commitish
   - put: github-release
     params:
       name: release-notes/release-name
@@ -770,13 +764,6 @@ resources:
   type: docker-image
   source:
     repository: concourse/buildbox-testflight-ci
-
-- name: concourse-master
-  type: git
-  source:
-    uri: git@github.com:concourse/concourse.git
-    branch: master
-    private_key: {{concourse-repo-private-key}}
 
 - name: virtualbox-box-cloud
   type: vagrant-cloud
