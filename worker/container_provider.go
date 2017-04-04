@@ -361,19 +361,107 @@ func (p *containerProvider) findOrCreateContainer(
 	findContainerFunc func() (dbng.CreatingContainer, dbng.CreatedContainer, error),
 	createContainerFunc func() (dbng.CreatingContainer, error),
 ) (Container, error) {
-	var gardenContainer garden.Container
+	for {
+		var gardenContainer garden.Container
 
-	creatingContainer, createdContainer, err := findContainerFunc()
-	if err != nil {
-		logger.Error("failed-to-find-container-in-db", err)
-		return nil, err
-	}
-
-	if createdContainer != nil {
-		logger.Debug("found-created-container-in-db")
-		gardenContainer, err = p.gardenClient.Lookup(createdContainer.Handle())
+		creatingContainer, createdContainer, err := findContainerFunc()
 		if err != nil {
-			logger.Error("failed-to-lookup-created-container-in-garden", err)
+			logger.Error("failed-to-find-container-in-db", err)
+			return nil, err
+		}
+
+		if createdContainer != nil {
+			logger.Debug("found-created-container-in-db")
+			gardenContainer, err = p.gardenClient.Lookup(createdContainer.Handle())
+			if err != nil {
+				logger.Error("failed-to-lookup-created-container-in-garden", err)
+				return nil, err
+			}
+
+			return p.constructGardenWorkerContainer(
+				logger,
+				createdContainer,
+				gardenContainer,
+			)
+		}
+
+		if creatingContainer != nil {
+			logger.Debug("found-creating-container-in-db")
+			gardenContainer, err = p.gardenClient.Lookup(creatingContainer.Handle())
+			if err != nil {
+				if _, ok := err.(garden.ContainerNotFoundError); !ok {
+					logger.Error("failed-to-lookup-creating-container-in-garden", err)
+					return nil, err
+				}
+			}
+		}
+
+		if gardenContainer == nil {
+			image, err := p.imageFactory.GetImage(
+				logger,
+				p.worker,
+				p.volumeClient,
+				spec.ImageSpec,
+				spec.TeamID,
+				cancel,
+				delegate,
+				resourceUser,
+				resourceTypes,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			if creatingContainer == nil {
+				logger.Debug("creating-container-in-db")
+				creatingContainer, err = createContainerFunc()
+				if err != nil {
+					logger.Error("failed-to-create-container-in-db", err)
+					return nil, err
+				}
+			}
+
+			lock, acquired, err := p.lockDB.AcquireContainerCreatingLock(logger, creatingContainer.ID())
+			if err != nil {
+				logger.Error("failed-to-acquire-volume-creating-lock", err)
+				return nil, err
+			}
+
+			if !acquired {
+				p.clock.Sleep(creatingContainerRetryDelay)
+				continue
+			}
+
+			defer lock.Release()
+
+			fetchedImage, err := image.FetchForContainer(logger, creatingContainer)
+			if err != nil {
+				logger.Error("failed-to-fetch-image-for-container", err)
+				return nil, err
+			}
+
+			gardenContainer, err = p.createGardenContainer(
+				logger,
+				creatingContainer,
+				metadata,
+				spec,
+				fetchedImage.Metadata,
+				fetchedImage.URL,
+			)
+			if err != nil {
+				logger.Error("failed-to-create-container-in-garden", err)
+				return nil, err
+			}
+
+			metadata.User = fetchedImage.Metadata.User
+			if spec.User != "" {
+				metadata.User = spec.User
+			}
+		}
+
+		createdContainer, err = creatingContainer.Created()
+		if err != nil {
+			logger.Error("failed-to-mark-container-as-created", err)
 			return nil, err
 		}
 
@@ -383,102 +471,6 @@ func (p *containerProvider) findOrCreateContainer(
 			gardenContainer,
 		)
 	}
-
-	if creatingContainer != nil {
-		logger.Debug("found-creating-container-in-db")
-		gardenContainer, err = p.gardenClient.Lookup(creatingContainer.Handle())
-		if err != nil {
-			if _, ok := err.(garden.ContainerNotFoundError); !ok {
-				logger.Error("failed-to-lookup-creating-container-in-garden", err)
-				return nil, err
-			}
-		}
-	}
-
-	if gardenContainer == nil {
-		image, err := p.imageFactory.GetImage(
-			logger,
-			p.worker,
-			p.volumeClient,
-			spec.ImageSpec,
-			spec.TeamID,
-			cancel,
-			delegate,
-			resourceUser,
-			resourceTypes,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if creatingContainer == nil {
-			logger.Debug("creating-container-in-db")
-			creatingContainer, err = createContainerFunc()
-			if err != nil {
-				logger.Error("failed-to-create-container-in-db", err)
-				return nil, err
-			}
-		}
-
-		lock, acquired, err := p.lockDB.AcquireContainerCreatingLock(logger, creatingContainer.ID())
-		if err != nil {
-			logger.Error("failed-to-acquire-volume-creating-lock", err)
-			return nil, err
-		}
-
-		if !acquired {
-			p.clock.Sleep(creatingContainerRetryDelay)
-			return p.findOrCreateContainer(
-				logger,
-				resourceUser,
-				cancel,
-				delegate,
-				metadata,
-				spec,
-				resourceTypes,
-				findContainerFunc,
-				createContainerFunc,
-			)
-		}
-
-		defer lock.Release()
-
-		fetchedImage, err := image.FetchForContainer(logger, creatingContainer)
-		if err != nil {
-			logger.Error("failed-to-fetch-image-for-container", err)
-			return nil, err
-		}
-
-		gardenContainer, err = p.createGardenContainer(
-			logger,
-			creatingContainer,
-			metadata,
-			spec,
-			fetchedImage.Metadata,
-			fetchedImage.URL,
-		)
-		if err != nil {
-			logger.Error("failed-to-create-container-in-garden", err)
-			return nil, err
-		}
-
-		metadata.User = fetchedImage.Metadata.User
-		if spec.User != "" {
-			metadata.User = spec.User
-		}
-	}
-
-	createdContainer, err = creatingContainer.Created()
-	if err != nil {
-		logger.Error("failed-to-mark-container-as-created", err)
-		return nil, err
-	}
-
-	return p.constructGardenWorkerContainer(
-		logger,
-		createdContainer,
-		gardenContainer,
-	)
 }
 
 func (p *containerProvider) constructGardenWorkerContainer(
