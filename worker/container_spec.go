@@ -19,7 +19,6 @@ type ContainerSpec struct {
 	Tags      []string
 	TeamID    int
 	ImageSpec ImageSpec
-	Ephemeral bool
 	Env       []string
 
 	// Working directory for processes run in the container.

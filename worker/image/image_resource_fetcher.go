@@ -189,9 +189,8 @@ func (i *imageResourceFetcher) getLatestVersion(
 			ResourceType: imageResourceType,
 			Privileged:   true,
 		},
-		Ephemeral: true,
-		Tags:      tags,
-		TeamID:    teamID,
+		Tags:   tags,
+		TeamID: teamID,
 	}
 
 	checkingResource, err := i.resourceFactory.NewCheckResource(

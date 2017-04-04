@@ -149,9 +149,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 						ResourceType: "docker-image",
 						Privileged:   true,
 					},
-					Ephemeral: true,
-					Tags:      []string{},
-					TeamID:    123,
+					Tags:   []string{},
+					TeamID: 123,
 				}))
 				Expect(resourceConfig).To(Equal(atc.ResourceConfig{
 					Type:   "docker-image",

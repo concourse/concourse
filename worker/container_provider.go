@@ -631,10 +631,6 @@ func (p *containerProvider) createGardenContainer(
 		gardenProperties[userPropertyName] = imageMetadata.User
 	}
 
-	if spec.Ephemeral {
-		gardenProperties[ephemeralPropertyName] = "true"
-	}
-
 	env := append(imageMetadata.Env, spec.Env...)
 
 	if p.httpProxyURL != "" {

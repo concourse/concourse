@@ -163,7 +163,6 @@ var _ = Describe("GardenFactory", func() {
 						ResourceType: "some-resource-type",
 						Privileged:   true,
 					}))
-					Expect(containerSpec.Ephemeral).To(Equal(true))
 					Expect(containerSpec.Tags).To(Equal([]string{"some", "tags"}))
 					Expect(containerSpec.TeamID).To(Equal(123))
 					Expect(containerSpec.Env).To(Equal([]string{"a=1", "b=2"}))

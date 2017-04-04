@@ -161,9 +161,8 @@ var _ = Describe("ResourceScanner", func() {
 						ResourceType: "git",
 						Privileged:   true,
 					},
-					Ephemeral: true,
-					Tags:      atc.Tags{"some-tag"},
-					TeamID:    123,
+					Tags:   atc.Tags{"some-tag"},
+					TeamID: 123,
 					Env: []string{
 						"ATC_EXTERNAL_URL=https://www.example.com",
 						"RESOURCE_PIPELINE_NAME=some-pipeline",
@@ -461,9 +460,8 @@ var _ = Describe("ResourceScanner", func() {
 						ResourceType: "git",
 						Privileged:   true,
 					},
-					Ephemeral: true,
-					Tags:      atc.Tags{"some-tag"},
-					TeamID:    123,
+					Tags:   atc.Tags{"some-tag"},
+					TeamID: 123,
 					Env: []string{
 						"ATC_EXTERNAL_URL=https://www.example.com",
 						"RESOURCE_PIPELINE_NAME=some-pipeline",

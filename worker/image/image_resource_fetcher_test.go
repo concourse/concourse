@@ -196,9 +196,8 @@ var _ = Describe("Image", func() {
 										ResourceType: "docker",
 										Privileged:   true,
 									},
-									Ephemeral: true,
-									Tags:      []string{"worker", "tags"},
-									TeamID:    123,
+									Tags:   []string{"worker", "tags"},
+									TeamID: 123,
 								}))
 								Expect(actualCustomTypes).To(Equal(customTypes))
 								Expect(delegate).To(Equal(fakeImageFetchingDelegate))
@@ -222,9 +221,8 @@ var _ = Describe("Image", func() {
 										ResourceType: "docker",
 										Privileged:   true,
 									},
-									Ephemeral: true,
-									Tags:      []string{"worker", "tags"},
-									TeamID:    123,
+									Tags:   []string{"worker", "tags"},
+									TeamID: 123,
 								}))
 								Expect(actualCustomTypes).To(Equal(customTypes))
 								Expect(delegate).To(Equal(fakeImageFetchingDelegate))
@@ -264,9 +262,8 @@ var _ = Describe("Image", func() {
 									ResourceType: "docker",
 									Privileged:   true,
 								},
-								Ephemeral: true,
-								Tags:      []string{"worker", "tags"},
-								TeamID:    123,
+								Tags:   []string{"worker", "tags"},
+								TeamID: 123,
 							}))
 							Expect(actualCustomTypes).To(Equal(customTypes))
 							Expect(delegate).To(Equal(fakeImageFetchingDelegate))

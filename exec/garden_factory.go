@@ -56,8 +56,7 @@ func (factory *gardenFactory) DependentGet(
 		params,
 		stepMetadata,
 		resource.Session{
-			Ephemeral: false,
-			Metadata:  workerMetadata,
+			Metadata: workerMetadata,
 		},
 		tags,
 		teamID,
@@ -102,8 +101,7 @@ func (factory *gardenFactory) Get(
 		),
 		stepMetadata,
 		resource.Session{
-			Metadata:  workerMetadata,
-			Ephemeral: false,
+			Metadata: workerMetadata,
 		},
 		tags,
 		teamID,
@@ -133,8 +131,7 @@ func (factory *gardenFactory) Put(
 		params,
 		stepMetadata,
 		resource.Session{
-			Ephemeral: false,
-			Metadata:  workerMetadata,
+			Metadata: workerMetadata,
 		},
 		tags,
 		teamID,

@@ -93,10 +93,9 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 			ResourceType: step.resourceConfig.Type,
 			Privileged:   true,
 		},
-		Ephemeral: true,
-		Tags:      step.tags,
-		TeamID:    step.teamID,
-		Env:       step.stepMetadata.Env(),
+		Tags:   step.tags,
+		TeamID: step.teamID,
+		Env:    step.stepMetadata.Env(),
 	}
 
 	for name, source := range step.repository.AsMap() {

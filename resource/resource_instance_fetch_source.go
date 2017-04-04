@@ -135,10 +135,9 @@ func (s *resourceInstanceFetchSource) createContainerForVolume(volume worker.Vol
 			ResourceType: string(s.resourceOptions.ResourceType()),
 			Privileged:   true,
 		},
-		Ephemeral: s.session.Ephemeral,
-		Tags:      s.tags,
-		TeamID:    s.teamID,
-		Env:       s.metadata.Env(),
+		Tags:   s.tags,
+		TeamID: s.teamID,
+		Env:    s.metadata.Env(),
 
 		ResourceCache: &worker.VolumeMount{
 			Volume:    volume,

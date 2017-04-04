@@ -180,7 +180,6 @@ var _ = Describe("Get", func() {
 				StepName:         "some-step",
 				WorkingDirectory: "/tmp/build/get",
 			},
-			Ephemeral: false,
 		}))
 		Expect(tags).To(ConsistOf("some", "tags"))
 		Expect(actualTeamID).To(Equal(teamID))

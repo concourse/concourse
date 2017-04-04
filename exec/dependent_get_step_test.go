@@ -187,8 +187,7 @@ var _ = Describe("DependentGet", func() {
 			_, sid, tags, actualTeamID, actualResourceTypes, cacheID, sm, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 			Expect(sm).To(Equal(stepMetadata))
 			Expect(sid).To(Equal(resource.Session{
-				Metadata:  workerMetadata,
-				Ephemeral: false,
+				Metadata: workerMetadata,
 			}))
 			Expect(tags).To(ConsistOf("some", "tags"))
 			Expect(actualTeamID).To(Equal(teamID))

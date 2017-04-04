@@ -22,8 +22,7 @@ type Resource interface {
 type ResourceType string
 
 type Session struct {
-	Metadata  dbng.ContainerMetadata
-	Ephemeral bool
+	Metadata dbng.ContainerMetadata
 }
 
 //go:generate counterfeiter . Cache
