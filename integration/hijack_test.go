@@ -423,15 +423,18 @@ var _ = Describe("Hijacking", func() {
 		Context("when called with check container", func() {
 			BeforeEach(func() {
 				resourceName = "some-resource-name"
+				containerArguments = "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"
 			})
 
 			Context("and with pipeline specified", func() {
-				BeforeEach(func() {
-					containerArguments = "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"
-				})
-
 				It("can accept the check resources name and a pipeline", func() {
 					hijack("--check", "a-pipeline/some-resource-name")
+				})
+			})
+
+			Context("and with url specified", func() {
+				It("hijacks the given check container by URL", func() {
+					hijack("--url", "http://example.com/teams/mighty-ducks/pipelines/a-pipeline/resources/some-resource-name")
 				})
 			})
 		})
@@ -463,6 +466,10 @@ var _ = Describe("Hijacking", func() {
 				hijack("--job", "some-pipeline/some-job", "--step", "some-step")
 			})
 
+			It("hijacks the job's next build when URL is specified", func() {
+				hijack("--url", "http://example.com/teams/mighty-ducks/pipelines/some-pipeline/jobs/some-job", "--step", "some-step")
+			})
+
 			Context("with a specific build of the job", func() {
 				BeforeEach(func() {
 					containerArguments = "pipeline_name=some-pipeline&job_name=some-job&build_name=3&step_name=some-step"
@@ -472,7 +479,7 @@ var _ = Describe("Hijacking", func() {
 					hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step")
 				})
 
-				It("hijacks the given build by URL", func() {
+				It("hijacks the given build when URL is specified", func() {
 					hijack("--url", "http://example.com/teams/mighty-ducks/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step")
 				})
 			})

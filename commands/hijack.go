@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -166,6 +165,25 @@ func (command *HijackCommand) Execute([]string) error {
 	return nil
 }
 
+func parseUrl(concourseUrl string) (map[string]string, error) {
+	u, err := url.Parse(concourseUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	pathWithoutFirstSlash := strings.Replace(u.Path, "/", "", 1)
+	urlComponents := strings.Split(pathWithoutFirstSlash, "/")
+	urlMap := make(map[string]string)
+
+	for i:=0; i<len(urlComponents)/2; i++ {
+		keyIndex := i*2
+		valueIndex := keyIndex + 1
+		urlMap[urlComponents[keyIndex]] = urlComponents[valueIndex]
+	}
+
+	return urlMap, nil
+}
+
 func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (*containerFingerprint, error) {
 	var pipelineName string
 	if command.Job.PipelineName != "" {
@@ -182,22 +200,15 @@ func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (
 	attempt := command.Attempt
 
 	if concourseUrl != "" {
-		u, err := url.Parse(concourseUrl)
+		urlMap, err := parseUrl(concourseUrl)
 		if err != nil {
 			return nil, err
-		}
-		re := regexp.MustCompile("/pipelines/(?P<pipeline>[^/]*)/jobs/(?P<job>[^/]*)/builds/(?P<build>[^/]*)")
-		match := re.FindStringSubmatch(u.Path)
-		for i, name := range re.SubexpNames() {
-			switch name {
-			case "pipeline":
-				pipelineName = match[i]
-			case "job":
-				jobName = match[i]
-			case "build":
-				buildNameOrID = match[i]
-			}
-		}
+    }
+
+		pipelineName = urlMap["pipelines"]
+		jobName = urlMap["jobs"]
+		buildNameOrID = urlMap["builds"]
+		check = urlMap["resources"]
 	}
 
 	fingerprint := containerFingerprint{
