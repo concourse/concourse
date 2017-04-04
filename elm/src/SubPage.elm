@@ -210,6 +210,9 @@ update turbulence csrfToken msg mdl =
                     in
                         superDupleWrap ( PipelineModel, PipelineMsg ) <| Pipeline.init { render = renderPipeline, title = setTitle } flags
 
+        ( NewCSRFToken _, _ ) ->
+            ( mdl, Cmd.none )
+
         _ ->
             flip always (Debug.log ("impossible combination") ()) <|
                 ( mdl, Cmd.none )
