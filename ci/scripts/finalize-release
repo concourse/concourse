@@ -35,6 +35,7 @@ if ! [ -e ${RELEASE_YML} ]; then
   bosh -n finalize-release --version "$VERSION" ${CANDIDATE_DIR}/concourse-*.tgz
   git add -A
   git commit -m "release v${VERSION}"
+  git tag -f "v${VERSION}"
 fi
 
 bosh -n create-release --tarball ${FINAL_RELEASE_TGZ} ${RELEASE_YML}

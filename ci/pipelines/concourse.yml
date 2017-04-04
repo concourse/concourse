@@ -31,7 +31,6 @@ groups:
   - virtualbox-testflight
   - release-virtualbox-box
   - promote-docker
-  - master-merge
 
 - name: workers
   jobs:
@@ -576,11 +575,13 @@ jobs:
   - aggregate:
     - put: version
       params: {file: version/version}
+    - put: concourse
+      params:
+        repository: final-release-repo
+        merge: true
     - put: concourse-master
       params:
         repository: final-release-repo
-        tag: version/version
-        tag_prefix: v
     - put: final-release
       params: {file: final-release-tarball/concourse-*.tgz}
 
@@ -704,19 +705,6 @@ jobs:
       load: concourse-image-rc
       tag: version/version
       tag_as_latest: true
-
-- name: master-merge
-  plan:
-  - aggregate:
-    - get: concourse-master
-      params: {submodules: none}
-      trigger: true
-    - get: concourse-develop
-      params: {submodules: none}
-  - task: merge-to-develop
-    file: concourse-develop/ci/master-merge.yml
-  - put: concourse
-    params: {repository: concourse-merged}
 
 - name: install-go-windows
   plan:
