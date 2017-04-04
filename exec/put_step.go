@@ -107,6 +107,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	putResource, err := step.resourceFactory.NewPutResource(
 		step.logger,
+		signals,
 		step.buildID,
 		step.planID,
 		step.session.Metadata,

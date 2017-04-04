@@ -39,7 +39,7 @@ var _ = Describe("Image", func() {
 
 	var logger lager.Logger
 	var imageResource atc.ImageResource
-	var signals chan os.Signal
+	var signals <-chan os.Signal
 	var fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
 	var fakeWorker *wfakes.FakeWorker
 	var customTypes atc.VersionedResourceTypes
@@ -102,8 +102,8 @@ var _ = Describe("Image", func() {
 	JustBeforeEach(func() {
 		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = imageResourceFetcher.Fetch(
 			logger,
-			dbng.ForBuild{BuildID: 42},
 			signals,
+			dbng.ForBuild{BuildID: 42},
 			imageResource.Type,
 			imageResource.Source,
 			atc.Tags{"worker", "tags"},
@@ -186,7 +186,8 @@ var _ = Describe("Image", func() {
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-								_, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								_, csig, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								Expect(csig).To(Equal(signals))
 								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
 								Expect(metadata).To(Equal(dbng.ContainerMetadata{
 									Type: dbng.ContainerTypeCheck,
@@ -211,7 +212,8 @@ var _ = Describe("Image", func() {
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-								_, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								_, csig, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								Expect(csig).To(Equal(signals))
 								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
 								Expect(metadata).To(Equal(dbng.ContainerMetadata{
 									Type: dbng.ContainerTypeCheck,
@@ -252,7 +254,8 @@ var _ = Describe("Image", func() {
 
 						It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 							Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-							_, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+							_, csig, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+							Expect(csig).To(Equal(signals))
 							Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
 							Expect(metadata).To(Equal(dbng.ContainerMetadata{
 								Type: dbng.ContainerTypeCheck,

@@ -206,7 +206,7 @@ func (pool *pool) FindOrCreateBuildContainer(
 
 	return worker.FindOrCreateBuildContainer(
 		logger,
-		nil,
+		signals,
 		delegate,
 		buildID,
 		planID,

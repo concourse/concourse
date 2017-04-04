@@ -151,7 +151,7 @@ var _ = Describe("GardenFactory", func() {
 				It("initializes the resource with the correct type, session, and sources", func() {
 					Expect(fakeResourceFactory.NewPutResourceCallCount()).To(Equal(1))
 
-					_, buildID, planID, sm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewPutResourceArgsForCall(0)
+					_, _, buildID, planID, sm, containerSpec, actualResourceTypes, delegate := fakeResourceFactory.NewPutResourceArgsForCall(0)
 					Expect(sm).To(Equal(dbng.ContainerMetadata{
 						Type:             dbng.ContainerTypePut,
 						StepName:         "some-step",

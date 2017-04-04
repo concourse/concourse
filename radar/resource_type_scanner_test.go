@@ -138,7 +138,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResource.CheckCallCount()).To(Equal(1))
 				Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-				_, user, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				_, _, user, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResourceType{ResourceTypeID: 39}))
 				Expect(metadata).To(Equal(dbng.ContainerMetadata{
 					Type: dbng.ContainerTypeCheck,

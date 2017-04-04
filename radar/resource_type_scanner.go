@@ -112,6 +112,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedR
 
 	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
+		nil,
 		dbng.ForResourceType{
 			ResourceTypeID: savedResourceType.ID,
 		},

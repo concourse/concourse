@@ -35,8 +35,8 @@ type ImageResourceFetcherFactory interface {
 type ImageResourceFetcher interface {
 	Fetch(
 		logger lager.Logger,
-		resourceUser dbng.ResourceUser,
 		signals <-chan os.Signal,
+		resourceUser dbng.ResourceUser,
 		imageResourceType string,
 		imageResourceSource atc.Source,
 		tags atc.Tags,
@@ -81,8 +81,8 @@ type imageResourceFetcher struct {
 
 func (i *imageResourceFetcher) Fetch(
 	logger lager.Logger,
-	resourceUser dbng.ResourceUser,
 	signals <-chan os.Signal,
+	resourceUser dbng.ResourceUser,
 	imageResourceType string,
 	imageResourceSource atc.Source,
 	tags atc.Tags,
@@ -91,7 +91,7 @@ func (i *imageResourceFetcher) Fetch(
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 	privileged bool,
 ) (worker.Volume, io.ReadCloser, atc.Version, error) {
-	version, err := i.getLatestVersion(logger, resourceUser, imageResourceType, imageResourceSource, tags, teamID, customTypes, imageFetchingDelegate)
+	version, err := i.getLatestVersion(logger, signals, resourceUser, imageResourceType, imageResourceSource, tags, teamID, customTypes, imageFetchingDelegate)
 	if err != nil {
 		logger.Error("failed-to-get-latest-image-version", err)
 		return nil, nil, nil, err
@@ -176,6 +176,7 @@ func (i *imageResourceFetcher) Fetch(
 
 func (i *imageResourceFetcher) getLatestVersion(
 	logger lager.Logger,
+	signals <-chan os.Signal,
 	resourceUser dbng.ResourceUser,
 	imageResourceType string,
 	imageResourceSource atc.Source,
@@ -195,6 +196,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 
 	checkingResource, err := i.resourceFactory.NewCheckResource(
 		logger,
+		signals,
 		resourceUser,
 		dbng.ContainerMetadata{
 			Type: dbng.ContainerTypeCheck,

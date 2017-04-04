@@ -73,8 +73,8 @@ func (f *imageFactory) GetImage(
 		imageResourceFetcher := f.imageResourceFetcherFactory.ImageResourceFetcherFor(worker)
 		imageParentVolume, imageMetadataReader, version, err := imageResourceFetcher.Fetch(
 			logger.Session("image"),
-			resourceUser,
 			cancel,
+			resourceUser,
 			imageResource.Type,
 			imageResource.Source,
 			worker.Tags(),

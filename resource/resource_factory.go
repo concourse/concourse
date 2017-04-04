@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"os"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
@@ -30,6 +32,7 @@ func (f *resourceFactoryFactory) FactoryFor(workerClient worker.Client) Resource
 type ResourceFactory interface {
 	NewPutResource(
 		logger lager.Logger,
+		signals <-chan os.Signal,
 		buildID int,
 		planID atc.PlanID,
 		metadata dbng.ContainerMetadata,
@@ -40,6 +43,7 @@ type ResourceFactory interface {
 
 	NewCheckResource(
 		logger lager.Logger,
+		signals <-chan os.Signal,
 		resourceUser dbng.ResourceUser,
 		metadata dbng.ContainerMetadata,
 		resourceSpec worker.ContainerSpec,
@@ -55,6 +59,7 @@ type resourceFactory struct {
 
 func (f *resourceFactory) NewPutResource(
 	logger lager.Logger,
+	signals <-chan os.Signal,
 	buildID int,
 	planID atc.PlanID,
 	metadata dbng.ContainerMetadata,
@@ -64,7 +69,7 @@ func (f *resourceFactory) NewPutResource(
 ) (Resource, error) {
 	container, err := f.workerClient.FindOrCreateBuildContainer(
 		logger,
-		nil, // XXX
+		signals,
 		imageFetchingDelegate,
 		buildID,
 		planID,
@@ -81,6 +86,7 @@ func (f *resourceFactory) NewPutResource(
 
 func (f *resourceFactory) NewCheckResource(
 	logger lager.Logger,
+	signals <-chan os.Signal,
 	resourceUser dbng.ResourceUser,
 	metadata dbng.ContainerMetadata,
 	resourceSpec worker.ContainerSpec,
@@ -91,7 +97,7 @@ func (f *resourceFactory) NewCheckResource(
 	container, err := f.workerClient.FindOrCreateResourceCheckContainer(
 		logger,
 		resourceUser,
-		nil,
+		signals,
 		imageFetchingDelegate,
 		metadata,
 		resourceSpec,
