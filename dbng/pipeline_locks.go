@@ -25,7 +25,7 @@ func (p *pipeline) AcquireResourceCheckingLock(
 		return nil, false, err
 	}
 
-	usedResourceConfig, err := ForResource{ResourceID: resource.ID}.UseResourceConfig(
+	usedResourceConfig, err := ForResource(resource.ID).UseResourceConfig(
 		logger,
 		tx,
 		p.lockFactory,

@@ -10,11 +10,15 @@ type ResourceUser interface {
 	UseResourceConfig(lager.Logger, Tx, lock.LockFactory, ResourceConfig) (*UsedResourceConfig, error)
 }
 
-type ForBuild struct {
+type forBuild struct {
 	BuildID int
 }
 
-func (user ForBuild) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
+func ForBuild(id int) ResourceUser {
+	return forBuild{id}
+}
+
+func (user forBuild) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
 	return resourceCache.findOrCreate(logger, tx, lockFactory, user, "build_id", user.BuildID)
 }
 
@@ -37,15 +41,19 @@ func (user ForBuild) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lo
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (user ForBuild) UseResourceConfig(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
+func (user forBuild) UseResourceConfig(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
 	return resourceConfig.findOrCreate(logger, tx, lockFactory, user, "build_id", user.BuildID)
 }
 
-type ForResource struct {
+type forResource struct {
 	ResourceID int
 }
 
-func (user ForResource) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
+func ForResource(id int) ResourceUser {
+	return forResource{id}
+}
+
+func (user forResource) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
 	return resourceCache.findOrCreate(logger, tx, lockFactory, user, "resource_id", user.ResourceID)
 }
 
@@ -68,15 +76,19 @@ func (user ForResource) UseResourceCache(logger lager.Logger, tx Tx, lockFactory
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (user ForResource) UseResourceConfig(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
+func (user forResource) UseResourceConfig(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
 	return resourceConfig.findOrCreate(logger, tx, lockFactory, user, "resource_id", user.ResourceID)
 }
 
-type ForResourceType struct {
+type forResourceType struct {
 	ResourceTypeID int
 }
 
-func (user ForResourceType) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
+func ForResourceType(id int) ResourceUser {
+	return forResourceType{id}
+}
+
+func (user forResourceType) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
 	return resourceCache.findOrCreate(logger, tx, lockFactory, user, "resource_type_id", user.ResourceTypeID)
 }
 
@@ -99,6 +111,6 @@ func (user ForResourceType) UseResourceCache(logger lager.Logger, tx Tx, lockFac
 //
 // Each of these errors should result in the caller retrying from the start of
 // the transaction.
-func (user ForResourceType) UseResourceConfig(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
+func (user forResourceType) UseResourceConfig(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceConfig ResourceConfig) (*UsedResourceConfig, error) {
 	return resourceConfig.findOrCreate(logger, tx, lockFactory, user, "resource_type_id", user.ResourceTypeID)
 }

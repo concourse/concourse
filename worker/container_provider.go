@@ -171,7 +171,7 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 ) (Container, error) {
 	return p.findOrCreateContainer(
 		logger,
-		dbng.ForBuild{BuildID: buildID},
+		dbng.ForBuild(buildID),
 		cancel,
 		delegate,
 		metadata,

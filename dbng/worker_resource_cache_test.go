@@ -15,7 +15,7 @@ var _ = Describe("WorkerResourceCache", func() {
 		BeforeEach(func() {
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForResource{defaultResource.ID},
+				dbng.ForResource(defaultResource.ID),
 				"some-base-resource-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
@@ -78,7 +78,7 @@ var _ = Describe("WorkerResourceCache", func() {
 		BeforeEach(func() {
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForResource{defaultResource.ID},
+				dbng.ForResource(defaultResource.ID),
 				"some-base-resource-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
@@ -125,7 +125,7 @@ var _ = Describe("WorkerResourceCache", func() {
 
 				resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 					logger,
-					dbng.ForResource{defaultResource.ID},
+					dbng.ForResource(defaultResource.ID),
 					"some-bogus-resource-type",
 					atc.Version{"some": "version"},
 					atc.Source{"some": "source"},

@@ -385,7 +385,7 @@ var _ = Describe("Team", func() {
 		BeforeEach(func() {
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
-				dbng.ForResource{defaultResource.ID},
+				dbng.ForResource(defaultResource.ID),
 				"some-base-resource-type",
 				atc.Source{"some": "source"},
 				atc.VersionedResourceTypes{},
@@ -474,7 +474,7 @@ var _ = Describe("Team", func() {
 		BeforeEach(func() {
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
-				dbng.ForResource{defaultResource.ID},
+				dbng.ForResource(defaultResource.ID),
 				"some-base-resource-type",
 				atc.Source{"some": "source"},
 				atc.VersionedResourceTypes{},

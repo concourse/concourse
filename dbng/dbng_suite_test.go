@@ -170,7 +170,7 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	logger = lagertest.NewTestLogger("test")
-	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource{defaultResource.ID}, "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource(defaultResource.ID), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultCreatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), defaultResourceConfig, dbng.ContainerMetadata{Type: "check"})

@@ -256,9 +256,7 @@ func (scanner *resourceScanner) scan(
 	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
 		nil,
-		dbng.ForResource{
-			ResourceID: savedResource.ID,
-		},
+		dbng.ForResource(savedResource.ID),
 		dbng.ContainerMetadata{
 			Type: dbng.ContainerTypeCheck,
 		},

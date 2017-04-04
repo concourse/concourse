@@ -180,7 +180,7 @@ var _ = Describe("ContainerProvider", func() {
 
 		cancel = make(chan os.Signal)
 
-		resourceUser = dbng.ForBuild{BuildID: 42}
+		resourceUser = dbng.ForBuild(42)
 
 		containerMetadata = dbng.ContainerMetadata{
 			StepName: "some-step",
@@ -592,7 +592,7 @@ var _ = Describe("ContainerProvider", func() {
 		JustBeforeEach(func() {
 			findOrCreateContainer, findOrCreateErr = containerProvider.CreateResourceGetContainer(
 				logger,
-				dbng.ForBuild{BuildID: 42},
+				dbng.ForBuild(42),
 				cancel,
 				fakeImageFetchingDelegate,
 				containerMetadata,

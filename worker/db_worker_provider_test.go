@@ -534,7 +534,7 @@ var _ = Describe("DBProvider", func() {
 			foundWorker, found, findErr = provider.FindWorkerForResourceCheckContainer(
 				logger,
 				345278,
-				dbng.ForResource{ResourceID: 1235},
+				dbng.ForResource(1235),
 				"some-resource-type",
 				atc.Source{"some": "source"},
 				atc.VersionedResourceTypes{

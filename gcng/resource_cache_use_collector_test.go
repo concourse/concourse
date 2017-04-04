@@ -87,7 +87,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForBuild{defaultBuild.ID()},
+						dbng.ForBuild(defaultBuild.ID()),
 						"some-type",
 						atc.Version{"some": "version"},
 						atc.Source{
@@ -233,7 +233,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForBuild{firstBuild.ID()},
+							dbng.ForBuild(firstBuild.ID()),
 							"some-base-type",
 							imageVersion,
 							atc.Source{
@@ -266,7 +266,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForBuild{secondBuild.ID()},
+							dbng.ForBuild(secondBuild.ID()),
 							"some-base-type",
 							imageVersion2,
 							atc.Source{
@@ -322,7 +322,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForResourceType{dbResourceType.ID()},
+						dbng.ForResourceType(dbResourceType.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
@@ -377,7 +377,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForResource{usedResource.ID},
+						dbng.ForResource(usedResource.ID),
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{

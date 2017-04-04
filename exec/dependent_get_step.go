@@ -76,7 +76,7 @@ func (step DependentGetStep) Using(prev Step, repo *worker.ArtifactRepository) S
 			info.Version,
 			step.resourceConfig.Source,
 			step.params,
-			dbng.ForBuild{BuildID: step.buildID},
+			dbng.ForBuild(step.buildID),
 			step.resourceTypes,
 			step.dbResourceCacheFactory,
 		),

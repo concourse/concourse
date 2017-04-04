@@ -188,7 +188,7 @@ var _ = Describe("Get", func() {
 			version,
 			resourceConfig.Source,
 			params,
-			dbng.ForBuild{42},
+			dbng.ForBuild(42),
 			resourceTypes,
 			fakeDBResourceCacheFactory,
 		)))

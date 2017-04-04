@@ -89,7 +89,7 @@ var _ = Describe("Volume", func() {
 		BeforeEach(func() {
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForBuild{defaultBuild.ID()},
+				dbng.ForBuild(defaultBuild.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -189,7 +189,7 @@ var _ = Describe("Volume", func() {
 		It("returns volume type, resource type, resource version", func() {
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForBuild{defaultBuild.ID()},
+				dbng.ForBuild(defaultBuild.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
@@ -282,7 +282,7 @@ var _ = Describe("Volume", func() {
 					},
 				},
 			}
-			usedResourceCache, err := dbng.ForBuild{defaultBuild.ID()}.UseResourceCache(logger, setupTx, lockFactory, resourceCache)
+			usedResourceCache, err := dbng.ForBuild(defaultBuild.ID()).UseResourceCache(logger, setupTx, lockFactory, resourceCache)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 

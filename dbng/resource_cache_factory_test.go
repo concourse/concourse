@@ -145,7 +145,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("creates resource cache in database", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForBuild{defaultBuild.ID()},
+				dbng.ForBuild(defaultBuild.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -223,7 +223,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("returns an error if base resource type does not exist", func() {
 			_, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForBuild{defaultBuild.ID()},
+				dbng.ForBuild(defaultBuild.ID()),
 				"some-type-using-bogus-base-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -242,7 +242,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("allows a base resource type to be overridden using itself", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForBuild{defaultBuild.ID()},
+				dbng.ForBuild(defaultBuild.ID()),
 				"some-image-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -293,7 +293,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 						},
 					},
 				}
-				usedResourceCache, err = dbng.ForBuild{build.ID()}.UseResourceCache(logger, setupTx, lockFactory, resourceCache)
+				usedResourceCache, err = dbng.ForBuild(build.ID()).UseResourceCache(logger, setupTx, lockFactory, resourceCache)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(setupTx.Commit()).To(Succeed())
 			})

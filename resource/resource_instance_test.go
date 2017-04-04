@@ -37,7 +37,7 @@ var _ = Describe("ResourceInstance", func() {
 			atc.Version{"some": "version"},
 			atc.Source{"some": "source"},
 			atc.Params{"some": "params"},
-			dbng.ForBuild{42},
+			dbng.ForBuild(42),
 			atc.VersionedResourceTypes{},
 			fakeResourceCacheFactory,
 		)
@@ -56,7 +56,7 @@ var _ = Describe("ResourceInstance", func() {
 
 		It("'find-or-create's the resource cache with the same user", func() {
 			_, user, _, _, _, _, _ := fakeResourceCacheFactory.FindOrCreateResourceCacheArgsForCall(0)
-			Expect(user).To(Equal(dbng.ForBuild{42}))
+			Expect(user).To(Equal(dbng.ForBuild(42)))
 		})
 
 		Context("when failing to find or create cache in database", func() {

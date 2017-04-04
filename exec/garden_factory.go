@@ -95,7 +95,7 @@ func (factory *gardenFactory) Get(
 			version,
 			resourceConfig.Source,
 			params,
-			dbng.ForBuild{BuildID: buildID},
+			dbng.ForBuild(buildID),
 			resourceTypes,
 			factory.dbResourceCacheFactory,
 		),

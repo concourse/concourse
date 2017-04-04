@@ -79,7 +79,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
-				dbng.ForBuild{BuildID: 42},
+				dbng.ForBuild(42),
 				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -147,7 +147,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
-				dbng.ForBuild{BuildID: 42},
+				dbng.ForBuild(42),
 				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -234,7 +234,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
-				dbng.ForBuild{BuildID: 42},
+				dbng.ForBuild(42),
 				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -309,7 +309,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
-				dbng.ForBuild{BuildID: 42},
+				dbng.ForBuild(42),
 				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -370,7 +370,7 @@ var _ = Describe("Image", func() {
 				42,
 				nil,
 				fakeImageFetchingDelegate,
-				dbng.ForBuild{BuildID: 42},
+				dbng.ForBuild(42),
 				atc.VersionedResourceTypes{},
 			)
 			Expect(err).NotTo(HaveOccurred())

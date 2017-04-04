@@ -17,7 +17,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 			err = b.SetInterceptible(i)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForBuild{BuildID: b.ID()}, "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForBuild(b.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
 			var (

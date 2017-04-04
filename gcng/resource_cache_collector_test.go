@@ -45,7 +45,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 			BeforeEach(func() {
 				_, err = resourceCacheFactory.FindOrCreateResourceCache(
 					logger,
-					dbng.ForBuild{defaultBuild.ID()},
+					dbng.ForBuild(defaultBuild.ID()),
 					"some-base-type",
 					atc.Version{"some": "version"},
 					atc.Source{
@@ -163,7 +163,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 									Expect(err).NotTo(HaveOccurred())
 									_, err = resourceCacheFactory.FindOrCreateResourceCache(
 										logger,
-										dbng.ForBuild{newBuild.ID()},
+										dbng.ForBuild(newBuild.ID()),
 										"some-base-type",
 										atc.Version{"new": "version"},
 										atc.Source{

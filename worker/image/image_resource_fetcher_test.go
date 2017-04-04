@@ -103,7 +103,7 @@ var _ = Describe("Image", func() {
 		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = imageResourceFetcher.Fetch(
 			logger,
 			signals,
-			dbng.ForBuild{BuildID: 42},
+			dbng.ForBuild(42),
 			imageResource.Type,
 			imageResource.Source,
 			atc.Tags{"worker", "tags"},
@@ -188,7 +188,7 @@ var _ = Describe("Image", func() {
 								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
 								_, csig, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 								Expect(csig).To(Equal(signals))
-								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
+								Expect(user).To(Equal(dbng.ForBuild(42)))
 								Expect(metadata).To(Equal(dbng.ContainerMetadata{
 									Type: dbng.ContainerTypeCheck,
 								}))
@@ -214,7 +214,7 @@ var _ = Describe("Image", func() {
 								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
 								_, csig, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 								Expect(csig).To(Equal(signals))
-								Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
+								Expect(user).To(Equal(dbng.ForBuild(42)))
 								Expect(metadata).To(Equal(dbng.ContainerMetadata{
 									Type: dbng.ContainerTypeCheck,
 								}))
@@ -256,7 +256,7 @@ var _ = Describe("Image", func() {
 							Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
 							_, csig, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 							Expect(csig).To(Equal(signals))
-							Expect(user).To(Equal(dbng.ForBuild{BuildID: 42}))
+							Expect(user).To(Equal(dbng.ForBuild(42)))
 							Expect(metadata).To(Equal(dbng.ContainerMetadata{
 								Type: dbng.ContainerTypeCheck,
 							}))
@@ -304,7 +304,7 @@ var _ = Describe("Image", func() {
 								atc.Version{"v": "1"},
 								atc.Source{"some": "source"},
 								atc.Params{},
-								dbng.ForBuild{BuildID: 42},
+								dbng.ForBuild(42),
 								customTypes,
 								fakeResourceCacheFactory,
 							)))

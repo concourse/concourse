@@ -744,7 +744,7 @@ var _ = Describe("Pool", func() {
 		JustBeforeEach(func() {
 			createdContainer, createErr = pool.FindOrCreateResourceCheckContainer(
 				logger,
-				dbng.ForBuild{42},
+				dbng.ForBuild(42),
 				make(chan os.Signal),
 				fakeImageFetchingDelegate,
 				dbng.ContainerMetadata{},
@@ -777,7 +777,7 @@ var _ = Describe("Pool", func() {
 
 				_, actualTeamID, actualResourceUser, actualResourceType, actualResourceSource, actualResourceTypes := fakeProvider.FindWorkerForResourceCheckContainerArgsForCall(0)
 				Expect(actualTeamID).To(Equal(4567))
-				Expect(actualResourceUser).To(Equal(dbng.ForBuild{42}))
+				Expect(actualResourceUser).To(Equal(dbng.ForBuild(42)))
 				Expect(actualResourceType).To(Equal("some-type"))
 				Expect(actualResourceSource).To(Equal(atc.Source{"some": "source"}))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
@@ -841,7 +841,7 @@ var _ = Describe("Pool", func() {
 				for i := 1; i < 100; i++ { // account for initial create in JustBefore
 					createdContainer, createErr := pool.FindOrCreateResourceCheckContainer(
 						logger,
-						dbng.ForBuild{42},
+						dbng.ForBuild(42),
 						make(chan os.Signal),
 						fakeImageFetchingDelegate,
 						dbng.ContainerMetadata{},
