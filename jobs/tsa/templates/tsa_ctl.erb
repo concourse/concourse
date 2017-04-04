@@ -83,7 +83,6 @@ EOF
     } > /var/vcap/jobs/tsa/config/<%= team %>_authorized_keys
  <% end %>
 
-    # TODO: TSA should support multiple ATCs
     exec chpst -u vcap:vcap /var/vcap/packages/tsa/bin/tsa \
       <% atc_urls.each do |atc_url| %> \
       --atc-url <%= atc_url %> \
