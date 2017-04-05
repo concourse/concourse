@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
@@ -48,35 +50,45 @@ type ImageResourceFetcher interface {
 }
 
 type imageResourceFetcherFactory struct {
-	resourceFetcherFactory resource.FetcherFactory
-	resourceFactoryFactory resource.ResourceFactoryFactory
-	dbResourceCacheFactory dbng.ResourceCacheFactory
+	resourceFetcherFactory  resource.FetcherFactory
+	resourceFactoryFactory  resource.ResourceFactoryFactory
+	dbResourceCacheFactory  dbng.ResourceCacheFactory
+	dbResourceConfigFactory dbng.ResourceConfigFactory
+	clock                   clock.Clock
 }
 
 func NewImageResourceFetcherFactory(
 	resourceFetcherFactory resource.FetcherFactory,
 	resourceFactoryFactory resource.ResourceFactoryFactory,
 	dbResourceCacheFactory dbng.ResourceCacheFactory,
+	dbResourceConfigFactory dbng.ResourceConfigFactory,
+	clock clock.Clock,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
-		resourceFetcherFactory: resourceFetcherFactory,
-		resourceFactoryFactory: resourceFactoryFactory,
-		dbResourceCacheFactory: dbResourceCacheFactory,
+		resourceFetcherFactory:  resourceFetcherFactory,
+		resourceFactoryFactory:  resourceFactoryFactory,
+		dbResourceCacheFactory:  dbResourceCacheFactory,
+		dbResourceConfigFactory: dbResourceConfigFactory,
+		clock: clock,
 	}
 }
 
 func (f *imageResourceFetcherFactory) ImageResourceFetcherFor(worker worker.Worker) ImageResourceFetcher {
 	return &imageResourceFetcher{
-		resourceFetcher:        f.resourceFetcherFactory.FetcherFor(worker),
-		resourceFactory:        f.resourceFactoryFactory.FactoryFor(worker),
-		dbResourceCacheFactory: f.dbResourceCacheFactory,
+		resourceFetcher:         f.resourceFetcherFactory.FetcherFor(worker),
+		resourceFactory:         f.resourceFactoryFactory.FactoryFor(worker),
+		dbResourceCacheFactory:  f.dbResourceCacheFactory,
+		dbResourceConfigFactory: f.dbResourceConfigFactory,
+		clock: f.clock,
 	}
 }
 
 type imageResourceFetcher struct {
-	resourceFetcher        resource.Fetcher
-	resourceFactory        resource.ResourceFactory
-	dbResourceCacheFactory dbng.ResourceCacheFactory
+	resourceFetcher         resource.Fetcher
+	resourceFactory         resource.ResourceFactory
+	dbResourceCacheFactory  dbng.ResourceCacheFactory
+	dbResourceConfigFactory dbng.ResourceConfigFactory
+	clock                   clock.Clock
 }
 
 func (i *imageResourceFetcher) Fetch(
@@ -192,6 +204,33 @@ func (i *imageResourceFetcher) getLatestVersion(
 		},
 		Tags:   tags,
 		TeamID: teamID,
+	}
+
+	for {
+		lock, acquired, err := i.dbResourceConfigFactory.AcquireResourceCheckingLock(
+			logger,
+			resourceUser,
+			imageResourceType,
+			imageResourceSource,
+			customTypes,
+		)
+		if err != nil {
+			logger.Error("failed-to-get-lock", err, lager.Data{
+				"resource-user": resourceUser,
+			})
+
+			return nil, err
+		}
+
+		if !acquired {
+			logger.Debug("did-not-get-lock")
+			i.clock.Sleep(time.Second)
+			continue
+		}
+
+		defer lock.Release()
+
+		break
 	}
 
 	checkingResource, err := i.resourceFactory.NewCheckResource(

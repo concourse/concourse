@@ -75,7 +75,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 
 	versionedResourceTypes := deserializeVersionedResourceTypes(resourceTypes)
 
-	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
+	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLockWithIntervalCheck(
 		logger,
 		&dbng.Resource{
 			ID:     savedResource.ID,
@@ -159,7 +159,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 	versionedResourceTypes := deserializeVersionedResourceTypes(resourceTypes)
 
 	for {
-		lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLock(
+		lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLockWithIntervalCheck(
 			logger,
 			&dbng.Resource{
 				ID:     savedResource.ID,

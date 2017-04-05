@@ -22,6 +22,14 @@ type ResourceConfigFactory interface {
 	CleanConfigUsesForInactiveResourceTypes() error
 	CleanConfigUsesForInactiveResources() error
 	CleanUselessConfigs() error
+
+	AcquireResourceCheckingLock(
+		logger lager.Logger,
+		resourceUser ResourceUser,
+		resourceType string,
+		resourceSource atc.Source,
+		resourceTypes atc.VersionedResourceTypes,
+	) (lock.Lock, bool, error)
 }
 
 type resourceConfigFactory struct {
@@ -203,4 +211,72 @@ func resourceTypesList(resourceTypeName string, allResourceTypes []atc.ResourceT
 	}
 
 	return resultResourceTypes
+}
+
+func (f *resourceConfigFactory) AcquireResourceCheckingLock(
+	logger lager.Logger,
+	resourceUser ResourceUser,
+	resourceType string,
+	resourceSource atc.Source,
+	resourceTypes atc.VersionedResourceTypes,
+) (lock.Lock, bool, error) {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	resourceConfig, err := constructResourceConfig(tx, resourceType, resourceSource, resourceTypes)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return acquireResourceCheckingLock(
+		logger.Session("lock", lager.Data{"resource-user": resourceUser}),
+		tx,
+		resourceUser,
+		resourceConfig,
+		f.lockFactory,
+	)
+}
+
+func acquireResourceCheckingLock(
+	logger lager.Logger,
+	tx Tx,
+	resourceUser ResourceUser,
+	resourceConfig ResourceConfig,
+	lockFactory lock.LockFactory,
+) (lock.Lock, bool, error) {
+	usedResourceConfig, err := resourceUser.UseResourceConfig(
+		logger,
+		tx,
+		lockFactory,
+		resourceConfig,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	lock := lockFactory.NewLock(
+		logger,
+		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
+	)
+
+	acquired, err := lock.Acquire()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !acquired {
+		return nil, false, nil
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		lock.Release()
+		return nil, false, err
+	}
+
+	return lock, true, nil
 }

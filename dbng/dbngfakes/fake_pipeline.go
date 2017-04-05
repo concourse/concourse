@@ -86,21 +86,21 @@ type FakePipeline struct {
 		result1 *dbng.Resource
 		result2 error
 	}
-	AcquireResourceCheckingLockStub        func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.VersionedResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error)
-	acquireResourceCheckingLockMutex       sync.RWMutex
-	acquireResourceCheckingLockArgsForCall []struct {
+	AcquireResourceCheckingLockWithIntervalCheckStub        func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.VersionedResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error)
+	acquireResourceCheckingLockWithIntervalCheckMutex       sync.RWMutex
+	acquireResourceCheckingLockWithIntervalCheckArgsForCall []struct {
 		logger        lager.Logger
 		resource      *dbng.Resource
 		resourceTypes atc.VersionedResourceTypes
 		length        time.Duration
 		immediate     bool
 	}
-	acquireResourceCheckingLockReturns struct {
+	acquireResourceCheckingLockWithIntervalCheckReturns struct {
 		result1 lock.Lock
 		result2 bool
 		result3 error
 	}
-	acquireResourceCheckingLockReturnsOnCall map[int]struct {
+	acquireResourceCheckingLockWithIntervalCheckReturnsOnCall map[int]struct {
 		result1 lock.Lock
 		result2 bool
 		result3 error
@@ -455,58 +455,58 @@ func (fake *FakePipeline) CreateResourceReturnsOnCall(i int, result1 *dbng.Resou
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLock(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.VersionedResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error) {
-	fake.acquireResourceCheckingLockMutex.Lock()
-	ret, specificReturn := fake.acquireResourceCheckingLockReturnsOnCall[len(fake.acquireResourceCheckingLockArgsForCall)]
-	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
+func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheck(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.VersionedResourceTypes, length time.Duration, immediate bool) (lock.Lock, bool, error) {
+	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Lock()
+	ret, specificReturn := fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall[len(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall)]
+	fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall = append(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall, struct {
 		logger        lager.Logger
 		resource      *dbng.Resource
 		resourceTypes atc.VersionedResourceTypes
 		length        time.Duration
 		immediate     bool
 	}{logger, resource, resourceTypes, length, immediate})
-	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{logger, resource, resourceTypes, length, immediate})
-	fake.acquireResourceCheckingLockMutex.Unlock()
-	if fake.AcquireResourceCheckingLockStub != nil {
-		return fake.AcquireResourceCheckingLockStub(logger, resource, resourceTypes, length, immediate)
+	fake.recordInvocation("AcquireResourceCheckingLockWithIntervalCheck", []interface{}{logger, resource, resourceTypes, length, immediate})
+	fake.acquireResourceCheckingLockWithIntervalCheckMutex.Unlock()
+	if fake.AcquireResourceCheckingLockWithIntervalCheckStub != nil {
+		return fake.AcquireResourceCheckingLockWithIntervalCheckStub(logger, resource, resourceTypes, length, immediate)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.acquireResourceCheckingLockReturns.result1, fake.acquireResourceCheckingLockReturns.result2, fake.acquireResourceCheckingLockReturns.result3
+	return fake.acquireResourceCheckingLockWithIntervalCheckReturns.result1, fake.acquireResourceCheckingLockWithIntervalCheckReturns.result2, fake.acquireResourceCheckingLockWithIntervalCheckReturns.result3
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLockCallCount() int {
-	fake.acquireResourceCheckingLockMutex.RLock()
-	defer fake.acquireResourceCheckingLockMutex.RUnlock()
-	return len(fake.acquireResourceCheckingLockArgsForCall)
+func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckCallCount() int {
+	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()
+	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.RUnlock()
+	return len(fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall)
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, *dbng.Resource, atc.VersionedResourceTypes, time.Duration, bool) {
-	fake.acquireResourceCheckingLockMutex.RLock()
-	defer fake.acquireResourceCheckingLockMutex.RUnlock()
-	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resource, fake.acquireResourceCheckingLockArgsForCall[i].resourceTypes, fake.acquireResourceCheckingLockArgsForCall[i].length, fake.acquireResourceCheckingLockArgsForCall[i].immediate
+func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckArgsForCall(i int) (lager.Logger, *dbng.Resource, atc.VersionedResourceTypes, time.Duration, bool) {
+	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()
+	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.RUnlock()
+	return fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].logger, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].resource, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].resourceTypes, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].length, fake.acquireResourceCheckingLockWithIntervalCheckArgsForCall[i].immediate
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
-	fake.AcquireResourceCheckingLockStub = nil
-	fake.acquireResourceCheckingLockReturns = struct {
+func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckReturns(result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireResourceCheckingLockWithIntervalCheckStub = nil
+	fake.acquireResourceCheckingLockWithIntervalCheckReturns = struct {
 		result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipeline) AcquireResourceCheckingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
-	fake.AcquireResourceCheckingLockStub = nil
-	if fake.acquireResourceCheckingLockReturnsOnCall == nil {
-		fake.acquireResourceCheckingLockReturnsOnCall = make(map[int]struct {
+func (fake *FakePipeline) AcquireResourceCheckingLockWithIntervalCheckReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireResourceCheckingLockWithIntervalCheckStub = nil
+	if fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall == nil {
+		fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall = make(map[int]struct {
 			result1 lock.Lock
 			result2 bool
 			result3 error
 		})
 	}
-	fake.acquireResourceCheckingLockReturnsOnCall[i] = struct {
+	fake.acquireResourceCheckingLockWithIntervalCheckReturnsOnCall[i] = struct {
 		result1 lock.Lock
 		result2 bool
 		result3 error
@@ -667,8 +667,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.createJobBuildMutex.RUnlock()
 	fake.createResourceMutex.RLock()
 	defer fake.createResourceMutex.RUnlock()
-	fake.acquireResourceCheckingLockMutex.RLock()
-	defer fake.acquireResourceCheckingLockMutex.RUnlock()
+	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()
+	defer fake.acquireResourceCheckingLockWithIntervalCheckMutex.RUnlock()
 	fake.resourceTypesMutex.RLock()
 	defer fake.resourceTypesMutex.RUnlock()
 	fake.resourceTypeMutex.RLock()

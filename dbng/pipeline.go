@@ -25,7 +25,7 @@ type Pipeline interface {
 	CreateJobBuild(jobName string) (Build, error)
 	CreateResource(name string, config atc.ResourceConfig) (*Resource, error)
 
-	AcquireResourceCheckingLock(
+	AcquireResourceCheckingLockWithIntervalCheck(
 		logger lager.Logger,
 		resource *Resource,
 		resourceTypes atc.VersionedResourceTypes,

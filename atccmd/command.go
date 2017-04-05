@@ -690,6 +690,8 @@ func (cmd *ATCCommand) constructWorkerPool(
 		resourceFetcherFactory,
 		resourceFactoryFactory,
 		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		clock.NewClock(),
 	)
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(

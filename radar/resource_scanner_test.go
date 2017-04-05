@@ -127,7 +127,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("when the lock cannot be acquired", func() {
 			BeforeEach(func() {
-				fakeDBPipeline.AcquireResourceCheckingLockReturns(nil, false, nil)
+				fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckReturns(nil, false, nil)
 			})
 
 			It("does not check", func() {
@@ -142,7 +142,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("when the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeDBPipeline.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
 			})
 
 			It("checks immediately", func() {
@@ -184,9 +184,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("leases for the configured interval", func() {
-					Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 
-					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
@@ -220,9 +220,9 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {
-				Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+				Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 
-				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
 				Expect(resource.Name).To(Equal("some-resource"))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(leaseInterval).To(Equal(interval))
@@ -441,7 +441,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("if the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeDBPipeline.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
 			})
 
 			It("succeeds", func() {
@@ -476,9 +476,9 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
-				Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+				Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 
-				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
 				Expect(resource.Name).To(Equal("some-resource"))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(leaseInterval).To(Equal(interval))
@@ -494,9 +494,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("leases for the configured interval", func() {
-					Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(1))
+					Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 
-					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
@@ -531,7 +531,7 @@ var _ = Describe("ResourceScanner", func() {
 					results <- true
 					close(results)
 
-					fakeDBPipeline.AcquireResourceCheckingLockStub = func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.VersionedResourceTypes, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+					fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckStub = func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.VersionedResourceTypes, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {
@@ -543,21 +543,21 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("retries every second until it is", func() {
-					Expect(fakeDBPipeline.AcquireResourceCheckingLockCallCount()).To(Equal(3))
+					Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(3))
 
-					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(0)
+					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(1)
+					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(1)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockArgsForCall(2)
+					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(2)
 					Expect(resource.Name).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(interval))
@@ -745,7 +745,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		Context("if the lock can be acquired", func() {
 			BeforeEach(func() {
-				fakeDBPipeline.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+				fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckReturns(fakeLock, true, nil)
 			})
 
 			Context("when fromVersion is nil", func() {

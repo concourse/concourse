@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/db/lock"
 )
 
-func (p *pipeline) AcquireResourceCheckingLock(
+func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 	logger lager.Logger,
 	resource *Resource,
 	resourceTypes atc.VersionedResourceTypes,
@@ -16,21 +16,6 @@ func (p *pipeline) AcquireResourceCheckingLock(
 	immediate bool,
 ) (lock.Lock, bool, error) {
 	tx, err := p.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	resourceConfig, err := constructResourceConfig(tx, resource.Type, resource.Source, resourceTypes)
-	if err != nil {
-		return nil, false, err
-	}
-
-	usedResourceConfig, err := ForResource(resource.ID).UseResourceConfig(
-		logger,
-		tx,
-		p.lockFactory,
-		resourceConfig,
-	)
 	if err != nil {
 		return nil, false, err
 	}
@@ -59,27 +44,16 @@ func (p *pipeline) AcquireResourceCheckingLock(
 		return nil, false, nil
 	}
 
-	lock := p.lockFactory.NewLock(
-		logger.Session("lock", lager.Data{
-			"resource": resource.Name,
-		}),
-		lock.NewResourceConfigCheckingLockID(usedResourceConfig.ID),
+	resourceConfig, err := constructResourceConfig(tx, resource.Type, resource.Source, resourceTypes)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return acquireResourceCheckingLock(
+		logger.Session("lock", lager.Data{"resource": resource.Name}),
+		tx,
+		ForResource(resource.ID),
+		resourceConfig,
+		p.lockFactory,
 	)
-
-	acquired, err := lock.Acquire()
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		lock.Release()
-		return nil, false, err
-	}
-
-	return lock, true, nil
 }

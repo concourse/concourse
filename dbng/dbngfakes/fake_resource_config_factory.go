@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 )
 
@@ -62,6 +63,25 @@ type FakeResourceConfigFactory struct {
 	}
 	cleanUselessConfigsReturnsOnCall map[int]struct {
 		result1 error
+	}
+	AcquireResourceCheckingLockStub        func(logger lager.Logger, resourceUser dbng.ResourceUser, resourceType string, resourceSource atc.Source, resourceTypes atc.VersionedResourceTypes) (lock.Lock, bool, error)
+	acquireResourceCheckingLockMutex       sync.RWMutex
+	acquireResourceCheckingLockArgsForCall []struct {
+		logger         lager.Logger
+		resourceUser   dbng.ResourceUser
+		resourceType   string
+		resourceSource atc.Source
+		resourceTypes  atc.VersionedResourceTypes
+	}
+	acquireResourceCheckingLockReturns struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
+	acquireResourceCheckingLockReturnsOnCall map[int]struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -282,6 +302,64 @@ func (fake *FakeResourceConfigFactory) CleanUselessConfigsReturnsOnCall(i int, r
 	}{result1}
 }
 
+func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLock(logger lager.Logger, resourceUser dbng.ResourceUser, resourceType string, resourceSource atc.Source, resourceTypes atc.VersionedResourceTypes) (lock.Lock, bool, error) {
+	fake.acquireResourceCheckingLockMutex.Lock()
+	ret, specificReturn := fake.acquireResourceCheckingLockReturnsOnCall[len(fake.acquireResourceCheckingLockArgsForCall)]
+	fake.acquireResourceCheckingLockArgsForCall = append(fake.acquireResourceCheckingLockArgsForCall, struct {
+		logger         lager.Logger
+		resourceUser   dbng.ResourceUser
+		resourceType   string
+		resourceSource atc.Source
+		resourceTypes  atc.VersionedResourceTypes
+	}{logger, resourceUser, resourceType, resourceSource, resourceTypes})
+	fake.recordInvocation("AcquireResourceCheckingLock", []interface{}{logger, resourceUser, resourceType, resourceSource, resourceTypes})
+	fake.acquireResourceCheckingLockMutex.Unlock()
+	if fake.AcquireResourceCheckingLockStub != nil {
+		return fake.AcquireResourceCheckingLockStub(logger, resourceUser, resourceType, resourceSource, resourceTypes)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.acquireResourceCheckingLockReturns.result1, fake.acquireResourceCheckingLockReturns.result2, fake.acquireResourceCheckingLockReturns.result3
+}
+
+func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLockCallCount() int {
+	fake.acquireResourceCheckingLockMutex.RLock()
+	defer fake.acquireResourceCheckingLockMutex.RUnlock()
+	return len(fake.acquireResourceCheckingLockArgsForCall)
+}
+
+func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLockArgsForCall(i int) (lager.Logger, dbng.ResourceUser, string, atc.Source, atc.VersionedResourceTypes) {
+	fake.acquireResourceCheckingLockMutex.RLock()
+	defer fake.acquireResourceCheckingLockMutex.RUnlock()
+	return fake.acquireResourceCheckingLockArgsForCall[i].logger, fake.acquireResourceCheckingLockArgsForCall[i].resourceUser, fake.acquireResourceCheckingLockArgsForCall[i].resourceType, fake.acquireResourceCheckingLockArgsForCall[i].resourceSource, fake.acquireResourceCheckingLockArgsForCall[i].resourceTypes
+}
+
+func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireResourceCheckingLockStub = nil
+	fake.acquireResourceCheckingLockReturns = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResourceConfigFactory) AcquireResourceCheckingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.AcquireResourceCheckingLockStub = nil
+	if fake.acquireResourceCheckingLockReturnsOnCall == nil {
+		fake.acquireResourceCheckingLockReturnsOnCall = make(map[int]struct {
+			result1 lock.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.acquireResourceCheckingLockReturnsOnCall[i] = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -295,6 +373,8 @@ func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} 
 	defer fake.cleanConfigUsesForInactiveResourcesMutex.RUnlock()
 	fake.cleanUselessConfigsMutex.RLock()
 	defer fake.cleanUselessConfigsMutex.RUnlock()
+	fake.acquireResourceCheckingLockMutex.RLock()
+	defer fake.acquireResourceCheckingLockMutex.RUnlock()
 	return fake.invocations
 }
 
