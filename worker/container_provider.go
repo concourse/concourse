@@ -371,7 +371,10 @@ func (p *containerProvider) findOrCreateContainer(
 		}
 
 		if createdContainer != nil {
+			logger = logger.WithData(lager.Data{"container": createdContainer.Handle()})
+
 			logger.Debug("found-created-container-in-db")
+
 			gardenContainer, err = p.gardenClient.Lookup(createdContainer.Handle())
 			if err != nil {
 				logger.Error("failed-to-lookup-created-container-in-garden", err)
@@ -386,7 +389,10 @@ func (p *containerProvider) findOrCreateContainer(
 		}
 
 		if creatingContainer != nil {
+			logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
+
 			logger.Debug("found-creating-container-in-db")
+
 			gardenContainer, err = p.gardenClient.Lookup(creatingContainer.Handle())
 			if err != nil {
 				if _, ok := err.(garden.ContainerNotFoundError); !ok {
@@ -394,9 +400,12 @@ func (p *containerProvider) findOrCreateContainer(
 					return nil, err
 				}
 			}
+
 		}
 
-		if gardenContainer == nil {
+		if gardenContainer != nil {
+			logger.Debug("found-created-container-in-garden")
+		} else {
 			image, err := p.imageFactory.GetImage(
 				logger,
 				p.worker,
@@ -414,16 +423,21 @@ func (p *containerProvider) findOrCreateContainer(
 
 			if creatingContainer == nil {
 				logger.Debug("creating-container-in-db")
+
 				creatingContainer, err = createContainerFunc()
 				if err != nil {
 					logger.Error("failed-to-create-container-in-db", err)
 					return nil, err
 				}
+
+				logger = logger.WithData(lager.Data{"container": creatingContainer.Handle()})
+
+				logger.Debug("created-creating-container-in-db")
 			}
 
 			lock, acquired, err := p.lockDB.AcquireContainerCreatingLock(logger, creatingContainer.ID())
 			if err != nil {
-				logger.Error("failed-to-acquire-volume-creating-lock", err)
+				logger.Error("failed-to-acquire-container-creating-lock", err)
 				return nil, err
 			}
 
@@ -434,11 +448,15 @@ func (p *containerProvider) findOrCreateContainer(
 
 			defer lock.Release()
 
+			logger.Debug("fetching-image")
+
 			fetchedImage, err := image.FetchForContainer(logger, creatingContainer)
 			if err != nil {
 				logger.Error("failed-to-fetch-image-for-container", err)
 				return nil, err
 			}
+
+			logger.Debug("creating-container-in-garden")
 
 			gardenContainer, err = p.createGardenContainer(
 				logger,
@@ -453,10 +471,7 @@ func (p *containerProvider) findOrCreateContainer(
 				return nil, err
 			}
 
-			metadata.User = fetchedImage.Metadata.User
-			if spec.User != "" {
-				metadata.User = spec.User
-			}
+			logger.Debug("created-container-in-garden")
 		}
 
 		createdContainer, err = creatingContainer.Created()
@@ -464,6 +479,8 @@ func (p *containerProvider) findOrCreateContainer(
 			logger.Error("failed-to-mark-container-as-created", err)
 			return nil, err
 		}
+
+		logger.Debug("created-container-in-db")
 
 		return p.constructGardenWorkerContainer(
 			logger,
