@@ -44,18 +44,8 @@ func (command *HijackCommand) Execute([]string) error {
 		return err
 	}
 
-	fingerprint, err := command.getContainerFingerprint(target.Client())
+	fingerprint, err := command.getContainerFingerprint(target)
 	if err != nil {
-		return err
-	}
-
-	if fingerprint.team != "" && fingerprint.team != target.Team().Name() {
-		err = fmt.Errorf("Team in URL doesn't match the current team of the target")
-		return err
-	}
-
-	if fingerprint.host != "" && fingerprint.host != target.URL() {
-		err = fmt.Errorf("URL doesn't match that of target")
 		return err
 	}
 
@@ -190,55 +180,74 @@ func parseUrlPath(urlPath string) map[string]string {
 	return urlMap
 }
 
-func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (*containerFingerprint, error) {
-	var team string
-	var pipelineName string
-	var host string
-	if command.Job.PipelineName != "" {
-		pipelineName = command.Job.PipelineName
-	} else {
-		pipelineName = command.Check.PipelineName
-	}
-
-	concourseUrl := command.Url
-	buildNameOrID := command.Build
-	stepName := command.StepName
-	jobName := command.Job.JobName
-	check := command.Check.ResourceName
-	attempt := command.Attempt
-
-	if concourseUrl != "" {
-		u, err := url.Parse(concourseUrl)
+func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, urlParam string) (*containerFingerprint, error) {
+		u, err := url.Parse(urlParam)
 		if err != nil {
 			return nil, err
 		}
+
+		urlMap := parseUrlPath(u.Path)
+
 		parsedTargetUrl := url.URL{
 			Scheme: u.Scheme,
 			Host:   u.Host,
 		}
 
-		urlMap := parseUrlPath(u.Path)
+		host := parsedTargetUrl.String()
+		if host != target.URL() {
+			err = fmt.Errorf("URL doesn't match that of target")
+			return nil, err
+		}
 
-		host = parsedTargetUrl.String()
-		pipelineName = urlMap["pipelines"]
-		jobName = urlMap["jobs"]
-		buildNameOrID = urlMap["builds"]
-		check = urlMap["resources"]
-		team = urlMap["teams"]
+		team := urlMap["teams"]
+		if team != target.Team().Name() {
+			err = fmt.Errorf("Team in URL doesn't match the current team of the target")
+			return nil, err
+		}
+
+		fingerprint := &containerFingerprint{
+			pipelineName:  urlMap["pipelines"],
+			jobName:       urlMap["jobs"],
+			buildNameOrID: urlMap["builds"],
+			checkName:     urlMap["resources"],
+		}
+
+		return fingerprint, nil
+}
+
+func (command *HijackCommand) getContainerFingerprint(target rc.Target) (*containerFingerprint, error) {
+	var err error
+	fingerprint := &containerFingerprint{}
+
+	if command.Url != "" {
+		fingerprint, err = command.getContainerFingerprintFromUrl(target, command.Url)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	fingerprint := containerFingerprint{
-		host:          host,
-		pipelineName:  pipelineName,
-		jobName:       jobName,
-		buildNameOrID: buildNameOrID,
-		stepName:      stepName,
-		checkName:     check,
-		attempt:       attempt,
-		team:          team,
+	pipelineName := command.Check.PipelineName
+	if command.Job.PipelineName != "" {
+		pipelineName = command.Job.PipelineName
 	}
 
-	return &fingerprint, nil
+	for _, field := range []struct{
+		fp *string
+		cmd string
+	} {
+		{fp: &fingerprint.pipelineName,  cmd: pipelineName},
+		{fp: &fingerprint.buildNameOrID, cmd: command.Build},
+		{fp: &fingerprint.stepName,      cmd: command.StepName},
+		{fp: &fingerprint.jobName,       cmd: command.Job.JobName},
+		{fp: &fingerprint.checkName,     cmd: command.Check.ResourceName},
+		{fp: &fingerprint.attempt,       cmd: command.Attempt},
+	} {
+		if field.cmd != "" {
+			*field.fp = field.cmd
+		}
+	}
+
+	return fingerprint, nil
 }
 
 func (command *HijackCommand) getContainerIDs(client concourse.Client, fingerprint *containerFingerprint) ([]atc.Container, error) {
@@ -327,7 +336,6 @@ func (locator checkContainerLocator) locate(fingerprint *containerFingerprint) (
 }
 
 type containerFingerprint struct {
-	host      string
 	pipelineName  string
 	jobName       string
 	buildNameOrID string
@@ -336,7 +344,6 @@ type containerFingerprint struct {
 
 	checkName string
 	attempt   string
-	team      string
 }
 
 func locateContainer(client concourse.Client, fingerprint *containerFingerprint) (map[string]string, error) {
