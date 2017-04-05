@@ -49,8 +49,13 @@ func (command *HijackCommand) Execute([]string) error {
 		return err
 	}
 
-	if(fingerprint.team != "" && fingerprint.team != target.Team().Name()) {
+	if fingerprint.team != "" && fingerprint.team != target.Team().Name() {
 		err = fmt.Errorf("Team in URL doesn't match the current team of the target")
+		return err
+	}
+
+	if fingerprint.host != "" && fingerprint.host != target.URL() {
+		err = fmt.Errorf("URL doesn't match that of target")
 		return err
 	}
 
@@ -171,13 +176,8 @@ func (command *HijackCommand) Execute([]string) error {
 	return nil
 }
 
-func parseUrl(concourseUrl string) (map[string]string, error) {
-	u, err := url.Parse(concourseUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	pathWithoutFirstSlash := strings.Replace(u.Path, "/", "", 1)
+func parseUrlPath(urlPath string) map[string]string {
+	pathWithoutFirstSlash := strings.Replace(urlPath, "/", "", 1)
 	urlComponents := strings.Split(pathWithoutFirstSlash, "/")
 	urlMap := make(map[string]string)
 
@@ -187,12 +187,13 @@ func parseUrl(concourseUrl string) (map[string]string, error) {
 		urlMap[urlComponents[keyIndex]] = urlComponents[valueIndex]
 	}
 
-	return urlMap, nil
+	return urlMap
 }
 
 func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (*containerFingerprint, error) {
 	var team string
 	var pipelineName string
+	var host string
 	if command.Job.PipelineName != "" {
 		pipelineName = command.Job.PipelineName
 	} else {
@@ -207,11 +208,18 @@ func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (
 	attempt := command.Attempt
 
 	if concourseUrl != "" {
-		urlMap, err := parseUrl(concourseUrl)
+		u, err := url.Parse(concourseUrl)
 		if err != nil {
 			return nil, err
-    }
+		}
+		parsedTargetUrl := url.URL{
+			Scheme: u.Scheme,
+			Host:   u.Host,
+		}
 
+		urlMap := parseUrlPath(u.Path)
+
+		host = parsedTargetUrl.String()
 		pipelineName = urlMap["pipelines"]
 		jobName = urlMap["jobs"]
 		buildNameOrID = urlMap["builds"]
@@ -220,6 +228,7 @@ func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (
 	}
 
 	fingerprint := containerFingerprint{
+		host:          host,
 		pipelineName:  pipelineName,
 		jobName:       jobName,
 		buildNameOrID: buildNameOrID,
@@ -318,6 +327,7 @@ func (locator checkContainerLocator) locate(fingerprint *containerFingerprint) (
 }
 
 type containerFingerprint struct {
+	host      string
 	pipelineName  string
 	jobName       string
 	buildNameOrID string
