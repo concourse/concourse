@@ -434,7 +434,7 @@ var _ = Describe("Hijacking", func() {
 
 			Context("and with url specified", func() {
 				It("hijacks the given check container by URL", func() {
-					hijack("--url", "http://example.com/teams/mighty-ducks/pipelines/a-pipeline/resources/some-resource-name")
+					hijack("--url", "http://example.com/teams/"+teamName+"/pipelines/a-pipeline/resources/some-resource-name")
 				})
 			})
 		})
@@ -467,7 +467,7 @@ var _ = Describe("Hijacking", func() {
 			})
 
 			It("hijacks the job's next build when URL is specified", func() {
-				hijack("--url", "http://example.com/teams/mighty-ducks/pipelines/some-pipeline/jobs/some-job", "--step", "some-step")
+				hijack("--url", "http://example.com/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job", "--step", "some-step")
 			})
 
 			Context("with a specific build of the job", func() {
@@ -479,8 +479,8 @@ var _ = Describe("Hijacking", func() {
 					hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step")
 				})
 
-				It("hijacks the given build when URL is specified", func() {
-					hijack("--url", "http://example.com/teams/mighty-ducks/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step")
+				It("hijacks the given build when URL", func() {
+					hijack("--url", "http://example.com/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step")
 				})
 			})
 		})
@@ -546,6 +546,20 @@ var _ = Describe("Hijacking", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(255))
 			})
+		})
+	})
+
+	Context("when passing a URL that doesn't match the target", func() {
+		It("errors out when wrong team is specified", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "--url", "http://example.com/teams/wrongteam/pipelines/a-pipeline/resources/some-resource-name")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err.Contents).Should(ContainSubstring("Team in URL doesn't match the current team of the target"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).ToNot(Equal(0))
 		})
 	})
 })

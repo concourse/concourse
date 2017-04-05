@@ -24,6 +24,7 @@ var homeDir string
 var atcServer *ghttp.Server
 
 const targetName = "testserver"
+const teamName   = "main"
 const atcVersion = "1.2.3"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -76,10 +77,10 @@ var _ = BeforeEach(func() {
 	atcServer.AppendHandlers(
 		infoHandler(),
 		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
+			ghttp.VerifyRequest("GET", "/api/v1/teams/"+teamName+"/auth/methods"),
 			ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 		),
-		tokenHandler("main"),
+		tokenHandler(teamName),
 		infoHandler(),
 	)
 
@@ -89,7 +90,7 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	os.Setenv("HOME", homeDir)
-	loginCmd := exec.Command(flyPath, "-t", targetName, "login", "-c", atcServer.URL())
+	loginCmd := exec.Command(flyPath, "-t", targetName, "login", "-c", atcServer.URL(), "-n", teamName)
 
 	session, err := gexec.Start(loginCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())

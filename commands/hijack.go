@@ -48,6 +48,12 @@ func (command *HijackCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+
+	if(fingerprint.team != "" && fingerprint.team != target.Team().Name()) {
+		err = fmt.Errorf("Team in URL doesn't match the current team of the target")
+		return err
+	}
+
 	containers, err := command.getContainerIDs(target.Client(), fingerprint)
 	if err != nil {
 		return err
@@ -185,6 +191,7 @@ func parseUrl(concourseUrl string) (map[string]string, error) {
 }
 
 func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (*containerFingerprint, error) {
+	var team string
 	var pipelineName string
 	if command.Job.PipelineName != "" {
 		pipelineName = command.Job.PipelineName
@@ -209,6 +216,7 @@ func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (
 		jobName = urlMap["jobs"]
 		buildNameOrID = urlMap["builds"]
 		check = urlMap["resources"]
+		team = urlMap["teams"]
 	}
 
 	fingerprint := containerFingerprint{
@@ -218,6 +226,7 @@ func (command *HijackCommand) getContainerFingerprint(client concourse.Client) (
 		stepName:      stepName,
 		checkName:     check,
 		attempt:       attempt,
+		team:          team,
 	}
 
 	return &fingerprint, nil
@@ -317,6 +326,7 @@ type containerFingerprint struct {
 
 	checkName string
 	attempt   string
+	team      string
 }
 
 func locateContainer(client concourse.Client, fingerprint *containerFingerprint) (map[string]string, error) {
