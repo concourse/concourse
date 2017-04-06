@@ -1,6 +1,8 @@
 package auth_test
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
@@ -8,8 +10,9 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/provider/providerfakes"
+	"github.com/concourse/atc/dbng/dbngfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,11 +20,13 @@ import (
 
 var _ = Describe("TeamAuthValidator", func() {
 	var (
-		validator    auth.Validator
-		team         db.SavedTeam
-		teamDB       *dbfakes.FakeTeamDB
-		jwtValidator *authfakes.FakeValidator
+		validator        auth.Validator
+		fakeTeam         *dbngfakes.FakeTeam
+		fakeTeamFactory  *dbngfakes.FakeTeamFactory
+		fakeTeamProvider *providerfakes.FakeTeamProvider
+		jwtValidator     *authfakes.FakeValidator
 
+		authProvider      map[string]*json.RawMessage
 		request           *http.Request
 		isAuthenticated   bool
 		username          string
@@ -30,12 +35,6 @@ var _ = Describe("TeamAuthValidator", func() {
 	)
 
 	BeforeEach(func() {
-		team = db.SavedTeam{
-			Team: db.Team{
-				Name: atc.DefaultTeamName,
-			},
-		}
-
 		username = "username"
 		password = "password"
 
@@ -44,11 +43,12 @@ var _ = Describe("TeamAuthValidator", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		jwtValidator = new(authfakes.FakeValidator)
-		teamDBFactory := new(dbfakes.FakeTeamDBFactory)
-		teamDB = new(dbfakes.FakeTeamDB)
-		teamDBFactory.GetTeamDBReturns(teamDB)
+		fakeTeamFactory = new(dbngfakes.FakeTeamFactory)
+		fakeTeamProvider = new(providerfakes.FakeTeamProvider)
+		fakeTeam = new(dbngfakes.FakeTeam)
+		fakeTeam.NameReturns(atc.DefaultTeamName)
 
-		validator = auth.NewTeamAuthValidator(teamDBFactory, jwtValidator)
+		validator = auth.NewTeamAuthValidator(fakeTeamFactory, jwtValidator)
 
 		request, err = http.NewRequest("GET", "http://example.com", nil)
 		Expect(err).ToNot(HaveOccurred())
@@ -60,7 +60,7 @@ var _ = Describe("TeamAuthValidator", func() {
 
 	Context("when the team can be found", func() {
 		BeforeEach(func() {
-			teamDB.GetTeamReturns(team, true, nil)
+			fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 		})
 
 		Context("when team has no auth configured", func() {
@@ -71,11 +71,12 @@ var _ = Describe("TeamAuthValidator", func() {
 
 		Context("when team has basic auth configured", func() {
 			BeforeEach(func() {
-				team.BasicAuth = &db.BasicAuth{
+				fakeTeam.BasicAuthReturns(&atc.BasicAuth{
 					BasicAuthUsername: username,
 					BasicAuthPassword: string(encryptedPassword),
-				}
-				teamDB.GetTeamReturns(team, true, nil)
+				})
+
+				fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 			})
 
 			Context("when the request has correct credentials", func() {
@@ -99,13 +100,19 @@ var _ = Describe("TeamAuthValidator", func() {
 			})
 		})
 
-		Context("when team has uaa auth configured", func() {
+		Context("when team has provider auth configured", func() {
 			BeforeEach(func() {
-				team.UAAAuth = &db.UAAAuth{
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
+				provider.Register("fake-provider", fakeTeamProvider)
+				data := []byte(`
+				{
+					"ClientID": "mcdonalds",
+					"ClientSecret": "discounts"
+				}`)
+				authProvider = map[string]*json.RawMessage{
+					"fake-provider": (*json.RawMessage)(&data),
 				}
-				teamDB.GetTeamReturns(team, true, nil)
+				fakeTeam.AuthReturns(authProvider)
+				fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 			})
 
 			It("delegates to jwtValidator", func() {
@@ -134,52 +141,23 @@ var _ = Describe("TeamAuthValidator", func() {
 			})
 		})
 
-		Context("when team has github auth configured", func() {
+		Context("when team has provider auth and basic auth configured", func() {
 			BeforeEach(func() {
-				team.GitHubAuth = &db.GitHubAuth{
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
+				data := []byte(`
+				{
+					"ClientID": "mcdonalds",
+					"ClientSecret": "discounts"
+				}`)
+				authProvider = map[string]*json.RawMessage{
+					"fake-provider": (*json.RawMessage)(&data),
 				}
-				teamDB.GetTeamReturns(team, true, nil)
-			})
-
-			It("delegates to jwtValidator", func() {
-				Expect(jwtValidator.IsAuthenticatedCallCount()).To(Equal(1))
-				Expect(jwtValidator.IsAuthenticatedArgsForCall(0)).To(Equal(request))
-			})
-
-			Context("when jwtValidator returns false", func() {
-				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(false)
-				})
-
-				It("returns false", func() {
-					Expect(isAuthenticated).To(BeFalse())
-				})
-			})
-
-			Context("when jwtValidator returns true", func() {
-				BeforeEach(func() {
-					jwtValidator.IsAuthenticatedReturns(true)
-				})
-
-				It("returns true", func() {
-					Expect(isAuthenticated).To(BeTrue())
-				})
-			})
-		})
-
-		Context("when team has oauth and basic auth configured", func() {
-			BeforeEach(func() {
-				team.GitHubAuth = &db.GitHubAuth{
-					ClientID:     "client-id",
-					ClientSecret: "client-secret",
-				}
-				team.BasicAuth = &db.BasicAuth{
+				fakeTeam.AuthReturns(authProvider)
+				fakeTeam.BasicAuthReturns(&atc.BasicAuth{
 					BasicAuthUsername: username,
 					BasicAuthPassword: string(encryptedPassword),
-				}
-				teamDB.GetTeamReturns(team, true, nil)
+				})
+
+				fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 			})
 
 			Context("when basic auth fails and oauth succeeds", func() {
@@ -219,7 +197,17 @@ var _ = Describe("TeamAuthValidator", func() {
 
 	Context("when the team cannot be found", func() {
 		BeforeEach(func() {
-			teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+			fakeTeamFactory.FindTeamReturns(fakeTeam, false, nil)
+		})
+
+		It("returns false", func() {
+			Expect(isAuthenticated).To(BeFalse())
+		})
+	})
+
+	Context("when there is an error finding the team", func() {
+		BeforeEach(func() {
+			fakeTeamFactory.FindTeamReturns(fakeTeam, false, errors.New("cannot-find-any-mcdonalds-coupons"))
 		})
 
 		It("returns false", func() {
