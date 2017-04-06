@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/genericoauth"
 	"github.com/concourse/atc/auth/github"
+	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/dbng/dbngfakes"
 
@@ -27,8 +28,8 @@ var _ = Describe("OAuthFactory", func() {
 		oauthFactory = auth.NewOAuthFactory(
 			lagertest.NewTestLogger("test"),
 			"http://foo.bar",
-			auth.OAuthRoutes,
-			auth.OAuthCallback,
+			routes.OAuthRoutes,
+			routes.OAuthCallback,
 		)
 	})
 

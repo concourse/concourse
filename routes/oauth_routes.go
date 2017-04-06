@@ -1,4 +1,4 @@
-package auth
+package routes
 
 import "github.com/tedsuo/rata"
 

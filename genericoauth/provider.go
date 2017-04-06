@@ -10,8 +10,8 @@ import (
 	"encoding/json"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
@@ -49,8 +49,8 @@ type GenericOAuthConfig struct {
 }
 
 func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
-	path, err := auth.OAuthRoutes.CreatePathForRoute(
-		auth.OAuthBegin,
+	path, err := routes.OAuthRoutes.CreatePathForRoute(
+		routes.OAuthBegin,
 		rata.Params{"provider": ProviderName},
 	)
 	if err != nil {
@@ -66,29 +66,29 @@ func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName strin
 	}
 }
 
-func (auth *GenericOAuthConfig) IsConfigured() bool {
-	return auth.AuthURL != "" ||
-		auth.TokenURL != "" ||
-		auth.ClientID != "" ||
-		auth.ClientSecret != "" ||
-		auth.DisplayName != ""
+func (config *GenericOAuthConfig) IsConfigured() bool {
+	return config.AuthURL != "" ||
+		config.TokenURL != "" ||
+		config.ClientID != "" ||
+		config.ClientSecret != "" ||
+		config.DisplayName != ""
 }
 
-func (auth *GenericOAuthConfig) Validate() error {
+func (config *GenericOAuthConfig) Validate() error {
 	var errs *multierror.Error
-	if auth.ClientID == "" || auth.ClientSecret == "" {
+	if config.ClientID == "" || config.ClientSecret == "" {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --generic-oauth-client-id and --generic-oauth-client-secret to use Generic OAuth."),
 		)
 	}
-	if auth.AuthURL == "" || auth.TokenURL == "" {
+	if config.AuthURL == "" || config.TokenURL == "" {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --generic-oauth-auth-url and --generic-oauth-token-url to use Generic OAuth."),
 		)
 	}
-	if auth.DisplayName == "" {
+	if config.DisplayName == "" {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --generic-oauth-display-name to use Generic OAuth."),

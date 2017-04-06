@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/dbng"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/tedsuo/rata"
@@ -29,9 +30,9 @@ func NewOAuthHandler(
 	isTLSEnabled bool,
 ) (http.Handler, error) {
 	return rata.NewRouter(
-		OAuthRoutes,
+		routes.OAuthRoutes,
 		map[string]http.Handler{
-			OAuthBegin: NewOAuthBeginHandler(
+			routes.OAuthBegin: NewOAuthBeginHandler(
 				logger.Session("oauth-begin"),
 				providerFactory,
 				signingKey,
@@ -39,7 +40,7 @@ func NewOAuthHandler(
 				expire,
 				isTLSEnabled,
 			),
-			OAuthCallback: NewOAuthCallbackHandler(
+			routes.OAuthCallback: NewOAuthCallbackHandler(
 				logger.Session("oauth-callback"),
 				providerFactory,
 				signingKey,
@@ -47,7 +48,7 @@ func NewOAuthHandler(
 				expire,
 				isTLSEnabled,
 			),
-			LogOut: NewLogOutHandler(
+			routes.LogOut: NewLogOutHandler(
 				logger.Session("logout"),
 			),
 		},
