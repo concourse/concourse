@@ -1,4 +1,4 @@
-package atccmd
+package gcng
 
 import (
 	"net"
