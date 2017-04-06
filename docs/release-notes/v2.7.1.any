@@ -37,6 +37,13 @@
     fixed by validating that the query param is numeric.
   }
 
+  \note{fix}{security}{
+    Previously the \code{redirect} query param used in the \reference{redirect}
+    flow for oAuth could be set to any url, sending you there after you login
+    to your oauth provider. Now Concourse verifies that the url is inside of
+    your concourse domain, and returns a 400 otherwise.
+  }
+
   \note{fix}{
     Fixed a memory leak in the TSA. The leak occurred every time a connection
     was made to Garden or Baggageclaim on a forwarded worker. This took us a
