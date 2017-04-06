@@ -18,21 +18,19 @@ import (
 
 var _ = Describe("Auth API", func() {
 	Describe("GET /api/v1/teams/:team_name/auth/token", func() {
-		var request *http.Request
-		var response *http.Response
+		var (
+			request  *http.Request
+			response *http.Response
 
-		var savedTeam db.SavedTeam
-
+			fakeTeam *dbngfakes.FakeTeam
+		)
 		BeforeEach(func() {
-			savedTeam = db.SavedTeam{
-				ID: 0,
-				Team: db.Team{
-					Name:  "some-team",
-					Admin: true,
-				},
-			}
+			fakeTeam = new(dbngfakes.FakeTeam)
+			fakeTeam.IDReturns(0)
+			fakeTeam.NameReturns("some-team")
+			fakeTeam.AdminReturns(true)
 
-			teamDB.GetTeamReturns(savedTeam, true, nil)
+			dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 
 			fakeCSRFTokenGenerator.GenerateTokenReturns("some-csrf-token", nil)
 
@@ -83,8 +81,8 @@ var _ = Describe("Auth API", func() {
 
 						expiration, teamName, isAdmin, csrfToken := fakeAuthTokenGenerator.GenerateTokenArgsForCall(0)
 						Expect(expiration).To(BeTemporally("~", time.Now().Add(24*time.Hour), time.Minute))
-						Expect(teamName).To(Equal(savedTeam.Name))
-						Expect(isAdmin).To(Equal(savedTeam.Admin))
+						Expect(teamName).To(Equal("some-team"))
+						Expect(isAdmin).To(Equal(true))
 						Expect(csrfToken).To(Equal("some-csrf-token"))
 					})
 				})
@@ -102,7 +100,7 @@ var _ = Describe("Auth API", func() {
 				Context("when the team can't be found", func() {
 					BeforeEach(func() {
 						fakeAuthTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
-						teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+						dbTeamFactory.FindTeamReturns(nil, false, nil)
 					})
 
 					It("returns unauthorized", func() {

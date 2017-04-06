@@ -56,6 +56,7 @@ import (
 	_ "github.com/concourse/atc/auth/genericoauth"
 	_ "github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/routes"
 )
 
 type ATCCommand struct {
@@ -231,8 +232,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	providerFactory := auth.NewOAuthFactory(
 		logger.Session("oauth-provider-factory"),
 		cmd.oauthBaseURL(),
-		auth.OAuthRoutes,
-		auth.OAuthCallback,
+		routes.OAuthRoutes,
+		routes.OAuthCallback,
 	)
 	if err != nil {
 		return nil, err

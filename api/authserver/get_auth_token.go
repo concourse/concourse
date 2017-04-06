@@ -17,8 +17,7 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 
 	var token atc.AuthToken
 	teamName := r.FormValue(":team_name")
-	teamDB := s.teamDBFactory.GetTeamDB(teamName)
-	team, found, err := teamDB.GetTeam()
+	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
 		logger.Error("get-team-by-name", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -39,7 +38,7 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenType, tokenValue, err := s.authTokenGenerator.GenerateToken(time.Now().Add(s.expire), team.Name, team.Admin, csrfToken)
+	tokenType, tokenValue, err := s.authTokenGenerator.GenerateToken(time.Now().Add(s.expire), team.Name(), team.Admin(), csrfToken)
 	if err != nil {
 		logger.Error("generate-auth-token", err)
 		w.WriteHeader(http.StatusInternalServerError)

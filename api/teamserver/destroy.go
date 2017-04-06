@@ -19,7 +19,6 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamName := r.FormValue(":team_name")
-	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 
 	if !authTeam.IsAdmin() {
 		hLog.Info("requesting-team-is-not-admin")
@@ -27,7 +26,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	savedTeam, found, err := teamDB.GetTeam()
+	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
 		hLog.Error("failed-to-get-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -40,7 +39,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if savedTeam.Admin {
+	if team.Admin() {
 		allTeams, err := s.teamsDB.GetTeams()
 		if err != nil {
 			hLog.Error("failed-to-get-teams", err)

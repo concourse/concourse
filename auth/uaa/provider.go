@@ -10,8 +10,8 @@ import (
 	"encoding/json"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
@@ -45,8 +45,8 @@ type UAAAuthConfig struct {
 }
 
 func (*UAAAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
-	path, err := auth.OAuthRoutes.CreatePathForRoute(
-		auth.OAuthBegin,
+	path, err := routes.OAuthRoutes.CreatePathForRoute(
+		routes.OAuthBegin,
 		rata.Params{"provider": ProviderName},
 	)
 	if err != nil {
