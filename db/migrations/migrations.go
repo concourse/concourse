@@ -154,4 +154,5 @@ var Migrations = []migration.Migrator{
 	AddIndexesToABunchMoreStuff,
 	RemoveDuplicateIndices,
 	CleanUpContainerColumns,
+	AddAuthToTeams,
 }

@@ -61,7 +61,7 @@ var _ = Describe("VolumeCollector", func() {
 	Describe("Run", func() {
 		BeforeEach(func() {
 			var err error
-			team, err = teamFactory.CreateTeam("some-team")
+			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 			Expect(err).ToNot(HaveOccurred())
 
 			build, err := team.CreateOneOffBuild()

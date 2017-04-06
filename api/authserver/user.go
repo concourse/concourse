@@ -35,7 +35,7 @@ func (s *Server) GetUser(w http.ResponseWriter, r *http.Request) {
 		if !found {
 			hLog.Error("team-not-found-in-db", errors.New("team-not-found-in-db"))
 		} else {
-			presentedTeam := present.Team(savedTeam)
+			presentedTeam := present.SavedTeam(savedTeam)
 			user = User{
 				Team: &presentedTeam,
 			}

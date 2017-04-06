@@ -61,7 +61,7 @@ var _ = Describe("VolumeFactory", func() {
 			team1handles = []string{}
 			team2handles = []string{}
 
-			team2, err = teamFactory.CreateTeam("some-other-defaultTeam")
+			team2, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-defaultTeam"})
 			Expect(err).ToNot(HaveOccurred())
 
 			creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path-1")

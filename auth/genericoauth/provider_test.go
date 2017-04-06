@@ -7,100 +7,112 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/genericoauth"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Generic OAuth Provider", func() {
-	var (
-		team                db.SavedTeam
-		redirectURI         string
-		goaProvider         provider.Provider
-		state               string
-		found               bool
-		genericTeamProvider genericoauth.GenericTeamProvider
-	)
+	Describe("Provider Constructor", func() {
+		var (
+			authConfig          *genericoauth.GenericOAuthConfig
+			redirectURI         string
+			goaProvider         provider.Provider
+			state               string
+			found               bool
+			genericTeamProvider genericoauth.GenericTeamProvider
+		)
 
-	JustBeforeEach(func() {
-		genericTeamProvider = genericoauth.GenericTeamProvider{}
-		goaProvider, found = genericTeamProvider.ProviderConstructor(team, redirectURI)
-		Expect(found).To(BeTrue())
-	})
-
-	BeforeEach(func() {
-		team = db.SavedTeam{
-			Team: db.Team{
-				Name:         "some-team",
-				GenericOAuth: &db.GenericOAuth{},
-			},
-		}
-		redirectURI = "redirect-uri"
-		state = "some-random-guid"
-	})
-
-	It("constructs HTTP client with disable keep alive context", func() {
-		httpClient, err := goaProvider.PreTokenClient()
-		Expect(httpClient).NotTo(BeNil())
-		Expect(httpClient.Transport).NotTo(BeNil())
-		Expect(httpClient.Transport.(*http.Transport).DisableKeepAlives).To(BeTrue())
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("constructs the Auth URL with the redirect uri", func() {
-		authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
-
-		Expect(authURI).To(ContainSubstring("redirect_uri=redirect-uri"))
-	})
-
-	It("constructs the Auth URL with the state param", func() {
-		authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
-
-		Expect(authURI).To(ContainSubstring("state=some-random-guid"))
-	})
-
-	It("doesn't do any user authorization", func() {
-		verifyResult, err := goaProvider.Verify(lagertest.NewTestLogger("test"), nil)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(verifyResult).To(Equal(true))
-	})
-
-	Context("Auth URL params are configured", func() {
 		BeforeEach(func() {
 			redirectURI = "redirect-uri"
-			team = db.SavedTeam{
-				Team: db.Team{
-					Name: "some-team",
-					GenericOAuth: &db.GenericOAuth{
-						AuthURLParams: map[string]string{"param1": "value1", "param2": "value2"},
-					},
-				},
-			}
+			state = "some-random-guid"
+			authConfig = &genericoauth.GenericOAuthConfig{}
 		})
 
-		It("constructs the Auth URL with the configured Auth URL params", func() {
+		JustBeforeEach(func() {
+			genericTeamProvider = genericoauth.GenericTeamProvider{}
+			goaProvider, found = genericTeamProvider.ProviderConstructor(authConfig, redirectURI)
+			Expect(found).To(BeTrue())
+		})
+
+		It("constructs HTTP client with disable keep alive context", func() {
+			httpClient, err := goaProvider.PreTokenClient()
+			Expect(httpClient).NotTo(BeNil())
+			Expect(httpClient.Transport).NotTo(BeNil())
+			Expect(httpClient.Transport.(*http.Transport).DisableKeepAlives).To(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("constructs the Auth URL with the redirect uri", func() {
 			authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
 
-			Expect(authURI).To(ContainSubstring("param1=value1"))
-			Expect(authURI).To(ContainSubstring("param2=value2"))
+			Expect(authURI).To(ContainSubstring("redirect_uri=redirect-uri"))
 		})
 
-		It("merges the passed in Auth URL params with the configured Auth URL params", func() {
-			authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("param3", "value3")}...)
+		It("constructs the Auth URL with the state param", func() {
+			authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
 
-			Expect(authURI).To(ContainSubstring("param1=value1"))
-			Expect(authURI).To(ContainSubstring("param2=value2"))
-			Expect(authURI).To(ContainSubstring("param3=value3"))
+			Expect(authURI).To(ContainSubstring("state=some-random-guid"))
 		})
 
-		It("URL encodes the Auth URL params", func() {
-			authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("question#1", "are your tests passing?")}...)
-
-			Expect(authURI).To(ContainSubstring("question%231=are+your+tests+passing%3F"))
+		It("doesn't do any user authorization", func() {
+			verifyResult, err := goaProvider.Verify(lagertest.NewTestLogger("test"), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(verifyResult).To(Equal(true))
 		})
 
+		Context("Auth URL params are configured", func() {
+			BeforeEach(func() {
+				redirectURI = "redirect-uri"
+
+				authConfig = &genericoauth.GenericOAuthConfig{
+					AuthURLParams: map[string]string{"param1": "value1", "param2": "value2"},
+				}
+			})
+
+			It("constructs the Auth URL with the configured Auth URL params", func() {
+				authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{}...)
+
+				Expect(authURI).To(ContainSubstring("param1=value1"))
+				Expect(authURI).To(ContainSubstring("param2=value2"))
+			})
+
+			It("merges the passed in Auth URL params with the configured Auth URL params", func() {
+				authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("param3", "value3")}...)
+
+				Expect(authURI).To(ContainSubstring("param1=value1"))
+				Expect(authURI).To(ContainSubstring("param2=value2"))
+				Expect(authURI).To(ContainSubstring("param3=value3"))
+			})
+
+			It("URL encodes the Auth URL params", func() {
+				authURI := goaProvider.AuthCodeURL(state, []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("question#1", "are your tests passing?")}...)
+
+				Expect(authURI).To(ContainSubstring("question%231=are+your+tests+passing%3F"))
+			})
+
+		})
+	})
+
+	Describe("AuthMethod", func() {
+		var (
+			authMethod atc.AuthMethod
+			authConfig *genericoauth.GenericOAuthConfig
+		)
+		BeforeEach(func() {
+			authConfig = &genericoauth.GenericOAuthConfig{DisplayName: "duck-song"}
+			authMethod = authConfig.AuthMethod("http://bum-bum-bum.com", "dudududum")
+		})
+
+		It("creates path for route", func() {
+			Expect(authMethod).To(Equal(atc.AuthMethod{
+				Type:        atc.AuthTypeOAuth,
+				DisplayName: "duck-song",
+				AuthURL:     "http://bum-bum-bum.com/auth/oauth?team_name=dudududum",
+			}))
+		})
 	})
 })

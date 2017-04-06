@@ -20,19 +20,6 @@ type FakeTeamsDB struct {
 		result1 []db.SavedTeam
 		result2 error
 	}
-	CreateTeamStub        func(data db.Team) (db.SavedTeam, error)
-	createTeamMutex       sync.RWMutex
-	createTeamArgsForCall []struct {
-		data db.Team
-	}
-	createTeamReturns struct {
-		result1 db.SavedTeam
-		result2 error
-	}
-	createTeamReturnsOnCall map[int]struct {
-		result1 db.SavedTeam
-		result2 error
-	}
 	DeleteTeamByNameStub        func(teamName string) error
 	deleteTeamByNameMutex       sync.RWMutex
 	deleteTeamByNameArgsForCall []struct {
@@ -91,57 +78,6 @@ func (fake *FakeTeamsDB) GetTeamsReturnsOnCall(i int, result1 []db.SavedTeam, re
 	}{result1, result2}
 }
 
-func (fake *FakeTeamsDB) CreateTeam(data db.Team) (db.SavedTeam, error) {
-	fake.createTeamMutex.Lock()
-	ret, specificReturn := fake.createTeamReturnsOnCall[len(fake.createTeamArgsForCall)]
-	fake.createTeamArgsForCall = append(fake.createTeamArgsForCall, struct {
-		data db.Team
-	}{data})
-	fake.recordInvocation("CreateTeam", []interface{}{data})
-	fake.createTeamMutex.Unlock()
-	if fake.CreateTeamStub != nil {
-		return fake.CreateTeamStub(data)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.createTeamReturns.result1, fake.createTeamReturns.result2
-}
-
-func (fake *FakeTeamsDB) CreateTeamCallCount() int {
-	fake.createTeamMutex.RLock()
-	defer fake.createTeamMutex.RUnlock()
-	return len(fake.createTeamArgsForCall)
-}
-
-func (fake *FakeTeamsDB) CreateTeamArgsForCall(i int) db.Team {
-	fake.createTeamMutex.RLock()
-	defer fake.createTeamMutex.RUnlock()
-	return fake.createTeamArgsForCall[i].data
-}
-
-func (fake *FakeTeamsDB) CreateTeamReturns(result1 db.SavedTeam, result2 error) {
-	fake.CreateTeamStub = nil
-	fake.createTeamReturns = struct {
-		result1 db.SavedTeam
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeTeamsDB) CreateTeamReturnsOnCall(i int, result1 db.SavedTeam, result2 error) {
-	fake.CreateTeamStub = nil
-	if fake.createTeamReturnsOnCall == nil {
-		fake.createTeamReturnsOnCall = make(map[int]struct {
-			result1 db.SavedTeam
-			result2 error
-		})
-	}
-	fake.createTeamReturnsOnCall[i] = struct {
-		result1 db.SavedTeam
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeTeamsDB) DeleteTeamByName(teamName string) error {
 	fake.deleteTeamByNameMutex.Lock()
 	ret, specificReturn := fake.deleteTeamByNameReturnsOnCall[len(fake.deleteTeamByNameArgsForCall)]
@@ -195,8 +131,6 @@ func (fake *FakeTeamsDB) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.getTeamsMutex.RLock()
 	defer fake.getTeamsMutex.RUnlock()
-	fake.createTeamMutex.RLock()
-	defer fake.createTeamMutex.RUnlock()
 	fake.deleteTeamByNameMutex.RLock()
 	defer fake.deleteTeamByNameMutex.RUnlock()
 	return fake.invocations

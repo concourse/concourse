@@ -32,6 +32,7 @@ var _ = Describe("Multiple ATCs", func() {
 		atcTwoCommand.Stop()
 	})
 
+	//XXX
 	Describe("Pipes", func() {
 		var client *http.Client
 		BeforeEach(func() {
@@ -44,6 +45,8 @@ var _ = Describe("Multiple ATCs", func() {
 			request, err := http.NewRequest("GET", atcCommand.URL("/api/v1/teams/main/auth/token"), nil)
 			resp, err := client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 			defer resp.Body.Close()
 			var atcToken atc.AuthToken

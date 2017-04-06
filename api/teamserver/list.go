@@ -20,7 +20,7 @@ func (s *Server) ListTeams(w http.ResponseWriter, r *http.Request) {
 
 	presentedTeams := make([]atc.Team, len(savedTeams))
 	for i, savedTeam := range savedTeams {
-		presentedTeams[i] = present.Team(savedTeam)
+		presentedTeams[i] = present.SavedTeam(savedTeam)
 	}
 
 	json.NewEncoder(w).Encode(presentedTeams)

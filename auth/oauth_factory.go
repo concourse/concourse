@@ -4,7 +4,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/rata"
 )
 
@@ -24,7 +24,7 @@ func NewOAuthFactory(logger lager.Logger, atcExternalURL string, routes rata.Rou
 	}
 }
 
-func (of OAuthFactory) GetProvider(team db.SavedTeam, providerName string) (provider.Provider, bool, error) {
+func (of OAuthFactory) GetProvider(team dbng.Team, providerName string) (provider.Provider, bool, error) {
 	redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
 		"provider": providerName,
 	})
@@ -33,7 +33,12 @@ func (of OAuthFactory) GetProvider(team db.SavedTeam, providerName string) (prov
 		return nil, false, err
 	}
 
-	oauthProvider, found := provider.NewProvider(team, providerName, urljoiner.Join(of.atcExternalURL, redirectURL))
+	auth, found := team.Auth()[providerName]
+	if !found {
+		return nil, false, nil
+	}
+
+	oauthProvider, found := provider.NewProvider(auth, providerName, urljoiner.Join(of.atcExternalURL, redirectURL))
 	if !found {
 		return nil, false, nil
 	}

@@ -114,7 +114,7 @@ var _ = BeforeEach(func() {
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
 	workerBaseResourceTypeFactory = dbng.NewWorkerBaseResourceTypeFactory(dbConn)
 
-	defaultTeam, err = teamFactory.CreateTeam("default-team")
+	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultWorkerResourceType = atc.WorkerResourceType{

@@ -1,12 +1,17 @@
 package api_test
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
 	"time"
 
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -124,37 +129,40 @@ var _ = Describe("Auth API", func() {
 
 	Describe("GET /api/v1/teams/some-team/auth/methods", func() {
 		Context("when providers are present", func() {
-			var request *http.Request
-			var response *http.Response
+			var (
+				request  *http.Request
+				response *http.Response
 
-			var savedTeam db.SavedTeam
-
+				fakeTeam            *dbngfakes.FakeTeam
+				fakeProviderFactory *providerfakes.FakeTeamProvider
+				fakeProviderName    = "FakeProvider"
+				fakeAuthConfig      *providerfakes.FakeAuthConfig
+			)
 			BeforeEach(func() {
-				savedTeam = db.SavedTeam{
-					ID: 0,
-					Team: db.Team{
-						Name: "some-team",
-						BasicAuth: &db.BasicAuth{
-							BasicAuthUsername: "user",
-							BasicAuthPassword: "password",
-						},
-						UAAAuth: &db.UAAAuth{
-							ClientID:     "client-id",
-							ClientSecret: "client-secret",
-						},
-						GitHubAuth: &db.GitHubAuth{
-							ClientID:     "client-id",
-							ClientSecret: "client-secret",
-						},
-						GenericOAuth: &db.GenericOAuth{
-							ClientID:     "client-id",
-							ClientSecret: "client-secret",
-							DisplayName:  "custom secure auth",
-						},
-					},
-				}
+				fakeTeam = new(dbngfakes.FakeTeam)
+				fakeProviderFactory = new(providerfakes.FakeTeamProvider)
+				fakeAuthConfig = new(providerfakes.FakeAuthConfig)
 
-				teamDB.GetTeamReturns(savedTeam, true, nil)
+				provider.Register(fakeProviderName, fakeProviderFactory)
+
+				data := []byte(`{"mcdonalds": "fries"}`)
+				fakeTeam.IDReturns(0)
+				fakeTeam.NameReturns("some-team")
+				fakeTeam.BasicAuthReturns(&atc.BasicAuth{
+					BasicAuthUsername: "user",
+					BasicAuthPassword: "password",
+				})
+				fakeTeam.AuthReturns(map[string]*json.RawMessage{
+					fakeProviderName: (*json.RawMessage)(&data),
+				})
+
+				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				fakeProviderFactory.UnmarshalConfigReturns(fakeAuthConfig, nil)
+				fakeAuthConfig.AuthMethodReturns(atc.AuthMethod{
+					Type:        atc.AuthTypeOAuth,
+					DisplayName: "fake display",
+					AuthURL:     "https://example.com/some-auth-url",
+				})
 
 				var err error
 				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
@@ -168,8 +176,8 @@ var _ = Describe("Auth API", func() {
 			})
 
 			It("gets the teamDB for the right team name", func() {
-				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
+				Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+				Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("some-team"))
 			})
 
 			It("returns 200 OK", func() {
@@ -187,18 +195,8 @@ var _ = Describe("Auth API", func() {
 				Expect(body).To(MatchJSON(`[
 					{
 						"type": "oauth",
-						"display_name": "GitHub",
-						"auth_url": "https://oauth.example.com/auth/github?team_name=some-team"
-					},
-					{
-						"type": "oauth",
-						"display_name": "UAA",
-						"auth_url": "https://oauth.example.com/auth/uaa?team_name=some-team"
-					},
-					{
-						"type": "oauth",
-						"display_name": "custom secure auth",
-						"auth_url": "https://oauth.example.com/auth/oauth?team_name=some-team"
+						"display_name": "fake display",
+						"auth_url": "https://example.com/some-auth-url"
 					},
 					{
 						"type": "basic",
@@ -213,17 +211,14 @@ var _ = Describe("Auth API", func() {
 			var request *http.Request
 			var response *http.Response
 
-			var savedTeam db.SavedTeam
+			var fakeTeam *dbngfakes.FakeTeam
 
 			BeforeEach(func() {
-				savedTeam = db.SavedTeam{
-					ID: 0,
-					Team: db.Team{
-						Name: "some-team",
-					},
-				}
+				fakeTeam = new(dbngfakes.FakeTeam)
+				fakeTeam.IDReturns(0)
+				fakeTeam.NameReturns("some-team")
 
-				teamDB.GetTeamReturns(savedTeam, true, nil)
+				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 
 				var err error
 				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
@@ -255,9 +250,11 @@ var _ = Describe("Auth API", func() {
 		Context("when team cannot be found", func() {
 			var request *http.Request
 			var response *http.Response
+			var fakeTeam *dbngfakes.FakeTeam
 
 			BeforeEach(func() {
-				teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+				fakeTeam = new(dbngfakes.FakeTeam)
+				dbTeamFactory.FindTeamReturns(fakeTeam, false, nil)
 
 				var err error
 				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)

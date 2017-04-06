@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
@@ -22,6 +24,13 @@ var ErrTeamDisappeared = errors.New("team disappeared")
 
 type Team interface {
 	ID() int
+	Name() string
+	Admin() bool
+
+	BasicAuth() *atc.BasicAuth //TODO maybe delete
+
+	Auth() map[string]*json.RawMessage
+
 	SavePipeline(
 		pipelineName string,
 		config atc.Config,
@@ -51,15 +60,29 @@ type Team interface {
 	FindWorkerForBuildContainer(buildID int, planID atc.PlanID) (Worker, bool, error)
 	FindBuildContainerOnWorker(workerName string, buildID int, planID atc.PlanID) (CreatingContainer, CreatedContainer, error)
 	CreateBuildContainer(workerName string, buildID int, planID atc.PlanID, meta ContainerMetadata) (CreatingContainer, error)
+
+	UpdateBasicAuth(basicAuth *atc.BasicAuth) error
+	UpdateProviderAuth(auth map[string]*json.RawMessage) error
 }
 
 type team struct {
 	id          int
 	conn        Conn
 	lockFactory lock.LockFactory
+
+	name  string
+	admin bool
+
+	basicAuth *atc.BasicAuth
+
+	auth map[string]*json.RawMessage
 }
 
-func (t *team) ID() int { return t.id }
+func (t *team) ID() int                           { return t.id }
+func (t *team) Name() string                      { return t.name }
+func (t *team) Admin() bool                       { return t.admin }
+func (t *team) BasicAuth() *atc.BasicAuth         { return t.basicAuth }
+func (t *team) Auth() map[string]*json.RawMessage { return t.auth }
 
 func (t *team) Workers() ([]Worker, error) {
 	return getWorkers(t.conn, workersQuery.Where(sq.Or{
@@ -643,6 +666,40 @@ func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, erro
 	return savedWorker, nil
 }
 
+func (t *team) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
+	encryptedBasicAuth, err := encryptedJSON(basicAuth)
+	if err != nil {
+		return err
+	}
+
+	query := `
+		UPDATE teams
+		SET basic_auth = $1
+		WHERE LOWER(name) = LOWER($2)
+		RETURNING id, name, admin, basic_auth, auth
+	`
+
+	params := []interface{}{encryptedBasicAuth, t.name}
+
+	return t.queryTeam(query, params)
+}
+
+func (t *team) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
+	jsonEncodedProviderAuth, err := json.Marshal(auth)
+	if err != nil {
+		return err
+	}
+
+	query := `
+		UPDATE teams
+		SET auth = $1
+		WHERE LOWER(name) = LOWER($2)
+		RETURNING id, name, admin, basic_auth, auth
+	`
+	params := []interface{}{string(jsonEncodedProviderAuth), t.name}
+	return t.queryTeam(query, params)
+}
+
 func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
 	configPayload, err := json.Marshal(job)
 	if err != nil {
@@ -839,4 +896,63 @@ func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResource
 	}
 
 	return wbrtID, nil
+}
+
+func (t *team) queryTeam(query string, params []interface{}) error {
+	var basicAuth, providerAuth sql.NullString
+
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = tx.QueryRow(query, params...).Scan(
+		&t.id,
+		&t.name,
+		&t.admin,
+		&basicAuth,
+		&providerAuth,
+	)
+	if err != nil {
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+	if basicAuth.Valid {
+		err = json.Unmarshal([]byte(basicAuth.String), &t.basicAuth)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	if providerAuth.Valid {
+		err = json.Unmarshal([]byte(providerAuth.String), &t.auth)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func encryptedJSON(auth *atc.BasicAuth) (string, error) {
+	var result *atc.BasicAuth
+	if auth != nil && auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {
+		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(auth.BasicAuthPassword), 4)
+		if err != nil {
+			return "", err
+		}
+		result = &atc.BasicAuth{
+			BasicAuthPassword: string(encryptedPw),
+			BasicAuthUsername: auth.BasicAuthUsername,
+		}
+	}
+
+	json, err := json.Marshal(result)
+	return string(json), err
 }

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 
 	"strconv"
 
@@ -26,7 +26,7 @@ type OAuthBeginHandler struct {
 	logger          lager.Logger
 	providerFactory ProviderFactory
 	privateKey      *rsa.PrivateKey
-	teamDBFactory   db.TeamDBFactory
+	teamFactory     dbng.TeamFactory
 	expire          time.Duration
 	isTLSEnabled    bool
 }
@@ -35,7 +35,7 @@ func NewOAuthBeginHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
-	teamDBFactory db.TeamDBFactory,
+	teamFactory dbng.TeamFactory,
 	expire time.Duration,
 	isTLSEnabled bool,
 ) http.Handler {
@@ -43,7 +43,7 @@ func NewOAuthBeginHandler(
 		logger:          logger,
 		providerFactory: providerFactory,
 		privateKey:      privateKey,
-		teamDBFactory:   teamDBFactory,
+		teamFactory:     teamFactory,
 		expire:          expire,
 		isTLSEnabled:    isTLSEnabled,
 	}
@@ -54,12 +54,12 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	providerName := r.FormValue(":provider")
 	teamName := r.FormValue("team_name")
 
-	teamDB := handler.teamDBFactory.GetTeamDB(teamName)
-	team, found, err := teamDB.GetTeam()
+	team, found, err := handler.teamFactory.FindTeam(teamName)
 
 	if err != nil {
 		hLog.Error("failed-to-get-team", err, lager.Data{
 			"teamName": teamName,
+			"provider": providerName,
 		})
 		w.WriteHeader(http.StatusInternalServerError)
 		return

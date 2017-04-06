@@ -1180,7 +1180,7 @@ var _ = Describe("Pipelines API", func() {
 
 					It("returns a 500 internal server error", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-						Expect(logger.LogMessages()).To(ContainElement("callbacks.call-to-update-pipeline-name-failed"))
+						Expect(logger.LogMessages()).To(ContainElement("api.call-to-update-pipeline-name-failed"))
 					})
 				})
 			})

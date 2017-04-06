@@ -94,6 +94,7 @@ func NewHandler(
 		csrfTokenGenerator,
 		providerFactory,
 		teamDBFactory,
+		dbTeamFactory,
 		expire,
 		isTLSEnabled,
 	)
@@ -128,7 +129,7 @@ func NewHandler(
 
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 
-	teamServer := teamserver.NewServer(logger, teamDBFactory, teamsDB)
+	teamServer := teamserver.NewServer(logger, dbTeamFactory, teamDBFactory, teamsDB)
 
 	infoServer := infoserver.NewServer(logger, version)
 

@@ -70,7 +70,7 @@ var _ = BeforeEach(func() {
 
 	buildFactory = dbng.NewBuildFactory(dbConn)
 
-	defaultTeam, err = teamFactory.CreateTeam("default-team")
+	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultBuild, err = defaultTeam.CreateOneOffBuild()
