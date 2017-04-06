@@ -62,7 +62,7 @@
   border-color: #81BFEA;
 }
 
-.note-tag.deprecation, .note-tag.breaking {
+.note-tag.deprecation, .note-tag.breaking, .note-tag.security {
   border-color: #F29286;
 }
 
