@@ -12,7 +12,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-var _ = XDescribe("Bind mount certificates", func() {
+var _ = Describe("Bind mount certificates", func() {
 	Context("when atc cert is appended to certificates in the worker", func() {
 		var inputDir string
 		var outputDir string
@@ -54,10 +54,11 @@ var _ = XDescribe("Bind mount certificates", func() {
 			By("triggering check")
 			<-spawnFly("check-resource", "-r", "bind-mount-certs/simple-resource").Exited
 
-			By("hijacking into check container")
-			hijackSession := spawnFly("hijack", "-c", "bind-mount-certs/simple-resource", "--", "/bin/sh", "-c", "curl "+atcExternalURLTLS)
-			<-hijackSession.Exited
-			Expect(hijackSession.ExitCode()).To(Equal(0))
+			// skipping until hijacking to check containers is fixed #142701755
+			// By("hijacking into check container")
+			// hijackSession := spawnFly("hijack", "-c", "bind-mount-certs/simple-resource", "--", "/bin/sh", "-c", "curl "+atcExternalURLTLS)
+			// <-hijackSession.Exited
+			// Expect(hijackSession.ExitCode()).To(Equal(0))
 
 			By("triggering a build")
 			buildSession := spawnFly("execute", "-c", "tasks/input-output.yml", "-i", fmt.Sprintf("some-input=%s", inputDir), "-o", fmt.Sprintf("some-output=%s", outputDir))
@@ -69,7 +70,7 @@ var _ = XDescribe("Bind mount certificates", func() {
 			Expect(buildSession.ExitCode()).To(Equal(0))
 
 			By("hijacking into get container")
-			hijackSession = spawnFly("hijack", "-b", buildID, "-s", "some-input", "--", "/bin/sh", "-c", "curl "+atcExternalURLTLS)
+			hijackSession := spawnFly("hijack", "-b", buildID, "-s", "some-input", "--", "/bin/sh", "-c", "curl "+atcExternalURLTLS)
 			<-hijackSession.Exited
 			Expect(hijackSession.ExitCode()).To(Equal(0))
 
