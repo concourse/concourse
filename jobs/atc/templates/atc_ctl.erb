@@ -20,23 +20,32 @@ CF_CA_CERT=/var/vcap/jobs/atc/config/cf_ca_cert
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
 <%
-  postgres_addr = ""
+  postgres_host = ""
+  postgres_port = ""
   postgres_role_name = ""
   postgres_role_password = ""
   postgres_database = ""
+  postgres_sslmode = p("postgresql.sslmode")
 
-  if_p("postgresql.address", "postgresql.role.name", "postgresql.role.password", "postgresql.database") do |addr, rn, rp, db|
-    postgres_addr = addr
+  if_p("postgresql.address") do |addr|
+    postgres_hort, postgres_port = addr.split(":")
+  end
+
+  if_p("postgresql.host", "postgresql.port", "postgresql.role.name", "postgresql.role.password", "postgresql.database") do |h, p, rn, rp, db|
+    postgres_host = h
+    postgres_port = p
     postgres_role_name = rn
     postgres_role_password = rp
     postgres_database = db
   end
 
-  if postgres_addr.empty?
+  if postgres_host.empty?
     db = link("db")
 
-    postgres_addr = "#{db.instances.first.address}:#{db.p("bind_port")}"
+    postgres_host = db.instances.first.address
+    postgres_port = db.p("bind_port")
     postgres_database = p("postgresql_database")
+    postgres_sslmode = "disable"
 
     postgres_db = db.p("databases").find { |db| db["name"] == postgres_database }
     if postgres_db.nil?
@@ -79,7 +88,19 @@ case $1 in
       <% end %> \
       --peer-url <%= p("peer_url", "http://#{spec.address}:#{p("bind_port")}") %> \
       --external-url <%= esc(p("external_url")) %> \
-      --postgres-data-source <%= esc("postgres://#{postgres_role_name}:#{postgres_role_password}@#{postgres_addr}/#{postgres_database}?sslmode=disable") %> \
+      --postgres-host <%= esc(postgres_host) %> \
+      --postgres-port <%= esc(postgres_port) %> \
+      --postgres-database <%= esc(postgres_database) %> \
+      --postgres-sslmode <%= esc(postgres_sslmode) %> \
+      --postgres-user <%= esc(postgres_role_name) %> \
+      --postgres-password <%= esc(postgres_role_password) %> \
+      <% if_p("postgresql.ca_cert") do |_| %> \
+      --postgres-ca-cert /var/vcap/jobs/atc/config/postgres_ca_cert \
+      <% end %> \
+      <% if_p("postgresql.client_cert", "postgresql.client_key") do |*_| %> \
+      --postgres-client-cert /var/vcap/jobs/atc/config/postges_client_cert \
+      --postgres-client-key /var/vcap/jobs/atc/config/postges_client_key \
+      <% end %> \
       <% if p("no_really_i_dont_want_any_auth") %> \
       --no-really-i-dont-want-any-auth \
       <% end %> \
