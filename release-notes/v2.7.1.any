@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2016-12-13}{2.7.1}{1.4.0}{
+\release{2017-04-06}{2.7.1}{1.4.0}{
   \note{fix}{security}{
     If you have a team configured with Generic oAuth, you'll want to upgrade to
     this release ASAP. Previously a check was missed for this provider in
@@ -30,7 +30,7 @@
   }
 
   \note{fix}{security}{
-    Previously the \code{fly_local_port} query param unsed in the
+    Previously the \code{fly_local_port} query param used in the
     \reference{fly-login} flow for oAuth could be munged in such a way to send
     the token to an arbitrary website. This meant that someone could fool you
     into clicking a link that sent a valid token to themselves. This is now
