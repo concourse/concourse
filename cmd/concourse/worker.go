@@ -26,7 +26,7 @@ type WorkerCommand struct {
 	HTTPSProxy URLFlag  `long:"https-proxy" env:"https_proxy"                 description:"HTTPS proxy endpoint to use for containers."`
 	NoProxy    []string `long:"no-proxy"    env:"no_proxy"    env-delim:","   description:"Blacklist of addresses to skip the proxy when reaching."`
 
-	CertificatesPath string `long:"certificates-path" default:"/etc/ssl/certs" description:"Path to directory containing certificates that will be shared in containers at /etc/ssl/certs."`
+	CertificatesPath string `long:"certificates-path" default:"" description:"Path to directory containing certificates that will be shared in containers at /etc/ssl/certs."`
 
 	WorkDir DirFlag `long:"work-dir" required:"true" description:"Directory in which to place container data."`
 
