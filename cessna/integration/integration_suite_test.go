@@ -35,7 +35,7 @@ var (
 	tarPath          string
 	tarURL           string
 
-	found bool
+	shouldRun bool
 
 	logger lager.Logger
 
@@ -45,13 +45,14 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	_, found = os.LookupEnv("RUN_CESSNA_TESTS")
-	if !found {
-		Skip("Must set RUN_CESSNA_TESTS")
-	}
+	_, shouldRun = os.LookupEnv("RUN_CESSNA_TESTS")
 }, 10)
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
+	if !shouldRun {
+		return
+	}
+
 	worker = NewWorker(fmt.Sprintf("%s:7777", workerIp), fmt.Sprintf("http://%s:7788", workerIp))
 
 	containers, err := worker.GardenClient().Containers(nil)
@@ -72,6 +73,10 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 }, 10)
 
 var _ = BeforeEach(func() {
+	if !shouldRun {
+		Skip("$RUN_CESSNA_TESTS not configured; skipping")
+	}
+
 	fakeWorker = new(cessnafakes.FakeWorker)
 	fakeGardenClient = new(gardenfakes.FakeClient)
 	fakeBaggageClaimClient = new(baggageclaimfakes.FakeClient)
@@ -79,7 +84,7 @@ var _ = BeforeEach(func() {
 	fakeWorker.BaggageClaimClientReturns(fakeBaggageClaimClient)
 	fakeWorker.GardenClientReturns(fakeGardenClient)
 
-	workerIp, found = os.LookupEnv("WORKER_IP")
+	workerIp, found := os.LookupEnv("WORKER_IP")
 	Expect(found).To(BeTrue(), "Must set WORKER_IP")
 
 	tarPath, found = os.LookupEnv("ROOTFS_TAR_PATH")
