@@ -27,3 +27,7 @@ func (f *FileFlag) UnmarshalFlag(value string) error {
 
 	return nil
 }
+
+func (f FileFlag) Path() string {
+	return string(f)
+}
