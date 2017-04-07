@@ -70,11 +70,11 @@ your pull-request to be considered:
   multiple orthogonal changes together, even if you think they're all good.
 
 - All pull requests to the `concourse/concourse` repo should be made to
-  `develop`, unless they're for documentation found via the repo itself, such as
-  this one. Individual components however should be submitted to `master`.
+  `master`. Pull requests to individual components should also be submitted to
+  `master`.
 
 - Updating the
-  [documentation](https://github.com/concourse/concourse/tree/develop/docs) is
+  [documentation](https://github.com/concourse/concourse/tree/master/docs) is
   encouraged but not necessary; we'll be sure to cover things before we ship
   the next version if you're not comfortable with writing the docs yourself.
 
