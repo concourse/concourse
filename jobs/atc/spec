@@ -10,6 +10,9 @@ templates:
   tls_cert.erb: config/tls_cert
   tls_key.erb: config/tls_key
   cf_ca_cert.erb: config/cf_ca_cert
+  postgres_ca_cert.erb: config/postges_ca_cert
+  postgres_client_cert.erb: config/postgres_client_cert
+  postgres_client_key.erb: config/postgres_client_key
 
 packages:
   - pid_utils
@@ -278,6 +281,23 @@ properties:
   postgresql.role.password:
     description: |
       Password to use when connecting.
+
+  postgresql.sslmode:
+    description: |
+      Whether or not to use SSL.
+    default: verify-full
+
+  postgresql.ca_cert:
+    description: |
+      CA certificate to verify the server against.
+
+  postgresql.client_cert:
+    description: |
+      Client certificate to use when connecting with the server.
+
+  postgresql.client_key:
+    description: |
+      Client key to use when connecting with the server.
 
   yeller.api_key:
     description: |
