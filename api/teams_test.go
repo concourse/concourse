@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -52,7 +52,7 @@ var _ = Describe("Teams API", func() {
 
 			BeforeEach(func() {
 				disaster = errors.New("some error")
-				teamServerDB.GetTeamsReturns(nil, disaster)
+				dbTeamFactory.FindTeamsReturns(nil, disaster)
 			})
 
 			It("returns 500 Internal Server Error", func() {
@@ -61,70 +61,33 @@ var _ = Describe("Teams API", func() {
 		})
 
 		Context("when the database returns teams", func() {
+			var (
+				fakeTeamOne   *dbngfakes.FakeTeam
+				fakeTeamTwo   *dbngfakes.FakeTeam
+				fakeTeamThree *dbngfakes.FakeTeam
+			)
 			BeforeEach(func() {
-				teamServerDB.GetTeamsReturns([]db.SavedTeam{
-					{
-						ID: 5,
-						Team: db.Team{
-							Name: "avengers",
-						},
-					},
-					{
-						ID: 9,
-						Team: db.Team{
-							Name: "aliens",
-							BasicAuth: &db.BasicAuth{
-								BasicAuthUsername: "fake user",
-								BasicAuthPassword: "no, bad",
-							},
-							GitHubAuth: &db.GitHubAuth{
-								ClientID:      "fake id",
-								ClientSecret:  "some secret",
-								Organizations: []string{"a", "b", "c"},
-								Teams: []db.GitHubTeam{
-									{
-										OrganizationName: "org1",
-										TeamName:         "teama",
-									},
-									{
-										OrganizationName: "org2",
-										TeamName:         "teamb",
-									},
-								},
-								Users: []string{"user1", "user2", "user3"},
-							},
-						},
-					},
-					{
-						ID: 22,
-						Team: db.Team{
-							Name: "predators",
-							UAAAuth: &db.UAAAuth{
-								ClientID:     "fake id",
-								ClientSecret: "some secret",
-								CFSpaces:     []string{"myspace"},
-								AuthURL:      "http://auth.url",
-								TokenURL:     "http://token.url",
-								CFURL:        "http://api.url",
-							},
-						},
-					},
-					{
-						ID: 23,
-						Team: db.Team{
-							Name: "cyborgs",
-							GenericOAuth: &db.GenericOAuth{
-								DisplayName:   "Cyborgs",
-								ClientID:      "some random guid",
-								ClientSecret:  "don't tell anyone",
-								AuthURL:       "https://auth.url",
-								AuthURLParams: map[string]string{"allow_humans": "false"},
-								Scope:         "readonly",
-								TokenURL:      "https://token.url",
-							},
-						},
-					},
-				}, nil)
+				fakeTeamOne = new(dbngfakes.FakeTeam)
+				fakeTeamTwo = new(dbngfakes.FakeTeam)
+				fakeTeamThree = new(dbngfakes.FakeTeam)
+
+				fakeTeamOne.IDReturns(5)
+				fakeTeamOne.NameReturns("avengers")
+
+				fakeTeamTwo.IDReturns(9)
+				fakeTeamTwo.NameReturns("aliens")
+				fakeTeamTwo.BasicAuthReturns(&atc.BasicAuth{
+					BasicAuthUsername: "fake user",
+					BasicAuthPassword: "no, bad",
+				})
+
+				data := []byte(`{"hello": "world"}`)
+				fakeTeamThree.IDReturns(22)
+				fakeTeamThree.NameReturns("predators")
+				fakeTeamThree.AuthReturns(map[string]*json.RawMessage{
+					"fake-provider": (*json.RawMessage)(&data),
+				})
+				dbTeamFactory.FindTeamsReturns([]dbng.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -147,11 +110,7 @@ var _ = Describe("Teams API", func() {
 					{
 						"id": 22,
 						"name": "predators"
-					},
-					{
-					  "id": 23,
-						"name": "cyborgs"
-				  }
+					}
 				]`))
 			})
 		})
@@ -406,20 +365,16 @@ var _ = Describe("Teams API", func() {
 		var request *http.Request
 		var response *http.Response
 
-		var team atc.Team
-		var savedTeam db.SavedTeam
+		var atcTeam atc.Team
+		var team dbng.Team
 		var teamName string
 
 		BeforeEach(func() {
 			teamName = "team venture"
 
-			team = atc.Team{}
-			savedTeam = db.SavedTeam{
-				ID: 2,
-				Team: db.Team{
-					Name: teamName,
-				},
-			}
+			atcTeam = atc.Team{}
+			fakeTeam.IDReturns(2)
+			fakeTeam.NameReturns(teamName)
 		})
 
 		Context("when the requester is authenticated for some admin team", func() {
@@ -441,7 +396,7 @@ var _ = Describe("Teams API", func() {
 
 			Context("when there's a problem finding teams", func() {
 				BeforeEach(func() {
-					teamDB.GetTeamReturns(db.SavedTeam{}, false, errors.New("a dingo ate my baby!"))
+					dbTeamFactory.FindTeamReturns(nil, false, errors.New("a dingo ate my baby!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -451,7 +406,7 @@ var _ = Describe("Teams API", func() {
 
 			Context("when team exists", func() {
 				BeforeEach(func() {
-					teamDB.GetTeamReturns(savedTeam, true, nil)
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
 
 				It("returns 204 No Content", func() {
@@ -459,33 +414,27 @@ var _ = Describe("Teams API", func() {
 				})
 
 				It("deletes the team from the DB", func() {
-					Expect(teamServerDB.DeleteTeamByNameCallCount()).To(Equal(1))
+					Expect(fakeTeam.DeleteCallCount()).To(Equal(1))
 					//TODO delete the build events via a table drop rather
 				})
 
 				Context("when trying to delete the admin team", func() {
 					BeforeEach(func() {
 						teamName = atc.DefaultTeamName
-						savedTeam = db.SavedTeam{
-							ID: 2,
-							Team: db.Team{
-								Name:  teamName,
-								Admin: true,
-							},
-						}
-						teamDB.GetTeamReturns(savedTeam, true, nil)
-						teamServerDB.GetTeamsReturns([]db.SavedTeam{savedTeam}, nil)
+						fakeTeam.AdminReturns(true)
+						dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+						dbTeamFactory.FindTeamsReturns([]dbng.Team{fakeTeam}, nil)
 					})
 
 					It("returns 403 Forbidden and backs off", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-						Expect(teamServerDB.DeleteTeamByNameCallCount()).To(Equal(0))
+						Expect(fakeTeam.DeleteCallCount()).To(Equal(0))
 					})
 				})
 
 				Context("when there's a problem deleting the team", func() {
 					BeforeEach(func() {
-						teamServerDB.DeleteTeamByNameReturns(errors.New("disaster"))
+						fakeTeam.DeleteReturns(errors.New("disaster"))
 					})
 
 					It("returns 500 Internal Server Error", func() {
@@ -496,7 +445,7 @@ var _ = Describe("Teams API", func() {
 
 			Context("when team does not exist", func() {
 				BeforeEach(func() {
-					teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+					dbTeamFactory.FindTeamReturns(nil, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {

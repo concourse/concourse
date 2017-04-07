@@ -16,6 +16,7 @@ import (
 type TeamFactory interface {
 	CreateTeam(atc.Team) (Team, error)
 	FindTeam(string) (Team, bool, error)
+	FindTeams() ([]Team, error)
 	GetByID(teamID int) Team
 }
 
@@ -39,6 +40,11 @@ func (factory *teamFactory) CreateTeam(t atc.Team) (Team, error) {
 
 	defer tx.Rollback()
 
+	encryptedBasicAuthJSON, err := t.BasicAuth.EncryptedJSON()
+	if err != nil {
+		return nil, err
+	}
+
 	auth, err := json.Marshal(t.Auth)
 	if err != nil {
 		return nil, err
@@ -46,7 +52,7 @@ func (factory *teamFactory) CreateTeam(t atc.Team) (Team, error) {
 
 	row := psql.Insert("teams").
 		Columns("name, basic_auth, auth").
-		Values(t.Name, t.BasicAuth, auth).
+		Values(t.Name, encryptedBasicAuthJSON, auth).
 		Suffix("RETURNING id, name, admin, basic_auth, auth").
 		RunWith(tx).
 		QueryRow()
@@ -107,6 +113,38 @@ func (factory *teamFactory) FindTeam(teamName string) (Team, bool, error) {
 	}
 
 	return team, true, nil
+}
+
+func (factory *teamFactory) FindTeams() ([]Team, error) {
+	rows, err := psql.Select("id, name, admin, basic_auth, auth").
+		From("teams").
+		RunWith(factory.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	teams := []Team{}
+
+	for rows.Next() {
+		team := &team{
+			conn:        factory.conn,
+			lockFactory: factory.lockFactory,
+		}
+
+		err = scanTeam(team, rows)
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, err
+		}
+		teams = append(teams, team)
+	}
+
+	return teams, nil
 }
 
 func scanTeam(t *team, rows scannable) error {

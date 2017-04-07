@@ -24,6 +24,25 @@ var _ = Describe("Team", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	Describe("Delete", func() {
+		BeforeEach(func() {
+			team, found, err := teamFactory.FindTeam("some-other-team")
+			Expect(team.Name()).To(Equal("some-other-team"))
+			Expect(found).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+
+			err = otherTeam.Delete()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("deletes the team", func() {
+			team, found, err := teamFactory.FindTeam("some-other-team")
+			Expect(team).To(BeNil())
+			Expect(found).To(BeFalse())
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
 	Describe("SaveWorker", func() {
 		var (
 			team      dbng.Team
@@ -838,6 +857,27 @@ var _ = Describe("Team", func() {
 				Expect(bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword),
 					[]byte(basicAuth.BasicAuthPassword))).To(BeNil())
 			})
+		})
+	})
+
+	Describe("FindPipelines", func() {
+		var (
+			team      dbng.Team
+			pipelines []dbng.Pipeline
+		)
+
+		BeforeEach(func() {
+			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+			Expect(err).ToNot(HaveOccurred())
+
+			pipelines, err = team.FindPipelines()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the team has configured pipelines", func() {
+BeforeEach(func() {
+team.SavePipeline("fake-pipeline", 
+})
 		})
 	})
 })

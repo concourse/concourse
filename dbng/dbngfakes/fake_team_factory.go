@@ -37,6 +37,17 @@ type FakeTeamFactory struct {
 		result2 bool
 		result3 error
 	}
+	FindTeamsStub        func() ([]dbng.Team, error)
+	findTeamsMutex       sync.RWMutex
+	findTeamsArgsForCall []struct{}
+	findTeamsReturns     struct {
+		result1 []dbng.Team
+		result2 error
+	}
+	findTeamsReturnsOnCall map[int]struct {
+		result1 []dbng.Team
+		result2 error
+	}
 	GetByIDStub        func(teamID int) dbng.Team
 	getByIDMutex       sync.RWMutex
 	getByIDArgsForCall []struct {
@@ -157,6 +168,49 @@ func (fake *FakeTeamFactory) FindTeamReturnsOnCall(i int, result1 dbng.Team, res
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeamFactory) FindTeams() ([]dbng.Team, error) {
+	fake.findTeamsMutex.Lock()
+	ret, specificReturn := fake.findTeamsReturnsOnCall[len(fake.findTeamsArgsForCall)]
+	fake.findTeamsArgsForCall = append(fake.findTeamsArgsForCall, struct{}{})
+	fake.recordInvocation("FindTeams", []interface{}{})
+	fake.findTeamsMutex.Unlock()
+	if fake.FindTeamsStub != nil {
+		return fake.FindTeamsStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.findTeamsReturns.result1, fake.findTeamsReturns.result2
+}
+
+func (fake *FakeTeamFactory) FindTeamsCallCount() int {
+	fake.findTeamsMutex.RLock()
+	defer fake.findTeamsMutex.RUnlock()
+	return len(fake.findTeamsArgsForCall)
+}
+
+func (fake *FakeTeamFactory) FindTeamsReturns(result1 []dbng.Team, result2 error) {
+	fake.FindTeamsStub = nil
+	fake.findTeamsReturns = struct {
+		result1 []dbng.Team
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeamFactory) FindTeamsReturnsOnCall(i int, result1 []dbng.Team, result2 error) {
+	fake.FindTeamsStub = nil
+	if fake.findTeamsReturnsOnCall == nil {
+		fake.findTeamsReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Team
+			result2 error
+		})
+	}
+	fake.findTeamsReturnsOnCall[i] = struct {
+		result1 []dbng.Team
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeamFactory) GetByID(teamID int) dbng.Team {
 	fake.getByIDMutex.Lock()
 	ret, specificReturn := fake.getByIDReturnsOnCall[len(fake.getByIDArgsForCall)]
@@ -212,6 +266,8 @@ func (fake *FakeTeamFactory) Invocations() map[string][][]interface{} {
 	defer fake.createTeamMutex.RUnlock()
 	fake.findTeamMutex.RLock()
 	defer fake.findTeamMutex.RUnlock()
+	fake.findTeamsMutex.RLock()
+	defer fake.findTeamsMutex.RUnlock()
 	fake.getByIDMutex.RLock()
 	defer fake.getByIDMutex.RUnlock()
 	return fake.invocations

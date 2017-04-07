@@ -40,7 +40,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if team.Admin() {
-		allTeams, err := s.teamsDB.GetTeams()
+		allTeams, err := s.teamFactory.FindTeams()
 		if err != nil {
 			hLog.Error("failed-to-get-teams", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -49,7 +49,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 
 		adminTeams := 0
 		for _, candidate := range allTeams {
-			if candidate.Admin {
+			if candidate.Admin() {
 				adminTeams = adminTeams + 1
 			}
 		}
@@ -61,7 +61,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = s.teamsDB.DeleteTeamByName(teamName)
+	err = team.Delete()
 	if err != nil {
 		hLog.Error("failed-to-delete-team", err)
 		w.WriteHeader(http.StatusInternalServerError)

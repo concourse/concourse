@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
@@ -26,10 +24,10 @@ type Team interface {
 	ID() int
 	Name() string
 	Admin() bool
-
 	BasicAuth() *atc.BasicAuth //TODO maybe delete
-
 	Auth() map[string]*json.RawMessage
+
+	Delete() error
 
 	SavePipeline(
 		pipelineName string,
@@ -39,6 +37,8 @@ type Team interface {
 	) (Pipeline, bool, error)
 
 	FindPipelineByName(pipelineName string) (Pipeline, bool, error)
+	FindPipelines() ([]Pipeline, error)
+	FindPublicPipelines() ([]Pipeline, error)
 
 	CreateOneOffBuild() (Build, error)
 
@@ -83,6 +83,42 @@ func (t *team) Name() string                      { return t.name }
 func (t *team) Admin() bool                       { return t.admin }
 func (t *team) BasicAuth() *atc.BasicAuth         { return t.basicAuth }
 func (t *team) Auth() map[string]*json.RawMessage { return t.auth }
+
+func (t *team) Delete() error {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = sq.Delete("teams").
+		Where(sq.Eq{
+			"name": t.name,
+		}).
+		PlaceholderFormat(sq.Dollar).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	teamBuildEvents := fmt.Sprintf("team_build_events_%d", int64(t.id))
+	_, err = sq.Delete(teamBuildEvents).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (t *team) Workers() ([]Worker, error) {
 	return getWorkers(t.conn, workersQuery.Where(sq.Or{
@@ -605,6 +641,60 @@ func (t *team) FindPipelineByName(pipelineName string) (Pipeline, bool, error) {
 	return pipeline, true, nil
 }
 
+func (t *team) FindPipelines() ([]Pipeline, error) {
+	rows, err := psql.Select(unqualifiedPipelineColumns).
+		From("pipelines p").
+		Join("teams t ON t.id = p.team_id").
+		Where(sq.Eq{
+			"team_id": t.id,
+		}).
+		OrderBy("ordering").
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return pipelines, nil
+}
+
+func (t *team) FindPublicPipelines() ([]Pipeline, error) {
+	rows, err := psql.Select(unqualifiedPipelineColumns).
+		From("pipelines p").
+		Join("teams t ON t.id = p.team_id").
+		Where(sq.Eq{
+			"team_id": t.id,
+			"public":  true,
+		}).
+		OrderBy("ordering").
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return pipelines, nil
+
+}
+
 func (t *team) CreateOneOffBuild() (Build, error) {
 	tx, err := t.conn.Begin()
 	if err != nil {
@@ -667,7 +757,7 @@ func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, erro
 }
 
 func (t *team) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
-	encryptedBasicAuth, err := encryptedJSON(basicAuth)
+	encryptedBasicAuth, err := basicAuth.EncryptedJSON()
 	if err != nil {
 		return err
 	}
@@ -877,6 +967,21 @@ func scanPipeline(conn Conn, lockFactory lock.LockFactory, rows scannable) (*pip
 	}, nil
 }
 
+func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
+	pipelines := []Pipeline{}
+
+	for rows.Next() {
+		pipeline, err := scanPipeline(conn, lockFactory, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		pipelines = append(pipelines, pipeline)
+	}
+
+	return pipelines, nil
+}
+
 func (t *team) findBaseResourceTypeID(resourceConfig *UsedResourceConfig) *UsedBaseResourceType {
 	if resourceConfig.CreatedByBaseResourceType != nil {
 		return resourceConfig.CreatedByBaseResourceType
@@ -938,21 +1043,4 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 	}
 
 	return nil
-}
-
-func encryptedJSON(auth *atc.BasicAuth) (string, error) {
-	var result *atc.BasicAuth
-	if auth != nil && auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {
-		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(auth.BasicAuthPassword), 4)
-		if err != nil {
-			return "", err
-		}
-		result = &atc.BasicAuth{
-			BasicAuthPassword: string(encryptedPw),
-			BasicAuthUsername: auth.BasicAuthUsername,
-		}
-	}
-
-	json, err := json.Marshal(result)
-	return string(json), err
 }

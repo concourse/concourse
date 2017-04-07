@@ -1,6 +1,10 @@
 package atc
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"golang.org/x/crypto/bcrypt"
+)
 
 type Team struct {
 	ID   int    `json:"id,omitempty"`
@@ -16,39 +20,19 @@ type BasicAuth struct {
 	BasicAuthPassword string `json:"basic_auth_password,omitempty"`
 }
 
-//
-//type GitHubAuth struct {
-//	ClientID      string       `json:"client_id,omitempty"`
-//	ClientSecret  string       `json:"client_secret,omitempty"`
-//	Organizations []string     `json:"organizations,omitempty"`
-//	Teams         []GitHubTeam `json:"teams,omitempty"`
-//	Users         []string     `json:"users,omitempty"`
-//	AuthURL       string       `json:"auth_url,omitempty"`
-//	TokenURL      string       `json:"token_url,omitempty"`
-//	APIURL        string       `json:"api_url,omitempty"`
-//}
-//
-//type GitHubTeam struct {
-//	OrganizationName string `json:"organization_name,omitempty"`
-//	TeamName         string `json:"team_name,omitempty"`
-//}
-//
-//type UAAAuth struct {
-//	ClientID     string   `json:"client_id,omitempty"`
-//	ClientSecret string   `json:"client_secret,omitempty"`
-//	AuthURL      string   `json:"auth_url,omitempty"`
-//	TokenURL     string   `json:"token_url,omitempty"`
-//	CFSpaces     []string `json:"cf_spaces,omitempty"`
-//	CFURL        string   `json:"cf_url,omitempty"`
-//	CFCACert     string   `json:"cf_ca_cert,omitempty"`
-//}
-//
-//type GenericOAuth struct {
-//	DisplayName   string            `json:"display_name,omitempty"`
-//	ClientID      string            `json:"client_id,omitempty"`
-//	ClientSecret  string            `json:"client_secret,omitempty"`
-//	AuthURL       string            `json:"auth_url,omitempty"`
-//	TokenURL      string            `json:"token_url,omitempty"`
-//	AuthURLParams map[string]string `json:"auth_url_params,omitempty"`
-//	Scope         string            `json:"scope,omitempty"`
-//}
+func (auth *BasicAuth) EncryptedJSON() (string, error) {
+	var result *BasicAuth
+	if auth != nil && auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {
+		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(auth.BasicAuthPassword), 4)
+		if err != nil {
+			return "", err
+		}
+		result = &BasicAuth{
+			BasicAuthPassword: string(encryptedPw),
+			BasicAuthUsername: auth.BasicAuthUsername,
+		}
+	}
+
+	json, err := json.Marshal(result)
+	return string(json), err
+}

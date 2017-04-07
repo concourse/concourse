@@ -14,22 +14,19 @@ type TeamsDB interface {
 }
 
 type Server struct {
-	logger        lager.Logger
-	teamsDB       TeamsDB
-	teamFactory   dbng.TeamFactory
-	teamDBFactory db.TeamDBFactory
+	logger      lager.Logger
+	teamsDB     TeamsDB
+	teamFactory dbng.TeamFactory
 }
 
 func NewServer(
 	logger lager.Logger,
 	teamFactory dbng.TeamFactory,
-	teamDBFactory db.TeamDBFactory,
 	teamsDB TeamsDB,
 ) *Server {
 	return &Server{
-		logger:        logger,
-		teamFactory:   teamFactory,
-		teamDBFactory: teamDBFactory,
-		teamsDB:       teamsDB,
+		logger:      logger,
+		teamFactory: teamFactory,
+		teamsDB:     teamsDB,
 	}
 }

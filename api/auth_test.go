@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -173,7 +172,7 @@ var _ = Describe("Auth API", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("gets the teamDB for the right team name", func() {
+			It("gets the team for the right team name", func() {
 				Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
 				Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("some-team"))
 			})
@@ -276,18 +275,15 @@ var _ = Describe("Auth API", func() {
 			request  *http.Request
 			response *http.Response
 
-			err       error
-			savedTeam db.SavedTeam
+			err      error
+			fakeTeam *dbngfakes.FakeTeam
 		)
 
 		BeforeEach(func() {
-			savedTeam = db.SavedTeam{
-				ID: 5,
-				Team: db.Team{
-					Name:  "some-team",
-					Admin: true,
-				},
-			}
+			fakeTeam = new(dbngfakes.FakeTeam)
+			fakeTeam.IDReturns(5)
+			fakeTeam.NameReturns("some-team")
+			fakeTeam.AdminReturns(true)
 
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/user", nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -340,7 +336,7 @@ var _ = Describe("Auth API", func() {
 						Context("and fails to retrieve team from db", func() {
 							BeforeEach(func() {
 								userContextReader.GetSystemReturns(false, false)
-								teamDB.GetTeamReturns(db.SavedTeam{}, false, errors.New("disaster"))
+								dbTeamFactory.FindTeamReturns(nil, false, errors.New("disaster"))
 							})
 
 							It("returns 500", func() {
@@ -350,7 +346,7 @@ var _ = Describe("Auth API", func() {
 
 						Context("and team not found in the db", func() {
 							BeforeEach(func() {
-								teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+								dbTeamFactory.FindTeamReturns(nil, false, nil)
 							})
 
 							It("returns empty json", func() {
@@ -363,7 +359,7 @@ var _ = Describe("Auth API", func() {
 
 						Context("and team found in the db", func() {
 							BeforeEach(func() {
-								teamDB.GetTeamReturns(savedTeam, true, nil)
+								dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 							})
 
 							It("returns 200 OK", func() {
