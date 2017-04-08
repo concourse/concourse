@@ -17,16 +17,12 @@ type FakeValidator struct {
 	isAuthenticatedReturns struct {
 		result1 bool
 	}
-	isAuthenticatedReturnsOnCall map[int]struct {
-		result1 bool
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeValidator) IsAuthenticated(arg1 *http.Request) bool {
 	fake.isAuthenticatedMutex.Lock()
-	ret, specificReturn := fake.isAuthenticatedReturnsOnCall[len(fake.isAuthenticatedArgsForCall)]
 	fake.isAuthenticatedArgsForCall = append(fake.isAuthenticatedArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
@@ -34,11 +30,9 @@ func (fake *FakeValidator) IsAuthenticated(arg1 *http.Request) bool {
 	fake.isAuthenticatedMutex.Unlock()
 	if fake.IsAuthenticatedStub != nil {
 		return fake.IsAuthenticatedStub(arg1)
+	} else {
+		return fake.isAuthenticatedReturns.result1
 	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.isAuthenticatedReturns.result1
 }
 
 func (fake *FakeValidator) IsAuthenticatedCallCount() int {
@@ -56,18 +50,6 @@ func (fake *FakeValidator) IsAuthenticatedArgsForCall(i int) *http.Request {
 func (fake *FakeValidator) IsAuthenticatedReturns(result1 bool) {
 	fake.IsAuthenticatedStub = nil
 	fake.isAuthenticatedReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeValidator) IsAuthenticatedReturnsOnCall(i int, result1 bool) {
-	fake.IsAuthenticatedStub = nil
-	if fake.isAuthenticatedReturnsOnCall == nil {
-		fake.isAuthenticatedReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.isAuthenticatedReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
 }

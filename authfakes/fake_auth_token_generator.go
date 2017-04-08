@@ -22,18 +22,12 @@ type FakeAuthTokenGenerator struct {
 		result2 auth.TokenValue
 		result3 error
 	}
-	generateTokenReturnsOnCall map[int]struct {
-		result1 auth.TokenType
-		result2 auth.TokenValue
-		result3 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeAuthTokenGenerator) GenerateToken(expiration time.Time, teamName string, isAdmin bool, csrfToken string) (auth.TokenType, auth.TokenValue, error) {
 	fake.generateTokenMutex.Lock()
-	ret, specificReturn := fake.generateTokenReturnsOnCall[len(fake.generateTokenArgsForCall)]
 	fake.generateTokenArgsForCall = append(fake.generateTokenArgsForCall, struct {
 		expiration time.Time
 		teamName   string
@@ -44,11 +38,9 @@ func (fake *FakeAuthTokenGenerator) GenerateToken(expiration time.Time, teamName
 	fake.generateTokenMutex.Unlock()
 	if fake.GenerateTokenStub != nil {
 		return fake.GenerateTokenStub(expiration, teamName, isAdmin, csrfToken)
+	} else {
+		return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2, fake.generateTokenReturns.result3
 	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2, fake.generateTokenReturns.result3
 }
 
 func (fake *FakeAuthTokenGenerator) GenerateTokenCallCount() int {
@@ -66,22 +58,6 @@ func (fake *FakeAuthTokenGenerator) GenerateTokenArgsForCall(i int) (time.Time, 
 func (fake *FakeAuthTokenGenerator) GenerateTokenReturns(result1 auth.TokenType, result2 auth.TokenValue, result3 error) {
 	fake.GenerateTokenStub = nil
 	fake.generateTokenReturns = struct {
-		result1 auth.TokenType
-		result2 auth.TokenValue
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeAuthTokenGenerator) GenerateTokenReturnsOnCall(i int, result1 auth.TokenType, result2 auth.TokenValue, result3 error) {
-	fake.GenerateTokenStub = nil
-	if fake.generateTokenReturnsOnCall == nil {
-		fake.generateTokenReturnsOnCall = make(map[int]struct {
-			result1 auth.TokenType
-			result2 auth.TokenValue
-			result3 error
-		})
-	}
-	fake.generateTokenReturnsOnCall[i] = struct {
 		result1 auth.TokenType
 		result2 auth.TokenValue
 		result3 error

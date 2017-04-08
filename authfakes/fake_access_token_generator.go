@@ -7,19 +7,20 @@ import (
 	"github.com/concourse/atc/auth"
 )
 
-type FakeCSRFTokenGenerator struct {
-	GenerateTokenStub        func() (string, error)
+type FakeAccessTokenGenerator struct {
+	GenerateTokenStub        func() (auth.TokenType, auth.AccessTokenValue, error)
 	generateTokenMutex       sync.RWMutex
 	generateTokenArgsForCall []struct{}
 	generateTokenReturns     struct {
-		result1 string
-		result2 error
+		result1 auth.TokenType
+		result2 auth.AccessTokenValue
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCSRFTokenGenerator) GenerateToken() (string, error) {
+func (fake *FakeAccessTokenGenerator) GenerateToken() (auth.TokenType, auth.AccessTokenValue, error) {
 	fake.generateTokenMutex.Lock()
 	fake.generateTokenArgsForCall = append(fake.generateTokenArgsForCall, struct{}{})
 	fake.recordInvocation("GenerateToken", []interface{}{})
@@ -27,25 +28,26 @@ func (fake *FakeCSRFTokenGenerator) GenerateToken() (string, error) {
 	if fake.GenerateTokenStub != nil {
 		return fake.GenerateTokenStub()
 	} else {
-		return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2
+		return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2, fake.generateTokenReturns.result3
 	}
 }
 
-func (fake *FakeCSRFTokenGenerator) GenerateTokenCallCount() int {
+func (fake *FakeAccessTokenGenerator) GenerateTokenCallCount() int {
 	fake.generateTokenMutex.RLock()
 	defer fake.generateTokenMutex.RUnlock()
 	return len(fake.generateTokenArgsForCall)
 }
 
-func (fake *FakeCSRFTokenGenerator) GenerateTokenReturns(result1 string, result2 error) {
+func (fake *FakeAccessTokenGenerator) GenerateTokenReturns(result1 auth.TokenType, result2 auth.AccessTokenValue, result3 error) {
 	fake.GenerateTokenStub = nil
 	fake.generateTokenReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
+		result1 auth.TokenType
+		result2 auth.AccessTokenValue
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeCSRFTokenGenerator) Invocations() map[string][][]interface{} {
+func (fake *FakeAccessTokenGenerator) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.generateTokenMutex.RLock()
@@ -53,7 +55,7 @@ func (fake *FakeCSRFTokenGenerator) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeCSRFTokenGenerator) recordInvocation(key string, args []interface{}) {
+func (fake *FakeAccessTokenGenerator) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -65,4 +67,4 @@ func (fake *FakeCSRFTokenGenerator) recordInvocation(key string, args []interfac
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ auth.CSRFTokenGenerator = new(FakeCSRFTokenGenerator)
+var _ auth.AccessTokenGenerator = new(FakeAccessTokenGenerator)
