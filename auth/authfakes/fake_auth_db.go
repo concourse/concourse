@@ -17,28 +17,20 @@ type FakeAuthDB struct {
 		result2 bool
 		result3 error
 	}
-	getTeamReturnsOnCall map[int]struct {
-		result1 db.SavedTeam
-		result2 bool
-		result3 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeAuthDB) GetTeam() (db.SavedTeam, bool, error) {
 	fake.getTeamMutex.Lock()
-	ret, specificReturn := fake.getTeamReturnsOnCall[len(fake.getTeamArgsForCall)]
 	fake.getTeamArgsForCall = append(fake.getTeamArgsForCall, struct{}{})
 	fake.recordInvocation("GetTeam", []interface{}{})
 	fake.getTeamMutex.Unlock()
 	if fake.GetTeamStub != nil {
 		return fake.GetTeamStub()
+	} else {
+		return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 }
 
 func (fake *FakeAuthDB) GetTeamCallCount() int {
@@ -50,22 +42,6 @@ func (fake *FakeAuthDB) GetTeamCallCount() int {
 func (fake *FakeAuthDB) GetTeamReturns(result1 db.SavedTeam, result2 bool, result3 error) {
 	fake.GetTeamStub = nil
 	fake.getTeamReturns = struct {
-		result1 db.SavedTeam
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeAuthDB) GetTeamReturnsOnCall(i int, result1 db.SavedTeam, result2 bool, result3 error) {
-	fake.GetTeamStub = nil
-	if fake.getTeamReturnsOnCall == nil {
-		fake.getTeamReturnsOnCall = make(map[int]struct {
-			result1 db.SavedTeam
-			result2 bool
-			result3 error
-		})
-	}
-	fake.getTeamReturnsOnCall[i] = struct {
 		result1 db.SavedTeam
 		result2 bool
 		result3 error
