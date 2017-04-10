@@ -102,10 +102,11 @@ var _ = BeforeEach(func() {
 	fakeConnector := new(lockfakes.FakeConnector)
 	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
 
+	lockFactory = lock.NewLockFactory(retryableConn)
+
 	buildFactory = dbng.NewBuildFactory(dbConn)
 	volumeFactory = dbng.NewVolumeFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)
-	lockFactory = lock.NewLockFactory(retryableConn)
 	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
 	workerFactory = dbng.NewWorkerFactory(dbConn)
 	workerLifecycle = dbng.NewWorkerLifecycle(dbConn)

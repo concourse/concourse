@@ -864,20 +864,164 @@ var _ = Describe("Team", func() {
 		var (
 			team      dbng.Team
 			pipelines []dbng.Pipeline
+			pipeline1 dbng.Pipeline
+			pipeline2 dbng.Pipeline
+		)
+
+		BeforeEach(func() {
+			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			pipelines, err = team.Pipelines()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the team has configured pipelines", func() {
+			BeforeEach(func() {
+				pipeline1, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-name"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				pipeline2, _, err = team.SavePipeline("fake-pipeline-two", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-fake"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{pipeline1, pipeline2}))
+			})
+		})
+		Context("when the team has no configured pipelines", func() {
+			It("returns no pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{}))
+			})
+		})
+	})
+
+	Describe("FindPublicPipelines", func() {
+		var (
+			team      dbng.Team
+			pipelines []dbng.Pipeline
+			pipeline1 dbng.Pipeline
+			pipeline2 dbng.Pipeline
+		)
+
+		BeforeEach(func() {
+			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			pipelines, err = team.PublicPipelines()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the team has configured pipelines", func() {
+			BeforeEach(func() {
+				pipeline1, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-name"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				pipeline2, _, err = team.SavePipeline("fake-pipeline-two", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-fake"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = pipeline2.Expose()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{pipeline2}))
+			})
+		})
+		Context("when the team has no configured pipelines", func() {
+			It("returns no pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{}))
+			})
+		})
+	})
+
+	Describe("VisiblePipelines", func() {
+		var (
+			team      dbng.Team
+			otherTeam dbng.Team
+			pipelines []dbng.Pipeline
+			pipeline1 dbng.Pipeline
+			pipeline2 dbng.Pipeline
 		)
 
 		BeforeEach(func() {
 			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 			Expect(err).ToNot(HaveOccurred())
 
-			pipelines, err = team.FindPipelines()
+			otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-other-team"})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			pipelines, err = team.VisiblePipelines()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("when the team has configured pipelines", func() {
-BeforeEach(func() {
-team.SavePipeline("fake-pipeline", 
-})
+			BeforeEach(func() {
+				pipeline1, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-name"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				pipeline2, _, err = otherTeam.SavePipeline("fake-pipeline-two", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-fake"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(pipeline2.Expose()).To(Succeed())
+				Expect(pipeline2.Reload()).To(BeTrue())
+			})
+
+			It("returns the pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{pipeline1, pipeline2}))
+			})
+
+			Context("when the other team has a private pipeline", func() {
+				var pipeline3 dbng.Pipeline
+				BeforeEach(func() {
+					pipeline3, _, err = otherTeam.SavePipeline("fake-pipeline-three", atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "job-fake-again"},
+						},
+					}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("does not return the other team private pipeline", func() {
+					Expect(pipelines).To(Equal([]dbng.Pipeline{pipeline1, pipeline2}))
+				})
+			})
+		})
+
+		Context("when the team has no configured pipelines", func() {
+			It("returns no pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{}))
+			})
 		})
 	})
 })

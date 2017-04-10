@@ -98,6 +98,39 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+	PipelinesStub        func() ([]dbng.Pipeline, error)
+	pipelinesMutex       sync.RWMutex
+	pipelinesArgsForCall []struct{}
+	pipelinesReturns     struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	pipelinesReturnsOnCall map[int]struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	PublicPipelinesStub        func() ([]dbng.Pipeline, error)
+	publicPipelinesMutex       sync.RWMutex
+	publicPipelinesArgsForCall []struct{}
+	publicPipelinesReturns     struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	publicPipelinesReturnsOnCall map[int]struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	VisiblePipelinesStub        func() ([]dbng.Pipeline, error)
+	visiblePipelinesMutex       sync.RWMutex
+	visiblePipelinesArgsForCall []struct{}
+	visiblePipelinesReturns     struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	visiblePipelinesReturnsOnCall map[int]struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
 	CreateOneOffBuildStub        func() (dbng.Build, error)
 	createOneOffBuildMutex       sync.RWMutex
 	createOneOffBuildArgsForCall []struct{}
@@ -677,6 +710,135 @@ func (fake *FakeTeam) FindPipelineByNameReturnsOnCall(i int, result1 dbng.Pipeli
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) Pipelines() ([]dbng.Pipeline, error) {
+	fake.pipelinesMutex.Lock()
+	ret, specificReturn := fake.pipelinesReturnsOnCall[len(fake.pipelinesArgsForCall)]
+	fake.pipelinesArgsForCall = append(fake.pipelinesArgsForCall, struct{}{})
+	fake.recordInvocation("Pipelines", []interface{}{})
+	fake.pipelinesMutex.Unlock()
+	if fake.PipelinesStub != nil {
+		return fake.PipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.pipelinesReturns.result1, fake.pipelinesReturns.result2
+}
+
+func (fake *FakeTeam) PipelinesCallCount() int {
+	fake.pipelinesMutex.RLock()
+	defer fake.pipelinesMutex.RUnlock()
+	return len(fake.pipelinesArgsForCall)
+}
+
+func (fake *FakeTeam) PipelinesReturns(result1 []dbng.Pipeline, result2 error) {
+	fake.PipelinesStub = nil
+	fake.pipelinesReturns = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) PipelinesReturnsOnCall(i int, result1 []dbng.Pipeline, result2 error) {
+	fake.PipelinesStub = nil
+	if fake.pipelinesReturnsOnCall == nil {
+		fake.pipelinesReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Pipeline
+			result2 error
+		})
+	}
+	fake.pipelinesReturnsOnCall[i] = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) PublicPipelines() ([]dbng.Pipeline, error) {
+	fake.publicPipelinesMutex.Lock()
+	ret, specificReturn := fake.publicPipelinesReturnsOnCall[len(fake.publicPipelinesArgsForCall)]
+	fake.publicPipelinesArgsForCall = append(fake.publicPipelinesArgsForCall, struct{}{})
+	fake.recordInvocation("PublicPipelines", []interface{}{})
+	fake.publicPipelinesMutex.Unlock()
+	if fake.PublicPipelinesStub != nil {
+		return fake.PublicPipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.publicPipelinesReturns.result1, fake.publicPipelinesReturns.result2
+}
+
+func (fake *FakeTeam) PublicPipelinesCallCount() int {
+	fake.publicPipelinesMutex.RLock()
+	defer fake.publicPipelinesMutex.RUnlock()
+	return len(fake.publicPipelinesArgsForCall)
+}
+
+func (fake *FakeTeam) PublicPipelinesReturns(result1 []dbng.Pipeline, result2 error) {
+	fake.PublicPipelinesStub = nil
+	fake.publicPipelinesReturns = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) PublicPipelinesReturnsOnCall(i int, result1 []dbng.Pipeline, result2 error) {
+	fake.PublicPipelinesStub = nil
+	if fake.publicPipelinesReturnsOnCall == nil {
+		fake.publicPipelinesReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Pipeline
+			result2 error
+		})
+	}
+	fake.publicPipelinesReturnsOnCall[i] = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) VisiblePipelines() ([]dbng.Pipeline, error) {
+	fake.visiblePipelinesMutex.Lock()
+	ret, specificReturn := fake.visiblePipelinesReturnsOnCall[len(fake.visiblePipelinesArgsForCall)]
+	fake.visiblePipelinesArgsForCall = append(fake.visiblePipelinesArgsForCall, struct{}{})
+	fake.recordInvocation("VisiblePipelines", []interface{}{})
+	fake.visiblePipelinesMutex.Unlock()
+	if fake.VisiblePipelinesStub != nil {
+		return fake.VisiblePipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.visiblePipelinesReturns.result1, fake.visiblePipelinesReturns.result2
+}
+
+func (fake *FakeTeam) VisiblePipelinesCallCount() int {
+	fake.visiblePipelinesMutex.RLock()
+	defer fake.visiblePipelinesMutex.RUnlock()
+	return len(fake.visiblePipelinesArgsForCall)
+}
+
+func (fake *FakeTeam) VisiblePipelinesReturns(result1 []dbng.Pipeline, result2 error) {
+	fake.VisiblePipelinesStub = nil
+	fake.visiblePipelinesReturns = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) VisiblePipelinesReturnsOnCall(i int, result1 []dbng.Pipeline, result2 error) {
+	fake.VisiblePipelinesStub = nil
+	if fake.visiblePipelinesReturnsOnCall == nil {
+		fake.visiblePipelinesReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Pipeline
+			result2 error
+		})
+	}
+	fake.visiblePipelinesReturnsOnCall[i] = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTeam) CreateOneOffBuild() (dbng.Build, error) {
@@ -1525,6 +1687,12 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.savePipelineMutex.RUnlock()
 	fake.findPipelineByNameMutex.RLock()
 	defer fake.findPipelineByNameMutex.RUnlock()
+	fake.pipelinesMutex.RLock()
+	defer fake.pipelinesMutex.RUnlock()
+	fake.publicPipelinesMutex.RLock()
+	defer fake.publicPipelinesMutex.RUnlock()
+	fake.visiblePipelinesMutex.RLock()
+	defer fake.visiblePipelinesMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()
 	defer fake.createOneOffBuildMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()

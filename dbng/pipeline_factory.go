@@ -1,11 +1,17 @@
 package dbng
 
-import "github.com/concourse/atc/db/lock"
+import (
+	"database/sql"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/atc/db/lock"
+)
 
 //go:generate counterfeiter . PipelineFactory
 
 type PipelineFactory interface {
 	GetPipelineByID(teamID int, pipelineID int) Pipeline
+	PublicPipelines() ([]Pipeline, error)
 }
 
 type pipelineFactory struct {
@@ -28,4 +34,25 @@ func (f *pipelineFactory) GetPipelineByID(teamID int, pipelineID int) Pipeline {
 		conn:        f.conn,
 		lockFactory: f.lockFactory,
 	}
+}
+
+func (f *pipelineFactory) PublicPipelines() ([]Pipeline, error) {
+	rows, err := pipelinesQuery.
+		Where(sq.Eq{"p.public": true}).
+		OrderBy("t.name, ordering").
+		RunWith(f.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	pipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return pipelines, nil
 }

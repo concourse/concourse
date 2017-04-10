@@ -52,7 +52,7 @@ var _ = Describe("Teams API", func() {
 
 			BeforeEach(func() {
 				disaster = errors.New("some error")
-				dbTeamFactory.FindTeamsReturns(nil, disaster)
+				dbTeamFactory.GetTeamsReturns(nil, disaster)
 			})
 
 			It("returns 500 Internal Server Error", func() {
@@ -87,7 +87,7 @@ var _ = Describe("Teams API", func() {
 				fakeTeamThree.AuthReturns(map[string]*json.RawMessage{
 					"fake-provider": (*json.RawMessage)(&data),
 				})
-				dbTeamFactory.FindTeamsReturns([]dbng.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
+				dbTeamFactory.GetTeamsReturns([]dbng.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -423,7 +423,7 @@ var _ = Describe("Teams API", func() {
 						teamName = atc.DefaultTeamName
 						fakeTeam.AdminReturns(true)
 						dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-						dbTeamFactory.FindTeamsReturns([]dbng.Team{fakeTeam}, nil)
+						dbTeamFactory.GetTeamsReturns([]dbng.Team{fakeTeam}, nil)
 					})
 
 					It("returns 403 Forbidden and backs off", func() {

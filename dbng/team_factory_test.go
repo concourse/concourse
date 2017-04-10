@@ -94,7 +94,7 @@ var _ = Describe("Team Factory", func() {
 		})
 
 		JustBeforeEach(func() {
-			teams, err = teamFactory.FindTeams()
+			teams, err = teamFactory.GetTeams()
 			Expect(err).ToNot(HaveOccurred())
 		})
 

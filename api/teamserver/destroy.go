@@ -40,7 +40,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if team.Admin() {
-		allTeams, err := s.teamFactory.FindTeams()
+		allTeams, err := s.teamFactory.GetTeams()
 		if err != nil {
 			hLog.Error("failed-to-get-teams", err)
 			w.WriteHeader(http.StatusInternalServerError)

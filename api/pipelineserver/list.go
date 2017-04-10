@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
@@ -25,13 +25,13 @@ func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var pipelines []db.SavedPipeline
+	var pipelines []dbng.Pipeline
 
 	authTeam, authTeamFound := auth.GetTeam(r)
 	if authTeamFound && authTeam.IsAuthorized(requestTeamName) {
-		pipelines, err = teamDB.GetPipelines()
+		pipelines, err = team.Pipelines()
 	} else {
-		pipelines, err = teamDB.GetPublicPipelines()
+		pipelines, err = team.PublicPipelines()
 	}
 
 	if err != nil {

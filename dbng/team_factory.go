@@ -16,7 +16,7 @@ import (
 type TeamFactory interface {
 	CreateTeam(atc.Team) (Team, error)
 	FindTeam(string) (Team, bool, error)
-	FindTeams() ([]Team, error)
+	GetTeams() ([]Team, error)
 	GetByID(teamID int) Team
 }
 
@@ -115,7 +115,7 @@ func (factory *teamFactory) FindTeam(teamName string) (Team, bool, error) {
 	return team, true, nil
 }
 
-func (factory *teamFactory) FindTeams() ([]Team, error) {
+func (factory *teamFactory) GetTeams() ([]Team, error) {
 	rows, err := psql.Select("id, name, admin, basic_auth, auth").
 		From("teams").
 		RunWith(factory.conn).

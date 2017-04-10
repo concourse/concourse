@@ -20,6 +20,17 @@ type FakePipelineFactory struct {
 	getPipelineByIDReturnsOnCall map[int]struct {
 		result1 dbng.Pipeline
 	}
+	PublicPipelinesStub        func() ([]dbng.Pipeline, error)
+	publicPipelinesMutex       sync.RWMutex
+	publicPipelinesArgsForCall []struct{}
+	publicPipelinesReturns     struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	publicPipelinesReturnsOnCall map[int]struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -73,11 +84,56 @@ func (fake *FakePipelineFactory) GetPipelineByIDReturnsOnCall(i int, result1 dbn
 	}{result1}
 }
 
+func (fake *FakePipelineFactory) PublicPipelines() ([]dbng.Pipeline, error) {
+	fake.publicPipelinesMutex.Lock()
+	ret, specificReturn := fake.publicPipelinesReturnsOnCall[len(fake.publicPipelinesArgsForCall)]
+	fake.publicPipelinesArgsForCall = append(fake.publicPipelinesArgsForCall, struct{}{})
+	fake.recordInvocation("PublicPipelines", []interface{}{})
+	fake.publicPipelinesMutex.Unlock()
+	if fake.PublicPipelinesStub != nil {
+		return fake.PublicPipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.publicPipelinesReturns.result1, fake.publicPipelinesReturns.result2
+}
+
+func (fake *FakePipelineFactory) PublicPipelinesCallCount() int {
+	fake.publicPipelinesMutex.RLock()
+	defer fake.publicPipelinesMutex.RUnlock()
+	return len(fake.publicPipelinesArgsForCall)
+}
+
+func (fake *FakePipelineFactory) PublicPipelinesReturns(result1 []dbng.Pipeline, result2 error) {
+	fake.PublicPipelinesStub = nil
+	fake.publicPipelinesReturns = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineFactory) PublicPipelinesReturnsOnCall(i int, result1 []dbng.Pipeline, result2 error) {
+	fake.PublicPipelinesStub = nil
+	if fake.publicPipelinesReturnsOnCall == nil {
+		fake.publicPipelinesReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Pipeline
+			result2 error
+		})
+	}
+	fake.publicPipelinesReturnsOnCall[i] = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakePipelineFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getPipelineByIDMutex.RLock()
 	defer fake.getPipelineByIDMutex.RUnlock()
+	fake.publicPipelinesMutex.RLock()
+	defer fake.publicPipelinesMutex.RUnlock()
 	return fake.invocations
 }
 

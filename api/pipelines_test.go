@@ -13,83 +13,88 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 )
 
 var _ = Describe("Pipelines API", func() {
-	var pipelineDB *dbfakes.FakePipelineDB
-	var expectedSavedPipeline db.SavedPipeline
+	var (
+		pipelineDB            *dbfakes.FakePipelineDB
+		pipelineFactory       *dbngfakes.FakePipelineFactory
+		expectedSavedPipeline db.SavedPipeline
+		fakeTeam              *dbngfakes.FakeTeam
 
+		publicPipeline        *dbngfakes.FakePipeline
+		anotherPublicPipeline *dbngfakes.FakePipeline
+		privatePipeline       *dbngfakes.FakePipeline
+	)
 	BeforeEach(func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
+		pipelineFactory = new(dbngfakes.FakePipelineFactory)
+		fakeTeam = new(dbngfakes.FakeTeam)
+
 		pipelineDBFactory.BuildReturns(pipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
 		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, true, nil)
 
-		publicPipeline := db.SavedPipeline{
-			ID:       1,
-			Paused:   true,
-			Public:   true,
-			TeamName: "main",
-			Pipeline: db.Pipeline{
-				Name: "public-pipeline",
-				Config: atc.Config{
-					Groups: atc.GroupConfigs{
-						{
-							Name:      "group2",
-							Jobs:      []string{"job3", "job4"},
-							Resources: []string{"resource3", "resource4"},
-						},
-					},
+		publicPipeline = new(dbngfakes.FakePipeline)
+		publicPipeline.IDReturns(1)
+		publicPipeline.PausedReturns(true)
+		publicPipeline.PublicReturns(true)
+		publicPipeline.TeamNameReturns("main")
+		publicPipeline.NameReturns("public-pipeline")
+		publicPipeline.ConfigReturns(atc.Config{
+			Groups: atc.GroupConfigs{
+				{
+					Name:      "group2",
+					Jobs:      []string{"job3", "job4"},
+					Resources: []string{"resource3", "resource4"},
 				},
 			},
-		}
-		anotherPublicPipeline := db.SavedPipeline{
-			ID:       2,
-			Paused:   true,
-			Public:   true,
-			TeamName: "another",
-			Pipeline: db.Pipeline{
-				Name: "another-pipeline",
-			},
-		}
-		privatePipeline := db.SavedPipeline{
-			ID:       3,
-			Paused:   false,
-			Public:   false,
-			TeamName: "main",
-			Pipeline: db.Pipeline{
-				Name: "private-pipeline",
-				Config: atc.Config{
-					Groups: atc.GroupConfigs{
-						{
-							Name:      "group1",
-							Jobs:      []string{"job1", "job2"},
-							Resources: []string{"resource1", "resource2"},
-						},
-					},
-				},
-			},
-		}
+		})
 
-		teamDB.GetPipelinesReturns([]db.SavedPipeline{
+		anotherPublicPipeline = new(dbngfakes.FakePipeline)
+		anotherPublicPipeline.IDReturns(2)
+		anotherPublicPipeline.PausedReturns(true)
+		anotherPublicPipeline.PublicReturns(true)
+		anotherPublicPipeline.TeamNameReturns("another")
+		anotherPublicPipeline.NameReturns("another-pipeline")
+
+		privatePipeline = new(dbngfakes.FakePipeline)
+		privatePipeline.IDReturns(3)
+		privatePipeline.PausedReturns(false)
+		privatePipeline.PublicReturns(false)
+		privatePipeline.TeamNameReturns("main")
+		privatePipeline.NameReturns("private-pipeline")
+		privatePipeline.ConfigReturns(atc.Config{
+			Groups: atc.GroupConfigs{
+				{
+					Name:      "group1",
+					Jobs:      []string{"job1", "job2"},
+					Resources: []string{"resource1", "resource2"},
+				},
+			},
+		})
+
+		fakeTeam.PipelinesReturns([]dbng.Pipeline{
 			privatePipeline,
 			publicPipeline,
 		}, nil)
 
-		teamDB.GetPrivateAndAllPublicPipelinesReturns([]db.SavedPipeline{
+		fakeTeam.VisiblePipelinesReturns([]dbng.Pipeline{
 			privatePipeline,
 			publicPipeline,
 			anotherPublicPipeline,
 		}, nil)
-		teamDB.GetPublicPipelinesReturns([]db.SavedPipeline{publicPipeline}, nil)
+		fakeTeam.PublicPipelinesReturns([]dbng.Pipeline{publicPipeline}, nil)
 
-		pipelinesDB.GetAllPublicPipelinesReturns([]db.SavedPipeline{publicPipeline, anotherPublicPipeline}, nil)
+		pipelineFactory.PublicPipelinesReturns([]dbng.Pipeline{publicPipeline, anotherPublicPipeline}, nil)
 	})
 
-	Describe("GET /api/v1/pipelines", func() {
+	FDescribe("GET /api/v1/pipelines", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
@@ -116,8 +121,8 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("constructs teamDB with provided team name", func() {
-				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
+				Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+				Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("some-team"))
 			})
 		})
 
@@ -127,7 +132,7 @@ var _ = Describe("Pipelines API", func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
-			It("returns only public pipelines", func() {
+			FIt("returns only public pipelines", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -211,7 +216,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the call to get active pipelines fails", func() {
 				BeforeEach(func() {
-					teamDB.GetPrivateAndAllPublicPipelinesReturns(nil, errors.New("disaster"))
+					fakeTeam.VisiblePipelinesReturns(nil, errors.New("disaster"))
 				})
 
 				It("returns 500 internal server error", func() {

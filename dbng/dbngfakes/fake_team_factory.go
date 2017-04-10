@@ -37,14 +37,14 @@ type FakeTeamFactory struct {
 		result2 bool
 		result3 error
 	}
-	FindTeamsStub        func() ([]dbng.Team, error)
-	findTeamsMutex       sync.RWMutex
-	findTeamsArgsForCall []struct{}
-	findTeamsReturns     struct {
+	GetTeamsStub        func() ([]dbng.Team, error)
+	getTeamsMutex       sync.RWMutex
+	getTeamsArgsForCall []struct{}
+	getTeamsReturns     struct {
 		result1 []dbng.Team
 		result2 error
 	}
-	findTeamsReturnsOnCall map[int]struct {
+	getTeamsReturnsOnCall map[int]struct {
 		result1 []dbng.Team
 		result2 error
 	}
@@ -168,44 +168,44 @@ func (fake *FakeTeamFactory) FindTeamReturnsOnCall(i int, result1 dbng.Team, res
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeamFactory) FindTeams() ([]dbng.Team, error) {
-	fake.findTeamsMutex.Lock()
-	ret, specificReturn := fake.findTeamsReturnsOnCall[len(fake.findTeamsArgsForCall)]
-	fake.findTeamsArgsForCall = append(fake.findTeamsArgsForCall, struct{}{})
-	fake.recordInvocation("FindTeams", []interface{}{})
-	fake.findTeamsMutex.Unlock()
-	if fake.FindTeamsStub != nil {
-		return fake.FindTeamsStub()
+func (fake *FakeTeamFactory) GetTeams() ([]dbng.Team, error) {
+	fake.getTeamsMutex.Lock()
+	ret, specificReturn := fake.getTeamsReturnsOnCall[len(fake.getTeamsArgsForCall)]
+	fake.getTeamsArgsForCall = append(fake.getTeamsArgsForCall, struct{}{})
+	fake.recordInvocation("GetTeams", []interface{}{})
+	fake.getTeamsMutex.Unlock()
+	if fake.GetTeamsStub != nil {
+		return fake.GetTeamsStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.findTeamsReturns.result1, fake.findTeamsReturns.result2
+	return fake.getTeamsReturns.result1, fake.getTeamsReturns.result2
 }
 
-func (fake *FakeTeamFactory) FindTeamsCallCount() int {
-	fake.findTeamsMutex.RLock()
-	defer fake.findTeamsMutex.RUnlock()
-	return len(fake.findTeamsArgsForCall)
+func (fake *FakeTeamFactory) GetTeamsCallCount() int {
+	fake.getTeamsMutex.RLock()
+	defer fake.getTeamsMutex.RUnlock()
+	return len(fake.getTeamsArgsForCall)
 }
 
-func (fake *FakeTeamFactory) FindTeamsReturns(result1 []dbng.Team, result2 error) {
-	fake.FindTeamsStub = nil
-	fake.findTeamsReturns = struct {
+func (fake *FakeTeamFactory) GetTeamsReturns(result1 []dbng.Team, result2 error) {
+	fake.GetTeamsStub = nil
+	fake.getTeamsReturns = struct {
 		result1 []dbng.Team
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTeamFactory) FindTeamsReturnsOnCall(i int, result1 []dbng.Team, result2 error) {
-	fake.FindTeamsStub = nil
-	if fake.findTeamsReturnsOnCall == nil {
-		fake.findTeamsReturnsOnCall = make(map[int]struct {
+func (fake *FakeTeamFactory) GetTeamsReturnsOnCall(i int, result1 []dbng.Team, result2 error) {
+	fake.GetTeamsStub = nil
+	if fake.getTeamsReturnsOnCall == nil {
+		fake.getTeamsReturnsOnCall = make(map[int]struct {
 			result1 []dbng.Team
 			result2 error
 		})
 	}
-	fake.findTeamsReturnsOnCall[i] = struct {
+	fake.getTeamsReturnsOnCall[i] = struct {
 		result1 []dbng.Team
 		result2 error
 	}{result1, result2}
@@ -266,8 +266,8 @@ func (fake *FakeTeamFactory) Invocations() map[string][][]interface{} {
 	defer fake.createTeamMutex.RUnlock()
 	fake.findTeamMutex.RLock()
 	defer fake.findTeamMutex.RUnlock()
-	fake.findTeamsMutex.RLock()
-	defer fake.findTeamsMutex.RUnlock()
+	fake.getTeamsMutex.RLock()
+	defer fake.getTeamsMutex.RUnlock()
 	fake.getByIDMutex.RLock()
 	defer fake.getByIDMutex.RUnlock()
 	return fake.invocations

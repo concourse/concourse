@@ -2,10 +2,10 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func Pipelines(savedPipelines []db.SavedPipeline) []atc.Pipeline {
+func Pipelines(savedPipelines []dbng.Pipeline) []atc.Pipeline {
 	pipelines := make([]atc.Pipeline, len(savedPipelines))
 
 	for i := range savedPipelines {

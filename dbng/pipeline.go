@@ -19,7 +19,13 @@ type Pipeline interface {
 	ID() int
 	Name() string
 	TeamID() int
+	TeamName() string
 	ConfigVersion() ConfigVersion
+	Config() atc.Config
+	Paused() bool
+	Public() bool
+
+	Reload() (bool, error)
 
 	SaveJob(job atc.JobConfig) error
 	CreateJobBuild(jobName string) (Build, error)
@@ -37,13 +43,18 @@ type Pipeline interface {
 	ResourceType(name string) (ResourceType, bool, error)
 
 	Destroy() error
+	Expose() error
 }
 
 type pipeline struct {
 	id            int
 	name          string
 	teamID        int
+	teamName      string
 	configVersion ConfigVersion
+	config        atc.Config
+	paused        bool
+	public        bool
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -54,7 +65,18 @@ type ConfigVersion int
 
 type PipelinePausedState string
 
-const unqualifiedPipelineColumns = "id, name, version, team_id"
+var pipelinesQuery = psql.Select(`
+		p.id,
+		p.name,
+		p.version,
+		p.team_id,
+		t.name,
+		p.config,
+		p.paused,
+		p.public
+	`).
+	From("pipelines p").
+	LeftJoin("teams t ON p.team_id = t.id")
 
 const (
 	PipelinePaused   PipelinePausedState = "paused"
@@ -78,10 +100,37 @@ func (state PipelinePausedState) Bool() *bool {
 	}
 }
 
+func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
+	return &pipeline{
+		conn:        conn,
+		lockFactory: lockFactory,
+	}
+}
+
 func (p *pipeline) ID() int                      { return p.id }
 func (p *pipeline) Name() string                 { return p.name }
 func (p *pipeline) TeamID() int                  { return p.teamID }
+func (p *pipeline) TeamName() string             { return p.teamName }
 func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
+func (p *pipeline) Config() atc.Config           { return p.config }
+func (p *pipeline) Paused() bool                 { return p.paused }
+func (p *pipeline) Public() bool                 { return p.public }
+
+func (p *pipeline) Reload() (bool, error) {
+	row := pipelinesQuery.Where(sq.Eq{"p.id": p.id}).
+		RunWith(p.conn).
+		QueryRow()
+
+	err := scanPipeline(p, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
 
 func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	tx, err := p.conn.Begin()
@@ -220,6 +269,18 @@ func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 	}
 
 	return resourceType, true, nil
+}
+
+func (p *pipeline) Expose() error {
+	_, err := psql.Update("pipelines").
+		Set("public", true).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+
+	return err
 }
 
 func (p *pipeline) Destroy() error {

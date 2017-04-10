@@ -14,6 +14,6 @@ func (s *Server) GetPipeline(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Han
 		pipeline := pipelineDB.Pipeline()
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(present.Pipeline(pipeline))
+		json.NewEncoder(w).Encode(present.DBPipeline(pipeline))
 	})
 }

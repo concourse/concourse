@@ -114,7 +114,7 @@ func NewHandler(
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, externalURL, pipeDB)
 
-	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory, pipelinesDB)
+	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, teamDBFactory, dbPipelineFactory)
 
 	configServer := configserver.NewServer(logger, teamDBFactory, dbTeamFactory)
 

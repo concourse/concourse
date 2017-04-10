@@ -8,21 +8,24 @@ import (
 )
 
 type Server struct {
-	logger      lager.Logger
-	teamFactory dbng.TeamFactory
-	rejector    auth.Rejector
-	pipelinesDB db.PipelinesDB
+	logger          lager.Logger
+	teamFactory     dbng.TeamFactory
+	teamDBFactory   db.TeamDBFactory
+	rejector        auth.Rejector
+	pipelineFactory dbng.PipelineFactory
 }
 
 func NewServer(
 	logger lager.Logger,
 	teamFactory dbng.TeamFactory,
-	pipelinesDB db.PipelinesDB,
+	teamDBFactory db.TeamDBFactory,
+	pipelineFactory dbng.PipelineFactory,
 ) *Server {
 	return &Server{
-		logger:      logger,
-		teamFactory: teamFactory,
-		rejector:    auth.UnauthorizedRejector{},
-		pipelinesDB: pipelinesDB,
+		logger:          logger,
+		teamFactory:     teamFactory,
+		teamDBFactory:   teamDBFactory,
+		rejector:        auth.UnauthorizedRejector{},
+		pipelineFactory: pipelineFactory,
 	}
 }
