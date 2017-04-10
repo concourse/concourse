@@ -79,7 +79,9 @@ case $1 in
     cat /var/vcap/jobs/groundcrew/config/worker.json | \
       sed -e "s/HOSTNAME_REPLACE_ME/$(hostname | cut -d '-' -f 2-)/g" | \
       sed -e 's/"START_TIME_REPLACE_ME"/'$(date +%s)'/g' | \
-      /var/vcap/packages/groundcrew/bin/groundcrew add-certificate-symlinks <%= p("certificates_path") %> --log-path $LOG_DIR/beacon.stdout.log | \
+<% if_p("certificates_path") do |certs| %> \
+      /var/vcap/packages/groundcrew/bin/groundcrew add-certificate-symlinks <%= esc(certs) %> --log-path $LOG_DIR/beacon.stdout.log | \
+<% end %> \
       /var/vcap/packages/resource_discovery/bin/resource_discovery /var/vcap/packages/*/resource_metadata.json > \
       $RUN_DIR/worker.json
 
