@@ -13,5 +13,5 @@ fi
 
 pushd ${GOPATH}/src/github.com/concourse/atc
   go install github.com/onsi/ginkgo/ginkgo
-  ginkgo -r -p -race -skipPackage=cessna "$@"
+  ginkgo -r -p -race -skipPackage=cessna -flakeAttempts 3 "$@"
 popd
