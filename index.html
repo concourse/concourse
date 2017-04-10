@@ -35,14 +35,13 @@
       })
 
       var teamNameRegExp =  /\/teams\/([^/]+)\/.*/;
-      var redirectURLRegExp = /^(?:\/[a-zA-Z0-9\-]*)+\/?$/;
 
       app.ports.requestLoginRedirect.subscribe(function (message) {
         setTimeout(function(){
           var path = document.location.pathname;
           var query = document.location.search;
 
-          if(path.match(redirectURLRegExp)){
+          if(path.charAt(0) == "/") {
               var redirect = encodeURIComponent(path + query );
               var matches = path.match(teamNameRegExp);
               var loginUrl;
