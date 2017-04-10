@@ -93,7 +93,7 @@ func (command *VolumesCommand) volumeIdentifier(volume atc.Volume) string {
 		return volume.BaseResourceType.Name
 	}
 
-	return ""
+	return "n/a"
 }
 
 func presentMap(version interface{}) string {
