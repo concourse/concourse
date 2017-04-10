@@ -16,7 +16,7 @@ type PostgresConfig struct {
 	User     string `long:"user"     description:"The user to sign in as."`
 	Password string `long:"password" description:"The user's password."`
 
-	SSLMode    string   `long:"sslmode"     description:"Whether or not to use SSL." default:"verify-full" choice:"disable" choice:"require" choice:"verify-ca" choice:"verify-full"`
+	SSLMode    string   `long:"sslmode"     description:"Whether or not to use SSL." default:"disable" choice:"disable" choice:"require" choice:"verify-ca" choice:"verify-full"`
 	CACert     FileFlag `long:"ca-cert"     description:"CA cert file location, to verify when connecting with SSL."`
 	ClientCert FileFlag `long:"client-cert" description:"Client cert file location."`
 	ClientKey  FileFlag `long:"client-key"  description:"Client key file location."`
