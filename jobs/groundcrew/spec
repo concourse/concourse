@@ -140,7 +140,6 @@ properties:
     description: |
       Path to certificates on the worker VM. It will be bind-mounted into
       containers created on the worker.
-    default: ""
 
   additional_resource_types:
     description: |
