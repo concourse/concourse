@@ -49,9 +49,11 @@
     "baggageclaim_url" => baggageclaim_url,
 
     "resource_types" => p("additional_resource_types"),
-
-    "certificates_path" => p("certificates_path")
   }
+
+  if_p("certificates_path") do |certificates_path|
+    payload["certificates_path"] = certificates_path
+  end
 
   if_p("http_proxy_url") do |http_proxy_url|
     payload["http_proxy_url"] = http_proxy_url
