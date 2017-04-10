@@ -30,10 +30,16 @@ func (config PostgresConfig) ConnectionString() string {
 	}
 
 	properties := map[string]interface{}{
-		"dbname":   config.Database,
-		"sslmode":  config.SSLMode,
-		"user":     config.User,
-		"password": config.Password,
+		"dbname":  config.Database,
+		"sslmode": config.SSLMode,
+	}
+
+	if config.User != "" {
+		properties["user"] = config.User
+	}
+
+	if config.Password != "" {
+		properties["password"] = config.Password
 	}
 
 	if config.Socket != "" {
@@ -60,6 +66,14 @@ func (config PostgresConfig) ConnectionString() string {
 		var escV string
 		switch x := v.(type) {
 		case string:
+			if x == "" {
+				// technically this should explicitly set it as an empty string, but
+				// because pgx and pq don't agree on ' vs. ", we can't make both happy.
+				//
+				// so just skip it.
+				continue
+			}
+
 			// technically there's all sorts of escaping we should do here, bug
 			// pgx expects double quotes and pq expects single quotes.
 			//
