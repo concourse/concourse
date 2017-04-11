@@ -193,4 +193,70 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 			}, 5*time.Minute, 10*time.Second).Should(BeFalse())
 		})
 	})
+
+	FDescribe("container for resource that is updated", func() {
+		var dbConn *sql.DB
+
+		BeforeEach(func() {
+			var err error
+			dbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", atcIP))
+			Expect(err).ToNot(HaveOccurred())
+
+			Deploy("deployments/single-vm.yml")
+		})
+
+		It("has its resource config, resource config uses and container removed", func() {
+			Skip("skipping until resource containers are updated when resource config is changed #143266451")
+
+			By("setting pipeline that creates resource config")
+			fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
+
+			By("unpausing the pipeline")
+			fly("unpause-pipeline", "-p", "resource-gc-test")
+
+			By("checking resource")
+			fly("check-resource", "-r", "resource-gc-test/tick-tock")
+
+			By("getting the resource config")
+			var originalResourceConfigID int
+			err := psql.Select("id").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&originalResourceConfigID)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(originalResourceConfigID).NotTo(BeZero())
+
+			By("getting the resource config container")
+			containers := flyTable("containers")
+			var originalCheckContainerHandle string
+			for _, container := range containers {
+				if container["type"] == "check" {
+					originalCheckContainerHandle = container["handle"]
+					break
+				}
+			}
+			Expect(originalCheckContainerHandle).NotTo(BeEmpty())
+
+			By("updating pipeline with new resource configuration")
+			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
+
+			By("eventually expiring the resource config")
+			Eventually(func() int {
+				var resourceConfigID int
+				err := psql.Select("id").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&resourceConfigID)
+				Expect(err).ToNot(HaveOccurred())
+
+				return resourceConfigID
+			}, 5*time.Minute, 10*time.Second).ShouldNot(Equal(originalResourceConfigID))
+
+			By(fmt.Sprintf("eventually expiring the resource config container: %s", originalCheckContainerHandle))
+			Eventually(func() bool {
+				containers := flyTable("containers")
+				for _, container := range containers {
+					if container["type"] == "check" && container["handle"] == originalCheckContainerHandle {
+						return true
+					}
+				}
+				return false
+			}, 5*time.Minute, 10*time.Second).Should(BeFalse())
+		})
+	})
 })
