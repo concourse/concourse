@@ -32,7 +32,11 @@ exec ssh \
   -o ServerAliveInterval=8 \
   -o ServerAliveCountMax=3 \
   -i "$WORKER_KEY" \
-  -R 0.0.0.0:0:127.0.0.1:7777 \
+  -R 0.0.0.0:7777:127.0.0.1:7777 \
+  -R 0.0.0.0:7788:127.0.0.1:7788 \
   -p "$PORT" \
   "$HOST" \
-  forward-worker < "$WORKER_PAYLOAD"
+  forward-worker \
+    --garden 0.0.0.0:7777 \
+    --baggageclaim 0.0.0.0:7788 \
+    < "$WORKER_PAYLOAD"
