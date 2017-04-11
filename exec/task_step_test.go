@@ -134,8 +134,8 @@ var _ = Describe("GardenFactory", func() {
 
 			BeforeEach(func() {
 				fetchedConfig = atc.TaskConfig{
-					Platform: "some-platform",
-					Image:    "some-image",
+					Platform:  "some-platform",
+					RootFsUri: "some-image",
 					ImageResource: &atc.ImageResource{
 						Type:   "docker",
 						Source: atc.Source{"some": "source"},
@@ -279,9 +279,9 @@ var _ = Describe("GardenFactory", func() {
 
 						BeforeEach(func() {
 							configSource.FetchConfigReturns(atc.TaskConfig{
-								Platform: "some-platform",
-								Image:    "some-image",
-								Params:   map[string]string{"SOME": "params"},
+								Platform:  "some-platform",
+								RootFsUri: "some-image",
+								Params:    map[string]string{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},
@@ -440,9 +440,9 @@ var _ = Describe("GardenFactory", func() {
 							otherInputSource = new(workerfakes.FakeArtifactSource)
 
 							configSource.FetchConfigReturns(atc.TaskConfig{
-								Platform: "some-platform",
-								Image:    "some-image",
-								Params:   map[string]string{"SOME": "params"},
+								Platform:  "some-platform",
+								RootFsUri: "some-image",
+								Params:    map[string]string{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},
@@ -557,9 +557,9 @@ var _ = Describe("GardenFactory", func() {
 					Context("when the configuration specifies paths for outputs", func() {
 						BeforeEach(func() {
 							configSource.FetchConfigReturns(atc.TaskConfig{
-								Platform: "some-platform",
-								Image:    "some-image",
-								Params:   map[string]string{"SOME": "params"},
+								Platform:  "some-platform",
+								RootFsUri: "some-image",
+								Params:    map[string]string{"SOME": "params"},
 								Run: atc.TaskRunConfig{
 									Path: "ls",
 									Args: []string{"some", "args"},
@@ -1004,9 +1004,9 @@ var _ = Describe("GardenFactory", func() {
 									Context("when the task config also specifies image", func() {
 										BeforeEach(func() {
 											configWithImage := atc.TaskConfig{
-												Platform: "some-platform",
-												Image:    "some-image",
-												Params:   map[string]string{"SOME": "params"},
+												Platform:  "some-platform",
+												RootFsUri: "some-image",
+												Params:    map[string]string{"SOME": "params"},
 												Run: atc.TaskRunConfig{
 													Path: "ls",
 													Args: []string{"some", "args"},
@@ -1055,8 +1055,8 @@ var _ = Describe("GardenFactory", func() {
 									Context("when the task config also specifies image and image_resource", func() {
 										BeforeEach(func() {
 											configWithImageAndImageResource := atc.TaskConfig{
-												Platform: "some-platform",
-												Image:    "some-image",
+												Platform:  "some-platform",
+												RootFsUri: "some-image",
 												ImageResource: &atc.ImageResource{
 													Type:   "docker",
 													Source: atc.Source{"some": "source"},
