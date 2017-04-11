@@ -40,7 +40,7 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 			return
 		}
 
-		token := pipelineResource.Config.Source["webhook_token"]
+		token := pipelineResource.Config.WebhookToken
 		if token != accessToken {
 			logger.Info("invalid-token-error", lager.Data{"error": fmt.Sprintf("Actual token %s does not match expected token %s", accessToken, token)})
 			w.WriteHeader(http.StatusUnauthorized)
