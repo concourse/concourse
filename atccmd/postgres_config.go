@@ -2,6 +2,8 @@ package atccmd
 
 import (
 	"fmt"
+	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -66,19 +68,7 @@ func (config PostgresConfig) ConnectionString() string {
 		var escV string
 		switch x := v.(type) {
 		case string:
-			if x == "" {
-				// technically this should explicitly set it as an empty string, but
-				// because pgx and pq don't agree on ' vs. ", we can't make both happy.
-				//
-				// so just skip it.
-				continue
-			}
-
-			// technically there's all sorts of escaping we should do here, bug
-			// pgx expects double quotes and pq expects single quotes.
-			//
-			// pq is correct, but we can't satisfy both.
-			escV = x
+			escV = fmt.Sprintf("'%s'", strEsc.ReplaceAllString(x, `\$1`))
 		case uint16:
 			escV = fmt.Sprintf("%d", x)
 		default:
@@ -91,5 +81,9 @@ func (config PostgresConfig) ConnectionString() string {
 		)
 	}
 
+	sort.Strings(pairs)
+
 	return strings.Join(pairs, " ")
 }
+
+var strEsc = regexp.MustCompile(`([\\'])`)

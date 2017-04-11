@@ -17,7 +17,6 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/lib/pq"
 )
 
@@ -36,11 +35,7 @@ var _ = Describe("TLS", func() {
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(lockfakes.FakeConnector)
-		retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := lock.NewLockFactory(retryableConn)
+		lockFactory := lock.NewLockFactory(postgresRunner.OpenSingleton())
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 		page, err = agoutiDriver.NewPage()

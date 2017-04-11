@@ -9,7 +9,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
@@ -61,11 +60,7 @@ var _ = BeforeEach(func() {
 
 	dbConn = dbng.Wrap(postgresRunner.Open())
 
-	pgxConn := postgresRunner.OpenPgx()
-	fakeConnector := new(lockfakes.FakeConnector)
-	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-	lockFactory := lock.NewLockFactory(retryableConn)
-
+	lockFactory := lock.NewLockFactory(postgresRunner.OpenSingleton())
 	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
 
 	buildFactory = dbng.NewBuildFactory(dbConn)
