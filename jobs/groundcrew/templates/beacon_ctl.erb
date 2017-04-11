@@ -3,6 +3,12 @@
 set -e
 
 <%
+  require "shellwords"
+
+  def esc(x)
+    Shellwords.shellescape(x)
+  end
+
   tsa_addrs = nil
   tsa_port = nil
 
