@@ -50,75 +50,21 @@ var _ = Describe("[#129726011] Worker landing", func() {
 					waitForWorkersToBeRunning()
 				})
 			})
-
-			Context("with a build in-flight", func() {
-				var buildSession *gexec.Session
-				var buildID string
-
-				BeforeEach(func() {
-					buildSession = spawnFly("execute", "-c", "tasks/wait.yml")
-					Eventually(buildSession).Should(gbytes.Say("executing build"))
-
-					buildRegex := regexp.MustCompile(`executing build (\d+)`)
-					matches := buildRegex.FindSubmatch(buildSession.Out.Contents())
-					buildID = string(matches[1])
-
-					Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
-				})
-
-				AfterEach(func() {
-					buildSession.Signal(os.Interrupt)
-					<-buildSession.Exited
-				})
-
-				It("waits for the build", func() {
-					Eventually(restartSession).Should(gbytes.Say(`Updating (instance|job)`))
-					Consistently(restartSession, 5*time.Minute).ShouldNot(gexec.Exit())
-				})
-
-				It("finishes restarting once the build is done", func() {
-					By("hijacking the build to tell it to finish")
-					<-spawnFly(
-						"hijack",
-						"-b", buildID,
-						"-s", "one-off",
-						"touch", "/tmp/stop-waiting",
-					).Exited
-
-					By("waiting for the build to exit")
-					Eventually(buildSession).Should(gbytes.Say("done"))
-					<-buildSession.Exited
-					Expect(buildSession.ExitCode()).To(Equal(0))
-
-					By("successfully restarting")
-					<-restartSession.Exited
-					Expect(restartSession.ExitCode()).To(Equal(0))
-				})
-			})
 		})
-
-		// Describe("recreating the worker", func() {
-		// 	var landingWorkerName string
-		// 	var recreateSession *gexec.Session
-
-		// 	JustBeforeEach(func() {
-		// 		recreateSession = spawnBosh("recreate", "worker/0")
-		// 		landingWorkerName = waitForLandingWorker()
-		// 	})
-
-		// 	Describe("after the recreate is complete", func() {
-		// 		XIt("no longer has the volumes", func() {
-		// 		})
-		// 	})
-		// })
 	})
 
 	describeRestartingTheWorker := func() {
 		Describe("restarting the worker", func() {
 			var restartSession *gexec.Session
+			var restartingWorkerName string
 
 			JustBeforeEach(func() {
 				restartSession = spawnBosh("restart", "worker/0")
+				restartingWorkerName = waitForLandingOrLandedWorker()
+			})
+
+			AfterEach(func() {
+				<-restartSession.Exited
 			})
 
 			Context("with volumes and containers present", func() {
@@ -184,6 +130,55 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				It("does not wait for the build", func() {
 					By("completing the restart without the drain timeout kicking in")
 					Eventually(restartSession, 5*time.Minute).Should(gexec.Exit(0))
+				})
+			})
+
+			Context("with uninterruptible build in-flight", func() {
+				var buildSession *gexec.Session
+				var buildID string
+
+				BeforeEach(func() {
+					buildSession = spawnFly("execute", "-c", "tasks/wait.yml")
+					Eventually(buildSession).Should(gbytes.Say("executing build"))
+
+					buildRegex := regexp.MustCompile(`executing build (\d+)`)
+					matches := buildRegex.FindSubmatch(buildSession.Out.Contents())
+					buildID = string(matches[1])
+
+					Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+				})
+
+				AfterEach(func() {
+					buildSession.Signal(os.Interrupt)
+					<-buildSession.Exited
+				})
+
+				It("waits for the build", func() {
+					Eventually(restartSession).Should(gbytes.Say(`Updating (instance|job)`))
+					Consistently(restartSession, 5*time.Minute).ShouldNot(gexec.Exit())
+					<-flyHijackTask(
+						"-b", buildID,
+						"-s", "one-off",
+						"touch", "/tmp/stop-waiting",
+					).Exited
+				})
+
+				It("finishes restarting once the build is done", func() {
+					By("hijacking the build to tell it to finish")
+					<-flyHijackTask(
+						"-b", buildID,
+						"-s", "one-off",
+						"touch", "/tmp/stop-waiting",
+					).Exited
+
+					By("waiting for the build to exit")
+					Eventually(buildSession).Should(gbytes.Say("done"))
+					<-buildSession.Exited
+					Expect(buildSession.ExitCode()).To(Equal(0))
+
+					By("successfully restarting")
+					<-restartSession.Exited
+					Expect(restartSession.ExitCode()).To(Equal(0))
 				})
 			})
 		})
