@@ -38,10 +38,10 @@
   }
 
   \note{fix}{security}{
-    Previously the \code{redirect} query param used in the \reference{redirect}
-    flow for oAuth could be set to any url, sending you there after you login
-    to your oauth provider. Now Concourse verifies that the url is inside of
-    your concourse domain, and returns a 400 otherwise.
+    Previously the \code{redirect} query param used in the \code{redirect} flow
+    for oAuth could be set to any URL, sending you there after you log in to
+    your oauth provider. Now Concourse verifies that the URL is relative to
+    your Concourse domain, and returns a 400 otherwise.
   }
 
   \note{fix}{
