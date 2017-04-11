@@ -6,14 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/dbng"
 
 	"net/url"
-
-	"regexp"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -206,10 +205,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	w.Header().Set(CSRFHeaderName, csrfToken)
 
-	const redirectRegExp = `^(?:\/[a-zA-Z0-9\-]*)+\/?$`
-	regMatch, _ := regexp.Compile(redirectRegExp)
-
-	if oauthState.Redirect != "" && !regMatch.MatchString(oauthState.Redirect) {
+	if oauthState.Redirect != "" && !strings.HasPrefix(oauthState.Redirect, "/") {
 		hLog.Info("invalid-redirect")
 		http.Error(w, "invalid redirect", http.StatusBadRequest)
 		return

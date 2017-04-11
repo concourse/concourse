@@ -48,7 +48,7 @@ func NewGardenClientFactory() GardenClientFactory {
 			return nil, errors.New("worker does not have a garden address")
 		}
 
-		gconn := connection.NewWithDialerAndLogger(keepaliveDialer, logger)
+		gconn := connection.NewWithDialerAndLogger(keepaliveDialer(*w.GardenAddr()), logger)
 		return client.New(gconn), nil
 	}
 }

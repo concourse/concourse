@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,7 +46,6 @@ import (
 	"github.com/concourse/retryhttp"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/jackc/pgx"
 	"github.com/lib/pq"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -81,7 +81,7 @@ type ATCCommand struct {
 
 	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 
-	PostgresDataSource string `long:"postgres-data-source" default:"postgres://127.0.0.1:5432/atc?sslmode=disable" description:"PostgreSQL connection string."`
+	Postgres PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
 	DebugBindIP   IPFlag `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16 `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
@@ -165,9 +165,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	lockFactory := lock.NewLockFactory(lockConn)
 
-	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
+	listener := pq.NewListener(cmd.Postgres.ConnectionString(), time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
 
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
@@ -618,14 +619,14 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 
 func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn, error) {
 	driverName := "connection-counting"
-	metric.SetupConnectionCountingDriver("postgres", cmd.PostgresDataSource, driverName)
+	metric.SetupConnectionCountingDriver("postgres", cmd.Postgres.ConnectionString(), driverName)
 
-	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.PostgresDataSource)
+	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
 
-	dbngConn, err := migrations.DBNGConn(logger.Session("db.migrations"), driverName, cmd.PostgresDataSource)
+	dbngConn, err := migrations.DBNGConn(logger.Session("db.migrations"), driverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
@@ -636,29 +637,17 @@ func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn,
 	return metric.CountQueries(dbConn), dbngConn, nil
 }
 
-func (cmd *ATCCommand) constructLockConn() (*lock.RetryableConn, error) {
-	var pgxConfig pgx.ConnConfig
-	var err error
-
-	if strings.HasPrefix(cmd.PostgresDataSource, "postgres://") ||
-		strings.HasPrefix(cmd.PostgresDataSource, "postgresql://") {
-		pgxConfig, err = pgx.ParseURI(cmd.PostgresDataSource)
-	} else {
-		pgxConfig, err = pgx.ParseDSN(cmd.PostgresDataSource)
-	}
-
+func (cmd *ATCCommand) constructLockConn() (*sql.DB, error) {
+	dbConn, err := sql.Open("postgres", cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
 	}
 
-	connector := &lock.PgxConnector{PgxConfig: pgxConfig}
+	dbConn.SetMaxOpenConns(1)
+	dbConn.SetMaxIdleConns(1)
+	dbConn.SetConnMaxLifetime(0)
 
-	pgxConn, err := connector.Connect()
-	if err != nil {
-		return nil, err
-	}
-
-	return &lock.RetryableConn{Connector: connector, Conn: pgxConn}, nil
+	return dbConn, nil
 }
 
 func (cmd *ATCCommand) constructWorkerPool(

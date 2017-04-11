@@ -19,12 +19,14 @@ var _ = Describe("WorkerFactory", func() {
 
 	BeforeEach(func() {
 		atcWorker = atc.Worker{
-			GardenAddr:       "some-garden-addr",
-			BaggageclaimURL:  "some-bc-url",
-			HTTPProxyURL:     "some-http-proxy-url",
-			HTTPSProxyURL:    "some-https-proxy-url",
-			NoProxy:          "some-no-proxy",
-			ActiveContainers: 140,
+			GardenAddr:                 "some-garden-addr",
+			BaggageclaimURL:            "some-bc-url",
+			HTTPProxyURL:               "some-http-proxy-url",
+			HTTPSProxyURL:              "some-https-proxy-url",
+			NoProxy:                    "some-no-proxy",
+			CertificatesPath:           "some-certificate-path",
+			CertificatesSymlinkedPaths: []string{"some-certificate-symlinked-path-1", "some-certificate-symlinked-path-2"},
+			ActiveContainers:           140,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:    "some-resource-type",
@@ -139,6 +141,8 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.HTTPProxyURL()).To(Equal("some-http-proxy-url"))
 				Expect(foundWorker.HTTPSProxyURL()).To(Equal("some-https-proxy-url"))
 				Expect(foundWorker.NoProxy()).To(Equal("some-no-proxy"))
+				Expect(foundWorker.CertificatesPath()).To(Equal("some-certificate-path"))
+				Expect(foundWorker.CertificatesSymlinkedPaths()).To(Equal([]string{"some-certificate-symlinked-path-1", "some-certificate-symlinked-path-2"}))
 				Expect(foundWorker.ActiveContainers()).To(Equal(140))
 				Expect(foundWorker.ResourceTypes()).To(Equal([]atc.WorkerResourceType{
 					{

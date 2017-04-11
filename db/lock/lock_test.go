@@ -1,7 +1,6 @@
 package lock_test
 
 import (
-	"errors"
 	"sync"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	"github.com/jackc/pgx"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -21,8 +19,6 @@ var _ = Describe("Locks", func() {
 	var (
 		dbConn            db.Conn
 		listener          *pq.Listener
-		fakeConnector     *lockfakes.FakeConnector
-		pgxConn           *pgx.Conn
 		pipelineDBFactory db.PipelineDBFactory
 		teamDBFactory     db.TeamDBFactory
 		lockFactory       lock.LockFactory
@@ -46,11 +42,7 @@ var _ = Describe("Locks", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		pgxConn = postgresRunner.OpenPgx()
-		fakeConnector = new(lockfakes.FakeConnector)
-		retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory = lock.NewLockFactory(retryableConn)
+		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
@@ -157,9 +149,7 @@ var _ = Describe("Locks", func() {
 			var lockFactory2 lock.LockFactory
 
 			BeforeEach(func() {
-				pgxConn2 := postgresRunner.OpenPgx()
-				retryableConn2 := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn2}
-				lockFactory2 = lock.NewLockFactory(retryableConn2)
+				lockFactory2 = lock.NewLockFactory(postgresRunner.OpenSingleton())
 			})
 
 			It("does not acquire the lock", func() {
@@ -260,89 +250,6 @@ var _ = Describe("Locks", func() {
 
 					Expect(lock2Err).NotTo(HaveOccurred())
 					Expect(lock2Acquired).To(BeTrue())
-				})
-			})
-		})
-
-		Context("connection died", func() {
-			var pgxConn1 *pgx.Conn
-
-			Context("when it can create connection to db", func() {
-				BeforeEach(func() {
-					pgxConn1 = postgresRunner.OpenPgx()
-					fakeConnector.ConnectReturns(pgxConn1, nil)
-				})
-
-				It("recreates connection on Acquire", func() {
-					err := pgxConn.Close()
-					Expect(err).NotTo(HaveOccurred())
-
-					acquired, err := dbLock.Acquire()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					acquired, err = dbLock.Acquire()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(acquired).To(BeFalse())
-
-					Expect(fakeConnector.ConnectCallCount()).To(Equal(1))
-				})
-
-				It("recreates connection but returns ErrLostLock on release", func() {
-					acquired, err := dbLock.Acquire()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					err = pgxConn.Close()
-					Expect(err).NotTo(HaveOccurred())
-
-					Eventually(func() int {
-						var count int
-						err := pgxConn1.QueryRow(`SELECT count(*) FROM pg_locks WHERE objid = 42`).Scan(&count)
-						Expect(err).ToNot(HaveOccurred())
-						return count
-					}).Should(BeZero())
-
-					err = dbLock.Release()
-					Expect(err).To(Equal(lock.ErrLostLock))
-
-					acquired, err = dbLock.Acquire()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					Expect(fakeConnector.ConnectCallCount()).To(Equal(1))
-				})
-			})
-
-			Context("when it cannot create connection to db", func() {
-				BeforeEach(func() {
-					count := 0
-					fakeConnector.ConnectStub = func() (lock.DelegateConn, error) {
-						if count == 0 {
-							count++
-							return nil, errors.New("disaster")
-						} else {
-							return postgresRunner.OpenPgx(), nil
-						}
-					}
-				})
-
-				It("keeps trying to reconnect", func() {
-					err := pgxConn.Close()
-					Expect(err).NotTo(HaveOccurred())
-
-					acquired, err := dbLock.Acquire()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					err = dbLock.Release()
-					Expect(err).NotTo(HaveOccurred())
-
-					acquired, err = dbLock.Acquire()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(acquired).To(BeTrue())
-
-					Expect(fakeConnector.ConnectCallCount()).To(Equal(2))
 				})
 			})
 		})
