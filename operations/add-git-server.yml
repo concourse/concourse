@@ -1,0 +1,23 @@
+---
+- type: replace
+  path: /releases/-
+  value:
+    name: git-server
+    version: latest
+
+- type: replace
+  path: /instance_groups/-
+  value:
+    name: git-server
+    instances: 1
+    networks:
+    - name: topgun
+      static_ips: [((git-server-ip))]
+    vm_type: topgun
+    stemcell: trusty
+    jobs:
+    - release: git-server
+      name: git-server
+      properties:
+        repositories:
+        - some-repo

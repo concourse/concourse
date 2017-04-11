@@ -37,6 +37,7 @@ var (
 	atcIP, atcExternalURL     string
 	atcIP2, atcExternalURL2   string
 	atcExternalURLTLS         string
+	gitServerIP               string
 
 	concourseReleaseVersion, gardenRuncReleaseVersion string
 	stemcellVersion                                   string
@@ -114,6 +115,7 @@ var _ = BeforeEach(func() {
 	atcIP = fmt.Sprintf("10.234.%d.2", deploymentNumber)
 	atcIP2 = fmt.Sprintf("10.234.%d.3", deploymentNumber)
 	dbIP = fmt.Sprintf("10.234.%d.4", deploymentNumber)
+	gitServerIP = fmt.Sprintf("10.234.%d.5", deploymentNumber)
 
 	atcExternalURL = fmt.Sprintf("http://%s:8080", atcIP)
 	atcExternalURL2 = fmt.Sprintf("http://%s:8080", atcIP2)
@@ -148,6 +150,7 @@ func Deploy(manifest string, operations ...string) {
 			"-v", "atc-external-url-tls=" + atcExternalURLTLS,
 			"-v", "concourse-release-version=" + concourseReleaseVersion,
 			"-v", "garden-runc-release-version=" + gardenRuncReleaseVersion,
+			"-v", "git-server-ip=" + gitServerIP,
 
 			// 3363.10 becomes 3363.1 as it's floating point; quotes prevent that
 			"-v", "stemcell-version='" + stemcellVersion + "'",
