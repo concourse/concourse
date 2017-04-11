@@ -262,11 +262,24 @@ properties:
     description: |
       Name of the database to use from the `postgresql` link.
 
-  postgresql.address:
+  postgresql.host:
     description: |
-      Address of a PostgreSQL server to connect to, in `HOST:PORT` format.
+      IP address or DNS name of a PostgreSQL server to connect to.
 
       If not specified, one will be autodiscovered via BOSH links.
+
+  postgresql.port:
+    description: |
+      Port on which to connect to the server specified by `postgresql.host`.
+
+      If `postgresql.host` is not specified, this will be autodiscovered via
+      BOSH links, along with the host.
+    default: 5432
+
+  postgresql.address:
+    description: |
+      Deprecated. Shorthand for specifying `postgresql.host` and
+      `postgresql.port`.
 
   postgresql.database:
     description: |
