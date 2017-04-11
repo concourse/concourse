@@ -46,7 +46,7 @@ var _ = Describe("Fly CLI", func() {
 			[]byte(`---
 platform: some-platform
 
-image: ubuntu
+rootfs_uri: ubuntu
 
 inputs:
 - name: some-input
@@ -99,8 +99,8 @@ run:
 			planFactory.NewPlan(atc.TaskPlan{
 				Name: "one-off",
 				Config: &atc.TaskConfig{
-					Platform: "some-platform",
-					Image:    "ubuntu",
+					Platform:  "some-platform",
+					RootFsUri: "ubuntu",
 					Inputs: []atc.TaskInputConfig{
 						{Name: "some-input"},
 						{Name: "some-other-input"},
