@@ -129,8 +129,6 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 	})
 
 	Describe("container for resource when pipeline is paused", func() {
-		Skip("skipping until resource containers are cleaned up after pausing pipeline fixed #142391241")
-
 		var dbConn *sql.DB
 
 		BeforeEach(func() {
@@ -142,6 +140,8 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 		})
 
 		It("has its resource config, resource config uses and container removed", func() {
+			Skip("skipping until resource containers are cleaned up after pausing pipeline fixed #142391241")
+
 			By("setting pipeline that creates resource config")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
 
@@ -170,7 +170,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 			Expect(checkContainerHandle).NotTo(BeEmpty())
 
 			By("pausing the pipeline")
-			fly("unpause-pipeline", "-p", "resource-gc-test")
+			fly("pause-pipeline", "-p", "resource-gc-test")
 
 			By("eventually expiring the resource config")
 			Eventually(func() int {
