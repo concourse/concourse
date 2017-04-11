@@ -194,7 +194,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 		})
 	})
 
-	FDescribe("container for resource that is updated", func() {
+	Describe("container for resource that is updated", func() {
 		var dbConn *sql.DB
 
 		BeforeEach(func() {

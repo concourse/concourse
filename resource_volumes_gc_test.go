@@ -88,6 +88,67 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 		})
 	})
 
+	Describe("A resource that was updated", func() {
+		BeforeEach(func() {
+			Deploy("deployments/single-vm.yml")
+		})
+
+		It("has its resource cache, resource cache uses and resource cache volumes cleared out", func() {
+			By("setting pipeline that creates resource cache")
+			fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "volume-gc-test")
+
+			By("unpausing the pipeline")
+			fly("unpause-pipeline", "-p", "volume-gc-test")
+
+			By("triggering the job")
+			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
+
+			By("getting the resource cache volumes")
+			volumes := flyTable("volumes")
+			originalResourceVolumeHandles := []string{}
+			for _, volume := range volumes {
+				// there is going to be one for image resource
+				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
+					originalResourceVolumeHandles = append(originalResourceVolumeHandles, volume["handle"])
+				}
+			}
+			Expect(originalResourceVolumeHandles).To(HaveLen(1))
+
+			By("getting the resource caches")
+			var originalResourceCacheID int
+			err := psql.Select("id").From("resource_caches").Where("version LIKE ?", fmt.Sprint("%", "time", "%")).RunWith(dbConn).QueryRow().Scan(&originalResourceCacheID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(originalResourceCacheID).NotTo(BeZero())
+
+			By("updating pipeline and removing resource")
+			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")
+
+			By("eventually expiring the resource cache volumes")
+			Eventually(func() []string {
+				volumes := flyTable("volumes")
+				resourceVolumeHandles := []string{}
+				for _, volume := range volumes {
+					// there is going to be one for image resource
+					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
+						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
+					}
+				}
+				return resourceVolumeHandles
+			}, 5*time.Minute, 10*time.Second).ShouldNot(ContainElement(originalResourceVolumeHandles[0]))
+
+			By("expiring the resource caches")
+			var resourceCacheID int
+			err = psql.Select("id").From("resource_caches").Where("version LIKE ?", fmt.Sprint("%", "time", "%")).RunWith(dbConn).QueryRow().Scan(&resourceCacheID)
+			// depending on timing either the cache is gone or the new was created for new resource config
+			if err != nil {
+				Expect(err).To(Equal(sql.ErrNoRows))
+			} else {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(resourceCacheID).NotTo(Equal(originalResourceCacheID))
+			}
+		})
+	})
+
 	Describe("A resource in paused pipeline", func() {
 		BeforeEach(func() {
 			Deploy("deployments/single-vm.yml")
