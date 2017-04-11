@@ -27,11 +27,11 @@ const (
 	JobBadge       = "JobBadge"
 	MainJobBadge   = "MainJobBadge"
 
-	ListResources   = "ListResources"
-	GetResource     = "GetResource"
-	PauseResource   = "PauseResource"
-	UnpauseResource = "UnpauseResource"
-	CheckResource   = "CheckResource"
+	ListResources        = "ListResources"
+	GetResource          = "GetResource"
+	PauseResource        = "PauseResource"
+	UnpauseResource      = "UnpauseResource"
+	CheckResource        = "CheckResource"
 	CheckResourceWebHook = "CheckResourceWebHook"
 
 	ListResourceVersions          = "ListResourceVersions"
@@ -160,7 +160,7 @@ var Routes = rata.Routes([]rata.Route{
 
 	{Path: "/api/v1/teams/:team_name/auth/methods", Method: "GET", Name: ListAuthMethods},
 	{Path: "/api/v1/teams/:team_name/auth/token", Method: "GET", Name: GetAuthToken},
-	{Path: "/api/v1/teams/:team_name/auth/token/access", Method: "GET", Name: GetAccessToken},
+	{Path: "/api/v1/teams/:team_name/auth/access_token", Method: "GET", Name: GetAccessToken},
 	{Path: "/api/v1/user", Method: "GET", Name: GetUser},
 
 	{Path: "/api/v1/teams", Method: "GET", Name: ListTeams},

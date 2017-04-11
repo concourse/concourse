@@ -2,6 +2,7 @@ package resourceserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
@@ -26,12 +27,28 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 			return
 		}
 
-		//TODO: Validate that the token is mapped to the requested team associated with the resource
-		// using the pipelineDB that is passed into this method for that effort
-		scanner := s.scannerFactory.NewResourceScanner(pipelineDB, dbPipeline)
+		pipelineResource, found, err := pipelineDB.GetResource(resourceName)
+		if !found {
+			logger.Info("resource-not-found", lager.Data{"error": fmt.Sprintf("Resource not found %s", resourceName)})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
-		//TODO: Add better messaging and error codes
-		err := scanner.ScanFromVersion(logger, resourceName, nil)
+		if err != nil {
+			logger.Info("database-error", lager.Data{"error": err})
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		token := pipelineResource.Config.Source["webhook_token"]
+		if token != accessToken {
+			logger.Info("invalid-token-error", lager.Data{"error": fmt.Sprintf("Actual token %s does not match expected token %s", accessToken, token)})
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		scanner := s.scannerFactory.NewResourceScanner(pipelineDB, dbPipeline)
+		err = scanner.ScanFromVersion(logger, resourceName, nil)
 		switch scanErr := err.(type) {
 		case resource.ErrResourceScriptFailed:
 			checkResponseBody := atc.CheckResponseBody{

@@ -14,6 +14,7 @@ type CookieSetHandler struct {
 
 func (handler CookieSetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(AuthCookieName)
+
 	if err == nil {
 		ctx := context.WithValue(r.Context(), CSRFRequiredKey, true)
 		r = r.WithContext(ctx)

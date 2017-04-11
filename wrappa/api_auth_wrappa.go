@@ -47,6 +47,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		switch name {
 		// unauthenticated / delegating to handler
 		case atc.DownloadCLI,
+			atc.CheckResourceWebHook,
 			atc.ListAuthMethods,
 			atc.GetInfo,
 			atc.ListTeams,
@@ -116,7 +117,6 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 
 		// authorized (requested team matches resource team)
 		case atc.CheckResource,
-			atc.CheckResourceWebHook,
 			atc.CreateJobBuild,
 			atc.DeletePipeline,
 			atc.DisableResourceVersion,
@@ -147,7 +147,12 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		} else {
 			newHandler = auth.WrapHandler(newHandler, wrappa.authValidator, wrappa.userContextReader)
 		}
-		wrapped[name] = auth.CSRFValidationHandler(newHandler, rejector, wrappa.userContextReader)
+		if name != atc.CheckResourceWebHook {
+			wrapped[name] = auth.CSRFValidationHandler(newHandler, rejector, wrappa.userContextReader)
+		} else {
+			wrapped[name] = newHandler
+		}
+
 	}
 
 	return wrapped
