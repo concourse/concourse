@@ -13,7 +13,6 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
@@ -88,11 +87,7 @@ var _ = BeforeEach(func() {
 	dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(dbListener, dbConn)
 
-	pgxConn := postgresRunner.OpenPgx()
-	fakeConnector := new(lockfakes.FakeConnector)
-	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-	lockFactory = lock.NewLockFactory(retryableConn)
+	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 	sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 	teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)

@@ -2,6 +2,8 @@ package atccmd
 
 import (
 	"fmt"
+	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -16,7 +18,7 @@ type PostgresConfig struct {
 	User     string `long:"user"     description:"The user to sign in as."`
 	Password string `long:"password" description:"The user's password."`
 
-	SSLMode    string   `long:"sslmode"     description:"Whether or not to use SSL." default:"verify-full" choice:"disable" choice:"require" choice:"verify-ca" choice:"verify-full"`
+	SSLMode    string   `long:"sslmode"     description:"Whether or not to use SSL." default:"disable" choice:"disable" choice:"require" choice:"verify-ca" choice:"verify-full"`
 	CACert     FileFlag `long:"ca-cert"     description:"CA cert file location, to verify when connecting with SSL."`
 	ClientCert FileFlag `long:"client-cert" description:"Client cert file location."`
 	ClientKey  FileFlag `long:"client-key"  description:"Client key file location."`
@@ -30,10 +32,16 @@ func (config PostgresConfig) ConnectionString() string {
 	}
 
 	properties := map[string]interface{}{
-		"dbname":   config.Database,
-		"sslmode":  config.SSLMode,
-		"user":     config.User,
-		"password": config.Password,
+		"dbname":  config.Database,
+		"sslmode": config.SSLMode,
+	}
+
+	if config.User != "" {
+		properties["user"] = config.User
+	}
+
+	if config.Password != "" {
+		properties["password"] = config.Password
 	}
 
 	if config.Socket != "" {
@@ -60,11 +68,7 @@ func (config PostgresConfig) ConnectionString() string {
 		var escV string
 		switch x := v.(type) {
 		case string:
-			// technically there's all sorts of escaping we should do here, bug
-			// pgx expects double quotes and pq expects single quotes.
-			//
-			// pq is correct, but we can't satisfy both.
-			escV = x
+			escV = fmt.Sprintf("'%s'", strEsc.ReplaceAllString(x, `\$1`))
 		case uint16:
 			escV = fmt.Sprintf("%d", x)
 		default:
@@ -77,5 +81,9 @@ func (config PostgresConfig) ConnectionString() string {
 		)
 	}
 
+	sort.Strings(pairs)
+
 	return strings.Join(pairs, " ")
 }
+
+var strEsc = regexp.MustCompile(`([\\'])`)

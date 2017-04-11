@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"hash/crc32"
@@ -68,7 +69,7 @@ type lockFactory struct {
 	acquireMutex *sync.Mutex
 }
 
-func NewLockFactory(conn *RetryableConn) LockFactory {
+func NewLockFactory(conn *sql.DB) LockFactory {
 	return &lockFactory{
 		db: &lockDB{
 			conn:  conn,
@@ -176,7 +177,7 @@ func (l *lock) Release() error {
 }
 
 type lockDB struct {
-	conn  *RetryableConn
+	conn  *sql.DB
 	mutex *sync.Mutex
 }
 

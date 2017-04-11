@@ -16,7 +16,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/postgresrunner"
 	"github.com/tedsuo/ifrit"
@@ -98,14 +97,11 @@ var _ = BeforeEach(func() {
 
 	dbConn = dbng.Wrap(sqlDB)
 
-	pgxConn := postgresRunner.OpenPgx()
-	fakeConnector := new(lockfakes.FakeConnector)
-	retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
+	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
 	buildFactory = dbng.NewBuildFactory(dbConn)
 	volumeFactory = dbng.NewVolumeFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)
-	lockFactory = lock.NewLockFactory(retryableConn)
 	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
 	workerFactory = dbng.NewWorkerFactory(dbConn)
 	workerLifecycle = dbng.NewWorkerLifecycle(dbConn)
