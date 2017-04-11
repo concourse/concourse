@@ -99,8 +99,6 @@ var _ = BeforeEach(func() {
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
-	lockFactory = lock.NewLockFactory(retryableConn)
-
 	buildFactory = dbng.NewBuildFactory(dbConn)
 	volumeFactory = dbng.NewVolumeFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)

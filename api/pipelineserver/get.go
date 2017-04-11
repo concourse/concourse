@@ -9,11 +9,9 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) GetPipeline(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) GetPipeline(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pipeline := pipelineDB.Pipeline()
-
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(present.DBPipeline(pipeline))
+		json.NewEncoder(w).Encode(present.Pipeline(pipeline))
 	})
 }

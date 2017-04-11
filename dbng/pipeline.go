@@ -10,6 +10,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/db/lock"
 )
 
@@ -39,8 +40,14 @@ type Pipeline interface {
 		immediate bool,
 	) (lock.Lock, bool, error)
 
+	LoadVersionsDB() (*algorithm.VersionsDB, error)
+
+	Resource(name string) (Resource, bool, error)
+
 	ResourceTypes() ([]ResourceType, error)
 	ResourceType(name string) (ResourceType, bool, error)
+
+	Job(name string) (Job, bool, error)
 
 	Destroy() error
 	Expose() error
@@ -193,12 +200,41 @@ func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (*Reso
 		return nil, err
 	}
 
-	return &Resource{
-		ID:     resourceID,
-		Name:   name,
-		Type:   config.Type,
-		Source: config.Source,
-	}, nil
+	resource := &resource{conn: p.conn}
+	err = scanResource(resource, resourcesQuery.
+		Where(sq.Eq{"id": resourceID}).
+		RunWith(p.conn).
+		QueryRow(),
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return resource, nil
+}
+
+func (p *pipeline) Resource(name string) (*Resource, error) {
+	row := resourcesQuery.Where(sq.Eq{
+		"pipeline_id": p.id,
+		"name":        name,
+		"active":      true,
+	}).RunWith(p.conn).QueryRow()
+
+	resource := &resource{conn: p.conn}
+	err := scanResource(resource, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	return resource, true, nil
+
 }
 
 func (p *pipeline) SaveJob(job atc.JobConfig) error {
@@ -271,6 +307,27 @@ func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 	return resourceType, true, nil
 }
 
+func (p *pipeline) Job(name string) (Job, bool, error) {
+	row := jobQuery.Where(sq.Eq{
+		"j.pipeline_id": p.id,
+		"j.name":        name,
+		"j.active":      true,
+	}).RunWith(p.conn).QueryRow()
+
+	job := &job{conn: p.conn}
+	err := scanJob(job, row)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	return job, true, nil
+}
+
 func (p *pipeline) Expose() error {
 	_, err := psql.Update("pipelines").
 		Set("public", true).
@@ -306,6 +363,147 @@ func (p *pipeline) Destroy() error {
 	}
 
 	return tx.Commit()
+}
+
+func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
+	db := &algorithm.VersionsDB{
+		BuildOutputs:     []algorithm.BuildOutput{},
+		BuildInputs:      []algorithm.BuildInput{},
+		ResourceVersions: []algorithm.ResourceVersion{},
+		JobIDs:           map[string]int{},
+		ResourceIDs:      map[string]int{},
+	}
+	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, j.id").
+		From("build_outputs o, builds b, versioned_resources v, jobs j, resources r").
+		Where(sq.Eq{
+			"v.id":          "o.versioned_resource_id",
+			"b.id":          "o.build_id",
+			"j.id":          "b.job_id",
+			"r.id":          "v.resource_id",
+			"v.enabled":     true,
+			"b.status":      BuildStatusSucceeded,
+			"r.pipeline_id": p.id,
+		}).
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var output algorithm.BuildOutput
+		err := rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID, &output.BuildID, &output.JobID)
+		if err != nil {
+			return nil, err
+		}
+
+		output.ResourceVersion.CheckOrder = output.CheckOrder
+
+		db.BuildOutputs = append(db.BuildOutputs, output)
+	}
+
+	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, j.id").
+		From("build_inputs i, builds b, versioned_resources v, jobs j, resources r").
+		Where(sq.Eq{
+			"v.id":          "i.versioned_resource_id",
+			"b.id":          "i.build_id",
+			"j.id":          "b.job_id",
+			"r.id":          "v.resource_id",
+			"v.enabled":     true,
+			"r.pipeline_id": p.id,
+		}).
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var input algorithm.BuildInput
+		err := rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.BuildID, &input.InputName, &input.JobID)
+		if err != nil {
+			return nil, err
+		}
+
+		input.ResourceVersion.CheckOrder = input.CheckOrder
+
+		db.BuildInputs = append(db.BuildInputs, input)
+	}
+
+	rows, err = psql.Select("v.id, v.check_order, r.id").
+		From("versioned_resources v, resources r").
+		Where(sq.Eq{
+			"r.id":          "v.resource_id",
+			"v.enabled":     true,
+			"r.pipeline_id": p.id,
+		}).
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var output algorithm.ResourceVersion
+		err := rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID)
+		if err != nil {
+			return nil, err
+		}
+
+		db.ResourceVersions = append(db.ResourceVersions, output)
+	}
+
+	rows, err = psql.Select("j.name, j.id").
+		From("jobs j").
+		Where(sq.Eq{"j.pipeline_id": p.id}).
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		var id int
+		err := rows.Scan(&name, &id)
+		if err != nil {
+			return nil, err
+		}
+
+		db.JobIDs[name] = id
+	}
+
+	rows, err = psql.Select("r.name, r.id").
+		From("resources r").
+		Where(sq.Eq{"r.pipeline_id": p.id}).
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		var id int
+		err := rows.Scan(&name, &id)
+		if err != nil {
+			return nil, err
+		}
+
+		db.ResourceIDs[name] = id
+	}
+
+	return db, nil
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {

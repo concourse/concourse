@@ -769,9 +769,9 @@ var _ = Describe("Pipelines API", func() {
 					userContextReader.GetTeamReturns("a-team", true, true)
 				})
 
-				It("constructs teamDB with provided team name", func() {
+				FIt("constructs team with provided team name", func() {
 					Expect(dbTeamFactory.GetByIDCallCount()).To(Equal(1))
-					Expect(dbTeamFactory.GetByIArgsForCall(-1)).To(Equal("a-team"))
+					Expect(dbTeamFactory.GetByIDArgsForCall(0)).To(Equal("a-team"))
 				})
 
 				It("injects the proper pipelineDB", func() {
