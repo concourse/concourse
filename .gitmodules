@@ -223,10 +223,6 @@
 	path = src/github.com/mattn/go-colorable
 	url = https://github.com/mattn/go-colorable
 	branch = master
-[submodule "src/github.com/jackc/pgx"]
-	path = src/github.com/jackc/pgx
-	url = https://github.com/jackc/pgx
-	branch = master
 [submodule "src/code.cloudfoundry.org/urljoiner"]
 	path = src/code.cloudfoundry.org/urljoiner
 	url = https://github.com/cloudfoundry/urljoiner
