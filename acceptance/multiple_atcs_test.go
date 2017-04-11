@@ -15,7 +15,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Multiple ATCs", func() {
@@ -30,11 +29,7 @@ var _ = Describe("Multiple ATCs", func() {
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(dbfakes.FakeConnector)
-		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := db.NewLockFactory(retryableConn)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenSingleton())
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 
 		atcOneCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, NO_AUTH)

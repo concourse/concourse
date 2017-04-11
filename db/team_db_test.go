@@ -7,7 +7,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -39,11 +38,7 @@ var _ = Describe("TeamDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(dbfakes.FakeConnector)
-		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := db.NewLockFactory(retryableConn)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenSingleton())
 		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		database = db.NewSQL(dbConn, bus, lockFactory)
 

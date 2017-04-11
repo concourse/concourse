@@ -14,7 +14,6 @@ import (
 	"code.cloudfoundry.org/urljoiner"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
 )
 
@@ -53,11 +52,7 @@ var _ = Describe("Resource Pagination", func() {
 
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(dbfakes.FakeConnector)
-		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := db.NewLockFactory(retryableConn)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenSingleton())
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Keeping track of containers", func() {
@@ -32,11 +31,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(dbfakes.FakeConnector)
-		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := db.NewLockFactory(retryableConn)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenSingleton())
 		database = db.NewSQL(dbConn, bus, lockFactory)
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus, lockFactory)
 

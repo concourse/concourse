@@ -12,7 +12,6 @@ import (
 
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/dbng/migration"
-	"github.com/jackc/pgx"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -100,17 +99,22 @@ func (runner *Runner) Open() *sql.DB {
 	)
 	Expect(err).NotTo(HaveOccurred())
 
+	// only allow one connection so that we can detect any code paths that
+	// require more than one, which will deadlock if it's at the limit
 	dbConn.SetMaxOpenConns(1)
 
 	return dbConn
 }
 
-func (runner *Runner) OpenPgx() *pgx.Conn {
-	config, err := pgx.ParseDSN(runner.DataSourceName())
+func (runner *Runner) OpenSingleton() *sql.DB {
+	dbConn, err := sql.Open("postgres", runner.DataSourceName())
 	Expect(err).NotTo(HaveOccurred())
 
-	dbConn, err := pgx.Connect(config)
-	Expect(err).NotTo(HaveOccurred())
+	// only allow one connection, period. this matches production code use case,
+	// as this is used for advisory locks.
+	dbConn.SetMaxIdleConns(1)
+	dbConn.SetMaxOpenConns(1)
+	dbConn.SetConnMaxLifetime(0)
 
 	return dbConn
 }

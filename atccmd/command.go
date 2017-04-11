@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -46,7 +47,6 @@ import (
 	"github.com/concourse/retryhttp"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/jackc/pgx"
 	"github.com/lib/pq"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -158,6 +158,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	lockFactory := db.NewLockFactory(lockConn)
 
 	listener := pq.NewListener(cmd.Postgres.ConnectionString(), time.Second, time.Minute, nil)
@@ -621,30 +622,17 @@ func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn,
 	return metric.CountQueries(dbConn), dbngConn, nil
 }
 
-func (cmd *ATCCommand) constructLockConn() (*db.RetryableConn, error) {
-	dataSourceURI := cmd.Postgres.ConnectionString()
-
-	var pgxConfig pgx.ConnConfig
-	var err error
-	if strings.HasPrefix(dataSourceURI, "postgres://") ||
-		strings.HasPrefix(dataSourceURI, "postgresql://") {
-		pgxConfig, err = pgx.ParseURI(dataSourceURI)
-	} else {
-		pgxConfig, err = pgx.ParseDSN(dataSourceURI)
-	}
-
+func (cmd *ATCCommand) constructLockConn() (*sql.DB, error) {
+	dbConn, err := sql.Open("postgres", cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
 	}
 
-	connector := &db.PgxConnector{PgxConfig: pgxConfig}
+	dbConn.SetMaxOpenConns(1)
+	dbConn.SetMaxIdleConns(1)
+	dbConn.SetConnMaxLifetime(0)
 
-	pgxConn, err := connector.Connect()
-	if err != nil {
-		return nil, err
-	}
-
-	return &db.RetryableConn{Connector: connector, Conn: pgxConn}, nil
+	return dbConn, nil
 }
 
 func (cmd *ATCCommand) constructWorkerPool(

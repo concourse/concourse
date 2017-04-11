@@ -2,58 +2,55 @@
 package dbfakes
 
 import (
+	"database/sql"
 	"sync"
 
 	"github.com/concourse/atc/db"
-	"github.com/jackc/pgx"
 )
 
 type FakeDelegateConn struct {
-	QueryStub        func(sql string, args ...interface{}) (*pgx.Rows, error)
+	QueryStub        func(sql string, args ...interface{}) (*sql.Rows, error)
 	queryMutex       sync.RWMutex
 	queryArgsForCall []struct {
 		sql  string
 		args []interface{}
 	}
 	queryReturns struct {
-		result1 *pgx.Rows
+		result1 *sql.Rows
 		result2 error
 	}
 	queryReturnsOnCall map[int]struct {
-		result1 *pgx.Rows
+		result1 *sql.Rows
 		result2 error
 	}
-	QueryRowStub        func(sql string, args ...interface{}) *pgx.Row
-	queryRowMutex       sync.RWMutex
-	queryRowArgsForCall []struct {
-		sql  string
-		args []interface{}
-	}
-	queryRowReturns struct {
-		result1 *pgx.Row
-	}
-	queryRowReturnsOnCall map[int]struct {
-		result1 *pgx.Row
-	}
-	ExecStub        func(sql string, arguments ...interface{}) (commandTag pgx.CommandTag, err error)
+	ExecStub        func(sql string, arguments ...interface{}) (sql.Result, error)
 	execMutex       sync.RWMutex
 	execArgsForCall []struct {
 		sql       string
 		arguments []interface{}
 	}
 	execReturns struct {
-		result1 pgx.CommandTag
+		result1 sql.Result
 		result2 error
 	}
 	execReturnsOnCall map[int]struct {
-		result1 pgx.CommandTag
+		result1 sql.Result
 		result2 error
+	}
+	CloseStub        func() error
+	closeMutex       sync.RWMutex
+	closeArgsForCall []struct{}
+	closeReturns     struct {
+		result1 error
+	}
+	closeReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDelegateConn) Query(sql string, args ...interface{}) (*pgx.Rows, error) {
+func (fake *FakeDelegateConn) Query(sql string, args ...interface{}) (*sql.Rows, error) {
 	fake.queryMutex.Lock()
 	ret, specificReturn := fake.queryReturnsOnCall[len(fake.queryArgsForCall)]
 	fake.queryArgsForCall = append(fake.queryArgsForCall, struct {
@@ -83,78 +80,29 @@ func (fake *FakeDelegateConn) QueryArgsForCall(i int) (string, []interface{}) {
 	return fake.queryArgsForCall[i].sql, fake.queryArgsForCall[i].args
 }
 
-func (fake *FakeDelegateConn) QueryReturns(result1 *pgx.Rows, result2 error) {
+func (fake *FakeDelegateConn) QueryReturns(result1 *sql.Rows, result2 error) {
 	fake.QueryStub = nil
 	fake.queryReturns = struct {
-		result1 *pgx.Rows
+		result1 *sql.Rows
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeDelegateConn) QueryReturnsOnCall(i int, result1 *pgx.Rows, result2 error) {
+func (fake *FakeDelegateConn) QueryReturnsOnCall(i int, result1 *sql.Rows, result2 error) {
 	fake.QueryStub = nil
 	if fake.queryReturnsOnCall == nil {
 		fake.queryReturnsOnCall = make(map[int]struct {
-			result1 *pgx.Rows
+			result1 *sql.Rows
 			result2 error
 		})
 	}
 	fake.queryReturnsOnCall[i] = struct {
-		result1 *pgx.Rows
+		result1 *sql.Rows
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeDelegateConn) QueryRow(sql string, args ...interface{}) *pgx.Row {
-	fake.queryRowMutex.Lock()
-	ret, specificReturn := fake.queryRowReturnsOnCall[len(fake.queryRowArgsForCall)]
-	fake.queryRowArgsForCall = append(fake.queryRowArgsForCall, struct {
-		sql  string
-		args []interface{}
-	}{sql, args})
-	fake.recordInvocation("QueryRow", []interface{}{sql, args})
-	fake.queryRowMutex.Unlock()
-	if fake.QueryRowStub != nil {
-		return fake.QueryRowStub(sql, args...)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.queryRowReturns.result1
-}
-
-func (fake *FakeDelegateConn) QueryRowCallCount() int {
-	fake.queryRowMutex.RLock()
-	defer fake.queryRowMutex.RUnlock()
-	return len(fake.queryRowArgsForCall)
-}
-
-func (fake *FakeDelegateConn) QueryRowArgsForCall(i int) (string, []interface{}) {
-	fake.queryRowMutex.RLock()
-	defer fake.queryRowMutex.RUnlock()
-	return fake.queryRowArgsForCall[i].sql, fake.queryRowArgsForCall[i].args
-}
-
-func (fake *FakeDelegateConn) QueryRowReturns(result1 *pgx.Row) {
-	fake.QueryRowStub = nil
-	fake.queryRowReturns = struct {
-		result1 *pgx.Row
-	}{result1}
-}
-
-func (fake *FakeDelegateConn) QueryRowReturnsOnCall(i int, result1 *pgx.Row) {
-	fake.QueryRowStub = nil
-	if fake.queryRowReturnsOnCall == nil {
-		fake.queryRowReturnsOnCall = make(map[int]struct {
-			result1 *pgx.Row
-		})
-	}
-	fake.queryRowReturnsOnCall[i] = struct {
-		result1 *pgx.Row
-	}{result1}
-}
-
-func (fake *FakeDelegateConn) Exec(sql string, arguments ...interface{}) (commandTag pgx.CommandTag, err error) {
+func (fake *FakeDelegateConn) Exec(sql string, arguments ...interface{}) (sql.Result, error) {
 	fake.execMutex.Lock()
 	ret, specificReturn := fake.execReturnsOnCall[len(fake.execArgsForCall)]
 	fake.execArgsForCall = append(fake.execArgsForCall, struct {
@@ -184,26 +132,66 @@ func (fake *FakeDelegateConn) ExecArgsForCall(i int) (string, []interface{}) {
 	return fake.execArgsForCall[i].sql, fake.execArgsForCall[i].arguments
 }
 
-func (fake *FakeDelegateConn) ExecReturns(result1 pgx.CommandTag, result2 error) {
+func (fake *FakeDelegateConn) ExecReturns(result1 sql.Result, result2 error) {
 	fake.ExecStub = nil
 	fake.execReturns = struct {
-		result1 pgx.CommandTag
+		result1 sql.Result
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeDelegateConn) ExecReturnsOnCall(i int, result1 pgx.CommandTag, result2 error) {
+func (fake *FakeDelegateConn) ExecReturnsOnCall(i int, result1 sql.Result, result2 error) {
 	fake.ExecStub = nil
 	if fake.execReturnsOnCall == nil {
 		fake.execReturnsOnCall = make(map[int]struct {
-			result1 pgx.CommandTag
+			result1 sql.Result
 			result2 error
 		})
 	}
 	fake.execReturnsOnCall[i] = struct {
-		result1 pgx.CommandTag
+		result1 sql.Result
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeDelegateConn) Close() error {
+	fake.closeMutex.Lock()
+	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
+	fake.closeArgsForCall = append(fake.closeArgsForCall, struct{}{})
+	fake.recordInvocation("Close", []interface{}{})
+	fake.closeMutex.Unlock()
+	if fake.CloseStub != nil {
+		return fake.CloseStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.closeReturns.result1
+}
+
+func (fake *FakeDelegateConn) CloseCallCount() int {
+	fake.closeMutex.RLock()
+	defer fake.closeMutex.RUnlock()
+	return len(fake.closeArgsForCall)
+}
+
+func (fake *FakeDelegateConn) CloseReturns(result1 error) {
+	fake.CloseStub = nil
+	fake.closeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDelegateConn) CloseReturnsOnCall(i int, result1 error) {
+	fake.CloseStub = nil
+	if fake.closeReturnsOnCall == nil {
+		fake.closeReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.closeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeDelegateConn) Invocations() map[string][][]interface{} {
@@ -211,10 +199,10 @@ func (fake *FakeDelegateConn) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.queryMutex.RLock()
 	defer fake.queryMutex.RUnlock()
-	fake.queryRowMutex.RLock()
-	defer fake.queryRowMutex.RUnlock()
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
+	fake.closeMutex.RLock()
+	defer fake.closeMutex.RUnlock()
 	return fake.invocations
 }
 

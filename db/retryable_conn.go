@@ -1,23 +1,23 @@
 package db
 
 import (
+	"database/sql"
 	"net"
 	"reflect"
-
-	"github.com/jackc/pgx"
 )
 
 type RetryableConn struct {
 	Connector Connector
-	Conn      DelegateConn // *pgx.Conn
+
+	conn DelegateConn // *sql.DB
 }
 
 //go:generate counterfeiter . DelegateConn
 
 type DelegateConn interface {
-	Query(sql string, args ...interface{}) (*pgx.Rows, error)
-	QueryRow(sql string, args ...interface{}) *pgx.Row
-	Exec(sql string, arguments ...interface{}) (commandTag pgx.CommandTag, err error)
+	Query(sql string, args ...interface{}) (*sql.Rows, error)
+	Exec(sql string, arguments ...interface{}) (sql.Result, error)
+	Close() error
 }
 
 //go:generate counterfeiter . Connector
@@ -26,20 +26,39 @@ type Connector interface {
 	Connect() (DelegateConn, error)
 }
 
-type PgxConnector struct {
-	PgxConfig pgx.ConnConfig
+type SQLConnector struct {
+	SQLConfig string
 }
 
-func (c PgxConnector) Connect() (DelegateConn, error) {
-	return pgx.Connect(c.PgxConfig)
+func (c SQLConnector) Connect() (DelegateConn, error) {
+	db, err := sql.Open("postgres", c.SQLConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetMaxIdleConns(1)
+	db.SetMaxOpenConns(1)
+	db.SetConnMaxLifetime(0)
+
+	return db, nil
 }
 
-func (c *RetryableConn) Exec(sql string, arguments ...interface{}) (pgx.CommandTag, error) {
-	return c.Conn.Exec(sql, arguments...)
+func (c *RetryableConn) Exec(sql string, arguments ...interface{}) (sql.Result, error) {
+	err := c.connect()
+	if err != nil {
+		return nil, err
+	}
+
+	return c.conn.Exec(sql, arguments...)
 }
 
-func (c *RetryableConn) QueryRow(sql string, args ...interface{}) *pgx.Row {
-	rows, queryErr := c.Conn.Query(sql, args...)
+func (c *RetryableConn) Query(sql string, args ...interface{}) (*sql.Rows, error) {
+	err := c.connect()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, queryErr := c.conn.Query(sql, args...)
 	if queryErr != nil {
 		var connError *net.OpError
 
@@ -48,19 +67,29 @@ func (c *RetryableConn) QueryRow(sql string, args ...interface{}) *pgx.Row {
 			if err != nil {
 				continue
 			}
-			rows, queryErr = c.Conn.Query(sql, args...)
+
+			rows, queryErr = c.conn.Query(sql, args...)
 		}
 	}
 
-	return (*pgx.Row)(rows)
+	return rows, queryErr
 }
 
 func (c *RetryableConn) reconnect() error {
-	deleteConn, err := c.Connector.Connect()
+	conn, err := c.Connector.Connect()
 	if err != nil {
 		return err
 	}
 
-	c.Conn = deleteConn
+	c.conn = conn
+
 	return nil
+}
+
+func (c *RetryableConn) connect() error {
+	if c.conn != nil {
+		return nil
+	}
+
+	return c.reconnect()
 }

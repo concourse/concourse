@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Pipes", func() {
@@ -28,11 +27,7 @@ var _ = Describe("Pipes", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(dbfakes.FakeConnector)
-		retryableConn := &db.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := db.NewLockFactory(retryableConn)
+		lockFactory := db.NewLockFactory(postgresRunner.OpenSingleton())
 		database = db.NewSQL(dbConn, bus, lockFactory)
 
 		savedTeam, err = database.CreateTeam(db.Team{Name: "team-name"})
