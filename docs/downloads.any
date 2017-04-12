@@ -10,6 +10,7 @@
 
 \omit-children-from-table-of-contents
 
+\include-section{./release-notes/v2.7.3.any}
 \include-section{./release-notes/v2.7.2.any}
 \include-section{./release-notes/v2.7.1.any}
 \include-section{./release-notes/v2.7.0.any}
