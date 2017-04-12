@@ -27,9 +27,9 @@ resources/bosh-io-stemcell-resource.tar.gz:
   object_id: 34b7f9d7-fba8-440c-6b29-e030760b0cce
   sha: 7cc1753a3d8346825a43fd0066ccea3f85d1bf05
 resources/cf-resource.tar.gz:
-  size: 16866748
-  object_id: abb6cac5-f28d-4dbe-76de-e81988bf8ded
-  sha: 5a312958d79f482be215f1e826223b2ce86d2f13
+  size: 16866494
+  object_id: 8141ce5c-b330-464f-71bd-92e031890f57
+  sha: 423ada2b00655b3abe6225e1946d6cb9a29cb2f3
 resources/docker-image-resource.tar.gz:
   size: 37611480
   object_id: b30e140b-4fc2-43f2-4b2b-2cd443c93b54
