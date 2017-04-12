@@ -30,11 +30,12 @@ type Pipeline interface {
 
 	SaveJob(job atc.JobConfig) error
 	CreateJobBuild(jobName string) (Build, error)
-	CreateResource(name string, config atc.ResourceConfig) (*Resource, error)
+	CreateResource(name string, config atc.ResourceConfig) (Resource, error)
+	SetResourceCheckError(Resource, error) error
 
 	AcquireResourceCheckingLockWithIntervalCheck(
 		logger lager.Logger,
-		resource *Resource,
+		resource Resource,
 		resourceTypes atc.VersionedResourceTypes,
 		length time.Duration,
 		immediate bool,
@@ -43,6 +44,7 @@ type Pipeline interface {
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 
 	Resource(name string) (Resource, bool, error)
+	Resources() ([]Resource, error)
 
 	ResourceTypes() ([]ResourceType, error)
 	ResourceType(name string) (ResourceType, bool, error)
@@ -182,7 +184,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	}, nil
 }
 
-func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (*Resource, error) {
+func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (Resource, error) {
 	configPayload, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
@@ -216,7 +218,27 @@ func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (*Reso
 	return resource, nil
 }
 
-func (p *pipeline) Resource(name string) (*Resource, error) {
+func (p *pipeline) SetResourceCheckError(resource Resource, cause error) error {
+	var err error
+
+	if cause == nil {
+		_, err = psql.Update("resources").
+			Set("check_error", "NULL").
+			Where(sq.Eq{"id": resource.ID()}).
+			RunWith(p.conn).
+			Exec()
+	} else {
+		_, err = psql.Update("resources").
+			Set("check_error", cause.Error()).
+			Where(sq.Eq{"id": resource.ID()}).
+			RunWith(p.conn).
+			Exec()
+	}
+
+	return err
+}
+
+func (p *pipeline) Resource(name string) (Resource, bool, error) {
 	row := resourcesQuery.Where(sq.Eq{
 		"pipeline_id": p.id,
 		"name":        name,
@@ -235,6 +257,28 @@ func (p *pipeline) Resource(name string) (*Resource, error) {
 
 	return resource, true, nil
 
+}
+
+func (p *pipeline) Resources() ([]Resource, error) {
+	rows, err := resourcesQuery.Where(sq.Eq{"pipeline_id": p.id}).RunWith(p.conn).Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	resources := []Resource{}
+
+	for rows.Next() {
+		newResource := &resource{conn: p.conn}
+		err := scanResource(newResource, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, newResource)
+	}
+
+	return resources, nil
 }
 
 func (p *pipeline) SaveJob(job atc.JobConfig) error {

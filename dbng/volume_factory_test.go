@@ -317,7 +317,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = dbng.ForResource(resource.ID).UseResourceCache(logger, setupTx, lockFactory, cache)
+			usedResourceCache, err = dbng.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -383,7 +383,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = dbng.ForResource(resource.ID).UseResourceCache(logger, setupTx, lockFactory, cache)
+			usedResourceCache, err = dbng.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -439,7 +439,7 @@ var _ = Describe("VolumeFactory", func() {
 		var (
 			usedResourceCache   *dbng.UsedResourceCache
 			uninitializedVolume dbng.CreatingVolume
-			resource            *dbng.Resource
+			resource            dbng.Resource
 		)
 
 		BeforeEach(func() {
@@ -459,7 +459,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = dbng.ForResource(resource.ID).UseResourceCache(logger, setupTx, lockFactory, cache)
+			usedResourceCache, err = dbng.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -604,7 +604,7 @@ var _ = Describe("VolumeFactory", func() {
 					Params:  atc.Params{"some": "params"},
 				}
 
-				usedResourceCache, err = dbng.ForResource(resource.ID).UseResourceCache(logger, setupTx, lockFactory, anotherResourceCache)
+				usedResourceCache, err = dbng.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, anotherResourceCache)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(setupTx.Commit()).To(Succeed())

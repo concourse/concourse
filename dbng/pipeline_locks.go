@@ -10,7 +10,7 @@ import (
 
 func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 	logger lager.Logger,
-	resource *Resource,
+	resource Resource,
 	resourceTypes atc.VersionedResourceTypes,
 	interval time.Duration,
 	immediate bool,
@@ -22,7 +22,7 @@ func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 
 	defer tx.Rollback()
 
-	params := []interface{}{resource.Name, p.id}
+	params := []interface{}{resource.Name(), p.id}
 
 	condition := ""
 	if !immediate {
@@ -44,15 +44,15 @@ func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 		return nil, false, nil
 	}
 
-	resourceConfig, err := constructResourceConfig(tx, resource.Type, resource.Source, resourceTypes)
+	resourceConfig, err := constructResourceConfig(tx, resource.Type(), resource.Source(), resourceTypes)
 	if err != nil {
 		return nil, false, err
 	}
 
 	return acquireResourceCheckingLock(
-		logger.Session("lock", lager.Data{"resource": resource.Name}),
+		logger.Session("lock", lager.Data{"resource": resource.Name()}),
 		tx,
-		ForResource(resource.ID),
+		ForResource(resource.ID()),
 		resourceConfig,
 		p.lockFactory,
 	)

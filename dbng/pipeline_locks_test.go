@@ -12,7 +12,7 @@ import (
 
 var _ = Describe("PipelineLocks", func() {
 	Describe("AcquireResourceCheckingLockWithIntervalCheck", func() {
-		var someResource *dbng.Resource
+		var someResource dbng.Resource
 
 		BeforeEach(func() {
 			someResource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{Type: "some-base-resource-type"})

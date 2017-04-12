@@ -39,7 +39,7 @@ var _ = Describe("ResourceScanner", func() {
 		scanner Scanner
 
 		resourceConfig atc.ResourceConfig
-		savedResource  db.SavedResource
+		fakeDBResource *dbngfakes.FakeResource
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
@@ -50,6 +50,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
 		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		fakeDBPipeline = new(dbngfakes.FakePipeline)
+		fakeDBResource = new(dbngfakes.FakeResource)
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.NameReturns("some-pipeline")
 		fakeDBPipeline.TeamIDReturns(teamID)
@@ -94,19 +95,16 @@ var _ = Describe("ResourceScanner", func() {
 			Version: atc.Version{"custom": "version"},
 		}
 
-		savedResource = db.SavedResource{
-			ID: 39,
-			Resource: db.Resource{
-				Name: "some-resource",
-			},
-			PipelineName: "some-pipeline",
-			Paused:       false,
-			Config:       resourceConfig,
-		}
+		fakeDBResource.IDReturns(39)
+		fakeDBResource.NameReturns("some-resource")
+		fakeDBResource.PipelineNameReturns("some-pipeline")
+		fakeDBResource.PausedReturns(false)
+		fakeDBResource.TypeReturns("git")
+		fakeDBResource.SourceReturns(atc.Source{"uri": "http://example.com"})
 
 		fakeLock = &lockfakes.FakeLock{}
 
-		fakeRadarDB.GetResourceReturns(savedResource, true, nil)
+		fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 	})
 
 	Describe("Run", func() {
@@ -150,7 +148,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, _, user, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				_, _, user, resourceType, resourceSource, metadata, resourceSpec, customTypes, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResource(39)))
 				Expect(metadata).To(Equal(dbng.ContainerMetadata{
 					Type: dbng.ContainerTypeCheck,
@@ -169,18 +167,14 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_NAME=some-resource",
 					},
 				}))
-				Expect(resourceConfig).To(Equal(atc.ResourceConfig{
-					Name:   "some-resource",
-					Type:   "git",
-					Source: atc.Source{"uri": "http://example.com"},
-					Tags:   atc.Tags{"some-tag"},
-				}))
+				Expect(resourceType).To(Equal("git"))
+				Expect(resourceSource).To(Equal(atc.Source{"uri": "http://example.com"}))
 			})
 
 			Context("when the resource config has a specified check interval", func() {
 				BeforeEach(func() {
-					savedResource.Config.CheckEvery = "10ms"
-					fakeRadarDB.GetResourceReturns(savedResource, true, nil)
+					fakeDBResource.CheckEveryReturns("10ms")
+					fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 				})
 
 				It("leases for the configured interval", func() {
@@ -201,15 +195,15 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when the interval cannot be parsed", func() {
 					BeforeEach(func() {
-						savedResource.Config.CheckEvery = "bad-value"
-						fakeRadarDB.GetResourceReturns(savedResource, true, nil)
+						fakeDBResource.CheckEveryReturns("bad-value")
+						fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 					})
 
 					It("sets the check error", func() {
-						Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
 
-						resourceName, resourceErr := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
-						Expect(resourceName).To(Equal(savedResource))
+						savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+						Expect(savedResource.Name()).To(Equal("some-resource"))
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 
@@ -223,7 +217,7 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 
 				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
-				Expect(resource.Name).To(Equal("some-resource"))
+				Expect(resource.Name()).To(Equal("some-resource"))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())
@@ -362,13 +356,12 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			Context("when the resource is paused", func() {
+				var anotherFakeResource *dbngfakes.FakeResource
 				BeforeEach(func() {
-					fakeRadarDB.GetResourceReturns(db.SavedResource{
-						Resource: db.Resource{
-							Name: "some-resource",
-						},
-						Paused: true,
-					}, true, nil)
+					anotherFakeResource = new(dbngfakes.FakeResource)
+					anotherFakeResource.NameReturns("some-resource")
+					anotherFakeResource.PausedReturns(true)
+					fakeDBPipeline.ResourceReturns(anotherFakeResource, true, nil)
 				})
 
 				It("does not check", func() {
@@ -401,7 +394,7 @@ var _ = Describe("ResourceScanner", func() {
 				disaster := errors.New("disaster")
 
 				BeforeEach(func() {
-					fakeRadarDB.GetResourceReturns(db.SavedResource{}, false, disaster)
+					fakeDBPipeline.ResourceReturns(nil, false, disaster)
 				})
 
 				It("returns an error", func() {
@@ -412,7 +405,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the resource is not in the database", func() {
 				BeforeEach(func() {
-					fakeRadarDB.GetResourceReturns(db.SavedResource{}, false, nil)
+					fakeDBPipeline.ResourceReturns(nil, false, nil)
 				})
 
 				It("returns an error", func() {
@@ -449,7 +442,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, _, user, metadata, resourceSpec, _, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				_, _, user, resourceType, resourceSource, metadata, resourceSpec, _, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResource(39)))
 				Expect(metadata).To(Equal(dbng.ContainerMetadata{
 					Type: dbng.ContainerTypeCheck,
@@ -467,19 +460,15 @@ var _ = Describe("ResourceScanner", func() {
 						"RESOURCE_NAME=some-resource",
 					},
 				}))
-				Expect(resourceConfig).To(Equal(atc.ResourceConfig{
-					Name:   "some-resource",
-					Type:   "git",
-					Source: atc.Source{"uri": "http://example.com"},
-					Tags:   atc.Tags{"some-tag"},
-				}))
+				Expect(resourceType).To(Equal("git"))
+				Expect(resourceSource).To(Equal(atc.Source{"uri": "http://example.com"}))
 			})
 
 			It("grabs an immediate resource checking lock before checking, breaks lock after done", func() {
 				Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 
 				_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
-				Expect(resource.Name).To(Equal("some-resource"))
+				Expect(resource.Name()).To(Equal("some-resource"))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeTrue())
@@ -489,8 +478,8 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the resource config has a specified check interval", func() {
 				BeforeEach(func() {
-					savedResource.Config.CheckEvery = "10ms"
-					fakeRadarDB.GetResourceReturns(savedResource, true, nil)
+					fakeDBResource.CheckEveryReturns("10ms")
+					fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 				})
 
 				It("leases for the configured interval", func() {
@@ -507,16 +496,16 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when the interval cannot be parsed", func() {
 					BeforeEach(func() {
-						savedResource.Config.CheckEvery = "bad-value"
-						fakeRadarDB.GetResourceReturns(savedResource, true, nil)
+						fakeDBResource.CheckEveryReturns("bad-value")
+						fakeDBPipeline.ResourceReturns(fakeDBResource, true, nil)
 					})
 
 					It("sets the check error and returns the error", func() {
 						Expect(scanErr).To(HaveOccurred())
-						Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
+						Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
 
-						resourceName, resourceErr := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
-						Expect(resourceName).To(Equal(savedResource))
+						savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+						Expect(savedResource.Name()).To(Equal("some-resource"))
 						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
 					})
 				})
@@ -531,7 +520,7 @@ var _ = Describe("ResourceScanner", func() {
 					results <- true
 					close(results)
 
-					fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckStub = func(logger lager.Logger, resource *dbng.Resource, resourceTypes atc.VersionedResourceTypes, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
+					fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckStub = func(logger lager.Logger, resource dbng.Resource, resourceTypes atc.VersionedResourceTypes, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
 						if <-results {
 							return fakeLock, true, nil
 						} else {
@@ -546,19 +535,19 @@ var _ = Describe("ResourceScanner", func() {
 					Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(3))
 
 					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
-					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resource.Name()).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
 					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(1)
-					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resource.Name()).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
 					_, resource, resourceTypes, leaseInterval, immediate = fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(2)
-					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resource.Name()).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
@@ -568,10 +557,10 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("clears the resource's check error", func() {
-				Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
+				Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
 
-				savedResourceArg, err := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
-				Expect(savedResourceArg).To(Equal(savedResource))
+				savedResourceArg, err := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+				Expect(savedResourceArg.Name()).To(Equal("some-resource"))
 				Expect(err).To(BeNil())
 			})
 
@@ -695,10 +684,10 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
 
-					savedResourceArg, err := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
-					Expect(savedResourceArg).To(Equal(savedResource))
+					savedResourceArg, err := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+					Expect(savedResourceArg.Name()).To(Equal("some-resource"))
 					Expect(err).To(Equal(disaster))
 				})
 			})
@@ -715,10 +704,10 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("sets the resource's check error", func() {
-					Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
 
-					savedResourceArg, err := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
-					Expect(savedResourceArg).To(Equal(savedResource))
+					savedResourceArg, err := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+					Expect(savedResourceArg.Name()).To(Equal("some-resource"))
 					Expect(err).To(Equal(scriptFail))
 				})
 			})
@@ -782,7 +771,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the resource is not in the database", func() {
 				BeforeEach(func() {
-					fakeRadarDB.GetResourceReturns(db.SavedResource{}, false, nil)
+					fakeDBPipeline.ResourceReturns(nil, false, nil)
 				})
 
 				It("returns an error", func() {

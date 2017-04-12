@@ -544,17 +544,6 @@ type FakePipelineDB struct {
 	useInputsForBuildReturnsOnCall map[int]struct {
 		result1 error
 	}
-	LoadVersionsDBStub        func() (*algorithm.VersionsDB, error)
-	loadVersionsDBMutex       sync.RWMutex
-	loadVersionsDBArgsForCall []struct{}
-	loadVersionsDBReturns     struct {
-		result1 *algorithm.VersionsDB
-		result2 error
-	}
-	loadVersionsDBReturnsOnCall map[int]struct {
-		result1 *algorithm.VersionsDB
-		result2 error
-	}
 	GetVersionedResourceByVersionStub        func(atcVersion atc.Version, resourceName string) (db.SavedVersionedResource, bool, error)
 	getVersionedResourceByVersionMutex       sync.RWMutex
 	getVersionedResourceByVersionArgsForCall []struct {
@@ -2878,49 +2867,6 @@ func (fake *FakePipelineDB) UseInputsForBuildReturnsOnCall(i int, result1 error)
 	}{result1}
 }
 
-func (fake *FakePipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
-	fake.loadVersionsDBMutex.Lock()
-	ret, specificReturn := fake.loadVersionsDBReturnsOnCall[len(fake.loadVersionsDBArgsForCall)]
-	fake.loadVersionsDBArgsForCall = append(fake.loadVersionsDBArgsForCall, struct{}{})
-	fake.recordInvocation("LoadVersionsDB", []interface{}{})
-	fake.loadVersionsDBMutex.Unlock()
-	if fake.LoadVersionsDBStub != nil {
-		return fake.LoadVersionsDBStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
-}
-
-func (fake *FakePipelineDB) LoadVersionsDBCallCount() int {
-	fake.loadVersionsDBMutex.RLock()
-	defer fake.loadVersionsDBMutex.RUnlock()
-	return len(fake.loadVersionsDBArgsForCall)
-}
-
-func (fake *FakePipelineDB) LoadVersionsDBReturns(result1 *algorithm.VersionsDB, result2 error) {
-	fake.LoadVersionsDBStub = nil
-	fake.loadVersionsDBReturns = struct {
-		result1 *algorithm.VersionsDB
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipelineDB) LoadVersionsDBReturnsOnCall(i int, result1 *algorithm.VersionsDB, result2 error) {
-	fake.LoadVersionsDBStub = nil
-	if fake.loadVersionsDBReturnsOnCall == nil {
-		fake.loadVersionsDBReturnsOnCall = make(map[int]struct {
-			result1 *algorithm.VersionsDB
-			result2 error
-		})
-	}
-	fake.loadVersionsDBReturnsOnCall[i] = struct {
-		result1 *algorithm.VersionsDB
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakePipelineDB) GetVersionedResourceByVersion(atcVersion atc.Version, resourceName string) (db.SavedVersionedResource, bool, error) {
 	fake.getVersionedResourceByVersionMutex.Lock()
 	ret, specificReturn := fake.getVersionedResourceByVersionReturnsOnCall[len(fake.getVersionedResourceByVersionArgsForCall)]
@@ -3819,8 +3765,6 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.getAllPendingBuildsMutex.RUnlock()
 	fake.useInputsForBuildMutex.RLock()
 	defer fake.useInputsForBuildMutex.RUnlock()
-	fake.loadVersionsDBMutex.RLock()
-	defer fake.loadVersionsDBMutex.RUnlock()
 	fake.getVersionedResourceByVersionMutex.RLock()
 	defer fake.getVersionedResourceByVersionMutex.RUnlock()
 	fake.saveIndependentInputMappingMutex.RLock()

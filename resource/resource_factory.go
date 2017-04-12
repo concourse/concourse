@@ -45,11 +45,12 @@ type ResourceFactory interface {
 		logger lager.Logger,
 		signals <-chan os.Signal,
 		resourceUser dbng.ResourceUser,
+		resourceType string,
+		resourceSource atc.Source,
 		metadata dbng.ContainerMetadata,
 		resourceSpec worker.ContainerSpec,
 		resourceTypes atc.VersionedResourceTypes,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
-		resourceConfig atc.ResourceConfig,
 	) (Resource, error)
 }
 
@@ -88,11 +89,12 @@ func (f *resourceFactory) NewCheckResource(
 	logger lager.Logger,
 	signals <-chan os.Signal,
 	resourceUser dbng.ResourceUser,
+	resourceType string,
+	resourceSource atc.Source,
 	metadata dbng.ContainerMetadata,
 	resourceSpec worker.ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
-	resourceConfig atc.ResourceConfig,
 ) (Resource, error) {
 	container, err := f.workerClient.FindOrCreateResourceCheckContainer(
 		logger,
@@ -102,8 +104,8 @@ func (f *resourceFactory) NewCheckResource(
 		metadata,
 		resourceSpec,
 		resourceTypes,
-		resourceConfig.Type,
-		resourceConfig.Source,
+		resourceType,
+		resourceSource,
 	)
 	if err != nil {
 		return nil, err

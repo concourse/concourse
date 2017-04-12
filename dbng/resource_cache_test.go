@@ -81,7 +81,7 @@ var _ = Describe("ResourceCache", func() {
 	})
 
 	Describe("creating for a resource", func() {
-		var resource *dbng.Resource
+		var resource dbng.Resource
 
 		BeforeEach(func() {
 			resource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
@@ -97,7 +97,7 @@ var _ = Describe("ResourceCache", func() {
 		})
 
 		It("can be created and used", func() {
-			urc, err := dbng.ForResource(resource.ID).UseResourceCache(logger, tx, lockFactory, cache)
+			urc, err := dbng.ForResource(resource.ID()).UseResourceCache(logger, tx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(urc.ID).ToNot(BeZero())
 
@@ -112,12 +112,12 @@ var _ = Describe("ResourceCache", func() {
 
 			BeforeEach(func() {
 				var err error
-				existingResourceCache, err = dbng.ForResource(resource.ID).UseResourceCache(logger, tx, lockFactory, cache)
+				existingResourceCache, err = dbng.ForResource(resource.ID()).UseResourceCache(logger, tx, lockFactory, cache)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns the same used resource cache", func() {
-				urc, err := dbng.ForResource(resource.ID).UseResourceCache(logger, tx, lockFactory, cache)
+				urc, err := dbng.ForResource(resource.ID()).UseResourceCache(logger, tx, lockFactory, cache)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).To(Equal(existingResourceCache.ID))
 			})

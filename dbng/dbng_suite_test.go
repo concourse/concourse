@@ -50,7 +50,7 @@ var (
 	defaultWorker             dbng.Worker
 	defaultResourceConfig     *dbng.UsedResourceConfig
 	defaultResourceType       dbng.ResourceType
-	defaultResource           *dbng.Resource
+	defaultResource           dbng.Resource
 	defaultPipeline           dbng.Pipeline
 	defaultBuild              dbng.Build
 	defaultCreatingContainer  dbng.CreatingContainer
@@ -166,7 +166,7 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	logger = lagertest.NewTestLogger("test")
-	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource(defaultResource.ID), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource(defaultResource.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultCreatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), defaultResourceConfig, dbng.ContainerMetadata{Type: "check"})
