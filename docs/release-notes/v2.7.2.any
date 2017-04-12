@@ -20,7 +20,7 @@
     flags, consult \code{web --help}.
 
     Note that the binaries still default \code{--postgres-sslmode} to
-    \code{disable} for backwards-compatibility. Unfortunately the configuratoin
+    \code{disable} for backwards-compatibility. Unfortunately the configuration
     value of \code{prefer} is not available in our Postgres DB driver of
     choice, so it was either require SSL by default in all configurations
     (which would be unreasonable for small local deployments) or just leave it
