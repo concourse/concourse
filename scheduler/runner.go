@@ -106,7 +106,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		}.Emit(logger)
 	}()
 
-	versions, err := runner.DB.LoadVersionsDB()
+	versions, err := runner.Pipeline.LoadVersionsDB()
 	if err != nil {
 		logger.Error("failed-to-load-versions-db", err)
 		return err

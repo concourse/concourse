@@ -36,10 +36,11 @@ type Team interface {
 		pausedState PipelinePausedState,
 	) (Pipeline, bool, error)
 
-	FindPipelineByName(pipelineName string) (Pipeline, bool, error)
+	Pipeline(pipelineName string) (Pipeline, bool, error)
 	Pipelines() ([]Pipeline, error)
 	PublicPipelines() ([]Pipeline, error)
 	VisiblePipelines() ([]Pipeline, error)
+	OrderPipelines([]string) error
 
 	CreateOneOffBuild() (Build, error)
 
@@ -629,7 +630,7 @@ func (t *team) SavePipeline(
 	return pipeline, created, nil
 }
 
-func (t *team) FindPipelineByName(pipelineName string) (Pipeline, bool, error) {
+func (t *team) Pipeline(pipelineName string) (Pipeline, bool, error) {
 	pipeline := newPipeline(t.conn, t.lockFactory)
 
 	err := scanPipeline(
@@ -666,9 +667,6 @@ func (t *team) Pipelines() ([]Pipeline, error) {
 
 	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
 
@@ -690,9 +688,6 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 
 	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
 
@@ -711,9 +706,6 @@ func (t *team) VisiblePipelines() ([]Pipeline, error) {
 
 	currentTeamPipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
 
@@ -729,13 +721,56 @@ func (t *team) VisiblePipelines() ([]Pipeline, error) {
 
 	otherTeamPublicPipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
 
 	return append(currentTeamPipelines, otherTeamPublicPipelines...), nil
+}
+
+func (t *team) OrderPipelines(pipelineNames []string) error {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	var pipelineCount int
+
+	err = psql.Select("COUNT(1)").
+		From("pipelines").
+		Where(sq.Eq{"team_id": t.id}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&pipelineCount)
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("pipelines").
+		Set("ordering", pipelineCount+1).
+		Where(sq.Eq{"team_id": t.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	for i, name := range pipelineNames {
+		_, err = psql.Update("pipelines").
+			Set("ordering", i).
+			Where(sq.Eq{
+				"name":    name,
+				"team_id": t.id,
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (t *team) CreateOneOffBuild() (Build, error) {

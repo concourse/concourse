@@ -101,6 +101,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.PausedReturns(false)
 		fakeDBResource.TypeReturns("git")
 		fakeDBResource.SourceReturns(atc.Source{"uri": "http://example.com"})
+		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
 
 		fakeLock = &lockfakes.FakeLock{}
 
@@ -181,7 +182,7 @@ var _ = Describe("ResourceScanner", func() {
 					Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 
 					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
-					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resource.Name()).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeFalse())
@@ -288,10 +289,8 @@ var _ = Describe("ResourceScanner", func() {
 
 					resourceConfig, versions := fakeRadarDB.SaveResourceVersionsArgsForCall(0)
 					Expect(resourceConfig).To(Equal(atc.ResourceConfig{
-						Name:   "some-resource",
-						Type:   "git",
-						Source: atc.Source{"uri": "http://example.com"},
-						Tags:   atc.Tags{"some-tag"},
+						Name: "some-resource",
+						Type: "git",
 					}))
 
 					Expect(versions).To(Equal([]atc.Version{
@@ -486,7 +485,7 @@ var _ = Describe("ResourceScanner", func() {
 					Expect(fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckCallCount()).To(Equal(1))
 
 					_, resource, resourceTypes, leaseInterval, immediate := fakeDBPipeline.AcquireResourceCheckingLockWithIntervalCheckArgsForCall(0)
-					Expect(resource.Name).To(Equal("some-resource"))
+					Expect(resource.Name()).To(Equal("some-resource"))
 					Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{versionedResourceType}))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeTrue())
@@ -657,10 +656,8 @@ var _ = Describe("ResourceScanner", func() {
 
 					resourceConfig, versions := fakeRadarDB.SaveResourceVersionsArgsForCall(0)
 					Expect(resourceConfig).To(Equal(atc.ResourceConfig{
-						Name:   "some-resource",
-						Type:   "git",
-						Source: atc.Source{"uri": "http://example.com"},
-						Tags:   atc.Tags{"some-tag"},
+						Name: "some-resource",
+						Type: "git",
 					}))
 
 					Expect(versions).To(Equal([]atc.Version{

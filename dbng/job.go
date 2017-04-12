@@ -1,5 +1,7 @@
 package dbng
 
+//go:generate counterfeiter . Job
+
 type Job interface {
 	ID() int
 }

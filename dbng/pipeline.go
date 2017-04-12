@@ -51,8 +51,11 @@ type Pipeline interface {
 
 	Job(name string) (Job, bool, error)
 
+	Hide() error
 	Destroy() error
 	Expose() error
+	Pause() error
+	Unpause() error
 }
 
 type pipeline struct {
@@ -370,6 +373,42 @@ func (p *pipeline) Job(name string) (Job, bool, error) {
 	}
 
 	return job, true, nil
+}
+
+func (p *pipeline) Pause() error {
+	_, err := psql.Update("pipelines").
+		Set("paused", true).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+
+	return err
+}
+
+func (p *pipeline) Unpause() error {
+	_, err := psql.Update("pipelines").
+		Set("paused", false).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+
+	return err
+}
+
+func (p *pipeline) Hide() error {
+	_, err := psql.Update("pipelines").
+		Set("public", false).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+
+	return err
 }
 
 func (p *pipeline) Expose() error {

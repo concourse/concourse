@@ -108,7 +108,7 @@ var _ = BeforeEach(func() {
 	dbTeamFactory.GetByIDReturns(dbTeam)
 
 	fakePipeline = new(dbngfakes.FakePipeline)
-	dbTeam.FindPipelineByNameReturns(fakePipeline, true, nil)
+	dbTeam.PipelineReturns(fakePipeline, true, nil)
 
 	dbWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbngfakes.FakeWorkerLifecycle)

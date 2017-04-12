@@ -2,7 +2,6 @@ package scheduler_test
 
 import (
 	"errors"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -194,7 +193,6 @@ var _ = Describe("I'm a BuildStarter", func() {
 								ResourceIDs: map[string]int{
 									"resource-127": 127,
 								},
-								CachedAt: time.Unix(42, 0).UTC(),
 							}, nil)
 
 							versionsDB = &algorithm.VersionsDB{JobIDs: map[string]int{"j1": 1}}

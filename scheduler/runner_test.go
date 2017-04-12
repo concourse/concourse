@@ -101,7 +101,7 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		pipelineDB.LoadVersionsDBReturns(someVersions, nil)
+		fakePipeline.LoadVersionsDBReturns(someVersions, nil)
 
 		initialConfig = atc.Config{
 			Jobs: atc.JobConfigs{

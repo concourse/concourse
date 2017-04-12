@@ -243,6 +243,15 @@ type FakePipeline struct {
 		result2 bool
 		result3 error
 	}
+	HideStub        func() error
+	hideMutex       sync.RWMutex
+	hideArgsForCall []struct{}
+	hideReturns     struct {
+		result1 error
+	}
+	hideReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
@@ -1177,6 +1186,46 @@ func (fake *FakePipeline) JobReturnsOnCall(i int, result1 dbng.Job, result2 bool
 	}{result1, result2, result3}
 }
 
+func (fake *FakePipeline) Hide() error {
+	fake.hideMutex.Lock()
+	ret, specificReturn := fake.hideReturnsOnCall[len(fake.hideArgsForCall)]
+	fake.hideArgsForCall = append(fake.hideArgsForCall, struct{}{})
+	fake.recordInvocation("Hide", []interface{}{})
+	fake.hideMutex.Unlock()
+	if fake.HideStub != nil {
+		return fake.HideStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.hideReturns.result1
+}
+
+func (fake *FakePipeline) HideCallCount() int {
+	fake.hideMutex.RLock()
+	defer fake.hideMutex.RUnlock()
+	return len(fake.hideArgsForCall)
+}
+
+func (fake *FakePipeline) HideReturns(result1 error) {
+	fake.HideStub = nil
+	fake.hideReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) HideReturnsOnCall(i int, result1 error) {
+	fake.HideStub = nil
+	if fake.hideReturnsOnCall == nil {
+		fake.hideReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.hideReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakePipeline) Destroy() error {
 	fake.destroyMutex.Lock()
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
@@ -1300,6 +1349,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.resourceTypeMutex.RUnlock()
 	fake.jobMutex.RLock()
 	defer fake.jobMutex.RUnlock()
+	fake.hideMutex.RLock()
+	defer fake.hideMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	fake.exposeMutex.RLock()

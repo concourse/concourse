@@ -83,17 +83,17 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
-	FindPipelineByNameStub        func(pipelineName string) (dbng.Pipeline, bool, error)
-	findPipelineByNameMutex       sync.RWMutex
-	findPipelineByNameArgsForCall []struct {
+	PipelineStub        func(pipelineName string) (dbng.Pipeline, bool, error)
+	pipelineMutex       sync.RWMutex
+	pipelineArgsForCall []struct {
 		pipelineName string
 	}
-	findPipelineByNameReturns struct {
+	pipelineReturns struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
 	}
-	findPipelineByNameReturnsOnCall map[int]struct {
+	pipelineReturnsOnCall map[int]struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
@@ -130,6 +130,17 @@ type FakeTeam struct {
 	visiblePipelinesReturnsOnCall map[int]struct {
 		result1 []dbng.Pipeline
 		result2 error
+	}
+	OrderPipelinesStub        func([]string) error
+	orderPipelinesMutex       sync.RWMutex
+	orderPipelinesArgsForCall []struct {
+		arg1 []string
+	}
+	orderPipelinesReturns struct {
+		result1 error
+	}
+	orderPipelinesReturnsOnCall map[int]struct {
+		result1 error
 	}
 	CreateOneOffBuildStub        func() (dbng.Build, error)
 	createOneOffBuildMutex       sync.RWMutex
@@ -658,54 +669,54 @@ func (fake *FakeTeam) SavePipelineReturnsOnCall(i int, result1 dbng.Pipeline, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) FindPipelineByName(pipelineName string) (dbng.Pipeline, bool, error) {
-	fake.findPipelineByNameMutex.Lock()
-	ret, specificReturn := fake.findPipelineByNameReturnsOnCall[len(fake.findPipelineByNameArgsForCall)]
-	fake.findPipelineByNameArgsForCall = append(fake.findPipelineByNameArgsForCall, struct {
+func (fake *FakeTeam) Pipeline(pipelineName string) (dbng.Pipeline, bool, error) {
+	fake.pipelineMutex.Lock()
+	ret, specificReturn := fake.pipelineReturnsOnCall[len(fake.pipelineArgsForCall)]
+	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct {
 		pipelineName string
 	}{pipelineName})
-	fake.recordInvocation("FindPipelineByName", []interface{}{pipelineName})
-	fake.findPipelineByNameMutex.Unlock()
-	if fake.FindPipelineByNameStub != nil {
-		return fake.FindPipelineByNameStub(pipelineName)
+	fake.recordInvocation("Pipeline", []interface{}{pipelineName})
+	fake.pipelineMutex.Unlock()
+	if fake.PipelineStub != nil {
+		return fake.PipelineStub(pipelineName)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.findPipelineByNameReturns.result1, fake.findPipelineByNameReturns.result2, fake.findPipelineByNameReturns.result3
+	return fake.pipelineReturns.result1, fake.pipelineReturns.result2, fake.pipelineReturns.result3
 }
 
-func (fake *FakeTeam) FindPipelineByNameCallCount() int {
-	fake.findPipelineByNameMutex.RLock()
-	defer fake.findPipelineByNameMutex.RUnlock()
-	return len(fake.findPipelineByNameArgsForCall)
+func (fake *FakeTeam) PipelineCallCount() int {
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
+	return len(fake.pipelineArgsForCall)
 }
 
-func (fake *FakeTeam) FindPipelineByNameArgsForCall(i int) string {
-	fake.findPipelineByNameMutex.RLock()
-	defer fake.findPipelineByNameMutex.RUnlock()
-	return fake.findPipelineByNameArgsForCall[i].pipelineName
+func (fake *FakeTeam) PipelineArgsForCall(i int) string {
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
+	return fake.pipelineArgsForCall[i].pipelineName
 }
 
-func (fake *FakeTeam) FindPipelineByNameReturns(result1 dbng.Pipeline, result2 bool, result3 error) {
-	fake.FindPipelineByNameStub = nil
-	fake.findPipelineByNameReturns = struct {
+func (fake *FakeTeam) PipelineReturns(result1 dbng.Pipeline, result2 bool, result3 error) {
+	fake.PipelineStub = nil
+	fake.pipelineReturns = struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) FindPipelineByNameReturnsOnCall(i int, result1 dbng.Pipeline, result2 bool, result3 error) {
-	fake.FindPipelineByNameStub = nil
-	if fake.findPipelineByNameReturnsOnCall == nil {
-		fake.findPipelineByNameReturnsOnCall = make(map[int]struct {
+func (fake *FakeTeam) PipelineReturnsOnCall(i int, result1 dbng.Pipeline, result2 bool, result3 error) {
+	fake.PipelineStub = nil
+	if fake.pipelineReturnsOnCall == nil {
+		fake.pipelineReturnsOnCall = make(map[int]struct {
 			result1 dbng.Pipeline
 			result2 bool
 			result3 error
 		})
 	}
-	fake.findPipelineByNameReturnsOnCall[i] = struct {
+	fake.pipelineReturnsOnCall[i] = struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
@@ -839,6 +850,59 @@ func (fake *FakeTeam) VisiblePipelinesReturnsOnCall(i int, result1 []dbng.Pipeli
 		result1 []dbng.Pipeline
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeTeam) OrderPipelines(arg1 []string) error {
+	var arg1Copy []string
+	if arg1 != nil {
+		arg1Copy = make([]string, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	fake.orderPipelinesMutex.Lock()
+	ret, specificReturn := fake.orderPipelinesReturnsOnCall[len(fake.orderPipelinesArgsForCall)]
+	fake.orderPipelinesArgsForCall = append(fake.orderPipelinesArgsForCall, struct {
+		arg1 []string
+	}{arg1Copy})
+	fake.recordInvocation("OrderPipelines", []interface{}{arg1Copy})
+	fake.orderPipelinesMutex.Unlock()
+	if fake.OrderPipelinesStub != nil {
+		return fake.OrderPipelinesStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.orderPipelinesReturns.result1
+}
+
+func (fake *FakeTeam) OrderPipelinesCallCount() int {
+	fake.orderPipelinesMutex.RLock()
+	defer fake.orderPipelinesMutex.RUnlock()
+	return len(fake.orderPipelinesArgsForCall)
+}
+
+func (fake *FakeTeam) OrderPipelinesArgsForCall(i int) []string {
+	fake.orderPipelinesMutex.RLock()
+	defer fake.orderPipelinesMutex.RUnlock()
+	return fake.orderPipelinesArgsForCall[i].arg1
+}
+
+func (fake *FakeTeam) OrderPipelinesReturns(result1 error) {
+	fake.OrderPipelinesStub = nil
+	fake.orderPipelinesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) OrderPipelinesReturnsOnCall(i int, result1 error) {
+	fake.OrderPipelinesStub = nil
+	if fake.orderPipelinesReturnsOnCall == nil {
+		fake.orderPipelinesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.orderPipelinesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeTeam) CreateOneOffBuild() (dbng.Build, error) {
@@ -1685,14 +1749,16 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.deleteMutex.RUnlock()
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
-	fake.findPipelineByNameMutex.RLock()
-	defer fake.findPipelineByNameMutex.RUnlock()
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
 	fake.pipelinesMutex.RLock()
 	defer fake.pipelinesMutex.RUnlock()
 	fake.publicPipelinesMutex.RLock()
 	defer fake.publicPipelinesMutex.RUnlock()
 	fake.visiblePipelinesMutex.RLock()
 	defer fake.visiblePipelinesMutex.RUnlock()
+	fake.orderPipelinesMutex.RLock()
+	defer fake.orderPipelinesMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()
 	defer fake.createOneOffBuildMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()

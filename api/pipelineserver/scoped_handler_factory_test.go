@@ -49,7 +49,7 @@ var _ = Describe("Handler", func() {
 		dbTeamFactory.GetByIDReturns(fakeTeam)
 
 		fakePipeline = new(dbngfakes.FakePipeline)
-		fakeTeam.FindPipelineByNameReturns(fakePipeline, true, nil)
+		fakeTeam.PipelineReturns(fakePipeline, true, nil)
 
 		handlerFactory := pipelineserver.NewScopedHandlerFactory(pipelineDBFactory, teamDBFactory, dbTeamFactory)
 		handler = handlerFactory.HandlerFor(delegate.GetHandler)

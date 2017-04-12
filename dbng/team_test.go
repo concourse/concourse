@@ -14,12 +14,15 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Team", func() {
+var _ = FDescribe("Team", func() {
 	var (
+		team      dbng.Team
 		otherTeam dbng.Team
 	)
 
 	BeforeEach(func() {
+		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+		Expect(err).ToNot(HaveOccurred())
 		otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -783,13 +786,9 @@ var _ = Describe("Team", func() {
 		var (
 			basicAuth    *atc.BasicAuth
 			authProvider map[string]*json.RawMessage
-			team         dbng.Team
 		)
 
 		BeforeEach(func() {
-			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
-			Expect(err).ToNot(HaveOccurred())
-
 			basicAuth = &atc.BasicAuth{
 				BasicAuthUsername: "fake user",
 				BasicAuthPassword: "no, bad",
@@ -860,18 +859,12 @@ var _ = Describe("Team", func() {
 		})
 	})
 
-	Describe("FindPipelines", func() {
+	Describe("Pipelines", func() {
 		var (
-			team      dbng.Team
 			pipelines []dbng.Pipeline
 			pipeline1 dbng.Pipeline
 			pipeline2 dbng.Pipeline
 		)
-
-		BeforeEach(func() {
-			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
-			Expect(err).ToNot(HaveOccurred())
-		})
 
 		JustBeforeEach(func() {
 			pipelines, err = team.Pipelines()
@@ -906,18 +899,12 @@ var _ = Describe("Team", func() {
 		})
 	})
 
-	Describe("FindPublicPipelines", func() {
+	Describe("PublicPipelines", func() {
 		var (
-			team      dbng.Team
 			pipelines []dbng.Pipeline
 			pipeline1 dbng.Pipeline
 			pipeline2 dbng.Pipeline
 		)
-
-		BeforeEach(func() {
-			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
-			Expect(err).ToNot(HaveOccurred())
-		})
 
 		JustBeforeEach(func() {
 			pipelines, err = team.PublicPipelines()
@@ -942,6 +929,10 @@ var _ = Describe("Team", func() {
 
 				err = pipeline2.Expose()
 				Expect(err).ToNot(HaveOccurred())
+
+				found, err := pipeline2.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
 			})
 
 			It("returns the pipelines", func() {
@@ -957,20 +948,10 @@ var _ = Describe("Team", func() {
 
 	Describe("VisiblePipelines", func() {
 		var (
-			team      dbng.Team
-			otherTeam dbng.Team
 			pipelines []dbng.Pipeline
 			pipeline1 dbng.Pipeline
 			pipeline2 dbng.Pipeline
 		)
-
-		BeforeEach(func() {
-			team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
-			Expect(err).ToNot(HaveOccurred())
-
-			otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-other-team"})
-			Expect(err).ToNot(HaveOccurred())
-		})
 
 		JustBeforeEach(func() {
 			pipelines, err = team.VisiblePipelines()
@@ -1022,6 +1003,47 @@ var _ = Describe("Team", func() {
 			It("returns no pipelines", func() {
 				Expect(pipelines).To(Equal([]dbng.Pipeline{}))
 			})
+		})
+	})
+
+	Describe("OrderPipelines", func() {
+		var pipeline1 dbng.Pipeline
+		var pipeline2 dbng.Pipeline
+		var otherPipeline1 dbng.Pipeline
+		var otherPipeline2 dbng.Pipeline
+
+		BeforeEach(func() {
+			var err error
+			pipeline1, _, err = team.SavePipeline("pipeline-name-a", atc.Config{}, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+			pipeline2, _, err = team.SavePipeline("pipeline-name-b", atc.Config{}, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			otherPipeline1, _, err = otherTeam.SavePipeline("pipeline-name-a", atc.Config{}, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+			otherPipeline2, _, err = otherTeam.SavePipeline("pipeline-name-b", atc.Config{}, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("orders pipelines that belong to team (case insensitive)", func() {
+			err := team.OrderPipelines([]string{"pipeline-name-b", "pipeline-name-a"})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherTeam.OrderPipelines([]string{"pipeline-name-a", "pipeline-name-b"})
+			Expect(err).NotTo(HaveOccurred())
+
+			orderedPipelines, err := team.Pipelines()
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(orderedPipelines).To(HaveLen(2))
+			Expect(orderedPipelines[0].ID()).To(Equal(pipeline2.ID()))
+			Expect(orderedPipelines[1].ID()).To(Equal(pipeline1.ID()))
+
+			otherTeamOrderedPipelines, err := otherTeam.Pipelines()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(otherTeamOrderedPipelines).To(HaveLen(2))
+			Expect(otherTeamOrderedPipelines[0].ID()).To(Equal(otherPipeline1.ID()))
+			Expect(otherTeamOrderedPipelines[1].ID()).To(Equal(otherPipeline2.ID()))
 		})
 	})
 })

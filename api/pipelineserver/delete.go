@@ -8,15 +8,15 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) DeletePipeline(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
+func (s *Server) DeletePipeline(_ db.PipelineDB, pipelineDB dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("destroying-pipeline", lager.Data{
-			"name": pipeline.Name(),
+			"name": pipelineDB.Name(),
 		})
 
 		logger.Info("start")
 
-		err := pipeline.Destroy()
+		err := pipelineDB.Destroy()
 		if err != nil {
 			s.logger.Error("failed", err)
 

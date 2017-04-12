@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("ResourceTypeScanner", func() {
+var _ = Describe("ResourceTypeScanner", func() {
 	var (
 		fakeResourceFactory *rfakes.FakeResourceFactory
 		fakeRadarDB         *radarfakes.FakeRadarDB
