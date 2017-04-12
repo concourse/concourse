@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2017-04-06}{2.7.2}{1.4.0}{
+\release{2017-04-11}{2.7.2}{1.4.0}{
   \note{fix}{
     A feature originally intended for 2.8.0 snuck in to 2.7.1 and caused
     breakage around SSL communication. We've disabled it by default. Sorry
