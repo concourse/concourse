@@ -40,7 +40,7 @@
     pipeline names.
 
     (...Ok,
-    \hyperlink{https://ci.concourse.ci/teams/main/pipelines/releases:2.7}{we do
-    too}, but I was hoping we were the odd ones.)
+    \hyperlink{https://wings.concourse.ci/teams/main/pipelines/releases:2.7}{we
+    do too}, but I was hoping we were the odd ones.)
   }
 }
