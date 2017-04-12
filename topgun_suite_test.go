@@ -153,7 +153,12 @@ func Deploy(manifest string, operations ...string) {
 		}, opFlags...)...,
 	)
 
-	fly("login", "-c", atcExternalURL)
+	// give some time for atc to bootstrap (run migrations, etc)
+	Eventually(func() int {
+		flySession := spawnFly("login", "-c", atcExternalURL)
+		<-flySession.Exited
+		return flySession.ExitCode()
+	}, 2*time.Minute).Should(Equal(0))
 
 	boshLogs = spawnBosh("logs", "-f")
 }
