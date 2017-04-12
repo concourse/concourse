@@ -28,7 +28,7 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
   postgres_sslmode = p("postgresql.sslmode")
 
   if_p("postgresql.address") do |addr|
-    postgres_hort, postgres_port = addr.split(":")
+    postgres_host, postgres_port = addr.split(":")
   end
 
   if_p("postgresql.host", "postgresql.port", "postgresql.role.name", "postgresql.role.password", "postgresql.database") do |h, p, rn, rp, db|
