@@ -156,11 +156,6 @@ var _ = Describe("[#129726011] Worker landing", func() {
 				It("waits for the build", func() {
 					Eventually(restartSession).Should(gbytes.Say(`Updating (instance|job)`))
 					Consistently(restartSession, 5*time.Minute).ShouldNot(gexec.Exit())
-					<-flyHijackTask(
-						"-b", buildID,
-						"-s", "one-off",
-						"touch", "/tmp/stop-waiting",
-					).Exited
 				})
 
 				It("finishes restarting once the build is done", func() {
