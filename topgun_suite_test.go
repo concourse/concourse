@@ -212,13 +212,23 @@ func flyHijackTask(argv ...string) *gexec.Session {
 	hijackS, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
 
-	Eventually(hijackS).Should(gbytes.Say("type: task"))
+	Eventually(func() bool {
+		taskMatcher := gbytes.Say("type: task")
+		matched, err := taskMatcher.Match(hijackS)
+		Expect(err).ToNot(HaveOccurred())
 
-	re, err := regexp.Compile("([0-9]): .+ type: task")
-	Expect(err).NotTo(HaveOccurred())
+		if matched {
+			re, err := regexp.Compile("([0-9]): .+ type: task")
+			Expect(err).NotTo(HaveOccurred())
 
-	taskNumber := re.FindStringSubmatch(string(hijackS.Out.Contents()))[1]
-	fmt.Fprintln(hijackIn, taskNumber)
+			taskNumber := re.FindStringSubmatch(string(hijackS.Out.Contents()))[1]
+			fmt.Fprintln(hijackIn, taskNumber)
+
+			return true
+		}
+
+		return hijackS.ExitCode() == 0
+	}).Should(BeTrue())
 
 	return hijackS
 }
