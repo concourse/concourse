@@ -25,7 +25,7 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
   postgres_role_name = ""
   postgres_role_password = ""
   postgres_database = ""
-  postgres_sslmode = p("postgresql.sslmode")
+  postgres_sslmode = p("postgresql.sslmode", "verify-ca")
 
   if_p("postgresql.address") do |addr|
     postgres_host, postgres_port = addr.split(":")
@@ -45,7 +45,7 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
     postgres_host = db.instances.first.address
     postgres_port = db.p("bind_port")
     postgres_database = p("postgresql_database")
-    postgres_sslmode = "disable"
+    postgres_sslmode = p("postgresql.sslmode", "disable")
 
     postgres_db = db.p("databases").find { |db| db["name"] == postgres_database }
     if postgres_db.nil?
