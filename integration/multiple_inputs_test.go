@@ -47,7 +47,10 @@ var _ = Describe("Fly CLI", func() {
 			[]byte(`---
 platform: some-platform
 
-image: ubuntu
+image_resource:
+  type: docker-image
+  source:
+    repository: ubuntu
 
 inputs:
 - name: some-input
@@ -101,7 +104,12 @@ run:
 				Name: "one-off",
 				Config: &atc.TaskConfig{
 					Platform: "some-platform",
-					Image:    "ubuntu",
+					ImageResource: &atc.ImageResource{
+						Type: "docker-image",
+						Source: atc.Source{
+							"repository": "ubuntu",
+						},
+					},
 					Inputs: []atc.TaskInputConfig{
 						{Name: "some-input"},
 						{Name: "some-other-input"},
