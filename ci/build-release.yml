@@ -1,7 +1,10 @@
 ---
 platform: linux
 
-image: docker:///ubuntu
+image_resource:
+  type: docker-image
+  source:
+    repository: ubuntu
 
 inputs:
 - name: bin
