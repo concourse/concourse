@@ -28,12 +28,18 @@ type Pipeline interface {
 	AcquireResourceCheckingLockWithIntervalCheck(
 		logger lager.Logger,
 		resource *Resource,
-		resourceTypes atc.VersionedResourceTypes,
-		length time.Duration,
+		interval time.Duration,
 		immediate bool,
 	) (lock.Lock, bool, error)
 
-	ResourceTypes() ([]ResourceType, error)
+	AcquireResourceTypeCheckingLockWithIntervalCheck(
+		logger lager.Logger,
+		resourceTypeName string,
+		interval time.Duration,
+		immediate bool,
+	) (lock.Lock, bool, error)
+
+	ResourceTypes() (ResourceTypes, error)
 	ResourceType(name string) (ResourceType, bool, error)
 
 	Destroy() error
@@ -181,7 +187,7 @@ func (p *pipeline) SaveJob(job atc.JobConfig) error {
 	)
 }
 
-func (p *pipeline) ResourceTypes() ([]ResourceType, error) {
+func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	rows, err := resourceTypesQuery.Where(sq.Eq{"pipeline_id": p.id}).RunWith(p.conn).Query()
 	if err != nil {
 		return nil, err

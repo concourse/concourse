@@ -47,21 +47,11 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 		return scanner.defaultInterval, nil
 	}
 
-	savedResourceType, found, err := scanner.db.GetResourceType(resourceTypeName)
-	if err != nil {
-		logger.Error("failed-to-get-current-version", err)
-		return 0, err
-	}
-
-	if !found {
-		return 0, db.ResourceTypeNotFoundError{Name: resourceTypeName}
-	}
-
 	lockLogger := logger.Session("lock", lager.Data{
 		"resource-type": resourceTypeName,
 	})
 
-	lock, acquired, err := scanner.db.AcquireResourceTypeCheckingLock(logger, savedResourceType, scanner.defaultInterval, false)
+	lock, acquired, err := scanner.dbPipeline.AcquireResourceTypeCheckingLockWithIntervalCheck(logger, resourceTypeName, scanner.defaultInterval, false)
 	if err != nil {
 		lockLogger.Error("failed-to-get-lock", err, lager.Data{
 			"resource-type": resourceTypeName,
@@ -76,7 +66,7 @@ func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName st
 
 	defer lock.Release()
 
-	err = scanner.resourceTypeScan(logger.Session("tick"), savedResourceType)
+	err = scanner.resourceTypeScan(logger.Session("tick"), resourceTypeName)
 	if err != nil {
 		return 0, err
 	}
@@ -92,14 +82,24 @@ func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourc
 	return nil
 }
 
-func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, savedResourceType db.SavedResourceType) error {
+func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceTypeName string) error {
+	savedResourceType, found, err := scanner.db.GetResourceType(resourceTypeName)
+	if err != nil {
+		logger.Error("failed-to-get-current-version", err)
+		return err
+	}
+
+	if !found {
+		return db.ResourceTypeNotFoundError{Name: resourceTypeName}
+	}
+
 	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
 	if err != nil {
 		logger.Error("failed-to-get-resource-types", err)
 		return err
 	}
 
-	versionedResourceTypes := deserializeVersionedResourceTypes(resourceTypes)
+	versionedResourceTypes := resourceTypes.Deserialize()
 
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{

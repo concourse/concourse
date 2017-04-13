@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
@@ -39,9 +38,7 @@ func (s *Server) CreateJobBuild(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeli
 			return
 		}
 
-		versionedResourceTypes := deserializeVersionedResourceTypes(resourceTypes)
-
-		build, _, err := scheduler.TriggerImmediately(logger, job, config.Resources, versionedResourceTypes)
+		build, _, err := scheduler.TriggerImmediately(logger, job, config.Resources, resourceTypes.Deserialize())
 		if err != nil {
 			logger.Error("failed-to-trigger", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -51,21 +48,4 @@ func (s *Server) CreateJobBuild(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeli
 
 		json.NewEncoder(w).Encode(present.Build(build))
 	})
-}
-
-func deserializeVersionedResourceTypes(types []dbng.ResourceType) atc.VersionedResourceTypes {
-	var versionedResourceTypes atc.VersionedResourceTypes
-
-	for _, t := range types {
-		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name:   t.Name(),
-				Type:   t.Type(),
-				Source: t.Source(),
-			},
-			Version: t.Version(),
-		})
-	}
-
-	return versionedResourceTypes
 }
