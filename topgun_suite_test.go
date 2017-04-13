@@ -128,10 +128,7 @@ var _ = AfterEach(func() {
 
 	deleteAllContainers()
 
-	testDescription := CurrentGinkgoTestDescription()
-	if !testDescription.Failed {
-		bosh("delete-deployment")
-	}
+	bosh("delete-deployment")
 })
 
 func Deploy(manifest string, operations ...string) {
