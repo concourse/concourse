@@ -297,8 +297,8 @@ properties:
 
   postgresql.sslmode:
     description: |
-      Whether or not to use SSL.
-    default: verify-ca
+      Whether or not to use SSL. Defaults to `verify-ca` when `postgresql.address`
+      or `postgresql.host` is provided. Otherwise, defaults to `disable`.
 
   postgresql.ca_cert:
     description: |
