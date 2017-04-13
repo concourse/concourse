@@ -47,7 +47,10 @@ var _ = Describe("Fly CLI", func() {
 			[]byte(`---
 platform: some-platform
 
-rootfs_uri: ubuntu
+image_resource:
+  type: docker-image
+  source:
+    repository: ubuntu
 
 inputs:
 - name: some-input
@@ -100,8 +103,13 @@ run:
 			planFactory.NewPlan(atc.TaskPlan{
 				Name: "one-off",
 				Config: &atc.TaskConfig{
-					Platform:  "some-platform",
-					RootFsUri: "ubuntu",
+					Platform: "some-platform",
+					ImageResource: &atc.ImageResource{
+						Type: "docker-image",
+						Source: atc.Source{
+							"repository": "ubuntu",
+						},
+					},
 					Inputs: []atc.TaskInputConfig{
 						{Name: "some-input"},
 						{Name: "some-other-input"},
