@@ -938,7 +938,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		apiWrapper,
 
 		auth.NewAuthTokenGenerator(signingKey),
-		auth.NewAccessTokenGenerator(),
 		auth.NewCSRFTokenGenerator(),
 		providerFactory,
 		cmd.oauthBaseURL(),

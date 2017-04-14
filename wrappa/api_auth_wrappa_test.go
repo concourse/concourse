@@ -263,7 +263,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.CreateBuild:     authenticated(inputHandlers[atc.CreateBuild]),
 				atc.CreatePipe:      authenticated(inputHandlers[atc.CreatePipe]),
 				atc.GetAuthToken:    authenticatedWithGetTokenValidator(inputHandlers[atc.GetAuthToken]),
-				atc.GetAccessToken:  authenticatedWithGetTokenValidator(inputHandlers[atc.GetAccessToken]),
 				atc.GetContainer:    authenticated(inputHandlers[atc.GetContainer]),
 				atc.HijackContainer: authenticated(inputHandlers[atc.HijackContainer]),
 				atc.ListContainers:  authenticated(inputHandlers[atc.ListContainers]),

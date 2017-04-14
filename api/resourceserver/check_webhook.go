@@ -1,15 +1,12 @@
 package resourceserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/resource"
 	"github.com/tedsuo/rata"
 )
 
@@ -22,7 +19,7 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 		accessToken := r.URL.Query().Get("access_token")
 
 		if accessToken == "" {
-			logger.Info("malformed-request", lager.Data{"error": "missing access_token"})
+			logger.Info("no-access-token", lager.Data{"error": "missing access_token"})
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -42,22 +39,14 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 
 		token := pipelineResource.Config.WebhookToken
 		if token != accessToken {
-			logger.Info("invalid-token-error", lager.Data{"error": fmt.Sprintf("Actual token %s does not match expected token %s", accessToken, token)})
+			logger.Info("invalid-token", lager.Data{"error": fmt.Sprintf("invalid token for webhook %s", accessToken)})
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		scanner := s.scannerFactory.NewResourceScanner(pipelineDB, dbPipeline)
 		err = scanner.ScanFromVersion(logger, resourceName, nil)
-		switch scanErr := err.(type) {
-		case resource.ErrResourceScriptFailed:
-			checkResponseBody := atc.CheckResponseBody{
-				ExitStatus: scanErr.ExitStatus,
-				Stderr:     scanErr.Stderr,
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(checkResponseBody)
+		switch err.(type) {
 		case db.ResourceNotFoundError:
 			w.WriteHeader(http.StatusNotFound)
 		case error:

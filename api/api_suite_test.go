@@ -40,7 +40,6 @@ var (
 	userContextReader             *authfakes.FakeUserContextReader
 	fakeAuthTokenGenerator        *authfakes.FakeAuthTokenGenerator
 	fakeCSRFTokenGenerator        *authfakes.FakeCSRFTokenGenerator
-	fakeAccessTokenGenerator      *authfakes.FakeAccessTokenGenerator
 	providerFactory               *authfakes.FakeProviderFactory
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
@@ -182,7 +181,6 @@ var _ = BeforeEach(func() {
 		),
 
 		fakeAuthTokenGenerator,
-		fakeAccessTokenGenerator,
 		fakeCSRFTokenGenerator,
 		providerFactory,
 		oAuthBaseURL,

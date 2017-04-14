@@ -41,7 +41,6 @@ func NewHandler(
 	wrapper wrappa.Wrappa,
 
 	authTokenGenerator auth.AuthTokenGenerator,
-	accessTokenGeneator auth.AccessTokenGenerator,
 	csrfTokenGenerator auth.CSRFTokenGenerator,
 	providerFactory auth.ProviderFactory,
 	oAuthBaseURL string,
@@ -93,7 +92,6 @@ func NewHandler(
 		oAuthBaseURL,
 		authTokenGenerator,
 		csrfTokenGenerator,
-		accessTokenGeneator,
 		providerFactory,
 		teamDBFactory,
 		expire,
@@ -137,7 +135,6 @@ func NewHandler(
 	handlers := map[string]http.Handler{
 		atc.ListAuthMethods: http.HandlerFunc(authServer.ListAuthMethods),
 		atc.GetAuthToken:    http.HandlerFunc(authServer.GetAuthToken),
-		atc.GetAccessToken:  http.HandlerFunc(authServer.GetAccessToken),
 
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
