@@ -148,6 +148,39 @@ type FakePipeline struct {
 		result2 bool
 		result3 error
 	}
+	ResourceStub        func(name string) (*dbng.Resource, bool, error)
+	resourceMutex       sync.RWMutex
+	resourceArgsForCall []struct {
+		name string
+	}
+	resourceReturns struct {
+		result1 *dbng.Resource
+		result2 bool
+		result3 error
+	}
+	resourceReturnsOnCall map[int]struct {
+		result1 *dbng.Resource
+		result2 bool
+		result3 error
+	}
+	PauseStub        func() error
+	pauseMutex       sync.RWMutex
+	pauseArgsForCall []struct{}
+	pauseReturns     struct {
+		result1 error
+	}
+	pauseReturnsOnCall map[int]struct {
+		result1 error
+	}
+	UnpauseStub        func() error
+	unpauseMutex       sync.RWMutex
+	unpauseArgsForCall []struct{}
+	unpauseReturns     struct {
+		result1 error
+	}
+	unpauseReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
@@ -683,6 +716,140 @@ func (fake *FakePipeline) ResourceTypeReturnsOnCall(i int, result1 dbng.Resource
 	}{result1, result2, result3}
 }
 
+func (fake *FakePipeline) Resource(name string) (*dbng.Resource, bool, error) {
+	fake.resourceMutex.Lock()
+	ret, specificReturn := fake.resourceReturnsOnCall[len(fake.resourceArgsForCall)]
+	fake.resourceArgsForCall = append(fake.resourceArgsForCall, struct {
+		name string
+	}{name})
+	fake.recordInvocation("Resource", []interface{}{name})
+	fake.resourceMutex.Unlock()
+	if fake.ResourceStub != nil {
+		return fake.ResourceStub(name)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.resourceReturns.result1, fake.resourceReturns.result2, fake.resourceReturns.result3
+}
+
+func (fake *FakePipeline) ResourceCallCount() int {
+	fake.resourceMutex.RLock()
+	defer fake.resourceMutex.RUnlock()
+	return len(fake.resourceArgsForCall)
+}
+
+func (fake *FakePipeline) ResourceArgsForCall(i int) string {
+	fake.resourceMutex.RLock()
+	defer fake.resourceMutex.RUnlock()
+	return fake.resourceArgsForCall[i].name
+}
+
+func (fake *FakePipeline) ResourceReturns(result1 *dbng.Resource, result2 bool, result3 error) {
+	fake.ResourceStub = nil
+	fake.resourceReturns = struct {
+		result1 *dbng.Resource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) ResourceReturnsOnCall(i int, result1 *dbng.Resource, result2 bool, result3 error) {
+	fake.ResourceStub = nil
+	if fake.resourceReturnsOnCall == nil {
+		fake.resourceReturnsOnCall = make(map[int]struct {
+			result1 *dbng.Resource
+			result2 bool
+			result3 error
+		})
+	}
+	fake.resourceReturnsOnCall[i] = struct {
+		result1 *dbng.Resource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipeline) Pause() error {
+	fake.pauseMutex.Lock()
+	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
+	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct{}{})
+	fake.recordInvocation("Pause", []interface{}{})
+	fake.pauseMutex.Unlock()
+	if fake.PauseStub != nil {
+		return fake.PauseStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.pauseReturns.result1
+}
+
+func (fake *FakePipeline) PauseCallCount() int {
+	fake.pauseMutex.RLock()
+	defer fake.pauseMutex.RUnlock()
+	return len(fake.pauseArgsForCall)
+}
+
+func (fake *FakePipeline) PauseReturns(result1 error) {
+	fake.PauseStub = nil
+	fake.pauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) PauseReturnsOnCall(i int, result1 error) {
+	fake.PauseStub = nil
+	if fake.pauseReturnsOnCall == nil {
+		fake.pauseReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.pauseReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) Unpause() error {
+	fake.unpauseMutex.Lock()
+	ret, specificReturn := fake.unpauseReturnsOnCall[len(fake.unpauseArgsForCall)]
+	fake.unpauseArgsForCall = append(fake.unpauseArgsForCall, struct{}{})
+	fake.recordInvocation("Unpause", []interface{}{})
+	fake.unpauseMutex.Unlock()
+	if fake.UnpauseStub != nil {
+		return fake.UnpauseStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.unpauseReturns.result1
+}
+
+func (fake *FakePipeline) UnpauseCallCount() int {
+	fake.unpauseMutex.RLock()
+	defer fake.unpauseMutex.RUnlock()
+	return len(fake.unpauseArgsForCall)
+}
+
+func (fake *FakePipeline) UnpauseReturns(result1 error) {
+	fake.UnpauseStub = nil
+	fake.unpauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) UnpauseReturnsOnCall(i int, result1 error) {
+	fake.UnpauseStub = nil
+	if fake.unpauseReturnsOnCall == nil {
+		fake.unpauseReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.unpauseReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakePipeline) Destroy() error {
 	fake.destroyMutex.Lock()
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
@@ -748,6 +915,12 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.resourceTypesMutex.RUnlock()
 	fake.resourceTypeMutex.RLock()
 	defer fake.resourceTypeMutex.RUnlock()
+	fake.resourceMutex.RLock()
+	defer fake.resourceMutex.RUnlock()
+	fake.pauseMutex.RLock()
+	defer fake.pauseMutex.RUnlock()
+	fake.unpauseMutex.RLock()
+	defer fake.unpauseMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	return fake.invocations
