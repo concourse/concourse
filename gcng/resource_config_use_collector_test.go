@@ -18,7 +18,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 	var buildCollector gcng.Collector
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("resource-cache-use-collector")
+		logger := lagertest.NewTestLogger("resource-config-use-collector")
 		collector = gcng.NewResourceConfigUseCollector(logger, resourceConfigFactory)
 		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
@@ -379,6 +379,34 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceConfigUses()).To(Equal(2))
+					})
+				})
+
+				Context("when the config no longer matches the current config", func() {
+					setResourceSourceHash := func(resource *dbng.Resource, hash string) {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+						defer tx.Rollback()
+
+						var id int
+						err = psql.Update("resources").
+							Set("source_hash", hash).
+							Where(sq.Eq{
+								"id": resource.ID,
+							}).Suffix("RETURNING id").
+							RunWith(tx).
+							QueryRow().Scan(&id)
+						Expect(err).NotTo(HaveOccurred())
+
+						err = tx.Commit()
+						Expect(err).NotTo(HaveOccurred())
+					}
+
+					It("cleans up the uses", func() {
+						Expect(countResourceConfigUses()).NotTo(BeZero())
+						setResourceSourceHash(usedResource, "some-source-hash")
+						Expect(collector.Run()).To(Succeed())
+						Expect(countResourceConfigUses()).To(BeZero())
 					})
 				})
 			})

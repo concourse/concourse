@@ -22,6 +22,7 @@ type ResourceConfigFactory interface {
 	CleanConfigUsesForInactiveResourceTypes() error
 	CleanConfigUsesForInactiveResources() error
 	CleanConfigUsesForPausedPipelinesResources() error
+	CleanConfigUsesForOutdatedResourceConfigs() error
 	CleanUselessConfigs() error
 
 	AcquireResourceCheckingLock(
@@ -187,6 +188,22 @@ func (f *resourceConfigFactory) CleanConfigUsesForPausedPipelinesResources() err
 		Where(sq.And{
 			sq.Expr("r.pipeline_id NOT IN (" + pausedPipelineIds + ")"),
 			sq.Expr("rcu.resource_id = r.id"),
+		}).
+		RunWith(f.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *resourceConfigFactory) CleanConfigUsesForOutdatedResourceConfigs() error {
+	_, err := psql.Delete("resource_config_uses rcu USING resources r, resource_configs rc").
+		Where(sq.And{
+			sq.Expr("rcu.resource_id = r.id"),
+			sq.Expr("rcu.resource_config_id = rc.id"),
+			sq.Expr("r.source_hash != rc.source_hash"),
 		}).
 		RunWith(f.conn).
 		Exec()

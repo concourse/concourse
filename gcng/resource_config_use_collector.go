@@ -45,5 +45,11 @@ func (rcuc *resourceConfigUseCollector) Run() error {
 		return err
 	}
 
+	err = rcuc.configFactory.CleanConfigUsesForOutdatedResourceConfigs()
+	if err != nil {
+		rcuc.logger.Error("unable-to-clean-up-for-outdated-resource-configs", err)
+		return err
+	}
+
 	return nil
 }
