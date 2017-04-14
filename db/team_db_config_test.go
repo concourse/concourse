@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
-	"github.com/concourse/atc/db/lock/lockfakes"
 )
 
 var _ = Describe("Updating pipeline config for specific team", func() {
@@ -42,11 +41,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		pgxConn := postgresRunner.OpenPgx()
-		fakeConnector := new(lockfakes.FakeConnector)
-		retryableConn := &lock.RetryableConn{Connector: fakeConnector, Conn: pgxConn}
-
-		lockFactory := lock.NewLockFactory(retryableConn)
+		lockFactory := lock.NewLockFactory(postgresRunner.OpenSingleton())
 		database = db.NewSQL(dbConn, bus, lockFactory)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 
