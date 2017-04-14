@@ -155,7 +155,6 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 		})
 
 		It("has its resource cache, resource cache uses and resource cache volumes cleared out", func() {
-			Skip("skipping until resource volumes are cleaned up after pausing pipeline fixed #142391241")
 
 			By("setting pipeline that creates resource cache")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "volume-gc-test")

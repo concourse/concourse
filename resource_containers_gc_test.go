@@ -140,7 +140,6 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 		})
 
 		It("has its resource config, resource config uses and container removed", func() {
-			Skip("skipping until resource containers are cleaned up after pausing pipeline fixed #142391241")
 
 			By("setting pipeline that creates resource config")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task-changing-resource.yml", "-p", "resource-gc-test")
