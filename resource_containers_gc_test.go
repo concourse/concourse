@@ -205,7 +205,6 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 		})
 
 		It("has its resource config, resource config uses and container removed", func() {
-			Skip("skipping until resource containers are updated when resource config is changed #143266451")
 
 			By("setting pipeline that creates resource config")
 			fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "resource-gc-test")
@@ -239,12 +238,12 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 
 			By("eventually expiring the resource config")
 			Eventually(func() int {
-				var resourceConfigID int
-				err := psql.Select("id").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&resourceConfigID)
+				var resourceConfigsNum int
+				err := psql.Select("COUNT(id)").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&resourceConfigsNum)
 				Expect(err).ToNot(HaveOccurred())
 
-				return resourceConfigID
-			}, 5*time.Minute, 10*time.Second).ShouldNot(Equal(originalResourceConfigID))
+				return resourceConfigsNum
+			}, 5*time.Minute, 10*time.Second).Should(Equal(0))
 
 			By(fmt.Sprintf("eventually expiring the resource config container: %s", originalCheckContainerHandle))
 			Eventually(func() bool {
