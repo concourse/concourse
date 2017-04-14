@@ -39,8 +39,7 @@ func (rcuc *resourceConfigUseCollector) Run() error {
 		return err
 	}
 
-	// TODO: rename to pausedpipeline
-	err = rcuc.configFactory.CleanConfigUsesForPausedResources()
+	err = rcuc.configFactory.CleanConfigUsesForPausedPipelinesResources()
 	if err != nil {
 		rcuc.logger.Error("unable-to-clean-up-for-paused-resources", err)
 		return err

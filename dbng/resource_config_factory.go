@@ -21,7 +21,7 @@ type ResourceConfigFactory interface {
 	CleanConfigUsesForFinishedBuilds() error
 	CleanConfigUsesForInactiveResourceTypes() error
 	CleanConfigUsesForInactiveResources() error
-	CleanConfigUsesForPausedResources() error
+	CleanConfigUsesForPausedPipelinesResources() error
 	CleanUselessConfigs() error
 
 	AcquireResourceCheckingLock(
@@ -172,7 +172,7 @@ func (f *resourceConfigFactory) CleanConfigUsesForInactiveResources() error {
 	return nil
 }
 
-func (f *resourceConfigFactory) CleanConfigUsesForPausedResources() error {
+func (f *resourceConfigFactory) CleanConfigUsesForPausedPipelinesResources() error {
 	pausedPipelineIds, _, err := sq.
 		Select("id").
 		Distinct().

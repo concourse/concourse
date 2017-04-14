@@ -325,7 +325,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				})
 
 				Context("when all pipelines referencing config are paused", func() {
-					FIt("cleans up the uses", func() {
+					It("cleans up the uses", func() {
 						Expect(countResourceConfigUses()).NotTo(BeZero())
 						err := defaultPipeline.Pause()
 						Expect(err).NotTo(HaveOccurred())
@@ -373,7 +373,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						setActiveResource(anotherResource, true)
 					})
 
-					FIt("does not clean up the uses for unpaused pipeline resources", func() {
+					It("does not clean up the uses for unpaused pipeline resources", func() {
 						Expect(countResourceConfigUses()).To(Equal(4))
 						err := defaultPipeline.Pause()
 						Expect(err).NotTo(HaveOccurred())

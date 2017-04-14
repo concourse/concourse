@@ -55,13 +55,13 @@ type FakeResourceConfigFactory struct {
 	cleanConfigUsesForInactiveResourcesReturnsOnCall map[int]struct {
 		result1 error
 	}
-	CleanConfigUsesForPausedResourcesStub        func() error
-	cleanConfigUsesForPausedResourcesMutex       sync.RWMutex
-	cleanConfigUsesForPausedResourcesArgsForCall []struct{}
-	cleanConfigUsesForPausedResourcesReturns     struct {
+	CleanConfigUsesForPausedPipelinesResourcesStub        func() error
+	cleanConfigUsesForPausedPipelinesResourcesMutex       sync.RWMutex
+	cleanConfigUsesForPausedPipelinesResourcesArgsForCall []struct{}
+	cleanConfigUsesForPausedPipelinesResourcesReturns     struct {
 		result1 error
 	}
-	cleanConfigUsesForPausedResourcesReturnsOnCall map[int]struct {
+	cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall map[int]struct {
 		result1 error
 	}
 	CleanUselessConfigsStub        func() error
@@ -271,42 +271,42 @@ func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourcesReturn
 	}{result1}
 }
 
-func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedResources() error {
-	fake.cleanConfigUsesForPausedResourcesMutex.Lock()
-	ret, specificReturn := fake.cleanConfigUsesForPausedResourcesReturnsOnCall[len(fake.cleanConfigUsesForPausedResourcesArgsForCall)]
-	fake.cleanConfigUsesForPausedResourcesArgsForCall = append(fake.cleanConfigUsesForPausedResourcesArgsForCall, struct{}{})
-	fake.recordInvocation("CleanConfigUsesForPausedResources", []interface{}{})
-	fake.cleanConfigUsesForPausedResourcesMutex.Unlock()
-	if fake.CleanConfigUsesForPausedResourcesStub != nil {
-		return fake.CleanConfigUsesForPausedResourcesStub()
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedPipelinesResources() error {
+	fake.cleanConfigUsesForPausedPipelinesResourcesMutex.Lock()
+	ret, specificReturn := fake.cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall[len(fake.cleanConfigUsesForPausedPipelinesResourcesArgsForCall)]
+	fake.cleanConfigUsesForPausedPipelinesResourcesArgsForCall = append(fake.cleanConfigUsesForPausedPipelinesResourcesArgsForCall, struct{}{})
+	fake.recordInvocation("CleanConfigUsesForPausedPipelinesResources", []interface{}{})
+	fake.cleanConfigUsesForPausedPipelinesResourcesMutex.Unlock()
+	if fake.CleanConfigUsesForPausedPipelinesResourcesStub != nil {
+		return fake.CleanConfigUsesForPausedPipelinesResourcesStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.cleanConfigUsesForPausedResourcesReturns.result1
+	return fake.cleanConfigUsesForPausedPipelinesResourcesReturns.result1
 }
 
-func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedResourcesCallCount() int {
-	fake.cleanConfigUsesForPausedResourcesMutex.RLock()
-	defer fake.cleanConfigUsesForPausedResourcesMutex.RUnlock()
-	return len(fake.cleanConfigUsesForPausedResourcesArgsForCall)
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedPipelinesResourcesCallCount() int {
+	fake.cleanConfigUsesForPausedPipelinesResourcesMutex.RLock()
+	defer fake.cleanConfigUsesForPausedPipelinesResourcesMutex.RUnlock()
+	return len(fake.cleanConfigUsesForPausedPipelinesResourcesArgsForCall)
 }
 
-func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedResourcesReturns(result1 error) {
-	fake.CleanConfigUsesForPausedResourcesStub = nil
-	fake.cleanConfigUsesForPausedResourcesReturns = struct {
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedPipelinesResourcesReturns(result1 error) {
+	fake.CleanConfigUsesForPausedPipelinesResourcesStub = nil
+	fake.cleanConfigUsesForPausedPipelinesResourcesReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedResourcesReturnsOnCall(i int, result1 error) {
-	fake.CleanConfigUsesForPausedResourcesStub = nil
-	if fake.cleanConfigUsesForPausedResourcesReturnsOnCall == nil {
-		fake.cleanConfigUsesForPausedResourcesReturnsOnCall = make(map[int]struct {
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedPipelinesResourcesReturnsOnCall(i int, result1 error) {
+	fake.CleanConfigUsesForPausedPipelinesResourcesStub = nil
+	if fake.cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall == nil {
+		fake.cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.cleanConfigUsesForPausedResourcesReturnsOnCall[i] = struct {
+	fake.cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -420,8 +420,8 @@ func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} 
 	defer fake.cleanConfigUsesForInactiveResourceTypesMutex.RUnlock()
 	fake.cleanConfigUsesForInactiveResourcesMutex.RLock()
 	defer fake.cleanConfigUsesForInactiveResourcesMutex.RUnlock()
-	fake.cleanConfigUsesForPausedResourcesMutex.RLock()
-	defer fake.cleanConfigUsesForPausedResourcesMutex.RUnlock()
+	fake.cleanConfigUsesForPausedPipelinesResourcesMutex.RLock()
+	defer fake.cleanConfigUsesForPausedPipelinesResourcesMutex.RUnlock()
 	fake.cleanUselessConfigsMutex.RLock()
 	defer fake.cleanUselessConfigsMutex.RUnlock()
 	fake.acquireResourceCheckingLockMutex.RLock()
