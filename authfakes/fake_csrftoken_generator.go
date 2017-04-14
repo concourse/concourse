@@ -15,20 +15,27 @@ type FakeCSRFTokenGenerator struct {
 		result1 string
 		result2 error
 	}
+	generateTokenReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
 func (fake *FakeCSRFTokenGenerator) GenerateToken() (string, error) {
 	fake.generateTokenMutex.Lock()
+	ret, specificReturn := fake.generateTokenReturnsOnCall[len(fake.generateTokenArgsForCall)]
 	fake.generateTokenArgsForCall = append(fake.generateTokenArgsForCall, struct{}{})
 	fake.recordInvocation("GenerateToken", []interface{}{})
 	fake.generateTokenMutex.Unlock()
 	if fake.GenerateTokenStub != nil {
 		return fake.GenerateTokenStub()
-	} else {
-		return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2
 	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.generateTokenReturns.result1, fake.generateTokenReturns.result2
 }
 
 func (fake *FakeCSRFTokenGenerator) GenerateTokenCallCount() int {
@@ -40,6 +47,20 @@ func (fake *FakeCSRFTokenGenerator) GenerateTokenCallCount() int {
 func (fake *FakeCSRFTokenGenerator) GenerateTokenReturns(result1 string, result2 error) {
 	fake.GenerateTokenStub = nil
 	fake.generateTokenReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCSRFTokenGenerator) GenerateTokenReturnsOnCall(i int, result1 string, result2 error) {
+	fake.GenerateTokenStub = nil
+	if fake.generateTokenReturnsOnCall == nil {
+		fake.generateTokenReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.generateTokenReturnsOnCall[i] = struct {
 		result1 string
 		result2 error
 	}{result1, result2}
