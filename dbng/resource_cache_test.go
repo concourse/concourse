@@ -40,6 +40,7 @@ var _ = Describe("ResourceCache", func() {
 		var build dbng.Build
 
 		BeforeEach(func() {
+			var err error
 			build, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
@@ -84,6 +85,7 @@ var _ = Describe("ResourceCache", func() {
 		var resource dbng.Resource
 
 		BeforeEach(func() {
+			var err error
 			resource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
 			Expect(err).ToNot(HaveOccurred())
 

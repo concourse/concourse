@@ -10,6 +10,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
+	"github.com/lib/pq"
 )
 
 type BuildStatus string
@@ -23,8 +24,30 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
+var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name, p.id, p.name, t.name").
+	From("builds b").
+	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
+	JoinClause("LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id").
+	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id")
+
 type Build interface {
 	ID() int
+	Name() string
+	JobID() int
+	JobName() string
+	PipelineID() int
+	PipelineName() string
+	TeamID() int
+	TeamName() string
+	Engine() string
+	EngineMetadata() string
+	Status() BuildStatus
+	StartTime() time.Time
+	EndTime() time.Time
+	ReapTime() time.Time
+	IsManuallyTriggered() bool
+	IsScheduled() bool
+
 	Interceptible() (bool, error)
 
 	SaveStatus(s BuildStatus) error
@@ -36,16 +59,49 @@ type Build interface {
 }
 
 type build struct {
-	id int
+	id        int
+	name      string
+	status    BuildStatus
+	scheduled bool
 
-	pipelineID int
-	teamID     int
-	conn       Conn
+	teamID   int
+	teamName string
+
+	pipelineID   int
+	pipelineName string
+	jobID        int
+	jobName      string
+
+	isManuallyTriggered bool
+
+	engine         string
+	engineMetadata string
+
+	startTime time.Time
+	endTime   time.Time
+	reapTime  time.Time
+
+	conn Conn
 }
 
 var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
 
-func (b *build) ID() int { return b.id }
+func (b *build) ID() int                   { return b.id }
+func (b *build) Name() string              { return b.name }
+func (b *build) JobID() int                { return b.jobID }
+func (b *build) JobName() string           { return b.jobName }
+func (b *build) PipelineID() int           { return b.pipelineID }
+func (b *build) PipelineName() string      { return b.pipelineName }
+func (b *build) TeamID() int               { return b.teamID }
+func (b *build) TeamName() string          { return b.teamName }
+func (b *build) IsManuallyTriggered() bool { return b.isManuallyTriggered }
+func (b *build) Engine() string            { return b.engine }
+func (b *build) EngineMetadata() string    { return b.engineMetadata }
+func (b *build) StartTime() time.Time      { return b.startTime }
+func (b *build) EndTime() time.Time        { return b.endTime }
+func (b *build) ReapTime() time.Time       { return b.reapTime }
+func (b *build) Status() BuildStatus       { return b.status }
+func (b *build) IsScheduled() bool         { return b.scheduled }
 
 func (b *build) Interceptible() (bool, error) {
 	var interceptible bool
@@ -240,4 +296,36 @@ func createBuildEventSeq(tx Tx, buildid int) error {
 
 func buildEventSeq(buildid int) string {
 	return fmt.Sprintf("build_event_id_seq_%d", buildid)
+}
+
+func scanBuild(b *build, row scannable) error {
+	var (
+		jobID, pipelineID                             sql.NullInt64
+		engine, engineMetadata, jobName, pipelineName sql.NullString
+		startTime, endTime, reapTime                  pq.NullTime
+
+		status string
+	)
+
+	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+
+		return err
+	}
+
+	b.status = BuildStatus(status)
+	b.jobName = jobName.String
+	b.jobID = int(jobID.Int64)
+	b.pipelineName = pipelineName.String
+	b.pipelineID = int(pipelineID.Int64)
+	b.engine = engine.String
+	b.engineMetadata = engineMetadata.String
+	b.startTime = startTime.Time
+	b.endTime = endTime.Time
+	b.reapTime = reapTime.Time
+
+	return nil
 }

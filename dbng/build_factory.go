@@ -1,6 +1,10 @@
 package dbng
 
-import sq "github.com/Masterminds/squirrel"
+import (
+	"database/sql"
+
+	sq "github.com/Masterminds/squirrel"
+)
 
 type BuildFactory interface {
 	MarkNonInterceptibleBuilds() error
@@ -48,4 +52,80 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 
 	return nil
 
+}
+
+func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn) ([]Build, Pagination, error) {
+	var rows *sql.Rows
+	var err error
+
+	var reverse bool
+	if page.Since == 0 && page.Until == 0 {
+		buildsQuery = buildsQuery.OrderBy("b.id DESC").Limit(uint64(page.Limit))
+	} else if page.Until != 0 {
+		buildsQuery = buildsQuery.Where(sq.Gt{"b.id": uint64(page.Until)}).OrderBy("b.id ASC").Limit(uint64(page.Limit))
+		reverse = true
+	} else {
+		buildsQuery = buildsQuery.Where(sq.Lt{"b.id": page.Since}).OrderBy("b.id DESC").Limit(uint64(page.Limit))
+	}
+
+	rows, err = buildsQuery.RunWith(conn).Query()
+	if err != nil {
+		return nil, Pagination{}, err
+	}
+
+	defer rows.Close()
+
+	builds := []Build{}
+
+	for rows.Next() {
+		build := &build{conn: conn}
+		err = scanBuild(build, rows)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+
+		builds = append(builds, build)
+	}
+
+	if reverse {
+		for i, j := 0, len(builds)-1; i < j; i, j = i+1, j-1 {
+			builds[i], builds[j] = builds[j], builds[i]
+		}
+	}
+
+	if len(builds) == 0 {
+		return builds, Pagination{}, nil
+	}
+
+	var minID int
+	var maxID int
+	err = psql.Select("COALESCE(MAX(id), 0)", "COALESCE(MIN(id), 0)").
+		From("builds").
+		RunWith(conn).
+		QueryRow().
+		Scan(&maxID, &minID)
+	if err != nil {
+		return nil, Pagination{}, err
+	}
+
+	first := builds[0]
+	last := builds[len(builds)-1]
+
+	var pagination Pagination
+
+	if first.ID() < maxID {
+		pagination.Previous = &Page{
+			Until: first.ID(),
+			Limit: page.Limit,
+		}
+	}
+
+	if last.ID() > minID {
+		pagination.Next = &Page{
+			Since: last.ID(),
+			Limit: page.Limit,
+		}
+	}
+
+	return builds, pagination, nil
 }

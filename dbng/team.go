@@ -43,6 +43,7 @@ type Team interface {
 	OrderPipelines([]string) error
 
 	CreateOneOffBuild() (Build, error)
+	GetPrivateAndPublicBuilds(Page) ([]Build, Pagination, error)
 
 	SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error)
 	Workers() ([]Worker, error)
@@ -94,11 +95,10 @@ func (t *team) Delete() error {
 
 	defer tx.Rollback()
 
-	_, err = sq.Delete("teams").
+	_, err = psql.Delete("teams").
 		Where(sq.Eq{
 			"name": t.name,
 		}).
-		PlaceholderFormat(sq.Dollar).
 		RunWith(tx).
 		Exec()
 
@@ -107,7 +107,7 @@ func (t *team) Delete() error {
 	}
 
 	teamBuildEvents := fmt.Sprintf("team_build_events_%d", int64(t.id))
-	_, err = sq.Delete(teamBuildEvents).
+	_, err = psql.Delete(teamBuildEvents).
 		RunWith(tx).
 		Exec()
 	if err != nil {
@@ -637,8 +637,8 @@ func (t *team) Pipeline(pipelineName string) (Pipeline, bool, error) {
 		pipeline,
 		pipelinesQuery.
 			Where(sq.Eq{
-				"team_id": t.id,
-				"name":    pipelineName,
+				"p.team_id": t.id,
+				"p.name":    pipelineName,
 			}).
 			RunWith(t.conn).
 			QueryRow(),
@@ -796,6 +796,16 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 		return nil, err
 	}
 
+	build := &build{conn: t.conn}
+	err = scanBuild(build, buildsQuery.
+		Where(sq.Eq{"b.id": buildID}).
+		RunWith(tx).
+		QueryRow(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	err = createBuildEventSeq(tx, buildID)
 	if err != nil {
 		return nil, err
@@ -806,11 +816,14 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 		return nil, err
 	}
 
-	return &build{
-		id:     buildID,
-		teamID: t.id,
-		conn:   t.conn,
-	}, nil
+	return build, nil
+}
+
+func (t *team) GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {
+	newBuildsQuery := buildsQuery.
+		Where(sq.Or{sq.Eq{"p.public": true}, sq.Eq{"t.id": t.id}})
+
+	return getBuildsWithPagination(newBuildsQuery, page, t.conn)
 }
 
 func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error) {

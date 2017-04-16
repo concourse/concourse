@@ -12,14 +12,17 @@ var _ = Describe("Volume", func() {
 		var (
 			creatingVolume dbng.CreatingVolume
 			createdVolume  dbng.CreatedVolume
+			createErr      error
 		)
 
 		BeforeEach(func() {
+			var err error
 			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
-			createdVolume, err = creatingVolume.Created()
+			createdVolume, createErr = creatingVolume.Created()
 		})
 
 		Describe("the database query fails", func() {
@@ -32,8 +35,8 @@ var _ = Describe("Volume", func() {
 				})
 
 				It("returns the correct error", func() {
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(dbng.ErrVolumeMarkCreatedFailed{Handle: creatingVolume.Handle()}))
+					Expect(createErr).To(HaveOccurred())
+					Expect(createErr).To(Equal(dbng.ErrVolumeMarkCreatedFailed{Handle: creatingVolume.Handle()}))
 				})
 			})
 
@@ -51,8 +54,8 @@ var _ = Describe("Volume", func() {
 				})
 
 				It("returns the correct error", func() {
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(dbng.ErrVolumeMarkCreatedFailed{Handle: creatingVolume.Handle()}))
+					Expect(createErr).To(HaveOccurred())
+					Expect(createErr).To(Equal(dbng.ErrVolumeMarkCreatedFailed{Handle: creatingVolume.Handle()}))
 				})
 			})
 		})
@@ -66,7 +69,7 @@ var _ = Describe("Volume", func() {
 
 			It("returns a createdVolume and no error", func() {
 				Expect(createdVolume).NotTo(BeNil())
-				Expect(err).NotTo(HaveOccurred())
+				Expect(createErr).NotTo(HaveOccurred())
 			})
 
 			Context("when volume is already in provided state", func() {
@@ -77,7 +80,7 @@ var _ = Describe("Volume", func() {
 
 				It("returns a createdVolume and no error", func() {
 					Expect(createdVolume).NotTo(BeNil())
-					Expect(err).NotTo(HaveOccurred())
+					Expect(createErr).NotTo(HaveOccurred())
 				})
 			})
 		})
@@ -85,8 +88,12 @@ var _ = Describe("Volume", func() {
 
 	Describe("createdVolume.Initialize", func() {
 		var createdVolume dbng.CreatedVolume
+		var defaultBuild dbng.Build
 
 		BeforeEach(func() {
+			var err error
+			defaultBuild, err = defaultTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
 				dbng.ForBuild(defaultBuild.ID()),
@@ -187,6 +194,8 @@ var _ = Describe("Volume", func() {
 
 	Context("when volume type is VolumeTypeResource", func() {
 		It("returns volume type, resource type, resource version", func() {
+			defaultBuild, err := defaultTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
 				dbng.ForBuild(defaultBuild.ID()),
@@ -262,9 +271,12 @@ var _ = Describe("Volume", func() {
 	Describe("createdVolume.CreateChildForContainer", func() {
 		var parentVolume dbng.CreatedVolume
 		var creatingContainer dbng.CreatingContainer
+		var defaultBuild dbng.Build
 
 		BeforeEach(func() {
 			var err error
+			defaultBuild, err = defaultTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
 			creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", dbng.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
@@ -336,11 +348,13 @@ var _ = Describe("Volume", func() {
 		var creatingVolume dbng.CreatingVolume
 
 		BeforeEach(func() {
+			var err error
 			creatingVolume, err = volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("the container goes away from the db", func() {
-			err = defaultWorker.Delete()
+			err := defaultWorker.Delete()
 			Expect(err).NotTo(HaveOccurred())
 
 			creatingVolume, createdVolume, err := volumeFactory.FindContainerVolume(defaultTeam.ID(), defaultWorker, defaultCreatingContainer, "/path/to/volume")

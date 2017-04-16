@@ -10,10 +10,10 @@ import (
 var _ = Describe("Pipeline", func() {
 	var (
 		pipeline dbng.Pipeline
-		err      error
 	)
 
 	BeforeEach(func() {
+		var err error
 		pipeline, _, err = defaultTeam.SavePipeline("fake-pipeline", atc.Config{
 			Jobs: atc.JobConfigs{
 				{Name: "job-name"},
@@ -22,25 +22,56 @@ var _ = Describe("Pipeline", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	Describe("Hide", func() {
+	Describe("Pause", func() {
 		JustBeforeEach(func() {
-			err = pipeline.Hide()
-			Expect(err).ToNot(HaveOccurred())
+			Expect(pipeline.Pause()).To(Succeed())
 
 			found, err := pipeline.Reload()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 		})
 
-		Context("when the pipeline is public", func() {
+		Context("when the pipeline is unpaused", func() {
 			BeforeEach(func() {
-				err = pipeline.Expose()
-				Expect(err).ToNot(HaveOccurred())
+				Expect(pipeline.Unpause()).To(Succeed())
 			})
 
-			It("sets public to be false", func() {
-				Expect(pipeline.Public()).To(BeFalse())
+			It("pauses the pipeline", func() {
+				Expect(pipeline.Paused()).To(BeTrue())
 			})
+		})
+	})
+
+	Describe("Unpause", func() {
+		JustBeforeEach(func() {
+			Expect(pipeline.Unpause()).To(Succeed())
+
+			found, err := pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		Context("when the pipeline is paused", func() {
+			BeforeEach(func() {
+				Expect(pipeline.Pause()).To(Succeed())
+			})
+
+			It("unpauses the pipeline", func() {
+				Expect(pipeline.Paused()).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("Rename", func() {
+		JustBeforeEach(func() {
+			Expect(pipeline.Rename("oopsies")).To(Succeed())
+		})
+
+		It("renames the pipeline", func() {
+			pipeline, found, err := defaultTeam.Pipeline("oopsies")
+			Expect(pipeline.Name()).To(Equal("oopsies"))
+			Expect(found).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

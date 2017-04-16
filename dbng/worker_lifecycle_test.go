@@ -47,7 +47,7 @@ var _ = Describe("Worker Lifecycle", func() {
 	Describe("StallUnresponsiveWorkers", func() {
 		Context("when the worker has heartbeated recently", func() {
 			BeforeEach(func() {
-				_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -60,7 +60,7 @@ var _ = Describe("Worker Lifecycle", func() {
 
 		Context("when the worker has not heartbeated recently", func() {
 			BeforeEach(func() {
-				_, err = workerFactory.SaveWorker(atcWorker, -1*time.Minute)
+				_, err := workerFactory.SaveWorker(atcWorker, -1*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

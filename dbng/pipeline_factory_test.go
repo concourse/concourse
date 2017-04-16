@@ -63,5 +63,15 @@ var _ = Describe("Pipeline Factory", func() {
 		It("returns all public pipelines", func() {
 			Expect(publicPipelines).To(Equal([]dbng.Pipeline{pipeline3, pipeline1}))
 		})
+
+		Context("when a pipeline is hidden", func() {
+			BeforeEach(func() {
+				Expect(pipeline1.Hide()).To(Succeed())
+			})
+
+			It("returns only the remaining exposed pipeline", func() {
+				Expect(publicPipelines).To(Equal([]dbng.Pipeline{pipeline3}))
+			})
+		})
 	})
 })

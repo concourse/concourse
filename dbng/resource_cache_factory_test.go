@@ -25,7 +25,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 		resourceTypeUsingBogusBaseType atc.VersionedResourceType
 		resourceTypeOverridingBaseType atc.VersionedResourceType
 
-		logger *lagertest.TestLogger
+		logger       *lagertest.TestLogger
+		defaultBuild dbng.Build
 	)
 
 	BeforeEach(func() {
@@ -134,6 +135,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 		}
 
 		logger = lagertest.NewTestLogger("test")
+		defaultBuild, err = defaultTeam.CreateOneOffBuild()
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -264,7 +267,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 	Describe("CleanUpInvalidCaches", func() {
 		countResourceCaches := func() int {
 			var result int
-			err = psql.Select("count(*)").
+			err := psql.Select("count(*)").
 				From("resource_caches").
 				RunWith(dbConn).
 				QueryRow().
@@ -279,6 +282,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 			var build dbng.Build
 
 			BeforeEach(func() {
+				var err error
 				build, err = defaultTeam.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
 

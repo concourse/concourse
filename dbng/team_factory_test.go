@@ -33,6 +33,7 @@ var _ = Describe("Team Factory", func() {
 	Describe("CreateTeam", func() {
 		var team dbng.Team
 		BeforeEach(func() {
+			var err error
 			team, err = teamFactory.CreateTeam(atcTeam)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -53,6 +54,7 @@ var _ = Describe("Team Factory", func() {
 		)
 
 		JustBeforeEach(func() {
+			var err error
 			team, found, err = teamFactory.FindTeam("some-team")
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -60,6 +62,7 @@ var _ = Describe("Team Factory", func() {
 		Context("when the team exists", func() {
 			var createdTeam dbng.Team
 			BeforeEach(func() {
+				var err error
 				createdTeam, err = teamFactory.CreateTeam(atcTeam)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -94,6 +97,7 @@ var _ = Describe("Team Factory", func() {
 		})
 
 		JustBeforeEach(func() {
+			var err error
 			teams, err = teamFactory.GetTeams()
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -101,6 +105,7 @@ var _ = Describe("Team Factory", func() {
 		Context("when there is one team", func() {
 			var createdTeam dbng.Team
 			BeforeEach(func() {
+				var err error
 				createdTeam, err = teamFactory.CreateTeam(atcTeam)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -120,6 +125,7 @@ var _ = Describe("Team Factory", func() {
 				otherCreatedTeam dbng.Team
 			)
 			BeforeEach(func() {
+				var err error
 				createdTeam, err = teamFactory.CreateTeam(atcTeam)
 				Expect(err).ToNot(HaveOccurred())
 				otherCreatedTeam, err = teamFactory.CreateTeam(atc.Team{
@@ -149,7 +155,6 @@ var _ = Describe("Team Factory", func() {
 		Context("when there are no teams", func() {
 			It("returns nil", func() {
 				Expect(teams).To(Equal([]dbng.Team{}))
-				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})

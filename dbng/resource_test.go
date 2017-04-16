@@ -11,7 +11,11 @@ var _ = Describe("Resource", func() {
 	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
-		var created bool
+		var (
+			created bool
+			err     error
+		)
+
 		pipeline, created, err = defaultTeam.SavePipeline(
 			"pipeline-with-resources",
 			atc.Config{

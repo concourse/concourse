@@ -56,6 +56,7 @@ type Pipeline interface {
 	Expose() error
 	Pause() error
 	Unpause() error
+	Rename(string) error
 }
 
 type pipeline struct {
@@ -169,6 +170,16 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 		return nil, err
 	}
 
+	build := &build{conn: p.conn}
+	err = scanBuild(build, buildsQuery.
+		Where(sq.Eq{"b.id": buildID}).
+		RunWith(tx).
+		QueryRow(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	err = createBuildEventSeq(tx, buildID)
 	if err != nil {
 		return nil, err
@@ -179,12 +190,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 		return nil, err
 	}
 
-	return &build{
-		id:         buildID,
-		pipelineID: p.id,
-		teamID:     p.teamID,
-		conn:       p.conn,
-	}, nil
+	return build, nil
 }
 
 func (p *pipeline) CreateResource(name string, config atc.ResourceConfig) (Resource, error) {
@@ -414,6 +420,18 @@ func (p *pipeline) Hide() error {
 func (p *pipeline) Expose() error {
 	_, err := psql.Update("pipelines").
 		Set("public", true).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+
+	return err
+}
+
+func (p *pipeline) Rename(name string) error {
+	_, err := psql.Update("pipelines").
+		Set("name", name).
 		Where(sq.Eq{
 			"id": p.id,
 		}).

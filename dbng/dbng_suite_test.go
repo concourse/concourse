@@ -27,7 +27,6 @@ func TestDB(t *testing.T) {
 }
 
 var (
-	err            error
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
 
@@ -52,7 +51,6 @@ var (
 	defaultResourceType       dbng.ResourceType
 	defaultResource           dbng.Resource
 	defaultPipeline           dbng.Pipeline
-	defaultBuild              dbng.Build
 	defaultCreatingContainer  dbng.CreatingContainer
 	defaultCreatedContainer   dbng.CreatedContainer
 	logger                    *lagertest.TestLogger
@@ -90,6 +88,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = BeforeEach(func() {
+	var err error
 	format.UseStringerRepresentation = true
 
 	postgresRunner.Truncate()
@@ -158,9 +157,6 @@ var _ = BeforeEach(func() {
 	found, err = defaultResourceType.Reload()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
-
-	defaultBuild, err = defaultTeam.CreateOneOffBuild()
-	Expect(err).NotTo(HaveOccurred())
 
 	defaultResource, err = defaultPipeline.CreateResource("default-resource", atc.ResourceConfig{})
 	Expect(err).NotTo(HaveOccurred())

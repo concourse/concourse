@@ -18,6 +18,7 @@ var _ = Describe("VolumeFactory", func() {
 	)
 
 	BeforeEach(func() {
+		var err error
 		build, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -103,6 +104,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		Context("when worker is stalled", func() {
 			BeforeEach(func() {
+				var err error
 				defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 				stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
@@ -214,6 +216,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		Context("when worker is stalled", func() {
 			BeforeEach(func() {
+				var err error
 				defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 				stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
@@ -443,6 +446,7 @@ var _ = Describe("VolumeFactory", func() {
 		)
 
 		BeforeEach(func() {
+			var err error
 			resource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -473,6 +477,7 @@ var _ = Describe("VolumeFactory", func() {
 
 			Context("where volume is on the same worker", func() {
 				BeforeEach(func() {
+					var err error
 					duplicateVolume, err = volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -526,6 +531,7 @@ var _ = Describe("VolumeFactory", func() {
 
 					Context("when worker is stalled", func() {
 						BeforeEach(func() {
+							var err error
 							defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
 							Expect(err).NotTo(HaveOccurred())
 							stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()

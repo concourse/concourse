@@ -270,6 +270,35 @@ type FakePipeline struct {
 	exposeReturnsOnCall map[int]struct {
 		result1 error
 	}
+	PauseStub        func() error
+	pauseMutex       sync.RWMutex
+	pauseArgsForCall []struct{}
+	pauseReturns     struct {
+		result1 error
+	}
+	pauseReturnsOnCall map[int]struct {
+		result1 error
+	}
+	UnpauseStub        func() error
+	unpauseMutex       sync.RWMutex
+	unpauseArgsForCall []struct{}
+	unpauseReturns     struct {
+		result1 error
+	}
+	unpauseReturnsOnCall map[int]struct {
+		result1 error
+	}
+	RenameStub        func(string) error
+	renameMutex       sync.RWMutex
+	renameArgsForCall []struct {
+		arg1 string
+	}
+	renameReturns struct {
+		result1 error
+	}
+	renameReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -1306,6 +1335,134 @@ func (fake *FakePipeline) ExposeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakePipeline) Pause() error {
+	fake.pauseMutex.Lock()
+	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
+	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct{}{})
+	fake.recordInvocation("Pause", []interface{}{})
+	fake.pauseMutex.Unlock()
+	if fake.PauseStub != nil {
+		return fake.PauseStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.pauseReturns.result1
+}
+
+func (fake *FakePipeline) PauseCallCount() int {
+	fake.pauseMutex.RLock()
+	defer fake.pauseMutex.RUnlock()
+	return len(fake.pauseArgsForCall)
+}
+
+func (fake *FakePipeline) PauseReturns(result1 error) {
+	fake.PauseStub = nil
+	fake.pauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) PauseReturnsOnCall(i int, result1 error) {
+	fake.PauseStub = nil
+	if fake.pauseReturnsOnCall == nil {
+		fake.pauseReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.pauseReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) Unpause() error {
+	fake.unpauseMutex.Lock()
+	ret, specificReturn := fake.unpauseReturnsOnCall[len(fake.unpauseArgsForCall)]
+	fake.unpauseArgsForCall = append(fake.unpauseArgsForCall, struct{}{})
+	fake.recordInvocation("Unpause", []interface{}{})
+	fake.unpauseMutex.Unlock()
+	if fake.UnpauseStub != nil {
+		return fake.UnpauseStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.unpauseReturns.result1
+}
+
+func (fake *FakePipeline) UnpauseCallCount() int {
+	fake.unpauseMutex.RLock()
+	defer fake.unpauseMutex.RUnlock()
+	return len(fake.unpauseArgsForCall)
+}
+
+func (fake *FakePipeline) UnpauseReturns(result1 error) {
+	fake.UnpauseStub = nil
+	fake.unpauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) UnpauseReturnsOnCall(i int, result1 error) {
+	fake.UnpauseStub = nil
+	if fake.unpauseReturnsOnCall == nil {
+		fake.unpauseReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.unpauseReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) Rename(arg1 string) error {
+	fake.renameMutex.Lock()
+	ret, specificReturn := fake.renameReturnsOnCall[len(fake.renameArgsForCall)]
+	fake.renameArgsForCall = append(fake.renameArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Rename", []interface{}{arg1})
+	fake.renameMutex.Unlock()
+	if fake.RenameStub != nil {
+		return fake.RenameStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.renameReturns.result1
+}
+
+func (fake *FakePipeline) RenameCallCount() int {
+	fake.renameMutex.RLock()
+	defer fake.renameMutex.RUnlock()
+	return len(fake.renameArgsForCall)
+}
+
+func (fake *FakePipeline) RenameArgsForCall(i int) string {
+	fake.renameMutex.RLock()
+	defer fake.renameMutex.RUnlock()
+	return fake.renameArgsForCall[i].arg1
+}
+
+func (fake *FakePipeline) RenameReturns(result1 error) {
+	fake.RenameStub = nil
+	fake.renameReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) RenameReturnsOnCall(i int, result1 error) {
+	fake.RenameStub = nil
+	if fake.renameReturnsOnCall == nil {
+		fake.renameReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.renameReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1355,6 +1512,12 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.destroyMutex.RUnlock()
 	fake.exposeMutex.RLock()
 	defer fake.exposeMutex.RUnlock()
+	fake.pauseMutex.RLock()
+	defer fake.pauseMutex.RUnlock()
+	fake.unpauseMutex.RLock()
+	defer fake.unpauseMutex.RUnlock()
+	fake.renameMutex.RLock()
+	defer fake.renameMutex.RUnlock()
 	return fake.invocations
 }
 

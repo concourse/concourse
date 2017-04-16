@@ -48,6 +48,7 @@ var _ = Describe("Worker", func() {
 	Describe("Land", func() {
 
 		BeforeEach(func() {
+			var err error
 			worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -98,6 +99,7 @@ var _ = Describe("Worker", func() {
 
 	Describe("Retire", func() {
 		BeforeEach(func() {
+			var err error
 			worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -130,6 +132,7 @@ var _ = Describe("Worker", func() {
 
 	Describe("Delete", func() {
 		BeforeEach(func() {
+			var err error
 			worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -165,6 +168,7 @@ var _ = Describe("Worker", func() {
 			)
 
 			Context("when worker is stalled", func() {
+				var pruneErr error
 				BeforeEach(func() {
 					worker, err := workerFactory.SaveWorker(atc.Worker{
 						Name:       "worker-to-prune",
@@ -175,17 +179,18 @@ var _ = Describe("Worker", func() {
 
 					_, err = workerLifecycle.StallUnresponsiveWorkers()
 					Expect(err).NotTo(HaveOccurred())
-					err = worker.Prune()
+					pruneErr = worker.Prune()
 				})
 
 				It("does not return error", func() {
-					Expect(err).NotTo(HaveOccurred())
+					Expect(pruneErr).NotTo(HaveOccurred())
 				})
 			})
 		})
 
 		Context("when worker does not exist", func() {
 			BeforeEach(func() {
+				var err error
 				worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 				err = worker.Delete()
@@ -193,6 +198,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("raises ErrWorkerNotPresent", func() {
+				var err error
 				err = worker.Prune()
 				Expect(err).To(Equal(ErrWorkerNotPresent))
 			})

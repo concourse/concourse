@@ -138,7 +138,6 @@ var _ = Describe("WorkerResourceCache", func() {
 			})
 
 			It("returns false and no error", func() {
-				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(foundWRC).To(BeNil())
 			})

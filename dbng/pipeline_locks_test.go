@@ -15,6 +15,7 @@ var _ = Describe("PipelineLocks", func() {
 		var someResource dbng.Resource
 
 		BeforeEach(func() {
+			var err error
 			someResource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{Type: "some-base-resource-type"})
 			Expect(err).NotTo(HaveOccurred())
 		})

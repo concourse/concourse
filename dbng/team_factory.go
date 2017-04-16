@@ -3,6 +3,7 @@ package dbng
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"encoding/json"
 
@@ -99,7 +100,7 @@ func (factory *teamFactory) FindTeam(teamName string) (Team, bool, error) {
 
 	row := psql.Select("id, name, admin, basic_auth, auth").
 		From("teams").
-		Where(sq.Eq{"name": teamName}).
+		Where(sq.Eq{"LOWER(name)": strings.ToLower(teamName)}).
 		RunWith(factory.conn).
 		QueryRow()
 
