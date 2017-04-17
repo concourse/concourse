@@ -298,7 +298,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
-							"cache": "source",
+							"some": "source",
 						},
 						atc.Params{"some": "params"},
 						atc.VersionedResourceTypes{versionedResourceType},
@@ -363,9 +363,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 							dbng.ForResource(anotherResource.ID),
 							"some-type",
 							atc.Version{"some-type": "version"},
-							atc.Source{
-								"cache": "source",
-							},
+							anotherResource.Source,
 							atc.Params{"some": "params"},
 							atc.VersionedResourceTypes{versionedResourceType},
 						)
@@ -374,11 +372,13 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 					})
 
 					It("does not clean up the uses for unpaused pipeline resources", func() {
-						Expect(countResourceConfigUses()).To(Equal(4))
+						Expect(collector.Run()).To(Succeed()) // Clean up other things
+
+						Expect(countResourceConfigUses()).To(Equal(2))
 						err := defaultPipeline.Pause()
 						Expect(err).NotTo(HaveOccurred())
 						Expect(collector.Run()).To(Succeed())
-						Expect(countResourceConfigUses()).To(Equal(2))
+						Expect(countResourceConfigUses()).To(Equal(1))
 					})
 				})
 
@@ -402,11 +402,29 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						Expect(err).NotTo(HaveOccurred())
 					}
 
+					BeforeEach(func() {
+						_, err = resourceCacheFactory.FindOrCreateResourceCache(
+							logger,
+							dbng.ForResource(usedResource.ID),
+							"some-type",
+							atc.Version{"some-type": "version"},
+							usedResource.Source,
+							atc.Params{"some": "params"},
+							atc.VersionedResourceTypes{versionedResourceType},
+						)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
 					It("cleans up the uses", func() {
-						Expect(countResourceConfigUses()).NotTo(BeZero())
+						Expect(collector.Run()).To(Succeed()) // Clean up any other things
+						beforeUses := countResourceConfigUses()
+
+						Expect(beforeUses).NotTo(BeZero())
 						setResourceSourceHash(usedResource, "some-source-hash")
 						Expect(collector.Run()).To(Succeed())
-						Expect(countResourceConfigUses()).To(BeZero())
+
+						afterUses := countResourceConfigUses()
+						Expect(beforeUses - afterUses).To(Equal(1))
 					})
 				})
 			})
