@@ -5,6 +5,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
@@ -22,7 +23,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 		execEngine engine.Engine
 
-		build              *dbfakes.FakeBuild
+		build              *dbngfakes.FakeBuild
 		expectedTeamID     = 1111
 		expectedPipelineID = 2222
 		expectedJobID      = 3333
@@ -50,7 +51,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		fakeDelegate = new(enginefakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		build = new(dbfakes.FakeBuild)
+		build = new(dbngfakes.FakeBuild)
 		build.IDReturns(expectedBuildID)
 		build.NameReturns("42")
 		build.JobNameReturns("some-job")
@@ -147,28 +148,23 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				BeforeEach(func() {
 					planFactory = atc.NewPlanFactory(123)
 					inputPlan = planFactory.NewPlan(atc.GetPlan{
-						Name:       "some-input",
-						PipelineID: 57,
+						Name: "some-input",
 					})
 					failureTaskPlan = planFactory.NewPlan(atc.TaskPlan{
-						Name:       "some-failure-task",
-						PipelineID: 57,
-						Config:     &atc.TaskConfig{},
+						Name:   "some-failure-task",
+						Config: &atc.TaskConfig{},
 					})
 					successTaskPlan = planFactory.NewPlan(atc.TaskPlan{
-						Name:       "some-success-task",
-						PipelineID: 57,
-						Config:     &atc.TaskConfig{},
+						Name:   "some-success-task",
+						Config: &atc.TaskConfig{},
 					})
 					completionTaskPlan = planFactory.NewPlan(atc.TaskPlan{
-						Name:       "some-completion-task",
-						PipelineID: 57,
-						Config:     &atc.TaskConfig{},
+						Name:   "some-completion-task",
+						Config: &atc.TaskConfig{},
 					})
 					nextTaskPlan = planFactory.NewPlan(atc.TaskPlan{
-						Name:       "some-next-task",
-						PipelineID: 57,
-						Config:     &atc.TaskConfig{},
+						Name:   "some-next-task",
+						Config: &atc.TaskConfig{},
 					})
 
 					plan = planFactory.NewPlan(atc.OnSuccessPlan{

@@ -127,6 +127,15 @@ var _ = BeforeEach(func() {
 				Name: "some-job",
 			},
 		},
+		Resources: atc.ResourceConfigs{
+			{
+				Name: "some-resource",
+				Type: "some-resource-type",
+				Source: atc.Source{
+					"some": "source",
+				},
+			},
+		},
 		ResourceTypes: atc.ResourceTypes{
 			{
 				Name: "some-type",
@@ -151,8 +160,9 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
 
-	defaultResource, err = defaultPipeline.CreateResource("default-resource", atc.ResourceConfig{})
+	defaultResource, found, err = defaultPipeline.Resource("some-resource")
 	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
 
 	logger = lagertest.NewTestLogger("test")
 	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource(defaultResource.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})

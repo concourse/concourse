@@ -1,16 +1,12 @@
 package engine_test
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/event"
@@ -60,7 +56,7 @@ var _ = Describe("ExecEngine", func() {
 			fakeExecutionDelegate *execfakes.FakeTaskDelegate
 			fakeOutputDelegate    *execfakes.FakePutDelegate
 
-			dbBuild          *dbfakes.FakeBuild
+			dbBuild          *dbngfakes.FakeBuild
 			expectedMetadata engine.StepMetadata
 
 			outputPlan atc.Plan
@@ -85,7 +81,7 @@ var _ = Describe("ExecEngine", func() {
 		BeforeEach(func() {
 			planFactory = atc.NewPlanFactory(123)
 
-			dbBuild = new(dbfakes.FakeBuild)
+			dbBuild = new(dbngfakes.FakeBuild)
 			dbBuild.IDReturns(expectedBuildID)
 			dbBuild.NameReturns("42")
 			dbBuild.JobNameReturns("some-job")
@@ -151,37 +147,33 @@ var _ = Describe("ExecEngine", func() {
 
 			BeforeEach(func() {
 				putPlan = planFactory.NewPlan(atc.PutPlan{
-					Name:       "some-put",
-					Resource:   "some-output-resource",
-					Type:       "put",
-					Source:     atc.Source{"some": "source"},
-					Params:     atc.Params{"some": "params"},
-					PipelineID: expectedPipelineID,
+					Name:     "some-put",
+					Resource: "some-output-resource",
+					Type:     "put",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
 				})
 				dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
-					Name:       "some-get",
-					Resource:   "some-input-resource",
-					Type:       "get",
-					Source:     atc.Source{"some": "source"},
-					Params:     atc.Params{"another": "params"},
-					PipelineID: expectedPipelineID,
+					Name:     "some-get",
+					Resource: "some-input-resource",
+					Type:     "get",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"another": "params"},
 				})
 
 				otherPutPlan = planFactory.NewPlan(atc.PutPlan{
-					Name:       "some-put-2",
-					Resource:   "some-output-resource-2",
-					Type:       "put",
-					Source:     atc.Source{"some": "source-2"},
-					Params:     atc.Params{"some": "params-2"},
-					PipelineID: expectedPipelineID,
+					Name:     "some-put-2",
+					Resource: "some-output-resource-2",
+					Type:     "put",
+					Source:   atc.Source{"some": "source-2"},
+					Params:   atc.Params{"some": "params-2"},
 				})
 				otherDependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
-					Name:       "some-get-2",
-					Resource:   "some-input-resource-2",
-					Type:       "get",
-					Source:     atc.Source{"some": "source-2"},
-					Params:     atc.Params{"another": "params-2"},
-					PipelineID: expectedPipelineID,
+					Name:     "some-get-2",
+					Resource: "some-input-resource-2",
+					Type:     "get",
+					Source:   atc.Source{"some": "source-2"},
+					Params:   atc.Params{"another": "params-2"},
 				})
 
 				outputPlan = planFactory.NewPlan(atc.AggregatePlan{
@@ -334,19 +326,17 @@ var _ = Describe("ExecEngine", func() {
 			)
 			BeforeEach(func() {
 				getPlan = planFactory.NewPlan(atc.GetPlan{
-					Name:       "some-get",
-					Resource:   "some-input-resource",
-					Type:       "get",
-					Source:     atc.Source{"some": "source"},
-					Params:     atc.Params{"some": "params"},
-					PipelineID: expectedPipelineID,
+					Name:     "some-get",
+					Resource: "some-input-resource",
+					Type:     "get",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
 				})
 
 				taskPlan = planFactory.NewPlan(atc.TaskPlan{
 					Name:       "some-task",
 					Privileged: false,
 					Tags:       atc.Tags{"some", "task", "tags"},
-					PipelineID: expectedPipelineID,
 					ConfigPath: "some-config-path",
 				})
 
@@ -500,7 +490,6 @@ var _ = Describe("ExecEngine", func() {
 					Name:       "some-task",
 					Privileged: false,
 					Tags:       atc.Tags{"some", "task", "tags"},
-					Pipeline:   "some-pipeline",
 					ConfigPath: "some-config-path",
 				})
 
@@ -546,14 +535,13 @@ var _ = Describe("ExecEngine", func() {
 			Context("that contains inputs", func() {
 				BeforeEach(func() {
 					getPlan := atc.GetPlan{
-						Name:       "some-input",
-						Resource:   "some-input-resource",
-						Type:       "get",
-						Tags:       []string{"some", "get", "tags"},
-						Version:    atc.Version{"some": "version"},
-						Source:     atc.Source{"some": "source"},
-						Params:     atc.Params{"some": "params"},
-						PipelineID: expectedPipelineID,
+						Name:     "some-input",
+						Resource: "some-input-resource",
+						Type:     "get",
+						Tags:     []string{"some", "get", "tags"},
+						Version:  atc.Version{"some": "version"},
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
 					}
 
 					plan = planFactory.NewPlan(getPlan)
@@ -610,7 +598,6 @@ var _ = Describe("ExecEngine", func() {
 					taskPlan = atc.TaskPlan{
 						Name:          "some-task",
 						ConfigPath:    "some-input/build.yml",
-						PipelineID:    expectedPipelineID,
 						InputMapping:  inputMapping,
 						OutputMapping: outputMapping,
 					}
@@ -620,12 +607,46 @@ var _ = Describe("ExecEngine", func() {
 					plan = planFactory.NewPlan(taskPlan)
 				})
 
-				Context("when build is not one-off", func() {
+				It("constructs tasks correctly", func() {
+					var err error
+					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
+					Expect(err).NotTo(HaveOccurred())
+
+					build.Resume(logger)
+					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
+
+					logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, privileged, tags, configSource, _, actualInputMapping, actualOutputMapping, _, _ := fakeFactory.TaskArgsForCall(0)
+					Expect(logger).NotTo(BeNil())
+					Expect(teamID).To(Equal(expectedTeamID))
+					Expect(buildID).To(Equal(expectedBuildID))
+					Expect(planID).To(Equal(plan.ID))
+					Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
+					Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
+						Type:         dbng.ContainerTypeTask,
+						StepName:     "some-task",
+						PipelineID:   expectedPipelineID,
+						PipelineName: "some-pipeline",
+						JobID:        expectedJobID,
+						JobName:      "some-job",
+						BuildID:      expectedBuildID,
+						BuildName:    "42",
+					}))
+					Expect(privileged).To(Equal(exec.Privileged(false)))
+					Expect(tags).To(BeEmpty())
+					Expect(configSource).NotTo(BeNil())
+					Expect(delegate).To(Equal(fakeExecutionDelegate))
+					_, _, originID := fakeDelegate.ExecutionDelegateArgsForCall(0)
+					Expect(originID).To(Equal(event.OriginID(plan.ID)))
+					Expect(actualInputMapping).To(Equal(inputMapping))
+					Expect(actualOutputMapping).To(Equal(outputMapping))
+				})
+
+				Context("when the plan's image references the output of a previous step", func() {
 					BeforeEach(func() {
-						dbBuild.IsOneOffReturns(false)
+						taskPlan.ImageArtifactName = "some-image-artifact-name"
 					})
 
-					It("constructs tasks correctly", func() {
+					It("constructs the task with the referenced image", func() {
 						var err error
 						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 						Expect(err).NotTo(HaveOccurred())
@@ -633,96 +654,56 @@ var _ = Describe("ExecEngine", func() {
 						build.Resume(logger)
 						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-						logger, teamID, buildID, planID, sourceName, workerMetadata, delegate, privileged, tags, configSource, _, actualInputMapping, actualOutputMapping, _, _ := fakeFactory.TaskArgsForCall(0)
-						Expect(logger).NotTo(BeNil())
-						Expect(teamID).To(Equal(expectedTeamID))
-						Expect(buildID).To(Equal(expectedBuildID))
-						Expect(planID).To(Equal(plan.ID))
-						Expect(sourceName).To(Equal(worker.ArtifactName("some-task")))
-						Expect(workerMetadata).To(Equal(dbng.ContainerMetadata{
-							Type:         dbng.ContainerTypeTask,
-							StepName:     "some-task",
-							PipelineID:   expectedPipelineID,
-							PipelineName: "some-pipeline",
-							JobID:        expectedJobID,
-							JobName:      "some-job",
-							BuildID:      expectedBuildID,
-							BuildName:    "42",
-						}))
-						Expect(privileged).To(Equal(exec.Privileged(false)))
-						Expect(tags).To(BeEmpty())
-						Expect(configSource).NotTo(BeNil())
-						Expect(delegate).To(Equal(fakeExecutionDelegate))
-						_, _, originID := fakeDelegate.ExecutionDelegateArgsForCall(0)
-						Expect(originID).To(Equal(event.OriginID(plan.ID)))
-						Expect(actualInputMapping).To(Equal(inputMapping))
-						Expect(actualOutputMapping).To(Equal(outputMapping))
+						_, _, _, _, _, _, _, _, _, _, _, _, _, actualImageArtifactName, _ := fakeFactory.TaskArgsForCall(0)
+						Expect(actualImageArtifactName).To(Equal("some-image-artifact-name"))
+					})
+				})
+
+				Context("when the plan contains params and config path", func() {
+					BeforeEach(func() {
+						taskPlan.Params = map[string]interface{}{
+							"task-param": "task-param-value",
+						}
 					})
 
-					Context("when the plan's image references the output of a previous step", func() {
-						BeforeEach(func() {
-							taskPlan.ImageArtifactName = "some-image-artifact-name"
-						})
+					It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
+						var err error
+						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
+						Expect(err).NotTo(HaveOccurred())
 
-						It("constructs the task with the referenced image", func() {
-							var err error
-							build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-							Expect(err).NotTo(HaveOccurred())
+						build.Resume(logger)
+						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-							build.Resume(logger)
-							Expect(fakeFactory.TaskCallCount()).To(Equal(1))
-
-							_, _, _, _, _, _, _, _, _, _, _, _, _, actualImageArtifactName, _ := fakeFactory.TaskArgsForCall(0)
-							Expect(actualImageArtifactName).To(Equal("some-image-artifact-name"))
-						})
+						_, _, _, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+						vcs, ok := configSource.(exec.ValidatingConfigSource)
+						Expect(ok).To(BeTrue())
+						_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
+						Expect(ok).To(BeTrue())
 					})
+				})
 
-					Context("when the plan contains params and config path", func() {
-						BeforeEach(func() {
-							taskPlan.Params = map[string]interface{}{
+				Context("when the plan contains config and config path", func() {
+					BeforeEach(func() {
+						taskPlan.Config = &atc.TaskConfig{
+							Params: map[string]string{
 								"task-param": "task-param-value",
-							}
-						})
-
-						It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
-							var err error
-							build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-							Expect(err).NotTo(HaveOccurred())
-
-							build.Resume(logger)
-							Expect(fakeFactory.TaskCallCount()).To(Equal(1))
-
-							_, _, _, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
-							vcs, ok := configSource.(exec.ValidatingConfigSource)
-							Expect(ok).To(BeTrue())
-							_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
-							Expect(ok).To(BeTrue())
-						})
+							},
+						}
 					})
 
-					Context("when the plan contains config and config path", func() {
-						BeforeEach(func() {
-							taskPlan.Config = &atc.TaskConfig{
-								Params: map[string]string{
-									"task-param": "task-param-value",
-								},
-							}
-						})
+					It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
+						var err error
+						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
+						Expect(err).NotTo(HaveOccurred())
 
-						It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
-							var err error
-							build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-							Expect(err).NotTo(HaveOccurred())
+						build.Resume(logger)
+						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-							build.Resume(logger)
-							Expect(fakeFactory.TaskCallCount()).To(Equal(1))
-
-							_, _, _, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
-							vcs, ok := configSource.(exec.ValidatingConfigSource)
-							Expect(ok).To(BeTrue())
-							_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
-							Expect(ok).To(BeTrue())
-						})
+						_, _, _, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+						vcs, ok := configSource.(exec.ValidatingConfigSource)
+						Expect(ok).To(BeTrue())
+						_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
+						Expect(ok).To(BeTrue())
 					})
 				})
 			})
@@ -736,22 +717,20 @@ var _ = Describe("ExecEngine", func() {
 
 				BeforeEach(func() {
 					putPlan = planFactory.NewPlan(atc.PutPlan{
-						Name:       "some-put",
-						Resource:   "some-output-resource",
-						Tags:       []string{"some", "putget", "tags"},
-						Type:       "put",
-						Source:     atc.Source{"some": "source"},
-						Params:     atc.Params{"some": "params"},
-						PipelineID: expectedPipelineID,
+						Name:     "some-put",
+						Resource: "some-output-resource",
+						Tags:     []string{"some", "putget", "tags"},
+						Type:     "put",
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
 					})
 					dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
-						Name:       "some-get",
-						Resource:   "some-input-resource",
-						Tags:       []string{"some", "putget", "tags"},
-						Type:       "get",
-						Source:     atc.Source{"some": "source"},
-						Params:     atc.Params{"another": "params"},
-						PipelineID: expectedPipelineID,
+						Name:     "some-get",
+						Resource: "some-input-resource",
+						Tags:     []string{"some", "putget", "tags"},
+						Type:     "get",
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"another": "params"},
 					})
 
 					plan = planFactory.NewPlan(atc.OnSuccessPlan{
@@ -854,7 +833,6 @@ var _ = Describe("ExecEngine", func() {
 					Type:     "some-type",
 					Source:   atc.Source{"some": "source"},
 					Params:   atc.Params{"some": "params"},
-					Pipeline: "some-pipeline",
 				}),
 				Next: planFactory.NewPlan(atc.DependentGetPlan{
 					Name:     "some-put",
@@ -867,7 +845,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			var err error
-			dbBuild := new(dbfakes.FakeBuild)
+			dbBuild := new(dbngfakes.FakeBuild)
 			build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -890,10 +868,10 @@ var _ = Describe("ExecEngine", func() {
 	})
 
 	Describe("LookupBuild", func() {
-		var dbBuild *dbfakes.FakeBuild
+		var dbBuild *dbngfakes.FakeBuild
 
 		BeforeEach(func() {
-			dbBuild = new(dbfakes.FakeBuild)
+			dbBuild = new(dbngfakes.FakeBuild)
 			dbBuild.IDReturns(expectedBuildID)
 			dbBuild.NameReturns("42")
 			dbBuild.JobNameReturns("some-job")
@@ -973,127 +951,6 @@ var _ = Describe("ExecEngine", func() {
 				Expect(resourceConfig.Type).To(Equal("get"))
 				Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 				Expect(params).To(Equal(atc.Params{"some": "params"}))
-			})
-		})
-
-		Context("when pipeline name is specified and pipeline ID is not", func() {
-			BeforeEach(func() {
-				dbBuild.EngineMetadataReturns(`{
-						"Plan": {
-							"id": "1",
-							"do": [
-								{"id": "2", "get": {"pipeline": "some-pipeline-1"}},
-								{"id": "3", "task": {"pipeline": "some-pipeline-2"}},
-								{
-									"id": "4",
-									"on_success": {
-										"step": {
-											"id": "5", "put": {"pipeline": "some-pipeline-1"}
-										},
-										"on_success": {
-											"id": "6", "dependent_get": {"pipeline": "some-pipeline-2"}
-										}
-									}
-								}
-							]
-						}
-					}`,
-				)
-				fakeTeamDB.GetPipelineByNameStub = func(pipelineName string) (db.SavedPipeline, bool, error) {
-					switch pipelineName {
-					case "some-pipeline-1":
-						return db.SavedPipeline{ID: 1}, true, nil
-					case "some-pipeline-2":
-						return db.SavedPipeline{ID: 2}, true, nil
-					default:
-						errMessage := fmt.Sprintf("unknown pipeline name `%s`", pipelineName)
-						Fail(errMessage)
-						return db.SavedPipeline{}, false, errors.New(errMessage)
-					}
-				}
-			})
-
-			It("sets pipeline ID for each plan", func() {
-				foundBuild, err := execEngine.LookupBuild(logger, dbBuild)
-				Expect(err).NotTo(HaveOccurred())
-				type metadata struct {
-					Plan atc.Plan
-				}
-				var foundMetadata metadata
-				err = json.Unmarshal([]byte(foundBuild.Metadata()), &foundMetadata)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(foundMetadata.Plan).To(Equal(atc.Plan{
-					ID: "1",
-					Do: &atc.DoPlan{
-						{
-							ID:  "2",
-							Get: &atc.GetPlan{PipelineID: 1},
-						},
-						{
-							ID:   "3",
-							Task: &atc.TaskPlan{PipelineID: 2},
-						},
-						{
-							ID: "4",
-							OnSuccess: &atc.OnSuccessPlan{
-								Step: atc.Plan{
-									ID: "5",
-									Put: &atc.PutPlan{
-										PipelineID: 1,
-									},
-								},
-								Next: atc.Plan{
-									ID: "6",
-									DependentGet: &atc.DependentGetPlan{
-										PipelineID: 2,
-									},
-								},
-							},
-						},
-					},
-				}))
-			})
-
-			Context("when pipeline can not be found", func() {
-				var disaster error
-				BeforeEach(func() {
-					dbBuild.EngineMetadataReturns(`{
-						"Plan": {
-							"id": "1",
-							"task": {"pipeline": "unknown-pipeline"}
-						}
-					}`,
-					)
-					disaster = errors.New("oh dear")
-					fakeTeamDB.GetPipelineByNameReturns(db.SavedPipeline{}, false, disaster)
-				})
-
-				It("returns an error", func() {
-					foundBuild, err := execEngine.LookupBuild(logger, dbBuild)
-					Expect(err).To(Equal(disaster))
-					Expect(foundBuild).To(BeNil())
-				})
-			})
-
-			Context("when build plan has pipeline name and pipeline ID", func() {
-				BeforeEach(func() {
-					dbBuild.EngineMetadataReturns(`{
-						"Plan": {
-							"id": "1",
-							"task": {"pipeline": "some-pipeline","pipeline_id": 42}
-						}
-					}`,
-					)
-				})
-
-				It("returns an error", func() {
-					foundBuild, err := execEngine.LookupBuild(logger, dbBuild)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(
-						"build plan with ID 1 has both pipeline name (some-pipeline) and ID (42)",
-					))
-					Expect(foundBuild).To(BeNil())
-				})
 			})
 		})
 	})

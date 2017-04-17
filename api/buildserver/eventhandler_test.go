@@ -12,6 +12,8 @@ import (
 	. "github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/event"
 	"github.com/vito/go-sse/sse"
 
@@ -30,13 +32,13 @@ func fakeEvent(payload string) event.Envelope {
 
 var _ = Describe("Handler", func() {
 	var (
-		build *dbfakes.FakeBuild
+		build *dbngfakes.FakeBuild
 
 		server *httptest.Server
 	)
 
 	BeforeEach(func() {
-		build = new(dbfakes.FakeBuild)
+		build = new(dbngfakes.FakeBuild)
 
 		server = httptest.NewServer(NewEventHandler(lagertest.NewTestLogger("test"), build))
 	})
@@ -55,7 +57,7 @@ var _ = Describe("Handler", func() {
 		})
 
 		Context("when subscribing to the build succeeds", func() {
-			var fakeEventSource *dbfakes.FakeEventSource
+			var fakeEventSource *dbngfakes.FakeEventSource
 			var returnedEvents []event.Envelope
 
 			BeforeEach(func() {
@@ -65,9 +67,9 @@ var _ = Describe("Handler", func() {
 					fakeEvent(`{"event":3}`),
 				}
 
-				fakeEventSource = new(dbfakes.FakeEventSource)
+				fakeEventSource = new(dbngfakes.FakeEventSource)
 
-				build.EventsStub = func(from uint) (db.EventSource, error) {
+				build.EventsStub = func(from uint) (dbng.EventSource, error) {
 					fakeEventSource.NextStub = func() (event.Envelope, error) {
 						defer GinkgoRecover()
 

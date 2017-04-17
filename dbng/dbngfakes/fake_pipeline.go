@@ -120,20 +120,6 @@ type FakePipeline struct {
 		result1 dbng.Build
 		result2 error
 	}
-	CreateResourceStub        func(name string, config atc.ResourceConfig) (dbng.Resource, error)
-	createResourceMutex       sync.RWMutex
-	createResourceArgsForCall []struct {
-		name   string
-		config atc.ResourceConfig
-	}
-	createResourceReturns struct {
-		result1 dbng.Resource
-		result2 error
-	}
-	createResourceReturnsOnCall map[int]struct {
-		result1 dbng.Resource
-		result2 error
-	}
 	SetResourceCheckErrorStub        func(dbng.Resource, error) error
 	setResourceCheckErrorMutex       sync.RWMutex
 	setResourceCheckErrorArgsForCall []struct {
@@ -761,58 +747,6 @@ func (fake *FakePipeline) CreateJobBuildReturnsOnCall(i int, result1 dbng.Build,
 	}
 	fake.createJobBuildReturnsOnCall[i] = struct {
 		result1 dbng.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipeline) CreateResource(name string, config atc.ResourceConfig) (dbng.Resource, error) {
-	fake.createResourceMutex.Lock()
-	ret, specificReturn := fake.createResourceReturnsOnCall[len(fake.createResourceArgsForCall)]
-	fake.createResourceArgsForCall = append(fake.createResourceArgsForCall, struct {
-		name   string
-		config atc.ResourceConfig
-	}{name, config})
-	fake.recordInvocation("CreateResource", []interface{}{name, config})
-	fake.createResourceMutex.Unlock()
-	if fake.CreateResourceStub != nil {
-		return fake.CreateResourceStub(name, config)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.createResourceReturns.result1, fake.createResourceReturns.result2
-}
-
-func (fake *FakePipeline) CreateResourceCallCount() int {
-	fake.createResourceMutex.RLock()
-	defer fake.createResourceMutex.RUnlock()
-	return len(fake.createResourceArgsForCall)
-}
-
-func (fake *FakePipeline) CreateResourceArgsForCall(i int) (string, atc.ResourceConfig) {
-	fake.createResourceMutex.RLock()
-	defer fake.createResourceMutex.RUnlock()
-	return fake.createResourceArgsForCall[i].name, fake.createResourceArgsForCall[i].config
-}
-
-func (fake *FakePipeline) CreateResourceReturns(result1 dbng.Resource, result2 error) {
-	fake.CreateResourceStub = nil
-	fake.createResourceReturns = struct {
-		result1 dbng.Resource
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipeline) CreateResourceReturnsOnCall(i int, result1 dbng.Resource, result2 error) {
-	fake.CreateResourceStub = nil
-	if fake.createResourceReturnsOnCall == nil {
-		fake.createResourceReturnsOnCall = make(map[int]struct {
-			result1 dbng.Resource
-			result2 error
-		})
-	}
-	fake.createResourceReturnsOnCall[i] = struct {
-		result1 dbng.Resource
 		result2 error
 	}{result1, result2}
 }
@@ -1488,8 +1422,6 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.saveJobMutex.RUnlock()
 	fake.createJobBuildMutex.RLock()
 	defer fake.createJobBuildMutex.RUnlock()
-	fake.createResourceMutex.RLock()
-	defer fake.createResourceMutex.RUnlock()
 	fake.setResourceCheckErrorMutex.RLock()
 	defer fake.setResourceCheckErrorMutex.RUnlock()
 	fake.acquireResourceCheckingLockWithIntervalCheckMutex.RLock()

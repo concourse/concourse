@@ -377,7 +377,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForResource(usedResource.ID),
+						dbng.ForResource(usedResource.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{

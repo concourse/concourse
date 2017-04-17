@@ -33,6 +33,8 @@ var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.ma
 	JoinClause("LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id")
 
+//go:generate counterfeiter . Build
+
 type Build interface {
 	ID() int
 	Name() string
@@ -60,10 +62,18 @@ type Build interface {
 
 	Start(string, string) (bool, error)
 	SaveStatus(s BuildStatus) error
-	SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error
 	SetInterceptible(bool) error
 
 	Events(uint) (EventSource, error)
+	SaveEvent(event atc.Event) error
+
+	SaveInput(input BuildInput) error
+	SaveOutput(vr VersionedResource, explicit bool) error
+
+	GetVersionedResources() (SavedVersionedResources, error)
+	SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error
+
+	Pipeline() (Pipeline, bool, error)
 
 	Finish(s BuildStatus) error
 	Delete() (bool, error)
@@ -126,6 +136,10 @@ func (b *build) IsRunning() bool {
 	}
 }
 
+func (b *build) IsOneOff() bool {
+	return b.jobID == 0
+}
+
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
 		RunWith(b.conn).
@@ -148,8 +162,8 @@ func (b *build) Interceptible() (bool, error) {
 	err := psql.Select("interceptible").
 		From("builds").
 		Where(sq.Eq{
-		"id": b.id,
-	}).
+			"id": b.id,
+		}).
 		RunWith(b.conn).
 		QueryRow().Scan(&interceptible)
 
@@ -164,8 +178,8 @@ func (b *build) SetInterceptible(i bool) error {
 	rows, err := psql.Update("builds").
 		Set("interceptible", i).
 		Where(sq.Eq{
-		"id": b.id,
-	}).
+			"id": b.id,
+		}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -197,13 +211,13 @@ func (b *build) Start(engine, metadata string) (bool, error) {
 
 	err = psql.Update("builds").
 		Set("status", "started").
-		Set("start_time", "now()").
+		Set("start_time", sq.Expr("now()")).
 		Set("engine", engine).
 		Set("engine_metadata", metadata).
 		Where(sq.Eq{
-		"id":     b.id,
-		"status": "pending",
-	}).
+			"id":     b.id,
+			"status": "pending",
+		}).
 		Suffix("RETURNING start_time").
 		RunWith(tx).
 		QueryRow().
@@ -239,8 +253,8 @@ func (b *build) SaveStatus(s BuildStatus) error {
 	rows, err := psql.Update("builds").
 		Set("status", string(s)).
 		Where(sq.Eq{
-		"id": b.id,
-	}).
+			"id": b.id,
+		}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -313,8 +327,8 @@ func (b *build) Finish(s BuildStatus) error {
 func (b *build) Delete() (bool, error) {
 	rows, err := psql.Delete("builds").
 		Where(sq.Eq{
-		"id": b.id,
-	}).
+			"id": b.id,
+		}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -365,6 +379,28 @@ func (b *build) AbortNotifier() (Notifier, error) {
 	})
 }
 
+func (b *build) Pipeline() (Pipeline, bool, error) {
+	if b.pipelineID == 0 {
+		return nil, false, nil
+	}
+
+	row := pipelinesQuery.
+		Where(sq.Eq{"p.id": b.pipelineID}).
+		RunWith(b.conn).
+		QueryRow()
+
+	pipeline := newPipeline(b.conn, b.lockFactory)
+	err := scanPipeline(pipeline, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return pipeline, true, nil
+}
+
 func (b *build) SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error {
 	version, err := json.Marshal(resourceVersion)
 	if err != nil {
@@ -385,9 +421,9 @@ func (b *build) SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.
 				Set("version", version).
 				Set("resource_hash", resourceHash).
 				Where(sq.Eq{
-				"build_id": b.id,
-				"plan_id":  string(planID),
-			}).
+					"build_id": b.id,
+					"plan_id":  string(planID),
+				}).
 				RunWith(tx).
 				Exec()
 		},
@@ -434,6 +470,154 @@ func (b *build) Events(from uint) (EventSource, error) {
 		notifier,
 		from,
 	), nil
+}
+
+func (b *build) SaveEvent(event atc.Event) error {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = b.saveEvent(tx, event)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	err = b.conn.Bus().Notify(buildEventsChannel(b.id))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *build) SaveInput(input BuildInput) error {
+	if b.pipelineID == 0 {
+		return nil
+	}
+
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	row := pipelinesQuery.
+		Where(sq.Eq{"p.id": b.pipelineID}).
+		RunWith(tx).
+		QueryRow()
+
+	pipeline := &pipeline{conn: b.conn, lockFactory: b.lockFactory}
+	err = scanPipeline(pipeline, row)
+	if err != nil {
+		return err
+	}
+
+	err = pipeline.saveInputTx(tx, b.id, input)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *build) SaveOutput(vr VersionedResource, explicit bool) error {
+	if b.pipelineID == 0 {
+		return nil
+	}
+
+	row := pipelinesQuery.
+		Where(sq.Eq{"p.id": b.pipelineID}).
+		RunWith(b.conn).
+		QueryRow()
+	pipeline := &pipeline{conn: b.conn, lockFactory: b.lockFactory}
+	err := scanPipeline(pipeline, row)
+	if err != nil {
+		return err
+	}
+
+	return pipeline.saveOutput(b.id, vr, explicit)
+}
+
+func (b *build) GetVersionedResources() (SavedVersionedResources, error) {
+	return b.getVersionedResources(`
+		SELECT vr.id,
+			vr.enabled,
+			vr.version,
+			vr.metadata,
+			vr.type,
+			r.name,
+			vr.modified_time
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN build_inputs bi ON bi.build_id = b.id
+		INNER JOIN versioned_resources vr ON bi.versioned_resource_id = vr.id
+		INNER JOIN resources r ON vr.resource_id = r.id
+		WHERE b.id = $1
+
+		UNION ALL
+
+		SELECT vr.id,
+			vr.enabled,
+			vr.version,
+			vr.metadata,
+			vr.type,
+			r.name,
+			vr.modified_time
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN build_outputs bo ON bo.build_id = b.id
+		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
+		INNER JOIN resources r ON vr.resource_id = r.id
+		WHERE b.id = $1 AND bo.explicit`)
+}
+
+func (b *build) getVersionedResources(resourceRequest string) (SavedVersionedResources, error) {
+	rows, err := b.conn.Query(resourceRequest, b.id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	savedVersionedResources := SavedVersionedResources{}
+
+	for rows.Next() {
+		var versionedResource SavedVersionedResource
+		var versionJSON []byte
+		var metadataJSON []byte
+		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource, &versionedResource.ModifiedTime)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(versionJSON, &versionedResource.Version)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(metadataJSON, &versionedResource.Metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		savedVersionedResources = append(savedVersionedResources, versionedResource)
+	}
+
+	return savedVersionedResources, nil
 }
 
 func createBuildEventSeq(tx Tx, buildid int) error {

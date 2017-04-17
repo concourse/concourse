@@ -1091,10 +1091,10 @@ var _ = Describe("Team", func() {
 		})
 	})
 
-	Describe("GetPrivateAndPublicBuilds", func() {
+	Describe("PrivateAndPublicBuilds", func() {
 		Context("when there are no builds", func() {
 			It("returns an empty list of builds", func() {
-				builds, pagination, err := team.GetPrivateAndPublicBuilds(dbng.Page{Limit: 2})
+				builds, pagination, err := team.PrivateAndPublicBuilds(dbng.Page{Limit: 2})
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(pagination.Next).To(BeNil())
@@ -1135,7 +1135,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("returns all team builds with correct pagination", func() {
-				builds, pagination, err := team.GetPrivateAndPublicBuilds(dbng.Page{Limit: 2})
+				builds, pagination, err := team.PrivateAndPublicBuilds(dbng.Page{Limit: 2})
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -1145,7 +1145,7 @@ var _ = Describe("Team", func() {
 				Expect(pagination.Previous).To(BeNil())
 				Expect(pagination.Next).To(Equal(&dbng.Page{Since: allBuilds[3].ID(), Limit: 2}))
 
-				builds, pagination, err = team.GetPrivateAndPublicBuilds(*pagination.Next)
+				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Next)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -1156,7 +1156,7 @@ var _ = Describe("Team", func() {
 				Expect(pagination.Previous).To(Equal(&dbng.Page{Until: allBuilds[2].ID(), Limit: 2}))
 				Expect(pagination.Next).To(Equal(&dbng.Page{Since: allBuilds[1].ID(), Limit: 2}))
 
-				builds, pagination, err = team.GetPrivateAndPublicBuilds(*pagination.Next)
+				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Next)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(1))
@@ -1165,7 +1165,7 @@ var _ = Describe("Team", func() {
 				Expect(pagination.Previous).To(Equal(&dbng.Page{Until: allBuilds[0].ID(), Limit: 2}))
 				Expect(pagination.Next).To(BeNil())
 
-				builds, pagination, err = team.GetPrivateAndPublicBuilds(*pagination.Previous)
+				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Previous)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -1210,13 +1210,13 @@ var _ = Describe("Team", func() {
 
 				Context("when other team builds are private", func() {
 					It("returns only builds for requested team", func() {
-						builds, _, err := caseInsensitiveTeamA.GetPrivateAndPublicBuilds(dbng.Page{Limit: 10})
+						builds, _, err := caseInsensitiveTeamA.PrivateAndPublicBuilds(dbng.Page{Limit: 10})
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(len(builds)).To(Equal(3))
 						Expect(builds).To(ConsistOf(teamABuilds))
 
-						builds, _, err = caseInsensitiveTeamB.GetPrivateAndPublicBuilds(dbng.Page{Limit: 10})
+						builds, _, err = caseInsensitiveTeamB.PrivateAndPublicBuilds(dbng.Page{Limit: 10})
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(len(builds)).To(Equal(3))
@@ -1230,7 +1230,7 @@ var _ = Describe("Team", func() {
 					})
 
 					It("returns builds for requested team and public builds", func() {
-						builds, _, err := caseInsensitiveTeamA.GetPrivateAndPublicBuilds(dbng.Page{Limit: 10})
+						builds, _, err := caseInsensitiveTeamA.PrivateAndPublicBuilds(dbng.Page{Limit: 10})
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(builds).To(HaveLen(5))

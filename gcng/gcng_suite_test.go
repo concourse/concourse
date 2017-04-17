@@ -41,7 +41,7 @@ var (
 	defaultPipeline dbng.Pipeline
 	defaultBuild    dbng.Build
 
-	usedResource *dbng.Resource
+	usedResource dbng.Resource
 	logger       *lagertest.TestLogger
 )
 
@@ -58,12 +58,12 @@ var _ = BeforeSuite(func() {
 var _ = BeforeEach(func() {
 	postgresRunner.Truncate()
 
-	dbConn = dbng.Wrap(postgresRunner.Open())
+	dbConn = postgresRunner.OpenConn()
 
 	lockFactory := lock.NewLockFactory(postgresRunner.OpenSingleton())
 	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
 
-	buildFactory = dbng.NewBuildFactory(dbConn)
+	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory)
 
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())
@@ -71,18 +71,23 @@ var _ = BeforeEach(func() {
 	defaultBuild, err = defaultTeam.CreateOneOffBuild()
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+	atcConfig := atc.Config{
+		Resources: atc.ResourceConfigs{
+			{
+				Name:   "some-resource",
+				Type:   "resource-type",
+				Source: atc.Source{"some": "source"},
+			},
+		},
+	}
+
+	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 	Expect(err).NotTo(HaveOccurred())
 
-	usedResource, err = defaultPipeline.CreateResource(
-		"some-resource",
-		atc.ResourceConfig{
-			Name:   "some-resource",
-			Type:   "resource-type",
-			Source: atc.Source{"some": "source"},
-		},
-	)
+	var found bool
+	usedResource, found, err = defaultPipeline.Resource("some-resource")
 	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
 
 	setupTx, err := dbConn.Begin()
 	Expect(err).ToNot(HaveOccurred())

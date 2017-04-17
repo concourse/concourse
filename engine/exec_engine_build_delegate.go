@@ -8,7 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
@@ -32,7 +32,7 @@ type BuildDelegate interface {
 //go:generate counterfeiter . BuildDelegateFactory
 
 type BuildDelegateFactory interface {
-	Delegate(db.Build) BuildDelegate
+	Delegate(dbng.Build) BuildDelegate
 }
 
 type buildDelegateFactory struct{}
@@ -41,19 +41,19 @@ func NewBuildDelegateFactory() BuildDelegateFactory {
 	return buildDelegateFactory{}
 }
 
-func (factory buildDelegateFactory) Delegate(build db.Build) BuildDelegate {
+func (factory buildDelegateFactory) Delegate(build dbng.Build) BuildDelegate {
 	return newBuildDelegate(build)
 }
 
 type delegate struct {
-	build db.Build
+	build dbng.Build
 
 	implicitOutputs map[string]implicitOutput
 
 	lock sync.Mutex
 }
 
-func newBuildDelegate(build db.Build) BuildDelegate {
+func newBuildDelegate(build dbng.Build) BuildDelegate {
 	return &delegate{
 		build: build,
 
@@ -179,7 +179,7 @@ func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus
 }
 
 func (delegate *delegate) saveStatus(logger lager.Logger, status atc.BuildStatus) {
-	err := delegate.build.Finish(db.Status(status))
+	err := delegate.build.Finish(dbng.BuildStatus(status))
 	if err != nil {
 		logger.Error("failed-to-finish-build", err)
 	}
@@ -199,8 +199,8 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 	var version atc.Version
 	var metadata []atc.MetadataField
 
-	if info != nil && plan.PipelineID != 0 {
-		savedVR, err := delegate.build.SaveInput(db.BuildInput{
+	if info != nil {
+		err := delegate.build.SaveInput(dbng.BuildInput{
 			Name:              plan.Name,
 			VersionedResource: vrFromInput(plan, *info),
 		})
@@ -208,8 +208,8 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 			logger.Error("failed-to-save-input", err)
 		}
 
-		version = atc.Version(savedVR.Version)
-		metadata = dbMetadataToATCMetadata(savedVR.Metadata)
+		version = info.Version
+		metadata = info.Metadata
 	}
 
 	ev := event.FinishGet{
@@ -257,8 +257,8 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 		logger.Error("failed-to-save-output-event", err)
 	}
 
-	if info != nil && plan.PipelineID != 0 {
-		_, err = delegate.build.SaveOutput(vrFromOutput(plan.PipelineID, ev), true)
+	if info != nil {
+		err = delegate.build.SaveOutput(vrFromOutput(ev), true)
 		if err != nil {
 			logger.Error("failed-to-save-output", err)
 		}
@@ -266,24 +266,19 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 }
 
 func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
-	if plan.PipelineID == 0 {
-		return
-	}
-
-	metadata := make([]db.MetadataField, len(info.Metadata))
+	metadata := make([]dbng.ResourceMetadataField, len(info.Metadata))
 	for i, md := range info.Metadata {
-		metadata[i] = db.MetadataField{
+		metadata[i] = dbng.ResourceMetadataField{
 			Name:  md.Name,
 			Value: md.Value,
 		}
 	}
 
-	_, err := delegate.build.SaveOutput(db.VersionedResource{
-		PipelineID: plan.PipelineID,
-		Resource:   plan.Resource,
-		Type:       plan.Type,
-		Version:    db.Version(info.Version),
-		Metadata:   metadata,
+	err := delegate.build.SaveOutput(dbng.VersionedResource{
+		Resource: plan.Resource,
+		Type:     plan.Type,
+		Version:  dbng.ResourceVersion(info.Version),
+		Metadata: metadata,
 	}, false)
 	if err != nil {
 		logger.Error("failed-to-save", err)
@@ -333,7 +328,7 @@ func (input *inputDelegate) Failed(err error) {
 }
 
 func (input *inputDelegate) ImageVersionDetermined(resourceCacheIdentifier worker.ResourceCacheIdentifier) error {
-	return input.delegate.build.SaveImageResourceVersion(atc.PlanID(input.id), db.ResourceCacheIdentifier(resourceCacheIdentifier))
+	return input.delegate.build.SaveImageResourceVersion(atc.PlanID(input.id), resourceCacheIdentifier.ResourceVersion, resourceCacheIdentifier.ResourceHash)
 }
 
 func (input *inputDelegate) Stdout() io.Writer {
@@ -381,7 +376,7 @@ func (output *outputDelegate) Failed(err error) {
 }
 
 func (output *outputDelegate) ImageVersionDetermined(resourceCacheIdentifier worker.ResourceCacheIdentifier) error {
-	return output.delegate.build.SaveImageResourceVersion(atc.PlanID(output.id), db.ResourceCacheIdentifier(resourceCacheIdentifier))
+	return output.delegate.build.SaveImageResourceVersion(atc.PlanID(output.id), resourceCacheIdentifier.ResourceVersion, resourceCacheIdentifier.ResourceHash)
 }
 
 func (output *outputDelegate) Stdout() io.Writer {
@@ -435,11 +430,12 @@ func (execution *executionDelegate) Failed(err error) {
 	execution.delegate.saveErr(execution.logger, err, event.Origin{
 		ID: execution.id,
 	})
+
 	execution.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
 func (execution *executionDelegate) ImageVersionDetermined(resourceCacheIdentifier worker.ResourceCacheIdentifier) error {
-	return execution.delegate.build.SaveImageResourceVersion(atc.PlanID(execution.id), db.ResourceCacheIdentifier(resourceCacheIdentifier))
+	return execution.delegate.build.SaveImageResourceVersion(atc.PlanID(execution.id), resourceCacheIdentifier.ResourceVersion, resourceCacheIdentifier.ResourceHash)
 }
 
 func (execution *executionDelegate) Stdout() io.Writer {
@@ -457,7 +453,7 @@ func (execution *executionDelegate) Stderr() io.Writer {
 }
 
 type dbEventWriter struct {
-	build db.Build
+	build dbng.Build
 
 	origin event.Origin
 
@@ -486,27 +482,25 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func vrFromInput(plan atc.GetPlan, fetchedInfo exec.VersionInfo) db.VersionedResource {
-	return db.VersionedResource{
-		Resource:   plan.Resource,
-		PipelineID: plan.PipelineID,
-		Type:       plan.Type,
-		Version:    db.Version(fetchedInfo.Version),
-		Metadata:   atcMetadataToDBMetadata(fetchedInfo.Metadata),
+func vrFromInput(plan atc.GetPlan, fetchedInfo exec.VersionInfo) dbng.VersionedResource {
+	return dbng.VersionedResource{
+		Resource: plan.Resource,
+		Type:     plan.Type,
+		Version:  dbng.ResourceVersion(fetchedInfo.Version),
+		Metadata: atcMetadataToDBMetadata(fetchedInfo.Metadata),
 	}
 }
 
-func vrFromOutput(pipelineID int, putted event.FinishPut) db.VersionedResource {
-	return db.VersionedResource{
-		Resource:   putted.Plan.Resource,
-		PipelineID: pipelineID,
-		Type:       putted.Plan.Type,
-		Version:    db.Version(putted.CreatedVersion),
-		Metadata:   atcMetadataToDBMetadata(putted.CreatedMetadata),
+func vrFromOutput(putted event.FinishPut) dbng.VersionedResource {
+	return dbng.VersionedResource{
+		Resource: putted.Plan.Resource,
+		Type:     putted.Plan.Type,
+		Version:  dbng.ResourceVersion(putted.CreatedVersion),
+		Metadata: atcMetadataToDBMetadata(putted.CreatedMetadata),
 	}
 }
 
-func dbMetadataToATCMetadata(dbm []db.MetadataField) []atc.MetadataField {
+func dbMetadataToATCMetadata(dbm []dbng.ResourceMetadataField) []atc.MetadataField {
 	metadata := make([]atc.MetadataField, len(dbm))
 	for i, md := range dbm {
 		metadata[i] = atc.MetadataField{
@@ -518,10 +512,10 @@ func dbMetadataToATCMetadata(dbm []db.MetadataField) []atc.MetadataField {
 	return metadata
 }
 
-func atcMetadataToDBMetadata(atcm []atc.MetadataField) []db.MetadataField {
-	metadata := make([]db.MetadataField, len(atcm))
+func atcMetadataToDBMetadata(atcm []atc.MetadataField) []dbng.ResourceMetadataField {
+	metadata := make([]dbng.ResourceMetadataField, len(atcm))
 	for i, md := range atcm {
-		metadata[i] = db.MetadataField{
+		metadata[i] = dbng.ResourceMetadataField{
 			Name:  md.Name,
 			Value: md.Value,
 		}

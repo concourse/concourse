@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) GetBuildPlan(build db.Build) http.Handler {
+func (s *Server) GetBuildPlan(build dbng.Build) http.Handler {
 	hLog := s.logger.Session("get-build-plan")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

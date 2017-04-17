@@ -304,8 +304,9 @@ var _ = Describe("VolumeFactory", func() {
 		var usedResourceCache *dbng.UsedResourceCache
 
 		BeforeEach(func() {
-			resource, err := defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
-			Expect(err).ToNot(HaveOccurred())
+			resource, found, err := defaultPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
@@ -370,8 +371,9 @@ var _ = Describe("VolumeFactory", func() {
 		var usedResourceCache *dbng.UsedResourceCache
 
 		BeforeEach(func() {
-			resource, err := defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
-			Expect(err).ToNot(HaveOccurred())
+			resource, found, err := defaultPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
@@ -447,8 +449,10 @@ var _ = Describe("VolumeFactory", func() {
 
 		BeforeEach(func() {
 			var err error
-			resource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
-			Expect(err).ToNot(HaveOccurred())
+			var found bool
+			resource, found, err = defaultPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())

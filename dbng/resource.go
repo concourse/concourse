@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 )
 
@@ -22,12 +23,15 @@ type Resource interface {
 	Paused() bool
 }
 
-var resourcesQuery = psql.Select("id, name, config, check_error, paused, pipeline_id").
-	From("resources")
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.pipeline_id, p.name").
+	From("resources r").
+	Join("pipelines p ON p.id = r.pipeline_id").
+	Where(sq.Eq{"r.active": true})
 
 type resource struct {
 	id           int
 	name         string
+	pipelineID   int
 	pipelineName string
 	type_        string
 	source       atc.Source
@@ -41,6 +45,7 @@ type resource struct {
 
 func (r *resource) ID() int              { return r.id }
 func (r *resource) Name() string         { return r.name }
+func (r *resource) PipelineID() int      { return r.pipelineID }
 func (r *resource) PipelineName() string { return r.pipelineName }
 func (r *resource) Type() string         { return r.type_ }
 func (r *resource) Source() atc.Source   { return r.source }
@@ -55,7 +60,7 @@ func scanResource(r *resource, row scannable) error {
 		checkErr   sql.NullString
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &r.pipelineName)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &r.pipelineID, &r.pipelineName)
 	if err != nil {
 		return err
 	}

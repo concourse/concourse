@@ -3,12 +3,12 @@ package buildserver
 import (
 	"net/http"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 
 	"code.cloudfoundry.org/lager"
 )
 
-func (s *Server) AbortBuild(build db.Build) http.Handler {
+func (s *Server) AbortBuild(build dbng.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		aLog := s.logger.Session("abort", lager.Data{
 			"build": build.ID(),

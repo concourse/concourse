@@ -153,17 +153,17 @@ type FakeTeam struct {
 		result1 dbng.Build
 		result2 error
 	}
-	GetPrivateAndPublicBuildsStub        func(dbng.Page) ([]dbng.Build, dbng.Pagination, error)
-	getPrivateAndPublicBuildsMutex       sync.RWMutex
-	getPrivateAndPublicBuildsArgsForCall []struct {
+	PrivateAndPublicBuildsStub        func(dbng.Page) ([]dbng.Build, dbng.Pagination, error)
+	privateAndPublicBuildsMutex       sync.RWMutex
+	privateAndPublicBuildsArgsForCall []struct {
 		arg1 dbng.Page
 	}
-	getPrivateAndPublicBuildsReturns struct {
+	privateAndPublicBuildsReturns struct {
 		result1 []dbng.Build
 		result2 dbng.Pagination
 		result3 error
 	}
-	getPrivateAndPublicBuildsReturnsOnCall map[int]struct {
+	privateAndPublicBuildsReturnsOnCall map[int]struct {
 		result1 []dbng.Build
 		result2 dbng.Pagination
 		result3 error
@@ -963,54 +963,54 @@ func (fake *FakeTeam) CreateOneOffBuildReturnsOnCall(i int, result1 dbng.Build, 
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) GetPrivateAndPublicBuilds(arg1 dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
-	fake.getPrivateAndPublicBuildsMutex.Lock()
-	ret, specificReturn := fake.getPrivateAndPublicBuildsReturnsOnCall[len(fake.getPrivateAndPublicBuildsArgsForCall)]
-	fake.getPrivateAndPublicBuildsArgsForCall = append(fake.getPrivateAndPublicBuildsArgsForCall, struct {
+func (fake *FakeTeam) PrivateAndPublicBuilds(arg1 dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
+	fake.privateAndPublicBuildsMutex.Lock()
+	ret, specificReturn := fake.privateAndPublicBuildsReturnsOnCall[len(fake.privateAndPublicBuildsArgsForCall)]
+	fake.privateAndPublicBuildsArgsForCall = append(fake.privateAndPublicBuildsArgsForCall, struct {
 		arg1 dbng.Page
 	}{arg1})
-	fake.recordInvocation("GetPrivateAndPublicBuilds", []interface{}{arg1})
-	fake.getPrivateAndPublicBuildsMutex.Unlock()
-	if fake.GetPrivateAndPublicBuildsStub != nil {
-		return fake.GetPrivateAndPublicBuildsStub(arg1)
+	fake.recordInvocation("PrivateAndPublicBuilds", []interface{}{arg1})
+	fake.privateAndPublicBuildsMutex.Unlock()
+	if fake.PrivateAndPublicBuildsStub != nil {
+		return fake.PrivateAndPublicBuildsStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.getPrivateAndPublicBuildsReturns.result1, fake.getPrivateAndPublicBuildsReturns.result2, fake.getPrivateAndPublicBuildsReturns.result3
+	return fake.privateAndPublicBuildsReturns.result1, fake.privateAndPublicBuildsReturns.result2, fake.privateAndPublicBuildsReturns.result3
 }
 
-func (fake *FakeTeam) GetPrivateAndPublicBuildsCallCount() int {
-	fake.getPrivateAndPublicBuildsMutex.RLock()
-	defer fake.getPrivateAndPublicBuildsMutex.RUnlock()
-	return len(fake.getPrivateAndPublicBuildsArgsForCall)
+func (fake *FakeTeam) PrivateAndPublicBuildsCallCount() int {
+	fake.privateAndPublicBuildsMutex.RLock()
+	defer fake.privateAndPublicBuildsMutex.RUnlock()
+	return len(fake.privateAndPublicBuildsArgsForCall)
 }
 
-func (fake *FakeTeam) GetPrivateAndPublicBuildsArgsForCall(i int) dbng.Page {
-	fake.getPrivateAndPublicBuildsMutex.RLock()
-	defer fake.getPrivateAndPublicBuildsMutex.RUnlock()
-	return fake.getPrivateAndPublicBuildsArgsForCall[i].arg1
+func (fake *FakeTeam) PrivateAndPublicBuildsArgsForCall(i int) dbng.Page {
+	fake.privateAndPublicBuildsMutex.RLock()
+	defer fake.privateAndPublicBuildsMutex.RUnlock()
+	return fake.privateAndPublicBuildsArgsForCall[i].arg1
 }
 
-func (fake *FakeTeam) GetPrivateAndPublicBuildsReturns(result1 []dbng.Build, result2 dbng.Pagination, result3 error) {
-	fake.GetPrivateAndPublicBuildsStub = nil
-	fake.getPrivateAndPublicBuildsReturns = struct {
+func (fake *FakeTeam) PrivateAndPublicBuildsReturns(result1 []dbng.Build, result2 dbng.Pagination, result3 error) {
+	fake.PrivateAndPublicBuildsStub = nil
+	fake.privateAndPublicBuildsReturns = struct {
 		result1 []dbng.Build
 		result2 dbng.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) GetPrivateAndPublicBuildsReturnsOnCall(i int, result1 []dbng.Build, result2 dbng.Pagination, result3 error) {
-	fake.GetPrivateAndPublicBuildsStub = nil
-	if fake.getPrivateAndPublicBuildsReturnsOnCall == nil {
-		fake.getPrivateAndPublicBuildsReturnsOnCall = make(map[int]struct {
+func (fake *FakeTeam) PrivateAndPublicBuildsReturnsOnCall(i int, result1 []dbng.Build, result2 dbng.Pagination, result3 error) {
+	fake.PrivateAndPublicBuildsStub = nil
+	if fake.privateAndPublicBuildsReturnsOnCall == nil {
+		fake.privateAndPublicBuildsReturnsOnCall = make(map[int]struct {
 			result1 []dbng.Build
 			result2 dbng.Pagination
 			result3 error
 		})
 	}
-	fake.getPrivateAndPublicBuildsReturnsOnCall[i] = struct {
+	fake.privateAndPublicBuildsReturnsOnCall[i] = struct {
 		result1 []dbng.Build
 		result2 dbng.Pagination
 		result3 error
@@ -1830,8 +1830,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.orderPipelinesMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()
 	defer fake.createOneOffBuildMutex.RUnlock()
-	fake.getPrivateAndPublicBuildsMutex.RLock()
-	defer fake.getPrivateAndPublicBuildsMutex.RUnlock()
+	fake.privateAndPublicBuildsMutex.RLock()
+	defer fake.privateAndPublicBuildsMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.workersMutex.RLock()

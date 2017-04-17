@@ -85,9 +85,11 @@ var _ = Describe("ResourceCache", func() {
 		var resource dbng.Resource
 
 		BeforeEach(func() {
+			var found bool
 			var err error
-			resource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
-			Expect(err).ToNot(HaveOccurred())
+			resource, found, err = defaultPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			tx, err = dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())

@@ -12,6 +12,8 @@ import (
 var ErrEndOfBuildEventStream = errors.New("end of build event stream")
 var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 
+//go:generate counterfeiter . EventSource
+
 type EventSource interface {
 	Next() (event.Envelope, error)
 	Close() error

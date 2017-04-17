@@ -11,9 +11,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 )
@@ -24,7 +25,7 @@ var _ = Describe("DBEngine", func() {
 
 		fakeEngineA *enginefakes.FakeEngine
 		fakeEngineB *enginefakes.FakeEngine
-		fakeBuild   *dbngfakes.FakeBuild
+		dbBuild     *dbngfakes.FakeBuild
 
 		dbEngine Engine
 	)
@@ -38,8 +39,8 @@ var _ = Describe("DBEngine", func() {
 		fakeEngineB = new(enginefakes.FakeEngine)
 		fakeEngineB.NameReturns("fake-engine-b")
 
-		fakeBuild = new(dbngfakes.FakeBuild)
-		fakeBuild.IDReturns(128)
+		dbBuild = new(dbngfakes.FakeBuild)
+		dbBuild.IDReturns(128)
 
 		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB})
 	})
@@ -73,7 +74,7 @@ var _ = Describe("DBEngine", func() {
 				},
 			})
 
-			fakeBuild.StartReturns(true, nil)
+			dbBuild.StartReturns(true, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -356,7 +357,7 @@ var _ = Describe("DBEngine", func() {
 						Expect(dbBuild.FinishCallCount()).To(Equal(1))
 
 						status := dbBuild.FinishArgsForCall(0)
-						Expect(status).To(Equal(db.StatusAborted))
+						Expect(status).To(Equal(dbng.BuildStatusAborted))
 					})
 
 					It("releases the lock", func() {
@@ -616,7 +617,7 @@ var _ = Describe("DBEngine", func() {
 						It("marks the build as errored", func() {
 							Expect(dbBuild.FinishCallCount()).To(Equal(1))
 							buildStatus := dbBuild.FinishArgsForCall(0)
-							Expect(buildStatus).To(Equal(db.StatusErrored))
+							Expect(buildStatus).To(Equal(dbng.BuildStatusErrored))
 						})
 					})
 				})
@@ -631,7 +632,7 @@ var _ = Describe("DBEngine", func() {
 					It("marks the build as errored", func() {
 						Expect(dbBuild.FinishCallCount()).To(Equal(1))
 						buildStatus := dbBuild.FinishArgsForCall(0)
-						Expect(buildStatus).To(Equal(db.StatusErrored))
+						Expect(buildStatus).To(Equal(dbng.BuildStatusErrored))
 					})
 				})
 
@@ -654,7 +655,7 @@ var _ = Describe("DBEngine", func() {
 					BeforeEach(func() {
 						dbBuild.ReloadReturns(true, nil)
 						dbBuild.EngineReturns("fake-engine-b")
-						dbBuild.StatusReturns(db.StatusSucceeded)
+						dbBuild.StatusReturns(dbng.BuildStatusSucceeded)
 					})
 
 					It("does not look up the build in the engine", func() {

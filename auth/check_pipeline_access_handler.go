@@ -7,8 +7,6 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-const PipelineContextKey = "pipeline"
-
 type CheckPipelineAccessHandlerFactory interface {
 	HandlerFor(pipelineScopedHandler http.Handler, rejector Rejector) http.Handler
 }

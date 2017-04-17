@@ -6,18 +6,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/worker"
 )
 
-type EventHandlerFactory func(lager.Logger, db.Build) http.Handler
-
-//go:generate counterfeiter . BuildsDB
-
-type BuildsDB interface {
-	GetPublicBuilds(page db.Page) ([]db.Build, db.Pagination, error)
-}
+type EventHandlerFactory func(lager.Logger, dbng.Build) http.Handler
 
 type Server struct {
 	logger lager.Logger
@@ -26,8 +20,8 @@ type Server struct {
 
 	engine              engine.Engine
 	workerClient        worker.Client
-	teamDBFactory       db.TeamDBFactory
-	buildsDB            BuildsDB
+	teamFactory         dbng.TeamFactory
+	buildFactory        dbng.BuildFactory
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
 	rejector            auth.Rejector
@@ -40,8 +34,8 @@ func NewServer(
 	externalURL string,
 	engine engine.Engine,
 	workerClient worker.Client,
-	teamDBFactory db.TeamDBFactory,
-	buildsDB BuildsDB,
+	teamFactory dbng.TeamFactory,
+	buildFactory dbng.BuildFactory,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
 ) *Server {
@@ -52,8 +46,8 @@ func NewServer(
 
 		engine:              engine,
 		workerClient:        workerClient,
-		teamDBFactory:       teamDBFactory,
-		buildsDB:            buildsDB,
+		teamFactory:         teamFactory,
+		buildFactory:        buildFactory,
 		eventHandlerFactory: eventHandlerFactory,
 		drain:               drain,
 

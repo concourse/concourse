@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/metric"
 )
@@ -308,7 +307,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 }
 
 func (build *dbBuild) finishWithError(logger lager.Logger) {
-	err := build.build.Finish(db.StatusErrored)
+	err := build.build.Finish(dbng.BuildStatusErrored)
 	if err != nil {
 		logger.Error("failed-to-mark-build-as-errored", err)
 	}

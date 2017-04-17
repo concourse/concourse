@@ -7,7 +7,13 @@ import (
 	"github.com/concourse/atc/db/lock"
 )
 
+//go:generate counterfeiter . BuildFactory
+
 type BuildFactory interface {
+	Build(int) (Build, bool, error)
+	PublicBuilds(Page) ([]Build, Pagination, error)
+
+	// TODO: move to BuildLifecycle, new interface (see WorkerLifecycle)
 	MarkNonInterceptibleBuilds() error
 }
 
@@ -21,6 +27,32 @@ func NewBuildFactory(conn Conn, lockFactory lock.LockFactory) BuildFactory {
 		conn:        conn,
 		lockFactory: lockFactory,
 	}
+}
+
+func (f *buildFactory) Build(buildID int) (Build, bool, error) {
+	build := &build{
+		conn:        f.conn,
+		lockFactory: f.lockFactory,
+	}
+
+	row := buildsQuery.
+		Where(sq.Eq{"b.id": buildID}).
+		RunWith(f.conn).
+		QueryRow()
+
+	err := scanBuild(build, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return build, true, nil
+}
+
+func (f *buildFactory) PublicBuilds(page Page) ([]Build, Pagination, error) {
+	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"p.public": true}), page, f.conn, f.lockFactory)
 }
 
 func (f *buildFactory) MarkNonInterceptibleBuilds() error {
@@ -37,16 +69,16 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 		Prefix(latestBuildsPrefix).
 		Set("interceptible", false).
 		Where(sq.Or{
-		sq.Expr("id NOT IN (select build_id FROM latest_builds)"),
-		sq.And{
-			sq.NotEq{"status": string(BuildStatusAborted)},
-			sq.NotEq{"status": string(BuildStatusFailed)},
-			sq.NotEq{"status": string(BuildStatusErrored)},
-		},
-	}).
+			sq.Expr("id NOT IN (select build_id FROM latest_builds)"),
+			sq.And{
+				sq.NotEq{"status": string(BuildStatusAborted)},
+				sq.NotEq{"status": string(BuildStatusFailed)},
+				sq.NotEq{"status": string(BuildStatusErrored)},
+			},
+		}).
 		Where(sq.Eq{
-		"completed": true,
-	}).
+			"completed": true,
+		}).
 		RunWith(f.conn).
 		Exec()
 	if err != nil {

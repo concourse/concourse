@@ -16,8 +16,10 @@ var _ = Describe("PipelineLocks", func() {
 
 		BeforeEach(func() {
 			var err error
-			someResource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{Type: "some-base-resource-type"})
+			var found bool
+			someResource, found, err = defaultPipeline.Resource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
 
 		Context("when there has been a check recently", func() {
