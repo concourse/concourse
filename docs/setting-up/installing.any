@@ -277,6 +277,9 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
   Compose}, create \code{docker-compose.yml}:
 
   \titled-codeblock{docker-compose.yml}{yaml}{
+  version: '3'
+
+services:
   concourse-db:
     image: postgres:9.5
     environment:
@@ -289,6 +292,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     image: concourse/concourse
     links: [concourse-db]
     command: web
+    depends_on: [ concourse-db ]
     ports: ["8080:8080"]
     volumes: ["./keys/web:/concourse-keys"]
     environment:
@@ -302,6 +306,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
     image: concourse/concourse
     privileged: true
     links: [concourse-web]
+    depends_on: [ concourse-web ,concourse-db ]
     command: worker
     volumes: ["./keys/worker:/concourse-keys"]
     environment:
