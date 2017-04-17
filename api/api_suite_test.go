@@ -155,7 +155,7 @@ var _ = BeforeEach(func() {
 
 	build = new(dbfakes.FakeBuild)
 
-	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(pipelineDBFactory, teamDBFactory)
+	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(dbTeamFactory)
 
 	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(buildsDB)
 

@@ -170,7 +170,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 		return nil, err
 	}
 
-	build := &build{conn: p.conn}
+	build := &build{conn: p.conn, lockFactory: p.lockFactory}
 	err = scanBuild(build, buildsQuery.
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
@@ -310,9 +310,9 @@ func (p *pipeline) SaveJob(job atc.JobConfig) error {
 				Set("config", configPayload).
 				Set("active", true).
 				Where(sq.Eq{
-					"name":        job.Name,
-					"pipeline_id": p.id,
-				}).
+				"name":        job.Name,
+				"pipeline_id": p.id,
+			}).
 				RunWith(tx).
 				Exec()
 		},
@@ -385,8 +385,8 @@ func (p *pipeline) Pause() error {
 	_, err := psql.Update("pipelines").
 		Set("paused", true).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -397,8 +397,8 @@ func (p *pipeline) Unpause() error {
 	_, err := psql.Update("pipelines").
 		Set("paused", false).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -409,8 +409,8 @@ func (p *pipeline) Hide() error {
 	_, err := psql.Update("pipelines").
 		Set("public", false).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -421,8 +421,8 @@ func (p *pipeline) Expose() error {
 	_, err := psql.Update("pipelines").
 		Set("public", true).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -433,8 +433,8 @@ func (p *pipeline) Rename(name string) error {
 	_, err := psql.Update("pipelines").
 		Set("name", name).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -477,14 +477,14 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, j.id").
 		From("build_outputs o, builds b, versioned_resources v, jobs j, resources r").
 		Where(sq.Eq{
-			"v.id":          "o.versioned_resource_id",
-			"b.id":          "o.build_id",
-			"j.id":          "b.job_id",
-			"r.id":          "v.resource_id",
-			"v.enabled":     true,
-			"b.status":      BuildStatusSucceeded,
-			"r.pipeline_id": p.id,
-		}).
+		"v.id":          "o.versioned_resource_id",
+		"b.id":          "o.build_id",
+		"j.id":          "b.job_id",
+		"r.id":          "v.resource_id",
+		"v.enabled":     true,
+		"b.status":      BuildStatusSucceeded,
+		"r.pipeline_id": p.id,
+	}).
 		RunWith(p.conn).
 		Query()
 	if err != nil {
@@ -508,13 +508,13 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, j.id").
 		From("build_inputs i, builds b, versioned_resources v, jobs j, resources r").
 		Where(sq.Eq{
-			"v.id":          "i.versioned_resource_id",
-			"b.id":          "i.build_id",
-			"j.id":          "b.job_id",
-			"r.id":          "v.resource_id",
-			"v.enabled":     true,
-			"r.pipeline_id": p.id,
-		}).
+		"v.id":          "i.versioned_resource_id",
+		"b.id":          "i.build_id",
+		"j.id":          "b.job_id",
+		"r.id":          "v.resource_id",
+		"v.enabled":     true,
+		"r.pipeline_id": p.id,
+	}).
 		RunWith(p.conn).
 		Query()
 	if err != nil {
@@ -538,10 +538,10 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err = psql.Select("v.id, v.check_order, r.id").
 		From("versioned_resources v, resources r").
 		Where(sq.Eq{
-			"r.id":          "v.resource_id",
-			"v.enabled":     true,
-			"r.pipeline_id": p.id,
-		}).
+		"r.id":          "v.resource_id",
+		"v.enabled":     true,
+		"r.pipeline_id": p.id,
+	}).
 		RunWith(p.conn).
 		Query()
 	if err != nil {

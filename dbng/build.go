@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"time"
 
+	"code.cloudfoundry.org/lager"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 )
@@ -48,14 +51,24 @@ type Build interface {
 	IsManuallyTriggered() bool
 	IsScheduled() bool
 
-	Interceptible() (bool, error)
+	IsRunning() bool
 
+	Reload() (bool, error)
+
+	Interceptible() (bool, error)
+	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
+
+	Start(string, string) (bool, error)
 	SaveStatus(s BuildStatus) error
 	SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error
 	SetInterceptible(bool) error
 
+	Events(uint) (EventSource, error)
+
 	Finish(s BuildStatus) error
 	Delete() (bool, error)
+	Abort() error
+	AbortNotifier() (Notifier, error)
 }
 
 type build struct {
@@ -81,7 +94,8 @@ type build struct {
 	endTime   time.Time
 	reapTime  time.Time
 
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
 var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
@@ -103,14 +117,39 @@ func (b *build) ReapTime() time.Time       { return b.reapTime }
 func (b *build) Status() BuildStatus       { return b.status }
 func (b *build) IsScheduled() bool         { return b.scheduled }
 
+func (b *build) IsRunning() bool {
+	switch b.status {
+	case BuildStatusPending, BuildStatusStarted:
+		return true
+	default:
+		return false
+	}
+}
+
+func (b *build) Reload() (bool, error) {
+	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
+		RunWith(b.conn).
+		QueryRow()
+
+	err := scanBuild(b, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (b *build) Interceptible() (bool, error) {
 	var interceptible bool
 
 	err := psql.Select("interceptible").
 		From("builds").
 		Where(sq.Eq{
-			"id": b.id,
-		}).
+		"id": b.id,
+	}).
 		RunWith(b.conn).
 		QueryRow().Scan(&interceptible)
 
@@ -125,8 +164,8 @@ func (b *build) SetInterceptible(i bool) error {
 	rows, err := psql.Update("builds").
 		Set("interceptible", i).
 		Where(sq.Eq{
-			"id": b.id,
-		}).
+		"id": b.id,
+	}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -146,12 +185,62 @@ func (b *build) SetInterceptible(i bool) error {
 
 }
 
+func (b *build) Start(engine, metadata string) (bool, error) {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer tx.Rollback()
+
+	var startTime time.Time
+
+	err = psql.Update("builds").
+		Set("status", "started").
+		Set("start_time", "now()").
+		Set("engine", engine).
+		Set("engine_metadata", metadata).
+		Where(sq.Eq{
+		"id":     b.id,
+		"status": "pending",
+	}).
+		Suffix("RETURNING start_time").
+		RunWith(tx).
+		QueryRow().
+		Scan(&startTime)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+	}
+
+	err = b.saveEvent(tx, event.Status{
+		Status: atc.StatusStarted,
+		Time:   startTime.Unix(),
+	})
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	err = b.conn.Bus().Notify(buildEventsChannel(b.id))
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (b *build) SaveStatus(s BuildStatus) error {
 	rows, err := psql.Update("builds").
 		Set("status", string(s)).
 		Where(sq.Eq{
-			"id": b.id,
-		}).
+		"id": b.id,
+	}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -180,12 +269,15 @@ func (b *build) Finish(s BuildStatus) error {
 
 	var endTime time.Time
 
-	err = tx.QueryRow(`
-		UPDATE builds
-		SET status = $2, end_time = now(), completed = true
-		WHERE id = $1
-		RETURNING end_time
-	`, b.id, string(s)).Scan(&endTime)
+	err = psql.Update("builds").
+		Set("status", string(s)).
+		Set("end_time", sq.Expr("now()")).
+		Set("completed", true).
+		Where(sq.Eq{"id": b.id}).
+		Suffix("RETURNING end_time").
+		RunWith(tx).
+		QueryRow().
+		Scan(&endTime)
 	if err != nil {
 		return err
 	}
@@ -210,14 +302,19 @@ func (b *build) Finish(s BuildStatus) error {
 		return err
 	}
 
+	err = b.conn.Bus().Notify(buildEventsChannel(b.id))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (b *build) Delete() (bool, error) {
 	rows, err := psql.Delete("builds").
 		Where(sq.Eq{
-			"id": b.id,
-		}).
+		"id": b.id,
+	}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -234,6 +331,38 @@ func (b *build) Delete() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (b *build) Abort() error {
+	_, err := psql.Update("builds").
+		Set("status", BuildStatusAborted).
+		Where(sq.Eq{"id": b.id}).
+		RunWith(b.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	err = b.conn.Bus().Notify(buildAbortChannel(b.id))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *build) AbortNotifier() (Notifier, error) {
+	return newConditionNotifier(b.conn.Bus(), buildAbortChannel(b.id), func() (bool, error) {
+		var aborted bool
+		err := psql.Select("status = 'aborted'").
+			From("builds").
+			Where(sq.Eq{"id": b.id}).
+			RunWith(b.conn).
+			QueryRow().
+			Scan(&aborted)
+
+		return aborted, err
+	})
 }
 
 func (b *build) SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error {
@@ -256,19 +385,41 @@ func (b *build) SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.
 				Set("version", version).
 				Set("resource_hash", resourceHash).
 				Where(sq.Eq{
-					"build_id": b.id,
-					"plan_id":  string(planID),
-				}).
+				"build_id": b.id,
+				"plan_id":  string(planID),
+			}).
 				RunWith(tx).
 				Exec()
 		},
 	)
 }
 
-func (b *build) saveEvent(tx Tx, event atc.Event) error {
-	payload, err := json.Marshal(event)
+func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
+	lock := b.lockFactory.NewLock(
+		logger.Session("lock", lager.Data{
+			"build_id": b.id,
+		}),
+		lock.NewBuildTrackingLockID(b.id),
+	)
+
+	acquired, err := lock.Acquire()
 	if err != nil {
-		return err
+		return nil, false, err
+	}
+
+	if !acquired {
+		return nil, false, nil
+	}
+
+	return lock, true, nil
+}
+
+func (b *build) Events(from uint) (EventSource, error) {
+	notifier, err := newConditionNotifier(b.conn.Bus(), buildEventsChannel(b.id), func() (bool, error) {
+		return true, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	table := fmt.Sprintf("team_build_events_%d", b.teamID)
@@ -276,15 +427,13 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
 	}
 
-	_, err = tx.Exec(fmt.Sprintf(`
-		INSERT INTO %s (event_id, build_id, type, version, payload)
-		VALUES (nextval('%s'), $1, $2, $3, $4)
-	`, table, buildEventSeq(b.id)), b.id, string(event.EventType()), string(event.Version()), payload)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return newBuildEventSource(
+		b.id,
+		table,
+		b.conn,
+		notifier,
+		from,
+	), nil
 }
 
 func createBuildEventSeq(tx Tx, buildid int) error {
@@ -328,4 +477,34 @@ func scanBuild(b *build, row scannable) error {
 	b.reapTime = reapTime.Time
 
 	return nil
+}
+
+func (b *build) saveEvent(tx Tx, event atc.Event) error {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	table := fmt.Sprintf("team_build_events_%d", b.teamID)
+	if b.pipelineID != 0 {
+		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
+	}
+	_, err = psql.Insert(table).
+		Columns("event_id", "build_id", "type", "version", "payload").
+		Values(sq.Expr("nextval('"+buildEventSeq(b.id)+"')"), b.id, string(event.EventType()), string(event.Version()), payload).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func buildEventsChannel(buildID int) string {
+	return fmt.Sprintf("build_events_%d", buildID)
+}
+
+func buildAbortChannel(buildID int) string {
+	return fmt.Sprintf("build_abort_%d", buildID)
 }

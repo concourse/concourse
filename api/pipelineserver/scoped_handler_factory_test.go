@@ -142,6 +142,6 @@ type wrapHandler struct {
 }
 
 func (h *wrapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := context.WithValue(r.Context(), auth.PipelineDBKey, h.contextPipelineDB)
+	ctx := context.WithValue(r.Context(), auth.PipelineContextKey, h.contextPipelineDB)
 	h.delegate.ServeHTTP(w, r.WithContext(ctx))
 }

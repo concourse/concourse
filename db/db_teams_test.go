@@ -31,9 +31,8 @@ var _ = Describe("SQL DB Teams", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		pqConn := postgresRunner.Open()
-		dbConn = db.Wrap(pqConn)
-		dbngConn = dbng.Wrap(pqConn)
+		dbConn = db.Wrap(postgresRunner.OpenDB())
+		dbngConn = postgresRunner.OpenConn()
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())

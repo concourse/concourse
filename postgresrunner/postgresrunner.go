@@ -10,7 +10,10 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"code.cloudfoundry.org/lager/lagertest"
+
 	"github.com/concourse/atc/db/migrations"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/migration"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -91,11 +94,26 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return ginkgoRunner.Run(signals, ready)
 }
 
-func (runner *Runner) Open() *sql.DB {
+func (runner *Runner) OpenDB() *sql.DB {
 	dbConn, err := migration.Open(
 		"postgres",
 		runner.DataSourceName(),
 		migrations.Migrations,
+	)
+	Expect(err).NotTo(HaveOccurred())
+
+	// only allow one connection so that we can detect any code paths that
+	// require more than one, which will deadlock if it's at the limit
+	dbConn.SetMaxOpenConns(1)
+
+	return dbConn
+}
+
+func (runner *Runner) OpenConn() dbng.Conn {
+	dbConn, err := dbng.Open(
+		lagertest.NewTestLogger("postgres-runner"),
+		"postgres",
+		runner.DataSourceName(),
 	)
 	Expect(err).NotTo(HaveOccurred())
 

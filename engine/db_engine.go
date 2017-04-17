@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/metric"
 )
 
@@ -40,7 +41,7 @@ func (*dbEngine) Name() string {
 	return "db"
 }
 
-func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
+func (engine *dbEngine) CreateBuild(logger lager.Logger, build dbng.Build, plan atc.Plan) (Build, error) {
 	buildEngine := engine.engines[0]
 
 	createdBuild, err := buildEngine.CreateBuild(logger, build, plan)
@@ -65,7 +66,7 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 	}, nil
 }
 
-func (engine *dbEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
+func (engine *dbEngine) LookupBuild(logger lager.Logger, build dbng.Build) (Build, error) {
 	return &dbBuild{
 		engines:   engine.engines,
 		releaseCh: engine.releaseCh,
@@ -93,7 +94,7 @@ func (engine *dbEngine) ReleaseAll(logger lager.Logger) {
 type dbBuild struct {
 	engines   Engines
 	releaseCh chan struct{}
-	build     db.Build
+	build     dbng.Build
 	waitGroup *sync.WaitGroup
 }
 
@@ -166,7 +167,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		// finish the build so that the aborted event is put into the event stream
 		// even if the build has not started yet
 		logger.Info("finishing-build-with-no-engine")
-		return build.build.Finish(db.StatusAborted)
+		return build.build.Finish(dbng.BuildStatusAborted)
 	}
 
 	buildEngine, found := build.engines.Lookup(buildEngineName)

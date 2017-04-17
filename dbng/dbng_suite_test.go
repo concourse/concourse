@@ -10,9 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/format"
-
-	"database/sql"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
@@ -30,7 +27,6 @@ var (
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
 
-	sqlDB                         *sql.DB
 	dbConn                        dbng.Conn
 	buildFactory                  dbng.BuildFactory
 	volumeFactory                 dbng.VolumeFactory
@@ -88,17 +84,13 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	var err error
-	format.UseStringerRepresentation = true
-
 	postgresRunner.Truncate()
-	sqlDB = postgresRunner.Open()
 
-	dbConn = dbng.Wrap(sqlDB)
+	dbConn = postgresRunner.OpenConn()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
-	buildFactory = dbng.NewBuildFactory(dbConn)
+	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory)
 	volumeFactory = dbng.NewVolumeFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)
 	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
@@ -109,6 +101,7 @@ var _ = BeforeEach(func() {
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
 	workerBaseResourceTypeFactory = dbng.NewWorkerBaseResourceTypeFactory(dbConn)
 
+	var err error
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())
 

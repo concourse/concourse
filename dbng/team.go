@@ -97,8 +97,8 @@ func (t *team) Delete() error {
 
 	_, err = psql.Delete("teams").
 		Where(sq.Eq{
-			"name": t.name,
-		}).
+		"name": t.name,
+	}).
 		RunWith(tx).
 		Exec()
 
@@ -477,13 +477,13 @@ func (t *team) SavePipeline(
 
 		err = psql.Insert("pipelines").
 			SetMap(map[string]interface{}{
-				"name":     pipelineName,
-				"config":   payload,
-				"version":  sq.Expr("nextval('config_version_seq')"),
-				"ordering": sq.Expr("(SELECT COUNT(1) + 1 FROM pipelines)"),
-				"paused":   pausedState.Bool(),
-				"team_id":  t.id,
-			}).
+			"name":     pipelineName,
+			"config":   payload,
+			"version":  sq.Expr("nextval('config_version_seq')"),
+			"ordering": sq.Expr("(SELECT COUNT(1) + 1 FROM pipelines)"),
+			"paused":   pausedState.Bool(),
+			"team_id":  t.id,
+		}).
 			Suffix("RETURNING id").
 			RunWith(tx).
 			QueryRow().Scan(&pipelineID)
@@ -519,10 +519,10 @@ func (t *team) SavePipeline(
 			Set("config", payload).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
 			Where(sq.Eq{
-				"name":    pipelineName,
-				"version": from,
-				"team_id": t.id,
-			}).
+			"name":    pipelineName,
+			"version": from,
+			"team_id": t.id,
+		}).
 			Suffix("RETURNING id")
 
 		if pausedState != PipelineNoChange {
@@ -637,9 +637,9 @@ func (t *team) Pipeline(pipelineName string) (Pipeline, bool, error) {
 		pipeline,
 		pipelinesQuery.
 			Where(sq.Eq{
-				"p.team_id": t.id,
-				"p.name":    pipelineName,
-			}).
+			"p.team_id": t.id,
+			"p.name":    pipelineName,
+		}).
 			RunWith(t.conn).
 			QueryRow(),
 	)
@@ -656,8 +656,8 @@ func (t *team) Pipeline(pipelineName string) (Pipeline, bool, error) {
 func (t *team) Pipelines() ([]Pipeline, error) {
 	rows, err := pipelinesQuery.
 		Where(sq.Eq{
-			"team_id": t.id,
-		}).
+		"team_id": t.id,
+	}).
 		OrderBy("ordering").
 		RunWith(t.conn).
 		Query()
@@ -676,9 +676,9 @@ func (t *team) Pipelines() ([]Pipeline, error) {
 func (t *team) PublicPipelines() ([]Pipeline, error) {
 	rows, err := pipelinesQuery.
 		Where(sq.Eq{
-			"team_id": t.id,
-			"public":  true,
-		}).
+		"team_id": t.id,
+		"public":  true,
+	}).
 		OrderBy("ordering").
 		RunWith(t.conn).
 		Query()
@@ -760,9 +760,9 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 		_, err = psql.Update("pipelines").
 			Set("ordering", i).
 			Where(sq.Eq{
-				"name":    name,
-				"team_id": t.id,
-			}).
+			"name":    name,
+			"team_id": t.id,
+		}).
 			RunWith(tx).
 			Exec()
 		if err != nil {
@@ -796,7 +796,7 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 		return nil, err
 	}
 
-	build := &build{conn: t.conn}
+	build := &build{conn: t.conn, lockFactory: t.lockFactory}
 	err = scanBuild(build, buildsQuery.
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
@@ -823,7 +823,7 @@ func (t *team) GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, error)
 	newBuildsQuery := buildsQuery.
 		Where(sq.Or{sq.Eq{"p.public": true}, sq.Eq{"t.id": t.id}})
 
-	return getBuildsWithPagination(newBuildsQuery, page, t.conn)
+	return getBuildsWithPagination(newBuildsQuery, page, t.conn, t.lockFactory)
 }
 
 func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error) {

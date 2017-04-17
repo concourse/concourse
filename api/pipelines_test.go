@@ -464,6 +464,7 @@ var _ = Describe("Pipelines API", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("another-team", true, true)
+				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 			})
 
 			Context("and the pipeline is private", func() {

@@ -24,7 +24,7 @@ var _ = Describe("DBEngine", func() {
 
 		fakeEngineA *enginefakes.FakeEngine
 		fakeEngineB *enginefakes.FakeEngine
-		dbBuild     *dbfakes.FakeBuild
+		fakeBuild   *dbngfakes.FakeBuild
 
 		dbEngine Engine
 	)
@@ -38,8 +38,8 @@ var _ = Describe("DBEngine", func() {
 		fakeEngineB = new(enginefakes.FakeEngine)
 		fakeEngineB.NameReturns("fake-engine-b")
 
-		dbBuild = new(dbfakes.FakeBuild)
-		dbBuild.IDReturns(128)
+		fakeBuild = new(dbngfakes.FakeBuild)
+		fakeBuild.IDReturns(128)
 
 		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB})
 	})
@@ -73,7 +73,7 @@ var _ = Describe("DBEngine", func() {
 				},
 			})
 
-			dbBuild.StartReturns(true, nil)
+			fakeBuild.StartReturns(true, nil)
 		})
 
 		JustBeforeEach(func() {

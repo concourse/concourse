@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/atc/db/lock"
 )
 
 type BuildFactory interface {
@@ -11,12 +12,14 @@ type BuildFactory interface {
 }
 
 type buildFactory struct {
-	conn Conn
+	conn        Conn
+	lockFactory lock.LockFactory
 }
 
-func NewBuildFactory(conn Conn) BuildFactory {
+func NewBuildFactory(conn Conn, lockFactory lock.LockFactory) BuildFactory {
 	return &buildFactory{
-		conn: conn,
+		conn:        conn,
+		lockFactory: lockFactory,
 	}
 }
 
@@ -34,16 +37,16 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 		Prefix(latestBuildsPrefix).
 		Set("interceptible", false).
 		Where(sq.Or{
-			sq.Expr("id NOT IN (select build_id FROM latest_builds)"),
-			sq.And{
-				sq.NotEq{"status": string(BuildStatusAborted)},
-				sq.NotEq{"status": string(BuildStatusFailed)},
-				sq.NotEq{"status": string(BuildStatusErrored)},
-			},
-		}).
+		sq.Expr("id NOT IN (select build_id FROM latest_builds)"),
+		sq.And{
+			sq.NotEq{"status": string(BuildStatusAborted)},
+			sq.NotEq{"status": string(BuildStatusFailed)},
+			sq.NotEq{"status": string(BuildStatusErrored)},
+		},
+	}).
 		Where(sq.Eq{
-			"completed": true,
-		}).
+		"completed": true,
+	}).
 		RunWith(f.conn).
 		Exec()
 	if err != nil {
@@ -54,7 +57,7 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 
 }
 
-func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn) ([]Build, Pagination, error) {
+func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory) ([]Build, Pagination, error) {
 	var rows *sql.Rows
 	var err error
 
@@ -78,7 +81,7 @@ func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn)
 	builds := []Build{}
 
 	for rows.Next() {
-		build := &build{conn: conn}
+		build := &build{conn: conn, lockFactory: lockFactory}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, Pagination{}, err
