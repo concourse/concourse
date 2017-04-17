@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+
+	"github.com/concourse/atc/dbng"
 )
 
 type CheckBuildWriteAccessHandlerFactory interface {
@@ -11,14 +13,14 @@ type CheckBuildWriteAccessHandlerFactory interface {
 }
 
 type checkBuildWriteAccessHandlerFactory struct {
-	buildsDB BuildsDB
+	buildFactory dbng.BuildFactory
 }
 
 func NewCheckBuildWriteAccessHandlerFactory(
-	buildsDB BuildsDB,
+	buildFactory dbng.BuildFactory,
 ) *checkBuildWriteAccessHandlerFactory {
 	return &checkBuildWriteAccessHandlerFactory{
-		buildsDB: buildsDB,
+		buildFactory: buildFactory,
 	}
 }
 
@@ -28,14 +30,14 @@ func (f *checkBuildWriteAccessHandlerFactory) HandlerFor(
 ) http.Handler {
 	return checkBuildWriteAccessHandler{
 		rejector:        rejector,
-		buildsDB:        f.buildsDB,
+		buildFactory:    f.buildFactory,
 		delegateHandler: delegateHandler,
 	}
 }
 
 type checkBuildWriteAccessHandler struct {
 	rejector        Rejector
-	buildsDB        BuildsDB
+	buildFactory    dbng.BuildFactory
 	delegateHandler http.Handler
 }
 
@@ -52,7 +54,7 @@ func (h checkBuildWriteAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	build, found, err := h.buildsDB.GetBuildByID(buildID)
+	build, found, err := h.buildFactory.Build(buildID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -69,6 +71,6 @@ func (h checkBuildWriteAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	ctx := context.WithValue(r.Context(), BuildKey, build)
+	ctx := context.WithValue(r.Context(), BuildContextKey, build)
 	h.delegateHandler.ServeHTTP(w, r.WithContext(ctx))
 }
