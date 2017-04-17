@@ -67,14 +67,6 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		"resource": resourceName,
 	})
 
-	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resource-types", err)
-		return 0, err
-	}
-
-	versionedResourceTypes := deserializeVersionedResourceTypes(resourceTypes)
-
 	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLockWithIntervalCheck(
 		logger,
 		&dbng.Resource{
@@ -83,7 +75,6 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 			Type:   savedResource.Config.Type,
 			Source: savedResource.Config.Source,
 		},
-		versionedResourceTypes,
 		interval,
 		false,
 	)
@@ -108,12 +99,18 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return interval, err
 	}
 
+	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resource-types", err)
+		return 0, err
+	}
+
 	err = swallowErrResourceScriptFailed(
 		scanner.scan(
 			logger.Session("tick"),
 			savedResource,
 			atc.Version(vr.Version),
-			versionedResourceTypes,
+			resourceTypes.Deserialize(),
 		),
 	)
 	if err != nil {
@@ -150,14 +147,6 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		return err
 	}
 
-	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resource-types", err)
-		return err
-	}
-
-	versionedResourceTypes := deserializeVersionedResourceTypes(resourceTypes)
-
 	for {
 		lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLockWithIntervalCheck(
 			logger,
@@ -167,7 +156,6 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 				Type:   savedResource.Config.Type,
 				Source: savedResource.Config.Source,
 			},
-			versionedResourceTypes,
 			interval,
 			true,
 		)
@@ -189,6 +177,14 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 
 		break
 	}
+
+	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
+	if err != nil {
+		logger.Error("failed-to-get-resource-types", err)
+		return err
+	}
+
+	versionedResourceTypes := resourceTypes.Deserialize()
 
 	return scanner.scan(logger, savedResource, fromVersion, versionedResourceTypes)
 }
@@ -333,20 +329,3 @@ func (scanner *resourceScanner) checkInterval(resourceConfig atc.ResourceConfig)
 }
 
 var errPipelineRemoved = errors.New("pipeline removed")
-
-func deserializeVersionedResourceTypes(types []dbng.ResourceType) atc.VersionedResourceTypes {
-	var versionedResourceTypes atc.VersionedResourceTypes
-
-	for _, t := range types {
-		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name:   t.Name(),
-				Type:   t.Type(),
-				Source: t.Source(),
-			},
-			Version: t.Version(),
-		})
-	}
-
-	return versionedResourceTypes
-}

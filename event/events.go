@@ -59,7 +59,7 @@ func ShadowTaskConfig(config atc.TaskConfig) TaskConfig {
 
 	return TaskConfig{
 		Platform: config.Platform,
-		Image:    config.Image,
+		Image:    config.RootFsUri,
 		Run: TaskRunConfig{
 			Path: config.Run.Path,
 			Args: config.Run.Args,

@@ -39,5 +39,11 @@ func (rcuc *resourceCacheUseCollector) Run() error {
 		return err
 	}
 
+	err = rcuc.cacheFactory.CleanUsesForPausedPipelineResources()
+	if err != nil {
+		rcuc.logger.Error("unable-to-clean-up-for-paused-pipeline-resources", err)
+		return err
+	}
+
 	return nil
 }

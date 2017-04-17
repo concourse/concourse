@@ -16,7 +16,7 @@ type TaskConfig struct {
 
 	// Optional string specifying an image to use for the build. Depending on the
 	// platform, this may or may not be required (e.g. Windows/OS X vs. Linux).
-	Image string `json:"image,omitempty" yaml:"image,omitempty" mapstructure:"image"`
+	RootFsUri string `json:"rootfs_uri,omitempty" yaml:"rootfs_uri,omitempty" mapstructure:"rootfs_uri"`
 
 	ImageResource *ImageResource `json:"image_resource,omitempty" yaml:"image_resource,omitempty" mapstructure:"image_resource"`
 
@@ -82,8 +82,8 @@ func (config TaskConfig) Merge(other TaskConfig) TaskConfig {
 		config.Platform = other.Platform
 	}
 
-	if other.Image != "" {
-		config.Image = other.Image
+	if other.RootFsUri != "" {
+		config.RootFsUri = other.RootFsUri
 	}
 
 	if len(config.Params) > 0 {

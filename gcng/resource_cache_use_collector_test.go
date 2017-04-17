@@ -356,7 +356,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 			})
 
 			Describe("for resources", func() {
-				setActiveResource := func(active bool) {
+				setActiveResource := func(resource *dbng.Resource, active bool) {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
@@ -364,8 +364,9 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					var id int
 					err = psql.Update("resources").
 						Set("active", active).
-						Where(sq.Eq{"id": usedResource.ID}).
-						Suffix("RETURNING id").
+						Where(sq.Eq{
+							"id": resource.ID,
+						}).Suffix("RETURNING id").
 						RunWith(tx).
 						QueryRow().Scan(&id)
 					Expect(err).NotTo(HaveOccurred())
@@ -389,7 +390,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 						},
 					)
 					Expect(err).NotTo(HaveOccurred())
-					setActiveResource(true)
+					setActiveResource(usedResource, true)
 				})
 
 				Context("while the resource is still active", func() {
@@ -403,9 +404,66 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				Context("once the resource is made inactive", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceCacheUses()).NotTo(BeZero())
-						setActiveResource(false)
+						setActiveResource(usedResource, false)
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceCacheUses()).To(BeZero())
+					})
+				})
+
+				Context("when the associated pipeline is paused", func() {
+					It("cleans up the uses", func() {
+						Expect(countResourceCacheUses()).NotTo(BeZero())
+						err := defaultPipeline.Pause()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(collector.Run()).To(Succeed())
+						Expect(countResourceCacheUses()).To(BeZero())
+					})
+				})
+				Context("when a portion of pipelines referencing config are paused", func() {
+					BeforeEach(func() {
+						anotherPipeline, created, err := defaultTeam.SavePipeline(
+							"another-pipeline",
+							atc.Config{
+								Resources: []atc.ResourceConfig{
+									{
+										Name:   "another-resource",
+										Type:   usedResource.Type,
+										Source: usedResource.Source,
+									},
+								},
+							},
+							0,
+							dbng.PipelineUnpaused,
+						)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(created).To(BeTrue())
+
+						anotherResource, found, err := anotherPipeline.Resource("another-resource")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						_, err = resourceCacheFactory.FindOrCreateResourceCache(
+							logger,
+							dbng.ForResource(anotherResource.ID),
+							"some-type",
+							atc.Version{"some-type": "version"},
+							atc.Source{
+								"cache": "source",
+							},
+							atc.Params{"some": "params"},
+							atc.VersionedResourceTypes{versionedResourceType},
+						)
+						Expect(err).NotTo(HaveOccurred())
+						setActiveResource(anotherResource, true)
+					})
+
+					It("does not clean up the uses for unpaused pipeline resources", func() {
+						Expect(countResourceCacheUses()).To(Equal(4))
+						err := defaultPipeline.Pause()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(collector.Run()).To(Succeed())
+						Expect(countResourceCacheUses()).To(Equal(2))
 					})
 				})
 			})

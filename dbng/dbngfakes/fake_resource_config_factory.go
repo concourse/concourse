@@ -55,6 +55,24 @@ type FakeResourceConfigFactory struct {
 	cleanConfigUsesForInactiveResourcesReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CleanConfigUsesForPausedPipelinesResourcesStub        func() error
+	cleanConfigUsesForPausedPipelinesResourcesMutex       sync.RWMutex
+	cleanConfigUsesForPausedPipelinesResourcesArgsForCall []struct{}
+	cleanConfigUsesForPausedPipelinesResourcesReturns     struct {
+		result1 error
+	}
+	cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall map[int]struct {
+		result1 error
+	}
+	CleanConfigUsesForOutdatedResourceConfigsStub        func() error
+	cleanConfigUsesForOutdatedResourceConfigsMutex       sync.RWMutex
+	cleanConfigUsesForOutdatedResourceConfigsArgsForCall []struct{}
+	cleanConfigUsesForOutdatedResourceConfigsReturns     struct {
+		result1 error
+	}
+	cleanConfigUsesForOutdatedResourceConfigsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CleanUselessConfigsStub        func() error
 	cleanUselessConfigsMutex       sync.RWMutex
 	cleanUselessConfigsArgsForCall []struct{}
@@ -262,6 +280,86 @@ func (fake *FakeResourceConfigFactory) CleanConfigUsesForInactiveResourcesReturn
 	}{result1}
 }
 
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedPipelinesResources() error {
+	fake.cleanConfigUsesForPausedPipelinesResourcesMutex.Lock()
+	ret, specificReturn := fake.cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall[len(fake.cleanConfigUsesForPausedPipelinesResourcesArgsForCall)]
+	fake.cleanConfigUsesForPausedPipelinesResourcesArgsForCall = append(fake.cleanConfigUsesForPausedPipelinesResourcesArgsForCall, struct{}{})
+	fake.recordInvocation("CleanConfigUsesForPausedPipelinesResources", []interface{}{})
+	fake.cleanConfigUsesForPausedPipelinesResourcesMutex.Unlock()
+	if fake.CleanConfigUsesForPausedPipelinesResourcesStub != nil {
+		return fake.CleanConfigUsesForPausedPipelinesResourcesStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.cleanConfigUsesForPausedPipelinesResourcesReturns.result1
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedPipelinesResourcesCallCount() int {
+	fake.cleanConfigUsesForPausedPipelinesResourcesMutex.RLock()
+	defer fake.cleanConfigUsesForPausedPipelinesResourcesMutex.RUnlock()
+	return len(fake.cleanConfigUsesForPausedPipelinesResourcesArgsForCall)
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedPipelinesResourcesReturns(result1 error) {
+	fake.CleanConfigUsesForPausedPipelinesResourcesStub = nil
+	fake.cleanConfigUsesForPausedPipelinesResourcesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForPausedPipelinesResourcesReturnsOnCall(i int, result1 error) {
+	fake.CleanConfigUsesForPausedPipelinesResourcesStub = nil
+	if fake.cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall == nil {
+		fake.cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanConfigUsesForPausedPipelinesResourcesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForOutdatedResourceConfigs() error {
+	fake.cleanConfigUsesForOutdatedResourceConfigsMutex.Lock()
+	ret, specificReturn := fake.cleanConfigUsesForOutdatedResourceConfigsReturnsOnCall[len(fake.cleanConfigUsesForOutdatedResourceConfigsArgsForCall)]
+	fake.cleanConfigUsesForOutdatedResourceConfigsArgsForCall = append(fake.cleanConfigUsesForOutdatedResourceConfigsArgsForCall, struct{}{})
+	fake.recordInvocation("CleanConfigUsesForOutdatedResourceConfigs", []interface{}{})
+	fake.cleanConfigUsesForOutdatedResourceConfigsMutex.Unlock()
+	if fake.CleanConfigUsesForOutdatedResourceConfigsStub != nil {
+		return fake.CleanConfigUsesForOutdatedResourceConfigsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.cleanConfigUsesForOutdatedResourceConfigsReturns.result1
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForOutdatedResourceConfigsCallCount() int {
+	fake.cleanConfigUsesForOutdatedResourceConfigsMutex.RLock()
+	defer fake.cleanConfigUsesForOutdatedResourceConfigsMutex.RUnlock()
+	return len(fake.cleanConfigUsesForOutdatedResourceConfigsArgsForCall)
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForOutdatedResourceConfigsReturns(result1 error) {
+	fake.CleanConfigUsesForOutdatedResourceConfigsStub = nil
+	fake.cleanConfigUsesForOutdatedResourceConfigsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceConfigFactory) CleanConfigUsesForOutdatedResourceConfigsReturnsOnCall(i int, result1 error) {
+	fake.CleanConfigUsesForOutdatedResourceConfigsStub = nil
+	if fake.cleanConfigUsesForOutdatedResourceConfigsReturnsOnCall == nil {
+		fake.cleanConfigUsesForOutdatedResourceConfigsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanConfigUsesForOutdatedResourceConfigsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceConfigFactory) CleanUselessConfigs() error {
 	fake.cleanUselessConfigsMutex.Lock()
 	ret, specificReturn := fake.cleanUselessConfigsReturnsOnCall[len(fake.cleanUselessConfigsArgsForCall)]
@@ -371,6 +469,10 @@ func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} 
 	defer fake.cleanConfigUsesForInactiveResourceTypesMutex.RUnlock()
 	fake.cleanConfigUsesForInactiveResourcesMutex.RLock()
 	defer fake.cleanConfigUsesForInactiveResourcesMutex.RUnlock()
+	fake.cleanConfigUsesForPausedPipelinesResourcesMutex.RLock()
+	defer fake.cleanConfigUsesForPausedPipelinesResourcesMutex.RUnlock()
+	fake.cleanConfigUsesForOutdatedResourceConfigsMutex.RLock()
+	defer fake.cleanConfigUsesForOutdatedResourceConfigsMutex.RUnlock()
 	fake.cleanUselessConfigsMutex.RLock()
 	defer fake.cleanUselessConfigsMutex.RUnlock()
 	fake.acquireResourceCheckingLockMutex.RLock()

@@ -28,13 +28,24 @@ type Pipeline interface {
 	AcquireResourceCheckingLockWithIntervalCheck(
 		logger lager.Logger,
 		resource *Resource,
-		resourceTypes atc.VersionedResourceTypes,
-		length time.Duration,
+		interval time.Duration,
 		immediate bool,
 	) (lock.Lock, bool, error)
 
-	ResourceTypes() ([]ResourceType, error)
+	AcquireResourceTypeCheckingLockWithIntervalCheck(
+		logger lager.Logger,
+		resourceTypeName string,
+		interval time.Duration,
+		immediate bool,
+	) (lock.Lock, bool, error)
+
+	ResourceTypes() (ResourceTypes, error)
 	ResourceType(name string) (ResourceType, bool, error)
+
+	Resource(name string) (*Resource, bool, error)
+
+	Pause() error
+	Unpause() error
 
 	Destroy() error
 }
@@ -181,7 +192,7 @@ func (p *pipeline) SaveJob(job atc.JobConfig) error {
 	)
 }
 
-func (p *pipeline) ResourceTypes() ([]ResourceType, error) {
+func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	rows, err := resourceTypesQuery.Where(sq.Eq{"pipeline_id": p.id}).RunWith(p.conn).Query()
 	if err != nil {
 		return nil, err
@@ -220,6 +231,58 @@ func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 	}
 
 	return resourceType, true, nil
+}
+
+func (p *pipeline) Resource(name string) (*Resource, bool, error) {
+	var configPayload string
+	var resourceID int
+	err := psql.Select("id, config").
+		From("resources").
+		Where(sq.Eq{
+			"pipeline_id": p.id,
+			"name":        name,
+		}).
+		RunWith(p.conn).
+		QueryRow().
+		Scan(&resourceID, &configPayload)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	var resourceConfig atc.ResourceConfig
+	err = json.Unmarshal([]byte(configPayload), &resourceConfig)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return &Resource{
+		ID:     resourceID,
+		Name:   name,
+		Type:   resourceConfig.Type,
+		Source: resourceConfig.Source,
+	}, true, nil
+}
+
+func (p *pipeline) Unpause() error {
+	_, err := p.conn.Exec(`
+		UPDATE pipelines
+		SET paused = false
+		WHERE id = $1
+	`, p.id)
+	return err
+}
+
+func (p *pipeline) Pause() error {
+	_, err := p.conn.Exec(`
+		UPDATE pipelines
+		SET paused = true
+		WHERE id = $1
+	`, p.id)
+	return err
 }
 
 func (p *pipeline) Destroy() error {

@@ -35,7 +35,19 @@ func (rcuc *resourceConfigUseCollector) Run() error {
 
 	err = rcuc.configFactory.CleanConfigUsesForInactiveResources()
 	if err != nil {
-		rcuc.logger.Error("unable-to-clean-up-for-resources", err)
+		rcuc.logger.Error("unable-to-clean-up-for-inactive-resources", err)
+		return err
+	}
+
+	err = rcuc.configFactory.CleanConfigUsesForPausedPipelinesResources()
+	if err != nil {
+		rcuc.logger.Error("unable-to-clean-up-for-paused-resources", err)
+		return err
+	}
+
+	err = rcuc.configFactory.CleanConfigUsesForOutdatedResourceConfigs()
+	if err != nil {
+		rcuc.logger.Error("unable-to-clean-up-for-outdated-resource-configs", err)
 		return err
 	}
 
