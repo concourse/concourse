@@ -108,9 +108,7 @@ func (team *team) RenamePipeline(pipelineName, name string) (bool, error) {
 		"team_name":     team.name,
 	}
 
-	jsonBytes, err := json.Marshal(struct {
-		Name string `json:"name"`
-	}{Name: name})
+	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: name})
 	if err != nil {
 		return false, err
 	}
