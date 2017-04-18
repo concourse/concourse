@@ -8,11 +8,11 @@ import (
 )
 
 func (s *Server) OrderPipelines(w http.ResponseWriter, r *http.Request) {
-	pipelineNames := []string{}
+	logger := s.logger.Session("order-pipelines")
 
+	var pipelineNames []string
 	if err := json.NewDecoder(r.Body).Decode(&pipelineNames); err != nil {
-		s.logger.Error("invalid-json", err)
-
+		logger.Error("invalid-json", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -22,10 +22,9 @@ func (s *Server) OrderPipelines(w http.ResponseWriter, r *http.Request) {
 
 	err := teamDB.OrderPipelines(pipelineNames)
 	if err != nil {
-		s.logger.Error("failed-to-order-pipelines", err, lager.Data{
+		logger.Error("failed-to-order-pipelines", err, lager.Data{
 			"pipeline-names": pipelineNames,
 		})
-
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

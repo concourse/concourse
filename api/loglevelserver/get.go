@@ -9,6 +9,8 @@ import (
 )
 
 func (s *Server) GetMinLevel(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("get-min-level")
+
 	var level atc.LogLevel
 
 	switch s.sink.GetMinLevel() {
@@ -21,7 +23,7 @@ func (s *Server) GetMinLevel(w http.ResponseWriter, r *http.Request) {
 	case lager.FATAL:
 		level = atc.LogLevelFatal
 	default:
-		s.logger.Error("unknown-log-level", nil, lager.Data{
+		logger.Error("unknown-log-level", nil, lager.Data{
 			"level": level,
 		})
 		level = atc.LogLevelInvalid

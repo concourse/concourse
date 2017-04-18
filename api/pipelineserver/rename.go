@@ -5,30 +5,33 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 )
 
 func (s *Server) RenamePipeline(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := s.logger.Session("rename-pipeline")
+
 		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			s.logger.Error("call-to-update-pipeline-name-copy-failed", err)
+			logger.Error("failed-to-read-body", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		var value struct{ Name string }
-		err = json.Unmarshal(data, &value)
+		var rename atc.RenameRequest
+		err = json.Unmarshal(data, &rename)
 		if err != nil {
-			s.logger.Error("call-to-update-pipeline-name-unmarshal-failed", err)
+			logger.Error("failed-to-unmarshal-body", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		err = pipelineDB.UpdateName(value.Name)
+		err = pipelineDB.UpdateName(rename.NewName)
 		if err != nil {
-			s.logger.Error("call-to-update-pipeline-name-failed", err)
+			logger.Error("failed-to-update-name", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
