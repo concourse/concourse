@@ -203,6 +203,19 @@ type FakeBuild struct {
 		result2 bool
 		result3 error
 	}
+	PreparationStub        func() (dbng.BuildPreparation, bool, error)
+	preparationMutex       sync.RWMutex
+	preparationArgsForCall []struct{}
+	preparationReturns     struct {
+		result1 dbng.BuildPreparation
+		result2 bool
+		result3 error
+	}
+	preparationReturnsOnCall map[int]struct {
+		result1 dbng.BuildPreparation
+		result2 bool
+		result3 error
+	}
 	StartStub        func(string, string) (bool, error)
 	startMutex       sync.RWMutex
 	startArgsForCall []struct {
@@ -286,6 +299,30 @@ type FakeBuild struct {
 	saveOutputReturnsOnCall map[int]struct {
 		result1 error
 	}
+	UseInputsStub        func(inputs []dbng.BuildInput) error
+	useInputsMutex       sync.RWMutex
+	useInputsArgsForCall []struct {
+		inputs []dbng.BuildInput
+	}
+	useInputsReturns struct {
+		result1 error
+	}
+	useInputsReturnsOnCall map[int]struct {
+		result1 error
+	}
+	ResourcesStub        func() ([]dbng.BuildInput, []dbng.BuildOutput, error)
+	resourcesMutex       sync.RWMutex
+	resourcesArgsForCall []struct{}
+	resourcesReturns     struct {
+		result1 []dbng.BuildInput
+		result2 []dbng.BuildOutput
+		result3 error
+	}
+	resourcesReturnsOnCall map[int]struct {
+		result1 []dbng.BuildInput
+		result2 []dbng.BuildOutput
+		result3 error
+	}
 	GetVersionedResourcesStub        func() (dbng.SavedVersionedResources, error)
 	getVersionedResourcesMutex       sync.RWMutex
 	getVersionedResourcesArgsForCall []struct{}
@@ -363,6 +400,17 @@ type FakeBuild struct {
 	}
 	abortNotifierReturnsOnCall map[int]struct {
 		result1 dbng.Notifier
+		result2 error
+	}
+	ScheduleStub        func() (bool, error)
+	scheduleMutex       sync.RWMutex
+	scheduleArgsForCall []struct{}
+	scheduleReturns     struct {
+		result1 bool
+		result2 error
+	}
+	scheduleReturnsOnCall map[int]struct {
+		result1 bool
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -1190,6 +1238,52 @@ func (fake *FakeBuild) AcquireTrackingLockReturnsOnCall(i int, result1 lock.Lock
 	}{result1, result2, result3}
 }
 
+func (fake *FakeBuild) Preparation() (dbng.BuildPreparation, bool, error) {
+	fake.preparationMutex.Lock()
+	ret, specificReturn := fake.preparationReturnsOnCall[len(fake.preparationArgsForCall)]
+	fake.preparationArgsForCall = append(fake.preparationArgsForCall, struct{}{})
+	fake.recordInvocation("Preparation", []interface{}{})
+	fake.preparationMutex.Unlock()
+	if fake.PreparationStub != nil {
+		return fake.PreparationStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.preparationReturns.result1, fake.preparationReturns.result2, fake.preparationReturns.result3
+}
+
+func (fake *FakeBuild) PreparationCallCount() int {
+	fake.preparationMutex.RLock()
+	defer fake.preparationMutex.RUnlock()
+	return len(fake.preparationArgsForCall)
+}
+
+func (fake *FakeBuild) PreparationReturns(result1 dbng.BuildPreparation, result2 bool, result3 error) {
+	fake.PreparationStub = nil
+	fake.preparationReturns = struct {
+		result1 dbng.BuildPreparation
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) PreparationReturnsOnCall(i int, result1 dbng.BuildPreparation, result2 bool, result3 error) {
+	fake.PreparationStub = nil
+	if fake.preparationReturnsOnCall == nil {
+		fake.preparationReturnsOnCall = make(map[int]struct {
+			result1 dbng.BuildPreparation
+			result2 bool
+			result3 error
+		})
+	}
+	fake.preparationReturnsOnCall[i] = struct {
+		result1 dbng.BuildPreparation
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeBuild) Start(arg1 string, arg2 string) (bool, error) {
 	fake.startMutex.Lock()
 	ret, specificReturn := fake.startReturnsOnCall[len(fake.startArgsForCall)]
@@ -1534,6 +1628,105 @@ func (fake *FakeBuild) SaveOutputReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeBuild) UseInputs(inputs []dbng.BuildInput) error {
+	var inputsCopy []dbng.BuildInput
+	if inputs != nil {
+		inputsCopy = make([]dbng.BuildInput, len(inputs))
+		copy(inputsCopy, inputs)
+	}
+	fake.useInputsMutex.Lock()
+	ret, specificReturn := fake.useInputsReturnsOnCall[len(fake.useInputsArgsForCall)]
+	fake.useInputsArgsForCall = append(fake.useInputsArgsForCall, struct {
+		inputs []dbng.BuildInput
+	}{inputsCopy})
+	fake.recordInvocation("UseInputs", []interface{}{inputsCopy})
+	fake.useInputsMutex.Unlock()
+	if fake.UseInputsStub != nil {
+		return fake.UseInputsStub(inputs)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.useInputsReturns.result1
+}
+
+func (fake *FakeBuild) UseInputsCallCount() int {
+	fake.useInputsMutex.RLock()
+	defer fake.useInputsMutex.RUnlock()
+	return len(fake.useInputsArgsForCall)
+}
+
+func (fake *FakeBuild) UseInputsArgsForCall(i int) []dbng.BuildInput {
+	fake.useInputsMutex.RLock()
+	defer fake.useInputsMutex.RUnlock()
+	return fake.useInputsArgsForCall[i].inputs
+}
+
+func (fake *FakeBuild) UseInputsReturns(result1 error) {
+	fake.UseInputsStub = nil
+	fake.useInputsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) UseInputsReturnsOnCall(i int, result1 error) {
+	fake.UseInputsStub = nil
+	if fake.useInputsReturnsOnCall == nil {
+		fake.useInputsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.useInputsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) Resources() ([]dbng.BuildInput, []dbng.BuildOutput, error) {
+	fake.resourcesMutex.Lock()
+	ret, specificReturn := fake.resourcesReturnsOnCall[len(fake.resourcesArgsForCall)]
+	fake.resourcesArgsForCall = append(fake.resourcesArgsForCall, struct{}{})
+	fake.recordInvocation("Resources", []interface{}{})
+	fake.resourcesMutex.Unlock()
+	if fake.ResourcesStub != nil {
+		return fake.ResourcesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.resourcesReturns.result1, fake.resourcesReturns.result2, fake.resourcesReturns.result3
+}
+
+func (fake *FakeBuild) ResourcesCallCount() int {
+	fake.resourcesMutex.RLock()
+	defer fake.resourcesMutex.RUnlock()
+	return len(fake.resourcesArgsForCall)
+}
+
+func (fake *FakeBuild) ResourcesReturns(result1 []dbng.BuildInput, result2 []dbng.BuildOutput, result3 error) {
+	fake.ResourcesStub = nil
+	fake.resourcesReturns = struct {
+		result1 []dbng.BuildInput
+		result2 []dbng.BuildOutput
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) ResourcesReturnsOnCall(i int, result1 []dbng.BuildInput, result2 []dbng.BuildOutput, result3 error) {
+	fake.ResourcesStub = nil
+	if fake.resourcesReturnsOnCall == nil {
+		fake.resourcesReturnsOnCall = make(map[int]struct {
+			result1 []dbng.BuildInput
+			result2 []dbng.BuildOutput
+			result3 error
+		})
+	}
+	fake.resourcesReturnsOnCall[i] = struct {
+		result1 []dbng.BuildInput
+		result2 []dbng.BuildOutput
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeBuild) GetVersionedResources() (dbng.SavedVersionedResources, error) {
 	fake.getVersionedResourcesMutex.Lock()
 	ret, specificReturn := fake.getVersionedResourcesReturnsOnCall[len(fake.getVersionedResourcesArgsForCall)]
@@ -1847,6 +2040,49 @@ func (fake *FakeBuild) AbortNotifierReturnsOnCall(i int, result1 dbng.Notifier, 
 	}{result1, result2}
 }
 
+func (fake *FakeBuild) Schedule() (bool, error) {
+	fake.scheduleMutex.Lock()
+	ret, specificReturn := fake.scheduleReturnsOnCall[len(fake.scheduleArgsForCall)]
+	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct{}{})
+	fake.recordInvocation("Schedule", []interface{}{})
+	fake.scheduleMutex.Unlock()
+	if fake.ScheduleStub != nil {
+		return fake.ScheduleStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.scheduleReturns.result1, fake.scheduleReturns.result2
+}
+
+func (fake *FakeBuild) ScheduleCallCount() int {
+	fake.scheduleMutex.RLock()
+	defer fake.scheduleMutex.RUnlock()
+	return len(fake.scheduleArgsForCall)
+}
+
+func (fake *FakeBuild) ScheduleReturns(result1 bool, result2 error) {
+	fake.ScheduleStub = nil
+	fake.scheduleReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuild) ScheduleReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.ScheduleStub = nil
+	if fake.scheduleReturnsOnCall == nil {
+		fake.scheduleReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.scheduleReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1890,6 +2126,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.interceptibleMutex.RUnlock()
 	fake.acquireTrackingLockMutex.RLock()
 	defer fake.acquireTrackingLockMutex.RUnlock()
+	fake.preparationMutex.RLock()
+	defer fake.preparationMutex.RUnlock()
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
 	fake.saveStatusMutex.RLock()
@@ -1904,6 +2142,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.saveInputMutex.RUnlock()
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
+	fake.useInputsMutex.RLock()
+	defer fake.useInputsMutex.RUnlock()
+	fake.resourcesMutex.RLock()
+	defer fake.resourcesMutex.RUnlock()
 	fake.getVersionedResourcesMutex.RLock()
 	defer fake.getVersionedResourcesMutex.RUnlock()
 	fake.saveImageResourceVersionMutex.RLock()
@@ -1918,6 +2160,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.abortMutex.RUnlock()
 	fake.abortNotifierMutex.RLock()
 	defer fake.abortNotifierMutex.RUnlock()
+	fake.scheduleMutex.RLock()
+	defer fake.scheduleMutex.RUnlock()
 	return fake.invocations
 }
 

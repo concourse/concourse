@@ -2,10 +2,10 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func PublicBuildInput(input db.BuildInput) atc.PublicBuildInput {
+func PublicBuildInput(input dbng.BuildInput, pipelineID int) atc.PublicBuildInput {
 	metadata := make([]atc.MetadataField, 0, len(input.Metadata))
 	for _, meta := range input.Metadata {
 		metadata = append(metadata, atc.MetadataField{
@@ -20,7 +20,7 @@ func PublicBuildInput(input db.BuildInput) atc.PublicBuildInput {
 		Type:            input.Type,
 		Version:         atc.Version(input.Version),
 		Metadata:        metadata,
-		PipelineID:      input.PipelineID,
+		PipelineID:      pipelineID,
 		FirstOccurrence: input.FirstOccurrence,
 	}
 }

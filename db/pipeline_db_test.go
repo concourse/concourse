@@ -1280,7 +1280,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(latestVR.Version).To(Equal(db.Version{"version": "2"}))
 		})
 
-		Describe("pausing and unpausing resources", func() {
+		Describe("XXX pausing and unpausing resources", func() {
 			It("starts out as unpaused", func() {
 				resource, _, err := pipelineDB.GetResource(resourceName)
 				Expect(err).NotTo(HaveOccurred())
@@ -1887,7 +1887,7 @@ var _ = Describe("PipelineDB", func() {
 		})
 	})
 
-	Describe("GetResource", func() {
+	Describe("XXX GetResource", func() {
 		It("returns not found when the resource type cannot be found", func() {
 			_, found, err := pipelineDB.GetResource("nonexistent-resource")
 			Expect(err).NotTo(HaveOccurred())
@@ -2106,7 +2106,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 		})
 
-		Describe("CreateJobBuild", func() {
+		Describe("XXX CreateJobBuild", func() {
 			var build db.Build
 
 			BeforeEach(func() {
@@ -2126,7 +2126,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 		})
 
-		Describe("saving build inputs", func() {
+		Describe("XXX saving build inputs", func() {
 			var (
 				buildMetadata []db.MetadataField
 				vr1           db.VersionedResource
@@ -2610,7 +2610,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 		})
 
-		Context("when a build is created for a job", func() {
+		Context("XXX when a build is created for a job", func() {
 			var build1DB db.Build
 
 			BeforeEach(func() {

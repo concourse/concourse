@@ -2,8 +2,10 @@ package dbng_test
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
@@ -522,6 +524,474 @@ var _ = Describe("Build", func() {
 				Expect(found).To(BeFalse())
 				Expect(foundPipeline).To(BeNil())
 			})
+		})
+	})
+
+	Describe("Preparation", func() {
+		var (
+			build             dbng.Build
+			err               error
+			expectedBuildPrep dbng.BuildPreparation
+		)
+		BeforeEach(func() {
+			expectedBuildPrep = dbng.BuildPreparation{
+				BuildID:             123456789,
+				PausedPipeline:      dbng.BuildPreparationStatusNotBlocking,
+				PausedJob:           dbng.BuildPreparationStatusNotBlocking,
+				MaxRunningBuilds:    dbng.BuildPreparationStatusNotBlocking,
+				Inputs:              map[string]dbng.BuildPreparationStatus{},
+				InputsSatisfied:     dbng.BuildPreparationStatusNotBlocking,
+				MissingInputReasons: dbng.MissingInputReasons{},
+			}
+		})
+
+		Context("for one-off build", func() {
+			BeforeEach(func() {
+				build, err = team.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				expectedBuildPrep.BuildID = build.ID()
+			})
+
+			It("returns build preparation", func() {
+				buildPrep, found, err := build.Preparation()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(buildPrep).To(Equal(expectedBuildPrep))
+			})
+
+			Context("when the build is started", func() {
+				BeforeEach(func() {
+					started, err := build.Start("some-engine", "some-metadata")
+					Expect(started).To(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+
+					stillExists, err := build.Reload()
+					Expect(stillExists).To(BeTrue())
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns build preparation", func() {
+					buildPrep, found, err := build.Preparation()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(buildPrep).To(Equal(expectedBuildPrep))
+				})
+			})
+		})
+
+		Context("for job build", func() {
+			var pipeline dbng.Pipeline
+			BeforeEach(func() {
+				var err error
+				pipeline, _, err = team.SavePipeline("some-pipeline", atc.Config{
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+							Source: atc.Source{
+								"source-config": "some-value",
+							},
+						},
+					},
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+						},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+
+				Expect(err).ToNot(HaveOccurred())
+				build, err = pipeline.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				expectedBuildPrep.BuildID = build.ID()
+			})
+
+			Context("when inputs are satisfied", func() {
+				BeforeEach(func() {
+					err = pipeline.SaveResourceVersions(
+						atc.ResourceConfig{
+							Name: "some-resource",
+							Type: "some-type",
+						},
+						[]atc.Version{
+							{"version": "v5"},
+						},
+					)
+					Expect(err).NotTo(HaveOccurred())
+
+					versions, _, found, err := pipeline.GetResourceVersions("some-resource", dbng.Page{Limit: 1})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(versions).To(HaveLen(1))
+
+					pipeline.SaveNextInputMapping(algorithm.InputMapping{
+						"some-input": {VersionID: versions[0].ID, FirstOccurrence: true},
+					}, "some-job")
+
+					expectedBuildPrep.Inputs = map[string]dbng.BuildPreparationStatus{
+						"some-input": dbng.BuildPreparationStatusNotBlocking,
+					}
+				})
+
+				Context("when the build is started", func() {
+					BeforeEach(func() {
+						started, err := build.Start("some-engine", "some-metadata")
+						Expect(started).To(BeTrue())
+						Expect(err).NotTo(HaveOccurred())
+
+						stillExists, err := build.Reload()
+						Expect(stillExists).To(BeTrue())
+						Expect(err).NotTo(HaveOccurred())
+
+						expectedBuildPrep.Inputs = map[string]dbng.BuildPreparationStatus{}
+					})
+
+					It("returns build preparation", func() {
+						buildPrep, found, err := build.Preparation()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(buildPrep).To(Equal(expectedBuildPrep))
+					})
+				})
+
+				Context("when pipeline is paused", func() {
+					BeforeEach(func() {
+						err := pipeline.Pause()
+						Expect(err).NotTo(HaveOccurred())
+
+						expectedBuildPrep.PausedPipeline = dbng.BuildPreparationStatusBlocking
+					})
+
+					It("returns build preparation with paused pipeline", func() {
+						buildPrep, found, err := build.Preparation()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(buildPrep).To(Equal(expectedBuildPrep))
+					})
+				})
+
+				Context("when job is paused", func() {
+					BeforeEach(func() {
+						err := pipeline.PauseJob("some-job")
+						Expect(err).NotTo(HaveOccurred())
+
+						expectedBuildPrep.PausedJob = dbng.BuildPreparationStatusBlocking
+					})
+
+					It("returns build preparation with paused pipeline", func() {
+						buildPrep, found, err := build.Preparation()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(buildPrep).To(Equal(expectedBuildPrep))
+					})
+				})
+
+				Context("when max running builds is reached", func() {
+					BeforeEach(func() {
+						err := pipeline.SetMaxInFlightReached("some-job", true)
+						Expect(err).NotTo(HaveOccurred())
+
+						expectedBuildPrep.MaxRunningBuilds = dbng.BuildPreparationStatusBlocking
+					})
+
+					It("returns build preparation with max in flight reached", func() {
+						buildPrep, found, err := build.Preparation()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(buildPrep).To(Equal(expectedBuildPrep))
+					})
+				})
+
+				Context("when max running builds is de-reached", func() {
+					BeforeEach(func() {
+						err := pipeline.SetMaxInFlightReached("some-job", true)
+						Expect(err).NotTo(HaveOccurred())
+
+						err = pipeline.SetMaxInFlightReached("some-job", false)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("returns build preparation with max in flight not reached", func() {
+						buildPrep, found, err := build.Preparation()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(buildPrep).To(Equal(expectedBuildPrep))
+					})
+				})
+			})
+
+			Context("when inputs are not satisfied", func() {
+				BeforeEach(func() {
+					expectedBuildPrep.InputsSatisfied = dbng.BuildPreparationStatusBlocking
+				})
+
+				It("returns blocking inputs satisfied", func() {
+					buildPrep, found, err := build.Preparation()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(buildPrep).To(Equal(expectedBuildPrep))
+				})
+			})
+
+			Context("when some inputs are not satisfied", func() {
+				BeforeEach(func() {
+					pipelineConfig := atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								Plan: atc.PlanSequence{
+									{Get: "input1"},
+									{Get: "input2"},
+									{Get: "input3", Passed: []string{"some-upstream-job"}},
+									{ // version doesn't exist
+										Get:     "input4",
+										Version: &atc.VersionConfig{Pinned: atc.Version{"version": "v4"}},
+									},
+									{ // version doesn't exist so constraint is irrelevant
+										Get:     "input5",
+										Passed:  []string{"some-upstream-job"},
+										Version: &atc.VersionConfig{Pinned: atc.Version{"version": "v5"}},
+									},
+									{ // version exists but doesn't satisfy constraint
+										Get:     "input6",
+										Passed:  []string{"some-upstream-job"},
+										Version: &atc.VersionConfig{Pinned: atc.Version{"version": "v6"}},
+									},
+								},
+							},
+						},
+						Resources: atc.ResourceConfigs{
+							{Name: "input1", Type: "some-type"},
+							{Name: "input2", Type: "some-type"},
+							{Name: "input3", Type: "some-type"},
+							{Name: "input4", Type: "some-type"},
+							{Name: "input5", Type: "some-type"},
+							{Name: "input6", Type: "some-type"},
+						},
+					}
+
+					pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, dbng.ConfigVersion(2), dbng.PipelineUnpaused)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = pipeline.SaveResourceVersions(
+						atc.ResourceConfig{
+							Name: "input1",
+							Type: "some-type",
+						},
+						[]atc.Version{
+							{"version": "v1"},
+						},
+					)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = pipeline.SaveResourceVersions(
+						atc.ResourceConfig{
+							Name: "input6",
+							Type: "some-type",
+						},
+						[]atc.Version{
+							{"version": "v6"},
+						},
+					)
+					Expect(err).NotTo(HaveOccurred())
+
+					versions, _, found, err := pipeline.GetResourceVersions("input1", dbng.Page{Limit: 1})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(versions).To(HaveLen(1))
+
+					pipeline.SaveIndependentInputMapping(algorithm.InputMapping{
+						"input1": {VersionID: versions[0].ID, FirstOccurrence: true},
+					}, "some-job")
+
+					expectedBuildPrep.Inputs = map[string]dbng.BuildPreparationStatus{
+						"input1": dbng.BuildPreparationStatusNotBlocking,
+						"input2": dbng.BuildPreparationStatusBlocking,
+						"input3": dbng.BuildPreparationStatusBlocking,
+						"input4": dbng.BuildPreparationStatusBlocking,
+						"input5": dbng.BuildPreparationStatusBlocking,
+						"input6": dbng.BuildPreparationStatusBlocking,
+					}
+					expectedBuildPrep.InputsSatisfied = dbng.BuildPreparationStatusBlocking
+					expectedBuildPrep.MissingInputReasons = dbng.MissingInputReasons{
+						"input2": dbng.NoVersionsAvailable,
+						"input3": dbng.NoVerionsSatisfiedPassedConstraints,
+						"input4": fmt.Sprintf(dbng.PinnedVersionUnavailable, `{"version":"v4"}`),
+						"input5": fmt.Sprintf(dbng.PinnedVersionUnavailable, `{"version":"v5"}`),
+						"input6": dbng.NoVerionsSatisfiedPassedConstraints,
+					}
+				})
+
+				It("returns blocking inputs satisfied", func() {
+					buildPrep, found, err := build.Preparation()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(buildPrep).To(Equal(expectedBuildPrep))
+				})
+			})
+		})
+
+		Describe("Schedule", func() {
+			var (
+				build dbng.Build
+				found bool
+			)
+
+			BeforeEach(func() {
+				pipeline, _, err := team.SavePipeline("some-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+						},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+
+				Expect(err).ToNot(HaveOccurred())
+
+				build, err = pipeline.CreateJobBuild("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(build.IsScheduled()).To(BeFalse())
+			})
+
+			JustBeforeEach(func() {
+				found, err = build.Schedule()
+				Expect(err).ToNot(HaveOccurred())
+
+				var f bool
+				f, err = build.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(f).To(BeTrue())
+			})
+
+			Context("when build is not scheduled", func() {
+				It("sets the build to scheduled", func() {
+					Expect(found).To(BeTrue())
+					Expect(build.IsScheduled()).To(BeTrue())
+				})
+			})
+
+			Context("when build is already scheduled", func() {
+				BeforeEach(func() {
+					found, err := build.Delete()
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns false", func() {
+					Expect(found).To(BeFalse())
+				})
+			})
+		})
+	})
+
+	Describe("Resources", func() {
+		It("can get (no) resources from a one-off build", func() {
+			oneOffBuild, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			inputs, outputs, err := oneOffBuild.Resources()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(inputs).To(BeEmpty())
+			Expect(outputs).To(BeEmpty())
+		})
+	})
+
+	Describe("UseInput", func() {
+		var build dbng.Build
+		BeforeEach(func() {
+			pipelineConfig := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-other-type",
+					},
+					{
+						Name: "weird",
+						Type: "type",
+					},
+				},
+			}
+
+			var err error
+			pipeline, _, err := team.SavePipeline("some-pipeline", pipelineConfig, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			build, err = pipeline.CreateJobBuild("some-job")
+			Expect(err).ToNot(HaveOccurred())
+
+			versionedResource := dbng.VersionedResource{
+				Resource: "some-resource",
+				Type:     "some-type",
+				Version: dbng.ResourceVersion{
+					"some": "version",
+				},
+				Metadata: []dbng.ResourceMetadataField{
+					{
+						Name:  "meta1",
+						Value: "data1",
+					},
+					{
+						Name:  "meta2",
+						Value: "data2",
+					},
+				},
+			}
+			err = build.SaveInput(dbng.BuildInput{
+				Name:              "some-input",
+				VersionedResource: versionedResource,
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("uses provided build inputs", func() {
+			someVersionedResource := dbng.VersionedResource{
+				Resource: "some-other-resource",
+				Type:     "some-other-type",
+				Version: dbng.ResourceVersion{
+					"some": "weird-version",
+				},
+				Metadata: []dbng.ResourceMetadataField{
+					{
+						Name:  "meta3",
+						Value: "data3",
+					},
+				},
+			}
+
+			someWeirdResource := dbng.VersionedResource{
+				Resource: "weird",
+				Type:     "type",
+			}
+			var err error
+			err = build.UseInputs([]dbng.BuildInput{
+				{
+					Name:              "some-other-input",
+					VersionedResource: someVersionedResource,
+				},
+				{
+					Name:              "some-weird-input",
+					VersionedResource: someWeirdResource,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			actualBuildInput, err := build.GetVersionedResources()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actualBuildInput)).To(Equal(2))
+			Expect(actualBuildInput[0].VersionedResource).To(Equal(someVersionedResource))
+			Expect(actualBuildInput[1].VersionedResource).To(Equal(someWeirdResource))
 		})
 	})
 })

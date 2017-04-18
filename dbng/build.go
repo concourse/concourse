@@ -71,7 +71,9 @@ type Build interface {
 
 	SaveInput(input BuildInput) error
 	SaveOutput(vr VersionedResource, explicit bool) error
+	UseInputs(inputs []BuildInput) error
 
+	Resources() ([]BuildInput, []BuildOutput, error)
 	GetVersionedResources() (SavedVersionedResources, error)
 	SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.Version, resourceHash string) error
 
@@ -81,6 +83,7 @@ type Build interface {
 	Delete() (bool, error)
 	Abort() error
 	AbortNotifier() (Notifier, error)
+	Schedule() (bool, error)
 }
 
 type build struct {
@@ -164,8 +167,8 @@ func (b *build) Interceptible() (bool, error) {
 	err := psql.Select("interceptible").
 		From("builds").
 		Where(sq.Eq{
-		"id": b.id,
-	}).
+			"id": b.id,
+		}).
 		RunWith(b.conn).
 		QueryRow().Scan(&interceptible)
 
@@ -180,8 +183,8 @@ func (b *build) SetInterceptible(i bool) error {
 	rows, err := psql.Update("builds").
 		Set("interceptible", i).
 		Where(sq.Eq{
-		"id": b.id,
-	}).
+			"id": b.id,
+		}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -217,9 +220,9 @@ func (b *build) Start(engine, metadata string) (bool, error) {
 		Set("engine", engine).
 		Set("engine_metadata", metadata).
 		Where(sq.Eq{
-		"id":     b.id,
-		"status": "pending",
-	}).
+			"id":     b.id,
+			"status": "pending",
+		}).
 		Suffix("RETURNING start_time").
 		RunWith(tx).
 		QueryRow().
@@ -255,8 +258,8 @@ func (b *build) SaveStatus(s BuildStatus) error {
 	rows, err := psql.Update("builds").
 		Set("status", string(s)).
 		Where(sq.Eq{
-		"id": b.id,
-	}).
+			"id": b.id,
+		}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -329,8 +332,8 @@ func (b *build) Finish(s BuildStatus) error {
 func (b *build) Delete() (bool, error) {
 	rows, err := psql.Delete("builds").
 		Where(sq.Eq{
-		"id": b.id,
-	}).
+			"id": b.id,
+		}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -381,6 +384,24 @@ func (b *build) AbortNotifier() (Notifier, error) {
 	})
 }
 
+func (b *build) Schedule() (bool, error) {
+	result, err := psql.Update("builds").
+		Set("scheduled", true).
+		Where(sq.Eq{"id": b.id}).
+		RunWith(b.conn).
+		Exec()
+	if err != nil {
+		return false, err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	return rows == 1, nil
+}
+
 func (b *build) Pipeline() (Pipeline, bool, error) {
 	if b.pipelineID == 0 {
 		return nil, false, nil
@@ -423,9 +444,9 @@ func (b *build) SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.
 				Set("version", version).
 				Set("resource_hash", resourceHash).
 				Where(sq.Eq{
-				"build_id": b.id,
-				"plan_id":  string(planID),
-			}).
+					"build_id": b.id,
+					"plan_id":  string(planID),
+				}).
 				RunWith(tx).
 				Exec()
 		},
@@ -543,7 +564,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 			inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
 		}
 	} else {
-		buildInputs, err := pdb.GetIndependentBuildInputs(jobName)
+		buildInputs, err := pipeline.GetIndependentBuildInputs(jobName)
 		if err != nil {
 			return BuildPreparation{}, false, err
 		}
@@ -562,7 +583,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 				inputs[configInput.Name] = BuildPreparationStatusBlocking
 				if len(configInput.Passed) > 0 {
 					if configInput.Version != nil && configInput.Version.Pinned != nil {
-						_, found, err := pdb.GetVersionedResourceByVersion(configInput.Version.Pinned, configInput.Resource)
+						_, found, err := pipeline.GetVersionedResourceByVersion(configInput.Version.Pinned, configInput.Resource)
 						if err != nil {
 							return BuildPreparation{}, false, err
 						}
@@ -709,6 +730,146 @@ func (b *build) SaveOutput(vr VersionedResource, explicit bool) error {
 	}
 
 	return pipeline.saveOutput(b.id, vr, explicit)
+}
+
+func (b *build) UseInputs(inputs []BuildInput) error {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = psql.Delete("build_inputs").
+		Where(sq.Eq{"build_id": b.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	row := pipelinesQuery.
+		Where(sq.Eq{"p.id": b.pipelineID}).
+		RunWith(tx).
+		QueryRow()
+
+	pipeline := &pipeline{conn: b.conn, lockFactory: b.lockFactory}
+	err = scanPipeline(pipeline, row)
+	if err != nil {
+		return err
+	}
+
+	for _, input := range inputs {
+		err = pipeline.saveInputTx(tx, b.id, input)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
+	inputs := []BuildInput{}
+	outputs := []BuildOutput{}
+
+	rows, err := b.conn.Query(`
+		SELECT i.name, r.name, v.type, v.version, v.metadata,
+		NOT EXISTS (
+			SELECT 1
+			FROM build_inputs ci, builds cb
+			WHERE versioned_resource_id = v.id
+			AND cb.job_id = b.job_id
+			AND ci.build_id = cb.id
+			AND ci.build_id < b.id
+		)
+		FROM versioned_resources v, build_inputs i, builds b, resources r
+		WHERE b.id = $1
+		AND i.build_id = b.id
+		AND i.versioned_resource_id = v.id
+    AND r.id = v.resource_id
+		AND NOT EXISTS (
+			SELECT 1
+			FROM build_outputs o
+			WHERE o.versioned_resource_id = v.id
+			AND o.build_id = i.build_id
+			AND o.explicit
+		)
+	`, b.id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var inputName string
+		var vr VersionedResource
+		var firstOccurrence bool
+
+		var version, metadata string
+		err := rows.Scan(&inputName, &vr.Resource, &vr.Type, &version, &metadata, &firstOccurrence)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(version), &vr.Version)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		inputs = append(inputs, BuildInput{
+			Name:              inputName,
+			VersionedResource: vr,
+			FirstOccurrence:   firstOccurrence,
+		})
+	}
+
+	rows, err = b.conn.Query(`
+		SELECT r.name, v.type, v.version, v.metadata
+		FROM versioned_resources v, build_outputs o, builds b, resources r
+		WHERE b.id = $1
+		AND o.build_id = b.id
+		AND o.versioned_resource_id = v.id
+    AND r.id = v.resource_id
+		AND o.explicit
+	`, b.id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var vr VersionedResource
+
+		var version, metadata string
+		err := rows.Scan(&vr.Resource, &vr.Type, &version, &metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(version), &vr.Version)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		outputs = append(outputs, BuildOutput{
+			VersionedResource: vr,
+		})
+	}
+
+	return inputs, outputs, nil
 }
 
 func (b *build) GetVersionedResources() (SavedVersionedResources, error) {

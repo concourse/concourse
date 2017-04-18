@@ -3,9 +3,10 @@ package present
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func VersionedResource(vr db.VersionedResource) atc.VersionedResource {
+func VersionedResource(vr dbng.VersionedResource) atc.VersionedResource {
 	return atc.VersionedResource{
 		Resource: vr.Resource,
 		Version:  atc.Version(vr.Version),

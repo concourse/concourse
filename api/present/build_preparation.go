@@ -2,10 +2,10 @@ package present
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-func BuildPreparation(preparation db.BuildPreparation) atc.BuildPreparation {
+func BuildPreparation(preparation dbng.BuildPreparation) atc.BuildPreparation {
 	inputs := make(map[string]atc.BuildPreparationStatus)
 
 	for k, v := range preparation.Inputs {

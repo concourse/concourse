@@ -24,7 +24,7 @@ func (s *Server) ListBuildsWithVersionAsOutput(pipelineDB db.PipelineDB, _ dbng.
 
 		presentedBuilds := []atc.Build{}
 		for _, build := range builds {
-			presentedBuilds = append(presentedBuilds, present.Build(build))
+			presentedBuilds = append(presentedBuilds, present.DBBuild(build))
 		}
 
 		w.Header().Set("Content-Type", "application/json")

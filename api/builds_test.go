@@ -18,10 +18,11 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine/enginefakes"
 )
 
-var _ = Describe("Builds API", func() {
+var _ = FDescribe("Builds API", func() {
 	Describe("POST /api/v1/builds", func() {
 		var plan atc.Plan
 
@@ -60,9 +61,9 @@ var _ = Describe("Builds API", func() {
 
 			Context("when creating a one-off build succeeds", func() {
 				BeforeEach(func() {
-					teamDB.CreateOneOffBuildStub = func() (db.Build, error) {
-						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+					dbTeam.CreateOneOffBuildStub = func() (dbng.Build, error) {
+						Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+						teamName := dbTeamFactory.FindTeamArgsForCall(0)
 						build.IDReturns(42)
 						build.NameReturns("1")
 						build.TeamNameReturns(teamName)
@@ -123,7 +124,7 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("creates a one-off build and runs it asynchronously", func() {
-						Expect(teamDB.CreateOneOffBuildCallCount()).To(Equal(1))
+						Expect(dbTeam.CreateOneOffBuildCallCount()).To(Equal(1))
 
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
 						_, oneOffBuild, builtPlan := fakeEngine.CreateBuildArgsForCall(0)
@@ -148,7 +149,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when creating a one-off build fails", func() {
 				BeforeEach(func() {
-					teamDB.CreateOneOffBuildReturns(nil, errors.New("oh no!"))
+					dbTeam.CreateOneOffBuildReturns(nil, errors.New("oh no!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -167,7 +168,7 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("does not trigger a build", func() {
-				Expect(teamDB.CreateOneOffBuildCallCount()).To(BeZero())
+				Expect(dbTeam.CreateOneOffBuildCallCount()).To(BeZero())
 				Expect(fakeEngine.CreateBuildCallCount()).To(BeZero())
 			})
 		})

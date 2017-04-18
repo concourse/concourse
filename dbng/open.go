@@ -3,6 +3,7 @@ package dbng
 import (
 	"database/sql"
 	"database/sql/driver"
+	"fmt"
 	"strings"
 	"time"
 
@@ -94,4 +95,12 @@ type dbTx struct {
 // to conform to squirrel.Runner interface
 func (tx *dbTx) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
 	return tx.Tx.QueryRow(query, args...)
+}
+
+type nonOneRowAffectedError struct {
+	RowsAffected int64
+}
+
+func (err nonOneRowAffectedError) Error() string {
+	return fmt.Sprintf("expected 1 row to be updated; got %d", err.RowsAffected)
 }
