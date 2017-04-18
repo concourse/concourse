@@ -11,6 +11,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
@@ -59,6 +60,7 @@ type Build interface {
 
 	Interceptible() (bool, error)
 	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
+	Preparation() (BuildPreparation, bool, error)
 
 	Start(string, string) (bool, error)
 	SaveStatus(s BuildStatus) error
@@ -162,8 +164,8 @@ func (b *build) Interceptible() (bool, error) {
 	err := psql.Select("interceptible").
 		From("builds").
 		Where(sq.Eq{
-			"id": b.id,
-		}).
+		"id": b.id,
+	}).
 		RunWith(b.conn).
 		QueryRow().Scan(&interceptible)
 
@@ -178,8 +180,8 @@ func (b *build) SetInterceptible(i bool) error {
 	rows, err := psql.Update("builds").
 		Set("interceptible", i).
 		Where(sq.Eq{
-			"id": b.id,
-		}).
+		"id": b.id,
+	}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -215,9 +217,9 @@ func (b *build) Start(engine, metadata string) (bool, error) {
 		Set("engine", engine).
 		Set("engine_metadata", metadata).
 		Where(sq.Eq{
-			"id":     b.id,
-			"status": "pending",
-		}).
+		"id":     b.id,
+		"status": "pending",
+	}).
 		Suffix("RETURNING start_time").
 		RunWith(tx).
 		QueryRow().
@@ -253,8 +255,8 @@ func (b *build) SaveStatus(s BuildStatus) error {
 	rows, err := psql.Update("builds").
 		Set("status", string(s)).
 		Where(sq.Eq{
-			"id": b.id,
-		}).
+		"id": b.id,
+	}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -327,8 +329,8 @@ func (b *build) Finish(s BuildStatus) error {
 func (b *build) Delete() (bool, error) {
 	rows, err := psql.Delete("builds").
 		Where(sq.Eq{
-			"id": b.id,
-		}).
+		"id": b.id,
+	}).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
@@ -421,9 +423,9 @@ func (b *build) SaveImageResourceVersion(planID atc.PlanID, resourceVersion atc.
 				Set("version", version).
 				Set("resource_hash", resourceHash).
 				Where(sq.Eq{
-					"build_id": b.id,
-					"plan_id":  string(planID),
-				}).
+				"build_id": b.id,
+				"plan_id":  string(planID),
+			}).
 				RunWith(tx).
 				Exec()
 		},
@@ -448,6 +450,163 @@ func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration)
 	}
 
 	return lock, true, nil
+}
+
+func (b *build) Preparation() (BuildPreparation, bool, error) {
+	if b.jobID == 0 || b.status != BuildStatusPending {
+		return BuildPreparation{
+			BuildID:             b.id,
+			PausedPipeline:      BuildPreparationStatusNotBlocking,
+			PausedJob:           BuildPreparationStatusNotBlocking,
+			MaxRunningBuilds:    BuildPreparationStatusNotBlocking,
+			Inputs:              map[string]BuildPreparationStatus{},
+			InputsSatisfied:     BuildPreparationStatusNotBlocking,
+			MissingInputReasons: MissingInputReasons{},
+		}, true, nil
+	}
+
+	var (
+		pausedPipeline     bool
+		pausedJob          bool
+		maxInFlightReached bool
+		pipelineID         int
+		jobName            string
+	)
+	err := psql.Select("p.paused, j.paused, j.max_in_flight_reached, j.pipeline_id, j.name").
+		From("builds b").
+		Join("jobs j ON b.job_id = j.id").
+		Join("pipelines p ON j.pipeline_id = p.id").
+		Where(sq.Eq{"b.id": b.id}).
+		RunWith(b.conn).
+		QueryRow().
+		Scan(&pausedPipeline, &pausedJob, &maxInFlightReached, &pipelineID, &jobName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return BuildPreparation{}, false, nil
+		}
+		return BuildPreparation{}, false, err
+	}
+
+	pausedPipelineStatus := BuildPreparationStatusNotBlocking
+	if pausedPipeline {
+		pausedPipelineStatus = BuildPreparationStatusBlocking
+	}
+
+	pausedJobStatus := BuildPreparationStatusNotBlocking
+	if pausedJob {
+		pausedJobStatus = BuildPreparationStatusBlocking
+	}
+
+	maxInFlightReachedStatus := BuildPreparationStatusNotBlocking
+	if maxInFlightReached {
+		maxInFlightReachedStatus = BuildPreparationStatusBlocking
+	}
+
+	tf := NewTeamFactory(b.conn, b.lockFactory)
+	t, found, err := tf.FindTeam(b.teamName)
+	if err != nil {
+		return BuildPreparation{}, false, err
+	}
+
+	if !found {
+		return BuildPreparation{}, false, nil
+	}
+
+	pipeline, found, err := t.Pipeline(b.pipelineName)
+	if err != nil {
+		return BuildPreparation{}, false, err
+	}
+
+	if !found {
+		return BuildPreparation{}, false, nil
+	}
+
+	jobConfig, found := pipeline.Config().Jobs.Lookup(jobName)
+	if !found {
+		return BuildPreparation{}, false, nil
+	}
+
+	configInputs := config.JobInputs(jobConfig)
+
+	nextBuildInputs, found, err := pipeline.NextBuildInputs(jobName)
+	if err != nil {
+		return BuildPreparation{}, false, err
+	}
+
+	inputsSatisfiedStatus := BuildPreparationStatusBlocking
+	inputs := map[string]BuildPreparationStatus{}
+	missingInputReasons := MissingInputReasons{}
+
+	if found {
+		inputsSatisfiedStatus = BuildPreparationStatusNotBlocking
+		for _, buildInput := range nextBuildInputs {
+			inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
+		}
+	} else {
+		buildInputs, err := pdb.GetIndependentBuildInputs(jobName)
+		if err != nil {
+			return BuildPreparation{}, false, err
+		}
+
+		for _, configInput := range configInputs {
+			found := false
+			for _, buildInput := range buildInputs {
+				if buildInput.Name == configInput.Name {
+					found = true
+					break
+				}
+			}
+			if found {
+				inputs[configInput.Name] = BuildPreparationStatusNotBlocking
+			} else {
+				inputs[configInput.Name] = BuildPreparationStatusBlocking
+				if len(configInput.Passed) > 0 {
+					if configInput.Version != nil && configInput.Version.Pinned != nil {
+						_, found, err := pdb.GetVersionedResourceByVersion(configInput.Version.Pinned, configInput.Resource)
+						if err != nil {
+							return BuildPreparation{}, false, err
+						}
+
+						if found {
+							missingInputReasons.RegisterPassedConstraint(configInput.Name)
+						} else {
+							versionJSON, err := json.Marshal(configInput.Version.Pinned)
+							if err != nil {
+								return BuildPreparation{}, false, err
+							}
+
+							missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
+						}
+					} else {
+						missingInputReasons.RegisterPassedConstraint(configInput.Name)
+					}
+				} else {
+					if configInput.Version != nil && configInput.Version.Pinned != nil {
+						versionJSON, err := json.Marshal(configInput.Version.Pinned)
+						if err != nil {
+							return BuildPreparation{}, false, err
+						}
+
+						missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
+					} else {
+						missingInputReasons.RegisterNoVersions(configInput.Name)
+					}
+				}
+			}
+		}
+	}
+
+	buildPreparation := BuildPreparation{
+		BuildID:             b.id,
+		PausedPipeline:      pausedPipelineStatus,
+		PausedJob:           pausedJobStatus,
+		MaxRunningBuilds:    maxInFlightReachedStatus,
+		Inputs:              inputs,
+		InputsSatisfied:     inputsSatisfiedStatus,
+		MissingInputReasons: missingInputReasons,
+	}
+
+	return buildPreparation, true, nil
 }
 
 func (b *build) Events(from uint) (EventSource, error) {

@@ -30,6 +30,8 @@ type Pipeline interface {
 
 	SaveJob(job atc.JobConfig) error
 	CreateJobBuild(jobName string) (Build, error)
+	NextBuildInputs(jobName string) ([]BuildInput, bool, error)
+
 	SetResourceCheckError(Resource, error) error
 
 	AcquireResourceCheckingLockWithIntervalCheck(
@@ -192,6 +194,31 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	return build, nil
 }
 
+func (p *pipeline) NextBuildInputs(jobName string) ([]BuildInput, bool, error) {
+	var found bool
+	err := psql.Select("inputs_determined").
+		From("jobs").
+		Where(sq.Eq{
+		"name":        jobName,
+		"pipeline_id": p.id,
+	}).
+		RunWith(p.conn).
+		QueryRow().
+		Scan(&found)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	// there is a possible race condition where found is true at first but the
+	// inputs are deleted by the time we get here
+	buildInputs, err := p.getJobBuildInputs("next_build_inputs", jobName)
+	return buildInputs, true, err
+}
+
 func (p *pipeline) SetResourceCheckError(resource Resource, cause error) error {
 	var err error
 
@@ -274,9 +301,9 @@ func (p *pipeline) SaveJob(job atc.JobConfig) error {
 				Set("config", configPayload).
 				Set("active", true).
 				Where(sq.Eq{
-					"name":        job.Name,
-					"pipeline_id": p.id,
-				}).
+				"name":        job.Name,
+				"pipeline_id": p.id,
+			}).
 				RunWith(tx).
 				Exec()
 		},
@@ -349,8 +376,8 @@ func (p *pipeline) Pause() error {
 	_, err := psql.Update("pipelines").
 		Set("paused", true).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -361,8 +388,8 @@ func (p *pipeline) Unpause() error {
 	_, err := psql.Update("pipelines").
 		Set("paused", false).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -373,8 +400,8 @@ func (p *pipeline) Hide() error {
 	_, err := psql.Update("pipelines").
 		Set("public", false).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -385,8 +412,8 @@ func (p *pipeline) Expose() error {
 	_, err := psql.Update("pipelines").
 		Set("public", true).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -397,8 +424,8 @@ func (p *pipeline) Rename(name string) error {
 	_, err := psql.Update("pipelines").
 		Set("name", name).
 		Where(sq.Eq{
-			"id": p.id,
-		}).
+		"id": p.id,
+	}).
 		RunWith(p.conn).
 		Exec()
 
@@ -441,14 +468,14 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, j.id").
 		From("build_outputs o, builds b, versioned_resources v, jobs j, resources r").
 		Where(sq.Eq{
-			"v.id":          "o.versioned_resource_id",
-			"b.id":          "o.build_id",
-			"j.id":          "b.job_id",
-			"r.id":          "v.resource_id",
-			"v.enabled":     true,
-			"b.status":      BuildStatusSucceeded,
-			"r.pipeline_id": p.id,
-		}).
+		"v.id":          "o.versioned_resource_id",
+		"b.id":          "o.build_id",
+		"j.id":          "b.job_id",
+		"r.id":          "v.resource_id",
+		"v.enabled":     true,
+		"b.status":      BuildStatusSucceeded,
+		"r.pipeline_id": p.id,
+	}).
 		RunWith(p.conn).
 		Query()
 	if err != nil {
@@ -472,13 +499,13 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, j.id").
 		From("build_inputs i, builds b, versioned_resources v, jobs j, resources r").
 		Where(sq.Eq{
-			"v.id":          "i.versioned_resource_id",
-			"b.id":          "i.build_id",
-			"j.id":          "b.job_id",
-			"r.id":          "v.resource_id",
-			"v.enabled":     true,
-			"r.pipeline_id": p.id,
-		}).
+		"v.id":          "i.versioned_resource_id",
+		"b.id":          "i.build_id",
+		"j.id":          "b.job_id",
+		"r.id":          "v.resource_id",
+		"v.enabled":     true,
+		"r.pipeline_id": p.id,
+	}).
 		RunWith(p.conn).
 		Query()
 	if err != nil {
@@ -502,10 +529,10 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	rows, err = psql.Select("v.id, v.check_order, r.id").
 		From("versioned_resources v, resources r").
 		Where(sq.Eq{
-			"r.id":          "v.resource_id",
-			"v.enabled":     true,
-			"r.pipeline_id": p.id,
-		}).
+		"r.id":          "v.resource_id",
+		"v.enabled":     true,
+		"r.pipeline_id": p.id,
+	}).
 		RunWith(p.conn).
 		Query()
 	if err != nil {
@@ -583,9 +610,9 @@ func (p *pipeline) saveOutput(buildID int, vr VersionedResource, explicit bool) 
 	err = psql.Select("id").
 		From("resources").
 		Where(sq.Eq{
-			"name":        vr.Resource,
-			"pipeline_id": p.id,
-		}).RunWith(tx).QueryRow().Scan(&resourceID)
+		"name":        vr.Resource,
+		"pipeline_id": p.id,
+	}).RunWith(tx).QueryRow().Scan(&resourceID)
 
 	svr, created, err := p.saveVersionedResource(tx, resourceID, vr)
 	if err != nil {
@@ -626,9 +653,9 @@ func (p *pipeline) saveInputTx(tx Tx, buildID int, input BuildInput) error {
 	err := psql.Select("id").
 		From("resources").
 		Where(sq.Eq{
-			"name":        input.VersionedResource.Resource,
-			"pipeline_id": p.id,
-		}).RunWith(tx).QueryRow().Scan(&resourceID)
+		"name":        input.VersionedResource.Resource,
+		"pipeline_id": p.id,
+	}).RunWith(tx).QueryRow().Scan(&resourceID)
 
 	svr, _, err := p.saveVersionedResource(tx, resourceID, input.VersionedResource)
 	if err != nil {
@@ -705,10 +732,10 @@ func (p *pipeline) saveVersionedResource(tx Tx, resourceID int, vr VersionedReso
 			Set("metadata", string(metadataJSON)).
 			Set("modified_time", sq.Expr("now()")).
 			Where(sq.Eq{
-				"resource_id": resourceID,
-				"type":        vr.Type,
-				"version":     string(versionJSON),
-			}).
+			"resource_id": resourceID,
+			"type":        vr.Type,
+			"version":     string(versionJSON),
+		}).
 			Suffix("RETURNING id, enabled, metadata, modified_time, check_order").
 			RunWith(tx).
 			QueryRow().
@@ -717,10 +744,10 @@ func (p *pipeline) saveVersionedResource(tx Tx, resourceID int, vr VersionedReso
 		err = psql.Select("id, enabled, metadata, modified_time, check_order").
 			From("versioned_resources").
 			Where(sq.Eq{
-				"resource_id": resourceID,
-				"type":        vr.Type,
-				"version":     string(versionJSON),
-			}).
+			"resource_id": resourceID,
+			"type":        vr.Type,
+			"version":     string(versionJSON),
+		}).
 			RunWith(tx).
 			QueryRow().
 			Scan(&id, &enabled, &savedMetadata, &modified_time, &check_order)
@@ -766,6 +793,64 @@ func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, re
 	}
 
 	return nil
+}
+
+func (p *pipeline) getJobBuildInputs(table string, jobName string) ([]BuildInput, error) {
+	rows, err := psql.Select("i.input_name, i.first_occurrence, r.name, v.type, v.version, v.metadata").
+		From(table + " i").
+		Join("jobs j ON i.job_id = j.id").
+		Join("versioned_resources v ON v.id = i.versioned_id").
+		Join("resources r ON r.id = v.resource_id").
+		Where(sq.Eq{
+		"j.name":        jobName,
+		"j.pipeline_id": p.id,
+	}).
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	buildInputs := []BuildInput{}
+	for rows.Next() {
+		var (
+			inputName       string
+			firstOccurrence bool
+			resourceName    string
+			resourceType    string
+			versionBlob     string
+			metadataBlob    string
+			version         ResourceVersion
+			metadata        []ResourceMetadataField
+		)
+
+		err := rows.Scan(&inputName, &firstOccurrence, &resourceName, &resourceType, &versionBlob, &metadataBlob)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal([]byte(versionBlob), &version)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadataBlob), &metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		buildInputs = append(buildInputs, BuildInput{
+			Name: inputName,
+			VersionedResource: VersionedResource{
+				Resource: resourceName,
+				Type:     resourceType,
+				Version:  version,
+				Metadata: metadata,
+			},
+			FirstOccurrence: firstOccurrence,
+		})
+	}
+	return buildInputs, nil
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {
