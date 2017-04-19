@@ -192,7 +192,7 @@ func (pool *pool) FindOrCreateBuildContainer(
 
 		workers := workersByCount[highestCount]
 
-		worker = workers[rand.Intn(len(workers))]
+		worker = workers[pool.rand.Intn(len(workers))]
 	}
 
 	return worker.FindOrCreateBuildContainer(
