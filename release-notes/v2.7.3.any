@@ -41,17 +41,6 @@
     \code{my-repository.biz/a/b/c}, thanks to a PR by \ghuser{ashb}!
   }
 
-  \note{fix}{
-    Fixed a couple quirks related to our security fixes that affected folks
-    with colons or any other funny characters in their pipeline names. Moral of
-    the story: never use a regexp if you can help it. Also, y'all have weird
-    pipeline names.
-
-    (...Ok,
-    \hyperlink{https://ci.concourse.ci/teams/main/pipelines/releases:2.7}{we do
-    too}, but I was hoping we were the odd ones.)
-  }
-
   \note{feature}{
     The \resource{github-release} resource now supports (and encourages)
     configuring it with \code{owner}, rather than \code{user}, which is closer
@@ -68,7 +57,7 @@
 
   \note{fix}{
     The \resource{tracker} previously got \code{400} errors back when checking
-    for story activity, due to an API change on Tracker's port. This may have
+    for story activity, due to an API change on Tracker's part. This may have
     been fixed by them by now, but there was also a fix in the resource to not
     send a trailing \code{?} when the query params are empty.
   }
