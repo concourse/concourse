@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/rata"
@@ -43,9 +44,20 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		var fromVersion atc.Version
+		latestVersion, found, err := pipelineDB.GetLatestVersionedResource(resourceName)
+		if err != nil {
+			logger.Info("failed-to-get-latest-versioned-resource", lager.Data{"error": err.Error()})
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if found {
+			fromVersion = atc.Version(latestVersion.Version)
+		}
 
 		scanner := s.scannerFactory.NewResourceScanner(pipelineDB, dbPipeline)
-		err = scanner.ScanFromVersion(logger, resourceName, nil)
+		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)
 		switch err.(type) {
 		case db.ResourceNotFoundError:
 			w.WriteHeader(http.StatusNotFound)

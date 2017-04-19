@@ -133,15 +133,6 @@ var _ = Describe("APIAuthWrappa", func() {
 		)
 	}
 
-	openForNoCSRFCheck := func(handler http.Handler) http.Handler {
-		return auth.WrapHandler(
-			handler,
-			fakeAuthValidator,
-			fakeUserContextReader,
-		)
-
-	}
-
 	doesNotCheckIfPrivateJob := func(handler http.Handler) http.Handler {
 		return auth.CSRFValidationHandler(
 			auth.WrapHandler(
@@ -221,7 +212,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				// unauthenticated / delegating to handler
 				atc.GetInfo:              unauthenticated(inputHandlers[atc.GetInfo]),
 				atc.DownloadCLI:          unauthenticated(inputHandlers[atc.DownloadCLI]),
-				atc.CheckResourceWebHook: openForNoCSRFCheck(inputHandlers[atc.CheckResourceWebHook]),
+				atc.CheckResourceWebHook: unauthenticated(inputHandlers[atc.CheckResourceWebHook]),
 				atc.ListAuthMethods:      unauthenticated(inputHandlers[atc.ListAuthMethods]),
 				atc.ListAllPipelines:     unauthenticated(inputHandlers[atc.ListAllPipelines]),
 				atc.ListBuilds:           unauthenticated(inputHandlers[atc.ListBuilds]),
