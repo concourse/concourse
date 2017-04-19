@@ -78,13 +78,6 @@ func NewPool(provider WorkerProvider) Client {
 	}
 }
 
-func shuffleWorkers(slice []Worker) {
-	for i := range slice {
-		j := rand.Intn(i + 1)
-		slice[i], slice[j] = slice[j], slice[i]
-	}
-}
-
 func (pool *pool) RunningWorkers() ([]Worker, error) {
 	return pool.provider.RunningWorkers()
 }
@@ -126,12 +119,10 @@ func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes atc.VersionedReso
 	}
 
 	if len(compatibleTeamWorkers) != 0 {
-		shuffleWorkers(compatibleTeamWorkers)
 		return compatibleTeamWorkers, nil
 	}
 
 	if len(compatibleGeneralWorkers) != 0 {
-		shuffleWorkers(compatibleGeneralWorkers)
 		return compatibleGeneralWorkers, nil
 	}
 
