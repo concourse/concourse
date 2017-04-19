@@ -124,7 +124,6 @@ var _ = BeforeEach(func() {
 	userContextReader = new(authfakes.FakeUserContextReader)
 	fakeAuthTokenGenerator = new(authfakes.FakeAuthTokenGenerator)
 	fakeCSRFTokenGenerator = new(authfakes.FakeCSRFTokenGenerator)
-
 	providerFactory = new(authfakes.FakeProviderFactory)
 
 	peerAddr = "127.0.0.1:1234"
