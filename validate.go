@@ -434,7 +434,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]Warning, []st
 			errorMessages = append(errorMessages, identifier+" does not specify any task configuration")
 		}
 
-		if plan.TaskConfig != nil && (plan.TaskConfig.Image != "" || plan.TaskConfig.ImageResource != nil) && plan.ImageArtifactName != "" {
+		if plan.TaskConfig != nil && (plan.TaskConfig.RootFsUri != "" || plan.TaskConfig.ImageResource != nil) && plan.ImageArtifactName != "" {
 			warnings = append(warnings, Warning{
 				Type:    "pipeline",
 				Message: identifier + " specifies an image artifact to use as the container's image but also specifies an image or image resource in the task configuration; the image artifact takes precedence",

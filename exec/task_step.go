@@ -263,7 +263,7 @@ func (step *TaskStep) containerSpec(config atc.TaskConfig) (worker.ContainerSpec
 		imageSpec.ImageArtifactSource = source
 		imageSpec.ImageArtifactName = worker.ArtifactName(step.imageArtifactName)
 	} else {
-		imageSpec.ImageURL = config.Image
+		imageSpec.ImageURL = config.RootFsUri
 		imageSpec.ImageResource = config.ImageResource
 	}
 

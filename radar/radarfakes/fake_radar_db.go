@@ -3,12 +3,9 @@ package radarfakes
 
 import (
 	"sync"
-	"time"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/radar"
 )
 
@@ -148,24 +145,6 @@ type FakeRadarDB struct {
 	}
 	setResourceCheckErrorReturnsOnCall map[int]struct {
 		result1 error
-	}
-	AcquireResourceTypeCheckingLockStub        func(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (lock.Lock, bool, error)
-	acquireResourceTypeCheckingLockMutex       sync.RWMutex
-	acquireResourceTypeCheckingLockArgsForCall []struct {
-		logger       lager.Logger
-		resourceType db.SavedResourceType
-		interval     time.Duration
-		immediate    bool
-	}
-	acquireResourceTypeCheckingLockReturns struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
-	acquireResourceTypeCheckingLockReturnsOnCall map[int]struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -715,63 +694,6 @@ func (fake *FakeRadarDB) SetResourceCheckErrorReturnsOnCall(i int, result1 error
 	}{result1}
 }
 
-func (fake *FakeRadarDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType db.SavedResourceType, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
-	fake.acquireResourceTypeCheckingLockMutex.Lock()
-	ret, specificReturn := fake.acquireResourceTypeCheckingLockReturnsOnCall[len(fake.acquireResourceTypeCheckingLockArgsForCall)]
-	fake.acquireResourceTypeCheckingLockArgsForCall = append(fake.acquireResourceTypeCheckingLockArgsForCall, struct {
-		logger       lager.Logger
-		resourceType db.SavedResourceType
-		interval     time.Duration
-		immediate    bool
-	}{logger, resourceType, interval, immediate})
-	fake.recordInvocation("AcquireResourceTypeCheckingLock", []interface{}{logger, resourceType, interval, immediate})
-	fake.acquireResourceTypeCheckingLockMutex.Unlock()
-	if fake.AcquireResourceTypeCheckingLockStub != nil {
-		return fake.AcquireResourceTypeCheckingLockStub(logger, resourceType, interval, immediate)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	return fake.acquireResourceTypeCheckingLockReturns.result1, fake.acquireResourceTypeCheckingLockReturns.result2, fake.acquireResourceTypeCheckingLockReturns.result3
-}
-
-func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockCallCount() int {
-	fake.acquireResourceTypeCheckingLockMutex.RLock()
-	defer fake.acquireResourceTypeCheckingLockMutex.RUnlock()
-	return len(fake.acquireResourceTypeCheckingLockArgsForCall)
-}
-
-func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockArgsForCall(i int) (lager.Logger, db.SavedResourceType, time.Duration, bool) {
-	fake.acquireResourceTypeCheckingLockMutex.RLock()
-	defer fake.acquireResourceTypeCheckingLockMutex.RUnlock()
-	return fake.acquireResourceTypeCheckingLockArgsForCall[i].logger, fake.acquireResourceTypeCheckingLockArgsForCall[i].resourceType, fake.acquireResourceTypeCheckingLockArgsForCall[i].interval, fake.acquireResourceTypeCheckingLockArgsForCall[i].immediate
-}
-
-func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
-	fake.AcquireResourceTypeCheckingLockStub = nil
-	fake.acquireResourceTypeCheckingLockReturns = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeRadarDB) AcquireResourceTypeCheckingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
-	fake.AcquireResourceTypeCheckingLockStub = nil
-	if fake.acquireResourceTypeCheckingLockReturnsOnCall == nil {
-		fake.acquireResourceTypeCheckingLockReturnsOnCall = make(map[int]struct {
-			result1 lock.Lock
-			result2 bool
-			result3 error
-		})
-	}
-	fake.acquireResourceTypeCheckingLockReturnsOnCall[i] = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeRadarDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -797,8 +719,6 @@ func (fake *FakeRadarDB) Invocations() map[string][][]interface{} {
 	defer fake.saveResourceTypeVersionMutex.RUnlock()
 	fake.setResourceCheckErrorMutex.RLock()
 	defer fake.setResourceCheckErrorMutex.RUnlock()
-	fake.acquireResourceTypeCheckingLockMutex.RLock()
-	defer fake.acquireResourceTypeCheckingLockMutex.RUnlock()
 	return fake.invocations
 }
 

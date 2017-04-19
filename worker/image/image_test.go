@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Image", func() {
+var _ = Describe("RootFsUri", func() {
 	var (
 		imageFactory                    worker.ImageFactory
 		img                             worker.Image

@@ -25,6 +25,7 @@ type ResourceCacheFactory interface {
 	CleanUsesForFinishedBuilds() error
 	CleanUsesForInactiveResourceTypes() error
 	CleanUsesForInactiveResources() error
+	CleanUsesForPausedPipelineResources() error
 
 	CleanUpInvalidCaches() error
 }
@@ -208,6 +209,31 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		Where("id NOT IN ("+stillInUseCacheIds+")").
 		Where("id NOT IN ("+cacheIdsForVolumes+")", cacheIdsForVolumesArgs...).
 		PlaceholderFormat(sq.Dollar).
+		RunWith(f.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *resourceCacheFactory) CleanUsesForPausedPipelineResources() error {
+	pausedPipelineIds, _, err := sq.
+		Select("id").
+		Distinct().
+		From("pipelines").
+		Where(sq.Expr("paused = false")).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Delete("resource_cache_uses rcu USING resources r").
+		Where(sq.And{
+			sq.Expr("r.pipeline_id NOT IN (" + pausedPipelineIds + ")"),
+			sq.Expr("rcu.resource_id = r.id"),
+		}).
 		RunWith(f.conn).
 		Exec()
 	if err != nil {
