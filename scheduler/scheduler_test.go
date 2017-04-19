@@ -5,9 +5,9 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/inputmapper/inputmapperfakes"
 	"github.com/concourse/atc/scheduler/schedulerfakes"
@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("Scheduler", func() {
 	var (
-		fakeDB           *schedulerfakes.FakeSchedulerDB
+		fakePipeline     *dbngfakes.FakePipeline
 		fakeInputMapper  *inputmapperfakes.FakeInputMapper
 		fakeBuildStarter *schedulerfakes.FakeBuildStarter
 		fakeScanner      *schedulerfakes.FakeScanner
@@ -28,13 +28,13 @@ var _ = Describe("Scheduler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeDB = new(schedulerfakes.FakeSchedulerDB)
+		fakePipeline = new(dbngfakes.FakePipeline)
 		fakeInputMapper = new(inputmapperfakes.FakeInputMapper)
 		fakeBuildStarter = new(schedulerfakes.FakeBuildStarter)
 		fakeScanner = new(schedulerfakes.FakeScanner)
 
 		scheduler = &Scheduler{
-			DB:           fakeDB,
+			Pipeline:     fakePipeline,
 			InputMapper:  fakeInputMapper,
 			BuildStarter: fakeBuildStarter,
 			Scanner:      fakeScanner,
@@ -47,18 +47,18 @@ var _ = Describe("Scheduler", func() {
 		var (
 			versionsDB             *algorithm.VersionsDB
 			jobConfigs             atc.JobConfigs
-			nextPendingBuilds      []db.Build
-			nextPendingBuildsJob1  []db.Build
-			nextPendingBuildsJob2  []db.Build
+			nextPendingBuilds      []dbng.Build
+			nextPendingBuildsJob1  []dbng.Build
+			nextPendingBuildsJob2  []dbng.Build
 			scheduleErr            error
 			versionedResourceTypes atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
-			nextPendingBuilds = []db.Build{new(dbfakes.FakeBuild)}
-			nextPendingBuildsJob1 = []db.Build{new(dbfakes.FakeBuild), new(dbfakes.FakeBuild)}
-			nextPendingBuildsJob2 = []db.Build{new(dbfakes.FakeBuild)}
-			fakeDB.GetAllPendingBuildsReturns(map[string][]db.Build{
+			nextPendingBuilds = []dbng.Build{new(dbngfakes.FakeBuild)}
+			nextPendingBuildsJob1 = []dbng.Build{new(dbngfakes.FakeBuild), new(dbngfakes.FakeBuild)}
+			nextPendingBuildsJob2 = []dbng.Build{new(dbngfakes.FakeBuild)}
+			fakePipeline.GetAllPendingBuildsReturns(map[string][]dbng.Build{
 				"some-job":   nextPendingBuilds,
 				"some-job-1": nextPendingBuildsJob1,
 				"some-job-2": nextPendingBuildsJob2,
@@ -151,7 +151,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("didn't create a pending build", func() {
-						Expect(fakeDB.EnsurePendingBuildExistsCallCount()).To(BeZero())
+						Expect(fakePipeline.EnsurePendingBuildExistsCallCount()).To(BeZero())
 					})
 				})
 			})
@@ -183,7 +183,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("didn't create a pending build", func() {
-					Expect(fakeDB.EnsurePendingBuildExistsCallCount()).To(BeZero())
+					Expect(fakePipeline.EnsurePendingBuildExistsCallCount()).To(BeZero())
 				})
 			})
 
@@ -201,7 +201,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("didn't create a pending build", func() {
-					Expect(fakeDB.EnsurePendingBuildExistsCallCount()).To(BeZero())
+					Expect(fakePipeline.EnsurePendingBuildExistsCallCount()).To(BeZero())
 				})
 			})
 
@@ -215,7 +215,7 @@ var _ = Describe("Scheduler", func() {
 
 				Context("when creating a pending build fails", func() {
 					BeforeEach(func() {
-						fakeDB.EnsurePendingBuildExistsReturns(disaster)
+						fakePipeline.EnsurePendingBuildExistsReturns(disaster)
 					})
 
 					It("returns the error", func() {
@@ -223,14 +223,14 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("created a pending build for the right job", func() {
-						Expect(fakeDB.EnsurePendingBuildExistsCallCount()).To(Equal(1))
-						Expect(fakeDB.EnsurePendingBuildExistsArgsForCall(0)).To(Equal("some-job"))
+						Expect(fakePipeline.EnsurePendingBuildExistsCallCount()).To(Equal(1))
+						Expect(fakePipeline.EnsurePendingBuildExistsArgsForCall(0)).To(Equal("some-job"))
 					})
 				})
 
 				Context("when creating a pending build succeeds", func() {
 					BeforeEach(func() {
-						fakeDB.EnsurePendingBuildExistsReturns(nil)
+						fakePipeline.EnsurePendingBuildExistsReturns(nil)
 					})
 
 					It("starts all pending builds and returns no error", func() {
@@ -245,9 +245,9 @@ var _ = Describe("Scheduler", func() {
 	Describe("TriggerImmediately", func() {
 		var (
 			jobConfig         atc.JobConfig
-			triggeredBuild    db.Build
+			triggeredBuild    dbng.Build
 			triggerErr        error
-			nextPendingBuilds []db.Build
+			nextPendingBuilds []dbng.Build
 		)
 
 		JustBeforeEach(func() {
@@ -272,7 +272,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when creating the build fails", func() {
 			BeforeEach(func() {
-				fakeDB.CreateJobBuildReturns(nil, disaster)
+				fakePipeline.CreateJobBuildReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -281,22 +281,22 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		Context("when creating the build succeeds", func() {
-			var createdBuild *dbfakes.FakeBuild
+			var createdBuild *dbngfakes.FakeBuild
 
 			BeforeEach(func() {
-				createdBuild = new(dbfakes.FakeBuild)
+				createdBuild = new(dbngfakes.FakeBuild)
 				createdBuild.IsManuallyTriggeredReturns(true)
-				fakeDB.CreateJobBuildReturns(createdBuild, nil)
+				fakePipeline.CreateJobBuildReturns(createdBuild, nil)
 			})
 
 			It("tried to create a build for the right job", func() {
-				Expect(fakeDB.CreateJobBuildCallCount()).To(Equal(1))
-				Expect(fakeDB.CreateJobBuildArgsForCall(0)).To(Equal("some-job"))
+				Expect(fakePipeline.CreateJobBuildCallCount()).To(Equal(1))
+				Expect(fakePipeline.CreateJobBuildArgsForCall(0)).To(Equal("some-job"))
 			})
 
 			Context("when get pending builds for job fails", func() {
 				BeforeEach(func() {
-					fakeDB.GetPendingBuildsForJobReturns(nil, disaster)
+					fakePipeline.GetPendingBuildsForJobReturns(nil, disaster)
 				})
 
 				It("does not try to start pending builds for job", func() {
@@ -306,13 +306,13 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when get pending builds for job succeeds", func() {
 				BeforeEach(func() {
-					nextPendingBuilds = []db.Build{new(dbfakes.FakeBuild)}
-					fakeDB.GetPendingBuildsForJobReturns(nextPendingBuilds, nil)
+					nextPendingBuilds = []dbng.Build{new(dbngfakes.FakeBuild)}
+					fakePipeline.GetPendingBuildsForJobReturns(nextPendingBuilds, nil)
 				})
 
 				It("tried to get pending builds for the right job", func() {
-					Expect(fakeDB.GetPendingBuildsForJobCallCount()).To(Equal(1))
-					Expect(fakeDB.GetPendingBuildsForJobArgsForCall(0)).To(Equal("some-job"))
+					Expect(fakePipeline.GetPendingBuildsForJobCallCount()).To(Equal(1))
+					Expect(fakePipeline.GetPendingBuildsForJobArgsForCall(0)).To(Equal("some-job"))
 				})
 
 				Context("when trying to start pending builds succeeds", func() {
@@ -339,7 +339,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when loading the versions DB fails", func() {
 			BeforeEach(func() {
-				fakeDB.LoadVersionsDBReturns(nil, disaster)
+				fakePipeline.LoadVersionsDBReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -352,7 +352,7 @@ var _ = Describe("Scheduler", func() {
 
 			BeforeEach(func() {
 				versionsDB = &algorithm.VersionsDB{JobIDs: map[string]int{"j1": 1}}
-				fakeDB.LoadVersionsDBReturns(versionsDB, nil)
+				fakePipeline.LoadVersionsDBReturns(versionsDB, nil)
 			})
 
 			Context("when saving the next input mapping fails", func() {

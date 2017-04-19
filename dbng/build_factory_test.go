@@ -201,4 +201,46 @@ var _ = Describe("BuildFactory", func() {
 			Expect(builds).To(ConsistOf(publicBuild))
 		})
 	})
+
+	Describe("GetAllStartedBuilds", func() {
+		var build1DB dbng.Build
+		var build2DB dbng.Build
+
+		BeforeEach(func() {
+			pipeline, _, err := team.SavePipeline("other-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+			}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			build1DB, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			build2DB, err = pipeline.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			started, err := build1DB.Start("some-engine", "so-meta")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
+
+			started, err = build2DB.Start("some-engine", "so-meta")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
+		})
+
+		It("returns all builds that have been started, regardless of pipeline", func() {
+			builds, err := buildFactory.GetAllStartedBuilds()
+			Expect(err).NotTo(HaveOccurred())
+
+			build1DB.Reload()
+			build2DB.Reload()
+			Expect(builds).To(ConsistOf(build1DB, build2DB))
+		})
+	})
 })

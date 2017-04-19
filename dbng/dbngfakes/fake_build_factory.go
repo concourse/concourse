@@ -38,6 +38,17 @@ type FakeBuildFactory struct {
 		result2 dbng.Pagination
 		result3 error
 	}
+	GetAllStartedBuildsStub        func() ([]dbng.Build, error)
+	getAllStartedBuildsMutex       sync.RWMutex
+	getAllStartedBuildsArgsForCall []struct{}
+	getAllStartedBuildsReturns     struct {
+		result1 []dbng.Build
+		result2 error
+	}
+	getAllStartedBuildsReturnsOnCall map[int]struct {
+		result1 []dbng.Build
+		result2 error
+	}
 	MarkNonInterceptibleBuildsStub        func() error
 	markNonInterceptibleBuildsMutex       sync.RWMutex
 	markNonInterceptibleBuildsArgsForCall []struct{}
@@ -159,6 +170,49 @@ func (fake *FakeBuildFactory) PublicBuildsReturnsOnCall(i int, result1 []dbng.Bu
 	}{result1, result2, result3}
 }
 
+func (fake *FakeBuildFactory) GetAllStartedBuilds() ([]dbng.Build, error) {
+	fake.getAllStartedBuildsMutex.Lock()
+	ret, specificReturn := fake.getAllStartedBuildsReturnsOnCall[len(fake.getAllStartedBuildsArgsForCall)]
+	fake.getAllStartedBuildsArgsForCall = append(fake.getAllStartedBuildsArgsForCall, struct{}{})
+	fake.recordInvocation("GetAllStartedBuilds", []interface{}{})
+	fake.getAllStartedBuildsMutex.Unlock()
+	if fake.GetAllStartedBuildsStub != nil {
+		return fake.GetAllStartedBuildsStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getAllStartedBuildsReturns.result1, fake.getAllStartedBuildsReturns.result2
+}
+
+func (fake *FakeBuildFactory) GetAllStartedBuildsCallCount() int {
+	fake.getAllStartedBuildsMutex.RLock()
+	defer fake.getAllStartedBuildsMutex.RUnlock()
+	return len(fake.getAllStartedBuildsArgsForCall)
+}
+
+func (fake *FakeBuildFactory) GetAllStartedBuildsReturns(result1 []dbng.Build, result2 error) {
+	fake.GetAllStartedBuildsStub = nil
+	fake.getAllStartedBuildsReturns = struct {
+		result1 []dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildFactory) GetAllStartedBuildsReturnsOnCall(i int, result1 []dbng.Build, result2 error) {
+	fake.GetAllStartedBuildsStub = nil
+	if fake.getAllStartedBuildsReturnsOnCall == nil {
+		fake.getAllStartedBuildsReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Build
+			result2 error
+		})
+	}
+	fake.getAllStartedBuildsReturnsOnCall[i] = struct {
+		result1 []dbng.Build
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuildFactory) MarkNonInterceptibleBuilds() error {
 	fake.markNonInterceptibleBuildsMutex.Lock()
 	ret, specificReturn := fake.markNonInterceptibleBuildsReturnsOnCall[len(fake.markNonInterceptibleBuildsArgsForCall)]
@@ -206,6 +260,8 @@ func (fake *FakeBuildFactory) Invocations() map[string][][]interface{} {
 	defer fake.buildMutex.RUnlock()
 	fake.publicBuildsMutex.RLock()
 	defer fake.publicBuildsMutex.RUnlock()
+	fake.getAllStartedBuildsMutex.RLock()
+	defer fake.getAllStartedBuildsMutex.RUnlock()
 	fake.markNonInterceptibleBuildsMutex.RLock()
 	defer fake.markNonInterceptibleBuildsMutex.RUnlock()
 	return fake.invocations

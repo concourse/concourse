@@ -23,9 +23,10 @@ type Pipeline interface {
 	TeamName() string
 	ConfigVersion() ConfigVersion
 	Config() atc.Config
-	Paused() bool
 	Public() bool
+	Paused() bool
 
+	CheckPaused() (bool, error)
 	Reload() (bool, error)
 
 	SaveJob(job atc.JobConfig) error
@@ -147,9 +148,26 @@ func (p *pipeline) TeamID() int                  { return p.teamID }
 func (p *pipeline) TeamName() string             { return p.teamName }
 func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
 func (p *pipeline) Config() atc.Config           { return p.config }
-func (p *pipeline) Paused() bool                 { return p.paused }
 func (p *pipeline) Public() bool                 { return p.public }
+func (p *pipeline) Paused() bool                 { return p.paused }
 
+// Write test
+func (p *pipeline) CheckPaused() (bool, error) {
+	var paused bool
+
+	err := psql.Select("paused").
+		From("pipelines").
+		Where(sq.Eq{"p.id": p.id}).
+		RunWith(p.conn).
+		QueryRow().
+		Scan(&paused)
+
+	if err != nil {
+		return false, err
+	}
+
+	return paused, nil
+}
 func (p *pipeline) Reload() (bool, error) {
 	row := pipelinesQuery.Where(sq.Eq{"p.id": p.id}).
 		RunWith(p.conn).
@@ -1010,13 +1028,14 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		JobIDs:           map[string]int{},
 		ResourceIDs:      map[string]int{},
 	}
+
 	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, j.id").
 		From("build_outputs o, builds b, versioned_resources v, jobs j, resources r").
+		Where(sq.Expr("v.id = o.versioned_resource_id")).
+		Where(sq.Expr("b.id = o.build_id")).
+		Where(sq.Expr("j.id = b.job_id")).
+		Where(sq.Expr("r.id = v.resource_id")).
 		Where(sq.Eq{
-			"v.id":          "o.versioned_resource_id",
-			"b.id":          "o.build_id",
-			"j.id":          "b.job_id",
-			"r.id":          "v.resource_id",
 			"v.enabled":     true,
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
@@ -1043,11 +1062,11 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 
 	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, j.id").
 		From("build_inputs i, builds b, versioned_resources v, jobs j, resources r").
+		Where(sq.Expr("v.id = i.versioned_resource_id")).
+		Where(sq.Expr("b.id = i.build_id")).
+		Where(sq.Expr("j.id = b.job_id")).
+		Where(sq.Expr("r.id = v.resource_id")).
 		Where(sq.Eq{
-			"v.id":          "i.versioned_resource_id",
-			"b.id":          "i.build_id",
-			"j.id":          "b.job_id",
-			"r.id":          "v.resource_id",
 			"v.enabled":     true,
 			"r.pipeline_id": p.id,
 		}).
@@ -1073,8 +1092,8 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 
 	rows, err = psql.Select("v.id, v.check_order, r.id").
 		From("versioned_resources v, resources r").
+		Where(sq.Expr("r.id = v.resource_id")).
 		Where(sq.Eq{
-			"r.id":          "v.resource_id",
 			"v.enabled":     true,
 			"r.pipeline_id": p.id,
 		}).

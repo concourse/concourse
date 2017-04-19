@@ -15,15 +15,13 @@ import (
 
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 
-	"github.com/concourse/atc/api/buildserver/buildserverfakes"
 	"github.com/concourse/atc/api/jobserver/jobserverfakes"
 	"github.com/concourse/atc/api/pipes/pipesfakes"
 	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
-	"github.com/concourse/atc/api/teamserver/teamserverfakes"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -43,7 +41,6 @@ var (
 	providerFactory               *authfakes.FakeProviderFactory
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
-	teamServerDB                  *teamserverfakes.FakeTeamsDB
 	fakeVolumeFactory             *dbngfakes.FakeVolumeFactory
 	fakeContainerFactory          *dbngfakes.FakeContainerFactory
 	pipeDB                        *pipesfakes.FakePipeDB
@@ -56,9 +53,8 @@ var (
 	dbWorkerLifecycle             *dbngfakes.FakeWorkerLifecycle
 	teamDB                        *dbfakes.FakeTeamDB
 	pipelinesDB                   *dbfakes.FakePipelinesDB
-	buildsDB                      *authfakes.FakeBuildsDB
-	buildServerDB                 *buildserverfakes.FakeBuildsDB
 	build                         *dbfakes.FakeBuild
+	dbBuildFactory                *dbngfakes.FakeBuildFactory
 	dbTeam                        *dbngfakes.FakeTeam
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
@@ -77,14 +73,14 @@ var (
 )
 
 type fakeEventHandlerFactory struct {
-	build db.Build
+	build dbng.Build
 
 	lock sync.Mutex
 }
 
 func (f *fakeEventHandlerFactory) Construct(
 	logger lager.Logger,
-	build db.Build,
+	build dbng.Build,
 ) http.Handler {
 	f.lock.Lock()
 	f.build = build
@@ -101,6 +97,7 @@ var _ = BeforeEach(func() {
 	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
 	dbTeamFactory = new(dbngfakes.FakeTeamFactory)
 	dbPipelineFactory = new(dbngfakes.FakePipelineFactory)
+	dbBuildFactory = new(dbngfakes.FakeBuildFactory)
 
 	dbTeam = new(dbngfakes.FakeTeam)
 	dbTeam.IDReturns(734)
@@ -112,13 +109,10 @@ var _ = BeforeEach(func() {
 
 	dbWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbngfakes.FakeWorkerLifecycle)
-	teamServerDB = new(teamserverfakes.FakeTeamsDB)
 	teamDB = new(dbfakes.FakeTeamDB)
 	teamDBFactory.GetTeamDBReturns(teamDB)
-	buildServerDB = new(buildserverfakes.FakeBuildsDB)
 	pipeDB = new(pipesfakes.FakePipeDB)
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
-	buildsDB = new(authfakes.FakeBuildsDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
@@ -157,9 +151,9 @@ var _ = BeforeEach(func() {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(dbTeamFactory)
 
-	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(buildsDB)
+	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(dbBuildFactory)
 
-	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(buildsDB)
+	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
 
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
@@ -190,9 +184,8 @@ var _ = BeforeEach(func() {
 		dbWorkerFactory,
 		fakeVolumeFactory,
 		fakeContainerFactory,
+		dbBuildFactory,
 
-		teamServerDB,
-		buildServerDB,
 		pipeDB,
 		pipelinesDB,
 

@@ -5,18 +5,18 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/scheduler/factory"
 )
 
 type FakeBuildFactory struct {
-	CreateStub        func(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+	CreateStub        func(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []dbng.BuildInput) (atc.Plan, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 atc.JobConfig
 		arg2 atc.ResourceConfigs
 		arg3 atc.VersionedResourceTypes
-		arg4 []db.BuildInput
+		arg4 []dbng.BuildInput
 	}
 	createReturns struct {
 		result1 atc.Plan
@@ -30,10 +30,10 @@ type FakeBuildFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfigs, arg3 atc.VersionedResourceTypes, arg4 []db.BuildInput) (atc.Plan, error) {
-	var arg4Copy []db.BuildInput
+func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfigs, arg3 atc.VersionedResourceTypes, arg4 []dbng.BuildInput) (atc.Plan, error) {
+	var arg4Copy []dbng.BuildInput
 	if arg4 != nil {
-		arg4Copy = make([]db.BuildInput, len(arg4))
+		arg4Copy = make([]dbng.BuildInput, len(arg4))
 		copy(arg4Copy, arg4)
 	}
 	fake.createMutex.Lock()
@@ -42,7 +42,7 @@ func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfig
 		arg1 atc.JobConfig
 		arg2 atc.ResourceConfigs
 		arg3 atc.VersionedResourceTypes
-		arg4 []db.BuildInput
+		arg4 []dbng.BuildInput
 	}{arg1, arg2, arg3, arg4Copy})
 	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3, arg4Copy})
 	fake.createMutex.Unlock()
@@ -61,7 +61,7 @@ func (fake *FakeBuildFactory) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) {
+func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []dbng.BuildInput) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	return fake.createArgsForCall[i].arg1, fake.createArgsForCall[i].arg2, fake.createArgsForCall[i].arg3, fake.createArgsForCall[i].arg4

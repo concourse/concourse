@@ -1,6 +1,7 @@
 package dbng_test
 
 import (
+	"errors"
 	"time"
 
 	"github.com/concourse/atc"
@@ -962,6 +963,945 @@ var _ = Describe("Pipeline", func() {
 					Expect(nextPendingBuilds["some-job"]).To(HaveLen(2))
 					Expect(nextPendingBuilds["some-job"]).To(ConsistOf(build1DB, build2DB))
 				})
+			})
+		})
+	})
+
+	Describe("Resource Versions", func() {
+		resourceName := "some-resource"
+		otherResourceName := "some-other-resource"
+		reallyOtherResourceName := "some-really-other-resource"
+
+		var (
+			dbngPipeline        dbng.Pipeline
+			otherDBNGPipeline   dbng.Pipeline
+			resource            dbng.Resource
+			otherResource       dbng.Resource
+			reallyOtherResource dbng.Resource
+		)
+
+		BeforeEach(func() {
+			pipelineConfig := atc.Config{
+				Groups: atc.GroupConfigs{
+					{
+						Name:      "some-group",
+						Jobs:      []string{"job-1", "job-2"},
+						Resources: []string{"some-resource", "some-other-resource"},
+					},
+				},
+
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+					{
+						Name: "some-really-other-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+				},
+
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-resource-type",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+				},
+
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+
+						Public: true,
+
+						Serial: true,
+
+						SerialGroups: []string{"serial-group"},
+
+						Plan: atc.PlanSequence{
+							{
+								Put: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+							},
+							{
+								Get:      "some-input",
+								Resource: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+								Passed:  []string{"job-1", "job-2"},
+								Trigger: true,
+							},
+							{
+								Task:           "some-task",
+								Privileged:     true,
+								TaskConfigPath: "some/config/path.yml",
+								TaskConfig: &atc.TaskConfig{
+									Image: "some-image",
+								},
+							},
+						},
+					},
+					{
+						Name:   "some-other-job",
+						Serial: true,
+					},
+					{
+						Name: "a-job",
+					},
+					{
+						Name: "shared-job",
+					},
+					{
+						Name: "random-job",
+					},
+					{
+						Name:         "other-serial-group-job",
+						SerialGroups: []string{"serial-group", "really-different-group"},
+					},
+					{
+						Name:         "different-serial-group-job",
+						SerialGroups: []string{"different-serial-group"},
+					},
+				},
+			}
+
+			otherPipelineConfig := atc.Config{
+				Groups: atc.GroupConfigs{
+					{
+						Name:      "some-group",
+						Jobs:      []string{"job-1", "job-2"},
+						Resources: []string{"some-resource", "some-other-resource"},
+					},
+				},
+
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+				},
+
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+					{
+						Name: "some-other-job",
+					},
+					{
+						Name: "a-job",
+					},
+					{
+						Name: "shared-job",
+					},
+					{
+						Name: "other-serial-group-job",
+					},
+				},
+			}
+
+			var err error
+			dbngPipeline, _, err = team.SavePipeline("pipeline-name", pipelineConfig, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			otherDBNGPipeline, _, err = team.SavePipeline("other-pipeline-name", otherPipelineConfig, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, _, err = dbngPipeline.Resource(resourceName)
+			Expect(err).NotTo(HaveOccurred())
+
+			otherResource, _, err = dbngPipeline.Resource(otherResourceName)
+			Expect(err).NotTo(HaveOccurred())
+
+			reallyOtherResource, _, err = dbngPipeline.Resource(reallyOtherResourceName)
+			Expect(err).NotTo(HaveOccurred())
+
+		})
+
+		It("returns correct resource", func() {
+			Expect(resource.Name()).To(Equal("some-resource"))
+			Expect(resource.Paused()).To(Equal(false))
+			Expect(resource.PipelineName()).To(Equal("pipeline-name"))
+			Expect(resource.CheckError()).To(BeNil())
+			Expect(resource.Type()).To(Equal("some-type"))
+			Expect(resource.Source()).To(Equal(atc.Source{"source-config": "some-value"}))
+		})
+
+		It("can load up versioned resource information relevant to scheduling", func() {
+			job, found, err := dbngPipeline.Job("some-job")
+			Expect(found).To(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+
+			otherJob, found, err := dbngPipeline.Job("some-other-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			aJob, found, err := dbngPipeline.Job("a-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			sharedJob, found, err := dbngPipeline.Job("shared-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			randomJob, found, err := dbngPipeline.Job("random-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			otherSerialGroupJob, found, err := dbngPipeline.Job("other-serial-group-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			differentSerialGroupJob, found, err := dbngPipeline.Job("different-serial-group-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			versions, err := dbngPipeline.LoadVersionsDB()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(versions.ResourceVersions).To(BeEmpty())
+			Expect(versions.BuildOutputs).To(BeEmpty())
+			Expect(versions.ResourceIDs).To(Equal(map[string]int{
+				resource.Name():            resource.ID(),
+				otherResource.Name():       otherResource.ID(),
+				reallyOtherResource.Name(): reallyOtherResource.ID(),
+			}))
+
+			Expect(versions.JobIDs).To(Equal(map[string]int{
+				"some-job":                   job.ID(),
+				"some-other-job":             otherJob.ID(),
+				"a-job":                      aJob.ID(),
+				"shared-job":                 sharedJob.ID(),
+				"random-job":                 randomJob.ID(),
+				"other-serial-group-job":     otherSerialGroupJob.ID(),
+				"different-serial-group-job": differentSerialGroupJob.ID(),
+			}))
+
+			By("initially having no latest versioned resource")
+			_, found, err = dbngPipeline.GetLatestVersionedResource(resource.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			By("including saved versioned resources of the current pipeline")
+			err = dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name(),
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "1"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR1, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(savedVR1.ModifiedTime).NotTo(BeNil())
+			Expect(savedVR1.ModifiedTime).To(BeTemporally(">", time.Time{}))
+
+			err = dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name(),
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "2"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR2, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			versions, err = dbngPipeline.LoadVersionsDB()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
+				{VersionID: savedVR1.ID, ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder},
+			}))
+
+			Expect(versions.BuildOutputs).To(BeEmpty())
+			Expect(versions.ResourceIDs).To(Equal(map[string]int{
+				resource.Name():            resource.ID(),
+				otherResource.Name():       otherResource.ID(),
+				reallyOtherResource.Name(): reallyOtherResource.ID(),
+			}))
+
+			Expect(versions.JobIDs).To(Equal(map[string]int{
+				"some-job":                   job.ID(),
+				"some-other-job":             otherJob.ID(),
+				"a-job":                      aJob.ID(),
+				"shared-job":                 sharedJob.ID(),
+				"random-job":                 randomJob.ID(),
+				"other-serial-group-job":     otherSerialGroupJob.ID(),
+				"different-serial-group-job": differentSerialGroupJob.ID(),
+			}))
+
+			By("not including saved versioned resources of other pipelines")
+			otherPipelineResource, _, err := dbngPipeline.Resource("some-other-resource")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherDBNGPipeline.SaveResourceVersions(atc.ResourceConfig{
+				Name:   otherPipelineResource.Name(),
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "1"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			otherPipelineSavedVR, found, err := otherDBNGPipeline.GetLatestVersionedResource(otherPipelineResource.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			versions, err = dbngPipeline.LoadVersionsDB()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
+				{VersionID: savedVR1.ID, ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder},
+			}))
+
+			Expect(versions.BuildOutputs).To(BeEmpty())
+			Expect(versions.ResourceIDs).To(Equal(map[string]int{
+				resource.Name():            resource.ID(),
+				otherResource.Name():       otherResource.ID(),
+				reallyOtherResource.Name(): reallyOtherResource.ID(),
+			}))
+
+			Expect(versions.JobIDs).To(Equal(map[string]int{
+				"some-job":                   job.ID(),
+				"some-other-job":             otherJob.ID(),
+				"a-job":                      aJob.ID(),
+				"shared-job":                 sharedJob.ID(),
+				"random-job":                 randomJob.ID(),
+				"other-serial-group-job":     otherSerialGroupJob.ID(),
+				"different-serial-group-job": differentSerialGroupJob.ID(),
+			}))
+
+			By("including outputs of successful builds")
+			build1DB, err := dbngPipeline.CreateJobBuild("a-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build1DB.SaveOutput(savedVR1.VersionedResource, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build1DB.Finish(dbng.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			versions, err = dbngPipeline.LoadVersionsDB()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
+				{VersionID: savedVR1.ID, ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder},
+			}))
+
+			Expect(versions.BuildOutputs).To(ConsistOf([]algorithm.BuildOutput{
+				{
+					ResourceVersion: algorithm.ResourceVersion{
+						VersionID:  savedVR1.ID,
+						ResourceID: resource.ID(),
+						CheckOrder: savedVR1.CheckOrder,
+					},
+					JobID:   aJob.ID(),
+					BuildID: build1DB.ID(),
+				},
+			}))
+
+			Expect(versions.ResourceIDs).To(Equal(map[string]int{
+				resource.Name():            resource.ID(),
+				otherResource.Name():       otherResource.ID(),
+				reallyOtherResource.Name(): reallyOtherResource.ID(),
+			}))
+
+			Expect(versions.JobIDs).To(Equal(map[string]int{
+				"some-job":                   job.ID(),
+				"a-job":                      aJob.ID(),
+				"some-other-job":             otherJob.ID(),
+				"shared-job":                 sharedJob.ID(),
+				"random-job":                 randomJob.ID(),
+				"other-serial-group-job":     otherSerialGroupJob.ID(),
+				"different-serial-group-job": differentSerialGroupJob.ID(),
+			}))
+
+			By("not including outputs of failed builds")
+			build2DB, err := dbngPipeline.CreateJobBuild("a-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build2DB.SaveOutput(savedVR1.VersionedResource, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build2DB.Finish(dbng.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			versions, err = dbngPipeline.LoadVersionsDB()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
+				{VersionID: savedVR1.ID, ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder},
+			}))
+
+			Expect(versions.BuildOutputs).To(ConsistOf([]algorithm.BuildOutput{
+				{
+					ResourceVersion: algorithm.ResourceVersion{
+						VersionID:  savedVR1.ID,
+						ResourceID: resource.ID(),
+						CheckOrder: savedVR1.CheckOrder,
+					},
+					JobID:   aJob.ID(),
+					BuildID: build1DB.ID(),
+				},
+			}))
+
+			Expect(versions.ResourceIDs).To(Equal(map[string]int{
+				resource.Name():            resource.ID(),
+				otherResource.Name():       otherResource.ID(),
+				reallyOtherResource.Name(): reallyOtherResource.ID(),
+			}))
+
+			Expect(versions.JobIDs).To(Equal(map[string]int{
+				"some-job":                   job.ID(),
+				"a-job":                      aJob.ID(),
+				"some-other-job":             otherJob.ID(),
+				"shared-job":                 sharedJob.ID(),
+				"random-job":                 randomJob.ID(),
+				"other-serial-group-job":     otherSerialGroupJob.ID(),
+				"different-serial-group-job": differentSerialGroupJob.ID(),
+			}))
+
+			By("not including outputs of builds in other pipelines")
+			otherPipelineBuild, err := otherDBNGPipeline.CreateJobBuild("a-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherPipelineBuild.SaveOutput(otherPipelineSavedVR.VersionedResource, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherPipelineBuild.Finish(dbng.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			versions, err = dbngPipeline.LoadVersionsDB()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
+				{VersionID: savedVR1.ID, ResourceID: resource.ID(), CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID(), CheckOrder: savedVR2.CheckOrder},
+			}))
+
+			Expect(versions.BuildOutputs).To(ConsistOf([]algorithm.BuildOutput{
+				{
+					ResourceVersion: algorithm.ResourceVersion{
+						VersionID:  savedVR1.ID,
+						ResourceID: resource.ID(),
+						CheckOrder: savedVR1.CheckOrder,
+					},
+					JobID:   aJob.ID(),
+					BuildID: build1DB.ID(),
+				},
+			}))
+
+			Expect(versions.ResourceIDs).To(Equal(map[string]int{
+				resource.Name():            resource.ID(),
+				otherResource.Name():       otherResource.ID(),
+				reallyOtherResource.Name(): reallyOtherResource.ID(),
+			}))
+
+			Expect(versions.JobIDs).To(Equal(map[string]int{
+				"some-job":                   job.ID(),
+				"a-job":                      aJob.ID(),
+				"some-other-job":             otherJob.ID(),
+				"shared-job":                 sharedJob.ID(),
+				"random-job":                 randomJob.ID(),
+				"other-serial-group-job":     otherSerialGroupJob.ID(),
+				"different-serial-group-job": differentSerialGroupJob.ID(),
+			}))
+
+			By("including build inputs")
+			build1DB, err = dbngPipeline.CreateJobBuild("a-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build1DB.SaveInput(dbng.BuildInput{
+				Name:              "some-input-name",
+				VersionedResource: savedVR1.VersionedResource,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build1DB.Finish(dbng.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			versions, err = dbngPipeline.LoadVersionsDB()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(versions.BuildInputs).To(ConsistOf([]algorithm.BuildInput{
+				{
+					ResourceVersion: algorithm.ResourceVersion{
+						VersionID:  savedVR1.ID,
+						ResourceID: resource.ID(),
+						CheckOrder: savedVR1.CheckOrder,
+					},
+					JobID:     aJob.ID(),
+					BuildID:   build1DB.ID(),
+					InputName: "some-input-name",
+				},
+			}))
+		})
+
+		It("can load up the latest versioned resource, enabled or not", func() {
+			By("initially having no latest versioned resource")
+			_, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			By("including saved versioned resources of the current pipeline")
+			err = dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name(),
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "1"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR1, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name(),
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "2"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR2, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(savedVR1.Version).To(Equal(dbng.ResourceVersion{"version": "1"}))
+			Expect(savedVR2.Version).To(Equal(dbng.ResourceVersion{"version": "2"}))
+
+			By("not including saved versioned resources of other pipelines")
+			_, _, err = otherDBNGPipeline.Resource("some-other-resource")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherDBNGPipeline.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name(),
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "1"}, {"version": "2"}, {"version": "3"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			otherPipelineSavedVR, found, err := otherDBNGPipeline.GetLatestVersionedResource(resource.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(otherPipelineSavedVR.Version).To(Equal(dbng.ResourceVersion{"version": "3"}))
+
+			By("including disabled versions")
+			err = dbngPipeline.DisableVersionedResource(savedVR2.ID)
+			Expect(err).NotTo(HaveOccurred())
+
+			latestVR, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(latestVR.Version).To(Equal(dbng.ResourceVersion{"version": "2"}))
+		})
+
+		Describe("enabling and disabling versioned resources", func() {
+			It("returns an error if the resource or version is bogus", func() {
+				err := dbngPipeline.EnableVersionedResource(42)
+				Expect(err).To(HaveOccurred())
+
+				err = dbngPipeline.DisableVersionedResource(42)
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("does not affect explicitly fetching the latest version", func() {
+				err := dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				savedVR, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(savedVR.Resource).To(Equal("some-resource"))
+				Expect(savedVR.Type).To(Equal("some-type"))
+				Expect(savedVR.Version).To(Equal(dbng.ResourceVersion{"version": "1"}))
+				initialTime := savedVR.ModifiedTime
+
+				err = dbngPipeline.DisableVersionedResource(savedVR.ID)
+				Expect(err).NotTo(HaveOccurred())
+
+				disabledVR := savedVR
+				disabledVR.Enabled = false
+
+				latestVR, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(latestVR.Resource).To(Equal(disabledVR.Resource))
+				Expect(latestVR.Type).To(Equal(disabledVR.Type))
+				Expect(latestVR.Version).To(Equal(disabledVR.Version))
+				Expect(latestVR.Enabled).To(BeFalse())
+				Expect(latestVR.ModifiedTime).To(BeTemporally(">", initialTime))
+
+				tmp_modified_time := latestVR.ModifiedTime
+
+				err = dbngPipeline.EnableVersionedResource(savedVR.ID)
+				Expect(err).NotTo(HaveOccurred())
+
+				enabledVR := savedVR
+				enabledVR.Enabled = true
+
+				latestVR, found, err = dbngPipeline.GetLatestVersionedResource(resource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(latestVR.Resource).To(Equal(enabledVR.Resource))
+				Expect(latestVR.Type).To(Equal(enabledVR.Type))
+				Expect(latestVR.Version).To(Equal(enabledVR.Version))
+				Expect(latestVR.Enabled).To(BeTrue())
+				Expect(latestVR.ModifiedTime).To(BeTemporally(">", tmp_modified_time))
+			})
+
+			It("doesn't change the check_order when saving a new build input", func() {
+				err := dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				build, err := dbngPipeline.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				beforeVR, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "4"},
+					{"version": "5"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				input := dbng.BuildInput{
+					Name:              "input-name",
+					VersionedResource: beforeVR.VersionedResource,
+				}
+
+				err = build.SaveInput(input)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("doesn't change the check_order when saving a new implicit build output", func() {
+				err := dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				build, err := dbngPipeline.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				beforeVR, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "4"},
+					{"version": "5"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build.SaveOutput(beforeVR.VersionedResource, false)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("doesn't change the check_order when saving a new implicit build output", func() {
+				err := dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				build, err := dbngPipeline.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				beforeVR, found, err := dbngPipeline.GetLatestVersionedResource(resource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "4"},
+					{"version": "5"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build.SaveOutput(beforeVR.VersionedResource, true)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Describe("saving versioned resources", func() {
+			It("updates the latest versioned resource", func() {
+				err := dbngPipeline.SaveResourceVersions(
+					atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					},
+					[]atc.Version{{"version": "1"}},
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				savedResource, _, err := dbngPipeline.Resource("some-resource")
+				Expect(err).NotTo(HaveOccurred())
+
+				savedVR, found, err := dbngPipeline.GetLatestVersionedResource(savedResource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(savedVR.Resource).To(Equal("some-resource"))
+				Expect(savedVR.Type).To(Equal("some-type"))
+				Expect(savedVR.Version).To(Equal(dbng.ResourceVersion{"version": "1"}))
+
+				err = dbngPipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "2"}, {"version": "3"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				savedVR, found, err = dbngPipeline.GetLatestVersionedResource(savedResource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(savedVR.Resource).To(Equal("some-resource"))
+				Expect(savedVR.Type).To(Equal("some-type"))
+				Expect(savedVR.Version).To(Equal(dbng.ResourceVersion{"version": "3"}))
+			})
+		})
+
+		It("initially has no pending build for a job", func() {
+			pendingBuilds, err := dbngPipeline.GetPendingBuildsForJob("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pendingBuilds).To(HaveLen(0))
+		})
+
+		Describe("marking resource checks as errored", func() {
+			BeforeEach(func() {
+				var err error
+				resource, _, err = dbngPipeline.Resource("some-resource")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when the resource is first created", func() {
+				It("is not errored", func() {
+					Expect(resource.CheckError()).To(BeNil())
+				})
+			})
+
+			Context("when a resource check is marked as errored", func() {
+				It("is then marked as errored", func() {
+					originalCause := errors.New("on fire")
+
+					err := dbngPipeline.SetResourceCheckError(resource, originalCause)
+					Expect(err).NotTo(HaveOccurred())
+
+					returnedResource, _, err := dbngPipeline.Resource("some-resource")
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(returnedResource.CheckError()).To(Equal(originalCause))
+				})
+			})
+
+			Context("when a resource is cleared of check errors", func() {
+				It("is not marked as errored again", func() {
+					originalCause := errors.New("on fire")
+
+					err := dbngPipeline.SetResourceCheckError(resource, originalCause)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = dbngPipeline.SetResourceCheckError(resource, nil)
+					Expect(err).NotTo(HaveOccurred())
+
+					returnedResource, _, err := dbngPipeline.Resource("some-resource")
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(returnedResource.CheckError()).To(Equal(errors.New("NULL")))
+				})
+			})
+		})
+	})
+
+	Describe("Disable and Enable Resource Versions", func() {
+		var pipelineDB dbng.Pipeline
+		var resource dbng.Resource
+
+		BeforeEach(func() {
+			pipelineConfig := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "a-job",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					},
+				},
+			}
+			var err error
+			pipelineDB, _, err = team.SavePipeline("some-pipeline", pipelineConfig, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			resource, found, err = pipelineDB.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+		Context("when a version is disabled", func() {
+			It("omits the version from the versions DB", func() {
+				build1, err := pipelineDB.CreateJobBuild("a-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   resource.Name(),
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "disabled"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				disabledVersion, found, err := pipelineDB.GetLatestVersionedResource(resource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = build1.SaveInput(dbng.BuildInput{
+					Name:              "disabled-input",
+					VersionedResource: disabledVersion.VersionedResource,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build1.SaveOutput(disabledVersion.VersionedResource, false)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   resource.Name(),
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "enabled"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				enabledVersion, found, err := pipelineDB.GetLatestVersionedResource("some-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = build1.SaveInput(dbng.BuildInput{
+					Name:              "enabled-input",
+					VersionedResource: enabledVersion.VersionedResource,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build1.SaveOutput(enabledVersion.VersionedResource, false)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build1.Finish(dbng.BuildStatusSucceeded)
+				Expect(err).NotTo(HaveOccurred())
+
+				pipelineDB.DisableVersionedResource(disabledVersion.ID)
+
+				pipelineDB.DisableVersionedResource(enabledVersion.ID)
+				pipelineDB.EnableVersionedResource(enabledVersion.ID)
+
+				versions, err := pipelineDB.LoadVersionsDB()
+				Expect(err).NotTo(HaveOccurred())
+
+				aJob, found, err := pipelineDB.Job("a-job")
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				By("omitting it from the list of resource versions")
+				Expect(versions.ResourceVersions).To(ConsistOf(
+					algorithm.ResourceVersion{
+						VersionID:  enabledVersion.ID,
+						ResourceID: resource.ID(),
+						CheckOrder: enabledVersion.CheckOrder,
+					},
+				))
+
+				By("omitting it from build outputs")
+				Expect(versions.BuildOutputs).To(ConsistOf(
+					algorithm.BuildOutput{
+						ResourceVersion: algorithm.ResourceVersion{
+							VersionID:  enabledVersion.ID,
+							ResourceID: resource.ID(),
+							CheckOrder: enabledVersion.CheckOrder,
+						},
+						JobID:   aJob.ID(),
+						BuildID: build1.ID(),
+					},
+				))
+
+				By("omitting it from build inputs")
+				Expect(versions.BuildInputs).To(ConsistOf(
+					algorithm.BuildInput{
+						ResourceVersion: algorithm.ResourceVersion{
+							VersionID:  enabledVersion.ID,
+							ResourceID: resource.ID(),
+							CheckOrder: enabledVersion.CheckOrder,
+						},
+						JobID:     aJob.ID(),
+						BuildID:   build1.ID(),
+						InputName: "enabled-input",
+					},
+				))
 			})
 		})
 	})

@@ -4,8 +4,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/scheduler/inputmapper"
 	"github.com/concourse/atc/scheduler/maxinflight"
@@ -19,35 +18,18 @@ type BuildStarter interface {
 		jobConfig atc.JobConfig,
 		resourceConfigs atc.ResourceConfigs,
 		resourceTypes atc.VersionedResourceTypes,
-		nextPendingBuilds []db.Build,
+		nextPendingBuilds []dbng.Build,
 	) error
-}
-
-//go:generate counterfeiter . BuildStarterDB
-
-type BuildStarterDB interface {
-	GetNextBuildInputs(jobName string) ([]db.BuildInput, bool, error)
-	IsPaused() (bool, error)
-	GetJob(job string) (db.SavedJob, bool, error)
-	UpdateBuildToScheduled(int) (bool, error)
-	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
-	LoadVersionsDB() (*algorithm.VersionsDB, error)
-}
-
-//go:generate counterfeiter . BuildStarterBuildsDB
-
-type BuildStarterBuildsDB interface {
-	FinishBuild(buildID int, pipelineID int, status db.Status) error
 }
 
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []dbng.BuildInput) (atc.Plan, error)
 }
 
 func NewBuildStarter(
-	db BuildStarterDB,
+	pipeline dbng.Pipeline,
 	maxInFlightUpdater maxinflight.Updater,
 	factory BuildFactory,
 	scanner Scanner,
@@ -55,7 +37,7 @@ func NewBuildStarter(
 	execEngine engine.Engine,
 ) BuildStarter {
 	return &buildStarter{
-		db:                 db,
+		pipeline:           pipeline,
 		maxInFlightUpdater: maxInFlightUpdater,
 		factory:            factory,
 		scanner:            scanner,
@@ -65,7 +47,7 @@ func NewBuildStarter(
 }
 
 type buildStarter struct {
-	db                 BuildStarterDB
+	pipeline           dbng.Pipeline
 	maxInFlightUpdater maxinflight.Updater
 	factory            BuildFactory
 	execEngine         engine.Engine
@@ -78,7 +60,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	jobConfig atc.JobConfig,
 	resourceConfigs atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
-	nextPendingBuildsForJob []db.Build,
+	nextPendingBuildsForJob []dbng.Build,
 ) error {
 	for _, nextPendingBuild := range nextPendingBuildsForJob {
 		started, err := s.tryStartNextPendingBuild(logger, nextPendingBuild, jobConfig, resourceConfigs, resourceTypes)
@@ -96,7 +78,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 
 func (s *buildStarter) tryStartNextPendingBuild(
 	logger lager.Logger,
-	nextPendingBuild db.Build,
+	nextPendingBuild dbng.Build,
 	jobConfig atc.JobConfig,
 	resourceConfigs atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
@@ -128,7 +110,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			}
 		}
 
-		versions, err := s.db.LoadVersionsDB()
+		versions, err := s.pipeline.LoadVersionsDB()
 		if err != nil {
 			logger.Error("failed-to-load-versions-db", err)
 			return false, err
@@ -140,7 +122,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}
 	}
 
-	buildInputs, found, err := s.db.GetNextBuildInputs(nextPendingBuild.JobName())
+	buildInputs, found, err := s.pipeline.GetNextBuildInputs(nextPendingBuild.JobName())
 	if err != nil {
 		logger.Error("failed-to-get-next-build-inputs", err)
 		return false, err
@@ -149,7 +131,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	pipelinePaused, err := s.db.IsPaused()
+	pipelinePaused, err := s.pipeline.CheckPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-is-paused", err)
 		return false, err
@@ -158,7 +140,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	job, found, err := s.db.GetJob(nextPendingBuild.JobName())
+	job, found, err := s.pipeline.Job(nextPendingBuild.JobName())
 	if err != nil {
 		logger.Error("failed-to-check-if-job-is-paused", err)
 		return false, err
@@ -167,11 +149,11 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		logger.Debug("job-not-found")
 		return false, nil
 	}
-	if job.Paused {
+	if job.Paused() {
 		return false, nil
 	}
 
-	updated, err := s.db.UpdateBuildToScheduled(nextPendingBuild.ID())
+	updated, err := nextPendingBuild.Schedule()
 	if err != nil {
 		logger.Error("failed-to-update-build-to-scheduled", err)
 		return false, err
@@ -182,7 +164,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	err = s.db.UseInputsForBuild(nextPendingBuild.ID(), buildInputs)
+	err = nextPendingBuild.UseInputs(buildInputs)
 	if err != nil {
 		return false, err
 	}
@@ -190,7 +172,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	plan, err := s.factory.Create(jobConfig, resourceConfigs, resourceTypes, buildInputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
-		err := nextPendingBuild.Finish(db.StatusErrored)
+		err := nextPendingBuild.Finish(dbng.BuildStatusErrored)
 		if err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
 		}

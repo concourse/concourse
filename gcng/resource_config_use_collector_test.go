@@ -23,11 +23,6 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("Run", func() {
 		Describe("config uses", func() {
 			var (
@@ -281,7 +276,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 					err = psql.Update("resources").
 						Set("active", active).
 						Where(sq.Eq{
-							"id": usedResource.ID,
+							"id": usedResource.ID(),
 						}).Suffix("RETURNING id").
 						RunWith(tx).
 						QueryRow().Scan(&id)

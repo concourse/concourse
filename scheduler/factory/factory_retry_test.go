@@ -49,18 +49,15 @@ var _ = Describe("Factory Retry Step", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.RetryPlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "second task",
-					PipelineID:             42,
+					Name: "second task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "second task",
-					PipelineID:             42,
+					Name: "second task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "second task",
-					PipelineID:             42,
+					Name: "second task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -87,24 +84,20 @@ var _ = Describe("Factory Retry Step", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.RetryPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "second task",
-						PipelineID:             42,
+						Name: "second task",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "second task",
-						PipelineID:             42,
+						Name: "second task",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "second task",
-						PipelineID:             42,
+						Name: "second task",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "second task",
-					PipelineID:             42,
+					Name: "second task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})

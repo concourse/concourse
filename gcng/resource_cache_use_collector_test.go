@@ -21,11 +21,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("Run", func() {
 		Describe("cache uses", func() {
 			var (
@@ -364,7 +359,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					var id int
 					err = psql.Update("resources").
 						Set("active", active).
-						Where(sq.Eq{"id": usedResource.ID}).
+						Where(sq.Eq{"id": usedResource.ID()}).
 						Suffix("RETURNING id").
 						RunWith(tx).
 						QueryRow().Scan(&id)

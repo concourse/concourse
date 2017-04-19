@@ -52,9 +52,8 @@ func NewHandler(
 	dbWorkerFactory dbng.WorkerFactory,
 	volumeFactory dbng.VolumeFactory,
 	containerFactory dbng.ContainerFactory,
+	dbBuildFactory dbng.BuildFactory,
 
-	teamsDB teamserver.TeamsDB,
-	buildsDB buildserver.BuildsDB,
 	pipeDB pipes.PipeDB,
 	pipelinesDB db.PipelinesDB,
 
@@ -103,8 +102,8 @@ func NewHandler(
 		externalURL,
 		engine,
 		workerClient,
-		teamDBFactory,
-		buildsDB,
+		dbTeamFactory,
+		dbBuildFactory,
 		eventHandlerFactory,
 		drain,
 	)
@@ -128,7 +127,7 @@ func NewHandler(
 
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 
-	teamServer := teamserver.NewServer(logger, dbTeamFactory, teamsDB)
+	teamServer := teamserver.NewServer(logger, dbTeamFactory)
 
 	infoServer := infoserver.NewServer(logger, version)
 

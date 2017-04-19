@@ -2,34 +2,28 @@ package builds
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 )
-
-//go:generate counterfeiter . TrackerDB
-
-type TrackerDB interface {
-	GetAllStartedBuilds() ([]db.Build, error)
-}
 
 func NewTracker(
 	logger lager.Logger,
 
-	trackerDB TrackerDB,
+	buildFactory dbng.BuildFactory,
 	engine engine.Engine,
 ) *Tracker {
 	return &Tracker{
-		logger:    logger,
-		trackerDB: trackerDB,
-		engine:    engine,
+		logger:       logger,
+		buildFactory: buildFactory,
+		engine:       engine,
 	}
 }
 
 type Tracker struct {
 	logger lager.Logger
 
-	trackerDB TrackerDB
-	engine    engine.Engine
+	buildFactory dbng.BuildFactory
+	engine       engine.Engine
 }
 
 func (bt *Tracker) Track() {
@@ -37,7 +31,7 @@ func (bt *Tracker) Track() {
 
 	tLog.Debug("start")
 	defer tLog.Debug("done")
-	builds, err := bt.trackerDB.GetAllStartedBuilds()
+	builds, err := bt.buildFactory.GetAllStartedBuilds()
 	if err != nil {
 		tLog.Error("failed-to-lookup-started-builds", err)
 	}

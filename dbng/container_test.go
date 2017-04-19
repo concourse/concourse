@@ -23,11 +23,6 @@ var _ = Describe("Container", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("Metadata", func() {
 		It("returns the container metadata", func() {
 			Expect(creatingContainer.Metadata()).To(Equal(fullMetadata))

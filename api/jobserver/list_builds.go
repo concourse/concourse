@@ -59,7 +59,7 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.H
 
 		jobBuilds := make([]atc.Build, len(builds))
 		for i := 0; i < len(builds); i++ {
-			jobBuilds[i] = present.Build(builds[i])
+			jobBuilds[i] = present.DBBuild(builds[i])
 		}
 		json.NewEncoder(w).Encode(jobBuilds)
 	})

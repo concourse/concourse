@@ -53,11 +53,6 @@ var _ = Describe("VolumeCollector", func() {
 		)
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("Run", func() {
 		BeforeEach(func() {
 			var err error

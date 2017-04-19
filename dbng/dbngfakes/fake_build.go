@@ -252,6 +252,17 @@ type FakeBuild struct {
 	setInterceptibleReturnsOnCall map[int]struct {
 		result1 error
 	}
+	MarkAsFailedStub        func(cause error) error
+	markAsFailedMutex       sync.RWMutex
+	markAsFailedArgsForCall []struct {
+		cause error
+	}
+	markAsFailedReturns struct {
+		result1 error
+	}
+	markAsFailedReturnsOnCall map[int]struct {
+		result1 error
+	}
 	EventsStub        func(uint) (dbng.EventSource, error)
 	eventsMutex       sync.RWMutex
 	eventsArgsForCall []struct {
@@ -1432,6 +1443,54 @@ func (fake *FakeBuild) SetInterceptibleReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeBuild) MarkAsFailed(cause error) error {
+	fake.markAsFailedMutex.Lock()
+	ret, specificReturn := fake.markAsFailedReturnsOnCall[len(fake.markAsFailedArgsForCall)]
+	fake.markAsFailedArgsForCall = append(fake.markAsFailedArgsForCall, struct {
+		cause error
+	}{cause})
+	fake.recordInvocation("MarkAsFailed", []interface{}{cause})
+	fake.markAsFailedMutex.Unlock()
+	if fake.MarkAsFailedStub != nil {
+		return fake.MarkAsFailedStub(cause)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.markAsFailedReturns.result1
+}
+
+func (fake *FakeBuild) MarkAsFailedCallCount() int {
+	fake.markAsFailedMutex.RLock()
+	defer fake.markAsFailedMutex.RUnlock()
+	return len(fake.markAsFailedArgsForCall)
+}
+
+func (fake *FakeBuild) MarkAsFailedArgsForCall(i int) error {
+	fake.markAsFailedMutex.RLock()
+	defer fake.markAsFailedMutex.RUnlock()
+	return fake.markAsFailedArgsForCall[i].cause
+}
+
+func (fake *FakeBuild) MarkAsFailedReturns(result1 error) {
+	fake.MarkAsFailedStub = nil
+	fake.markAsFailedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) MarkAsFailedReturnsOnCall(i int, result1 error) {
+	fake.MarkAsFailedStub = nil
+	if fake.markAsFailedReturnsOnCall == nil {
+		fake.markAsFailedReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.markAsFailedReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBuild) Events(arg1 uint) (dbng.EventSource, error) {
 	fake.eventsMutex.Lock()
 	ret, specificReturn := fake.eventsReturnsOnCall[len(fake.eventsArgsForCall)]
@@ -2134,6 +2193,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.saveStatusMutex.RUnlock()
 	fake.setInterceptibleMutex.RLock()
 	defer fake.setInterceptibleMutex.RUnlock()
+	fake.markAsFailedMutex.RLock()
+	defer fake.markAsFailedMutex.RUnlock()
 	fake.eventsMutex.RLock()
 	defer fake.eventsMutex.RUnlock()
 	fake.saveEventMutex.RLock()

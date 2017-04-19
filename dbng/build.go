@@ -65,6 +65,7 @@ type Build interface {
 	Start(string, string) (bool, error)
 	SaveStatus(s BuildStatus) error
 	SetInterceptible(bool) error
+	MarkAsFailed(cause error) error
 
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
@@ -276,6 +277,17 @@ func (b *build) SaveStatus(s BuildStatus) error {
 	}
 
 	return nil
+}
+
+func (b *build) MarkAsFailed(cause error) error {
+	err := b.SaveEvent(event.Error{
+		Message: cause.Error(),
+	})
+	if err != nil {
+		return err
+	}
+
+	return b.Finish(BuildStatusErrored)
 }
 
 func (b *build) Finish(s BuildStatus) error {

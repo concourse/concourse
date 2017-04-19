@@ -81,9 +81,9 @@ var _ = SynchronizedAfterSuite(func() {
 
 var _ = BeforeEach(func() {
 	postgresRunner.Truncate()
-	dbngConn = dbng.Wrap(postgresRunner.Open())
+	dbngConn = postgresRunner.OpenConn()
 
-	dbConn = db.Wrap(postgresRunner.Open())
+	dbConn = db.Wrap(postgresRunner.OpenDB())
 	dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(dbListener, dbConn)
 

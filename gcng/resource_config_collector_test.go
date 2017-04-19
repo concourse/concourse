@@ -18,11 +18,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 		collector = gcng.NewResourceConfigCollector(logger, resourceConfigFactory)
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("Run", func() {
 		Describe("configs", func() {
 			countResourceConfigs := func() int {

@@ -12,6 +12,7 @@ import (
 type BuildFactory interface {
 	Build(int) (Build, bool, error)
 	PublicBuilds(Page) ([]Build, Pagination, error)
+	GetAllStartedBuilds() ([]Build, error)
 
 	// TODO: move to BuildLifecycle, new interface (see WorkerLifecycle)
 	MarkNonInterceptibleBuilds() error
@@ -86,7 +87,32 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 	}
 
 	return nil
+}
 
+func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
+	rows, err := buildsQuery.
+		Where(sq.Eq{"b.status": BuildStatusStarted}).
+		RunWith(f.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	bs := []Build{}
+
+	for rows.Next() {
+		b := &build{conn: f.conn, lockFactory: f.lockFactory}
+		err := scanBuild(b, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		bs = append(bs, b)
+	}
+
+	return bs, nil
 }
 
 func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory) ([]Build, Pagination, error) {

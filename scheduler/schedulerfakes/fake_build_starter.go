@@ -6,19 +6,19 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/scheduler"
 )
 
 type FakeBuildStarter struct {
-	TryStartPendingBuildsForJobStub        func(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes, nextPendingBuilds []db.Build) error
+	TryStartPendingBuildsForJobStub        func(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes, nextPendingBuilds []dbng.Build) error
 	tryStartPendingBuildsForJobMutex       sync.RWMutex
 	tryStartPendingBuildsForJobArgsForCall []struct {
 		logger            lager.Logger
 		jobConfig         atc.JobConfig
 		resourceConfigs   atc.ResourceConfigs
 		resourceTypes     atc.VersionedResourceTypes
-		nextPendingBuilds []db.Build
+		nextPendingBuilds []dbng.Build
 	}
 	tryStartPendingBuildsForJobReturns struct {
 		result1 error
@@ -30,10 +30,10 @@ type FakeBuildStarter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes, nextPendingBuilds []db.Build) error {
-	var nextPendingBuildsCopy []db.Build
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes, nextPendingBuilds []dbng.Build) error {
+	var nextPendingBuildsCopy []dbng.Build
 	if nextPendingBuilds != nil {
-		nextPendingBuildsCopy = make([]db.Build, len(nextPendingBuilds))
+		nextPendingBuildsCopy = make([]dbng.Build, len(nextPendingBuilds))
 		copy(nextPendingBuildsCopy, nextPendingBuilds)
 	}
 	fake.tryStartPendingBuildsForJobMutex.Lock()
@@ -43,7 +43,7 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(logger lager.Logger, j
 		jobConfig         atc.JobConfig
 		resourceConfigs   atc.ResourceConfigs
 		resourceTypes     atc.VersionedResourceTypes
-		nextPendingBuilds []db.Build
+		nextPendingBuilds []dbng.Build
 	}{logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuildsCopy})
 	fake.recordInvocation("TryStartPendingBuildsForJob", []interface{}{logger, jobConfig, resourceConfigs, resourceTypes, nextPendingBuildsCopy})
 	fake.tryStartPendingBuildsForJobMutex.Unlock()
@@ -62,7 +62,7 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCallCount() int {
 	return len(fake.tryStartPendingBuildsForJobArgsForCall)
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.Build) {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []dbng.Build) {
 	fake.tryStartPendingBuildsForJobMutex.RLock()
 	defer fake.tryStartPendingBuildsForJobMutex.RUnlock()
 	return fake.tryStartPendingBuildsForJobArgsForCall[i].logger, fake.tryStartPendingBuildsForJobArgsForCall[i].jobConfig, fake.tryStartPendingBuildsForJobArgsForCall[i].resourceConfigs, fake.tryStartPendingBuildsForJobArgsForCall[i].resourceTypes, fake.tryStartPendingBuildsForJobArgsForCall[i].nextPendingBuilds

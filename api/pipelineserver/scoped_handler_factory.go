@@ -56,6 +56,19 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipel
 			}
 		}
 
-		pipelineScopedHandler(nil, pipeline).ServeHTTP(w, r)
+		savedDBPipeline, found, err := pdbh.teamDBFactory.GetTeamDB(teamName).GetPipelineByName(pipelineName)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		dbPipeline := pdbh.pipelineDBFactory.Build(savedDBPipeline)
+
+		pipelineScopedHandler(dbPipeline, pipeline).ServeHTTP(w, r)
 	}
 }

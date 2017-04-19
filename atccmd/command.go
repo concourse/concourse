@@ -175,7 +175,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
-	dbBuildFactory := dbng.NewBuildFactory(dbngConn)
+	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
 	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
 	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
@@ -252,6 +252,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		dbWorkerFactory,
 		dbVolumeFactory,
 		dbContainerFactory,
+		dbBuildFactory,
 		providerFactory,
 		signingKey,
 		pipelineDBFactory,
@@ -340,7 +341,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			drain:  drain,
 			tracker: builds.NewTracker(
 				logger.Session("build-tracker"),
-				sqlDB,
+				dbBuildFactory,
 				engine,
 			),
 			bus: bus,
@@ -366,7 +367,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		{"builds", builds.TrackerRunner{
 			Tracker: builds.NewTracker(
 				logger.Session("build-tracker"),
-				sqlDB,
+				dbBuildFactory,
 				engine,
 			),
 			ListenBus: bus,
@@ -621,12 +622,12 @@ func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn,
 	driverName := "connection-counting"
 	metric.SetupConnectionCountingDriver("postgres", cmd.Postgres.ConnectionString(), driverName)
 
-	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.Postgres.ConnectionString())
+	dbngConn, err := dbng.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
 
-	dbngConn, err := migrations.DBNGConn(logger.Session("db.migrations"), driverName, cmd.Postgres.ConnectionString())
+	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
@@ -815,6 +816,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	dbWorkerFactory dbng.WorkerFactory,
 	dbVolumeFactory dbng.VolumeFactory,
 	dbContainerFactory dbng.ContainerFactory,
+	dbBuildFactory dbng.BuildFactory,
 	providerFactory auth.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
@@ -831,13 +833,12 @@ func (cmd *ATCCommand) constructAPIHandler(
 	getTokenValidator := auth.NewTeamAuthValidator(dbTeamFactory, authValidator)
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(
-		pipelineDBFactory,
-		teamDBFactory,
+		dbTeamFactory,
 	)
 
-	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(sqlDB)
+	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(dbBuildFactory)
 
-	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(sqlDB)
+	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
 
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
@@ -872,9 +873,8 @@ func (cmd *ATCCommand) constructAPIHandler(
 		dbWorkerFactory,
 		dbVolumeFactory,
 		dbContainerFactory,
+		dbBuildFactory,
 
-		sqlDB, // teamserver.TeamDB
-		sqlDB, // buildserver.BuildsDB
 		sqlDB, // pipes.PipeDB
 		sqlDB, // db.PipelinesDB
 

@@ -106,6 +106,10 @@ var _ = BeforeEach(func() {
 	resourceConfigFactory = dbng.NewResourceConfigFactory(dbConn, lockFactory)
 })
 
+var _ = AfterEach(func() {
+	Expect(dbConn.Close()).To(Succeed())
+})
+
 var _ = AfterSuite(func() {
 	dbProcess.Signal(os.Interrupt)
 	Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())

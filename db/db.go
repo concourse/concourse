@@ -69,7 +69,6 @@ func swallowUniqueViolation(err error) error {
 }
 
 type DB interface {
-	GetTeams() ([]SavedTeam, error)
 	CreateTeam(team Team) (SavedTeam, error)
 	CreateDefaultTeamIfNotExists() error
 	DeleteTeamByName(teamName string) error

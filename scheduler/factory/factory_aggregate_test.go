@@ -63,13 +63,11 @@ var _ = Describe("Factory Aggregate", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some thing",
-					PipelineID:             42,
+					Name: "some thing",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some other thing",
-					PipelineID:             42,
+					Name: "some other thing",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -104,19 +102,16 @@ var _ = Describe("Factory Aggregate", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some thing",
-					PipelineID:             42,
+					Name: "some thing",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some nested thing",
-						PipelineID:             42,
+						Name: "some nested thing",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some nested other thing",
-						PipelineID:             42,
+						Name: "some nested other thing",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -146,13 +141,11 @@ var _ = Describe("Factory Aggregate", func() {
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some thing",
-						PipelineID:             42,
+						Name: "some thing",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some success hook",
-						PipelineID:             42,
+						Name: "some success hook",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -182,14 +175,12 @@ var _ = Describe("Factory Aggregate", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some thing",
-						PipelineID:             42,
+						Name: "some thing",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some success hook",
-					PipelineID:             42,
+					Name: "some success hook",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})

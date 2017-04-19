@@ -11,6 +11,7 @@ type NotificationsBus interface {
 	Listen(channel string) (chan bool, error)
 	Notify(channel string) error
 	Unlisten(channel string, notify chan bool) error
+	Close() error
 }
 
 type notificationsBus struct {
@@ -32,6 +33,10 @@ func NewNotificationsBus(listener *pq.Listener, conn *sql.DB) *notificationsBus 
 	go bus.dispatchNotifications()
 
 	return bus
+}
+
+func (bus *notificationsBus) Close() error {
+	return bus.listener.Close()
 }
 
 func (bus *notificationsBus) Listen(channel string) (chan bool, error) {

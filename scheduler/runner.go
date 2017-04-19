@@ -29,7 +29,7 @@ type BuildScheduler interface {
 		jobConfig atc.JobConfig,
 		resourceConfigs atc.ResourceConfigs,
 		resourceTypes atc.VersionedResourceTypes,
-	) (db.Build, Waiter, error)
+	) (dbng.Build, Waiter, error)
 
 	SaveNextInputMapping(logger lager.Logger, job atc.JobConfig) error
 }

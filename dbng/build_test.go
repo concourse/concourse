@@ -2,6 +2,7 @@ package dbng_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/concourse/atc"
@@ -992,6 +993,46 @@ var _ = Describe("Build", func() {
 			Expect(len(actualBuildInput)).To(Equal(2))
 			Expect(actualBuildInput[0].VersionedResource).To(Equal(someVersionedResource))
 			Expect(actualBuildInput[1].VersionedResource).To(Equal(someWeirdResource))
+		})
+	})
+
+	Describe("MarkAsFailed", func() {
+		var cause error
+		var build dbng.Build
+
+		BeforeEach(func() {
+			var err error
+			build, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			cause = errors.New("disaster")
+			err := build.MarkAsFailed(cause)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("creates Error event", func() {
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.Status()).To(Equal(dbng.BuildStatusErrored))
+
+			events, err := build.Events(0)
+			Expect(err).NotTo(HaveOccurred())
+
+			defer events.Close()
+
+			Expect(events.Next()).To(Equal(envelope(event.Error{
+				Message: "disaster",
+			})))
+		})
+
+		It("updates build status", func() {
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.Status()).To(Equal(dbng.BuildStatusErrored))
 		})
 	})
 })

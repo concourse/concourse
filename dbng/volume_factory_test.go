@@ -41,11 +41,6 @@ var _ = Describe("VolumeFactory", func() {
 		Expect(setupTx.Commit()).To(Succeed())
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("GetTeamVolumes", func() {
 		var (
 			team1handles []string

@@ -12,14 +12,15 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/dbng/migration"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/lib/pq"
 )
 
 type Conn interface {
 	Bus() NotificationsBus
+	Close() error
 
 	Begin() (Tx, error)
-	Close() error
 	Driver() driver.Driver
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Ping() error
@@ -72,6 +73,21 @@ type db struct {
 
 func (db *db) Bus() NotificationsBus {
 	return db.bus
+}
+
+func (db *db) Close() error {
+	var errs error
+	dbErr := db.DB.Close()
+	if dbErr != nil {
+		errs = multierror.Append(errs, dbErr)
+	}
+
+	busErr := db.bus.Close()
+	if busErr != nil {
+		errs = multierror.Append(errs, busErr)
+	}
+
+	return errs
 }
 
 func (db *db) Begin() (Tx, error) {
