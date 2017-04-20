@@ -19,7 +19,7 @@ var _ = Describe("UAA Provider", func() {
 		uaaProvider     provider.Provider
 		found           bool
 		uaaTeamProvider uaa.UAATeamProvider
-		sslCert         atc.PathFlag
+		sslCert         uaa.FileContentsFlag
 	)
 
 	BeforeEach(func() {
