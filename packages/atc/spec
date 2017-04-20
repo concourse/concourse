@@ -44,6 +44,7 @@ files:
   - github.com/concourse/atc/auth/genericoauth/*.go # gosub
   - github.com/concourse/atc/auth/github/*.go # gosub
   - github.com/concourse/atc/auth/provider/*.go # gosub
+  - github.com/concourse/atc/auth/routes/*.go # gosub
   - github.com/concourse/atc/auth/uaa/*.go # gosub
   - github.com/concourse/atc/auth/verifier/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
@@ -83,6 +84,7 @@ files:
   - github.com/concourse/baggageclaim/client/*.go # gosub
   - github.com/concourse/baggageclaim/uidgid/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub
+  - github.com/concourse/go-archive/tarfs/*.go # gosub
   - github.com/concourse/retryhttp/*.go # gosub
   - github.com/contraband/holler/*.go # gosub
   - github.com/dgrijalva/jwt-go/*.go # gosub

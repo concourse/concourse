@@ -8,9 +8,16 @@ dependencies:
 files:
   - fly_binaries/*
   - code.cloudfoundry.org/lager/*.go # gosub
+  - code.cloudfoundry.org/urljoiner/*.go # gosub
   - github.com/aryann/difflib/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
+  - github.com/concourse/atc/auth/genericoauth/*.go # gosub
+  - github.com/concourse/atc/auth/github/*.go # gosub
+  - github.com/concourse/atc/auth/provider/*.go # gosub
+  - github.com/concourse/atc/auth/routes/*.go # gosub
+  - github.com/concourse/atc/auth/uaa/*.go # gosub
+  - github.com/concourse/atc/auth/verifier/*.go # gosub
   - github.com/concourse/atc/event/*.go # gosub
   - github.com/concourse/atc/web/*.go # gosub
   - github.com/concourse/fly/*.go # gosub
@@ -35,6 +42,8 @@ files:
   - github.com/cppforlife/go-semi-semantic/version/*.go # gosub
   - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/fatih/color/*.go # gosub
+  - github.com/google/go-github/github/*.go # gosub
+  - github.com/google/go-querystring/query/*.go # gosub
   - github.com/gorilla/websocket/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.go # gosub
@@ -71,6 +80,7 @@ files:
   - golang.org/x/crypto/ssh/terminal/*.go # gosub
   - golang.org/x/net/context/*.go # gosub
   - golang.org/x/oauth2/*.go # gosub
+  - golang.org/x/oauth2/github/*.go # gosub
   - golang.org/x/oauth2/internal/*.go # gosub
   - gopkg.in/cheggaaa/pb.v1/*.go # gosub
   - gopkg.in/yaml.v2/*.go # gosub
