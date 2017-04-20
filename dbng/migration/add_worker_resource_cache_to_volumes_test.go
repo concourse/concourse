@@ -2,6 +2,8 @@ package migration_test
 
 import (
 	"database/sql"
+	"reflect"
+	"runtime"
 
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/dbng/migration"
@@ -17,11 +19,17 @@ var _ = Describe("AddWorkerResourceCacheToVolumes", func() {
 	var migrator migration.Migrator
 	var migrationsBefore []migration.Migrator
 
+	functionName := func(f interface{}) string {
+		return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+	}
+
 	BeforeEach(func() {
 		migrator = migrations.AddWorkerResourceCacheToVolumes
+		migratorName := functionName(migrator)
+
 		migrationsBefore = []migration.Migrator{}
-		for i, m := range migrations.Migrations {
-			if i > 145 { // unfortunately you cannot compare functions
+		for _, m := range migrations.Migrations {
+			if migratorName == functionName(m) {
 				break
 			}
 

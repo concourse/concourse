@@ -264,15 +264,10 @@ var _ = Describe("Pool", func() {
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
 			})
 
-			It("returns all workers satisfying the spec in a random order", func() {
-				firstCount := map[Worker]int{workerA: 0, workerB: 0}
-				for i := 0; i < 100; i++ {
-					satisfyingWorkers, satisfyingErr = pool.AllSatisfying(spec, resourceTypes)
-					Expect(satisfyingErr).NotTo(HaveOccurred())
-					Expect(satisfyingWorkers).To(ConsistOf(workerA, workerB))
-					firstCount[satisfyingWorkers[0]]++
-				}
-				Expect(firstCount[workerA]).To(BeNumerically("~", firstCount[workerB], 50))
+			It("returns all workers satisfying the spec", func() {
+				satisfyingWorkers, satisfyingErr = pool.AllSatisfying(spec, resourceTypes)
+				Expect(satisfyingErr).NotTo(HaveOccurred())
+				Expect(satisfyingWorkers).To(ConsistOf(workerA, workerB))
 			})
 
 			Context("when no workers satisfy the spec", func() {

@@ -13,21 +13,26 @@ func (s *Server) UnpauseResource(pipelineDB db.PipelineDB, _ dbng.Pipeline) http
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := rata.Param(r, "resource_name")
 
+		logger := s.logger.Session("unpause-resource", lager.Data{
+			"resource": resourceName,
+		})
+
 		_, found, err := pipelineDB.GetResource(resourceName)
 		if err != nil {
-			s.logger.Error("failed-to-get-resource", err)
+			logger.Error("failed-to-get-resource", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if !found {
-			s.logger.Debug("resource-not-found", lager.Data{"resource": resourceName})
+			logger.Info("resource-not-found")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
 		err = pipelineDB.UnpauseResource(resourceName)
 		if err != nil {
+			logger.Error("failed-to-unpause", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

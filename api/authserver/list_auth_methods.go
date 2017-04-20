@@ -19,23 +19,25 @@ import (
 const BasicAuthDisplayName = "Basic Auth"
 
 func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("list-auth-methods")
+
 	teamName := r.FormValue(":team_name")
 	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 	team, found, err := teamDB.GetTeam()
 	if err != nil {
-		s.logger.Error("failed-to-get-team", err)
+		logger.Error("failed-to-get-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	if !found {
-		s.logger.Info("team-not-found")
+		logger.Info("team-not-found")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	methods, err := s.authMethods(team)
 	if err != nil {
-		s.logger.Error("failed-to-get-auth-methods", err)
+		logger.Error("failed-to-get-auth-methods", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

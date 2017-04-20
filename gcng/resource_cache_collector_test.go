@@ -108,9 +108,23 @@ var _ = Describe("ResourceCacheCollector", func() {
 						Expect(tx.Commit()).NotTo(HaveOccurred())
 					})
 
-					It("leaves it alone", func() {
-						Expect(collector.Run()).To(Succeed())
-						Expect(countResourceCaches()).NotTo(BeZero())
+					Context("when pipeline is paused", func() {
+						BeforeEach(func() {
+							err := defaultPipeline.Pause()
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("removes the cache", func() {
+							Expect(collector.Run()).To(Succeed())
+							Expect(countResourceCaches()).To(BeZero())
+						})
+					})
+
+					Context("when pipeline is not paused", func() {
+						It("leaves it alone", func() {
+							Expect(collector.Run()).To(Succeed())
+							Expect(countResourceCaches()).NotTo(BeZero())
+						})
 					})
 				})
 

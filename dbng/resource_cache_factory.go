@@ -198,7 +198,10 @@ func (f *resourceCacheFactory) CleanUpInvalidCaches() error {
 		Join("resources r ON r.id = vr.resource_id").
 		Join("resource_caches rc ON rc.version = vr.version").
 		Join("resource_configs rf ON rc.resource_config_id = rf.id").
+		Join("jobs j ON nbi.job_id = j.id").
+		Join("pipelines p ON j.pipeline_id = p.id").
 		Where(sq.Expr("r.source_hash = rf.source_hash")).
+		Where(sq.Expr("p.paused = false")).
 		ToSql()
 	if err != nil {
 		return err
