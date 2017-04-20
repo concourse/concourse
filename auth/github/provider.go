@@ -27,14 +27,15 @@ const DisplayName = "GitHub"
 var Scopes = []string{"read:org"}
 
 type GitHubAuthConfig struct {
-	ClientID      string             `json:"client_id"     long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
-	ClientSecret  string             `json:"client_secret" long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
-	Organizations []string           `json:"organizations" long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
-	Teams         []GitHubTeamConfig `json:"teams"         long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
-	Users         []string           `json:"users"         long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
-	AuthURL       string             `json:"auth_url"      long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise."`
-	TokenURL      string             `json:"token_url"     long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise."`
-	APIURL        string             `json:"api_url"       long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
+	ClientID     string `json:"client_id"     long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
+	ClientSecret string `json:"client_secret" long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
+
+	Organizations []string           `json:"organizations,omitempty" long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
+	Teams         []GitHubTeamConfig `json:"teams,omitempty"         long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
+	Users         []string           `json:"users,omitempty"         long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
+	AuthURL       string             `json:"auth_url,omitempty"      long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise."`
+	TokenURL      string             `json:"token_url,omitempty"     long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise."`
+	APIURL        string             `json:"api_url,omitempty"       long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
 }
 
 func (*GitHubAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
@@ -81,8 +82,8 @@ func (auth *GitHubAuthConfig) Validate() error {
 }
 
 type GitHubTeamConfig struct {
-	OrganizationName string
-	TeamName         string
+	OrganizationName string `json:"organization_name,omitempty"`
+	TeamName         string `json:"team_name,omitempty"`
 }
 
 func (flag *GitHubTeamConfig) UnmarshalFlag(value string) error {

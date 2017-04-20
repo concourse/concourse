@@ -39,13 +39,14 @@ func init() {
 }
 
 type GenericOAuthConfig struct {
-	DisplayName   string            `json:"display_name"      long:"display-name"    description:"Name for this auth method on the web UI."`
-	ClientID      string            `json:"client_id"         long:"client-id"       description:"Application client ID for enabling generic OAuth."`
-	ClientSecret  string            `json:"client_secret"     long:"client-secret"   description:"Application client secret for enabling generic OAuth."`
-	AuthURL       string            `json:"auth_url"          long:"auth-url"        description:"Generic OAuth provider AuthURL endpoint."`
-	AuthURLParams map[string]string `json:"auth_url_params"   long:"auth-url-param"  description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
-	Scope         string            `json:"scope"             long:"scope"           description:"Optional scope required to authorize user"`
-	TokenURL      string            `json:"token_url"         long:"token-url"       description:"Generic OAuth provider TokenURL endpoint."`
+	DisplayName  string `json:"display_name"      long:"display-name"    description:"Name for this auth method on the web UI."`
+	ClientID     string `json:"client_id"         long:"client-id"       description:"Application client ID for enabling generic OAuth."`
+	ClientSecret string `json:"client_secret"     long:"client-secret"   description:"Application client secret for enabling generic OAuth."`
+
+	AuthURL       string            `json:"auth_url,omitempty"          long:"auth-url"        description:"Generic OAuth provider AuthURL endpoint."`
+	AuthURLParams map[string]string `json:"auth_url_params,omitempty"   long:"auth-url-param"  description:"Parameter to pass to the authentication server AuthURL. Can be specified multiple times."`
+	Scope         string            `json:"scope,omitempty"             long:"scope"           description:"Optional scope required to authorize user"`
+	TokenURL      string            `json:"token_url,omitempty"         long:"token-url"       description:"Generic OAuth provider TokenURL endpoint."`
 }
 
 func (config *GenericOAuthConfig) AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod {
