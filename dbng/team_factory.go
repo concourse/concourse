@@ -135,13 +135,10 @@ func (factory *teamFactory) GetTeams() ([]Team, error) {
 		}
 
 		err = scanTeam(team, rows)
-
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
 			return nil, err
 		}
+
 		teams = append(teams, team)
 	}
 

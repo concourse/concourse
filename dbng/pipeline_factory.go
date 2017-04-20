@@ -1,8 +1,6 @@
 package dbng
 
 import (
-	"database/sql"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc/db/lock"
 )
@@ -48,9 +46,6 @@ func (f *pipelineFactory) PublicPipelines() ([]Pipeline, error) {
 
 	pipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
 

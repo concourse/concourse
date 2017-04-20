@@ -617,9 +617,6 @@ func (t *team) SavePipeline(
 			QueryRow(),
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
 		return nil, false, err
 	}
 

@@ -232,6 +232,7 @@ func (b *build) Start(engine, metadata string) (bool, error) {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
+		return false, err
 	}
 
 	err = b.saveEvent(tx, event.Status{
@@ -974,10 +975,6 @@ func scanBuild(b *build, row scannable) error {
 
 	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil
-		}
-
 		return err
 	}
 
