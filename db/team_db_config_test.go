@@ -536,20 +536,6 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		Expect(otherPipeline.ID).NotTo(Equal(0))
 	})
 
-	It("can lookup configs by build id", func() {
-		savedPipeline, _, err := teamDB.SaveConfigToBeDeprecated("my-pipeline", config, 0, db.PipelineUnpaused)
-		Expect(err).NotTo(HaveOccurred())
-
-		myPipelineDB := pipelineDBFactory.Build(savedPipeline)
-
-		build, err := myPipelineDB.CreateJobBuild("some-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		gottenConfig, _, err := build.GetConfig()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(gottenConfig).To(Equal(config))
-	})
-
 	It("can manage multiple pipeline configurations", func() {
 		pipelineName := "a-pipeline-name"
 		otherPipelineName := "an-other-pipeline-name"

@@ -30,16 +30,10 @@ type Pipeline interface {
 	Reload() (bool, error)
 
 	SaveJob(job atc.JobConfig) error
-	PauseJob(job string) error
-	UnpauseJob(job string) error
 	SetMaxInFlightReached(string, bool) error
-	CreateJobBuild(jobName string) (Build, error)
-	NextBuildInputs(jobName string) ([]BuildInput, bool, error)
 
 	SetResourceCheckError(Resource, error) error
 
-	EnsurePendingBuildExists(jobName string) error
-	GetPendingBuildsForJob(jobName string) ([]Build, error)
 	GetAllPendingBuilds() (map[string][]Build, error)
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
@@ -50,10 +44,18 @@ type Pipeline interface {
 	EnableVersionedResource(versionedResourceID int) error
 
 	SaveIndependentInputMapping(inputMapping algorithm.InputMapping, jobName string) error
-	GetIndependentBuildInputs(jobName string) ([]BuildInput, error)
 	SaveNextInputMapping(inputMapping algorithm.InputMapping, jobName string) error
+
+	// TODO: move to job
+	GetIndependentBuildInputs(jobName string) ([]BuildInput, error)
 	GetNextBuildInputs(jobName string) ([]BuildInput, bool, error)
 	DeleteNextInputMapping(jobName string) error
+	EnsurePendingBuildExists(jobName string) error
+	GetPendingBuildsForJob(jobName string) ([]Build, error)
+	CreateJobBuild(jobName string) (Build, error)
+	NextBuildInputs(jobName string) ([]BuildInput, bool, error)
+	PauseJob(job string) error
+	UnpauseJob(job string) error
 
 	AcquireResourceCheckingLockWithIntervalCheck(
 		logger lager.Logger,
@@ -165,7 +167,7 @@ func (p *pipeline) CheckPaused() (bool, error) {
 
 	err := psql.Select("paused").
 		From("pipelines").
-		Where(sq.Eq{"p.id": p.id}).
+		Where(sq.Eq{"id": p.id}).
 		RunWith(p.conn).
 		QueryRow().
 		Scan(&paused)

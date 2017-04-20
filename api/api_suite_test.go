@@ -52,7 +52,6 @@ var (
 	dbWorkerFactory               *dbngfakes.FakeWorkerFactory
 	dbWorkerLifecycle             *dbngfakes.FakeWorkerLifecycle
 	teamDB                        *dbfakes.FakeTeamDB
-	pipelinesDB                   *dbfakes.FakePipelinesDB
 	build                         *dbngfakes.FakeBuild
 	dbBuildFactory                *dbngfakes.FakeBuildFactory
 	dbTeam                        *dbngfakes.FakeTeam
@@ -112,7 +111,6 @@ var _ = BeforeEach(func() {
 	teamDB = new(dbfakes.FakeTeamDB)
 	teamDBFactory.GetTeamDBReturns(teamDB)
 	pipeDB = new(pipesfakes.FakePipeDB)
-	pipelinesDB = new(dbfakes.FakePipelinesDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
@@ -187,7 +185,6 @@ var _ = BeforeEach(func() {
 		dbBuildFactory,
 
 		pipeDB,
-		pipelinesDB,
 
 		peerAddr,
 		constructedEventHandler.Construct,

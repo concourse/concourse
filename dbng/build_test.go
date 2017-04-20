@@ -838,6 +838,7 @@ var _ = Describe("Build", func() {
 			var (
 				build dbng.Build
 				found bool
+				f     bool
 			)
 
 			BeforeEach(func() {
@@ -860,27 +861,29 @@ var _ = Describe("Build", func() {
 				found, err = build.Schedule()
 				Expect(err).ToNot(HaveOccurred())
 
-				var f bool
 				f, err = build.Reload()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(f).To(BeTrue())
 			})
 
-			Context("when build is not scheduled", func() {
+			Context("when build exists", func() {
 				It("sets the build to scheduled", func() {
+					Expect(f).To(BeTrue())
 					Expect(found).To(BeTrue())
 					Expect(build.IsScheduled()).To(BeTrue())
 				})
 			})
 
-			Context("when build is already scheduled", func() {
+			Context("when the build does not exist", func() {
+				var found2 bool
 				BeforeEach(func() {
-					found, err := build.Delete()
-					Expect(found).To(BeTrue())
+					var err error
+					found2, err = build.Delete()
 					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("returns false", func() {
+					Expect(f).To(BeFalse())
+					Expect(found2).To(BeTrue())
 					Expect(found).To(BeFalse())
 				})
 			})

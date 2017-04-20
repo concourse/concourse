@@ -142,10 +142,6 @@ func (b *build) IsRunning() bool {
 	}
 }
 
-func (b *build) IsOneOff() bool {
-	return b.jobID == 0
-}
-
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
 		RunWith(b.conn).

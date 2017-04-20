@@ -41,7 +41,7 @@ func (factory *teamFactory) CreateTeam(t atc.Team) (Team, error) {
 
 	defer tx.Rollback()
 
-	encryptedBasicAuthJSON, err := t.BasicAuth.EncryptedJSON()
+	encryptedBasicAuthJSON, err := encryptedJSON(t.BasicAuth)
 	if err != nil {
 		return nil, err
 	}

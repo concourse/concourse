@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
@@ -846,7 +848,7 @@ func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, erro
 }
 
 func (t *team) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
-	encryptedBasicAuth, err := basicAuth.EncryptedJSON()
+	encryptedBasicAuth, err := encryptedJSON(basicAuth)
 	if err != nil {
 		return err
 	}
@@ -1132,4 +1134,21 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 	}
 
 	return nil
+}
+
+func encryptedJSON(b *atc.BasicAuth) (string, error) {
+	var result *atc.BasicAuth
+	if b != nil && b.BasicAuthUsername != "" && b.BasicAuthPassword != "" {
+		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(b.BasicAuthPassword), 4)
+		if err != nil {
+			return "", err
+		}
+		result = &atc.BasicAuth{
+			BasicAuthPassword: string(encryptedPw),
+			BasicAuthUsername: b.BasicAuthUsername,
+		}
+	}
+
+	json, err := json.Marshal(result)
+	return string(json), err
 }

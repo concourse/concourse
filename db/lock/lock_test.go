@@ -296,68 +296,6 @@ var _ = Describe("Locks", func() {
 		})
 	})
 
-	Describe("GetPendingBuildsForJob/GetAllPendingBuilds", func() {
-		Context("when a build is created", func() {
-			BeforeEach(func() {
-				_, err := pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns the build", func() {
-				pendingBuildsForJob, err := pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pendingBuildsForJob).To(HaveLen(1))
-
-				pendingBuilds, err := pipelineDB.GetAllPendingBuilds()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pendingBuilds).To(HaveLen(1))
-				Expect(pendingBuilds["some-job"]).NotTo(BeNil())
-			})
-		})
-	})
-
-	Describe("EnsurePendingBuildExists", func() {
-		Context("when only a started build exists", func() {
-			BeforeEach(func() {
-				build1, err := pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				started, err := build1.Start("some-engine", "some-metadata")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(started).To(BeTrue())
-			})
-
-			It("creates a build", func() {
-				err := pipelineDB.EnsurePendingBuildExists("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				pendingBuildsForJob, err := pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pendingBuildsForJob).To(HaveLen(1))
-			})
-
-			It("doesn't create another build the second time it's called", func() {
-				err := pipelineDB.EnsurePendingBuildExists("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				err = pipelineDB.EnsurePendingBuildExists("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				builds2, err := pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(builds2).To(HaveLen(1))
-
-				started, err := builds2[0].Start("some-engine", "some-metadata")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(started).To(BeTrue())
-
-				builds2, err = pipelineDB.GetPendingBuildsForJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(builds2).To(HaveLen(0))
-			})
-		})
-	})
-
 	Describe("taking out a lock on build tracking", func() {
 		var build db.Build
 

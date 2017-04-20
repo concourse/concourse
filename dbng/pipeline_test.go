@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -22,12 +23,46 @@ var _ = Describe("Pipeline", func() {
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 		Expect(err).ToNot(HaveOccurred())
 
-		pipeline, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+		var created bool
+		pipeline, created, err = team.SavePipeline("fake-pipeline", atc.Config{
 			Jobs: atc.JobConfigs{
 				{Name: "job-name"},
 			},
-		}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+			Resources: atc.ResourceConfigs{
+				{Name: "resource-name"},
+			},
+		}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 		Expect(err).ToNot(HaveOccurred())
+		Expect(created).To(BeTrue())
+	})
+
+	Describe("CheckPaused", func() {
+		var paused bool
+		JustBeforeEach(func() {
+			var err error
+			paused, err = pipeline.CheckPaused()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the pipeline is unpaused", func() {
+			BeforeEach(func() {
+				Expect(pipeline.Unpause()).To(Succeed())
+			})
+
+			It("returns the pipeline is paused", func() {
+				Expect(paused).To(BeFalse())
+			})
+		})
+
+		Context("when the pipeline is paused", func() {
+			BeforeEach(func() {
+				Expect(pipeline.Pause()).To(Succeed())
+			})
+
+			It("returns the pipeline is paused", func() {
+				Expect(paused).To(BeTrue())
+			})
+		})
 	})
 
 	Describe("Pause", func() {
@@ -1902,6 +1937,131 @@ var _ = Describe("Pipeline", func() {
 						InputName: "enabled-input",
 					},
 				))
+			})
+		})
+	})
+
+	Describe("Destroy", func() {
+		It("removes the pipeline and all of its data", func() {
+			By("populating resources table")
+			resource, found, err := pipeline.Resource("resource-name")
+			Expect(found).To(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+
+			By("populating resource versions")
+			err = pipeline.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name(),
+				Type:   resource.Type(),
+				Source: resource.Source(),
+			}, []atc.Version{
+				{
+					"key": "value",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("populating builds")
+			build, err := pipeline.CreateJobBuild("job-name")
+			Expect(err).NotTo(HaveOccurred())
+
+			By("populating build inputs")
+			err = build.SaveInput(dbng.BuildInput{
+				Name: "build-input",
+				VersionedResource: dbng.VersionedResource{
+					Resource: "resource-name",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("populating build outputs")
+			err = build.SaveOutput(dbng.VersionedResource{
+				Resource: "resource-name",
+			}, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("populating build events")
+			err = build.SaveEvent(event.StartTask{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// populate image_resource_versions table
+			err = build.SaveImageResourceVersion("some-plan-id", atc.Version{"digest": "readers"}, `docker{"some":"source"}`)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = pipeline.Destroy()
+			Expect(err).NotTo(HaveOccurred())
+
+			found, err = pipeline.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			found, err = build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			_, found, err = team.Pipeline(pipeline.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+	})
+
+	Describe("EnsurePendingBuildExists", func() {
+		Context("when only a started build exists", func() {
+			BeforeEach(func() {
+				build1, err := pipeline.CreateJobBuild("job-name")
+				Expect(err).NotTo(HaveOccurred())
+
+				started, err := build1.Start("some-engine", "some-metadata")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(started).To(BeTrue())
+			})
+
+			It("creates a build", func() {
+				err := pipeline.EnsurePendingBuildExists("job-name")
+				Expect(err).NotTo(HaveOccurred())
+
+				pendingBuildsForJob, err := pipeline.GetPendingBuildsForJob("job-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pendingBuildsForJob).To(HaveLen(1))
+			})
+
+			It("doesn't create another build the second time it's called", func() {
+				err := pipeline.EnsurePendingBuildExists("job-name")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = pipeline.EnsurePendingBuildExists("job-name")
+				Expect(err).NotTo(HaveOccurred())
+
+				builds2, err := pipeline.GetPendingBuildsForJob("job-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builds2).To(HaveLen(1))
+
+				started, err := builds2[0].Start("some-engine", "some-metadata")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(started).To(BeTrue())
+
+				builds2, err = pipeline.GetPendingBuildsForJob("job-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builds2).To(HaveLen(0))
+			})
+		})
+	})
+
+	Describe("GetPendingBuildsForJob/GetAllPendingBuilds", func() {
+		Context("when a build is created", func() {
+			BeforeEach(func() {
+				_, err := pipeline.CreateJobBuild("job-name")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns the build", func() {
+				pendingBuildsForJob, err := pipeline.GetPendingBuildsForJob("job-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pendingBuildsForJob).To(HaveLen(1))
+
+				pendingBuilds, err := pipeline.GetAllPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pendingBuilds).To(HaveLen(1))
+				Expect(pendingBuilds["job-name"]).NotTo(BeNil())
 			})
 		})
 	})

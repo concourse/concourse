@@ -1,10 +1,6 @@
 package atc
 
-import (
-	"encoding/json"
-
-	"golang.org/x/crypto/bcrypt"
-)
+import "encoding/json"
 
 type Team struct {
 	ID   int    `json:"id,omitempty"`
@@ -18,21 +14,4 @@ type Team struct {
 type BasicAuth struct {
 	BasicAuthUsername string `json:"basic_auth_username,omitempty"`
 	BasicAuthPassword string `json:"basic_auth_password,omitempty"`
-}
-
-func (auth *BasicAuth) EncryptedJSON() (string, error) {
-	var result *BasicAuth
-	if auth != nil && auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {
-		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(auth.BasicAuthPassword), 4)
-		if err != nil {
-			return "", err
-		}
-		result = &BasicAuth{
-			BasicAuthPassword: string(encryptedPw),
-			BasicAuthUsername: auth.BasicAuthUsername,
-		}
-	}
-
-	json, err := json.Marshal(result)
-	return string(json), err
 }

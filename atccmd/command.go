@@ -876,7 +876,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		dbBuildFactory,
 
 		sqlDB, // pipes.PipeDB
-		sqlDB, // db.PipelinesDB
 
 		cmd.PeerURL.String(),
 		buildserver.NewEventHandler,

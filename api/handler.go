@@ -55,7 +55,6 @@ func NewHandler(
 	dbBuildFactory dbng.BuildFactory,
 
 	pipeDB pipes.PipeDB,
-	pipelinesDB db.PipelinesDB,
 
 	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
