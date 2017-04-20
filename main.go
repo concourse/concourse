@@ -5,16 +5,30 @@ import (
 	"net"
 	"os"
 
+	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/fly/commands"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/jessevdk/go-flags"
+
+	_ "github.com/concourse/atc/auth/genericoauth"
+	_ "github.com/concourse/atc/auth/github"
+	_ "github.com/concourse/atc/auth/uaa"
 )
 
 func main() {
 	parser := flags.NewParser(&commands.Fly, flags.HelpFlag|flags.PassDoubleDash)
 	parser.NamespaceDelimiter = "-"
+
+	setTeamCommand := parser.Find("set-team")
+	authConfigs := make(provider.AuthConfigs)
+
+	for name, p := range provider.GetProviders() {
+		authConfigs[name] = p.AddAuthGroup(setTeamCommand.Group)
+	}
+
+	commands.Fly.SetTeam.ProviderAuth = authConfigs
 
 	_, err := parser.Parse()
 	if err != nil {
