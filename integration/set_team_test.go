@@ -545,21 +545,23 @@ var _ = Describe("Fly CLI", func() {
 								"basic_auth_username": "brock obama",
 								"basic_auth_password": "brock123"
 							},
-							"github_auth": {
-								"client_id": "barack samson",
-								"client_secret": "barack123",
-								"organizations": ["Obama, Inc", "Samson, Inc"],
-								"teams": [{"organization_name": "Venture, Inc", "team_name": "venture-devs"}],
-								"users": ["lisa", "frank"]
-							},
-							"uaa_auth": {
-								"client_id": "barack samson",
-								"client_secret": "barack123",
-								"auth_url": "http://uaa.auth.url",
-								"token_url": "http://uaa.token.url",
-								"cf_spaces": ["Obama, Inc", "Samson, Inc"],
-								"cf_url": "http://cf.url",
-								"cf_ca_cert": "cf-cert-contents"
+							"auth": {
+								"github": {
+									"client_id": "barack samson",
+									"client_secret": "barack123",
+									"organizations": ["Obama, Inc", "Samson, Inc"],
+									"teams": [{"organization_name": "Venture, Inc", "team_name": "venture-devs"}],
+									"users": ["lisa", "frank"]
+								},
+								"uaa": {
+									"client_id": "barack samson",
+									"client_secret": "barack123",
+									"auth_url": "http://uaa.auth.url",
+									"token_url": "http://uaa.token.url",
+									"cf_spaces": ["Obama, Inc", "Samson, Inc"],
+									"cf_url": "http://cf.url",
+									"cf_ca_cert": "cf-cert-contents"
+								}
 							}
 						}`),
 						ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Team{
@@ -660,34 +662,36 @@ var _ = Describe("Fly CLI", func() {
 								"basic_auth_username": "brock obama",
 								"basic_auth_password": "brock123"
 							},
-							"github_auth": {
-								"client_id": "barack samson",
-								"client_secret": "barack123",
-								"organizations": ["Obama, Inc", "Samson, Inc"],
-								"teams": [{"organization_name": "Venture, Inc", "team_name": "venture-devs"}],
-								"users": ["lisa", "frank"],
-								"auth_url": "http://enterprise.github.com/authorize",
-								"token_url": "http://enterprise.github.com/token",
-								"api_url": "http://enterprise.github.com/api"
-							},
-							"uaa_auth": {
-								"client_id": "barack samson",
-								"client_secret": "barack123",
-								"auth_url": "http://uaa.auth.url",
-								"token_url": "http://uaa.token.url",
-								"cf_spaces": ["Obama, Inc", "Samson, Inc"],
-								"cf_url": "http://cf.url"
-							},
-							"genericoauth_auth": {
-								"display_name": "generic cool name",
-								"client_id": "barack samson",
-								"client_secret": "barack123",
-								"auth_url": "http://goa.auth.url",
-								"auth_url_params": {
-									"param1": "value1",
-									"param2": "value2"
+							"auth": {
+								"github": {
+									"client_id": "barack samson",
+									"client_secret": "barack123",
+									"organizations": ["Obama, Inc", "Samson, Inc"],
+									"teams": [{"organization_name": "Venture, Inc", "team_name": "venture-devs"}],
+									"users": ["lisa", "frank"],
+									"auth_url": "http://enterprise.github.com/authorize",
+									"token_url": "http://enterprise.github.com/token",
+									"api_url": "http://enterprise.github.com/api"
 								},
-								"token_url": "http://goa.token.url"
+								"oauth": {
+									"display_name": "generic cool name",
+									"client_id": "barack samson",
+									"client_secret": "barack123",
+									"auth_url": "http://goa.auth.url",
+									"auth_url_params": {
+										"param1": "value1",
+										"param2": "value2"
+									},
+									"token_url": "http://goa.token.url"
+								},
+								"uaa": {
+									"client_id": "barack samson",
+									"client_secret": "barack123",
+									"auth_url": "http://uaa.auth.url",
+									"token_url": "http://uaa.token.url",
+									"cf_spaces": ["Obama, Inc", "Samson, Inc"],
+									"cf_url": "http://cf.url"
+								}
 							}
 						}`),
 						ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Team{
