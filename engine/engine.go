@@ -3,7 +3,7 @@ package engine
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 //go:generate counterfeiter . Engine
@@ -11,8 +11,8 @@ import (
 type Engine interface {
 	Name() string
 
-	CreateBuild(lager.Logger, db.Build, atc.Plan) (Build, error)
-	LookupBuild(lager.Logger, db.Build) (Build, error)
+	CreateBuild(lager.Logger, dbng.Build, atc.Plan) (Build, error)
+	LookupBuild(lager.Logger, dbng.Build) (Build, error)
 	ReleaseAll(lager.Logger)
 }
 

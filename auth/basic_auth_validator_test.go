@@ -11,30 +11,29 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng/dbngfakes"
 )
 
 var _ = Describe("BasicAuthValidator", func() {
 	username := "username"
 	password := "password"
 
-	var validator auth.Validator
-
+	var (
+		validator auth.Validator
+		fakeTeam  *dbngfakes.FakeTeam
+	)
 	BeforeEach(func() {
+		fakeTeam = new(dbngfakes.FakeTeam)
 		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 4)
 		Expect(err).ToNot(HaveOccurred())
 
-		team := db.SavedTeam{
-			Team: db.Team{
-				Name: atc.DefaultTeamName,
-				BasicAuth: &db.BasicAuth{
-					BasicAuthUsername: username,
-					BasicAuthPassword: string(encryptedPassword),
-				},
-			},
-		}
+		fakeTeam.NameReturns(atc.DefaultTeamName)
+		fakeTeam.BasicAuthReturns(&atc.BasicAuth{
+			BasicAuthUsername: username,
+			BasicAuthPassword: string(encryptedPassword),
+		})
 
-		validator = auth.NewBasicAuthValidator(team)
+		validator = auth.NewBasicAuthValidator(fakeTeam)
 	})
 
 	Describe("IsAuthenticated", func() {

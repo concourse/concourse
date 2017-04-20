@@ -33,17 +33,18 @@ type FakeResourceFactory struct {
 		result1 resource.Resource
 		result2 error
 	}
-	NewCheckResourceStub        func(logger lager.Logger, signals <-chan os.Signal, resourceUser dbng.ResourceUser, metadata dbng.ContainerMetadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, resourceConfig atc.ResourceConfig) (resource.Resource, error)
+	NewCheckResourceStub        func(logger lager.Logger, signals <-chan os.Signal, resourceUser dbng.ResourceUser, resourceType string, resourceSource atc.Source, metadata dbng.ContainerMetadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error)
 	newCheckResourceMutex       sync.RWMutex
 	newCheckResourceArgsForCall []struct {
 		logger                lager.Logger
 		signals               <-chan os.Signal
 		resourceUser          dbng.ResourceUser
+		resourceType          string
+		resourceSource        atc.Source
 		metadata              dbng.ContainerMetadata
 		resourceSpec          worker.ContainerSpec
 		resourceTypes         atc.VersionedResourceTypes
 		imageFetchingDelegate worker.ImageFetchingDelegate
-		resourceConfig        atc.ResourceConfig
 	}
 	newCheckResourceReturns struct {
 		result1 resource.Resource
@@ -115,23 +116,24 @@ func (fake *FakeResourceFactory) NewPutResourceReturnsOnCall(i int, result1 reso
 	}{result1, result2}
 }
 
-func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, signals <-chan os.Signal, resourceUser dbng.ResourceUser, metadata dbng.ContainerMetadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate, resourceConfig atc.ResourceConfig) (resource.Resource, error) {
+func (fake *FakeResourceFactory) NewCheckResource(logger lager.Logger, signals <-chan os.Signal, resourceUser dbng.ResourceUser, resourceType string, resourceSource atc.Source, metadata dbng.ContainerMetadata, resourceSpec worker.ContainerSpec, resourceTypes atc.VersionedResourceTypes, imageFetchingDelegate worker.ImageFetchingDelegate) (resource.Resource, error) {
 	fake.newCheckResourceMutex.Lock()
 	ret, specificReturn := fake.newCheckResourceReturnsOnCall[len(fake.newCheckResourceArgsForCall)]
 	fake.newCheckResourceArgsForCall = append(fake.newCheckResourceArgsForCall, struct {
 		logger                lager.Logger
 		signals               <-chan os.Signal
 		resourceUser          dbng.ResourceUser
+		resourceType          string
+		resourceSource        atc.Source
 		metadata              dbng.ContainerMetadata
 		resourceSpec          worker.ContainerSpec
 		resourceTypes         atc.VersionedResourceTypes
 		imageFetchingDelegate worker.ImageFetchingDelegate
-		resourceConfig        atc.ResourceConfig
-	}{logger, signals, resourceUser, metadata, resourceSpec, resourceTypes, imageFetchingDelegate, resourceConfig})
-	fake.recordInvocation("NewCheckResource", []interface{}{logger, signals, resourceUser, metadata, resourceSpec, resourceTypes, imageFetchingDelegate, resourceConfig})
+	}{logger, signals, resourceUser, resourceType, resourceSource, metadata, resourceSpec, resourceTypes, imageFetchingDelegate})
+	fake.recordInvocation("NewCheckResource", []interface{}{logger, signals, resourceUser, resourceType, resourceSource, metadata, resourceSpec, resourceTypes, imageFetchingDelegate})
 	fake.newCheckResourceMutex.Unlock()
 	if fake.NewCheckResourceStub != nil {
-		return fake.NewCheckResourceStub(logger, signals, resourceUser, metadata, resourceSpec, resourceTypes, imageFetchingDelegate, resourceConfig)
+		return fake.NewCheckResourceStub(logger, signals, resourceUser, resourceType, resourceSource, metadata, resourceSpec, resourceTypes, imageFetchingDelegate)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -145,10 +147,10 @@ func (fake *FakeResourceFactory) NewCheckResourceCallCount() int {
 	return len(fake.newCheckResourceArgsForCall)
 }
 
-func (fake *FakeResourceFactory) NewCheckResourceArgsForCall(i int) (lager.Logger, <-chan os.Signal, dbng.ResourceUser, dbng.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes, worker.ImageFetchingDelegate, atc.ResourceConfig) {
+func (fake *FakeResourceFactory) NewCheckResourceArgsForCall(i int) (lager.Logger, <-chan os.Signal, dbng.ResourceUser, string, atc.Source, dbng.ContainerMetadata, worker.ContainerSpec, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) {
 	fake.newCheckResourceMutex.RLock()
 	defer fake.newCheckResourceMutex.RUnlock()
-	return fake.newCheckResourceArgsForCall[i].logger, fake.newCheckResourceArgsForCall[i].signals, fake.newCheckResourceArgsForCall[i].resourceUser, fake.newCheckResourceArgsForCall[i].metadata, fake.newCheckResourceArgsForCall[i].resourceSpec, fake.newCheckResourceArgsForCall[i].resourceTypes, fake.newCheckResourceArgsForCall[i].imageFetchingDelegate, fake.newCheckResourceArgsForCall[i].resourceConfig
+	return fake.newCheckResourceArgsForCall[i].logger, fake.newCheckResourceArgsForCall[i].signals, fake.newCheckResourceArgsForCall[i].resourceUser, fake.newCheckResourceArgsForCall[i].resourceType, fake.newCheckResourceArgsForCall[i].resourceSource, fake.newCheckResourceArgsForCall[i].metadata, fake.newCheckResourceArgsForCall[i].resourceSpec, fake.newCheckResourceArgsForCall[i].resourceTypes, fake.newCheckResourceArgsForCall[i].imageFetchingDelegate
 }
 
 func (fake *FakeResourceFactory) NewCheckResourceReturns(result1 resource.Resource, result2 error) {

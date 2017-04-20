@@ -23,11 +23,6 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("Run", func() {
 		Describe("config uses", func() {
 			var (
@@ -272,7 +267,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 			})
 
 			Describe("for resources", func() {
-				setActiveResource := func(resource *dbng.Resource, active bool) {
+				setActiveResource := func(resource dbng.Resource, active bool) {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
@@ -281,7 +276,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 					err = psql.Update("resources").
 						Set("active", active).
 						Where(sq.Eq{
-							"id": resource.ID,
+							"id": resource.ID(),
 						}).Suffix("RETURNING id").
 						RunWith(tx).
 						QueryRow().Scan(&id)
@@ -294,7 +289,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForResource(usedResource.ID),
+						dbng.ForResource(usedResource.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
@@ -342,8 +337,8 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 								Resources: []atc.ResourceConfig{
 									{
 										Name:   "another-resource",
-										Type:   usedResource.Type,
-										Source: usedResource.Source,
+										Type:   usedResource.Type(),
+										Source: usedResource.Source(),
 									},
 								},
 							},
@@ -360,10 +355,10 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForResource(anotherResource.ID),
+							dbng.ForResource(anotherResource.ID()),
 							"some-type",
 							atc.Version{"some-type": "version"},
-							anotherResource.Source,
+							anotherResource.Source(),
 							atc.Params{"some": "params"},
 							atc.VersionedResourceTypes{versionedResourceType},
 						)
@@ -383,7 +378,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				})
 
 				Context("when the config no longer matches the current config", func() {
-					setResourceSourceHash := func(resource *dbng.Resource, hash string) {
+					setResourceSourceHash := func(resource dbng.Resource, hash string) {
 						tx, err := dbConn.Begin()
 						Expect(err).NotTo(HaveOccurred())
 						defer tx.Rollback()
@@ -392,7 +387,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						err = psql.Update("resources").
 							Set("source_hash", hash).
 							Where(sq.Eq{
-								"id": resource.ID,
+								"id": resource.ID(),
 							}).Suffix("RETURNING id").
 							RunWith(tx).
 							QueryRow().Scan(&id)
@@ -405,10 +400,10 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 					BeforeEach(func() {
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForResource(usedResource.ID),
+							dbng.ForResource(usedResource.ID()),
 							"some-type",
 							atc.Version{"some-type": "version"},
-							usedResource.Source,
+							usedResource.Source(),
 							atc.Params{"some": "params"},
 							atc.VersionedResourceTypes{versionedResourceType},
 						)

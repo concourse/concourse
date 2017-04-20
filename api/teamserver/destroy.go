@@ -19,7 +19,6 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamName := r.FormValue(":team_name")
-	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 
 	if !authTeam.IsAdmin() {
 		hLog.Info("requesting-team-is-not-admin")
@@ -27,7 +26,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	savedTeam, found, err := teamDB.GetTeam()
+	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
 		hLog.Error("failed-to-get-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -40,8 +39,8 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if savedTeam.Admin {
-		allTeams, err := s.teamsDB.GetTeams()
+	if team.Admin() {
+		allTeams, err := s.teamFactory.GetTeams()
 		if err != nil {
 			hLog.Error("failed-to-get-teams", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -50,7 +49,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 
 		adminTeams := 0
 		for _, candidate := range allTeams {
-			if candidate.Admin {
+			if candidate.Admin() {
 				adminTeams = adminTeams + 1
 			}
 		}
@@ -62,7 +61,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = s.teamsDB.DeleteTeamByName(teamName)
+	err = team.Delete()
 	if err != nil {
 		hLog.Error("failed-to-delete-team", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -18,6 +18,7 @@ var _ = Describe("ContainerFactory", func() {
 			)
 
 			BeforeEach(func() {
+				var err error
 				build, err = defaultPipeline.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
@@ -27,7 +28,7 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when the build is finded as interceptible", func() {
 				BeforeEach(func() {
-					err = build.SetInterceptible(true)
+					err := build.SetInterceptible(true)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -43,7 +44,7 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when the build is marked as non-interceptible", func() {
 				BeforeEach(func() {
-					err = build.SetInterceptible(false)
+					err := build.SetInterceptible(false)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -121,9 +122,10 @@ var _ = Describe("ContainerFactory", func() {
 			)
 
 			BeforeEach(func() {
+				var err error
 				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 					logger,
-					dbng.ForResource(defaultResource.ID),
+					dbng.ForResource(defaultResource.ID()),
 					"some-base-resource-type",
 					atc.Source{"some": "source"},
 					atc.VersionedResourceTypes{},
@@ -136,7 +138,7 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when check container best if use by date is expired", func() {
 				BeforeEach(func() {
-					_, err = psql.Update("containers").
+					_, err := psql.Update("containers").
 						Set("best_if_used_by", sq.Expr("NOW() - '1 second'::INTERVAL")).
 						Where(sq.Eq{"id": creatingContainer.ID()}).
 						RunWith(dbConn).Exec()
@@ -194,7 +196,7 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when check container best if use by date did not expire", func() {
 				BeforeEach(func() {
-					_, err = psql.Update("containers").
+					_, err := psql.Update("containers").
 						Set("best_if_used_by", sq.Expr("NOW() + '1 hour'::INTERVAL")).
 						Where(sq.Eq{"id": creatingContainer.ID()}).
 						RunWith(dbConn).Exec()
@@ -236,6 +238,7 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when the worker base resource type has a new version", func() {
 				BeforeEach(func() {
+					var err error
 					newlyUpdatedWorker := defaultWorkerPayload
 					newlyUpdatedResource := defaultWorkerPayload.ResourceTypes[0]
 					newlyUpdatedResource.Version = newlyUpdatedResource.Version + "-new"
@@ -258,6 +261,7 @@ var _ = Describe("ContainerFactory", func() {
 
 			Context("when the same worker base resource type is saved", func() {
 				BeforeEach(func() {
+					var err error
 					sameWorker := defaultWorkerPayload
 
 					defaultWorker, err = workerFactory.SaveWorker(sameWorker, 0)
@@ -282,9 +286,10 @@ var _ = Describe("ContainerFactory", func() {
 			)
 
 			BeforeEach(func() {
+				var err error
 				resourceCache, err = resourceCacheFactory.FindOrCreateResourceCache(
 					logger,
-					dbng.ForResource(defaultResource.ID),
+					dbng.ForResource(defaultResource.ID()),
 					"some-base-resource-type",
 					atc.Version{"some": "version"},
 					atc.Source{"some": "source"},
@@ -321,7 +326,7 @@ var _ = Describe("ContainerFactory", func() {
 
 				Context("when container is created", func() {
 					BeforeEach(func() {
-						_, err = creatingContainer.Created()
+						_, err := creatingContainer.Created()
 						Expect(err).NotTo(HaveOccurred())
 					})
 

@@ -25,7 +25,7 @@ func (s *Server) GetUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		savedTeam, found, err := s.teamDBFactory.GetTeamDB(authTeam.Name()).GetTeam()
+		team, found, err := s.teamFactory.FindTeam(authTeam.Name())
 		if err != nil {
 			hLog.Error("failed-to-get-team-from-db", errors.New("failed-to-get-team-from-db"))
 			w.WriteHeader(http.StatusInternalServerError)
@@ -35,7 +35,7 @@ func (s *Server) GetUser(w http.ResponseWriter, r *http.Request) {
 		if !found {
 			hLog.Error("team-not-found-in-db", errors.New("team-not-found-in-db"))
 		} else {
-			presentedTeam := present.Team(savedTeam)
+			presentedTeam := present.Team(team)
 			user = User{
 				Team: &presentedTeam,
 			}

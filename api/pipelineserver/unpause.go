@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) UnpausePipeline(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) UnpausePipeline(_ db.PipelineDB, pipelineDB dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("unpause-pipeline")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := pipelineDB.Unpause()

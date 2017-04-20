@@ -203,7 +203,7 @@ var _ = Describe("Image", func() {
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 									Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-									_, csig, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+									_, csig, user, _, _, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 									Expect(csig).To(Equal(signals))
 									Expect(user).To(Equal(dbng.ForBuild(42)))
 									Expect(metadata).To(Equal(dbng.ContainerMetadata{
@@ -229,7 +229,7 @@ var _ = Describe("Image", func() {
 
 								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 									Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-									_, csig, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+									_, csig, user, _, _, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 									Expect(csig).To(Equal(signals))
 									Expect(user).To(Equal(dbng.ForBuild(42)))
 									Expect(metadata).To(Equal(dbng.ContainerMetadata{
@@ -271,7 +271,7 @@ var _ = Describe("Image", func() {
 
 							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 								Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-								_, csig, user, metadata, resourceSpec, actualCustomTypes, delegate, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+								_, csig, user, _, _, metadata, resourceSpec, actualCustomTypes, delegate := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 								Expect(csig).To(Equal(signals))
 								Expect(user).To(Equal(dbng.ForBuild(42)))
 								Expect(metadata).To(Equal(dbng.ContainerMetadata{

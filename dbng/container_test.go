@@ -11,17 +11,16 @@ var _ = Describe("Container", func() {
 	var (
 		creatingContainer dbng.CreatingContainer
 		expectedHandles   []string
+		defaultBuild      dbng.Build
 	)
 
 	BeforeEach(func() {
 		var err error
+		defaultBuild, err = defaultTeam.CreateOneOffBuild()
+		Expect(err).NotTo(HaveOccurred())
+
 		creatingContainer, err = defaultTeam.CreateBuildContainer(defaultWorker.Name(), defaultBuild.ID(), "some-plan", fullMetadata)
 		Expect(err).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Describe("Metadata", func() {

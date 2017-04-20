@@ -39,7 +39,6 @@ func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.TeamDB, 
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
 		teamDB := f.teamDBFactory.GetTeamDB(authTeam.Name())
 		team, found, err := f.teamFactory.FindTeam(authTeam.Name())
 		if err != nil {

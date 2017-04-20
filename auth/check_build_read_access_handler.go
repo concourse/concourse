@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+
+	"github.com/concourse/atc/dbng"
 )
 
 type CheckBuildReadAccessHandlerFactory interface {
@@ -12,14 +14,14 @@ type CheckBuildReadAccessHandlerFactory interface {
 }
 
 type checkBuildReadAccessHandlerFactory struct {
-	buildsDB BuildsDB
+	buildFactory dbng.BuildFactory
 }
 
 func NewCheckBuildReadAccessHandlerFactory(
-	buildsDB BuildsDB,
+	buildFactory dbng.BuildFactory,
 ) *checkBuildReadAccessHandlerFactory {
 	return &checkBuildReadAccessHandlerFactory{
-		buildsDB: buildsDB,
+		buildFactory: buildFactory,
 	}
 }
 
@@ -29,7 +31,7 @@ func (f *checkBuildReadAccessHandlerFactory) AnyJobHandler(
 ) http.Handler {
 	return checkBuildReadAccessHandler{
 		rejector:        rejector,
-		buildsDB:        f.buildsDB,
+		buildFactory:    f.buildFactory,
 		delegateHandler: delegateHandler,
 		allowPrivateJob: true,
 	}
@@ -41,7 +43,7 @@ func (f *checkBuildReadAccessHandlerFactory) CheckIfPrivateJobHandler(
 ) http.Handler {
 	return checkBuildReadAccessHandler{
 		rejector:        rejector,
-		buildsDB:        f.buildsDB,
+		buildFactory:    f.buildFactory,
 		delegateHandler: delegateHandler,
 		allowPrivateJob: false,
 	}
@@ -49,7 +51,7 @@ func (f *checkBuildReadAccessHandlerFactory) CheckIfPrivateJobHandler(
 
 type checkBuildReadAccessHandler struct {
 	rejector        Rejector
-	buildsDB        BuildsDB
+	buildFactory    dbng.BuildFactory
 	delegateHandler http.Handler
 	allowPrivateJob bool
 }
@@ -62,7 +64,7 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	build, found, err := h.buildsDB.GetBuildByID(buildID)
+	build, found, err := h.buildFactory.Build(buildID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -75,18 +77,18 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	authTeam, authTeamFound := GetTeam(r)
 	if !IsAuthenticated(r) || (authTeamFound && !authTeam.IsAuthorized(build.TeamName())) {
-		if build.IsOneOff() {
-			h.rejector.Unauthorized(w, r)
-			return
-		}
-
-		pipeline, err := build.GetPipeline()
+		pipeline, found, err := build.Pipeline()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		if !pipeline.Public {
+		if !found {
+			h.rejector.Unauthorized(w, r)
+			return
+		}
+
+		if !pipeline.Public() {
 			if IsAuthenticated(r) {
 				h.rejector.Forbidden(w, r)
 				return
@@ -97,12 +99,7 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		}
 
 		if !h.allowPrivateJob {
-			config, _, err := build.GetConfig()
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
+			config := pipeline.Config()
 			isJobPublic, err := config.JobIsPublic(build.JobName())
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -121,6 +118,6 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	ctx := context.WithValue(r.Context(), BuildKey, build)
+	ctx := context.WithValue(r.Context(), BuildContextKey, build)
 	h.delegateHandler.ServeHTTP(w, r.WithContext(ctx))
 }

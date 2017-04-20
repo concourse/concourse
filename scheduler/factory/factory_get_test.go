@@ -61,10 +61,9 @@ var _ = Describe("Factory Get", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.GetPlan{
-				Type:       "git",
-				Name:       "some-get",
-				Resource:   "some-resource",
-				PipelineID: 42,
+				Type:     "git",
+				Name:     "some-get",
+				Resource: "some-resource",
 				Source: atc.Source{
 					"uri": "git://some-resource",
 				},

@@ -9,8 +9,8 @@ import (
 
 	. "github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -46,10 +46,10 @@ var _ = Describe("ScopedHandlerFactory", func() {
 	})
 
 	Context("build is in the context", func() {
-		var contextBuild *dbfakes.FakeBuild
+		var contextBuild *dbngfakes.FakeBuild
 
 		BeforeEach(func() {
-			contextBuild = new(dbfakes.FakeBuild)
+			contextBuild = new(dbngfakes.FakeBuild)
 			handler = &wrapHandler{handler, contextBuild}
 		})
 
@@ -72,10 +72,10 @@ var _ = Describe("ScopedHandlerFactory", func() {
 
 type delegateHandler struct {
 	IsCalled bool
-	Build    db.Build
+	Build    dbng.Build
 }
 
-func (handler *delegateHandler) GetHandler(build db.Build) http.Handler {
+func (handler *delegateHandler) GetHandler(build dbng.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.IsCalled = true
 		handler.Build = build
@@ -84,10 +84,10 @@ func (handler *delegateHandler) GetHandler(build db.Build) http.Handler {
 
 type wrapHandler struct {
 	delegate     http.Handler
-	contextBuild db.Build
+	contextBuild dbng.Build
 }
 
 func (h *wrapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := context.WithValue(r.Context(), auth.BuildKey, h.contextBuild)
+	ctx := context.WithValue(r.Context(), auth.BuildContextKey, h.contextBuild)
 	h.delegate.ServeHTTP(w, r.WithContext(ctx))
 }

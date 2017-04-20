@@ -11,6 +11,36 @@ import (
 )
 
 var _ = Describe("BuildFactory", func() {
+	var team dbng.Team
+
+	BeforeEach(func() {
+		var err error
+		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	Describe("Build", func() {
+		var (
+			foundBuild   dbng.Build
+			createdBuild dbng.Build
+			found        bool
+		)
+
+		BeforeEach(func() {
+			var err error
+			createdBuild, err = team.CreateOneOffBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			foundBuild, found, err = buildFactory.Build(createdBuild.ID())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns the correct build", func() {
+			Expect(found).To(BeTrue())
+			Expect(foundBuild).To(Equal(createdBuild))
+		})
+	})
+
 	Describe("MarkNonInterceptibleBuilds", func() {
 		Context("one-off builds", func() {
 			DescribeTable("completed builds",
@@ -138,6 +168,79 @@ var _ = Describe("BuildFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(i).To(BeTrue())
 			})
+		})
+	})
+
+	Describe("PublicBuilds", func() {
+		var publicBuild dbng.Build
+
+		BeforeEach(func() {
+			_, err := team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
+			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = privatePipeline.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+			publicPipeline.Expose()
+
+			publicBuild, err = publicPipeline.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns public builds", func() {
+			builds, _, err := buildFactory.PublicBuilds(dbng.Page{Limit: 10})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(builds).To(HaveLen(1))
+			Expect(builds).To(ConsistOf(publicBuild))
+		})
+	})
+
+	Describe("GetAllStartedBuilds", func() {
+		var build1DB dbng.Build
+		var build2DB dbng.Build
+
+		BeforeEach(func() {
+			pipeline, _, err := team.SavePipeline("other-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+			}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			build1DB, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			build2DB, err = pipeline.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			started, err := build1DB.Start("some-engine", "so-meta")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
+
+			started, err = build2DB.Start("some-engine", "so-meta")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
+		})
+
+		It("returns all builds that have been started, regardless of pipeline", func() {
+			builds, err := buildFactory.GetAllStartedBuilds()
+			Expect(err).NotTo(HaveOccurred())
+
+			build1DB.Reload()
+			build2DB.Reload()
+			Expect(builds).To(ConsistOf(build1DB, build2DB))
 		})
 	})
 })

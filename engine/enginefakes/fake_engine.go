@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/engine"
 )
 
@@ -20,11 +20,11 @@ type FakeEngine struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
-	CreateBuildStub        func(lager.Logger, db.Build, atc.Plan) (engine.Build, error)
+	CreateBuildStub        func(lager.Logger, dbng.Build, atc.Plan) (engine.Build, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 db.Build
+		arg2 dbng.Build
 		arg3 atc.Plan
 	}
 	createBuildReturns struct {
@@ -35,11 +35,11 @@ type FakeEngine struct {
 		result1 engine.Build
 		result2 error
 	}
-	LookupBuildStub        func(lager.Logger, db.Build) (engine.Build, error)
+	LookupBuildStub        func(lager.Logger, dbng.Build) (engine.Build, error)
 	lookupBuildMutex       sync.RWMutex
 	lookupBuildArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 db.Build
+		arg2 dbng.Build
 	}
 	lookupBuildReturns struct {
 		result1 engine.Build
@@ -98,12 +98,12 @@ func (fake *FakeEngine) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeEngine) CreateBuild(arg1 lager.Logger, arg2 db.Build, arg3 atc.Plan) (engine.Build, error) {
+func (fake *FakeEngine) CreateBuild(arg1 lager.Logger, arg2 dbng.Build, arg3 atc.Plan) (engine.Build, error) {
 	fake.createBuildMutex.Lock()
 	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 db.Build
+		arg2 dbng.Build
 		arg3 atc.Plan
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("CreateBuild", []interface{}{arg1, arg2, arg3})
@@ -123,7 +123,7 @@ func (fake *FakeEngine) CreateBuildCallCount() int {
 	return len(fake.createBuildArgsForCall)
 }
 
-func (fake *FakeEngine) CreateBuildArgsForCall(i int) (lager.Logger, db.Build, atc.Plan) {
+func (fake *FakeEngine) CreateBuildArgsForCall(i int) (lager.Logger, dbng.Build, atc.Plan) {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	return fake.createBuildArgsForCall[i].arg1, fake.createBuildArgsForCall[i].arg2, fake.createBuildArgsForCall[i].arg3
@@ -151,12 +151,12 @@ func (fake *FakeEngine) CreateBuildReturnsOnCall(i int, result1 engine.Build, re
 	}{result1, result2}
 }
 
-func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.Build) (engine.Build, error) {
+func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 dbng.Build) (engine.Build, error) {
 	fake.lookupBuildMutex.Lock()
 	ret, specificReturn := fake.lookupBuildReturnsOnCall[len(fake.lookupBuildArgsForCall)]
 	fake.lookupBuildArgsForCall = append(fake.lookupBuildArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 db.Build
+		arg2 dbng.Build
 	}{arg1, arg2})
 	fake.recordInvocation("LookupBuild", []interface{}{arg1, arg2})
 	fake.lookupBuildMutex.Unlock()
@@ -175,7 +175,7 @@ func (fake *FakeEngine) LookupBuildCallCount() int {
 	return len(fake.lookupBuildArgsForCall)
 }
 
-func (fake *FakeEngine) LookupBuildArgsForCall(i int) (lager.Logger, db.Build) {
+func (fake *FakeEngine) LookupBuildArgsForCall(i int) (lager.Logger, dbng.Build) {
 	fake.lookupBuildMutex.RLock()
 	defer fake.lookupBuildMutex.RUnlock()
 	return fake.lookupBuildArgsForCall[i].arg1, fake.lookupBuildArgsForCall[i].arg2

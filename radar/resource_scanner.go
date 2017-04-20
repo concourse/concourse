@@ -2,6 +2,7 @@ package radar
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -41,21 +42,29 @@ func NewResourceScanner(
 	}
 }
 
+type ResourceNotFoundError struct {
+	Name string
+}
+
+func (e ResourceNotFoundError) Error() string {
+	return fmt.Sprintf("resource '%s' not found", e.Name)
+}
+
 var ErrFailedToAcquireLock = errors.New("failed-to-acquire-lock")
 
 func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (time.Duration, error) {
-	savedResource, found, err := scanner.db.GetResource(resourceName)
+	savedResource, found, err := scanner.dbPipeline.Resource(resourceName)
 	if err != nil {
 		return 0, err
 	}
 
 	if !found {
-		return 0, db.ResourceNotFoundError{Name: resourceName}
+		return 0, ResourceNotFoundError{Name: resourceName}
 	}
 
-	interval, err := scanner.checkInterval(savedResource.Config)
+	interval, err := scanner.checkInterval(savedResource.CheckEvery())
 	if err != nil {
-		setErr := scanner.db.SetResourceCheckError(savedResource, err)
+		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
 		if setErr != nil {
 			logger.Error("failed-to-set-check-error", err)
 		}
@@ -69,12 +78,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 
 	lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLockWithIntervalCheck(
 		logger,
-		&dbng.Resource{
-			ID:     savedResource.ID,
-			Name:   savedResource.Name,
-			Type:   savedResource.Config.Type,
-			Source: savedResource.Config.Source,
-		},
+		savedResource,
 		interval,
 		false,
 	)
@@ -127,7 +131,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		"resource": resourceName,
 	})
 
-	savedResource, found, err := scanner.db.GetResource(resourceName)
+	savedResource, found, err := scanner.dbPipeline.Resource(resourceName)
 	if err != nil {
 		return err
 	}
@@ -137,9 +141,9 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		return db.ResourceNotFoundError{Name: resourceName}
 	}
 
-	interval, err := scanner.checkInterval(savedResource.Config)
+	interval, err := scanner.checkInterval(savedResource.CheckEvery())
 	if err != nil {
-		setErr := scanner.db.SetResourceCheckError(savedResource, err)
+		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
 		if setErr != nil {
 			logger.Error("failed-to-set-check-error", err)
 		}
@@ -150,12 +154,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 	for {
 		lock, acquired, err := scanner.dbPipeline.AcquireResourceCheckingLockWithIntervalCheck(
 			logger,
-			&dbng.Resource{
-				ID:     savedResource.ID,
-				Name:   savedResource.Name,
-				Type:   savedResource.Config.Type,
-				Source: savedResource.Config.Source,
-			},
+			savedResource,
 			interval,
 			true,
 		)
@@ -203,7 +202,7 @@ func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) e
 
 func (scanner *resourceScanner) scan(
 	logger lager.Logger,
-	savedResource db.SavedResource,
+	savedResource dbng.Resource,
 	fromVersion atc.Version,
 	resourceTypes atc.VersionedResourceTypes,
 ) error {
@@ -218,7 +217,7 @@ func (scanner *resourceScanner) scan(
 		return nil
 	}
 
-	if savedResource.Paused {
+	if savedResource.Paused() {
 		logger.Debug("resource-paused")
 		return nil
 	}
@@ -234,17 +233,17 @@ func (scanner *resourceScanner) scan(
 	}
 
 	metadata := resource.TrackerMetadata{
-		ResourceName: savedResource.Name,
-		PipelineName: savedResource.PipelineName,
+		ResourceName: savedResource.Name(),
+		PipelineName: savedResource.PipelineName(),
 		ExternalURL:  scanner.externalURL,
 	}
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: savedResource.Config.Type,
+			ResourceType: savedResource.Type(),
 			Privileged:   true,
 		},
-		Tags:   savedResource.Config.Tags,
+		Tags:   savedResource.Tags(),
 		TeamID: scanner.dbPipeline.TeamID(),
 		Env:    metadata.Env(),
 	}
@@ -252,14 +251,15 @@ func (scanner *resourceScanner) scan(
 	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
 		nil,
-		dbng.ForResource(savedResource.ID),
+		dbng.ForResource(savedResource.ID()),
+		savedResource.Type(),
+		savedResource.Source(),
 		dbng.ContainerMetadata{
 			Type: dbng.ContainerTypeCheck,
 		},
 		containerSpec,
 		resourceTypes,
 		worker.NoopImageFetchingDelegate{},
-		savedResource.Config,
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)
@@ -270,9 +270,9 @@ func (scanner *resourceScanner) scan(
 		"from": fromVersion,
 	})
 
-	newVersions, err := res.Check(savedResource.Config.Source, fromVersion)
+	newVersions, err := res.Check(savedResource.Source(), fromVersion)
 
-	setErr := scanner.db.SetResourceCheckError(savedResource, err)
+	setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
 	if setErr != nil {
 		logger.Error("failed-to-set-check-error", err)
 	}
@@ -297,7 +297,10 @@ func (scanner *resourceScanner) scan(
 		"total":    len(newVersions),
 	})
 
-	err = scanner.db.SaveResourceVersions(savedResource.Config, newVersions)
+	err = scanner.db.SaveResourceVersions(atc.ResourceConfig{
+		Name: savedResource.Name(),
+		Type: savedResource.Type(),
+	}, newVersions)
 	if err != nil {
 		logger.Error("failed-to-save-versions", err, lager.Data{
 			"versions": newVersions,
@@ -314,10 +317,10 @@ func swallowErrResourceScriptFailed(err error) error {
 	return err
 }
 
-func (scanner *resourceScanner) checkInterval(resourceConfig atc.ResourceConfig) (time.Duration, error) {
+func (scanner *resourceScanner) checkInterval(checkEvery string) (time.Duration, error) {
 	interval := scanner.defaultInterval
-	if resourceConfig.CheckEvery != "" {
-		configuredInterval, err := time.ParseDuration(resourceConfig.CheckEvery)
+	if checkEvery != "" {
+		configuredInterval, err := time.ParseDuration(checkEvery)
 		if err != nil {
 			return 0, err
 		}

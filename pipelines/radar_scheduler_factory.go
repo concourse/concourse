@@ -60,10 +60,10 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, dbPip
 		inputconfig.NewTransformer(pipelineDB),
 	)
 	return &scheduler.Scheduler{
-		DB:          pipelineDB,
+		Pipeline:    dbPipeline,
 		InputMapper: inputMapper,
 		BuildStarter: scheduler.NewBuildStarter(
-			pipelineDB,
+			dbPipeline,
 			maxinflight.NewUpdater(pipelineDB),
 			factory.NewBuildFactory(
 				pipelineDB.GetPipelineID(),

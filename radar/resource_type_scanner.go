@@ -114,16 +114,14 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		logger,
 		nil,
 		dbng.ForResourceType(savedResourceType.ID),
+		savedResourceType.Config.Type,
+		savedResourceType.Config.Source,
 		dbng.ContainerMetadata{
 			Type: dbng.ContainerTypeCheck,
 		},
 		resourceSpec,
 		versionedResourceTypes,
 		worker.NoopImageFetchingDelegate{},
-		atc.ResourceConfig{
-			Type:   savedResourceType.Config.Type,
-			Source: savedResourceType.Config.Source,
-		},
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)

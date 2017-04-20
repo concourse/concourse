@@ -54,14 +54,12 @@ var _ = Describe("Factory Try Step", func() {
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 				expectedPlanFactory.NewPlan(atc.TryPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "first task",
-						PipelineID:             42,
+						Name: "first task",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "second task",
-					PipelineID:             42,
+					Name: "second task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -89,13 +87,11 @@ var _ = Describe("Factory Try Step", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TryPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:       "first task",
-						PipelineID: 42,
+						Name: "first task",
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:       "second task",
-					PipelineID: 42,
+					Name: "second task",
 				}),
 			})
 

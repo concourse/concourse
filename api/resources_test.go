@@ -104,7 +104,7 @@ var _ = Describe("Resources API", func() {
 
 				Context("and the pipeline is private", func() {
 					BeforeEach(func() {
-						fakePipelineDB.IsPublicReturns(false)
+						fakePipeline.PublicReturns(false)
 					})
 
 					It("returns 401", func() {
@@ -114,7 +114,7 @@ var _ = Describe("Resources API", func() {
 
 				Context("and the pipeline is public", func() {
 					BeforeEach(func() {
-						fakePipelineDB.IsPublicReturns(true)
+						fakePipeline.PublicReturns(true)
 					})
 
 					It("returns 200 OK", func() {
@@ -252,7 +252,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
-					fakePipelineDB.IsPublicReturns(true)
+					fakePipeline.PublicReturns(true)
 					resourceName = "resource-1"
 					fakePipelineDB.GetResourceReturns(db.SavedResource{
 						CheckError:   errors.New("sup"),

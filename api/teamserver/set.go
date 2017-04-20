@@ -1,23 +1,25 @@
 package teamserver
 
 import (
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
+
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/dbng"
 )
 
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
-	hLog := s.logger.Session("create-team")
-	hLog.Debug("setting team")
+	hLog := s.logger.Session("set-team")
+
+	hLog.Debug("setting-team")
 
 	authTeam, authTeamFound := auth.GetTeam(r)
-
 	if !authTeamFound {
 		hLog.Error("failed-to-get-team-from-auth", errors.New("failed-to-get-team-from-auth"))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -25,40 +27,67 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamName := r.FormValue(":team_name")
-	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 
-	var team db.Team
-	err := json.NewDecoder(r.Body).Decode(&team)
+	var atcTeam atc.Team
+	err := json.NewDecoder(r.Body).Decode(&atcTeam)
 	if err != nil {
 		hLog.Error("malformed-request", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	team.Name = teamName
+	atcTeam.Name = teamName
 	if !authTeam.IsAdmin() && !authTeam.IsAuthorized(teamName) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
-	err = s.validate(team)
-	if err != nil {
-		hLog.Error("request-body-validation-error", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	hLog.Debug("configured-authentication", lager.Data{"BasicAuth": atcTeam.BasicAuth, "ProviderAuth": atcTeam.Auth})
+
+	if atcTeam.BasicAuth != nil {
+		if atcTeam.BasicAuth.BasicAuthUsername == "" || atcTeam.BasicAuth.BasicAuthPassword == "" {
+			hLog.Info("missing-basic-auth-username-or-password")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
-	savedTeam, found, err := teamDB.GetTeam()
+	providers := provider.GetProviders()
+
+	for providerName, config := range atcTeam.Auth {
+		p, found := providers[providerName]
+		if !found {
+			hLog.Error("failed-to-find-provider", err, lager.Data{"provider": providerName})
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		authConfig, err := p.UnmarshalConfig(config)
+		if err != nil {
+			hLog.Error("failed-to-unmarshall-auth", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		err = authConfig.Validate()
+		if err != nil {
+			hLog.Error("request-body-validation-error", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
+
+	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
-		hLog.Error("failed-to-get-team", err)
+		hLog.Error("failed-to-lookup-team", err, lager.Data{"teamName": teamName})
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if found {
-		hLog.Debug("updating credentials")
-		err = s.updateCredentials(team, teamDB)
+		hLog.Debug("updating-credentials")
+		err = s.updateCredentials(atcTeam, team)
 		if err != nil {
-			hLog.Error("failed-to-update-team", err)
+			hLog.Error("failed-to-update-team", err, lager.Data{"teamName": teamName})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -67,9 +96,9 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	} else if authTeam.IsAdmin() {
 		hLog.Debug("creating team")
 
-		savedTeam, err = s.teamsDB.CreateTeam(team)
+		team, err = s.teamFactory.CreateTeam(atcTeam)
 		if err != nil {
-			hLog.Error("failed-to-save-team", err)
+			hLog.Error("failed-to-save-team", err, lager.Data{"teamName": teamName})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -79,97 +108,18 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(present.Team(savedTeam))
+	json.NewEncoder(w).Encode(present.Team(team))
 }
 
-func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
-
-	// _, err := teamDB.UpdateAuth(team)
-	// if err != nil {
-	// 	return err
-	// }
-	_, err := teamDB.UpdateBasicAuth(team.BasicAuth)
+func (s *Server) updateCredentials(atcTeam atc.Team, team dbng.Team) error {
+	err := team.UpdateBasicAuth(atcTeam.BasicAuth)
 	if err != nil {
 		return err
 	}
 
-	_, err = teamDB.UpdateGitHubAuth(team.GitHubAuth)
+	err = team.UpdateProviderAuth(atcTeam.Auth)
 	if err != nil {
 		return err
-	}
-
-	_, err = teamDB.UpdateUAAAuth(team.UAAAuth)
-	if err != nil {
-		return err
-	}
-
-	_, err = teamDB.UpdateGenericOAuth(team.GenericOAuth)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Server) validate(team db.Team) error {
-	if team.BasicAuth != nil {
-		if team.BasicAuth.BasicAuthUsername == "" || team.BasicAuth.BasicAuthPassword == "" {
-			return errors.New("basic auth missing BasicAuthUsername or BasicAuthPassword")
-		}
-	}
-
-	if team.GitHubAuth != nil {
-		if team.GitHubAuth.ClientID == "" || team.GitHubAuth.ClientSecret == "" {
-			return errors.New("GitHub auth missing ClientID or ClientSecret")
-		}
-
-		if len(team.GitHubAuth.Organizations) == 0 &&
-			len(team.GitHubAuth.Teams) == 0 &&
-			len(team.GitHubAuth.Users) == 0 {
-			return errors.New("GitHub auth requires at least one Organization, Team, or User")
-		}
-	}
-
-	if team.UAAAuth != nil {
-		if team.UAAAuth.ClientID == "" || team.UAAAuth.ClientSecret == "" {
-			return errors.New("CF auth missing ClientID or ClientSecret")
-		}
-
-		if team.UAAAuth.CFCACert != "" {
-			block, _ := pem.Decode([]byte(team.UAAAuth.CFCACert))
-			invalidCertErr := errors.New("CF certificate is invalid")
-
-			if block == nil {
-				return invalidCertErr
-			}
-
-			_, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				return invalidCertErr
-			}
-		}
-
-		if len(team.UAAAuth.CFSpaces) == 0 {
-			return errors.New("CF auth requires at least one Space")
-		}
-
-		if team.UAAAuth.AuthURL == "" || team.UAAAuth.TokenURL == "" || team.UAAAuth.CFURL == "" {
-			return errors.New("CF auth requires AuthURL, TokenURL and APIURL")
-		}
-	}
-
-	if team.GenericOAuth != nil {
-		if team.GenericOAuth.ClientID == "" || team.GenericOAuth.ClientSecret == "" {
-			return errors.New("Generic OAuth requires ClientID and ClientSecret")
-		}
-
-		if team.GenericOAuth.AuthURL == "" || team.GenericOAuth.TokenURL == "" {
-			return errors.New("Generic OAuth requires an AuthURL and TokenURL")
-		}
-
-		if team.GenericOAuth.DisplayName == "" {
-			return errors.New("Generic OAuth requires a Display Name")
-		}
 	}
 
 	return nil

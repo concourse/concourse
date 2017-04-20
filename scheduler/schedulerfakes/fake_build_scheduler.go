@@ -7,8 +7,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/scheduler"
 )
 
@@ -30,7 +30,7 @@ type FakeBuildScheduler struct {
 		result1 map[string]time.Duration
 		result2 error
 	}
-	TriggerImmediatelyStub        func(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes) (db.Build, scheduler.Waiter, error)
+	TriggerImmediatelyStub        func(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes) (dbng.Build, scheduler.Waiter, error)
 	triggerImmediatelyMutex       sync.RWMutex
 	triggerImmediatelyArgsForCall []struct {
 		logger          lager.Logger
@@ -39,12 +39,12 @@ type FakeBuildScheduler struct {
 		resourceTypes   atc.VersionedResourceTypes
 	}
 	triggerImmediatelyReturns struct {
-		result1 db.Build
+		result1 dbng.Build
 		result2 scheduler.Waiter
 		result3 error
 	}
 	triggerImmediatelyReturnsOnCall map[int]struct {
-		result1 db.Build
+		result1 dbng.Build
 		result2 scheduler.Waiter
 		result3 error
 	}
@@ -119,7 +119,7 @@ func (fake *FakeBuildScheduler) ScheduleReturnsOnCall(i int, result1 map[string]
 	}{result1, result2}
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediately(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes) (db.Build, scheduler.Waiter, error) {
+func (fake *FakeBuildScheduler) TriggerImmediately(logger lager.Logger, jobConfig atc.JobConfig, resourceConfigs atc.ResourceConfigs, resourceTypes atc.VersionedResourceTypes) (dbng.Build, scheduler.Waiter, error) {
 	fake.triggerImmediatelyMutex.Lock()
 	ret, specificReturn := fake.triggerImmediatelyReturnsOnCall[len(fake.triggerImmediatelyArgsForCall)]
 	fake.triggerImmediatelyArgsForCall = append(fake.triggerImmediatelyArgsForCall, struct {
@@ -151,26 +151,26 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logg
 	return fake.triggerImmediatelyArgsForCall[i].logger, fake.triggerImmediatelyArgsForCall[i].jobConfig, fake.triggerImmediatelyArgsForCall[i].resourceConfigs, fake.triggerImmediatelyArgsForCall[i].resourceTypes
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediatelyReturns(result1 db.Build, result2 scheduler.Waiter, result3 error) {
+func (fake *FakeBuildScheduler) TriggerImmediatelyReturns(result1 dbng.Build, result2 scheduler.Waiter, result3 error) {
 	fake.TriggerImmediatelyStub = nil
 	fake.triggerImmediatelyReturns = struct {
-		result1 db.Build
+		result1 dbng.Build
 		result2 scheduler.Waiter
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediatelyReturnsOnCall(i int, result1 db.Build, result2 scheduler.Waiter, result3 error) {
+func (fake *FakeBuildScheduler) TriggerImmediatelyReturnsOnCall(i int, result1 dbng.Build, result2 scheduler.Waiter, result3 error) {
 	fake.TriggerImmediatelyStub = nil
 	if fake.triggerImmediatelyReturnsOnCall == nil {
 		fake.triggerImmediatelyReturnsOnCall = make(map[int]struct {
-			result1 db.Build
+			result1 dbng.Build
 			result2 scheduler.Waiter
 			result3 error
 		})
 	}
 	fake.triggerImmediatelyReturnsOnCall[i] = struct {
-		result1 db.Build
+		result1 dbng.Build
 		result2 scheduler.Waiter
 		result3 error
 	}{result1, result2, result3}

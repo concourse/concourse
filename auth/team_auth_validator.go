@@ -4,33 +4,32 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 type teamAuthValidator struct {
-	teamDBFactory db.TeamDBFactory
-	jwtValidator  Validator
+	teamFactory  dbng.TeamFactory
+	jwtValidator Validator
 }
 
 func NewTeamAuthValidator(
-	teamDBFactory db.TeamDBFactory,
+	teamFactory dbng.TeamFactory,
 	jwtValidator Validator,
 ) Validator {
 	return &teamAuthValidator{
-		teamDBFactory: teamDBFactory,
-		jwtValidator:  jwtValidator,
+		teamFactory:  teamFactory,
+		jwtValidator: jwtValidator,
 	}
 }
 
 func (v teamAuthValidator) IsAuthenticated(r *http.Request) bool {
 	teamName := r.FormValue(":team_name")
-	teamDB := v.teamDBFactory.GetTeamDB(teamName)
-	team, found, err := teamDB.GetTeam()
+	team, found, err := v.teamFactory.FindTeam(teamName)
 	if err != nil || !found {
 		return false
 	}
 
-	if !isAuthConfigured(team.Team) {
+	if !isAuthConfigured(team) {
 		return true
 	}
 
@@ -42,14 +41,17 @@ func (v teamAuthValidator) IsAuthenticated(r *http.Request) bool {
 
 }
 
-func isAuthConfigured(t db.Team) bool {
-	if t.BasicAuth != nil {
+func isAuthConfigured(t dbng.Team) bool {
+	if t.BasicAuth() != nil {
 		return true
 	}
-	for _, p := range provider.GetProviders() {
-		if p.ProviderConfigured(t) {
+
+	for name := range provider.GetProviders() {
+		_, configured := t.Auth()[name]
+		if configured {
 			return true
 		}
 	}
+
 	return false
 }

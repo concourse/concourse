@@ -38,7 +38,7 @@ var _ = Describe("Builds", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = db.Wrap(postgresRunner.Open())
+		dbConn = db.Wrap(postgresRunner.OpenDB())
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
@@ -93,93 +93,6 @@ var _ = Describe("Builds", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	Describe("FindJobIDForBuild", func() {
-		var build db.Build
-		BeforeEach(func() {
-			build = createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
-			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
-		})
-
-		It("finds the job id for the given build", func() {
-			jobID, found, err := database.FindJobIDForBuild(build.ID())
-			Expect(found).To(BeTrue())
-			Expect(err).NotTo(HaveOccurred())
-
-			job, found, err := pipelineDB.GetJob("some-job")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(jobID).To(Equal(job.ID))
-		})
-	})
-
-	Describe("GetPublicBuilds", func() {
-		var publicBuild db.Build
-
-		BeforeEach(func() {
-			_, err := teamDB.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-
-			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := teamDB.SaveConfigToBeDeprecated("private-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
-			Expect(err).NotTo(HaveOccurred())
-			privatePipelineDB := pipelineDBFactory.Build(privatePipeline)
-
-			_, err = privatePipelineDB.CreateJobBuild("some-job")
-			Expect(err).NotTo(HaveOccurred())
-
-			publicPipeline, _, err := teamDB.SaveConfigToBeDeprecated("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
-			Expect(err).NotTo(HaveOccurred())
-			publicPipelineDB := pipelineDBFactory.Build(publicPipeline)
-			publicPipelineDB.Expose()
-
-			publicBuild, err = publicPipelineDB.CreateJobBuild("some-job")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns public builds", func() {
-			builds, _, err := database.GetPublicBuilds(db.Page{Limit: 10})
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(builds).To(HaveLen(1))
-			Expect(builds).To(ConsistOf(publicBuild))
-		})
-	})
-
-	Describe("GetAllStartedBuilds", func() {
-		var build1DB db.Build
-		var build2DB db.Build
-
-		BeforeEach(func() {
-			var err error
-			build1DB, err = teamDB.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-
-			build2DB, err = pipelineDB.CreateJobBuild("some-job")
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = teamDB.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-
-			started, err := build1DB.Start("some-engine", "so-meta")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(started).To(BeTrue())
-
-			started, err = build2DB.Start("some-engine", "so-meta")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(started).To(BeTrue())
-		})
-
-		It("returns all builds that have been started, regardless of pipeline", func() {
-			builds, err := database.GetAllStartedBuilds()
-			Expect(err).NotTo(HaveOccurred())
-
-			build1DB.Reload()
-			build2DB.Reload()
-			Expect(builds).To(ConsistOf(build1DB, build2DB))
-		})
 	})
 
 	Describe("DeleteBuildEventsByBuildIDs", func() {

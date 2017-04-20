@@ -2,6 +2,7 @@
 package dbngfakes
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -18,6 +19,51 @@ type FakeTeam struct {
 	}
 	iDReturnsOnCall map[int]struct {
 		result1 int
+	}
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct{}
+	nameReturns     struct {
+		result1 string
+	}
+	nameReturnsOnCall map[int]struct {
+		result1 string
+	}
+	AdminStub        func() bool
+	adminMutex       sync.RWMutex
+	adminArgsForCall []struct{}
+	adminReturns     struct {
+		result1 bool
+	}
+	adminReturnsOnCall map[int]struct {
+		result1 bool
+	}
+	BasicAuthStub        func() *atc.BasicAuth
+	basicAuthMutex       sync.RWMutex
+	basicAuthArgsForCall []struct{}
+	basicAuthReturns     struct {
+		result1 *atc.BasicAuth
+	}
+	basicAuthReturnsOnCall map[int]struct {
+		result1 *atc.BasicAuth
+	}
+	AuthStub        func() map[string]*json.RawMessage
+	authMutex       sync.RWMutex
+	authArgsForCall []struct{}
+	authReturns     struct {
+		result1 map[string]*json.RawMessage
+	}
+	authReturnsOnCall map[int]struct {
+		result1 map[string]*json.RawMessage
+	}
+	DeleteStub        func() error
+	deleteMutex       sync.RWMutex
+	deleteArgsForCall []struct{}
+	deleteReturns     struct {
+		result1 error
+	}
+	deleteReturnsOnCall map[int]struct {
+		result1 error
 	}
 	SavePipelineStub        func(pipelineName string, config atc.Config, from dbng.ConfigVersion, pausedState dbng.PipelinePausedState) (dbng.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
@@ -37,20 +83,64 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
-	FindPipelineByNameStub        func(pipelineName string) (dbng.Pipeline, bool, error)
-	findPipelineByNameMutex       sync.RWMutex
-	findPipelineByNameArgsForCall []struct {
+	PipelineStub        func(pipelineName string) (dbng.Pipeline, bool, error)
+	pipelineMutex       sync.RWMutex
+	pipelineArgsForCall []struct {
 		pipelineName string
 	}
-	findPipelineByNameReturns struct {
+	pipelineReturns struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
 	}
-	findPipelineByNameReturnsOnCall map[int]struct {
+	pipelineReturnsOnCall map[int]struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
+	}
+	PipelinesStub        func() ([]dbng.Pipeline, error)
+	pipelinesMutex       sync.RWMutex
+	pipelinesArgsForCall []struct{}
+	pipelinesReturns     struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	pipelinesReturnsOnCall map[int]struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	PublicPipelinesStub        func() ([]dbng.Pipeline, error)
+	publicPipelinesMutex       sync.RWMutex
+	publicPipelinesArgsForCall []struct{}
+	publicPipelinesReturns     struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	publicPipelinesReturnsOnCall map[int]struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	VisiblePipelinesStub        func() ([]dbng.Pipeline, error)
+	visiblePipelinesMutex       sync.RWMutex
+	visiblePipelinesArgsForCall []struct{}
+	visiblePipelinesReturns     struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	visiblePipelinesReturnsOnCall map[int]struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}
+	OrderPipelinesStub        func([]string) error
+	orderPipelinesMutex       sync.RWMutex
+	orderPipelinesArgsForCall []struct {
+		arg1 []string
+	}
+	orderPipelinesReturns struct {
+		result1 error
+	}
+	orderPipelinesReturnsOnCall map[int]struct {
+		result1 error
 	}
 	CreateOneOffBuildStub        func() (dbng.Build, error)
 	createOneOffBuildMutex       sync.RWMutex
@@ -62,6 +152,21 @@ type FakeTeam struct {
 	createOneOffBuildReturnsOnCall map[int]struct {
 		result1 dbng.Build
 		result2 error
+	}
+	PrivateAndPublicBuildsStub        func(dbng.Page) ([]dbng.Build, dbng.Pagination, error)
+	privateAndPublicBuildsMutex       sync.RWMutex
+	privateAndPublicBuildsArgsForCall []struct {
+		arg1 dbng.Page
+	}
+	privateAndPublicBuildsReturns struct {
+		result1 []dbng.Build
+		result2 dbng.Pagination
+		result3 error
+	}
+	privateAndPublicBuildsReturnsOnCall map[int]struct {
+		result1 []dbng.Build
+		result2 dbng.Pagination
+		result3 error
 	}
 	SaveWorkerStub        func(atcWorker atc.Worker, ttl time.Duration) (dbng.Worker, error)
 	saveWorkerMutex       sync.RWMutex
@@ -256,6 +361,28 @@ type FakeTeam struct {
 		result1 dbng.CreatingContainer
 		result2 error
 	}
+	UpdateBasicAuthStub        func(basicAuth *atc.BasicAuth) error
+	updateBasicAuthMutex       sync.RWMutex
+	updateBasicAuthArgsForCall []struct {
+		basicAuth *atc.BasicAuth
+	}
+	updateBasicAuthReturns struct {
+		result1 error
+	}
+	updateBasicAuthReturnsOnCall map[int]struct {
+		result1 error
+	}
+	UpdateProviderAuthStub        func(auth map[string]*json.RawMessage) error
+	updateProviderAuthMutex       sync.RWMutex
+	updateProviderAuthArgsForCall []struct {
+		auth map[string]*json.RawMessage
+	}
+	updateProviderAuthReturns struct {
+		result1 error
+	}
+	updateProviderAuthReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -297,6 +424,206 @@ func (fake *FakeTeam) IDReturnsOnCall(i int, result1 int) {
 	}
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakeTeam) Name() string {
+	fake.nameMutex.Lock()
+	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
+	fake.recordInvocation("Name", []interface{}{})
+	fake.nameMutex.Unlock()
+	if fake.NameStub != nil {
+		return fake.NameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.nameReturns.result1
+}
+
+func (fake *FakeTeam) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
+}
+
+func (fake *FakeTeam) NameReturns(result1 string) {
+	fake.NameStub = nil
+	fake.nameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeTeam) NameReturnsOnCall(i int, result1 string) {
+	fake.NameStub = nil
+	if fake.nameReturnsOnCall == nil {
+		fake.nameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.nameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeTeam) Admin() bool {
+	fake.adminMutex.Lock()
+	ret, specificReturn := fake.adminReturnsOnCall[len(fake.adminArgsForCall)]
+	fake.adminArgsForCall = append(fake.adminArgsForCall, struct{}{})
+	fake.recordInvocation("Admin", []interface{}{})
+	fake.adminMutex.Unlock()
+	if fake.AdminStub != nil {
+		return fake.AdminStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.adminReturns.result1
+}
+
+func (fake *FakeTeam) AdminCallCount() int {
+	fake.adminMutex.RLock()
+	defer fake.adminMutex.RUnlock()
+	return len(fake.adminArgsForCall)
+}
+
+func (fake *FakeTeam) AdminReturns(result1 bool) {
+	fake.AdminStub = nil
+	fake.adminReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeTeam) AdminReturnsOnCall(i int, result1 bool) {
+	fake.AdminStub = nil
+	if fake.adminReturnsOnCall == nil {
+		fake.adminReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.adminReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeTeam) BasicAuth() *atc.BasicAuth {
+	fake.basicAuthMutex.Lock()
+	ret, specificReturn := fake.basicAuthReturnsOnCall[len(fake.basicAuthArgsForCall)]
+	fake.basicAuthArgsForCall = append(fake.basicAuthArgsForCall, struct{}{})
+	fake.recordInvocation("BasicAuth", []interface{}{})
+	fake.basicAuthMutex.Unlock()
+	if fake.BasicAuthStub != nil {
+		return fake.BasicAuthStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.basicAuthReturns.result1
+}
+
+func (fake *FakeTeam) BasicAuthCallCount() int {
+	fake.basicAuthMutex.RLock()
+	defer fake.basicAuthMutex.RUnlock()
+	return len(fake.basicAuthArgsForCall)
+}
+
+func (fake *FakeTeam) BasicAuthReturns(result1 *atc.BasicAuth) {
+	fake.BasicAuthStub = nil
+	fake.basicAuthReturns = struct {
+		result1 *atc.BasicAuth
+	}{result1}
+}
+
+func (fake *FakeTeam) BasicAuthReturnsOnCall(i int, result1 *atc.BasicAuth) {
+	fake.BasicAuthStub = nil
+	if fake.basicAuthReturnsOnCall == nil {
+		fake.basicAuthReturnsOnCall = make(map[int]struct {
+			result1 *atc.BasicAuth
+		})
+	}
+	fake.basicAuthReturnsOnCall[i] = struct {
+		result1 *atc.BasicAuth
+	}{result1}
+}
+
+func (fake *FakeTeam) Auth() map[string]*json.RawMessage {
+	fake.authMutex.Lock()
+	ret, specificReturn := fake.authReturnsOnCall[len(fake.authArgsForCall)]
+	fake.authArgsForCall = append(fake.authArgsForCall, struct{}{})
+	fake.recordInvocation("Auth", []interface{}{})
+	fake.authMutex.Unlock()
+	if fake.AuthStub != nil {
+		return fake.AuthStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.authReturns.result1
+}
+
+func (fake *FakeTeam) AuthCallCount() int {
+	fake.authMutex.RLock()
+	defer fake.authMutex.RUnlock()
+	return len(fake.authArgsForCall)
+}
+
+func (fake *FakeTeam) AuthReturns(result1 map[string]*json.RawMessage) {
+	fake.AuthStub = nil
+	fake.authReturns = struct {
+		result1 map[string]*json.RawMessage
+	}{result1}
+}
+
+func (fake *FakeTeam) AuthReturnsOnCall(i int, result1 map[string]*json.RawMessage) {
+	fake.AuthStub = nil
+	if fake.authReturnsOnCall == nil {
+		fake.authReturnsOnCall = make(map[int]struct {
+			result1 map[string]*json.RawMessage
+		})
+	}
+	fake.authReturnsOnCall[i] = struct {
+		result1 map[string]*json.RawMessage
+	}{result1}
+}
+
+func (fake *FakeTeam) Delete() error {
+	fake.deleteMutex.Lock()
+	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
+	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct{}{})
+	fake.recordInvocation("Delete", []interface{}{})
+	fake.deleteMutex.Unlock()
+	if fake.DeleteStub != nil {
+		return fake.DeleteStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deleteReturns.result1
+}
+
+func (fake *FakeTeam) DeleteCallCount() int {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return len(fake.deleteArgsForCall)
+}
+
+func (fake *FakeTeam) DeleteReturns(result1 error) {
+	fake.DeleteStub = nil
+	fake.deleteReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) DeleteReturnsOnCall(i int, result1 error) {
+	fake.DeleteStub = nil
+	if fake.deleteReturnsOnCall == nil {
+		fake.deleteReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteReturnsOnCall[i] = struct {
+		result1 error
 	}{result1}
 }
 
@@ -357,58 +684,240 @@ func (fake *FakeTeam) SavePipelineReturnsOnCall(i int, result1 dbng.Pipeline, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) FindPipelineByName(pipelineName string) (dbng.Pipeline, bool, error) {
-	fake.findPipelineByNameMutex.Lock()
-	ret, specificReturn := fake.findPipelineByNameReturnsOnCall[len(fake.findPipelineByNameArgsForCall)]
-	fake.findPipelineByNameArgsForCall = append(fake.findPipelineByNameArgsForCall, struct {
+func (fake *FakeTeam) Pipeline(pipelineName string) (dbng.Pipeline, bool, error) {
+	fake.pipelineMutex.Lock()
+	ret, specificReturn := fake.pipelineReturnsOnCall[len(fake.pipelineArgsForCall)]
+	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct {
 		pipelineName string
 	}{pipelineName})
-	fake.recordInvocation("FindPipelineByName", []interface{}{pipelineName})
-	fake.findPipelineByNameMutex.Unlock()
-	if fake.FindPipelineByNameStub != nil {
-		return fake.FindPipelineByNameStub(pipelineName)
+	fake.recordInvocation("Pipeline", []interface{}{pipelineName})
+	fake.pipelineMutex.Unlock()
+	if fake.PipelineStub != nil {
+		return fake.PipelineStub(pipelineName)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.findPipelineByNameReturns.result1, fake.findPipelineByNameReturns.result2, fake.findPipelineByNameReturns.result3
+	return fake.pipelineReturns.result1, fake.pipelineReturns.result2, fake.pipelineReturns.result3
 }
 
-func (fake *FakeTeam) FindPipelineByNameCallCount() int {
-	fake.findPipelineByNameMutex.RLock()
-	defer fake.findPipelineByNameMutex.RUnlock()
-	return len(fake.findPipelineByNameArgsForCall)
+func (fake *FakeTeam) PipelineCallCount() int {
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
+	return len(fake.pipelineArgsForCall)
 }
 
-func (fake *FakeTeam) FindPipelineByNameArgsForCall(i int) string {
-	fake.findPipelineByNameMutex.RLock()
-	defer fake.findPipelineByNameMutex.RUnlock()
-	return fake.findPipelineByNameArgsForCall[i].pipelineName
+func (fake *FakeTeam) PipelineArgsForCall(i int) string {
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
+	return fake.pipelineArgsForCall[i].pipelineName
 }
 
-func (fake *FakeTeam) FindPipelineByNameReturns(result1 dbng.Pipeline, result2 bool, result3 error) {
-	fake.FindPipelineByNameStub = nil
-	fake.findPipelineByNameReturns = struct {
+func (fake *FakeTeam) PipelineReturns(result1 dbng.Pipeline, result2 bool, result3 error) {
+	fake.PipelineStub = nil
+	fake.pipelineReturns = struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeam) FindPipelineByNameReturnsOnCall(i int, result1 dbng.Pipeline, result2 bool, result3 error) {
-	fake.FindPipelineByNameStub = nil
-	if fake.findPipelineByNameReturnsOnCall == nil {
-		fake.findPipelineByNameReturnsOnCall = make(map[int]struct {
+func (fake *FakeTeam) PipelineReturnsOnCall(i int, result1 dbng.Pipeline, result2 bool, result3 error) {
+	fake.PipelineStub = nil
+	if fake.pipelineReturnsOnCall == nil {
+		fake.pipelineReturnsOnCall = make(map[int]struct {
 			result1 dbng.Pipeline
 			result2 bool
 			result3 error
 		})
 	}
-	fake.findPipelineByNameReturnsOnCall[i] = struct {
+	fake.pipelineReturnsOnCall[i] = struct {
 		result1 dbng.Pipeline
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) Pipelines() ([]dbng.Pipeline, error) {
+	fake.pipelinesMutex.Lock()
+	ret, specificReturn := fake.pipelinesReturnsOnCall[len(fake.pipelinesArgsForCall)]
+	fake.pipelinesArgsForCall = append(fake.pipelinesArgsForCall, struct{}{})
+	fake.recordInvocation("Pipelines", []interface{}{})
+	fake.pipelinesMutex.Unlock()
+	if fake.PipelinesStub != nil {
+		return fake.PipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.pipelinesReturns.result1, fake.pipelinesReturns.result2
+}
+
+func (fake *FakeTeam) PipelinesCallCount() int {
+	fake.pipelinesMutex.RLock()
+	defer fake.pipelinesMutex.RUnlock()
+	return len(fake.pipelinesArgsForCall)
+}
+
+func (fake *FakeTeam) PipelinesReturns(result1 []dbng.Pipeline, result2 error) {
+	fake.PipelinesStub = nil
+	fake.pipelinesReturns = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) PipelinesReturnsOnCall(i int, result1 []dbng.Pipeline, result2 error) {
+	fake.PipelinesStub = nil
+	if fake.pipelinesReturnsOnCall == nil {
+		fake.pipelinesReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Pipeline
+			result2 error
+		})
+	}
+	fake.pipelinesReturnsOnCall[i] = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) PublicPipelines() ([]dbng.Pipeline, error) {
+	fake.publicPipelinesMutex.Lock()
+	ret, specificReturn := fake.publicPipelinesReturnsOnCall[len(fake.publicPipelinesArgsForCall)]
+	fake.publicPipelinesArgsForCall = append(fake.publicPipelinesArgsForCall, struct{}{})
+	fake.recordInvocation("PublicPipelines", []interface{}{})
+	fake.publicPipelinesMutex.Unlock()
+	if fake.PublicPipelinesStub != nil {
+		return fake.PublicPipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.publicPipelinesReturns.result1, fake.publicPipelinesReturns.result2
+}
+
+func (fake *FakeTeam) PublicPipelinesCallCount() int {
+	fake.publicPipelinesMutex.RLock()
+	defer fake.publicPipelinesMutex.RUnlock()
+	return len(fake.publicPipelinesArgsForCall)
+}
+
+func (fake *FakeTeam) PublicPipelinesReturns(result1 []dbng.Pipeline, result2 error) {
+	fake.PublicPipelinesStub = nil
+	fake.publicPipelinesReturns = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) PublicPipelinesReturnsOnCall(i int, result1 []dbng.Pipeline, result2 error) {
+	fake.PublicPipelinesStub = nil
+	if fake.publicPipelinesReturnsOnCall == nil {
+		fake.publicPipelinesReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Pipeline
+			result2 error
+		})
+	}
+	fake.publicPipelinesReturnsOnCall[i] = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) VisiblePipelines() ([]dbng.Pipeline, error) {
+	fake.visiblePipelinesMutex.Lock()
+	ret, specificReturn := fake.visiblePipelinesReturnsOnCall[len(fake.visiblePipelinesArgsForCall)]
+	fake.visiblePipelinesArgsForCall = append(fake.visiblePipelinesArgsForCall, struct{}{})
+	fake.recordInvocation("VisiblePipelines", []interface{}{})
+	fake.visiblePipelinesMutex.Unlock()
+	if fake.VisiblePipelinesStub != nil {
+		return fake.VisiblePipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.visiblePipelinesReturns.result1, fake.visiblePipelinesReturns.result2
+}
+
+func (fake *FakeTeam) VisiblePipelinesCallCount() int {
+	fake.visiblePipelinesMutex.RLock()
+	defer fake.visiblePipelinesMutex.RUnlock()
+	return len(fake.visiblePipelinesArgsForCall)
+}
+
+func (fake *FakeTeam) VisiblePipelinesReturns(result1 []dbng.Pipeline, result2 error) {
+	fake.VisiblePipelinesStub = nil
+	fake.visiblePipelinesReturns = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) VisiblePipelinesReturnsOnCall(i int, result1 []dbng.Pipeline, result2 error) {
+	fake.VisiblePipelinesStub = nil
+	if fake.visiblePipelinesReturnsOnCall == nil {
+		fake.visiblePipelinesReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Pipeline
+			result2 error
+		})
+	}
+	fake.visiblePipelinesReturnsOnCall[i] = struct {
+		result1 []dbng.Pipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) OrderPipelines(arg1 []string) error {
+	var arg1Copy []string
+	if arg1 != nil {
+		arg1Copy = make([]string, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	fake.orderPipelinesMutex.Lock()
+	ret, specificReturn := fake.orderPipelinesReturnsOnCall[len(fake.orderPipelinesArgsForCall)]
+	fake.orderPipelinesArgsForCall = append(fake.orderPipelinesArgsForCall, struct {
+		arg1 []string
+	}{arg1Copy})
+	fake.recordInvocation("OrderPipelines", []interface{}{arg1Copy})
+	fake.orderPipelinesMutex.Unlock()
+	if fake.OrderPipelinesStub != nil {
+		return fake.OrderPipelinesStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.orderPipelinesReturns.result1
+}
+
+func (fake *FakeTeam) OrderPipelinesCallCount() int {
+	fake.orderPipelinesMutex.RLock()
+	defer fake.orderPipelinesMutex.RUnlock()
+	return len(fake.orderPipelinesArgsForCall)
+}
+
+func (fake *FakeTeam) OrderPipelinesArgsForCall(i int) []string {
+	fake.orderPipelinesMutex.RLock()
+	defer fake.orderPipelinesMutex.RUnlock()
+	return fake.orderPipelinesArgsForCall[i].arg1
+}
+
+func (fake *FakeTeam) OrderPipelinesReturns(result1 error) {
+	fake.OrderPipelinesStub = nil
+	fake.orderPipelinesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) OrderPipelinesReturnsOnCall(i int, result1 error) {
+	fake.OrderPipelinesStub = nil
+	if fake.orderPipelinesReturnsOnCall == nil {
+		fake.orderPipelinesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.orderPipelinesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeTeam) CreateOneOffBuild() (dbng.Build, error) {
@@ -452,6 +961,60 @@ func (fake *FakeTeam) CreateOneOffBuildReturnsOnCall(i int, result1 dbng.Build, 
 		result1 dbng.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeTeam) PrivateAndPublicBuilds(arg1 dbng.Page) ([]dbng.Build, dbng.Pagination, error) {
+	fake.privateAndPublicBuildsMutex.Lock()
+	ret, specificReturn := fake.privateAndPublicBuildsReturnsOnCall[len(fake.privateAndPublicBuildsArgsForCall)]
+	fake.privateAndPublicBuildsArgsForCall = append(fake.privateAndPublicBuildsArgsForCall, struct {
+		arg1 dbng.Page
+	}{arg1})
+	fake.recordInvocation("PrivateAndPublicBuilds", []interface{}{arg1})
+	fake.privateAndPublicBuildsMutex.Unlock()
+	if fake.PrivateAndPublicBuildsStub != nil {
+		return fake.PrivateAndPublicBuildsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.privateAndPublicBuildsReturns.result1, fake.privateAndPublicBuildsReturns.result2, fake.privateAndPublicBuildsReturns.result3
+}
+
+func (fake *FakeTeam) PrivateAndPublicBuildsCallCount() int {
+	fake.privateAndPublicBuildsMutex.RLock()
+	defer fake.privateAndPublicBuildsMutex.RUnlock()
+	return len(fake.privateAndPublicBuildsArgsForCall)
+}
+
+func (fake *FakeTeam) PrivateAndPublicBuildsArgsForCall(i int) dbng.Page {
+	fake.privateAndPublicBuildsMutex.RLock()
+	defer fake.privateAndPublicBuildsMutex.RUnlock()
+	return fake.privateAndPublicBuildsArgsForCall[i].arg1
+}
+
+func (fake *FakeTeam) PrivateAndPublicBuildsReturns(result1 []dbng.Build, result2 dbng.Pagination, result3 error) {
+	fake.PrivateAndPublicBuildsStub = nil
+	fake.privateAndPublicBuildsReturns = struct {
+		result1 []dbng.Build
+		result2 dbng.Pagination
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTeam) PrivateAndPublicBuildsReturnsOnCall(i int, result1 []dbng.Build, result2 dbng.Pagination, result3 error) {
+	fake.PrivateAndPublicBuildsStub = nil
+	if fake.privateAndPublicBuildsReturnsOnCall == nil {
+		fake.privateAndPublicBuildsReturnsOnCall = make(map[int]struct {
+			result1 []dbng.Build
+			result2 dbng.Pagination
+			result3 error
+		})
+	}
+	fake.privateAndPublicBuildsReturnsOnCall[i] = struct {
+		result1 []dbng.Build
+		result2 dbng.Pagination
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeTeam) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (dbng.Worker, error) {
@@ -1142,17 +1705,133 @@ func (fake *FakeTeam) CreateBuildContainerReturnsOnCall(i int, result1 dbng.Crea
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
+	fake.updateBasicAuthMutex.Lock()
+	ret, specificReturn := fake.updateBasicAuthReturnsOnCall[len(fake.updateBasicAuthArgsForCall)]
+	fake.updateBasicAuthArgsForCall = append(fake.updateBasicAuthArgsForCall, struct {
+		basicAuth *atc.BasicAuth
+	}{basicAuth})
+	fake.recordInvocation("UpdateBasicAuth", []interface{}{basicAuth})
+	fake.updateBasicAuthMutex.Unlock()
+	if fake.UpdateBasicAuthStub != nil {
+		return fake.UpdateBasicAuthStub(basicAuth)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.updateBasicAuthReturns.result1
+}
+
+func (fake *FakeTeam) UpdateBasicAuthCallCount() int {
+	fake.updateBasicAuthMutex.RLock()
+	defer fake.updateBasicAuthMutex.RUnlock()
+	return len(fake.updateBasicAuthArgsForCall)
+}
+
+func (fake *FakeTeam) UpdateBasicAuthArgsForCall(i int) *atc.BasicAuth {
+	fake.updateBasicAuthMutex.RLock()
+	defer fake.updateBasicAuthMutex.RUnlock()
+	return fake.updateBasicAuthArgsForCall[i].basicAuth
+}
+
+func (fake *FakeTeam) UpdateBasicAuthReturns(result1 error) {
+	fake.UpdateBasicAuthStub = nil
+	fake.updateBasicAuthReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) UpdateBasicAuthReturnsOnCall(i int, result1 error) {
+	fake.UpdateBasicAuthStub = nil
+	if fake.updateBasicAuthReturnsOnCall == nil {
+		fake.updateBasicAuthReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateBasicAuthReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
+	fake.updateProviderAuthMutex.Lock()
+	ret, specificReturn := fake.updateProviderAuthReturnsOnCall[len(fake.updateProviderAuthArgsForCall)]
+	fake.updateProviderAuthArgsForCall = append(fake.updateProviderAuthArgsForCall, struct {
+		auth map[string]*json.RawMessage
+	}{auth})
+	fake.recordInvocation("UpdateProviderAuth", []interface{}{auth})
+	fake.updateProviderAuthMutex.Unlock()
+	if fake.UpdateProviderAuthStub != nil {
+		return fake.UpdateProviderAuthStub(auth)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.updateProviderAuthReturns.result1
+}
+
+func (fake *FakeTeam) UpdateProviderAuthCallCount() int {
+	fake.updateProviderAuthMutex.RLock()
+	defer fake.updateProviderAuthMutex.RUnlock()
+	return len(fake.updateProviderAuthArgsForCall)
+}
+
+func (fake *FakeTeam) UpdateProviderAuthArgsForCall(i int) map[string]*json.RawMessage {
+	fake.updateProviderAuthMutex.RLock()
+	defer fake.updateProviderAuthMutex.RUnlock()
+	return fake.updateProviderAuthArgsForCall[i].auth
+}
+
+func (fake *FakeTeam) UpdateProviderAuthReturns(result1 error) {
+	fake.UpdateProviderAuthStub = nil
+	fake.updateProviderAuthReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeam) UpdateProviderAuthReturnsOnCall(i int, result1 error) {
+	fake.UpdateProviderAuthStub = nil
+	if fake.updateProviderAuthReturnsOnCall == nil {
+		fake.updateProviderAuthReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateProviderAuthReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	fake.adminMutex.RLock()
+	defer fake.adminMutex.RUnlock()
+	fake.basicAuthMutex.RLock()
+	defer fake.basicAuthMutex.RUnlock()
+	fake.authMutex.RLock()
+	defer fake.authMutex.RUnlock()
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
-	fake.findPipelineByNameMutex.RLock()
-	defer fake.findPipelineByNameMutex.RUnlock()
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
+	fake.pipelinesMutex.RLock()
+	defer fake.pipelinesMutex.RUnlock()
+	fake.publicPipelinesMutex.RLock()
+	defer fake.publicPipelinesMutex.RUnlock()
+	fake.visiblePipelinesMutex.RLock()
+	defer fake.visiblePipelinesMutex.RUnlock()
+	fake.orderPipelinesMutex.RLock()
+	defer fake.orderPipelinesMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()
 	defer fake.createOneOffBuildMutex.RUnlock()
+	fake.privateAndPublicBuildsMutex.RLock()
+	defer fake.privateAndPublicBuildsMutex.RUnlock()
 	fake.saveWorkerMutex.RLock()
 	defer fake.saveWorkerMutex.RUnlock()
 	fake.workersMutex.RLock()
@@ -1179,6 +1858,10 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.findBuildContainerOnWorkerMutex.RUnlock()
 	fake.createBuildContainerMutex.RLock()
 	defer fake.createBuildContainerMutex.RUnlock()
+	fake.updateBasicAuthMutex.RLock()
+	defer fake.updateBasicAuthMutex.RUnlock()
+	fake.updateProviderAuthMutex.RLock()
+	defer fake.updateProviderAuthMutex.RUnlock()
 	return fake.invocations
 }
 

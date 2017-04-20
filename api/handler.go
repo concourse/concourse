@@ -52,11 +52,9 @@ func NewHandler(
 	dbWorkerFactory dbng.WorkerFactory,
 	volumeFactory dbng.VolumeFactory,
 	containerFactory dbng.ContainerFactory,
+	dbBuildFactory dbng.BuildFactory,
 
-	teamsDB teamserver.TeamsDB,
-	buildsDB buildserver.BuildsDB,
 	pipeDB pipes.PipeDB,
-	pipelinesDB db.PipelinesDB,
 
 	peerURL string,
 	eventHandlerFactory buildserver.EventHandlerFactory,
@@ -93,7 +91,7 @@ func NewHandler(
 		authTokenGenerator,
 		csrfTokenGenerator,
 		providerFactory,
-		teamDBFactory,
+		dbTeamFactory,
 		expire,
 		isTLSEnabled,
 	)
@@ -103,8 +101,8 @@ func NewHandler(
 		externalURL,
 		engine,
 		workerClient,
-		teamDBFactory,
-		buildsDB,
+		dbTeamFactory,
+		dbBuildFactory,
 		eventHandlerFactory,
 		drain,
 	)
@@ -114,7 +112,7 @@ func NewHandler(
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, externalURL, pipeDB)
 
-	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory, pipelinesDB)
+	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, teamDBFactory, dbPipelineFactory)
 
 	configServer := configserver.NewServer(logger, teamDBFactory, dbTeamFactory)
 
@@ -128,7 +126,7 @@ func NewHandler(
 
 	volumesServer := volumeserver.NewServer(logger, volumeFactory)
 
-	teamServer := teamserver.NewServer(logger, teamDBFactory, teamsDB)
+	teamServer := teamserver.NewServer(logger, dbTeamFactory)
 
 	infoServer := infoserver.NewServer(logger, version)
 

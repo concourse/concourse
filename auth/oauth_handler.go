@@ -7,7 +7,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/auth/routes"
+	"github.com/concourse/atc/dbng"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/tedsuo/rata"
 )
@@ -17,37 +18,37 @@ var SigningMethod = jwt.SigningMethodRS256
 //go:generate counterfeiter . ProviderFactory
 
 type ProviderFactory interface {
-	GetProvider(db.SavedTeam, string) (provider.Provider, bool, error)
+	GetProvider(dbng.Team, string) (provider.Provider, bool, error)
 }
 
 func NewOAuthHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
-	teamDBFactory db.TeamDBFactory,
+	teamFactory dbng.TeamFactory,
 	signingKey *rsa.PrivateKey,
 	expire time.Duration,
 	isTLSEnabled bool,
 ) (http.Handler, error) {
 	return rata.NewRouter(
-		OAuthRoutes,
+		routes.OAuthRoutes,
 		map[string]http.Handler{
-			OAuthBegin: NewOAuthBeginHandler(
+			routes.OAuthBegin: NewOAuthBeginHandler(
 				logger.Session("oauth-begin"),
 				providerFactory,
 				signingKey,
-				teamDBFactory,
+				teamFactory,
 				expire,
 				isTLSEnabled,
 			),
-			OAuthCallback: NewOAuthCallbackHandler(
+			routes.OAuthCallback: NewOAuthCallbackHandler(
 				logger.Session("oauth-callback"),
 				providerFactory,
 				signingKey,
-				teamDBFactory,
+				teamFactory,
 				expire,
 				isTLSEnabled,
 			),
-			LogOut: NewLogOutHandler(
+			routes.LogOut: NewLogOutHandler(
 				logger.Session("logout"),
 			),
 		},

@@ -63,7 +63,7 @@ var _ = Describe("WorkerFactory", func() {
 					},
 				}
 
-				_, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 
 				var count int
@@ -125,6 +125,7 @@ var _ = Describe("WorkerFactory", func() {
 		Context("when the worker is present", func() {
 			var createdWorker dbng.Worker
 			BeforeEach(func() {
+				var err error
 				createdWorker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -164,6 +165,7 @@ var _ = Describe("WorkerFactory", func() {
 
 			Context("when worker is stalled", func() {
 				BeforeEach(func() {
+					var err error
 					createdWorker, err = workerFactory.SaveWorker(atcWorker, -1*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 					stalled, err := workerLifecycle.StallUnresponsiveWorkers()
@@ -198,7 +200,7 @@ var _ = Describe("WorkerFactory", func() {
 
 		Context("when there are workers", func() {
 			BeforeEach(func() {
-				_, err = workerFactory.SaveWorker(atcWorker, 0)
+				_, err := workerFactory.SaveWorker(atcWorker, 0)
 				Expect(err).NotTo(HaveOccurred())
 
 				atcWorker.Name = "some-new-worker"
@@ -249,7 +251,7 @@ var _ = Describe("WorkerFactory", func() {
 
 		Context("when the worker is present", func() {
 			JustBeforeEach(func() {
-				_, err = workerFactory.SaveWorker(atcWorker, 1*time.Second)
+				_, err := workerFactory.SaveWorker(atcWorker, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

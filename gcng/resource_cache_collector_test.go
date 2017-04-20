@@ -19,11 +19,6 @@ var _ = Describe("ResourceCacheCollector", func() {
 		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("Run", func() {
 		Describe("resource caches", func() {
 			countResourceCaches := func() int {
@@ -96,7 +91,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						var versionId int
 						err = psql.Insert("versioned_resources").
 							Columns("version", "metadata", "type", "resource_id").
-							Values(`{"some":"version"}`, `[]`, "whatever", usedResource.ID).
+							Values(`{"some":"version"}`, `[]`, "whatever", usedResource.ID()).
 							Suffix("RETURNING id").
 							RunWith(tx).QueryRow().Scan(&versionId)
 						Expect(err).NotTo(HaveOccurred())

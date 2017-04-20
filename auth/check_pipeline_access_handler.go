@@ -4,27 +4,22 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
-
-const PipelineDBKey = "pipelineDB"
 
 type CheckPipelineAccessHandlerFactory interface {
 	HandlerFor(pipelineScopedHandler http.Handler, rejector Rejector) http.Handler
 }
 
 type checkPipelineAccessHandlerFactory struct {
-	pipelineDBFactory db.PipelineDBFactory
-	teamDBFactory     db.TeamDBFactory
+	teamFactory dbng.TeamFactory
 }
 
 func NewCheckPipelineAccessHandlerFactory(
-	pipelineDBFactory db.PipelineDBFactory,
-	teamDBFactory db.TeamDBFactory,
+	teamFactory dbng.TeamFactory,
 ) *checkPipelineAccessHandlerFactory {
 	return &checkPipelineAccessHandlerFactory{
-		pipelineDBFactory: pipelineDBFactory,
-		teamDBFactory:     teamDBFactory,
+		teamFactory: teamFactory,
 	}
 }
 
@@ -33,26 +28,33 @@ func (f *checkPipelineAccessHandlerFactory) HandlerFor(
 	rejector Rejector,
 ) http.Handler {
 	return checkPipelineAccessHandler{
-		rejector:          rejector,
-		teamDBFactory:     f.teamDBFactory,
-		pipelineDBFactory: f.pipelineDBFactory,
-		delegateHandler:   delegateHandler,
+		rejector:        rejector,
+		teamFactory:     f.teamFactory,
+		delegateHandler: delegateHandler,
 	}
 }
 
 type checkPipelineAccessHandler struct {
-	rejector          Rejector
-	teamDBFactory     db.TeamDBFactory
-	pipelineDBFactory db.PipelineDBFactory
-	delegateHandler   http.Handler
+	rejector        Rejector
+	teamFactory     dbng.TeamFactory
+	delegateHandler http.Handler
 }
 
 func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	pipelineName := r.FormValue(":pipeline_name")
 	requestTeamName := r.FormValue(":team_name")
 
-	teamDB := h.teamDBFactory.GetTeamDB(requestTeamName)
-	savedPipeline, found, err := teamDB.GetPipelineByName(pipelineName)
+	team, found, err := h.teamFactory.FindTeam(requestTeamName)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	pipeline, found, err := team.Pipeline(pipelineName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -63,9 +65,8 @@ func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	pipelineDB := h.pipelineDBFactory.Build(savedPipeline)
-	if IsAuthorized(r) || pipelineDB.IsPublic() {
-		ctx := context.WithValue(r.Context(), PipelineDBKey, pipelineDB)
+	if IsAuthorized(r) || pipeline.Public() {
+		ctx := context.WithValue(r.Context(), PipelineContextKey, pipeline)
 		h.delegateHandler.ServeHTTP(w, r.WithContext(ctx))
 		return
 	}

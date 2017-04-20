@@ -7,8 +7,8 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/engine"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
@@ -22,7 +22,7 @@ var _ = Describe("BuildDelegate", func() {
 	var (
 		factory BuildDelegateFactory
 
-		fakeBuild *dbfakes.FakeBuild
+		fakeBuild *dbngfakes.FakeBuild
 
 		delegate BuildDelegate
 
@@ -34,7 +34,7 @@ var _ = Describe("BuildDelegate", func() {
 	BeforeEach(func() {
 		factory = NewBuildDelegateFactory()
 
-		fakeBuild = new(dbfakes.FakeBuild)
+		fakeBuild = new(dbngfakes.FakeBuild)
 		delegate = factory.Delegate(fakeBuild)
 
 		logger = lagertest.NewTestLogger("test")
@@ -51,13 +51,12 @@ var _ = Describe("BuildDelegate", func() {
 
 		BeforeEach(func() {
 			getPlan = atc.GetPlan{
-				Name:       "some-input",
-				Resource:   "some-input-resource",
-				PipelineID: 57,
-				Type:       "some-type",
-				Version:    atc.Version{"some": "version"},
-				Source:     atc.Source{"some": "source"},
-				Params:     atc.Params{"some": "params"},
+				Name:     "some-input",
+				Resource: "some-input-resource",
+				Type:     "some-type",
+				Version:  atc.Version{"some": "version"},
+				Source:   atc.Source{"some": "source"},
+				Params:   atc.Params{"some": "params"},
 			}
 
 			inputDelegate = delegate.InputDelegate(logger, getPlan, originID)
@@ -148,42 +147,6 @@ var _ = Describe("BuildDelegate", func() {
 				})
 			})
 
-			Context("when the pipeline ID is not set because of a one-off build", func() {
-				BeforeEach(func() {
-					getPlan.PipelineID = 0
-
-					inputDelegate = delegate.InputDelegate(logger, getPlan, originID)
-				})
-
-				JustBeforeEach(func() {
-					inputDelegate.Completed(exec.ExitStatus(0), versionInfo)
-				})
-
-				It("does not save the build's input", func() {
-					Expect(fakeBuild.SaveInputCallCount()).To(Equal(0))
-				})
-
-				It("saves a finish-get event", func() {
-					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
-
-					savedEvent := fakeBuild.SaveEventArgsForCall(0)
-					Expect(savedEvent).To(Equal(event.FinishGet{
-						Origin: event.Origin{
-							ID: originID,
-						},
-						Plan: event.GetPlan{
-							Name:     "some-input",
-							Resource: "some-input-resource",
-							Type:     "some-type",
-							Version:  atc.Version{"some": "version"},
-						},
-						ExitStatus:      0,
-						FetchedVersion:  nil,
-						FetchedMetadata: nil,
-					}))
-				})
-			})
-
 			Describe("Finish", func() {
 				var (
 					finishErr error
@@ -208,7 +171,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(db.StatusFailed))
+							Expect(savedStatus).To(Equal(dbng.BuildStatusFailed))
 						})
 					})
 
@@ -223,23 +186,14 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(db.StatusSucceeded))
+							Expect(savedStatus).To(Equal(dbng.BuildStatusSucceeded))
 						})
 					})
 				})
 
 				Context("when exit status is 0", func() {
 					BeforeEach(func() {
-						fakeBuild.SaveInputReturns(db.SavedVersionedResource{
-							ID: 42,
-							VersionedResource: db.VersionedResource{
-								PipelineID: 57,
-								Resource:   "some-input-resource",
-								Type:       "some-type",
-								Version:    db.Version{"result": "version"},
-								Metadata:   []db.MetadataField{{"saved", "metadata"}},
-							},
-						}, nil)
+						fakeBuild.SaveInputReturns(nil)
 					})
 
 					JustBeforeEach(func() {
@@ -250,14 +204,13 @@ var _ = Describe("BuildDelegate", func() {
 						Expect(fakeBuild.SaveInputCallCount()).To(Equal(1))
 
 						savedInput := fakeBuild.SaveInputArgsForCall(0)
-						Expect(savedInput).To(Equal(db.BuildInput{
+						Expect(savedInput).To(Equal(dbng.BuildInput{
 							Name: "some-input",
-							VersionedResource: db.VersionedResource{
-								PipelineID: 57,
-								Resource:   "some-input-resource",
-								Type:       "some-type",
-								Version:    db.Version{"result": "version"},
-								Metadata:   []db.MetadataField{{"result", "metadata"}},
+							VersionedResource: dbng.VersionedResource{
+								Resource: "some-input-resource",
+								Type:     "some-type",
+								Version:  dbng.ResourceVersion{"result": "version"},
+								Metadata: []dbng.ResourceMetadataField{{"result", "metadata"}},
 							},
 						}))
 					})
@@ -277,7 +230,7 @@ var _ = Describe("BuildDelegate", func() {
 								Version:  atc.Version{"some": "version"},
 							},
 							FetchedVersion:  versionInfo.Version,
-							FetchedMetadata: []atc.MetadataField{{"saved", "metadata"}},
+							FetchedMetadata: []atc.MetadataField{{"result", "metadata"}},
 						}))
 					})
 
@@ -302,12 +255,11 @@ var _ = Describe("BuildDelegate", func() {
 									Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
 									savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
-									Expect(savedOutput).To(Equal(db.VersionedResource{
-										PipelineID: 57,
-										Resource:   "some-input-resource",
-										Type:       "some-type",
-										Version:    db.Version{"result": "version"},
-										Metadata:   []db.MetadataField{{"result", "metadata"}},
+									Expect(savedOutput).To(Equal(dbng.VersionedResource{
+										Resource: "some-input-resource",
+										Type:     "some-type",
+										Version:  dbng.ResourceVersion{"result": "version"},
+										Metadata: []dbng.ResourceMetadataField{{"result", "metadata"}},
 									}))
 
 									Expect(explicit).To(BeFalse())
@@ -340,11 +292,10 @@ var _ = Describe("BuildDelegate", func() {
 
 						BeforeEach(func() {
 							putPlan = atc.PutPlan{
-								PipelineID: 57,
-								Resource:   "some-input-resource",
-								Type:       "some-type",
-								Source:     atc.Source{"some": "source"},
-								Params:     atc.Params{"some": "output-params"},
+								Resource: "some-input-resource",
+								Type:     "some-type",
+								Source:   atc.Source{"some": "source"},
+								Params:   atc.Params{"some": "output-params"},
 							}
 
 							outputDelegate = delegate.OutputDelegate(logger, putPlan, originID)
@@ -374,29 +325,14 @@ var _ = Describe("BuildDelegate", func() {
 								Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
 								savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
-								Expect(savedOutput).To(Equal(db.VersionedResource{
-									PipelineID: 57,
-									Resource:   "some-input-resource",
-									Type:       "some-type",
-									Version:    db.Version{"explicit": "version"},
-									Metadata:   []db.MetadataField{{"explicit", "metadata"}},
+								Expect(savedOutput).To(Equal(dbng.VersionedResource{
+									Resource: "some-input-resource",
+									Type:     "some-type",
+									Version:  dbng.ResourceVersion{"explicit": "version"},
+									Metadata: []dbng.ResourceMetadataField{{"explicit", "metadata"}},
 								}))
 
 								Expect(explicit).To(BeTrue())
-							})
-
-							Context("when the pipeline name is empty because of a one-off build", func() {
-								BeforeEach(func() {
-									putPlan.PipelineID = 0
-
-									outputDelegate = delegate.OutputDelegate(logger, putPlan, originID)
-								})
-
-								It("does not save it as an output", func() {
-									delegate.Finish(logger, finishErr, succeeded, aborted)
-
-									Expect(fakeBuild.SaveOutputCallCount()).To(BeZero())
-								})
 							})
 						})
 					})
@@ -443,12 +379,10 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
-				actualPlanID, actualIdentifier := fakeBuild.SaveImageResourceVersionArgsForCall(0)
+				actualPlanID, actualResourceVersion, actualResourceHash := fakeBuild.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
-				Expect(actualIdentifier).To(Equal(db.ResourceCacheIdentifier{
-					ResourceVersion: atc.Version{"ref": "asdf"},
-					ResourceHash:    "our-super-sweet-resource-hash",
-				}))
+				Expect(actualResourceVersion).To(Equal(atc.Version{"ref": "asdf"}))
+				Expect(actualResourceHash).To(Equal("our-super-sweet-resource-hash"))
 			})
 
 			It("propagates errors", func() {
@@ -648,7 +582,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(db.StatusSucceeded))
+							Expect(savedStatus).To(Equal(dbng.BuildStatusSucceeded))
 						})
 					})
 
@@ -666,7 +600,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(db.StatusErrored))
+							Expect(savedStatus).To(Equal(dbng.BuildStatusErrored))
 						})
 					})
 				})
@@ -732,12 +666,10 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
-				actualPlanID, actualIdentifier := fakeBuild.SaveImageResourceVersionArgsForCall(0)
+				actualPlanID, actualResourceVersion, actualResourceHash := fakeBuild.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
-				Expect(actualIdentifier).To(Equal(db.ResourceCacheIdentifier{
-					ResourceVersion: atc.Version{"ref": "asdf"},
-					ResourceHash:    "our-super-sweet-resource-hash",
-				}))
+				Expect(actualResourceVersion).To(Equal(atc.Version{"ref": "asdf"}))
+				Expect(actualResourceHash).To(Equal("our-super-sweet-resource-hash"))
 			})
 
 			It("Propagates errors", func() {
@@ -809,12 +741,11 @@ var _ = Describe("BuildDelegate", func() {
 
 		BeforeEach(func() {
 			putPlan = atc.PutPlan{
-				Name:       "some-output-name",
-				Resource:   "some-output-resource",
-				PipelineID: 86,
-				Type:       "some-type",
-				Source:     atc.Source{"some": "source"},
-				Params:     atc.Params{"some": "params"},
+				Name:     "some-output-name",
+				Resource: "some-output-resource",
+				Type:     "some-type",
+				Source:   atc.Source{"some": "source"},
+				Params:   atc.Params{"some": "params"},
 			}
 
 			outputDelegate = delegate.OutputDelegate(logger, putPlan, originID)
@@ -886,12 +817,11 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
 					savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
-					Expect(savedOutput).To(Equal(db.VersionedResource{
-						PipelineID: 86,
-						Resource:   "some-output-resource",
-						Type:       "some-type",
-						Version:    db.Version{"result": "version"},
-						Metadata:   []db.MetadataField{{"result", "metadata"}},
+					Expect(savedOutput).To(Equal(dbng.VersionedResource{
+						Resource: "some-output-resource",
+						Type:     "some-type",
+						Version:  dbng.ResourceVersion{"result": "version"},
+						Metadata: []dbng.ResourceMetadataField{{"result", "metadata"}},
 					}))
 
 					Expect(explicit).To(BeTrue())
@@ -927,12 +857,11 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
 					savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
-					Expect(savedOutput).To(Equal(db.VersionedResource{
-						PipelineID: 86,
-						Resource:   "some-output-resource",
-						Type:       "some-type",
-						Version:    db.Version{"result": "version"},
-						Metadata:   []db.MetadataField{{"result", "metadata"}},
+					Expect(savedOutput).To(Equal(dbng.VersionedResource{
+						Resource: "some-output-resource",
+						Type:     "some-type",
+						Version:  dbng.ResourceVersion{"result": "version"},
+						Metadata: []dbng.ResourceMetadataField{{"result", "metadata"}},
 					}))
 
 					Expect(explicit).To(BeTrue())
@@ -984,7 +913,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(db.StatusSucceeded))
+							Expect(savedStatus).To(Equal(dbng.BuildStatusSucceeded))
 						})
 					})
 
@@ -999,7 +928,7 @@ var _ = Describe("BuildDelegate", func() {
 							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 							savedStatus := fakeBuild.FinishArgsForCall(0)
-							Expect(savedStatus).To(Equal(db.StatusFailed))
+							Expect(savedStatus).To(Equal(dbng.BuildStatusFailed))
 						})
 					})
 				})
@@ -1046,12 +975,10 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
-				actualPlanID, actualIdentifier := fakeBuild.SaveImageResourceVersionArgsForCall(0)
+				actualPlanID, actualResourceVersion, actualResourceHash := fakeBuild.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
-				Expect(actualIdentifier).To(Equal(db.ResourceCacheIdentifier{
-					ResourceVersion: atc.Version{"ref": "asdf"},
-					ResourceHash:    "our-super-sweet-resource-hash",
-				}))
+				Expect(actualResourceVersion).To(Equal(atc.Version{"ref": "asdf"}))
+				Expect(actualResourceHash).To(Equal("our-super-sweet-resource-hash"))
 			})
 
 			It("propagates errors", func() {
@@ -1141,7 +1068,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 					savedStatus := fakeBuild.FinishArgsForCall(0)
-					Expect(savedStatus).To(Equal(db.StatusAborted))
+					Expect(savedStatus).To(Equal(dbng.BuildStatusAborted))
 				})
 			})
 
@@ -1159,7 +1086,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
 					savedStatus := fakeBuild.FinishArgsForCall(0)
-					Expect(savedStatus).To(Equal(db.StatusAborted))
+					Expect(savedStatus).To(Equal(dbng.BuildStatusAborted))
 				})
 			})
 		})

@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) RenamePipeline(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) RenamePipeline(_ db.PipelineDB, pipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("rename-pipeline")
 
@@ -29,7 +29,7 @@ func (s *Server) RenamePipeline(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.
 			return
 		}
 
-		err = pipelineDB.UpdateName(rename.NewName)
+		err = pipeline.Rename(rename.NewName)
 		if err != nil {
 			logger.Error("failed-to-update-name", err)
 			w.WriteHeader(http.StatusInternalServerError)

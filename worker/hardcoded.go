@@ -12,15 +12,9 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-//go:generate counterfeiter . SaveWorkerDB
-
-type SaveWorkerDB interface {
-	SaveWorker(atc.Worker, time.Duration) (dbng.Worker, error)
-}
-
 func NewHardcoded(
 	logger lager.Logger,
-	workerDB SaveWorkerDB,
+	workerFactory dbng.WorkerFactory,
 	clock c.Clock,
 	gardenAddr string,
 	baggageclaimURL string,
@@ -37,7 +31,7 @@ func NewHardcoded(
 			Name:             gardenAddr,
 		}
 
-		_, err := workerDB.SaveWorker(workerInfo, 30*time.Second)
+		_, err := workerFactory.SaveWorker(workerInfo, 30*time.Second)
 		if err != nil {
 			logger.Error("could-not-save-garden-worker-provided", err)
 			return err
@@ -51,7 +45,7 @@ func NewHardcoded(
 		for {
 			select {
 			case <-ticker.C():
-				_, err = workerDB.SaveWorker(workerInfo, 30*time.Second)
+				_, err = workerFactory.SaveWorker(workerInfo, 30*time.Second)
 				if err != nil {
 					logger.Error("could-not-save-garden-worker-provided", err)
 				}

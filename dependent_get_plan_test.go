@@ -13,7 +13,6 @@ var _ = Describe("DependentGetPlan", func() {
 			Type:     "resource-type",
 			Name:     "resource-name",
 			Resource: "resource-resource",
-			Pipeline: "resource-pipeline",
 			Source: atc.Source{
 				"resource": "source",
 			},
@@ -27,7 +26,6 @@ var _ = Describe("DependentGetPlan", func() {
 			Type:     "resource-type",
 			Name:     "resource-name",
 			Resource: "resource-resource",
-			Pipeline: "resource-pipeline",
 			Source: atc.Source{
 				"resource": "source",
 			},

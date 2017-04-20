@@ -28,8 +28,8 @@ import (
 	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/providerfakes"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 )
 
 type testCookieJar struct {
@@ -60,7 +60,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		fakeProviderFactory *authfakes.FakeProviderFactory
 
-		fakeTeamDB *dbfakes.FakeTeamDB
+		fakeTeam        *dbngfakes.FakeTeam
+		fakeTeamFactory *dbngfakes.FakeTeamFactory
 
 		signingKey *rsa.PrivateKey
 
@@ -69,13 +70,12 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		server          *httptest.Server
 		client          *http.Client
 		redirectRequest *http.Request
-
-		team db.SavedTeam
 	)
 
 	BeforeEach(func() {
 		fakeProvider = new(providerfakes.FakeProvider)
 
+		fakeTeamFactory = new(dbngfakes.FakeTeamFactory)
 		fakeProviderFactory = new(authfakes.FakeProviderFactory)
 
 		var err error
@@ -83,7 +83,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		Expect(err).ToNot(HaveOccurred())
 		expire = 24 * time.Hour
 
-		fakeProviderFactory.GetProviderStub = func(team db.SavedTeam, providerName string) (provider.Provider, bool, error) {
+		fakeProviderFactory.GetProviderStub = func(team dbng.Team, providerName string) (provider.Provider, bool, error) {
 			if providerName == "some-provider" {
 				return fakeProvider, true, nil
 			}
@@ -93,21 +93,14 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		preTokenClient = &http.Client{Timeout: 31 * time.Second}
 		fakeProvider.PreTokenClientReturns(preTokenClient, nil)
 
-		team = db.SavedTeam{
-			Team: db.Team{
-				Name: "some-team",
-			},
-		}
-
-		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
-		fakeTeamDB = new(dbfakes.FakeTeamDB)
-		fakeTeamDB.GetTeamReturns(team, true, nil)
-		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
+		fakeTeam = new(dbngfakes.FakeTeam)
+		fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+		fakeTeam.NameReturns("some-team")
 
 		handler, err := auth.NewOAuthHandler(
 			lagertest.NewTestLogger("test"),
 			fakeProviderFactory,
-			fakeTeamDBFactory,
+			fakeTeamFactory,
 			signingKey,
 			expire,
 			false,
@@ -228,7 +221,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 					It("looks up the verifier for the team from the query param", func() {
 						Expect(fakeProviderFactory.GetProviderCallCount()).To(Equal(1))
 						argTeam, providerName := fakeProviderFactory.GetProviderArgsForCall(0)
-						Expect(argTeam).To(Equal(team))
+						Expect(argTeam).To(Equal(fakeTeam))
 						Expect(providerName).To(Equal("some-provider"))
 					})
 
@@ -282,7 +275,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 								Expect(err).ToNot(HaveOccurred())
 
 								claims := token.Claims.(jwt.MapClaims)
-								Expect(claims["teamName"]).To(Equal(team.Name))
+								Expect(claims["teamName"]).To(Equal("some-team"))
 								Expect(token.Valid).To(BeTrue())
 							})
 						})
@@ -346,7 +339,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 				Context("when the team cannot be found", func() {
 					BeforeEach(func() {
-						fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+						fakeTeamFactory.FindTeamReturns(nil, false, nil)
 					})
 
 					It("returns Not Found", func() {

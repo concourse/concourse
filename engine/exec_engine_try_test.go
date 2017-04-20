@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/worker"
@@ -22,7 +23,7 @@ var _ = Describe("Exec Engine with Try", func() {
 
 		execEngine engine.Engine
 
-		build              *dbfakes.FakeBuild
+		build              *dbngfakes.FakeBuild
 		expectedTeamID     = 1111
 		expectedPipelineID = 2222
 		expectedJobID      = 3333
@@ -50,7 +51,7 @@ var _ = Describe("Exec Engine with Try", func() {
 		fakeDelegate = new(enginefakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		build = new(dbfakes.FakeBuild)
+		build = new(dbngfakes.FakeBuild)
 		build.IDReturns(expectedBuildID)
 		build.NameReturns("42")
 		build.JobNameReturns("some-job")
@@ -114,8 +115,7 @@ var _ = Describe("Exec Engine with Try", func() {
 				fakeDelegate.ExecutionDelegateReturns(fakeExecutionDelegate)
 
 				inputPlan = planFactory.NewPlan(atc.GetPlan{
-					Name:       "some-input",
-					PipelineID: expectedPipelineID,
+					Name: "some-input",
 				})
 
 				plan := planFactory.NewPlan(atc.TryPlan{

@@ -31,10 +31,9 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipel
 		teamName := r.FormValue(":team_name")
 		pipelineName := r.FormValue(":pipeline_name")
 
-		pipelineDB, ok := r.Context().Value(auth.PipelineDBKey).(db.PipelineDB)
+		pipeline, ok := r.Context().Value(auth.PipelineContextKey).(dbng.Pipeline)
 		if !ok {
-			teamDB := pdbh.teamDBFactory.GetTeamDB(teamName)
-			savedPipeline, found, err := teamDB.GetPipelineByName(pipelineName)
+			dbngTeam, found, err := pdbh.teamDBNGFactory.FindTeam(teamName)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -45,12 +44,19 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipel
 				return
 			}
 
-			pipelineDB = pdbh.pipelineDBFactory.Build(savedPipeline)
+			pipeline, found, err = dbngTeam.Pipeline(pipelineName)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if !found {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
 		}
 
-		dbngTeam := pdbh.teamDBNGFactory.GetByID(pipelineDB.TeamID())
-
-		dbPipeline, found, err := dbngTeam.FindPipelineByName(pipelineName)
+		savedDBPipeline, found, err := pdbh.teamDBFactory.GetTeamDB(teamName).GetPipelineByName(pipelineName)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -61,6 +67,8 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipel
 			return
 		}
 
-		pipelineScopedHandler(pipelineDB, dbPipeline).ServeHTTP(w, r)
+		dbPipeline := pdbh.pipelineDBFactory.Build(savedDBPipeline)
+
+		pipelineScopedHandler(dbPipeline, pipeline).ServeHTTP(w, r)
 	}
 }

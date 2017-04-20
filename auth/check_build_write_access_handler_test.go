@@ -7,8 +7,7 @@ import (
 
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/authfakes"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng/dbngfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,29 +18,29 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		response       *http.Response
 		server         *httptest.Server
 		delegate       *buildDelegateHandler
-		buildsDB       *authfakes.FakeBuildsDB
+		buildFactory   *dbngfakes.FakeBuildFactory
 		handlerFactory auth.CheckBuildWriteAccessHandlerFactory
 		handler        http.Handler
 
 		authValidator     *authfakes.FakeValidator
 		userContextReader *authfakes.FakeUserContextReader
 
-		build    *dbfakes.FakeBuild
-		pipeline db.SavedPipeline
+		build    *dbngfakes.FakeBuild
+		pipeline *dbngfakes.FakePipeline
 	)
 
 	BeforeEach(func() {
-		buildsDB = new(authfakes.FakeBuildsDB)
-		handlerFactory = auth.NewCheckBuildWriteAccessHandlerFactory(buildsDB)
+		buildFactory = new(dbngfakes.FakeBuildFactory)
+		handlerFactory = auth.NewCheckBuildWriteAccessHandlerFactory(buildFactory)
 
 		authValidator = new(authfakes.FakeValidator)
 		userContextReader = new(authfakes.FakeUserContextReader)
 
 		delegate = &buildDelegateHandler{}
 
-		build = new(dbfakes.FakeBuild)
-		pipeline = db.SavedPipeline{}
-		build.GetPipelineReturns(pipeline, nil)
+		build = new(dbngfakes.FakeBuild)
+		pipeline = new(dbngfakes.FakePipeline)
+		build.PipelineReturns(pipeline, true, nil)
 		build.TeamNameReturns("some-team")
 		build.JobNameReturns("some-job")
 
@@ -71,7 +70,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 		Context("when build exists", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildByIDReturns(build, true, nil)
+				buildFactory.BuildReturns(build, true, nil)
 			})
 
 			It("returns 200 ok", func() {
@@ -86,7 +85,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 		Context("when build is not found", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildByIDReturns(nil, false, nil)
+				buildFactory.BuildReturns(nil, false, nil)
 			})
 
 			It("returns 404", func() {
@@ -96,7 +95,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 
 		Context("when getting build fails", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildByIDReturns(nil, false, errors.New("disaster"))
+				buildFactory.BuildReturns(nil, false, errors.New("disaster"))
 			})
 
 			It("returns 404", func() {
@@ -109,7 +108,7 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		BeforeEach(func() {
 			authValidator.IsAuthenticatedReturns(true)
 			userContextReader.GetTeamReturns("other-team-name", false, true)
-			buildsDB.GetBuildByIDReturns(build, true, nil)
+			buildFactory.BuildReturns(build, true, nil)
 		})
 
 		It("returns 403", func() {

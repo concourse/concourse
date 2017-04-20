@@ -68,8 +68,7 @@ var _ = Describe("Factory Task", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some-task",
-					PipelineID:             42,
+					Name: "some-task",
 					VersionedResourceTypes: resourceTypes,
 					Params:                 params,
 				})
@@ -108,8 +107,7 @@ var _ = Describe("Factory Task", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some-task",
-					PipelineID:             42,
+					Name: "some-task",
 					VersionedResourceTypes: resourceTypes,
 					InputMapping: map[string]string{
 						"bosh-release": "concourse-release",
@@ -162,8 +160,7 @@ var _ = Describe("Factory Task", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some-task",
-					PipelineID:             42,
+					Name: "some-task",
 					VersionedResourceTypes: resourceTypes,
 					OutputMapping: map[string]string{
 						"bosh-release": "concourse-release",

@@ -2,16 +2,13 @@ package authserver
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"sort"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/genericoauth"
-	"github.com/concourse/atc/auth/github"
-	"github.com/concourse/atc/auth/uaa"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/web"
 	"github.com/tedsuo/rata"
 )
@@ -22,8 +19,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-auth-methods")
 
 	teamName := r.FormValue(":team_name")
-	teamDB := s.teamDBFactory.GetTeamDB(teamName)
-	team, found, err := teamDB.GetTeam()
+	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
 		logger.Error("failed-to-get-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -64,65 +60,29 @@ func (ms byTypeAndName) Less(i int, j int) bool {
 	return ms[i].DisplayName < ms[j].DisplayName
 }
 
-func (s *Server) authMethods(team db.SavedTeam) ([]atc.AuthMethod, error) {
+func (s *Server) authMethods(team dbng.Team) ([]atc.AuthMethod, error) {
 	methods := []atc.AuthMethod{}
 
-	if team.GitHubAuth != nil {
-		path, err := auth.OAuthRoutes.CreatePathForRoute(
-			auth.OAuthBegin,
-			rata.Params{"provider": github.ProviderName},
-		)
+	providers := provider.GetProviders()
 
+	for providerName, config := range team.Auth() {
+		p, found := providers[providerName]
+		if !found {
+			return nil, errors.New("failed to find provider")
+		}
+
+		authConfig, err := p.UnmarshalConfig(config)
 		if err != nil {
 			return nil, err
 		}
 
-		path = path + fmt.Sprintf("?team_name=%s", team.Name)
-		methods = append(methods, atc.AuthMethod{
-			Type:        atc.AuthTypeOAuth,
-			DisplayName: github.DisplayName,
-			AuthURL:     s.oAuthBaseURL + path,
-		})
+		methods = append(methods, authConfig.AuthMethod(s.oAuthBaseURL, team.Name()))
 	}
 
-	if team.UAAAuth != nil {
-		path, err := auth.OAuthRoutes.CreatePathForRoute(
-			auth.OAuthBegin,
-			rata.Params{"provider": uaa.ProviderName},
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		path = path + fmt.Sprintf("?team_name=%s", team.Name)
-		methods = append(methods, atc.AuthMethod{
-			Type:        atc.AuthTypeOAuth,
-			DisplayName: uaa.DisplayName,
-			AuthURL:     s.oAuthBaseURL + path,
-		})
-	}
-
-	if team.GenericOAuth != nil {
-		path, err := auth.OAuthRoutes.CreatePathForRoute(
-			auth.OAuthBegin,
-			rata.Params{"provider": genericoauth.ProviderName},
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		path = path + fmt.Sprintf("?team_name=%s", team.Name)
-		methods = append(methods, atc.AuthMethod{
-			Type:        atc.AuthTypeOAuth,
-			DisplayName: team.GenericOAuth.DisplayName,
-			AuthURL:     s.oAuthBaseURL + path,
-		})
-	}
-
-	if team.BasicAuth != nil {
+	if team.BasicAuth() != nil {
 		path, err := web.Routes.CreatePathForRoute(
 			web.TeamLogIn,
-			rata.Params{"team_name": team.Name},
+			rata.Params{"team_name": team.Name()},
 		)
 		if err != nil {
 			return nil, err

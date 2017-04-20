@@ -1,7 +1,11 @@
 package dbng_test
 
 import (
+	"encoding/json"
+	"strconv"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
@@ -13,12 +17,35 @@ import (
 
 var _ = Describe("Team", func() {
 	var (
+		team      dbng.Team
 		otherTeam dbng.Team
 	)
 
 	BeforeEach(func() {
-		otherTeam, err = teamFactory.CreateTeam("some-other-team")
+		var err error
+		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+		Expect(err).ToNot(HaveOccurred())
+		otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("Delete", func() {
+		BeforeEach(func() {
+			team, found, err := teamFactory.FindTeam("some-other-team")
+			Expect(team.Name()).To(Equal("some-other-team"))
+			Expect(found).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+
+			err = otherTeam.Delete()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("deletes the team", func() {
+			team, found, err := teamFactory.FindTeam("some-other-team")
+			Expect(team).To(BeNil())
+			Expect(found).To(BeFalse())
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 
 	Describe("SaveWorker", func() {
@@ -31,10 +58,10 @@ var _ = Describe("Team", func() {
 
 		BeforeEach(func() {
 			postgresRunner.Truncate()
-			team, err = teamFactory.CreateTeam("team")
+			team, err = teamFactory.CreateTeam(atc.Team{Name: "team"})
 			Expect(err).NotTo(HaveOccurred())
 
-			otherTeam, err = teamFactory.CreateTeam("some-other-team")
+			otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
 			Expect(err).NotTo(HaveOccurred())
 			atcWorker = atc.Worker{
 				GardenAddr:       "some-garden-addr",
@@ -102,10 +129,10 @@ var _ = Describe("Team", func() {
 
 		BeforeEach(func() {
 			postgresRunner.Truncate()
-			team, err = teamFactory.CreateTeam("team")
+			team, err = teamFactory.CreateTeam(atc.Team{Name: "team"})
 			Expect(err).NotTo(HaveOccurred())
 
-			otherTeam, err = teamFactory.CreateTeam("some-other-team")
+			otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
 			Expect(err).NotTo(HaveOccurred())
 			atcWorker = atc.Worker{
 				GardenAddr:       "some-garden-addr",
@@ -353,7 +380,7 @@ var _ = Describe("Team", func() {
 
 		Context("when worker is no longer in database", func() {
 			BeforeEach(func() {
-				err = defaultWorker.Delete()
+				err := defaultWorker.Delete()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -383,9 +410,10 @@ var _ = Describe("Team", func() {
 		var resourceConfig *dbng.UsedResourceConfig
 
 		BeforeEach(func() {
+			var err error
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
-				dbng.ForResource(defaultResource.ID),
+				dbng.ForResource(defaultResource.ID()),
 				"some-base-resource-type",
 				atc.Source{"some": "source"},
 				atc.VersionedResourceTypes{},
@@ -472,9 +500,10 @@ var _ = Describe("Team", func() {
 		var resourceConfig *dbng.UsedResourceConfig
 
 		BeforeEach(func() {
+			var err error
 			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				logger,
-				dbng.ForResource(defaultResource.ID),
+				dbng.ForResource(defaultResource.ID()),
 				"some-base-resource-type",
 				atc.Source{"some": "source"},
 				atc.VersionedResourceTypes{},
@@ -557,12 +586,16 @@ var _ = Describe("Team", func() {
 
 	Describe("FindWorkerForContainer", func() {
 		var containerMetadata dbng.ContainerMetadata
+		var defaultBuild dbng.Build
 
 		BeforeEach(func() {
+			var err error
 			containerMetadata = dbng.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			}
+			defaultBuild, err = defaultTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when there is a creating container", func() {
@@ -629,12 +662,16 @@ var _ = Describe("Team", func() {
 
 	Describe("FindWorkerForBuildContainer", func() {
 		var containerMetadata dbng.ContainerMetadata
+		var defaultBuild dbng.Build
 
 		BeforeEach(func() {
 			containerMetadata = dbng.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			}
+			var err error
+			defaultBuild, err = defaultTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when there is a creating container", func() {
@@ -695,12 +732,16 @@ var _ = Describe("Team", func() {
 
 	Describe("FindBuildContainerOnWorker", func() {
 		var containerMetadata dbng.ContainerMetadata
+		var defaultBuild dbng.Build
 
 		BeforeEach(func() {
 			containerMetadata = dbng.ContainerMetadata{
 				Type:     "task",
 				StepName: "some-task",
 			}
+			var err error
+			defaultBuild, err = defaultTeam.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when there is a creating container", func() {
@@ -753,6 +794,456 @@ var _ = Describe("Team", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdContainer).To(BeNil())
 				Expect(creatingContainer).To(BeNil())
+			})
+		})
+	})
+
+	Describe("Updating Auth", func() {
+		var (
+			basicAuth    *atc.BasicAuth
+			authProvider map[string]*json.RawMessage
+		)
+
+		BeforeEach(func() {
+			basicAuth = &atc.BasicAuth{
+				BasicAuthUsername: "fake user",
+				BasicAuthPassword: "no, bad",
+			}
+
+			data := []byte(`{"credit_card":"please"}`)
+			authProvider = map[string]*json.RawMessage{
+				"fake-provider": (*json.RawMessage)(&data),
+			}
+		})
+
+		Describe("UpdateBasicAuth", func() {
+			It("saves basic auth team info without overwriting the provider auth", func() {
+				err := team.UpdateProviderAuth(authProvider)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = team.UpdateBasicAuth(basicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(team.Auth()).To(Equal(authProvider))
+			})
+
+			It("saves basic auth team info to the existing team", func() {
+				err := team.UpdateBasicAuth(basicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(team.BasicAuth().BasicAuthUsername).To(Equal(basicAuth.BasicAuthUsername))
+				Expect(bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword),
+					[]byte(basicAuth.BasicAuthPassword))).To(BeNil())
+			})
+
+			It("nulls basic auth when has a blank username", func() {
+				basicAuth.BasicAuthUsername = ""
+				err := team.UpdateBasicAuth(basicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(team.BasicAuth()).To(BeNil())
+			})
+
+			It("nulls basic auth when has a blank password", func() {
+				basicAuth.BasicAuthPassword = ""
+				err := team.UpdateBasicAuth(basicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(team.BasicAuth()).To(BeNil())
+			})
+		})
+
+		Describe("UpdateProviderAuth", func() {
+			It("saves auth team info to the existing team", func() {
+				err := team.UpdateProviderAuth(authProvider)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(team.Auth()).To(Equal(authProvider))
+			})
+
+			It("saves github auth team info without over writing the basic auth", func() {
+				err := team.UpdateBasicAuth(basicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = team.UpdateProviderAuth(authProvider)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(team.BasicAuth().BasicAuthUsername).To(Equal(basicAuth.BasicAuthUsername))
+				Expect(bcrypt.CompareHashAndPassword([]byte(team.BasicAuth().BasicAuthPassword),
+					[]byte(basicAuth.BasicAuthPassword))).To(BeNil())
+			})
+		})
+	})
+
+	Describe("Pipelines", func() {
+		var (
+			pipelines []dbng.Pipeline
+			pipeline1 dbng.Pipeline
+			pipeline2 dbng.Pipeline
+		)
+
+		JustBeforeEach(func() {
+			var err error
+			pipelines, err = team.Pipelines()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the team has configured pipelines", func() {
+			BeforeEach(func() {
+				var err error
+				pipeline1, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-name"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				pipeline2, _, err = team.SavePipeline("fake-pipeline-two", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-fake"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{pipeline1, pipeline2}))
+			})
+		})
+		Context("when the team has no configured pipelines", func() {
+			It("returns no pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{}))
+			})
+		})
+	})
+
+	Describe("PublicPipelines", func() {
+		var (
+			pipelines []dbng.Pipeline
+			pipeline1 dbng.Pipeline
+			pipeline2 dbng.Pipeline
+		)
+
+		JustBeforeEach(func() {
+			var err error
+			pipelines, err = team.PublicPipelines()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the team has configured pipelines", func() {
+			BeforeEach(func() {
+				var err error
+				pipeline1, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-name"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				pipeline2, _, err = team.SavePipeline("fake-pipeline-two", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-fake"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = pipeline2.Expose()
+				Expect(err).ToNot(HaveOccurred())
+
+				found, err := pipeline2.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("returns the pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{pipeline2}))
+			})
+		})
+		Context("when the team has no configured pipelines", func() {
+			It("returns no pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{}))
+			})
+		})
+	})
+
+	Describe("VisiblePipelines", func() {
+		var (
+			pipelines []dbng.Pipeline
+			pipeline1 dbng.Pipeline
+			pipeline2 dbng.Pipeline
+		)
+
+		JustBeforeEach(func() {
+			var err error
+			pipelines, err = team.VisiblePipelines()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when the team has configured pipelines", func() {
+			BeforeEach(func() {
+				var err error
+				pipeline1, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-name"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				pipeline2, _, err = otherTeam.SavePipeline("fake-pipeline-two", atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-fake"},
+					},
+				}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(pipeline2.Expose()).To(Succeed())
+				Expect(pipeline2.Reload()).To(BeTrue())
+			})
+
+			It("returns the pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{pipeline1, pipeline2}))
+			})
+
+			Context("when the other team has a private pipeline", func() {
+				var pipeline3 dbng.Pipeline
+				BeforeEach(func() {
+					var err error
+					pipeline3, _, err = otherTeam.SavePipeline("fake-pipeline-three", atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "job-fake-again"},
+						},
+					}, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("does not return the other team private pipeline", func() {
+					Expect(pipelines).To(Equal([]dbng.Pipeline{pipeline1, pipeline2}))
+				})
+			})
+		})
+
+		Context("when the team has no configured pipelines", func() {
+			It("returns no pipelines", func() {
+				Expect(pipelines).To(Equal([]dbng.Pipeline{}))
+			})
+		})
+	})
+
+	Describe("OrderPipelines", func() {
+		var pipeline1 dbng.Pipeline
+		var pipeline2 dbng.Pipeline
+		var otherPipeline1 dbng.Pipeline
+		var otherPipeline2 dbng.Pipeline
+
+		BeforeEach(func() {
+			var err error
+			pipeline1, _, err = team.SavePipeline("pipeline-name-a", atc.Config{}, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+			pipeline2, _, err = team.SavePipeline("pipeline-name-b", atc.Config{}, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+
+			otherPipeline1, _, err = otherTeam.SavePipeline("pipeline-name-a", atc.Config{}, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+			otherPipeline2, _, err = otherTeam.SavePipeline("pipeline-name-b", atc.Config{}, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("orders pipelines that belong to team (case insensitive)", func() {
+			err := team.OrderPipelines([]string{"pipeline-name-b", "pipeline-name-a"})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherTeam.OrderPipelines([]string{"pipeline-name-a", "pipeline-name-b"})
+			Expect(err).NotTo(HaveOccurred())
+
+			orderedPipelines, err := team.Pipelines()
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(orderedPipelines).To(HaveLen(2))
+			Expect(orderedPipelines[0].ID()).To(Equal(pipeline2.ID()))
+			Expect(orderedPipelines[1].ID()).To(Equal(pipeline1.ID()))
+
+			otherTeamOrderedPipelines, err := otherTeam.Pipelines()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(otherTeamOrderedPipelines).To(HaveLen(2))
+			Expect(otherTeamOrderedPipelines[0].ID()).To(Equal(otherPipeline1.ID()))
+			Expect(otherTeamOrderedPipelines[1].ID()).To(Equal(otherPipeline2.ID()))
+		})
+	})
+
+	Describe("CreateOneOffBuild", func() {
+		var (
+			oneOffBuild dbng.Build
+			err         error
+		)
+
+		BeforeEach(func() {
+			oneOffBuild, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("can create one-off builds", func() {
+			Expect(oneOffBuild.ID()).NotTo(BeZero())
+			Expect(oneOffBuild.JobName()).To(BeZero())
+			Expect(oneOffBuild.PipelineName()).To(BeZero())
+			Expect(oneOffBuild.Name()).To(Equal(strconv.Itoa(oneOffBuild.ID())))
+			Expect(oneOffBuild.TeamName()).To(Equal(team.Name()))
+			Expect(oneOffBuild.Status()).To(Equal(dbng.BuildStatusPending))
+		})
+	})
+
+	Describe("PrivateAndPublicBuilds", func() {
+		Context("when there are no builds", func() {
+			It("returns an empty list of builds", func() {
+				builds, pagination, err := team.PrivateAndPublicBuilds(dbng.Page{Limit: 2})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(pagination.Next).To(BeNil())
+				Expect(pagination.Previous).To(BeNil())
+				Expect(builds).To(BeEmpty())
+			})
+		})
+
+		Context("when there are builds", func() {
+			var allBuilds [5]dbng.Build
+			var pipeline dbng.Pipeline
+			var pipelineBuilds [2]dbng.Build
+
+			BeforeEach(func() {
+				for i := 0; i < 3; i++ {
+					build, err := team.CreateOneOffBuild()
+					Expect(err).NotTo(HaveOccurred())
+					allBuilds[i] = build
+				}
+
+				config := atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+						},
+					},
+				}
+				var err error
+				pipeline, _, err = team.SavePipeline("some-pipeline", config, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+
+				for i := 3; i < 5; i++ {
+					build, err := pipeline.CreateJobBuild("some-job")
+					Expect(err).NotTo(HaveOccurred())
+					allBuilds[i] = build
+					pipelineBuilds[i-3] = build
+				}
+			})
+
+			It("returns all team builds with correct pagination", func() {
+				builds, pagination, err := team.PrivateAndPublicBuilds(dbng.Page{Limit: 2})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(len(builds)).To(Equal(2))
+				Expect(builds[0]).To(Equal(allBuilds[4]))
+				Expect(builds[1]).To(Equal(allBuilds[3]))
+
+				Expect(pagination.Previous).To(BeNil())
+				Expect(pagination.Next).To(Equal(&dbng.Page{Since: allBuilds[3].ID(), Limit: 2}))
+
+				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Next)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(len(builds)).To(Equal(2))
+
+				Expect(builds[0]).To(Equal(allBuilds[2]))
+				Expect(builds[1]).To(Equal(allBuilds[1]))
+
+				Expect(pagination.Previous).To(Equal(&dbng.Page{Until: allBuilds[2].ID(), Limit: 2}))
+				Expect(pagination.Next).To(Equal(&dbng.Page{Since: allBuilds[1].ID(), Limit: 2}))
+
+				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Next)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(len(builds)).To(Equal(1))
+				Expect(builds[0]).To(Equal(allBuilds[0]))
+
+				Expect(pagination.Previous).To(Equal(&dbng.Page{Until: allBuilds[0].ID(), Limit: 2}))
+				Expect(pagination.Next).To(BeNil())
+
+				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Previous)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(len(builds)).To(Equal(2))
+				Expect(builds[0]).To(Equal(allBuilds[2]))
+				Expect(builds[1]).To(Equal(allBuilds[1]))
+
+				Expect(pagination.Previous).To(Equal(&dbng.Page{Until: allBuilds[2].ID(), Limit: 2}))
+				Expect(pagination.Next).To(Equal(&dbng.Page{Since: allBuilds[1].ID(), Limit: 2}))
+			})
+
+			Context("when there are builds that belong to different teams", func() {
+				var teamABuilds [3]dbng.Build
+				var teamBBuilds [3]dbng.Build
+
+				var caseInsensitiveTeamA dbng.Team
+				var caseInsensitiveTeamB dbng.Team
+
+				BeforeEach(func() {
+					_, err := teamFactory.CreateTeam(atc.Team{Name: "team-a"})
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = teamFactory.CreateTeam(atc.Team{Name: "team-b"})
+					Expect(err).NotTo(HaveOccurred())
+
+					var found bool
+					caseInsensitiveTeamA, found, err = teamFactory.FindTeam("team-A")
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+
+					caseInsensitiveTeamB, found, err = teamFactory.FindTeam("team-B")
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+
+					for i := 0; i < 3; i++ {
+						teamABuilds[i], err = caseInsensitiveTeamA.CreateOneOffBuild()
+						Expect(err).NotTo(HaveOccurred())
+
+						teamBBuilds[i], err = caseInsensitiveTeamB.CreateOneOffBuild()
+						Expect(err).NotTo(HaveOccurred())
+					}
+				})
+
+				Context("when other team builds are private", func() {
+					It("returns only builds for requested team", func() {
+						builds, _, err := caseInsensitiveTeamA.PrivateAndPublicBuilds(dbng.Page{Limit: 10})
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(len(builds)).To(Equal(3))
+						Expect(builds).To(ConsistOf(teamABuilds))
+
+						builds, _, err = caseInsensitiveTeamB.PrivateAndPublicBuilds(dbng.Page{Limit: 10})
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(len(builds)).To(Equal(3))
+						Expect(builds).To(ConsistOf(teamBBuilds))
+					})
+				})
+
+				Context("when other team builds are public", func() {
+					BeforeEach(func() {
+						pipeline.Expose()
+					})
+
+					It("returns builds for requested team and public builds", func() {
+						builds, _, err := caseInsensitiveTeamA.PrivateAndPublicBuilds(dbng.Page{Limit: 10})
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(builds).To(HaveLen(5))
+						expectedBuilds := []dbng.Build{}
+						for _, b := range teamABuilds {
+							expectedBuilds = append(expectedBuilds, b)
+						}
+						for _, b := range pipelineBuilds {
+							expectedBuilds = append(expectedBuilds, b)
+						}
+						Expect(builds).To(ConsistOf(expectedBuilds))
+					})
+				})
 			})
 		})
 	})

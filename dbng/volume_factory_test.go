@@ -18,6 +18,7 @@ var _ = Describe("VolumeFactory", func() {
 	)
 
 	BeforeEach(func() {
+		var err error
 		build, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -40,11 +41,6 @@ var _ = Describe("VolumeFactory", func() {
 		Expect(setupTx.Commit()).To(Succeed())
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("GetTeamVolumes", func() {
 		var (
 			team1handles []string
@@ -61,7 +57,7 @@ var _ = Describe("VolumeFactory", func() {
 			team1handles = []string{}
 			team2handles = []string{}
 
-			team2, err = teamFactory.CreateTeam("some-other-defaultTeam")
+			team2, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-defaultTeam"})
 			Expect(err).ToNot(HaveOccurred())
 
 			creatingVolume1, err := volumeFactory.CreateContainerVolume(defaultTeam.ID(), defaultWorker, creatingContainer, "some-path-1")
@@ -103,6 +99,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		Context("when worker is stalled", func() {
 			BeforeEach(func() {
+				var err error
 				defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 				stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
@@ -214,6 +211,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		Context("when worker is stalled", func() {
 			BeforeEach(func() {
+				var err error
 				defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 				stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
@@ -301,8 +299,9 @@ var _ = Describe("VolumeFactory", func() {
 		var usedResourceCache *dbng.UsedResourceCache
 
 		BeforeEach(func() {
-			resource, err := defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
-			Expect(err).ToNot(HaveOccurred())
+			resource, found, err := defaultPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
@@ -317,7 +316,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = dbng.ForResource(resource.ID).UseResourceCache(logger, setupTx, lockFactory, cache)
+			usedResourceCache, err = dbng.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -367,8 +366,9 @@ var _ = Describe("VolumeFactory", func() {
 		var usedResourceCache *dbng.UsedResourceCache
 
 		BeforeEach(func() {
-			resource, err := defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
-			Expect(err).ToNot(HaveOccurred())
+			resource, found, err := defaultPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
@@ -383,7 +383,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = dbng.ForResource(resource.ID).UseResourceCache(logger, setupTx, lockFactory, cache)
+			usedResourceCache, err = dbng.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -439,12 +439,15 @@ var _ = Describe("VolumeFactory", func() {
 		var (
 			usedResourceCache   *dbng.UsedResourceCache
 			uninitializedVolume dbng.CreatingVolume
-			resource            *dbng.Resource
+			resource            dbng.Resource
 		)
 
 		BeforeEach(func() {
-			resource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{})
-			Expect(err).ToNot(HaveOccurred())
+			var err error
+			var found bool
+			resource, found, err = defaultPipeline.Resource("some-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			setupTx, err := dbConn.Begin()
 			Expect(err).ToNot(HaveOccurred())
@@ -459,7 +462,7 @@ var _ = Describe("VolumeFactory", func() {
 				Params:  atc.Params{"some": "params"},
 			}
 
-			usedResourceCache, err = dbng.ForResource(resource.ID).UseResourceCache(logger, setupTx, lockFactory, cache)
+			usedResourceCache, err = dbng.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, cache)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(setupTx.Commit()).To(Succeed())
@@ -473,6 +476,7 @@ var _ = Describe("VolumeFactory", func() {
 
 			Context("where volume is on the same worker", func() {
 				BeforeEach(func() {
+					var err error
 					duplicateVolume, err = volumeFactory.CreateResourceCacheVolume(defaultWorker, usedResourceCache)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -526,6 +530,7 @@ var _ = Describe("VolumeFactory", func() {
 
 					Context("when worker is stalled", func() {
 						BeforeEach(func() {
+							var err error
 							defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, -10*time.Minute)
 							Expect(err).NotTo(HaveOccurred())
 							stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
@@ -604,7 +609,7 @@ var _ = Describe("VolumeFactory", func() {
 					Params:  atc.Params{"some": "params"},
 				}
 
-				usedResourceCache, err = dbng.ForResource(resource.ID).UseResourceCache(logger, setupTx, lockFactory, anotherResourceCache)
+				usedResourceCache, err = dbng.ForResource(resource.ID()).UseResourceCache(logger, setupTx, lockFactory, anotherResourceCache)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(setupTx.Commit()).To(Succeed())

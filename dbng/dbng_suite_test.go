@@ -10,9 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/format"
-
-	"database/sql"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
@@ -27,11 +24,9 @@ func TestDB(t *testing.T) {
 }
 
 var (
-	err            error
 	postgresRunner postgresrunner.Runner
 	dbProcess      ifrit.Process
 
-	sqlDB                         *sql.DB
 	dbConn                        dbng.Conn
 	buildFactory                  dbng.BuildFactory
 	volumeFactory                 dbng.VolumeFactory
@@ -50,9 +45,8 @@ var (
 	defaultWorker             dbng.Worker
 	defaultResourceConfig     *dbng.UsedResourceConfig
 	defaultResourceType       dbng.ResourceType
-	defaultResource           *dbng.Resource
+	defaultResource           dbng.Resource
 	defaultPipeline           dbng.Pipeline
-	defaultBuild              dbng.Build
 	defaultCreatingContainer  dbng.CreatingContainer
 	defaultCreatedContainer   dbng.CreatedContainer
 	logger                    *lagertest.TestLogger
@@ -90,16 +84,13 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	format.UseStringerRepresentation = true
-
 	postgresRunner.Truncate()
-	sqlDB = postgresRunner.Open()
 
-	dbConn = dbng.Wrap(sqlDB)
+	dbConn = postgresRunner.OpenConn()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton())
 
-	buildFactory = dbng.NewBuildFactory(dbConn)
+	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory)
 	volumeFactory = dbng.NewVolumeFactory(dbConn)
 	containerFactory = dbng.NewContainerFactory(dbConn)
 	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
@@ -110,7 +101,8 @@ var _ = BeforeEach(func() {
 	baseResourceTypeFactory = dbng.NewBaseResourceTypeFactory(dbConn)
 	workerBaseResourceTypeFactory = dbng.NewWorkerBaseResourceTypeFactory(dbConn)
 
-	defaultTeam, err = teamFactory.CreateTeam("default-team")
+	var err error
+	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultWorkerResourceType = atc.WorkerResourceType{
@@ -133,6 +125,15 @@ var _ = BeforeEach(func() {
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",
+			},
+		},
+		Resources: atc.ResourceConfigs{
+			{
+				Name: "some-resource",
+				Type: "some-base-resource-type",
+				Source: atc.Source{
+					"some": "source",
+				},
 			},
 		},
 		ResourceTypes: atc.ResourceTypes{
@@ -159,14 +160,12 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
 
-	defaultBuild, err = defaultTeam.CreateOneOffBuild()
+	defaultResource, found, err = defaultPipeline.Resource("some-resource")
 	Expect(err).NotTo(HaveOccurred())
-
-	defaultResource, err = defaultPipeline.CreateResource("default-resource", atc.ResourceConfig{})
-	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
 
 	logger = lagertest.NewTestLogger("test")
-	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource(defaultResource.ID), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource(defaultResource.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
 	Expect(err).NotTo(HaveOccurred())
 
 	defaultCreatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), defaultResourceConfig, dbng.ContainerMetadata{Type: "check"})

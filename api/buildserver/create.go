@@ -23,7 +23,7 @@ func (s *Server) CreateBuild(teamDB db.TeamDB, team dbng.Team) http.Handler {
 			return
 		}
 
-		build, err := teamDB.CreateOneOffBuild()
+		build, err := team.CreateOneOffBuild()
 		if err != nil {
 			hLog.Error("failed-to-create-one-off-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

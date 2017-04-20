@@ -237,16 +237,14 @@ func (i *imageResourceFetcher) getLatestVersion(
 		logger,
 		signals,
 		resourceUser,
+		imageResourceType,
+		imageResourceSource,
 		dbng.ContainerMetadata{
 			Type: dbng.ContainerTypeCheck,
 		},
 		resourceSpec,
 		customTypes,
 		imageFetchingDelegate,
-		atc.ResourceConfig{
-			Type:   imageResourceType,
-			Source: imageResourceSource,
-		},
 	)
 	if err != nil {
 		return nil, err

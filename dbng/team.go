@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
@@ -22,6 +24,14 @@ var ErrTeamDisappeared = errors.New("team disappeared")
 
 type Team interface {
 	ID() int
+	Name() string
+	Admin() bool
+
+	BasicAuth() *atc.BasicAuth
+	Auth() map[string]*json.RawMessage
+
+	Delete() error
+
 	SavePipeline(
 		pipelineName string,
 		config atc.Config,
@@ -29,9 +39,14 @@ type Team interface {
 		pausedState PipelinePausedState,
 	) (Pipeline, bool, error)
 
-	FindPipelineByName(pipelineName string) (Pipeline, bool, error)
+	Pipeline(pipelineName string) (Pipeline, bool, error)
+	Pipelines() ([]Pipeline, error)
+	PublicPipelines() ([]Pipeline, error)
+	VisiblePipelines() ([]Pipeline, error)
+	OrderPipelines([]string) error
 
 	CreateOneOffBuild() (Build, error)
+	PrivateAndPublicBuilds(Page) ([]Build, Pagination, error)
 
 	SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error)
 	Workers() ([]Worker, error)
@@ -51,15 +66,64 @@ type Team interface {
 	FindWorkerForBuildContainer(buildID int, planID atc.PlanID) (Worker, bool, error)
 	FindBuildContainerOnWorker(workerName string, buildID int, planID atc.PlanID) (CreatingContainer, CreatedContainer, error)
 	CreateBuildContainer(workerName string, buildID int, planID atc.PlanID, meta ContainerMetadata) (CreatingContainer, error)
+
+	UpdateBasicAuth(basicAuth *atc.BasicAuth) error
+	UpdateProviderAuth(auth map[string]*json.RawMessage) error
 }
 
 type team struct {
 	id          int
 	conn        Conn
 	lockFactory lock.LockFactory
+
+	name  string
+	admin bool
+
+	basicAuth *atc.BasicAuth
+
+	auth map[string]*json.RawMessage
 }
 
-func (t *team) ID() int { return t.id }
+func (t *team) ID() int                           { return t.id }
+func (t *team) Name() string                      { return t.name }
+func (t *team) Admin() bool                       { return t.admin }
+func (t *team) BasicAuth() *atc.BasicAuth         { return t.basicAuth }
+func (t *team) Auth() map[string]*json.RawMessage { return t.auth }
+
+func (t *team) Delete() error {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = psql.Delete("teams").
+		Where(sq.Eq{
+			"name": t.name,
+		}).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	teamBuildEvents := fmt.Sprintf("team_build_events_%d", int64(t.id))
+	_, err = psql.Delete(teamBuildEvents).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (t *team) Workers() ([]Worker, error) {
 	return getWorkers(t.conn, workersQuery.Where(sq.Or{
@@ -391,8 +455,6 @@ func (t *team) SavePipeline(
 	var created bool
 	var existingConfig int
 
-	var savedPipeline *pipeline
-
 	tx, err := t.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -410,23 +472,24 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
+	var pipelineID int
 	if existingConfig == 0 {
 		if pausedState == PipelineNoChange {
 			pausedState = PipelinePaused
 		}
 
-		savedPipeline, err = scanPipeline(t.conn, t.lockFactory, tx.QueryRow(`
-			INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
-			VALUES (
-				$1,
-				$2,
-				nextval('config_version_seq'),
-				(SELECT COUNT(1) + 1 FROM pipelines),
-				$3,
-				$4
-			)
-			RETURNING `+unqualifiedPipelineColumns+`
-		`, pipelineName, payload, pausedState.Bool(), t.id))
+		err = psql.Insert("pipelines").
+			SetMap(map[string]interface{}{
+				"name":     pipelineName,
+				"config":   payload,
+				"version":  sq.Expr("nextval('config_version_seq')"),
+				"ordering": sq.Expr("(SELECT COUNT(1) + 1 FROM pipelines)"),
+				"paused":   pausedState.Bool(),
+				"team_id":  t.id,
+			}).
+			Suffix("RETURNING id").
+			RunWith(tx).
+			QueryRow().Scan(&pipelineID)
 		if err != nil {
 			return nil, false, err
 		}
@@ -436,45 +499,40 @@ func (t *team) SavePipeline(
 		_, err = tx.Exec(fmt.Sprintf(`
 			CREATE TABLE pipeline_build_events_%[1]d ()
 			INHERITS (build_events)
-		`, savedPipeline.ID()))
+		`, pipelineID))
 		if err != nil {
 			return nil, false, err
 		}
 
 		_, err = tx.Exec(fmt.Sprintf(`
 			CREATE INDEX pipeline_build_events_%[1]d_build_id ON pipeline_build_events_%[1]d (build_id)
-		`, savedPipeline.ID()))
+		`, pipelineID))
 		if err != nil {
 			return nil, false, err
 		}
 
 		_, err = tx.Exec(fmt.Sprintf(`
 			CREATE UNIQUE INDEX pipeline_build_events_%[1]d_build_id_event_id ON pipeline_build_events_%[1]d (build_id, event_id)
-		`, savedPipeline.ID()))
+		`, pipelineID))
 		if err != nil {
 			return nil, false, err
 		}
 	} else {
-		if pausedState == PipelineNoChange {
-			savedPipeline, err = scanPipeline(t.conn, t.lockFactory, tx.QueryRow(`
-				UPDATE pipelines
-				SET config = $1, version = nextval('config_version_seq')
-				WHERE name = $2
-				AND version = $3
-				AND team_id = $4
-				RETURNING `+unqualifiedPipelineColumns+`
-			`, payload, pipelineName, from, t.id))
-		} else {
-			savedPipeline, err = scanPipeline(t.conn, t.lockFactory, tx.QueryRow(`
-				UPDATE pipelines
-				SET config = $1, version = nextval('config_version_seq'), paused = $2
-				WHERE name = $3
-				AND version = $4
-				AND team_id = $5
-				RETURNING `+unqualifiedPipelineColumns+`
-			`, payload, pausedState.Bool(), pipelineName, from, t.id))
+		update := psql.Update("pipelines").
+			Set("config", payload).
+			Set("version", sq.Expr("nextval('config_version_seq')")).
+			Where(sq.Eq{
+				"name":    pipelineName,
+				"version": from,
+				"team_id": t.id,
+			}).
+			Suffix("RETURNING id")
+
+		if pausedState != PipelineNoChange {
+			update = update.Set("paused", pausedState.Bool())
 		}
 
+		err = update.RunWith(tx).QueryRow().Scan(&pipelineID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, false, ErrConfigComparisonFailed
@@ -490,7 +548,7 @@ func (t *team) SavePipeline(
         FROM jobs j
         WHERE j.pipeline_id = $1
       )
-		`, savedPipeline.ID())
+		`, pipelineID)
 		if err != nil {
 			return nil, false, err
 		}
@@ -499,7 +557,7 @@ func (t *team) SavePipeline(
 			UPDATE jobs
 			SET active = false
 			WHERE pipeline_id = $1
-		`, savedPipeline.ID())
+		`, pipelineID)
 		if err != nil {
 			return nil, false, err
 		}
@@ -508,7 +566,7 @@ func (t *team) SavePipeline(
 			UPDATE resources
 			SET active = false
 			WHERE pipeline_id = $1
-		`, savedPipeline.ID())
+		`, pipelineID)
 		if err != nil {
 			return nil, false, err
 		}
@@ -517,38 +575,51 @@ func (t *team) SavePipeline(
 			UPDATE resource_types
 			SET active = false
 			WHERE pipeline_id = $1
-		`, savedPipeline.ID())
+		`, pipelineID)
 		if err != nil {
 			return nil, false, err
 		}
 	}
 
 	for _, resource := range config.Resources {
-		err = t.saveResource(tx, resource, savedPipeline.ID())
+		err = t.saveResource(tx, resource, pipelineID)
 		if err != nil {
 			return nil, false, err
 		}
 	}
 
 	for _, resourceType := range config.ResourceTypes {
-		err = t.saveResourceType(tx, resourceType, savedPipeline.ID())
+		err = t.saveResourceType(tx, resourceType, pipelineID)
 		if err != nil {
 			return nil, false, err
 		}
 	}
 
 	for _, job := range config.Jobs {
-		err = t.saveJob(tx, job, savedPipeline.ID())
+		err = t.saveJob(tx, job, pipelineID)
 		if err != nil {
 			return nil, false, err
 		}
 
 		for _, sg := range job.SerialGroups {
-			err = t.registerSerialGroup(tx, job.Name, sg, savedPipeline.ID())
+			err = t.registerSerialGroup(tx, job.Name, sg, pipelineID)
 			if err != nil {
 				return nil, false, err
 			}
 		}
+	}
+
+	pipeline := newPipeline(t.conn, t.lockFactory)
+
+	err = scanPipeline(
+		pipeline,
+		pipelinesQuery.
+			Where(sq.Eq{"p.id": pipelineID}).
+			RunWith(tx).
+			QueryRow(),
+	)
+	if err != nil {
+		return nil, false, err
 	}
 
 	err = tx.Commit()
@@ -556,18 +627,18 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
-	return savedPipeline, created, nil
+	return pipeline, created, nil
 }
 
-func (t *team) FindPipelineByName(pipelineName string) (Pipeline, bool, error) {
-	pipeline, err := scanPipeline(
-		t.conn,
-		t.lockFactory,
-		psql.Select(unqualifiedPipelineColumns).
-			From("pipelines").
+func (t *team) Pipeline(pipelineName string) (Pipeline, bool, error) {
+	pipeline := newPipeline(t.conn, t.lockFactory)
+
+	err := scanPipeline(
+		pipeline,
+		pipelinesQuery.
 			Where(sq.Eq{
-				"team_id": t.id,
-				"name":    pipelineName,
+				"p.team_id": t.id,
+				"p.name":    pipelineName,
 			}).
 			RunWith(t.conn).
 			QueryRow(),
@@ -580,6 +651,126 @@ func (t *team) FindPipelineByName(pipelineName string) (Pipeline, bool, error) {
 	}
 
 	return pipeline, true, nil
+}
+
+func (t *team) Pipelines() ([]Pipeline, error) {
+	rows, err := pipelinesQuery.
+		Where(sq.Eq{
+			"team_id": t.id,
+		}).
+		OrderBy("ordering").
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return pipelines, nil
+}
+
+func (t *team) PublicPipelines() ([]Pipeline, error) {
+	rows, err := pipelinesQuery.
+		Where(sq.Eq{
+			"team_id": t.id,
+			"public":  true,
+		}).
+		OrderBy("ordering").
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return pipelines, nil
+}
+
+func (t *team) VisiblePipelines() ([]Pipeline, error) {
+	rows, err := pipelinesQuery.
+		Where(sq.Eq{"team_id": t.id}).
+		OrderBy("ordering").
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	currentTeamPipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err = pipelinesQuery.
+		Where(sq.NotEq{"team_id": t.id}).
+		Where(sq.Eq{"public": true}).
+		OrderBy("ordering").
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	otherTeamPublicPipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(currentTeamPipelines, otherTeamPublicPipelines...), nil
+}
+
+func (t *team) OrderPipelines(pipelineNames []string) error {
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	var pipelineCount int
+
+	err = psql.Select("COUNT(1)").
+		From("pipelines").
+		Where(sq.Eq{"team_id": t.id}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&pipelineCount)
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("pipelines").
+		Set("ordering", pipelineCount+1).
+		Where(sq.Eq{"team_id": t.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	for i, name := range pipelineNames {
+		_, err = psql.Update("pipelines").
+			Set("ordering", i).
+			Where(sq.Eq{
+				"name":    name,
+				"team_id": t.id,
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (t *team) CreateOneOffBuild() (Build, error) {
@@ -605,6 +796,16 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 		return nil, err
 	}
 
+	build := &build{conn: t.conn, lockFactory: t.lockFactory}
+	err = scanBuild(build, buildsQuery.
+		Where(sq.Eq{"b.id": buildID}).
+		RunWith(tx).
+		QueryRow(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	err = createBuildEventSeq(tx, buildID)
 	if err != nil {
 		return nil, err
@@ -615,11 +816,14 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 		return nil, err
 	}
 
-	return &build{
-		id:     buildID,
-		teamID: t.id,
-		conn:   t.conn,
-	}, nil
+	return build, nil
+}
+
+func (t *team) PrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {
+	newBuildsQuery := buildsQuery.
+		Where(sq.Or{sq.Eq{"p.public": true}, sq.Eq{"t.id": t.id}})
+
+	return getBuildsWithPagination(newBuildsQuery, page, t.conn, t.lockFactory)
 }
 
 func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error) {
@@ -641,6 +845,40 @@ func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, erro
 	}
 
 	return savedWorker, nil
+}
+
+func (t *team) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
+	encryptedBasicAuth, err := encryptedJSON(basicAuth)
+	if err != nil {
+		return err
+	}
+
+	query := `
+		UPDATE teams
+		SET basic_auth = $1
+		WHERE LOWER(name) = LOWER($2)
+		RETURNING id, name, admin, basic_auth, auth
+	`
+
+	params := []interface{}{encryptedBasicAuth, t.name}
+
+	return t.queryTeam(query, params)
+}
+
+func (t *team) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
+	jsonEncodedProviderAuth, err := json.Marshal(auth)
+	if err != nil {
+		return err
+	}
+
+	query := `
+		UPDATE teams
+		SET auth = $1
+		WHERE LOWER(name) = LOWER($2)
+		RETURNING id, name, admin, basic_auth, auth
+	`
+	params := []interface{}{string(jsonEncodedProviderAuth), t.name}
+	return t.queryTeam(query, params)
 }
 
 func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int) error {
@@ -797,27 +1035,42 @@ func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, Created
 	return creating, created, nil
 }
 
-func scanPipeline(conn Conn, lockFactory lock.LockFactory, rows scannable) (*pipeline, error) {
-	var id int
-	var name string
-	var teamID int
-	var configVersion int
+func scanPipeline(p *pipeline, scan scannable) error {
+	var configBlob []byte
 
-	err := rows.Scan(&id, &name, &configVersion, &teamID)
+	err := scan.Scan(&p.id, &p.name, &p.configVersion, &p.teamID, &p.teamName, &configBlob, &p.paused, &p.public)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &pipeline{
-		id:     id,
-		name:   name,
-		teamID: teamID,
+	var config atc.Config
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return err
+	}
 
-		configVersion: ConfigVersion(configVersion),
+	p.config = config
 
-		conn:        conn,
-		lockFactory: lockFactory,
-	}, nil
+	return nil
+}
+
+func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
+	defer rows.Close()
+
+	pipelines := []Pipeline{}
+
+	for rows.Next() {
+		pipeline := newPipeline(conn, lockFactory)
+
+		err := scanPipeline(pipeline, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		pipelines = append(pipelines, pipeline)
+	}
+
+	return pipelines, nil
 }
 
 func (t *team) findBaseResourceTypeID(resourceConfig *UsedResourceConfig) *UsedBaseResourceType {
@@ -839,4 +1092,63 @@ func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResource
 	}
 
 	return wbrtID, nil
+}
+
+func (t *team) queryTeam(query string, params []interface{}) error {
+	var basicAuth, providerAuth sql.NullString
+
+	tx, err := t.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = tx.QueryRow(query, params...).Scan(
+		&t.id,
+		&t.name,
+		&t.admin,
+		&basicAuth,
+		&providerAuth,
+	)
+	if err != nil {
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+	if basicAuth.Valid {
+		err = json.Unmarshal([]byte(basicAuth.String), &t.basicAuth)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	if providerAuth.Valid {
+		err = json.Unmarshal([]byte(providerAuth.String), &t.auth)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func encryptedJSON(b *atc.BasicAuth) (string, error) {
+	var result *atc.BasicAuth
+	if b != nil && b.BasicAuthUsername != "" && b.BasicAuthPassword != "" {
+		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(b.BasicAuthPassword), 4)
+		if err != nil {
+			return "", err
+		}
+		result = &atc.BasicAuth{
+			BasicAuthPassword: string(encryptedPw),
+			BasicAuthUsername: b.BasicAuthUsername,
+		}
+	}
+
+	json, err := json.Marshal(result)
+	return string(json), err
 }

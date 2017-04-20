@@ -3,7 +3,6 @@ package dbng_test
 import (
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 
 	. "github.com/onsi/ginkgo"
@@ -12,11 +11,14 @@ import (
 
 var _ = Describe("PipelineLocks", func() {
 	Describe("AcquireResourceCheckingLockWithIntervalCheck", func() {
-		var someResource *dbng.Resource
+		var someResource dbng.Resource
 
 		BeforeEach(func() {
-			someResource, err = defaultPipeline.CreateResource("some-resource", atc.ResourceConfig{Type: "some-base-resource-type"})
+			var err error
+			var found bool
+			someResource, found, err = defaultPipeline.Resource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
 
 		Context("when there has been a check recently", func() {

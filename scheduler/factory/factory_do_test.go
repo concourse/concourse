@@ -72,19 +72,16 @@ var _ = Describe("Factory Do", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some thing",
-					PipelineID:             42,
+					Name: "some thing",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some thing-2",
-					PipelineID:             42,
+					Name: "some thing-2",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some other thing",
-						PipelineID:             42,
+						Name: "some other thing",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -120,20 +117,17 @@ var _ = Describe("Factory Do", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some thing",
-					PipelineID:             42,
+					Name: "some thing",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some other thing",
-						PipelineID:             42,
+						Name: "some other thing",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some thing-2",
-					PipelineID:             42,
+					Name: "some thing-2",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -168,20 +162,17 @@ var _ = Describe("Factory Do", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "starting-task",
-					PipelineID:             42,
+					Name: "starting-task",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some thing",
-						PipelineID:             42,
+						Name: "some thing",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.DoPlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:                   "some other thing",
-							PipelineID:             42,
+							Name: "some other thing",
 							VersionedResourceTypes: resourceTypes,
 						}),
 					}),
@@ -222,25 +213,21 @@ var _ = Describe("Factory Do", func() {
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some thing",
-					PipelineID:             42,
+					Name: "some thing",
 					VersionedResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some other thing",
-						PipelineID:             42,
+						Name: "some other thing",
 						VersionedResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:                   "some other thing-2",
-						PipelineID:             42,
+						Name: "some other thing-2",
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:                   "some thing-2",
-					PipelineID:             42,
+					Name: "some thing-2",
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})

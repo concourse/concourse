@@ -138,7 +138,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeResource.CheckCallCount()).To(Equal(1))
 				Expect(fakeResourceFactory.NewCheckResourceCallCount()).To(Equal(1))
-				_, _, user, metadata, resourceSpec, customTypes, _, resourceConfig := fakeResourceFactory.NewCheckResourceArgsForCall(0)
+				_, _, user, resourceType, resourceSource, metadata, resourceSpec, customTypes, _ := fakeResourceFactory.NewCheckResourceArgsForCall(0)
 				Expect(user).To(Equal(dbng.ForResourceType(39)))
 				Expect(metadata).To(Equal(dbng.ContainerMetadata{
 					Type: dbng.ContainerTypeCheck,
@@ -152,10 +152,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 					Tags:   []string{},
 					TeamID: 123,
 				}))
-				Expect(resourceConfig).To(Equal(atc.ResourceConfig{
-					Type:   "docker-image",
-					Source: atc.Source{"custom": "source"},
-				}))
+				Expect(resourceType).To(Equal("docker-image"))
+				Expect(resourceSource).To(Equal(atc.Source{"custom": "source"}))
 			})
 
 			It("grabs a periodic resource checking lock before checking, breaks lock after done", func() {

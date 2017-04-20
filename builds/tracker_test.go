@@ -9,55 +9,54 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/builds/buildsfakes"
-	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/enginefakes"
 )
 
 var _ = Describe("Tracker", func() {
 	var (
-		fakeTrackerDB *buildsfakes.FakeTrackerDB
-		fakeEngine    *enginefakes.FakeEngine
+		fakeBuildFactory *dbngfakes.FakeBuildFactory
+		fakeEngine       *enginefakes.FakeEngine
 
 		tracker *builds.Tracker
 		logger  *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
-		fakeTrackerDB = new(buildsfakes.FakeTrackerDB)
+		fakeBuildFactory = new(dbngfakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
 
 		logger = lagertest.NewTestLogger("test")
 
 		tracker = builds.NewTracker(
 			logger,
-			fakeTrackerDB,
+			fakeBuildFactory,
 			fakeEngine,
 		)
 	})
 
 	Describe("Track", func() {
-		var inFlightBuilds []*dbfakes.FakeBuild
+		var inFlightBuilds []*dbngfakes.FakeBuild
 		var engineBuilds []*enginefakes.FakeBuild
 
 		BeforeEach(func() {
-			inFlightBuilds = []*dbfakes.FakeBuild{
-				new(dbfakes.FakeBuild),
-				new(dbfakes.FakeBuild),
-				new(dbfakes.FakeBuild),
+			inFlightBuilds = []*dbngfakes.FakeBuild{
+				new(dbngfakes.FakeBuild),
+				new(dbngfakes.FakeBuild),
+				new(dbngfakes.FakeBuild),
 			}
-			returnedBuilds := []db.Build{
+			returnedBuilds := []dbng.Build{
 				inFlightBuilds[0],
 				inFlightBuilds[1],
 				inFlightBuilds[2],
 			}
 
-			fakeTrackerDB.GetAllStartedBuildsReturns(returnedBuilds, nil)
+			fakeBuildFactory.GetAllStartedBuildsReturns(returnedBuilds, nil)
 
 			engineBuilds = []*enginefakes.FakeBuild{}
-			fakeEngine.LookupBuildStub = func(logger lager.Logger, build db.Build) (engine.Build, error) {
+			fakeEngine.LookupBuildStub = func(logger lager.Logger, build dbng.Build) (engine.Build, error) {
 				engineBuild := new(enginefakes.FakeBuild)
 				engineBuilds = append(engineBuilds, engineBuild)
 				return engineBuild, nil

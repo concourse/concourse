@@ -5,9 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strings"
-
-	sq "github.com/Masterminds/squirrel"
 
 	"github.com/concourse/atc"
 )
@@ -15,25 +12,13 @@ import (
 //go:generate counterfeiter . TeamDB
 
 type TeamDB interface {
-	GetPipelines() ([]SavedPipeline, error)
-	GetPublicPipelines() ([]SavedPipeline, error)
-	GetPrivateAndAllPublicPipelines() ([]SavedPipeline, error)
-
 	GetPipelineByName(pipelineName string) (SavedPipeline, bool, error)
 
-	OrderPipelines([]string) error
-
 	GetTeam() (SavedTeam, bool, error)
-	UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error)
-	UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error)
-	UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error)
-	UpdateGenericOAuth(genericOAuth *GenericOAuth) (SavedTeam, error)
-
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfigToBeDeprecated(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 
 	CreateOneOffBuild() (Build, error)
-	GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, error)
 }
 
 type teamDB struct {
@@ -63,138 +48,6 @@ func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, bool, e
 	}
 
 	return pipeline, true, nil
-}
-
-func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
-	rows, err := db.conn.Query(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines p
-		INNER JOIN teams t ON t.id = p.team_id
-		WHERE team_id = (
-			SELECT id FROM teams WHERE LOWER(name) = LOWER($1)
-		)
-		ORDER BY ordering
-	`, db.teamName)
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	return scanPipelines(rows)
-}
-
-func (db *teamDB) GetPublicPipelines() ([]SavedPipeline, error) {
-	rows, err := db.conn.Query(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines p
-		INNER JOIN teams t ON t.id = p.team_id
-		WHERE team_id = (
-			SELECT id FROM teams WHERE LOWER(name) = LOWER($1)
-		)
-		AND public = true
-		ORDER BY ordering
-	`, db.teamName)
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	return scanPipelines(rows)
-}
-
-func (db *teamDB) GetPrivateAndAllPublicPipelines() ([]SavedPipeline, error) {
-	rows, err := db.conn.Query(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines p
-		INNER JOIN teams t ON t.id = p.team_id
-		WHERE team_id = (SELECT id FROM teams WHERE LOWER(name) = LOWER($1))
-		ORDER BY ordering
-	`, db.teamName)
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	currentTeamPipelines, err := scanPipelines(rows)
-	if err != nil {
-		return nil, err
-	}
-
-	otherRows, err := db.conn.Query(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines p
-		INNER JOIN teams t ON t.id = p.team_id
-		WHERE team_id != (SELECT id FROM teams WHERE LOWER(name) = LOWER($1))
-		AND public = true
-		ORDER BY team_name, ordering
-	`, db.teamName)
-	if err != nil {
-		return nil, err
-	}
-
-	defer otherRows.Close()
-
-	otherTeamPipelines, err := scanPipelines(otherRows)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(currentTeamPipelines, otherTeamPipelines...), nil
-}
-
-func (db *teamDB) OrderPipelines(pipelineNames []string) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	var pipelineCount int
-
-	var teamID int
-	err = tx.QueryRow(`SELECT id FROM teams WHERE LOWER(name) = LOWER($1)`, db.teamName).Scan(&teamID)
-	if err != nil {
-		return err
-	}
-
-	err = tx.QueryRow(`
-		SELECT COUNT(1)
-		FROM pipelines
-		WHERE team_id = $1
-	`, teamID).Scan(&pipelineCount)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
-		UPDATE pipelines
-		SET ordering = $1
-		WHERE team_id = $2
-	`, pipelineCount+1, teamID)
-
-	if err != nil {
-		return err
-	}
-
-	for i, name := range pipelineNames {
-		_, err = tx.Exec(`
-			UPDATE pipelines
-			SET ordering = $1
-			WHERE name = $2
-			AND team_id = $3
-		`, i, name, teamID)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
 }
 
 func (db *teamDB) GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error) {
@@ -516,7 +369,7 @@ func (db *teamDB) saveResourceType(tx Tx, resourceType atc.ResourceType, pipelin
 
 func (db *teamDB) GetTeam() (SavedTeam, bool, error) {
 	query := `
-		SELECT id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth
+		SELECT id, name, admin
 		FROM teams
 		WHERE LOWER(name) = LOWER($1)
 	`
@@ -534,7 +387,6 @@ func (db *teamDB) GetTeam() (SavedTeam, bool, error) {
 }
 
 func (db *teamDB) queryTeam(query string, params []interface{}) (SavedTeam, error) {
-	var basicAuth, gitHubAuth, uaaAuth, genericOAuth sql.NullString
 	var savedTeam SavedTeam
 
 	tx, err := db.conn.Begin()
@@ -547,10 +399,6 @@ func (db *teamDB) queryTeam(query string, params []interface{}) (SavedTeam, erro
 		&savedTeam.ID,
 		&savedTeam.Name,
 		&savedTeam.Admin,
-		&basicAuth,
-		&gitHubAuth,
-		&uaaAuth,
-		&genericOAuth,
 	)
 	if err != nil {
 		return savedTeam, err
@@ -560,106 +408,7 @@ func (db *teamDB) queryTeam(query string, params []interface{}) (SavedTeam, erro
 		return savedTeam, err
 	}
 
-	if basicAuth.Valid {
-		err = json.Unmarshal([]byte(basicAuth.String), &savedTeam.BasicAuth)
-
-		if err != nil {
-			return savedTeam, err
-		}
-	}
-
-	if gitHubAuth.Valid {
-		err = json.Unmarshal([]byte(gitHubAuth.String), &savedTeam.GitHubAuth)
-		if err != nil {
-			return savedTeam, err
-		}
-	}
-
-	if uaaAuth.Valid {
-		err = json.Unmarshal([]byte(uaaAuth.String), &savedTeam.UAAAuth)
-		if err != nil {
-			return savedTeam, err
-		}
-	}
-
-	if genericOAuth.Valid {
-		err = json.Unmarshal([]byte(genericOAuth.String), &savedTeam.GenericOAuth)
-		if err != nil {
-			return savedTeam, err
-		}
-	}
-
 	return savedTeam, nil
-}
-
-func (db *teamDB) UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error) {
-	encryptedBasicAuth, err := basicAuth.EncryptedJSON()
-	if err != nil {
-		return SavedTeam{}, err
-	}
-
-	query := `
-		UPDATE teams
-		SET basic_auth = $1
-		WHERE LOWER(name) = LOWER($2)
-		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth
-	`
-
-	params := []interface{}{encryptedBasicAuth, db.teamName}
-
-	return db.queryTeam(query, params)
-}
-
-func (db *teamDB) UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error) {
-	var auth *GitHubAuth
-	if gitHubAuth != nil && gitHubAuth.ClientID != "" && gitHubAuth.ClientSecret != "" {
-		auth = gitHubAuth
-	}
-	jsonEncodedGitHubAuth, err := json.Marshal(auth)
-	if err != nil {
-		return SavedTeam{}, err
-	}
-
-	query := `
-		UPDATE teams
-		SET github_auth = $1
-		WHERE LOWER(name) = LOWER($2)
-		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth
-	`
-	params := []interface{}{string(jsonEncodedGitHubAuth), db.teamName}
-	return db.queryTeam(query, params)
-}
-
-func (db *teamDB) UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error) {
-	jsonEncodedUAAAuth, err := json.Marshal(uaaAuth)
-	if err != nil {
-		return SavedTeam{}, err
-	}
-
-	query := `
-		UPDATE teams
-		SET uaa_auth = $1
-		WHERE LOWER(name) = LOWER($2)
-		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth
-	`
-	params := []interface{}{string(jsonEncodedUAAAuth), db.teamName}
-	return db.queryTeam(query, params)
-}
-
-func (db *teamDB) UpdateGenericOAuth(genericOAuth *GenericOAuth) (SavedTeam, error) {
-	jsonEncodedGenericOAuth, err := json.Marshal(genericOAuth)
-	if err != nil {
-		return SavedTeam{}, err
-	}
-
-	query := `
-		UPDATE teams
-		SET genericoauth_auth = $1
-		WHERE LOWER(name) = LOWER($2)
-		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth, genericoauth_auth
-	`
-	params := []interface{}{string(jsonEncodedGenericOAuth), db.teamName}
-	return db.queryTeam(query, params)
 }
 
 func (db *teamDB) CreateOneOffBuild() (Build, error) {
@@ -694,16 +443,6 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 	}
 
 	return build, nil
-}
-
-func (db *teamDB) GetPrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {
-	buildsQuery := sq.Select(qualifiedBuildColumns).From("builds b").
-		LeftJoin("jobs j ON b.job_id = j.id").
-		LeftJoin("pipelines p ON j.pipeline_id = p.id").
-		LeftJoin("teams t ON b.team_id = t.id").
-		Where(sq.Or{sq.Eq{"p.public": true}, sq.Eq{"LOWER(t.name)": strings.ToLower(db.teamName)}})
-
-	return getBuildsWithPagination(buildsQuery, page, db.conn, db.buildFactory)
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {

@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) GetVersionsDB(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) GetVersionsDB(_ db.PipelineDB, pipelineDB dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		versionsDB, _ := pipelineDB.LoadVersionsDB()
 		w.Header().Set("Content-Type", "application/json")

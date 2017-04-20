@@ -21,11 +21,6 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
 
-	AfterEach(func() {
-		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	Describe("Run", func() {
 		Describe("cache uses", func() {
 			var (
@@ -356,7 +351,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 			})
 
 			Describe("for resources", func() {
-				setActiveResource := func(resource *dbng.Resource, active bool) {
+				setActiveResource := func(resource dbng.Resource, active bool) {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
@@ -364,9 +359,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 					var id int
 					err = psql.Update("resources").
 						Set("active", active).
-						Where(sq.Eq{
-							"id": resource.ID,
-						}).Suffix("RETURNING id").
+						Where(sq.Eq{"id": resource.ID()}).
+						Suffix("RETURNING id").
 						RunWith(tx).
 						QueryRow().Scan(&id)
 					Expect(err).NotTo(HaveOccurred())
@@ -378,7 +372,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 				BeforeEach(func() {
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
 						logger,
-						dbng.ForResource(usedResource.ID),
+						dbng.ForResource(usedResource.ID()),
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
@@ -427,8 +421,8 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 								Resources: []atc.ResourceConfig{
 									{
 										Name:   "another-resource",
-										Type:   usedResource.Type,
-										Source: usedResource.Source,
+										Type:   usedResource.Type(),
+										Source: usedResource.Source(),
 									},
 								},
 							},
@@ -445,7 +439,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(
 							logger,
-							dbng.ForResource(anotherResource.ID),
+							dbng.ForResource(anotherResource.ID()),
 							"some-type",
 							atc.Version{"some-type": "version"},
 							atc.Source{

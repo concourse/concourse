@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
 func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
@@ -35,16 +35,29 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		limit = atc.PaginationAPIDefaultLimit
 	}
 
-	page := db.Page{Until: until, Since: since, Limit: limit}
-	var builds []db.Build
-	var pagination db.Pagination
+	page := dbng.Page{Until: until, Since: since, Limit: limit}
+
+	var builds []dbng.Build
+	var pagination dbng.Pagination
 
 	authTeam, authTeamFound := auth.GetTeam(r)
 	if authTeamFound {
-		teamDB := s.teamDBFactory.GetTeamDB(authTeam.Name())
-		builds, pagination, err = teamDB.GetPrivateAndPublicBuilds(page)
+		var team dbng.Team
+		var found bool
+		team, found, err = s.teamFactory.FindTeam(authTeam.Name())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		builds, pagination, err = team.PrivateAndPublicBuilds(page)
 	} else {
-		builds, pagination, err = s.buildsDB.GetPublicBuilds(page)
+		builds, pagination, err = s.buildFactory.PublicBuilds(page)
 	}
 
 	if err != nil {
@@ -72,7 +85,7 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(atc)
 }
 
-func (s *Server) addNextLink(w http.ResponseWriter, page db.Page) {
+func (s *Server) addNextLink(w http.ResponseWriter, page dbng.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
@@ -84,7 +97,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, page db.Page) {
 	))
 }
 
-func (s *Server) addPreviousLink(w http.ResponseWriter, page db.Page) {
+func (s *Server) addPreviousLink(w http.ResponseWriter, page dbng.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,

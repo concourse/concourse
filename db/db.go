@@ -69,15 +69,9 @@ func swallowUniqueViolation(err error) error {
 }
 
 type DB interface {
-	GetTeams() ([]SavedTeam, error)
 	CreateTeam(team Team) (SavedTeam, error)
 	CreateDefaultTeamIfNotExists() error
 	DeleteTeamByName(teamName string) error
-
-	GetAllStartedBuilds() ([]Build, error)
-	GetPublicBuilds(page Page) ([]Build, Pagination, error)
-
-	FindJobIDForBuild(buildID int) (int, bool, error)
 
 	CreatePipe(pipeGUID string, url string, teamName string) error
 	GetPipe(pipeGUID string) (Pipe, error)

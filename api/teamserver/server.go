@@ -2,31 +2,20 @@ package teamserver
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 )
 
-//go:generate counterfeiter . TeamsDB
-
-type TeamsDB interface {
-	GetTeams() ([]db.SavedTeam, error)
-	CreateTeam(data db.Team) (db.SavedTeam, error)
-	DeleteTeamByName(teamName string) error
-}
-
 type Server struct {
-	logger        lager.Logger
-	teamDBFactory db.TeamDBFactory
-	teamsDB       TeamsDB
+	logger      lager.Logger
+	teamFactory dbng.TeamFactory
 }
 
 func NewServer(
 	logger lager.Logger,
-	teamDBFactory db.TeamDBFactory,
-	teamsDB TeamsDB,
+	teamFactory dbng.TeamFactory,
 ) *Server {
 	return &Server{
-		logger:        logger,
-		teamDBFactory: teamDBFactory,
-		teamsDB:       teamsDB,
+		logger:      logger,
+		teamFactory: teamFactory,
 	}
 }

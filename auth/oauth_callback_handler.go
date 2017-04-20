@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 
 	"net/url"
 
@@ -24,7 +24,7 @@ type OAuthCallbackHandler struct {
 	privateKey         *rsa.PrivateKey
 	authTokenGenerator AuthTokenGenerator
 	csrfTokenGenerator CSRFTokenGenerator
-	teamDBFactory      db.TeamDBFactory
+	teamFactory        dbng.TeamFactory
 	expire             time.Duration
 	isTLSEnabled       bool
 }
@@ -33,7 +33,7 @@ func NewOAuthCallbackHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
-	teamDBFactory db.TeamDBFactory,
+	teamFactory dbng.TeamFactory,
 	expire time.Duration,
 	isTLSEnabled bool,
 ) http.Handler {
@@ -43,7 +43,7 @@ func NewOAuthCallbackHandler(
 		privateKey:         privateKey,
 		authTokenGenerator: NewAuthTokenGenerator(privateKey),
 		csrfTokenGenerator: NewCSRFTokenGenerator(),
-		teamDBFactory:      teamDBFactory,
+		teamFactory:        teamFactory,
 		expire:             expire,
 		isTLSEnabled:       isTLSEnabled,
 	}
@@ -93,8 +93,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	}
 
 	teamName := oauthState.TeamName
-	teamDB := handler.teamDBFactory.GetTeamDB(teamName)
-	team, found, err := teamDB.GetTeam()
+	team, found, err := handler.teamFactory.FindTeam(teamName)
 
 	if err != nil {
 		hLog.Error("failed-to-get-team", err)
@@ -174,7 +173,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	tokenType, signedToken, err := handler.authTokenGenerator.GenerateToken(exp, team.Name, team.Admin, csrfToken)
+	tokenType, signedToken, err := handler.authTokenGenerator.GenerateToken(exp, team.Name(), team.Admin(), csrfToken)
 	if err != nil {
 		hLog.Error("failed-to-sign-token", err)
 		http.Error(w, "failed to generate auth token", http.StatusInternalServerError)

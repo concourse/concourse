@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/event"
 )
@@ -44,7 +43,6 @@ type Build interface {
 	StartTime() time.Time
 	EndTime() time.Time
 	ReapTime() time.Time
-	IsOneOff() bool
 	IsScheduled() bool
 	IsRunning() bool
 	IsManuallyTriggered() bool
@@ -54,18 +52,12 @@ type Build interface {
 	Events(from uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
 
-	GetVersionedResources() (SavedVersionedResources, error)
 	GetResources() ([]BuildInput, []BuildOutput, error)
 
 	Start(string, string) (bool, error)
 	Finish(status Status) error
-	MarkAsFailed(cause error) error
-	Abort() error
-	AbortNotifier() (Notifier, error)
 
 	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
-
-	GetPreparation() (BuildPreparation, bool, error)
 
 	SaveEngineMetadata(engineMetadata string) error
 
@@ -74,10 +66,6 @@ type Build interface {
 
 	SaveImageResourceVersion(planID atc.PlanID, identifier ResourceCacheIdentifier) error
 	GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, error)
-
-	GetConfig() (atc.Config, ConfigVersion, error)
-
-	GetPipeline() (SavedPipeline, error)
 }
 
 type build struct {
@@ -167,10 +155,6 @@ func (b *build) ReapTime() time.Time {
 
 func (b *build) Status() Status {
 	return b.status
-}
-
-func (b *build) IsOneOff() bool {
-	return b.jobID == 0
 }
 
 func (b *build) IsScheduled() bool {
@@ -290,37 +274,6 @@ func (b *build) Start(engine, metadata string) (bool, error) {
 	return true, nil
 }
 
-func (b *build) Abort() error {
-	_, err := b.conn.Exec(`
-   UPDATE builds
-   SET status = 'aborted'
-   WHERE id = $1
- `, b.id)
-	if err != nil {
-		return err
-	}
-
-	err = b.bus.Notify(buildAbortChannel(b.id))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (b *build) AbortNotifier() (Notifier, error) {
-	return newConditionNotifier(b.bus, buildAbortChannel(b.id), func() (bool, error) {
-		var aborted bool
-		err := b.conn.QueryRow(`
-			SELECT status = 'aborted'
-			FROM builds
-			WHERE id = $1
-		`, b.id).Scan(&aborted)
-
-		return aborted, err
-	})
-}
-
 func (b *build) Finish(status Status) error {
 	tx, err := b.conn.Begin()
 	if err != nil {
@@ -367,17 +320,6 @@ func (b *build) Finish(status Status) error {
 	}
 
 	return nil
-}
-
-func (b *build) MarkAsFailed(cause error) error {
-	err := b.SaveEvent(event.Error{
-		Message: cause.Error(),
-	})
-	if err != nil {
-		return err
-	}
-
-	return b.Finish(StatusErrored)
 }
 
 func (b *build) SaveEvent(event atc.Event) error {
@@ -544,197 +486,6 @@ func (b *build) getVersionedResources(resourceRequest string) (SavedVersionedRes
 	return savedVersionedResources, nil
 }
 
-func (b *build) GetVersionedResources() (SavedVersionedResources, error) {
-	return b.getVersionedResources(`
-		SELECT vr.id,
-			vr.enabled,
-			vr.version,
-			vr.metadata,
-			vr.type,
-			r.name,
-			r.pipeline_id,
-			vr.modified_time
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN build_inputs bi ON bi.build_id = b.id
-		INNER JOIN versioned_resources vr ON bi.versioned_resource_id = vr.id
-		INNER JOIN resources r ON vr.resource_id = r.id
-		WHERE b.id = $1
-
-		UNION ALL
-
-		SELECT vr.id,
-			vr.enabled,
-			vr.version,
-			vr.metadata,
-			vr.type,
-			r.name,
-			r.pipeline_id,
-			vr.modified_time
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN build_outputs bo ON bo.build_id = b.id
-		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
-		INNER JOIN resources r ON vr.resource_id = r.id
-		WHERE b.id = $1 AND bo.explicit`)
-}
-
-func (b *build) GetPreparation() (BuildPreparation, bool, error) {
-	if b.IsOneOff() || b.status != StatusPending {
-		return BuildPreparation{
-			BuildID:             b.id,
-			PausedPipeline:      BuildPreparationStatusNotBlocking,
-			PausedJob:           BuildPreparationStatusNotBlocking,
-			MaxRunningBuilds:    BuildPreparationStatusNotBlocking,
-			Inputs:              map[string]BuildPreparationStatus{},
-			InputsSatisfied:     BuildPreparationStatusNotBlocking,
-			MissingInputReasons: MissingInputReasons{},
-		}, true, nil
-	}
-
-	var (
-		pausedPipeline     bool
-		pausedJob          bool
-		maxInFlightReached bool
-		pipelineID         int
-		jobName            string
-	)
-	err := b.conn.QueryRow(`
-			SELECT p.paused, j.paused, j.max_in_flight_reached, j.pipeline_id, j.name
-			FROM builds b
-			JOIN jobs j
-				ON b.job_id = j.id
-			JOIN pipelines p
-				ON j.pipeline_id = p.id
-			WHERE b.id = $1
-		`, b.id).Scan(&pausedPipeline, &pausedJob, &maxInFlightReached, &pipelineID, &jobName)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return BuildPreparation{}, false, nil
-		}
-		return BuildPreparation{}, false, err
-	}
-
-	pausedPipelineStatus := BuildPreparationStatusNotBlocking
-	if pausedPipeline {
-		pausedPipelineStatus = BuildPreparationStatusBlocking
-	}
-
-	pausedJobStatus := BuildPreparationStatusNotBlocking
-	if pausedJob {
-		pausedJobStatus = BuildPreparationStatusBlocking
-	}
-
-	maxInFlightReachedStatus := BuildPreparationStatusNotBlocking
-	if maxInFlightReached {
-		maxInFlightReachedStatus = BuildPreparationStatusBlocking
-	}
-
-	tdbf := NewTeamDBFactory(b.conn, b.bus, b.lockFactory)
-	tdb := tdbf.GetTeamDB(b.teamName)
-	savedPipeline, found, err := tdb.GetPipelineByName(b.pipelineName)
-	if err != nil {
-		return BuildPreparation{}, false, err
-	}
-
-	if !found {
-		return BuildPreparation{}, false, nil
-	}
-
-	pdbf := NewPipelineDBFactory(b.conn, b.bus, b.lockFactory)
-	pdb := pdbf.Build(savedPipeline)
-	if err != nil {
-		return BuildPreparation{}, false, err
-	}
-
-	jobConfig, found := pdb.Config().Jobs.Lookup(jobName)
-	if !found {
-		return BuildPreparation{}, false, nil
-	}
-
-	configInputs := config.JobInputs(jobConfig)
-
-	nextBuildInputs, found, err := pdb.GetNextBuildInputs(jobName)
-	if err != nil {
-		return BuildPreparation{}, false, err
-	}
-
-	inputsSatisfiedStatus := BuildPreparationStatusBlocking
-	inputs := map[string]BuildPreparationStatus{}
-	missingInputReasons := MissingInputReasons{}
-
-	if found {
-		inputsSatisfiedStatus = BuildPreparationStatusNotBlocking
-		for _, buildInput := range nextBuildInputs {
-			inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
-		}
-	} else {
-		buildInputs, err := pdb.GetIndependentBuildInputs(jobName)
-		if err != nil {
-			return BuildPreparation{}, false, err
-		}
-
-		for _, configInput := range configInputs {
-			found := false
-			for _, buildInput := range buildInputs {
-				if buildInput.Name == configInput.Name {
-					found = true
-					break
-				}
-			}
-			if found {
-				inputs[configInput.Name] = BuildPreparationStatusNotBlocking
-			} else {
-				inputs[configInput.Name] = BuildPreparationStatusBlocking
-				if len(configInput.Passed) > 0 {
-					if configInput.Version != nil && configInput.Version.Pinned != nil {
-						_, found, err := pdb.GetVersionedResourceByVersion(configInput.Version.Pinned, configInput.Resource)
-						if err != nil {
-							return BuildPreparation{}, false, err
-						}
-
-						if found {
-							missingInputReasons.RegisterPassedConstraint(configInput.Name)
-						} else {
-							versionJSON, err := json.Marshal(configInput.Version.Pinned)
-							if err != nil {
-								return BuildPreparation{}, false, err
-							}
-
-							missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
-						}
-					} else {
-						missingInputReasons.RegisterPassedConstraint(configInput.Name)
-					}
-				} else {
-					if configInput.Version != nil && configInput.Version.Pinned != nil {
-						versionJSON, err := json.Marshal(configInput.Version.Pinned)
-						if err != nil {
-							return BuildPreparation{}, false, err
-						}
-
-						missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
-					} else {
-						missingInputReasons.RegisterNoVersions(configInput.Name)
-					}
-				}
-			}
-		}
-	}
-
-	buildPreparation := BuildPreparation{
-		BuildID:             b.id,
-		PausedPipeline:      pausedPipelineStatus,
-		PausedJob:           pausedJobStatus,
-		MaxRunningBuilds:    maxInFlightReachedStatus,
-		Inputs:              inputs,
-		InputsSatisfied:     inputsSatisfiedStatus,
-		MissingInputReasons: missingInputReasons,
-	}
-
-	return buildPreparation, true, nil
-}
-
 func (b *build) SaveInput(input BuildInput) (SavedVersionedResource, error) {
 	row := b.conn.QueryRow(`
 		SELECT `+pipelineColumns+`
@@ -871,48 +622,6 @@ func (b *build) AcquireTrackingLock(logger lager.Logger, interval time.Duration)
 	}
 
 	return lock, true, nil
-}
-
-func (b *build) GetConfig() (atc.Config, ConfigVersion, error) {
-	var configBlob []byte
-	var version int
-	err := b.conn.QueryRow(`
-			SELECT p.config, p.version
-			FROM builds b
-			INNER JOIN jobs j ON b.job_id = j.id
-			INNER JOIN pipelines p ON j.pipeline_id = p.id
-			WHERE b.id = $1
-		`, b.id).Scan(&configBlob, &version)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return atc.Config{}, 0, nil
-		} else {
-			return atc.Config{}, 0, err
-		}
-	}
-
-	var config atc.Config
-	err = json.Unmarshal(configBlob, &config)
-	if err != nil {
-		return atc.Config{}, 0, err
-	}
-
-	return config, ConfigVersion(version), nil
-}
-
-func (b *build) GetPipeline() (SavedPipeline, error) {
-	if b.IsOneOff() {
-		return SavedPipeline{}, nil
-	}
-
-	row := b.conn.QueryRow(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines p
-		INNER JOIN teams t ON t.id = p.team_id
-		WHERE p.id = $1
-	`, b.pipelineID)
-
-	return scanPipeline(row)
 }
 
 func newConditionNotifier(bus *notificationsBus, channel string, cond func() (bool, error)) (Notifier, error) {

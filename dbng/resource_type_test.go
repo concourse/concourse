@@ -11,7 +11,11 @@ var _ = Describe("ResourceType", func() {
 	var pipeline dbng.Pipeline
 
 	BeforeEach(func() {
-		var created bool
+		var (
+			created bool
+			err     error
+		)
+
 		pipeline, created, err = defaultTeam.SavePipeline(
 			"pipeline-with-types",
 			atc.Config{
@@ -71,7 +75,11 @@ var _ = Describe("ResourceType", func() {
 
 		Context("when a resource type becomes inactive", func() {
 			BeforeEach(func() {
-				var created bool
+				var (
+					created bool
+					err     error
+				)
+
 				pipeline, created, err = defaultTeam.SavePipeline(
 					"pipeline-with-types",
 					atc.Config{

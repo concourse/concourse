@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) HidePipeline(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) HidePipeline(_ db.PipelineDB, pipelineDB dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("hide-pipeline")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := pipelineDB.Hide()

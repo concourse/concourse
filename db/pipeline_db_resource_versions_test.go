@@ -25,7 +25,7 @@ var _ = Describe("Resource History", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = db.Wrap(postgresRunner.Open())
+		dbConn = db.Wrap(postgresRunner.OpenDB())
 
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())

@@ -3,7 +3,6 @@ package engine
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -51,7 +50,7 @@ func (engine *execEngine) Name() string {
 	return execEngineName
 }
 
-func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
+func (engine *execEngine) CreateBuild(logger lager.Logger, build dbng.Build, plan atc.Plan) (Build, error) {
 	return &execBuild{
 		teamName:     build.TeamName(),
 		teamID:       build.TeamID(),
@@ -75,16 +74,11 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan 
 	}, nil
 }
 
-func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
+func (engine *execEngine) LookupBuild(logger lager.Logger, build dbng.Build) (Build, error) {
 	var metadata execMetadata
 	err := json.Unmarshal([]byte(build.EngineMetadata()), &metadata)
 	if err != nil {
 		logger.Error("invalid-metadata", err)
-		return nil, err
-	}
-
-	err = atc.NewPlanTraversal(engine.convertPipelineNameToID(build.TeamName())).Traverse(&metadata.Plan)
-	if err != nil {
 		return nil, err
 	}
 
@@ -114,56 +108,7 @@ func (engine *execEngine) ReleaseAll(logger lager.Logger) {
 	close(engine.releaseCh)
 }
 
-func (engine *execEngine) convertPipelineNameToID(teamName string) func(plan *atc.Plan) error {
-	teamDB := engine.teamDBFactory.GetTeamDB(teamName)
-	return func(plan *atc.Plan) error {
-		var pipelineName *string
-		var pipelineID *int
-
-		switch {
-		case plan.Get != nil:
-			pipelineName = &plan.Get.Pipeline
-			pipelineID = &plan.Get.PipelineID
-		case plan.Put != nil:
-			pipelineName = &plan.Put.Pipeline
-			pipelineID = &plan.Put.PipelineID
-		case plan.Task != nil:
-			pipelineName = &plan.Task.Pipeline
-			pipelineID = &plan.Task.PipelineID
-		case plan.DependentGet != nil:
-			pipelineName = &plan.DependentGet.Pipeline
-			pipelineID = &plan.DependentGet.PipelineID
-		}
-
-		if pipelineName != nil && *pipelineName != "" {
-			if *pipelineID != 0 {
-				return fmt.Errorf(
-					"build plan with ID %s has both pipeline name (%s) and ID (%d)",
-					plan.ID,
-					*pipelineName,
-					*pipelineID,
-				)
-			}
-
-			savedPipeline, found, err := teamDB.GetPipelineByName(*pipelineName)
-
-			if err != nil {
-				return err
-			}
-
-			if !found {
-				return errors.New("pipeline not found: " + *pipelineName)
-			}
-
-			*pipelineID = savedPipeline.ID
-			*pipelineName = ""
-		}
-
-		return nil
-	}
-}
-
-func buildMetadata(build db.Build, externalURL string) StepMetadata {
+func buildMetadata(build dbng.Build, externalURL string) StepMetadata {
 	return StepMetadata{
 		BuildID:      build.ID(),
 		BuildName:    build.Name(),
