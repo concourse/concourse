@@ -53,7 +53,7 @@ var (
 	dbWorkerLifecycle             *dbngfakes.FakeWorkerLifecycle
 	teamDB                        *dbfakes.FakeTeamDB
 	pipelinesDB                   *dbfakes.FakePipelinesDB
-	build                         *dbfakes.FakeBuild
+	build                         *dbngfakes.FakeBuild
 	dbBuildFactory                *dbngfakes.FakeBuildFactory
 	dbTeam                        *dbngfakes.FakeTeam
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
@@ -147,7 +147,7 @@ var _ = BeforeEach(func() {
 
 	isTLSEnabled = false
 
-	build = new(dbfakes.FakeBuild)
+	build = new(dbngfakes.FakeBuild)
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(dbTeamFactory)
 

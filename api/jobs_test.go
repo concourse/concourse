@@ -21,6 +21,7 @@ import (
 
 var _ = Describe("Jobs API", func() {
 	var pipelineDB *dbfakes.FakePipelineDB
+	var fakeJob *dbngfakes.FakeJob
 	var expectedSavedPipeline db.SavedPipeline
 	var versionedResourceTypes atc.VersionedResourceTypes
 
@@ -29,6 +30,7 @@ var _ = Describe("Jobs API", func() {
 		pipelineDBFactory.BuildReturns(pipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
 		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, true, nil)
+		fakeJob = new(dbngfakes.FakeJob)
 
 		versionedResourceTypes = atc.VersionedResourceTypes{
 			atc.VersionedResourceType{
@@ -82,7 +84,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("and the pipeline is private", func() {
 				BeforeEach(func() {
-					pipelineDB.IsPublicReturns(false)
+					fakePipeline.PublicReturns(false)
 				})
 
 				It("returns 401", func() {
@@ -93,7 +95,7 @@ var _ = Describe("Jobs API", func() {
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
 					pipelineDB.GetJobReturns(db.SavedJob{}, true, nil)
-					pipelineDB.IsPublicReturns(true)
+					fakePipeline.PublicReturns(true)
 				})
 
 				It("returns 200 OK", func() {
@@ -357,7 +359,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("and the pipeline is private", func() {
 					BeforeEach(func() {
-						pipelineDB.IsPublicReturns(false)
+						fakePipeline.PublicReturns(false)
 					})
 
 					It("returns 401", func() {
@@ -367,7 +369,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("and the pipeline is public", func() {
 					BeforeEach(func() {
-						pipelineDB.IsPublicReturns(true)
+						fakePipeline.PublicReturns(true)
 					})
 
 					It("returns 200 OK", func() {
@@ -784,7 +786,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("and the pipeline is private", func() {
 					BeforeEach(func() {
-						pipelineDB.IsPublicReturns(false)
+						fakePipeline.PublicReturns(false)
 					})
 
 					It("returns 401", func() {
@@ -794,7 +796,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("and the pipeline is public", func() {
 					BeforeEach(func() {
-						pipelineDB.IsPublicReturns(true)
+						fakePipeline.PublicReturns(true)
 					})
 
 					It("returns 200 OK", func() {
@@ -1000,7 +1002,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("and the pipeline is private", func() {
 				BeforeEach(func() {
-					pipelineDB.IsPublicReturns(false)
+					fakePipeline.PublicReturns(false)
 				})
 
 				It("returns 401", func() {
@@ -1010,7 +1012,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
-					pipelineDB.IsPublicReturns(true)
+					fakePipeline.PublicReturns(true)
 				})
 
 				It("returns 200 OK", func() {
@@ -1235,13 +1237,13 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when triggering the build succeeds", func() {
 					BeforeEach(func() {
-						build := new(dbfakes.FakeBuild)
+						build := new(dbngfakes.FakeBuild)
 						build.IDReturns(42)
 						build.NameReturns("1")
 						build.JobNameReturns("some-job")
 						build.PipelineNameReturns("a-pipeline")
 						build.TeamNameReturns("some-team")
-						build.StatusReturns(db.StatusStarted)
+						build.StatusReturns(dbng.BuildStatusStarted)
 						build.StartTimeReturns(time.Unix(1, 0))
 						build.EndTimeReturns(time.Unix(100, 0))
 						fakeScheduler.TriggerImmediatelyReturns(build, nil, nil)
@@ -1416,7 +1418,7 @@ var _ = Describe("Jobs API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
-						It("created the scheduler with the correct pipelineDB and external URL", func() {
+						It("created the scheduler with the correct fakePipeline and external URL", func() {
 							actualPipelineDB, _, actualExternalURL := fakeSchedulerFactory.BuildSchedulerArgsForCall(0)
 							Expect(actualPipelineDB).To(Equal(pipelineDB))
 							Expect(actualExternalURL).To(Equal(externalURL))
@@ -1522,15 +1524,16 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
-				build.IDReturns(1)
-				build.NameReturns("1")
-				build.JobNameReturns("some-job")
-				build.PipelineNameReturns("a-pipeline")
-				build.TeamNameReturns("some-team")
-				build.StatusReturns(db.StatusSucceeded)
-				build.StartTimeReturns(time.Unix(1, 0))
-				build.EndTimeReturns(time.Unix(100, 0))
-				pipelineDB.GetJobBuildReturns(build, true, nil)
+				dbBuild := new(dbfakes.FakeBuild)
+				dbBuild.IDReturns(1)
+				dbBuild.NameReturns("1")
+				dbBuild.JobNameReturns("some-job")
+				dbBuild.PipelineNameReturns("a-pipeline")
+				dbBuild.TeamNameReturns("some-team")
+				dbBuild.StatusReturns(db.StatusSucceeded)
+				dbBuild.StartTimeReturns(time.Unix(1, 0))
+				dbBuild.EndTimeReturns(time.Unix(100, 0))
+				pipelineDB.GetJobBuildReturns(dbBuild, true, nil)
 			})
 
 			Context("when not authorized", func() {
@@ -1541,7 +1544,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("and the pipeline is private", func() {
 					BeforeEach(func() {
-						pipelineDB.IsPublicReturns(false)
+						fakePipeline.PublicReturns(false)
 					})
 
 					It("returns 401", func() {
@@ -1551,7 +1554,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("and the pipeline is public", func() {
 					BeforeEach(func() {
-						pipelineDB.IsPublicReturns(true)
+						fakePipeline.PublicReturns(true)
 					})
 
 					It("returns 200 OK", func() {

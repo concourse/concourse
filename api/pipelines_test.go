@@ -464,6 +464,7 @@ var _ = Describe("Pipelines API", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("another-team", true, true)
+				fakeTeam.PipelineReturns(fakePipeline, true, nil)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 			})
 
@@ -493,12 +494,12 @@ var _ = Describe("Pipelines API", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", true, false)
+				dbTeam.PipelineReturns(fakePipeline, true, nil)
 			})
 
 			Context("and the pipeline is private", func() {
 				BeforeEach(func() {
-					fakeTeam.PipelineReturns(fakePipeline, true, nil)
-					pipelineDB.IsPublicReturns(false)
+					fakePipeline.PublicReturns(false)
 				})
 
 				It("returns 401", func() {
@@ -508,7 +509,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("and the pipeline is public", func() {
 				BeforeEach(func() {
-					pipelineDB.IsPublicReturns(true)
+					fakePipeline.PublicReturns(true)
 				})
 
 				It("returns 200 OK", func() {

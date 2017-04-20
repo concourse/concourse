@@ -42,7 +42,9 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 
 	authTeam, authTeamFound := auth.GetTeam(r)
 	if authTeamFound {
-		team, found, err := s.teamFactory.FindTeam(authTeam.Name())
+		var team dbng.Team
+		var found bool
+		team, found, err = s.teamFactory.FindTeam(authTeam.Name())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

@@ -65,17 +65,17 @@ var _ = Describe("I'm a BuildStarter", func() {
 					Version:      atc.Version{"some": "version"},
 				},
 			}
+
+			createdBuild = new(dbngfakes.FakeBuild)
+			createdBuild.IDReturns(66)
+			createdBuild.IsManuallyTriggeredReturns(true)
+
+			pendingBuilds = []dbng.Build{createdBuild}
 		})
 
 		Context("when manually triggered", func() {
 			BeforeEach(func() {
 				jobConfig = atc.JobConfig{Name: "some-job", Plan: atc.PlanSequence{{Get: "input-1"}, {Get: "input-2"}}}
-
-				createdBuild = new(dbngfakes.FakeBuild)
-				createdBuild.IDReturns(66)
-				createdBuild.IsManuallyTriggeredReturns(true)
-
-				pendingBuilds = []dbng.Build{createdBuild}
 			})
 
 			JustBeforeEach(func() {

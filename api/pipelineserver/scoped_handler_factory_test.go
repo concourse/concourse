@@ -36,6 +36,7 @@ var _ = Describe("Handler", func() {
 		teamDBFactory = new(dbfakes.FakeTeamDBFactory)
 		teamDB = new(dbfakes.FakeTeamDB)
 		teamDBFactory.GetTeamDBReturns(teamDB)
+		teamDB.GetPipelineByNameReturns(db.SavedPipeline{}, true, nil)
 
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		delegate = &delegateHandler{}
@@ -44,9 +45,8 @@ var _ = Describe("Handler", func() {
 		pipelineDBFactory.BuildReturns(pipelineDB)
 
 		dbTeamFactory = new(dbngfakes.FakeTeamFactory)
-
 		fakeTeam = new(dbngfakes.FakeTeam)
-		dbTeamFactory.GetByIDReturns(fakeTeam)
+		dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 
 		fakePipeline = new(dbngfakes.FakePipeline)
 		fakeTeam.PipelineReturns(fakePipeline, true, nil)
@@ -70,16 +70,16 @@ var _ = Describe("Handler", func() {
 	})
 
 	Context("when pipelineDB is in request context", func() {
-		var contextPipelineDB db.PipelineDB
+		var contextPipeline *dbngfakes.FakePipeline
 
 		BeforeEach(func() {
-			contextPipelineDB = new(dbfakes.FakePipelineDB)
-			handler = &wrapHandler{handler, contextPipelineDB}
+			contextPipeline = new(dbngfakes.FakePipeline)
+			handler = &wrapHandler{handler, contextPipeline}
 		})
 
 		It("calls scoped handler with pipelineDB from context", func() {
 			Expect(delegate.IsCalled).To(BeTrue())
-			Expect(delegate.PipelineDB).To(BeIdenticalTo(contextPipelineDB))
+			Expect(delegate.Pipeline).To(BeIdenticalTo(contextPipeline))
 		})
 	})
 
@@ -125,23 +125,23 @@ var _ = Describe("Handler", func() {
 })
 
 type delegateHandler struct {
-	IsCalled   bool
-	PipelineDB db.PipelineDB
+	IsCalled bool
+	Pipeline dbng.Pipeline
 }
 
 func (handler *delegateHandler) GetHandler(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.IsCalled = true
-		handler.PipelineDB = pipelineDB
+		handler.Pipeline = dbPipeline
 	})
 }
 
 type wrapHandler struct {
-	delegate          http.Handler
-	contextPipelineDB db.PipelineDB
+	delegate        http.Handler
+	contextPipeline dbng.Pipeline
 }
 
 func (h *wrapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := context.WithValue(r.Context(), auth.PipelineContextKey, h.contextPipelineDB)
+	ctx := context.WithValue(r.Context(), auth.PipelineContextKey, h.contextPipeline)
 	h.delegate.ServeHTTP(w, r.WithContext(ctx))
 }

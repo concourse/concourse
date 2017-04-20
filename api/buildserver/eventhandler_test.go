@@ -10,7 +10,6 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/atc/api/buildserver"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
@@ -76,7 +75,7 @@ var _ = Describe("Handler", func() {
 						Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
 
 						if from >= uint(len(returnedEvents)) {
-							return event.Envelope{}, db.ErrEndOfBuildEventStream
+							return event.Envelope{}, dbng.ErrEndOfBuildEventStream
 						}
 
 						from++
