@@ -11,30 +11,32 @@ var ErrSafeRetryFindOrCreate = errors.New("failed-to-run-safe-find-or-create-ret
 var ErrSafeRetryCreateOrUpdate = errors.New("failed-to-run-safe-create-or-update-retrying")
 
 func safeFindOrCreate(conn Conn, findOrCreateFunc func(tx Tx) error) error {
-	tx, err := conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	// didn't forget defer tx.Rollback() - just don't need it.
-
-	err = findOrCreateFunc(tx)
-	if err != nil {
-		tx.Rollback()
-
-		if err == ErrSafeRetryFindOrCreate {
-			return safeFindOrCreate(conn, findOrCreateFunc)
+	for {
+		tx, err := conn.Begin()
+		if err != nil {
+			return err
 		}
 
-		return err
-	}
+		// didn't forget defer tx.Rollback() - just don't need it.
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
+		err = findOrCreateFunc(tx)
+		if err != nil {
+			tx.Rollback()
 
-	return nil
+			if err == ErrSafeRetryFindOrCreate {
+				continue
+			}
+
+			return err
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
 }
 
 func safeCreateOrUpdate(conn Conn, createFunc func(tx Tx) (sql.Result, error), updateFunc func(tx Tx) (sql.Result, error)) error {
