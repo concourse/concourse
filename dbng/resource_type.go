@@ -10,11 +10,11 @@ import (
 )
 
 type ResourceTypeNotFoundError struct {
-	resourceTypeName string
+	Name string
 }
 
 func (e ResourceTypeNotFoundError) Error() string {
-	return fmt.Sprintf("resource type not found: %s", e.resourceTypeName)
+	return fmt.Sprintf("resource type not found: %s", e.Name)
 }
 
 //go:generate counterfeiter . ResourceType
@@ -29,6 +29,25 @@ type ResourceType interface {
 	SaveVersion(atc.Version) error
 
 	Reload() (bool, error)
+}
+
+type ResourceTypes []ResourceType
+
+func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
+	var versionedResourceTypes atc.VersionedResourceTypes
+
+	for _, t := range resourceTypes {
+		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
+			ResourceType: atc.ResourceType{
+				Name:   t.Name(),
+				Type:   t.Type(),
+				Source: t.Source(),
+			},
+			Version: t.Version(),
+		})
+	}
+
+	return versionedResourceTypes
 }
 
 var resourceTypesQuery = psql.Select("id, name, type, config, version").

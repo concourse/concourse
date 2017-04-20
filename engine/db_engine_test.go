@@ -60,7 +60,7 @@ var _ = Describe("DBEngine", func() {
 
 			plan = planFactory.NewPlan(atc.TaskPlan{
 				Config: &atc.TaskConfig{
-					Image: "some-image",
+					RootFsUri: "some-image",
 
 					Params: map[string]string{
 						"FOO": "1",

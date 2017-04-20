@@ -58,8 +58,14 @@ type Pipeline interface {
 	AcquireResourceCheckingLockWithIntervalCheck(
 		logger lager.Logger,
 		resource Resource,
-		resourceTypes atc.VersionedResourceTypes,
-		length time.Duration,
+		interval time.Duration,
+		immediate bool,
+	) (lock.Lock, bool, error)
+
+	AcquireResourceTypeCheckingLockWithIntervalCheck(
+		logger lager.Logger,
+		resourceTypeName string,
+		interval time.Duration,
 		immediate bool,
 	) (lock.Lock, bool, error)
 
@@ -68,16 +74,18 @@ type Pipeline interface {
 	Resource(name string) (Resource, bool, error)
 	Resources() ([]Resource, error)
 
-	ResourceTypes() ([]ResourceType, error)
+	ResourceTypes() (ResourceTypes, error)
 	ResourceType(name string) (ResourceType, bool, error)
 
 	Job(name string) (Job, bool, error)
 
-	Hide() error
-	Destroy() error
 	Expose() error
+	Hide() error
+
 	Pause() error
 	Unpause() error
+
+	Destroy() error
 	Rename(string) error
 }
 
@@ -318,6 +326,7 @@ func (p *pipeline) GetPendingBuildsForJob(jobName string) ([]Build, error) {
 
 	return builds, nil
 }
+
 func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
 	builds := map[string][]Build{}
 
@@ -873,7 +882,7 @@ func (p *pipeline) SetMaxInFlightReached(jobName string, reached bool) error {
 	return nil
 }
 
-func (p *pipeline) ResourceTypes() ([]ResourceType, error) {
+func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	rows, err := resourceTypesQuery.Where(sq.Eq{"pipeline_id": p.id}).RunWith(p.conn).Query()
 	if err != nil {
 		return nil, err

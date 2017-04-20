@@ -95,7 +95,7 @@ var _ = Describe("Config API", func() {
 							Task:       "some-task",
 							Privileged: true,
 							TaskConfig: &atc.TaskConfig{
-								Image: "some-image",
+								RootFsUri: "some-image",
 							},
 						},
 						{

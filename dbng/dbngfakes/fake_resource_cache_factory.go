@@ -56,6 +56,15 @@ type FakeResourceCacheFactory struct {
 	cleanUsesForInactiveResourcesReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CleanUsesForPausedPipelineResourcesStub        func() error
+	cleanUsesForPausedPipelineResourcesMutex       sync.RWMutex
+	cleanUsesForPausedPipelineResourcesArgsForCall []struct{}
+	cleanUsesForPausedPipelineResourcesReturns     struct {
+		result1 error
+	}
+	cleanUsesForPausedPipelineResourcesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CleanUpInvalidCachesStub        func() error
 	cleanUpInvalidCachesMutex       sync.RWMutex
 	cleanUpInvalidCachesArgsForCall []struct{}
@@ -246,6 +255,46 @@ func (fake *FakeResourceCacheFactory) CleanUsesForInactiveResourcesReturnsOnCall
 	}{result1}
 }
 
+func (fake *FakeResourceCacheFactory) CleanUsesForPausedPipelineResources() error {
+	fake.cleanUsesForPausedPipelineResourcesMutex.Lock()
+	ret, specificReturn := fake.cleanUsesForPausedPipelineResourcesReturnsOnCall[len(fake.cleanUsesForPausedPipelineResourcesArgsForCall)]
+	fake.cleanUsesForPausedPipelineResourcesArgsForCall = append(fake.cleanUsesForPausedPipelineResourcesArgsForCall, struct{}{})
+	fake.recordInvocation("CleanUsesForPausedPipelineResources", []interface{}{})
+	fake.cleanUsesForPausedPipelineResourcesMutex.Unlock()
+	if fake.CleanUsesForPausedPipelineResourcesStub != nil {
+		return fake.CleanUsesForPausedPipelineResourcesStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.cleanUsesForPausedPipelineResourcesReturns.result1
+}
+
+func (fake *FakeResourceCacheFactory) CleanUsesForPausedPipelineResourcesCallCount() int {
+	fake.cleanUsesForPausedPipelineResourcesMutex.RLock()
+	defer fake.cleanUsesForPausedPipelineResourcesMutex.RUnlock()
+	return len(fake.cleanUsesForPausedPipelineResourcesArgsForCall)
+}
+
+func (fake *FakeResourceCacheFactory) CleanUsesForPausedPipelineResourcesReturns(result1 error) {
+	fake.CleanUsesForPausedPipelineResourcesStub = nil
+	fake.cleanUsesForPausedPipelineResourcesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResourceCacheFactory) CleanUsesForPausedPipelineResourcesReturnsOnCall(i int, result1 error) {
+	fake.CleanUsesForPausedPipelineResourcesStub = nil
+	if fake.cleanUsesForPausedPipelineResourcesReturnsOnCall == nil {
+		fake.cleanUsesForPausedPipelineResourcesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanUsesForPausedPipelineResourcesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeResourceCacheFactory) CleanUpInvalidCaches() error {
 	fake.cleanUpInvalidCachesMutex.Lock()
 	ret, specificReturn := fake.cleanUpInvalidCachesReturnsOnCall[len(fake.cleanUpInvalidCachesArgsForCall)]
@@ -297,6 +346,8 @@ func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	defer fake.cleanUsesForInactiveResourceTypesMutex.RUnlock()
 	fake.cleanUsesForInactiveResourcesMutex.RLock()
 	defer fake.cleanUsesForInactiveResourcesMutex.RUnlock()
+	fake.cleanUsesForPausedPipelineResourcesMutex.RLock()
+	defer fake.cleanUsesForPausedPipelineResourcesMutex.RUnlock()
 	fake.cleanUpInvalidCachesMutex.RLock()
 	defer fake.cleanUpInvalidCachesMutex.RUnlock()
 	return fake.invocations

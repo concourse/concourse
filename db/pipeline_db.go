@@ -51,7 +51,6 @@ type PipelineDB interface {
 	EnableVersionedResource(versionedResourceID int) error
 	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
-	AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, length time.Duration, immediate bool) (lock.Lock, bool, error)
 
 	GetJobs() ([]SavedJob, error)
 	GetJob(job string) (SavedJob, bool, error)
@@ -288,61 +287,6 @@ func (pdb *pipelineDB) GetResources() ([]SavedResource, bool, error) {
 	}
 
 	return savedResources, true, nil
-}
-
-func (pdb *pipelineDB) AcquireResourceTypeCheckingLock(logger lager.Logger, resourceType SavedResourceType, interval time.Duration, immediate bool) (lock.Lock, bool, error) {
-	tx, err := pdb.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
-	params := []interface{}{resourceType.Name, pdb.ID}
-
-	condition := ""
-	if !immediate {
-		condition = "AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
-		params = append(params, interval.Seconds())
-	}
-
-	updated, err := checkIfRowsUpdated(tx, `
-		UPDATE resource_types
-		SET last_checked = now()
-		WHERE name = $1
-			AND pipeline_id = $2
-	`+condition, params...)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !updated {
-		return nil, false, nil
-	}
-
-	lock := pdb.lockFactory.NewLock(
-		logger.Session("lock", lager.Data{
-			"resource-type": resourceType.Name,
-		}),
-		lock.NewResourceTypeCheckingLockID(resourceType.ID),
-	)
-
-	acquired, err := lock.Acquire()
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		lock.Release()
-		return nil, false, err
-	}
-
-	return lock, true, nil
 }
 
 func (pdb *pipelineDB) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {

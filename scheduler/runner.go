@@ -142,7 +142,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		versions,
 		config.Jobs,
 		config.Resources,
-		deserializeVersionedResourceTypes(resourceTypes),
+		resourceTypes.Deserialize(),
 	)
 
 	for jobName, duration := range schedulingTimes {
@@ -154,21 +154,4 @@ func (runner *Runner) tick(logger lager.Logger) error {
 	}
 
 	return err
-}
-
-func deserializeVersionedResourceTypes(types []dbng.ResourceType) atc.VersionedResourceTypes {
-	var versionedResourceTypes atc.VersionedResourceTypes
-
-	for _, t := range types {
-		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name:   t.Name(),
-				Type:   t.Type(),
-				Source: t.Source(),
-			},
-			Version: t.Version(),
-		})
-	}
-
-	return versionedResourceTypes
 }

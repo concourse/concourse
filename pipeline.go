@@ -9,3 +9,7 @@ type Pipeline struct {
 	Groups   GroupConfigs `json:"groups,omitempty"`
 	TeamName string       `json:"team_name"`
 }
+
+type RenameRequest struct {
+	NewName string `json:"name"`
+}

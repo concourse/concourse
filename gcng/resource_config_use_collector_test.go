@@ -18,7 +18,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 	var buildCollector gcng.Collector
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("resource-cache-use-collector")
+		logger := lagertest.NewTestLogger("resource-config-use-collector")
 		collector = gcng.NewResourceConfigUseCollector(logger, resourceConfigFactory)
 		buildCollector = gcng.NewBuildCollector(logger, buildFactory)
 	})
@@ -267,7 +267,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 			})
 
 			Describe("for resources", func() {
-				setActiveResource := func(active bool) {
+				setActiveResource := func(resource dbng.Resource, active bool) {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
@@ -276,7 +276,7 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 					err = psql.Update("resources").
 						Set("active", active).
 						Where(sq.Eq{
-							"id": usedResource.ID(),
+							"id": resource.ID(),
 						}).Suffix("RETURNING id").
 						RunWith(tx).
 						QueryRow().Scan(&id)
@@ -293,13 +293,13 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 						"some-type",
 						atc.Version{"some-type": "version"},
 						atc.Source{
-							"cache": "source",
+							"some": "source",
 						},
 						atc.Params{"some": "params"},
 						atc.VersionedResourceTypes{versionedResourceType},
 					)
 					Expect(err).NotTo(HaveOccurred())
-					setActiveResource(true)
+					setActiveResource(usedResource, true)
 				})
 
 				Context("while the resource is still active", func() {
@@ -313,9 +313,113 @@ var _ = Describe("ResourceConfigUseCollector", func() {
 				Context("once the resource is made inactive", func() {
 					It("cleans up the uses", func() {
 						Expect(countResourceConfigUses()).NotTo(BeZero())
-						setActiveResource(false)
+						setActiveResource(usedResource, false)
 						Expect(collector.Run()).To(Succeed())
 						Expect(countResourceConfigUses()).To(BeZero())
+					})
+				})
+
+				Context("when all pipelines referencing config are paused", func() {
+					It("cleans up the uses", func() {
+						Expect(countResourceConfigUses()).NotTo(BeZero())
+						err := defaultPipeline.Pause()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(collector.Run()).To(Succeed())
+						Expect(countResourceConfigUses()).To(BeZero())
+					})
+				})
+
+				Context("when a portion of pipelines referencing config are paused", func() {
+					BeforeEach(func() {
+						anotherPipeline, created, err := defaultTeam.SavePipeline(
+							"another-pipeline",
+							atc.Config{
+								Resources: []atc.ResourceConfig{
+									{
+										Name:   "another-resource",
+										Type:   usedResource.Type(),
+										Source: usedResource.Source(),
+									},
+								},
+							},
+							0,
+							dbng.PipelineUnpaused,
+						)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(created).To(BeTrue())
+
+						anotherResource, found, err := anotherPipeline.Resource("another-resource")
+						Expect(err).ToNot(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						_, err = resourceCacheFactory.FindOrCreateResourceCache(
+							logger,
+							dbng.ForResource(anotherResource.ID()),
+							"some-type",
+							atc.Version{"some-type": "version"},
+							anotherResource.Source(),
+							atc.Params{"some": "params"},
+							atc.VersionedResourceTypes{versionedResourceType},
+						)
+						Expect(err).NotTo(HaveOccurred())
+						setActiveResource(anotherResource, true)
+					})
+
+					It("does not clean up the uses for unpaused pipeline resources", func() {
+						Expect(collector.Run()).To(Succeed()) // Clean up other things
+
+						Expect(countResourceConfigUses()).To(Equal(2))
+						err := defaultPipeline.Pause()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(collector.Run()).To(Succeed())
+						Expect(countResourceConfigUses()).To(Equal(1))
+					})
+				})
+
+				Context("when the config no longer matches the current config", func() {
+					setResourceSourceHash := func(resource dbng.Resource, hash string) {
+						tx, err := dbConn.Begin()
+						Expect(err).NotTo(HaveOccurred())
+						defer tx.Rollback()
+
+						var id int
+						err = psql.Update("resources").
+							Set("source_hash", hash).
+							Where(sq.Eq{
+								"id": resource.ID(),
+							}).Suffix("RETURNING id").
+							RunWith(tx).
+							QueryRow().Scan(&id)
+						Expect(err).NotTo(HaveOccurred())
+
+						err = tx.Commit()
+						Expect(err).NotTo(HaveOccurred())
+					}
+
+					BeforeEach(func() {
+						_, err = resourceCacheFactory.FindOrCreateResourceCache(
+							logger,
+							dbng.ForResource(usedResource.ID()),
+							"some-type",
+							atc.Version{"some-type": "version"},
+							usedResource.Source(),
+							atc.Params{"some": "params"},
+							atc.VersionedResourceTypes{versionedResourceType},
+						)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("cleans up the uses", func() {
+						Expect(collector.Run()).To(Succeed()) // Clean up any other things
+						beforeUses := countResourceConfigUses()
+
+						Expect(beforeUses).NotTo(BeZero())
+						setResourceSourceHash(usedResource, "some-source-hash")
+						Expect(collector.Run()).To(Succeed())
+
+						afterUses := countResourceConfigUses()
+						Expect(beforeUses - afterUses).To(Equal(1))
 					})
 				})
 			})

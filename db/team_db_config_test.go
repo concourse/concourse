@@ -105,7 +105,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 							Privileged:     true,
 							TaskConfigPath: "some/config/path.yml",
 							TaskConfig: &atc.TaskConfig{
-								Image: "some-image",
+								RootFsUri: "some-image",
 							},
 						},
 						{
