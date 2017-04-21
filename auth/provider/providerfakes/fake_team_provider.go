@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/auth/provider"
-	"github.com/jessevdk/go-flags"
 )
 
 type FakeTeamProvider struct {
@@ -24,16 +23,14 @@ type FakeTeamProvider struct {
 		result1 provider.Provider
 		result2 bool
 	}
-	AddAuthGroupStub        func(*flags.Group) provider.AuthConfig
-	addAuthGroupMutex       sync.RWMutex
-	addAuthGroupArgsForCall []struct {
-		arg1 *flags.Group
+	AuthGroupStub        func() provider.AuthGroup
+	authGroupMutex       sync.RWMutex
+	authGroupArgsForCall []struct{}
+	authGroupReturns     struct {
+		result1 provider.AuthGroup
 	}
-	addAuthGroupReturns struct {
-		result1 provider.AuthConfig
-	}
-	addAuthGroupReturnsOnCall map[int]struct {
-		result1 provider.AuthConfig
+	authGroupReturnsOnCall map[int]struct {
+		result1 provider.AuthGroup
 	}
 	UnmarshalConfigStub        func(*json.RawMessage) (provider.AuthConfig, error)
 	unmarshalConfigMutex       sync.RWMutex
@@ -104,51 +101,43 @@ func (fake *FakeTeamProvider) ProviderConstructorReturnsOnCall(i int, result1 pr
 	}{result1, result2}
 }
 
-func (fake *FakeTeamProvider) AddAuthGroup(arg1 *flags.Group) provider.AuthConfig {
-	fake.addAuthGroupMutex.Lock()
-	ret, specificReturn := fake.addAuthGroupReturnsOnCall[len(fake.addAuthGroupArgsForCall)]
-	fake.addAuthGroupArgsForCall = append(fake.addAuthGroupArgsForCall, struct {
-		arg1 *flags.Group
-	}{arg1})
-	fake.recordInvocation("AddAuthGroup", []interface{}{arg1})
-	fake.addAuthGroupMutex.Unlock()
-	if fake.AddAuthGroupStub != nil {
-		return fake.AddAuthGroupStub(arg1)
+func (fake *FakeTeamProvider) AuthGroup() provider.AuthGroup {
+	fake.authGroupMutex.Lock()
+	ret, specificReturn := fake.authGroupReturnsOnCall[len(fake.authGroupArgsForCall)]
+	fake.authGroupArgsForCall = append(fake.authGroupArgsForCall, struct{}{})
+	fake.recordInvocation("AuthGroup", []interface{}{})
+	fake.authGroupMutex.Unlock()
+	if fake.AuthGroupStub != nil {
+		return fake.AuthGroupStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.addAuthGroupReturns.result1
+	return fake.authGroupReturns.result1
 }
 
-func (fake *FakeTeamProvider) AddAuthGroupCallCount() int {
-	fake.addAuthGroupMutex.RLock()
-	defer fake.addAuthGroupMutex.RUnlock()
-	return len(fake.addAuthGroupArgsForCall)
+func (fake *FakeTeamProvider) AuthGroupCallCount() int {
+	fake.authGroupMutex.RLock()
+	defer fake.authGroupMutex.RUnlock()
+	return len(fake.authGroupArgsForCall)
 }
 
-func (fake *FakeTeamProvider) AddAuthGroupArgsForCall(i int) *flags.Group {
-	fake.addAuthGroupMutex.RLock()
-	defer fake.addAuthGroupMutex.RUnlock()
-	return fake.addAuthGroupArgsForCall[i].arg1
-}
-
-func (fake *FakeTeamProvider) AddAuthGroupReturns(result1 provider.AuthConfig) {
-	fake.AddAuthGroupStub = nil
-	fake.addAuthGroupReturns = struct {
-		result1 provider.AuthConfig
+func (fake *FakeTeamProvider) AuthGroupReturns(result1 provider.AuthGroup) {
+	fake.AuthGroupStub = nil
+	fake.authGroupReturns = struct {
+		result1 provider.AuthGroup
 	}{result1}
 }
 
-func (fake *FakeTeamProvider) AddAuthGroupReturnsOnCall(i int, result1 provider.AuthConfig) {
-	fake.AddAuthGroupStub = nil
-	if fake.addAuthGroupReturnsOnCall == nil {
-		fake.addAuthGroupReturnsOnCall = make(map[int]struct {
-			result1 provider.AuthConfig
+func (fake *FakeTeamProvider) AuthGroupReturnsOnCall(i int, result1 provider.AuthGroup) {
+	fake.AuthGroupStub = nil
+	if fake.authGroupReturnsOnCall == nil {
+		fake.authGroupReturnsOnCall = make(map[int]struct {
+			result1 provider.AuthGroup
 		})
 	}
-	fake.addAuthGroupReturnsOnCall[i] = struct {
-		result1 provider.AuthConfig
+	fake.authGroupReturnsOnCall[i] = struct {
+		result1 provider.AuthGroup
 	}{result1}
 }
 
@@ -208,8 +197,8 @@ func (fake *FakeTeamProvider) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.providerConstructorMutex.RLock()
 	defer fake.providerConstructorMutex.RUnlock()
-	fake.addAuthGroupMutex.RLock()
-	defer fake.addAuthGroupMutex.RUnlock()
+	fake.authGroupMutex.RLock()
+	defer fake.authGroupMutex.RUnlock()
 	fake.unmarshalConfigMutex.RLock()
 	defer fake.unmarshalConfigMutex.RUnlock()
 	return fake.invocations

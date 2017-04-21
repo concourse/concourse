@@ -22,7 +22,17 @@ func main() {
 	authConfigs := make(provider.AuthConfigs)
 
 	for name, p := range provider.GetProviders() {
-		authConfigs[name] = p.AddAuthGroup(parser.Command.Group)
+		authGroup := p.AuthGroup()
+
+		group, err := parser.Command.Group.AddGroup(authGroup.Name(), "", authGroup.AuthConfig())
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+		group.Namespace = authGroup.Namespace()
+
+		authConfigs[name] = authGroup.AuthConfig()
 	}
 
 	args, err := parser.Parse()
