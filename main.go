@@ -25,7 +25,17 @@ func main() {
 	authConfigs := make(provider.AuthConfigs)
 
 	for name, p := range provider.GetProviders() {
-		authConfigs[name] = p.AddAuthGroup(setTeamCommand.Group)
+		authGroup := p.AuthGroup()
+
+		group, err := setTeamCommand.Group.AddGroup(authGroup.Name(), "", authGroup.AuthConfig())
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+		group.Namespace = authGroup.Namespace()
+
+		authConfigs[name] = authGroup.AuthConfig()
 	}
 
 	commands.Fly.SetTeam.ProviderAuth = authConfigs
