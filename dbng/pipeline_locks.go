@@ -111,10 +111,19 @@ func (p *pipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(
 		return nil, false, nil
 	}
 
-	resourceConfig, err := constructResourceConfig(tx, resourceType.Type(), resourceType.Source(), resourceTypes.Deserialize())
+	deserializedResourceTypes := resourceTypes.Deserialize()
+
+	resourceConfig, err := constructResourceConfig(tx, resourceType.Type(), resourceType.Source(), deserializedResourceTypes)
 	if err != nil {
 		return nil, false, err
 	}
+
+	logger.Debug("acquiring-resource-type-checking-lock", lager.Data{
+		"resource-config": resourceConfig,
+		"resource-type":   resourceType.Type(),
+		"resource-source": resourceType.Source(),
+		"resource-types":  deserializedResourceTypes,
+	})
 
 	return acquireResourceCheckingLock(
 		logger.Session("lock", lager.Data{"resource-type": resourceTypeName}),

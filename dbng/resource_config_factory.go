@@ -275,6 +275,13 @@ func (f *resourceConfigFactory) AcquireResourceCheckingLock(
 		return nil, false, err
 	}
 
+	logger.Debug("acquiring-resource-checking-lock", lager.Data{
+		"resource-config": resourceConfig,
+		"resource-type":   resourceType,
+		"resource-source": resourceSource,
+		"resource-types":  resourceTypes,
+	})
+
 	return acquireResourceCheckingLock(
 		logger.Session("lock", lager.Data{"resource-user": resourceUser}),
 		tx,
