@@ -1808,7 +1808,7 @@ var _ = Describe("Pipeline", func() {
 					returnedResource, _, err := dbngPipeline.Resource("some-resource")
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(returnedResource.CheckError()).To(Equal(errors.New("NULL")))
+					Expect(returnedResource.CheckError()).To(BeNil())
 				})
 			})
 		})

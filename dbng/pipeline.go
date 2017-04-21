@@ -272,7 +272,7 @@ func (p *pipeline) SetResourceCheckError(resource Resource, cause error) error {
 
 	if cause == nil {
 		_, err = psql.Update("resources").
-			Set("check_error", "NULL").
+			Set("check_error", nil).
 			Where(sq.Eq{"id": resource.ID()}).
 			RunWith(p.conn).
 			Exec()
