@@ -30,6 +30,16 @@ var _ = Describe("Pipeline", func() {
 			},
 			Resources: atc.ResourceConfigs{
 				{Name: "resource-name"},
+				{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				},
+				{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				},
 			},
 		}, dbng.ConfigVersion(0), dbng.PipelineUnpaused)
 		Expect(err).ToNot(HaveOccurred())
@@ -2065,4 +2075,177 @@ var _ = Describe("Pipeline", func() {
 			})
 		})
 	})
+
+	Describe("VersionsDB caching", func() {
+		var otherPipeline dbng.Pipeline
+		BeforeEach(func() {
+			otherPipelineConfig := atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+			}
+			var err error
+			otherPipeline, _, err = team.SavePipeline("other-pipeline-name", otherPipelineConfig, 0, dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when build outputs are added", func() {
+			var build dbng.Build
+			var savedVR dbng.SavedVersionedResource
+
+			BeforeEach(func() {
+				var err error
+				build, err = pipeline.CreateJobBuild("job-name")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = pipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				savedResource, _, err := pipeline.Resource("some-resource")
+				Expect(err).NotTo(HaveOccurred())
+
+				var found bool
+				savedVR, found, err = pipeline.GetLatestVersionedResource(savedResource.Name())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("will cache VersionsDB if no change has occured", func() {
+				err := build.SaveOutput(savedVR.VersionedResource, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				versionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).NotTo(HaveOccurred())
+
+				cachedVersionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same object")
+			})
+
+			It("will not cache VersionsDB if a change occured", func() {
+				versionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build.SaveOutput(savedVR.VersionedResource, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				cachedVersionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
+			})
+
+			Context("when the build outputs are added for a different pipeline", func() {
+				It("does not invalidate the cache for the original pipeline", func() {
+					otherBuild, err := otherPipeline.CreateJobBuild("some-job")
+					Expect(err).NotTo(HaveOccurred())
+
+					err = otherPipeline.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-other-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": "1"}})
+					Expect(err).NotTo(HaveOccurred())
+
+					otherSavedResource, _, err := otherPipeline.Resource("some-other-resource")
+					Expect(err).NotTo(HaveOccurred())
+
+					otherSavedVR, found, err := otherPipeline.GetLatestVersionedResource(otherSavedResource.Name())
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					versionsDB, err := pipeline.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = otherBuild.SaveOutput(otherSavedVR.VersionedResource, true)
+					Expect(err).NotTo(HaveOccurred())
+
+					cachedVersionsDB, err := pipeline.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same object")
+				})
+			})
+		})
+
+		Context("when versioned resources are added", func() {
+			It("will cache VersionsDB if no change has occured", func() {
+				err := pipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				versionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).NotTo(HaveOccurred())
+
+				cachedVersionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same object")
+			})
+
+			It("will not cache VersionsDB if a change occured", func() {
+				err := pipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				versionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = pipeline.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-other-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				cachedVersionsDB, err := pipeline.LoadVersionsDB()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
+			})
+
+			Context("when the versioned resources are added for a different pipeline", func() {
+				It("does not invalidate the cache for the original pipeline", func() {
+					err := pipeline.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": "1"}})
+					Expect(err).NotTo(HaveOccurred())
+
+					versionsDB, err := pipeline.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = otherPipeline.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-other-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": "1"}})
+					Expect(err).NotTo(HaveOccurred())
+
+					cachedVersionsDB, err := pipeline.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same object")
+				})
+			})
+		})
+	})
+
 })

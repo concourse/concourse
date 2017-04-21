@@ -101,6 +101,9 @@ type pipeline struct {
 	paused        bool
 	public        bool
 
+	cachedAt   time.Time
+	versionsDB *algorithm.VersionsDB
+
 	conn        Conn
 	lockFactory lock.LockFactory
 }
@@ -1032,6 +1035,15 @@ func (p *pipeline) Destroy() error {
 }
 
 func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
+	latestModifiedTime, err := p.getLatestModifiedTime()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.versionsDB != nil && p.cachedAt.Equal(latestModifiedTime) {
+		return p.versionsDB, nil
+	}
+
 	db := &algorithm.VersionsDB{
 		BuildOutputs:     []algorithm.BuildOutput{},
 		BuildInputs:      []algorithm.BuildInput{},
@@ -1169,6 +1181,9 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 
 		db.ResourceIDs[name] = id
 	}
+
+	p.versionsDB = db
+	p.cachedAt = latestModifiedTime
 
 	return db, nil
 }
@@ -1593,6 +1608,42 @@ func (p *pipeline) updatePausedJob(jobName string, pause bool) error {
 	}
 
 	return tx.Commit()
+}
+
+func (p *pipeline) getLatestModifiedTime() (time.Time, error) {
+	var max_modified_time time.Time
+
+	err := p.conn.QueryRow(`
+	SELECT
+		CASE
+			WHEN bo_max > vr_max AND bo_max > bi_max THEN bo_max
+			WHEN bi_max > vr_max THEN bi_max
+			ELSE vr_max
+		END
+	FROM
+		(
+			SELECT COALESCE(MAX(bo.modified_time), 'epoch') as bo_max
+			FROM build_outputs bo
+			LEFT OUTER JOIN versioned_resources v ON v.id = bo.versioned_resource_id
+			LEFT OUTER JOIN resources r ON r.id = v.resource_id
+			WHERE r.pipeline_id = $1
+		) bo,
+		(
+			SELECT COALESCE(MAX(bi.modified_time), 'epoch') as bi_max
+			FROM build_inputs bi
+			LEFT OUTER JOIN versioned_resources v ON v.id = bi.versioned_resource_id
+			LEFT OUTER JOIN resources r ON r.id = v.resource_id
+			WHERE r.pipeline_id = $1
+		) bi,
+		(
+			SELECT COALESCE(MAX(vr.modified_time), 'epoch') as vr_max
+			FROM versioned_resources vr
+			LEFT OUTER JOIN resources r ON r.id = vr.resource_id
+			WHERE r.pipeline_id = $1
+		) vr
+	`, p.id).Scan(&max_modified_time)
+
+	return max_modified_time, err
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {
