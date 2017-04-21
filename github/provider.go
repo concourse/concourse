@@ -17,7 +17,6 @@ import (
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
 )
 
@@ -110,17 +109,22 @@ func init() {
 type GitHubTeamProvider struct {
 }
 
-func (GitHubTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
-	flags := &GitHubAuthConfig{}
+type githubAuthGroup struct {
+	name       string
+	namespace  string
+	authConfig provider.AuthConfig
+}
 
-	ghGroup, err := group.AddGroup("Github Authentication", "", flags)
-	if err != nil {
-		panic(err)
+func (gag *githubAuthGroup) Name() string                    { return gag.name }
+func (gag *githubAuthGroup) Namespace() string               { return gag.namespace }
+func (gag *githubAuthGroup) AuthConfig() provider.AuthConfig { return gag.authConfig }
+
+func (GitHubTeamProvider) AuthGroup() provider.AuthGroup {
+	return &githubAuthGroup{
+		name:       "Github Authentication",
+		authConfig: &GitHubAuthConfig{},
+		namespace:  "github-auth",
 	}
-
-	ghGroup.Namespace = "github-auth"
-
-	return flags
 }
 
 func (GitHubTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfig, error) {

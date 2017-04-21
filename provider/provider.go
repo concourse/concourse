@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	flags "github.com/jessevdk/go-flags"
 
 	"code.cloudfoundry.org/lager"
 
@@ -43,13 +42,19 @@ type AuthConfig interface {
 	AuthMethod(oauthBaseURL string, teamName string) atc.AuthMethod
 }
 
+type AuthGroup interface {
+	Name() string
+	Namespace() string
+	AuthConfig() AuthConfig
+}
+
 type AuthConfigs map[string]AuthConfig
 
 //go:generate counterfeiter . TeamProvider
 
 type TeamProvider interface { // XXX rename to ProviderFactory
 	ProviderConstructor(AuthConfig, string) (Provider, bool)
-	AddAuthGroup(*flags.Group) AuthConfig
+	AuthGroup() AuthGroup
 	UnmarshalConfig(*json.RawMessage) (AuthConfig, error)
 }
 

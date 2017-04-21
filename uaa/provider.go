@@ -17,7 +17,6 @@ import (
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
 	"golang.org/x/oauth2"
 )
@@ -130,17 +129,22 @@ func (auth *UAAAuthConfig) Validate() error {
 
 type UAATeamProvider struct{}
 
-func (UAATeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
-	flags := &UAAAuthConfig{}
+type uaaAuthGroup struct {
+	name       string
+	namespace  string
+	authConfig provider.AuthConfig
+}
 
-	uaGroup, err := group.AddGroup("UAA Authentication", "", flags)
-	if err != nil {
-		panic(err)
+func (gag *uaaAuthGroup) Name() string                    { return gag.name }
+func (gag *uaaAuthGroup) Namespace() string               { return gag.namespace }
+func (gag *uaaAuthGroup) AuthConfig() provider.AuthConfig { return gag.authConfig }
+
+func (UAATeamProvider) AuthGroup() provider.AuthGroup {
+	return &uaaAuthGroup{
+		name:       "UAA Authentication",
+		namespace:  "uaa-auth",
+		authConfig: &UAAAuthConfig{},
 	}
-
-	uaGroup.Namespace = "uaa-auth"
-
-	return flags
 }
 
 func (UAATeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfig, error) {
