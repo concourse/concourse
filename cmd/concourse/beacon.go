@@ -144,8 +144,6 @@ func (beacon *Beacon) run(command string, client *ssh.Client, signals <-chan os.
 	case err := <-keepaliveFailed:
 		return err
 	}
-
-	return nil
 }
 
 func (beacon *Beacon) keepAlive(conn ssh.Conn) (<-chan error, chan<- struct{}) {
