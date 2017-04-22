@@ -46,7 +46,7 @@ func (config BeaconConfig) Dial() (*ssh.Client, error) {
 
 	clientConn, chans, reqs, err := ssh.NewClientConn(conn, tsaAddr, clientConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct client connection:", err)
+		return nil, fmt.Errorf("failed to construct client connection: %s", err)
 	}
 
 	return ssh.NewClient(clientConn, chans, reqs), nil
