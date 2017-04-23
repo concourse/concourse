@@ -43,12 +43,9 @@ var (
 	defaultTeam               dbng.Team
 	defaultWorkerPayload      atc.Worker
 	defaultWorker             dbng.Worker
-	defaultResourceConfig     *dbng.UsedResourceConfig
 	defaultResourceType       dbng.ResourceType
 	defaultResource           dbng.Resource
 	defaultPipeline           dbng.Pipeline
-	defaultCreatingContainer  dbng.CreatingContainer
-	defaultCreatedContainer   dbng.CreatedContainer
 	logger                    *lagertest.TestLogger
 	lockFactory               lock.LockFactory
 
@@ -165,14 +162,6 @@ var _ = BeforeEach(func() {
 	Expect(found).To(BeTrue())
 
 	logger = lagertest.NewTestLogger("test")
-	defaultResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource(defaultResource.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
-	Expect(err).NotTo(HaveOccurred())
-
-	defaultCreatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), defaultResourceConfig, dbng.ContainerMetadata{Type: "check"})
-	Expect(err).NotTo(HaveOccurred())
-
-	defaultCreatedContainer, err = defaultCreatingContainer.Created()
-	Expect(err).NotTo(HaveOccurred())
 })
 
 var _ = AfterEach(func() {

@@ -8,6 +8,20 @@ import (
 )
 
 var _ = Describe("Volume", func() {
+	var defaultCreatingContainer dbng.CreatingContainer
+	var defaultCreatedContainer dbng.CreatedContainer
+
+	BeforeEach(func() {
+		config, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForResource(defaultResource.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+		Expect(err).NotTo(HaveOccurred())
+
+		defaultCreatingContainer, err = defaultTeam.CreateResourceCheckContainer(defaultWorker.Name(), config, dbng.ContainerMetadata{Type: "check"})
+		Expect(err).NotTo(HaveOccurred())
+
+		defaultCreatedContainer, err = defaultCreatingContainer.Created()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	Describe("creatingVolume.Created", func() {
 		var (
 			creatingVolume dbng.CreatingVolume
