@@ -1,6 +1,8 @@
 package dbng
 
 import (
+	"fmt"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db/lock"
 )
@@ -8,6 +10,16 @@ import (
 type ResourceUser interface {
 	UseResourceCache(lager.Logger, Tx, lock.LockFactory, ResourceCache) (*UsedResourceCache, error)
 	UseResourceConfig(lager.Logger, Tx, lock.LockFactory, ResourceConfig) (*UsedResourceConfig, error)
+
+	Description() string
+}
+
+type UserDisappearedError struct {
+	User ResourceUser
+}
+
+func (err UserDisappearedError) Error() string {
+	return fmt.Sprintf("resource user disappeared: %s", err.User.Description())
 }
 
 type forBuild struct {
@@ -16,6 +28,10 @@ type forBuild struct {
 
 func ForBuild(id int) ResourceUser {
 	return forBuild{id}
+}
+
+func (user forBuild) Description() string {
+	return fmt.Sprintf("build #%d", user.BuildID)
 }
 
 func (user forBuild) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
@@ -53,6 +69,10 @@ func ForResource(id int) ResourceUser {
 	return forResource{id}
 }
 
+func (user forResource) Description() string {
+	return fmt.Sprintf("resource %d", user.ResourceID)
+}
+
 func (user forResource) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {
 	return resourceCache.findOrCreate(logger, tx, lockFactory, user, "resource_id", user.ResourceID)
 }
@@ -86,6 +106,10 @@ type forResourceType struct {
 
 func ForResourceType(id int) ResourceUser {
 	return forResourceType{id}
+}
+
+func (user forResourceType) Description() string {
+	return fmt.Sprintf("resource type %d", user.ResourceTypeID)
 }
 
 func (user forResourceType) UseResourceCache(logger lager.Logger, tx Tx, lockFactory lock.LockFactory, resourceCache ResourceCache) (*UsedResourceCache, error) {

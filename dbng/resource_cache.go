@@ -148,7 +148,11 @@ func (cache ResourceCache) findOrCreate(
 				Exec()
 			if err != nil {
 				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-					return nil, ErrSafeRetryFindOrCreate
+					if pqErr.Constraint == "resource_cache_uses_resource_cache_id_fkey" {
+						return nil, ErrSafeRetryFindOrCreate
+					} else {
+						return nil, UserDisappearedError{user}
+					}
 				}
 
 				return nil, err

@@ -5,6 +5,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
+	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . ResourceConfigFactory
@@ -131,7 +132,6 @@ func (f *resourceConfigFactory) CleanConfigUsesForFinishedBuilds() error {
 		Where(sq.Expr("NOT b.interceptible")).
 		RunWith(f.conn).
 		Exec()
-
 	if err != nil {
 		return err
 	}
@@ -239,6 +239,12 @@ func (f *resourceConfigFactory) CleanUselessConfigs() error {
 		PlaceholderFormat(sq.Dollar).
 		RunWith(f.conn).Exec()
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
+			// this can happen if a use or resource cache is created referencing the
+			// config; as the subqueries above are not atomic
+			return nil
+		}
+
 		return err
 	}
 

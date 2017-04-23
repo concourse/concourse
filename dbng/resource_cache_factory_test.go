@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"fmt"
+	"sync"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -25,8 +26,8 @@ var _ = Describe("ResourceCacheFactory", func() {
 		resourceTypeUsingBogusBaseType atc.VersionedResourceType
 		resourceTypeOverridingBaseType atc.VersionedResourceType
 
-		logger       *lagertest.TestLogger
-		defaultBuild dbng.Build
+		logger *lagertest.TestLogger
+		build  dbng.Build
 	)
 
 	BeforeEach(func() {
@@ -134,16 +135,17 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 
-		logger = lagertest.NewTestLogger("test")
-		defaultBuild, err = defaultTeam.CreateOneOffBuild()
+		build, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
+
+		logger = lagertest.NewTestLogger("test")
 	})
 
 	Describe("FindOrCreateResourceCache", func() {
 		It("creates resource cache in database", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForBuild(defaultBuild.ID()),
+				dbng.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -221,7 +223,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("returns an error if base resource type does not exist", func() {
 			_, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForBuild(defaultBuild.ID()),
+				dbng.ForBuild(build.ID()),
 				"some-type-using-bogus-base-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -240,7 +242,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 		It("allows a base resource type to be overridden using itself", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				logger,
-				dbng.ForBuild(defaultBuild.ID()),
+				dbng.ForBuild(build.ID()),
 				"some-image-type",
 				atc.Version{"some": "version"},
 				atc.Source{
@@ -256,6 +258,91 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(usedResourceCache.Version).To(Equal(atc.Version{"some": "version"}))
 			Expect(usedResourceCache.ResourceConfig.CreatedByResourceCache.Version).To(Equal(atc.Version{"some-image-type": "version"}))
 			Expect(usedResourceCache.ResourceConfig.CreatedByResourceCache.ResourceConfig.CreatedByBaseResourceType.ID).To(Equal(usedImageBaseResourceType.ID))
+		})
+
+		Context("when the user no longer exists", func() {
+			BeforeEach(func() {
+				Expect(defaultTeam.Delete()).To(Succeed())
+			})
+
+			FIt("returns UserDisappearedError", func() {
+				user := dbng.ForBuild(build.ID())
+
+				_, err := resourceCacheFactory.FindOrCreateResourceCache(
+					logger,
+					user,
+					"some-image-type",
+					atc.Version{"some": "version"},
+					atc.Source{
+						"some": "source",
+					},
+					atc.Params{"some": "params"},
+					atc.VersionedResourceTypes{
+						resourceTypeOverridingBaseType,
+					},
+				)
+				Expect(err).To(Equal(dbng.UserDisappearedError{user}))
+				Expect(err.Error()).To(Equal("resource user disappeared: build #1"))
+			})
+		})
+
+		Context("when the resource cache is concurrently deleted and created", func() {
+			BeforeEach(func() {
+				Expect(build.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+				Expect(build.SetInterceptible(false)).To(Succeed())
+			})
+
+			FIt("consistently is able to be used", func() {
+				// enable concurrent use of database. this is set to 1 by default to
+				// ensure methods don't require more than one in a single connection,
+				// which can cause deadlocking as the pool is limited.
+				dbConn.SetMaxOpenConns(10)
+
+				done := make(chan struct{})
+
+				wg := new(sync.WaitGroup)
+				for i := 0; i < 5; i++ {
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						defer wg.Done()
+
+						for {
+							select {
+							case <-done:
+								return
+							default:
+								Expect(resourceCacheFactory.CleanUsesForFinishedBuilds()).To(Succeed())
+								Expect(resourceConfigFactory.CleanConfigUsesForFinishedBuilds()).To(Succeed())
+								Expect(resourceCacheFactory.CleanUpInvalidCaches()).To(Succeed())
+								Expect(resourceConfigFactory.CleanUselessConfigs()).To(Succeed())
+							}
+						}
+					}()
+				}
+
+				wg.Add(1)
+				go func() {
+					defer GinkgoRecover()
+					defer close(done)
+					defer wg.Done()
+
+					for i := 0; i < 100; i++ {
+						_, err := resourceCacheFactory.FindOrCreateResourceCache(
+							logger,
+							dbng.ForBuild(build.ID()),
+							"some-base-resource-type",
+							atc.Version{"some": "version"},
+							atc.Source{"some": "source"},
+							atc.Params{"some": "params"},
+							atc.VersionedResourceTypes{},
+						)
+						Expect(err).ToNot(HaveOccurred())
+					}
+				}()
+
+				wg.Wait()
+			})
 		})
 	})
 

@@ -148,7 +148,11 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 				Exec()
 			if err != nil {
 				if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == "foreign_key_violation" {
-					return nil, ErrSafeRetryFindOrCreate
+					if pqErr.Constraint == "resource_config_uses_resource_config_id_fkey" {
+						return nil, ErrSafeRetryFindOrCreate
+					} else {
+						return nil, UserDisappearedError{user}
+					}
 				}
 
 				return nil, err

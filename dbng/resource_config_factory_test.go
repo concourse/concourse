@@ -1,6 +1,8 @@
 package dbng_test
 
 import (
+	"sync"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
@@ -9,15 +11,20 @@ import (
 )
 
 var _ = Describe("ResourceConfigFactory", func() {
+	var build dbng.Build
+
+	BeforeEach(func() {
+		var err error
+		build, err = defaultPipeline.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	DescribeTable("CleanConfigUsesForFinishedBuilds",
 		func(i bool, diff int) {
-			b, err := defaultPipeline.CreateJobBuild("some-job")
+			err := build.SetInterceptible(i)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = b.SetInterceptible(i)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForBuild(b.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+			_, err = resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForBuild(build.ID()), "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
 			var (
@@ -37,4 +44,65 @@ var _ = Describe("ResourceConfigFactory", func() {
 		Entry("non-interceptible builds are deleted", false, 1),
 		Entry("interceptible builds are not deleted", true, 0),
 	)
+
+	Context("when the user no longer exists", func() {
+		BeforeEach(func() {
+			Expect(defaultPipeline.Destroy()).To(Succeed())
+		})
+
+		It("returns UserDisappearedError", func() {
+			user := dbng.ForBuild(build.ID())
+
+			_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, user, "some-base-resource-type", atc.Source{}, atc.VersionedResourceTypes{})
+			Expect(err).To(Equal(dbng.UserDisappearedError{user}))
+			Expect(err.Error()).To(Equal("resource user disappeared: build #1"))
+		})
+	})
+
+	Context("when the resource config is concurrently deleted and created", func() {
+		BeforeEach(func() {
+			Expect(build.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+			Expect(build.SetInterceptible(false)).To(Succeed())
+		})
+
+		It("consistently is able to be used", func() {
+			// enable concurrent use of database. this is set to 1 by default to
+			// ensure methods don't require more than one in a single connection,
+			// which can cause deadlocking as the pool is limited.
+			dbConn.SetMaxOpenConns(2)
+
+			done := make(chan struct{})
+
+			wg := new(sync.WaitGroup)
+			wg.Add(1)
+			go func() {
+				defer GinkgoRecover()
+				defer wg.Done()
+
+				for {
+					select {
+					case <-done:
+						return
+					default:
+						Expect(resourceConfigFactory.CleanConfigUsesForFinishedBuilds()).To(Succeed())
+						Expect(resourceConfigFactory.CleanUselessConfigs()).To(Succeed())
+					}
+				}
+			}()
+
+			wg.Add(1)
+			go func() {
+				defer GinkgoRecover()
+				defer close(done)
+				defer wg.Done()
+
+				for i := 0; i < 100; i++ {
+					_, err := resourceConfigFactory.FindOrCreateResourceConfig(logger, dbng.ForBuild(build.ID()), "some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}()
+
+			wg.Wait()
+		})
+	})
 })
