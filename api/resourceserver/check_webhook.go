@@ -17,10 +17,10 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := rata.Param(r, "resource_name")
-		accessToken := r.URL.Query().Get("access_token")
+		webhookToken := r.URL.Query().Get("webhook_token")
 
-		if accessToken == "" {
-			logger.Info("no-access-token", lager.Data{"error": "missing access_token"})
+		if webhookToken == "" {
+			logger.Info("no-webhook-token", lager.Data{"error": "missing webhook_token"})
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -39,8 +39,8 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 		}
 
 		token := pipelineResource.Config.WebhookToken
-		if token != accessToken {
-			logger.Info("invalid-token", lager.Data{"error": fmt.Sprintf("invalid token for webhook %s", accessToken)})
+		if token != webhookToken {
+			logger.Info("invalid-token", lager.Data{"error": fmt.Sprintf("invalid token for webhook %s", webhookToken)})
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
