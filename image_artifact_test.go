@@ -53,5 +53,4 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 			})
 		})
 	})
-
 })
