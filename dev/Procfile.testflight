@@ -1,6 +1,0 @@
-atc: ./atc
-tsa: ./tsa
-worker: ./worker
-tagged-worker: ./worker --tag tagged
-proxy-worker: ./worker --tag proxy --http-proxy proxy.example.com --no-proxy .docker.io --no-proxy .docker.com --no-proxy .cloudfront.net
-db: ./db
