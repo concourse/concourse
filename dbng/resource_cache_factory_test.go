@@ -265,7 +265,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				Expect(defaultTeam.Delete()).To(Succeed())
 			})
 
-			FIt("returns UserDisappearedError", func() {
+			It("returns UserDisappearedError", func() {
 				user := dbng.ForBuild(build.ID())
 
 				_, err := resourceCacheFactory.FindOrCreateResourceCache(
@@ -292,7 +292,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				Expect(build.SetInterceptible(false)).To(Succeed())
 			})
 
-			FIt("consistently is able to be used", func() {
+			It("consistently is able to be used", func() {
 				// enable concurrent use of database. this is set to 1 by default to
 				// ensure methods don't require more than one in a single connection,
 				// which can cause deadlocking as the pool is limited.
