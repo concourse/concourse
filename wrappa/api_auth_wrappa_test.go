@@ -208,14 +208,15 @@ var _ = Describe("APIAuthWrappa", func() {
 
 			expectedHandlers = rata.Handlers{
 				// unauthenticated / delegating to handler
-				atc.GetInfo:          unauthenticated(inputHandlers[atc.GetInfo]),
-				atc.DownloadCLI:      unauthenticated(inputHandlers[atc.DownloadCLI]),
-				atc.ListAuthMethods:  unauthenticated(inputHandlers[atc.ListAuthMethods]),
-				atc.ListAllPipelines: unauthenticated(inputHandlers[atc.ListAllPipelines]),
-				atc.ListBuilds:       unauthenticated(inputHandlers[atc.ListBuilds]),
-				atc.ListPipelines:    unauthenticated(inputHandlers[atc.ListPipelines]),
-				atc.ListTeams:        unauthenticated(inputHandlers[atc.ListTeams]),
-				atc.MainJobBadge:     unauthenticated(inputHandlers[atc.MainJobBadge]),
+				atc.GetInfo:              unauthenticated(inputHandlers[atc.GetInfo]),
+				atc.DownloadCLI:          unauthenticated(inputHandlers[atc.DownloadCLI]),
+				atc.CheckResourceWebHook: unauthenticated(inputHandlers[atc.CheckResourceWebHook]),
+				atc.ListAuthMethods:      unauthenticated(inputHandlers[atc.ListAuthMethods]),
+				atc.ListAllPipelines:     unauthenticated(inputHandlers[atc.ListAllPipelines]),
+				atc.ListBuilds:           unauthenticated(inputHandlers[atc.ListBuilds]),
+				atc.ListPipelines:        unauthenticated(inputHandlers[atc.ListPipelines]),
+				atc.ListTeams:            unauthenticated(inputHandlers[atc.ListTeams]),
+				atc.MainJobBadge:         unauthenticated(inputHandlers[atc.MainJobBadge]),
 
 				// authorized or public pipeline
 				atc.GetBuild:       doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuild]),

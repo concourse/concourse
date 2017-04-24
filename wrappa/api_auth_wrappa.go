@@ -47,6 +47,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		switch name {
 		// unauthenticated / delegating to handler
 		case atc.DownloadCLI,
+			atc.CheckResourceWebHook,
 			atc.ListAuthMethods,
 			atc.GetInfo,
 			atc.ListTeams,
