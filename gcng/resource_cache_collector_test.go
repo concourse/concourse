@@ -225,9 +225,9 @@ var _ = Describe("ResourceCacheCollector", func() {
 						})
 
 						Context("when the cache is for a one-off build", func() {
-							It("is deleted after build is finished", func() {
+							It("it keeps around the image_resource_cache for 24 hours", func() {
 								Expect(collector.Run()).To(Succeed())
-								Expect(countResourceCaches()).To(BeZero())
+								Expect(countResourceCaches()).To(Equal(1))
 							})
 						})
 					})

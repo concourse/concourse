@@ -195,17 +195,63 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 				Context("if build is using image resource", func() {
 					BeforeEach(func() {
-						err := defaultBuild.SaveImageResourceVersion(atc.PlanID("123"), atc.Version{"ref": "abc"}, "some-resource-hash")
+						imageVersion := atc.Version{"ref": "abc"}
+						err := defaultBuild.SaveImageResourceVersion(atc.PlanID("123"), imageVersion, "some-resource-hash")
+						Expect(err).NotTo(HaveOccurred())
+
+						_, err = resourceCacheFactory.FindOrCreateResourceCache(
+							logger,
+							dbng.ForBuild(defaultBuild.ID()),
+							"some-base-type",
+							imageVersion,
+							atc.Source{
+								"some": "source",
+							},
+							nil,
+							atc.VersionedResourceTypes{},
+						)
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("deletes the use for old build image resource", func() {
-						Expect(countResourceCacheUses()).NotTo(BeZero())
-						Expect(defaultBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
-						Expect(buildCollector.Run()).To(Succeed())
-						Expect(collector.Run()).To(Succeed())
-						Expect(countResourceCacheUses()).To(BeZero())
+					Context("when the build ran less than 24 hours ago", func() {
+						It("keeps the image resource for 24 hours", func() {
+							Expect(countResourceCacheUses()).NotTo(BeZero())
+							Expect(defaultBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+							Expect(buildCollector.Run()).To(Succeed())
+							Expect(collector.Run()).To(Succeed())
+							Expect(countResourceCacheUses()).To(Equal(1))
+						})
 					})
+
+					Context("when the build ran more than 24 hours ago", func() {
+						updateTimeToPast := func() {
+							newTx, err := dbConn.Begin()
+							Expect(err).NotTo(HaveOccurred())
+
+							defer newTx.Rollback()
+
+							// manually change start time
+							_, err = psql.Update("builds").
+								Set("end_time", sq.Expr(`(now() - '25 HOURS'::INTERVAL)`)).
+								RunWith(newTx).
+								Exec()
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(newTx.Commit()).To(Succeed())
+						}
+
+						It("cleans up all the uses", func() {
+							Expect(countResourceCacheUses()).NotTo(BeZero())
+							Expect(defaultBuild.Finish(dbng.BuildStatusSucceeded)).To(Succeed())
+
+							updateTimeToPast()
+
+							Expect(buildCollector.Run()).To(Succeed())
+							Expect(collector.Run()).To(Succeed())
+							Expect(countResourceCacheUses()).To(BeZero())
+						})
+					})
+
 				})
 			})
 

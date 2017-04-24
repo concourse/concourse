@@ -105,6 +105,17 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 		return err
 	}
 
+	oneOffImagesUsedWithin24Hours, _, err := sq.
+		Select("b.id").
+		From("image_resource_versions irv").
+		Join("builds b ON b.id = irv.build_id").
+		Where(sq.Eq{"b.job_id": nil}).
+		Where(sq.Expr("(now() - b.end_time) < '24 HOURS'::INTERVAL")).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
 	imageResourceCacheIds, imageResourceCacheArgs, err := sq.
 		Select("rc.id").
 		From("image_resource_versions irv").
@@ -112,7 +123,10 @@ func (f *resourceCacheFactory) CleanUsesForFinishedBuilds() error {
 		Join("resource_cache_uses rcu ON rcu.resource_cache_id = rc.id").
 		Where(sq.Expr("irv.build_id = rcu.build_id")).
 		Where(sq.Eq{"rc.params_hash": EmptyParamsHash}).
-		Where("irv.build_id IN (" + latestImageResourceBuildByJobQ + ")").
+		Where(sq.Or{
+			sq.Expr("irv.build_id IN (" + latestImageResourceBuildByJobQ + ")"),
+			sq.Expr("irv.build_id IN (" + oneOffImagesUsedWithin24Hours + ")"),
+		}).
 		ToSql()
 	if err != nil {
 		return err
