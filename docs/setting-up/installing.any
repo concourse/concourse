@@ -306,7 +306,7 @@ services:
     image: concourse/concourse
     privileged: true
     links: [concourse-web]
-    depends_on: [ concourse-web ,concourse-db ]
+    depends_on: [ concourse-web ]
     command: worker
     volumes: ["./keys/worker:/concourse-keys"]
     environment:
