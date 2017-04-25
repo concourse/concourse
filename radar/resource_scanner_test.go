@@ -472,6 +472,21 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 			})
 
+			Context("when creating the resource checker fails", func() {
+				BeforeEach(func() {
+					fakeResourceFactory.NewCheckResourceReturns(fakeResource, errors.New("catastrophe"))
+				})
+
+				It("sets the check error and returns the error", func() {
+					Expect(scanErr).To(HaveOccurred())
+					Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
+
+					resourceName, resourceErr := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
+					Expect(resourceName).To(Equal(savedResource))
+					Expect(resourceErr).To(MatchError("catastrophe"))
+				})
+			})
+
 			Context("when the resource config has a specified check interval", func() {
 				BeforeEach(func() {
 					fakeDBResource.CheckEveryReturns("10ms")
