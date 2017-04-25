@@ -1,12 +1,22 @@
 package dbng
 
 import (
+	"fmt"
+
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
+
+type ErrCustomResourceTypeVersionNotFound struct {
+	Name string
+}
+
+func (e ErrCustomResourceTypeVersionNotFound) Error() string {
+	return fmt.Sprintf("custom resource type '%s' version not found", e.Name)
+}
 
 //go:generate counterfeiter . ResourceConfigFactory
 
@@ -97,6 +107,10 @@ func constructResourceConfig(
 		)
 		if err != nil {
 			return ResourceConfig{}, err
+		}
+
+		if customType.Version == nil {
+			return ResourceConfig{}, ErrCustomResourceTypeVersionNotFound{Name: customType.Name}
 		}
 
 		resourceConfig.CreatedByResourceCache = &ResourceCache{

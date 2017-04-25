@@ -20,6 +20,48 @@ var _ = Describe("ResourceConfigFactory", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	Describe("FindOrCreateResourceConfig", func() {
+		It("returns finds resource config", func() {
+			resourceTypes, err := defaultPipeline.ResourceTypes()
+			Expect(err).NotTo(HaveOccurred())
+
+			usedResourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				logger,
+				dbng.ForBuild(build.ID()),
+				"some-type",
+				atc.Source{"a": "b"},
+				resourceTypes.Deserialize(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(usedResourceConfig).NotTo(BeNil())
+			Expect(usedResourceConfig.CreatedByResourceCache).NotTo(BeNil())
+		})
+
+		Context("when provided custom resource type does not have a version", func() {
+			It("returns an error", func() {
+				_, err := resourceConfigFactory.FindOrCreateResourceConfig(
+					logger,
+					dbng.ForBuild(build.ID()),
+					"some-type",
+					atc.Source{"a": "b"},
+					[]atc.VersionedResourceType{
+						{
+							ResourceType: atc.ResourceType{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some-type": "source",
+								},
+							},
+						},
+					},
+				)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("ustom resource type 'some-type' version not found"))
+			})
+		})
+	})
+
 	Describe("AcquireResourceCheckingLock", func() {
 		It("acquires only one lock when running in parallel", func() {
 			start := make(chan struct{})
