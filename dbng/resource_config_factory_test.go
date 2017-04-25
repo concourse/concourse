@@ -29,6 +29,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			acquiredLocks := []lock.Lock{}
+			var l sync.RWMutex
 
 			for i := 0; i < 10; i++ {
 				wg.Add(1)
@@ -44,7 +45,9 @@ var _ = Describe("ResourceConfigFactory", func() {
 					)
 					Expect(err).NotTo(HaveOccurred())
 					if acquired {
+						l.Lock()
 						acquiredLocks = append(acquiredLocks, lock)
+						l.Unlock()
 					}
 
 					wg.Done()
@@ -54,6 +57,8 @@ var _ = Describe("ResourceConfigFactory", func() {
 			close(start)
 			wg.Wait()
 
+			l.RLock()
+			defer l.RUnlock()
 			Expect(acquiredLocks).To(HaveLen(1))
 		})
 	})
