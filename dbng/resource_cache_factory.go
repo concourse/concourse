@@ -52,19 +52,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	params atc.Params,
 	resourceTypes atc.VersionedResourceTypes,
 ) (*UsedResourceCache, error) {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	resourceConfig, err := constructResourceConfig(tx, resourceTypeName, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
+	resourceConfig, err := constructResourceConfig(resourceTypeName, source, resourceTypes)
 	if err != nil {
 		return nil, err
 	}

@@ -54,19 +54,7 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	source atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
 ) (*UsedResourceConfig, error) {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
-	resourceConfig, err := constructResourceConfig(tx, resourceType, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
+	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +80,6 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 }
 
 func constructResourceConfig(
-	tx Tx,
 	resourceType string,
 	source atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
@@ -104,7 +91,6 @@ func constructResourceConfig(
 	customType, found := resourceTypes.Lookup(resourceType)
 	if found {
 		customTypeResourceConfig, err := constructResourceConfig(
-			tx,
 			customType.Type,
 			customType.Source,
 			resourceTypes.Without(customType.Name),
@@ -269,14 +255,7 @@ func (f *resourceConfigFactory) AcquireResourceCheckingLock(
 	resourceSource atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
 ) (lock.Lock, bool, error) {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer tx.Rollback()
-
-	resourceConfig, err := constructResourceConfig(tx, resourceType, resourceSource, resourceTypes)
+	resourceConfig, err := constructResourceConfig(resourceType, resourceSource, resourceTypes)
 	if err != nil {
 		return nil, false, err
 	}
@@ -290,7 +269,7 @@ func (f *resourceConfigFactory) AcquireResourceCheckingLock(
 
 	return acquireResourceCheckingLock(
 		logger.Session("lock", lager.Data{"resource-user": resourceUser}),
-		tx,
+		f.conn,
 		resourceUser,
 		resourceConfig,
 		f.lockFactory,
@@ -299,17 +278,24 @@ func (f *resourceConfigFactory) AcquireResourceCheckingLock(
 
 func acquireResourceCheckingLock(
 	logger lager.Logger,
-	tx Tx,
-	resourceUser ResourceUser,
+	conn Conn,
+	user ResourceUser,
 	resourceConfig ResourceConfig,
 	lockFactory lock.LockFactory,
 ) (lock.Lock, bool, error) {
-	usedResourceConfig, err := resourceUser.UseResourceConfig(
-		logger,
-		tx,
-		lockFactory,
-		resourceConfig,
-	)
+	var usedResourceConfig *UsedResourceConfig
+
+	err := safeFindOrCreate(conn, func(tx Tx) error {
+		var err error
+
+		usedResourceConfig, err = user.UseResourceConfig(logger, tx, lockFactory, resourceConfig)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, false, err
 	}
@@ -326,12 +312,6 @@ func acquireResourceCheckingLock(
 
 	if !acquired {
 		return nil, false, nil
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		lock.Release()
-		return nil, false, err
 	}
 
 	return lock, true, nil

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/dbng"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -17,6 +18,44 @@ var _ = Describe("ResourceConfigFactory", func() {
 		var err error
 		build, err = defaultPipeline.CreateJobBuild("some-job")
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("AcquireResourceCheckingLock", func() {
+		It("acquires only one lock when running in parallel", func() {
+			start := make(chan struct{})
+			wg := sync.WaitGroup{}
+
+			resourceTypes, err := defaultPipeline.ResourceTypes()
+			Expect(err).NotTo(HaveOccurred())
+
+			acquiredLocks := []lock.Lock{}
+
+			for i := 0; i < 10; i++ {
+				wg.Add(1)
+				go func() {
+					defer GinkgoRecover()
+					<-start
+					lock, acquired, err := resourceConfigFactory.AcquireResourceCheckingLock(
+						logger,
+						dbng.ForBuild(build.ID()),
+						"some-type",
+						atc.Source{"a": "b"},
+						resourceTypes.Deserialize(),
+					)
+					Expect(err).NotTo(HaveOccurred())
+					if acquired {
+						acquiredLocks = append(acquiredLocks, lock)
+					}
+
+					wg.Done()
+				}()
+			}
+
+			close(start)
+			wg.Wait()
+
+			Expect(acquiredLocks).To(HaveLen(1))
+		})
 	})
 
 	DescribeTable("CleanConfigUsesForFinishedBuilds",

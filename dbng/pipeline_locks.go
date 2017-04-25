@@ -19,47 +19,39 @@ func (p *pipeline) AcquireResourceCheckingLockWithIntervalCheck(
 		return nil, false, err
 	}
 
-	tx, err := p.conn.Begin()
+	resourceConfig, err := constructResourceConfig(resource.Type(), resource.Source(), resourceTypes.Deserialize())
 	if err != nil {
 		return nil, false, err
 	}
 
-	defer tx.Rollback()
-
-	params := []interface{}{resource.Name(), p.id}
-
-	condition := ""
-	if !immediate {
-		condition = "AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
-		params = append(params, interval.Seconds())
-	}
-
-	updated, err := checkIfRowsUpdated(tx, `
-		UPDATE resources
-		SET last_checked = now()
-		WHERE name = $1
-			AND pipeline_id = $2
-	`+condition, params...)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !updated {
-		return nil, false, nil
-	}
-
-	resourceConfig, err := constructResourceConfig(tx, resource.Type(), resource.Source(), resourceTypes.Deserialize())
-	if err != nil {
-		return nil, false, err
-	}
-
-	return acquireResourceCheckingLock(
+	lock, acquired, err := acquireResourceCheckingLock(
 		logger.Session("lock", lager.Data{"resource": resource.Name()}),
-		tx,
+		p.conn,
 		ForResource(resource.ID()),
 		resourceConfig,
 		p.lockFactory,
 	)
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !acquired {
+		return nil, false, nil
+	}
+
+	intervalUpdated, err := p.checkIfResourceIntervalUpdated(resource.Name(), interval, immediate)
+	if err != nil {
+		lock.Release()
+		return nil, false, err
+	}
+
+	if !intervalUpdated {
+		lock.Release()
+		return nil, false, nil
+	}
+
+	return lock, true, nil
 }
 
 func (p *pipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(
@@ -82,9 +74,50 @@ func (p *pipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(
 		return nil, false, err
 	}
 
-	tx, err := p.conn.Begin()
+	deserializedResourceTypes := resourceTypes.Deserialize()
+
+	resourceConfig, err := constructResourceConfig(resourceType.Type(), resourceType.Source(), deserializedResourceTypes)
 	if err != nil {
 		return nil, false, err
+	}
+
+	lock, acquired, err := acquireResourceCheckingLock(
+		logger.Session("lock", lager.Data{"resource-type": resourceTypeName}),
+		p.conn,
+		ForResourceType(resourceType.ID()),
+		resourceConfig,
+		p.lockFactory,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !acquired {
+		return nil, false, nil
+	}
+
+	intervalUpdated, err := p.checkIfResourceTypeIntervalUpdated(resourceTypeName, interval, immediate)
+	if err != nil {
+		lock.Release()
+		return nil, false, err
+	}
+
+	if !intervalUpdated {
+		lock.Release()
+		return nil, false, nil
+	}
+
+	return lock, true, nil
+}
+
+func (p *pipeline) checkIfResourceTypeIntervalUpdated(
+	resourceTypeName string,
+	interval time.Duration,
+	immediate bool,
+) (bool, error) {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return false, err
 	}
 
 	defer tx.Rollback()
@@ -98,38 +131,65 @@ func (p *pipeline) AcquireResourceTypeCheckingLockWithIntervalCheck(
 	}
 
 	updated, err := checkIfRowsUpdated(tx, `
-		UPDATE resource_types
-		SET last_checked = now()
-		WHERE name = $1
-			AND pipeline_id = $2
-	`+condition, params...)
+			UPDATE resource_types
+			SET last_checked = now()
+			WHERE name = $1
+				AND pipeline_id = $2
+		`+condition, params...)
 	if err != nil {
-		return nil, false, err
+		return false, err
 	}
 
 	if !updated {
-		return nil, false, nil
+		return false, nil
 	}
 
-	deserializedResourceTypes := resourceTypes.Deserialize()
-
-	resourceConfig, err := constructResourceConfig(tx, resourceType.Type(), resourceType.Source(), deserializedResourceTypes)
+	err = tx.Commit()
 	if err != nil {
-		return nil, false, err
+		return false, err
 	}
 
-	logger.Debug("acquiring-resource-type-checking-lock", lager.Data{
-		"resource-config": resourceConfig,
-		"resource-type":   resourceType.Type(),
-		"resource-source": resourceType.Source(),
-		"resource-types":  deserializedResourceTypes,
-	})
+	return true, nil
+}
 
-	return acquireResourceCheckingLock(
-		logger.Session("lock", lager.Data{"resource-type": resourceTypeName}),
-		tx,
-		ForResourceType(resourceType.ID()),
-		resourceConfig,
-		p.lockFactory,
-	)
+func (p *pipeline) checkIfResourceIntervalUpdated(
+	resourceName string,
+	interval time.Duration,
+	immediate bool,
+) (bool, error) {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	defer tx.Rollback()
+
+	params := []interface{}{resourceName, p.id}
+
+	condition := ""
+	if !immediate {
+		condition = "AND now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
+		params = append(params, interval.Seconds())
+	}
+
+	updated, err := checkIfRowsUpdated(tx, `
+			UPDATE resources
+			SET last_checked = now()
+			WHERE name = $1
+				AND pipeline_id = $2
+		`+condition, params...)
+	if err != nil {
+		return false, err
+	}
+
+	if !updated {
+		return false, nil
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
