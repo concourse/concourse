@@ -479,10 +479,10 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("sets the check error and returns the error", func() {
 					Expect(scanErr).To(HaveOccurred())
-					Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
+					Expect(fakeDBPipeline.SetResourceCheckErrorCallCount()).To(Equal(1))
 
-					resourceName, resourceErr := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
-					Expect(resourceName).To(Equal(savedResource))
+					savedResource, resourceErr := fakeDBPipeline.SetResourceCheckErrorArgsForCall(0)
+					Expect(savedResource.Name()).To(Equal("some-resource"))
 					Expect(resourceErr).To(MatchError("catastrophe"))
 				})
 			})

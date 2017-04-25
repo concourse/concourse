@@ -263,7 +263,7 @@ func (scanner *resourceScanner) scan(
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-container", err)
-		setErr := scanner.db.SetResourceCheckError(savedResource, err)
+		setErr := scanner.dbPipeline.SetResourceCheckError(savedResource, err)
 		if setErr != nil {
 			logger.Error("failed-to-set-check-error", err)
 		}
