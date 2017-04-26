@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/atc/auth/provider"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/vito/twentythousandtonnesofcrudeoil"
 
 	_ "github.com/concourse/atc/auth/genericoauth"
 	_ "github.com/concourse/atc/auth/github"
+	"github.com/concourse/atc/auth/provider"
 	_ "github.com/concourse/atc/auth/uaa"
 )
 
@@ -29,23 +29,23 @@ func main() {
 
 	cmd.lessenRequirements(parser)
 
-	twentythousandtonnesofcrudeoil.TheEnvironmentIsPerfectlySafe(parser, "CONCOURSE_")
+	groups := parser.Command.Find("web").Groups()
+	var authGroup *flags.Group
+
+	for _, group := range groups {
+		if group.ShortDescription == "Authentication" {
+			authGroup = group
+			break
+		}
+	}
 
 	authConfigs := make(provider.AuthConfigs)
 
 	for name, p := range provider.GetProviders() {
-		authGroup := p.AuthGroup()
-
-		group, err := parser.Command.Group.AddGroup(authGroup.Name(), "", authGroup.AuthConfig())
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-
-		group.Namespace = authGroup.Namespace()
-
-		authConfigs[name] = authGroup.AuthConfig()
+		authConfigs[name] = p.AddAuthGroup(authGroup)
 	}
+
+	twentythousandtonnesofcrudeoil.TheEnvironmentIsPerfectlySafe(parser, "CONCOURSE_")
 
 	_, err := parser.Parse()
 
