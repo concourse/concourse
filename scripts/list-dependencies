@@ -16,4 +16,6 @@ gosub list \
   -t github.com/concourse/baggageclaim/integration/... \
   -a github.com/vito/gosub \
   -a github.com/jteeuwen/go-bindata/go-bindata \
+  -a github.com/vito/twentythousandtonnesofcrudeoil \
+  -a github.com/concourse/bin \
   -a github.com/mattn/goreman
