@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/baggageclaim"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
@@ -30,7 +31,9 @@ type heartbeater struct {
 	interval    time.Duration
 	cprInterval time.Duration
 
-	gardenClient      garden.Client
+	gardenClient       garden.Client
+	baggageclaimClient baggageclaim.Client
+
 	atcEndpointPicker EndpointPicker
 	tokenGenerator    TokenGenerator
 
@@ -44,6 +47,7 @@ func NewHeartbeater(
 	interval time.Duration,
 	cprInterval time.Duration,
 	gardenClient garden.Client,
+	baggageclaimClient baggageclaim.Client,
 	atcEndpointPicker EndpointPicker,
 	tokenGenerator TokenGenerator,
 	worker atc.Worker,
@@ -56,7 +60,9 @@ func NewHeartbeater(
 		interval:    interval,
 		cprInterval: cprInterval,
 
-		gardenClient:      gardenClient,
+		gardenClient:       gardenClient,
+		baggageclaimClient: baggageclaimClient,
+
 		atcEndpointPicker: atcEndpointPicker,
 		tokenGenerator:    tokenGenerator,
 
@@ -112,21 +118,12 @@ func (heartbeater *heartbeater) register(logger lager.Logger) bool {
 	logger.Info("start", heartbeatData)
 	defer logger.Info("done", heartbeatData)
 
-	before := time.Now()
-
-	containers, err := heartbeater.gardenClient.Containers(nil)
-	if err != nil {
-		logger.Error("failed-to-fetch-containers", err)
+	registration, ok := heartbeater.pingWorker(logger)
+	if !ok {
 		return false
 	}
 
-	after := time.Now()
-
-	logger.Debug("reached-worker", lager.Data{"took": after.Sub(before).String()})
-
-	heartbeater.registration.ActiveContainers = len(containers)
-
-	payload, err := json.Marshal(heartbeater.registration)
+	payload, err := json.Marshal(registration)
 	if err != nil {
 		logger.Error("failed-to-marshal-registration", err)
 		return false
@@ -190,21 +187,12 @@ func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 	logger.Info("start", heartbeatData)
 	defer logger.Info("done", heartbeatData)
 
-	before := time.Now()
-
-	containers, err := heartbeater.gardenClient.Containers(nil)
-	if err != nil {
-		logger.Error("failed-to-fetch-containers", err)
+	registration, ok := heartbeater.pingWorker(logger)
+	if !ok {
 		return HeartbeatStatusUnhealthy
 	}
 
-	after := time.Now()
-
-	logger.Debug("reached-worker", lager.Data{"took": after.Sub(before).String()})
-
-	heartbeater.registration.ActiveContainers = len(containers)
-
-	payload, err := json.Marshal(heartbeater.registration)
+	payload, err := json.Marshal(registration)
 	if err != nil {
 		logger.Error("failed-to-marshal-registration", err)
 		return HeartbeatStatusUnhealthy
@@ -264,6 +252,49 @@ func (heartbeater *heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 	}
 
 	return HeartbeatStatusHealthy
+}
+
+func (heartbeater *heartbeater) pingWorker(logger lager.Logger) (atc.Worker, bool) {
+	registration := heartbeater.registration
+
+	beforeGarden := time.Now()
+
+	healthy := true
+
+	containers, err := heartbeater.gardenClient.Containers(nil)
+	if err != nil {
+		logger.Error("failed-to-fetch-containers", err)
+		healthy = false
+	}
+
+	afterGarden := time.Now()
+
+	beforeBaggageclaim := time.Now()
+
+	volumes, err := heartbeater.baggageclaimClient.ListVolumes(logger.Session("list-volumes"), nil)
+	if err != nil {
+		logger.Error("failed-to-list-volumes", err)
+		healthy = false
+	}
+
+	afterBaggageclaim := time.Now()
+
+	durationData := lager.Data{
+		"garden-took":       afterGarden.Sub(beforeGarden).String(),
+		"baggageclaim-took": afterBaggageclaim.Sub(beforeBaggageclaim).String(),
+	}
+
+	if healthy {
+		logger.Debug("reached-worker", durationData)
+	} else {
+		logger.Info("failed-to-reach-worker", durationData)
+		return atc.Worker{}, false
+	}
+
+	registration.ActiveContainers = len(containers)
+	registration.ActiveVolumes = len(volumes)
+
+	return registration, true
 }
 
 func (heartbeater *heartbeater) ttl() time.Duration {

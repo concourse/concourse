@@ -25,7 +25,7 @@ import (
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	bclient "github.com/concourse/baggageclaim/client"
+	"github.com/concourse/baggageclaim"
 	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -89,8 +89,9 @@ var _ = Describe("TSA SSH Registrar", func() {
 			gardenAddr  string
 			fakeBackend *gfakes.FakeBackend
 
-			gardenServer *gserver.GardenServer
-			atcServer    *ghttp.Server
+			gardenServer       *gserver.GardenServer
+			baggageclaimServer *ghttp.Server
+			atcServer          *ghttp.Server
 
 			hostKey    string
 			hostKeyPub string
@@ -118,6 +119,8 @@ var _ = Describe("TSA SSH Registrar", func() {
 			gardenServer = gserver.New("tcp", gardenAddr, 0, fakeBackend, lagertest.NewTestLogger("garden"))
 			err := gardenServer.Start()
 			Expect(err).NotTo(HaveOccurred())
+
+			baggageclaimServer = ghttp.NewServer()
 
 			atcServer = ghttp.NewServer()
 
@@ -277,8 +280,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
-								Name:       "some-worker",
-								GardenAddr: gardenAddr,
+								Name: "some-worker",
+
+								GardenAddr:      gardenAddr,
+								BaggageclaimURL: baggageclaimServer.URL(),
 
 								Platform: "linux",
 								Tags:     []string{"some", "tags"},
@@ -302,6 +307,8 @@ var _ = Describe("TSA SSH Registrar", func() {
 								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
 								Expect(err).NotTo(HaveOccurred())
 
+								json.NewEncoder(w).Encode(worker)
+
 								registered <- registration{worker, ttl}
 							})
 
@@ -318,9 +325,9 @@ var _ = Describe("TSA SSH Registrar", func() {
 								heartbeated <- registration{worker, ttl}
 							})
 
-							stubs := make(chan func() ([]garden.Container, error), 4)
+							gardenStubs := make(chan func() ([]garden.Container, error), 6)
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 									new(gfakes.FakeContainer),
@@ -328,26 +335,90 @@ var _ = Describe("TSA SSH Registrar", func() {
 								}, nil
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 									new(gfakes.FakeContainer),
 								}, nil
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return nil, errors.New("garden was weeded")
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 								}, nil
 							}
 
-							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
-								return (<-stubs)()
+							gardenStubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+								}, nil
 							}
+
+							gardenStubs <- func() ([]garden.Container, error) {
+								return []garden.Container{
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+									new(gfakes.FakeContainer),
+								}, nil
+							}
+
+							close(gardenStubs)
+
+							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
+								return (<-gardenStubs)()
+							}
+
+							baggageclaimServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+										{Handle: "handle-b"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+										{Handle: "handle-b"},
+										{Handle: "handle-c"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									func(w http.ResponseWriter, r *http.Request) {
+										baggageclaimServer.CloseClientConnections()
+									},
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-c"},
+										{Handle: "handle-3"},
+										{Handle: "handle-po"},
+									}),
+								),
+							)
 						})
 
 						JustBeforeEach(func() {
@@ -359,6 +430,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload := workerPayload
 
 							expectedWorkerPayload.ActiveContainers = 3
+							expectedWorkerPayload.ActiveVolumes = 2
 
 							a := time.Now()
 							Expect(<-registered).To(Equal(registration{
@@ -367,6 +439,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}))
 
 							expectedWorkerPayload.ActiveContainers = 2
+							expectedWorkerPayload.ActiveVolumes = 1
 
 							b := time.Now()
 							Expect(<-heartbeated).To(Equal(registration{
@@ -379,6 +452,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 
 							expectedWorkerPayload.ActiveContainers = 1
+							expectedWorkerPayload.ActiveVolumes = 0
 
 							c := time.Now()
 							Expect(<-heartbeated).To(Equal(registration{
@@ -387,6 +461,19 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}))
 
 							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
+
+							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
+
+							expectedWorkerPayload.ActiveContainers = 6
+							expectedWorkerPayload.ActiveVolumes = 3
+
+							d := time.Now()
+							Expect(<-heartbeated).To(Equal(registration{
+								worker: expectedWorkerPayload,
+								ttl:    2 * heartbeatInterval,
+							}))
+
+							Expect(d.Sub(c)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
 
 							Eventually(sshSess.Out).Should(gbytes.Say("heartbeat"))
 						})
@@ -401,243 +488,6 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							It("exits gracefully", func() {
 								Eventually(sshSess, 3).Should(gexec.Exit(0))
-							})
-						})
-
-						Context("when the client goes away", func() {
-							It("stops registering", func() {
-								time.Sleep(heartbeatInterval)
-
-								sshSess.Interrupt().Wait(10 * time.Second)
-
-								time.Sleep(heartbeatInterval)
-
-								// siphon off any existing registrations
-							dance:
-								for {
-									select {
-									case <-registered:
-									case <-heartbeated:
-									default:
-										break dance
-									}
-								}
-
-								Consistently(registered, 2*heartbeatInterval).ShouldNot(Receive())
-								Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
-							})
-						})
-					})
-				})
-
-				Context("when running forward-worker with only a Garden address", func() {
-					BeforeEach(func() {
-						sshArgv = append(sshArgv, "-R", fmt.Sprintf("0.0.0.0:0:%s", gardenAddr), "forward-worker")
-					})
-
-					It("does not exit", func() {
-						Consistently(sshSess, 1).ShouldNot(gexec.Exit())
-					})
-
-					Describe("sending a worker payload on stdin", func() {
-						type registration struct {
-							worker atc.Worker
-							ttl    time.Duration
-						}
-
-						var workerPayload atc.Worker
-						var registered chan registration
-						var heartbeated chan registration
-
-						BeforeEach(func() {
-							workerPayload = atc.Worker{
-								Name:     "some-worker",
-								Platform: "linux",
-								Tags:     []string{"some", "tags"},
-
-								ResourceTypes: []atc.WorkerResourceType{
-									{Type: "resource-type-a", Image: "resource-image-a"},
-									{Type: "resource-type-b", Image: "resource-image-b"},
-								},
-							}
-
-							registered = make(chan registration, 100)
-							heartbeated = make(chan registration, 100)
-
-							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
-								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
-
-								err := json.NewDecoder(r.Body).Decode(&worker)
-								Expect(err).NotTo(HaveOccurred())
-
-								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-								Expect(err).NotTo(HaveOccurred())
-
-								registered <- registration{worker, ttl}
-							})
-
-							atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
-								var worker atc.Worker
-								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
-
-								err := json.NewDecoder(r.Body).Decode(&worker)
-								Expect(err).NotTo(HaveOccurred())
-
-								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-								Expect(err).NotTo(HaveOccurred())
-
-								heartbeated <- registration{worker, ttl}
-							})
-
-							stubs := make(chan func() ([]garden.Container, error), 4)
-
-							stubs <- func() ([]garden.Container, error) {
-								return []garden.Container{
-									new(gfakes.FakeContainer),
-									new(gfakes.FakeContainer),
-									new(gfakes.FakeContainer),
-								}, nil
-							}
-
-							stubs <- func() ([]garden.Container, error) {
-								return []garden.Container{
-									new(gfakes.FakeContainer),
-									new(gfakes.FakeContainer),
-								}, nil
-							}
-
-							stubs <- func() ([]garden.Container, error) {
-								return nil, errors.New("garden was weeded")
-							}
-
-							stubs <- func() ([]garden.Container, error) {
-								return []garden.Container{
-									new(gfakes.FakeContainer),
-								}, nil
-							}
-
-							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
-								return (<-stubs)()
-							}
-						})
-
-						JustBeforeEach(func() {
-							err := json.NewEncoder(sshStdin).Encode(workerPayload)
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						It("forwards garden API calls through the tunnel", func() {
-							registration := <-registered
-							addr := registration.worker.GardenAddr
-
-							client := gclient.New(gconn.New("tcp", addr))
-
-							fakeBackend.CreateReturns(new(gfakes.FakeContainer), nil)
-
-							_, err := client.Create(garden.ContainerSpec{})
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(fakeBackend.CreateCallCount()).To(Equal(1))
-						})
-
-						It("continuously registers it with the ATC as long as it works", func() {
-							a := time.Now()
-							registration := <-registered
-							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
-
-							// shortcut for equality w/out checking addr
-							expectedWorkerPayload := workerPayload
-							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
-							expectedWorkerPayload.ActiveContainers = 3
-							Expect(registration.worker).To(Equal(expectedWorkerPayload))
-
-							host, _, err := net.SplitHostPort(registration.worker.GardenAddr)
-							Expect(err).NotTo(HaveOccurred())
-							Expect(host).To(Equal(forwardHost))
-
-							b := time.Now()
-							registration = <-heartbeated
-							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
-
-							// shortcut for equality w/out checking addr
-							expectedWorkerPayload = workerPayload
-							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
-							expectedWorkerPayload.ActiveContainers = 2
-							Expect(registration.worker).To(Equal(expectedWorkerPayload))
-
-							host, _, err = net.SplitHostPort(registration.worker.GardenAddr)
-							Expect(err).NotTo(HaveOccurred())
-							Expect(host).To(Equal(forwardHost))
-
-							Expect(b.Sub(a)).To(BeNumerically("~", heartbeatInterval, 1*time.Second))
-
-							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
-
-							c := time.Now()
-							registration = <-heartbeated
-							Expect(registration.ttl).To(Equal(2 * heartbeatInterval))
-
-							// shortcut for equality w/out checking addr
-							expectedWorkerPayload = workerPayload
-							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
-							expectedWorkerPayload.ActiveContainers = 1
-							Expect(registration.worker).To(Equal(expectedWorkerPayload))
-
-							host, _, err = net.SplitHostPort(registration.worker.GardenAddr)
-							Expect(err).NotTo(HaveOccurred())
-							Expect(host).To(Equal(forwardHost))
-
-							Expect(c.Sub(b)).To(BeNumerically("~", 3*heartbeatInterval, 1*time.Second))
-						})
-
-						Context("when the ATC returns a 404 for a heartbeat", func() {
-							It("exits gracefully", func() {
-								<-heartbeated
-
-								atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
-									Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
-									w.WriteHeader(404)
-								})
-
-								Eventually(sshSess, 3).Should(gexec.Exit(0))
-							})
-
-							Context("while a forwarded connection is active", func() {
-								It("interrupts the connection and exits gracefully", func() {
-									registration := <-registered
-									addr := registration.worker.GardenAddr
-
-									client := gclient.New(gconn.New("tcp", addr))
-
-									creating := make(chan struct{})
-									wait := make(chan struct{})
-									defer close(wait)
-
-									fakeBackend.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-										close(creating)
-										<-wait
-										return new(gfakes.FakeContainer), nil
-									}
-
-									createErrs := make(chan error, 1)
-
-									go func() {
-										_, err := client.Create(garden.ContainerSpec{})
-										createErrs <- err
-									}()
-
-									<-creating
-
-									atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
-										Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
-										w.WriteHeader(404)
-									})
-
-									createErr := <-createErrs
-									Expect(createErr).To(HaveOccurred())
-									Expect(createErr.Error()).To(ContainSubstring("EOF"))
-								})
 							})
 						})
 
@@ -738,9 +588,9 @@ var _ = Describe("TSA SSH Registrar", func() {
 								heartbeated <- registration{worker, ttl}
 							})
 
-							stubs := make(chan func() ([]garden.Container, error), 4)
+							gardenStubs := make(chan func() ([]garden.Container, error), 4)
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 									new(gfakes.FakeContainer),
@@ -748,26 +598,57 @@ var _ = Describe("TSA SSH Registrar", func() {
 								}, nil
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 									new(gfakes.FakeContainer),
 								}, nil
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return nil, errors.New("garden was weeded")
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 								}, nil
 							}
 
+							close(gardenStubs)
+
 							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
-								return (<-stubs)()
+								return (<-gardenStubs)()
 							}
+
+							baggageclaimServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+										{Handle: "handle-b"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+										{Handle: "handle-b"},
+										{Handle: "handle-c"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{}),
+								),
+							)
+
 						})
 
 						JustBeforeEach(func() {
@@ -789,27 +670,6 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Expect(fakeBackend.CreateCallCount()).To(Equal(1))
 						})
 
-						It("forwards baggageclaim API calls through the tunnel", func() {
-							registration := <-registered
-
-							url := registration.worker.BaggageclaimURL
-							Expect(url).ToNot(BeEmpty())
-
-							client := bclient.New(url, http.DefaultTransport)
-
-							baggageclaimServer.AppendHandlers(
-								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/volumes"),
-									ghttp.RespondWith(200, `[]`, http.Header{"Content-type": []string{"application/json"}}),
-								),
-							)
-
-							volumes, err := client.ListVolumes(lagertest.NewTestLogger("test"), nil)
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(volumes).To(BeEmpty())
-						})
-
 						It("continuously registers it with the ATC as long as it works", func() {
 							a := time.Now()
 							registration := <-registered
@@ -820,6 +680,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
 							expectedWorkerPayload.ActiveContainers = 3
+							expectedWorkerPayload.ActiveVolumes = 2
 							Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 							host, _, err := net.SplitHostPort(registration.worker.GardenAddr)
@@ -835,6 +696,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
 							expectedWorkerPayload.ActiveContainers = 2
+							expectedWorkerPayload.ActiveVolumes = 1
 							Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 							host, _, err = net.SplitHostPort(registration.worker.GardenAddr)
@@ -854,6 +716,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload.GardenAddr = registration.worker.GardenAddr
 							expectedWorkerPayload.BaggageclaimURL = registration.worker.BaggageclaimURL
 							expectedWorkerPayload.ActiveContainers = 1
+							expectedWorkerPayload.ActiveVolumes = 0
 							Expect(registration.worker).To(Equal(expectedWorkerPayload))
 
 							host, port, err := net.SplitHostPort(registration.worker.GardenAddr)
@@ -1038,8 +901,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
-								Name:       "some-worker",
-								GardenAddr: gardenAddr,
+								Name: "some-worker",
+
+								GardenAddr:      gardenAddr,
+								BaggageclaimURL: baggageclaimServer.URL(),
 
 								Platform: "linux",
 								Tags:     []string{"some", "tags"},
@@ -1051,8 +916,8 @@ var _ = Describe("TSA SSH Registrar", func() {
 								},
 							}
 
-							registered = make(chan registration)
-							heartbeated = make(chan registration)
+							registered = make(chan registration, 100)
+							heartbeated = make(chan registration, 100)
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
@@ -1063,6 +928,8 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 								ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
 								Expect(err).NotTo(HaveOccurred())
+
+								json.NewEncoder(w).Encode(worker)
 
 								registered <- registration{worker, ttl}
 							})
@@ -1080,9 +947,9 @@ var _ = Describe("TSA SSH Registrar", func() {
 								heartbeated <- registration{worker, ttl}
 							})
 
-							stubs := make(chan func() ([]garden.Container, error), 4)
+							gardenStubs := make(chan func() ([]garden.Container, error), 4)
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 									new(gfakes.FakeContainer),
@@ -1090,26 +957,57 @@ var _ = Describe("TSA SSH Registrar", func() {
 								}, nil
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 									new(gfakes.FakeContainer),
 								}, nil
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return nil, errors.New("garden was weeded")
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 								}, nil
 							}
 
+							close(gardenStubs)
+
 							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
-								return (<-stubs)()
+								return (<-gardenStubs)()
 							}
+
+							baggageclaimServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+										{Handle: "handle-b"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+										{Handle: "handle-b"},
+										{Handle: "handle-c"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{}),
+								),
+							)
+
 						})
 
 						JustBeforeEach(func() {
@@ -1121,6 +1019,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload := workerPayload
 
 							expectedWorkerPayload.ActiveContainers = 3
+							expectedWorkerPayload.ActiveVolumes = 2
 
 							a := time.Now()
 							Expect(<-registered).To(Equal(registration{
@@ -1129,6 +1028,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}))
 
 							expectedWorkerPayload.ActiveContainers = 2
+							expectedWorkerPayload.ActiveVolumes = 1
 
 							b := time.Now()
 							Expect(<-heartbeated).To(Equal(registration{
@@ -1141,6 +1041,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 
 							expectedWorkerPayload.ActiveContainers = 1
+							expectedWorkerPayload.ActiveVolumes = 0
 
 							c := time.Now()
 							Expect(<-heartbeated).To(Equal(registration{
@@ -1182,8 +1083,10 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 						BeforeEach(func() {
 							workerPayload = atc.Worker{
-								Name:       "some-worker",
-								GardenAddr: gardenAddr,
+								Name: "some-worker",
+
+								GardenAddr:      gardenAddr,
+								BaggageclaimURL: baggageclaimServer.URL(),
 
 								Platform: "linux",
 								Tags:     []string{"some", "tags"},
@@ -1224,9 +1127,9 @@ var _ = Describe("TSA SSH Registrar", func() {
 								heartbeated <- registration{worker, ttl}
 							})
 
-							stubs := make(chan func() ([]garden.Container, error), 4)
+							gardenStubs := make(chan func() ([]garden.Container, error), 4)
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 									new(gfakes.FakeContainer),
@@ -1234,25 +1137,55 @@ var _ = Describe("TSA SSH Registrar", func() {
 								}, nil
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 									new(gfakes.FakeContainer),
 								}, nil
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return nil, errors.New("garden was weeded")
 							}
 
-							stubs <- func() ([]garden.Container, error) {
+							gardenStubs <- func() ([]garden.Container, error) {
 								return []garden.Container{
 									new(gfakes.FakeContainer),
 								}, nil
 							}
 
+							close(gardenStubs)
+
+							baggageclaimServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+										{Handle: "handle-b"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{
+										{Handle: "handle-a"},
+										{Handle: "handle-b"},
+										{Handle: "handle-c"},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/volumes"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, []baggageclaim.VolumeResponse{}),
+								),
+							)
+
 							fakeBackend.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
-								return (<-stubs)()
+								return (<-gardenStubs)()
 							}
 						})
 
@@ -1265,6 +1198,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							expectedWorkerPayload := workerPayload
 
 							expectedWorkerPayload.ActiveContainers = 3
+							expectedWorkerPayload.ActiveVolumes = 2
 
 							a := time.Now()
 							Expect(<-registered).To(Equal(registration{
@@ -1273,6 +1207,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							}))
 
 							expectedWorkerPayload.ActiveContainers = 2
+							expectedWorkerPayload.ActiveVolumes = 1
 
 							b := time.Now()
 							Expect(<-heartbeated).To(Equal(registration{
@@ -1285,6 +1220,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 							Consistently(heartbeated, 2*heartbeatInterval).ShouldNot(Receive())
 
 							expectedWorkerPayload.ActiveContainers = 1
+							expectedWorkerPayload.ActiveVolumes = 0
 
 							c := time.Now()
 							Expect(<-heartbeated).To(Equal(registration{

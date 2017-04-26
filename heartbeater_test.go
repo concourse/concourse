@@ -7,10 +7,12 @@ import (
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/gardenfakes"
+	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/baggageclaim"
+	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	. "github.com/concourse/tsa"
 	"github.com/concourse/tsa/tsafakes"
 	. "github.com/onsi/ginkgo"
@@ -37,12 +39,13 @@ var _ = Describe("Heartbeater", func() {
 		cprInterval    time.Duration
 		resourceTypes  []atc.WorkerResourceType
 
-		expectedWorker     atc.Worker
-		fakeTokenGenerator *tsafakes.FakeTokenGenerator
-		fakeGardenClient   *gfakes.FakeClient
-		fakeATC1           *ghttp.Server
-		fakeATC2           *ghttp.Server
-		atcEndpointPicker  *tsafakes.FakeEndpointPicker
+		expectedWorker         atc.Worker
+		fakeTokenGenerator     *tsafakes.FakeTokenGenerator
+		fakeGardenClient       *gardenfakes.FakeClient
+		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
+		fakeATC1               *ghttp.Server
+		fakeATC2               *ghttp.Server
+		atcEndpointPicker      *tsafakes.FakeEndpointPicker
 
 		heartbeater ifrit.Process
 
@@ -78,14 +81,7 @@ var _ = Describe("Heartbeater", func() {
 			Tags:          []string{"some", "tags"},
 		}
 
-		expectedWorker = atc.Worker{
-			Name:             "some-name",
-			GardenAddr:       addrToRegister,
-			ActiveContainers: 2,
-			ResourceTypes:    resourceTypes,
-			Platform:         "some-platform",
-			Tags:             []string{"some", "tags"},
-		}
+		expectedWorker = worker
 
 		fakeATC1 = ghttp.NewServer()
 		fakeATC2 = ghttp.NewServer()
@@ -133,7 +129,9 @@ var _ = Describe("Heartbeater", func() {
 			},
 		)
 
-		fakeGardenClient = new(gfakes.FakeClient)
+		fakeGardenClient = new(gardenfakes.FakeClient)
+		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
+
 		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
 
 		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
@@ -161,6 +159,7 @@ var _ = Describe("Heartbeater", func() {
 				interval,
 				cprInterval,
 				fakeGardenClient,
+				fakeBaggageclaimClient,
 				atcEndpointPicker,
 				fakeTokenGenerator,
 				worker,
@@ -175,40 +174,63 @@ var _ = Describe("Heartbeater", func() {
 		ginkgomon.Interrupt(heartbeater)
 	})
 
-	Context("when Garden returns containers", func() {
+	Context("when Garden returns containers and Baggageclaim returns volumes", func() {
 		BeforeEach(func() {
 			containers := make(chan []garden.Container, 4)
+			volumes := make(chan []baggageclaim.Volume, 4)
 
 			containers <- []garden.Container{
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+			}
+
+			volumes <- []baggageclaim.Volume{
+				new(baggageclaimfakes.FakeVolume),
+				new(baggageclaimfakes.FakeVolume),
+				new(baggageclaimfakes.FakeVolume),
 			}
 
 			containers <- []garden.Container{
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+			}
+
+			volumes <- []baggageclaim.Volume{
+				new(baggageclaimfakes.FakeVolume),
+				new(baggageclaimfakes.FakeVolume),
 			}
 
 			containers <- []garden.Container{
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+			}
+
+			volumes <- []baggageclaim.Volume{
+				new(baggageclaimfakes.FakeVolume),
 			}
 
 			containers <- []garden.Container{
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
-				new(gfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
+				new(gardenfakes.FakeContainer),
 			}
+
+			volumes <- []baggageclaim.Volume{}
 
 			close(containers)
+			close(volumes)
 
 			fakeGardenClient.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
 				return <-containers, nil
+			}
+
+			fakeBaggageclaimClient.ListVolumesStub = func(lager.Logger, baggageclaim.VolumeProperties) (baggageclaim.Volumes, error) {
+				return <-volumes, nil
 			}
 		})
 
@@ -219,6 +241,8 @@ var _ = Describe("Heartbeater", func() {
 			})
 
 			It("immediately registers", func() {
+				expectedWorker.ActiveContainers = 2
+				expectedWorker.ActiveVolumes = 3
 				Expect(registrations).To(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 
@@ -227,6 +251,7 @@ var _ = Describe("Heartbeater", func() {
 
 				fakeClock.WaitForWatcherAndIncrement(interval)
 				expectedWorker.ActiveContainers = 5
+				expectedWorker.ActiveVolumes = 2
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 		})
@@ -292,6 +317,7 @@ var _ = Describe("Heartbeater", func() {
 
 				fakeClock.WaitForWatcherAndIncrement(cprInterval)
 				expectedWorker.ActiveContainers = 4
+				expectedWorker.ActiveVolumes = 1
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 
@@ -309,6 +335,7 @@ var _ = Describe("Heartbeater", func() {
 
 				fakeClock.WaitForWatcherAndIncrement(interval - cprInterval)
 				expectedWorker.ActiveContainers = 3
+				expectedWorker.ActiveVolumes = 0
 				Eventually(heartbeats).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 		})

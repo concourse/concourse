@@ -17,6 +17,8 @@ import (
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	bclient "github.com/concourse/baggageclaim/client"
+
 	"github.com/concourse/tsa"
 	"github.com/tedsuo/ifrit"
 	"golang.org/x/crypto/ssh"
@@ -473,6 +475,12 @@ func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker at
 		server.heartbeatInterval,
 		server.cprInterval,
 		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.GardenAddr), logger.Session("garden-connection"))),
+		bclient.NewWithHTTPClient(worker.BaggageclaimURL, &http.Client{
+			Transport: &http.Transport{
+				DisableKeepAlives:     true,
+				ResponseHeaderTimeout: 1 * time.Minute,
+			},
+		}),
 		server.atcEndpointPicker,
 		server.tokenGenerator,
 		worker,
