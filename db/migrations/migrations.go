@@ -135,6 +135,7 @@ var Migrations = []migration.Migrator{
 	AddInterruptibleToJob,
 	AddLandedWorkerCannotHaveAddrConstraint,
 	FixWorkerAddrConstraint,
+	AddCertificatesPathToWorkers,
 	CreateCaches,
 	RemoveTTLFromVolumes,
 	AddVolumeParentIdForeignKey,
@@ -155,4 +156,5 @@ var Migrations = []migration.Migrator{
 	RemoveDuplicateIndices,
 	CleanUpContainerColumns,
 	AddAuthToTeams,
+	RemoveCertificatesPathToWorkers,
 }
