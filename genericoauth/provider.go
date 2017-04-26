@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -99,22 +100,17 @@ func (config *GenericOAuthConfig) Validate() error {
 
 type GenericTeamProvider struct{}
 
-type genericAuthGroup struct {
-	name       string
-	namespace  string
-	authConfig provider.AuthConfig
-}
+func (GenericTeamProvider) AddAuthGroup(group *flags.Group) provider.AuthConfig {
+	flags := &GenericOAuthConfig{}
 
-func (gag *genericAuthGroup) Name() string                    { return gag.name }
-func (gag *genericAuthGroup) Namespace() string               { return gag.namespace }
-func (gag *genericAuthGroup) AuthConfig() provider.AuthConfig { return gag.authConfig }
-
-func (GenericTeamProvider) AuthGroup() provider.AuthGroup {
-	return &genericAuthGroup{
-		name:       "Generic OAuth Authentication (allows access to ALL authenticated users)",
-		namespace:  "generic-oauth",
-		authConfig: &GenericOAuthConfig{},
+	goGroup, err := group.AddGroup("Generic OAuth Authentication (allows access to ALL authenticated users)", "", flags)
+	if err != nil {
+		panic(err)
 	}
+
+	goGroup.Namespace = "generic-oauth"
+
+	return flags
 }
 
 func (GenericTeamProvider) UnmarshalConfig(config *json.RawMessage) (provider.AuthConfig, error) {
