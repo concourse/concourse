@@ -2,10 +2,10 @@ package gcng
 
 import (
 	"net/http"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/dbng"
-	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
 )
@@ -33,13 +33,12 @@ func NewBaggageclaimClientFactory(dbWorkerFactory dbng.WorkerFactory) Baggagecla
 }
 
 func (f *baggageclaimClientFactory) NewClient(apiURL string, workerName string) bclient.Client {
-	roundTripper := transport.NewBaggageclaimRoundTripper(
-		workerName,
-		&apiURL,
-		f.dbWorkerFactory,
-		&http.Transport{DisableKeepAlives: true},
-	)
-	return bclient.New(apiURL, roundTripper)
+	return bclient.NewWithHTTPClient(apiURL, &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives:     true,
+			ResponseHeaderTimeout: 1 * time.Minute,
+		},
+	})
 }
 
 func NewVolumeCollector(

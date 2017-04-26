@@ -701,11 +701,11 @@ var _ = Describe("Workers API", func() {
 				"certificates_path": "",
 				"certificates_symlinked_paths": null,
 				"active_containers": 2,
+				"active_volumes": 0,
 				"resource_types": null,
 				"platform": "penguin",
 				"tags": ["some-tag"],
 				"team": "some-team",
-				"name": "some-name",
 				"start_time": 0
 			}`))
 		})

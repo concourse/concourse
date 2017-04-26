@@ -3,6 +3,7 @@ package worker
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"code.cloudfoundry.org/clock"
 	gclient "code.cloudfoundry.org/garden/client"
@@ -186,7 +187,10 @@ func (provider *dbWorkerProvider) newGardenWorker(tikTok clock.Clock, savedWorke
 		savedWorker.Name(),
 		savedWorker.BaggageclaimURL(),
 		provider.dbWorkerFactory,
-		&http.Transport{DisableKeepAlives: true},
+		&http.Transport{
+			DisableKeepAlives:     true,
+			ResponseHeaderTimeout: 1 * time.Minute,
+		},
 	))
 
 	volumeClient := NewVolumeClient(

@@ -13,6 +13,7 @@ type Worker struct {
 	CertificatesSymlinkedPaths []string `json:"certificates_symlinked_paths"`
 
 	ActiveContainers int `json:"active_containers"`
+	ActiveVolumes    int `json:"active_volumes"`
 
 	ResourceTypes []WorkerResourceType `json:"resource_types"`
 
