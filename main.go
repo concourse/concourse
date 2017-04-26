@@ -21,21 +21,20 @@ func main() {
 	parser := flags.NewParser(&commands.Fly, flags.HelpFlag|flags.PassDoubleDash)
 	parser.NamespaceDelimiter = "-"
 
-	setTeamCommand := parser.Find("set-team")
+	groups := parser.Find("set-team").Groups()
+	var authGroup *flags.Group
+
+	for _, group := range groups {
+		if group.ShortDescription == "Authentication" {
+			authGroup = group
+			break
+		}
+	}
+
 	authConfigs := make(provider.AuthConfigs)
 
 	for name, p := range provider.GetProviders() {
-		authGroup := p.AuthGroup()
-
-		group, err := setTeamCommand.Group.AddGroup(authGroup.Name(), "", authGroup.AuthConfig())
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-
-		group.Namespace = authGroup.Namespace()
-
-		authConfigs[name] = authGroup.AuthConfig()
+		authConfigs[name] = p.AddAuthGroup(authGroup)
 	}
 
 	commands.Fly.SetTeam.ProviderAuth = authConfigs
