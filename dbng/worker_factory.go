@@ -38,8 +38,6 @@ var workersQuery = psql.Select(`
 		w.http_proxy_url,
 		w.https_proxy_url,
 		w.no_proxy,
-		w.certificates_path,
-		w.certificates_symlinked_paths,
 		w.active_containers,
 		w.resource_types,
 		w.platform,
@@ -101,21 +99,19 @@ func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
 
 func scanWorker(worker *worker, row scannable) error {
 	var (
-		addStr             sql.NullString
-		state              string
-		bcURLStr           sql.NullString
-		httpProxyURL       sql.NullString
-		httpsProxyURL      sql.NullString
-		noProxy            sql.NullString
-		certPath           sql.NullString
-		certSymlinkedPaths []byte
-		resourceTypes      []byte
-		platform           sql.NullString
-		tags               []byte
-		teamName           sql.NullString
-		teamID             sql.NullInt64
-		startTime          sql.NullInt64
-		expiresAt          *time.Time
+		addStr        sql.NullString
+		state         string
+		bcURLStr      sql.NullString
+		httpProxyURL  sql.NullString
+		httpsProxyURL sql.NullString
+		noProxy       sql.NullString
+		resourceTypes []byte
+		platform      sql.NullString
+		tags          []byte
+		teamName      sql.NullString
+		teamID        sql.NullInt64
+		startTime     sql.NullInt64
+		expiresAt     *time.Time
 	)
 
 	err := row.Scan(
@@ -126,8 +122,6 @@ func scanWorker(worker *worker, row scannable) error {
 		&httpProxyURL,
 		&httpsProxyURL,
 		&noProxy,
-		&certPath,
-		&certSymlinkedPaths,
 		&worker.activeContainers,
 		&resourceTypes,
 		&platform,
@@ -171,10 +165,6 @@ func scanWorker(worker *worker, row scannable) error {
 		worker.noProxy = noProxy.String
 	}
 
-	if certPath.Valid {
-		worker.certificatesPath = certPath.String
-	}
-
 	if teamName.Valid {
 		worker.teamName = teamName.String
 	}
@@ -185,11 +175,6 @@ func scanWorker(worker *worker, row scannable) error {
 
 	if platform.Valid {
 		worker.platform = platform.String
-	}
-
-	err = json.Unmarshal(certSymlinkedPaths, &worker.certificatesSymlinkedPaths)
-	if err != nil {
-		return err
 	}
 
 	err = json.Unmarshal(resourceTypes, &worker.resourceTypes)
@@ -318,11 +303,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		return nil, err
 	}
 
-	certificatesSymlinkedPaths, err := json.Marshal(atcWorker.CertificatesSymlinkedPaths)
-	if err != nil {
-		return nil, err
-	}
-
 	expires := "NULL"
 	if ttl != 0 {
 		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
@@ -355,8 +335,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 					"http_proxy_url",
 					"https_proxy_url",
 					"no_proxy",
-					"certificates_path",
-					"certificates_symlinked_paths",
 					"name",
 					"start_time",
 					"team_id",
@@ -373,8 +351,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 					atcWorker.HTTPProxyURL,
 					atcWorker.HTTPSProxyURL,
 					atcWorker.NoProxy,
-					atcWorker.CertificatesPath,
-					certificatesSymlinkedPaths,
 					atcWorker.Name,
 					atcWorker.StartTime,
 					teamID,
@@ -408,8 +384,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			Set("name", atcWorker.Name).
 			Set("start_time", atcWorker.StartTime).
 			Set("state", string(workerState)).
-			Set("certificates_path", atcWorker.CertificatesPath).
-			Set("certificates_symlinked_paths", certificatesSymlinkedPaths).
 			Where(sq.Eq{
 				"name": atcWorker.Name,
 			}).
@@ -426,23 +400,21 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	savedWorker := &worker{
-		name:                       atcWorker.Name,
-		state:                      workerState,
-		gardenAddr:                 &atcWorker.GardenAddr,
-		baggageclaimURL:            &atcWorker.BaggageclaimURL,
-		httpProxyURL:               atcWorker.HTTPProxyURL,
-		httpsProxyURL:              atcWorker.HTTPSProxyURL,
-		noProxy:                    atcWorker.NoProxy,
-		certificatesPath:           atcWorker.CertificatesPath,
-		certificatesSymlinkedPaths: atcWorker.CertificatesSymlinkedPaths,
-		activeContainers:           atcWorker.ActiveContainers,
-		resourceTypes:              atcWorker.ResourceTypes,
-		platform:                   atcWorker.Platform,
-		tags:                       atcWorker.Tags,
-		teamName:                   atcWorker.Team,
-		teamID:                     workerTeamID,
-		startTime:                  atcWorker.StartTime,
-		conn:                       conn,
+		name:             atcWorker.Name,
+		state:            workerState,
+		gardenAddr:       &atcWorker.GardenAddr,
+		baggageclaimURL:  &atcWorker.BaggageclaimURL,
+		httpProxyURL:     atcWorker.HTTPProxyURL,
+		httpsProxyURL:    atcWorker.HTTPSProxyURL,
+		noProxy:          atcWorker.NoProxy,
+		activeContainers: atcWorker.ActiveContainers,
+		resourceTypes:    atcWorker.ResourceTypes,
+		platform:         atcWorker.Platform,
+		tags:             atcWorker.Tags,
+		teamName:         atcWorker.Team,
+		teamID:           workerTeamID,
+		startTime:        atcWorker.StartTime,
+		conn:             conn,
 	}
 
 	workerBaseResourceTypeIDs := []int{}

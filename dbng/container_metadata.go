@@ -29,12 +29,6 @@ const (
 	ContainerTypeTask  ContainerType = "task"
 )
 
-func (m ContainerMetadata) IsForResource() bool {
-	return m.Type == ContainerTypeCheck ||
-		m.Type == ContainerTypeGet ||
-		m.Type == ContainerTypePut
-}
-
 func ContainerTypeFromString(containerType string) (ContainerType, error) {
 	switch containerType {
 	case "check":

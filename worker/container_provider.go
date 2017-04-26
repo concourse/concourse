@@ -37,9 +37,6 @@ type containerProviderFactory struct {
 	httpsProxyURL string
 	noProxy       string
 
-	certificatesPath            string
-	certificatesSymmlinkedPaths []string
-
 	clock clock.Clock
 }
 
@@ -56,47 +53,41 @@ func NewContainerProviderFactory(
 	httpProxyURL string,
 	httpsProxyURL string,
 	noProxy string,
-	certificatesPath string,
-	certificatesSymmlinkedPaths []string,
 	clock clock.Clock,
 ) ContainerProviderFactory {
 	return &containerProviderFactory{
-		gardenClient:                gardenClient,
-		baggageclaimClient:          baggageclaimClient,
-		volumeClient:                volumeClient,
-		imageFactory:                imageFactory,
-		dbVolumeFactory:             dbVolumeFactory,
-		dbResourceCacheFactory:      dbResourceCacheFactory,
-		dbResourceConfigFactory:     dbResourceConfigFactory,
-		dbTeamFactory:               dbTeamFactory,
-		lockDB:                      lockDB,
-		httpProxyURL:                httpProxyURL,
-		httpsProxyURL:               httpsProxyURL,
-		noProxy:                     noProxy,
-		certificatesPath:            certificatesPath,
-		certificatesSymmlinkedPaths: certificatesSymmlinkedPaths,
-		clock: clock,
+		gardenClient:            gardenClient,
+		baggageclaimClient:      baggageclaimClient,
+		volumeClient:            volumeClient,
+		imageFactory:            imageFactory,
+		dbVolumeFactory:         dbVolumeFactory,
+		dbResourceCacheFactory:  dbResourceCacheFactory,
+		dbResourceConfigFactory: dbResourceConfigFactory,
+		dbTeamFactory:           dbTeamFactory,
+		lockDB:                  lockDB,
+		httpProxyURL:            httpProxyURL,
+		httpsProxyURL:           httpsProxyURL,
+		noProxy:                 noProxy,
+		clock:                   clock,
 	}
 }
 
 func (f *containerProviderFactory) ContainerProviderFor(worker Worker) ContainerProvider {
 	return &containerProvider{
-		gardenClient:                f.gardenClient,
-		baggageclaimClient:          f.baggageclaimClient,
-		volumeClient:                f.volumeClient,
-		imageFactory:                f.imageFactory,
-		dbVolumeFactory:             f.dbVolumeFactory,
-		dbResourceCacheFactory:      f.dbResourceCacheFactory,
-		dbResourceConfigFactory:     f.dbResourceConfigFactory,
-		dbTeamFactory:               f.dbTeamFactory,
-		lockDB:                      f.lockDB,
-		httpProxyURL:                f.httpProxyURL,
-		httpsProxyURL:               f.httpsProxyURL,
-		noProxy:                     f.noProxy,
-		certificatesPath:            f.certificatesPath,
-		certificatesSymmlinkedPaths: f.certificatesSymmlinkedPaths,
-		clock:  f.clock,
-		worker: worker,
+		gardenClient:            f.gardenClient,
+		baggageclaimClient:      f.baggageclaimClient,
+		volumeClient:            f.volumeClient,
+		imageFactory:            f.imageFactory,
+		dbVolumeFactory:         f.dbVolumeFactory,
+		dbResourceCacheFactory:  f.dbResourceCacheFactory,
+		dbResourceConfigFactory: f.dbResourceConfigFactory,
+		dbTeamFactory:           f.dbTeamFactory,
+		lockDB:                  f.lockDB,
+		httpProxyURL:            f.httpProxyURL,
+		httpsProxyURL:           f.httpsProxyURL,
+		noProxy:                 f.noProxy,
+		clock:                   f.clock,
+		worker:                  worker,
 	}
 }
 
@@ -164,9 +155,6 @@ type containerProvider struct {
 	httpProxyURL  string
 	httpsProxyURL string
 	noProxy       string
-
-	certificatesPath            string
-	certificatesSymmlinkedPaths []string
 
 	clock clock.Clock
 }
@@ -632,21 +620,6 @@ func (p *containerProvider) createGardenContainer(
 	}
 
 	bindMounts := []garden.BindMount{}
-
-	if metadata.IsForResource() {
-		if p.certificatesPath != "" {
-			bindMounts = append(bindMounts,
-				garden.BindMount{SrcPath: p.certificatesPath, DstPath: "/etc/ssl/certs", Mode: garden.BindMountModeRO},
-			)
-			if p.certificatesSymmlinkedPaths != nil {
-				for _, certSymlinkedPath := range p.certificatesSymmlinkedPaths {
-					bindMounts = append(bindMounts,
-						garden.BindMount{SrcPath: certSymlinkedPath, DstPath: certSymlinkedPath, Mode: garden.BindMountModeRO},
-					)
-				}
-			}
-		}
-	}
 
 	volumeHandleMounts := map[string]string{}
 	for _, mount := range volumeMounts {

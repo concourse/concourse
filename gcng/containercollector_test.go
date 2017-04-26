@@ -9,12 +9,12 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/gcng/gcngfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"code.cloudfoundry.org/lager"
 )
 
 var _ = Describe("ContainerCollector", func() {

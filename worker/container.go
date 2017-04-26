@@ -62,8 +62,8 @@ func newGardenWorkerContainer(
 		return nil, err
 	}
 
-	if properties[userPropertyName] != "" {
-		workerContainer.user = properties[userPropertyName]
+	if properties["user"] != "" {
+		workerContainer.user = properties["user"]
 	} else {
 		workerContainer.user = "root"
 	}
