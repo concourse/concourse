@@ -259,3 +259,9 @@
 	path = src/github.com/cppforlife/go-semi-semantic
 	url = https://github.com/cppforlife/go-semi-semantic
 	branch = master
+[submodule "src/github.com/vito/twentythousandtonnesofcrudeoil"]
+	path = src/github.com/vito/twentythousandtonnesofcrudeoil
+	url = https://github.com/vito/twentythousandtonnesofcrudeoil
+[submodule "src/github.com/concourse/bin"]
+	path = src/github.com/concourse/bin
+	url = https://github.com/concourse/bin
