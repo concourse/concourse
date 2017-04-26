@@ -457,3 +457,16 @@ func containersBy(condition, value string) []string {
 
 	return handles
 }
+
+func volumesByResourceType(name string) []string {
+	volumes := flyTable("volumes", "-d")
+
+	var handles []string
+	for _, v := range volumes {
+		if v["type"] == "resource" && strings.HasPrefix(v["identifier"], "name:"+name) {
+			handles = append(handles, v["handle"])
+		}
+	}
+
+	return handles
+}

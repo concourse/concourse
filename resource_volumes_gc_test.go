@@ -36,15 +36,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting the resource cache volumes")
-			volumes := flyTable("volumes")
-			resourceVolumeHandles := []string{}
-			for _, volume := range volumes {
-				// there is going to be one for image resource
-				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
-					resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
-				}
-			}
-			Expect(resourceVolumeHandles).To(HaveLen(1))
+			Expect(volumesByResourceType("time")).To(HaveLen(1))
 
 			By("getting the resource caches")
 			var resourceCachesNum int
@@ -64,15 +56,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 
 			By("eventually expiring the resource cache volumes")
 			Eventually(func() int {
-				volumes := flyTable("volumes")
-				resourceVolumeHandles := []string{}
-				for _, volume := range volumes {
-					// there is going to be one for image resource
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
-						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
-					}
-				}
-				return len(resourceVolumeHandles)
+				return len(volumesByResourceType("time"))
 			}, 5*time.Minute, 10*time.Second).Should(BeZero())
 
 			By("expiring the resource caches")
@@ -125,15 +109,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 
 			By("eventually expiring the resource cache volumes")
 			Eventually(func() []string {
-				volumes := flyTable("volumes")
-				resourceVolumeHandles := []string{}
-				for _, volume := range volumes {
-					// there is going to be one for image resource
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
-						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
-					}
-				}
-				return resourceVolumeHandles
+				return volumesByResourceType("time")
 			}, 5*time.Minute, 10*time.Second).ShouldNot(ContainElement(originalResourceVolumeHandles[0]))
 
 			By("expiring the resource caches")
@@ -194,15 +170,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 
 			By("eventually expiring the resource cache volumes")
 			Eventually(func() int {
-				volumes := flyTable("volumes")
-				resourceVolumeHandles := []string{}
-				for _, volume := range volumes {
-					// there is going to be one for image resource
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "time:") {
-						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
-					}
-				}
-				return len(resourceVolumeHandles)
+				return len(volumesByResourceType("time"))
 			}, 5*time.Minute, 10*time.Second).Should(BeZero())
 
 			By("expiring the resource caches")
@@ -249,14 +217,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 			fly("trigger-job", "-w", "-j", "volume-gc-test/simple-job")
 
 			By("getting the resource cache volumes")
-			volumes := flyTable("volumes")
-			originalResourceVolumeHandles := []string{}
-			for _, volume := range volumes {
-				// there is going to be one for image resource
-				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
-					originalResourceVolumeHandles = append(originalResourceVolumeHandles, volume["handle"])
-				}
-			}
+			originalResourceVolumeHandles := volumesByResourceType("ref")
 			Expect(originalResourceVolumeHandles).To(HaveLen(1))
 
 			By("getting the resource caches")
@@ -272,15 +233,7 @@ var _ = Describe(":life Garbage collecting resource cache volumes", func() {
 
 			By("eventually expiring the resource cache volume")
 			Eventually(func() []string {
-				volumes := flyTable("volumes")
-				resourceVolumeHandles := []string{}
-				for _, volume := range volumes {
-					// there is going to be one for image resource
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "ref:") {
-						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
-					}
-				}
-				return resourceVolumeHandles
+				return volumesByResourceType("ref")
 			}, 10*time.Minute, 10*time.Second).ShouldNot(ContainElement(originalResourceVolumeHandles[0]))
 
 			By("expiring the resource caches")
