@@ -19,10 +19,22 @@ func main() {
 	parser := flags.NewParser(cmd, flags.Default)
 	parser.NamespaceDelimiter = "-"
 
+	groups := parser.Command.Groups()
+	var authGroup *flags.Group
+
+	for _, group := range groups {
+		for _, subGroup := range group.Groups() {
+			if subGroup.ShortDescription == "Authentication" {
+				authGroup = subGroup
+				break
+			}
+		}
+	}
+
 	authConfigs := make(provider.AuthConfigs)
 
 	for name, p := range provider.GetProviders() {
-		authConfigs[name] = p.AddAuthGroup(parser.Command.Group)
+		authConfigs[name] = p.AddAuthGroup(authGroup)
 	}
 
 	args, err := parser.Parse()
