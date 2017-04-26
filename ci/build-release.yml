@@ -16,4 +16,4 @@ outputs:
 - name: release
 
 run:
-  path: bin/ci/build-release
+  path: concourse/src/github.com/concourse/bin/ci/build-release
