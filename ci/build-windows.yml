@@ -2,8 +2,6 @@
 platform: windows
 
 inputs:
-- name: bin
-  path: gopath/src/github.com/concourse/bin
 - name: concourse
 - name: houdini
   path: gopath/src/github.com/vito/houdini
@@ -14,4 +12,4 @@ outputs:
 - name: binary
 
 run:
-  path: gopath/src/github.com/concourse/bin/ci/build-windows
+  path: concourse/src/github.com/concourse/bin/ci/build-windows

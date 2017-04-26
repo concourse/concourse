@@ -7,7 +7,6 @@ image_resource:
     repository: ubuntu
 
 inputs:
-- name: bin
 - name: linux-binary
 - name: darwin-binary
 - name: windows-binary

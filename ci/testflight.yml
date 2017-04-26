@@ -17,7 +17,6 @@ params:
 inputs:
 - name: linux-binary
 - name: concourse
-- name: bin
 
 run:
-  path: bin/ci/testflight
+  path: concourse/src/github.com/concourse/bin/ci/testflight

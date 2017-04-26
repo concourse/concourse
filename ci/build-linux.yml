@@ -6,8 +6,6 @@ image_resource:
   source: {repository: concourse/bin-ci}
 
 inputs:
-- name: bin
-  path: gopath/src/github.com/concourse/bin
 - name: concourse
 - name: garden-runc-release
 - name: fly-rc
@@ -17,4 +15,4 @@ outputs:
 - name: binary
 
 run:
-  path: gopath/src/github.com/concourse/bin/ci/build-linux
+  path: concourse/src/github.com/concourse/bin/ci/build-linux
