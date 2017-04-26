@@ -15,7 +15,15 @@ files:
   - code.cloudfoundry.org/garden/transport/*.go # gosub
   - code.cloudfoundry.org/lager/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
+  - github.com/cenk/backoff/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
+  - github.com/concourse/baggageclaim/*.go # gosub
+  - github.com/concourse/baggageclaim/api/*.go # gosub
+  - github.com/concourse/baggageclaim/client/*.go # gosub
+  - github.com/concourse/baggageclaim/uidgid/*.go # gosub
+  - github.com/concourse/baggageclaim/volume/*.go # gosub
+  - github.com/concourse/go-archive/tarfs/*.go # gosub
+  - github.com/concourse/retryhttp/*.go # gosub
   - github.com/concourse/tsa/*.go # gosub
   - github.com/concourse/tsa/cmd/tsa/*.go # gosub
   - github.com/concourse/tsa/tsacmd/*.go # gosub
