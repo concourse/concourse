@@ -698,8 +698,6 @@ var _ = Describe("Workers API", func() {
 				"state": "running",
 				"addr": "",
 				"baggageclaim_url": "",
-				"certificates_path": "",
-				"certificates_symlinked_paths": null,
 				"active_containers": 2,
 				"active_volumes": 0,
 				"resource_types": null,
