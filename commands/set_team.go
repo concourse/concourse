@@ -74,12 +74,17 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 	team.Auth = teamAuth
 
-	_, _, _, err = target.Client().Team(command.TeamName).CreateOrUpdate(team)
+	_, created, updated, err := target.Client().Team(command.TeamName).CreateOrUpdate(team)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("team created")
+	if created {
+		fmt.Println("team created")
+	} else if updated {
+		fmt.Println("team updated")
+	}
+
 	return nil
 }
 
