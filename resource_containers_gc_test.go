@@ -239,7 +239,7 @@ var _ = Describe(":life Garbage collecting resource containers", func() {
 			By("eventually expiring the resource config")
 			Eventually(func() int {
 				var resourceConfigsNum int
-				err := psql.Select("COUNT(id)").From("resource_configs").RunWith(dbConn).QueryRow().Scan(&resourceConfigsNum)
+				err := psql.Select("COUNT(id)").From("resource_configs").Where("id = $1", originalResourceConfigID).RunWith(dbConn).QueryRow().Scan(&resourceConfigsNum)
 				Expect(err).ToNot(HaveOccurred())
 
 				return resourceConfigsNum
