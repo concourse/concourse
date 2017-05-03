@@ -37,7 +37,6 @@ var _ = Describe("Worker failing", func() {
 		})
 
 		It("puts the worker in stalled state and does not lock up garbage collection", func() {
-			println("sleeping")
 			By("waiting for the doomed worker to stall")
 			Eventually(waitForStalledWorker()).ShouldNot(BeEmpty())
 
@@ -47,6 +46,7 @@ var _ = Describe("Worker failing", func() {
 			By("having a cache for the controlled-timer resource")
 			Expect(volumesByResourceType("time")).ToNot(BeEmpty())
 
+			By("waiting long enough for the resource to have a new version available upon check")
 			time.Sleep(5 * time.Second)
 
 			By("running check-resource to force the existing volume on the safe worker to be no longer desired")
