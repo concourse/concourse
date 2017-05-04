@@ -30,22 +30,21 @@ cat worker_key.pub > authorized_keys
 Now to start `tsa` itself:
 
 ```bash
-tsa -forwardHost=$FORWARD_HOST \
-      -hostKey=host_key \
-      -authorizedKeys=authorized_keys \
-      -heartbeatInterval=30s \
-      -sessionSigningKey $SIGNING_KEY \
-      -atcAPIURL=http://$ATC_HOST:$ATC_PORT
+tsa \
+  --peer-ip $PEER_IP \
+  --host-key ./host_key \
+  --authorized-keys ./authorized_keys \
+  --session-signing-key $SIGNING_KEY \
+  --atc-url $ATC_URL
 ```
 
 The variables here should be set to:
 
 | Variable             | Description                                                                                               |
 |----------------------|-----------------------------------------------------------------------------------------------------------|
-| `$FORWARD_HOST`      | The host or IP where this machine can be reached for the purpose of forwarding traffic to remote workers. |
-| `$SIGNING_KEY`       | RSA key used to sign the tokens used when communicating to the ATC.                                       |
-| `$ATC_HOST`          | Host for the ATC                                                                                          |
-| `$ATC_PORT`          | Port for the ATC                                                                                          |
+| `$PEER_IP`           | The host or IP where this machine can be reached by the ATC for the purpose of forwarding traffic to remote workers. |
+| `$SIGNING_KEY`       | RSA key used to sign the tokens used when communicating to the ATC.                                                    |
+| `$ATC_URL`           | ATC URL reachable by the TSA (e.g. `https://ci.concourse.ci`).                                                        |
 
 ### registering workers
 
@@ -53,10 +52,10 @@ In order to have a worker on the local network register with `tsa` you can run t
 
 ```bash
 ssh -p 2222 $TSA_HOST \
-      -i worker_key \
-      -o UserKnownHostsFile=host_key.pub \
-      register-worker \
-      < worker.json
+  -i worker_key \
+  -o UserKnownHostsFile=host_key.pub \
+  register-worker \
+  < worker.json
 ```
 
 The `worker.json` file should contain the following:
@@ -66,18 +65,18 @@ The `worker.json` file should contain the following:
     "platform": "linux",
     "tags": [],
     "addr": "$GARDEN_ADDR",
-    "resource_types": []
+    "baggageclaim_url": "$BAGGAGECLAIM_URL"
 }
 ```
 
-This should be set to whatever you want to advertise
-
 The variables here should be set to:
 
-| Variable             | Description                                             |
-|----------------------|---------------------------------------------------------|
-| `$TSA_HOST`          | The hostname or IP where the TSA server can be reached. |
-| `$GARDEN_ADDR`       | The address (host and port) of the Garden to advertise. |
+| Variable             | Description                                                             |
+|----------------------|-------------------------------------------------------------------------|
+| `$TSA_HOST`          | The hostname or IP where the TSA server can be reached.                 |
+| `$GARDEN_ADDR`       | The address (host and port) of the Garden to advertise.                 |
+| `$BAGGAGECLAIM_URL`  | The API URL (scheme, host,  and port) of the BaggageClaim to advertise. |
+
 
 ### forwarding workers
 
@@ -85,28 +84,23 @@ In order to have a worker on a remote network register with `tsa` and have its t
 
 ```bash
 ssh -p 2222 $TSA_HOST \
-      -i worker_key \
-      -o UserKnownHostsFile=host_key.pub \
-      -R0.0.0.0:0:$GARDEN_ADDR \
-      forward-worker \
-      < worker.json
+  -i worker_key \
+  -o UserKnownHostsFile=host_key.pub \
+  -R0.0.0.0:7777:127.0.0.1:7777 \
+  -R0.0.0.0:7788:127.0.0.1:7788 \
+  forward-worker \
+    --garden 0.0.0.0:7777 \
+    --baggageclaim 0.0.0.0:7788 \
+  < worker.json
 ```
+
+Note that in this case you should always have Garden and BaggageClaim listen on `127.0.0.1` so that they're not exposed to the outside world. For this reason there is no `$GARDEN_ADDR` or `$BAGGAGECLAIM_URL` as is the case with `register-worker`.
 
 The `worker.json` file should contain the following:
 
 ```json
 {
     "platform": "linux",
-    "tags": [],
-    "resource_types": []
+    "tags": []
 }
 ```
-
-This should be set to whatever you want to advertise
-
-The variables here should be set to:
-
-| Variable             | Description                                             |
-|----------------------|---------------------------------------------------------|
-| `$TSA_HOST`          | The hostname or IP where the TSA server can be reached. |
-| `$GARDEN_ADDR`       | The address (host and port) of the Garden to advertise. |
