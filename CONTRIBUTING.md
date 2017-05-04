@@ -12,7 +12,7 @@ git submodule update --init --recursive
 ```
 
 ## Install development tools
-Consourse is built with Go and Elm. You also need Node and few modules. Assuming you're using a mac:
+Concourse is built with Go and Elm. You also need Node and few modules. Assuming you're using a mac:
 
 - Install Elm 0.18 from http://install.elm-lang.org/Elm-Platform-0.18.pkg
 - Install homebrew from http://brew.sh/
