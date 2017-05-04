@@ -16,7 +16,6 @@ const (
 	LockTypeResourceConfigChecking = iota
 	LockTypeBuildTracking
 	LockTypePipelineScheduling
-	LockTypeResourceCheckingForJob
 	LockTypeBatch
 	LockTypeVolumeCreating
 	LockTypeContainerCreating
@@ -34,10 +33,6 @@ func NewResourceConfigCheckingLockID(resourceConfigID int) LockID {
 
 func NewPipelineSchedulingLockLockID(pipelineID int) LockID {
 	return LockID{LockTypePipelineScheduling, pipelineID}
-}
-
-func NewResourceCheckingForJobLockID(jobID int) LockID {
-	return LockID{LockTypeResourceCheckingForJob, jobID}
 }
 
 func NewTaskLockID(taskName string) LockID {
