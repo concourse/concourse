@@ -189,6 +189,18 @@ func CreateCaches(tx migration.LimitedTx) error {
 		return err
 	}
 
+	// https://www.pivotaltracker.com/story/show/144828721
+	// All volumes that currently exist in the database have
+	// already been initialized, and we rely on them being
+	// initialized to GC them in the new schema.
+	_, err = tx.Exec(`
+		UPDATE volumes
+		SET initialized = true
+	`)
+	if err != nil {
+		return err
+	}
+
 	_, err = tx.Exec(`
 		ALTER TABLE volumes
 		ALTER COLUMN state SET DEFAULT 'creating'
