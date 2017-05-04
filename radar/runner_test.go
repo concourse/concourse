@@ -186,6 +186,47 @@ var _ = Describe("Runner", func() {
 		})
 	})
 
+	Context("when resource types stop being able to check", func() {
+		var scannerExit chan struct{}
+
+		BeforeEach(func() {
+			scannerExit = make(chan struct{})
+
+			scanRunnerFactory.ScanResourceTypeRunnerStub = func(lager.Logger, string) ifrit.Runner {
+				return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+					close(ready)
+
+					select {
+					case <-signals:
+						return nil
+					case <-scannerExit:
+						return nil
+					}
+				})
+			}
+		})
+
+		It("starts scanning again eventually", func() {
+			Eventually(scanRunnerFactory.ScanResourceTypeRunnerCallCount).Should(Equal(2))
+
+			_, resource := scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(0)
+			Expect(resource).To(Equal("some-resource"))
+
+			_, resource = scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(1)
+			Expect(resource).To(Equal("some-other-resource"))
+
+			close(scannerExit)
+
+			Eventually(scanRunnerFactory.ScanResourceTypeRunnerCallCount, 10*syncInterval).Should(Equal(4))
+
+			_, resource = scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(2)
+			Expect(resource).To(Equal("some-resource"))
+
+			_, resource = scanRunnerFactory.ScanResourceTypeRunnerArgsForCall(3)
+			Expect(resource).To(Equal("some-other-resource"))
+		})
+	})
+
 	Context("when in noop mode", func() {
 		BeforeEach(func() {
 			noop = true
@@ -193,6 +234,7 @@ var _ = Describe("Runner", func() {
 
 		It("does not start scanning resources", func() {
 			Expect(scanRunnerFactory.ScanResourceRunnerCallCount()).To(Equal(0))
+			Expect(scanRunnerFactory.ScanResourceTypeRunnerCallCount()).To(Equal(0))
 		})
 	})
 })

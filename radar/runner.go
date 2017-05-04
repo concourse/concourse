@@ -86,6 +86,7 @@ dance:
 			}
 
 			delete(scanning, exited.Member.Name)
+			delete(scanningResourceTypes, exited.Member.Name)
 
 		case <-ticker.C:
 			runner.tick(scanning, scanningResourceTypes, insertScanner)
