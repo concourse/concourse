@@ -35,6 +35,7 @@ files:
   - github.com/hashicorp/go-multierror/vendor/github.com/hashicorp/errwrap/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
+  - github.com/nu7hatch/gouuid/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
   - github.com/tedsuo/ifrit/sigmon/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
