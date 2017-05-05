@@ -18,6 +18,7 @@ import (
 )
 
 const taskProcessID = "task"
+const taskProcessPropertyName = "concourse:task-process"
 const taskExitStatusPropertyName = "concourse:exit-status"
 
 // MissingInputsError is returned when any of the task's required inputs are
@@ -181,7 +182,15 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return nil
 	}
 
-	step.process, err = container.Attach(taskProcessID, processIO)
+	// for backwards compatibility with containers
+	// that had their task process name set as property
+	var processID string
+	processID, err = container.Property(taskProcessPropertyName)
+	if err != nil {
+		processID = taskProcessID
+	}
+
+	step.process, err = container.Attach(processID, processIO)
 	if err == nil {
 		step.logger.Info("already-running")
 	} else {

@@ -349,11 +349,48 @@ var _ = Describe("GardenFactory", func() {
 						fakeContainer.AttachReturns(fakeProcess, nil)
 					})
 
-					It("attaches to the correct process", func() {
-						Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+					Context("when the container has task process name as its property", func() {
+						BeforeEach(func() {
+							fakeContainer.PropertyStub = func(propertyName string) (string, error) {
+								if propertyName == "concourse:exit-status" {
+									return "", errors.New("no exit status property")
+								}
+								if propertyName == "concourse:task-process" {
+									return "some-saved-task-process", nil
+								}
 
-						pid, _ := fakeContainer.AttachArgsForCall(0)
-						Expect(pid).To(Equal("task"))
+								panic("unknown property")
+							}
+						})
+
+						It("attaches to saved process name", func() {
+							Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+
+							pid, _ := fakeContainer.AttachArgsForCall(0)
+							Expect(pid).To(Equal("some-saved-task-process"))
+						})
+					})
+
+					Context("when the container does not have task process name as its property", func() {
+						BeforeEach(func() {
+							fakeContainer.PropertyStub = func(propertyName string) (string, error) {
+								if propertyName == "concourse:exit-status" {
+									return "", errors.New("no exit status property")
+								}
+								if propertyName == "concourse:task-process" {
+									return "", errors.New("property does not exist")
+								}
+
+								panic("unknown property")
+							}
+						})
+
+						It("attaches to saved process name", func() {
+							Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+
+							pid, _ := fakeContainer.AttachArgsForCall(0)
+							Expect(pid).To(Equal("task"))
+						})
 					})
 
 					It("directs the process's stdout/stderr to the io config", func() {
