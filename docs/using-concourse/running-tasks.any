@@ -108,7 +108,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   }
 
   \define-attribute{inputs: [object]}{
-    \italic{Required.} The expected set of inputs for the task.
+    \italic{Optional.} The expected set of inputs for the task.
 
     This determines which artifacts will propagate into the task, as the
     \reference{build-plans}{build plan} executes. If any specified inputs
