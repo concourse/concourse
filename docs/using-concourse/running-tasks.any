@@ -108,7 +108,13 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   }
 
   \define-attribute{inputs: [object]}{
-    \italic{Required.} The expected set of inputs for the task.
+    \italic{Optional.} The set of artifacts required by task, determining which
+    artifacts will be available in the current directory when the task runs.
+
+    These are satisfied by \reference{get-step} steps or artifacts produced by
+    \reference{outputs} of a previous task in a job's
+    \reference{build-plans}{build plan}. These can also be provided by
+    \code{-i} with \reference{fly-execute}.
 
     This determines which artifacts will propagate into the task, as the
     \reference{build-plans}{build plan} executes. If any specified inputs
