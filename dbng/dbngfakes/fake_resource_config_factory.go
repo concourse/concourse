@@ -28,6 +28,24 @@ type FakeResourceConfigFactory struct {
 		result1 *dbng.UsedResourceConfig
 		result2 error
 	}
+	FindResourceConfigStub        func(logger lager.Logger, resourceType string, source atc.Source, resourceTypes atc.VersionedResourceTypes) (*dbng.UsedResourceConfig, bool, error)
+	findResourceConfigMutex       sync.RWMutex
+	findResourceConfigArgsForCall []struct {
+		logger        lager.Logger
+		resourceType  string
+		source        atc.Source
+		resourceTypes atc.VersionedResourceTypes
+	}
+	findResourceConfigReturns struct {
+		result1 *dbng.UsedResourceConfig
+		result2 bool
+		result3 error
+	}
+	findResourceConfigReturnsOnCall map[int]struct {
+		result1 *dbng.UsedResourceConfig
+		result2 bool
+		result3 error
+	}
 	CleanConfigUsesForFinishedBuildsStub        func() error
 	cleanConfigUsesForFinishedBuildsMutex       sync.RWMutex
 	cleanConfigUsesForFinishedBuildsArgsForCall []struct{}
@@ -158,6 +176,63 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfigReturnsOnCall(i
 		result1 *dbng.UsedResourceConfig
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeResourceConfigFactory) FindResourceConfig(logger lager.Logger, resourceType string, source atc.Source, resourceTypes atc.VersionedResourceTypes) (*dbng.UsedResourceConfig, bool, error) {
+	fake.findResourceConfigMutex.Lock()
+	ret, specificReturn := fake.findResourceConfigReturnsOnCall[len(fake.findResourceConfigArgsForCall)]
+	fake.findResourceConfigArgsForCall = append(fake.findResourceConfigArgsForCall, struct {
+		logger        lager.Logger
+		resourceType  string
+		source        atc.Source
+		resourceTypes atc.VersionedResourceTypes
+	}{logger, resourceType, source, resourceTypes})
+	fake.recordInvocation("FindResourceConfig", []interface{}{logger, resourceType, source, resourceTypes})
+	fake.findResourceConfigMutex.Unlock()
+	if fake.FindResourceConfigStub != nil {
+		return fake.FindResourceConfigStub(logger, resourceType, source, resourceTypes)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fake.findResourceConfigReturns.result1, fake.findResourceConfigReturns.result2, fake.findResourceConfigReturns.result3
+}
+
+func (fake *FakeResourceConfigFactory) FindResourceConfigCallCount() int {
+	fake.findResourceConfigMutex.RLock()
+	defer fake.findResourceConfigMutex.RUnlock()
+	return len(fake.findResourceConfigArgsForCall)
+}
+
+func (fake *FakeResourceConfigFactory) FindResourceConfigArgsForCall(i int) (lager.Logger, string, atc.Source, atc.VersionedResourceTypes) {
+	fake.findResourceConfigMutex.RLock()
+	defer fake.findResourceConfigMutex.RUnlock()
+	return fake.findResourceConfigArgsForCall[i].logger, fake.findResourceConfigArgsForCall[i].resourceType, fake.findResourceConfigArgsForCall[i].source, fake.findResourceConfigArgsForCall[i].resourceTypes
+}
+
+func (fake *FakeResourceConfigFactory) FindResourceConfigReturns(result1 *dbng.UsedResourceConfig, result2 bool, result3 error) {
+	fake.FindResourceConfigStub = nil
+	fake.findResourceConfigReturns = struct {
+		result1 *dbng.UsedResourceConfig
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResourceConfigFactory) FindResourceConfigReturnsOnCall(i int, result1 *dbng.UsedResourceConfig, result2 bool, result3 error) {
+	fake.FindResourceConfigStub = nil
+	if fake.findResourceConfigReturnsOnCall == nil {
+		fake.findResourceConfigReturnsOnCall = make(map[int]struct {
+			result1 *dbng.UsedResourceConfig
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findResourceConfigReturnsOnCall[i] = struct {
+		result1 *dbng.UsedResourceConfig
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeResourceConfigFactory) CleanConfigUsesForFinishedBuilds() error {
@@ -463,6 +538,8 @@ func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} 
 	defer fake.invocationsMutex.RUnlock()
 	fake.findOrCreateResourceConfigMutex.RLock()
 	defer fake.findOrCreateResourceConfigMutex.RUnlock()
+	fake.findResourceConfigMutex.RLock()
+	defer fake.findResourceConfigMutex.RUnlock()
 	fake.cleanConfigUsesForFinishedBuildsMutex.RLock()
 	defer fake.cleanConfigUsesForFinishedBuildsMutex.RUnlock()
 	fake.cleanConfigUsesForInactiveResourceTypesMutex.RLock()

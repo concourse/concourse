@@ -364,6 +364,67 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("FindCheckContainers", func() {
+		Context("when pipeline exists", func() {
+			Context("when resource exists", func() {
+				Context("when check container for resource exists", func() {
+					var resourceContainer dbng.CreatingContainer
+
+					BeforeEach(func() {
+						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
+						Expect(err).NotTo(HaveOccurred())
+
+						usedResourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+							logger,
+							dbng.ForResource(defaultResource.ID()),
+							defaultResource.Type(),
+							defaultResource.Source(),
+							pipelineResourceTypes.Deserialize(),
+						)
+						Expect(err).NotTo(HaveOccurred())
+
+						resourceContainer, err = defaultTeam.CreateResourceCheckContainer(
+							"default-worker",
+							usedResourceConfig,
+							dbng.ContainerMetadata{},
+						)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("returns check container for resource", func() {
+						containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(containers).To(ContainElement(resourceContainer))
+					})
+				})
+
+				Context("when check container does not exist", func() {
+					It("returns empty list", func() {
+						containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(containers).To(BeEmpty())
+					})
+				})
+			})
+
+			Context("when resource does not exist", func() {
+				It("returns empty list", func() {
+					containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "non-existent-resource")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(containers).To(BeEmpty())
+				})
+			})
+		})
+
+		Context("when pipeline does not exist", func() {
+			It("returns empty list", func() {
+				containers, err := defaultTeam.FindCheckContainers(logger, "non-existent-pipeline", "some-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containers).To(BeEmpty())
+			})
+		})
+	})
+
 	Describe("FindContainerByHandle", func() {
 		var createdContainer dbng.CreatedContainer
 

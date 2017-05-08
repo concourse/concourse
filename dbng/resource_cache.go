@@ -70,6 +70,37 @@ func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
 	return true, nil
 }
 
+func (cache ResourceCache) Find(
+	logger lager.Logger,
+	tx Tx,
+) (*UsedResourceCache, bool, error) {
+	usedResourceConfig, found, err := cache.ResourceConfig.Find(logger, tx)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	id, found, err := cache.findWithResourceConfig(tx, usedResourceConfig)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	rc := &UsedResourceCache{
+		ID:             id,
+		ResourceConfig: usedResourceConfig,
+		Version:        cache.Version,
+	}
+
+	return rc, true, nil
+}
+
 func (cache ResourceCache) findOrCreate(
 	logger lager.Logger,
 	tx Tx,

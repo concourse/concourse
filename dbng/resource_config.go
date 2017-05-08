@@ -167,6 +167,59 @@ func (resourceConfig ResourceConfig) findOrCreate(logger lager.Logger, tx Tx, lo
 	return urc, nil
 }
 
+func (resourceConfig ResourceConfig) Find(logger lager.Logger, tx Tx) (*UsedResourceConfig, bool, error) {
+	urc := &UsedResourceConfig{}
+
+	var parentID int
+	var parentColumnName string
+	if resourceConfig.CreatedByResourceCache != nil {
+		parentColumnName = "resource_cache_id"
+
+		resourceCache, found, err := resourceConfig.CreatedByResourceCache.Find(logger, tx)
+		if err != nil {
+			return nil, false, err
+		}
+
+		if !found {
+			return nil, false, nil
+		}
+
+		parentID = resourceCache.ID
+
+		urc.CreatedByResourceCache = resourceCache
+	}
+
+	if resourceConfig.CreatedByBaseResourceType != nil {
+		parentColumnName = "base_resource_type_id"
+
+		var err error
+		var found bool
+		urc.CreatedByBaseResourceType, found, err = resourceConfig.CreatedByBaseResourceType.Find(tx)
+		if err != nil {
+			return nil, false, err
+		}
+
+		if !found {
+			return nil, false, nil
+		}
+
+		parentID = urc.CreatedByBaseResourceType.ID
+	}
+
+	id, found, err := resourceConfig.findWithParentID(tx, parentColumnName, parentID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	urc.ID = id
+
+	return urc, true, nil
+}
+
 func (resourceConfig ResourceConfig) lockName() (string, error) {
 	resourceConfigJSON, err := json.Marshal(resourceConfig)
 	if err != nil {

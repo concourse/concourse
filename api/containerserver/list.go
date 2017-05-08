@@ -20,7 +20,7 @@ func (s *Server) ListContainers(teamDB db.TeamDB, team dbng.Team) http.Handler {
 			"params": params,
 		})
 
-		containerMetadata, err := s.parseRequest(r)
+		containerLocator, err := createContainerLocatorFromRequest(team, r)
 		if err != nil {
 			hLog.Error("failed-to-parse-request", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -31,7 +31,7 @@ func (s *Server) ListContainers(teamDB db.TeamDB, team dbng.Team) http.Handler {
 
 		hLog.Debug("listing-containers")
 
-		containers, err := team.FindContainersByMetadata(containerMetadata)
+		containers, err := containerLocator.Locate(hLog)
 		if err != nil {
 			hLog.Error("failed-to-find-containers", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -50,51 +50,85 @@ func (s *Server) ListContainers(teamDB db.TeamDB, team dbng.Team) http.Handler {
 	})
 }
 
-func (s *Server) parseRequest(r *http.Request) (dbng.ContainerMetadata, error) {
-	var err error
+type containerLocator interface {
+	Locate(logger lager.Logger) ([]dbng.Container, error)
+}
 
+func createContainerLocatorFromRequest(team dbng.Team, r *http.Request) (containerLocator, error) {
+	query := r.URL.Query()
+
+	if query.Get("type") == "check" {
+		return &checkContainerLocator{
+			team:         team,
+			pipelineName: query.Get("pipeline_name"),
+			resourceName: query.Get("resource_name"),
+		}, nil
+	}
+
+	var err error
 	var containerType dbng.ContainerType
-	if r.URL.Query().Get("type") != "" {
-		containerType, err = dbng.ContainerTypeFromString(r.URL.Query().Get("type"))
+	if query.Get("type") != "" {
+		containerType, err = dbng.ContainerTypeFromString(query.Get("type"))
 		if err != nil {
-			return dbng.ContainerMetadata{}, err
+			return nil, err
 		}
 	}
 
-	pipelineID, err := s.parseIntParam(r, "pipeline_id")
+	pipelineID, err := parseIntParam(r, "pipeline_id")
 	if err != nil {
-		return dbng.ContainerMetadata{}, err
+		return nil, err
 	}
 
-	jobID, err := s.parseIntParam(r, "job_id")
+	jobID, err := parseIntParam(r, "job_id")
 	if err != nil {
-		return dbng.ContainerMetadata{}, err
+		return nil, err
 	}
 
-	buildID, err := s.parseIntParam(r, "build_id")
+	buildID, err := parseIntParam(r, "build_id")
 	if err != nil {
-		return dbng.ContainerMetadata{}, err
+		return nil, err
 	}
 
-	query := r.URL.Query()
+	return &stepContainerLocator{
+		team: team,
 
-	return dbng.ContainerMetadata{
-		Type: containerType,
+		metadata: dbng.ContainerMetadata{
+			Type: containerType,
 
-		StepName: query.Get("step_name"),
-		Attempt:  query.Get("attempt"),
+			StepName: query.Get("step_name"),
+			Attempt:  query.Get("attempt"),
 
-		PipelineID: pipelineID,
-		JobID:      jobID,
-		BuildID:    buildID,
+			PipelineID: pipelineID,
+			JobID:      jobID,
+			BuildID:    buildID,
 
-		PipelineName: query.Get("pipeline_name"),
-		JobName:      query.Get("job_name"),
-		BuildName:    query.Get("build_name"),
+			PipelineName: query.Get("pipeline_name"),
+			JobName:      query.Get("job_name"),
+			BuildName:    query.Get("build_name"),
+		},
 	}, nil
 }
 
-func (s *Server) parseIntParam(r *http.Request, name string) (int, error) {
+type checkContainerLocator struct {
+	team         dbng.Team
+	pipelineName string
+	resourceName string
+}
+
+func (l *checkContainerLocator) Locate(logger lager.Logger) ([]dbng.Container, error) {
+	return l.team.FindCheckContainers(logger, l.pipelineName, l.resourceName)
+}
+
+type stepContainerLocator struct {
+	team     dbng.Team
+	metadata dbng.ContainerMetadata
+}
+
+func (l *stepContainerLocator) Locate(logger lager.Logger) ([]dbng.Container, error) {
+	return l.team.FindContainersByMetadata(l.metadata)
+}
+
+func parseIntParam(r *http.Request, name string) (int, error) {
 	var val int
 	param := r.URL.Query().Get(name)
 	if len(param) != 0 {

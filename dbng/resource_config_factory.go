@@ -29,6 +29,13 @@ type ResourceConfigFactory interface {
 		resourceTypes atc.VersionedResourceTypes,
 	) (*UsedResourceConfig, error)
 
+	FindResourceConfig(
+		logger lager.Logger,
+		resourceType string,
+		source atc.Source,
+		resourceTypes atc.VersionedResourceTypes,
+	) (*UsedResourceConfig, bool, error)
+
 	CleanConfigUsesForFinishedBuilds() error
 	CleanConfigUsesForInactiveResourceTypes() error
 	CleanConfigUsesForInactiveResources() error
@@ -55,6 +62,42 @@ func NewResourceConfigFactory(conn Conn, lockFactory lock.LockFactory) ResourceC
 		conn:        conn,
 		lockFactory: lockFactory,
 	}
+}
+
+func (f *resourceConfigFactory) FindResourceConfig(
+	logger lager.Logger,
+	resourceType string,
+	source atc.Source,
+	resourceTypes atc.VersionedResourceTypes,
+) (*UsedResourceConfig, bool, error) {
+	resourceConfig, err := constructResourceConfig(resourceType, source, resourceTypes)
+	if err != nil {
+		return nil, false, err
+	}
+
+	var usedResourceConfig *UsedResourceConfig
+
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+	defer tx.Rollback()
+
+	usedResourceConfig, found, err := resourceConfig.Find(logger, tx)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return usedResourceConfig, true, nil
 }
 
 func (f *resourceConfigFactory) FindOrCreateResourceConfig(

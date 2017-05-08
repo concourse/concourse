@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"code.cloudfoundry.org/lager"
+
 	"golang.org/x/crypto/bcrypt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -53,6 +55,7 @@ type Team interface {
 
 	FindContainerByHandle(string) (Container, bool, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
+	FindCheckContainers(lager.Logger, string, string) ([]Container, error)
 
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 
@@ -395,6 +398,77 @@ func (t *team) FindContainersByMetadata(metadata ContainerMetadata) ([]Container
 
 	rows, err := selectContainers().
 		Where(eq).
+		RunWith(t.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var containers []Container
+	for rows.Next() {
+		creating, created, destroying, err := scanContainer(rows, t.conn)
+		if err != nil {
+			return nil, err
+		}
+
+		if creating != nil {
+			containers = append(containers, creating)
+		}
+
+		if created != nil {
+			containers = append(containers, created)
+		}
+
+		if destroying != nil {
+			containers = append(containers, destroying)
+		}
+	}
+
+	return containers, nil
+}
+
+func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string) ([]Container, error) {
+	pipeline, found, err := t.Pipeline(pipelineName)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return []Container{}, nil
+	}
+
+	resource, found, err := pipeline.Resource(resourceName)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return []Container{}, nil
+	}
+
+	pipelineResourceTypes, err := pipeline.ResourceTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	resourceConfigFactory := NewResourceConfigFactory(t.conn, t.lockFactory)
+	resourceConfig, found, err := resourceConfigFactory.FindResourceConfig(
+		logger,
+		resource.Type(),
+		resource.Source(),
+		pipelineResourceTypes.Deserialize(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return []Container{}, nil
+	}
+
+	rows, err := selectContainers().
+		Where(sq.Eq{
+			"resource_config_id": resourceConfig.ID,
+		}).
 		RunWith(t.conn).
 		Query()
 	if err != nil {
