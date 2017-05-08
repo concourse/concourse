@@ -18,6 +18,7 @@ type Worker struct {
 	Tags      []string `json:"tags"`
 	Team      string   `json:"team"`
 	Name      string   `json:"name"`
+	Version   string   `json:"version"`
 	StartTime int64    `json:"start_time"`
 	State     string   `json:"state"`
 }

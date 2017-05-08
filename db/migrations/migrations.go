@@ -157,4 +157,5 @@ var Migrations = []migration.Migrator{
 	CleanUpContainerColumns,
 	AddAuthToTeams,
 	RemoveCertificatesPathToWorkers,
+	AddVersionToWorkers,
 }

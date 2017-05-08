@@ -32,6 +32,7 @@ func NewWorkerFactory(conn Conn) WorkerFactory {
 
 var workersQuery = psql.Select(`
 		w.name,
+		w.version,
 		w.addr,
 		w.state,
 		w.baggageclaim_url,
@@ -99,6 +100,7 @@ func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
 
 func scanWorker(worker *worker, row scannable) error {
 	var (
+		version       sql.NullString
 		addStr        sql.NullString
 		state         string
 		bcURLStr      sql.NullString
@@ -116,6 +118,7 @@ func scanWorker(worker *worker, row scannable) error {
 
 	err := row.Scan(
 		&worker.name,
+		&version,
 		&addStr,
 		&state,
 		&bcURLStr,
@@ -133,6 +136,10 @@ func scanWorker(worker *worker, row scannable) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	if version.Valid {
+		worker.version = &version.String
 	}
 
 	if addStr.Valid {
@@ -317,6 +324,11 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		workerState = WorkerStateRunning
 	}
 
+	var workerVersion *string
+	if atcWorker.Version != "" {
+		workerVersion = &atcWorker.Version
+	}
+
 	err = psql.Select("team_id").From("workers").Where(sq.Eq{
 		"name": atcWorker.Name,
 	}).RunWith(tx).QueryRow().Scan(&oldTeamID)
@@ -336,6 +348,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 					"https_proxy_url",
 					"no_proxy",
 					"name",
+					"version",
 					"start_time",
 					"team_id",
 					"state",
@@ -352,6 +365,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 					atcWorker.HTTPSProxyURL,
 					atcWorker.NoProxy,
 					atcWorker.Name,
+					workerVersion,
 					atcWorker.StartTime,
 					teamID,
 					string(workerState),
@@ -382,6 +396,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			Set("https_proxy_url", atcWorker.HTTPSProxyURL).
 			Set("no_proxy", atcWorker.NoProxy).
 			Set("name", atcWorker.Name).
+			Set("version", workerVersion).
 			Set("start_time", atcWorker.StartTime).
 			Set("state", string(workerState)).
 			Where(sq.Eq{
@@ -401,6 +416,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 
 	savedWorker := &worker{
 		name:             atcWorker.Name,
+		version:          workerVersion,
 		state:            workerState,
 		gardenAddr:       &atcWorker.GardenAddr,
 		baggageclaimURL:  &atcWorker.BaggageclaimURL,

@@ -92,15 +92,33 @@ var _ = Describe("WorkerFactory", func() {
 					Expect(savedWorker.State()).To(Equal(dbng.WorkerStateRunning))
 				})
 			})
+
+			Context("when worker has a new version", func() {
+				BeforeEach(func() {
+					atcWorker.Version = "1.0.0"
+				})
+
+				It("updates the version of the worker", func() {
+					savedWorker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(worker.Version()).To(BeNil())
+					Expect(*savedWorker.Version()).To(Equal("1.0.0"))
+				})
+			})
 		})
 
 		Context("no worker with same name exists", func() {
+			BeforeEach(func() {
+				atcWorker.Version = "1.0.0"
+			})
+
 			It("saves worker", func() {
 				savedWorker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedWorker.Name()).To(Equal("some-name"))
 				Expect(*savedWorker.GardenAddr()).To(Equal("some-garden-addr"))
 				Expect(savedWorker.State()).To(Equal(dbng.WorkerStateRunning))
+				Expect(*savedWorker.Version()).To(Equal("1.0.0"))
 			})
 
 			It("saves worker resource types as base resource types", func() {

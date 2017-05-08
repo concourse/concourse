@@ -28,6 +28,7 @@ const (
 
 type Worker interface {
 	Name() string
+	Version() *string
 	State() WorkerState
 	GardenAddr() *string
 	BaggageclaimURL() *string
@@ -55,6 +56,7 @@ type worker struct {
 	conn Conn
 
 	name             string
+	version          *string
 	state            WorkerState
 	gardenAddr       *string
 	baggageclaimURL  *string
@@ -72,6 +74,7 @@ type worker struct {
 }
 
 func (worker *worker) Name() string                            { return worker.name }
+func (worker *worker) Version() *string                        { return worker.version }
 func (worker *worker) State() WorkerState                      { return worker.state }
 func (worker *worker) GardenAddr() *string                     { return worker.gardenAddr }
 func (worker *worker) BaggageclaimURL() *string                { return worker.baggageclaimURL }

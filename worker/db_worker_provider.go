@@ -77,7 +77,9 @@ func (provider *dbWorkerProvider) RunningWorkers() ([]Worker, error) {
 
 	for _, savedWorker := range savedWorkers {
 		if savedWorker.State() == dbng.WorkerStateRunning {
-			workers = append(workers, provider.newGardenWorker(tikTok, savedWorker))
+			if savedWorker.Version() != nil {
+				workers = append(workers, provider.newGardenWorker(tikTok, savedWorker))
+			}
 		}
 	}
 
