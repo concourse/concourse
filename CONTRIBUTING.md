@@ -51,11 +51,10 @@ requests are the way to go.
 ## Finding things to work on
 
 If you're a generous soul that just wants to give back to the community, but
-don't know where to start, check out the [`help
-wanted`](https://github.com/issues?q=is%3Aopen+is%3Aissue+user%3Aconcourse+label%3A%22help+wanted%22)
-label! We'll typically apply this label to things that we think are valuable
-but don't have the bandwidth to tackle ourselves. They'll usually be small
-changes that a contributor could start with.
+don't know where to start, check out the [Help Wanted](https://github.com/concourse/concourse/milestone/6)
+milestone! We'll typically add things to this milestone that we think are
+valuable but don't have the bandwidth to tackle ourselves. They'll usually
+be small changes that a contributor could start with.
 
 ## Submitting Pull Requests
 
