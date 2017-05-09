@@ -6,6 +6,10 @@
 
 [by](https://creativecommons.org/licenses/by-nc-nd/2.0/) [NATS Press Office](https://www.flickr.com/photos/natspressoffice/)
 
+## reporting issues and requesting features
+
+please report all issues and feature requests in [concourse/concourse](https://github.com/concourse/concourse/issues)
+
 ## about
 
 *atc* is the brain of Concourse. It's responsible for scheduling builds across
