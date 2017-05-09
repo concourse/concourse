@@ -468,6 +468,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 	rows, err := selectContainers().
 		Where(sq.Eq{
 			"resource_config_id": resourceConfig.ID,
+			"team_id":            t.id,
 		}).
 		RunWith(t.conn).
 		Query()

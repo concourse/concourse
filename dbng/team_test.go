@@ -369,12 +369,13 @@ var _ = Describe("Team", func() {
 			Context("when resource exists", func() {
 				Context("when check container for resource exists", func() {
 					var resourceContainer dbng.CreatingContainer
+					var usedResourceConfig *dbng.UsedResourceConfig
 
 					BeforeEach(func() {
 						pipelineResourceTypes, err := defaultPipeline.ResourceTypes()
 						Expect(err).NotTo(HaveOccurred())
 
-						usedResourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+						usedResourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 							logger,
 							dbng.ForResource(defaultResource.ID()),
 							defaultResource.Type(),
@@ -395,6 +396,24 @@ var _ = Describe("Team", func() {
 						containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource")
 						Expect(err).NotTo(HaveOccurred())
 						Expect(containers).To(ContainElement(resourceContainer))
+					})
+
+					Context("when another team has a container with the same resource config", func() {
+						BeforeEach(func() {
+							_, err := otherTeam.CreateResourceCheckContainer(
+								"default-worker",
+								usedResourceConfig,
+								dbng.ContainerMetadata{},
+							)
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("only returns container for current team", func() {
+							containers, err := defaultTeam.FindCheckContainers(logger, "default-pipeline", "some-resource")
+							Expect(err).NotTo(HaveOccurred())
+							Expect(containers).To(HaveLen(1))
+							Expect(containers).To(ContainElement(resourceContainer))
+						})
 					})
 				})
 
