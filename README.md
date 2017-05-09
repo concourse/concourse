@@ -6,9 +6,13 @@
 
 by [stuckincustoms](https://www.flickr.com/photos/stuckincustoms/3768304342)
 
+## reporting issues and requesting features
+
+please report all issues and feature requests in [concourse/concourse](https://github.com/concourse/concourse/issues)
+
 ## about
 
-*TSA* is the new way of allowing workers to join a Concourse deployment. It provides authentication and transport encryption (if required). Worker machines can `ssh` into *TSA* with a custom command to register or have traffic forwarded to them. Once an SSH session has been established then *TSA* begins to automatically heartbeat information about the worker into the ATC's pool.
+*TSA* is the way workers securely register to join a Concourse deployment. It provides authentication and transport encryption (if required). Worker machines can `ssh` into *TSA* with a custom command to register or have traffic forwarded to them. Once an SSH session has been established then *TSA* begins to automatically heartbeat information about the worker into the ATC's pool.
 
 The main advantage that this provides over the old style of registration is that Workers no longer need to be internet routable in order to have the ATC reach them. They open a reverse tunnel through the *TSA* which, when collocated with ATC, is far more likely to be easily routable. This also allows for simpler setup and better security as before you either had to expose your Garden server publicly or set up some interesting custom security if the workers and ATC were not in the same private network.
 
