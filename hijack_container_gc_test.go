@@ -128,8 +128,6 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 	})
 
 	It("does not delete hijacked resource containers from the database, and sets a 5 minute TTL on the container in garden", func() {
-		Skip("skipping until hijacking to check containers is fixed #139984521")
-
 		By("setting the pipeline that has a build")
 		fly("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "hijacked-resource-test")
 		fly("unpause-pipeline", "-p", "hijacked-resource-test")
@@ -154,7 +152,7 @@ var _ = Describe(":life [#129726125] Hijacked containers", func() {
 		hijackSession.Interrupt()
 		<-hijackSession.Exited
 
-		Eventually(getContainer("type", "check"), 40*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
+		Eventually(getContainer("type", "check"), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
 	})
 })
 
