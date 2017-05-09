@@ -7,6 +7,10 @@ A command line interface that runs a build in a container with [ATC](https://git
 A good place to start learning about Concourse is [its documentation](http://concourse.ci/introduction.html)
 or its [BOSH release](https://github.com/concourse/concourse).
 
+## Reporting Issues and Requesting Features
+
+Please report all issues and feature requests in [concourse/concourse](https://github.com/concourse/concourse/issues).
+
 ## Building
 
 Fly is built using [Go](http://golang.org/). Building and testing fly is most easily done from a checkout of [concourse](https://github.com/concourse/concourse).
