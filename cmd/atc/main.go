@@ -6,12 +6,6 @@ import (
 
 	"github.com/concourse/atc/atccmd"
 	"github.com/jessevdk/go-flags"
-
-	_ "github.com/concourse/atc/auth/genericoauth"
-	_ "github.com/concourse/atc/auth/github"
-	_ "github.com/concourse/atc/auth/uaa"
-
-	_ "github.com/concourse/atc/metric/emitter"
 )
 
 func main() {

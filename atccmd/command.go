@@ -54,10 +54,16 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/xoebus/zest"
 
-	_ "github.com/concourse/atc/auth/genericoauth"
-	_ "github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
+
+	// dynamically registered auth providers
+	_ "github.com/concourse/atc/auth/genericoauth"
+	_ "github.com/concourse/atc/auth/github"
+	_ "github.com/concourse/atc/auth/uaa"
+
+	// dynamically registered metric emitters
+	_ "github.com/concourse/atc/metric/emitter"
 )
 
 type ATCCommand struct {

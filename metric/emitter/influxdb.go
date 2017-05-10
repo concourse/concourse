@@ -2,7 +2,6 @@ package emitter
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/atccmd"
 	"github.com/concourse/atc/metric"
 
 	influxclient "github.com/influxdata/influxdb/client/v2"
@@ -14,7 +13,7 @@ type InfluxDBEmitter struct {
 }
 
 type InfluxDBConfig struct {
-	URL atccmd.URLFlag `long:"influxdb-url" description:"InfluxDB server address to emit points to."`
+	URL string `long:"influxdb-url" description:"InfluxDB server address to emit points to."`
 
 	Database string `long:"influxdb-database" description:"InfluxDB database to write points to."`
 
@@ -29,11 +28,11 @@ func init() {
 }
 
 func (config *InfluxDBConfig) Description() string { return "InfluxDB" }
-func (config *InfluxDBConfig) IsConfigured() bool  { return config.URL.String() != "" }
+func (config *InfluxDBConfig) IsConfigured() bool  { return config.URL != "" }
 
 func (config *InfluxDBConfig) NewEmitter() metric.Emitter {
 	client, _ := influxclient.NewHTTPClient(influxclient.HTTPConfig{
-		Addr:               config.URL.String(),
+		Addr:               config.URL,
 		Username:           config.Username,
 		Password:           config.Password,
 		InsecureSkipVerify: config.InsecureSkipVerify,
