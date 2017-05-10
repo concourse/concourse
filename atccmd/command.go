@@ -109,7 +109,6 @@ type ATCCommand struct {
 
 	Metrics struct {
 		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`
-		Tags       []string          `long:"metrics-tag"         description:"Tag to attach to emitted metrics. Can be specified multiple times." value-name:"TAG"`
 		Attributes map[string]string `long:"metrics-attribute"   description:"A key-value attribute to attach to emitted metrics. Can be specified multiple times." value-name:"NAME:VALUE"`
 
 		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
@@ -632,7 +631,7 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 		host, _ = os.Hostname()
 	}
 
-	metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Tags, cmd.Metrics.Attributes)
+	metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes)
 }
 
 func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn, error) {

@@ -14,10 +14,8 @@ type Event struct {
 	Value      interface{}
 	State      EventState
 	Attributes map[string]string
-
-	Host string
-	Time int64
-	Tags []string
+	Host       string
+	Time       time.Time
 }
 
 type EventState string
@@ -53,7 +51,6 @@ func WireEmitters(group *flags.Group) {
 
 var emitter Emitter
 var eventHost string
-var eventTags []string
 var eventAttributes map[string]string
 
 type eventEmission struct {
@@ -63,7 +60,7 @@ type eventEmission struct {
 
 var emissions = make(chan eventEmission, 1000)
 
-func Initialize(logger lager.Logger, host string, tags []string, attributes map[string]string) {
+func Initialize(logger lager.Logger, host string, attributes map[string]string) {
 	for _, factory := range emitterFactories {
 		if factory.IsConfigured() {
 			emitter = factory.NewEmitter()
@@ -76,7 +73,6 @@ func Initialize(logger lager.Logger, host string, tags []string, attributes map[
 
 	emitter = emitter
 	eventHost = host
-	eventTags = tags
 	eventAttributes = attributes
 
 	go emitLoop()
@@ -88,8 +84,7 @@ func emit(logger lager.Logger, event Event) {
 	}
 
 	event.Host = eventHost
-	event.Time = time.Now().Unix()
-	event.Tags = append(event.Tags, eventTags...)
+	event.Time = time.Now()
 
 	mergedAttributes := map[string]string{}
 	for k, v := range eventAttributes {

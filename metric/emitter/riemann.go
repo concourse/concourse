@@ -14,12 +14,16 @@ type RiemannEmitter struct {
 	connected bool
 
 	servicePrefix string
+	tags          []string
 }
 
 type RiemannConfig struct {
-	Host          string `long:"riemann-host"                          description:"Riemann server address to emit metrics to."`
-	Port          uint16 `long:"riemann-port"           default:"5555" description:"Port of the Riemann server to emit metrics to."`
-	ServicePrefix string `long:"riemann-service-prefix" default:""     description:"An optional prefix for emitted Riemann services"`
+	Host string `long:"riemann-host"                  description:"Riemann server address to emit metrics to."`
+	Port uint16 `long:"riemann-port"  default:"5555"  description:"Port of the Riemann server to emit metrics to."`
+
+	ServicePrefix string `long:"riemann-service-prefix" default:"" description:"An optional prefix for emitted Riemann services"`
+
+	Tags []string `long:"riemann-tag" description:"Tag to attach to emitted metrics. Can be specified multiple times." value-name:"TAG"`
 }
 
 func init() {
@@ -35,6 +39,7 @@ func (config *RiemannConfig) NewEmitter() metric.Emitter {
 		connected: false,
 
 		servicePrefix: config.ServicePrefix,
+		tags:          config.Tags,
 	}
 }
 
@@ -56,8 +61,9 @@ func (emitter *RiemannEmitter) Emit(logger lager.Logger, event metric.Event) {
 		Attributes: event.Attributes,
 
 		Host: event.Host,
-		Time: event.Time,
-		Tags: event.Tags,
+		Time: event.Time.Unix(),
+
+		Tags: emitter.tags,
 	})
 	if err != nil {
 		logger.Error("failed-to-emit", err)
