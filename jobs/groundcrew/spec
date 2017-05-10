@@ -20,6 +20,7 @@ packages:
   - generated_worker_key
   - resource_discovery
   - groundcrew
+  - worker_version
 
   # colocate base resources
   - archive_resource
