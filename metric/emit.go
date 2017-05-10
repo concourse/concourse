@@ -83,8 +83,6 @@ func Initialize(logger lager.Logger, host string, tags []string, attributes map[
 }
 
 func emit(logger lager.Logger, event Event) {
-	logger.Debug("emit")
-
 	if emitter == nil {
 		return
 	}

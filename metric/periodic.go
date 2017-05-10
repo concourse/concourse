@@ -18,9 +18,7 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 		databaseConnections := DatabaseConnections.Max()
 
 		emit(
-			tLog.Session("database-queries", lager.Data{
-				"count": databaseQueries,
-			}),
+			tLog.Session("database-queries"),
 			Event{
 				Name:  "database queries",
 				Value: databaseQueries,
@@ -29,9 +27,7 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 		)
 
 		emit(
-			tLog.Session("database-connections", lager.Data{
-				"count": databaseConnections,
-			}),
+			tLog.Session("database-connections"),
 			Event{
 				Name:  "database connections",
 				Value: databaseConnections,
@@ -43,9 +39,7 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 		runtime.ReadMemStats(&memStats)
 
 		emit(
-			tLog.Session("gc-pause-total-duration", lager.Data{
-				"ns": memStats.PauseTotalNs,
-			}),
+			tLog.Session("gc-pause-total-duration"),
 			Event{
 				Name:  "gc pause total duration",
 				Value: int(memStats.PauseTotalNs),
@@ -54,9 +48,7 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 		)
 
 		emit(
-			tLog.Session("mallocs", lager.Data{
-				"count": memStats.Mallocs,
-			}),
+			tLog.Session("mallocs"),
 			Event{
 				Name:  "mallocs",
 				Value: int(memStats.Mallocs),
@@ -65,9 +57,7 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 		)
 
 		emit(
-			tLog.Session("frees", lager.Data{
-				"count": memStats.Frees,
-			}),
+			tLog.Session("frees"),
 			Event{
 				Name:  "frees",
 				Value: int(memStats.Frees),
@@ -76,9 +66,7 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) {
 		)
 
 		emit(
-			tLog.Session("goroutines", lager.Data{
-				"count": runtime.NumGoroutine(),
-			}),
+			tLog.Session("goroutines"),
 			Event{
 				Name:  "goroutines",
 				Value: int(runtime.NumGoroutine()),

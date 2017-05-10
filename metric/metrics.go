@@ -28,11 +28,7 @@ func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 	}
 
 	emit(
-		logger.Session("full-scheduling-duration", lager.Data{
-			"pipeline": event.PipelineName,
-			"duration": event.Duration.String(),
-		}),
-
+		logger.Session("full-scheduling-duration"),
 		Event{
 			Name:  "scheduling: full duration (ms)",
 			Value: ms(event.Duration),
@@ -61,10 +57,7 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 	}
 
 	emit(
-		logger.Session("loading-versions-duration", lager.Data{
-			"pipeline": event.PipelineName,
-			"duration": event.Duration.String(),
-		}),
+		logger.Session("loading-versions-duration"),
 		Event{
 			Name:  "scheduling: loading versions duration (ms)",
 			Value: ms(event.Duration),
@@ -94,11 +87,7 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 	}
 
 	emit(
-		logger.Session("job-scheduling-duration", lager.Data{
-			"pipeline": event.PipelineName,
-			"job":      event.JobName,
-			"duration": event.Duration.String(),
-		}),
+		logger.Session("job-scheduling-duration"),
 		Event{
 			Name:  "scheduling: job duration (ms)",
 			Value: ms(event.Duration),
@@ -118,10 +107,7 @@ type WorkerContainers struct {
 
 func (event WorkerContainers) Emit(logger lager.Logger) {
 	emit(
-		logger.Session("worker-containers", lager.Data{
-			"worker":     event.WorkerName,
-			"containers": event.Containers,
-		}),
+		logger.Session("worker-containers"),
 		Event{
 			Name:  "worker containers",
 			Value: event.Containers,
@@ -142,12 +128,7 @@ type BuildStarted struct {
 
 func (event BuildStarted) Emit(logger lager.Logger) {
 	emit(
-		logger.Session("build-started", lager.Data{
-			"pipeline":   event.PipelineName,
-			"job":        event.JobName,
-			"build-name": event.BuildName,
-			"build-id":   event.BuildID,
-		}),
+		logger.Session("build-started"),
 		Event{
 			Name:  "build started",
 			Value: event.BuildID,
@@ -173,13 +154,7 @@ type BuildFinished struct {
 
 func (event BuildFinished) Emit(logger lager.Logger) {
 	emit(
-		logger.Session("build-finished", lager.Data{
-			"pipeline":     event.PipelineName,
-			"job":          event.JobName,
-			"build-name":   event.BuildName,
-			"build-id":     event.BuildID,
-			"build-status": event.BuildStatus,
-		}),
+		logger.Session("build-finished"),
 		Event{
 			Name:  "build finished",
 			Value: ms(event.BuildDuration),
@@ -218,11 +193,7 @@ func (event HTTPResponseTime) Emit(logger lager.Logger) {
 	}
 
 	emit(
-		logger.Session("http-response-time", lager.Data{
-			"route":    event.Route,
-			"path":     event.Path,
-			"duration": event.Duration.String(),
-		}),
+		logger.Session("http-response-time"),
 		Event{
 			Name:  "http response time",
 			Value: ms(event.Duration),
