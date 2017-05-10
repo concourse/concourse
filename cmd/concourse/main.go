@@ -6,11 +6,6 @@ import (
 
 	flags "github.com/jessevdk/go-flags"
 	"github.com/vito/twentythousandtonnesofcrudeoil"
-
-	_ "github.com/concourse/atc/auth/genericoauth"
-	_ "github.com/concourse/atc/auth/github"
-	"github.com/concourse/atc/auth/provider"
-	_ "github.com/concourse/atc/auth/uaa"
 )
 
 // overridden via linker flags
@@ -29,28 +24,11 @@ func main() {
 
 	cmd.lessenRequirements(parser)
 
-	groups := parser.Command.Find("web").Groups()
-	var authGroup *flags.Group
-
-	for _, group := range groups {
-		if group.ShortDescription == "Authentication" {
-			authGroup = group
-			break
-		}
-	}
-
-	authConfigs := make(provider.AuthConfigs)
-
-	for name, p := range provider.GetProviders() {
-		authConfigs[name] = p.AddAuthGroup(authGroup)
-	}
+	cmd.Web.WireDynamicFlags(parser.Command.Find("web"))
 
 	twentythousandtonnesofcrudeoil.TheEnvironmentIsPerfectlySafe(parser, "CONCOURSE_")
 
 	_, err := parser.Parse()
-
-	cmd.Web.ProviderAuth = authConfigs
-
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
