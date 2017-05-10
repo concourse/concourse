@@ -47,6 +47,7 @@ import (
 	"github.com/concourse/retryhttp"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/lib/pq"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -129,6 +130,28 @@ type ATCCommand struct {
 	GCInterval time.Duration `long:"gc-interval" default:"30s" description:"Interval on which to perform garbage collection."`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
+}
+
+func (cmd *ATCCommand) WireDynamicFlags(parser *flags.Parser) {
+	groups := parser.Command.Groups()
+
+	var authGroup *flags.Group
+
+	for _, group := range groups {
+		for _, subGroup := range group.Groups() {
+			if subGroup.ShortDescription == "Authentication" {
+				authGroup = subGroup
+			}
+		}
+	}
+
+	authConfigs := make(provider.AuthConfigs)
+
+	for name, p := range provider.GetProviders() {
+		authConfigs[name] = p.AddAuthGroup(authGroup)
+	}
+
+	cmd.ProviderAuth = authConfigs
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
