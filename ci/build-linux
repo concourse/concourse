@@ -6,6 +6,7 @@ export GOPATH=$PWD/concourse:$PWD/garden-runc-release
 export PATH=$PWD/concourse/bin:$PWD/garden-runc-release:$PATH
 
 FINAL_VERSION="$(cat $PWD/final-version/version)"
+WORKER_VERSION="$(cat $PWD/concourse/src/worker-version/version)"
 
 mkdir cli-artifacts
 mv fly-rc/fly_* cli-artifacts
@@ -19,6 +20,6 @@ go-bindata -nomemcopy -pkg bindata -o concourse/src/github.com/concourse/bin/bin
 # must be build with 'daemon' flag because of docker packages :|
 go build \
   -tags daemon \
-  -ldflags "-X main.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.Version=${FINAL_VERSION}" \
+  -ldflags "-X main.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.WorkerVersion=${WORKER_VERSION} -X main.WorkerVersion=${WORKER_VERSION}" \
   -o binary/concourse_linux_amd64 \
   github.com/concourse/bin/cmd/concourse

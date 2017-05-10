@@ -54,6 +54,8 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		return err
 	}
 
+	worker.Version = WorkerVersion
+
 	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"))
 	if err != nil {
 		return err

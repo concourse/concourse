@@ -9,6 +9,7 @@ export GOPATH=$PWD/gopath:$PWD/concourse:$PWD/gopath/src/github.com/vito/houdini
 export PATH=$PWD/gopath/bin:$PATH
 
 FINAL_VERSION="$(cat $PWD/final-version/version)"
+WORKER_VERSION="$(cat $PWD/concourse/src/worker-version/version)"
 
 mkdir cli-artifacts
 mv fly-rc/fly_* cli-artifacts
@@ -20,6 +21,6 @@ go build -o go-bindata github.com/jteeuwen/go-bindata/go-bindata
 ./go-bindata -pkg bindata -o gopath/src/github.com/concourse/bin/bindata/bindata.go cli-artifacts/...
 
 go build \
-  -ldflags "-X main.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.Version=${FINAL_VERSION}" \
+  -ldflags "-X main.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.Version=${FINAL_VERSION} -X github.com/concourse/atc/atccmd.WorkerVersion=${WORKER_VERSION} -X main.WorkerVersion=${WORKER_VERSION}" \
   -o binary/concourse_darwin_amd64 \
   github.com/concourse/bin/cmd/concourse
