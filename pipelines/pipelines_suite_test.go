@@ -225,14 +225,7 @@ func flyWatch(jobName string, buildName ...string) *gexec.Session {
 }
 
 func triggerJob(jobName string) *gexec.Session {
-	return start(exec.Command(
-		flyBin,
-		"-t",
-		targetedConcourse,
-		"trigger-job",
-		"-j", pipelineName+"/"+jobName,
-		"-w",
-	))
+	return triggerPipelineJob(pipelineName, jobName)
 }
 
 func abortBuild(jobName string, build int) {
