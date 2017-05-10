@@ -661,15 +661,18 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 }
 
 func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn, error) {
-	driverName := "connection-counting"
-	metric.SetupConnectionCountingDriver("postgres", cmd.Postgres.ConnectionString(), driverName)
+	connectionCountingDriverName := "connection-counting"
+	metric.SetupConnectionCountingDriver("postgres", cmd.Postgres.ConnectionString(), connectionCountingDriverName)
 
-	dbngConn, err := dbng.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString())
+	retryingDriverName := "too-many-connections-retrying"
+	dbng.SetupConnectionRetryingDriver(connectionCountingDriverName, cmd.Postgres.ConnectionString(), retryingDriverName)
+
+	dbngConn, err := dbng.Open(logger.Session("db"), retryingDriverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
 
-	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.Postgres.ConnectionString())
+	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), retryingDriverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
