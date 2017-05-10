@@ -2,7 +2,6 @@ package worker
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -27,22 +26,6 @@ type LockDB interface {
 }
 
 var ErrDesiredWorkerNotRunning = errors.New("desired garden worker is not known to be running")
-
-type ErrWorkerVersionIncompatible struct {
-	HaveWorkerVersion *string
-	WantWorkerVersion version.Version
-}
-
-func (err ErrWorkerVersionIncompatible) Error() string {
-	if err.HaveWorkerVersion == nil {
-		return fmt.Sprintf("worker version is nil (want %s)",
-			err.WantWorkerVersion.String())
-	}
-
-	return fmt.Sprintf("worker version is incompatible (have %s, want %s)",
-		*err.HaveWorkerVersion,
-		err.WantWorkerVersion.String())
-}
 
 type dbWorkerProvider struct {
 	lockDB                          LockDB
@@ -99,8 +82,8 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 		}
 
 		workerLog := logger.Session("running-worker")
-		worker, err := provider.newGardenWorker(workerLog, tikTok, savedWorker)
-		if err != nil {
+		worker := provider.newGardenWorker(workerLog, tikTok, savedWorker)
+		if !worker.IsVersionCompatible(workerLog, provider.workerVersion) {
 			continue
 		}
 
@@ -110,32 +93,12 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 	return workers, nil
 }
 
-func (provider *dbWorkerProvider) GetWorker(logger lager.Logger, name string) (Worker, bool, error) {
-	savedWorker, found, err := provider.dbWorkerFactory.GetWorker(name)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	if savedWorker.State() == dbng.WorkerStateStalled ||
-		savedWorker.State() == dbng.WorkerStateLanded {
-		return nil, false, ErrDesiredWorkerNotRunning
-	}
-
-	tikTok := clock.NewClock()
-
-	worker, err := provider.newGardenWorker(logger.Session("worker-by-name"), tikTok, savedWorker)
-	return worker, found, err
-}
-
 func (provider *dbWorkerProvider) FindWorkerForContainer(
 	logger lager.Logger,
 	teamID int,
 	handle string,
 ) (Worker, bool, error) {
+	logger = logger.Session("worker-for-container")
 	team := provider.dbTeamFactory.GetByID(teamID)
 
 	dbWorker, found, err := team.FindWorkerForContainer(handle)
@@ -147,7 +110,10 @@ func (provider *dbWorkerProvider) FindWorkerForContainer(
 		return nil, false, nil
 	}
 
-	worker, err := provider.newGardenWorker(logger.Session("worker-for-container"), clock.NewClock(), dbWorker)
+	worker := provider.newGardenWorker(logger, clock.NewClock(), dbWorker)
+	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
+		return nil, false, nil
+	}
 	return worker, true, err
 }
 
@@ -157,6 +123,7 @@ func (provider *dbWorkerProvider) FindWorkerForBuildContainer(
 	buildID int,
 	planID atc.PlanID,
 ) (Worker, bool, error) {
+	logger = logger.Session("worker-for-build")
 	team := provider.dbTeamFactory.GetByID(teamID)
 
 	dbWorker, found, err := team.FindWorkerForBuildContainer(buildID, planID)
@@ -168,7 +135,10 @@ func (provider *dbWorkerProvider) FindWorkerForBuildContainer(
 		return nil, false, nil
 	}
 
-	worker, err := provider.newGardenWorker(logger.Session("worker-for-build"), clock.NewClock(), dbWorker)
+	worker := provider.newGardenWorker(logger, clock.NewClock(), dbWorker)
+	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
+		return nil, false, nil
+	}
 	return worker, true, err
 }
 
@@ -180,6 +150,7 @@ func (provider *dbWorkerProvider) FindWorkerForResourceCheckContainer(
 	resourceSource atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
 ) (Worker, bool, error) {
+	logger = logger.Session("worker-for-resource-check")
 	team := provider.dbTeamFactory.GetByID(teamID)
 
 	config, err := provider.dbResourceConfigFactory.FindOrCreateResourceConfig(logger, resourceUser, resourceType, resourceSource, resourceTypes)
@@ -196,21 +167,15 @@ func (provider *dbWorkerProvider) FindWorkerForResourceCheckContainer(
 		return nil, false, nil
 	}
 
-	worker, err := provider.newGardenWorker(logger.Session("worker-for-resource-check"), clock.NewClock(), dbWorker)
+	worker := provider.newGardenWorker(logger, clock.NewClock(), dbWorker)
+	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
+		return nil, false, nil
+	}
+
 	return worker, true, err
 }
 
-func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker dbng.Worker) (Worker, error) {
-	versionCheckLog := logger.Session("check-version", lager.Data{
-		"want-worker-version": provider.workerVersion.String(),
-		"have-worker-version": savedWorker.Version(),
-	})
-
-	compatible := provider.workerVersionIsCompatible(versionCheckLog, savedWorker.Version())
-	if !compatible {
-		return nil, ErrWorkerVersionIncompatible{HaveWorkerVersion: savedWorker.Version(), WantWorkerVersion: provider.workerVersion}
-	}
-
+func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker dbng.Worker) Worker {
 	gcf := NewGardenConnectionFactory(
 		provider.dbWorkerFactory,
 		logger.Session("garden-connection"),
@@ -269,30 +234,6 @@ func (provider *dbWorkerProvider) newGardenWorker(logger lager.Logger, tikTok cl
 		savedWorker.TeamID(),
 		savedWorker.Name(),
 		savedWorker.StartTime(),
-	), nil
-}
-
-func (provider *dbWorkerProvider) workerVersionIsCompatible(logger lager.Logger, savedWorkerVersion *string) bool {
-	if savedWorkerVersion == nil {
-		logger.Info("empty-worker-version")
-		return false
-	}
-
-	v, err := version.NewVersionFromString(*savedWorkerVersion)
-	if err != nil {
-		logger.Error("failed-to-parse-version", err)
-		return false
-	}
-
-	if v.Release.Components[0].Compare(provider.workerVersion.Release.Components[0]) != 0 {
-		logger.Info("different-major-version")
-		return false
-	}
-
-	if v.Release.Components[1].Compare(provider.workerVersion.Release.Components[1]) == -1 {
-		logger.Info("older-minor-version")
-		return false
-	}
-
-	return true
+		savedWorker.Version(),
+	)
 }

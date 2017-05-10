@@ -12,6 +12,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
+	"github.com/cppforlife/go-semi-semantic/version"
 )
 
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
@@ -49,6 +50,7 @@ type Worker interface {
 	Tags() atc.Tags
 	Uptime() time.Duration
 	IsOwnedByTeam() bool
+	IsVersionCompatible(lager.Logger, version.Version) bool
 }
 
 type gardenWorker struct {
@@ -68,6 +70,7 @@ type gardenWorker struct {
 	teamID           int
 	name             string
 	startTime        int64
+	version          *string
 }
 
 func NewGardenWorker(
@@ -83,6 +86,7 @@ func NewGardenWorker(
 	teamID int,
 	name string,
 	startTime int64,
+	version *string,
 ) Worker {
 	return &gardenWorker{
 		containerProviderFactory: containerProviderFactory,
@@ -99,7 +103,38 @@ func NewGardenWorker(
 		teamID:           teamID,
 		name:             name,
 		startTime:        startTime,
+		version:          version,
 	}
+}
+
+func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVersion version.Version) bool {
+	logger = logger.Session("check-version", lager.Data{
+		"want-worker-version": comparedVersion.String(),
+		"have-worker-version": worker.version,
+	})
+
+	if worker.version == nil {
+		logger.Info("empty-worker-version")
+		return false
+	}
+
+	v, err := version.NewVersionFromString(*worker.version)
+	if err != nil {
+		logger.Error("failed-to-parse-version", err)
+		return false
+	}
+
+	if v.Release.Components[0].Compare(comparedVersion.Release.Components[0]) != 0 {
+		logger.Info("different-major-version")
+		return false
+	}
+
+	if v.Release.Components[1].Compare(comparedVersion.Release.Components[1]) == -1 {
+		logger.Info("older-minor-version")
+		return false
+	}
+
+	return true
 }
 
 func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {

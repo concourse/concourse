@@ -20,7 +20,6 @@ import (
 	"github.com/cppforlife/go-semi-semantic/version"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
@@ -473,87 +472,6 @@ var _ = Describe("DBProvider", func() {
 		})
 	})
 
-	Describe("GetWorker", func() {
-		var found bool
-		var worker Worker
-
-		Context("when looking up workers returns an error", func() {
-			It("returns an error", func() {
-				fakeDBWorkerFactory.GetWorkerReturns(nil, false, errors.New("disaster"))
-
-				worker, found, workersErr = provider.GetWorker(logger, "a-worker")
-				Expect(workersErr).To(HaveOccurred())
-				Expect(worker).To(BeNil())
-				Expect(found).To(BeFalse())
-			})
-		})
-
-		Context("when we find no workers", func() {
-			It("returns found as false", func() {
-				worker, found, workersErr = provider.GetWorker(logger, "no-worker")
-				Expect(workersErr).NotTo(HaveOccurred())
-				Expect(worker).To(BeNil())
-				Expect(found).To(BeFalse())
-			})
-		})
-
-		DescribeTable("finding existing worker",
-			func(workerState dbng.WorkerState, expectedExistence bool) {
-				addr := "1.2.3.4:7777"
-
-				fakeExistingWorker := new(dbngfakes.FakeWorker)
-				fakeExistingWorker.NameReturns("some-worker")
-				fakeExistingWorker.TeamIDReturns(123)
-				fakeExistingWorker.GardenAddrReturns(&addr)
-				fakeExistingWorker.StateReturns(workerState)
-				workerVersion := "1.1.0"
-				fakeExistingWorker.VersionReturns(&workerVersion)
-
-				fakeDBWorkerFactory.GetWorkerReturns(fakeExistingWorker, true, nil)
-
-				worker, found, workersErr = provider.GetWorker(logger, "some-worker")
-				if expectedExistence {
-					Expect(workersErr).NotTo(HaveOccurred())
-				} else {
-					Expect(workersErr).To(HaveOccurred())
-					Expect(workersErr).To(Equal(ErrDesiredWorkerNotRunning))
-				}
-
-				Expect(found).To(Equal(expectedExistence))
-				if expectedExistence {
-					Expect(worker.Name()).To(Equal("some-worker"))
-				}
-			},
-
-			Entry("running", dbng.WorkerStateRunning, true),
-			Entry("landing", dbng.WorkerStateLanding, true),
-			Entry("landed", dbng.WorkerStateLanded, false),
-			Entry("stalled", dbng.WorkerStateStalled, false),
-			Entry("retiring", dbng.WorkerStateRetiring, true),
-		)
-
-		Context("when an outdated worker is found", func() {
-			BeforeEach(func() {
-				addr := "1.2.3.4:7777"
-
-				fakeExistingWorker := new(dbngfakes.FakeWorker)
-				fakeExistingWorker.NameReturns("some-worker")
-				fakeExistingWorker.TeamIDReturns(123)
-				fakeExistingWorker.GardenAddrReturns(&addr)
-				fakeExistingWorker.StateReturns(dbng.WorkerStateRunning)
-
-				fakeDBWorkerFactory.GetWorkerReturns(fakeExistingWorker, true, nil)
-				worker, found, workersErr = provider.GetWorker(logger, "some-worker")
-			})
-
-			It("returns an error", func() {
-				Expect(worker).To(BeNil())
-				Expect(found).To(BeTrue())
-				Expect(workersErr).To(Equal(ErrWorkerVersionIncompatible{WantWorkerVersion: wantWorkerVersion}))
-			})
-		})
-	})
-
 	Describe("FindWorkerForContainer", func() {
 		var (
 			foundWorker Worker
@@ -610,9 +528,9 @@ var _ = Describe("DBProvider", func() {
 				})
 
 				It("returns an error", func() {
+					Expect(findErr).ToNot(HaveOccurred())
 					Expect(foundWorker).To(BeNil())
-					Expect(found).To(BeTrue())
-					Expect(findErr).To(Equal(ErrWorkerVersionIncompatible{WantWorkerVersion: wantWorkerVersion}))
+					Expect(found).To(BeFalse())
 				})
 			})
 		})
@@ -623,9 +541,9 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("returns false", func() {
+				Expect(findErr).ToNot(HaveOccurred())
 				Expect(foundWorker).To(BeNil())
 				Expect(found).To(BeFalse())
-				Expect(findErr).ToNot(HaveOccurred())
 			})
 		})
 
@@ -637,9 +555,9 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("returns the error", func() {
+				Expect(findErr).To(Equal(disaster))
 				Expect(foundWorker).To(BeNil())
 				Expect(found).To(BeFalse())
-				Expect(findErr).To(Equal(disaster))
 			})
 		})
 	})
@@ -702,9 +620,9 @@ var _ = Describe("DBProvider", func() {
 				})
 
 				It("returns an error", func() {
+					Expect(findErr).ToNot(HaveOccurred())
 					Expect(foundWorker).To(BeNil())
-					Expect(found).To(BeTrue())
-					Expect(findErr).To(Equal(ErrWorkerVersionIncompatible{WantWorkerVersion: wantWorkerVersion}))
+					Expect(found).To(BeFalse())
 				})
 			})
 		})
@@ -715,9 +633,9 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("returns false", func() {
+				Expect(findErr).ToNot(HaveOccurred())
 				Expect(foundWorker).To(BeNil())
 				Expect(found).To(BeFalse())
-				Expect(findErr).ToNot(HaveOccurred())
 			})
 		})
 
@@ -729,9 +647,9 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("returns the error", func() {
+				Expect(findErr).To(Equal(disaster))
 				Expect(foundWorker).To(BeNil())
 				Expect(found).To(BeFalse())
-				Expect(findErr).To(Equal(disaster))
 			})
 		})
 	})
@@ -812,9 +730,9 @@ var _ = Describe("DBProvider", func() {
 					})
 
 					It("returns an error", func() {
+						Expect(findErr).ToNot(HaveOccurred())
 						Expect(foundWorker).To(BeNil())
-						Expect(found).To(BeTrue())
-						Expect(findErr).To(Equal(ErrWorkerVersionIncompatible{WantWorkerVersion: wantWorkerVersion}))
+						Expect(found).To(BeFalse())
 					})
 				})
 			})
@@ -825,9 +743,9 @@ var _ = Describe("DBProvider", func() {
 				})
 
 				It("returns false", func() {
+					Expect(findErr).ToNot(HaveOccurred())
 					Expect(foundWorker).To(BeNil())
 					Expect(found).To(BeFalse())
-					Expect(findErr).ToNot(HaveOccurred())
 				})
 			})
 
@@ -839,9 +757,9 @@ var _ = Describe("DBProvider", func() {
 				})
 
 				It("returns the error", func() {
+					Expect(findErr).To(Equal(disaster))
 					Expect(foundWorker).To(BeNil())
 					Expect(found).To(BeFalse())
-					Expect(findErr).To(Equal(disaster))
 				})
 			})
 		})
@@ -854,9 +772,9 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			It("returns the error", func() {
+				Expect(findErr).To(Equal(disaster))
 				Expect(foundWorker).To(BeNil())
 				Expect(found).To(BeFalse())
-				Expect(findErr).To(Equal(disaster))
 			})
 		})
 	})

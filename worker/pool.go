@@ -17,7 +17,6 @@ import (
 
 type WorkerProvider interface {
 	RunningWorkers(lager.Logger) ([]Worker, error)
-	GetWorker(lager.Logger, string) (Worker, bool, error)
 
 	FindWorkerForContainer(
 		logger lager.Logger,
@@ -80,19 +79,6 @@ func NewPool(provider WorkerProvider) Client {
 
 func (pool *pool) RunningWorkers(logger lager.Logger) ([]Worker, error) {
 	return pool.provider.RunningWorkers(logger)
-}
-
-func (pool *pool) GetWorker(logger lager.Logger, workerName string) (Worker, error) {
-	worker, found, err := pool.provider.GetWorker(logger, workerName)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, ErrNoWorkers
-	}
-
-	return worker, nil
 }
 
 func (pool *pool) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) ([]Worker, error) {

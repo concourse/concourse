@@ -196,20 +196,6 @@ type FakeClient struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	GetWorkerStub        func(logger lager.Logger, workerName string) (worker.Worker, error)
-	getWorkerMutex       sync.RWMutex
-	getWorkerArgsForCall []struct {
-		logger     lager.Logger
-		workerName string
-	}
-	getWorkerReturns struct {
-		result1 worker.Worker
-		result2 error
-	}
-	getWorkerReturnsOnCall map[int]struct {
-		result1 worker.Worker
-		result2 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -819,58 +805,6 @@ func (fake *FakeClient) RunningWorkersReturnsOnCall(i int, result1 []worker.Work
 	}{result1, result2}
 }
 
-func (fake *FakeClient) GetWorker(logger lager.Logger, workerName string) (worker.Worker, error) {
-	fake.getWorkerMutex.Lock()
-	ret, specificReturn := fake.getWorkerReturnsOnCall[len(fake.getWorkerArgsForCall)]
-	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		logger     lager.Logger
-		workerName string
-	}{logger, workerName})
-	fake.recordInvocation("GetWorker", []interface{}{logger, workerName})
-	fake.getWorkerMutex.Unlock()
-	if fake.GetWorkerStub != nil {
-		return fake.GetWorkerStub(logger, workerName)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2
-}
-
-func (fake *FakeClient) GetWorkerCallCount() int {
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
-	return len(fake.getWorkerArgsForCall)
-}
-
-func (fake *FakeClient) GetWorkerArgsForCall(i int) (lager.Logger, string) {
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
-	return fake.getWorkerArgsForCall[i].logger, fake.getWorkerArgsForCall[i].workerName
-}
-
-func (fake *FakeClient) GetWorkerReturns(result1 worker.Worker, result2 error) {
-	fake.GetWorkerStub = nil
-	fake.getWorkerReturns = struct {
-		result1 worker.Worker
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) GetWorkerReturnsOnCall(i int, result1 worker.Worker, result2 error) {
-	fake.GetWorkerStub = nil
-	if fake.getWorkerReturnsOnCall == nil {
-		fake.getWorkerReturnsOnCall = make(map[int]struct {
-			result1 worker.Worker
-			result2 error
-		})
-	}
-	fake.getWorkerReturnsOnCall[i] = struct {
-		result1 worker.Worker
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -896,8 +830,6 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.allSatisfyingMutex.RUnlock()
 	fake.runningWorkersMutex.RLock()
 	defer fake.runningWorkersMutex.RUnlock()
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
 	return fake.invocations
 }
 

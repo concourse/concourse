@@ -37,6 +37,7 @@ var _ = Describe("Worker", func() {
 		workerStartTime              int64
 		workerUptime                 uint64
 		gardenWorker                 Worker
+		workerVersion                string
 	)
 
 	BeforeEach(func() {
@@ -59,6 +60,7 @@ var _ = Describe("Worker", func() {
 		workerName = "some-worker"
 		workerStartTime = fakeClock.Now().Unix()
 		workerUptime = 0
+		workerVersion = "1.2.3"
 
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 		fakeResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
@@ -82,6 +84,7 @@ var _ = Describe("Worker", func() {
 			teamID,
 			workerName,
 			workerStartTime,
+			&workerVersion,
 		)
 
 		fakeClock.IncrementBySeconds(workerUptime)

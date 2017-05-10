@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
+	"github.com/cppforlife/go-semi-semantic/version"
 )
 
 type FakeWorker struct {
@@ -197,20 +198,6 @@ type FakeWorker struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	GetWorkerStub        func(logger lager.Logger, workerName string) (worker.Worker, error)
-	getWorkerMutex       sync.RWMutex
-	getWorkerArgsForCall []struct {
-		logger     lager.Logger
-		workerName string
-	}
-	getWorkerReturns struct {
-		result1 worker.Worker
-		result2 error
-	}
-	getWorkerReturnsOnCall map[int]struct {
-		result1 worker.Worker
-		result2 error
-	}
 	ActiveContainersStub        func() int
 	activeContainersMutex       sync.RWMutex
 	activeContainersArgsForCall []struct{}
@@ -272,6 +259,18 @@ type FakeWorker struct {
 		result1 bool
 	}
 	isOwnedByTeamReturnsOnCall map[int]struct {
+		result1 bool
+	}
+	IsVersionCompatibleStub        func(lager.Logger, version.Version) bool
+	isVersionCompatibleMutex       sync.RWMutex
+	isVersionCompatibleArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 version.Version
+	}
+	isVersionCompatibleReturns struct {
+		result1 bool
+	}
+	isVersionCompatibleReturnsOnCall map[int]struct {
 		result1 bool
 	}
 	invocations      map[string][][]interface{}
@@ -883,58 +882,6 @@ func (fake *FakeWorker) RunningWorkersReturnsOnCall(i int, result1 []worker.Work
 	}{result1, result2}
 }
 
-func (fake *FakeWorker) GetWorker(logger lager.Logger, workerName string) (worker.Worker, error) {
-	fake.getWorkerMutex.Lock()
-	ret, specificReturn := fake.getWorkerReturnsOnCall[len(fake.getWorkerArgsForCall)]
-	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		logger     lager.Logger
-		workerName string
-	}{logger, workerName})
-	fake.recordInvocation("GetWorker", []interface{}{logger, workerName})
-	fake.getWorkerMutex.Unlock()
-	if fake.GetWorkerStub != nil {
-		return fake.GetWorkerStub(logger, workerName)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2
-}
-
-func (fake *FakeWorker) GetWorkerCallCount() int {
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
-	return len(fake.getWorkerArgsForCall)
-}
-
-func (fake *FakeWorker) GetWorkerArgsForCall(i int) (lager.Logger, string) {
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
-	return fake.getWorkerArgsForCall[i].logger, fake.getWorkerArgsForCall[i].workerName
-}
-
-func (fake *FakeWorker) GetWorkerReturns(result1 worker.Worker, result2 error) {
-	fake.GetWorkerStub = nil
-	fake.getWorkerReturns = struct {
-		result1 worker.Worker
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeWorker) GetWorkerReturnsOnCall(i int, result1 worker.Worker, result2 error) {
-	fake.GetWorkerStub = nil
-	if fake.getWorkerReturnsOnCall == nil {
-		fake.getWorkerReturnsOnCall = make(map[int]struct {
-			result1 worker.Worker
-			result2 error
-		})
-	}
-	fake.getWorkerReturnsOnCall[i] = struct {
-		result1 worker.Worker
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeWorker) ActiveContainers() int {
 	fake.activeContainersMutex.Lock()
 	ret, specificReturn := fake.activeContainersReturnsOnCall[len(fake.activeContainersArgsForCall)]
@@ -1215,6 +1162,55 @@ func (fake *FakeWorker) IsOwnedByTeamReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeWorker) IsVersionCompatible(arg1 lager.Logger, arg2 version.Version) bool {
+	fake.isVersionCompatibleMutex.Lock()
+	ret, specificReturn := fake.isVersionCompatibleReturnsOnCall[len(fake.isVersionCompatibleArgsForCall)]
+	fake.isVersionCompatibleArgsForCall = append(fake.isVersionCompatibleArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 version.Version
+	}{arg1, arg2})
+	fake.recordInvocation("IsVersionCompatible", []interface{}{arg1, arg2})
+	fake.isVersionCompatibleMutex.Unlock()
+	if fake.IsVersionCompatibleStub != nil {
+		return fake.IsVersionCompatibleStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.isVersionCompatibleReturns.result1
+}
+
+func (fake *FakeWorker) IsVersionCompatibleCallCount() int {
+	fake.isVersionCompatibleMutex.RLock()
+	defer fake.isVersionCompatibleMutex.RUnlock()
+	return len(fake.isVersionCompatibleArgsForCall)
+}
+
+func (fake *FakeWorker) IsVersionCompatibleArgsForCall(i int) (lager.Logger, version.Version) {
+	fake.isVersionCompatibleMutex.RLock()
+	defer fake.isVersionCompatibleMutex.RUnlock()
+	return fake.isVersionCompatibleArgsForCall[i].arg1, fake.isVersionCompatibleArgsForCall[i].arg2
+}
+
+func (fake *FakeWorker) IsVersionCompatibleReturns(result1 bool) {
+	fake.IsVersionCompatibleStub = nil
+	fake.isVersionCompatibleReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeWorker) IsVersionCompatibleReturnsOnCall(i int, result1 bool) {
+	fake.IsVersionCompatibleStub = nil
+	if fake.isVersionCompatibleReturnsOnCall == nil {
+		fake.isVersionCompatibleReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isVersionCompatibleReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1240,8 +1236,6 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.allSatisfyingMutex.RUnlock()
 	fake.runningWorkersMutex.RLock()
 	defer fake.runningWorkersMutex.RUnlock()
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
 	fake.activeContainersMutex.RLock()
 	defer fake.activeContainersMutex.RUnlock()
 	fake.descriptionMutex.RLock()
@@ -1256,6 +1250,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.uptimeMutex.RUnlock()
 	fake.isOwnedByTeamMutex.RLock()
 	defer fake.isOwnedByTeamMutex.RUnlock()
+	fake.isVersionCompatibleMutex.RLock()
+	defer fake.isVersionCompatibleMutex.RUnlock()
 	return fake.invocations
 }
 

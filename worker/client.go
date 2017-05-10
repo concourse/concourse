@@ -70,7 +70,6 @@ type Client interface {
 	Satisfying(lager.Logger, WorkerSpec, atc.VersionedResourceTypes) (Worker, error)
 	AllSatisfying(lager.Logger, WorkerSpec, atc.VersionedResourceTypes) ([]Worker, error)
 	RunningWorkers(lager.Logger) ([]Worker, error)
-	GetWorker(logger lager.Logger, workerName string) (Worker, error)
 }
 
 //go:generate counterfeiter . InputSource
