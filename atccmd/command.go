@@ -126,8 +126,8 @@ type ATCCommand struct {
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
 }
 
-func (cmd *ATCCommand) WireDynamicFlags(parser *flags.Parser) {
-	groups := parser.Command.Groups()
+func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
+	groups := commandFlags.Groups()
 
 	var authGroup *flags.Group
 	var metricsGroup *flags.Group

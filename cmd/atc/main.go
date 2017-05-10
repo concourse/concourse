@@ -20,7 +20,7 @@ func main() {
 	parser := flags.NewParser(cmd, flags.Default)
 	parser.NamespaceDelimiter = "-"
 
-	cmd.WireDynamicFlags(parser)
+	cmd.WireDynamicFlags(parser.Command)
 
 	args, err := parser.Parse()
 	if err != nil {
