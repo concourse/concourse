@@ -103,8 +103,8 @@ var _ = Describe("CsrfValidationHandler", func() {
 		})
 
 		Context("when CSRF token is not provided", func() {
-			It("returns 400 Bad Request", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+			It("returns 401 Bad Request", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
 			It("does not call delegate handler", func() {
@@ -122,8 +122,8 @@ var _ = Describe("CsrfValidationHandler", func() {
 					fakeUserContextReader.GetCSRFTokenReturns("", false)
 				})
 
-				It("returns 400 Bad Request", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				It("returns 401 Bad Request", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 				})
 
 				It("does not call delegate handler", func() {

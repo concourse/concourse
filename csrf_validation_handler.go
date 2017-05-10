@@ -41,14 +41,14 @@ func (h csrfValidationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		if ok && isCSRFRequired {
 			if r.Header.Get(CSRFHeaderName) == "" {
 				logger.Debug("csrf-header-is-not-set")
-				w.WriteHeader(http.StatusBadRequest)
+				h.rejector.Unauthorized(w, r)
 				return
 			}
 
 			authCSRFToken, authCSRFTokenProvided := h.userContextReader.GetCSRFToken(r)
 			if !authCSRFTokenProvided {
 				logger.Debug("csrf-is-not-provided-in-auth-token")
-				w.WriteHeader(http.StatusBadRequest)
+				h.rejector.Unauthorized(w, r)
 				return
 			}
 
