@@ -67,10 +67,10 @@ type Client interface {
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 
-	Satisfying(WorkerSpec, atc.VersionedResourceTypes) (Worker, error)
-	AllSatisfying(WorkerSpec, atc.VersionedResourceTypes) ([]Worker, error)
-	RunningWorkers() ([]Worker, error)
-	GetWorker(workerName string) (Worker, error)
+	Satisfying(lager.Logger, WorkerSpec, atc.VersionedResourceTypes) (Worker, error)
+	AllSatisfying(lager.Logger, WorkerSpec, atc.VersionedResourceTypes) ([]Worker, error)
+	RunningWorkers(lager.Logger) ([]Worker, error)
+	GetWorker(logger lager.Logger, workerName string) (Worker, error)
 }
 
 //go:generate counterfeiter . InputSource

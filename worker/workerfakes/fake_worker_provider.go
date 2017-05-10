@@ -11,10 +11,12 @@ import (
 )
 
 type FakeWorkerProvider struct {
-	RunningWorkersStub        func() ([]worker.Worker, error)
+	RunningWorkersStub        func(lager.Logger) ([]worker.Worker, error)
 	runningWorkersMutex       sync.RWMutex
-	runningWorkersArgsForCall []struct{}
-	runningWorkersReturns     struct {
+	runningWorkersArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	runningWorkersReturns struct {
 		result1 []worker.Worker
 		result2 error
 	}
@@ -22,10 +24,11 @@ type FakeWorkerProvider struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	GetWorkerStub        func(string) (worker.Worker, bool, error)
+	GetWorkerStub        func(lager.Logger, string) (worker.Worker, bool, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
-		arg1 string
+		arg1 lager.Logger
+		arg2 string
 	}
 	getWorkerReturns struct {
 		result1 worker.Worker
@@ -96,14 +99,16 @@ type FakeWorkerProvider struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeWorkerProvider) RunningWorkers() ([]worker.Worker, error) {
+func (fake *FakeWorkerProvider) RunningWorkers(arg1 lager.Logger) ([]worker.Worker, error) {
 	fake.runningWorkersMutex.Lock()
 	ret, specificReturn := fake.runningWorkersReturnsOnCall[len(fake.runningWorkersArgsForCall)]
-	fake.runningWorkersArgsForCall = append(fake.runningWorkersArgsForCall, struct{}{})
-	fake.recordInvocation("RunningWorkers", []interface{}{})
+	fake.runningWorkersArgsForCall = append(fake.runningWorkersArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("RunningWorkers", []interface{}{arg1})
 	fake.runningWorkersMutex.Unlock()
 	if fake.RunningWorkersStub != nil {
-		return fake.RunningWorkersStub()
+		return fake.RunningWorkersStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -115,6 +120,12 @@ func (fake *FakeWorkerProvider) RunningWorkersCallCount() int {
 	fake.runningWorkersMutex.RLock()
 	defer fake.runningWorkersMutex.RUnlock()
 	return len(fake.runningWorkersArgsForCall)
+}
+
+func (fake *FakeWorkerProvider) RunningWorkersArgsForCall(i int) lager.Logger {
+	fake.runningWorkersMutex.RLock()
+	defer fake.runningWorkersMutex.RUnlock()
+	return fake.runningWorkersArgsForCall[i].arg1
 }
 
 func (fake *FakeWorkerProvider) RunningWorkersReturns(result1 []worker.Worker, result2 error) {
@@ -139,16 +150,17 @@ func (fake *FakeWorkerProvider) RunningWorkersReturnsOnCall(i int, result1 []wor
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerProvider) GetWorker(arg1 string) (worker.Worker, bool, error) {
+func (fake *FakeWorkerProvider) GetWorker(arg1 lager.Logger, arg2 string) (worker.Worker, bool, error) {
 	fake.getWorkerMutex.Lock()
 	ret, specificReturn := fake.getWorkerReturnsOnCall[len(fake.getWorkerArgsForCall)]
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("GetWorker", []interface{}{arg1})
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("GetWorker", []interface{}{arg1, arg2})
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
-		return fake.GetWorkerStub(arg1)
+		return fake.GetWorkerStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -162,10 +174,10 @@ func (fake *FakeWorkerProvider) GetWorkerCallCount() int {
 	return len(fake.getWorkerArgsForCall)
 }
 
-func (fake *FakeWorkerProvider) GetWorkerArgsForCall(i int) string {
+func (fake *FakeWorkerProvider) GetWorkerArgsForCall(i int) (lager.Logger, string) {
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
-	return fake.getWorkerArgsForCall[i].arg1
+	return fake.getWorkerArgsForCall[i].arg1, fake.getWorkerArgsForCall[i].arg2
 }
 
 func (fake *FakeWorkerProvider) GetWorkerReturns(result1 worker.Worker, result2 bool, result3 error) {

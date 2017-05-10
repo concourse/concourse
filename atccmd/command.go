@@ -44,6 +44,7 @@ import (
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/wrappa"
 	"github.com/concourse/retryhttp"
+	"github.com/cppforlife/go-semi-semantic/version"
 	jwt "github.com/dgrijalva/jwt-go"
 	multierror "github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
@@ -189,6 +190,11 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
+	workerVersion, err := version.NewVersionFromString(WorkerVersion)
+	if err != nil {
+		return nil, err
+	}
+
 	logger, reconfigurableSink := cmd.constructLogger()
 
 	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
@@ -238,6 +244,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		dbVolumeFactory,
 		dbWorkerFactory,
 		dbTeamFactory,
+		workerVersion,
 	)
 
 	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
@@ -697,6 +704,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	dbVolumeFactory dbng.VolumeFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 	dbTeamFactory dbng.TeamFactory,
+	workerVersion version.Version,
 ) worker.Client {
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
@@ -707,7 +715,6 @@ func (cmd *ATCCommand) constructWorkerPool(
 	)
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
-			logger,
 			sqlDB,
 			retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 			image.NewImageFactory(imageResourceFetcherFactory),
@@ -717,6 +724,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 			dbVolumeFactory,
 			dbTeamFactory,
 			dbWorkerFactory,
+			workerVersion,
 		),
 	)
 }

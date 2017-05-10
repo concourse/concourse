@@ -94,7 +94,7 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		TeamID:       f.teamID,
 	}
 
-	chosenWorker, err := f.workerClient.Satisfying(resourceSpec, f.resourceTypes)
+	chosenWorker, err := f.workerClient.Satisfying(f.logger.Session("fetch-source-provider"), resourceSpec, f.resourceTypes)
 	if err != nil {
 		f.logger.Error("no-workers-satisfying-spec", err)
 		return nil, err

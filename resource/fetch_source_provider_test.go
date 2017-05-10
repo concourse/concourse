@@ -69,7 +69,7 @@ var _ = Describe("FetchSourceProvider", func() {
 			_, err := fetchSourceProvider.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
-			resourceSpec, actualResourceTypes := fakeWorkerClient.SatisfyingArgsForCall(0)
+			_, resourceSpec, actualResourceTypes := fakeWorkerClient.SatisfyingArgsForCall(0)
 			Expect(resourceSpec).To(Equal(worker.WorkerSpec{
 				ResourceType: "some-resource-type",
 				Tags:         tags,

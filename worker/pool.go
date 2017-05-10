@@ -16,8 +16,8 @@ import (
 //go:generate counterfeiter . WorkerProvider
 
 type WorkerProvider interface {
-	RunningWorkers() ([]Worker, error)
-	GetWorker(string) (Worker, bool, error)
+	RunningWorkers(lager.Logger) ([]Worker, error)
+	GetWorker(lager.Logger, string) (Worker, bool, error)
 
 	FindWorkerForContainer(
 		logger lager.Logger,
@@ -78,12 +78,12 @@ func NewPool(provider WorkerProvider) Client {
 	}
 }
 
-func (pool *pool) RunningWorkers() ([]Worker, error) {
-	return pool.provider.RunningWorkers()
+func (pool *pool) RunningWorkers(logger lager.Logger) ([]Worker, error) {
+	return pool.provider.RunningWorkers(logger)
 }
 
-func (pool *pool) GetWorker(workerName string) (Worker, error) {
-	worker, found, err := pool.provider.GetWorker(workerName)
+func (pool *pool) GetWorker(logger lager.Logger, workerName string) (Worker, error) {
+	worker, found, err := pool.provider.GetWorker(logger, workerName)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +95,8 @@ func (pool *pool) GetWorker(workerName string) (Worker, error) {
 	return worker, nil
 }
 
-func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) ([]Worker, error) {
-	workers, err := pool.provider.RunningWorkers()
+func (pool *pool) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) ([]Worker, error) {
+	workers, err := pool.provider.RunningWorkers(logger)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes atc.VersionedReso
 	compatibleTeamWorkers := []Worker{}
 	compatibleGeneralWorkers := []Worker{}
 	for _, worker := range workers {
-		satisfyingWorker, err := worker.Satisfying(spec, resourceTypes)
+		satisfyingWorker, err := worker.Satisfying(logger, spec, resourceTypes)
 		if err == nil {
 			if worker.IsOwnedByTeam() {
 				compatibleTeamWorkers = append(compatibleTeamWorkers, satisfyingWorker)
@@ -132,8 +132,8 @@ func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes atc.VersionedReso
 	}
 }
 
-func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) (Worker, error) {
-	compatibleWorkers, err := pool.AllSatisfying(spec, resourceTypes)
+func (pool *pool) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) (Worker, error) {
+	compatibleWorkers, err := pool.AllSatisfying(logger, spec, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (pool *pool) FindOrCreateBuildContainer(
 	}
 
 	if !found {
-		compatibleWorkers, err := pool.AllSatisfying(spec.WorkerSpec(), resourceTypes)
+		compatibleWorkers, err := pool.AllSatisfying(logger, spec.WorkerSpec(), resourceTypes)
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +220,7 @@ func (pool *pool) CreateResourceGetContainer(
 	source atc.Source,
 	params atc.Params,
 ) (Container, error) {
-	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
+	worker, err := pool.Satisfying(logger, spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +264,7 @@ func (pool *pool) FindOrCreateResourceCheckContainer(
 	}
 
 	if !found {
-		worker, err = pool.Satisfying(spec.WorkerSpec(), resourceTypes)
+		worker, err = pool.Satisfying(logger, spec.WorkerSpec(), resourceTypes)
 		if err != nil {
 			return nil, err
 		}
@@ -314,53 +314,6 @@ func (*pool) FindInitializedVolumeForResourceCache(logger lager.Logger, resource
 
 func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 	return nil, false, errors.New("LookupVolume not implemented for pool")
-}
-
-func (pool *pool) findCompatibleWorker(
-	containerSpec ContainerSpec,
-	resourceTypes atc.VersionedResourceTypes,
-	sources map[string]ArtifactSource,
-) (Worker, []VolumeMount, []string, error) {
-	compatibleWorkers, err := pool.AllSatisfying(containerSpec.WorkerSpec(), resourceTypes)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// find the worker with the most volumes
-	mounts := []VolumeMount{}
-	missingSources := []string{}
-	var chosenWorker Worker
-
-	// for each worker that matches tags, platform, etc -- what is the etc?
-	for _, w := range compatibleWorkers {
-		candidateMounts := []VolumeMount{}
-		missing := []string{}
-
-		for name, source := range sources {
-			// look at all the inputs/outputs we're looking for
-			ourVolume, found, err := source.VolumeOn(w)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-
-			if found {
-				candidateMounts = append(candidateMounts, VolumeMount{
-					Volume:    ourVolume,
-					MountPath: resourcesDir("put/" + name),
-				})
-			} else {
-				missing = append(missing, name)
-			}
-		}
-
-		if len(candidateMounts) >= len(mounts) {
-			mounts = candidateMounts
-			missingSources = missing
-			chosenWorker = w
-		}
-	}
-
-	return chosenWorker, mounts, missingSources, nil
 }
 
 func resourcesDir(suffix string) string {

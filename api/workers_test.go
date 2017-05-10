@@ -704,7 +704,8 @@ var _ = Describe("Workers API", func() {
 				"platform": "penguin",
 				"tags": ["some-tag"],
 				"team": "some-team",
-				"start_time": 0
+				"start_time": 0,
+				"version": ""
 			}`))
 		})
 

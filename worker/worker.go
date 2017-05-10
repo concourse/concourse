@@ -212,7 +212,7 @@ func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
 }
 
-func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) (Worker, error) {
+func (worker *gardenWorker) Satisfying(logger lager.Logger, spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) (Worker, error) {
 	if spec.TeamID != worker.teamID && worker.teamID != 0 {
 		return nil, ErrTeamMismatch
 	}
@@ -261,15 +261,15 @@ func determineUnderlyingTypeName(typeName string, resourceTypes atc.VersionedRes
 	return underlyingTypeName
 }
 
-func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) ([]Worker, error) {
+func (worker *gardenWorker) AllSatisfying(logger lager.Logger, spec WorkerSpec, resourceTypes atc.VersionedResourceTypes) ([]Worker, error) {
 	return nil, ErrNotImplemented
 }
 
-func (worker *gardenWorker) RunningWorkers() ([]Worker, error) {
+func (worker *gardenWorker) RunningWorkers(logger lager.Logger) ([]Worker, error) {
 	return nil, ErrNotImplemented
 }
 
-func (worker *gardenWorker) GetWorker(name string) (Worker, error) {
+func (worker *gardenWorker) GetWorker(logger lager.Logger, name string) (Worker, error) {
 	return nil, ErrNotImplemented
 }
 

@@ -204,7 +204,7 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(spec, customTypes)
+			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(logger, spec, customTypes)
 		})
 
 		Context("when the platform is compatible", func() {

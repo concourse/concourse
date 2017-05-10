@@ -19,6 +19,15 @@ type FakeWorker struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	VersionStub        func() *string
+	versionMutex       sync.RWMutex
+	versionArgsForCall []struct{}
+	versionReturns     struct {
+		result1 *string
+	}
+	versionReturnsOnCall map[int]struct {
+		result1 *string
+	}
 	StateStub        func() dbng.WorkerState
 	stateMutex       sync.RWMutex
 	stateArgsForCall []struct{}
@@ -233,6 +242,46 @@ func (fake *FakeWorker) NameReturnsOnCall(i int, result1 string) {
 	}
 	fake.nameReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeWorker) Version() *string {
+	fake.versionMutex.Lock()
+	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
+	fake.versionArgsForCall = append(fake.versionArgsForCall, struct{}{})
+	fake.recordInvocation("Version", []interface{}{})
+	fake.versionMutex.Unlock()
+	if fake.VersionStub != nil {
+		return fake.VersionStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.versionReturns.result1
+}
+
+func (fake *FakeWorker) VersionCallCount() int {
+	fake.versionMutex.RLock()
+	defer fake.versionMutex.RUnlock()
+	return len(fake.versionArgsForCall)
+}
+
+func (fake *FakeWorker) VersionReturns(result1 *string) {
+	fake.VersionStub = nil
+	fake.versionReturns = struct {
+		result1 *string
+	}{result1}
+}
+
+func (fake *FakeWorker) VersionReturnsOnCall(i int, result1 *string) {
+	fake.VersionStub = nil
+	if fake.versionReturnsOnCall == nil {
+		fake.versionReturnsOnCall = make(map[int]struct {
+			result1 *string
+		})
+	}
+	fake.versionReturnsOnCall[i] = struct {
+		result1 *string
 	}{result1}
 }
 
@@ -1004,6 +1053,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
+	fake.versionMutex.RLock()
+	defer fake.versionMutex.RUnlock()
 	fake.stateMutex.RLock()
 	defer fake.stateMutex.RUnlock()
 	fake.gardenAddrMutex.RLock()

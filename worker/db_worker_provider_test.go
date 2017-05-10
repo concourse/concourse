@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/retryhttp/retryhttpfakes"
+	"github.com/cppforlife/go-semi-semantic/version"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -33,6 +34,7 @@ var _ = Describe("DBProvider", func() {
 		fakeGardenBackend  *gfakes.FakeBackend
 		gardenAddr         string
 		baggageclaimURL    string
+		wantWorkerVersion  version.Version
 		baggageclaimServer *ghttp.Server
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
@@ -84,6 +86,8 @@ var _ = Describe("DBProvider", func() {
 		err := gardenServer.Start()
 		Expect(err).NotTo(HaveOccurred())
 
+		worker1Version := "1.2.3"
+
 		fakeWorker1 = new(dbngfakes.FakeWorker)
 		fakeWorker1.NameReturns("some-worker")
 		fakeWorker1.GardenAddrReturns(&gardenAddr)
@@ -93,6 +97,10 @@ var _ = Describe("DBProvider", func() {
 		fakeWorker1.ResourceTypesReturns([]atc.WorkerResourceType{
 			{Type: "some-resource-a", Image: "some-image-a"}})
 
+		fakeWorker1.VersionReturns(&worker1Version)
+
+		worker2Version := "1.2.4"
+
 		fakeWorker2 = new(dbngfakes.FakeWorker)
 		fakeWorker2.NameReturns("some-other-worker")
 		fakeWorker2.GardenAddrReturns(&gardenAddr)
@@ -101,6 +109,8 @@ var _ = Describe("DBProvider", func() {
 		fakeWorker2.ActiveContainersReturns(2)
 		fakeWorker2.ResourceTypesReturns([]atc.WorkerResourceType{
 			{Type: "some-resource-b", Image: "some-image-b"}})
+
+		fakeWorker2.VersionReturns(&worker2Version)
 
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage := new(workerfakes.FakeImage)
@@ -125,8 +135,10 @@ var _ = Describe("DBProvider", func() {
 
 		fakeDBWorkerFactory = new(dbngfakes.FakeWorkerFactory)
 
+		wantWorkerVersion, err = version.NewVersionFromString("1.1.0")
+		Expect(err).ToNot(HaveOccurred())
+
 		provider = NewDBWorkerProvider(
-			logger,
 			fakeLockDB,
 			fakeBackOffFactory,
 			fakeImageFactory,
@@ -136,6 +148,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDBVolumeFactory,
 			fakeDBTeamFactory,
 			fakeDBWorkerFactory,
+			wantWorkerVersion,
 		)
 		baggageclaimURL = baggageclaimServer.URL()
 	})
@@ -157,7 +170,7 @@ var _ = Describe("DBProvider", func() {
 
 	Describe("RunningWorkers", func() {
 		JustBeforeEach(func() {
-			workers, workersErr = provider.RunningWorkers()
+			workers, workersErr = provider.RunningWorkers(logger)
 		})
 
 		Context("when the database yields workers", func() {
@@ -175,7 +188,6 @@ var _ = Describe("DBProvider", func() {
 
 			Context("when some of the workers returned are stalled or landing", func() {
 				BeforeEach(func() {
-
 					landingWorker := new(dbngfakes.FakeWorker)
 					landingWorker.NameReturns("landing-worker")
 					landingWorker.GardenAddrReturns(&gardenAddr)
@@ -204,6 +216,156 @@ var _ = Describe("DBProvider", func() {
 
 				It("only returns workers for the running ones", func() {
 					Expect(workers).To(HaveLen(1))
+					Expect(workersErr).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when a worker's major version is higher or lower than the atc worker version", func() {
+				BeforeEach(func() {
+					worker1 := new(dbngfakes.FakeWorker)
+					worker1.NameReturns("worker-1")
+					worker1.GardenAddrReturns(&gardenAddr)
+					worker1.BaggageclaimURLReturns(&baggageclaimURL)
+					worker1.StateReturns(dbng.WorkerStateRunning)
+					worker1.ActiveContainersReturns(5)
+					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+					version1 := "1.1.0"
+					worker1.VersionReturns(&version1)
+
+					worker2 := new(dbngfakes.FakeWorker)
+					worker2.NameReturns("worker-2")
+					worker2.GardenAddrReturns(&gardenAddr)
+					worker2.BaggageclaimURLReturns(&baggageclaimURL)
+					worker2.StateReturns(dbng.WorkerStateRunning)
+					worker2.ActiveContainersReturns(0)
+					worker2.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+					version2 := "2.0.0"
+					worker2.VersionReturns(&version2)
+
+					worker3 := new(dbngfakes.FakeWorker)
+					worker3.NameReturns("worker-2")
+					worker3.GardenAddrReturns(&gardenAddr)
+					worker3.BaggageclaimURLReturns(&baggageclaimURL)
+					worker3.StateReturns(dbng.WorkerStateRunning)
+					worker3.ActiveContainersReturns(0)
+					worker3.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+					version3 := "0.0.0"
+					worker3.VersionReturns(&version3)
+
+					fakeDBWorkerFactory.WorkersReturns(
+						[]dbng.Worker{
+							worker3,
+							worker2,
+							worker1,
+						}, nil)
+				})
+
+				It("only returns workers with same major version", func() {
+					Expect(workers).To(HaveLen(1))
+					Expect(workers[0].Name()).To(Equal("worker-1"))
+					Expect(workersErr).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when a worker's minor version is higher or lower than the atc worker version", func() {
+				BeforeEach(func() {
+					worker1 := new(dbngfakes.FakeWorker)
+					worker1.NameReturns("worker-1")
+					worker1.GardenAddrReturns(&gardenAddr)
+					worker1.BaggageclaimURLReturns(&baggageclaimURL)
+					worker1.StateReturns(dbng.WorkerStateRunning)
+					worker1.ActiveContainersReturns(5)
+					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+					version1 := "1.1.0"
+					worker1.VersionReturns(&version1)
+
+					worker2 := new(dbngfakes.FakeWorker)
+					worker2.NameReturns("worker-2")
+					worker2.GardenAddrReturns(&gardenAddr)
+					worker2.BaggageclaimURLReturns(&baggageclaimURL)
+					worker2.StateReturns(dbng.WorkerStateRunning)
+					worker2.ActiveContainersReturns(0)
+					worker2.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+					version2 := "1.2.0"
+					worker2.VersionReturns(&version2)
+
+					worker3 := new(dbngfakes.FakeWorker)
+					worker3.NameReturns("worker-2")
+					worker3.GardenAddrReturns(&gardenAddr)
+					worker3.BaggageclaimURLReturns(&baggageclaimURL)
+					worker3.StateReturns(dbng.WorkerStateRunning)
+					worker3.ActiveContainersReturns(0)
+					worker3.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+					version3 := "1.0.0"
+					worker3.VersionReturns(&version3)
+
+					fakeDBWorkerFactory.WorkersReturns(
+						[]dbng.Worker{
+							worker3,
+							worker2,
+							worker1,
+						}, nil)
+				})
+
+				It("only returns workers with same or higher minor version", func() {
+					Expect(workers).To(HaveLen(2))
+					Expect(workers[1].Name()).To(Equal("worker-1"))
+					Expect(workers[0].Name()).To(Equal("worker-2"))
+					Expect(workersErr).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when a worker does not have a version (outdated)", func() {
+				BeforeEach(func() {
+					worker1 := new(dbngfakes.FakeWorker)
+					worker1.NameReturns("worker-1")
+					worker1.GardenAddrReturns(&gardenAddr)
+					worker1.BaggageclaimURLReturns(&baggageclaimURL)
+					worker1.StateReturns(dbng.WorkerStateRunning)
+					worker1.ActiveContainersReturns(5)
+					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+
+					fakeDBWorkerFactory.WorkersReturns(
+						[]dbng.Worker{
+							worker1,
+						}, nil)
+				})
+
+				It("does not return the worker", func() {
+					Expect(workers).To(BeEmpty())
+					Expect(workersErr).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when a worker's version is incorretly formatted", func() {
+				BeforeEach(func() {
+					worker1 := new(dbngfakes.FakeWorker)
+					worker1.NameReturns("worker-1")
+					worker1.GardenAddrReturns(&gardenAddr)
+					worker1.BaggageclaimURLReturns(&baggageclaimURL)
+					worker1.StateReturns(dbng.WorkerStateRunning)
+					worker1.ActiveContainersReturns(5)
+					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
+						{Type: "some-resource-b", Image: "some-image-b"}})
+					version1 := "1.1..0.2-bogus=version"
+					worker1.VersionReturns(&version1)
+
+					fakeDBWorkerFactory.WorkersReturns(
+						[]dbng.Worker{
+							worker1,
+						}, nil)
+				})
+
+				It("does not return the worker", func() {
+					Expect(workers).To(BeEmpty())
+					Expect(workersErr).NotTo(HaveOccurred())
 				})
 			})
 
@@ -319,7 +481,7 @@ var _ = Describe("DBProvider", func() {
 			It("returns an error", func() {
 				fakeDBWorkerFactory.GetWorkerReturns(nil, false, errors.New("disaster"))
 
-				worker, found, workersErr = provider.GetWorker("a-worker")
+				worker, found, workersErr = provider.GetWorker(logger, "a-worker")
 				Expect(workersErr).To(HaveOccurred())
 				Expect(worker).To(BeNil())
 				Expect(found).To(BeFalse())
@@ -328,7 +490,7 @@ var _ = Describe("DBProvider", func() {
 
 		Context("when we find no workers", func() {
 			It("returns found as false", func() {
-				worker, found, workersErr = provider.GetWorker("no-worker")
+				worker, found, workersErr = provider.GetWorker(logger, "no-worker")
 				Expect(workersErr).NotTo(HaveOccurred())
 				Expect(worker).To(BeNil())
 				Expect(found).To(BeFalse())
@@ -344,10 +506,12 @@ var _ = Describe("DBProvider", func() {
 				fakeExistingWorker.TeamIDReturns(123)
 				fakeExistingWorker.GardenAddrReturns(&addr)
 				fakeExistingWorker.StateReturns(workerState)
+				workerVersion := "1.1.0"
+				fakeExistingWorker.VersionReturns(&workerVersion)
 
 				fakeDBWorkerFactory.GetWorkerReturns(fakeExistingWorker, true, nil)
 
-				worker, found, workersErr = provider.GetWorker("some-worker")
+				worker, found, workersErr = provider.GetWorker(logger, "some-worker")
 				if expectedExistence {
 					Expect(workersErr).NotTo(HaveOccurred())
 				} else {
@@ -367,6 +531,27 @@ var _ = Describe("DBProvider", func() {
 			Entry("stalled", dbng.WorkerStateStalled, false),
 			Entry("retiring", dbng.WorkerStateRetiring, true),
 		)
+
+		Context("when an outdated worker is found", func() {
+			BeforeEach(func() {
+				addr := "1.2.3.4:7777"
+
+				fakeExistingWorker := new(dbngfakes.FakeWorker)
+				fakeExistingWorker.NameReturns("some-worker")
+				fakeExistingWorker.TeamIDReturns(123)
+				fakeExistingWorker.GardenAddrReturns(&addr)
+				fakeExistingWorker.StateReturns(dbng.WorkerStateRunning)
+
+				fakeDBWorkerFactory.GetWorkerReturns(fakeExistingWorker, true, nil)
+				worker, found, workersErr = provider.GetWorker(logger, "some-worker")
+			})
+
+			It("returns an error", func() {
+				Expect(worker).To(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(workersErr).To(Equal(ErrWorkerVersionIncompatible{WantWorkerVersion: wantWorkerVersion}))
+			})
+		})
 	})
 
 	Describe("FindWorkerForContainer", func() {
@@ -393,6 +578,8 @@ var _ = Describe("DBProvider", func() {
 				fakeExistingWorker = new(dbngfakes.FakeWorker)
 				fakeExistingWorker.NameReturns("some-worker")
 				fakeExistingWorker.GardenAddrReturns(&addr)
+				workerVersion := "1.1.0"
+				fakeExistingWorker.VersionReturns(&workerVersion)
 
 				fakeDBTeam.FindWorkerForContainerReturns(fakeExistingWorker, true, nil)
 			})
@@ -415,6 +602,18 @@ var _ = Describe("DBProvider", func() {
 			It("found the right team", func() {
 				actualTeam := fakeDBTeamFactory.GetByIDArgsForCall(0)
 				Expect(actualTeam).To(Equal(345278))
+			})
+
+			Context("when the worker version is outdated", func() {
+				BeforeEach(func() {
+					fakeExistingWorker.VersionReturns(nil)
+				})
+
+				It("returns an error", func() {
+					Expect(foundWorker).To(BeNil())
+					Expect(found).To(BeTrue())
+					Expect(findErr).To(Equal(ErrWorkerVersionIncompatible{WantWorkerVersion: wantWorkerVersion}))
+				})
 			})
 		})
 
@@ -470,6 +669,8 @@ var _ = Describe("DBProvider", func() {
 				fakeExistingWorker = new(dbngfakes.FakeWorker)
 				fakeExistingWorker.NameReturns("some-worker")
 				fakeExistingWorker.GardenAddrReturns(&addr)
+				workerVersion := "1.1.0"
+				fakeExistingWorker.VersionReturns(&workerVersion)
 
 				fakeDBTeam.FindWorkerForBuildContainerReturns(fakeExistingWorker, true, nil)
 			})
@@ -493,6 +694,18 @@ var _ = Describe("DBProvider", func() {
 			It("found the right team", func() {
 				actualTeam := fakeDBTeamFactory.GetByIDArgsForCall(0)
 				Expect(actualTeam).To(Equal(345278))
+			})
+
+			Context("when the worker version is outdated", func() {
+				BeforeEach(func() {
+					fakeExistingWorker.VersionReturns(nil)
+				})
+
+				It("returns an error", func() {
+					Expect(foundWorker).To(BeNil())
+					Expect(found).To(BeTrue())
+					Expect(findErr).To(Equal(ErrWorkerVersionIncompatible{WantWorkerVersion: wantWorkerVersion}))
+				})
 			})
 		})
 
@@ -567,6 +780,8 @@ var _ = Describe("DBProvider", func() {
 					fakeExistingWorker = new(dbngfakes.FakeWorker)
 					fakeExistingWorker.NameReturns("some-worker")
 					fakeExistingWorker.GardenAddrReturns(&addr)
+					workerVersion := "1.1.0"
+					fakeExistingWorker.VersionReturns(&workerVersion)
 
 					fakeDBTeam.FindWorkerForResourceCheckContainerReturns(fakeExistingWorker, true, nil)
 				})
@@ -589,6 +804,18 @@ var _ = Describe("DBProvider", func() {
 				It("found the right team", func() {
 					actualTeam := fakeDBTeamFactory.GetByIDArgsForCall(0)
 					Expect(actualTeam).To(Equal(345278))
+				})
+
+				Context("when the worker version is outdated", func() {
+					BeforeEach(func() {
+						fakeExistingWorker.VersionReturns(nil)
+					})
+
+					It("returns an error", func() {
+						Expect(foundWorker).To(BeNil())
+						Expect(found).To(BeTrue())
+						Expect(findErr).To(Equal(ErrWorkerVersionIncompatible{WantWorkerVersion: wantWorkerVersion}))
+					})
 				})
 			})
 
