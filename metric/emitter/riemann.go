@@ -9,12 +9,16 @@ import (
 type RiemannEmitter struct {
 	client    *goryman.GorymanClient
 	connected bool
+
+	servicePrefix string
 }
 
-func NewRiemannEmitter(addr string) metric.Emitter {
+func NewRiemannEmitter(addr string, servicePrefix string) metric.Emitter {
 	return &RiemannEmitter{
 		client:    goryman.NewGorymanClient(addr),
 		connected: false,
+
+		servicePrefix: servicePrefix,
 	}
 }
 
@@ -30,7 +34,7 @@ func (emitter *RiemannEmitter) Emit(logger lager.Logger, event metric.Event) {
 	}
 
 	err := emitter.client.SendEvent(&goryman.Event{
-		Service:    event.Name,
+		Service:    emitter.servicePrefix + event.Name,
 		Metric:     event.Value,
 		State:      string(event.State),
 		Attributes: event.Attributes,

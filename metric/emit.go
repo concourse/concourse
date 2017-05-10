@@ -31,7 +31,6 @@ var emitter Emitter
 var eventHost string
 var eventTags []string
 var eventAttributes map[string]string
-var eventPrefix string
 
 type eventEmission struct {
 	event  Event
@@ -40,12 +39,11 @@ type eventEmission struct {
 
 var emissions = make(chan eventEmission, 1000)
 
-func Initialize(logger lager.Logger, emitter Emitter, host string, tags []string, attributes map[string]string, prefix string) {
+func Initialize(logger lager.Logger, emitter Emitter, host string, tags []string, attributes map[string]string) {
 	emitter = emitter
 	eventHost = host
 	eventTags = tags
 	eventAttributes = attributes
-	eventPrefix = prefix
 
 	go emitLoop()
 }
@@ -55,10 +53,6 @@ func emit(logger lager.Logger, event Event) {
 
 	if emitter == nil {
 		return
-	}
-
-	if eventPrefix != "" {
-		event.Name = eventPrefix + event.Name
 	}
 
 	event.Host = eventHost

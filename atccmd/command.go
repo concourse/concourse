@@ -611,11 +611,10 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 
 	metric.Initialize(
 		logger.Session("metrics"),
-		emitter.NewRiemannEmitter(fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort)),
+		emitter.NewRiemannEmitter(fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort), cmd.Metrics.RiemannServicePrefix),
 		host,
 		cmd.Metrics.Tags,
 		cmd.Metrics.Attributes,
-		cmd.Metrics.RiemannServicePrefix,
 	)
 }
 
