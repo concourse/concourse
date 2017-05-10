@@ -173,6 +173,15 @@ case $1 in
       --cli-artifacts-dir /var/vcap/packages/fly \
       --yeller-api-key <%= esc(p("yeller.api_key")) %> \
       --yeller-environment <%= esc(p("yeller.environment_name")) %> \
+      <% if_p("influxdb.url") do |url| %> \
+      --influxdb-url <%= esc(url) %> \
+      <% end %> \
+      --influxdb-database <%= esc(p("influxdb.database")) %> \
+      --influxdb-username <%= esc(p("influxdb.username")) %> \
+      --influxdb-password <%= esc(p("influxdb.password")) %> \
+      <% if p("influxdb.insecure_skip_verify") %> \
+      --influxdb-insecure-skip-verify \
+      <% end %> \
       <% if_p("riemann.host", "riemann.port") do |host, port| %> \
       --riemann-host <%= esc(host) %> \
       --riemann-port <%= port.to_i %> \

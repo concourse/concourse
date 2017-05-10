@@ -358,3 +358,28 @@ properties:
     example:
       env: dev
       foo: bar
+
+  influxdb.url:
+    description: |
+      If configured, detailed metrics will be emitted to the specified InfluxDB
+      server.
+
+  influxdb.database:
+    description: |
+      InfluxDB database to which metrics will be emitted.
+    default: ""
+
+  influxdb.username:
+    description: |
+      InfluxDB username for authorizing access.
+    default: ""
+
+  influxdb.password:
+    description: |
+      InfluxDB password for authorizing access.
+    default: ""
+
+  influxdb.insecure_skip_verify:
+    description: |
+      Skip SSL verification when emitting to InfluxDB.
+    default: false
