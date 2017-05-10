@@ -133,21 +133,34 @@ type ATCCommand struct {
 }
 
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
-	groups := commandFlags.Groups()
-
 	var authGroup *flags.Group
 	var metricsGroup *flags.Group
 
-	for _, group := range groups {
-		for _, subGroup := range group.Groups() {
-			if subGroup.ShortDescription == "Authentication" {
-				authGroup = subGroup
-			}
+	groups := commandFlags.Groups()
+	for i := 0; i < len(groups); i++ {
+		group := groups[i]
 
-			if subGroup.ShortDescription == "Metrics & Diagnostics" {
-				metricsGroup = subGroup
-			}
+		if authGroup == nil && group.ShortDescription == "Authentication" {
+			authGroup = group
 		}
+
+		if metricsGroup == nil && group.ShortDescription == "Metrics & Diagnostics" {
+			metricsGroup = group
+		}
+
+		if metricsGroup != nil && authGroup != nil {
+			break
+		}
+
+		groups = append(groups, group.Groups()...)
+	}
+
+	if authGroup == nil {
+		panic("could not find Authentication group for registering providers")
+	}
+
+	if metricsGroup == nil {
+		panic("could not find Metrics & Diagnostics group for registering providers")
 	}
 
 	authConfigs := make(provider.AuthConfigs)
