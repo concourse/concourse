@@ -64,6 +64,10 @@ files:
   - github.com/concourse/atc/lockrunner/*.go # gosub
   - github.com/concourse/atc/mainredirect/*.go # gosub
   - github.com/concourse/atc/metric/*.go # gosub
+  - github.com/concourse/atc/metric/emitter/*.go # gosub
+  - github.com/concourse/atc/metric/emitter/vendor/github.com/influxdata/influxdb/client/v2/*.go # gosub
+  - github.com/concourse/atc/metric/emitter/vendor/github.com/influxdata/influxdb/models/*.go # gosub
+  - github.com/concourse/atc/metric/emitter/vendor/github.com/influxdata/influxdb/pkg/escape/*.go # gosub
   - github.com/concourse/atc/pipelines/*.go # gosub
   - github.com/concourse/atc/radar/*.go # gosub
   - github.com/concourse/atc/resource/*.go # gosub
