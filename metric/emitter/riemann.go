@@ -1,6 +1,9 @@
 package emitter
 
 import (
+	"fmt"
+	"net"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/The-Cloud-Source/goryman"
 	"github.com/concourse/atc/metric"
@@ -13,12 +16,25 @@ type RiemannEmitter struct {
 	servicePrefix string
 }
 
-func NewRiemannEmitter(addr string, servicePrefix string) metric.Emitter {
+type RiemannConfig struct {
+	Host          string `long:"riemann-host"                          description:"Riemann server address to emit metrics to."`
+	Port          uint16 `long:"riemann-port"           default:"5555" description:"Port of the Riemann server to emit metrics to."`
+	ServicePrefix string `long:"riemann-service-prefix" default:""     description:"An optional prefix for emitted Riemann services"`
+}
+
+func init() {
+	metric.RegisterEmitter(&RiemannConfig{})
+}
+
+func (config *RiemannConfig) Description() string { return "Riemann" }
+func (config *RiemannConfig) IsConfigured() bool  { return config.Host != "" }
+
+func (config *RiemannConfig) NewEmitter() metric.Emitter {
 	return &RiemannEmitter{
-		client:    goryman.NewGorymanClient(addr),
+		client:    goryman.NewGorymanClient(net.JoinHostPort(config.Host, fmt.Sprintf("%d", config.Port))),
 		connected: false,
 
-		servicePrefix: servicePrefix,
+		servicePrefix: config.ServicePrefix,
 	}
 }
 

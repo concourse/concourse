@@ -10,6 +10,8 @@ import (
 	_ "github.com/concourse/atc/auth/genericoauth"
 	_ "github.com/concourse/atc/auth/github"
 	_ "github.com/concourse/atc/auth/uaa"
+
+	_ "github.com/concourse/atc/metric/emitter"
 )
 
 func main() {

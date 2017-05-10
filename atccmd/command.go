@@ -33,7 +33,6 @@ import (
 	"github.com/concourse/atc/gcng"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
-	"github.com/concourse/atc/metric/emitter"
 	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
@@ -115,10 +114,6 @@ type ATCCommand struct {
 
 		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
 		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
-
-		RiemannHost          string `long:"riemann-host"                description:"Riemann server address to emit metrics to."`
-		RiemannPort          uint16 `long:"riemann-port" default:"5555" description:"Port of the Riemann server to emit metrics to."`
-		RiemannServicePrefix string `long:"riemann-service-prefix" default:"" description:"An optional prefix for emitted Riemann services"`
 	} `group:"Metrics & Diagnostics"`
 
 	Server struct {
@@ -136,11 +131,16 @@ func (cmd *ATCCommand) WireDynamicFlags(parser *flags.Parser) {
 	groups := parser.Command.Groups()
 
 	var authGroup *flags.Group
+	var metricsGroup *flags.Group
 
 	for _, group := range groups {
 		for _, subGroup := range group.Groups() {
 			if subGroup.ShortDescription == "Authentication" {
 				authGroup = subGroup
+			}
+
+			if subGroup.ShortDescription == "Metrics & Diagnostics" {
+				metricsGroup = subGroup
 			}
 		}
 	}
@@ -152,6 +152,8 @@ func (cmd *ATCCommand) WireDynamicFlags(parser *flags.Parser) {
 	}
 
 	cmd.ProviderAuth = authConfigs
+
+	metric.WireEmitters(metricsGroup)
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -173,9 +175,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	go metric.PeriodicallyEmit(logger.Session("periodic-metrics"), 10*time.Second)
 
-	if cmd.Metrics.RiemannHost != "" {
-		cmd.configureMetrics(logger)
-	}
+	cmd.configureMetrics(logger)
 
 	dbConn, dbngConn, err := cmd.constructDBConn(logger)
 	if err != nil {
@@ -632,13 +632,7 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 		host, _ = os.Hostname()
 	}
 
-	metric.Initialize(
-		logger.Session("metrics"),
-		emitter.NewRiemannEmitter(fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort), cmd.Metrics.RiemannServicePrefix),
-		host,
-		cmd.Metrics.Tags,
-		cmd.Metrics.Attributes,
-	)
+	metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Tags, cmd.Metrics.Attributes)
 }
 
 func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, dbng.Conn, error) {

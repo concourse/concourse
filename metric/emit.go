@@ -1,7 +1,10 @@
 package metric
 
 import (
+	"fmt"
 	"time"
+
+	flags "github.com/jessevdk/go-flags"
 
 	"code.cloudfoundry.org/lager"
 )
@@ -27,6 +30,27 @@ type Emitter interface {
 	Emit(lager.Logger, Event)
 }
 
+type EmitterFactory interface {
+	Description() string
+	IsConfigured() bool
+	NewEmitter() Emitter
+}
+
+var emitterFactories []EmitterFactory
+
+func RegisterEmitter(factory EmitterFactory) {
+	emitterFactories = append(emitterFactories, factory)
+}
+
+func WireEmitters(group *flags.Group) {
+	for _, factory := range emitterFactories {
+		_, err := group.AddGroup(fmt.Sprintf("Metric Emitter (%s)", factory.Description()), "", factory)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 var emitter Emitter
 var eventHost string
 var eventTags []string
@@ -39,7 +63,17 @@ type eventEmission struct {
 
 var emissions = make(chan eventEmission, 1000)
 
-func Initialize(logger lager.Logger, emitter Emitter, host string, tags []string, attributes map[string]string) {
+func Initialize(logger lager.Logger, host string, tags []string, attributes map[string]string) {
+	for _, factory := range emitterFactories {
+		if factory.IsConfigured() {
+			emitter = factory.NewEmitter()
+		}
+	}
+
+	if emitter == nil {
+		return
+	}
+
 	emitter = emitter
 	eventHost = host
 	eventTags = tags
@@ -81,6 +115,6 @@ func emit(logger lager.Logger, event Event) {
 
 func emitLoop() {
 	for emission := range emissions {
-		emitter.Emit(emission.logger, emission.event)
+		emitter.Emit(emission.logger.Session("emit"), emission.event)
 	}
 }
