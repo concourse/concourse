@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/The-Cloud-Source/goryman"
 	"github.com/concourse/atc/dbng"
 )
 
@@ -18,14 +17,14 @@ type SchedulingFullDuration struct {
 }
 
 func (event SchedulingFullDuration) Emit(logger lager.Logger) {
-	state := "ok"
+	state := EventStateOK
 
 	if event.Duration > time.Second {
-		state = "warning"
+		state = EventStateWarning
 	}
 
 	if event.Duration > 5*time.Second {
-		state = "critical"
+		state = EventStateCritical
 	}
 
 	emit(
@@ -34,10 +33,10 @@ func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 			"duration": event.Duration.String(),
 		}),
 
-		goryman.Event{
-			Service: "scheduling: full duration (ms)",
-			Metric:  ms(event.Duration),
-			State:   state,
+		Event{
+			Name:  "scheduling: full duration (ms)",
+			Value: ms(event.Duration),
+			State: state,
 			Attributes: map[string]string{
 				"pipeline": event.PipelineName,
 			},
@@ -51,14 +50,14 @@ type SchedulingLoadVersionsDuration struct {
 }
 
 func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
-	state := "ok"
+	state := EventStateOK
 
 	if event.Duration > time.Second {
-		state = "warning"
+		state = EventStateWarning
 	}
 
 	if event.Duration > 5*time.Second {
-		state = "critical"
+		state = EventStateCritical
 	}
 
 	emit(
@@ -66,10 +65,10 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 			"pipeline": event.PipelineName,
 			"duration": event.Duration.String(),
 		}),
-		goryman.Event{
-			Service: "scheduling: loading versions duration (ms)",
-			Metric:  ms(event.Duration),
-			State:   state,
+		Event{
+			Name:  "scheduling: loading versions duration (ms)",
+			Value: ms(event.Duration),
+			State: state,
 			Attributes: map[string]string{
 				"pipeline": event.PipelineName,
 			},
@@ -84,14 +83,14 @@ type SchedulingJobDuration struct {
 }
 
 func (event SchedulingJobDuration) Emit(logger lager.Logger) {
-	state := "ok"
+	state := EventStateOK
 
 	if event.Duration > time.Second {
-		state = "warning"
+		state = EventStateWarning
 	}
 
 	if event.Duration > 5*time.Second {
-		state = "critical"
+		state = EventStateCritical
 	}
 
 	emit(
@@ -100,10 +99,10 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 			"job":      event.JobName,
 			"duration": event.Duration.String(),
 		}),
-		goryman.Event{
-			Service: "scheduling: job duration (ms)",
-			Metric:  ms(event.Duration),
-			State:   state,
+		Event{
+			Name:  "scheduling: job duration (ms)",
+			Value: ms(event.Duration),
+			State: state,
 			Attributes: map[string]string{
 				"pipeline": event.PipelineName,
 				"job":      event.JobName,
@@ -123,10 +122,10 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 			"worker":     event.WorkerName,
 			"containers": event.Containers,
 		}),
-		goryman.Event{
-			Service: "worker containers",
-			Metric:  event.Containers,
-			State:   "ok",
+		Event{
+			Name:  "worker containers",
+			Value: event.Containers,
+			State: EventStateOK,
 			Attributes: map[string]string{
 				"worker": event.WorkerName,
 			},
@@ -149,10 +148,10 @@ func (event BuildStarted) Emit(logger lager.Logger) {
 			"build-name": event.BuildName,
 			"build-id":   event.BuildID,
 		}),
-		goryman.Event{
-			Service: "build started",
-			Metric:  event.BuildID,
-			State:   "ok",
+		Event{
+			Name:  "build started",
+			Value: event.BuildID,
+			State: EventStateOK,
 			Attributes: map[string]string{
 				"pipeline":   event.PipelineName,
 				"job":        event.JobName,
@@ -181,10 +180,10 @@ func (event BuildFinished) Emit(logger lager.Logger) {
 			"build-id":     event.BuildID,
 			"build-status": event.BuildStatus,
 		}),
-		goryman.Event{
-			Service: "build finished",
-			Metric:  ms(event.BuildDuration),
-			State:   "ok",
+		Event{
+			Name:  "build finished",
+			Value: ms(event.BuildDuration),
+			State: EventStateOK,
 			Attributes: map[string]string{
 				"pipeline":     event.PipelineName,
 				"job":          event.JobName,
@@ -208,14 +207,14 @@ type HTTPResponseTime struct {
 }
 
 func (event HTTPResponseTime) Emit(logger lager.Logger) {
-	state := "ok"
+	state := EventStateOK
 
 	if event.Duration > 100*time.Millisecond {
-		state = "warning"
+		state = EventStateWarning
 	}
 
 	if event.Duration > 1*time.Second {
-		state = "critical"
+		state = EventStateCritical
 	}
 
 	emit(
@@ -224,10 +223,10 @@ func (event HTTPResponseTime) Emit(logger lager.Logger) {
 			"path":     event.Path,
 			"duration": event.Duration.String(),
 		}),
-		goryman.Event{
-			Service: "http response time",
-			Metric:  ms(event.Duration),
-			State:   state,
+		Event{
+			Name:  "http response time",
+			Value: ms(event.Duration),
+			State: state,
 			Attributes: map[string]string{
 				"route":  event.Route,
 				"path":   event.Path,

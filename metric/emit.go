@@ -4,27 +4,44 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/The-Cloud-Source/goryman"
 )
 
-type eventEmission struct {
-	event  goryman.Event
-	logger lager.Logger
+type Event struct {
+	Name       string
+	Value      interface{}
+	State      EventState
+	Attributes map[string]string
+
+	Host string
+	Time int64
+	Tags []string
 }
 
-var riemannClient *goryman.GorymanClient
+type EventState string
+
+const EventStateOK EventState = "ok"
+const EventStateWarning EventState = "warning"
+const EventStateCritical EventState = "critical"
+
+type Emitter interface {
+	Emit(lager.Logger, Event)
+}
+
+var emitter Emitter
 var eventHost string
 var eventTags []string
 var eventAttributes map[string]string
 var eventPrefix string
 
-var clientConnected bool
+type eventEmission struct {
+	event  Event
+	logger lager.Logger
+}
+
 var emissions = make(chan eventEmission, 1000)
 
-func Initialize(logger lager.Logger, riemannAddr string, host string, tags []string, attributes map[string]string, prefix string) {
-	client := goryman.NewGorymanClient(riemannAddr)
-
-	riemannClient = client
+func Initialize(logger lager.Logger, emitter Emitter, host string, tags []string, attributes map[string]string, prefix string) {
+	emitter = emitter
 	eventHost = host
 	eventTags = tags
 	eventAttributes = attributes
@@ -33,15 +50,15 @@ func Initialize(logger lager.Logger, riemannAddr string, host string, tags []str
 	go emitLoop()
 }
 
-func emit(logger lager.Logger, event goryman.Event) {
+func emit(logger lager.Logger, event Event) {
 	logger.Debug("emit")
 
-	if riemannClient == nil {
+	if emitter == nil {
 		return
 	}
 
 	if eventPrefix != "" {
-		event.Service = eventPrefix + event.Service
+		event.Name = eventPrefix + event.Name
 	}
 
 	event.Host = eventHost
@@ -70,25 +87,6 @@ func emit(logger lager.Logger, event goryman.Event) {
 
 func emitLoop() {
 	for emission := range emissions {
-		if !clientConnected {
-			err := riemannClient.Connect()
-			if err != nil {
-				emission.logger.Error("connection-failed", err)
-				continue
-			}
-
-			clientConnected = true
-		}
-
-		err := riemannClient.SendEvent(&emission.event)
-		if err != nil {
-			emission.logger.Error("failed-to-emit", err)
-
-			if err := riemannClient.Close(); err != nil {
-				emission.logger.Error("failed-to-close", err)
-			}
-
-			clientConnected = false
-		}
+		emitter.Emit(emission.logger, emission.event)
 	}
 }

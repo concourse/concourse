@@ -33,6 +33,7 @@ import (
 	"github.com/concourse/atc/gcng"
 	"github.com/concourse/atc/lockrunner"
 	"github.com/concourse/atc/metric"
+	"github.com/concourse/atc/metric/emitter"
 	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
@@ -610,7 +611,7 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 
 	metric.Initialize(
 		logger.Session("metrics"),
-		fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort),
+		emitter.NewRiemannEmitter(fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort)),
 		host,
 		cmd.Metrics.Tags,
 		cmd.Metrics.Attributes,
