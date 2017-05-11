@@ -331,7 +331,7 @@ func waitForWorkerInState(desiredStates ...string) string {
 			worker := strings.Fields(row)
 
 			name := worker[0]
-			state := worker[len(worker)-1]
+			state := worker[len(worker)-2] // version is after it
 
 			anyMatched := false
 			for _, desiredState := range desiredStates {
