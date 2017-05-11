@@ -411,7 +411,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       ---
       name: concourse
 
-      # replace with `bosh status --uuid`
+      # run `bosh env` to find the UUID
       director_uuid: REPLACE_ME
 
       releases:
@@ -444,7 +444,7 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
             # replace with your CI's externally reachable URL, e.g. https://ci.foo.com
             external_url: REPLACE_ME
 
-            # replace with username/password, or configure GitHub auth
+            # make up a username/password, or configure GitHub auth
             basic_auth_username: REPLACE_ME
             basic_auth_password: REPLACE_ME
 
