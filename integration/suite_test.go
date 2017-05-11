@@ -25,6 +25,7 @@ var atcServer *ghttp.Server
 
 const targetName = "testserver"
 const atcVersion = "1.2.3"
+const workerVersion = "4.5.6"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	binPath, err := gexec.Build("github.com/concourse/fly")
@@ -45,7 +46,7 @@ var _ = SynchronizedAfterSuite(func() {
 func infoHandler() http.HandlerFunc {
 	return ghttp.CombineHandlers(
 		ghttp.VerifyRequest("GET", "/api/v1/info"),
-		ghttp.RespondWithJSONEncoded(200, atc.Info{Version: atcVersion}),
+		ghttp.RespondWithJSONEncoded(200, atc.Info{Version: atcVersion, WorkerVersion: workerVersion}),
 	)
 }
 

@@ -38,8 +38,29 @@ var _ = Describe("Fly CLI", func() {
 								ResourceTypes: []atc.WorkerResourceType{
 									{Type: "resource-1", Image: "/images/resource-1"},
 								},
-								Team:  "team-1",
-								State: "running",
+								Team:    "team-1",
+								State:   "running",
+								Version: "4.5.6",
+							},
+							{
+								Name:             "worker-6",
+								GardenAddr:       "5.5.5.5:7777",
+								ActiveContainers: 0,
+								Platform:         "platform2",
+								Tags:             []string{"tag1"},
+								Team:             "team-1",
+								State:            "running",
+								Version:          "1.2.3",
+							},
+							{
+								Name:             "worker-7",
+								GardenAddr:       "7.7.7.7:7777",
+								ActiveContainers: 0,
+								Platform:         "platform2",
+								Tags:             []string{"tag1"},
+								Team:             "team-1",
+								State:            "running",
+								Version:          "",
 							},
 							{
 								Name:             "worker-1",
@@ -52,8 +73,9 @@ var _ = Describe("Fly CLI", func() {
 									{Type: "resource-1", Image: "/images/resource-1"},
 									{Type: "resource-2", Image: "/images/resource-2"},
 								},
-								Team:  "team-1",
-								State: "landing",
+								Team:    "team-1",
+								State:   "landing",
+								Version: "4.5.6",
 							},
 							{
 								Name:             "worker-3",
@@ -62,6 +84,7 @@ var _ = Describe("Fly CLI", func() {
 								Platform:         "platform3",
 								Tags:             []string{},
 								State:            "landed",
+								Version:          "4.5.6",
 							},
 							{
 								Name:             "worker-4",
@@ -71,6 +94,7 @@ var _ = Describe("Fly CLI", func() {
 								Tags:             []string{"tag1"},
 								Team:             "team-1",
 								State:            "stalled",
+								Version:          "4.5.6",
 							},
 							{
 								Name:             "worker-5",
@@ -79,13 +103,14 @@ var _ = Describe("Fly CLI", func() {
 								Platform:         "platform5",
 								Tags:             []string{},
 								State:            "retiring",
+								Version:          "4.5.6",
 							},
 						}),
 					),
 				)
 			})
 
-			It("lists them to the user, ordered by name, with stalled workers grouped together", func() {
+			It("lists them to the user, ordered by name, with outdated and stalled workers grouped together", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -98,13 +123,16 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "tags", Color: color.New(color.Bold)},
 						{Contents: "team", Color: color.New(color.Bold)},
 						{Contents: "state", Color: color.New(color.Bold)},
+						{Contents: "version", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "worker-1"}, {Contents: "1"}, {Contents: "platform1"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "landing"}},
-						{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag2, tag3"}, {Contents: "team-1"}, {Contents: "running"}},
-						{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "landed"}},
-						{{Contents: "worker-5"}, {Contents: "5"}, {Contents: "platform5"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}},
-						{{Contents: "worker-4"}, {Contents: "7"}, {Contents: "platform4"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "stalled"}},
+						{{Contents: "worker-1"}, {Contents: "1"}, {Contents: "platform1"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "landing"}, {Contents: "4.5.6"}},
+						{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag2, tag3"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "4.5.6"}},
+						{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "landed"}, {Contents: "4.5.6"}},
+						{{Contents: "worker-5"}, {Contents: "5"}, {Contents: "platform5"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}, {Contents: "4.5.6"}},
+						{{Contents: "worker-6"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "1.2.3", Color: color.New(color.FgRed)}},
+						{{Contents: "worker-7"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "none", Color: color.New(color.FgRed)}},
+						{{Contents: "worker-4"}, {Contents: "7"}, {Contents: "platform4"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "stalled"}, {Contents: "4.5.6"}},
 					},
 				}))
 			})
@@ -132,18 +160,20 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "resource types", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
-							{{Contents: "worker-1"}, {Contents: "1"}, {Contents: "platform1"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "landing"}, {Contents: "2.2.3.4:7777"}, {Contents: "http://2.2.3.4:7788"}, {Contents: "resource-1, resource-2"}},
-							{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag2, tag3"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "1.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "resource-1"}},
-							{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "landed"}, {Contents: "3.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
-							{{Contents: "worker-5"}, {Contents: "5"}, {Contents: "platform5"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}, {Contents: "3.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
-							{{Contents: "worker-4"}, {Contents: "7"}, {Contents: "platform4"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "stalled"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
+							{{Contents: "worker-1"}, {Contents: "1"}, {Contents: "platform1"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "landing"}, {Contents: "4.5.6"}, {Contents: "2.2.3.4:7777"}, {Contents: "http://2.2.3.4:7788"}, {Contents: "resource-1, resource-2"}},
+							{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag2, tag3"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "4.5.6"}, {Contents: "1.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "resource-1"}},
+							{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "landed"}, {Contents: "4.5.6"}, {Contents: "3.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
+							{{Contents: "worker-5"}, {Contents: "5"}, {Contents: "platform5"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}, {Contents: "4.5.6"}, {Contents: "3.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
+							{{Contents: "worker-6"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "1.2.3", Color: color.New(color.FgRed)}, {Contents: "5.5.5.5:7777", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
+							{{Contents: "worker-7"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "none", Color: color.New(color.FgRed)}, {Contents: "7.7.7.7:7777", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
+							{{Contents: "worker-4"}, {Contents: "7"}, {Contents: "platform4"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "stalled"}, {Contents: "4.5.6"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
 						},
 					}))
 				})
 			})
 		})
 
-		Context("when API does not return stalled workers", func() {
+		Context("when API does not return stalled or outdated workers", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -157,6 +187,7 @@ var _ = Describe("Fly CLI", func() {
 								Tags:             []string{"tag1"},
 								Team:             "team-1",
 								State:            "running",
+								Version:          "4.5.6",
 							},
 							{
 								Name:             "worker-1",
@@ -166,6 +197,7 @@ var _ = Describe("Fly CLI", func() {
 								Tags:             []string{},
 								Team:             "team-1",
 								State:            "landing",
+								Version:          "4.5.6",
 							},
 							{
 								Name:             "worker-3",
@@ -174,6 +206,7 @@ var _ = Describe("Fly CLI", func() {
 								Platform:         "platform3",
 								Tags:             []string{},
 								State:            "retiring",
+								Version:          "4.5.6",
 							},
 						}),
 					),
@@ -193,11 +226,12 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "tags", Color: color.New(color.Bold)},
 						{Contents: "team", Color: color.New(color.Bold)},
 						{Contents: "state", Color: color.New(color.Bold)},
+						{Contents: "version", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "worker-1"}, {Contents: "10"}, {Contents: "platform1"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "team-1"}, {Contents: "landing"}},
-						{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "running"}},
-						{{Contents: "worker-3"}, {Contents: "5"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}},
+						{{Contents: "worker-1"}, {Contents: "10"}, {Contents: "platform1"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "team-1"}, {Contents: "landing"}, {Contents: "4.5.6", Color: color.New(color.Faint)}},
+						{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "running"}, {Contents: "4.5.6", Color: color.New(color.Faint)}},
+						{{Contents: "worker-3"}, {Contents: "5"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "retiring"}, {Contents: "4.5.6", Color: color.New(color.Faint)}},
 					},
 				}))
 				Expect(sess.Out).NotTo(PrintTable(ui.Table{
@@ -208,9 +242,10 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "tags", Color: color.New(color.Bold)},
 						{Contents: "team", Color: color.New(color.Bold)},
 						{Contents: "state", Color: color.New(color.Bold)},
+						{Contents: "version", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "worker-4"}, {Contents: "7"}, {Contents: "platform4"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "stalled"}},
+						{{Contents: "worker-4"}, {Contents: "7"}, {Contents: "platform4"}, {Contents: "tag1"}, {Contents: "team-1"}, {Contents: "stalled"}, {Contents: "4.5.6"}},
 					},
 				}))
 			})

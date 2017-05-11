@@ -10,9 +10,11 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/fly/ui"
 	"github.com/concourse/fly/version"
 	"github.com/concourse/go-concourse/concourse"
+	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
 	"golang.org/x/oauth2"
 )
 
@@ -42,6 +44,8 @@ type Target interface {
 	ValidateWithWarningOnly() error
 	TLSConfig() *tls.Config
 	URL() string
+	WorkerVersion() (string, error)
+	IsWorkerVersionCompatible(string) (bool, error)
 	Token() *TargetToken
 	TokenAuthorization() (string, bool)
 }
@@ -54,6 +58,7 @@ type target struct {
 	client    concourse.Client
 	url       string
 	token     *TargetToken
+	info      atc.Info
 }
 
 func newTarget(
@@ -255,6 +260,15 @@ func (t *target) Token() *TargetToken {
 	return t.token
 }
 
+func (t *target) WorkerVersion() (string, error) {
+	info, err := t.getInfo()
+	if err != nil {
+		return "", err
+	}
+
+	return info.WorkerVersion, nil
+}
+
 func (t *target) TokenAuthorization() (string, bool) {
 	if t.token == nil || (t.token.Type == "" && t.token.Value == "") {
 		return "", false
@@ -271,8 +285,43 @@ func (t *target) Validate() error {
 	return t.validate(false)
 }
 
+func (t *target) IsWorkerVersionCompatible(workerVersion string) (bool, error) {
+	info, err := t.getInfo()
+	if err != nil {
+		return false, err
+	}
+
+	if info.WorkerVersion == "" {
+		return true, nil
+	}
+
+	if workerVersion == "" {
+		return false, nil
+	}
+
+	workerV, err := semisemanticversion.NewVersionFromString(workerVersion)
+	if err != nil {
+		return false, err
+	}
+
+	infoV, err := semisemanticversion.NewVersionFromString(info.WorkerVersion)
+	if err != nil {
+		return false, err
+	}
+
+	if workerV.Release.Components[0].Compare(infoV.Release.Components[0]) != 0 {
+		return false, nil
+	}
+
+	if workerV.Release.Components[1].Compare(infoV.Release.Components[1]) == -1 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (t *target) validate(allowVersionMismatch bool) error {
-	info, err := t.client.GetInfo()
+	info, err := t.getInfo()
 	if err != nil {
 		return err
 	}
@@ -301,6 +350,16 @@ func (t *target) validate(allowVersionMismatch bool) error {
 	}
 
 	return nil
+}
+
+func (t *target) getInfo() (atc.Info, error) {
+	if (t.info != atc.Info{}) {
+		return t.info, nil
+	}
+
+	var err error
+	t.info, err = t.client.GetInfo()
+	return t.info, err
 }
 
 func unauthenticatedHttpClient(insecure bool, caCertPool *x509.CertPool) *http.Client {

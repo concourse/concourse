@@ -35,24 +35,51 @@ func (command *WorkersCommand) Execute([]string) error {
 
 	sort.Sort(byWorkerName(workers))
 
-	var runningWorkers []atc.Worker
-	var stalledWorkers []atc.Worker
+	var runningWorkers []worker
+	var stalledWorkers []worker
+	var outdatedWorkers []worker
 	for _, w := range workers {
 		if w.State == "stalled" {
-			stalledWorkers = append(stalledWorkers, w)
+			stalledWorkers = append(stalledWorkers, worker{w, false})
 		} else {
-			runningWorkers = append(runningWorkers, w)
+			workerVersionCompatible, err := target.IsWorkerVersionCompatible(w.Version)
+			if err != nil {
+				return err
+			}
+
+			if !workerVersionCompatible {
+				outdatedWorkers = append(outdatedWorkers, worker{w, true})
+			} else {
+				runningWorkers = append(runningWorkers, worker{w, false})
+			}
 		}
 	}
 
 	dst, isTTY := ui.ForTTY(os.Stdout)
 	if !isTTY {
-		return command.tableFor(append(runningWorkers, stalledWorkers...)).Render(os.Stdout, Fly.PrintTableHeaders)
+		return command.tableFor(append(append(runningWorkers, outdatedWorkers...), stalledWorkers...)).Render(os.Stdout, Fly.PrintTableHeaders)
 	}
 
 	err = command.tableFor(runningWorkers).Render(os.Stdout, Fly.PrintTableHeaders)
 	if err != nil {
 		return err
+	}
+
+	if len(outdatedWorkers) > 0 {
+		requiredWorkerVersion, err := target.WorkerVersion()
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "")
+		fmt.Fprintln(dst, "the following workers need to be updated to version "+ui.Embolden(requiredWorkerVersion)+":")
+		fmt.Fprintln(dst, "")
+
+		err = command.tableFor(outdatedWorkers).Render(os.Stdout, Fly.PrintTableHeaders)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(stalledWorkers) > 0 {
@@ -76,7 +103,7 @@ func (command *WorkersCommand) Execute([]string) error {
 	return nil
 }
 
-func (command *WorkersCommand) tableFor(workers []atc.Worker) ui.Table {
+func (command *WorkersCommand) tableFor(workers []worker) ui.Table {
 	headers := ui.TableRow{
 		{Contents: "name", Color: color.New(color.Bold)},
 		{Contents: "containers", Color: color.New(color.Bold)},
@@ -84,6 +111,7 @@ func (command *WorkersCommand) tableFor(workers []atc.Worker) ui.Table {
 		{Contents: "tags", Color: color.New(color.Bold)},
 		{Contents: "team", Color: color.New(color.Bold)},
 		{Contents: "state", Color: color.New(color.Bold)},
+		{Contents: "version", Color: color.New(color.Bold)},
 	}
 
 	if command.Details {
@@ -104,6 +132,7 @@ func (command *WorkersCommand) tableFor(workers []atc.Worker) ui.Table {
 			stringOrDefault(strings.Join(w.Tags, ", ")),
 			stringOrDefault(w.Team),
 			{Contents: w.State},
+			w.VersionCell(),
 		}
 
 		if command.Details {
@@ -128,3 +157,25 @@ type byWorkerName []atc.Worker
 func (ws byWorkerName) Len() int               { return len(ws) }
 func (ws byWorkerName) Swap(i int, j int)      { ws[i], ws[j] = ws[j], ws[i] }
 func (ws byWorkerName) Less(i int, j int) bool { return ws[i].Name < ws[j].Name }
+
+type worker struct {
+	atc.Worker
+
+	outdated bool
+}
+
+func (w *worker) VersionCell() ui.TableCell {
+	var column ui.TableCell
+	if w.Version != "" {
+		column.Contents = w.Version
+	} else {
+		column.Contents = "none"
+		column.Color = color.New(color.Faint)
+	}
+
+	if w.outdated {
+		column.Color = color.New(color.FgRed)
+	}
+
+	return column
+}
