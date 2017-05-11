@@ -124,17 +124,18 @@ func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVer
 		return false
 	}
 
-	if v.Release.Components[0].Compare(comparedVersion.Release.Components[0]) != 0 {
-		logger.Info("different-major-version")
+	switch v.Release.Compare(comparedVersion.Release) {
+	case 0:
+		return true
+	case -1:
+		return false
+	default:
+		if v.Release.Components[0].Compare(comparedVersion.Release.Components[0]) == 0 {
+			return true
+		}
+
 		return false
 	}
-
-	if v.Release.Components[1].Compare(comparedVersion.Release.Components[1]) == -1 {
-		logger.Info("older-minor-version")
-		return false
-	}
-
-	return true
 }
 
 func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {

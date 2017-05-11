@@ -35,9 +35,10 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(registration.GardenAddr) == 0 {
+	err = registration.Validate()
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "missing address")
+		fmt.Fprintf(w, err.Error())
 		return
 	}
 

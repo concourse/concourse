@@ -137,6 +137,7 @@ var _ = Describe("Workers API", func() {
 				},
 				Platform: "haiku",
 				Tags:     []string{"not", "a", "limerick"},
+				Version:  "1.2.3",
 			}
 
 			ttl = "30s"
@@ -176,6 +177,7 @@ var _ = Describe("Workers API", func() {
 					},
 					Platform: "haiku",
 					Tags:     []string{"not", "a", "limerick"},
+					Version:  "1.2.3",
 				}))
 
 				Expect(savedTTL.String()).To(Equal(ttl))
@@ -274,6 +276,7 @@ var _ = Describe("Workers API", func() {
 						},
 						Platform: "haiku",
 						Tags:     []string{"not", "a", "limerick"},
+						Version:  "1.2.3",
 					}))
 
 					Expect(savedTTL.String()).To(Equal(ttl))
@@ -328,7 +331,25 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("returns the validation error in the response body", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("missing address")))
+					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("missing garden address")))
+				})
+
+				It("does not save it", func() {
+					Expect(dbWorkerFactory.SaveWorkerCallCount()).To(BeZero())
+				})
+			})
+
+			Context("when worker version is invalid", func() {
+				BeforeEach(func() {
+					worker.Version = "invalid"
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("returns the validation error in the response body", func() {
+					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("invalid worker version, only numeric characters are allowed")))
 				})
 
 				It("does not save it", func() {

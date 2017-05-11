@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/cppforlife/go-semi-semantic/version"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -88,6 +89,68 @@ var _ = Describe("Worker", func() {
 		)
 
 		fakeClock.IncrementBySeconds(workerUptime)
+	})
+
+	Describe("IsVersionCompatible", func() {
+		It("is compatible when versions are the same", func() {
+			Expect(
+				gardenWorker.IsVersionCompatible(logger, version.MustNewVersionFromString("1.2.3")),
+			).To(BeTrue())
+		})
+
+		It("is not compatible when versions are different in major version", func() {
+			Expect(
+				gardenWorker.IsVersionCompatible(logger, version.MustNewVersionFromString("2.2.3")),
+			).To(BeFalse())
+		})
+
+		It("is compatible when worker minor version is newer", func() {
+			Expect(
+				gardenWorker.IsVersionCompatible(logger, version.MustNewVersionFromString("1.1.3")),
+			).To(BeTrue())
+		})
+
+		It("is not compatible when worker minor version is older", func() {
+			Expect(
+				gardenWorker.IsVersionCompatible(logger, version.MustNewVersionFromString("1.3.3")),
+			).To(BeFalse())
+		})
+
+		Context("when worker version is empty", func() {
+			BeforeEach(func() {
+				workerVersion = ""
+			})
+
+			It("is not compatible", func() {
+				Expect(
+					gardenWorker.IsVersionCompatible(logger, version.MustNewVersionFromString("1.2.3")),
+				).To(BeFalse())
+			})
+		})
+
+		Context("when worker version does not have minor version", func() {
+			BeforeEach(func() {
+				workerVersion = "1"
+			})
+
+			It("is compatible when it is the same", func() {
+				Expect(
+					gardenWorker.IsVersionCompatible(logger, version.MustNewVersionFromString("1")),
+				).To(BeTrue())
+			})
+
+			It("is not compatible when it is different", func() {
+				Expect(
+					gardenWorker.IsVersionCompatible(logger, version.MustNewVersionFromString("2")),
+				).To(BeFalse())
+			})
+
+			It("is not compatible when compared version has minor vesion", func() {
+				Expect(
+					gardenWorker.IsVersionCompatible(logger, version.MustNewVersionFromString("1.2")),
+				).To(BeFalse())
+			})
+		})
 	})
 
 	Describe("FindCreatedContainerByHandle", func() {
