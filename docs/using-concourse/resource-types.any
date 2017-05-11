@@ -182,6 +182,8 @@ before using it!
     \hyperlink{https://github.com/mastertinner/apache-directory-index-resource}{Apache Directory Index}
   }{
     \hyperlink{https://github.com/patrickcrocker/cf-cli-resource}{Cloud Foundry CLI Resource}
+  }{
+    \hyperlink{https://github.com/jinlee/counter-resource}{Counter}
   }
 
   \section{Adding to this list}{
