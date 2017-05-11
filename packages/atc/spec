@@ -21,6 +21,7 @@ files:
   - github.com/The-Cloud-Source/goryman/proto/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cenk/backoff/*.go # gosub
+  - github.com/cenkalti/backoff/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/api/*.go # gosub
   - github.com/concourse/atc/api/authserver/*.go # gosub

@@ -255,3 +255,7 @@
 	path = src/github.com/The-Cloud-Source/goryman
 	url = https://github.com/The-Cloud-Source/goryman
 	branch = master
+[submodule "src/github.com/cenkalti/backoff"]
+	path = src/github.com/cenkalti/backoff
+	url = https://github.com/cenkalti/backoff
+	branch = master
