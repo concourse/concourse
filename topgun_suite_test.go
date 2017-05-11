@@ -322,16 +322,11 @@ func waitForWorkerInState(desiredStates ...string) string {
 	var workerName string
 	Eventually(func() string {
 
-		rows := listWorkers()
-		for _, row := range rows {
-			if row == "" {
-				continue
-			}
+		workers := flyTable("workers")
 
-			worker := strings.Fields(row)
-
-			name := worker[0]
-			state := worker[len(worker)-2] // version is after it
+		for _, worker := range workers {
+			name := worker["name"]
+			state := worker["state"]
 
 			anyMatched := false
 			for _, desiredState := range desiredStates {
@@ -396,26 +391,13 @@ func splitFlyColumns(row string) []string {
 	return regexp.MustCompile(`\s{2,}`).Split(strings.TrimSpace(row), -1)
 }
 
-func listWorkers() []string {
-	session := spawnFly("workers")
-	<-session.Exited
-
-	return strings.Split(string(session.Out.Contents()), "\n")
-}
-
 func waitForWorkersToBeRunning() {
 	Eventually(func() bool {
-
-		rows := listWorkers()
+		workers := flyTable("workers")
 		anyNotRunning := false
-		for _, row := range rows {
-			if row == "" {
-				continue
-			}
+		for _, worker := range workers {
 
-			worker := strings.Fields(row)
-
-			state := worker[len(worker)-1]
+			state := worker["state"]
 
 			if state != "running" {
 				anyNotRunning = true
