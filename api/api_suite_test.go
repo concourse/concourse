@@ -204,6 +204,7 @@ var _ = BeforeEach(func() {
 
 		cliDownloadsDir,
 		"1.2.3",
+		"4.5.6",
 	)
 	Expect(err).NotTo(HaveOccurred())
 

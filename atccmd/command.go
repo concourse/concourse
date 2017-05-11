@@ -940,6 +940,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		cmd.CLIArtifactsDir.Path(),
 		Version,
+		WorkerVersion,
 	)
 }
 

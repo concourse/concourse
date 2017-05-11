@@ -24,7 +24,8 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(body).To(MatchJSON(`{
-				"version": "1.2.3"
+				"version": "1.2.3",
+				"worker_version": "4.5.6"
 			}`))
 		})
 	})

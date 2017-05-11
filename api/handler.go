@@ -74,6 +74,7 @@ func NewHandler(
 
 	cliDownloadsDir string,
 	version string,
+	workerVersion string,
 ) (http.Handler, error) {
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
 	if err != nil {
@@ -128,7 +129,7 @@ func NewHandler(
 
 	teamServer := teamserver.NewServer(logger, dbTeamFactory)
 
-	infoServer := infoserver.NewServer(logger, version)
+	infoServer := infoserver.NewServer(logger, version, workerVersion)
 
 	handlers := map[string]http.Handler{
 		atc.ListAuthMethods: http.HandlerFunc(authServer.ListAuthMethods),

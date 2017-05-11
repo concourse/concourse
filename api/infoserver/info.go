@@ -8,5 +8,5 @@ import (
 )
 
 func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(atc.Info{Version: s.version})
+	json.NewEncoder(w).Encode(atc.Info{Version: s.version, WorkerVersion: s.workerVersion})
 }

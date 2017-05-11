@@ -14,6 +14,10 @@ func Worker(workerInfo dbng.Worker) atc.Worker {
 	if workerInfo.BaggageclaimURL() != nil {
 		baggageclaimURL = *workerInfo.BaggageclaimURL()
 	}
+	version := ""
+	if workerInfo.Version() != nil {
+		version = *workerInfo.Version()
+	}
 
 	return atc.Worker{
 		GardenAddr:       gardenAddr,
@@ -28,5 +32,6 @@ func Worker(workerInfo dbng.Worker) atc.Worker {
 		Name:             workerInfo.Name(),
 		Team:             workerInfo.TeamName(),
 		State:            string(workerInfo.State()),
+		Version:          version,
 	}
 }
