@@ -99,8 +99,8 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     you must set the \reference{task-image} in the plan step instead.
   }
 
-  \define-attribute{image: string}{task-config-image}{
-    \italic{Optional.} A string specifying the rootfs of the container, as
+  \define-attribute{rootfs_uri: string}{task-config-rootfs_uri}{
+    \italic{Optional.} A string specifying the rootfs uri of the container, as
     interpreted by your worker's Garden backend.
 
     You should only use this if you cannot use \reference{image_resource} for
