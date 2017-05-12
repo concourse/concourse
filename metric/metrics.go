@@ -119,6 +119,26 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 	)
 }
 
+type WorkerVolumes struct {
+	WorkerName string
+	Volumes int
+}
+
+func (event WorkerVolumes) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("worker-volumes"),
+		Event{
+			Name:  "worker volumes",
+			Value: event.Volumes,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"worker": event.WorkerName,
+			},
+		},
+	)
+}
+
+
 type BuildStarted struct {
 	PipelineName string
 	JobName      string

@@ -63,6 +63,11 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		Containers: registration.ActiveContainers,
 	}.Emit(s.logger)
 
+	metric.WorkerVolumes{
+		WorkerName: registration.Name,
+		Volumes: registration.ActiveVolumes,
+	}.Emit(s.logger)
+
 	if registration.Team != "" {
 		team, found, err := s.dbTeamFactory.FindTeam(registration.Team)
 		if err != nil {

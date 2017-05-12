@@ -46,6 +46,11 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		Containers: registration.ActiveContainers,
 	}.Emit(s.logger)
 
+	metric.WorkerVolumes{
+		WorkerName: registration.Name,
+		Volumes: registration.ActiveVolumes,
+	}.Emit(s.logger)
+
 	savedWorker, err := s.dbWorkerFactory.HeartbeatWorker(registration, ttl)
 	if err == dbng.ErrWorkerNotPresent {
 		logger.Error("failed-to-find-worker", err)
