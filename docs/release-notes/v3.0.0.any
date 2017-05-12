@@ -1,0 +1,97 @@
+#language anatomy
+
+\use{\load{concourse/docs}}
+
+\release{2017-5-15}{3.0.0}{1.6.1}{
+  \warn{
+    This release requires an update to your workers. You may want to upgrade
+    them first, actually. If you don't the builds will go orange. But maybe you
+    don't care. Read on for more info.
+  }
+
+  \note{feature}{
+    \image{images/life.gif}{Life finds a way.}
+
+    Many many moons ago, in the year 2016, we embarked on a noble goal of
+    refactoring how we do, like, everything. The issue started as
+    \hyperlink{https://github.com/concourse/concourse/issues/629}{More explicit
+    worker, container, volume lifecycles}, and came to be known simply as
+    "life". There were many puns. It was great at first. But some people took
+    it too far. \ghuser{joshzarrabi}.
+
+    Anyway, we're done now.
+
+    With this upgrade, you should notice an overall reduction in container and
+    volume counts across your workers. You should also see a substantial
+    decrease in database queries and network calls to Garden and BaggageClaim,
+    as all the heartbeating is now gone.
+
+    If you're interested in the refactor, read on.
+
+    The general idea is to switch away from creating containers and volumes
+    willy-nilly and nagging the worker every 30 seconds to keep them around.
+    Instead, we create containers and volumes that are associated to a richer
+    schema such that we don't have to keep heartbeating and know exactly when
+    it should go away.
+
+    Building on the richer schema, we are also more able to determine when we
+    can re-use a container. For example, if you have the same exact resource
+    configured across 10 pipelines, that will result in only one \code{check}
+    container, rather than 10. This is because there's an abstract notion of a
+    nameless "resource config". We still create one container per team so that
+    \reference{fly-intercept} can't break an entire resource's checking in a
+    multi-tenant environment.
+
+    We'll also explicitly remove containers and volumes, rather than relying on
+    Garden and BaggageClaim to kill them once we stop caring about them. This
+    will surface failures to delete in a way that's much easier to notice.
+
+    A design document for all this will be forthcoming.
+  }
+
+  \note{feature}{breaking}{
+    Workers are now versioned. This will allow the ATC to ignore workers that
+    are too old if it requires a new feature or protocol change. The
+    \reference{fly-workers} command will now show the version of each worker
+    and warn you if any are out of date.
+
+    Any existing workers you have will be ignored until they are upgraded, so
+    if you upgrade your ATC first, builds that are in flight will fail to
+    resume. If you upgrade the workers first, though, the builds will probably
+    succeed.
+  }
+
+  \note{feature}{breaking}{
+    In a task config you used to be able to configure a URI specifying the
+    rootfs for the underlying container via a config known as "the other
+    \code{image}, like, the one you should never use".
+
+    We renamed it to something more descriptive and harder to confuse with "the
+    good \reference{image}, like, the one you should use":
+    \reference{rootfs_uri}.
+  }
+
+  \note{feature}{
+    Building on our fancy new schema, we now make sure to keep the image used
+    by a one-off build around for 24 hours. Previously it would expire, like,
+    whenever. I don't know man. It works now.
+  }
+
+  \note{feature}{
+    We've refactored how auth providers are configured such that all code for a
+    given provider can be defined within a single package. Providers also have
+    an interface to fill out that should cover everything a provider needs to
+    do. This should make it easier (and safer) to submit PRs for auth
+    providers.
+  }
+
+  \note{feature}{
+    The TSA can now be configured with multiple ATC API endpoints to register
+    with, for HA.
+  }
+
+  \note{fix}{
+    Fixed a UI quirk with the sidebar in Firefox, thanks to a PR by
+    \ghuser{archSeer}!
+  }
+}
