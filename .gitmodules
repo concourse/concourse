@@ -259,3 +259,21 @@
 	path = src/github.com/cenkalti/backoff
 	url = https://github.com/cenkalti/backoff
 	branch = master
+[submodule "src/github.com/cppforlife/go-semi-semantic"]
+	path = src/github.com/cppforlife/go-semi-semantic
+	url = https://github.com/cppforlife/go-semi-semantic
+[submodule "src/github.com/vito/twentythousandtonnesofcrudeoil"]
+	path = src/github.com/vito/twentythousandtonnesofcrudeoil
+	url = https://github.com/vito/twentythousandtonnesofcrudeoil
+[submodule "src/github.com/vito/houdini"]
+	path = src/github.com/vito/houdini
+	url = https://github.com/vito/houdini
+	branch = master
+[submodule "src/github.com/charlievieth/fs"]
+	path = src/github.com/charlievieth/fs
+	url = https://github.com/charlievieth/fs
+	branch = master
+[submodule "src/github.com/concourse/bin"]
+	path = src/github.com/concourse/bin
+	url = https://github.com/concourse/bin
+	branch = releases/2.7
