@@ -416,9 +416,6 @@ a tool that meshes well with Concourse's ideals, buckle up and head over to
       ---
       name: concourse
 
-      # replace with `bosh status --uuid`
-      director_uuid: REPLACE_ME
-
       releases:
       - name: concourse
         version: latest
