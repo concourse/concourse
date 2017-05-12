@@ -37,7 +37,7 @@ type dbWorkerProvider struct {
 	dbVolumeFactory                 dbng.VolumeFactory
 	dbTeamFactory                   dbng.TeamFactory
 	dbWorkerFactory                 dbng.WorkerFactory
-	workerVersion                   version.Version
+	workerVersion                   *version.Version
 }
 
 func NewDBWorkerProvider(
@@ -50,7 +50,7 @@ func NewDBWorkerProvider(
 	dbVolumeFactory dbng.VolumeFactory,
 	dbTeamFactory dbng.TeamFactory,
 	workerFactory dbng.WorkerFactory,
-	workerVersion version.Version,
+	workerVersion *version.Version,
 ) WorkerProvider {
 	return &dbWorkerProvider{
 		lockDB:                          lockDB,

@@ -261,11 +261,11 @@ type FakeWorker struct {
 	isOwnedByTeamReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	IsVersionCompatibleStub        func(lager.Logger, version.Version) bool
+	IsVersionCompatibleStub        func(lager.Logger, *version.Version) bool
 	isVersionCompatibleMutex       sync.RWMutex
 	isVersionCompatibleArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 version.Version
+		arg2 *version.Version
 	}
 	isVersionCompatibleReturns struct {
 		result1 bool
@@ -1162,12 +1162,12 @@ func (fake *FakeWorker) IsOwnedByTeamReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeWorker) IsVersionCompatible(arg1 lager.Logger, arg2 version.Version) bool {
+func (fake *FakeWorker) IsVersionCompatible(arg1 lager.Logger, arg2 *version.Version) bool {
 	fake.isVersionCompatibleMutex.Lock()
 	ret, specificReturn := fake.isVersionCompatibleReturnsOnCall[len(fake.isVersionCompatibleArgsForCall)]
 	fake.isVersionCompatibleArgsForCall = append(fake.isVersionCompatibleArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 version.Version
+		arg2 *version.Version
 	}{arg1, arg2})
 	fake.recordInvocation("IsVersionCompatible", []interface{}{arg1, arg2})
 	fake.isVersionCompatibleMutex.Unlock()
@@ -1186,7 +1186,7 @@ func (fake *FakeWorker) IsVersionCompatibleCallCount() int {
 	return len(fake.isVersionCompatibleArgsForCall)
 }
 
-func (fake *FakeWorker) IsVersionCompatibleArgsForCall(i int) (lager.Logger, version.Version) {
+func (fake *FakeWorker) IsVersionCompatibleArgsForCall(i int) (lager.Logger, *version.Version) {
 	fake.isVersionCompatibleMutex.RLock()
 	defer fake.isVersionCompatibleMutex.RUnlock()
 	return fake.isVersionCompatibleArgsForCall[i].arg1, fake.isVersionCompatibleArgsForCall[i].arg2

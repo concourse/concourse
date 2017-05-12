@@ -50,7 +50,7 @@ type Worker interface {
 	Tags() atc.Tags
 	Uptime() time.Duration
 	IsOwnedByTeam() bool
-	IsVersionCompatible(lager.Logger, version.Version) bool
+	IsVersionCompatible(lager.Logger, *version.Version) bool
 }
 
 type gardenWorker struct {
@@ -107,7 +107,11 @@ func NewGardenWorker(
 	}
 }
 
-func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVersion version.Version) bool {
+func (worker *gardenWorker) IsVersionCompatible(logger lager.Logger, comparedVersion *version.Version) bool {
+	if comparedVersion == nil {
+		return true
+	}
+
 	logger = logger.Session("check-version", lager.Data{
 		"want-worker-version": comparedVersion.String(),
 		"have-worker-version": worker.version,

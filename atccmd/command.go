@@ -190,9 +190,14 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	workerVersion, err := version.NewVersionFromString(WorkerVersion)
-	if err != nil {
-		return nil, err
+	var workerVersion *version.Version
+	if len(WorkerVersion) != 0 {
+		version, err := version.NewVersionFromString(WorkerVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		workerVersion = &version
 	}
 
 	logger, reconfigurableSink := cmd.constructLogger()
@@ -708,7 +713,7 @@ func (cmd *ATCCommand) constructWorkerPool(
 	dbVolumeFactory dbng.VolumeFactory,
 	dbWorkerFactory dbng.WorkerFactory,
 	dbTeamFactory dbng.TeamFactory,
-	workerVersion version.Version,
+	workerVersion *version.Version,
 ) worker.Client {
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		resourceFetcherFactory,
