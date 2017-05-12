@@ -5,7 +5,7 @@ set -e -x
 # for 'go' on our worker
 export PATH=/usr/local/bin:$PATH
 
-export GOPATH=$PWD/gopath:$PWD/concourse:$PWD/gopath/src/github.com/vito/houdini/deps
+export GOPATH=$PWD/gopath:$PWD/concourse
 export PATH=$PWD/gopath/bin:$PATH
 
 FINAL_VERSION="$(cat $PWD/final-version/version)"
