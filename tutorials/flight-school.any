@@ -220,7 +220,7 @@ the \reference{installing}{installation guide} before coming back here.
   useful for running builds so let's pick one that is.
 
   Docker maintains a collection of Docker images for common languages. Let's use
-  the \code{ruby} image at version \code{2.3.0}. We can specify that the task
+  the \code{ruby} image at version \code{2.4.1}. We can specify that the task
   should run with this image by updating the \reference{image_resource} block
   in our \code{build.yml} like so:
 
@@ -229,7 +229,7 @@ the \reference{installing}{installation guide} before coming back here.
     type: docker-image
     source:
       repository: ruby
-      tag: 2.3.0
+      tag: 2.4.1
   }
 
   Let's try running that.
@@ -241,53 +241,54 @@ the \reference{installing}{installation guide} before coming back here.
                                    Dload  Upload   Total   Spent    Left  Speed
   100 40960    0 40960    0     0   7657      0 --:--:--  0:00:05 --:--:--  9884
   initializing
-  Pulling ruby@sha256:7ee3b80a4cca2d0545ca8a1cec01a880279a141bc0eb9e35ef192edd27652a8b...
-  sha256:7ee3b80a4cca2d0545ca8a1cec01a880279a141bc0eb9e35ef192edd27652a8b: Pulling from library/ruby
-  7268d8f794c4: Pulling fs layer
+  Pulling ruby@sha256:f7cb2fda8271b272f9adb5f396937c09499113a2e5299e871efb04195dabfc96...
+  sha256:f7cb2fda8271b272f9adb5f396937c09499113a2e5299e871efb04195dabfc96: Pulling from library/ruby
+  10a267c67f42: Pulling fs layer
   [... docker output ...]
-  b3789cc88ffa: Pull complete
-  Digest: sha256:7ee3b80a4cca2d0545ca8a1cec01a880279a141bc0eb9e35ef192edd27652a8b
-  Status: Downloaded newer image for ruby@sha256:7ee3b80a4cca2d0545ca8a1cec01a880279a141bc0eb9e35ef192edd27652a8b
+  b8b6e6204a6b: Pull complete
+  Digest: sha256:f7cb2fda8271b272f9adb5f396937c09499113a2e5299e871efb04195dabfc96
+  Status: Downloaded newer image for ruby@sha256:f7cb2fda8271b272f9adb5f396937c09499113a2e5299e871efb04195dabfc96
 
-  Successfully pulled ruby@sha256:7ee3b80a4cca2d0545ca8a1cec01a880279a141bc0eb9e35ef192edd27652a8b.
+  Successfully pulled ruby@sha256:f7cb2fda8271b272f9adb5f396937c09499113a2e5299e871efb04195dabfc96.
 
-  running flight-school/ci/test.sh
+  running ./flight-school/ci/test.sh
   + pushd flight-school
   /tmp/build/e55deab7/flight-school /tmp/build/e55deab7
   + bundle install
-  Fetching gem metadata from https://rubygems.org/..........
-  Fetching version metadata from https://rubygems.org/..
-  Installing addressable 2.4.0
+  Fetching gem metadata from https://rubygems.org/.........
+  Fetching version metadata from https://rubygems.org/.
+  Installing public_suffix 2.0.5
+  Installing backports 3.7.0
   Installing safe_yaml 1.0.4
-  Installing diff-lcs 1.2.5
-  Installing hashdiff 0.3.0
-  Installing rack 1.6.4
-  Installing rspec-support 3.4.1
-  Installing tilt 2.0.2
-  Using bundler 1.11.2
+  Installing diff-lcs 1.3
+  Installing hashdiff 0.3.2
+  Installing multi_json 1.12.1
+  Installing rack 1.6.5
+  Installing rspec-support 3.5.0
+  Installing tilt 2.0.7
+  Using bundler 1.14.6
+  Installing addressable 2.5.1
   Installing crack 0.4.3
   Installing rack-protection 1.5.3
   Installing rack-test 0.6.3
-  Installing rspec-core 3.4.3
-  Installing rspec-expectations 3.4.0
-  Installing rspec-mocks 3.4.1
-  Installing webmock 1.24.0
-  Installing sinatra 1.4.7
-  Installing rspec 3.4.0
-  Bundle complete! 4 Gemfile dependencies, 17 gems now installed.
+  Installing rspec-core 3.5.4
+  Installing rspec-expectations 3.5.0
+  Installing rspec-mocks 3.5.0
+  Installing webmock 2.3.2
+  Installing sinatra 1.4.8
+  Installing rspec 3.5.0
+  Installing sinatra-contrib 1.4.7
+  Bundle complete! 5 Gemfile dependencies, 21 gems now installed.
   Bundled gems are installed into /usr/local/bundle.
   + bundle exec rspec
-  Run options: include {:focus=>true}
 
-  All examples were filtered out; ignoring {:focus=>true}
+  Randomized with seed 17037
+  .........
 
-  Randomized with seed 20539
-  ........
+  Finished in 1.01 seconds (files took 0.35998 seconds to load)
+  9 examples, 0 failures
 
-  Finished in 0.39713 seconds (files took 0.20659 seconds to load)
-  8 examples, 0 failures
-
-  Randomized with seed 20539
+  Randomized with seed 17037
 
   + popd
   /tmp/build/e55deab7
