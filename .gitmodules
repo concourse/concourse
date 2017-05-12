@@ -267,3 +267,11 @@
 	path = src/github.com/cenkalti/backoff
 	url = https://github.com/cenkalti/backoff
 	branch = master
+[submodule "src/github.com/vito/houdini"]
+	path = src/github.com/vito/houdini
+	url = https://github.com/vito/houdini
+	branch = master
+[submodule "src/github.com/charlievieth/fs"]
+	path = src/github.com/charlievieth/fs
+	url = https://github.com/charlievieth/fs
+	branch = master
