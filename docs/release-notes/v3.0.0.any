@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2017-5-15}{3.0.0}{1.6.1}{
+\release{2017-5-15}{3.0.0}{1.6.0}{
   \warn{
     This release requires an update to your workers. You may want to upgrade
     them first, actually. If you don't the builds will go orange. But maybe you
