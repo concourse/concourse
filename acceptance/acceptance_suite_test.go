@@ -73,7 +73,7 @@ var _ = SynchronizedAfterSuite(func() {
 	Expect(agoutiDriver.Stop()).To(Succeed())
 
 	dbProcess.Signal(os.Interrupt)
-	Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
+	<-dbProcess.Wait()
 }, func() {
 	err := os.RemoveAll(certTmpDir)
 	Expect(err).NotTo(HaveOccurred())
