@@ -203,7 +203,6 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 			Path: config.Run.Path,
 			Args: config.Run.Args,
-			Env:  step.envForParams(config.Params),
 
 			Dir: path.Join(step.artifactsRoot, config.Run.Dir),
 			TTY: &garden.TTYSpec{},
@@ -283,6 +282,7 @@ func (step *TaskStep) containerSpec(config atc.TaskConfig) (worker.ContainerSpec
 		ImageSpec: imageSpec,
 		User:      config.Run.User,
 		Dir:       step.artifactsRoot,
+		Env:       step.envForParams(config.Params),
 
 		Inputs:  []worker.InputSource{},
 		Outputs: worker.OutputPaths{},

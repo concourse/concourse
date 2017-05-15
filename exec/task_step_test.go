@@ -193,6 +193,7 @@ var _ = Describe("GardenFactory", func() {
 							Privileged: false,
 						},
 						Dir:     "/tmp/build/a1f5c0c1",
+						Env:     []string{"SOME=params"},
 						Inputs:  []worker.InputSource{},
 						Outputs: worker.OutputPaths{},
 					}))
@@ -424,7 +425,6 @@ var _ = Describe("GardenFactory", func() {
 						Expect(spec.ID).To(Equal("task"))
 						Expect(spec.Path).To(Equal("ls"))
 						Expect(spec.Args).To(Equal([]string{"some", "args"}))
-						Expect(spec.Env).To(Equal([]string{"SOME=params"}))
 						Expect(spec.Dir).To(Equal("/tmp/build/a1f5c0c1"))
 						Expect(spec.User).To(BeEmpty())
 						Expect(spec.TTY).To(Equal(&garden.TTYSpec{}))
@@ -461,7 +461,6 @@ var _ = Describe("GardenFactory", func() {
 								ID:   "task",
 								Path: "ls",
 								Args: []string{"some", "args"},
-								Env:  []string{"SOME=params"},
 								Dir:  "/tmp/build/a1f5c0c1",
 								TTY:  &garden.TTYSpec{},
 							}))
