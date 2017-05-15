@@ -174,7 +174,6 @@ func (p *containerProvider) FindOrCreateBuildContainer(
 		dbng.ForBuild(buildID),
 		cancel,
 		delegate,
-		metadata,
 		spec,
 		resourceTypes,
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
@@ -223,7 +222,6 @@ func (p *containerProvider) FindOrCreateResourceCheckContainer(
 		resourceUser,
 		cancel,
 		delegate,
-		metadata,
 		spec,
 		resourceTypes,
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
@@ -284,7 +282,6 @@ func (p *containerProvider) CreateResourceGetContainer(
 		resourceUser,
 		cancel,
 		delegate,
-		metadata,
 		spec,
 		resourceTypes,
 		func() (dbng.CreatingContainer, dbng.CreatedContainer, error) {
@@ -355,7 +352,6 @@ func (p *containerProvider) findOrCreateContainer(
 	resourceUser dbng.ResourceUser,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
-	metadata dbng.ContainerMetadata,
 	spec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
 	findContainerFunc func() (dbng.CreatingContainer, dbng.CreatedContainer, error),
@@ -461,7 +457,6 @@ func (p *containerProvider) findOrCreateContainer(
 			gardenContainer, err = p.createGardenContainer(
 				logger,
 				creatingContainer,
-				metadata,
 				spec,
 				fetchedImage.Metadata,
 				fetchedImage.URL,
@@ -516,7 +511,6 @@ func (p *containerProvider) constructGardenWorkerContainer(
 func (p *containerProvider) createGardenContainer(
 	logger lager.Logger,
 	creatingContainer dbng.CreatingContainer,
-	metadata dbng.ContainerMetadata,
 	spec ContainerSpec,
 	imageMetadata ImageMetadata,
 	imageURL string,
