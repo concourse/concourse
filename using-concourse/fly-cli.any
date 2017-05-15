@@ -131,6 +131,16 @@ flag. Once you've learned what the commands do, you may want to consult
   the API, especially while we're pre-1.0.
 }
 
+\section{\code{teams}\aux{: Listing configured Teams}}{fly-teams}{
+  To list all the teams, run:
+
+  \codeblock{bash}{
+  $ fly -t example teams
+  }
+
+  This can be useful if you've forgotten your team name.
+}
+
 \section{\code{set-team}\aux{: Creating and updating Teams}}{fly-set-team}{
   To create a new team or update an existing team's auth, first log in as the
   \reference{main-team}{\code{main} team}, and then run:
