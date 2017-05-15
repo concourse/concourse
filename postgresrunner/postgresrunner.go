@@ -9,6 +9,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"syscall"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -39,35 +40,36 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	currentUser, err := user.Current()
 	Expect(err).NotTo(HaveOccurred())
 
-	var initCmd, startCmd *exec.Cmd
-
 	initdbPath, err := exec.LookPath("initdb")
 	Expect(err).NotTo(HaveOccurred())
 
 	postgresPath, err := exec.LookPath("postgres")
 	Expect(err).NotTo(HaveOccurred())
 
-	initdb := initdbPath + " -U postgres -D " + tmpdir + " -E UTF8 --no-local"
-	postgres := fmt.Sprintf("%s -D %s -h 127.0.0.1 -p %d", postgresPath, tmpdir, runner.Port)
+	initCmd := exec.Command(initdbPath, "-U", "postgres", "-D", tmpdir, "-E", "UTF8", "--no-local")
+	startCmd := exec.Command(postgresPath, "-D", tmpdir, "-h", "127.0.0.1", "-p", strconv.Itoa(runner.Port))
 
 	if currentUser.Uid == "0" {
 		pgUser, err := user.Lookup("postgres")
 		Expect(err).NotTo(HaveOccurred())
 
-		uid, err := strconv.Atoi(pgUser.Uid)
+		var uid, gid uint32
+		_, err = fmt.Sscanf(pgUser.Uid, "%d", &uid)
 		Expect(err).NotTo(HaveOccurred())
 
-		gid, err := strconv.Atoi(pgUser.Gid)
+		_, err = fmt.Sscanf(pgUser.Gid, "%d", &gid)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = os.Chown(tmpdir, uid, gid)
+		err = os.Chown(tmpdir, int(uid), int(gid))
 		Expect(err).NotTo(HaveOccurred())
 
-		initCmd = exec.Command("su", "postgres", "-c", initdb)
-		startCmd = exec.Command("su", "postgres", "-c", postgres)
-	} else {
-		initCmd = exec.Command("bash", "-c", initdb)
-		startCmd = exec.Command("bash", "-c", postgres)
+		credential := &syscall.Credential{Uid: uid, Gid: gid}
+
+		initCmd.SysProcAttr = &syscall.SysProcAttr{}
+		initCmd.SysProcAttr.Credential = credential
+
+		startCmd.SysProcAttr = &syscall.SysProcAttr{}
+		startCmd.SysProcAttr.Credential = credential
 	}
 
 	session, err := gexec.Start(
