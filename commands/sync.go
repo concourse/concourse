@@ -31,6 +31,13 @@ func (command *SyncCommand) Execute(args []string) error {
 		return nil
 	}
 
+	updateOptions := update.Options{}
+	err = updateOptions.CheckPermissions()
+	if err != nil {
+
+		displayhelpers.FailWithErrorf("update failed:", err)
+	}
+
 	client := target.Client()
 	body, headers, err := client.GetCLIReader(runtime.GOARCH, runtime.GOOS)
 	if err != nil {
@@ -46,9 +53,9 @@ func (command *SyncCommand) Execute(args []string) error {
 	r := body
 	reader := progressBar.NewProxyReader(r)
 
-	err = update.Apply(reader, update.Options{})
+	err = update.Apply(reader, updateOptions)
 	if err != nil {
-		displayhelpers.Failf("update failed: %s", err)
+		displayhelpers.FailWithErrorf("update failed:", err)
 	}
 
 	return nil

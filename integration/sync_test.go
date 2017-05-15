@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"github.com/concourse/fly/version"
@@ -67,26 +69,36 @@ var _ = Describe("Syncing", func() {
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			contents, err := ioutil.ReadFile(flyPath)
-			Expect(err).NotTo(HaveOccurred())
-
-			// don't let ginkgo try and output the entire binary as ascii
-			//
-			// that is the way to the dark side
-			contents = contents[:8]
-
 			expected := []byte("this will totally execute")
-			Expect(contents).To(Equal(expected[:8]))
+			expectBinaryToMatch(flyPath, expected[:8])
+		})
+
+		Context("When the user running sync doesn't have write permissions for the target directory", func() {
+			It("returns an error, and doesn't download/replace the executable", func() {
+				os.Chmod(filepath.Dir(flyPath), 0500)
+
+				expectedBinary := readBinary(flyPath)
+
+				flyCmd := exec.Command(flyPath, "-t", targetName, "sync")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+				Expect(sess.Err).To(gbytes.Say(".*permission denied"))
+
+				expectBinaryToMatch(flyPath, expectedBinary)
+			})
 		})
 	})
+
 	Context("When versions match between fly + atc", func() {
 		BeforeEach(func() {
 			flyVersion = atcVersion
 		})
 		It("informs the user, and doesn't download/replace the executable", func() {
-			expectedBinary, err := ioutil.ReadFile(flyPath)
-			Expect(err).NotTo(HaveOccurred())
-			expectedBinary = expectedBinary[:8]
+			expectedBinary := readBinary(flyPath)
 
 			flyCmd := exec.Command(flyPath, "-t", targetName, "sync")
 
@@ -97,14 +109,24 @@ var _ = Describe("Syncing", func() {
 			Expect(sess.ExitCode()).To(Equal(0))
 			Expect(sess.Out).To(gbytes.Say(`version already matches; skipping`))
 
-			contents, err := ioutil.ReadFile(flyPath)
-			Expect(err).NotTo(HaveOccurred())
-
-			// don't let ginkgo try and output the entire binary as ascii
-			//
-			// that is the way to the dark side
-			contents = contents[:8]
-			Expect(contents).To(Equal(expectedBinary))
+			expectBinaryToMatch(flyPath, expectedBinary)
 		})
 	})
 })
+
+func readBinary(path string) []byte {
+	expectedBinary, err := ioutil.ReadFile(flyPath)
+	Expect(err).NotTo(HaveOccurred())
+	return expectedBinary[:8]
+}
+
+func expectBinaryToMatch(path string, expectedBinary []byte) {
+	contents, err := ioutil.ReadFile(path)
+	Expect(err).NotTo(HaveOccurred())
+
+	// don't let ginkgo try and output the entire binary as ascii
+	//
+	// that is the way to the dark side
+	contents = contents[:8]
+	Expect(contents).To(Equal(expectedBinary))
+}
