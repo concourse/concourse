@@ -29,10 +29,9 @@
     using \code{btrfs} for the whole stack, which makes running Docker in
     Concourse tasks much easier.
 
-    As part of this, the binary distribution no longer supports
-    \reference{task-config-image}. Supporting it has always been a portability
-    nightmare, and we've been discouraging use of \reference{task-config-image}
-    for some time now.
+    As part of this, the binary distribution no longer supports \code{image} in
+    the task config. Supporting it has always been a portability nightmare, and
+    we've been discouraging use of \code{image} for some time now.
   }
 
   \note{feature}{

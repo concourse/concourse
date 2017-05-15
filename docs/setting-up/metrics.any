@@ -126,7 +126,20 @@ shared by everything in the Riemann community but we find that it works well.
       \item{
         \code{worker}
       }{
-        The address of the worker.
+        The name of the worker.
+      }
+    }
+  }
+
+  \define-metric{worker volumes}{
+    The number of volumes that are currently present on your workers.
+
+    \larger{Attributes}
+    \definitions{
+      \item{
+        \code{worker}
+      }{
+        The name of the worker.
       }
     }
   }

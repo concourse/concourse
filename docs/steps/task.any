@@ -111,9 +111,8 @@ plan:
 
 \define-attribute{image: string}{task-image}{
   \italic{Optional.} Names an artifact source within the plan containing an
-  image to use for the task. This overrides any \reference{task-config-image}
-  or \reference{image_resource} configuration present in the task
-  configuration.
+  image to use for the task. This overrides any \reference{image_resource}
+  configuration present in the task configuration.
 
   This is very useful when part of your pipeline involves building an image,
   possibly with dependencies pre-baked. You can then propagate that image
