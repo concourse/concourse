@@ -1,23 +1,20 @@
 package genericoauth
 
 import (
+	"code.cloudfoundry.org/lager"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-
-	"code.cloudfoundry.org/lager"
-
-	"encoding/json"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+	"net/http"
 )
 
 const ProviderName = "oauth"

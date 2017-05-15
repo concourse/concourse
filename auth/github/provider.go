@@ -1,24 +1,20 @@
 package github
 
 import (
-	"errors"
-	"net/http"
-
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
-
-	"fmt"
-	"strings"
-
 	"encoding/json"
-
+	"errors"
+	"fmt"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/routes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/rata"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/github"
+	"net/http"
+	"strings"
 )
 
 const ProviderName = "github"
