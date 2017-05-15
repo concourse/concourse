@@ -112,6 +112,12 @@ cat < /tmp/fifo
 
 			Eventually(flyS).Should(gbytes.Say("waiting"))
 
+			env := exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-b", buildID, "-s", "one-off", "--", "env")
+			envS := helpers.StartFly(env)
+			<-envS.Exited
+			Expect(envS.ExitCode()).To(Equal(0))
+			Expect(envS.Out).To(gbytes.Say("FOO=1"))
+
 			hijack := exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-b", buildID, "-s", "one-off", "--", "sh", "-c", "echo marco > /tmp/fifo")
 			hijackS := helpers.StartFly(hijack)
 			Eventually(flyS).Should(gbytes.Say("marco"))
