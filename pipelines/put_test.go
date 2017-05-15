@@ -24,7 +24,7 @@ var _ = Describe("A job with a put that runs with no artifacts", func() {
 		originGitServer.Stop()
 	})
 
-	FIt("has its working directory created anyway", func() {
+	It("has its working directory created anyway", func() {
 		By("triggering the job")
 		watch := triggerJob("broken-put")
 
