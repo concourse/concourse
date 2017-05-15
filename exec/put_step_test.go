@@ -166,6 +166,7 @@ var _ = Describe("GardenFactory", func() {
 					Expect(containerSpec.Tags).To(Equal([]string{"some", "tags"}))
 					Expect(containerSpec.TeamID).To(Equal(123))
 					Expect(containerSpec.Env).To(Equal([]string{"a=1", "b=2"}))
+					Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
 					Expect(containerSpec.Inputs).To(HaveLen(3))
 					Expect([]worker.ArtifactName{
 						containerSpec.Inputs[0].Name(),

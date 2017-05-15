@@ -95,7 +95,10 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		},
 		Tags:   step.tags,
 		TeamID: step.teamID,
-		Env:    step.stepMetadata.Env(),
+
+		Dir: resource.ResourcesDir("put"),
+
+		Env: step.stepMetadata.Env(),
 	}
 
 	for name, source := range step.repository.AsMap() {
