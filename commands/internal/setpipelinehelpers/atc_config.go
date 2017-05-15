@@ -58,7 +58,8 @@ func (atcConfig ATCConfig) Set(configPath atc.PathFlag, templateVariables templa
 	}
 
 	if !atcConfig.ApplyConfigInteraction() {
-		displayhelpers.Failf("bailing out")
+		fmt.Println("bailing out")
+		return nil
 	}
 
 	created, updated, warnings, err := atcConfig.Team.CreateOrUpdatePipelineConfig(

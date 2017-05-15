@@ -437,7 +437,7 @@ var _ = Describe("Fly CLI", func() {
 						no(stdin)
 
 						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(1))
+						Expect(sess.ExitCode()).To(Equal(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(2))
