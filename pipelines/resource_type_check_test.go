@@ -18,7 +18,8 @@ var _ = Describe("Updating resource types", func() {
 		originGitServer.CommitResource()
 		originGitServer.CommitFileToBranch("initial", "initial", "trigger")
 
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/resource-types.yml",
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
@@ -30,7 +31,7 @@ var _ = Describe("Updating resource types", func() {
 
 	It("uses updated resource type", func() {
 		By("watching for first resource-imgur")
-		watch := flyWatch("resource-imgur", "1")
+		watch := flyHelper.Watch(pipelineName, "resource-imgur", "1")
 		Expect(watch).To(gbytes.Say("fetched from custom resource"))
 		Expect(watch).To(gexec.Exit(0))
 
@@ -42,7 +43,7 @@ var _ = Describe("Updating resource types", func() {
 		By("watching for resource-imgur with updated resource type")
 		originGitServer.CommitFileToBranch("trigger", "trigger", "trigger")
 
-		watch = flyWatch("resource-imgur", "2")
+		watch = flyHelper.Watch(pipelineName, "resource-imgur", "2")
 		Expect(watch).To(gbytes.Say("new-contents"))
 		Expect(watch).To(gexec.Exit(0))
 	})

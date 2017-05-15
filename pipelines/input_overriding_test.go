@@ -3,11 +3,9 @@ package pipelines_test
 import (
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/concourse/testflight/gitserver"
-	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -31,7 +29,8 @@ var _ = Describe("A job with multiple inputs", func() {
 		gitServerA = gitserver.Start(client)
 		gitServerB = gitserver.Start(client)
 
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/many-inputs.yml",
 			"-v", "git-server-a="+gitServerA.URI(),
 			"-v", "git-server-b="+gitServerB.URI(),
@@ -89,7 +88,7 @@ run:
 
 	It("can have its inputs used as the basis for a one-off build", func() {
 		By("waiting for an initial build so the job has inputs")
-		watch := flyWatch("some-job")
+		watch := flyHelper.Watch(pipelineName, "some-job")
 		Expect(watch).To(gbytes.Say("initializing"))
 		Expect(watch).To(gbytes.Say("a has " + firstGuidA))
 		Expect(watch).To(gbytes.Say("b has " + firstGuidB))
@@ -97,16 +96,11 @@ run:
 		Expect(watch).To(gexec.Exit(0))
 
 		By("running a one-off with the same inputs and no local inputs")
-		fly := exec.Command(
-			flyBin,
-			"-t", targetedConcourse,
-			"execute",
+		execute := flyHelper.Execute(
+			localGitRepoBDir,
 			"-c", taskConfig,
 			"--inputs-from", pipelineName+"/some-job",
 		)
-		fly.Dir = localGitRepoBDir
-
-		execute := helpers.StartFly(fly)
 		<-execute.Exited
 		Expect(execute).To(gbytes.Say("initializing"))
 		Expect(execute).To(gbytes.Say("a has " + firstGuidA))
@@ -115,17 +109,11 @@ run:
 		Expect(execute).To(gexec.Exit(0))
 
 		By("running a one-off with one of the inputs overridden")
-		fly = exec.Command(
-			flyBin,
-			"-t", targetedConcourse,
-			"execute",
+		execute = flyHelper.Execute(localGitRepoBDir,
 			"-c", taskConfig,
 			"--inputs-from", pipelineName+"/some-job",
 			"--input", "git-repo-b="+localGitRepoBDir,
 		)
-		fly.Dir = localGitRepoBDir
-
-		execute = helpers.StartFly(fly)
 		<-execute.Exited
 		Expect(execute).To(gbytes.Say("initializing"))
 		Expect(execute).To(gbytes.Say("a has " + firstGuidA))

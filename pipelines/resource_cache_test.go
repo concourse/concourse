@@ -21,21 +21,22 @@ var _ = Describe("[#139960779] resource caching", func() {
 	})
 
 	It("gets the resource from the cache based on given params", func() {
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/resource-with-params.yml",
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
 
 		originGitServer.Commit()
 
-		watch := triggerJob("without-params")
+		watch := flyHelper.TriggerJob(pipelineName, "without-params")
 		<-watch.Exited
 
-		watch = triggerJob("without-params")
+		watch = flyHelper.TriggerJob(pipelineName, "without-params")
 		<-watch.Exited
 		Expect(watch).To(gbytes.Say("using version of resource found in cache"))
 
-		watch = triggerJob("with-params")
+		watch = flyHelper.TriggerJob(pipelineName, "with-params")
 		<-watch.Exited
 		Expect(watch).ToNot(gbytes.Say("using version of resource found in cache"))
 	})

@@ -9,13 +9,14 @@ import (
 
 var _ = Describe("A task with no outputs declared", func() {
 	BeforeEach(func() {
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/task-missing-outputs.yml",
 		)
 	})
 
 	It("doesn't mount its file system into the next task", func() {
-		watch := triggerJob("missing-outputs-job")
+		watch := flyHelper.TriggerJob(pipelineName, "missing-outputs-job")
 		<-watch.Exited
 		Expect(watch).To(gexec.Exit(2))
 		Expect(watch).To(gbytes.Say("missing inputs: missing-outputs"))

@@ -16,7 +16,8 @@ var _ = Describe("We shouldn't reclone cached resources", func() {
 		originGitServer = gitserver.Start(client)
 		cachedGitServer = gitserver.Start(client)
 
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/caching.yml",
 			"-v", "origin-git-server="+originGitServer.URI(),
 			"-v", "cached-git-server="+cachedGitServer.URI(),
@@ -32,7 +33,7 @@ var _ = Describe("We shouldn't reclone cached resources", func() {
 
 	It("does not reclone on new commits", func() {
 		By("initially cloning twice")
-		watch := triggerJob("some-passing-job")
+		watch := flyHelper.TriggerJob(pipelineName, "some-passing-job")
 		<-watch.Exited
 		Expect(watch).To(gbytes.Say("Cloning into"))
 		Expect(watch).To(gbytes.Say("Cloning into"))
@@ -42,7 +43,7 @@ var _ = Describe("We shouldn't reclone cached resources", func() {
 		originGitServer.Commit()
 
 		By("hitting the cache for the original version and fetching the new one")
-		watch = triggerJob("some-passing-job")
+		watch = flyHelper.TriggerJob(pipelineName, "some-passing-job")
 		<-watch.Exited
 		Expect(watch).To(gbytes.Say("Cloning into"))
 		Expect(watch).NotTo(gbytes.Say("Cloning into"))

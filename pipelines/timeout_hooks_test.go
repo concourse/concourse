@@ -9,13 +9,14 @@ import (
 
 var _ = Describe("A pipeline containing a job with a timeout and hooks", func() {
 	BeforeEach(func() {
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/timeout_hooks.yml",
 		)
 	})
 
 	It("runs the failure and ensure hooks", func() {
-		watch := triggerJob("duration-fail-job")
+		watch := flyHelper.TriggerJob(pipelineName, "duration-fail-job")
 		<-watch.Exited
 		Expect(watch).To(gbytes.Say("duration fail job on failure"))
 		Expect(watch).To(gbytes.Say("duration fail job ensure"))

@@ -13,7 +13,8 @@ var _ = Describe("A job with a git input with trigger: true", func() {
 	BeforeEach(func() {
 		originGitServer = gitserver.Start(client)
 
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/simple-trigger.yml",
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
@@ -26,12 +27,12 @@ var _ = Describe("A job with a git input with trigger: true", func() {
 	It("triggers when the repo changes", func() {
 		By("building the initial commit")
 		guid1 := originGitServer.Commit()
-		watch := flyWatch("some-passing-job")
+		watch := flyHelper.Watch(pipelineName, "some-passing-job")
 		Eventually(watch).Should(gbytes.Say(guid1))
 
 		By("building another commit")
 		guid2 := originGitServer.Commit()
-		watch = flyWatch("some-passing-job", "2")
+		watch = flyHelper.Watch(pipelineName, "some-passing-job", "2")
 		Eventually(watch).Should(gbytes.Say(guid2))
 	})
 })

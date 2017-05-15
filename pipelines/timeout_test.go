@@ -9,14 +9,15 @@ import (
 
 var _ = Describe("A job with a task with a timeout", func() {
 	BeforeEach(func() {
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/timeout.yml",
 		)
 	})
 
 	It("enforces the timeout", func() {
-		successWatch := triggerJob("duration-successful-job")
-		failedWatch := triggerJob("duration-fail-job")
+		successWatch := flyHelper.TriggerJob(pipelineName, "duration-successful-job")
+		failedWatch := flyHelper.TriggerJob(pipelineName, "duration-fail-job")
 
 		By("not aborting if the step completes in time")
 		<-successWatch.Exited

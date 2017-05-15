@@ -9,13 +9,14 @@ import (
 
 var _ = Describe("A job with a task that always fails", func() {
 	BeforeEach(func() {
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/fail.yml",
 		)
 	})
 
 	It("causes the build to fail", func() {
-		watch := triggerJob("failing-job")
+		watch := flyHelper.TriggerJob(pipelineName, "failing-job")
 		<-watch.Exited
 		Expect(watch).To(gbytes.Say("initializing"))
 		Expect(watch).To(gbytes.Say("failed"))

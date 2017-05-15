@@ -15,7 +15,8 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 		originGitServer.CommitResource()
 		originGitServer.CommitFileToBranch("initial", "initial", "trigger")
 
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/resource-types.yml",
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
@@ -26,15 +27,15 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 	})
 
 	It("can use custom resource types for 'get', 'put', and task 'image_resource's", func() {
-		watch := flyWatch("resource-getter")
+		watch := flyHelper.Watch(pipelineName, "resource-getter")
 		<-watch.Exited
 		Expect(watch.ExitCode()).To(Equal(0))
 
-		watch = flyWatch("resource-putter")
+		watch = flyHelper.Watch(pipelineName, "resource-putter")
 		Expect(watch).To(gbytes.Say("pushing using custom resource"))
 		Expect(watch).To(gbytes.Say("some-output/some-file"))
 
-		watch = flyWatch("resource-imgur")
+		watch = flyHelper.Watch(pipelineName, "resource-imgur")
 		Expect(watch).To(gbytes.Say("fetched from custom resource"))
 		Expect(watch).To(gbytes.Say("SOME_ENV=yep"))
 	})

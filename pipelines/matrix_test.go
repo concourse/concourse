@@ -13,7 +13,8 @@ var _ = Describe("A job with a complicated build plan", func() {
 	BeforeEach(func() {
 		originGitServer = gitserver.Start(client)
 
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/matrix.yml",
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
@@ -28,7 +29,7 @@ var _ = Describe("A job with a complicated build plan", func() {
 		committedGuid := originGitServer.Commit()
 
 		By("propagating data between steps")
-		watch := flyWatch("fancy-build-matrix")
+		watch := flyHelper.Watch(pipelineName, "fancy-build-matrix")
 		Eventually(watch).Should(gbytes.Say("passing-unit-1/file passing-unit-2/file " + committedGuid))
 
 		By("failing on aggregates if any branch failed")

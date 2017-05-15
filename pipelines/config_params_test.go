@@ -13,7 +13,8 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 	BeforeEach(func() {
 		gitServer = gitserver.Start(client)
 
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/config_params.yml",
 			"-v", "git-server="+gitServer.URI(),
 		)
@@ -39,22 +40,22 @@ params:
 
 	Context("when specifying file in task config", func() {
 		It("executes the file with params specified in file", func() {
-			watch := flyWatch("file-test")
+			watch := flyHelper.Watch(pipelineName, "file-test")
 			Expect(watch).To(gbytes.Say("file_source"))
 		})
 
 		It("executes the file with params from config", func() {
-			watch := flyWatch("file-config-params-test")
+			watch := flyHelper.Watch(pipelineName, "file-config-params-test")
 			Expect(watch).To(gbytes.Say("config_params_source"))
 		})
 
 		It("executes the file with job params", func() {
-			watch := flyWatch("file-params-test")
+			watch := flyHelper.Watch(pipelineName, "file-params-test")
 			Expect(watch).To(gbytes.Say("job_params_source"))
 		})
 
 		It("executes the file with job params, overlaying the config params", func() {
-			watch := flyWatch("everything-params-test")
+			watch := flyHelper.Watch(pipelineName, "everything-params-test")
 			Expect(watch).To(gbytes.Say("job_params_source"))
 		})
 	})

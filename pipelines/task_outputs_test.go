@@ -10,13 +10,14 @@ import (
 var _ = Describe("A job with a task that produces outputs", func() {
 	Context("with outputs and single worker", func() {
 		BeforeEach(func() {
-			configurePipeline(
+			flyHelper.ConfigurePipeline(
+				pipelineName,
 				"-c", "fixtures/task-outputs.yml",
 			)
 		})
 
 		It("propagates the outputs from one task to another", func() {
-			watch := triggerJob("some-job")
+			watch := flyHelper.TriggerJob(pipelineName, "some-job")
 			<-watch.Exited
 			Expect(watch).To(gbytes.Say("initializing"))
 			Expect(watch).To(gexec.Exit(0))

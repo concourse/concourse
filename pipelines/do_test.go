@@ -8,13 +8,14 @@ import (
 
 var _ = Describe("A pipeline containing a do", func() {
 	BeforeEach(func() {
-		configurePipeline(
+		flyHelper.ConfigurePipeline(
+			pipelineName,
 			"-c", "fixtures/do.yml",
 		)
 	})
 
 	It("performs the do steps", func() {
-		watch := triggerJob("do-job")
+		watch := flyHelper.TriggerJob(pipelineName, "do-job")
 		<-watch.Exited
 
 		By("running the first step")

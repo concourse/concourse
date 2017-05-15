@@ -17,7 +17,8 @@ var _ = Describe("serial groups", func() {
 		BeforeEach(func() {
 			originGitServer = gitserver.Start(client)
 
-			configurePipeline(
+			flyHelper.ConfigurePipeline(
+				pipelineName,
 				"-c", "fixtures/serial-groups.yml",
 				"-v", "origin-git-server="+originGitServer.URI(),
 			)
@@ -32,7 +33,7 @@ var _ = Describe("serial groups", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			guid1 := originGitServer.Commit()
-			watch := flyWatch("some-passing-job")
+			watch := flyHelper.Watch(pipelineName, "some-passing-job")
 
 			Eventually(watch).Should(gbytes.Say(guid1))
 
@@ -47,7 +48,8 @@ var _ = Describe("serial groups", func() {
 		BeforeEach(func() {
 			originGitServer = gitserver.Start(client)
 
-			configurePipeline(
+			flyHelper.ConfigurePipeline(
+				pipelineName,
 				"-c", "fixtures/serial-groups-inputs-updated.yml",
 				"-v", "origin-git-server="+originGitServer.URI(),
 			)
@@ -63,7 +65,7 @@ var _ = Describe("serial groups", func() {
 
 			By("making a commit master, kicking off some-passing-job, and pending some-pending-job")
 			guid1 := originGitServer.Commit()
-			watch := flyWatch("some-passing-job")
+			watch := flyHelper.Watch(pipelineName, "some-passing-job")
 			Eventually(watch).Should(gbytes.Say(guid1))
 
 			updatedPendingBuild, found, err := client.Build(fmt.Sprint(pendingBuild.ID))
@@ -73,7 +75,7 @@ var _ = Describe("serial groups", func() {
 
 			By("making a commit to master again, kicking off some-passing-job, and pending some-pending-job")
 			guid2 := originGitServer.Commit()
-			watch = flyWatch("some-passing-job", "2")
+			watch = flyHelper.Watch(pipelineName, "some-passing-job", "2")
 			Eventually(watch).Should(gbytes.Say(guid2))
 
 			updatedPendingBuild, found, err = client.Build(fmt.Sprint(pendingBuild.ID))
@@ -83,7 +85,7 @@ var _ = Describe("serial groups", func() {
 
 			By("making a commit to other-branch, kicking off some-pending-job which should run with newest resource versions")
 			guid3 := originGitServer.CommitOnBranch("other-branch")
-			watch = flyWatch("some-pending-job")
+			watch = flyHelper.Watch(pipelineName, "some-pending-job")
 			Eventually(watch).Should(gbytes.Say(guid3))
 
 			Eventually(watch).Should(gbytes.Say(guid2))
