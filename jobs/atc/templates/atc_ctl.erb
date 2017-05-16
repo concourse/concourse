@@ -101,6 +101,7 @@ case $1 in
       --postgres-client-cert /var/vcap/jobs/atc/config/postges_client_cert \
       --postgres-client-key /var/vcap/jobs/atc/config/postges_client_key \
       <% end %> \
+      --encryption-key <%= esc(p("encryption_key")) %> \
       <% if p("no_really_i_dont_want_any_auth") %> \
       --no-really-i-dont-want-any-auth \
       <% end %> \

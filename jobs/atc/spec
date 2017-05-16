@@ -105,6 +105,14 @@ properties:
       developers to analyze query counts.
     default: false
 
+  encryption_key:
+    description: |
+      The 16 or 32 byte AES key to use for encrypting sensitive information
+      in the database.
+
+      If not specified, nothing will be encrypted.
+    default: ""
+
   no_really_i_dont_want_any_auth:
     description: |
       A safeguard to prevent accidentally forgetting to configure auth. Set
