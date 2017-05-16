@@ -1,6 +1,7 @@
 package gcng_test
 
 import (
+	"crypto/aes"
 	"os"
 	"time"
 
@@ -61,9 +62,13 @@ var _ = BeforeEach(func() {
 	dbConn = postgresRunner.OpenConn()
 
 	lockFactory := lock.NewLockFactory(postgresRunner.OpenSingleton())
-	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory)
 
-	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory)
+	eBlock, err := aes.NewCipher([]byte("AES256Key-32Characters1234567890"))
+	Expect(err).ToNot(HaveOccurred())
+	key := dbng.NewEncryptionKey(eBlock)
+
+	teamFactory = dbng.NewTeamFactory(dbConn, lockFactory, key)
+	buildFactory = dbng.NewBuildFactory(dbConn, lockFactory, key)
 
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())

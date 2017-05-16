@@ -112,6 +112,8 @@ type build struct {
 
 	conn        Conn
 	lockFactory lock.LockFactory
+
+	encryption EncryptionStrategy
 }
 
 var ErrBuildDisappeared = errors.New("build-disappeared-from-db")
@@ -421,7 +423,7 @@ func (b *build) Pipeline() (Pipeline, bool, error) {
 		RunWith(b.conn).
 		QueryRow()
 
-	pipeline := newPipeline(b.conn, b.lockFactory)
+	pipeline := newPipeline(b.conn, b.lockFactory, b.encryption)
 	err := scanPipeline(pipeline, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -531,8 +533,8 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 	if maxInFlightReached {
 		maxInFlightReachedStatus = BuildPreparationStatusBlocking
 	}
-
-	tf := NewTeamFactory(b.conn, b.lockFactory)
+	// XXX TODO: make key not nil
+	tf := NewTeamFactory(b.conn, b.lockFactory, b.encryption)
 	t, found, err := tf.FindTeam(b.teamName)
 	if err != nil {
 		return BuildPreparation{}, false, err

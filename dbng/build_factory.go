@@ -21,12 +21,14 @@ type BuildFactory interface {
 type buildFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
+	encryption  EncryptionStrategy
 }
 
-func NewBuildFactory(conn Conn, lockFactory lock.LockFactory) BuildFactory {
+func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy) BuildFactory {
 	return &buildFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
+		encryption:  encryption,
 	}
 }
 
@@ -34,6 +36,7 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 	build := &build{
 		conn:        f.conn,
 		lockFactory: f.lockFactory,
+		encryption:  f.encryption,
 	}
 
 	row := buildsQuery.
@@ -53,7 +56,7 @@ func (f *buildFactory) Build(buildID int) (Build, bool, error) {
 }
 
 func (f *buildFactory) PublicBuilds(page Page) ([]Build, Pagination, error) {
-	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"p.public": true}), page, f.conn, f.lockFactory)
+	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"p.public": true}), page, f.conn, f.lockFactory, f.encryption)
 }
 
 func (f *buildFactory) MarkNonInterceptibleBuilds() error {
@@ -103,7 +106,7 @@ func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
 	bs := []Build{}
 
 	for rows.Next() {
-		b := &build{conn: f.conn, lockFactory: f.lockFactory}
+		b := &build{conn: f.conn, lockFactory: f.lockFactory, encryption: f.encryption}
 		err := scanBuild(b, rows)
 		if err != nil {
 			return nil, err
@@ -115,7 +118,7 @@ func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
 	return bs, nil
 }
 
-func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory) ([]Build, Pagination, error) {
+func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy) ([]Build, Pagination, error) {
 	var rows *sql.Rows
 	var err error
 
@@ -139,7 +142,7 @@ func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn Conn,
 	builds := []Build{}
 
 	for rows.Next() {
-		build := &build{conn: conn, lockFactory: lockFactory}
+		build := &build{conn: conn, lockFactory: lockFactory, encryption: encryption}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, Pagination{}, err

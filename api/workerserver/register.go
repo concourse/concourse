@@ -65,7 +65,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 
 	metric.WorkerVolumes{
 		WorkerName: registration.Name,
-		Volumes: registration.ActiveVolumes,
+		Volumes:    registration.ActiveVolumes,
 	}.Emit(s.logger)
 
 	if registration.Team != "" {

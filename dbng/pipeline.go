@@ -106,6 +106,7 @@ type pipeline struct {
 
 	conn        Conn
 	lockFactory lock.LockFactory
+	encryption  EncryptionStrategy
 }
 
 //ConfigVersion is a sequence identifier used for compare-and-swap
@@ -148,10 +149,11 @@ func (state PipelinePausedState) Bool() *bool {
 	}
 }
 
-func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
+func newPipeline(conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy) *pipeline {
 	return &pipeline{
 		conn:        conn,
 		lockFactory: lockFactory,
+		encryption:  encryption,
 	}
 }
 
@@ -222,7 +224,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 		return nil, err
 	}
 
-	build := &build{conn: p.conn, lockFactory: p.lockFactory}
+	build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
 	err = scanBuild(build, buildsQuery.
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
@@ -320,7 +322,7 @@ func (p *pipeline) GetPendingBuildsForJob(jobName string) ([]Build, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory}
+		build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, err
@@ -351,7 +353,7 @@ func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory}
+		build := &build{conn: p.conn, lockFactory: p.lockFactory, encryption: p.encryption}
 		err = scanBuild(build, rows)
 		if err != nil {
 			return nil, err

@@ -1,6 +1,7 @@
 package atccmd
 
 import (
+	"crypto/aes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -88,6 +89,8 @@ type ATCCommand struct {
 	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
 
 	AuthDuration time.Duration `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
+
+	EncryptionKey string `long:"encryption-key" description:"16 or 32 byte AES key used to encrypt pipeline config and team auth before storing it into the database."`
 
 	Postgres PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -231,15 +234,25 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	listener := pq.NewListener(cmd.Postgres.ConnectionString(), time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
 
+	var strategy dbng.EncryptionStrategy
+	if cmd.EncryptionKey != "" {
+		block, err := aes.NewCipher([]byte(cmd.EncryptionKey))
+		if err != nil {
+			return nil, err
+		}
+		strategy = dbng.NewEncryptionKey(block)
+	} else {
+		strategy = dbng.NewNoEncryption()
+	}
+	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, strategy)
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
 	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
-	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory)
+	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory, strategy)
 	dbVolumeFactory := dbng.NewVolumeFactory(dbngConn)
 	dbContainerFactory := dbng.NewContainerFactory(dbngConn)
-	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
-	dbPipelineFactory := dbng.NewPipelineFactory(dbngConn, lockFactory)
+	dbPipelineFactory := dbng.NewPipelineFactory(dbngConn, lockFactory, strategy)
 	dbWorkerFactory := dbng.NewWorkerFactory(dbngConn)
 	dbWorkerLifecycle := dbng.NewWorkerLifecycle(dbngConn)
 	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn, lockFactory)

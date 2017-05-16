@@ -85,6 +85,8 @@ type team struct {
 	basicAuth *atc.BasicAuth
 
 	auth map[string]*json.RawMessage
+
+	encryption EncryptionStrategy
 }
 
 func (t *team) ID() int                           { return t.id }
@@ -527,6 +529,14 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
+	// var nonce []byte
+	// if !t.key.IsEmpty() {
+	// 	payload, nonce, err = t.key.Encrypt(payload)
+	// 	if err != nil {
+	// 		return nil, false, err
+	// 	}
+	// }
+
 	var created bool
 	var existingConfig int
 
@@ -684,7 +694,7 @@ func (t *team) SavePipeline(
 		}
 	}
 
-	pipeline := newPipeline(t.conn, t.lockFactory)
+	pipeline := newPipeline(t.conn, t.lockFactory, t.encryption)
 
 	err = scanPipeline(
 		pipeline,
@@ -706,7 +716,7 @@ func (t *team) SavePipeline(
 }
 
 func (t *team) Pipeline(pipelineName string) (Pipeline, bool, error) {
-	pipeline := newPipeline(t.conn, t.lockFactory)
+	pipeline := newPipeline(t.conn, t.lockFactory, t.encryption)
 
 	err := scanPipeline(
 		pipeline,
@@ -740,7 +750,7 @@ func (t *team) Pipelines() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	pipelines, err := scanPipelines(t.conn, t.lockFactory, t.encryption, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -761,7 +771,7 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	pipelines, err := scanPipelines(t.conn, t.lockFactory, t.encryption, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -779,7 +789,7 @@ func (t *team) VisiblePipelines() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	currentTeamPipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	currentTeamPipelines, err := scanPipelines(t.conn, t.lockFactory, t.encryption, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -794,7 +804,7 @@ func (t *team) VisiblePipelines() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	otherTeamPublicPipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	otherTeamPublicPipelines, err := scanPipelines(t.conn, t.lockFactory, t.encryption, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -871,7 +881,7 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 		return nil, err
 	}
 
-	build := &build{conn: t.conn, lockFactory: t.lockFactory}
+	build := &build{conn: t.conn, lockFactory: t.lockFactory, encryption: t.encryption}
 	err = scanBuild(build, buildsQuery.
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
@@ -898,7 +908,7 @@ func (t *team) PrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {
 	newBuildsQuery := buildsQuery.
 		Where(sq.Or{sq.Eq{"p.public": true}, sq.Eq{"t.id": t.id}})
 
-	return getBuildsWithPagination(newBuildsQuery, page, t.conn, t.lockFactory)
+	return getBuildsWithPagination(newBuildsQuery, page, t.conn, t.lockFactory, t.encryption)
 }
 
 func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error) {
@@ -932,7 +942,7 @@ func (t *team) UpdateBasicAuth(basicAuth *atc.BasicAuth) error {
 		UPDATE teams
 		SET basic_auth = $1
 		WHERE LOWER(name) = LOWER($2)
-		RETURNING id, name, admin, basic_auth, auth
+		RETURNING id, name, admin, basic_auth, auth, nonce
 	`
 
 	params := []interface{}{encryptedBasicAuth, t.name}
@@ -946,13 +956,18 @@ func (t *team) UpdateProviderAuth(auth map[string]*json.RawMessage) error {
 		return err
 	}
 
+	encryptedAuth, nonce, err := t.encryption.Encrypt(jsonEncodedProviderAuth)
+	if err != nil {
+		return err
+	}
+
 	query := `
 		UPDATE teams
-		SET auth = $1
+		SET auth = $1, nonce = $3
 		WHERE LOWER(name) = LOWER($2)
-		RETURNING id, name, admin, basic_auth, auth
+		RETURNING id, name, admin, basic_auth, auth, nonce
 	`
-	params := []interface{}{string(jsonEncodedProviderAuth), t.name}
+	params := []interface{}{string(encryptedAuth), t.name, nonce}
 	return t.queryTeam(query, params)
 }
 
@@ -1129,13 +1144,13 @@ func scanPipeline(p *pipeline, scan scannable) error {
 	return nil
 }
 
-func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
+func scanPipelines(conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy, rows *sql.Rows) ([]Pipeline, error) {
 	defer rows.Close()
 
 	pipelines := []Pipeline{}
 
 	for rows.Next() {
-		pipeline := newPipeline(conn, lockFactory)
+		pipeline := newPipeline(conn, lockFactory, encryption)
 
 		err := scanPipeline(pipeline, rows)
 		if err != nil {
@@ -1170,7 +1185,7 @@ func (t *team) findWorkerBaseResourceType(usedBaseResourceType *UsedBaseResource
 }
 
 func (t *team) queryTeam(query string, params []interface{}) error {
-	var basicAuth, providerAuth sql.NullString
+	var basicAuth, providerAuth, nonce sql.NullString
 
 	tx, err := t.conn.Begin()
 	if err != nil {
@@ -1184,6 +1199,7 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 		&t.admin,
 		&basicAuth,
 		&providerAuth,
+		&nonce,
 	)
 	if err != nil {
 		return err
@@ -1201,8 +1217,12 @@ func (t *team) queryTeam(query string, params []interface{}) error {
 	}
 
 	if providerAuth.Valid {
-		err = json.Unmarshal([]byte(providerAuth.String), &t.auth)
+		pAuth, err := t.encryption.Decrypt(providerAuth.String, nonce.String)
+		if err != nil {
+			return err
+		}
 
+		err = json.Unmarshal(pAuth, &t.auth)
 		if err != nil {
 			return err
 		}

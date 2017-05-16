@@ -48,7 +48,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 
 	metric.WorkerVolumes{
 		WorkerName: registration.Name,
-		Volumes: registration.ActiveVolumes,
+		Volumes:    registration.ActiveVolumes,
 	}.Emit(s.logger)
 
 	savedWorker, err := s.dbWorkerFactory.HeartbeatWorker(registration, ttl)

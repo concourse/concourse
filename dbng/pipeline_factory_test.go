@@ -11,7 +11,7 @@ var _ = Describe("Pipeline Factory", func() {
 	var pipelineFactory dbng.PipelineFactory
 
 	BeforeEach(func() {
-		pipelineFactory = dbng.NewPipelineFactory(dbConn, lockFactory)
+		pipelineFactory = dbng.NewPipelineFactory(dbConn, lockFactory, key)
 	})
 
 	Describe("PublicPipelines", func() {
@@ -61,7 +61,9 @@ var _ = Describe("Pipeline Factory", func() {
 		})
 
 		It("returns all public pipelines", func() {
-			Expect(publicPipelines).To(Equal([]dbng.Pipeline{pipeline3, pipeline1}))
+			Expect(len(publicPipelines)).To(Equal(2))
+			Expect(publicPipelines[0].Name()).To(Equal(pipeline3.Name()))
+			Expect(publicPipelines[1].Name()).To(Equal(pipeline1.Name()))
 		})
 
 		Context("when a pipeline is hidden", func() {
@@ -70,7 +72,8 @@ var _ = Describe("Pipeline Factory", func() {
 			})
 
 			It("returns only the remaining exposed pipeline", func() {
-				Expect(publicPipelines).To(Equal([]dbng.Pipeline{pipeline3}))
+				Expect(len(publicPipelines)).To(Equal(1))
+				Expect(publicPipelines[0].Name()).To(Equal(pipeline3.Name()))
 			})
 		})
 	})

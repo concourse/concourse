@@ -21,15 +21,24 @@ type TeamFactory interface {
 	GetByID(teamID int) Team
 }
 
+//go:generate counterfeiter . EncryptionStrategy
+
+type EncryptionStrategy interface {
+	Encrypt([]byte) (string, string, error)
+	Decrypt(string, string) ([]byte, error)
+}
+
 type teamFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
+	encryption  EncryptionStrategy
 }
 
-func NewTeamFactory(conn Conn, lockFactory lock.LockFactory) TeamFactory {
+func NewTeamFactory(conn Conn, lockFactory lock.LockFactory, encryption EncryptionStrategy) TeamFactory {
 	return &teamFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
+		encryption:  encryption,
 	}
 }
 
@@ -51,18 +60,24 @@ func (factory *teamFactory) CreateTeam(t atc.Team) (Team, error) {
 		return nil, err
 	}
 
+	encryptedAuth, nonce, err := factory.encryption.Encrypt(auth)
+	if err != nil {
+		return nil, err
+	}
+
 	row := psql.Insert("teams").
-		Columns("name, basic_auth, auth").
-		Values(t.Name, encryptedBasicAuthJSON, auth).
-		Suffix("RETURNING id, name, admin, basic_auth, auth").
+		Columns("name, basic_auth, auth, nonce").
+		Values(t.Name, encryptedBasicAuthJSON, encryptedAuth, nonce).
+		Suffix("RETURNING id, name, admin, basic_auth, auth, nonce").
 		RunWith(tx).
 		QueryRow()
 
 	team := &team{
 		conn:        factory.conn,
 		lockFactory: factory.lockFactory,
+		encryption:  factory.encryption,
 	}
-	err = scanTeam(team, row)
+	err = factory.scanTeam(team, row)
 
 	if err != nil {
 		return nil, err
@@ -89,6 +104,7 @@ func (factory *teamFactory) GetByID(teamID int) Team {
 		id:          teamID,
 		conn:        factory.conn,
 		lockFactory: factory.lockFactory,
+		encryption:  factory.encryption,
 	}
 }
 
@@ -96,15 +112,16 @@ func (factory *teamFactory) FindTeam(teamName string) (Team, bool, error) {
 	team := &team{
 		conn:        factory.conn,
 		lockFactory: factory.lockFactory,
+		encryption:  factory.encryption,
 	}
 
-	row := psql.Select("id, name, admin, basic_auth, auth").
+	row := psql.Select("id, name, admin, basic_auth, auth, nonce").
 		From("teams").
 		Where(sq.Eq{"LOWER(name)": strings.ToLower(teamName)}).
 		RunWith(factory.conn).
 		QueryRow()
 
-	err := scanTeam(team, row)
+	err := factory.scanTeam(team, row)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -117,7 +134,7 @@ func (factory *teamFactory) FindTeam(teamName string) (Team, bool, error) {
 }
 
 func (factory *teamFactory) GetTeams() ([]Team, error) {
-	rows, err := psql.Select("id, name, admin, basic_auth, auth").
+	rows, err := psql.Select("id, name, admin, basic_auth, auth, nonce").
 		From("teams").
 		RunWith(factory.conn).
 		Query()
@@ -132,9 +149,10 @@ func (factory *teamFactory) GetTeams() ([]Team, error) {
 		team := &team{
 			conn:        factory.conn,
 			lockFactory: factory.lockFactory,
+			encryption:  factory.encryption,
 		}
 
-		err = scanTeam(team, rows)
+		err = factory.scanTeam(team, rows)
 		if err != nil {
 			return nil, err
 		}
@@ -145,8 +163,8 @@ func (factory *teamFactory) GetTeams() ([]Team, error) {
 	return teams, nil
 }
 
-func scanTeam(t *team, rows scannable) error {
-	var basicAuthen, providerAuth sql.NullString
+func (factory *teamFactory) scanTeam(t *team, rows scannable) error {
+	var basicAuthen, providerAuth, nonce sql.NullString
 
 	err := rows.Scan(
 		&t.id,
@@ -154,6 +172,7 @@ func scanTeam(t *team, rows scannable) error {
 		&t.admin,
 		&basicAuthen,
 		&providerAuth,
+		&nonce,
 	)
 
 	if basicAuthen.Valid {
@@ -165,8 +184,12 @@ func scanTeam(t *team, rows scannable) error {
 	}
 
 	if providerAuth.Valid {
-		err = json.Unmarshal([]byte(providerAuth.String), &t.auth)
+		pAuth, err := factory.encryption.Decrypt(providerAuth.String, nonce.String)
+		if err != nil {
+			return err
+		}
 
+		err = json.Unmarshal(pAuth, &t.auth)
 		if err != nil {
 			return err
 		}

@@ -158,4 +158,5 @@ var Migrations = []migration.Migrator{
 	AddAuthToTeams,
 	RemoveCertificatesPathToWorkers,
 	AddVersionToWorkers,
+	AddNonceToPipelinesAndResourcesAndResourceTypesAndJobsAndTeams,
 }

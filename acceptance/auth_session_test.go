@@ -31,7 +31,7 @@ var _ = Describe("Auth Session", func() {
 		page, err = agoutiDriver.NewPage()
 		Expect(err).NotTo(HaveOccurred())
 
-		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
+		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
 		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue()) // created by postgresRunner

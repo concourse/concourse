@@ -20,7 +20,7 @@ var _ = Describe("Resource Pausing", func() {
 	var pipelineDB db.PipelineDB
 
 	BeforeEach(func() {
-		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory)
+		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
 		defaultTeam, found, err := teamFactory.FindTeam(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue()) // created by postgresRunner

@@ -36,7 +36,7 @@ var _ = Describe("PipelineDB", func() {
 		sqlDB = db.NewSQL(dbConn, bus, lockFactory)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 		teamDBFactory = db.NewTeamDBFactory(dbConn, bus, lockFactory)
-		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory)
+		teamFactory = dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
 	})
 
 	AfterEach(func() {
