@@ -84,6 +84,11 @@ var _ = Describe("Syncing", func() {
 					return
 				}
 
+				if runtime.GOOS == "windows" {
+					Skip("who knows how windows works; not worth testing")
+					return
+				}
+
 				os.Chmod(filepath.Dir(flyPath), 0500)
 
 				expectedBinary := readBinary(flyPath)
