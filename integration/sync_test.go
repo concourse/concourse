@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"runtime"
 
@@ -75,6 +76,14 @@ var _ = Describe("Syncing", func() {
 
 		Context("When the user running sync doesn't have write permissions for the target directory", func() {
 			It("returns an error, and doesn't download/replace the executable", func() {
+				me, err := user.Current()
+				Expect(err).ToNot(HaveOccurred())
+
+				if me.Uid == "0" {
+					Skip("root can always write; not worth testing")
+					return
+				}
+
 				os.Chmod(filepath.Dir(flyPath), 0500)
 
 				expectedBinary := readBinary(flyPath)
