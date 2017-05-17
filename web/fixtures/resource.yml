@@ -1,0 +1,12 @@
+---
+resources:
+- name: some-git-resource
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+jobs:
+- name: simple
+  plan:
+  - get: some-git-resource
