@@ -98,7 +98,7 @@ var _ = Describe("Resource Put", func() {
 				return outScriptProcess, nil
 			}
 
-			versionedSource, putErr = resource.Put(ioConfig, source, params, signalsCh, readyCh)
+			versionedSource, putErr = resourceForContainer.Put(ioConfig, source, params, signalsCh, readyCh)
 		})
 
 		itCanStreamOut := func() {
@@ -455,7 +455,7 @@ var _ = Describe("Resource Put", func() {
 			}
 
 			go func() {
-				versionedSource, putErr = resource.Put(ioConfig, source, params, signalsCh, readyCh)
+				versionedSource, putErr = resourceForContainer.Put(ioConfig, source, params, signalsCh, readyCh)
 				close(done)
 			}()
 		})

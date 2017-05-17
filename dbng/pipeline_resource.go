@@ -1,12 +1,16 @@
 package dbng
 
-import "time"
+import (
+	"time"
+
+	"github.com/concourse/atc"
+)
 
 type VersionedResource struct {
 	Resource string
 	Type     string
 	Version  ResourceVersion
-	Metadata []ResourceMetadataField
+	Metadata ResourceMetadataFields
 }
 
 type SavedVersionedResource struct {
@@ -24,6 +28,20 @@ type ResourceVersion map[string]string
 type ResourceMetadataField struct {
 	Name  string
 	Value string
+}
+
+type ResourceMetadataFields []ResourceMetadataField
+
+func (rmf ResourceMetadataFields) ToATCMetadata() []atc.MetadataField {
+	metadata := make([]atc.MetadataField, len(rmf))
+	for i, md := range rmf {
+		metadata[i] = atc.MetadataField{
+			Name:  md.Name,
+			Value: md.Value,
+		}
+	}
+
+	return metadata
 }
 
 type BuildInput struct {

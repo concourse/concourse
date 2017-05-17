@@ -14,6 +14,14 @@ import (
 	"github.com/concourse/atc/db/lock"
 )
 
+type ErrResourceNotFound struct {
+	Name string
+}
+
+func (e ErrResourceNotFound) Error() string {
+	return fmt.Sprintf("resource '%s' not found", e.Name)
+}
+
 //go:generate counterfeiter . Pipeline
 
 type Pipeline interface {
@@ -473,8 +481,13 @@ func (p *pipeline) GetResourceVersions(resourceName string, page Page) ([]SavedV
 		Where(sq.Eq{
 			"name":        resourceName,
 			"pipeline_id": p.id,
+			"active":      true,
 		}).RunWith(p.conn).QueryRow().Scan(&resourceID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return []SavedVersionedResource{}, Pagination{}, false, nil
+		}
+
 		return []SavedVersionedResource{}, Pagination{}, false, err
 	}
 
@@ -1211,6 +1224,9 @@ func (p *pipeline) saveOutput(buildID int, vr VersionedResource, explicit bool) 
 			"pipeline_id": p.id,
 		}).RunWith(tx).QueryRow().Scan(&resourceID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrResourceNotFound{Name: vr.Resource}
+		}
 		return err
 	}
 
@@ -1312,7 +1328,7 @@ func (p *pipeline) saveVersionedResource(tx Tx, resourceID int, vr VersionedReso
 			AND type = $2
 			AND version = $3
 		)
-	`, resourceID, vr.Type, string(versionJSON), string(metadataJSON))
+		`, resourceID, vr.Type, string(versionJSON), string(metadataJSON))
 
 	var rowsAffected int64
 	if err == nil {

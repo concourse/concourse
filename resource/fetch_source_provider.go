@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -33,19 +34,23 @@ type FetchSourceProvider interface {
 //go:generate counterfeiter . FetchSource
 
 type FetchSource interface {
-	IsInitialized() (bool, error)
 	LockName() (string, error)
-	VersionedSource() VersionedSource
-	Initialize(signals <-chan os.Signal, ready chan<- struct{}) error
+	FindInitialized() (VersionedSource, bool, error)
+	Initialize(signals <-chan os.Signal, ready chan<- struct{}) (VersionedSource, error)
 }
 
 type fetchSourceProviderFactory struct {
-	workerClient worker.Client
+	workerClient           worker.Client
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
-func NewFetchSourceProviderFactory(workerClient worker.Client) FetchSourceProviderFactory {
+func NewFetchSourceProviderFactory(
+	workerClient worker.Client,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
+) FetchSourceProviderFactory {
 	return &fetchSourceProviderFactory{
-		workerClient: workerClient,
+		workerClient:           workerClient,
+		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
@@ -61,30 +66,32 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) FetchSourceProvider {
 	return &fetchSourceProvider{
-		logger:                logger,
-		session:               session,
-		metadata:              metadata,
-		tags:                  tags,
-		teamID:                teamID,
-		resourceTypes:         resourceTypes,
-		resourceInstance:      resourceInstance,
-		resourceOptions:       resourceOptions,
-		imageFetchingDelegate: imageFetchingDelegate,
-		workerClient:          f.workerClient,
+		logger:                 logger,
+		session:                session,
+		metadata:               metadata,
+		tags:                   tags,
+		teamID:                 teamID,
+		resourceTypes:          resourceTypes,
+		resourceInstance:       resourceInstance,
+		resourceOptions:        resourceOptions,
+		imageFetchingDelegate:  imageFetchingDelegate,
+		workerClient:           f.workerClient,
+		dbResourceCacheFactory: f.dbResourceCacheFactory,
 	}
 }
 
 type fetchSourceProvider struct {
-	logger                lager.Logger
-	session               Session
-	metadata              Metadata
-	tags                  atc.Tags
-	teamID                int
-	resourceTypes         atc.VersionedResourceTypes
-	resourceInstance      ResourceInstance
-	resourceOptions       ResourceOptions
-	workerClient          worker.Client
-	imageFetchingDelegate worker.ImageFetchingDelegate
+	logger                 lager.Logger
+	session                Session
+	metadata               Metadata
+	tags                   atc.Tags
+	teamID                 int
+	resourceTypes          atc.VersionedResourceTypes
+	resourceInstance       ResourceInstance
+	resourceOptions        ResourceOptions
+	workerClient           worker.Client
+	imageFetchingDelegate  worker.ImageFetchingDelegate
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
 func (f *fetchSourceProvider) Get() (FetchSource, error) {
@@ -100,8 +107,23 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		return nil, err
 	}
 
+	resourceCache, err := f.dbResourceCacheFactory.FindOrCreateResourceCache(
+		f.logger,
+		f.resourceInstance.ResourceUser(),
+		string(f.resourceOptions.ResourceType()),
+		f.resourceOptions.Version(),
+		f.resourceOptions.Source(),
+		f.resourceOptions.Params(),
+		f.resourceTypes,
+	)
+	if err != nil {
+		f.logger.Error("failed-to-get-resource-cache", err, lager.Data{"user": f.resourceInstance.ResourceUser()})
+		return nil, err
+	}
+
 	return NewResourceInstanceFetchSource(
 		f.logger,
+		resourceCache,
 		f.resourceInstance,
 		chosenWorker,
 		f.resourceOptions,
@@ -111,15 +133,6 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 		f.session,
 		f.metadata,
 		f.imageFetchingDelegate,
+		f.dbResourceCacheFactory,
 	), nil
-}
-
-func findCacheVolumeForContainer(container worker.Container) (worker.Volume, bool) {
-	for _, mount := range container.VolumeMounts() {
-		if mount.MountPath == ResourcesDir("get") {
-			return mount.Volume, true
-		}
-	}
-
-	return nil, false
 }

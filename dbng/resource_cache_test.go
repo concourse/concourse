@@ -10,9 +10,12 @@ import (
 )
 
 var _ = Describe("ResourceCache", func() {
-	var tx dbng.Tx
+	var (
+		tx dbng.Tx
 
-	var cache dbng.ResourceCache
+		cache                dbng.ResourceCache
+		resourceCacheFactory dbng.ResourceCacheFactory
+	)
 
 	BeforeEach(func() {
 		setupTx, err := dbConn.Begin()
@@ -34,6 +37,7 @@ var _ = Describe("ResourceCache", func() {
 			Version: atc.Version{"some": "version"},
 			Params:  atc.Params{"some": "params"},
 		}
+		resourceCacheFactory = dbng.NewResourceCacheFactory(dbConn, lockFactory)
 	})
 
 	Describe("creating for a build", func() {
@@ -77,6 +81,27 @@ var _ = Describe("ResourceCache", func() {
 				urc, err := dbng.ForBuild(build.ID()).UseResourceCache(logger, tx, lockFactory, cache)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).To(Equal(existingResourceCache.ID))
+			})
+
+			Context("when it has metadata", func() {
+				BeforeEach(func() {
+					Expect(tx.Commit()).To(Succeed())
+					err := resourceCacheFactory.UpdateResourceCacheMetadata(existingResourceCache, []atc.MetadataField{
+						{Name: "some", Value: "metadata"},
+					})
+					Expect(err).ToNot(HaveOccurred())
+					tx, err = dbConn.Begin()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns resource cache with metadata", func() {
+					urc, err := dbng.ForBuild(build.ID()).UseResourceCache(logger, tx, lockFactory, cache)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(urc.ID).To(Equal(existingResourceCache.ID))
+					Expect(urc.Metadata).To(Equal(dbng.ResourceMetadataFields{
+						{Name: "some", Value: "metadata"},
+					}))
+				})
 			})
 		})
 	})
@@ -125,6 +150,27 @@ var _ = Describe("ResourceCache", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).To(Equal(existingResourceCache.ID))
 			})
+
+			Context("when it has metadata", func() {
+				BeforeEach(func() {
+					Expect(tx.Commit()).To(Succeed())
+					err := resourceCacheFactory.UpdateResourceCacheMetadata(existingResourceCache, []atc.MetadataField{
+						{Name: "some", Value: "metadata"},
+					})
+					Expect(err).ToNot(HaveOccurred())
+					tx, err = dbConn.Begin()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns resource cache with metadata", func() {
+					urc, err := dbng.ForResource(resource.ID()).UseResourceCache(logger, tx, lockFactory, cache)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(urc.ID).To(Equal(existingResourceCache.ID))
+					Expect(urc.Metadata).To(Equal(dbng.ResourceMetadataFields{
+						{Name: "some", Value: "metadata"},
+					}))
+				})
+			})
 		})
 	})
 
@@ -164,6 +210,27 @@ var _ = Describe("ResourceCache", func() {
 				urc, err := dbng.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, lockFactory, cache)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(urc.ID).To(Equal(existingResourceCache.ID))
+			})
+
+			Context("when it has metadata", func() {
+				BeforeEach(func() {
+					Expect(tx.Commit()).To(Succeed())
+					err := resourceCacheFactory.UpdateResourceCacheMetadata(existingResourceCache, []atc.MetadataField{
+						{Name: "some", Value: "metadata"},
+					})
+					Expect(err).ToNot(HaveOccurred())
+					tx, err = dbConn.Begin()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns resource cache with metadata", func() {
+					urc, err := dbng.ForResourceType(defaultResourceType.ID()).UseResourceCache(logger, tx, lockFactory, cache)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(urc.ID).To(Equal(existingResourceCache.ID))
+					Expect(urc.Metadata).To(Equal(dbng.ResourceMetadataFields{
+						{Name: "some", Value: "metadata"},
+					}))
+				})
 			})
 		})
 

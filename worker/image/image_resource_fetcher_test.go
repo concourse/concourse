@@ -19,10 +19,10 @@ import (
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
-	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,11 +30,11 @@ import (
 )
 
 var _ = Describe("Image", func() {
-	var fakeResourceFactory *rfakes.FakeResourceFactory
-	var fakeImageResource *rfakes.FakeResource
-	var fakeResourceFetcherFactory *rfakes.FakeFetcherFactory
-	var fakeResourceFetcher *rfakes.FakeFetcher
-	var fakeResourceFactoryFactory *rfakes.FakeResourceFactoryFactory
+	var fakeResourceFactory *resourcefakes.FakeResourceFactory
+	var fakeImageResource *resourcefakes.FakeResource
+	var fakeResourceFetcherFactory *resourcefakes.FakeFetcherFactory
+	var fakeResourceFetcher *resourcefakes.FakeFetcher
+	var fakeResourceFactoryFactory *resourcefakes.FakeResourceFactoryFactory
 	var fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 	var fakeResourceConfigFactory *dbngfakes.FakeResourceConfigFactory
 
@@ -45,8 +45,8 @@ var _ = Describe("Image", func() {
 	var logger lager.Logger
 	var imageResource atc.ImageResource
 	var signals <-chan os.Signal
-	var fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
-	var fakeWorker *wfakes.FakeWorker
+	var fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
+	var fakeWorker *workerfakes.FakeWorker
 	var fakeClock *fakeclock.FakeClock
 	var customTypes atc.VersionedResourceTypes
 	var privileged bool
@@ -58,11 +58,11 @@ var _ = Describe("Image", func() {
 	var teamID int
 
 	BeforeEach(func() {
-		fakeResourceFactory = new(rfakes.FakeResourceFactory)
-		fakeImageResource = new(rfakes.FakeResource)
-		fakeResourceFetcherFactory = new(rfakes.FakeFetcherFactory)
-		fakeResourceFetcher = new(rfakes.FakeFetcher)
-		fakeResourceFactoryFactory = new(rfakes.FakeResourceFactoryFactory)
+		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
+		fakeImageResource = new(resourcefakes.FakeResource)
+		fakeResourceFetcherFactory = new(resourcefakes.FakeFetcherFactory)
+		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
+		fakeResourceFactoryFactory = new(resourcefakes.FakeResourceFactoryFactory)
 		fakeResourceConfigFactory = new(dbngfakes.FakeResourceConfigFactory)
 		fakeResourceFetcherFactory.FetcherForReturns(fakeResourceFetcher)
 		fakeResourceFactoryFactory.FactoryForReturns(fakeResourceFactory)
@@ -75,9 +75,9 @@ var _ = Describe("Image", func() {
 			Source: atc.Source{"some": "source"},
 		}
 		signals = make(chan os.Signal)
-		fakeImageFetchingDelegate = new(wfakes.FakeImageFetchingDelegate)
+		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
-		fakeWorker = new(wfakes.FakeWorker)
+		fakeWorker = new(workerfakes.FakeWorker)
 		teamID = 123
 
 		customTypes = atc.VersionedResourceTypes{
@@ -133,13 +133,13 @@ var _ = Describe("Image", func() {
 
 		Context("when initializing the Check resource works", func() {
 			var (
-				fakeCheckResource *rfakes.FakeResource
-				fakeBuildResource *rfakes.FakeResource
+				fakeCheckResource *resourcefakes.FakeResource
+				fakeBuildResource *resourcefakes.FakeResource
 			)
 
 			BeforeEach(func() {
-				fakeCheckResource = new(rfakes.FakeResource)
-				fakeBuildResource = new(rfakes.FakeResource)
+				fakeCheckResource = new(resourcefakes.FakeResource)
+				fakeBuildResource = new(resourcefakes.FakeResource)
 				fakeResourceFactory.NewCheckResourceReturns(fakeCheckResource, nil)
 			})
 
@@ -165,29 +165,26 @@ var _ = Describe("Image", func() {
 
 					Context("when fetching resource succeeds", func() {
 						var (
-							fakeFetchSource     *rfakes.FakeFetchSource
-							fakeVersionedSource *rfakes.FakeVersionedSource
+							fakeVersionedSource *resourcefakes.FakeVersionedSource
 						)
 
 						BeforeEach(func() {
-							fakeFetchSource = new(rfakes.FakeFetchSource)
-							fakeResourceFetcher.FetchReturns(fakeFetchSource, nil)
+							fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
+							fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
-							fakeVersionedSource = new(rfakes.FakeVersionedSource)
 							fakeVersionedSource.StreamOutReturns(tarStreamWith("some-tar-contents"), nil)
-							fakeVolume := new(wfakes.FakeVolume)
+							fakeVolume := new(workerfakes.FakeVolume)
 							fakeVersionedSource.VolumeReturns(fakeVolume)
-							fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
 						})
 
 						Context("when the resource has a volume", func() {
 							var (
-								fakeVolume *wfakes.FakeVolume
+								fakeVolume *workerfakes.FakeVolume
 								volumePath string
 							)
 
 							BeforeEach(func() {
-								fakeVolume = new(wfakes.FakeVolume)
+								fakeVolume = new(workerfakes.FakeVolume)
 								volumePath = "C:/Documents and Settings/Evan/My Documents"
 
 								fakeVolume.PathReturns(volumePath)
@@ -440,7 +437,7 @@ var _ = Describe("Image", func() {
 		var fakeLock *lockfakes.FakeLock
 
 		BeforeEach(func() {
-			fakeCheckResource := new(rfakes.FakeResource)
+			fakeCheckResource := new(resourcefakes.FakeResource)
 			fakeResourceFactory.NewCheckResourceReturns(fakeCheckResource, nil)
 
 			fakeLock = new(lockfakes.FakeLock)

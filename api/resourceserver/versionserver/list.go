@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("list-resource-versions")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
@@ -46,7 +46,7 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB, _ dbng.Pipeline)
 			limit = atc.PaginationAPIDefaultLimit
 		}
 
-		versions, pagination, found, err := pipelineDB.GetResourceVersions(resourceName, db.Page{
+		versions, pagination, found, err := dbPipeline.GetResourceVersions(resourceName, dbng.Page{
 			Until: until,
 			Since: since,
 			From:  from,
@@ -84,7 +84,7 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB, _ dbng.Pipeline)
 	})
 }
 
-func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, resourceName string, page db.Page) {
+func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, resourceName string, page dbng.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/teams/%s/pipelines/%s/resources/%s/versions?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
@@ -99,7 +99,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, reso
 	))
 }
 
-func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, resourceName string, page db.Page) {
+func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, resourceName string, page dbng.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/teams/%s/pipelines/%s/resources/%s/versions?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,

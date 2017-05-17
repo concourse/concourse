@@ -32,7 +32,6 @@ var _ = Describe("DependentGet", func() {
 		fakeResourceFetcher        *resourcefakes.FakeFetcher
 		fakeDBResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 		fakeVersionedSource        *resourcefakes.FakeVersionedSource
-		fakeFetchSource            *resourcefakes.FakeFetchSource
 		getDelegate                *execfakes.FakeGetDelegate
 		resourceConfig             atc.ResourceConfig
 		params                     atc.Params
@@ -119,8 +118,6 @@ var _ = Describe("DependentGet", func() {
 		repo = worker.NewArtifactRepository()
 
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
-		fakeFetchSource = new(resourcefakes.FakeFetchSource)
-		fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
 	})
 
 	JustBeforeEach(func() {
@@ -162,9 +159,9 @@ var _ = Describe("DependentGet", func() {
 				resource.ResourceOptions,
 				<-chan os.Signal,
 				chan<- struct{},
-			) (resource.FetchSource, error) {
+			) (resource.VersionedSource, error) {
 				callCountDuringInit <- getDelegate.InitializingCallCount()
-				return fakeFetchSource, nil
+				return fakeVersionedSource, nil
 			}
 		})
 
@@ -175,9 +172,7 @@ var _ = Describe("DependentGet", func() {
 
 	Context("when the tracker can initialize the resource", func() {
 		BeforeEach(func() {
-			fakeResourceFetcher.FetchReturns(fakeFetchSource, nil)
-			fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
-
+			fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 			fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
 			fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
 		})

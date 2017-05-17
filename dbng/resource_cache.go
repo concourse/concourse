@@ -45,6 +45,7 @@ type UsedResourceCache struct {
 	ID             int
 	ResourceConfig *UsedResourceConfig
 	Version        atc.Version
+	Metadata       ResourceMetadataFields
 }
 
 func (cache *UsedResourceCache) Destroy(tx Tx) (bool, error) {
@@ -83,22 +84,7 @@ func (cache ResourceCache) Find(
 		return nil, false, nil
 	}
 
-	id, found, err := cache.findWithResourceConfig(tx, usedResourceConfig)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	rc := &UsedResourceCache{
-		ID:             id,
-		ResourceConfig: usedResourceConfig,
-		Version:        cache.Version,
-	}
-
-	return rc, true, nil
+	return cache.findWithResourceConfig(tx, usedResourceConfig)
 }
 
 func (cache ResourceCache) findOrCreate(
@@ -114,12 +100,13 @@ func (cache ResourceCache) findOrCreate(
 		return nil, err
 	}
 
-	id, found, err := cache.findWithResourceConfig(tx, usedResourceConfig)
+	rc, found, err := cache.findWithResourceConfig(tx, usedResourceConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	if !found {
+		var id int
 		err = psql.Insert("resource_caches").
 			Columns(
 				"resource_config_id",
@@ -146,19 +133,19 @@ func (cache ResourceCache) findOrCreate(
 
 			return nil, err
 		}
-	}
 
-	rc := &UsedResourceCache{
-		ID:             id,
-		ResourceConfig: usedResourceConfig,
-		Version:        cache.Version,
+		rc = &UsedResourceCache{
+			ID:             id,
+			ResourceConfig: usedResourceConfig,
+			Version:        cache.Version,
+		}
 	}
 
 	var resourceCacheUseExists int
 	err = psql.Select("1").
 		From("resource_cache_uses").
 		Where(sq.Eq{
-			"resource_cache_id": id,
+			"resource_cache_id": rc.ID,
 			forColumnName:       forColumnID,
 		}).
 		RunWith(tx).
@@ -172,7 +159,7 @@ func (cache ResourceCache) findOrCreate(
 					forColumnName,
 				).
 				Values(
-					id,
+					rc.ID,
 					forColumnID,
 				).
 				RunWith(tx).
@@ -206,22 +193,36 @@ func (cache ResourceCache) lockName() (string, error) {
 	return fmt.Sprintf("%x", sha256.Sum256(cacheJSON)), nil
 }
 
-func (cache ResourceCache) findWithResourceConfig(tx Tx, resourceConfig *UsedResourceConfig) (int, bool, error) {
+func (cache ResourceCache) findWithResourceConfig(tx Tx, resourceConfig *UsedResourceConfig) (*UsedResourceCache, bool, error) {
 	var id int
-	err := psql.Select("id").From("resource_caches").Where(sq.Eq{
+	var metadataJSON sql.NullString
+	err := psql.Select("id, metadata").From("resource_caches").Where(sq.Eq{
 		"resource_config_id": resourceConfig.ID,
 		"version":            cache.version(),
 		"params_hash":        paramsHash(cache.Params),
-	}).RunWith(tx).QueryRow().Scan(&id)
+	}).RunWith(tx).QueryRow().Scan(&id, &metadataJSON)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, false, nil
+			return nil, false, nil
 		}
 
-		return 0, false, err
+		return nil, false, err
 	}
 
-	return id, true, nil
+	var metadata []ResourceMetadataField
+	if metadataJSON.Valid {
+		err = json.Unmarshal([]byte(metadataJSON.String), &metadata)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	return &UsedResourceCache{
+		ID:             id,
+		ResourceConfig: resourceConfig,
+		Version:        cache.Version,
+		Metadata:       metadata,
+	}, true, nil
 }
 
 func (cache ResourceCache) version() string {

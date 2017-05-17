@@ -33,7 +33,7 @@ type GetStep struct {
 
 	repository *worker.ArtifactRepository
 
-	fetchSource resource.FetchSource
+	versionedSource resource.VersionedSource
 
 	succeeded bool
 }
@@ -116,7 +116,7 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	}
 
 	var err error
-	step.fetchSource, err = step.resourceFetcher.Fetch(
+	step.versionedSource, err = step.resourceFetcher.Fetch(
 		step.logger,
 		step.session,
 		step.tags,
@@ -141,7 +141,13 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		return err
 	}
 
-	step.registerAndReportResource()
+	step.repository.RegisterSource(step.sourceName, step)
+
+	step.succeeded = true
+	step.delegate.Completed(ExitStatus(0), &VersionInfo{
+		Version:  step.versionedSource.Version(),
+		Metadata: step.versionedSource.Metadata(),
+	})
 
 	return nil
 }
@@ -161,8 +167,8 @@ func (step *GetStep) Result(x interface{}) bool {
 
 	case *VersionInfo:
 		*v = VersionInfo{
-			Version:  step.fetchSource.VersionedSource().Version(),
-			Metadata: step.fetchSource.VersionedSource().Metadata(),
+			Version:  step.versionedSource.Version(),
+			Metadata: step.versionedSource.Metadata(),
 		}
 		return true
 
@@ -179,7 +185,7 @@ func (step *GetStep) VolumeOn(worker worker.Worker) (worker.Volume, bool, error)
 
 // StreamTo streams the resource's data to the destination.
 func (step *GetStep) StreamTo(destination worker.ArtifactDestination) error {
-	out, err := step.fetchSource.VersionedSource().StreamOut(".")
+	out, err := step.versionedSource.StreamOut(".")
 	if err != nil {
 		return err
 	}
@@ -191,7 +197,7 @@ func (step *GetStep) StreamTo(destination worker.ArtifactDestination) error {
 
 // StreamFile streams a single file out of the resource.
 func (step *GetStep) StreamFile(path string) (io.ReadCloser, error) {
-	out, err := step.fetchSource.VersionedSource().StreamOut(path)
+	out, err := step.versionedSource.StreamOut(path)
 	if err != nil {
 		return nil, err
 	}
@@ -207,16 +213,6 @@ func (step *GetStep) StreamFile(path string) (io.ReadCloser, error) {
 		Reader: tarReader,
 		Closer: out,
 	}, nil
-}
-
-func (step *GetStep) registerAndReportResource() {
-	step.repository.RegisterSource(step.sourceName, step)
-
-	step.succeeded = true
-	step.delegate.Completed(ExitStatus(0), &VersionInfo{
-		Version:  step.fetchSource.VersionedSource().Version(),
-		Metadata: step.fetchSource.VersionedSource().Metadata(),
-	})
 }
 
 type getStepResource struct {

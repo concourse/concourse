@@ -35,7 +35,6 @@ var _ = Describe("Get", func() {
 		fakeCache           *resourcefakes.FakeCache
 		fakeVolume          *workerfakes.FakeVolume
 		fakeVersionedSource *resourcefakes.FakeVersionedSource
-		fakeFetchSource     *resourcefakes.FakeFetchSource
 
 		factory Factory
 
@@ -108,10 +107,8 @@ var _ = Describe("Get", func() {
 		}
 
 		fakeResourceFetcher = new(resourcefakes.FakeFetcher)
-		fakeFetchSource = new(resourcefakes.FakeFetchSource)
-		fakeResourceFetcher.FetchReturns(fakeFetchSource, nil)
 		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
-		fakeFetchSource.VersionedSourceReturns(fakeVersionedSource)
+		fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
 		fakeDBResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
 
@@ -158,9 +155,9 @@ var _ = Describe("Get", func() {
 				resource.ResourceOptions,
 				<-chan os.Signal,
 				chan<- struct{},
-			) (resource.FetchSource, error) {
+			) (resource.VersionedSource, error) {
 				callCountDuringInit <- getDelegate.InitializingCallCount()
-				return fakeFetchSource, nil
+				return fakeVersionedSource, nil
 			}
 		})
 
@@ -206,7 +203,7 @@ var _ = Describe("Get", func() {
 
 	Context("when fetching resource succeeds", func() {
 		BeforeEach(func() {
-			fakeResourceFetcher.FetchReturns(fakeFetchSource, nil)
+			fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
 
 			fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
 			fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})

@@ -2,8 +2,6 @@ package migration_test
 
 import (
 	"database/sql"
-	"reflect"
-	"runtime"
 
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/dbng/migration"
@@ -17,33 +15,14 @@ var _ = Describe("AddWorkerResourceCacheToVolumes", func() {
 	var err error
 
 	var migrator migration.Migrator
-	var migrationsBefore []migration.Migrator
-
-	functionName := func(f interface{}) string {
-		return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
-	}
 
 	BeforeEach(func() {
 		migrator = migrations.AddWorkerResourceCacheToVolumes
-		migratorName := functionName(migrator)
-
-		migrationsBefore = []migration.Migrator{}
-		for _, m := range migrations.Migrations {
-			if migratorName == functionName(m) {
-				break
-			}
-
-			migrationsBefore = append(migrationsBefore, m)
-		}
 	})
 
 	Context("when there no existing resources", func() {
 		BeforeEach(func() {
-			dbConn, err = migration.Open(
-				"postgres",
-				postgresRunner.DataSourceName(),
-				migrationsBefore,
-			)
+			dbConn, err = openDBConnPreMigration(migrator)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -99,21 +78,15 @@ var _ = Describe("AddWorkerResourceCacheToVolumes", func() {
 					INSERT INTO volumes (handle, worker_name, resource_cache_id) VALUES ($1, $2, $3) RETURNING id
 				`, "some-handle", "some-worker", resourceCacheID).Scan(&volumeID)
 				Expect(err).NotTo(HaveOccurred())
+
+				err = dbConn.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				dbConn, err = openDBConnPostMigration(migrator)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("migrates to worker_base_resource_type", func() {
-				err := dbConn.Close()
-				Expect(err).NotTo(HaveOccurred())
-
-				migrationsToRun := append(migrationsBefore, migrator)
-
-				dbConn, err = migration.Open(
-					"postgres",
-					postgresRunner.DataSourceName(),
-					migrationsToRun,
-				)
-				Expect(err).NotTo(HaveOccurred())
-
 				var migratedWorkerBaseResourceTypeID int
 				err = dbConn.QueryRow(`
 					SELECT worker_resource_cache_id FROM volumes WHERE id=$1

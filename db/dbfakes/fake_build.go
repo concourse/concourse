@@ -265,33 +265,6 @@ type FakeBuild struct {
 	saveEngineMetadataReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SaveInputStub        func(input db.BuildInput) (db.SavedVersionedResource, error)
-	saveInputMutex       sync.RWMutex
-	saveInputArgsForCall []struct {
-		input db.BuildInput
-	}
-	saveInputReturns struct {
-		result1 db.SavedVersionedResource
-		result2 error
-	}
-	saveInputReturnsOnCall map[int]struct {
-		result1 db.SavedVersionedResource
-		result2 error
-	}
-	SaveOutputStub        func(vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
-	saveOutputMutex       sync.RWMutex
-	saveOutputArgsForCall []struct {
-		vr       db.VersionedResource
-		explicit bool
-	}
-	saveOutputReturns struct {
-		result1 db.SavedVersionedResource
-		result2 error
-	}
-	saveOutputReturnsOnCall map[int]struct {
-		result1 db.SavedVersionedResource
-		result2 error
-	}
 	SaveImageResourceVersionStub        func(planID atc.PlanID, identifier db.ResourceCacheIdentifier) error
 	saveImageResourceVersionMutex       sync.RWMutex
 	saveImageResourceVersionArgsForCall []struct {
@@ -1390,109 +1363,6 @@ func (fake *FakeBuild) SaveEngineMetadataReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) SaveInput(input db.BuildInput) (db.SavedVersionedResource, error) {
-	fake.saveInputMutex.Lock()
-	ret, specificReturn := fake.saveInputReturnsOnCall[len(fake.saveInputArgsForCall)]
-	fake.saveInputArgsForCall = append(fake.saveInputArgsForCall, struct {
-		input db.BuildInput
-	}{input})
-	fake.recordInvocation("SaveInput", []interface{}{input})
-	fake.saveInputMutex.Unlock()
-	if fake.SaveInputStub != nil {
-		return fake.SaveInputStub(input)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.saveInputReturns.result1, fake.saveInputReturns.result2
-}
-
-func (fake *FakeBuild) SaveInputCallCount() int {
-	fake.saveInputMutex.RLock()
-	defer fake.saveInputMutex.RUnlock()
-	return len(fake.saveInputArgsForCall)
-}
-
-func (fake *FakeBuild) SaveInputArgsForCall(i int) db.BuildInput {
-	fake.saveInputMutex.RLock()
-	defer fake.saveInputMutex.RUnlock()
-	return fake.saveInputArgsForCall[i].input
-}
-
-func (fake *FakeBuild) SaveInputReturns(result1 db.SavedVersionedResource, result2 error) {
-	fake.SaveInputStub = nil
-	fake.saveInputReturns = struct {
-		result1 db.SavedVersionedResource
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) SaveInputReturnsOnCall(i int, result1 db.SavedVersionedResource, result2 error) {
-	fake.SaveInputStub = nil
-	if fake.saveInputReturnsOnCall == nil {
-		fake.saveInputReturnsOnCall = make(map[int]struct {
-			result1 db.SavedVersionedResource
-			result2 error
-		})
-	}
-	fake.saveInputReturnsOnCall[i] = struct {
-		result1 db.SavedVersionedResource
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) SaveOutput(vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error) {
-	fake.saveOutputMutex.Lock()
-	ret, specificReturn := fake.saveOutputReturnsOnCall[len(fake.saveOutputArgsForCall)]
-	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
-		vr       db.VersionedResource
-		explicit bool
-	}{vr, explicit})
-	fake.recordInvocation("SaveOutput", []interface{}{vr, explicit})
-	fake.saveOutputMutex.Unlock()
-	if fake.SaveOutputStub != nil {
-		return fake.SaveOutputStub(vr, explicit)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.saveOutputReturns.result1, fake.saveOutputReturns.result2
-}
-
-func (fake *FakeBuild) SaveOutputCallCount() int {
-	fake.saveOutputMutex.RLock()
-	defer fake.saveOutputMutex.RUnlock()
-	return len(fake.saveOutputArgsForCall)
-}
-
-func (fake *FakeBuild) SaveOutputArgsForCall(i int) (db.VersionedResource, bool) {
-	fake.saveOutputMutex.RLock()
-	defer fake.saveOutputMutex.RUnlock()
-	return fake.saveOutputArgsForCall[i].vr, fake.saveOutputArgsForCall[i].explicit
-}
-
-func (fake *FakeBuild) SaveOutputReturns(result1 db.SavedVersionedResource, result2 error) {
-	fake.SaveOutputStub = nil
-	fake.saveOutputReturns = struct {
-		result1 db.SavedVersionedResource
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) SaveOutputReturnsOnCall(i int, result1 db.SavedVersionedResource, result2 error) {
-	fake.SaveOutputStub = nil
-	if fake.saveOutputReturnsOnCall == nil {
-		fake.saveOutputReturnsOnCall = make(map[int]struct {
-			result1 db.SavedVersionedResource
-			result2 error
-		})
-	}
-	fake.saveOutputReturnsOnCall[i] = struct {
-		result1 db.SavedVersionedResource
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeBuild) SaveImageResourceVersion(planID atc.PlanID, identifier db.ResourceCacheIdentifier) error {
 	fake.saveImageResourceVersionMutex.Lock()
 	ret, specificReturn := fake.saveImageResourceVersionReturnsOnCall[len(fake.saveImageResourceVersionArgsForCall)]
@@ -1638,10 +1508,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.acquireTrackingLockMutex.RUnlock()
 	fake.saveEngineMetadataMutex.RLock()
 	defer fake.saveEngineMetadataMutex.RUnlock()
-	fake.saveInputMutex.RLock()
-	defer fake.saveInputMutex.RUnlock()
-	fake.saveOutputMutex.RLock()
-	defer fake.saveOutputMutex.RUnlock()
 	fake.saveImageResourceVersionMutex.RLock()
 	defer fake.saveImageResourceVersionMutex.RUnlock()
 	fake.getImageResourceCacheIdentifiersMutex.RLock()

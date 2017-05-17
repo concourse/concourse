@@ -5,10 +5,12 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/gardenfakes"
+	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/resource"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker/workerfakes"
 
@@ -18,13 +20,15 @@ import (
 
 var _ = Describe("VolumeFetchSource", func() {
 	var (
-		fetchSource FetchSource
+		fetchSource resource.FetchSource
 
-		fakeContainer        *workerfakes.FakeContainer
-		resourceOptions      *resourcefakes.FakeResourceOptions
-		fakeVolume           *workerfakes.FakeVolume
-		fakeResourceInstance *resourcefakes.FakeResourceInstance
-		fakeWorker           *workerfakes.FakeWorker
+		fakeContainer            *workerfakes.FakeContainer
+		resourceOptions          *resourcefakes.FakeResourceOptions
+		fakeVolume               *workerfakes.FakeVolume
+		fakeResourceInstance     *resourcefakes.FakeResourceInstance
+		fakeWorker               *workerfakes.FakeWorker
+		resourceCache            *dbng.UsedResourceCache
+		fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 
 		signals <-chan os.Signal
 		ready   chan<- struct{}
@@ -38,7 +42,7 @@ var _ = Describe("VolumeFetchSource", func() {
 		ready = make(chan<- struct{})
 
 		fakeContainer.PropertyReturns("", errors.New("nope"))
-		inProcess := new(gfakes.FakeProcess)
+		inProcess := new(gardenfakes.FakeProcess)
 		inProcess.IDReturns("process-id")
 		inProcess.WaitStub = func() (int, error) {
 			return 0, nil
@@ -57,31 +61,46 @@ var _ = Describe("VolumeFetchSource", func() {
 		fakeVolume = new(workerfakes.FakeVolume)
 		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
 		fakeResourceInstance.CreateOnReturns(fakeVolume, nil)
-		fetchSource = NewResourceInstanceFetchSource(
+		resourceCache = &dbng.UsedResourceCache{
+			ID: 42,
+			Metadata: []dbng.ResourceMetadataField{
+				{Name: "some", Value: "metadata"},
+			},
+		}
+		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(resourceCache, nil)
+		fetchSource = resource.NewResourceInstanceFetchSource(
 			logger,
+			resourceCache,
 			fakeResourceInstance,
 			fakeWorker,
 			resourceOptions,
 			nil,
 			atc.Tags{},
 			42,
-			Session{},
-			EmptyMetadata{},
+			resource.Session{},
+			resource.EmptyMetadata{},
 			new(workerfakes.FakeImageFetchingDelegate),
+			fakeResourceCacheFactory,
 		)
 	})
 
-	Describe("IsInitialized", func() {
+	Describe("FindInitialized", func() {
 		Context("when there is initialized volume", func() {
+			var expectedInitializedVersionedSource resource.VersionedSource
 			BeforeEach(func() {
+				expectedMetadata := []atc.MetadataField{
+					{Name: "some", Value: "metadata"},
+				}
+				expectedInitializedVersionedSource = resource.NewGetVersionedSource(fakeVolume, resourceOptions.Version(), expectedMetadata)
 				fakeResourceInstance.FindInitializedOnReturns(fakeVolume, true, nil)
 			})
 
 			It("finds initialized volume and sets versioned source", func() {
-				initialized, err := fetchSource.IsInitialized()
+				versionedSource, found, err := fetchSource.FindInitialized()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(initialized).To(BeTrue())
-				Expect(fetchSource.VersionedSource()).NotTo(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(versionedSource).To(Equal(expectedInitializedVersionedSource))
 			})
 		})
 
@@ -91,27 +110,36 @@ var _ = Describe("VolumeFetchSource", func() {
 			})
 
 			It("does not find initialized volume", func() {
-				initialized, err := fetchSource.IsInitialized()
+				versionedSource, found, err := fetchSource.FindInitialized()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(initialized).To(BeFalse())
+				Expect(found).To(BeFalse())
+				Expect(versionedSource).To(BeNil())
 			})
 		})
 	})
 
 	Describe("Initialize", func() {
-		var initErr error
+		var (
+			initErr                            error
+			versionedSource                    resource.VersionedSource
+			expectedInitializedVersionedSource resource.VersionedSource
+		)
 
 		BeforeEach(func() {
-			resourceOptions.ResourceTypeReturns(ResourceType("fake-resource-type"))
+			resourceOptions.ResourceTypeReturns(resource.ResourceType("fake-resource-type"))
 		})
 
 		JustBeforeEach(func() {
-			initErr = fetchSource.Initialize(signals, ready)
+			versionedSource, initErr = fetchSource.Initialize(signals, ready)
 		})
 
 		Context("when there is initialized volume", func() {
 			BeforeEach(func() {
 				fakeResourceInstance.FindInitializedOnReturns(fakeVolume, true, nil)
+				expectedMetadata := []atc.MetadataField{
+					{Name: "some", Value: "metadata"},
+				}
+				expectedInitializedVersionedSource = resource.NewGetVersionedSource(fakeVolume, resourceOptions.Version(), expectedMetadata)
 			})
 
 			It("does not fetch resource", func() {
@@ -122,7 +150,7 @@ var _ = Describe("VolumeFetchSource", func() {
 
 			It("finds initialized volume and sets versioned source", func() {
 				Expect(initErr).NotTo(HaveOccurred())
-				Expect(fetchSource.VersionedSource()).NotTo(BeNil())
+				Expect(versionedSource).To(Equal(expectedInitializedVersionedSource))
 			})
 		})
 
@@ -153,14 +181,20 @@ var _ = Describe("VolumeFetchSource", func() {
 				Expect(fakeVolume.InitializeCallCount()).To(Equal(1))
 			})
 
+			It("updates resource cache metadata", func() {
+				Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(1))
+				passedResourceCache, _ := fakeResourceCacheFactory.UpdateResourceCacheMetadataArgsForCall(0)
+				Expect(passedResourceCache).To(Equal(resourceCache))
+			})
+
 			Context("when getting resource fails with ErrAborted", func() {
 				BeforeEach(func() {
-					fakeContainer.RunReturns(nil, ErrAborted)
+					fakeContainer.RunReturns(nil, resource.ErrAborted)
 				})
 
 				It("returns ErrInterrupted", func() {
 					Expect(initErr).To(HaveOccurred())
-					Expect(initErr).To(Equal(ErrInterrupted))
+					Expect(initErr).To(Equal(resource.ErrInterrupted))
 				})
 			})
 

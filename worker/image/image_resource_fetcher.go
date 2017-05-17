@@ -142,7 +142,7 @@ func (i *imageResourceFetcher) Fetch(
 	}
 
 	// we need resource cache for build
-	fetchSource, err := i.resourceFetcher.Fetch(
+	versionedSource, err := i.resourceFetcher.Fetch(
 		logger.Session("init-image"),
 		getSess,
 		tags,
@@ -160,7 +160,6 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	versionedSource := fetchSource.VersionedSource()
 	volume := versionedSource.Volume()
 	if volume == nil {
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume

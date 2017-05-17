@@ -32,7 +32,7 @@ type Fetcher interface {
 		resourceOptions ResourceOptions,
 		signals <-chan os.Signal,
 		ready chan<- struct{},
-	) (FetchSource, error)
+	) (VersionedSource, error)
 }
 
 //go:generate counterfeiter . ResourceOptions
@@ -76,7 +76,7 @@ func (f *fetcher) Fetch(
 	resourceOptions ResourceOptions,
 	signals <-chan os.Signal,
 	ready chan<- struct{},
-) (FetchSource, error) {
+) (VersionedSource, error) {
 	sourceProvider := f.fetchSourceProviderFactory.NewFetchSourceProvider(
 		logger,
 		session,
@@ -89,18 +89,23 @@ func (f *fetcher) Fetch(
 		imageFetchingDelegate,
 	)
 
+	source, err := sourceProvider.Get()
+	if err != nil {
+		return nil, err
+	}
+
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
-	fetchSource, err := f.fetchWithLock(logger, sourceProvider, resourceOptions.IOConfig(), signals, ready)
+	versionedSource, err := f.fetchWithLock(logger, source, resourceOptions.IOConfig(), signals, ready)
 	if err != ErrFailedToGetLock {
-		return fetchSource, err
+		return versionedSource, err
 	}
 
 	for {
 		select {
 		case <-ticker.C():
-			fetchSource, err := f.fetchWithLock(logger, sourceProvider, resourceOptions.IOConfig(), signals, ready)
+			versionedSource, err := f.fetchWithLock(logger, source, resourceOptions.IOConfig(), signals, ready)
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break
@@ -108,7 +113,7 @@ func (f *fetcher) Fetch(
 				return nil, err
 			}
 
-			return fetchSource, nil
+			return versionedSource, nil
 
 		case <-signals:
 			return nil, ErrInterrupted
@@ -118,32 +123,22 @@ func (f *fetcher) Fetch(
 
 func (f *fetcher) fetchWithLock(
 	logger lager.Logger,
-	sourceProvider FetchSourceProvider,
+	source FetchSource,
 	ioConfig IOConfig,
 	signals <-chan os.Signal,
 	ready chan<- struct{},
-) (FetchSource, error) {
-	// This is supposed to be a fast-feedback kind of Get
-	//
-	// Will return back a volume in any kind of state
-	// so that if it's already initialized
-	// we can use the initialized volume
-	source, err := sourceProvider.Get()
+) (VersionedSource, error) {
+	versionedSource, found, err := source.FindInitialized()
 	if err != nil {
 		return nil, err
 	}
 
-	isInitialized, err := source.IsInitialized()
-	if err != nil {
-		return nil, err
-	}
-
-	if isInitialized {
+	if found {
 		if ioConfig.Stdout != nil {
 			fmt.Fprintf(ioConfig.Stdout, "using version of resource found in cache\n")
 		}
 		close(ready)
-		return source, nil
+		return versionedSource, nil
 	}
 
 	lockName, err := source.LockName()
@@ -167,10 +162,5 @@ func (f *fetcher) fetchWithLock(
 
 	defer lock.Release()
 
-	err = source.Initialize(signals, ready)
-	if err != nil {
-		return nil, err
-	}
-
-	return source, nil
+	return source.Initialize(signals, ready)
 }

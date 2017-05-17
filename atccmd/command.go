@@ -246,7 +246,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 	dbTeamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, strategy)
 	sqlDB := db.NewSQL(dbConn, bus, lockFactory)
-	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
 	resourceFactoryFactory := resource.NewResourceFactoryFactory()
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, lockFactory)
 	dbBuildFactory := dbng.NewBuildFactory(dbngConn, lockFactory, strategy)
@@ -258,6 +257,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	dbResourceCacheFactory := dbng.NewResourceCacheFactory(dbngConn, lockFactory)
 	dbResourceConfigFactory := dbng.NewResourceConfigFactory(dbngConn, lockFactory)
 	dbWorkerBaseResourceTypeFactory := dbng.NewWorkerBaseResourceTypeFactory(dbngConn)
+	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock(), dbResourceCacheFactory)
 	workerClient := cmd.constructWorkerPool(
 		logger,
 		sqlDB,

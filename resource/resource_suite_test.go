@@ -3,26 +3,26 @@ package resource_test
 import (
 	"testing"
 
-	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker/workerfakes"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	. "github.com/concourse/atc/resource"
 )
 
 var (
-	workerClient  *wfakes.FakeClient
-	fakeContainer *wfakes.FakeContainer
+	workerClient  *workerfakes.FakeClient
+	fakeContainer *workerfakes.FakeContainer
 
-	resource Resource
+	resourceForContainer resource.Resource
 )
 
 var _ = BeforeEach(func() {
-	workerClient = new(wfakes.FakeClient)
+	workerClient = new(workerfakes.FakeClient)
 
-	fakeContainer = new(wfakes.FakeContainer)
+	fakeContainer = new(workerfakes.FakeContainer)
 
-	resource = NewResourceForContainer(fakeContainer)
+	resourceForContainer = resource.NewResourceForContainer(fakeContainer)
 })
 
 func TestResource(t *testing.T) {

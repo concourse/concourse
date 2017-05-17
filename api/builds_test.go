@@ -516,7 +516,6 @@ var _ = Describe("Builds API", func() {
 							"outputs": [
 								{
 									"id": 0,
-									"pipeline_id": 0,
 									"type":"",
 									"metadata":null,
 									"resource": "myresource3",
@@ -525,7 +524,6 @@ var _ = Describe("Builds API", func() {
 								},
 								{
 									"id": 0,
-									"pipeline_id": 0,
 									"type":"",
 									"metadata":null,
 									"resource": "myresource4",

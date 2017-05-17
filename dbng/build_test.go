@@ -373,6 +373,7 @@ var _ = Describe("Build", func() {
 			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
 			Expect(err).ToNot(HaveOccurred())
 		})
+
 		Context("when a job build", func() {
 			It("can get a build's output", func() {
 				build, err := pipeline.CreateJobBuild("some-job")
@@ -474,6 +475,107 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(actualBuildOutput)).To(Equal(0))
 			})
+		})
+	})
+
+	Describe("GetResources", func() {
+		var (
+			pipeline dbng.Pipeline
+			vr1      dbng.VersionedResource
+			vr2      dbng.VersionedResource
+		)
+
+		BeforeEach(func() {
+			vr1 = dbng.VersionedResource{
+				Resource: "some-resource",
+				Type:     "some-type",
+				Version:  dbng.ResourceVersion{"ver": "1"},
+			}
+
+			vr2 = dbng.VersionedResource{
+				Resource: "some-other-resource",
+				Type:     "some-type",
+				Version:  dbng.ResourceVersion{"ver": "2"},
+			}
+
+			pipelineConfig := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+					},
+				},
+			}
+
+			var err error
+			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, dbng.ConfigVersion(1), dbng.PipelineUnpaused)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("correctly distinguishes them", func() {
+			build, err := pipeline.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			// save a normal 'get'
+			err = build.SaveInput(dbng.BuildInput{
+				Name:              "some-input",
+				VersionedResource: vr1,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// save implicit output from 'get'
+			err = build.SaveOutput(vr1, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			// save explicit output from 'put'
+			err = build.SaveOutput(vr2, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			// save the dependent get
+			err = build.SaveInput(dbng.BuildInput{
+				Name:              "some-dependent-input",
+				VersionedResource: vr2,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// save the dependent 'get's implicit output
+			err = build.SaveOutput(vr2, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			inputs, outputs, err := build.Resources()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(inputs).To(ConsistOf([]dbng.BuildInput{
+				{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
+			}))
+
+			Expect(outputs).To(ConsistOf([]dbng.BuildOutput{
+				{VersionedResource: vr2},
+			}))
+
+		})
+
+		It("fails to save build output if resource does not exist", func() {
+			build, err := pipeline.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			vr := dbng.VersionedResource{
+				Resource: "unknown-resource",
+				Type:     "some-type",
+				Version:  dbng.ResourceVersion{"ver": "2"},
+			}
+
+			err = build.SaveOutput(vr, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("resource 'unknown-resource' not found"))
 		})
 	})
 

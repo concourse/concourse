@@ -7,16 +7,15 @@ import (
 	"io/ioutil"
 	"os"
 
+	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/garden/gardenfakes"
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker/workerfakes"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-
-	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/gardenfakes"
-	wfakes "github.com/concourse/atc/worker/workerfakes"
-
-	"github.com/concourse/atc"
-	. "github.com/concourse/atc/resource"
 )
 
 var _ = Describe("Resource Get", func() {
@@ -30,15 +29,15 @@ var _ = Describe("Resource Get", func() {
 		inScriptExitStatus int
 		runInError         error
 
-		inScriptProcess *gfakes.FakeProcess
+		inScriptProcess *gardenfakes.FakeProcess
 
-		versionedSource VersionedSource
+		versionedSource resource.VersionedSource
 
-		ioConfig  IOConfig
+		ioConfig  resource.IOConfig
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
-		fakeVolume *wfakes.FakeVolume
+		fakeVolume *workerfakes.FakeVolume
 
 		signalsCh chan os.Signal
 		readyCh   chan<- struct{}
@@ -57,7 +56,7 @@ var _ = Describe("Resource Get", func() {
 		runInError = nil
 		getErr = nil
 
-		inScriptProcess = new(gfakes.FakeProcess)
+		inScriptProcess = new(gardenfakes.FakeProcess)
 		inScriptProcess.IDReturns("process-id")
 		inScriptProcess.WaitStub = func() (int, error) {
 			return inScriptExitStatus, nil
@@ -66,12 +65,12 @@ var _ = Describe("Resource Get", func() {
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 
-		ioConfig = IOConfig{
+		ioConfig = resource.IOConfig{
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}
 
-		fakeVolume = new(wfakes.FakeVolume)
+		fakeVolume = new(workerfakes.FakeVolume)
 		signalsCh = make(chan os.Signal)
 		readyCh = make(chan<- struct{})
 	})
@@ -146,7 +145,7 @@ var _ = Describe("Resource Get", func() {
 				return inScriptProcess, nil
 			}
 
-			versionedSource, getErr = resource.Get(fakeVolume, ioConfig, source, params, version, signalsCh, readyCh)
+			versionedSource, getErr = resourceForContainer.Get(fakeVolume, ioConfig, source, params, version, signalsCh, readyCh)
 		})
 
 		Context("when a result is already present on the container", func() {
@@ -428,7 +427,7 @@ var _ = Describe("Resource Get", func() {
 			}
 
 			go func() {
-				versionedSource, getErr = resource.Get(fakeVolume, ioConfig, source, params, version, signalsCh, readyCh)
+				versionedSource, getErr = resourceForContainer.Get(fakeVolume, ioConfig, source, params, version, signalsCh, readyCh)
 				close(done)
 			}()
 		})
@@ -443,7 +442,7 @@ var _ = Describe("Resource Get", func() {
 		It("doesn't send garden terminate signal to process", func() {
 			signalsCh <- os.Interrupt
 			<-done
-			Expect(getErr).To(Equal(ErrAborted))
+			Expect(getErr).To(Equal(resource.ErrAborted))
 			Expect(inScriptProcess.SignalCallCount()).To(BeZero())
 		})
 
@@ -462,7 +461,7 @@ var _ = Describe("Resource Get", func() {
 			It("returns the error", func() {
 				signalsCh <- os.Interrupt
 				<-done
-				Expect(getErr).To(Equal(ErrAborted))
+				Expect(getErr).To(Equal(resource.ErrAborted))
 			})
 		})
 	})

@@ -18,6 +18,7 @@ import (
 var _ = Describe("Resource Pagination", func() {
 	var atcCommand *ATCCommand
 	var pipelineDB db.PipelineDB
+	var dbPipeline dbng.Pipeline
 
 	BeforeEach(func() {
 		teamFactory := dbng.NewTeamFactory(dbngConn, lockFactory, dbng.NewNoEncryption())
@@ -53,6 +54,10 @@ var _ = Describe("Resource Pagination", func() {
 		atcCommand = NewATCCommand(atcBin, 1, postgresRunner.DataSourceName(), []string{}, BASIC_AUTH)
 		err = atcCommand.Start()
 		Expect(err).NotTo(HaveOccurred())
+
+		dbPipeline, found, err = defaultTeam.Pipeline(atc.DefaultPipelineName)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
 	})
 
 	AfterEach(func() {
@@ -93,7 +98,7 @@ var _ = Describe("Resource Pagination", func() {
 					resourceVersions = append(resourceVersions, atc.Version{"version": strconv.Itoa(i)})
 				}
 
-				err := pipelineDB.SaveResourceVersions(resourceConfig, resourceVersions)
+				err := dbPipeline.SaveResourceVersions(resourceConfig, resourceVersions)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -137,7 +142,7 @@ var _ = Describe("Resource Pagination", func() {
 					resourceVersions = append(resourceVersions, atc.Version{"version": strconv.Itoa(i)})
 				}
 
-				err := pipelineDB.SaveResourceVersions(resourceConfig, resourceVersions)
+				err := dbPipeline.SaveResourceVersions(resourceConfig, resourceVersions)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

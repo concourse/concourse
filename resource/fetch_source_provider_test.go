@@ -6,7 +6,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/resource"
+	"github.com/concourse/atc/dbng"
+	"github.com/concourse/atc/dbng/dbngfakes"
+	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
@@ -18,22 +20,25 @@ import (
 var _ = Describe("FetchSourceProvider", func() {
 	var (
 		fakeWorkerClient          *workerfakes.FakeClient
-		fetchSourceProvider       FetchSourceProvider
+		fetchSourceProvider       resource.FetchSourceProvider
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
-		logger           lager.Logger
-		resourceOptions  *resourcefakes.FakeResourceOptions
-		resourceInstance *resourcefakes.FakeResourceInstance
-		metadata         = EmptyMetadata{}
-		session          = Session{}
-		tags             atc.Tags
-		resourceTypes    atc.VersionedResourceTypes
-		teamID           = 3
+		logger                   lager.Logger
+		resourceOptions          *resourcefakes.FakeResourceOptions
+		resourceInstance         *resourcefakes.FakeResourceInstance
+		metadata                 = resource.EmptyMetadata{}
+		session                  = resource.Session{}
+		tags                     atc.Tags
+		resourceTypes            atc.VersionedResourceTypes
+		teamID                   = 3
+		resourceCache            *dbng.UsedResourceCache
+		fakeResourceCacheFactory *dbngfakes.FakeResourceCacheFactory
 	)
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(workerfakes.FakeClient)
-		fetchSourceProviderFactory := NewFetchSourceProviderFactory(fakeWorkerClient)
+		fakeResourceCacheFactory = new(dbngfakes.FakeResourceCacheFactory)
+		fetchSourceProviderFactory := resource.NewFetchSourceProviderFactory(fakeWorkerClient, fakeResourceCacheFactory)
 		logger = lagertest.NewTestLogger("test")
 		resourceInstance = new(resourcefakes.FakeResourceInstance)
 		tags = atc.Tags{"some", "tags"}
@@ -50,6 +55,8 @@ var _ = Describe("FetchSourceProvider", func() {
 		resourceOptions = new(resourcefakes.FakeResourceOptions)
 		resourceOptions.ResourceTypeReturns("some-resource-type")
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
+		resourceCache = &dbng.UsedResourceCache{ID: 42}
+		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(resourceCache, nil)
 
 		fetchSourceProvider = fetchSourceProviderFactory.NewFetchSourceProvider(
 			logger,
@@ -90,8 +97,9 @@ var _ = Describe("FetchSourceProvider", func() {
 				source, err := fetchSourceProvider.Get()
 				Expect(err).NotTo(HaveOccurred())
 
-				expectedSource := NewResourceInstanceFetchSource(
+				expectedSource := resource.NewResourceInstanceFetchSource(
 					logger,
+					resourceCache,
 					resourceInstance,
 					fakeWorker,
 					resourceOptions,
@@ -101,6 +109,7 @@ var _ = Describe("FetchSourceProvider", func() {
 					session,
 					metadata,
 					fakeImageFetchingDelegate,
+					fakeResourceCacheFactory,
 				)
 				Expect(source).To(Equal(expectedSource))
 			})

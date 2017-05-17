@@ -12,7 +12,7 @@ import (
 )
 
 type FakeFetcher struct {
-	FetchStub        func(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.VersionedResourceTypes, resourceInstance resource.ResourceInstance, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate, resourceOptions resource.ResourceOptions, signals <-chan os.Signal, ready chan<- struct{}) (resource.FetchSource, error)
+	FetchStub        func(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.VersionedResourceTypes, resourceInstance resource.ResourceInstance, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate, resourceOptions resource.ResourceOptions, signals <-chan os.Signal, ready chan<- struct{}) (resource.VersionedSource, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
 		logger                lager.Logger
@@ -28,18 +28,18 @@ type FakeFetcher struct {
 		ready                 chan<- struct{}
 	}
 	fetchReturns struct {
-		result1 resource.FetchSource
+		result1 resource.VersionedSource
 		result2 error
 	}
 	fetchReturnsOnCall map[int]struct {
-		result1 resource.FetchSource
+		result1 resource.VersionedSource
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetcher) Fetch(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.VersionedResourceTypes, resourceInstance resource.ResourceInstance, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate, resourceOptions resource.ResourceOptions, signals <-chan os.Signal, ready chan<- struct{}) (resource.FetchSource, error) {
+func (fake *FakeFetcher) Fetch(logger lager.Logger, session resource.Session, tags atc.Tags, teamID int, resourceTypes atc.VersionedResourceTypes, resourceInstance resource.ResourceInstance, metadata resource.Metadata, imageFetchingDelegate worker.ImageFetchingDelegate, resourceOptions resource.ResourceOptions, signals <-chan os.Signal, ready chan<- struct{}) (resource.VersionedSource, error) {
 	fake.fetchMutex.Lock()
 	ret, specificReturn := fake.fetchReturnsOnCall[len(fake.fetchArgsForCall)]
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
@@ -78,24 +78,24 @@ func (fake *FakeFetcher) FetchArgsForCall(i int) (lager.Logger, resource.Session
 	return fake.fetchArgsForCall[i].logger, fake.fetchArgsForCall[i].session, fake.fetchArgsForCall[i].tags, fake.fetchArgsForCall[i].teamID, fake.fetchArgsForCall[i].resourceTypes, fake.fetchArgsForCall[i].resourceInstance, fake.fetchArgsForCall[i].metadata, fake.fetchArgsForCall[i].imageFetchingDelegate, fake.fetchArgsForCall[i].resourceOptions, fake.fetchArgsForCall[i].signals, fake.fetchArgsForCall[i].ready
 }
 
-func (fake *FakeFetcher) FetchReturns(result1 resource.FetchSource, result2 error) {
+func (fake *FakeFetcher) FetchReturns(result1 resource.VersionedSource, result2 error) {
 	fake.FetchStub = nil
 	fake.fetchReturns = struct {
-		result1 resource.FetchSource
+		result1 resource.VersionedSource
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeFetcher) FetchReturnsOnCall(i int, result1 resource.FetchSource, result2 error) {
+func (fake *FakeFetcher) FetchReturnsOnCall(i int, result1 resource.VersionedSource, result2 error) {
 	fake.FetchStub = nil
 	if fake.fetchReturnsOnCall == nil {
 		fake.fetchReturnsOnCall = make(map[int]struct {
-			result1 resource.FetchSource
+			result1 resource.VersionedSource
 			result2 error
 		})
 	}
 	fake.fetchReturnsOnCall[i] = struct {
-		result1 resource.FetchSource
+		result1 resource.VersionedSource
 		result2 error
 	}{result1, result2}
 }

@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"code.cloudfoundry.org/garden"
-	gfakes "code.cloudfoundry.org/garden/gardenfakes"
+	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/atc"
 
 	. "github.com/onsi/ginkgo"
@@ -22,7 +22,7 @@ var _ = Describe("Resource Check", func() {
 		checkScriptExitStatus int
 		runCheckError         error
 
-		checkScriptProcess *gfakes.FakeProcess
+		checkScriptProcess *gardenfakes.FakeProcess
 
 		checkResult []atc.Version
 		checkErr    error
@@ -37,7 +37,7 @@ var _ = Describe("Resource Check", func() {
 		checkScriptExitStatus = 0
 		runCheckError = nil
 
-		checkScriptProcess = new(gfakes.FakeProcess)
+		checkScriptProcess = new(gardenfakes.FakeProcess)
 		checkScriptProcess.WaitStub = func() (int, error) {
 			return checkScriptExitStatus, nil
 		}
@@ -61,7 +61,7 @@ var _ = Describe("Resource Check", func() {
 			return checkScriptProcess, nil
 		}
 
-		checkResult, checkErr = resource.Check(source, version)
+		checkResult, checkErr = resourceForContainer.Check(source, version)
 	})
 
 	It("runs /opt/resource/check the request on stdin", func() {

@@ -6,10 +6,12 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
-	. "github.com/concourse/atc/resource"
+	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker/workerfakes"
 
@@ -23,14 +25,15 @@ var _ = Describe("Fetcher", func() {
 		fakeFetchSourceProvider *resourcefakes.FakeFetchSourceProvider
 		fakeClock               *fakeclock.FakeClock
 		fakeLockDB              *resourcefakes.FakeLockDB
-		fetcher                 Fetcher
+		fetcher                 resource.Fetcher
 		signals                 chan os.Signal
 		ready                   chan struct{}
 		resourceOptions         *resourcefakes.FakeResourceOptions
+		fakeVersionedSource     *resourcefakes.FakeVersionedSource
 
-		fetchSource FetchSource
-		fetchErr    error
-		teamID      = 123
+		versionedSource resource.VersionedSource
+		fetchErr        error
+		teamID          = 123
 	)
 
 	BeforeEach(func() {
@@ -41,7 +44,7 @@ var _ = Describe("Fetcher", func() {
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeLockDB = new(resourcefakes.FakeLockDB)
 
-		fetcher = NewFetcher(
+		fetcher = resource.NewFetcher(
 			fakeClock,
 			fakeLockDB,
 			fakeFetchSourceProviderFactory,
@@ -50,17 +53,18 @@ var _ = Describe("Fetcher", func() {
 		signals = make(chan os.Signal)
 		ready = make(chan struct{})
 		resourceOptions = new(resourcefakes.FakeResourceOptions)
+		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 	})
 
 	JustBeforeEach(func() {
-		fetchSource, fetchErr = fetcher.Fetch(
+		versionedSource, fetchErr = fetcher.Fetch(
 			lagertest.NewTestLogger("test"),
-			Session{},
+			resource.Session{},
 			atc.Tags{},
 			teamID,
 			atc.VersionedResourceTypes{},
 			new(resourcefakes.FakeResourceInstance),
-			EmptyMetadata{},
+			resource.EmptyMetadata{},
 			new(workerfakes.FakeImageFetchingDelegate),
 			resourceOptions,
 			signals,
@@ -78,11 +82,11 @@ var _ = Describe("Fetcher", func() {
 
 		Context("when initialized", func() {
 			BeforeEach(func() {
-				fakeFetchSource.IsInitializedReturns(true, nil)
+				fakeFetchSource.FindInitializedReturns(fakeVersionedSource, true, nil)
 			})
 
 			It("returns the source", func() {
-				Expect(fetchSource).To(Equal(fakeFetchSource))
+				Expect(versionedSource).To(Equal(fakeVersionedSource))
 			})
 
 			It("closes the ready channel", func() {
@@ -94,7 +98,7 @@ var _ = Describe("Fetcher", func() {
 
 				BeforeEach(func() {
 					stdoutBuf = gbytes.NewBuffer()
-					resourceOptions.IOConfigReturns(IOConfig{
+					resourceOptions.IOConfigReturns(resource.IOConfig{
 						Stdout: stdoutBuf,
 					})
 				})
@@ -107,49 +111,54 @@ var _ = Describe("Fetcher", func() {
 
 		Context("when not initialized", func() {
 			BeforeEach(func() {
-				fakeFetchSource.IsInitializedReturns(false, nil)
+				fakeFetchSource.FindInitializedReturns(nil, false, nil)
 				fakeFetchSource.LockNameReturns("fake-lock-name", nil)
 			})
 
 			Describe("failing to get a lock", func() {
-				BeforeEach(func() {
-					callCount := 0
-					fakeFetchSource.IsInitializedStub = func() (bool, error) {
-						callCount++
-						fakeClock.Increment(GetResourceLockInterval)
-						if callCount == 1 {
-							return false, nil
-						}
-
-						return true, nil
-					}
-				})
-
 				Context("when did not get a lock", func() {
 					BeforeEach(func() {
-						fakeLockDB.GetTaskLockReturns(nil, false, nil)
+						fakeLock := new(lockfakes.FakeLock)
+						callCount := 0
+						fakeLockDB.GetTaskLockStub = func(lager.Logger, string) (lock.Lock, bool, error) {
+							callCount++
+							fakeClock.Increment(resource.GetResourceLockInterval)
+							if callCount == 1 {
+								return nil, false, nil
+							}
+							return fakeLock, true, nil
+						}
 					})
 
-					It("does not initialize fetch source", func() {
-						Expect(fakeFetchSource.InitializeCallCount()).To(Equal(0))
+					It("retries until it gets the lock", func() {
+						Expect(fakeLockDB.GetTaskLockCallCount()).To(Equal(2))
 					})
 
-					It("retries until it gets initialized source", func() {
-						Expect(fakeFetchSourceProvider.GetCallCount()).To(Equal(2))
+					It("initializes fetch source after lock is acquired", func() {
+						Expect(fakeFetchSource.InitializeCallCount()).To(Equal(1))
 					})
 				})
 
 				Context("when acquiring lock returns error", func() {
 					BeforeEach(func() {
-						fakeLockDB.GetTaskLockReturns(nil, false, errors.New("disaster"))
+						fakeLock := new(lockfakes.FakeLock)
+						callCount := 0
+						fakeLockDB.GetTaskLockStub = func(lager.Logger, string) (lock.Lock, bool, error) {
+							callCount++
+							fakeClock.Increment(resource.GetResourceLockInterval)
+							if callCount == 1 {
+								return nil, false, errors.New("disaster")
+							}
+							return fakeLock, true, nil
+						}
 					})
 
-					It("does not initialize fetch source", func() {
-						Expect(fakeFetchSource.InitializeCallCount()).To(Equal(0))
+					It("retries until it gets the lock", func() {
+						Expect(fakeLockDB.GetTaskLockCallCount()).To(Equal(2))
 					})
 
-					It("retries until it gets initialized source", func() {
-						Expect(fakeFetchSourceProvider.GetCallCount()).To(Equal(2))
+					It("initializes fetch source after lock is acquired", func() {
+						Expect(fakeFetchSource.InitializeCallCount()).To(Equal(1))
 					})
 				})
 			})
@@ -160,6 +169,7 @@ var _ = Describe("Fetcher", func() {
 				BeforeEach(func() {
 					fakeLock = new(lockfakes.FakeLock)
 					fakeLockDB.GetTaskLockReturns(fakeLock, true, nil)
+					fakeFetchSource.InitializeReturns(fakeVersionedSource, nil)
 				})
 
 				It("acquires a lock with source lock name", func() {
@@ -177,7 +187,7 @@ var _ = Describe("Fetcher", func() {
 				})
 
 				It("returns the source", func() {
-					Expect(fetchSource).To(Equal(fakeFetchSource))
+					Expect(versionedSource).To(Equal(fakeVersionedSource))
 				})
 			})
 		})
@@ -187,7 +197,7 @@ var _ = Describe("Fetcher", func() {
 
 			BeforeEach(func() {
 				disaster = errors.New("fail")
-				fakeFetchSource.IsInitializedReturns(false, disaster)
+				fakeFetchSource.FindInitializedReturns(nil, false, disaster)
 			})
 
 			It("returns an error", func() {
@@ -204,7 +214,7 @@ var _ = Describe("Fetcher", func() {
 			})
 
 			It("returns ErrInterrupted", func() {
-				Expect(fetchErr).To(Equal(ErrInterrupted))
+				Expect(fetchErr).To(Equal(resource.ErrInterrupted))
 			})
 		})
 	})

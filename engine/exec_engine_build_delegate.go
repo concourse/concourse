@@ -500,18 +500,6 @@ func vrFromOutput(putted event.FinishPut) dbng.VersionedResource {
 	}
 }
 
-func dbMetadataToATCMetadata(dbm []dbng.ResourceMetadataField) []atc.MetadataField {
-	metadata := make([]atc.MetadataField, len(dbm))
-	for i, md := range dbm {
-		metadata[i] = atc.MetadataField{
-			Name:  md.Name,
-			Value: md.Value,
-		}
-	}
-
-	return metadata
-}
-
 func atcMetadataToDBMetadata(atcm []atc.MetadataField) []dbng.ResourceMetadataField {
 	metadata := make([]dbng.ResourceMetadataField, len(atcm))
 	for i, md := range atcm {

@@ -61,9 +61,6 @@ type Build interface {
 
 	SaveEngineMetadata(engineMetadata string) error
 
-	SaveInput(input BuildInput) (SavedVersionedResource, error)
-	SaveOutput(vr VersionedResource, explicit bool) (SavedVersionedResource, error)
-
 	SaveImageResourceVersion(planID atc.PlanID, identifier ResourceCacheIdentifier) error
 	GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, error)
 }
@@ -484,44 +481,6 @@ func (b *build) getVersionedResources(resourceRequest string) (SavedVersionedRes
 	}
 
 	return savedVersionedResources, nil
-}
-
-func (b *build) SaveInput(input BuildInput) (SavedVersionedResource, error) {
-	row := b.conn.QueryRow(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines p
-	 	INNER JOIN teams t ON t.id = p.team_id
-		WHERE p.id = $1
-	`, input.VersionedResource.PipelineID)
-
-	savedPipeline, err := scanPipeline(row)
-	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-
-	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus, b.lockFactory)
-
-	pipelineDB := pipelineDBFactory.Build(savedPipeline)
-
-	return pipelineDB.SaveInput(b.id, input)
-}
-
-func (b *build) SaveOutput(vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
-	row := b.conn.QueryRow(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines p
-	 	INNER JOIN teams t ON t.id = p.team_id
-		WHERE p.id = $1
-	`, vr.PipelineID)
-
-	savedPipeline, err := scanPipeline(row)
-	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus, b.lockFactory)
-	pipelineDB := pipelineDBFactory.Build(savedPipeline)
-
-	return pipelineDB.SaveOutput(b.id, vr, explicit)
 }
 
 func (b *build) SaveEngineMetadata(engineMetadata string) error {

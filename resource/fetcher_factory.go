@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc/db/lock"
+	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/worker"
 )
 
@@ -22,22 +23,25 @@ type LockDB interface {
 func NewFetcherFactory(
 	db LockDB,
 	clock clock.Clock,
+	dbResourceCacheFactory dbng.ResourceCacheFactory,
 ) FetcherFactory {
 	return &fetcherFactory{
 		db:    db,
 		clock: clock,
+		dbResourceCacheFactory: dbResourceCacheFactory,
 	}
 }
 
 type fetcherFactory struct {
-	db    LockDB
-	clock clock.Clock
+	db                     LockDB
+	clock                  clock.Clock
+	dbResourceCacheFactory dbng.ResourceCacheFactory
 }
 
 func (f *fetcherFactory) FetcherFor(workerClient worker.Client) Fetcher {
 	return NewFetcher(
 		f.clock,
 		f.db,
-		NewFetchSourceProviderFactory(workerClient),
+		NewFetchSourceProviderFactory(workerClient, f.dbResourceCacheFactory),
 	)
 }
