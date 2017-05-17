@@ -9,7 +9,7 @@ import (
 //go:generate counterfeiter . ScannerFactory
 
 type ScannerFactory interface {
-	NewResourceScanner(db radar.RadarDB, pipeline dbng.Pipeline) radar.Scanner
+	NewResourceScanner(pipeline dbng.Pipeline) radar.Scanner
 }
 
 type Server struct {

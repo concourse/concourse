@@ -14,11 +14,8 @@ type RadarDB interface {
 
 	Reload() (bool, error)
 
-	GetLatestVersionedResource(resourceName string) (db.SavedVersionedResource, bool, error)
 	GetResource(resourceName string) (db.SavedResource, bool, error)
 	GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error)
-	PauseResource(resourceName string) error
-	UnpauseResource(resourceName string) error
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	SaveResourceTypeVersion(atc.ResourceType, atc.Version) error

@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -19,7 +18,6 @@ type resourceScanner struct {
 	clock           clock.Clock
 	resourceFactory resource.ResourceFactory
 	defaultInterval time.Duration
-	db              RadarDB
 	dbPipeline      dbng.Pipeline
 	externalURL     string
 }
@@ -28,7 +26,6 @@ func NewResourceScanner(
 	clock clock.Clock,
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
-	db RadarDB,
 	dbPipeline dbng.Pipeline,
 	externalURL string,
 ) Scanner {
@@ -36,7 +33,6 @@ func NewResourceScanner(
 		clock:           clock,
 		resourceFactory: resourceFactory,
 		defaultInterval: defaultInterval,
-		db:              db,
 		dbPipeline:      dbPipeline,
 		externalURL:     externalURL,
 	}
@@ -97,7 +93,7 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 
 	defer lock.Release()
 
-	vr, _, err := scanner.db.GetLatestVersionedResource(resourceName)
+	vr, _, err := scanner.dbPipeline.GetLatestVersionedResource(resourceName)
 	if err != nil {
 		logger.Error("failed-to-get-current-version", err)
 		return interval, err
@@ -138,7 +134,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 
 	if !found {
 		logger.Debug("resource-not-found")
-		return db.ResourceNotFoundError{Name: resourceName}
+		return dbng.ResourceNotFoundError{Name: resourceName}
 	}
 
 	interval, err := scanner.checkInterval(savedResource.CheckEvery())
@@ -189,7 +185,7 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 }
 
 func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) error {
-	vr, _, err := scanner.db.GetLatestVersionedResource(resourceName)
+	vr, _, err := scanner.dbPipeline.GetLatestVersionedResource(resourceName)
 	if err != nil {
 		logger.Error("failed-to-get-current-version", err)
 		return err
@@ -206,7 +202,7 @@ func (scanner *resourceScanner) scan(
 	fromVersion atc.Version,
 	resourceTypes atc.VersionedResourceTypes,
 ) error {
-	pipelinePaused, err := scanner.db.IsPaused()
+	pipelinePaused, err := scanner.dbPipeline.CheckPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-paused", err)
 		return err
@@ -222,7 +218,7 @@ func (scanner *resourceScanner) scan(
 		return nil
 	}
 
-	found, err := scanner.db.Reload()
+	found, err := scanner.dbPipeline.Reload()
 	if err != nil {
 		logger.Error("failed-to-reload-scannerdb", err)
 		return err
@@ -301,7 +297,7 @@ func (scanner *resourceScanner) scan(
 		"total":    len(newVersions),
 	})
 
-	err = scanner.db.SaveResourceVersions(atc.ResourceConfig{
+	err = scanner.dbPipeline.SaveResourceVersions(atc.ResourceConfig{
 		Name: savedResource.Name(),
 		Type: savedResource.Type(),
 	}, newVersions)

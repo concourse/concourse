@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/atc"
@@ -21,9 +22,16 @@ type Resource interface {
 	Tags() atc.Tags
 	CheckError() error
 	Paused() bool
+	WebhookToken() string
+	FailingToCheck() bool
+
+	Pause() error
+	Unpause() error
+
+	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.pipeline_id, p.name").
+var resourcesQuery = psql.Select("r.id, r.name, r.config, r.check_error, r.paused, r.pipeline_id, p.name, r.nonce").
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Where(sq.Eq{"r.active": true})
@@ -39,8 +47,18 @@ type resource struct {
 	tags         atc.Tags
 	checkError   error
 	paused       bool
+	webhookToken string
 
-	conn Conn
+	conn       Conn
+	encryption EncryptionStrategy
+}
+
+type ResourceNotFoundError struct {
+	Name string
+}
+
+func (e ResourceNotFoundError) Error() string {
+	return fmt.Sprintf("resource '%s' not found", e.Name)
 }
 
 func (r *resource) ID() int              { return r.id }
@@ -53,20 +71,69 @@ func (r *resource) CheckEvery() string   { return r.checkEvery }
 func (r *resource) Tags() atc.Tags       { return r.tags }
 func (r *resource) CheckError() error    { return r.checkError }
 func (r *resource) Paused() bool         { return r.paused }
+func (r *resource) WebhookToken() string { return r.webhookToken }
+func (r *resource) FailingToCheck() bool {
+	return r.checkError != nil
+}
+
+func (r *resource) Reload() (bool, error) {
+	row := resourcesQuery.Where(sq.Eq{"r.id": r.id}).
+		RunWith(r.conn).
+		QueryRow()
+
+	err := scanResource(r, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (r *resource) Pause() error {
+	_, err := psql.Update("resources").
+		Set("paused", true).
+		Where(sq.Eq{
+			"id": r.id,
+		}).
+		RunWith(r.conn).
+		Exec()
+
+	return err
+}
+
+func (r *resource) Unpause() error {
+	_, err := psql.Update("resources").
+		Set("paused", false).
+		Where(sq.Eq{
+			"id": r.id,
+		}).
+		RunWith(r.conn).
+		Exec()
+
+	return err
+}
 
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob []byte
-		checkErr   sql.NullString
+		configBlob      []byte
+		checkErr, nonce sql.NullString
 	)
 
-	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &r.pipelineID, &r.pipelineName)
+	err := row.Scan(&r.id, &r.name, &configBlob, &checkErr, &r.paused, &r.pipelineID, &r.pipelineName, &nonce)
+	if err != nil {
+		return err
+	}
+
+	decryptedConfig, err := r.encryption.Decrypt(string(configBlob), nonce.String)
 	if err != nil {
 		return err
 	}
 
 	var config atc.ResourceConfig
-	err = json.Unmarshal(configBlob, &config)
+	err = json.Unmarshal(decryptedConfig, &config)
 	if err != nil {
 		return err
 	}
@@ -75,6 +142,7 @@ func scanResource(r *resource, row scannable) error {
 	r.source = config.Source
 	r.checkEvery = config.CheckEvery
 	r.tags = config.Tags
+	r.webhookToken = config.WebhookToken
 
 	if checkErr.Valid {
 		r.checkError = errors.New(checkErr.String)

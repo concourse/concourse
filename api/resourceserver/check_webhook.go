@@ -12,7 +12,7 @@ import (
 )
 
 // CheckResourceWebHook defines a handler for process a check resource request via an access token.
-func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) CheckResourceWebHook(_ db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("check-resource-webhook")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +25,7 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 			return
 		}
 
-		pipelineResource, found, err := pipelineDB.GetResource(resourceName)
+		pipelineResource, found, err := dbPipeline.Resource(resourceName)
 		if !found {
 			logger.Info("resource-not-found", lager.Data{"error": fmt.Sprintf("Resource not found %s", resourceName)})
 			w.WriteHeader(http.StatusNotFound)
@@ -38,14 +38,14 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 			return
 		}
 
-		token := pipelineResource.Config.WebhookToken
+		token := pipelineResource.WebhookToken()
 		if token != webhookToken {
 			logger.Info("invalid-token", lager.Data{"error": fmt.Sprintf("invalid token for webhook %s", webhookToken)})
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		var fromVersion atc.Version
-		latestVersion, found, err := pipelineDB.GetLatestVersionedResource(resourceName)
+		latestVersion, found, err := dbPipeline.GetLatestVersionedResource(resourceName)
 		if err != nil {
 			logger.Info("failed-to-get-latest-versioned-resource", lager.Data{"error": err.Error()})
 			w.WriteHeader(http.StatusInternalServerError)
@@ -56,10 +56,10 @@ func (s *Server) CheckResourceWebHook(pipelineDB db.PipelineDB, dbPipeline dbng.
 			fromVersion = atc.Version(latestVersion.Version)
 		}
 
-		scanner := s.scannerFactory.NewResourceScanner(pipelineDB, dbPipeline)
+		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
 		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)
 		switch err.(type) {
-		case db.ResourceNotFoundError:
+		case dbng.ResourceNotFoundError:
 			w.WriteHeader(http.StatusNotFound)
 		case error:
 			w.WriteHeader(http.StatusInternalServerError)

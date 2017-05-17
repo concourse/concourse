@@ -11,18 +11,13 @@ import (
 	"github.com/concourse/atc/dbng"
 )
 
-func (s *Server) ListResources(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) ListResources(_ db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("list-resources")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resources, found, err := pipelineDB.GetResources()
+		resources, err := dbPipeline.Resources()
 		if err != nil {
 			logger.Error("failed-to-get-dashboard-resources", err)
 			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
@@ -35,7 +30,7 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.H
 				presentedResources,
 				present.Resource(
 					resource,
-					pipelineDB.Config().Groups,
+					dbPipeline.Config().Groups,
 					showCheckErr,
 					teamName,
 				),

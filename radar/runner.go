@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/dbng"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
@@ -18,7 +18,7 @@ type Runner struct {
 	noop bool
 
 	scanRunnerFactory ScanRunnerFactory
-	db                db.PipelineDB
+	pipeline          dbng.Pipeline
 	syncInterval      time.Duration
 }
 
@@ -26,14 +26,14 @@ func NewRunner(
 	logger lager.Logger,
 	noop bool,
 	scanRunnerFactory ScanRunnerFactory,
-	db db.PipelineDB,
+	pipeline dbng.Pipeline,
 	syncInterval time.Duration,
 ) *Runner {
 	return &Runner{
 		logger:            logger,
 		noop:              noop,
 		scanRunnerFactory: scanRunnerFactory,
-		db:                db,
+		pipeline:          pipeline,
 		syncInterval:      syncInterval,
 	}
 }
@@ -101,7 +101,7 @@ func (runner *Runner) tick(
 	scanningResourceTypes map[string]bool,
 	insertScanner chan<- grouper.Member,
 ) {
-	found, err := runner.db.Reload()
+	found, err := runner.pipeline.Reload()
 	if err != nil {
 		runner.logger.Error("failed-to-get-config", err)
 		return
@@ -112,10 +112,10 @@ func (runner *Runner) tick(
 		return
 	}
 
-	config := runner.db.Config()
+	config := runner.pipeline.Config()
 
 	for _, resourceType := range config.ResourceTypes {
-		scopedName := runner.db.ScopedName("resource-type:" + resourceType.Name)
+		scopedName := runner.pipeline.ScopedName("resource-type:" + resourceType.Name)
 
 		if scanningResourceTypes[scopedName] {
 			continue
@@ -139,7 +139,7 @@ func (runner *Runner) tick(
 	}
 
 	for _, resource := range config.Resources {
-		scopedName := runner.db.ScopedName("resource:" + resource.Name)
+		scopedName := runner.pipeline.ScopedName("resource:" + resource.Name)
 
 		if scanning[scopedName] {
 			continue

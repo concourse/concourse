@@ -43,7 +43,6 @@ func NewScanRunnerFactory(
 		clock,
 		resourceFactory,
 		defaultInterval,
-		db,
 		dbPipeline,
 		externalURL,
 	)

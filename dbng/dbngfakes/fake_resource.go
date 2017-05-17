@@ -90,6 +90,53 @@ type FakeResource struct {
 	pausedReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	WebhookTokenStub        func() string
+	webhookTokenMutex       sync.RWMutex
+	webhookTokenArgsForCall []struct{}
+	webhookTokenReturns     struct {
+		result1 string
+	}
+	webhookTokenReturnsOnCall map[int]struct {
+		result1 string
+	}
+	FailingToCheckStub        func() bool
+	failingToCheckMutex       sync.RWMutex
+	failingToCheckArgsForCall []struct{}
+	failingToCheckReturns     struct {
+		result1 bool
+	}
+	failingToCheckReturnsOnCall map[int]struct {
+		result1 bool
+	}
+	PauseStub        func() error
+	pauseMutex       sync.RWMutex
+	pauseArgsForCall []struct{}
+	pauseReturns     struct {
+		result1 error
+	}
+	pauseReturnsOnCall map[int]struct {
+		result1 error
+	}
+	UnpauseStub        func() error
+	unpauseMutex       sync.RWMutex
+	unpauseArgsForCall []struct{}
+	unpauseReturns     struct {
+		result1 error
+	}
+	unpauseReturnsOnCall map[int]struct {
+		result1 error
+	}
+	ReloadStub        func() (bool, error)
+	reloadMutex       sync.RWMutex
+	reloadArgsForCall []struct{}
+	reloadReturns     struct {
+		result1 bool
+		result2 error
+	}
+	reloadReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -454,6 +501,209 @@ func (fake *FakeResource) PausedReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeResource) WebhookToken() string {
+	fake.webhookTokenMutex.Lock()
+	ret, specificReturn := fake.webhookTokenReturnsOnCall[len(fake.webhookTokenArgsForCall)]
+	fake.webhookTokenArgsForCall = append(fake.webhookTokenArgsForCall, struct{}{})
+	fake.recordInvocation("WebhookToken", []interface{}{})
+	fake.webhookTokenMutex.Unlock()
+	if fake.WebhookTokenStub != nil {
+		return fake.WebhookTokenStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.webhookTokenReturns.result1
+}
+
+func (fake *FakeResource) WebhookTokenCallCount() int {
+	fake.webhookTokenMutex.RLock()
+	defer fake.webhookTokenMutex.RUnlock()
+	return len(fake.webhookTokenArgsForCall)
+}
+
+func (fake *FakeResource) WebhookTokenReturns(result1 string) {
+	fake.WebhookTokenStub = nil
+	fake.webhookTokenReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) WebhookTokenReturnsOnCall(i int, result1 string) {
+	fake.WebhookTokenStub = nil
+	if fake.webhookTokenReturnsOnCall == nil {
+		fake.webhookTokenReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.webhookTokenReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) FailingToCheck() bool {
+	fake.failingToCheckMutex.Lock()
+	ret, specificReturn := fake.failingToCheckReturnsOnCall[len(fake.failingToCheckArgsForCall)]
+	fake.failingToCheckArgsForCall = append(fake.failingToCheckArgsForCall, struct{}{})
+	fake.recordInvocation("FailingToCheck", []interface{}{})
+	fake.failingToCheckMutex.Unlock()
+	if fake.FailingToCheckStub != nil {
+		return fake.FailingToCheckStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.failingToCheckReturns.result1
+}
+
+func (fake *FakeResource) FailingToCheckCallCount() int {
+	fake.failingToCheckMutex.RLock()
+	defer fake.failingToCheckMutex.RUnlock()
+	return len(fake.failingToCheckArgsForCall)
+}
+
+func (fake *FakeResource) FailingToCheckReturns(result1 bool) {
+	fake.FailingToCheckStub = nil
+	fake.failingToCheckReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeResource) FailingToCheckReturnsOnCall(i int, result1 bool) {
+	fake.FailingToCheckStub = nil
+	if fake.failingToCheckReturnsOnCall == nil {
+		fake.failingToCheckReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.failingToCheckReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeResource) Pause() error {
+	fake.pauseMutex.Lock()
+	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
+	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct{}{})
+	fake.recordInvocation("Pause", []interface{}{})
+	fake.pauseMutex.Unlock()
+	if fake.PauseStub != nil {
+		return fake.PauseStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.pauseReturns.result1
+}
+
+func (fake *FakeResource) PauseCallCount() int {
+	fake.pauseMutex.RLock()
+	defer fake.pauseMutex.RUnlock()
+	return len(fake.pauseArgsForCall)
+}
+
+func (fake *FakeResource) PauseReturns(result1 error) {
+	fake.PauseStub = nil
+	fake.pauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) PauseReturnsOnCall(i int, result1 error) {
+	fake.PauseStub = nil
+	if fake.pauseReturnsOnCall == nil {
+		fake.pauseReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.pauseReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) Unpause() error {
+	fake.unpauseMutex.Lock()
+	ret, specificReturn := fake.unpauseReturnsOnCall[len(fake.unpauseArgsForCall)]
+	fake.unpauseArgsForCall = append(fake.unpauseArgsForCall, struct{}{})
+	fake.recordInvocation("Unpause", []interface{}{})
+	fake.unpauseMutex.Unlock()
+	if fake.UnpauseStub != nil {
+		return fake.UnpauseStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.unpauseReturns.result1
+}
+
+func (fake *FakeResource) UnpauseCallCount() int {
+	fake.unpauseMutex.RLock()
+	defer fake.unpauseMutex.RUnlock()
+	return len(fake.unpauseArgsForCall)
+}
+
+func (fake *FakeResource) UnpauseReturns(result1 error) {
+	fake.UnpauseStub = nil
+	fake.unpauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) UnpauseReturnsOnCall(i int, result1 error) {
+	fake.UnpauseStub = nil
+	if fake.unpauseReturnsOnCall == nil {
+		fake.unpauseReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.unpauseReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) Reload() (bool, error) {
+	fake.reloadMutex.Lock()
+	ret, specificReturn := fake.reloadReturnsOnCall[len(fake.reloadArgsForCall)]
+	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
+	fake.recordInvocation("Reload", []interface{}{})
+	fake.reloadMutex.Unlock()
+	if fake.ReloadStub != nil {
+		return fake.ReloadStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.reloadReturns.result1, fake.reloadReturns.result2
+}
+
+func (fake *FakeResource) ReloadCallCount() int {
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
+	return len(fake.reloadArgsForCall)
+}
+
+func (fake *FakeResource) ReloadReturns(result1 bool, result2 error) {
+	fake.ReloadStub = nil
+	fake.reloadReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResource) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.ReloadStub = nil
+	if fake.reloadReturnsOnCall == nil {
+		fake.reloadReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.reloadReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -475,6 +725,16 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.checkErrorMutex.RUnlock()
 	fake.pausedMutex.RLock()
 	defer fake.pausedMutex.RUnlock()
+	fake.webhookTokenMutex.RLock()
+	defer fake.webhookTokenMutex.RUnlock()
+	fake.failingToCheckMutex.RLock()
+	defer fake.failingToCheckMutex.RUnlock()
+	fake.pauseMutex.RLock()
+	defer fake.pauseMutex.RUnlock()
+	fake.unpauseMutex.RLock()
+	defer fake.unpauseMutex.RUnlock()
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
 	return fake.invocations
 }
 

@@ -25,6 +25,7 @@ type Pipeline interface {
 	Config() atc.Config
 	Public() bool
 	Paused() bool
+	ScopedName(string) string
 
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
@@ -165,6 +166,10 @@ func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
 func (p *pipeline) Config() atc.Config           { return p.config }
 func (p *pipeline) Public() bool                 { return p.public }
 func (p *pipeline) Paused() bool                 { return p.paused }
+
+func (p *pipeline) ScopedName(n string) string {
+	return p.name + ":" + n
+}
 
 // Write test
 func (p *pipeline) CheckPaused() (bool, error) {
@@ -791,7 +796,7 @@ func (p *pipeline) Resource(name string) (Resource, bool, error) {
 		"r.name":        name,
 	}).RunWith(p.conn).QueryRow()
 
-	resource := &resource{conn: p.conn}
+	resource := &resource{conn: p.conn, encryption: p.encryption}
 	err := scanResource(resource, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -815,7 +820,7 @@ func (p *pipeline) Resources() ([]Resource, error) {
 	resources := []Resource{}
 
 	for rows.Next() {
-		newResource := &resource{conn: p.conn}
+		newResource := &resource{conn: p.conn, encryption: p.encryption}
 		err := scanResource(newResource, rows)
 		if err != nil {
 			return nil, err

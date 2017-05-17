@@ -9,7 +9,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) UnpauseResource(pipelineDB db.PipelineDB, _ dbng.Pipeline) http.Handler {
+func (s *Server) UnpauseResource(_ db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := rata.Param(r, "resource_name")
 
@@ -17,7 +17,7 @@ func (s *Server) UnpauseResource(pipelineDB db.PipelineDB, _ dbng.Pipeline) http
 			"resource": resourceName,
 		})
 
-		_, found, err := pipelineDB.GetResource(resourceName)
+		dbResource, found, err := dbPipeline.Resource(resourceName)
 		if err != nil {
 			logger.Error("failed-to-get-resource", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -30,7 +30,7 @@ func (s *Server) UnpauseResource(pipelineDB db.PipelineDB, _ dbng.Pipeline) http
 			return
 		}
 
-		err = pipelineDB.UnpauseResource(resourceName)
+		err = dbResource.Unpause()
 		if err != nil {
 			logger.Error("failed-to-unpause", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -9,7 +9,7 @@ import (
 )
 
 type ScannerFactory interface {
-	NewResourceScanner(db RadarDB, dbPipeline dbng.Pipeline) Scanner
+	NewResourceScanner(dbPipeline dbng.Pipeline) Scanner
 }
 
 type scannerFactory struct {
@@ -30,6 +30,6 @@ func NewScannerFactory(
 	}
 }
 
-func (f *scannerFactory) NewResourceScanner(db RadarDB, dbPipeline dbng.Pipeline) Scanner {
-	return NewResourceScanner(clock.NewClock(), f.resourceFactory, f.defaultInterval, db, dbPipeline, f.externalURL)
+func (f *scannerFactory) NewResourceScanner(dbPipeline dbng.Pipeline) Scanner {
+	return NewResourceScanner(clock.NewClock(), f.resourceFactory, f.defaultInterval, dbPipeline, f.externalURL)
 }

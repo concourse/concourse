@@ -51,7 +51,6 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, dbPip
 		clock.NewClock(),
 		rsf.resourceFactory,
 		rsf.interval,
-		pipelineDB,
 		dbPipeline,
 		externalURL,
 	)

@@ -103,4 +103,61 @@ var _ = Describe("Resource", func() {
 			})
 		})
 	})
+
+	Describe("Pause", func() {
+		var (
+			resource dbng.Resource
+			err      error
+			found    bool
+		)
+
+		JustBeforeEach(func() {
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.Paused()).To(BeFalse())
+		})
+
+		It("pauses the resource", func() {
+			err = resource.Pause()
+			Expect(err).ToNot(HaveOccurred())
+
+			found, err = resource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.Paused()).To(BeTrue())
+		})
+	})
+
+	Describe("Unpause", func() {
+		var (
+			resource dbng.Resource
+			err      error
+			found    bool
+		)
+
+		JustBeforeEach(func() {
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = resource.Pause()
+			Expect(err).ToNot(HaveOccurred())
+
+			found, err = resource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.Paused()).To(BeTrue())
+		})
+
+		It("pauses the resource", func() {
+			err = resource.Unpause()
+			Expect(err).ToNot(HaveOccurred())
+
+			found, err = resource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.Paused()).To(BeFalse())
+		})
+	})
 })

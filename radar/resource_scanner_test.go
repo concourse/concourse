@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
@@ -16,7 +15,6 @@ import (
 	"github.com/concourse/atc/worker"
 
 	. "github.com/concourse/atc/radar"
-	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/resource"
 	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	. "github.com/onsi/ginkgo"
@@ -28,7 +26,6 @@ var _ = Describe("ResourceScanner", func() {
 		epoch time.Time
 
 		fakeResourceFactory *rfakes.FakeResourceFactory
-		fakeRadarDB         *radarfakes.FakeRadarDB
 		fakeDBPipeline      *dbngfakes.FakePipeline
 		fakeClock           *fakeclock.FakeClock
 		interval            time.Duration
@@ -48,7 +45,6 @@ var _ = Describe("ResourceScanner", func() {
 	BeforeEach(func() {
 		epoch = time.Unix(123, 456).UTC()
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
-		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		fakeDBPipeline = new(dbngfakes.FakePipeline)
 		fakeDBResource = new(dbngfakes.FakeResource)
 		fakeDBPipeline.IDReturns(42)
@@ -61,7 +57,6 @@ var _ = Describe("ResourceScanner", func() {
 			fakeClock,
 			fakeResourceFactory,
 			interval,
-			fakeRadarDB,
 			fakeDBPipeline,
 			"https://www.example.com",
 		)
@@ -73,10 +68,7 @@ var _ = Describe("ResourceScanner", func() {
 			Tags:   atc.Tags{"some-tag"},
 		}
 
-		fakeRadarDB.ScopedNameStub = func(thing string) string {
-			return "pipeline:" + thing
-		}
-		fakeRadarDB.ReloadReturns(true, nil)
+		fakeDBPipeline.ReloadReturns(true, nil)
 
 		fakeResourceType = new(dbngfakes.FakeResourceType)
 		fakeResourceType.IDReturns(1)
@@ -233,11 +225,11 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when there is a current version", func() {
 				BeforeEach(func() {
-					fakeRadarDB.GetLatestVersionedResourceReturns(
-						db.SavedVersionedResource{
+					fakeDBPipeline.GetLatestVersionedResourceReturns(
+						dbng.SavedVersionedResource{
 							ID: 1,
-							VersionedResource: db.VersionedResource{
-								Version: db.Version{
+							VersionedResource: dbng.VersionedResource{
+								Version: dbng.ResourceVersion{
 									"version": "1",
 								},
 							},
@@ -283,9 +275,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("saves them all, in order", func() {
-					Eventually(fakeRadarDB.SaveResourceVersionsCallCount).Should(Equal(1))
+					Eventually(fakeDBPipeline.SaveResourceVersionsCallCount).Should(Equal(1))
 
-					resourceConfig, versions := fakeRadarDB.SaveResourceVersionsArgsForCall(0)
+					resourceConfig, versions := fakeDBPipeline.SaveResourceVersionsArgsForCall(0)
 					Expect(resourceConfig).To(Equal(atc.ResourceConfig{
 						Name: "some-resource",
 						Type: "git",
@@ -300,7 +292,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when saving versions fails", func() {
 					BeforeEach(func() {
-						fakeRadarDB.SaveResourceVersionsReturns(errors.New("failed"))
+						fakeDBPipeline.SaveResourceVersionsReturns(errors.New("failed"))
 					})
 
 					It("does not return an error", func() {
@@ -336,7 +328,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the pipeline is paused", func() {
 				BeforeEach(func() {
-					fakeRadarDB.IsPausedReturns(true, nil)
+					fakeDBPipeline.CheckPausedReturns(true, nil)
 				})
 
 				It("does not check", func() {
@@ -378,7 +370,7 @@ var _ = Describe("ResourceScanner", func() {
 				disaster := errors.New("disaster")
 
 				BeforeEach(func() {
-					fakeRadarDB.IsPausedReturns(false, disaster)
+					fakeDBPipeline.CheckPausedReturns(false, disaster)
 				})
 
 				It("returns an error", func() {
@@ -573,7 +565,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when there is no current version", func() {
 				BeforeEach(func() {
-					fakeRadarDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, nil)
+					fakeDBPipeline.GetLatestVersionedResourceReturns(dbng.SavedVersionedResource{}, false, nil)
 				})
 
 				It("checks from nil", func() {
@@ -586,7 +578,7 @@ var _ = Describe("ResourceScanner", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeRadarDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, disaster)
+					fakeDBPipeline.GetLatestVersionedResourceReturns(dbng.SavedVersionedResource{}, false, disaster)
 				})
 
 				It("returns the error", func() {
@@ -599,13 +591,13 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			Context("when there is a current version", func() {
-				var latestVersion db.Version
+				var latestVersion dbng.ResourceVersion
 				BeforeEach(func() {
-					latestVersion = db.Version{"version": "1"}
-					fakeRadarDB.GetLatestVersionedResourceReturns(
-						db.SavedVersionedResource{
+					latestVersion = dbng.ResourceVersion{"version": "1"}
+					fakeDBPipeline.GetLatestVersionedResourceReturns(
+						dbng.SavedVersionedResource{
 							ID: 1,
-							VersionedResource: db.VersionedResource{
+							VersionedResource: dbng.VersionedResource{
 								Version: latestVersion,
 							},
 						}, true, nil)
@@ -622,7 +614,7 @@ var _ = Describe("ResourceScanner", func() {
 					})
 
 					It("does not save it", func() {
-						Expect(fakeRadarDB.SaveResourceVersionsCallCount()).To(Equal(0))
+						Expect(fakeDBPipeline.SaveResourceVersionsCallCount()).To(Equal(0))
 					})
 				})
 			})
@@ -660,9 +652,9 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("saves them all, in order", func() {
-					Expect(fakeRadarDB.SaveResourceVersionsCallCount()).To(Equal(1))
+					Expect(fakeDBPipeline.SaveResourceVersionsCallCount()).To(Equal(1))
 
-					resourceConfig, versions := fakeRadarDB.SaveResourceVersionsArgsForCall(0)
+					resourceConfig, versions := fakeDBPipeline.SaveResourceVersionsArgsForCall(0)
 					Expect(resourceConfig).To(Equal(atc.ResourceConfig{
 						Name: "some-resource",
 						Type: "git",

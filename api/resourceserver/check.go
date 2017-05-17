@@ -12,7 +12,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) CheckResource(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
+func (s *Server) CheckResource(_ db.PipelineDB, dbPipeline dbng.Pipeline) http.Handler {
 	logger := s.logger.Session("check-resource")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func (s *Server) CheckResource(pipelineDB db.PipelineDB, dbPipeline dbng.Pipelin
 
 		fromVersion := reqBody.From
 		if fromVersion == nil {
-			latestVersion, found, err := pipelineDB.GetLatestVersionedResource(resourceName)
+			latestVersion, found, err := dbPipeline.GetLatestVersionedResource(resourceName)
 			if err != nil {
 				logger.Info("failed-to-get-latest-versioned-resource", lager.Data{"error": err.Error()})
 				w.WriteHeader(http.StatusInternalServerError)
@@ -40,7 +40,7 @@ func (s *Server) CheckResource(pipelineDB db.PipelineDB, dbPipeline dbng.Pipelin
 			}
 		}
 
-		scanner := s.scannerFactory.NewResourceScanner(pipelineDB, dbPipeline)
+		scanner := s.scannerFactory.NewResourceScanner(dbPipeline)
 
 		err = scanner.ScanFromVersion(logger, resourceName, fromVersion)
 		switch scanErr := err.(type) {
@@ -53,7 +53,7 @@ func (s *Server) CheckResource(pipelineDB db.PipelineDB, dbPipeline dbng.Pipelin
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(checkResponseBody)
-		case db.ResourceNotFoundError:
+		case dbng.ResourceNotFoundError:
 			w.WriteHeader(http.StatusNotFound)
 		case error:
 			w.WriteHeader(http.StatusInternalServerError)

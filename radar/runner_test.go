@@ -7,7 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/radar"
 	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/tedsuo/ifrit"
@@ -19,7 +19,7 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		pipelineDB        *dbfakes.FakePipelineDB
+		fakePipeline      *dbngfakes.FakePipeline
 		scanRunnerFactory *radarfakes.FakeScanRunnerFactory
 		noop              bool
 		syncInterval      time.Duration
@@ -31,7 +31,7 @@ var _ = Describe("Runner", func() {
 
 	BeforeEach(func() {
 		scanRunnerFactory = new(radarfakes.FakeScanRunnerFactory)
-		pipelineDB = new(dbfakes.FakePipelineDB)
+		fakePipeline = new(dbngfakes.FakePipeline)
 		noop = false
 		syncInterval = 100 * time.Millisecond
 
@@ -54,11 +54,11 @@ var _ = Describe("Runner", func() {
 			},
 		}
 
-		pipelineDB.ScopedNameStub = func(thing string) string {
+		fakePipeline.ScopedNameStub = func(thing string) string {
 			return "pipeline:" + thing
 		}
-		pipelineDB.ReloadReturns(true, nil)
-		pipelineDB.ConfigReturns(initialConfig)
+		fakePipeline.ReloadReturns(true, nil)
+		fakePipeline.ConfigReturns(initialConfig)
 
 		scanRunnerFactory.ScanResourceRunnerStub = func(lager.Logger, string) ifrit.Runner {
 			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -82,7 +82,7 @@ var _ = Describe("Runner", func() {
 			lagertest.NewTestLogger("test"),
 			noop,
 			scanRunnerFactory,
-			pipelineDB,
+			fakePipeline,
 			syncInterval,
 		))
 	})
@@ -110,7 +110,7 @@ var _ = Describe("Runner", func() {
 
 			config := initialConfig
 
-			pipelineDB.ConfigStub = func() atc.Config {
+			fakePipeline.ConfigStub = func() atc.Config {
 				select {
 				case config = <-configs:
 				default:

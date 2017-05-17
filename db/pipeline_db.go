@@ -35,17 +35,11 @@ type PipelineDB interface {
 	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
 
 	GetResource(resourceName string) (SavedResource, bool, error)
-	GetResources() ([]SavedResource, bool, error)
 	GetResourceType(resourceTypeName string) (SavedResourceType, bool, error)
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 
-	PauseResource(resourceName string) error
-	UnpauseResource(resourceName string) error
-
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	SaveResourceTypeVersion(atc.ResourceType, atc.Version) error
-	GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
-	GetLatestEnabledVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
 	EnableVersionedResource(versionedResourceID int) error
 	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
@@ -213,38 +207,6 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, bool, er
 	}
 
 	return resource, found, nil
-}
-
-func (pdb *pipelineDB) GetResources() ([]SavedResource, bool, error) {
-	rows, err := pdb.conn.Query(`
-			SELECT id, name, config, check_error, paused
-			FROM resources
-			WHERE pipeline_id = $1
-				AND active = true
-		`, pdb.ID)
-
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer rows.Close()
-
-	savedResources := []SavedResource{}
-
-	for rows.Next() {
-		savedResource, found, err := pdb.scanResource(rows)
-		if err != nil {
-			return nil, false, err
-		}
-
-		if !found {
-			return nil, false, errors.New("resource-not-found")
-		}
-
-		savedResources = append(savedResources, savedResource)
-	}
-
-	return savedResources, true, nil
 }
 
 func (pdb *pipelineDB) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
@@ -542,44 +504,6 @@ func (pdb *pipelineDB) getResourceType(tx Tx, name string) (SavedResourceType, b
 	return savedResourceType, true, nil
 }
 
-func (pdb *pipelineDB) PauseResource(resource string) error {
-	return pdb.updatePaused(resource, true)
-}
-
-func (pdb *pipelineDB) UnpauseResource(resource string) error {
-	return pdb.updatePaused(resource, false)
-}
-
-func (pdb *pipelineDB) updatePaused(resource string, pause bool) error {
-	tx, err := pdb.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	result, err := tx.Exec(`
-		UPDATE resources
-		SET paused = $1
-		WHERE name = $2
-			AND pipeline_id = $3
-	`, pause, resource, pdb.ID)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
-	}
-
-	return tx.Commit()
-}
-
 func (pdb *pipelineDB) SaveResourceVersions(config atc.ResourceConfig, versions []atc.Version) error {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
@@ -692,95 +616,6 @@ func (pdb *pipelineDB) toggleVersionedResource(versionedResourceID int, enable b
 	}
 
 	return nil
-}
-
-func (pdb *pipelineDB) GetLatestEnabledVersionedResource(resourceName string) (SavedVersionedResource, bool, error) {
-	var versionBytes, metadataBytes string
-
-	svr := SavedVersionedResource{
-		VersionedResource: VersionedResource{
-			Resource:   resourceName,
-			PipelineID: pdb.GetPipelineID(),
-		},
-	}
-
-	err := pdb.conn.QueryRow(`
-		SELECT v.id, v.enabled, v.type, v.version, v.metadata, v.modified_time
-		FROM versioned_resources v, resources r
-		WHERE v.resource_id = r.id
-			AND r.name = $1
-			AND enabled = true
-			AND r.pipeline_id = $2
-		ORDER BY check_order DESC
-		LIMIT 1
-	`, resourceName, pdb.ID).Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.ModifiedTime)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return SavedVersionedResource{}, false, nil
-		}
-
-		return SavedVersionedResource{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(versionBytes), &svr.Version)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(metadataBytes), &svr.Metadata)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	return svr, true, nil
-}
-
-func (pdb *pipelineDB) GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error) {
-	var versionBytes, metadataBytes string
-
-	svr := SavedVersionedResource{
-		VersionedResource: VersionedResource{
-			Resource:   resourceName,
-			PipelineID: pdb.ID,
-		},
-	}
-
-	err := pdb.conn.QueryRow(`
-		SELECT v.id, v.enabled, v.type, v.version, v.metadata, v.modified_time, v.check_order
-		FROM versioned_resources v, resources r
-		WHERE v.resource_id = r.id
-			AND r.name = $1
-			AND r.pipeline_id = $2
-		ORDER BY check_order DESC
-		LIMIT 1
-	`, resourceName, pdb.ID).Scan(
-		&svr.ID,
-		&svr.Enabled,
-		&svr.Type,
-		&versionBytes,
-		&metadataBytes,
-		&svr.ModifiedTime,
-		&svr.CheckOrder,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return SavedVersionedResource{}, false, nil
-		}
-
-		return SavedVersionedResource{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(versionBytes), &svr.Version)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	err = json.Unmarshal([]byte(metadataBytes), &svr.Metadata)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	return svr, true, nil
 }
 
 func (pdb *pipelineDB) SetResourceCheckError(resource SavedResource, cause error) error {

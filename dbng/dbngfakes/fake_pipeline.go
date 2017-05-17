@@ -85,6 +85,17 @@ type FakePipeline struct {
 	pausedReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	ScopedNameStub        func(string) string
+	scopedNameMutex       sync.RWMutex
+	scopedNameArgsForCall []struct {
+		arg1 string
+	}
+	scopedNameReturns struct {
+		result1 string
+	}
+	scopedNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	CheckPausedStub        func() (bool, error)
 	checkPausedMutex       sync.RWMutex
 	checkPausedArgsForCall []struct{}
@@ -864,6 +875,54 @@ func (fake *FakePipeline) PausedReturnsOnCall(i int, result1 bool) {
 	}
 	fake.pausedReturnsOnCall[i] = struct {
 		result1 bool
+	}{result1}
+}
+
+func (fake *FakePipeline) ScopedName(arg1 string) string {
+	fake.scopedNameMutex.Lock()
+	ret, specificReturn := fake.scopedNameReturnsOnCall[len(fake.scopedNameArgsForCall)]
+	fake.scopedNameArgsForCall = append(fake.scopedNameArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("ScopedName", []interface{}{arg1})
+	fake.scopedNameMutex.Unlock()
+	if fake.ScopedNameStub != nil {
+		return fake.ScopedNameStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.scopedNameReturns.result1
+}
+
+func (fake *FakePipeline) ScopedNameCallCount() int {
+	fake.scopedNameMutex.RLock()
+	defer fake.scopedNameMutex.RUnlock()
+	return len(fake.scopedNameArgsForCall)
+}
+
+func (fake *FakePipeline) ScopedNameArgsForCall(i int) string {
+	fake.scopedNameMutex.RLock()
+	defer fake.scopedNameMutex.RUnlock()
+	return fake.scopedNameArgsForCall[i].arg1
+}
+
+func (fake *FakePipeline) ScopedNameReturns(result1 string) {
+	fake.ScopedNameStub = nil
+	fake.scopedNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakePipeline) ScopedNameReturnsOnCall(i int, result1 string) {
+	fake.ScopedNameStub = nil
+	if fake.scopedNameReturnsOnCall == nil {
+		fake.scopedNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.scopedNameReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 
@@ -2682,6 +2741,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.publicMutex.RUnlock()
 	fake.pausedMutex.RLock()
 	defer fake.pausedMutex.RUnlock()
+	fake.scopedNameMutex.RLock()
+	defer fake.scopedNameMutex.RUnlock()
 	fake.checkPausedMutex.RLock()
 	defer fake.checkPausedMutex.RUnlock()
 	fake.reloadMutex.RLock()

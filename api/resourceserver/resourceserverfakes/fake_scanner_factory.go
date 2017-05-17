@@ -10,10 +10,9 @@ import (
 )
 
 type FakeScannerFactory struct {
-	NewResourceScannerStub        func(db radar.RadarDB, pipeline dbng.Pipeline) radar.Scanner
+	NewResourceScannerStub        func(pipeline dbng.Pipeline) radar.Scanner
 	newResourceScannerMutex       sync.RWMutex
 	newResourceScannerArgsForCall []struct {
-		db       radar.RadarDB
 		pipeline dbng.Pipeline
 	}
 	newResourceScannerReturns struct {
@@ -26,17 +25,16 @@ type FakeScannerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeScannerFactory) NewResourceScanner(db radar.RadarDB, pipeline dbng.Pipeline) radar.Scanner {
+func (fake *FakeScannerFactory) NewResourceScanner(pipeline dbng.Pipeline) radar.Scanner {
 	fake.newResourceScannerMutex.Lock()
 	ret, specificReturn := fake.newResourceScannerReturnsOnCall[len(fake.newResourceScannerArgsForCall)]
 	fake.newResourceScannerArgsForCall = append(fake.newResourceScannerArgsForCall, struct {
-		db       radar.RadarDB
 		pipeline dbng.Pipeline
-	}{db, pipeline})
-	fake.recordInvocation("NewResourceScanner", []interface{}{db, pipeline})
+	}{pipeline})
+	fake.recordInvocation("NewResourceScanner", []interface{}{pipeline})
 	fake.newResourceScannerMutex.Unlock()
 	if fake.NewResourceScannerStub != nil {
-		return fake.NewResourceScannerStub(db, pipeline)
+		return fake.NewResourceScannerStub(pipeline)
 	}
 	if specificReturn {
 		return ret.result1
@@ -50,10 +48,10 @@ func (fake *FakeScannerFactory) NewResourceScannerCallCount() int {
 	return len(fake.newResourceScannerArgsForCall)
 }
 
-func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) (radar.RadarDB, dbng.Pipeline) {
+func (fake *FakeScannerFactory) NewResourceScannerArgsForCall(i int) dbng.Pipeline {
 	fake.newResourceScannerMutex.RLock()
 	defer fake.newResourceScannerMutex.RUnlock()
-	return fake.newResourceScannerArgsForCall[i].db, fake.newResourceScannerArgsForCall[i].pipeline
+	return fake.newResourceScannerArgsForCall[i].pipeline
 }
 
 func (fake *FakeScannerFactory) NewResourceScannerReturns(result1 radar.Scanner) {

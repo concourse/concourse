@@ -27,5 +27,21 @@ func AddNonceToPipelinesAndResourcesAndResourceTypesAndJobsAndTeams(tx migration
 		return err
 	}
 
+	_, err = tx.Exec(`
+		ALTER TABLE resources
+		ADD COLUMN nonce text;
+`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		ALTER TABLE resources
+		ALTER COLUMN config TYPE text;
+`)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
