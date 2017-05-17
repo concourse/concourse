@@ -904,7 +904,7 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	resourceTypes := []ResourceType{}
 
 	for rows.Next() {
-		resourceType := &resourceType{conn: p.conn}
+		resourceType := &resourceType{conn: p.conn, encryption: p.encryption}
 		err := scanResourceType(resourceType, rows)
 		if err != nil {
 			return nil, err
@@ -922,7 +922,7 @@ func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 		"name":        name,
 	}).RunWith(p.conn).QueryRow()
 
-	resourceType := &resourceType{conn: p.conn}
+	resourceType := &resourceType{conn: p.conn, encryption: p.encryption}
 	err := scanResourceType(resourceType, row)
 	if err != nil {
 		if err == sql.ErrNoRows {

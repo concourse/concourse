@@ -1054,11 +1054,16 @@ func (t *team) saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID
 		return err
 	}
 
+	encryptedPayload, nonce, err := t.encryption.Encrypt(configPayload)
+	if err != nil {
+		return err
+	}
+
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resource_types
-		SET config = $3, type = $4, active = true
+		SET config = $3, type = $4, active = true, nonce = $5
 		WHERE name = $1 AND pipeline_id = $2
-	`, resourceType.Name, pipelineID, configPayload, resourceType.Type)
+	`, resourceType.Name, pipelineID, encryptedPayload, resourceType.Type, nonce)
 	if err != nil {
 		return err
 	}
@@ -1068,9 +1073,9 @@ func (t *team) saveResourceType(tx Tx, resourceType atc.ResourceType, pipelineID
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO resource_types (name, type, pipeline_id, config, active)
-		VALUES ($1, $2, $3, $4, true)
-	`, resourceType.Name, resourceType.Type, pipelineID, configPayload)
+		INSERT INTO resource_types (name, type, pipeline_id, config, active, nonce)
+		VALUES ($1, $2, $3, $4, true, $5)
+	`, resourceType.Name, resourceType.Type, pipelineID, encryptedPayload, nonce)
 
 	return swallowUniqueViolation(err)
 }

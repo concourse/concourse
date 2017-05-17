@@ -5,7 +5,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
@@ -14,7 +13,6 @@ import (
 type resourceTypeScanner struct {
 	resourceFactory resource.ResourceFactory
 	defaultInterval time.Duration
-	db              RadarDB
 	dbPipeline      dbng.Pipeline
 	externalURL     string
 }
@@ -22,21 +20,19 @@ type resourceTypeScanner struct {
 func NewResourceTypeScanner(
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
-	db RadarDB,
 	dbPipeline dbng.Pipeline,
 	externalURL string,
 ) Scanner {
 	return &resourceTypeScanner{
 		resourceFactory: resourceFactory,
 		defaultInterval: defaultInterval,
-		db:              db,
 		dbPipeline:      dbPipeline,
 		externalURL:     externalURL,
 	}
 }
 
 func (scanner *resourceTypeScanner) Run(logger lager.Logger, resourceTypeName string) (time.Duration, error) {
-	pipelinePaused, err := scanner.db.IsPaused()
+	pipelinePaused, err := scanner.dbPipeline.CheckPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-paused", err)
 		return 0, err
@@ -83,14 +79,14 @@ func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourc
 }
 
 func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceTypeName string) error {
-	savedResourceType, found, err := scanner.db.GetResourceType(resourceTypeName)
+	savedResourceType, found, err := scanner.dbPipeline.ResourceType(resourceTypeName)
 	if err != nil {
 		logger.Error("failed-to-get-current-version", err)
 		return err
 	}
 
 	if !found {
-		return db.ResourceTypeNotFoundError{Name: resourceTypeName}
+		return dbng.ResourceTypeNotFoundError{Name: resourceTypeName}
 	}
 
 	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
@@ -103,7 +99,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 
 	resourceSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: savedResourceType.Config.Type,
+			ResourceType: savedResourceType.Type(),
 			Privileged:   true,
 		},
 		Tags:   []string{},
@@ -113,9 +109,9 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	res, err := scanner.resourceFactory.NewCheckResource(
 		logger,
 		nil,
-		dbng.ForResourceType(savedResourceType.ID),
-		savedResourceType.Config.Type,
-		savedResourceType.Config.Source,
+		dbng.ForResourceType(savedResourceType.ID()),
+		savedResourceType.Type(),
+		savedResourceType.Source(),
 		dbng.ContainerMetadata{
 			Type: dbng.ContainerTypeCheck,
 		},
@@ -128,7 +124,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		return err
 	}
 
-	newVersions, err := res.Check(savedResourceType.Config.Source, atc.Version(savedResourceType.Version))
+	newVersions, err := res.Check(savedResourceType.Source(), atc.Version(savedResourceType.Version()))
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
@@ -150,7 +146,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 	})
 
 	version := newVersions[len(newVersions)-1]
-	err = scanner.db.SaveResourceTypeVersion(savedResourceType.Config, version)
+	err = savedResourceType.SaveVersion(version)
 	if err != nil {
 		logger.Error("failed-to-save-resource-type-version", err, lager.Data{
 			"version": version,

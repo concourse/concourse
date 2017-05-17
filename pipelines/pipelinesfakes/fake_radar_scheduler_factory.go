@@ -12,10 +12,9 @@ import (
 )
 
 type FakeRadarSchedulerFactory struct {
-	BuildScanRunnerFactoryStub        func(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline, externalURL string) radar.ScanRunnerFactory
+	BuildScanRunnerFactoryStub        func(dbPipeline dbng.Pipeline, externalURL string) radar.ScanRunnerFactory
 	buildScanRunnerFactoryMutex       sync.RWMutex
 	buildScanRunnerFactoryArgsForCall []struct {
-		pipelineDB  db.PipelineDB
 		dbPipeline  dbng.Pipeline
 		externalURL string
 	}
@@ -42,18 +41,17 @@ type FakeRadarSchedulerFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactory(pipelineDB db.PipelineDB, dbPipeline dbng.Pipeline, externalURL string) radar.ScanRunnerFactory {
+func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactory(dbPipeline dbng.Pipeline, externalURL string) radar.ScanRunnerFactory {
 	fake.buildScanRunnerFactoryMutex.Lock()
 	ret, specificReturn := fake.buildScanRunnerFactoryReturnsOnCall[len(fake.buildScanRunnerFactoryArgsForCall)]
 	fake.buildScanRunnerFactoryArgsForCall = append(fake.buildScanRunnerFactoryArgsForCall, struct {
-		pipelineDB  db.PipelineDB
 		dbPipeline  dbng.Pipeline
 		externalURL string
-	}{pipelineDB, dbPipeline, externalURL})
-	fake.recordInvocation("BuildScanRunnerFactory", []interface{}{pipelineDB, dbPipeline, externalURL})
+	}{dbPipeline, externalURL})
+	fake.recordInvocation("BuildScanRunnerFactory", []interface{}{dbPipeline, externalURL})
 	fake.buildScanRunnerFactoryMutex.Unlock()
 	if fake.BuildScanRunnerFactoryStub != nil {
-		return fake.BuildScanRunnerFactoryStub(pipelineDB, dbPipeline, externalURL)
+		return fake.BuildScanRunnerFactoryStub(dbPipeline, externalURL)
 	}
 	if specificReturn {
 		return ret.result1
@@ -67,10 +65,10 @@ func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryCallCount() int {
 	return len(fake.buildScanRunnerFactoryArgsForCall)
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryArgsForCall(i int) (db.PipelineDB, dbng.Pipeline, string) {
+func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryArgsForCall(i int) (dbng.Pipeline, string) {
 	fake.buildScanRunnerFactoryMutex.RLock()
 	defer fake.buildScanRunnerFactoryMutex.RUnlock()
-	return fake.buildScanRunnerFactoryArgsForCall[i].pipelineDB, fake.buildScanRunnerFactoryArgsForCall[i].dbPipeline, fake.buildScanRunnerFactoryArgsForCall[i].externalURL
+	return fake.buildScanRunnerFactoryArgsForCall[i].dbPipeline, fake.buildScanRunnerFactoryArgsForCall[i].externalURL
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildScanRunnerFactoryReturns(result1 radar.ScanRunnerFactory) {

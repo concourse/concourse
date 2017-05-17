@@ -6,12 +6,10 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/atc/dbng"
 	"github.com/concourse/atc/dbng/dbngfakes"
 	. "github.com/concourse/atc/radar"
-	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/worker"
 
 	rfakes "github.com/concourse/atc/resource/resourcefakes"
@@ -22,7 +20,6 @@ import (
 var _ = Describe("ResourceTypeScanner", func() {
 	var (
 		fakeResourceFactory *rfakes.FakeResourceFactory
-		fakeRadarDB         *radarfakes.FakeRadarDB
 		fakeDBPipeline      *dbngfakes.FakePipeline
 		interval            time.Duration
 
@@ -31,7 +28,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 		scanner Scanner
 
-		savedResourceType db.SavedResourceType
+		savedResourceType *dbngfakes.FakeResourceType
 
 		fakeLock *lockfakes.FakeLock
 		teamID   = 123
@@ -39,39 +36,28 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 	BeforeEach(func() {
 		fakeResourceFactory = new(rfakes.FakeResourceFactory)
-		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		interval = 1 * time.Minute
 
 		fakeDBPipeline = new(dbngfakes.FakePipeline)
+		savedResourceType = new(dbngfakes.FakeResourceType)
 
 		scanner = NewResourceTypeScanner(
 			fakeResourceFactory,
 			interval,
-			fakeRadarDB,
 			fakeDBPipeline,
 			"https://www.example.com",
 		)
 
-		fakeRadarDB.ScopedNameStub = func(thing string) string {
-			return "pipeline:" + thing
-		}
+		fakeDBPipeline.ReloadReturns(true, nil)
 
-		fakeRadarDB.ReloadReturns(true, nil)
-
-		savedResourceType = db.SavedResourceType{
-			ID:   39,
-			Name: "some-resource-type",
-			Type: "docker-image",
-			Config: atc.ResourceType{
-				Name:   "some-resource-type",
-				Type:   "docker-image",
-				Source: atc.Source{"custom": "source"},
-			},
-		}
+		savedResourceType.IDReturns(39)
+		savedResourceType.NameReturns("some-resource-type")
+		savedResourceType.TypeReturns("docker-image")
+		savedResourceType.SourceReturns(atc.Source{"custom": "source"})
 
 		fakeLock = &lockfakes.FakeLock{}
 
-		fakeRadarDB.GetResourceTypeReturns(savedResourceType, true, nil)
+		fakeDBPipeline.ResourceTypeReturns(savedResourceType, true, nil)
 
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.NameReturns("some-pipeline")
@@ -176,8 +162,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			Context("when there is a current version", func() {
 				BeforeEach(func() {
-					savedResourceType.Version = db.Version{"version": "42"}
-					fakeRadarDB.GetResourceTypeReturns(savedResourceType, true, nil)
+					savedResourceType.VersionReturns(atc.Version{"version": "42"})
+					fakeDBPipeline.ResourceTypeReturns(savedResourceType, true, nil)
 				})
 
 				It("checks with it", func() {
@@ -219,15 +205,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 				})
 
 				It("saves the latest resource type version", func() {
-					Eventually(fakeRadarDB.SaveResourceTypeVersionCallCount).Should(Equal(1))
+					Eventually(savedResourceType.SaveVersionCallCount).Should(Equal(1))
 
-					resourceType, version := fakeRadarDB.SaveResourceTypeVersionArgsForCall(0)
-					Expect(resourceType).To(Equal(atc.ResourceType{
-						Name:   "some-resource-type",
-						Type:   "docker-image",
-						Source: atc.Source{"custom": "source"},
-					}))
-
+					version := savedResourceType.SaveVersionArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"version": "3"}))
 				})
 			})
@@ -247,7 +227,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			Context("when the pipeline is paused", func() {
 				BeforeEach(func() {
-					fakeRadarDB.IsPausedReturns(true, nil)
+					fakeDBPipeline.CheckPausedReturns(true, nil)
 				})
 
 				It("does not check", func() {

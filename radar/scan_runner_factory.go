@@ -34,7 +34,6 @@ type scanRunnerFactory struct {
 func NewScanRunnerFactory(
 	resourceFactory resource.ResourceFactory,
 	defaultInterval time.Duration,
-	db RadarDB,
 	dbPipeline dbng.Pipeline,
 	clock clock.Clock,
 	externalURL string,
@@ -49,7 +48,6 @@ func NewScanRunnerFactory(
 	resourceTypeScanner := NewResourceTypeScanner(
 		resourceFactory,
 		defaultInterval,
-		db,
 		dbPipeline,
 		externalURL,
 	)

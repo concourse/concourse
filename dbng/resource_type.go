@@ -50,18 +50,19 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 	return versionedResourceTypes
 }
 
-var resourceTypesQuery = psql.Select("id, name, type, config, version").
+var resourceTypesQuery = psql.Select("id, name, type, config, version, nonce").
 	From("resource_types").
 	Where(sq.Eq{"active": true})
 
 type resourceType struct {
-	conn Conn
-
 	id      int
 	name    string
 	type_   string
 	source  atc.Source
 	version atc.Version
+
+	conn       Conn
+	encryption EncryptionStrategy
 }
 
 func (t *resourceType) ID() int            { return t.id }
@@ -113,11 +114,11 @@ func (t *resourceType) Reload() (bool, error) {
 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON []byte
-		version    sql.NullString
+		configJSON     []byte
+		version, nonce sql.NullString
 	)
 
-	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &version)
+	err := row.Scan(&t.id, &t.name, &t.type_, &configJSON, &version, &nonce)
 	if err != nil {
 		return err
 	}
@@ -129,8 +130,13 @@ func scanResourceType(t *resourceType, row scannable) error {
 		}
 	}
 
+	decryptedConfig, err := t.encryption.Decrypt(string(configJSON), nonce.String)
+	if err != nil {
+		return err
+	}
+
 	var config atc.ResourceType
-	err = json.Unmarshal(configJSON, &config)
+	err = json.Unmarshal(decryptedConfig, &config)
 	if err != nil {
 		return err
 	}
