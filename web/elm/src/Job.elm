@@ -400,6 +400,7 @@ view model =
                                 [ class "build-action fr"
                                 , disabled job.disableManualTrigger
                                 , attribute "aria-label" "Trigger Build"
+                                , attribute "title" "Trigger Build"
                                 ]
                                 [ Html.i [ class "fa fa-plus-circle" ] []
                                 ]
