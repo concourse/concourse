@@ -657,6 +657,7 @@ viewBuildHeader build { now, job, history } =
                             [ class "build-action fr"
                             , disabled buttonDisabled
                             , attribute "aria-label" "Trigger Build"
+                            , attribute "title" "Trigger Build"
                             , onLeftClick <| TriggerBuild build.job
                             ]
                             [ Html.i [ class "fa fa-plus-circle" ] [] ]
